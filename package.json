@@ -8,7 +8,8 @@
     "build": "pnpm run build:preload && pnpm run build:main && vite build",
     "dev": "concurrently -k \"cross-env VITE_DEV_SERVER_URL=http://localhost:5173 pnpm run start:electron\" \"vite\"",
     "start:electron": "pnpm run build:preload && pnpm run build:main && electron dist-electron/main/index.js",
-    "dist": "pnpm run build && electron-builder"
+    "dist": "pnpm run build && electron-builder",
+    "dist:mac": "cross-env ELECTRON_BUILDER_PLATFORM=darwin pnpm run dist"
   },
   "main": "dist-electron/main/index.js",
   "keywords": [],
