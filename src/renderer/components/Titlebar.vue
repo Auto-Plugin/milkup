@@ -1,30 +1,34 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import useTitle from '../../hooks/useTitle'
-import MenuDropDown from './MenuDropDown.vue'
-import { isWin } from '../lib/os'
+import { ref } from "vue"
+import useTitle from "../../hooks/useTitle"
+import MenuDropDown from "./MenuDropDown.vue"
+import { isWin } from "../lib/os"
 
 const { title } = useTitle()
 
 const isFullScreen = ref(false)
 const minimize = () => {
-  window.electronAPI?.windowControl?.('minimize')
+  window.electronAPI?.windowControl?.("minimize")
 }
 const toggleMaximize = () => {
   isFullScreen.value = !isFullScreen.value
-  window.electronAPI?.windowControl?.('maximize')
+  window.electronAPI?.windowControl?.("maximize")
 }
-const close = () => window.electronAPI?.windowControl?.('close')
+const close = () => window.electronAPI?.windowControl?.("close")
 </script>
 
 <template>
   <div class="TitlebarBox">
-    <div></div>
+    <div v-if="!isWin"></div>
     <div class="title" @dblclick="toggleMaximize">{{ title }}</div>
     <MenuDropDown />
     <div class="window-controls" v-if="isWin">
       <span @click="minimize" class="iconfont icon-min"></span>
-      <span @click="toggleMaximize" class="iconfont" :class="isFullScreen ? 'icon-normal' : 'icon-max'"></span>
+      <span
+        @click="toggleMaximize"
+        class="iconfont"
+        :class="isFullScreen ? 'icon-normal' : 'icon-max'"
+      ></span>
       <span @click="close" class="iconfont icon-close"></span>
     </div>
   </div>
