@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import useTitle from '../../hooks/useTitle'
 import MenuDropDown from './MenuDropDown.vue'
+import { isWin } from '../lib/os'
 
 const { title } = useTitle()
 
@@ -18,9 +19,10 @@ const close = () => window.electronAPI?.windowControl?.('close')
 
 <template>
   <div class="TitlebarBox">
-    <MenuDropDown />
+    <div></div>
     <div class="title" @dblclick="toggleMaximize">{{ title }}</div>
-    <div class="window-controls">
+    <MenuDropDown />
+    <div class="window-controls" v-if="isWin">
       <span @click="minimize" class="iconfont icon-min"></span>
       <span @click="toggleMaximize" class="iconfont" :class="isFullScreen ? 'icon-normal' : 'icon-max'"></span>
       <span @click="close" class="iconfont icon-close"></span>

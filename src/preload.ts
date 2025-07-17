@@ -1,5 +1,10 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
+window.__MAC__ = process.platform === 'darwin'
+window.__WIN__ = process.platform === 'win32'
+window.__LINUX__ = process.platform === 'linux'
+window.__PLATFORM__ = process.platform
+
 contextBridge.exposeInMainWorld('electronAPI', {
   openFile: () => ipcRenderer.invoke('dialog:openFile'),
   saveFile: (filePath: string | null, content: string) => ipcRenderer.invoke('dialog:saveFile', { filePath, content }),

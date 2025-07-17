@@ -10,4 +10,8 @@ interface Window {
     onOpenFileAtLaunch: (cb: (payload: { filePath: string, content: string }) => void) => void
     openExternal: (url: string) => Promise<void>
   }
+  __MAC__: boolean
+  __WIN__: boolean
+  __LINUX__: boolean
+  __PLATFORM__: NodeJS.Platform
 }
