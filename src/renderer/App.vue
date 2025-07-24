@@ -1,17 +1,23 @@
 <script setup lang="ts">
-import MilkdownEditor from './components/MilkdownEditor.vue'
-import { MilkdownProvider } from '@milkdown/vue'
-import useContent from '@/hooks/useContent'
-import useTitle from '@/hooks/useTitle'
-import { nextTick, ref, watch } from 'vue'
-import Titlebar from './components/Titlebar.vue'
-import useTheme from '@/hooks/useTheme'
-import useSourceCode from '@/hooks/useSourceCode'
-import MarkdownSourceEditor from './components/MarkdownSourceEditor.vue'
-import emitter from './events'
-import StatusBar from './components/StatusBar.vue'
-import Outline from './components/Outline.vue'
-import { isShowOutline } from '@/hooks/useOutline'
+import { MilkdownProvider } from "@milkdown/vue"
+
+import useContent from "@/hooks/useContent"
+import useTitle from "@/hooks/useTitle"
+import useTheme from "@/hooks/useTheme"
+import useSourceCode from "@/hooks/useSourceCode"
+import { isShowOutline } from "@/hooks/useOutline"
+
+import { nextTick, ref, watch } from "vue"
+import emitter from "./events"
+
+import {
+  MilkdownEditor,
+  Titlebar,
+  MarkdownSourceEditor,
+  StatusBar,
+  Outline,
+} from "./components"
+
 const { updateTitle } = useTitle()
 const { markdown } = useContent()
 const { theme } = useTheme()
@@ -24,7 +30,7 @@ watch(markdown, () => {
 watch([theme, isShowSource], () => {
   reBuildMilkdown()
 })
-emitter.on('file:Change', () => {
+emitter.on("file:Change", () => {
   reBuildMilkdown()
 })
 function reBuildMilkdown() {
