@@ -63,7 +63,7 @@ async function local(image: File, nodes: Node[], schema: Schema<any, any>) {
   } else {
     const arrayBuffer = await image.arrayBuffer()
     const buffer = new Uint8Array(arrayBuffer)
-    const filePath = await window.electronAPI.wirteTempImage(buffer)
+    const filePath = await window.electronAPI.writeTempImage(buffer)
     nodes.push(schema.nodes.image.createAndFill({ src: filePath, alt: image.name }) as Node)
   }
 }
