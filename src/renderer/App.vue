@@ -16,7 +16,7 @@ const { updateTitle } = useTitle()
 const { markdown } = useContent()
 const { theme } = useTheme()
 const { isShowSource } = useSourceCode()
-const isShowEditos = ref(true)
+const isShowEditors = ref(true)
 
 watch(markdown, () => {
   updateTitle()
@@ -28,16 +28,16 @@ emitter.on('file:Change', () => {
   reBuildMilkdown()
 })
 function reBuildMilkdown() {
-  isShowEditos.value = false
+  isShowEditors.value = false
   nextTick(() => {
-    isShowEditos.value = true
+    isShowEditors.value = true
   })
 }
 </script>
 
 <template>
   <Titlebar />
-  <div class="editorArea" v-if="isShowEditos">
+  <div class="editorArea" v-if="isShowEditors">
     <Transition name="fade" mode="out-in">
       <div class="outlineBox" v-show="isShowOutline">
         <Outline />
