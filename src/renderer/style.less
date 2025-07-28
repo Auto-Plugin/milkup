@@ -1,3 +1,4 @@
+@import url('./styles/milkdown.less');
 * {
   box-sizing: border-box;
   outline: none;
@@ -37,19 +38,7 @@ input[type='checkbox'] {
   position: relative;
   top: 1.5px;
 }
-.milkdown {
-  height: 100%;
-  background: var(--background-color-1);
-  .editor {
-    height: 100%;
-    .milkdown-image-block {
-      height: 100%;
-      .image-wrapper {
-        height: 100%;
-      }
-    }
-  }
-}
+
 .editor-container {
   border: none !important;
   border-radius: 0 !important;
@@ -70,42 +59,7 @@ input[type='checkbox'] {
     color: var(--selected-color);
   }
 }
-.ProseMirror-focused.ProseMirror .prosemirror-virtual-cursor {
-  --prosemirror-virtual-cursor-color: #73777f;
-  border-left: 2px solid var(--prosemirror-virtual-cursor-color);
-  animation: prosemirror-virtual-cursor-blink 1s linear infinite;
-  animation-delay: 0.1s;
-  transform: translateX(1px);
-}
-@keyframes prosemirror-virtual-cursor-blink {
-  0%,
-  100% {
-    opacity: 1 !important;
-  }
-  50% {
-    opacity: 0;
-  }
-}
-.milkdown .milkdown-image-block > .image-wrapper img {
-  max-height: 100%;
-}
-// .milkdown .editor > p:only-child:has(br.ProseMirror-trailingBreak:only-child) {
-//   position: relative;
-//   &::before {
-//     content: '开始写点什么吧...';
-//     position: absolute;
-//     color: var(--placeholder-color);
-//     pointer-events: none;
-//     left: 0;
-//     top: 50%;
-//     transform: translateY(-50%);
-//     display: block;
-//   }
-// }
-.milkdown-block-handle {
-  top: -100px;
-  position: fixed;
-}
+
 .link {
   &:hover {
     color: var(--primary-color);
