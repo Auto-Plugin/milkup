@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import useTheme from '@/hooks/useTheme'
 import { ref } from 'vue'
+import useTheme from '@/hooks/useTheme'
 
 const { defaultThemes, theme, setTheme } = useTheme()
 const isShowThemeDropdown = ref(false)
@@ -20,12 +20,14 @@ function handleClickOutside() {
   <div class="ThemeSetterBox">
     <div class="theme-options">
       <span class="dropdownBtn">
-        <input :value="theme" class="disableInput" @focus="isShowThemeDropdown = true" @blur="handleClickOutside"
-          readonly></input>
+        <input
+          :value="theme" class="disableInput" readonly @focus="isShowThemeDropdown = true"
+          @blur="handleClickOutside"
+        />
         <Transition name="fade">
-          <div class="dropdownPanel" v-show="isShowThemeDropdown" :style="{ height: defaultThemes.length * 40 + 'px' }">
-            <div class="dropdown-items" v-for="t in defaultThemes">
-              <span @click.stop="handleChangeTheme(t)" :class="{ active: t === theme }">{{ t }}</span>
+          <div v-show="isShowThemeDropdown" class="dropdownPanel" :style="{ height: `${defaultThemes.length * 40}px` }">
+            <div v-for="(t, idx) in defaultThemes" :key="idx" class="dropdown-items">
+              <span :class="{ active: t === theme }" @click.stop="handleChangeTheme(t)">{{ t }}</span>
             </div>
           </div>
         </Transition>

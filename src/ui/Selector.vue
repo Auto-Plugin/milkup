@@ -1,5 +1,5 @@
 <script setup lang='ts'>
-import { ref } from 'vue';
+import { ref } from 'vue'
 
 const props = defineProps<{
   modelValue: string
@@ -8,32 +8,33 @@ const props = defineProps<{
   label?: string
   required?: boolean
 }>()
-const modelValue = ref<string>(props.modelValue)
-const isActive = ref(false)
 const emit = defineEmits<{
   (e: 'update:modelValue', modelValue: string): void
 }>()
+const modelValue = ref<string>(props.modelValue)
+const isActive = ref(false)
 function handleCheckItem(item: string) {
   modelValue.value = item
-  console.log('modelValue.value::: ', modelValue.value);
+  console.log('modelValue.value::: ', modelValue.value)
   emit('update:modelValue', modelValue.value)
   isActive.value = false
 }
 function handleBlur() {
   setTimeout(() => {
     isActive.value = false
-  }, 100);
+  }, 100)
 }
 </script>
 
 <template>
-  <div class='Selector'>
-    <span class="label" :class="{ required: required }"> {{ label }}</span>
+  <div class="Selector">
+    <span class="label" :class="{ required }"> {{ label }}</span>
     <div>
-      <input class="selector-container" @focus="isActive = true" @blur="handleBlur" readonly :value="modelValue"
-        :placeholder="placeholder">
-      </input>
-      <div class="selector-items" v-if="isActive">
+      <input
+        class="selector-container" readonly :value="modelValue" :placeholder="placeholder" @focus="isActive = true"
+        @blur="handleBlur"
+      />
+      <div v-if="isActive" class="selector-items">
         <div v-for="item in items" :key="item" class="selector-item" @click="handleCheckItem(item)">
           {{ item }}
         </div>

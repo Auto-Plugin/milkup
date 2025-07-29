@@ -1,6 +1,5 @@
 import { ref } from 'vue'
 
-
 const defaultThemes = ['light', 'dark']
 type Theme = typeof defaultThemes[number]
 
@@ -12,13 +11,14 @@ function applyTheme(newTheme: Theme) {
   if (newTheme === 'dark') {
     html.classList.add('dark')
     // switchMilkTheme('dark')
-  } else {
+  }
+  else {
     html.classList.remove('dark')
     // switchMilkTheme('light')
   }
   localStorage.setItem('theme', newTheme)
 }
-// @ts-ignore
+// @ts-expect-error
 function switchMilkTheme(theme: 'light' | 'dark') {
   const id = 'milkdown-theme'
   let link = document.getElementById(id) as HTMLLinkElement | null
@@ -35,7 +35,8 @@ function switchMilkTheme(theme: 'light' | 'dark') {
   }
   if (theme === 'light') {
     link.href = `${basePath}/milkdown-themes/nord/style.css`
-  } else {
+  }
+  else {
     link.href = `${basePath}/milkdown-themes/nord-dark/style.css`
   }
 }
@@ -45,7 +46,8 @@ export default function useTheme() {
     const saved = localStorage.getItem('theme') as Theme | null
     if (saved === 'dark' || saved === 'light') {
       applyTheme(saved)
-    } else {
+    }
+    else {
       applyTheme('light') // 默认
     }
   }

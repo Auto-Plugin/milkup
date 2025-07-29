@@ -1,11 +1,11 @@
-import mitt from 'mitt';
+import mitt from 'mitt'
 
-type Events = {
-  'file:Change': void; // Triggered when a file is changed
-  'spellcheck:Update': boolean; // Triggered when spellcheck is updated
-  'outline:Update': Array<{ text: string; level: number; id: string }>; // Triggered when the outline is updated
+interface Events {
+  'file:Change': void // Triggered when a file is changed
+  'spellcheck:Update': boolean // Triggered when spellcheck is updated
+  'outline:Update': Array<{ text: string, level: number, id: string }> // Triggered when the outline is updated
 }
 
-const emitter = mitt<Events>();
+const emitter = mitt<Events>()
 
-export default emitter;
+export default emitter

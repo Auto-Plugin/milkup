@@ -1,4 +1,4 @@
-import { computed, ref, watch } from "vue"
+import { computed, ref, watch } from 'vue'
 
 const contentInfo = {
   markdown: ref(''),
@@ -14,6 +14,6 @@ watch(isModified, (newValue) => {
 export default () => {
   return {
     ...contentInfo,
-    isModified
+    isModified,
   }
 }

@@ -1,5 +1,5 @@
-import { computed, ref } from "vue"
-import useContent from "./useContent"
+import { computed, ref } from 'vue'
+import useContent from './useContent'
 
 const { filePath, isModified } = useContent()
 

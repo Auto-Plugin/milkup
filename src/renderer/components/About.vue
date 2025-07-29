@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { version } from '../../../package.json'
 import logo from '@/assets/icons/milkup.ico'
+import { version } from '../../../package.json'
 
 function openByDefaultBrowser(url: string) {
   window.electronAPI.openExternal(url)
@@ -9,12 +9,14 @@ function openByDefaultBrowser(url: string) {
 
 <template>
   <div class="AboutBox">
-    <div class="auto-plugin"><span class="iconfont icon-github link" @click="openByDefaultBrowser(`https://github.com/Auto-Plugin/milkup`)">Auto-Plugin</span></div>
-    <h1><img :src="logo" alt="" /> MilkUp</h1>
+    <div class="auto-plugin">
+      <span class="iconfont icon-github link" @click="openByDefaultBrowser(`https://github.com/Auto-Plugin/milkup`)">Auto-Plugin</span>
+    </div>
+    <h1><img :src="logo" alt=""> MilkUp</h1>
     <p>一个基于 Milkdown 的 Markdown 编辑器</p>
     <p>version: v{{ version }}</p>
     <p>MIT Copyright © [2025] Larry Zhu</p>
-    <p>Powered by <span @click="openByDefaultBrowser(`https://milkdown.dev`)" class="link">milkdown</span></p>
+    <p>Powered by <span class="link" @click="openByDefaultBrowser(`https://milkdown.dev`)">milkdown</span></p>
   </div>
 </template>
 

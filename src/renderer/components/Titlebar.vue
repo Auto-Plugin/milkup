@@ -1,21 +1,21 @@
 <script setup lang="ts">
-import { ref } from "vue"
-import useTitle from "../../hooks/useTitle"
-import MenuDropDown from "./MenuDropDown.vue"
+import { ref } from 'vue'
+import useTitle from '../../hooks/useTitle'
+import MenuDropDown from './MenuDropDown.vue'
 
 const isWin = window.electronAPI.platform === 'win32'
 const { title } = useTitle()
 
 const isFullScreen = ref(false)
-const minimize = () => {
-  window.electronAPI?.windowControl?.("minimize")
+function minimize() {
+  window.electronAPI?.windowControl?.('minimize')
 }
-const toggleMaximize = () => {
+function toggleMaximize() {
   isFullScreen.value = !isFullScreen.value
-  window.electronAPI?.windowControl?.("maximize")
+  window.electronAPI?.windowControl?.('maximize')
 }
-const close = async function () {
-  window.electronAPI?.windowControl?.("close")
+async function close() {
+  window.electronAPI?.windowControl?.('close')
 }
 window.electronAPI.on('close', () => {
   close()
@@ -26,16 +26,20 @@ window.electronAPI.on('close', () => {
   <div class="TitlebarBox">
     <template v-if="isWin">
       <MenuDropDown />
-      <div class="title" @dblclick="toggleMaximize">{{ title }}</div>
+      <div class="title" @dblclick="toggleMaximize">
+        {{ title }}
+      </div>
       <div class="window-controls">
-        <span @click="minimize" class="iconfont icon-min"></span>
-        <span @click="toggleMaximize" class="iconfont" :class="isFullScreen ? 'icon-normal' : 'icon-max'"></span>
-        <span @click="close" class="iconfont icon-close"></span>
+        <span class="iconfont icon-min" @click="minimize" />
+        <span class="iconfont" :class="isFullScreen ? 'icon-normal' : 'icon-max'" @click="toggleMaximize" />
+        <span class="iconfont icon-close" @click="close" />
       </div>
     </template>
     <template v-else>
-      <div></div>
-      <div class="title" @dblclick="toggleMaximize">{{ title }}</div>
+      <div />
+      <div class="title" @dblclick="toggleMaximize">
+        {{ title }}
+      </div>
       <MenuDropDown />
     </template>
   </div>

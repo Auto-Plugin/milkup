@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./src/renderer/public/logo.svg" alt="MilkUp Logo" width="150"> 
+  <img src="./src/renderer/public/logo.svg" alt="MilkUp Logo" width="150">
   <h1>MilkUp</h1>
 </div>
 

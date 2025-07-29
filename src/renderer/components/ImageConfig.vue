@@ -1,11 +1,11 @@
 <script setup lang='ts'>
-import Input from '@/ui/Input.vue'
 import { ref } from 'vue'
+import Input from '@/ui/Input.vue'
 import UploadConfig from './UploadConfig.vue'
 
 type PasteMethod = 'local' | 'base64' | 'remote'
 const pasteMethod = ref<PasteMethod>(localStorage.getItem('pasteMethod') as PasteMethod || 'local')
-const localPath = ref<string>("/temp")
+const localPath = ref<string>('/temp')
 
 function handleChangePasteMethod(method: PasteMethod) {
   pasteMethod.value = method
@@ -17,29 +17,37 @@ function handleChangeLoaclPath() {
 </script>
 
 <template>
-  <div class='ImageConfigBox'>
+  <div class="ImageConfigBox">
     <div class="options">
       <div>
-        <input type="radio" id="temp" name="pasteMethod" value="local" :checked="pasteMethod === 'local'"
-          @click="handleChangePasteMethod('local')">
+        <input
+          id="temp" type="radio" name="pasteMethod" value="local" :checked="pasteMethod === 'local'"
+          @click="handleChangePasteMethod('local')"
+        >
         <label for="temp">本地文件</label>
       </div>
       <div>
-        <input type="radio" id="local" name="pasteMethod" value="base64" :checked="pasteMethod === 'base64'"
-          @click="handleChangePasteMethod('base64')">
+        <input
+          id="local" type="radio" name="pasteMethod" value="base64" :checked="pasteMethod === 'base64'"
+          @click="handleChangePasteMethod('base64')"
+        >
         <label for="local">转为 Base64</label>
       </div>
       <div>
-        <input type="radio" id="remote" name="pasteMethod" value="remote" :checked="pasteMethod === 'remote'"
-          @click="handleChangePasteMethod('remote')">
+        <input
+          id="remote" type="radio" name="pasteMethod" value="remote" :checked="pasteMethod === 'remote'"
+          @click="handleChangePasteMethod('remote')"
+        >
         <label for="remote">上传</label>
       </div>
     </div>
     <div class="details">
       <div v-if="pasteMethod === 'local'">
-        <Input v-model="localPath" placeholder="/temp" label="本地文件路径" @change="handleChangeLoaclPath"/>
+        <Input v-model="localPath" placeholder="/temp" label="本地文件路径" @change="handleChangeLoaclPath" />
       </div>
-      <div v-if="pasteMethod === 'base64'">图片将自动转为 base64（可能会增大文件体积）</div>
+      <div v-if="pasteMethod === 'base64'">
+        图片将自动转为 base64（可能会增大文件体积）
+      </div>
       <UploadConfig v-if="pasteMethod === 'remote'" />
     </div>
   </div>

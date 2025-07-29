@@ -1,15 +1,13 @@
 // useFile.ts
-import { nextTick, onUnmounted } from "vue"
-import usContent from "./useContent"
-import useTitle from "./useTitle"
-import emitter from "@/renderer/events";
-
+import { nextTick, onUnmounted } from 'vue'
+import emitter from '@/renderer/events'
+import usContent from './useContent'
+import useTitle from './useTitle'
 
 const { updateTitle } = useTitle()
 const { markdown, filePath, originalContent } = usContent()
 
-
-const onOpen = async () => {
+async function onOpen() {
   const result = await window.electronAPI.openFile()
   if (result) {
     filePath.value = result.filePath
@@ -22,7 +20,7 @@ const onOpen = async () => {
   }
 }
 
-const onSave = async (quitAfter: boolean) => {
+async function onSave(quitAfter: boolean) {
   const saved = await window.electronAPI.saveFile(filePath.value || null, markdown.value)
   if (saved) {
     filePath.value = saved
@@ -36,7 +34,7 @@ const onSave = async (quitAfter: boolean) => {
   return saved
 }
 
-const onSaveAs = async () => {
+async function onSaveAs() {
   const result = await window.electronAPI.saveFileAs(markdown.value)
   if (result) {
     filePath.value = result.filePath
@@ -48,7 +46,8 @@ const onSaveAs = async () => {
 // ✅ 注册事件：只执行一次（确保是单例）
 let hasRegistered = false
 function registerMenuEventsOnce() {
-  if (hasRegistered) return
+  if (hasRegistered)
+    return
   hasRegistered = true
 
   window.electronAPI?.onOpenFileAtLaunch?.(({ filePath: launchFilePath, content }) => {
@@ -76,6 +75,6 @@ export default function useFile() {
   return {
     onOpen,
     onSave,
-    onSaveAs
+    onSaveAs,
   }
 }

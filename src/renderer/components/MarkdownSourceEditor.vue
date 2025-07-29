@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { onMounted, watch, ref, onBeforeUnmount } from 'vue'
-import { EditorView, basicSetup } from '@codemirror/basic-setup'
-import { EditorState } from '@codemirror/state'
+import { basicSetup, EditorView } from '@codemirror/basic-setup'
 import { markdown } from '@codemirror/lang-markdown'
+import { EditorState } from '@codemirror/state'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 const props = defineProps<{
   modelValue: string
@@ -51,9 +51,11 @@ onBeforeUnmount(() => {
   editorView?.destroy()
 })
 </script>
+
 <template>
   <div ref="editorContainer" class="editor-container" />
 </template>
+
 <style scoped>
 .editor-container {
   border: 1px solid #ccc;

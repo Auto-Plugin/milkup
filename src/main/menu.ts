@@ -1,4 +1,5 @@
-import { Menu, BrowserWindow } from "electron"
+import type { BrowserWindow } from 'electron'
+import { Menu } from 'electron'
 
 export default function createMenu(win: BrowserWindow) {
   const template: Electron.MenuItemConstructorOptions[] = [
@@ -10,16 +11,16 @@ export default function createMenu(win: BrowserWindow) {
           accelerator: 'CmdOrCtrl+O',
           click: () => {
             win.webContents.send('menu-open')
-          }
+          },
         },
         {
           label: '保存',
           accelerator: 'CmdOrCtrl+S',
           click: () => {
             win.webContents.send('menu-save')
-          }
-        }
-      ]
+          },
+        },
+      ],
     },
     {
       label: '编辑',
@@ -29,8 +30,8 @@ export default function createMenu(win: BrowserWindow) {
         { label: '剪切', accelerator: 'CmdOrCtrl+X', role: 'cut' },
         { label: '复制', accelerator: 'CmdOrCtrl+C', role: 'copy' },
         { label: '粘贴', accelerator: 'CmdOrCtrl+V', role: 'paste' },
-        { label: '全选', accelerator: 'CmdOrCtrl+A', role: 'selectAll' }
-      ]
+        { label: '全选', accelerator: 'CmdOrCtrl+A', role: 'selectAll' },
+      ],
     },
     {
       label: '视图',
@@ -38,19 +39,21 @@ export default function createMenu(win: BrowserWindow) {
         { label: '实际大小', accelerator: 'CmdOrCtrl+0', role: 'resetZoom' },
         { label: '全屏', accelerator: 'F11', role: 'togglefullscreen' },
         {
-          label: '切换视图', accelerator: 'CmdOrCtrl+\/', click: () => {
-            win.webContents.send('view:toggleView');
-          }
-        }
-      ]
+          label: '切换视图',
+          accelerator: 'CmdOrCtrl+\/',
+          click: () => {
+            win.webContents.send('view:toggleView')
+          },
+        },
+      ],
     },
     {
       label: '窗口',
       submenu: [
         { label: '最小化', accelerator: 'CmdOrCtrl+M', role: 'minimize' },
-        { label: '关闭', accelerator: 'CmdOrCtrl+W', role: 'close' }
-      ]
-    }
+        { label: '关闭', accelerator: 'CmdOrCtrl+W', role: 'close' },
+      ],
+    },
   ]
 
   // 在 macOS 上添加应用菜单
@@ -60,7 +63,7 @@ export default function createMenu(win: BrowserWindow) {
       submenu: [
         { label: '隐藏 MilkUp', accelerator: 'Cmd+H', role: 'hide' },
         { label: '隐藏其他', accelerator: 'Cmd+Alt+H', role: 'hideOthers' },
-      ]
+      ],
     })
   }
 

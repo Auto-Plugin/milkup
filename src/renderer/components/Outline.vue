@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import useOutline from '@/hooks/useOutline';
+import useOutline from '@/hooks/useOutline'
 
-const { outline } = useOutline();
+const { outline } = useOutline()
 
-function onOiClick(oi: { id: string; text: string; level: number }) {
+function onOiClick(oi: { id: string, text: string, level: number }) {
   // 滚动到指定元素
-  const element = document.querySelector(`h${oi.level}[id="${oi.id}"]`);
+  const element = document.querySelector(`h${oi.level}[id="${oi.id}"]`)
   if (element) {
-    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    element.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 }
 </script>
@@ -15,11 +15,13 @@ function onOiClick(oi: { id: string; text: string; level: number }) {
 <template>
   <div class="OutlineBox">
     <div class="outlineList">
-      <span class="outlineItem" v-for="oi in outline" :style="{ paddingLeft: `${oi.level * 12}px` }" :key="oi.id"
-        @click="onOiClick(oi)">
+      <span
+        v-for="oi in outline" :key="oi.id" class="outlineItem" :style="{ paddingLeft: `${oi.level * 12}px` }"
+        @click="onOiClick(oi)"
+      >
         {{ oi.text }}
       </span>
-      <span class="empty" v-if="outline.length == 0">暂无内容</span>
+      <span v-if="outline.length === 0" class="empty">暂无内容</span>
     </div>
   </div>
 </template>

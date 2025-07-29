@@ -1,11 +1,11 @@
+import * as fs from 'node:fs'
+import * as path from 'node:path'
 import { app, BrowserWindow, globalShortcut } from 'electron'
-import * as path from 'path'
-import * as fs from 'fs'
 import { registerIpcHandleHandlers, registerIpcOnHandlers } from './ipcBridge'
 import createMenu from './menu'
 
 let win: BrowserWindow
-let isQuiting = false
+const isQuiting = false
 
 async function createWindow() {
   win = new BrowserWindow({
@@ -18,16 +18,17 @@ async function createWindow() {
     icon: path.join(__dirname, '../assets/icons/milkup.ico'),
     webPreferences: {
       sandbox: false,
-      preload: path.resolve(__dirname, "../../dist-electron/preload.js"),
+      preload: path.resolve(__dirname, '../../dist-electron/preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
       webSecurity: false, // 允许加载本地文件
-    }
+    },
   })
   globalShortcut.register('CommandOrControl+Shift+I', () => {
-    if (win) win.webContents.openDevTools()
+    if (win)
+      win.webContents.openDevTools()
   })
-  
+
   // 注册 Cmd+Q 快捷键来退出应用
   if (process.platform === 'darwin') {
     globalShortcut.register('Command+Q', () => {
@@ -35,17 +36,17 @@ async function createWindow() {
     })
   }
   const indexPath = path.join(__dirname, '../../dist', 'index.html')
-
   if (process.env.VITE_DEV_SERVER_URL) {
     await win.loadURL(process.env.VITE_DEV_SERVER_URL)
-  } else {
+  }
+  else {
     await win.loadFile(indexPath)
   }
 
   if (process.env.VITE_DEV_SERVER_URL) {
     win.webContents.openDevTools()
   }
-  
+
   // 处理窗口关闭事件
   win.on('close', (event) => {
     if (process.platform === 'darwin') {
@@ -68,7 +69,8 @@ function sendLaunchFileIfExists() {
         filePath: absolutePath,
         content,
       })
-    } else {
+    }
+    else {
       console.warn('[main] 文件不存在:', absolutePath)
     }
   }
@@ -88,9 +90,6 @@ app.whenReady().then(async () => {
   })
 })
 
-
-
-
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
@@ -101,7 +100,8 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow()
-  } else {
+  }
+  else {
     // 如果窗口存在但被隐藏，则显示它
     if (win && !win.isVisible()) {
       win.show()

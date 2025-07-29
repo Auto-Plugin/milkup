@@ -1,12 +1,12 @@
-import emitter from '@/renderer/events'
 import { onMounted, onUnmounted, ref } from 'vue'
+import emitter from '@/renderer/events'
 
 const isShowOutline = ref(false)
 function toggleShowOutline() {
   isShowOutline.value = !isShowOutline.value
 }
 export default function useOutline() {
-  const outline = ref<{ id: string; level: number; text: string }[]>([] as any)
+  const outline = ref<{ id: string, level: number, text: string }[]>([] as any)
   onMounted(() => {
     emitter.on('outline:Update', setOutline)
   })

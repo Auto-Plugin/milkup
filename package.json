@@ -2,6 +2,18 @@
   "name": "milkup",
   "version": "0.0.4",
   "description": "A Markdown editor built with Milkdown and Vue.js",
+  "author": "",
+  "license": "ISC",
+  "keywords": [],
+  "main": "dist-electron/main/index.js",
+  "simple-git-hooks": {
+    "pre-commit": "npx lint-staged"
+  },
+  "lint-staged": {
+    "*.{js,ts,tsx,vue,json}": [
+      "eslint --cache --fix"
+    ]
+  },
   "scripts": {
     "build:main": "esbuild src/main/index.ts --bundle --platform=node --external:electron --outfile=dist-electron/main/index.js",
     "build:preload": "esbuild src/preload.ts --bundle --platform=neutral --outfile=dist-electron/preload.js --external:electron --format=cjs",
@@ -12,12 +24,49 @@
     "dist:mac-x64": "cross-env ELECTRON_BUILDER_ARCH=x64 pnpm run build && electron-builder --mac",
     "dist:mac-arm64": "cross-env ELECTRON_BUILDER_ARCH=arm64 pnpm run build && electron-builder --mac",
     "dist:linux-x64": "cross-env ELECTRON_BUILDER_ARCH=x64 pnpm run build && electron-builder --linux",
-    "dist:linux-arm64": "cross-env ELECTRON_BUILDER_ARCH=arm64 pnpm run build && electron-builder --linux"
+    "dist:linux-arm64": "cross-env ELECTRON_BUILDER_ARCH=arm64 pnpm run build && electron-builder --linux",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "prepare": "simple-git-hooks"
   },
-  "main": "dist-electron/main/index.js",
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "dependencies": {
+    "@codemirror/basic-setup": "^0.20.0",
+    "@codemirror/lang-markdown": "^6.3.3",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.38.1",
+    "@milkdown/core": "^7.15.2",
+    "@milkdown/crepe": "^7.15.2",
+    "@milkdown/kit": "^7.15.2",
+    "@milkdown/plugin-automd": "^7.15.2",
+    "@milkdown/plugin-listener": "^7.15.2",
+    "@milkdown/plugin-prism": "^7.15.2",
+    "@milkdown/preset-commonmark": "^7.15.2",
+    "@milkdown/preset-gfm": "^7.15.2",
+    "@milkdown/prose": "^7.15.2",
+    "@milkdown/theme-nord": "^7.15.2",
+    "@milkdown/utils": "^7.15.2",
+    "@milkdown/vue": "^7.15.2",
+    "@vue/runtime-dom": "^3.5.17",
+    "autolog.js": "^3.0.1",
+    "mitt": "^3.0.1",
+    "remark-rehype": "^11.1.2",
+    "vue": "^3.5.17"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^5.0.0",
+    "@types/node": "^24.0.13",
+    "@vitejs/plugin-vue": "^6.0.0",
+    "concurrently": "^9.2.0",
+    "cross-env": "^7.0.3",
+    "electron": "^37.2.2",
+    "electron-builder": "^26.0.12",
+    "esbuild": "^0.25.6",
+    "eslint": "^9.32.0",
+    "less": "^4.3.0",
+    "simple-git-hooks": "^2.13.0",
+    "typescript": "^5.8.3",
+    "vite": "^7.0.4"
+  },
   "pnpm": {
     "overrides": {
       "@codemirror/state": "^6.2.0"
@@ -61,40 +110,5 @@
     "linux": {
       "target": "AppImage"
     }
-  },
-  "dependencies": {
-    "@codemirror/basic-setup": "^0.20.0",
-    "@codemirror/lang-markdown": "^6.3.3",
-    "@codemirror/state": "^6.5.2",
-    "@codemirror/view": "^6.38.1",
-    "@milkdown/core": "^7.15.2",
-    "@milkdown/crepe": "^7.15.2",
-    "@milkdown/kit": "^7.15.2",
-    "@milkdown/plugin-automd": "^7.15.2",
-    "@milkdown/plugin-listener": "^7.15.2",
-    "@milkdown/plugin-prism": "^7.15.2",
-    "@milkdown/preset-commonmark": "^7.15.2",
-    "@milkdown/preset-gfm": "^7.15.2",
-    "@milkdown/prose": "^7.15.2",
-    "@milkdown/theme-nord": "^7.15.2",
-    "@milkdown/utils": "^7.15.2",
-    "@milkdown/vue": "^7.15.2",
-    "@vue/runtime-dom": "^3.5.17",
-    "autolog.js": "^3.0.1",
-    "mitt": "^3.0.1",
-    "remark-rehype": "^11.1.2",
-    "vue": "^3.5.17"
-  },
-  "devDependencies": {
-    "@types/node": "^24.0.13",
-    "@vitejs/plugin-vue": "^6.0.0",
-    "concurrently": "^9.2.0",
-    "cross-env": "^7.0.3",
-    "electron": "^37.2.2",
-    "electron-builder": "^26.0.12",
-    "esbuild": "^0.25.6",
-    "less": "^4.3.0",
-    "typescript": "^5.8.3",
-    "vite": "^7.0.4"
   }
 }

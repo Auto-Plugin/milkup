@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { toggleShowOutline } from '@/hooks/useOutline'
 import useSourceCode from '@/hooks/useSourceCode'
-import { toggleShowOutline } from '@/hooks/useOutline';
 
-const { isShowSource, toggleSourceCode } = useSourceCode()
 const props = defineProps<{
   content: string
 }>()
-
+const { isShowSource, toggleSourceCode } = useSourceCode()
 const mode = ref<'chars' | 'lines'>('chars')
 
 const displayText = computed(() => {
@@ -17,17 +16,22 @@ const displayText = computed(() => {
       return `${countMarkdownChars(text)} 字符`
     case 'lines':
       return `${countMarkdownLines(text)} 行`
+    default:
+      return ''
   }
 })
 function cycleMode() {
-  if (mode.value === 'chars') mode.value = 'lines'
-  else if (mode.value === 'lines') mode.value = 'chars'
+  if (mode.value === 'chars')
+    mode.value = 'lines'
+  else if (mode.value === 'lines')
+    mode.value = 'chars'
 }
 function countMarkdownLines(text: string, options = { skipEmpty: true }): number {
-  if (!text) return 0
-  const rawLines = text.split(/(?:\n{2,}|<br\s*\/?>|  \n)/g)
+  if (!text)
+    return 0
+  const rawLines = text.split(/\n{2,}|<br\s*\/?>| {2}\n/g)
   if (options.skipEmpty) {
-    return rawLines.filter((line) => line.trim().length > 0).length
+    return rawLines.filter(line => line.trim().length > 0).length
   }
   return rawLines.length
 }
@@ -44,10 +48,9 @@ window.electronAPI.on('view:toggleView', () => {
   <div class="StatusBarBox">
     <div>
       <Transition name="fade">
-        <span class="iconfont icon-List-outlined" @click="toggleShowOutline" v-if="!isShowSource"></span>
+        <span v-if="!isShowSource" class="iconfont icon-List-outlined" @click="toggleShowOutline" />
       </Transition>
-      <span class="iconfont" @click.stop="toggleSourceCode" :class="isShowSource ? 'icon-input' : 'icon-markdown'">
-      </span>
+      <span class="iconfont" :class="isShowSource ? 'icon-input' : 'icon-markdown'" @click.stop="toggleSourceCode" />
     </div>
     <span @click="cycleMode">{{ displayText }}</span>
   </div>

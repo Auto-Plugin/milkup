@@ -9,22 +9,24 @@ const { onOpen, onSave, onSaveAs } = usefile()
 const activeTab = ref<'settings' | 'about'>('settings')
 const MenuComponents = {
   settings: SettingBase,
-  about: About
+  about: About,
 }
 const MenuOptions = [
   { label: '打开', action: onOpen, icon: 'icon-data-select' },
   { label: '保存', action: onSave, icon: 'icon-baocun' },
   { label: '另存为', action: onSaveAs, icon: 'icon-baocun' },
   { label: '设置', action: () => (activeTab.value = 'settings'), icon: 'icon-config-props', value: 'settings' },
-  { label: '关于', action: () => (activeTab.value = 'about'), icon: 'icon-github', value: 'about' }
+  { label: '关于', action: () => (activeTab.value = 'about'), icon: 'icon-github', value: 'about' },
 ]
 </script>
 
 <template>
   <div class="MenubarBox">
     <div class="optionsContainer">
-      <span v-for="option in MenuOptions" :key="option.label" @click="option.action" class="iconfont"
-        :class="{ active: activeTab === option.value, [option.icon]: true }">
+      <span
+        v-for="option in MenuOptions" :key="option.label" class="iconfont" :class="{ active: activeTab === option.value, [option.icon]: true }"
+        @click="option.action"
+      >
         {{ option.label }}
       </span>
     </div>

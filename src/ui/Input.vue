@@ -1,5 +1,5 @@
 <script setup lang='ts'>
-import { ref } from 'vue';
+import { ref } from 'vue'
 
 const props = defineProps<{
   modelValue: string
@@ -21,9 +21,9 @@ function handleChange() {
 
 <template>
   <div class="input-container">
-    <span class="label" :class="{ required: required }"> {{ label }}</span>
-    <div class='Input'>
-      <input type="text" v-model="modelValue" :placeholder="placeholder" @change="handleChange" />
+    <span class="label" :class="{ required }"> {{ label }}</span>
+    <div class="Input">
+      <input v-model="modelValue" type="text" :placeholder="placeholder" @change="handleChange">
     </div>
   </div>
 </template>

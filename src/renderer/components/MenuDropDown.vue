@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import MenuBar from './MenuBar.vue'
 import { ref } from 'vue'
-import emitter from '../events'
 import logo from '@/assets/icons/milkup.ico'
+import emitter from '../events'
+import MenuBar from './MenuBar.vue'
 
 const isOpen = ref(false)
 emitter.on('file:Change', () => {
@@ -13,10 +13,10 @@ emitter.on('file:Change', () => {
 <template>
   <div class="MenuDropDownBox">
     <div class="dropdown-header">
-      <img :src="logo" alt="" class="logo" :class="{ active: isOpen }" @click="isOpen = !isOpen" />
+      <img :src="logo" alt="" class="logo" :class="{ active: isOpen }" @click="isOpen = !isOpen">
     </div>
     <Transition name="fade">
-      <div class="dropdown-content" v-show="isOpen">
+      <div v-show="isOpen" class="dropdown-content">
         <MenuBar />
       </div>
     </Transition>

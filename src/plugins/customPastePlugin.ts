@@ -1,4 +1,4 @@
-import { Uploader } from '@milkdown/kit/plugin/upload'
+import type { Uploader } from '@milkdown/kit/plugin/upload'
 import type { Node, Schema } from '@milkdown/kit/prose/model'
 import { uploadImage } from '@/api'
 
@@ -28,7 +28,8 @@ export const uploader: Uploader = async (files, schema) => {
     if (pasteMethod === 'remote') {
       try {
         await upload(image, nodes, schema)
-      } catch (error) {
+      }
+      catch (error) {
         console.error('Image upload failed:', error)
         continue
       }
@@ -36,7 +37,8 @@ export const uploader: Uploader = async (files, schema) => {
     if (pasteMethod === 'local') {
       try {
         await local(image, nodes, schema)
-      } catch (error) {
+      }
+      catch (error) {
         console.error('Local image handling failed:', error)
         continue
       }
@@ -48,7 +50,7 @@ function turnToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => resolve(reader.result as string)
-    reader.onerror = (error) => reject(error)
+    reader.onerror = error => reject(error)
     reader.readAsDataURL(file)
   })
 }
@@ -60,7 +62,8 @@ async function local(image: File, nodes: Node[], schema: Schema<any, any>) {
   const filePath = await window.electronAPI.getFilePathInClipboard()
   if (filePath) {
     nodes.push(schema.nodes.image.createAndFill({ src: filePath, alt: image.name }) as Node)
-  } else {
+  }
+  else {
     const arrayBuffer = await image.arrayBuffer()
     const buffer = new Uint8Array(arrayBuffer)
     const filePath = await window.electronAPI.writeTempImage(buffer, localStorage.getItem('localImagePath') || '/temp')

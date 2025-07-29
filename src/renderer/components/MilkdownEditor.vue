@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { upload, uploadConfig } from '@milkdown/kit/plugin/upload'
-import { uploader } from '@/plugins/customPastePlugin'
-import { outline } from '@milkdown/kit/utils'
-import { onMounted } from 'vue'
-import { Ctx } from '@milkdown/kit/ctx'
-import { commonmark } from '@milkdown/preset-commonmark'
-import { automd } from '@milkdown/plugin-automd'
+import type { Ctx } from '@milkdown/kit/ctx'
 import { Crepe } from '@milkdown/crepe'
+import { upload, uploadConfig } from '@milkdown/kit/plugin/upload'
+import { outline } from '@milkdown/kit/utils'
+import { automd } from '@milkdown/plugin-automd'
+import { commonmark } from '@milkdown/preset-commonmark'
+import { onMounted } from 'vue'
+import { uploader } from '@/plugins/customPastePlugin'
 
 import emitter from '../events'
 
@@ -31,7 +31,7 @@ onMounted(async () => {
         text: '开始写点什么吧...',
         mode: 'doc',
       },
-    }
+    },
   })
   crepe.on((lm) => {
     lm.markdownUpdated((Ctx, nextMarkdown) => {
@@ -48,7 +48,7 @@ onMounted(async () => {
     .use(automd)
     .use(upload)
   await crepe.create()
-  editor.ctx.update(uploadConfig.key, (prev) => ({ ...prev, uploader }))
+  editor.ctx.update(uploadConfig.key, prev => ({ ...prev, uploader }))
 })
 function emitOutlineUpdate(ctx: Ctx) {
   const headings = outline()(ctx)
@@ -59,10 +59,11 @@ function emitOutlineUpdate(ctx: Ctx) {
 <template>
   <div class="editor-box">
     <div class="scrollView">
-      <div id="milkdown"></div>
+      <div id="milkdown" />
     </div>
   </div>
 </template>
+
 <style scoped lang="less">
 .editor-box {
   width: 100%;

@@ -1,17 +1,18 @@
 <script setup lang="ts">
-import MilkdownEditor from './components/MilkdownEditor.vue'
 import { MilkdownProvider } from '@milkdown/vue'
-import useContent from '@/hooks/useContent'
-import useTitle from '@/hooks/useTitle'
 import { nextTick, ref, watch } from 'vue'
-import Titlebar from './components/Titlebar.vue'
-import useTheme from '@/hooks/useTheme'
-import useSourceCode from '@/hooks/useSourceCode'
-import MarkdownSourceEditor from './components/MarkdownSourceEditor.vue'
-import emitter from './events'
-import StatusBar from './components/StatusBar.vue'
-import Outline from './components/Outline.vue'
+import useContent from '@/hooks/useContent'
 import { isShowOutline } from '@/hooks/useOutline'
+import useSourceCode from '@/hooks/useSourceCode'
+import useTheme from '@/hooks/useTheme'
+import useTitle from '@/hooks/useTitle'
+import MarkdownSourceEditor from './components/MarkdownSourceEditor.vue'
+import MilkdownEditor from './components/MilkdownEditor.vue'
+import Outline from './components/Outline.vue'
+import StatusBar from './components/StatusBar.vue'
+import Titlebar from './components/Titlebar.vue'
+import emitter from './events'
+
 const { updateTitle } = useTitle()
 const { markdown } = useContent()
 const { theme } = useTheme()
@@ -37,9 +38,9 @@ function reBuildMilkdown() {
 
 <template>
   <Titlebar />
-  <div class="editorArea" v-if="isShowEditors">
+  <div v-if="isShowEditors" class="editorArea">
     <Transition name="fade" mode="out-in">
-      <div class="outlineBox" v-show="isShowOutline && !isShowSource">
+      <div v-show="isShowOutline && !isShowSource" class="outlineBox">
         <Outline />
       </div>
     </Transition>
