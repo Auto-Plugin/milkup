@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import MenuBar from './MenuBar.vue'
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import emitter from '../events'
 import logo from '@/assets/icons/milkup.ico'
 
@@ -8,6 +8,20 @@ const isOpen = ref(false)
 emitter.on('file:Change', () => {
   isOpen.value = false
 })
+
+const handleKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape' && isOpen.value) {
+    isOpen.value = false;
+  }
+};
+
+onMounted(() => {
+  document.addEventListener('keydown', handleKeydown);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeydown);
+});
 </script>
 
 <template>
