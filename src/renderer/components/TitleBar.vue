@@ -23,7 +23,7 @@ window.electronAPI.on('close', () => {
 </script>
 
 <template>
-  <div class="TitlebarBox">
+  <div class="TitleBarBox">
     <template v-if="isWin">
       <MenuDropDown />
       <div class="title" @dblclick="toggleMaximize">
@@ -46,7 +46,7 @@ window.electronAPI.on('close', () => {
 </template>
 
 <style lang="less" scoped>
-.TitlebarBox {
+.TitleBarBox {
   -webkit-app-region: drag;
   /* ✅ 允许拖动窗口 */
   height: 32px;
@@ -55,8 +55,7 @@ window.electronAPI.on('close', () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 12px;
-  padding-right: 0;
+  padding: 0 0 0 12px;
   user-select: none;
 
   .window-controls {

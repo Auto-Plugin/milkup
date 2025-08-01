@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setTitle: (filePath: string | null) => ipcRenderer.send('set-title', filePath),
   changeSaveStatus: (isSaved: boolean) => ipcRenderer.send('change-save-status', isSaved),
   windowControl: (action: 'minimize' | 'maximize' | 'close') => ipcRenderer.send('window-control', action),
+  closeDiscard: () => ipcRenderer.send('close:discard'),
   onOpenFileAtLaunch: (cb: (payload: { filePath: string, content: string }) => void) => {
     ipcRenderer.once('open-file-at-launch', (_event, payload) => {
       cb(payload)
@@ -17,6 +18,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openExternal: (url: string) => ipcRenderer.send('shell:openExternal', url),
   getFilePathInClipboard: () => ipcRenderer.invoke('clipboard:getFilePath'),
   writeTempImage: (file: File, tempPath: string) => ipcRenderer.invoke('clipboard:writeTempImage', file, tempPath),
-  showMessageBoxSync: (options: Electron.MessageBoxSyncOptions) => ipcRenderer.invoke('dialog:OpenDialog', options),
   platform: process.platform,
 })

@@ -45,6 +45,18 @@ export function registerIpcOnHandlers(win: Electron.BrowserWindow) {
     isSaved = isSavedStatus
     win.webContents.send('save-status-changed', isSaved)
   })
+
+  // 监听保存事件
+  ipcMain.on('menu-save', async (_event, shouldClose) => {
+    win.webContents.send('trigger-save', shouldClose)
+  })
+
+  // 监听丢弃更改事件
+  ipcMain.on('close:discard', () => {
+    isQuitting = true
+    win.close()
+    app.quit()
+  })
 }
 
 // 所有 handle 类型监听
@@ -119,28 +131,15 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
     return response
   })
 }
+
 export function close(win: Electron.BrowserWindow) {
   if (isSaved) {
     isQuitting = true
     win.close()
     app.quit()
   } else {
-    const options: Electron.MessageBoxSyncOptions = {
-      type: 'warning',
-      title: '确认关闭',
-      message: '当前文档有未保存的修改，是否确认关闭？',
-      buttons: ['确认', '保存并关闭', '取消'],
-      defaultId: 1,
-      cancelId: 2,
-    }
-    const response = dialog.showMessageBoxSync(win, options)
-    if (response === 0) {
-      isQuitting = true
-      win.close()
-      app.quit()
-    } else if (response === 1) {
-      win.webContents.send('menu-save', true)
-    }
+    // 发送事件到渲染进程显示前端弹窗
+    win.webContents.send('close:confirm')
   }
 }
 
