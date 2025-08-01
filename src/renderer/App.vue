@@ -2,21 +2,26 @@
 import { MilkdownProvider } from '@milkdown/vue'
 import { nextTick, ref, watch } from 'vue'
 import useContent from '@/hooks/useContent'
+import useFile from '@/hooks/useFile'
 import { isShowOutline } from '@/hooks/useOutline'
+import { useSaveConfirmDialog } from '@/hooks/useSaveConfirmDialog'
 import useSourceCode from '@/hooks/useSourceCode'
 import useTheme from '@/hooks/useTheme'
 import useTitle from '@/hooks/useTitle'
 import MarkdownSourceEditor from './components/MarkdownSourceEditor.vue'
 import MilkdownEditor from './components/MilkdownEditor.vue'
 import Outline from './components/Outline.vue'
+import SaveConfirmDialog from './components/SaveConfirmDialog.vue'
 import StatusBar from './components/StatusBar.vue'
-import Titlebar from './components/Titlebar.vue'
+import TitleBar from './components/TitleBar.vue'
 import emitter from './events'
 
 const { updateTitle } = useTitle()
 const { markdown } = useContent()
 const { themeName } = useTheme()
 const { isShowSource } = useSourceCode()
+const { isDialogVisible, showDialog, handleSave, handleDiscard, handleCancel } = useSaveConfirmDialog()
+const { onSave } = useFile()
 const isShowEditors = ref(true)
 
 watch(markdown, () => {
@@ -28,6 +33,23 @@ watch([themeName, isShowSource], () => {
 emitter.on('file:Change', () => {
   reBuildMilkdown()
 })
+
+// 监听关闭确认事件
+window.electronAPI.on('close:confirm', async () => {
+  const result = await showDialog()
+  if (result === 'save') {
+    await onSave()
+  } else if (result === 'discard') {
+    // 直接关闭应用
+    window.electronAPI.closeDiscard()
+  }
+})
+
+// 监听保存触发事件
+window.electronAPI.on('trigger-save', async () => {
+  await onSave()
+})
+
 function reBuildMilkdown() {
   isShowEditors.value = false
   nextTick(() => {
@@ -37,7 +59,7 @@ function reBuildMilkdown() {
 </script>
 
 <template>
-  <Titlebar />
+  <TitleBar />
   <div v-if="isShowEditors" class="editorArea">
     <Transition name="fade" mode="out-in">
       <div v-show="isShowOutline && !isShowSource" class="outlineBox">
@@ -52,6 +74,12 @@ function reBuildMilkdown() {
     </div>
   </div>
   <StatusBar :content="markdown" />
+  <SaveConfirmDialog
+    :visible="isDialogVisible"
+    @save="handleSave"
+    @discard="handleDiscard"
+    @cancel="handleCancel"
+  />
 </template>
 
 <style scoped lang="less">

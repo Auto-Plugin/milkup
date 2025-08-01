@@ -8,11 +8,11 @@ interface Window {
     on: (channel: string, listener: (...args: any[]) => void) => void
     removeListener: (channel: string, listener: (...args: any[]) => void) => void
     windowControl: (action: 'minimize' | 'maximize' | 'close') => void
+    closeDiscard: () => void
     onOpenFileAtLaunch: (cb: (payload: { filePath: string, content: string }) => void) => void
     openExternal: (url: string) => Promise<void>
     getFilePathInClipboard: () => Promise<string | null>
     writeTempImage: (file: ArrayBufferLike, tempPath: string) => Promise<string>
-    showMessageBoxSync: (options: Electron.MessageBoxSyncOptions) => Promise<Electron.MessageBoxReturnValue>
     platform: NodeJS.Platform
   }
 }

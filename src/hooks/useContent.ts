@@ -10,7 +10,11 @@ const currentScrollRatio = ref(0)
 const isInitialized = ref(false)
 
 watch(isModified, (newValue) => {
-  window.electronAPI.changeSaveStatus(!newValue) // 通知主进程保存状态, 修改后(isModified==true) isSaved 为 false
+  // 只有在有内容时才通知主进程保存状态
+  // 如果 markdown 为空且 originalContent 也为空，说明是新建文档，不需要通知
+  if (contentInfo.markdown.value || contentInfo.originalContent.value) {
+    window.electronAPI.changeSaveStatus(!newValue) // 通知主进程保存状态, 修改后(isModified==true) isSaved 为 false
+  }
 }, { immediate: true })
 
 function recordScrollRatio(wrapper: HTMLElement) {
@@ -18,7 +22,8 @@ function recordScrollRatio(wrapper: HTMLElement) {
 }
 
 function initScrollListener() {
-  if (isInitialized.value) return
+  if (isInitialized.value)
+    return
   const milkdownWrapper = document.querySelector('.scrollView.milkdown') as HTMLElement | null
   const codeMirrorWrapper = document.querySelector('.cm-scroller') as HTMLElement | null
   if (milkdownWrapper) {
@@ -45,11 +50,10 @@ export default () => {
     removeScrollListener()
   })
 
-
   return {
     ...contentInfo,
     isModified,
     currentScrollRatio,
-    initScrollListener
+    initScrollListener,
   }
 }

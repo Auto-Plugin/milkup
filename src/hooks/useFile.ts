@@ -20,16 +20,12 @@ async function onOpen() {
   }
 }
 
-async function onSave(quitAfter: boolean) {
+async function onSave() {
   const saved = await window.electronAPI.saveFile(filePath.value || null, markdown.value)
   if (saved) {
     filePath.value = saved
     originalContent.value = markdown.value
     updateTitle()
-    if (quitAfter) {
-      window.electronAPI.changeSaveStatus(true)
-      window.electronAPI.windowControl('close')
-    }
   }
   return saved
 }
