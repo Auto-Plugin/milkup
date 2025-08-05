@@ -43,7 +43,7 @@ milkup 致力于为用户提供高效、简洁的 Markdown 编辑体验。我们
 
 本项目采用 [MIT License](LICENSE) 开源协议。
 
-## 贡献者
+## ❤️ 贡献者
 
 感谢所有为 milkup 项目做出贡献的开发者。
 
