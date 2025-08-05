@@ -18,7 +18,7 @@ import emitter from './events'
 
 const { updateTitle } = useTitle()
 const { markdown } = useContent()
-const { themeName } = useTheme()
+const { theme } = useTheme()
 const { isShowSource } = useSourceCode()
 const { isDialogVisible, showDialog, handleSave, handleDiscard, handleCancel } = useSaveConfirmDialog()
 const { onSave } = useFile()
@@ -27,7 +27,7 @@ const isShowEditors = ref(true)
 watch(markdown, () => {
   updateTitle()
 })
-watch([themeName, isShowSource], () => {
+watch([theme, isShowSource], () => {
   reBuildMilkdown()
 })
 emitter.on('file:Change', () => {
