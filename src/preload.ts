@@ -18,5 +18,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openExternal: (url: string) => ipcRenderer.send('shell:openExternal', url),
   getFilePathInClipboard: () => ipcRenderer.invoke('clipboard:getFilePath'),
   writeTempImage: (file: File, tempPath: string) => ipcRenderer.invoke('clipboard:writeTempImage', file, tempPath),
+  // 主题编辑器相关
+  openThemeEditor: () => ipcRenderer.send('open-theme-editor'),
+  themeEditorWindowControl: (action: 'minimize' | 'maximize' | 'close') => ipcRenderer.send('theme-editor-window-control', action),
+  saveCustomTheme: (theme: any) => ipcRenderer.send('save-custom-theme', theme),
   platform: process.platform,
 })

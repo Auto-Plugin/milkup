@@ -13,6 +13,10 @@ interface Window {
     openExternal: (url: string) => Promise<void>
     getFilePathInClipboard: () => Promise<string | null>
     writeTempImage: (file: ArrayBufferLike, tempPath: string) => Promise<string>
+    // 主题编辑器相关
+    openThemeEditor: () => void
+    themeEditorWindowControl: (action: 'minimize' | 'maximize' | 'close') => void
+    saveCustomTheme: (theme: any) => void
     platform: NodeJS.Platform
   }
 }

@@ -5,6 +5,7 @@ import { close, getIsQuitting, registerIpcHandleHandlers, registerIpcOnHandlers 
 import createMenu from './menu'
 
 let win: BrowserWindow
+let themeEditorWindow: BrowserWindow | null = null
 
 async function createWindow() {
   win = new BrowserWindow({
@@ -40,6 +41,61 @@ async function createWindow() {
     win.webContents.openDevTools()
   }
 }
+
+// 创建主题编辑器窗口
+export async function createThemeEditorWindow() {
+  console.log('创建主题编辑器窗口 - 当前窗口状态:', {
+    exists: !!themeEditorWindow,
+    isDestroyed: themeEditorWindow?.isDestroyed(),
+    isVisible: themeEditorWindow?.isVisible(),
+  })
+
+  if (themeEditorWindow && !themeEditorWindow.isDestroyed()) {
+    console.log('主题编辑器窗口已存在，聚焦窗口')
+    themeEditorWindow.focus()
+    return themeEditorWindow
+  }
+
+  console.log('创建新的主题编辑器窗口')
+  themeEditorWindow = new BrowserWindow({
+    width: 1000,
+    height: 700,
+    minWidth: 800,
+    minHeight: 600,
+    parent: win,
+    modal: false,
+    frame: false,
+    titleBarStyle: 'hidden',
+    icon: path.join(__dirname, '../assets/icons/milkup.ico'),
+    webPreferences: {
+      sandbox: false,
+      preload: path.resolve(__dirname, '../../dist-electron/preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      webSecurity: false,
+    },
+  })
+
+  // 加载主题编辑器页面
+  if (process.env.VITE_DEV_SERVER_URL) {
+    await themeEditorWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}/theme-editor.html`)
+  } else {
+    const themeEditorPath = path.join(__dirname, '../../dist', 'theme-editor.html')
+    await themeEditorWindow.loadFile(themeEditorPath)
+  }
+
+  if (process.env.VITE_DEV_SERVER_URL) {
+    themeEditorWindow.webContents.openDevTools()
+  }
+
+  // 窗口关闭时清理引用
+  themeEditorWindow.on('closed', () => {
+    themeEditorWindow = null
+  })
+
+  return themeEditorWindow
+}
+
 function sendLaunchFileIfExists() {
   const fileArg = process.argv.find(arg => arg.endsWith('.md') || arg.endsWith('.markdown'))
 

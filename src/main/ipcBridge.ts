@@ -3,6 +3,7 @@
 import * as fs from 'node:fs'
 import path from 'node:path'
 import { app, clipboard, dialog, ipcMain, shell } from 'electron'
+import { createThemeEditorWindow } from './index'
 
 let isSaved = true
 let isQuitting = false
@@ -56,6 +57,74 @@ export function registerIpcOnHandlers(win: Electron.BrowserWindow) {
     isQuitting = true
     win.close()
     app.quit()
+  })
+
+  // 打开主题编辑器窗口
+  ipcMain.on('open-theme-editor', async () => {
+    await createThemeEditorWindow()
+  })
+
+  // 主题编辑器窗口控制
+  ipcMain.on('theme-editor-window-control', async (_event, action) => {
+    try {
+      console.log('主题编辑器窗口控制:', action)
+
+      // 直接导入并获取窗口引用
+      const { createThemeEditorWindow } = await import('./index')
+      const themeEditorWindow = await createThemeEditorWindow()
+
+      if (!themeEditorWindow) {
+        console.log('主题编辑器窗口不存在')
+        return
+      }
+
+      // 检查窗口是否已被销毁
+      if (themeEditorWindow.isDestroyed()) {
+        console.log('主题编辑器窗口已被销毁')
+        return
+      }
+
+      console.log('主题编辑器窗口状态:', {
+        isDestroyed: themeEditorWindow.isDestroyed(),
+        isVisible: themeEditorWindow.isVisible(),
+        isMinimized: themeEditorWindow.isMinimized(),
+        isMaximized: themeEditorWindow.isMaximized(),
+      })
+
+      switch (action) {
+        case 'minimize':
+          console.log('最小化主题编辑器窗口')
+          if (!themeEditorWindow.isDestroyed()) {
+            themeEditorWindow.minimize()
+          }
+          break
+        case 'maximize':
+          console.log('最大化/还原主题编辑器窗口')
+          if (!themeEditorWindow.isDestroyed()) {
+            if (themeEditorWindow.isMaximized())
+              themeEditorWindow.unmaximize()
+            else
+              themeEditorWindow.maximize()
+          }
+          break
+        case 'close':
+          console.log('关闭主题编辑器窗口')
+          if (!themeEditorWindow.isDestroyed()) {
+            themeEditorWindow.close()
+          }
+          break
+        default:
+          console.log('未知的窗口控制动作:', action)
+      }
+    } catch (error) {
+      console.error('主题编辑器窗口控制错误:', error)
+    }
+  })
+
+  // 保存自定义主题
+  ipcMain.on('save-custom-theme', (_event, theme) => {
+    // 转发到主窗口
+    win.webContents.send('custom-theme-saved', theme)
   })
 }
 

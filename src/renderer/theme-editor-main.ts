@@ -1,33 +1,12 @@
-import { ref } from 'vue'
-
-// 定义支持的主题类型
-type ThemeType = 'light' | 'dark'
-
-// 自定义主题接口
-interface CustomTheme {
-  name: string
-  label: string
-  type: 'light' | 'dark'
-  color: string
-  description: string
-  variables: Record<string, string>
-}
-
-// 扩展主题支持
-const supportedThemes = [
-  'normal',
-  'normal-dark',
-  'crepe',
-  'crepe-dark',
-  'frame',
-  'frame-dark',
-]
-
-const themeType = ref<ThemeType>('light')
-const themeName = ref<string>('normal')
+import { createApp } from 'vue'
+import ThemeEditor from './components/ThemeEditor.vue'
+import './style.less'
+import '@/themes/theme-main.less'
+import '@milkdown/crepe/theme/common/style.css'
+import '@/lib/iconfont/iconfont.css'
 
 // 从本地存储获取自定义主题
-function getCustomThemes(): CustomTheme[] {
+function getCustomThemes(): any[] {
   const stored = localStorage.getItem('custom-themes')
   if (stored) {
     try {
@@ -41,7 +20,7 @@ function getCustomThemes(): CustomTheme[] {
 }
 
 // 应用自定义主题样式
-function applyCustomThemeStyles(customTheme: CustomTheme) {
+function applyCustomThemeStyles(customTheme: any) {
   const styleId = 'custom-theme-styles'
   let styleElement = document.getElementById(styleId) as HTMLStyleElement | null
 
@@ -78,101 +57,90 @@ ${milkdownVars}
 }`
 }
 
-// 根据主题名称和类型应用主题
-function applyTheme(name: string, type: ThemeType) {
-  themeName.value = name
-  themeType.value = type
+// 应用当前主题
+function applyCurrentTheme() {
+  const savedThemeName = localStorage.getItem('theme-name') || 'normal'
+  const savedThemeType = localStorage.getItem('theme-type') as 'light' | 'dark' || 'light'
 
   const html = document.documentElement
 
   // 检查是否是自定义主题
   const customThemesList = getCustomThemes()
-  const isCustomTheme = customThemesList.some(theme => theme.name === name)
+  const isCustomTheme = customThemesList.some((theme: any) => theme.name === savedThemeName)
 
   if (isCustomTheme) {
     // 自定义主题：只应用CSS变量，不加载外部CSS文件
-    console.log('应用自定义主题:', name)
+    console.log('应用自定义主题:', savedThemeName)
 
     // 移除所有主题类
     html.classList.remove('theme-normal', 'theme-normal-dark', 'theme-crepe', 'theme-crepe-dark', 'theme-frame', 'theme-frame-dark')
-    customThemesList.forEach((theme) => {
+    customThemesList.forEach((theme: any) => {
       html.classList.remove(`theme-${theme.name}`)
     })
 
     // 添加自定义主题类
-    html.classList.add(`theme-${name}`)
+    html.classList.add(`theme-${savedThemeName}`)
 
     // 应用自定义样式
-    const customTheme = customThemesList.find(theme => theme.name === name)
+    const customTheme = customThemesList.find((theme: any) => theme.name === savedThemeName)
     if (customTheme) {
       applyCustomThemeStyles(customTheme)
     }
 
     // 对于自定义主题，使用默认的Milkdown主题作为基础
-    switchMilkTheme('crepe')
+    const id = 'milkdown-theme'
+    let link = document.getElementById(id) as HTMLLinkElement | null
+
+    if (!link) {
+      link = document.createElement('link')
+      link.id = id
+      link.rel = 'stylesheet'
+      document.head.appendChild(link)
+    }
+
+    let basePath = ''
+    if (import.meta.env.PROD) {
+      basePath = '../renderer/public'
+    }
+
+    // 使用默认的crepe主题作为Milkdown基础
+    link.href = `${basePath}/milkdown-themes/crepe/style.css`
   } else {
     // 预设主题：加载对应的CSS文件
-    console.log('应用预设主题:', name)
+    console.log('应用预设主题:', savedThemeName)
 
     // 移除所有主题类
     html.classList.remove('theme-normal', 'theme-normal-dark', 'theme-crepe', 'theme-crepe-dark', 'theme-frame', 'theme-frame-dark')
-    customThemesList.forEach((theme) => {
+    customThemesList.forEach((theme: any) => {
       html.classList.remove(`theme-${theme.name}`)
     })
 
     // 添加预设主题类
-    html.classList.add(`theme-${name}`)
+    html.classList.add(`theme-${savedThemeName}`)
 
     // 应用Milkdown编辑器主题
-    switchMilkTheme(name)
-  }
+    const id = 'milkdown-theme'
+    let link = document.getElementById(id) as HTMLLinkElement | null
 
-  // 保存主题设置
-  localStorage.setItem('theme-name', name)
-  localStorage.setItem('theme-type', type)
-}
-
-// 切换Milkdown编辑器主题
-function switchMilkTheme(theme: string) {
-  const id = 'milkdown-theme'
-  let link = document.getElementById(id) as HTMLLinkElement | null
-
-  if (!link) {
-    link = document.createElement('link')
-    link.id = id
-    link.rel = 'stylesheet'
-    document.head.appendChild(link)
-  }
-
-  let basePath = ''
-  if (import.meta.env.PROD) {
-    basePath = '../renderer/public'
-  }
-
-  // 设置Milkdown编辑器主题
-  link.href = `${basePath}/milkdown-themes/${theme}/style.css`
-}
-
-export default function useTheme() {
-  // 初始化：读取本地主题设置
-  if (typeof window !== 'undefined') {
-    const savedThemeName = localStorage.getItem('theme-name')
-    const savedThemeType = localStorage.getItem('theme-type') as ThemeType
-
-    if (savedThemeName && (savedThemeType === 'light' || savedThemeType === 'dark')) {
-      // 应用保存的主题
-      applyTheme(savedThemeName, savedThemeType)
-    } else {
-      // 默认主题
-      applyTheme('normal', 'light')
+    if (!link) {
+      link = document.createElement('link')
+      link.id = id
+      link.rel = 'stylesheet'
+      document.head.appendChild(link)
     }
-  }
 
-  // 提供方法
-  return {
-    supportedThemes,
-    themeType,
-    themeName,
-    setTheme: applyTheme,
+    let basePath = ''
+    if (import.meta.env.PROD) {
+      basePath = '../renderer/public'
+    }
+
+    // 设置Milkdown编辑器主题
+    link.href = `${basePath}/milkdown-themes/${savedThemeName}/style.css`
   }
 }
+
+// 初始化主题
+applyCurrentTheme()
+
+const app = createApp(ThemeEditor)
+app.mount('#theme-editor-app')
