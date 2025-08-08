@@ -12,7 +12,8 @@
   ],
   "main": "dist-electron/main/index.js",
   "engines": {
-    "node": ">=20.17.0"
+    "node": ">=20.17.0",
+    "pnpm": ">=10.0.0"
   },
   "scripts": {
     "build:main": "esbuild src/main/index.ts --bundle --platform=node --external:electron --outfile=dist-electron/main/index.js",
@@ -28,7 +29,8 @@
     "dist:win-x64": "pnpm run build && electron-builder --win --x64",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "prepare": "simple-git-hooks"
+    "prepare": "simple-git-hooks",
+    "preinstall": "npx only-allow pnpm"
   },
   "dependencies": {
     "@codemirror/basic-setup": "^0.20.0",
