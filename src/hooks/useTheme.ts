@@ -1,33 +1,10 @@
+import type { Theme, ThemeName } from '@/types/theme'
 import { ref } from 'vue'
 
-// 定义支持的主题类型
-type ThemeType = 'light' | 'dark'
-
-// 自定义主题接口
-interface CustomTheme {
-  name: string
-  label: string
-  type: 'light' | 'dark'
-  color: string
-  description: string
-  variables: Record<string, string>
-}
-
-// 扩展主题支持
-const supportedThemes = [
-  'normal',
-  'normal-dark',
-  'crepe',
-  'crepe-dark',
-  'frame',
-  'frame-dark',
-]
-
-const themeType = ref<ThemeType>('light')
-const themeName = ref<string>('normal')
+const themeName = ref<ThemeName>('normal')
 
 // 从本地存储获取自定义主题
-function getCustomThemes(): CustomTheme[] {
+function getCustomThemes(): Theme[] {
   const stored = localStorage.getItem('custom-themes')
   if (stored) {
     try {
@@ -41,7 +18,7 @@ function getCustomThemes(): CustomTheme[] {
 }
 
 // 应用自定义主题样式
-function applyCustomThemeStyles(customTheme: CustomTheme) {
+function applyCustomThemeStyles(customTheme: Theme) {
   const styleId = 'custom-theme-styles'
   let styleElement = document.getElementById(styleId) as HTMLStyleElement | null
 
@@ -79,9 +56,8 @@ ${milkdownVars}
 }
 
 // 根据主题名称和类型应用主题
-function applyTheme(name: string, type: ThemeType) {
+function applyTheme(name: ThemeName) {
   themeName.value = name
-  themeType.value = type
 
   const html = document.documentElement
 
@@ -129,7 +105,6 @@ function applyTheme(name: string, type: ThemeType) {
 
   // 保存主题设置
   localStorage.setItem('theme-name', name)
-  localStorage.setItem('theme-type', type)
 }
 
 // 切换Milkdown编辑器主题
@@ -156,23 +131,22 @@ function switchMilkTheme(theme: string) {
 export default function useTheme() {
   // 初始化：读取本地主题设置
   if (typeof window !== 'undefined') {
-    const savedThemeName = localStorage.getItem('theme-name')
-    const savedThemeType = localStorage.getItem('theme-type') as ThemeType
+    const savedThemeName = localStorage.getItem('theme-name') as ThemeName | null
 
-    if (savedThemeName && (savedThemeType === 'light' || savedThemeType === 'dark')) {
+    if (savedThemeName) {
       // 应用保存的主题
-      applyTheme(savedThemeName, savedThemeType)
+      applyTheme(savedThemeName)
     } else {
       // 默认主题
-      applyTheme('normal', 'light')
+      applyTheme('normal')
     }
   }
 
   // 提供方法
   return {
-    supportedThemes,
-    themeType,
     themeName,
     setTheme: applyTheme,
+    getTheme: getCustomThemes,
+    applyCustomThemeStyles,
   }
 }

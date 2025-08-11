@@ -1,22 +1,13 @@
 <script setup lang="ts">
+import type { Theme } from '@/types/theme'
 import { computed, onMounted, ref } from 'vue'
+import useTheme from '@/hooks/useTheme'
+import { createLinkTag } from '@/utils/dom'
 
-interface ThemeOption {
-  name: string
-  label: string
-  type: 'light' | 'dark'
-  color: string // 主题色彩预览
-  description: string // 主题描述
-  isCustom?: boolean // 是否是自定义主题
-}
+const { applyCustomThemeStyles } = useTheme()
 
-interface CustomTheme {
-  name: string
-  label: string
-  type: 'light' | 'dark'
-  color: string
-  description: string
-  variables: Record<string, string>
+type ThemeOption = Omit<Theme, 'variables'> & {
+  isCustom?: boolean
 }
 
 // 预定义主题选项
@@ -24,42 +15,36 @@ const predefinedThemes: ThemeOption[] = [
   {
     name: 'normal',
     label: '亮色主题',
-    type: 'light',
     color: '#88c0d0',
     description: '明亮清新的标准主题，适合日常使用',
   },
   {
     name: 'normal-dark',
     label: '暗色主题',
-    type: 'dark',
     color: '#3b4252',
     description: '深色风格主题，减少夜间使用时的眼睛疲劳',
   },
   {
     name: 'crepe',
     label: 'GitHub主题',
-    type: 'light',
     color: '#ffffff',
     description: '类似GitHub风格的明亮主题，干净整洁',
   },
   {
     name: 'crepe-dark',
     label: '深色GitHub主题',
-    type: 'dark',
     color: '#0d1117',
     description: 'GitHub深色模式风格，适合夜间或弱光环境',
   },
   {
     name: 'frame',
     label: '纸张护眼色',
-    type: 'light',
     color: '#f5f5dc',
     description: '类似纸张的米色背景，减少视觉疲劳，适合长时间阅读',
   },
   {
     name: 'frame-dark',
     label: '暖色主题',
-    type: 'dark',
     color: '#2d2d2d',
     description: '温暖的深色主题，减轻眼睛负担，带来舒适的夜间使用体验',
   },
@@ -82,7 +67,7 @@ const currentTheme = computed(() => {
 })
 
 // 设置主题
-function setMilkdownTheme(themeName: string, themeType: 'light' | 'dark') {
+function setMilkdownTheme(themeName: string) {
   const html = document.documentElement
 
   // 检查是否是自定义主题
@@ -110,43 +95,23 @@ function setMilkdownTheme(themeName: string, themeType: 'light' | 'dark') {
 
     // 对于自定义主题，使用默认的Milkdown主题作为基础
     const id = 'milkdown-theme'
-    let link = document.getElementById(id) as HTMLLinkElement | null
-
-    if (!link) {
-      link = document.createElement('link')
-      link.id = id
-      link.rel = 'stylesheet'
-      document.head.appendChild(link)
-    }
 
     let basePath = ''
     if (import.meta.env.PROD) {
       basePath = '../renderer/public'
     }
-
-    // 使用默认的crepe主题作为Milkdown基础
-    link.href = `${basePath}/milkdown-themes/crepe/style.css`
+    createLinkTag(id, `${basePath}/milkdown-themes/crepe/style.css`, 'stylesheet')
   } else {
     // 预设主题：加载对应的CSS文件
     console.log('应用预设主题:', themeName)
 
     const id = 'milkdown-theme'
-    let link = document.getElementById(id) as HTMLLinkElement | null
-
-    if (!link) {
-      link = document.createElement('link')
-      link.id = id
-      link.rel = 'stylesheet'
-      document.head.appendChild(link)
-    }
 
     let basePath = ''
     if (import.meta.env.PROD) {
       basePath = '../renderer/public'
     }
-
-    // 加载预设主题的CSS文件
-    link.href = `${basePath}/milkdown-themes/${themeName}/style.css`
+    createLinkTag(id, `${basePath}/milkdown-themes/${themeName}/style.css`, 'stylesheet')
 
     // 移除所有主题类
     html.classList.remove('theme-normal', 'theme-normal-dark', 'theme-crepe', 'theme-crepe-dark', 'theme-frame', 'theme-frame-dark')
@@ -160,51 +125,12 @@ function setMilkdownTheme(themeName: string, themeType: 'light' | 'dark') {
 
   // 保存主题设置并更新当前主题状态
   localStorage.setItem('theme-name', themeName)
-  localStorage.setItem('theme-type', themeType)
   currentThemeName.value = themeName
-}
-
-// 应用自定义主题样式
-function applyCustomThemeStyles(customTheme: CustomTheme) {
-  const styleId = 'custom-theme-styles'
-  let styleElement = document.getElementById(styleId) as HTMLStyleElement | null
-
-  if (!styleElement) {
-    styleElement = document.createElement('style')
-    styleElement.id = styleId
-    document.head.appendChild(styleElement)
-  }
-
-  // 生成 CSS 变量
-  const cssVars = Object.entries(customTheme.variables)
-    .map(([key, value]) => `  ${key}: ${value};`)
-    .join('\n')
-
-  const milkdownVars = Object.entries(customTheme.variables)
-    .filter(([key]) => key.startsWith('--crepe-'))
-    .map(([key, value]) => `    ${key}: ${value};`)
-    .join('\n')
-
-  styleElement.textContent = `
-html.theme-${customTheme.name} {
-${cssVars}
-
-  .milkdown {
-${milkdownVars}
-
-    --crepe-font-title: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
-    --crepe-font-default: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
-    --crepe-font-code: 'JetBrains Mono', 'Fira Code', Menlo, monospace;
-
-    --crepe-shadow-1: 0px 1px 3px 1px rgba(0, 0, 0, 0.1), 0px 1px 2px 0px rgba(0, 0, 0, 0.15);
-    --crepe-shadow-2: 0px 2px 6px 2px rgba(0, 0, 0, 0.1), 0px 1px 2px 0px rgba(0, 0, 0, 0.15);
-  }
-}`
 }
 
 // 主题切换
 function handleChangeTheme(option: ThemeOption) {
-  setMilkdownTheme(option.name, option.type)
+  setMilkdownTheme(option.name)
 }
 
 // 打开自定义主题编辑器
@@ -213,9 +139,8 @@ function handleCreateCustomTheme() {
 
   // 复制当前主题并保存为临时主题
   const currentThemeName = localStorage.getItem('theme-name') || 'normal'
-  const currentThemeType = localStorage.getItem('theme-type') as 'light' | 'dark' || 'light'
 
-  console.log('当前主题信息:', { currentThemeName, currentThemeType })
+  console.log('当前主题信息:', { currentThemeName })
 
   // 创建临时主题名称
   const tempThemeName = `temp-theme-${Date.now()}`
@@ -268,9 +193,6 @@ function handleCreateCustomTheme() {
     '--crepe-color-inline-area',
   ]
 
-  // 从多个元素获取变量，确保获取完整
-  const elements = [html, milkdownElement, milkdownRoot].filter(Boolean)
-
   cssVars.forEach((varName) => {
     let value = ''
 
@@ -305,7 +227,6 @@ function handleCreateCustomTheme() {
   const tempTheme = {
     name: tempThemeName,
     label: '临时主题',
-    type: currentThemeType,
     color: variables['--primary-color'] || '#4a90e2',
     description: '基于当前主题的临时主题',
     variables,
@@ -321,7 +242,7 @@ function handleCreateCustomTheme() {
   console.log('localStorage中的主题列表:', customThemesList.map(t => ({ name: t.name, varCount: Object.keys(t.variables || {}).length })))
 
   // 应用临时主题
-  setMilkdownTheme(tempThemeName, currentThemeType)
+  setMilkdownTheme(tempThemeName)
 
   console.log('临时主题已应用，准备打开主题编辑器...')
 
@@ -442,10 +363,9 @@ async function handleDrop(event: DragEvent) {
       }
 
       // 添加或更新主题
-      const customTheme: CustomTheme = {
+      const customTheme: Theme = {
         name: themeData.name,
         label: themeData.label,
-        type: themeData.type || 'light',
         color: themeData.color || '#4a90e2',
         description: themeData.description || '从JSON文件导入的主题',
         variables: themeData.variables,
@@ -467,7 +387,6 @@ async function handleDrop(event: DragEvent) {
       customThemes.value = existingThemes.map(theme => ({
         name: theme.name,
         label: theme.label,
-        type: theme.type,
         color: theme.color,
         description: theme.description,
         isCustom: true,
@@ -488,7 +407,7 @@ function handleEditTempTheme(themeName: string) {
   console.log('开始编辑临时主题:', themeName)
 
   // 应用临时主题
-  setMilkdownTheme(themeName, 'light') // 临时主题类型默认为light
+  setMilkdownTheme(themeName) // 临时主题类型默认为 normal
 
   console.log('临时主题已应用，准备打开主题编辑器...')
 
@@ -544,7 +463,7 @@ function handleDeleteCustomTheme(themeName: string) {
 
   // 如果删除的是当前主题，切换到默认主题
   if (currentThemeName.value === themeName) {
-    setMilkdownTheme('normal', 'light')
+    setMilkdownTheme('normal')
   }
 
   // 更新组件状态
@@ -556,7 +475,7 @@ function handleDeleteCustomTheme(themeName: string) {
 }
 
 // 从本地存储获取自定义主题
-function getCustomThemes(): CustomTheme[] {
+function getCustomThemes(): Theme[] {
   const stored = localStorage.getItem('custom-themes')
   if (stored) {
     try {
@@ -575,7 +494,6 @@ function loadCustomThemes() {
   customThemes.value = customThemesList.map(theme => ({
     name: theme.name,
     label: theme.label,
-    type: theme.type,
     color: theme.color,
     description: theme.description,
     isCustom: true,
@@ -583,7 +501,7 @@ function loadCustomThemes() {
 }
 
 // 处理来自主题编辑器窗口的保存事件
-function handleCustomThemeSaved(theme: CustomTheme) {
+function handleCustomThemeSaved(theme: Theme) {
   // 保存到本地存储
   const customThemesList = getCustomThemes()
 
@@ -601,16 +519,15 @@ function handleCustomThemeSaved(theme: CustomTheme) {
   loadCustomThemes()
 
   // 自动应用新创建的主题
-  setMilkdownTheme(theme.name, theme.type)
+  setMilkdownTheme(theme.name)
 }
 
 // 初始化主题
 function initTheme() {
   const savedThemeName = localStorage.getItem('theme-name') || 'normal'
-  const savedThemeType = localStorage.getItem('theme-type') as 'light' | 'dark' || 'light'
 
   // 应用保存的主题
-  setMilkdownTheme(savedThemeName, savedThemeType)
+  setMilkdownTheme(savedThemeName)
 }
 
 // 组件挂载时初始化
@@ -638,7 +555,8 @@ onMounted(() => {
         :class="{ active: option.name === currentThemeName }" @click.stop="handleChangeTheme(option)"
       >
         <div class="theme-preview" :style="{ backgroundColor: option.color }">
-          <div class="preview-content" :class="option.type === 'dark' ? 'dark-preview' : 'light-preview'">
+          <!-- :class="option.type === 'dark' ? 'dark-preview' : 'light-preview'" -->
+          <div class="preview-content">
             <div class="preview-header"></div>
             <div class="preview-lines">
               <div class="preview-line"></div>

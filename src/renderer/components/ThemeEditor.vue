@@ -1,16 +1,7 @@
 <script setup lang="ts">
+import type { Theme } from '@/types/theme'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
-
 import MilkdownEditor from './MilkdownEditor.vue'
-
-interface CustomTheme {
-  name: string
-  label: string
-  type: 'light' | 'dark'
-  color: string
-  description: string
-  variables: Record<string, string>
-}
 
 // 错误消息
 const errorMessage = ref('')
@@ -26,7 +17,7 @@ const themeLabel = ref('')
 const themeDescription = ref('')
 
 // 从本地存储获取自定义主题
-function getCustomThemes(): CustomTheme[] {
+function getCustomThemes(): Theme[] {
   const stored = localStorage.getItem('custom-themes')
   if (stored) {
     try {
@@ -74,9 +65,8 @@ function initThemeVariables() {
 
   // 如果没有临时主题，使用当前主题的变量
   const currentThemeName = localStorage.getItem('theme-name') || 'normal'
-  const currentThemeType = localStorage.getItem('theme-type') as 'light' | 'dark' || 'light'
 
-  console.log('当前主题信息:', { currentThemeName, currentThemeType })
+  console.log('当前主题信息:', { currentThemeName })
 
   // 获取当前主题的CSS变量
   const html = document.documentElement
@@ -315,12 +305,10 @@ function handleSave() {
   } else {
     // 如果没有临时主题，创建新的自定义主题
     const themeName = `custom-theme-${Date.now()}`
-    const themeType = 'light'
 
     const customTheme = {
       name: themeName,
       label: themeLabel.value || '自定义主题',
-      type: themeType,
       color: themeVariables.value['--primary-color'] || '#4a90e2',
       description: themeDescription.value || '自定义创建的主题',
       variables: themeVariables.value,

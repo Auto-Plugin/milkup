@@ -3,7 +3,8 @@ import ThemeEditor from './components/ThemeEditor.vue'
 import './style.less'
 import '@/themes/theme-main.less'
 import '@milkdown/crepe/theme/common/style.css'
-import '@/lib/iconfont/iconfont.css'
+import '@/assets/iconfont/iconfont.css'
+import '@/assets/iconfont/iconfont.js'
 
 // 从本地存储获取自定义主题
 function getCustomThemes(): any[] {
