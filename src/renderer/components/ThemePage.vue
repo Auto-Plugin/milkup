@@ -2,9 +2,8 @@
 import type { Theme } from '@/types/theme'
 import { computed, onMounted, ref } from 'vue'
 import useTheme from '@/hooks/useTheme'
-import { createLinkTag } from '@/utils/dom'
 
-const { applyCustomThemeStyles } = useTheme()
+const { setTheme, getTheme: getCustomThemes } = useTheme()
 
 type ThemeOption = Omit<Theme, 'variables'> & {
   isCustom?: boolean
@@ -68,63 +67,8 @@ const currentTheme = computed(() => {
 
 // 设置主题
 function setMilkdownTheme(themeName: string) {
-  const html = document.documentElement
-
-  // 检查是否是自定义主题
-  const customThemeList = getCustomThemes()
-  const isCustomTheme = customThemeList.some(theme => theme.name === themeName)
-
-  if (isCustomTheme) {
-    // 自定义主题：只应用CSS变量，不加载外部CSS文件
-    console.log('应用自定义主题:', themeName)
-
-    // 移除所有主题类
-    html.classList.remove('theme-normal', 'theme-normal-dark', 'theme-crepe', 'theme-crepe-dark', 'theme-frame', 'theme-frame-dark')
-    customThemeList.forEach((theme) => {
-      html.classList.remove(`theme-${theme.name}`)
-    })
-
-    // 添加自定义主题类
-    html.classList.add(`theme-${themeName}`)
-
-    // 应用自定义样式
-    const customTheme = customThemeList.find(theme => theme.name === themeName)
-    if (customTheme) {
-      applyCustomThemeStyles(customTheme)
-    }
-
-    // 对于自定义主题，使用默认的Milkdown主题作为基础
-    const id = 'milkdown-theme'
-
-    let basePath = ''
-    if (import.meta.env.PROD) {
-      basePath = '../renderer/public'
-    }
-    createLinkTag(id, `${basePath}/milkdown-themes/crepe/style.css`, 'stylesheet')
-  } else {
-    // 预设主题：加载对应的CSS文件
-    console.log('应用预设主题:', themeName)
-
-    const id = 'milkdown-theme'
-
-    let basePath = ''
-    if (import.meta.env.PROD) {
-      basePath = '../renderer/public'
-    }
-    createLinkTag(id, `${basePath}/milkdown-themes/${themeName}/style.css`, 'stylesheet')
-
-    // 移除所有主题类
-    html.classList.remove('theme-normal', 'theme-normal-dark', 'theme-crepe', 'theme-crepe-dark', 'theme-frame', 'theme-frame-dark')
-    customThemeList.forEach((theme) => {
-      html.classList.remove(`theme-${theme.name}`)
-    })
-
-    // 添加预设主题类
-    html.classList.add(`theme-${themeName}`)
-  }
-
-  // 保存主题设置并更新当前主题状态
-  localStorage.setItem('theme-name', themeName)
+  // 使用 useTheme hook 的 setTheme 方法
+  setTheme(themeName as any)
   currentThemeName.value = themeName
 }
 
@@ -474,20 +418,6 @@ function handleDeleteCustomTheme(themeName: string) {
   html.classList.remove(`theme-${themeName}`)
 }
 
-// 从本地存储获取自定义主题
-function getCustomThemes(): Theme[] {
-  const stored = localStorage.getItem('custom-themes')
-  if (stored) {
-    try {
-      return JSON.parse(stored)
-    } catch (e) {
-      console.error('解析自定义主题失败:', e)
-      return []
-    }
-  }
-  return []
-}
-
 // 加载自定义主题到组件状态
 function loadCustomThemes() {
   const customThemesList = getCustomThemes()
@@ -584,7 +514,15 @@ onMounted(() => {
                 </svg>
               </button>
               <button class="export-btn" title="导出主题" @click.stop="handleExportTheme(option.name)">
-                <svg t="1754554833984" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4409" width="16" height="16"><path d="M160 832h704q14.016 0 23.008 8.992T896 864t-8.992 23.008T864 896H160q-14.016 0-23.008-8.992T128 864t8.992-23.008T160 832z m384-253.984l236-236 46.016 44.992L509.024 704l-316.992-316.992 44.992-44.992 243.008 243.008V128.032h64v450.016z" p-id="4410"></path></svg>
+                <svg
+                  t="1754554833984" class="icon" viewBox="0 0 1024 1024" version="1.1"
+                  xmlns="http://www.w3.org/2000/svg" p-id="4409" width="16" height="16"
+                >
+                  <path
+                    d="M160 832h704q14.016 0 23.008 8.992T896 864t-8.992 23.008T864 896H160q-14.016 0-23.008-8.992T128 864t8.992-23.008T160 832z m384-253.984l236-236 46.016 44.992L509.024 704l-316.992-316.992 44.992-44.992 243.008 243.008V128.032h64v450.016z"
+                    p-id="4410"
+                  ></path>
+                </svg>
               </button>
               <button class="delete-btn" title="删除自定义主题" @click.stop="handleDeleteCustomTheme(option.name)">
                 <svg
@@ -605,11 +543,8 @@ onMounted(() => {
 
       <!-- 添加自定义主题按钮 -->
       <div
-        class="theme-card add-custom-theme"
-        @click="handleCreateCustomTheme"
-        @dragover="handleDragOver"
-        @dragleave="handleDragLeave"
-        @drop="handleDrop"
+        class="theme-card add-custom-theme" @click="handleCreateCustomTheme" @dragover="handleDragOver"
+        @dragleave="handleDragLeave" @drop="handleDrop"
       >
         <div class="add-custom-preview">
           <div class="add-icon">
@@ -945,103 +880,104 @@ onMounted(() => {
         font-size: 14px;
         color: var(--text-color-2);
       }
-          }
     }
   }
+}
 
-  // 通知样式
-  .theme-notification {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 12px 16px;
-    border-radius: 6px;
-    color: white;
-    font-size: 14px;
-    z-index: 10000;
-    animation: slideIn 0.3s ease;
+// 通知样式
+.theme-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 16px;
+  border-radius: 6px;
+  color: white;
+  font-size: 14px;
+  z-index: 10000;
+  animation: slideIn 0.3s ease;
 
-    &.success {
-      background: #10b981;
-    }
-
-    &.error {
-      background: #ef4444;
-    }
+  &.success {
+    background: #10b981;
   }
 
-  // 确认对话框样式
-  .theme-confirm-dialog {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10001;
+  &.error {
+    background: #ef4444;
+  }
+}
 
-    .dialog-content {
-      background: var(--background-color-2);
-      border: 1px solid var(--border-color-1);
-      border-radius: 8px;
-      padding: 24px;
-      max-width: 400px;
-      width: 90%;
+// 确认对话框样式
+.theme-confirm-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
 
-      p {
-        margin: 0 0 20px 0;
-        color: var(--text-color);
-        font-size: 16px;
-      }
+  .dialog-content {
+    background: var(--background-color-2);
+    border: 1px solid var(--border-color-1);
+    border-radius: 8px;
+    padding: 24px;
+    max-width: 400px;
+    width: 90%;
 
-      .dialog-buttons {
-        display: flex;
-        gap: 12px;
-        justify-content: flex-end;
+    p {
+      margin: 0 0 20px 0;
+      color: var(--text-color);
+      font-size: 16px;
+    }
 
-        button {
-          padding: 8px 16px;
-          border-radius: 4px;
-          border: none;
-          font-size: 14px;
-          cursor: pointer;
-          transition: all 0.2s;
+    .dialog-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
 
-          &.btn-cancel {
-            background: var(--background-color-1);
-            color: var(--text-color-2);
-            border: 1px solid var(--border-color-1);
+      button {
+        padding: 8px 16px;
+        border-radius: 4px;
+        border: none;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
 
-            &:hover {
-              background: var(--hover-background-color);
-              color: var(--text-color-1);
-            }
+        &.btn-cancel {
+          background: var(--background-color-1);
+          color: var(--text-color-2);
+          border: 1px solid var(--border-color-1);
+
+          &:hover {
+            background: var(--hover-background-color);
+            color: var(--text-color-1);
           }
+        }
 
-          &.btn-confirm {
-            background: var(--primary-color);
-            color: white;
+        &.btn-confirm {
+          background: var(--primary-color);
+          color: white;
 
-            &:hover {
-              background: var(--active-color);
-            }
+          &:hover {
+            background: var(--active-color);
           }
         }
       }
     }
   }
+}
 
-  @keyframes slideIn {
-    from {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateX(0);
-      opacity: 1;
-    }
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
   }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
 </style>

@@ -18,7 +18,9 @@ import emitter from './events'
 
 const { updateTitle } = useTitle()
 const { markdown } = useContent()
-const { themeName } = useTheme()
+const { themeName, applyCurrentTheme } = useTheme()
+applyCurrentTheme()
+
 const { isShowSource } = useSourceCode()
 const { isDialogVisible, showDialog, handleSave, handleDiscard, handleCancel } = useSaveConfirmDialog()
 const { onSave } = useFile()

@@ -55,58 +55,6 @@ ${milkdownVars}
 }`
 }
 
-// 根据主题名称和类型应用主题
-function applyTheme(name: ThemeName) {
-  themeName.value = name
-
-  const html = document.documentElement
-
-  // 检查是否是自定义主题
-  const customThemesList = getCustomThemes()
-  const isCustomTheme = customThemesList.some(theme => theme.name === name)
-
-  if (isCustomTheme) {
-    // 自定义主题：只应用CSS变量，不加载外部CSS文件
-    console.log('应用自定义主题:', name)
-
-    // 移除所有主题类
-    html.classList.remove('theme-normal', 'theme-normal-dark', 'theme-crepe', 'theme-crepe-dark', 'theme-frame', 'theme-frame-dark')
-    customThemesList.forEach((theme) => {
-      html.classList.remove(`theme-${theme.name}`)
-    })
-
-    // 添加自定义主题类
-    html.classList.add(`theme-${name}`)
-
-    // 应用自定义样式
-    const customTheme = customThemesList.find(theme => theme.name === name)
-    if (customTheme) {
-      applyCustomThemeStyles(customTheme)
-    }
-
-    // 对于自定义主题，使用默认的Milkdown主题作为基础
-    switchMilkTheme('crepe')
-  } else {
-    // 预设主题：加载对应的CSS文件
-    console.log('应用预设主题:', name)
-
-    // 移除所有主题类
-    html.classList.remove('theme-normal', 'theme-normal-dark', 'theme-crepe', 'theme-crepe-dark', 'theme-frame', 'theme-frame-dark')
-    customThemesList.forEach((theme) => {
-      html.classList.remove(`theme-${theme.name}`)
-    })
-
-    // 添加预设主题类
-    html.classList.add(`theme-${name}`)
-
-    // 应用Milkdown编辑器主题
-    switchMilkTheme(name)
-  }
-
-  // 保存主题设置
-  localStorage.setItem('theme-name', name)
-}
-
 // 切换Milkdown编辑器主题
 function switchMilkTheme(theme: string) {
   const id = 'milkdown-theme'
@@ -128,25 +76,83 @@ function switchMilkTheme(theme: string) {
   link.href = `${basePath}/milkdown-themes/${theme}/style.css`
 }
 
-export default function useTheme() {
-  // 初始化：读取本地主题设置
-  if (typeof window !== 'undefined') {
-    const savedThemeName = localStorage.getItem('theme-name') as ThemeName | null
+// 移除所有主题类
+function removeAllThemeClasses() {
+  const html = document.documentElement
+  const customThemesList = getCustomThemes()
 
-    if (savedThemeName) {
-      // 应用保存的主题
-      applyTheme(savedThemeName)
-    } else {
-      // 默认主题
-      applyTheme('normal')
+  // 移除预设主题类
+  html.classList.remove('theme-normal', 'theme-normal-dark', 'theme-crepe', 'theme-crepe-dark', 'theme-frame', 'theme-frame-dark')
+
+  // 移除自定义主题类
+  customThemesList.forEach((theme) => {
+    html.classList.remove(`theme-${theme.name}`)
+  })
+}
+
+// 内部主题应用逻辑
+function applyThemeInternal(name: string, saveToStorage = true) {
+  const html = document.documentElement
+
+  // 检查是否是自定义主题
+  const customThemesList = getCustomThemes()
+  const isCustomTheme = customThemesList.some(theme => theme.name === name)
+
+  if (isCustomTheme) {
+    // 移除所有主题类
+    removeAllThemeClasses()
+
+    // 添加自定义主题类
+    html.classList.add(`theme-${name}`)
+
+    // 应用自定义样式
+    const customTheme = customThemesList.find(theme => theme.name === name)
+    if (customTheme) {
+      applyCustomThemeStyles(customTheme)
     }
+
+    // 对于自定义主题，使用默认的Milkdown主题作为基础
+    switchMilkTheme('crepe')
+  } else {
+    // 预设主题：加载对应的CSS文件
+
+    // 移除所有主题类
+    removeAllThemeClasses()
+
+    // 添加预设主题类
+    html.classList.add(`theme-${name}`)
+
+    // 应用Milkdown编辑器主题
+    switchMilkTheme(name)
   }
 
+  // 保存主题设置（如果需要）
+  if (saveToStorage) {
+    localStorage.setItem('theme-name', name)
+  }
+}
+
+// 根据主题名称和类型应用主题
+function applyTheme(name: ThemeName) {
+  themeName.value = name
+  applyThemeInternal(name, true)
+}
+
+// 应用当前主题（从本地存储读取）
+function applyCurrentTheme() {
+  const savedThemeName = localStorage.getItem('theme-name') || 'normal'
+  themeName.value = savedThemeName as ThemeName
+  applyThemeInternal(savedThemeName, false)
+}
+
+export default function useTheme() {
   // 提供方法
   return {
     themeName,
     setTheme: applyTheme,
     getTheme: getCustomThemes,
     applyCustomThemeStyles,
+    applyCurrentTheme,
+    switchMilkTheme,
   }
 }

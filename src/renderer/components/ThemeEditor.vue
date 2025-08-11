@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import type { Theme } from '@/types/theme'
+import autolog from 'autolog.js'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
+import useTheme from '@/hooks/useTheme'
 import MilkdownEditor from './MilkdownEditor.vue'
+
+const { getTheme: getCustomThemes } = useTheme()
 
 // 错误消息
 const errorMessage = ref('')
@@ -15,20 +18,6 @@ const hasTempTheme = ref(false)
 // 主题标签和描述
 const themeLabel = ref('')
 const themeDescription = ref('')
-
-// 从本地存储获取自定义主题
-function getCustomThemes(): Theme[] {
-  const stored = localStorage.getItem('custom-themes')
-  if (stored) {
-    try {
-      return JSON.parse(stored)
-    } catch (e) {
-      console.error('解析自定义主题失败:', e)
-      return []
-    }
-  }
-  return []
-}
 
 // 初始化主题变量 - 基于当前主题
 function initThemeVariables() {
@@ -294,7 +283,7 @@ function handleSave() {
     }
 
     // 显示保存成功提示
-    showSaveSuccess()
+    autolog.log('主题保存成功', 'success')
 
     // 保存成功后关闭窗口
     setTimeout(() => {
@@ -320,7 +309,7 @@ function handleSave() {
     }
 
     // 显示保存成功提示
-    showSaveSuccess()
+    autolog.log('主题保存成功', 'success')
 
     // 保存成功后关闭窗口
     setTimeout(() => {
@@ -329,38 +318,6 @@ function handleSave() {
       }
     }, 1000) // 延迟1秒让用户看到保存成功的反馈
   }
-}
-
-// 显示保存成功提示
-function showSaveSuccess() {
-  // 创建成功提示元素
-  const successToast = document.createElement('div')
-  successToast.className = 'save-success-toast'
-  successToast.innerHTML = `
-    <div class="toast-content">
-      <svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M20 6L9 17l-5-5"/>
-      </svg>
-      <span>主题保存成功！</span>
-    </div>
-  `
-
-  document.body.appendChild(successToast)
-
-  // 显示动画
-  setTimeout(() => {
-    successToast.classList.add('show')
-  }, 10)
-
-  // 自动移除
-  setTimeout(() => {
-    successToast.classList.remove('show')
-    setTimeout(() => {
-      if (successToast.parentNode) {
-        successToast.parentNode.removeChild(successToast)
-      }
-    }, 300)
-  }, 800)
 }
 
 // 缓存上一次的变量值，用于比较变化
