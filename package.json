@@ -93,7 +93,13 @@
   "pnpm": {
     "overrides": {
       "@codemirror/state": "^6.2.0"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "electron",
+      "electron-winstaller",
+      "esbuild",
+      "simple-git-hooks"
+    ]
   },
   "simple-git-hooks": {
     "pre-commit": "npx lint-staged"

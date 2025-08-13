@@ -44,12 +44,6 @@ async function createWindow() {
 
 // 创建主题编辑器窗口
 export async function createThemeEditorWindow() {
-  console.log('创建主题编辑器窗口 - 当前窗口状态:', {
-    exists: !!themeEditorWindow,
-    isDestroyed: themeEditorWindow?.isDestroyed(),
-    isVisible: themeEditorWindow?.isVisible(),
-  })
-
   if (themeEditorWindow && !themeEditorWindow.isDestroyed()) {
     console.log('主题编辑器窗口已存在，聚焦窗口')
     themeEditorWindow.focus()

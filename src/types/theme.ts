@@ -10,10 +10,15 @@ const supportedThemes = [
 
 export type ThemeName = (typeof supportedThemes)[number]
 
-export interface Theme {
-  name: string
+export interface ThemeList {
+  name: ThemeName
   label: string
-  color: string
   description: string
-  variables: Record<string, string>
+  data: {
+    themeProperties: Record<string, string>
+    appCssProperties: Record<string, string>
+    appCssPropertiesArray: string[]
+    milkdownCssProperties: Record<string, string>
+    milkdownCssPropertiesArray: string[]
+  }
 }
