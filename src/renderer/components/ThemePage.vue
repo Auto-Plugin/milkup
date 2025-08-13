@@ -1,16 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { onMounted } from 'vue'
 import useTheme from '@/hooks/useTheme'
 
 const { currentTheme, init, setTheme, getThemes } = useTheme()
 
-// 主题列表
-const list = getThemes()
-
-// 前端主题对象
-const currentThemeOption = computed(() => {
-  return list.find(t => t.name === currentTheme.value) || list[0]
-})
+function customTheme() {
+  window.electronAPI.openThemeEditor()
+}
 
 onMounted(() => init())
 </script>
@@ -23,7 +19,7 @@ onMounted(() => init())
 
     <div class="theme-grid">
       <div
-        v-for="option in list" :key="option.name" class="theme-card"
+        v-for="option in getThemes()" :key="option.name" class="theme-card"
         :class="{ active: option.name === currentTheme }" @click.stop="setTheme(option.name)"
       >
         <div class="theme-preview" :style="{ backgroundColor: option.data.themeProperties['--background-color'] }">
@@ -47,12 +43,28 @@ onMounted(() => init())
           <p>{{ option.description }}</p>
         </div>
       </div>
-    </div>
 
-    <div class="current-theme">
-      <div class="current-theme-info">
-        <h3>当前主题: {{ currentThemeOption.label }}</h3>
-        <p>{{ currentThemeOption.description }}</p>
+      <div class="theme-card" @click.stop="customTheme">
+        <div class="theme-preview">
+          <div class="preview-content">
+            <div class="preview-header">
+            </div>
+            <div class="preview-lines">
+              <div class="preview-line">
+              </div>
+              <div class="preview-line">
+              </div>
+              <div class="preview-line">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="theme-info">
+          <div class="theme-title">
+            <h3>自定义主题</h3>
+          </div>
+          <p>打开主题编辑器</p>
+        </div>
       </div>
     </div>
   </div>
@@ -347,24 +359,6 @@ onMounted(() => init())
     }
   }
 
-  .current-theme {
-    padding: 16px;
-    background: var(--background-color-3);
-    border-radius: 6px;
-
-    .current-theme-info {
-      h3 {
-        font-size: 16px;
-        color: var(--text-color);
-        margin-bottom: 4px;
-      }
-
-      p {
-        font-size: 14px;
-        color: var(--text-color-2);
-      }
-    }
-  }
 }
 
 // 通知样式

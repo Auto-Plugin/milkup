@@ -18,7 +18,7 @@ const MenuOptions = [
   { label: '保存', action: onSave, icon: 'icon-baocun' },
   { label: '另存为', action: onSaveAs, icon: 'icon-baocun' },
   { label: '设置', action: () => (activeTab.value = 'settings'), icon: 'icon-config-props', value: 'settings' },
-  { label: '主题', action: () => (activeTab.value = 'theme'), icon: 'icon-script', value: 'theme' },
+  { label: '外观', action: () => (activeTab.value = 'theme'), icon: 'icon-script', value: 'theme' },
   { label: '关于', action: () => (activeTab.value = 'about'), icon: 'icon-github', value: 'about' },
 ]
 </script>

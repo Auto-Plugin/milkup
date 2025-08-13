@@ -1,38 +1,11 @@
-import type { ThemeList, ThemeName } from '@/types/theme'
+import type { TempTheme, ThemeList, ThemeName } from '@/types/theme'
 import { ref } from 'vue'
-
-// themeList 数据结构
+import { cssVarsDesMap, themeNameMap } from '@/config/theme'
 
 const currentTheme = ref<ThemeName>('normal')
+const tempTheme = ref<TempTheme>()
 
 const themes = ref<ThemeList[]>([])
-
-const themeNameMap = {
-  'normal': {
-    label: '亮色',
-    description: '明亮清新的标准主题，适合日常使用',
-  },
-  'normal-dark': {
-    label: '暗色',
-    description: '深色风格主题，减少夜间使用时的眼睛疲劳',
-  },
-  'crepe': {
-    label: 'Github白色',
-    description: '类似GitHub风格的明亮主题，干净整洁',
-  },
-  'crepe-dark': {
-    label: 'Github暗色',
-    description: 'GitHub深色模式风格，适合夜间或弱光环境',
-  },
-  'frame': {
-    label: '纸张护眼色',
-    description: '纸张护眼色，适合长时间阅读',
-  },
-  'frame-dark': {
-    label: '暖色',
-    description: '暖色风格主题，适合长时间阅读',
-  },
-}
 
 // 初始化主题
 function init() {
@@ -128,7 +101,7 @@ function getThemes() {
     if (folderName) {
       // 将文件夹名称转换为主题名称格式（将连字符转换为下划线）
       const themeName = folderName
-      themeList.push({
+      themeList.unshift({
         name: themeName as ThemeName,
         label: themeNameMap[themeName as keyof typeof themeNameMap]?.label || themeName,
         description: themeNameMap[themeName as keyof typeof themeNameMap]?.description || '',
@@ -145,8 +118,22 @@ function getThemes() {
       })
     }
   }
+  console.log(themeList)
 
   return themeList
+}
+
+// 根据类名获取主题
+function getThemeByCn(cn: ThemeName) {
+  if (!themes.value.length)
+    themes.value = getThemes()
+
+  const theme = themes.value.find(item => item.name === cn)
+
+  if (!theme)
+    return themes.value[0]
+
+  return theme
 }
 
 function setTheme(theme: ThemeName = currentTheme.value, saveToStorage = true) {
@@ -194,12 +181,50 @@ function setTheme(theme: ThemeName = currentTheme.value, saveToStorage = true) {
   }
 }
 
+function addTempTheme(theme?: string) {
+  // 基于当前主题提取他的appCssProperties
+  const themeList = themes.value.length ? themes.value : getThemes()
+
+  let currentThemeData = themeList.find(item => item.name === currentTheme.value)
+
+  if (!currentThemeData) {
+    // 就用列表第一个主题来生成
+    currentThemeData = themes.value[0]
+  }
+
+  const themeProperties = currentThemeData.data.themeProperties
+  const milkdownCssProperties = currentThemeData.data.milkdownCssProperties
+
+  tempTheme.value = {
+    label: theme || '自定义主题',
+    description: '这是自定义主题，包含了用户自定义的css变量',
+    data: {
+      themeProperties,
+      milkdownCssProperties,
+    },
+  }
+
+  console.log(tempTheme)
+}
+
+setTimeout(() => {
+  addTempTheme('自定义主题')
+}, 1000)
+
+// 获取所有css变量解释
+function getAllCssVarsDes() {
+  return cssVarsDesMap
+}
+
 export default function useTheme() {
-  // 提供方法
   return {
     currentTheme,
+    tempTheme,
     init,
     getThemes,
+    getThemeByCn,
     setTheme,
+    getAllCssVarsDes,
+    addTempTheme,
   }
 }

@@ -1,4 +1,4 @@
-// 扩展主题支持
+// 默认主题
 const supportedThemes = [
   'normal',
   'normal-dark',
@@ -20,5 +20,15 @@ export interface ThemeList {
     appCssPropertiesArray: string[]
     milkdownCssProperties: Record<string, string>
     milkdownCssPropertiesArray: string[]
+  }
+}
+
+export interface TempTheme {
+  label: string
+  description: string
+  data: {
+    themeProperties: Record<string, string>
+    milkdownCssProperties: Record<string, string>
+
   }
 }
