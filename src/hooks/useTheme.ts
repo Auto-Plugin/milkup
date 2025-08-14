@@ -1,16 +1,20 @@
-import type { TempTheme, ThemeList, ThemeName } from '@/types/theme'
-import { ref } from 'vue'
+import type { Theme, ThemeName } from '@/types/theme'
+import autolog from 'autolog.js'
+import { onMounted, onUnmounted, ref, toRaw } from 'vue'
 import { cssVarsDesMap, themeNameMap } from '@/config/theme'
+import themeManager from '@/utils/themeManager'
+import { randomUUID } from '@/utils/tool'
 
+const { localThemes, getLocalThemes, removeLocalTheme, addLocalTheme, onThemesChange, uninstallListeners, getCurrentLocalTheme, setCurrentLocalTheme } = themeManager
 const currentTheme = ref<ThemeName>('normal')
-const tempTheme = ref<TempTheme>()
+const tempTheme = ref<Theme>()
 
-const themes = ref<ThemeList[]>([])
+const themes = ref<Theme[]>([])
 
 // 初始化主题
 function init() {
-  const savedThemeName = localStorage.getItem('theme-name') || 'normal'
-  currentTheme.value = savedThemeName as ThemeName
+  // 获取本地当前应用的主题name
+  currentTheme.value = getCurrentLocalTheme()
 
   // 应用主题
   setTheme()
@@ -22,7 +26,7 @@ function getThemes() {
   const themes = import.meta.glob('@/themes/*/theme.less', { eager: true })
 
   // 过滤出文件夹并生成主题名称
-  const themeList: ThemeList[] = []
+  const themeList: Theme[] = []
 
   for (const path in themes) {
     const pathParts = path.split('/')
@@ -118,6 +122,13 @@ function getThemes() {
       })
     }
   }
+
+  // 合并本地主题
+  const localThemesList = getLocalThemes()
+  if (localThemesList && localThemesList.length > 0) {
+    themeList.push(...localThemesList)
+  }
+
   console.log(themeList)
 
   return themeList
@@ -136,95 +147,196 @@ function getThemeByCn(cn: ThemeName) {
   return theme
 }
 
-function setTheme(theme: ThemeName = currentTheme.value, saveToStorage = true) {
+function setTheme(theme: ThemeName = currentTheme.value) {
   // 确保只获取一次
   if (!themes.value.length)
     themes.value = getThemes()
 
-  // 是否为默认主题
-  const isDefaultTheme = themes.value.some(list => list.name === theme)
+  // 是否存在该主题
+  const isHasTheme = themes.value.some(list => list.name === theme)
 
-  if (isDefaultTheme) {
-    const html = document.documentElement
+  // 如果没有直接使用默认主题
+  if (!isHasTheme) {
+    theme = themes.value[0].name
+  }
 
-    // 确保移除其他主题类
-    const classes = Object.keys(themeNameMap).map(item => `theme-${item}`)
-    html.classList.remove(...classes)
+  const html = document.documentElement
 
-    // 应用应用主题
-    html.classList.add(`theme-${theme}`)
+  // 移除所有以 theme- 开头的类名
+  const allClasses = Array.from(html.classList)
+  const themeClasses = allClasses.filter(className => className.startsWith('theme-'))
+  html.classList.remove(...themeClasses)
 
-    // 应用编辑器主题
-    const id = 'milkdown-theme'
-    let link = document.getElementById(id) as HTMLLinkElement | null
+  // 移除之前可能存在的自定义主题样式
+  const existingCustomStyle = document.getElementById('custom-theme-style')
+  if (existingCustomStyle) {
+    existingCustomStyle.remove()
+  }
 
-    if (!link) {
-      link = document.createElement('link')
-      link.id = id
-      link.rel = 'stylesheet'
-      document.head.appendChild(link)
+  // 查找当前主题数据
+  const currentThemeData = themes.value.find(list => list.name === theme)
+
+  // 注入 CSS
+  if (currentThemeData?.isCustom) {
+    const style = document.createElement('style')
+    style.id = 'custom-theme-style'
+
+    // 生成 CSS
+    const cssVars = Object.entries(currentThemeData.data.themeProperties || {})
+      .map(([key, value]) => `  ${key}: ${value};`)
+      .join('\n')
+
+    style.textContent = `.theme-${theme} {${cssVars}}`
+    document.head.appendChild(style)
+  }
+
+  // 应用
+  html.classList.add(`theme-${theme}`)
+
+  // 应用编辑器
+  const id = 'milkdown-theme'
+  let link = document.getElementById(id) as HTMLLinkElement | null
+
+  if (!link) {
+    link = document.createElement('link')
+    link.id = id
+    link.rel = 'stylesheet'
+    document.head.appendChild(link)
+  }
+
+  let basePath = ''
+  if (import.meta.env.PROD) {
+    basePath = '../renderer/public'
+  }
+  link.href = `${basePath}/milkdown-themes/${theme}/style.css`
+
+  currentTheme.value = theme
+  setCurrentLocalTheme(theme)
+}
+
+function saveTheme() {
+  if (!tempTheme.value)
+    return
+
+  // 转为普通变量
+  const tempThemeData = toRaw(tempTheme.value)
+
+  // 使用 themeManager 添加本地主题
+  addLocalTheme(tempThemeData)
+
+  console.log(tempThemeData)
+
+  autolog.log('已保存主题', 'success')
+
+  // 清空临时主题
+  tempTheme.value = undefined
+}
+
+function addTheme() {
+  // 新增主题：传入 undefined 表示新增
+  addTempTheme()
+}
+
+function addTempTheme(themeName?: ThemeName) {
+  // 如果传入了主题名称，说明是编辑现有主题
+  if (themeName) {
+    const themeList = themes.value.length ? themes.value : getThemes()
+    const selectedTheme = themeList.find(item => item.name === themeName)
+
+    if (!selectedTheme) {
+      autolog.log('未找到指定主题', 'error')
+      return
     }
 
-    let basePath = ''
-    if (import.meta.env.PROD) {
-      basePath = '../renderer/public'
-    }
-    link.href = `${basePath}/milkdown-themes/${theme}/style.css`
-
-    currentTheme.value = theme
-
-    if (saveToStorage) {
-      localStorage.setItem('theme-name', theme)
-    }
+    // 设置临时主题为现有主题
+    tempTheme.value = selectedTheme
   } else {
-    // 自定义主题
-  }
-}
+    // 新增主题：基于当前主题创建新主题
+    const themeList = themes.value.length ? themes.value : getThemes()
 
-function addTempTheme(theme?: string) {
-  // 基于当前主题提取他的appCssProperties
-  const themeList = themes.value.length ? themes.value : getThemes()
+    let currentThemeData = themeList.find(item => item.name === currentTheme.value)
 
-  let currentThemeData = themeList.find(item => item.name === currentTheme.value)
+    if (!currentThemeData) {
+      // 就用列表第一个主题来生成
+      currentThemeData = themes.value[0]
+    }
 
-  if (!currentThemeData) {
-    // 就用列表第一个主题来生成
-    currentThemeData = themes.value[0]
-  }
+    const appCssProperties = currentThemeData.data.appCssProperties
+    const milkdownCssProperties = currentThemeData.data.milkdownCssProperties
 
-  const themeProperties = currentThemeData.data.themeProperties
-  const milkdownCssProperties = currentThemeData.data.milkdownCssProperties
+    const themeProperties = {
+      ...appCssProperties,
+      ...milkdownCssProperties,
+    }
 
-  tempTheme.value = {
-    label: theme || '自定义主题',
-    description: '这是自定义主题，包含了用户自定义的css变量',
-    data: {
-      themeProperties,
+    const appCssPropertiesArray = Object.keys(appCssProperties)
+    const milkdownCssPropertiesArray = Object.keys(milkdownCssProperties)
+
+    const data = {
+      appCssProperties,
       milkdownCssProperties,
-    },
+      themeProperties,
+      appCssPropertiesArray,
+      milkdownCssPropertiesArray,
+    }
+
+    tempTheme.value = {
+      name: `theme-custom-${randomUUID()}`,
+      label: '自定义主题',
+      description: '这是自定义主题，包含了用户自定义的css变量',
+      isCustom: true,
+      data,
+    }
   }
 
-  console.log(tempTheme)
+  window.electronAPI.openThemeEditor()
 }
 
-setTimeout(() => {
-  addTempTheme('自定义主题')
-}, 1000)
+// 删除本地主题
+function removeTheme(themeName: ThemeName) {
+  removeLocalTheme(themeName)
+
+  // 重新获取主题列表
+  themes.value = getThemes()
+}
 
 // 获取所有css变量解释
 function getAllCssVarsDes() {
   return cssVarsDesMap
 }
 
+// 监听本地主题变化
+function watchLocalThemes(callback: (themes: Theme[] | null) => void) {
+  return onThemesChange(callback)
+}
+
+onThemesChange((localThemesList) => {
+  if (localThemesList) {
+    themes.value = getThemes()
+  }
+})
+
+onUnmounted(() => {
+  uninstallListeners()
+})
+
+onMounted(() => { })
+
 export default function useTheme() {
   return {
+    themes,
     currentTheme,
     tempTheme,
+    localThemes,
     init,
     getThemes,
-    getThemeByCn,
     setTheme,
+    saveTheme,
+    addTheme,
+    removeTheme,
     getAllCssVarsDes,
     addTempTheme,
+    getThemeByCn,
+    watchLocalThemes,
   }
 }

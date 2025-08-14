@@ -8,27 +8,18 @@ const supportedThemes = [
   'frame-dark',
 ] as const
 
-export type ThemeName = (typeof supportedThemes)[number]
+export type ThemeName = (typeof supportedThemes)[number] | string
 
-export interface ThemeList {
+export interface Theme {
   name: ThemeName
   label: string
   description: string
+  isCustom?: boolean
   data: {
-    themeProperties: Record<string, string>
+    themeProperties?: Record<string, string>
     appCssProperties: Record<string, string>
-    appCssPropertiesArray: string[]
+    appCssPropertiesArray?: string[]
     milkdownCssProperties: Record<string, string>
-    milkdownCssPropertiesArray: string[]
-  }
-}
-
-export interface TempTheme {
-  label: string
-  description: string
-  data: {
-    themeProperties: Record<string, string>
-    milkdownCssProperties: Record<string, string>
-
+    milkdownCssPropertiesArray?: string[]
   }
 }

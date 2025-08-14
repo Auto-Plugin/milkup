@@ -1,14 +1,32 @@
 <script setup lang="ts">
+import type { ThemeName } from '@/types/theme'
 import { onMounted } from 'vue'
 import useTheme from '@/hooks/useTheme'
 
-const { currentTheme, init, setTheme, getThemes } = useTheme()
+const { themes, currentTheme, init, setTheme, addTempTheme, removeTheme } = useTheme()
 
-function customTheme() {
-  window.electronAPI.openThemeEditor()
+function customTheme(themeName: ThemeName) {
+  console.log(themeName)
+
+  addTempTheme(themeName)
 }
 
-onMounted(() => init())
+function downloadTheme() {
+  // TODO: 实现下载主题功能
+  console.log('下载主题功能待实现')
+}
+
+function addTheme() {
+  addTempTheme()
+}
+
+function deleteTheme(themeName: ThemeName) {
+  removeTheme(themeName)
+}
+
+onMounted(() => {
+  init()
+})
 </script>
 
 <template>
@@ -17,21 +35,23 @@ onMounted(() => init())
       <h2>主题</h2>
     </div>
 
-    <div class="theme-grid">
+    <div v-if="themes.length" class="theme-grid">
       <div
-        v-for="option in getThemes()" :key="option.name" class="theme-card"
+        v-for="option in themes" :key="option.name" class="theme-card"
         :class="{ active: option.name === currentTheme }" @click.stop="setTheme(option.name)"
       >
-        <div class="theme-preview" :style="{ backgroundColor: option.data.themeProperties['--background-color'] }">
+        <div class="theme-preview" :style="{ backgroundColor: option.data?.themeProperties?.['--background-color'] }">
           <div class="preview-content">
-            <div class="preview-header" :style="{ backgroundColor: option.data.themeProperties['--text-color-1'] }">
+            {{ option.data?.themeProperties?.['--text-color-1'] }}
+            <div class="preview-header" :style="{ backgroundColor: option.data?.themeProperties?.['--text-color-1'] }">
             </div>
             <div class="preview-lines">
-              <div class="preview-line" :style="{ backgroundColor: option.data.themeProperties['--text-color-1'] }">
+              {{ option.data?.themeProperties?.['--text-color-2'] }}
+              <div class="preview-line" :style="{ backgroundColor: option.data?.themeProperties?.['--text-color-1'] }">
               </div>
-              <div class="preview-line" :style="{ backgroundColor: option.data.themeProperties['--text-color-2'] }">
+              <div class="preview-line" :style="{ backgroundColor: option.data?.themeProperties?.['--text-color-2'] }">
               </div>
-              <div class="preview-line" :style="{ backgroundColor: option.data.themeProperties['--text-color-3'] }">
+              <div class="preview-line" :style="{ backgroundColor: option.data?.themeProperties?.['--text-color-3'] }">
               </div>
             </div>
           </div>
@@ -39,23 +59,33 @@ onMounted(() => init())
         <div class="theme-info">
           <div class="theme-title">
             <h3>{{ option.label }}</h3>
+            <div v-if="option.isCustom" class="theme-actions">
+              <div class="edit-btn" title="编辑主题" @click.stop="customTheme(option.name)">
+                <span class="iconfont icon-edit"></span>
+              </div>
+              <div class="download-btn" title="下载主题" @click.stop="downloadTheme">
+                <span class="iconfont icon-download"></span>
+              </div>
+              <div class="delete-btn" title="删除主题" @click.stop="deleteTheme(option.name)">
+                <span class="iconfont icon-close"></span>
+              </div>
+            </div>
           </div>
           <p>{{ option.description }}</p>
         </div>
       </div>
 
-      <div class="theme-card" @click.stop="customTheme">
+      <div class="theme-card add-theme-card" @click.stop="addTheme">
         <div class="theme-preview">
           <div class="preview-content">
-            <div class="preview-header">
+            <div class="add-icon">
+              <span class="iconfont icon-plus"></span>
             </div>
-            <div class="preview-lines">
-              <div class="preview-line">
-              </div>
-              <div class="preview-line">
-              </div>
-              <div class="preview-line">
-              </div>
+            <div class="add-text">
+              <span>添加主题</span>
+            </div>
+            <div class="drag-hint">
+              <span>或拖入主题文件</span>
             </div>
           </div>
         </div>
@@ -63,7 +93,7 @@ onMounted(() => init())
           <div class="theme-title">
             <h3>自定义主题</h3>
           </div>
-          <p>打开主题编辑器</p>
+          <p>创建或导入自定义主题</p>
         </div>
       </div>
     </div>
@@ -108,6 +138,10 @@ onMounted(() => init())
       &:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+        .theme-actions {
+          opacity: 1;
+        }
       }
 
       &.active {
@@ -257,67 +291,13 @@ onMounted(() => init())
             gap: 6px;
             align-items: center;
 
-            .edit-btn {
-              background: none;
-              border: none;
-              color: var(--text-color-3);
-              font-size: 14px;
-              cursor: pointer;
-              width: 30px;
-              height: 30px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              border-radius: 3px;
-              opacity: 0.7;
-              transition: all 0.2s ease;
-
-              &:hover {
-                background: var(--hover-background-color);
-                color: var(--text-color-1);
-                opacity: 1;
-              }
-
-              .icon {
-                width: 20px;
-                height: 20px;
-                fill: currentColor;
-              }
-            }
-
-            .export-btn {
-              background: none;
-              border: none;
-              color: var(--text-color-3);
-              font-size: 14px;
-              cursor: pointer;
-              width: 30px;
-              height: 30px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              border-radius: 3px;
-              opacity: 0.7;
-              transition: all 0.2s ease;
-
-              &:hover {
-                background: var(--hover-background-color);
-                color: var(--text-color-1);
-                opacity: 1;
-              }
-
-              .icon {
-                width: 20px;
-                height: 20px;
-                fill: currentColor;
-              }
-            }
-
+            .edit-btn,
+            .download-btn,
             .delete-btn {
               background: none;
               border: none;
               color: var(--text-color-3);
-              font-size: 18px;
+              font-size: 14px;
               cursor: pointer;
               width: 30px;
               height: 30px;
@@ -334,11 +314,21 @@ onMounted(() => init())
                 opacity: 1;
               }
 
-              .icon {
-                width: 20px;
-                height: 20px;
-                fill: currentColor;
+              .iconfont {
+                font-size: 16px;
               }
+            }
+
+            .edit-btn:hover {
+              color: var(--primary-color);
+            }
+
+            .download-btn:hover {
+              color: #10b981;
+            }
+
+            .delete-btn:hover {
+              color: #ef4444;
             }
           }
         }
@@ -354,6 +344,160 @@ onMounted(() => init())
           color: var(--text-color-2);
           line-height: 1.4;
           margin: 0;
+        }
+      }
+
+      // 添加主题卡片样式
+      &.add-theme-card {
+        border: 2px dashed var(--border-color-1);
+        background: var(--background-color-1);
+        position: relative;
+        transition: all 0.3s ease;
+
+        &:hover {
+          border-color: var(--primary-color);
+          background: var(--hover-background-color);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        &.drag-over {
+          border-color: var(--primary-color);
+          background: var(--primary-color-transparent);
+          transform: scale(1.02);
+          box-shadow: 0 8px 20px rgba(74, 144, 226, 0.2);
+        }
+
+        .theme-preview {
+          .preview-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            background: transparent;
+            gap: 12px;
+
+            .add-icon {
+              width: 48px;
+              height: 48px;
+              border-radius: 50%;
+
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: var(--text-color-1);
+              font-size: 24px;
+              transition: all 0.3s ease;
+
+              .iconfont {
+                font-size: 24px;
+              }
+            }
+
+            .add-text {
+              span {
+                font-size: 16px;
+                font-weight: 600;
+                color: var(--text-color);
+              }
+            }
+
+            .drag-hint {
+              span {
+                font-size: 12px;
+                color: var(--text-color-2);
+                opacity: 0.8;
+              }
+            }
+          }
+        }
+
+        .theme-info {
+          background: var(--background-color-2);
+          border-top: 1px solid var(--border-color-1);
+
+          .theme-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            h3 {
+              color: var(--primary-color);
+              font-weight: 600;
+            }
+
+            .theme-actions {
+              display: flex;
+              gap: 4px;
+              opacity: 0;
+              transition: opacity 0.2s ease;
+
+              .edit-btn,
+              .download-btn,
+              .delete-btn {
+                background: none;
+                border: none;
+                color: var(--text-color-3);
+                cursor: pointer;
+                width: 28px;
+                height: 28px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 4px;
+                opacity: 0.7;
+                transition: all 0.2s ease;
+
+                &:hover {
+                  background: var(--hover-background-color);
+                  color: var(--text-color-1);
+                  opacity: 1;
+                }
+
+                .icon {
+                  width: 16px;
+                  height: 16px;
+                  fill: currentColor;
+                }
+              }
+
+              .edit-btn:hover {
+                color: var(--primary-color);
+              }
+
+              .download-btn:hover {
+                color: #10b981;
+              }
+
+              .delete-btn:hover {
+                color: #ef4444;
+              }
+            }
+          }
+
+          p {
+            color: var(--text-color-2);
+          }
+        }
+
+        // 拖拽悬停效果
+        &::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: linear-gradient(135deg, var(--primary-color-transparent) 0%, transparent 100%);
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          pointer-events: none;
+          border-radius: 6px;
+        }
+
+        &.drag-over::before {
+          opacity: 1;
         }
       }
     }

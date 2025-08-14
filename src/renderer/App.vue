@@ -52,6 +52,17 @@ window.electronAPI.on('trigger-save', async () => {
   await onSave()
 })
 
+// 监听自定义主题保存事件
+window.electronAPI.on('custom-theme-saved', (theme) => {
+  console.log('收到自定义主题保存事件:', theme)
+  // 重新获取主题列表以包含新保存的主题
+  const { getThemes } = useTheme()
+  getThemes()
+  // 应用新保存的主题
+  const { setTheme } = useTheme()
+  setTheme(theme.name)
+})
+
 function reBuildMilkdown() {
   isShowEditors.value = false
   nextTick(() => {
