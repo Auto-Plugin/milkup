@@ -6,8 +6,6 @@ import useTheme from '@/hooks/useTheme'
 const { themes, currentTheme, init, setTheme, addTempTheme, removeTheme } = useTheme()
 
 function customTheme(themeName: ThemeName) {
-  console.log(themeName)
-
   addTempTheme(themeName)
 }
 

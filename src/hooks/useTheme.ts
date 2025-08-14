@@ -240,6 +240,8 @@ function addTheme() {
 function addTempTheme(themeName?: ThemeName) {
   // 如果传入了主题名称，说明是编辑现有主题
   if (themeName) {
+    console.log('编辑主题')
+
     const themeList = themes.value.length ? themes.value : getThemes()
     const selectedTheme = themeList.find(item => item.name === themeName)
 
@@ -251,6 +253,8 @@ function addTempTheme(themeName?: ThemeName) {
     // 设置临时主题为现有主题
     tempTheme.value = selectedTheme
   } else {
+    console.log('新增主题')
+
     // 新增主题：基于当前主题创建新主题
     const themeList = themes.value.length ? themes.value : getThemes()
 

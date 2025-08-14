@@ -14,7 +14,7 @@ interface Window {
     getFilePathInClipboard: () => Promise<string | null>
     writeTempImage: (file: Uint8Array<ArrayBuffer>, tempPath: string) => Promise<string>
     // 主题编辑器相关
-    openThemeEditor: () => void
+    openThemeEditor: (theme?: any) => void
     themeEditorWindowControl: (action: 'minimize' | 'maximize' | 'close') => void
     saveCustomTheme: (theme: any) => void
     platform: NodeJS.Platform

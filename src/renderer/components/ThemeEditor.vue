@@ -69,7 +69,7 @@ function handleSave() {
 onMounted(() => {
   // 确保主题已初始化
   if (!tempTheme.value) {
-    addTempTheme('自定义主题')
+    addTempTheme()
   }
 
   // 复制一份原始主题作为备份
