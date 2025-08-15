@@ -1,4 +1,4 @@
-<div align="center">
+<div align="ce?ter">
   <img src="./src/renderer/public/logo.svg" alt="milkup Logo" width="150"> 
   <h1>milkup</h1>
   <p><strong>一个现代化的桌面端 Markdown 编辑器</strong></p>
@@ -57,7 +57,7 @@ milkup 致力于为用户提供高效、简洁的 Markdown 编辑体验。我们
 
 如果您有任何问题、建议或反馈，欢迎通过以下方式联系我们：
 
-<img src="./public/9f9e783bb2eb1013635d8ddbd15d008d.jpg" alt="联系方式" width="200">
+<img src="./public/qun.jpg" alt="联系方式" width="200">
 
 ---
 
