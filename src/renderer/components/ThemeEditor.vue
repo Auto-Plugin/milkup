@@ -6,7 +6,7 @@ import useTheme from '@/hooks/useTheme'
 import ColorPicker from '@/ui/ColorPicker.vue'
 import MilkdownEditor from './MilkdownEditor.vue'
 
-const { tempTheme, getAllCssVarsDes, getThemes, getThemeByCn, addTempTheme, saveTheme } = useTheme()
+const { tempTheme, getAllCssVarsDes, getThemeByCn, addTempTheme, saveTheme, getEditingThemeFromStorage, clearEditingThemeFromStorage } = useTheme()
 
 // 原始主题备份
 const originalThemeBackup = ref<any>(null)
@@ -34,12 +34,11 @@ function updatePreview() {
 
 // 关闭窗口
 function handleClose() {
-  console.log('主题编辑器关闭按钮被点击')
+  // 清理编辑状态
+  clearEditingThemeFromStorage()
+
   if (window.electronAPI) {
-    console.log('调用主题编辑器窗口控制: close')
     window.electronAPI.themeEditorWindowControl('close')
-  } else {
-    console.log('window.electronAPI 不存在')
   }
 }
 
@@ -63,18 +62,43 @@ function handleReset() {
 function handleSave() {
   // return
   saveTheme()
+
+  // 关闭窗口
+  handleClose()
 }
 
 // 组件挂载时初始化
 onMounted(() => {
-  // 确保主题已初始化
-  if (!tempTheme.value) {
-    addTempTheme()
-  }
+  // 从 localStorage 读取编辑中的主题数据
+  const editingTheme = getEditingThemeFromStorage()
 
-  // 复制一份原始主题作为备份
-  if (tempTheme.value) {
-    originalThemeBackup.value = JSON.parse(JSON.stringify(tempTheme.value))
+  if (editingTheme) {
+    // 如果有主题数据，说明是编辑模式
+
+    // 在列表中找到主题
+    const theme = getThemeByCn(editingTheme)
+
+    if (!theme) {
+      autolog.log('未找到指定主题', 'error')
+
+      return
+    }
+
+    // 设置临时主题
+    tempTheme.value = theme
+
+    // 复制一份原始主题作为备份
+    originalThemeBackup.value = JSON.parse(JSON.stringify(theme))
+  } else {
+    // 确保主题已初始化
+    if (!tempTheme.value) {
+      addTempTheme()
+    }
+
+    // 复制一份原始主题作为备份
+    if (tempTheme.value) {
+      originalThemeBackup.value = JSON.parse(JSON.stringify(tempTheme.value))
+    }
   }
 
   // 应用当前主题到预览
@@ -83,9 +107,8 @@ onMounted(() => {
 
 // 组件卸载时处理
 onUnmounted(() => {
-  console.log('主题编辑器组件卸载...')
-
-  // 如果编辑的是临时主题但没有保存，则恢复原始主题
+  // 清理编辑状态
+  clearEditingThemeFromStorage()
 })
 
 // 应用预设

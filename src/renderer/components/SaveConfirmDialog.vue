@@ -81,12 +81,13 @@ function handleCancel() {
 }
 
 .dialog-content {
-  background: var(--bg-color, #ffffff);
+  background: var(--background-color-1);
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   min-width: 400px;
   max-width: 500px;
   transition: transform 0.3s ease;
+  border: 1px solid var(--border-color-1);
 }
 
 .dialog-header {
@@ -96,7 +97,7 @@ function handleCancel() {
     margin: 0;
     font-size: 18px;
     font-weight: 600;
-    color: var(--text-color, #333);
+    color: var(--text-color);
   }
 }
 
@@ -106,7 +107,7 @@ function handleCancel() {
   p {
     margin: 0;
     font-size: 14px;
-    color: var(--text-secondary, #666);
+    color: var(--text-color-2);
     line-height: 1.5;
   }
 }
@@ -133,74 +134,32 @@ function handleCancel() {
 
 .btn-save {
   margin-right: 12px;
-  background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-color) 100%);
   color: white;
-  box-shadow: 0 2px 8px rgba(116, 185, 255, 0.3);
 
   &:hover {
-    background: linear-gradient(135deg, #6ab0f0 0%, #0873c4 100%);
-    box-shadow: 0 4px 12px rgba(116, 185, 255, 0.4);
+    opacity: 0.8;
   }
 
   &:active {
-    background: linear-gradient(135deg, #60a7e6 0%, #0762a5 100%);
+    background: var(--active-color);
   }
 }
 
 .btn-secondary {
-  background: #f8f9fa;
-  color: #6c757d;
-  border: 1px solid #e9ecef;
+  background: var(--background-color-2);
+  color: var(--text-color-3);
+  border: 1px solid var(--border-color-1);
 
   &:hover {
-    background: #e9ecef;
-    color: #495057;
-    border-color: #dee2e6;
+    background: var(--hover-background-color);
+    color: var(--text-color-1);
+    border-color: var(--border-color-2);
   }
 
   &:active {
-    background: #dee2e6;
-    color: #343a40;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  .dialog-content {
-    --bg-color: #1f1f1f;
-    --text-color: #ffffff;
-    --text-secondary: #a0a0a0;
-  }
-
-  .btn-save {
-    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
-    color: white;
-    box-shadow: 0 2px 8px rgba(116, 185, 255, 0.3);
-
-    &:hover {
-      background: linear-gradient(135deg, #6ab0f0 0%, #0873c4 100%);
-      box-shadow: 0 4px 12px rgba(116, 185, 255, 0.4);
-    }
-
-    &:active {
-      background: linear-gradient(135deg, #60a7e6 0%, #0762a5 100%);
-    }
-  }
-
-  .btn-secondary {
-    background: #2d3748;
-    color: #a0aec0;
-    border: 1px solid #4a5568;
-
-    &:hover {
-      background: #4a5568;
-      color: #e2e8f0;
-      border-color: #718096;
-    }
-
-    &:active {
-      background: #718096;
-      color: #f7fafc;
-    }
+    background: var(--active-color);
+    color: var(--text-color);
   }
 }
 </style>

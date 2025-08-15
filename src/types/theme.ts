@@ -23,3 +23,16 @@ export interface Theme {
     milkdownCssPropertiesArray?: string[]
   }
 }
+
+// 检查对象是否为Theme类型
+export function isThemeObject(obj: any): obj is Theme {
+  return obj
+    && typeof obj === 'object'
+    && typeof obj.name === 'string'
+    && typeof obj.label === 'string'
+    && typeof obj.description === 'string'
+    && obj.data
+    && typeof obj.data === 'object'
+    && obj.data.themeProperties
+    && typeof obj.data.themeProperties === 'object'
+}

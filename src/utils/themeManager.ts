@@ -26,9 +26,8 @@ function loadThemes() {
   return localThemes
 }
 
-// 监听 localStorage 变化
+// 监听 storage
 function setupStorageListener() {
-  // 监听 storage 事件（跨标签页/窗口的 localStorage 变化）
   window.addEventListener('storage', (e) => {
     if (e.key === 'custom-themes') {
       loadThemes()
@@ -63,6 +62,18 @@ function removeTheme(name: ThemeName) {
 }
 
 function addTheme(theme: Theme) {
+  // 是否有存在的主题
+  const editingThemeName = getEditingThemeFromStorage()
+
+  // 覆盖
+  if (editingThemeName) {
+    // 删除旧主题
+    localThemes = localThemes.filter(t => t.name !== editingThemeName)
+
+    // 清理编辑
+    clearEditingThemeFromStorage()
+  }
+
   localThemes.push(theme)
 
   // 保存到本地
@@ -95,15 +106,41 @@ function uninstallListeners() {
   })
 }
 
+// 获取编辑中的主题数据
+function getEditingThemeFromStorage() {
+  const theme = localStorage.getItem('editing-theme')
+
+  return theme ? JSON.parse(theme) as ThemeName : null
+}
+
+// 设置编辑中的主题数据
+function setEditingThemeToStorage(theme: ThemeName) {
+  localStorage.setItem('editing-theme', JSON.stringify(theme))
+}
+
+// 清理编辑中的主题数据
+function clearEditingThemeFromStorage() {
+  localStorage.removeItem('editing-theme')
+}
+
 // 导出主题管理器
 export default {
   localThemes,
   loadLocalThemes: loadThemes,
+
+  // 增删改查
   getLocalThemes: getThemes,
   getCurrentLocalTheme,
   setCurrentLocalTheme,
   removeLocalTheme: removeTheme,
   addLocalTheme: addTheme,
+
+  // 监听主题
   onThemesChange,
   uninstallListeners,
+
+  // 编辑主题
+  getEditingThemeFromStorage,
+  setEditingThemeToStorage,
+  clearEditingThemeFromStorage,
 }

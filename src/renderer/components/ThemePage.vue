@@ -1,30 +1,11 @@
 <script setup lang="ts">
-import type { ThemeName } from '@/types/theme'
 import { onMounted } from 'vue'
+
 import useTheme from '@/hooks/useTheme'
 
-const { themes, currentTheme, init, setTheme, addTempTheme, removeTheme } = useTheme()
+const { themes, currentTheme, init, setTheme, addTempTheme, removeTheme, exportTheme, importTheme } = useTheme()
 
-function customTheme(themeName: ThemeName) {
-  addTempTheme(themeName)
-}
-
-function downloadTheme() {
-  // TODO: 实现下载主题功能
-  console.log('下载主题功能待实现')
-}
-
-function addTheme() {
-  addTempTheme()
-}
-
-function deleteTheme(themeName: ThemeName) {
-  removeTheme(themeName)
-}
-
-onMounted(() => {
-  init()
-})
+onMounted(() => init())
 </script>
 
 <template>
@@ -40,11 +21,9 @@ onMounted(() => {
       >
         <div class="theme-preview" :style="{ backgroundColor: option.data?.themeProperties?.['--background-color'] }">
           <div class="preview-content">
-            {{ option.data?.themeProperties?.['--text-color-1'] }}
             <div class="preview-header" :style="{ backgroundColor: option.data?.themeProperties?.['--text-color-1'] }">
             </div>
             <div class="preview-lines">
-              {{ option.data?.themeProperties?.['--text-color-2'] }}
               <div class="preview-line" :style="{ backgroundColor: option.data?.themeProperties?.['--text-color-1'] }">
               </div>
               <div class="preview-line" :style="{ backgroundColor: option.data?.themeProperties?.['--text-color-2'] }">
@@ -58,13 +37,13 @@ onMounted(() => {
           <div class="theme-title">
             <h3>{{ option.label }}</h3>
             <div v-if="option.isCustom" class="theme-actions">
-              <div class="edit-btn" title="编辑主题" @click.stop="customTheme(option.name)">
+              <div class="edit-btn" title="编辑主题" @click.stop="addTempTheme(option.name)">
                 <span class="iconfont icon-edit"></span>
               </div>
-              <div class="download-btn" title="下载主题" @click.stop="downloadTheme">
+              <div class="download-btn" title="下载主题" @click.stop="exportTheme(option.name)">
                 <span class="iconfont icon-download"></span>
               </div>
-              <div class="delete-btn" title="删除主题" @click.stop="deleteTheme(option.name)">
+              <div class="delete-btn" title="删除主题" @click.stop="removeTheme(option.name)">
                 <span class="iconfont icon-close"></span>
               </div>
             </div>
@@ -73,7 +52,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="theme-card add-theme-card" @click.stop="addTheme">
+      <div v-file-drag-in="(file:any) => importTheme(file)" class="theme-card add-theme-card" @click.stop="addTempTheme()">
         <div class="theme-preview">
           <div class="preview-content">
             <div class="add-icon">

@@ -2,10 +2,23 @@ import type { Theme, ThemeName } from '@/types/theme'
 import autolog from 'autolog.js'
 import { onMounted, onUnmounted, ref, toRaw } from 'vue'
 import { cssVarsDesMap, themeNameMap } from '@/config/theme'
+import { isThemeObject } from '@/types/theme'
 import themeManager from '@/utils/themeManager'
 import { randomUUID } from '@/utils/tool'
 
-const { localThemes, getLocalThemes, removeLocalTheme, addLocalTheme, onThemesChange, uninstallListeners, getCurrentLocalTheme, setCurrentLocalTheme } = themeManager
+const {
+  localThemes,
+  getLocalThemes,
+  removeLocalTheme,
+  addLocalTheme,
+  onThemesChange,
+  uninstallListeners,
+  getCurrentLocalTheme,
+  setCurrentLocalTheme,
+  setEditingThemeToStorage,
+  getEditingThemeFromStorage,
+  clearEditingThemeFromStorage,
+} = themeManager
 const currentTheme = ref<ThemeName>('normal')
 const tempTheme = ref<Theme>()
 
@@ -147,6 +160,7 @@ function getThemeByCn(cn: ThemeName) {
   return theme
 }
 
+// 设置主题
 function setTheme(theme: ThemeName = currentTheme.value) {
   // 确保只获取一次
   if (!themes.value.length)
@@ -214,6 +228,7 @@ function setTheme(theme: ThemeName = currentTheme.value) {
   setCurrentLocalTheme(theme)
 }
 
+// 保存主题
 function saveTheme() {
   if (!tempTheme.value)
     return
@@ -224,37 +239,19 @@ function saveTheme() {
   // 使用 themeManager 添加本地主题
   addLocalTheme(tempThemeData)
 
-  console.log(tempThemeData)
-
-  autolog.log('已保存主题', 'success')
-
-  // 清空临时主题
-  tempTheme.value = undefined
+  // // 清空临时主题
+  // tempTheme.value = undefined
 }
 
-function addTheme() {
-  // 新增主题：传入 undefined 表示新增
-  addTempTheme()
-}
-
+// 添加临时主题
 function addTempTheme(themeName?: ThemeName) {
   // 如果传入了主题名称，说明是编辑现有主题
   if (themeName) {
-    console.log('编辑主题')
+    // 存储到 localStorage
+    setEditingThemeToStorage(themeName)
 
-    const themeList = themes.value.length ? themes.value : getThemes()
-    const selectedTheme = themeList.find(item => item.name === themeName)
-
-    if (!selectedTheme) {
-      autolog.log('未找到指定主题', 'error')
-      return
-    }
-
-    // 设置临时主题为现有主题
-    tempTheme.value = selectedTheme
+    window.electronAPI.openThemeEditor()
   } else {
-    console.log('新增主题')
-
     // 新增主题：基于当前主题创建新主题
     const themeList = themes.value.length ? themes.value : getThemes()
 
@@ -314,11 +311,48 @@ function watchLocalThemes(callback: (themes: Theme[] | null) => void) {
   return onThemesChange(callback)
 }
 
+// 同步主题列表
 onThemesChange((localThemesList) => {
   if (localThemesList) {
     themes.value = getThemes()
   }
 })
+
+// 导出主题
+function exportTheme(themeName: ThemeName) {
+  const theme = getThemeByCn(themeName)
+  const dataStr = JSON.stringify(theme, null, 2)
+  const dataBlob = new Blob([dataStr], { type: 'application/json' })
+  const url = URL.createObjectURL(dataBlob)
+
+  // 创建下载元素
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `${theme.label || theme.name}.json`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+
+  autolog.log('导出完成', 'success')
+}
+
+// 导入主题JSON
+function importTheme(theme: any) {
+  // parse
+  const themeData = JSON.parse(theme)
+
+  // 检查是否为Theme类型
+  const isTheme = isThemeObject(themeData)
+
+  if (!isTheme) {
+    autolog.log('导入主题格式错误', 'error')
+  }
+
+  // 添加到本地主题
+  addLocalTheme(themeData)
+  autolog.log('导入主题完成', 'success')
+}
 
 onUnmounted(() => {
   uninstallListeners()
@@ -328,19 +362,32 @@ onMounted(() => { })
 
 export default function useTheme() {
   return {
+    // 主题变量
     themes,
     currentTheme,
     tempTheme,
     localThemes,
+
+    // 增删改查
     init,
     getThemes,
     setTheme,
     saveTheme,
-    addTheme,
     removeTheme,
     getAllCssVarsDes,
     addTempTheme,
     getThemeByCn,
+
+    // 监听主题
     watchLocalThemes,
+
+    // 编辑主题
+    getEditingThemeFromStorage,
+    clearEditingThemeFromStorage,
+    setEditingThemeToStorage,
+
+    // 导出导入主题
+    exportTheme,
+    importTheme,
   }
 }

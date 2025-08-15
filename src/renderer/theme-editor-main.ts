@@ -8,8 +8,7 @@ import '@/themes/theme-main.less'
 import '@milkdown/crepe/theme/common/style.css'
 import '@/assets/iconfont/iconfont.css'
 
-const { currentTheme, init, setTheme, getThemes } = useTheme()
-
+const { init } = useTheme()
 onMounted(() => init())
 
 const app = createApp(ThemeEditor)
