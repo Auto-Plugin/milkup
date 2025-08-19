@@ -1,4 +1,4 @@
-<div align="ce?ter">
+<div align,"center">
   <img src="./src/renderer/public/logo.svg" alt="milkup Logo" width="150"> 
   <h1>milkup</h1>
   <p><strong>一个现代化的桌面端 Markdown 编辑器</strong></p>
