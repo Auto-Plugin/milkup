@@ -114,6 +114,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Install Dependencies
+        run: pnpm install
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -138,22 +145,26 @@ jobs:
           ls -la release_files/
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: milkup ${{ github.ref_name }}
-          draft: false
-          prerelease: false
-          body: |
-            ## milkup ${{ github.ref_name }}
-
-            ### 下载说明
-            - **macOS Intel**: 下载 DMG 文件（不含 arm64 后缀）
-            - **macOS Apple Silicon**: 下载带 arm64 后缀的 DMG 文件
-            - **Windows x64**: 下载 EXE 安装文件
-
-            ### 更新内容
-            请查看 commit 历史了解详细更新内容。
-          files: release_files/*
+        run: pnpm run release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+#      - name: Create Release
+#        uses: softprops/action-gh-release@v1
+#        with:
+#          tag_name: ${{ github.ref_name }}
+#          name: milkup ${{ github.ref_name }}
+#          draft: false
+#          prerelease: false
+#          body: |
+#            ## milkup ${{ github.ref_name }}
+#
+#            ### 下载说明
+#            - **macOS Intel**: 下载 DMG 文件（不含 arm64 后缀）
+#            - **macOS Apple Silicon**: 下载带 arm64 后缀的 DMG 文件
+#            - **Windows x64**: 下载 EXE 安装文件
+#
+#            ### 更新内容
+#            请查看 commit 历史了解详细更新内容。
+#          files: release_files/*
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
