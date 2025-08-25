@@ -23,6 +23,8 @@ interface Window {
     showOpenDialog: (options: any) => Promise<{ canceled: boolean, filePaths: string[] } | undefined>
     // 获取拖拽文件的真实路径
     getPathForFile: (file: File) => string | undefined
+    // 字体相关
+    getSystemFonts: () => Promise<string[]>
     // 主题编辑器相关
     openThemeEditor: (theme?: any) => void
     themeEditorWindowControl: (action: 'minimize' | 'maximize' | 'close') => void

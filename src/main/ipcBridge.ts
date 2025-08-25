@@ -3,7 +3,17 @@
 import * as fs from 'node:fs'
 import path from 'node:path'
 import { app, clipboard, dialog, ipcMain, shell } from 'electron'
+import { getFonts } from 'font-list'
+
 import { createThemeEditorWindow } from './index'
+
+getFonts()
+  .then((fonts) => {
+    console.log(fonts)
+  })
+  .catch((err) => {
+    console.log(err)
+  })
 
 let isSaved = true
 let isQuitting = false
@@ -130,6 +140,17 @@ export function registerIpcOnHandlers(win: Electron.BrowserWindow) {
 
 // 所有 handle 类型监听
 export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
+  // 获取系统字体列表
+  ipcMain.handle('get-system-fonts', async () => {
+    try {
+      const fonts = await getFonts()
+      return fonts
+    } catch (error) {
+      console.error('获取系统字体失败:', error)
+      return []
+    }
+  })
+
   // 文件打开对话框
   ipcMain.handle('dialog:openFile', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog(win, {

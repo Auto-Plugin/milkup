@@ -1,19 +1,16 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-
 import useTheme from '@/hooks/useTheme'
 
 const { themes, currentTheme, init, setTheme, addTempTheme, removeTheme, exportTheme, importTheme } = useTheme()
 
-onMounted(() => init())
+onMounted(() => {
+  init()
+})
 </script>
 
 <template>
   <div class="ThemePageBox">
-    <div class="theme-header">
-      <h2>主题</h2>
-    </div>
-
     <div v-if="themes.length" class="theme-grid">
       <div
         v-for="option in themes" :key="option.name" class="theme-card"
@@ -81,22 +78,7 @@ onMounted(() => init())
 .ThemePageBox {
   width: 100%;
   height: 100%;
-  padding: 0 20px 20px 20px;
-
-  .theme-header {
-    margin-bottom: 24px;
-
-    h2 {
-      font-size: 20px;
-      color: var(--text-color);
-      margin-bottom: 8px;
-    }
-
-    p {
-      font-size: 14px;
-      color: var(--text-color-2);
-    }
-  }
+  padding: 0px;
 
   .theme-grid {
     display: grid;
