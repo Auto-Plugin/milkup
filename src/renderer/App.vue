@@ -3,6 +3,7 @@ import { MilkdownProvider } from '@milkdown/vue'
 import { nextTick, ref, watch } from 'vue'
 import useContent from '@/hooks/useContent'
 import useFile from '@/hooks/useFile'
+import useFont from '@/hooks/useFont'
 import { isShowOutline } from '@/hooks/useOutline'
 import { useSaveConfirmDialog } from '@/hooks/useSaveConfirmDialog'
 import useSourceCode from '@/hooks/useSourceCode'
@@ -20,6 +21,8 @@ const { updateTitle } = useTitle()
 const { markdown } = useContent()
 const { currentTheme, init } = useTheme()
 init()
+const { init: initFont } = useFont()
+initFont()
 
 const { isShowSource } = useSourceCode()
 const { isDialogVisible, showDialog, handleSave, handleDiscard, handleCancel } = useSaveConfirmDialog()
@@ -56,9 +59,6 @@ window.electronAPI.on('trigger-save', async () => {
 window.electronAPI.on('custom-theme-saved', (theme) => {
   console.log('收到自定义主题保存事件:', theme)
   // 重新获取主题列表以包含新保存的主题
-  const { getThemes } = useTheme()
-  getThemes()
-  // 应用新保存的主题
   const { setTheme } = useTheme()
   setTheme(theme.name)
 })

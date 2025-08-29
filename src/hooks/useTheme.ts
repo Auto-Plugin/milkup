@@ -142,8 +142,6 @@ function getThemes() {
     themeList.push(...localThemesList)
   }
 
-  console.log(themeList)
-
   return themeList
 }
 

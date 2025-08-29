@@ -109,10 +109,12 @@ function sendLaunchFileIfExists() {
 
 app.whenReady().then(async () => {
   await createWindow()
-  createMenu(win)
-  sendLaunchFileIfExists()
   registerIpcOnHandlers(win)
   registerIpcHandleHandlers(win)
+
+  sendLaunchFileIfExists()
+  createMenu(win)
+
   win.on('close', (event) => {
     if (process.platform === 'darwin' && !getIsQuitting()) {
       event.preventDefault()

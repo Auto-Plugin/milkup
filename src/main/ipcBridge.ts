@@ -7,13 +7,13 @@ import { getFonts } from 'font-list'
 
 import { createThemeEditorWindow } from './index'
 
-getFonts()
-  .then((fonts) => {
-    console.log(fonts)
-  })
-  .catch((err) => {
-    console.log(err)
-  })
+// getFonts()
+//   .then((fonts) => {
+//     console.log(fonts)
+//   })
+//   .catch((err) => {
+//     console.log(err)
+//   })
 
 let isSaved = true
 let isQuitting = false
@@ -142,8 +142,10 @@ export function registerIpcOnHandlers(win: Electron.BrowserWindow) {
 export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
   // 获取系统字体列表
   ipcMain.handle('get-system-fonts', async () => {
+    console.log('获取系统字体列表')
     try {
       const fonts = await getFonts()
+      console.log(fonts)
       return fonts
     } catch (error) {
       console.error('获取系统字体失败:', error)
