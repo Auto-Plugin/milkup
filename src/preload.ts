@@ -37,7 +37,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }
   },
   // 字体相关
-  getSystemFonts: () => ipcRenderer.send('get-system-fonts'),
+  getSystemFonts: () => ipcRenderer.invoke('get-system-fonts'),
 
   // 主题编辑器相关
   openThemeEditor: (theme?: any) => ipcRenderer.send('open-theme-editor', theme),

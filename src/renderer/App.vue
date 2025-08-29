@@ -21,7 +21,7 @@ const { updateTitle } = useTitle()
 const { markdown } = useContent()
 const { currentTheme, init } = useTheme()
 init()
-const { init: initFont } = useFont()
+const { init: initFont, currentFont } = useFont()
 initFont()
 
 const { isShowSource } = useSourceCode()
@@ -32,8 +32,12 @@ const isShowEditors = ref(true)
 watch(markdown, () => {
   updateTitle()
 })
-watch([currentTheme, isShowSource], () => {
+watch([currentTheme, isShowSource, currentFont], () => {
+  console.log('样式有更新')
+
   reBuildMilkdown()
+}, {
+  deep: true,
 })
 emitter.on('file:Change', () => {
   reBuildMilkdown()

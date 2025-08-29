@@ -7,14 +7,6 @@ import { getFonts } from 'font-list'
 
 import { createThemeEditorWindow } from './index'
 
-// getFonts()
-//   .then((fonts) => {
-//     console.log(fonts)
-//   })
-//   .catch((err) => {
-//     console.log(err)
-//   })
-
 let isSaved = true
 let isQuitting = false
 

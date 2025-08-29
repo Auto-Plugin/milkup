@@ -4,44 +4,11 @@ import { onMounted } from 'vue'
 import { fontConfig } from '@/config/fonts'
 import useFont from '@/hooks/useFont'
 
-// const fontConfig = {
-//   'app-font': {
-//     label: '应用字体',
-//     desc: '用于应用界面的主要字体',
-//     value: 'app-font',
-//   },
-//   'editor-font': {
-//     label: '编辑器字体',
-//     desc: '用于文本编辑器的字体',
-//     value: 'editor-font',
-//   },
-//   'code-font': {
-//     label: '代码字体',
-//     desc: '用于代码显示的字体',
-//     value: 'code-font',
-//   },
-// }
-
 const {
   fontList,
   currentFont,
-  init,
   setFont,
-  getFontList,
 } = useFont()
-
-// 应用字体到当前主题
-function applyAppFont(fontName: string) {
-  console.log('应用字体:', fontName)
-}
-
-function applyEditorFont(fontName: string) {
-  console.log('编辑器字体:', fontName)
-}
-
-function applyCodeFont(fontName: string) {
-  console.log('代码字体:', fontName)
-}
 
 onMounted(() => {
 
@@ -51,7 +18,7 @@ onMounted(() => {
 <template>
   <div class="font-page">
     <div v-for="font in fontConfig" :key="font.value" class="font-section">
-      <div class="font-preview" :style="{ fontFamily: currentFont![font.value as FontType].value }">
+      <div class="font-preview" :style="{ fontFamily: currentFont![font.value as FontType] as any }">
         <div class="preview-text">
           Aa
         </div>
@@ -77,90 +44,6 @@ onMounted(() => {
         </select>
       </div>
     </div>
-
-    <!-- <div class="font-section">
-      <div class="font-preview" :style="{ fontFamily: appFont }">
-        <div class="preview-text">
-          Aa
-        </div>
-        <div class="preview-chinese">
-          中文
-        </div>
-      </div>
-      <h3 class="section-title">
-        应用字体
-      </h3>
-      <p class="section-desc">
-        用于应用界面的主要字体
-      </p>
-      <div class="font-selector">
-        <label for="app-font-select">字体:</label>
-        <select
-          id="app-font-select" v-model="currentFont!['app-font']" class="font-select"
-          @change="applyAppFont(appFont)"
-        >
-          <option v-for="font in systemFonts" :key="font" :value="font" :style="{ fontFamily: font }">
-            {{ font }}
-          </option>
-        </select>
-      </div>
-    </div>
-
-    <div class="font-section">
-      <div class="font-preview" :style="{ fontFamily: editorFont }">
-        <div class="preview-text">
-          Aa
-        </div>
-        <div class="preview-chinese">
-          中文
-        </div>
-      </div>
-      <h3 class="section-title">
-        编辑器字体
-      </h3>
-      <p class="section-desc">
-        用于文本编辑器的字体
-      </p>
-      <div class="font-selector">
-        <label for="editor-font-select">字体:</label>
-        <select
-          id="editor-font-select" v-model="currentFont!['editor-font']" class="font-select"
-          @change="applyEditorFont(editorFont)"
-        >
-          <option v-for="font in systemFonts" :key="font" :value="font" :style="{ fontFamily: font }">
-            {{ font }}
-          </option>
-        </select>
-      </div>
-    </div>
-
-    <div class="font-section">
-      <div class="font-preview" :style="{ fontFamily: codeFont }">
-        <div class="preview-text">
-          Aa
-        </div>
-        <div class="preview-chinese">
-          中文
-        </div>
-      </div>
-      <h3 class="section-title">
-        代码字体
-      </h3>
-      <p class="section-desc">
-        用于代码显示的字体
-      </p>
-      <div class="font-selector">
-        <label for="code-font-select">字体:</label>
-        <select
-          id="code-font-select" v-model="currentFont!['code-font']" class="font-select"
-          @change="applyCodeFont(codeFont)"
-        >
-          <option v-for="font in systemFonts" :key="font" :value="font" :style="{ fontFamily: font }">
-            {{ font }}
-          </option>
-        </select>
-      </div>
-    </div> -->
   </div>
 </template>
 

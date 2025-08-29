@@ -1,4 +1,4 @@
-const fontTypes = ['app-font', 'editor-font', 'code-font'] as const
+const fontTypes = ['editor-font', 'code-font'] as const
 
 export interface Font {
   label: string
@@ -6,7 +6,6 @@ export interface Font {
 }
 
 export interface FontConfig {
-  'app-font': Font
   'editor-font': Font
   'code-font': Font
 }
