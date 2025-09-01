@@ -35,7 +35,7 @@ watch(markdown, () => {
 watch([currentTheme, isShowSource, currentFont], () => {
   console.log('样式有更新')
 
-  reBuildMilkdown()
+  // reBuildMilkdown()
 }, {
   deep: true,
 })

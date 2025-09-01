@@ -75,7 +75,7 @@ function emitOutlineUpdate(ctx: Ctx) {
 
 <template>
   <div class="editor-box">
-    <div class="scrollView milkdown">
+    <div class="scrollView">
       <div id="milkdown"></div>
     </div>
   </div>

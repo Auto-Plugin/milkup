@@ -41,11 +41,12 @@ function setFont(type: FontType, font: Font) {
 
   const cssVariables = fontCssVariables[type]
   if (cssVariables && font) {
+    console.log('font::: ', font)
     // 同时应用到 milkdown 编辑器
 
     const milkdownElement = document.querySelector('.milkdown')
     if (milkdownElement) {
-      (milkdownElement as HTMLElement).style.setProperty(cssVariables, font as any)
+      (milkdownElement as HTMLElement).style.setProperty(cssVariables, font as any, 'important')
     }
   }
 }
