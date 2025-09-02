@@ -383,13 +383,16 @@ console.log(text)
   color: var(--text-color);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 0 0 12px;
+  justify-content: center;
+  padding: 0 12px;
   user-select: none;
+  position: relative;
 
   .window-controls {
     display: flex;
     -webkit-app-region: no-drag;
+    position: absolute;
+    right: 0;
 
     /* ✅ 控制按钮不能拖动 */
     span {
