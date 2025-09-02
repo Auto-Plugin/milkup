@@ -19,12 +19,22 @@ onMounted(() => {
   <div class="font-page">
     <div v-for="font in fontConfig" :key="font.value" class="font-section">
       <div class="font-preview" :style="{ fontFamily: currentFont![font.value as FontType] as any }">
-        <div class="preview-text">
-          Aa
-        </div>
-        <div class="preview-chinese">
-          中文
-        </div>
+        <template v-if="font.value === 'editor-font'">
+          <div class="preview-text">
+            Aa
+          </div>
+          <div class="preview-chinese">
+            中文
+          </div>
+        </template>
+        <template v-else-if="font.value === 'code-font'">
+          <div class="preview-code">
+            const msg = 'Hello Milkup';
+          </div>
+          <div class="preview-code-2">
+            function() { return 123; }
+          </div>
+        </template>
       </div>
       <h3 class="section-title">
         {{ font.label }}
@@ -33,7 +43,6 @@ onMounted(() => {
         {{ font.desc }}
       </p>
       <div class="font-selector">
-        <label :for="font.value">字体:</label>
         <select
           :id="font.value" v-model="currentFont![font.value as FontType]" class="font-select"
           @change="setFont(font.value as FontType, currentFont![font.value as FontType])"
@@ -52,7 +61,7 @@ onMounted(() => {
 
   display: flex;
   gap: 20px;
-  justify-content: center;
+  // justify-content: center;
 
   .font-section {
     flex: 1;
@@ -73,7 +82,7 @@ onMounted(() => {
     .font-preview {
       display: flex;
       flex-direction: column;
-      align-items: center;
+      align-items: flex-start;
       gap: 12px;
       padding: 20px 16px;
 
@@ -84,16 +93,30 @@ onMounted(() => {
       justify-content: center;
 
       .preview-text {
-        font-size: 32px;
+        font-size: 22px;
         font-weight: 700;
         color: var(--text-color);
         line-height: 1;
       }
 
       .preview-chinese {
-        font-size: 18px;
+        font-size: 16px;
         color: var(--text-color);
         line-height: 1;
+      }
+
+      .preview-code {
+        font-size: 14px;
+        color: var(--text-color);
+        line-height: 1.2;
+        font-weight: 400;
+      }
+
+      .preview-code-2 {
+        font-size: 12px;
+        color: var(--text-color-2);
+        line-height: 1.2;
+        font-weight: 400;
       }
     }
 
