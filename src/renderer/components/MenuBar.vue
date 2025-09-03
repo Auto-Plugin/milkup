@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import usefile from '@/hooks/useFile'
 import About from './About.vue'
-import appearancePage from './appearancePage.vue'
+import appearancePage from './AppearancePage.vue'
 import SettingBase from './SettingBase.vue'
 
 const { onOpen, onSave, onSaveAs } = usefile()
@@ -18,7 +18,7 @@ const MenuOptions = [
   { label: '保存', action: onSave, icon: 'icon-baocun' },
   { label: '另存为', action: onSaveAs, icon: 'icon-baocun' },
   { label: '设置', action: () => (activeTab.value = 'settings'), icon: 'icon-config-props', value: 'settings' },
-  { label: '外观', action: () => (activeTab.value = 'appearance'), icon: 'icon-script', value: 'theme' },
+  { label: '外观', action: () => (activeTab.value = 'appearance'), icon: 'icon-script', value: 'appearance' },
   { label: '关于', action: () => (activeTab.value = 'about'), icon: 'icon-github', value: 'about' },
 ]
 </script>
