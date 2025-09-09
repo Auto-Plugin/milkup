@@ -42,18 +42,20 @@ onUnmounted(() => {
   height: 100%;
   .dropdown-header {
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    justify-content: flex-end;
     cursor: pointer;
-    padding: 0 12px;
+    padding: 0 10px;
     height: 100%;
     -webkit-app-region: no-drag; /* 禁止拖动 */
     img {
       width: 24px;
       height: 24px;
       border-radius: 50%;
-      margin-right: 8px;
+      // margin-right: 8px;
       display: inline-block;
       transition: 0.2s;
+      margin: 4px;
       &.active {
         transform: rotate(180deg);
       }
@@ -61,7 +63,7 @@ onUnmounted(() => {
   }
   .dropdown-content {
     position: absolute;
-    top: 32px; /* 与标题栏高度一致 */
+    top: 40px; /* 与标题栏高度一致 */
     left: 0;
     background: var(--background-color-1);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
