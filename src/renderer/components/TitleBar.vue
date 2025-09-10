@@ -59,6 +59,7 @@ window.electronAPI.on('close', () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  overflow: hidden;
   // padding: 0 0 0 12px;
   // user-select: none;
 
