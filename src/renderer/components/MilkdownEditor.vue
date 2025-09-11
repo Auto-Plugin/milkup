@@ -4,6 +4,7 @@ import { Crepe } from '@milkdown/crepe'
 import { upload, uploadConfig } from '@milkdown/kit/plugin/upload'
 import { outline } from '@milkdown/kit/utils'
 import { automd } from '@milkdown/plugin-automd'
+import { enhanceConfig } from '@renderer/enhance/crepe/config'
 import { onMounted } from 'vue'
 import useContent from '@/hooks/useContent'
 import { uploader } from '@/plugins/customPastePlugin'
@@ -30,10 +31,7 @@ onMounted(async () => {
     root: document.querySelector('#milkdown') as HTMLElement,
     defaultValue: props.modelValue.toString(),
     featureConfigs: {
-      placeholder: {
-        text: '开始写点什么吧...',
-        mode: 'doc',
-      },
+      ...enhanceConfig,
     },
   })
   crepe.on((lm) => {
@@ -52,6 +50,7 @@ onMounted(async () => {
     .use(upload)
     .use(htmlPlugin)
     .use(diagram)
+    // .use(container)
   // .use(commonmark)
 
   await crepe.create()
@@ -69,10 +68,12 @@ onMounted(async () => {
 
   followCodeMirrorCursor()
 })
+
 function emitOutlineUpdate(ctx: Ctx) {
   const headings = outline()(ctx)
   emitter.emit('outline:Update', headings)
 }
+
 function followCodeMirrorCursor() {
   const TARGET_SELECTOR = '.ͼq.cm-cursor'
 

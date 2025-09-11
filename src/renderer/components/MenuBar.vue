@@ -1,24 +1,24 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import usefile from '@/hooks/useFile'
 import About from './About.vue'
-import appearancePage from './appearancePage.vue'
+import appearancePage from './AppearancePage.vue'
+import FileOptions from './FileOptions.vue'
 import SettingBase from './SettingBase.vue'
 
-const { onOpen, onSave, onSaveAs } = usefile()
-
-const activeTab = ref<'settings' | 'about' | 'appearance'>('settings')
+const activeTab = ref<'settings' | 'about' | 'appearance' | 'file'>('file')
 const MenuComponents = {
   settings: SettingBase,
   about: About,
   appearance: appearancePage,
+  file: FileOptions,
 }
 const MenuOptions = [
-  { label: '打开', action: onOpen, icon: 'icon-data-select' },
-  { label: '保存', action: onSave, icon: 'icon-baocun' },
-  { label: '另存为', action: onSaveAs, icon: 'icon-baocun' },
+  { label: '文件', action: () => (activeTab.value = 'file'), icon: 'icon-document', value: 'file' },
+  // { label: '打开', action: onOpen, icon: 'icon-data-select' },
+  // { label: '保存', action: onSave, icon: 'icon-baocun' },
+  // { label: '另存为', action: onSaveAs, icon: 'icon-baocun' },
   { label: '设置', action: () => (activeTab.value = 'settings'), icon: 'icon-config-props', value: 'settings' },
-  { label: '外观', action: () => (activeTab.value = 'appearance'), icon: 'icon-script', value: 'theme' },
+  { label: '外观', action: () => (activeTab.value = 'appearance'), icon: 'icon-waiguan', value: 'appearance' },
   { label: '关于', action: () => (activeTab.value = 'about'), icon: 'icon-github', value: 'about' },
 ]
 </script>
@@ -77,7 +77,7 @@ const MenuOptions = [
     justify-content: flex-start;
     align-items: flex-start;
     padding: 12px 0;
-    width: 120px;
+    width: 200px;
     gap: 4px;
     -webkit-app-region: drag;
     background: var(--background-color);
@@ -86,8 +86,8 @@ const MenuOptions = [
       cursor: pointer;
       width: 100%;
       -webkit-app-region: no-drag;
-      padding: 8px;
-      font-size: 14px;
+      padding: 16px 12px;
+      font-size: 16px;
       display: flex;
       align-items: center;
       gap: 8px;

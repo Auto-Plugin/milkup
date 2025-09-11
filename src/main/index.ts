@@ -1,7 +1,7 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { app, BrowserWindow, globalShortcut } from 'electron'
-import { close, getIsQuitting, registerIpcHandleHandlers, registerIpcOnHandlers } from './ipcBridge'
+import { close, getIsQuitting, registerGlobalIpcHandlers, registerIpcHandleHandlers, registerIpcOnHandlers } from './ipcBridge'
 import createMenu from './menu'
 
 let win: BrowserWindow
@@ -106,12 +106,12 @@ function sendLaunchFileIfExists() {
 }
 
 app.whenReady().then(async () => {
-  registerIpcHandleHandlers(win)
-
+  registerGlobalIpcHandlers()
   await createWindow()
   createMenu(win)
 
   registerIpcOnHandlers(win)
+  registerIpcHandleHandlers(win)
 
   sendLaunchFileIfExists()
 

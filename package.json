@@ -64,6 +64,7 @@
     "nanoid": "^5.1.5",
     "rehype-raw": "^7.0.0",
     "remark-directive": "^4.0.0",
+    "remark-flexible-containers": "^1.5.0",
     "remark-html": "^16.0.1",
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
@@ -105,7 +106,10 @@
       "electron-winstaller",
       "esbuild",
       "simple-git-hooks"
-    ]
+    ],
+    "patchedDependencies": {
+      "@milkdown/crepe": "patches/@milkdown__crepe.patch"
+    }
   },
   "simple-git-hooks": {
     "pre-commit": "npx lint-staged",

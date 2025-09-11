@@ -1,0 +1,151 @@
+diff --git a/lib/esm/index.js b/lib/esm/index.js
+index 8690d488a1e176033b252a8e734fa2718e667868..e48b4579dabf8b3673c35010ed1bb62aa512672c 100644
+--- a/lib/esm/index.js
++++ b/lib/esm/index.js
+@@ -823,6 +823,9 @@ _getGroupInstance = new WeakMap();
+ 
+ function getGroups$1(filter, config, ctx) {
+   var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _A, _B, _C, _D, _E, _F, _G, _H, _I, _J, _K, _L, _M, _N, _O, _P, _Q, _R, _S, _T, _U, _V, _W, _X, _Y, _Z, __, _$, _aa, _ba, _ca, _da, _ea, _fa, _ga, _ha, _ia, _ja, _ka, _la, _ma, _na, _oa, _pa, _qa, _ra, _sa, _ta, _ua, _va, _wa, _xa, _ya, _za, _Aa, _Ba, _Ca, _Da, _Ea, _Fa, _Ga, _Ha, _Ia, _Ja, _Ka, _La, _Ma, _Na, _Oa, _Pa, _Qa, _Ra, _Sa, _Ta, _Ua, _Va, _Wa, _Xa, _Ya, _Za, __a, _$a, _ab, _bb, _cb, _db, _eb, _fb, _gb, _hb, _ib, _jb, _kb;
++  var _tt1, _tt2, _tt3, _h11, _h12, _h13, _h21, _h22, _h23, _h31, _h32, _h33, _h41, _h42, _h43, _h51, _h52, _h53, _h61, _h62, _h63, _qu1, _qu2, _qu3, _d1, _d2, _d3;
++  var _bl1, _bl2, _bl3, _ol1, _ol2, _ol3, _tl1, _tl2, _tl3;
++  var _i1, _i2, _i3, _c1, _c2, _c3, _ta1, _ta2, _ta3, _m1, _m2, _m3;
+   const flags = ctx && useCrepeFeatures(ctx).get();
+   const isLatexEnabled = flags == null ? void 0 : flags.includes(CrepeFeature.Latex);
+   const isImageBlockEnabled = flags == null ? void 0 : flags.includes(CrepeFeature.ImageBlock);
+@@ -837,6 +840,7 @@ function getGroups$1(filter, config, ctx) {
+       textGroup.addItem("text", {
+         label: (_f = (_e = (_d = config == null ? void 0 : config.textGroup) == null ? void 0 : _d.text) == null ? void 0 : _e.label) != null ? _f : "Text",
+         icon: (_i = (_h = (_g = config == null ? void 0 : config.textGroup) == null ? void 0 : _g.text) == null ? void 0 : _h.icon) != null ? _i : textIcon,
++        abbr: (_tt3 = (_tt2 = (_tt1 = config == null ? void 0 : config.textGroup) == null ? void 0 : _tt1.text) == null ? void 0 : _tt2.abbr) != null ? _tt3 : [],
+         onRun: (ctx2) => {
+           const commands = ctx2.get(commandsCtx);
+           const paragraph = paragraphSchema.type(ctx2);
+@@ -851,6 +855,7 @@ function getGroups$1(filter, config, ctx) {
+       textGroup.addItem("h1", {
+         label: (_m = (_l = (_k = config == null ? void 0 : config.textGroup) == null ? void 0 : _k.h1) == null ? void 0 : _l.label) != null ? _m : "Heading 1",
+         icon: (_p = (_o = (_n = config == null ? void 0 : config.textGroup) == null ? void 0 : _n.h1) == null ? void 0 : _o.icon) != null ? _p : h1Icon,
++        abbr: (_h13 = (_h12 = (_h11 = config == null ? void 0 : config.textGroup) == null ? void 0 : _h11.h1) == null ? void 0 : _h12.abbr) != null ? _h13 : [],
+         onRun: (ctx2) => {
+           const commands = ctx2.get(commandsCtx);
+           const heading = headingSchema.type(ctx2);
+@@ -868,6 +873,7 @@ function getGroups$1(filter, config, ctx) {
+       textGroup.addItem("h2", {
+         label: (_t = (_s = (_r = config == null ? void 0 : config.textGroup) == null ? void 0 : _r.h2) == null ? void 0 : _s.label) != null ? _t : "Heading 2",
+         icon: (_w = (_v = (_u = config == null ? void 0 : config.textGroup) == null ? void 0 : _u.h2) == null ? void 0 : _v.icon) != null ? _w : h2Icon,
++        abbr: (_h23 = (_h22 = (_h21 = config == null ? void 0 : config.textGroup) == null ? void 0 : _h21.h2) == null ? void 0 : _h22.abbr) != null ? _h23 : [],
+         onRun: (ctx2) => {
+           const commands = ctx2.get(commandsCtx);
+           const heading = headingSchema.type(ctx2);
+@@ -885,6 +891,7 @@ function getGroups$1(filter, config, ctx) {
+       textGroup.addItem("h3", {
+         label: (_A = (_z = (_y = config == null ? void 0 : config.textGroup) == null ? void 0 : _y.h3) == null ? void 0 : _z.label) != null ? _A : "Heading 3",
+         icon: (_D = (_C = (_B = config == null ? void 0 : config.textGroup) == null ? void 0 : _B.h3) == null ? void 0 : _C.icon) != null ? _D : h3Icon,
++        abbr: (_h33 = (_h32 = (_h31 = config == null ? void 0 : config.textGroup) == null ? void 0 : _h31.h3) == null ? void 0 : _h32.abbr) != null ? _h33 : [],
+         onRun: (ctx2) => {
+           const commands = ctx2.get(commandsCtx);
+           const heading = headingSchema.type(ctx2);
+@@ -902,6 +909,7 @@ function getGroups$1(filter, config, ctx) {
+       textGroup.addItem("h4", {
+         label: (_H = (_G = (_F = config == null ? void 0 : config.textGroup) == null ? void 0 : _F.h4) == null ? void 0 : _G.label) != null ? _H : "Heading 4",
+         icon: (_K = (_J = (_I = config == null ? void 0 : config.textGroup) == null ? void 0 : _I.h4) == null ? void 0 : _J.icon) != null ? _K : h4Icon,
++        abbr: (_h43 = (_h42 = (_h41 = config == null ? void 0 : config.textGroup) == null ? void 0 : _h41.h4) == null ? void 0 : _h42.abbr) != null ? _h43 : [],
+         onRun: (ctx2) => {
+           const commands = ctx2.get(commandsCtx);
+           const heading = headingSchema.type(ctx2);
+@@ -919,6 +927,7 @@ function getGroups$1(filter, config, ctx) {
+       textGroup.addItem("h5", {
+         label: (_O = (_N = (_M = config == null ? void 0 : config.textGroup) == null ? void 0 : _M.h5) == null ? void 0 : _N.label) != null ? _O : "Heading 5",
+         icon: (_R = (_Q = (_P = config == null ? void 0 : config.textGroup) == null ? void 0 : _P.h5) == null ? void 0 : _Q.icon) != null ? _R : h5Icon,
++        abbr: (_h53 = (_h52 = (_h51 = config == null ? void 0 : config.textGroup) == null ? void 0 : _h51.h5) == null ? void 0 : _h52.abbr) != null ? _h53 : [],
+         onRun: (ctx2) => {
+           const commands = ctx2.get(commandsCtx);
+           const heading = headingSchema.type(ctx2);
+@@ -936,6 +945,7 @@ function getGroups$1(filter, config, ctx) {
+       textGroup.addItem("h6", {
+         label: (_V = (_U = (_T = config == null ? void 0 : config.textGroup) == null ? void 0 : _T.h6) == null ? void 0 : _U.label) != null ? _V : "Heading 6",
+         icon: (_Y = (_X = (_W = config == null ? void 0 : config.textGroup) == null ? void 0 : _W.h6) == null ? void 0 : _X.icon) != null ? _Y : h6Icon,
++        abbr: (_h63 = (_h62 = (_h61 = config == null ? void 0 : config.textGroup) == null ? void 0 : _h61.h6) == null ? void 0 : _h62.abbr) != null ? _h63 : [],
+         onRun: (ctx2) => {
+           const commands = ctx2.get(commandsCtx);
+           const heading = headingSchema.type(ctx2);
+@@ -953,6 +963,7 @@ function getGroups$1(filter, config, ctx) {
+       textGroup.addItem("quote", {
+         label: (_aa = (_$ = (__ = config == null ? void 0 : config.textGroup) == null ? void 0 : __.quote) == null ? void 0 : _$.label) != null ? _aa : "Quote",
+         icon: (_da = (_ca = (_ba = config == null ? void 0 : config.textGroup) == null ? void 0 : _ba.quote) == null ? void 0 : _ca.icon) != null ? _da : quoteIcon,
++        abbr: (_qu3 = (_qu2 = (_qu1 = config == null ? void 0 : config.textGroup) == null ? void 0 : _qu1.quote) == null ? void 0 : _qu2.abbr) != null ? _qu3 : [],
+         onRun: (ctx2) => {
+           const commands = ctx2.get(commandsCtx);
+           const blockquote = blockquoteSchema.type(ctx2);
+@@ -967,6 +978,7 @@ function getGroups$1(filter, config, ctx) {
+       textGroup.addItem("divider", {
+         label: (_ha = (_ga = (_fa = config == null ? void 0 : config.textGroup) == null ? void 0 : _fa.divider) == null ? void 0 : _ga.label) != null ? _ha : "Divider",
+         icon: (_ka = (_ja = (_ia = config == null ? void 0 : config.textGroup) == null ? void 0 : _ia.divider) == null ? void 0 : _ja.icon) != null ? _ka : dividerIcon,
++        abbr: (_d3 = (_d2 = (_d1 = config == null ? void 0 : config.textGroup) == null ? void 0 : _d1.divider) == null ? void 0 : _d2.abbr) != null ? _d3 : [],
+         onRun: (ctx2) => {
+           const commands = ctx2.get(commandsCtx);
+           const hr = hrSchema.type(ctx2);
+@@ -987,6 +999,7 @@ function getGroups$1(filter, config, ctx) {
+       listGroup.addItem("bullet-list", {
+         label: (_qa = (_pa = (_oa = config == null ? void 0 : config.listGroup) == null ? void 0 : _oa.bulletList) == null ? void 0 : _pa.label) != null ? _qa : "Bullet List",
+         icon: (_ta = (_sa = (_ra = config == null ? void 0 : config.listGroup) == null ? void 0 : _ra.bulletList) == null ? void 0 : _sa.icon) != null ? _ta : bulletListIcon,
++        abbr: (_bl3 = (_bl2 = (_bl1 = config == null ? void 0 : config.listGroup) == null ? void 0 : _bl1.bulletList) == null ? void 0 : _bl2.abbr) != null ? _bl3 : [],
+         onRun: (ctx2) => {
+           const commands = ctx2.get(commandsCtx);
+           const bulletList = bulletListSchema.type(ctx2);
+@@ -1001,6 +1014,7 @@ function getGroups$1(filter, config, ctx) {
+       listGroup.addItem("ordered-list", {
+         label: (_xa = (_wa = (_va = config == null ? void 0 : config.listGroup) == null ? void 0 : _va.orderedList) == null ? void 0 : _wa.label) != null ? _xa : "Ordered List",
+         icon: (_Aa = (_za = (_ya = config == null ? void 0 : config.listGroup) == null ? void 0 : _ya.orderedList) == null ? void 0 : _za.icon) != null ? _Aa : orderedListIcon,
++        abbr: (_ol3 = (_ol2 = (_ol1 = config == null ? void 0 : config.listGroup) == null ? void 0 : _ol1.orderedList) == null ? void 0 : _ol2.abbr) != null ? _ol3 : [],
+         onRun: (ctx2) => {
+           const commands = ctx2.get(commandsCtx);
+           const orderedList = orderedListSchema.type(ctx2);
+@@ -1015,6 +1029,7 @@ function getGroups$1(filter, config, ctx) {
+       listGroup.addItem("task-list", {
+         label: (_Ea = (_Da = (_Ca = config == null ? void 0 : config.listGroup) == null ? void 0 : _Ca.taskList) == null ? void 0 : _Da.label) != null ? _Ea : "Task List",
+         icon: (_Ha = (_Ga = (_Fa = config == null ? void 0 : config.listGroup) == null ? void 0 : _Fa.taskList) == null ? void 0 : _Ga.icon) != null ? _Ha : todoListIcon,
++        abbr: (_tl3 = (_tl2 = (_tl1 = config == null ? void 0 : config.listGroup) == null ? void 0 : _tl1.taskList) == null ? void 0 : _tl2.abbr) != null ? _tl3 : [],
+         onRun: (ctx2) => {
+           const commands = ctx2.get(commandsCtx);
+           const listItem = listItemSchema.type(ctx2);
+@@ -1036,6 +1051,7 @@ function getGroups$1(filter, config, ctx) {
+       advancedGroup.addItem("image", {
+         label: (_Na = (_Ma = (_La = config == null ? void 0 : config.advancedGroup) == null ? void 0 : _La.image) == null ? void 0 : _Ma.label) != null ? _Na : "Image",
+         icon: (_Qa = (_Pa = (_Oa = config == null ? void 0 : config.advancedGroup) == null ? void 0 : _Oa.image) == null ? void 0 : _Pa.icon) != null ? _Qa : imageIcon,
++        abbr: (_i3 = (_i2 = (_i1 = config == null ? void 0 : config.advancedGroup) == null ? void 0 : _i1.image) == null ? void 0 : _i2.abbr) != null ? _i3 : [],
+         onRun: (ctx2) => {
+           const commands = ctx2.get(commandsCtx);
+           const imageBlock = imageBlockSchema.type(ctx2);
+@@ -1050,6 +1066,7 @@ function getGroups$1(filter, config, ctx) {
+       advancedGroup.addItem("code", {
+         label: (_Ua = (_Ta = (_Sa = config == null ? void 0 : config.advancedGroup) == null ? void 0 : _Sa.codeBlock) == null ? void 0 : _Ta.label) != null ? _Ua : "Code",
+         icon: (_Xa = (_Wa = (_Va = config == null ? void 0 : config.advancedGroup) == null ? void 0 : _Va.codeBlock) == null ? void 0 : _Wa.icon) != null ? _Xa : codeIcon,
++        abbr: (_c3 = (_c2 = (_c1 = config == null ? void 0 : config.advancedGroup) == null ? void 0 : _c1.codeBlock) == null ? void 0 : _c2.abbr) != null ? _c3 : [],
+         onRun: (ctx2) => {
+           const commands = ctx2.get(commandsCtx);
+           const codeBlock = codeBlockSchema.type(ctx2);
+@@ -1064,6 +1081,7 @@ function getGroups$1(filter, config, ctx) {
+       advancedGroup.addItem("table", {
+         label: (_$a = (__a = (_Za = config == null ? void 0 : config.advancedGroup) == null ? void 0 : _Za.table) == null ? void 0 : __a.label) != null ? _$a : "Table",
+         icon: (_cb = (_bb = (_ab = config == null ? void 0 : config.advancedGroup) == null ? void 0 : _ab.table) == null ? void 0 : _bb.icon) != null ? _cb : tableIcon,
++        abbr: (_ta3 = (_ta2 = (_ta1 = config == null ? void 0 : config.advancedGroup) == null ? void 0 : _ta1.table) == null ? void 0 : _ta2.abbr) != null ? _ta3 : [],
+         onRun: (ctx2) => {
+           const commands = ctx2.get(commandsCtx);
+           const view = ctx2.get(editorViewCtx);
+@@ -1082,6 +1100,7 @@ function getGroups$1(filter, config, ctx) {
+       advancedGroup.addItem("math", {
+         label: (_gb = (_fb = (_eb = config == null ? void 0 : config.advancedGroup) == null ? void 0 : _eb.math) == null ? void 0 : _fb.label) != null ? _gb : "Math",
+         icon: (_jb = (_ib = (_hb = config == null ? void 0 : config.advancedGroup) == null ? void 0 : _hb.math) == null ? void 0 : _ib.icon) != null ? _jb : functionsIcon,
++        abbr: (_m3 = (_m2 = (_m1 = config == null ? void 0 : config.advancedGroup) == null ? void 0 : _m1.math) == null ? void 0 : _m2.abbr) != null ? _m3 : [],
+         onRun: (ctx2) => {
+           const commands = ctx2.get(commandsCtx);
+           const codeBlock = codeBlockSchema.type(ctx2);
+@@ -1099,7 +1118,7 @@ function getGroups$1(filter, config, ctx) {
+   if (filter) {
+     groups = groups.map((group) => {
+       const items2 = group.items.filter(
+-        (item) => item.label.toLowerCase().includes(filter.toLowerCase())
++        (item) => item.label.toLowerCase().includes(filter.toLowerCase()) || (Array.isArray(item.abbr) && item.abbr.some((abbr) => abbr.toLowerCase().includes(filter.toLowerCase())))
+       );
+       return {
+         ...group,

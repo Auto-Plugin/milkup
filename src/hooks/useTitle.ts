@@ -3,7 +3,7 @@ import useContent from './useContent'
 
 const { filePath, isModified } = useContent()
 
-const title = ref('milkup')
+const title = ref('')
 
 const fileName = computed(() => {
   const parts = filePath.value.split(/[\\/]/)
@@ -13,8 +13,8 @@ const fileName = computed(() => {
 function updateTitle() {
   const name = fileName.value || 'Untitled'
   const prefix = isModified.value ? '*' : ''
-  window.electronAPI.setTitle(`milkup - ${prefix}${name}`)
-  title.value = `milkup - ${prefix}${name}`
+  window.electronAPI.setTitle(`${prefix}${name}`)
+  title.value = `${prefix}${name}`
 }
 
 export default function useTitle() {

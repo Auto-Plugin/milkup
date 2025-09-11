@@ -1,0 +1,218 @@
+:root {
+  --xz-c-white: #fff;
+  --xz-c-black: #000;
+  --xz-c-grey-text: #656869;
+  --xz-c-grey-hover: #e4e4e9;
+  --xz-c-grey-bg: #ebebef;
+  --xz-c-grey-soft: rgb(142 150 170 / 14%);
+  --xz-c-indigo-text: #3451b2;
+  --xz-c-indigo-hover: #3a5ccc;
+  --xz-c-indigo-bg: #5672cd;
+  --xz-c-indigo-soft: rgb(100 108 255 / 14%);
+  --xz-c-purple-text: #6f42c1;
+  --xz-c-purple-hover: #7e4cc9;
+  --xz-c-purple-bg: #8e5cd9;
+  --xz-c-purple-soft: rgb(159 122 234 / 14%);
+  --xz-c-blue-text: #2888a7;
+  --xz-c-blue-hover: #2d98ba;
+  --xz-c-blue-bg: #2fa1c5;
+  --xz-c-blue-soft: rgb(27 178 229 / 14%);
+  --xz-c-green-text: #18794e;
+  --xz-c-green-hover: #299764;
+  --xz-c-green-bg: #30a46c;
+  --xz-c-green-soft: rgb(16 185 129 / 14%);
+  --xz-c-yellow-text: #915930;
+  --xz-c-yellow-hover: #946300;
+  --xz-c-yellow-bg: #c28100;
+  --xz-c-yellow-soft: rgb(234 179 8 / 14%);
+  --xz-c-red-text: #b8272c;
+  --xz-c-red-hover: #d5393e;
+  --xz-c-red-bg: #e0575b;
+  --xz-c-red-soft: rgb(244 63 94 / 14%);
+
+  --xz-c-tab-bg: var(--xz-c-grey-bg);
+  --xz-c-tab-hover: var(--xz-c-grey-hover);
+  --xz-c-tab-active: var(--xz-c-grey-hover);
+
+  --xz-c-svg-important: url(container-svgs/important.svg);
+  --xz-c-svg-info: url(container-svgs/info.svg);
+  --xz-c-svg-note: url(container-svgs/note.svg);
+  --xz-c-svg-tip: url(container-svgs/tip.svg);
+  --xz-c-svg-warning: url(container-svgs/warn.svg);
+  --xz-c-svg-caution: url(container-svgs/caution.svg);
+  --xz-c-svg-details: url(container-svgs/details.svg);
+}
+
+[data-theme=dark] {
+  --xz-c-white: #000;
+  --xz-c-black: #fff;
+  --xz-c-grey-text: #939499;
+  --xz-c-grey-hover: #414853;
+  --xz-c-grey-bg: #32363f;
+  --xz-c-grey-soft: rgb(101 117 133 / 16%);
+  --xz-c-indigo-text: #a8b1ff;
+  --xz-c-indigo-hover: #5c73e7;
+  --xz-c-indigo-bg: #3e63dd;
+  --xz-c-indigo-soft: rgb(100 108 255 / 16%);
+  --xz-c-blue-text: #c9e8f2;
+  --xz-c-blue-hover: #a6d9ea;
+  --xz-c-blue-bg: #2785a3;
+  --xz-c-blue-soft: rgb(27 178 229 / 16%);
+  --xz-c-purple-text: #c8abfa;
+  --xz-c-purple-hover: #a879e6;
+  --xz-c-purple-bg: #8e5cd9;
+  --xz-c-purple-soft: rgb(159 122 234 / 16%);
+  --xz-c-green-text: #3dd68c;
+  --xz-c-green-hover: #30a46c;
+  --xz-c-green-bg: #298459;
+  --xz-c-green-soft: rgb(16 185 129 / 16%);
+  --xz-c-yellow-text: #f9b44e;
+  --xz-c-yellow-hover: #da8b17;
+  --xz-c-yellow-bg: #a46a0a;
+  --xz-c-yellow-soft: rgb(234 179 8 / 16%);
+  --xz-c-red-text: #f66f81;
+  --xz-c-red-hover: #f14158;
+  --xz-c-red-bg: #b62a3c;
+  --xz-c-red-soft: rgb(244 63 94 / 16%)
+}
+
+.milkdown {
+  .ProseMirror {
+    /*自定义容器样式*/
+
+    .milkdown-container {
+      padding: 8px;
+      border-radius: 8px;
+      margin-block: .75rem;
+      border: 1px solid saddlebrown;
+      background-color: var(--xz-c-grey-soft);
+
+      .milkdown-container-title {
+        display: flex;
+        transition: background-color .3s ease, color .3s ease;
+        font-size: 0.92em;
+        color: var(--xz-c-grey-text);
+
+        &::before {
+          display: block;
+          content: ' ';
+          width: 1.25em;
+          height: 1.25em;
+          font-size: 1.25em;
+          margin-right: 5px;
+          background-color: var(--xz-c-grey-text);
+          mask-image: var(--xz-c-svg-info);
+          -webkit-mask-image: var(--xz-c-svg-info);
+        }
+      }
+
+      .milkdown-container-content {
+
+      }
+
+      &.important {
+        background-color: var(--xz-c-purple-soft);
+
+        .milkdown-container-title {
+          color: var(--xz-c-purple-text);
+
+          &::before {
+            background-color: var(--xz-c-purple-text);
+            mask-image: var(--xz-c-svg-important);
+            -webkit-mask-image: var(--xz-c-svg-important);
+          }
+        }
+      }
+
+      &.info {
+        background-color: var(--xz-c-blue-soft);
+
+        .milkdown-container-title {
+          color: var(--xz-c-blue-text);
+
+          &::before {
+            background-color: var(--xz-c-blue-text);
+            mask-image: var(--xz-c-svg-info);
+            -webkit-mask-image: var(--xz-c-svg-info);
+          }
+        }
+      }
+
+      &.note, &.default {
+        background-color: var(--xz-c-grey-soft);
+
+        .milkdown-container-title {
+          color: var(--xz-c-grey-text);
+
+          &::before {
+            background-color: var(--xz-c-grey-text);
+            mask-image: var(--xz-c-svg-note);
+            -webkit-mask-image: var(--xz-c-svg-note);
+          }
+        }
+      }
+
+      &.tip, &.tips {
+        background-color: var(--xz-c-green-soft);
+
+        .milkdown-container-title {
+          color: var(--xz-c-green-text);
+
+          &::before {
+            background-color: var(--xz-c-green-text);
+            mask-image: var(--xz-c-svg-tip);
+            -webkit-mask-image: var(--xz-c-svg-tip);
+          }
+        }
+      }
+
+      &.warning, &.warn {
+        background-color: var(--xz-c-yellow-soft);
+
+        .milkdown-container-title {
+          color: var(--xz-c-yellow-text);
+
+          &::before {
+            background-color: var(--xz-c-yellow-text);
+            mask-image: var(--xz-c-svg-warning);
+            -webkit-mask-image: var(--xz-c-svg-warning);
+          }
+        }
+      }
+
+      &.caution, &.danger {
+        background-color: var(--xz-c-red-soft);
+
+        .milkdown-container-title {
+          color: var(--xz-c-red-text);
+
+          &::before {
+            background-color: var(--xz-c-red-text);
+            mask-image: var(--xz-c-svg-caution);
+            -webkit-mask-image: var(--xz-c-svg-caution);
+          }
+        }
+      }
+
+      &.details {
+        background-color: var(--xz-c-indigo-soft);
+
+        .milkdown-container-title {
+          color: var(--xz-c-indigo-text);
+
+          &::before {
+            background-color: var(--xz-c-indigo-text);
+            mask-image: var(--xz-c-svg-details);
+            -webkit-mask-image: var(--xz-c-svg-details);
+            transition: color .3s ease, transform .3s ease;
+            transform: rotate(90deg);
+          }
+        }
+
+        &[open] > summary::before {
+          transform: rotate(180deg);
+        }
+      }
+    }
+  }
+}

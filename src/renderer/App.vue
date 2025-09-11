@@ -7,6 +7,7 @@ import useFont from '@/hooks/useFont'
 import { isShowOutline } from '@/hooks/useOutline'
 import { useSaveConfirmDialog } from '@/hooks/useSaveConfirmDialog'
 import useSourceCode from '@/hooks/useSourceCode'
+import useSpellCheck from '@/hooks/useSpellCheck'
 import useTheme from '@/hooks/useTheme'
 import useTitle from '@/hooks/useTitle'
 import MarkdownSourceEditor from './components/MarkdownSourceEditor.vue'
@@ -20,6 +21,7 @@ import emitter from './events'
 const { updateTitle } = useTitle()
 const { markdown } = useContent()
 const { currentTheme, init } = useTheme()
+useSpellCheck()
 init()
 const { init: initFont, currentFont } = useFont()
 initFont()

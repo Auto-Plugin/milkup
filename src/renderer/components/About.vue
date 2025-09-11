@@ -9,14 +9,26 @@ function openByDefaultBrowser(url: string) {
 
 <template>
   <div class="AboutBox">
-    <div class="auto-plugin">
-      <span class="iconfont icon-github link" @click="openByDefaultBrowser(`https://github.com/Auto-Plugin/milkup`)">Auto-Plugin</span>
-    </div>
-    <h1><img :src="logo" alt="" /> milkup</h1>
-    <p>一个基于 Milkdown 的 Markdown 编辑器</p>
-    <p>version: v{{ version }}</p>
+    <h1 class="link" @click="openByDefaultBrowser(`https://milkup.dev`)">
+      <img :src="logo" alt="" /> milkup
+    </h1>
+    <p>
+      <span class="link" @click="openByDefaultBrowser(`https://github.com/Auto-Plugin/milkup/releases`)">
+        version: v{{ version }}
+      </span>
+    </p>
     <p>MIT Copyright © [2025] Larry Zhu</p>
     <p>Powered by <span class="link" @click="openByDefaultBrowser(`https://milkdown.dev`)">milkdown</span></p>
+    <p class="thanks">
+      <span
+        class="link"
+        @click="openByDefaultBrowser(`https://github.com/Auto-Plugin/milkup/graphs/contributors`)"
+      >
+        Thank you for the contribution from <span class="iconfont icon-github">Auto-Plugin</span></span>
+    </p>
+    <p class="tip">
+      milkup 是完全免费开源的软件
+    </p>
   </div>
 </template>
 
@@ -27,23 +39,14 @@ function openByDefaultBrowser(url: string) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  .auto-plugin {
+
+  .tip {
     position: absolute;
-    top: 12px;
-    right: 12px;
-    .icon-github {
-      font-size: 12px;
-      cursor: pointer;
-      margin-left: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      &::before {
-        font-size: 14px;
-      }
-    }
+    bottom: 30px;
+    font-size: 10px;
+    color: var(--primary-color-transparent);
   }
+
   h1 {
     font-size: 20px;
     margin: 0;
@@ -52,12 +55,14 @@ function openByDefaultBrowser(url: string) {
     align-items: center;
     justify-content: center;
   }
+
   img {
     width: 64px;
     height: 64px;
     vertical-align: middle;
     margin-right: 8px;
   }
+
   p {
     font-size: 14px;
     color: var(--text-color-2);

@@ -127,18 +127,6 @@ export function registerIpcOnHandlers(win: Electron.BrowserWindow) {
 
 // 所有 handle 类型监听
 export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
-  // 获取系统字体列表
-  ipcMain.handle('get-system-fonts', async () => {
-    try {
-      const fonts = await getFonts()
-
-      return fonts
-    } catch (error) {
-      console.error('获取系统字体失败:', error)
-      return []
-    }
-  })
-
   // 文件打开对话框
   ipcMain.handle('dialog:openFile', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog(win, {
@@ -175,34 +163,7 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
     fs.writeFileSync(filePath, content, 'utf-8')
     return { filePath }
   })
-  // 获取剪贴板中的文件路径
-  ipcMain.handle('clipboard:getFilePath', async () => {
-    const platform = process.platform
-    try {
-      if (platform === 'win32') {
-        const buf = clipboard.readBuffer('FileNameW')
-        const raw = buf.toString('ucs2').replace(/\0/g, '')
-        return raw.split('\r\n').filter(s => s.trim())[0] || null
-      } else if (platform === 'darwin') {
-        const url = clipboard.read('public.file-url')
-        return url ? [url.replace('file://', '')] : []
-      } else {
-        return []
-      }
-    } catch {
-      return []
-    }
-  })
-  // 将临时图片写入剪贴板
-  ipcMain.handle('clipboard:writeTempImage', async (_event, file: Uint8Array<ArrayBuffer>, tempPath: string) => {
-    const tempDir = path.join(__dirname, tempPath || '/temp')
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir)
-    }
-    const filePath = path.join(tempDir, `temp-image-${Date.now()}.png`)
-    fs.writeFileSync(filePath, file)
-    return filePath
-  })
+
   // 同步显示消息框
   ipcMain.handle('dialog:OpenDialog', async (_event, options: Electron.MessageBoxSyncOptions) => {
     const response = await dialog.showMessageBox(win, options)
@@ -221,7 +182,9 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
     })
     return result.response
   })
-
+}
+// 无需 win 的 ipc 处理
+export function registerGlobalIpcHandlers() {
   // 解析相对路径图片为绝对路径
   ipcMain.handle('file:resolveImagePath', async (_event, markdownFilePath: string, imagePath: string) => {
     if (!markdownFilePath || !imagePath) {
@@ -266,8 +229,46 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
       return null
     }
   })
-}
+  // 获取剪贴板中的文件路径
+  ipcMain.handle('clipboard:getFilePath', async () => {
+    const platform = process.platform
+    try {
+      if (platform === 'win32') {
+        const buf = clipboard.readBuffer('FileNameW')
+        const raw = buf.toString('ucs2').replace(/\0/g, '')
+        return raw.split('\r\n').filter(s => s.trim())[0] || null
+      } else if (platform === 'darwin') {
+        const url = clipboard.read('public.file-url')
+        return url ? [url.replace('file://', '')] : []
+      } else {
+        return []
+      }
+    } catch {
+      return []
+    }
+  })
+  // 将临时图片写入剪贴板
+  ipcMain.handle('clipboard:writeTempImage', async (_event, file: Uint8Array<ArrayBuffer>, tempPath: string) => {
+    const tempDir = path.join(__dirname, tempPath || '/temp')
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir)
+    }
+    const filePath = path.join(tempDir, `temp-image-${Date.now()}.png`)
+    fs.writeFileSync(filePath, file)
+    return filePath
+  })
+  // 获取系统字体列表
+  ipcMain.handle('get-system-fonts', async () => {
+    try {
+      const fonts = await getFonts()
 
+      return fonts
+    } catch (error) {
+      console.error('获取系统字体失败:', error)
+      return []
+    }
+  })
+}
 export function close(win: Electron.BrowserWindow) {
   // 防止重复调用
   if (isQuitting) {
