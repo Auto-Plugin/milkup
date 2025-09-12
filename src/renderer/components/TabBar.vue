@@ -1,44 +1,72 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed } from 'vue'
+import useFile from '@/hooks/useFile'
+import useTab from '@/hooks/useTab'
 
-const activeTabId = ref(1)
+const {
+  tabs,
+  activeTabId,
+  close,
+  switchToTab,
+} = useTab()
 
-const tabList = ref([
-  {
-    id: 1,
-    name: 'readme.md',
-    isSave: true,
+const { createNewFile } = useFile()
 
-  },
-  {
-    id: 2,
-    name: 'useThemes.md',
-    isSave: false,
+// 计算属性：格式化tab显示名称
+const formattedTabs = computed(() => {
+  return tabs.value.map(tab => ({
+    ...tab,
+    displayName: tab.isModified ? `*${tab.name}` : tab.name,
+  }))
+})
 
-  },
-  {
-    id: 3,
-    name: 'package.json',
-    isSave: true,
-
-  },
-])
-
-function handleTabClick(id: number) {
-  console.log(id)
-  activeTabId.value = id
+function handleTabClick(id: string) {
+  switchToTab(id)
 }
 
 function handleAddTab() {
-  tabList.value.push({
-    id: tabList.value.length + 1,
-    name: 'newTab.md',
-    isSave: false,
-  })
+  createNewFile()
 }
 
-function handleCloseTab(id: number) {
-  tabList.value = tabList.value.filter(tab => tab.id !== id)
+async function handleCloseTab(id: string, event: Event) {
+  event.stopPropagation()
+
+  const tabToClose = tabs.value.find(tab => tab.id === id)
+  if (!tabToClose)
+    return
+
+  // 如果关闭的tab有未保存内容，需要确认
+  if (tabToClose.isModified) {
+    const userChoice = await window.electronAPI.showCloseConfirm(tabToClose.name)
+
+    if (userChoice === 0) {
+      // 用户选择取消
+      return
+    } else if (userChoice === 2) {
+      // 用户选择保存
+      if (id === activeTabId.value) {
+        // 如果是当前活跃tab，先保存
+        const { saveCurrentTab } = useFile()
+        const saved = await saveCurrentTab()
+        if (!saved) {
+          // 保存失败，不关闭
+          return
+        }
+      } else {
+        // 如果不是当前活跃tab，需要先切换到该tab再保存
+        switchToTab(id)
+        const { saveCurrentTab } = useFile()
+        const saved = await saveCurrentTab()
+        if (!saved) {
+          // 保存失败，不关闭
+          return
+        }
+      }
+    }
+    // userChoice === 1 表示不保存直接关闭
+  }
+
+  close(id)
 }
 </script>
 
@@ -46,13 +74,13 @@ function handleCloseTab(id: number) {
   <div class="tabBarContarner">
     <TransitionGroup name="tab" class="tabBar" mode="out-in" tag="div">
       <div
-        v-for="tab in tabList" :key="tab.id" class="tabItem" :class="{ active: activeTabId === tab.id }"
+        v-for="tab in formattedTabs" :key="tab.id" class="tabItem" :class="{ active: activeTabId === tab.id }"
         @click="handleTabClick(tab.id)"
       >
-        <p>{{ tab.name }}</p>
+        <p>{{ tab.displayName }}</p>
 
         <div class="closeIcon">
-          <span class="iconfont icon-close" @click="handleCloseTab(tab.id)"></span>
+          <span class="iconfont icon-close" @click="handleCloseTab(tab.id, $event)"></span>
         </div>
 
         <!-- pre -->
@@ -186,11 +214,11 @@ function handleCloseTab(id: number) {
         }
 
         .pre {
-          // fill: var(--hover-color);
+          fill: var(--hover-color);
         }
 
         .after {
-          // fill: var(--hover-color);
+          fill: var(--hover-color);
         }
       }
     }

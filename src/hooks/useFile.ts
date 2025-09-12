@@ -1,25 +1,33 @@
 // useFile.ts
 import { nextTick, onUnmounted } from 'vue'
-import { processImagePaths, setCurrentMarkdownFilePath } from '@/plugins/imagePathPlugin'
 import emitter from '@/renderer/events'
 import usContent from './useContent'
+import useTab from './useTab'
 import useTitle from './useTitle'
 
 const { updateTitle } = useTitle()
 const { markdown, filePath, originalContent } = usContent()
+const {
+  createTabFromFile,
+  createNewTab,
+  switchToTab,
+  updateCurrentTabContent,
+  updateCurrentTabScrollRatio,
+  saveCurrentTab,
+  currentTab,
+  hasUnsavedTabs,
+} = useTab()
 
 async function onOpen() {
   const result = await window.electronAPI.openFile()
   if (result) {
-    // 处理图片路径
-    const processedContent = await processImagePaths(result.content, result.filePath)
+    // 创建新tab
+    const tab = await createTabFromFile(result.filePath, result.content)
 
+    // 更新当前内容状态
     filePath.value = result.filePath
-    markdown.value = processedContent
+    markdown.value = tab.content
     originalContent.value = result.content
-
-    // 设置当前文件路径用于图片路径解析
-    setCurrentMarkdownFilePath(result.filePath)
 
     updateTitle()
     nextTick(() => {
@@ -29,9 +37,13 @@ async function onOpen() {
 }
 
 async function onSave() {
-  const saved = await window.electronAPI.saveFile(filePath.value || null, markdown.value)
+  // 先更新当前tab的内容
+  updateCurrentTabContent(markdown.value)
+
+  // 保存当前tab
+  const saved = await saveCurrentTab()
   if (saved) {
-    filePath.value = saved
+    filePath.value = currentTab.value?.filePath || ''
     originalContent.value = markdown.value
     updateTitle()
   }
@@ -39,8 +51,19 @@ async function onSave() {
 }
 
 async function onSaveAs() {
+  // 先更新当前tab的内容
+  updateCurrentTabContent(markdown.value)
+
   const result = await window.electronAPI.saveFileAs(markdown.value)
   if (result) {
+    // 更新当前tab的文件路径
+    if (currentTab.value) {
+      currentTab.value.filePath = result.filePath
+      currentTab.value.name = result.filePath.split(/[\\/]/).at(-1) || 'Untitled'
+      currentTab.value.originalContent = markdown.value
+      currentTab.value.isModified = false
+    }
+
     filePath.value = result.filePath
     originalContent.value = markdown.value
     updateTitle()
@@ -55,15 +78,13 @@ function registerMenuEventsOnce() {
   hasRegistered = true
 
   window.electronAPI?.onOpenFileAtLaunch?.(async ({ filePath: launchFilePath, content }) => {
-    // 处理图片路径
-    const processedContent = await processImagePaths(content, launchFilePath)
+    // 创建新tab
+    const tab = await createTabFromFile(launchFilePath, content)
 
-    markdown.value = processedContent
+    // 更新当前内容状态
+    markdown.value = tab.content
     filePath.value = launchFilePath
     originalContent.value = content
-
-    // 设置当前文件路径用于图片路径解析
-    setCurrentMarkdownFilePath(launchFilePath)
 
     updateTitle()
     nextTick(() => {
@@ -95,10 +116,8 @@ function registerMenuEventsOnce() {
     if (!mdFile)
       return
 
-    // 检查当前是否有内容需要处理
-    const hasCurrentContent = markdown.value.trim().length > 0
-
-    if (hasCurrentContent) {
+    // 检查当前是否有未保存的内容
+    if (hasUnsavedTabs.value) {
       // 显示确认对话框
       const userChoice = await window.electronAPI.showOverwriteConfirm(mdFile.name)
 
@@ -144,15 +163,13 @@ function registerMenuEventsOnce() {
         // 如果有完整路径，通过IPC读取文件以获取正确的路径信息
         const result = await window.electronAPI.readFileByPath(fullPath)
         if (result) {
-          // 处理图片路径
-          const processedContent = await processImagePaths(result.content, result.filePath)
+          // 创建新tab
+          const tab = await createTabFromFile(result.filePath, result.content)
 
-          markdown.value = processedContent
+          // 更新当前内容状态
+          markdown.value = tab.content
           filePath.value = result.filePath
           originalContent.value = result.content
-
-          // 设置当前文件路径用于图片路径解析
-          setCurrentMarkdownFilePath(result.filePath)
 
           updateTitle()
           nextTick(() => {
@@ -167,13 +184,12 @@ function registerMenuEventsOnce() {
 
       // 注意：这里无法处理相对路径图片，因为没有完整的文件路径
       // 图片路径解析需要知道 Markdown 文件的实际位置
+      await createTabFromFile(mdFile.name, content)
 
+      // 更新当前内容状态
       markdown.value = content
       filePath.value = mdFile.name
       originalContent.value = content
-
-      // 清除文件路径，因为无法解析图片
-      setCurrentMarkdownFilePath(null)
 
       updateTitle()
       nextTick(() => {
@@ -191,14 +207,50 @@ function registerMenuEventsOnce() {
 // ✅ 立即注册（只注册一次）
 registerMenuEventsOnce()
 
+// 创建新文件
+function createNewFile() {
+  createNewTab()
+
+  // 更新当前内容状态
+  filePath.value = ''
+  markdown.value = ''
+  originalContent.value = ''
+
+  updateTitle()
+  nextTick(() => {
+    emitter.emit('file:Change')
+  })
+}
+
+// 监听tab切换事件
+emitter.on('tab:switch', (tab: any) => {
+  // 更新当前内容状态
+  filePath.value = tab.filePath || ''
+  markdown.value = tab.content
+  originalContent.value = tab.originalContent
+
+  updateTitle()
+  nextTick(() => {
+    emitter.emit('file:Change')
+  })
+})
+
 export default function useFile() {
   onUnmounted(() => {
     window.electronAPI?.removeListener?.('menu-open', onOpen)
     window.electronAPI?.removeListener?.('menu-save', onSave)
+    emitter.off('tab:switch')
   })
   return {
     onOpen,
     onSave,
     onSaveAs,
+    createNewFile,
+    switchToTab,
+    updateCurrentTabContent,
+    updateCurrentTabScrollRatio,
+    saveCurrentTab,
+    hasUnsavedTabs,
+    currentTab,
   }
 }
