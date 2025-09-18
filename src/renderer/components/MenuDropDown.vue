@@ -45,7 +45,7 @@ onUnmounted(() => {
     flex-direction: column;
     justify-content: flex-end;
     cursor: pointer;
-    padding: 0 10px;
+    padding: 0 0 0 10px;
     height: 100%;
     -webkit-app-region: no-drag; /* 禁止拖动 */
     img {

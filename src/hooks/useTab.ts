@@ -1,24 +1,19 @@
-import { computed, ref } from 'vue'
+import type { Ref } from 'vue'
+import type { Tab } from '@/types/tab'
+import { computed, nextTick, ref, watch } from 'vue'
 import { processImagePaths, setCurrentMarkdownFilePath } from '@/plugins/imagePathPlugin'
 import emitter from '@/renderer/events'
-
-export interface Tab {
-  id: string
-  name: string
-  filePath: string | null
-  content: string
-  originalContent: string
-  isModified: boolean
-  scrollRatio?: number
-}
+import { randomUUID } from '@/utils/tool'
 
 const tabs = ref<Tab[]>([])
 const activeTabId = ref<string | null>(null)
 
+const defaultName = 'Untitled'
+
 // 初始化时创建一个默认的未命名文档
 const defaultTab: Tab = {
-  id: generateId(),
-  name: 'Untitled',
+  id: randomUUID(),
+  name: defaultName,
   filePath: null,
   content: '',
   originalContent: '',
@@ -28,17 +23,12 @@ const defaultTab: Tab = {
 tabs.value.push(defaultTab)
 activeTabId.value = defaultTab.id
 
-// 生成唯一ID
-function generateId(): string {
-  return `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-}
-
 // 从文件路径获取文件名
 function getFileName(filePath: string | null): string {
   if (!filePath)
-    return 'Untitled'
+    return defaultName
   const parts = filePath.split(/[\\/]/)
-  return parts.at(-1) ?? 'Untitled'
+  return parts.at(-1) ?? defaultName
 }
 
 // 检查文件是否已打开
@@ -77,7 +67,7 @@ function close(id: string) {
     if (tabs.value.length > 0) {
       // 优先切换到下一个tab，如果没有则切换到上一个
       const nextIndex = tabIndex < tabs.value.length ? tabIndex : tabIndex - 1
-      setActive(tabs.value[nextIndex].id)
+      switchToTab(tabs.value[nextIndex].id)
     } else {
       activeTabId.value = null
     }
@@ -109,6 +99,22 @@ function updateCurrentTabContent(content: string, isModified?: boolean) {
   }
 }
 
+// 更新当前tab的文件信息（用于文件覆盖场景）
+function updateCurrentTabFile(filePath: string, content: string, name?: string) {
+  const currentTab = getCurrentTab()
+  if (currentTab) {
+    currentTab.filePath = filePath
+    currentTab.content = content
+    currentTab.originalContent = content
+    currentTab.isModified = false
+    if (name) {
+      currentTab.name = name
+    } else {
+      currentTab.name = getFileName(filePath)
+    }
+  }
+}
+
 // 更新当前tab的滚动位置
 function updateCurrentTabScrollRatio(ratio: number) {
   const currentTab = getCurrentTab()
@@ -127,6 +133,7 @@ async function saveCurrentTab(): Promise<boolean> {
     const saved = await window.electronAPI.saveFile(currentTab.filePath, currentTab.content)
     if (saved) {
       currentTab.filePath = saved
+      currentTab.name = getFileName(saved) // 更新标签名称
       currentTab.originalContent = currentTab.content
       currentTab.isModified = false
       return true
@@ -143,7 +150,7 @@ async function createTabFromFile(filePath: string, content: string): Promise<Tab
   const processedContent = await processImagePaths(content, filePath)
 
   const tab: Tab = {
-    id: generateId(),
+    id: randomUUID(),
     name: getFileName(filePath),
     filePath,
     content: processedContent,
@@ -158,8 +165,8 @@ async function createTabFromFile(filePath: string, content: string): Promise<Tab
 // 创建新文件tab
 function createNewTab(): Tab {
   const tab: Tab = {
-    id: generateId(),
-    name: 'Untitled',
+    id: randomUUID(),
+    name: defaultName,
     filePath: null,
     content: '',
     originalContent: '',
@@ -195,6 +202,119 @@ const hasUnsavedTabs = computed(() => {
   return tabs.value.some(tab => tab.isModified)
 })
 
+// 获取所有未保存的标签页
+function getUnsavedTabs() {
+  return tabs.value.filter(tab => tab.isModified)
+}
+
+// 确保激活的tab在可视区域内
+function ensureActiveTabVisible(containerRef: Ref<HTMLElement | null>) {
+  const container = containerRef.value
+  if (!container || !activeTabId.value)
+    return
+
+  // 查找激活的tab元素
+  const activeTabElement = container.querySelector(`[data-tab-id="${activeTabId.value}"]`) as HTMLElement
+  if (!activeTabElement)
+    return
+
+  const containerRect = container.getBoundingClientRect()
+  const tabRect = activeTabElement.getBoundingClientRect()
+
+  const paddingOffset = 12 // 额外的内边距
+
+  // 检查tab是否完全在可视区域内（包括阴影）
+  const isFullyVisible
+    = tabRect.left >= (containerRect.left + paddingOffset)
+      && tabRect.right <= (containerRect.right - paddingOffset)
+
+  if (!isFullyVisible) {
+    // 计算最佳滚动位置
+    let scrollLeft = activeTabElement.offsetLeft - container.offsetLeft
+
+    // 如果tab在左侧被遮挡，添加偏移量
+    if (tabRect.left < containerRect.left + paddingOffset) {
+      scrollLeft -= paddingOffset
+    } else if (tabRect.right > containerRect.right - paddingOffset) {
+      // 如果tab在右侧被遮挡，确保右侧有足够空间
+      scrollLeft = activeTabElement.offsetLeft - container.offsetLeft - container.clientWidth + activeTabElement.offsetWidth + paddingOffset
+    }
+
+    // 确保滚动位置不会超出边界
+    scrollLeft = Math.max(0, Math.min(scrollLeft, container.scrollWidth - container.clientWidth))
+
+    container.scrollTo({
+      left: scrollLeft,
+      behavior: 'smooth',
+    })
+  }
+}
+
+// 横向滚动
+function handleWheelScroll(event: WheelEvent, containerRef: Ref<HTMLElement | null>) {
+  event.preventDefault()
+
+  // 获取滚轮滚动距离
+  const scrollAmount = event.deltaY
+
+  const container = containerRef.value
+  if (!container)
+    return
+
+  container.scrollBy({
+    left: scrollAmount,
+    behavior: 'smooth',
+  })
+}
+
+// 带确认的关闭tab
+function closeWithConfirm(id: string) {
+  const tabToClose = tabs.value.find(tab => tab.id === id)
+  if (!tabToClose)
+    return
+
+  // 检查是否是最后一个tab
+  const isLastTab = tabs.value.length === 1
+
+  // 检查是否有未保存的内容
+  if (tabToClose.isModified) {
+    // 触发自定义确认对话框，传递tab信息和是否是最后一个tab
+    emitter.emit('tab:close-confirm', {
+      tabId: id,
+      tabName: tabToClose.name,
+      isLastTab,
+    })
+    return
+  }
+
+  // 如果没有未保存内容
+  if (isLastTab) {
+    // 如果是最后一个tab，直接关闭应用
+    window.electronAPI.closeDiscard()
+  } else {
+    // 否则直接关闭tab
+    close(id)
+  }
+}
+
+// 设置tab容器的滚动监听
+function setupTabScrollListener(containerRef: Ref<HTMLElement | null>) {
+  // 监听激活tab变化，确保其可见
+  watch(activeTabId, () => {
+    nextTick(() => {
+      ensureActiveTabVisible(containerRef)
+    })
+  })
+}
+
+// 计算属性：格式化tab显示名称
+const formattedTabs = computed(() => {
+  return tabs.value.map(tab => ({
+    ...tab,
+    displayName: tab.isModified ? `*${tab.name}` : tab.name,
+  }))
+})
+
 const currentTab = computed(() => getCurrentTab())
 
 function useTab() {
@@ -203,24 +323,31 @@ function useTab() {
     tabs,
     activeTabId,
     currentTab,
+    formattedTabs,
     hasUnsavedTabs,
-
-    // 基础操作
+    getUnsavedTabs,
     add,
     close,
     setActive,
     getCurrentTab,
 
-    // 高级操作
+    // 更新
     updateCurrentTabContent,
     updateCurrentTabScrollRatio,
     saveCurrentTab,
     createTabFromFile,
+    updateCurrentTabFile,
     createNewTab,
     switchToTab,
 
-    // 工具函数
-    generateId,
+    // UI
+    ensureActiveTabVisible,
+    handleWheelScroll,
+    closeWithConfirm,
+    setupTabScrollListener,
+
+    // 工具
+    randomUUID,
     getFileName,
     isFileAlreadyOpen,
   }

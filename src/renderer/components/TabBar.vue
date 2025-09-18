@@ -1,24 +1,22 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import useFile from '@/hooks/useFile'
 import useTab from '@/hooks/useTab'
 
 const {
   tabs,
+  formattedTabs,
   activeTabId,
-  close,
   switchToTab,
+  handleWheelScroll,
+  closeWithConfirm,
+  setupTabScrollListener,
 } = useTab()
 
 const { createNewFile } = useFile()
 
-// 计算属性：格式化tab显示名称
-const formattedTabs = computed(() => {
-  return tabs.value.map(tab => ({
-    ...tab,
-    displayName: tab.isModified ? `*${tab.name}` : tab.name,
-  }))
-})
+// 获取tab容器的DOM引用
+const tabContainerRef = ref<HTMLElement | null>(null)
 
 function handleTabClick(id: string) {
   switchToTab(id)
@@ -30,51 +28,35 @@ function handleAddTab() {
 
 async function handleCloseTab(id: string, event: Event) {
   event.stopPropagation()
-
-  const tabToClose = tabs.value.find(tab => tab.id === id)
-  if (!tabToClose)
-    return
-
-  // 如果关闭的tab有未保存内容，需要确认
-  if (tabToClose.isModified) {
-    const userChoice = await window.electronAPI.showCloseConfirm(tabToClose.name)
-
-    if (userChoice === 0) {
-      // 用户选择取消
-      return
-    } else if (userChoice === 2) {
-      // 用户选择保存
-      if (id === activeTabId.value) {
-        // 如果是当前活跃tab，先保存
-        const { saveCurrentTab } = useFile()
-        const saved = await saveCurrentTab()
-        if (!saved) {
-          // 保存失败，不关闭
-          return
-        }
-      } else {
-        // 如果不是当前活跃tab，需要先切换到该tab再保存
-        switchToTab(id)
-        const { saveCurrentTab } = useFile()
-        const saved = await saveCurrentTab()
-        if (!saved) {
-          // 保存失败，不关闭
-          return
-        }
-      }
-    }
-    // userChoice === 1 表示不保存直接关闭
-  }
-
-  close(id)
+  closeWithConfirm(id)
 }
+
+// 设置滚动监听
+setupTabScrollListener(tabContainerRef)
+
+// 组件挂载时添加事件监听器
+onMounted(() => {
+  const container = tabContainerRef.value
+  if (container) {
+    container.addEventListener('wheel', event => handleWheelScroll(event, tabContainerRef), { passive: false })
+  }
+})
+
+// 组件卸载时移除事件监听器
+onUnmounted(() => {
+  const container = tabContainerRef.value
+  if (container) {
+    container.removeEventListener('wheel', event => handleWheelScroll(event, tabContainerRef))
+  }
+})
 </script>
 
 <template>
-  <div class="tabBarContarner">
+  <div ref="tabContainerRef" class="tabBarContarner">
     <TransitionGroup name="tab" class="tabBar" mode="out-in" tag="div">
       <div
         v-for="tab in formattedTabs" :key="tab.id" class="tabItem" :class="{ active: activeTabId === tab.id }"
+        :data-tab-id="tab.id"
         @click="handleTabClick(tab.id)"
       >
         <p>{{ tab.displayName }}</p>
@@ -117,8 +99,15 @@ async function handleCloseTab(id: string, event: Event) {
   flex: 1;
   height: 100%;
   display: flex;
+  padding: 0 10px;
   flex-direction: column;
   justify-content: flex-end;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  // 隐藏滚动条
+  &::-webkit-scrollbar {
+    display: none;
+  }
 
   .tabBar {
 
@@ -132,6 +121,8 @@ async function handleCloseTab(id: string, event: Event) {
       -webkit-app-region: no-drag;
       max-width: 200px;
       min-width: 150px;
+      width: 150px; // 固定宽度，确保滚动效果
+      flex-shrink: 0; // 防止收缩
       background: var(--background-color-1);
       // border: 1px solid var(--border-color-1);
       display: flex;
@@ -169,7 +160,11 @@ async function handleCloseTab(id: string, event: Event) {
         margin: 0;
         font-size: 12px;
         color: var(--text-color-3);
-
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+        min-width: 0;
       }
 
       span {
@@ -214,11 +209,11 @@ async function handleCloseTab(id: string, event: Event) {
         }
 
         .pre {
-          fill: var(--hover-color);
+          // fill: var(--hover-color);
         }
 
         .after {
-          fill: var(--hover-color);
+          // fill: var(--hover-color);
         }
       }
     }
@@ -230,6 +225,8 @@ async function handleCloseTab(id: string, event: Event) {
       justify-content: center;
       cursor: pointer;
       gap: 6px;
+      flex-shrink: 0; // 防止收缩
+      min-width: 40px; // 确保最小宽度
 
       span {
         border-radius: 4px;
@@ -243,7 +240,7 @@ async function handleCloseTab(id: string, event: Event) {
       }
 
       .addTabLine {
-        width: 1px;
+        width: 0px;
         height: 20px;
         background: var(--border-color-1);
       }

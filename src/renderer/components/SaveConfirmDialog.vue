@@ -1,15 +1,21 @@
 <script setup lang="ts">
+type DialogType = 'close' | 'overwrite'
+
 interface Props {
   visible: boolean
+  tabName?: string
+  type?: DialogType
+  fileName?: string
 }
 
 interface Emits {
   (e: 'save'): void
   (e: 'discard'): void
   (e: 'cancel'): void
+  (e: 'overwrite'): void
 }
 
-const { visible } = defineProps<Props>()
+const { visible, tabName, type = 'close', fileName } = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 function handleSave() {
@@ -23,6 +29,10 @@ function handleDiscard() {
 function handleCancel() {
   emit('cancel')
 }
+
+function handleOverwrite() {
+  emit('overwrite')
+}
 </script>
 
 <template>
@@ -30,23 +40,61 @@ function handleCancel() {
     <div v-if="visible" class="dialog-overlay">
       <div class="dialog-content" @click.stop>
         <div class="dialog-header">
-          <h3>确认关闭</h3>
+          <h3 v-if="type === 'close'">
+            确认关闭
+          </h3>
+          <h3 v-else-if="type === 'overwrite'">
+            文件已存在
+          </h3>
         </div>
         <div class="dialog-body">
-          <p>当前文档有未保存的修改，请选择操作：</p>
+          <template v-if="type === 'close'">
+            <p v-if="tabName">
+              文档 "{{ tabName }}" 有未保存的修改，请选择操作：
+            </p>
+            <p v-else>
+              当前文档有未保存的修改，请选择操作：
+            </p>
+          </template>
+          <template v-else-if="type === 'overwrite'">
+            <p v-if="fileName">
+              文件 "{{ fileName }}" 已存在，是否要覆盖当前内容？
+            </p>
+            <p v-else>
+              文件已存在，是否要覆盖当前内容？
+            </p>
+            <p class="dialog-detail">
+              选择"保存"将先保存当前内容，然后打开新文件。
+            </p>
+          </template>
         </div>
         <div class="dialog-footer">
-          <button class="btn btn-secondary" @click="handleDiscard">
-            丢弃
-          </button>
-          <div>
-            <button class="btn btn-save" @click="handleSave">
-              保存
+          <template v-if="type === 'close'">
+            <button class="btn btn-secondary" @click="handleDiscard">
+              丢弃
             </button>
+            <div>
+              <button class="btn btn-save" @click="handleSave">
+                保存
+              </button>
+              <button class="btn btn-secondary" @click="handleCancel">
+                取消
+              </button>
+            </div>
+          </template>
+          <template v-else-if="type === 'overwrite'">
             <button class="btn btn-secondary" @click="handleCancel">
               取消
             </button>
-          </div>
+            <div>
+              <button class="btn btn-save" @click="handleSave">
+                保存
+              </button>
+              <button class="btn btn-overwrite" @click="handleOverwrite">
+                覆盖
+              </button>
+            </div>
+          </template>
         </div>
       </div>
     </div>
@@ -110,6 +158,12 @@ function handleCancel() {
     color: var(--text-color-2);
     line-height: 1.5;
   }
+
+  .dialog-detail {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-color-3);
+  }
 }
 
 .dialog-footer {
@@ -160,6 +214,20 @@ function handleCancel() {
   &:active {
     background: var(--active-color);
     color: var(--text-color);
+  }
+}
+
+.btn-overwrite {
+  margin-left: 12px;
+  background: #f56565;
+  color: white;
+
+  &:hover {
+    background: #e53e3e;
+  }
+
+  &:active {
+    background: #c53030;
   }
 }
 </style>

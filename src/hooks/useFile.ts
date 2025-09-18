@@ -1,5 +1,6 @@
 // useFile.ts
 import { nextTick, onUnmounted } from 'vue'
+import { processImagePaths } from '@/plugins/imagePathPlugin'
 import emitter from '@/renderer/events'
 import usContent from './useContent'
 import useTab from './useTab'
@@ -8,6 +9,7 @@ import useTitle from './useTitle'
 const { updateTitle } = useTitle()
 const { markdown, filePath, originalContent } = usContent()
 const {
+  updateCurrentTabFile,
   createTabFromFile,
   createNewTab,
   switchToTab,
@@ -16,6 +18,7 @@ const {
   saveCurrentTab,
   currentTab,
   hasUnsavedTabs,
+  tabs,
 } = useTab()
 
 async function onOpen() {
@@ -117,23 +120,39 @@ function registerMenuEventsOnce() {
       return
 
     // 检查当前是否有未保存的内容
-    if (hasUnsavedTabs.value) {
-      // 显示确认对话框
-      const userChoice = await window.electronAPI.showOverwriteConfirm(mdFile.name)
+    let userChoice: 'cancel' | 'save' | 'overwrite' | null = null
 
-      if (userChoice === 0) {
-        // 用户选择取消
-        return
-      } else if (userChoice === 2) {
-        // 用户选择保存当前内容
-        try {
-          await onSave()
-        } catch (error) {
-          console.error('保存当前文件失败:', error)
-          return // 如果保存失败，不继续打开新文件
+    if (hasUnsavedTabs.value) {
+      // 先检查要拖入的文件是否已经在某个tab中打开
+      const isFileAlreadyOpen = tabs.value.some(tab =>
+        tab.name === mdFile.name
+        || (tab.filePath && tab.filePath.endsWith(mdFile.name)),
+      )
+
+      // 只有当文件真的已经打开过时，才显示覆盖确认
+      if (isFileAlreadyOpen) {
+        userChoice = await new Promise<'cancel' | 'save' | 'overwrite'>((resolve) => {
+          emitter.emit('file:overwrite-confirm', {
+            fileName: mdFile.name,
+            resolver: resolve,
+          })
+        })
+
+        if (userChoice === 'cancel') {
+          // 用户选择取消
+          return
+        } else if (userChoice === 'save') {
+          // 用户选择保存当前内容
+          try {
+            await onSave()
+          } catch (error) {
+            console.error('保存当前文件失败:', error)
+            return // 如果保存失败，不继续打开新文件
+          }
         }
+        // userChoice === 'overwrite' 表示覆盖当前内容，直接继续执行
       }
-      // userChoice === 1 表示覆盖当前内容，直接继续执行
+      // 如果文件没有打开过，即使有未保存内容，也直接创建新tab，不显示提示
     }
 
     try {
@@ -163,13 +182,24 @@ function registerMenuEventsOnce() {
         // 如果有完整路径，通过IPC读取文件以获取正确的路径信息
         const result = await window.electronAPI.readFileByPath(fullPath)
         if (result) {
-          // 创建新tab
-          const tab = await createTabFromFile(result.filePath, result.content)
+          if (userChoice === 'overwrite') {
+            // 文件覆盖：更新当前tab的文件信息
+            const processedContent = await processImagePaths(result.content, result.filePath)
+            updateCurrentTabFile(result.filePath, processedContent)
 
-          // 更新当前内容状态
-          markdown.value = tab.content
-          filePath.value = result.filePath
-          originalContent.value = result.content
+            // 更新当前内容状态
+            markdown.value = processedContent
+            filePath.value = result.filePath
+            originalContent.value = result.content
+          } else {
+            // 创建新tab
+            const tab = await createTabFromFile(result.filePath, result.content)
+
+            // 更新当前内容状态
+            markdown.value = tab.content
+            filePath.value = result.filePath
+            originalContent.value = result.content
+          }
 
           updateTitle()
           nextTick(() => {
@@ -182,14 +212,24 @@ function registerMenuEventsOnce() {
       // 如果无法获取完整路径，回退到直接读取文件内容
       const content = await mdFile.text()
 
-      // 注意：这里无法处理相对路径图片，因为没有完整的文件路径
-      // 图片路径解析需要知道 Markdown 文件的实际位置
-      await createTabFromFile(mdFile.name, content)
+      if (userChoice === 'overwrite') {
+        // 文件覆盖：更新当前tab的文件信息
+        updateCurrentTabFile(mdFile.name, content)
 
-      // 更新当前内容状态
-      markdown.value = content
-      filePath.value = mdFile.name
-      originalContent.value = content
+        // 更新当前内容状态
+        markdown.value = content
+        filePath.value = mdFile.name
+        originalContent.value = content
+      } else {
+        // 注意：这里无法处理相对路径图片，因为没有完整的文件路径
+        // 图片路径解析需要知道 Markdown 文件的实际位置
+        await createTabFromFile(mdFile.name, content)
+
+        // 更新当前内容状态
+        markdown.value = content
+        filePath.value = mdFile.name
+        originalContent.value = content
+      }
 
       updateTitle()
       nextTick(() => {
