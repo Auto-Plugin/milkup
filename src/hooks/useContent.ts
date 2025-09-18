@@ -1,4 +1,5 @@
 import { computed, onUnmounted, ref, watch } from 'vue'
+import useTab from './useTab'
 
 const contentInfo = {
   markdown: ref(''),
@@ -8,6 +9,19 @@ const contentInfo = {
 const isModified = computed(() => contentInfo.markdown.value !== contentInfo.originalContent.value)
 const currentScrollRatio = ref(0)
 const isInitialized = ref(false)
+
+// 获取 useTab 实例
+const { updateCurrentTabContent, updateCurrentTabScrollRatio } = useTab()
+
+// 监听内容变化，同步到当前tab
+watch(contentInfo.markdown, (newContent) => {
+  updateCurrentTabContent(newContent)
+}, { deep: true })
+
+// 监听滚动位置变化，同步到当前tab
+watch(currentScrollRatio, (newRatio) => {
+  updateCurrentTabScrollRatio(newRatio)
+})
 
 watch(isModified, (newValue) => {
   // 只有在有内容时才通知主进程保存状态

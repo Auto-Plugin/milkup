@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import useTitle from '../../hooks/useTitle'
 import MenuDropDown from './MenuDropDown.vue'
+import TabBar from './TabBar.vue'
 
 const isWin = window.electronAPI.platform === 'win32'
 const { title } = useTitle()
@@ -26,9 +27,12 @@ window.electronAPI.on('close', () => {
   <div class="TitleBarBox">
     <template v-if="isWin">
       <MenuDropDown />
-      <div class="title" @dblclick="toggleMaximize">
+      <!-- <div class="title" @dblclick="toggleMaximize">
         {{ title }}
-      </div>
+      </div> -->
+
+      <TabBar />
+
       <div class="window-controls">
         <span class="iconfont icon-min" @click="minimize"></span>
         <span class="iconfont" :class="isFullScreen ? 'icon-normal' : 'icon-max'" @click="toggleMaximize"></span>
@@ -49,25 +53,38 @@ window.electronAPI.on('close', () => {
 .TitleBarBox {
   -webkit-app-region: drag;
   /* ✅ 允许拖动窗口 */
-  height: 32px;
-  background: var(--background-color-1);
+  height: 40px;
+  background: var(--background-color-2);
   color: var(--text-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 0 0 12px;
-  user-select: none;
+  overflow: hidden;
+  // padding: 0 0 0 12px;
+  // user-select: none;
 
   .window-controls {
+
     display: flex;
     -webkit-app-region: no-drag;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
     /* ✅ 控制按钮不能拖动 */
     span {
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
       font-size: 16px;
       color: var(--text-color-1);
-      padding: 8px;
+      height: 40px;
+      width: 40px;
+
+      // padding:  8px;
+      // 保持长宽比
 
       &:hover {
         background: var(--hover-color);

@@ -182,6 +182,19 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
     })
     return result.response
   })
+
+  // 显示关闭确认对话框
+  ipcMain.handle('dialog:showCloseConfirm', async (_event, fileName: string) => {
+    const result = await dialog.showMessageBox(win, {
+      type: 'question',
+      buttons: ['取消', '不保存', '保存'],
+      defaultId: 2,
+      title: '文件未保存',
+      message: `文件 "${fileName}" 有未保存的更改。`,
+      detail: '是否要保存更改？',
+    })
+    return result.response
+  })
 }
 // 无需 win 的 ipc 处理
 export function registerGlobalIpcHandlers() {

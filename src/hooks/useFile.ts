@@ -1,25 +1,36 @@
 // useFile.ts
 import { nextTick, onUnmounted } from 'vue'
-import { processImagePaths, setCurrentMarkdownFilePath } from '@/plugins/imagePathPlugin'
+import { processImagePaths } from '@/plugins/imagePathPlugin'
 import emitter from '@/renderer/events'
 import usContent from './useContent'
+import useTab from './useTab'
 import useTitle from './useTitle'
 
 const { updateTitle } = useTitle()
 const { markdown, filePath, originalContent } = usContent()
+const {
+  updateCurrentTabFile,
+  createTabFromFile,
+  createNewTab,
+  switchToTab,
+  updateCurrentTabContent,
+  updateCurrentTabScrollRatio,
+  saveCurrentTab,
+  currentTab,
+  hasUnsavedTabs,
+  tabs,
+} = useTab()
 
 async function onOpen() {
   const result = await window.electronAPI.openFile()
   if (result) {
-    // 处理图片路径
-    const processedContent = await processImagePaths(result.content, result.filePath)
+    // 创建新tab
+    const tab = await createTabFromFile(result.filePath, result.content)
 
+    // 更新当前内容状态
     filePath.value = result.filePath
-    markdown.value = processedContent
+    markdown.value = tab.content
     originalContent.value = result.content
-
-    // 设置当前文件路径用于图片路径解析
-    setCurrentMarkdownFilePath(result.filePath)
 
     updateTitle()
     nextTick(() => {
@@ -29,9 +40,13 @@ async function onOpen() {
 }
 
 async function onSave() {
-  const saved = await window.electronAPI.saveFile(filePath.value || null, markdown.value)
+  // 先更新当前tab的内容
+  updateCurrentTabContent(markdown.value)
+
+  // 保存当前tab
+  const saved = await saveCurrentTab()
   if (saved) {
-    filePath.value = saved
+    filePath.value = currentTab.value?.filePath || ''
     originalContent.value = markdown.value
     updateTitle()
   }
@@ -39,8 +54,19 @@ async function onSave() {
 }
 
 async function onSaveAs() {
+  // 先更新当前tab的内容
+  updateCurrentTabContent(markdown.value)
+
   const result = await window.electronAPI.saveFileAs(markdown.value)
   if (result) {
+    // 更新当前tab的文件路径
+    if (currentTab.value) {
+      currentTab.value.filePath = result.filePath
+      currentTab.value.name = result.filePath.split(/[\\/]/).at(-1) || 'Untitled'
+      currentTab.value.originalContent = markdown.value
+      currentTab.value.isModified = false
+    }
+
     filePath.value = result.filePath
     originalContent.value = markdown.value
     updateTitle()
@@ -55,15 +81,13 @@ function registerMenuEventsOnce() {
   hasRegistered = true
 
   window.electronAPI?.onOpenFileAtLaunch?.(async ({ filePath: launchFilePath, content }) => {
-    // 处理图片路径
-    const processedContent = await processImagePaths(content, launchFilePath)
+    // 创建新tab
+    const tab = await createTabFromFile(launchFilePath, content)
 
-    markdown.value = processedContent
+    // 更新当前内容状态
+    markdown.value = tab.content
     filePath.value = launchFilePath
     originalContent.value = content
-
-    // 设置当前文件路径用于图片路径解析
-    setCurrentMarkdownFilePath(launchFilePath)
 
     updateTitle()
     nextTick(() => {
@@ -95,26 +119,39 @@ function registerMenuEventsOnce() {
     if (!mdFile)
       return
 
-    // 检查当前是否有内容需要处理
-    const hasCurrentContent = markdown.value.trim().length > 0
+    // 检查当前是否有未保存的内容
+    let userChoice: 'cancel' | 'save' | 'overwrite' | null = null
 
-    if (hasCurrentContent) {
-      // 显示确认对话框
-      const userChoice = await window.electronAPI.showOverwriteConfirm(mdFile.name)
+    if (hasUnsavedTabs.value) {
+      // 先检查要拖入的文件是否已经在某个tab中打开
+      const isFileAlreadyOpen = tabs.value.some(tab =>
+        tab.name === mdFile.name
+        || (tab.filePath && tab.filePath.endsWith(mdFile.name)),
+      )
 
-      if (userChoice === 0) {
-        // 用户选择取消
-        return
-      } else if (userChoice === 2) {
-        // 用户选择保存当前内容
-        try {
-          await onSave()
-        } catch (error) {
-          console.error('保存当前文件失败:', error)
-          return // 如果保存失败，不继续打开新文件
+      // 只有当文件真的已经打开过时，才显示覆盖确认
+      if (isFileAlreadyOpen) {
+        userChoice = await new Promise<'cancel' | 'save' | 'overwrite'>((resolve) => {
+          emitter.emit('file:overwrite-confirm', {
+            fileName: mdFile.name,
+            resolver: resolve,
+          })
+        })
+
+        if (userChoice === 'cancel') {
+          // 用户选择取消
+          return
+        } else if (userChoice === 'save') {
+          // 用户选择保存当前内容
+          try {
+            await onSave()
+          } catch (error) {
+            console.error('保存当前文件失败:', error)
+            return // 如果保存失败，不继续打开新文件
+          }
         }
+        // userChoice === 'overwrite' 表示覆盖当前内容，直接继续执行
       }
-      // userChoice === 1 表示覆盖当前内容，直接继续执行
     }
 
     try {
@@ -128,31 +165,34 @@ function registerMenuEventsOnce() {
       } catch (error) {
       }
 
-      // 如果 webUtils 方法失败，尝试备用方法
       if (!fullPath) {
         const electronFile = mdFile as any
         if (electronFile.path) {
           fullPath = electronFile.path
-        } else if (process.platform === 'win32' && mdFile.name) {
-          // Windows 特定处理：尝试从 File 对象获取路径
-          // 在 Windows 上，如果无法获取完整路径，至少记录文件名
-          console.warn('Windows: 无法获取文件完整路径，使用文件名:', mdFile.name)
         }
       }
 
       if (fullPath) {
-        // 如果有完整路径，通过IPC读取文件以获取正确的路径信息
         const result = await window.electronAPI.readFileByPath(fullPath)
         if (result) {
-          // 处理图片路径
-          const processedContent = await processImagePaths(result.content, result.filePath)
+          if (userChoice === 'overwrite') {
+            // 覆盖更新当前tab的文件信息
+            const processedContent = await processImagePaths(result.content, result.filePath)
+            updateCurrentTabFile(result.filePath, processedContent)
 
-          markdown.value = processedContent
-          filePath.value = result.filePath
-          originalContent.value = result.content
+            // 更新当前内容状态
+            markdown.value = processedContent
+            filePath.value = result.filePath
+            originalContent.value = result.content
+          } else {
+            // 创建新tab
+            const tab = await createTabFromFile(result.filePath, result.content)
 
-          // 设置当前文件路径用于图片路径解析
-          setCurrentMarkdownFilePath(result.filePath)
+            // 更新当前内容
+            markdown.value = tab.content
+            filePath.value = result.filePath
+            originalContent.value = result.content
+          }
 
           updateTitle()
           nextTick(() => {
@@ -162,18 +202,27 @@ function registerMenuEventsOnce() {
         }
       }
 
-      // 如果无法获取完整路径，回退到直接读取文件内容
+      // 无法获取回退到直接读取文件内容
       const content = await mdFile.text()
 
-      // 注意：这里无法处理相对路径图片，因为没有完整的文件路径
-      // 图片路径解析需要知道 Markdown 文件的实际位置
+      if (userChoice === 'overwrite') {
+        // 覆盖更新当前tab的文件信息
+        updateCurrentTabFile(mdFile.name, content)
 
-      markdown.value = content
-      filePath.value = mdFile.name
-      originalContent.value = content
+        // 更新内容
+        markdown.value = content
+        filePath.value = mdFile.name
+        originalContent.value = content
+      } else {
+        // 注意：这里无法处理相对路径图片，因为没有完整的文件路径
+        // 图片路径解析需要知道 Markdown 文件的实际位置
+        await createTabFromFile(mdFile.name, content)
 
-      // 清除文件路径，因为无法解析图片
-      setCurrentMarkdownFilePath(null)
+        // 更新当前内容状态
+        markdown.value = content
+        filePath.value = mdFile.name
+        originalContent.value = content
+      }
 
       updateTitle()
       nextTick(() => {
@@ -191,14 +240,50 @@ function registerMenuEventsOnce() {
 // ✅ 立即注册（只注册一次）
 registerMenuEventsOnce()
 
+// 创建新文件
+function createNewFile() {
+  createNewTab()
+
+  // 更新当前内容状态
+  filePath.value = ''
+  markdown.value = ''
+  originalContent.value = ''
+
+  updateTitle()
+  nextTick(() => {
+    emitter.emit('file:Change')
+  })
+}
+
+// 监听tab切换事件
+emitter.on('tab:switch', (tab: any) => {
+  // 更新当前内容状态
+  filePath.value = tab.filePath || ''
+  markdown.value = tab.content
+  originalContent.value = tab.originalContent
+
+  updateTitle()
+  nextTick(() => {
+    emitter.emit('file:Change')
+  })
+})
+
 export default function useFile() {
   onUnmounted(() => {
     window.electronAPI?.removeListener?.('menu-open', onOpen)
     window.electronAPI?.removeListener?.('menu-save', onSave)
+    emitter.off('tab:switch')
   })
   return {
     onOpen,
     onSave,
     onSaveAs,
+    createNewFile,
+    switchToTab,
+    updateCurrentTabContent,
+    updateCurrentTabScrollRatio,
+    saveCurrentTab,
+    hasUnsavedTabs,
+    currentTab,
   }
 }

@@ -19,6 +19,8 @@ interface Window {
     readFileByPath: (filePath: string) => Promise<{ filePath: string, content: string } | null>
     // 显示文件覆盖确认对话框
     showOverwriteConfirm: (fileName: string) => Promise<number>
+    // 显示关闭确认对话框
+    showCloseConfirm: (fileName: string) => Promise<number>
     // 显示文件选择对话框
     showOpenDialog: (options: any) => Promise<{ canceled: boolean, filePaths: string[] } | undefined>
     // 获取拖拽文件的真实路径

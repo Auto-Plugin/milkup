@@ -24,6 +24,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   readFileByPath: (filePath: string) => ipcRenderer.invoke('file:readByPath', filePath),
   // 显示文件覆盖确认对话框
   showOverwriteConfirm: (fileName: string) => ipcRenderer.invoke('dialog:showOverwriteConfirm', fileName),
+  // 显示关闭确认对话框
+  showCloseConfirm: (fileName: string) => ipcRenderer.invoke('dialog:showCloseConfirm', fileName),
   // 获取拖拽文件的真实路径
   getPathForFile: (file: File) => {
     try {

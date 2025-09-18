@@ -36,7 +36,8 @@ onMounted(() => {
   initScrollListener()
   if (currentScrollRatio.value > 0) {
     const el = document.querySelector('.cm-scroller')
-    if (!el) return
+    if (!el)
+      return
     const scrollHeight = el.scrollHeight || 0
     const targetScrollTop = scrollHeight * currentScrollRatio.value
     el.scrollTop = targetScrollTop
@@ -63,7 +64,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="editorContainer" id="codemirror" class="editor-container" />
+  <div id="codemirror" ref="editorContainer" class="editor-container" />
 </template>
 
 <style scoped>
