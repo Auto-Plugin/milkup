@@ -152,7 +152,6 @@ function registerMenuEventsOnce() {
         }
         // userChoice === 'overwrite' 表示覆盖当前内容，直接继续执行
       }
-      // 如果文件没有打开过，即使有未保存内容，也直接创建新tab，不显示提示
     }
 
     try {
@@ -166,24 +165,18 @@ function registerMenuEventsOnce() {
       } catch (error) {
       }
 
-      // 如果 webUtils 方法失败，尝试备用方法
       if (!fullPath) {
         const electronFile = mdFile as any
         if (electronFile.path) {
           fullPath = electronFile.path
-        } else if (process.platform === 'win32' && mdFile.name) {
-          // Windows 特定处理：尝试从 File 对象获取路径
-          // 在 Windows 上，如果无法获取完整路径，至少记录文件名
-          console.warn('Windows: 无法获取文件完整路径，使用文件名:', mdFile.name)
         }
       }
 
       if (fullPath) {
-        // 如果有完整路径，通过IPC读取文件以获取正确的路径信息
         const result = await window.electronAPI.readFileByPath(fullPath)
         if (result) {
           if (userChoice === 'overwrite') {
-            // 文件覆盖：更新当前tab的文件信息
+            // 覆盖更新当前tab的文件信息
             const processedContent = await processImagePaths(result.content, result.filePath)
             updateCurrentTabFile(result.filePath, processedContent)
 
@@ -195,7 +188,7 @@ function registerMenuEventsOnce() {
             // 创建新tab
             const tab = await createTabFromFile(result.filePath, result.content)
 
-            // 更新当前内容状态
+            // 更新当前内容
             markdown.value = tab.content
             filePath.value = result.filePath
             originalContent.value = result.content
@@ -209,14 +202,14 @@ function registerMenuEventsOnce() {
         }
       }
 
-      // 如果无法获取完整路径，回退到直接读取文件内容
+      // 无法获取回退到直接读取文件内容
       const content = await mdFile.text()
 
       if (userChoice === 'overwrite') {
-        // 文件覆盖：更新当前tab的文件信息
+        // 覆盖更新当前tab的文件信息
         updateCurrentTabFile(mdFile.name, content)
 
-        // 更新当前内容状态
+        // 更新内容
         markdown.value = content
         filePath.value = mdFile.name
         originalContent.value = content

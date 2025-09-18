@@ -297,6 +297,16 @@ function closeWithConfirm(id: string) {
   }
 }
 
+// 拖动排序功能
+function reorderTabs(fromIndex: number, toIndex: number) {
+  if (fromIndex === toIndex)
+    return
+
+  // 移动tab到新位置
+  const [movedTab] = tabs.value.splice(fromIndex, 1)
+  tabs.value.splice(toIndex, 0, movedTab)
+}
+
 // 设置tab容器的滚动监听
 function setupTabScrollListener(containerRef: Ref<HTMLElement | null>) {
   // 监听激活tab变化，确保其可见
@@ -345,6 +355,9 @@ function useTab() {
     handleWheelScroll,
     closeWithConfirm,
     setupTabScrollListener,
+
+    // 拖动
+    reorderTabs,
 
     // 工具
     randomUUID,

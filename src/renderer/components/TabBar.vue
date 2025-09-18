@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
+import { vDraggable } from 'vue-draggable-plus'
 import useFile from '@/hooks/useFile'
 import useTab from '@/hooks/useTab'
 
 const {
-  tabs,
   formattedTabs,
   activeTabId,
   switchToTab,
   handleWheelScroll,
   closeWithConfirm,
   setupTabScrollListener,
+  reorderTabs,
 } = useTab()
 
 const { createNewFile } = useFile()
@@ -29,6 +30,11 @@ function handleAddTab() {
 async function handleCloseTab(id: string, event: Event) {
   event.stopPropagation()
   closeWithConfirm(id)
+}
+
+// 处理拖动排序
+function handleDragEnd(event: { oldIndex: number, newIndex: number }) {
+  reorderTabs(event.oldIndex, event.newIndex)
 }
 
 // 设置滚动监听
@@ -53,7 +59,13 @@ onUnmounted(() => {
 
 <template>
   <div ref="tabContainerRef" class="tabBarContarner">
-    <TransitionGroup name="tab" class="tabBar" mode="out-in" tag="div">
+    <TransitionGroup
+      v-draggable="[formattedTabs, { animation: 1500, onEnd: handleDragEnd, ghostClass: 'ghost' }]"
+      name="tab"
+      class="tabBar"
+      mode="out-in"
+      tag="div"
+    >
       <div
         v-for="tab in formattedTabs" :key="tab.id" class="tabItem" :class="{ active: activeTabId === tab.id }"
         :data-tab-id="tab.id"
@@ -131,7 +143,7 @@ onUnmounted(() => {
       padding: 0 10px;
       cursor: pointer;
       background: var(--background-color-2);
-      gap: 15px;
+      gap: 8px;
       border-radius: 6px 6px 0 0;
       transition: all 0.3s ease;
       user-select: none;
@@ -142,6 +154,7 @@ onUnmounted(() => {
         align-items: center;
         justify-content: center;
         cursor: pointer;
+        flex-shrink: 0;
 
         span {
           font-size: 12px;
@@ -208,13 +221,6 @@ onUnmounted(() => {
           }
         }
 
-        .pre {
-          // fill: var(--hover-color);
-        }
-
-        .after {
-          // fill: var(--hover-color);
-        }
       }
     }
 
@@ -310,6 +316,11 @@ onUnmounted(() => {
   以便能够正确地计算移动的动画。 */
 .tab-leave-active {
   position: absolute;
+}
+
+.ghost {
+  opacity: 0.5;
+  background: var(--background-color-2);
 }
 
 @keyframes fadeIn {
