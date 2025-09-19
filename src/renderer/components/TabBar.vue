@@ -117,8 +117,7 @@ onUnmounted(() => {
   justify-content: flex-end;
   overflow-x: scroll;
   overflow-y: hidden;
-  transition: margin-left 0.2s ease;
-  // 隐藏滚动条
+  transition: margin-left 0.6s 0.02s cubic-bezier(0.035, 0.630, 0.000, 1.000); //一个延迟能变得高级，你就学吧
   &::-webkit-scrollbar {
     display: none;
   }
