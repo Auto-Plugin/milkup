@@ -16,12 +16,18 @@ importers:
 
   .:
     dependencies:
+      '@codemirror/autocomplete':
+        specifier: ^6.18.7
+        version: 6.18.7
       '@codemirror/basic-setup':
         specifier: ^0.20.0
         version: 0.20.0
       '@codemirror/lang-markdown':
         specifier: ^6.3.4
         version: 6.3.4
+      '@codemirror/lsp-client':
+        specifier: ^6.1.2
+        version: 6.1.2
       '@codemirror/state':
         specifier: ^6.5.2
         version: 6.5.2
@@ -311,8 +317,8 @@ packages:
   '@codemirror/autocomplete@0.20.3':
     resolution: {integrity: sha512-lYB+NPGP+LEzAudkWhLfMxhTrxtLILGl938w+RcFrGdrIc54A+UgmCoz+McE3IYRFp4xyQcL4uFJwo+93YdgHw==}
 
-  '@codemirror/autocomplete@6.18.6':
-    resolution: {integrity: sha512-PHHBXFomUs5DF+9tCOM/UoW6XQ4R44lLNNhRaW9PKPTU0D7lIjRg3ElxaJnTwsl/oHiR93WSXDBrekhoUGCPtg==}
+  '@codemirror/autocomplete@6.18.7':
+    resolution: {integrity: sha512-8EzdeIoWPJDsMBwz3zdzwXnUpCzMiCyz5/A3FIPpriaclFCGDkAzK13sMcnsu5rowqiyeQN2Vs2TsOcoDPZirQ==}
 
   '@codemirror/basic-setup@0.20.0':
     resolution: {integrity: sha512-W/ERKMLErWkrVLyP5I8Yh8PXl4r+WFNkdYVSzkXYPQv2RMPSkWpr2BgggiSJ8AHF/q3GuApncDD8I4BZz65fyg==}
@@ -401,6 +407,9 @@ packages:
 
   '@codemirror/lint@6.8.5':
     resolution: {integrity: sha512-s3n3KisH7dx3vsoeGMxsbRAgKe4O1vbrnKBClm99PU0fWxmxsx5rR2PfqQgIt+2MMJBHbiJ5rfIdLYfB9NNvsA==}
+
+  '@codemirror/lsp-client@6.1.2':
+    resolution: {integrity: sha512-ZmrIGhXJq7QXKy9er2enVZ9aSjDx9N9x/AByTsLYpoM01VBeo4MN9JvwjyiG7m36TFUHkHO/qY/hN8AvDjU7UQ==}
 
   '@codemirror/search@0.20.1':
     resolution: {integrity: sha512-ROe6gRboQU5E4z6GAkNa2kxhXqsGNbeLEisbvzbOeB7nuDYXUZ70vGIgmqPu0tB+1M3F9yWk6W8k2vrFpJaD4Q==}
@@ -2980,6 +2989,11 @@ packages:
   markdown-table@3.0.4:
     resolution: {integrity: sha512-wiYz4+JrLyb/DqW2hkFJxP7Vd7JuTDm77fvbM8VfEQdmSMqcImWeeRbHwZjBjIFki/VaMK2BhFi7oUUZeM5bqw==}
 
+  marked@15.0.12:
+    resolution: {integrity: sha512-8dD6FusOQSrpv9Z1rdNMdlSgQOIP880DHqnohobOmYLElGEqAL/JvxvuxZO16r4HtjTlfPRDC1hbvxC9dPN2nA==}
+    engines: {node: '>= 18'}
+    hasBin: true
+
   marked@16.2.0:
     resolution: {integrity: sha512-LbbTuye+0dWRz2TS9KJ7wsnD4KAtpj0MVkWc90XvBa6AslXsT0hTBVH5k32pcSyHH1fst9XEFJunXHktVy0zlg==}
     engines: {node: '>= 20'}
@@ -4464,7 +4478,7 @@ snapshots:
       '@codemirror/view': 0.20.7
       '@lezer/common': 0.16.1
 
-  '@codemirror/autocomplete@6.18.6':
+  '@codemirror/autocomplete@6.18.7':
     dependencies:
       '@codemirror/language': 6.11.3
       '@codemirror/state': 6.5.2
@@ -4511,7 +4525,7 @@ snapshots:
 
   '@codemirror/lang-css@6.3.1':
     dependencies:
-      '@codemirror/autocomplete': 6.18.6
+      '@codemirror/autocomplete': 6.18.7
       '@codemirror/language': 6.11.3
       '@codemirror/state': 6.5.2
       '@lezer/common': 1.2.3
@@ -4519,7 +4533,7 @@ snapshots:
 
   '@codemirror/lang-go@6.0.1':
     dependencies:
-      '@codemirror/autocomplete': 6.18.6
+      '@codemirror/autocomplete': 6.18.7
       '@codemirror/language': 6.11.3
       '@codemirror/state': 6.5.2
       '@lezer/common': 1.2.3
@@ -4527,7 +4541,7 @@ snapshots:
 
   '@codemirror/lang-html@6.4.9':
     dependencies:
-      '@codemirror/autocomplete': 6.18.6
+      '@codemirror/autocomplete': 6.18.7
       '@codemirror/lang-css': 6.3.1
       '@codemirror/lang-javascript': 6.2.4
       '@codemirror/language': 6.11.3
@@ -4544,7 +4558,7 @@ snapshots:
 
   '@codemirror/lang-javascript@6.2.4':
     dependencies:
-      '@codemirror/autocomplete': 6.18.6
+      '@codemirror/autocomplete': 6.18.7
       '@codemirror/language': 6.11.3
       '@codemirror/lint': 6.8.5
       '@codemirror/state': 6.5.2
@@ -4567,7 +4581,7 @@ snapshots:
 
   '@codemirror/lang-liquid@6.3.0':
     dependencies:
-      '@codemirror/autocomplete': 6.18.6
+      '@codemirror/autocomplete': 6.18.7
       '@codemirror/lang-html': 6.4.9
       '@codemirror/language': 6.11.3
       '@codemirror/state': 6.5.2
@@ -4578,7 +4592,7 @@ snapshots:
 
   '@codemirror/lang-markdown@6.3.4':
     dependencies:
-      '@codemirror/autocomplete': 6.18.6
+      '@codemirror/autocomplete': 6.18.7
       '@codemirror/lang-html': 6.4.9
       '@codemirror/language': 6.11.3
       '@codemirror/state': 6.5.2
@@ -4596,7 +4610,7 @@ snapshots:
 
   '@codemirror/lang-python@6.2.1':
     dependencies:
-      '@codemirror/autocomplete': 6.18.6
+      '@codemirror/autocomplete': 6.18.7
       '@codemirror/language': 6.11.3
       '@codemirror/state': 6.5.2
       '@lezer/common': 1.2.3
@@ -4617,7 +4631,7 @@ snapshots:
 
   '@codemirror/lang-sql@6.9.1':
     dependencies:
-      '@codemirror/autocomplete': 6.18.6
+      '@codemirror/autocomplete': 6.18.7
       '@codemirror/language': 6.11.3
       '@codemirror/state': 6.5.2
       '@lezer/common': 1.2.3
@@ -4642,7 +4656,7 @@ snapshots:
 
   '@codemirror/lang-xml@6.1.0':
     dependencies:
-      '@codemirror/autocomplete': 6.18.6
+      '@codemirror/autocomplete': 6.18.7
       '@codemirror/language': 6.11.3
       '@codemirror/state': 6.5.2
       '@codemirror/view': 6.38.1
@@ -4651,7 +4665,7 @@ snapshots:
 
   '@codemirror/lang-yaml@6.1.2':
     dependencies:
-      '@codemirror/autocomplete': 6.18.6
+      '@codemirror/autocomplete': 6.18.7
       '@codemirror/language': 6.11.3
       '@codemirror/state': 6.5.2
       '@lezer/common': 1.2.3
@@ -4717,6 +4731,17 @@ snapshots:
       '@codemirror/state': 6.5.2
       '@codemirror/view': 6.38.1
       crelt: 1.0.6
+
+  '@codemirror/lsp-client@6.1.2':
+    dependencies:
+      '@codemirror/autocomplete': 6.18.7
+      '@codemirror/language': 6.11.3
+      '@codemirror/lint': 6.8.5
+      '@codemirror/state': 6.5.2
+      '@codemirror/view': 6.38.1
+      '@lezer/highlight': 1.2.1
+      marked: 15.0.12
+      vscode-languageserver-protocol: 3.17.5
 
   '@codemirror/search@0.20.1':
     dependencies:
@@ -6430,7 +6455,7 @@ snapshots:
 
   codemirror@6.0.2:
     dependencies:
-      '@codemirror/autocomplete': 6.18.6
+      '@codemirror/autocomplete': 6.18.7
       '@codemirror/commands': 6.8.1
       '@codemirror/language': 6.11.3
       '@codemirror/lint': 6.8.5
@@ -7961,6 +7986,8 @@ snapshots:
       - supports-color
 
   markdown-table@3.0.4: {}
+
+  marked@15.0.12: {}
 
   marked@16.2.0: {}
 
