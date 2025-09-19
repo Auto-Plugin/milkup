@@ -34,6 +34,11 @@ function onOiClick(oi: { id: string, text: string, level: number }) {
   background: var(--background-color-2);
   overflow-y: scroll;
   overflow-x: hidden;
+  // border-right: 2px dashed var(--border-color);
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 
   .outlineList {
     display: flex;

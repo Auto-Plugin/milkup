@@ -12,6 +12,7 @@ const {
   closeWithConfirm,
   setupTabScrollListener,
   reorderTabs,
+  shouldOffsetTabBar,
 } = useTab()
 
 const { createNewFile } = useFile()
@@ -58,7 +59,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="tabContainerRef" class="tabBarContarner">
+  <div ref="tabContainerRef" class="tabBarContarner" :class="{ 'offset-right': shouldOffsetTabBar }">
     <TransitionGroup
       v-draggable="[formattedTabs, { animation: 1500, onEnd: handleDragEnd, ghostClass: 'ghost' }]"
       name="tab"
@@ -116,9 +117,14 @@ onUnmounted(() => {
   justify-content: flex-end;
   overflow-x: scroll;
   overflow-y: hidden;
+  transition: margin-left 0.2s ease;
   // 隐藏滚动条
   &::-webkit-scrollbar {
     display: none;
+  }
+
+  &.offset-right {
+    margin-left: 25%;
   }
 
   .tabBar {

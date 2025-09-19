@@ -20,7 +20,7 @@ export function useContext() {
   const { isShowSource } = useSourceCode()
   const { isDialogVisible, dialogType, fileName, tabName, showDialog, showOverwriteDialog, handleSave, handleDiscard, handleCancel, handleOverwrite } = useSaveConfirmDialog()
   const { onSave } = useFile()
-  const { close, switchToTab, saveCurrentTab, activeTabId, getUnsavedTabs } = useTab()
+  const { close, switchToTab, saveCurrentTab, activeTabId, getUnsavedTabs, shouldOffsetTabBar } = useTab()
 
   // 初始化spell check
   useSpellCheck()
@@ -205,6 +205,7 @@ export function useContext() {
     isShowEditors,
     pendingCloseTab,
     activeTabId,
+    shouldOffsetTabBar,
 
     // 方法
     updateTitle,

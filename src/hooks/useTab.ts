@@ -4,6 +4,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { processImagePaths, setCurrentMarkdownFilePath } from '@/plugins/imagePathPlugin'
 import emitter from '@/renderer/events'
 import { randomUUID } from '@/utils/tool'
+import { isShowOutline } from './useOutline'
 
 const tabs = ref<Tab[]>([])
 const activeTabId = ref<string | null>(null)
@@ -333,6 +334,9 @@ const formattedTabs = computed(() => {
 
 const currentTab = computed(() => getCurrentTab())
 
+// 是否偏移
+const shouldOffsetTabBar = computed(() => isShowOutline.value)
+
 function useTab() {
   return {
     // 状态
@@ -342,6 +346,7 @@ function useTab() {
     formattedTabs,
     hasUnsavedTabs,
     getUnsavedTabs,
+    shouldOffsetTabBar,
     add,
     close,
     setActive,
