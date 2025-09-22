@@ -122,11 +122,11 @@ onUnmounted(() => {
   }
 
   .tabBar {
-
     display: flex;
     justify-content: flex-start;
     // gap: 15px;
     height: 30px;
+    position: relative;
 
     .tabItem {
       position: relative;
@@ -158,6 +158,7 @@ onUnmounted(() => {
 
         span {
           font-size: 12px;
+          line-height: 28px;
           cursor: pointer;
           color: var(--text-color-3);
         }
@@ -315,7 +316,7 @@ onUnmounted(() => {
 /* 确保将离开的元素从布局流中删除
   以便能够正确地计算移动的动画。 */
 .tab-leave-active {
-  position: absolute;
+  position: absolute !important;
 }
 
 .ghost {
