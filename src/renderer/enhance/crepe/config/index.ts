@@ -1,4 +1,6 @@
 import type { EnhanceBlockEditFeatureConfig, EnhanceCrepeFeatureConfig } from '@renderer/enhance/crepe/types'
+import { autocompletion } from '@codemirror/autocomplete'
+import { EditorState } from '@codemirror/state'
 import { CrepeFeature } from '@milkdown/crepe'
 import autolog from 'autolog.js'
 
@@ -78,8 +80,51 @@ export const enhanceBlockEditConfig: EnhanceBlockEditFeatureConfig = {
   },
 }
 
+export const chinesePhrases = {
+  // @codemirror/view
+  'Control character': '控制字符',
+  // @codemirror/commands
+  'Selection deleted': '选择已删除',
+  // @codemirror/language
+  'Folded lines': '已折叠行',
+  'Unfolded lines': '已展开行',
+  'to': '到',
+  'folded code': '已折叠代码',
+  'unfold': '展开',
+  'Fold line': '折叠行',
+  'Unfold line': '展开行',
+  // @codemirror/search
+  'Go to line': '跳转到行',
+  'go': '确定',
+  'Find': '查找',
+  'Replace': '替换为',
+  'next': '下一个',
+  'previous': '上一个',
+  'all': '全部',
+  'match case': '区分大小写',
+  'by word': '全字匹配',
+  'replace': '替换',
+  'replace all': '替换全部',
+  'close': '关闭',
+  'current match': '当前匹配',
+  'replaced $ matches': '已替换 $ 个匹配项',
+  'replaced match on line $': '在第 $ 行替换匹配项',
+  'on line': '在行',
+  // @codemirror/autocomplete
+  'Completions': '自动补全',
+  // @codemirror/lint
+  'Diagnostics': '诊断信息',
+  'No diagnostics': '无诊断信息',
+  'Regexp': '正则',
+  'regexp': '正则',
+}
+
 export const enhanceConfig: EnhanceCrepeFeatureConfig = {
   [CrepeFeature.CodeMirror]: {
+    extensions: [
+      EditorState.phrases.of(chinesePhrases),
+      autocompletion(),
+    ],
     searchPlaceholder: '搜索语言',
     noResultText: '暂无匹配',
     copyText: '复制',
