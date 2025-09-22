@@ -88,8 +88,8 @@ export async function createThemeEditorWindow() {
   return themeEditorWindow
 }
 
-function sendLaunchFileIfExists() {
-  const fileArg = process.argv.find(arg => arg.endsWith('.md') || arg.endsWith('.markdown'))
+function sendLaunchFileIfExists(argv = process.argv) {
+  const fileArg = argv.find(arg => arg.endsWith('.md') || arg.endsWith('.markdown'))
 
   if (fileArg) {
     const absolutePath = path.resolve(fileArg)
@@ -122,6 +122,23 @@ app.whenReady().then(async () => {
     }
   })
 })
+
+// 单实例锁
+const gotTheLock = app.requestSingleInstanceLock()
+
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', (_event, argv) => {
+    if (win) {
+      if (win.isMinimized())
+        win.restore()
+      win.focus()
+      // 处理通过命令行传入的文件路径
+      sendLaunchFileIfExists(argv)
+    }
+  })
+}
 
 // 处理应用即将退出事件（包括右键 Dock 图标的退出）
 app.on('before-quit', (event) => {

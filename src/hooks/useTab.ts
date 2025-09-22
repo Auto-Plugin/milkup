@@ -10,9 +10,10 @@ const activeTabId = ref<string | null>(null)
 
 const defaultName = 'Untitled'
 
+const defaultTabUUid = randomUUID()
 // 初始化时创建一个默认的未命名文档
 const defaultTab: Tab = {
-  id: randomUUID(),
+  id: defaultTabUUid,
   name: defaultName,
   filePath: null,
   content: '',
@@ -22,6 +23,11 @@ const defaultTab: Tab = {
 }
 tabs.value.push(defaultTab)
 activeTabId.value = defaultTab.id
+window.electronAPI?.onOpenFileAtLaunch((_payload) => {
+  if (tabs.value.length === 1 && tabs.value[0].id === defaultTabUUid && !tabs.value[0].isModified) {
+    tabs.value = []
+  }
+})
 
 // 从文件路径获取文件名
 function getFileName(filePath: string | null): string {
