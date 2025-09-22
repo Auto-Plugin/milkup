@@ -62,15 +62,11 @@ onUnmounted(() => {
   <div ref="tabContainerRef" class="tabBarContarner" :class="{ 'offset-right': shouldOffsetTabBar }">
     <TransitionGroup
       v-draggable="[formattedTabs, { animation: 1500, onEnd: handleDragEnd, ghostClass: 'ghost' }]"
-      name="tab"
-      class="tabBar"
-      mode="out-in"
-      tag="div"
+      name="tab" class="tabBar" mode="out-in" tag="div"
     >
       <div
         v-for="tab in formattedTabs" :key="tab.id" class="tabItem" :class="{ active: activeTabId === tab.id }"
-        :data-tab-id="tab.id"
-        @click="handleTabClick(tab.id)"
+        :data-tab-id="tab.id" @click="handleTabClick(tab.id)"
       >
         <p>{{ tab.displayName }}</p>
 
@@ -81,20 +77,18 @@ onUnmounted(() => {
         <!-- pre -->
 
         <svg
-          :class="{ active: activeTabId === tab.id }" class="pre" viewBox="0 0 4 4" fill="none"
+          :class="{ active: activeTabId === tab.id }" class="pre" viewBox="0 0 5 5" fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <path d="M3 3C3.7799 2.2201 3.99414 0 3.99414 0V3.99414H0C0 3.99414 2.2201 3.7799 3 3Z" />
+          <path d="M5 5L0 5C3.33333 5 5 3.33333 5 -2.18557e-07L5 5Z" />
         </svg>
 
         <!-- after -->
         <svg
-          :class="{ active: activeTabId === tab.id }" class="after" viewBox="0 0 4 4" fill="none"
+          :class="{ active: activeTabId === tab.id }" class="after" viewBox="0 0 5 5" fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <path
-            d="M0.994141 3C0.214236 2.2201 1.90735e-06 0 1.90735e-06 0V3.99414H3.99414C3.99414 3.99414 1.77404 3.7799 0.994141 3Z"
-          />
+          <path d="M0 5L5 5C1.66667 5 7.28523e-08 3.33333 2.18557e-07 -2.18557e-07L0 5Z" />
         </svg>
       </div>
 
@@ -118,6 +112,7 @@ onUnmounted(() => {
   overflow-x: scroll;
   overflow-y: hidden;
   transition: margin-left 0.6s 0.02s cubic-bezier(0.035, 0.630, 0.000, 1.000); //一个延迟能变得高级，你就学吧
+
   &::-webkit-scrollbar {
     display: none;
   }
@@ -306,7 +301,8 @@ onUnmounted(() => {
   }
 }
 
-.tab-move, /* 对移动中的元素应用的过渡 */
+.tab-move,
+/* 对移动中的元素应用的过渡 */
 .tab-enter-active,
 .tab-leave-active {
   transition: all 0.3s ease;

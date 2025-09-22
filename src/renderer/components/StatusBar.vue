@@ -53,7 +53,7 @@ window.electronAPI.on('view:toggleView', () => {
       <span class="iconfont" :class="isShowSource ? 'icon-input' : 'icon-markdown'" @click.stop="toggleSourceCode">
       </span>
     </div>
-    <span @click="cycleMode">{{ displayText }}</span>
+    <span class="statusBarText" @click="cycleMode">{{ displayText }}</span>
   </div>
 </template>
 
@@ -72,9 +72,15 @@ window.electronAPI.on('view:toggleView', () => {
   span {
     padding: 2px 8px;
     display: inline-block;
+
     &:hover {
       background: var(--hover-color);
     }
   }
+}
+.statusBarText {
+  font-size: 12px;
+  margin: 2px 0;
+  color: var(--text-color-3);
 }
 </style>

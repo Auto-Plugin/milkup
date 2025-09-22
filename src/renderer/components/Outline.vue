@@ -17,6 +17,14 @@ function onOiClick(oi: { id: string, text: string, level: number }) {
 
 <template>
   <div class="OutlineBox">
+    <svg viewBox="0 0 5 5" fill="none" xmlns="http://www.w3.org/2000/svg" class="OutlineBoxBefore">
+      <path d="M0 -1.31134e-07L3 0C1 -8.74228e-08 -4.37114e-08 1 -1.31134e-07 3L0 -1.31134e-07Z" />
+    </svg>
+
+    <svg viewBox="0 0 5 5" fill="none" xmlns="http://www.w3.org/2000/svg" class="OutlineBoxAfter">
+      <path d="M0 5L5 5C1.66667 5 7.28523e-08 3.33333 2.18557e-07 -2.18557e-07L0 5Z" />
+    </svg>
+
     <div class="OutlineBoxTabs">
       <div class="OutlineBoxTab" :class="{ active: activeTab === 'outline' }" @click="activeTab = 'outline'">
         大纲
@@ -29,10 +37,7 @@ function onOiClick(oi: { id: string, text: string, level: number }) {
     <div class="content-container">
       <div v-if="activeTab === 'outline'" class="outlineList">
         <span
-          v-for="oi in outline"
-          :key="oi.id"
-          class="outlineItem"
-          :style="{ paddingLeft: `${oi.level * 12}px` }"
+          v-for="oi in outline" :key="oi.id" class="outlineItem" :style="{ paddingLeft: `${oi.level * 12}px` }"
           @click="onOiClick(oi)"
         >
           {{ oi.text }}
@@ -56,10 +61,36 @@ function onOiClick(oi: { id: string, text: string, level: number }) {
   background: var(--background-color-2);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  // overflow: hidden;
+  position: relative;
 
   &::-webkit-scrollbar {
     display: none;
+  }
+
+  .OutlineBoxBefore {
+    height: 10px;
+    width: 10px;
+    position: absolute;
+    right: -10px;
+    top: 0;
+
+    // fill: red;
+    fill: var(--background-color-2);
+    z-index: 999;
+
+  }
+  .OutlineBoxAfter {
+    height: 10px;
+    width: 10px;
+    position: absolute;
+    right: -10px;
+    bottom: 0;
+
+    // fill: red;
+    fill: var(--background-color-2);
+    z-index: 999;
+
   }
 
   .OutlineBoxTabs {
