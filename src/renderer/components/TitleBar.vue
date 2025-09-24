@@ -40,11 +40,14 @@ window.electronAPI.on('close', () => {
       </div>
     </template>
     <template v-else>
-      <div></div>
-      <div class="title" @dblclick="toggleMaximize">
+      <div style="width: 68px;"></div>
+      <!-- <div class="title" @dblclick="toggleMaximize">
         {{ title }}
+      </div> -->
+      <TabBar />
+      <div style="margin-right: 10px;">
+        <MenuDropDown />
       </div>
-      <MenuDropDown />
     </template>
   </div>
 </template>
