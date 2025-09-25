@@ -139,7 +139,46 @@ if (!gotTheLock) {
     }
   })
 }
+// macOS 专用：Finder 打开文件时触发
+// 处理应用已运行时双击文件打开的情况
+app.on('open-file', (event, filePath) => {
+  event.preventDefault()
 
+  if (filePath.endsWith('.md') || filePath.endsWith('.markdown')) {
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, 'utf-8')
+
+      // 发送文件到渲染进程
+      const sendFile = () => {
+        if (win && win.webContents) {
+          win.webContents.send('open-file-at-launch', {
+            filePath,
+            content,
+          })
+        }
+      }
+
+      if (win && win.webContents) {
+        if (win.webContents.isLoading()) {
+          win.webContents.once('did-finish-load', () => {
+            setTimeout(sendFile, 200)
+          })
+        } else {
+          setTimeout(sendFile, 200)
+        }
+      } else {
+        const waitForWindow = () => {
+          if (win && win.webContents) {
+            setTimeout(sendFile, 200)
+          } else {
+            setTimeout(waitForWindow, 100)
+          }
+        }
+        waitForWindow()
+      }
+    }
+  }
+})
 // 处理应用即将退出事件（包括右键 Dock 图标的退出）
 app.on('before-quit', (event) => {
   if (process.platform === 'darwin' && !getIsQuitting()) {
