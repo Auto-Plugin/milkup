@@ -1,5 +1,5 @@
 <script setup lang='ts'>
-import autolog from 'autolog.js'
+import autotoast from 'autotoast.js'
 import useContent from '@/hooks/useContent'
 import usefile from '@/hooks/useFile'
 
@@ -7,16 +7,16 @@ const { onOpen, onSave, onSaveAs } = usefile()
 const { isModified } = useContent()
 
 function onOpenFolder() {
-  autolog.log('功能开发中...')
+  autotoast.show('功能开发中...')
 }
 function exportAsPDF() {
-  autolog.log('功能开发中...')
+  autotoast.show('功能开发中...')
 }
 function exportAsHTML() {
-  autolog.log('功能开发中...')
+  autotoast.show('功能开发中...')
 }
 function exportAsDocx() {
-  autolog.log('功能开发中...')
+  autotoast.show('功能开发中...')
 }
 </script>
 

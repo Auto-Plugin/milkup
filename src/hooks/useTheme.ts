@@ -1,5 +1,5 @@
 import type { Theme, ThemeName } from '@/types/theme'
-import autolog from 'autolog.js'
+import autotoast from 'autotoast.js'
 import { onMounted, onUnmounted, ref, toRaw } from 'vue'
 import { cssVarsDesMap, themeNameMap } from '@/config/theme'
 import { isThemeObject } from '@/types/theme'
@@ -332,7 +332,7 @@ function exportTheme(themeName: ThemeName) {
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
 
-  autolog.log('导出完成', 'success')
+  autotoast.show('导出完成', 'success')
 }
 
 // 导入主题JSON
@@ -344,12 +344,12 @@ function importTheme(theme: any) {
   const isTheme = isThemeObject(themeData)
 
   if (!isTheme) {
-    autolog.log('导入主题格式错误', 'error')
+    autotoast.show('导入主题格式错误', 'error')
   }
 
   // 添加到本地主题
   addLocalTheme(themeData)
-  autolog.log('导入主题完成', 'success')
+  autotoast.show('导入主题完成', 'success')
 }
 
 onUnmounted(() => {

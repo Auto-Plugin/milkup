@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ThemeName } from '@/types/theme'
-import autolog from 'autolog.js'
+import autotoast from 'autotoast.js'
 import { onMounted, onUnmounted, ref } from 'vue'
 import useTheme from '@/hooks/useTheme'
 import ColorPicker from '@/ui/ColorPicker.vue'
@@ -56,7 +56,7 @@ function handleReset() {
   updatePreview()
 
   // 显示重置成功提示
-  autolog.log('主题已重置', 'warn')
+  autotoast.show('主题已重置', 'warn')
 }
 
 // 保存主题
@@ -80,7 +80,7 @@ onMounted(() => {
     const theme = getThemeByCn(editingTheme)
 
     if (!theme) {
-      autolog.log('未找到指定主题', 'error')
+      autotoast.show('未找到指定主题', 'error')
 
       return
     }

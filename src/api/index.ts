@@ -6,13 +6,13 @@
 // localStorage.setItem('uploadFileField', fileField.value)
 // localStorage.setItem('uploadResponseUrlPath', responseUrlPath.value)
 
-import autolog from 'autolog.js'
+import autotoast from 'autotoast.js'
 
 // localStorage.setItem('uploadExtraBody', extraBody.value)
 export async function uploadImage(File: File): Promise<string> {
   const url = localStorage.getItem('uploadUrl')
   if (!url) {
-    autolog.log('Upload URL is not set', 'error')
+    autotoast.show('Upload URL is not set', 'error')
     throw new Error('Upload URL is not set')
   }
   let body: any = {}
@@ -38,7 +38,7 @@ export async function uploadImage(File: File): Promise<string> {
         body[key] = extraFields[key]
       }
     } catch (e) {
-      autolog.log('Invalid extra body format', 'error')
+      autotoast.show('Invalid extra body format', 'error')
     }
   }
   try {
@@ -58,13 +58,13 @@ export async function uploadImage(File: File): Promise<string> {
       if (result && typeof result === 'object' && part in result) {
         result = result[part]
       } else {
-        autolog.log(`Path ${responseUrlPath} not found in response`, 'error')
+        autotoast.show(`Path ${responseUrlPath} not found in response`, 'error')
         return ''
       }
     }
     return result || ''
   } catch (error) {
-    autolog.log(`${error}`, 'error')
+    autotoast.show(`${error}`, 'error')
     throw error
   }
 }

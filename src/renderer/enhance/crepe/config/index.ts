@@ -2,7 +2,7 @@ import type { EnhanceBlockEditFeatureConfig, EnhanceCrepeFeatureConfig } from '@
 import { autocompletion } from '@codemirror/autocomplete'
 import { EditorState } from '@codemirror/state'
 import { CrepeFeature } from '@milkdown/crepe'
-import autolog from 'autolog.js'
+import autotoast from 'autotoast.js'
 
 export const enhanceBlockEditConfig: EnhanceBlockEditFeatureConfig = {
   textGroup: {
@@ -129,12 +129,12 @@ export const enhanceConfig: EnhanceCrepeFeatureConfig = {
     noResultText: '暂无匹配',
     copyText: '复制',
     onCopy: (_) => {
-      autolog.log('复制成功', 'success')
+      autotoast.show('复制成功', 'success')
     },
   },
   [CrepeFeature.LinkTooltip]: {
     onCopyLink: (_) => {
-      autolog.log('复制成功', 'success')
+      autotoast.show('复制成功', 'success')
     },
   },
   [CrepeFeature.Placeholder]: {
