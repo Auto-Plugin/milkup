@@ -234,24 +234,10 @@ function ensureActiveTabVisible(containerRef: Ref<HTMLElement | null>) {
   // 由于TabBar使用margin-left: 25%，所以偏移量是相对于父容器的25%
   const offsetLeft = isShowOutline.value ? containerRect.width * 0.25 : 0
 
-  // 调试信息
-  console.log('ensureActiveTabVisible debug:', {
-    isShowOutline: isShowOutline.value,
-    containerWidth: containerRect.width,
-    offsetLeft,
-    tabRect: { left: tabRect.left, right: tabRect.right },
-    containerRect: { left: containerRect.left, right: containerRect.right },
-    paddingOffset,
-    leftBoundary: containerRect.left + paddingOffset + offsetLeft,
-    rightBoundary: containerRect.right - paddingOffset,
-  })
-
   // 检查tab是否完全在可视区域内（包括阴影和偏移）
   const isFullyVisible
     = tabRect.left >= (containerRect.left + paddingOffset + offsetLeft)
       && tabRect.right <= (containerRect.right - paddingOffset)
-
-  console.log('isFullyVisible:', isFullyVisible)
 
   if (!isFullyVisible) {
     // 计算tab相对于容器的位置
@@ -269,12 +255,10 @@ function ensureActiveTabVisible(containerRef: Ref<HTMLElement | null>) {
       // 将tab滚动到可视区域的左侧
       // 当有大纲显示时，需要考虑TabBar的margin-left偏移
       scrollLeft = tabOffsetLeft - visibleLeft
-      // console.log('Left adjustment:', { tabOffsetLeft, visibleLeft, scrollLeft })
     } else if (tabRect.right > containerRect.right - paddingOffset) {
       // 如果tab在右侧被遮挡
       // 将tab滚动到可视区域的右侧
       scrollLeft = tabOffsetLeft - visibleRight + activeTabElement.offsetWidth
-      console.log('Right adjustment:', { tabOffsetLeft, visibleRight, tabWidth: activeTabElement.offsetWidth, scrollLeft })
     }
 
     // 确保滚动位置不会超出边界
@@ -282,8 +266,6 @@ function ensureActiveTabVisible(containerRef: Ref<HTMLElement | null>) {
     const minScrollLeft = isShowOutline.value ? -offsetLeft : 0
     const maxScrollLeft = container.scrollWidth - container.clientWidth
     scrollLeft = Math.max(minScrollLeft, Math.min(scrollLeft, maxScrollLeft))
-
-    console.log('Final scroll position:', { scrollLeft, minScrollLeft, maxScrollLeft })
 
     container.scrollTo({
       left: scrollLeft,

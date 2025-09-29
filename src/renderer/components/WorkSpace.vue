@@ -1,8 +1,12 @@
-<script lang="ts" setup></script>
+<script lang="ts" setup>
+import useWorkSpace from '@/hooks/useWorkSpace'
+
+const { workSpace } = useWorkSpace()
+</script>
 
 <template>
   <div class="WorkSpace">
-    123
+    {{ workSpace }}
   </div>
 </template>
 

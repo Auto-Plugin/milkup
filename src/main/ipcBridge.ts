@@ -295,11 +295,11 @@ export function registerGlobalIpcHandlers() {
         return []
       }
 
-      interface DirectoryNode {
+      interface WorkSpace {
         name: string
         path: string
         isDirectory: boolean
-        children?: DirectoryNode[]
+        children?: WorkSpace[]
       }
 
       // 性能优化配置
@@ -323,7 +323,7 @@ export function registerGlobalIpcHandlers() {
         return IGNORE_PATTERNS.some(pattern => pattern.test(name))
       }
 
-      function scanDirectory(currentPath: string, depth: number = 0): DirectoryNode[] {
+      function scanDirectory(currentPath: string, depth: number = 0): WorkSpace[] {
         // 限制扫描深度
         if (depth > MAX_DEPTH) {
           return []
@@ -339,8 +339,8 @@ export function registerGlobalIpcHandlers() {
           }
 
           // 先添加文件夹，再添加文件
-          const directories: DirectoryNode[] = []
-          const files: DirectoryNode[] = []
+          const directories: WorkSpace[] = []
+          const files: WorkSpace[] = []
 
           for (const item of items) {
             const itemPath = path.join(currentPath, item.name)

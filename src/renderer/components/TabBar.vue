@@ -38,6 +38,21 @@ function handleDragEnd(event: { oldIndex: number, newIndex: number }) {
   reorderTabs(event.oldIndex, event.newIndex)
 }
 
+// 因为vueTransition的移除会让元素回到父元素0,  so 需要保存位置信息
+function handleBeforeLeave(el: Element) {
+  const element = el as HTMLElement
+  const rect = element.getBoundingClientRect()
+  const parentRect = element.parentElement?.getBoundingClientRect()
+
+  if (parentRect) {
+    const left = rect.left - parentRect.left
+    const top = rect.top - parentRect.top
+
+    element.style.setProperty('--tab-left', `${left}px`)
+    element.style.setProperty('--tab-top', `${top}px`)
+  }
+}
+
 // 设置滚动监听
 setupTabScrollListener(tabContainerRef)
 
@@ -63,6 +78,7 @@ onUnmounted(() => {
     <TransitionGroup
       v-draggable="[formattedTabs, { animation: 1500, onEnd: handleDragEnd, ghostClass: 'ghost' }]"
       name="tab" class="tabBar" mode="out-in" tag="div"
+      @before-leave="handleBeforeLeave"
     >
       <div
         v-for="tab in formattedTabs" :key="tab.id" class="tabItem" :class="{ active: activeTabId === tab.id }"
@@ -165,6 +181,7 @@ onUnmounted(() => {
       }
 
       .closeIcon:hover {
+
         span {
           color: var(--text-color-1);
         }
@@ -208,7 +225,7 @@ onUnmounted(() => {
       }
 
       &:hover {
-        // background: var(--hover-color);
+
         z-index: 1;
 
         p {
@@ -312,12 +329,18 @@ onUnmounted(() => {
 .tab-leave-to {
   opacity: 0;
   transform: translateY(30px);
+  filter: blur(10px);
 }
 
 /* 确保将离开的元素从布局流中删除
   以便能够正确地计算移动的动画。 */
 .tab-leave-active {
   position: absolute !important;
+  left: var(--tab-left, 0);
+  top: var(--tab-top, 0);
+  width: 150px;
+  z-index: 1;
+  filter: blur(0px);
 }
 
 .ghost {
