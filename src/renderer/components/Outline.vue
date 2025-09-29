@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import useOutline from '@/hooks/useOutline'
+import WorkSpace from './WorkSpace.vue'
 
 const { outline } = useOutline()
 
-const activeTab = ref<'outline' | 'file'>('outline')
+const activeTab = ref<'outline' | 'file'>('file')
 
 function onOiClick(oi: { id: string, text: string, level: number }) {
   // 滚动到指定元素
@@ -26,11 +27,11 @@ function onOiClick(oi: { id: string, text: string, level: number }) {
     </svg>
 
     <div class="OutlineBoxTabs">
-      <div class="OutlineBoxTab" :class="{ active: activeTab === 'outline' }" @click="activeTab = 'outline'">
-        大纲
-      </div>
       <div class="OutlineBoxTab" :class="{ active: activeTab === 'file' }" @click="activeTab = 'file'">
         文件
+      </div>
+      <div class="OutlineBoxTab" :class="{ active: activeTab === 'outline' }" @click="activeTab = 'outline'">
+        大纲
       </div>
     </div>
 
@@ -46,6 +47,7 @@ function onOiClick(oi: { id: string, text: string, level: number }) {
       </div>
 
       <div v-else-if="activeTab === 'file'" class="fileList">
+        <WorkSpace />
         <div class="empty">
           文件列表开发中...
         </div>

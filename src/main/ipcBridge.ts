@@ -195,6 +195,12 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
     })
     return result.response
   })
+
+  // 显示文件选择对话框
+  ipcMain.handle('dialog:showOpenDialog', async (_event, options: any) => {
+    const result = await dialog.showOpenDialog(win, options)
+    return result
+  })
 }
 // 无需 win 的 ipc 处理
 export function registerGlobalIpcHandlers() {
@@ -278,6 +284,106 @@ export function registerGlobalIpcHandlers() {
       return fonts
     } catch (error) {
       console.error('获取系统字体失败:', error)
+      return []
+    }
+  })
+
+  // 获取目录下的文件列表（树形结构）
+  ipcMain.handle('workspace:getDirectoryFiles', async (_event, dirPath: string) => {
+    try {
+      if (!dirPath || !fs.existsSync(dirPath)) {
+        return []
+      }
+
+      interface DirectoryNode {
+        name: string
+        path: string
+        isDirectory: boolean
+        children?: DirectoryNode[]
+      }
+
+      // 性能优化配置
+      const MAX_DEPTH = 10 // 最大扫描深度
+      const MAX_FILES_PER_DIR = 100 // 每个目录最大文件数
+      const IGNORE_PATTERNS = [
+        /^\.git$/,
+        /^\.vscode$/,
+        /^\.idea$/,
+        /^node_modules$/,
+        /^\.next$/,
+        /^\.nuxt$/,
+        /^dist$/,
+        /^build$/,
+        /^coverage$/,
+        /^\.DS_Store$/,
+        /^Thumbs\.db$/,
+      ]
+
+      function shouldIgnoreDirectory(name: string): boolean {
+        return IGNORE_PATTERNS.some(pattern => pattern.test(name))
+      }
+
+      function scanDirectory(currentPath: string, depth: number = 0): DirectoryNode[] {
+        // 限制扫描深度
+        if (depth > MAX_DEPTH) {
+          return []
+        }
+
+        try {
+          const items = fs.readdirSync(currentPath, { withFileTypes: true })
+
+          // 限制每个目录的文件数量
+          if (items.length > MAX_FILES_PER_DIR) {
+            console.warn(`目录 ${currentPath} 包含过多文件 (${items.length})，已限制扫描`)
+            items.splice(MAX_FILES_PER_DIR)
+          }
+
+          // 先添加文件夹，再添加文件
+          const directories: DirectoryNode[] = []
+          const files: DirectoryNode[] = []
+
+          for (const item of items) {
+            const itemPath = path.join(currentPath, item.name)
+
+            if (item.isDirectory()) {
+              // 跳过忽略的目录
+              if (shouldIgnoreDirectory(item.name)) {
+                continue
+              }
+
+              const children = scanDirectory(itemPath, depth + 1)
+              // 只有当文件夹包含markdown文件或子文件夹时才显示
+              if (children.length > 0) {
+                directories.push({
+                  name: item.name,
+                  path: itemPath,
+                  isDirectory: true,
+                  children,
+                })
+              }
+            } else if (item.isFile() && /\.(?:md|markdown)$/i.test(item.name)) {
+              files.push({
+                name: item.name,
+                path: itemPath,
+                isDirectory: false,
+              })
+            }
+          }
+
+          // 按名称排序
+          directories.sort((a, b) => a.name.localeCompare(b.name))
+          files.sort((a, b) => a.name.localeCompare(b.name))
+
+          return [...directories, ...files]
+        } catch (error) {
+          console.warn(`扫描目录失败: ${currentPath}`, error)
+          return []
+        }
+      }
+
+      return scanDirectory(dirPath)
+    } catch (error) {
+      console.error('获取目录文件失败:', error)
       return []
     }
   })

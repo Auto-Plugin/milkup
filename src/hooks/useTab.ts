@@ -230,25 +230,60 @@ function ensureActiveTabVisible(containerRef: Ref<HTMLElement | null>) {
 
   const paddingOffset = 12 // 额外的内边距
 
-  // 检查tab是否完全在可视区域内（包括阴影）
+  // 考虑tabbar的偏移量（当大纲显示时，tabbar向右偏移25%）
+  // 由于TabBar使用margin-left: 25%，所以偏移量是相对于父容器的25%
+  const offsetLeft = isShowOutline.value ? containerRect.width * 0.25 : 0
+
+  // 调试信息
+  console.log('ensureActiveTabVisible debug:', {
+    isShowOutline: isShowOutline.value,
+    containerWidth: containerRect.width,
+    offsetLeft,
+    tabRect: { left: tabRect.left, right: tabRect.right },
+    containerRect: { left: containerRect.left, right: containerRect.right },
+    paddingOffset,
+    leftBoundary: containerRect.left + paddingOffset + offsetLeft,
+    rightBoundary: containerRect.right - paddingOffset,
+  })
+
+  // 检查tab是否完全在可视区域内（包括阴影和偏移）
   const isFullyVisible
-    = tabRect.left >= (containerRect.left + paddingOffset)
+    = tabRect.left >= (containerRect.left + paddingOffset + offsetLeft)
       && tabRect.right <= (containerRect.right - paddingOffset)
 
-  if (!isFullyVisible) {
-    // 计算最佳滚动位置
-    let scrollLeft = activeTabElement.offsetLeft - container.offsetLeft
+  console.log('isFullyVisible:', isFullyVisible)
 
-    // 如果tab在左侧被遮挡，添加偏移量
-    if (tabRect.left < containerRect.left + paddingOffset) {
-      scrollLeft -= paddingOffset
+  if (!isFullyVisible) {
+    // 计算tab相对于容器的位置
+    const tabOffsetLeft = activeTabElement.offsetLeft
+
+    // 计算可视区域的边界（考虑偏移量）
+    // 当有大纲显示时，TabBar有margin-left: 25%，所以可视区域从25%开始
+    const visibleLeft = paddingOffset
+    const visibleRight = container.clientWidth - paddingOffset
+
+    let scrollLeft = 0
+
+    // 如果tab在左侧被遮挡
+    if (tabRect.left < containerRect.left + paddingOffset + offsetLeft) {
+      // 将tab滚动到可视区域的左侧
+      // 当有大纲显示时，需要考虑TabBar的margin-left偏移
+      scrollLeft = tabOffsetLeft - visibleLeft
+      // console.log('Left adjustment:', { tabOffsetLeft, visibleLeft, scrollLeft })
     } else if (tabRect.right > containerRect.right - paddingOffset) {
-      // 如果tab在右侧被遮挡，确保右侧有足够空间
-      scrollLeft = activeTabElement.offsetLeft - container.offsetLeft - container.clientWidth + activeTabElement.offsetWidth + paddingOffset
+      // 如果tab在右侧被遮挡
+      // 将tab滚动到可视区域的右侧
+      scrollLeft = tabOffsetLeft - visibleRight + activeTabElement.offsetWidth
+      console.log('Right adjustment:', { tabOffsetLeft, visibleRight, tabWidth: activeTabElement.offsetWidth, scrollLeft })
     }
 
     // 确保滚动位置不会超出边界
-    scrollLeft = Math.max(0, Math.min(scrollLeft, container.scrollWidth - container.clientWidth))
+    // 当有偏移时，最小滚动位置需要考虑偏移量
+    const minScrollLeft = isShowOutline.value ? -offsetLeft : 0
+    const maxScrollLeft = container.scrollWidth - container.clientWidth
+    scrollLeft = Math.max(minScrollLeft, Math.min(scrollLeft, maxScrollLeft))
+
+    console.log('Final scroll position:', { scrollLeft, minScrollLeft, maxScrollLeft })
 
     container.scrollTo({
       left: scrollLeft,
