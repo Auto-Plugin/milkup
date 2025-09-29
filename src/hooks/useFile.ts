@@ -1,13 +1,14 @@
+import type { Tab } from '@/types/tab'
 // useFile.ts
 import { nextTick, onUnmounted } from 'vue'
 import { processImagePaths } from '@/plugins/imagePathPlugin'
 import emitter from '@/renderer/events'
-import usContent from './useContent'
+import useContent from './useContent'
 import useTab from './useTab'
 import useTitle from './useTitle'
 
 const { updateTitle } = useTitle()
-const { markdown, filePath, originalContent } = usContent()
+const { markdown, filePath, originalContent } = useContent()
 const {
   updateCurrentTabFile,
   createTabFromFile,
@@ -254,9 +255,7 @@ function createNewFile() {
     emitter.emit('file:Change')
   })
 }
-
-// 监听tab切换事件
-emitter.on('tab:switch', (tab: any) => {
+function tabSwitch(tab: Tab) {
   // 更新当前内容状态
   filePath.value = tab.filePath || ''
   markdown.value = tab.content
@@ -266,13 +265,14 @@ emitter.on('tab:switch', (tab: any) => {
   nextTick(() => {
     emitter.emit('file:Change')
   })
-})
+}
+// 监听tab切换事件
+emitter.on('tab:switch', tabSwitch)
 
 export default function useFile() {
   onUnmounted(() => {
     window.electronAPI?.removeListener?.('menu-open', onOpen)
     window.electronAPI?.removeListener?.('menu-save', onSave)
-    emitter.off('tab:switch')
   })
   return {
     onOpen,

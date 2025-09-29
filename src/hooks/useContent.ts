@@ -31,30 +31,36 @@ watch(isModified, (newValue) => {
   }
 }, { immediate: true })
 
-function recordScrollRatio(wrapper: HTMLElement) {
+function recordScrollRatio(wrapper: Element) {
   currentScrollRatio.value = wrapper.scrollTop / (wrapper.scrollHeight - wrapper.clientHeight)
+}
+// 统一的滚动处理函数，保证 add/remove 使用同一引用
+function scrollHandler(e: Event) {
+  const target = e.currentTarget as Element | null
+  if (target)
+    recordScrollRatio(target)
 }
 
 function initScrollListener() {
   if (isInitialized.value)
     return
-  const milkdownWrapper = document.querySelector('.scrollView.milkdown') as HTMLElement | null
-  const codeMirrorWrapper = document.querySelector('.cm-scroller') as HTMLElement | null
+  const milkdownWrapper = document.querySelector('.scrollView.milkdown')
+  const codeMirrorWrapper = document.querySelector('.cm-scroller')
   if (milkdownWrapper) {
-    milkdownWrapper.addEventListener('scroll', () => recordScrollRatio(milkdownWrapper))
+    milkdownWrapper.addEventListener('scroll', () => scrollHandler)
   } else if (codeMirrorWrapper) {
-    codeMirrorWrapper.addEventListener('scroll', () => recordScrollRatio(codeMirrorWrapper))
+    codeMirrorWrapper.addEventListener('scroll', () => scrollHandler)
   }
   isInitialized.value = true
 }
 
 function removeScrollListener() {
-  const milkdownWrapper = document.querySelector('.scrollView.milkdown') as HTMLElement | null
-  const codeMirrorWrapper = document.querySelector('.cm-scroller') as HTMLElement | null
+  const milkdownWrapper = document.querySelector('.scrollView.milkdown')
+  const codeMirrorWrapper = document.querySelector('.cm-scroller')
   if (milkdownWrapper) {
-    milkdownWrapper.removeEventListener('scroll', () => recordScrollRatio(milkdownWrapper))
+    milkdownWrapper.removeEventListener('scroll', () => scrollHandler)
   } else if (codeMirrorWrapper) {
-    codeMirrorWrapper.removeEventListener('scroll', () => recordScrollRatio(codeMirrorWrapper))
+    codeMirrorWrapper.removeEventListener('scroll', () => scrollHandler)
   }
   isInitialized.value = false
 }
