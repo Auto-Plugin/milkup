@@ -46,11 +46,8 @@ function onOiClick(oi: { id: string, text: string, level: number }) {
         <span v-if="outline.length === 0" class="empty">暂无内容</span>
       </div>
 
-      <div v-else-if="activeTab === 'file'" class="fileList">
+      <div v-else-if="activeTab === 'file'">
         <WorkSpace />
-        <div class="empty">
-          文件列表开发中...
-        </div>
       </div>
     </div>
   </div>
@@ -118,7 +115,7 @@ function onOiClick(oi: { id: string, text: string, level: number }) {
     }
 
     .active {
-      color: var(--text-color-1);
+      color: var(--text-color-3);
       font-weight: bold;
       position: relative;
 
@@ -130,7 +127,7 @@ function onOiClick(oi: { id: string, text: string, level: number }) {
         transform: translateX(-50%);
         width: 30%;
         height: 1px;
-        background: var(--primary-color);
+        background: var(--text-color-3);
       }
     }
   }
@@ -183,7 +180,6 @@ function onOiClick(oi: { id: string, text: string, level: number }) {
     flex-direction: column;
     gap: 8px;
     width: 100%;
-    padding: 12px;
 
     .file-item {
       display: flex;

@@ -16,13 +16,14 @@ interface WorkSpace {
 
 const workSpace = ref<WorkSpace[] | null>(null)
 
+// 获取工作区
 async function getWorkSpace() {
   if (isLoadWorkSpace)
     return
   if (isLoading.value)
     return
 
-  // 从tab中寻找是否有真实path得文件
+  // 是否有真实path得文件
   const realFile = tabs.value.find(tab => tab.filePath)
 
   if (!realFile || !realFile.filePath)
@@ -45,8 +46,6 @@ async function getWorkSpace() {
     isLoadWorkSpace = true
     // 更新工作区信息
     workSpace.value = result
-
-    console.log('✅ 获取到的目录文件结果:', workSpace.value)
   } catch (error) {
     autolog.log('获取目录文件失败:', 'error')
   } finally {
@@ -54,11 +53,42 @@ async function getWorkSpace() {
   }
 }
 
-// 监听tabs的变化
+// 打开选择文件夹对话框
+async function setWorkSpace() {
+  try {
+    const result = await window.electronAPI.showOpenDialog({
+      properties: ['openDirectory'],
+      title: '选择工作区文件夹',
+    })
+
+    if (result && !result.canceled && result.filePaths.length > 0) {
+      const selectedPath = result.filePaths[0]
+
+      isLoadWorkSpace = false
+      workSpace.value = null
+
+      // 获取选择的文件夹内容
+      const directoryFiles = await window.electronAPI.getDirectoryFiles(selectedPath)
+
+      if (directoryFiles && directoryFiles.length > 0) {
+        workSpace.value = directoryFiles
+        isLoadWorkSpace = true
+      }
+    }
+  } catch (error) {
+    autolog.log('获取目录文件失败:', 'error')
+  }
+}
+
+// 监听tabs
 watch(
   () => tabs.value,
-  () => {
-    getWorkSpace()
+  (newTabs) => {
+    // 只有在从无到有时才重新加载工作区
+    const hasRealFile = newTabs.some(tab => tab.filePath)
+    if (hasRealFile && !isLoadWorkSpace) {
+      getWorkSpace()
+    }
   },
   {
     deep: true,
@@ -68,14 +98,13 @@ watch(
 // 监听当前选中得tab
 watch(
   () => currentTab.value,
-  () => {
-    // getWorkSpace()
-  },
+  () => { },
 )
 
 function useWorkSpace() {
   return {
     workSpace,
+    setWorkSpace,
   }
 }
 

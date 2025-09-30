@@ -169,6 +169,40 @@ async function createTabFromFile(filePath: string, content: string): Promise<Tab
   return add(tab)
 }
 
+// 打开文件
+async function openFile(filePath: string): Promise<Tab | null> {
+  try {
+    // 检查文件是否已经在某个tab中打开
+    const existingTab = isFileAlreadyOpen(filePath)
+    if (existingTab) {
+      // 如果文件已打开，直接切换到该tab
+      await switchToTab(existingTab.id)
+      return existingTab
+    }
+
+    // 读取文件内容
+    const result = await window.electronAPI.readFileByPath(filePath)
+    if (result) {
+      // 创建新tab
+      const newTab = await createTabFromFile(result.filePath, result.content)
+
+      // 切换新tab
+      switchToTab(newTab.id)
+
+      // 触发内容更新事件
+      emitter.emit('file:Change')
+
+      return newTab
+    } else {
+      console.error('无法读取文件:', filePath)
+      return null
+    }
+  } catch (error) {
+    console.error('打开文件失败:', error)
+    return null
+  }
+}
+
 // 创建新文件tab
 function createNewTab(): Tab {
   const tab: Tab = {
@@ -362,8 +396,8 @@ function useTab() {
     currentTab,
     formattedTabs,
     hasUnsavedTabs,
-    getUnsavedTabs,
     shouldOffsetTabBar,
+    getUnsavedTabs,
     add,
     close,
     setActive,
@@ -377,6 +411,7 @@ function useTab() {
     updateCurrentTabFile,
     createNewTab,
     switchToTab,
+    openFile,
 
     // UI
     ensureActiveTabVisible,

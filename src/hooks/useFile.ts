@@ -22,8 +22,11 @@ const {
   tabs,
 } = useTab()
 
-async function onOpen() {
-  const result = await window.electronAPI.openFile()
+async function onOpen(result?: { filePath: string, content: string } | null) {
+  if (!result) {
+    result = await window.electronAPI.openFile()
+  }
+
   if (result) {
     // 创建新tab
     const tab = await createTabFromFile(result.filePath, result.content)
@@ -278,6 +281,7 @@ export default function useFile() {
     onOpen,
     onSave,
     onSaveAs,
+    tabSwitch,
     createNewFile,
     switchToTab,
     updateCurrentTabContent,
