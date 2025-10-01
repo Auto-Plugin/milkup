@@ -12,6 +12,7 @@ const {
   closeWithConfirm,
   setupTabScrollListener,
   reorderTabs,
+  shouldOffsetTabBar,
 } = useTab()
 
 const { createNewFile } = useFile()
@@ -37,6 +38,21 @@ function handleDragEnd(event: { oldIndex: number, newIndex: number }) {
   reorderTabs(event.oldIndex, event.newIndex)
 }
 
+// 因为vueTransition的移除会让元素回到父元素0,  so 需要保存位置信息
+function handleBeforeLeave(el: Element) {
+  const element = el as HTMLElement
+  const rect = element.getBoundingClientRect()
+  const parentRect = element.parentElement?.getBoundingClientRect()
+
+  if (parentRect) {
+    const left = rect.left - parentRect.left
+    const top = rect.top - parentRect.top
+
+    element.style.setProperty('--tab-left', `${left}px`)
+    element.style.setProperty('--tab-top', `${top}px`)
+  }
+}
+
 // 设置滚动监听
 setupTabScrollListener(tabContainerRef)
 
@@ -58,18 +74,15 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="tabContainerRef" class="tabBarContarner">
+  <div ref="tabContainerRef" class="tabBarContarner" :class="{ 'offset-right': shouldOffsetTabBar }">
     <TransitionGroup
       v-draggable="[formattedTabs, { animation: 1500, onEnd: handleDragEnd, ghostClass: 'ghost' }]"
-      name="tab"
-      class="tabBar"
-      mode="out-in"
-      tag="div"
+      name="tab" class="tabBar" mode="out-in" tag="div"
+      @before-leave="handleBeforeLeave"
     >
       <div
         v-for="tab in formattedTabs" :key="tab.id" class="tabItem" :class="{ active: activeTabId === tab.id }"
-        :data-tab-id="tab.id"
-        @click="handleTabClick(tab.id)"
+        :data-tab-id="tab.id" @click="handleTabClick(tab.id)"
       >
         <p>{{ tab.displayName }}</p>
 
@@ -80,20 +93,18 @@ onUnmounted(() => {
         <!-- pre -->
 
         <svg
-          :class="{ active: activeTabId === tab.id }" class="pre" viewBox="0 0 4 4" fill="none"
+          :class="{ active: activeTabId === tab.id }" class="pre" viewBox="0 0 5 5" fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <path d="M3 3C3.7799 2.2201 3.99414 0 3.99414 0V3.99414H0C0 3.99414 2.2201 3.7799 3 3Z" />
+          <path d="M5 5L0 5C3.33333 5 5 3.33333 5 -2.18557e-07L5 5Z" />
         </svg>
 
         <!-- after -->
         <svg
-          :class="{ active: activeTabId === tab.id }" class="after" viewBox="0 0 4 4" fill="none"
+          :class="{ active: activeTabId === tab.id }" class="after" viewBox="0 0 5 5" fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <path
-            d="M0.994141 3C0.214236 2.2201 1.90735e-06 0 1.90735e-06 0V3.99414H3.99414C3.99414 3.99414 1.77404 3.7799 0.994141 3Z"
-          />
+          <path d="M0 5L5 5C1.66667 5 7.28523e-08 3.33333 2.18557e-07 -2.18557e-07L0 5Z" />
         </svg>
       </div>
 
@@ -116,9 +127,14 @@ onUnmounted(() => {
   justify-content: flex-end;
   overflow-x: scroll;
   overflow-y: hidden;
-  // 隐藏滚动条
+  transition: margin-left 0.6s 0.02s cubic-bezier(0.035, 0.630, 0.000, 1.000); //一个延迟能变得高级，你就学吧
+
   &::-webkit-scrollbar {
     display: none;
+  }
+
+  &.offset-right {
+    margin-left: 25%;
   }
 
   .tabBar {
@@ -165,6 +181,7 @@ onUnmounted(() => {
       }
 
       .closeIcon:hover {
+
         span {
           color: var(--text-color-1);
         }
@@ -208,7 +225,7 @@ onUnmounted(() => {
       }
 
       &:hover {
-        // background: var(--hover-color);
+
         z-index: 1;
 
         p {
@@ -301,7 +318,8 @@ onUnmounted(() => {
   }
 }
 
-.tab-move, /* 对移动中的元素应用的过渡 */
+.tab-move,
+/* 对移动中的元素应用的过渡 */
 .tab-enter-active,
 .tab-leave-active {
   transition: all 0.3s ease;
@@ -311,12 +329,18 @@ onUnmounted(() => {
 .tab-leave-to {
   opacity: 0;
   transform: translateY(30px);
+  filter: blur(10px);
 }
 
 /* 确保将离开的元素从布局流中删除
   以便能够正确地计算移动的动画。 */
 .tab-leave-active {
   position: absolute !important;
+  left: var(--tab-left, 0);
+  top: var(--tab-top, 0);
+  width: 150px;
+  z-index: 1;
+  filter: blur(0px);
 }
 
 .ghost {

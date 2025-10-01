@@ -26,6 +26,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   showOverwriteConfirm: (fileName: string) => ipcRenderer.invoke('dialog:showOverwriteConfirm', fileName),
   // 显示关闭确认对话框
   showCloseConfirm: (fileName: string) => ipcRenderer.invoke('dialog:showCloseConfirm', fileName),
+  // 显示文件选择对话框
+  showOpenDialog: (options: any) => ipcRenderer.invoke('dialog:showOpenDialog', options),
   // 获取拖拽文件的真实路径
   getPathForFile: (file: File) => {
     try {
@@ -40,6 +42,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   // 字体相关
   getSystemFonts: () => ipcRenderer.invoke('get-system-fonts'),
+  // 工作区相关
+  getDirectoryFiles: (dirPath: string) => ipcRenderer.invoke('workspace:getDirectoryFiles', dirPath),
 
   // 主题编辑器相关
   openThemeEditor: (theme?: any) => ipcRenderer.send('open-theme-editor', theme),

@@ -4,6 +4,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { processImagePaths, setCurrentMarkdownFilePath } from '@/plugins/imagePathPlugin'
 import emitter from '@/renderer/events'
 import { randomUUID } from '@/utils/tool'
+import { isShowOutline } from './useOutline'
 
 const tabs = ref<Tab[]>([])
 const activeTabId = ref<string | null>(null)
@@ -168,6 +169,40 @@ async function createTabFromFile(filePath: string, content: string): Promise<Tab
   return add(tab)
 }
 
+// 打开文件
+async function openFile(filePath: string): Promise<Tab | null> {
+  try {
+    // 检查文件是否已经在某个tab中打开
+    const existingTab = isFileAlreadyOpen(filePath)
+    if (existingTab) {
+      // 如果文件已打开，直接切换到该tab
+      await switchToTab(existingTab.id)
+      return existingTab
+    }
+
+    // 读取文件内容
+    const result = await window.electronAPI.readFileByPath(filePath)
+    if (result) {
+      // 创建新tab
+      const newTab = await createTabFromFile(result.filePath, result.content)
+
+      // 切换新tab
+      switchToTab(newTab.id)
+
+      // 触发内容更新事件
+      emitter.emit('file:Change')
+
+      return newTab
+    } else {
+      console.error('无法读取文件:', filePath)
+      return null
+    }
+  } catch (error) {
+    console.error('打开文件失败:', error)
+    return null
+  }
+}
+
 // 创建新文件tab
 function createNewTab(): Tab {
   const tab: Tab = {
@@ -229,25 +264,42 @@ function ensureActiveTabVisible(containerRef: Ref<HTMLElement | null>) {
 
   const paddingOffset = 12 // 额外的内边距
 
-  // 检查tab是否完全在可视区域内（包括阴影）
+  // 考虑tabbar的偏移量（当大纲显示时，tabbar向右偏移25%）
+  // 由于TabBar使用margin-left: 25%，所以偏移量是相对于父容器的25%
+  const offsetLeft = isShowOutline.value ? containerRect.width * 0.25 : 0
+
+  // 检查tab是否完全在可视区域内（包括阴影和偏移）
   const isFullyVisible
-    = tabRect.left >= (containerRect.left + paddingOffset)
+    = tabRect.left >= (containerRect.left + paddingOffset + offsetLeft)
       && tabRect.right <= (containerRect.right - paddingOffset)
 
   if (!isFullyVisible) {
-    // 计算最佳滚动位置
-    let scrollLeft = activeTabElement.offsetLeft - container.offsetLeft
+    // 计算tab相对于容器的位置
+    const tabOffsetLeft = activeTabElement.offsetLeft
 
-    // 如果tab在左侧被遮挡，添加偏移量
-    if (tabRect.left < containerRect.left + paddingOffset) {
-      scrollLeft -= paddingOffset
+    // 计算可视区域的边界（考虑偏移量）
+    // 当有大纲显示时，TabBar有margin-left: 25%，所以可视区域从25%开始
+    const visibleLeft = paddingOffset
+    const visibleRight = container.clientWidth - paddingOffset
+
+    let scrollLeft = 0
+
+    // 如果tab在左侧被遮挡
+    if (tabRect.left < containerRect.left + paddingOffset + offsetLeft) {
+      // 将tab滚动到可视区域的左侧
+      // 当有大纲显示时，需要考虑TabBar的margin-left偏移
+      scrollLeft = tabOffsetLeft - visibleLeft
     } else if (tabRect.right > containerRect.right - paddingOffset) {
-      // 如果tab在右侧被遮挡，确保右侧有足够空间
-      scrollLeft = activeTabElement.offsetLeft - container.offsetLeft - container.clientWidth + activeTabElement.offsetWidth + paddingOffset
+      // 如果tab在右侧被遮挡
+      // 将tab滚动到可视区域的右侧
+      scrollLeft = tabOffsetLeft - visibleRight + activeTabElement.offsetWidth
     }
 
     // 确保滚动位置不会超出边界
-    scrollLeft = Math.max(0, Math.min(scrollLeft, container.scrollWidth - container.clientWidth))
+    // 当有偏移时，最小滚动位置需要考虑偏移量
+    const minScrollLeft = isShowOutline.value ? -offsetLeft : 0
+    const maxScrollLeft = container.scrollWidth - container.clientWidth
+    scrollLeft = Math.max(minScrollLeft, Math.min(scrollLeft, maxScrollLeft))
 
     container.scrollTo({
       left: scrollLeft,
@@ -333,6 +385,9 @@ const formattedTabs = computed(() => {
 
 const currentTab = computed(() => getCurrentTab())
 
+// 是否偏移
+const shouldOffsetTabBar = computed(() => isShowOutline.value)
+
 function useTab() {
   return {
     // 状态
@@ -341,6 +396,7 @@ function useTab() {
     currentTab,
     formattedTabs,
     hasUnsavedTabs,
+    shouldOffsetTabBar,
     getUnsavedTabs,
     add,
     close,
@@ -355,6 +411,7 @@ function useTab() {
     updateCurrentTabFile,
     createNewTab,
     switchToTab,
+    openFile,
 
     // UI
     ensureActiveTabVisible,
