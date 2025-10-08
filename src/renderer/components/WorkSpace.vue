@@ -1,7 +1,7 @@
 <script lang="ts" setup>
+import { Tree } from '@ui/tree'
 import useTab from '@/hooks/useTab'
 import useWorkSpace from '@/hooks/useWorkSpace'
-import TreeNode from './TreeNode.vue'
 
 const { workSpace, setWorkSpace } = useWorkSpace()
 const { currentTab } = useTab()
@@ -15,7 +15,7 @@ function openFolder() {
 <template>
   <div class="WorkSpace">
     <div v-if="workSpace" class="tree-container">
-      <TreeNode
+      <Tree
         v-for="node in workSpace"
         :key="node.path"
         :current-tab="currentTab"

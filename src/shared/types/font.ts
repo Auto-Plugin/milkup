@@ -1,3 +1,5 @@
+const fontTypes = ['editor-font', 'code-font'] as const
+
 export interface Font {
   label: string
   value: string
@@ -16,4 +18,4 @@ export interface FontConfigItem {
 
 export type FontList = Font[]
 
-export type FontType = 'editor-font' | 'code-font'
+export type FontType = (typeof fontTypes)[number]

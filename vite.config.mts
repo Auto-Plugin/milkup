@@ -20,6 +20,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
       '@renderer': path.resolve(__dirname, './src/renderer'),
+      '@ui': path.resolve(__dirname, './src/renderer/components/ui'),
     },
   },
 })
