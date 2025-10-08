@@ -1,4 +1,4 @@
-import autolog from 'autolog.js'
+import autolog from 'autotoast.js'
 import { ref, watch } from 'vue'
 import useTab from './useTab'
 
