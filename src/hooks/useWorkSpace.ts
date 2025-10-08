@@ -1,4 +1,4 @@
-import autolog from 'autotoast.js'
+import toast from 'autotoast.js'
 import { ref, watch } from 'vue'
 import useTab from './useTab'
 
@@ -46,8 +46,8 @@ async function getWorkSpace() {
     isLoadWorkSpace = true
     // 更新工作区信息
     workSpace.value = result
-  } catch (error) {
-    autolog.log('获取目录文件失败:', 'error')
+  } catch {
+    toast.show('获取目录文件失败:', 'error')
   } finally {
     isLoading.value = false
   }
@@ -75,8 +75,8 @@ async function setWorkSpace() {
         isLoadWorkSpace = true
       }
     }
-  } catch (error) {
-    autolog.log('获取目录文件失败:', 'error')
+  } catch {
+    toast.show('获取目录文件失败:', 'error')
   }
 }
 
