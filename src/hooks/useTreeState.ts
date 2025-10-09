@@ -61,6 +61,7 @@ export function useTreeNode(props: TreeNodeProps) {
 
   // 是否被选中
   const isSelected = computed(() => {
+    console.log('isSelected')
     return props.currentTab && props.currentTab.filePath === props.node.path
   })
 

@@ -129,3 +129,5 @@ export const transitionEffects = {
     translateY: 0,
   }),
 }
+
+export type TransitionEffect = ReturnType<typeof createHeightTransition>
