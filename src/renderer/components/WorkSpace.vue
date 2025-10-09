@@ -1,28 +1,30 @@
 <script lang="ts" setup>
+import type { TreeNode } from '@ui/tree'
 import { Tree } from '@ui/tree'
 import useTab from '@/hooks/useTab'
 import useWorkSpace from '@/hooks/useWorkSpace'
 
 const { workSpace, setWorkSpace } = useWorkSpace()
-const { currentTab } = useTab()
+const { currentTab, openFile } = useTab()
 
 // 打开文件夹选择对话框
 function openFolder() {
   setWorkSpace()
 }
+
+function handleNodeClick({ path }: TreeNode) {
+  openFile(path)
+}
 </script>
 
 <template>
   <div class="WorkSpace">
-    <div v-if="workSpace" class="tree-container">
-      <Tree
-        v-for="node in workSpace"
-        :key="node.path"
-        :current-tab="currentTab"
-        :node="node"
-        :level="0"
-      />
-    </div>
+    <Tree
+      v-if="workSpace"
+      :nodes="workSpace"
+      :current-node="currentTab ? currentTab.filePath : null"
+      @node-click="handleNodeClick"
+    />
     <div v-else class="empty-state">
       <p>暂无打开的工作区</p>
 
@@ -45,14 +47,6 @@ function openFolder() {
 
   &::-webkit-scrollbar {
     display: none; // Chrome/Safari/Opera
-  }
-
-  .tree-container {
-    padding: 8px 4px;
-    min-width: max-content; // 确保容器宽度适应内容
-    width: 100%;
-    // 为横向滚动添加一些额外的内边距
-    // padding-right: 20px;
   }
 
   .empty-state {

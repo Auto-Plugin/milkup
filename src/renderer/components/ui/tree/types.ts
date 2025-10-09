@@ -1,3 +1,5 @@
+import type { HTMLAttributes } from 'vue'
+
 // 树节点接口
 export interface TreeNode {
   name: string
@@ -7,9 +9,14 @@ export interface TreeNode {
 }
 
 // 树节点组件属性接口
-export interface TreeProps {
+export interface TreeNodeProps {
   node: TreeNode
-  level?: number
+}
+
+export interface TreeProps {
+  nodes: TreeNode[] | null
+  currentNode: string | null
+  class?: HTMLAttributes['class']
 }
 
 export interface TreeEmits {
