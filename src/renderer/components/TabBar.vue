@@ -14,6 +14,17 @@ const {
   reorderTabs,
   shouldOffsetTabBar,
 } = useTab()
+// 拦截 ctrl/cmd + w 快捷键关闭tab
+function handleCloseTabShortcut(e: KeyboardEvent) {
+  const isMac = window.electronAPI.platform === 'darwin'
+  if ((isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === 'w') {
+    e.preventDefault()
+    if (activeTabId.value) {
+      closeWithConfirm(activeTabId.value)
+    }
+  }
+}
+window.addEventListener('keydown', handleCloseTabShortcut)
 
 const { createNewFile } = useFile()
 
@@ -70,6 +81,7 @@ onUnmounted(() => {
   if (container) {
     container.removeEventListener('wheel', event => handleWheelScroll(event, tabContainerRef))
   }
+  window.removeEventListener('keydown', handleCloseTabShortcut)
 })
 </script>
 
@@ -77,8 +89,7 @@ onUnmounted(() => {
   <div ref="tabContainerRef" class="tabBarContarner" :class="{ 'offset-right': shouldOffsetTabBar }">
     <TransitionGroup
       v-draggable="[formattedTabs, { animation: 1500, onEnd: handleDragEnd, ghostClass: 'ghost' }]"
-      name="tab" class="tabBar" mode="out-in" tag="div"
-      @before-leave="handleBeforeLeave"
+      name="tab" class="tabBar" mode="out-in" tag="div" @before-leave="handleBeforeLeave"
     >
       <div
         v-for="tab in formattedTabs" :key="tab.id" class="tabItem" :class="{ active: activeTabId === tab.id }"
