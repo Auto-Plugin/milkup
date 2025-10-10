@@ -16,7 +16,7 @@ interface WorkSpace {
 
 const workSpace = ref<WorkSpace[] | null>(null)
 
-// 获取工作区
+// 获取文件夹
 async function getWorkSpace() {
   if (isLoadWorkSpace)
     return
@@ -44,7 +44,7 @@ async function getWorkSpace() {
 
     // 已加载 cnm
     isLoadWorkSpace = true
-    // 更新工作区信息
+    // 更新文件夹信息
     workSpace.value = result
   } catch {
     toast.show('获取目录文件失败:', 'error')
@@ -58,7 +58,7 @@ async function setWorkSpace() {
   try {
     const result = await window.electronAPI.showOpenDialog({
       properties: ['openDirectory'],
-      title: '选择工作区文件夹',
+      title: '选择文件夹文件夹',
     })
 
     if (result && !result.canceled && result.filePaths.length > 0) {
@@ -84,7 +84,7 @@ async function setWorkSpace() {
 watch(
   () => tabs.value,
   (newTabs) => {
-    // 只有在从无到有时才重新加载工作区
+    // 只有在从无到有时才重新加载文件夹
     const hasRealFile = newTabs.some(tab => tab.filePath)
     if (hasRealFile && !isLoadWorkSpace) {
       getWorkSpace()

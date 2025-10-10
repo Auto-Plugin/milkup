@@ -26,7 +26,7 @@ function handleNodeClick({ path }: TreeNode) {
       @node-click="handleNodeClick"
     />
     <div v-else class="empty-state">
-      <p>暂无打开的工作区</p>
+      <p>暂无打开的文件夹</p>
 
       <div @click="openFolder">
         选择文件夹

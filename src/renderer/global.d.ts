@@ -27,7 +27,7 @@ interface Window {
     getPathForFile: (file: File) => string | undefined
     // 字体相关
     getSystemFonts: () => Promise<string[]>
-    // 工作区相关
+    // 文件夹相关
     getDirectoryFiles: (dirPath: string) => Promise<Array<{ name: string, path: string, isDirectory: boolean }>>
     // 主题编辑器相关
     openThemeEditor: (theme?: any) => void

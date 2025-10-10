@@ -42,7 +42,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   // 字体相关
   getSystemFonts: () => ipcRenderer.invoke('get-system-fonts'),
-  // 工作区相关
+  // 文件夹相关
   getDirectoryFiles: (dirPath: string) => ipcRenderer.invoke('workspace:getDirectoryFiles', dirPath),
 
   // 主题编辑器相关

@@ -2,12 +2,20 @@
 import autotoast from 'autotoast.js'
 import useContent from '@/hooks/useContent'
 import usefile from '@/hooks/useFile'
+import useWorkSpace from '@/hooks/useWorkSpace'
 
 const { onOpen, onSave, onSaveAs } = usefile()
+const { setWorkSpace } = useWorkSpace()
 const { isModified } = useContent()
 
 function onOpenFolder() {
-  autotoast.show('功能开发中...')
+  setWorkSpace().then(() => {
+    const escEvent = new KeyboardEvent('keydown', { key: 'Escape' })
+    document.dispatchEvent(escEvent)
+  }).catch(() => {
+    autotoast.show('取消选择')
+  })
+  // 发射 Escape 按键事件 关闭菜单
 }
 function exportAsPDF() {
   autotoast.show('功能开发中...')
@@ -25,7 +33,7 @@ function exportAsDocx() {
     <div class="baseOptions optionItem">
       <span class="title">文件</span>
       <div class="buttons">
-        <button @click="onOpen">
+        <button @click="() => onOpen()">
           <span class="iconfont icon-document"></span>
           <span>打开</span>
         </button>
