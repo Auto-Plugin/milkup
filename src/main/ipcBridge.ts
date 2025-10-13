@@ -1,10 +1,11 @@
 // ipcBridge.ts
 
+import type { ExportPDFOptions } from './types'
 import * as fs from 'node:fs'
 import path from 'node:path'
 import { app, clipboard, dialog, ipcMain, shell } from 'electron'
-import { getFonts } from 'font-list'
 
+import { getFonts } from 'font-list'
 import { createThemeEditorWindow } from './index'
 
 let isSaved = true
@@ -201,6 +202,109 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
     const result = await dialog.showOpenDialog(win, options)
     return result
   })
+  // 导出为 pdf 文件
+  ipcMain.handle(
+    'file:exportPDF',
+    async (
+      _event,
+      elementSelector: string,
+      outputName: string,
+      options?: ExportPDFOptions,
+    ): Promise<void> => {
+      const { pageSize = 'A4', scale = 1 } = options || {}
+
+      // 保证代码块完整显示
+      const preventCutOffStyle = `
+        <style>
+          pre {
+            page-break-inside: avoid;
+          }
+          code {
+            page-break-inside: avoid;
+          }
+          .ͼo .cm-line{
+            display: flex!important;
+            flex-wrap: wrap;
+          }
+          .milkdown .milkdown-code-block .cm-editor span{
+            word-break: break-word;
+            white-space: break-spaces;
+            display: inline-block;
+            max-width: 100%;
+          }
+          .ͼo .cm-content[contenteditable=true]{
+            width: 0px;
+            flex: 1;
+          }
+        </style>
+      `
+      const cssKey = await win.webContents.insertCSS(preventCutOffStyle)
+
+      // 1. 在页面中克隆元素并隐藏其他内容
+      await win.webContents.executeJavaScript(`
+          (function() {
+            const target = document.querySelector('${elementSelector}');
+            if (!target) throw new Error('Element not found');
+  
+            // 克隆节点
+            const clone = target.cloneNode(true);
+  
+            // 创建临时容器
+            const container = document.createElement('div');
+            container.className = 'electron-export-container';
+            container.style.position = 'absolute';
+            container.style.top = '0';
+            container.style.left = '0';
+            container.style.width = '100vw';
+            container.style.padding = '20px';
+            container.style.boxSizing = 'border-box';
+            container.style.visibility = 'visible'; 
+            container.appendChild(clone);
+  
+            // 隐藏 body 其他内容
+            document.body.style.visibility = 'hidden';
+            document.body.appendChild(container);
+          })();
+        `)
+      try {
+        // 2. 导出 PDF
+        const pdfData = await win.webContents.printToPDF({
+          printBackground: true,
+          pageSize,
+          margins: {
+            marginType: 'printableArea',
+          },
+          scale,
+        })
+
+        // 3. 保存 PDF 文件
+        const { canceled, filePath } = await dialog.showSaveDialog(win, {
+          title: '导出为 PDF',
+          defaultPath: outputName || 'export.pdf',
+          filters: [{ name: 'PDF', extensions: ['pdf'] }],
+        })
+        if (canceled || !filePath) {
+          return Promise.reject(new Error('用户取消了保存'))
+        }
+        fs.writeFileSync(filePath, pdfData)
+      } catch (error) {
+        console.error('导出 PDF 失败:', error)
+        return Promise.reject(error)
+      } finally {
+        // 4. 清理页面
+        win.webContents.executeJavaScript(`
+                  (function() {
+                    const container = document.querySelector('.electron-export-container');
+                    if (container) container.remove();
+                    document.body.style.visibility = 'visible';
+                  })();
+                `)
+        // 移除插入的样式
+        if (cssKey)
+          win.webContents.removeInsertedCSS(cssKey)
+      }
+    },
+  )
 }
 // 无需 win 的 ipc 处理
 export function registerGlobalIpcHandlers() {

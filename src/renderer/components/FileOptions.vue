@@ -3,8 +3,9 @@ import autotoast from 'autotoast.js'
 import useContent from '@/hooks/useContent'
 import usefile from '@/hooks/useFile'
 import useWorkSpace from '@/hooks/useWorkSpace'
+import { exportElementAsPDF, exportElementWithStylesAndImages } from '../utils/exports'
 
-const { onOpen, onSave, onSaveAs } = usefile()
+const { onOpen, onSave, onSaveAs, currentTab } = usefile()
 const { setWorkSpace } = useWorkSpace()
 const { isModified } = useContent()
 
@@ -19,8 +20,17 @@ function onOpenFolder() {
 }
 function exportAsPDF() {
   autotoast.show('功能开发中...')
+  exportElementAsPDF('#milkdown', `${currentTab.value?.name.slice(0, -3)}.pdf` || '导出的文件', {
+    pageSize: 'A4',
+    scale: 1,
+  }).catch((err) => {
+    autotoast.show(`导出失败: ${err.message}`)
+  }).then(() => {
+    autotoast.show('导出成功')
+  })
 }
 function exportAsHTML() {
+  exportElementWithStylesAndImages(document.querySelector('#milkdown')!, `${currentTab.value?.name.slice(0, -3)}.html` || '导出的文件')
   autotoast.show('功能开发中...')
 }
 function exportAsDocx() {

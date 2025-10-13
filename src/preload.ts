@@ -1,3 +1,4 @@
+import type { ExportPDFOptions } from './main/types'
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -20,6 +21,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   writeTempImage: (file: File, tempPath: string) => ipcRenderer.invoke('clipboard:writeTempImage', file, tempPath),
   // 图片路径解析
   resolveImagePath: (markdownFilePath: string, imagePath: string) => ipcRenderer.invoke('file:resolveImagePath', markdownFilePath, imagePath),
+  // 导出为 PDF
+  exportAsPDF: (elementSelector: string, outputPath: string, options?: ExportPDFOptions) => ipcRenderer.invoke('file:exportPDF', elementSelector, outputPath, options),
   // 通过路径读取文件（用于拖拽）
   readFileByPath: (filePath: string) => ipcRenderer.invoke('file:readByPath', filePath),
   // 显示文件覆盖确认对话框

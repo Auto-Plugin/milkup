@@ -15,6 +15,8 @@ interface Window {
     writeTempImage: (file: ArrayBufferLike, tempPath: string) => Promise<string>
     // 图片路径解析
     resolveImagePath: (markdownFilePath: string, imagePath: string) => Promise<string>
+    // 导出为 PDF
+    exportAsPDF: (elementSelector: string, outputName: string, options?: ExportPDFOptions) => Promise<void>
     // 通过路径读取文件（用于拖拽）
     readFileByPath: (filePath: string) => Promise<{ filePath: string, content: string } | null>
     // 显示文件覆盖确认对话框
