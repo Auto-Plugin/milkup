@@ -3,7 +3,7 @@ import autotoast from 'autotoast.js'
 import useContent from '@/hooks/useContent'
 import usefile from '@/hooks/useFile'
 import useWorkSpace from '@/hooks/useWorkSpace'
-import { exportElementAsPDF, exportElementWithStylesAndImages } from '../utils/exports'
+import { exportElementAsPDF, exportElementAsWord, exportElementWithStylesAndImages } from '../utils/exports'
 
 const { onOpen, onSave, onSaveAs, currentTab } = usefile()
 const { setWorkSpace } = useWorkSpace()
@@ -19,22 +19,24 @@ function onOpenFolder() {
   // 发射 Escape 按键事件 关闭菜单
 }
 function exportAsPDF() {
-  autotoast.show('功能开发中...')
   exportElementAsPDF('#milkdown', `${currentTab.value?.name.slice(0, -3)}.pdf` || '导出的文件', {
     pageSize: 'A4',
     scale: 1,
-  }).catch((err) => {
-    autotoast.show(`导出失败: ${err.message}`)
   }).then(() => {
-    autotoast.show('导出成功')
+    autotoast.show('导出成功', 'success')
+  }).catch((err) => {
+    autotoast.show(`导出失败: ${err.message}`, 'error')
   })
 }
 function exportAsHTML() {
   exportElementWithStylesAndImages(document.querySelector('#milkdown')!, `${currentTab.value?.name.slice(0, -3)}.html` || '导出的文件')
-  autotoast.show('功能开发中...')
 }
 function exportAsDocx() {
-  autotoast.show('功能开发中...')
+  exportElementAsWord('#milkdown', `${currentTab.value?.name.slice(0, -3)}.docx` || '导出的文件').then(() => {
+    autotoast.show('导出成功', 'success')
+  }).catch((err) => {
+    autotoast.show(`导出失败: ${err.message}`, 'error')
+  })
 }
 </script>
 

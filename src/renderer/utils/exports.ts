@@ -1,4 +1,4 @@
-import type { ExportPDFOptions } from '@/main/types'
+import type { Block, ExportPDFOptions } from '@/main/types'
 
 /**
  * 导出选定元素为一个带样式和图片的独立 HTML 文件
@@ -146,4 +146,71 @@ export async function exportElementAsPDF(
   options?: ExportPDFOptions,
 ): Promise<void> {
   await window.electronAPI.exportAsPDF(elementSelector, outputName, options)
+}
+// 导出为 Word
+
+/**
+ * 遍历 Markdown 渲染后的 DOM，生成结构化数据
+ * 过滤非正文节点（toolbar、控件等）
+ */
+export function serializeMarkdownToBlocks(selector: string): Block[] {
+  const el = document.querySelector(selector)
+  if (!el)
+    throw new Error('Element not found')
+
+  const blocks: Block[] = []
+
+  function traverse(node: Node) {
+    if (!(node instanceof HTMLElement))
+      return
+
+    const className = node.className || ''
+    if (
+      className.includes('milkdown-block-handle')
+      || className.includes('crepe-drop-cursor')
+      || className.includes('milkdown-link-preview')
+      || className.includes('milkdown-link-edit')
+      || className.includes('milkdown-toolbar')
+      || className.includes('milkdown-latex-inline-edit')
+      || className.includes('milkdown-slash-menu')
+    ) {
+      return
+    }
+
+    if (node.dataset.ignore)
+      return
+    if (node.classList.contains('cm-content')) {
+      const lines: string[] = []
+      node.querySelectorAll('.cm-line').forEach((line) => {
+        lines.push(line.textContent || '')
+      })
+      blocks.push({ type: 'code', lines })
+      return
+    }
+    const tag = node.tagName.toLowerCase()
+    if (tag.startsWith('h')) {
+      blocks.push({ type: 'heading', level: Number(tag[1]) as 1 | 2 | 3, text: node.textContent || '' })
+    } else if (tag === 'p') {
+      blocks.push({ type: 'paragraph', text: node.textContent || '' })
+    } else if (tag === 'pre') {
+      blocks.push({ type: 'code', lines: node.textContent?.split('\n') || [] })
+    } else if (tag === 'ul' || tag === 'ol') {
+      const items: string[] = []
+      node.querySelectorAll('li').forEach(li => items.push(li.textContent || ''))
+      blocks.push({ type: 'list', items, ordered: tag === 'ol' })
+    }
+
+    node.childNodes.forEach(traverse)
+  }
+
+  traverse(el)
+  return blocks
+}
+
+export async function exportElementAsWord(
+  selector: string,
+  outputName: string,
+): Promise<void> {
+  const blocks = serializeMarkdownToBlocks(selector)
+  await window.electronAPI.exportAsWord(blocks, outputName)
 }

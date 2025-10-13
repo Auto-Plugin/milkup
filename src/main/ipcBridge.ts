@@ -1,10 +1,10 @@
 // ipcBridge.ts
 
-import type { ExportPDFOptions } from './types'
+import type { Block, ExportPDFOptions } from './types'
 import * as fs from 'node:fs'
 import path from 'node:path'
+import { Document, HeadingLevel, Packer, Paragraph, TextRun } from 'docx'
 import { app, clipboard, dialog, ipcMain, shell } from 'electron'
-
 import { getFonts } from 'font-list'
 import { createThemeEditorWindow } from './index'
 
@@ -302,6 +302,117 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
         // 移除插入的样式
         if (cssKey)
           win.webContents.removeInsertedCSS(cssKey)
+      }
+    },
+  )
+  // 导出为 word 文件
+  ipcMain.handle(
+    'file:exportWord',
+    async (_event, blocks: Block[], outputName: string): Promise<void> => {
+      // 定义 Word 的列表样式
+
+      const sectionChildren: Paragraph[] = []
+
+      blocks.forEach((block) => {
+        if (block.type === 'heading') {
+          sectionChildren.push(
+            new Paragraph({
+              text: block.text,
+              heading:
+                block.level === 1
+                  ? HeadingLevel.HEADING_1
+                  : block.level === 2
+                    ? HeadingLevel.HEADING_2
+                    : HeadingLevel.HEADING_3,
+            }),
+          )
+        } else if (block.type === 'paragraph') {
+          sectionChildren.push(new Paragraph({ text: block.text }))
+        } else if (block.type === 'list') {
+          block.items.forEach(item =>
+            sectionChildren.push(
+              new Paragraph({
+                text: item,
+                numbering: {
+                  reference: block.ordered ? 'my-numbered' : 'my-bullet',
+                  level: 0,
+                },
+              }),
+            ),
+          )
+        } else if (block.type === 'code') {
+          block.lines.forEach((line, index) => {
+            const lineChildren: TextRun[] = [
+              new TextRun({
+                text: `${String(index + 1).padStart(3, '0')} | `,
+                color: '999999',
+              }),
+            ]
+
+            // 简单 JS 高亮关键字
+            const keywordRegex = /\b(?:const|let|var|function|return|if|else)\b/g
+            let lastIndex = 0
+            let match: RegExpExecArray | null = keywordRegex.exec(line)
+            while (match) {
+              if (match.index > lastIndex) {
+                lineChildren.push(
+                  new TextRun({ text: line.slice(lastIndex, match.index), font: 'Courier New' }),
+                )
+              }
+              lineChildren.push(
+                new TextRun({
+                  text: match[0],
+                  bold: true,
+                  color: '0000FF',
+                  font: 'Courier New',
+                }),
+              )
+              lastIndex = match.index + match[0].length
+              match = keywordRegex.exec(line)
+            }
+
+            if (lastIndex < line.length) {
+              lineChildren.push(
+                new TextRun({ text: line.slice(lastIndex), font: 'Courier New' }),
+              )
+            }
+
+            sectionChildren.push(new Paragraph({ children: lineChildren, spacing: { after: 100 } }))
+          })
+        }
+      })
+
+      const doc = new Document({
+        sections: [{ children: sectionChildren }],
+        numbering: {
+          config: [
+            {
+              reference: 'my-bullet',
+              levels: [{ level: 0, format: 'bullet', text: '•', alignment: 'left' }],
+            },
+            {
+              reference: 'my-numbered',
+              levels: [{ level: 0, format: 'decimal', text: '%1.', alignment: 'left' }],
+            },
+          ],
+        },
+      })
+
+      const buffer = await Packer.toBuffer(doc)
+
+      const { canceled, filePath } = await dialog.showSaveDialog(win, {
+        title: '导出为 Word',
+        defaultPath: outputName || 'export.docx',
+        filters: [{ name: 'Word Document', extensions: ['docx'] }],
+      })
+
+      if (canceled || !filePath)
+        return Promise.reject(new Error('用户取消了保存'))
+      try {
+        fs.writeFileSync(filePath, buffer)
+      } catch (error) {
+        console.error('导出 Word 失败:', error)
+        return Promise.reject(error)
       }
     },
   )
