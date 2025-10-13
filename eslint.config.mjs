@@ -14,6 +14,7 @@ export default antfu({
     },
   },
   ignores: [
+    '**/renderer/main.ts',
     '**/*.md',
     '**/iconfont',
   ],
