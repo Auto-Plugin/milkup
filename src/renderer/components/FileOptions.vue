@@ -79,9 +79,10 @@ function exportAsDocx() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: 60px;
   padding: 0 10px;
   box-sizing: border-box;
+  user-select: none;
 
   .optionItem {
     display: flex;
@@ -90,9 +91,9 @@ function exportAsDocx() {
     width: 100%;
 
     .title {
-      font-size: 16px;
+      font-size: 22px;
       font-weight: bold;
-      margin-bottom: 10px;
+      margin-bottom: 26px;
       color: var(--text-color);
       user-select: none;
       width: 100%;
@@ -101,8 +102,9 @@ function exportAsDocx() {
 
     .buttons {
       display: flex;
-      gap: 10px;
-      width: 100%;
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 14px;
     }
 
     &.export {
@@ -112,28 +114,21 @@ function exportAsDocx() {
         button {
           justify-content: flex-start;
           width: max-content;
-          min-width: 50%;
-
-          .iconfont {
-            font-size: 28px;
-          }
         }
       }
     }
   }
 
   button {
-    min-height: 120px;
     padding: 5px 10px;
     flex: 1;
     border: none;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 16px;
     background: none;
     border-radius: 4px;
     transition: background-color 0.3s;
     color: var(--text-color);
-    border: 1px solid var(--border-color);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -144,7 +139,7 @@ function exportAsDocx() {
     }
 
     .iconfont {
-      font-size: 15px;
+      font-size: 18px;
       vertical-align: middle;
       margin-right: 5px;
     }
