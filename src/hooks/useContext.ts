@@ -10,6 +10,7 @@ import useSpellCheck from './useSpellCheck'
 import useTab from './useTab'
 import useTheme from './useTheme'
 import useTitle from './useTitle'
+import { useUpdateDialog } from './useUpdateDialog'
 
 export function useContext() {
   // 初始化所有hooks
@@ -19,6 +20,7 @@ export function useContext() {
   const { init: initFont, currentFont } = useFont()
   const { isShowSource } = useSourceCode()
   const { isDialogVisible, dialogType, fileName, tabName, showDialog, showOverwriteDialog, handleSave, handleDiscard, handleCancel, handleOverwrite } = useSaveConfirmDialog()
+  const { isDialogVisible: isUpdateDialogVisible, showDialog: showUpdateDialog, hideDialog: hideUpdateDialog, handleIgnore, handleLater, handleUpdate } = useUpdateDialog()
   const { onSave } = useFile()
   const { close, switchToTab, saveCurrentTab, activeTabId, getUnsavedTabs, shouldOffsetTabBar } = useTab()
 
@@ -138,6 +140,17 @@ export function useContext() {
     pendingCloseTab.value = null
   })
 
+  // 监听更新可用事件
+  emitter.on('update:available', (updateInfo) => {
+    const ignoredVersion = localStorage.getItem('ignoredVersion') || ''
+    if (updateInfo.version === ignoredVersion) {
+      // 如果用户忽略了这个版本，则不显示更新对话框
+      return
+    }
+    localStorage.setItem('updateInfo', JSON.stringify(updateInfo))
+    showUpdateDialog()
+  })
+
   // 处理tab关闭保存
   async function handleTabCloseSave() {
     if (!pendingCloseTab.value)
@@ -206,6 +219,7 @@ export function useContext() {
     pendingCloseTab,
     activeTabId,
     shouldOffsetTabBar,
+    isUpdateDialogVisible,
 
     // 方法
     updateTitle,
@@ -223,5 +237,10 @@ export function useContext() {
     handleTabCloseDiscard,
     handleAppCloseConfirm,
     reBuildMilkdown,
+    showUpdateDialog,
+    hideUpdateDialog,
+    handleIgnore,
+    handleLater,
+    handleUpdate,
   }
 }

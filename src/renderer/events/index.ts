@@ -11,6 +11,7 @@ type Events = {
   'tab:close-confirm': { tabId: string, tabName: string, isLastTab?: boolean } // Triggered when tab close confirmation is needed
   'tab:switch': { id: string, name: string, filePath: string | null, content: string, originalContent: string, isModified: boolean, scrollRatio?: number } // Triggered when switching tabs
   'file:overwrite-confirm': { fileName: string, resolver: (choice: 'cancel' | 'save' | 'overwrite') => void } // Triggered when file overwrite confirmation is needed
+  'update:available': { version: string, url: string, notes: string } // Triggered when an update is available
 } & Record<string, unknown>
 
 const emitter = mitt<Events>()

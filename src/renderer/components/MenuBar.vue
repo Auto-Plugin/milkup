@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { checkUpdate } from '@/api/update.js'
+import emitter from '../events'
 import About from './About.vue'
 import appearancePage from './AppearancePage.vue'
 import FileOptions from './FileOptions.vue'
@@ -24,6 +26,11 @@ const MenuOptions = [
   { label: '语言', action: () => (activeTab.value = 'language'), icon: 'icon-fanyi', value: 'language' },
   { label: '关于', action: () => (activeTab.value = 'about'), icon: 'icon-github', value: 'about' },
 ]
+checkUpdate().then((updateInfo) => {
+  if (updateInfo) {
+    emitter.emit('update:available', updateInfo)
+  }
+})
 </script>
 
 <template>

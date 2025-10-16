@@ -7,6 +7,7 @@ import Outline from './components/Outline.vue'
 import SaveConfirmDialog from './components/SaveConfirmDialog.vue'
 import StatusBar from './components/StatusBar.vue'
 import TitleBar from './components/TitleBar.vue'
+import UpdateConfirmDialog from './components/UpdateConfirmDialog.vue'
 import { MilkupProvider } from './context'
 
 // 使用整合的context hook
@@ -20,10 +21,15 @@ const {
   tabName,
   isShowEditors,
   pendingCloseTab,
+  isUpdateDialogVisible,
+
   handleSave,
   handleDiscard,
   handleCancel,
   handleOverwrite,
+  handleIgnore,
+  handleLater,
+  handleUpdate,
 } = useContext()
 </script>
 
@@ -54,6 +60,12 @@ const {
     @discard="handleDiscard"
     @cancel="handleCancel"
     @overwrite="handleOverwrite"
+  />
+  <UpdateConfirmDialog
+    :visible="isUpdateDialogVisible"
+    @get="handleUpdate"
+    @ignore="handleIgnore"
+    @cancel="handleLater"
   />
 </template>
 
