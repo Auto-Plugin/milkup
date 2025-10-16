@@ -1,5 +1,6 @@
 import { createApp } from 'vue'
 import { directives } from '@/directives'
+import '../../lang/index.js'
 import App from './App.vue'
 import '@milkdown/crepe/theme/common/style.css'
 import './style.less'

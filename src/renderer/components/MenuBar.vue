@@ -3,12 +3,14 @@ import { ref } from 'vue'
 import About from './About.vue'
 import appearancePage from './AppearancePage.vue'
 import FileOptions from './FileOptions.vue'
+import Language from './Language.vue'
 import SettingBase from './SettingBase.vue'
 
-const activeTab = ref<'settings' | 'about' | 'appearance' | 'file'>('file')
+const activeTab = ref<'settings' | 'about' | 'appearance' | 'file' | 'language'>('file')
 const MenuComponents = {
   settings: SettingBase,
   about: About,
+  language: Language,
   appearance: appearancePage,
   file: FileOptions,
 }
@@ -19,6 +21,7 @@ const MenuOptions = [
   // { label: '另存为', action: onSaveAs, icon: 'icon-baocun' },
   { label: '设置', action: () => (activeTab.value = 'settings'), icon: 'icon-config-props', value: 'settings' },
   { label: '外观', action: () => (activeTab.value = 'appearance'), icon: 'icon-waiguan', value: 'appearance' },
+  { label: '语言', action: () => (activeTab.value = 'language'), icon: 'icon-language', value: 'language' },
   { label: '关于', action: () => (activeTab.value = 'about'), icon: 'icon-github', value: 'about' },
 ]
 </script>
