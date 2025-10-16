@@ -21,7 +21,7 @@ const MenuOptions = [
   // { label: '另存为', action: onSaveAs, icon: 'icon-baocun' },
   { label: '设置', action: () => (activeTab.value = 'settings'), icon: 'icon-config-props', value: 'settings' },
   { label: '外观', action: () => (activeTab.value = 'appearance'), icon: 'icon-waiguan', value: 'appearance' },
-  { label: '语言', action: () => (activeTab.value = 'language'), icon: 'icon-language', value: 'language' },
+  { label: '语言', action: () => (activeTab.value = 'language'), icon: 'icon-fanyi', value: 'language' },
   { label: '关于', action: () => (activeTab.value = 'about'), icon: 'icon-github', value: 'about' },
 ]
 </script>
