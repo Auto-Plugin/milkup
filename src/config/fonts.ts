@@ -22,6 +22,6 @@ export const fontConfig: Record<FontType, FontConfigItem> = {
 
 // CSS字体变量配置项
 export const fontCssVariables = {
-  'editor-font': '--crepe-font-default',
-  'code-font': '--crepe-font-code',
+  'editor-font': '--milkup-font-default',
+  'code-font': '--milkup-font-code',
 }

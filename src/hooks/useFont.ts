@@ -40,7 +40,7 @@ function setFont(type: FontType, font: Font) {
   if (cssVariables && font) {
     // 同时应用到 milkdown 编辑器
 
-    const milkdownElement = document.querySelector('.milkdown')
+    const milkdownElement = document.querySelector('#fontRoot')
     if (milkdownElement) {
       (milkdownElement as HTMLElement).style.setProperty(cssVariables, font as any, 'important')
     }

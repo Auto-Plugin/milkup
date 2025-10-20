@@ -35,41 +35,42 @@ const {
 
 <template>
   <TitleBar />
-  <div v-if="isShowEditors" class="editorArea">
-    <Transition name="fade" mode="out-in">
-      <div v-show="isShowOutline && !isShowSource" class="outlineBox">
-        <Outline />
+  <div id="fontRoot">
+    <div v-if="isShowEditors" class="editorArea">
+      <Transition name="fade" mode="out-in">
+        <div v-show="isShowOutline && !isShowSource" class="outlineBox">
+          <Outline />
+        </div>
+      </Transition>
+      <div class="editorBox">
+        <MilkdownProvider v-if="!isShowSource">
+          <MilkupProvider>
+            <MilkdownEditor v-model="markdown" />
+          </MilkupProvider>
+        </MilkdownProvider>
+        <MarkdownSourceEditor v-else-if="isShowSource" v-model="markdown" />
       </div>
-    </Transition>
-    <div class="editorBox">
-      <MilkdownProvider v-if="!isShowSource">
-        <MilkupProvider>
-          <MilkdownEditor v-model="markdown" />
-        </MilkupProvider>
-      </MilkdownProvider>
-      <MarkdownSourceEditor v-else-if="isShowSource" v-model="markdown" />
     </div>
   </div>
   <StatusBar :content="markdown" />
   <SaveConfirmDialog
-    :visible="isDialogVisible"
-    :type="dialogType"
-    :tab-name="tabName || pendingCloseTab?.tabName"
-    :file-name="fileName"
-    @save="handleSave"
-    @discard="handleDiscard"
-    @cancel="handleCancel"
+    :visible="isDialogVisible" :type="dialogType" :tab-name="tabName || pendingCloseTab?.tabName"
+    :file-name="fileName" @save="handleSave" @discard="handleDiscard" @cancel="handleCancel"
     @overwrite="handleOverwrite"
   />
   <UpdateConfirmDialog
-    :visible="isUpdateDialogVisible"
-    @get="handleUpdate"
-    @ignore="handleIgnore"
+    :visible="isUpdateDialogVisible" @get="handleUpdate" @ignore="handleIgnore"
     @cancel="handleLater"
   />
 </template>
 
 <style scoped lang="less">
+#fontRoot{
+  height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
 .editorArea {
   height: 0;
   flex: 1;
