@@ -6,7 +6,7 @@ import '@/assets/iconfont/iconfont.js'
 import '@/themes/theme-main.less'
 
 // 动态导入确保顺序
-import('./lang/index.js' as any).then(async () => {
+import('../../lang/index.js' as any).then(async () => {
   // 翻译系统加载完成后，加载其他模块
   const [
     { createApp },
