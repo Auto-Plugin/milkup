@@ -1,8 +1,10 @@
-import { createApp, onMounted } from 'vue'
+import '../../lang/index.js'
 
+import { createApp, onMounted } from 'vue'
 import useTheme from '@/hooks/useTheme'
 
 import ThemeEditor from './components/ThemeEditor.vue'
+
 import './style.less'
 import '@/themes/theme-main.less'
 import '@milkdown/crepe/theme/common/style.css'
