@@ -28,7 +28,7 @@ function handleCheckUpdate() {
     </h1>
     <p>
       <span class="link version" @click="handleCheckUpdate">
-        <span>version: v{{ version }} </span><span v-if="updateInfo" class="updateTip">new</span>
+        <span>version: v{{ version }} </span><span v-if="updateInfo.version" class="updateTip">new</span>
       </span>
     </p>
     <p>MIT Copyright © [2025] Larry Zhu</p>

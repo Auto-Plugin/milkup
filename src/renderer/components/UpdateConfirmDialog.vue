@@ -29,6 +29,7 @@ function handleCancel() {
 }
 watch(() => visible, (newVal) => {
   if (newVal) {
+    updateInfo.value = JSON.parse(localStorage.getItem('updateInfo') || '{}')
     nextTick(() => {
       const preview = new Crepe({
         root: document.querySelector('#updateLog') as HTMLElement,

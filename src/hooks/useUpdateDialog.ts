@@ -3,7 +3,6 @@ import { ref } from 'vue'
 
 export function useUpdateDialog() {
   const isDialogVisible = ref(false)
-  const updateInfo = JSON.parse(localStorage.getItem('updateInfo') || '{}')
 
   function showDialog() {
     isDialogVisible.value = true
@@ -12,11 +11,13 @@ export function useUpdateDialog() {
     isDialogVisible.value = false
   }
   function handleIgnore() {
+    const updateInfo = JSON.parse(localStorage.getItem('updateInfo') || '{}')
     const version = updateInfo.version || ''
     hideDialog()
     localStorage.setItem('ignoredVersion', version)
   }
   function handleUpdate() {
+    const updateInfo = JSON.parse(localStorage.getItem('updateInfo') || '{}')
     const downloadUrl = updateInfo.url || ''
     if (!downloadUrl) {
       console.error('No download URL available for update.')
