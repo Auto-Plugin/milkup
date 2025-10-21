@@ -1,8 +1,10 @@
 import type { Ref } from 'vue'
 import type { Tab } from '@/types/tab'
+import type { InertiaScroll } from '@/utils/inertiaScroll'
 import { computed, nextTick, ref, watch } from 'vue'
 import { processImagePaths, setCurrentMarkdownFilePath } from '@/plugins/imagePathPlugin'
 import emitter from '@/renderer/events'
+import { createInertiaScroll } from '@/utils/inertiaScroll'
 import { randomUUID } from '@/utils/tool'
 import { isShowOutline } from './useOutline'
 
@@ -263,6 +265,7 @@ function ensureActiveTabVisible(containerRef: Ref<HTMLElement | null>) {
   const tabRect = activeTabElement.getBoundingClientRect()
 
   const paddingOffset = 12 // 额外的内边距
+  const shadowOffset = 8 // 阴影偏移量，确保阴影完全显示
 
   // 考虑tabbar的偏移量（当大纲显示时，tabbar向右偏移25%）
   // 由于TabBar使用margin-left: 25%，所以偏移量是相对于父容器的25%
@@ -271,7 +274,7 @@ function ensureActiveTabVisible(containerRef: Ref<HTMLElement | null>) {
   // 检查tab是否完全在可视区域内（包括阴影和偏移）
   const isFullyVisible
     = tabRect.left >= (containerRect.left + paddingOffset + offsetLeft)
-      && tabRect.right <= (containerRect.right - paddingOffset)
+      && tabRect.right <= (containerRect.right - paddingOffset - shadowOffset)
 
   if (!isFullyVisible) {
     // 计算tab相对于容器的位置
@@ -280,7 +283,7 @@ function ensureActiveTabVisible(containerRef: Ref<HTMLElement | null>) {
     // 计算可视区域的边界（考虑偏移量）
     // 当有大纲显示时，TabBar有margin-left: 25%，所以可视区域从25%开始
     const visibleLeft = paddingOffset
-    const visibleRight = container.clientWidth - paddingOffset
+    const visibleRight = container.clientWidth - paddingOffset - shadowOffset
 
     let scrollLeft = 0
 
@@ -289,8 +292,8 @@ function ensureActiveTabVisible(containerRef: Ref<HTMLElement | null>) {
       // 将tab滚动到可视区域的左侧
       // 当有大纲显示时，需要考虑TabBar的margin-left偏移
       scrollLeft = tabOffsetLeft - visibleLeft
-    } else if (tabRect.right > containerRect.right - paddingOffset) {
-      // 如果tab在右侧被遮挡
+    } else if (tabRect.right > containerRect.right - paddingOffset - shadowOffset) {
+      // 如果tab在右侧被遮挡（包括阴影）
       // 将tab滚动到可视区域的右侧
       scrollLeft = tabOffsetLeft - visibleRight + activeTabElement.offsetWidth
     }
@@ -301,28 +304,33 @@ function ensureActiveTabVisible(containerRef: Ref<HTMLElement | null>) {
     const maxScrollLeft = container.scrollWidth - container.clientWidth
     scrollLeft = Math.max(minScrollLeft, Math.min(scrollLeft, maxScrollLeft))
 
-    container.scrollTo({
-      left: scrollLeft,
-      behavior: 'smooth',
-    })
+    // 使用专门优化的tab切换滚动
+    const inertiaInstance = getInertiaScrollInstance(container)
+    inertiaInstance.scrollTo(scrollLeft) // 使用平滑滚动动画
   }
 }
 
-// 横向滚动
+// 惯性滚动实例存储
+const inertiaScrollInstances = new Map<HTMLElement, InertiaScroll>()
+
+// 获取或创建惯性滚动实例
+function getInertiaScrollInstance(container: HTMLElement): InertiaScroll {
+  if (!inertiaScrollInstances.has(container)) {
+    const instance = createInertiaScroll(container)
+    inertiaScrollInstances.set(container, instance)
+  }
+  return inertiaScrollInstances.get(container)!
+}
+
+// 滚动
 function handleWheelScroll(event: WheelEvent, containerRef: Ref<HTMLElement | null>) {
-  event.preventDefault()
-
-  // 获取滚轮滚动距离
-  const scrollAmount = event.deltaY
-
   const container = containerRef.value
   if (!container)
     return
 
-  container.scrollBy({
-    left: scrollAmount,
-    behavior: 'smooth',
-  })
+  // 获取惯性滚动实例并处理滚轮事件
+  const inertiaScroll = getInertiaScrollInstance(container)
+  inertiaScroll.handleWheel(event)
 }
 
 // 带确认的关闭tab
@@ -375,6 +383,15 @@ function setupTabScrollListener(containerRef: Ref<HTMLElement | null>) {
   })
 }
 
+// 清理惯性滚动实例
+function cleanupInertiaScroll(container: HTMLElement) {
+  const instance = inertiaScrollInstances.get(container)
+  if (instance) {
+    instance.destroy()
+    inertiaScrollInstances.delete(container)
+  }
+}
+
 // 计算属性：格式化tab显示名称
 const formattedTabs = computed(() => {
   return tabs.value.map(tab => ({
@@ -418,6 +435,7 @@ function useTab() {
     handleWheelScroll,
     closeWithConfirm,
     setupTabScrollListener,
+    cleanupInertiaScroll,
 
     // 拖动
     reorderTabs,
