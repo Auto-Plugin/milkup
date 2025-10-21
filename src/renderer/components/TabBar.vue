@@ -7,13 +7,18 @@ import useTab from '@/hooks/useTab'
 const {
   formattedTabs,
   activeTabId,
+  shouldOffsetTabBar,
   switchToTab,
   handleWheelScroll,
   closeWithConfirm,
   setupTabScrollListener,
+  cleanupInertiaScroll,
   reorderTabs,
-  shouldOffsetTabBar,
+
 } = useTab()
+
+const { createNewFile } = useFile()
+
 // 拦截 ctrl/cmd + w 快捷键关闭tab
 function handleCloseTabShortcut(e: KeyboardEvent) {
   const isMac = window.electronAPI.platform === 'darwin'
@@ -25,8 +30,6 @@ function handleCloseTabShortcut(e: KeyboardEvent) {
   }
 }
 window.addEventListener('keydown', handleCloseTabShortcut)
-
-const { createNewFile } = useFile()
 
 // 获取tab容器的DOM引用
 const tabContainerRef = ref<HTMLElement | null>(null)
@@ -75,11 +78,13 @@ onMounted(() => {
   }
 })
 
-// 组件卸载时移除事件监听器
+// 组件卸载时移除事件监听器和清理惯性滚动实例
 onUnmounted(() => {
   const container = tabContainerRef.value
   if (container) {
     container.removeEventListener('wheel', event => handleWheelScroll(event, tabContainerRef))
+    // 清理惯性滚动实例
+    cleanupInertiaScroll(container)
   }
   window.removeEventListener('keydown', handleCloseTabShortcut)
 })
