@@ -8,6 +8,7 @@ import SaveConfirmDialog from './components/SaveConfirmDialog.vue'
 import StatusBar from './components/StatusBar.vue'
 import TitleBar from './components/TitleBar.vue'
 import UpdateConfirmDialog from './components/UpdateConfirmDialog.vue'
+// import VditorEditor from './components/VditorEditor.vue'
 import { MilkupProvider } from './context'
 
 // 使用整合的context hook
@@ -46,6 +47,7 @@ const {
         <MilkdownProvider v-if="!isShowSource">
           <MilkupProvider>
             <MilkdownEditor v-model="markdown" />
+            <!-- <VditorEditor v-model="markdown" /> -->
           </MilkupProvider>
         </MilkdownProvider>
         <MarkdownSourceEditor v-else-if="isShowSource" v-model="markdown" />
