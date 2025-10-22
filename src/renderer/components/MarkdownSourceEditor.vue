@@ -2,15 +2,19 @@
 import { basicSetup, EditorView } from '@codemirror/basic-setup'
 import { markdown } from '@codemirror/lang-markdown'
 import { EditorState } from '@codemirror/state'
+import { keymap } from '@codemirror/view'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import useContent from '@/hooks/useContent'
 
-const props = defineProps<{
+const props = defineProps <{
   modelValue: string
-}>()
+}> ()
 const emit = defineEmits(['update:modelValue'])
 
-const editorContainer = ref<HTMLElement>()
+// 禁用注释快捷键 Ctrl-/Cmd-/
+const disableCommentKeymap = keymap.of([{ key: 'Mod-/', run: () => true }])
+
+const editorContainer = ref <HTMLElement> ()
 const { currentScrollRatio, initScrollListener } = useContent()
 let editorView: EditorView | null = null
 
@@ -19,6 +23,7 @@ onMounted(() => {
     doc: props.modelValue,
     extensions: [
       basicSetup,
+      disableCommentKeymap,
       markdown(),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
