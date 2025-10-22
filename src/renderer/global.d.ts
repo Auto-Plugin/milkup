@@ -12,7 +12,7 @@ interface Window {
     onOpenFileAtLaunch: (cb: (payload: { filePath: string, content: string }) => void) => void
     openExternal: (url: string) => Promise<void>
     getFilePathInClipboard: () => Promise<string | null>
-    writeTempImage: (file: ArrayBufferLike, tempPath: string) => Promise<string>
+    writeTempImage: (file: Uint8Array<ArrayBuffer>, tempPath: string) => Promise<string>
     // 图片路径解析
     resolveImagePath: (markdownFilePath: string, imagePath: string) => Promise<string>
     // 导出为 PDF

@@ -63,7 +63,8 @@ async function local(image: File, nodes: Node[], schema: Schema<any, any>) {
   } else {
     const arrayBuffer = await image.arrayBuffer()
     const buffer = new Uint8Array(arrayBuffer)
-    const filePath = await window.electronAPI.writeTempImage(buffer, localStorage.getItem('localImagePath') || '/temp')
-    nodes.push(schema.nodes.image.createAndFill({ src: filePath, alt: image.name }) as Node)
+    // Convert Uint8Array to ArrayBuffer to satisfy the ArrayBufferLike parameter
+    const tempPath = await window.electronAPI.writeTempImage(buffer, localStorage.getItem('localImagePath') || '/temp')
+    nodes.push(schema.nodes.image.createAndFill({ src: tempPath, alt: image.name }) as Node)
   }
 }
