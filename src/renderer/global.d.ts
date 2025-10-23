@@ -1,6 +1,8 @@
+type OpenedFileResult = { filePath: string, content: string, isReadOnly: boolean }
+
 interface Window {
   electronAPI: {
-    openFile: () => Promise<{ filePath: string, content: string } | null>
+    openFile: () => Promise<OpenedFileResult | null>
     saveFile: (filePath: string | null, content: string) => Promise<string | null>
     saveFileAs: (content: string) => Promise<{ filePath: string } | null>
     setTitle: (filePath: string | null) => void
@@ -9,7 +11,7 @@ interface Window {
     removeListener: (channel: string, listener: (...args: any[]) => void) => void
     windowControl: (action: 'minimize' | 'maximize' | 'close') => void
     closeDiscard: () => void
-    onOpenFileAtLaunch: (cb: (payload: { filePath: string, content: string }) => void) => void
+    onOpenFileAtLaunch: (cb: (payload: OpenedFileResult) => void) => void
     openExternal: (url: string) => Promise<void>
     getFilePathInClipboard: () => Promise<string | null>
     writeTempImage: (file: Uint8Array<ArrayBuffer>, tempPath: string) => Promise<string>
@@ -20,7 +22,7 @@ interface Window {
     // 导出为 Word
     exportAsWord: (blocks: Block, outputName: string) => Promise<void>
     // 通过路径读取文件（用于拖拽）
-    readFileByPath: (filePath: string) => Promise<{ filePath: string, content: string } | null>
+    readFileByPath: (filePath: string) => Promise<OpenedFileResult | null>
     // 显示文件覆盖确认对话框
     showOverwriteConfirm: (fileName: string) => Promise<number>
     // 显示关闭确认对话框

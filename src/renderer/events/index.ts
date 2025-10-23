@@ -9,7 +9,7 @@ type Events = {
   'menu-save': boolean // Triggered when user wants to save
   'trigger-save': boolean // Triggered when main process requests save
   'tab:close-confirm': { tabId: string, tabName: string, isLastTab?: boolean } // Triggered when tab close confirmation is needed
-  'tab:switch': { id: string, name: string, filePath: string | null, content: string, originalContent: string, isModified: boolean, scrollRatio?: number } // Triggered when switching tabs
+  'tab:switch': { id: string, name: string, filePath: string | null, content: string, originalContent: string, isModified: boolean, isReadOnly: boolean, scrollRatio?: number } // Triggered when switching tabs
   'file:overwrite-confirm': { fileName: string, resolver: (choice: 'cancel' | 'save' | 'overwrite') => void } // Triggered when file overwrite confirmation is needed
   'update:available': { version: string, url: string, notes: string } // Triggered when an update is available
 } & Record<string, unknown>

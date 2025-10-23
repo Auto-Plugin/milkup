@@ -1,6 +1,8 @@
 import type { Block, ExportPDFOptions } from './main/types'
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
+type OpenedFilePayload = { filePath: string, content: string, isReadOnly: boolean }
+
 contextBridge.exposeInMainWorld('electronAPI', {
   openFile: () => ipcRenderer.invoke('dialog:openFile'),
   saveFile: (filePath: string | null, content: string) => ipcRenderer.invoke('dialog:saveFile', { filePath, content }),
@@ -11,7 +13,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   changeSaveStatus: (isSaved: boolean) => ipcRenderer.send('change-save-status', isSaved),
   windowControl: (action: 'minimize' | 'maximize' | 'close') => ipcRenderer.send('window-control', action),
   closeDiscard: () => ipcRenderer.send('close:discard'),
-  onOpenFileAtLaunch: (cb: (payload: { filePath: string, content: string }) => void) => {
+  onOpenFileAtLaunch: (cb: (payload: OpenedFilePayload) => void) => {
     ipcRenderer.on('open-file-at-launch', (_event, payload) => {
       cb(payload)
     })

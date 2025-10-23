@@ -7,6 +7,7 @@ import { Document, HeadingLevel, Packer, Paragraph, TextRun } from 'docx'
 import { app, clipboard, dialog, ipcMain, shell } from 'electron'
 import { getFonts } from 'font-list'
 import { createThemeEditorWindow } from './index'
+import { isFileReadOnly } from './utils/filePermission'
 
 let isSaved = true
 let isQuitting = false
@@ -138,7 +139,7 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
       return null
     const filePath = filePaths[0]
     const content = fs.readFileSync(filePath, 'utf-8')
-    return { filePath, content }
+    return { filePath, content, isReadOnly: isFileReadOnly(filePath) }
   })
 
   // 文件保存对话框
@@ -457,7 +458,7 @@ export function registerGlobalIpcHandlers() {
         return null
 
       const content = fs.readFileSync(filePath, 'utf-8')
-      return { filePath, content }
+      return { filePath, content, isReadOnly: isFileReadOnly(filePath) }
     } catch (error) {
       console.error('Failed to read file:', error)
       return null

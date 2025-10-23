@@ -22,14 +22,16 @@ const {
   tabs,
 } = useTab()
 
-async function onOpen(result?: { filePath: string, content: string } | null) {
+type OpenedFileResult = { filePath: string, content: string, isReadOnly: boolean }
+
+async function onOpen(result?: OpenedFileResult | null) {
   if (!result) {
     result = await window.electronAPI.openFile()
   }
 
   if (result) {
     // 创建新tab
-    const tab = await createTabFromFile(result.filePath, result.content)
+    const tab = await createTabFromFile(result.filePath, result.content, { isReadOnly: result.isReadOnly })
 
     // 更新当前内容状态
     filePath.value = result.filePath
@@ -69,6 +71,7 @@ async function onSaveAs() {
       currentTab.value.name = result.filePath.split(/[\\/]/).at(-1) || 'Untitled'
       currentTab.value.originalContent = markdown.value
       currentTab.value.isModified = false
+      currentTab.value.isReadOnly = false
     }
 
     filePath.value = result.filePath
@@ -84,9 +87,9 @@ function registerMenuEventsOnce() {
     return
   hasRegistered = true
 
-  window.electronAPI?.onOpenFileAtLaunch?.(async ({ filePath: launchFilePath, content }) => {
+  window.electronAPI?.onOpenFileAtLaunch?.(async ({ filePath: launchFilePath, content, isReadOnly }) => {
     // 创建新tab
-    const tab = await createTabFromFile(launchFilePath, content)
+    const tab = await createTabFromFile(launchFilePath, content, { isReadOnly })
 
     // 更新当前内容状态
     markdown.value = tab.content
@@ -182,7 +185,7 @@ function registerMenuEventsOnce() {
           if (userChoice === 'overwrite') {
             // 覆盖更新当前tab的文件信息
             const processedContent = await processImagePaths(result.content, result.filePath)
-            updateCurrentTabFile(result.filePath, processedContent)
+            updateCurrentTabFile(result.filePath, processedContent, undefined, { isReadOnly: result.isReadOnly })
 
             // 更新当前内容状态
             markdown.value = processedContent
@@ -190,7 +193,7 @@ function registerMenuEventsOnce() {
             originalContent.value = result.content
           } else {
             // 创建新tab
-            const tab = await createTabFromFile(result.filePath, result.content)
+            const tab = await createTabFromFile(result.filePath, result.content, { isReadOnly: result.isReadOnly })
 
             // 更新当前内容
             markdown.value = tab.content
@@ -211,7 +214,7 @@ function registerMenuEventsOnce() {
 
       if (userChoice === 'overwrite') {
         // 覆盖更新当前tab的文件信息
-        updateCurrentTabFile(mdFile.name, content)
+        updateCurrentTabFile(mdFile.name, content, undefined, { isReadOnly: false })
 
         // 更新内容
         markdown.value = content

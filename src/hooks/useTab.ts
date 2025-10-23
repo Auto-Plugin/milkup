@@ -23,6 +23,7 @@ const defaultTab: Tab = {
   originalContent: '',
   isModified: false,
   scrollRatio: 0,
+  isReadOnly: false,
 }
 tabs.value.push(defaultTab)
 activeTabId.value = defaultTab.id
@@ -109,13 +110,14 @@ function updateCurrentTabContent(content: string, isModified?: boolean) {
 }
 
 // 更新当前tab的文件信息（用于文件覆盖场景）
-function updateCurrentTabFile(filePath: string, content: string, name?: string) {
+function updateCurrentTabFile(filePath: string, content: string, name?: string, options?: { isReadOnly?: boolean }) {
   const currentTab = getCurrentTab()
   if (currentTab) {
     currentTab.filePath = filePath
     currentTab.content = content
     currentTab.originalContent = content
     currentTab.isModified = false
+    currentTab.isReadOnly = options?.isReadOnly ?? false
     if (name) {
       currentTab.name = name
     } else {
@@ -139,12 +141,39 @@ async function saveCurrentTab(): Promise<boolean> {
     return false
 
   try {
+    if (!currentTab.filePath) {
+      const saved = await window.electronAPI.saveFile(currentTab.filePath, currentTab.content)
+      if (saved) {
+        currentTab.filePath = saved
+        currentTab.name = getFileName(saved)
+        currentTab.originalContent = currentTab.content
+        currentTab.isModified = false
+        currentTab.isReadOnly = false
+        return true
+      }
+      return false
+    }
+
+    if (currentTab.isReadOnly) {
+      const result = await window.electronAPI.saveFileAs(currentTab.content)
+      if (result?.filePath) {
+        currentTab.filePath = result.filePath
+        currentTab.name = getFileName(result.filePath)
+        currentTab.originalContent = currentTab.content
+        currentTab.isModified = false
+        currentTab.isReadOnly = false
+        return true
+      }
+      return false
+    }
+
     const saved = await window.electronAPI.saveFile(currentTab.filePath, currentTab.content)
     if (saved) {
       currentTab.filePath = saved
       currentTab.name = getFileName(saved) // 更新标签名称
       currentTab.originalContent = currentTab.content
       currentTab.isModified = false
+      currentTab.isReadOnly = false
       return true
     }
   } catch (error) {
@@ -154,7 +183,7 @@ async function saveCurrentTab(): Promise<boolean> {
 }
 
 // 从文件创建新tab
-async function createTabFromFile(filePath: string, content: string): Promise<Tab> {
+async function createTabFromFile(filePath: string, content: string, options?: { isReadOnly?: boolean }): Promise<Tab> {
   // 处理图片路径
   const processedContent = await processImagePaths(content, filePath)
 
@@ -166,6 +195,7 @@ async function createTabFromFile(filePath: string, content: string): Promise<Tab
     originalContent: content,
     isModified: false,
     scrollRatio: 0,
+    isReadOnly: options?.isReadOnly ?? false,
   }
 
   return add(tab)
@@ -186,7 +216,7 @@ async function openFile(filePath: string): Promise<Tab | null> {
     const result = await window.electronAPI.readFileByPath(filePath)
     if (result) {
       // 创建新tab
-      const newTab = await createTabFromFile(result.filePath, result.content)
+      const newTab = await createTabFromFile(result.filePath, result.content, { isReadOnly: result.isReadOnly })
 
       // 切换新tab
       switchToTab(newTab.id)
@@ -215,6 +245,7 @@ function createNewTab(): Tab {
     originalContent: '',
     isModified: false,
     scrollRatio: 0,
+    isReadOnly: false,
   }
 
   return add(tab)
@@ -394,10 +425,15 @@ function cleanupInertiaScroll(container: HTMLElement) {
 
 // 计算属性：格式化tab显示名称
 const formattedTabs = computed(() => {
-  return tabs.value.map(tab => ({
-    ...tab,
-    displayName: tab.isModified ? `*${tab.name}` : tab.name,
-  }))
+  return tabs.value.map((tab) => {
+    const baseName = tab.isReadOnly ? `${tab.name}（只读）` : tab.name
+    const displayName = tab.isModified ? `*${baseName}` : baseName
+
+    return {
+      ...tab,
+      displayName,
+    }
+  })
 })
 
 const currentTab = computed(() => getCurrentTab())

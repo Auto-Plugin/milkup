@@ -3,6 +3,7 @@ import * as path from 'node:path'
 import { app, BrowserWindow, globalShortcut } from 'electron'
 import { close, getIsQuitting, registerGlobalIpcHandlers, registerIpcHandleHandlers, registerIpcOnHandlers } from './ipcBridge'
 import createMenu from './menu'
+import { isFileReadOnly } from './utils/filePermission'
 
 let win: BrowserWindow
 let themeEditorWindow: BrowserWindow | null = null
@@ -98,6 +99,7 @@ function sendLaunchFileIfExists(argv = process.argv) {
       win.webContents.send('open-file-at-launch', {
         filePath: absolutePath,
         content,
+        isReadOnly: isFileReadOnly(absolutePath),
       })
     } else {
       console.warn('[main] 文件不存在:', absolutePath)
@@ -154,6 +156,7 @@ app.on('open-file', (event, filePath) => {
           win.webContents.send('open-file-at-launch', {
             filePath,
             content,
+            isReadOnly: isFileReadOnly(filePath),
           })
         }
       }
