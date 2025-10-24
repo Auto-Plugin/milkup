@@ -1,62 +1,92 @@
-import type { Font, FontConfig, FontList, FontType } from '@/types/font'
-import { ref } from 'vue'
-import { defaultFontConfig, fontCssVariables } from '@/config/fonts'
-import fontManager from '@/utils/fontManager'
+import type { Font, FontConfig, FontList, FontSizeConfig, FontSizeType, FontType } from '@/types/font'
+import { computed, ref } from 'vue'
+import { fontCssVariables, fontSizeCssVariables, fontSizeOptions } from '@/config/fonts'
+import { useConfig } from './useConfig'
 
 // 系统字体列表
 const fontList = ref<FontList>([])
 
-// 当前字体
-const currentFont = ref<FontConfig | null>(null)
+// 获取配置管理实例
+const { getConf, setConf } = useConfig()
+
+// 当前字体配置
+const currentFont = computed(() => getConf('font').family)
+
+// 当前字体尺寸配置
+const currentFontSize = computed(() => getConf('font').size)
 
 async function init() {
-  const fonts = await fontManager.loadFonts()
-  currentFont.value = fonts
-
   // 获取系统字体列表
   try {
     const systemFonts = await window.electronAPI.getSystemFonts()
-    // 将字符串数组转换为 Font 对象数组
+    // Font 对象数组
     fontList.value = systemFonts.map(fontName => ({
       label: fontName,
       value: fontName,
     }))
 
-    // 将默认字体配置添加到字体列表
-    fontList.value.unshift(...Object.values(defaultFontConfig))
+    // 应用当前字体配置到 DOM
+    const fontConfig = getConf('font').family
+    const fontSizeConfig = getConf('font').size
 
-    setFont('editor-font', currentFont.value!['editor-font'] as Font)
-    setFont('code-font', currentFont.value!['code-font'] as Font)
+    // 设置字体
+    applyFont(fontConfig)
+    // 设置字体尺寸
+    applyFontSize(fontSizeConfig)
   } catch (error) {
     console.error('获取系统字体列表失败:', error)
   }
 }
 
 function setFont(type: FontType, font: Font) {
-  fontManager.setFont(type, font)
-  currentFont.value![type] = font
-
-  const cssVariables = fontCssVariables[type]
-  if (cssVariables && font) {
-    // 同时应用到 milkdown 编辑器
-
-    const milkdownElement = document.querySelector('#fontRoot')
-    if (milkdownElement) {
-      (milkdownElement as HTMLElement).style.setProperty(cssVariables, font as any, 'important')
-    }
-  }
+  setConf('font', `family.${type}`, font)
+  applyFont(getConf('font').family)
 }
 
-function getFontList() {
-  return fontList
+function setFontSize(type: FontSizeType, fontSize: string) {
+  setConf('font', `size.${type}`, fontSize)
+  applyFontSize(getConf('font').size)
+}
+
+// 应用字体配置到 DOM 元素
+function applyFont(fontConfig: FontConfig) {
+  const milkdownElement = document.querySelector('.milkdown') as HTMLElement
+  if (!milkdownElement)
+    return
+
+  // 设置字体样式
+  Object.entries(fontConfig).forEach(([type, font]) => {
+    const cssVar = fontCssVariables[type as FontType]
+    if (cssVar && font) {
+      milkdownElement.style.setProperty(cssVar, font.value, 'important')
+    }
+  })
+}
+
+function applyFontSize(fontSizeConfig: FontSizeConfig) {
+  const milkdownElement = document.querySelector('.milkdown') as HTMLElement
+  if (!milkdownElement)
+    return
+
+  Object.entries(fontSizeConfig).forEach(([type, fontSize]) => {
+    const cssVar = fontSizeCssVariables[type as FontSizeType]
+    if (cssVar && fontSize) {
+      milkdownElement.style.setProperty(cssVar, fontSize, 'important')
+
+      // get
+      // const fontSize = window.getComputedStyle(document.documentElement).getPropertyValue(cssVar)
+    }
+  })
 }
 
 export default function useFont() {
   return {
     fontList,
     currentFont,
+    currentFontSize,
+    fontSizeOptions,
     init,
     setFont,
-    getFontList,
+    setFontSize,
   }
 }
