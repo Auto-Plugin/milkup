@@ -7,6 +7,8 @@ import useContent from './useContent'
 import useTab from './useTab'
 import useTitle from './useTitle'
 
+const defaultName = 'Untitled'
+
 const { updateTitle } = useTitle()
 const { markdown, filePath, originalContent } = useContent()
 const {
@@ -17,6 +19,7 @@ const {
   updateCurrentTabContent,
   updateCurrentTabScrollRatio,
   saveCurrentTab,
+  getFileName,
   currentTab,
   hasUnsavedTabs,
   tabs,
@@ -28,13 +31,30 @@ async function onOpen(result?: { filePath: string, content: string } | null) {
   }
 
   if (result) {
-    // 创建新tab
-    const tab = await createTabFromFile(result.filePath, result.content)
-
-    // 更新当前内容状态
     filePath.value = result.filePath
-    markdown.value = tab.content
-    originalContent.value = result.content
+    if (
+      tabs.value.length === 1
+      && tabs.value[0].filePath === null
+      && tabs.value[0].name === defaultName
+      && !tabs.value[0].isModified
+    ) {
+      // 如果当前有且只有一个默认未命名且未修改的tab，则复用该tab
+      const tab = tabs.value[0]
+      tab.filePath = filePath.value
+      tab.name = getFileName(filePath.value)
+      updateCurrentTabContent(result.content, false)
+      tab.isModified = false
+      await switchToTab(tab.id)
+      markdown.value = tab.content
+      originalContent.value = result.content
+      tab.isModified = false
+    } else {
+      // 创建新tab
+      const tab = await createTabFromFile(result.filePath, result.content)
+      // 更新当前内容状态
+      markdown.value = tab.content
+      originalContent.value = result.content
+    }
 
     updateTitle()
     nextTick(() => {

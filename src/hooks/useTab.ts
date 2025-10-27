@@ -185,16 +185,31 @@ async function openFile(filePath: string): Promise<Tab | null> {
     // 读取文件内容
     const result = await window.electronAPI.readFileByPath(filePath)
     if (result) {
-      // 创建新tab
-      const newTab = await createTabFromFile(result.filePath, result.content)
+      // 如果当前有且只有一个默认未命名且未修改的tab，则复用该tab
+      if (
+        tabs.value.length === 1
+        && tabs.value[0].filePath === null
+        && tabs.value[0].name === defaultName
+        && !tabs.value[0].isModified
+      ) {
+        const tab = tabs.value[0]
+        tab.filePath = filePath
+        tab.name = getFileName(filePath)
+        updateCurrentTabContent(result.content, false)
+        tab.isModified = false
+        await switchToTab(tab.id)
+        return tab
+      } else {
+        // 创建新tab
+        const newTab = await createTabFromFile(result.filePath, result.content)
 
-      // 切换新tab
-      switchToTab(newTab.id)
+        // 切换新tab
+        switchToTab(newTab.id)
 
-      // 触发内容更新事件
-      emitter.emit('file:Change')
-
-      return newTab
+        // 触发内容更新事件
+        emitter.emit('file:Change')
+        return newTab
+      }
     } else {
       console.error('无法读取文件:', filePath)
       return null
