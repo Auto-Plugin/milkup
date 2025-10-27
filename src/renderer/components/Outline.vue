@@ -8,7 +8,6 @@ const { outline } = useOutline()
 const activeTab = ref<'outline' | 'file'>('file')
 
 function onOiClick(oi: { id: string, text: string, level: number }) {
-  console.log('oi::: ', oi)
   // 滚动到指定元素
   const element = document.querySelector(`h${oi.level}#${oi.id}`)
   console.log('element::: ', element)

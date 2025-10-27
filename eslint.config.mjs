@@ -18,6 +18,7 @@ export default antfu({
     '**/renderer/theme-editor-main.ts',
     '**/*.md',
     '**/iconfont',
+    'lang/index.js',
   ],
   rules: {
     'node/prefer-global/process': 'off',
