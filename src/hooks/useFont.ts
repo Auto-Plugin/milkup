@@ -50,7 +50,7 @@ function setFontSize(type: FontSizeType, fontSize: string) {
 
 // 应用字体配置到 DOM 元素
 function applyFont(fontConfig: FontConfig) {
-  const milkdownElement = document.querySelector('.milkdown') as HTMLElement
+  const milkdownElement = document.querySelector('#fontRoot') as HTMLElement
   if (!milkdownElement)
     return
 
@@ -64,7 +64,7 @@ function applyFont(fontConfig: FontConfig) {
 }
 
 function applyFontSize(fontSizeConfig: FontSizeConfig) {
-  const milkdownElement = document.querySelector('.milkdown') as HTMLElement
+  const milkdownElement = document.querySelector('#fontRoot') as HTMLElement
   if (!milkdownElement)
     return
 

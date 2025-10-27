@@ -1,10 +1,12 @@
 @import url('./styles/milkdown.less');
 @import url('./styles/codemirror.less');
 @import url('./styles/vditor.less');
+
 * {
   box-sizing: border-box;
   outline: none;
 }
+
 body,
 html {
   margin: 0;
@@ -14,6 +16,7 @@ html {
   overflow: hidden;
   background: var(--background-color-1);
 }
+
 #app {
   height: 100%;
   width: 100%;
@@ -21,18 +24,22 @@ html {
   flex-direction: column;
   color: var(--text-color);
 }
+
 // 滚动条样式
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
+
 ::-webkit-scrollbar-thumb {
   background-color: var(--border-color);
   border-radius: 4px;
 }
+
 ::-webkit-scrollbar-track {
   background-color: var(--background-color-2);
 }
+
 input[type='checkbox'] {
   width: 16px;
   height: 16px;
@@ -53,10 +60,12 @@ input[type='checkbox'] {
     cursor: pointer;
   }
 }
+
 .fade-enter-active,
 .fade-leave-active {
   transition: 0.2s linear;
 }
+
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
@@ -65,11 +74,75 @@ input[type='checkbox'] {
   padding: 0 !important;
   margin: 0 !important;
 }
+
 @keyframes fade-in {
   from {
     height: 0;
   }
+
   to {
     height: 100%;
+  }
+}
+
+#fontRoot {
+  height: 100%;
+  background: var(--background-color-1);
+
+  --milkup-font-size-h1: 24px;
+  --milkup-font-size-h2: 20px;
+  --milkup-font-size-h3: 18px;
+  --milkup-font-size-h4: 16px;
+  --milkup-font-size-h5: 14px;
+  --milkup-font-size-h6: 12px;
+  --milkup-font-size-default: 16px;
+  --milkup-font-size-code: 16px;
+
+  .editor {
+    height: 100%;
+  }
+
+  .ProseMirror {
+    padding-bottom: 200px;
+  }
+
+  p {
+    font-family: var(--milkup-font-default) !important;
+    font-size: var(--milkup-font-size-default) !important;
+  }
+
+  h1 {
+    font-family: var(--milkup-font-default) !important;
+    font-size: var(--milkup-font-size-h1) !important;
+  }
+
+  h2 {
+    font-family: var(--milkup-font-default) !important;
+    font-size: var(--milkup-font-size-h2) !important;
+  }
+
+  h3 {
+    font-family: var(--milkup-font-default) !important;
+    font-size: var(--milkup-font-size-h3) !important;
+  }
+
+  h4 {
+    font-family: var(--milkup-font-default) !important;
+    font-size: var(--milkup-font-size-h4) !important;
+  }
+
+  h5 {
+    font-family: var(--milkup-font-default) !important;
+    font-size: var(--milkup-font-size-h5) !important;
+  }
+
+  h6 {
+    font-family: var(--milkup-font-default) !important;
+    font-size: var(--milkup-font-size-h6) !important;
+  }
+
+  .milkdown-code-block .cm-editor span {
+    font-family: var(--milkup-font-code);
+    font-size: var(--milkup-font-size-code) !important;
   }
 }

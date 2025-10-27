@@ -96,13 +96,13 @@ export const fontSizeCssVariables = {
 // 字体尺寸选项
 export const fontSizeOptions = [
   { label: '12px', value: '12px' },
-  { label: '13px', value: '13px' },
   { label: '14px', value: '14px' },
-  { label: '15px', value: '15px' },
   { label: '16px', value: '16px' },
-  { label: '17px', value: '17px' },
   { label: '18px', value: '18px' },
   { label: '20px', value: '20px' },
   { label: '22px', value: '22px' },
   { label: '24px', value: '24px' },
+  { label: '26px', value: '26px' },
+  { label: '28px', value: '28px' },
+  { label: '32px', value: '32px' },
 ]
