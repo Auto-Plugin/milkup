@@ -3,6 +3,7 @@ import type { FontSizeType, FontType } from '@/types/font'
 import { onMounted, ref } from 'vue'
 import { fontConfig, fontSizeConfig } from '@/config/fonts'
 import useFont from '@/hooks/useFont'
+import { VirtualSelect } from './ui/virtual-select'
 
 const {
   fontList,
@@ -22,6 +23,17 @@ function toggleFontSettings() {
 
 function toggleFontSizeSettings() {
   fontSizeSettingsExpanded.value = !fontSizeSettingsExpanded.value
+}
+
+function handleFontChange(fontType: FontType, value: string) {
+  const selectedFont = fontList.value.find(f => f.value === value)
+  if (selectedFont) {
+    setFont(fontType, selectedFont)
+  }
+}
+
+function handleFontSizeChange(fontSizeType: FontSizeType, value: string) {
+  setFontSize(fontSizeType, value)
 }
 
 onMounted(() => {
@@ -80,16 +92,14 @@ onMounted(() => {
               <label :for="font.value" class="selector-label">
                 字体选择
               </label>
-              <select
-                :id="font.value"
-                :value="currentFont[font.value as FontType]?.value"
-                class="font-select"
-                @change="setFont(font.value as FontType, fontList.find(f => f.value === ($event.target as HTMLSelectElement).value)!)"
-              >
-                <option v-for="item in fontList" :key="item.value" :value="item.value" :style="{ fontFamily: item.value }">
-                  {{ item.label }}
-                </option>
-              </select>
+              <VirtualSelect
+                :model-value="currentFont[font.value as FontType]?.value || ''"
+                :options="fontList"
+                :placeholder="`选择${font.label}`"
+                :item-height="32"
+                :max-height="200"
+                @update:model-value="handleFontChange(font.value as FontType, $event)"
+              />
             </div>
           </div>
         </div>
@@ -164,16 +174,14 @@ onMounted(() => {
               <label :for="fontSize.value" class="selector-label">
                 字体大小
               </label>
-              <select
-                :id="fontSize.value"
-                :value="currentFontSize[fontSize.value as FontSizeType]"
-                class="font-select"
-                @change="setFontSize(fontSize.value as FontSizeType, ($event.target as HTMLSelectElement).value)"
-              >
-                <option v-for="item in fontSizeOptions" :key="item.value" :value="item.value">
-                  {{ item.label }}
-                </option>
-              </select>
+              <VirtualSelect
+                :model-value="currentFontSize[fontSize.value as FontSizeType]"
+                :options="fontSizeOptions"
+                :placeholder="`选择${fontSize.label}`"
+                :item-height="32"
+                :max-height="200"
+                @update:model-value="handleFontSizeChange(fontSize.value as FontSizeType, $event)"
+              />
             </div>
           </div>
         </div>
@@ -193,7 +201,7 @@ onMounted(() => {
     background: var(--background-color-2);
     border: 1px solid var(--border-color-1);
     border-radius: 8px;
-    overflow: hidden;
+    // overflow: hidden;
     transition: all 0.2s ease;
 
     &:hover {
@@ -297,6 +305,7 @@ onMounted(() => {
         margin-bottom: 16px;
         min-height: 80px;
         justify-content: center;
+        overflow: hidden;
 
         .preview-text {
           font-weight: 700;
@@ -348,33 +357,6 @@ onMounted(() => {
           font-weight: 500;
         }
 
-        .font-select {
-          width: 100%;
-          padding: 8px 10px;
-          border: 1px solid var(--border-color-2);
-          border-radius: 4px;
-          background: var(--background-color-2);
-          color: var(--text-color);
-          font-size: 13px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-
-          &:hover {
-            border-color: var(--primary-color);
-          }
-
-          &:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 2px var(--primary-color-transparent);
-          }
-
-          option {
-            padding: 6px;
-            background: var(--background-color-2);
-            color: var(--text-color);
-          }
-        }
       }
     }
   }
@@ -394,7 +376,7 @@ onMounted(() => {
       transition: all 0.2s ease;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      // overflow: hidden;
 
       &:hover {
         border-color: var(--primary-color);
@@ -465,33 +447,6 @@ onMounted(() => {
           font-weight: 500;
         }
 
-        .font-select {
-          width: 100%;
-          padding: 8px 10px;
-          border: 1px solid var(--border-color-2);
-          border-radius: 4px;
-          background: var(--background-color-2);
-          color: var(--text-color);
-          font-size: 13px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-
-          &:hover {
-            border-color: var(--primary-color);
-          }
-
-          &:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 2px var(--primary-color-transparent);
-          }
-
-          option {
-            padding: 6px;
-            background: var(--background-color-2);
-            color: var(--text-color);
-          }
-        }
       }
     }
   }
