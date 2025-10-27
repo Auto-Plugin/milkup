@@ -1,8 +1,14 @@
 import path from 'node:path'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
-import vitePluginsAutoI18n, { YoudaoTranslator } from 'vite-auto-i18n-plugin'
+import vitePluginsAutoI18n, { EmptyTranslator } from 'vite-auto-i18n-plugin'
+import electron from 'vite-plugin-electron'
 
+const alias = {
+  '@': path.resolve(__dirname, './src'),
+  '@renderer': path.resolve(__dirname, './src/renderer'),
+  '@ui': path.resolve(__dirname, './src/renderer/components/ui'),
+}
 const i18nPlugin = vitePluginsAutoI18n({
   deepScan: true,
   globalPath: './lang',
@@ -11,14 +17,24 @@ const i18nPlugin = vitePluginsAutoI18n({
   distKey: 'index',
   targetLangList: ['ja', 'ko', 'ru', 'en', 'fr'],
   originLang: 'zh-cn',
-  translator: new YoudaoTranslator({
-    appId: '121c833175477478',
-    appKey: 'c71283uowjPJM3GtM0UWCmU4m3AnIERp',
-  }),
+  // translator: new YoudaoTranslator({
+  //   appId: '121c833175477478',
+  //   appKey: 'c71283uowjPJM3GtM0UWCmU4m3AnIERp',
+  // }),
+  translator: new EmptyTranslator(),
+})
+
+const electronPlugin = electron({
+  entry: path.resolve(__dirname, 'src/main/index.ts'),
+  vite: {
+    resolve: {
+      alias,
+    },
+  },
 })
 
 export default defineConfig({
-  plugins: [vue(), i18nPlugin],
+  plugins: [vue(), i18nPlugin, electronPlugin],
   root: 'src/renderer',
   base: './',
   build: {
@@ -32,10 +48,6 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@renderer': path.resolve(__dirname, './src/renderer'),
-      '@ui': path.resolve(__dirname, './src/renderer/components/ui'),
-    },
+    alias,
   },
 })
