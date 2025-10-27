@@ -85,7 +85,7 @@ function close(id: string) {
 
 // 设置活跃tab
 function setActive(id: string) {
-  if (!tabs.value.find(tab => tab.id === id))
+  if (!tabs.value.find(tab => tab.id === id) || activeTabId.value === id)
     return
   activeTabId.value = id
 }
