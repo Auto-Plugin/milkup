@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import type { Ctx } from '@milkdown/kit/ctx'
+import type { EditorView } from '@milkdown/prose/view'
+import { vue } from '@codemirror/lang-vue'
 import { Crepe } from '@milkdown/crepe'
 import { upload, uploadConfig } from '@milkdown/kit/plugin/upload'
 import { outline } from '@milkdown/kit/utils'
 import { automd } from '@milkdown/plugin-automd'
+import { commonmark } from '@milkdown/preset-commonmark'
 import { enhanceConfig } from '@renderer/enhance/crepe/config'
-import { onMounted } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted } from 'vue'
 import useContent from '@/hooks/useContent'
 import { uploader } from '@/plugins/customPastePlugin'
 import { htmlPlugin } from '@/plugins/hybridHtmlPlugin/rawHtmlPlugin'
@@ -18,19 +21,41 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
 }>()
+let crepe: Crepe | null = null
 
 const { currentScrollRatio, initScrollListener } = useContent()
+function fixUnclosedCodeBlock(markdown: string): string {
+  const count = (markdown.match(/```/g) || []).length
+  if (count % 2 !== 0) {
+    console.warn('[Milkdown] 检测到未闭合的代码块，已自动补全。')
+    return `${markdown}\n\`\`\``
+  }
+  return markdown
+}
+function normalizeMarkdown(text: string): string {
+  return text
+    // 移除 BOM
+    .replace(/^\uFEFF/, '')
+    // 替换 CRLF → LF
+    .replace(/\r\n/g, '\n')
+    // 移除非断行空格
+    .replace(/\u00A0/g, ' ')
+}
 
 onMounted(async () => {
+  await nextTick()
   // 预览模式下支持自定义css文件路径解析
   // 还有在源码模式下 支持自定义字体大小调节
   // 还有 切换 源码和预览模式 以及 目录打开与关闭 搞个可以自定义的快捷键
 
   // crepe 有更好的用户体验👇
-  const crepe = new Crepe({
+  crepe = new Crepe({
     root: document.querySelector('#milkdown') as HTMLElement,
-    defaultValue: props.modelValue.toString(),
+    defaultValue: normalizeMarkdown(fixUnclosedCodeBlock(props.modelValue.toString())),
     featureConfigs: {
+      'code-mirror': {
+        extensions: [vue()],
+      },
       ...enhanceConfig,
     },
   })
@@ -40,6 +65,18 @@ onMounted(async () => {
       emitOutlineUpdate(Ctx)
     })
     lm.mounted((Ctx) => {
+      const editorView = Ctx.get('editorView') as EditorView
+      // ⚡ 强制同步一次 selection，修复初始光标异常
+      requestAnimationFrame(() => {
+        try {
+          // 刷新内部 DOM 状态
+          editorView.dom.dispatchEvent(new Event('selectionchange'))
+          // 重新计算 selection
+          editorView.updateState(editorView.state)
+        } catch (e) {
+          console.warn('[Crepe Fix] selection resync failed:', e)
+        }
+      })
       emitOutlineUpdate(Ctx)
     })
   })
@@ -50,9 +87,7 @@ onMounted(async () => {
     .use(upload)
     .use(htmlPlugin)
     .use(diagram)
-    // .use(container)
-  // .use(commonmark)
-
+    .use(commonmark)
   await crepe.create()
   editor.ctx.update(uploadConfig.key, prev => ({ ...prev, uploader }))
   initScrollListener()
@@ -64,9 +99,14 @@ onMounted(async () => {
     const scrollHeight = el.scrollHeight || 0
     const targetScrollTop = scrollHeight * currentScrollRatio.value
     el.scrollTop = targetScrollTop
+    followCodeMirrorCursor()
   }
-
-  followCodeMirrorCursor()
+})
+onBeforeUnmount(() => {
+  if (crepe) {
+    crepe.destroy()
+    crepe = null
+  }
 })
 
 function emitOutlineUpdate(ctx: Ctx) {
