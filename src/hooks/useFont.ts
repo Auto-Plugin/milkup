@@ -20,10 +20,13 @@ async function init() {
   try {
     const systemFonts = await window.electronAPI.getSystemFonts()
     // Font 对象数组
-    fontList.value = systemFonts.map(fontName => ({
-      label: fontName,
-      value: fontName,
-    }))
+    fontList.value = systemFonts.map((fontName) => {
+      const name = fontName.replace(/^['"]|['"]$/g, '')
+      return {
+        label: name,
+        value: name,
+      }
+    })
 
     // 应用当前字体配置到 DOM
     const fontConfig = getConf('font').family
