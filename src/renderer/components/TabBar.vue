@@ -14,7 +14,6 @@ const {
   setupTabScrollListener,
   cleanupInertiaScroll,
   reorderTabs,
-
 } = useTab()
 
 const { createNewFile } = useFile()
@@ -100,7 +99,7 @@ onUnmounted(() => {
         v-for="tab in formattedTabs" :key="tab.id" class="tabItem" :class="{ active: activeTabId === tab.id }"
         :data-tab-id="tab.id" @click="handleTabClick(tab.id)"
       >
-        <p>{{ tab.displayName }}</p>
+        <p>{{ `${tab.readOnly ? '[只读] ' : ''}${tab.displayName}` }}</p>
 
         <div class="closeIcon">
           <span class="iconfont icon-close" @click="handleCloseTab(tab.id, $event)"></span>

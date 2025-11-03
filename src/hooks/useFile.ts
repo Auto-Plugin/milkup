@@ -29,7 +29,6 @@ async function onOpen(result?: { filePath: string, content: string } | null) {
   if (!result) {
     result = await window.electronAPI.openFile()
   }
-
   if (result) {
     filePath.value = result.filePath
     if (
@@ -48,9 +47,11 @@ async function onOpen(result?: { filePath: string, content: string } | null) {
       markdown.value = tab.content
       originalContent.value = result.content
       tab.isModified = false
+      tab.readOnly = await window.electronAPI.getIsReadOnly(result.filePath)
     } else {
       // 创建新tab
       const tab = await createTabFromFile(result.filePath, result.content)
+      tab.readOnly = await window.electronAPI.getIsReadOnly(result.filePath)
       // 更新当前内容状态
       markdown.value = tab.content
       originalContent.value = result.content
@@ -107,6 +108,7 @@ function registerMenuEventsOnce() {
   window.electronAPI?.onOpenFileAtLaunch?.(async ({ filePath: launchFilePath, content }) => {
     // 创建新tab
     const tab = await createTabFromFile(launchFilePath, content)
+    tab.readOnly = await window.electronAPI.getIsReadOnly(launchFilePath)
 
     // 更新当前内容状态
     markdown.value = tab.content
@@ -208,10 +210,11 @@ function registerMenuEventsOnce() {
             markdown.value = processedContent
             filePath.value = result.filePath
             originalContent.value = result.content
+            currentTab.value!.readOnly = await window.electronAPI.getIsReadOnly(result.filePath)
           } else {
             // 创建新tab
             const tab = await createTabFromFile(result.filePath, result.content)
-
+            tab.readOnly = await window.electronAPI.getIsReadOnly(result.filePath)
             // 更新当前内容
             markdown.value = tab.content
             filePath.value = result.filePath

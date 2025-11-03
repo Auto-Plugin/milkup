@@ -26,13 +26,16 @@ const i18nPlugin = vitePluginsAutoI18n({
 
 const electronPlugin = electron({
   entry: path.resolve(__dirname, 'src/main/index.ts'),
+  onstart(options) {
+    // 在 dev 时自动启动 Electron 主进程
+    options.startup(['.', '--no-sandbox'])
+  },
   vite: {
     resolve: {
       alias,
     },
   },
 })
-
 export default defineConfig({
   plugins: [vue(), i18nPlugin, electronPlugin],
   root: 'src/renderer',

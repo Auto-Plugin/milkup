@@ -8,6 +8,7 @@ import useContent from '@/hooks/useContent'
 
 const props = defineProps <{
   modelValue: string
+  readOnly: boolean | undefined
 }> ()
 const emit = defineEmits(['update:modelValue'])
 
@@ -31,6 +32,7 @@ onMounted(() => {
         }
       }),
       EditorView.lineWrapping,
+      EditorView.editable.of(!props.readOnly),
     ],
   })
 
@@ -48,7 +50,6 @@ onMounted(() => {
     el.scrollTop = targetScrollTop
   }
 })
-
 // 同步外部 props 变化
 watch(() => props.modelValue, (newVal) => {
   if (editorView && editorView.state.doc.toString() !== newVal) {

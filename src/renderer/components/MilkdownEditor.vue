@@ -17,6 +17,7 @@ import emitter from '../events'
 
 const props = defineProps<{
   modelValue: string
+  readOnly: boolean | undefined
 }>()
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
@@ -88,7 +89,9 @@ onMounted(async () => {
     .use(htmlPlugin)
     .use(diagram)
     .use(commonmark)
+  props.readOnly && crepe.setReadonly(true)
   await crepe.create()
+
   editor.ctx.update(uploadConfig.key, prev => ({ ...prev, uploader }))
   initScrollListener()
   // 滚动到指定位置

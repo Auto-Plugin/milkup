@@ -1,6 +1,7 @@
 // ipcBridge.ts
 
 import type { Block, ExportPDFOptions } from './types'
+import { execSync } from 'node:child_process'
 import * as fs from 'node:fs'
 import path from 'node:path'
 import { Document, HeadingLevel, Packer, Paragraph, TextRun } from 'docx'
@@ -128,6 +129,11 @@ export function registerIpcOnHandlers(win: Electron.BrowserWindow) {
 
 // 所有 handle 类型监听
 export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
+  // 检查文件是否只读
+  ipcMain.handle('file:isReadOnly', async (_event, filePath: string) => {
+    return isFileReadOnly(filePath)
+  })
+
   // 文件打开对话框
   ipcMain.handle('dialog:openFile', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog(win, {
@@ -624,4 +630,23 @@ export function close(win: Electron.BrowserWindow) {
 
 export function getIsQuitting() {
   return isQuitting
+}
+export function isFileReadOnly(filePath: string): boolean {
+  // 先检测是否可写（跨平台）
+  try {
+    fs.accessSync(filePath, fs.constants.W_OK)
+  } catch {
+    return true
+  }
+
+  // 如果是 Windows，再额外检测 "R" 属性
+  if (process.platform === 'win32') {
+    try {
+      const attrs = execSync(`attrib "${filePath}"`).toString()
+      if (attrs.includes('R'))
+        return true
+    } catch { }
+  }
+
+  return false
 }

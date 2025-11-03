@@ -23,6 +23,7 @@ const {
   isShowEditors,
   pendingCloseTab,
   isUpdateDialogVisible,
+  currentTab,
 
   handleSave,
   handleDiscard,
@@ -46,11 +47,11 @@ const {
       <div class="editorBox">
         <MilkdownProvider v-if="!isShowSource">
           <MilkupProvider>
-            <MilkdownEditor v-model="markdown" />
+            <MilkdownEditor v-model="markdown" :read-only="currentTab?.readOnly" />
             <!-- <VditorEditor v-model="markdown" /> -->
           </MilkupProvider>
         </MilkdownProvider>
-        <MarkdownSourceEditor v-else-if="isShowSource" v-model="markdown" />
+        <MarkdownSourceEditor v-else-if="isShowSource" v-model="markdown" :read-only="currentTab?.readOnly" />
       </div>
     </div>
   </div>
@@ -67,12 +68,13 @@ const {
 </template>
 
 <style scoped lang="less">
-#fontRoot{
+#fontRoot {
   height: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
 }
+
 .editorArea {
   height: 0;
   flex: 1;

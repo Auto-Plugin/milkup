@@ -22,7 +22,7 @@ export function useContext() {
   const { isDialogVisible, dialogType, fileName, tabName, showDialog, showOverwriteDialog, handleSave, handleDiscard, handleCancel, handleOverwrite } = useSaveConfirmDialog()
   const { isDialogVisible: isUpdateDialogVisible, showDialog: showUpdateDialog, hideDialog: hideUpdateDialog, handleIgnore, handleLater, handleUpdate } = useUpdateDialog()
   const { onSave } = useFile()
-  const { close, switchToTab, saveCurrentTab, activeTabId, getUnsavedTabs, shouldOffsetTabBar } = useTab()
+  const { close, switchToTab, saveCurrentTab, activeTabId, getUnsavedTabs, shouldOffsetTabBar, currentTab } = useTab()
 
   // 初始化spell check
   useSpellCheck()
@@ -220,6 +220,7 @@ export function useContext() {
     activeTabId,
     shouldOffsetTabBar,
     isUpdateDialogVisible,
+    currentTab,
 
     // 方法
     updateTitle,

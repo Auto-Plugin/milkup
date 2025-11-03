@@ -6,4 +6,5 @@ export interface Tab {
   originalContent: string
   isModified: boolean
   scrollRatio?: number
+  readOnly: boolean
 }

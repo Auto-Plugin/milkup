@@ -11,7 +11,7 @@ const fileName = computed(() => {
 })
 
 function updateTitle() {
-  const name = fileName.value || 'Untitled'
+  const name = (fileName.value || 'Untitled')
   const prefix = isModified.value ? '*' : ''
   window.electronAPI.setTitle(`${prefix}${name}`)
   title.value = `${prefix}${name}`

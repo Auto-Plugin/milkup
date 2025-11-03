@@ -1,6 +1,7 @@
 import type { Ref } from 'vue'
 import type { Tab } from '@/types/tab'
 import type { InertiaScroll } from '@/utils/inertiaScroll'
+import autotoast from 'autotoast.js'
 import { computed, nextTick, ref, watch } from 'vue'
 import { processImagePaths, setCurrentMarkdownFilePath } from '@/plugins/imagePathPlugin'
 import emitter from '@/renderer/events'
@@ -23,6 +24,7 @@ const defaultTab: Tab = {
   originalContent: '',
   isModified: false,
   scrollRatio: 0,
+  readOnly: false,
 }
 tabs.value.push(defaultTab)
 activeTabId.value = defaultTab.id
@@ -37,7 +39,7 @@ function getFileName(filePath: string | null): string {
   if (!filePath)
     return defaultName
   const parts = filePath.split(/[\\/]/)
-  return parts.at(-1) ?? defaultName
+  return (parts.at(-1) ?? defaultName)
 }
 
 // 检查文件是否已打开
@@ -98,6 +100,7 @@ function getCurrentTab() {
 // 更新当前tab的内容
 function updateCurrentTabContent(content: string, isModified?: boolean) {
   const currentTab = getCurrentTab()
+  isModified = currentTab?.readOnly ? false : isModified
   if (currentTab) {
     currentTab.content = content
     if (isModified !== undefined) {
@@ -135,7 +138,7 @@ function updateCurrentTabScrollRatio(ratio: number) {
 // 保存当前tab
 async function saveCurrentTab(): Promise<boolean> {
   const currentTab = getCurrentTab()
-  if (!currentTab)
+  if (!currentTab || currentTab.readOnly)
     return false
 
   try {
@@ -148,6 +151,7 @@ async function saveCurrentTab(): Promise<boolean> {
       return true
     }
   } catch (error) {
+    autotoast.show('保存文件失败，请检查写入权限', 'error')
     console.error('保存文件失败:', error)
   }
   return false
@@ -166,6 +170,7 @@ async function createTabFromFile(filePath: string, content: string): Promise<Tab
     originalContent: content,
     isModified: false,
     scrollRatio: 0,
+    readOnly: await window.electronAPI?.getIsReadOnly(filePath) || false,
   }
 
   return add(tab)
@@ -202,7 +207,7 @@ async function openFile(filePath: string): Promise<Tab | null> {
       } else {
         // 创建新tab
         const newTab = await createTabFromFile(result.filePath, result.content)
-
+        newTab.readOnly = await window.electronAPI?.getIsReadOnly(filePath) || false
         // 切换新tab
         switchToTab(newTab.id)
 
@@ -230,6 +235,7 @@ function createNewTab(): Tab {
     originalContent: '',
     isModified: false,
     scrollRatio: 0,
+    readOnly: false,
   }
 
   return add(tab)

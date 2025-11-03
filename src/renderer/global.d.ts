@@ -1,6 +1,7 @@
 interface Window {
   electronAPI: {
     openFile: () => Promise<{ filePath: string, content: string } | null>
+    getIsReadOnly: (filePath: string) => Promise<boolean>
     saveFile: (filePath: string | null, content: string) => Promise<string | null>
     saveFileAs: (content: string) => Promise<{ filePath: string } | null>
     setTitle: (filePath: string | null) => void
