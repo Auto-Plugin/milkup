@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import autodialog from 'autodialog.js'
 import { ref } from 'vue'
 import Selector from '@/ui/Selector.vue'
+import ReloadConfirmDialog from './ReloadConfirmDialog.vue'
 
 type LanguageCode = 'zh-cn' | 'ja' | 'ko' | 'ru' | 'en' | 'fr'
 const languages = [
@@ -16,10 +18,15 @@ const selectedLanguage = ref<LanguageCode>(
   (localStorage.getItem('lang') as LanguageCode) || 'zh-cn',
 )
 
-function selectLanguage() {
+async function selectLanguage() {
+  if (selectedLanguage.value === (localStorage.getItem('lang') as LanguageCode)) {
+    return
+  }
+  const res = await autodialog.show(ReloadConfirmDialog)
   localStorage.setItem('lang', selectedLanguage.value)
-  console.log('selectedLanguage.value::: ', selectedLanguage.value)
-  // 可在此处添加切换语言的逻辑，如调用 i18n
+  if (res === 'ignore') {
+    return
+  }
   window.location.reload() // 刷新页面以应用语言更改
 }
 </script>
