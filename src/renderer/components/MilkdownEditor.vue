@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import type { Ctx } from '@milkdown/kit/ctx'
-import type { EditorView } from '@milkdown/prose/view'
 import { vue } from '@codemirror/lang-vue'
 import { Crepe } from '@milkdown/crepe'
+import { editorViewCtx, serializerCtx } from '@milkdown/kit/core'
 import { upload, uploadConfig } from '@milkdown/kit/plugin/upload'
 import { outline } from '@milkdown/kit/utils'
 import { automd } from '@milkdown/plugin-automd'
 import { commonmark } from '@milkdown/preset-commonmark'
+import { TextSelection } from '@milkdown/prose/state'
 import { enhanceConfig } from '@renderer/enhance/crepe/config'
 import { nextTick, onBeforeUnmount, onMounted } from 'vue'
-import useContent from '@/hooks/useContent'
+import useTab from '@/hooks/useTab'
 import { uploader } from '@/plugins/customPastePlugin'
 import { htmlPlugin } from '@/plugins/hybridHtmlPlugin/rawHtmlPlugin'
 import { diagram } from '@/plugins/mermaidPlugin'
@@ -24,7 +25,7 @@ const emit = defineEmits<{
 }>()
 let crepe: Crepe | null = null
 
-const { currentScrollRatio, initScrollListener } = useContent()
+const { currentTab } = useTab()
 function fixUnclosedCodeBlock(markdown: string): string {
   const count = (markdown.match(/```/g) || []).length
   if (count % 2 !== 0) {
@@ -65,20 +66,37 @@ onMounted(async () => {
       emit('update:modelValue', nextMarkdown)
       emitOutlineUpdate(Ctx)
     })
-    lm.mounted((Ctx) => {
-      const editorView = Ctx.get('editorView') as EditorView
-      // ⚡ 强制同步一次 selection，修复初始光标异常
-      requestAnimationFrame(() => {
-        try {
-          // 刷新内部 DOM 状态
-          editorView.dom.dispatchEvent(new Event('selectionchange'))
-          // 重新计算 selection
-          editorView.updateState(editorView.state)
-        } catch (e) {
-          console.warn('[Crepe Fix] selection resync failed:', e)
-        }
-      })
+    lm.mounted(async (Ctx) => {
       emitOutlineUpdate(Ctx)
+      setSelectionAndScrollToView(Ctx)
+      // 监听滚动事件
+      const view = Ctx.get(editorViewCtx)
+      view.dom.addEventListener('scroll', (e) => {
+        console.log('e::: ', e)
+        const scrollTop = view.dom.scrollTop
+        const scrollHeight = view.dom.scrollHeight - view.dom.clientHeight
+        const ratio = scrollHeight === 0 ? 0 : scrollTop / scrollHeight
+        currentTab.value!.scrollRatio = ratio
+      })
+    })
+    lm.selectionUpdated((Ctx) => {
+      // 获取光标位置
+      try {
+        nextTick(() => {
+          const view = Ctx.get(editorViewCtx)
+          const serializer = Ctx.get(serializerCtx)
+          const sel = view.state.selection
+          const head = sel.head ? sel.head : sel.head // 对应光标位置
+          // 获取光标之前的文档部分
+          const before = view.state.doc.cut(0, head)
+          // 序列化为 Markdown 源码
+          const markdownBefore = serializer(before)
+          currentTab.value!.codeMirrorCursorOffset = markdownBefore.length
+          currentTab.value!.milkdownCursorOffset = head
+        })
+      } catch (err) {
+        console.error('获取光标位置失败:', err)
+      }
     })
   })
   const editor = crepe.editor
@@ -93,17 +111,6 @@ onMounted(async () => {
   await crepe.create()
 
   editor.ctx.update(uploadConfig.key, prev => ({ ...prev, uploader }))
-  initScrollListener()
-  // 滚动到指定位置
-  if (currentScrollRatio.value > 0) {
-    const el = document.querySelector('.scrollView.milkdown')
-    if (!el)
-      return
-    const scrollHeight = el.scrollHeight || 0
-    const targetScrollTop = scrollHeight * currentScrollRatio.value
-    el.scrollTop = targetScrollTop
-    followCodeMirrorCursor()
-  }
 })
 onBeforeUnmount(() => {
   if (crepe) {
@@ -116,60 +123,35 @@ function emitOutlineUpdate(ctx: Ctx) {
   const headings = outline()(ctx)
   emitter.emit('outline:Update', headings)
 }
-
-function followCodeMirrorCursor() {
-  const TARGET_SELECTOR = '.ͼq.cm-cursor'
-
-  // 1. 定义 IntersectionObserver 回调
-  const intersectionCallback = (entries: any[]) => {
-    entries.forEach((entry) => {
-      if (!entry.isIntersecting) {
-        entry.target.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',
-        })
-      }
-    })
-  }
-
-  // 2. 创建 IntersectionObserver（但不立即观察）
-  const observer = new IntersectionObserver(intersectionCallback, {
-    threshold: 0.1,
-  })
-
-  // 3. 使用 MutationObserver 监听 DOM 变化
-  const mutationObserver = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-      // 检查是否有节点被添加
-      if (mutation.addedNodes.length) {
-        // 在新增的节点中查找目标元素
-        const target = document.querySelector(TARGET_SELECTOR)
-        if (target) {
-          observer.observe(target)
-          mutationObserver.disconnect() // 停止监听（可选）
-        }
-      }
-    })
-  })
-
-  // 4. 开始监听整个文档的 DOM 变化
-  mutationObserver.observe(document.body, {
-    childList: true, // 监听子节点的添加/删除
-    subtree: true, // 监听所有后代节点
-  })
-
-  // 5. 检查元素是否已经存在（避免等待 DOM 变化）
-  const existingTarget = document.querySelector(TARGET_SELECTOR)
-  if (existingTarget) {
-    observer.observe(existingTarget)
-    mutationObserver.disconnect() // 停止监听（可选）
+function setSelectionAndScrollToView(Ctx: Ctx) {
+  try {
+    const view = Ctx.get(editorViewCtx)
+    const size = view.state.doc.content.size
+    const rawPos = currentTab.value?.milkdownCursorOffset ?? 1
+    // 设置光标位置
+    const tr = view.state.tr.setSelection(TextSelection.create(view.state.doc, rawPos))
+    view.dispatch(tr)
+    const clamped = Math.max(1, Math.min(rawPos, Math.max(1, size - 1)))
+    const dom = view.domAtPos(clamped).node as HTMLElement
+    // 检查是 文本节点还是 元素节点
+    if (dom.nodeType === Node.TEXT_NODE) {
+      const parent = dom.parentElement!
+      parent.scrollIntoView({ behavior: 'instant', block: 'center' })
+    } else {
+      dom.scrollIntoView({ behavior: 'instant', block: 'center' })
+    }
+  } catch {
+    if (currentTab.value!.milkdownCursorOffset !== null && currentTab.value!.milkdownCursorOffset! > 0) {
+      currentTab.value!.milkdownCursorOffset!--
+      setSelectionAndScrollToView(Ctx)
+    }
   }
 }
 </script>
 
 <template>
   <div class="editor-box">
-    <div class="scrollView">
+    <div class="scrollView milk">
       <div id="milkdown"></div>
     </div>
   </div>

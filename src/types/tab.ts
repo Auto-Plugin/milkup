@@ -7,4 +7,6 @@ export interface Tab {
   isModified: boolean
   scrollRatio?: number
   readOnly: boolean
+  milkdownCursorOffset?: number | null
+  codeMirrorCursorOffset?: number | null
 }
