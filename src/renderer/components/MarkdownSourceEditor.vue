@@ -1,21 +1,31 @@
 <script setup lang="ts">
 import { basicSetup, EditorView } from '@codemirror/basic-setup'
 import { markdown } from '@codemirror/lang-markdown'
-import { EditorState } from '@codemirror/state'
-import { keymap } from '@codemirror/view'
+import { EditorState, Prec } from '@codemirror/state'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import useContent from '@/hooks/useContent'
+import useSourceCode from '@/hooks/useSourceCode'
 
-const props = defineProps <{
+const props = defineProps<{
   modelValue: string
   readOnly: boolean | undefined
-}> ()
+}>()
 const emit = defineEmits(['update:modelValue'])
-
+const { toggleSourceCode } = useSourceCode()
 // 禁用注释快捷键 Ctrl-/Cmd-/
-const disableCommentKeymap = keymap.of([{ key: 'Mod-/', run: () => true }])
+const blockCtrlSlashDOM = Prec.highest(
+  EditorView.domEventHandlers({
+    keydown: (e, _view) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === '/') {
+        toggleSourceCode()
+        return true
+      }
+      return false
+    },
+  }),
+)
 
-const editorContainer = ref <HTMLElement> ()
+const editorContainer = ref<HTMLElement>()
 const { currentScrollRatio, initScrollListener } = useContent()
 let editorView: EditorView | null = null
 
@@ -23,8 +33,8 @@ onMounted(() => {
   const startState = EditorState.create({
     doc: props.modelValue,
     extensions: [
+      blockCtrlSlashDOM,
       basicSetup,
-      disableCommentKeymap,
       markdown(),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
