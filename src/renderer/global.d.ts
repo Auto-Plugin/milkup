@@ -34,6 +34,8 @@ interface Window {
     getSystemFonts: () => Promise<string[]>
     // 文件夹相关
     getDirectoryFiles: (dirPath: string) => Promise<Array<{ name: string, path: string, isDirectory: boolean }>>
+    // 监听文件变化
+    watchFiles: (filePaths: string[]) => void
     // 主题编辑器相关
     openThemeEditor: (theme?: any) => void
     themeEditorWindowControl: (action: 'minimize' | 'maximize' | 'close') => void

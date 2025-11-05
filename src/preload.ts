@@ -50,6 +50,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getSystemFonts: () => ipcRenderer.invoke('get-system-fonts'),
   // 文件夹相关
   getDirectoryFiles: (dirPath: string) => ipcRenderer.invoke('workspace:getDirectoryFiles', dirPath),
+  // 监听文件变化
+  watchFiles: (filePaths: string[]) => ipcRenderer.send('file:watch', filePaths),
 
   // 主题编辑器相关
   openThemeEditor: (theme?: any) => ipcRenderer.send('open-theme-editor', theme),
