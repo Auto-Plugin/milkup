@@ -15,11 +15,11 @@ import { useUpdateDialog } from './useUpdateDialog'
 export function useContext() {
   // 初始化所有hooks
   const { updateTitle } = useTitle()
-  const { markdown } = useContent()
+  const { markdown, originalContent } = useContent()
   const { currentTheme, init: initTheme } = useTheme()
   const { init: initFont, currentFont } = useFont()
   const { isShowSource } = useSourceCode()
-  const { isDialogVisible, dialogType, fileName, tabName, showDialog, showOverwriteDialog, handleSave, handleDiscard, handleCancel, handleOverwrite } = useSaveConfirmDialog()
+  const { isDialogVisible, dialogType, fileName, tabName, showDialog, showOverwriteDialog, showFileChangedDialog, handleSave, handleDiscard, handleCancel, handleOverwrite } = useSaveConfirmDialog()
   const { isDialogVisible: isUpdateDialogVisible, showDialog: showUpdateDialog, hideDialog: hideUpdateDialog, handleIgnore, handleLater, handleUpdate } = useUpdateDialog()
   const { onSave } = useFile()
   const { close, switchToTab, saveCurrentTab, activeTabId, getUnsavedTabs, shouldOffsetTabBar, currentTab } = useTab()
@@ -49,6 +49,10 @@ export function useContext() {
 
   // 监听文件变化事件
   emitter.on('file:Change', () => {
+    if (currentTab.value) {
+      markdown.value = currentTab.value.content
+      originalContent.value = currentTab.value.originalContent
+    }
     reBuildMilkdown()
   })
 
@@ -120,6 +124,12 @@ export function useContext() {
   // 监听文件覆盖确认事件
   emitter.on('file:overwrite-confirm', async (data: { fileName: string, resolver: (choice: 'cancel' | 'save' | 'overwrite') => void }) => {
     const result = await showOverwriteDialog(data.fileName)
+    data.resolver(result)
+  })
+
+  // 监听文件变动确认事件
+  emitter.on('file:changed-confirm', async (data: { fileName: string, resolver: (choice: 'cancel' | 'overwrite') => void }) => {
+    const result = await showFileChangedDialog(data.fileName)
     data.resolver(result)
   })
 

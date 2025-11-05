@@ -1,16 +1,22 @@
 // ipcBridge.ts
 
+import type { FSWatcher } from 'chokidar'
 import type { Block, ExportPDFOptions } from './types'
 import { execSync } from 'node:child_process'
 import * as fs from 'node:fs'
 import path from 'node:path'
+import chokidar from 'chokidar'
 import { Document, HeadingLevel, Packer, Paragraph, TextRun } from 'docx'
-import { app, clipboard, dialog, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, clipboard, dialog, ipcMain, shell } from 'electron'
 import { getFonts } from 'font-list'
 import { createThemeEditorWindow } from './index'
 
 let isSaved = true
 let isQuitting = false
+
+// 存储已监听的文件路径和对应的 watcher
+const watchedFiles = new Set<string>()
+let watcher: FSWatcher | null = null
 
 // 所有 on 类型监听
 export function registerIpcOnHandlers(win: Electron.BrowserWindow) {
@@ -606,6 +612,53 @@ export function registerGlobalIpcHandlers() {
     } catch (error) {
       console.error('获取目录文件失败:', error)
       return []
+    }
+  })
+
+  // 监听文件变化
+  ipcMain.on('file:watch', (_event, filePaths: string[]) => {
+    console.log('监听文件变化:', filePaths)
+
+    // 先差异对比
+    const newFiles = filePaths.filter(filePath => !watchedFiles.has(filePath))
+    const removedFiles = Array.from(watchedFiles).filter(filePath => !filePaths.includes(filePath))
+
+    // 如果 watcher 不存在，创建它并设置事件监听
+    if (!watcher) {
+      watcher = chokidar.watch([], {
+        ignored: (path, stats) => {
+          // 确保总是返回 boolean 类型
+          if (!stats)
+            return false
+          return stats.isFile() && !path.endsWith('.md')
+        },
+        persistent: true,
+      })
+
+      // 设置文件变化监听
+      watcher.on('change', (filePath) => {
+        console.log('文件变化:', filePath)
+        console.log(123123123123123)
+
+        const mainWindow = BrowserWindow.getAllWindows()[0]
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('file:changed', filePath)
+        }
+      })
+    }
+
+    // 新增的文件 - 添加到 watcher
+    if (newFiles.length > 0) {
+      watcher.add(newFiles)
+      newFiles.forEach(filePath => watchedFiles.add(filePath))
+      console.log('➕:', newFiles)
+    }
+
+    // 移除的文件 - 从 watcher 中移除
+    if (removedFiles.length > 0) {
+      watcher.unwatch(removedFiles)
+      removedFiles.forEach(filePath => watchedFiles.delete(filePath))
+      console.log('➖:', removedFiles)
     }
   })
 }

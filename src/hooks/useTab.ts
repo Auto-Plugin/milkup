@@ -426,6 +426,87 @@ const currentTab = computed(() => getCurrentTab())
 // 是否偏移
 const shouldOffsetTabBar = computed(() => isShowOutline.value)
 
+// 添加新tab时不通知，只有当filePath实际变化时才通知
+watch(
+  () => tabs.value.map(tab => tab.filePath),
+  (newPaths, oldPaths) => {
+    // 获取所有真实的filePath
+    const newFilePaths = newPaths.filter(Boolean) as string[]
+    const oldFilePaths = oldPaths?.filter(Boolean) as string[] || []
+
+    // 判断是否有新的路径,包括首次执行时从空到有路径的情况，以及untitled标签被替换时监听不到的问题
+    const hasNewPaths = newFilePaths.some(path => !oldFilePaths.includes(path))
+    // 判断是否有删除的路径
+    const hasRemovedPaths = oldFilePaths.some(path => !newFilePaths.includes(path))
+    // 判断是否有路径变化，首次执行时 oldPaths 为 undefined，oldFilePaths 为 []，如果有新路径会被 hasNewPaths 捕获
+    const hasPathChanges = hasNewPaths || hasRemovedPaths
+
+    if (!hasPathChanges)
+      return
+    // 通知ipc
+    console.log('通知ipc', newFilePaths)
+
+    window.electronAPI.watchFiles(newFilePaths)
+  },
+  {
+    immediate: true,
+  },
+)
+
+// 文件变动回调事件
+window.electronAPI.on?.('file:changed', async (paths) => {
+  const tab = tabs.value.find(tab => tab.filePath === paths)
+  if (!tab)
+    return
+
+  if (!tab.isModified) {
+    const result = await window.electronAPI.readFileByPath(paths)
+    if (!result)
+      return
+    // 处理图片路径
+    const processedContent = await processImagePaths(result.content, result.filePath)
+    // 更新
+    tab.content = processedContent
+    tab.originalContent = result.content
+    tab.isModified = false
+
+    // 如果当前tab是活跃的，触发内容更新事件
+    if (tab.id === activeTabId.value) {
+      emitter.emit('file:Change')
+    }
+  } else {
+    // 文件已变动，触发是否覆盖
+    const fileName = getFileName(paths)
+    const choice = await new Promise<'overwrite' | 'cancel'>((resolve) => {
+      emitter.emit('file:changed-confirm', {
+        fileName,
+        resolver: resolve,
+      })
+    })
+
+    if (choice === 'cancel') {
+      return
+    }
+
+    // 读取新文件内容
+    const result = await window.electronAPI.readFileByPath(paths)
+    if (!result)
+      return
+
+    // 处理图片路径
+    const processedContent = await processImagePaths(result.content, result.filePath)
+    // 更新
+    tab.content = processedContent
+    tab.originalContent = result.content
+    tab.isModified = false
+
+    // 触发内容更新
+    if (tab.id === activeTabId.value) {
+      emitter.emit('file:Change')
+    }
+  }
+})
+
 function useTab() {
   return {
     // 状态

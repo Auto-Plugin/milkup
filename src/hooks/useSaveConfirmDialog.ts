@@ -1,8 +1,9 @@
 import { ref } from 'vue'
 
-type DialogType = 'close' | 'overwrite'
+type DialogType = 'close' | 'overwrite' | 'file-changed'
 type CloseChoice = 'save' | 'discard' | 'cancel'
 type OverwriteChoice = 'save' | 'overwrite' | 'cancel'
+type FileChangedChoice = 'overwrite' | 'cancel'
 
 export function useSaveConfirmDialog() {
   const isDialogVisible = ref(false)
@@ -26,6 +27,15 @@ export function useSaveConfirmDialog() {
       fileName.value = file
       isDialogVisible.value = true
       resolvePromise.value = resolve as (value: CloseChoice | OverwriteChoice) => void
+    })
+  }
+
+  const showFileChangedDialog = (file: string): Promise<FileChangedChoice> => {
+    return new Promise((resolve) => {
+      dialogType.value = 'file-changed'
+      fileName.value = file
+      isDialogVisible.value = true
+      resolvePromise.value = resolve as (value: CloseChoice | OverwriteChoice | FileChangedChoice) => void
     })
   }
 
@@ -68,6 +78,7 @@ export function useSaveConfirmDialog() {
     tabName,
     showDialog,
     showOverwriteDialog,
+    showFileChangedDialog,
     handleSave,
     handleDiscard,
     handleCancel,

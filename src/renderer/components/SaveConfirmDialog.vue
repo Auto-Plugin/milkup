@@ -1,5 +1,5 @@
 <script setup lang="ts">
-type DialogType = 'close' | 'overwrite'
+type DialogType = 'close' | 'overwrite' | 'file-changed'
 
 interface Props {
   visible: boolean
@@ -46,6 +46,9 @@ function handleOverwrite() {
           <h3 v-else-if="type === 'overwrite'">
             文件已存在
           </h3>
+          <h3 v-else-if="type === 'file-changed'">
+            文件已变动
+          </h3>
         </div>
         <div class="dialog-body">
           <template v-if="type === 'close'">
@@ -65,6 +68,14 @@ function handleOverwrite() {
             </p>
             <p class="dialog-detail">
               选择"保存"将先保存当前内容，然后打开新文件。
+            </p>
+          </template>
+          <template v-else-if="type === 'file-changed'">
+            <p v-if="fileName">
+              文件 "{{ fileName }}" 已经变动，是否覆盖当前编辑的内容？
+            </p>
+            <p v-else>
+              文件已经变动，是否覆盖当前编辑的内容？
             </p>
           </template>
         </div>
@@ -94,6 +105,14 @@ function handleOverwrite() {
                 覆盖
               </button>
             </div>
+          </template>
+          <template v-else-if="type === 'file-changed'">
+            <button class="btn btn-secondary" @click="handleCancel">
+              取消
+            </button>
+            <button class="btn btn-overwrite file-changed-overwrite" @click="handleOverwrite">
+              覆盖
+            </button>
           </template>
         </div>
       </div>
@@ -228,6 +247,10 @@ function handleOverwrite() {
 
   &:active {
     background: #c53030;
+  }
+
+  &.file-changed-overwrite {
+    margin-left: 0;
   }
 }
 </style>
