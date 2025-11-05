@@ -1,6 +1,6 @@
 import type { Theme, ThemeName } from '@/types/theme'
 import autotoast from 'autotoast.js'
-import { onMounted, onUnmounted, ref, toRaw } from 'vue'
+import { getCurrentInstance, onMounted, onUnmounted, ref, toRaw } from 'vue'
 import { cssVarsDesMap, themeNameMap } from '@/config/theme'
 import { isThemeObject } from '@/types/theme'
 import themeManager from '@/utils/themeManager'
@@ -352,13 +352,13 @@ function importTheme(theme: any) {
   autotoast.show('导入主题完成', 'success')
 }
 
-onUnmounted(() => {
-  uninstallListeners()
-})
-
-onMounted(() => { })
-
 export default function useTheme() {
+  if (getCurrentInstance()) {
+    onMounted(() => { })
+    onUnmounted(() => {
+      uninstallListeners()
+    })
+  }
   return {
     // 主题变量
     themes,

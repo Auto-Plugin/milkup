@@ -1,4 +1,4 @@
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, getCurrentInstance, onUnmounted, ref, watch } from 'vue'
 import useTab from './useTab'
 
 const contentInfo = {
@@ -66,9 +66,11 @@ function removeScrollListener() {
 }
 
 export default () => {
-  onUnmounted(() => {
-    removeScrollListener()
-  })
+  if (getCurrentInstance()) {
+    onUnmounted(() => {
+      removeScrollListener()
+    })
+  }
 
   return {
     ...contentInfo,
