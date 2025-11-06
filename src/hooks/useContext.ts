@@ -3,6 +3,7 @@ import emitter from '../renderer/events'
 import useContent from './useContent'
 import useFile from './useFile'
 import useFont from './useFont'
+import useOtherConfig from './useOtherConfig'
 import { isShowOutline } from './useOutline'
 import { useSaveConfirmDialog } from './useSaveConfirmDialog'
 import useSourceCode from './useSourceCode'
@@ -18,18 +19,17 @@ export function useContext() {
   const { markdown, originalContent } = useContent()
   const { currentTheme, init: initTheme } = useTheme()
   const { init: initFont, currentFont } = useFont()
+  const { init: initOtherConfig } = useOtherConfig()
   const { isShowSource } = useSourceCode()
   const { isDialogVisible, dialogType, fileName, tabName, showDialog, showOverwriteDialog, showFileChangedDialog, handleSave, handleDiscard, handleCancel, handleOverwrite } = useSaveConfirmDialog()
   const { isDialogVisible: isUpdateDialogVisible, showDialog: showUpdateDialog, hideDialog: hideUpdateDialog, handleIgnore, handleLater, handleUpdate } = useUpdateDialog()
   const { onSave } = useFile()
   const { close, switchToTab, saveCurrentTab, activeTabId, getUnsavedTabs, shouldOffsetTabBar, currentTab } = useTab()
 
-  // 初始化spell check
-  useSpellCheck()
-
-  // 初始化主题和字体
-  initTheme()
-  initFont()
+  useSpellCheck()// spell check
+  initTheme()// 主题
+  initFont()// 字体
+  initOtherConfig()// 其他配置
 
   // 响应式状态
   const isShowEditors = ref(true)

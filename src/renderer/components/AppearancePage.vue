@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import FontPage from './FontPage.vue'
+import OtherSetting from './OtherSetting.vue'
 import ThemePage from './ThemePage.vue'
 </script>
 
@@ -17,6 +18,14 @@ import ThemePage from './ThemePage.vue'
 
       <div class="appearance-item-content">
         <FontPage />
+      </div>
+    </div>
+
+    <div class="appearance-item">
+      <h2>其他</h2>
+
+      <div class="appearance-item-content">
+        <OtherSetting />
       </div>
     </div>
   </div>
@@ -37,8 +46,6 @@ import ThemePage from './ThemePage.vue'
         display: flex;
         flex-direction: column;
         gap: 10px;
-
-        .appearance-item-content {}
     }
 }
 </style>
