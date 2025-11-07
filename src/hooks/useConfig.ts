@@ -10,7 +10,9 @@ interface AppConfig extends Record<string, any> {
     family: FontConfig
     size: FontSizeConfig
   }
-
+  other: {
+    editorPadding: string
+  }
 }
 
 const defaultConfig: AppConfig = {
@@ -18,8 +20,9 @@ const defaultConfig: AppConfig = {
     family: defaultFontConfig,
     size: defaultFontSizeConfig,
   },
-
-  // ...后续接入其他配置
+  other: {
+    editorPadding: '120px',
+  },
 }
 
 const config = useStorage<AppConfig>('milkup-config', defaultConfig, localStorage, {

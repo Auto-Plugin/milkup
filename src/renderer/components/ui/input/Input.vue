@@ -6,6 +6,7 @@ const props = defineProps<{
   placeholder?: string
   label?: string
   required?: boolean
+  type?: 'text' | 'number'
 }>()
 const emit = defineEmits<{
   (e: 'update:modelValue', modelValue: string): void
@@ -23,7 +24,7 @@ function handleChange() {
   <div class="input-container">
     <span class="label" :class="{ required }"> {{ label }}</span>
     <div class="Input">
-      <input v-model="modelValue" type="text" :placeholder="placeholder" @change="handleChange" />
+      <input v-model="modelValue" :type="type" :placeholder="placeholder" @change="handleChange" />
     </div>
   </div>
 </template>
