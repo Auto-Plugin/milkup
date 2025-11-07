@@ -1,5 +1,5 @@
 
-    // 导入国际化JSON文件
+    // 导入国际化JSON文件（合并模式）
     import langJSON from './index.json'
     (function () {
     // 定义翻译函数
@@ -43,7 +43,7 @@
     globalThis.$t = globalThis.$t || $t;
     // 将简单翻译函数挂载到globalThis对象上
     globalThis.$$t = $$t;
-    // 定义从JSON文件中获取指定键的语言对象的方法
+    // 定义从JSON文件中获取指定键的语言对象的方法（合并模式）
     globalThis._getJSONKey = function (key, insertJSONObj = undefined) {
         // 获取JSON对象
         const JSONObj = insertJSONObj;

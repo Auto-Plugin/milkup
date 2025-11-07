@@ -21,7 +21,7 @@ const defaultConfig: AppConfig = {
     size: defaultFontSizeConfig,
   },
   other: {
-    editorPadding: '0px',
+    editorPadding: '120px',
   },
 }
 
