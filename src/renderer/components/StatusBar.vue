@@ -48,9 +48,9 @@ window.electronAPI.on('view:toggleView', () => {
   <div class="StatusBarBox">
     <div>
       <Transition name="fade">
-        <span v-if="!isShowSource" class="iconfont icon-List-outlined" @click="toggleShowOutline"></span>
+        <span v-if="!isShowSource" class="iconfont icon-List-outlined" @click="toggleShowOutline()"></span>
       </Transition>
-      <span class="iconfont" :class="isShowSource ? 'icon-input' : 'icon-markdown'" @click.stop="toggleSourceCode">
+      <span class="iconfont" :class="isShowSource ? 'icon-input' : 'icon-markdown'" @click.stop="toggleShowOutline(false), toggleSourceCode()">
       </span>
     </div>
     <span class="statusBarText" @click="cycleMode">{{ displayText }}</span>
