@@ -2,8 +2,9 @@ import { onMounted, onUnmounted, ref } from 'vue'
 import emitter from '@/renderer/events'
 
 const isShowOutline = ref(false)
-function toggleShowOutline() {
-  isShowOutline.value = !isShowOutline.value
+function toggleShowOutline(status?: boolean | null) {
+  const toggle = status !== null && status !== undefined
+  isShowOutline.value = toggle ? status : !isShowOutline.value
 }
 export default function useOutline() {
   const outline = ref<{ id: string, level: number, text: string }[]>([] as any)
