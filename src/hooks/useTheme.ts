@@ -2,6 +2,7 @@ import type { Theme, ThemeName } from '@/types/theme'
 import autotoast from 'autotoast.js'
 import { getCurrentInstance, onMounted, onUnmounted, ref, toRaw } from 'vue'
 import { cssVarsDesMap, themeNameMap } from '@/config/theme'
+import { openThemeEditor } from '@/renderer/services'
 import { isThemeObject } from '@/types/theme'
 import themeManager from '@/utils/themeManager'
 import { randomUUID } from '@/utils/tool'
@@ -248,7 +249,7 @@ function addTempTheme(themeName?: ThemeName) {
     // 存储到 localStorage
     setEditingThemeToStorage(themeName)
 
-    window.electronAPI.openThemeEditor()
+    openThemeEditor()
   } else {
     // 新增主题：基于当前主题创建新主题
     const themeList = themes.value.length ? themes.value : getThemes()
@@ -288,7 +289,7 @@ function addTempTheme(themeName?: ThemeName) {
     }
   }
 
-  window.electronAPI.openThemeEditor()
+  openThemeEditor()
 }
 
 // 删除本地主题

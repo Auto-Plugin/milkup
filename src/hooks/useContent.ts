@@ -1,4 +1,5 @@
 import { computed, ref, watch } from 'vue'
+import { changeSaveStatus } from '@/renderer/services'
 import useTab from './useTab'
 
 const contentInfo = {
@@ -20,7 +21,7 @@ watch(isModified, (newValue) => {
   // 只有在有内容时才通知主进程保存状态
   // 如果 markdown 为空且 originalContent 也为空，说明是新建文档，不需要通知
   if (contentInfo.markdown.value || contentInfo.originalContent.value) {
-    window.electronAPI.changeSaveStatus(!newValue) // 通知主进程保存状态, 修改后(isModified==true) isSaved 为 false
+    changeSaveStatus(!newValue) // 通知主进程保存状态, 修改后(isModified==true) isSaved 为 false
   }
 }, { immediate: true })
 

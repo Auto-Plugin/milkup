@@ -3,11 +3,12 @@ import type { ThemeName } from '@/types/theme'
 import autotoast from 'autotoast.js'
 import { onMounted, onUnmounted, ref } from 'vue'
 import useTheme from '@/hooks/useTheme'
+import { themeEditorWindowControl } from '@/renderer/services'
+import { isWin } from '@/renderer/shared/platform'
 import ColorPicker from '@/ui/ColorPicker.vue'
 import MilkdownEditor from './MilkdownEditor.vue'
 
 const { tempTheme, getAllCssVarsDes, getThemeByCn, addTempTheme, saveTheme, getEditingThemeFromStorage, clearEditingThemeFromStorage } = useTheme()
-const isWin = window.electronAPI.platform === 'win32'
 
 // 原始主题备份
 const originalThemeBackup = ref<any>(null)
@@ -39,7 +40,7 @@ function handleClose() {
   clearEditingThemeFromStorage()
 
   if (window.electronAPI) {
-    window.electronAPI.themeEditorWindowControl('close')
+    themeEditorWindowControl('close')
   }
 }
 

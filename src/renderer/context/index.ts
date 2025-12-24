@@ -1,5 +1,5 @@
 import type { Ref } from 'vue'
-import { createContext } from '@renderer/shared/createContext'
+import { createContext } from '@renderer/hooks/createContext'
 import { defineComponent, ref } from 'vue'
 
 interface MilkupContext {

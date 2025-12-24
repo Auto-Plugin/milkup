@@ -1,6 +1,7 @@
 import type { Font, FontConfig, FontList, FontSizeConfig, FontSizeType, FontType } from '@/types/font'
 import { computed, ref } from 'vue'
 import { fontCssVariables, fontSizeCssVariables, fontSizeOptions } from '@/config/fonts'
+import { getSystemFonts } from '@/renderer/services'
 import { useConfig } from './useConfig'
 
 // 系统字体列表
@@ -18,7 +19,7 @@ const currentFontSize = computed(() => getConf('font').size)
 async function init() {
   // 获取系统字体列表
   try {
-    const systemFonts = await window.electronAPI.getSystemFonts()
+    const systemFonts = await getSystemFonts()
     // Font 对象数组
     fontList.value = systemFonts.map((fontName) => {
       const name = fontName.replace(/^['"]|['"]$/g, '')

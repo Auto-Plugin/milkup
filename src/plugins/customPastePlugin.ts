@@ -1,6 +1,7 @@
 import type { Uploader } from '@milkdown/kit/plugin/upload'
 import type { Node, Schema } from '@milkdown/kit/prose/model'
 import { uploadImage } from '@/api'
+import { getFilePathInClipboard, writeTempImage } from '@/renderer/services'
 
 export const uploader: Uploader = async (files, schema) => {
   const images: File[] = []
@@ -57,14 +58,14 @@ async function upload(image: File, nodes: Node[], schema: Schema<any, any>) {
   nodes.push(schema.nodes.image.createAndFill({ src, alt: image.name }) as Node)
 }
 async function local(image: File, nodes: Node[], schema: Schema<any, any>) {
-  const filePath = await window.electronAPI.getFilePathInClipboard()
+  const filePath = await getFilePathInClipboard()
   if (filePath) {
     nodes.push(schema.nodes.image.createAndFill({ src: filePath, alt: image.name }) as Node)
   } else {
     const arrayBuffer = await image.arrayBuffer()
     const buffer = new Uint8Array(arrayBuffer)
     // Convert Uint8Array to ArrayBuffer to satisfy the ArrayBufferLike parameter
-    const tempPath = await window.electronAPI.writeTempImage(buffer, localStorage.getItem('localImagePath') || '/temp')
+    const tempPath = await writeTempImage(buffer, localStorage.getItem('localImagePath') || '/temp')
     nodes.push(schema.nodes.image.createAndFill({ src: tempPath, alt: image.name }) as Node)
   }
 }
