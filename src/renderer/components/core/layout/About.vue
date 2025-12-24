@@ -2,9 +2,9 @@
 import autotoast from 'autotoast.js'
 import { checkUpdate } from '@/api/update'
 import logo from '@/assets/icons/milkup.ico'
-import { version } from '../../../package.json'
-import emitter from '../events'
-import { openExternal } from '../services'
+import emitter from '@/renderer/events'
+import { openExternal } from '@/renderer/services'
+import { version } from '../../../../../package.json'
 
 function openByDefaultBrowser(url: string) {
   openExternal(url)

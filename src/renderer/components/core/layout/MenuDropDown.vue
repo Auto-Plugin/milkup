@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
 import logo from '@/assets/icons/milkup.ico'
-import emitter from '../events'
+import emitter from '@/renderer/events'
 import MenuBar from './MenuBar.vue'
 
 const isOpen = ref(false)

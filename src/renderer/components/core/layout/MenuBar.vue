@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { checkUpdate } from '@/api/update.js'
-import emitter from '../events'
+import emitter from '@/renderer/events'
 import About from './About.vue'
 import appearancePage from './AppearancePage.vue'
 import FileOptions from './FileOptions.vue'

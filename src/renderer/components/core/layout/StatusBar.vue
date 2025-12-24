@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { toggleShowOutline } from '@/hooks/useOutline'
 import useSourceCode from '@/hooks/useSourceCode'
-import { on as onIpc } from '../services'
+import { on as onIpc } from '@/renderer/services'
 
 const props = defineProps<{
   content: string

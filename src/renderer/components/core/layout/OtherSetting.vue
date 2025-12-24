@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import useOtherConfig from '@/hooks/useOtherConfig'
-import { Input } from './ui/input'
+import { Input } from '@/renderer/components/ui/input'
 
 const {
   currentEditorPadding,

@@ -1,14 +1,9 @@
 <script setup lang="ts">
 import { MilkdownProvider } from '@milkdown/vue'
+import { SaveConfirmDialog, UpdateConfirmDialog } from '@renderer/components/core/dialog'
+import { MarkdownSourceEditor, MilkdownEditor } from '@renderer/components/core/editor'
+import { Outline, StatusBar, TitleBar } from '@renderer/components/core/layout'
 import { useContext } from '@/hooks/useContext'
-import MarkdownSourceEditor from './components/MarkdownSourceEditor.vue'
-import MilkdownEditor from './components/MilkdownEditor.vue'
-import Outline from './components/Outline.vue'
-import SaveConfirmDialog from './components/SaveConfirmDialog.vue'
-import StatusBar from './components/StatusBar.vue'
-import TitleBar from './components/TitleBar.vue'
-import UpdateConfirmDialog from './components/UpdateConfirmDialog.vue'
-// import VditorEditor from './components/VditorEditor.vue'
 import { MilkupProvider } from './context'
 
 // 使用整合的context hook
@@ -48,7 +43,6 @@ const {
         <MilkdownProvider v-if="!isShowSource">
           <MilkupProvider>
             <MilkdownEditor v-model="markdown" :read-only="currentTab?.readOnly" />
-            <!-- <VditorEditor v-model="markdown" /> -->
           </MilkupProvider>
         </MilkdownProvider>
         <MarkdownSourceEditor v-else-if="isShowSource" v-model="markdown" :read-only="currentTab?.readOnly" />
