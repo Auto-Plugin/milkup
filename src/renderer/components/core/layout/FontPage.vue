@@ -3,7 +3,7 @@ import type { FontSizeType, FontType } from '@/types/font'
 import { onMounted, ref } from 'vue'
 import { fontConfig, fontSizeConfig } from '@/config/fonts'
 import useFont from '@/hooks/useFont'
-import { VirtualSelect } from './ui/virtual-select'
+import { VirtualSelect } from '@/renderer/components/ui/virtual-select'
 
 const {
   fontList,

@@ -2,7 +2,7 @@
 import { onMounted } from 'vue'
 import useTheme from '@/hooks/useTheme'
 
-const { themes, currentTheme, init, setTheme, addTempTheme, removeTheme, exportTheme, importTheme } = useTheme()
+const { themes, currentTheme, init, setTheme, addTempTheme, removeTheme, exportTheme } = useTheme()
 
 onMounted(() => {
   init()

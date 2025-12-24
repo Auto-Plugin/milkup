@@ -1,13 +1,18 @@
 <script setup lang='ts'>
 import autotoast from 'autotoast.js'
+import { computed } from 'vue'
 import useContent from '@/hooks/useContent'
-import usefile from '@/hooks/useFile'
+import useFile from '@/hooks/useFile'
 import useWorkSpace from '@/hooks/useWorkSpace'
-import { exportElementAsPDF, exportElementAsWord, exportElementWithStylesAndImages } from '../utils/exports'
+import { exportElementAsPDF, exportElementAsWord, exportElementWithStylesAndImages } from '@/renderer/utils/exports'
 
-const { onOpen, onSave, onSaveAs, currentTab } = usefile()
+const { onOpen, onSave, onSaveAs, currentTab } = useFile()
 const { setWorkSpace } = useWorkSpace()
 const { isModified } = useContent()
+
+const exportFileName = computed(() => {
+  return `${currentTab.value?.name.slice(0, -3) || '导出的文件'}.pdf`
+})
 
 function onOpenFolder() {
   setWorkSpace().then(() => {
@@ -19,7 +24,7 @@ function onOpenFolder() {
   // 发射 Escape 按键事件 关闭菜单
 }
 function exportAsPDF() {
-  exportElementAsPDF('#milkdown', `${currentTab.value?.name.slice(0, -3)}.pdf` || '导出的文件', {
+  exportElementAsPDF('#milkdown', exportFileName.value, {
     pageSize: 'A4',
     scale: 1,
   }).then(() => {
@@ -29,10 +34,10 @@ function exportAsPDF() {
   })
 }
 function exportAsHTML() {
-  exportElementWithStylesAndImages(document.querySelector('#milkdown')!, `${currentTab.value?.name.slice(0, -3)}.html` || '导出的文件')
+  exportElementWithStylesAndImages(document.querySelector('#milkdown')!, exportFileName.value)
 }
 function exportAsDocx() {
-  exportElementAsWord('#milkdown', `${currentTab.value?.name.slice(0, -3)}.docx` || '导出的文件').then(() => {
+  exportElementAsWord('#milkdown', exportFileName.value).then(() => {
     autotoast.show('导出成功', 'success')
   }).catch((err) => {
     autotoast.show(`导出失败: ${err.message}`, 'error')

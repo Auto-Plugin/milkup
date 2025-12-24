@@ -14,7 +14,7 @@ import useTab from '@/hooks/useTab'
 import { uploader } from '@/plugins/customPastePlugin'
 import { htmlPlugin } from '@/plugins/hybridHtmlPlugin/rawHtmlPlugin'
 import { diagram } from '@/plugins/mermaidPlugin'
-import emitter from '../events'
+import emitter from '@/renderer/events'
 
 const props = defineProps<{
   modelValue: string
@@ -107,7 +107,11 @@ onMounted(async () => {
     .use(htmlPlugin)
     .use(diagram)
     .use(commonmark)
-  props.readOnly && crepe.setReadonly(true)
+
+  if (props.readOnly) {
+    crepe.setReadonly(true)
+  }
+
   await crepe.create()
 
   editor.ctx.update(uploadConfig.key, prev => ({ ...prev, uploader }))

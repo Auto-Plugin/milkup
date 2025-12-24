@@ -7,14 +7,14 @@ import TabBar from './TabBar.vue'
 
 const isFullScreen = ref(false)
 function minimize() {
-  windowControl?.('minimize')
+  windowControl('minimize')
 }
 function toggleMaximize() {
   isFullScreen.value = !isFullScreen.value
-  windowControl?.('maximize')
+  windowControl('maximize')
 }
 async function close() {
-  windowControl?.('close')
+  windowControl('close')
 }
 onIpc('close', () => {
   close()

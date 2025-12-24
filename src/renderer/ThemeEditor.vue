@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import type { ThemeName } from '@/types/theme'
+import { MilkdownEditor } from '@renderer/components/core/editor'
 import autotoast from 'autotoast.js'
 import { onMounted, onUnmounted, ref } from 'vue'
 import useTheme from '@/hooks/useTheme'
 import { themeEditorWindowControl } from '@/renderer/services'
 import { isWin } from '@/renderer/shared/platform'
 import ColorPicker from '@/ui/ColorPicker.vue'
-import MilkdownEditor from './MilkdownEditor.vue'
 
 const { tempTheme, getAllCssVarsDes, getThemeByCn, addTempTheme, saveTheme, getEditingThemeFromStorage, clearEditingThemeFromStorage } = useTheme()
 
