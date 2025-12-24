@@ -5,6 +5,7 @@ import autotoast from 'autotoast.js'
 import { computed, nextTick, ref, watch } from 'vue'
 import { processImagePaths, setCurrentMarkdownFilePath } from '@/plugins/imagePathPlugin'
 import emitter from '@/renderer/events'
+import { closeDiscard, getIsReadOnly, on as onIpc, onOpenFileAtLaunch, readFileByPath, saveFile, watchFiles } from '@/renderer/services'
 import { createInertiaScroll } from '@/utils/inertiaScroll'
 import { randomUUID } from '@/utils/tool'
 import { isShowOutline } from './useOutline'
@@ -28,7 +29,7 @@ const defaultTab: Tab = {
 }
 tabs.value.push(defaultTab)
 activeTabId.value = defaultTab.id
-window.electronAPI?.onOpenFileAtLaunch((_payload) => {
+onOpenFileAtLaunch((_payload) => {
   if (tabs.value.length === 1 && tabs.value[0].id === defaultTabUUid && !tabs.value[0].isModified) {
     tabs.value = []
   }
@@ -142,7 +143,7 @@ async function saveCurrentTab(): Promise<boolean> {
     return false
 
   try {
-    const saved = await window.electronAPI.saveFile(currentTab.filePath, currentTab.content)
+    const saved = await saveFile(currentTab.filePath, currentTab.content)
     if (saved) {
       currentTab.filePath = saved
       currentTab.name = getFileName(saved) // 更新标签名称
@@ -170,7 +171,7 @@ async function createTabFromFile(filePath: string, content: string): Promise<Tab
     originalContent: content,
     isModified: false,
     scrollRatio: 0,
-    readOnly: await window.electronAPI?.getIsReadOnly(filePath) || false,
+    readOnly: await getIsReadOnly(filePath) || false,
   }
 
   return add(tab)
@@ -188,7 +189,7 @@ async function openFile(filePath: string): Promise<Tab | null> {
     }
 
     // 读取文件内容
-    const result = await window.electronAPI.readFileByPath(filePath)
+    const result = await readFileByPath(filePath)
     if (result) {
       // 如果当前有且只有一个默认未命名且未修改的tab，则复用该tab
       if (
@@ -207,7 +208,7 @@ async function openFile(filePath: string): Promise<Tab | null> {
       } else {
         // 创建新tab
         const newTab = await createTabFromFile(result.filePath, result.content)
-        newTab.readOnly = await window.electronAPI?.getIsReadOnly(filePath) || false
+        newTab.readOnly = await getIsReadOnly(filePath) || false
         // 切换新tab
         switchToTab(newTab.id)
 
@@ -377,7 +378,7 @@ function closeWithConfirm(id: string) {
   // 如果没有未保存内容
   if (isLastTab) {
     // 如果是最后一个tab，直接关闭应用
-    window.electronAPI.closeDiscard()
+    closeDiscard()
   } else {
     // 否则直接关闭tab
     close(id)
@@ -446,7 +447,7 @@ watch(
     // 通知ipc
     console.log('通知ipc', newFilePaths)
 
-    window.electronAPI.watchFiles(newFilePaths)
+    watchFiles(newFilePaths)
   },
   {
     immediate: true,
@@ -454,13 +455,13 @@ watch(
 )
 
 // 文件变动回调事件
-window.electronAPI.on?.('file:changed', async (paths) => {
+onIpc('file:changed', async (paths) => {
   const tab = tabs.value.find(tab => tab.filePath === paths)
   if (!tab)
     return
 
   if (!tab.isModified) {
-    const result = await window.electronAPI.readFileByPath(paths)
+    const result = await readFileByPath(paths)
     if (!result)
       return
     // 处理图片路径
@@ -489,7 +490,7 @@ window.electronAPI.on?.('file:changed', async (paths) => {
     }
 
     // 读取新文件内容
-    const result = await window.electronAPI.readFileByPath(paths)
+    const result = await readFileByPath(paths)
     if (!result)
       return
 

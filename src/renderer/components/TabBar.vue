@@ -3,6 +3,7 @@ import { onMounted, onUnmounted, ref } from 'vue'
 import { vDraggable } from 'vue-draggable-plus'
 import useFile from '@/hooks/useFile'
 import useTab from '@/hooks/useTab'
+import { isMac } from '@/renderer/shared/platform'
 
 const {
   formattedTabs,
@@ -20,7 +21,6 @@ const { createNewFile } = useFile()
 
 // 拦截 ctrl/cmd + w 快捷键关闭tab
 function handleCloseTabShortcut(e: KeyboardEvent) {
-  const isMac = window.electronAPI.platform === 'darwin'
   if ((isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === 'w') {
     e.preventDefault()
     if (activeTabId.value) {

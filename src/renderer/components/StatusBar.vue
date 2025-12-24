@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { toggleShowOutline } from '@/hooks/useOutline'
 import useSourceCode from '@/hooks/useSourceCode'
+import { on as onIpc } from '../services'
 
 const props = defineProps<{
   content: string
@@ -39,7 +40,7 @@ function countMarkdownChars(text: string): number {
   const base64Regex = /data:image\/[a-zA-Z]+;base64,[a-zA-Z0-9+/=]+/g
   return (text.replaceAll('&#x20;', '').replace(base64Regex, 'image').trim() || '').split('').length
 }
-window.electronAPI.on('view:toggleView', () => {
+onIpc('view:toggleView', () => {
   toggleSourceCode()
 })
 </script>

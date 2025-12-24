@@ -4,9 +4,10 @@ import { checkUpdate } from '@/api/update'
 import logo from '@/assets/icons/milkup.ico'
 import { version } from '../../../package.json'
 import emitter from '../events'
+import { openExternal } from '../services'
 
 function openByDefaultBrowser(url: string) {
-  window.electronAPI.openExternal(url)
+  openExternal(url)
 }
 const updateInfo = JSON.parse(localStorage.getItem('updateInfo') || '{}')
 

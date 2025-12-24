@@ -1,24 +1,22 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import useTitle from '../../hooks/useTitle'
+import { on as onIpc, windowControl } from '@/renderer/services'
+import { isWin } from '@/renderer/shared/platform'
 import MenuDropDown from './MenuDropDown.vue'
 import TabBar from './TabBar.vue'
 
-const isWin = window.electronAPI.platform === 'win32'
-const { title } = useTitle()
-
 const isFullScreen = ref(false)
 function minimize() {
-  window.electronAPI?.windowControl?.('minimize')
+  windowControl?.('minimize')
 }
 function toggleMaximize() {
   isFullScreen.value = !isFullScreen.value
-  window.electronAPI?.windowControl?.('maximize')
+  windowControl?.('maximize')
 }
 async function close() {
-  window.electronAPI?.windowControl?.('close')
+  windowControl?.('close')
 }
-window.electronAPI.on('close', () => {
+onIpc('close', () => {
   close()
 })
 </script>

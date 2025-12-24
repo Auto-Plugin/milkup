@@ -1,4 +1,5 @@
 import { computed, ref } from 'vue'
+import { setTitle } from '@/renderer/services'
 import useContent from './useContent'
 
 const { filePath, isModified } = useContent()
@@ -13,7 +14,7 @@ const fileName = computed(() => {
 function updateTitle() {
   const name = (fileName.value || 'Untitled')
   const prefix = isModified.value ? '*' : ''
-  window.electronAPI.setTitle(`${prefix}${name}`)
+  setTitle(`${prefix}${name}`)
   title.value = `${prefix}${name}`
 }
 

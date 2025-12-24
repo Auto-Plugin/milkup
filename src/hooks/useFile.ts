@@ -3,6 +3,7 @@ import type { Tab } from '@/types/tab'
 import { nextTick, onUnmounted } from 'vue'
 import { processImagePaths } from '@/plugins/imagePathPlugin'
 import emitter from '@/renderer/events'
+import { getIsReadOnly, getPathForFile, on as onIpc, onOpenFileAtLaunch, openFile, readFileByPath, removeListener, saveFileAs } from '@/renderer/services'
 import useContent from './useContent'
 import useTab from './useTab'
 import useTitle from './useTitle'
@@ -27,7 +28,7 @@ const {
 
 async function onOpen(result?: { filePath: string, content: string } | null) {
   if (!result) {
-    result = await window.electronAPI.openFile()
+    result = await openFile()
   }
   if (result) {
     filePath.value = result.filePath
@@ -47,11 +48,11 @@ async function onOpen(result?: { filePath: string, content: string } | null) {
       markdown.value = tab.content
       originalContent.value = result.content
       tab.isModified = false
-      tab.readOnly = await window.electronAPI.getIsReadOnly(result.filePath)
+      tab.readOnly = await getIsReadOnly(result.filePath)
     } else {
       // 创建新tab
       const tab = await createTabFromFile(result.filePath, result.content)
-      tab.readOnly = await window.electronAPI.getIsReadOnly(result.filePath)
+      tab.readOnly = await getIsReadOnly(result.filePath)
       // 更新当前内容状态
       markdown.value = tab.content
       originalContent.value = result.content
@@ -82,7 +83,7 @@ async function onSaveAs() {
   // 先更新当前tab的内容
   updateCurrentTabContent(markdown.value)
 
-  const result = await window.electronAPI.saveFileAs(markdown.value)
+  const result = await saveFileAs(markdown.value)
   if (result) {
     // 更新当前tab的文件路径
     if (currentTab.value) {
@@ -105,10 +106,10 @@ function registerMenuEventsOnce() {
     return
   hasRegistered = true
 
-  window.electronAPI?.onOpenFileAtLaunch?.(async ({ filePath: launchFilePath, content }) => {
+  onOpenFileAtLaunch?.(async ({ filePath: launchFilePath, content }) => {
     // 创建新tab
     const tab = await createTabFromFile(launchFilePath, content)
-    tab.readOnly = await window.electronAPI.getIsReadOnly(launchFilePath)
+    tab.readOnly = await getIsReadOnly(launchFilePath)
 
     // 更新当前内容状态
     markdown.value = tab.content
@@ -121,8 +122,8 @@ function registerMenuEventsOnce() {
     })
   })
 
-  window.electronAPI.on?.('menu-open', onOpen)
-  window.electronAPI.on?.('menu-save', onSave)
+  onIpc('menu-open', onOpen)
+  onIpc('menu-save', onSave)
 
   // 拖拽打开 Markdown 文件
   const handleDragOver = (event: DragEvent) => {
@@ -186,9 +187,10 @@ function registerMenuEventsOnce() {
 
       try {
         // 使用 webUtils.getPathForFile 方法
-        const pathResult = window.electronAPI.getPathForFile(mdFile)
+        const pathResult = getPathForFile(mdFile)
         fullPath = pathResult || null
       } catch (error) {
+        console.error('获取文件完整路径失败:', error)
       }
 
       if (!fullPath) {
@@ -199,7 +201,7 @@ function registerMenuEventsOnce() {
       }
 
       if (fullPath) {
-        const result = await window.electronAPI.readFileByPath(fullPath)
+        const result = await readFileByPath(fullPath)
         if (result) {
           if (userChoice === 'overwrite') {
             // 覆盖更新当前tab的文件信息
@@ -210,11 +212,11 @@ function registerMenuEventsOnce() {
             markdown.value = processedContent
             filePath.value = result.filePath
             originalContent.value = result.content
-            currentTab.value!.readOnly = await window.electronAPI.getIsReadOnly(result.filePath)
+            currentTab.value!.readOnly = await getIsReadOnly(result.filePath)
           } else {
             // 创建新tab
             const tab = await createTabFromFile(result.filePath, result.content)
-            tab.readOnly = await window.electronAPI.getIsReadOnly(result.filePath)
+            tab.readOnly = await getIsReadOnly(result.filePath)
             // 更新当前内容
             markdown.value = tab.content
             filePath.value = result.filePath
@@ -297,8 +299,8 @@ emitter.on('tab:switch', tabSwitch)
 
 export default function useFile() {
   onUnmounted(() => {
-    window.electronAPI?.removeListener?.('menu-open', onOpen)
-    window.electronAPI?.removeListener?.('menu-save', onSave)
+    removeListener('menu-open', onOpen)
+    removeListener('menu-save', onSave)
   })
   return {
     onOpen,

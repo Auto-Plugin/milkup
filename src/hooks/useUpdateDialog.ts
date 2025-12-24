@@ -1,5 +1,6 @@
 import autotoast from 'autotoast.js'
 import { ref } from 'vue'
+import { openExternal } from '@/renderer/services'
 
 export function useUpdateDialog() {
   const isDialogVisible = ref(false)
@@ -25,7 +26,7 @@ export function useUpdateDialog() {
       return
     }
     // 打开浏览器下载页面
-    window.electronAPI.openExternal(downloadUrl)
+    openExternal(downloadUrl)
     hideDialog()
   }
   function handleLater() {

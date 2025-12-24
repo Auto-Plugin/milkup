@@ -1,5 +1,6 @@
 import toast from 'autotoast.js'
 import { ref, watch } from 'vue'
+import { getDirectoryFiles, showOpenDialog } from '@/renderer/services'
 import useTab from './useTab'
 
 const { tabs, currentTab } = useTab()
@@ -35,7 +36,7 @@ async function getWorkSpace() {
   try {
     isLoading.value = true
 
-    const result = await window.electronAPI.getDirectoryFiles(directoryPath)
+    const result = await getDirectoryFiles(directoryPath)
 
     if (!result)
       return
@@ -56,7 +57,7 @@ async function getWorkSpace() {
 // 打开选择文件夹对话框
 async function setWorkSpace() {
   try {
-    const result = await window.electronAPI.showOpenDialog({
+    const result = await showOpenDialog({
       properties: ['openDirectory'],
       title: '选择文件夹文件夹',
     })
@@ -68,7 +69,7 @@ async function setWorkSpace() {
       workSpace.value = null
 
       // 获取选择的文件夹内容
-      const directoryFiles = await window.electronAPI.getDirectoryFiles(selectedPath)
+      const directoryFiles = await getDirectoryFiles(selectedPath)
 
       if (directoryFiles && directoryFiles.length > 0) {
         workSpace.value = directoryFiles

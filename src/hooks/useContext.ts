@@ -1,4 +1,5 @@
 import { nextTick, ref, watch } from 'vue'
+import { closeDiscard, on as onIpc } from '@/renderer/services'
 import emitter from '../renderer/events'
 import useContent from './useContent'
 import useFile from './useFile'
@@ -70,7 +71,7 @@ export function useContext() {
 
     if (unsavedTabs.length === 0) {
       // 没有未保存的tab，直接关闭
-      window.electronAPI.closeDiscard()
+      closeDiscard()
       return
     }
 
@@ -101,21 +102,21 @@ export function useContext() {
     }
 
     // 所有tab都处理完成，关闭应用
-    window.electronAPI.closeDiscard()
+    closeDiscard()
   }
 
   // 监听关闭确认事件
-  window.electronAPI.on('close:confirm', async () => {
+  onIpc('close:confirm', async () => {
     await handleAppCloseConfirm()
   })
 
   // 监听保存触发事件
-  window.electronAPI.on('trigger-save', async () => {
+  onIpc('trigger-save', async () => {
     await onSave()
   })
 
   // 监听自定义主题保存事件
-  window.electronAPI.on('custom-theme-saved', (theme) => {
+  onIpc('custom-theme-saved', (theme) => {
     // 重新获取主题列表以包含新保存的主题
     const { setTheme } = useTheme()
     setTheme(theme.name)
@@ -181,7 +182,7 @@ export function useContext() {
       // 保存成功
       if (isLastTab) {
         // 如果是最后一个tab，关闭应用
-        window.electronAPI.closeDiscard()
+        closeDiscard()
       } else {
         // 否则关闭tab
         close(tabId)
@@ -199,7 +200,7 @@ export function useContext() {
 
     if (isLastTab) {
       // 如果是最后一个tab，关闭应用
-      window.electronAPI.closeDiscard()
+      closeDiscard()
     } else {
       // 否则关闭tab
       close(tabId)

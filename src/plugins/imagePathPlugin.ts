@@ -1,3 +1,5 @@
+import { resolveImagePath } from '@/renderer/services'
+
 // 用于存储当前 Markdown 文件路径的全局变量
 let currentMarkdownFilePath: string | null = null
 
@@ -24,7 +26,7 @@ export async function processImagePaths(markdownContent: string, markdownFilePat
     // 只处理相对路径
     if (!imagePath.startsWith('http') && !imagePath.startsWith('file://') && !imagePath.startsWith('data:')) {
       try {
-        const resolvedPath = await window.electronAPI.resolveImagePath(markdownFilePath, imagePath)
+        const resolvedPath = await resolveImagePath(markdownFilePath, imagePath)
 
         if (resolvedPath !== imagePath) {
           const newImageMarkdown = `![${alt}](${resolvedPath})`
