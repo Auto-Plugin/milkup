@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { Selector } from '@renderer/components/ui/selector'
 import autodialog from 'autodialog.js'
 import { ref } from 'vue'
-import Selector from '@/ui/Selector.vue'
 import ReloadConfirmDialog from './ReloadConfirmDialog.vue'
 
 type LanguageCode = 'zh-cn' | 'ja' | 'ko' | 'ru' | 'en' | 'fr'
