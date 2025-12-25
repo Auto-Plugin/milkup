@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { useEventListener } from '@vueuse/core'
+import { ref } from 'vue'
 import logo from '@/assets/icons/milkup.ico'
 import emitter from '@/renderer/events'
 import MenuBar from './MenuBar.vue'
 
 const isOpen = ref(false)
+
 emitter.on('file:Change', () => {
   isOpen.value = false
 })
@@ -15,13 +17,7 @@ function handleKeydown(event: KeyboardEvent) {
   }
 }
 
-onMounted(() => {
-  document.addEventListener('keydown', handleKeydown)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('keydown', handleKeydown)
-})
+useEventListener(document, 'keydown', handleKeydown)
 </script>
 
 <template>

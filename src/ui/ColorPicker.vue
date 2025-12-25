@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { useEventListener } from '@vueuse/core'
+import { computed, nextTick, ref } from 'vue'
 import { SketchPicker } from 'vue-color'
 import 'vue-color/style.css'
 
@@ -110,16 +111,8 @@ function handleClickOutside(e: Event) {
   }
 }
 
-// 生命周期
-onMounted(() => {
-  document.addEventListener('mousedown', handleClickOutside)
-  window.addEventListener('resize', handleResize)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('mousedown', handleClickOutside)
-  window.removeEventListener('resize', handleResize)
-})
+useEventListener(document, 'mousedown', handleClickOutside)
+useEventListener('resize', handleResize)
 
 // 窗口大小变化时重新计算位置
 function handleResize() {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { useEventListener } from '@vueuse/core'
+import { onUnmounted, ref } from 'vue'
 import { vDraggable } from 'vue-draggable-plus'
 import useFile from '@/hooks/useFile'
 import useTab from '@/hooks/useTab'
@@ -28,7 +29,6 @@ function handleCloseTabShortcut(e: KeyboardEvent) {
     }
   }
 }
-window.addEventListener('keydown', handleCloseTabShortcut)
 
 // 获取tab容器的DOM引用
 const tabContainerRef = ref<HTMLElement | null>(null)
@@ -69,24 +69,18 @@ function handleBeforeLeave(el: Element) {
 // 设置滚动监听
 setupTabScrollListener(tabContainerRef)
 
-// 组件挂载时添加事件监听器
-onMounted(() => {
-  const container = tabContainerRef.value
-  if (container) {
-    container.addEventListener('wheel', event => handleWheelScroll(event, tabContainerRef), { passive: false })
-  }
-})
-
 // 组件卸载时移除事件监听器和清理惯性滚动实例
 onUnmounted(() => {
   const container = tabContainerRef.value
   if (container) {
-    container.removeEventListener('wheel', event => handleWheelScroll(event, tabContainerRef))
     // 清理惯性滚动实例
     cleanupInertiaScroll(container)
   }
-  window.removeEventListener('keydown', handleCloseTabShortcut)
 })
+
+// 组件挂载时添加事件监听器
+useEventListener(tabContainerRef, 'wheel', event => handleWheelScroll(event, tabContainerRef), { passive: false })
+useEventListener('keydown', handleCloseTabShortcut)
 </script>
 
 <template>

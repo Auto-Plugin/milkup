@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useEventListener } from '@vueuse/core'
+import { computed, nextTick, ref, watch } from 'vue'
 
 export interface VirtualSelectOption {
   value: string
@@ -109,13 +110,7 @@ function handleClickOutside(event: Event) {
   }
 }
 
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-})
+useEventListener(document, 'click', handleClickOutside)
 
 watch(isOpen, (newValue) => {
   if (newValue) {
