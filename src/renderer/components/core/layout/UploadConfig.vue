@@ -1,6 +1,6 @@
 <script setup lang='ts'>
+import { Input } from '@renderer/components/ui/input'
 import { ref } from 'vue'
-import Input from '@/ui/Input.vue'
 import Selector from '@/ui/Selector.vue'
 
 type RequestMethod = 'post' | 'put'

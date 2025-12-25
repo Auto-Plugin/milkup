@@ -1,6 +1,6 @@
 <script setup lang='ts'>
+import { Input } from '@renderer/components/ui/input'
 import { ref } from 'vue'
-import Input from '@/ui/Input.vue'
 import UploadConfig from './UploadConfig.vue'
 
 type PasteMethod = 'local' | 'base64' | 'remote'
