@@ -1,7 +1,7 @@
-import type { UpdateInfo, UpdateStore } from './_types'
+import type { UpdateInfo, UpdateStore } from '../types'
 import { useStorage } from '@vueuse/core'
 import { computed, readonly } from 'vue'
-import { g } from './_utils'
+import { g } from '../utils'
 
 const defaultUpdate: UpdateStore = {
   info: null,

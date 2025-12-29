@@ -1,7 +1,7 @@
-import type { Theme, ThemeName, ThemeStore } from './_types'
+import type { Theme, ThemeName, ThemeStore } from '../types'
 import { useStorage } from '@vueuse/core'
 import { computed, readonly } from 'vue'
-import { g } from './_utils'
+import { g } from '../utils'
 
 const defaultTheme: ThemeStore = {
   current: 'normal',

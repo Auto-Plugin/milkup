@@ -1,7 +1,7 @@
-import type { ImageStore, PasteMethod } from './_types'
+import type { ImageStore, PasteMethod } from '../types'
 import { useStorage } from '@vueuse/core'
 import { computed, readonly } from 'vue'
-import { g } from './_utils'
+import { g } from '../utils'
 
 const defaultImage: ImageStore = {
   pasteMethod: 'local',

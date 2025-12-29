@@ -1,6 +1,1 @@
-export * from './_types'
-export * from './config'
-export * from './image'
-export * from './theme'
-export * from './update'
-export * from './upload'
+export * from './modules'
