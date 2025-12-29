@@ -36,7 +36,7 @@ async function selectLanguage() {
     <label for="language-select">选择语言</label>
     <Selector
       v-model="selectedLanguage"
-      :items="languages.map(lang => { return { value: lang.code, label: lang.name } })" placeholder="选择语言"
+      :items="languages.map(lang => lang.code)" placeholder="选择语言"
       @change="selectLanguage"
     />
   </div>
