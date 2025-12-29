@@ -1,7 +1,7 @@
-import type { BodyType, RequestMethod, UploadStore } from './_types'
+import type { BodyType, RequestMethod, UploadStore } from '../types'
 import { useStorage } from '@vueuse/core'
 import { computed, readonly } from 'vue'
-import { g } from './_utils'
+import { g } from '../utils'
 
 const defaultUpload: UploadStore = {
   url: '',

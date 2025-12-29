@@ -1,11 +1,11 @@
-import type { ConfigStore } from './_types'
+import type { ConfigStore } from '../types'
 
 import { useStorage } from '@vueuse/core'
 import { computed, readonly } from 'vue'
 
 import { defaultFontConfig, defaultFontSizeConfig } from '@/config/fonts'
 
-import { g } from './_utils'
+import { g } from '../utils'
 
 const defaultConfig: ConfigStore = {
   lang: 'zh-CN',
