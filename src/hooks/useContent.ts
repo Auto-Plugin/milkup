@@ -8,23 +8,36 @@ const contentInfo = {
 }
 const isModified = computed(() => contentInfo.markdown.value !== contentInfo.originalContent.value)
 
-// 获取 useTab 实例
-const { updateCurrentTabContent } = useTab()
+// 延迟初始化watch监听器，避免模块加载时立即调用useTab
+let isWatcherInitialized = false
 
-// 监听内容变化，同步到当前tab
-watch(contentInfo.markdown, (newContent) => {
-  updateCurrentTabContent(newContent)
-}, { deep: true })
+function initializeWatchers() {
+  if (isWatcherInitialized)
+    return
 
-watch(isModified, (newValue) => {
-  // 只有在有内容时才通知主进程保存状态
-  // 如果 markdown 为空且 originalContent 也为空，说明是新建文档，不需要通知
-  if (contentInfo.markdown.value || contentInfo.originalContent.value) {
-    window.electronAPI.changeSaveStatus(!newValue) // 通知主进程保存状态, 修改后(isModified==true) isSaved 为 false
-  }
-}, { immediate: true })
+  // ✅ 在第一次调用useContent时才获取useTab实例
+  const { updateCurrentTabContent } = useTab()
+
+  // 监听内容变化，同步到当前tab
+  watch(contentInfo.markdown, (newContent) => {
+    updateCurrentTabContent(newContent)
+  }, { deep: true })
+
+  watch(isModified, (newValue) => {
+    // 只有在有内容时才通知主进程保存状态
+    // 如果 markdown 为空且 originalContent 也为空，说明是新建文档，不需要通知
+    if (contentInfo.markdown.value || contentInfo.originalContent.value) {
+      window.electronAPI.changeSaveStatus(!newValue) // 通知主进程保存状态, 修改后(isModified==true) isSaved 为 false
+    }
+  }, { immediate: true })
+
+  isWatcherInitialized = true
+}
 
 export default () => {
+  // ✅ 在第一次调用useContent时初始化watchers
+  initializeWatchers()
+
   return {
     ...contentInfo,
     isModified,
