@@ -5,9 +5,11 @@ import emitter from '../events'
 import MenuBar from './MenuBar.vue'
 
 const isOpen = ref(false)
-emitter.on('file:Change', () => {
+
+// 事件处理器
+function handleFileChange() {
   isOpen.value = false
-})
+}
 
 function handleKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape' && isOpen.value) {
@@ -16,10 +18,12 @@ function handleKeydown(event: KeyboardEvent) {
 }
 
 onMounted(() => {
+  emitter.on('file:Change', handleFileChange)
   document.addEventListener('keydown', handleKeydown)
 })
 
 onUnmounted(() => {
+  emitter.off('file:Change', handleFileChange)
   document.removeEventListener('keydown', handleKeydown)
 })
 </script>

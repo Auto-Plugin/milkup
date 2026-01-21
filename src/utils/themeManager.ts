@@ -5,6 +5,9 @@ let localThemes: Theme[] = []
 // 监听器
 const listeners: ((themes: Theme[]) => void)[] = []
 
+// 标记是否已设置storage监听器
+let storageListenerSetup = false
+
 // 通知所有监听器
 function notifyListeners() {
   listeners.forEach(listener => listener(localThemes))
@@ -26,13 +29,22 @@ function loadThemes() {
   return localThemes
 }
 
+// storage事件处理器 - 使用命名函数以便正确移除
+function handleStorageChange(e: StorageEvent) {
+  if (e.key === 'custom-themes') {
+    loadThemes()
+  }
+}
+
 // 监听 storage
 function setupStorageListener() {
-  window.addEventListener('storage', (e) => {
-    if (e.key === 'custom-themes') {
-      loadThemes()
-    }
-  })
+  // 防止重复注册
+  if (storageListenerSetup) {
+    return
+  }
+
+  window.addEventListener('storage', handleStorageChange)
+  storageListenerSetup = true
 }
 
 // 模块加载时立即执行
@@ -99,11 +111,13 @@ function onThemesChange(callback: (themes: Theme[] | null) => void): (() => void
 // 卸载监听器
 function uninstallListeners() {
   // 移除 storage 事件监听器
-  window.removeEventListener('storage', (e) => {
-    if (e.key === 'custom-themes') {
-      loadThemes()
-    }
-  })
+  if (storageListenerSetup) {
+    window.removeEventListener('storage', handleStorageChange)
+    storageListenerSetup = false
+  }
+
+  // 清空所有主题变化监听器
+  listeners.length = 0
 }
 
 // 获取编辑中的主题数据

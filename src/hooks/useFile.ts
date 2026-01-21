@@ -9,23 +9,17 @@ import useTitle from './useTitle'
 
 const defaultName = 'Untitled'
 
-const { updateTitle } = useTitle()
-const { markdown, filePath, originalContent } = useContent()
-const {
-  updateCurrentTabFile,
-  createTabFromFile,
-  createNewTab,
-  switchToTab,
-  updateCurrentTabContent,
-  updateCurrentTabScrollRatio,
-  saveCurrentTab,
-  getFileName,
-  currentTab,
-  hasUnsavedTabs,
-  tabs,
-} = useTab()
-
 async function onOpen(result?: { filePath: string, content: string } | null) {
+  const { updateTitle } = useTitle()
+  const { markdown, filePath, originalContent } = useContent()
+  const {
+    createTabFromFile,
+    updateCurrentTabContent,
+    switchToTab,
+    getFileName,
+    tabs,
+  } = useTab()
+
   if (!result) {
     result = await window.electronAPI.openFile()
   }
@@ -65,6 +59,10 @@ async function onOpen(result?: { filePath: string, content: string } | null) {
 }
 
 async function onSave() {
+  const { updateTitle } = useTitle()
+  const { markdown, filePath, originalContent } = useContent()
+  const { updateCurrentTabContent, saveCurrentTab, currentTab } = useTab()
+
   // 先更新当前tab的内容
   updateCurrentTabContent(markdown.value)
 
@@ -79,6 +77,10 @@ async function onSave() {
 }
 
 async function onSaveAs() {
+  const { updateTitle } = useTitle()
+  const { markdown, filePath, originalContent } = useContent()
+  const { updateCurrentTabContent, currentTab } = useTab()
+
   // 先更新当前tab的内容
   updateCurrentTabContent(markdown.value)
 
@@ -98,31 +100,54 @@ async function onSaveAs() {
   }
 }
 
-// ✅ 注册事件：只执行一次（确保是单例）
-let hasRegistered = false
-function registerMenuEventsOnce() {
-  if (hasRegistered)
-    return
-  hasRegistered = true
+// 创建新文件
+function createNewFile() {
+  const { updateTitle } = useTitle()
+  const { markdown, filePath, originalContent } = useContent()
+  const { createNewTab } = useTab()
 
-  window.electronAPI?.onOpenFileAtLaunch?.(async ({ filePath: launchFilePath, content }) => {
-    // 创建新tab
-    const tab = await createTabFromFile(launchFilePath, content)
-    tab.readOnly = await window.electronAPI.getIsReadOnly(launchFilePath)
+  createNewTab()
 
-    // 更新当前内容状态
-    markdown.value = tab.content
-    filePath.value = launchFilePath
-    originalContent.value = content
+  // 更新当前内容状态
+  filePath.value = ''
+  markdown.value = ''
+  originalContent.value = ''
 
-    updateTitle()
-    nextTick(() => {
-      emitter.emit('file:Change')
-    })
+  updateTitle()
+  nextTick(() => {
+    emitter.emit('file:Change')
   })
+}
 
-  window.electronAPI.on?.('menu-open', onOpen)
-  window.electronAPI.on?.('menu-save', onSave)
+function tabSwitch(tab: Tab) {
+  const { updateTitle } = useTitle()
+  const { markdown, filePath, originalContent } = useContent()
+
+  // 更新当前内容状态
+  filePath.value = tab.filePath || ''
+  markdown.value = tab.content
+  originalContent.value = tab.originalContent
+
+  updateTitle()
+  nextTick(() => {
+    emitter.emit('file:Change')
+  })
+}
+
+export default function useFile() {
+  const { updateTitle } = useTitle()
+  const { markdown, filePath, originalContent } = useContent()
+  const {
+    updateCurrentTabFile,
+    createTabFromFile,
+    switchToTab,
+    updateCurrentTabContent,
+    updateCurrentTabScrollRatio,
+    saveCurrentTab,
+    currentTab,
+    hasUnsavedTabs,
+    tabs,
+  } = useTab()
 
   // 拖拽打开 Markdown 文件
   const handleDragOver = (event: DragEvent) => {
@@ -260,46 +285,48 @@ function registerMenuEventsOnce() {
     }
   }
 
+  // 注册启动时文件打开监听
+  window.electronAPI?.onOpenFileAtLaunch?.(async ({ filePath: launchFilePath, content }) => {
+    // 创建新tab
+    const tab = await createTabFromFile(launchFilePath, content)
+    tab.readOnly = await window.electronAPI.getIsReadOnly(launchFilePath)
+
+    // 更新当前内容状态
+    markdown.value = tab.content
+    filePath.value = launchFilePath
+    originalContent.value = content
+
+    updateTitle()
+    nextTick(() => {
+      emitter.emit('file:Change')
+    })
+  })
+
+  // 注册菜单事件
+  window.electronAPI.on?.('menu-open', onOpen)
+  window.electronAPI.on?.('menu-save', onSave)
+
+  // 注册拖拽事件
   window.addEventListener('dragover', handleDragOver)
   window.addEventListener('drop', handleDrop)
-}
 
-// ✅ 立即注册（只注册一次）
-registerMenuEventsOnce()
+  // 注册tab切换事件
+  emitter.on('tab:switch', tabSwitch)
 
-// 创建新文件
-function createNewFile() {
-  createNewTab()
-
-  // 更新当前内容状态
-  filePath.value = ''
-  markdown.value = ''
-  originalContent.value = ''
-
-  updateTitle()
-  nextTick(() => {
-    emitter.emit('file:Change')
-  })
-}
-function tabSwitch(tab: Tab) {
-  // 更新当前内容状态
-  filePath.value = tab.filePath || ''
-  markdown.value = tab.content
-  originalContent.value = tab.originalContent
-
-  updateTitle()
-  nextTick(() => {
-    emitter.emit('file:Change')
-  })
-}
-// 监听tab切换事件
-emitter.on('tab:switch', tabSwitch)
-
-export default function useFile() {
+  // 清理函数
   onUnmounted(() => {
+    // 清理IPC监听器
     window.electronAPI?.removeListener?.('menu-open', onOpen)
     window.electronAPI?.removeListener?.('menu-save', onSave)
+
+    // 清理DOM事件监听器
+    window.removeEventListener('dragover', handleDragOver)
+    window.removeEventListener('drop', handleDrop)
+
+    // 清理emitter事件监听器
+    emitter.off('tab:switch', tabSwitch)
   })
+
   return {
     onOpen,
     onSave,

@@ -12,8 +12,8 @@ permissions:
 jobs:
   comment:
     permissions:
-      issues: write  # for actions-cool/maintain-one-comment to modify or create issue comments
-      pull-requests: write  # for actions-cool/maintain-one-comment to modify or create PR comments
+      issues: write # for actions-cool/maintain-one-comment to modify or create issue comments
+      pull-requests: write # for actions-cool/maintain-one-comment to modify or create PR comments
     if: github.event.pull_request.merged == true && github.repository == 'Auto-Plugin/milkup'
     runs-on: ubuntu-latest
     steps:

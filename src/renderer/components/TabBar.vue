@@ -33,6 +33,9 @@ window.addEventListener('keydown', handleCloseTabShortcut)
 // 获取tab容器的DOM引用
 const tabContainerRef = ref<HTMLElement | null>(null)
 
+// 保存wheel事件处理器引用以便正确移除
+let wheelHandler: ((event: WheelEvent) => void) | null = null
+
 function handleTabClick(id: string) {
   switchToTab(id)
 }
@@ -73,18 +76,22 @@ setupTabScrollListener(tabContainerRef)
 onMounted(() => {
   const container = tabContainerRef.value
   if (container) {
-    container.addEventListener('wheel', event => handleWheelScroll(event, tabContainerRef), { passive: false })
+    // 创建并保存事件处理器引用
+    wheelHandler = (event: WheelEvent) => handleWheelScroll(event, tabContainerRef)
+    container.addEventListener('wheel', wheelHandler, { passive: false })
   }
 })
 
 // 组件卸载时移除事件监听器和清理惯性滚动实例
 onUnmounted(() => {
   const container = tabContainerRef.value
-  if (container) {
-    container.removeEventListener('wheel', event => handleWheelScroll(event, tabContainerRef))
+  if (container && wheelHandler) {
+    // 使用保存的引用移除监听器
+    container.removeEventListener('wheel', wheelHandler)
     // 清理惯性滚动实例
     cleanupInertiaScroll(container)
   }
+  // 移除全局键盘事件监听器
   window.removeEventListener('keydown', handleCloseTabShortcut)
 })
 </script>
