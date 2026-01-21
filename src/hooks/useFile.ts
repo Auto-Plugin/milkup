@@ -1,8 +1,8 @@
 import type { Tab } from '@/types/tab'
 // useFile.ts
 import { nextTick, onUnmounted } from 'vue'
-import { processImagePaths } from '@/plugins/imagePathPlugin'
 import emitter from '@/renderer/events'
+import { readAndProcessFile } from '@/services/fileService'
 import useContent from './useContent'
 import useTab from './useTab'
 import useTitle from './useTitle'
@@ -224,26 +224,25 @@ export default function useFile() {
       }
 
       if (fullPath) {
-        const result = await window.electronAPI.readFileByPath(fullPath)
-        if (result) {
+        // 使用统一的文件服务读取和处理文件
+        const fileContent = await readAndProcessFile({ filePath: fullPath })
+        if (fileContent) {
           if (userChoice === 'overwrite') {
             // 覆盖更新当前tab的文件信息
-            const processedContent = await processImagePaths(result.content, result.filePath)
-            updateCurrentTabFile(result.filePath, processedContent)
+            updateCurrentTabFile(fileContent.filePath, fileContent.processedContent || fileContent.content)
 
             // 更新当前内容状态
-            markdown.value = processedContent
-            filePath.value = result.filePath
-            originalContent.value = result.content
-            currentTab.value!.readOnly = await window.electronAPI.getIsReadOnly(result.filePath)
+            markdown.value = fileContent.processedContent || fileContent.content
+            filePath.value = fileContent.filePath
+            originalContent.value = fileContent.content
+            currentTab.value!.readOnly = fileContent.readOnly || false
           } else {
             // 创建新tab
-            const tab = await createTabFromFile(result.filePath, result.content)
-            tab.readOnly = await window.electronAPI.getIsReadOnly(result.filePath)
+            const tab = await createTabFromFile(fileContent.filePath, fileContent.content)
             // 更新当前内容
             markdown.value = tab.content
-            filePath.value = result.filePath
-            originalContent.value = result.content
+            filePath.value = fileContent.filePath
+            originalContent.value = fileContent.content
           }
 
           updateTitle()
