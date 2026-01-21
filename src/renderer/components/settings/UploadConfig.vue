@@ -1,32 +1,31 @@
 <script setup lang='ts'>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import Input from '@/ui/Input.vue'
 import Selector from '@/ui/Selector.vue'
 
 type RequestMethod = 'post' | 'put'
 
 const url = ref(localStorage.getItem('uploadUrl') || '')
-const requestMethod = ref<RequestMethod>('post')
-const headers = ref<string>('')
-const bodyType = ref<string>('multipart/form-data')
-const fileField = ref<string>('file')
-const extraBody = ref<string>('')
-const responseUrlPath = ref<string>('data.url')
+const requestMethod = ref<RequestMethod>((localStorage.getItem('uploadMethod') as RequestMethod) || 'post')
+const headers = ref<string>(localStorage.getItem('uploadHeaders') || '')
+const bodyType = ref<string>(localStorage.getItem('uploadBodyType') || 'multipart/form-data')
+const fileField = ref<string>(localStorage.getItem('uploadFileField') || 'file')
+const extraBody = ref<string>(localStorage.getItem('uploadExtraBody') || '')
+const responseUrlPath = ref<string>(localStorage.getItem('uploadResponseUrlPath') || 'data.url')
 
-function handleChange() {
-  localStorage.setItem('uploadUrl', url.value)
-  localStorage.setItem('uploadMethod', requestMethod.value)
-  localStorage.setItem('uploadHeaders', headers.value)
-  localStorage.setItem('uploadBodyType', bodyType.value)
-  localStorage.setItem('uploadFileField', fileField.value)
-  localStorage.setItem('uploadResponseUrlPath', responseUrlPath.value)
-  localStorage.setItem('uploadExtraBody', extraBody.value)
-}
+// 监听所有配置项的变化，自动保存到 localStorage
+watch(url, newValue => localStorage.setItem('uploadUrl', newValue))
+watch(requestMethod, newValue => localStorage.setItem('uploadMethod', newValue))
+watch(headers, newValue => localStorage.setItem('uploadHeaders', newValue))
+watch(bodyType, newValue => localStorage.setItem('uploadBodyType', newValue))
+watch(fileField, newValue => localStorage.setItem('uploadFileField', newValue))
+watch(responseUrlPath, newValue => localStorage.setItem('uploadResponseUrlPath', newValue))
+watch(extraBody, newValue => localStorage.setItem('uploadExtraBody', newValue))
 </script>
 
 <template>
   <div class="remote-options">
-    <Input v-model="url" placeholder="接口地址" label="请求地址" required @change="handleChange" />
+    <Input v-model="url" placeholder="接口地址" label="请求地址" required />
     <Selector
       v-model="requestMethod" :items="[{ label: 'post', value: 'post' }, { label: 'put', value: 'put' }]" placeholder="请求方法" label="请求方法"
       required

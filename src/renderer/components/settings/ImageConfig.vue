@@ -19,26 +19,36 @@ function handleChangeLoaclPath() {
 <template>
   <div class="ImageConfigBox">
     <div class="options">
-      <div>
-        <input
-          id="temp" type="radio" name="pasteMethod" value="local" :checked="pasteMethod === 'local'"
+      <div class="slider-track">
+        <div
+          class="slider-thumb"
+          :style="{
+            transform: pasteMethod === 'local' ? 'translateX(0)'
+              : pasteMethod === 'base64' ? 'translateX(calc(100% + 4px))'
+                : 'translateX(calc(200% + 8px))',
+          }"
+        />
+        <div
+          class="option-item"
+          :class="{ active: pasteMethod === 'local' }"
           @click="handleChangePasteMethod('local')"
         >
-        <label for="temp">本地文件</label>
-      </div>
-      <div>
-        <input
-          id="local" type="radio" name="pasteMethod" value="base64" :checked="pasteMethod === 'base64'"
+          <span>本地文件</span>
+        </div>
+        <div
+          class="option-item"
+          :class="{ active: pasteMethod === 'base64' }"
           @click="handleChangePasteMethod('base64')"
         >
-        <label for="local">转为 Base64</label>
-      </div>
-      <div>
-        <input
-          id="remote" type="radio" name="pasteMethod" value="remote" :checked="pasteMethod === 'remote'"
+          <span>转为 Base64</span>
+        </div>
+        <div
+          class="option-item"
+          :class="{ active: pasteMethod === 'remote' }"
           @click="handleChangePasteMethod('remote')"
         >
-        <label for="remote">上传</label>
+          <span>上传</span>
+        </div>
       </div>
     </div>
     <div class="details">
@@ -80,16 +90,58 @@ function handleChangeLoaclPath() {
 
   .options {
     width: 100%;
-    height: 100%;
     display: flex;
-    gap: 20px;
+    justify-content: flex-start;
 
-    >div {
-      cursor: pointer;
+    .slider-track {
+      position: relative;
+      display: inline-flex;
+      background: var(--background-color-2);
+      border-radius: 8px;
+      padding: 4px;
+      gap: 4px;
+      border: 1px solid var(--border-color-1);
 
-      input,
-      label {
+      .slider-thumb {
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        width: 120px;
+        height: calc(100% - 8px);
+        background: var(--primary-color, #409eff);
+        border-radius: 6px;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 1;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .option-item {
+        position: relative;
+        z-index: 2;
+        flex: 1;
+        padding: 8px 16px;
         cursor: pointer;
+        user-select: none;
+        transition: all 0.2s ease;
+        border-radius: 6px;
+        text-align: center;
+        width: 120px;
+
+        span {
+          font-size: 13px;
+          color: var(--text-color-2);
+          transition: color 0.2s ease;
+          font-weight: 500;
+          display: inline-block;
+        }
+
+        &.active span {
+          color: #ffffff;
+        }
+
+        &:hover:not(.active) {
+          background: rgba(64, 158, 255, 0.05);
+        }
       }
     }
   }
