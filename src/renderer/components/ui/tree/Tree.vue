@@ -1,8 +1,8 @@
 <script lang="ts" setup>
 import type { TreeEmits, TreeNode as TreeNodeType, TreeProps } from './types'
 import { computed } from 'vue'
-import { useTreeState } from '@/hooks/useTreeState'
-import { transitionEffects } from '@/utils/heightTransition'
+import { useTreeState } from '@/renderer/hooks/useTreeState'
+import { transitionEffects } from '@/renderer/utils/heightTransition'
 import { providerTreeContext } from './context'
 import TreeNode from './TreeNode.vue'
 

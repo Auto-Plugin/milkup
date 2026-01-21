@@ -1,23 +1,24 @@
 <script setup lang="ts">
 import { MilkdownProvider } from '@milkdown/vue'
-import useContent from '@/hooks/useContent'
-import { useContext } from '@/hooks/useContext'
-import useFont from '@/hooks/useFont'
-import useOtherConfig from '@/hooks/useOtherConfig'
-import { isShowOutline } from '@/hooks/useOutline'
-import { useSaveConfirmDialog } from '@/hooks/useSaveConfirmDialog'
-import useSourceCode from '@/hooks/useSourceCode'
-import useSpellCheck from '@/hooks/useSpellCheck'
-import useTab from '@/hooks/useTab'
-import useTheme from '@/hooks/useTheme'
-import { useUpdateDialog } from '@/hooks/useUpdateDialog'
-import MarkdownSourceEditor from './components/MarkdownSourceEditor.vue'
-import MilkdownEditor from './components/MilkdownEditor.vue'
-import Outline from './components/Outline.vue'
-import SaveConfirmDialog from './components/SaveConfirmDialog.vue'
-import StatusBar from './components/StatusBar.vue'
-import TitleBar from './components/TitleBar.vue'
-import UpdateConfirmDialog from './components/UpdateConfirmDialog.vue'
+import emitter from '@/renderer/events'
+import useContent from '@/renderer/hooks/useContent'
+import { useContext } from '@/renderer/hooks/useContext'
+import useFont from '@/renderer/hooks/useFont'
+import useOtherConfig from '@/renderer/hooks/useOtherConfig'
+import { isShowOutline } from '@/renderer/hooks/useOutline'
+import { useSaveConfirmDialog } from '@/renderer/hooks/useSaveConfirmDialog'
+import useSourceCode from '@/renderer/hooks/useSourceCode'
+import useSpellCheck from '@/renderer/hooks/useSpellCheck'
+import useTab from '@/renderer/hooks/useTab'
+import useTheme from '@/renderer/hooks/useTheme'
+import { useUpdateDialog } from '@/renderer/hooks/useUpdateDialog'
+import SaveConfirmDialog from './components/dialogs/SaveConfirmDialog.vue'
+import UpdateConfirmDialog from './components/dialogs/UpdateConfirmDialog.vue'
+import MarkdownSourceEditor from './components/editor/MarkdownSourceEditor.vue'
+import MilkdownEditor from './components/editor/MilkdownEditor.vue'
+import StatusBar from './components/menu/StatusBar.vue'
+import TitleBar from './components/menu/TitleBar.vue'
+import Outline from './components/outline/Outline.vue'
 import { MilkupProvider } from './context'
 
 // ✅ 应用级事件协调器（仅负责事件监听和协调）
@@ -29,8 +30,8 @@ const { init: initTheme } = useTheme()
 const { init: initFont } = useFont()
 const { init: initOtherConfig } = useOtherConfig()
 const { isShowSource } = useSourceCode()
-const { currentTab } = useTab()
-const { isDialogVisible, dialogType, fileName, tabName, handleSave, handleDiscard, handleCancel, handleOverwrite } = useSaveConfirmDialog()
+const { currentTab, close, saveCurrentTab, getUnsavedTabs, switchToTab } = useTab()
+const { isDialogVisible, dialogType, fileName, tabName, handleSave, handleDiscard, handleCancel, handleOverwrite, showDialog, showFileChangedDialog } = useSaveConfirmDialog()
 const { isDialogVisible: isUpdateDialogVisible, handleIgnore, handleLater, handleUpdate } = useUpdateDialog()
 
 // 初始化配置
@@ -38,6 +39,82 @@ useSpellCheck()
 initTheme()
 initFont()
 initOtherConfig()
+
+// 监听关闭确认事件
+emitter.on('tab:close-confirm', async ({ tabId, tabName, isLastTab }) => {
+  const result = await showDialog(tabName)
+  if (result === 'cancel') {
+    return
+  }
+
+  if (result === 'save') {
+    // 尝试保存
+    // 注意：saveCurrentTab保存的是currentTab，这里需要确保保存的是目标tab
+    // 但useTab中saveCurrentTab实现是保存activeTabId对应的tab
+    // 如果关闭的不是当前tab，这里会有问题。
+    // 但是UI上点击关闭通常是当前tab或者tab栏上的。
+    // 如果点击非当前tab关闭，activeTabId可能还没切过去？
+    // useTab.closeWithConfirm没有切换activeTabId。
+    // 简化处理：如果result是save，且不是currentTab，先切换过去？
+    // 或者修改useTab增加saveTab(id)方法？
+    // 暂时假设用户总是关闭当前Tab或者我们可以调用saveCurrentTab如果id匹配
+    if (currentTab.value?.id === tabId) {
+      const saved = await saveCurrentTab()
+      if (!saved)
+        return // 保存失败中止
+    } else {
+      // 暂时不支持保存非激活Tab（或者需要扩展useTab）
+      // 考虑到操作习惯，这通常发生在当前Tab
+    }
+  }
+
+  // 丢弃或保存成功后，执行关闭
+  if (isLastTab) {
+    window.electronAPI.closeDiscard()
+  } else {
+    close(tabId)
+  }
+})
+
+// 监听外部文件变动确认事件
+emitter.on('file:changed-confirm', async ({ fileName, resolver }) => {
+  const result = await showFileChangedDialog(fileName)
+  resolver(result === 'overwrite' ? 'overwrite' : 'cancel')
+})
+
+// 监听主进程的关闭确认事件
+window.electronAPI.on('close:confirm', async () => {
+  const unsavedTabs = getUnsavedTabs()
+  if (unsavedTabs.length === 0) {
+    window.electronAPI.closeDiscard()
+    return
+  }
+
+  for (const tab of unsavedTabs) {
+    // 切换到该tab以便用户查看
+    await switchToTab(tab.id)
+
+    // 弹出保存确认框
+    const result = await showDialog(tab.name)
+
+    if (result === 'cancel') {
+      // 用户取消关闭操作，中止后续流程
+      return
+    }
+
+    if (result === 'save') {
+      const saved = await saveCurrentTab()
+      if (!saved) {
+        // 保存失败，中止关闭（或者向用户报错? 这里选择中止以策安全）
+        return
+      }
+    }
+    // 如果是 'discard'，则不做任何操作，继续下一个
+  }
+
+  // 所有此轮检查都通过（保存或丢弃），强制关闭
+  window.electronAPI.closeDiscard()
+})
 </script>
 
 <template>

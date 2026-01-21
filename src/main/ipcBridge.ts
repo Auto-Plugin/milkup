@@ -617,8 +617,6 @@ export function registerGlobalIpcHandlers() {
 
   // 监听文件变化
   ipcMain.on('file:watch', (_event, filePaths: string[]) => {
-    console.log('监听文件变化:', filePaths)
-
     // 先差异对比
     const newFiles = filePaths.filter(filePath => !watchedFiles.has(filePath))
     const removedFiles = Array.from(watchedFiles).filter(filePath => !filePaths.includes(filePath))
@@ -637,9 +635,6 @@ export function registerGlobalIpcHandlers() {
 
       // 设置文件变化监听
       watcher.on('change', (filePath) => {
-        console.log('文件变化:', filePath)
-        console.log(123123123123123)
-
         const mainWindow = BrowserWindow.getAllWindows()[0]
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send('file:changed', filePath)
@@ -651,14 +646,12 @@ export function registerGlobalIpcHandlers() {
     if (newFiles.length > 0) {
       watcher.add(newFiles)
       newFiles.forEach(filePath => watchedFiles.add(filePath))
-      console.log('➕:', newFiles)
     }
 
     // 移除的文件 - 从 watcher 中移除
     if (removedFiles.length > 0) {
       watcher.unwatch(removedFiles)
       removedFiles.forEach(filePath => watchedFiles.delete(filePath))
-      console.log('➖:', removedFiles)
     }
   })
 }

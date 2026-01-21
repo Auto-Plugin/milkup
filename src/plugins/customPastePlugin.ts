@@ -1,6 +1,6 @@
 import type { Uploader } from '@milkdown/kit/plugin/upload'
 import type { Node, Schema } from '@milkdown/kit/prose/model'
-import { uploadImage } from '@/api'
+import { uploadImage } from '@/renderer/services/api'
 
 export const uploader: Uploader = async (files, schema) => {
   const images: File[] = []

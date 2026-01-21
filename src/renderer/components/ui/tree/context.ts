@@ -1,7 +1,7 @@
 import type { ComputedRef, Reactive } from 'vue'
 import type { TreeNode } from './types'
-import type { TransitionEffect } from '@/utils/heightTransition'
-import { createContext } from '@renderer/shared/createContext'
+import type { TransitionEffect } from '@/renderer/utils/heightTransition'
+import { createContext } from '@/renderer/context/createContext'
 
 export interface TreeContext {
   expandedNodes: Reactive<Set<string>>

@@ -1,9 +1,6 @@
-// 用于存储当前 Markdown 文件路径的全局变量
-let currentMarkdownFilePath: string | null = null
-
 // 设置当前 Markdown 文件路径
-export function setCurrentMarkdownFilePath(filePath: string | null) {
-  currentMarkdownFilePath = filePath
+export function setCurrentMarkdownFilePath(_filePath: string | null) {
+  // currentMarkdownFilePath = filePath
 }
 
 // 用于在 DOM 中直接处理图片路径的函数

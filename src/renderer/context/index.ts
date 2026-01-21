@@ -1,6 +1,6 @@
 import type { Ref } from 'vue'
-import { createContext } from '@renderer/shared/createContext'
 import { defineComponent, ref } from 'vue'
+import { createContext } from './createContext'
 
 interface MilkupContext {
   isCollapsed: Ref<boolean>

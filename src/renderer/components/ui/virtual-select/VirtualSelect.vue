@@ -1,12 +1,7 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import type { VirtualSelectOption } from './types'
 
-export interface VirtualSelectOption {
-  value: string
-  label: string
-  disabled?: boolean
-  [key: string]: any
-}
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
 const props = defineProps<{
   modelValue?: string

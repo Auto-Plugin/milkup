@@ -1,22 +1,38 @@
 <script setup lang='ts'>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+
+type SelectorItem = string | { label: string, value: string }
 
 const props = defineProps<{
   modelValue: string
   placeholder?: string
-  items?: string[]
+  items?: SelectorItem[]
   label?: string
   required?: boolean
 }>()
 const emit = defineEmits<{
   (e: 'update:modelValue', modelValue: string): void
 }>()
-const modelValue = ref<string>(props.modelValue)
-const isActive = ref(false)
-function handleCheckItem(item: string) {
-  modelValue.value = item
 
-  emit('update:modelValue', modelValue.value)
+const isActive = ref(false)
+
+const displayValue = computed(() => {
+  if (!props.items)
+    return props.modelValue
+  const selectedItem = props.items.find(item => getItemValue(item) === props.modelValue)
+  return selectedItem ? getItemLabel(selectedItem) : props.modelValue
+})
+
+function getItemValue(item: SelectorItem): string {
+  return typeof item === 'string' ? item : item.value
+}
+
+function getItemLabel(item: SelectorItem): string {
+  return typeof item === 'string' ? item : item.label
+}
+
+function handleCheckItem(item: SelectorItem) {
+  emit('update:modelValue', getItemValue(item))
   isActive.value = false
 }
 function handleBlur() {
@@ -31,12 +47,12 @@ function handleBlur() {
     <span class="label" :class="{ required }"> {{ label }}</span>
     <div>
       <input
-        class="selector-container" readonly :value="modelValue" :placeholder="placeholder" @focus="isActive = true"
+        class="selector-container" readonly :value="displayValue" :placeholder="placeholder" @focus="isActive = true"
         @blur="handleBlur"
       />
       <div v-if="isActive" class="selector-items">
-        <div v-for="item in items" :key="item" class="selector-item" @click="handleCheckItem(item)">
-          {{ item }}
+        <div v-for="item in items" :key="getItemValue(item)" class="selector-item" @click="handleCheckItem(item)">
+          {{ getItemLabel(item) }}
         </div>
       </div>
     </div>

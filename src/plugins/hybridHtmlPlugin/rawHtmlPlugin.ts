@@ -2,6 +2,7 @@ import type { MilkdownPlugin } from '@milkdown/kit/ctx'
 import type { Node as ProseNode } from '@milkdown/prose/model'
 import type { EditorView, NodeViewConstructor } from '@milkdown/prose/view'
 import type { RootContent } from 'mdast'
+import type { Parent } from 'unist'
 import { InputRule } from '@milkdown/prose/inputrules'
 import { Plugin, Selection } from '@milkdown/prose/state'
 
@@ -166,16 +167,16 @@ export const proseHtml = $prose(() => {
 })
 // remark AST 会把行内元素标签单独分开即 `<span>text</span>` 会被拆分成三个节点,这里将相邻的 HTML 开始标签、文本节点和结束标签合并为一个 HTML 节点
 export const remarkHtmlMerger = $remark('remarkHtmlMerger', () => () => (tree) => {
-  visit(tree, (_node, _index, parent) => {
+  visit(tree, (_node, _index, parent: Parent | undefined) => {
     if (!parent || !Array.isArray(parent.children))
       return
 
     const children = parent.children
 
     for (let i = 0; i < children.length - 2; i++) {
-      const open = children[i]
-      const text = children[i + 1]
-      const close = children[i + 2]
+      const open = children[i] as any
+      const text = children[i + 1] as any
+      const close = children[i + 2] as any
 
       if (
         open.type === 'html'
@@ -205,12 +206,12 @@ export const remarkHtmlMerger = $remark('remarkHtmlMerger', () => () => (tree) =
 // 将紧邻的 HTML 节点的文本节点拆分开来
 export const remarkHtmlSplitter = $remark('remarkHtmlSplitter', () => () => (tree) => {
   visit(tree, (node, index, parent) => {
-    if (!parent || (node.type !== 'html'))
+    if (!parent || !('type' in node) || (node as any).type !== 'html')
       return
     if (!('children' in parent))
       return
 
-    const value: string = node.value
+    const value = (node as any).value as string
     const htmlMatch = value.match(/^<([a-z][a-z0-9]*)\b[^>]*>[\s\S]*<\/\1>/i)
     if (!htmlMatch)
       return
@@ -224,7 +225,7 @@ export const remarkHtmlSplitter = $remark('remarkHtmlSplitter', () => () => (tre
     const newTextNode: RootContent | null = rest
       ? { type: 'text', value: rest }
       : null
-    const children = parent.children
+    const children = (parent as any).children
     const newNodes: RootContent[] = [newHtmlNode]
     if (newTextNode)
       newNodes.push(newTextNode)

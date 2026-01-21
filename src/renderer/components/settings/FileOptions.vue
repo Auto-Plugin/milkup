@@ -1,0 +1,160 @@
+<script setup lang='ts'>
+import autotoast from 'autotoast.js'
+import useContent from '@/renderer/hooks/useContent'
+import usefile from '@/renderer/hooks/useFile'
+import useWorkSpace from '@/renderer/hooks/useWorkSpace'
+import { exportElementAsPDF, exportElementAsWord, exportElementWithStylesAndImages } from '@/renderer/utils/exports'
+
+const { onOpen, onSave, onSaveAs, currentTab } = usefile()
+const { setWorkSpace } = useWorkSpace()
+const { isModified } = useContent()
+
+function onOpenFolder() {
+  setWorkSpace().then(() => {
+    const escEvent = new KeyboardEvent('keydown', { key: 'Escape' })
+    document.dispatchEvent(escEvent)
+  }).catch(() => {
+    autotoast.show('取消选择')
+  })
+  // 发射 Escape 按键事件 关闭菜单
+}
+function exportAsPDF() {
+  exportElementAsPDF('#milkdown', `${currentTab.value?.name.slice(0, -3)}.pdf` || '导出的文件', {
+    pageSize: 'A4',
+    scale: 1,
+  }).then(() => {
+    autotoast.show('导出成功', 'success')
+  }).catch((err) => {
+    autotoast.show(`导出失败: ${err.message}`, 'error')
+  })
+}
+function exportAsHTML() {
+  exportElementWithStylesAndImages(document.querySelector('#milkdown')!, `${currentTab.value?.name.slice(0, -3)}.html` || '导出的文件')
+}
+function exportAsDocx() {
+  exportElementAsWord('#milkdown', `${currentTab.value?.name.slice(0, -3)}.docx` || '导出的文件').then(() => {
+    autotoast.show('导出成功', 'success')
+  }).catch((err) => {
+    autotoast.show(`导出失败: ${err.message}`, 'error')
+  })
+}
+</script>
+
+<template>
+  <div class="FileOptionsBox">
+    <div class="baseOptions optionItem">
+      <span class="title">文件</span>
+      <div class="buttons">
+        <button @click="() => onOpen()">
+          <span class="iconfont icon-document"></span>
+          <span>打开</span>
+        </button>
+        <button @click="onOpenFolder">
+          <span class="iconfont icon-folder-opened"></span>
+          <span>打开文件夹</span>
+        </button>
+        <button @click="onSave">
+          <span v-if="!isModified" class="iconfont icon-circle-check"></span>
+          <span v-else class="iconfont icon-warning-outline"></span>
+          <span>{{ isModified ? '保存' : '已保存' }}</span>
+        </button>
+        <button @click="onSaveAs">
+          <span class="iconfont icon-document-copy"></span>
+          <span>另存为</span>
+        </button>
+      </div>
+    </div>
+    <div class="export optionItem">
+      <span class="title">导出为</span>
+      <div class="buttons">
+        <button @click="exportAsPDF">
+          <span class="iconfont icon-pdf"></span>
+          <span>PDF</span>
+        </button>
+        <button @click="exportAsHTML">
+          <span class="iconfont icon-html"></span>
+          <span>HTML</span>
+        </button>
+        <button @click="exportAsDocx">
+          <span class="iconfont icon-input"></span>
+          <span>Word</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style lang='less' scoped>
+.FileOptionsBox {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 60px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  user-select: none;
+
+  .optionItem {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+
+    .title {
+      font-size: 22px;
+      font-weight: bold;
+      margin-bottom: 26px;
+      color: var(--text-color);
+      user-select: none;
+      width: 100%;
+      text-align: left;
+    }
+
+    .buttons {
+      display: flex;
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    &.export {
+      .buttons {
+        flex-direction: column;
+
+        button {
+          justify-content: flex-start;
+          width: max-content;
+        }
+      }
+    }
+  }
+
+  button {
+    padding: 5px 10px;
+    flex: 1;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    background: none;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      background-color: var(--border-color-1);
+      border-color: var(--border-color-2);
+    }
+
+    .iconfont {
+      font-size: 18px;
+      vertical-align: middle;
+      margin-right: 5px;
+    }
+  }
+}
+</style>
