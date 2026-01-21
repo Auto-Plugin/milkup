@@ -27,8 +27,8 @@ export function useContext() {
   const { showDialog, showOverwriteDialog, showFileChangedDialog } = useSaveConfirmDialog()
   const { showDialog: showUpdateDialog } = useUpdateDialog()
 
-  // useContext自己的状态（编辑器重建控制）
-  const isShowEditors = ref(true)
+  // ✅ 使用key来重建编辑器，更优雅
+  const editorKey = ref(0)
   const pendingCloseTab = ref<{ tabId: string, tabName: string, isLastTab?: boolean } | null>(null)
 
   // 处理应用关闭时的多tab保存确认
@@ -96,12 +96,9 @@ export function useContext() {
     }
   }
 
-  // 重建Milkdown编辑器
+  // ✅ 重建Milkdown编辑器 - 通过改变key来触发组件重建
   function reBuildMilkdown() {
-    isShowEditors.value = false
-    nextTick(() => {
-      isShowEditors.value = true
-    })
+    editorKey.value++
   }
 
   // === 事件监听（核心职责） ===
@@ -194,9 +191,8 @@ export function useContext() {
     emitter.off('update:available', handleUpdateAvailable)
   })
 
-  // ✅ 只暴露useContext自己的状态，不重复暴露其他hooks的内容
+  // ✅ 暴露editorKey用于组件重建
   return {
-    isShowEditors,
-    reBuildMilkdown,
+    editorKey,
   }
 }

@@ -21,7 +21,7 @@ import UpdateConfirmDialog from './components/UpdateConfirmDialog.vue'
 import { MilkupProvider } from './context'
 
 // ✅ 应用级事件协调器（仅负责事件监听和协调）
-const { isShowEditors, reBuildMilkdown } = useContext()
+const { editorKey } = useContext()
 
 // ✅ 直接使用各个hooks（而不是通过useContext转发）
 const { markdown } = useContent()
@@ -43,7 +43,8 @@ initOtherConfig()
 <template>
   <TitleBar />
   <div id="fontRoot">
-    <div v-if="isShowEditors" class="editorArea">
+    <!-- ✅ 使用key属性来重建编辑器，当editorKey变化时Vue会自动重建组件 -->
+    <div :key="editorKey" class="editorArea">
       <Transition name="fade" mode="out-in">
         <div v-show="isShowOutline && !isShowSource" class="outlineBox">
           <Outline />
