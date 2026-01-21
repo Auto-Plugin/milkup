@@ -3,8 +3,9 @@ import type { Tab } from '@/types/tab'
 import type { InertiaScroll } from '@/utils/inertiaScroll'
 import autotoast from 'autotoast.js'
 import { computed, nextTick, ref, watch } from 'vue'
-import { processImagePaths, setCurrentMarkdownFilePath } from '@/plugins/imagePathPlugin'
+import { setCurrentMarkdownFilePath } from '@/plugins/imagePathPlugin'
 import emitter from '@/renderer/events'
+import { createTabDataFromFile, readAndProcessFile } from '@/services/fileService'
 import { createInertiaScroll } from '@/utils/inertiaScroll'
 import { randomUUID } from '@/utils/tool'
 import { isShowOutline } from './useOutline'
@@ -159,18 +160,12 @@ async function saveCurrentTab(): Promise<boolean> {
 
 // 从文件创建新tab
 async function createTabFromFile(filePath: string, content: string): Promise<Tab> {
-  // 处理图片路径
-  const processedContent = await processImagePaths(content, filePath)
+  // 使用统一的文件服务创建Tab数据
+  const tabData = await createTabDataFromFile(filePath, content)
 
   const tab: Tab = {
     id: randomUUID(),
-    name: getFileName(filePath),
-    filePath,
-    content: processedContent,
-    originalContent: content,
-    isModified: false,
-    scrollRatio: 0,
-    readOnly: await window.electronAPI?.getIsReadOnly(filePath) || false,
+    ...tabData,
   }
 
   return add(tab)
@@ -187,37 +182,38 @@ async function openFile(filePath: string): Promise<Tab | null> {
       return existingTab
     }
 
-    // 读取文件内容
-    const result = await window.electronAPI.readFileByPath(filePath)
-    if (result) {
-      // 如果当前有且只有一个默认未命名且未修改的tab，则复用该tab
-      if (
-        tabs.value.length === 1
-        && tabs.value[0].filePath === null
-        && tabs.value[0].name === defaultName
-        && !tabs.value[0].isModified
-      ) {
-        const tab = tabs.value[0]
-        tab.filePath = filePath
-        tab.name = getFileName(filePath)
-        updateCurrentTabContent(result.content, false)
-        tab.isModified = false
-        await switchToTab(tab.id)
-        return tab
-      } else {
-        // 创建新tab
-        const newTab = await createTabFromFile(result.filePath, result.content)
-        newTab.readOnly = await window.electronAPI?.getIsReadOnly(filePath) || false
-        // 切换新tab
-        switchToTab(newTab.id)
-
-        // 触发内容更新事件
-        emitter.emit('file:Change')
-        return newTab
-      }
-    } else {
+    // 使用统一的文件服务读取和处理文件
+    const fileContent = await readAndProcessFile({ filePath })
+    if (!fileContent) {
       console.error('无法读取文件:', filePath)
       return null
+    }
+
+    // 如果当前有且只有一个默认未命名且未修改的tab，则复用该tab
+    if (
+      tabs.value.length === 1
+      && tabs.value[0].filePath === null
+      && tabs.value[0].name === defaultName
+      && !tabs.value[0].isModified
+    ) {
+      const tab = tabs.value[0]
+      tab.filePath = fileContent.filePath
+      tab.name = getFileName(fileContent.filePath)
+      tab.content = fileContent.processedContent || fileContent.content
+      tab.originalContent = fileContent.content
+      tab.isModified = false
+      tab.readOnly = fileContent.readOnly || false
+      await switchToTab(tab.id)
+      return tab
+    } else {
+      // 创建新tab
+      const newTab = await createTabFromFile(fileContent.filePath, fileContent.content)
+      // 切换新tab
+      switchToTab(newTab.id)
+
+      // 触发内容更新事件
+      emitter.emit('file:Change')
+      return newTab
     }
   } catch (error) {
     console.error('打开文件失败:', error)
@@ -453,21 +449,21 @@ watch(
   },
 )
 
-// 文件变动回调事件
+// 文件变动回callback事件
 window.electronAPI.on?.('file:changed', async (paths) => {
   const tab = tabs.value.find(tab => tab.filePath === paths)
   if (!tab)
     return
 
   if (!tab.isModified) {
-    const result = await window.electronAPI.readFileByPath(paths)
-    if (!result)
+    // 使用统一的文件服务读取和处理文件
+    const fileContent = await readAndProcessFile({ filePath: paths })
+    if (!fileContent)
       return
-    // 处理图片路径
-    const processedContent = await processImagePaths(result.content, result.filePath)
+
     // 更新
-    tab.content = processedContent
-    tab.originalContent = result.content
+    tab.content = fileContent.processedContent || fileContent.content
+    tab.originalContent = fileContent.content
     tab.isModified = false
 
     // 如果当前tab是活跃的，触发内容更新事件
@@ -488,16 +484,14 @@ window.electronAPI.on?.('file:changed', async (paths) => {
       return
     }
 
-    // 读取新文件内容
-    const result = await window.electronAPI.readFileByPath(paths)
-    if (!result)
+    // 使用统一的文件服务读取和处理文件
+    const fileContent = await readAndProcessFile({ filePath: paths })
+    if (!fileContent)
       return
 
-    // 处理图片路径
-    const processedContent = await processImagePaths(result.content, result.filePath)
     // 更新
-    tab.content = processedContent
-    tab.originalContent = result.content
+    tab.content = fileContent.processedContent || fileContent.content
+    tab.originalContent = fileContent.content
     tab.isModified = false
 
     // 触发内容更新
