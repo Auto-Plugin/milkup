@@ -88,20 +88,63 @@ export async function createThemeEditorWindow() {
   return themeEditorWindow
 }
 
+/**
+ * 统一的文件发送函数
+ * 整合了文件读取、验证和发送到渲染进程的逻辑
+ */
+function sendFileToRenderer(filePath: string) {
+  // 验证文件路径
+  if (!filePath.endsWith('.md') && !filePath.endsWith('.markdown')) {
+    return
+  }
+
+  // 检查文件是否存在
+  if (!fs.existsSync(filePath)) {
+    console.warn('[main] 文件不存在:', filePath)
+    return
+  }
+
+  // 读取文件内容
+  const content = fs.readFileSync(filePath, 'utf-8')
+
+  // 发送到渲染进程的函数
+  const sendFile = () => {
+    if (win && win.webContents) {
+      win.webContents.send('open-file-at-launch', {
+        filePath,
+        content,
+      })
+    }
+  }
+
+  // 等待窗口准备就绪
+  if (win && win.webContents) {
+    if (win.webContents.isLoading()) {
+      win.webContents.once('did-finish-load', () => {
+        setTimeout(sendFile, 200)
+      })
+    } else {
+      setTimeout(sendFile, 200)
+    }
+  } else {
+    // 窗口还未创建，等待窗口创建
+    const waitForWindow = () => {
+      if (win && win.webContents) {
+        setTimeout(sendFile, 200)
+      } else {
+        setTimeout(waitForWindow, 100)
+      }
+    }
+    waitForWindow()
+  }
+}
+
 function sendLaunchFileIfExists(argv = process.argv) {
   const fileArg = argv.find(arg => arg.endsWith('.md') || arg.endsWith('.markdown'))
 
   if (fileArg) {
     const absolutePath = path.resolve(fileArg)
-    if (fs.existsSync(absolutePath)) {
-      const content = fs.readFileSync(absolutePath, 'utf-8')
-      win.webContents.send('open-file-at-launch', {
-        filePath: absolutePath,
-        content,
-      })
-    } else {
-      console.warn('[main] 文件不存在:', absolutePath)
-    }
+    sendFileToRenderer(absolutePath)
   }
 }
 
@@ -143,41 +186,7 @@ if (!gotTheLock) {
 // 处理应用已运行时双击文件打开的情况
 app.on('open-file', (event, filePath) => {
   event.preventDefault()
-
-  if (filePath.endsWith('.md') || filePath.endsWith('.markdown')) {
-    if (fs.existsSync(filePath)) {
-      const content = fs.readFileSync(filePath, 'utf-8')
-
-      // 发送文件到渲染进程
-      const sendFile = () => {
-        if (win && win.webContents) {
-          win.webContents.send('open-file-at-launch', {
-            filePath,
-            content,
-          })
-        }
-      }
-
-      if (win && win.webContents) {
-        if (win.webContents.isLoading()) {
-          win.webContents.once('did-finish-load', () => {
-            setTimeout(sendFile, 200)
-          })
-        } else {
-          setTimeout(sendFile, 200)
-        }
-      } else {
-        const waitForWindow = () => {
-          if (win && win.webContents) {
-            setTimeout(sendFile, 200)
-          } else {
-            setTimeout(waitForWindow, 100)
-          }
-        }
-        waitForWindow()
-      }
-    }
-  }
+  sendFileToRenderer(filePath)
 })
 // 处理应用即将退出事件（包括右键 Dock 图标的退出）
 app.on('before-quit', (event) => {
