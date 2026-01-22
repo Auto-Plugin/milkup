@@ -12,6 +12,7 @@ import { enhanceConfig } from '@renderer/enhance/crepe/config'
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { uploader } from '@/plugins/customPastePlugin'
 import { htmlPlugin } from '@/plugins/hybridHtmlPlugin/rawHtmlPlugin'
+import { processImagePaths, reverseProcessImagePaths } from '@/plugins/imagePathPlugin'
 import { diagram } from '@/plugins/mermaidPlugin'
 import emitter from '@/renderer/events'
 import useTab from '@/renderer/hooks/useTab'
@@ -46,14 +47,24 @@ let crepe: Crepe | null = null
 
 onMounted(async () => {
   await nextTick()
+
+  // 设置全局文件路径供插件使用
+  ;(window as any).__currentFilePath = currentTab.value?.filePath || null
+
   // 预览模式下支持自定义css文件路径解析
   // 还有在源码模式下 支持自定义字体大小调节
   // 还有 切换 源码和预览模式 以及 目录打开与关闭 搞个可以自定义的快捷键
 
+  // 将原始内容转换为包含协议 URL 的内容用于渲染
+  const contentForRendering = processImagePaths(
+    normalizeMarkdown(fixUnclosedCodeBlock(ensureTrailingNewline(props.modelValue.toString()))),
+    currentTab.value?.filePath || null,
+  )
+
   // crepe 有更好的用户体验👇
   crepe = new Crepe({
     root: document.querySelector('#milkdown') as HTMLElement,
-    defaultValue: normalizeMarkdown(fixUnclosedCodeBlock(ensureTrailingNewline(props.modelValue.toString()))),
+    defaultValue: contentForRendering,
     featureConfigs: {
       'code-mirror': {
         extensions: [vue()],
@@ -63,8 +74,10 @@ onMounted(async () => {
   })
   crepe.on((lm) => {
     lm.markdownUpdated((Ctx, nextMarkdown) => {
-      lastEmittedValue.value = nextMarkdown
-      emit('update:modelValue', nextMarkdown)
+      // 将协议 URL 转回相对路径再发送给父组件
+      const restoredMarkdown = reverseProcessImagePaths(nextMarkdown, currentTab.value?.filePath || null)
+      lastEmittedValue.value = restoredMarkdown
+      emit('update:modelValue', restoredMarkdown)
       emitOutlineUpdate(Ctx)
     })
     lm.mounted(async (Ctx) => {
@@ -119,7 +132,12 @@ onMounted(async () => {
       return
     }
     if (crepe && newValue !== undefined) {
-      editor.action(replaceAll(newValue))
+      // 更新全局文件路径
+      ;(window as any).__currentFilePath = currentTab.value?.filePath || null
+
+      // 将原始内容转换为包含协议 URL 的内容用于渲染
+      const contentForRendering = processImagePaths(newValue, currentTab.value?.filePath || null)
+      editor.action(replaceAll(contentForRendering))
       // Update lastEmittedValue to avoid immediate echo if editor emits back synchronously
       lastEmittedValue.value = newValue
 

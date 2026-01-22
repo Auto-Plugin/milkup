@@ -1,6 +1,6 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import { app, BrowserWindow, globalShortcut } from 'electron'
+import { app, BrowserWindow, globalShortcut, protocol } from 'electron'
 import { close, getIsQuitting, registerGlobalIpcHandlers, registerIpcHandleHandlers, registerIpcOnHandlers } from './ipcBridge'
 import createMenu from './menu'
 
@@ -148,8 +148,59 @@ function sendLaunchFileIfExists(argv = process.argv) {
   }
 }
 
+// 注册自定义协议为特权协议
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'milkup',
+    privileges: {
+      bypassCSP: true,
+      supportFetchAPI: true,
+      standard: true,
+      secure: true,
+    },
+  },
+])
+
 app.whenReady().then(async () => {
   registerGlobalIpcHandlers()
+
+  // 注册自定义协议处理器
+  protocol.registerFileProtocol('milkup', (request, callback) => {
+    try {
+      // URL 格式: milkup:///<base64-encoded-markdown-path>/<relative-image-path>
+      const url = request.url.substring('milkup:///'.length)
+      const firstSlashIndex = url.indexOf('/')
+
+      if (firstSlashIndex === -1) {
+        callback({ error: -2 }) // FILE_NOT_FOUND
+        return
+      }
+
+      const base64Path = url.substring(0, firstSlashIndex)
+      const relativePath = url.substring(firstSlashIndex + 1)
+
+      // 解码 markdown 文件路径
+      const markdownPath = Buffer.from(base64Path, 'base64').toString('utf-8')
+      const markdownDir = path.dirname(markdownPath)
+
+      // 解析相对路径为绝对路径
+      const absolutePath = path.resolve(markdownDir, decodeURIComponent(relativePath))
+
+      // 检查文件是否存在
+      if (!fs.existsSync(absolutePath)) {
+        console.error('[milkup protocol] 文件不存在:', absolutePath)
+        callback({ error: -6 }) // FILE_NOT_FOUND
+        return
+      }
+
+      // 返回文件路径
+      callback({ path: absolutePath })
+    } catch (error) {
+      console.error('[milkup protocol] 处理请求失败:', error)
+      callback({ error: -2 })
+    }
+  })
+
   await createWindow()
   createMenu(win)
 

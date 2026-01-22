@@ -9,6 +9,7 @@ import { Plugin, Selection } from '@milkdown/prose/state'
 import { $inputRule, $nodeAttr, $nodeSchema, $prose, $remark } from '@milkdown/utils'
 import { visit } from 'unist-util-visit'
 import { withMeta } from '../__internal__'
+import { processImagePaths, reverseProcessImagePaths } from '../imagePathPlugin'
 
 // 不转义 HTML 标签,即使输入 <div> 也能正常显示
 export const escapeAngleBracketRule = $inputRule(
@@ -51,14 +52,38 @@ export function createHtmlNodeView(): NodeViewConstructor {
     rendered.classList.add('html-rendered')
     rendered.setAttribute('data-rendered', 'true')
     rendered.innerHTML = node.attrs.value
+
+    // 获取当前文件路径（用于路径转换）
+    const getCurrentFilePath = (): string | null => {
+      // 尝试从 DOM 中获取当前文件路径
+      // 这里假设有一个全局的方式获取当前文件路径
+      // 如果没有，可能需要通过其他方式传递
+      try {
+        // 从 view 的 state 中尝试获取
+        const editorElement = view.dom.closest('[data-file-path]')
+        if (editorElement) {
+          return editorElement.getAttribute('data-file-path')
+        }
+        // 或者从全局状态获取
+        return (window as any).__currentFilePath || null
+      } catch {
+        return null
+      }
+    }
+
     // 切换到编辑状态
     const enterEdit = () => {
       if (editing)
         return
       editing = true
 
+      // 将 milkup:// 协议转回相对路径再显示
+      const htmlContent = rendered.innerHTML
+      const filePath = getCurrentFilePath()
+      const restoredContent = reverseProcessImagePaths(htmlContent, filePath)
+
       // 更新编辑内容
-      contentDOM.textContent = rendered.innerHTML
+      contentDOM.textContent = restoredContent
       dom.innerHTML = ''
       dom.appendChild(contentDOM)
 
@@ -83,17 +108,26 @@ export function createHtmlNodeView(): NodeViewConstructor {
       if (!editing)
         return
       editing = false
-      // 构造并派发 transaction，更新节点 attrs.value
+
+      // 获取用户编辑的内容（包含相对路径）
       const newValue = contentDOM.textContent
+
+      // 将相对路径转换为 milkup:// 协议用于渲染
+      const filePath = getCurrentFilePath()
+      const processedValue = processImagePaths(newValue || '', filePath)
+
+      // 构造并派发 transaction，更新节点 attrs.value
+      // 注意：这里保存的是处理后的内容（包含 milkup://）
       const tr = view.state.tr
       tr.setNodeMarkup(
         getPos() as number, // 节点位置
         undefined, // 保持类型不变
-        { value: newValue }, // 更新 attrs
+        { value: processedValue }, // 更新 attrs（使用处理后的内容）
       )
       view.dispatch(tr)
-      // 更新预览
-      rendered.innerHTML = newValue || ''
+
+      // 更新预览（使用处理后的内容）
+      rendered.innerHTML = processedValue || ''
       dom.innerHTML = ''
       dom.appendChild(rendered)
     }

@@ -68,20 +68,28 @@ onMounted(() => {
     state: startState,
     parent: editorContainer.value!,
   })
+
+  // 安全地设置光标位置
+  const cursorOffset = currentTab.value?.codeMirrorCursorOffset || 0
+  const safeOffset = Math.min(cursorOffset, editorView.state.doc.length)
   editorView.dispatch({
-    selection: { anchor: currentTab.value?.codeMirrorCursorOffset || 0 },
+    selection: { anchor: safeOffset },
     scrollIntoView: true,
   })
 })
 // 同步外部 props 变化
 watch(() => props.modelValue, (newVal) => {
   if (editorView && editorView.state.doc.toString() !== newVal) {
+    const currentCursor = editorView.state.selection.main.head
+
     editorView.dispatch({
       changes: {
         from: 0,
         to: editorView.state.doc.length,
         insert: newVal,
       },
+      // 设置光标位置，确保不超出新文档范围
+      selection: { anchor: Math.min(currentCursor, newVal.length) },
     })
   }
 })

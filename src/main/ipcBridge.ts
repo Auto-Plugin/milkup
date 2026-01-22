@@ -431,33 +431,6 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
 }
 // 无需 win 的 ipc 处理
 export function registerGlobalIpcHandlers() {
-  // 解析相对路径图片为绝对路径
-  ipcMain.handle('file:resolveImagePath', async (_event, markdownFilePath: string, imagePath: string) => {
-    if (!markdownFilePath || !imagePath) {
-      return imagePath
-    }
-
-    // 如果图片路径已经是绝对路径，直接返回
-    if (path.isAbsolute(imagePath)) {
-      return imagePath
-    }
-
-    // 获取 Markdown 文件所在的目录
-    const markdownDir = path.dirname(markdownFilePath)
-
-    // 将相对路径转换为绝对路径
-    const absoluteImagePath = path.resolve(markdownDir, imagePath)
-
-    // 检查文件是否存在
-    if (fs.existsSync(absoluteImagePath)) {
-      // 返回 file:// 协议的路径，这样 Electron 可以正确加载
-      const fileUrl = `file://${absoluteImagePath.replace(/\\/g, '/')}`
-      return fileUrl
-    }
-
-    return imagePath
-  })
-
   // 通过文件路径读取 Markdown 文件（用于拖拽）
   ipcMain.handle('file:readByPath', async (_event, filePath: string) => {
     try {

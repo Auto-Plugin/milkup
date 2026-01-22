@@ -143,6 +143,7 @@ async function saveCurrentTab(): Promise<boolean> {
     return false
 
   try {
+    // content 现在已经是原始格式（相对路径），直接保存即可
     const saved = await window.electronAPI.saveFile(currentTab.filePath, currentTab.content)
     if (saved) {
       currentTab.filePath = saved
@@ -160,12 +161,16 @@ async function saveCurrentTab(): Promise<boolean> {
 
 // 从文件创建新tab
 async function createTabFromFile(filePath: string, content: string): Promise<Tab> {
-  // 使用统一的文件服务创建Tab数据
-  const tabData = await createTabDataFromFile(filePath, content)
+  // 使用统一的文件服务创建Tab数据（现在是同步的）
+  const tabData = createTabDataFromFile(filePath, content)
+
+  // 单独获取只读状态
+  const readOnly = await window.electronAPI?.getIsReadOnly(filePath) || false
 
   const tab: Tab = {
     id: randomUUID(),
     ...tabData,
+    readOnly, // 覆盖默认的 readOnly 值
   }
 
   return add(tab)

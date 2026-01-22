@@ -20,8 +20,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openExternal: (url: string) => ipcRenderer.send('shell:openExternal', url),
   getFilePathInClipboard: () => ipcRenderer.invoke('clipboard:getFilePath'),
   writeTempImage: (file: File, tempPath: string) => ipcRenderer.invoke('clipboard:writeTempImage', file, tempPath),
-  // 图片路径解析
-  resolveImagePath: (markdownFilePath: string, imagePath: string) => ipcRenderer.invoke('file:resolveImagePath', markdownFilePath, imagePath),
   // 导出为 PDF
   exportAsPDF: (elementSelector: string, outputName: string, options?: ExportPDFOptions) => ipcRenderer.invoke('file:exportPDF', elementSelector, outputName, options),
   // 导出为 Word

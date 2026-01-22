@@ -36,21 +36,19 @@ export async function readAndProcessFile(options: OpenFileOptions): Promise<File
     }
 
     // 2. 规范化文本 (修复 BOM, CRLF, 未闭合代码块, 确保结尾换行)
-    // 这是为了修复 "打开即修改" 的问题，并响应用户 "如果是内部修正则直接保存" 的需求
     const rawContent = result.content
     const repairedContent = ensureTrailingNewline(normalizeMarkdown(fixUnclosedCodeBlock(rawContent)))
 
-    // 如果修复后的内容与原始内容不同，执行静默保存
-    if (repairedContent !== rawContent && !checkReadOnly) {
-      // 注意：这里我们不await保存过程，以免阻塞打开速度，但catch错误以防万一
-      window.electronAPI.saveFile(filePath, repairedContent).catch((err) => {
-        console.error('静默保存修复后的文件失败:', filePath, err)
-      })
+    // 注意：不再自动保存修复后的内容，避免修改源文件
+    // 修复将在用户主动保存时应用
+    if (repairedContent !== rawContent) {
+      console.log('[fileService] 检测到文本格式问题，将在用户保存时修复')
     }
 
-    // 3. 处理图片路径 (基于修复后的内容)
+    // 3. 处理图片路径用于渲染 (基于修复后的内容)
+    // processedContent 仅用于 Milkdown 渲染，不用于编辑
     const processedContent = processImages
-      ? await processImagePaths(repairedContent, result.filePath)
+      ? processImagePaths(repairedContent, result.filePath)
       : repairedContent
 
     // 获取且检查文件只读状态
@@ -60,8 +58,8 @@ export async function readAndProcessFile(options: OpenFileOptions): Promise<File
 
     return {
       filePath: result.filePath,
-      content: processedContent,
-      processedContent,
+      content: repairedContent, // 原始内容（用于编辑）
+      processedContent, // 处理后的内容（用于渲染）
       readOnly,
     }
   } catch (error) {
@@ -74,20 +72,21 @@ export async function readAndProcessFile(options: OpenFileOptions): Promise<File
  * 从文件路径读取并创建Tab数据结构
  * 不包含添加到tabs列表的逻辑，仅创建Tab对象
  */
-export async function createTabDataFromFile(
+export function createTabDataFromFile(
   filePath: string,
   content: string,
   options: { processImages?: boolean } = {},
-): Promise<Omit<Tab, 'id'>> {
+): Omit<Tab, 'id'> {
   const { processImages = true } = options
 
-  // 处理图片路径
+  // 处理图片路径（现在是同步操作）
   const processedContent = processImages
-    ? await processImagePaths(content, filePath)
+    ? processImagePaths(content, filePath)
     : content
 
-  // 检查只读状态
-  const readOnly = await window.electronAPI?.getIsReadOnly(filePath) || false
+  // 检查只读状态（保持异步，但在调用处处理）
+  // 注意：这里我们不能直接 await，需要在调用处处理
+  const readOnly = false // 默认值，调用处需要单独获取
 
   // 从路径中提取文件名
   const fileName = filePath.split(/[\\/]/).at(-1) || 'Untitled'
