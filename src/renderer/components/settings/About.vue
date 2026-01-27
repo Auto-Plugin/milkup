@@ -1,23 +1,41 @@
 <script setup lang="ts">
-import autotoast from 'autotoast.js'
-import logo from '@/assets/icons/milkup.ico'
-import emitter from '@/renderer/events'
-import { checkUpdate } from '@/renderer/services/api/update'
-import { version } from '../../../../package.json'
+import autotoast from "autotoast.js";
+import logo from "@/assets/icons/milkup.ico";
+import emitter from "@/renderer/events";
+import { checkUpdate } from "@/renderer/services/api/update";
+import { version } from "../../../../package.json";
+import { ref } from "vue";
+import LoadingIcon from "../ui/LoadingIcon.vue";
 
 function openByDefaultBrowser(url: string) {
-  window.electronAPI.openExternal(url)
+  window.electronAPI.openExternal(url);
 }
-const updateInfo = JSON.parse(localStorage.getItem('updateInfo') || '{}')
+const updateInfo = JSON.parse(localStorage.getItem("updateInfo") || "{}");
+const isChecking = ref(false);
 
 function handleCheckUpdate() {
-  autotoast.show('正在检查更新...', 'info', 500)
-  localStorage.removeItem('ignoredVersion')
-  checkUpdate().then((updateInfo) => {
-    if (updateInfo) {
-      emitter.emit('update:available', updateInfo)
-    }
-  })
+  if (isChecking.value) return;
+
+  isChecking.value = true;
+  localStorage.removeItem("ignoredVersion");
+
+  checkUpdate()
+    .then((info) => {
+      isChecking.value = false;
+
+      if (info && info.version) {
+        localStorage.setItem("updateInfo", JSON.stringify(info));
+
+        emitter.emit("update:available", info);
+      } else {
+        autotoast.show("当前已为最新版本", "success");
+      }
+    })
+    .catch((err) => {
+      console.error("[About] checkUpdate error:", err);
+      autotoast.show(`检查更新失败: ${err.message || "Unknown error"}`, "error");
+      isChecking.value = false;
+    });
 }
 </script>
 
@@ -28,18 +46,28 @@ function handleCheckUpdate() {
     </h1>
     <p>
       <span class="link version" @click="handleCheckUpdate">
-        <span>version: v{{ version }} </span><span v-if="updateInfo.version" class="updateTip">new</span>
+        <span>version: v{{ version }} </span>
+        <span v-if="isChecking" class="updateTip loading">
+          <LoadingIcon />
+        </span>
+        <span v-else-if="updateInfo.version" class="updateTip">new</span>
       </span>
     </p>
     <p>MIT Copyright © [2025] Larry Zhu</p>
-    <p>Powered by <span class="link" @click="openByDefaultBrowser(`https://milkdown.dev`)">milkdown</span></p>
+    <p>
+      Powered by
+      <span class="link" @click="openByDefaultBrowser(`https://milkdown.dev`)">milkdown</span>
+    </p>
     <p class="thanks">
-      <span class="link" @click="openByDefaultBrowser(`https://github.com/Auto-Plugin/milkup/graphs/contributors`)">
-        Thank you for the contribution from <span class="iconfont icon-github">Auto-Plugin</span></span>
+      <span
+        class="link"
+        @click="openByDefaultBrowser(`https://github.com/Auto-Plugin/milkup/graphs/contributors`)"
+      >
+        Thank you for the contribution from
+        <span class="iconfont icon-github">Auto-Plugin</span></span
+      >
     </p>
-    <p class="tip">
-      milkup 是完全免费开源的软件
-    </p>
+    <p class="tip">milkup 是完全免费开源的软件</p>
   </div>
 </template>
 
@@ -66,12 +94,35 @@ function handleCheckUpdate() {
     color: white;
     font-size: 12px;
     border-radius: 4px;
-    padding: 2px 12px;
+    padding: 2px 8px;
     margin-left: 4px;
     vertical-align: middle;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+
+    &.loading {
+      background: transparent;
+      padding: 0;
+
+      svg {
+        font-size: 14px;
+        color: var(--primary-color);
+      }
+    }
+  }
+
+  .spin {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   .tip {

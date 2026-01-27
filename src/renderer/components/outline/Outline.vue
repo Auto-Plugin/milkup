@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import WorkSpace from '@/renderer/components/workspace/WorkSpace.vue'
-import useOutline from '@/renderer/hooks/useOutline'
+import { ref } from "vue";
+import WorkSpace from "@/renderer/components/workspace/WorkSpace.vue";
+import useOutline from "@/renderer/hooks/useOutline";
 
-const { outline } = useOutline()
+const { outline } = useOutline();
 
-const activeTab = ref<'outline' | 'file'>('file')
+const activeTab = ref<"outline" | "file">("file");
 
-function onOiClick(oi: { id: string, text: string, level: number }) {
+function onOiClick(oi: { id: string; text: string; level: number }) {
   // 滚动到指定元素
-  const element = document.querySelector(`h${oi.level}#${oi.id}`)
-  console.log('element::: ', element)
+  const element = document.querySelector(`h${oi.level}#${oi.id}`);
+
   if (element) {
-    element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    element.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 }
 </script>
@@ -28,10 +28,18 @@ function onOiClick(oi: { id: string, text: string, level: number }) {
     </svg>
 
     <div class="OutlineBoxTabs">
-      <div class="OutlineBoxTab" :class="{ active: activeTab === 'file' }" @click="activeTab = 'file'">
+      <div
+        class="OutlineBoxTab"
+        :class="{ active: activeTab === 'file' }"
+        @click="activeTab = 'file'"
+      >
         文件
       </div>
-      <div class="OutlineBoxTab" :class="{ active: activeTab === 'outline' }" @click="activeTab = 'outline'">
+      <div
+        class="OutlineBoxTab"
+        :class="{ active: activeTab === 'outline' }"
+        @click="activeTab = 'outline'"
+      >
         大纲
       </div>
     </div>
@@ -39,7 +47,10 @@ function onOiClick(oi: { id: string, text: string, level: number }) {
     <div class="content-container">
       <div v-if="activeTab === 'outline'" class="outlineList">
         <span
-          v-for="oi in outline" :key="oi.id" class="outlineItem" :style="{ paddingLeft: `${oi.level * 12}px` }"
+          v-for="oi in outline"
+          :key="oi.id"
+          class="outlineItem"
+          :style="{ paddingLeft: `${oi.level * 12}px` }"
           @click="onOiClick(oi)"
         >
           {{ oi.text }}
@@ -78,7 +89,6 @@ function onOiClick(oi: { id: string, text: string, level: number }) {
     // fill: red;
     fill: var(--background-color-2);
     z-index: 999;
-
   }
   .OutlineBoxAfter {
     height: 10px;
@@ -90,7 +100,6 @@ function onOiClick(oi: { id: string, text: string, level: number }) {
     // fill: red;
     fill: var(--background-color-2);
     z-index: 999;
-
   }
 
   .OutlineBoxTabs {
@@ -112,7 +121,6 @@ function onOiClick(oi: { id: string, text: string, level: number }) {
       &:hover {
         color: var(--text-color-2);
       }
-
     }
 
     .active {
@@ -121,7 +129,7 @@ function onOiClick(oi: { id: string, text: string, level: number }) {
       position: relative;
 
       &::after {
-        content: '';
+        content: "";
         position: absolute;
         bottom: 0;
         left: 50%;

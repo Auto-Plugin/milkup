@@ -1,87 +1,86 @@
-import type { Tab } from '@/types/tab'
-import { computed, reactive, ref } from 'vue'
-import useTab from '@/renderer/hooks/useTab'
-import { transitionEffects } from '@/renderer/utils/heightTransition'
+import type { Tab } from "@/types/tab";
+import { computed, reactive, ref } from "vue";
+import useTab from "@/renderer/hooks/useTab";
+import { transitionEffects } from "@/renderer/utils/heightTransition";
 
 // 树节点接口
 export interface TreeNode {
-  name: string
-  path: string
-  isDirectory: boolean
-  children?: TreeNode[]
+  name: string;
+  path: string;
+  isDirectory: boolean;
+  children?: TreeNode[];
 }
 
 // 树节点组件属性接口
 export interface TreeNodeProps {
-  node: TreeNode
-  level?: number
-  currentTab: Tab | null
+  node: TreeNode;
+  level?: number;
+  currentTab: Tab | null;
 }
 
 // 全局的树节点展开状态管理
-const expandedNodes = reactive<Set<string>>(new Set())
+const expandedNodes = reactive<Set<string>>(new Set());
 
 // 切换节点展开状态
 function toggleNodeExpanded(nodePath: string) {
   if (expandedNodes.has(nodePath)) {
-    expandedNodes.delete(nodePath)
+    expandedNodes.delete(nodePath);
   } else {
-    expandedNodes.add(nodePath)
+    expandedNodes.add(nodePath);
   }
 }
 
 // 检查节点是否展开
 function isNodeExpanded(nodePath: string): boolean {
-  return expandedNodes.has(nodePath)
+  return expandedNodes.has(nodePath);
 }
 
 // 设置节点展开状态
 function setNodeExpanded(nodePath: string, expanded: boolean) {
   if (expanded) {
-    expandedNodes.add(nodePath)
+    expandedNodes.add(nodePath);
   } else {
-    expandedNodes.delete(nodePath)
+    expandedNodes.delete(nodePath);
   }
 }
 
 // 清空所有展开状态
 function clearExpandedNodes() {
-  expandedNodes.clear()
+  expandedNodes.clear();
 }
 
 // 树节点逻辑管理
 export function useTreeNode(props: TreeNodeProps) {
-  const { openFile } = useTab()
+  const { openFile } = useTab();
 
   // 子节点容器引用
-  const childrenContainer = ref<HTMLElement>()
+  const childrenContainer = ref<HTMLElement>();
 
   // 使用全局状态管理展开状态
-  const isExpanded = computed(() => isNodeExpanded(props.node.path))
+  const isExpanded = computed(() => isNodeExpanded(props.node.path));
 
   // 是否被选中
   const isSelected = computed(() => {
-    console.log('isSelected')
-    return props.currentTab && props.currentTab.filePath === props.node.path
-  })
+    return props.currentTab && props.currentTab.filePath === props.node.path;
+  });
 
   // 切换展开状态
   function toggleExpanded() {
     if (props.node.isDirectory && props.node.children) {
-      toggleNodeExpanded(props.node.path)
+      toggleNodeExpanded(props.node.path);
     }
   }
 
   // 使用预定义的过渡效果
-  const transitionHooks = transitionEffects.blurScale
+  const transitionHooks = transitionEffects.blurScale;
 
   // 点击节点
   async function handleNodeClick() {
     if (props.node.isDirectory) {
-      toggleExpanded()
+      toggleExpanded();
     } else {
       // 处理文件点击，打开文件
-      await openFile(props.node.path)
+      await openFile(props.node.path);
     }
   }
 
@@ -92,7 +91,7 @@ export function useTreeNode(props: TreeNodeProps) {
     toggleExpanded,
     transitionHooks,
     handleNodeClick,
-  }
+  };
 }
 
 // 基础状态管理
@@ -103,5 +102,5 @@ export function useTreeState() {
     isNodeExpanded,
     setNodeExpanded,
     clearExpandedNodes,
-  }
+  };
 }

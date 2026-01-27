@@ -1,46 +1,61 @@
 interface Window {
   electronAPI: {
-    openFile: () => Promise<{ filePath: string, content: string } | null>
-    getIsReadOnly: (filePath: string) => Promise<boolean>
-    saveFile: (filePath: string | null, content: string) => Promise<string | null>
-    saveFileAs: (content: string) => Promise<{ filePath: string } | null>
-    setTitle: (filePath: string | null) => void
-    changeSaveStatus: (isSaved: boolean) => void
-    on: (channel: string, listener: (...args: any[]) => void) => void
-    removeListener: (channel: string, listener: (...args: any[]) => void) => void
-    windowControl: (action: 'minimize' | 'maximize' | 'close') => void
-    closeDiscard: () => void
-    onOpenFileAtLaunch: (cb: (payload: { filePath: string, content: string }) => void) => void
-    openExternal: (url: string) => Promise<void>
-    getFilePathInClipboard: () => Promise<string | null>
-    writeTempImage: (file: Uint8Array<ArrayBuffer>, tempPath: string) => Promise<string>
+    openFile: () => Promise<{ filePath: string; content: string } | null>;
+    getIsReadOnly: (filePath: string) => Promise<boolean>;
+    saveFile: (filePath: string | null, content: string) => Promise<string | null>;
+    saveFileAs: (content: string) => Promise<{ filePath: string } | null>;
+    setTitle: (filePath: string | null) => void;
+    changeSaveStatus: (isSaved: boolean) => void;
+    on: (channel: string, listener: (...args: any[]) => void) => void;
+    removeListener: (channel: string, listener: (...args: any[]) => void) => void;
+    windowControl: (action: "minimize" | "maximize" | "close") => void;
+    closeDiscard: () => void;
+    onOpenFileAtLaunch: (cb: (payload: { filePath: string; content: string }) => void) => void;
+    openExternal: (url: string) => Promise<void>;
+    getFilePathInClipboard: () => Promise<string | null>;
+    writeTempImage: (file: Uint8Array<ArrayBuffer>, tempPath: string) => Promise<string>;
     // 图片路径解析
-    resolveImagePath: (markdownFilePath: string, imagePath: string) => Promise<string>
+    resolveImagePath: (markdownFilePath: string, imagePath: string) => Promise<string>;
     // 导出为 PDF
-    exportAsPDF: (elementSelector: string, outputName: string, options?: ExportPDFOptions) => Promise<void>
+    exportAsPDF: (
+      elementSelector: string,
+      outputName: string,
+      options?: ExportPDFOptions
+    ) => Promise<void>;
     // 导出为 Word
-    exportAsWord: (blocks: Block, outputName: string) => Promise<void>
+    exportAsWord: (blocks: Block, outputName: string) => Promise<void>;
     // 通过路径读取文件（用于拖拽）
-    readFileByPath: (filePath: string) => Promise<{ filePath: string, content: string } | null>
+    readFileByPath: (filePath: string) => Promise<{ filePath: string; content: string } | null>;
     // 显示文件覆盖确认对话框
-    showOverwriteConfirm: (fileName: string) => Promise<number>
+    showOverwriteConfirm: (fileName: string) => Promise<number>;
     // 显示关闭确认对话框
-    showCloseConfirm: (fileName: string) => Promise<number>
+    showCloseConfirm: (fileName: string) => Promise<number>;
     // 显示文件选择对话框
-    showOpenDialog: (options: any) => Promise<{ canceled: boolean, filePaths: string[] } | undefined>
+    showOpenDialog: (
+      options: any
+    ) => Promise<{ canceled: boolean; filePaths: string[] } | undefined>;
     // 获取拖拽文件的真实路径
-    getPathForFile: (file: File) => string | undefined
+    getPathForFile: (file: File) => string | undefined;
     // 字体相关
-    getSystemFonts: () => Promise<string[]>
+    getSystemFonts: () => Promise<string[]>;
     // 文件夹相关
-    getDirectoryFiles: (dirPath: string) => Promise<Array<{ name: string, path: string, isDirectory: boolean }>>
+    getDirectoryFiles: (
+      dirPath: string
+    ) => Promise<Array<{ name: string; path: string; isDirectory: boolean }>>;
     // 监听文件变化
-    watchFiles: (filePaths: string[]) => void
+    watchFiles: (filePaths: string[]) => void;
     // 主题编辑器相关
-    openThemeEditor: (theme?: any) => void
-    themeEditorWindowControl: (action: 'minimize' | 'maximize' | 'close') => void
-    saveCustomTheme: (theme: any) => void
-    platform: NodeJS.Platform
-    rendererReady: () => void
-  }
+    openThemeEditor: (theme?: any) => void;
+    themeEditorWindowControl: (action: "minimize" | "maximize" | "close") => void;
+    saveCustomTheme: (theme: any) => void;
+    platform: NodeJS.Platform;
+    rendererReady: () => void;
+    // 自动更新相关
+    checkForUpdates: () => Promise<any>;
+    downloadUpdate: () => Promise<any>;
+    cancelUpdate: () => Promise<void>;
+    quitAndInstall: () => Promise<void>;
+    onUpdateStatus: (callback: (status: any) => void) => void;
+    onDownloadProgress: (callback: (progress: any) => void) => void;
+  };
 }

@@ -1,42 +1,103 @@
-import autotoast from 'autotoast.js'
-import { ref } from 'vue'
+import autotoast from "autotoast.js";
+import { onMounted, ref } from "vue";
+
+export type UpdateStatus = "idle" | "downloading" | "downloaded" | "error";
 
 export function useUpdateDialog() {
-  const isDialogVisible = ref(false)
+  const isDialogVisible = ref(false);
+  const updateStatus = ref<UpdateStatus>("idle");
+  const downloadProgress = ref(0);
 
   function showDialog() {
-    isDialogVisible.value = true
+    isDialogVisible.value = true;
   }
   function hideDialog() {
-    isDialogVisible.value = false
+    isDialogVisible.value = false;
+  }
+
+  function handleCancel() {
+    if (updateStatus.value === "downloading") {
+      window.electronAPI.cancelUpdate();
+      // updateStatus and progress should be reset by 'update:status' event listeners
+    }
+    hideDialog();
   }
   function handleIgnore() {
-    const updateInfo = JSON.parse(localStorage.getItem('updateInfo') || '{}')
-    const version = updateInfo.version || ''
-    hideDialog()
-    localStorage.setItem('ignoredVersion', version)
+    const updateInfo = JSON.parse(localStorage.getItem("updateInfo") || "{}");
+    const version = updateInfo.version || "";
+    hideDialog();
+    localStorage.setItem("ignoredVersion", version);
   }
-  function handleUpdate() {
-    const updateInfo = JSON.parse(localStorage.getItem('updateInfo') || '{}')
-    const downloadUrl = updateInfo.url || ''
-    if (!downloadUrl) {
-      console.error('No download URL available for update.')
-      autotoast.show('无法获取下载链接', 'error')
-      return
+
+  // 开始更新（下载）
+  async function handleUpdate() {
+    updateStatus.value = "downloading";
+    try {
+      await window.electronAPI.downloadUpdate();
+    } catch (error) {
+      console.error("Download failed:", error);
+      autotoast.show("下载失败", "error");
+      updateStatus.value = "error";
     }
-    // 打开浏览器下载页面
-    window.electronAPI.openExternal(downloadUrl)
-    hideDialog()
   }
+
+  // 安装并重启
+  function handleInstall() {
+    window.electronAPI.quitAndInstall();
+  }
+
   function handleLater() {
-    hideDialog()
+    hideDialog();
   }
+
+  function handleMinimize() {
+    // Just hide dialog but keep status
+    isDialogVisible.value = false;
+  }
+
+  function handleRestore() {
+    isDialogVisible.value = true;
+  }
+
+  // 监听下载进度
+  const onProgress = (progressObj: any) => {
+    // progressObj 格式: percent, total, transferred
+    if (progressObj && progressObj.percent) {
+      downloadProgress.value = Math.floor(progressObj.percent);
+    }
+  };
+
+  const onUpdateStatus = (statusObj: any) => {
+    if (statusObj.status === "downloaded") {
+      updateStatus.value = "downloaded";
+    } else if (statusObj.status === "error") {
+      updateStatus.value = "error";
+      autotoast.show(`更新出错: ${statusObj.error}`, "error");
+    } else if (statusObj.status === "idle") {
+      updateStatus.value = "idle";
+      downloadProgress.value = 0;
+    }
+  };
+
+  onMounted(() => {
+    window.electronAPI.onDownloadProgress(onProgress);
+    window.electronAPI.onUpdateStatus(onUpdateStatus);
+  });
+
+  // ... (remove onUnmounted block if needed or keep)
+
   return {
     isDialogVisible,
+    updateStatus,
+    downloadProgress,
     showDialog,
     hideDialog,
     handleIgnore,
     handleUpdate,
+    handleInstall,
     handleLater,
-  }
+    handleMinimize,
+    handleRestore,
+    handleCancel,
+  };
 }

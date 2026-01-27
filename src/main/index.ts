@@ -1,13 +1,20 @@
-import * as fs from 'node:fs'
-import * as path from 'node:path'
-import { app, BrowserWindow, globalShortcut, ipcMain, protocol } from 'electron'
-import { close, getIsQuitting, registerGlobalIpcHandlers, registerIpcHandleHandlers, registerIpcOnHandlers } from './ipcBridge'
-import createMenu from './menu'
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { app, BrowserWindow, globalShortcut, ipcMain, protocol } from "electron";
+import {
+  close,
+  getIsQuitting,
+  registerGlobalIpcHandlers,
+  registerIpcHandleHandlers,
+  registerIpcOnHandlers,
+} from "./ipcBridge";
+import createMenu from "./menu";
+import { setupUpdateHandlers } from "./update";
 
-let win: BrowserWindow
-let themeEditorWindow: BrowserWindow | null = null
-let isRendererReady = false
-let pendingStartupFile: string | null = null
+let win: BrowserWindow;
+let themeEditorWindow: BrowserWindow | null = null;
+let isRendererReady = false;
+let pendingStartupFile: string | null = null;
 
 async function createWindow() {
   win = new BrowserWindow({
@@ -16,39 +23,45 @@ async function createWindow() {
     minWidth: 800,
     minHeight: 600,
     frame: false,
-    titleBarStyle: 'hidden', // ✅ macOS 专属
-    icon: path.join(__dirname, '../assets/icons/milkup.ico'),
+    titleBarStyle: "hidden", // ✅ macOS 专属
+    icon: path.join(__dirname, "../assets/icons/milkup.ico"),
     webPreferences: {
       sandbox: false,
-      preload: path.resolve(__dirname, '../../dist-electron/preload.js'),
+      preload: path.resolve(__dirname, "../../dist-electron/preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
       webSecurity: false, // 允许加载本地文件
     },
-  })
-  globalShortcut.register('CommandOrControl+Shift+I', () => {
-    if (win)
-      win.webContents.openDevTools()
-  })
+  });
+  globalShortcut.register("CommandOrControl+Shift+I", () => {
+    if (win) win.webContents.openDevTools();
+  });
 
-  const indexPath = path.join(__dirname, '../../dist', 'index.html')
+  // 注册 IPC 处理程序 (在加载页面前注册，防止竞态条件)
+  registerIpcOnHandlers(win);
+  registerIpcHandleHandlers(win);
+  setupUpdateHandlers(win);
+
+  createMenu(win);
+
+  const indexPath = path.join(__dirname, "../../dist", "index.html");
 
   if (process.env.VITE_DEV_SERVER_URL) {
-    await win.loadURL(process.env.VITE_DEV_SERVER_URL)
+    await win.loadURL(process.env.VITE_DEV_SERVER_URL);
   } else {
-    await win.loadFile(indexPath)
+    await win.loadFile(indexPath);
   }
 
   if (process.env.VITE_DEV_SERVER_URL) {
-    win.webContents.openDevTools()
+    win.webContents.openDevTools();
   }
 }
 
 // 创建主题编辑器窗口
 export async function createThemeEditorWindow() {
   if (themeEditorWindow && !themeEditorWindow.isDestroyed()) {
-    themeEditorWindow.focus()
-    return themeEditorWindow
+    themeEditorWindow.focus();
+    return themeEditorWindow;
   }
 
   themeEditorWindow = new BrowserWindow({
@@ -59,35 +72,35 @@ export async function createThemeEditorWindow() {
     parent: win,
     modal: false,
     frame: false,
-    titleBarStyle: 'hidden',
-    icon: path.join(__dirname, '../assets/icons/milkup.ico'),
+    titleBarStyle: "hidden",
+    icon: path.join(__dirname, "../assets/icons/milkup.ico"),
     webPreferences: {
       sandbox: false,
-      preload: path.resolve(__dirname, '../../dist-electron/preload.js'),
+      preload: path.resolve(__dirname, "../../dist-electron/preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
       webSecurity: false,
     },
-  })
+  });
 
   // 加载主题编辑器页面
   if (process.env.VITE_DEV_SERVER_URL) {
-    await themeEditorWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}/theme-editor.html`)
+    await themeEditorWindow.loadURL(`${process.env.VITE_DEV_SERVER_URL}/theme-editor.html`);
   } else {
-    const themeEditorPath = path.join(__dirname, '../../dist', 'theme-editor.html')
-    await themeEditorWindow.loadFile(themeEditorPath)
+    const themeEditorPath = path.join(__dirname, "../../dist", "theme-editor.html");
+    await themeEditorWindow.loadFile(themeEditorPath);
   }
 
   if (process.env.VITE_DEV_SERVER_URL) {
-    themeEditorWindow.webContents.openDevTools()
+    themeEditorWindow.webContents.openDevTools();
   }
 
   // 窗口关闭时清理引用
-  themeEditorWindow.on('closed', () => {
-    themeEditorWindow = null
-  })
+  themeEditorWindow.on("closed", () => {
+    themeEditorWindow = null;
+  });
 
-  return themeEditorWindow
+  return themeEditorWindow;
 }
 
 /**
@@ -96,49 +109,49 @@ export async function createThemeEditorWindow() {
  */
 function sendFileToRenderer(filePath: string) {
   // 验证文件路径
-  if (!filePath.endsWith('.md') && !filePath.endsWith('.markdown')) {
-    return
+  if (!filePath.endsWith(".md") && !filePath.endsWith(".markdown")) {
+    return;
   }
 
   // 检查文件是否存在
   if (!fs.existsSync(filePath)) {
-    console.warn('[main] 文件不存在:', filePath)
-    return
+    console.warn("[main] 文件不存在:", filePath);
+    return;
   }
 
   // 读取文件内容
-  const content = fs.readFileSync(filePath, 'utf-8')
+  const content = fs.readFileSync(filePath, "utf-8");
 
   // 发送到渲染进程的函数
   const sendFile = () => {
     if (win && win.webContents) {
-      win.webContents.send('open-file-at-launch', {
+      win.webContents.send("open-file-at-launch", {
         filePath,
         content,
-      })
+      });
     }
-  }
+  };
 
   if (isRendererReady) {
-    sendFile()
+    sendFile();
   } else {
-    pendingStartupFile = filePath
+    pendingStartupFile = filePath;
   }
 }
 
 function sendLaunchFileIfExists(argv = process.argv) {
-  const fileArg = argv.find(arg => arg.endsWith('.md') || arg.endsWith('.markdown'))
+  const fileArg = argv.find((arg) => arg.endsWith(".md") || arg.endsWith(".markdown"));
 
   if (fileArg) {
-    const absolutePath = path.resolve(fileArg)
-    sendFileToRenderer(absolutePath)
+    const absolutePath = path.resolve(fileArg);
+    sendFileToRenderer(absolutePath);
   }
 }
 
 // 注册自定义协议为特权协议
 protocol.registerSchemesAsPrivileged([
   {
-    scheme: 'milkup',
+    scheme: "milkup",
     privileges: {
       bypassCSP: true,
       supportFetchAPI: true,
@@ -146,121 +159,121 @@ protocol.registerSchemesAsPrivileged([
       secure: true,
     },
   },
-])
+]);
 
 app.whenReady().then(async () => {
-  registerGlobalIpcHandlers()
+  registerGlobalIpcHandlers();
 
   // 注册自定义协议处理器
-  protocol.registerFileProtocol('milkup', (request, callback) => {
+  protocol.registerFileProtocol("milkup", (request, callback) => {
     try {
       // URL 格式: milkup:///<base64-encoded-markdown-path>/<relative-image-path>
-      const url = request.url.substring('milkup:///'.length)
-      const firstSlashIndex = url.indexOf('/')
+      const url = request.url.substring("milkup:///".length);
+      const firstSlashIndex = url.indexOf("/");
 
       if (firstSlashIndex === -1) {
-        callback({ error: -2 }) // FILE_NOT_FOUND
-        return
+        callback({ error: -2 }); // FILE_NOT_FOUND
+        return;
       }
 
-      const base64Path = url.substring(0, firstSlashIndex)
-      const relativePath = url.substring(firstSlashIndex + 1)
+      const base64Path = url.substring(0, firstSlashIndex);
+      const relativePath = url.substring(firstSlashIndex + 1);
 
       // 解码 markdown 文件路径
-      const markdownPath = Buffer.from(base64Path, 'base64').toString('utf-8')
-      const markdownDir = path.dirname(markdownPath)
+      const markdownPath = Buffer.from(base64Path, "base64").toString("utf-8");
+      const markdownDir = path.dirname(markdownPath);
 
       // 解析相对路径为绝对路径
-      const absolutePath = path.resolve(markdownDir, decodeURIComponent(relativePath))
+      const absolutePath = path.resolve(markdownDir, decodeURIComponent(relativePath));
 
       // 检查文件是否存在
       if (!fs.existsSync(absolutePath)) {
-        console.error('[milkup protocol] 文件不存在:', absolutePath)
-        callback({ error: -6 }) // FILE_NOT_FOUND
-        return
+        console.error("[milkup protocol] 文件不存在:", absolutePath);
+        callback({ error: -6 }); // FILE_NOT_FOUND
+        return;
       }
 
       // 返回文件路径
-      callback({ path: absolutePath })
+      callback({ path: absolutePath });
     } catch (error) {
-      console.error('[milkup protocol] 处理请求失败:', error)
-      callback({ error: -2 })
+      console.error("[milkup protocol] 处理请求失败:", error);
+      callback({ error: -2 });
     }
-  })
+  });
 
   // 监听渲染进程就绪事件 (Moved up to avoid race condition)
-  ipcMain.on('renderer-ready', () => {
-    isRendererReady = true
+  ipcMain.on("renderer-ready", () => {
+    isRendererReady = true;
     if (pendingStartupFile) {
-      sendFileToRenderer(pendingStartupFile)
-      pendingStartupFile = null
+      sendFileToRenderer(pendingStartupFile);
+      pendingStartupFile = null;
     }
-  })
+  });
 
-  await createWindow()
-  createMenu(win)
+  await createWindow();
 
-  registerIpcOnHandlers(win)
-  registerIpcHandleHandlers(win)
+  // createMenu(win) // Moved to createWindow
+  // registerIpcOnHandlers(win) // Moved to createWindow
+  // registerIpcHandleHandlers(win) // Moved to createWindow
+  // setupUpdateHandlers(win) // Moved to createWindow
 
-  sendLaunchFileIfExists()
+  sendLaunchFileIfExists();
 
-  win.on('close', (event) => {
-    if (process.platform === 'darwin' && !getIsQuitting()) {
-      event.preventDefault()
-      win.webContents.send('close')
+  win.on("close", (event) => {
+    if (process.platform === "darwin" && !getIsQuitting()) {
+      event.preventDefault();
+      win.webContents.send("close");
     }
-  })
-})
+  });
+});
 
 // 单实例锁
-const gotTheLock = app.requestSingleInstanceLock()
+const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
-  app.quit()
+  app.quit();
 } else {
-  app.on('second-instance', (_event, argv) => {
+  app.on("second-instance", (_event, argv) => {
     if (win) {
-      if (win.isMinimized())
-        win.restore()
-      win.focus()
+      if (win.isMinimized()) win.restore();
+      win.focus();
       // 处理通过命令行传入的文件路径
-      sendLaunchFileIfExists(argv)
+      sendLaunchFileIfExists(argv);
     }
-  })
+  });
 }
 // macOS 专用：Finder 打开文件时触发
 // 处理应用已运行时双击文件打开的情况
-app.on('open-file', (event, filePath) => {
-  event.preventDefault()
-  sendFileToRenderer(filePath)
-})
+app.on("open-file", (event, filePath) => {
+  event.preventDefault();
+  sendFileToRenderer(filePath);
+});
 // 处理应用即将退出事件（包括右键 Dock 图标的退出）
-app.on('before-quit', (event) => {
-  if (process.platform === 'darwin' && !getIsQuitting()) {
-    event.preventDefault()
-    close(win)
+app.on("before-quit", (event) => {
+  if (process.platform === "darwin" && !getIsQuitting()) {
+    event.preventDefault();
+    close(win);
   }
-})
+});
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit()
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
+    app.quit();
   }
-})
+});
 
 // macOS 上处理应用激活事件
-app.on('activate', () => {
+app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow()
+    createWindow();
   } else {
     // 如果窗口存在但被隐藏，则显示它
     if (win && !win.isVisible()) {
-      win.show()
+      win.show();
     }
     // 将窗口置于前台
     if (win) {
-      win.focus()
+      win.focus();
     }
   }
-})
+});

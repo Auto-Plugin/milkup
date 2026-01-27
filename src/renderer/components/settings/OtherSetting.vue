@@ -1,33 +1,28 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { Input } from '@/renderer/components/ui/input'
-import useOtherConfig from '@/renderer/hooks/useOtherConfig'
+import { computed, ref } from "vue";
+import { Input } from "@/renderer/components/ui/input";
+import useOtherConfig from "@/renderer/hooks/useOtherConfig";
 
-const {
-  currentEditorPadding,
-  setEditorPadding,
-} = useOtherConfig()
+const { currentEditorPadding, setEditorPadding } = useOtherConfig();
 
-const paddingSettingsExpanded = ref(false)
+const paddingSettingsExpanded = ref(false);
 
 // 从完整值中提取数字部分用于显示（如 "20px" -> "20"）
 const displayPaddingValue = computed(() => {
-  const value = currentEditorPadding.value || ''
+  const value = currentEditorPadding.value || "";
   // 提取数字部分（包括小数点）
-  const match = value.match(/^(\d+\.?\d*)/)
-  return match ? match[1] : ''
-})
+  const match = value.match(/^(\d+\.?\d*)/);
+  return match ? match[1] : "";
+});
 
 function togglePaddingSettings() {
-  paddingSettingsExpanded.value = !paddingSettingsExpanded.value
+  paddingSettingsExpanded.value = !paddingSettingsExpanded.value;
 }
 
 function handlePaddingChange(value: string) {
-  console.log(value)
-
   // 如果提取到数字，自动添加 "px" 单位
 
-  setEditorPadding(`${value}px`)
+  setEditorPadding(`${value}px`);
 }
 </script>
 
@@ -40,9 +35,7 @@ function handlePaddingChange(value: string) {
           <h2 class="section-title">
             <span class="title-text">编辑器其他外观设置</span>
           </h2>
-          <p class="section-desc">
-            配置编辑器其他外观设置
-          </p>
+          <p class="section-desc">配置编辑器其他外观设置</p>
         </div>
         <span class="iconfont icon-arrow-right" :class="{ active: paddingSettingsExpanded }"></span>
       </div>
@@ -135,7 +128,9 @@ function handlePaddingChange(value: string) {
     .section-content {
       max-height: 0;
       overflow: hidden;
-      transition: max-height 0.3s ease, opacity 0.3s ease;
+      transition:
+        max-height 0.3s ease,
+        opacity 0.3s ease;
       opacity: 0;
 
       &.expanded {

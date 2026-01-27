@@ -1,36 +1,36 @@
-import type { MilkdownPlugin } from '@milkdown/kit/ctx'
-import type { MarkdownNode } from '@milkdown/transformer'
-import { InputRule } from '@milkdown/kit/prose/inputrules'
-import { $inputRule, $node, $remark } from '@milkdown/kit/utils'
-import directive from 'remark-directive'
-import container from 'remark-flexible-containers'
+import type { MilkdownPlugin } from "@milkdown/kit/ctx";
+import type { MarkdownNode } from "@milkdown/transformer";
+import { InputRule } from "@milkdown/kit/prose/inputrules";
+import { $inputRule, $node, $remark } from "@milkdown/kit/utils";
+import directive from "remark-directive";
+import container from "remark-flexible-containers";
 
 // TODO 样式统一
-import './style/constainer.css'
+import "./style/constainer.css";
 
 // TODO details 容器自定义 dom 结构
 // TODO 大小写问题
 
-export const remarkFlexibleContainers = $remark('remarkBlockContainers', () => container)
-export const remarkDirective = $remark('remarkDirective', () => directive)
+export const remarkFlexibleContainers = $remark("remarkBlockContainers", () => container);
+export const remarkDirective = $remark("remarkDirective", () => directive);
 
-declare module 'unist' {
+declare module "unist" {
   interface Data {
-    hProperties?: Record<string, any>
-    directiveLabel?: string
+    hProperties?: Record<string, any>;
+    directiveLabel?: string;
   }
 }
 
 // vuepress 风格语法支持
-export const remarkContainerNode = $node('containerDirective', _ => ({
-  content: 'containerTitle containerContent',
-  group: 'block',
+export const remarkContainerNode = $node("containerDirective", (_) => ({
+  content: "containerTitle containerContent",
+  group: "block",
   attrs: {
     type: {
-      default: 'default',
+      default: "default",
     },
     title: {
-      default: '',
+      default: "",
     },
     classList: {
       default: [],
@@ -41,7 +41,7 @@ export const remarkContainerNode = $node('containerDirective', _ => ({
   },
   parseDOM: [
     {
-      tag: 'div.milkdown-container',
+      tag: "div.milkdown-container",
       getAttrs: (node: HTMLElement) => {
         return {
           type: node.dataset.type,
@@ -49,47 +49,47 @@ export const remarkContainerNode = $node('containerDirective', _ => ({
           classList: node.classList,
           attributes: node.getAttributeNames().reduce(
             (acc, name) => {
-              if (['data-type', 'data-title', 'class'].includes(name)) {
-                return acc
+              if (["data-type", "data-title", "class"].includes(name)) {
+                return acc;
               }
-              acc[name] = node.getAttribute(name)
-              return acc
+              acc[name] = node.getAttribute(name);
+              return acc;
             },
-            {} as Record<string, string | null>,
+            {} as Record<string, string | null>
           ),
-        }
+        };
       },
     },
   ],
   toDOM: (node) => {
     return [
-      'div',
+      "div",
       {
-        'data-type': node.attrs.type,
-        'data-title': node.attrs.title,
-        'class': ['milkdown-container', ...node.attrs.classList].join(' '),
+        "data-type": node.attrs.type,
+        "data-title": node.attrs.title,
+        class: ["milkdown-container", ...node.attrs.classList].join(" "),
         // TODO 安全问题（这里可以设置各种属性）
         ...node.attrs.attributes,
       },
       0,
-    ]
+    ];
   },
   parseMarkdown: {
     match: (node) => {
-      return node.type === 'container' || node.type === 'containerDirective'
+      return node.type === "container" || node.type === "containerDirective";
     },
     runner: (state, node, proseType) => {
-      const titleNode = createTitleNode(node)
-      const contentNode = createContentNode(node)
-      node.children = [titleNode, contentNode]
+      const titleNode = createTitleNode(node);
+      const contentNode = createContentNode(node);
+      node.children = [titleNode, contentNode];
 
       // 先解析出容器类型暂存，防止解析类名时把 class 属性删除导致无法解析
-      const containerType = parseContainerType(node)
-      const classList = parseClassList(node)
-      if (node.type === 'containerDirective') {
+      const containerType = parseContainerType(node);
+      const classList = parseClassList(node);
+      if (node.type === "containerDirective") {
         // 兼容 remark-directive，将容器类型添加到容器class中.
         // remark-flexible-containers 已添加了容器类型，所以这里不再添加
-        classList.push(containerType)
+        classList.push(containerType);
       }
       state.openNode(proseType, {
         type: containerType,
@@ -100,92 +100,91 @@ export const remarkContainerNode = $node('containerDirective', _ => ({
           ...(node.attributes as Record<string, unknown>),
           ...node.data?.hProperties,
         },
-      })
-      state.next(node.children)
-      state.closeNode()
+      });
+      state.next(node.children);
+      state.closeNode();
     },
   },
   toMarkdown: {
     match: (node) => {
-      return node.type.name === 'container' || node.type.name === 'containerDirective'
+      return node.type.name === "container" || node.type.name === "containerDirective";
     },
     runner: (state, node) => {
-      // console.log('toMarkdown', state, node)
-      state.openNode('containerDirective', undefined, {
+      state.openNode("containerDirective", undefined, {
         name: `${node.attrs.type}[${node.attrs.title}]`,
         attributes: node.attrs.attributes,
-      })
-      state.next(node.content)
-      state.closeNode()
+      });
+      state.next(node.content);
+      state.closeNode();
     },
   },
-}))
+}));
 
-export const remarkContainerTitleNode = $node('containerTitle', __ => ({
-  content: 'inline*',
+export const remarkContainerTitleNode = $node("containerTitle", (__) => ({
+  content: "inline*",
   attrs: {
     title: {
-      default: '',
+      default: "",
     },
   },
-  parseDOM: [{ tag: 'div.milkdown-container-title' }],
-  toDOM: node => [
-    'div',
-    { 'class': 'milkdown-container-title', 'data-title': node.attrs.title },
+  parseDOM: [{ tag: "div.milkdown-container-title" }],
+  toDOM: (node) => [
+    "div",
+    { class: "milkdown-container-title", "data-title": node.attrs.title },
     0,
   ],
   parseMarkdown: {
     match: (node) => {
-      return node.type === 'containerTitle'
+      return node.type === "containerTitle";
     },
     runner: (state, node, proseType) => {
       state.openNode(proseType, {
         title: (node.attrs as { title: string }).title,
-      })
-      state.next(node.children)
-      state.closeNode()
+      });
+      state.next(node.children);
+      state.closeNode();
     },
   },
   toMarkdown: {
     match: (node) => {
-      return node.type.name === 'containerTitle'
+      return node.type.name === "containerTitle";
     },
     runner: (_, __) => {
       // console.log('标题 to Markdown 被调用')
     },
   },
-}))
+}));
 
-export const remarkContainerContentNode = $node('containerContent', _ => ({
-  content: 'block+',
-  parseDOM: [{ tag: 'div.milkdown-container-content' }],
-  toDOM: () => ['div', { class: 'milkdown-container-content' }, 0],
+export const remarkContainerContentNode = $node("containerContent", (_) => ({
+  content: "block+",
+  parseDOM: [{ tag: "div.milkdown-container-content" }],
+  toDOM: () => ["div", { class: "milkdown-container-content" }, 0],
   parseMarkdown: {
     match: (node) => {
-      return node.type === 'containerContent'
+      return node.type === "containerContent";
     },
     runner: (state, node, proseType) => {
-      state.openNode(proseType)
-      state.next(node.children)
-      state.closeNode()
+      state.openNode(proseType);
+      state.next(node.children);
+      state.closeNode();
     },
   },
   toMarkdown: {
     match: (node) => {
-      return node.type.name === 'containerContent'
+      return node.type.name === "containerContent";
     },
     runner: (state, node) => {
-      state.next(node.content)
+      state.next(node.content);
     },
   },
-}))
+}));
 
 export const remarkContainerInputRule = $inputRule((ctx) => {
-  const containerMatch: RegExp = /^:::([\w-]*)(?:\s*\[([^\]]*)\])?(?:\s*\{([^}]*)\})?\r?\n$/m
+  const containerMatch: RegExp = /^:::([\w-]*)(?:\s*\[([^\]]*)\])?(?:\s*\{([^}]*)\})?\r?\n$/m;
   return new InputRule(containerMatch, (state, match, start, end) => {
-    const { tr } = state
-    const attrs = parseInputRuleInfo(match)
-    attrs.classList.push(attrs.type)
+    const { tr } = state;
+    const attrs = parseInputRuleInfo(match);
+    attrs.classList.push(attrs.type);
     tr.replaceWith(
       start,
       end,
@@ -195,60 +194,60 @@ export const remarkContainerInputRule = $inputRule((ctx) => {
           remarkContainerTitleNode
             .type(ctx)
             .create({ title: attrs.title }, [state.schema.text(attrs.title)]),
-          remarkContainerContentNode.type(ctx).create({}, [state.schema.node('paragraph')]),
-        ]),
-    )
-    return tr
-  })
-})
+          remarkContainerContentNode.type(ctx).create({}, [state.schema.node("paragraph")]),
+        ])
+    );
+    return tr;
+  });
+});
 
 function parseInputRuleInfo(match: RegExpMatchArray) {
-  const [_, type, title, attributes] = match
+  const [_, type, title, attributes] = match;
   const info: {
-    type: string
-    title: string
-    classList: string[]
-    attributes: Record<string, string>
+    type: string;
+    title: string;
+    classList: string[];
+    attributes: Record<string, string>;
   } = {
     type,
     title,
     classList: [],
     attributes: {},
-  }
+  };
   if (!type || type.trim().length === 0) {
-    info.type = 'default'
+    info.type = "default";
   }
   if (!title || title.trim().length === 0) {
-    info.title = 'default'
+    info.title = "default";
   }
   if (attributes) {
-    attributes.split(' ').forEach((attribute) => {
+    attributes.split(" ").forEach((attribute) => {
       if (attribute && attribute.trim().length > 0) {
-        if (attribute.startsWith('#')) {
-          info.attributes.id = attribute.substring(1)
-        } else if (attribute.startsWith('.')) {
-          info.classList.push(attribute.substring(1))
-        } else if (attribute.includes('=')) {
-          const key = attribute.split('=')[0]
-          let value = attribute.split('=')[1]
+        if (attribute.startsWith("#")) {
+          info.attributes.id = attribute.substring(1);
+        } else if (attribute.startsWith(".")) {
+          info.classList.push(attribute.substring(1));
+        } else if (attribute.includes("=")) {
+          const key = attribute.split("=")[0];
+          let value = attribute.split("=")[1];
           if (value.startsWith('"') && value.endsWith('"')) {
-            value = value.substring(1, value.length - 1)
+            value = value.substring(1, value.length - 1);
           }
-          if (value.startsWith('\'') && value.endsWith('\'')) {
-            value = value.substring(1, value.length - 1)
+          if (value.startsWith("'") && value.endsWith("'")) {
+            value = value.substring(1, value.length - 1);
           }
-          if (key === 'class') {
-            info.classList.push(value)
+          if (key === "class") {
+            info.classList.push(value);
           } else {
-            info.attributes[key] = value
+            info.attributes[key] = value;
           }
         } else {
-          info.attributes[attribute] = attribute
+          info.attributes[attribute] = attribute;
         }
       }
-    })
+    });
   }
-  return info
+  return info;
 }
 
 /**
@@ -258,26 +257,26 @@ function parseInputRuleInfo(match: RegExpMatchArray) {
 function createTitleNode(node: MarkdownNode): MarkdownNode {
   const titleNode = node.children?.find((child) => {
     return (
-      child.data?.directiveLabel
-      || child.data?.hProperties?.className?.includes('remark-container-title')
-    )
-  })
-  let children = titleNode?.children
+      child.data?.directiveLabel ||
+      child.data?.hProperties?.className?.includes("remark-container-title")
+    );
+  });
+  let children = titleNode?.children;
   if (!children) {
     children = [
       {
-        type: 'text',
+        type: "text",
         value: parseContainerType(node),
       },
-    ]
+    ];
   }
   return {
-    type: 'containerTitle',
+    type: "containerTitle",
     children,
     attrs: {
       title: titleNode?.children?.[0].value ?? parseContainerType(node),
     },
-  }
+  };
 }
 
 /**
@@ -286,14 +285,14 @@ function createTitleNode(node: MarkdownNode): MarkdownNode {
  */
 function createContentNode(node: MarkdownNode): MarkdownNode {
   return {
-    type: 'containerContent',
+    type: "containerContent",
     children: node.children?.filter((child) => {
       return (
-        !child.data?.directiveLabel
-        && !child.data?.hProperties?.className?.includes('remark-container-title')
-      )
+        !child.data?.directiveLabel &&
+        !child.data?.hProperties?.className?.includes("remark-container-title")
+      );
     }),
-  }
+  };
 }
 
 /**
@@ -303,14 +302,14 @@ function createContentNode(node: MarkdownNode): MarkdownNode {
 function parseContainerType(node: MarkdownNode): string {
   if (node.name) {
     // 兼容 remark-directive
-    return node.name as string
+    return node.name as string;
   }
   if (node.data?.hProperties?.className?.length > 1) {
     // 兼容 remark-flexible-containers
-    const type = node.data?.hProperties?.className[1] as string
-    return type.trim().length > 0 ? type : 'default'
+    const type = node.data?.hProperties?.className[1] as string;
+    return type.trim().length > 0 ? type : "default";
   }
-  return 'default'
+  return "default";
 }
 
 /**
@@ -318,21 +317,21 @@ function parseContainerType(node: MarkdownNode): string {
  * @param node
  */
 function parseClassList(node: MarkdownNode): string[] {
-  const classList = []
+  const classList = [];
   if (node.data?.hProperties?.className) {
-    classList.push(...node.data?.hProperties.className)
-    delete node.data?.hProperties.className
+    classList.push(...node.data?.hProperties.className);
+    delete node.data?.hProperties.className;
   }
   if (node.data?.hProperties?.class) {
-    classList.push(node.data?.hProperties.class)
-    delete node.data?.hProperties.class
+    classList.push(node.data?.hProperties.class);
+    delete node.data?.hProperties.class;
   }
-  const attributes = node.attributes as Record<string, string>
+  const attributes = node.attributes as Record<string, string>;
   if (attributes?.class) {
-    classList.push(attributes.class)
-    delete attributes.class
+    classList.push(attributes.class);
+    delete attributes.class;
   }
-  return classList
+  return classList;
 }
 
 export default [
@@ -342,4 +341,4 @@ export default [
   remarkContainerTitleNode,
   remarkContainerContentNode,
   remarkContainerInputRule,
-] as MilkdownPlugin[]
+] as MilkdownPlugin[];

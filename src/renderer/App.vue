@@ -45,82 +45,58 @@ const {
 } = useSaveConfirmDialog();
 const {
   isDialogVisible: isUpdateDialogVisible,
+  updateStatus,
+  downloadProgress,
   handleIgnore,
   handleLater,
   handleUpdate,
+  handleInstall: handleUpdateInstall, // Rename for clarity and wrapping
+  handleMinimize,
+  handleRestore,
+  handleCancel: handleUpdateCancel,
   showDialog: showUpdateDialog,
 } = useUpdateDialog();
 
-// 初始化配置
-useSpellCheck();
-initTheme();
-initFont();
-initOtherConfig();
+// 监听主进程的关闭确认事件
+window.electronAPI.on("close:confirm", async () => {
+  await handleSafeClose("close");
+});
 
-import { onMounted, onUnmounted } from "vue";
+const onUpdateAvailable = (payload: any) => {
+  const info = payload || {};
 
-const handleUpdateAvailable = (info: any) => {
   localStorage.setItem("updateInfo", JSON.stringify(info));
   const ignoredVersion = localStorage.getItem("ignoredVersion");
+
   if (ignoredVersion !== info.version) {
     showUpdateDialog();
   }
 };
 
+// 监听主进程的更新可用事件 (Auto Update)
+window.electronAPI.on("update:available", onUpdateAvailable);
+
+// 监听手动检查的更新可用事件 (Manual Check from About)
+import { onMounted, onUnmounted } from "vue";
 onMounted(() => {
-  emitter.on("update:available", handleUpdateAvailable);
+  initTheme();
+  initFont();
+  initOtherConfig();
+  emitter.on("update:available", onUpdateAvailable);
 });
-
 onUnmounted(() => {
-  emitter.off("update:available", handleUpdateAvailable);
+  emitter.off("update:available", onUpdateAvailable);
 });
 
-// 监听关闭确认事件
-emitter.on("tab:close-confirm", async ({ tabId, tabName, isLastTab }) => {
-  const result = await showDialog(tabName);
-  if (result === "cancel") {
-    return;
-  }
-
-  if (result === "save") {
-    // 尝试保存
-    // 注意：saveCurrentTab保存的是currentTab，这里需要确保保存的是目标tab
-    // 但useTab中saveCurrentTab实现是保存activeTabId对应的tab
-    // 如果关闭的不是当前tab，这里会有问题。
-    // 但是UI上点击关闭通常是当前tab或者tab栏上的。
-    // 如果点击非当前tab关闭，activeTabId可能还没切过去？
-    // useTab.closeWithConfirm没有切换activeTabId。
-    // 简化处理：如果result是save，且不是currentTab，先切换过去？
-    // 或者修改useTab增加saveTab(id)方法？
-    // 暂时假设用户总是关闭当前Tab或者我们可以调用saveCurrentTab如果id匹配
-    if (currentTab.value?.id === tabId) {
-      const saved = await saveCurrentTab();
-      if (!saved) return; // 保存失败中止
-    } else {
-      // 暂时不支持保存非激活Tab（或者需要扩展useTab）
-      // 考虑到操作习惯，这通常发生在当前Tab
-    }
-  }
-
-  // 丢弃或保存成功后，执行关闭
-  if (isLastTab) {
-    window.electronAPI.closeDiscard();
-  } else {
-    close(tabId);
-  }
-});
-
-// 监听外部文件变动确认事件
-emitter.on("file:changed-confirm", async ({ fileName, resolver }) => {
-  const result = await showFileChangedDialog(fileName);
-  resolver(result === "overwrite" ? "overwrite" : "cancel");
-});
-
-// 监听主进程的关闭确认事件
-window.electronAPI.on("close:confirm", async () => {
+// Reuse safe close logic
+async function handleSafeClose(action: "close" | "update") {
   const unsavedTabs = getUnsavedTabs();
   if (unsavedTabs.length === 0) {
-    window.electronAPI.closeDiscard();
+    if (action === "update") {
+      await window.electronAPI.quitAndInstall();
+    } else {
+      window.electronAPI.closeDiscard();
+    }
     return;
   }
 
@@ -139,16 +115,25 @@ window.electronAPI.on("close:confirm", async () => {
     if (result === "save") {
       const saved = await saveCurrentTab();
       if (!saved) {
-        // 保存失败，中止关闭（或者向用户报错? 这里选择中止以策安全）
+        // 保存失败，中止关闭
         return;
       }
     }
     // 如果是 'discard'，则不做任何操作，继续下一个
   }
 
-  // 所有此轮检查都通过（保存或丢弃），强制关闭
-  window.electronAPI.closeDiscard();
-});
+  // 所有此轮检查都通过（保存或丢弃），强制关闭/更新
+  if (action === "update") {
+    window.electronAPI.quitAndInstall();
+  } else {
+    window.electronAPI.closeDiscard();
+  }
+}
+
+// Overwrite handleUpdateInstall to check for unsaved changes
+const handleInstall = async () => {
+  await handleSafeClose("update");
+};
 </script>
 
 <template>
@@ -176,7 +161,13 @@ window.electronAPI.on("close:confirm", async () => {
       </div>
     </div>
   </div>
-  <StatusBar :content="markdown" />
+  <StatusBar
+    :content="markdown"
+    :update-status="updateStatus"
+    :download-progress="downloadProgress"
+    :is-update-dialog-visible="isUpdateDialogVisible"
+    @restore-update="handleRestore"
+  />
   <SaveConfirmDialog
     :visible="isDialogVisible"
     :type="dialogType"
@@ -189,9 +180,13 @@ window.electronAPI.on("close:confirm", async () => {
   />
   <UpdateConfirmDialog
     :visible="isUpdateDialogVisible"
+    :status="updateStatus"
+    :progress="downloadProgress"
     @get="handleUpdate"
+    @install="handleInstall"
     @ignore="handleIgnore"
-    @cancel="handleLater"
+    @cancel="handleUpdateCancel"
+    @minimize="handleMinimize"
   />
 </template>
 

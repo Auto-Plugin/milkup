@@ -1,44 +1,27 @@
-import autotoast from "autotoast.js";
-import { version } from "../../../../package.json";
-// 通过 github release 检测更新
-const api = "https://api.github.com/repos/auto-plugin/milkup/releases/latest";
-// 使用 fetch
-export async function checkUpdate(): Promise<{
-  version: string;
-  url: string;
-  notes: string;
-} | null> {
-  try {
-    const response = await fetch(api, { cache: "no-store" });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const data = await response.json();
-    // 本地 version 是不带前缀的纯数字，如 0.1.0 而 github release 可能带 v 前缀，如 v0.1.0 或 Beta-v0.1.0,所以去掉所有非数字和点的字符
-    const latestVersion = data.tag_name.replace(/^\D*/, "");
-    const currentVersion = version;
-    if (isNewerVersion(latestVersion, currentVersion)) {
-      const releaseNotes = data.body || "";
-      const downloadUrl = data.html_url || "";
-      return { version: data.tag_name, url: downloadUrl, notes: releaseNotes };
-    }
-    return null;
-  } catch (error) {
-    console.error("Error fetching update info:", error);
-    autotoast.show("检查更新失败", "error");
-    return null;
+// 使用 electron-updater 的 IPC 接口
+export async function checkUpdate() {
+  const result = await window.electronAPI.checkForUpdates();
+  // result.updateInfo 包含版本信息
+  if (result && result.updateInfo) {
+    return {
+      version: result.updateInfo.version,
+      url: result.updateInfo.url, // 自定义下载逻辑需要 URL（或者主进程自己管理，但这里回传也没事）
+      notes: result.updateInfo.notes || "",
+      releasePageUrl: result.updateInfo.releasePageUrl || "",
+      date: result.updateInfo.date,
+    };
   }
+  return null;
 }
 
-function isNewerVersion(latest: string, current: string): boolean {
-  // 本地 version 是不带前缀的纯数字，如 0.1.0 而 github release 可能带 v 前缀，如 v0.1.0 或 Beta-v0.1.0
-  const latestParts = latest.split(".").map(Number);
-  const currentParts = current.split(".").map(Number);
-  for (let i = 0; i < Math.max(latestParts.length, currentParts.length); i++) {
-    const latestPart = latestParts[i] || 0;
-    const currentPart = currentParts[i] || 0;
-    if (latestPart > currentPart) return true;
-    if (latestPart < currentPart) return false;
-  }
-  return false;
+export async function downloadUpdate() {
+  return await window.electronAPI.downloadUpdate();
+}
+
+export async function cancelUpdate() {
+  return await window.electronAPI.cancelUpdate();
+}
+
+export async function quitAndInstall() {
+  return await window.electronAPI.quitAndInstall();
 }
