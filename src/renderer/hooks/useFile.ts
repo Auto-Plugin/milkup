@@ -301,6 +301,9 @@ export default function useFile() {
     })
   })
 
+  // ✅ 通知主进程渲染进程已就绪，可以接收文件了
+  window.electronAPI?.rendererReady?.()
+
   // 注册菜单事件
   window.electronAPI.on?.('menu-open', onOpen)
   window.electronAPI.on?.('menu-save', onSave)

@@ -41,5 +41,6 @@ interface Window {
     themeEditorWindowControl: (action: 'minimize' | 'maximize' | 'close') => void
     saveCustomTheme: (theme: any) => void
     platform: NodeJS.Platform
+    rendererReady: () => void
   }
 }

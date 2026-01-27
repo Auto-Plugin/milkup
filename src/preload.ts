@@ -56,4 +56,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   themeEditorWindowControl: (action: 'minimize' | 'maximize' | 'close') => ipcRenderer.send('theme-editor-window-control', action),
   saveCustomTheme: (theme: any) => ipcRenderer.send('save-custom-theme', theme),
   platform: process.platform,
+  rendererReady: () => ipcRenderer.send('renderer-ready'),
 })

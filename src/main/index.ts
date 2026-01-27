@@ -1,11 +1,13 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import { app, BrowserWindow, globalShortcut, protocol } from 'electron'
+import { app, BrowserWindow, globalShortcut, ipcMain, protocol } from 'electron'
 import { close, getIsQuitting, registerGlobalIpcHandlers, registerIpcHandleHandlers, registerIpcOnHandlers } from './ipcBridge'
 import createMenu from './menu'
 
 let win: BrowserWindow
 let themeEditorWindow: BrowserWindow | null = null
+let isRendererReady = false
+let pendingStartupFile: string | null = null
 
 async function createWindow() {
   win = new BrowserWindow({
@@ -117,25 +119,10 @@ function sendFileToRenderer(filePath: string) {
     }
   }
 
-  // 等待窗口准备就绪
-  if (win && win.webContents) {
-    if (win.webContents.isLoading()) {
-      win.webContents.once('did-finish-load', () => {
-        setTimeout(sendFile, 200)
-      })
-    } else {
-      setTimeout(sendFile, 200)
-    }
+  if (isRendererReady) {
+    sendFile()
   } else {
-    // 窗口还未创建，等待窗口创建
-    const waitForWindow = () => {
-      if (win && win.webContents) {
-        setTimeout(sendFile, 200)
-      } else {
-        setTimeout(waitForWindow, 100)
-      }
-    }
-    waitForWindow()
+    pendingStartupFile = filePath
   }
 }
 
@@ -198,6 +185,15 @@ app.whenReady().then(async () => {
     } catch (error) {
       console.error('[milkup protocol] 处理请求失败:', error)
       callback({ error: -2 })
+    }
+  })
+
+  // 监听渲染进程就绪事件 (Moved up to avoid race condition)
+  ipcMain.on('renderer-ready', () => {
+    isRendererReady = true
+    if (pendingStartupFile) {
+      sendFileToRenderer(pendingStartupFile)
+      pendingStartupFile = null
     }
   })
 
