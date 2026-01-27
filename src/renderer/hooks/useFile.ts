@@ -1,8 +1,9 @@
 import type { Tab } from '@/types/tab'
 // useFile.ts
 import { nextTick, onUnmounted } from 'vue'
+import { reverseProcessImagePaths } from '@/plugins/imagePathPlugin'
 import emitter from '@/renderer/events'
-import { readAndProcessFile } from '@/renderer/services/fileService'
+import { readAndProcessFile, repairMarkdown } from '@/renderer/services/fileService'
 import useContent from './useContent'
 import useTab from './useTab'
 import useTitle from './useTitle'
@@ -35,20 +36,23 @@ async function onOpen(result?: { filePath: string, content: string } | null) {
       const tab = tabs.value[0]
       tab.filePath = filePath.value
       tab.name = getFileName(filePath.value)
-      updateCurrentTabContent(result.content, false)
+      const repairedContent = repairMarkdown(result.content)
+      updateCurrentTabContent(repairedContent, false)
       tab.isModified = false
       await switchToTab(tab.id)
       markdown.value = tab.content
-      originalContent.value = result.content
+      originalContent.value = repairedContent
       tab.isModified = false
+      tab.normalizationGrace = true
       tab.readOnly = await window.electronAPI.getIsReadOnly(result.filePath)
     } else {
       // 创建新tab
-      const tab = await createTabFromFile(result.filePath, result.content)
+      const repairedContent = repairMarkdown(result.content)
+      const tab = await createTabFromFile(result.filePath, repairedContent)
       tab.readOnly = await window.electronAPI.getIsReadOnly(result.filePath)
       // 更新当前内容状态
       markdown.value = tab.content
-      originalContent.value = result.content
+      originalContent.value = repairedContent
     }
 
     updateTitle()
@@ -84,7 +88,8 @@ async function onSaveAs() {
   // 先更新当前tab的内容
   updateCurrentTabContent(markdown.value)
 
-  const result = await window.electronAPI.saveFileAs(markdown.value)
+  const reversedContent = reverseProcessImagePaths(markdown.value, filePath.value)
+  const result = await window.electronAPI.saveFileAs(reversedContent)
   if (result) {
     // 更新当前tab的文件路径
     if (currentTab.value) {
@@ -287,13 +292,14 @@ export default function useFile() {
   // 注册启动时文件打开监听
   window.electronAPI?.onOpenFileAtLaunch?.(async ({ filePath: launchFilePath, content }) => {
     // 创建新tab
-    const tab = await createTabFromFile(launchFilePath, content)
+    const repairedContent = repairMarkdown(content)
+    const tab = await createTabFromFile(launchFilePath, repairedContent)
     tab.readOnly = await window.electronAPI.getIsReadOnly(launchFilePath)
 
     // 更新当前内容状态
     markdown.value = tab.content
     filePath.value = launchFilePath
-    originalContent.value = content
+    originalContent.value = repairedContent
 
     updateTitle()
     nextTick(() => {

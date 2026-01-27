@@ -22,6 +22,8 @@ export function normalizeMarkdown(text: string): string {
     .replace(/\r\n/g, '\n')
     // 移除非断行空格
     .replace(/\u00A0/g, ' ')
+    // 压缩连续换行符 (超过3个换行符压缩为2个，即最多保留一个空行)
+    .replace(/\n{3,}/g, '\n\n')
 }
 
 export function ensureTrailingNewline(text: string): string {

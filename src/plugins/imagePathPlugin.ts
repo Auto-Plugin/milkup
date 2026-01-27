@@ -48,13 +48,14 @@ export function processImagePaths(markdownContent: string, markdownFilePath: str
   })
 
   // 2. 处理 HTML img 标签: <img src="path" />
-  const htmlImageRegex = /<img\s[^>]*?src=["']([^"']+)["'][^>]*>/gi
-  processedContent = processedContent.replace(htmlImageRegex, (match, imagePath) => {
+  // 修复：保留原始引号风格
+  const htmlImageRegex = /<img\s([^>]*?)src=(["'])([^"']+)\2([^>]*)>/gi
+  processedContent = processedContent.replace(htmlImageRegex, (match, before, quote, imagePath, after) => {
     const convertedPath = convertToProtocolUrl(imagePath, base64Path)
     if (!convertedPath)
       return match
-    // 替换 src 属性值
-    return match.replace(/src=["'][^"']+["']/, `src="${convertedPath}"`)
+    // 保持原有的引号风格
+    return `<img ${before}src=${quote}${convertedPath}${quote}${after}>`
   })
 
   return processedContent
@@ -108,10 +109,10 @@ export function reverseProcessImagePaths(content: string, markdownFilePath: stri
   })
 
   // 2. 恢复 HTML img 标签中的路径
-  const htmlProtocolRegex = new RegExp(`<img\\s+[^>]*?src="milkup:///${base64Path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/([^"]+)"[^>]*>`, 'gi')
-  restoredContent = restoredContent.replace(htmlProtocolRegex, (match, relativePath) => {
-    // 替换 src 属性值
-    return match.replace(/src="milkup:\/\/\/[^"]+"/, `src="${relativePath}"`)
+  // 修复：支持恢复任意引号风格
+  const htmlProtocolRegex = new RegExp(`<img\\s([^>]*?)src=(["'])milkup:///${base64Path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/([^"']+)\\2([^>]*?)>`, 'gi')
+  restoredContent = restoredContent.replace(htmlProtocolRegex, (_, before, quote, relativePath, after) => {
+    return `<img ${before}src=${quote}${relativePath}${quote}${after}>`
   })
 
   return restoredContent

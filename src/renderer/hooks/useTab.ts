@@ -3,7 +3,7 @@ import type { InertiaScroll } from '@/renderer/utils/inertiaScroll'
 import type { Tab } from '@/types/tab'
 import autotoast from 'autotoast.js'
 import { computed, nextTick, ref, watch } from 'vue'
-import { setCurrentMarkdownFilePath } from '@/plugins/imagePathPlugin'
+import { reverseProcessImagePaths, setCurrentMarkdownFilePath } from '@/plugins/imagePathPlugin'
 import emitter from '@/renderer/events'
 import { createTabDataFromFile, readAndProcessFile } from '@/renderer/services/fileService'
 import { createInertiaScroll } from '@/renderer/utils/inertiaScroll'
@@ -107,7 +107,32 @@ function updateCurrentTabContent(content: string, isModified?: boolean) {
     if (isModified !== undefined) {
       currentTab.isModified = isModified
     } else {
-      currentTab.isModified = content !== currentTab.originalContent
+      // 比较时需先将内容中的图片路径还原为相对路径
+      const reversedContent = reverseProcessImagePaths(content, currentTab.filePath)
+
+      // 比较时忽略末尾的换行符差异
+      const normalizeForCompare = (s: string) => s.replace(/\r\n/g, '\n').trimEnd()
+
+      // 如果处于归一化宽限期
+      if (currentTab.normalizationGrace) {
+        // 先检查是否真的有变化
+        const isActuallyModified = normalizeForCompare(reversedContent) !== normalizeForCompare(currentTab.originalContent)
+
+        if (isActuallyModified) {
+          // 只有在内容真的变了（归一化导致）时，才消耗宽限期并更新原始内容
+          currentTab.originalContent = content
+          currentTab.isModified = false
+          currentTab.normalizationGrace = false
+          return
+        } else {
+          // 内容没变（比如刚加载时），保持宽限期，等待可能的归一化更新
+          // 此时 isModified 应该是 false
+          currentTab.isModified = false
+          return
+        }
+      }
+
+      currentTab.isModified = normalizeForCompare(reversedContent) !== normalizeForCompare(currentTab.originalContent)
     }
   }
 }
@@ -120,6 +145,7 @@ function updateCurrentTabFile(filePath: string, content: string, name?: string) 
     currentTab.content = content
     currentTab.originalContent = content
     currentTab.isModified = false
+    currentTab.normalizationGrace = true
     if (name) {
       currentTab.name = name
     } else {
@@ -143,12 +169,13 @@ async function saveCurrentTab(): Promise<boolean> {
     return false
 
   try {
-    // content 现在已经是原始格式（相对路径），直接保存即可
-    const saved = await window.electronAPI.saveFile(currentTab.filePath, currentTab.content)
+    // content 现在是处理过图片路径的内容，保存前需要还原
+    const reversedContent = reverseProcessImagePaths(currentTab.content, currentTab.filePath)
+    const saved = await window.electronAPI.saveFile(currentTab.filePath, reversedContent)
     if (saved) {
       currentTab.filePath = saved
       currentTab.name = getFileName(saved) // 更新标签名称
-      currentTab.originalContent = currentTab.content
+      currentTab.originalContent = reversedContent
       currentTab.isModified = false
       return true
     }
@@ -171,6 +198,7 @@ async function createTabFromFile(filePath: string, content: string): Promise<Tab
     id: randomUUID(),
     ...tabData,
     readOnly, // 覆盖默认的 readOnly 值
+    normalizationGrace: true,
   }
 
   return add(tab)

@@ -37,7 +37,7 @@ export async function readAndProcessFile(options: OpenFileOptions): Promise<File
 
     // 2. 规范化文本 (修复 BOM, CRLF, 未闭合代码块, 确保结尾换行)
     const rawContent = result.content
-    const repairedContent = ensureTrailingNewline(normalizeMarkdown(fixUnclosedCodeBlock(rawContent)))
+    const repairedContent = repairMarkdown(rawContent)
 
     // 注意：不再自动保存修复后的内容，避免修改源文件
     // 修复将在用户主动保存时应用
@@ -114,4 +114,12 @@ export async function readMultipleFiles(filePaths: string[]): Promise<FileConten
     .filter((r): r is PromiseFulfilledResult<FileContent | null> => r.status === 'fulfilled')
     .map(r => r.value)
     .filter((r): r is FileContent => r !== null)
+}
+
+/**
+ * 修复 Markdown 内容
+ * 组合了多项修复操作
+ */
+export function repairMarkdown(content: string): string {
+  return ensureTrailingNewline(normalizeMarkdown(fixUnclosedCodeBlock(content)))
 }

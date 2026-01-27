@@ -9,4 +9,5 @@ export interface Tab {
   readOnly: boolean
   milkdownCursorOffset?: number | null
   codeMirrorCursorOffset?: number | null
+  normalizationGrace?: boolean
 }

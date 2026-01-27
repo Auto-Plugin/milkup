@@ -662,9 +662,28 @@ export function isFileReadOnly(filePath: string): boolean {
   if (process.platform === 'win32') {
     try {
       const attrs = execSync(`attrib "${filePath}"`).toString()
-      if (attrs.includes('R'))
-        return true
-    } catch { }
+      // attrs 输出格式类似于: "A  R       C:\path\to\file.md"
+      // 我们需要解析属性部分，忽略文件路径部分
+
+      // 1. 获取包含文件路径的那一行 (通常只有一行，但以防万一)
+      const lines = attrs.split('\r\n').filter(line => line.trim())
+      const fileLine = lines.find(line => line.trim().endsWith(filePath)) || lines[0]
+
+      if (fileLine) {
+        // 2. 截取文件路径之前的部分作为属性区域
+        // 文件路径可能包含空格，所以不能简单 split
+        const lastIndex = fileLine.lastIndexOf(filePath)
+        if (lastIndex > -1) {
+          const attrPart = fileLine.substring(0, lastIndex)
+          // 3. 检查属性区域是否包含 'R'
+          if (attrPart.includes('R')) {
+            return true
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Check file read-only error:', e)
+    }
   }
 
   return false
