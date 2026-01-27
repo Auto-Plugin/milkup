@@ -1,53 +1,88 @@
 <script setup lang="ts">
-import { MilkdownProvider } from '@milkdown/vue'
-import emitter from '@/renderer/events'
-import useContent from '@/renderer/hooks/useContent'
-import { useContext } from '@/renderer/hooks/useContext'
-import useFont from '@/renderer/hooks/useFont'
-import useOtherConfig from '@/renderer/hooks/useOtherConfig'
-import { isShowOutline } from '@/renderer/hooks/useOutline'
-import { useSaveConfirmDialog } from '@/renderer/hooks/useSaveConfirmDialog'
-import useSourceCode from '@/renderer/hooks/useSourceCode'
-import useSpellCheck from '@/renderer/hooks/useSpellCheck'
-import useTab from '@/renderer/hooks/useTab'
-import useTheme from '@/renderer/hooks/useTheme'
-import { useUpdateDialog } from '@/renderer/hooks/useUpdateDialog'
-import SaveConfirmDialog from './components/dialogs/SaveConfirmDialog.vue'
-import UpdateConfirmDialog from './components/dialogs/UpdateConfirmDialog.vue'
-import MarkdownSourceEditor from './components/editor/MarkdownSourceEditor.vue'
-import MilkdownEditor from './components/editor/MilkdownEditor.vue'
-import StatusBar from './components/menu/StatusBar.vue'
-import TitleBar from './components/menu/TitleBar.vue'
-import Outline from './components/outline/Outline.vue'
-import { MilkupProvider } from './context'
+import { MilkdownProvider } from "@milkdown/vue";
+import emitter from "@/renderer/events";
+import useContent from "@/renderer/hooks/useContent";
+import { useContext } from "@/renderer/hooks/useContext";
+import useFont from "@/renderer/hooks/useFont";
+import useOtherConfig from "@/renderer/hooks/useOtherConfig";
+import { isShowOutline } from "@/renderer/hooks/useOutline";
+import { useSaveConfirmDialog } from "@/renderer/hooks/useSaveConfirmDialog";
+import useSourceCode from "@/renderer/hooks/useSourceCode";
+import useSpellCheck from "@/renderer/hooks/useSpellCheck";
+import useTab from "@/renderer/hooks/useTab";
+import useTheme from "@/renderer/hooks/useTheme";
+import { useUpdateDialog } from "@/renderer/hooks/useUpdateDialog";
+import SaveConfirmDialog from "./components/dialogs/SaveConfirmDialog.vue";
+import UpdateConfirmDialog from "./components/dialogs/UpdateConfirmDialog.vue";
+import MarkdownSourceEditor from "./components/editor/MarkdownSourceEditor.vue";
+import MilkdownEditor from "./components/editor/MilkdownEditor.vue";
+import StatusBar from "./components/menu/StatusBar.vue";
+import TitleBar from "./components/menu/TitleBar.vue";
+import Outline from "./components/outline/Outline.vue";
+import { MilkupProvider } from "./context";
 
 // ✅ 应用级事件协调器（仅负责事件监听和协调）
-const { editorKey } = useContext()
+const { editorKey } = useContext();
 
 // ✅ 直接使用各个hooks（而不是通过useContext转发）
-const { markdown } = useContent()
-const { init: initTheme } = useTheme()
-const { init: initFont } = useFont()
-const { init: initOtherConfig } = useOtherConfig()
-const { isShowSource } = useSourceCode()
-const { currentTab, close, saveCurrentTab, getUnsavedTabs, switchToTab } = useTab()
-const { isDialogVisible, dialogType, fileName, tabName, handleSave, handleDiscard, handleCancel, handleOverwrite, showDialog, showFileChangedDialog } = useSaveConfirmDialog()
-const { isDialogVisible: isUpdateDialogVisible, handleIgnore, handleLater, handleUpdate } = useUpdateDialog()
+const { markdown } = useContent();
+const { init: initTheme } = useTheme();
+const { init: initFont } = useFont();
+const { init: initOtherConfig } = useOtherConfig();
+const { isShowSource } = useSourceCode();
+const { currentTab, close, saveCurrentTab, getUnsavedTabs, switchToTab } = useTab();
+const {
+  isDialogVisible,
+  dialogType,
+  fileName,
+  tabName,
+  handleSave,
+  handleDiscard,
+  handleCancel,
+  handleOverwrite,
+  showDialog,
+  showFileChangedDialog,
+} = useSaveConfirmDialog();
+const {
+  isDialogVisible: isUpdateDialogVisible,
+  handleIgnore,
+  handleLater,
+  handleUpdate,
+  showDialog: showUpdateDialog,
+} = useUpdateDialog();
 
 // 初始化配置
-useSpellCheck()
-initTheme()
-initFont()
-initOtherConfig()
+useSpellCheck();
+initTheme();
+initFont();
+initOtherConfig();
+
+import { onMounted, onUnmounted } from "vue";
+
+const handleUpdateAvailable = (info: any) => {
+  localStorage.setItem("updateInfo", JSON.stringify(info));
+  const ignoredVersion = localStorage.getItem("ignoredVersion");
+  if (ignoredVersion !== info.version) {
+    showUpdateDialog();
+  }
+};
+
+onMounted(() => {
+  emitter.on("update:available", handleUpdateAvailable);
+});
+
+onUnmounted(() => {
+  emitter.off("update:available", handleUpdateAvailable);
+});
 
 // 监听关闭确认事件
-emitter.on('tab:close-confirm', async ({ tabId, tabName, isLastTab }) => {
-  const result = await showDialog(tabName)
-  if (result === 'cancel') {
-    return
+emitter.on("tab:close-confirm", async ({ tabId, tabName, isLastTab }) => {
+  const result = await showDialog(tabName);
+  if (result === "cancel") {
+    return;
   }
 
-  if (result === 'save') {
+  if (result === "save") {
     // 尝试保存
     // 注意：saveCurrentTab保存的是currentTab，这里需要确保保存的是目标tab
     // 但useTab中saveCurrentTab实现是保存activeTabId对应的tab
@@ -59,9 +94,8 @@ emitter.on('tab:close-confirm', async ({ tabId, tabName, isLastTab }) => {
     // 或者修改useTab增加saveTab(id)方法？
     // 暂时假设用户总是关闭当前Tab或者我们可以调用saveCurrentTab如果id匹配
     if (currentTab.value?.id === tabId) {
-      const saved = await saveCurrentTab()
-      if (!saved)
-        return // 保存失败中止
+      const saved = await saveCurrentTab();
+      if (!saved) return; // 保存失败中止
     } else {
       // 暂时不支持保存非激活Tab（或者需要扩展useTab）
       // 考虑到操作习惯，这通常发生在当前Tab
@@ -70,51 +104,51 @@ emitter.on('tab:close-confirm', async ({ tabId, tabName, isLastTab }) => {
 
   // 丢弃或保存成功后，执行关闭
   if (isLastTab) {
-    window.electronAPI.closeDiscard()
+    window.electronAPI.closeDiscard();
   } else {
-    close(tabId)
+    close(tabId);
   }
-})
+});
 
 // 监听外部文件变动确认事件
-emitter.on('file:changed-confirm', async ({ fileName, resolver }) => {
-  const result = await showFileChangedDialog(fileName)
-  resolver(result === 'overwrite' ? 'overwrite' : 'cancel')
-})
+emitter.on("file:changed-confirm", async ({ fileName, resolver }) => {
+  const result = await showFileChangedDialog(fileName);
+  resolver(result === "overwrite" ? "overwrite" : "cancel");
+});
 
 // 监听主进程的关闭确认事件
-window.electronAPI.on('close:confirm', async () => {
-  const unsavedTabs = getUnsavedTabs()
+window.electronAPI.on("close:confirm", async () => {
+  const unsavedTabs = getUnsavedTabs();
   if (unsavedTabs.length === 0) {
-    window.electronAPI.closeDiscard()
-    return
+    window.electronAPI.closeDiscard();
+    return;
   }
 
   for (const tab of unsavedTabs) {
     // 切换到该tab以便用户查看
-    await switchToTab(tab.id)
+    await switchToTab(tab.id);
 
     // 弹出保存确认框
-    const result = await showDialog(tab.name)
+    const result = await showDialog(tab.name);
 
-    if (result === 'cancel') {
+    if (result === "cancel") {
       // 用户取消关闭操作，中止后续流程
-      return
+      return;
     }
 
-    if (result === 'save') {
-      const saved = await saveCurrentTab()
+    if (result === "save") {
+      const saved = await saveCurrentTab();
       if (!saved) {
         // 保存失败，中止关闭（或者向用户报错? 这里选择中止以策安全）
-        return
+        return;
       }
     }
     // 如果是 'discard'，则不做任何操作，继续下一个
   }
 
   // 所有此轮检查都通过（保存或丢弃），强制关闭
-  window.electronAPI.closeDiscard()
-})
+  window.electronAPI.closeDiscard();
+});
 </script>
 
 <template>
@@ -134,18 +168,29 @@ window.electronAPI.on('close:confirm', async () => {
             <!-- <VditorEditor v-model="markdown" /> -->
           </MilkupProvider>
         </MilkdownProvider>
-        <MarkdownSourceEditor v-else-if="isShowSource" v-model="markdown" :read-only="currentTab?.readOnly" />
+        <MarkdownSourceEditor
+          v-else-if="isShowSource"
+          v-model="markdown"
+          :read-only="currentTab?.readOnly"
+        />
       </div>
     </div>
   </div>
   <StatusBar :content="markdown" />
   <SaveConfirmDialog
-    :visible="isDialogVisible" :type="dialogType" :tab-name="tabName"
-    :file-name="fileName" @save="handleSave" @discard="handleDiscard" @cancel="handleCancel"
+    :visible="isDialogVisible"
+    :type="dialogType"
+    :tab-name="tabName"
+    :file-name="fileName"
+    @save="handleSave"
+    @discard="handleDiscard"
+    @cancel="handleCancel"
     @overwrite="handleOverwrite"
   />
   <UpdateConfirmDialog
-    :visible="isUpdateDialogVisible" @get="handleUpdate" @ignore="handleIgnore"
+    :visible="isUpdateDialogVisible"
+    @get="handleUpdate"
+    @ignore="handleIgnore"
     @cancel="handleLater"
   />
 </template>
