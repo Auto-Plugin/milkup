@@ -1,22 +1,26 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import useTheme from '@/renderer/hooks/useTheme'
+import { onMounted } from "vue";
+import useTheme from "@/renderer/hooks/useTheme";
 
-const { themes, currentTheme, init, setTheme, addTempTheme, removeTheme, exportTheme, importTheme } = useTheme()
+const { themes, currentTheme, init, setTheme, addTempTheme, removeTheme, exportTheme } = useTheme();
 
 onMounted(() => {
-  init()
-})
+  init();
+});
 </script>
 
 <template>
   <div class="ThemePageBox">
     <div class="theme-select-area">
       <div
-        v-for="option in themes" :key="option.name" class="theme-select-item" :class="{
-          'active': option.name === currentTheme,
+        v-for="option in themes"
+        :key="option.name"
+        class="theme-select-item"
+        :class="{
+          active: option.name === currentTheme,
           'custom-theme': option.isCustom,
-        }" @click.stop="setTheme(option.name)"
+        }"
+        @click.stop="setTheme(option.name)"
       >
         <!-- 自定义主题：上下色块 + 文字 -->
         <template v-if="option.isCustom">
@@ -33,9 +37,21 @@ onMounted(() => {
           <div class="custom-theme-text">
             <span class="custom-theme-label">{{ option.label }}</span>
             <div class="custom-theme-icons">
-              <span class="iconfont icon-edit" title="编辑主题" @click.stop="addTempTheme(option.name)"></span>
-              <span class="iconfont icon-download" title="下载主题" @click.stop="exportTheme(option.name)"></span>
-              <span class="iconfont icon-close" title="删除主题" @click.stop="removeTheme(option.name)"></span>
+              <span
+                class="iconfont icon-edit"
+                title="编辑主题"
+                @click.stop="addTempTheme(option.name)"
+              ></span>
+              <span
+                class="iconfont icon-download"
+                title="下载主题"
+                @click.stop="exportTheme(option.name)"
+              ></span>
+              <span
+                class="iconfont icon-close"
+                title="删除主题"
+                @click.stop="removeTheme(option.name)"
+              ></span>
             </div>
           </div>
         </template>
@@ -53,7 +69,7 @@ onMounted(() => {
         </template>
       </div>
 
-      <div class="theme-select-add " @click.stop="addTempTheme()">
+      <div class="theme-select-add" @click.stop="addTempTheme()">
         <div class="theme-select-add-btn">
           <span class="iconfont icon-plus"></span>
         </div>
@@ -70,11 +86,21 @@ onMounted(() => {
                 <span class="iconfont icon-close"></span>
               </div>
               <!-- pre -->
-              <svg class="pre active" viewBox="0 0 5 5" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg
+                class="pre active"
+                viewBox="0 0 5 5"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
                 <path d="M5 5L0 5C3.33333 5 5 3.33333 5 -2.18557e-07L5 5Z" />
               </svg>
               <!-- after -->
-              <svg class="after active" viewBox="0 0 5 5" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <svg
+                class="after active"
+                viewBox="0 0 5 5"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
                 <path d="M0 5L5 5C1.66667 5 7.28523e-08 3.33333 2.18557e-07 -2.18557e-07L0 5Z" />
               </svg>
             </div>
@@ -85,15 +111,11 @@ onMounted(() => {
             </div>
           </div>
           <div class="theme-preview-content">
-            <div class="preview-header">
-            </div>
+            <div class="preview-header"></div>
             <div class="preview-lines">
-              <div class="preview-line">
-              </div>
-              <div class="preview-line">
-              </div>
-              <div class="preview-line">
-              </div>
+              <div class="preview-line"></div>
+              <div class="preview-line"></div>
+              <div class="preview-line"></div>
             </div>
           </div>
         </div>
@@ -255,8 +277,12 @@ onMounted(() => {
       border-radius: 50%;
       overflow: hidden;
       //  background: linear-gradient(141deg, rgba(64, 158, 255, 0.46563635219712884) 0%, rgba(39, 164, 47, 0.3844038591999299) 33%, rgba(162, 49, 59, 0.5552722065388656) 59%, rgba(64, 158, 255, 0.4628352317489496) 100%);
-      filter:
-        drop-shadow(0 0px 1px rgba(0, 128, 255, 0.1)) drop-shadow(1px 1px 2px rgba(64, 255, 77, 0.15)) drop-shadow(-1px 1px 2px rgba(255, 107, 119, 0.15)) drop-shadow(1px -1px 2px rgba(255, 193, 7, 0.15)) drop-shadow(-1px -1px 2px rgba(138, 43, 226, 0.15)) drop-shadow(0 0px 4px rgba(255, 20, 147, 0.1));
+      filter: drop-shadow(0 0px 1px rgba(0, 128, 255, 0.1))
+        drop-shadow(1px 1px 2px rgba(64, 255, 77, 0.15))
+        drop-shadow(-1px 1px 2px rgba(255, 107, 119, 0.15))
+        drop-shadow(1px -1px 2px rgba(255, 193, 7, 0.15))
+        drop-shadow(-1px -1px 2px rgba(138, 43, 226, 0.15))
+        drop-shadow(0 0px 4px rgba(255, 20, 147, 0.1));
       cursor: pointer;
       transition: all 0.3s;
 
@@ -288,11 +314,9 @@ onMounted(() => {
         flex: 1;
       }
     }
-
   }
 
   .theme-preview-frame {
-
     // background: #000;
     width: 100%;
     // max-width: 700px;
@@ -305,7 +329,7 @@ onMounted(() => {
 
     // 添加下方淡黑色渐变阴影
     &::after {
-      content: '';
+      content: "";
       position: absolute;
       bottom: 0;
       left: 0;
@@ -463,7 +487,6 @@ onMounted(() => {
             height: 15px;
             background: var(--border-color-1);
           }
-
         }
       }
 
@@ -877,13 +900,17 @@ onMounted(() => {
 
         // 拖拽悬停效果
         &::before {
-          content: '';
+          content: "";
           position: absolute;
           top: 0;
           left: 0;
           right: 0;
           bottom: 0;
-          background: linear-gradient(135deg, var(--primary-color-transparent) 0%, transparent 100%);
+          background: linear-gradient(
+            135deg,
+            var(--primary-color-transparent) 0%,
+            transparent 100%
+          );
           opacity: 0;
           transition: opacity 0.3s ease;
           pointer-events: none;
@@ -896,7 +923,6 @@ onMounted(() => {
       }
     }
   }
-
 }
 
 // 通知样式

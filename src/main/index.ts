@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { app, BrowserWindow, globalShortcut, ipcMain, protocol } from "electron";
+import { app, BrowserWindow, globalShortcut, ipcMain, protocol, shell } from "electron";
 import {
   close,
   getIsQuitting,
@@ -44,6 +44,22 @@ async function createWindow() {
 
   createMenu(win);
 
+  // 处理外部链接跳转（target="_blank" 或 window.open）
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith("https:") || url.startsWith("http:")) {
+      shell.openExternal(url);
+    }
+    return { action: "deny" };
+  });
+
+  // 防止应用内部跳转（直接点击链接）
+  win.webContents.on("will-navigate", (event, url) => {
+    if (url.startsWith("https:") || url.startsWith("http:")) {
+      event.preventDefault();
+      shell.openExternal(url);
+    }
+  });
+
   const indexPath = path.join(__dirname, "../../dist", "index.html");
 
   if (process.env.VITE_DEV_SERVER_URL) {
@@ -81,6 +97,22 @@ export async function createThemeEditorWindow() {
       nodeIntegration: false,
       webSecurity: false,
     },
+  });
+
+  // 处理外部链接跳转
+  themeEditorWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith("https:") || url.startsWith("http:")) {
+      shell.openExternal(url);
+    }
+    return { action: "deny" };
+  });
+
+  // 防止应用内部跳转
+  themeEditorWindow.webContents.on("will-navigate", (event, url) => {
+    if (url.startsWith("https:") || url.startsWith("http:")) {
+      event.preventDefault();
+      shell.openExternal(url);
+    }
   });
 
   // 加载主题编辑器页面

@@ -1,26 +1,24 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import TabBar from '@/renderer/components/workspace/TabBar.vue'
-import useTitle from '@/renderer/hooks/useTitle'
-import MenuDropDown from './MenuDropDown.vue'
+import { ref } from "vue";
+import TabBar from "@/renderer/components/workspace/TabBar.vue";
+import MenuDropDown from "./MenuDropDown.vue";
 
-const isWin = window.electronAPI.platform === 'win32'
-const { title } = useTitle()
+const isWin = window.electronAPI.platform === "win32";
 
-const isFullScreen = ref(false)
+const isFullScreen = ref(false);
 function minimize() {
-  window.electronAPI?.windowControl?.('minimize')
+  window.electronAPI?.windowControl?.("minimize");
 }
 function toggleMaximize() {
-  isFullScreen.value = !isFullScreen.value
-  window.electronAPI?.windowControl?.('maximize')
+  isFullScreen.value = !isFullScreen.value;
+  window.electronAPI?.windowControl?.("maximize");
 }
 async function close() {
-  window.electronAPI?.windowControl?.('close')
+  window.electronAPI?.windowControl?.("close");
 }
-window.electronAPI.on('close', () => {
-  close()
-})
+window.electronAPI.on("close", () => {
+  close();
+});
 </script>
 
 <template>
@@ -35,17 +33,21 @@ window.electronAPI.on('close', () => {
 
       <div class="window-controls">
         <span class="iconfont icon-min" @click="minimize"></span>
-        <span class="iconfont" :class="isFullScreen ? 'icon-normal' : 'icon-max'" @click="toggleMaximize"></span>
+        <span
+          class="iconfont"
+          :class="isFullScreen ? 'icon-normal' : 'icon-max'"
+          @click="toggleMaximize"
+        ></span>
         <span class="iconfont icon-close" @click="close"></span>
       </div>
     </template>
     <template v-else>
-      <div style="width: 68px;"></div>
+      <div style="width: 68px"></div>
       <!-- <div class="title" @dblclick="toggleMaximize">
         {{ title }}
       </div> -->
       <TabBar />
-      <div style="margin-right: 10px;">
+      <div style="margin-right: 10px">
         <MenuDropDown />
       </div>
     </template>
@@ -67,7 +69,6 @@ window.electronAPI.on('close', () => {
   // user-select: none;
 
   .window-controls {
-
     display: flex;
     -webkit-app-region: no-drag;
     height: 100%;
