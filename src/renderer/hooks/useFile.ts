@@ -31,14 +31,21 @@ async function onOpen(result?: { filePath: string; content: string } | null) {
       tab.filePath = filePath.value;
       tab.name = getFileName(filePath.value);
       const repairedContent = repairMarkdown(result.content);
-      updateCurrentTabContent(repairedContent, false);
+
+      // 先设置状态，避免后续更新触发不必要的修改状态
+      tab.normalizationGrace = true;
+      setTimeout(() => {
+        tab.normalizationGrace = false;
+      }, 600);
+      tab.readOnly = await window.electronAPI.getIsReadOnly(result.filePath);
       tab.isModified = false;
+
+      updateCurrentTabContent(repairedContent, false);
+
       await switchToTab(tab.id);
       markdown.value = tab.content;
+      tab.originalContent = repairedContent;
       originalContent.value = repairedContent;
-      tab.isModified = false;
-      tab.normalizationGrace = true;
-      tab.readOnly = await window.electronAPI.getIsReadOnly(result.filePath);
     } else {
       // 创建新tab
       const repairedContent = repairMarkdown(result.content);

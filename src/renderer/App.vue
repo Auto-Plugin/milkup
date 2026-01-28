@@ -62,6 +62,24 @@ window.electronAPI.on("close:confirm", async () => {
   await handleSafeClose("close");
 });
 
+// 监听Tab关闭确认事件
+emitter.on("tab:close-confirm", async (payload: any) => {
+  const { tabId, tabName } = payload;
+  const result = await showDialog(tabName);
+
+  if (result === "save") {
+    // 只有保存并成功才关闭
+    const saved = await saveCurrentTab();
+    if (saved) {
+      close(tabId);
+    }
+  } else if (result === "discard") {
+    // 放弃更改，直接关闭
+    close(tabId);
+  }
+  // cancel 则不做任何操作
+});
+
 const onUpdateAvailable = (payload: any) => {
   const info = payload || {};
 
@@ -86,6 +104,7 @@ onMounted(() => {
 });
 onUnmounted(() => {
   emitter.off("update:available", onUpdateAvailable);
+  emitter.off("tab:close-confirm");
 });
 
 // Reuse safe close logic
