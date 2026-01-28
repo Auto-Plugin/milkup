@@ -201,3 +201,77 @@
 .milkdown .milkdown-image-block>.image-wrapper img {
   height: auto !important;
 }
+
+// Markdown source decorations
+.md-source {
+  color: var(--text-color-4);
+  font-family: var(--milkup-font-code);
+  font-size: 0.9em;
+  font-weight: normal;
+  font-style: normal;
+  opacity: 0.6;
+  user-select: none;
+  pointer-events: none;
+  background: var(--background-color-2);
+  padding: 0 2px;
+  border-radius: 2px;
+  margin: 0 1px;
+  vertical-align: baseline;
+}
+
+.md-source-prefix {
+  margin-right: 2px;
+}
+
+.md-source-suffix {
+  margin-left: 2px;
+}
+
+.md-source-heading {
+    display: inline;
+    margin-right: 8px;
+    opacity: 0.5;
+    font-size: 0.9em;
+    vertical-align: baseline;
+    color: var(--text-color-4);
+}
+
+.md-source-url-wrapper, .md-source-image-wrapper {
+    display: inline;
+    color: var(--text-color-4);
+    opacity: 0.7;
+    font-family: var(--milkup-font-code);
+    font-size: 0.9em;
+    background: var(--background-color-2);
+    padding: 0 4px;
+    border-radius: 4px;
+}
+
+.md-source-url-editable, .md-source-alt-editable, .md-source-src-editable {
+    display: inline-block;
+    min-width: 10px;
+    outline: none;
+    cursor: text;
+    user-select: text;
+    pointer-events: auto;
+    color: var(--text-color-3);
+    border-bottom: 1px dashed var(--border-color);
+    padding: 0 2px;
+    caret-color: var(--text-color-1);
+}
+
+.md-source-image {
+    display: inline-block;
+    margin: 0 4px;
+    font-size: 12px;
+    padding: 2px 4px;
+    opacity: 0.8;
+}
+
+.md-source-url {
+    opacity: 0.7;
+    margin-left: 4px;
+    pointer-events: auto; // 允许点击或选择
+    user-select: text;
+    cursor: pointer;
+}

@@ -4,7 +4,7 @@ import { $prose } from "@milkdown/utils";
 
 // 匹配Markdown图片语法的正则：![alt](src)
 // 允许 src 中包含空格
-const wrappingImageRegex = /!\[([^\]]*)\]\(([^)]+)\)$/;
+const wrappingImageRegex = /!\[([^\]]*)\]\(([^)]*)\)$/;
 
 export const laxImageInputRule = $prose((_ctx) => {
   return inputRules({
@@ -14,7 +14,7 @@ export const laxImageInputRule = $prose((_ctx) => {
         const [_, alt, src] = match;
         const { tr } = state;
 
-        if (!src) return null;
+        // if (!src) return null;
 
         // 将 src 中的空格替换为 %20，确保 Milkdown 能正确解析
         const encodedSrc = src.replace(/ /g, "%20");
@@ -47,7 +47,7 @@ export const laxImagePastePlugin = $prose((_ctx) => {
         console.log("[Debug] handlePaste text:", text);
 
         // 放宽正则：使用 g 标志匹配所有
-        const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+        const imageRegex = /!\[([^\]]*)\]\(([^)]*)\)/g;
 
         // 检查是否有匹配项，并且这些匹配项中是否存在带空格的路径
         let match;
@@ -66,7 +66,7 @@ export const laxImagePastePlugin = $prose((_ctx) => {
           // 但如果用户粘贴的是纯图片语法，我们可以直接构造节点。
 
           // 简单策略：如果整个粘贴内容就是一张图片，且带空格，我们接管。
-          const singleImageRegex = /^!\[([^\]]*)\]\(([^)]+)\)$/;
+          const singleImageRegex = /^!\[([^\]]*)\]\(([^)]*)\)$/;
           const singleMatch = text.trim().match(singleImageRegex);
 
           if (singleMatch) {
