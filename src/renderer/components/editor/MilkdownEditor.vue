@@ -13,6 +13,7 @@ import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { uploader } from "@/plugins/customPastePlugin";
 import { htmlPlugin } from "@/plugins/hybridHtmlPlugin/rawHtmlPlugin";
 import { processImagePaths, reverseProcessImagePaths } from "@/plugins/imagePathPlugin";
+import { laxImageInputRule, laxImagePastePlugin } from "@/plugins/laxImagePlugin";
 import { diagram } from "@/plugins/mermaidPlugin";
 import emitter from "@/renderer/events";
 import useTab from "@/renderer/hooks/useTab";
@@ -60,9 +61,28 @@ onMounted(async () => {
   // 还有 切换 源码和预览模式 以及 目录打开与关闭 搞个可以自定义的快捷键
 
   // 将原始内容转换为包含协议 URL 的内容用于渲染
-  const contentForRendering = processImagePaths(
+  let contentForRendering = processImagePaths(
     normalizeMarkdown(fixUnclosedCodeBlock(ensureTrailingNewline(props.modelValue.toString()))),
     currentTab.value?.filePath || null
+  );
+
+  console.log("[Debug] Original content:", props.modelValue.toString().slice(0, 100));
+  console.log("[Debug] After processImagePaths:", contentForRendering.slice(0, 100));
+
+  // 预处理：将图片路径中的空格转换为 %20，确保 crepe 能正确渲染
+  // 匹配 ![alt](path) 格式
+  contentForRendering = contentForRendering.replace(
+    /!\[([^\]]*)\]\(([^)]+)\)/g,
+    (match, alt, src) => {
+      if (src.includes(" ")) {
+        console.log("[Debug] Found image with space during load:", src);
+        const encodedSrc = src.replace(/ /g, "%20");
+        const result = `![${alt}](${encodedSrc})`;
+        console.log("[Debug] Replaced with:", result);
+        return result;
+      }
+      return match;
+    }
   );
 
   // crepe 有更好的用户体验👇
@@ -79,10 +99,25 @@ onMounted(async () => {
   crepe.on((lm) => {
     lm.markdownUpdated((Ctx, nextMarkdown) => {
       // 将协议 URL 转回相对路径再发送给父组件
-      const restoredMarkdown = reverseProcessImagePaths(
+      let restoredMarkdown = reverseProcessImagePaths(
         nextMarkdown,
         currentTab.value?.filePath || null
       );
+
+      // 后处理：将图片路径中的 %20 还原为空格（如果需要）
+      // 匹配 ![alt](path) 格式
+      restoredMarkdown = restoredMarkdown.replace(
+        /!\[([^\]]*)\]\(([^)]+)\)/g,
+        (match, alt, src) => {
+          if (src.includes("%20")) {
+            console.log("[Debug] decoding image path for save:", src);
+            const decodedSrc = src.replace(/%20/g, " ");
+            return `![${alt}](${decodedSrc})`;
+          }
+          return match;
+        }
+      );
+
       lastEmittedValue.value = restoredMarkdown;
       emit("update:modelValue", restoredMarkdown);
       emitOutlineUpdate(Ctx);
@@ -123,7 +158,15 @@ onMounted(async () => {
   });
   const editor = crepe.editor;
   editor.ctx.inject(uploadConfig.key);
-  editor.use(automd).use(upload).use(htmlPlugin).use(diagram).use(commonmark);
+  editor
+    .use(laxImageInputRule)
+    .use(laxImagePastePlugin)
+    .use(automd)
+    .use(upload)
+    .use(htmlPlugin)
+    .use(diagram)
+    .use(commonmark);
+
   props.readOnly && crepe.setReadonly(true);
   await crepe.create();
 
@@ -142,10 +185,23 @@ onMounted(async () => {
           (window as any).__currentFilePath = currentTab.value?.filePath || null;
 
           // 将原始内容转换为包含协议 URL 的内容用于渲染
-          const contentForRendering = processImagePaths(
-            newValue,
-            currentTab.value?.filePath || null
+          let contentForRendering = processImagePaths(newValue, currentTab.value?.filePath || null);
+
+          // 预处理：将图片路径中的空格转换为 %20
+          contentForRendering = contentForRendering.replace(
+            /!\[([^\]]*)\]\(([^)]+)\)/g,
+            (match, alt, src) => {
+              if (src.includes(" ")) {
+                console.log("[Debug] Found image with space during update:", src);
+                const encodedSrc = src.replace(/ /g, "%20");
+                const result = `![${alt}](${encodedSrc})`;
+                console.log("[Debug] Replaced with (update):", result);
+                return result;
+              }
+              return match;
+            }
           );
+
           editor.action(replaceAll(contentForRendering));
           // Update lastEmittedValue to avoid immediate echo if editor emits back synchronously
           lastEmittedValue.value = newValue;
