@@ -14,6 +14,7 @@ import { uploader } from "@/plugins/customPastePlugin";
 import { htmlPlugin } from "@/plugins/hybridHtmlPlugin/rawHtmlPlugin";
 import { processImagePaths, reverseProcessImagePaths } from "@/plugins/imagePathPlugin";
 import { laxImageInputRule, laxImagePastePlugin } from "@/plugins/laxImagePlugin";
+import { sourceOnFocusPlugin } from "@renderer/enhance/crepe/plugins/sourceOnFocus";
 import { diagram } from "@/plugins/mermaidPlugin";
 import emitter from "@/renderer/events";
 import useTab from "@/renderer/hooks/useTab";
@@ -72,7 +73,7 @@ onMounted(async () => {
   // 预处理：将图片路径中的空格转换为 %20，确保 crepe 能正确渲染
   // 匹配 ![alt](path) 格式
   contentForRendering = contentForRendering.replace(
-    /!\[([^\]]*)\]\(([^)]+)\)/g,
+    /!\[([^\]]*)\]\(([^)]*)\)/g,
     (match, alt, src) => {
       if (src.includes(" ")) {
         console.log("[Debug] Found image with space during load:", src);
@@ -107,7 +108,7 @@ onMounted(async () => {
       // 后处理：将图片路径中的 %20 还原为空格（如果需要）
       // 匹配 ![alt](path) 格式
       restoredMarkdown = restoredMarkdown.replace(
-        /!\[([^\]]*)\]\(([^)]+)\)/g,
+        /!\[([^\]]*)\]\(([^)]*)\)/g,
         (match, alt, src) => {
           if (src.includes("%20")) {
             console.log("[Debug] decoding image path for save:", src);
@@ -165,6 +166,7 @@ onMounted(async () => {
     .use(upload)
     .use(htmlPlugin)
     .use(diagram)
+    .use(sourceOnFocusPlugin)
     .use(commonmark);
 
   props.readOnly && crepe.setReadonly(true);
@@ -189,7 +191,7 @@ onMounted(async () => {
 
           // 预处理：将图片路径中的空格转换为 %20
           contentForRendering = contentForRendering.replace(
-            /!\[([^\]]*)\]\(([^)]+)\)/g,
+            /!\[([^\]]*)\]\(([^)]*)\)/g,
             (match, alt, src) => {
               if (src.includes(" ")) {
                 console.log("[Debug] Found image with space during update:", src);
