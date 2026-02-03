@@ -1,57 +1,76 @@
-<script setup lang='ts'>
-import { computed, ref } from 'vue'
+<script setup lang="ts">
+import { computed, ref } from "vue";
 
-type SelectorItem = string | { label: string, value: string }
+type SelectorItem = string | { label: string; value: string };
 
 const props = defineProps<{
-  modelValue: string
-  placeholder?: string
-  items?: SelectorItem[]
-  label?: string
-  required?: boolean
-}>()
+  modelValue: string;
+  placeholder?: string;
+  items?: SelectorItem[];
+  label?: string;
+  required?: boolean;
+}>();
 const emit = defineEmits<{
-  (e: 'update:modelValue', modelValue: string): void
-}>()
+  (e: "update:modelValue", modelValue: string): void;
+}>();
 
-const isActive = ref(false)
+const containerRef = ref<HTMLElement>();
+const isActive = ref(false);
+const isUpward = ref(false);
 
 const displayValue = computed(() => {
-  if (!props.items)
-    return props.modelValue
-  const selectedItem = props.items.find(item => getItemValue(item) === props.modelValue)
-  return selectedItem ? getItemLabel(selectedItem) : props.modelValue
-})
+  if (!props.items) return props.modelValue;
+  const selectedItem = props.items.find((item) => getItemValue(item) === props.modelValue);
+  return selectedItem ? getItemLabel(selectedItem) : props.modelValue;
+});
 
 function getItemValue(item: SelectorItem): string {
-  return typeof item === 'string' ? item : item.value
+  return typeof item === "string" ? item : item.value;
 }
 
 function getItemLabel(item: SelectorItem): string {
-  return typeof item === 'string' ? item : item.label
+  return typeof item === "string" ? item : item.label;
 }
 
 function handleCheckItem(item: SelectorItem) {
-  emit('update:modelValue', getItemValue(item))
-  isActive.value = false
+  emit("update:modelValue", getItemValue(item));
+  isActive.value = false;
 }
 function handleBlur() {
   setTimeout(() => {
-    isActive.value = false
-  }, 100)
+    isActive.value = false;
+  }, 100);
+}
+
+function handleFocus() {
+  if (containerRef.value) {
+    const rect = containerRef.value.getBoundingClientRect();
+    // If space below is less than 220px, pop upwards
+    isUpward.value = window.innerHeight - rect.bottom < 220;
+  }
+  isActive.value = true;
 }
 </script>
 
 <template>
   <div class="Selector">
     <span class="label" :class="{ required }"> {{ label }}</span>
-    <div>
+    <div ref="containerRef">
       <input
-        class="selector-container" readonly :value="displayValue" :placeholder="placeholder" @focus="isActive = true"
+        class="selector-container"
+        readonly
+        :value="displayValue"
+        :placeholder="placeholder"
+        @focus="handleFocus"
         @blur="handleBlur"
       />
-      <div v-if="isActive" class="selector-items">
-        <div v-for="item in items" :key="getItemValue(item)" class="selector-item" @click="handleCheckItem(item)">
+      <div v-if="isActive" class="selector-items" :class="{ upward: isUpward }">
+        <div
+          v-for="item in items"
+          :key="getItemValue(item)"
+          class="selector-item"
+          @click="handleCheckItem(item)"
+        >
           {{ getItemLabel(item) }}
         </div>
       </div>
@@ -59,7 +78,7 @@ function handleBlur() {
   </div>
 </template>
 
-<style lang='less' scoped>
+<style lang="less" scoped>
 .Selector {
   width: 100%;
   position: relative;
@@ -75,13 +94,13 @@ function handleBlur() {
 
     &.required {
       &::after {
-        content: '*';
+        content: "*";
         color: rgba(233, 83, 83, 0.829);
       }
     }
   }
 
-  >div {
+  > div {
     position: relative;
   }
 
@@ -107,6 +126,16 @@ function handleBlur() {
     border: 1px solid var(--border-color-1);
     border-radius: 4px;
     z-index: 10;
+    max-height: 250px;
+    overflow-y: auto;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+
+    &.upward {
+      top: auto;
+      bottom: 100%;
+      margin-bottom: 4px;
+      box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.1);
+    }
 
     .selector-item {
       padding: 10px;

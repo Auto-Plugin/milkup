@@ -16,6 +16,7 @@ import { processImagePaths, reverseProcessImagePaths } from "@/plugins/imagePath
 import { laxImageInputRule, laxImagePastePlugin } from "@/plugins/laxImagePlugin";
 import { sourceOnFocusPlugin } from "@renderer/enhance/crepe/plugins/sourceOnFocus";
 import { diagram } from "@/plugins/mermaidPlugin";
+import { completionPlugin } from "./plugins/completionPlugin";
 import emitter from "@/renderer/events";
 import useTab from "@/renderer/hooks/useTab";
 
@@ -166,6 +167,7 @@ onMounted(async () => {
     .use(upload)
     .use(htmlPlugin)
     .use(diagram)
+    .use(completionPlugin)
     .use(sourceOnFocusPlugin)
     .use(commonmark);
 

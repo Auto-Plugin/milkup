@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import ImageConfig from './ImageConfig.vue'
-import SpellCheckSetter from './SpellCheckSetter.vue'
+import ImageConfig from "./ImageConfig.vue";
+import SpellCheckSetter from "./SpellCheckSetter.vue";
+import AISetting from "./AISetting.vue";
 </script>
 
 <template>
@@ -12,6 +13,10 @@ import SpellCheckSetter from './SpellCheckSetter.vue'
     <div class="settingItem">
       <span class="title">当图片粘贴时</span>
       <ImageConfig />
+    </div>
+    <div class="settingItem">
+      <span class="title">AI 续写设置</span>
+      <AISetting />
     </div>
   </div>
 </template>
@@ -28,7 +33,7 @@ import SpellCheckSetter from './SpellCheckSetter.vue'
     display: flex;
     flex-direction: column;
     gap: 8px;
-    .title{
+    .title {
       font-size: 14px;
       color: var(--text-color-1);
     }
