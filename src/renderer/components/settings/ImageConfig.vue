@@ -1,18 +1,20 @@
-<script setup lang='ts'>
-import { ref } from 'vue'
-import Input from '@/ui/Input.vue'
-import UploadConfig from './UploadConfig.vue'
+<script setup lang="ts">
+import { ref } from "vue";
+import Input from "@/ui/Input.vue";
+import UploadConfig from "./UploadConfig.vue";
 
-type PasteMethod = 'local' | 'base64' | 'remote'
-const pasteMethod = ref<PasteMethod>(localStorage.getItem('pasteMethod') as PasteMethod || 'local')
-const localPath = ref<string>('/temp')
+type PasteMethod = "local" | "base64" | "remote";
+const pasteMethod = ref<PasteMethod>(
+  (localStorage.getItem("pasteMethod") as PasteMethod) || "local"
+);
+const localPath = ref<string>("/temp");
 
 function handleChangePasteMethod(method: PasteMethod) {
-  pasteMethod.value = method
-  localStorage.setItem('pasteMethod', method)
+  pasteMethod.value = method;
+  localStorage.setItem("pasteMethod", method);
 }
 function handleChangeLoaclPath() {
-  localStorage.setItem('localImagePath', localPath.value)
+  localStorage.setItem("localImagePath", localPath.value);
 }
 </script>
 
@@ -23,9 +25,12 @@ function handleChangeLoaclPath() {
         <div
           class="slider-thumb"
           :style="{
-            transform: pasteMethod === 'local' ? 'translateX(0)'
-              : pasteMethod === 'base64' ? 'translateX(calc(100% + 4px))'
-                : 'translateX(calc(200% + 8px))',
+            transform:
+              pasteMethod === 'local'
+                ? 'translateX(0)'
+                : pasteMethod === 'base64'
+                  ? 'translateX(calc(100% + 4px))'
+                  : 'translateX(calc(200% + 8px))',
           }"
         />
         <div
@@ -53,17 +58,20 @@ function handleChangeLoaclPath() {
     </div>
     <div class="details">
       <div v-if="pasteMethod === 'local'">
-        <Input v-model="localPath" placeholder="/temp" label="本地文件路径" @change="handleChangeLoaclPath" />
+        <Input
+          v-model="localPath"
+          placeholder="/temp"
+          label="本地文件路径"
+          @change="handleChangeLoaclPath"
+        />
       </div>
-      <div v-if="pasteMethod === 'base64'">
-        图片将自动转为 base64（可能会增大文件体积）
-      </div>
+      <div v-if="pasteMethod === 'base64'">图片将自动转为 base64（可能会增大文件体积）</div>
       <UploadConfig v-if="pasteMethod === 'remote'" />
     </div>
   </div>
 </template>
 
-<style lang='less' scoped>
+<style lang="less" scoped>
 .ImageConfigBox {
   display: flex;
   flex-direction: column;
@@ -71,14 +79,12 @@ function handleChangeLoaclPath() {
 
   .details {
     width: 100%;
-    height: 100%;
     display: flex;
     flex-direction: column;
     gap: 10px;
 
-    >div {
+    > div {
       width: 100%;
-      height: 40px;
       display: flex;
       flex-direction: column;
       align-items: flex-start;
