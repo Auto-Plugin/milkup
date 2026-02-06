@@ -12,3 +12,12 @@ export {
   updateAllMathBlocks,
 } from "./math-block";
 export { ImageView, createImageNodeView, updateAllImages } from "./image";
+export {
+  BulletListView,
+  OrderedListView,
+  ListItemView,
+  createBulletListNodeView,
+  createOrderedListNodeView,
+  createListItemNodeView,
+  updateAllLists,
+} from "./list";

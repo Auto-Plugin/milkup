@@ -7,6 +7,8 @@ import { ref, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { MilkupEditor, createMilkupEditor, type MilkupConfig, type ImagePasteMethod } from "@/core";
 import { processImagePaths, reverseProcessImagePaths } from "@/plugins/imagePathPlugin";
 import { uploadImage } from "@/renderer/services/api";
+import { AIService } from "@/renderer/services/ai";
+import { useAIConfig } from "@/renderer/hooks/useAIConfig";
 import emitter from "@/renderer/events";
 import useTab from "@/renderer/hooks/useTab";
 import "@/core/styles/milkup.css";
@@ -26,6 +28,7 @@ const emit = defineEmits<{
 }>();
 
 const { currentTab } = useTab();
+const { config: aiConfig, isEnabled: aiEnabled } = useAIConfig();
 
 const containerRef = ref<HTMLElement | null>(null);
 const scrollViewRef = ref<HTMLElement | null>(null);
@@ -154,6 +157,18 @@ onMounted(async () => {
         });
       },
     },
+    // AI 续写配置（使用 getter 函数以支持响应式更新）
+    aiConfig: {
+      get enabled() {
+        return aiEnabled.value;
+      },
+      get debounceWait() {
+        return aiConfig.value.debounceWait;
+      },
+      complete: async (context) => {
+        return await AIService.complete(aiConfig.value, context);
+      },
+    },
   };
 
   editor = createMilkupEditor(containerRef.value, config);
@@ -199,7 +214,21 @@ onMounted(async () => {
 onUnmounted(() => {
   editor?.destroy();
   editor = null;
+  // 移除事件监听
+  emitter.off("sourceView:toggle", handleSourceViewToggle);
 });
+
+// 处理源码模式切换事件
+function handleSourceViewToggle() {
+  if (editor) {
+    editor.toggleSourceView();
+    // 通知状态变化
+    emitter.emit("sourceView:changed", editor.isSourceViewEnabled());
+  }
+}
+
+// 监听源码模式切换事件
+emitter.on("sourceView:toggle", handleSourceViewToggle);
 
 // 监听 modelValue 变化
 watch(

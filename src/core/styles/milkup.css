@@ -723,3 +723,122 @@
   pointer-events: none;
   position: absolute;
 }
+
+/* ============ 源码模式样式 ============ */
+
+/* 代码块源码模式 */
+.milkup-code-block.source-view {
+  background: transparent;
+  border: none;
+}
+
+.milkup-code-block.source-view .milkup-code-block-header {
+  display: none;
+}
+
+.milkup-code-block.source-view .milkup-code-block-footer {
+  display: none;
+}
+
+.milkup-code-block.source-view .milkup-code-block-editor {
+  padding: 0;
+}
+
+/* 代码围栏样式 */
+.milkup-code-fence {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 14px;
+  color: var(--text-color-3, #999);
+  line-height: 1.6;
+}
+
+.milkup-code-fence-start {
+  margin-bottom: 0;
+}
+
+.milkup-code-fence-end {
+  margin-top: 0;
+}
+
+/* 图片源码模式 */
+.milkup-image-block.source-view {
+  text-align: left;
+}
+
+.milkup-image-block.source-view .milkup-image-preview {
+  display: none !important;
+}
+
+.milkup-image-block.source-view .milkup-image-source-container {
+  display: none !important;
+}
+
+/* 图片源码文本 */
+.milkup-image-source-text {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  line-height: 1.6;
+  outline: none;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.milkup-image-source-text:focus {
+  background: var(--hover-background-color, rgba(0, 0, 0, 0.03));
+  border-radius: 2px;
+}
+
+/* 列表源码模式 */
+.milkup-bullet-list.source-view,
+.milkup-ordered-list.source-view {
+  list-style: none;
+  padding-left: 0;
+  margin-left: 0;
+}
+
+.milkup-bullet-list.source-view .milkup-bullet-list.source-view,
+.milkup-bullet-list.source-view .milkup-ordered-list.source-view,
+.milkup-ordered-list.source-view .milkup-bullet-list.source-view,
+.milkup-ordered-list.source-view .milkup-ordered-list.source-view {
+  padding-left: 2em;
+}
+
+/* 列表项源码模式 */
+.milkup-list-item {
+  display: block;
+}
+
+.milkup-list-item-content {
+  display: inline;
+}
+
+.milkup-list-item-content > p {
+  display: inline;
+  margin: 0;
+}
+
+.milkup-list-item-content > p:first-child {
+  display: inline;
+}
+
+/* 列表标记 */
+.milkup-list-marker {
+  display: none;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  color: var(--text-color-3, #999);
+}
+
+.milkup-list-item.source-view {
+  display: flex;
+  align-items: flex-start;
+}
+
+.milkup-list-item.source-view .milkup-list-marker {
+  display: inline;
+  flex-shrink: 0;
+}
+
+.milkup-list-item.source-view .milkup-list-item-content {
+  flex: 1;
+}

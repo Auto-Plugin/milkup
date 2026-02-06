@@ -59,11 +59,7 @@ window.electronAPI.on("view:toggleView", () => {
     <div class="left-section">
       <div>
         <Transition name="fade">
-          <span
-            v-if="!isShowSource"
-            class="iconfont icon-List-outlined"
-            @click="toggleShowOutline()"
-          ></span>
+          <span class="iconfont icon-List-outlined" @click="toggleShowOutline()"></span>
         </Transition>
         <span
           class="iconfont"
@@ -127,6 +123,7 @@ window.electronAPI.on("view:toggleView", () => {
     }
   }
 }
+
 .statusBarText {
   font-size: 12px;
   margin: 2px 0;
@@ -158,6 +155,7 @@ window.electronAPI.on("view:toggleView", () => {
     border-radius: 2px;
     overflow: hidden;
   }
+
   .mini-progress-fill {
     height: 100%;
     background: var(--primary-color);

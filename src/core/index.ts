@@ -52,6 +52,14 @@ export {
   type PastePluginConfig,
 } from "./plugins/paste";
 
+export {
+  createAICompletionPlugin,
+  aiCompletionPluginKey,
+  type AICompletionConfig,
+  type AICompletionContext,
+  type AICompletionState,
+} from "./plugins/ai-completion";
+
 // 快捷键
 export {
   createKeymapPlugin,
@@ -67,6 +75,7 @@ export {
   decorationPluginKey,
   toggleSourceView,
   setSourceView,
+  sourceViewManager,
   findSyntaxMarkerRegions,
   findMathInlineRegions,
   findSyntaxRegions,
@@ -79,6 +88,7 @@ export {
   type MarkRegion,
   type SyntaxMarkerRegion,
   type MathInlineRegion,
+  type SourceViewListener,
 } from "./decorations";
 
 // NodeView
@@ -94,6 +104,13 @@ export {
   ImageView,
   createImageNodeView,
   updateAllImages,
+  BulletListView,
+  OrderedListView,
+  ListItemView,
+  createBulletListNodeView,
+  createOrderedListNodeView,
+  createListItemNodeView,
+  updateAllLists,
 } from "./nodeviews";
 
 // 命令
