@@ -163,20 +163,19 @@ function updateCurrentTabScrollRatio(ratio: number) {
   }
 }
 
-// 保存当前tab
-async function saveCurrentTab(): Promise<boolean> {
-  const currentTab = getCurrentTab();
-  if (!currentTab || currentTab.readOnly) return false;
+// 保存指定tab
+async function saveTab(tab: Tab): Promise<boolean> {
+  if (!tab || tab.readOnly) return false;
 
   try {
     // content 现在是处理过图片路径的内容，保存前需要还原
-    const reversedContent = reverseProcessImagePaths(currentTab.content, currentTab.filePath);
-    const saved = await window.electronAPI.saveFile(currentTab.filePath, reversedContent);
+    const reversedContent = reverseProcessImagePaths(tab.content, tab.filePath);
+    const saved = await window.electronAPI.saveFile(tab.filePath, reversedContent);
     if (saved) {
-      currentTab.filePath = saved;
-      currentTab.name = getFileName(saved); // 更新标签名称
-      currentTab.originalContent = reversedContent;
-      currentTab.isModified = false;
+      tab.filePath = saved;
+      tab.name = getFileName(saved); // 更新标签名称
+      tab.originalContent = reversedContent;
+      tab.isModified = false;
       return true;
     }
   } catch (error) {
@@ -184,6 +183,12 @@ async function saveCurrentTab(): Promise<boolean> {
     console.error("保存文件失败:", error);
   }
   return false;
+}
+
+// 保存当前tab
+async function saveCurrentTab(): Promise<boolean> {
+  const currentTab = getCurrentTab();
+  return saveTab(currentTab!);
 }
 
 // 从文件创建新tab
@@ -554,6 +559,7 @@ function useTab() {
     updateCurrentTabContent,
     updateCurrentTabScrollRatio,
     saveCurrentTab,
+    saveTab,
     createTabFromFile,
     updateCurrentTabFile,
     createNewTab,

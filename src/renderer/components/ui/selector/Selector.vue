@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 
 type SelectorItem = string | { label: string; value: string };
 
@@ -12,6 +12,7 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{
   (e: "update:modelValue", modelValue: string): void;
+  (e: "change", value: string): void;
 }>();
 
 const containerRef = ref<HTMLElement>();
@@ -33,36 +34,49 @@ function getItemLabel(item: SelectorItem): string {
 }
 
 function handleCheckItem(item: SelectorItem) {
-  emit("update:modelValue", getItemValue(item));
+  const value = getItemValue(item);
+  emit("update:modelValue", value);
+  emit("change", value);
   isActive.value = false;
 }
-function handleBlur() {
-  setTimeout(() => {
+
+function toggleSelector() {
+  if (!isActive.value) {
+    if (containerRef.value) {
+      const rect = containerRef.value.getBoundingClientRect();
+      isUpward.value = window.innerHeight - rect.bottom < 220;
+    }
+    isActive.value = true;
+  } else {
     isActive.value = false;
-  }, 100);
+  }
 }
 
-function handleFocus() {
-  if (containerRef.value) {
-    const rect = containerRef.value.getBoundingClientRect();
-    // If space below is less than 220px, pop upwards
-    isUpward.value = window.innerHeight - rect.bottom < 220;
+function handleClickOutside(event: MouseEvent) {
+  if (containerRef.value && !containerRef.value.contains(event.target as Node)) {
+    isActive.value = false;
   }
-  isActive.value = true;
 }
+
+onMounted(() => {
+  document.addEventListener("click", handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("click", handleClickOutside);
+});
 </script>
 
 <template>
   <div class="Selector">
-    <span class="label" :class="{ required }"> {{ label }}</span>
-    <div ref="containerRef">
+    <span class="label" :class="{ required }" v-if="label"> {{ label }}</span>
+    <div ref="containerRef" class="container">
       <input
         class="selector-container"
         readonly
         :value="displayValue"
         :placeholder="placeholder"
-        @focus="handleFocus"
-        @blur="handleBlur"
+        @click="toggleSelector"
       />
       <div v-if="isActive" class="selector-items" :class="{ upward: isUpward }">
         <div
@@ -86,7 +100,12 @@ function handleFocus() {
   display: flex;
   white-space: nowrap;
   align-items: center;
+  justify-content: center;
   gap: 10px;
+
+  .container {
+    width: 100%;
+  }
 
   .label {
     min-width: 100px;

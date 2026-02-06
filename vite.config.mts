@@ -38,6 +38,9 @@ const electronPlugin = electron({
 })
 export default defineConfig({
   plugins: [vue(), i18nPlugin, electronPlugin],
+  server: {
+    open: false,
+  },
   root: 'src/renderer',
   base: './',
   build: {
