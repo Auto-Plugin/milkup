@@ -1,12 +1,18 @@
 <script setup lang="ts">
 const props = defineProps<{
-  onClose: (action: 'ignore' | 'reload') => void
-}>()
-function handleIgnore() {
-  props.onClose('ignore')
+  onClose: (action: "cancel" | "saveAndReload" | "reloadLater") => void;
+}>();
+
+function handleCancel() {
+  props.onClose("cancel");
 }
-function handleRealod() {
-  props.onClose('reload')
+
+function handleSaveAndReload() {
+  props.onClose("saveAndReload");
+}
+
+function handleReloadLater() {
+  props.onClose("reloadLater");
 }
 </script>
 
@@ -14,21 +20,16 @@ function handleRealod() {
   <div class="dialog-overlay">
     <div class="dialog-content" @click.stop>
       <div class="dialog-header">
-        <h3>
-          请确保所有工作已经保存!
-        </h3>
+        <h3>请确保所有工作已经保存!</h3>
       </div>
       <div class="dialog-body">
         <h5>更新语言设置需要重启应用后生效</h5>
         <div id="updateLog" class="milkdownPreview"></div>
       </div>
       <div class="dialog-footer">
-        <button class="btn btn-secondary" @click="handleIgnore">
-          稍后手动重启
-        </button>
-        <button class="btn btn-overwrite" @click="handleRealod">
-          现在重启
-        </button>
+        <button class="btn btn-secondary" @click="handleCancel">取消</button>
+        <button class="btn btn-secondary" @click="handleReloadLater">稍后手动重启</button>
+        <button class="btn btn-overwrite" @click="handleSaveAndReload">全部保存并重启</button>
       </div>
     </div>
   </div>

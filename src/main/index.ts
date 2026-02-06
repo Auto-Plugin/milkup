@@ -54,6 +54,10 @@ async function createWindow() {
 
   // 防止应用内部跳转（直接点击链接）
   win.webContents.on("will-navigate", (event, url) => {
+    // 允许 dev server 的 reload
+    if (process.env.VITE_DEV_SERVER_URL && url.startsWith(process.env.VITE_DEV_SERVER_URL)) {
+      return;
+    }
     if (url.startsWith("https:") || url.startsWith("http:")) {
       event.preventDefault();
       shell.openExternal(url);
