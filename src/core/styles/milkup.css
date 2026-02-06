@@ -1,0 +1,725 @@
+/**
+ * Milkup 编辑器样式
+ */
+
+/* 编辑器容器 */
+.milkup-editor {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-color, #333);
+  background: var(--background-color, #fff);
+  padding: 20px;
+  outline: none;
+  min-height: 100%;
+}
+
+/* 语法标记 - 隐藏 */
+.milkup-syntax-hidden {
+  font-size: 0;
+  opacity: 0;
+  width: 0;
+  display: inline;
+  user-select: none;
+}
+
+/* 语法标记 - 显示 */
+.milkup-syntax-visible,
+.milkup-syntax {
+  color: var(--text-color-3, #999);
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.9em;
+}
+
+/* 语法标记 - 默认样式 */
+.milkup-syntax-marker {
+  color: var(--text-color-3, #999);
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.9em;
+}
+
+/* 粗体 */
+.milkup-strong {
+  font-weight: 700;
+}
+
+/* 斜体 */
+.milkup-emphasis {
+  font-style: italic;
+}
+
+/* 行内代码 */
+.milkup-code-inline {
+  background: var(--background-color-2, #f5f5f5);
+  color: var(--primary-color, #e83e8c);
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.9em;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+}
+
+/* 删除线 */
+.milkup-strikethrough {
+  text-decoration: line-through;
+  color: var(--text-color-3, #999);
+}
+
+/* 链接 */
+.milkup-editor a,
+.milkup-link {
+  color: var(--primary-color, #0366d6);
+  text-decoration: none;
+}
+
+.milkup-editor a:hover,
+.milkup-link:hover {
+  text-decoration: underline;
+}
+
+/* 链接语法标记 - 与链接正文样式一致 */
+.milkup-editor a.milkup-syntax-visible,
+.milkup-editor a.milkup-syntax,
+.milkup-editor a.milkup-syntax-marker,
+.milkup-editor a span.milkup-syntax-visible,
+.milkup-editor a span.milkup-syntax,
+.milkup-editor .milkup-link.milkup-syntax-visible,
+.milkup-editor .milkup-link.milkup-syntax,
+.milkup-editor .milkup-link.milkup-syntax-marker,
+.milkup-editor span.milkup-syntax-visible[data-syntax-type="link"],
+.milkup-editor span.milkup-syntax[data-syntax-type="link"] {
+  color: var(--primary-color, #0366d6);
+  font-family: inherit;
+  font-size: inherit;
+  text-decoration: none;
+}
+
+/* 高亮 */
+.milkup-highlight {
+  background: var(--active-color, #fff3cd);
+  padding: 0.1em 0.2em;
+  border-radius: 2px;
+}
+
+/* 标题 */
+.milkup-editor h1,
+.milkup-editor h2,
+.milkup-editor h3,
+.milkup-editor h4,
+.milkup-editor h5,
+.milkup-editor h6 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.milkup-editor h1 { font-size: 2em; }
+.milkup-editor h2 { font-size: 1.5em; }
+.milkup-editor h3 { font-size: 1.25em; }
+.milkup-editor h4 { font-size: 1em; }
+.milkup-editor h5 { font-size: 0.875em; }
+.milkup-editor h6 { font-size: 0.85em; color: var(--text-color-2, #6a737d); }
+
+/* 段落 */
+.milkup-editor p {
+  margin: 0 0 1em;
+}
+
+/* 引用块 */
+.milkup-editor blockquote {
+  margin: 1em 0;
+  padding: 0.5em 1em;
+  border-left: 4px solid var(--border-color, #dfe2e5);
+  color: var(--text-color-2, #6a737d);
+  background: var(--background-color-1, #f8f9fa);
+}
+
+.milkup-editor blockquote > :first-child {
+  margin-top: 0;
+}
+
+.milkup-editor blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+/* 代码块 */
+.milkup-code-block {
+  margin: 1em 0;
+  border-radius: 6px;
+  overflow: visible;
+  background: var(--background-color-1, #f6f8fa);
+  border: 1px solid var(--border-color, #e1e4e8);
+}
+
+.milkup-code-block-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--background-color-2, #f1f3f5);
+  border-bottom: 1px solid var(--border-color, #e1e4e8);
+}
+
+/* 自定义下拉选择器 */
+.milkup-custom-select {
+  position: relative;
+  display: inline-block;
+}
+
+.milkup-custom-select-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text-color-2, #666);
+  background: var(--background-color-1, #fff);
+  border: 1px solid var(--border-color, #e1e4e8);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-width: 80px;
+  justify-content: space-between;
+}
+
+.milkup-custom-select-button::after {
+  content: '';
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 4px solid var(--text-color-3, #999);
+  transition: transform 0.15s ease;
+}
+
+.milkup-custom-select.open .milkup-custom-select-button::after {
+  transform: rotate(180deg);
+}
+
+.milkup-custom-select-button:hover {
+  background: var(--hover-background-color, rgba(0, 0, 0, 0.05));
+  border-color: var(--border-color-1, #ccc);
+}
+
+.milkup-custom-select-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  min-width: 120px;
+  max-height: 240px;
+  overflow-y: auto;
+  margin-top: 4px;
+  padding: 4px 0;
+  background: var(--background-color-1, #fff);
+  border: 1px solid var(--border-color, #e1e4e8);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: all 0.15s ease;
+}
+
+.milkup-custom-select.open .milkup-custom-select-dropdown {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/* 向上弹出 */
+.milkup-custom-select.dropup .milkup-custom-select-dropdown {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 4px;
+  transform: translateY(8px);
+}
+
+.milkup-custom-select.dropup.open .milkup-custom-select-dropdown {
+  transform: translateY(0);
+}
+
+.milkup-custom-select-item {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-color, #333);
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.milkup-custom-select-item:hover {
+  background: var(--hover-background-color, rgba(0, 0, 0, 0.05));
+}
+
+.milkup-custom-select-item.selected {
+  color: var(--primary-color, #0366d6);
+  background: var(--hover-color, rgba(3, 102, 214, 0.1));
+}
+
+/* 语言选择器 */
+.milkup-code-block-lang-select .milkup-custom-select-button {
+  min-width: 100px;
+}
+
+/* 模式选择器 */
+.milkup-code-block-mode-select .milkup-custom-select-button {
+  min-width: 70px;
+}
+
+.milkup-code-block-editor {
+  padding: 12px;
+}
+
+.milkup-code-block-editor .cm-editor {
+  background: transparent;
+}
+
+.milkup-code-block-editor .cm-editor.cm-focused {
+  outline: none;
+}
+
+.milkup-code-block-editor .cm-editor .cm-scroller {
+  outline: none;
+}
+
+.milkup-code-block-editor .cm-content {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 14px;
+  color: var(--text-color, #333);
+}
+
+/* 代码块底部点击区域 */
+.milkup-code-block-footer {
+  height: 12px;
+  cursor: text;
+  background: transparent;
+  margin-top: -4px;
+}
+
+.milkup-code-block-footer:hover {
+  background: var(--hover-background-color, rgba(0, 0, 0, 0.03));
+}
+
+/* 右键菜单 */
+.milkup-context-menu {
+  position: fixed;
+  z-index: 10000;
+  min-width: 120px;
+  padding: 4px 0;
+  background: var(--background-color-1, #fff);
+  border: 1px solid var(--border-color, #e1e4e8);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.milkup-context-menu-item {
+  padding: 6px 16px;
+  font-size: 13px;
+  color: var(--text-color, #333);
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.milkup-context-menu-item:hover:not(.disabled) {
+  background: var(--hover-background-color, rgba(0, 0, 0, 0.05));
+}
+
+.milkup-context-menu-item.disabled {
+  color: var(--text-color-3, #999);
+  cursor: not-allowed;
+}
+
+/* Mermaid 预览 */
+.milkup-mermaid-preview {
+  padding: 16px;
+  text-align: center;
+  border-top: 1px solid var(--border-color, #e1e4e8);
+  background: var(--background-color-1, #fff);
+}
+
+.milkup-mermaid-error {
+  color: var(--primary-color, #dc3545);
+  font-size: 14px;
+}
+
+/* 分隔线 */
+.milkup-editor hr {
+  height: 2px;
+  margin: 2em 0;
+  padding: 0;
+  background: var(--border-color, #e1e4e8);
+  border: none;
+}
+
+/* 列表 */
+.milkup-editor ul,
+.milkup-editor ol {
+  margin: 1em 0;
+  padding-left: 2em;
+}
+
+.milkup-editor li {
+  margin: 0.25em 0;
+}
+
+/* 任务列表 */
+.milkup-editor ul.task-list {
+  list-style: none;
+  padding-left: 0;
+}
+
+.milkup-editor li.task-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.milkup-editor li.task-item input[type="checkbox"] {
+  margin-top: 0.3em;
+  cursor: pointer;
+}
+
+/* 表格 */
+.milkup-editor table {
+  width: 100%;
+  margin: 1em 0;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.milkup-editor th,
+.milkup-editor td {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #dfe2e5);
+  text-align: left;
+}
+
+.milkup-editor th {
+  font-weight: 600;
+  background: var(--background-color-2, #f6f8fa);
+}
+
+.milkup-editor tr:nth-child(even) {
+  background: var(--background-color-1, #f8f9fa);
+}
+
+/* 图片 */
+.milkup-editor img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1em auto;
+  border-radius: 4px;
+}
+
+/* 图片块 NodeView */
+.milkup-editor .milkup-image-block {
+  margin: 1em 0;
+  text-align: center;
+}
+
+/* 图片预览区域 */
+.milkup-editor .milkup-image-block .milkup-image-preview {
+  cursor: pointer;
+}
+
+.milkup-editor .milkup-image-block .milkup-image-preview img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  border-radius: 4px;
+}
+
+/* 图片源码容器 */
+.milkup-editor .milkup-image-block .milkup-image-source-container {
+  display: none;
+  text-align: center;
+  padding: 0.5em 0;
+}
+
+/* 图片源码 - 使用正常文本样式 */
+.milkup-editor .milkup-image-block .milkup-image-source {
+  display: inline-block;
+  font-family: inherit;
+  font-size: inherit;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: inherit;
+}
+
+/* 编辑模式：同时显示图片和源码 */
+.milkup-editor .milkup-image-block.editing .milkup-image-source-container {
+  display: block;
+}
+
+/* 图片源码输入框 - 边框淡化 */
+.milkup-editor .milkup-image-block .milkup-image-source-input {
+  width: 100%;
+  max-width: 800px;
+  padding: 0.5em;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: 1px dashed var(--border-color, #e1e4e8);
+  border-radius: 0;
+  text-align: center;
+  outline: none;
+  user-select: text;
+  -webkit-user-drag: none;
+}
+
+.milkup-editor .milkup-image-block .milkup-image-source-container {
+  -webkit-user-drag: none;
+  user-select: text;
+  pointer-events: auto;
+}
+
+/* 编辑模式下禁止图片块拖动 */
+.milkup-editor .milkup-image-block.editing {
+  -webkit-user-drag: none;
+}
+
+.milkup-editor .milkup-image-block .milkup-image-source-input:focus {
+  border-bottom-color: var(--primary-color, #0366d6);
+  border-bottom-style: solid;
+}
+
+/* 源码在图片前面时的间距 */
+.milkup-editor .milkup-image-block.source-before .milkup-image-source-container {
+  margin-bottom: 0.5em;
+}
+
+/* 源码在图片后面时的间距 */
+.milkup-editor .milkup-image-block.source-after .milkup-image-source-container {
+  margin-top: 0.5em;
+}
+
+/* 图片占位元素 */
+.milkup-editor .milkup-image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  padding: 1.5em;
+  background: var(--background-color-2, #f5f5f5);
+  border-radius: 8px;
+  color: var(--placeholder-color, #adb5bd);
+  gap: 0.5em;
+}
+
+.milkup-editor .milkup-image-placeholder-icon {
+  font-size: 2em;
+  opacity: 0.6;
+}
+
+.milkup-editor .milkup-image-placeholder-text {
+  font-size: 0.9em;
+}
+
+.milkup-editor .milkup-image-placeholder-src {
+  font-size: 0.8em;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  word-break: break-all;
+  max-width: 100%;
+  opacity: 0.7;
+}
+
+/* 图片加载错误占位 */
+.milkup-editor .milkup-image-error-placeholder {
+  background: var(--background-color-1, #f8f9fa);
+  border: 1px dashed var(--primary-color, #dc3545);
+}
+
+.milkup-editor .milkup-image-error-placeholder .milkup-image-placeholder-text {
+  color: var(--primary-color, #dc3545);
+}
+
+/* 图片加载错误（旧样式，保留兼容） */
+.milkup-editor .milkup-image-error {
+  color: var(--primary-color, #dc3545);
+  font-style: italic;
+}
+
+/* 数学块 */
+.milkup-editor .math-block {
+  margin: 1em 0;
+  text-align: center;
+  overflow-x: auto;
+  color: inherit;
+}
+
+/* 数学块预览区域 */
+.milkup-editor .math-block .math-preview {
+  padding: 0.5em 0;
+  cursor: pointer;
+  color: inherit;
+}
+
+.milkup-editor .math-block .math-preview .katex {
+  color: inherit !important;
+}
+
+/* 强制 KaTeX 所有元素继承颜色 */
+.milkup-editor .math-block .math-preview .katex *,
+.milkup-editor .math-block .math-preview .katex .katex-html,
+.milkup-editor .math-block .math-preview .katex .base,
+.milkup-editor .math-block .math-preview .katex .strut,
+.milkup-editor .math-block .math-preview .katex .mord,
+.milkup-editor .math-block .math-preview .katex .mbin,
+.milkup-editor .math-block .math-preview .katex .mrel,
+.milkup-editor .math-block .math-preview .katex .mopen,
+.milkup-editor .math-block .math-preview .katex .mclose,
+.milkup-editor .math-block .math-preview .katex .mpunct,
+.milkup-editor .math-block .math-preview .katex .minner {
+  color: inherit !important;
+}
+
+/* 数学块源码容器 */
+.milkup-editor .math-block .math-source-container {
+  display: none;
+  text-align: center;
+  padding: 0.5em 0;
+  color: inherit;
+}
+
+/* 数学块源码 - 与渲染状态保持一致的大小和颜色 */
+.milkup-editor .math-block .math-source {
+  display: inline-block;
+  font-family: KaTeX_Main, 'Times New Roman', serif;
+  font-size: 1.21em;
+  white-space: pre-wrap;
+  text-align: center;
+  color: inherit;
+}
+
+/* 编辑模式：隐藏预览，显示源码 */
+.milkup-editor .math-block.editing .math-preview {
+  display: none;
+}
+
+.milkup-editor .math-block.editing .math-source-container {
+  display: block;
+}
+
+/* 行内数学 */
+.milkup-editor .math-inline,
+.milkup-math-inline {
+  /* 由 KaTeX 渲染，无额外样式 */
+}
+
+/* 行内数学公式的语法标记（$ 符号）- 颜色与正文一致 */
+.milkup-editor span.milkup-syntax[data-syntax-type="math_inline"],
+.milkup-editor span.milkup-syntax-visible[data-syntax-type="math_inline"] {
+  color: inherit !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+}
+
+/* 行内数学公式内容 - 颜色与正文一致 */
+.milkup-editor span.math-inline {
+  color: inherit !important;
+}
+
+/* 行内数学公式源码隐藏 */
+.milkup-math-source-hidden {
+  font-size: 0;
+  opacity: 0;
+  width: 0;
+  display: inline;
+  user-select: none;
+}
+
+/* 行内数学公式渲染结果 - 颜色与正文一致 */
+.milkup-editor .milkup-math-rendered {
+  display: inline;
+  color: inherit;
+}
+
+.milkup-editor .milkup-math-rendered .katex {
+  font-size: 1em;
+  color: inherit !important;
+}
+
+/* 强制行内 KaTeX 所有元素继承颜色 */
+.milkup-editor .milkup-math-rendered .katex *,
+.milkup-editor .milkup-math-rendered .katex .katex-html,
+.milkup-editor .milkup-math-rendered .katex .base,
+.milkup-editor .milkup-math-rendered .katex .strut,
+.milkup-editor .milkup-math-rendered .katex .mord,
+.milkup-editor .milkup-math-rendered .katex .mbin,
+.milkup-editor .milkup-math-rendered .katex .mrel,
+.milkup-editor .milkup-math-rendered .katex .mopen,
+.milkup-editor .milkup-math-rendered .katex .mclose,
+.milkup-editor .milkup-math-rendered .katex .mpunct,
+.milkup-editor .milkup-math-rendered .katex .minner {
+  color: inherit !important;
+}
+
+/* 数学公式错误 */
+.milkup-editor .math-error {
+  color: var(--primary-color, #dc3545);
+  font-family: monospace;
+}
+
+/* 数学公式占位符 */
+.milkup-editor .math-placeholder {
+  color: var(--placeholder-color, #adb5bd);
+  font-style: italic;
+}
+
+/* 容器 */
+.milkup-editor .container {
+  margin: 1em 0;
+  padding: 1em;
+  border-radius: 6px;
+  border-left: 4px solid;
+}
+
+.milkup-editor .container-note {
+  background: #e8f4fd;
+  border-color: #0366d6;
+}
+
+.milkup-editor .container-tip {
+  background: #e6f6e6;
+  border-color: #28a745;
+}
+
+.milkup-editor .container-warning {
+  background: #fff8e6;
+  border-color: #ffc107;
+}
+
+.milkup-editor .container-danger {
+  background: #ffeef0;
+  border-color: #dc3545;
+}
+
+/* 源码视图模式 */
+.milkup-editor.source-view .milkup-syntax-hidden {
+  display: inline;
+  color: var(--text-color-3, #999);
+}
+
+/* 光标样式 */
+.milkup-editor .ProseMirror-cursor {
+  border-left: 2px solid var(--text-color, #333);
+}
+
+/* 选区样式 */
+.milkup-editor .ProseMirror-selectednode {
+  outline: 2px solid var(--primary-color, #0366d6);
+}
+
+/* 占位符 */
+.milkup-editor.ProseMirror-empty::before {
+  content: attr(data-placeholder);
+  color: var(--placeholder-color, #adb5bd);
+  pointer-events: none;
+  position: absolute;
+}
