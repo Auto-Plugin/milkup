@@ -16,6 +16,7 @@ import SaveConfirmDialog from "./components/dialogs/SaveConfirmDialog.vue";
 import UpdateConfirmDialog from "./components/dialogs/UpdateConfirmDialog.vue";
 import MarkdownSourceEditor from "./components/editor/MarkdownSourceEditor.vue";
 import MilkdownEditor from "./components/editor/MilkdownEditor.vue";
+import MilkupEditor from "./components/editor/MilkupEditor.vue";
 import StatusBar from "./components/menu/StatusBar.vue";
 import TitleBar from "./components/menu/TitleBar.vue";
 import Outline from "./components/outline/Outline.vue";
@@ -56,6 +57,10 @@ const {
   handleCancel: handleUpdateCancel,
   showDialog: showUpdateDialog,
 } = useUpdateDialog();
+
+// 编辑器类型：'milkdown' | 'milkup'
+import { ref } from "vue";
+const editorType = ref<"milkdown" | "milkup">("milkup");
 
 // 监听主进程的关闭确认事件
 window.electronAPI.on("close:confirm", async () => {
@@ -166,12 +171,19 @@ const handleInstall = async () => {
         </div>
       </Transition>
       <div class="editorBox">
-        <MilkdownProvider v-if="!isShowSource">
-          <MilkupProvider>
-            <MilkdownEditor v-model="markdown" :read-only="currentTab?.readOnly" />
-            <!-- <VditorEditor v-model="markdown" /> -->
-          </MilkupProvider>
-        </MilkdownProvider>
+        <!-- Milkup 编辑器（新内核） -->
+        <template v-if="editorType === 'milkup' && !isShowSource">
+          <MilkupEditor v-model="markdown" :read-only="currentTab?.readOnly" />
+        </template>
+        <!-- Milkdown 编辑器（原有） -->
+        <template v-else-if="editorType === 'milkdown' && !isShowSource">
+          <MilkdownProvider>
+            <MilkupProvider>
+              <MilkdownEditor v-model="markdown" :read-only="currentTab?.readOnly" />
+            </MilkupProvider>
+          </MilkdownProvider>
+        </template>
+        <!-- 源码编辑器 -->
         <MarkdownSourceEditor
           v-else-if="isShowSource"
           v-model="markdown"

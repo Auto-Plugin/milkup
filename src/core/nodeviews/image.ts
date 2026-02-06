@@ -1,0 +1,477 @@
+/**
+ * Milkup 图片 NodeView
+ *
+ * 支持编辑模式和预览模式切换
+ * 聚焦时同时显示图片和源码，离开时只显示图片
+ * 源码可编辑，编辑后自动更新图片属性
+ * 源码位置根据光标进入方向动态调整
+ */
+
+import { Node } from "prosemirror-model";
+import { EditorView, NodeView } from "prosemirror-view";
+import { NodeSelection } from "prosemirror-state";
+
+// 存储所有 ImageView 实例，用于全局更新
+const imageViews = new Set<ImageView>();
+
+// 记录上一次光标位置，用于判断进入方向
+let lastCursorPos = 0;
+
+/**
+ * 更新所有图片的编辑状态
+ */
+export function updateAllImages(view: EditorView): void {
+  const { from, to } = view.state.selection;
+  const selection = view.state.selection;
+
+  for (const imageView of imageViews) {
+    imageView.updateEditingState(from, to, selection, lastCursorPos);
+  }
+
+  // 更新上一次光标位置
+  lastCursorPos = from;
+}
+
+/**
+ * 解析图片 Markdown 语法
+ * 格式: ![alt](src "title")
+ */
+function parseImageMarkdown(markdown: string): { src: string; alt: string; title: string } | null {
+  const match = markdown.match(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)$/);
+  if (!match) return null;
+  return {
+    alt: match[1] || "",
+    src: match[2] || "",
+    title: match[3] || "",
+  };
+}
+
+/**
+ * 图片 NodeView
+ *
+ * 图片是原子节点，不使用 contentDOM
+ * 源码可编辑，编辑后自动更新图片属性
+ */
+export class ImageView implements NodeView {
+  dom: HTMLElement;
+  private imgElement: HTMLElement;
+  private sourceContainer: HTMLElement;
+  private sourceInput: HTMLInputElement;
+  private view: EditorView;
+  private getPos: () => number | undefined;
+  private isEditing: boolean = false;
+  private node: Node;
+  private sourcePosition: "before" | "after" = "after";
+
+  constructor(node: Node, view: EditorView, getPos: () => number | undefined) {
+    this.view = view;
+    this.getPos = getPos;
+    this.node = node;
+
+    // 注册到全局集合
+    imageViews.add(this);
+
+    // 创建容器
+    this.dom = document.createElement("div");
+    this.dom.className = "milkup-image-block";
+
+    // 创建图片元素
+    this.imgElement = document.createElement("div");
+    this.imgElement.className = "milkup-image-preview";
+    this.dom.appendChild(this.imgElement);
+
+    // 创建源码容器（编辑模式下显示）
+    this.sourceContainer = document.createElement("div");
+    this.sourceContainer.className = "milkup-image-source-container";
+    this.dom.appendChild(this.sourceContainer);
+
+    // 创建源码输入框
+    this.sourceInput = document.createElement("input");
+    this.sourceInput.type = "text";
+    this.sourceInput.className = "milkup-image-source-input";
+    this.sourceInput.draggable = false; // 禁止拖动
+    this.sourceContainer.appendChild(this.sourceInput);
+
+    // 禁止容器拖动
+    this.dom.draggable = false;
+    this.sourceContainer.draggable = false;
+
+    // 阻止源码容器的拖动事件
+    this.sourceContainer.addEventListener("dragstart", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+    this.sourceContainer.addEventListener("mousedown", (e) => {
+      // 阻止事件冒泡到 ProseMirror，防止触发节点拖动
+      e.stopPropagation();
+    });
+
+    // 初始渲染
+    this.updateContent(node);
+
+    // 点击图片进入编辑模式
+    this.imgElement.addEventListener("click", (e) => {
+      e.preventDefault();
+      this.selectThisNode();
+    });
+
+    // 源码输入框事件
+    this.sourceInput.addEventListener("blur", () => {
+      this.applySourceChange();
+    });
+
+    // 实时响应源码变化
+    this.sourceInput.addEventListener("input", () => {
+      this.previewSourceChange();
+    });
+
+    this.sourceInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        this.applySourceChange();
+        // 移动光标到下一行
+        const pos = this.getPos();
+        if (pos !== undefined) {
+          const { state } = this.view;
+          const $pos = state.doc.resolve(pos + this.node.nodeSize);
+          const tr = state.tr.setSelection(state.selection.constructor.near($pos));
+          this.view.dispatch(tr);
+          this.view.focus();
+        }
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        // 恢复原始值
+        this.updateSourceInput();
+        this.view.focus();
+      } else if (e.key === "Backspace") {
+        // 当输入框为空时，删除整个图片节点
+        if (
+          this.sourceInput.value === "" ||
+          (this.sourceInput.selectionStart === 0 && this.sourceInput.selectionEnd === 0)
+        ) {
+          if (this.sourceInput.value === "") {
+            e.preventDefault();
+            this.deleteImageNode();
+          }
+        }
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        this.applySourceChange();
+        // 移动光标到图片之前
+        const pos = this.getPos();
+        if (pos !== undefined) {
+          const { state } = this.view;
+          const $pos = state.doc.resolve(pos);
+          const tr = state.tr.setSelection(state.selection.constructor.near($pos, -1));
+          this.view.dispatch(tr);
+          this.view.focus();
+        }
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        this.applySourceChange();
+        // 移动光标到图片之后
+        const pos = this.getPos();
+        if (pos !== undefined) {
+          const { state } = this.view;
+          const $pos = state.doc.resolve(pos + this.node.nodeSize);
+          const tr = state.tr.setSelection(state.selection.constructor.near($pos, 1));
+          this.view.dispatch(tr);
+          this.view.focus();
+        }
+      }
+    });
+  }
+
+  update(node: Node): boolean {
+    if (node.type.name !== "image") return false;
+    this.node = node;
+    this.updateContent(node);
+    return true;
+  }
+
+  private updateContent(node: Node): void {
+    const { src, alt, title } = node.attrs;
+    this.renderImage(src, alt, title);
+
+    // 更新源码输入框（仅在非编辑状态下更新，避免覆盖用户输入）
+    if (!this.isEditing) {
+      this.updateSourceInput();
+    }
+  }
+
+  /**
+   * 渲染图片
+   */
+  private renderImage(src: string, alt: string, title?: string): void {
+    // 清空容器
+    this.imgElement.innerHTML = "";
+
+    if (!src) {
+      this.showImagePlaceholder("请输入图片地址");
+      return;
+    }
+
+    const img = document.createElement("img");
+    img.src = src;
+    img.alt = alt;
+    if (title) img.title = title;
+    img.onerror = () => {
+      this.showImageError(src);
+    };
+    this.imgElement.appendChild(img);
+  }
+
+  /**
+   * 显示图片加载失败占位
+   */
+  private showImageError(src: string): void {
+    this.imgElement.innerHTML = "";
+    const placeholder = document.createElement("div");
+    placeholder.className = "milkup-image-placeholder milkup-image-error-placeholder";
+    placeholder.innerHTML = `
+      <span class="milkup-image-placeholder-icon">🖼️</span>
+      <span class="milkup-image-placeholder-text">图片加载失败</span>
+      <span class="milkup-image-placeholder-src">${this.escapeHtml(src)}</span>
+    `;
+    this.imgElement.appendChild(placeholder);
+  }
+
+  /**
+   * 显示图片占位
+   */
+  private showImagePlaceholder(text: string): void {
+    this.imgElement.innerHTML = "";
+    const placeholder = document.createElement("div");
+    placeholder.className = "milkup-image-placeholder";
+    placeholder.innerHTML = `
+      <span class="milkup-image-placeholder-icon">🖼️</span>
+      <span class="milkup-image-placeholder-text">${this.escapeHtml(text)}</span>
+    `;
+    this.imgElement.appendChild(placeholder);
+  }
+
+  /**
+   * 转义 HTML
+   */
+  private escapeHtml(text: string): string {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  private updateSourceInput(): void {
+    const { src, alt, title } = this.node.attrs;
+    let markdown = `![${alt}](${src}`;
+    if (title) {
+      markdown += ` "${title}"`;
+    }
+    markdown += ")";
+    this.sourceInput.value = markdown;
+  }
+
+  /**
+   * 实时预览源码变化（不更新 ProseMirror 状态）
+   */
+  private previewSourceChange(): void {
+    const newMarkdown = this.sourceInput.value.trim();
+    const parsed = parseImageMarkdown(newMarkdown);
+
+    if (parsed) {
+      // 实时更新图片预览
+      this.renderImage(parsed.src, parsed.alt, parsed.title);
+    } else {
+      // 语法不完整时显示占位
+      this.showImagePlaceholder("请输入完整的图片语法");
+    }
+  }
+
+  /**
+   * 应用源码变更（更新 ProseMirror 状态）
+   */
+  private applySourceChange(): void {
+    const newMarkdown = this.sourceInput.value.trim();
+    const parsed = parseImageMarkdown(newMarkdown);
+
+    if (!parsed) {
+      // 解析失败，恢复原始值
+      this.updateSourceInput();
+      return;
+    }
+
+    const pos = this.getPos();
+    if (pos === undefined) return;
+
+    const { state } = this.view;
+    const { src, alt, title } = this.node.attrs;
+
+    // 检查是否有变化
+    if (parsed.src === src && parsed.alt === alt && parsed.title === title) {
+      return;
+    }
+
+    // 更新节点属性
+    const tr = state.tr.setNodeMarkup(pos, undefined, {
+      src: parsed.src,
+      alt: parsed.alt,
+      title: parsed.title,
+    });
+    this.view.dispatch(tr);
+  }
+
+  /**
+   * 删除图片节点
+   */
+  private deleteImageNode(): void {
+    const pos = this.getPos();
+    if (pos === undefined) return;
+
+    const { state } = this.view;
+    const tr = state.tr.delete(pos, pos + this.node.nodeSize);
+
+    // 如果删除后文档为空，创建一个空段落
+    if (tr.doc.content.size === 0) {
+      const paragraph = state.schema.nodes.paragraph.create();
+      tr.insert(0, paragraph);
+    }
+
+    this.view.dispatch(tr);
+    this.view.focus();
+  }
+
+  /**
+   * 选中此节点
+   */
+  private selectThisNode(): void {
+    const pos = this.getPos();
+    if (pos === undefined) return;
+
+    const { state } = this.view;
+    const selection = NodeSelection.create(state.doc, pos);
+
+    const tr = state.tr.setSelection(selection);
+    this.view.dispatch(tr);
+    this.view.focus();
+  }
+
+  /**
+   * 根据光标位置更新编辑状态
+   */
+  updateEditingState(selFrom: number, selTo: number, selection: any, prevCursorPos: number): void {
+    const pos = this.getPos();
+    if (pos === undefined) return;
+
+    const node = this.view.state.doc.nodeAt(pos);
+    if (!node) return;
+
+    const nodeStart = pos;
+    const nodeEnd = pos + node.nodeSize;
+
+    // 只有 NodeSelection 选中此节点时才进入编辑模式
+    const isSelected = selection instanceof NodeSelection && selection.from === pos;
+
+    if (isSelected && !this.isEditing) {
+      // 判断进入方向：从前方还是后方进入
+      const enterFromBefore = prevCursorPos <= nodeStart;
+      this.setSourcePosition(enterFromBefore ? "before" : "after");
+      this.setEditing(true);
+    } else if (!isSelected && this.isEditing) {
+      this.setEditing(false);
+    }
+  }
+
+  /**
+   * 设置源码位置
+   */
+  private setSourcePosition(position: "before" | "after"): void {
+    if (this.sourcePosition === position) return;
+    this.sourcePosition = position;
+
+    // 调整 DOM 顺序
+    if (position === "before") {
+      this.dom.insertBefore(this.sourceContainer, this.imgElement);
+      this.dom.classList.add("source-before");
+      this.dom.classList.remove("source-after");
+    } else {
+      this.dom.appendChild(this.sourceContainer);
+      this.dom.classList.remove("source-before");
+      this.dom.classList.add("source-after");
+    }
+  }
+
+  private setEditing(editing: boolean): void {
+    this.isEditing = editing;
+    if (editing) {
+      this.dom.classList.add("editing");
+      // 自动聚焦到输入框
+      requestAnimationFrame(() => {
+        this.sourceInput.focus();
+        // 根据进入方向设置光标位置
+        if (this.sourcePosition === "before") {
+          // 从上方进入，光标在开头
+          this.sourceInput.setSelectionRange(0, 0);
+        } else {
+          // 从下方进入，光标在末尾
+          const len = this.sourceInput.value.length;
+          this.sourceInput.setSelectionRange(len, len);
+        }
+        // 确保输入框在可视范围内
+        this.sourceInput.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+    } else {
+      this.dom.classList.remove("editing");
+    }
+  }
+
+  selectNode(): void {
+    // 点击选中时，默认源码在下方
+    this.setSourcePosition("after");
+    this.setEditing(true);
+  }
+
+  deselectNode(): void {
+    this.setEditing(false);
+  }
+
+  stopEvent(event: Event): boolean {
+    // 允许输入框接收所有事件
+    if (event.target === this.sourceInput) {
+      // 阻止拖动事件
+      if (event.type === "dragstart" || event.type === "drag") {
+        event.preventDefault();
+        return true;
+      }
+      return true;
+    }
+    // 阻止源码容器的拖动
+    if (
+      event.target === this.sourceContainer ||
+      this.sourceContainer.contains(event.target as Node)
+    ) {
+      if (event.type === "dragstart" || event.type === "drag") {
+        event.preventDefault();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  ignoreMutation(): boolean {
+    return true;
+  }
+
+  destroy(): void {
+    // 从全局集合中移除
+    imageViews.delete(this);
+  }
+}
+
+/**
+ * 创建图片 NodeView
+ */
+export function createImageNodeView(
+  node: Node,
+  view: EditorView,
+  getPos: () => number | undefined
+): NodeView {
+  return new ImageView(node, view, getPos);
+}
