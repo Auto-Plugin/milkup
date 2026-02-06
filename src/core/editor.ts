@@ -32,10 +32,16 @@ import {
 } from "./plugins/paste";
 import { createMathBlockSyncPlugin } from "./plugins/math-block-sync";
 import { createImageSyncPlugin } from "./plugins/image-sync";
+import { createAICompletionPlugin } from "./plugins/ai-completion";
 import { createKeymapPlugin } from "./keymap";
 import { createCodeBlockNodeView } from "./nodeviews/code-block";
 import { createMathBlockNodeView } from "./nodeviews/math-block";
 import { createImageNodeView } from "./nodeviews/image";
+import {
+  createBulletListNodeView,
+  createOrderedListNodeView,
+  createListItemNodeView,
+} from "./nodeviews/list";
 import { toggleSourceView, setSourceView, decorationPluginKey } from "./decorations";
 import type { MilkupConfig, MilkupEditor as IMilkupEditor, MilkupPlugin } from "./types";
 
@@ -82,6 +88,9 @@ export class MilkupEditor implements IMilkupEditor {
         code_block: createCodeBlockNodeView,
         math_block: createMathBlockNodeView,
         image: createImageNodeView,
+        bullet_list: createBulletListNodeView,
+        ordered_list: createOrderedListNodeView,
+        list_item: createListItemNodeView,
       },
       dispatchTransaction: (tr) => this.dispatchTransaction(tr),
       attributes: {
@@ -134,6 +143,12 @@ export class MilkupEditor implements IMilkupEditor {
       // 图片状态同步插件
       createImageSyncPlugin(),
     ];
+
+    // AI 续写插件（如果配置了）
+    if (this.config.aiConfig) {
+      const aiConfig = this.config.aiConfig;
+      plugins.push(createAICompletionPlugin(() => aiConfig));
+    }
 
     return plugins;
   }

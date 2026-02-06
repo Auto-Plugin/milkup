@@ -14,7 +14,6 @@ import useTheme from "@/renderer/hooks/useTheme";
 import { useUpdateDialog } from "@/renderer/hooks/useUpdateDialog";
 import SaveConfirmDialog from "./components/dialogs/SaveConfirmDialog.vue";
 import UpdateConfirmDialog from "./components/dialogs/UpdateConfirmDialog.vue";
-import MarkdownSourceEditor from "./components/editor/MarkdownSourceEditor.vue";
 import MilkdownEditor from "./components/editor/MilkdownEditor.vue";
 import MilkupEditor from "./components/editor/MilkupEditor.vue";
 import StatusBar from "./components/menu/StatusBar.vue";
@@ -30,7 +29,8 @@ const { markdown } = useContent();
 const { init: initTheme } = useTheme();
 const { init: initFont } = useFont();
 const { init: initOtherConfig } = useOtherConfig();
-const { isShowSource } = useSourceCode();
+const { isShowSource } = useSourceCode(); // 用于控制大纲显示
+const { init: initSpellCheck } = useSpellCheck();
 const { currentTab, close, saveCurrentTab, getUnsavedTabs, switchToTab } = useTab();
 const {
   isDialogVisible,
@@ -105,6 +105,7 @@ onMounted(() => {
   initTheme();
   initFont();
   initOtherConfig();
+  initSpellCheck();
   emitter.on("update:available", onUpdateAvailable);
 });
 onUnmounted(() => {
@@ -171,24 +172,18 @@ const handleInstall = async () => {
         </div>
       </Transition>
       <div class="editorBox">
-        <!-- Milkup 编辑器（新内核） -->
-        <template v-if="editorType === 'milkup' && !isShowSource">
+        <!-- Milkup 编辑器（新内核，支持源码模式） -->
+        <template v-if="editorType === 'milkup'">
           <MilkupEditor v-model="markdown" :read-only="currentTab?.readOnly" />
         </template>
         <!-- Milkdown 编辑器（原有） -->
-        <template v-else-if="editorType === 'milkdown' && !isShowSource">
+        <template v-else-if="editorType === 'milkdown'">
           <MilkdownProvider>
             <MilkupProvider>
               <MilkdownEditor v-model="markdown" :read-only="currentTab?.readOnly" />
             </MilkupProvider>
           </MilkdownProvider>
         </template>
-        <!-- 源码编辑器 -->
-        <MarkdownSourceEditor
-          v-else-if="isShowSource"
-          v-model="markdown"
-          :read-only="currentTab?.readOnly"
-        />
       </div>
     </div>
   </div>

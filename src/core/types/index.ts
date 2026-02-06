@@ -6,6 +6,7 @@ import type { EditorState, Transaction } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 import type { Node, Schema } from "prosemirror-model";
 import type { PastePluginConfig } from "../plugins/paste";
+import type { AICompletionConfig } from "../plugins/ai-completion";
 
 /** 编辑器配置 */
 export interface MilkupConfig {
@@ -19,6 +20,8 @@ export interface MilkupConfig {
   imagePathProcessor?: ImagePathProcessor;
   /** 粘贴插件配置 */
   pasteConfig?: PastePluginConfig;
+  /** AI 续写配置 */
+  aiConfig?: AICompletionConfig;
   /** 自定义插件 */
   plugins?: MilkupPlugin[];
 }

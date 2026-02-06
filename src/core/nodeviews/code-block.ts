@@ -3,6 +3,7 @@
  *
  * 使用 CodeMirror 6 实现代码块编辑
  * 支持语法高亮和 Mermaid 图表预览
+ * 支持源码模式显示完整 Markdown 语法
  */
 
 import { Node as ProseMirrorNode } from "prosemirror-model";
@@ -19,6 +20,7 @@ import { html } from "@codemirror/lang-html";
 import { css } from "@codemirror/lang-css";
 import { json } from "@codemirror/lang-json";
 import { markdown } from "@codemirror/lang-markdown";
+import { sourceViewManager } from "../decorations";
 
 /** Mermaid 显示模式 */
 type MermaidDisplayMode = "code" | "mixed" | "diagram";
@@ -199,6 +201,11 @@ export class CodeBlockView implements NodeView {
   headerElement: HTMLElement | null = null;
   editorContainer: HTMLElement | null = null;
   contextMenu: HTMLElement | null = null;
+  // 源码模式相关
+  private sourceViewMode: boolean = false;
+  private sourceViewUnsubscribe: (() => void) | null = null;
+  private fenceStartElement: HTMLElement | null = null;
+  private fenceEndElement: HTMLElement | null = null;
 
   constructor(node: ProseMirrorNode, view: ProseMirrorView, getPos: () => number | undefined) {
     this.node = node;
@@ -355,6 +362,85 @@ export class CodeBlockView implements NodeView {
       requestAnimationFrame(() => {
         this.cm.focus();
       });
+    }
+
+    // 源码模式初始化
+    this.initSourceViewMode(normalizedLang);
+  }
+
+  /**
+   * 初始化源码模式
+   */
+  private initSourceViewMode(language: string): void {
+    // 创建开始围栏元素
+    this.fenceStartElement = document.createElement("div");
+    this.fenceStartElement.className = "milkup-code-fence milkup-code-fence-start";
+    this.fenceStartElement.textContent = "```" + language;
+
+    // 创建结束围栏元素
+    this.fenceEndElement = document.createElement("div");
+    this.fenceEndElement.className = "milkup-code-fence milkup-code-fence-end";
+    this.fenceEndElement.textContent = "```";
+
+    // 订阅源码模式状态变化
+    this.sourceViewUnsubscribe = sourceViewManager.subscribe((sourceView) => {
+      this.setSourceViewMode(sourceView);
+    });
+  }
+
+  /**
+   * 设置源码模式
+   */
+  private setSourceViewMode(enabled: boolean): void {
+    if (this.sourceViewMode === enabled) return;
+    this.sourceViewMode = enabled;
+
+    if (enabled) {
+      // 进入源码模式
+      this.dom.classList.add("source-view");
+      // 隐藏头部
+      if (this.headerElement) {
+        this.headerElement.style.display = "none";
+      }
+      // 在编辑器容器前插入开始围栏
+      if (this.fenceStartElement && this.editorContainer) {
+        this.dom.insertBefore(this.fenceStartElement, this.editorContainer);
+      }
+      // 在编辑器容器后插入结束围栏
+      if (this.fenceEndElement && this.editorContainer) {
+        this.editorContainer.after(this.fenceEndElement);
+      }
+      // 隐藏 Mermaid 预览
+      if (this.mermaidPreview) {
+        this.mermaidPreview.style.display = "none";
+      }
+    } else {
+      // 退出源码模式
+      this.dom.classList.remove("source-view");
+      // 显示头部
+      if (this.headerElement) {
+        this.headerElement.style.display = "";
+      }
+      // 移除围栏元素
+      if (this.fenceStartElement && this.fenceStartElement.parentNode) {
+        this.fenceStartElement.remove();
+      }
+      if (this.fenceEndElement && this.fenceEndElement.parentNode) {
+        this.fenceEndElement.remove();
+      }
+      // 恢复 Mermaid 预览
+      if (this.mermaidPreview && this.node.attrs.language === "mermaid") {
+        this.updateMermaidDisplay();
+      }
+    }
+  }
+
+  /**
+   * 更新围栏语言标识
+   */
+  private updateFenceLanguage(language: string): void {
+    if (this.fenceStartElement) {
+      this.fenceStartElement.textContent = "```" + language;
     }
   }
 
@@ -664,6 +750,9 @@ export class CodeBlockView implements NodeView {
       this.mermaidPreview.remove();
       this.mermaidPreview = null;
     }
+
+    // 更新围栏语言标识
+    this.updateFenceLanguage(language);
   }
 
   /**
@@ -931,6 +1020,11 @@ export class CodeBlockView implements NodeView {
       this.themeObserver = null;
     }
     this.hideContextMenu();
+    // 取消订阅源码模式状态
+    if (this.sourceViewUnsubscribe) {
+      this.sourceViewUnsubscribe();
+      this.sourceViewUnsubscribe = null;
+    }
   }
 }
 

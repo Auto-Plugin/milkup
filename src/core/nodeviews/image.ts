@@ -5,11 +5,13 @@
  * 聚焦时同时显示图片和源码，离开时只显示图片
  * 源码可编辑，编辑后自动更新图片属性
  * 源码位置根据光标进入方向动态调整
+ * 支持源码模式只显示原始 Markdown 文本
  */
 
 import { Node } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
 import { NodeSelection } from "prosemirror-state";
+import { sourceViewManager } from "../decorations";
 
 // 存储所有 ImageView 实例，用于全局更新
 const imageViews = new Set<ImageView>();
@@ -51,6 +53,7 @@ function parseImageMarkdown(markdown: string): { src: string; alt: string; title
  *
  * 图片是原子节点，不使用 contentDOM
  * 源码可编辑，编辑后自动更新图片属性
+ * 支持源码模式只显示原始 Markdown 文本
  */
 export class ImageView implements NodeView {
   dom: HTMLElement;
@@ -62,6 +65,10 @@ export class ImageView implements NodeView {
   private isEditing: boolean = false;
   private node: Node;
   private sourcePosition: "before" | "after" = "after";
+  // 源码模式相关
+  private sourceViewMode: boolean = false;
+  private sourceViewUnsubscribe: (() => void) | null = null;
+  private sourceTextElement: HTMLElement | null = null;
 
   constructor(node: Node, view: EditorView, getPos: () => number | undefined) {
     this.view = view;
@@ -180,12 +187,161 @@ export class ImageView implements NodeView {
         }
       }
     });
+
+    // 源码模式初始化
+    this.initSourceViewMode();
+  }
+
+  /**
+   * 初始化源码模式
+   */
+  private initSourceViewMode(): void {
+    // 创建源码文本元素（源码模式下显示）
+    this.sourceTextElement = document.createElement("div");
+    this.sourceTextElement.className = "milkup-image-source-text";
+    this.sourceTextElement.contentEditable = "true";
+    this.sourceTextElement.spellcheck = false;
+    this.updateSourceText();
+
+    // 源码文本编辑事件
+    this.sourceTextElement.addEventListener("input", () => {
+      this.handleSourceTextInput();
+    });
+
+    this.sourceTextElement.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        this.applySourceTextChange();
+        // 移动光标到下一行
+        const pos = this.getPos();
+        if (pos !== undefined) {
+          const { state } = this.view;
+          const $pos = state.doc.resolve(pos + this.node.nodeSize);
+          const tr = state.tr.setSelection(state.selection.constructor.near($pos));
+          this.view.dispatch(tr);
+          this.view.focus();
+        }
+      } else if (e.key === "Backspace") {
+        const text = this.sourceTextElement?.textContent || "";
+        const selection = window.getSelection();
+        if (
+          text === "" ||
+          (selection && selection.anchorOffset === 0 && selection.focusOffset === 0)
+        ) {
+          if (text === "") {
+            e.preventDefault();
+            this.deleteImageNode();
+          }
+        }
+      }
+    });
+
+    this.sourceTextElement.addEventListener("blur", () => {
+      this.applySourceTextChange();
+    });
+
+    // 订阅源码模式状态变化
+    this.sourceViewUnsubscribe = sourceViewManager.subscribe((sourceView) => {
+      this.setSourceViewMode(sourceView);
+    });
+  }
+
+  /**
+   * 更新源码文本
+   */
+  private updateSourceText(): void {
+    if (!this.sourceTextElement) return;
+    const { src, alt, title } = this.node.attrs;
+    let markdown = `![${alt}](${src}`;
+    if (title) {
+      markdown += ` "${title}"`;
+    }
+    markdown += ")";
+    this.sourceTextElement.textContent = markdown;
+  }
+
+  /**
+   * 处理源码文本输入
+   */
+  private handleSourceTextInput(): void {
+    // 实时预览不需要做什么，因为源码模式下不显示图片
+  }
+
+  /**
+   * 应用源码文本变更
+   */
+  private applySourceTextChange(): void {
+    if (!this.sourceTextElement) return;
+    const newMarkdown = this.sourceTextElement.textContent?.trim() || "";
+    const parsed = parseImageMarkdown(newMarkdown);
+
+    if (!parsed) {
+      // 解析失败，恢复原始值
+      this.updateSourceText();
+      return;
+    }
+
+    const pos = this.getPos();
+    if (pos === undefined) return;
+
+    const { state } = this.view;
+    const { src, alt, title } = this.node.attrs;
+
+    // 检查是否有变化
+    if (parsed.src === src && parsed.alt === alt && parsed.title === title) {
+      return;
+    }
+
+    // 更新节点属性
+    const tr = state.tr.setNodeMarkup(pos, undefined, {
+      src: parsed.src,
+      alt: parsed.alt,
+      title: parsed.title,
+    });
+    this.view.dispatch(tr);
+  }
+
+  /**
+   * 设置源码模式
+   */
+  private setSourceViewMode(enabled: boolean): void {
+    if (this.sourceViewMode === enabled) return;
+    this.sourceViewMode = enabled;
+
+    if (enabled) {
+      // 进入源码模式
+      this.dom.classList.add("source-view");
+      // 隐藏图片预览
+      this.imgElement.style.display = "none";
+      // 隐藏编辑模式的源码容器
+      this.sourceContainer.style.display = "none";
+      // 显示源码文本
+      if (this.sourceTextElement) {
+        this.updateSourceText();
+        this.dom.appendChild(this.sourceTextElement);
+      }
+    } else {
+      // 退出源码模式
+      this.dom.classList.remove("source-view");
+      // 显示图片预览
+      this.imgElement.style.display = "";
+      // 恢复编辑模式的源码容器显示状态
+      this.sourceContainer.style.display = "";
+      // 移除源码文本
+      if (this.sourceTextElement && this.sourceTextElement.parentNode) {
+        this.sourceTextElement.remove();
+      }
+    }
   }
 
   update(node: Node): boolean {
     if (node.type.name !== "image") return false;
     this.node = node;
     this.updateContent(node);
+    // 源码模式下也更新源码文本
+    if (this.sourceViewMode) {
+      this.updateSourceText();
+    }
     return true;
   }
 
@@ -442,6 +598,14 @@ export class ImageView implements NodeView {
       }
       return true;
     }
+    // 允许源码文本元素接收所有事件
+    if (event.target === this.sourceTextElement) {
+      if (event.type === "dragstart" || event.type === "drag") {
+        event.preventDefault();
+        return true;
+      }
+      return true;
+    }
     // 阻止源码容器的拖动
     if (
       event.target === this.sourceContainer ||
@@ -462,6 +626,11 @@ export class ImageView implements NodeView {
   destroy(): void {
     // 从全局集合中移除
     imageViews.delete(this);
+    // 取消订阅源码模式状态
+    if (this.sourceViewUnsubscribe) {
+      this.sourceViewUnsubscribe();
+      this.sourceViewUnsubscribe = null;
+    }
   }
 }
 

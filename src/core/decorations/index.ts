@@ -12,6 +12,42 @@ import { Node } from "prosemirror-model";
 import type { SyntaxType } from "../types";
 import { renderInlineMath } from "../nodeviews/math-block";
 
+// ============ 源码模式状态管理器 ============
+
+/** 源码模式状态变化监听器 */
+export type SourceViewListener = (sourceView: boolean) => void;
+
+/** 源码模式状态管理器 */
+class SourceViewManager {
+  private listeners: Set<SourceViewListener> = new Set();
+  private currentState: boolean = false;
+
+  /** 订阅状态变化 */
+  subscribe(listener: SourceViewListener): () => void {
+    this.listeners.add(listener);
+    // 立即通知当前状态
+    listener(this.currentState);
+    // 返回取消订阅函数
+    return () => this.listeners.delete(listener);
+  }
+
+  /** 更新状态并通知所有监听器 */
+  setState(sourceView: boolean): void {
+    if (this.currentState !== sourceView) {
+      this.currentState = sourceView;
+      this.listeners.forEach((listener) => listener(sourceView));
+    }
+  }
+
+  /** 获取当前状态 */
+  getState(): boolean {
+    return this.currentState;
+  }
+}
+
+/** 全局源码模式状态管理器实例 */
+export const sourceViewManager = new SourceViewManager();
+
 /** 装饰插件状态 */
 export interface DecorationPluginState {
   decorations: DecorationSet;
@@ -524,12 +560,17 @@ export function toggleSourceView(state: EditorState, dispatch?: (tr: any) => voi
   const pluginState = decorationPluginKey.getState(state);
   if (!pluginState) return false;
 
+  const newSourceView = !pluginState.sourceView;
+
   if (dispatch) {
     const tr = state.tr.setMeta(decorationPluginKey, {
-      sourceView: !pluginState.sourceView,
+      sourceView: newSourceView,
     });
     dispatch(tr);
   }
+
+  // 通知状态管理器
+  sourceViewManager.setState(newSourceView);
 
   return true;
 }
@@ -546,5 +587,9 @@ export function setSourceView(
     const tr = state.tr.setMeta(decorationPluginKey, { sourceView: enabled });
     dispatch(tr);
   }
+
+  // 通知状态管理器
+  sourceViewManager.setState(enabled);
+
   return true;
 }
