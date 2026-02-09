@@ -15,10 +15,35 @@ export function useUpdateDialog() {
     isDialogVisible.value = false;
   }
 
-  function handleCancel() {
+  async function handleCancel() {
     if (updateStatus.value === "downloading") {
-      window.electronAPI.cancelUpdate();
-      // updateStatus and progress should be reset by 'update:status' event listeners
+      console.log("[UpdateDialog] Cancelling download...");
+      try {
+        await window.electronAPI.cancelUpdate();
+        console.log("[UpdateDialog] Download cancelled successfully");
+        // 等待状态更新事件
+        // 使用 Promise 等待状态变为 idle
+        await new Promise<void>((resolve) => {
+          const checkStatus = () => {
+            if (updateStatus.value === "idle") {
+              console.log("[UpdateDialog] Status confirmed as idle");
+              resolve();
+            } else {
+              setTimeout(checkStatus, 50);
+            }
+          };
+          checkStatus();
+          // 设置超时，最多等待 2 秒
+          setTimeout(() => {
+            console.warn("[UpdateDialog] Timeout waiting for status update, forcing close");
+            resolve();
+          }, 2000);
+        });
+        autotoast.show("下载已取消", "info");
+      } catch (error) {
+        console.error("[UpdateDialog] Cancel failed:", error);
+        autotoast.show("取消下载失败", "error");
+      }
     }
     hideDialog();
   }
@@ -68,6 +93,7 @@ export function useUpdateDialog() {
   };
 
   const onUpdateStatus = (statusObj: any) => {
+    console.log("[UpdateDialog] Status update:", statusObj);
     if (statusObj.status === "downloaded") {
       updateStatus.value = "downloaded";
     } else if (statusObj.status === "error") {
@@ -76,6 +102,7 @@ export function useUpdateDialog() {
     } else if (statusObj.status === "idle") {
       updateStatus.value = "idle";
       downloadProgress.value = 0;
+      console.log("[UpdateDialog] Status reset to idle, progress reset to 0");
     }
   };
 

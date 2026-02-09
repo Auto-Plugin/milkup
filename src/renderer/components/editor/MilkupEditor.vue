@@ -111,6 +111,7 @@ onMounted(async () => {
     content: contentForRendering,
     readonly: props.readOnly,
     sourceView: false,
+    placeholder: "写点什么吧...",
     pasteConfig: {
       getImagePasteMethod: () => {
         const method = localStorage.getItem("pasteMethod");
@@ -291,6 +292,7 @@ defineExpose({
   width: 100%;
   height: 100%;
   display: flex;
+  flex-direction: column;
 
   .scrollView {
     flex: 1;
@@ -301,6 +303,8 @@ defineExpose({
 
   .milkup-container {
     min-height: 100%;
+    display: flex;
+    flex-direction: column;
   }
 }
 </style>

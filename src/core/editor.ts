@@ -33,6 +33,7 @@ import {
 import { createMathBlockSyncPlugin } from "./plugins/math-block-sync";
 import { createImageSyncPlugin } from "./plugins/image-sync";
 import { createAICompletionPlugin } from "./plugins/ai-completion";
+import { createPlaceholderPlugin } from "./plugins/placeholder";
 import { createKeymapPlugin } from "./keymap";
 import { createCodeBlockNodeView } from "./nodeviews/code-block";
 import { createMathBlockNodeView } from "./nodeviews/math-block";
@@ -148,6 +149,11 @@ export class MilkupEditor implements IMilkupEditor {
     if (this.config.aiConfig) {
       const aiConfig = this.config.aiConfig;
       plugins.push(createAICompletionPlugin(() => aiConfig));
+    }
+
+    // Placeholder 插件（如果配置了）
+    if (this.config.placeholder) {
+      plugins.push(createPlaceholderPlugin(this.config.placeholder));
     }
 
     return plugins;

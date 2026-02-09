@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { Crepe } from "@milkdown/crepe";
 import { nextTick, ref, watch } from "vue";
+import { unified } from "unified";
+import remarkParse from "remark-parse";
+import remarkRehype from "remark-rehype";
+import rehypeStringify from "rehype-stringify";
 
 interface Props {
   visible: boolean;
@@ -57,24 +60,25 @@ function openReleasePage() {
 
 const updateLogContainer = ref<HTMLElement | null>(null);
 
+async function renderMarkdown(markdown: string): Promise<string> {
+  const file = await unified()
+    .use(remarkParse)
+    .use(remarkRehype)
+    .use(rehypeStringify)
+    .process(markdown);
+  return String(file);
+}
+
 watch(
   () => props.visible,
-  (newVal) => {
+  async (newVal) => {
     if (newVal) {
       updateInfo.value = JSON.parse(localStorage.getItem("updateInfo") || "{}");
-      nextTick(() => {
-        // 避免重复创建
+      nextTick(async () => {
         if (updateLogContainer.value) {
-          updateLogContainer.value.innerHTML = "";
-          const preview = new Crepe({
-            root: updateLogContainer.value,
-            defaultValue: updateInfo.value.notes || "更新日志加载失败，请前往官网下载最新版本。",
-            featureConfigs: {
-              // 这里可以添加更多的配置选项
-            },
-          });
-          preview.setReadonly(true);
-          preview.create();
+          const markdown = updateInfo.value.notes || "更新日志加载失败，请前往官网下载最新版本。";
+          const html = await renderMarkdown(markdown);
+          updateLogContainer.value.innerHTML = html;
         }
       });
     }
@@ -106,7 +110,7 @@ watch(
 
         <div class="dialog-body">
           <h4 class="version-tag">{{ updateInfo.version }}</h4>
-          <div ref="updateLogContainer" class="milkdownPreview"></div>
+          <div ref="updateLogContainer" class="updateLogPreview"></div>
         </div>
 
         <div class="dialog-footer">
@@ -268,13 +272,9 @@ watch(
     line-height: 1.5;
   }
 
-  .milkdownPreview#updateLog {
-    :deep(.ProseMirror) {
+  .updateLogPreview#updateLog {
+    :deep(.markdown-body) {
       padding: 0;
-    }
-
-    :deep(.milkdown-block-handle) {
-      display: none;
     }
   }
 }

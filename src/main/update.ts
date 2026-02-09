@@ -4,21 +4,127 @@ import * as path from "node:path";
 
 import { createWriteStream } from "node:fs";
 
-// 简单的版本比较函数
-function isNewerVersion(latest: string, current: string): boolean {
-  // 去掉 v 前缀
-  const cleanLatest = latest.replace(/^v/, "");
-  const cleanCurrent = current.replace(/^v/, "");
+/**
+ * 解析版本号字符串
+ * 支持格式：
+ * - v1.0.0
+ * - 1.0.0
+ * - Beta-v0.6.0-milkupcore
+ * - v1.0.0-alpha.1
+ * - 2.0.0-rc.1
+ */
+interface ParsedVersion {
+  major: number;
+  minor: number;
+  patch: number;
+  prerelease: string | null;
+  prereleaseNumber: number;
+  build: string | null;
+}
 
-  const latestParts = cleanLatest.split(".").map(Number);
-  const currentParts = cleanCurrent.split(".").map(Number);
+function parseVersion(version: string): ParsedVersion | null {
+  try {
+    // 移除前缀（如 Beta-v, v, Alpha-v 等）
+    let cleaned = version.replace(/^(Beta-|Alpha-|RC-)?v?/i, "");
 
-  for (let i = 0; i < Math.max(latestParts.length, currentParts.length); i++) {
-    const latestPart = latestParts[i] || 0;
-    const currentPart = currentParts[i] || 0;
-    if (latestPart > currentPart) return true;
-    if (latestPart < currentPart) return false;
+    // 分离构建元数据（如 -milkupcore）
+    let build: string | null = null;
+    const buildMatch = cleaned.match(/[-+]([a-zA-Z][a-zA-Z0-9-]*?)$/);
+    if (buildMatch && !buildMatch[1].match(/^\d/)) {
+      build = buildMatch[1];
+      cleaned = cleaned.replace(/[-+][a-zA-Z][a-zA-Z0-9-]*?$/, "");
+    }
+
+    // 分离预发布版本（如 -alpha.1, -beta.2, -rc.1）
+    let prerelease: string | null = null;
+    let prereleaseNumber = 0;
+    const prereleaseMatch = cleaned.match(/-(alpha|beta|rc)\.?(\d+)?$/i);
+    if (prereleaseMatch) {
+      prerelease = prereleaseMatch[1].toLowerCase();
+      prereleaseNumber = prereleaseMatch[2] ? parseInt(prereleaseMatch[2], 10) : 0;
+      cleaned = cleaned.replace(/-(alpha|beta|rc)\.?\d*$/i, "");
+    }
+
+    // 解析主版本号
+    const parts = cleaned.split(".").map((p) => parseInt(p, 10));
+    if (parts.length < 1 || parts.some(isNaN)) {
+      console.warn(`[parseVersion] Invalid version format: ${version}`);
+      return null;
+    }
+
+    return {
+      major: parts[0] || 0,
+      minor: parts[1] || 0,
+      patch: parts[2] || 0,
+      prerelease,
+      prereleaseNumber,
+      build,
+    };
+  } catch (error) {
+    console.error(`[parseVersion] Failed to parse version: ${version}`, error);
+    return null;
   }
+}
+
+/**
+ * 比较两个版本号
+ * @returns true 如果 latest > current
+ */
+function isNewerVersion(latest: string, current: string): boolean {
+  console.log(`[isNewerVersion] Comparing: ${latest} vs ${current}`);
+
+  const latestParsed = parseVersion(latest);
+  const currentParsed = parseVersion(current);
+
+  if (!latestParsed || !currentParsed) {
+    console.warn("[isNewerVersion] Failed to parse versions, falling back to string comparison");
+    return latest > current;
+  }
+
+  console.log("[isNewerVersion] Parsed latest:", latestParsed);
+  console.log("[isNewerVersion] Parsed current:", currentParsed);
+
+  // 比较主版本号
+  if (latestParsed.major !== currentParsed.major) {
+    return latestParsed.major > currentParsed.major;
+  }
+
+  // 比较次版本号
+  if (latestParsed.minor !== currentParsed.minor) {
+    return latestParsed.minor > currentParsed.minor;
+  }
+
+  // 比较修订号
+  if (latestParsed.patch !== currentParsed.patch) {
+    return latestParsed.patch > currentParsed.patch;
+  }
+
+  // 如果版本号相同，比较预发布版本
+  // 规则：正式版 > rc > beta > alpha
+  // 如果都是预发布版本，比较预发布号
+  const prereleaseOrder: Record<string, number> = {
+    alpha: 1,
+    beta: 2,
+    rc: 3,
+  };
+
+  const latestPrereleaseOrder = latestParsed.prerelease
+    ? prereleaseOrder[latestParsed.prerelease] || 0
+    : 999; // 正式版最大
+  const currentPrereleaseOrder = currentParsed.prerelease
+    ? prereleaseOrder[currentParsed.prerelease] || 0
+    : 999;
+
+  if (latestPrereleaseOrder !== currentPrereleaseOrder) {
+    return latestPrereleaseOrder > currentPrereleaseOrder;
+  }
+
+  // 如果预发布类型相同，比较预发布号
+  if (latestParsed.prerelease && currentParsed.prerelease) {
+    return latestParsed.prereleaseNumber > currentParsed.prereleaseNumber;
+  }
+
+  // 版本完全相同
   return false;
 }
 
@@ -45,25 +151,32 @@ export function setupUpdateHandlers(win: BrowserWindow) {
   // 1. 检查更新
   ipcMain.handle("update:check", async () => {
     try {
+      console.log("[Main] Starting update check...");
       win.webContents.send("update:status", { status: "checking" });
 
       const api = "https://api.github.com/repos/auto-plugin/milkup/releases/latest";
+      console.log("[Main] Fetching from GitHub API:", api);
       const response = await net.fetch(api);
 
       if (!response.ok) {
+        console.error("[Main] GitHub API Error:", response.status, response.statusText);
         throw new Error(`GitHub API Error: ${response.status}`);
       }
 
       const data = await response.json();
       const latestVersion = data.tag_name;
+      const currentVersion = app.getVersion();
+      console.log("[Main] Latest version:", latestVersion, "Current version:", currentVersion);
 
       // 无论是否是新版本，都尝试寻找对应资源，方便调试（或者逻辑上只在新版本时找）
-      const isNew = isNewerVersion(latestVersion, app.getVersion());
+      const isNew = isNewerVersion(latestVersion, currentVersion);
+      console.log("[Main] Is new version available:", isNew);
 
       if (isNew) {
         // 寻找对应平台的资源
         const ext = getPlatformExtension();
         if (!ext) {
+          console.error("[Main] Unsupported platform:", process.platform);
           throw new Error("Unsupported platform");
         }
 
@@ -102,6 +215,7 @@ export function setupUpdateHandlers(win: BrowserWindow) {
         }
 
         if (asset) {
+          console.log("[Main] Found asset:", asset.name);
           const updateInfo = {
             version: latestVersion,
             notes: data.body,
@@ -116,8 +230,10 @@ export function setupUpdateHandlers(win: BrowserWindow) {
           currentUpdateInfo = updateInfo; // 缓存 update info 供下载使用
 
           win.webContents.send("update:status", { status: "available", info: updateInfo });
+          console.log("[Main] Update available, returning info");
           return { updateInfo };
         } else {
+          console.warn("[Main] No suitable asset found for platform:", process.platform);
           win.webContents.send("update:status", {
             status: "not-available",
             info: { reason: "no-asset" },
@@ -125,6 +241,7 @@ export function setupUpdateHandlers(win: BrowserWindow) {
           return null;
         }
       } else {
+        console.log("[Main] Already on latest version");
         win.webContents.send("update:status", { status: "not-available" });
         return null;
       }
@@ -281,6 +398,7 @@ export function setupUpdateHandlers(win: BrowserWindow) {
       return downloadedFilePath;
     } catch (error: any) {
       if (error.name === "AbortError") {
+        console.log("[Main] Download aborted by user");
         win.webContents.send("update:status", { status: "idle" });
         return;
       }
@@ -296,9 +414,17 @@ export function setupUpdateHandlers(win: BrowserWindow) {
 
   // 4. 取消下载
   ipcMain.handle("update:cancel", () => {
+    console.log("[Main] Cancelling download...");
     if (downloadAbortController) {
       downloadAbortController.abort();
       downloadAbortController = null;
+      console.log("[Main] Download cancelled, status will be updated by download handler");
+      // 不在这里发送状态更新，让下载函数的 catch 块处理
+      // 这样可以避免重复发送事件
+    } else {
+      console.log("[Main] No active download to cancel");
+      // 如果没有活动的下载，确保状态是 idle
+      win.webContents.send("update:status", { status: "idle" });
     }
   });
 

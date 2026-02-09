@@ -44,11 +44,13 @@ const INLINE_SYNTAXES: InlineSyntax[] = [
     getAttrs: (m) => ({}),
   },
   // 斜体 *text* 或 _text_
+  // 注意：下划线在单词中间时不应该被视为斜体标记
   {
     type: "emphasis",
-    pattern: /(?<![*_])(\*|_)(?![*_\s])(.+?)(?<![*_\s])\1(?![*_])/g,
-    prefix: (m) => m[1],
-    suffix: (m) => m[1],
+    pattern:
+      /(?<![*_\w])(\*)(?![*\s])(.+?)(?<![*\s])\1(?![*])|(?<![*_])(_)(?![_\s])(?=\S)(.+?)(?<=\S)(?<![_\s])\3(?![_\w])/g,
+    prefix: (m) => m[1] || m[3],
+    suffix: (m) => m[1] || m[3],
     contentIndex: 2,
   },
   // 行内代码 `code`

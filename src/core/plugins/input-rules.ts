@@ -219,13 +219,14 @@ function strongRule(markType: MarkType): InputRule {
 /**
  * 创建斜体输入规则
  * *text* 或 _text_
+ * 注意：下划线在单词中间时不应该被视为斜体标记
  */
 function emphasisRule(markType: MarkType): InputRule {
   return createInlineRuleWithSyntax(
-    /(?<!\*|_)(\*|_)(?!\*|_)(.+?)(?<!\*|_)\1(?!\*|_)$/,
+    /(?<![*_\w])(\*)(?![*\s])(.+?)(?<![*\s])\1(?![*])$|(?<![*_])(_)(?![_\s])(?=\S)(.+?)(?<=\S)(?<![_\s])\3(?![_\w])$/,
     markType,
-    (m) => m[1],
-    (m) => m[1],
+    (m) => m[1] || m[3],
+    (m) => m[1] || m[3],
     2,
     "emphasis"
   );
