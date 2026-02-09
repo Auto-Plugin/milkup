@@ -19,7 +19,7 @@ import {
 import { undo, redo } from "prosemirror-history";
 import { splitListItem, liftListItem, sinkListItem } from "prosemirror-schema-list";
 import { milkupSchema } from "../schema";
-import { toggleSourceView } from "../decorations";
+import { toggleSourceView, decorationPluginKey } from "../decorations";
 
 /** 快捷键配置 */
 export interface KeymapConfig {
@@ -123,6 +123,12 @@ function createCodeBlockEnterKeymap(schema: Schema): Record<string, any> {
 
   return {
     Enter: (state: any, dispatch: any) => {
+      // 源码视图模式下不自动创建代码块
+      const decorationState = decorationPluginKey.getState(state);
+      if (decorationState?.sourceView) {
+        return false;
+      }
+
       // 检查当前行是否是 ``` 或 ```lang
       const { $from, empty } = state.selection;
 

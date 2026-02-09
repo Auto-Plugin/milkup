@@ -1,10 +1,6 @@
 import type { Tab } from "@/types/tab";
 import { processImagePaths } from "@/plugins/imagePathPlugin";
-import {
-  ensureTrailingNewline,
-  fixUnclosedCodeBlock,
-  normalizeMarkdown,
-} from "@/renderer/utils/text";
+import { ensureTrailingNewline, normalizeMarkdown } from "@/renderer/utils/text";
 
 /**
  * 文件服务 - 统一管理文件读取和Tab创建逻辑
@@ -39,7 +35,7 @@ export async function readAndProcessFile(options: OpenFileOptions): Promise<File
       return null;
     }
 
-    // 2. 规范化文本 (修复 BOM, CRLF, 未闭合代码块, 确保结尾换行)
+    // 2. 规范化文本 (修复 BOM, CRLF, 确保结尾换行)
     const rawContent = result.content;
     const repairedContent = repairMarkdown(rawContent);
 
@@ -120,5 +116,5 @@ export async function readMultipleFiles(filePaths: string[]): Promise<FileConten
  * 组合了多项修复操作
  */
 export function repairMarkdown(content: string): string {
-  return ensureTrailingNewline(normalizeMarkdown(fixUnclosedCodeBlock(content)));
+  return ensureTrailingNewline(normalizeMarkdown(content));
 }
