@@ -198,28 +198,53 @@ function findCodeBlockParagraphGroups(
 
 /**
  * 将文档中的所有块级元素（代码块、图片、分割线）转换为段落
- * 使用整体替换文档内容的方式，避免逐个节点操作的位置映射问题
+ * 对叶子块节点使用"先插入后删除"策略，
+ * 避免 ProseMirror 的 replace 算法无法正确替换叶子块节点的问题
  */
 function convertBlocksToParagraphs(tr: Transaction): Transaction {
   const doc = tr.doc;
   const schema = doc.type.schema;
-  const newContent: ProseMirrorNode[] = [];
 
-  doc.forEach((node) => {
+  // 收集需要转换的块级节点及其位置
+  const blocks: Array<{
+    pos: number;
+    nodeSize: number;
+    replacement: ProseMirrorNode[];
+  }> = [];
+
+  doc.forEach((node, offset) => {
     if (node.type.name === "code_block") {
-      newContent.push(...transformCodeBlockToParagraphs(node, schema));
+      blocks.push({
+        pos: offset,
+        nodeSize: node.nodeSize,
+        replacement: transformCodeBlockToParagraphs(node, schema),
+      });
     } else if (node.type.name === "image") {
-      newContent.push(transformImageToParagraph(node, schema));
+      blocks.push({
+        pos: offset,
+        nodeSize: node.nodeSize,
+        replacement: [transformImageToParagraph(node, schema)],
+      });
     } else if (node.type.name === "horizontal_rule") {
-      newContent.push(transformHrToParagraph(node, schema));
-    } else {
-      newContent.push(node);
+      blocks.push({
+        pos: offset,
+        nodeSize: node.nodeSize,
+        replacement: [transformHrToParagraph(node, schema)],
+      });
     }
   });
 
-  if (newContent.length > 0) {
-    const step = new ReplaceStep(0, doc.content.size, new Slice(Fragment.from(newContent), 0, 0));
-    tr.step(step);
+  if (blocks.length === 0) return tr;
+
+  // 从后往前处理，避免位置偏移问题
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    const { pos, nodeSize, replacement } = blocks[i];
+    const endPos = pos + nodeSize;
+
+    // 步骤1：在原节点之后插入替换内容
+    tr.step(new ReplaceStep(endPos, endPos, new Slice(Fragment.from(replacement), 0, 0)));
+    // 步骤2：删除原节点（位置未变，因为插入在其后面）
+    tr.step(new ReplaceStep(pos, pos + nodeSize, Slice.empty));
   }
 
   return tr;
