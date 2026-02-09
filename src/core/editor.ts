@@ -34,6 +34,8 @@ import { createMathBlockSyncPlugin } from "./plugins/math-block-sync";
 import { createImageSyncPlugin } from "./plugins/image-sync";
 import { createAICompletionPlugin } from "./plugins/ai-completion";
 import { createPlaceholderPlugin } from "./plugins/placeholder";
+import { createLineNumbersPlugin } from "./plugins/line-numbers";
+import { createSourceViewTransformPlugin } from "./plugins/source-view-transform";
 import { createKeymapPlugin } from "./keymap";
 import { createCodeBlockNodeView } from "./nodeviews/code-block";
 import { createMathBlockNodeView } from "./nodeviews/math-block";
@@ -143,6 +145,10 @@ export class MilkupEditor implements IMilkupEditor {
       createMathBlockSyncPlugin(),
       // 图片状态同步插件
       createImageSyncPlugin(),
+      // 源码模式文档转换插件
+      createSourceViewTransformPlugin(),
+      // 行号插件
+      createLineNumbersPlugin(),
     ];
 
     // AI 续写插件（如果配置了）
@@ -284,16 +290,11 @@ export class MilkupEditor implements IMilkupEditor {
     const firstNodePos = 0;
     const firstNodeCoords = view.coordsAtPos(firstNodePos + 1);
     if (clickY < firstNodeCoords.top) {
-      // 点击在第一个节点上方
-      // 如果第一个节点不是段落，在前面插入一个段落
-      if (firstChild.type.name !== "paragraph") {
-        const paragraph = state.schema.nodes.paragraph.create();
-        const tr = state.tr.insert(0, paragraph);
-        tr.setSelection(TextSelection.create(tr.doc, 1));
-        view.dispatch(tr);
-        view.focus();
-        return true;
-      }
+      // 点击在第一个节点上方，聚焦到第一个字符
+      const tr = state.tr.setSelection(TextSelection.create(state.doc, 1));
+      view.dispatch(tr);
+      view.focus();
+      return true;
     }
 
     // 检查是否点击在最后一个节点下方

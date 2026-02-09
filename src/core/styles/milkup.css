@@ -15,6 +15,12 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  position: relative; /* 为 placeholder 提供定位上下文 */
+}
+
+/* 源码模式下为行号留出空间 */
+.milkup-editor.source-view {
+  padding-left: calc(var(--milkup-editor-padding, 20px) + 60px); /* 左右边距 + 行号区域 */
 }
 
 /* 语法标记 - 隐藏 */
@@ -125,7 +131,7 @@
 
 /* 段落 */
 .milkup-editor p {
-  margin: 0 0 1em;
+  margin: 0;
 }
 
 /* 引用块 */
@@ -709,6 +715,57 @@
   color: var(--text-color-3, #999);
 }
 
+/* 行号 - 使用 CSS 计数器和绝对定位 */
+.milkup-editor.source-view {
+  counter-reset: line-number;
+}
+
+.milkup-editor.source-view .milkup-with-line-number {
+  position: relative; /* 为行号提供定位上下文 */
+}
+
+.milkup-editor.source-view .milkup-with-line-number::before {
+  counter-increment: line-number;
+  content: counter(line-number);
+  position: absolute;
+  left: calc(-60px); /* 定位到左侧外部 */
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  padding-right: 8px;
+  text-align: right;
+  color: var(--text-color-3, #999) !important;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace !important;
+  font-size: 14px !important;
+  font-weight: normal !important;
+  font-style: normal !important;
+  line-height: 1.6 !important;
+  user-select: none;
+  pointer-events: none;
+  border-right: 1px solid var(--border-color-1, #e1e4e8);
+  margin-right: 12px;
+}
+
+/* 源码模式下的代码块段落 - 移除段落间距 */
+.milkup-editor.source-view p[data-code-block-id] {
+  margin: 0;
+  padding: 0;
+  line-height: 1.6;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 14px;
+}
+
+/* 代码块 - 使用 data-line-count 属性来递增计数器 */
+.milkup-editor.source-view .milkup-code-block-lines {
+  position: relative;
+}
+
+.milkup-editor.source-view .milkup-code-block-lines::before {
+  counter-increment: line-number attr(data-line-count number, 1);
+  content: '';
+  display: none;
+}
+
 /* 光标样式 */
 .milkup-editor .ProseMirror-cursor {
   border-left: 2px solid var(--text-color, #333);
@@ -724,16 +781,36 @@
   content: attr(data-placeholder);
   color: var(--placeholder-color, #adb5bd);
   pointer-events: none;
-  position: absolute;
   user-select: none;
+  position: absolute;
+  /* 使用 padding 来定位，与编辑器的 padding 保持一致 */
+  left: 0;
+  top: 0;
+  padding: 58px calc(var(--milkup-editor-padding, 20px) + 8px);
+}
+
+/* 源码模式下的占位符需要向右偏移以避开行号 */
+.milkup-editor.milkup-empty.source-view::before {
+  padding-top: 56px;
+  padding-left: calc(var(--milkup-editor-padding, 20px) + 20px + 48px); /* 左右边距 + 上下边距 + 行号区域 */
 }
 
 /* ============ 源码模式样式 ============ */
+
+/* 引用块源码模式 - 移除渲染样式 */
+.milkup-editor.source-view blockquote {
+  margin: 0;
+  padding: 0;
+  border-left: none;
+  color: inherit;
+  background: transparent;
+}
 
 /* 代码块源码模式 */
 .milkup-code-block.source-view {
   background: transparent;
   border: none;
+  margin: 0;
 }
 
 .milkup-code-block.source-view .milkup-code-block-header {
@@ -748,20 +825,34 @@
   padding: 0;
 }
 
-/* 代码围栏样式 */
-.milkup-code-fence {
+/* 代码块源码内容 */
+.milkup-code-block-source {
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   font-size: 14px;
-  color: var(--text-color-3, #999);
   line-height: 1.6;
+  color: inherit;
+  white-space: pre;
+  padding: 0;
+  margin: 0;
+  outline: none;
+  min-height: 1.6em;
 }
 
-.milkup-code-fence-start {
-  margin-bottom: 0;
+.milkup-code-block-source:focus {
+  outline: none;
 }
 
-.milkup-code-fence-end {
-  margin-top: 0;
+.milkup-code-block-source:empty::before {
+  content: '```\n\n```';
+  color: var(--text-color-3, #999);
+  pointer-events: none;
+}
+
+/* 代码块源码模式：使用 data-line-count 属性递增行号计数器 */
+.milkup-editor.source-view .milkup-code-block-source::before {
+  counter-increment: line-number attr(data-line-count number, 1);
+  content: '';
+  display: none;
 }
 
 /* 图片源码模式 */

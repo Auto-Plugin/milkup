@@ -89,7 +89,11 @@ export class MarkdownSerializer {
       const innerLines: string[] = [];
       this.serializeFragment(node.content, innerLines, "");
       for (const line of innerLines) {
-        if (line === "") {
+        // 检查行是否已经以 > 开头（来自 syntax_marker）
+        if (line.startsWith("> ")) {
+          // 已经有 > 前缀，直接使用
+          lines.push(indent + line);
+        } else if (line === "") {
           lines.push(indent + ">");
         } else {
           lines.push(indent + "> " + line);
@@ -99,16 +103,26 @@ export class MarkdownSerializer {
     },
 
     code_block: (node, lines, indent) => {
-      const lang = node.attrs.language || "";
-      const fence = this.options.codeFence!;
-      lines.push(indent + fence + lang);
       const content = node.textContent;
-      if (content) {
+
+      // 检查内容是否已经包含围栏符号（来自 syntax_marker）
+      if (content.startsWith("```") && content.endsWith("```")) {
+        // 已经有围栏符号，直接使用
         for (const line of content.split("\n")) {
           lines.push(indent + line);
         }
+      } else {
+        // 没有围栏符号，添加它们
+        const lang = node.attrs.language || "";
+        const fence = this.options.codeFence!;
+        lines.push(indent + fence + lang);
+        if (content) {
+          for (const line of content.split("\n")) {
+            lines.push(indent + line);
+          }
+        }
+        lines.push(indent + fence);
       }
-      lines.push(indent + fence);
       if (!this.options.compact) lines.push("");
     },
 
