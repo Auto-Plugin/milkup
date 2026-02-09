@@ -14,26 +14,37 @@ const updateInfo = JSON.parse(localStorage.getItem("updateInfo") || "{}");
 const isChecking = ref(false);
 
 function handleCheckUpdate() {
-  if (isChecking.value) return;
+  if (isChecking.value) {
+    console.log("[About] Already checking for updates, skipping...");
+    return;
+  }
 
+  console.log("[About] Starting update check...");
   isChecking.value = true;
   localStorage.removeItem("ignoredVersion");
 
   checkUpdate()
     .then((info) => {
+      console.log("[About] Update check completed:", info);
       isChecking.value = false;
 
       if (info && info.version) {
+        console.log("[About] New version available:", info.version);
         localStorage.setItem("updateInfo", JSON.stringify(info));
-
         emitter.emit("update:available", info);
       } else {
+        console.log("[About] Already on latest version");
         autotoast.show("当前已为最新版本", "success");
       }
     })
     .catch((err) => {
       console.error("[About] checkUpdate error:", err);
       autotoast.show(`检查更新失败: ${err.message || "Unknown error"}`, "error");
+      isChecking.value = false;
+    })
+    .finally(() => {
+      // 确保状态总是被重置
+      console.log("[About] Update check finished, resetting state");
       isChecking.value = false;
     });
 }
@@ -56,7 +67,7 @@ function handleCheckUpdate() {
     <p>MIT Copyright © [2025] Larry Zhu</p>
     <p>
       Powered by
-      <span class="link" @click="openByDefaultBrowser(`https://milkdown.dev`)">milkdown</span>
+      <span class="link" @click="openByDefaultBrowser(`https://milkup.dev`)">milkup core</span>
     </p>
     <p class="thanks">
       <span

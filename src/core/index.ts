@@ -60,6 +60,8 @@ export {
   type AICompletionState,
 } from "./plugins/ai-completion";
 
+export { createPlaceholderPlugin, placeholderPluginKey } from "./plugins/placeholder";
+
 // 快捷键
 export {
   createKeymapPlugin,

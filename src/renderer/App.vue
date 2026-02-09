@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { MilkdownProvider } from "@milkdown/vue";
 import emitter from "@/renderer/events";
 import useContent from "@/renderer/hooks/useContent";
 import { useContext } from "@/renderer/hooks/useContext";
@@ -14,12 +13,10 @@ import useTheme from "@/renderer/hooks/useTheme";
 import { useUpdateDialog } from "@/renderer/hooks/useUpdateDialog";
 import SaveConfirmDialog from "./components/dialogs/SaveConfirmDialog.vue";
 import UpdateConfirmDialog from "./components/dialogs/UpdateConfirmDialog.vue";
-import MilkdownEditor from "./components/editor/MilkdownEditor.vue";
 import MilkupEditor from "./components/editor/MilkupEditor.vue";
 import StatusBar from "./components/menu/StatusBar.vue";
 import TitleBar from "./components/menu/TitleBar.vue";
 import Outline from "./components/outline/Outline.vue";
-import { MilkupProvider } from "./context";
 
 // ✅ 应用级事件协调器（仅负责事件监听和协调）
 const { editorKey } = useContext();
@@ -42,16 +39,13 @@ const {
   handleCancel,
   handleOverwrite,
   showDialog,
-  showFileChangedDialog,
 } = useSaveConfirmDialog();
 const {
   isDialogVisible: isUpdateDialogVisible,
   updateStatus,
   downloadProgress,
   handleIgnore,
-  handleLater,
   handleUpdate,
-  handleInstall: handleUpdateInstall, // Rename for clarity and wrapping
   handleMinimize,
   handleRestore,
   handleCancel: handleUpdateCancel,
@@ -59,9 +53,6 @@ const {
 } = useUpdateDialog();
 
 // 编辑器类型：'milkdown' | 'milkup'
-import { ref } from "vue";
-const editorType = ref<"milkdown" | "milkup">("milkup");
-
 // 监听主进程的关闭确认事件
 window.electronAPI.on("close:confirm", async () => {
   await handleSafeClose("close");
@@ -173,17 +164,7 @@ const handleInstall = async () => {
       </Transition>
       <div class="editorBox">
         <!-- Milkup 编辑器（新内核，支持源码模式） -->
-        <template v-if="editorType === 'milkup'">
-          <MilkupEditor v-model="markdown" :read-only="currentTab?.readOnly" />
-        </template>
-        <!-- Milkdown 编辑器（原有） -->
-        <template v-else-if="editorType === 'milkdown'">
-          <MilkdownProvider>
-            <MilkupProvider>
-              <MilkdownEditor v-model="markdown" :read-only="currentTab?.readOnly" />
-            </MilkupProvider>
-          </MilkdownProvider>
-        </template>
+        <MilkupEditor v-model="markdown" :read-only="currentTab?.readOnly" />
       </div>
     </div>
   </div>

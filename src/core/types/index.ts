@@ -16,6 +16,8 @@ export interface MilkupConfig {
   readonly?: boolean;
   /** 是否启用源码视图（显示所有语法标记） */
   sourceView?: boolean;
+  /** 占位符文本 */
+  placeholder?: string;
   /** 图片路径处理器 */
   imagePathProcessor?: ImagePathProcessor;
   /** 粘贴插件配置 */
