@@ -22,6 +22,10 @@ const paragraph: NodeSpec = {
     lineIndex: { default: null },
     totalLines: { default: null },
     language: { default: null },
+    // 图片相关属性（仅在源码模式下使用）
+    imageAttrs: { default: null },
+    // 分割线相关属性（仅在源码模式下使用）
+    hrSource: { default: null },
   },
   content: "inline*",
   group: "block",
@@ -34,6 +38,14 @@ const paragraph: NodeSpec = {
       attrs["data-line-index"] = node.attrs.lineIndex;
       attrs["data-total-lines"] = node.attrs.totalLines;
       attrs["data-language"] = node.attrs.language;
+    }
+    // 如果是图片段落，添加数据属性
+    if (node.attrs.imageAttrs) {
+      attrs["data-image-source"] = "true";
+    }
+    // 如果是分割线段落，添加数据属性
+    if (node.attrs.hrSource) {
+      attrs["data-hr-source"] = "true";
     }
     return ["p", attrs, 0];
   },

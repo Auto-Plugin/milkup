@@ -543,6 +543,20 @@ export class MilkupEditor implements IMilkupEditor {
       src = await fileToBase64(file);
     }
 
+    // 源码模式下：创建包含 Markdown 文本的段落
+    if (this.isSourceViewEnabled()) {
+      const alt = file.name;
+      const markdownText = `![${alt}](${src})`;
+      const paragraph = this.schema.nodes.paragraph.create(
+        { imageAttrs: { src, alt, title: "" } },
+        this.schema.text(markdownText)
+      );
+      const { $from } = this.view.state.selection;
+      const tr = this.view.state.tr.insert($from.pos, paragraph);
+      this.view.dispatch(tr);
+      return;
+    }
+
     // 创建图片节点
     const imageNode = this.schema.nodes.image?.createAndFill({
       src,

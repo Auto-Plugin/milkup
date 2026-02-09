@@ -8,6 +8,7 @@ import { Plugin, PluginKey } from "prosemirror-state";
 import { Node, Schema } from "prosemirror-model";
 import { MarkdownParser } from "../parser";
 import { milkupSchema } from "../schema";
+import { decorationPluginKey } from "../decorations";
 
 /** 插件 Key */
 export const pastePluginKey = new PluginKey("milkup-paste");
@@ -54,13 +55,22 @@ export function createPastePlugin(config: PastePluginConfig = {}): Plugin {
         const clipboardData = event.clipboardData;
         if (!clipboardData) return false;
 
+        // 检查是否处于源码模式
+        const decoState = decorationPluginKey.getState(view.state);
+        const isSourceView = decoState?.sourceView ?? false;
+
         // 检查是否有图片
         const files = clipboardData.files;
         if (files && files.length > 0) {
           const hasImage = Array.from(files).some((file) => file.type.startsWith("image/"));
           if (hasImage) {
-            // 处理图片粘贴
-            handleImagePaste(view, files, mergedConfig);
+            if (isSourceView) {
+              // 源码模式下：图片粘贴创建段落而非 image 节点
+              handleImagePasteAsText(view, files, mergedConfig);
+            } else {
+              // 正常模式：创建 image 节点
+              handleImagePaste(view, files, mergedConfig);
+            }
             return true;
           }
         }
@@ -68,6 +78,11 @@ export function createPastePlugin(config: PastePluginConfig = {}): Plugin {
         // 获取粘贴的纯文本
         const text = clipboardData.getData("text/plain");
         if (!text) return false;
+
+        // 源码模式下：所有文本都作为纯文本插入，不解析 Markdown
+        if (isSourceView) {
+          return false; // 让默认处理器插入纯文本
+        }
 
         // 检查是否包含 Markdown 语法
         if (!containsMarkdownSyntax(text)) {
@@ -183,6 +198,62 @@ async function handleImagePaste(
     }
 
     view.dispatch(tr);
+  }
+}
+
+/**
+ * 源码模式下处理图片粘贴：创建包含 Markdown 文本的段落
+ */
+async function handleImagePasteAsText(
+  view: any,
+  files: FileList,
+  config: PastePluginConfig
+): Promise<void> {
+  const method = config.getImagePasteMethod?.() || "base64";
+  const schema = view.state.schema;
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (!file.type.startsWith("image/")) continue;
+
+    try {
+      let src: string;
+
+      switch (method) {
+        case "base64":
+          src = await fileToBase64(file);
+          break;
+        case "remote":
+          if (config.imageUploader) {
+            src = await config.imageUploader(file);
+          } else {
+            src = await fileToBase64(file);
+          }
+          break;
+        case "local":
+          if (config.localImageSaver) {
+            src = await config.localImageSaver(file);
+          } else {
+            src = await saveImageLocally(file);
+          }
+          break;
+        default:
+          src = await fileToBase64(file);
+      }
+
+      const alt = file.name;
+      const markdownText = `![${alt}](${src})`;
+      const paragraph = schema.nodes.paragraph.create(
+        { imageAttrs: { src, alt, title: "" } },
+        schema.text(markdownText)
+      );
+
+      const { $from } = view.state.selection;
+      const tr = view.state.tr.insert($from.pos, paragraph);
+      view.dispatch(tr);
+    } catch (error) {
+      console.error("Failed to process image:", error);
+    }
   }
 }
 
