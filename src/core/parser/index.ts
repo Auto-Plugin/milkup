@@ -160,13 +160,16 @@ export class MarkdownParser {
         continue;
       }
 
-      // 代码块
+      // 代码块（只有闭合的代码块才解析为 code_block 节点）
       const codeMatch = line.match(BLOCK_PATTERNS.code_block_start);
       if (codeMatch) {
         const result = this.parseCodeBlock(lines, i);
-        blocks.push(result.node);
-        i = result.endIndex + 1;
-        continue;
+        if (result) {
+          blocks.push(result.node);
+          i = result.endIndex + 1;
+          continue;
+        }
+        // 未闭合的代码块，当作普通段落处理
       }
 
       // 单行数学块 $$content$$
@@ -447,8 +450,12 @@ export class MarkdownParser {
 
   /**
    * 解析代码块
+   * 如果代码块未闭合（没有找到结束的 ```），返回 null，由调用方当作普通段落处理
    */
-  private parseCodeBlock(lines: string[], startIndex: number): { node: Node; endIndex: number } {
+  private parseCodeBlock(
+    lines: string[],
+    startIndex: number
+  ): { node: Node; endIndex: number } | null {
     const startLine = lines[startIndex];
     const langMatch = startLine.match(BLOCK_PATTERNS.code_block_start);
     const language = langMatch ? langMatch[1] || "" : "";
@@ -464,11 +471,9 @@ export class MarkdownParser {
       endIndex++;
     }
 
-    // 如果没有找到结束标记，记录警告
+    // 如果没有找到结束标记，不创建代码块节点
     if (endIndex >= lines.length) {
-      console.warn(
-        `Unclosed code block starting at line ${startIndex + 1} with language "${language}"`
-      );
+      return null;
     }
 
     // 代码块节点只包含纯文本内容，不包含语法标记

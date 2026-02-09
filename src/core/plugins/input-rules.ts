@@ -13,6 +13,7 @@ import {
 import { NodeType, MarkType, Schema } from "prosemirror-model";
 import { Plugin, TextSelection } from "prosemirror-state";
 import { milkupSchema } from "../schema";
+import { decorationPluginKey } from "../decorations";
 
 /**
  * 创建标题输入规则
@@ -67,6 +68,12 @@ function blockquoteRule(nodeType: NodeType): InputRule {
  */
 function codeBlockRule(nodeType: NodeType): InputRule {
   return new InputRule(/^```(\w*) $/, (state, match, start, end) => {
+    // 源码视图模式下不自动创建代码块
+    const decorationState = decorationPluginKey.getState(state);
+    if (decorationState?.sourceView) {
+      return null;
+    }
+
     const language = match[1] || "";
     const $start = state.doc.resolve(start);
 
