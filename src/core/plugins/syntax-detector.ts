@@ -275,51 +275,117 @@ function detectNestedSyntax(
 
 /**
  * 检查节点是否已经有正确的 marks
+ * 改进版：更精确地比较当前 marks 和期望的 marks
  */
 function hasCorrectMarks(
   node: Node,
   basePos: number,
   regions: ReturnType<typeof detectNestedSyntax>
 ): boolean {
-  if (regions.length === 0) return true;
-
-  for (const region of regions) {
-    // 检查该区域的文本是否有正确的 marks
-    let offset = 0;
-    let found = false;
-
+  if (regions.length === 0) {
+    // 如果没有期望的区域，检查是否有任何语义 marks
+    let hasAnySemanticMarks = false;
     node.forEach((child) => {
       if (child.isText) {
-        const childStart = basePos + offset;
-        const childEnd = childStart + child.nodeSize;
-
-        // 检查是否与区域重叠
-        if (childStart < region.to && childEnd > region.from) {
-          found = true;
-          // 检查是否有所有需要的 marks
-          for (const markType of region.markTypes) {
-            if (markType === "strong_emphasis") continue; // 跳过复合类型
-            if (!child.marks.some((m) => m.type.name === markType)) {
-              return false;
-            }
-          }
+        const semanticMarks = child.marks.filter(
+          (m) =>
+            m.type.name !== "syntax_marker" &&
+            [
+              "strong",
+              "emphasis",
+              "code_inline",
+              "strikethrough",
+              "highlight",
+              "link",
+              "math_inline",
+            ].includes(m.type.name)
+        );
+        if (semanticMarks.length > 0) {
+          hasAnySemanticMarks = true;
         }
       }
-      offset += child.nodeSize;
     });
+    return !hasAnySemanticMarks;
+  }
 
-    if (!found && region.markTypes.length > 0) {
-      return false;
+  // 构建期望的 marks 映射：position -> expected mark types
+  const expectedMarks = new Map<number, Set<string>>();
+  for (const region of regions) {
+    for (let pos = region.from; pos < region.to; pos++) {
+      if (!expectedMarks.has(pos)) {
+        expectedMarks.set(pos, new Set());
+      }
+      for (const markType of region.markTypes) {
+        if (markType !== "strong_emphasis") {
+          expectedMarks.get(pos)!.add(markType);
+        }
+      }
+      // 添加 syntax_marker
+      if (region.isSyntax) {
+        expectedMarks.get(pos)!.add("syntax_marker");
+      }
     }
   }
 
-  return true;
+  // 检查实际的 marks 是否与期望一致
+  let offset = 0;
+  let allMatch = true;
+
+  node.forEach((child) => {
+    if (child.isText && allMatch) {
+      const childStart = basePos + offset;
+      const childEnd = childStart + child.nodeSize;
+
+      for (let pos = childStart; pos < childEnd; pos++) {
+        const expected = expectedMarks.get(pos) || new Set();
+        const actual = new Set(
+          child.marks
+            .filter((m) =>
+              [
+                "strong",
+                "emphasis",
+                "code_inline",
+                "strikethrough",
+                "highlight",
+                "link",
+                "math_inline",
+                "syntax_marker",
+              ].includes(m.type.name)
+            )
+            .map((m) => m.type.name)
+        );
+
+        // 比较期望和实际的 marks
+        if (expected.size !== actual.size) {
+          allMatch = false;
+          break;
+        }
+
+        for (const markType of expected) {
+          if (!actual.has(markType)) {
+            allMatch = false;
+            break;
+          }
+        }
+
+        if (!allMatch) break;
+      }
+    }
+    offset += child.nodeSize;
+  });
+
+  return allMatch;
 }
 
 /**
  * 创建语法检测插件
  */
 export function createSyntaxDetectorPlugin(): Plugin {
+  // 循环检测：记录最近处理的文档内容哈希
+  let lastDocHash = "";
+  let sameDocCount = 0;
+  const MAX_SAME_DOC_COUNT = 3; // 最多处理相同文档3次
+
   return new Plugin({
     key: syntaxDetectorPluginKey,
 
@@ -327,6 +393,20 @@ export function createSyntaxDetectorPlugin(): Plugin {
       // 只在文档变化时处理
       const docChanged = transactions.some((tr) => tr.docChanged);
       if (!docChanged) return null;
+
+      // 循环检测：计算文档内容哈希
+      const docHash = newState.doc.textContent;
+      if (docHash === lastDocHash) {
+        sameDocCount++;
+        if (sameDocCount >= MAX_SAME_DOC_COUNT) {
+          // 检测到可能的无限循环，停止处理
+          console.warn("[syntax-detector] Possible infinite loop detected, stopping");
+          return null;
+        }
+      } else {
+        lastDocHash = docHash;
+        sameDocCount = 0;
+      }
 
       const schema = newState.schema;
       let tr = newState.tr;

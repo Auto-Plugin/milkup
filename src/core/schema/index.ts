@@ -16,11 +16,26 @@ const doc: NodeSpec = {
 };
 
 const paragraph: NodeSpec = {
+  attrs: {
+    // 代码块相关属性（仅在源码模式下使用）
+    codeBlockId: { default: null },
+    lineIndex: { default: null },
+    totalLines: { default: null },
+    language: { default: null },
+  },
   content: "inline*",
   group: "block",
   parseDOM: [{ tag: "p" }],
-  toDOM(): DOMOutputSpec {
-    return ["p", 0];
+  toDOM(node): DOMOutputSpec {
+    const attrs: Record<string, any> = {};
+    // 如果是代码块段落，添加数据属性
+    if (node.attrs.codeBlockId) {
+      attrs["data-code-block-id"] = node.attrs.codeBlockId;
+      attrs["data-line-index"] = node.attrs.lineIndex;
+      attrs["data-total-lines"] = node.attrs.totalLines;
+      attrs["data-language"] = node.attrs.language;
+    }
+    return ["p", attrs, 0];
   },
 };
 

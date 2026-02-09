@@ -406,10 +406,10 @@ export class CodeBlockView implements NodeView {
         this.editorContainer.style.display = "none";
       }
 
-      // 创建源码容器（拆分成多行以参与行号计数）
+      // 创建源码容器（整体 contentEditable 元素）
       if (!this.sourceTextElement) {
-        this.sourceTextElement = document.createElement("div");
-        this.sourceTextElement.className = "milkup-code-block-source-container";
+        this.sourceTextElement = document.createElement("pre");
+        this.sourceTextElement.className = "milkup-code-block-source";
         this.sourceTextElement.contentEditable = "true";
         this.sourceTextElement.spellcheck = false;
         this.sourceTextElement.style.cssText = `
@@ -423,6 +423,10 @@ export class CodeBlockView implements NodeView {
           background: transparent;
           border: none;
           outline: none;
+          white-space: pre;
+          overflow-x: auto;
+          tab-size: 2;
+          min-height: 1.6em;
         `;
 
         // 监听输入事件
@@ -445,26 +449,16 @@ export class CodeBlockView implements NodeView {
         this.dom.insertBefore(this.sourceTextElement, this.editorContainer);
       }
 
-      // 更新源码内容（拆分成多行）
+      // 更新源码内容（包括围栏标记）
       const language = this.node.attrs.language || "";
       const content = this.node.textContent;
       const fullMarkdown = `\`\`\`${language}\n${content}\n\`\`\``;
-      const lines = fullMarkdown.split("\n");
 
-      // 清空容器
-      this.sourceTextElement.innerHTML = "";
+      this.sourceTextElement.textContent = fullMarkdown;
 
-      // 为每一行创建一个 div 元素以参与行号计数
-      lines.forEach((line) => {
-        const lineDiv = document.createElement("div");
-        lineDiv.className = "milkup-with-line-number";
-        lineDiv.style.cssText = `
-          white-space: pre;
-          min-height: 1.6em;
-        `;
-        lineDiv.textContent = line;
-        this.sourceTextElement!.appendChild(lineDiv);
-      });
+      // 计算行数并设置 data 属性，用于 CSS counter-increment
+      const lineCount = fullMarkdown.split("\n").length;
+      this.sourceTextElement.setAttribute("data-line-count", lineCount.toString());
 
       this.sourceTextElement.style.display = "block";
     } else {
@@ -494,19 +488,287 @@ export class CodeBlockView implements NodeView {
   }
 
   /**
+   * 更新源码内容
+   */
+  private updateSourceContent(): void {
+    if (!this.sourceTextElement) return;
+
+    const language = this.node.attrs.language || "";
+    const content = this.node.textContent;
+    const fullMarkdown = `\`\`\`${language}\n${content}\n\`\`\``;
+    const lines = fullMarkdown.split("\n");
+
+    // 保存当前焦点的行索引和光标位置
+    let focusedLineIndex = -1;
+    let cursorOffset = 0;
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const focusedElement = range.startContainer.parentElement;
+      if (focusedElement) {
+        const lineElements = this.sourceTextElement.querySelectorAll(".milkup-code-block-source-line");
+        lineElements.forEach((el, index) => {
+          if (el === focusedElement || el.contains(focusedElement)) {
+            focusedLineIndex = index;
+            if (range.startContainer.nodeType === Node.TEXT_NODE) {
+              cursorOffset = range.startOffset;
+            }
+          }
+        });
+      }
+    }
+
+    // 清空容器
+    this.sourceTextElement.innerHTML = "";
+
+    // 为每一行创建一个元素，使其能够参与全局行号计数
+    lines.forEach((line, index) => {
+      const lineWrapper = document.createElement("div");
+      lineWrapper.className = "milkup-with-line-number milkup-code-block-source-line";
+      lineWrapper.style.cssText = `
+        position: relative;
+        white-space: pre;
+        min-height: 1.6em;
+      `;
+
+      const lineContent = document.createElement("span");
+      lineContent.contentEditable = "true";
+      lineContent.textContent = line;
+      lineContent.style.cssText = `
+        outline: none;
+        display: inline-block;
+        width: 100%;
+      `;
+
+      // 监听每一行的输入事件
+      lineContent.addEventListener("input", () => {
+        this.handleSourceLineInput();
+      });
+
+      // 监听键盘事件
+      lineContent.addEventListener("keydown", (e) => {
+        this.handleSourceLineKeydown(e, index, lines.length);
+      });
+
+      // 监听鼠标事件以支持跨行选择
+      lineContent.addEventListener("mousedown", (e) => {
+        this.handleSourceLineMouseDown(e);
+      });
+
+      lineWrapper.appendChild(lineContent);
+      this.sourceTextElement!.appendChild(lineWrapper);
+    });
+
+    // 恢复焦点和光标位置
+    if (focusedLineIndex >= 0 && focusedLineIndex < lines.length) {
+      requestAnimationFrame(() => {
+        const lineElements = this.sourceTextElement!.querySelectorAll(".milkup-code-block-source-line span");
+        const targetLine = lineElements[focusedLineIndex] as HTMLElement;
+        if (targetLine) {
+          targetLine.focus();
+          const textNode = targetLine.firstChild;
+          if (textNode && textNode.nodeType === Node.TEXT_NODE && selection) {
+            try {
+              const range = document.createRange();
+              const offset = Math.min(cursorOffset, textNode.textContent?.length || 0);
+              range.setStart(textNode, offset);
+              range.collapse(true);
+              selection.removeAllRanges();
+              selection.addRange(range);
+            } catch (e) {
+              // 忽略光标恢复错误
+            }
+          }
+        }
+      });
+    }
+  }
+
+  /**
+   * 处理源码行输入
+   */
+  private handleSourceLineInput(): void {
+    if (!this.sourceTextElement || this.updating) return;
+
+    // 收集所有行的内容
+    const lines: string[] = [];
+    const lineElements = this.sourceTextElement.querySelectorAll(".milkup-code-block-source-line span");
+    lineElements.forEach((el) => {
+      lines.push(el.textContent || "");
+    });
+
+    const text = lines.join("\n");
+    const pos = this.getPos();
+    if (pos === undefined) return;
+
+    this.updating = true;
+
+    // 检查是否是完整的代码块格式（必须有开头和结尾的 ```）
+    const fenceMatch = text.match(/^```([^\n]*?)\n([\s\S]*?)\n```$/);
+
+    if (fenceMatch) {
+      // 仍然是完整的代码块格式，更新内容
+      const [, language, content] = fenceMatch;
+      const tr = this.view.state.tr;
+      let needsUpdate = false;
+
+      // 更新语言属性
+      const normalizedLang = language || "";
+      if (normalizedLang !== this.node.attrs.language) {
+        tr.setNodeMarkup(pos, null, {
+          ...this.node.attrs,
+          language: normalizedLang,
+        });
+        needsUpdate = true;
+      }
+
+      // 更新内容
+      if (content !== this.node.textContent) {
+        const start = pos + 1;
+        const end = pos + 1 + this.node.content.size;
+        tr.replaceWith(
+          start,
+          end,
+          content ? this.view.state.schema.text(content) : []
+        );
+        needsUpdate = true;
+      }
+
+      if (needsUpdate) {
+        this.view.dispatch(tr);
+      }
+    } else {
+      // 不是完整的代码块格式，转换为段落
+      const tr = this.view.state.tr;
+      const nodeEnd = pos + this.node.nodeSize;
+
+      // 删除代码块节点
+      tr.delete(pos, nodeEnd);
+
+      // 将文本内容转换为段落
+      if (text.trim()) {
+        const textLines = text.split("\n").filter((line) => line.trim());
+        const paragraphs = textLines.map((line) =>
+          this.view.state.schema.nodes.paragraph.create(
+            null,
+            line ? this.view.state.schema.text(line) : null
+          )
+        );
+
+        if (paragraphs.length === 0) {
+          paragraphs.push(this.view.state.schema.nodes.paragraph.create());
+        }
+
+        tr.insert(pos, paragraphs);
+        const newPos = pos + 1;
+        tr.setSelection(TextSelection.create(tr.doc, newPos));
+      } else {
+        const paragraph = this.view.state.schema.nodes.paragraph.create();
+        tr.insert(pos, paragraph);
+        const newPos = pos + 1;
+        tr.setSelection(TextSelection.create(tr.doc, newPos));
+      }
+
+      this.view.dispatch(tr);
+      this.view.focus();
+    }
+
+    this.updating = false;
+  }
+
+  /**
+   * 处理源码行键盘事件
+   */
+  private handleSourceLineKeydown(e: KeyboardEvent, lineIndex: number, totalLines: number): void {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      // 在当前行后插入新行
+      const lineWrapper = document.createElement("div");
+      lineWrapper.className = "milkup-with-line-number milkup-code-block-source-line";
+      lineWrapper.style.cssText = `
+        position: relative;
+        white-space: pre;
+        min-height: 1.6em;
+      `;
+
+      const lineContent = document.createElement("span");
+      lineContent.contentEditable = "true";
+      lineContent.textContent = "";
+      lineContent.style.cssText = `
+        outline: none;
+        display: inline-block;
+        width: 100%;
+      `;
+
+      lineContent.addEventListener("input", () => {
+        this.handleSourceLineInput();
+      });
+
+      lineContent.addEventListener("keydown", (e) => {
+        const newIndex = Array.from(this.sourceTextElement!.querySelectorAll(".milkup-code-block-source-line")).indexOf(lineWrapper);
+        const newTotal = this.sourceTextElement!.querySelectorAll(".milkup-code-block-source-line").length;
+        this.handleSourceLineKeydown(e, newIndex, newTotal);
+      });
+
+      lineContent.addEventListener("mousedown", (e) => {
+        this.handleSourceLineMouseDown(e);
+      });
+
+      lineWrapper.appendChild(lineContent);
+
+      const currentLine = (e.target as HTMLElement).parentElement;
+      if (currentLine && currentLine.nextSibling) {
+        this.sourceTextElement!.insertBefore(lineWrapper, currentLine.nextSibling);
+      } else {
+        this.sourceTextElement!.appendChild(lineWrapper);
+      }
+
+      lineContent.focus();
+      this.handleSourceLineInput();
+    } else if (e.key === "Backspace") {
+      const target = e.target as HTMLElement;
+      if (target.textContent === "" && totalLines > 1) {
+        e.preventDefault();
+        const currentLine = target.parentElement;
+        const prevLine = currentLine?.previousElementSibling;
+        if (currentLine) {
+          currentLine.remove();
+          if (prevLine) {
+            const prevContent = prevLine.querySelector("span");
+            if (prevContent) {
+              prevContent.focus();
+              const range = document.createRange();
+              const sel = window.getSelection();
+              range.selectNodeContents(prevContent);
+              range.collapse(false);
+              sel?.removeAllRanges();
+              sel?.addRange(range);
+            }
+          }
+          this.handleSourceLineInput();
+        }
+      }
+    } else if (e.key === "Tab") {
+      e.preventDefault();
+      document.execCommand("insertText", false, "  ");
+    }
+  }
+
+  /**
+   * 处理源码行鼠标按下事件（用于跨行选择）
+   */
+  private handleSourceLineMouseDown(e: MouseEvent): void {
+    // 允许默认的选择行为
+    // 浏览器会自动处理跨元素的文本选择
+  }
+
+  /**
    * 处理源码文本输入
    */
   private handleSourceTextInput(): void {
     if (!this.sourceTextElement || this.updating) return;
 
-    // 从所有子 div 中收集文本内容
-    const lines: string[] = [];
-    const childDivs = this.sourceTextElement.querySelectorAll("div.milkup-with-line-number");
-    childDivs.forEach((div) => {
-      lines.push(div.textContent || "");
-    });
-    const text = lines.join("\n");
-
+    const text = this.sourceTextElement.textContent || "";
     const pos = this.getPos();
     if (pos === undefined) return;
 
@@ -551,7 +813,11 @@ export class CodeBlockView implements NodeView {
       if (content !== this.node.textContent) {
         const start = pos + 1;
         const end = pos + 1 + this.node.content.size;
-        tr.replaceWith(start, end, content ? this.view.state.schema.text(content) : []);
+        tr.replaceWith(
+          start,
+          end,
+          content ? this.view.state.schema.text(content) : []
+        );
         needsUpdate = true;
       }
 
@@ -559,19 +825,9 @@ export class CodeBlockView implements NodeView {
         this.view.dispatch(tr);
       }
 
-      // 更新行显示（重新拆分成多行）
-      const newLines = text.split("\n");
-      this.sourceTextElement.innerHTML = "";
-      newLines.forEach((line) => {
-        const lineDiv = document.createElement("div");
-        lineDiv.className = "milkup-with-line-number";
-        lineDiv.style.cssText = `
-          white-space: pre;
-          min-height: 1.6em;
-        `;
-        lineDiv.textContent = line;
-        this.sourceTextElement!.appendChild(lineDiv);
-      });
+      // 更新行数
+      const lineCount = text.split("\n").length;
+      this.sourceTextElement.setAttribute("data-line-count", lineCount.toString());
     } else {
       // 不是完整的代码块格式，转换为段落
       const tr = this.view.state.tr;
@@ -608,35 +864,15 @@ export class CodeBlockView implements NodeView {
 
     this.updating = false;
 
-    // 如果仍然是代码块,恢复光标位置
+    // 如果仍然是代码块，恢复光标位置
     if (fenceMatch) {
       requestAnimationFrame(() => {
         if (this.sourceTextElement && selection) {
           try {
-            // 找到光标应该在的位置
-            let remainingOffset = cursorOffset;
-            let targetDiv: HTMLElement | null = null;
-            let targetOffset = 0;
-
-            const divs = this.sourceTextElement.querySelectorAll("div.milkup-with-line-number");
-            for (let i = 0; i < divs.length; i++) {
-              const div = divs[i] as HTMLElement;
-              const textNode = div.firstChild;
-              if (!textNode || textNode.nodeType !== Node.TEXT_NODE) continue;
-
-              const textLength = textNode.textContent?.length || 0;
-              if (remainingOffset <= textLength) {
-                targetDiv = div;
-                targetOffset = remainingOffset;
-                break;
-              }
-              remainingOffset -= textLength + 1; // +1 for newline
-            }
-
-            if (targetDiv && targetDiv.firstChild) {
+            const textNode = this.sourceTextElement.firstChild;
+            if (textNode && textNode.nodeType === Node.TEXT_NODE) {
               const range = document.createRange();
-              const textNode = targetDiv.firstChild;
-              const offset = Math.min(targetOffset, textNode.textContent?.length || 0);
+              const offset = Math.min(cursorOffset, textNode.textContent?.length || 0);
               range.setStart(textNode, offset);
               range.collapse(true);
               selection.removeAllRanges();
@@ -1179,87 +1415,44 @@ export class CodeBlockView implements NodeView {
       const language = node.attrs.language || "";
       const content = node.textContent;
       const fullMarkdown = `\`\`\`${language}\n${content}\n\`\`\``;
-      const lines = fullMarkdown.split("\n");
-
-      // 收集当前的文本内容
-      const currentLines: string[] = [];
-      const childDivs = this.sourceTextElement.querySelectorAll("div.milkup-with-line-number");
-      childDivs.forEach((div) => {
-        currentLines.push(div.textContent || "");
-      });
-      const currentText = currentLines.join("\n");
 
       // 只在内容真正变化时更新
-      if (currentText !== fullMarkdown) {
+      if (this.sourceTextElement.textContent !== fullMarkdown) {
         // 保存光标位置
         const selection = window.getSelection();
         let cursorOffset = 0;
         if (selection && selection.rangeCount > 0) {
           const range = selection.getRangeAt(0);
-          if (range.startContainer.nodeType === Node.TEXT_NODE) {
+          const textNode = this.sourceTextElement.firstChild;
+          if (textNode && textNode.nodeType === Node.TEXT_NODE && range.startContainer === textNode) {
             cursorOffset = range.startOffset;
-            // 计算相对于整个文本的偏移量
-            let node: Node | null = range.startContainer;
-            while (node && node !== this.sourceTextElement && node.previousSibling) {
-              node = node.previousSibling;
-              cursorOffset += node.textContent?.length || 0;
-            }
           }
         }
 
         this.updating = true;
+        this.sourceTextElement.textContent = fullMarkdown;
 
-        // 清空容器并重新创建行
-        this.sourceTextElement.innerHTML = "";
-        lines.forEach((line) => {
-          const lineDiv = document.createElement("div");
-          lineDiv.className = "milkup-with-line-number";
-          lineDiv.style.cssText = `
-            white-space: pre;
-            min-height: 1.6em;
-          `;
-          lineDiv.textContent = line;
-          this.sourceTextElement!.appendChild(lineDiv);
-        });
+        // 更新行数
+        const lineCount = fullMarkdown.split("\n").length;
+        this.sourceTextElement.setAttribute("data-line-count", lineCount.toString());
 
         this.updating = false;
 
         // 恢复光标位置
         if (selection && cursorOffset > 0) {
           requestAnimationFrame(() => {
-            if (!this.sourceTextElement) return;
-            try {
-              // 找到光标应该在的位置
-              let remainingOffset = cursorOffset;
-              let targetDiv: HTMLElement | null = null;
-              let targetOffset = 0;
-
-              const divs = this.sourceTextElement.querySelectorAll("div.milkup-with-line-number");
-              for (let i = 0; i < divs.length; i++) {
-                const div = divs[i] as HTMLElement;
-                const textNode = div.firstChild;
-                if (!textNode || textNode.nodeType !== Node.TEXT_NODE) continue;
-
-                const textLength = textNode.textContent?.length || 0;
-                if (remainingOffset <= textLength) {
-                  targetDiv = div;
-                  targetOffset = remainingOffset;
-                  break;
-                }
-                remainingOffset -= textLength + 1; // +1 for newline
-              }
-
-              if (targetDiv && targetDiv.firstChild) {
+            const textNode = this.sourceTextElement!.firstChild;
+            if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+              try {
                 const range = document.createRange();
-                const textNode = targetDiv.firstChild;
-                const offset = Math.min(targetOffset, textNode.textContent?.length || 0);
+                const offset = Math.min(cursorOffset, textNode.textContent?.length || 0);
                 range.setStart(textNode, offset);
                 range.collapse(true);
                 selection.removeAllRanges();
                 selection.addRange(range);
+              } catch (e) {
+                // 忽略光标恢复错误
               }
-            } catch (e) {
-              // 忽略光标恢复错误
             }
           });
         }

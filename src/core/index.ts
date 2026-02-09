@@ -62,6 +62,8 @@ export {
 
 export { createPlaceholderPlugin, placeholderPluginKey } from "./plugins/placeholder";
 
+export { createLineNumbersPlugin, lineNumbersPluginKey } from "./plugins/line-numbers";
+
 // 快捷键
 export {
   createKeymapPlugin,

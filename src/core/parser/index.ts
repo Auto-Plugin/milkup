@@ -102,7 +102,7 @@ const INLINE_SYNTAXES: InlineSyntax[] = [
 /** 块级语法模式 */
 const BLOCK_PATTERNS = {
   heading: /^(#{1,6})\s+(.*)$/,
-  code_block_start: /^```(\w*)\s*$/, // 允许行尾有空格
+  code_block_start: /^```([^\s]*)?\s*$/, // 允许任意语言标识和行尾空格
   code_block_end: /^```\s*$/, // 允许行尾有空格
   blockquote: /^>\s?(.*)$/,
   bullet_list: /^(\s*)([-*+])\s+(.*)$/,
@@ -451,7 +451,7 @@ export class MarkdownParser {
   private parseCodeBlock(lines: string[], startIndex: number): { node: Node; endIndex: number } {
     const startLine = lines[startIndex];
     const langMatch = startLine.match(BLOCK_PATTERNS.code_block_start);
-    const language = langMatch ? langMatch[1] : "";
+    const language = langMatch ? langMatch[1] || "" : "";
 
     let endIndex = startIndex + 1;
     const contentLines: string[] = [];
@@ -464,6 +464,14 @@ export class MarkdownParser {
       endIndex++;
     }
 
+    // 如果没有找到结束标记，记录警告
+    if (endIndex >= lines.length) {
+      console.warn(
+        `Unclosed code block starting at line ${startIndex + 1} with language "${language}"`
+      );
+    }
+
+    // 代码块节点只包含纯文本内容，不包含语法标记
     const content = contentLines.join("\n");
     const textNode = content ? this.schema.text(content) : null;
 
@@ -546,17 +554,42 @@ export class MarkdownParser {
       }
       const match = line.match(BLOCK_PATTERNS.blockquote);
       if (!match) break;
+      // 保留原始内容（不包含 >）
       contentLines.push(match[1]);
       endIndex++;
     }
 
     const innerBlocks = this.parseBlocks(contentLines);
 
+    // 为每个块级元素添加 > 前缀
+    const processedBlocks = innerBlocks.map((block) => {
+      if (block.type.name === "paragraph") {
+        const syntaxMark = this.schema.marks.syntax_marker?.create({
+          syntaxType: "blockquote",
+        });
+
+        const nodes: Node[] = [];
+
+        // 添加 > 符号（带 syntax_marker）
+        if (syntaxMark) {
+          nodes.push(this.schema.text("> ", [syntaxMark]));
+        }
+
+        // 添加原有内容
+        block.forEach((child) => {
+          nodes.push(child);
+        });
+
+        return this.schema.node("paragraph", null, nodes);
+      }
+      return block;
+    });
+
     return {
       node: this.schema.node(
         "blockquote",
         null,
-        innerBlocks.length > 0 ? innerBlocks : [this.schema.node("paragraph")]
+        processedBlocks.length > 0 ? processedBlocks : [this.schema.node("paragraph")]
       ),
       endIndex: endIndex - 1,
     };

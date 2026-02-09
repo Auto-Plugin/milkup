@@ -5,6 +5,7 @@
  */
 
 import { Plugin, PluginKey } from "prosemirror-state";
+import { decorationPluginKey } from "../decorations";
 
 /** 插件 Key */
 export const placeholderPluginKey = new PluginKey("milkup-placeholder");
@@ -35,17 +36,28 @@ export function createPlaceholderPlugin(placeholder: string): Plugin {
     props: {
       attributes(state) {
         const doc = state.doc;
+        const decorationState = decorationPluginKey.getState(state);
+        const sourceView = decorationState?.sourceView ?? false;
 
-        // 如果文档为空，添加 empty 类和 data-placeholder 属性
+        // 构建类名
+        let className = "milkup-editor";
+        if (isEmpty(doc)) {
+          className += " milkup-empty";
+        }
+        if (sourceView) {
+          className += " source-view";
+        }
+
+        // 如果文档为空，添加 data-placeholder 属性
         if (isEmpty(doc)) {
           return {
             "data-placeholder": placeholder,
-            class: "milkup-editor milkup-empty",
+            class: className,
           };
         }
 
         return {
-          class: "milkup-editor",
+          class: className,
         };
       },
     },
