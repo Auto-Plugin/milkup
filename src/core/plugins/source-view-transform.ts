@@ -215,21 +215,42 @@ export function createSourceViewTransformPlugin(): Plugin {
       const oldSourceView = oldDecorationState.sourceView;
       const newSourceView = newDecorationState.sourceView;
 
-      // 如果源码模式状态没有变化，不做任何处理
-      if (oldSourceView === newSourceView) return null;
+      // 源码模式状态发生变化
+      if (oldSourceView !== newSourceView) {
+        const tr = newState.tr;
 
-      const tr = newState.tr;
+        if (newSourceView) {
+          // 进入源码模式：将代码块转换为段落
+          convertCodeBlocksToParagraphs(tr);
+        } else {
+          // 退出源码模式：将段落转换回代码块
+          convertParagraphsToCodeBlocks(tr);
+        }
 
-      if (newSourceView) {
-        // 进入源码模式：将代码块转换为段落
-        convertCodeBlocksToParagraphs(tr);
-      } else {
-        // 退出源码模式：将段落转换回代码块
-        convertParagraphsToCodeBlocks(tr);
+        // 如果有变化，返回 transaction
+        return tr.docChanged ? tr : null;
       }
 
-      // 如果有变化，返回 transaction
-      return tr.docChanged ? tr : null;
+      // 在源码模式下，检查文档中是否有未转换的 code_block 节点
+      // （例如通过 setMarkdown 重新加载内容时产生的）
+      if (newSourceView) {
+        let hasCodeBlocks = false;
+        newState.doc.descendants((node, pos, parent) => {
+          if (node.type.name === "code_block" && parent?.type.name === "doc") {
+            hasCodeBlocks = true;
+            return false;
+          }
+          return true;
+        });
+
+        if (hasCodeBlocks) {
+          const tr = newState.tr;
+          convertCodeBlocksToParagraphs(tr);
+          return tr.docChanged ? tr : null;
+        }
+      }
+
+      return null;
     },
   });
 }
