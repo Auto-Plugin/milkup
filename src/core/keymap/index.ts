@@ -113,23 +113,13 @@ function createMarkdownKeymap(schema: Schema): Record<string, any> {
 }
 
 /**
- * 创建代码块 Enter 键处理
- * 当输入 ``` 或 ```lang 后按回车，创建代码块
+ * 创建块级元素 Enter 键处理
+ * - 当输入 ``` 或 ```lang 后按回车，创建代码块
+ * - 当输入 --- 或 *** 或 ___ 后按回车，创建分割线
  */
-function createCodeBlockEnterKeymap(schema: Schema): Record<string, any> {
-  if (!schema.nodes.code_block) {
-    return {};
-  }
-
+function createBlockEnterKeymap(schema: Schema): Record<string, any> {
   return {
     Enter: (state: any, dispatch: any) => {
-      // 源码视图模式下不自动创建代码块
-      const decorationState = decorationPluginKey.getState(state);
-      if (decorationState?.sourceView) {
-        return false;
-      }
-
-      // 检查当前行是否是 ``` 或 ```lang
       const { $from, empty } = state.selection;
 
       // 只处理光标选区
@@ -145,33 +135,54 @@ function createCodeBlockEnterKeymap(schema: Schema): Record<string, any> {
       }
 
       const text = parent.textContent;
-      const codeBlockMatch = text.match(/^```(\w*)$/);
-
-      if (!codeBlockMatch) {
-        return false;
-      }
-
-      const language = codeBlockMatch[1] || "";
-      const codeBlockType = schema.nodes.code_block;
-
-      // 获取段落在文档中的位置
       const depth = $from.depth;
       const paragraphStart = $from.before(depth);
       const paragraphEnd = $from.after(depth);
 
-      // 创建代码块
-      const codeBlock = codeBlockType.create({ language });
+      // 分割线：--- 或 *** 或 ___（3个或更多相同字符）
+      if (schema.nodes.horizontal_rule && /^([-*_])\1{2,}$/.test(text)) {
+        // 源码视图模式下不自动创建分割线
+        const decorationState = decorationPluginKey.getState(state);
+        if (decorationState?.sourceView) {
+          return false;
+        }
 
-      // 替换段落为代码块
-      const tr = state.tr.replaceWith(paragraphStart, paragraphEnd, codeBlock);
+        const hr = schema.nodes.horizontal_rule.create();
+        const paragraph = schema.nodes.paragraph.create();
+        const tr = state.tr.replaceWith(paragraphStart, paragraphEnd, [hr, paragraph]);
+        tr.setSelection(TextSelection.create(tr.doc, paragraphStart + hr.nodeSize + 1));
 
-      // 将光标移动到代码块内部
-      tr.setSelection(TextSelection.create(tr.doc, paragraphStart + 1));
-
-      if (dispatch) {
-        dispatch(tr);
+        if (dispatch) {
+          dispatch(tr);
+        }
+        return true;
       }
-      return true;
+
+      // 代码块：``` 或 ```lang
+      if (schema.nodes.code_block) {
+        // 源码视图模式下不自动创建代码块
+        const decorationState = decorationPluginKey.getState(state);
+        if (decorationState?.sourceView) {
+          return false;
+        }
+
+        const codeBlockMatch = text.match(/^```(\w*)$/);
+        if (!codeBlockMatch) {
+          return false;
+        }
+
+        const language = codeBlockMatch[1] || "";
+        const codeBlock = schema.nodes.code_block.create({ language });
+        const tr = state.tr.replaceWith(paragraphStart, paragraphEnd, codeBlock);
+        tr.setSelection(TextSelection.create(tr.doc, paragraphStart + 1));
+
+        if (dispatch) {
+          dispatch(tr);
+        }
+        return true;
+      }
+
+      return false;
     },
   };
 }
@@ -222,8 +233,8 @@ export function createKeymapPlugin(
   const mergedConfig = { ...defaultConfig, ...config };
   const plugins: Plugin[] = [];
 
-  // 代码块 Enter 键处理（优先级最高）
-  plugins.push(keymap(createCodeBlockEnterKeymap(schema)));
+  // 块级元素 Enter 键处理（优先级最高）
+  plugins.push(keymap(createBlockEnterKeymap(schema)));
 
   if (mergedConfig.basic) {
     plugins.push(keymap(createBasicKeymap(schema)));
@@ -244,4 +255,4 @@ export function createKeymapPlugin(
   return plugins;
 }
 
-export { createBasicKeymap, createMarkdownKeymap, createListKeymap, createCodeBlockEnterKeymap };
+export { createBasicKeymap, createMarkdownKeymap, createListKeymap, createBlockEnterKeymap };

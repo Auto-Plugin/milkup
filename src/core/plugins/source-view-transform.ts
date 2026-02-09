@@ -1,12 +1,13 @@
 /**
  * Milkup 源码模式文档转换插件
  *
- * 在源码模式下将代码块拆分成多个段落节点
- * 在退出源码模式时将段落节点重新组合成代码块
+ * 在源码模式下将块级元素（代码块、图片、分割线）拆分/转换为段落节点
+ * 在退出源码模式时将段落节点重新组合为对应的块级元素
  */
 
 import { Plugin, PluginKey, Transaction } from "prosemirror-state";
-import { Node as ProseMirrorNode, Schema } from "prosemirror-model";
+import { Node as ProseMirrorNode, Schema, Fragment, Slice } from "prosemirror-model";
+import { ReplaceStep } from "prosemirror-transform";
 import { decorationPluginKey } from "../decorations";
 
 /** 插件 Key */
@@ -103,6 +104,74 @@ function transformParagraphsToCodeBlock(
 }
 
 /**
+ * 将图片节点转换为段落节点
+ */
+function transformImageToParagraph(image: ProseMirrorNode, schema: Schema): ProseMirrorNode {
+  const alt = image.attrs.alt || "";
+  const src = image.attrs.src || "";
+  const title = image.attrs.title || "";
+  const titlePart = title ? ` "${title}"` : "";
+  const markdownText = `![${alt}](${src}${titlePart})`;
+
+  return schema.nodes.paragraph.create(
+    { imageAttrs: { src, alt, title } },
+    schema.text(markdownText)
+  );
+}
+
+/**
+ * 将图片段落节点转换回图片节点
+ */
+function transformParagraphToImage(
+  paragraph: ProseMirrorNode,
+  schema: Schema
+): ProseMirrorNode | null {
+  const imageAttrs = paragraph.attrs.imageAttrs;
+  if (!imageAttrs) return null;
+
+  // 优先从段落文本中解析最新的图片属性（用户可能编辑了源码）
+  const text = paragraph.textContent;
+  const match = text.match(/^!\[([^\]]*)\]\((.+?)(?:\s+"([^"]*)")?\)$/);
+
+  if (match) {
+    return schema.nodes.image.create({
+      alt: match[1] || "",
+      src: match[2] || "",
+      title: match[3] || "",
+    });
+  }
+
+  // 文本不再是有效的图片语法，不转换回图片
+  return null;
+}
+
+/**
+ * 将分割线节点转换为段落节点
+ */
+function transformHrToParagraph(_hr: ProseMirrorNode, schema: Schema): ProseMirrorNode {
+  return schema.nodes.paragraph.create({ hrSource: true }, schema.text("---"));
+}
+
+/**
+ * 将分割线段落节点转换回分割线节点
+ */
+function transformParagraphToHr(
+  paragraph: ProseMirrorNode,
+  schema: Schema
+): ProseMirrorNode | null {
+  if (!paragraph.attrs.hrSource) return null;
+
+  // 检查文本是否仍然是有效的分割线语法
+  const text = paragraph.textContent.trim();
+  if (/^[-*_]{3,}$/.test(text)) {
+    return schema.nodes.horizontal_rule.create();
+  }
+
+  // 文本不再是有效的分割线语法，不转换回分割线
+  return null;
+}
+
+/**
  * 查找文档中所有的代码块段落组
  */
 function findCodeBlockParagraphGroups(
@@ -128,71 +197,101 @@ function findCodeBlockParagraphGroups(
 }
 
 /**
- * 将文档中的所有代码块转换为段落
+ * 将文档中的所有块级元素（代码块、图片、分割线）转换为段落
+ * 使用整体替换文档内容的方式，避免逐个节点操作的位置映射问题
  */
-function convertCodeBlocksToParagraphs(tr: Transaction): Transaction {
+function convertBlocksToParagraphs(tr: Transaction): Transaction {
   const doc = tr.doc;
   const schema = doc.type.schema;
-  const codeBlocks: Array<{ node: ProseMirrorNode; pos: number }> = [];
+  const newContent: ProseMirrorNode[] = [];
 
-  // 收集所有代码块节点
-  doc.descendants((node, pos, parent) => {
-    if (node.type.name === "code_block" && parent?.type.name === "doc") {
-      codeBlocks.push({ node, pos });
+  doc.forEach((node) => {
+    if (node.type.name === "code_block") {
+      newContent.push(...transformCodeBlockToParagraphs(node, schema));
+    } else if (node.type.name === "image") {
+      newContent.push(transformImageToParagraph(node, schema));
+    } else if (node.type.name === "horizontal_rule") {
+      newContent.push(transformHrToParagraph(node, schema));
+    } else {
+      newContent.push(node);
     }
-    return true;
   });
 
-  // 从后往前处理，避免位置偏移问题
-  for (let i = codeBlocks.length - 1; i >= 0; i--) {
-    const { node, pos } = codeBlocks[i];
-    const paragraphs = transformCodeBlockToParagraphs(node, schema);
-
-    // 删除代码块节点
-    tr.delete(pos, pos + node.nodeSize);
-
-    // 插入段落节点
-    if (paragraphs.length > 0) {
-      tr.insert(pos, paragraphs);
-    }
+  if (newContent.length > 0) {
+    const step = new ReplaceStep(0, doc.content.size, new Slice(Fragment.from(newContent), 0, 0));
+    tr.step(step);
   }
 
   return tr;
 }
 
 /**
- * 将文档中的代码块段落转换回代码块
+ * 将文档中的特殊段落转换回对应的块级元素（代码块、图片、分割线）
+ * 使用整体替换文档内容的方式，避免逐个节点操作的位置映射问题
  */
-function convertParagraphsToCodeBlocks(tr: Transaction): Transaction {
+function convertParagraphsToBlocks(tr: Transaction): Transaction {
   const doc = tr.doc;
   const schema = doc.type.schema;
-  const groups = findCodeBlockParagraphGroups(doc);
+  const newContent: ProseMirrorNode[] = [];
 
-  // 按位置从后往前处理，避免位置偏移问题
-  const sortedGroups = Array.from(groups.entries())
-    .map(([id, paragraphs]) => ({
-      id,
-      paragraphs: paragraphs.sort((a, b) => a.pos - b.pos),
-    }))
-    .sort((a, b) => b.paragraphs[0].pos - a.paragraphs[0].pos);
+  // 收集代码块段落组
+  let codeBlockGroup: ProseMirrorNode[] = [];
+  let currentCodeBlockId: string | null = null;
 
-  for (const group of sortedGroups) {
-    const { paragraphs } = group;
-    if (paragraphs.length === 0) continue;
-
+  const flushCodeBlockGroup = () => {
+    if (codeBlockGroup.length === 0) return;
+    const paragraphs = codeBlockGroup.map((node) => ({ node, pos: 0 }));
     const result = transformParagraphsToCodeBlock(paragraphs, schema);
-    if (!result) continue;
+    if (result) {
+      newContent.push(result.codeBlock);
+    } else {
+      // 转换失败，保留原始段落
+      newContent.push(...codeBlockGroup);
+    }
+    codeBlockGroup = [];
+    currentCodeBlockId = null;
+  };
 
-    const { codeBlock } = result;
-    const firstPos = paragraphs[0].pos;
-    const lastPara = paragraphs[paragraphs.length - 1];
-    const lastPos = lastPara.pos + lastPara.node.nodeSize;
+  doc.forEach((node) => {
+    if (node.type.name === "paragraph") {
+      const codeBlockId = node.attrs.codeBlockId;
 
-    // 删除所有段落节点
-    tr.delete(firstPos, lastPos);
+      if (codeBlockId) {
+        // 代码块段落
+        if (currentCodeBlockId && currentCodeBlockId !== codeBlockId) {
+          flushCodeBlockGroup();
+        }
+        currentCodeBlockId = codeBlockId;
+        codeBlockGroup.push(node);
+        return;
+      }
 
-    // 插入代码块节点
-    tr.insert(firstPos, codeBlock);
+      // 非代码块段落，先刷新之前的代码块组
+      flushCodeBlockGroup();
+
+      if (node.attrs.imageAttrs) {
+        // 图片段落
+        const image = transformParagraphToImage(node, schema);
+        newContent.push(image || node);
+      } else if (node.attrs.hrSource) {
+        // 分割线段落
+        const hr = transformParagraphToHr(node, schema);
+        newContent.push(hr || node);
+      } else {
+        newContent.push(node);
+      }
+    } else {
+      flushCodeBlockGroup();
+      newContent.push(node);
+    }
+  });
+
+  // 刷新最后一组代码块
+  flushCodeBlockGroup();
+
+  if (newContent.length > 0) {
+    const step = new ReplaceStep(0, doc.content.size, new Slice(Fragment.from(newContent), 0, 0));
+    tr.step(step);
   }
 
   return tr;
@@ -220,32 +319,36 @@ export function createSourceViewTransformPlugin(): Plugin {
         const tr = newState.tr;
 
         if (newSourceView) {
-          // 进入源码模式：将代码块转换为段落
-          convertCodeBlocksToParagraphs(tr);
+          // 进入源码模式：将块级元素转换为段落
+          convertBlocksToParagraphs(tr);
         } else {
-          // 退出源码模式：将段落转换回代码块
-          convertParagraphsToCodeBlocks(tr);
+          // 退出源码模式：将段落转换回块级元素
+          convertParagraphsToBlocks(tr);
         }
 
         // 如果有变化，返回 transaction
         return tr.docChanged ? tr : null;
       }
 
-      // 在源码模式下，检查文档中是否有未转换的 code_block 节点
+      // 在源码模式下，检查文档中是否有未转换的块级节点
       // （例如通过 setMarkdown 重新加载内容时产生的）
       if (newSourceView) {
-        let hasCodeBlocks = false;
+        let hasBlocks = false;
         newState.doc.descendants((node, pos, parent) => {
-          if (node.type.name === "code_block" && parent?.type.name === "doc") {
-            hasCodeBlocks = true;
-            return false;
+          if (
+            parent?.type.name === "doc" &&
+            (node.type.name === "code_block" ||
+              node.type.name === "image" ||
+              node.type.name === "horizontal_rule")
+          ) {
+            hasBlocks = true;
           }
-          return true;
+          return !hasBlocks; // 找到一个就停止遍历
         });
 
-        if (hasCodeBlocks) {
+        if (hasBlocks) {
           const tr = newState.tr;
-          convertCodeBlocksToParagraphs(tr);
+          convertBlocksToParagraphs(tr);
           return tr.docChanged ? tr : null;
         }
       }
