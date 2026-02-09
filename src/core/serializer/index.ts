@@ -73,7 +73,13 @@ export class MarkdownSerializer {
     paragraph: (node, lines, indent) => {
       const text = this.serializeInline(node);
       lines.push(indent + text);
-      if (!this.options.compact) lines.push("");
+      // 代码块段落：只在最后一行后添加空行，避免破坏代码块格式
+      if (node.attrs.codeBlockId) {
+        const isLastLine = node.attrs.lineIndex === node.attrs.totalLines - 1;
+        if (isLastLine && !this.options.compact) lines.push("");
+      } else {
+        if (!this.options.compact) lines.push("");
+      }
     },
 
     heading: (node, lines, indent) => {
