@@ -1,44 +1,69 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import About from '@/renderer/components/settings/About.vue'
-import appearancePage from '@/renderer/components/settings/AppearancePage.vue'
-import FileOptions from '@/renderer/components/settings/FileOptions.vue'
-import Language from '@/renderer/components/settings/Language.vue'
-import SettingBase from '@/renderer/components/settings/SettingBase.vue'
-import emitter from '@/renderer/events'
-import { checkUpdate } from '@/renderer/services/api/update.js'
+import { ref } from "vue";
+import About from "@/renderer/components/settings/About.vue";
+import appearancePage from "@/renderer/components/settings/AppearancePage.vue";
+import FileOptions from "@/renderer/components/settings/FileOptions.vue";
+import Language from "@/renderer/components/settings/Language.vue";
+import SettingBase from "@/renderer/components/settings/SettingBase.vue";
+import ShortcutPage from "@/renderer/components/settings/ShortcutPage.vue";
+import emitter from "@/renderer/events";
+import { checkUpdate } from "@/renderer/services/api/update.js";
 
-const activeTab = ref<'settings' | 'about' | 'appearance' | 'file' | 'language'>('file')
+const activeTab = ref<"settings" | "about" | "appearance" | "file" | "language" | "shortcut">(
+  "file"
+);
 const MenuComponents = {
   settings: SettingBase,
   about: About,
   language: Language,
   appearance: appearancePage,
   file: FileOptions,
-}
+  shortcut: ShortcutPage,
+};
 const MenuOptions = [
-  { label: '文件', action: () => (activeTab.value = 'file'), icon: 'icon-document', value: 'file' },
-  // { label: '打开', action: onOpen, icon: 'icon-data-select' },
-  // { label: '保存', action: onSave, icon: 'icon-baocun' },
-  // { label: '另存为', action: onSaveAs, icon: 'icon-baocun' },
-  { label: '设置', action: () => (activeTab.value = 'settings'), icon: 'icon-config-props', value: 'settings' },
-  { label: '外观', action: () => (activeTab.value = 'appearance'), icon: 'icon-waiguan', value: 'appearance' },
-  { label: '语言', action: () => (activeTab.value = 'language'), icon: 'icon-fanyi', value: 'language' },
-  { label: '关于', action: () => (activeTab.value = 'about'), icon: 'icon-github', value: 'about' },
-]
+  { label: "文件", action: () => (activeTab.value = "file"), icon: "icon-document", value: "file" },
+  {
+    label: "设置",
+    action: () => (activeTab.value = "settings"),
+    icon: "icon-config-props",
+    value: "settings",
+  },
+  {
+    label: "外观",
+    action: () => (activeTab.value = "appearance"),
+    icon: "icon-waiguan",
+    value: "appearance",
+  },
+  {
+    label: "快捷键",
+    action: () => (activeTab.value = "shortcut"),
+    icon: "icon-input",
+    value: "shortcut",
+  },
+  {
+    label: "语言",
+    action: () => (activeTab.value = "language"),
+    icon: "icon-fanyi",
+    value: "language",
+  },
+  { label: "关于", action: () => (activeTab.value = "about"), icon: "icon-github", value: "about" },
+];
 checkUpdate().then((updateInfo) => {
   if (updateInfo) {
-    emitter.emit('update:available', updateInfo)
+    emitter.emit("update:available", updateInfo);
   }
-})
+});
 </script>
 
 <template>
   <div class="MenubarBox">
     <div class="optionsContainer">
       <span
-        v-for="option in MenuOptions" :key="option.label" class="iconfont"
-        :class="{ active: activeTab === option.value, [option.icon]: true }" @click="option.action"
+        v-for="option in MenuOptions"
+        :key="option.label"
+        class="iconfont"
+        :class="{ active: activeTab === option.value, [option.icon]: true }"
+        @click="option.action"
       >
         {{ option.label }}
       </span>

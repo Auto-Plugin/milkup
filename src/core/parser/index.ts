@@ -282,10 +282,11 @@ export class MarkdownParser {
 
     const nodes: Node[] = [];
 
-    // 添加 # 标记作为文本（带 syntax mark）
+    // 添加 # 标记作为文本（带 syntax mark），空格单独作为普通文本
     const syntaxMark = this.schema.marks.syntax_marker?.create({ syntaxType: "heading" });
     if (syntaxMark) {
-      nodes.push(this.schema.text(hashes + " ", [syntaxMark]));
+      nodes.push(this.schema.text(hashes, [syntaxMark]));
+      nodes.push(this.schema.text(" "));
     }
 
     // 添加内容

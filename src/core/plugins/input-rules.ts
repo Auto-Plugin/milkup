@@ -34,21 +34,24 @@ function headingRule(nodeType: NodeType, maxLevel: number = 6): InputRule {
       return null;
     }
 
-    // 创建语法标记文本
-    const hashText = match[1] + " ";
+    // 创建语法标记文本（# 带 syntax_marker，空格单独作为普通文本）
+    const hashText = match[1];
     let content;
     if (syntaxMarkerType) {
       const syntaxMark = syntaxMarkerType.create({ syntaxType: "heading" });
-      content = schema.text(hashText, [syntaxMark]);
+      content = [schema.text(hashText, [syntaxMark]), schema.text(" ")];
     } else {
-      content = schema.text(hashText);
+      content = [schema.text(hashText + " ")];
     }
 
     // 先删除匹配的文本，然后设置块类型，最后插入语法标记
     let tr = state.tr.delete(start, end);
     tr = tr.setBlockType(start, start, nodeType, { level });
     // 在标题开头插入语法标记
-    tr = tr.insert(start, content);
+    for (const node of content) {
+      tr = tr.insert(start, node);
+      start += node.nodeSize;
+    }
 
     return tr;
   });

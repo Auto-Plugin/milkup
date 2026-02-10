@@ -1,18 +1,20 @@
-import type { FontConfig, FontSizeConfig } from '@/types/font'
-import { useStorage } from '@vueuse/core'
-import { readonly, watch } from 'vue'
+import type { FontConfig, FontSizeConfig } from "@/types/font";
+import type { ShortcutKeyMap } from "@/core";
+import { useStorage } from "@vueuse/core";
+import { readonly, watch } from "vue";
 
-import { defaultFontConfig, defaultFontSizeConfig } from '@/config/fonts'
-import { setNestedProperty } from '@/renderer/utils/tool'
+import { defaultFontConfig, defaultFontSizeConfig } from "@/config/fonts";
+import { setNestedProperty } from "@/renderer/utils/tool";
 
 interface AppConfig extends Record<string, any> {
   font: {
-    family: FontConfig
-    size: FontSizeConfig
-  }
+    family: FontConfig;
+    size: FontSizeConfig;
+  };
   other: {
-    editorPadding: string
-  }
+    editorPadding: string;
+  };
+  shortcuts: ShortcutKeyMap;
 }
 
 const defaultConfig: AppConfig = {
@@ -21,22 +23,23 @@ const defaultConfig: AppConfig = {
     size: defaultFontSizeConfig,
   },
   other: {
-    editorPadding: '120px',
+    editorPadding: "120px",
   },
-}
+  shortcuts: {},
+};
 
-const config = useStorage<AppConfig>('milkup-config', defaultConfig, localStorage, {
+const config = useStorage<AppConfig>("milkup-config", defaultConfig, localStorage, {
   serializer: {
     read: (value: string) => {
       try {
-        return { ...defaultConfig, ...JSON.parse(value) }
+        return { ...defaultConfig, ...JSON.parse(value) };
       } catch {
-        return defaultConfig
+        return defaultConfig;
       }
     },
     write: (value: AppConfig) => JSON.stringify(value),
   },
-})
+});
 
 export function useConfig() {
   return {
@@ -45,16 +48,18 @@ export function useConfig() {
     getConf: <K extends keyof AppConfig>(key: K) => readonly(config.value[key]),
 
     setConf: <K extends keyof AppConfig>(key: K, value: AppConfig[K] | string, pathValue?: any) => {
-      if (typeof value === 'string' && pathValue !== undefined) {
-        config.value = { ...config.value, [key]: setNestedProperty(config.value[key], value, pathValue) }
+      if (typeof value === "string" && pathValue !== undefined) {
+        config.value = {
+          ...config.value,
+          [key]: setNestedProperty(config.value[key], value, pathValue),
+        };
       } else {
-        config.value = { ...config.value, [key]: value as AppConfig[K] }
+        config.value = { ...config.value, [key]: value as AppConfig[K] };
       }
     },
 
     watchConf: <K extends keyof AppConfig>(key: K, callback: (value: AppConfig[K]) => void) => {
-      return watch(() => config.value[key], callback, { deep: true })
+      return watch(() => config.value[key], callback, { deep: true });
     },
-
-  }
+  };
 }

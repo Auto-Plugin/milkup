@@ -1,133 +1,140 @@
 <script setup lang="ts">
-import type { ThemeName } from '@/types/theme'
-import autotoast from 'autotoast.js'
-import { onMounted, onUnmounted, ref } from 'vue'
-import MilkdownEditor from '@/renderer/components/editor/MilkdownEditor.vue'
-import useTheme from '@/renderer/hooks/useTheme'
-import ColorPicker from '@/ui/ColorPicker.vue'
+import type { ThemeName } from "@/types/theme";
+import autotoast from "autotoast.js";
+import { onMounted, onUnmounted, ref } from "vue";
+import MilkupEditor from "@/renderer/components/editor/MilkupEditor.vue";
+import useTheme from "@/renderer/hooks/useTheme";
+import ColorPicker from "@/ui/ColorPicker.vue";
 
-const { tempTheme, getAllCssVarsDes, getThemeByCn, addTempTheme, saveTheme, getEditingThemeFromStorage, clearEditingThemeFromStorage } = useTheme()
-const isWin = window.electronAPI.platform === 'win32'
+const {
+  tempTheme,
+  getAllCssVarsDes,
+  getThemeByCn,
+  addTempTheme,
+  saveTheme,
+  getEditingThemeFromStorage,
+  clearEditingThemeFromStorage,
+} = useTheme();
+const isWin = window.electronAPI.platform === "win32";
 
 // 原始主题备份
-const originalThemeBackup = ref<any>(null)
+const originalThemeBackup = ref<any>(null);
 
-const css_config = getAllCssVarsDes()
+const css_config = getAllCssVarsDes();
 
 // 更新预览
 function updatePreview() {
-  if (!tempTheme.value)
-    return
+  if (!tempTheme.value) return;
 
   // 同步更新 themeProperties
   tempTheme.value.data.themeProperties = {
     ...tempTheme.value.data.appCssProperties,
     ...tempTheme.value.data.milkdownCssProperties,
-  }
+  };
 
-  const root = document.documentElement
+  const root = document.documentElement;
 
   // 全部应用
   Object.entries(tempTheme.value.data.themeProperties).forEach(([key, value]) => {
-    root.style.setProperty(key, value)
-  })
+    root.style.setProperty(key, value);
+  });
 }
 
 // 关闭窗口
 function handleClose() {
   // 清理编辑状态
-  clearEditingThemeFromStorage()
+  clearEditingThemeFromStorage();
 
   if (window.electronAPI) {
-    window.electronAPI.themeEditorWindowControl('close')
+    window.electronAPI.themeEditorWindowControl("close");
   }
 }
 
 // 重置主题
 function handleReset() {
   if (!tempTheme.value || !originalThemeBackup.value) {
-    return
+    return;
   }
 
   // 恢复原始主题数据
-  tempTheme.value = originalThemeBackup.value
+  tempTheme.value = originalThemeBackup.value;
 
   // 更新预览
-  updatePreview()
+  updatePreview();
 
   // 显示重置成功提示
-  autotoast.show('主题已重置', 'warn')
+  autotoast.show("主题已重置", "warn");
 }
 
 // 保存主题
 function handleSave() {
   // return
-  saveTheme()
+  saveTheme();
 
   // 关闭窗口
-  handleClose()
+  handleClose();
 }
 
 // 组件挂载时初始化
 onMounted(() => {
   // 从 localStorage 读取编辑中的主题数据
-  const editingTheme = getEditingThemeFromStorage()
+  const editingTheme = getEditingThemeFromStorage();
 
   if (editingTheme) {
     // 如果有主题数据，说明是编辑模式
 
     // 在列表中找到主题
-    const theme = getThemeByCn(editingTheme)
+    const theme = getThemeByCn(editingTheme);
 
     if (!theme) {
-      autotoast.show('未找到指定主题', 'error')
+      autotoast.show("未找到指定主题", "error");
 
-      return
+      return;
     }
 
     // 设置临时主题
-    tempTheme.value = theme
+    tempTheme.value = theme;
 
     // 复制一份原始主题作为备份
-    originalThemeBackup.value = JSON.parse(JSON.stringify(theme))
+    originalThemeBackup.value = JSON.parse(JSON.stringify(theme));
   } else {
     // 确保主题已初始化
     if (!tempTheme.value) {
-      addTempTheme()
+      addTempTheme();
     }
 
     // 复制一份原始主题作为备份
     if (tempTheme.value) {
-      originalThemeBackup.value = JSON.parse(JSON.stringify(tempTheme.value))
+      originalThemeBackup.value = JSON.parse(JSON.stringify(tempTheme.value));
     }
   }
 
   // 应用当前主题到预览
-  updatePreview()
-})
+  updatePreview();
+});
 
 // 组件卸载时处理
 onUnmounted(() => {
   // 清理编辑状态
-  clearEditingThemeFromStorage()
-})
+  clearEditingThemeFromStorage();
+});
 
 // 应用预设
 function applyThemePreset(cn: ThemeName) {
-  const theme = getThemeByCn(cn)
+  const theme = getThemeByCn(cn);
 
-  const { milkdownCssProperties, appCssProperties } = theme.data
+  const { milkdownCssProperties, appCssProperties } = theme.data;
 
-  tempTheme.value!.data.appCssProperties = appCssProperties
-  tempTheme.value!.data.milkdownCssProperties = milkdownCssProperties
+  tempTheme.value!.data.appCssProperties = appCssProperties;
+  tempTheme.value!.data.milkdownCssProperties = milkdownCssProperties;
 
   // 同步更新 themeProperties
   tempTheme.value!.data.themeProperties = {
     ...appCssProperties,
     ...milkdownCssProperties,
-  }
+  };
 
-  updatePreview()
+  updatePreview();
 }
 
 // 获取描述
@@ -136,9 +143,9 @@ function getCssVarDes(attr: string) {
   const properties: Record<string, string> = {
     ...css_config.app,
     ...css_config.editor,
-  }
+  };
 
-  return properties[attr] || '未定义'
+  return properties[attr] || "未定义";
 }
 
 // 示例Markdown内容
@@ -176,16 +183,14 @@ console.log(text)
 | 1  | 2  | 3  |
 
 
-`
+`;
 </script>
 
 <template>
   <div class="theme-editor">
     <!-- 标题栏 -->
     <div class="TitleBarBox">
-      <div class="title">
-        主题编辑器
-      </div>
+      <div class="title">主题编辑器</div>
       <div class="window-controls">
         <span v-if="isWin" class="iconfont icon-close" @click="handleClose"></span>
       </div>
@@ -203,22 +208,26 @@ console.log(text)
           <div v-if="tempTheme" class="config-section">
             <div class="section-header">
               <h3>主题信息</h3>
-              <div class="section-description">
-                设置主题的名称和描述
-              </div>
+              <div class="section-description">设置主题的名称和描述</div>
             </div>
             <div class="form-section">
               <div class="variable-item">
                 <label>主题名称</label>
                 <input
-                  v-model="tempTheme.label" type="text" class="text-input" placeholder="输入主题名称"
+                  v-model="tempTheme.label"
+                  type="text"
+                  class="text-input"
+                  placeholder="输入主题名称"
                   @change="updatePreview"
                 />
               </div>
               <div class="variable-item">
                 <label>主题描述</label>
                 <textarea
-                  v-model="tempTheme.description" class="text-area" placeholder="输入主题描述" rows="3"
+                  v-model="tempTheme.description"
+                  class="text-area"
+                  placeholder="输入主题描述"
+                  rows="3"
                   @change="updatePreview"
                 ></textarea>
               </div>
@@ -229,19 +238,13 @@ console.log(text)
           <div class="config-section">
             <div class="section-header">
               <h3>主题预设</h3>
-              <div class="section-description">
-                快速应用预设主题
-              </div>
+              <div class="section-description">快速应用预设主题</div>
             </div>
             <div class="form-section">
               <div class="preset-buttons">
-                <button class="preset-btn" @click="applyThemePreset('normal')">
-                  亮色
-                </button>
+                <button class="preset-btn" @click="applyThemePreset('normal')">亮色</button>
 
-                <button class="preset-btn" @click="applyThemePreset('normal-dark')">
-                  暗色
-                </button>
+                <button class="preset-btn" @click="applyThemePreset('normal-dark')">暗色</button>
               </div>
             </div>
           </div>
@@ -250,22 +253,27 @@ console.log(text)
           <div class="config-section">
             <div class="section-header">
               <h3>应用颜色配置</h3>
-              <div class="section-description">
-                配置应用界面的颜色主题
-              </div>
+              <div class="section-description">配置应用界面的颜色主题</div>
             </div>
 
-            <div v-for="(_, attr) in tempTheme?.data.appCssProperties" :key="attr" class="form-section">
+            <div
+              v-for="(_, attr) in tempTheme?.data.appCssProperties"
+              :key="attr"
+              class="form-section"
+            >
               <div class="variables-list">
                 <div class="variable-item">
                   <label>{{ getCssVarDes(attr) }}</label>
                   <div class="color-input-group">
                     <ColorPicker
-                      v-model="tempTheme!.data.appCssProperties[attr]" size="medium"
+                      v-model="tempTheme!.data.appCssProperties[attr]"
+                      size="medium"
                       @change="updatePreview"
                     />
                     <input
-                      v-model="tempTheme!.data.appCssProperties[attr]" type="text" class="color-text"
+                      v-model="tempTheme!.data.appCssProperties[attr]"
+                      type="text"
+                      class="color-text"
                       @change="updatePreview"
                     />
                   </div>
@@ -278,22 +286,27 @@ console.log(text)
           <div class="config-section">
             <div class="section-header">
               <h3>编辑器颜色配置</h3>
-              <div class="section-description">
-                配置Markdown编辑器的颜色主题
-              </div>
+              <div class="section-description">配置Markdown编辑器的颜色主题</div>
             </div>
 
-            <div v-for="(_, attr) in tempTheme?.data.milkdownCssProperties" :key="attr" class="form-section">
+            <div
+              v-for="(_, attr) in tempTheme?.data.milkdownCssProperties"
+              :key="attr"
+              class="form-section"
+            >
               <div class="variables-list">
                 <div class="variable-item">
                   <label>{{ getCssVarDes(attr) }}</label>
                   <div class="color-input-group">
                     <ColorPicker
-                      v-model="tempTheme!.data.milkdownCssProperties[attr]" size="medium"
+                      v-model="tempTheme!.data.milkdownCssProperties[attr]"
+                      size="medium"
                       @change="updatePreview"
                     />
                     <input
-                      v-model="tempTheme!.data.milkdownCssProperties[attr]" type="text" class="color-text"
+                      v-model="tempTheme!.data.milkdownCssProperties[attr]"
+                      type="text"
+                      class="color-text"
                       @change="updatePreview"
                     />
                   </div>
@@ -306,12 +319,8 @@ console.log(text)
         <!-- 操作按钮 -->
         <div class="panel-footer">
           <div class="button-group">
-            <button class="btn-reset" @click="handleReset">
-              重置
-            </button>
-            <button class="btn-save" @click="handleSave">
-              保存主题
-            </button>
+            <button class="btn-reset" @click="handleReset">重置</button>
+            <button class="btn-save" @click="handleSave">保存主题</button>
           </div>
         </div>
       </div>
@@ -322,7 +331,7 @@ console.log(text)
           <h2>实时预览</h2>
         </div>
         <div class="preview-content">
-          <MilkdownEditor :model-value="demoContent" class="preview-editor" />
+          <MilkupEditor :model-value="demoContent" class="preview-editor" />
         </div>
       </div>
     </div>
@@ -502,7 +511,6 @@ console.log(text)
           color: var(--text-color);
           font-weight: 500;
         }
-
       }
 
       .variables-list {
