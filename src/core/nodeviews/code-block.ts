@@ -253,8 +253,6 @@ export class CodeBlockView implements NodeView {
         extensions: [
           history(),
           cmKeymap.of([
-            ...defaultKeymap,
-            ...historyKeymap,
             {
               key: "Ctrl-Enter",
               run: () => {
@@ -328,27 +326,6 @@ export class CodeBlockView implements NodeView {
 
                 // 在第一位按右箭头，跳出代码块到开始围栏之前
                 if (main.head === 0 && main.empty) {
-                  const pos = this.getPos();
-                  if (pos !== undefined) {
-                    const $pos = this.view.state.doc.resolve(pos);
-                    // 检查祖先节点中是否有 list_item
-                    let inList = false;
-                    for (let d = $pos.depth; d > 0; d--) {
-                      const node = $pos.node(d);
-                      if (node.type.name === "list_item" || node.type.name === "task_item") {
-                        inList = true;
-                        break;
-                      }
-                    }
-                    if (inList) {
-                      // 在列表中，跳到代码块之前
-                      const selection = Selection.near(this.view.state.doc.resolve(pos), -1);
-                      this.view.dispatch(this.view.state.tr.setSelection(selection));
-                      this.view.focus();
-                      return true;
-                    }
-                  }
-                  // 不在列表中，使用默认行为
                   this.exitCodeBlock(-1);
                   return true;
                 }
@@ -372,6 +349,8 @@ export class CodeBlockView implements NodeView {
                 return false;
               },
             },
+            ...defaultKeymap,
+            ...historyKeymap,
           ]),
           this.themeCompartment.of(createThemeExtension(isDark)),
           this.languageCompartment.of(getLanguageExtension(normalizedLang)),
@@ -1162,6 +1141,15 @@ export class CodeBlockView implements NodeView {
       this.view.focus();
     } else {
       const selection = Selection.near(state.doc.resolve(pos), -1);
+      // 如果找到的选区不在代码块之前，说明前方无可用位置，需创建段落
+      if (selection.from >= pos) {
+        const paragraph = state.schema.nodes.paragraph.create();
+        const tr = state.tr.insert(pos, paragraph);
+        tr.setSelection(TextSelection.create(tr.doc, pos + 1));
+        this.view.dispatch(tr);
+        this.view.focus();
+        return;
+      }
       this.view.dispatch(state.tr.setSelection(selection));
       this.view.focus();
     }
