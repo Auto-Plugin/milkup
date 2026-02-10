@@ -48,6 +48,12 @@ function collectSyntaxMarkers(node: Node, basePos: number): SyntaxMarkerInfo[] {
     if (child.isText) {
       const syntaxMark = child.marks.find((m) => m.type.name === "syntax_marker");
       if (syntaxMark) {
+        // 跳过 escape 类型的 syntax_marker
+        if (syntaxMark.attrs.syntaxType === "escape") {
+          offset += child.nodeSize;
+          return;
+        }
+
         // 找到对应的语义 mark
         const semanticMark = child.marks.find(
           (m) =>

@@ -95,6 +95,7 @@ export const SYNTAX_CLASSES: Record<string, string> = {
   math_inline: "milkup-math-inline",
   heading: "milkup-heading", // 标题
   strong_emphasis: "milkup-strong-emphasis", // 粗斜体
+  escape: "milkup-escape", // 转义
 };
 
 /** 语法类型关联映射 - 用于处理嵌套语法 */
@@ -108,6 +109,7 @@ const SYNTAX_TYPE_RELATIONS: Record<string, string[]> = {
   link: ["link"],
   math_inline: ["math_inline"],
   heading: ["heading"],
+  escape: ["escape"],
 };
 
 /**
@@ -416,7 +418,13 @@ export function computeDecorations(
     // 判断这个语法标记是否应该显示
     let shouldShow = sourceView;
 
-    if (!shouldShow && activeSemanticRegions.length > 0) {
+    if (!shouldShow && region.syntaxType === "escape") {
+      // escape 类型特殊处理：当光标在 `\` 或紧邻的被转义字符上时显示
+      // region 是 `\` 的位置，被转义字符紧跟其后（region.to 位置）
+      if (cursorPos >= region.from && cursorPos <= region.to + 1) {
+        shouldShow = true;
+      }
+    } else if (!shouldShow && activeSemanticRegions.length > 0) {
       // 如果光标在某个语义区域内，显示该区域的所有语法标记
       for (const activeRegion of activeSemanticRegions) {
         // 检查这个 syntax_marker 是否属于当前活跃的语义区域
