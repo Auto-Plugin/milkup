@@ -258,6 +258,26 @@ export class CodeBlockView implements NodeView {
             {
               key: "Ctrl-Enter",
               run: () => {
+                // 检查是否在列表中
+                const pos = this.getPos();
+                if (pos !== undefined) {
+                  const $pos = this.view.state.doc.resolve(pos);
+                  // 检查祖先节点中是否有 list_item
+                  let inList = false;
+                  for (let d = $pos.depth; d > 0; d--) {
+                    const node = $pos.node(d);
+                    if (node.type.name === "list_item" || node.type.name === "task_item") {
+                      inList = true;
+                      break;
+                    }
+                  }
+                  if (inList) {
+                    // 在列表中，创建新的列表项
+                    this.exitCodeBlockAndCreateListItem();
+                    return true;
+                  }
+                }
+                // 不在列表中，使用默认行为
                 this.exitCodeBlock(1);
                 return true;
               },
@@ -305,10 +325,40 @@ export class CodeBlockView implements NodeView {
               run: (cmView) => {
                 const { state } = cmView;
                 const { main } = state.selection;
+
+                // 在第一位按右箭头，跳出代码块到开始围栏之前
+                if (main.head === 0 && main.empty) {
+                  const pos = this.getPos();
+                  if (pos !== undefined) {
+                    const $pos = this.view.state.doc.resolve(pos);
+                    // 检查祖先节点中是否有 list_item
+                    let inList = false;
+                    for (let d = $pos.depth; d > 0; d--) {
+                      const node = $pos.node(d);
+                      if (node.type.name === "list_item" || node.type.name === "task_item") {
+                        inList = true;
+                        break;
+                      }
+                    }
+                    if (inList) {
+                      // 在列表中，跳到代码块之前
+                      const selection = Selection.near(this.view.state.doc.resolve(pos), -1);
+                      this.view.dispatch(this.view.state.tr.setSelection(selection));
+                      this.view.focus();
+                      return true;
+                    }
+                  }
+                  // 不在列表中，使用默认行为
+                  this.exitCodeBlock(-1);
+                  return true;
+                }
+
+                // 在最后一位按右箭头，跳出代码块
                 if (main.head === state.doc.length && main.empty) {
                   this.exitCodeBlock(1);
                   return true;
                 }
+
                 return false;
               },
             },
@@ -343,16 +393,6 @@ export class CodeBlockView implements NodeView {
 
     // 监听主题变化
     this.setupThemeObserver();
-
-    // 创建底部点击区域
-    const footer = document.createElement("div");
-    footer.className = "milkup-code-block-footer";
-    footer.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      this.exitCodeBlock(1);
-    });
-    this.dom.appendChild(footer);
 
     // Mermaid 预览
     if (normalizedLang === "mermaid") {
@@ -1125,6 +1165,48 @@ export class CodeBlockView implements NodeView {
       this.view.dispatch(state.tr.setSelection(selection));
       this.view.focus();
     }
+  }
+
+  /**
+   * 跳出代码块并创建新的列表项
+   */
+  private exitCodeBlockAndCreateListItem(): void {
+    const pos = this.getPos();
+    if (pos === undefined) return;
+
+    const { state } = this.view;
+    const $pos = state.doc.resolve(pos);
+
+    // 查找列表项节点
+    let listItemDepth = -1;
+    for (let d = $pos.depth; d > 0; d--) {
+      const node = $pos.node(d);
+      if (node.type.name === "list_item" || node.type.name === "task_item") {
+        listItemDepth = d;
+        break;
+      }
+    }
+
+    // 确认在列表项中
+    if (listItemDepth === -1) {
+      this.exitCodeBlock(1);
+      return;
+    }
+
+    // 获取列表项之后的位置（而非内容末尾）
+    const listItemAfter = $pos.after(listItemDepth);
+
+    // 创建新的列表项
+    const newListItem = state.schema.nodes.list_item.create(
+      null,
+      state.schema.nodes.paragraph.create()
+    );
+
+    const tr = state.tr;
+    tr.insert(listItemAfter, newListItem);
+    tr.setSelection(TextSelection.create(tr.doc, listItemAfter + 2));
+    this.view.dispatch(tr);
+    this.view.focus();
   }
 
   /**

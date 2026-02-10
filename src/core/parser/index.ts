@@ -720,6 +720,8 @@ export class MarkdownParser {
       let itemEndIndex = endIndex + 1;
 
       // 收集后续缩进的行（包括代码块等）
+      // 检查第一行是否是代码块开始
+      let inCodeBlock = match[3].trim().startsWith("```");
       while (itemEndIndex < lines.length) {
         const nextLine = lines[itemEndIndex];
 
@@ -743,9 +745,15 @@ export class MarkdownParser {
           break;
         }
 
+        // 跟踪代码块状态
+        if (nextLine.trim().startsWith("```")) {
+          inCodeBlock = !inCodeBlock;
+        }
+
         // 检查是否有足够的缩进
         const lineIndent = nextLine.match(/^(\s*)/)?.[1].length || 0;
-        if (lineIndent >= itemIndent || nextLine.startsWith("```")) {
+        // 在代码块内部，接受缩进较少的行
+        if (lineIndent >= itemIndent || inCodeBlock || nextLine.trim().startsWith("```")) {
           // 移除缩进
           const trimmedLine = nextLine.slice(Math.min(lineIndent, itemIndent));
           itemLines.push(trimmedLine);
@@ -832,6 +840,8 @@ export class MarkdownParser {
       const itemIndent = indent + match[2].length + 2; // 数字 + ". " 的长度
       let itemEndIndex = endIndex + 1;
 
+      // 检查第一行是否是代码块开始
+      let inCodeBlock = match[3].trim().startsWith("```");
       while (itemEndIndex < lines.length) {
         const nextLine = lines[itemEndIndex];
 
@@ -851,8 +861,14 @@ export class MarkdownParser {
           break;
         }
 
+        // 跟踪代码块状态
+        if (nextLine.trim().startsWith("```")) {
+          inCodeBlock = !inCodeBlock;
+        }
+
         const lineIndent = nextLine.match(/^(\s*)/)?.[1].length || 0;
-        if (lineIndent >= itemIndent || nextLine.startsWith("```")) {
+        // 在代码块内部，接受缩进较少的行
+        if (lineIndent >= itemIndent || inCodeBlock || nextLine.trim().startsWith("```")) {
           const trimmedLine = nextLine.slice(Math.min(lineIndent, itemIndent));
           itemLines.push(trimmedLine);
           itemEndIndex++;
