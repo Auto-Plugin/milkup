@@ -315,10 +315,27 @@ export class MarkdownParser {
   }
 
   /**
+   * 转义正则：匹配 \ 后跟特殊字符
+   */
+  private static ESCAPE_RE = /\\([\\`*_{}[\]()#+\-.!|~=$>])/g;
+
+  /**
    * 解析行内内容 - 保留语法标记，支持嵌套语法
    */
   private parseInlineWithSyntax(text: string, inheritedMarks: Mark[] = []): Node[] {
     if (!text) return [];
+
+    // 转义预处理：检测 \X 转义序列
+    const escapePositions: Array<{ index: number; char: string }> = [];
+    const escapeRe = new RegExp(MarkdownParser.ESCAPE_RE.source, "g");
+    let escMatch: RegExpExecArray | null;
+    while ((escMatch = escapeRe.exec(text)) !== null) {
+      escapePositions.push({ index: escMatch.index, char: escMatch[1] });
+    }
+
+    if (escapePositions.length > 0) {
+      return this.parseInlineWithEscapes(text, inheritedMarks, escapePositions);
+    }
 
     // 收集所有匹配
     interface MatchInfo {
@@ -443,6 +460,51 @@ export class MarkdownParser {
       } else {
         nodes.push(this.schema.text(remainingText));
       }
+    }
+
+    return nodes;
+  }
+
+  /**
+   * 处理包含转义序列的行内文本
+   * 将文本按转义位置分割，非转义片段递归解析，转义部分生成特殊节点
+   */
+  private parseInlineWithEscapes(
+    text: string,
+    inheritedMarks: Mark[],
+    escapePositions: Array<{ index: number; char: string }>
+  ): Node[] {
+    const nodes: Node[] = [];
+    let pos = 0;
+
+    for (const esc of escapePositions) {
+      // 转义之前的普通文本片段 → 递归正常解析
+      if (esc.index > pos) {
+        const segment = text.slice(pos, esc.index);
+        nodes.push(...this.parseInlineWithSyntax(segment, inheritedMarks));
+      }
+
+      // `\` 字符 → 带 syntax_marker(escape) 的文本节点
+      const syntaxMark = this.schema.marks.syntax_marker?.create({ syntaxType: "escape" });
+      if (syntaxMark) {
+        const backslashMarks = [...inheritedMarks, syntaxMark];
+        nodes.push(this.schema.text("\\", backslashMarks));
+      }
+
+      // 被转义的字符 → 普通文本节点（只带 inheritedMarks）
+      if (inheritedMarks.length > 0) {
+        nodes.push(this.schema.text(esc.char, inheritedMarks));
+      } else {
+        nodes.push(this.schema.text(esc.char));
+      }
+
+      pos = esc.index + 2; // 跳过 \X（2个字符）
+    }
+
+    // 剩余文本 → 递归正常解析
+    if (pos < text.length) {
+      const remaining = text.slice(pos);
+      nodes.push(...this.parseInlineWithSyntax(remaining, inheritedMarks));
     }
 
     return nodes;

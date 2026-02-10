@@ -97,6 +97,9 @@ const INLINE_SYNTAXES: InlineSyntax[] = [
   },
 ];
 
+/** 转义正则 */
+const ESCAPE_RE = /\\([\\`*_{}[\]()#+\-.!|~=$>])/g;
+
 /** 匹配信息 */
 interface MatchInfo {
   syntax: InlineSyntax;
@@ -117,6 +120,14 @@ interface MatchInfo {
 function detectSyntaxMatches(text: string): MatchInfo[] {
   const matches: MatchInfo[] = [];
 
+  // 收集所有转义范围
+  const escapeRanges: Array<{ start: number; end: number }> = [];
+  const escRe = new RegExp(ESCAPE_RE.source, "g");
+  let escMatch: RegExpExecArray | null;
+  while ((escMatch = escRe.exec(text)) !== null) {
+    escapeRanges.push({ start: escMatch.index, end: escMatch.index + escMatch[0].length });
+  }
+
   for (const syntax of INLINE_SYNTAXES) {
     const re = new RegExp(syntax.pattern.source, syntax.pattern.flags);
     let match: RegExpExecArray | null;
@@ -130,6 +141,10 @@ function detectSyntaxMatches(text: string): MatchInfo[] {
       const end = start + match[0].length;
       const contentStart = start + prefix.length;
       const contentEnd = end - suffix.length;
+
+      // 跳过与转义范围重叠的匹配
+      const overlapsEscape = escapeRanges.some((esc) => esc.start < end && esc.end > start);
+      if (overlapsEscape) continue;
 
       matches.push({
         syntax,
@@ -166,6 +181,84 @@ function detectSyntaxMatches(text: string): MatchInfo[] {
 }
 
 /**
+ * 检测文本片段中的转义序列，生成区域标记
+ */
+function detectEscapeRegions(
+  text: string,
+  baseOffset: number,
+  inheritedTypes: string[]
+): Array<{
+  from: number;
+  to: number;
+  markTypes: string[];
+  isSyntax: boolean;
+  isEscape?: boolean;
+  attrs?: Record<string, any>;
+}> {
+  const results: Array<{
+    from: number;
+    to: number;
+    markTypes: string[];
+    isSyntax: boolean;
+    isEscape?: boolean;
+    attrs?: Record<string, any>;
+  }> = [];
+
+  const escRe = new RegExp(ESCAPE_RE.source, "g");
+  let escMatch: RegExpExecArray | null;
+  let pos = 0;
+  let hasAnyEscape = false;
+
+  while ((escMatch = escRe.exec(text)) !== null) {
+    hasAnyEscape = true;
+
+    // 转义之前的普通文本
+    if (escMatch.index > pos) {
+      results.push({
+        from: baseOffset + pos,
+        to: baseOffset + escMatch.index,
+        markTypes: inheritedTypes,
+        isSyntax: false,
+      });
+    }
+
+    // `\` 字符 → escape 类型的 syntax_marker
+    results.push({
+      from: baseOffset + escMatch.index,
+      to: baseOffset + escMatch.index + 1,
+      markTypes: inheritedTypes,
+      isSyntax: true,
+      isEscape: true,
+    });
+
+    // 被转义的字符 → 普通文本（只带 inheritedTypes）
+    results.push({
+      from: baseOffset + escMatch.index + 1,
+      to: baseOffset + escMatch.index + 2,
+      markTypes: inheritedTypes,
+      isSyntax: false,
+    });
+
+    pos = escMatch.index + 2;
+  }
+
+  // 没有转义序列，返回空数组
+  if (!hasAnyEscape) return results;
+
+  // 剩余文本
+  if (pos < text.length) {
+    results.push({
+      from: baseOffset + pos,
+      to: baseOffset + text.length,
+      markTypes: inheritedTypes,
+      isSyntax: false,
+    });
+  }
+
+  return results;
+}
+
+/**
  * 递归检测嵌套语法
  */
 function detectNestedSyntax(
@@ -177,6 +270,7 @@ function detectNestedSyntax(
   to: number;
   markTypes: string[];
   isSyntax: boolean;
+  isEscape?: boolean;
   attrs?: Record<string, any>;
 }> {
   const results: Array<{
@@ -184,13 +278,26 @@ function detectNestedSyntax(
     to: number;
     markTypes: string[];
     isSyntax: boolean;
+    isEscape?: boolean;
     attrs?: Record<string, any>;
   }> = [];
 
   const matches = detectSyntaxMatches(text);
 
+  // 检查文本中是否有转义序列
+  const hasEscapes = ESCAPE_RE.test(text);
+  // 重置 lastIndex
+  ESCAPE_RE.lastIndex = 0;
+
   if (matches.length === 0) {
-    // 没有语法匹配，整个文本继承父级 marks
+    // 没有语法匹配，检查是否有转义序列
+    if (text.length > 0 && hasEscapes) {
+      const escRegions = detectEscapeRegions(text, baseOffset, inheritedTypes);
+      if (escRegions.length > 0) {
+        results.push(...escRegions);
+        return results;
+      }
+    }
     if (text.length > 0 && inheritedTypes.length > 0) {
       results.push({
         from: baseOffset,
@@ -204,10 +311,13 @@ function detectNestedSyntax(
 
   let pos = 0;
   for (const m of matches) {
-    // 前面的纯文本
+    // 前面的纯文本（可能包含转义）
     if (m.start > pos) {
       const plainText = text.slice(pos, m.start);
-      if (plainText.length > 0 && inheritedTypes.length > 0) {
+      const escRegions = detectEscapeRegions(plainText, baseOffset + pos, inheritedTypes);
+      if (escRegions.length > 0) {
+        results.push(...escRegions);
+      } else if (plainText.length > 0 && inheritedTypes.length > 0) {
         results.push({
           from: baseOffset + pos,
           to: baseOffset + m.start,
@@ -257,10 +367,13 @@ function detectNestedSyntax(
     pos = m.end;
   }
 
-  // 剩余文本
+  // 剩余文本（可能包含转义）
   if (pos < text.length) {
     const remainingText = text.slice(pos);
-    if (remainingText.length > 0 && inheritedTypes.length > 0) {
+    const escRegions = detectEscapeRegions(remainingText, baseOffset + pos, inheritedTypes);
+    if (escRegions.length > 0) {
+      results.push(...escRegions);
+    } else if (remainingText.length > 0 && inheritedTypes.length > 0) {
       results.push({
         from: baseOffset + pos,
         to: baseOffset + text.length,
@@ -428,7 +541,7 @@ export function createSyntaxDetectorPlugin(): Plugin {
 
           // 应用 marks
           for (const region of regions) {
-            // 移除该区域的所有语义 marks（重新应用）
+            // 移除该区域的所有语义 marks 和 syntax_marker（重新应用）
             const markTypesToRemove = [
               "strong",
               "emphasis",
@@ -437,6 +550,7 @@ export function createSyntaxDetectorPlugin(): Plugin {
               "highlight",
               "link",
               "math_inline",
+              "syntax_marker", // 也移除 syntax_marker，避免旧标记残留
             ];
             for (const markTypeName of markTypesToRemove) {
               const markType = schema.marks[markTypeName];
@@ -460,8 +574,10 @@ export function createSyntaxDetectorPlugin(): Plugin {
             if (region.isSyntax) {
               const syntaxMarkerType = schema.marks.syntax_marker;
               if (syntaxMarkerType) {
-                // 获取主要的语法类型（第一个非继承的类型）
-                const syntaxType = region.markTypes[region.markTypes.length - 1] || "unknown";
+                // escape 类型使用 "escape" 作为 syntaxType
+                const syntaxType = (region as any).isEscape
+                  ? "escape"
+                  : region.markTypes[region.markTypes.length - 1] || "unknown";
                 const syntaxMark = syntaxMarkerType.create({ syntaxType });
                 tr = tr.addMark(region.from, region.to, syntaxMark);
               }

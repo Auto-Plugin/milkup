@@ -255,11 +255,14 @@ export class MarkdownSerializer {
 
     node.content.forEach((child) => {
       if (child.isText) {
-        const hasSyntaxMarker = child.marks.some((m) => m.type.name === "syntax_marker");
+        const syntaxMark = child.marks.find((m) => m.type.name === "syntax_marker");
+        const hasSyntaxMarker = !!syntaxMark;
+        // escape 类型的 syntax_marker 应该保留 `\` 输出
+        const isEscapeMarker = syntaxMark?.attrs.syntaxType === "escape";
         segments.push({
           text: child.text || "",
           marks: child.marks.filter((m) => m.type.name !== "syntax_marker"),
-          isSyntaxMarker: hasSyntaxMarker,
+          isSyntaxMarker: hasSyntaxMarker && !isEscapeMarker,
         });
       } else if (child.type.name === "hard_break") {
         segments.push({ text: "  \n", marks: [], isSyntaxMarker: false });
