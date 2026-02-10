@@ -212,26 +212,28 @@ function convertBlocksToParagraphs(tr: Transaction): Transaction {
     replacement: ProseMirrorNode[];
   }> = [];
 
-  doc.forEach((node, offset) => {
+  // 使用 descendants 遍历所有层级的节点，包括列表内的代码块
+  doc.descendants((node, pos) => {
     if (node.type.name === "code_block") {
       blocks.push({
-        pos: offset,
+        pos: pos,
         nodeSize: node.nodeSize,
         replacement: transformCodeBlockToParagraphs(node, schema),
       });
     } else if (node.type.name === "image") {
       blocks.push({
-        pos: offset,
+        pos: pos,
         nodeSize: node.nodeSize,
         replacement: [transformImageToParagraph(node, schema)],
       });
     } else if (node.type.name === "horizontal_rule") {
       blocks.push({
-        pos: offset,
+        pos: pos,
         nodeSize: node.nodeSize,
         replacement: [transformHrToParagraph(node, schema)],
       });
     }
+    return true;
   });
 
   if (blocks.length === 0) return tr;
@@ -359,12 +361,11 @@ export function createSourceViewTransformPlugin(): Plugin {
       // （例如通过 setMarkdown 重新加载内容时产生的）
       if (newSourceView) {
         let hasBlocks = false;
-        newState.doc.descendants((node, pos, parent) => {
+        newState.doc.descendants((node) => {
           if (
-            parent?.type.name === "doc" &&
-            (node.type.name === "code_block" ||
-              node.type.name === "image" ||
-              node.type.name === "horizontal_rule")
+            node.type.name === "code_block" ||
+            node.type.name === "image" ||
+            node.type.name === "horizontal_rule"
           ) {
             hasBlocks = true;
           }
