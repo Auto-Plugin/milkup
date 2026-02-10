@@ -16,8 +16,12 @@ export {
   BulletListView,
   OrderedListView,
   ListItemView,
+  TaskListView,
+  TaskItemView,
   createBulletListNodeView,
   createOrderedListNodeView,
   createListItemNodeView,
+  createTaskListNodeView,
+  createTaskItemNodeView,
   updateAllLists,
 } from "./list";

@@ -10,7 +10,7 @@ import {
   textblockTypeInputRule,
   InputRule,
 } from "prosemirror-inputrules";
-import { NodeType, MarkType, Schema } from "prosemirror-model";
+import { NodeType, MarkType, Schema, Fragment } from "prosemirror-model";
 import { Plugin, TextSelection } from "prosemirror-state";
 import { milkupSchema } from "../schema";
 import { decorationPluginKey } from "../decorations";
@@ -132,18 +132,82 @@ function orderedListRule(listType: NodeType, itemType: NodeType): InputRule {
 
 /**
  * 创建任务列表输入规则
- * - [ ] item 或 - [x] item
+ * 在无序列表项内输入 [] 或 [ ] 或 [x] 后跟空格，转换为任务列表
  */
 function taskListRule(listType: NodeType, itemType: NodeType): InputRule {
-  return new InputRule(/^[-*+]\s\[([ xX])\]\s$/, (state, match, start, end) => {
+  return new InputRule(/^\[([ xX]?)\]\s$/, (state, match, start, end) => {
     const checked = match[1].toLowerCase() === "x";
     const $start = state.doc.resolve(start);
 
-    // 创建任务列表项
-    const item = itemType.create({ checked }, state.schema.nodes.paragraph.create());
-    const list = listType.create(null, item);
+    // 检查是否在 list_item > paragraph 内
+    if ($start.depth < 2) return null;
 
-    return state.tr.replaceWith(start - 1, end, list);
+    const listItemDepth = $start.depth - 1;
+    const listItem = $start.node(listItemDepth);
+    const listDepth = listItemDepth - 1;
+    const list = $start.node(listDepth);
+
+    if (listItem.type.name !== "list_item" || list.type.name !== "bullet_list") return null;
+
+    // 确保是段落的开头
+    const paraStart = $start.start($start.depth);
+    if (start !== paraStart) return null;
+
+    const listPos = $start.before(listDepth);
+    const matchLen = end - start;
+
+    // 构建新的段落内容：移除匹配的 [] 文本
+    const para = $start.node($start.depth);
+    const newParaContent = para.content.cut(matchLen);
+    const newPara = para.type.create(
+      para.attrs,
+      newParaContent.size > 0 ? newParaContent : undefined
+    );
+
+    // 重建列表项内容：替换第一个段落，保留其余子节点
+    const itemChildren: any[] = [newPara];
+    for (let i = 1; i < listItem.childCount; i++) {
+      itemChildren.push(listItem.child(i));
+    }
+
+    if (list.childCount === 1) {
+      // 单项列表：一次性替换整个列表
+      const newItem = itemType.create({ checked }, itemChildren);
+      const newList = listType.create(null, newItem);
+      let tr = state.tr.replaceWith(listPos, listPos + list.nodeSize, newList);
+      tr = tr.setSelection(TextSelection.near(tr.doc.resolve(listPos + 2)));
+      return tr;
+    }
+
+    // 多项列表：拆分列表，将当前项转换为任务列表
+    const itemIndex = $start.index(listDepth);
+    const newItem = itemType.create({ checked }, itemChildren);
+    const newTaskList = listType.create(null, newItem);
+
+    const beforeItems: any[] = [];
+    const afterItems: any[] = [];
+    list.forEach((child, _offset, index) => {
+      if (index < itemIndex) beforeItems.push(child);
+      else if (index > itemIndex) afterItems.push(child);
+    });
+
+    const fragments: any[] = [];
+    if (beforeItems.length > 0) {
+      fragments.push(list.type.create(list.attrs, Fragment.from(beforeItems)));
+    }
+    fragments.push(newTaskList);
+    if (afterItems.length > 0) {
+      fragments.push(list.type.create(list.attrs, Fragment.from(afterItems)));
+    }
+
+    let tr = state.tr.replaceWith(listPos, listPos + list.nodeSize, fragments);
+    let cursorPos = listPos;
+    if (beforeItems.length > 0) {
+      cursorPos += beforeItems.reduce((s: number, n: any) => s + n.nodeSize, 0) + 2;
+    }
+    cursorPos += 2; // 进入 task_list > task_item > paragraph
+    tr = tr.setSelection(TextSelection.near(tr.doc.resolve(cursorPos)));
+    return tr;
   });
 }
 

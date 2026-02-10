@@ -107,7 +107,7 @@ const BLOCK_PATTERNS = {
   blockquote: /^>\s?(.*)$/,
   bullet_list: /^(\s*)([-*+])\s+(.*)$/,
   ordered_list: /^(\s*)(\d+)\.\s+(.*)$/,
-  task_item: /^(\s*)[-*+]\s+\[([ xX])\]\s+(.*)$/,
+  task_item: /^(\s*)[-*+]\s+\[([ xX]?)\]\s+(.*)$/,
   horizontal_rule: /^([-*_]){3,}\s*$/, // 允许行尾有空格
   table_row: /^\|(.+)\|$/,
   table_separator: /^\|[-:\s|]+\|$/,
