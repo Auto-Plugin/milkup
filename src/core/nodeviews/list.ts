@@ -211,14 +211,17 @@ export class ListItemView implements NodeView {
     const parent = $pos.parent;
     const index = $pos.index();
 
+    let markerText = "- ";
     if (parent.type.name === "bullet_list") {
-      this.markerElement.textContent = "- ";
+      markerText = "- ";
     } else if (parent.type.name === "ordered_list") {
       const start = parent.attrs.start || 1;
-      this.markerElement.textContent = `${start + index}. `;
-    } else {
-      this.markerElement.textContent = "- ";
+      markerText = `${start + index}. `;
     }
+
+    this.markerElement.textContent = markerText;
+    // 设置标记宽度 CSS 自定义属性，用于行号定位
+    this.dom.style.setProperty("--marker-width", `${markerText.length}ch`);
   }
 
   setSourceViewMode(enabled: boolean): void {

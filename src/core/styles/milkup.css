@@ -746,6 +746,11 @@
   margin-right: 12px;
 }
 
+/* 列表项内段落的行号 - 补偿列表标记宽度 */
+.milkup-editor.source-view .milkup-list-item.source-view .milkup-list-item-content > .milkup-list-line-number::before {
+  left: calc(-60px - var(--marker-width, 2ch));
+}
+
 /* 源码模式下的代码块段落 - 移除段落间距 */
 .milkup-editor.source-view p[data-code-block-id] {
   margin: 0;
