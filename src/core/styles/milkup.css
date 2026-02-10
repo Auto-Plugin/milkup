@@ -747,7 +747,8 @@
 }
 
 /* 列表项内段落的行号 - 补偿列表标记宽度 */
-.milkup-editor.source-view .milkup-list-item.source-view .milkup-list-item-content > .milkup-list-line-number::before {
+.milkup-editor.source-view .milkup-list-item.source-view .milkup-list-item-content > .milkup-list-line-number::before,
+.milkup-editor.source-view .milkup-task-item.source-view .milkup-list-item-content > .milkup-list-line-number::before {
   left: calc(-60px - var(--marker-width, 20px));
 }
 
@@ -891,7 +892,8 @@
 
 /* 列表源码模式 */
 .milkup-bullet-list.source-view,
-.milkup-ordered-list.source-view {
+.milkup-ordered-list.source-view,
+.milkup-task-list.source-view {
   list-style: none;
   padding-left: 0;
   margin-left: 0;
@@ -944,5 +946,82 @@
 }
 
 .milkup-list-item.source-view .milkup-list-item-content > p {
+  display: block;
+}
+
+/* 任务列表 NodeView */
+.milkup-task-list {
+  list-style: none;
+  padding-left: 0;
+}
+
+.milkup-task-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* 自定义复选框 */
+.milkup-task-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  margin-top: 0.3em;
+  border: 1.5px solid var(--border-color-1, #d1d5da);
+  border-radius: 3px;
+  background: var(--background-color, #fff);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.milkup-task-checkbox:hover {
+  border-color: var(--primary-color, #0366d6);
+  background: var(--hover-color, rgba(3, 102, 214, 0.1));
+}
+
+.milkup-task-checkbox.checked {
+  background: var(--primary-color, #0366d6);
+  border-color: var(--primary-color, #0366d6);
+}
+
+.milkup-task-checkbox.checked:hover {
+  opacity: 0.85;
+}
+
+.milkup-task-checkbox.checked::after {
+  content: "";
+  display: block;
+  width: 4px;
+  height: 8px;
+  border: solid var(--background-color, #fff);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translate(-0.5px, -0.5px);
+}
+
+/* 任务列表项源码模式 */
+.milkup-task-item.source-view {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.milkup-task-item.source-view .milkup-task-checkbox {
+  display: none;
+}
+
+.milkup-task-item.source-view .milkup-list-marker {
+  display: inline;
+  flex-shrink: 0;
+}
+
+.milkup-task-item.source-view .milkup-list-item-content {
+  flex: 1;
+}
+
+.milkup-task-item.source-view .milkup-list-item-content > p {
   display: block;
 }

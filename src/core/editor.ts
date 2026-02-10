@@ -44,6 +44,8 @@ import {
   createBulletListNodeView,
   createOrderedListNodeView,
   createListItemNodeView,
+  createTaskListNodeView,
+  createTaskItemNodeView,
 } from "./nodeviews/list";
 import { toggleSourceView, setSourceView, decorationPluginKey } from "./decorations";
 import type { MilkupConfig, MilkupEditor as IMilkupEditor, MilkupPlugin } from "./types";
@@ -94,6 +96,8 @@ export class MilkupEditor implements IMilkupEditor {
         bullet_list: createBulletListNodeView,
         ordered_list: createOrderedListNodeView,
         list_item: createListItemNodeView,
+        task_list: createTaskListNodeView,
+        task_item: createTaskItemNodeView,
       },
       dispatchTransaction: (tr) => this.dispatchTransaction(tr),
       attributes: {

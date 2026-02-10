@@ -2,12 +2,12 @@
  * 修复未闭合的代码块
  */
 export function fixUnclosedCodeBlock(markdown: string): string {
-  const count = (markdown.match(/```/g) || []).length
+  const count = (markdown.match(/```/g) || []).length;
   if (count % 2 !== 0) {
-    console.warn('[Milkdown] 检测到未闭合的代码块，已自动补全。')
-    return `${markdown}\n\`\`\``
+    console.warn("[Milkdown] 检测到未闭合的代码块，已自动补全。");
+    return `${markdown}\n\`\`\``;
   }
-  return markdown
+  return markdown;
 }
 
 /**
@@ -15,17 +15,17 @@ export function fixUnclosedCodeBlock(markdown: string): string {
  * 处理 BOM、换行符和特殊空格
  */
 export function normalizeMarkdown(text: string): string {
-  return text
-    // 移除 BOM
-    .replace(/^\uFEFF/, '')
-    // 替换 CRLF → LF
-    .replace(/\r\n/g, '\n')
-    // 移除非断行空格
-    .replace(/\u00A0/g, ' ')
-    // 压缩连续换行符 (超过3个换行符压缩为2个，即最多保留一个空行)
-    .replace(/\n{3,}/g, '\n\n')
+  return (
+    text
+      // 移除 BOM
+      .replace(/^\uFEFF/, "")
+      // 替换 CRLF → LF
+      .replace(/\r\n/g, "\n")
+      // 移除非断行空格
+      .replace(/\u00A0/g, " ")
+  );
 }
 
 export function ensureTrailingNewline(text: string): string {
-  return text.endsWith('\n') ? text : `${text}\n`
+  return text.endsWith("\n") ? text : `${text}\n`;
 }
