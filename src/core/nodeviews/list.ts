@@ -220,8 +220,19 @@ export class ListItemView implements NodeView {
     }
 
     this.markerElement.textContent = markerText;
-    // 设置标记宽度 CSS 自定义属性，用于行号定位
-    this.dom.style.setProperty("--marker-width", `${markerText.length}ch`);
+    // 如果标记已在 DOM 中，测量实际宽度
+    this.updateMarkerWidth();
+  }
+
+  /**
+   * 测量标记元素的实际像素宽度，设置 CSS 自定义属性
+   */
+  private updateMarkerWidth(): void {
+    if (!this.markerElement || !this.markerElement.parentNode) return;
+    const width = this.markerElement.getBoundingClientRect().width;
+    if (width > 0) {
+      this.dom.style.setProperty("--marker-width", `${width}px`);
+    }
   }
 
   setSourceViewMode(enabled: boolean): void {
@@ -234,6 +245,8 @@ export class ListItemView implements NodeView {
       if (this.markerElement && this.contentDOM) {
         this.updateMarker();
         this.dom.insertBefore(this.markerElement, this.contentDOM);
+        // 标记插入 DOM 后测量实际宽度
+        this.updateMarkerWidth();
       }
     } else {
       this.dom.classList.remove("source-view");
