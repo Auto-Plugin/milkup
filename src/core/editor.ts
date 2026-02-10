@@ -6,7 +6,7 @@
 
 import { EditorState, Plugin, Transaction, Selection, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { Schema, Node } from "prosemirror-model";
+import { Schema, Node, Slice } from "prosemirror-model";
 import { history } from "prosemirror-history";
 import { dropCursor } from "prosemirror-dropcursor";
 import { gapCursor } from "prosemirror-gapcursor";
@@ -90,6 +90,7 @@ export class MilkupEditor implements IMilkupEditor {
     this.view = new EditorView(container, {
       state,
       editable: () => !this.config.readonly,
+      clipboardTextSerializer: (slice) => this.serializeSliceToMarkdown(slice),
       nodeViews: {
         code_block: createCodeBlockNodeView,
         math_block: createMathBlockNodeView,
@@ -370,16 +371,18 @@ export class MilkupEditor implements IMilkupEditor {
 
     // 复制
     const copyItem = this.createContextMenuItem("复制", !hasSelection, () => {
-      const selectedText = this.view.state.doc.textBetween(selection.from, selection.to, "\n");
-      navigator.clipboard.writeText(selectedText);
+      const slice = this.view.state.selection.content();
+      const text = this.serializeSliceToMarkdown(slice);
+      navigator.clipboard.writeText(text);
       this.hideContextMenu();
     });
     menu.appendChild(copyItem);
 
     // 剪切
     const cutItem = this.createContextMenuItem("剪切", !hasSelection, () => {
-      const selectedText = this.view.state.doc.textBetween(selection.from, selection.to, "\n");
-      navigator.clipboard.writeText(selectedText);
+      const slice = this.view.state.selection.content();
+      const text = this.serializeSliceToMarkdown(slice);
+      navigator.clipboard.writeText(text);
       const tr = this.view.state.tr.deleteSelection();
       this.view.dispatch(tr);
       this.hideContextMenu();
@@ -576,6 +579,29 @@ export class MilkupEditor implements IMilkupEditor {
       const tr = this.view.state.tr.insert($from.pos, imageNode);
       this.view.dispatch(tr);
     }
+  }
+
+  /**
+   * 将 Slice 序列化为 Markdown 文本
+   */
+  private serializeSliceToMarkdown(slice: Slice): string {
+    const fragment = slice.content;
+    if (fragment.childCount === 0) return "";
+
+    // 检查是否全部为行内节点（段落内部分选区）
+    let allInline = true;
+    fragment.forEach((node) => {
+      if (!node.isInline) allInline = false;
+    });
+
+    if (allInline) {
+      const para = this.schema.nodes.paragraph.create(null, fragment);
+      const doc = this.schema.topNodeType.create(null, para);
+      return serializeMarkdown(doc).trim();
+    }
+
+    const doc = this.schema.topNodeType.create(null, fragment);
+    return serializeMarkdown(doc).trimEnd();
   }
 
   /**
