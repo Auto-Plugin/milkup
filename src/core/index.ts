@@ -67,10 +67,17 @@ export { createLineNumbersPlugin, lineNumbersPluginKey } from "./plugins/line-nu
 // 快捷键
 export {
   createKeymapPlugin,
-  createBasicKeymap,
-  createMarkdownKeymap,
   createListKeymap,
+  createDynamicKeymapPlugin,
+  buildActionCommandMap,
+  createEnhancedToggleMark,
+  DEFAULT_SHORTCUTS,
+  CATEGORY_LABELS,
   type KeymapConfig,
+  type ShortcutActionId,
+  type ShortcutCategory,
+  type ShortcutDefinition,
+  type ShortcutKeyMap,
 } from "./keymap";
 
 // 装饰系统

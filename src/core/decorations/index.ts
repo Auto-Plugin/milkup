@@ -447,11 +447,30 @@ export function computeDecorations(
 
     if (!shouldShow) {
       // 隐藏语法标记
-      decorations.push(
-        Decoration.inline(region.from, region.to, {
-          class: "milkup-syntax-hidden",
-        })
-      );
+      if (region.syntaxType === "heading") {
+        // 标题语法标记特殊处理：只隐藏 # 字符，保留尾部空格可见
+        const text = doc.textBetween(region.from, region.to);
+        const hashEnd = text.search(/[^#]/);
+        if (hashEnd > 0 && hashEnd < text.length) {
+          decorations.push(
+            Decoration.inline(region.from, region.from + hashEnd, {
+              class: "milkup-syntax-hidden",
+            })
+          );
+        } else {
+          decorations.push(
+            Decoration.inline(region.from, region.to, {
+              class: "milkup-syntax-hidden",
+            })
+          );
+        }
+      } else {
+        decorations.push(
+          Decoration.inline(region.from, region.to, {
+            class: "milkup-syntax-hidden",
+          })
+        );
+      }
     } else {
       // 显示语法标记
       decorations.push(

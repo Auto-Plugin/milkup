@@ -88,15 +88,34 @@ export function createHeadingSyncPlugin(): Plugin {
           // 转换为段落：移除语法标记的 marks，将节点类型改为 paragraph
           const node = newState.doc.nodeAt(update.pos);
           if (node) {
-            // 收集节点内容（移除 syntax_marker）
+            // 收集节点内容（移除 syntax_marker 和紧跟其后的空格）
             const content: Node[] = [];
+            let skipNextSpace = false;
             node.forEach((child) => {
               if (child.isText) {
                 const syntaxMark = child.marks.find((m) => m.type.name === "syntax_marker");
-                if (!syntaxMark || syntaxMark.attrs.syntaxType !== "heading") {
-                  content.push(child);
+                if (syntaxMark && syntaxMark.attrs.syntaxType === "heading") {
+                  skipNextSpace = true;
+                  return; // 跳过语法标记
                 }
+                if (skipNextSpace) {
+                  skipNextSpace = false;
+                  // 如果这个文本节点是空格，跳过它
+                  if (child.text === " ") {
+                    return;
+                  }
+                  // 如果以空格开头，去掉开头的空格
+                  if (child.text && child.text.startsWith(" ")) {
+                    const trimmed = child.text.slice(1);
+                    if (trimmed) {
+                      content.push(newState.schema.text(trimmed, child.marks));
+                    }
+                    return;
+                  }
+                }
+                content.push(child);
               } else {
+                skipNextSpace = false;
                 content.push(child);
               }
             });

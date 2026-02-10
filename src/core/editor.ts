@@ -36,7 +36,8 @@ import { createAICompletionPlugin } from "./plugins/ai-completion";
 import { createPlaceholderPlugin } from "./plugins/placeholder";
 import { createLineNumbersPlugin } from "./plugins/line-numbers";
 import { createSourceViewTransformPlugin } from "./plugins/source-view-transform";
-import { createKeymapPlugin } from "./keymap";
+import { createKeymapPlugin, createDynamicKeymapPlugin } from "./keymap";
+import type { ShortcutKeyMap } from "./keymap";
 import { createCodeBlockNodeView } from "./nodeviews/code-block";
 import { createMathBlockNodeView } from "./nodeviews/math-block";
 import { createImageNodeView } from "./nodeviews/image";
@@ -129,7 +130,9 @@ export class MilkupEditor implements IMilkupEditor {
       dropCursor(),
       // 间隙光标
       gapCursor(),
-      // 自定义快捷键（放在 baseKeymap 之前，优先级更高）
+      // 动态快捷键插件（可自定义的快捷键，优先级最高）
+      createDynamicKeymapPlugin(this.schema, () => this.getCustomKeyMap()),
+      // 不可自定义的快捷键（块级 Enter、列表操作等）
       ...createKeymapPlugin(this.schema),
       // 基础快捷键
       keymap(baseKeymap),
@@ -661,6 +664,23 @@ export class MilkupEditor implements IMilkupEditor {
    */
   getSchema(): Schema {
     return this.schema;
+  }
+
+  /**
+   * 获取用户自定义快捷键映射
+   * 从 localStorage 读取
+   */
+  private getCustomKeyMap(): ShortcutKeyMap {
+    try {
+      const raw = localStorage.getItem("milkup-config");
+      if (raw) {
+        const config = JSON.parse(raw);
+        return config.shortcuts || {};
+      }
+    } catch {
+      // ignore
+    }
+    return {};
   }
 }
 
