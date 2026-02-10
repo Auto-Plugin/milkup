@@ -24,9 +24,6 @@ function createLineNumberDecorations(doc: any, sourceView: boolean): DecorationS
   const decorations: Decoration[] = [];
 
   doc.descendants((node: any, pos: number, parent: any) => {
-    // 只为顶层块级节点或列表项添加行号
-    // 跳过列表容器本身（bullet_list, ordered_list, task_list）
-    // 跳过列表项内部的块级节点（如 paragraph）
     if (node.isBlock) {
       const isListContainer = ["bullet_list", "ordered_list", "task_list"].includes(node.type.name);
       const isListItem = ["list_item", "task_item"].includes(node.type.name);
@@ -40,17 +37,28 @@ function createLineNumberDecorations(doc: any, sourceView: boolean): DecorationS
         return true;
       }
 
-      // 跳过列表项内部的块级节点
+      // 列表项内部的段落：每个段落独立参与行号计算
+      if (parentIsListItem && node.type.name === "paragraph") {
+        decorations.push(
+          Decoration.node(pos, pos + node.nodeSize, {
+            class: "milkup-with-line-number milkup-list-line-number",
+          })
+        );
+        return false;
+      }
+
+      // 跳过列表项本身（行号由其内部段落承担）
+      if (isListItem) {
+        return true;
+      }
+
+      // 跳过列表项内部的其他块级节点
       if (parentIsListItem) {
         return true;
       }
 
-      // 只为以下节点添加行号：
-      // 1. doc 的直接子节点
-      // 2. 列表项（list_item, task_item）
-      // 3. blockquote 的直接子节点
-      // 4. container 的直接子节点
-      if (parentIsDoc || isListItem || parentIsBlockquote || parentIsContainer) {
+      // doc 直接子节点、blockquote/container 直接子节点
+      if (parentIsDoc || parentIsBlockquote || parentIsContainer) {
         if (node.type.name === "code_block") {
           // 代码块：计算行数（包括开始和结束的 ```）
           const language = node.attrs.language || "";
