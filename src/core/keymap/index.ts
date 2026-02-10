@@ -199,6 +199,107 @@ function createListKeymap(schema: Schema): Record<string, any> {
 
   if (listItemSplit || taskItemSplit) {
     keys["Enter"] = (state: any, dispatch: any) => {
+      const { $from, empty } = state.selection;
+
+      // 只处理光标选区
+      if (!empty) {
+        return false;
+      }
+
+      const parent = $from.parent;
+
+      // 检查是否在源码模式下的代码块段落中
+      const decorationState = decorationPluginKey.getState(state);
+      if (
+        decorationState?.sourceView &&
+        parent.type.name === "paragraph" &&
+        parent.attrs.codeBlockId
+      ) {
+        const text = parent.textContent;
+        const isClosingFence = text.trim() === "```";
+        const lineIndex = parent.attrs.lineIndex;
+        const totalLines = parent.attrs.totalLines;
+        const isLastLine = lineIndex === totalLines - 1;
+        const depth = $from.depth;
+
+        // 如果在结束围栏位置按回车
+        if (isClosingFence && isLastLine) {
+          // 检查是否在列表中
+          let inList = false;
+          for (let d = depth; d > 0; d--) {
+            const node = $from.node(d);
+            if (node.type.name === "list_item" || node.type.name === "task_item") {
+              inList = true;
+              break;
+            }
+          }
+
+          if (inList) {
+            // 在列表中，尝试分割列表项
+            if (taskItemSplit && taskItemSplit(state, dispatch)) {
+              return true;
+            }
+            if (listItemSplit && listItemSplit(state, dispatch)) {
+              return true;
+            }
+            return false;
+          } else {
+            // 不在列表中，创建新段落
+            if (dispatch) {
+              const paragraphEnd = $from.after(depth);
+              const newParagraph = schema.nodes.paragraph.create();
+              const tr = state.tr.insert(paragraphEnd, newParagraph);
+              tr.setSelection(TextSelection.create(tr.doc, paragraphEnd + 1));
+              dispatch(tr);
+            }
+            return true;
+          }
+        }
+
+        // 在代码块内容中按回车，分割当前段落
+        if (dispatch) {
+          const codeBlockId = parent.attrs.codeBlockId;
+          const tr = state.tr.split($from.pos);
+
+          // split 后两个段落都继承了原始属性（相同的 lineIndex）
+          // 需要更新：第二个段落 lineIndex+1，后续段落 lineIndex+1，所有段落 totalLines+1
+          let foundSplit = false;
+          tr.doc.descendants((node: any, pos: number) => {
+            if (node.type.name === "paragraph" && node.attrs.codeBlockId === codeBlockId) {
+              if (node.attrs.lineIndex === lineIndex && !foundSplit) {
+                // 第一个（原始段落的前半部分）
+                foundSplit = true;
+                tr.setNodeMarkup(pos, null, {
+                  ...node.attrs,
+                  totalLines: totalLines + 1,
+                });
+              } else if (node.attrs.lineIndex === lineIndex && foundSplit) {
+                // 第二个（分割出的新段落）
+                tr.setNodeMarkup(pos, null, {
+                  ...node.attrs,
+                  lineIndex: lineIndex + 1,
+                  totalLines: totalLines + 1,
+                });
+              } else if (node.attrs.lineIndex > lineIndex) {
+                tr.setNodeMarkup(pos, null, {
+                  ...node.attrs,
+                  lineIndex: node.attrs.lineIndex + 1,
+                  totalLines: totalLines + 1,
+                });
+              } else {
+                tr.setNodeMarkup(pos, null, {
+                  ...node.attrs,
+                  totalLines: totalLines + 1,
+                });
+              }
+            }
+          });
+
+          dispatch(tr);
+        }
+        return true;
+      }
+
       // 先尝试分割任务列表项
       if (taskItemSplit && taskItemSplit(state, dispatch)) {
         return true;
@@ -210,6 +311,28 @@ function createListKeymap(schema: Schema): Record<string, any> {
       return false;
     };
   }
+
+  // Backspace 处理：确保可以正常删除所有字符
+  keys["Backspace"] = (state: any, dispatch: any) => {
+    const { $from, $to, empty } = state.selection;
+
+    // 只处理光标选区
+    if (!empty) {
+      return false;
+    }
+
+    // 如果光标在段落开头，使用默认行为（可能会合并段落或列表项）
+    if ($from.parentOffset === 0) {
+      return false;
+    }
+
+    // 直接删除光标前面的一个字符
+    if (dispatch) {
+      const tr = state.tr.delete($from.pos - 1, $from.pos);
+      dispatch(tr);
+    }
+    return true;
+  };
 
   // Tab 和 Shift-Tab 操作
   if (schema.nodes.list_item) {

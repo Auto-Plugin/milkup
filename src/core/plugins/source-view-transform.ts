@@ -179,9 +179,9 @@ function findCodeBlockParagraphGroups(
 ): Map<string, Array<{ node: ProseMirrorNode; pos: number }>> {
   const groups = new Map<string, Array<{ node: ProseMirrorNode; pos: number }>>();
 
-  doc.descendants((node, pos, parent) => {
-    // 只处理顶层段落节点
-    if (node.type.name === "paragraph" && parent?.type.name === "doc") {
+  doc.descendants((node, pos) => {
+    // 处理所有段落节点（包括列表中的段落）
+    if (node.type.name === "paragraph") {
       const codeBlockId = node.attrs.codeBlockId;
       if (codeBlockId) {
         if (!groups.has(codeBlockId)) {
@@ -253,6 +253,83 @@ function convertBlocksToParagraphs(tr: Transaction): Transaction {
 }
 
 /**
+ * 递归处理节点，转换代码块段落
+ */
+function processNodeForBlockConversion(
+  node: ProseMirrorNode,
+  schema: Schema
+): ProseMirrorNode | ProseMirrorNode[] {
+  // 如果节点有子节点，递归处理
+  if (node.content.size > 0) {
+    const newChildren: ProseMirrorNode[] = [];
+    let codeBlockGroup: ProseMirrorNode[] = [];
+    let currentCodeBlockId: string | null = null;
+
+    const flushCodeBlockGroup = () => {
+      if (codeBlockGroup.length === 0) return;
+      const paragraphs = codeBlockGroup.map((n) => ({ node: n, pos: 0 }));
+      const result = transformParagraphsToCodeBlock(paragraphs, schema);
+      if (result) {
+        newChildren.push(result.codeBlock);
+      } else {
+        newChildren.push(...codeBlockGroup);
+      }
+      codeBlockGroup = [];
+      currentCodeBlockId = null;
+    };
+
+    node.content.forEach((child) => {
+      if (child.type.name === "paragraph") {
+        const codeBlockId = child.attrs.codeBlockId;
+
+        if (codeBlockId) {
+          // 代码块段落
+          if (currentCodeBlockId && currentCodeBlockId !== codeBlockId) {
+            flushCodeBlockGroup();
+          }
+          currentCodeBlockId = codeBlockId;
+          codeBlockGroup.push(child);
+          return;
+        }
+
+        // 非代码块段落，先刷新之前的代码块组
+        flushCodeBlockGroup();
+
+        if (child.attrs.imageAttrs) {
+          const image = transformParagraphToImage(child, schema);
+          newChildren.push(image || child);
+        } else if (child.attrs.hrSource) {
+          const hr = transformParagraphToHr(child, schema);
+          newChildren.push(hr || child);
+        } else {
+          newChildren.push(child);
+        }
+      } else {
+        flushCodeBlockGroup();
+        // 递归处理子节点
+        const processed = processNodeForBlockConversion(child, schema);
+        if (Array.isArray(processed)) {
+          newChildren.push(...processed);
+        } else {
+          newChildren.push(processed);
+        }
+      }
+    });
+
+    // 刷新最后一组代码块
+    flushCodeBlockGroup();
+
+    // 如果内容有变化，创建新节点
+    const newContent = Fragment.from(newChildren);
+    if (!newContent.eq(node.content)) {
+      return node.type.create(node.attrs, newContent, node.marks);
+    }
+  }
+
+  return node;
+}
+
+/**
  * 将文档中的特殊段落转换回对应的块级元素（代码块、图片、分割线）
  * 使用整体替换文档内容的方式，避免逐个节点操作的位置映射问题
  */
@@ -309,7 +386,13 @@ function convertParagraphsToBlocks(tr: Transaction): Transaction {
       }
     } else {
       flushCodeBlockGroup();
-      newContent.push(node);
+      // 递归处理子节点
+      const processed = processNodeForBlockConversion(node, schema);
+      if (Array.isArray(processed)) {
+        newContent.push(...processed);
+      } else {
+        newContent.push(processed);
+      }
     }
   });
 

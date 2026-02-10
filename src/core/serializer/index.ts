@@ -71,13 +71,15 @@ export class MarkdownSerializer {
     (node: Node, lines: string[], indent: string, index: number) => void
   > = {
     paragraph: (node, lines, indent) => {
-      const text = this.serializeInline(node);
-      lines.push(indent + text);
-      // 代码块段落：只在最后一行后添加空行，避免破坏代码块格式
+      // 对于代码块段落，直接输出文本内容（包含围栏符号）
       if (node.attrs.codeBlockId) {
+        const text = node.textContent;
+        lines.push(indent + text);
         const isLastLine = node.attrs.lineIndex === node.attrs.totalLines - 1;
         if (isLastLine && !this.options.compact) lines.push("");
       } else {
+        const text = this.serializeInline(node);
+        lines.push(indent + text);
         if (!this.options.compact) lines.push("");
       }
     },
@@ -110,25 +112,17 @@ export class MarkdownSerializer {
 
     code_block: (node, lines, indent) => {
       const content = node.textContent;
+      const lang = node.attrs.language || "";
+      const fence = this.options.codeFence!;
 
-      // 检查内容是否已经包含围栏符号（来自 syntax_marker）
-      if (content.startsWith("```") && content.endsWith("```")) {
-        // 已经有围栏符号，直接使用
+      // 总是输出标准的多行格式
+      lines.push(indent + fence + lang);
+      if (content) {
         for (const line of content.split("\n")) {
           lines.push(indent + line);
         }
-      } else {
-        // 没有围栏符号，添加它们
-        const lang = node.attrs.language || "";
-        const fence = this.options.codeFence!;
-        lines.push(indent + fence + lang);
-        if (content) {
-          for (const line of content.split("\n")) {
-            lines.push(indent + line);
-          }
-        }
-        lines.push(indent + fence);
       }
+      lines.push(indent + fence);
       if (!this.options.compact) lines.push("");
     },
 
