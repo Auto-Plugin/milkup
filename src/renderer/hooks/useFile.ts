@@ -3,7 +3,7 @@ import type { Tab } from "@/types/tab";
 import { nextTick, onUnmounted } from "vue";
 import { reverseProcessImagePaths } from "@/plugins/imagePathPlugin";
 import emitter from "@/renderer/events";
-import { readAndProcessFile, repairMarkdown } from "@/renderer/services/fileService";
+import { readAndProcessFile } from "@/renderer/services/fileService";
 import useContent from "./useContent";
 import useTab from "./useTab";
 import useTitle from "./useTitle";
@@ -20,40 +20,35 @@ async function onOpen(result?: { filePath: string; content: string } | null) {
   }
   if (result) {
     filePath.value = result.filePath;
+    const content = result.content;
+
     if (
       tabs.value.length === 1 &&
       tabs.value[0].filePath === null &&
       tabs.value[0].name === defaultName &&
       !tabs.value[0].isModified
     ) {
-      // 如果当前有且只有一个默认未命名且未修改的tab，则复用该tab
+      // 复用当前唯一的默认未命名 tab
       const tab = tabs.value[0];
       tab.filePath = filePath.value;
       tab.name = getFileName(filePath.value);
-      const repairedContent = repairMarkdown(result.content);
-
-      // 先设置状态，避免后续更新触发不必要的修改状态
-      tab.normalizationGrace = true;
-      setTimeout(() => {
-        tab.normalizationGrace = false;
-      }, 600);
       tab.readOnly = await window.electronAPI.getIsReadOnly(result.filePath);
       tab.isModified = false;
+      tab.isNewlyLoaded = true;
+      tab.fileTraits = (result as any).fileTraits;
 
-      updateCurrentTabContent(repairedContent, false);
+      updateCurrentTabContent(content, false);
 
       await switchToTab(tab.id);
       markdown.value = tab.content;
-      tab.originalContent = repairedContent;
-      originalContent.value = repairedContent;
+      tab.originalContent = content;
+      originalContent.value = content;
     } else {
       // 创建新tab
-      const repairedContent = repairMarkdown(result.content);
-      const tab = await createTabFromFile(result.filePath, repairedContent);
+      const tab = await createTabFromFile(result.filePath, content, (result as any).fileTraits);
       tab.readOnly = await window.electronAPI.getIsReadOnly(result.filePath);
-      // 更新当前内容状态
       markdown.value = tab.content;
-      originalContent.value = repairedContent;
+      originalContent.value = content;
     }
 
     updateTitle();
@@ -231,19 +226,21 @@ export default function useFile() {
         if (fileContent) {
           if (userChoice === "overwrite") {
             // 覆盖更新当前tab的文件信息
-            updateCurrentTabFile(
-              fileContent.filePath,
-              fileContent.processedContent || fileContent.content
-            );
+            updateCurrentTabFile(fileContent.filePath, fileContent.content);
 
             // 更新当前内容状态
-            markdown.value = fileContent.processedContent || fileContent.content;
+            markdown.value = fileContent.content;
             filePath.value = fileContent.filePath;
             originalContent.value = fileContent.content;
             currentTab.value!.readOnly = fileContent.readOnly || false;
+            currentTab.value!.fileTraits = fileContent.fileTraits;
           } else {
             // 创建新tab
-            const tab = await createTabFromFile(fileContent.filePath, fileContent.content);
+            const tab = await createTabFromFile(
+              fileContent.filePath,
+              fileContent.content,
+              fileContent.fileTraits
+            );
             // 更新当前内容
             markdown.value = tab.content;
             filePath.value = fileContent.filePath;
@@ -290,22 +287,23 @@ export default function useFile() {
   };
 
   // 注册启动时文件打开监听
-  window.electronAPI?.onOpenFileAtLaunch?.(async ({ filePath: launchFilePath, content }) => {
-    // 创建新tab
-    const repairedContent = repairMarkdown(content);
-    const tab = await createTabFromFile(launchFilePath, repairedContent);
-    tab.readOnly = await window.electronAPI.getIsReadOnly(launchFilePath);
+  window.electronAPI?.onOpenFileAtLaunch?.(
+    async ({ filePath: launchFilePath, content, fileTraits }) => {
+      // 主进程已归一化并处理图片路径，直接使用
+      const tab = await createTabFromFile(launchFilePath, content, fileTraits);
+      tab.readOnly = await window.electronAPI.getIsReadOnly(launchFilePath);
 
-    // 更新当前内容状态
-    markdown.value = tab.content;
-    filePath.value = launchFilePath;
-    originalContent.value = repairedContent;
+      // 更新当前内容状态
+      markdown.value = tab.content;
+      filePath.value = launchFilePath;
+      originalContent.value = content;
 
-    updateTitle();
-    nextTick(() => {
-      emitter.emit("file:Change");
-    });
-  });
+      updateTitle();
+      nextTick(() => {
+        emitter.emit("file:Change");
+      });
+    }
+  );
 
   // ✅ 通知主进程渲染进程已就绪，可以接收文件了
   window.electronAPI?.rendererReady?.();

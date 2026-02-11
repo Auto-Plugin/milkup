@@ -4,8 +4,8 @@ import { contextBridge, ipcRenderer, webUtils } from "electron";
 contextBridge.exposeInMainWorld("electronAPI", {
   openFile: () => ipcRenderer.invoke("dialog:openFile"),
   getIsReadOnly: (filePath: string) => ipcRenderer.invoke("file:isReadOnly", filePath),
-  saveFile: (filePath: string | null, content: string) =>
-    ipcRenderer.invoke("dialog:saveFile", { filePath, content }),
+  saveFile: (filePath: string | null, content: string, fileTraits?: any) =>
+    ipcRenderer.invoke("dialog:saveFile", { filePath, content, fileTraits }),
   saveFileAs: (content: string) => ipcRenderer.invoke("dialog:saveFileAs", content),
   on: (channel: string, listener: (...args: any[]) => void) =>
     ipcRenderer.on(channel, (_event, ...args) => listener(...args)),
@@ -16,7 +16,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
   windowControl: (action: "minimize" | "maximize" | "close") =>
     ipcRenderer.send("window-control", action),
   closeDiscard: () => ipcRenderer.send("close:discard"),
-  onOpenFileAtLaunch: (cb: (payload: { filePath: string; content: string }) => void) => {
+  onOpenFileAtLaunch: (
+    cb: (payload: {
+      filePath: string;
+      content: string;
+      rawContent: string;
+      fileTraits?: any;
+    }) => void
+  ) => {
     ipcRenderer.on("open-file-at-launch", (_event, payload) => {
       cb(payload);
     });

@@ -217,11 +217,6 @@ function findSemanticRegion(
  * 创建语法修复插件
  */
 export function createSyntaxFixerPlugin(): Plugin {
-  // 循环检测：记录最近处理的文档内容哈希
-  let lastDocHash = "";
-  let sameDocCount = 0;
-  const MAX_SAME_DOC_COUNT = 3; // 最多处理相同文档3次
-
   return new Plugin({
     key: syntaxFixerPluginKey,
 
@@ -230,19 +225,8 @@ export function createSyntaxFixerPlugin(): Plugin {
       const docChanged = transactions.some((tr) => tr.docChanged);
       if (!docChanged) return null;
 
-      // 循环检测：计算文档内容哈希
-      const docHash = newState.doc.textContent;
-      if (docHash === lastDocHash) {
-        sameDocCount++;
-        if (sameDocCount >= MAX_SAME_DOC_COUNT) {
-          // 检测到可能的无限循环，停止处理
-          console.warn("[syntax-fixer] Possible infinite loop detected, stopping");
-          return null;
-        }
-      } else {
-        lastDocHash = docHash;
-        sameDocCount = 0;
-      }
+      // 跳过语法插件自身产生的 transaction，避免循环
+      if (transactions.some((tr) => tr.getMeta("syntax-plugin-internal"))) return null;
 
       const invalidRanges: Array<{ from: number; to: number; markType: string }> = [];
 
@@ -268,6 +252,7 @@ export function createSyntaxFixerPlugin(): Plugin {
 
       // 创建事务移除无效的 marks
       let tr = newState.tr;
+      tr = tr.setMeta("syntax-plugin-internal", true);
       for (const range of uniqueRanges) {
         const markType = newState.schema.marks[range.markType];
         if (markType) {

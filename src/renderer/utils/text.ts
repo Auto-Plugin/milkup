@@ -12,7 +12,7 @@ export function fixUnclosedCodeBlock(markdown: string): string {
 
 /**
  * 规范化 Markdown 文本
- * 处理 BOM、换行符和特殊空格
+ * 处理 BOM 和换行符，编辑器内部统一使用 LF
  */
 export function normalizeMarkdown(text: string): string {
   return (
@@ -21,11 +21,5 @@ export function normalizeMarkdown(text: string): string {
       .replace(/^\uFEFF/, "")
       // 替换 CRLF → LF
       .replace(/\r\n/g, "\n")
-      // 移除非断行空格
-      .replace(/\u00A0/g, " ")
   );
-}
-
-export function ensureTrailingNewline(text: string): string {
-  return text.endsWith("\n") ? text : `${text}\n`;
 }

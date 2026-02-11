@@ -1,63 +1,45 @@
 import type { Tab } from "@/types/tab";
-import { processImagePaths } from "@/plugins/imagePathPlugin";
-import { ensureTrailingNewline, normalizeMarkdown } from "@/renderer/utils/text";
 
 /**
  * 文件服务 - 统一管理文件读取和Tab创建逻辑
- * 整合了原本分散在 useFile、useTab、main/index 中的重复代码
+ * 主进程负责文件格式处理（BOM/CRLF/图片路径），渲染层只做简单的内容传递
  */
 
 export interface FileContent {
   filePath: string;
   content: string;
-  processedContent?: string;
   readOnly?: boolean;
+  fileTraits?: FileTraitsDTO;
 }
 
 export interface OpenFileOptions {
   filePath: string;
-  processImages?: boolean;
   checkReadOnly?: boolean;
 }
 
 /**
  * 读取文件并处理内容
- * 整合了 readFileByPath + processImagePaths + readOnly检查
+ * 主进程已完成归一化（BOM/CRLF）和图片路径处理
  */
 export async function readAndProcessFile(options: OpenFileOptions): Promise<FileContent | null> {
-  const { filePath, processImages = true, checkReadOnly = true } = options;
+  const { filePath, checkReadOnly = true } = options;
 
   try {
-    // 1. 读取文件
+    // 1. 读取文件（主进程已归一化、处理图片路径并返回 fileTraits）
     const result = await window.electronAPI.readFileByPath(filePath);
     if (!result) {
       console.error("无法读取文件:", filePath);
       return null;
     }
 
-    // 2. 规范化文本 (修复 BOM, CRLF, 确保结尾换行)
-    const rawContent = result.content;
-    const repairedContent = repairMarkdown(rawContent);
-
-    // 注意：不再自动保存修复后的内容，避免修改源文件
-    // 修复将在用户主动保存时应用
-    if (repairedContent !== rawContent) {
-    }
-
-    // 3. 处理图片路径用于渲染 (基于修复后的内容)
-    // processedContent 仅用于 Milkdown 渲染，不用于编辑
-    const processedContent = processImages
-      ? processImagePaths(repairedContent, result.filePath)
-      : repairedContent;
-
-    // 获取且检查文件只读状态
+    // 2. 获取且检查文件只读状态
     const readOnly = checkReadOnly ? await window.electronAPI.getIsReadOnly(filePath) : false;
 
     return {
       filePath: result.filePath,
-      content: repairedContent, // 原始内容（用于编辑）
-      processedContent, // 处理后的内容（用于渲染）
+      content: result.content,
       readOnly,
+      fileTraits: result.fileTraits,
     };
   } catch (error) {
     console.error("读取和处理文件失败:", filePath, error);
@@ -72,15 +54,10 @@ export async function readAndProcessFile(options: OpenFileOptions): Promise<File
 export function createTabDataFromFile(
   filePath: string,
   content: string,
-  options: { processImages?: boolean } = {}
+  options: { fileTraits?: FileTraitsDTO } = {}
 ): Omit<Tab, "id"> {
-  const { processImages = true } = options;
+  const { fileTraits } = options;
 
-  // 处理图片路径（现在是同步操作）
-  const processedContent = processImages ? processImagePaths(content, filePath) : content;
-
-  // 检查只读状态（保持异步，但在调用处处理）
-  // 注意：这里我们不能直接 await，需要在调用处处理
   const readOnly = false; // 默认值，调用处需要单独获取
 
   // 从路径中提取文件名
@@ -89,11 +66,12 @@ export function createTabDataFromFile(
   return {
     name: fileName,
     filePath,
-    content: processedContent,
+    content,
     originalContent: content,
     isModified: false,
     scrollRatio: 0,
     readOnly,
+    fileTraits,
   };
 }
 
@@ -109,12 +87,4 @@ export async function readMultipleFiles(filePaths: string[]): Promise<FileConten
     .filter((r): r is PromiseFulfilledResult<FileContent | null> => r.status === "fulfilled")
     .map((r) => r.value)
     .filter((r): r is FileContent => r !== null);
-}
-
-/**
- * 修复 Markdown 内容
- * 组合了多项修复操作
- */
-export function repairMarkdown(content: string): string {
-  return ensureTrailingNewline(normalizeMarkdown(content));
 }

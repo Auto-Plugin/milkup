@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { app, BrowserWindow, globalShortcut, ipcMain, protocol, shell } from "electron";
+import { detectFileTraits, normalizeMarkdown, processImagePaths } from "./fileFormat";
 import {
   close,
   getIsQuitting,
@@ -156,7 +157,10 @@ function sendFileToRenderer(filePath: string) {
   }
 
   // 读取文件内容
-  const content = fs.readFileSync(filePath, "utf-8");
+  const raw = fs.readFileSync(filePath, "utf-8");
+  const fileTraits = detectFileTraits(raw);
+  const rawContent = normalizeMarkdown(raw);
+  const content = processImagePaths(rawContent, filePath);
 
   // 发送到渲染进程的函数
   const sendFile = () => {
@@ -164,6 +168,8 @@ function sendFileToRenderer(filePath: string) {
       win.webContents.send("open-file-at-launch", {
         filePath,
         content,
+        rawContent,
+        fileTraits,
       });
     }
   };

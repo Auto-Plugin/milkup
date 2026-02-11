@@ -2,7 +2,7 @@ import type { Ref } from "vue";
 import type { InertiaScroll } from "@/renderer/utils/inertiaScroll";
 import type { Tab } from "@/types/tab";
 import autotoast from "autotoast.js";
-import { computed, nextTick, ref, watch } from "vue";
+import { computed, nextTick, ref, toRaw, watch } from "vue";
 import { reverseProcessImagePaths, setCurrentMarkdownFilePath } from "@/plugins/imagePathPlugin";
 import emitter from "@/renderer/events";
 import { createTabDataFromFile, readAndProcessFile } from "@/renderer/services/fileService";
@@ -26,6 +26,7 @@ const defaultTab: Tab = {
   isModified: false,
   scrollRatio: 0,
   readOnly: false,
+  isNewlyLoaded: true,
 };
 tabs.value.push(defaultTab);
 activeTabId.value = defaultTab.id;
@@ -95,44 +96,47 @@ function getCurrentTab() {
   return tabs.value.find((tab) => tab.id === activeTabId.value) || null;
 }
 
+// 防抖定时器：等待编辑器多步归一化完全稳定后再消费 isNewlyLoaded
+let newlyLoadedTimer: ReturnType<typeof setTimeout> | null = null;
+
 // 更新当前tab的内容
 function updateCurrentTabContent(content: string, isModified?: boolean) {
   const currentTab = getCurrentTab();
-  isModified = currentTab?.readOnly ? false : isModified;
-  if (currentTab) {
-    currentTab.content = content;
-    if (isModified !== undefined) {
-      currentTab.isModified = isModified;
-    } else {
-      // 比较时需先将内容中的图片路径还原为相对路径
-      const reversedContent = reverseProcessImagePaths(content, currentTab.filePath);
+  if (!currentTab) return;
 
-      // 比较时忽略末尾的换行符差异
-      const normalizeForCompare = (s: string) => s.replace(/\r\n/g, "\n").trimEnd();
+  const prevContent = currentTab.content;
+  currentTab.content = content;
 
-      // 如果处于归一化宽限期
-      if (currentTab.normalizationGrace) {
-        // 先检查是否真的有变化
-        const isActuallyModified =
-          normalizeForCompare(reversedContent) !== normalizeForCompare(currentTab.originalContent);
-
-        if (isActuallyModified) {
-          // 只有在内容真的变了（归一化导致）时，才消耗宽限期并更新原始内容
-          currentTab.originalContent = content;
-          currentTab.isModified = false;
-          return;
-        } else {
-          // 内容没变（比如刚加载时），保持宽限期，等待可能的归一化更新
-          // 此时 isModified 应该是 false
-          currentTab.isModified = false;
-          return;
-        }
-      }
-
-      currentTab.isModified =
-        normalizeForCompare(reversedContent) !== normalizeForCompare(currentTab.originalContent);
-    }
+  if (currentTab.readOnly) {
+    currentTab.isModified = false;
+    return;
   }
+
+  if (isModified !== undefined) {
+    currentTab.isModified = isModified;
+    return;
+  }
+
+  // 刚加载的 tab，吸收编辑器归一化产生的变化
+  // 编辑器加载内容后会经历多步归一化（语法检测、语法修复、标题同步等插件依次处理），
+  // 每步都可能触发 change 事件。用防抖确保所有归一化步骤完成后再消费 isNewlyLoaded。
+  if (currentTab.isNewlyLoaded) {
+    currentTab.originalContent = content;
+    currentTab.isModified = false;
+    if (content !== prevContent) {
+      if (newlyLoadedTimer) clearTimeout(newlyLoadedTimer);
+      const tabId = currentTab.id;
+      newlyLoadedTimer = setTimeout(() => {
+        const tab = tabs.value.find((t) => t.id === tabId);
+        if (tab) tab.isNewlyLoaded = false;
+        newlyLoadedTimer = null;
+      }, 150);
+    }
+    return;
+  }
+
+  // 简单比较：当前内容 vs 原始内容
+  currentTab.isModified = content !== currentTab.originalContent;
 }
 
 // 更新当前tab的文件信息（用于文件覆盖场景）
@@ -143,10 +147,7 @@ function updateCurrentTabFile(filePath: string, content: string, name?: string) 
     currentTab.content = content;
     currentTab.originalContent = content;
     currentTab.isModified = false;
-    currentTab.normalizationGrace = true;
-    setTimeout(() => {
-      currentTab.normalizationGrace = false;
-    }, 600);
+    currentTab.isNewlyLoaded = true;
     if (name) {
       currentTab.name = name;
     } else {
@@ -168,13 +169,20 @@ async function saveTab(tab: Tab): Promise<boolean> {
   if (!tab || tab.readOnly) return false;
 
   try {
-    // content 现在是处理过图片路径的内容，保存前需要还原
+    // content 可能包含 milkup:// 路径，保存前需要还原
     const reversedContent = reverseProcessImagePaths(tab.content, tab.filePath);
-    const saved = await window.electronAPI.saveFile(tab.filePath, reversedContent);
+    // 传递 fileTraits 给主进程，由主进程负责还原 BOM、换行符、末尾换行
+    // toRaw 将 Vue Proxy 转为普通对象，避免 IPC 序列化失败
+    const saved = await window.electronAPI.saveFile(
+      tab.filePath,
+      reversedContent,
+      toRaw(tab.fileTraits)
+    );
     if (saved) {
       tab.filePath = saved;
-      tab.name = getFileName(saved); // 更新标签名称
-      tab.originalContent = reversedContent;
+      tab.name = getFileName(saved);
+      // 保存后，当前内容即为原始内容
+      tab.originalContent = tab.content;
       tab.isModified = false;
       return true;
     }
@@ -192,9 +200,13 @@ async function saveCurrentTab(): Promise<boolean> {
 }
 
 // 从文件创建新tab
-async function createTabFromFile(filePath: string, content: string): Promise<Tab> {
-  // 使用统一的文件服务创建Tab数据（现在是同步的）
-  const tabData = createTabDataFromFile(filePath, content);
+async function createTabFromFile(
+  filePath: string,
+  content: string,
+  fileTraits?: FileTraitsDTO
+): Promise<Tab> {
+  // 使用统一的文件服务创建Tab数据
+  const tabData = createTabDataFromFile(filePath, content, { fileTraits });
 
   // 单独获取只读状态
   const readOnly = (await window.electronAPI?.getIsReadOnly(filePath)) || false;
@@ -202,13 +214,9 @@ async function createTabFromFile(filePath: string, content: string): Promise<Tab
   const tab: Tab = {
     id: randomUUID(),
     ...tabData,
-    readOnly, // 覆盖默认的 readOnly 值
-    normalizationGrace: true,
+    readOnly,
+    isNewlyLoaded: true,
   };
-
-  setTimeout(() => {
-    tab.normalizationGrace = false;
-  }, 600);
 
   return add(tab);
 }
@@ -241,15 +249,21 @@ async function openFile(filePath: string): Promise<Tab | null> {
       const tab = tabs.value[0];
       tab.filePath = fileContent.filePath;
       tab.name = getFileName(fileContent.filePath);
-      tab.content = fileContent.processedContent || fileContent.content;
+      tab.content = fileContent.content;
       tab.originalContent = fileContent.content;
       tab.isModified = false;
+      tab.isNewlyLoaded = true;
       tab.readOnly = fileContent.readOnly || false;
+      tab.fileTraits = fileContent.fileTraits;
       await switchToTab(tab.id);
       return tab;
     } else {
       // 创建新tab
-      const newTab = await createTabFromFile(fileContent.filePath, fileContent.content);
+      const newTab = await createTabFromFile(
+        fileContent.filePath,
+        fileContent.content,
+        fileContent.fileTraits
+      );
       // 切换新tab
       switchToTab(newTab.id);
 
@@ -274,6 +288,7 @@ function createNewTab(): Tab {
     isModified: false,
     scrollRatio: 0,
     readOnly: false,
+    isNewlyLoaded: true,
   };
 
   return add(tab);
@@ -294,11 +309,8 @@ async function switchToTab(id: string) {
     setCurrentMarkdownFilePath(null);
   }
 
-  // 切换Tab时，给予短暂的归一化宽限期，允许编辑器进行自动格式化
-  targetTab.normalizationGrace = true;
-  setTimeout(() => {
-    targetTab.normalizationGrace = false;
-  }, 600);
+  // 切换 Tab 时标记为新加载，让编辑器首次输出捕获为 originalContent
+  targetTab.isNewlyLoaded = true;
 
   // 触发内容更新事件
   emitter.emit("tab:switch", targetTab);
@@ -501,10 +513,12 @@ window.electronAPI.on?.("file:changed", async (paths) => {
     const fileContent = await readAndProcessFile({ filePath: paths });
     if (!fileContent) return;
 
-    // 更新
-    tab.content = fileContent.processedContent || fileContent.content;
+    // 更新内容，标记为新加载让编辑器重新捕获 originalContent
+    tab.content = fileContent.content;
     tab.originalContent = fileContent.content;
     tab.isModified = false;
+    tab.isNewlyLoaded = true;
+    tab.fileTraits = fileContent.fileTraits;
 
     // 如果当前tab是活跃的，触发内容更新事件
     if (tab.id === activeTabId.value) {
@@ -529,9 +543,11 @@ window.electronAPI.on?.("file:changed", async (paths) => {
     if (!fileContent) return;
 
     // 更新
-    tab.content = fileContent.processedContent || fileContent.content;
+    tab.content = fileContent.content;
     tab.originalContent = fileContent.content;
     tab.isModified = false;
+    tab.isNewlyLoaded = true;
+    tab.fileTraits = fileContent.fileTraits;
 
     // 触发内容更新
     if (tab.id === activeTabId.value) {

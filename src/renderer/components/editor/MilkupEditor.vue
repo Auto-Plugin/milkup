@@ -5,7 +5,7 @@
  */
 import { ref, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { MilkupEditor, createMilkupEditor, type MilkupConfig, type ImagePasteMethod } from "@/core";
-import { processImagePaths, reverseProcessImagePaths } from "@/plugins/imagePathPlugin";
+import { reverseProcessImagePaths } from "@/plugins/imagePathPlugin";
 import { uploadImage } from "@/renderer/services/api";
 import { AIService } from "@/renderer/services/ai";
 import { useAIConfig } from "@/renderer/hooks/useAIConfig";
@@ -46,19 +46,17 @@ function updateScrollRatio(e: Event) {
   }
 }
 
-// 处理图片路径（渲染前）
+// 预处理内容（主进程已完成图片路径转换，这里仅处理空格编码供编辑器渲染）
 function preprocessContent(content: string): string {
   if (!content) return "";
-  let processed = processImagePaths(content, currentTab.value?.filePath || null);
-  // 将图片路径中的空格转换为 %20
-  processed = processed.replace(/!\[([^\]]*)\]\(([^)]*)\)/g, (match, alt, src) => {
+  // 将图片路径中的空格转换为 %20（编辑器渲染需要，postprocessContent 会还原）
+  return content.replace(/!\[([^\]]*)\]\(([^)]*)\)/g, (match, alt, src) => {
     if (src.includes(" ")) {
       const encodedSrc = src.replace(/ /g, "%20");
       return `![${alt}](${encodedSrc})`;
     }
     return match;
   });
-  return processed;
 }
 
 // 处理图片路径（保存前）
