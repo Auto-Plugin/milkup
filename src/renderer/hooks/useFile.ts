@@ -7,12 +7,18 @@ import useContent from "./useContent";
 import useTab from "./useTab";
 import useTitle from "./useTitle";
 
-const defaultName = "Untitled";
-
 async function onOpen(result?: { filePath: string; content: string } | null) {
   const { updateTitle } = useTitle();
   const { markdown, filePath, originalContent } = useContent();
-  const { createTabFromFile, updateCurrentTabContent, switchToTab, getFileName, tabs } = useTab();
+  const {
+    createTabFromFile,
+    updateCurrentTabContent,
+    switchToTab,
+    getFileName,
+    tabs,
+    currentTab,
+    isFileAlreadyOpen,
+  } = useTab();
 
   if (!result) {
     result = await window.electronAPI.openFile();
@@ -21,26 +27,34 @@ async function onOpen(result?: { filePath: string; content: string } | null) {
     filePath.value = result.filePath;
     const content = result.content;
 
-    if (
-      tabs.value.length === 1 &&
-      tabs.value[0].filePath === null &&
-      tabs.value[0].name === defaultName &&
-      !tabs.value[0].isModified
-    ) {
-      // 复用当前唯一的默认未命名 tab
-      const tab = tabs.value[0];
-      tab.filePath = filePath.value;
-      tab.name = getFileName(filePath.value);
-      tab.readOnly = await window.electronAPI.getIsReadOnly(result.filePath);
-      tab.isModified = false;
-      tab.isNewlyLoaded = true;
-      tab.fileTraits = (result as any).fileTraits;
+    // 检查文件是否已打开
+    const existingTab = isFileAlreadyOpen(result.filePath);
+    if (existingTab) {
+      await switchToTab(existingTab.id);
+      markdown.value = existingTab.content;
+      originalContent.value = existingTab.originalContent;
+      updateTitle();
+      nextTick(() => {
+        emitter.emit("file:Change");
+      });
+      return;
+    }
+
+    // 如果当前活跃tab是未修改的新标签页，复用它
+    const current = currentTab.value;
+    if (current && current.filePath === null && !current.isModified) {
+      current.filePath = result.filePath;
+      current.name = getFileName(result.filePath);
+      current.readOnly = await window.electronAPI.getIsReadOnly(result.filePath);
+      current.isModified = false;
+      current.isNewlyLoaded = true;
+      current.fileTraits = (result as any).fileTraits;
 
       updateCurrentTabContent(content, false);
 
-      await switchToTab(tab.id);
-      markdown.value = tab.content;
-      tab.originalContent = content;
+      await switchToTab(current.id);
+      markdown.value = current.content;
+      current.originalContent = content;
       originalContent.value = content;
     } else {
       // 创建新tab
@@ -146,6 +160,9 @@ export default function useFile() {
     currentTab,
     hasUnsavedTabs,
     tabs,
+    openFile,
+    getFileName,
+    isFileAlreadyOpen,
   } = useTab();
 
   // 拖拽打开 Markdown 文件
@@ -233,16 +250,40 @@ export default function useFile() {
             currentTab.value!.readOnly = fileContent.readOnly || false;
             currentTab.value!.fileTraits = fileContent.fileTraits;
           } else {
-            // 创建新tab
-            const tab = await createTabFromFile(
-              fileContent.filePath,
-              fileContent.content,
-              fileContent.fileTraits
-            );
-            // 更新当前内容
-            markdown.value = tab.content;
-            filePath.value = fileContent.filePath;
-            originalContent.value = fileContent.content;
+            // 检查文件是否已打开
+            const existing = isFileAlreadyOpen(fileContent.filePath);
+            if (existing) {
+              await switchToTab(existing.id);
+              markdown.value = existing.content;
+              filePath.value = fileContent.filePath;
+              originalContent.value = existing.originalContent;
+            } else {
+              let tab: Tab;
+              const current = currentTab.value;
+              // 复用空标签页
+              if (current && current.filePath === null && !current.isModified) {
+                current.filePath = fileContent.filePath;
+                current.name = getFileName(fileContent.filePath);
+                current.content = fileContent.content;
+                current.originalContent = fileContent.content;
+                current.isModified = false;
+                current.isNewlyLoaded = true;
+                current.readOnly = fileContent.readOnly || false;
+                current.fileTraits = fileContent.fileTraits;
+                await switchToTab(current.id);
+                tab = current;
+              } else {
+                tab = await createTabFromFile(
+                  fileContent.filePath,
+                  fileContent.content,
+                  fileContent.fileTraits
+                );
+              }
+              // 更新当前内容
+              markdown.value = tab.content;
+              filePath.value = fileContent.filePath;
+              originalContent.value = fileContent.content;
+            }
           }
 
           updateTitle();
@@ -265,9 +306,19 @@ export default function useFile() {
         filePath.value = mdFile.name;
         originalContent.value = content;
       } else {
-        // 注意：这里无法处理相对路径图片，因为没有完整的文件路径
-        // 图片路径解析需要知道 Markdown 文件的实际位置
-        await createTabFromFile(mdFile.name, content);
+        // 复用空标签页或创建新tab
+        const current = currentTab.value;
+        if (current && current.filePath === null && !current.isModified) {
+          current.filePath = null;
+          current.name = mdFile.name;
+          current.content = content;
+          current.originalContent = content;
+          current.isModified = false;
+          current.isNewlyLoaded = true;
+          await switchToTab(current.id);
+        } else {
+          await createTabFromFile(mdFile.name, content);
+        }
 
         // 更新当前内容状态
         markdown.value = content;
@@ -287,9 +338,38 @@ export default function useFile() {
   // 注册启动时文件打开监听
   window.electronAPI?.onOpenFileAtLaunch?.(
     async ({ filePath: launchFilePath, content, fileTraits }) => {
-      // 主进程已归一化并处理图片路径，直接使用
-      const tab = await createTabFromFile(launchFilePath, content, fileTraits);
-      tab.readOnly = await window.electronAPI.getIsReadOnly(launchFilePath);
+      // 检查文件是否已打开
+      const existing = isFileAlreadyOpen(launchFilePath);
+      if (existing) {
+        await switchToTab(existing.id);
+        markdown.value = existing.content;
+        filePath.value = launchFilePath;
+        originalContent.value = existing.originalContent;
+        updateTitle();
+        nextTick(() => {
+          emitter.emit("file:Change");
+        });
+        return;
+      }
+
+      let tab: Tab;
+      const current = currentTab.value;
+      // 复用空标签页
+      if (current && current.filePath === null && !current.isModified) {
+        current.filePath = launchFilePath;
+        current.name = getFileName(launchFilePath);
+        current.content = content;
+        current.originalContent = content;
+        current.isModified = false;
+        current.isNewlyLoaded = true;
+        current.fileTraits = fileTraits;
+        current.readOnly = await window.electronAPI.getIsReadOnly(launchFilePath);
+        await switchToTab(current.id);
+        tab = current;
+      } else {
+        tab = await createTabFromFile(launchFilePath, content, fileTraits);
+        tab.readOnly = await window.electronAPI.getIsReadOnly(launchFilePath);
+      }
 
       // 更新当前内容状态
       markdown.value = tab.content;

@@ -237,24 +237,19 @@ async function openFile(filePath: string): Promise<Tab | null> {
       return null;
     }
 
-    // 如果当前有且只有一个默认未命名且未修改的tab，则复用该tab
-    if (
-      tabs.value.length === 1 &&
-      tabs.value[0].filePath === null &&
-      tabs.value[0].name === defaultName &&
-      !tabs.value[0].isModified
-    ) {
-      const tab = tabs.value[0];
-      tab.filePath = fileContent.filePath;
-      tab.name = getFileName(fileContent.filePath);
-      tab.content = fileContent.content;
-      tab.originalContent = fileContent.content;
-      tab.isModified = false;
-      tab.isNewlyLoaded = true;
-      tab.readOnly = fileContent.readOnly || false;
-      tab.fileTraits = fileContent.fileTraits;
-      await switchToTab(tab.id);
-      return tab;
+    // 如果当前活跃tab是未修改的新标签页（无文件路径），则复用该tab
+    const currentTab = getCurrentTab();
+    if (currentTab && currentTab.filePath === null && !currentTab.isModified) {
+      currentTab.filePath = fileContent.filePath;
+      currentTab.name = getFileName(fileContent.filePath);
+      currentTab.content = fileContent.content;
+      currentTab.originalContent = fileContent.content;
+      currentTab.isModified = false;
+      currentTab.isNewlyLoaded = true;
+      currentTab.readOnly = fileContent.readOnly || false;
+      currentTab.fileTraits = fileContent.fileTraits;
+      await switchToTab(currentTab.id);
+      return currentTab;
     } else {
       // 创建新tab
       const newTab = await createTabFromFile(
