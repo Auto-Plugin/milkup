@@ -61,6 +61,31 @@ import {
   deleteRow,
   deleteColumn,
 } from "./commands";
+import { DEFAULT_SHORTCUTS, buildActionCommandMap } from "./keymap";
+import type { ShortcutActionId } from "./keymap";
+
+/**
+ * 将 ProseMirror 快捷键格式转为显示文本
+ */
+function formatShortcutDisplay(key: string): string {
+  const isMac = /Mac|iPhone|iPad/.test(navigator.platform);
+  const parts = key.split("-");
+  const mapped = parts.map((p) => {
+    switch (p) {
+      case "Mod":
+        return isMac ? "⌘" : "Ctrl";
+      case "Shift":
+        return isMac ? "⇧" : "Shift";
+      case "Alt":
+        return isMac ? "⌥" : "Alt";
+      case "minus":
+        return "-";
+      default:
+        return p.length === 1 ? p.toUpperCase() : p;
+    }
+  });
+  return isMac ? mapped.join("") : mapped.join("+");
+}
 
 /** 编辑器默认配置 */
 const defaultConfig: MilkupConfig = {
@@ -634,8 +659,13 @@ export class MilkupEditor implements IMilkupEditor {
         })
       );
     } else {
-      // 非表格区域 — 追加"插入表格"项
+      // 非表格区域 — 追加"插入"子菜单和"插入表格"
       menu.appendChild(this.createContextMenuSeparator());
+      menu.appendChild(
+        this.createContextMenuItemWithSubmenu("插入", (submenu) => {
+          this.buildInsertSubmenu(submenu);
+        })
+      );
       menu.appendChild(
         this.createContextMenuItemWithSubmenu("插入表格", (submenu) => {
           this.buildTableGridPicker(submenu);
@@ -700,8 +730,121 @@ export class MilkupEditor implements IMilkupEditor {
   }
 
   /**
-   * 隐藏右键菜单
+   * 获取某个动作当前绑定的快捷键（已格式化为显示文本）
    */
+  private getShortcutDisplay(actionId: ShortcutActionId): string {
+    const customMap = this.getCustomKeyMap();
+    const def = DEFAULT_SHORTCUTS.find((s) => s.id === actionId);
+    if (!def) return "";
+    const key = customMap[actionId] || def.defaultKey;
+    return formatShortcutDisplay(key);
+  }
+
+  /**
+   * 创建带快捷键提示的菜单项
+   */
+  private createContextMenuItemWithShortcut(
+    label: string,
+    shortcutActionId: ShortcutActionId | null,
+    disabled: boolean,
+    onClick: () => void
+  ): HTMLElement {
+    const item = document.createElement("div");
+    item.className = "milkup-context-menu-item";
+    if (disabled) item.classList.add("disabled");
+
+    const labelSpan = document.createElement("span");
+    labelSpan.textContent = label;
+    item.appendChild(labelSpan);
+
+    if (shortcutActionId) {
+      const shortcut = this.getShortcutDisplay(shortcutActionId);
+      if (shortcut) {
+        const shortcutSpan = document.createElement("span");
+        shortcutSpan.className = "milkup-context-menu-shortcut";
+        shortcutSpan.textContent = shortcut;
+        item.appendChild(shortcutSpan);
+      }
+    }
+
+    if (!disabled) {
+      item.addEventListener("click", (e) => {
+        e.stopPropagation();
+        onClick();
+      });
+    }
+
+    return item;
+  }
+
+  /**
+   * 构建"插入"子菜单内容
+   * 使用与快捷键相同的增强命令（buildActionCommandMap）
+   */
+  private buildInsertSubmenu(container: HTMLElement): void {
+    const commandMap = buildActionCommandMap(this.schema);
+    const dispatch = this.view.dispatch.bind(this.view);
+    const execAndClose = (actionId: ShortcutActionId) => {
+      this.view.focus();
+      const cmd = commandMap[actionId];
+      if (cmd) cmd(this.view.state, dispatch);
+      this.hideContextMenu();
+    };
+
+    type MenuItem = { label: string; id: ShortcutActionId };
+
+    const inlineItems: MenuItem[] = [
+      { label: "粗体", id: "toggleStrong" },
+      { label: "斜体", id: "toggleEmphasis" },
+      { label: "行内代码", id: "toggleCodeInline" },
+      { label: "删除线", id: "toggleStrikethrough" },
+      { label: "高亮", id: "toggleHighlight" },
+    ];
+
+    for (const item of inlineItems) {
+      container.appendChild(
+        this.createContextMenuItemWithShortcut(item.label, item.id, false, () =>
+          execAndClose(item.id)
+        )
+      );
+    }
+
+    container.appendChild(this.createContextMenuSeparator());
+
+    const blockItems: MenuItem[] = [
+      { label: "一级标题", id: "setHeading1" },
+      { label: "二级标题", id: "setHeading2" },
+      { label: "三级标题", id: "setHeading3" },
+      { label: "段落", id: "setParagraph" },
+      { label: "代码块", id: "setCodeBlock" },
+      { label: "引用", id: "wrapInBlockquote" },
+      { label: "无序列表", id: "wrapInBulletList" },
+      { label: "有序列表", id: "wrapInOrderedList" },
+    ];
+
+    for (const item of blockItems) {
+      container.appendChild(
+        this.createContextMenuItemWithShortcut(item.label, item.id, false, () =>
+          execAndClose(item.id)
+        )
+      );
+    }
+
+    container.appendChild(this.createContextMenuSeparator());
+
+    const insertItems: MenuItem[] = [
+      { label: "分割线", id: "insertHorizontalRule" },
+      { label: "数学公式", id: "insertMathBlock" },
+    ];
+
+    for (const item of insertItems) {
+      container.appendChild(
+        this.createContextMenuItemWithShortcut(item.label, item.id, false, () =>
+          execAndClose(item.id)
+        )
+      );
+    }
+  }
   private hideContextMenu(): void {
     if (this.contextMenu) {
       this.contextMenu.remove();
