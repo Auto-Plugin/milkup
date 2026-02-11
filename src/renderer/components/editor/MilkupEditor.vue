@@ -4,10 +4,17 @@
  * 基于自研 ProseMirror 内核的即时渲染 Markdown 编辑器
  */
 import { ref, onMounted, onUnmounted, watch, nextTick } from "vue";
-import { MilkupEditor, createMilkupEditor, type MilkupConfig, type ImagePasteMethod } from "@/core";
+import {
+  MilkupEditor,
+  createMilkupEditor,
+  type MilkupConfig,
+  type ImagePasteMethod,
+  setGlobalMermaidDefaultMode,
+} from "@/core";
 import { uploadImage } from "@/renderer/services/api";
 import { AIService } from "@/renderer/services/ai";
 import { useAIConfig } from "@/renderer/hooks/useAIConfig";
+import { useConfig } from "@/renderer/hooks/useConfig";
 import emitter from "@/renderer/events";
 import useTab from "@/renderer/hooks/useTab";
 import "@/core/styles/milkup.css";
@@ -28,6 +35,13 @@ const emit = defineEmits<{
 
 const { currentTab } = useTab();
 const { config: aiConfig, isEnabled: aiEnabled } = useAIConfig();
+const { config: appConfig, watchConf } = useConfig();
+
+// 初始化 mermaid 默认显示模式
+setGlobalMermaidDefaultMode(appConfig.value.mermaid?.defaultDisplayMode || "diagram");
+watchConf("mermaid", (val) => {
+  setGlobalMermaidDefaultMode(val?.defaultDisplayMode || "diagram");
+});
 
 const containerRef = ref<HTMLElement | null>(null);
 const scrollViewRef = ref<HTMLElement | null>(null);

@@ -14,6 +14,9 @@ interface AppConfig extends Record<string, any> {
   other: {
     editorPadding: string;
   };
+  mermaid: {
+    defaultDisplayMode: "code" | "mixed" | "diagram";
+  };
   shortcuts: ShortcutKeyMap;
 }
 
@@ -24,6 +27,9 @@ const defaultConfig: AppConfig = {
   },
   other: {
     editorPadding: "120px",
+  },
+  mermaid: {
+    defaultDisplayMode: "diagram",
   },
   shortcuts: {},
 };

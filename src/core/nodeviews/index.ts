@@ -2,7 +2,7 @@
  * Milkup NodeView 导出
  */
 
-export { CodeBlockView, createCodeBlockNodeView } from "./code-block";
+export { CodeBlockView, createCodeBlockNodeView, setGlobalMermaidDefaultMode } from "./code-block";
 export {
   MathBlockView,
   createMathBlockNodeView,

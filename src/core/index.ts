@@ -106,6 +106,7 @@ export {
 export {
   CodeBlockView,
   createCodeBlockNodeView,
+  setGlobalMermaidDefaultMode,
   MathBlockView,
   createMathBlockNodeView,
   renderInlineMath,
