@@ -118,7 +118,7 @@ interface MatchInfo {
 /**
  * 检测文本中的所有语法匹配
  */
-function detectSyntaxMatches(text: string, skipTypes?: Set<string>): MatchInfo[] {
+function detectSyntaxMatches(text: string): MatchInfo[] {
   const matches: MatchInfo[] = [];
 
   // 收集所有转义范围
@@ -130,7 +130,6 @@ function detectSyntaxMatches(text: string, skipTypes?: Set<string>): MatchInfo[]
   }
 
   for (const syntax of INLINE_SYNTAXES) {
-    if (skipTypes?.has(syntax.type)) continue;
     const re = new RegExp(syntax.pattern.source, syntax.pattern.flags);
     let match: RegExpExecArray | null;
 
@@ -266,8 +265,7 @@ function detectEscapeRegions(
 function detectNestedSyntax(
   text: string,
   baseOffset: number,
-  inheritedTypes: string[],
-  skipTypes?: Set<string>
+  inheritedTypes: string[]
 ): Array<{
   from: number;
   to: number;
@@ -285,7 +283,7 @@ function detectNestedSyntax(
     attrs?: Record<string, any>;
   }> = [];
 
-  const matches = detectSyntaxMatches(text, skipTypes);
+  const matches = detectSyntaxMatches(text);
 
   // 检查文本中是否有转义序列
   const hasEscapes = ESCAPE_RE.test(text);
@@ -344,12 +342,7 @@ function detectNestedSyntax(
     });
 
     // 递归处理内容
-    const innerResults = detectNestedSyntax(
-      m.content,
-      baseOffset + m.contentStart,
-      allTypes,
-      skipTypes
-    );
+    const innerResults = detectNestedSyntax(m.content, baseOffset + m.contentStart, allTypes);
     if (innerResults.length > 0) {
       results.push(...innerResults);
     } else if (m.content.length > 0) {
@@ -518,61 +511,19 @@ export function createSyntaxDetectorPlugin(): Plugin {
       tr = tr.setMeta("syntax-plugin-internal", true);
       let hasChanges = false;
 
-      // 检测是否处于源码视图模式
-      const decoState = decorationPluginKey.getState(newState);
-      const isSourceView = decoState?.sourceView ?? false;
-      // 源码视图下跳过高亮语法检测，避免 ===...=== 被误解析
-      const skipTypes = isSourceView ? new Set(["highlight"]) : undefined;
-
       // 遍历所有文本块（跳过代码块/数学块等，其内容不参与语法解析）
       newState.doc.descendants((node, pos) => {
         if (node.isTextblock && !node.type.spec.code) {
+          // 跳过源码视图中由代码块拆分出的段落，不做任何语法检测
+          if (node.attrs.codeBlockId) return true;
+
           const textContent = node.textContent;
           const basePos = pos + 1;
 
           // 检测所有语法区域
-          const regions = detectNestedSyntax(textContent, basePos, [], skipTypes);
+          const regions = detectNestedSyntax(textContent, basePos, []);
 
-          // 源码视图下，即使没有检测到语法区域，也需要清除残留的 highlight marks
-          if (regions.length === 0) {
-            if (isSourceView) {
-              let hasHighlight = false;
-              node.forEach((child) => {
-                if (child.isText && child.marks.some((m) => m.type.name === "highlight")) {
-                  hasHighlight = true;
-                }
-              });
-              if (hasHighlight) {
-                const highlightMark = schema.marks.highlight;
-                const syntaxMarkerMark = schema.marks.syntax_marker;
-                if (highlightMark) {
-                  tr = tr.removeMark(basePos, basePos + textContent.length, highlightMark);
-                  hasChanges = true;
-                }
-                if (syntaxMarkerMark) {
-                  // 移除 highlight 相关的 syntax_marker（但保留其他类型的）
-                  node.forEach((child, offset) => {
-                    if (child.isText) {
-                      for (const mark of child.marks) {
-                        if (
-                          mark.type.name === "syntax_marker" &&
-                          mark.attrs.syntaxType === "highlight"
-                        ) {
-                          tr = tr.removeMark(
-                            basePos + offset,
-                            basePos + offset + child.nodeSize,
-                            syntaxMarkerMark
-                          );
-                          hasChanges = true;
-                        }
-                      }
-                    }
-                  });
-                }
-              }
-            }
-            return true;
-          }
+          if (regions.length === 0) return true;
 
           // 检查是否需要更新
           if (hasCorrectMarks(node, basePos, regions)) return true;
@@ -628,6 +579,8 @@ export function createSyntaxDetectorPlugin(): Plugin {
       });
 
       // 检测图片语法并转换为图片节点（源码模式下跳过，避免与 source-view-transform 插件循环）
+      const decoState = decorationPluginKey.getState(newState);
+      const isSourceView = decoState?.sourceView ?? false;
       if (!isSourceView) {
         const imagePattern = /!\[([^\]]*)\]\((.+?)(?:\s+"([^"]*)")?\)/g;
         const imagesToReplace: Array<{
