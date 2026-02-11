@@ -50,6 +50,17 @@ import {
 } from "./nodeviews/list";
 import { toggleSourceView, setSourceView, decorationPluginKey } from "./decorations";
 import type { MilkupConfig, MilkupEditor as IMilkupEditor, MilkupPlugin } from "./types";
+import {
+  insertTable,
+  addRowBefore,
+  addRowAfter,
+  addRowAtEnd,
+  addColumnBefore,
+  addColumnAfter,
+  addColumnAtEnd,
+  deleteRow,
+  deleteColumn,
+} from "./commands";
 
 /** 编辑器默认配置 */
 const defaultConfig: MilkupConfig = {
@@ -341,6 +352,162 @@ export class MilkupEditor implements IMilkupEditor {
   }
 
   /**
+   * 检测坐标位置是否在表格内
+   */
+  private isInsideTable(e: MouseEvent): boolean {
+    const coords = { left: e.clientX, top: e.clientY };
+    const pos = this.view.posAtCoords(coords);
+    if (!pos) return false;
+    const $pos = this.view.state.doc.resolve(pos.pos);
+    for (let depth = $pos.depth; depth > 0; depth--) {
+      if ($pos.node(depth).type.name === "table") return true;
+    }
+    return false;
+  }
+
+  /**
+   * 创建右键菜单分隔线
+   */
+  private createContextMenuSeparator(): HTMLElement {
+    const sep = document.createElement("div");
+    sep.className = "milkup-context-menu-separator";
+    return sep;
+  }
+
+  /**
+   * 创建带子菜单的菜单项
+   */
+  private createContextMenuItemWithSubmenu(
+    label: string,
+    submenuBuilder: (container: HTMLElement) => void
+  ): HTMLElement {
+    const item = document.createElement("div");
+    item.className = "milkup-context-menu-item has-submenu";
+    item.textContent = label;
+
+    const submenu = document.createElement("div");
+    submenu.className = "milkup-context-menu-submenu";
+    submenuBuilder(submenu);
+    item.appendChild(submenu);
+
+    let hideTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const showSubmenu = () => {
+      if (hideTimer) {
+        clearTimeout(hideTimer);
+        hideTimer = null;
+      }
+      submenu.classList.add("visible");
+      // 动态定位：先显示以获取尺寸，再调整
+      requestAnimationFrame(() => {
+        const itemRect = item.getBoundingClientRect();
+        const subRect = submenu.getBoundingClientRect();
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+
+        // 水平：优先右侧，溢出则左侧
+        let left = itemRect.right;
+        if (left + subRect.width > vw - 8) {
+          left = itemRect.left - subRect.width;
+        }
+        if (left < 8) left = 8;
+
+        // 垂直：与菜单项顶部对齐，溢出则上移
+        let top = itemRect.top - 4;
+        if (top + subRect.height > vh - 8) {
+          top = vh - subRect.height - 8;
+        }
+        if (top < 8) top = 8;
+
+        submenu.style.left = `${left}px`;
+        submenu.style.top = `${top}px`;
+      });
+    };
+
+    const hideSubmenu = () => {
+      hideTimer = setTimeout(() => {
+        submenu.classList.remove("visible");
+      }, 150);
+    };
+
+    item.addEventListener("mouseenter", showSubmenu);
+    item.addEventListener("mouseleave", hideSubmenu);
+    submenu.addEventListener("mouseenter", () => {
+      if (hideTimer) {
+        clearTimeout(hideTimer);
+        hideTimer = null;
+      }
+    });
+    submenu.addEventListener("mouseleave", hideSubmenu);
+
+    return item;
+  }
+
+  /**
+   * 创建表格网格选择器
+   */
+  private buildTableGridPicker(container: HTMLElement): void {
+    const picker = document.createElement("div");
+    picker.className = "milkup-table-grid-picker";
+
+    const gridContainer = document.createElement("div");
+    gridContainer.className = "grid-container";
+
+    const label = document.createElement("div");
+    label.className = "grid-label";
+    label.textContent = "";
+
+    const maxRows = 8;
+    const maxCols = 8;
+    const cells: HTMLElement[][] = [];
+
+    for (let r = 0; r < maxRows; r++) {
+      cells[r] = [];
+      for (let c = 0; c < maxCols; c++) {
+        const cell = document.createElement("div");
+        cell.className = "grid-cell";
+        cell.dataset.row = String(r);
+        cell.dataset.col = String(c);
+        gridContainer.appendChild(cell);
+        cells[r][c] = cell;
+      }
+    }
+
+    const updateHighlight = (hoverRow: number, hoverCol: number) => {
+      for (let r = 0; r < maxRows; r++) {
+        for (let c = 0; c < maxCols; c++) {
+          cells[r][c].classList.toggle("active", r <= hoverRow && c <= hoverCol);
+        }
+      }
+      label.textContent = `${hoverRow + 1} × ${hoverCol + 1} 表格`;
+    };
+
+    gridContainer.addEventListener("mouseover", (e) => {
+      const target = e.target as HTMLElement;
+      if (target.classList.contains("grid-cell")) {
+        const r = parseInt(target.dataset.row!, 10);
+        const c = parseInt(target.dataset.col!, 10);
+        updateHighlight(r, c);
+      }
+    });
+
+    gridContainer.addEventListener("click", (e) => {
+      const target = e.target as HTMLElement;
+      if (target.classList.contains("grid-cell")) {
+        const rows = parseInt(target.dataset.row!, 10) + 1;
+        const cols = parseInt(target.dataset.col!, 10) + 1;
+        this.view.focus();
+        insertTable(rows, cols)(this.view.state, this.view.dispatch.bind(this.view));
+        this.hideContextMenu();
+      }
+    });
+
+    picker.appendChild(gridContainer);
+    picker.appendChild(label);
+    container.appendChild(picker);
+  }
+
+  /**
    * 显示右键菜单
    */
   private async showContextMenu(e: MouseEvent): Promise<void> {
@@ -396,6 +563,85 @@ export class MilkupEditor implements IMilkupEditor {
       await this.handlePasteFromClipboard();
     });
     menu.appendChild(pasteItem);
+
+    // 检测是否在表格内
+    const inTable = this.isInsideTable(e);
+
+    if (inTable) {
+      // 表格内右键 — 追加表格操作项
+      menu.appendChild(this.createContextMenuSeparator());
+
+      menu.appendChild(
+        this.createContextMenuItem("向上插入行", false, () => {
+          this.view.focus();
+          addRowBefore(this.view.state, this.view.dispatch.bind(this.view));
+          this.hideContextMenu();
+        })
+      );
+      menu.appendChild(
+        this.createContextMenuItem("向下插入行", false, () => {
+          this.view.focus();
+          addRowAfter(this.view.state, this.view.dispatch.bind(this.view));
+          this.hideContextMenu();
+        })
+      );
+      menu.appendChild(
+        this.createContextMenuItem("在末尾添加行", false, () => {
+          this.view.focus();
+          addRowAtEnd(this.view.state, this.view.dispatch.bind(this.view));
+          this.hideContextMenu();
+        })
+      );
+
+      menu.appendChild(this.createContextMenuSeparator());
+
+      menu.appendChild(
+        this.createContextMenuItem("向左插入列", false, () => {
+          this.view.focus();
+          addColumnBefore(this.view.state, this.view.dispatch.bind(this.view));
+          this.hideContextMenu();
+        })
+      );
+      menu.appendChild(
+        this.createContextMenuItem("向右插入列", false, () => {
+          this.view.focus();
+          addColumnAfter(this.view.state, this.view.dispatch.bind(this.view));
+          this.hideContextMenu();
+        })
+      );
+      menu.appendChild(
+        this.createContextMenuItem("在末尾添加列", false, () => {
+          this.view.focus();
+          addColumnAtEnd(this.view.state, this.view.dispatch.bind(this.view));
+          this.hideContextMenu();
+        })
+      );
+
+      menu.appendChild(this.createContextMenuSeparator());
+
+      menu.appendChild(
+        this.createContextMenuItem("删除当前行", false, () => {
+          this.view.focus();
+          deleteRow(this.view.state, this.view.dispatch.bind(this.view));
+          this.hideContextMenu();
+        })
+      );
+      menu.appendChild(
+        this.createContextMenuItem("删除当前列", false, () => {
+          this.view.focus();
+          deleteColumn(this.view.state, this.view.dispatch.bind(this.view));
+          this.hideContextMenu();
+        })
+      );
+    } else {
+      // 非表格区域 — 追加"插入表格"项
+      menu.appendChild(this.createContextMenuSeparator());
+      menu.appendChild(
+        this.createContextMenuItemWithSubmenu("插入表格", (submenu) => {
+          this.buildTableGridPicker(submenu);
+        })
+      );
+    }
 
     // 定位菜单
     menu.style.left = `${e.clientX}px`;

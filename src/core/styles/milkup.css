@@ -339,6 +339,88 @@
   cursor: not-allowed;
 }
 
+/* 右键菜单分隔线 */
+.milkup-context-menu-separator {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--border-color, #e1e4e8);
+}
+
+/* 带子菜单的菜单项 */
+.milkup-context-menu-item.has-submenu {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.milkup-context-menu-item.has-submenu::after {
+  content: '';
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 5px solid var(--text-color-3, #999);
+  margin-left: 12px;
+  flex-shrink: 0;
+}
+
+/* 子菜单容器 */
+.milkup-context-menu-submenu {
+  position: fixed;
+  z-index: 10001;
+  min-width: 120px;
+  padding: 8px;
+  background: var(--background-color-1, #fff);
+  border: 1px solid var(--border-color, #e1e4e8);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: none;
+}
+
+.milkup-context-menu-submenu.visible {
+  display: block;
+}
+
+/* 表格网格选择器 */
+.milkup-table-grid-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+}
+
+.milkup-table-grid-picker .grid-container {
+  display: grid;
+  grid-template-columns: repeat(8, 20px);
+  grid-template-rows: repeat(8, 20px);
+  gap: 2px;
+}
+
+.milkup-table-grid-picker .grid-cell {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border-color, #dfe2e5);
+  border-radius: 2px;
+  background: var(--background-color-1, #fff);
+  cursor: pointer;
+  transition: background 0.05s ease, border-color 0.05s ease;
+}
+
+.milkup-table-grid-picker .grid-cell.active {
+  background: var(--primary-color, #0366d6);
+  border-color: var(--primary-color, #0366d6);
+  opacity: 0.7;
+}
+
+.milkup-table-grid-picker .grid-label {
+  font-size: 12px;
+  color: var(--text-color-2, #6a737d);
+  white-space: nowrap;
+  min-height: 1.2em;
+}
+
 /* Mermaid 预览 */
 .milkup-mermaid-preview {
   padding: 16px;
