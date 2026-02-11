@@ -62,73 +62,53 @@ export function normalizeMarkdown(text: string): string {
 }
 
 /**
- * Node.js 环境的 base64 编码（与渲染进程 btoa+encodeURIComponent 结果一致）
+ * 从 milkup:// URL 中提取原始相对路径
+ * 旧 URL 格式: base64path/relativePath 或 base64path/./relativePath
  */
-function encodeBase64(str: string): string {
-  return Buffer.from(
-    encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) =>
-      String.fromCharCode(Number.parseInt(p1, 16))
-    ),
-    "binary"
-  ).toString("base64");
-}
+function extractRelativePath(urlContent: string): string | null {
+  // Case 1: base64 以 = 结尾（有 padding），=/relative 或 ==/relative
+  const paddingMatch = urlContent.match(/^[A-Za-z0-9+/]+=+\/(.+)$/);
+  if (paddingMatch) return paddingMatch[1];
 
-/**
- * 检查是否为绝对路径
- */
-function isAbsolutePath(filePath: string): boolean {
-  return /^(?:[a-z]:[\\/]|\\\\|\/)/i.test(filePath);
-}
-
-/**
- * 将相对路径转换为自定义协议 URL
- */
-function convertToProtocolUrl(imagePath: string, base64Path: string): string | null {
-  if (
-    imagePath.startsWith("http://") ||
-    imagePath.startsWith("https://") ||
-    imagePath.startsWith("file://") ||
-    imagePath.startsWith("data:") ||
-    imagePath.startsWith("milkup://") ||
-    isAbsolutePath(imagePath)
-  ) {
-    return null;
-  }
-  return `milkup:///${base64Path}/${imagePath}`;
-}
-
-/**
- * 处理 Markdown 中的图片路径（主进程版本）
- * 将相对路径转换为 milkup:// 协议 URL
- */
-export function processImagePaths(
-  markdownContent: string,
-  markdownFilePath: string | null
-): string {
-  if (!markdownFilePath) {
-    return markdownContent;
+  // Case 2: 相对路径以 ./ 开头，找 /./ 边界
+  const dotSlashIndex = urlContent.indexOf("/./");
+  if (dotSlashIndex !== -1) {
+    return urlContent.substring(dotSlashIndex + 1);
   }
 
-  const base64Path = encodeBase64(markdownFilePath);
-  let processedContent = markdownContent;
+  // Case 3: 回退 — 取最后一个 / 后面的部分（如果看起来像文件名）
+  const lastSlash = urlContent.lastIndexOf("/");
+  if (lastSlash > 0) {
+    const possibleRelative = urlContent.substring(lastSlash + 1);
+    if (/\.\w+$/.test(possibleRelative)) {
+      return possibleRelative;
+    }
+  }
 
-  // 1. 处理 Markdown 图片语法: ![alt](path)
-  const markdownImageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
-  processedContent = processedContent.replace(markdownImageRegex, (match, alt, imagePath) => {
-    const convertedPath = convertToProtocolUrl(imagePath, base64Path);
-    return convertedPath ? `![${alt}](${convertedPath})` : match;
+  return null;
+}
+
+/**
+ * 清理文件中残留的 milkup:// 协议 URL（旧版本可能将其写入文件）
+ * 将 milkup:// URL 还原为原始相对路径
+ */
+export function cleanupProtocolUrls(content: string): string {
+  let result = content;
+
+  // Markdown 图片: ![alt](milkup://...relative) → ![alt](relative)
+  result = result.replace(/!\[([^\]]*)\]\(milkup:\/\/\/?([^)]+)\)/g, (match, alt, urlContent) => {
+    const relative = extractRelativePath(urlContent);
+    return relative ? `![${alt}](${relative})` : match;
   });
 
-  // 2. 处理 HTML img 标签: <img src="path" />
-  const htmlImageRegex = /<img\s([^>]*?)src=(["'])([^"']+)\2([^>]*)>/gi;
-  processedContent = processedContent.replace(
-    htmlImageRegex,
-    (match, before, quote, imagePath, after) => {
-      const convertedPath = convertToProtocolUrl(imagePath, base64Path);
-      if (!convertedPath) return match;
-      return `<img ${before}src=${quote}${convertedPath}${quote}${after}>`;
+  // HTML img: <img src="milkup://...relative" />
+  result = result.replace(
+    /<img(\s[^>]*?)src=(["'])milkup:\/\/\/?([^"']+)\2([^>]*)>/gi,
+    (match, before, quote, urlContent, after) => {
+      const relative = extractRelativePath(urlContent);
+      return relative ? `<img${before}src=${quote}${relative}${quote}${after}>` : match;
     }
   );
 
-  return processedContent;
+  return result;
 }

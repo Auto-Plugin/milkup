@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { app, BrowserWindow, globalShortcut, ipcMain, protocol, shell } from "electron";
-import { detectFileTraits, normalizeMarkdown, processImagePaths } from "./fileFormat";
+import { cleanupProtocolUrls, detectFileTraits, normalizeMarkdown } from "./fileFormat";
 import {
   close,
   getIsQuitting,
@@ -159,8 +159,7 @@ function sendFileToRenderer(filePath: string) {
   // 读取文件内容
   const raw = fs.readFileSync(filePath, "utf-8");
   const fileTraits = detectFileTraits(raw);
-  const rawContent = normalizeMarkdown(raw);
-  const content = processImagePaths(rawContent, filePath);
+  const content = cleanupProtocolUrls(normalizeMarkdown(raw));
 
   // 发送到渲染进程的函数
   const sendFile = () => {
@@ -168,7 +167,6 @@ function sendFileToRenderer(filePath: string) {
       win.webContents.send("open-file-at-launch", {
         filePath,
         content,
-        rawContent,
         fileTraits,
       });
     }
@@ -206,36 +204,40 @@ protocol.registerSchemesAsPrivileged([
 app.whenReady().then(async () => {
   registerGlobalIpcHandlers();
 
-  // 注册自定义协议处理器
+  // 注册自定义协议处理器（仅用于兼容旧版本残留的 milkup:// URL）
+  // 新版本使用 file:// 协议直接加载本地图片
   protocol.registerFileProtocol("milkup", (request, callback) => {
     try {
-      // URL 格式: milkup:///<base64-encoded-markdown-path>/<relative-image-path>
-      const url = request.url.substring("milkup:///".length);
-      const firstSlashIndex = url.indexOf("/");
+      const rawUrl = request.url;
 
+      // 提取路径部分
+      let urlPath: string;
+      if (rawUrl.startsWith("milkup:///")) {
+        urlPath = rawUrl.substring("milkup:///".length);
+      } else {
+        urlPath = rawUrl.substring("milkup://".length);
+      }
+
+      // 旧格式：<base64-encoded-markdown-path>/<relative-image-path>
+      const firstSlashIndex = urlPath.indexOf("/");
       if (firstSlashIndex === -1) {
-        callback({ error: -2 }); // FILE_NOT_FOUND
+        callback({ error: -2 });
         return;
       }
 
-      const base64Path = url.substring(0, firstSlashIndex);
-      const relativePath = url.substring(firstSlashIndex + 1);
+      const encodedMdPath = urlPath.substring(0, firstSlashIndex);
+      const relativePath = urlPath.substring(firstSlashIndex + 1);
 
-      // 解码 markdown 文件路径
-      const markdownPath = Buffer.from(base64Path, "base64").toString("utf-8");
+      const markdownPath = Buffer.from(encodedMdPath, "base64").toString("utf-8");
       const markdownDir = path.dirname(markdownPath);
-
-      // 解析相对路径为绝对路径
       const absolutePath = path.resolve(markdownDir, decodeURIComponent(relativePath));
 
-      // 检查文件是否存在
       if (!fs.existsSync(absolutePath)) {
         console.error("[milkup protocol] 文件不存在:", absolutePath);
-        callback({ error: -6 }); // FILE_NOT_FOUND
+        callback({ error: -6 });
         return;
       }
 
-      // 返回文件路径
       callback({ path: absolutePath });
     } catch (error) {
       console.error("[milkup protocol] 处理请求失败:", error);

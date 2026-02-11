@@ -271,11 +271,19 @@ export class ListItemView implements NodeView {
   }
 
   ignoreMutation(mutation: MutationRecord): boolean {
-    // 忽略 class 属性变化和标记元素的变化
-    if (mutation.type === "attributes" && mutation.attributeName === "class") {
+    // 忽略 class 和 style 属性变化
+    if (
+      mutation.type === "attributes" &&
+      (mutation.attributeName === "class" || mutation.attributeName === "style")
+    ) {
       return true;
     }
+    // 忽略标记元素上的变化
     if (mutation.target === this.markerElement) {
+      return true;
+    }
+    // 忽略 dom 上的子节点变化（添加/移除标记元素）
+    if (mutation.type === "childList" && mutation.target === this.dom) {
       return true;
     }
     return false;
