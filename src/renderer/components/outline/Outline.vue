@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import WorkSpace from "@/renderer/components/workspace/WorkSpace.vue";
 import useOutline from "@/renderer/hooks/useOutline";
 import emitter from "@/renderer/events";
 
 const { outline } = useOutline();
 
-const activeTab = ref<"outline" | "file">("file");
+const savedTab = localStorage.getItem("sidebar-active-tab") as "outline" | "file" | null;
+const activeTab = ref<"outline" | "file">(savedTab === "outline" ? "outline" : "file");
+watch(activeTab, (val) => localStorage.setItem("sidebar-active-tab", val));
 
 function onOiClick(oi: { id: string; text: string; level: number; pos: number }) {
   emitter.emit("outline:scrollTo", oi.pos);
