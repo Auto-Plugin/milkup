@@ -811,6 +811,18 @@
   color: var(--text-color-3, #999);
 }
 
+/* 源码模式下禁用高亮渲染 */
+.milkup-editor.source-view mark {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+/* 源码模式下隐藏分割线（由 source-view-transform 转为段落） */
+.milkup-editor.source-view hr {
+  display: none;
+}
+
 /* 行号 - 使用 CSS 计数器和绝对定位 */
 .milkup-editor.source-view {
   counter-reset: line-number;

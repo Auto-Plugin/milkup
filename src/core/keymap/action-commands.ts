@@ -6,7 +6,7 @@ import { Schema } from "prosemirror-model";
 import { EditorState, Transaction } from "prosemirror-state";
 import { setBlockType, wrapIn, lift } from "prosemirror-commands";
 import { undo, redo } from "prosemirror-history";
-import { toggleSourceView } from "../decorations";
+import { toggleSourceView, decorationPluginKey } from "../decorations";
 import {
   createEnhancedToggleMark,
   createSetHeadingCommand,
@@ -63,7 +63,19 @@ export function buildActionCommandMap(schema: Schema): Record<ShortcutActionId, 
   map.liftBlock = lift;
 
   // 插入
-  map.insertHorizontalRule = insertHorizontalRule;
+  map.insertHorizontalRule = (state: EditorState, dispatch?: (tr: Transaction) => void) => {
+    const decoState = decorationPluginKey.getState(state);
+    if (decoState?.sourceView) {
+      // 源码模式：插入 --- 段落（与 source-view-transform 的 transformHrToParagraph 一致）
+      if (dispatch) {
+        const para = schema.nodes.paragraph.create({ hrSource: true }, schema.text("---"));
+        const tr = state.tr.replaceSelectionWith(para);
+        dispatch(tr.scrollIntoView());
+      }
+      return true;
+    }
+    return insertHorizontalRule(state, dispatch);
+  };
   map.insertTable = insertTable();
   map.insertMathBlock = insertMathBlock();
 
