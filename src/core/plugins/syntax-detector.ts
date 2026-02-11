@@ -511,9 +511,9 @@ export function createSyntaxDetectorPlugin(): Plugin {
       tr = tr.setMeta("syntax-plugin-internal", true);
       let hasChanges = false;
 
-      // 遍历所有文本块
+      // 遍历所有文本块（跳过代码块/数学块等，其内容不参与语法解析）
       newState.doc.descendants((node, pos) => {
-        if (node.isTextblock) {
+        if (node.isTextblock && !node.type.spec.code) {
           const textContent = node.textContent;
           const basePos = pos + 1;
 
@@ -589,7 +589,7 @@ export function createSyntaxDetectorPlugin(): Plugin {
         }> = [];
 
         newState.doc.descendants((node, pos) => {
-          if (node.isTextblock) {
+          if (node.isTextblock && !node.type.spec.code) {
             const textContent = node.textContent;
             const basePos = pos + 1;
 
