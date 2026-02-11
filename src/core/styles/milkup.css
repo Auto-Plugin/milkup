@@ -1165,3 +1165,135 @@
 .milkup-task-item.source-view .milkup-list-item-content > p {
   display: block;
 }
+
+/* ========== 搜索替换面板 ========== */
+
+.milkup-search-wrapper {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: 0;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  display: none;
+}
+
+.milkup-search-wrapper.visible {
+  display: block;
+}
+
+.milkup-search-panel {
+  pointer-events: auto;
+  position: absolute;
+  top: 0;
+  right: 16px;
+  background: var(--background-color, #fff);
+  border: 1px solid var(--border-color, #e1e4e8);
+  border-radius: 0 0 6px 6px;
+  padding: 6px 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.milkup-search-row,
+.milkup-replace-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 28px;
+}
+
+.milkup-replace-row {
+  margin-top: 4px;
+  padding-left: 27px;
+}
+
+.milkup-replace-row.hidden {
+  display: none;
+}
+
+.milkup-search-panel input {
+  height: 24px;
+  padding: 2px 6px;
+  border: 1px solid var(--border-color, #e1e4e8);
+  border-radius: 3px;
+  background: var(--background-color, #fff);
+  color: var(--text-color, #333);
+  font-size: 13px;
+  outline: none;
+  width: 180px;
+  box-sizing: border-box;
+}
+
+.milkup-search-panel input:focus {
+  border-color: var(--primary-color, #0366d6);
+  box-shadow: 0 0 0 1px var(--primary-color, #0366d6);
+}
+
+.milkup-search-panel button {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-color-2, #6a737d);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+  user-select: none;
+}
+
+.milkup-search-panel button:hover {
+  background: var(--hover-color, rgba(0, 0, 0, 0.06));
+  color: var(--text-color, #333);
+}
+
+.milkup-search-panel button.active {
+  background: rgba(0, 100, 214, 0.12);
+  border-color: var(--primary-color, #0366d6);
+  color: var(--primary-color, #0366d6);
+}
+
+.milkup-search-panel button svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+.milkup-search-panel .match-count {
+  font-size: 12px;
+  color: var(--text-color-2, #6a737d);
+  white-space: nowrap;
+  min-width: 40px;
+  text-align: center;
+  user-select: none;
+}
+
+.milkup-search-panel .replace-btn {
+  width: auto;
+  padding: 0 8px;
+  font-size: 12px;
+  height: 22px;
+  border: 1px solid var(--border-color, #e1e4e8);
+}
+
+.milkup-search-panel .replace-btn:hover {
+  background: var(--hover-color, rgba(0, 0, 0, 0.06));
+}
+
+/* 搜索匹配高亮 */
+.milkup-search-match {
+  background: var(--active-color, rgba(255, 237, 0, 0.4));
+  border-radius: 2px;
+}
+
+.milkup-search-match-current {
+  background: rgba(255, 153, 0, 0.6);
+  outline: 1px solid var(--primary-color, #0366d6);
+}

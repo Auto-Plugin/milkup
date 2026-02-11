@@ -9,7 +9,13 @@
 import { Node as ProseMirrorNode } from "prosemirror-model";
 import { EditorView as ProseMirrorView, NodeView } from "prosemirror-view";
 import { Selection, TextSelection } from "prosemirror-state";
-import { EditorView, keymap as cmKeymap, ViewUpdate, lineNumbers } from "@codemirror/view";
+import {
+  EditorView,
+  keymap as cmKeymap,
+  ViewUpdate,
+  lineNumbers,
+  Decoration as CMDecoration,
+} from "@codemirror/view";
 import { EditorState as CMEditorState, Compartment, Extension } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { syntaxHighlighting, defaultHighlightStyle, HighlightStyle } from "@codemirror/language";
@@ -21,6 +27,7 @@ import { css } from "@codemirror/lang-css";
 import { json } from "@codemirror/lang-json";
 import { markdown } from "@codemirror/lang-markdown";
 import { sourceViewManager } from "../decorations";
+import { searchPluginKey } from "../plugins/search";
 
 /** Mermaid 显示模式 */
 type MermaidDisplayMode = "code" | "mixed" | "diagram";
@@ -204,6 +211,7 @@ export class CodeBlockView implements NodeView {
   languageCompartment: Compartment;
   themeCompartment: Compartment;
   lineNumbersCompartment: Compartment;
+  searchHighlightCompartment: Compartment;
   mermaidPreview: HTMLElement | null = null;
   mermaidDisplayMode: MermaidDisplayMode = globalMermaidDefaultMode;
   themeObserver: MutationObserver | null = null;
@@ -222,6 +230,7 @@ export class CodeBlockView implements NodeView {
     this.languageCompartment = new Compartment();
     this.themeCompartment = new Compartment();
     this.lineNumbersCompartment = new Compartment();
+    this.searchHighlightCompartment = new Compartment();
 
     // 检测当前主题
     const isDark = detectDarkTheme();
@@ -370,6 +379,7 @@ export class CodeBlockView implements NodeView {
           this.themeCompartment.of(createThemeExtension(isDark)),
           this.languageCompartment.of(getLanguageExtension(normalizedLang)),
           this.lineNumbersCompartment.of(lineNumbers()),
+          this.searchHighlightCompartment.of([]),
           EditorView.updateListener.of((update) => this.onCMUpdate(update)),
           EditorView.domEventHandlers({
             focus: () => this.forwardSelection(),
@@ -1016,6 +1026,42 @@ export class CodeBlockView implements NodeView {
   }
 
   /**
+   * 更新搜索高亮（将 ProseMirror 搜索状态映射到 CodeMirror 装饰）
+   */
+  private updateSearchHighlights(): void {
+    const pos = this.getPos();
+    if (pos === undefined) return;
+
+    const searchState = searchPluginKey.getState(this.view.state);
+    if (!searchState || !searchState.query || searchState.matches.length === 0) {
+      this.cm.dispatch({
+        effects: this.searchHighlightCompartment.reconfigure([]),
+      });
+      return;
+    }
+
+    const nodeStart = pos + 1;
+    const nodeEnd = pos + 1 + this.node.content.size;
+
+    const cmRanges = searchState.matches
+      .map((m, i) => ({ ...m, index: i }))
+      .filter((m) => m.from >= nodeStart && m.to <= nodeEnd)
+      .map((m) => {
+        const cls =
+          m.index === searchState.currentIndex
+            ? "milkup-search-match milkup-search-match-current"
+            : "milkup-search-match";
+        return CMDecoration.mark({ class: cls }).range(m.from - nodeStart, m.to - nodeStart);
+      });
+
+    const decoSet = cmRanges.length > 0 ? CMDecoration.set(cmRanges, true) : CMDecoration.none;
+
+    this.cm.dispatch({
+      effects: this.searchHighlightCompartment.reconfigure(EditorView.decorations.of(decoSet)),
+    });
+  }
+
+  /**
    * 设置语言
    */
   private setLanguage(language: string): void {
@@ -1404,6 +1450,9 @@ export class CodeBlockView implements NodeView {
         effects: this.languageCompartment.reconfigure(getLanguageExtension(node.attrs.language)),
       });
     }
+
+    // 更新搜索高亮
+    this.updateSearchHighlights();
 
     return true;
   }

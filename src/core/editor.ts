@@ -36,6 +36,17 @@ import { createAICompletionPlugin } from "./plugins/ai-completion";
 import { createPlaceholderPlugin } from "./plugins/placeholder";
 import { createLineNumbersPlugin } from "./plugins/line-numbers";
 import { createSourceViewTransformPlugin } from "./plugins/source-view-transform";
+import {
+  createSearchPlugin,
+  searchPluginKey,
+  updateSearch,
+  findNext,
+  findPrev,
+  replaceMatch,
+  replaceAll,
+  clearSearch,
+} from "./plugins/search";
+import type { SearchOptions } from "./plugins/search";
 import { createKeymapPlugin, createDynamicKeymapPlugin } from "./keymap";
 import type { ShortcutKeyMap } from "./keymap";
 import { createCodeBlockNodeView } from "./nodeviews/code-block";
@@ -106,6 +117,16 @@ export class MilkupEditor implements IMilkupEditor {
   private plugins: MilkupPlugin[] = [];
   private eventHandlers: Map<string, Set<Function>> = new Map();
   private contextMenu: HTMLElement | null = null;
+  private searchPanel: HTMLElement | null = null;
+  private searchWrapper: HTMLElement | null = null;
+  private searchInput: HTMLInputElement | null = null;
+  private replaceRow: HTMLElement | null = null;
+  private matchCountSpan: HTMLElement | null = null;
+  private searchCaseSensitive = false;
+  private searchWholeWord = false;
+  private searchUseRegex = false;
+  private searchInSelection = false;
+  private searchSelectionRange: { from: number; to: number } | null = null;
 
   constructor(container: HTMLElement, config: MilkupConfig = {}) {
     this.config = { ...defaultConfig, ...config };
@@ -150,6 +171,9 @@ export class MilkupEditor implements IMilkupEditor {
     // 初始化自定义插件
     this.initPlugins();
 
+    // 创建搜索面板（挂载到 container，不在 contenteditable 内）
+    this.createSearchPanel(container);
+
     // 设置初始源码视图状态
     if (this.config.sourceView) {
       setSourceView(this.view.state, true, this.view.dispatch.bind(this.view));
@@ -167,6 +191,17 @@ export class MilkupEditor implements IMilkupEditor {
       dropCursor(),
       // 间隙光标
       gapCursor(),
+      // 搜索替换快捷键（最高优先级）
+      keymap({
+        "Mod-f": () => {
+          this.openSearch(false);
+          return true;
+        },
+        "Mod-h": () => {
+          this.openSearch(true);
+          return true;
+        },
+      }),
       // 动态快捷键插件（可自定义的快捷键，优先级最高）
       createDynamicKeymapPlugin(this.schema, () => this.getCustomKeyMap()),
       // 不可自定义的快捷键（块级 Enter、列表操作等）
@@ -193,6 +228,8 @@ export class MilkupEditor implements IMilkupEditor {
       createSourceViewTransformPlugin(),
       // 行号插件
       createLineNumbersPlugin(),
+      // 搜索插件
+      createSearchPlugin(),
     ];
 
     // AI 续写插件（如果配置了）
@@ -302,6 +339,11 @@ export class MilkupEditor implements IMilkupEditor {
 
     // 清理右键菜单
     this.hideContextMenu();
+
+    // 清理搜索面板
+    this.searchWrapper?.remove();
+    this.searchWrapper = null;
+    this.searchPanel = null;
 
     // 销毁视图
     this.view.destroy();
@@ -848,6 +890,285 @@ export class MilkupEditor implements IMilkupEditor {
       );
     }
   }
+
+  /** 创建搜索面板 DOM */
+  private createSearchPanel(container: HTMLElement): void {
+    // SVG 图标工厂
+    const svgIcon = (path: string, vb = "0 0 16 16") => {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("viewBox", vb);
+      svg.innerHTML = path;
+      return svg;
+    };
+
+    // 创建按钮的辅助函数（阻止 mousedown 防止编辑器失焦）
+    const makeBtn = (cls: string, title: string, icon: SVGSVGElement, onClick: () => void) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = cls;
+      btn.title = title;
+      btn.appendChild(icon);
+      btn.addEventListener("mousedown", (e) => e.preventDefault());
+      btn.addEventListener("click", onClick);
+      return btn;
+    };
+
+    // 外层 wrapper（sticky 定位）
+    const wrapper = document.createElement("div");
+    wrapper.className = "milkup-search-wrapper";
+
+    const panel = document.createElement("div");
+    panel.className = "milkup-search-panel";
+
+    // ---- 搜索行 ----
+    const searchRow = document.createElement("div");
+    searchRow.className = "milkup-search-row";
+
+    // 展开/收起替换 ▶/▼
+    const toggleIcon = svgIcon('<path d="M6 4l4 4-4 4z"/>');
+    const toggleBtn = makeBtn("toggle-replace", "切换替换", toggleIcon, () =>
+      this.toggleReplaceRow()
+    );
+
+    const searchInput = document.createElement("input");
+    searchInput.type = "text";
+    searchInput.className = "search-input";
+    searchInput.placeholder = "搜索";
+    searchInput.addEventListener("input", () => this.onSearchInput());
+    searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && e.shiftKey) {
+        e.preventDefault();
+        findPrev(this.view);
+        this.updateMatchCount();
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        findNext(this.view);
+        this.updateMatchCount();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        this.closeSearch();
+      }
+    });
+
+    // Aa 区分大小写
+    const caseIcon = svgIcon(
+      '<text x="2" y="12" font-size="11" font-weight="600" font-family="sans-serif" fill="currentColor">Aa</text>'
+    );
+    const caseBtn = makeBtn("case-sensitive", "区分大小写", caseIcon, () => {
+      this.searchCaseSensitive = !this.searchCaseSensitive;
+      caseBtn.classList.toggle("active", this.searchCaseSensitive);
+      this.onSearchInput();
+    });
+
+    // Ab| 全字匹配
+    const wordIcon = svgIcon(
+      '<text x="1" y="12" font-size="10" font-weight="600" font-family="sans-serif" fill="currentColor">Ab</text><rect x="12" y="2" width="1.5" height="12" rx="0.5" fill="currentColor"/>'
+    );
+    const wordBtn = makeBtn("whole-word", "全字匹配", wordIcon, () => {
+      this.searchWholeWord = !this.searchWholeWord;
+      wordBtn.classList.toggle("active", this.searchWholeWord);
+      this.onSearchInput();
+    });
+
+    // .* 正则
+    const regexIcon = svgIcon(
+      '<text x="1" y="12" font-size="12" font-weight="600" font-family="monospace" fill="currentColor">.*</text>'
+    );
+    const regexBtn = makeBtn("use-regex", "正则表达式", regexIcon, () => {
+      this.searchUseRegex = !this.searchUseRegex;
+      regexBtn.classList.toggle("active", this.searchUseRegex);
+      this.onSearchInput();
+    });
+
+    const matchCount = document.createElement("span");
+    matchCount.className = "match-count";
+
+    // ↑ 上一个
+    const prevIcon = svgIcon('<path d="M8 4L3 9h10z"/>');
+    const prevBtn = makeBtn("prev-match", "上一个匹配 (Shift+Enter)", prevIcon, () => {
+      findPrev(this.view);
+      this.updateMatchCount();
+    });
+
+    // ↓ 下一个
+    const nextIcon = svgIcon('<path d="M8 12L3 7h10z"/>');
+    const nextBtn = makeBtn("next-match", "下一个匹配 (Enter)", nextIcon, () => {
+      findNext(this.view);
+      this.updateMatchCount();
+    });
+
+    // 选区内搜索
+    const selIcon = svgIcon('<path d="M2 3h12v2H2zM4 7h8v2H4zM2 11h12v2H2z"/>');
+    const selBtn = makeBtn("search-in-selection", "在选区内搜索", selIcon, () => {
+      this.searchInSelection = !this.searchInSelection;
+      selBtn.classList.toggle("active", this.searchInSelection);
+      if (this.searchInSelection) {
+        const { from, to } = this.view.state.selection;
+        this.searchSelectionRange = from !== to ? { from, to } : null;
+      } else {
+        this.searchSelectionRange = null;
+      }
+      this.onSearchInput();
+    });
+
+    // × 关闭
+    const closeIcon = svgIcon(
+      '<path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" fill="none"/>'
+    );
+    const closeBtn = makeBtn("close-search", "关闭 (Escape)", closeIcon, () => this.closeSearch());
+
+    searchRow.append(
+      toggleBtn,
+      searchInput,
+      caseBtn,
+      wordBtn,
+      regexBtn,
+      matchCount,
+      prevBtn,
+      nextBtn,
+      selBtn,
+      closeBtn
+    );
+
+    // ---- 替换行 ----
+    const replaceRow = document.createElement("div");
+    replaceRow.className = "milkup-replace-row hidden";
+
+    const replaceInput = document.createElement("input");
+    replaceInput.type = "text";
+    replaceInput.className = "replace-input";
+    replaceInput.placeholder = "替换";
+    replaceInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        replaceMatch(this.view, replaceInput.value);
+        this.onSearchInput();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        this.closeSearch();
+      }
+    });
+
+    const replaceOneBtn = document.createElement("button");
+    replaceOneBtn.type = "button";
+    replaceOneBtn.className = "replace-btn";
+    replaceOneBtn.textContent = "替换";
+    replaceOneBtn.addEventListener("mousedown", (e) => e.preventDefault());
+    replaceOneBtn.addEventListener("click", () => {
+      replaceMatch(this.view, replaceInput.value);
+      this.onSearchInput();
+    });
+
+    const replaceAllBtn = document.createElement("button");
+    replaceAllBtn.type = "button";
+    replaceAllBtn.className = "replace-btn";
+    replaceAllBtn.textContent = "全部替换";
+    replaceAllBtn.addEventListener("mousedown", (e) => e.preventDefault());
+    replaceAllBtn.addEventListener("click", () => {
+      replaceAll(this.view, replaceInput.value);
+      this.onSearchInput();
+    });
+
+    replaceRow.append(replaceInput, replaceOneBtn, replaceAllBtn);
+
+    panel.append(searchRow, replaceRow);
+    wrapper.appendChild(panel);
+
+    // 挂载到最近的滚动容器（overflow-y: auto/scroll 的祖先）
+    // 这样 sticky 定位才能正确工作
+    const scrollParent = this.findScrollParent(container) || container;
+    scrollParent.insertBefore(wrapper, scrollParent.firstChild);
+
+    this.searchWrapper = wrapper;
+    this.searchPanel = panel;
+    this.searchInput = searchInput;
+    this.replaceRow = replaceRow;
+    this.matchCountSpan = matchCount;
+  }
+
+  /** 打开搜索面板 */
+  openSearch(showReplace: boolean): void {
+    if (!this.searchWrapper || !this.searchInput) return;
+
+    this.searchWrapper.classList.add("visible");
+
+    if (showReplace) {
+      this.replaceRow?.classList.remove("hidden");
+      const toggleBtn = this.searchPanel?.querySelector(".toggle-replace svg");
+      if (toggleBtn) toggleBtn.innerHTML = '<path d="M4 6l4 4 4-4z"/>';
+    }
+
+    // 如有选中文本，填入搜索框
+    const { from, to } = this.view.state.selection;
+    if (from !== to) {
+      const selectedText = this.view.state.doc.textBetween(from, to, "\n");
+      if (selectedText && !selectedText.includes("\n")) {
+        this.searchInput.value = selectedText;
+      }
+    }
+
+    this.searchInput.focus();
+    this.searchInput.select();
+    this.onSearchInput();
+  }
+
+  /** 关闭搜索面板 */
+  closeSearch(): void {
+    if (!this.searchWrapper) return;
+    this.searchWrapper.classList.remove("visible");
+    clearSearch(this.view);
+    this.view.focus();
+  }
+
+  /** 切换替换行 */
+  private toggleReplaceRow(): void {
+    if (!this.replaceRow || !this.searchPanel) return;
+    const hidden = this.replaceRow.classList.toggle("hidden");
+    const toggleSvg = this.searchPanel.querySelector(".toggle-replace svg");
+    if (toggleSvg) {
+      toggleSvg.innerHTML = hidden ? '<path d="M6 4l4 4-4 4z"/>' : '<path d="M4 6l4 4 4-4z"/>';
+    }
+  }
+
+  /** 搜索输入变化 */
+  private onSearchInput(): void {
+    if (!this.searchInput) return;
+    const query = this.searchInput.value;
+    const options: SearchOptions = {
+      caseSensitive: this.searchCaseSensitive,
+      wholeWord: this.searchWholeWord,
+      useRegex: this.searchUseRegex,
+      searchInSelection: this.searchInSelection,
+      selectionRange: this.searchSelectionRange,
+    };
+    updateSearch(this.view, query, options);
+    this.updateMatchCount();
+  }
+
+  /** 更新匹配计数显示 */
+  private updateMatchCount(): void {
+    if (!this.matchCountSpan) return;
+    const state = searchPluginKey.getState(this.view.state);
+    if (!state || state.matches.length === 0) {
+      this.matchCountSpan.textContent = this.searchInput?.value ? "无结果" : "";
+    } else {
+      this.matchCountSpan.textContent = `${state.currentIndex + 1}/${state.matches.length}`;
+    }
+  }
+
+  /** 查找最近的可滚动祖先元素 */
+  private findScrollParent(el: HTMLElement): HTMLElement | null {
+    let parent = el.parentElement;
+    while (parent) {
+      const style = getComputedStyle(parent);
+      if (style.overflowY === "auto" || style.overflowY === "scroll") {
+        return parent;
+      }
+      parent = parent.parentElement;
+    }
+    return null;
+  }
+
   private hideContextMenu(): void {
     if (this.contextMenu) {
       this.contextMenu.remove();
