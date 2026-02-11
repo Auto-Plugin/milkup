@@ -109,8 +109,8 @@ const BLOCK_PATTERNS = {
   ordered_list: /^(\s*)(\d+)\.\s+(.*)$/,
   task_item: /^(\s*)[-*+]\s+\[([ xX]?)\]\s+(.*)$/,
   horizontal_rule: /^([-*_]){3,}\s*$/, // 允许行尾有空格
-  table_row: /^\|(.+)\|$/,
-  table_separator: /^\|[-:\s|]+\|$/,
+  table_row: /^\|(.+)\|\s*$/,
+  table_separator: /^\|[-:\s|]+\|\s*$/,
   math_block_start: /^\$\$\s*$/, // 多行数学块开始
   math_block_end: /^\$\$\s*$/, // 多行数学块结束
   math_block_inline: /^\$\$(.+)\$\$$/, // 单行数学块 $$content$$
@@ -942,23 +942,43 @@ export class MarkdownParser {
    * 解析表格
    */
   private parseTable(lines: string[], startIndex: number): { node: Node; endIndex: number } | null {
-    if (startIndex + 1 >= lines.length) return null;
-    if (!BLOCK_PATTERNS.table_separator.test(lines[startIndex + 1])) return null;
+    // 查找分隔行，允许跳过一个空行
+    let sepIndex = startIndex + 1;
+    if (sepIndex < lines.length && lines[sepIndex].trim() === "") sepIndex++;
+    if (sepIndex >= lines.length) return null;
+    if (!BLOCK_PATTERNS.table_separator.test(lines[sepIndex])) return null;
 
     const rows: Node[] = [];
     let endIndex = startIndex;
 
+    // 从分隔行解析列对齐信息
+    const separatorLine = lines[sepIndex].trimEnd();
+    const alignments = separatorLine
+      .slice(1, -1)
+      .split("|")
+      .map((col) => {
+        const trimmed = col.trim();
+        const left = trimmed.startsWith(":");
+        const right = trimmed.endsWith(":");
+        if (left && right) return "center";
+        if (right) return "right";
+        if (left) return "left";
+        return null;
+      });
+
     // 表头
-    const headerCells = this.parseTableRow(lines[startIndex], true);
+    const headerCells = this.parseTableRow(lines[startIndex], true, alignments);
     rows.push(this.schema.node("table_row", null, headerCells));
-    endIndex++;
+    endIndex = sepIndex + 1;
 
-    // 跳过分隔行
-    endIndex++;
-
-    // 数据行
-    while (endIndex < lines.length && BLOCK_PATTERNS.table_row.test(lines[endIndex])) {
-      const cells = this.parseTableRow(lines[endIndex], false);
+    // 数据行（跳过行间空行）
+    while (endIndex < lines.length) {
+      if (lines[endIndex].trim() === "") {
+        endIndex++;
+        continue;
+      }
+      if (!BLOCK_PATTERNS.table_row.test(lines[endIndex])) break;
+      const cells = this.parseTableRow(lines[endIndex], false, alignments);
       rows.push(this.schema.node("table_row", null, cells));
       endIndex++;
     }
@@ -972,17 +992,26 @@ export class MarkdownParser {
   /**
    * 解析表格行
    */
-  private parseTableRow(line: string, isHeader: boolean): Node[] {
+  private parseTableRow(
+    line: string,
+    isHeader: boolean,
+    alignments: (string | null)[] = []
+  ): Node[] {
     const cells: Node[] = [];
-    const content = line.slice(1, -1);
+    const content = line.trimEnd().slice(1, -1);
     const cellContents = content.split("|");
 
-    for (const cellContent of cellContents) {
-      const trimmed = cellContent.trim();
+    for (let i = 0; i < cellContents.length; i++) {
+      const trimmed = cellContents[i].trim();
       const inlineContent = this.parseInlineWithSyntax(trimmed);
       const nodeType = isHeader ? "table_header" : "table_cell";
+      const align = alignments[i] || null;
       cells.push(
-        this.schema.node(nodeType, null, inlineContent.length > 0 ? inlineContent : undefined)
+        this.schema.node(
+          nodeType,
+          align ? { align } : null,
+          inlineContent.length > 0 ? inlineContent : undefined
+        )
       );
     }
 
