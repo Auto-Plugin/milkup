@@ -494,11 +494,6 @@ function hasCorrectMarks(
  * 创建语法检测插件
  */
 export function createSyntaxDetectorPlugin(): Plugin {
-  // 循环检测：记录最近处理的文档内容哈希
-  let lastDocHash = "";
-  let sameDocCount = 0;
-  const MAX_SAME_DOC_COUNT = 3; // 最多处理相同文档3次
-
   return new Plugin({
     key: syntaxDetectorPluginKey,
 
@@ -507,22 +502,12 @@ export function createSyntaxDetectorPlugin(): Plugin {
       const docChanged = transactions.some((tr) => tr.docChanged);
       if (!docChanged) return null;
 
-      // 循环检测：计算文档内容哈希
-      const docHash = newState.doc.textContent;
-      if (docHash === lastDocHash) {
-        sameDocCount++;
-        if (sameDocCount >= MAX_SAME_DOC_COUNT) {
-          // 检测到可能的无限循环，停止处理
-          console.warn("[syntax-detector] Possible infinite loop detected, stopping");
-          return null;
-        }
-      } else {
-        lastDocHash = docHash;
-        sameDocCount = 0;
-      }
+      // 跳过语法插件自身产生的 transaction，避免循环
+      if (transactions.some((tr) => tr.getMeta("syntax-plugin-internal"))) return null;
 
       const schema = newState.schema;
       let tr = newState.tr;
+      tr = tr.setMeta("syntax-plugin-internal", true);
       let hasChanges = false;
 
       // 遍历所有文本块

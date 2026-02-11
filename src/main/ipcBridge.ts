@@ -2,6 +2,7 @@
 
 import type { FSWatcher } from "chokidar";
 import type { Block, ExportPDFOptions } from "./types";
+import type { FileTraits } from "./fileFormat";
 import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import path from "node:path";
@@ -9,6 +10,12 @@ import chokidar from "chokidar";
 import { Document, HeadingLevel, Packer, Paragraph, TextRun } from "docx";
 import { app, BrowserWindow, clipboard, dialog, ipcMain, shell } from "electron";
 import { getFonts } from "font-list";
+import {
+  detectFileTraits,
+  normalizeMarkdown,
+  processImagePaths,
+  restoreFileTraits,
+} from "./fileFormat";
 import { createThemeEditorWindow } from "./index";
 
 let isSaved = true;
@@ -132,22 +139,37 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
     });
     if (canceled) return null;
     const filePath = filePaths[0];
-    const content = fs.readFileSync(filePath, "utf-8");
-    return { filePath, content };
+    const raw = fs.readFileSync(filePath, "utf-8");
+    const fileTraits = detectFileTraits(raw);
+    const rawContent = normalizeMarkdown(raw);
+    const content = processImagePaths(rawContent, filePath);
+    return { filePath, content, rawContent, fileTraits };
   });
 
   // 文件保存对话框
-  ipcMain.handle("dialog:saveFile", async (_event, { filePath, content }) => {
-    if (!filePath) {
-      const { canceled, filePath: savePath } = await dialog.showSaveDialog(win, {
-        filters: [{ name: "Markdown", extensions: ["md", "markdown"] }],
-      });
-      if (canceled || !savePath) return null;
-      filePath = savePath;
+  ipcMain.handle(
+    "dialog:saveFile",
+    async (
+      _event,
+      {
+        filePath,
+        content,
+        fileTraits,
+      }: { filePath: string | null; content: string; fileTraits?: FileTraits }
+    ) => {
+      if (!filePath) {
+        const { canceled, filePath: savePath } = await dialog.showSaveDialog(win, {
+          filters: [{ name: "Markdown", extensions: ["md", "markdown"] }],
+        });
+        if (canceled || !savePath) return null;
+        filePath = savePath;
+      }
+      // 根据原始文件格式特征还原内容
+      const restoredContent = restoreFileTraits(content, fileTraits);
+      fs.writeFileSync(filePath, restoredContent, "utf-8");
+      return filePath;
     }
-    fs.writeFileSync(filePath, content, "utf-8");
-    return filePath;
-  });
+  );
   // 文件另存为对话框
   ipcMain.handle("dialog:saveFileAs", async (_event, content) => {
     const { canceled, filePath } = await dialog.showSaveDialog(win, {
@@ -418,8 +440,11 @@ export function registerGlobalIpcHandlers() {
       const isMd = /\.(?:md|markdown)$/i.test(filePath);
       if (!isMd) return null;
 
-      const content = fs.readFileSync(filePath, "utf-8");
-      return { filePath, content };
+      const raw = fs.readFileSync(filePath, "utf-8");
+      const fileTraits = detectFileTraits(raw);
+      const rawContent = normalizeMarkdown(raw);
+      const content = processImagePaths(rawContent, filePath);
+      return { filePath, content, rawContent, fileTraits };
     } catch (error) {
       console.error("Failed to read file:", error);
       return null;

@@ -66,6 +66,9 @@ export function createHeadingSyncPlugin(): Plugin {
       const docChanged = transactions.some((tr) => tr.docChanged);
       if (!docChanged) return null;
 
+      // 跳过语法插件产生的 transaction
+      if (transactions.some((tr) => tr.getMeta("syntax-plugin-internal"))) return null;
+
       const updates: Array<{ pos: number; currentLevel: number; newLevel: number }> = [];
 
       // 遍历所有标题节点
