@@ -328,6 +328,18 @@
   color: var(--text-color, #333);
   cursor: pointer;
   transition: background 0.1s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* 菜单项快捷键提示 */
+.milkup-context-menu-shortcut {
+  font-size: 11px;
+  color: var(--text-color-3, #999);
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .milkup-context-menu-item:hover:not(.disabled) {
@@ -349,9 +361,6 @@
 /* 带子菜单的菜单项 */
 .milkup-context-menu-item.has-submenu {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 }
 
 .milkup-context-menu-item.has-submenu::after {
@@ -369,8 +378,8 @@
 .milkup-context-menu-submenu {
   position: fixed;
   z-index: 10001;
-  min-width: 120px;
-  padding: 8px;
+  min-width: 160px;
+  padding: 4px 0;
   background: var(--background-color-1, #fff);
   border: 1px solid var(--border-color, #e1e4e8);
   border-radius: 6px;
@@ -380,6 +389,11 @@
 
 .milkup-context-menu-submenu.visible {
   display: block;
+}
+
+/* 网格选择器子菜单需要 padding */
+.milkup-context-menu-submenu:has(.milkup-table-grid-picker) {
+  padding: 8px;
 }
 
 /* 表格网格选择器 */
