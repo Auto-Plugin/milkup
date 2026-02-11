@@ -250,6 +250,13 @@ export class CodeBlockView implements NodeView {
     this.headerElement = this.createHeader(normalizedLang);
     this.dom.appendChild(this.headerElement);
 
+    // 头部右键菜单
+    this.headerElement.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.showContextMenu(e);
+    });
+
     // 创建 CodeMirror 编辑器容器
     this.editorContainer = document.createElement("div");
     this.editorContainer.className = "milkup-code-block-editor";
@@ -714,6 +721,25 @@ export class CodeBlockView implements NodeView {
       header.appendChild(modeSelector);
     }
 
+    // 复制按钮（hover 时显示）
+    const copyBtn = document.createElement("button");
+    copyBtn.className = "milkup-code-block-copy-btn";
+    copyBtn.type = "button";
+    copyBtn.title = "复制代码块";
+    copyBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+    copyBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.copyCodeBlock();
+      // 短暂显示已复制反馈
+      copyBtn.classList.add("copied");
+      copyBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+      setTimeout(() => {
+        copyBtn.classList.remove("copied");
+        copyBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+      }, 1500);
+    });
+    header.appendChild(copyBtn);
+
     return header;
   }
 
@@ -794,6 +820,22 @@ export class CodeBlockView implements NodeView {
   }
 
   /**
+   * 获取代码块的完整 Markdown 文本（含围栏）
+   */
+  private getCodeBlockMarkdown(): string {
+    const language = this.node.attrs.language || "";
+    const content = this.cm.state.doc.toString();
+    return `\`\`\`${language}\n${content}\n\`\`\``;
+  }
+
+  /**
+   * 复制代码块到剪贴板
+   */
+  private copyCodeBlock(): void {
+    navigator.clipboard.writeText(this.getCodeBlockMarkdown());
+  }
+
+  /**
    * 显示右键菜单
    */
   private async showContextMenu(e: MouseEvent): Promise<void> {
@@ -858,6 +900,18 @@ export class CodeBlockView implements NodeView {
       }
     });
     menu.appendChild(pasteItem);
+
+    // 分隔线
+    const separator = document.createElement("div");
+    separator.className = "milkup-context-menu-separator";
+    menu.appendChild(separator);
+
+    // 复制代码块
+    const copyBlockItem = this.createContextMenuItem("复制代码块", false, () => {
+      this.copyCodeBlock();
+      this.hideContextMenu();
+    });
+    menu.appendChild(copyBlockItem);
 
     // 定位菜单
     menu.style.left = `${e.clientX}px`;

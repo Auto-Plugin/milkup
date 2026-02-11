@@ -169,6 +169,36 @@
   border-bottom: 1px solid var(--border-color, #e1e4e8);
 }
 
+/* 代码块复制按钮 */
+.milkup-code-block-copy-btn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-color-3, #999);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, background 0.2s, color 0.2s;
+}
+
+.milkup-code-block:hover .milkup-code-block-copy-btn {
+  opacity: 1;
+}
+
+.milkup-code-block-copy-btn:hover {
+  background: var(--hover-color, rgba(0, 0, 0, 0.06));
+  color: var(--text-color-1, #333);
+}
+
+.milkup-code-block-copy-btn.copied {
+  color: var(--secondary-color, #28a745);
+}
+
 /* 自定义下拉选择器 */
 .milkup-custom-select {
   position: relative;
