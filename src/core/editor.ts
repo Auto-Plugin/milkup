@@ -367,7 +367,10 @@ export class MilkupEditor implements IMilkupEditor {
   private handleContextMenu(view: EditorView, event: MouseEvent): boolean {
     // 检查是否在代码块内（代码块有自己的右键菜单）
     const target = event.target as HTMLElement;
-    if (target.closest(".milkup-code-block-editor")) {
+    if (
+      target.closest(".milkup-code-block-editor") ||
+      target.closest(".milkup-code-block-header")
+    ) {
       return false; // 让代码块处理
     }
 
