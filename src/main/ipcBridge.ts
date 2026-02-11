@@ -11,9 +11,9 @@ import { Document, HeadingLevel, Packer, Paragraph, TextRun } from "docx";
 import { app, BrowserWindow, clipboard, dialog, ipcMain, shell } from "electron";
 import { getFonts } from "font-list";
 import {
+  cleanupProtocolUrls,
   detectFileTraits,
   normalizeMarkdown,
-  processImagePaths,
   restoreFileTraits,
 } from "./fileFormat";
 import { createThemeEditorWindow } from "./index";
@@ -141,9 +141,8 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
     const filePath = filePaths[0];
     const raw = fs.readFileSync(filePath, "utf-8");
     const fileTraits = detectFileTraits(raw);
-    const rawContent = normalizeMarkdown(raw);
-    const content = processImagePaths(rawContent, filePath);
-    return { filePath, content, rawContent, fileTraits };
+    const content = cleanupProtocolUrls(normalizeMarkdown(raw));
+    return { filePath, content, fileTraits };
   });
 
   // 文件保存对话框
@@ -442,9 +441,8 @@ export function registerGlobalIpcHandlers() {
 
       const raw = fs.readFileSync(filePath, "utf-8");
       const fileTraits = detectFileTraits(raw);
-      const rawContent = normalizeMarkdown(raw);
-      const content = processImagePaths(rawContent, filePath);
-      return { filePath, content, rawContent, fileTraits };
+      const content = cleanupProtocolUrls(normalizeMarkdown(raw), filePath);
+      return { filePath, content, fileTraits };
     } catch (error) {
       console.error("Failed to read file:", error);
       return null;

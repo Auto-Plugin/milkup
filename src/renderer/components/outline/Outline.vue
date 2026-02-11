@@ -2,18 +2,14 @@
 import { ref } from "vue";
 import WorkSpace from "@/renderer/components/workspace/WorkSpace.vue";
 import useOutline from "@/renderer/hooks/useOutline";
+import emitter from "@/renderer/events";
 
 const { outline } = useOutline();
 
 const activeTab = ref<"outline" | "file">("file");
 
-function onOiClick(oi: { id: string; text: string; level: number }) {
-  // 滚动到指定元素
-  const element = document.querySelector(`h${oi.level}#${oi.id}`);
-
-  if (element) {
-    element.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
+function onOiClick(oi: { id: string; text: string; level: number; pos: number }) {
+  emitter.emit("outline:scrollTo", oi.pos);
 }
 </script>
 

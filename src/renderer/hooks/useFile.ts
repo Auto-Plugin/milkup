@@ -1,7 +1,6 @@
 import type { Tab } from "@/types/tab";
 // useFile.ts
 import { nextTick, onUnmounted } from "vue";
-import { reverseProcessImagePaths } from "@/plugins/imagePathPlugin";
 import emitter from "@/renderer/events";
 import { readAndProcessFile } from "@/renderer/services/fileService";
 import useContent from "./useContent";
@@ -84,8 +83,7 @@ async function onSaveAs() {
   // 先更新当前tab的内容
   updateCurrentTabContent(markdown.value);
 
-  const reversedContent = reverseProcessImagePaths(markdown.value, filePath.value);
-  const result = await window.electronAPI.saveFileAs(reversedContent);
+  const result = await window.electronAPI.saveFileAs(markdown.value);
   if (result) {
     // 更新当前tab的文件路径
     if (currentTab.value) {

@@ -16,6 +16,56 @@ import { sourceViewManager } from "../decorations";
 // 存储所有 ImageView 实例，用于全局更新
 const imageViews = new Set<ImageView>();
 
+/**
+ * 在浏览器端简单解析目录路径
+ */
+function dirname(filePath: string): string {
+  const sep = filePath.includes("\\") ? "\\" : "/";
+  const lastIndex = filePath.lastIndexOf(sep);
+  return lastIndex === -1 ? "." : filePath.substring(0, lastIndex);
+}
+
+/**
+ * 在浏览器端简单拼接路径并规范化为正斜杠
+ */
+function joinPath(dir: string, relative: string): string {
+  const sep = dir.includes("\\") ? "\\" : "/";
+  let rel = relative;
+  while (rel.startsWith("./") || rel.startsWith(".\\")) {
+    rel = rel.substring(2);
+  }
+  return (dir + sep + rel).replace(/\\/g, "/");
+}
+
+/**
+ * 将相对路径转换为 file:// URL，仅用于 DOM 渲染
+ * BrowserWindow 已设置 webSecurity: false，可直接加载 file:// URL
+ * 不修改 ProseMirror 模型的 attrs.src
+ */
+function resolveImageSrc(src: string): string {
+  if (!src) return src;
+
+  // 跳过已知协议和绝对路径
+  if (
+    src.startsWith("http://") ||
+    src.startsWith("https://") ||
+    src.startsWith("file://") ||
+    src.startsWith("data:") ||
+    src.startsWith("milkup://") ||
+    /^(?:[a-z]:[\\/]|\\\\|\/)/i.test(src)
+  ) {
+    return src;
+  }
+
+  // 获取当前文件路径
+  const currentFilePath = (window as any).__currentFilePath;
+  if (!currentFilePath) return src;
+
+  // 解析为绝对路径并转为 file:// URL
+  const absolutePath = joinPath(dirname(currentFilePath), src);
+  return "file:///" + absolutePath;
+}
+
 // 记录上一次光标位置，用于判断进入方向
 let lastCursorPos = 0;
 
@@ -368,7 +418,8 @@ export class ImageView implements NodeView {
     }
 
     const img = document.createElement("img");
-    img.src = src;
+    // 将相对路径转为 milkup:// 协议 URL 仅用于 DOM 渲染
+    img.src = resolveImageSrc(src);
     img.alt = alt;
     if (title) img.title = title;
     img.onerror = () => {

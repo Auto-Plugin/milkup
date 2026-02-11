@@ -3,7 +3,7 @@ import type { InertiaScroll } from "@/renderer/utils/inertiaScroll";
 import type { Tab } from "@/types/tab";
 import autotoast from "autotoast.js";
 import { computed, nextTick, ref, toRaw, watch } from "vue";
-import { reverseProcessImagePaths, setCurrentMarkdownFilePath } from "@/plugins/imagePathPlugin";
+import { setCurrentMarkdownFilePath } from "@/plugins/imagePathPlugin";
 import emitter from "@/renderer/events";
 import { createTabDataFromFile, readAndProcessFile } from "@/renderer/services/fileService";
 import { createInertiaScroll } from "@/renderer/utils/inertiaScroll";
@@ -169,13 +169,11 @@ async function saveTab(tab: Tab): Promise<boolean> {
   if (!tab || tab.readOnly) return false;
 
   try {
-    // content 可能包含 milkup:// 路径，保存前需要还原
-    const reversedContent = reverseProcessImagePaths(tab.content, tab.filePath);
     // 传递 fileTraits 给主进程，由主进程负责还原 BOM、换行符、末尾换行
     // toRaw 将 Vue Proxy 转为普通对象，避免 IPC 序列化失败
     const saved = await window.electronAPI.saveFile(
       tab.filePath,
-      reversedContent,
+      tab.content,
       toRaw(tab.fileTraits)
     );
     if (saved) {

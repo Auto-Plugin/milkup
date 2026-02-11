@@ -7,6 +7,7 @@
 
 import { Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { Node, Mark, Schema } from "prosemirror-model";
+import { decorationPluginKey } from "../decorations";
 
 /** 插件 Key */
 export const syntaxDetectorPluginKey = new PluginKey("milkup-syntax-detector");
@@ -574,49 +575,57 @@ export function createSyntaxDetectorPlugin(): Plugin {
         return true;
       });
 
-      // 检测图片语法并转换为图片节点
-      const imagePattern = /!\[([^\]]*)\]\((.+?)(?:\s+"([^"]*)")?\)/g;
-      const imagesToReplace: Array<{
-        from: number;
-        to: number;
-        alt: string;
-        src: string;
-        title: string;
-      }> = [];
+      // 检测图片语法并转换为图片节点（源码模式下跳过，避免与 source-view-transform 插件循环）
+      const decoState = decorationPluginKey.getState(newState);
+      const isSourceView = decoState?.sourceView ?? false;
+      if (!isSourceView) {
+        const imagePattern = /!\[([^\]]*)\]\((.+?)(?:\s+"([^"]*)")?\)/g;
+        const imagesToReplace: Array<{
+          from: number;
+          to: number;
+          alt: string;
+          src: string;
+          title: string;
+        }> = [];
 
-      newState.doc.descendants((node, pos) => {
-        if (node.isTextblock) {
-          const textContent = node.textContent;
-          const basePos = pos + 1;
+        newState.doc.descendants((node, pos) => {
+          if (node.isTextblock) {
+            const textContent = node.textContent;
+            const basePos = pos + 1;
 
-          let match;
-          while ((match = imagePattern.exec(textContent)) !== null) {
-            const from = basePos + match.index;
-            const to = from + match[0].length;
-            const alt = match[1] || "";
-            const src = match[2] || "";
-            const title = match[3] || "";
+            let match;
+            while ((match = imagePattern.exec(textContent)) !== null) {
+              const from = basePos + match.index;
+              const to = from + match[0].length;
+              const alt = match[1] || "";
+              const src = match[2] || "";
+              const title = match[3] || "";
 
-            // 检查这个位置是否已经是图片节点
-            const $from = tr.doc.resolve(from);
-            if ($from.parent.type.name !== "image") {
-              imagesToReplace.push({ from, to, alt, src, title });
+              // 检查这个位置是否已经是图片节点
+              const $from = tr.doc.resolve(from);
+              if ($from.parent.type.name !== "image") {
+                imagesToReplace.push({ from, to, alt, src, title });
+              }
             }
           }
-        }
-        return true;
-      });
+          return true;
+        });
 
-      // 从后往前替换，避免位置偏移
-      const imageNodeType = schema.nodes.image;
-      if (imageNodeType && imagesToReplace.length > 0) {
-        imagesToReplace.sort((a, b) => b.from - a.from);
-        for (const img of imagesToReplace) {
-          const imageNode = imageNodeType.create({ src: img.src, alt: img.alt, title: img.title });
-          tr = tr.replaceWith(img.from, img.to, imageNode);
-          hasChanges = true;
+        // 从后往前替换，避免位置偏移
+        const imageNodeType = schema.nodes.image;
+        if (imageNodeType && imagesToReplace.length > 0) {
+          imagesToReplace.sort((a, b) => b.from - a.from);
+          for (const img of imagesToReplace) {
+            const imageNode = imageNodeType.create({
+              src: img.src,
+              alt: img.alt,
+              title: img.title,
+            });
+            tr = tr.replaceWith(img.from, img.to, imageNode);
+            hasChanges = true;
+          }
         }
-      }
+      } // end if (!isSourceView)
 
       return hasChanges ? tr : null;
     },

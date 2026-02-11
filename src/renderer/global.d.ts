@@ -9,7 +9,6 @@ interface Window {
     openFile: () => Promise<{
       filePath: string;
       content: string;
-      rawContent: string;
       fileTraits: FileTraitsDTO;
     } | null>;
     getIsReadOnly: (filePath: string) => Promise<boolean>;
@@ -26,12 +25,7 @@ interface Window {
     windowControl: (action: "minimize" | "maximize" | "close") => void;
     closeDiscard: () => void;
     onOpenFileAtLaunch: (
-      cb: (payload: {
-        filePath: string;
-        content: string;
-        rawContent: string;
-        fileTraits?: FileTraitsDTO;
-      }) => void
+      cb: (payload: { filePath: string; content: string; fileTraits?: FileTraitsDTO }) => void
     ) => void;
     openExternal: (url: string) => Promise<void>;
     getFilePathInClipboard: () => Promise<string | null>;
@@ -47,12 +41,9 @@ interface Window {
     // 导出为 Word
     exportAsWord: (blocks: Block, outputName: string) => Promise<void>;
     // 通过路径读取文件（用于拖拽）
-    readFileByPath: (
-      filePath: string
-    ) => Promise<{
+    readFileByPath: (filePath: string) => Promise<{
       filePath: string;
       content: string;
-      rawContent: string;
       fileTraits: FileTraitsDTO;
     } | null>;
     // 显示文件覆盖确认对话框

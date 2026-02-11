@@ -5,7 +5,6 @@
  */
 import { ref, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { MilkupEditor, createMilkupEditor, type MilkupConfig, type ImagePasteMethod } from "@/core";
-import { reverseProcessImagePaths } from "@/plugins/imagePathPlugin";
 import { uploadImage } from "@/renderer/services/api";
 import { AIService } from "@/renderer/services/ai";
 import { useAIConfig } from "@/renderer/hooks/useAIConfig";
@@ -61,16 +60,14 @@ function preprocessContent(content: string): string {
 
 // 处理图片路径（保存前）
 function postprocessContent(content: string): string {
-  let processed = reverseProcessImagePaths(content, currentTab.value?.filePath || null);
   // 将图片路径中的 %20 还原为空格
-  processed = processed.replace(/!\[([^\]]*)\]\(([^)]*)\)/g, (match, alt, src) => {
+  return content.replace(/!\[([^\]]*)\]\(([^)]*)\)/g, (match, alt, src) => {
     if (src.includes("%20")) {
       const decodedSrc = src.replace(/%20/g, " ");
       return `![${alt}](${decodedSrc})`;
     }
     return match;
   });
-  return processed;
 }
 
 // 发送大纲更新事件
@@ -78,14 +75,22 @@ function emitOutlineUpdate() {
   if (!editor) return;
 
   const doc = editor.getDoc();
-  const headings: Array<{ level: number; text: string; id: string }> = [];
+  const headings: Array<{ level: number; text: string; id: string; pos: number }> = [];
 
   doc.descendants((node, pos) => {
     if (node.type.name === "heading") {
+      // 提取不含语法标记的纯文本
+      let text = "";
+      node.forEach((child) => {
+        if (child.isText && !child.marks.some((m) => m.type.name === "syntax_marker")) {
+          text += child.text || "";
+        }
+      });
       headings.push({
         level: node.attrs.level,
-        text: node.textContent,
+        text: text.trim(),
         id: `heading-${pos}`,
+        pos,
       });
     }
     return true;
@@ -215,6 +220,7 @@ onUnmounted(() => {
   editor = null;
   // 移除事件监听
   emitter.off("sourceView:toggle", handleSourceViewToggle);
+  emitter.off("outline:scrollTo", handleOutlineScrollTo);
 });
 
 // 处理源码模式切换事件
@@ -228,6 +234,18 @@ function handleSourceViewToggle() {
 
 // 监听源码模式切换事件
 emitter.on("sourceView:toggle", handleSourceViewToggle);
+
+// 处理大纲点击滚动
+function handleOutlineScrollTo(pos: unknown) {
+  if (!editor || typeof pos !== "number") return;
+  const view = editor.view;
+  const dom = view.domAtPos(pos + 1);
+  if (dom.node) {
+    const el = dom.node instanceof HTMLElement ? dom.node : dom.node.parentElement;
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+emitter.on("outline:scrollTo", handleOutlineScrollTo);
 
 // 监听 modelValue 变化
 watch(
