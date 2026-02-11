@@ -464,9 +464,13 @@ function cleanupInertiaScroll(container: HTMLElement) {
 }
 
 // 计算属性：格式化tab显示名称
+// 仅依赖渲染所需的属性，避免 content/originalContent 变化（如归一化）触发不必要的重算
 const formattedTabs = computed(() => {
   return tabs.value.map((tab) => ({
-    ...tab,
+    id: tab.id,
+    name: tab.name,
+    readOnly: tab.readOnly,
+    isModified: tab.isModified,
     displayName: tab.isModified ? `*${tab.name}` : tab.name,
   }));
 });
