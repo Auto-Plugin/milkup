@@ -167,6 +167,14 @@ const mermaidDisplayModes = [
   { value: "diagram", label: "图表" },
 ];
 
+/** 全局 Mermaid 默认显示模式 */
+let globalMermaidDefaultMode: MermaidDisplayMode = "diagram";
+
+/** 设置全局 Mermaid 默认显示模式 */
+export function setGlobalMermaidDefaultMode(mode: MermaidDisplayMode): void {
+  globalMermaidDefaultMode = mode;
+}
+
 /**
  * 规范化语言名称
  */
@@ -197,7 +205,7 @@ export class CodeBlockView implements NodeView {
   themeCompartment: Compartment;
   lineNumbersCompartment: Compartment;
   mermaidPreview: HTMLElement | null = null;
-  mermaidDisplayMode: MermaidDisplayMode = "mixed";
+  mermaidDisplayMode: MermaidDisplayMode = globalMermaidDefaultMode;
   themeObserver: MutationObserver | null = null;
   headerElement: HTMLElement | null = null;
   editorContainer: HTMLElement | null = null;

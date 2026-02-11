@@ -2,10 +2,13 @@
 import { computed, ref } from "vue";
 import { Input } from "@/renderer/components/ui/input";
 import useOtherConfig from "@/renderer/hooks/useOtherConfig";
+import { useConfig } from "@/renderer/hooks/useConfig";
 
 const { currentEditorPadding, setEditorPadding } = useOtherConfig();
+const { config } = useConfig();
 
 const paddingSettingsExpanded = ref(false);
+const mermaidSettingsExpanded = ref(false);
 
 // 从完整值中提取数字部分用于显示（如 "20px" -> "20"）
 const displayPaddingValue = computed(() => {
@@ -23,6 +26,23 @@ function handlePaddingChange(value: string) {
   // 如果提取到数字，自动添加 "px" 单位
 
   setEditorPadding(`${value}px`);
+}
+
+function toggleMermaidSettings() {
+  mermaidSettingsExpanded.value = !mermaidSettingsExpanded.value;
+}
+
+const mermaidModeOptions = [
+  { value: "code", label: "代码" },
+  { value: "mixed", label: "混合" },
+  { value: "diagram", label: "图表" },
+];
+
+function setMermaidMode(mode: string) {
+  config.value = {
+    ...config.value,
+    mermaid: { ...config.value.mermaid, defaultDisplayMode: mode as "code" | "mixed" | "diagram" },
+  };
 }
 </script>
 
@@ -50,6 +70,37 @@ function handlePaddingChange(value: string) {
                 placeholder="请输入数字"
                 @update:model-value="handlePaddingChange"
               />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mermaid 设置折叠抽屉 -->
+    <div class="collapsible-section">
+      <div class="section-header" @click="toggleMermaidSettings">
+        <div class="section-content-wrapper">
+          <h2 class="section-title">
+            <span class="title-text">Mermaid 图表设置</span>
+          </h2>
+          <p class="section-desc">配置 Mermaid 代码块的默认显示模式</p>
+        </div>
+        <span class="iconfont icon-arrow-right" :class="{ active: mermaidSettingsExpanded }"></span>
+      </div>
+      <div class="section-content" :class="{ expanded: mermaidSettingsExpanded }">
+        <div class="setting-list">
+          <div class="setting-item">
+            <label class="setting-label">默认显示模式</label>
+            <div class="setting-input-wrapper mode-select">
+              <span
+                v-for="opt in mermaidModeOptions"
+                :key="opt.value"
+                class="mode-option"
+                :class="{ active: config.mermaid?.defaultDisplayMode === opt.value }"
+                @click="setMermaidMode(opt.value)"
+              >
+                {{ opt.label }}
+              </span>
             </div>
           </div>
         </div>
@@ -172,6 +223,32 @@ function handlePaddingChange(value: string) {
         :deep(.input-container) {
           .label {
             display: none;
+          }
+        }
+
+        &.mode-select {
+          display: flex;
+          gap: 8px;
+
+          .mode-option {
+            padding: 6px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            border: 1px solid var(--border-color-1);
+            color: var(--text-color-3);
+            transition: all 0.2s ease;
+
+            &:hover {
+              border-color: var(--border-color-2);
+              background: var(--background-color-3);
+            }
+
+            &.active {
+              background: var(--primary-color, #4a9eff);
+              color: #fff;
+              border-color: var(--primary-color, #4a9eff);
+            }
           }
         }
       }
