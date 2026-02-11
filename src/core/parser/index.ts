@@ -726,10 +726,15 @@ export class MarkdownParser {
       while (itemEndIndex < lines.length) {
         const nextLine = lines[itemEndIndex];
 
+        // 跟踪代码块状态（必须在列表项检测之前，避免代码块内容被误判为新列表项）
+        if (nextLine.trim().startsWith("```")) {
+          inCodeBlock = !inCodeBlock;
+        }
+
         // 空行可能是列表项内容的一部分
         if (nextLine.trim() === "") {
           // 检查空行后面是否还有缩进内容
-          if (itemEndIndex + 1 < lines.length) {
+          if (!inCodeBlock && itemEndIndex + 1 < lines.length) {
             const afterEmpty = lines[itemEndIndex + 1];
             // 如果后面是新的列表项或没有缩进，则结束
             if (BLOCK_PATTERNS.bullet_list.test(afterEmpty) || !afterEmpty.match(/^\s{2,}/)) {
@@ -741,14 +746,9 @@ export class MarkdownParser {
           continue;
         }
 
-        // 检查是否是新的列表项
-        if (BLOCK_PATTERNS.bullet_list.test(nextLine)) {
+        // 检查是否是新的列表项（代码块内部不检查）
+        if (!inCodeBlock && BLOCK_PATTERNS.bullet_list.test(nextLine)) {
           break;
-        }
-
-        // 跟踪代码块状态
-        if (nextLine.trim().startsWith("```")) {
-          inCodeBlock = !inCodeBlock;
         }
 
         // 检查是否有足够的缩进
@@ -846,8 +846,13 @@ export class MarkdownParser {
       while (itemEndIndex < lines.length) {
         const nextLine = lines[itemEndIndex];
 
+        // 跟踪代码块状态（必须在列表项检测之前，避免代码块内容被误判为新列表项）
+        if (nextLine.trim().startsWith("```")) {
+          inCodeBlock = !inCodeBlock;
+        }
+
         if (nextLine.trim() === "") {
-          if (itemEndIndex + 1 < lines.length) {
+          if (!inCodeBlock && itemEndIndex + 1 < lines.length) {
             const afterEmpty = lines[itemEndIndex + 1];
             if (BLOCK_PATTERNS.ordered_list.test(afterEmpty) || !afterEmpty.match(/^\s{2,}/)) {
               break;
@@ -858,13 +863,8 @@ export class MarkdownParser {
           continue;
         }
 
-        if (BLOCK_PATTERNS.ordered_list.test(nextLine)) {
+        if (!inCodeBlock && BLOCK_PATTERNS.ordered_list.test(nextLine)) {
           break;
-        }
-
-        // 跟踪代码块状态
-        if (nextLine.trim().startsWith("```")) {
-          inCodeBlock = !inCodeBlock;
         }
 
         const lineIndent = nextLine.match(/^(\s*)/)?.[1].length || 0;
