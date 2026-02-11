@@ -369,7 +369,7 @@ export class CodeBlockView implements NodeView {
           ]),
           this.themeCompartment.of(createThemeExtension(isDark)),
           this.languageCompartment.of(getLanguageExtension(normalizedLang)),
-          this.lineNumbersCompartment.of([]), // 初始不显示行号
+          this.lineNumbersCompartment.of(lineNumbers()),
           EditorView.updateListener.of((update) => this.onCMUpdate(update)),
           EditorView.domEventHandlers({
             focus: () => this.forwardSelection(),
