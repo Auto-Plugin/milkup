@@ -100,8 +100,10 @@ export class MarkdownSerializer {
       const level = node.attrs.level as number;
       const hashes = "#".repeat(level);
       // serializeInline 会跳过 syntax_marker，所以这里需要手动添加 #
+      // 同时去除开头多余的空格（解析器在 ### 后插入的空格节点）
       const text = this.serializeInline(node);
-      lines.push(indent + hashes + " " + text);
+      const trimmedText = text.startsWith(" ") ? text.slice(1) : text;
+      lines.push(indent + hashes + " " + trimmedText);
       if (!this.options.compact) lines.push("");
     },
 
@@ -377,7 +379,9 @@ export class MarkdownSerializer {
       case "highlight":
         return `==${text}==`;
       case "link": {
-        const href = mark.attrs.href || "";
+        const rawHref = mark.attrs.href || "";
+        // 重新转义 URL 中的括号，避免 ) 提前终止链接语法
+        const href = rawHref.replace(/([()])/g, "\\$1");
         const title = mark.attrs.title || "";
         const titlePart = title ? ` "${title}"` : "";
         return `[${text}](${href}${titlePart})`;

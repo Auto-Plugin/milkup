@@ -328,7 +328,7 @@ function highlightRule(markType: MarkType): InputRule {
  */
 function linkRule(markType: MarkType): InputRule {
   return new InputRule(
-    /(?<!!)\[([^\]]+)\]\(([^)]*)\)$/, // 允许空 URL，排除图片语法
+    /(?<!!)\[([^\]]+)\]\(((?:[^)\\]|\\.)*)?\)$/, // 允许空 URL，支持转义括号，排除图片语法
     (state, match, start, end) => {
       const schema = state.schema;
       const syntaxMarkerType = schema.marks.syntax_marker;

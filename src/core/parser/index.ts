@@ -83,11 +83,14 @@ const INLINE_SYNTAXES: InlineSyntax[] = [
   },
   {
     type: "link",
-    pattern: /(?<!!)\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g,
+    pattern: /(?<!!)\[([^\]]+)\]\(((?:[^)\s\\]|\\.)+)(?:\s+"([^"]*)")?\)/g,
     prefix: "[",
-    suffix: (m) => `](${m[2]}${m[3] ? ` "${m[3]}"` : ""})`,
+    suffix: (m: RegExpExecArray) => `](${m[2]}${m[3] ? ` "${m[3]}"` : ""})`,
     contentIndex: 1,
-    getAttrs: (m) => ({ href: m[2], title: m[3] || "" }),
+    getAttrs: (m: RegExpExecArray) => ({
+      href: (m[2] || "").replace(/\\([()])/g, "$1"),
+      title: m[3] || "",
+    }),
   },
   {
     type: "math_inline",
@@ -337,12 +340,28 @@ export class MarkdownParser {
   private parseInlineWithSyntax(text: string, inheritedMarks: Mark[] = []): Node[] {
     if (!text) return [];
 
-    // 转义预处理：检测 \X 转义序列
+    // 转义预处理：先收集链接匹配范围，链接 URL 内的转义不拆分文本
+    const linkRanges: Array<{ start: number; end: number }> = [];
+    const linkSyntax = INLINE_SYNTAXES.find((s) => s.type === "link");
+    if (linkSyntax) {
+      const linkRe = new RegExp(linkSyntax.pattern.source, "g");
+      let lm: RegExpExecArray | null;
+      while ((lm = linkRe.exec(text)) !== null) {
+        linkRanges.push({ start: lm.index, end: lm.index + lm[0].length });
+      }
+    }
+
     const escapePositions: Array<{ index: number; char: string }> = [];
     const escapeRe = new RegExp(MarkdownParser.ESCAPE_RE.source, "g");
     let escMatch: RegExpExecArray | null;
     while ((escMatch = escapeRe.exec(text)) !== null) {
-      escapePositions.push({ index: escMatch.index, char: escMatch[1] });
+      // 跳过链接范围内的转义（链接 URL 中的 \( \) 由链接正则处理）
+      const inLink = linkRanges.some(
+        (r) => escMatch!.index >= r.start && escMatch!.index + 2 <= r.end
+      );
+      if (!inLink) {
+        escapePositions.push({ index: escMatch.index, char: escMatch[1] });
+      }
     }
 
     if (escapePositions.length > 0) {

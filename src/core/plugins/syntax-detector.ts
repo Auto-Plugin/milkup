@@ -78,14 +78,14 @@ const INLINE_SYNTAXES: InlineSyntax[] = [
     suffix: "==",
     contentIndex: 1,
   },
-  // 链接 [text](url)
+  // 链接 [text](url) - 支持 URL 中的转义括号如 \( \)
   {
     type: "link",
-    pattern: /(?<!!)\[([^\]]+)\]\(([^)\s]*)(?:\s+"([^"]*)")?\)/g,
+    pattern: /(?<!!)\[([^\]]+)\]\(((?:[^)\s\\]|\\.)*?)(?:\s+"([^"]*)")?\)/g,
     prefix: "[",
     suffix: (m) => `](${m[2] || ""}${m[3] ? ` "${m[3]}"` : ""})`,
     contentIndex: 1,
-    getAttrs: (m) => ({ href: m[2] || "", title: m[3] || "" }),
+    getAttrs: (m) => ({ href: (m[2] || "").replace(/\\([()])/g, "$1"), title: m[3] || "" }),
   },
   // 行内数学 $content$
   {
@@ -129,6 +129,17 @@ function detectSyntaxMatches(text: string): MatchInfo[] {
     escapeRanges.push({ start: escMatch.index, end: escMatch.index + escMatch[0].length });
   }
 
+  // 先收集链接匹配的范围，链接 URL 内的转义不应阻止链接匹配
+  const linkRanges: Array<{ start: number; end: number }> = [];
+  const linkSyntax = INLINE_SYNTAXES.find((s) => s.type === "link");
+  if (linkSyntax) {
+    const linkRe = new RegExp(linkSyntax.pattern.source, linkSyntax.pattern.flags);
+    let linkMatch: RegExpExecArray | null;
+    while ((linkMatch = linkRe.exec(text)) !== null) {
+      linkRanges.push({ start: linkMatch.index, end: linkMatch.index + linkMatch[0].length });
+    }
+  }
+
   for (const syntax of INLINE_SYNTAXES) {
     const re = new RegExp(syntax.pattern.source, syntax.pattern.flags);
     let match: RegExpExecArray | null;
@@ -143,9 +154,11 @@ function detectSyntaxMatches(text: string): MatchInfo[] {
       const contentStart = start + prefix.length;
       const contentEnd = end - suffix.length;
 
-      // 跳过与转义范围重叠的匹配
-      const overlapsEscape = escapeRanges.some((esc) => esc.start < end && esc.end > start);
-      if (overlapsEscape) continue;
+      // 跳过与转义范围重叠的匹配，但链接匹配除外（链接 URL 内允许转义括号）
+      if (syntax.type !== "link") {
+        const overlapsEscape = escapeRanges.some((esc) => esc.start < end && esc.end > start);
+        if (overlapsEscape) continue;
+      }
 
       matches.push({
         syntax,
@@ -421,11 +434,13 @@ function detectNestedSyntax(
 /**
  * 检查节点是否已经有正确的 marks
  * 改进版：更精确地比较当前 marks 和期望的 marks
+ * @param skipOffset 跳过节点开头的字符数（如标题的 ### 前缀），这些位置不参与比较
  */
 function hasCorrectMarks(
   node: Node,
   basePos: number,
-  regions: ReturnType<typeof detectNestedSyntax>
+  regions: ReturnType<typeof detectNestedSyntax>,
+  skipOffset: number = 0
 ): boolean {
   if (regions.length === 0) {
     // 如果没有期望的区域，检查是否有任何语义 marks
@@ -489,6 +504,9 @@ function hasCorrectMarks(
       const childEnd = childStart + child.nodeSize;
 
       for (let pos = childStart; pos < childEnd; pos++) {
+        // 跳过标题前缀等结构性语法标记的位置
+        if (pos < basePos + skipOffset) continue;
+
         const expected = expectedMarks.get(pos) || new Set();
         const actual = new Set(
           child.marks
@@ -574,16 +592,28 @@ export function createSyntaxDetectorPlugin(): Plugin {
           // 跳过源码视图中由代码块拆分出的段落，不做任何语法检测
           if (node.attrs.codeBlockId) return true;
 
-          const textContent = node.textContent;
+          let textContent = node.textContent;
           const basePos = pos + 1;
+          let contentOffset = 0;
+
+          // 对于标题节点，跳过标题语法前缀（如 "### "），避免语法检测器
+          // 误移除标题前缀上的 syntax_marker(heading) 标记
+          if (node.type.name === "heading") {
+            const level = node.attrs.level as number;
+            const prefix = "#".repeat(level) + " ";
+            if (textContent.startsWith(prefix)) {
+              contentOffset = prefix.length;
+              textContent = textContent.slice(contentOffset);
+            }
+          }
 
           // 检测所有语法区域
-          const regions = detectNestedSyntax(textContent, basePos, []);
+          const regions = detectNestedSyntax(textContent, basePos + contentOffset, []);
 
           if (regions.length === 0) return true;
 
           // 检查是否需要更新
-          if (hasCorrectMarks(node, basePos, regions)) return true;
+          if (hasCorrectMarks(node, basePos, regions, contentOffset)) return true;
 
           // 应用 marks
           for (const region of regions) {
