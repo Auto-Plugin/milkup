@@ -111,19 +111,47 @@ export class MarkdownSerializer {
     },
 
     blockquote: (node, lines, indent) => {
-      const innerLines: string[] = [];
-      this.serializeFragment(node.content, innerLines, "");
-      for (const line of innerLines) {
-        // 检查行是否已经以 > 开头（来自 syntax_marker）
-        if (line.startsWith("> ")) {
-          // 已经有 > 前缀，直接使用
-          lines.push(indent + line);
-        } else if (line === "") {
-          lines.push(indent + ">");
-        } else {
-          lines.push(indent + "> " + line);
+      // 逐个序列化子节点，自行控制分隔符，避免 !compact 空行
+      // 被转为 ">" 导致重新解析时产生多余空段落（往返膨胀问题）。
+      //
+      // 稳定性原理：
+      //   内容段落后加一个 ">" 分隔符，空段落之间不加分隔符。
+      //   N 个空段落 + 前方 1 个 ">" 分隔符 = N+1 个空 contentLine
+      //   → parseBlocks 的 extra = (N+1)-1 = N → 恰好还原 N 个空段落
+      let prevWasContent = false; // 上一个子节点是否为有内容的段落
+      node.content.forEach((child, _, index) => {
+        const childLines: string[] = [];
+        this.serializeNode(child, childLines, "", index);
+
+        // 剥离 paragraph 序列化器追加的 !compact 尾部空行
+        while (childLines.length > 0 && childLines[childLines.length - 1] === "") {
+          childLines.pop();
         }
-      }
+
+        // 判断当前子节点是否为空段落（文本仅为 "> " 即引用前缀）
+        const isEmptyParagraph =
+          child.type.name === "paragraph" &&
+          childLines.length === 1 &&
+          (childLines[0].trim() === ">" || childLines[0] === "> ");
+
+        // 仅在上一个子节点是有内容的段落时，才插入 ">" 分隔符。
+        // 空段落之间不加分隔符，避免分隔符被解析为额外空行导致膨胀。
+        if (prevWasContent) {
+          lines.push(indent + ">");
+        }
+
+        for (const line of childLines) {
+          if (line.startsWith("> ")) {
+            lines.push(indent + line);
+          } else if (line === "") {
+            lines.push(indent + ">");
+          } else {
+            lines.push(indent + "> " + line);
+          }
+        }
+
+        prevWasContent = !isEmptyParagraph;
+      });
       if (!this.options.compact) lines.push("");
     },
 

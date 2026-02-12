@@ -287,7 +287,11 @@ watch(
 
         const contentForRendering = preprocessContent(newValue);
         editor?.setMarkdown(contentForRendering);
-        lastEmittedValue.value = newValue;
+        // 注意：不要在 setMarkdown 之后覆盖 lastEmittedValue。
+        // setMarkdown 会同步触发 change 事件，change handler 已经将
+        // lastEmittedValue 设置为序列化后的值。如果这里再覆盖为 newValue，
+        // 当序列化结果与 newValue 不同时（如引用块归一化），会导致 watch
+        // 守卫失效，触发无限循环。
 
         // 恢复滚动位置
         nextTick(() => {
