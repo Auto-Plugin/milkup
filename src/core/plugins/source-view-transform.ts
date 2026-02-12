@@ -9,6 +9,7 @@ import { Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { Node as ProseMirrorNode, Schema, Fragment, Slice } from "prosemirror-model";
 import { ReplaceStep } from "prosemirror-transform";
 import { decorationPluginKey } from "../decorations";
+import { parseMarkdown } from "../parser";
 
 /** 插件 Key */
 export const sourceViewTransformPluginKey = new PluginKey("milkup-source-view-transform");
@@ -172,6 +173,85 @@ function transformParagraphToHr(
 }
 
 /**
+ * 生成唯一的表格 ID
+ */
+function generateTableId(): string {
+  return `tb_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+/**
+ * 将表格节点转换为多个段落节点
+ */
+function transformTableToParagraphs(table: ProseMirrorNode, schema: Schema): ProseMirrorNode[] {
+  const tableId = generateTableId();
+  const lines: string[] = [];
+  const alignments: (string | null)[] = [];
+
+  table.content.forEach((row, _, rowIndex) => {
+    const cells: string[] = [];
+    row.content.forEach((cell) => {
+      cells.push(cell.textContent);
+      if (rowIndex === 0) {
+        alignments.push(cell.attrs.align || null);
+      }
+    });
+
+    lines.push("| " + cells.join(" | ") + " |");
+
+    // 在表头行后添加分隔行
+    if (rowIndex === 0) {
+      const separators = alignments.map((align) => {
+        if (align === "center") return ":---:";
+        if (align === "right") return "---:";
+        if (align === "left") return ":---";
+        return "---";
+      });
+      lines.push("| " + separators.join(" | ") + " |");
+    }
+  });
+
+  const paragraphs: ProseMirrorNode[] = [];
+  lines.forEach((line, index) => {
+    const paragraph = schema.nodes.paragraph.create(
+      {
+        tableId,
+        tableRowIndex: index,
+        tableTotalRows: lines.length,
+      },
+      schema.text(line)
+    );
+    paragraphs.push(paragraph);
+  });
+
+  return paragraphs;
+}
+
+/**
+ * 将连续的表格段落节点重新组合成表格
+ */
+function transformParagraphsToTable(
+  paragraphs: Array<{ node: ProseMirrorNode; pos: number }>,
+  schema: Schema
+): ProseMirrorNode | null {
+  if (paragraphs.length < 2) return null;
+
+  const lines = paragraphs.map((p) => p.node.textContent);
+  const tableMarkdown = lines.join("\n");
+
+  // 使用解析器重新解析表格
+  const result = parseMarkdown(tableMarkdown);
+  let tableNode: ProseMirrorNode | null = null;
+
+  result.doc.forEach((node) => {
+    if (node.type.name === "table" && !tableNode) {
+      tableNode = node;
+    }
+  });
+
+  return tableNode;
+}
+
+/**
  * 查找文档中所有的代码块段落组
  */
 function findCodeBlockParagraphGroups(
@@ -232,6 +312,13 @@ function convertBlocksToParagraphs(tr: Transaction): Transaction {
         nodeSize: node.nodeSize,
         replacement: [transformHrToParagraph(node, schema)],
       });
+    } else if (node.type.name === "table") {
+      blocks.push({
+        pos: pos,
+        nodeSize: node.nodeSize,
+        replacement: transformTableToParagraphs(node, schema),
+      });
+      return false; // 不遍历表格子节点
     }
     return true;
   });
@@ -264,6 +351,8 @@ function processNodeForBlockConversion(
     const newChildren: ProseMirrorNode[] = [];
     let codeBlockGroup: ProseMirrorNode[] = [];
     let currentCodeBlockId: string | null = null;
+    let tableGroup: ProseMirrorNode[] = [];
+    let currentTableId: string | null = null;
 
     const flushCodeBlockGroup = () => {
       if (codeBlockGroup.length === 0) return;
@@ -278,12 +367,27 @@ function processNodeForBlockConversion(
       currentCodeBlockId = null;
     };
 
+    const flushTableGroup = () => {
+      if (tableGroup.length === 0) return;
+      const paragraphs = tableGroup.map((n) => ({ node: n, pos: 0 }));
+      const result = transformParagraphsToTable(paragraphs, schema);
+      if (result) {
+        newChildren.push(result);
+      } else {
+        newChildren.push(...tableGroup);
+      }
+      tableGroup = [];
+      currentTableId = null;
+    };
+
     node.content.forEach((child) => {
       if (child.type.name === "paragraph") {
         const codeBlockId = child.attrs.codeBlockId;
+        const tableId = child.attrs.tableId;
 
         if (codeBlockId) {
           // 代码块段落
+          flushTableGroup();
           if (currentCodeBlockId && currentCodeBlockId !== codeBlockId) {
             flushCodeBlockGroup();
           }
@@ -292,8 +396,20 @@ function processNodeForBlockConversion(
           return;
         }
 
-        // 非代码块段落，先刷新之前的代码块组
+        if (tableId) {
+          // 表格段落
+          flushCodeBlockGroup();
+          if (currentTableId && currentTableId !== tableId) {
+            flushTableGroup();
+          }
+          currentTableId = tableId;
+          tableGroup.push(child);
+          return;
+        }
+
+        // 非特殊段落，先刷新之前的组
         flushCodeBlockGroup();
+        flushTableGroup();
 
         if (child.attrs.imageAttrs) {
           const image = transformParagraphToImage(child, schema);
@@ -306,6 +422,7 @@ function processNodeForBlockConversion(
         }
       } else {
         flushCodeBlockGroup();
+        flushTableGroup();
         // 递归处理子节点
         const processed = processNodeForBlockConversion(child, schema);
         if (Array.isArray(processed)) {
@@ -316,8 +433,9 @@ function processNodeForBlockConversion(
       }
     });
 
-    // 刷新最后一组代码块
+    // 刷新最后一组
     flushCodeBlockGroup();
+    flushTableGroup();
 
     // 如果内容有变化，创建新节点
     const newContent = Fragment.from(newChildren);
@@ -341,6 +459,9 @@ function convertParagraphsToBlocks(tr: Transaction): Transaction {
   // 收集代码块段落组
   let codeBlockGroup: ProseMirrorNode[] = [];
   let currentCodeBlockId: string | null = null;
+  // 收集表格段落组
+  let tableGroup: ProseMirrorNode[] = [];
+  let currentTableId: string | null = null;
 
   const flushCodeBlockGroup = () => {
     if (codeBlockGroup.length === 0) return;
@@ -356,12 +477,27 @@ function convertParagraphsToBlocks(tr: Transaction): Transaction {
     currentCodeBlockId = null;
   };
 
+  const flushTableGroup = () => {
+    if (tableGroup.length === 0) return;
+    const paragraphs = tableGroup.map((node) => ({ node, pos: 0 }));
+    const result = transformParagraphsToTable(paragraphs, schema);
+    if (result) {
+      newContent.push(result);
+    } else {
+      newContent.push(...tableGroup);
+    }
+    tableGroup = [];
+    currentTableId = null;
+  };
+
   doc.forEach((node) => {
     if (node.type.name === "paragraph") {
       const codeBlockId = node.attrs.codeBlockId;
+      const tableId = node.attrs.tableId;
 
       if (codeBlockId) {
         // 代码块段落
+        flushTableGroup();
         if (currentCodeBlockId && currentCodeBlockId !== codeBlockId) {
           flushCodeBlockGroup();
         }
@@ -370,8 +506,20 @@ function convertParagraphsToBlocks(tr: Transaction): Transaction {
         return;
       }
 
-      // 非代码块段落，先刷新之前的代码块组
+      if (tableId) {
+        // 表格段落
+        flushCodeBlockGroup();
+        if (currentTableId && currentTableId !== tableId) {
+          flushTableGroup();
+        }
+        currentTableId = tableId;
+        tableGroup.push(node);
+        return;
+      }
+
+      // 非特殊段落，先刷新之前的组
       flushCodeBlockGroup();
+      flushTableGroup();
 
       if (node.attrs.imageAttrs) {
         // 图片段落
@@ -386,6 +534,7 @@ function convertParagraphsToBlocks(tr: Transaction): Transaction {
       }
     } else {
       flushCodeBlockGroup();
+      flushTableGroup();
       // 递归处理子节点
       const processed = processNodeForBlockConversion(node, schema);
       if (Array.isArray(processed)) {
@@ -396,8 +545,9 @@ function convertParagraphsToBlocks(tr: Transaction): Transaction {
     }
   });
 
-  // 刷新最后一组代码块
+  // 刷新最后一组
   flushCodeBlockGroup();
+  flushTableGroup();
 
   if (newContent.length > 0) {
     const step = new ReplaceStep(0, doc.content.size, new Slice(Fragment.from(newContent), 0, 0));
@@ -448,7 +598,8 @@ export function createSourceViewTransformPlugin(): Plugin {
           if (
             node.type.name === "code_block" ||
             node.type.name === "image" ||
-            node.type.name === "horizontal_rule"
+            node.type.name === "horizontal_rule" ||
+            node.type.name === "table"
           ) {
             hasBlocks = true;
           }

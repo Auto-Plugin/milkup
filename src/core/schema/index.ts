@@ -26,6 +26,10 @@ const paragraph: NodeSpec = {
     imageAttrs: { default: null },
     // 分割线相关属性（仅在源码模式下使用）
     hrSource: { default: null },
+    // 表格相关属性（仅在源码模式下使用）
+    tableId: { default: null },
+    tableRowIndex: { default: null },
+    tableTotalRows: { default: null },
   },
   content: "inline*",
   group: "block",
@@ -46,6 +50,12 @@ const paragraph: NodeSpec = {
     // 如果是分割线段落，添加数据属性
     if (node.attrs.hrSource) {
       attrs["data-hr-source"] = "true";
+    }
+    // 如果是表格段落，添加数据属性
+    if (node.attrs.tableId) {
+      attrs["data-table-id"] = node.attrs.tableId;
+      attrs["data-table-row-index"] = node.attrs.tableRowIndex;
+      attrs["data-table-total-rows"] = node.attrs.tableTotalRows;
     }
     return ["p", attrs, 0];
   },
