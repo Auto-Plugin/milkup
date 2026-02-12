@@ -306,94 +306,74 @@ function transformParagraphsToHtmlBlock(
 }
 
 /**
- * 查找文档中所有的代码块段落组
+ * 递归处理节点，将块级元素转换为段落（用于进入源码模式）
  */
-function findCodeBlockParagraphGroups(
-  doc: ProseMirrorNode
-): Map<string, Array<{ node: ProseMirrorNode; pos: number }>> {
-  const groups = new Map<string, Array<{ node: ProseMirrorNode; pos: number }>>();
+function processNodeForSourceConversion(
+  node: ProseMirrorNode,
+  schema: Schema
+): ProseMirrorNode | ProseMirrorNode[] {
+  if (node.type.name === "code_block") {
+    return transformCodeBlockToParagraphs(node, schema);
+  } else if (node.type.name === "image") {
+    return [transformImageToParagraph(node, schema)];
+  } else if (node.type.name === "horizontal_rule") {
+    return [transformHrToParagraph(node, schema)];
+  } else if (node.type.name === "table") {
+    return transformTableToParagraphs(node, schema);
+  } else if (node.type.name === "html_block") {
+    return transformHtmlBlockToParagraphs(node, schema);
+  }
 
-  doc.descendants((node, pos) => {
-    // 处理所有段落节点（包括列表中的段落）
-    if (node.type.name === "paragraph") {
-      const codeBlockId = node.attrs.codeBlockId;
-      if (codeBlockId) {
-        if (!groups.has(codeBlockId)) {
-          groups.set(codeBlockId, []);
-        }
-        groups.get(codeBlockId)!.push({ node, pos });
+  // 递归处理子节点
+  if (node.content.size > 0) {
+    const newChildren: ProseMirrorNode[] = [];
+    let changed = false;
+
+    node.content.forEach((child) => {
+      const processed = processNodeForSourceConversion(child, schema);
+      if (Array.isArray(processed)) {
+        newChildren.push(...processed);
+        changed = true;
+      } else if (processed !== child) {
+        newChildren.push(processed);
+        changed = true;
+      } else {
+        newChildren.push(child);
       }
-    }
-    return true;
-  });
+    });
 
-  return groups;
+    if (changed) {
+      return node.type.create(node.attrs, Fragment.from(newChildren), node.marks);
+    }
+  }
+
+  return node;
 }
 
 /**
- * 将文档中的所有块级元素（代码块、图片、分割线）转换为段落
- * 对叶子块节点使用"先插入后删除"策略，
- * 避免 ProseMirror 的 replace 算法无法正确替换叶子块节点的问题
+ * 将文档中的所有块级元素（代码块、图片、分割线、表格、HTML块）转换为段落
+ * 使用整体替换文档内容的方式（单次 ReplaceStep），避免逐个节点操作的 O(N²) 开销
  */
-function convertBlocksToParagraphs(tr: Transaction): Transaction {
+export function convertBlocksToParagraphs(tr: Transaction): Transaction {
   const doc = tr.doc;
   const schema = doc.type.schema;
+  const newContent: ProseMirrorNode[] = [];
+  let changed = false;
 
-  // 收集需要转换的块级节点及其位置
-  const blocks: Array<{
-    pos: number;
-    nodeSize: number;
-    replacement: ProseMirrorNode[];
-  }> = [];
-
-  // 使用 descendants 遍历所有层级的节点，包括列表内的代码块
-  doc.descendants((node, pos) => {
-    if (node.type.name === "code_block") {
-      blocks.push({
-        pos: pos,
-        nodeSize: node.nodeSize,
-        replacement: transformCodeBlockToParagraphs(node, schema),
-      });
-    } else if (node.type.name === "image") {
-      blocks.push({
-        pos: pos,
-        nodeSize: node.nodeSize,
-        replacement: [transformImageToParagraph(node, schema)],
-      });
-    } else if (node.type.name === "horizontal_rule") {
-      blocks.push({
-        pos: pos,
-        nodeSize: node.nodeSize,
-        replacement: [transformHrToParagraph(node, schema)],
-      });
-    } else if (node.type.name === "table") {
-      blocks.push({
-        pos: pos,
-        nodeSize: node.nodeSize,
-        replacement: transformTableToParagraphs(node, schema),
-      });
-      return false; // 不遍历表格子节点
-    } else if (node.type.name === "html_block") {
-      blocks.push({
-        pos: pos,
-        nodeSize: node.nodeSize,
-        replacement: transformHtmlBlockToParagraphs(node, schema),
-      });
+  doc.forEach((node) => {
+    const processed = processNodeForSourceConversion(node, schema);
+    if (Array.isArray(processed)) {
+      newContent.push(...processed);
+      changed = true;
+    } else {
+      newContent.push(processed);
+      if (processed !== node) changed = true;
     }
-    return true;
   });
 
-  if (blocks.length === 0) return tr;
-
-  // 从后往前处理，避免位置偏移问题
-  for (let i = blocks.length - 1; i >= 0; i--) {
-    const { pos, nodeSize, replacement } = blocks[i];
-    const endPos = pos + nodeSize;
-
-    // 步骤1：在原节点之后插入替换内容
-    tr.step(new ReplaceStep(endPos, endPos, new Slice(Fragment.from(replacement), 0, 0)));
-    // 步骤2：删除原节点（位置未变，因为插入在其后面）
-    tr.step(new ReplaceStep(pos, pos + nodeSize, Slice.empty));
+  if (changed && newContent.length > 0) {
+    const step = new ReplaceStep(0, doc.content.size, new Slice(Fragment.from(newContent), 0, 0));
+    tr.step(step);
   }
 
   return tr;
@@ -544,7 +524,7 @@ function processNodeForBlockConversion(
  * 将文档中的特殊段落转换回对应的块级元素（代码块、图片、分割线）
  * 使用整体替换文档内容的方式，避免逐个节点操作的位置映射问题
  */
-function convertParagraphsToBlocks(tr: Transaction): Transaction {
+export function convertParagraphsToBlocks(tr: Transaction): Transaction {
   const doc = tr.doc;
   const schema = doc.type.schema;
   const newContent: ProseMirrorNode[] = [];

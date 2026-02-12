@@ -226,16 +226,17 @@ export class ListItemView implements NodeView {
 
   /**
    * 测量标记元素的实际像素宽度，设置 CSS 自定义属性
+   * 延迟到下一帧测量，避免在批量 DOM 变更时触发 layout thrashing
    */
   private updateMarkerWidth(): void {
-    if (!this.markerElement || !this.markerElement.parentNode) return;
-    const width = this.markerElement.getBoundingClientRect().width;
-    if (width > 0) {
-      this.dom.style.setProperty("--marker-width", `${width}px`);
-    } else {
-      // 元素可能尚未挂载到文档，延迟测量
-      requestAnimationFrame(() => this.updateMarkerWidth());
-    }
+    if (!this.markerElement) return;
+    requestAnimationFrame(() => {
+      if (!this.markerElement || !this.markerElement.parentNode) return;
+      const width = this.markerElement.getBoundingClientRect().width;
+      if (width > 0) {
+        this.dom.style.setProperty("--marker-width", `${width}px`);
+      }
+    });
   }
 
   setSourceViewMode(enabled: boolean): void {
@@ -248,8 +249,6 @@ export class ListItemView implements NodeView {
       if (this.markerElement && this.contentDOM) {
         this.updateMarker();
         this.dom.insertBefore(this.markerElement, this.contentDOM);
-        // 标记插入 DOM 后测量实际宽度
-        this.updateMarkerWidth();
       }
     } else {
       this.dom.classList.remove("source-view");
@@ -480,16 +479,17 @@ export class TaskItemView implements NodeView {
 
   /**
    * 测量标记元素的实际像素宽度，设置 CSS 自定义属性
+   * 延迟到下一帧测量，避免在批量 DOM 变更时触发 layout thrashing
    */
   private updateMarkerWidth(): void {
-    if (!this.markerElement || !this.markerElement.parentNode) return;
-    const width = this.markerElement.getBoundingClientRect().width;
-    if (width > 0) {
-      this.dom.style.setProperty("--marker-width", `${width}px`);
-    } else {
-      // 元素可能尚未挂载到文档，延迟测量
-      requestAnimationFrame(() => this.updateMarkerWidth());
-    }
+    if (!this.markerElement) return;
+    requestAnimationFrame(() => {
+      if (!this.markerElement || !this.markerElement.parentNode) return;
+      const width = this.markerElement.getBoundingClientRect().width;
+      if (width > 0) {
+        this.dom.style.setProperty("--marker-width", `${width}px`);
+      }
+    });
   }
 
   setSourceViewMode(enabled: boolean): void {
@@ -505,7 +505,6 @@ export class TaskItemView implements NodeView {
       if (this.markerElement && this.contentDOM) {
         this.updateMarker();
         this.dom.insertBefore(this.markerElement, this.contentDOM);
-        this.updateMarkerWidth();
       }
     } else {
       this.dom.classList.remove("source-view");

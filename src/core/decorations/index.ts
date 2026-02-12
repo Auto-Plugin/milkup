@@ -11,6 +11,10 @@ import { EditorState, Plugin, PluginKey } from "prosemirror-state";
 import { Node } from "prosemirror-model";
 import type { SyntaxType } from "../types";
 import { renderInlineMath } from "../nodeviews/math-block";
+import {
+  convertBlocksToParagraphs,
+  convertParagraphsToBlocks,
+} from "../plugins/source-view-transform";
 
 // ============ 源码模式状态管理器 ============
 
@@ -416,6 +420,19 @@ export function computeDecorations(
   syntaxRegions: SyntaxMarkerRegion[];
   mathInlineRegions: MathInlineRegion[];
 } {
+  // 源码模式下跳过所有装饰计算：
+  // - 语法标记通过 .milkup-syntax-marker 类（mark 自带）已有正确样式
+  // - 无需 hidden/visible 装饰切换
+  // - 无需行内数学公式渲染 widget
+  if (sourceView) {
+    return {
+      decorations: DecorationSet.empty,
+      activeRegions: [],
+      syntaxRegions: precomputedSyntaxRegions ?? [],
+      mathInlineRegions: precomputedMathRegions ?? [],
+    };
+  }
+
   const syntaxRegions = precomputedSyntaxRegions ?? findSyntaxMarkerRegions(doc);
   const mathInlineRegions = precomputedMathRegions ?? findMathInlineRegions(doc);
   const decorations: Decoration[] = [];
@@ -620,6 +637,12 @@ export function toggleSourceView(state: EditorState, dispatch?: (tr: any) => voi
     const tr = state.tr.setMeta(decorationPluginKey, {
       sourceView: newSourceView,
     });
+    // 将文档转换合并到同一个 transaction 中，避免 appendTransaction 产生第二轮插件应用
+    if (newSourceView) {
+      convertBlocksToParagraphs(tr);
+    } else {
+      convertParagraphsToBlocks(tr);
+    }
     dispatch(tr);
   }
 
