@@ -53,6 +53,8 @@ export interface DecorationPluginState {
   decorations: DecorationSet;
   activeRegions: SyntaxMarkerRegion[];
   sourceView: boolean;
+  cachedSyntaxRegions: SyntaxMarkerRegion[];
+  cachedMathInlineRegions: MathInlineRegion[];
 }
 
 /** 语法标记区域 */
@@ -405,10 +407,17 @@ function isSyntaxTypeRelated(syntaxType: string, semanticType: string): boolean 
 export function computeDecorations(
   doc: Node,
   cursorPos: number,
-  sourceView: boolean
-): { decorations: DecorationSet; activeRegions: SyntaxMarkerRegion[] } {
-  const syntaxRegions = findSyntaxMarkerRegions(doc);
-  const mathInlineRegions = findMathInlineRegions(doc);
+  sourceView: boolean,
+  precomputedSyntaxRegions?: SyntaxMarkerRegion[],
+  precomputedMathRegions?: MathInlineRegion[]
+): {
+  decorations: DecorationSet;
+  activeRegions: SyntaxMarkerRegion[];
+  syntaxRegions: SyntaxMarkerRegion[];
+  mathInlineRegions: MathInlineRegion[];
+} {
+  const syntaxRegions = precomputedSyntaxRegions ?? findSyntaxMarkerRegions(doc);
+  const mathInlineRegions = precomputedMathRegions ?? findMathInlineRegions(doc);
   const decorations: Decoration[] = [];
 
   // 获取光标所在的所有语义区域
@@ -509,6 +518,8 @@ export function computeDecorations(
   return {
     decorations: DecorationSet.create(doc, decorations),
     activeRegions: syntaxRegions.filter((r) => cursorPos >= r.from && cursorPos <= r.to),
+    syntaxRegions,
+    mathInlineRegions,
   };
 }
 
@@ -536,7 +547,7 @@ export function createDecorationPlugin(initialSourceView = false): Plugin<Decora
 
     state: {
       init(_, state) {
-        const { decorations, activeRegions } = computeDecorations(
+        const { decorations, activeRegions, syntaxRegions, mathInlineRegions } = computeDecorations(
           state.doc,
           state.selection.head,
           initialSourceView
@@ -545,6 +556,8 @@ export function createDecorationPlugin(initialSourceView = false): Plugin<Decora
           decorations,
           activeRegions,
           sourceView: initialSourceView,
+          cachedSyntaxRegions: syntaxRegions,
+          cachedMathInlineRegions: mathInlineRegions,
         };
       },
 
@@ -556,15 +569,29 @@ export function createDecorationPlugin(initialSourceView = false): Plugin<Decora
         const sourceView = meta?.sourceView ?? pluginState.sourceView;
 
         if (docChanged || selectionChanged || meta?.sourceView !== undefined) {
-          const { decorations, activeRegions } = computeDecorations(
+          // 仅在文档变化或源码模式切换时重新扫描区域，选区变化时复用缓存
+          const needRescan = docChanged || meta?.sourceView !== undefined;
+          const syntaxRegions = needRescan ? undefined : pluginState.cachedSyntaxRegions;
+          const mathRegions = needRescan ? undefined : pluginState.cachedMathInlineRegions;
+
+          const {
+            decorations,
+            activeRegions,
+            syntaxRegions: newSyntax,
+            mathInlineRegions: newMath,
+          } = computeDecorations(
             newState.doc,
             newState.selection.head,
-            sourceView
+            sourceView,
+            syntaxRegions,
+            mathRegions
           );
           return {
             decorations,
             activeRegions,
             sourceView,
+            cachedSyntaxRegions: newSyntax,
+            cachedMathInlineRegions: newMath,
           };
         }
 
