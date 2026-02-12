@@ -5,7 +5,7 @@
  */
 
 import { Plugin, PluginKey } from "prosemirror-state";
-import { Node, Schema } from "prosemirror-model";
+import { Node, Schema, Slice, Fragment } from "prosemirror-model";
 import { MarkdownParser } from "../parser";
 import { milkupSchema } from "../schema";
 import { decorationPluginKey } from "../decorations";
@@ -89,6 +89,12 @@ export function createPastePlugin(config: PastePluginConfig = {}): Plugin {
           return false; // 让默认处理器处理
         }
 
+        // 检查是否来自编辑器内部复制（ProseMirror 会在 HTML 中添加 data-pm-slice 标记）
+        const html = clipboardData.getData("text/html");
+        if (html && html.includes("data-pm-slice")) {
+          return false; // 内部复制，让 ProseMirror 默认处理
+        }
+
         // 解析 Markdown
         const { doc } = parser.parse(text);
 
@@ -98,30 +104,13 @@ export function createPastePlugin(config: PastePluginConfig = {}): Plugin {
         // 如果内容为空，不处理
         if (content.size === 0) return false;
 
-        // 获取当前选区
-        const { $from, $to } = view.state.selection;
-
-        // 计算替换范围
-        // 如果在空段落中，替换整个段落
-        const parent = $from.parent;
-        const isEmptyParagraph =
-          parent.type.name === "paragraph" && parent.content.size === 0 && $from.parentOffset === 0;
-
-        let from: number, to: number;
-
-        if (isEmptyParagraph && $from.depth > 0) {
-          // 替换整个空段落
-          from = $from.before($from.depth);
-          to = $from.after($from.depth);
-        } else {
-          // 使用选区范围
-          from = $from.pos;
-          to = $to.pos;
-        }
-
-        // 创建事务
-        const tr = view.state.tr.replaceWith(from, to, content);
-        view.dispatch(tr);
+        // 延迟到下一帧插入，确保 ProseMirror 完成粘贴事件处理后再更新视图
+        // 这样装饰系统能正确重新计算所有语法标记的显示/隐藏状态
+        requestAnimationFrame(() => {
+          const pasteSlice = new Slice(content, 1, 1);
+          const tr = view.state.tr.replaceSelection(pasteSlice);
+          view.dispatch(tr);
+        });
 
         return true;
       },
@@ -326,6 +315,7 @@ function containsMarkdownSyntax(text: string): boolean {
     /^\$\$/m, // 数学块
     /\$[^$]+\$/, // 行内数学
     /^- \[[ xX]\]/m, // 任务列表
+    /^\|.+\|$/m, // 表格
   ];
 
   return patterns.some((pattern) => pattern.test(text));

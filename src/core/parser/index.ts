@@ -136,7 +136,8 @@ export class MarkdownParser {
   parse(markdown: string): ParseResult {
     this.markers = [];
 
-    const lines = markdown.split("\n");
+    // 统一换行符，移除 \r
+    const lines = markdown.replace(/\r\n?/g, "\n").split("\n");
     const blocks = this.parseBlocks(lines);
 
     const content = blocks.length > 0 ? blocks : [this.schema.node("paragraph")];
