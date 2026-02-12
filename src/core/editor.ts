@@ -6,7 +6,7 @@
 
 import { EditorState, Plugin, Transaction, Selection, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { Schema, Node, Slice } from "prosemirror-model";
+import { Schema, Node, Slice, Fragment } from "prosemirror-model";
 import { history } from "prosemirror-history";
 import { dropCursor } from "prosemirror-dropcursor";
 import { gapCursor } from "prosemirror-gapcursor";
@@ -148,6 +148,11 @@ export class MilkupEditor implements IMilkupEditor {
       state,
       editable: () => !this.config.readonly,
       clipboardTextSerializer: (slice) => this.serializeSliceToMarkdown(slice),
+      clipboardTextParser: (text, $context, plain, view) => {
+        // 将粘贴的纯文本作为 Markdown 解析
+        const { doc } = this.parser.parse(text);
+        return new Slice(doc.content, 1, 1);
+      },
       nodeViews: {
         code_block: createCodeBlockNodeView,
         math_block: createMathBlockNodeView,
