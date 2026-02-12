@@ -98,13 +98,9 @@ export class MarkdownSerializer {
     },
 
     heading: (node, lines, indent) => {
-      const level = node.attrs.level as number;
-      const hashes = "#".repeat(level);
-      // serializeInline 会跳过 syntax_marker，所以这里需要手动添加 #
-      // 同时去除开头多余的空格（解析器在 ### 后插入的空格节点）
+      // serializeInline 现在直接输出所有文本（包括 ### 语法标记），无需手动添加
       const text = this.serializeInline(node);
-      const trimmedText = text.startsWith(" ") ? text.slice(1) : text;
-      lines.push(indent + hashes + " " + trimmedText);
+      lines.push(indent + text);
       if (!this.options.compact) lines.push("");
     },
 
@@ -259,86 +255,24 @@ export class MarkdownSerializer {
 
   /**
    * 序列化行内内容
+   * 直接输出所有文本节点（包括语法标记），保留用户原始输入
    */
   private serializeInline(node: Node): string {
     let result = "";
 
-    // 收集连续的同类型 mark 文本，用于正确输出语法
-    const segments: Array<{
-      text: string;
-      marks: Mark[];
-      isSyntaxMarker: boolean;
-    }> = [];
-
     node.content.forEach((child) => {
       if (child.isText) {
-        const syntaxMark = child.marks.find((m) => m.type.name === "syntax_marker");
-        const hasSyntaxMarker = !!syntaxMark;
-        // escape 类型的 syntax_marker 应该保留 `\` 输出
-        const isEscapeMarker = syntaxMark?.attrs.syntaxType === "escape";
-        segments.push({
-          text: child.text || "",
-          marks: child.marks.filter((m) => m.type.name !== "syntax_marker"),
-          isSyntaxMarker: hasSyntaxMarker && !isEscapeMarker,
-        });
+        result += child.text || "";
       } else if (child.type.name === "hard_break") {
-        segments.push({ text: "  \n", marks: [], isSyntaxMarker: false });
+        result += "  \n";
       } else if (child.type.name === "image") {
         const alt = child.attrs.alt || "";
         const src = child.attrs.src || "";
         const title = child.attrs.title || "";
         const titlePart = title ? ` "${title}"` : "";
-        segments.push({ text: `![${alt}](${src}${titlePart})`, marks: [], isSyntaxMarker: false });
+        result += `![${alt}](${src}${titlePart})`;
       }
     });
-
-    // 合并相邻的同类型 mark 段落，跳过 syntax_marker 文本
-    let i = 0;
-    while (i < segments.length) {
-      const seg = segments[i];
-
-      // 跳过 syntax_marker 文本
-      if (seg.isSyntaxMarker) {
-        i++;
-        continue;
-      }
-
-      // 找到连续的相同 mark 的文本
-      const markNames = seg.marks
-        .map((m) => m.type.name)
-        .sort()
-        .join(",");
-      let combinedText = seg.text;
-      let j = i + 1;
-
-      while (j < segments.length) {
-        const nextSeg = segments[j];
-        // 跳过 syntax_marker
-        if (nextSeg.isSyntaxMarker) {
-          j++;
-          continue;
-        }
-        const nextMarkNames = nextSeg.marks
-          .map((m) => m.type.name)
-          .sort()
-          .join(",");
-        if (nextMarkNames === markNames) {
-          combinedText += nextSeg.text;
-          j++;
-        } else {
-          break;
-        }
-      }
-
-      // 应用 mark 包装
-      let output = combinedText;
-      for (const mark of seg.marks) {
-        output = this.wrapWithMark(output, mark);
-      }
-      result += output;
-
-      i = j;
-    }
 
     return result;
   }
