@@ -77,6 +77,12 @@ export class MarkdownSerializer {
         lines.push(indent + text);
         const isLastLine = node.attrs.lineIndex === node.attrs.totalLines - 1;
         if (isLastLine && !this.options.compact) lines.push("");
+      } else if (node.attrs.tableId) {
+        // 对于表格段落，直接输出文本内容（包含表格语法）
+        const text = node.textContent;
+        lines.push(indent + text);
+        const isLastLine = node.attrs.tableRowIndex === node.attrs.tableTotalRows - 1;
+        if (isLastLine && !this.options.compact) lines.push("");
       } else {
         const text = this.serializeInline(node);
         lines.push(indent + text);
