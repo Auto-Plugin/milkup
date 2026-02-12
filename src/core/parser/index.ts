@@ -664,13 +664,23 @@ export class MarkdownParser {
       };
     }
 
+    const closePattern = new RegExp(`</${tagName}\\s*>`, "i");
+
+    // 检查闭合标签是否在起始行（如 <span>text</span>）
+    if (closePattern.test(startLine)) {
+      const textNode = startLine ? this.schema.text(startLine) : null;
+      return {
+        node: this.schema.node("html_block", {}, textNode ? [textNode] : []),
+        endIndex: startIndex,
+      };
+    }
+
     // 多行 HTML 块：收集直到找到匹配的闭合标签
     const contentLines: string[] = [startLine];
     let endIndex = startIndex + 1;
     let nestLevel = 1; // 已经有一个开始标签
 
     const openPattern = new RegExp(`<${tagName}[\\s>/]`, "i");
-    const closePattern = new RegExp(`</${tagName}\\s*>`, "i");
 
     while (endIndex < lines.length) {
       const line = lines[endIndex];
