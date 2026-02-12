@@ -105,7 +105,7 @@ const INLINE_SYNTAXES: InlineSyntax[] = [
 /** 块级语法模式 */
 const BLOCK_PATTERNS = {
   heading: /^(#{1,6})\s+(.*)$/,
-  code_block_start: /^```([^\s`]*)(.*)$/, // 允许语言标识后跟任意属性（如 {linenos=1}）
+  code_block_start: /^(\s*)```([^\s`]*)(.*)$/, // 允许前导空格（列表项内的代码块），语言标识后跟任意属性
   code_block_end: /^\s*```\s*$/, // 允许前导空格和行尾空格
   blockquote: /^>\s?(.*)$/,
   bullet_list: /^(\s*)([-*+])\s+(.*)$/,
@@ -564,7 +564,8 @@ export class MarkdownParser {
   ): { node: Node; endIndex: number } | null {
     const startLine = lines[startIndex];
     const langMatch = startLine.match(BLOCK_PATTERNS.code_block_start);
-    const language = langMatch ? langMatch[1] || "" : "";
+    const fenceIndent = langMatch ? langMatch[1].length : 0;
+    const language = langMatch ? langMatch[2] || "" : "";
 
     let endIndex = startIndex + 1;
     const contentLines: string[] = [];
@@ -588,7 +589,10 @@ export class MarkdownParser {
         }
       }
 
-      contentLines.push(line);
+      // 剥离围栏缩进（列表项内的代码块可能有前导空格）
+      const stripped =
+        fenceIndent > 0 && line.length >= fenceIndent ? line.slice(fenceIndent) : line;
+      contentLines.push(stripped);
       endIndex++;
     }
 

@@ -548,6 +548,13 @@
   border-radius: 4px;
 }
 
+/* ProseMirror 内部占位图片（光标定位用），不应继承内容图片的样式 */
+.milkup-editor img.ProseMirror-separator {
+  display: inline;
+  margin: 0;
+  border-radius: 0;
+}
+
 /* 图片块 NodeView */
 .milkup-editor .milkup-image-block {
   margin: 1em 0;
@@ -688,10 +695,6 @@
   color: inherit;
 }
 
-/* 列表项内的数学块：减小 margin 避免列表项间距异常增大 */
-.milkup-editor li .math-block {
-  margin: 0.25em 0;
-}
 
 /* 数学块预览区域 */
 .milkup-editor .math-block .math-preview {
