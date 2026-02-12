@@ -28,13 +28,85 @@ export function updateAllHtmlBlocks(view: ProseMirrorView): void {
 }
 
 /**
- * 对 HTML 内容进行安全处理（移除 script 标签）
+ * 危险元素黑名单
  */
-function sanitizeHtml(htmlContent: string): string {
-  return htmlContent
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<script[\s\S]*?\/>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "");
+const DANGEROUS_ELEMENTS = new Set([
+  "script",
+  "style",
+  "iframe",
+  "object",
+  "embed",
+  "applet",
+  "form",
+  "base",
+  "link",
+  "meta",
+  "noscript",
+  "template",
+  "frame",
+  "frameset",
+]);
+
+/**
+ * 危险 URL 协议
+ */
+const DANGEROUS_URL_RE = /^\s*(javascript|vbscript|data)\s*:/i;
+
+/**
+ * 递归清理 DOM 节点
+ */
+function sanitizeNode(node: Node): void {
+  const toRemove: Node[] = [];
+
+  node.childNodes.forEach((child) => {
+    if (child.nodeType === Node.ELEMENT_NODE) {
+      const el = child as Element;
+      const tag = el.tagName.toLowerCase();
+
+      // 移除危险元素
+      if (DANGEROUS_ELEMENTS.has(tag)) {
+        toRemove.push(child);
+        return;
+      }
+
+      // 移除所有事件处理器属性 (on*)
+      const attrs = Array.from(el.attributes);
+      for (const attr of attrs) {
+        if (attr.name.toLowerCase().startsWith("on")) {
+          el.removeAttribute(attr.name);
+        }
+      }
+
+      // 清理危险 URL 属性
+      for (const urlAttr of ["href", "src", "action", "formaction", "xlink:href"]) {
+        const val = el.getAttribute(urlAttr);
+        if (val && DANGEROUS_URL_RE.test(val)) {
+          el.removeAttribute(urlAttr);
+        }
+      }
+
+      // 递归处理子节点
+      sanitizeNode(child);
+    }
+  });
+
+  for (const child of toRemove) {
+    node.removeChild(child);
+  }
+}
+
+/**
+ * 对 HTML 内容进行安全处理（DOM 解析 + 黑名单过滤）
+ * 保留样式属性和安全的 HTML 结构，移除脚本和事件处理器
+ */
+function sanitizeHtml(htmlContent: string): DocumentFragment {
+  const doc = new DOMParser().parseFromString(htmlContent, "text/html");
+  sanitizeNode(doc.body);
+  const fragment = document.createDocumentFragment();
+  while (doc.body.firstChild) {
+    fragment.appendChild(doc.body.firstChild);
+  }
+  return fragment;
 }
 
 /**
@@ -164,9 +236,10 @@ export class HtmlBlockView implements NodeView {
   }
 
   private updatePreview(content: string): void {
-    const safe = sanitizeHtml(content);
-    if (safe.trim()) {
-      this.preview.innerHTML = safe;
+    this.preview.innerHTML = "";
+    if (content.trim()) {
+      const fragment = sanitizeHtml(content);
+      this.preview.appendChild(fragment);
     } else {
       this.preview.innerHTML = '<span class="html-placeholder">输入 HTML...</span>';
     }
