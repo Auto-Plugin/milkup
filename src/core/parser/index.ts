@@ -102,8 +102,8 @@ const INLINE_SYNTAXES: InlineSyntax[] = [
 /** 块级语法模式 */
 const BLOCK_PATTERNS = {
   heading: /^(#{1,6})\s+(.*)$/,
-  code_block_start: /^```([^\s]*)?\s*$/, // 允许任意语言标识和行尾空格
-  code_block_end: /^```\s*$/, // 允许行尾有空格
+  code_block_start: /^```([^\s`]*)(.*)$/, // 允许语言标识后跟任意属性（如 {linenos=1}）
+  code_block_end: /^\s*```\s*$/, // 允许前导空格和行尾空格
   blockquote: /^>\s?(.*)$/,
   bullet_list: /^(\s*)([-*+])\s+(.*)$/,
   ordered_list: /^(\s*)(\d+)\.\s+(.*)$/,
@@ -514,6 +514,7 @@ export class MarkdownParser {
 
   /**
    * 解析代码块
+   * 支持嵌套代码围栏：内部带语言标识的 ``` 开启嵌套层，对应的 ``` 关闭嵌套层
    * 如果代码块未闭合（没有找到结束的 ```），返回 null，由调用方当作普通段落处理
    */
   private parseCodeBlock(
@@ -526,12 +527,27 @@ export class MarkdownParser {
 
     let endIndex = startIndex + 1;
     const contentLines: string[] = [];
+    let nestedLevel = 0;
 
     while (endIndex < lines.length) {
-      if (BLOCK_PATTERNS.code_block_end.test(lines[endIndex])) {
-        break;
+      const line = lines[endIndex];
+      const isEnd = BLOCK_PATTERNS.code_block_end.test(line);
+      const isStart = !isEnd && BLOCK_PATTERNS.code_block_start.test(line);
+
+      if (isStart) {
+        // 内部出现带语言标识的围栏开启，进入嵌套层
+        nestedLevel++;
+      } else if (isEnd) {
+        if (nestedLevel > 0) {
+          // 关闭一层嵌套
+          nestedLevel--;
+        } else {
+          // 当前代码块的真正结束
+          break;
+        }
       }
-      contentLines.push(lines[endIndex]);
+
+      contentLines.push(line);
       endIndex++;
     }
 
