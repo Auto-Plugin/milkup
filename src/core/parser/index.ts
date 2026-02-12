@@ -161,7 +161,19 @@ export class MarkdownParser {
       const line = lines[i];
 
       if (line.trim() === "") {
-        i++;
+        // 统计连续空行数量
+        let emptyCount = 0;
+        while (i < lines.length && lines[i].trim() === "") {
+          emptyCount++;
+          i++;
+        }
+        // 第一个空行是块之间的标准分隔符，多余的空行用空段落节点保留
+        const extra = blocks.length > 0 ? emptyCount - 1 : emptyCount;
+        for (let j = 0; j < extra; j++) {
+          // 如果已到文件末尾，最后一个空字符串是 split 产生的，不算空行
+          if (i >= lines.length && j === extra - 1) break;
+          blocks.push(this.schema.node("paragraph"));
+        }
         continue;
       }
 

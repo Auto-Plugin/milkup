@@ -92,7 +92,8 @@ export class MarkdownSerializer {
       } else {
         const text = this.serializeInline(node);
         lines.push(indent + text);
-        if (!this.options.compact) lines.push("");
+        // 空段落（用于保留原始空行）不追加分隔空行
+        if (!this.options.compact && text.length > 0) lines.push("");
       }
     },
 
