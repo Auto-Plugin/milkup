@@ -158,7 +158,7 @@ const handleInstall = async () => {
     <!-- ✅ 使用key属性来重建编辑器，当editorKey变化时Vue会自动重建组件 -->
     <div :key="editorKey" class="editorArea">
       <Transition name="fade" mode="out-in">
-        <div v-show="isShowOutline && !isShowSource" class="outlineBox">
+        <div v-show="isShowOutline" class="outlineBox">
           <Outline />
         </div>
       </Transition>
