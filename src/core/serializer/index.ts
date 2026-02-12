@@ -83,6 +83,12 @@ export class MarkdownSerializer {
         lines.push(indent + text);
         const isLastLine = node.attrs.tableRowIndex === node.attrs.tableTotalRows - 1;
         if (isLastLine && !this.options.compact) lines.push("");
+      } else if (node.attrs.htmlBlockId) {
+        // 对于 HTML 块段落，直接输出文本内容
+        const text = node.textContent;
+        lines.push(indent + text);
+        const isLastLine = node.attrs.htmlBlockLineIndex === node.attrs.htmlBlockTotalLines - 1;
+        if (isLastLine && !this.options.compact) lines.push("");
       } else {
         const text = this.serializeInline(node);
         lines.push(indent + text);
@@ -197,6 +203,14 @@ export class MarkdownSerializer {
         }
       }
       lines.push(indent + "$$");
+      if (!this.options.compact) lines.push("");
+    },
+
+    html_block: (node, lines, indent) => {
+      const content = node.textContent || "";
+      for (const line of content.split("\n")) {
+        lines.push(indent + line);
+      }
       if (!this.options.compact) lines.push("");
     },
 

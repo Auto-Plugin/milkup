@@ -117,6 +117,7 @@ const BLOCK_PATTERNS = {
   image: /^!\[([^\]]*)\]\((.+?)(?:\s+"([^"]*)")?\)\s*$/, // 图片 ![alt](src "title") - 允许 URL 中有空格
   container_start: /^:::(\w+)(?:\s+(.*))?$/,
   container_end: /^:::\s*$/, // 允许行尾有空格
+  html_block_start: /^<([a-zA-Z][a-zA-Z0-9]*)/, // 以 < 开头后跟标签名
 };
 
 /**
@@ -263,6 +264,15 @@ export class MarkdownParser {
           i = result.endIndex + 1;
           continue;
         }
+      }
+
+      // HTML 块
+      const htmlMatch = line.match(BLOCK_PATTERNS.html_block_start);
+      if (htmlMatch) {
+        const result = this.parseHtmlBlock(lines, i);
+        blocks.push(result.node);
+        i = result.endIndex + 1;
+        continue;
       }
 
       // 段落
@@ -614,6 +624,77 @@ export class MarkdownParser {
 
     return {
       node: this.schema.node("container", { type, title }, innerBlocks),
+      endIndex,
+    };
+  }
+
+  /**
+   * 解析 HTML 块
+   * 支持自闭合标签和嵌套标签
+   */
+  private parseHtmlBlock(lines: string[], startIndex: number): { node: Node; endIndex: number } {
+    const startLine = lines[startIndex];
+    const tagMatch = startLine.match(BLOCK_PATTERNS.html_block_start);
+    const tagName = tagMatch ? tagMatch[1] : "";
+
+    // HTML 自闭合标签列表
+    const voidElements = new Set([
+      "area",
+      "base",
+      "br",
+      "col",
+      "embed",
+      "hr",
+      "img",
+      "input",
+      "link",
+      "meta",
+      "param",
+      "source",
+      "track",
+      "wbr",
+    ]);
+
+    // 检查是否是自闭合标签（void element 或以 /> 结尾）
+    if (voidElements.has(tagName.toLowerCase()) || startLine.trimEnd().endsWith("/>")) {
+      const textNode = startLine ? this.schema.text(startLine) : null;
+      return {
+        node: this.schema.node("html_block", {}, textNode ? [textNode] : []),
+        endIndex: startIndex,
+      };
+    }
+
+    // 多行 HTML 块：收集直到找到匹配的闭合标签
+    const contentLines: string[] = [startLine];
+    let endIndex = startIndex + 1;
+    let nestLevel = 1; // 已经有一个开始标签
+
+    const openPattern = new RegExp(`<${tagName}[\\s>/]`, "i");
+    const closePattern = new RegExp(`</${tagName}\\s*>`, "i");
+
+    while (endIndex < lines.length) {
+      const line = lines[endIndex];
+      contentLines.push(line);
+
+      // 检查同名标签的嵌套（简单计数）
+      if (openPattern.test(line) && endIndex !== startIndex) {
+        nestLevel++;
+      }
+      if (closePattern.test(line)) {
+        nestLevel--;
+        if (nestLevel <= 0) {
+          break;
+        }
+      }
+
+      endIndex++;
+    }
+
+    const content = contentLines.join("\n");
+    const textNode = content ? this.schema.text(content) : null;
+
+    return {
+      node: this.schema.node("html_block", {}, textNode ? [textNode] : []),
       endIndex,
     };
   }

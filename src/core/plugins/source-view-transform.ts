@@ -30,6 +30,13 @@ function generateCodeBlockId(): string {
 }
 
 /**
+ * 生成唯一的 HTML 块 ID
+ */
+function generateHtmlBlockId(): string {
+  return `hb_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+/**
  * 将代码块转换为多个段落节点
  */
 function transformCodeBlockToParagraphs(
@@ -252,6 +259,53 @@ function transformParagraphsToTable(
 }
 
 /**
+ * 将 HTML 块节点转换为多个段落节点
+ */
+function transformHtmlBlockToParagraphs(
+  htmlBlock: ProseMirrorNode,
+  schema: Schema
+): ProseMirrorNode[] {
+  const htmlBlockId = generateHtmlBlockId();
+  let content = htmlBlock.textContent;
+  content = content.replace(/\n+$/, "");
+  const lines = content.split("\n");
+
+  const paragraphs: ProseMirrorNode[] = [];
+  lines.forEach((line, index) => {
+    const textContent = line.length > 0 ? schema.text(line) : undefined;
+    const paragraph = schema.nodes.paragraph.create(
+      {
+        htmlBlockId,
+        htmlBlockLineIndex: index,
+        htmlBlockTotalLines: lines.length,
+      },
+      textContent
+    );
+    paragraphs.push(paragraph);
+  });
+
+  return paragraphs;
+}
+
+/**
+ * 将连续的 HTML 块段落节点重新组合成 HTML 块
+ */
+function transformParagraphsToHtmlBlock(
+  paragraphs: Array<{ node: ProseMirrorNode; pos: number }>,
+  schema: Schema
+): ProseMirrorNode | null {
+  if (paragraphs.length === 0) return null;
+
+  const lines = paragraphs.map((p) => p.node.textContent);
+  const content = lines.join("\n");
+
+  // 验证内容是否以 HTML 标签开头
+  if (!content.match(/^<[a-zA-Z]/)) return null;
+
+  return schema.nodes.html_block.create({}, content ? schema.text(content) : null);
+}
+
+/**
  * 查找文档中所有的代码块段落组
  */
 function findCodeBlockParagraphGroups(
@@ -319,6 +373,12 @@ function convertBlocksToParagraphs(tr: Transaction): Transaction {
         replacement: transformTableToParagraphs(node, schema),
       });
       return false; // 不遍历表格子节点
+    } else if (node.type.name === "html_block") {
+      blocks.push({
+        pos: pos,
+        nodeSize: node.nodeSize,
+        replacement: transformHtmlBlockToParagraphs(node, schema),
+      });
     }
     return true;
   });
@@ -353,6 +413,8 @@ function processNodeForBlockConversion(
     let currentCodeBlockId: string | null = null;
     let tableGroup: ProseMirrorNode[] = [];
     let currentTableId: string | null = null;
+    let htmlBlockGroup: ProseMirrorNode[] = [];
+    let currentHtmlBlockId: string | null = null;
 
     const flushCodeBlockGroup = () => {
       if (codeBlockGroup.length === 0) return;
@@ -380,14 +442,29 @@ function processNodeForBlockConversion(
       currentTableId = null;
     };
 
+    const flushHtmlBlockGroup = () => {
+      if (htmlBlockGroup.length === 0) return;
+      const paragraphs = htmlBlockGroup.map((n) => ({ node: n, pos: 0 }));
+      const result = transformParagraphsToHtmlBlock(paragraphs, schema);
+      if (result) {
+        newChildren.push(result);
+      } else {
+        newChildren.push(...htmlBlockGroup);
+      }
+      htmlBlockGroup = [];
+      currentHtmlBlockId = null;
+    };
+
     node.content.forEach((child) => {
       if (child.type.name === "paragraph") {
         const codeBlockId = child.attrs.codeBlockId;
         const tableId = child.attrs.tableId;
+        const htmlBlockId = child.attrs.htmlBlockId;
 
         if (codeBlockId) {
           // 代码块段落
           flushTableGroup();
+          flushHtmlBlockGroup();
           if (currentCodeBlockId && currentCodeBlockId !== codeBlockId) {
             flushCodeBlockGroup();
           }
@@ -399,6 +476,7 @@ function processNodeForBlockConversion(
         if (tableId) {
           // 表格段落
           flushCodeBlockGroup();
+          flushHtmlBlockGroup();
           if (currentTableId && currentTableId !== tableId) {
             flushTableGroup();
           }
@@ -407,9 +485,22 @@ function processNodeForBlockConversion(
           return;
         }
 
+        if (htmlBlockId) {
+          // HTML 块段落
+          flushCodeBlockGroup();
+          flushTableGroup();
+          if (currentHtmlBlockId && currentHtmlBlockId !== htmlBlockId) {
+            flushHtmlBlockGroup();
+          }
+          currentHtmlBlockId = htmlBlockId;
+          htmlBlockGroup.push(child);
+          return;
+        }
+
         // 非特殊段落，先刷新之前的组
         flushCodeBlockGroup();
         flushTableGroup();
+        flushHtmlBlockGroup();
 
         if (child.attrs.imageAttrs) {
           const image = transformParagraphToImage(child, schema);
@@ -423,6 +514,7 @@ function processNodeForBlockConversion(
       } else {
         flushCodeBlockGroup();
         flushTableGroup();
+        flushHtmlBlockGroup();
         // 递归处理子节点
         const processed = processNodeForBlockConversion(child, schema);
         if (Array.isArray(processed)) {
@@ -436,6 +528,7 @@ function processNodeForBlockConversion(
     // 刷新最后一组
     flushCodeBlockGroup();
     flushTableGroup();
+    flushHtmlBlockGroup();
 
     // 如果内容有变化，创建新节点
     const newContent = Fragment.from(newChildren);
@@ -462,6 +555,9 @@ function convertParagraphsToBlocks(tr: Transaction): Transaction {
   // 收集表格段落组
   let tableGroup: ProseMirrorNode[] = [];
   let currentTableId: string | null = null;
+  // 收集 HTML 块段落组
+  let htmlBlockGroup: ProseMirrorNode[] = [];
+  let currentHtmlBlockId: string | null = null;
 
   const flushCodeBlockGroup = () => {
     if (codeBlockGroup.length === 0) return;
@@ -490,14 +586,29 @@ function convertParagraphsToBlocks(tr: Transaction): Transaction {
     currentTableId = null;
   };
 
+  const flushHtmlBlockGroup = () => {
+    if (htmlBlockGroup.length === 0) return;
+    const paragraphs = htmlBlockGroup.map((node) => ({ node, pos: 0 }));
+    const result = transformParagraphsToHtmlBlock(paragraphs, schema);
+    if (result) {
+      newContent.push(result);
+    } else {
+      newContent.push(...htmlBlockGroup);
+    }
+    htmlBlockGroup = [];
+    currentHtmlBlockId = null;
+  };
+
   doc.forEach((node) => {
     if (node.type.name === "paragraph") {
       const codeBlockId = node.attrs.codeBlockId;
       const tableId = node.attrs.tableId;
+      const htmlBlockId = node.attrs.htmlBlockId;
 
       if (codeBlockId) {
         // 代码块段落
         flushTableGroup();
+        flushHtmlBlockGroup();
         if (currentCodeBlockId && currentCodeBlockId !== codeBlockId) {
           flushCodeBlockGroup();
         }
@@ -509,6 +620,7 @@ function convertParagraphsToBlocks(tr: Transaction): Transaction {
       if (tableId) {
         // 表格段落
         flushCodeBlockGroup();
+        flushHtmlBlockGroup();
         if (currentTableId && currentTableId !== tableId) {
           flushTableGroup();
         }
@@ -517,9 +629,22 @@ function convertParagraphsToBlocks(tr: Transaction): Transaction {
         return;
       }
 
+      if (htmlBlockId) {
+        // HTML 块段落
+        flushCodeBlockGroup();
+        flushTableGroup();
+        if (currentHtmlBlockId && currentHtmlBlockId !== htmlBlockId) {
+          flushHtmlBlockGroup();
+        }
+        currentHtmlBlockId = htmlBlockId;
+        htmlBlockGroup.push(node);
+        return;
+      }
+
       // 非特殊段落，先刷新之前的组
       flushCodeBlockGroup();
       flushTableGroup();
+      flushHtmlBlockGroup();
 
       if (node.attrs.imageAttrs) {
         // 图片段落
@@ -535,6 +660,7 @@ function convertParagraphsToBlocks(tr: Transaction): Transaction {
     } else {
       flushCodeBlockGroup();
       flushTableGroup();
+      flushHtmlBlockGroup();
       // 递归处理子节点
       const processed = processNodeForBlockConversion(node, schema);
       if (Array.isArray(processed)) {
@@ -548,6 +674,7 @@ function convertParagraphsToBlocks(tr: Transaction): Transaction {
   // 刷新最后一组
   flushCodeBlockGroup();
   flushTableGroup();
+  flushHtmlBlockGroup();
 
   if (newContent.length > 0) {
     const step = new ReplaceStep(0, doc.content.size, new Slice(Fragment.from(newContent), 0, 0));
@@ -599,7 +726,8 @@ export function createSourceViewTransformPlugin(): Plugin {
             node.type.name === "code_block" ||
             node.type.name === "image" ||
             node.type.name === "horizontal_rule" ||
-            node.type.name === "table"
+            node.type.name === "table" ||
+            node.type.name === "html_block"
           ) {
             hasBlocks = true;
           }

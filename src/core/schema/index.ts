@@ -30,6 +30,10 @@ const paragraph: NodeSpec = {
     tableId: { default: null },
     tableRowIndex: { default: null },
     tableTotalRows: { default: null },
+    // HTML 块相关属性（仅在源码模式下使用）
+    htmlBlockId: { default: null },
+    htmlBlockLineIndex: { default: null },
+    htmlBlockTotalLines: { default: null },
   },
   content: "inline*",
   group: "block",
@@ -56,6 +60,12 @@ const paragraph: NodeSpec = {
       attrs["data-table-id"] = node.attrs.tableId;
       attrs["data-table-row-index"] = node.attrs.tableRowIndex;
       attrs["data-table-total-rows"] = node.attrs.tableTotalRows;
+    }
+    // 如果是 HTML 块段落，添加数据属性
+    if (node.attrs.htmlBlockId) {
+      attrs["data-html-block-id"] = node.attrs.htmlBlockId;
+      attrs["data-html-block-line-index"] = node.attrs.htmlBlockLineIndex;
+      attrs["data-html-block-total-lines"] = node.attrs.htmlBlockTotalLines;
     }
     return ["p", attrs, 0];
   },
@@ -301,6 +311,18 @@ const math_block: NodeSpec = {
   ],
   toDOM(): DOMOutputSpec {
     return ["div", { class: "math-block" }, ["pre", 0]];
+  },
+};
+
+const html_block: NodeSpec = {
+  content: "text*",
+  marks: "",
+  group: "block",
+  code: true,
+  defining: true,
+  parseDOM: [{ tag: "div.html-block", preserveWhitespace: "full" as const }],
+  toDOM(): DOMOutputSpec {
+    return ["div", { class: "html-block" }, ["pre", 0]];
   },
 };
 
@@ -552,6 +574,7 @@ export const milkupSchema = new Schema({
     table_cell,
     table_header,
     math_block,
+    html_block,
     container,
     image,
     text,
