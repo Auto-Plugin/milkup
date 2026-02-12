@@ -154,8 +154,9 @@ function detectSyntaxMatches(text: string): MatchInfo[] {
       const contentStart = start + prefix.length;
       const contentEnd = end - suffix.length;
 
-      // 跳过与转义范围重叠的匹配，但链接匹配除外（链接 URL 内允许转义括号）
-      if (syntax.type !== "link") {
+      // 跳过与转义范围重叠的匹配，但链接和行内数学除外
+      // （链接 URL 内允许转义括号，数学公式内的 \| \hat 等是 LaTeX 命令）
+      if (syntax.type !== "link" && syntax.type !== "math_inline") {
         const overlapsEscape = escapeRanges.some((esc) => esc.start < end && esc.end > start);
         if (overlapsEscape) continue;
       }
@@ -375,23 +376,36 @@ function detectNestedSyntax(
     });
 
     // 递归处理内容（传递合并后的 attrs）
-    const innerResults = detectNestedSyntax(
-      m.content,
-      baseOffset + m.contentStart,
-      allTypes,
-      mergedAttrs
-    );
-    if (innerResults.length > 0) {
-      results.push(...innerResults);
-    } else if (m.content.length > 0) {
-      // 没有嵌套语法，直接添加内容
-      results.push({
-        from: baseOffset + m.contentStart,
-        to: baseOffset + m.contentEnd,
-        markTypes: allTypes,
-        isSyntax: false,
-        attrs: mergedAttrs,
-      });
+    // 数学公式内容不做嵌套语法检测（\| \hat 等是 LaTeX 命令，不是 Markdown 语法）
+    if (m.syntax.type === "math_inline") {
+      if (m.content.length > 0) {
+        results.push({
+          from: baseOffset + m.contentStart,
+          to: baseOffset + m.contentEnd,
+          markTypes: allTypes,
+          isSyntax: false,
+          attrs: mergedAttrs,
+        });
+      }
+    } else {
+      const innerResults = detectNestedSyntax(
+        m.content,
+        baseOffset + m.contentStart,
+        allTypes,
+        mergedAttrs
+      );
+      if (innerResults.length > 0) {
+        results.push(...innerResults);
+      } else if (m.content.length > 0) {
+        // 没有嵌套语法，直接添加内容
+        results.push({
+          from: baseOffset + m.contentStart,
+          to: baseOffset + m.contentEnd,
+          markTypes: allTypes,
+          isSyntax: false,
+          attrs: mergedAttrs,
+        });
+      }
     }
 
     // 后缀（语法标记）

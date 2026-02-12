@@ -352,14 +352,22 @@ export class MarkdownParser {
   private parseInlineWithSyntax(text: string, inheritedMarks: Mark[] = []): Node[] {
     if (!text) return [];
 
-    // 转义预处理：先收集链接匹配范围，链接 URL 内的转义不拆分文本
-    const linkRanges: Array<{ start: number; end: number }> = [];
+    // 转义预处理：先收集链接和行内数学匹配范围，这些范围内的转义不拆分文本
+    const protectedRanges: Array<{ start: number; end: number }> = [];
     const linkSyntax = INLINE_SYNTAXES.find((s) => s.type === "link");
     if (linkSyntax) {
       const linkRe = new RegExp(linkSyntax.pattern.source, "g");
       let lm: RegExpExecArray | null;
       while ((lm = linkRe.exec(text)) !== null) {
-        linkRanges.push({ start: lm.index, end: lm.index + lm[0].length });
+        protectedRanges.push({ start: lm.index, end: lm.index + lm[0].length });
+      }
+    }
+    const mathSyntax = INLINE_SYNTAXES.find((s) => s.type === "math_inline");
+    if (mathSyntax) {
+      const mathRe = new RegExp(mathSyntax.pattern.source, "g");
+      let mm: RegExpExecArray | null;
+      while ((mm = mathRe.exec(text)) !== null) {
+        protectedRanges.push({ start: mm.index, end: mm.index + mm[0].length });
       }
     }
 
@@ -367,11 +375,11 @@ export class MarkdownParser {
     const escapeRe = new RegExp(MarkdownParser.ESCAPE_RE.source, "g");
     let escMatch: RegExpExecArray | null;
     while ((escMatch = escapeRe.exec(text)) !== null) {
-      // 跳过链接范围内的转义（链接 URL 中的 \( \) 由链接正则处理）
-      const inLink = linkRanges.some(
+      // 跳过链接/数学公式范围内的转义（公式中的 \| \hat 等是 LaTeX 命令，不是 Markdown 转义）
+      const inProtected = protectedRanges.some(
         (r) => escMatch!.index >= r.start && escMatch!.index + 2 <= r.end
       );
-      if (!inLink) {
+      if (!inProtected) {
         escapePositions.push({ index: escMatch.index, char: escMatch[1] });
       }
     }
