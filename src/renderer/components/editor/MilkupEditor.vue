@@ -48,15 +48,20 @@ const scrollViewRef = ref<HTMLElement | null>(null);
 let editor: MilkupEditor | null = null;
 const lastEmittedValue = ref<string | null>(null);
 
-// 更新滚动比例
+// 更新滚动比例（rAF 节流）
+let scrollRafId: number | null = null;
 function updateScrollRatio(e: Event) {
+  if (scrollRafId !== null) return;
   const target = e.target as HTMLElement;
-  const scrollTop = target.scrollTop;
-  const scrollHeight = target.scrollHeight - target.clientHeight;
-  const ratio = scrollHeight === 0 ? 0 : scrollTop / scrollHeight;
-  if (currentTab.value) {
-    currentTab.value.scrollRatio = ratio;
-  }
+  scrollRafId = requestAnimationFrame(() => {
+    scrollRafId = null;
+    const scrollTop = target.scrollTop;
+    const scrollHeight = target.scrollHeight - target.clientHeight;
+    const ratio = scrollHeight === 0 ? 0 : scrollTop / scrollHeight;
+    if (currentTab.value) {
+      currentTab.value.scrollRatio = ratio;
+    }
+  });
 }
 
 // 预处理内容（主进程已完成图片路径转换，这里仅处理空格编码供编辑器渲染）
@@ -84,33 +89,40 @@ function postprocessContent(content: string): string {
   });
 }
 
-// 发送大纲更新事件
+// 发送大纲更新事件（防抖，避免大文件每次按键都遍历文档）
+let outlineTimer: ReturnType<typeof setTimeout> | null = null;
 function emitOutlineUpdate() {
-  if (!editor) return;
+  if (outlineTimer !== null) {
+    clearTimeout(outlineTimer);
+  }
+  outlineTimer = setTimeout(() => {
+    outlineTimer = null;
+    if (!editor) return;
 
-  const doc = editor.getDoc();
-  const headings: Array<{ level: number; text: string; id: string; pos: number }> = [];
+    const doc = editor.getDoc();
+    const headings: Array<{ level: number; text: string; id: string; pos: number }> = [];
 
-  doc.descendants((node, pos) => {
-    if (node.type.name === "heading") {
-      // 提取不含语法标记的纯文本
-      let text = "";
-      node.forEach((child) => {
-        if (child.isText && !child.marks.some((m) => m.type.name === "syntax_marker")) {
-          text += child.text || "";
-        }
-      });
-      headings.push({
-        level: node.attrs.level,
-        text: text.trim(),
-        id: `heading-${pos}`,
-        pos,
-      });
-    }
-    return true;
-  });
+    doc.descendants((node, pos) => {
+      if (node.type.name === "heading") {
+        // 提取不含语法标记的纯文本
+        let text = "";
+        node.forEach((child) => {
+          if (child.isText && !child.marks.some((m) => m.type.name === "syntax_marker")) {
+            text += child.text || "";
+          }
+        });
+        headings.push({
+          level: node.attrs.level,
+          text: text.trim(),
+          id: `heading-${pos}`,
+          pos,
+        });
+      }
+      return true;
+    });
 
-  emitter.emit("outline:Update", headings);
+    emitter.emit("outline:Update", headings);
+  }, 150);
 }
 
 onMounted(async () => {

@@ -92,7 +92,36 @@ const onUpdateAvailable = (payload: any) => {
 window.electronAPI.on("update:available", onUpdateAvailable);
 
 // 监听手动检查的更新可用事件 (Manual Check from About)
-import { onMounted, onUnmounted } from "vue";
+import { onMounted, onUnmounted, ref, watch, nextTick, computed } from "vue";
+// 大纲侧边栏两阶段动画状态机
+// closed: 隐藏 | opening: transform 滑入动画 | open: flex 正常布局 | closing-prep: 切回 transform 定位 | closing: transform 滑出动画
+type OutlineState = "closed" | "opening" | "open" | "closing-prep" | "closing";
+const outlineState = ref<OutlineState>(isShowOutline.value ? "open" : "closed");
+const editorAreaRef = ref<HTMLElement | null>(null);
+
+const outlineClass = computed(() => `outline-${outlineState.value}`);
+
+watch(isShowOutline, async (val) => {
+  if (val) {
+    outlineState.value = "opening";
+  } else {
+    // 先瞬间切回 transform 定位（视觉位置不变，无动画）
+    outlineState.value = "closing-prep";
+    await nextTick();
+    editorAreaRef.value?.offsetHeight; // 强制浏览器应用样式
+    outlineState.value = "closing";
+  }
+});
+
+function onOutlineTransitionEnd(e: TransitionEvent) {
+  if (e.propertyName !== "transform") return;
+  if (outlineState.value === "opening") {
+    outlineState.value = "open"; // 切换到 flex 布局，内容正常排版
+  } else if (outlineState.value === "closing") {
+    outlineState.value = "closed";
+  }
+}
+
 onMounted(() => {
   initTheme();
   initFont();
@@ -157,13 +186,11 @@ const handleInstall = async () => {
   <TitleBar />
   <div id="fontRoot">
     <!-- ✅ 使用key属性来重建编辑器，当editorKey变化时Vue会自动重建组件 -->
-    <div :key="editorKey" class="editorArea">
-      <Transition name="fade" mode="out-in">
-        <div v-show="isShowOutline" class="outlineBox">
-          <Outline />
-        </div>
-      </Transition>
-      <div class="editorBox">
+    <div :key="editorKey" ref="editorAreaRef" class="editorArea" :class="outlineClass">
+      <div class="outlineBox">
+        <Outline />
+      </div>
+      <div class="editorBox" @transitionend="onOutlineTransitionEnd">
         <!-- Milkup 编辑器（新内核，支持源码模式） -->
         <MilkupEditor v-model="markdown" :read-only="currentTab?.readOnly" />
       </div>
@@ -210,16 +237,92 @@ const handleInstall = async () => {
   height: 0;
   flex: 1;
   display: flex;
+  overflow: hidden;
+  position: relative;
 
+  // 默认：侧边栏隐藏在左侧外
   .outlineBox {
+    position: absolute;
+    left: 0;
+    top: 0;
     width: 25%;
     height: 100%;
-    transition: 0.2s;
+    z-index: 10;
+    transform: translateX(-100%);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      transform 0.2s ease,
+      opacity 0.2s ease;
   }
 
   .editorBox {
     flex: 1;
-    width: 0;
+    width: 100%;
+    transition: transform 0.2s ease;
+  }
+
+  // 打开动画：transform 滑入（GPU 加速，零重排）
+  &.outline-opening {
+    .outlineBox {
+      transform: translateX(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .editorBox {
+      transform: translateX(25%);
+    }
+  }
+
+  // 打开完成：切换为 flex 正常布局，内容区正确排版
+  &.outline-open {
+    .outlineBox {
+      position: relative;
+      transform: none;
+      opacity: 1;
+      pointer-events: auto;
+      flex-shrink: 0;
+      transition: none;
+    }
+    .editorBox {
+      width: 0;
+      transform: none;
+      transition: none;
+    }
+  }
+
+  // 关闭准备：瞬间切回 transform 定位（视觉位置不变）
+  &.outline-closing-prep {
+    .outlineBox {
+      position: absolute;
+      transform: translateX(0);
+      opacity: 1;
+      pointer-events: auto;
+      transition: none;
+    }
+    .editorBox {
+      width: 100%;
+      transform: translateX(25%);
+      transition: none;
+    }
+  }
+
+  // 关闭动画：transform 滑出
+  &.outline-closing {
+    .outlineBox {
+      position: absolute;
+      transform: translateX(-100%);
+      opacity: 0;
+      pointer-events: none;
+      transition:
+        transform 0.2s ease,
+        opacity 0.2s ease;
+    }
+    .editorBox {
+      width: 100%;
+      transform: translateX(0);
+      transition: transform 0.2s ease;
+    }
   }
 }
 </style>
