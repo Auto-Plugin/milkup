@@ -894,8 +894,26 @@
 
 /* 源码视图模式 */
 .milkup-editor.source-view .milkup-syntax-hidden {
+  font-size: 0.9em;
+  opacity: 1;
+  width: auto;
   display: inline;
+  user-select: auto;
   color: var(--text-color-3, #999);
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+/* 源码模式下隐藏数学公式渲染 widget */
+.milkup-editor.source-view .milkup-math-rendered {
+  display: none !important;
+}
+
+/* 源码模式下显示数学公式源码 */
+.milkup-editor.source-view .milkup-math-source-hidden {
+  font-size: inherit;
+  opacity: 1;
+  width: auto;
+  user-select: auto;
 }
 
 /* 源码模式下禁用高亮渲染 */
