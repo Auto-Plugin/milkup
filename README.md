@@ -60,6 +60,16 @@ milkup 致力于为用户提供高效、简洁的 Markdown 编辑体验。我们
 
 <img src="./public/qun.jpg" alt="联系方式" width="200">
 
+## 捐赠
+
+milkup 是一个开源项目，如果您觉得它对您有帮助，可以考虑捐赠支持我们。
+
+<img src="./public/wechatpay.jpg" alt="微信支付" width="200">
+<img src="./public/alipay.jpg" alt="支付宝" width="200">
+
+> 您的捐赠将用于支持 milkup 开发的 AI tokens 和团队小伙伴的咖啡费用😁！
+> 捐赠请备注：milkup。
+> 如您备注了您的 github、微信号，您的头像可能被展示在我们的官网捐赠名单中。
 ---
 
 <div align="center">
