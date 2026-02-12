@@ -1,7 +1,7 @@
 <div align="center">
   <img src="./src/renderer/public/logo.svg" alt="milkup Logo" width="150"> 
   <h1>milkup</h1>
-  <p><strong>一个现代化的桌面端 Markdown 编辑器</strong></p>
+  <p><strong>一个跨平台的、即时渲染桌面端 Markdown 编辑器</strong></p>
   
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
   [![Node.js](https://img.shields.io/badge/node-%3E%3D20.17.0-brightgreen.svg)](https://nodejs.org/)
@@ -11,8 +11,8 @@
 
 ## ✨ 特性
 
-- 🎯 **即时渲染** - 基于自研引擎的实时预览编辑体验
-- 📝 **双模式编辑** - 支持所见即所得和源码编辑模式切换
+- 🎯 **即时渲染** - 基于自研引擎的即时渲染编辑体验（堪比 typora）
+- 📝 **双模式编辑** - 支持即时渲染和高级源码编辑模式切换
 - 🎨 **多主题支持** - 多种简约主题，支持主题编辑器，导入导出
 - 📁 **本地文件管理** - 支持打开、编辑和保存本地 Markdown 文件
 - 🔖 **多文件打开**  - 支持Tab栏多文件打开
@@ -21,7 +21,7 @@
 - ️🖼️ **图片上传** - 支持自定义图床配置
 - ✅ **拼写检查** - 内置拼写检查功能
 - 🌐 **跨平台支持** - 支持 Windows、macOS、Linux
-- 🔧 **高度可定制** - 支持自定义 CSS 和插件扩展
+- 🔧 **高度可定制** - 支持自定义主题和插件扩展（进行中...）
 
 ## 🎯 目标
 
