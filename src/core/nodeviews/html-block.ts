@@ -31,7 +31,10 @@ export function updateAllHtmlBlocks(view: ProseMirrorView): void {
  * 对 HTML 内容进行安全处理（移除 script 标签）
  */
 function sanitizeHtml(htmlContent: string): string {
-  return htmlContent.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<script[\s\S]*?\/>/gi, "");
+  return htmlContent
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<script[\s\S]*?\/>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "");
 }
 
 /**
