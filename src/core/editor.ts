@@ -127,6 +127,7 @@ export class MilkupEditor implements IMilkupEditor {
   private searchUseRegex = false;
   private searchInSelection = false;
   private searchSelectionRange: { from: number; to: number } | null = null;
+  private _destroyed = false;
 
   constructor(container: HTMLElement, config: MilkupConfig = {}) {
     this.config = { ...defaultConfig, ...config };
@@ -333,6 +334,8 @@ export class MilkupEditor implements IMilkupEditor {
    * 销毁编辑器
    */
   destroy(): void {
+    this._destroyed = true;
+
     // 销毁自定义插件
     for (const plugin of this.plugins) {
       plugin.destroy?.();
@@ -610,6 +613,9 @@ export class MilkupEditor implements IMilkupEditor {
         hasClipboardContent = true; // 默认启用粘贴
       }
     }
+
+    // 异步操作后编辑器可能已被销毁（如 HMR），直接返回
+    if (this._destroyed) return;
 
     // 复制
     const copyItem = this.createContextMenuItem("复制", !hasSelection, () => {
