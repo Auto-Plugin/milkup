@@ -187,7 +187,8 @@ function detectSyntaxMatches(text: string): MatchInfo[] {
 function detectEscapeRegions(
   text: string,
   baseOffset: number,
-  inheritedTypes: string[]
+  inheritedTypes: string[],
+  inheritedAttrs?: Record<string, any>
 ): Array<{
   from: number;
   to: number;
@@ -220,6 +221,7 @@ function detectEscapeRegions(
         to: baseOffset + escMatch.index,
         markTypes: inheritedTypes,
         isSyntax: false,
+        attrs: inheritedAttrs,
       });
     }
 
@@ -230,6 +232,7 @@ function detectEscapeRegions(
       markTypes: inheritedTypes,
       isSyntax: true,
       isEscape: true,
+      attrs: inheritedAttrs,
     });
 
     // 被转义的字符 → 普通文本（只带 inheritedTypes）
@@ -238,6 +241,7 @@ function detectEscapeRegions(
       to: baseOffset + escMatch.index + 2,
       markTypes: inheritedTypes,
       isSyntax: false,
+      attrs: inheritedAttrs,
     });
 
     pos = escMatch.index + 2;
@@ -253,6 +257,7 @@ function detectEscapeRegions(
       to: baseOffset + text.length,
       markTypes: inheritedTypes,
       isSyntax: false,
+      attrs: inheritedAttrs,
     });
   }
 
@@ -265,7 +270,8 @@ function detectEscapeRegions(
 function detectNestedSyntax(
   text: string,
   baseOffset: number,
-  inheritedTypes: string[]
+  inheritedTypes: string[],
+  inheritedAttrs?: Record<string, any>
 ): Array<{
   from: number;
   to: number;
@@ -293,7 +299,7 @@ function detectNestedSyntax(
   if (matches.length === 0) {
     // 没有语法匹配，检查是否有转义序列
     if (text.length > 0 && hasEscapes) {
-      const escRegions = detectEscapeRegions(text, baseOffset, inheritedTypes);
+      const escRegions = detectEscapeRegions(text, baseOffset, inheritedTypes, inheritedAttrs);
       if (escRegions.length > 0) {
         results.push(...escRegions);
         return results;
@@ -305,6 +311,7 @@ function detectNestedSyntax(
         to: baseOffset + text.length,
         markTypes: inheritedTypes,
         isSyntax: false,
+        attrs: inheritedAttrs,
       });
     }
     return results;
@@ -315,7 +322,12 @@ function detectNestedSyntax(
     // 前面的纯文本（可能包含转义）
     if (m.start > pos) {
       const plainText = text.slice(pos, m.start);
-      const escRegions = detectEscapeRegions(plainText, baseOffset + pos, inheritedTypes);
+      const escRegions = detectEscapeRegions(
+        plainText,
+        baseOffset + pos,
+        inheritedTypes,
+        inheritedAttrs
+      );
       if (escRegions.length > 0) {
         results.push(...escRegions);
       } else if (plainText.length > 0 && inheritedTypes.length > 0) {
@@ -324,6 +336,7 @@ function detectNestedSyntax(
           to: baseOffset + m.start,
           markTypes: inheritedTypes,
           isSyntax: false,
+          attrs: inheritedAttrs,
         });
       }
     }
@@ -332,17 +345,29 @@ function detectNestedSyntax(
     const currentTypes = m.syntax.multiMarks || [m.syntax.type];
     const allTypes = [...inheritedTypes, ...currentTypes];
 
+    // 合并 attrs：继承的 attrs + 当前语法的 attrs
+    const mergedAttrs = m.attrs
+      ? inheritedAttrs
+        ? { ...inheritedAttrs, ...m.attrs }
+        : m.attrs
+      : inheritedAttrs;
+
     // 前缀（语法标记）
     results.push({
       from: baseOffset + m.start,
       to: baseOffset + m.contentStart,
       markTypes: allTypes,
       isSyntax: true,
-      attrs: m.attrs,
+      attrs: mergedAttrs,
     });
 
-    // 递归处理内容
-    const innerResults = detectNestedSyntax(m.content, baseOffset + m.contentStart, allTypes);
+    // 递归处理内容（传递合并后的 attrs）
+    const innerResults = detectNestedSyntax(
+      m.content,
+      baseOffset + m.contentStart,
+      allTypes,
+      mergedAttrs
+    );
     if (innerResults.length > 0) {
       results.push(...innerResults);
     } else if (m.content.length > 0) {
@@ -352,7 +377,7 @@ function detectNestedSyntax(
         to: baseOffset + m.contentEnd,
         markTypes: allTypes,
         isSyntax: false,
-        attrs: m.attrs,
+        attrs: mergedAttrs,
       });
     }
 
@@ -362,7 +387,7 @@ function detectNestedSyntax(
       to: baseOffset + m.end,
       markTypes: allTypes,
       isSyntax: true,
-      attrs: m.attrs,
+      attrs: mergedAttrs,
     });
 
     pos = m.end;
@@ -371,7 +396,12 @@ function detectNestedSyntax(
   // 剩余文本（可能包含转义）
   if (pos < text.length) {
     const remainingText = text.slice(pos);
-    const escRegions = detectEscapeRegions(remainingText, baseOffset + pos, inheritedTypes);
+    const escRegions = detectEscapeRegions(
+      remainingText,
+      baseOffset + pos,
+      inheritedTypes,
+      inheritedAttrs
+    );
     if (escRegions.length > 0) {
       results.push(...escRegions);
     } else if (remainingText.length > 0 && inheritedTypes.length > 0) {
@@ -380,6 +410,7 @@ function detectNestedSyntax(
         to: baseOffset + text.length,
         markTypes: inheritedTypes,
         isSyntax: false,
+        attrs: inheritedAttrs,
       });
     }
   }
@@ -424,14 +455,21 @@ function hasCorrectMarks(
 
   // 构建期望的 marks 映射：position -> expected mark types
   const expectedMarks = new Map<number, Set<string>>();
+  // 构建期望的 attrs 映射：position -> { markType -> attrs }
+  const expectedAttrs = new Map<number, Map<string, Record<string, any>>>();
   for (const region of regions) {
     for (let pos = region.from; pos < region.to; pos++) {
       if (!expectedMarks.has(pos)) {
         expectedMarks.set(pos, new Set());
+        expectedAttrs.set(pos, new Map());
       }
       for (const markType of region.markTypes) {
         if (markType !== "strong_emphasis") {
           expectedMarks.get(pos)!.add(markType);
+          // 记录带 attrs 的 mark（如 link 的 href）
+          if (region.attrs && (markType === "link" || markType === "math_inline")) {
+            expectedAttrs.get(pos)!.set(markType, region.attrs);
+          }
         }
       }
       // 添加 syntax_marker
@@ -479,6 +517,25 @@ function hasCorrectMarks(
           if (!actual.has(markType)) {
             allMatch = false;
             break;
+          }
+        }
+
+        // 检查带 attrs 的 mark（如 link 的 href）是否一致
+        if (allMatch) {
+          const posAttrs = expectedAttrs.get(pos);
+          if (posAttrs && posAttrs.size > 0) {
+            for (const [markTypeName, expectedAttr] of posAttrs) {
+              const actualMark = child.marks.find((m) => m.type.name === markTypeName);
+              if (actualMark) {
+                for (const [key, val] of Object.entries(expectedAttr)) {
+                  if (actualMark.attrs[key] !== val) {
+                    allMatch = false;
+                    break;
+                  }
+                }
+              }
+              if (!allMatch) break;
+            }
           }
         }
 

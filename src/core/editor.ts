@@ -119,6 +119,9 @@ export class MilkupEditor implements IMilkupEditor {
   private plugins: MilkupPlugin[] = [];
   private eventHandlers: Map<string, Set<Function>> = new Map();
   private contextMenu: HTMLElement | null = null;
+  private linkTooltip: HTMLElement | null = null;
+  private linkTooltipCurrentLink: HTMLAnchorElement | null = null;
+  private linkTooltipHideTimer: ReturnType<typeof setTimeout> | null = null;
   private searchPanel: HTMLElement | null = null;
   private searchWrapper: HTMLElement | null = null;
   private searchInput: HTMLInputElement | null = null;
@@ -179,6 +182,9 @@ export class MilkupEditor implements IMilkupEditor {
 
     // 初始化自定义插件
     this.initPlugins();
+
+    // 初始化链接 tooltip 和点击拦截
+    this.initLinkHandler();
 
     // 创建搜索面板（挂载到 container，不在 contenteditable 内）
     this.createSearchPanel(container);
@@ -353,6 +359,11 @@ export class MilkupEditor implements IMilkupEditor {
     // 清理右键菜单
     this.hideContextMenu();
 
+    // 清理链接 tooltip
+    this.hideLinkTooltipImmediate();
+    this.linkTooltip?.remove();
+    this.linkTooltip = null;
+
     // 清理搜索面板
     this.searchWrapper?.remove();
     this.searchWrapper = null;
@@ -414,6 +425,221 @@ export class MilkupEditor implements IMilkupEditor {
     }
 
     return false;
+  }
+
+  // ============ 链接 Tooltip 和点击拦截 ============
+
+  private static readonly IS_MAC =
+    typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
+  private static readonly MOD_KEY = MilkupEditor.IS_MAC ? "⌘" : "Ctrl";
+
+  /** 从 DOM 元素向上查找最近的 <a> 标签 */
+  private findLinkElement(target: HTMLElement): HTMLAnchorElement | null {
+    let el: HTMLElement | null = target;
+    const root = this.view.dom;
+    while (el && el !== root) {
+      if (el.tagName === "A") {
+        return el as HTMLAnchorElement;
+      }
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  /** 从 <a> 元素获取链接 URL（优先从 ProseMirror 文档模型读取） */
+  private getLinkHref(linkEl: HTMLAnchorElement): string {
+    // 1. 先尝试从 href 属性获取
+    const href = linkEl.getAttribute("href");
+    if (href) return href;
+
+    // 2. href 为空时，从 ProseMirror 文档模型中获取 link mark 的 attrs
+    try {
+      const pos = this.view.posAtDOM(linkEl, 0);
+      if (pos >= 0) {
+        const $pos = this.view.state.doc.resolve(pos);
+        // 检查当前位置的 marks
+        const marks = $pos.marks();
+        for (const mark of marks) {
+          if (mark.type.name === "link" && mark.attrs.href) {
+            return mark.attrs.href;
+          }
+        }
+        // 也检查该位置的节点 marks
+        const node = this.view.state.doc.nodeAt(pos);
+        if (node) {
+          for (const mark of node.marks) {
+            if (mark.type.name === "link" && mark.attrs.href) {
+              return mark.attrs.href;
+            }
+          }
+        }
+      }
+    } catch {
+      // posAtDOM 可能抛出异常
+    }
+
+    // 3. 最后从 DOM 中与此链接相邻的语法标记文本提取 URL
+    // 从 linkEl 向后查找紧邻的 ](url) 语法标记
+    let sibling: Element | null = linkEl.nextElementSibling;
+    // 跳过同属一个链接的中间 <a> 元素
+    while (sibling && sibling.tagName === "A") {
+      sibling = sibling.nextElementSibling;
+    }
+    if (sibling && sibling.matches('span.milkup-syntax[data-syntax-type="link"]')) {
+      const text = sibling.textContent || "";
+      const m = text.match(/\]\((.+?)(?:\s+"[^"]*")?\)$/);
+      if (m && m[1]) return m[1];
+    }
+
+    return "";
+  }
+
+  /** 初始化链接处理 */
+  private initLinkHandler(): void {
+    const dom = this.view.dom;
+    const container = dom.parentElement || dom;
+
+    // 确保容器有定位上下文（tooltip 用 absolute 定位）
+    if (container !== dom && getComputedStyle(container).position === "static") {
+      container.style.position = "relative";
+    }
+
+    // 在 mousedown capture 阶段拦截链接上的 Ctrl+click，
+    // 阻止 ProseMirror 将其解释为节点选中，并直接打开链接
+    dom.addEventListener(
+      "mousedown",
+      (e: Event) => {
+        const me = e as MouseEvent;
+        const modPressed = MilkupEditor.IS_MAC ? me.metaKey : me.ctrlKey;
+        if (!modPressed) return;
+        const linkEl = this.findLinkElement(me.target as HTMLElement);
+        if (!linkEl) return;
+
+        me.preventDefault();
+        me.stopPropagation();
+
+        let href = this.getLinkHref(linkEl);
+        if (href) {
+          // 补全协议前缀，避免被当作本地文件路径
+          if (!/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(href)) {
+            href = "https://" + href;
+          }
+          const electronAPI = (window as any).electronAPI;
+          if (electronAPI?.openExternal) {
+            electronAPI.openExternal(href);
+          } else {
+            window.open(href, "_blank", "noopener,noreferrer");
+          }
+        }
+      },
+      true // capture 阶段
+    );
+
+    // 用 capture 阶段拦截所有链接点击，阻止 Electron 内部导航
+    dom.addEventListener(
+      "click",
+      (e: Event) => {
+        const me = e as MouseEvent;
+        const linkEl = this.findLinkElement(me.target as HTMLElement);
+        if (!linkEl) return;
+
+        // 始终阻止 <a> 标签的默认跳转
+        me.preventDefault();
+      },
+      true // capture 阶段
+    );
+
+    // mousemove 检测链接 hover
+    dom.addEventListener("mousemove", (e: Event) => {
+      const me = e as MouseEvent;
+      const linkEl = this.findLinkElement(me.target as HTMLElement);
+      if (linkEl) {
+        const href = this.getLinkHref(linkEl);
+        if (href) {
+          this.showLinkTooltip(linkEl, href);
+          return;
+        }
+      }
+      if (this.linkTooltipCurrentLink) {
+        this.hideLinkTooltipDelayed();
+      }
+    });
+
+    // 鼠标离开编辑器时隐藏
+    dom.addEventListener("mouseleave", () => {
+      this.hideLinkTooltipDelayed();
+    });
+
+    // 滚动时隐藏
+    const scrollParent = dom.closest(".scrollView") || container;
+    if (scrollParent) {
+      scrollParent.addEventListener("scroll", () => this.hideLinkTooltipImmediate(), {
+        passive: true,
+      });
+    }
+  }
+
+  private showLinkTooltip(linkEl: HTMLAnchorElement, href: string): void {
+    if (this.linkTooltipHideTimer) {
+      clearTimeout(this.linkTooltipHideTimer);
+      this.linkTooltipHideTimer = null;
+    }
+    // 同一个链接不重复更新
+    if (this.linkTooltipCurrentLink === linkEl && this.linkTooltip?.style.display === "block") {
+      return;
+    }
+
+    const container = this.view.dom.parentElement || this.view.dom;
+
+    if (!this.linkTooltip) {
+      this.linkTooltip = document.createElement("div");
+      this.linkTooltip.className = "milkup-link-tooltip";
+      container.appendChild(this.linkTooltip);
+    }
+
+    const tip = this.linkTooltip;
+    const displayHref = href.length > 60 ? href.slice(0, 57) + "..." : href;
+    tip.textContent = `${displayHref}  ${MilkupEditor.MOD_KEY}+左击访问`;
+    tip.style.display = "block";
+
+    const linkRect = linkEl.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+
+    let left = linkRect.left - containerRect.left;
+    const top = linkRect.bottom - containerRect.top + 4;
+    tip.style.top = `${top}px`;
+    tip.style.left = `${left}px`;
+
+    // 下一帧修正右侧溢出
+    requestAnimationFrame(() => {
+      if (!this.linkTooltip) return;
+      const tipRect = this.linkTooltip.getBoundingClientRect();
+      const cr = container.getBoundingClientRect();
+      if (tipRect.right > cr.right - 8) {
+        left = cr.right - cr.left - tipRect.width - 8;
+        this.linkTooltip.style.left = `${Math.max(0, left)}px`;
+      }
+    });
+
+    this.linkTooltipCurrentLink = linkEl;
+  }
+
+  private hideLinkTooltipDelayed(): void {
+    if (this.linkTooltipHideTimer) clearTimeout(this.linkTooltipHideTimer);
+    this.linkTooltipHideTimer = setTimeout(() => {
+      if (this.linkTooltip) this.linkTooltip.style.display = "none";
+      this.linkTooltipCurrentLink = null;
+      this.linkTooltipHideTimer = null;
+    }, 150);
+  }
+
+  private hideLinkTooltipImmediate(): void {
+    if (this.linkTooltipHideTimer) {
+      clearTimeout(this.linkTooltipHideTimer);
+      this.linkTooltipHideTimer = null;
+    }
+    if (this.linkTooltip) this.linkTooltip.style.display = "none";
+    this.linkTooltipCurrentLink = null;
   }
 
   /**
