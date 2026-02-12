@@ -89,6 +89,12 @@ export class MarkdownSerializer {
         lines.push(indent + text);
         const isLastLine = node.attrs.htmlBlockLineIndex === node.attrs.htmlBlockTotalLines - 1;
         if (isLastLine && !this.options.compact) lines.push("");
+      } else if (node.attrs.mathBlockId) {
+        // 对于数学公式块段落，直接输出文本内容（包含 $$ 符号）
+        const text = node.textContent;
+        lines.push(indent + text);
+        const isLastLine = node.attrs.mathBlockLineIndex === node.attrs.mathBlockTotalLines - 1;
+        if (isLastLine && !this.options.compact) lines.push("");
       } else {
         const text = this.serializeInline(node);
         lines.push(indent + text);

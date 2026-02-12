@@ -306,6 +306,69 @@ function transformParagraphsToHtmlBlock(
 }
 
 /**
+ * 生成唯一的数学公式块 ID
+ */
+function generateMathBlockId(): string {
+  return `mb_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+/**
+ * 将数学公式块转换为多个段落节点
+ */
+function transformMathBlockToParagraphs(
+  mathBlock: ProseMirrorNode,
+  schema: Schema
+): ProseMirrorNode[] {
+  let content = mathBlock.textContent;
+  const mathBlockId = generateMathBlockId();
+
+  // 移除内容末尾的换行符
+  content = content.replace(/\n+$/, "");
+
+  // 构建完整的 Markdown 数学公式块文本
+  const fullMarkdown = `$$\n${content}\n$$`;
+  const lines = fullMarkdown.split("\n");
+
+  const paragraphs: ProseMirrorNode[] = [];
+  lines.forEach((line, index) => {
+    const textContent = line.length > 0 ? schema.text(line) : undefined;
+    const paragraph = schema.nodes.paragraph.create(
+      {
+        mathBlockId,
+        mathBlockLineIndex: index,
+        mathBlockTotalLines: lines.length,
+      },
+      textContent
+    );
+    paragraphs.push(paragraph);
+  });
+
+  return paragraphs;
+}
+
+/**
+ * 将连续的数学公式块段落节点重新组合成数学公式块
+ */
+function transformParagraphsToMathBlock(
+  paragraphs: Array<{ node: ProseMirrorNode; pos: number }>,
+  schema: Schema
+): ProseMirrorNode | null {
+  if (paragraphs.length === 0) return null;
+
+  const lines = paragraphs.map((p) => p.node.textContent);
+  const fullText = lines.join("\n");
+  const mathMatch = fullText.match(/^\$\$\n([\s\S]*?)\n\$\$$/);
+
+  if (!mathMatch) return null;
+
+  const [, content] = mathMatch;
+  return schema.nodes.math_block.create(
+    { language: "latex" },
+    content ? schema.text(content) : null
+  );
+}
+
+/**
  * 递归处理节点，将块级元素转换为段落（用于进入源码模式）
  */
 function processNodeForSourceConversion(
@@ -322,6 +385,8 @@ function processNodeForSourceConversion(
     return transformTableToParagraphs(node, schema);
   } else if (node.type.name === "html_block") {
     return transformHtmlBlockToParagraphs(node, schema);
+  } else if (node.type.name === "math_block") {
+    return transformMathBlockToParagraphs(node, schema);
   }
 
   // 递归处理子节点
@@ -395,6 +460,8 @@ function processNodeForBlockConversion(
     let currentTableId: string | null = null;
     let htmlBlockGroup: ProseMirrorNode[] = [];
     let currentHtmlBlockId: string | null = null;
+    let mathBlockGroup: ProseMirrorNode[] = [];
+    let currentMathBlockId: string | null = null;
 
     const flushCodeBlockGroup = () => {
       if (codeBlockGroup.length === 0) return;
@@ -435,16 +502,31 @@ function processNodeForBlockConversion(
       currentHtmlBlockId = null;
     };
 
+    const flushMathBlockGroup = () => {
+      if (mathBlockGroup.length === 0) return;
+      const paragraphs = mathBlockGroup.map((n) => ({ node: n, pos: 0 }));
+      const result = transformParagraphsToMathBlock(paragraphs, schema);
+      if (result) {
+        newChildren.push(result);
+      } else {
+        newChildren.push(...mathBlockGroup);
+      }
+      mathBlockGroup = [];
+      currentMathBlockId = null;
+    };
+
     node.content.forEach((child) => {
       if (child.type.name === "paragraph") {
         const codeBlockId = child.attrs.codeBlockId;
         const tableId = child.attrs.tableId;
         const htmlBlockId = child.attrs.htmlBlockId;
+        const mathBlockId = child.attrs.mathBlockId;
 
         if (codeBlockId) {
           // 代码块段落
           flushTableGroup();
           flushHtmlBlockGroup();
+          flushMathBlockGroup();
           if (currentCodeBlockId && currentCodeBlockId !== codeBlockId) {
             flushCodeBlockGroup();
           }
@@ -457,6 +539,7 @@ function processNodeForBlockConversion(
           // 表格段落
           flushCodeBlockGroup();
           flushHtmlBlockGroup();
+          flushMathBlockGroup();
           if (currentTableId && currentTableId !== tableId) {
             flushTableGroup();
           }
@@ -469,6 +552,7 @@ function processNodeForBlockConversion(
           // HTML 块段落
           flushCodeBlockGroup();
           flushTableGroup();
+          flushMathBlockGroup();
           if (currentHtmlBlockId && currentHtmlBlockId !== htmlBlockId) {
             flushHtmlBlockGroup();
           }
@@ -477,10 +561,24 @@ function processNodeForBlockConversion(
           return;
         }
 
+        if (mathBlockId) {
+          // 数学公式块段落
+          flushCodeBlockGroup();
+          flushTableGroup();
+          flushHtmlBlockGroup();
+          if (currentMathBlockId && currentMathBlockId !== mathBlockId) {
+            flushMathBlockGroup();
+          }
+          currentMathBlockId = mathBlockId;
+          mathBlockGroup.push(child);
+          return;
+        }
+
         // 非特殊段落，先刷新之前的组
         flushCodeBlockGroup();
         flushTableGroup();
         flushHtmlBlockGroup();
+        flushMathBlockGroup();
 
         if (child.attrs.imageAttrs) {
           const image = transformParagraphToImage(child, schema);
@@ -495,6 +593,7 @@ function processNodeForBlockConversion(
         flushCodeBlockGroup();
         flushTableGroup();
         flushHtmlBlockGroup();
+        flushMathBlockGroup();
         // 递归处理子节点
         const processed = processNodeForBlockConversion(child, schema);
         if (Array.isArray(processed)) {
@@ -509,6 +608,7 @@ function processNodeForBlockConversion(
     flushCodeBlockGroup();
     flushTableGroup();
     flushHtmlBlockGroup();
+    flushMathBlockGroup();
 
     // 如果内容有变化，创建新节点
     const newContent = Fragment.from(newChildren);
@@ -538,6 +638,9 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
   // 收集 HTML 块段落组
   let htmlBlockGroup: ProseMirrorNode[] = [];
   let currentHtmlBlockId: string | null = null;
+  // 收集数学公式块段落组
+  let mathBlockGroup: ProseMirrorNode[] = [];
+  let currentMathBlockId: string | null = null;
 
   const flushCodeBlockGroup = () => {
     if (codeBlockGroup.length === 0) return;
@@ -579,16 +682,31 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
     currentHtmlBlockId = null;
   };
 
+  const flushMathBlockGroup = () => {
+    if (mathBlockGroup.length === 0) return;
+    const paragraphs = mathBlockGroup.map((node) => ({ node, pos: 0 }));
+    const result = transformParagraphsToMathBlock(paragraphs, schema);
+    if (result) {
+      newContent.push(result);
+    } else {
+      newContent.push(...mathBlockGroup);
+    }
+    mathBlockGroup = [];
+    currentMathBlockId = null;
+  };
+
   doc.forEach((node) => {
     if (node.type.name === "paragraph") {
       const codeBlockId = node.attrs.codeBlockId;
       const tableId = node.attrs.tableId;
       const htmlBlockId = node.attrs.htmlBlockId;
+      const mathBlockId = node.attrs.mathBlockId;
 
       if (codeBlockId) {
         // 代码块段落
         flushTableGroup();
         flushHtmlBlockGroup();
+        flushMathBlockGroup();
         if (currentCodeBlockId && currentCodeBlockId !== codeBlockId) {
           flushCodeBlockGroup();
         }
@@ -601,6 +719,7 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
         // 表格段落
         flushCodeBlockGroup();
         flushHtmlBlockGroup();
+        flushMathBlockGroup();
         if (currentTableId && currentTableId !== tableId) {
           flushTableGroup();
         }
@@ -613,6 +732,7 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
         // HTML 块段落
         flushCodeBlockGroup();
         flushTableGroup();
+        flushMathBlockGroup();
         if (currentHtmlBlockId && currentHtmlBlockId !== htmlBlockId) {
           flushHtmlBlockGroup();
         }
@@ -621,10 +741,24 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
         return;
       }
 
+      if (mathBlockId) {
+        // 数学公式块段落
+        flushCodeBlockGroup();
+        flushTableGroup();
+        flushHtmlBlockGroup();
+        if (currentMathBlockId && currentMathBlockId !== mathBlockId) {
+          flushMathBlockGroup();
+        }
+        currentMathBlockId = mathBlockId;
+        mathBlockGroup.push(node);
+        return;
+      }
+
       // 非特殊段落，先刷新之前的组
       flushCodeBlockGroup();
       flushTableGroup();
       flushHtmlBlockGroup();
+      flushMathBlockGroup();
 
       if (node.attrs.imageAttrs) {
         // 图片段落
@@ -641,6 +775,7 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
       flushCodeBlockGroup();
       flushTableGroup();
       flushHtmlBlockGroup();
+      flushMathBlockGroup();
       // 递归处理子节点
       const processed = processNodeForBlockConversion(node, schema);
       if (Array.isArray(processed)) {
@@ -655,6 +790,7 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
   flushCodeBlockGroup();
   flushTableGroup();
   flushHtmlBlockGroup();
+  flushMathBlockGroup();
 
   if (newContent.length > 0) {
     const step = new ReplaceStep(0, doc.content.size, new Slice(Fragment.from(newContent), 0, 0));
@@ -707,7 +843,8 @@ export function createSourceViewTransformPlugin(): Plugin {
             node.type.name === "image" ||
             node.type.name === "horizontal_rule" ||
             node.type.name === "table" ||
-            node.type.name === "html_block"
+            node.type.name === "html_block" ||
+            node.type.name === "math_block"
           ) {
             hasBlocks = true;
           }

@@ -34,6 +34,10 @@ const paragraph: NodeSpec = {
     htmlBlockId: { default: null },
     htmlBlockLineIndex: { default: null },
     htmlBlockTotalLines: { default: null },
+    // 数学公式块相关属性（仅在源码模式下使用）
+    mathBlockId: { default: null },
+    mathBlockLineIndex: { default: null },
+    mathBlockTotalLines: { default: null },
   },
   content: "inline*",
   group: "block",
@@ -66,6 +70,12 @@ const paragraph: NodeSpec = {
       attrs["data-html-block-id"] = node.attrs.htmlBlockId;
       attrs["data-html-block-line-index"] = node.attrs.htmlBlockLineIndex;
       attrs["data-html-block-total-lines"] = node.attrs.htmlBlockTotalLines;
+    }
+    // 如果是数学公式块段落，添加数据属性
+    if (node.attrs.mathBlockId) {
+      attrs["data-math-block-id"] = node.attrs.mathBlockId;
+      attrs["data-math-block-line-index"] = node.attrs.mathBlockLineIndex;
+      attrs["data-math-block-total-lines"] = node.attrs.mathBlockTotalLines;
     }
     return ["p", attrs, 0];
   },
