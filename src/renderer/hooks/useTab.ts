@@ -13,6 +13,23 @@ import { isShowOutline } from "./useOutline";
 const tabs = ref<Tab[]>([]);
 const activeTabId = ref<string | null>(null);
 
+// 防抖定时器 Map：每个 tab 独立跟踪归一化完成
+const newlyLoadedTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+/** 启动/重置 isNewlyLoaded 清理定时器，确保归一化结束后 isNewlyLoaded 一定被消费 */
+function scheduleNewlyLoadedCleanup(tabId: string) {
+  const existing = newlyLoadedTimers.get(tabId);
+  if (existing) clearTimeout(existing);
+  newlyLoadedTimers.set(
+    tabId,
+    setTimeout(() => {
+      const tab = tabs.value.find((t) => t.id === tabId);
+      if (tab) tab.isNewlyLoaded = false;
+      newlyLoadedTimers.delete(tabId);
+    }, 150)
+  );
+}
+
 const defaultName = "Untitled";
 
 const defaultTabUUid = randomUUID();
@@ -30,6 +47,7 @@ const defaultTab: Tab = {
 };
 tabs.value.push(defaultTab);
 activeTabId.value = defaultTab.id;
+scheduleNewlyLoadedCleanup(defaultTabUUid);
 window.electronAPI?.onOpenFileAtLaunch((_payload) => {
   if (tabs.value.length === 1 && tabs.value[0].id === defaultTabUUid && !tabs.value[0].isModified) {
     tabs.value = [];
@@ -96,9 +114,6 @@ function getCurrentTab() {
   return tabs.value.find((tab) => tab.id === activeTabId.value) || null;
 }
 
-// 防抖定时器：等待编辑器多步归一化完全稳定后再消费 isNewlyLoaded
-let newlyLoadedTimer: ReturnType<typeof setTimeout> | null = null;
-
 // 更新当前tab的内容
 function updateCurrentTabContent(content: string, isModified?: boolean) {
   const currentTab = getCurrentTab();
@@ -118,20 +133,11 @@ function updateCurrentTabContent(content: string, isModified?: boolean) {
   }
 
   // 刚加载的 tab，吸收编辑器归一化产生的变化
-  // 编辑器加载内容后会经历多步归一化（语法检测、语法修复、标题同步等插件依次处理），
-  // 每步都可能触发 change 事件。用防抖确保所有归一化步骤完成后再消费 isNewlyLoaded。
   if (currentTab.isNewlyLoaded) {
     currentTab.originalContent = content;
     currentTab.isModified = false;
-    if (content !== prevContent) {
-      if (newlyLoadedTimer) clearTimeout(newlyLoadedTimer);
-      const tabId = currentTab.id;
-      newlyLoadedTimer = setTimeout(() => {
-        const tab = tabs.value.find((t) => t.id === tabId);
-        if (tab) tab.isNewlyLoaded = false;
-        newlyLoadedTimer = null;
-      }, 150);
-    }
+    // 归一化每步都可能触发 change，重置定时器等待全部完成
+    scheduleNewlyLoadedCleanup(currentTab.id);
     return;
   }
 
@@ -148,6 +154,7 @@ function updateCurrentTabFile(filePath: string, content: string, name?: string) 
     currentTab.originalContent = content;
     currentTab.isModified = false;
     currentTab.isNewlyLoaded = true;
+    scheduleNewlyLoadedCleanup(currentTab.id);
     if (name) {
       currentTab.name = name;
     } else {
@@ -215,6 +222,7 @@ async function createTabFromFile(
     readOnly,
     isNewlyLoaded: true,
   };
+  scheduleNewlyLoadedCleanup(tab.id);
 
   return add(tab);
 }
@@ -246,6 +254,7 @@ async function openFile(filePath: string): Promise<Tab | null> {
       currentTab.originalContent = fileContent.content;
       currentTab.isModified = false;
       currentTab.isNewlyLoaded = true;
+      scheduleNewlyLoadedCleanup(currentTab.id);
       currentTab.readOnly = fileContent.readOnly || false;
       currentTab.fileTraits = fileContent.fileTraits;
       await switchToTab(currentTab.id);
@@ -283,6 +292,7 @@ function createNewTab(): Tab {
     readOnly: false,
     isNewlyLoaded: true,
   };
+  scheduleNewlyLoadedCleanup(tab.id);
 
   return add(tab);
 }
@@ -302,8 +312,13 @@ async function switchToTab(id: string) {
     setCurrentMarkdownFilePath(null);
   }
 
-  // 切换 Tab 时标记为新加载，让编辑器首次输出捕获为 originalContent
-  targetTab.isNewlyLoaded = true;
+  // 仅对未修改的 tab 标记为新加载，让编辑器首次输出捕获为 originalContent
+  // 已修改的 tab 必须保留 originalContent 和 isModified 状态，
+  // 编辑器归一化产生的微小变化不会影响 isModified 判断（因为内容本就与 originalContent 不同）
+  if (!targetTab.isModified) {
+    targetTab.isNewlyLoaded = true;
+    scheduleNewlyLoadedCleanup(targetTab.id);
+  }
 
   // 触发内容更新事件
   emitter.emit("tab:switch", targetTab);
@@ -516,6 +531,7 @@ window.electronAPI.on?.("file:changed", async (paths) => {
     tab.isModified = false;
     tab.isNewlyLoaded = true;
     tab.fileTraits = fileContent.fileTraits;
+    scheduleNewlyLoadedCleanup(tab.id);
 
     // 如果当前tab是活跃的，触发内容更新事件
     if (tab.id === activeTabId.value) {
@@ -545,6 +561,7 @@ window.electronAPI.on?.("file:changed", async (paths) => {
     tab.isModified = false;
     tab.isNewlyLoaded = true;
     tab.fileTraits = fileContent.fileTraits;
+    scheduleNewlyLoadedCleanup(tab.id);
 
     // 触发内容更新
     if (tab.id === activeTabId.value) {
