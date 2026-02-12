@@ -1,6 +1,6 @@
 import type { Tab } from "@/types/tab";
 // useFile.ts
-import { nextTick, onUnmounted } from "vue";
+import { nextTick } from "vue";
 import emitter from "@/renderer/events";
 import { readAndProcessFile } from "@/renderer/services/fileService";
 import useContent from "./useContent";
@@ -146,6 +146,9 @@ function tabSwitch(tab: Tab) {
     emitter.emit("file:Change");
   });
 }
+
+// 防止重复注册事件监听器
+let listenersRegistered = false;
 
 export default function useFile() {
   const { updateTitle } = useTitle();
@@ -383,33 +386,24 @@ export default function useFile() {
     }
   );
 
-  // ✅ 通知主进程渲染进程已就绪，可以接收文件了
-  window.electronAPI?.rendererReady?.();
+  // 只注册一次事件监听器，避免多个组件调用 useFile() 导致重复注册
+  if (!listenersRegistered) {
+    listenersRegistered = true;
 
-  // 注册菜单事件
-  window.electronAPI.on?.("menu-open", onOpen);
-  window.electronAPI.on?.("menu-save", onSave);
+    // ✅ 通知主进程渲染进程已就绪，可以接收文件了
+    window.electronAPI?.rendererReady?.();
 
-  // 注册拖拽事件
-  window.addEventListener("dragover", handleDragOver);
-  window.addEventListener("drop", handleDrop);
+    // 注册菜单事件
+    window.electronAPI.on?.("menu-open", onOpen);
+    window.electronAPI.on?.("menu-save", onSave);
 
-  // 注册tab切换事件
-  emitter.on("tab:switch", tabSwitch);
+    // 注册拖拽事件
+    window.addEventListener("dragover", handleDragOver);
+    window.addEventListener("drop", handleDrop);
 
-  // 清理函数
-  onUnmounted(() => {
-    // 清理IPC监听器
-    window.electronAPI?.removeListener?.("menu-open", onOpen);
-    window.electronAPI?.removeListener?.("menu-save", onSave);
-
-    // 清理DOM事件监听器
-    window.removeEventListener("dragover", handleDragOver);
-    window.removeEventListener("drop", handleDrop);
-
-    // 清理emitter事件监听器
-    emitter.off("tab:switch", tabSwitch);
-  });
+    // 注册tab切换事件
+    emitter.on("tab:switch", tabSwitch);
+  }
 
   return {
     onOpen,

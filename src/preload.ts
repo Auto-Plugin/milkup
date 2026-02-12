@@ -1,16 +1,29 @@
 import type { Block, ExportPDFOptions } from "./main/types";
 import { contextBridge, ipcRenderer, webUtils } from "electron";
 
+// 存储 listener 到 wrapper 的映射，以便 removeListener 能正确移除
+const listenerMap = new Map<Function, Map<string, Function>>();
+
 contextBridge.exposeInMainWorld("electronAPI", {
   openFile: () => ipcRenderer.invoke("dialog:openFile"),
   getIsReadOnly: (filePath: string) => ipcRenderer.invoke("file:isReadOnly", filePath),
   saveFile: (filePath: string | null, content: string, fileTraits?: any) =>
     ipcRenderer.invoke("dialog:saveFile", { filePath, content, fileTraits }),
   saveFileAs: (content: string) => ipcRenderer.invoke("dialog:saveFileAs", content),
-  on: (channel: string, listener: (...args: any[]) => void) =>
-    ipcRenderer.on(channel, (_event, ...args) => listener(...args)),
-  removeListener: (channel: string, listener: (...args: any[]) => void) =>
-    ipcRenderer.removeListener(channel, (_event, ...args) => listener(...args)),
+  on: (channel: string, listener: (...args: any[]) => void) => {
+    const wrapper = (_event: any, ...args: any[]) => listener(...args);
+    if (!listenerMap.has(listener)) listenerMap.set(listener, new Map());
+    listenerMap.get(listener)!.set(channel, wrapper);
+    ipcRenderer.on(channel, wrapper);
+  },
+  removeListener: (channel: string, listener: (...args: any[]) => void) => {
+    const wrapper = listenerMap.get(listener)?.get(channel);
+    if (wrapper) {
+      ipcRenderer.removeListener(channel, wrapper as any);
+      listenerMap.get(listener)!.delete(channel);
+      if (listenerMap.get(listener)!.size === 0) listenerMap.delete(listener);
+    }
+  },
   setTitle: (filePath: string | null) => ipcRenderer.send("set-title", filePath),
   changeSaveStatus: (isSaved: boolean) => ipcRenderer.send("change-save-status", isSaved),
   windowControl: (action: "minimize" | "maximize" | "close") =>
