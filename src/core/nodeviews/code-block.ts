@@ -33,7 +33,7 @@ import { searchPluginKey } from "../plugins/search";
 type MermaidDisplayMode = "code" | "mixed" | "diagram";
 
 /** 暗色主题高亮样式 */
-const darkHighlightStyle = HighlightStyle.define([
+export const darkHighlightStyle = HighlightStyle.define([
   { tag: tags.keyword, color: "#ff7b72" },
   { tag: tags.operator, color: "#79c0ff" },
   { tag: tags.special(tags.variableName), color: "#ffa657" },
@@ -68,7 +68,7 @@ const darkHighlightStyle = HighlightStyle.define([
 /**
  * 检测当前主题是否为暗色模式
  */
-function detectDarkTheme(): boolean {
+export function detectDarkTheme(): boolean {
   const htmlElement = document.documentElement;
   const themeClass = Array.from(htmlElement.classList).find((c) => c.startsWith("theme-"));
   if (!themeClass) return false;
@@ -87,7 +87,7 @@ function getCurrentThemeName(): string {
 /**
  * 创建 CodeMirror 主题扩展（使用 CSS 变量）
  */
-function createThemeExtension(isDark: boolean): Extension[] {
+export function createThemeExtension(isDark: boolean): Extension[] {
   const baseTheme = EditorView.theme(
     {
       "&": {

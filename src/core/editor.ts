@@ -31,6 +31,7 @@ import {
   ImagePasteMethod,
 } from "./plugins/paste";
 import { createMathBlockSyncPlugin } from "./plugins/math-block-sync";
+import { createHtmlBlockSyncPlugin } from "./plugins/html-block-sync";
 import { createImageSyncPlugin } from "./plugins/image-sync";
 import { createAICompletionPlugin } from "./plugins/ai-completion";
 import { createPlaceholderPlugin } from "./plugins/placeholder";
@@ -51,6 +52,7 @@ import { createKeymapPlugin, createDynamicKeymapPlugin } from "./keymap";
 import type { ShortcutKeyMap } from "./keymap";
 import { createCodeBlockNodeView } from "./nodeviews/code-block";
 import { createMathBlockNodeView } from "./nodeviews/math-block";
+import { createHtmlBlockNodeView } from "./nodeviews/html-block";
 import { createImageNodeView } from "./nodeviews/image";
 import {
   createBulletListNodeView,
@@ -157,6 +159,7 @@ export class MilkupEditor implements IMilkupEditor {
       nodeViews: {
         code_block: createCodeBlockNodeView,
         math_block: createMathBlockNodeView,
+        html_block: createHtmlBlockNodeView,
         image: createImageNodeView,
         bullet_list: createBulletListNodeView,
         ordered_list: createOrderedListNodeView,
@@ -228,6 +231,8 @@ export class MilkupEditor implements IMilkupEditor {
       createPastePlugin(this.config.pasteConfig),
       // 数学块状态同步插件
       createMathBlockSyncPlugin(),
+      // HTML 块状态同步插件
+      createHtmlBlockSyncPlugin(),
       // 图片状态同步插件
       createImageSyncPlugin(),
       // 源码模式文档转换插件
