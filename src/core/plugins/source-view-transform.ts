@@ -10,6 +10,7 @@ import { Node as ProseMirrorNode, Schema, Fragment, Slice } from "prosemirror-mo
 import { ReplaceStep } from "prosemirror-transform";
 import { decorationPluginKey } from "../decorations";
 import { parseMarkdown } from "../parser";
+import { virtualScrollPluginKey, getVirtualScrollManager } from "./virtual-scroll";
 
 /** 插件 Key */
 export const sourceViewTransformPluginKey = new PluginKey("milkup-source-view-transform");
@@ -808,6 +809,10 @@ export function createSourceViewTransformPlugin(): Plugin {
     key: sourceViewTransformPluginKey,
 
     appendTransaction(transactions, oldState, newState) {
+      // 虚拟滚动模式下跳过文档转换（由编辑器的 toggleSourceView 处理）
+      const vsState = virtualScrollPluginKey.getState(newState);
+      if (vsState?.enabled) return null;
+
       // 检查是否有源码模式切换
       const oldDecorationState = decorationPluginKey.getState(oldState);
       const newDecorationState = decorationPluginKey.getState(newState);

@@ -109,5 +109,21 @@ interface Window {
     quitAndInstall: () => Promise<void>;
     onUpdateStatus: (callback: (status: any) => void) => void;
     onDownloadProgress: (callback: (progress: any) => void) => void;
+    // 文档块管理（虚拟滚动）
+    documentBlock?: {
+      setContent: (content: string) => Promise<void>;
+      getBlocks: (
+        blockIndices: number[]
+      ) => Promise<Array<{ index: number; content: string; startLine: number; endLine: number }>>;
+      getConfig: () => Promise<{
+        enabled: boolean;
+        totalBlocks: number;
+        totalLines: number;
+        blockSize: number;
+      }>;
+      getBlockByLine: (
+        lineNumber: number
+      ) => Promise<{ index: number; content: string; startLine: number; endLine: number } | null>;
+    };
   };
 }

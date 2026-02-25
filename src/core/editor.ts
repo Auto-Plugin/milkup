@@ -16,6 +16,8 @@ import { keymap } from "prosemirror-keymap";
 // 导入 KaTeX CSS
 import "katex/dist/katex.min.css";
 
+import { VS_THRESHOLD } from "../shared/virtual-scroll-config";
+
 import { milkupSchema } from "./schema";
 import { parseMarkdown, MarkdownParser } from "./parser";
 import { serializeMarkdown, MarkdownSerializer } from "./serializer";
@@ -23,6 +25,12 @@ import { createInstantRenderPlugin } from "./plugins/instant-render";
 import { createInputRulesPlugin } from "./plugins/input-rules";
 import { createSyntaxFixerPlugin } from "./plugins/syntax-fixer";
 import { createSyntaxDetectorPlugin } from "./plugins/syntax-detector";
+import {
+  createVirtualScrollPlugin,
+  getVirtualScrollManager,
+  virtualScrollPluginKey,
+} from "./plugins/virtual-scroll";
+import { createLazyLoadPlugin, initLazyLoad } from "./plugins/lazy-load";
 import { createHeadingSyncPlugin } from "./plugins/heading-sync";
 import {
   createPastePlugin,
@@ -117,6 +125,10 @@ export class MilkupEditor implements IMilkupEditor {
   private parser: MarkdownParser;
   private serializer: MarkdownSerializer;
   private plugins: MilkupPlugin[] = [];
+  /** 虚拟滚动模式下保存的完整内容 */
+  private _fullContent: string = "";
+  /** 虚拟滚动检测防抖定时器 */
+  private _vsCheckTimer: ReturnType<typeof setTimeout> | null = null;
   private eventHandlers: Map<string, Set<Function>> = new Map();
   private contextMenu: HTMLElement | null = null;
   private linkTooltip: HTMLElement | null = null;
@@ -140,10 +152,13 @@ export class MilkupEditor implements IMilkupEditor {
     this.parser = new MarkdownParser(this.schema);
     this.serializer = new MarkdownSerializer();
 
-    // 解析初始内容
-    const { doc } = this.parser.parse(this.config.content || "");
+    // 检查是否需要延迟加载
+    const content = this.config.content || "";
+    const lines = content.split("\n");
 
-    // 创建编辑器状态
+    // 正常加载（虚拟滚动由 setMarkdown 异步处理）
+    // 构造时只加载空文档或少量内容，后续由 setMarkdown 决定是否启用虚拟滚动
+    const { doc } = this.parser.parse("");
     const state = EditorState.create({
       doc,
       plugins: this.createPlugins(),
@@ -177,6 +192,8 @@ export class MilkupEditor implements IMilkupEditor {
       handleClick: (view, pos, event) => this.handleEditorClick(view, pos, event),
       handleDOMEvents: {
         contextmenu: (view, event) => this.handleContextMenu(view, event),
+        copy: (view, event) => this.handleCopyInVirtualScroll(view, event as ClipboardEvent),
+        cut: (view, event) => this.handleCopyInVirtualScroll(view, event as ClipboardEvent),
       },
     });
 
@@ -192,6 +209,11 @@ export class MilkupEditor implements IMilkupEditor {
     // 设置初始源码视图状态
     if (this.config.sourceView) {
       setSourceView(this.view.state, true, this.view.dispatch.bind(this.view));
+    }
+
+    // 异步加载初始内容
+    if (content) {
+      this.setMarkdown(content);
     }
   }
 
@@ -231,6 +253,10 @@ export class MilkupEditor implements IMilkupEditor {
       createSyntaxFixerPlugin(),
       // 语法检测插件
       createSyntaxDetectorPlugin(),
+      // 虚拟滚动插件
+      createVirtualScrollPlugin(),
+      // 延迟加载插件
+      createLazyLoadPlugin(),
       // 标题同步插件
       createHeadingSyncPlugin(),
       // 粘贴处理插件
@@ -284,10 +310,17 @@ export class MilkupEditor implements IMilkupEditor {
 
     // 触发变更事件
     if (tr.docChanged) {
-      this.emit("change", {
-        markdown: this.getMarkdown(),
-        transaction: tr,
-      });
+      // 虚拟滚动模式下，块加载导致的文档变化不触发 change 事件
+      const isVirtualScrollUpdate = tr.getMeta(virtualScrollPluginKey);
+      if (!isVirtualScrollUpdate) {
+        this.emit("change", {
+          markdown: this.getMarkdown(),
+          transaction: tr,
+        });
+
+        // 检测是否需要启用虚拟滚动（粘贴大量内容后）
+        this.checkVirtualScrollAfterChange();
+      }
     }
 
     // 触发选区变更事件
@@ -302,16 +335,104 @@ export class MilkupEditor implements IMilkupEditor {
   }
 
   /**
+   * 文档变化后检测是否需要启用虚拟滚动（防抖 500ms）
+   */
+  private checkVirtualScrollAfterChange(): void {
+    // 已启用虚拟滚动则跳过
+    const manager = getVirtualScrollManager(this.view);
+    if (manager?.getState().enabled) return;
+
+    // 没有 Electron API 则跳过
+    if (!window.electronAPI?.documentBlock) return;
+
+    // 防抖：避免每次按键都检测
+    if (this._vsCheckTimer) clearTimeout(this._vsCheckTimer);
+    this._vsCheckTimer = setTimeout(async () => {
+      this._vsCheckTimer = null;
+      // 再次检查（防抖期间可能已启用）
+      const mgr = getVirtualScrollManager(this.view);
+      if (mgr?.getState().enabled) return;
+
+      // 序列化当前文档内容
+      const content = serializeMarkdown(this.view.state.doc);
+      const lineCount = content.split("\n").length;
+
+      // 超过阈值时通过 setMarkdown 启用虚拟滚动
+      if (lineCount > VS_THRESHOLD) {
+        console.log(`Document grew to ${lineCount} lines, enabling virtual scroll`);
+        await this.setMarkdown(content);
+      }
+    }, 500);
+  }
+
+  /**
    * 获取 Markdown 内容
    */
   getMarkdown(): string {
+    // 虚拟滚动模式下返回完整内容
+    const manager = getVirtualScrollManager(this.view);
+    if (manager?.getState().enabled && this._fullContent) {
+      return this._fullContent;
+    }
     return serializeMarkdown(this.view.state.doc);
   }
 
   /**
    * 设置 Markdown 内容
    */
-  setMarkdown(content: string): void {
+  async setMarkdown(content: string): Promise<void> {
+    // 保存完整内容（虚拟滚动模式下用于 getMarkdown）
+    this._fullContent = content;
+
+    // 检查是否启用虚拟滚动
+    if (window.electronAPI?.documentBlock) {
+      try {
+        // 设置内容到主进程
+        await window.electronAPI.documentBlock.setContent(content);
+
+        // 获取配置
+        const config = await window.electronAPI.documentBlock.getConfig();
+
+        if (config.enabled) {
+          // 获取虚拟滚动管理器
+          const manager = getVirtualScrollManager(this.view);
+          if (manager) {
+            // 设置启用状态
+            manager.setEnabled(true, config.totalBlocks, config.blockSize, config.totalLines);
+
+            // 同步更新插件 state（供其他插件检查）
+            const metaTr = this.view.state.tr.setMeta(virtualScrollPluginKey, {
+              enabled: true,
+              totalBlocks: config.totalBlocks,
+            });
+            this.view.dispatch(metaTr);
+
+            // 加载初始块（当前 + 下一个）
+            await manager.loadBlocks([0, 1]);
+
+            console.log(
+              `Virtual scroll enabled: ${config.totalBlocks} blocks, loaded initial blocks`
+            );
+            return;
+          }
+        } else {
+          // 不需要虚拟滚动，确保禁用
+          const manager = getVirtualScrollManager(this.view);
+          if (manager?.getState().enabled) {
+            manager.setEnabled(false, 0, 0, 0);
+            const metaTr = this.view.state.tr.setMeta(virtualScrollPluginKey, {
+              enabled: false,
+              totalBlocks: 0,
+            });
+            this.view.dispatch(metaTr);
+          }
+        }
+      } catch (error) {
+        console.warn("Virtual scroll initialization failed, falling back to normal mode:", error);
+      }
+    }
+
+    // 正常模式：加载全部内容
     const { doc } = this.parser.parse(content);
     const tr = this.view.state.tr.replaceWith(0, this.view.state.doc.content.size, doc.content);
     this.view.dispatch(tr);
@@ -1539,6 +1660,32 @@ export class MilkupEditor implements IMilkupEditor {
   /**
    * 将 Slice 序列化为 Markdown 文本
    */
+  /**
+   * 虚拟滚动模式下处理复制/剪切事件
+   * 当全选时，复制完整内容而非仅当前加载的块
+   */
+  private handleCopyInVirtualScroll(view: EditorView, event: ClipboardEvent): boolean {
+    const manager = getVirtualScrollManager(view);
+    if (!manager?.getState().enabled || !this._fullContent) return false;
+
+    // 检查是否全选（选区覆盖整个文档）
+    const { from, to } = view.state.selection;
+    const docSize = view.state.doc.content.size;
+    const isSelectAll = from === 0 && to === docSize;
+
+    if (isSelectAll) {
+      // 全选时复制完整内容
+      event.preventDefault();
+      const clipboardData = event.clipboardData;
+      if (clipboardData) {
+        clipboardData.setData("text/plain", this._fullContent);
+      }
+      return true;
+    }
+
+    return false;
+  }
+
   private serializeSliceToMarkdown(slice: Slice): string {
     const fragment = slice.content;
     if (fragment.childCount === 0) return "";
@@ -1581,7 +1728,32 @@ export class MilkupEditor implements IMilkupEditor {
   /**
    * 切换源码视图
    */
-  toggleSourceView(): void {
+  async toggleSourceView(): Promise<void> {
+    const manager = getVirtualScrollManager(this.view);
+    const managerState = manager?.getState();
+
+    if (managerState?.enabled) {
+      // 虚拟滚动模式：跳过文档转换，直接切换状态并重新加载块
+      const newSourceView = !this.config.sourceView;
+      this.config.sourceView = newSourceView;
+
+      // 先更新源码模式状态
+      setSourceView(this.view.state, newSourceView, this.view.dispatch.bind(this.view));
+
+      // 清空已缓存的块内容，强制重新加载
+      manager!.clearCache();
+
+      // 重新加载当前可见的块
+      const currentBlock = managerState.currentBlockIndex;
+      const blocksToLoad = [currentBlock - 1, currentBlock, currentBlock + 1].filter(
+        (i) => i >= 0 && i < managerState.totalBlocks
+      );
+
+      await manager!.loadBlocks(blocksToLoad);
+      return;
+    }
+
+    // 非虚拟滚动模式：走传统路径
     toggleSourceView(this.view.state, this.view.dispatch.bind(this.view));
     this.config.sourceView = !this.config.sourceView;
   }
