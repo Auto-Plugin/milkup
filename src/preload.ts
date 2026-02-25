@@ -92,4 +92,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("update:status", (_event, value) => callback(value)),
   onDownloadProgress: (callback: (progress: any) => void) =>
     ipcRenderer.on("update:download-progress", (_event, value) => callback(value)),
+
+  // 文档块管理 API
+  documentBlock: {
+    setContent: (content: string) => ipcRenderer.invoke("document-block:set-content", content),
+    getConfig: () => ipcRenderer.invoke("document-block:get-info"),
+    getBlocks: (blockIndices: number[]) =>
+      ipcRenderer.invoke("document-block:get-blocks", blockIndices),
+    getBlockByLine: (lineNumber: number) =>
+      ipcRenderer.invoke("document-block:get-block-index", lineNumber),
+    clear: () => ipcRenderer.invoke("document-block:clear"),
+  },
 });

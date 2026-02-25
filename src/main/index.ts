@@ -11,6 +11,7 @@ import {
 } from "./ipcBridge";
 import createMenu from "./menu";
 import { setupUpdateHandlers } from "./update";
+import { registerDocumentBlockHandlers } from "./documentBlockManager";
 
 let win: BrowserWindow;
 let themeEditorWindow: BrowserWindow | null = null;
@@ -41,6 +42,7 @@ async function createWindow() {
   // 注册 IPC 处理程序 (在加载页面前注册，防止竞态条件)
   registerIpcOnHandlers(win);
   registerIpcHandleHandlers(win);
+  registerDocumentBlockHandlers();
   setupUpdateHandlers(win);
 
   createMenu(win);

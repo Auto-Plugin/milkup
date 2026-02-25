@@ -59,6 +59,8 @@ export interface DecorationPluginState {
   sourceView: boolean;
   cachedSyntaxRegions: SyntaxMarkerRegion[];
   cachedMathInlineRegions: MathInlineRegion[];
+  lastUpdateTime: number; // 上次更新时间戳
+  pendingUpdate: boolean; // 是否有待处理的更新
 }
 
 /** 语法标记区域 */
@@ -120,11 +122,30 @@ const SYNTAX_TYPE_RELATIONS: Record<string, string[]> = {
 
 /**
  * 查找文档中所有的 syntax_marker 区域
+ * @param doc 文档节点
+ * @param viewportFrom 可选：视口起始位置（用于性能优化）
+ * @param viewportTo 可选：视口结束位置（用于性能优化）
  */
-export function findSyntaxMarkerRegions(doc: Node): SyntaxMarkerRegion[] {
+export function findSyntaxMarkerRegions(
+  doc: Node,
+  viewportFrom?: number,
+  viewportTo?: number
+): SyntaxMarkerRegion[] {
   const regions: SyntaxMarkerRegion[] = [];
+  const hasViewport = viewportFrom !== undefined && viewportTo !== undefined;
 
   doc.descendants((node, pos) => {
+    // 视口优化：跳过视口外的节点（保留一定缓冲区）
+    if (hasViewport) {
+      const buffer = 1000; // 1000 字符的缓冲区
+      if (pos + node.nodeSize < viewportFrom! - buffer) {
+        return false; // 跳过这个节点及其子节点
+      }
+      if (pos > viewportTo! + buffer) {
+        return false; // 跳过这个节点及其子节点
+      }
+    }
+
     if (node.isText) {
       const syntaxMark = node.marks.find((m) => m.type.name === "syntax_marker");
       if (syntaxMark) {
@@ -152,11 +173,30 @@ export interface MathInlineRegion {
 
 /**
  * 查找文档中所有的行内数学公式区域
+ * @param doc 文档节点
+ * @param viewportFrom 可选：视口起始位置（用于性能优化）
+ * @param viewportTo 可选：视口结束位置（用于性能优化）
  */
-export function findMathInlineRegions(doc: Node): MathInlineRegion[] {
+export function findMathInlineRegions(
+  doc: Node,
+  viewportFrom?: number,
+  viewportTo?: number
+): MathInlineRegion[] {
   const regions: MathInlineRegion[] = [];
+  const hasViewport = viewportFrom !== undefined && viewportTo !== undefined;
 
   doc.descendants((node, pos) => {
+    // 视口优化：跳过视口外的节点
+    if (hasViewport) {
+      const buffer = 1000;
+      if (pos + node.nodeSize < viewportFrom! - buffer) {
+        return false;
+      }
+      if (pos > viewportTo! + buffer) {
+        return false;
+      }
+    }
+
     if (node.isTextblock) {
       // 在文本块中查找 math_inline mark 区域
       let offset = pos + 1; // +1 跳过节点开始标记
@@ -407,13 +447,22 @@ function isSyntaxTypeRelated(syntaxType: string, semanticType: string): boolean 
 
 /**
  * 计算装饰集
+ * @param doc 文档节点
+ * @param cursorPos 光标位置
+ * @param sourceView 是否为源码模式
+ * @param precomputedSyntaxRegions 预计算的语法区域
+ * @param precomputedMathRegions 预计算的数学公式区域
+ * @param viewportFrom 可选：视口起始位置（用于性能优化）
+ * @param viewportTo 可选：视口结束位置（用于性能优化）
  */
 export function computeDecorations(
   doc: Node,
   cursorPos: number,
   sourceView: boolean,
   precomputedSyntaxRegions?: SyntaxMarkerRegion[],
-  precomputedMathRegions?: MathInlineRegion[]
+  precomputedMathRegions?: MathInlineRegion[],
+  viewportFrom?: number,
+  viewportTo?: number
 ): {
   decorations: DecorationSet;
   activeRegions: SyntaxMarkerRegion[];
@@ -433,8 +482,10 @@ export function computeDecorations(
     };
   }
 
-  const syntaxRegions = precomputedSyntaxRegions ?? findSyntaxMarkerRegions(doc);
-  const mathInlineRegions = precomputedMathRegions ?? findMathInlineRegions(doc);
+  const syntaxRegions =
+    precomputedSyntaxRegions ?? findSyntaxMarkerRegions(doc, viewportFrom, viewportTo);
+  const mathInlineRegions =
+    precomputedMathRegions ?? findMathInlineRegions(doc, viewportFrom, viewportTo);
   const decorations: Decoration[] = [];
 
   // 获取光标所在的所有语义区域
@@ -559,6 +610,9 @@ export function getActiveRegions(cursorPos: number, regions: any[]): any[] {
  * 创建装饰插件
  */
 export function createDecorationPlugin(initialSourceView = false): Plugin<DecorationPluginState> {
+  // 节流配置：只在选区变化时节流，文档变化时立即更新
+  const THROTTLE_DELAY = 50; // 50ms 节流延迟
+
   return new Plugin<DecorationPluginState>({
     key: decorationPluginKey,
 
@@ -575,6 +629,8 @@ export function createDecorationPlugin(initialSourceView = false): Plugin<Decora
           sourceView: initialSourceView,
           cachedSyntaxRegions: syntaxRegions,
           cachedMathInlineRegions: mathInlineRegions,
+          lastUpdateTime: Date.now(),
+          pendingUpdate: false,
         };
       },
 
@@ -585,12 +641,8 @@ export function createDecorationPlugin(initialSourceView = false): Plugin<Decora
         const meta = tr.getMeta(decorationPluginKey);
         const sourceView = meta?.sourceView ?? pluginState.sourceView;
 
-        if (docChanged || selectionChanged || meta?.sourceView !== undefined) {
-          // 仅在文档变化或源码模式切换时重新扫描区域，选区变化时复用缓存
-          const needRescan = docChanged || meta?.sourceView !== undefined;
-          const syntaxRegions = needRescan ? undefined : pluginState.cachedSyntaxRegions;
-          const mathRegions = needRescan ? undefined : pluginState.cachedMathInlineRegions;
-
+        // 文档变化或源码模式切换：立即更新
+        if (docChanged || meta?.sourceView !== undefined) {
           const {
             decorations,
             activeRegions,
@@ -600,8 +652,8 @@ export function createDecorationPlugin(initialSourceView = false): Plugin<Decora
             newState.doc,
             newState.selection.head,
             sourceView,
-            syntaxRegions,
-            mathRegions
+            undefined,
+            undefined
           );
           return {
             decorations,
@@ -609,6 +661,45 @@ export function createDecorationPlugin(initialSourceView = false): Plugin<Decora
             sourceView,
             cachedSyntaxRegions: newSyntax,
             cachedMathInlineRegions: newMath,
+            lastUpdateTime: Date.now(),
+            pendingUpdate: false,
+          };
+        }
+
+        // 仅选区变化：应用节流
+        if (selectionChanged) {
+          const now = Date.now();
+          const timeSinceLastUpdate = now - pluginState.lastUpdateTime;
+
+          // 如果距离上次更新时间太短，跳过此次更新
+          if (timeSinceLastUpdate < THROTTLE_DELAY) {
+            return {
+              ...pluginState,
+              pendingUpdate: true,
+            };
+          }
+
+          // 执行更新（复用缓存的区域）
+          const {
+            decorations,
+            activeRegions,
+            syntaxRegions: newSyntax,
+            mathInlineRegions: newMath,
+          } = computeDecorations(
+            newState.doc,
+            newState.selection.head,
+            sourceView,
+            pluginState.cachedSyntaxRegions,
+            pluginState.cachedMathInlineRegions
+          );
+          return {
+            decorations,
+            activeRegions,
+            sourceView,
+            cachedSyntaxRegions: newSyntax,
+            cachedMathInlineRegions: newMath,
+            lastUpdateTime: now,
+            pendingUpdate: false,
           };
         }
 
@@ -625,7 +716,7 @@ export function createDecorationPlugin(initialSourceView = false): Plugin<Decora
 }
 
 /**
- * 切换源码视图
+ * 切换源码视图（优化版：异步处理大文件）
  */
 export function toggleSourceView(state: EditorState, dispatch?: (tr: any) => void): boolean {
   const pluginState = decorationPluginKey.getState(state);
@@ -634,16 +725,42 @@ export function toggleSourceView(state: EditorState, dispatch?: (tr: any) => voi
   const newSourceView = !pluginState.sourceView;
 
   if (dispatch) {
+    // 先更新源码模式状态，让 UI 立即响应
     const tr = state.tr.setMeta(decorationPluginKey, {
       sourceView: newSourceView,
     });
-    // 将文档转换合并到同一个 transaction 中，避免 appendTransaction 产生第二轮插件应用
-    if (newSourceView) {
-      convertBlocksToParagraphs(tr);
+
+    // 对于大文件（超过 1000 行），使用异步处理
+    const lineCount = state.doc.childCount;
+    const isLargeFile = lineCount > 1000;
+
+    if (isLargeFile) {
+      // 大文件：先 dispatch 状态变化，然后异步处理文档转换
+      dispatch(tr);
+
+      // 使用 setTimeout 让 UI 先更新
+      setTimeout(() => {
+        const newTr = state.tr.setMeta(decorationPluginKey, {
+          sourceView: newSourceView,
+        });
+
+        if (newSourceView) {
+          convertBlocksToParagraphs(newTr);
+        } else {
+          convertParagraphsToBlocks(newTr);
+        }
+
+        dispatch(newTr);
+      }, 0);
     } else {
-      convertParagraphsToBlocks(tr);
+      // 小文件：同步处理
+      if (newSourceView) {
+        convertBlocksToParagraphs(tr);
+      } else {
+        convertParagraphsToBlocks(tr);
+      }
+      dispatch(tr);
     }
-    dispatch(tr);
   }
 
   // 通知状态管理器
