@@ -213,7 +213,7 @@ export class MilkupEditor implements IMilkupEditor {
 
     // 异步加载初始内容
     if (content) {
-      this.setMarkdown(content);
+      this.setMarkdown(content, { scrollTop: this.config.initialScrollTop });
     }
   }
 
@@ -442,7 +442,7 @@ export class MilkupEditor implements IMilkupEditor {
   /**
    * 设置 Markdown 内容
    */
-  async setMarkdown(content: string): Promise<void> {
+  async setMarkdown(content: string, options?: { scrollTop?: number }): Promise<void> {
     // 保存完整内容（虚拟滚动模式下用于 getMarkdown）
     this._fullContent = content;
 
@@ -469,12 +469,33 @@ export class MilkupEditor implements IMilkupEditor {
             });
             this.view.dispatch(metaTr);
 
-            // 加载初始块（当前 + 下一个）
-            await manager.loadBlocks([0, 1]);
+            // 根据 scrollTop 计算目标块，优先加载可见区域
+            const savedScrollTop = options?.scrollTop ?? 0;
+            if (savedScrollTop > 0) {
+              const lineHeight = parseFloat(getComputedStyle(this.view.dom).fontSize) * 1.6 || 25.6;
+              const totalHeight = config.totalLines * lineHeight;
+              const scrollRatio = totalHeight > 0 ? savedScrollTop / totalHeight : 0;
+              const currentLine = Math.floor(scrollRatio * config.totalLines);
+              const targetBlock = Math.max(
+                0,
+                Math.min(Math.floor(currentLine / config.blockSize), config.totalBlocks - 1)
+              );
 
-            console.log(
-              `Virtual scroll enabled: ${config.totalBlocks} blocks, loaded initial blocks`
-            );
+              // 渐进式加载：先加载当前块，其余块下一帧异步加载
+              const coreBlocks = [targetBlock];
+              const deferredBlocks = [
+                targetBlock - 2,
+                targetBlock - 1,
+                targetBlock + 1,
+                targetBlock + 2,
+              ].filter((i) => i >= 0 && i < config.totalBlocks);
+
+              await manager.loadBlocksProgressive(coreBlocks, deferredBlocks);
+            } else {
+              // 无保存位置，加载前 3 个块
+              await manager.loadBlocks([0, 1, 2]);
+            }
+
             return;
           }
         } else {
@@ -1805,11 +1826,15 @@ export class MilkupEditor implements IMilkupEditor {
       // 清空已缓存的块内容，强制重新加载
       manager!.clearCache();
 
-      // 重新加载当前可见的块
+      // 重新加载当前可见的块（5 块范围）
       const currentBlock = managerState.currentBlockIndex;
-      const blocksToLoad = [currentBlock - 1, currentBlock, currentBlock + 1].filter(
-        (i) => i >= 0 && i < managerState.totalBlocks
-      );
+      const blocksToLoad = [
+        currentBlock - 2,
+        currentBlock - 1,
+        currentBlock,
+        currentBlock + 1,
+        currentBlock + 2,
+      ].filter((i) => i >= 0 && i < managerState.totalBlocks);
 
       await manager!.loadBlocks(blocksToLoad);
       return;
@@ -1909,10 +1934,14 @@ export class MilkupEditor implements IMilkupEditor {
     const blockSize = manager.getBlockSize();
     const targetBlock = Math.floor(lineNumber / blockSize);
 
-    // 加载目标块及相邻块
-    const blocksToLoad = [targetBlock - 1, targetBlock, targetBlock + 1].filter(
-      (i) => i >= 0 && i < manager.getState().totalBlocks
-    );
+    // 加载目标块及相邻块（5 块范围）
+    const blocksToLoad = [
+      targetBlock - 2,
+      targetBlock - 1,
+      targetBlock,
+      targetBlock + 1,
+      targetBlock + 2,
+    ].filter((i) => i >= 0 && i < manager.getState().totalBlocks);
 
     await manager.loadBlocks(blocksToLoad);
 

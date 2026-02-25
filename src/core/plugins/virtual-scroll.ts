@@ -52,7 +52,7 @@ class VirtualScrollManager {
   /** 滚动抑制：记录最后一次内容更新的时间戳 */
   private lastContentUpdateTime: number = 0;
   /** 内容更新后的滚动抑制时长（ms） */
-  private static readonly SCROLL_SUPPRESS_MS = 150;
+  private static readonly SCROLL_SUPPRESS_MS = 80;
   /** 待处理的块加载请求（队列） */
   private pendingLoad: number[] | null = null;
   /** 缓存的行高 */
@@ -134,11 +134,13 @@ class VirtualScrollManager {
 
     this.topSpacer = document.createElement("div");
     this.topSpacer.className = "virtual-scroll-spacer-top";
-    this.topSpacer.style.cssText = "height:0;width:100%;pointer-events:none";
+    this.topSpacer.style.cssText =
+      "height:0;width:100%;pointer-events:none;background:var(--background-color-1,#fff)";
 
     this.bottomSpacer = document.createElement("div");
     this.bottomSpacer.className = "virtual-scroll-spacer-bottom";
-    this.bottomSpacer.style.cssText = "width:100%;pointer-events:none";
+    this.bottomSpacer.style.cssText =
+      "width:100%;pointer-events:none;background:var(--background-color-1,#fff)";
 
     const editorContainer = this.view.dom.parentElement;
     if (editorContainer && scrollContainer) {
@@ -305,9 +307,13 @@ class VirtualScrollManager {
       Math.min(Math.floor(currentLine / this.blockSize), this.state.totalBlocks - 1)
     );
 
-    const blocksToLoad = [newBlockIndex - 1, newBlockIndex, newBlockIndex + 1].filter(
-      (i) => i >= 0 && i < this.state.totalBlocks
-    );
+    const blocksToLoad = [
+      newBlockIndex - 2,
+      newBlockIndex - 1,
+      newBlockIndex,
+      newBlockIndex + 1,
+      newBlockIndex + 2,
+    ].filter((i) => i >= 0 && i < this.state.totalBlocks);
 
     // 检查需要的块是否已经全部加载（不仅检查 blockIndex 是否变化）
     const needed = new Set(blocksToLoad);
@@ -330,8 +336,29 @@ class VirtualScrollManager {
       if (this.state.enabled) {
         this.loadBlocksForCurrentScroll();
       }
-    }, VirtualScrollManager.SCROLL_SUPPRESS_MS + 50);
+    }, VirtualScrollManager.SCROLL_SUPPRESS_MS + 20);
   };
+
+  /**
+   * 渐进式加载：先加载核心块（立即显示），其余块在下一帧异步加载
+   * 用于 tab 切换等场景，减少白屏时间
+   */
+  async loadBlocksProgressive(coreIndices: number[], deferredIndices: number[]): Promise<void> {
+    // 先加载核心块
+    await this.loadBlocks(coreIndices);
+
+    // 其余块在下一帧异步加载
+    if (deferredIndices.length > 0) {
+      const allIndices = [...new Set([...coreIndices, ...deferredIndices])].filter(
+        (i) => i >= 0 && i < this.state.totalBlocks
+      );
+      requestAnimationFrame(() => {
+        if (this.state.enabled) {
+          this.loadBlocks(allIndices);
+        }
+      });
+    }
+  }
 
   destroy(): void {
     if (this.deferredCheckTimer) clearTimeout(this.deferredCheckTimer);
@@ -373,7 +400,7 @@ export function createVirtualScrollPlugin(): Plugin<VirtualScrollState> {
 
       const handleScroll = () => {
         if (scrollTimeout) clearTimeout(scrollTimeout);
-        scrollTimeout = setTimeout(() => manager.handleScroll(), 80);
+        scrollTimeout = setTimeout(() => manager.handleScroll(), 30);
       };
 
       if (scrollContainer) {

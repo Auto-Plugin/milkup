@@ -48,7 +48,7 @@ const scrollViewRef = ref<HTMLElement | null>(null);
 let editor: MilkupEditor | null = null;
 const lastEmittedValue = ref<string | null>(null);
 
-// 更新滚动比例（rAF 节流）
+// 更新滚动位置（rAF 节流）
 let scrollRafId: number | null = null;
 function updateScrollRatio(e: Event) {
   if (scrollRafId !== null) return;
@@ -60,8 +60,29 @@ function updateScrollRatio(e: Event) {
     const ratio = scrollHeight === 0 ? 0 : scrollTop / scrollHeight;
     if (currentTab.value) {
       currentTab.value.scrollRatio = ratio;
+      // 同时保存 scrollTop 像素值（虚拟滚动模式下恢复更精确）
+      currentTab.value.scrollTop = scrollTop;
     }
   });
+}
+
+// 恢复滚动位置
+function restoreScrollPosition() {
+  if (!scrollViewRef.value || !currentTab.value) return;
+
+  // 优先使用 scrollTop 像素值（虚拟滚动模式下更精确）
+  if (currentTab.value.scrollTop !== undefined && currentTab.value.scrollTop > 0) {
+    scrollViewRef.value.scrollTop = currentTab.value.scrollTop;
+    return;
+  }
+
+  // 回退到 scrollRatio（非虚拟滚动模式或首次打开）
+  const scrollRatio = currentTab.value.scrollRatio ?? 0;
+  if (scrollRatio > 0) {
+    const targetScrollTop =
+      scrollRatio * (scrollViewRef.value.scrollHeight - scrollViewRef.value.clientHeight);
+    scrollViewRef.value.scrollTop = targetScrollTop;
+  }
 }
 
 // 预处理内容（主进程已完成图片路径转换，这里仅处理空格编码供编辑器渲染）
@@ -162,6 +183,7 @@ onMounted(async () => {
     readonly: props.readOnly,
     sourceView: false,
     placeholder: "写点什么吧...",
+    initialScrollTop: currentTab.value?.scrollTop,
     pasteConfig: {
       getImagePasteMethod: () => {
         const method = localStorage.getItem("pasteMethod");
@@ -253,12 +275,7 @@ onMounted(async () => {
 
   // 恢复滚动位置
   nextTick(() => {
-    if (scrollViewRef.value && currentTab.value) {
-      const scrollRatio = currentTab.value.scrollRatio ?? 0;
-      const targetScrollTop =
-        scrollRatio * (scrollViewRef.value.scrollHeight - scrollViewRef.value.clientHeight);
-      scrollViewRef.value.scrollTop = targetScrollTop;
-    }
+    restoreScrollPosition();
   });
 });
 
@@ -324,12 +341,12 @@ watch(
       return;
     }
     if (editor && newValue !== undefined) {
-      requestAnimationFrame(async () => {
-        // 更新全局文件路径
-        (window as any).__currentFilePath = currentTab.value?.filePath || null;
+      // 更新全局文件路径
+      (window as any).__currentFilePath = currentTab.value?.filePath || null;
 
-        const contentForRendering = preprocessContent(newValue);
-        await editor?.setMarkdown(contentForRendering);
+      const contentForRendering = preprocessContent(newValue);
+      const savedScrollTop = currentTab.value?.scrollTop;
+      editor.setMarkdown(contentForRendering, { scrollTop: savedScrollTop }).then(async () => {
         // 注意：不要在 setMarkdown 之后覆盖 lastEmittedValue。
         // setMarkdown 会同步触发 change 事件，change handler 已经将
         // lastEmittedValue 设置为序列化后的值。如果这里再覆盖为 newValue，
@@ -339,14 +356,9 @@ watch(
         // 更新大纲
         emitOutlineUpdate();
 
-        // 恢复滚动位置（等待 setMarkdown 完成后再恢复）
+        // 恢复滚动位置
         await nextTick();
-        if (scrollViewRef.value && currentTab.value) {
-          const scrollRatio = currentTab.value.scrollRatio ?? 0;
-          const targetScrollTop =
-            scrollRatio * (scrollViewRef.value.scrollHeight - scrollViewRef.value.clientHeight);
-          scrollViewRef.value.scrollTop = targetScrollTop;
-        }
+        restoreScrollPosition();
       });
     }
   }
