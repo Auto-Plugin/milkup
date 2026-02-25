@@ -45,9 +45,14 @@ function countMarkdownLines(text: string, options = { skipEmpty: true }): number
   return rawLines.length;
 }
 function countMarkdownChars(text: string): number {
+  if (!text) return 0;
+  // 移除 base64 图片数据
   const base64Regex = /data:image\/[a-zA-Z]+;base64,[a-zA-Z0-9+/=]+/g;
-  return (text.replaceAll("&#x20;", "").replace(base64Regex, "image").trim() || "").split("")
-    .length;
+  let cleaned = text.replace(base64Regex, "").replaceAll("&#x20;", "");
+  // 移除换行符
+  cleaned = cleaned.replace(/\r?\n/g, "");
+  // 使用展开运算符正确计算 Unicode 字符数（处理 surrogate pairs）
+  return [...cleaned].length;
 }
 window.electronAPI.on("view:toggleView", () => {
   toggleSourceCode();

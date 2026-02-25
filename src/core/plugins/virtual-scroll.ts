@@ -93,6 +93,14 @@ class VirtualScrollManager {
     return this.state;
   }
 
+  getBlockSize(): number {
+    return this.blockSize;
+  }
+
+  getTotalLines(): number {
+    return this.totalLines;
+  }
+
   setEnabled(enabled: boolean, totalBlocks: number, blockSize: number, totalLines: number): void {
     this.state.enabled = enabled;
     this.state.totalBlocks = totalBlocks;
@@ -249,7 +257,18 @@ class VirtualScrollManager {
 
     const tr = this.view.state.tr.replaceWith(0, this.view.state.doc.content.size, doc.content);
     tr.setMeta(virtualScrollPluginKey, { blockUpdate: true });
+
     this.view.dispatch(tr);
+
+    // 更新行号偏移（CSS counter-reset）
+    this.updateLineNumberOffset(sorted[0]);
+  }
+
+  /** 更新 CSS 行号计数器的起始值 */
+  private updateLineNumberOffset(firstBlockIndex: number): void {
+    const startLine = firstBlockIndex * this.blockSize;
+    // counter-reset: line-number <offset> 使计数器从 offset+1 开始
+    this.view.dom.style.counterReset = `line-number ${startLine}`;
   }
 
   // --- 滚动处理 ---

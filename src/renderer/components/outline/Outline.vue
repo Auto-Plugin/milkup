@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, computed, onMounted, onUnmounted } from "vue";
 import WorkSpace from "@/renderer/components/workspace/WorkSpace.vue";
 import useOutline from "@/renderer/hooks/useOutline";
 import emitter from "@/renderer/events";
@@ -10,9 +10,57 @@ const savedTab = localStorage.getItem("sidebar-active-tab") as "outline" | "file
 const activeTab = ref<"outline" | "file">(savedTab === "outline" ? "outline" : "file");
 watch(activeTab, (val) => localStorage.setItem("sidebar-active-tab", val));
 
-function onOiClick(oi: { id: string; text: string; level: number; pos: number }) {
-  emitter.emit("outline:scrollTo", oi.pos);
+function onOiClick(oi: {
+  id: string;
+  text: string;
+  level: number;
+  pos: number;
+  lineNumber?: number;
+}) {
+  emitter.emit("outline:scrollTo", oi);
 }
+
+// 大纲虚拟滚动
+const ITEM_HEIGHT = 30; // 每项高度（px）
+const outlineContainerRef = ref<HTMLElement | null>(null);
+const scrollTop = ref(0);
+const containerHeight = ref(300);
+
+function onOutlineScroll(e: Event) {
+  scrollTop.value = (e.target as HTMLElement).scrollTop;
+}
+
+const visibleOutline = computed(() => {
+  const items = outline.value;
+  if (items.length <= 200) return { items, topPad: 0, bottomPad: 0, startIdx: 0 };
+
+  const start = Math.max(0, Math.floor(scrollTop.value / ITEM_HEIGHT) - 5);
+  const visibleCount = Math.ceil(containerHeight.value / ITEM_HEIGHT) + 10;
+  const end = Math.min(items.length, start + visibleCount);
+
+  return {
+    items: items.slice(start, end),
+    topPad: start * ITEM_HEIGHT,
+    bottomPad: Math.max(0, (items.length - end) * ITEM_HEIGHT),
+    startIdx: start,
+  };
+});
+
+const totalOutlineHeight = computed(() => outline.value.length * ITEM_HEIGHT);
+
+let resizeObserver: ResizeObserver | null = null;
+onMounted(() => {
+  if (outlineContainerRef.value) {
+    containerHeight.value = outlineContainerRef.value.clientHeight;
+    resizeObserver = new ResizeObserver((entries) => {
+      containerHeight.value = entries[0].contentRect.height;
+    });
+    resizeObserver.observe(outlineContainerRef.value);
+  }
+});
+onUnmounted(() => {
+  resizeObserver?.disconnect();
+});
 </script>
 
 <template>
@@ -43,17 +91,42 @@ function onOiClick(oi: { id: string; text: string; level: number; pos: number })
     </div>
 
     <div class="content-container">
-      <div v-if="activeTab === 'outline'" class="outlineList">
-        <span
-          v-for="oi in outline"
-          :key="oi.id"
-          class="outlineItem"
-          :style="{ paddingLeft: `${oi.level * 12}px` }"
-          @click="onOiClick(oi)"
+      <div
+        v-if="activeTab === 'outline'"
+        ref="outlineContainerRef"
+        class="outlineList"
+        @scroll="onOutlineScroll"
+      >
+        <div
+          v-if="outline.length > 200"
+          :style="{ height: `${totalOutlineHeight}px`, position: 'relative' }"
         >
-          {{ oi.text }}
-        </span>
-        <span v-if="outline.length === 0" class="empty">暂无内容</span>
+          <div
+            :style="{ position: 'absolute', top: `${visibleOutline.topPad}px`, left: 0, right: 0 }"
+          >
+            <div
+              v-for="(oi, idx) in visibleOutline.items"
+              :key="`${oi.id}-${visibleOutline.startIdx + idx}`"
+              class="outlineItem"
+              :style="{ paddingLeft: `${oi.level * 12}px`, height: `${ITEM_HEIGHT}px` }"
+              @click="onOiClick(oi)"
+            >
+              {{ oi.text }}
+            </div>
+          </div>
+        </div>
+        <template v-else>
+          <div
+            v-for="(oi, idx) in outline"
+            :key="`${oi.id}-${idx}`"
+            class="outlineItem"
+            :style="{ paddingLeft: `${oi.level * 12}px` }"
+            @click="onOiClick(oi)"
+          >
+            {{ oi.text }}
+          </div>
+        </template>
+        <div v-if="outline.length === 0" class="empty">暂无内容</div>
       </div>
 
       <div v-else-if="activeTab === 'file'">
@@ -152,9 +225,11 @@ function onOiClick(oi: { id: string; text: string; level: number; pos: number })
   .outlineList {
     display: flex;
     flex-direction: column;
-    gap: 6px;
     width: 100%;
     padding: 12px;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
 
     .empty {
       color: var(--text-color-3);

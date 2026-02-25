@@ -59,6 +59,11 @@ function createLineNumberDecorations(doc: any, sourceView: boolean): DecorationS
 
       // doc 直接子节点、blockquote/container 直接子节点
       if (parentIsDoc || parentIsBlockquote || parentIsContainer) {
+        // blockquote 和 container 本身不显示行号，由其子节点承担
+        if (node.type.name === "blockquote" || node.type.name === "container") {
+          return true; // 继续遍历子节点
+        }
+
         if (node.type.name === "code_block") {
           // 代码块：计算行数（包括开始和结束的 ```）
           const language = node.attrs.language || "";

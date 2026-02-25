@@ -99,8 +99,29 @@ function emitOutlineUpdate() {
     outlineTimer = null;
     if (!editor) return;
 
+    // 虚拟滚动模式：从完整内容解析标题
+    const fullOutline = editor.getFullOutline();
+    if (fullOutline) {
+      const headings = fullOutline.map((h, i) => ({
+        level: h.level,
+        text: h.text,
+        id: `heading-line-${h.lineNumber}`,
+        pos: -1, // 虚拟滚动模式下 pos 无意义
+        lineNumber: h.lineNumber,
+      }));
+      emitter.emit("outline:Update", headings);
+      return;
+    }
+
+    // 非虚拟滚动模式：遍历 ProseMirror doc
     const doc = editor.getDoc();
-    const headings: Array<{ level: number; text: string; id: string; pos: number }> = [];
+    const headings: Array<{
+      level: number;
+      text: string;
+      id: string;
+      pos: number;
+      lineNumber?: number;
+    }> = [];
 
     doc.descendants((node, pos) => {
       if (node.type.name === "heading") {
@@ -247,6 +268,7 @@ onUnmounted(() => {
   // 移除事件监听
   emitter.off("sourceView:toggle", handleSourceViewToggle);
   emitter.off("outline:scrollTo", handleOutlineScrollTo);
+  emitter.off("tab:switch", handleTabSwitch);
 });
 
 // 处理源码模式切换事件
@@ -262,16 +284,37 @@ function handleSourceViewToggle() {
 emitter.on("sourceView:toggle", handleSourceViewToggle);
 
 // 处理大纲点击滚动
-function handleOutlineScrollTo(pos: unknown) {
-  if (!editor || typeof pos !== "number") return;
-  const view = editor.view;
-  const dom = view.domAtPos(pos + 1);
-  if (dom.node) {
-    const el = dom.node instanceof HTMLElement ? dom.node : dom.node.parentElement;
-    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+function handleOutlineScrollTo(data: unknown) {
+  if (!editor) return;
+
+  // 支持传入对象 { pos, lineNumber } 或纯数字 pos
+  const item = data as { pos?: number; lineNumber?: number } | number;
+  const lineNumber = typeof item === "object" ? item?.lineNumber : undefined;
+  const pos = typeof item === "number" ? item : item?.pos;
+
+  // 虚拟滚动模式：通过行号跳转
+  if (lineNumber !== undefined && lineNumber >= 0) {
+    editor.scrollToLine(lineNumber);
+    return;
+  }
+
+  // 非虚拟滚动模式：通过 ProseMirror pos 跳转
+  if (typeof pos === "number" && pos >= 0) {
+    const view = editor.view;
+    const dom = view.domAtPos(pos + 1);
+    if (dom.node) {
+      const el = dom.node instanceof HTMLElement ? dom.node : dom.node.parentElement;
+      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   }
 }
 emitter.on("outline:scrollTo", handleOutlineScrollTo);
+
+// tab 切换时重置 lastEmittedValue，确保 watch 守卫不会跳过新 tab 的内容加载
+function handleTabSwitch() {
+  lastEmittedValue.value = null;
+}
+emitter.on("tab:switch", handleTabSwitch);
 
 // 监听 modelValue 变化
 watch(
@@ -281,27 +324,29 @@ watch(
       return;
     }
     if (editor && newValue !== undefined) {
-      requestAnimationFrame(() => {
+      requestAnimationFrame(async () => {
         // 更新全局文件路径
         (window as any).__currentFilePath = currentTab.value?.filePath || null;
 
         const contentForRendering = preprocessContent(newValue);
-        editor?.setMarkdown(contentForRendering);
+        await editor?.setMarkdown(contentForRendering);
         // 注意：不要在 setMarkdown 之后覆盖 lastEmittedValue。
         // setMarkdown 会同步触发 change 事件，change handler 已经将
         // lastEmittedValue 设置为序列化后的值。如果这里再覆盖为 newValue，
         // 当序列化结果与 newValue 不同时（如引用块归一化），会导致 watch
         // 守卫失效，触发无限循环。
 
-        // 恢复滚动位置
-        nextTick(() => {
-          if (scrollViewRef.value && currentTab.value) {
-            const scrollRatio = currentTab.value.scrollRatio ?? 0;
-            const targetScrollTop =
-              scrollRatio * (scrollViewRef.value.scrollHeight - scrollViewRef.value.clientHeight);
-            scrollViewRef.value.scrollTop = targetScrollTop;
-          }
-        });
+        // 更新大纲
+        emitOutlineUpdate();
+
+        // 恢复滚动位置（等待 setMarkdown 完成后再恢复）
+        await nextTick();
+        if (scrollViewRef.value && currentTab.value) {
+          const scrollRatio = currentTab.value.scrollRatio ?? 0;
+          const targetScrollTop =
+            scrollRatio * (scrollViewRef.value.scrollHeight - scrollViewRef.value.clientHeight);
+          scrollViewRef.value.scrollTop = targetScrollTop;
+        }
       });
     }
   }

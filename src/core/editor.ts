@@ -313,6 +313,12 @@ export class MilkupEditor implements IMilkupEditor {
       // 虚拟滚动模式下，块加载导致的文档变化不触发 change 事件
       const isVirtualScrollUpdate = tr.getMeta(virtualScrollPluginKey);
       if (!isVirtualScrollUpdate) {
+        // 虚拟滚动模式下，用户编辑需要同步回 _fullContent
+        const manager = getVirtualScrollManager(this.view);
+        if (manager?.getState().enabled && this._fullContent) {
+          this.syncEditToFullContent(manager);
+        }
+
         this.emit("change", {
           markdown: this.getMarkdown(),
           transaction: tr,
@@ -331,6 +337,62 @@ export class MilkupEditor implements IMilkupEditor {
         sourceFrom: newState.selection.from,
         sourceTo: newState.selection.to,
       });
+    }
+  }
+
+  /**
+   * 虚拟滚动模式下，将用户编辑同步回 _fullContent
+   * 用块的原始缓存内容定位在 _fullContent 中的位置，替换为编辑后的内容
+   */
+  private syncEditToFullContent(manager: ReturnType<typeof getVirtualScrollManager>): void {
+    if (!manager) return;
+
+    const state = manager.getState();
+    const sorted = [...state.loadedBlockIndices].sort((a, b) => a - b);
+    if (sorted.length === 0) return;
+
+    // 拼接加载块的原始内容（编辑前的缓存）
+    const originalBlockContents = sorted
+      .map((i) => state.blockContents.get(i))
+      .filter((c): c is string => c !== undefined);
+
+    if (originalBlockContents.length === 0) return;
+
+    const originalJoined = originalBlockContents.join("\n");
+
+    // 在 _fullContent 中查找原始块内容的位置
+    const pos = this._fullContent.indexOf(originalJoined);
+    if (pos === -1) {
+      // 找不到精确匹配，回退到行号计算
+      const blockSize = manager.getBlockSize();
+      const startLine = sorted[0] * blockSize;
+      const endLine = (sorted[sorted.length - 1] + 1) * blockSize;
+      const fullLines = this._fullContent.split("\n");
+      const editedContent = serializeMarkdown(this.view.state.doc);
+      const editedLines = editedContent.split("\n");
+      fullLines.splice(startLine, Math.min(endLine, fullLines.length) - startLine, ...editedLines);
+      this._fullContent = fullLines.join("\n");
+      return;
+    }
+
+    // 序列化当前编辑器内容
+    const editedContent = serializeMarkdown(this.view.state.doc);
+
+    // 精确替换
+    this._fullContent =
+      this._fullContent.substring(0, pos) +
+      editedContent +
+      this._fullContent.substring(pos + originalJoined.length);
+
+    // 更新块缓存，使下次编辑能正确定位
+    // 将编辑后的内容按块重新分配到缓存中
+    const editedLines = editedContent.split("\n");
+    const blockSize = manager.getBlockSize();
+    for (let idx = 0; idx < sorted.length; idx++) {
+      const blockIdx = sorted[idx];
+      const start = idx * blockSize;
+      const end = idx === sorted.length - 1 ? editedLines.length : (idx + 1) * blockSize;
+      state.blockContents.set(blockIdx, editedLines.slice(start, end).join("\n"));
     }
   }
 
@@ -1810,6 +1872,57 @@ export class MilkupEditor implements IMilkupEditor {
    */
   getDoc(): Node {
     return this.view.state.doc;
+  }
+
+  /**
+   * 获取完整内容的标题列表（虚拟滚动模式下从 _fullContent 解析）
+   * 返回 { level, text, lineNumber } 数组
+   */
+  getFullOutline(): Array<{ level: number; text: string; lineNumber: number }> | null {
+    const manager = getVirtualScrollManager(this.view);
+    if (!manager?.getState().enabled || !this._fullContent) return null;
+
+    const headings: Array<{ level: number; text: string; lineNumber: number }> = [];
+    const lines = this._fullContent.split("\n");
+
+    for (let i = 0; i < lines.length; i++) {
+      const match = lines[i].match(/^(#{1,6})\s+(.+)$/);
+      if (match) {
+        headings.push({
+          level: match[1].length,
+          text: match[2].replace(/\s*#+\s*$/, "").trim(), // 去掉尾部的 # 标记
+          lineNumber: i,
+        });
+      }
+    }
+
+    return headings;
+  }
+
+  /**
+   * 虚拟滚动模式下，滚动到指定行号
+   */
+  async scrollToLine(lineNumber: number): Promise<void> {
+    const manager = getVirtualScrollManager(this.view);
+    if (!manager?.getState().enabled) return;
+
+    const blockSize = manager.getBlockSize();
+    const targetBlock = Math.floor(lineNumber / blockSize);
+
+    // 加载目标块及相邻块
+    const blocksToLoad = [targetBlock - 1, targetBlock, targetBlock + 1].filter(
+      (i) => i >= 0 && i < manager.getState().totalBlocks
+    );
+
+    await manager.loadBlocks(blocksToLoad);
+
+    // 计算目标滚动位置
+    const scrollContainer = this.view.dom.parentElement?.parentElement;
+    if (!scrollContainer) return;
+
+    const lineHeight = parseFloat(getComputedStyle(this.view.dom).fontSize) * 1.6 || 25.6;
+    const targetScrollTop = lineNumber * lineHeight;
+    scrollContainer.scrollTop = targetScrollTop;
   }
 
   /**
