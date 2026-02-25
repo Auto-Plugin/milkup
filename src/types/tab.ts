@@ -6,6 +6,8 @@ export interface Tab {
   originalContent: string;
   isModified: boolean;
   scrollRatio?: number;
+  /** 虚拟滚动模式下直接保存的 scrollTop 像素值（比 ratio 更精确） */
+  scrollTop?: number;
   readOnly: boolean;
   milkdownCursorOffset?: number | null;
   codeMirrorCursorOffset?: number | null;

@@ -26,6 +26,8 @@ export interface MilkupConfig {
   aiConfig?: AICompletionConfig;
   /** 自定义插件 */
   plugins?: MilkupPlugin[];
+  /** 初始滚动位置（像素值，用于虚拟滚动模式精确恢复） */
+  initialScrollTop?: number;
 }
 
 /** 图片路径处理器 */
@@ -50,7 +52,7 @@ export interface MilkupEditor {
   /** 获取 Markdown 内容 */
   getMarkdown: () => string;
   /** 设置 Markdown 内容 */
-  setMarkdown: (content: string) => void;
+  setMarkdown: (content: string, options?: { scrollTop?: number }) => void;
   /** 获取当前配置 */
   getConfig: () => MilkupConfig;
   /** 更新配置 */
