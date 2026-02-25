@@ -10,7 +10,20 @@ import LoadingIcon from "../ui/LoadingIcon.vue";
 function openByDefaultBrowser(url: string) {
   window.electronAPI.openExternal(url);
 }
-const updateInfo = JSON.parse(localStorage.getItem("updateInfo") || "{}");
+
+// 初始化时校验缓存的更新信息：如果存储的版本不比当前版本新，则清除
+function loadUpdateInfo(): Record<string, any> {
+  try {
+    const stored = JSON.parse(localStorage.getItem("updateInfo") || "{}");
+    if (stored.version && stored.version !== version) {
+      return stored;
+    }
+  } catch {}
+  localStorage.removeItem("updateInfo");
+  return {};
+}
+
+const updateInfo = ref(loadUpdateInfo());
 const isChecking = ref(false);
 
 function handleCheckUpdate() {
@@ -31,9 +44,12 @@ function handleCheckUpdate() {
       if (info && info.version) {
         console.log("[About] New version available:", info.version);
         localStorage.setItem("updateInfo", JSON.stringify(info));
+        updateInfo.value = info;
         emitter.emit("update:available", info);
       } else {
         console.log("[About] Already on latest version");
+        localStorage.removeItem("updateInfo");
+        updateInfo.value = {};
         autotoast.show("当前已为最新版本", "success");
       }
     })

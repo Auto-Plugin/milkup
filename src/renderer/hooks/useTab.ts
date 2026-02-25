@@ -356,7 +356,10 @@ function createNewTab(): Tab {
   };
   scheduleNewlyLoadedCleanup(tab.id);
 
-  return add(tab);
+  const added = add(tab);
+  // 触发 tab:switch 事件，确保编辑器内容更新
+  emitter.emit("tab:switch", added);
+  return added;
 }
 
 // 切换tab并同步内容

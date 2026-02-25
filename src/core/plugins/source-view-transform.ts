@@ -809,9 +809,42 @@ export function createSourceViewTransformPlugin(): Plugin {
     key: sourceViewTransformPluginKey,
 
     appendTransaction(transactions, oldState, newState) {
-      // 虚拟滚动模式下跳过文档转换（由编辑器的 toggleSourceView 处理）
       const vsState = virtualScrollPluginKey.getState(newState);
-      if (vsState?.enabled) return null;
+
+      // 虚拟滚动模式下：只在源码模式 + blockUpdate 时转换新加载的块
+      if (vsState?.enabled) {
+        const decoState = decorationPluginKey.getState(newState);
+        if (!decoState?.sourceView) return null;
+
+        // 检查是否有 blockUpdate 事务
+        const hasBlockUpdate = transactions.some(
+          (tr) => tr.getMeta(virtualScrollPluginKey)?.blockUpdate
+        );
+        if (!hasBlockUpdate) return null;
+
+        // 检查新加载的内容中是否有未转换的块级节点
+        let hasBlocks = false;
+        newState.doc.descendants((node) => {
+          if (
+            node.type.name === "code_block" ||
+            node.type.name === "image" ||
+            node.type.name === "horizontal_rule" ||
+            node.type.name === "table" ||
+            node.type.name === "html_block" ||
+            node.type.name === "math_block"
+          ) {
+            hasBlocks = true;
+          }
+          return !hasBlocks;
+        });
+
+        if (hasBlocks) {
+          const tr = newState.tr;
+          convertBlocksToParagraphs(tr);
+          return tr.docChanged ? tr : null;
+        }
+        return null;
+      }
 
       // 检查是否有源码模式切换
       const oldDecorationState = decorationPluginKey.getState(oldState);

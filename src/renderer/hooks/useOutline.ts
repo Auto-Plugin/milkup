@@ -7,7 +7,9 @@ function toggleShowOutline(status?: boolean | null) {
   isShowOutline.value = toggle ? status : !isShowOutline.value;
 }
 export default function useOutline() {
-  const outline = ref<{ id: string; level: number; text: string; pos: number }[]>([] as any);
+  const outline = ref<
+    { id: string; level: number; text: string; pos: number; lineNumber?: number }[]
+  >([] as any);
   onMounted(() => {
     emitter.on("outline:Update", setOutline);
   });

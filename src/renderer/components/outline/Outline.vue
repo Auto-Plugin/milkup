@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, watch } from "vue";
+import { reactive, ref, watch, computed, onMounted, onUnmounted } from "vue";
 import WorkSpace from "@/renderer/components/workspace/WorkSpace.vue";
 import useOutline from "@/renderer/hooks/useOutline";
 import emitter from "@/renderer/events";
@@ -46,9 +46,57 @@ function toggleCollapse(oi: { id: string }) {
   }
 }
 
-function onOiClick(oi: { id: string; text: string; level: number; pos: number }) {
-  emitter.emit("outline:scrollTo", oi.pos);
+function onOiClick(oi: {
+  id: string;
+  text: string;
+  level: number;
+  pos: number;
+  lineNumber?: number;
+}) {
+  emitter.emit("outline:scrollTo", oi);
 }
+
+// 大纲虚拟滚动
+const ITEM_HEIGHT = 30; // 每项高度（px）
+const outlineContainerRef = ref<HTMLElement | null>(null);
+const scrollTop = ref(0);
+const containerHeight = ref(300);
+
+function onOutlineScroll(e: Event) {
+  scrollTop.value = (e.target as HTMLElement).scrollTop;
+}
+
+const visibleOutline = computed(() => {
+  const items = outline.value;
+  if (items.length <= 200) return { items, topPad: 0, bottomPad: 0, startIdx: 0 };
+
+  const start = Math.max(0, Math.floor(scrollTop.value / ITEM_HEIGHT) - 5);
+  const visibleCount = Math.ceil(containerHeight.value / ITEM_HEIGHT) + 10;
+  const end = Math.min(items.length, start + visibleCount);
+
+  return {
+    items: items.slice(start, end),
+    topPad: start * ITEM_HEIGHT,
+    bottomPad: Math.max(0, (items.length - end) * ITEM_HEIGHT),
+    startIdx: start,
+  };
+});
+
+const totalOutlineHeight = computed(() => outline.value.length * ITEM_HEIGHT);
+
+let resizeObserver: ResizeObserver | null = null;
+onMounted(() => {
+  if (outlineContainerRef.value) {
+    containerHeight.value = outlineContainerRef.value.clientHeight;
+    resizeObserver = new ResizeObserver((entries) => {
+      containerHeight.value = entries[0].contentRect.height;
+    });
+    resizeObserver.observe(outlineContainerRef.value);
+  }
+});
+onUnmounted(() => {
+  resizeObserver?.disconnect();
+});
 
 // 右键菜单
 const contextMenu = ref<{
@@ -88,7 +136,7 @@ function closeContextMenu() {
 
 function handleJump() {
   if (contextMenu.value.item) {
-    emitter.emit("outline:scrollTo", contextMenu.value.item.pos);
+    emitter.emit("outline:scrollTo", contextMenu.value.item);
   }
   closeContextMenu();
 }
@@ -113,7 +161,6 @@ function onDocClick() {
   closeContextMenu();
 }
 
-import { onMounted, onUnmounted } from "vue";
 onMounted(() => document.addEventListener("click", onDocClick));
 onUnmounted(() => document.removeEventListener("click", onDocClick));
 </script>
@@ -146,8 +193,34 @@ onUnmounted(() => document.removeEventListener("click", onDocClick));
     </div>
 
     <div class="content-container">
-      <div v-if="activeTab === 'outline'" class="outlineList">
-        <template v-if="outline.length > 0">
+      <div
+        v-if="activeTab === 'outline'"
+        ref="outlineContainerRef"
+        class="outlineList"
+        @scroll="onOutlineScroll"
+      >
+        <!-- 大纲项超过 200 时使用虚拟滚动（性能优先，不支持折叠） -->
+        <div
+          v-if="outline.length > 200"
+          :style="{ height: `${totalOutlineHeight}px`, position: 'relative' }"
+        >
+          <div
+            :style="{ position: 'absolute', top: `${visibleOutline.topPad}px`, left: 0, right: 0 }"
+          >
+            <div
+              v-for="(oi, idx) in visibleOutline.items"
+              :key="`${oi.id}-${visibleOutline.startIdx + idx}`"
+              class="outlineItem"
+              :style="{ paddingLeft: `${oi.level * 12}px`, height: `${ITEM_HEIGHT}px` }"
+              @click="onOiClick(oi)"
+              @contextmenu="onItemContextMenu($event, oi)"
+            >
+              {{ oi.text }}
+            </div>
+          </div>
+        </div>
+        <!-- 正常模式：支持折叠和右键菜单 -->
+        <template v-else-if="outline.length > 0">
           <template v-for="(oi, index) in outline" :key="oi.id">
             <div
               v-if="!isHiddenByCollapse(index)"
@@ -298,6 +371,9 @@ onUnmounted(() => document.removeEventListener("click", onDocClick));
     flex-direction: column;
     width: 100%;
     padding: 8px 4px;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
 
     .empty-state {
       display: flex;
