@@ -29,6 +29,7 @@ import {
   createVirtualScrollPlugin,
   getVirtualScrollManager,
   virtualScrollPluginKey,
+  type ScrollAnchor,
 } from "./plugins/virtual-scroll";
 import { createLazyLoadPlugin, initLazyLoad } from "./plugins/lazy-load";
 import { createHeadingSyncPlugin } from "./plugins/heading-sync";
@@ -442,7 +443,10 @@ export class MilkupEditor implements IMilkupEditor {
   /**
    * 设置 Markdown 内容
    */
-  async setMarkdown(content: string, options?: { scrollTop?: number }): Promise<void> {
+  async setMarkdown(
+    content: string,
+    options?: { scrollTop?: number; scrollAnchor?: ScrollAnchor }
+  ): Promise<void> {
     // 保存完整内容（虚拟滚动模式下用于 getMarkdown）
     this._fullContent = content;
 
@@ -469,31 +473,48 @@ export class MilkupEditor implements IMilkupEditor {
             });
             this.view.dispatch(metaTr);
 
-            // 根据 scrollTop 计算目标块，优先加载可见区域
+            // 优先使用锚点确定目标块
+            const scrollAnchor = options?.scrollAnchor;
             const savedScrollTop = options?.scrollTop ?? 0;
-            if (savedScrollTop > 0) {
-              const lineHeight = parseFloat(getComputedStyle(this.view.dom).fontSize) * 1.6 || 25.6;
-              const totalHeight = config.totalLines * lineHeight;
-              const scrollRatio = totalHeight > 0 ? savedScrollTop / totalHeight : 0;
-              const currentLine = Math.floor(scrollRatio * config.totalLines);
-              const targetBlock = Math.max(
-                0,
-                Math.min(Math.floor(currentLine / config.blockSize), config.totalBlocks - 1)
-              );
+            let targetBlock = 0;
 
-              // 渐进式加载：先加载当前块，其余块下一帧异步加载
-              const coreBlocks = [targetBlock];
-              const deferredBlocks = [
-                targetBlock - 2,
-                targetBlock - 1,
-                targetBlock + 1,
-                targetBlock + 2,
-              ].filter((i) => i >= 0 && i < config.totalBlocks);
+            if (scrollAnchor) {
+              // 使用锚点的 blockIndex 直接定位
+              targetBlock = Math.max(0, Math.min(scrollAnchor.blockIndex, config.totalBlocks - 1));
+            } else if (savedScrollTop > 0) {
+              // 回退到 heightCache 二分查找
+              const heightCache = manager.getHeightCache();
+              if (heightCache) {
+                const { blockIndex } = heightCache.getBlockAtPosition(savedScrollTop);
+                targetBlock = blockIndex;
+              } else {
+                // heightCache 尚未就绪，用估算（兜底）
+                const lineHeight =
+                  parseFloat(getComputedStyle(this.view.dom).fontSize) * 1.6 || 25.6;
+                const totalHeight = config.totalLines * lineHeight;
+                const scrollRatio = totalHeight > 0 ? savedScrollTop / totalHeight : 0;
+                const currentLine = Math.floor(scrollRatio * config.totalLines);
+                targetBlock = Math.max(
+                  0,
+                  Math.min(Math.floor(currentLine / config.blockSize), config.totalBlocks - 1)
+                );
+              }
+            }
 
-              await manager.loadBlocksProgressive(coreBlocks, deferredBlocks);
-            } else {
-              // 无保存位置，加载前 3 个块
-              await manager.loadBlocks([0, 1, 2]);
+            // 渐进式加载：先加载当前块，其余块下一帧异步加载
+            const coreBlocks = [targetBlock];
+            const deferredBlocks = [
+              targetBlock - 2,
+              targetBlock - 1,
+              targetBlock + 1,
+              targetBlock + 2,
+            ].filter((i) => i >= 0 && i < config.totalBlocks);
+
+            await manager.loadBlocksProgressive(coreBlocks, deferredBlocks);
+
+            // 加载完成后：如有锚点，用锚点精确设置 virtualScrollTop
+            if (scrollAnchor) {
+              manager.scrollTo(manager.getScrollTopFromAnchor(scrollAnchor));
             }
 
             return;
@@ -1943,15 +1964,42 @@ export class MilkupEditor implements IMilkupEditor {
       targetBlock + 2,
     ].filter((i) => i >= 0 && i < manager.getState().totalBlocks);
 
-    await manager.loadBlocks(blocksToLoad);
+    await manager.loadBlocks(blocksToLoad, { programmatic: true });
 
-    // 计算目标滚动位置
-    const scrollContainer = this.view.dom.parentElement?.parentElement;
-    if (!scrollContainer) return;
+    // 计算目标滚动位置：基于 heightCache
+    const heightCache = manager.getHeightCache();
+    if (heightCache) {
+      // 块内偏移：lineNumber 在目标块内的比例
+      const blockStartLine = targetBlock * blockSize;
+      const blockLines = heightCache.getBlockLineCount(targetBlock);
+      const fraction = blockLines > 0 ? (lineNumber - blockStartLine) / blockLines : 0;
+      const targetScrollTop =
+        heightCache.getCumulativeHeight(targetBlock) +
+        fraction * heightCache.getBlockHeight(targetBlock);
+      manager.scrollTo(targetScrollTop);
+    } else {
+      // 兜底：估算
+      const lineHeight = parseFloat(getComputedStyle(this.view.dom).fontSize) * 1.6 || 25.6;
+      manager.scrollTo(lineNumber * lineHeight);
+    }
+  }
 
-    const lineHeight = parseFloat(getComputedStyle(this.view.dom).fontSize) * 1.6 || 25.6;
-    const targetScrollTop = lineNumber * lineHeight;
-    scrollContainer.scrollTop = targetScrollTop;
+  /**
+   * 获取当前滚动位置的锚点（虚拟滚动模式下使用）
+   * 供 Vue 组件调用，保存逻辑锚点到 Tab 状态
+   */
+  getScrollAnchor(): ScrollAnchor | null {
+    const manager = getVirtualScrollManager(this.view);
+    if (!manager?.getState().enabled) return null;
+    return manager.captureAnchor();
+  }
+
+  /**
+   * 检查虚拟滚动是否已启用
+   */
+  isVirtualScrollEnabled(): boolean {
+    const manager = getVirtualScrollManager(this.view);
+    return manager?.getState().enabled ?? false;
   }
 
   /**

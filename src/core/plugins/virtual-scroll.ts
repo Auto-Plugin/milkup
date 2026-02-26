@@ -1,12 +1,27 @@
 /**
- * Milkup 虚拟滚动插件 v6
+ * Milkup 虚拟滚动插件 v9
  *
- * 基于主进程分块管理的真正虚拟滚动
- * 使用占位元素撑起完整文档高度，只渲染可见区域的内容块
+ * 纯 transform 架构 —— 完全摒弃浏览器原生滚动
  *
- * v6 改进：
- * - 行高从 DOM 实时计算（基于编辑器字体大小和 line-height）
- * - 修复滚动条拖拽时滑块跑飞的问题（基于时间戳的滚动抑制 + scrollTop 主动恢复）
+ * 核心思想：
+ * - 用 JS 变量 `virtualScrollTop` 作为唯一的滚动位置状态
+ * - `overflow: hidden` 禁止浏览器原生滚动
+ * - 通过 wheel 事件驱动 virtualScrollTop 变化
+ * - 用 transform: translateY 定位可视内容
+ * - 基于 virtualScrollTop 判断该加载哪些块
+ * - 自定义滚动条提供视觉反馈
+ *
+ * 彻底消除反馈循环：
+ * - 不读也不写 scrollContainer.scrollTop
+ * - 块加载 / 高度变化只影响 transform，不改变 virtualScrollTop
+ * - virtualScrollTop 只由用户输入（wheel / scrollbar drag）改变
+ *
+ * DOM 结构（虚拟滚动启用时）：
+ *   .scrollView (overflow: hidden, position: relative)         ← scrollContainer
+ *     .milkup-container (transform: translateY(-localOffset))  ← 编辑器容器
+ *       .ProseMirror                                           ← 编辑器 DOM
+ *     .vs-scrollbar-track                                      ← 自定义滚动条轨道
+ *       .vs-scrollbar-thumb                                    ← 滚动条滑块
  */
 
 import { Plugin, PluginKey } from "prosemirror-state";
@@ -15,6 +30,12 @@ import { parseMarkdown } from "../parser";
 
 /** 插件 Key */
 export const virtualScrollPluginKey = new PluginKey("milkup-virtual-scroll");
+
+/** 滚动锚点 */
+export interface ScrollAnchor {
+  blockIndex: number;
+  fractionInBlock: number;
+}
 
 /** 虚拟滚动状态 */
 interface VirtualScrollState {
@@ -26,6 +47,12 @@ interface VirtualScrollState {
   blockContents: Map<number, string>;
 }
 
+/** loadBlocks 选项 */
+interface LoadBlocksOptions {
+  /** 编程式加载（如 scrollToLine / setMarkdown 调用） */
+  programmatic?: boolean;
+}
+
 /** 从编辑器 DOM 计算实际行高 */
 function getLineHeight(editorDom: HTMLElement): number {
   const computed = getComputedStyle(editorDom);
@@ -33,37 +60,174 @@ function getLineHeight(editorDom: HTMLElement): number {
   const lh = computed.lineHeight;
   if (lh && lh !== "normal") {
     const parsed = parseFloat(lh);
-    // 如果是像素值直接用，否则是倍数
     return lh.endsWith("px") ? parsed : fontSize * parsed;
   }
-  // 默认 line-height: 1.6（milkup.css）
   return fontSize * 1.6;
 }
 
-/** 虚拟滚动管理器 */
+// ======================== BlockHeightCache ========================
+
+class BlockHeightCache {
+  private heights: number[];
+  private measured: boolean[];
+  private blockLineCounts: number[];
+  private prefixSums: number[] | null = null;
+
+  constructor(totalBlocks: number, blockSize: number, totalLines: number, lineHeight: number) {
+    this.heights = new Array(totalBlocks);
+    this.measured = new Array(totalBlocks).fill(false);
+    this.blockLineCounts = new Array(totalBlocks);
+
+    for (let i = 0; i < totalBlocks; i++) {
+      const startLine = i * blockSize;
+      const endLine = Math.min(startLine + blockSize, totalLines);
+      const lines = endLine - startLine;
+      this.blockLineCounts[i] = lines;
+      this.heights[i] = lines * lineHeight;
+    }
+  }
+
+  get totalBlocks(): number {
+    return this.heights.length;
+  }
+
+  getBlockLineCount(blockIndex: number): number {
+    return this.blockLineCounts[blockIndex] ?? 0;
+  }
+
+  getBlockHeight(blockIndex: number): number {
+    return this.heights[blockIndex] ?? 0;
+  }
+
+  isMeasured(blockIndex: number): boolean {
+    return this.measured[blockIndex] ?? false;
+  }
+
+  setMeasuredHeights(blockIndices: number[], totalRenderedHeight: number): void {
+    const totalLines = blockIndices.reduce((sum, i) => sum + (this.blockLineCounts[i] ?? 0), 0);
+    if (totalLines <= 0) return;
+
+    for (const i of blockIndices) {
+      const lines = this.blockLineCounts[i] ?? 0;
+      if (lines > 0) {
+        this.heights[i] = (lines / totalLines) * totalRenderedHeight;
+        this.measured[i] = true;
+      }
+    }
+    this.prefixSums = null;
+  }
+
+  updateEstimatedLineHeight(lineHeight: number): void {
+    let dirty = false;
+    for (let i = 0; i < this.heights.length; i++) {
+      if (!this.measured[i]) {
+        this.heights[i] = this.blockLineCounts[i] * lineHeight;
+        dirty = true;
+      }
+    }
+    if (dirty) this.prefixSums = null;
+  }
+
+  private ensurePrefixSums(): number[] {
+    if (this.prefixSums) return this.prefixSums;
+    const n = this.heights.length;
+    const sums = new Array(n);
+    let acc = 0;
+    for (let i = 0; i < n; i++) {
+      acc += this.heights[i];
+      sums[i] = acc;
+    }
+    this.prefixSums = sums;
+    return sums;
+  }
+
+  getCumulativeHeight(upTo: number): number {
+    if (upTo <= 0) return 0;
+    const sums = this.ensurePrefixSums();
+    const idx = Math.min(upTo, sums.length) - 1;
+    return sums[idx] ?? 0;
+  }
+
+  getTotalHeight(): number {
+    return this.getCumulativeHeight(this.heights.length);
+  }
+
+  getBlockAtPosition(scrollTop: number): { blockIndex: number; offsetInBlock: number } {
+    if (scrollTop <= 0) return { blockIndex: 0, offsetInBlock: 0 };
+
+    const sums = this.ensurePrefixSums();
+    const n = sums.length;
+
+    if (scrollTop >= sums[n - 1]) {
+      return { blockIndex: n - 1, offsetInBlock: this.heights[n - 1] };
+    }
+
+    let lo = 0;
+    let hi = n - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (sums[mid] <= scrollTop) {
+        lo = mid + 1;
+      } else {
+        hi = mid;
+      }
+    }
+
+    const blockIndex = lo;
+    const blockStart = blockIndex > 0 ? sums[blockIndex - 1] : 0;
+    return { blockIndex, offsetInBlock: scrollTop - blockStart };
+  }
+}
+
+// ======================== VirtualScrollManager ========================
+
 class VirtualScrollManager {
   private view: EditorView;
   private state: VirtualScrollState;
   private parser = parseMarkdown;
-  private topSpacer: HTMLElement | null = null;
-  private bottomSpacer: HTMLElement | null = null;
+
+  /** 滚动容器 (.scrollView) */
+  private scrollContainer: HTMLElement | null = null;
+  /** 编辑器容器 (.milkup-container) —— 用 transform 定位 */
+  private editorContainer: HTMLElement | null = null;
+  /** 自定义滚动条 */
+  private scrollbarTrack: HTMLElement | null = null;
+  private scrollbarThumb: HTMLElement | null = null;
+
   private blockSize: number = 150;
   private totalLines: number = 0;
-  /** 滚动抑制：记录最后一次内容更新的时间戳 */
-  private lastContentUpdateTime: number = 0;
-  /** 内容更新后的滚动抑制时长（ms） */
-  private static readonly SCROLL_SUPPRESS_MS = 80;
-  /** 待处理的块加载请求（队列） */
-  private pendingLoad: number[] | null = null;
-  /** 缓存的行高 */
+  private heightCache: BlockHeightCache | null = null;
+  private pendingLoad: { indices: number[]; options?: LoadBlocksOptions } | null = null;
   private cachedLineHeight: number = 0;
-  /** 行高缓存过期时间 */
   private lineHeightCacheTime: number = 0;
-  /** 抑制结束后的延迟重检定时器 */
-  private deferredCheckTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** 核心状态：虚拟滚动位置（替代 scrollContainer.scrollTop） */
+  private virtualScrollTop: number = 0;
+  /** 视口高度缓存 */
+  private viewportHeight: number = 0;
+
+  /** 事件绑定引用（用于 destroy 时移除） */
+  private boundWheel: ((e: WheelEvent) => void) | null = null;
+  private boundThumbDown: ((e: MouseEvent) => void) | null = null;
+  private boundTrackClick: ((e: MouseEvent) => void) | null = null;
+  private boundMouseMove: ((e: MouseEvent) => void) | null = null;
+  private boundMouseUp: ((e: MouseEvent) => void) | null = null;
+  private boundKeyDown: ((e: KeyboardEvent) => void) | null = null;
+  private boundResize: (() => void) | null = null;
+  /** scrollbar drag 状态 */
+  private isDraggingThumb: boolean = false;
+  private dragStartY: number = 0;
+  private dragStartScrollTop: number = 0;
+  /** 滚动条自动隐藏 */
+  private scrollbarHideTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** 原始 overflow 样式（destroy 时恢复） */
+  private originalOverflow: string = "";
 
   constructor(view: EditorView) {
     this.view = view;
+    this.scrollContainer = view.dom.parentElement?.parentElement ?? null;
+    this.editorContainer = view.dom.parentElement ?? null;
     this.state = {
       enabled: false,
       currentBlockIndex: 0,
@@ -74,7 +238,6 @@ class VirtualScrollManager {
     };
   }
 
-  /** 获取行高（带缓存，每 2 秒刷新一次） */
   private getEstimatedLineHeight(): number {
     const now = Date.now();
     if (now - this.lineHeightCacheTime > 2000 || this.cachedLineHeight === 0) {
@@ -82,11 +245,6 @@ class VirtualScrollManager {
       this.lineHeightCacheTime = now;
     }
     return this.cachedLineHeight;
-  }
-
-  /** 计算总文档估算高度 */
-  private getTotalHeight(): number {
-    return this.totalLines * this.getEstimatedLineHeight();
   }
 
   getState(): VirtualScrollState {
@@ -101,6 +259,22 @@ class VirtualScrollManager {
     return this.totalLines;
   }
 
+  getHeightCache(): BlockHeightCache | null {
+    return this.heightCache;
+  }
+
+  getScrollContainer(): HTMLElement | null {
+    return this.scrollContainer;
+  }
+
+  getVirtualScrollTop(): number {
+    return this.virtualScrollTop;
+  }
+
+  getViewportHeight(): number {
+    return this.viewportHeight;
+  }
+
   setEnabled(enabled: boolean, totalBlocks: number, blockSize: number, totalLines: number): void {
     this.state.enabled = enabled;
     this.state.totalBlocks = totalBlocks;
@@ -108,14 +282,17 @@ class VirtualScrollManager {
     this.totalLines = totalLines;
     this.clearCache();
     this.state.currentBlockIndex = 0;
-    // 重置行高缓存
     this.cachedLineHeight = 0;
     this.lineHeightCacheTime = 0;
+    this.virtualScrollTop = 0;
 
     if (enabled) {
-      this.createSpacers();
+      const lineHeight = this.getEstimatedLineHeight();
+      this.heightCache = new BlockHeightCache(totalBlocks, blockSize, totalLines, lineHeight);
+      this.setupDOM();
     } else {
-      this.removeSpacers();
+      this.heightCache = null;
+      this.teardownDOM();
     }
   }
 
@@ -124,76 +301,420 @@ class VirtualScrollManager {
     this.state.loadedBlockIndices = [];
   }
 
-  // --- Spacer 管理 ---
+  // --- 锚点（供外部 Tab 保存/恢复使用） ---
 
-  private createSpacers(): void {
-    const scrollContainer = this.view.dom.parentElement?.parentElement;
-    if (!scrollContainer) return;
+  captureAnchor(): ScrollAnchor | null {
+    if (!this.heightCache) return null;
 
-    this.removeSpacers();
+    const { blockIndex, offsetInBlock } = this.heightCache.getBlockAtPosition(
+      this.virtualScrollTop
+    );
+    const blockHeight = this.heightCache.getBlockHeight(blockIndex);
+    const fraction = blockHeight > 0 ? offsetInBlock / blockHeight : 0;
 
-    this.topSpacer = document.createElement("div");
-    this.topSpacer.className = "virtual-scroll-spacer-top";
-    this.topSpacer.style.cssText =
-      "height:0;width:100%;pointer-events:none;background:var(--background-color-1,#fff)";
+    return { blockIndex, fractionInBlock: Math.max(0, Math.min(1, fraction)) };
+  }
 
-    this.bottomSpacer = document.createElement("div");
-    this.bottomSpacer.className = "virtual-scroll-spacer-bottom";
-    this.bottomSpacer.style.cssText =
-      "width:100%;pointer-events:none;background:var(--background-color-1,#fff)";
+  resolveAnchor(anchor: ScrollAnchor): number {
+    if (!this.heightCache) return 0;
+    const blockTop = this.heightCache.getCumulativeHeight(anchor.blockIndex);
+    const blockHeight = this.heightCache.getBlockHeight(anchor.blockIndex);
+    return blockTop + anchor.fractionInBlock * blockHeight;
+  }
 
-    const editorContainer = this.view.dom.parentElement;
-    if (editorContainer && scrollContainer) {
-      editorContainer.style.minHeight = "auto";
-      scrollContainer.insertBefore(this.topSpacer, editorContainer);
-      scrollContainer.appendChild(this.bottomSpacer);
+  getScrollTopFromAnchor(anchor: ScrollAnchor): number {
+    return this.resolveAnchor(anchor);
+  }
+
+  // --- DOM 管理 ---
+
+  private setupDOM(): void {
+    if (!this.scrollContainer) return;
+
+    // 保存并替换 overflow
+    this.originalOverflow = this.scrollContainer.style.overflow || "";
+    this.scrollContainer.style.overflow = "hidden";
+    this.scrollContainer.style.position = "relative";
+
+    // 缓存视口高度
+    this.viewportHeight = this.scrollContainer.clientHeight;
+
+    // 创建自定义滚动条
+    this.createScrollbar();
+
+    // 绑定事件
+    this.bindEvents();
+  }
+
+  private teardownDOM(): void {
+    this.unbindEvents();
+    this.removeScrollbar();
+
+    if (this.scrollContainer) {
+      this.scrollContainer.style.overflow = this.originalOverflow;
+      this.scrollContainer.style.position = "";
     }
 
-    this.updateSpacerHeights();
+    // 清除 transform
+    if (this.editorContainer) {
+      this.editorContainer.style.transform = "";
+      this.editorContainer.style.willChange = "";
+    }
   }
 
-  private removeSpacers(): void {
-    this.topSpacer?.remove();
-    this.bottomSpacer?.remove();
-    this.topSpacer = null;
-    this.bottomSpacer = null;
-    const editorContainer = this.view.dom.parentElement;
-    if (editorContainer) editorContainer.style.minHeight = "";
+  private createScrollbar(): void {
+    if (!this.scrollContainer) return;
+
+    // 轨道
+    this.scrollbarTrack = document.createElement("div");
+    this.scrollbarTrack.className = "vs-scrollbar-track";
+    this.scrollbarTrack.style.cssText = `
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 12px;
+      z-index: 10;
+      opacity: 0;
+      transition: opacity 0.3s;
+    `;
+
+    // 滑块
+    this.scrollbarThumb = document.createElement("div");
+    this.scrollbarThumb.className = "vs-scrollbar-thumb";
+    this.scrollbarThumb.style.cssText = `
+      position: absolute;
+      right: 2px;
+      width: 8px;
+      min-height: 30px;
+      border-radius: 4px;
+      background: rgba(128, 128, 128, 0.5);
+      cursor: pointer;
+      transition: background 0.2s;
+    `;
+
+    this.scrollbarTrack.appendChild(this.scrollbarThumb);
+    this.scrollContainer.appendChild(this.scrollbarTrack);
+
+    // hover 效果
+    this.scrollbarThumb.addEventListener("mouseenter", () => {
+      this.scrollbarThumb!.style.background = "rgba(128, 128, 128, 0.7)";
+    });
+    this.scrollbarThumb.addEventListener("mouseleave", () => {
+      if (!this.isDraggingThumb) {
+        this.scrollbarThumb!.style.background = "rgba(128, 128, 128, 0.5)";
+      }
+    });
+
+    this.updateScrollbar();
   }
 
-  private updateSpacerHeights(): void {
-    if (!this.topSpacer || !this.bottomSpacer) return;
+  private removeScrollbar(): void {
+    if (this.scrollbarTrack) {
+      this.scrollbarTrack.remove();
+      this.scrollbarTrack = null;
+      this.scrollbarThumb = null;
+    }
+    if (this.scrollbarHideTimer) {
+      clearTimeout(this.scrollbarHideTimer);
+      this.scrollbarHideTimer = null;
+    }
+  }
 
-    const lineHeight = this.getEstimatedLineHeight();
-    const totalHeight = this.totalLines * lineHeight;
-    const sorted = [...this.state.loadedBlockIndices].sort((a, b) => a - b);
+  private updateScrollbar(): void {
+    if (!this.scrollbarTrack || !this.scrollbarThumb || !this.heightCache) return;
 
-    if (sorted.length === 0) {
-      this.topSpacer.style.height = "0px";
-      this.bottomSpacer.style.height = `${totalHeight}px`;
+    const totalHeight = this.heightCache.getTotalHeight();
+    if (totalHeight <= this.viewportHeight) {
+      // 内容不超过视口，隐藏滚动条
+      this.scrollbarTrack.style.display = "none";
       return;
     }
 
-    const first = sorted[0];
-    const last = sorted[sorted.length - 1];
+    this.scrollbarTrack.style.display = "";
 
-    this.topSpacer.style.height = `${first * this.blockSize * lineHeight}px`;
+    // 计算滑块大小和位置
+    const trackHeight = this.viewportHeight;
+    const thumbHeight = Math.max(30, (this.viewportHeight / totalHeight) * trackHeight);
+    const maxScrollTop = totalHeight - this.viewportHeight;
+    const scrollRatio = maxScrollTop > 0 ? this.virtualScrollTop / maxScrollTop : 0;
+    const thumbTop = scrollRatio * (trackHeight - thumbHeight);
 
-    const bottomStart = (last + 1) * this.blockSize;
-    this.bottomSpacer.style.height = `${Math.max(0, this.totalLines - bottomStart) * lineHeight}px`;
+    this.scrollbarThumb.style.height = `${thumbHeight}px`;
+    this.scrollbarThumb.style.top = `${thumbTop}px`;
   }
+
+  private showScrollbar(): void {
+    if (!this.scrollbarTrack) return;
+    this.scrollbarTrack.style.opacity = "1";
+
+    if (this.scrollbarHideTimer) clearTimeout(this.scrollbarHideTimer);
+    this.scrollbarHideTimer = setTimeout(() => {
+      if (this.scrollbarTrack && !this.isDraggingThumb) {
+        this.scrollbarTrack.style.opacity = "0";
+      }
+    }, 1200);
+  }
+
+  // --- 事件绑定 ---
+
+  private bindEvents(): void {
+    if (!this.scrollContainer) return;
+
+    // Wheel 事件
+    this.boundWheel = (e: WheelEvent) => this.handleWheel(e);
+    this.scrollContainer.addEventListener("wheel", this.boundWheel, { passive: false });
+
+    // 滚动条拖拽
+    this.boundThumbDown = (e: MouseEvent) => this.handleThumbDown(e);
+    this.scrollbarThumb?.addEventListener("mousedown", this.boundThumbDown);
+
+    // 轨道点击
+    this.boundTrackClick = (e: MouseEvent) => this.handleTrackClick(e);
+    this.scrollbarTrack?.addEventListener("mousedown", this.boundTrackClick);
+
+    // 全局 mousemove / mouseup（滚动条拖拽时）
+    this.boundMouseMove = (e: MouseEvent) => this.handleMouseMove(e);
+    this.boundMouseUp = (e: MouseEvent) => this.handleMouseUp(e);
+    document.addEventListener("mousemove", this.boundMouseMove);
+    document.addEventListener("mouseup", this.boundMouseUp);
+
+    // 键盘滚动 (PageUp/Down, Home/End)
+    this.boundKeyDown = (e: KeyboardEvent) => this.handleKeyDown(e);
+    this.scrollContainer.addEventListener("keydown", this.boundKeyDown);
+
+    // 窗口 resize
+    this.boundResize = () => this.handleResize();
+    window.addEventListener("resize", this.boundResize);
+  }
+
+  private unbindEvents(): void {
+    if (this.scrollContainer && this.boundWheel) {
+      this.scrollContainer.removeEventListener("wheel", this.boundWheel);
+    }
+    if (this.scrollbarThumb && this.boundThumbDown) {
+      this.scrollbarThumb.removeEventListener("mousedown", this.boundThumbDown);
+    }
+    if (this.scrollbarTrack && this.boundTrackClick) {
+      this.scrollbarTrack.removeEventListener("mousedown", this.boundTrackClick);
+    }
+    if (this.boundMouseMove) {
+      document.removeEventListener("mousemove", this.boundMouseMove);
+    }
+    if (this.boundMouseUp) {
+      document.removeEventListener("mouseup", this.boundMouseUp);
+    }
+    if (this.scrollContainer && this.boundKeyDown) {
+      this.scrollContainer.removeEventListener("keydown", this.boundKeyDown);
+    }
+    if (this.boundResize) {
+      window.removeEventListener("resize", this.boundResize);
+    }
+  }
+
+  // --- 事件处理 ---
+
+  private handleWheel(e: WheelEvent): void {
+    if (!this.state.enabled || !this.heightCache) return;
+
+    e.preventDefault();
+
+    let deltaY = e.deltaY;
+    // 处理不同 deltaMode
+    switch (e.deltaMode) {
+      case 1: // 行
+        deltaY *= this.getEstimatedLineHeight();
+        break;
+      case 2: // 页
+        deltaY *= this.viewportHeight;
+        break;
+      // case 0: 像素，不变
+    }
+
+    this.scrollBy(deltaY);
+  }
+
+  private handleThumbDown(e: MouseEvent): void {
+    e.preventDefault();
+    e.stopPropagation();
+    this.isDraggingThumb = true;
+    this.dragStartY = e.clientY;
+    this.dragStartScrollTop = this.virtualScrollTop;
+    document.body.style.userSelect = "none";
+  }
+
+  private handleTrackClick(e: MouseEvent): void {
+    if (!this.scrollbarTrack || !this.scrollbarThumb || !this.heightCache) return;
+    // 忽略滑块上的点击（由 thumbDown 处理）
+    if (e.target === this.scrollbarThumb) return;
+
+    e.preventDefault();
+    const trackRect = this.scrollbarTrack.getBoundingClientRect();
+    const clickRatio = (e.clientY - trackRect.top) / trackRect.height;
+    const totalHeight = this.heightCache.getTotalHeight();
+    const maxScrollTop = Math.max(0, totalHeight - this.viewportHeight);
+
+    this.scrollTo(clickRatio * maxScrollTop);
+  }
+
+  private handleMouseMove(e: MouseEvent): void {
+    if (!this.isDraggingThumb || !this.heightCache) return;
+
+    const deltaY = e.clientY - this.dragStartY;
+    const totalHeight = this.heightCache.getTotalHeight();
+    const maxScrollTop = Math.max(0, totalHeight - this.viewportHeight);
+    const trackHeight = this.viewportHeight;
+    const thumbHeight = Math.max(30, (this.viewportHeight / totalHeight) * trackHeight);
+    const scrollableTrack = trackHeight - thumbHeight;
+
+    if (scrollableTrack <= 0) return;
+
+    const scrollDelta = (deltaY / scrollableTrack) * maxScrollTop;
+    this.scrollTo(this.dragStartScrollTop + scrollDelta);
+  }
+
+  private handleMouseUp(_e: MouseEvent): void {
+    if (!this.isDraggingThumb) return;
+    this.isDraggingThumb = false;
+    document.body.style.userSelect = "";
+    if (this.scrollbarThumb) {
+      this.scrollbarThumb.style.background = "rgba(128, 128, 128, 0.5)";
+    }
+  }
+
+  private handleKeyDown(e: KeyboardEvent): void {
+    if (!this.state.enabled) return;
+
+    switch (e.key) {
+      case "PageDown":
+        e.preventDefault();
+        this.scrollBy(this.viewportHeight * 0.9);
+        break;
+      case "PageUp":
+        e.preventDefault();
+        this.scrollBy(-this.viewportHeight * 0.9);
+        break;
+      case "Home":
+        if (e.ctrlKey) {
+          e.preventDefault();
+          this.scrollTo(0);
+        }
+        break;
+      case "End":
+        if (e.ctrlKey) {
+          e.preventDefault();
+          const maxScrollTop = this.heightCache
+            ? Math.max(0, this.heightCache.getTotalHeight() - this.viewportHeight)
+            : 0;
+          this.scrollTo(maxScrollTop);
+        }
+        break;
+    }
+  }
+
+  private handleResize(): void {
+    if (!this.scrollContainer) return;
+    this.viewportHeight = this.scrollContainer.clientHeight;
+    this.updateTransform();
+    this.updateScrollbar();
+  }
+
+  // --- 核心滚动 API ---
+
+  /** 滚动到绝对位置 */
+  scrollTo(position: number): void {
+    if (!this.heightCache) return;
+
+    const maxScrollTop = Math.max(0, this.heightCache.getTotalHeight() - this.viewportHeight);
+    this.virtualScrollTop = Math.max(0, Math.min(position, maxScrollTop));
+
+    this.updateTransform();
+    this.updateScrollbar();
+    this.showScrollbar();
+    this.scheduleBlockLoad();
+
+    // 通知外部（Vue 组件保存 Tab 状态）
+    this.emitScrollEvent();
+  }
+
+  /** 相对滚动 */
+  scrollBy(delta: number): void {
+    this.scrollTo(this.virtualScrollTop + delta);
+  }
+
+  // --- Transform 和内容更新 ---
+
+  /** 根据 virtualScrollTop 和已加载块，计算并设置 transform */
+  private updateTransform(): void {
+    if (!this.editorContainer || !this.heightCache) return;
+
+    const sorted = [...this.state.loadedBlockIndices].sort((a, b) => a - b);
+    if (sorted.length === 0) return;
+
+    // 第一个加载块的顶部位置
+    const firstBlockTop = this.heightCache.getCumulativeHeight(sorted[0]);
+    // localOffset = virtualScrollTop 相对于第一个加载块顶部的偏移
+    const localOffset = this.virtualScrollTop - firstBlockTop;
+
+    this.editorContainer.style.willChange = "transform";
+    this.editorContainer.style.transform = `translateY(${-localOffset}px)`;
+  }
+
+  /** 通知外部滚动状态变化 */
+  private emitScrollEvent(): void {
+    if (!this.scrollContainer) return;
+    // 派发自定义事件，Vue 组件监听此事件保存 Tab 状态
+    this.scrollContainer.dispatchEvent(new CustomEvent("vs-scroll"));
+  }
+
+  // --- 块加载调度 ---
+
+  private loadScheduleTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private scheduleBlockLoad(): void {
+    if (this.loadScheduleTimer) clearTimeout(this.loadScheduleTimer);
+    this.loadScheduleTimer = setTimeout(() => {
+      this.loadScheduleTimer = null;
+      this.loadBlocksForCurrentScroll();
+    }, 30);
+  }
+
+  loadBlocksForCurrentScroll = (): void => {
+    if (!this.heightCache) return;
+
+    const { blockIndex: newBlockIndex } = this.heightCache.getBlockAtPosition(
+      this.virtualScrollTop
+    );
+
+    const blocksToLoad = [
+      newBlockIndex - 2,
+      newBlockIndex - 1,
+      newBlockIndex,
+      newBlockIndex + 1,
+      newBlockIndex + 2,
+    ].filter((i) => i >= 0 && i < this.state.totalBlocks);
+
+    const needed = new Set(blocksToLoad);
+    const loaded = new Set(this.state.loadedBlockIndices);
+    const allLoaded =
+      [...needed].every((i) => loaded.has(i)) && [...loaded].every((i) => needed.has(i));
+
+    if (!allLoaded) {
+      this.state.currentBlockIndex = newBlockIndex;
+      this.loadBlocks(blocksToLoad);
+    }
+  };
 
   // --- 块加载 ---
 
-  async loadBlocks(blockIndices: number[]): Promise<void> {
+  async loadBlocks(blockIndices: number[], options?: LoadBlocksOptions): Promise<void> {
     if (!this.state.enabled) return;
     if (!window.electronAPI?.documentBlock) return;
 
     const validIndices = blockIndices.filter((i) => i >= 0 && i < this.state.totalBlocks);
 
-    // 如果正在加载，将请求排队（只保留最新的）
     if (this.state.isLoading) {
-      this.pendingLoad = validIndices;
+      this.pendingLoad = { indices: validIndices, options };
       return;
     }
 
@@ -206,6 +727,7 @@ class VirtualScrollManager {
     this.state.isLoading = true;
 
     try {
+      // 1. 加载块数据
       if (blocksToLoad.length > 0) {
         const blocks = await window.electronAPI.documentBlock.getBlocks(blocksToLoad);
         blocks.forEach((block) => {
@@ -215,36 +737,58 @@ class VirtualScrollManager {
 
       this.state.loadedBlockIndices = validIndices;
 
-      // 记录当前 blockIndex 对应的目标 scrollTop，用于更新后恢复
-      const scrollContainer = this.view.dom.parentElement?.parentElement;
-      const targetScrollTop = scrollContainer ? scrollContainer.scrollTop : 0;
-
-      // 更新内容和 spacer
+      // 2. 更新编辑器内容
       this.updateEditorContent(validIndices);
-      this.updateSpacerHeights();
 
-      // 标记内容更新时间，抑制后续滚动事件
-      this.lastContentUpdateTime = Date.now();
+      // 3. 测量高度（只测量未测量的块）
+      this.measureAndUpdateHeights(validIndices);
 
-      // 恢复 scrollTop，防止 spacer 高度变化导致位置偏移
-      if (scrollContainer) {
-        scrollContainer.scrollTop = targetScrollTop;
-      }
+      // 4. 更新 transform 和滚动条
+      this.updateTransform();
+      this.updateScrollbar();
 
-      // 安排抑制结束后的延迟重检，确保快速滚动停止后一定会加载正确的块
-      this.scheduleDeferredCheck();
+      // 5. 延迟重检（确保不会遗漏块）
+      requestAnimationFrame(() => {
+        if (this.state.enabled && !this.state.isLoading) {
+          this.loadBlocksForCurrentScroll();
+        }
+      });
     } catch (error) {
       console.error("Failed to load blocks:", error);
     } finally {
       this.state.isLoading = false;
 
-      // 处理排队的请求
       if (this.pendingLoad) {
         const pending = this.pendingLoad;
         this.pendingLoad = null;
-        this.loadBlocks(pending);
+        this.loadBlocks(pending.indices, pending.options);
       }
     }
+  }
+
+  private measureAndUpdateHeights(blockIndices: number[]): void {
+    if (!this.heightCache) return;
+
+    const totalRenderedHeight = this.view.dom.getBoundingClientRect().height;
+    if (totalRenderedHeight <= 0) return;
+
+    const sorted = [...blockIndices].sort((a, b) => a - b);
+
+    let measuredHeightSum = 0;
+    const unmeasuredIndices: number[] = [];
+
+    for (const i of sorted) {
+      if (this.heightCache.isMeasured(i)) {
+        measuredHeightSum += this.heightCache.getBlockHeight(i);
+      } else {
+        unmeasuredIndices.push(i);
+      }
+    }
+
+    if (unmeasuredIndices.length === 0) return;
+
+    const remainingHeight = Math.max(0, totalRenderedHeight - measuredHeightSum);
+    this.heightCache.setMeasuredHeights(unmeasuredIndices, remainingHeight);
   }
 
   private updateEditorContent(blockIndices: number[]): void {
@@ -256,113 +800,73 @@ class VirtualScrollManager {
     if (contents.length === 0) return;
 
     const { doc } = this.parser(contents.join("\n"));
-
     const tr = this.view.state.tr.replaceWith(0, this.view.state.doc.content.size, doc.content);
     tr.setMeta(virtualScrollPluginKey, { blockUpdate: true });
-
     this.view.dispatch(tr);
 
-    // 更新行号偏移（CSS counter-reset）
     this.updateLineNumberOffset(sorted[0]);
   }
 
-  /** 更新 CSS 行号计数器的起始值 */
   private updateLineNumberOffset(firstBlockIndex: number): void {
     const startLine = firstBlockIndex * this.blockSize;
-    // counter-reset: line-number <offset> 使计数器从 offset+1 开始
     this.view.dom.style.counterReset = `line-number ${startLine}`;
   }
 
-  // --- 滚动处理 ---
+  // --- 渐进式加载 ---
 
-  handleScroll(): void {
-    if (!this.state.enabled) return;
-
-    // 基于时间戳的滚动抑制：内容更新后一段时间内忽略滚动事件
-    if (Date.now() - this.lastContentUpdateTime < VirtualScrollManager.SCROLL_SUPPRESS_MS) {
-      return;
-    }
-
-    // 有选区时暂停块切换
-    const { from, to } = this.view.state.selection;
-    if (from !== to) return;
-
-    this.loadBlocksForCurrentScroll();
-  }
-
-  /** 根据当前 scrollTop 计算并加载需要的块 */
-  loadBlocksForCurrentScroll = (): void => {
-    const scrollContainer = this.view.dom.parentElement?.parentElement;
-    if (!scrollContainer) return;
-
-    const scrollTop = scrollContainer.scrollTop;
-    const totalHeight = this.getTotalHeight();
-    if (totalHeight <= 0) return;
-
-    // 根据 scrollTop 在总高度中的比例计算当前行号
-    const scrollRatio = scrollTop / totalHeight;
-    const currentLine = Math.floor(scrollRatio * this.totalLines);
-    const newBlockIndex = Math.max(
-      0,
-      Math.min(Math.floor(currentLine / this.blockSize), this.state.totalBlocks - 1)
-    );
-
-    const blocksToLoad = [
-      newBlockIndex - 2,
-      newBlockIndex - 1,
-      newBlockIndex,
-      newBlockIndex + 1,
-      newBlockIndex + 2,
-    ].filter((i) => i >= 0 && i < this.state.totalBlocks);
-
-    // 检查需要的块是否已经全部加载（不仅检查 blockIndex 是否变化）
-    const needed = new Set(blocksToLoad);
-    const loaded = new Set(this.state.loadedBlockIndices);
-    const allLoaded =
-      [...needed].every((i) => loaded.has(i)) && [...loaded].every((i) => needed.has(i));
-
-    if (!allLoaded) {
-      this.state.currentBlockIndex = newBlockIndex;
-      this.loadBlocks(blocksToLoad);
-    }
-  };
-
-  /** 安排抑制结束后的延迟重检 */
-  scheduleDeferredCheck = (): void => {
-    if (this.deferredCheckTimer) clearTimeout(this.deferredCheckTimer);
-    // 在抑制期结束后再等一小段时间，确保 DOM 完全稳定
-    this.deferredCheckTimer = setTimeout(() => {
-      this.deferredCheckTimer = null;
-      if (this.state.enabled) {
-        this.loadBlocksForCurrentScroll();
-      }
-    }, VirtualScrollManager.SCROLL_SUPPRESS_MS + 20);
-  };
-
-  /**
-   * 渐进式加载：先加载核心块（立即显示），其余块在下一帧异步加载
-   * 用于 tab 切换等场景，减少白屏时间
-   */
   async loadBlocksProgressive(coreIndices: number[], deferredIndices: number[]): Promise<void> {
-    // 先加载核心块
-    await this.loadBlocks(coreIndices);
+    await this.loadBlocks(coreIndices, { programmatic: true });
 
-    // 其余块在下一帧异步加载
     if (deferredIndices.length > 0) {
       const allIndices = [...new Set([...coreIndices, ...deferredIndices])].filter(
         (i) => i >= 0 && i < this.state.totalBlocks
       );
       requestAnimationFrame(() => {
         if (this.state.enabled) {
-          this.loadBlocks(allIndices);
+          this.loadBlocks(allIndices, { programmatic: true });
         }
       });
     }
   }
 
+  // --- ProseMirror scrollIntoView 支持 ---
+
+  /**
+   * 当 ProseMirror 触发 scrollIntoView 时调用此方法
+   * 确保光标位置在视口内可见
+   */
+  ensureCursorVisible(): void {
+    if (!this.state.enabled || !this.scrollContainer) return;
+
+    try {
+      const { from } = this.view.state.selection;
+      const coords = this.view.coordsAtPos(from);
+      const containerRect = this.scrollContainer.getBoundingClientRect();
+
+      const cursorTop = coords.top - containerRect.top;
+      const cursorBottom = coords.bottom - containerRect.top;
+      const margin = 40; // 边距
+
+      if (cursorTop < margin) {
+        // 光标在视口上方
+        this.scrollBy(cursorTop - margin);
+      } else if (cursorBottom > this.viewportHeight - margin) {
+        // 光标在视口下方
+        this.scrollBy(cursorBottom - this.viewportHeight + margin);
+      }
+    } catch {
+      // coordsAtPos 可能抛出异常（pos 不在 DOM 中）
+    }
+  }
+
+  // --- 生命周期 ---
+
   destroy(): void {
-    if (this.deferredCheckTimer) clearTimeout(this.deferredCheckTimer);
-    this.removeSpacers();
+    this.teardownDOM();
+    this.heightCache = null;
+    if (this.loadScheduleTimer) {
+      clearTimeout(this.loadScheduleTimer);
+    }
   }
 }
 
@@ -395,26 +899,24 @@ export function createVirtualScrollPlugin(): Plugin<VirtualScrollState> {
       const manager = new VirtualScrollManager(editorView);
       managers.set(editorView, manager);
 
-      const scrollContainer = editorView.dom.parentElement?.parentElement;
-      let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
-
-      const handleScroll = () => {
-        if (scrollTimeout) clearTimeout(scrollTimeout);
-        scrollTimeout = setTimeout(() => manager.handleScroll(), 30);
-      };
-
-      if (scrollContainer) {
-        scrollContainer.addEventListener("scroll", handleScroll, { passive: true });
-      }
-
       return {
         destroy() {
-          if (scrollTimeout) clearTimeout(scrollTimeout);
-          if (scrollContainer) scrollContainer.removeEventListener("scroll", handleScroll);
           manager.destroy();
           managers.delete(editorView);
         },
       };
+    },
+
+    props: {
+      // 拦截 ProseMirror 的 scrollIntoView 行为
+      handleScrollToSelection(view) {
+        const manager = managers.get(view);
+        if (manager?.getState().enabled) {
+          manager.ensureCursorVisible();
+          return true; // 阻止默认滚动
+        }
+        return false;
+      },
     },
   });
 }

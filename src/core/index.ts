@@ -8,6 +8,9 @@
 // 编辑器主类
 export { MilkupEditor, createMilkupEditor } from "./editor";
 
+// 虚拟滚动锚点类型
+export type { ScrollAnchor } from "./plugins/virtual-scroll";
+
 // Schema
 export { milkupSchema, type MilkupSchema } from "./schema";
 

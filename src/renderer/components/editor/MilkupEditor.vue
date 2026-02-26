@@ -55,24 +55,43 @@ function updateScrollRatio(e: Event) {
   const target = e.target as HTMLElement;
   scrollRafId = requestAnimationFrame(() => {
     scrollRafId = null;
-    const scrollTop = target.scrollTop;
-    const scrollHeight = target.scrollHeight - target.clientHeight;
-    const ratio = scrollHeight === 0 ? 0 : scrollTop / scrollHeight;
     if (currentTab.value) {
+      // 虚拟滚动模式：从 editor API 获取状态
+      if (editor?.isVirtualScrollEnabled()) {
+        currentTab.value.hasScrollState = true;
+        const anchor = editor.getScrollAnchor();
+        if (anchor) {
+          currentTab.value.scrollAnchor = anchor;
+        }
+        return;
+      }
+
+      // 非虚拟滚动模式：从原生 scroll 获取状态
+      const scrollTop = target.scrollTop;
+      const scrollHeight = target.scrollHeight - target.clientHeight;
+      const ratio = scrollHeight === 0 ? 0 : scrollTop / scrollHeight;
       currentTab.value.scrollRatio = ratio;
-      // 同时保存 scrollTop 像素值（虚拟滚动模式下恢复更精确）
       currentTab.value.scrollTop = scrollTop;
+      currentTab.value.hasScrollState = true;
     }
   });
+}
+
+// 处理虚拟滚动事件（自定义事件，由 VS manager 派发）
+function handleVSScroll() {
+  updateScrollRatio(new Event("vs-scroll"));
 }
 
 // 恢复滚动位置
 function restoreScrollPosition() {
   if (!scrollViewRef.value || !currentTab.value) return;
 
-  // 优先使用 scrollTop 像素值（虚拟滚动模式下更精确）
-  if (currentTab.value.scrollTop !== undefined && currentTab.value.scrollTop > 0) {
-    scrollViewRef.value.scrollTop = currentTab.value.scrollTop;
+  // 虚拟滚动模式：scroll 恢复完全由 setMarkdown 处理，这里不做任何操作
+  if (editor?.isVirtualScrollEnabled()) return;
+
+  // 使用 hasScrollState 判断（修复 scrollTop=0 时状态丢失的问题）
+  if (currentTab.value.hasScrollState) {
+    scrollViewRef.value.scrollTop = currentTab.value.scrollTop ?? 0;
     return;
   }
 
@@ -277,9 +296,18 @@ onMounted(async () => {
   nextTick(() => {
     restoreScrollPosition();
   });
+
+  // 监听虚拟滚动自定义事件（VS manager 通过 scrollView 派发 vs-scroll 事件）
+  if (scrollViewRef.value) {
+    scrollViewRef.value.addEventListener("vs-scroll", handleVSScroll);
+  }
 });
 
 onUnmounted(() => {
+  // 移除虚拟滚动事件监听
+  if (scrollViewRef.value) {
+    scrollViewRef.value.removeEventListener("vs-scroll", handleVSScroll);
+  }
   editor?.destroy();
   editor = null;
   // 移除事件监听
@@ -346,20 +374,23 @@ watch(
 
       const contentForRendering = preprocessContent(newValue);
       const savedScrollTop = currentTab.value?.scrollTop;
-      editor.setMarkdown(contentForRendering, { scrollTop: savedScrollTop }).then(async () => {
-        // 注意：不要在 setMarkdown 之后覆盖 lastEmittedValue。
-        // setMarkdown 会同步触发 change 事件，change handler 已经将
-        // lastEmittedValue 设置为序列化后的值。如果这里再覆盖为 newValue，
-        // 当序列化结果与 newValue 不同时（如引用块归一化），会导致 watch
-        // 守卫失效，触发无限循环。
+      const savedAnchor = currentTab.value?.scrollAnchor;
+      editor
+        .setMarkdown(contentForRendering, { scrollTop: savedScrollTop, scrollAnchor: savedAnchor })
+        .then(async () => {
+          // 注意：不要在 setMarkdown 之后覆盖 lastEmittedValue。
+          // setMarkdown 会同步触发 change 事件，change handler 已经将
+          // lastEmittedValue 设置为序列化后的值。如果这里再覆盖为 newValue，
+          // 当序列化结果与 newValue 不同时（如引用块归一化），会导致 watch
+          // 守卫失效，触发无限循环。
 
-        // 更新大纲
-        emitOutlineUpdate();
+          // 更新大纲
+          emitOutlineUpdate();
 
-        // 恢复滚动位置
-        await nextTick();
-        restoreScrollPosition();
-      });
+          // 恢复滚动位置
+          await nextTick();
+          restoreScrollPosition();
+        });
     }
   }
 );
