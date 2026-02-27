@@ -17,37 +17,62 @@ import {
   restoreFileTraits,
 } from "./fileFormat";
 import { createThemeEditorWindow } from "./index";
+import {
+  cancelDragFollow,
+  clearWindowDragPreview,
+  consumePendingTabData,
+  finalizeWindowDragMerge,
+  finalizeDragFollow,
+  findWindowWithFile,
+  getEditorWindows,
+  isMainWindow,
+  startDragFollow,
+  startWindowDrag,
+  stopWindowDrag,
+  updateWindowOpenFiles,
+} from "./windowManager";
+import type { TearOffTabData } from "./windowManager";
 
-let isSaved = true;
-let isQuitting = false;
+/** 每个窗口独立追踪保存状态（windowId → isSaved） */
+const windowSaveState = new Map<number, boolean>();
+/** 正在执行关闭流程的窗口集合 */
+const windowClosingSet = new Set<number>();
+
+/** 窗口关闭后清理状态，防止内存泄漏 */
+function cleanupWindowState(windowId: number): void {
+  windowSaveState.delete(windowId);
+  windowClosingSet.delete(windowId);
+}
 
 // 存储已监听的文件路径和对应的 watcher
 const watchedFiles = new Set<string>();
 let watcher: FSWatcher | null = null;
 
-// 所有 on 类型监听
+// 所有 on 类型监听 —— 使用 event.sender 自动路由到正确窗口
 export function registerIpcOnHandlers(win: Electron.BrowserWindow) {
-  ipcMain.on("set-title", (_event, filePath: string | null) => {
+  ipcMain.on("set-title", (event, filePath: string | null) => {
+    const targetWin = BrowserWindow.fromWebContents(event.sender);
+    if (!targetWin) return;
     const title = filePath ? `milkup - ${path.basename(filePath)}` : "milkup - Untitled";
-    win.setTitle(title);
+    targetWin.setTitle(title);
   });
-  ipcMain.on("window-control", async (_event, action) => {
-    if (!win) return;
+  ipcMain.on("window-control", async (event, action) => {
+    const targetWin = BrowserWindow.fromWebContents(event.sender);
+    if (!targetWin) return;
     switch (action) {
       case "minimize":
-        win.minimize();
+        targetWin.minimize();
         break;
       case "maximize":
-        if (win.isMaximized()) win.unmaximize();
-        else win.maximize();
+        if (targetWin.isMaximized()) targetWin.unmaximize();
+        else targetWin.maximize();
         break;
       case "close":
-        if (process.platform === "darwin") {
-          // 在 macOS 上，窗口关闭按钮只隐藏窗口
-          win.hide();
+        if (process.platform === "darwin" && isMainWindow(targetWin)) {
+          // macOS 主窗口按关闭按钮仅隐藏
+          targetWin.hide();
         } else {
-          // 其他平台直接退出
-          close(win);
+          close(targetWin);
         }
         break;
     }
@@ -55,21 +80,31 @@ export function registerIpcOnHandlers(win: Electron.BrowserWindow) {
   ipcMain.on("shell:openExternal", (_event, url) => {
     shell.openExternal(url);
   });
-  ipcMain.on("change-save-status", (_event, isSavedStatus) => {
-    isSaved = isSavedStatus;
-    win.webContents.send("save-status-changed", isSaved);
+  ipcMain.on("change-save-status", (event, isSavedStatus) => {
+    const targetWin = BrowserWindow.fromWebContents(event.sender);
+    if (!targetWin) return;
+    windowSaveState.set(targetWin.id, isSavedStatus);
+    event.sender.send("save-status-changed", isSavedStatus);
   });
 
   // 监听保存事件
-  ipcMain.on("menu-save", async (_event, shouldClose) => {
-    win.webContents.send("trigger-save", shouldClose);
+  ipcMain.on("menu-save", async (event, shouldClose) => {
+    event.sender.send("trigger-save", shouldClose);
   });
 
   // 监听丢弃更改事件
-  ipcMain.on("close:discard", () => {
-    isQuitting = true;
-    win.close();
-    app.quit();
+  ipcMain.on("close:discard", (event) => {
+    const targetWin = BrowserWindow.fromWebContents(event.sender);
+    if (!targetWin || targetWin.isDestroyed()) return;
+    const winId = targetWin.id;
+    windowClosingSet.add(winId);
+    targetWin.close();
+    cleanupWindowState(winId);
+    // 如果是最后一个窗口（非 macOS），退出应用
+    const remaining = BrowserWindow.getAllWindows().filter((w) => !w.isDestroyed());
+    if (remaining.length === 0 && process.platform !== "darwin") {
+      app.quit();
+    }
   });
 
   // 打开主题编辑器窗口
@@ -124,7 +159,7 @@ export function registerIpcOnHandlers(win: Electron.BrowserWindow) {
   });
 }
 
-// 所有 handle 类型监听
+// 所有 handle 类型监听 —— 使用 event.sender 路由到正确窗口
 export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
   // 检查文件是否只读
   ipcMain.handle("file:isReadOnly", async (_event, filePath: string) => {
@@ -132,8 +167,9 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
   });
 
   // 文件打开对话框
-  ipcMain.handle("dialog:openFile", async () => {
-    const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+  ipcMain.handle("dialog:openFile", async (event) => {
+    const parentWin = BrowserWindow.fromWebContents(event.sender) ?? win;
+    const { canceled, filePaths } = await dialog.showOpenDialog(parentWin, {
       filters: [{ name: "Markdown", extensions: ["md", "markdown"] }],
       properties: ["openFile"],
     });
@@ -149,15 +185,16 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
   ipcMain.handle(
     "dialog:saveFile",
     async (
-      _event,
+      event,
       {
         filePath,
         content,
         fileTraits,
       }: { filePath: string | null; content: string; fileTraits?: FileTraits }
     ) => {
+      const parentWin = BrowserWindow.fromWebContents(event.sender) ?? win;
       if (!filePath) {
-        const { canceled, filePath: savePath } = await dialog.showSaveDialog(win, {
+        const { canceled, filePath: savePath } = await dialog.showSaveDialog(parentWin, {
           filters: [{ name: "Markdown", extensions: ["md", "markdown"] }],
         });
         if (canceled || !savePath) return null;
@@ -170,8 +207,9 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
     }
   );
   // 文件另存为对话框
-  ipcMain.handle("dialog:saveFileAs", async (_event, content) => {
-    const { canceled, filePath } = await dialog.showSaveDialog(win, {
+  ipcMain.handle("dialog:saveFileAs", async (event, content) => {
+    const parentWin = BrowserWindow.fromWebContents(event.sender) ?? win;
+    const { canceled, filePath } = await dialog.showSaveDialog(parentWin, {
       filters: [{ name: "Markdown", extensions: ["md", "markdown"] }],
     });
     if (canceled || !filePath) return null;
@@ -180,14 +218,16 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
   });
 
   // 同步显示消息框
-  ipcMain.handle("dialog:OpenDialog", async (_event, options: Electron.MessageBoxSyncOptions) => {
-    const response = await dialog.showMessageBox(win, options);
+  ipcMain.handle("dialog:OpenDialog", async (event, options: Electron.MessageBoxSyncOptions) => {
+    const parentWin = BrowserWindow.fromWebContents(event.sender) ?? win;
+    const response = await dialog.showMessageBox(parentWin, options);
     return response;
   });
 
   // 显示文件覆盖确认对话框
-  ipcMain.handle("dialog:showOverwriteConfirm", async (_event, fileName: string) => {
-    const result = await dialog.showMessageBox(win, {
+  ipcMain.handle("dialog:showOverwriteConfirm", async (event, fileName: string) => {
+    const parentWin = BrowserWindow.fromWebContents(event.sender) ?? win;
+    const result = await dialog.showMessageBox(parentWin, {
       type: "question",
       buttons: ["取消", "覆盖", "保存"],
       defaultId: 0,
@@ -199,8 +239,9 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
   });
 
   // 显示关闭确认对话框
-  ipcMain.handle("dialog:showCloseConfirm", async (_event, fileName: string) => {
-    const result = await dialog.showMessageBox(win, {
+  ipcMain.handle("dialog:showCloseConfirm", async (event, fileName: string) => {
+    const parentWin = BrowserWindow.fromWebContents(event.sender) ?? win;
+    const result = await dialog.showMessageBox(parentWin, {
       type: "question",
       buttons: ["取消", "不保存", "保存"],
       defaultId: 2,
@@ -212,19 +253,22 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
   });
 
   // 显示文件选择对话框
-  ipcMain.handle("dialog:showOpenDialog", async (_event, options: any) => {
-    const result = await dialog.showOpenDialog(win, options);
+  ipcMain.handle("dialog:showOpenDialog", async (event, options: any) => {
+    const parentWin = BrowserWindow.fromWebContents(event.sender) ?? win;
+    const result = await dialog.showOpenDialog(parentWin, options);
     return result;
   });
   // 导出为 pdf 文件
   ipcMain.handle(
     "file:exportPDF",
     async (
-      _event,
+      event,
       elementSelector: string,
       outputName: string,
       options?: ExportPDFOptions
     ): Promise<void> => {
+      const sender = event.sender;
+      const parentWin = BrowserWindow.fromWebContents(sender) ?? win;
       const { pageSize = "A4", scale = 1 } = options || {};
 
       // 保证代码块完整显示
@@ -252,10 +296,10 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
           }
         </style>
       `;
-      const cssKey = await win.webContents.insertCSS(preventCutOffStyle);
+      const cssKey = await sender.insertCSS(preventCutOffStyle);
 
       // 1. 在页面中克隆元素并隐藏其他内容
-      await win.webContents.executeJavaScript(`
+      await sender.executeJavaScript(`
           (function() {
             const target = document.querySelector('${elementSelector}');
             if (!target) throw new Error('Element not found');
@@ -282,7 +326,7 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
         `);
       try {
         // 2. 导出 PDF
-        const pdfData = await win.webContents.printToPDF({
+        const pdfData = await sender.printToPDF({
           printBackground: true,
           pageSize,
           margins: {
@@ -292,7 +336,7 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
         });
 
         // 3. 保存 PDF 文件
-        const { canceled, filePath } = await dialog.showSaveDialog(win, {
+        const { canceled, filePath } = await dialog.showSaveDialog(parentWin, {
           title: "导出为 PDF",
           defaultPath: outputName || "export.pdf",
           filters: [{ name: "PDF", extensions: ["pdf"] }],
@@ -306,7 +350,7 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
         return Promise.reject(error);
       } finally {
         // 4. 清理页面
-        win.webContents.executeJavaScript(`
+        sender.executeJavaScript(`
                   (function() {
                     const container = document.querySelector('.electron-export-container');
                     if (container) container.remove();
@@ -314,14 +358,14 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
                   })();
                 `);
         // 移除插入的样式
-        if (cssKey) win.webContents.removeInsertedCSS(cssKey);
+        if (cssKey) sender.removeInsertedCSS(cssKey);
       }
     }
   );
   // 导出为 word 文件
   ipcMain.handle(
     "file:exportWord",
-    async (_event, blocks: Block[], outputName: string): Promise<void> => {
+    async (event, blocks: Block[], outputName: string): Promise<void> => {
       // 定义 Word 的列表样式
 
       const sectionChildren: Paragraph[] = [];
@@ -412,8 +456,9 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
       });
 
       const buffer = await Packer.toBuffer(doc);
+      const parentWin = BrowserWindow.fromWebContents(event.sender) ?? win;
 
-      const { canceled, filePath } = await dialog.showSaveDialog(win, {
+      const { canceled, filePath } = await dialog.showSaveDialog(parentWin, {
         title: "导出为 Word",
         defaultPath: outputName || "export.docx",
         filters: [{ name: "Word Document", extensions: ["docx"] }],
@@ -431,6 +476,139 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
 }
 // 无需 win 的 ipc 处理
 export function registerGlobalIpcHandlers() {
+  // ── Tab 拖拽分离：开始跟随（创建新窗口并跟随光标）────
+  ipcMain.handle(
+    "tab:tear-off-start",
+    async (
+      event,
+      tabData: TearOffTabData,
+      screenX: number,
+      screenY: number,
+      offsetX: number,
+      offsetY: number
+    ): Promise<boolean> => {
+      try {
+        const sourceWin = BrowserWindow.fromWebContents(event.sender);
+        startDragFollow(tabData, screenX, screenY, offsetX, offsetY, sourceWin);
+        return true;
+      } catch (error) {
+        console.error("[tab:tear-off-start] 创建窗口失败:", error);
+        return false;
+      }
+    }
+  );
+
+  // ── Tab 拖拽分离：完成跟随（松手时判断合并或保留）──
+  ipcMain.handle(
+    "tab:tear-off-end",
+    async (
+      event,
+      screenX: number,
+      screenY: number
+    ): Promise<{ action: "created" | "merged" | "failed" }> => {
+      try {
+        const sourceWin = BrowserWindow.fromWebContents(event.sender);
+        const result = await finalizeDragFollow(screenX, screenY, sourceWin);
+        // tear-off 完成后重新聚焦源窗口，避免需要额外点击才能交互
+        if (result.action === "created" && sourceWin && !sourceWin.isDestroyed()) {
+          sourceWin.focus();
+        }
+        return { action: result.action };
+      } catch (error) {
+        console.error("[tab:tear-off-end] 操作失败:", error);
+        return { action: "failed" };
+      }
+    }
+  );
+
+  // ── Tab 拖拽分离：取消跟随（指针回到窗口内时取消分离）──
+  ipcMain.handle("tab:tear-off-cancel", async (): Promise<boolean> => {
+    try {
+      await cancelDragFollow();
+      return true;
+    } catch (error) {
+      console.error("[tab:tear-off-cancel] 取消失败:", error);
+      return false;
+    }
+  });
+
+  // ── 跨窗口文件去重：检查文件是否已在某个窗口打开 ────────
+  ipcMain.handle(
+    "file:focus-if-open",
+    async (event, filePath: string): Promise<{ found: boolean }> => {
+      const sourceWin = BrowserWindow.fromWebContents(event.sender);
+      const targetWin = findWindowWithFile(filePath, sourceWin?.id);
+      if (!targetWin) return { found: false };
+
+      targetWin.webContents.send("tab:activate-file", filePath);
+      targetWin.focus();
+      return { found: true };
+    }
+  );
+
+  // ── 新窗口获取初始 Tab 数据 ─────────────────────────────
+  ipcMain.handle("tab:get-init-data", (event) => {
+    const data = consumePendingTabData(event.sender.id);
+    // 预设未保存状态，避免窗口初始化前被关闭时误认为“已保存”
+    if (data?.isModified) {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      if (win) windowSaveState.set(win.id, false);
+    }
+    return data;
+  });
+
+  // ── 获取当前窗口边界（用于渲染进程判断拖拽是否出界）────
+  ipcMain.handle("window:get-bounds", (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) return null;
+    return win.getBounds();
+  });
+
+  // ── 单 Tab 窗口拖拽：直接移动窗口 ─────────────────────
+  ipcMain.on(
+    "window:start-drag",
+    (event, tabData: TearOffTabData, offsetX: number, offsetY: number) => {
+      const win = BrowserWindow.fromWebContents(event.sender);
+      if (!win || win.isDestroyed()) return;
+      // 记录 drag offset 并启动窗口位置跟随定时器
+      startWindowDrag(win, tabData, offsetX, offsetY);
+    }
+  );
+
+  ipcMain.on("window:stop-drag", () => {
+    stopWindowDrag();
+  });
+
+  // ── 单 Tab 窗口松手：判断是否合并到目标窗口 ─────────────
+  ipcMain.handle(
+    "window:drop-merge",
+    async (
+      event,
+      tabData: TearOffTabData,
+      screenX: number,
+      screenY: number
+    ): Promise<{ action: "merged" | "none" }> => {
+      const sourceWin = BrowserWindow.fromWebContents(event.sender);
+      const previewTarget = finalizeWindowDragMerge();
+      if (previewTarget && !previewTarget.isDestroyed()) {
+        previewTarget.focus();
+        return { action: "merged" };
+      }
+      // 查找目标窗口
+      for (const win of getEditorWindows()) {
+        if (win === sourceWin || win.isDestroyed()) continue;
+        const { x, y, width, height } = win.getBounds();
+        if (screenX >= x && screenX <= x + width && screenY >= y && screenY <= y + height) {
+          win.webContents.send("tab:merge-in", tabData);
+          win.focus();
+          return { action: "merged" };
+        }
+      }
+      clearWindowDragPreview();
+      return { action: "none" };
+    }
+  );
+
   // 通过文件路径读取 Markdown 文件（用于拖拽）
   ipcMain.handle("file:readByPath", async (_event, filePath: string) => {
     try {
@@ -592,7 +770,11 @@ export function registerGlobalIpcHandlers() {
   });
 
   // 监听文件变化
-  ipcMain.on("file:watch", (_event, filePaths: string[]) => {
+  ipcMain.on("file:watch", (event, filePaths: string[]) => {
+    // 更新主进程的文件打开索引（用于跨窗口文件去重 O(1) 查询）
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win) updateWindowOpenFiles(win.id, filePaths);
+
     // 先差异对比
     const newFiles = filePaths.filter((filePath) => !watchedFiles.has(filePath));
     const removedFiles = Array.from(watchedFiles).filter(
@@ -610,11 +792,12 @@ export function registerGlobalIpcHandlers() {
         persistent: true,
       });
 
-      // 设置文件变化监听
+      // 设置文件变化监听 —— 广播到所有编辑器窗口
       watcher.on("change", (filePath) => {
-        const mainWindow = BrowserWindow.getAllWindows()[0];
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send("file:changed", filePath);
+        for (const editorWin of getEditorWindows()) {
+          if (!editorWin.isDestroyed()) {
+            editorWin.webContents.send("file:changed", filePath);
+          }
         }
       });
     }
@@ -633,26 +816,32 @@ export function registerGlobalIpcHandlers() {
   });
 }
 export function close(win: Electron.BrowserWindow) {
-  // 防止重复调用
-  if (isQuitting) {
-    return;
-  }
+  // 如果窗口已销毁或已在关闭流程中，跳过
+  if (win.isDestroyed() || windowClosingSet.has(win.id)) return;
+
+  const isSaved = windowSaveState.get(win.id) ?? true;
 
   if (isSaved) {
-    isQuitting = true;
+    windowClosingSet.add(win.id);
     win.close();
-    app.quit();
+    cleanupWindowState(win.id);
+    // 如果所有窗口都关了（非 macOS），退出应用
+    const remaining = BrowserWindow.getAllWindows().filter((w) => !w.isDestroyed());
+    if (remaining.length === 0 && process.platform !== "darwin") {
+      app.quit();
+    }
   } else {
-    // 检查窗口是否仍然有效
-    if (win && !win.isDestroyed()) {
-      // 发送事件到渲染进程显示前端弹窗
+    // 有未保存内容，通知渲染进程弹出确认框
+    if (!win.isDestroyed()) {
       win.webContents.send("close:confirm");
     }
   }
 }
 
 export function getIsQuitting() {
-  return isQuitting;
+  // 兼容旧逻辑：当所有窗口都在关闭时视为正在退出
+  const allWindows = BrowserWindow.getAllWindows().filter((w) => !w.isDestroyed());
+  return allWindows.length === 0 || allWindows.every((w) => windowClosingSet.has(w.id));
 }
 export function isFileReadOnly(filePath: string): boolean {
   // 先检测是否可写（跨平台）

@@ -14,6 +14,12 @@ const {
   setupTabScrollListener,
   cleanupInertiaScroll,
   reorderTabs,
+  startTearOff,
+  endTearOff,
+  cancelTearOff,
+  isSingleTab,
+  startSingleTabDrag,
+  endSingleTabDrag,
 } = useTab();
 
 const { createNewFile } = useFile();
@@ -49,8 +55,168 @@ async function handleCloseTab(id: string, event: Event) {
   closeWithConfirm(id);
 }
 
-// 处理拖动排序
+// ── Tab 拖拽分离检测 ────────────────────────────────────────
+
+/** 鼠标超出窗口边界的阈值（px），避免微小越界误触发 */
+const TEAR_OFF_THRESHOLD = 30;
+
+/** 拖拽期间的状态 */
+let dragState: {
+  tabId: string | null;
+  tearOffTriggered: boolean; // 多 Tab：已触发 tear-off
+  singleTabDragActive: boolean; // 单 Tab：窗口拖拽激活
+  lastScreenX: number;
+  lastScreenY: number;
+  initialOffsetX: number; // 鼠标距离 Tab 左上角的 X 偏移
+  initialOffsetY: number; // 鼠标距离 Tab 左上角的 Y 偏移
+} = {
+  tabId: null,
+  tearOffTriggered: false,
+  singleTabDragActive: false,
+  lastScreenX: 0,
+  lastScreenY: 0,
+  initialOffsetX: 0,
+  initialOffsetY: 0,
+};
+
+/** 缓存的窗口边界 */
+let cachedBounds: { x: number; y: number; width: number; height: number } | null = null;
+
+/** 判断屏幕坐标是否在窗口外 */
+function isOutsideWindow(screenX: number, screenY: number): boolean {
+  if (!cachedBounds) return false;
+  const { x, y, width, height } = cachedBounds;
+  return (
+    screenX < x - TEAR_OFF_THRESHOLD ||
+    screenX > x + width + TEAR_OFF_THRESHOLD ||
+    screenY < y - TEAR_OFF_THRESHOLD ||
+    screenY > y + height + TEAR_OFF_THRESHOLD
+  );
+}
+
+/**
+ * 拖拽期间的 pointer 位置追踪
+ *
+ * 多 Tab：指针离开窗口 → 立即创建新窗口跟随光标（fire-and-forget）
+ * 单 Tab：直接进入窗口拖拽模式（由主进程 setInterval 驱动位置更新）
+ */
+function onDragPointerMove(e: PointerEvent) {
+  dragState.lastScreenX = e.screenX;
+  dragState.lastScreenY = e.screenY;
+
+  // 单 Tab 模式已激活，不需要做别的
+  if (dragState.singleTabDragActive) return;
+
+  if (!dragState.tabId) return;
+
+  if (isSingleTab.value) {
+    // ── 单 Tab：立即开始窗口拖拽 ──
+    if (!cachedBounds) return;
+    dragState.singleTabDragActive = true;
+    const offsetX = e.screenX - cachedBounds.x;
+    const offsetY = e.screenY - cachedBounds.y;
+    startSingleTabDrag(dragState.tabId, offsetX, offsetY);
+    document.body.classList.add("tab-torn-off");
+    return;
+  }
+
+  // 多 Tab 模式：检测拖拽分离与回拖
+  if (dragState.tearOffTriggered) {
+    // 已触发 tear-off，检查指针是否回到窗口内
+    if (!isOutsideWindow(e.screenX, e.screenY)) {
+      // 指针回到窗口内 → 取消分离，关闭跟随窗口
+      dragState.tearOffTriggered = false;
+      document.body.classList.remove("tab-torn-off");
+      cancelTearOff();
+    }
+    return;
+  }
+
+  if (isOutsideWindow(e.screenX, e.screenY)) {
+    // ── 多 Tab：指针离开窗口 → 开始分离跟随 ──
+    dragState.tearOffTriggered = true;
+    document.body.classList.add("tab-torn-off");
+    startTearOff(
+      dragState.tabId,
+      e.screenX,
+      e.screenY,
+      dragState.initialOffsetX,
+      dragState.initialOffsetY
+    );
+  }
+}
+
+/** SortableJS onStart：记录拖拽的 Tab 并开始追踪指针 */
+function handleDragStart(event: any) {
+  const tabId = event.item?.dataset?.tabId ?? null;
+
+  // 计算初始点击位置相对 Tab 元素的偏移
+  let initialOffsetX = 0;
+  let initialOffsetY = 0;
+  if (event.originalEvent && event.item) {
+    const rect = event.item.getBoundingClientRect();
+    const clientX = event.originalEvent.clientX ?? event.originalEvent.touches?.[0]?.clientX ?? 0;
+    const clientY = event.originalEvent.clientY ?? event.originalEvent.touches?.[0]?.clientY ?? 0;
+    if (clientX && clientY) {
+      initialOffsetX = clientX - rect.left;
+      initialOffsetY = clientY - rect.top;
+    }
+  }
+
+  dragState = {
+    tabId,
+    tearOffTriggered: false,
+    singleTabDragActive: false,
+    lastScreenX: 0,
+    lastScreenY: 0,
+    initialOffsetX,
+    initialOffsetY,
+  };
+
+  // 非阻塞获取窗口边界，tear-off 检测在边界就绪后自动激活
+  window.electronAPI.getWindowBounds().then((bounds) => {
+    cachedBounds = bounds;
+  });
+
+  document.addEventListener("pointermove", onDragPointerMove, { capture: true });
+}
+
+/**
+ * SortableJS onEnd：鼠标松开
+ * - 单 Tab 窗口拖拽 → 停止拖拽，判断合并
+ * - 多 Tab tear-off → 停止跟随，判断合并/保留
+ * - 正常拖拽 → 重排
+ */
 function handleDragEnd(event: { oldIndex: number; newIndex: number }) {
+  document.removeEventListener("pointermove", onDragPointerMove, { capture: true });
+  document.body.classList.remove("tab-torn-off");
+
+  const { tabId, tearOffTriggered, singleTabDragActive, lastScreenX, lastScreenY } = dragState;
+  dragState = {
+    tabId: null,
+    tearOffTriggered: false,
+    singleTabDragActive: false,
+    lastScreenX: 0,
+    lastScreenY: 0,
+    initialOffsetX: 0,
+    initialOffsetY: 0,
+  };
+  cachedBounds = null;
+
+  if (singleTabDragActive) {
+    endSingleTabDrag(lastScreenX, lastScreenY);
+    return;
+  }
+
+  if (tearOffTriggered && tabId) {
+    // 必须通过数据驱动视图更新，确保 SortableJS 内部状态重置
+    // 使用 requestAnimationFrame 确保 UI 更新后再执行结束逻辑
+    requestAnimationFrame(() => {
+      endTearOff(tabId, lastScreenX, lastScreenY);
+    });
+    return;
+  }
+
   reorderTabs(event.oldIndex, event.newIndex);
 }
 
@@ -93,6 +259,8 @@ onUnmounted(() => {
   }
   // 移除全局键盘事件监听器
   window.removeEventListener("keydown", handleCloseTabShortcut);
+  // 清理拖拽追踪
+  document.removeEventListener("pointermove", onDragPointerMove, { capture: true });
 });
 </script>
 
@@ -103,7 +271,22 @@ onUnmounted(() => {
     :class="{ 'offset-right': shouldOffsetTabBar }"
   >
     <TransitionGroup
-      v-draggable="[formattedTabs, { animation: 1500, onEnd: handleDragEnd, ghostClass: 'ghost' }]"
+      v-draggable="[
+        formattedTabs,
+        {
+          animation: 250,
+          forceFallback: true,
+          fallbackOnBody: true,
+          fallbackTolerance: 3,
+          onStart: handleDragStart,
+          onEnd: handleDragEnd,
+          ghostClass: 'ghost',
+          fallbackClass: 'tab-drag-fallback',
+          draggable: '.tabItem',
+          filter: '.addTab',
+          delay: 0,
+        },
+      ]"
       name="tab"
       class="tabBar"
       mode="out-in"
@@ -114,7 +297,7 @@ onUnmounted(() => {
         v-for="tab in formattedTabs"
         :key="tab.id"
         class="tabItem"
-        :class="{ active: activeTabId === tab.id }"
+        :class="{ active: activeTabId === tab.id, 'merge-preview': tab.isMergePreview }"
         :data-tab-id="tab.id"
         @click="handleTabClick(tab.id)"
       >
@@ -269,6 +452,18 @@ onUnmounted(() => {
         }
       }
 
+      &.merge-preview {
+        background: var(--background-color-2);
+        opacity: 0.6;
+        border: 2px dashed var(--active-color);
+        box-shadow: none;
+
+        p,
+        .closeIcon {
+          opacity: 0.5;
+        }
+      }
+
       &:hover {
         z-index: 1;
 
@@ -383,6 +578,80 @@ onUnmounted(() => {
 .ghost {
   opacity: 0.5;
   background: var(--background-color-2);
+}
+
+/* forceFallback 克隆体：保持原始 tab 样式，仅隐藏无关装饰 */
+:global(.tab-drag-fallback) {
+  /* 恢复丢失的 scoped 样式 */
+  position: fixed; /* fallbackOnBody 时是 fixed */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--background-color-1);
+  gap: 8px;
+  border-radius: 6px 6px 0 0;
+  padding: 0 10px;
+  box-sizing: border-box;
+  width: 150px;
+  height: 30px; /* tabItem 高度由父级决定，这里显式指定 */
+
+  z-index: 99999;
+  pointer-events: none;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  opacity: 0.95;
+  cursor: grabbing;
+}
+
+:global(.tab-drag-fallback p) {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-color-1); /* 激活态颜色 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+:global(.tab-drag-fallback .closeIcon) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+:global(.tab-drag-fallback .closeIcon span) {
+  font-size: 12px;
+  line-height: 28px;
+  color: var(--text-color-1);
+}
+
+:global(.tab-drag-fallback .pre),
+:global(.tab-drag-fallback .after) {
+  position: absolute;
+
+  bottom: -10px;
+  width: 10px;
+  height: 100%;
+  fill: var(--background-color-2);
+  animation: fadeIn 0.3s ease;
+  transition: all 0.3s ease;
+
+  &.active {
+    fill: var(--background-color-1);
+  }
+}
+:global(.tab-drag-fallback .pre) {
+  left: -10px;
+}
+:global(.tab-drag-fallback .after) {
+  right: -10px;
+}
+
+/* Tab 拖拽到窗口外时隐藏 SortableJS 克隆体（此时新窗口已在跟随光标） */
+:global(body.tab-torn-off .tab-drag-fallback) {
+  opacity: 0;
+  transition: none;
 }
 
 @keyframes fadeIn {

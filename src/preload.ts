@@ -83,6 +83,28 @@ contextBridge.exposeInMainWorld("electronAPI", {
   platform: process.platform,
   rendererReady: () => ipcRenderer.send("renderer-ready"),
 
+  // Tab 拖拽分离
+  tearOffTabStart: (
+    tabData: any,
+    screenX: number,
+    screenY: number,
+    offsetX: number,
+    offsetY: number
+  ) => ipcRenderer.invoke("tab:tear-off-start", tabData, screenX, screenY, offsetX, offsetY),
+  tearOffTabEnd: (screenX: number, screenY: number) =>
+    ipcRenderer.invoke("tab:tear-off-end", screenX, screenY),
+  tearOffTabCancel: () => ipcRenderer.invoke("tab:tear-off-cancel"),
+  focusFileIfOpen: (filePath: string) => ipcRenderer.invoke("file:focus-if-open", filePath),
+  getInitialTabData: () => ipcRenderer.invoke("tab:get-init-data"),
+  getWindowBounds: () => ipcRenderer.invoke("window:get-bounds"),
+
+  // 单 Tab 窗口拖拽
+  startWindowDrag: (tabData: any, offsetX: number, offsetY: number) =>
+    ipcRenderer.send("window:start-drag", tabData, offsetX, offsetY),
+  stopWindowDrag: () => ipcRenderer.send("window:stop-drag"),
+  dropMerge: (tabData: any, screenX: number, screenY: number) =>
+    ipcRenderer.invoke("window:drop-merge", tabData, screenX, screenY),
+
   // 自动更新 API
   checkForUpdates: () => ipcRenderer.invoke("update:check"),
   downloadUpdate: () => ipcRenderer.invoke("update:download"),

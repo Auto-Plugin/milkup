@@ -27,7 +27,7 @@ async function onOpen(result?: { filePath: string; content: string } | null) {
     filePath.value = result.filePath;
     const content = result.content;
 
-    // 检查文件是否已打开
+    // 检查文件是否已在当前窗口打开
     const existingTab = isFileAlreadyOpen(result.filePath);
     if (existingTab) {
       await switchToTab(existingTab.id);
@@ -39,6 +39,12 @@ async function onOpen(result?: { filePath: string; content: string } | null) {
       });
       return;
     }
+
+    // 检查文件是否已在其他窗口打开
+    try {
+      const crossResult = await window.electronAPI.focusFileIfOpen(result.filePath);
+      if (crossResult.found) return;
+    } catch {}
 
     // 如果当前活跃tab是未修改的新标签页，复用它
     const current = currentTab.value;
@@ -253,7 +259,7 @@ export default function useFile() {
             currentTab.value!.readOnly = fileContent.readOnly || false;
             currentTab.value!.fileTraits = fileContent.fileTraits;
           } else {
-            // 检查文件是否已打开
+            // 检查文件是否已在当前窗口打开
             const existing = isFileAlreadyOpen(fileContent.filePath);
             if (existing) {
               await switchToTab(existing.id);
@@ -261,6 +267,14 @@ export default function useFile() {
               filePath.value = fileContent.filePath;
               originalContent.value = existing.originalContent;
             } else {
+              // 检查文件是否已在其他窗口打开
+              try {
+                const crossResult = await window.electronAPI.focusFileIfOpen(fileContent.filePath);
+                if (crossResult.found) {
+                  updateTitle();
+                  return;
+                }
+              } catch {}
               let tab: Tab;
               const current = currentTab.value;
               // 复用空标签页
@@ -341,7 +355,7 @@ export default function useFile() {
   // 注册启动时文件打开监听
   window.electronAPI?.onOpenFileAtLaunch?.(
     async ({ filePath: launchFilePath, content, fileTraits }) => {
-      // 检查文件是否已打开
+      // 检查文件是否已在当前窗口打开
       const existing = isFileAlreadyOpen(launchFilePath);
       if (existing) {
         await switchToTab(existing.id);
@@ -354,6 +368,12 @@ export default function useFile() {
         });
         return;
       }
+
+      // 检查文件是否已在其他窗口打开
+      try {
+        const crossResult = await window.electronAPI.focusFileIfOpen(launchFilePath);
+        if (crossResult.found) return;
+      } catch {}
 
       let tab: Tab;
       const current = currentTab.value;

@@ -33,7 +33,58 @@ function scheduleNewlyLoadedCleanup(tabId: string) {
 const defaultName = "Untitled";
 
 const defaultTabUUid = randomUUID();
-// 初始化时创建一个默认的未命名文档
+
+// ── 窗口初始化逻辑 ─────────────────────────────────────────
+// 如果是由 Tab 拖拽分离创建的新窗口，使用传入的 Tab 数据替换默认 Tab
+let _tearOffInitPromise: Promise<void> | null = null;
+
+async function initFromTearOff(): Promise<boolean> {
+  try {
+    const tabData: TearOffTabData | null = await window.electronAPI?.getInitialTabData();
+    if (!tabData) return false;
+
+    // 用分离的 Tab 数据替换默认空白 Tab
+    // 已修改的 Tab 不能标记 isNewlyLoaded，否则编辑器归一化会覆盖 originalContent 并重置 isModified
+    const tab: Tab = {
+      id: randomUUID(), // 生成新 ID，避免与源窗口冲突
+      name: tabData.name,
+      filePath: tabData.filePath,
+      content: tabData.content,
+      originalContent: tabData.originalContent,
+      isModified: tabData.isModified,
+      scrollRatio: tabData.scrollRatio ?? 0,
+      readOnly: tabData.readOnly,
+      isNewlyLoaded: !tabData.isModified,
+      fileTraits: tabData.fileTraits,
+    };
+
+    tabs.value = [tab];
+    activeTabId.value = tab.id;
+    if (!tabData.isModified) {
+      scheduleNewlyLoadedCleanup(tab.id);
+    }
+
+    // 设置图片路径解析
+    if (tab.filePath) {
+      setCurrentMarkdownFilePath(tab.filePath);
+    }
+
+    // 通知 useContent 同步内容（关键：无此步骤内容会为空）
+    emitter.emit("tab:switch", tab);
+
+    return true;
+  } catch (error) {
+    console.error("[useTab] 初始化 tear-off 数据失败:", error);
+    return false;
+  }
+}
+
+// 立即发起初始化请求（不阻塞模块加载）
+_tearOffInitPromise = initFromTearOff().then(() => {
+  _tearOffInitPromise = null;
+});
+
+// 先同步创建默认 Tab（确保 UI 立即可用），tear-off 初始化成功后会替换它
 const defaultTab: Tab = {
   id: defaultTabUUid,
   name: defaultName,
@@ -230,12 +281,23 @@ async function createTabFromFile(
 // 打开文件
 async function openFile(filePath: string): Promise<Tab | null> {
   try {
-    // 检查文件是否已经在某个tab中打开
+    // 检查文件是否已经在当前窗口中打开
     const existingTab = isFileAlreadyOpen(filePath);
     if (existingTab) {
       // 如果文件已打开，直接切换到该tab
       await switchToTab(existingTab.id);
       return existingTab;
+    }
+
+    // 检查文件是否在其他窗口中打开
+    try {
+      const result = await window.electronAPI.focusFileIfOpen(filePath);
+      if (result.found) {
+        // 其他窗口已打开该文件并已聚焦，当前窗口无需操作
+        return null;
+      }
+    } catch {
+      // 跨窗口检查失败不影响正常打开
     }
 
     // 使用统一的文件服务读取和处理文件
@@ -454,6 +516,267 @@ function reorderTabs(fromIndex: number, toIndex: number) {
   tabs.value.splice(toIndex, 0, movedTab);
 }
 
+// ── Tab 拖拽分离 ──────────────────────────────────────────
+
+/** 获取指定 Tab 的完整数据，用于跨窗口传递 */
+function getTabDataForTearOff(tabId: string): TearOffTabData | null {
+  const tab = tabs.value.find((t) => t.id === tabId);
+  if (!tab) return null;
+
+  return {
+    id: tab.id,
+    name: tab.name,
+    filePath: tab.filePath,
+    content: tab.content,
+    originalContent: tab.originalContent,
+    isModified: tab.isModified,
+    scrollRatio: tab.scrollRatio ?? 0,
+    readOnly: tab.readOnly,
+    fileTraits: tab.fileTraits,
+  };
+}
+
+/**
+ * 开始拖拽分离：立即创建新窗口并跟随光标
+ * 由 TabBar 的 pointermove 在指针离开窗口时调用（fire-and-forget）
+ */
+function startTearOff(
+  tabId: string,
+  screenX: number,
+  screenY: number,
+  offsetX: number,
+  offsetY: number
+): void {
+  const tabData = getTabDataForTearOff(tabId);
+  if (!tabData) return;
+  window.electronAPI.tearOffTabStart(tabData, screenX, screenY, offsetX, offsetY);
+}
+
+/**
+ * 取消拖拽分离：指针回到源窗口时调用，关闭已创建的跟随窗口
+ */
+function cancelTearOff(): void {
+  window.electronAPI.tearOffTabCancel();
+}
+
+/**
+ * 完成拖拽分离：停止跟随、判断合并或保留新窗口、从源窗口移除 Tab
+ * 由 TabBar 的 SortableJS onEnd（鼠标松开）时调用
+ */
+async function endTearOff(tabId: string, screenX: number, screenY: number): Promise<boolean> {
+  try {
+    const result = await window.electronAPI.tearOffTabEnd(screenX, screenY);
+    if (result.action === "failed") return false;
+
+    // 成功创建新窗口或合并后，从当前窗口移除该 Tab
+    const isLastTab = tabs.value.length === 1;
+    if (isLastTab) {
+      window.electronAPI.closeDiscard();
+    } else {
+      close(tabId);
+    }
+
+    return true;
+  } catch (error) {
+    console.error("[useTab] Tab 拖拽分离失败:", error);
+    return false;
+  }
+}
+
+// ── Tab 合并接收 ──────────────────────────────────────────
+
+/** 监听来自其他窗口的 Tab 合并请求 */
+function handleTabMergeIn(tabData: TearOffTabData) {
+  const tab: Tab = {
+    id: randomUUID(), // 生成新 ID，避免跨窗口冲突
+    name: tabData.name,
+    filePath: tabData.filePath,
+    content: tabData.content,
+    originalContent: tabData.originalContent,
+    isModified: tabData.isModified,
+    scrollRatio: tabData.scrollRatio ?? 0,
+    readOnly: tabData.readOnly,
+    isNewlyLoaded: !tabData.isModified,
+    fileTraits: tabData.fileTraits,
+  };
+
+  tabs.value.push(tab);
+  activeTabId.value = tab.id;
+  if (!tabData.isModified) {
+    scheduleNewlyLoadedCleanup(tab.id);
+  }
+
+  if (tab.filePath) {
+    setCurrentMarkdownFilePath(tab.filePath);
+  }
+
+  // 通知 useContent 同步内容
+  emitter.emit("tab:switch", tab);
+}
+window.electronAPI.on("tab:merge-in", handleTabMergeIn);
+
+// ── Tab 合并预览（悬停即合并，离开撤销）──────────────────
+
+let mergePreviewState: {
+  tabId: string;
+  prevActiveId: string | null;
+  isExisting: boolean;
+} | null = null;
+
+function handleTabMergePreview(tabData: TearOffTabData, screenX?: number, screenY?: number) {
+  const prevActiveId = activeTabId.value;
+
+  // 若已存在同文件路径的 Tab，直接激活它作为预览目标
+  if (tabData.filePath) {
+    const existing = isFileAlreadyOpen(tabData.filePath);
+    if (existing) {
+      mergePreviewState = {
+        tabId: existing.id,
+        prevActiveId,
+        isExisting: true,
+      };
+      switchToTab(existing.id);
+      return;
+    }
+  }
+
+  // 计算插入位置
+  let insertIndex = tabs.value.length;
+  if (screenX !== undefined && screenY !== undefined) {
+    // 将屏幕坐标转换为页面内坐标
+    // 注意：window.screenX 是窗口左上角在屏幕的 X，加上边框偏移才是内容区
+    // 简化处理：假设标准边框或无边框，contentX ≈ screenX - window.screenX
+    // 更精确的方式难以在纯 IPC 中获取，但如果不考虑标题栏（无框窗口），这样近似可行
+    const clientX = screenX - window.screenX;
+
+    // 获取所有 tab 元素 (排除预览 Tab 自身)
+    const tabElements = Array.from(document.querySelectorAll("[data-tab-id]:not(.merge-preview)"));
+
+    // 找到插入点
+    for (let i = 0; i < tabElements.length; i++) {
+      const rect = tabElements[i].getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      if (clientX < centerX) {
+        insertIndex = i;
+        break;
+      }
+    }
+  }
+
+  // 取消旧预览，总是重建以确保正确的插入位置
+  if (mergePreviewState && !mergePreviewState.isExisting) {
+    close(mergePreviewState.tabId);
+  }
+
+  const tab: Tab = {
+    id: randomUUID(),
+    name: tabData.name,
+    filePath: tabData.filePath,
+    content: tabData.content,
+    originalContent: tabData.originalContent,
+    isModified: tabData.isModified,
+    scrollRatio: tabData.scrollRatio ?? 0,
+    readOnly: tabData.readOnly,
+    isNewlyLoaded: !tabData.isModified,
+    isMergePreview: true,
+    fileTraits: tabData.fileTraits,
+  };
+
+  // 插入到指定位置
+  tabs.value.splice(insertIndex, 0, tab);
+  activeTabId.value = tab.id;
+  if (!tabData.isModified) {
+    scheduleNewlyLoadedCleanup(tab.id);
+  }
+
+  if (tab.filePath) {
+    setCurrentMarkdownFilePath(tab.filePath);
+  }
+
+  emitter.emit("tab:switch", tab);
+
+  mergePreviewState = {
+    tabId: tab.id,
+    prevActiveId,
+    isExisting: false,
+  };
+}
+
+function handleTabMergePreviewCancel() {
+  if (!mergePreviewState) return;
+  const { tabId, prevActiveId, isExisting } = mergePreviewState;
+  mergePreviewState = null;
+
+  if (!isExisting) {
+    close(tabId);
+  }
+
+  if (prevActiveId && tabs.value.find((tab) => tab.id === prevActiveId)) {
+    switchToTab(prevActiveId);
+  }
+}
+
+function handleTabMergePreviewFinalize() {
+  if (!mergePreviewState) return;
+  const { tabId, isExisting } = mergePreviewState;
+  mergePreviewState = null;
+
+  if (isExisting) return;
+  const tab = tabs.value.find((t) => t.id === tabId);
+  if (tab) {
+    tab.isMergePreview = false;
+  }
+}
+
+window.electronAPI.on("tab:merge-preview", handleTabMergePreview);
+window.electronAPI.on("tab:merge-preview-cancel", handleTabMergePreviewCancel);
+window.electronAPI.on("tab:merge-preview-finalize", handleTabMergePreviewFinalize);
+
+// ── 跨窗口文件去重 ──────────────────────────────────────
+
+/** 主进程通知激活指定文件的 Tab */
+window.electronAPI.on("tab:activate-file", (filePath: string) => {
+  const existingTab = isFileAlreadyOpen(filePath);
+  if (existingTab) {
+    switchToTab(existingTab.id);
+  }
+});
+
+// ── 单 Tab 窗口拖拽 ──────────────────────────────────────
+
+const isSingleTab = computed(() => tabs.value.length === 1);
+
+/**
+ * 开始单 Tab 窗口拖拽：直接移动整个窗口
+ * @param offsetX 鼠标相对窗口左上角的 X 偏移
+ * @param offsetY 鼠标相对窗口左上角的 Y 偏移
+ */
+function startSingleTabDrag(tabId: string, offsetX: number, offsetY: number): void {
+  const tabData = getTabDataForTearOff(tabId);
+  if (!tabData) return;
+  window.electronAPI.startWindowDrag(tabData, offsetX, offsetY);
+}
+
+/**
+ * 结束单 Tab 窗口拖拽：判断是否合并到目标窗口
+ */
+async function endSingleTabDrag(screenX: number, screenY: number): Promise<void> {
+  window.electronAPI.stopWindowDrag();
+
+  // 获取当前唯一 Tab 数据
+  const tab = tabs.value[0];
+  if (!tab) return;
+
+  const tabData = getTabDataForTearOff(tab.id);
+  if (!tabData) return;
+
+  const result = await window.electronAPI.dropMerge(tabData, screenX, screenY);
+  if (result.action === "merged") {
+    // 合并成功，关闭当前窗口
+    window.electronAPI.closeDiscard();
+  }
+}
+
 // 设置tab容器的滚动监听
 function setupTabScrollListener(containerRef: Ref<HTMLElement | null>) {
   // 监听激活tab变化，确保其可见
@@ -481,6 +804,7 @@ const formattedTabs = computed(() => {
     name: tab.name,
     readOnly: tab.readOnly,
     isModified: tab.isModified,
+    isMergePreview: tab.isMergePreview,
     displayName: tab.isModified ? `*${tab.name}` : tab.name,
   }));
 });
@@ -605,6 +929,16 @@ function useTab() {
 
     // 拖动
     reorderTabs,
+
+    // Tab 拖拽分离
+    startTearOff,
+    endTearOff,
+    cancelTearOff,
+
+    // 单 Tab 窗口拖拽
+    isSingleTab,
+    startSingleTabDrag,
+    endSingleTabDrag,
 
     // 工具
     randomUUID,

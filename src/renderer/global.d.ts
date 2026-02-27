@@ -1,8 +1,5 @@
-interface FileTraitsDTO {
-  hasBOM: boolean;
-  lineEnding: "crlf" | "lf";
-  hasTrailingNewline: boolean;
-}
+type FileTraitsDTO = import("../shared/types/tearoff").FileTraitsDTO;
+type TearOffTabData = import("../shared/types/tearoff").TearOffTabData;
 
 interface Window {
   electronAPI: {
@@ -70,6 +67,30 @@ interface Window {
     saveCustomTheme: (theme: any) => void;
     platform: NodeJS.Platform;
     rendererReady: () => void;
+    // Tab 拖拽分离
+    tearOffTabStart: (
+      tabData: TearOffTabData,
+      screenX: number,
+      screenY: number,
+      offsetX: number,
+      offsetY: number
+    ) => Promise<boolean>;
+    tearOffTabEnd: (
+      screenX: number,
+      screenY: number
+    ) => Promise<{ action: "created" | "merged" | "failed" }>;
+    tearOffTabCancel: () => Promise<boolean>;
+    focusFileIfOpen: (filePath: string) => Promise<{ found: boolean }>;
+    getInitialTabData: () => Promise<TearOffTabData | null>;
+    getWindowBounds: () => Promise<{ x: number; y: number; width: number; height: number } | null>;
+    // 单 Tab 窗口拖拽
+    startWindowDrag: (tabData: TearOffTabData, offsetX: number, offsetY: number) => void;
+    stopWindowDrag: () => void;
+    dropMerge: (
+      tabData: TearOffTabData,
+      screenX: number,
+      screenY: number
+    ) => Promise<{ action: "merged" | "none" }>;
     // 自动更新相关
     checkForUpdates: () => Promise<any>;
     downloadUpdate: () => Promise<any>;

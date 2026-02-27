@@ -11,6 +11,7 @@ import {
 } from "./ipcBridge";
 import createMenu from "./menu";
 import { setupUpdateHandlers } from "./update";
+import { trackWindow } from "./windowManager";
 
 let win: BrowserWindow;
 let themeEditorWindow: BrowserWindow | null = null;
@@ -34,6 +35,10 @@ async function createWindow() {
       webSecurity: false, // 允许加载本地文件
     },
   });
+
+  // 注册为主窗口
+  trackWindow(win, true);
+
   globalShortcut.register("CommandOrControl+Shift+I", () => {
     if (win) win.webContents.openDevTools();
   });
