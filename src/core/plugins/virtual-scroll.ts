@@ -84,11 +84,6 @@ class VirtualScrollManager {
     return this.cachedLineHeight;
   }
 
-  /** 计算总文档估算高度 */
-  private getTotalHeight(): number {
-    return this.totalLines * this.getEstimatedLineHeight();
-  }
-
   getState(): VirtualScrollState {
     return this.state;
   }
@@ -296,12 +291,41 @@ class VirtualScrollManager {
     if (!scrollContainer) return;
 
     const scrollTop = scrollContainer.scrollTop;
-    const totalHeight = this.getTotalHeight();
-    if (totalHeight <= 0) return;
+    const lineHeight = this.getEstimatedLineHeight();
+    if (lineHeight <= 0) return;
 
-    // 根据 scrollTop 在总高度中的比例计算当前行号
-    const scrollRatio = scrollTop / totalHeight;
-    const currentLine = Math.floor(scrollRatio * this.totalLines);
+    // 根据 scrollTop 所在的区域（顶部 spacer / 实际内容 / 底部 spacer）分别计算行号
+    // 避免使用 scrollTop / totalHeight 的估算方式，因为实际渲染内容高度（标题、代码块、
+    // 数学公式等）与估算高度差异会随文档增大而累积，导致向上滚动时块加载错误
+    const topSpacerHeight = this.topSpacer ? parseFloat(this.topSpacer.style.height) || 0 : 0;
+    const editorContainer = this.view.dom.parentElement;
+    const contentHeight = editorContainer ? editorContainer.offsetHeight : 0;
+    const contentEndPos = topSpacerHeight + contentHeight;
+
+    const sorted = [...this.state.loadedBlockIndices].sort((a, b) => a - b);
+    const firstLoadedBlock = sorted.length > 0 ? sorted[0] : 0;
+    const lastLoadedBlock = sorted.length > 0 ? sorted[sorted.length - 1] : 0;
+
+    let currentLine: number;
+
+    if (sorted.length === 0 || scrollTop <= topSpacerHeight) {
+      // 在顶部 spacer 区域或无已加载块 — spacer 使用 lineHeight 计算，结果精确
+      currentLine = Math.floor(scrollTop / lineHeight);
+    } else if (scrollTop >= contentEndPos) {
+      // 在底部 spacer 区域 — 同样精确
+      const bottomSpacerStartLine = (lastLoadedBlock + 1) * this.blockSize;
+      const posInBottomSpacer = scrollTop - contentEndPos;
+      currentLine = bottomSpacerStartLine + Math.floor(posInBottomSpacer / lineHeight);
+    } else {
+      // 在实际内容区域 — 用内容比例估算，误差限定在已加载块范围内（±5 块）
+      const contentStartLine = firstLoadedBlock * this.blockSize;
+      const loadedLines = (lastLoadedBlock - firstLoadedBlock + 1) * this.blockSize;
+      const posInContent = scrollTop - topSpacerHeight;
+      const contentRatio = contentHeight > 0 ? posInContent / contentHeight : 0;
+      currentLine = contentStartLine + Math.floor(contentRatio * loadedLines);
+    }
+
+    currentLine = Math.max(0, Math.min(currentLine, this.totalLines - 1));
     const newBlockIndex = Math.max(
       0,
       Math.min(Math.floor(currentLine / this.blockSize), this.state.totalBlocks - 1)
