@@ -244,7 +244,13 @@ function updateMergePreview(
   }
 
   const prev = mergePreviewTargets.get(sourceWinId) ?? null;
-  if (prev?.id === target?.id) return target;
+  if (prev?.id === target?.id) {
+    // 目标窗口未变，但光标位置变了 → 发送位置更新以动态调整预览 Tab 插入位置
+    if (target && !target.isDestroyed()) {
+      target.webContents.send("tab:merge-preview-update", screenX, screenY);
+    }
+    return target;
+  }
 
   if (prev && !prev.isDestroyed()) {
     prev.webContents.send("tab:merge-preview-cancel");
@@ -279,6 +285,7 @@ function clearMergePreview(sourceWinId: number): void {
 let windowDragInterval: ReturnType<typeof setInterval> | null = null;
 let windowDragSourceId: number | null = null;
 let windowDragTabData: TearOffTabData | null = null;
+let windowDragSourceWin: BrowserWindow | null = null;
 
 /**
  * 开始以 ~60fps 让窗口跟随光标
@@ -294,6 +301,7 @@ export function startWindowDrag(
   stopWindowDrag();
   windowDragSourceId = win.id;
   windowDragTabData = tabData;
+  windowDragSourceWin = win;
   let prevCX = -1,
     prevCY = -1;
   windowDragInterval = setInterval(() => {
@@ -305,10 +313,26 @@ export function startWindowDrag(
     if (cursor.x === prevCX && cursor.y === prevCY) return;
     prevCX = cursor.x;
     prevCY = cursor.y;
+
+    let target: BrowserWindow | null = null;
+    if (windowDragSourceId && windowDragTabData) {
+      target = updateMergePreview(windowDragSourceId, windowDragTabData, cursor.x, cursor.y, [win]);
+    }
+
+    // 始终跟随光标移动（即使透明化也要移动，确保渲染进程能接收鼠标事件）
     win.setPosition(Math.round(cursor.x - offsetX), Math.round(cursor.y - offsetY));
 
-    if (windowDragSourceId && windowDragTabData) {
-      updateMergePreview(windowDragSourceId, windowDragTabData, cursor.x, cursor.y, [win]);
+    if (target) {
+      // 合并预览激活 → 透明化源窗口，让用户视觉上感知 Tab 已并入目标窗口
+      // 使用 setOpacity(0) 而非 hide()，保持窗口可接收鼠标事件（SortableJS 需要 pointerup）
+      if (win.getOpacity() > 0) {
+        win.setOpacity(0);
+      }
+    } else {
+      // 无目标窗口 → 恢复可见
+      if (win.getOpacity() === 0) {
+        win.setOpacity(1);
+      }
     }
   }, 16);
 }
@@ -318,6 +342,15 @@ export function stopWindowDrag(): void {
     clearInterval(windowDragInterval);
     windowDragInterval = null;
   }
+  // 恢复源窗口透明度（拖拽期间可能被透明化）
+  if (
+    windowDragSourceWin &&
+    !windowDragSourceWin.isDestroyed() &&
+    windowDragSourceWin.getOpacity() === 0
+  ) {
+    windowDragSourceWin.setOpacity(1);
+  }
+  windowDragSourceWin = null;
 }
 
 export function finalizeWindowDragMerge(): BrowserWindow | null {
@@ -325,6 +358,7 @@ export function finalizeWindowDragMerge(): BrowserWindow | null {
   const target = finalizeMergePreview(windowDragSourceId);
   windowDragSourceId = null;
   windowDragTabData = null;
+  windowDragSourceWin = null;
   return target;
 }
 
@@ -334,6 +368,7 @@ export function clearWindowDragPreview(): void {
   }
   windowDragSourceId = null;
   windowDragTabData = null;
+  windowDragSourceWin = null;
 }
 
 // ─── 多 Tab 拖拽跟随（创建新窗口并跟随光标直到松手）─────

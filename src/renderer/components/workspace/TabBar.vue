@@ -57,8 +57,8 @@ async function handleCloseTab(id: string, event: Event) {
 
 // ── Tab 拖拽分离检测 ────────────────────────────────────────
 
-/** 鼠标超出窗口边界的阈值（px），避免微小越界误触发 */
-const TEAR_OFF_THRESHOLD = 30;
+/** 鼠标超出 Tab 栏边界的阈值（px），避免微小越界误触发 */
+const TEAR_OFF_THRESHOLD = 20;
 
 /** 拖拽期间的状态 */
 let dragState: {
@@ -79,13 +79,34 @@ let dragState: {
   initialOffsetY: 0,
 };
 
-/** 缓存的窗口边界 */
-let cachedBounds: { x: number; y: number; width: number; height: number } | null = null;
+/** 缓存的 Tab 栏屏幕边界（用于多 Tab 分离检测） */
+let cachedTabBarBounds: { x: number; y: number; width: number; height: number } | null = null;
 
-/** 判断屏幕坐标是否在窗口外 */
-function isOutsideWindow(screenX: number, screenY: number): boolean {
-  if (!cachedBounds) return false;
-  const { x, y, width, height } = cachedBounds;
+/** 保存被隐藏的 ghost 元素引用，tear-off 结束后清理 */
+let _ghostEl: HTMLElement | null = null;
+
+/** 隐藏 SortableJS ghost 元素（Tab 脱离 Tab 栏时调用，类似 Chrome 标签拽出后消失） */
+function hideGhost() {
+  if (_ghostEl) return;
+  const el = tabContainerRef.value?.querySelector(".ghost") as HTMLElement | null;
+  if (el) {
+    _ghostEl = el;
+    el.style.display = "none";
+  }
+}
+
+/** 恢复 SortableJS ghost 元素（取消 tear-off 时调用） */
+function showGhost() {
+  if (_ghostEl) {
+    _ghostEl.style.display = "";
+    _ghostEl = null;
+  }
+}
+
+/** 判断屏幕坐标是否在 Tab 栏外（类似 Chrome，拖出 Tab 栏即分离） */
+function isOutsideTabBar(screenX: number, screenY: number): boolean {
+  if (!cachedTabBarBounds) return false;
+  const { x, y, width, height } = cachedTabBarBounds;
   return (
     screenX < x - TEAR_OFF_THRESHOLD ||
     screenX > x + width + TEAR_OFF_THRESHOLD ||
@@ -97,7 +118,7 @@ function isOutsideWindow(screenX: number, screenY: number): boolean {
 /**
  * 拖拽期间的 pointer 位置追踪
  *
- * 多 Tab：指针离开窗口 → 立即创建新窗口跟随光标（fire-and-forget）
+ * 多 Tab：指针离开 Tab 栏 → 立即创建新窗口跟随光标（fire-and-forget）
  * 单 Tab：直接进入窗口拖拽模式（由主进程 setInterval 驱动位置更新）
  */
 function onDragPointerMove(e: PointerEvent) {
@@ -111,31 +132,32 @@ function onDragPointerMove(e: PointerEvent) {
 
   if (isSingleTab.value) {
     // ── 单 Tab：立即开始窗口拖拽 ──
-    if (!cachedBounds) return;
     dragState.singleTabDragActive = true;
-    const offsetX = e.screenX - cachedBounds.x;
-    const offsetY = e.screenY - cachedBounds.y;
+    const offsetX = e.screenX - window.screenX;
+    const offsetY = e.screenY - window.screenY;
     startSingleTabDrag(dragState.tabId, offsetX, offsetY);
     document.body.classList.add("tab-torn-off");
     return;
   }
 
-  // 多 Tab 模式：检测拖拽分离与回拖
+  // 多 Tab 模式：检测拖拽分离与回拖（基于 Tab 栏边界）
   if (dragState.tearOffTriggered) {
-    // 已触发 tear-off，检查指针是否回到窗口内
-    if (!isOutsideWindow(e.screenX, e.screenY)) {
-      // 指针回到窗口内 → 取消分离，关闭跟随窗口
+    // 已触发 tear-off，检查指针是否回到 Tab 栏内
+    if (!isOutsideTabBar(e.screenX, e.screenY)) {
+      // 指针回到 Tab 栏内 → 取消分离，关闭跟随窗口
       dragState.tearOffTriggered = false;
       document.body.classList.remove("tab-torn-off");
+      showGhost();
       cancelTearOff();
     }
     return;
   }
 
-  if (isOutsideWindow(e.screenX, e.screenY)) {
-    // ── 多 Tab：指针离开窗口 → 开始分离跟随 ──
+  if (isOutsideTabBar(e.screenX, e.screenY)) {
+    // ── 多 Tab：指针离开 Tab 栏 → 开始分离跟随 ──
     dragState.tearOffTriggered = true;
     document.body.classList.add("tab-torn-off");
+    hideGhost();
     startTearOff(
       dragState.tabId,
       e.screenX,
@@ -173,10 +195,17 @@ function handleDragStart(event: any) {
     initialOffsetY,
   };
 
-  // 非阻塞获取窗口边界，tear-off 检测在边界就绪后自动激活
-  window.electronAPI.getWindowBounds().then((bounds) => {
-    cachedBounds = bounds;
-  });
+  // 同步计算 Tab 栏屏幕边界（用于多 Tab 分离检测，类似 Chrome 拖出 Tab 栏即分离）
+  const container = tabContainerRef.value;
+  if (container) {
+    const rect = container.getBoundingClientRect();
+    cachedTabBarBounds = {
+      x: rect.left + window.screenX,
+      y: rect.top + window.screenY,
+      width: rect.width,
+      height: rect.height,
+    };
+  }
 
   document.addEventListener("pointermove", onDragPointerMove, { capture: true });
 }
@@ -190,6 +219,8 @@ function handleDragStart(event: any) {
 function handleDragEnd(event: { oldIndex: number; newIndex: number }) {
   document.removeEventListener("pointermove", onDragPointerMove, { capture: true });
   document.body.classList.remove("tab-torn-off");
+  // tear-off 情况下不恢复 ghost（tab 即将被移除），仅清理引用
+  _ghostEl = null;
 
   const { tabId, tearOffTriggered, singleTabDragActive, lastScreenX, lastScreenY } = dragState;
   dragState = {
@@ -201,7 +232,7 @@ function handleDragEnd(event: { oldIndex: number; newIndex: number }) {
     initialOffsetX: 0,
     initialOffsetY: 0,
   };
-  cachedBounds = null;
+  cachedTabBarBounds = null;
 
   if (singleTabDragActive) {
     endSingleTabDrag(lastScreenX, lastScreenY);
@@ -209,11 +240,9 @@ function handleDragEnd(event: { oldIndex: number; newIndex: number }) {
   }
 
   if (tearOffTriggered && tabId) {
-    // 必须通过数据驱动视图更新，确保 SortableJS 内部状态重置
-    // 使用 requestAnimationFrame 确保 UI 更新后再执行结束逻辑
-    requestAnimationFrame(() => {
-      endTearOff(tabId, lastScreenX, lastScreenY);
-    });
+    // endTearOff 是 async，IPC 往返已提供充分延迟让 SortableJS 完成清理
+    // 不再用 requestAnimationFrame 包装，避免 async 续体在 RAF 微任务中调度的新 RAF 被帧调度器跳过
+    endTearOff(tabId, lastScreenX, lastScreenY);
     return;
   }
 

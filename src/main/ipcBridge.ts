@@ -513,9 +513,13 @@ export function registerGlobalIpcHandlers() {
       try {
         const sourceWin = BrowserWindow.fromWebContents(event.sender);
         const result = await finalizeDragFollow(screenX, screenY, sourceWin);
-        // tear-off 完成后重新聚焦源窗口，避免需要额外点击才能交互
-        if (result.action === "created" && sourceWin && !sourceWin.isDestroyed()) {
-          sourceWin.focus();
+        // 延迟聚焦新窗口：让源窗口 renderer 先完成 close → switchToTab → 编辑器内容刷新
+        // 编辑器 setMarkdown 在 requestAnimationFrame 中执行，源窗口失焦后 RAF 会被限流
+        if (result.action === "created" && result.newWin && !result.newWin.isDestroyed()) {
+          const newWin = result.newWin;
+          setTimeout(() => {
+            if (!newWin.isDestroyed()) newWin.focus();
+          }, 200);
         }
         return { action: result.action };
       } catch (error) {

@@ -538,9 +538,14 @@ function getTabDataForTearOff(tabId: string): TearOffTabData | null {
   };
 }
 
+/** 记录当前正在分离的 Tab ID，用于取消分离时恢复 */
+let tearOffSourceTabId: string | null = null;
+
 /**
  * 开始拖拽分离：立即创建新窗口并跟随光标
  * 由 TabBar 的 pointermove 在指针离开窗口时调用（fire-and-forget）
+ *
+ * 同时立即切换到相邻 Tab，避免源窗口继续显示被拖出的内容
  */
 function startTearOff(
   tabId: string,
@@ -551,13 +556,29 @@ function startTearOff(
 ): void {
   const tabData = getTabDataForTearOff(tabId);
   if (!tabData) return;
+
+  // 立即切换到相邻 Tab，使源窗口显示正确的内容
+  tearOffSourceTabId = tabId;
+  const tabIndex = tabs.value.findIndex((t) => t.id === tabId);
+  if (tabIndex !== -1 && tabs.value.length > 1) {
+    // 优先切换到后一个 Tab，没有则切换到前一个
+    const nextIndex = tabIndex < tabs.value.length - 1 ? tabIndex + 1 : tabIndex - 1;
+    switchToTab(tabs.value[nextIndex].id);
+  }
+
   window.electronAPI.tearOffTabStart(tabData, screenX, screenY, offsetX, offsetY);
 }
 
 /**
  * 取消拖拽分离：指针回到源窗口时调用，关闭已创建的跟随窗口
+ * 同时恢复到被拖出的 Tab
  */
 function cancelTearOff(): void {
+  // 恢复到被拖出的 Tab
+  if (tearOffSourceTabId) {
+    switchToTab(tearOffSourceTabId);
+    tearOffSourceTabId = null;
+  }
   window.electronAPI.tearOffTabCancel();
 }
 
@@ -568,18 +589,41 @@ function cancelTearOff(): void {
 async function endTearOff(tabId: string, screenX: number, screenY: number): Promise<boolean> {
   try {
     const result = await window.electronAPI.tearOffTabEnd(screenX, screenY);
-    if (result.action === "failed") return false;
+    if (result.action === "failed") {
+      // 分离失败，恢复到被拖出的 Tab
+      if (tearOffSourceTabId) {
+        switchToTab(tearOffSourceTabId);
+      }
+      tearOffSourceTabId = null;
+      return false;
+    }
+
+    tearOffSourceTabId = null;
 
     // 成功创建新窗口或合并后，从当前窗口移除该 Tab
+    // 由于 startTearOff 时已切换到相邻 Tab，close 只需移除该 Tab 即可
     const isLastTab = tabs.value.length === 1;
     if (isLastTab) {
       window.electronAPI.closeDiscard();
     } else {
       close(tabId);
+      // 保底：编辑器的 setMarkdown 在 RAF 中执行，可能因帧调度时序被跳过
+      // 用 setTimeout 确保内容刷新一定生效
+      setTimeout(() => {
+        const current = getCurrentTab();
+        if (current) {
+          emitter.emit("file:Change");
+        }
+      }, 50);
     }
 
     return true;
   } catch (error) {
+    // 分离异常，恢复到被拖出的 Tab
+    if (tearOffSourceTabId) {
+      switchToTab(tearOffSourceTabId);
+    }
+    tearOffSourceTabId = null;
     console.error("[useTab] Tab 拖拽分离失败:", error);
     return false;
   }
@@ -730,9 +774,53 @@ function handleTabMergePreviewFinalize() {
   }
 }
 
+/**
+ * 动态更新合并预览 Tab 的插入位置
+ * 由主进程在光标移动时持续发送，实现拖拽悬停时预览 Tab 跟随光标变换顺序
+ */
+function handleTabMergePreviewUpdate(screenX: number, screenY: number) {
+  if (!mergePreviewState || mergePreviewState.isExisting) return;
+
+  const { tabId } = mergePreviewState;
+  const currentIndex = tabs.value.findIndex((t) => t.id === tabId);
+  if (currentIndex === -1) return;
+
+  // 将屏幕坐标转为页面内坐标
+  const clientX = screenX - window.screenX;
+
+  // 获取所有非预览 Tab 元素
+  const tabElements = Array.from(
+    document.querySelectorAll("[data-tab-id]:not(.merge-preview)")
+  ) as HTMLElement[];
+
+  // 默认放在末尾
+  let targetIndex = tabs.value.length - 1;
+  for (let i = 0; i < tabElements.length; i++) {
+    const rect = tabElements[i].getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    if (clientX < centerX) {
+      // 找到该元素在 tabs 数组中的真实索引
+      const elTabId = tabElements[i].dataset.tabId;
+      const realIndex = tabs.value.findIndex((t) => t.id === elTabId);
+      if (realIndex !== -1) {
+        // 如果预览 Tab 在目标之前，移除后索引需 -1
+        targetIndex = currentIndex < realIndex ? realIndex - 1 : realIndex;
+      }
+      break;
+    }
+  }
+
+  // 仅在位置真正变化时才更新，避免不必要的 Vue 响应式开销
+  if (targetIndex !== currentIndex) {
+    const [tab] = tabs.value.splice(currentIndex, 1);
+    tabs.value.splice(targetIndex, 0, tab);
+  }
+}
+
 window.electronAPI.on("tab:merge-preview", handleTabMergePreview);
 window.electronAPI.on("tab:merge-preview-cancel", handleTabMergePreviewCancel);
 window.electronAPI.on("tab:merge-preview-finalize", handleTabMergePreviewFinalize);
+window.electronAPI.on("tab:merge-preview-update", handleTabMergePreviewUpdate);
 
 // ── 跨窗口文件去重 ──────────────────────────────────────
 
