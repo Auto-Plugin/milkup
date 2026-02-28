@@ -22,11 +22,13 @@ import "@/core/styles/milkup.css";
 interface Props {
   modelValue: string;
   readOnly?: boolean;
+  measure?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: "",
   readOnly: false,
+  measure: false,
 });
 
 const emit = defineEmits<{
@@ -246,46 +248,51 @@ onMounted(async () => {
 
   editor = createMilkupEditor(containerRef.value, config);
 
-  // 监听变更事件
-  editor.on("change", ({ markdown }: { markdown: string }) => {
-    const restoredMarkdown = postprocessContent(markdown);
-    lastEmittedValue.value = restoredMarkdown;
-    emit("update:modelValue", restoredMarkdown);
+  // 测量模式下跳过事件回调和位置恢复
+  if (!props.measure) {
+    // 监听变更事件
+    editor.on("change", ({ markdown }: { markdown: string }) => {
+      const restoredMarkdown = postprocessContent(markdown);
+      lastEmittedValue.value = restoredMarkdown;
+      emit("update:modelValue", restoredMarkdown);
+      emitOutlineUpdate();
+    });
+
+    // 监听选区变更
+    editor.on("selectionChange", (data: { from: number; to: number }) => {
+      if (currentTab.value) {
+        currentTab.value.milkdownCursorOffset = data.from;
+        // 计算源码偏移量
+        const markdown = editor?.getMarkdown() || "";
+        currentTab.value.codeMirrorCursorOffset =
+          markdown.length > 0 ? Math.min(data.from, markdown.length) : 0;
+      }
+    });
+
+    // 初始化大纲
     emitOutlineUpdate();
-  });
 
-  // 监听选区变更
-  editor.on("selectionChange", (data: { from: number; to: number }) => {
-    if (currentTab.value) {
-      currentTab.value.milkdownCursorOffset = data.from;
-      // 计算源码偏移量
-      const markdown = editor?.getMarkdown() || "";
-      currentTab.value.codeMirrorCursorOffset =
-        markdown.length > 0 ? Math.min(data.from, markdown.length) : 0;
+    // 恢复光标位置
+    if (currentTab.value?.milkdownCursorOffset) {
+      editor.setCursorOffset(currentTab.value.milkdownCursorOffset);
     }
-  });
 
-  // 初始化大纲
-  emitOutlineUpdate();
-
-  // 恢复光标位置
-  if (currentTab.value?.milkdownCursorOffset) {
-    editor.setCursorOffset(currentTab.value.milkdownCursorOffset);
+    // 恢复滚动位置
+    nextTick(() => {
+      restoreScrollPosition();
+    });
   }
-
-  // 恢复滚动位置
-  nextTick(() => {
-    restoreScrollPosition();
-  });
 });
 
 onUnmounted(() => {
   editor?.destroy();
   editor = null;
-  // 移除事件监听
-  emitter.off("sourceView:toggle", handleSourceViewToggle);
-  emitter.off("outline:scrollTo", handleOutlineScrollTo);
-  emitter.off("tab:switch", handleTabSwitch);
+  if (!props.measure) {
+    // 移除事件监听
+    emitter.off("sourceView:toggle", handleSourceViewToggle);
+    emitter.off("outline:scrollTo", handleOutlineScrollTo);
+    emitter.off("tab:switch", handleTabSwitch);
+  }
 });
 
 // 处理源码模式切换事件
@@ -298,7 +305,9 @@ function handleSourceViewToggle() {
 }
 
 // 监听源码模式切换事件
-emitter.on("sourceView:toggle", handleSourceViewToggle);
+if (!props.measure) {
+  emitter.on("sourceView:toggle", handleSourceViewToggle);
+}
 
 // 处理大纲点击滚动
 function handleOutlineScrollTo(data: unknown) {
@@ -325,52 +334,58 @@ function handleOutlineScrollTo(data: unknown) {
     }
   }
 }
-emitter.on("outline:scrollTo", handleOutlineScrollTo);
+if (!props.measure) {
+  emitter.on("outline:scrollTo", handleOutlineScrollTo);
+}
 
 // tab 切换时重置 lastEmittedValue，确保 watch 守卫不会跳过新 tab 的内容加载
 function handleTabSwitch() {
   lastEmittedValue.value = null;
 }
-emitter.on("tab:switch", handleTabSwitch);
+if (!props.measure) {
+  emitter.on("tab:switch", handleTabSwitch);
+}
 
-// 监听 modelValue 变化
-watch(
-  () => props.modelValue,
-  (newValue) => {
-    if (newValue === lastEmittedValue.value) {
-      return;
+// 监听 modelValue 变化（测量模式不需要）
+if (!props.measure) {
+  watch(
+    () => props.modelValue,
+    (newValue) => {
+      if (newValue === lastEmittedValue.value) {
+        return;
+      }
+      if (editor && newValue !== undefined) {
+        // 更新全局文件路径
+        (window as any).__currentFilePath = currentTab.value?.filePath || null;
+
+        const contentForRendering = preprocessContent(newValue);
+        const savedScrollTop = currentTab.value?.scrollTop;
+        editor.setMarkdown(contentForRendering, { scrollTop: savedScrollTop }).then(async () => {
+          // 注意：不要在 setMarkdown 之后覆盖 lastEmittedValue。
+          // setMarkdown 会同步触发 change 事件，change handler 已经将
+          // lastEmittedValue 设置为序列化后的值。如果这里再覆盖为 newValue，
+          // 当序列化结果与 newValue 不同时（如引用块归一化），会导致 watch
+          // 守卫失效，触发无限循环。
+
+          // 更新大纲
+          emitOutlineUpdate();
+
+          // 恢复滚动位置
+          await nextTick();
+          restoreScrollPosition();
+        });
+      }
     }
-    if (editor && newValue !== undefined) {
-      // 更新全局文件路径
-      (window as any).__currentFilePath = currentTab.value?.filePath || null;
+  );
 
-      const contentForRendering = preprocessContent(newValue);
-      const savedScrollTop = currentTab.value?.scrollTop;
-      editor.setMarkdown(contentForRendering, { scrollTop: savedScrollTop }).then(async () => {
-        // 注意：不要在 setMarkdown 之后覆盖 lastEmittedValue。
-        // setMarkdown 会同步触发 change 事件，change handler 已经将
-        // lastEmittedValue 设置为序列化后的值。如果这里再覆盖为 newValue，
-        // 当序列化结果与 newValue 不同时（如引用块归一化），会导致 watch
-        // 守卫失效，触发无限循环。
-
-        // 更新大纲
-        emitOutlineUpdate();
-
-        // 恢复滚动位置
-        await nextTick();
-        restoreScrollPosition();
-      });
+  // 监听 readOnly 变化
+  watch(
+    () => props.readOnly,
+    (newValue) => {
+      editor?.updateConfig({ readonly: newValue });
     }
-  }
-);
-
-// 监听 readOnly 变化
-watch(
-  () => props.readOnly,
-  (newValue) => {
-    editor?.updateConfig({ readonly: newValue });
-  }
-);
+  );
+}
 
 // 暴露方法
 defineExpose({

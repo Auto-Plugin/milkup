@@ -93,11 +93,27 @@ window.electronAPI.on("update:available", onUpdateAvailable);
 
 // 监听手动检查的更新可用事件 (Manual Check from About)
 import { onMounted, onUnmounted, ref, watch, nextTick, computed } from "vue";
+import { setMeasureView } from "@/core/plugins/virtual-scroll";
 // 大纲侧边栏两阶段动画状态机
 // closed: 隐藏 | opening: transform 滑入动画 | open: flex 正常布局 | closing-prep: 切回 transform 定位 | closing: transform 滑出动画
 type OutlineState = "closed" | "opening" | "open" | "closing-prep" | "closing";
 const outlineState = ref<OutlineState>(isShowOutline.value ? "open" : "closed");
 const editorAreaRef = ref<HTMLElement | null>(null);
+const measureEditorRef = ref();
+
+function registerMeasureView() {
+  const editor = measureEditorRef.value?.getEditor?.();
+  if (editor) {
+    setMeasureView(editor.view);
+  }
+}
+
+// editorKey 变化会重建编辑器，需要在 watch 中重新注册测量 view
+watch(editorKey, async () => {
+  await nextTick();
+  await nextTick();
+  registerMeasureView();
+});
 
 const outlineClass = computed(() => `outline-${outlineState.value}`);
 
@@ -122,16 +138,34 @@ function onOutlineTransitionEnd(e: TransitionEvent) {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   initTheme();
   initFont();
   initOtherConfig();
   initSpellCheck();
   emitter.on("update:available", onUpdateAvailable);
+
+  // 注册测量编辑器的 view
+  await nextTick();
+  await nextTick();
+  registerMeasureView();
 });
+// 源码模式同步：当主编辑器切换模式时，同步到测量编辑器
+const handleSourceViewChanged = (isSourceView: boolean) => {
+  const editor = measureEditorRef.value?.getEditor?.();
+  if (editor) {
+    const currentState = editor.isSourceViewEnabled();
+    if (currentState !== isSourceView) {
+      editor.toggleSourceView();
+    }
+  }
+};
+emitter.on("sourceView:changed", handleSourceViewChanged);
+
 onUnmounted(() => {
   emitter.off("update:available", onUpdateAvailable);
   emitter.off("tab:close-confirm", handleTabCloseConfirm);
+  emitter.off("sourceView:changed", handleSourceViewChanged);
 });
 
 // Reuse safe close logic
@@ -193,6 +227,10 @@ const handleInstall = async () => {
       <div class="editorBox" @transitionend="onOutlineTransitionEnd">
         <!-- Milkup 编辑器（新内核，支持源码模式） -->
         <MilkupEditor v-model="markdown" :read-only="currentTab?.readOnly" />
+        <!-- 隐藏的测量编辑器（用于测量虚拟滚动块高度） -->
+        <div class="measure-editor-wrapper">
+          <MilkupEditor ref="measureEditorRef" model-value="" :read-only="true" measure />
+        </div>
       </div>
     </div>
   </div>
@@ -260,6 +298,19 @@ const handleInstall = async () => {
     flex: 1;
     width: 100%;
     transition: transform 0.2s ease;
+    position: relative;
+
+    .measure-editor-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 0;
+      overflow: hidden;
+      visibility: hidden;
+      pointer-events: none;
+      z-index: -1;
+    }
   }
 
   // 打开动画：transform 滑入（GPU 加速，零重排）

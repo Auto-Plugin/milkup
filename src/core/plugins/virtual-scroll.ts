@@ -61,6 +61,12 @@ class VirtualScrollManager {
   private lineHeightCacheTime: number = 0;
   /** 抑制结束后的延迟重检定时器 */
   private deferredCheckTimer: ReturnType<typeof setTimeout> | null = null;
+  /** 实测块高度缓存：blockIndex → 实测高度(px) */
+  private blockHeights: Map<number, number> = new Map();
+  /** 监听主编辑器容器宽度变化 */
+  private resizeObserver: ResizeObserver | null = null;
+  /** 上次测量时的容器宽度 */
+  private lastMeasureWidth: number = 0;
 
   constructor(view: EditorView) {
     this.view = view;
@@ -117,6 +123,7 @@ class VirtualScrollManager {
   clearCache(): void {
     this.state.blockContents.clear();
     this.state.loadedBlockIndices = [];
+    this.blockHeights.clear();
   }
 
   // --- Spacer 管理 ---
@@ -145,6 +152,24 @@ class VirtualScrollManager {
     }
 
     this.updateSpacerHeights();
+
+    // 监听容器宽度变化，宽度变化时清空高度缓存并重新测量
+    if (scrollContainer && !this.resizeObserver) {
+      this.lastMeasureWidth = scrollContainer.clientWidth;
+      this.resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const newWidth = entry.contentRect.width;
+          if (Math.abs(newWidth - this.lastMeasureWidth) > 1) {
+            this.lastMeasureWidth = newWidth;
+            this.blockHeights.clear();
+            // 重新测量当前已加载块
+            this.measureNewBlocks(this.state.loadedBlockIndices);
+            this.updateSpacerHeights();
+          }
+        }
+      });
+      this.resizeObserver.observe(scrollContainer);
+    }
   }
 
   private removeSpacers(): void {
@@ -154,16 +179,21 @@ class VirtualScrollManager {
     this.bottomSpacer = null;
     const editorContainer = this.view.dom.parentElement;
     if (editorContainer) editorContainer.style.minHeight = "";
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
   }
 
   private updateSpacerHeights(): void {
     if (!this.topSpacer || !this.bottomSpacer) return;
 
-    const lineHeight = this.getEstimatedLineHeight();
-    const totalHeight = this.totalLines * lineHeight;
     const sorted = [...this.state.loadedBlockIndices].sort((a, b) => a - b);
 
     if (sorted.length === 0) {
+      // 无已加载块，使用估算值
+      const lineHeight = this.getEstimatedLineHeight();
+      const totalHeight = this.totalLines * lineHeight;
       this.topSpacer.style.height = "0px";
       this.bottomSpacer.style.height = `${totalHeight}px`;
       return;
@@ -172,10 +202,70 @@ class VirtualScrollManager {
     const first = sorted[0];
     const last = sorted[sorted.length - 1];
 
-    this.topSpacer.style.height = `${first * this.blockSize * lineHeight}px`;
+    // 逐块累加实测/估算高度
+    let topH = 0;
+    for (let i = 0; i < first; i++) topH += this.getBlockHeight(i);
+    this.topSpacer.style.height = `${topH}px`;
 
-    const bottomStart = (last + 1) * this.blockSize;
-    this.bottomSpacer.style.height = `${Math.max(0, this.totalLines - bottomStart) * lineHeight}px`;
+    let bottomH = 0;
+    for (let i = last + 1; i < this.state.totalBlocks; i++) bottomH += this.getBlockHeight(i);
+    this.bottomSpacer.style.height = `${bottomH}px`;
+  }
+
+  // --- 块高度测量 ---
+
+  /** 使用隐藏的测量编辑器测量单个块的渲染高度 */
+  private measureBlockHeight(blockIndex: number): number {
+    const content = this.state.blockContents.get(blockIndex);
+    if (!content || !globalMeasureView) {
+      return this.estimateBlockHeight(blockIndex);
+    }
+
+    try {
+      const { doc } = this.parser(content);
+      const tr = globalMeasureView.state.tr.replaceWith(
+        0,
+        globalMeasureView.state.doc.content.size,
+        doc.content
+      );
+      globalMeasureView.dispatch(tr);
+
+      // 移除 padding 影响（padding 是编辑器常量，不属于单个块）
+      const prevPadding = globalMeasureView.dom.style.padding;
+      globalMeasureView.dom.style.padding = "0";
+
+      const height = globalMeasureView.dom.offsetHeight;
+
+      globalMeasureView.dom.style.padding = prevPadding;
+
+      return height > 0 ? height : this.estimateBlockHeight(blockIndex);
+    } catch {
+      return this.estimateBlockHeight(blockIndex);
+    }
+  }
+
+  /** 批量测量尚未缓存的块高度 */
+  private measureNewBlocks(blockIndices: number[]): void {
+    const uncached = blockIndices.filter((i) => !this.blockHeights.has(i));
+    for (const idx of uncached) {
+      this.blockHeights.set(idx, this.measureBlockHeight(idx));
+    }
+  }
+
+  /** 获取块高度：优先使用实测值，否则 fallback 到估算 */
+  private getBlockHeight(blockIndex: number): number {
+    return this.blockHeights.get(blockIndex) ?? this.estimateBlockHeight(blockIndex);
+  }
+
+  /** 估算块高度（fallback） */
+  private estimateBlockHeight(blockIndex: number): number {
+    const lineHeight = this.getEstimatedLineHeight();
+    // 最后一块可能不满 blockSize 行
+    const linesInBlock =
+      blockIndex === this.state.totalBlocks - 1
+        ? this.totalLines - blockIndex * this.blockSize
+        : this.blockSize;
+    return linesInBlock * lineHeight;
   }
 
   // --- 块加载 ---
@@ -209,6 +299,9 @@ class VirtualScrollManager {
       }
 
       this.state.loadedBlockIndices = validIndices;
+
+      // 先测量新增块的高度（使用隐藏编辑器）
+      this.measureNewBlocks(validIndices);
 
       // 记录当前 blockIndex 对应的目标 scrollTop，用于更新后恢复
       const scrollContainer = this.view.dom.parentElement?.parentElement;
@@ -316,7 +409,6 @@ class VirtualScrollManager {
       // 无已加载块 或 视口完全跳出内容区域（滚动条拖拽等）— 按位置重新计算
       newBlockIndex = this.computeBlockIndexFromPosition(
         scrollTop,
-        lineHeight,
         topSpacerH,
         contentEnd,
         contentH,
@@ -381,35 +473,50 @@ class VirtualScrollManager {
   /** 根据 scrollTop 在 spacer/content 区域中的位置计算目标块索引 */
   private computeBlockIndexFromPosition(
     scrollTop: number,
-    lineHeight: number,
     topSpacerH: number,
     contentEnd: number,
     contentH: number,
     firstBlock: number,
     lastBlock: number
   ): number {
-    let currentLine: number;
+    let blockIndex: number;
 
     if (firstBlock < 0 || scrollTop <= topSpacerH) {
-      // 在顶部 spacer 区域 — spacer 使用 lineHeight 计算，精确
-      currentLine = Math.floor(scrollTop / lineHeight);
+      // 在顶部 spacer 区域 — 逐块累加高度定位
+      let accum = 0;
+      blockIndex = 0;
+      for (let i = 0; i < this.state.totalBlocks; i++) {
+        const h = this.getBlockHeight(i);
+        if (accum + h > scrollTop) {
+          blockIndex = i;
+          break;
+        }
+        accum += h;
+        blockIndex = i;
+      }
     } else if (scrollTop >= contentEnd) {
-      // 在底部 spacer 区域 — 同样精确
-      const bottomSpacerStartLine = (lastBlock + 1) * this.blockSize;
-      currentLine = bottomSpacerStartLine + Math.floor((scrollTop - contentEnd) / lineHeight);
+      // 在底部 spacer 区域 — 逐块累加高度定位
+      let accum = contentEnd;
+      blockIndex = lastBlock + 1;
+      for (let i = lastBlock + 1; i < this.state.totalBlocks; i++) {
+        const h = this.getBlockHeight(i);
+        if (accum + h > scrollTop) {
+          blockIndex = i;
+          break;
+        }
+        accum += h;
+        blockIndex = i;
+      }
     } else {
       // 在实际内容区域 — 用比例估算
       const startLine = firstBlock * this.blockSize;
       const loadedLines = (lastBlock - firstBlock + 1) * this.blockSize;
       const ratio = contentH > 0 ? (scrollTop - topSpacerH) / contentH : 0;
-      currentLine = startLine + Math.floor(ratio * loadedLines);
+      const currentLine = startLine + Math.floor(ratio * loadedLines);
+      blockIndex = Math.floor(currentLine / this.blockSize);
     }
 
-    currentLine = Math.max(0, Math.min(currentLine, this.totalLines - 1));
-    return Math.max(
-      0,
-      Math.min(Math.floor(currentLine / this.blockSize), this.state.totalBlocks - 1)
-    );
+    return Math.max(0, Math.min(blockIndex, this.state.totalBlocks - 1));
   }
 
   /** 安排延迟重检，仅当用户确实在滚动时才触发加载 */
@@ -459,6 +566,13 @@ class VirtualScrollManager {
 
 // 全局管理器实例
 const managers = new WeakMap<EditorView, VirtualScrollManager>();
+
+// 外部测量编辑器（由 App.vue 中的隐藏 MilkupEditor 提供）
+let globalMeasureView: EditorView | null = null;
+
+export function setMeasureView(view: EditorView): void {
+  globalMeasureView = view;
+}
 
 export function createVirtualScrollPlugin(): Plugin<VirtualScrollState> {
   return new Plugin<VirtualScrollState>({
