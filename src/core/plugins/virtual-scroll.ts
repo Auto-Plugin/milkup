@@ -296,45 +296,67 @@ class VirtualScrollManager {
     if (!scrollContainer) return;
 
     const scrollTop = scrollContainer.scrollTop;
+    const viewportHeight = scrollContainer.clientHeight;
+    const viewportBottom = scrollTop + viewportHeight;
     const lineHeight = this.getEstimatedLineHeight();
     if (lineHeight <= 0) return;
 
-    // 根据 scrollTop 所在的区域（顶部 spacer / 实际内容 / 底部 spacer）分别计算行号
-    // 避免使用 scrollTop / totalHeight 的估算方式，因为实际渲染内容高度（标题、代码块、
-    // 数学公式等）与估算高度差异会随文档增大而累积，导致向上滚动时块加载错误
-    const topSpacerHeight = this.topSpacer ? parseFloat(this.topSpacer.style.height) || 0 : 0;
+    const topSpacerH = this.topSpacer ? parseFloat(this.topSpacer.style.height) || 0 : 0;
     const editorContainer = this.view.dom.parentElement;
-    const contentHeight = editorContainer ? editorContainer.offsetHeight : 0;
-    const contentEndPos = topSpacerHeight + contentHeight;
+    const contentH = editorContainer ? editorContainer.offsetHeight : 0;
+    const contentEnd = topSpacerH + contentH;
 
     const sorted = [...this.state.loadedBlockIndices].sort((a, b) => a - b);
-    const firstLoadedBlock = sorted.length > 0 ? sorted[0] : 0;
-    const lastLoadedBlock = sorted.length > 0 ? sorted[sorted.length - 1] : 0;
+    const firstBlock = sorted.length > 0 ? sorted[0] : -1;
+    const lastBlock = sorted.length > 0 ? sorted[sorted.length - 1] : -1;
 
-    let currentLine: number;
+    let newBlockIndex: number | null = null;
 
-    if (sorted.length === 0 || scrollTop <= topSpacerHeight) {
-      // 在顶部 spacer 区域或无已加载块 — spacer 使用 lineHeight 计算，结果精确
-      currentLine = Math.floor(scrollTop / lineHeight);
-    } else if (scrollTop >= contentEndPos) {
-      // 在底部 spacer 区域 — 同样精确
-      const bottomSpacerStartLine = (lastLoadedBlock + 1) * this.blockSize;
-      const posInBottomSpacer = scrollTop - contentEndPos;
-      currentLine = bottomSpacerStartLine + Math.floor(posInBottomSpacer / lineHeight);
+    if (sorted.length === 0 || viewportBottom <= topSpacerH || scrollTop >= contentEnd) {
+      // 无已加载块 或 视口完全跳出内容区域（滚动条拖拽等）— 按位置重新计算
+      newBlockIndex = this.computeBlockIndexFromPosition(
+        scrollTop,
+        lineHeight,
+        topSpacerH,
+        contentEnd,
+        contentH,
+        firstBlock,
+        lastBlock
+      );
     } else {
-      // 在实际内容区域 — 用内容比例估算，误差限定在已加载块范围内（±5 块）
-      const contentStartLine = firstLoadedBlock * this.blockSize;
-      const loadedLines = (lastLoadedBlock - firstLoadedBlock + 1) * this.blockSize;
-      const posInContent = scrollTop - topSpacerHeight;
-      const contentRatio = contentHeight > 0 ? posInContent / contentHeight : 0;
-      currentLine = contentStartLine + Math.floor(contentRatio * loadedLines);
+      // 视口与内容区域有重叠 — 使用双触发点（hysteresis）判断是否需要加载
+      //
+      // 上触发点：内容顶部 + 1倍视口高度
+      // 下触发点：内容底部 - 1倍视口高度
+      //
+      // 两点间距 = contentH - 2 * viewportHeight（通常远大于 2 倍视口高度）
+      // 用户在此"死区"内来回滚动不会触发任何加载，彻底避免振荡
+      //
+      //  topSpacer
+      //  ────────────── contentTop
+      //  ··· buffer ···
+      //  ─ ─ ─ ─ ─ ─ ─ 上触发点（viewport top < 此处 → 向上加载）
+      //  │             │
+      //  │   dead zone │ ← 来回滚动不触发
+      //  │             │
+      //  ─ ─ ─ ─ ─ ─ ─ 下触发点（viewport bottom > 此处 → 向下加载）
+      //  ··· buffer ···
+      //  ────────────── contentBottom
+      //  bottomSpacer
+
+      if (scrollTop < topSpacerH + viewportHeight && firstBlock > 0) {
+        // 视口顶部接近/进入上缓冲区 → 窗口向上平移 1 块
+        newBlockIndex = Math.max(0, this.state.currentBlockIndex - 1);
+      } else if (
+        viewportBottom > contentEnd - viewportHeight &&
+        lastBlock < this.state.totalBlocks - 1
+      ) {
+        // 视口底部接近/进入下缓冲区 → 窗口向下平移 1 块
+        newBlockIndex = Math.min(this.state.totalBlocks - 1, this.state.currentBlockIndex + 1);
+      }
     }
 
-    currentLine = Math.max(0, Math.min(currentLine, this.totalLines - 1));
-    const newBlockIndex = Math.max(
-      0,
-      Math.min(Math.floor(currentLine / this.blockSize), this.state.totalBlocks - 1)
-    );
+    if (newBlockIndex === null) return;
 
     const blocksToLoad = [
       newBlockIndex - 2,
@@ -344,7 +366,7 @@ class VirtualScrollManager {
       newBlockIndex + 2,
     ].filter((i) => i >= 0 && i < this.state.totalBlocks);
 
-    // 检查需要的块是否已经全部加载（不仅检查 blockIndex 是否变化）
+    // 检查需要的块是否已经全部加载
     const needed = new Set(blocksToLoad);
     const loaded = new Set(this.state.loadedBlockIndices);
     const allLoaded =
@@ -355,6 +377,40 @@ class VirtualScrollManager {
       this.loadBlocks(blocksToLoad);
     }
   };
+
+  /** 根据 scrollTop 在 spacer/content 区域中的位置计算目标块索引 */
+  private computeBlockIndexFromPosition(
+    scrollTop: number,
+    lineHeight: number,
+    topSpacerH: number,
+    contentEnd: number,
+    contentH: number,
+    firstBlock: number,
+    lastBlock: number
+  ): number {
+    let currentLine: number;
+
+    if (firstBlock < 0 || scrollTop <= topSpacerH) {
+      // 在顶部 spacer 区域 — spacer 使用 lineHeight 计算，精确
+      currentLine = Math.floor(scrollTop / lineHeight);
+    } else if (scrollTop >= contentEnd) {
+      // 在底部 spacer 区域 — 同样精确
+      const bottomSpacerStartLine = (lastBlock + 1) * this.blockSize;
+      currentLine = bottomSpacerStartLine + Math.floor((scrollTop - contentEnd) / lineHeight);
+    } else {
+      // 在实际内容区域 — 用比例估算
+      const startLine = firstBlock * this.blockSize;
+      const loadedLines = (lastBlock - firstBlock + 1) * this.blockSize;
+      const ratio = contentH > 0 ? (scrollTop - topSpacerH) / contentH : 0;
+      currentLine = startLine + Math.floor(ratio * loadedLines);
+    }
+
+    currentLine = Math.max(0, Math.min(currentLine, this.totalLines - 1));
+    return Math.max(
+      0,
+      Math.min(Math.floor(currentLine / this.blockSize), this.state.totalBlocks - 1)
+    );
+  }
 
   /** 安排延迟重检，仅当用户确实在滚动时才触发加载 */
   scheduleDeferredCheck = (): void => {
