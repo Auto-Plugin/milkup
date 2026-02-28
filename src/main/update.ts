@@ -1,6 +1,7 @@
-import { app, BrowserWindow, ipcMain, shell, net } from "electron";
+import { app, ipcMain, shell, net } from "electron";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { getEditorWindows } from "./windowManager";
 
 import { createWriteStream } from "node:fs";
 
@@ -147,12 +148,25 @@ let currentUpdateInfo: { url: string; filename: string; version: string; size?: 
 let downloadedFilePath: string | null = null;
 let downloadAbortController: AbortController | null = null;
 
-export function setupUpdateHandlers(win: BrowserWindow) {
+/**
+ * 安全地向所有编辑器窗口广播更新状态。
+ * 更新信息与所有窗口相关（用户可能在任意窗口触发检查更新），
+ * 因此广播到全部存活的编辑器窗口。
+ */
+function broadcastToAll(channel: string, ...args: any[]): void {
+  for (const win of getEditorWindows()) {
+    if (!win.isDestroyed()) {
+      win.webContents.send(channel, ...args);
+    }
+  }
+}
+
+export function setupUpdateHandlers() {
   // 1. 检查更新
   ipcMain.handle("update:check", async () => {
     try {
       console.log("[Main] Starting update check...");
-      win.webContents.send("update:status", { status: "checking" });
+      broadcastToAll("update:status", { status: "checking" });
 
       const api = "https://api.github.com/repos/auto-plugin/milkup/releases/latest";
       console.log("[Main] Fetching from GitHub API:", api);
@@ -229,12 +243,12 @@ export function setupUpdateHandlers(win: BrowserWindow) {
 
           currentUpdateInfo = updateInfo; // 缓存 update info 供下载使用
 
-          win.webContents.send("update:status", { status: "available", info: updateInfo });
+          broadcastToAll("update:status", { status: "available", info: updateInfo });
           console.log("[Main] Update available, returning info");
           return { updateInfo };
         } else {
           console.warn("[Main] No suitable asset found for platform:", process.platform);
-          win.webContents.send("update:status", {
+          broadcastToAll("update:status", {
             status: "not-available",
             info: { reason: "no-asset" },
           });
@@ -242,12 +256,12 @@ export function setupUpdateHandlers(win: BrowserWindow) {
         }
       } else {
         console.log("[Main] Already on latest version");
-        win.webContents.send("update:status", { status: "not-available" });
+        broadcastToAll("update:status", { status: "not-available" });
         return null;
       }
     } catch (error: any) {
       console.error("[Main] Check update failed:", error);
-      win.webContents.send("update:status", { status: "error", error: error.message });
+      broadcastToAll("update:status", { status: "error", error: error.message });
       throw error;
     }
   });
@@ -290,8 +304,8 @@ export function setupUpdateHandlers(win: BrowserWindow) {
         if (expectedSize > 0 && currentSize === expectedSize) {
           // Exact match, assume already downloaded
           // Note: Could verify hash if available, but size match is decent optimization
-          win.webContents.send("update:status", { status: "downloaded", info: currentUpdateInfo });
-          win.webContents.send("update:download-progress", {
+          broadcastToAll("update:status", { status: "downloaded", info: currentUpdateInfo });
+          broadcastToAll("update:download-progress", {
             percent: 100,
             total: expectedSize,
             transferred: expectedSize,
@@ -375,7 +389,7 @@ export function setupUpdateHandlers(win: BrowserWindow) {
                 // For now just send every chunk or maybe every 1%?
                 // Let's keep it simple as before, but maybe check if % changed significantly if needed.
                 // Existing logic sent every chunk.
-                win.webContents.send("update:download-progress", {
+                broadcastToAll("update:download-progress", {
                   percent,
                   total: totalBytes,
                   transferred: downloadedBytes,
@@ -393,17 +407,17 @@ export function setupUpdateHandlers(win: BrowserWindow) {
 
       downloadAbortController = null;
 
-      win.webContents.send("update:status", { status: "downloaded", info: currentUpdateInfo });
+      broadcastToAll("update:status", { status: "downloaded", info: currentUpdateInfo });
 
       return downloadedFilePath;
     } catch (error: any) {
       if (error.name === "AbortError") {
         console.log("[Main] Download aborted by user");
-        win.webContents.send("update:status", { status: "idle" });
+        broadcastToAll("update:status", { status: "idle" });
         return;
       }
       console.error("[Main] Download error:", error);
-      win.webContents.send("update:status", { status: "error", error: error.message });
+      broadcastToAll("update:status", { status: "error", error: error.message });
       downloadAbortController = null;
 
       // On error, we generally keep the partial file for resume, UNLESS it's a critical write error?
@@ -424,7 +438,7 @@ export function setupUpdateHandlers(win: BrowserWindow) {
     } else {
       console.log("[Main] No active download to cancel");
       // 如果没有活动的下载，确保状态是 idle
-      win.webContents.send("update:status", { status: "idle" });
+      broadcastToAll("update:status", { status: "idle" });
     }
   });
 

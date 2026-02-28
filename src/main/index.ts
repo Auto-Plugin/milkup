@@ -13,10 +13,17 @@ import createMenu from "./menu";
 import { setupUpdateHandlers } from "./update";
 import { trackWindow } from "./windowManager";
 
-let win: BrowserWindow;
+let win: BrowserWindow | null = null;
 let themeEditorWindow: BrowserWindow | null = null;
 let isRendererReady = false;
 let pendingStartupFile: string | null = null;
+
+/** 安全获取一个可用的编辑器窗口（优先主窗口，回退到任意存活窗口） */
+function getAvailableWindow(): BrowserWindow | null {
+  if (win && !win.isDestroyed()) return win;
+  const allWindows = BrowserWindow.getAllWindows().filter((w) => !w.isDestroyed());
+  return allWindows[0] ?? null;
+}
 
 async function createWindow() {
   win = new BrowserWindow({
@@ -40,15 +47,16 @@ async function createWindow() {
   trackWindow(win, true);
 
   globalShortcut.register("CommandOrControl+Shift+I", () => {
-    if (win) win.webContents.openDevTools();
+    const targetWin = getAvailableWindow();
+    if (targetWin) targetWin.webContents.openDevTools();
   });
 
   // 注册 IPC 处理程序 (在加载页面前注册，防止竞态条件)
-  registerIpcOnHandlers(win);
-  registerIpcHandleHandlers(win);
-  setupUpdateHandlers(win);
+  registerIpcOnHandlers();
+  registerIpcHandleHandlers();
+  setupUpdateHandlers();
 
-  createMenu(win);
+  createMenu();
 
   // 处理外部链接跳转（target="_blank" 或 window.open）
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -95,7 +103,7 @@ export async function createThemeEditorWindow() {
     height: 700,
     minWidth: 800,
     minHeight: 600,
-    parent: win,
+    parent: getAvailableWindow() ?? undefined,
     modal: false,
     frame: false,
     titleBarStyle: "hidden",
@@ -168,8 +176,9 @@ function sendFileToRenderer(filePath: string) {
 
   // 发送到渲染进程的函数
   const sendFile = () => {
-    if (win && win.webContents) {
-      win.webContents.send("open-file-at-launch", {
+    const targetWin = getAvailableWindow();
+    if (targetWin) {
+      targetWin.webContents.send("open-file-at-launch", {
         filePath,
         content,
         fileTraits,
@@ -261,19 +270,16 @@ app.whenReady().then(async () => {
 
   await createWindow();
 
-  // createMenu(win) // Moved to createWindow
-  // registerIpcOnHandlers(win) // Moved to createWindow
-  // registerIpcHandleHandlers(win) // Moved to createWindow
-  // setupUpdateHandlers(win) // Moved to createWindow
-
   sendLaunchFileIfExists();
 
-  win.on("close", (event) => {
-    if (process.platform === "darwin" && !getIsQuitting()) {
-      event.preventDefault();
-      win.webContents.send("close");
-    }
-  });
+  if (win) {
+    win.on("close", (event) => {
+      if (process.platform === "darwin" && !getIsQuitting()) {
+        event.preventDefault();
+        win?.webContents.send("close");
+      }
+    });
+  }
 });
 
 // 单实例锁
@@ -283,12 +289,13 @@ if (!gotTheLock) {
   app.quit();
 } else {
   app.on("second-instance", (_event, argv) => {
-    if (win) {
-      if (win.isMinimized()) win.restore();
-      win.focus();
-      // 处理通过命令行传入的文件路径
-      sendLaunchFileIfExists(argv);
+    const targetWin = getAvailableWindow();
+    if (targetWin) {
+      if (targetWin.isMinimized()) targetWin.restore();
+      targetWin.focus();
     }
+    // 处理通过命令行传入的文件路径
+    sendLaunchFileIfExists(argv);
   });
 }
 // macOS 专用：Finder 打开文件时触发
@@ -300,8 +307,11 @@ app.on("open-file", (event, filePath) => {
 // 处理应用即将退出事件（包括右键 Dock 图标的退出）
 app.on("before-quit", (event) => {
   if (process.platform === "darwin" && !getIsQuitting()) {
-    event.preventDefault();
-    close(win);
+    const targetWin = getAvailableWindow();
+    if (targetWin) {
+      event.preventDefault();
+      close(targetWin);
+    }
   }
 });
 
@@ -316,13 +326,14 @@ app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   } else {
-    // 如果窗口存在但被隐藏，则显示它
-    if (win && !win.isVisible()) {
-      win.show();
-    }
-    // 将窗口置于前台
-    if (win) {
-      win.focus();
+    const targetWin = getAvailableWindow();
+    if (targetWin) {
+      // 如果窗口存在但被隐藏，则显示它
+      if (!targetWin.isVisible()) {
+        targetWin.show();
+      }
+      // 将窗口置于前台
+      targetWin.focus();
     }
   }
 });

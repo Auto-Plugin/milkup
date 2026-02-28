@@ -53,7 +53,7 @@ let directoryWatcher: FSWatcher | null = null;
 let directoryChangedDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 // 所有 on 类型监听
-export function registerIpcOnHandlers(win: Electron.BrowserWindow) {
+export function registerIpcOnHandlers() {
   ipcMain.on("set-title", (event, filePath: string | null) => {
     const targetWin = BrowserWindow.fromWebContents(event.sender);
     if (!targetWin) return;
@@ -156,15 +156,18 @@ export function registerIpcOnHandlers(win: Electron.BrowserWindow) {
     }
   });
 
-  // 保存自定义主题
+  // 保存自定义主题 —— 广播到所有编辑器窗口
   ipcMain.on("save-custom-theme", (_event, theme) => {
-    // 转发到主窗口
-    win.webContents.send("custom-theme-saved", theme);
+    for (const editorWin of getEditorWindows()) {
+      if (!editorWin.isDestroyed()) {
+        editorWin.webContents.send("custom-theme-saved", theme);
+      }
+    }
   });
 }
 
 // 所有 handle 类型监听 —— 使用 event.sender 路由到正确窗口
-export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
+export function registerIpcHandleHandlers() {
   // 检查文件是否只读
   ipcMain.handle("file:isReadOnly", async (_event, filePath: string) => {
     return isFileReadOnly(filePath);
@@ -172,7 +175,8 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
 
   // 文件打开对话框
   ipcMain.handle("dialog:openFile", async (event) => {
-    const parentWin = BrowserWindow.fromWebContents(event.sender) ?? win;
+    const parentWin = BrowserWindow.fromWebContents(event.sender);
+    if (!parentWin) return null;
     const { canceled, filePaths } = await dialog.showOpenDialog(parentWin, {
       filters: [{ name: "Markdown", extensions: ["md", "markdown"] }],
       properties: ["openFile"],
@@ -196,7 +200,8 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
         fileTraits,
       }: { filePath: string | null; content: string; fileTraits?: FileTraits }
     ) => {
-      const parentWin = BrowserWindow.fromWebContents(event.sender) ?? win;
+      const parentWin = BrowserWindow.fromWebContents(event.sender);
+      if (!parentWin) return null;
       if (!filePath) {
         const { canceled, filePath: savePath } = await dialog.showSaveDialog(parentWin, {
           filters: [{ name: "Markdown", extensions: ["md", "markdown"] }],
@@ -212,7 +217,8 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
   );
   // 文件另存为对话框
   ipcMain.handle("dialog:saveFileAs", async (event, content) => {
-    const parentWin = BrowserWindow.fromWebContents(event.sender) ?? win;
+    const parentWin = BrowserWindow.fromWebContents(event.sender);
+    if (!parentWin) return null;
     const { canceled, filePath } = await dialog.showSaveDialog(parentWin, {
       filters: [{ name: "Markdown", extensions: ["md", "markdown"] }],
     });
@@ -223,14 +229,16 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
 
   // 同步显示消息框
   ipcMain.handle("dialog:OpenDialog", async (event, options: Electron.MessageBoxSyncOptions) => {
-    const parentWin = BrowserWindow.fromWebContents(event.sender) ?? win;
+    const parentWin = BrowserWindow.fromWebContents(event.sender);
+    if (!parentWin) return null;
     const response = await dialog.showMessageBox(parentWin, options);
     return response;
   });
 
   // 显示文件覆盖确认对话框
   ipcMain.handle("dialog:showOverwriteConfirm", async (event, fileName: string) => {
-    const parentWin = BrowserWindow.fromWebContents(event.sender) ?? win;
+    const parentWin = BrowserWindow.fromWebContents(event.sender);
+    if (!parentWin) return 0;
     const result = await dialog.showMessageBox(parentWin, {
       type: "question",
       buttons: ["取消", "覆盖", "保存"],
@@ -244,7 +252,8 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
 
   // 显示关闭确认对话框
   ipcMain.handle("dialog:showCloseConfirm", async (event, fileName: string) => {
-    const parentWin = BrowserWindow.fromWebContents(event.sender) ?? win;
+    const parentWin = BrowserWindow.fromWebContents(event.sender);
+    if (!parentWin) return 0;
     const result = await dialog.showMessageBox(parentWin, {
       type: "question",
       buttons: ["取消", "不保存", "保存"],
@@ -258,7 +267,8 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
 
   // 显示文件选择对话框
   ipcMain.handle("dialog:showOpenDialog", async (event, options: any) => {
-    const parentWin = BrowserWindow.fromWebContents(event.sender) ?? win;
+    const parentWin = BrowserWindow.fromWebContents(event.sender);
+    if (!parentWin) return { canceled: true, filePaths: [] };
     const result = await dialog.showOpenDialog(parentWin, options);
     return result;
   });
@@ -272,7 +282,8 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
       options?: ExportPDFOptions
     ): Promise<void> => {
       const sender = event.sender;
-      const parentWin = BrowserWindow.fromWebContents(sender) ?? win;
+      const parentWin = BrowserWindow.fromWebContents(sender);
+      if (!parentWin) return Promise.reject(new Error("窗口已销毁"));
       const { pageSize = "A4", scale = 1 } = options || {};
 
       // 保证代码块完整显示
@@ -460,7 +471,8 @@ export function registerIpcHandleHandlers(win: Electron.BrowserWindow) {
       });
 
       const buffer = await Packer.toBuffer(doc);
-      const parentWin = BrowserWindow.fromWebContents(event.sender) ?? win;
+      const parentWin = BrowserWindow.fromWebContents(event.sender);
+      if (!parentWin) return Promise.reject(new Error("窗口已销毁"));
 
       const { canceled, filePath } = await dialog.showSaveDialog(parentWin, {
         title: "导出为 Word",
@@ -857,9 +869,11 @@ export function registerGlobalIpcHandlers() {
     const notifyChanged = () => {
       if (directoryChangedDebounceTimer) clearTimeout(directoryChangedDebounceTimer);
       directoryChangedDebounceTimer = setTimeout(() => {
-        const mainWindow = BrowserWindow.getAllWindows()[0];
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send("workspace:directory-changed");
+        // 广播到所有编辑器窗口
+        for (const editorWin of getEditorWindows()) {
+          if (!editorWin.isDestroyed()) {
+            editorWin.webContents.send("workspace:directory-changed");
+          }
         }
       }, 300);
     };
