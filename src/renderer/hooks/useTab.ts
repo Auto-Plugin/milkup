@@ -523,16 +523,18 @@ function getTabDataForTearOff(tabId: string): TearOffTabData | null {
   const tab = tabs.value.find((t) => t.id === tabId);
   if (!tab) return null;
 
+  // toRaw 剥离 Vue reactive proxy，否则 IPC structured clone 无法序列化
+  const raw = toRaw(tab);
   return {
-    id: tab.id,
-    name: tab.name,
-    filePath: tab.filePath,
-    content: tab.content,
-    originalContent: tab.originalContent,
-    isModified: tab.isModified,
-    scrollRatio: tab.scrollRatio ?? 0,
-    readOnly: tab.readOnly,
-    fileTraits: tab.fileTraits,
+    id: raw.id,
+    name: raw.name,
+    filePath: raw.filePath,
+    content: raw.content,
+    originalContent: raw.originalContent,
+    isModified: raw.isModified,
+    scrollRatio: raw.scrollRatio ?? 0,
+    readOnly: raw.readOnly,
+    fileTraits: raw.fileTraits ? toRaw(raw.fileTraits) : undefined,
   };
 }
 
