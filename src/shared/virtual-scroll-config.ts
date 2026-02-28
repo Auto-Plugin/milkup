@@ -5,7 +5,7 @@
  */
 
 /** 每块的行数 */
-export const VS_BLOCK_SIZE = 150;
+export const VS_BLOCK_SIZE = 300;
 
 /** 启用虚拟滚动的最小行数阈值 */
-export const VS_THRESHOLD = 300;
+export const VS_THRESHOLD = 600;

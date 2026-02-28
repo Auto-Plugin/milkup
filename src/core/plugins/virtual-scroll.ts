@@ -49,10 +49,10 @@ class VirtualScrollManager {
   private bottomSpacer: HTMLElement | null = null;
   private blockSize: number = 150;
   private totalLines: number = 0;
-  /** 滚动抑制：记录最后一次内容更新的时间戳 */
-  private lastContentUpdateTime: number = 0;
-  /** 内容更新后的滚动抑制时长（ms） */
-  private static readonly SCROLL_SUPPRESS_MS = 80;
+  /** 内容更新后恢复的 scrollTop，用于区分用户滚动和内容变化引起的滚动 */
+  private lastRestoredScrollTop: number = 0;
+  /** 判定为用户真实滚动的最小偏移阈值（px） */
+  private static readonly SCROLL_THRESHOLD = 5;
   /** 待处理的块加载请求（队列） */
   private pendingLoad: number[] | null = null;
   /** 缓存的行高 */
@@ -218,15 +218,13 @@ class VirtualScrollManager {
       this.updateEditorContent(validIndices);
       this.updateSpacerHeights();
 
-      // 标记内容更新时间，抑制后续滚动事件
-      this.lastContentUpdateTime = Date.now();
-
-      // 恢复 scrollTop，防止 spacer 高度变化导致位置偏移
+      // 标记内容更新后的 scrollTop，用于过滤非用户滚动
       if (scrollContainer) {
         scrollContainer.scrollTop = targetScrollTop;
+        this.lastRestoredScrollTop = scrollContainer.scrollTop;
       }
 
-      // 安排抑制结束后的延迟重检，确保快速滚动停止后一定会加载正确的块
+      // 安排延迟重检，仅在用户确实在滚动时才会触发加载
       this.scheduleDeferredCheck();
     } catch (error) {
       console.error("Failed to load blocks:", error);
@@ -273,8 +271,15 @@ class VirtualScrollManager {
   handleScroll(): void {
     if (!this.state.enabled) return;
 
-    // 基于时间戳的滚动抑制：内容更新后一段时间内忽略滚动事件
-    if (Date.now() - this.lastContentUpdateTime < VirtualScrollManager.SCROLL_SUPPRESS_MS) {
+    const scrollContainer = this.view.dom.parentElement?.parentElement;
+    if (!scrollContainer) return;
+
+    // 只响应用户真实滚动：scrollTop 与上次内容更新后恢复的值差距足够大
+    // 内容更新引起的微小高度变化（spacer/内容替换）导致的 scroll 事件会被过滤
+    if (
+      Math.abs(scrollContainer.scrollTop - this.lastRestoredScrollTop) <
+      VirtualScrollManager.SCROLL_THRESHOLD
+    ) {
       return;
     }
 
@@ -351,16 +356,22 @@ class VirtualScrollManager {
     }
   };
 
-  /** 安排抑制结束后的延迟重检 */
+  /** 安排延迟重检，仅当用户确实在滚动时才触发加载 */
   scheduleDeferredCheck = (): void => {
     if (this.deferredCheckTimer) clearTimeout(this.deferredCheckTimer);
-    // 在抑制期结束后再等一小段时间，确保 DOM 完全稳定
     this.deferredCheckTimer = setTimeout(() => {
       this.deferredCheckTimer = null;
-      if (this.state.enabled) {
+      if (!this.state.enabled) return;
+      const scrollContainer = this.view.dom.parentElement?.parentElement;
+      if (!scrollContainer) return;
+      // 只在用户真实滚动过（scrollTop 有显著变化）时才重新加载
+      if (
+        Math.abs(scrollContainer.scrollTop - this.lastRestoredScrollTop) >=
+        VirtualScrollManager.SCROLL_THRESHOLD
+      ) {
         this.loadBlocksForCurrentScroll();
       }
-    }, VirtualScrollManager.SCROLL_SUPPRESS_MS + 20);
+    }, 100);
   };
 
   /**
