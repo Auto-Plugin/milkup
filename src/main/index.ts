@@ -5,6 +5,8 @@ import { cleanupProtocolUrls, detectFileTraits, normalizeMarkdown } from "./file
 import {
   close,
   getIsQuitting,
+  isWindowClosing,
+  setIsQuitting,
   registerGlobalIpcHandlers,
   registerIpcHandleHandlers,
   registerIpcOnHandlers,
@@ -51,11 +53,6 @@ async function createWindow() {
     if (targetWin) targetWin.webContents.openDevTools();
   });
 
-  // 注册 IPC 处理程序 (在加载页面前注册，防止竞态条件)
-  registerIpcOnHandlers();
-  registerIpcHandleHandlers();
-  setupUpdateHandlers();
-
   createMenu();
 
   // 处理外部链接跳转（target="_blank" 或 window.open）
@@ -89,6 +86,14 @@ async function createWindow() {
   if (process.env.VITE_DEV_SERVER_URL) {
     win.webContents.openDevTools();
   }
+
+  // macOS: 窗口关闭时如果不是退出流程且不是主动关闭，只隐藏而不关闭
+  win.on("close", (event) => {
+    if (process.platform === "darwin" && !getIsQuitting() && !isWindowClosing(win!.id)) {
+      event.preventDefault();
+      win?.webContents.send("close");
+    }
+  });
 }
 
 // 创建主题编辑器窗口
@@ -216,7 +221,11 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 app.whenReady().then(async () => {
+  // 注册所有 IPC 处理程序（只注册一次，防止重复注册报错）
   registerGlobalIpcHandlers();
+  registerIpcOnHandlers();
+  registerIpcHandleHandlers();
+  setupUpdateHandlers();
 
   // 注册自定义协议处理器（仅用于兼容旧版本残留的 milkup:// URL）
   // 新版本使用 file:// 协议直接加载本地图片
@@ -271,15 +280,6 @@ app.whenReady().then(async () => {
   await createWindow();
 
   sendLaunchFileIfExists();
-
-  if (win) {
-    win.on("close", (event) => {
-      if (process.platform === "darwin" && !getIsQuitting()) {
-        event.preventDefault();
-        win?.webContents.send("close");
-      }
-    });
-  }
 });
 
 // 单实例锁
@@ -304,9 +304,15 @@ app.on("open-file", (event, filePath) => {
   event.preventDefault();
   sendFileToRenderer(filePath);
 });
-// 处理应用即将退出事件（包括右键 Dock 图标的退出）
+// 处理应用即将退出事件（包括右键 Dock 图标的退出、Cmd+Q）
 app.on("before-quit", (event) => {
-  if (process.platform === "darwin" && !getIsQuitting()) {
+  // 防止重入：close() / close:discard 中的 app.quit() 会再次触发 before-quit
+  if (getIsQuitting()) return;
+
+  // 标记正在退出，让窗口 close 事件不再拦截
+  setIsQuitting(true);
+
+  if (process.platform === "darwin") {
     const targetWin = getAvailableWindow();
     if (targetWin) {
       event.preventDefault();
@@ -321,8 +327,11 @@ app.on("window-all-closed", () => {
   }
 });
 
-// macOS 上处理应用激活事件
+// macOS 上处理应用激活事件（点击 Dock 图标）
 app.on("activate", () => {
+  // 重置退出标记：用户重新激活应用说明不想退出
+  setIsQuitting(false);
+
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   } else {
