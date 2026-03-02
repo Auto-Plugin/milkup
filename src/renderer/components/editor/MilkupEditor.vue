@@ -47,6 +47,7 @@ const containerRef = ref<HTMLElement | null>(null);
 const scrollViewRef = ref<HTMLElement | null>(null);
 let editor: MilkupEditor | null = null;
 const lastEmittedValue = ref<string | null>(null);
+let isSourceViewToggling = false;
 
 // 更新滚动比例（rAF 节流）
 let scrollRafId: number | null = null;
@@ -205,6 +206,8 @@ onMounted(async () => {
 
   // 监听变更事件
   editor.on("change", ({ markdown }: { markdown: string }) => {
+    // 源码模式切换是视图变换，不是内容修改，跳过
+    if (isSourceViewToggling) return;
     const restoredMarkdown = postprocessContent(markdown);
     lastEmittedValue.value = restoredMarkdown;
     emit("update:modelValue", restoredMarkdown);
@@ -252,7 +255,9 @@ onUnmounted(() => {
 // 处理源码模式切换事件
 function handleSourceViewToggle() {
   if (editor) {
+    isSourceViewToggling = true;
     editor.toggleSourceView();
+    isSourceViewToggling = false;
     // 通知状态变化
     emitter.emit("sourceView:changed", editor.isSourceViewEnabled());
   }
