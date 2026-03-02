@@ -27,8 +27,7 @@ async function selectLanguage() {
     return;
   }
   const res = await autodialog.show(ReloadConfirmDialog);
-
-  if (res === "cancel") {
+  if (res === "cancel" || res === undefined) {
     selectedLanguage.value = currentLang;
     return;
   }

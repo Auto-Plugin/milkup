@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const props = defineProps<{
   onClose: (action: "cancel" | "saveAndReload" | "reloadLater") => void;
+  onMaskClick: () => void;
 }>();
 
 function handleCancel() {
@@ -54,6 +55,7 @@ function handleReloadLater() {
 .dialog-overlay {
   backdrop-filter: blur(2px);
   color: var(--text-color);
+  position: unset;
 }
 
 .dialog-content {
