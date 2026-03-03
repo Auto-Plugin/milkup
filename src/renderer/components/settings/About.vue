@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import autotoast from "autotoast.js";
-import logo from "@/assets/icons/milkup.ico";
+import LogoIcon from "../ui/LogoIcon.vue";
 import emitter from "@/renderer/events";
 import { checkUpdate } from "@/renderer/services/api/update";
 import { version } from "../../../../package.json";
@@ -55,7 +55,7 @@ function handleCheckUpdate() {
 <template>
   <div class="AboutBox">
     <h1 class="link" @click="openByDefaultBrowser(`https://milkup.dev`)">
-      <img :src="logo" alt="" /> milkup
+      <LogoIcon :size="64" /> milkup
     </h1>
     <p>
       <span class="link version" @click="handleCheckUpdate">
@@ -154,7 +154,7 @@ function handleCheckUpdate() {
     justify-content: center;
   }
 
-  img {
+  svg {
     width: 64px;
     height: 64px;
     vertical-align: middle;

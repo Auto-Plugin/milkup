@@ -1,39 +1,39 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
-import logo from '@/assets/icons/milkup.ico'
-import emitter from '@/renderer/events'
-import MenuBar from './MenuBar.vue'
+import { onMounted, onUnmounted, ref } from "vue";
+import emitter from "@/renderer/events";
+import BottleIcon from "../ui/BottleIcon.vue";
+import MenuBar from "./MenuBar.vue";
 
-const isOpen = ref(false)
+const isOpen = ref(false);
 
 // 事件处理器
 function handleFileChange() {
-  isOpen.value = false
+  isOpen.value = false;
 }
 
 function handleKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape' && isOpen.value) {
-    isOpen.value = false
+  if (event.key === "Escape" && isOpen.value) {
+    isOpen.value = false;
   }
 }
 
 onMounted(() => {
-  emitter.on('file:Change', handleFileChange)
-  document.addEventListener('keydown', handleKeydown)
-})
+  emitter.on("file:Change", handleFileChange);
+  document.addEventListener("keydown", handleKeydown);
+});
 
 onUnmounted(() => {
-  emitter.off('file:Change', handleFileChange)
-  document.removeEventListener('keydown', handleKeydown)
-})
+  emitter.off("file:Change", handleFileChange);
+  document.removeEventListener("keydown", handleKeydown);
+});
 </script>
 
 <template>
   <div class="MenuDropDownBox">
     <div class="dropdown-header">
-      <img :src="logo" alt="" class="logo" :class="{ active: isOpen }" @click="isOpen = !isOpen" />
+      <BottleIcon :size="18" class="logo" :class="{ active: isOpen }" @click="isOpen = !isOpen" />
     </div>
-    <Transition name="fade">
+    <Transition name="menu-slide">
       <div v-show="isOpen" class="dropdown-content">
         <MenuBar />
       </div>
@@ -49,14 +49,10 @@ onUnmounted(() => {
     flex-direction: column;
     justify-content: flex-end;
     cursor: pointer;
-    padding: 0 0 0 10px;
+    padding: 0 0 3px 10px;
     height: 100%;
     -webkit-app-region: no-drag; /* 禁止拖动 */
-    img {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      // margin-right: 8px;
+    .logo {
       display: inline-block;
       transition: 0.2s;
       margin: 4px;
@@ -76,8 +72,20 @@ onUnmounted(() => {
     height: 100%;
     border-radius: 4px;
     -webkit-app-region: no-drag; /* 禁止拖动 */
-    // animation: fade-in 0.3s linear;
     white-space: nowrap;
   }
+}
+
+.menu-slide-enter-active,
+.menu-slide-leave-active {
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+.menu-slide-enter-from,
+.menu-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
 }
 </style>
