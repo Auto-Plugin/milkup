@@ -12,7 +12,19 @@ function openByDefaultBrowser(url: string) {
 }
 const storedUpdateInfo = JSON.parse(localStorage.getItem("updateInfo") || "{}");
 // 只有当存储的版本号比当前版本更新时才显示 "new" 徽标
-const hasNewVersion = storedUpdateInfo.version && storedUpdateInfo.version !== version;
+const hasNewVersion = storedUpdateInfo.version && isNewerVersion(storedUpdateInfo.version, version);
+
+function isNewerVersion(stored: string, current: string): boolean {
+  const s = stored.replace(/^v/, "").split(".").map(Number);
+  const c = current.replace(/^v/, "").split(".").map(Number);
+  for (let i = 0; i < Math.max(s.length, c.length); i++) {
+    const sv = s[i] || 0;
+    const cv = c[i] || 0;
+    if (sv > cv) return true;
+    if (sv < cv) return false;
+  }
+  return false;
+}
 const isChecking = ref(false);
 
 function handleCheckUpdate() {
@@ -119,7 +131,7 @@ function handleCheckUpdate() {
       padding: 0;
 
       svg {
-        font-size: 14px;
+        font-size: 12px;
         color: var(--primary-color);
       }
     }
@@ -154,7 +166,7 @@ function handleCheckUpdate() {
     justify-content: center;
   }
 
-  svg {
+  h1 svg {
     width: 64px;
     height: 64px;
     vertical-align: middle;
