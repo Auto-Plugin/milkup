@@ -1135,6 +1135,8 @@ export class MilkupEditor implements IMilkupEditor {
     // 插入图片（通过文件选择器）
     container.appendChild(
       this.createContextMenuItem("图片", false, () => {
+        // 保存当前光标位置（菜单关闭后选区可能丢失）
+        const savedPos = this.view.state.selection.$from.pos;
         this.hideContextMenu();
         const input = document.createElement("input");
         input.type = "file";
@@ -1142,6 +1144,12 @@ export class MilkupEditor implements IMilkupEditor {
         input.onchange = () => {
           const file = input.files?.[0];
           if (file) {
+            // 恢复焦点和光标位置
+            this.view.focus();
+            const tr = this.view.state.tr.setSelection(
+              TextSelection.create(this.view.state.doc, savedPos)
+            );
+            this.view.dispatch(tr);
             this.insertImageFromFile(file);
           }
         };
