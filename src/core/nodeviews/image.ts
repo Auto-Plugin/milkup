@@ -86,9 +86,25 @@ export function updateAllImages(view: EditorView): void {
 
 /**
  * 解析图片 Markdown 语法
- * 格式: ![alt](src "title")
+ * 格式: ![alt](src "title") 或 [![alt](src "title")](href "linkTitle")
  */
-function parseImageMarkdown(markdown: string): { src: string; alt: string; title: string } | null {
+function parseImageMarkdown(
+  markdown: string
+): { src: string; alt: string; title: string; linkHref?: string; linkTitle?: string } | null {
+  // 先尝试匹配链接图片 [![alt](src "title")](href "linkTitle")
+  const linkedMatch = markdown.match(
+    /^\[!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)$/
+  );
+  if (linkedMatch) {
+    return {
+      alt: linkedMatch[1] || "",
+      src: linkedMatch[2] || "",
+      title: linkedMatch[3] || "",
+      linkHref: linkedMatch[4] || "",
+      linkTitle: linkedMatch[5] || "",
+    };
+  }
+  // 普通图片 ![alt](src "title")
   const match = markdown.match(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)$/);
   if (!match) return null;
   return {
@@ -301,12 +317,22 @@ export class ImageView implements NodeView {
    */
   private updateSourceText(): void {
     if (!this.sourceTextElement) return;
-    const { src, alt, title } = this.node.attrs;
-    let markdown = `![${alt}](${src}`;
+    const { src, alt, title, linkHref, linkTitle } = this.node.attrs;
+    let imgMarkdown = `![${alt}](${src}`;
     if (title) {
-      markdown += ` "${title}"`;
+      imgMarkdown += ` "${title}"`;
     }
-    markdown += ")";
+    imgMarkdown += ")";
+    let markdown: string;
+    if (linkHref) {
+      markdown = `[${imgMarkdown}](${linkHref}`;
+      if (linkTitle) {
+        markdown += ` "${linkTitle}"`;
+      }
+      markdown += ")";
+    } else {
+      markdown = imgMarkdown;
+    }
     this.sourceTextElement.textContent = markdown;
   }
 
@@ -335,10 +361,16 @@ export class ImageView implements NodeView {
     if (pos === undefined) return;
 
     const { state } = this.view;
-    const { src, alt, title } = this.node.attrs;
+    const { src, alt, title, linkHref, linkTitle } = this.node.attrs;
 
     // 检查是否有变化
-    if (parsed.src === src && parsed.alt === alt && parsed.title === title) {
+    if (
+      parsed.src === src &&
+      parsed.alt === alt &&
+      parsed.title === title &&
+      (parsed.linkHref || "") === (linkHref || "") &&
+      (parsed.linkTitle || "") === (linkTitle || "")
+    ) {
       return;
     }
 
@@ -347,6 +379,8 @@ export class ImageView implements NodeView {
       src: parsed.src,
       alt: parsed.alt,
       title: parsed.title,
+      linkHref: parsed.linkHref || "",
+      linkTitle: parsed.linkTitle || "",
     });
     this.view.dispatch(tr);
   }
@@ -396,8 +430,8 @@ export class ImageView implements NodeView {
   }
 
   private updateContent(node: Node): void {
-    const { src, alt, title } = node.attrs;
-    this.renderImage(src, alt, title);
+    const { src, alt, title, linkHref } = node.attrs;
+    this.renderImage(src, alt, title, linkHref);
 
     // 更新源码输入框（仅在非编辑状态下更新，避免覆盖用户输入）
     if (!this.isEditing) {
@@ -408,7 +442,7 @@ export class ImageView implements NodeView {
   /**
    * 渲染图片
    */
-  private renderImage(src: string, alt: string, title?: string): void {
+  private renderImage(src: string, alt: string, title?: string, linkHref?: string): void {
     // 清空容器
     this.imgElement.innerHTML = "";
 
@@ -425,7 +459,19 @@ export class ImageView implements NodeView {
     img.onerror = () => {
       this.showImageError(src);
     };
-    this.imgElement.appendChild(img);
+
+    if (linkHref) {
+      const a = document.createElement("a");
+      a.href = linkHref;
+      a.appendChild(img);
+      // 阻止在编辑器中点击链接跳转
+      a.addEventListener("click", (e) => {
+        e.preventDefault();
+      });
+      this.imgElement.appendChild(a);
+    } else {
+      this.imgElement.appendChild(img);
+    }
   }
 
   /**
@@ -467,13 +513,22 @@ export class ImageView implements NodeView {
   }
 
   private updateSourceInput(): void {
-    const { src, alt, title } = this.node.attrs;
-    let markdown = `![${alt}](${src}`;
+    const { src, alt, title, linkHref, linkTitle } = this.node.attrs;
+    let imgMarkdown = `![${alt}](${src}`;
     if (title) {
-      markdown += ` "${title}"`;
+      imgMarkdown += ` "${title}"`;
     }
-    markdown += ")";
-    this.sourceInput.value = markdown;
+    imgMarkdown += ")";
+    if (linkHref) {
+      let markdown = `[${imgMarkdown}](${linkHref}`;
+      if (linkTitle) {
+        markdown += ` "${linkTitle}"`;
+      }
+      markdown += ")";
+      this.sourceInput.value = markdown;
+    } else {
+      this.sourceInput.value = imgMarkdown;
+    }
   }
 
   /**
@@ -485,7 +540,7 @@ export class ImageView implements NodeView {
 
     if (parsed) {
       // 实时更新图片预览
-      this.renderImage(parsed.src, parsed.alt, parsed.title);
+      this.renderImage(parsed.src, parsed.alt, parsed.title, parsed.linkHref);
     } else {
       // 语法不完整时显示占位
       this.showImagePlaceholder("请输入完整的图片语法");
@@ -509,10 +564,16 @@ export class ImageView implements NodeView {
     if (pos === undefined) return;
 
     const { state } = this.view;
-    const { src, alt, title } = this.node.attrs;
+    const { src, alt, title, linkHref, linkTitle } = this.node.attrs;
 
     // 检查是否有变化
-    if (parsed.src === src && parsed.alt === alt && parsed.title === title) {
+    if (
+      parsed.src === src &&
+      parsed.alt === alt &&
+      parsed.title === title &&
+      (parsed.linkHref || "") === (linkHref || "") &&
+      (parsed.linkTitle || "") === (linkTitle || "")
+    ) {
       return;
     }
 
@@ -521,6 +582,8 @@ export class ImageView implements NodeView {
       src: parsed.src,
       alt: parsed.alt,
       title: parsed.title,
+      linkHref: parsed.linkHref || "",
+      linkTitle: parsed.linkTitle || "",
     });
     this.view.dispatch(tr);
   }

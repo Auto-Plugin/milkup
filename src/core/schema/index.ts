@@ -374,6 +374,8 @@ const image: NodeSpec = {
     src: { default: "" },
     alt: { default: "" },
     title: { default: "" },
+    linkHref: { default: "" },
+    linkTitle: { default: "" },
   },
   group: "block",
   draggable: true,
@@ -382,16 +384,26 @@ const image: NodeSpec = {
       tag: "img[src]",
       getAttrs(node) {
         const el = node as HTMLElement;
+        const parentA = el.parentElement?.tagName === "A" ? el.parentElement : null;
         return {
           src: el.getAttribute("src") || "",
           alt: el.getAttribute("alt") || "",
           title: el.getAttribute("title") || "",
+          linkHref: parentA?.getAttribute("href") || "",
+          linkTitle: parentA?.getAttribute("title") || "",
         };
       },
     },
   ],
   toDOM(node): DOMOutputSpec {
-    return ["img", { src: node.attrs.src, alt: node.attrs.alt, title: node.attrs.title }];
+    const img: DOMOutputSpec = [
+      "img",
+      { src: node.attrs.src, alt: node.attrs.alt, title: node.attrs.title },
+    ];
+    if (node.attrs.linkHref) {
+      return ["a", { href: node.attrs.linkHref, title: node.attrs.linkTitle || null }, img];
+    }
+    return img;
   },
 };
 

@@ -16,48 +16,6 @@ import { milkupSchema } from "../schema";
 import { decorationPluginKey } from "../decorations";
 
 /**
- * 创建标题输入规则
- * # heading -> h1
- * ## heading -> h2
- * ...
- * 同时添加 syntax_marker 以支持即时渲染
- */
-function headingRule(nodeType: NodeType, maxLevel: number = 6): InputRule {
-  return new InputRule(new RegExp(`^(#{1,${maxLevel}})\\s$`), (state, match, start, end) => {
-    const level = match[1].length;
-    const schema = state.schema;
-    const syntaxMarkerType = schema.marks.syntax_marker;
-
-    // 检查是否可以转换为标题
-    const $start = state.doc.resolve(start);
-    if (!$start.node(-1).canReplaceWith($start.index(-1), $start.indexAfter(-1), nodeType)) {
-      return null;
-    }
-
-    // 创建语法标记文本（# 带 syntax_marker，空格单独作为普通文本）
-    const hashText = match[1];
-    let content;
-    if (syntaxMarkerType) {
-      const syntaxMark = syntaxMarkerType.create({ syntaxType: "heading" });
-      content = [schema.text(hashText, [syntaxMark]), schema.text(" ")];
-    } else {
-      content = [schema.text(hashText + " ")];
-    }
-
-    // 先删除匹配的文本，然后设置块类型，最后插入语法标记
-    let tr = state.tr.delete(start, end);
-    tr = tr.setBlockType(start, start, nodeType, { level });
-    // 在标题开头插入语法标记
-    for (const node of content) {
-      tr = tr.insert(start, node);
-      start += node.nodeSize;
-    }
-
-    return tr;
-  });
-}
-
-/**
  * 创建引用块输入规则
  * > quote
  */
@@ -386,6 +344,22 @@ function imageRule(nodeType: NodeType): InputRule {
 }
 
 /**
+ * 创建链接图片输入规则
+ * [![alt](src)](href) - 链接图片
+ */
+function linkedImageRule(nodeType: NodeType): InputRule {
+  return new InputRule(/\[!\[([^\]]*)\]\(([^)]+)\)\]\(([^)]+)\)$/, (state, match, start, end) => {
+    const alt = match[1] || "";
+    const src = match[2] || "";
+    const linkHref = match[3] || "";
+
+    const imageNode = nodeType.create({ src, alt, title: "", linkHref, linkTitle: "" });
+
+    return state.tr.replaceWith(start, end, imageNode);
+  });
+}
+
+/**
  * 创建数学块输入规则
  * $$ 在行首输入时创建数学块
  */
@@ -451,10 +425,7 @@ function containerRule(nodeType: NodeType): InputRule {
 export function createInputRulesPlugin(schema: Schema = milkupSchema): Plugin {
   const rules: InputRule[] = [];
 
-  // 块级规则
-  if (schema.nodes.heading) {
-    rules.push(headingRule(schema.nodes.heading));
-  }
+  // 块级规则（标题由 syntax-detector 被动渲染，不使用 input rule）
   if (schema.nodes.blockquote) {
     rules.push(blockquoteRule(schema.nodes.blockquote));
   }
@@ -501,6 +472,7 @@ export function createInputRulesPlugin(schema: Schema = milkupSchema): Plugin {
     rules.push(linkRule(schema.marks.link));
   }
   if (schema.nodes.image) {
+    rules.push(linkedImageRule(schema.nodes.image));
     rules.push(imageRule(schema.nodes.image));
   }
   if (schema.marks.math_inline) {

@@ -22,7 +22,7 @@ import langJSON from "./index.json";
     }
     try {
       // 使用更安全的正则表达式替换方式
-      return val.replace(/\$(?:\{|｛)(\d+)(?:\}|｝)/g, (match, index) => {
+      return val.replace(/\$(?:\{|\｛)(\d+)(?:\}|\｝)/g, (match, index) => {
         // 将index转换为数字
         const position = parseInt(index, 10);
         // 如果args[position]存在则替换，否则保留原占位符

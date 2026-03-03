@@ -260,8 +260,16 @@ export class MarkdownSerializer {
       const alt = node.attrs.alt || "";
       const src = node.attrs.src || "";
       const title = node.attrs.title || "";
+      const linkHref = node.attrs.linkHref || "";
+      const linkTitle = node.attrs.linkTitle || "";
       const titlePart = title ? ` "${title}"` : "";
-      lines.push(indent + `![${alt}](${src}${titlePart})`);
+      const imgMarkdown = `![${alt}](${src}${titlePart})`;
+      if (linkHref) {
+        const linkTitlePart = linkTitle ? ` "${linkTitle}"` : "";
+        lines.push(indent + `[${imgMarkdown}](${linkHref}${linkTitlePart})`);
+      } else {
+        lines.push(indent + imgMarkdown);
+      }
       if (!this.options.compact) lines.push("");
     },
 
@@ -303,8 +311,16 @@ export class MarkdownSerializer {
         const alt = child.attrs.alt || "";
         const src = child.attrs.src || "";
         const title = child.attrs.title || "";
+        const linkHref = child.attrs.linkHref || "";
+        const linkTitle = child.attrs.linkTitle || "";
         const titlePart = title ? ` "${title}"` : "";
-        result += `![${alt}](${src}${titlePart})`;
+        const imgMarkdown = `![${alt}](${src}${titlePart})`;
+        if (linkHref) {
+          const linkTitlePart = linkTitle ? ` "${linkTitle}"` : "";
+          result += `[${imgMarkdown}](${linkHref}${linkTitlePart})`;
+        } else {
+          result += imgMarkdown;
+        }
       }
     });
 

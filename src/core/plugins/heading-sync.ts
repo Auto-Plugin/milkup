@@ -13,6 +13,8 @@ export const headingSyncPluginKey = new PluginKey("milkup-heading-sync");
 
 /**
  * 检查标题节点并返回需要更新的信息
+ * 使用完整文本内容检测 # 数量（而非仅检查 syntax_marker 文本），
+ * 以支持用户新增 # 字符（新增的 # 因 inclusive:false 不带 syntax_marker）
  */
 function checkHeadingLevel(
   node: Node,
@@ -21,34 +23,46 @@ function checkHeadingLevel(
   if (node.type.name !== "heading") return null;
 
   const currentLevel = node.attrs.level as number;
+  const textContent = node.textContent;
 
-  // 查找标题内容中的 # 数量
-  let hashCount = 0;
-  let foundSyntaxMarker = false;
+  // 从完整文本内容检测行首 # 数量（需要后跟空格或为行尾）
+  const match = textContent.match(/^(#{1,6})(\s|$)/);
 
+  if (!match) {
+    // 没有有效的标题语法，转换为段落
+    return { pos, currentLevel, newLevel: 0 };
+  }
+
+  const hashCount = match[1].length;
+
+  if (hashCount !== currentLevel) {
+    return { pos, currentLevel, newLevel: hashCount };
+  }
+
+  // 级别正确，检查 # 字符上的 syntax_marker 是否完整
+  let needsMarkFix = false;
+  let offset = 0;
   node.forEach((child) => {
+    if (needsMarkFix || offset >= hashCount) return;
     if (child.isText) {
-      const syntaxMark = child.marks.find((m) => m.type.name === "syntax_marker");
-      if (syntaxMark && syntaxMark.attrs.syntaxType === "heading") {
-        foundSyntaxMarker = true;
-        // 计算 # 的数量
-        const text = child.text || "";
-        const match = text.match(/^(#{1,6})\s*$/);
-        if (match) {
-          hashCount = match[1].length;
+      const childTextLen = child.text?.length || 0;
+      if (offset < hashCount) {
+        const hasCorrectMark = child.marks.some(
+          (m) => m.type.name === "syntax_marker" && m.attrs.syntaxType === "heading"
+        );
+        if (!hasCorrectMark) {
+          needsMarkFix = true;
         }
       }
+      offset += childTextLen;
+    } else {
+      offset += child.nodeSize;
     }
   });
 
-  // 如果没有找到语法标记，或者 # 数量为 0，将标题转换为段落
-  if (!foundSyntaxMarker || hashCount === 0) {
-    return { pos, currentLevel, newLevel: 0 }; // 0 表示转换为段落
-  }
-
-  // 如果 # 数量与当前级别不同，需要更新
-  if (hashCount !== currentLevel && hashCount >= 1 && hashCount <= 6) {
-    return { pos, currentLevel, newLevel: hashCount };
+  if (needsMarkFix) {
+    // 级别不变，但需要修复 syntax_marker 标记
+    return { pos, currentLevel, newLevel: currentLevel };
   }
 
   return null;
@@ -132,29 +146,24 @@ export function createHeadingSyncPlugin(): Plugin {
             tr = tr.replaceWith(update.pos, update.pos + node.nodeSize, paragraph);
           }
         } else {
-          // 更新标题级别
-          tr = tr.setNodeMarkup(update.pos, undefined, {
-            ...newState.doc.nodeAt(update.pos)?.attrs,
-            level: update.newLevel,
-          });
-
-          // 同时更新语法标记的文本
-          const node = newState.doc.nodeAt(update.pos);
-          if (node) {
-            let offset = update.pos + 1;
-            node.forEach((child) => {
-              if (child.isText) {
-                const syntaxMark = child.marks.find((m) => m.type.name === "syntax_marker");
-                if (syntaxMark && syntaxMark.attrs.syntaxType === "heading") {
-                  const oldText = child.text || "";
-                  const newText = "#".repeat(update.newLevel) + " ";
-                  if (oldText !== newText) {
-                    // 这里不需要更新文本，因为用户已经手动修改了
-                  }
-                }
-              }
-              offset += child.nodeSize;
+          // 更新标题级别（仅在级别变化时）
+          if (update.newLevel !== update.currentLevel) {
+            tr = tr.setNodeMarkup(update.pos, undefined, {
+              ...newState.doc.nodeAt(update.pos)?.attrs,
+              level: update.newLevel,
             });
+          }
+
+          // 更新 # 上的 syntax_marker 标记（级别变化或标记缺失时都需要）
+          const syntaxMarkerType = newState.schema.marks.syntax_marker;
+          if (syntaxMarkerType) {
+            const hashStart = update.pos + 1;
+            const clearEnd = hashStart + Math.max(update.currentLevel, update.newLevel);
+            // 清除旧范围的 syntax_marker
+            tr = tr.removeMark(hashStart, clearEnd, syntaxMarkerType);
+            // 添加新的 syntax_marker 到正确范围
+            const syntaxMark = syntaxMarkerType.create({ syntaxType: "heading" });
+            tr = tr.addMark(hashStart, hashStart + update.newLevel, syntaxMark);
           }
         }
       }

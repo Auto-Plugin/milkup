@@ -683,13 +683,62 @@ export function createSyntaxDetectorPlugin(): Plugin {
       const decoState = decorationPluginKey.getState(newState);
       const isSourceView = decoState?.sourceView ?? false;
       if (!isSourceView) {
+        // 检测标题语法（段落以 #{1,6} 开头）并转换为标题节点
+        const headingPattern = /^(#{1,6})\s+(.*)/;
+        const headingsToConvert: Array<{
+          pos: number;
+          level: number;
+          hashLength: number;
+        }> = [];
+
+        newState.doc.descendants((node, pos) => {
+          if (
+            node.type.name === "paragraph" &&
+            !node.attrs.codeBlockId &&
+            !node.attrs.tableId &&
+            !node.attrs.htmlBlockId &&
+            !node.attrs.mathBlockId
+          ) {
+            const textContent = node.textContent;
+            const match = textContent.match(headingPattern);
+            if (match) {
+              headingsToConvert.push({
+                pos,
+                level: match[1].length,
+                hashLength: match[1].length,
+              });
+            }
+          }
+          return true;
+        });
+
+        // 使用 setBlockType 只改变节点类型，保留原始文本内容（包括空格）不变
+        const headingNodeType = schema.nodes.heading;
+        const syntaxMarkerType = schema.marks.syntax_marker;
+        if (headingNodeType && headingsToConvert.length > 0) {
+          for (const h of headingsToConvert) {
+            // 将段落转换为标题（保留原有文本内容不变）
+            tr = tr.setBlockType(h.pos + 1, h.pos + 1, headingNodeType, { level: h.level });
+            // 给 # 标记添加 syntax_marker
+            if (syntaxMarkerType) {
+              const syntaxMark = syntaxMarkerType.create({ syntaxType: "heading" });
+              tr = tr.addMark(h.pos + 1, h.pos + 1 + h.hashLength, syntaxMark);
+            }
+            hasChanges = true;
+          }
+        }
+
         const imagePattern = /!\[([^\]]*)\]\((.+?)(?:\s+"([^"]*)")?\)/g;
+        const linkedImagePattern =
+          /\[!\[([^\]]*)\]\((.+?)(?:\s+"([^"]*)")?\)\]\((.+?)(?:\s+"([^"]*)")?\)/g;
         const imagesToReplace: Array<{
           from: number;
           to: number;
           alt: string;
           src: string;
           title: string;
+          linkHref: string;
+          linkTitle: string;
         }> = [];
 
         newState.doc.descendants((node, pos) => {
@@ -697,9 +746,42 @@ export function createSyntaxDetectorPlugin(): Plugin {
             const textContent = node.textContent;
             const basePos = pos + 1;
 
+            // 记录已处理的范围，避免链接图片和普通图片重复匹配
+            const processedRanges: Array<{ start: number; end: number }> = [];
+
+            // 先检测链接图片 [![alt](src)](href)
+            let linkedMatch;
+            while ((linkedMatch = linkedImagePattern.exec(textContent)) !== null) {
+              const from = basePos + linkedMatch.index;
+              const to = from + linkedMatch[0].length;
+              const alt = linkedMatch[1] || "";
+              const src = linkedMatch[2] || "";
+              const title = linkedMatch[3] || "";
+              const linkHref = linkedMatch[4] || "";
+              const linkTitle = linkedMatch[5] || "";
+
+              const $from = tr.doc.resolve(from);
+              if ($from.parent.type.name !== "image") {
+                imagesToReplace.push({ from, to, alt, src, title, linkHref, linkTitle });
+                processedRanges.push({
+                  start: linkedMatch.index,
+                  end: linkedMatch.index + linkedMatch[0].length,
+                });
+              }
+            }
+
+            // 再检测普通图片 ![alt](src)
             let match;
             while ((match = imagePattern.exec(textContent)) !== null) {
-              const from = basePos + match.index;
+              // 跳过已被链接图片处理的范围
+              const matchStart = match.index;
+              const matchEnd = matchStart + match[0].length;
+              const alreadyProcessed = processedRanges.some(
+                (r) => matchStart >= r.start && matchEnd <= r.end
+              );
+              if (alreadyProcessed) continue;
+
+              const from = basePos + matchStart;
               const to = from + match[0].length;
               const alt = match[1] || "";
               const src = match[2] || "";
@@ -708,7 +790,7 @@ export function createSyntaxDetectorPlugin(): Plugin {
               // 检查这个位置是否已经是图片节点
               const $from = tr.doc.resolve(from);
               if ($from.parent.type.name !== "image") {
-                imagesToReplace.push({ from, to, alt, src, title });
+                imagesToReplace.push({ from, to, alt, src, title, linkHref: "", linkTitle: "" });
               }
             }
           }
@@ -724,6 +806,8 @@ export function createSyntaxDetectorPlugin(): Plugin {
               src: img.src,
               alt: img.alt,
               title: img.title,
+              linkHref: img.linkHref,
+              linkTitle: img.linkTitle,
             });
             tr = tr.replaceWith(img.from, img.to, imageNode);
             hasChanges = true;

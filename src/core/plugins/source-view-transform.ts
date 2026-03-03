@@ -118,11 +118,20 @@ function transformImageToParagraph(image: ProseMirrorNode, schema: Schema): Pros
   const alt = image.attrs.alt || "";
   const src = image.attrs.src || "";
   const title = image.attrs.title || "";
+  const linkHref = image.attrs.linkHref || "";
+  const linkTitle = image.attrs.linkTitle || "";
   const titlePart = title ? ` "${title}"` : "";
-  const markdownText = `![${alt}](${src}${titlePart})`;
+  const imgMarkdown = `![${alt}](${src}${titlePart})`;
+  let markdownText: string;
+  if (linkHref) {
+    const linkTitlePart = linkTitle ? ` "${linkTitle}"` : "";
+    markdownText = `[${imgMarkdown}](${linkHref}${linkTitlePart})`;
+  } else {
+    markdownText = imgMarkdown;
+  }
 
   return schema.nodes.paragraph.create(
-    { imageAttrs: { src, alt, title } },
+    { imageAttrs: { src, alt, title, linkHref, linkTitle } },
     schema.text(markdownText)
   );
 }
@@ -139,8 +148,23 @@ function transformParagraphToImage(
 
   // 优先从段落文本中解析最新的图片属性（用户可能编辑了源码）
   const text = paragraph.textContent;
-  const match = text.match(/^!\[([^\]]*)\]\((.+?)(?:\s+"([^"]*)")?\)$/);
 
+  // 先尝试匹配链接图片 [![alt](src "title")](href "linkTitle")
+  const linkedMatch = text.match(
+    /^\[!\[([^\]]*)\]\((.+?)(?:\s+"([^"]*)")?\)\]\((.+?)(?:\s+"([^"]*)")?\)$/
+  );
+  if (linkedMatch) {
+    return schema.nodes.image.create({
+      alt: linkedMatch[1] || "",
+      src: linkedMatch[2] || "",
+      title: linkedMatch[3] || "",
+      linkHref: linkedMatch[4] || "",
+      linkTitle: linkedMatch[5] || "",
+    });
+  }
+
+  // 再尝试匹配普通图片 ![alt](src "title")
+  const match = text.match(/^!\[([^\]]*)\]\((.+?)(?:\s+"([^"]*)")?\)$/);
   if (match) {
     return schema.nodes.image.create({
       alt: match[1] || "",

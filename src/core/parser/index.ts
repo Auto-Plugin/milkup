@@ -118,6 +118,7 @@ const BLOCK_PATTERNS = {
   math_block_end: /^\s*\$\$\s*$/, // 多行数学块结束（支持缩进）
   math_block_inline: /^\s*\$\$(.+)\$\$\s*$/, // 单行数学块 $$content$$（支持缩进）
   image: /^!\[([^\]]*)\]\((.+?)(?:\s+"([^"]*)")?\)\s*$/, // 图片 ![alt](src "title") - 允许 URL 中有空格
+  linked_image: /^\[!\[([^\]]*)\]\((.+?)(?:\s+"([^"]*)")?\)\]\((.+?)(?:\s+"([^"]*)")?\)\s*$/, // 链接图片 [![alt](src)](href)
   container_start: /^:::(\w+)(?:\s+(.*))?$/,
   container_end: /^:::\s*$/, // 允许行尾有空格
   html_block_start: /^<([a-zA-Z][a-zA-Z0-9]*)/, // 以 < 开头后跟标签名
@@ -220,6 +221,14 @@ export class MarkdownParser {
       const headingMatch = line.match(BLOCK_PATTERNS.heading);
       if (headingMatch) {
         blocks.push(this.parseHeading(headingMatch));
+        i++;
+        continue;
+      }
+
+      // 链接图片 [![alt](src)](href)
+      const linkedImageMatch = line.match(BLOCK_PATTERNS.linked_image);
+      if (linkedImageMatch) {
+        blocks.push(this.parseLinkedImage(linkedImageMatch));
         i++;
         continue;
       }
@@ -331,6 +340,19 @@ export class MarkdownParser {
     const title = match[3] || "";
 
     return this.schema.node("image", { src, alt, title });
+  }
+
+  /**
+   * 解析链接图片 - [![alt](src "title")](href "linkTitle")
+   */
+  private parseLinkedImage(match: RegExpMatchArray): Node {
+    const alt = match[1] || "";
+    const src = match[2] || "";
+    const title = match[3] || "";
+    const linkHref = match[4] || "";
+    const linkTitle = match[5] || "";
+
+    return this.schema.node("image", { src, alt, title, linkHref, linkTitle });
   }
 
   /**
