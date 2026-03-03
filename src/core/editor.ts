@@ -1134,7 +1134,7 @@ export class MilkupEditor implements IMilkupEditor {
 
     // 插入图片（通过文件选择器）
     container.appendChild(
-      this.createContextMenuItem("图片", () => {
+      this.createContextMenuItem("图片", false, () => {
         this.hideContextMenu();
         const input = document.createElement("input");
         input.type = "file";
