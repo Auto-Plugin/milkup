@@ -34,10 +34,10 @@ export async function exportElementWithStylesAndImages(
         display: flex;
         justify-content: center;
       }
-      .export-container > #milkdown {
+      .export-container > .milkup-container {
         width: 100%!important;
       }
-      .export-container > #milkdown .milkdown,.export-container > #milkdown .milkdown > div[contenteditable="true"] {
+      .export-container > .milkup-container .milkup-editor,.export-container > .milkup-container .milkup-editor > div[contenteditable="true"] {
         width: 100%!important;
       }
       p {
@@ -207,10 +207,97 @@ export function serializeMarkdownToBlocks(selector: string): Block[] {
   return blocks
 }
 
-export async function exportElementAsWord(
-  selector: string,
+export async function exportMarkdownAsWord(
+  markdown: string,
   outputName: string,
 ): Promise<void> {
-  const blocks = serializeMarkdownToBlocks(selector)
+  const blocks = parseMarkdownToBlocks(markdown)
   await window.electronAPI.exportAsWord(blocks, outputName)
+}
+
+/**
+ * 将 Markdown 源码文本解析为结构化 Block 数据
+ */
+export function parseMarkdownToBlocks(markdown: string): Block[] {
+  const blocks: Block[] = []
+  const lines = markdown.split('\n')
+  let i = 0
+
+  while (i < lines.length) {
+    const line = lines[i]
+
+    // 标题
+    const headingMatch = line.match(/^(#{1,6})\s+(.*)/)
+    if (headingMatch) {
+      const level = Math.min(headingMatch[1].length, 3) as 1 | 2 | 3
+      blocks.push({ type: 'heading', level, text: headingMatch[2] })
+      i++
+      continue
+    }
+
+    // 代码块
+    if (line.trimStart().startsWith('```')) {
+      const codeLines: string[] = []
+      i++
+      while (i < lines.length && !lines[i].trimStart().startsWith('```')) {
+        codeLines.push(lines[i])
+        i++
+      }
+      blocks.push({ type: 'code', lines: codeLines })
+      i++ // 跳过结束的 ```
+      continue
+    }
+
+    // 无序列表
+    if (/^\s*[-*+]\s+/.test(line)) {
+      const items: string[] = []
+      while (i < lines.length && /^\s*[-*+]\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^\s*[-*+]\s+/, ''))
+        i++
+      }
+      blocks.push({ type: 'list', items, ordered: false })
+      continue
+    }
+
+    // 有序列表
+    if (/^\s*\d+\.\s+/.test(line)) {
+      const items: string[] = []
+      while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
+        items.push(lines[i].replace(/^\s*\d+\.\s+/, ''))
+        i++
+      }
+      blocks.push({ type: 'list', items, ordered: true })
+      continue
+    }
+
+    // 空行跳过
+    if (line.trim() === '') {
+      i++
+      continue
+    }
+
+    // 段落
+    blocks.push({ type: 'paragraph', text: line })
+    i++
+  }
+
+  return blocks
+}
+
+/**
+ * 导出为纯文本文件（使用 Markdown 源码）
+ */
+export function exportAsText(
+  markdown: string,
+  outputName: string = 'export.txt',
+): void {
+  const blob = new Blob([markdown], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+
+  const a = document.createElement('a')
+  a.href = url
+  a.download = outputName
+  a.click()
+
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
 }

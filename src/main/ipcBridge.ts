@@ -319,7 +319,7 @@ export function registerIpcHandleHandlers() {
             display: flex!important;
             flex-wrap: wrap;
           }
-          .milkdown .milkdown-code-block .cm-editor span{
+          .milkup-code-block .cm-editor span{
             word-break: break-word;
             white-space: break-spaces;
             display: inline-block;
@@ -774,20 +774,18 @@ export function registerGlobalIpcHandlers() {
               }
 
               const children = scanDirectory(itemPath, depth + 1);
-              // 只有当文件夹包含markdown文件或子文件夹时才显示
-              if (children.length > 0) {
-                let dirMtime = 0;
-                try {
-                  dirMtime = fs.statSync(itemPath).mtimeMs;
-                } catch {}
-                directories.push({
-                  name: item.name,
-                  path: itemPath,
-                  isDirectory: true,
-                  mtime: dirMtime,
-                  children,
-                });
-              }
+              // 显示文件夹（即使为空）
+              let dirMtime = 0;
+              try {
+                dirMtime = fs.statSync(itemPath).mtimeMs;
+              } catch {}
+              directories.push({
+                name: item.name,
+                path: itemPath,
+                isDirectory: true,
+                mtime: dirMtime,
+                children,
+              });
             } else if (item.isFile() && /\.(?:md|markdown)$/i.test(item.name)) {
               let fileMtime = 0;
               try {
@@ -926,6 +924,21 @@ export function registerGlobalIpcHandlers() {
         return filePath;
       } catch (error) {
         console.error("创建文件失败:", error);
+        return null;
+      }
+    }
+  );
+
+  // 创建文件夹
+  ipcMain.handle(
+    "workspace:createFolder",
+    async (_event, { dirPath, folderName }: { dirPath: string; folderName: string }) => {
+      try {
+        const folderPath = path.join(dirPath, folderName);
+        fs.mkdirSync(folderPath, { recursive: true });
+        return folderPath;
+      } catch (error) {
+        console.error("创建文件夹失败:", error);
         return null;
       }
     }

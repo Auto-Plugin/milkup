@@ -16,16 +16,15 @@ const collapsedSet = reactive(new Set<string>());
 // 判断某个标题项是否因父级折叠而被隐藏
 function isHiddenByCollapse(index: number): boolean {
   const items = outline.value;
-  const currentLevel = items[index].level;
-  // 向前查找，看是否有更高层级的折叠标题
+  // 向前查找直接祖先链，逐级检查是否被折叠
+  let targetLevel = items[index].level;
   for (let i = index - 1; i >= 0; i--) {
-    if (items[i].level < currentLevel && collapsedSet.has(items[i].id)) {
-      return true;
-    }
-    // 遇到同级或更高级别的标题就停止（已经不在折叠范围内）
-    if (items[i].level < currentLevel) {
-      // 该标题没折叠，继续往上找更高层
-      continue;
+    if (items[i].level < targetLevel) {
+      if (collapsedSet.has(items[i].id)) {
+        return true;
+      }
+      // 找到了直接父级且未折叠，继续向上查找更高层祖先
+      targetLevel = items[i].level;
     }
   }
   return false;

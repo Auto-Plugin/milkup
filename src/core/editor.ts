@@ -1131,6 +1131,23 @@ export class MilkupEditor implements IMilkupEditor {
         )
       );
     }
+
+    // 插入图片（通过文件选择器）
+    container.appendChild(
+      this.createContextMenuItem("图片", () => {
+        this.hideContextMenu();
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "image/*";
+        input.onchange = () => {
+          const file = input.files?.[0];
+          if (file) {
+            this.insertImageFromFile(file);
+          }
+        };
+        input.click();
+      })
+    );
   }
 
   /** 创建搜索面板 DOM */

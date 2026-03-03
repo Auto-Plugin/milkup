@@ -70,6 +70,7 @@ interface Window {
 
     // 文件操作
     createFile: (dirPath: string, fileName: string) => Promise<string | null>;
+    createFolder: (dirPath: string, folderName: string) => Promise<string | null>;
     deleteFile: (filePath: string) => Promise<boolean>;
     renameFile: (oldPath: string, newName: string) => Promise<string | null>;
     // 主题编辑器相关

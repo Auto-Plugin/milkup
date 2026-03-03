@@ -10,7 +10,9 @@ import LoadingIcon from "../ui/LoadingIcon.vue";
 function openByDefaultBrowser(url: string) {
   window.electronAPI.openExternal(url);
 }
-const updateInfo = JSON.parse(localStorage.getItem("updateInfo") || "{}");
+const storedUpdateInfo = JSON.parse(localStorage.getItem("updateInfo") || "{}");
+// 只有当存储的版本号比当前版本更新时才显示 "new" 徽标
+const hasNewVersion = storedUpdateInfo.version && storedUpdateInfo.version !== version;
 const isChecking = ref(false);
 
 function handleCheckUpdate() {
@@ -61,7 +63,7 @@ function handleCheckUpdate() {
         <span v-if="isChecking" class="updateTip loading">
           <LoadingIcon />
         </span>
-        <span v-else-if="updateInfo.version" class="updateTip">new</span>
+        <span v-else-if="hasNewVersion" class="updateTip">new</span>
       </span>
     </p>
     <p>MIT Copyright © [2025] Larry Zhu</p>

@@ -229,6 +229,43 @@ async function createFile(targetDirPath: string): Promise<string | null> {
   return filePath;
 }
 
+async function createFolder(targetDirPath: string): Promise<string | null> {
+  // 生成不冲突的文件夹名
+  let folderName = "新建文件夹";
+  let counter = 1;
+  const existingNames = new Set<string>();
+
+  // 收集目标目录下的名称
+  function collectNames(nodes: WorkSpace[], dirPath: string) {
+    for (const node of nodes) {
+      const nodeDir = node.path.replace(/[^/\\]+$/, "").replace(/[/\\]$/, "");
+      const targetDir = dirPath.replace(/[/\\]$/, "");
+      if (nodeDir === targetDir) {
+        existingNames.add(node.name);
+      }
+      if (node.children) {
+        collectNames(node.children, dirPath);
+      }
+    }
+  }
+  if (workSpace.value) {
+    collectNames(workSpace.value, targetDirPath);
+  }
+
+  while (existingNames.has(folderName)) {
+    folderName = `新建文件夹 ${counter}`;
+    counter++;
+  }
+
+  const folderPath = await window.electronAPI.createFolder(targetDirPath, folderName);
+  if (folderPath) {
+    await refreshWorkSpace();
+    // 进入编辑状态（重命名）
+    editingNode.value = { path: folderPath, isNew: true };
+  }
+  return folderPath;
+}
+
 async function deleteFile(filePath: string): Promise<boolean> {
   const result = await window.electronAPI.deleteFile(filePath);
   if (result) {
@@ -291,6 +328,7 @@ function useWorkSpace() {
     toggleSort,
     editingNode,
     createFile,
+    createFolder,
     deleteFile,
     renameFile,
     refreshWorkSpace,

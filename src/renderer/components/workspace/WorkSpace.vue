@@ -13,6 +13,7 @@ const {
   toggleSort,
   editingNode,
   createFile,
+  createFolder,
   deleteFile,
   renameFile,
   hardRefreshWorkSpace,
@@ -102,6 +103,13 @@ async function handleNewFile() {
   const dir = getTargetDir(contextMenu.value.node);
   if (!dir) return;
   await createFile(dir);
+}
+
+async function handleNewFolder() {
+  closeContextMenu();
+  const dir = getTargetDir(contextMenu.value.node);
+  if (!dir) return;
+  await createFolder(dir);
 }
 
 async function handleRefresh() {
@@ -202,7 +210,13 @@ function getSortLabel() {
       @edit-confirm="handleEditConfirm"
       @edit-cancel="handleEditCancel"
     />
-    <div v-else class="empty-state">
+    <div v-if="workSpace" class="change-folder-bar">
+      <button class="change-folder-btn" @click="openFolder">
+        <span class="iconfont icon-folder-opened"></span>
+        <span>更换文件夹</span>
+      </button>
+    </div>
+    <div v-if="!workSpace" class="empty-state">
       <span class="iconfont icon-folder-opened empty-icon"></span>
       <p>暂无打开的文件夹</p>
       <button class="open-folder-btn" @click="openFolder">选择文件夹</button>
@@ -219,6 +233,10 @@ function getSortLabel() {
         <div class="context-menu-item" @click="handleNewFile">
           <span class="iconfont icon-plus"></span>
           <span>新建文件</span>
+        </div>
+        <div class="context-menu-item" @click="handleNewFolder">
+          <span class="iconfont icon-folder-opened"></span>
+          <span>新建文件夹</span>
         </div>
         <template v-if="contextMenu.node">
           <div class="context-menu-item" @click="handleRename">
@@ -349,6 +367,39 @@ function getSortLabel() {
 
       .iconfont {
         font-size: 14px;
+      }
+    }
+  }
+
+  .change-folder-bar {
+    flex-shrink: 0;
+    padding: 8px;
+    border-top: 1px solid var(--border-color-1);
+    margin-top: auto;
+
+    .change-folder-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 6px 0;
+      border: 1px solid var(--border-color-1);
+      border-radius: 5px;
+      cursor: pointer;
+      background: var(--background-color-2);
+      color: var(--text-color-3);
+      font-size: 12px;
+      transition: all 0.2s ease;
+
+      .iconfont {
+        font-size: 13px;
+      }
+
+      &:hover {
+        background: var(--hover-background-color);
+        color: var(--text-color-1);
+        border-color: var(--primary-color);
       }
     }
   }

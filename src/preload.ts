@@ -82,6 +82,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // 文件操作
   createFile: (dirPath: string, fileName: string) =>
     ipcRenderer.invoke("workspace:createFile", { dirPath, fileName }),
+  createFolder: (dirPath: string, folderName: string) =>
+    ipcRenderer.invoke("workspace:createFolder", { dirPath, folderName }),
   deleteFile: (filePath: string) => ipcRenderer.invoke("workspace:deleteFile", filePath),
   renameFile: (oldPath: string, newName: string) =>
     ipcRenderer.invoke("workspace:renameFile", { oldPath, newName }),

@@ -3,11 +3,11 @@ import autotoast from 'autotoast.js'
 import useContent from '@/renderer/hooks/useContent'
 import usefile from '@/renderer/hooks/useFile'
 import useWorkSpace from '@/renderer/hooks/useWorkSpace'
-import { exportElementAsPDF, exportElementAsWord, exportElementWithStylesAndImages } from '@/renderer/utils/exports'
+import { exportElementAsPDF, exportMarkdownAsWord, exportElementWithStylesAndImages, exportAsText } from '@/renderer/utils/exports'
 
 const { onOpen, onSave, onSaveAs, currentTab } = usefile()
 const { setWorkSpace } = useWorkSpace()
-const { isModified } = useContent()
+const { isModified, markdown } = useContent()
 
 function onOpenFolder() {
   setWorkSpace().then(() => {
@@ -19,7 +19,7 @@ function onOpenFolder() {
   // 发射 Escape 按键事件 关闭菜单
 }
 function exportAsPDF() {
-  exportElementAsPDF('#milkdown', `${currentTab.value?.name.slice(0, -3)}.pdf` || '导出的文件', {
+  exportElementAsPDF('.milkup-container', `${currentTab.value?.name.slice(0, -3)}.pdf` || '导出的文件', {
     pageSize: 'A4',
     scale: 1,
   }).then(() => {
@@ -29,14 +29,17 @@ function exportAsPDF() {
   })
 }
 function exportAsHTML() {
-  exportElementWithStylesAndImages(document.querySelector('#milkdown')!, `${currentTab.value?.name.slice(0, -3)}.html` || '导出的文件')
+  exportElementWithStylesAndImages(document.querySelector('.milkup-container')!, `${currentTab.value?.name.slice(0, -3)}.html` || '导出的文件')
 }
 function exportAsDocx() {
-  exportElementAsWord('#milkdown', `${currentTab.value?.name.slice(0, -3)}.docx` || '导出的文件').then(() => {
+  exportMarkdownAsWord(markdown.value, `${currentTab.value?.name.slice(0, -3)}.docx` || '导出的文件').then(() => {
     autotoast.show('导出成功', 'success')
   }).catch((err) => {
     autotoast.show(`导出失败: ${err.message}`, 'error')
   })
+}
+function exportAsTxt() {
+  exportAsText(markdown.value, `${currentTab.value?.name.slice(0, -3)}.txt` || '导出的文件')
 }
 </script>
 
@@ -78,6 +81,10 @@ function exportAsDocx() {
         <button @click="exportAsDocx">
           <span class="iconfont icon-input"></span>
           <span>Word</span>
+        </button>
+        <button @click="exportAsTxt">
+          <span class="iconfont icon-document"></span>
+          <span>TXT</span>
         </button>
       </div>
     </div>
