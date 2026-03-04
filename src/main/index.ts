@@ -14,6 +14,7 @@ import {
 import createMenu from "./menu";
 import { setupUpdateHandlers } from "./update";
 import { trackWindow } from "./windowManager";
+import { createGroup, nextTabId, onWindowReady, sendTabListToWindow } from "./windowGroupManager";
 
 let win: BrowserWindow | null = null;
 let themeEditorWindow: BrowserWindow | null = null;
@@ -47,6 +48,15 @@ async function createWindow() {
 
   // 注册为主窗口
   trackWindow(win, true);
+
+  // 注册到 WindowGroup（新架构：每个 Tab 一个 BrowserWindow）
+  const initialTabId = nextTabId();
+  createGroup(win, initialTabId, {
+    name: "Untitled",
+    filePath: null,
+    isModified: false,
+    readOnly: false,
+  });
 
   globalShortcut.register("CommandOrControl+Shift+I", () => {
     const targetWin = getAvailableWindow();
@@ -207,86 +217,12 @@ function sendLaunchFileIfExists(argv = process.argv) {
   }
 }
 
-// 注册自定义协议为特权协议
-protocol.registerSchemesAsPrivileged([
-  {
-    scheme: "milkup",
-    privileges: {
-      bypassCSP: true,
-      supportFetchAPI: true,
-      standard: true,
-      secure: true,
-    },
-  },
-]);
-
-app.whenReady().then(async () => {
-  // 注册所有 IPC 处理程序（只注册一次，防止重复注册报错）
-  registerGlobalIpcHandlers();
-  registerIpcOnHandlers();
-  registerIpcHandleHandlers();
-  setupUpdateHandlers();
-
-  // 注册自定义协议处理器（仅用于兼容旧版本残留的 milkup:// URL）
-  // 新版本使用 file:// 协议直接加载本地图片
-  protocol.registerFileProtocol("milkup", (request, callback) => {
-    try {
-      const rawUrl = request.url;
-
-      // 提取路径部分
-      let urlPath: string;
-      if (rawUrl.startsWith("milkup:///")) {
-        urlPath = rawUrl.substring("milkup:///".length);
-      } else {
-        urlPath = rawUrl.substring("milkup://".length);
-      }
-
-      // 旧格式：<base64-encoded-markdown-path>/<relative-image-path>
-      const firstSlashIndex = urlPath.indexOf("/");
-      if (firstSlashIndex === -1) {
-        callback({ error: -2 });
-        return;
-      }
-
-      const encodedMdPath = urlPath.substring(0, firstSlashIndex);
-      const relativePath = urlPath.substring(firstSlashIndex + 1);
-
-      const markdownPath = Buffer.from(encodedMdPath, "base64").toString("utf-8");
-      const markdownDir = path.dirname(markdownPath);
-      const absolutePath = path.resolve(markdownDir, decodeURIComponent(relativePath));
-
-      if (!fs.existsSync(absolutePath)) {
-        console.error("[milkup protocol] 文件不存在:", absolutePath);
-        callback({ error: -6 });
-        return;
-      }
-
-      callback({ path: absolutePath });
-    } catch (error) {
-      console.error("[milkup protocol] 处理请求失败:", error);
-      callback({ error: -2 });
-    }
-  });
-
-  // 监听渲染进程就绪事件 (Moved up to avoid race condition)
-  ipcMain.on("renderer-ready", () => {
-    isRendererReady = true;
-    if (pendingStartupFile) {
-      sendFileToRenderer(pendingStartupFile);
-      pendingStartupFile = null;
-    }
-  });
-
-  await createWindow();
-
-  sendLaunchFileIfExists();
-});
-
-// 单实例锁
+// 单实例锁 —— 必须在所有初始化代码之前检查，
+// 否则第二实例仍会创建窗口（一闪而过）再退出
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
-  app.quit();
+  app.exit(0);
 } else {
   app.on("second-instance", (_event, argv) => {
     const targetWin = getAvailableWindow();
@@ -297,52 +233,136 @@ if (!gotTheLock) {
     // 处理通过命令行传入的文件路径
     sendLaunchFileIfExists(argv);
   });
-}
-// macOS 专用：Finder 打开文件时触发
-// 处理应用已运行时双击文件打开的情况
-app.on("open-file", (event, filePath) => {
-  event.preventDefault();
-  sendFileToRenderer(filePath);
-});
-// 处理应用即将退出事件（包括右键 Dock 图标的退出、Cmd+Q）
-app.on("before-quit", (event) => {
-  // 防止重入：close() / close:discard 中的 app.quit() 会再次触发 before-quit
-  if (getIsQuitting()) return;
 
-  // 标记正在退出，让窗口 close 事件不再拦截
-  setIsQuitting(true);
+  // 注册自定义协议为特权协议
+  protocol.registerSchemesAsPrivileged([
+    {
+      scheme: "milkup",
+      privileges: {
+        bypassCSP: true,
+        supportFetchAPI: true,
+        standard: true,
+        secure: true,
+      },
+    },
+  ]);
 
-  if (process.platform === "darwin") {
-    const targetWin = getAvailableWindow();
-    if (targetWin) {
-      event.preventDefault();
-      close(targetWin);
-    }
-  }
-});
+  app.whenReady().then(async () => {
+    // 注册所有 IPC 处理程序（只注册一次，防止重复注册报错）
+    registerGlobalIpcHandlers();
+    registerIpcOnHandlers();
+    registerIpcHandleHandlers();
+    setupUpdateHandlers();
 
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
-});
+    // 注册自定义协议处理器（仅用于兼容旧版本残留的 milkup:// URL）
+    // 新版本使用 file:// 协议直接加载本地图片
+    protocol.registerFileProtocol("milkup", (request, callback) => {
+      try {
+        const rawUrl = request.url;
 
-// macOS 上处理应用激活事件（点击 Dock 图标）
-app.on("activate", () => {
-  // 重置退出标记：用户重新激活应用说明不想退出
-  setIsQuitting(false);
+        // 提取路径部分
+        let urlPath: string;
+        if (rawUrl.startsWith("milkup:///")) {
+          urlPath = rawUrl.substring("milkup:///".length);
+        } else {
+          urlPath = rawUrl.substring("milkup://".length);
+        }
 
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  } else {
-    const targetWin = getAvailableWindow();
-    if (targetWin) {
-      // 如果窗口存在但被隐藏，则显示它
-      if (!targetWin.isVisible()) {
-        targetWin.show();
+        // 旧格式：<base64-encoded-markdown-path>/<relative-image-path>
+        const firstSlashIndex = urlPath.indexOf("/");
+        if (firstSlashIndex === -1) {
+          callback({ error: -2 });
+          return;
+        }
+
+        const encodedMdPath = urlPath.substring(0, firstSlashIndex);
+        const relativePath = urlPath.substring(firstSlashIndex + 1);
+
+        const markdownPath = Buffer.from(encodedMdPath, "base64").toString("utf-8");
+        const markdownDir = path.dirname(markdownPath);
+        const absolutePath = path.resolve(markdownDir, decodeURIComponent(relativePath));
+
+        if (!fs.existsSync(absolutePath)) {
+          console.error("[milkup protocol] 文件不存在:", absolutePath);
+          callback({ error: -6 });
+          return;
+        }
+
+        callback({ path: absolutePath });
+      } catch (error) {
+        console.error("[milkup protocol] 处理请求失败:", error);
+        callback({ error: -2 });
       }
-      // 将窗口置于前台
-      targetWin.focus();
+    });
+
+    // 监听渲染进程就绪事件 (Moved up to avoid race condition)
+    ipcMain.on("renderer-ready", (event) => {
+      isRendererReady = true;
+
+      // 通知 WindowGroup 系统该窗口已就绪
+      const readyWin = BrowserWindow.fromWebContents(event.sender);
+      if (readyWin) {
+        onWindowReady(readyWin.id);
+        sendTabListToWindow(readyWin);
+      }
+
+      if (pendingStartupFile) {
+        sendFileToRenderer(pendingStartupFile);
+        pendingStartupFile = null;
+      }
+    });
+
+    await createWindow();
+
+    sendLaunchFileIfExists();
+  });
+
+  // macOS 专用：Finder 打开文件时触发
+  // 处理应用已运行时双击文件打开的情况
+  app.on("open-file", (event, filePath) => {
+    event.preventDefault();
+    sendFileToRenderer(filePath);
+  });
+  // 处理应用即将退出事件（包括右键 Dock 图标的退出、Cmd+Q）
+  app.on("before-quit", (event) => {
+    // 防止重入：close() / close:discard 中的 app.quit() 会再次触发 before-quit
+    if (getIsQuitting()) return;
+
+    // 标记正在退出，让窗口 close 事件不再拦截
+    setIsQuitting(true);
+
+    if (process.platform === "darwin") {
+      const targetWin = getAvailableWindow();
+      if (targetWin) {
+        event.preventDefault();
+        close(targetWin);
+      }
     }
-  }
-});
+  });
+
+  app.on("window-all-closed", () => {
+    if (process.platform !== "darwin") {
+      app.quit();
+    }
+  });
+
+  // macOS 上处理应用激活事件（点击 Dock 图标）
+  app.on("activate", () => {
+    // 重置退出标记：用户重新激活应用说明不想退出
+    setIsQuitting(false);
+
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    } else {
+      const targetWin = getAvailableWindow();
+      if (targetWin) {
+        // 如果窗口存在但被隐藏，则显示它
+        if (!targetWin.isVisible()) {
+          targetWin.show();
+        }
+        // 将窗口置于前台
+        targetWin.focus();
+      }
+    }
+  });
+}

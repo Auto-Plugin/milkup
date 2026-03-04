@@ -280,9 +280,9 @@ onUnmounted(() => {
   emitter.off("editor:reload", handleEditorReload);
 });
 
-// 处理源码模式切换事件（仅活跃编辑器响应）
+// 处理源码模式切换事件（每个窗口只有一个编辑器，总是响应）
 function handleSourceViewToggle() {
-  if (!props.isActive || !editor) return;
+  if (!editor) return;
   isSourceViewToggling = true;
   editor.toggleSourceView();
   isSourceViewToggling = false;
@@ -290,9 +290,9 @@ function handleSourceViewToggle() {
 }
 emitter.on("sourceView:toggle", handleSourceViewToggle);
 
-// 处理大纲点击滚动（仅活跃编辑器响应）
+// 处理大纲点击滚动（每个窗口只有一个编辑器，总是响应）
 function handleOutlineScrollTo(pos: unknown) {
-  if (!props.isActive || !editor || typeof pos !== "number") return;
+  if (!editor || typeof pos !== "number") return;
   const view = editor.view;
   const dom = view.domAtPos(pos + 1);
   if (dom.node) {
@@ -302,9 +302,9 @@ function handleOutlineScrollTo(pos: unknown) {
 }
 emitter.on("outline:scrollTo", handleOutlineScrollTo);
 
-// 处理编辑器重载事件（仅活跃编辑器响应）
+// 处理编辑器重载事件（每个窗口只有一个编辑器，总是响应）
 function handleEditorReload() {
-  if (!props.isActive || !containerRef.value) return;
+  if (!containerRef.value) return;
   editor?.destroy();
   editor = null;
   // 清空容器
@@ -354,16 +354,14 @@ watch(
   }
 );
 
-// 监听 isActive 变化：激活时同步全局状态
+// 新架构：每个窗口只有一个编辑器，isActive 始终为 true
+// 保留 watch 以兼容过渡期（但不再依赖 isActive 变化）
 watch(
   () => props.isActive,
   (isActive) => {
     if (isActive) {
-      // 更新全局文件路径
       (window as any).__currentFilePath = props.tab.filePath || null;
-      // 发送大纲更新
       emitOutlineUpdate();
-      // 通知源码模式状态
       emitter.emit("sourceView:changed", editor?.isSourceViewEnabled() ?? false);
     }
   }

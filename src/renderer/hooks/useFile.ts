@@ -119,15 +119,18 @@ async function onSaveAs() {
   }
 }
 
-// 创建新文件
+// 创建新文件（新架构：通过 IPC 通知主进程创建新窗口）
 function createNewFile() {
   const { updateTitle } = useTitle();
   const { markdown, filePath, originalContent } = useContent();
   const { createNewTab } = useTab();
 
+  // 通知主进程创建新 Tab（新 BrowserWindow）
+  window.electronAPI?.groupNewTab();
+
+  // 同时在本地也准备好（兼容）
   createNewTab();
 
-  // 更新当前内容状态
   filePath.value = "";
   markdown.value = "";
   originalContent.value = "";

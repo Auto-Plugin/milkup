@@ -43,7 +43,8 @@ const tabContainerRef = ref<HTMLElement | null>(null);
 let wheelHandler: ((event: WheelEvent) => void) | null = null;
 
 function handleTabClick(id: string) {
-  switchToTab(id);
+  // 新架构：通过 IPC 通知主进程切换 Tab（会 show/hide BrowserWindow）
+  window.electronAPI?.groupSwitchTab(id);
 }
 
 function handleAddTab() {

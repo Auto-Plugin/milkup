@@ -23,6 +23,8 @@ export interface CreateWindowOptions {
   fastCreate?: boolean;
   /** 是否将 x,y 视为中心点 (如果是 false，则 x,y 为左上角坐标) */
   center?: boolean;
+  /** 创建后保持隐藏（不调用 showInactive） */
+  hidden?: boolean;
 }
 
 // ─── 状态 ────────────────────────────────────────────────────
@@ -131,7 +133,16 @@ export function consumePendingTabData(webContentsId: number): TearOffTabData | n
 export async function createEditorWindow(
   options: CreateWindowOptions = {}
 ): Promise<BrowserWindow> {
-  const { x, y, width = 1000, height = 700, tabData, fastCreate = false, center = true } = options;
+  const {
+    x,
+    y,
+    width = 1000,
+    height = 700,
+    tabData,
+    fastCreate = false,
+    center = true,
+    hidden = false,
+  } = options;
 
   const winOptions: Electron.BrowserWindowConstructorOptions = {
     width,
@@ -209,8 +220,8 @@ export async function createEditorWindow(
     win.webContents.openDevTools();
   }
 
-  // fastCreate 模式下显示窗口但不抢焦点
-  if (fastCreate) {
+  // fastCreate 模式下显示窗口但不抢焦点（hidden 模式除外）
+  if (fastCreate && !hidden) {
     win.showInactive();
   }
 

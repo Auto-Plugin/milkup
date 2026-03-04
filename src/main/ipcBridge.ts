@@ -32,6 +32,22 @@ import {
   updateWindowOpenFiles,
 } from "./windowManager";
 import type { TearOffTabData } from "./windowManager";
+import {
+  addTabToGroup,
+  broadcastTabList,
+  createGroup,
+  getGroup,
+  getGroupByWindowId,
+  getTabIdByWindowId,
+  getWindowForTab,
+  nextTabId,
+  removeTabFromGroup,
+  reorderTabs as groupReorderTabs,
+  switchTab,
+  updateTabMeta,
+  waitForWindowReady,
+} from "./windowGroupManager";
+import { createEditorWindow } from "./windowManager";
 
 /** 每个窗口独立追踪保存状态（windowId → isSaved） */
 const windowSaveState = new Map<number, boolean>();
@@ -108,26 +124,49 @@ export function registerIpcOnHandlers() {
     const targetWin = BrowserWindow.fromWebContents(event.sender);
     if (!targetWin || targetWin.isDestroyed()) return;
     const winId = targetWin.id;
+
+    // 先获取 Tab 和组信息（必须在 destroy 之前）
+    const tabId = getTabIdByWindowId(winId);
+    const group = tabId ? getGroupByWindowId(winId) : null;
+    const groupId = group?.groupId;
+    const isLastTab = group ? group.tabOrder.length === 1 : true;
+
+    // 从 WindowGroup 中移除（必须在 destroy 之前）
+    if (tabId) {
+      removeTabFromGroup(tabId);
+    }
+
     windowClosingSet.add(winId);
     // 使用 destroy() 确保窗口在 macOS 上被彻底销毁（close() 只关闭 NSWindow 但 BrowserWindow 对象仍存活）
     targetWin.destroy();
     cleanupWindowState(winId);
 
-    // 查找剩余的编辑器窗口（排除刚关闭的窗口）
-    const remainingEditorWindows = [...getEditorWindows()].filter(
-      (w) => w.id !== winId && !w.isDestroyed()
-    );
-
-    if (remainingEditorWindows.length > 0) {
-      // 还有其他编辑器窗口 → 激活其中一个到前台
-      const nextWin = remainingEditorWindows[0];
-      if (!nextWin.isVisible()) nextWin.show();
-      nextWin.focus();
+    if (!isLastTab && groupId) {
+      // 还有其他 Tab → 切换到下一个
+      const updatedGroup = getGroup(groupId);
+      if (updatedGroup && updatedGroup.tabOrder.length > 0) {
+        if (!updatedGroup.activeTabId) {
+          switchTab(groupId, updatedGroup.tabOrder[0]);
+        }
+        broadcastTabList(groupId);
+      }
     } else {
-      // 没有剩余编辑器窗口 → 退出应用（用户主动删除了所有 tab）
-      // 先标记退出，防止 before-quit 重入拦截
-      isQuitting = true;
-      app.quit();
+      // 查找剩余的编辑器窗口（排除刚关闭的窗口）
+      const remainingEditorWindows = [...getEditorWindows()].filter(
+        (w) => w.id !== winId && !w.isDestroyed()
+      );
+
+      if (remainingEditorWindows.length > 0) {
+        // 还有其他编辑器窗口 → 激活其中一个到前台
+        const nextWin = remainingEditorWindows[0];
+        if (!nextWin.isVisible()) nextWin.show();
+        nextWin.focus();
+      } else {
+        // 没有剩余编辑器窗口 → 退出应用（用户主动删除了所有 tab）
+        // 先标记退出，防止 before-quit 重入拦截
+        isQuitting = true;
+        app.quit();
+      }
     }
   });
 
@@ -968,6 +1007,215 @@ export function registerGlobalIpcHandlers() {
         console.error("重命名文件失败:", error);
         return null;
       }
+    }
+  );
+
+  // ── WindowGroup IPC 通道 ─────────────────────────────────────
+
+  // 切换 Tab
+  ipcMain.handle("group:switch-tab", (event, tabId: string) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) return false;
+    const group = getGroupByWindowId(win.id);
+    if (!group) return false;
+    const result = switchTab(group.groupId, tabId);
+    if (result) broadcastTabList(group.groupId);
+    return result;
+  });
+
+  // 关闭 Tab
+  ipcMain.handle("group:close-tab", (_event, tabId: string) => {
+    // 找到目标 Tab 所在的窗口和组
+    const tabWin = getWindowForTab(tabId);
+    if (!tabWin) return false;
+    const group = getGroupByWindowId(tabWin.id);
+    if (!group) return false;
+
+    // 检查是否有未保存更改 → 让目标窗口处理保存确认
+    const tabMeta = group.tabs.get(tabId);
+    if (tabMeta?.isModified) {
+      if (!tabWin.isDestroyed()) {
+        tabWin.webContents.send("close:confirm");
+      }
+      return false;
+    }
+
+    const groupId = group.groupId;
+    const isLastTab = group.tabOrder.length === 1;
+
+    const removed = removeTabFromGroup(tabId);
+    if (!removed) return false;
+
+    removed.win.destroy();
+
+    if (isLastTab) {
+      const remaining = BrowserWindow.getAllWindows().filter((w) => !w.isDestroyed());
+      if (remaining.length === 0) {
+        if (process.platform !== "darwin" || isQuitting) {
+          app.quit();
+        }
+      }
+    } else {
+      const updatedGroup = getGroup(groupId);
+      if (updatedGroup && updatedGroup.tabOrder.length > 0) {
+        // activeTabId 为 null 表示被关闭的是活跃 Tab，需要切换到下一个
+        if (!updatedGroup.activeTabId) {
+          switchTab(updatedGroup.groupId, updatedGroup.tabOrder[0]);
+        }
+        broadcastTabList(updatedGroup.groupId);
+      }
+    }
+    return true;
+  });
+
+  // 新建 Tab
+  ipcMain.handle("group:new-tab", async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) return null;
+    const group = getGroupByWindowId(win.id);
+    if (!group) return null;
+
+    const tabId = nextTabId();
+
+    // 创建新的 BrowserWindow（隐藏，等待渲染进程就绪后再切换）
+    const newWin = await createEditorWindow({ fastCreate: true, hidden: true });
+
+    // 添加到组（会同步 bounds 并保持隐藏）
+    addTabToGroup(group.groupId, newWin, tabId, {
+      name: "Untitled",
+      filePath: null,
+      isModified: false,
+      readOnly: false,
+    });
+
+    // 等待新窗口的渲染进程就绪
+    await waitForWindowReady(newWin.id);
+
+    // 切换到新 Tab
+    switchTab(group.groupId, tabId);
+    broadcastTabList(group.groupId);
+
+    return { tabId };
+  });
+
+  // 重排序 Tab
+  ipcMain.on("group:reorder-tabs", (event, tabOrder: string[]) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) return;
+    const group = getGroupByWindowId(win.id);
+    if (!group) return;
+    groupReorderTabs(group.groupId, tabOrder);
+    broadcastTabList(group.groupId);
+  });
+
+  // 更新 Tab 元信息
+  ipcMain.on("group:update-tab-meta", (event, tabId: string, updates: any) => {
+    updateTabMeta(tabId, updates);
+    // 广播更新后的列表
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) return;
+    const group = getGroupByWindowId(win.id);
+    if (group) broadcastTabList(group.groupId);
+  });
+
+  // 获取初始化数据
+  ipcMain.handle("group:get-init-data", (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) return null;
+    const group = getGroupByWindowId(win.id);
+    if (!group) return null;
+
+    const tabId = getTabIdByWindowId(win.id);
+    if (tabId) {
+      return { tabId, groupId: group.groupId };
+    }
+    return null;
+  });
+
+  // Tear-off：拖出 Tab 成为独立窗口
+  ipcMain.handle(
+    "group:tear-off",
+    async (_event, tabId: string, screenX: number, screenY: number) => {
+      const tabWin = getWindowForTab(tabId);
+      if (!tabWin) return { action: "failed" };
+
+      const sourceGroup = getGroupByWindowId(tabWin.id);
+      if (!sourceGroup) return { action: "failed" };
+
+      const sourceGroupId = sourceGroup.groupId;
+
+      // 从源组移除
+      const removed = removeTabFromGroup(tabId);
+      if (!removed) return { action: "failed" };
+
+      // 创建新组
+      const newGroup = createGroup(removed.win, tabId, {
+        name: removed.meta.name,
+        filePath: removed.meta.filePath,
+        isModified: removed.meta.isModified,
+        readOnly: removed.meta.readOnly,
+      });
+
+      // 设置位置并显示
+      const { width, height } = removed.win.getBounds();
+      removed.win.setBounds({
+        x: Math.round(screenX - width / 2),
+        y: Math.round(screenY - 20),
+        width,
+        height,
+      });
+      removed.win.show();
+      removed.win.focus();
+
+      // 源组切换到下一个 Tab（如果被移除的是活跃 Tab）
+      const updatedSourceGroup = getGroup(sourceGroupId);
+      if (updatedSourceGroup && updatedSourceGroup.tabOrder.length > 0) {
+        if (!updatedSourceGroup.activeTabId) {
+          switchTab(sourceGroupId, updatedSourceGroup.tabOrder[0]);
+        }
+        broadcastTabList(sourceGroupId);
+      }
+      broadcastTabList(newGroup.groupId);
+
+      return { action: "created", groupId: newGroup.groupId };
+    }
+  );
+
+  // Merge：合入 Tab 到目标组
+  ipcMain.handle(
+    "group:merge",
+    async (_event, tabId: string, targetGroupId: string, insertIndex?: number) => {
+      // 从源组移除
+      const removed = removeTabFromGroup(tabId);
+      if (!removed) return false;
+
+      // 添加到目标组
+      const result = addTabToGroup(
+        targetGroupId,
+        removed.win,
+        tabId,
+        {
+          name: removed.meta.name,
+          filePath: removed.meta.filePath,
+          isModified: removed.meta.isModified,
+          readOnly: removed.meta.readOnly,
+        },
+        insertIndex
+      );
+
+      if (result) {
+        // 源组可能需要切换活跃 Tab
+        const sourceGroup = getGroup(removed.sourceGroupId);
+        if (sourceGroup) {
+          if (!sourceGroup.activeTabId && sourceGroup.tabOrder.length > 0) {
+            switchTab(removed.sourceGroupId, sourceGroup.tabOrder[0]);
+          }
+          broadcastTabList(removed.sourceGroupId);
+        }
+        broadcastTabList(targetGroupId);
+      }
+
+      return result;
     }
   );
 }

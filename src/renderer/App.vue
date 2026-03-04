@@ -26,8 +26,16 @@ const { init: initFont } = useFont();
 const { init: initOtherConfig } = useOtherConfig();
 const { isShowSource } = useSourceCode(); // 用于控制大纲显示
 const { init: initSpellCheck } = useSpellCheck();
-const { currentTab, tabs, activeTabId, close, saveCurrentTab, getUnsavedTabs, switchToTab } =
-  useTab();
+const {
+  currentTab,
+  tabs,
+  activeTabId,
+  close,
+  saveCurrentTab,
+  getUnsavedTabs,
+  switchToTab,
+  localTab,
+} = useTab();
 const {
   isDialogVisible,
   dialogType,
@@ -59,18 +67,24 @@ window.electronAPI.on("close:confirm", async () => {
 
 // 监听Tab关闭确认事件
 const handleTabCloseConfirm = async (payload: any) => {
-  const { tabId, tabName } = payload;
+  const { tabId, tabName, isLastTab } = payload;
   const result = await showDialog(tabName);
 
   if (result === "save") {
-    // 只有保存并成功才关闭
     const saved = await saveCurrentTab();
     if (saved) {
-      close(tabId);
+      if (isLastTab) {
+        window.electronAPI.closeDiscard();
+      } else {
+        window.electronAPI?.groupCloseTab(tabId);
+      }
     }
   } else if (result === "discard") {
-    // 放弃更改，直接关闭
-    close(tabId);
+    if (isLastTab) {
+      window.electronAPI.closeDiscard();
+    } else {
+      window.electronAPI?.groupCloseTab(tabId);
+    }
   }
   // cancel 则不做任何操作
 };
@@ -190,14 +204,8 @@ const handleInstall = async () => {
         <Outline />
       </div>
       <div class="editorBox" @transitionend="onOutlineTransitionEnd">
-        <!-- Milkup 编辑器（每个 tab 独立实例） -->
-        <MilkupEditor
-          v-for="tab in tabs"
-          :key="tab.id"
-          v-show="tab.id === activeTabId"
-          :tab="tab"
-          :is-active="tab.id === activeTabId"
-        />
+        <!-- Milkup 编辑器（单实例：每个窗口一个 Tab） -->
+        <MilkupEditor v-if="localTab" :tab="localTab" :is-active="true" />
       </div>
     </div>
   </div>

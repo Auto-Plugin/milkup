@@ -118,6 +118,19 @@ contextBridge.exposeInMainWorld("electronAPI", {
   dropMerge: (tabData: any, screenX: number, screenY: number) =>
     ipcRenderer.invoke("window:drop-merge", tabData, screenX, screenY),
 
+  // ── WindowGroup API（新架构：每个 Tab 一个 BrowserWindow）──
+  groupSwitchTab: (tabId: string) => ipcRenderer.invoke("group:switch-tab", tabId),
+  groupCloseTab: (tabId: string) => ipcRenderer.invoke("group:close-tab", tabId),
+  groupNewTab: () => ipcRenderer.invoke("group:new-tab"),
+  groupReorderTabs: (tabOrder: string[]) => ipcRenderer.send("group:reorder-tabs", tabOrder),
+  groupUpdateTabMeta: (tabId: string, updates: any) =>
+    ipcRenderer.send("group:update-tab-meta", tabId, updates),
+  groupTearOff: (tabId: string, screenX: number, screenY: number) =>
+    ipcRenderer.invoke("group:tear-off", tabId, screenX, screenY),
+  groupMerge: (tabId: string, targetGroupId: string, insertIndex?: number) =>
+    ipcRenderer.invoke("group:merge", tabId, targetGroupId, insertIndex),
+  groupGetInitData: () => ipcRenderer.invoke("group:get-init-data"),
+
   // 自动更新 API
   checkForUpdates: () => ipcRenderer.invoke("update:check"),
   downloadUpdate: () => ipcRenderer.invoke("update:download"),

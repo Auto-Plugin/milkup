@@ -1,5 +1,6 @@
 type FileTraitsDTO = import("../shared/types/tearoff").FileTraitsDTO;
 type TearOffTabData = import("../shared/types/tearoff").TearOffTabData;
+type TabListPayload = import("../main/windowGroupManager").TabListPayload;
 
 interface Window {
   electronAPI: {
@@ -103,6 +104,27 @@ interface Window {
       screenX: number,
       screenY: number
     ) => Promise<{ action: "merged" | "none" }>;
+    // ── WindowGroup API（新架构）──
+    groupSwitchTab: (tabId: string) => Promise<boolean>;
+    groupCloseTab: (tabId: string) => Promise<boolean>;
+    groupNewTab: () => Promise<{ tabId: string }>;
+    groupReorderTabs: (tabOrder: string[]) => void;
+    groupUpdateTabMeta: (
+      tabId: string,
+      updates: Partial<{
+        name: string;
+        filePath: string | null;
+        isModified: boolean;
+        readOnly: boolean;
+      }>
+    ) => void;
+    groupTearOff: (
+      tabId: string,
+      screenX: number,
+      screenY: number
+    ) => Promise<{ action: "created" | "failed"; groupId?: string }>;
+    groupMerge: (tabId: string, targetGroupId: string, insertIndex?: number) => Promise<boolean>;
+    groupGetInitData: () => Promise<{ tabId: string; groupId: string } | null>;
     // 自动更新相关
     checkForUpdates: () => Promise<any>;
     downloadUpdate: () => Promise<any>;
