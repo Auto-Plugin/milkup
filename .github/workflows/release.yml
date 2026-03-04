@@ -68,7 +68,7 @@ jobs:
       - name: Build application
         run: |
           echo "Building for ${{ matrix.platform }}-${{ matrix.arch }}"
-          pnpm run build && pnpm exec electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish=never
+          pnpm run generate-icons && pnpm run build && pnpm exec electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish=never
 
       - name: Compress win-unpacked to zip
         if: matrix.platform == 'win'
