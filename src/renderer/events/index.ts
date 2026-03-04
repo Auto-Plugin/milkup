@@ -28,6 +28,7 @@ type Events = {
   "update:available": { version: string; url: string; notes: string }; // Triggered when an update is available
   "sourceView:toggle": void; // Triggered when source view mode is toggled
   "sourceView:changed": boolean; // Triggered when source view mode state changes
+  "editor:reload": void; // Triggered when active editor should reload its internal ProseMirror instance
 } & Record<string, unknown>;
 
 const emitter = mitt<Events>();

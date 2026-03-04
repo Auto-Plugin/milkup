@@ -1,16 +1,12 @@
-import { ref } from 'vue'
-
-// 编辑器实例 key，用于触发编辑器重新渲染
-const editorKey = ref(0)
+import emitter from "@/renderer/events";
 
 export function useContext() {
-  // 重新加载编辑器（通过改变key强制重建）
+  // 重新加载编辑器（通知活跃的编辑器实例重建内部 ProseMirror 编辑器）
   function reloadEditor() {
-    editorKey.value += 1
+    emitter.emit("editor:reload");
   }
 
   return {
-    editorKey,
     reloadEditor,
-  }
+  };
 }

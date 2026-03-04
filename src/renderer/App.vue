@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import emitter from "@/renderer/events";
-import useContent from "@/renderer/hooks/useContent";
 import { useContext } from "@/renderer/hooks/useContext";
 import useFont from "@/renderer/hooks/useFont";
 import useOtherConfig from "@/renderer/hooks/useOtherConfig";
@@ -19,16 +18,16 @@ import TitleBar from "./components/menu/TitleBar.vue";
 import Outline from "./components/outline/Outline.vue";
 
 // ✅ 应用级事件协调器（仅负责事件监听和协调）
-const { editorKey } = useContext();
+useContext();
 
 // ✅ 直接使用各个hooks（而不是通过useContext转发）
-const { markdown } = useContent();
 const { init: initTheme } = useTheme();
 const { init: initFont } = useFont();
 const { init: initOtherConfig } = useOtherConfig();
 const { isShowSource } = useSourceCode(); // 用于控制大纲显示
 const { init: initSpellCheck } = useSpellCheck();
-const { currentTab, close, saveCurrentTab, getUnsavedTabs, switchToTab } = useTab();
+const { currentTab, tabs, activeTabId, close, saveCurrentTab, getUnsavedTabs, switchToTab } =
+  useTab();
 const {
   isDialogVisible,
   dialogType,
@@ -185,19 +184,25 @@ const handleInstall = async () => {
 <template>
   <TitleBar />
   <div id="fontRoot">
-    <!-- ✅ 使用key属性来重建编辑器，当editorKey变化时Vue会自动重建组件 -->
-    <div :key="editorKey" ref="editorAreaRef" class="editorArea" :class="outlineClass">
+    <!-- ✅ 多编辑器实例：每个 tab 拥有独立的编辑器，v-show 保持 DOM 存活 -->
+    <div ref="editorAreaRef" class="editorArea" :class="outlineClass">
       <div class="outlineBox">
         <Outline />
       </div>
       <div class="editorBox" @transitionend="onOutlineTransitionEnd">
-        <!-- Milkup 编辑器（新内核，支持源码模式） -->
-        <MilkupEditor v-model="markdown" :read-only="currentTab?.readOnly" />
+        <!-- Milkup 编辑器（每个 tab 独立实例） -->
+        <MilkupEditor
+          v-for="tab in tabs"
+          :key="tab.id"
+          v-show="tab.id === activeTabId"
+          :tab="tab"
+          :is-active="tab.id === activeTabId"
+        />
       </div>
     </div>
   </div>
   <StatusBar
-    :content="markdown"
+    :content="currentTab?.content ?? ''"
     :update-status="updateStatus"
     :download-progress="downloadProgress"
     :is-update-dialog-visible="isUpdateDialogVisible"

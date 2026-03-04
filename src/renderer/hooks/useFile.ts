@@ -420,9 +420,6 @@ export default function useFile() {
     // 注册拖拽事件
     window.addEventListener("dragover", handleDragOver);
     window.addEventListener("drop", handleDrop);
-
-    // 注册tab切换事件
-    emitter.on("tab:switch", tabSwitch);
   }
 
   return {

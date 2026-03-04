@@ -2,7 +2,9 @@
 /**
  * Milkup 编辑器 Vue 组件
  * 基于自研 ProseMirror 内核的即时渲染 Markdown 编辑器
+ * 每个 tab 拥有独立的编辑器实例（v-for + v-show 模式）
  */
+import type { Tab } from "@/types/tab";
 import { ref, onMounted, onUnmounted, watch, nextTick } from "vue";
 import {
   MilkupEditor,
@@ -16,24 +18,15 @@ import { AIService } from "@/renderer/services/ai";
 import { useAIConfig } from "@/renderer/hooks/useAIConfig";
 import { useConfig } from "@/renderer/hooks/useConfig";
 import emitter from "@/renderer/events";
-import useTab from "@/renderer/hooks/useTab";
 import "@/core/styles/milkup.css";
 
 interface Props {
-  modelValue: string;
-  readOnly?: boolean;
+  tab: Tab;
+  isActive: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  modelValue: "",
-  readOnly: false,
-});
+const props = defineProps<Props>();
 
-const emit = defineEmits<{
-  "update:modelValue": [value: string];
-}>();
-
-const { currentTab } = useTab();
 const { config: aiConfig, isEnabled: aiEnabled } = useAIConfig();
 const { config: appConfig, watchConf } = useConfig();
 
@@ -49,6 +42,16 @@ let editor: MilkupEditor | null = null;
 const lastEmittedValue = ref<string | null>(null);
 let isSourceViewToggling = false;
 
+// isNewlyLoaded 归一化清理定时器
+let newlyLoadedTimer: ReturnType<typeof setTimeout> | null = null;
+function scheduleNewlyLoadedCleanup() {
+  if (newlyLoadedTimer) clearTimeout(newlyLoadedTimer);
+  newlyLoadedTimer = setTimeout(() => {
+    newlyLoadedTimer = null;
+    props.tab.isNewlyLoaded = false;
+  }, 150);
+}
+
 // 更新滚动比例（rAF 节流）
 let scrollRafId: number | null = null;
 function updateScrollRatio(e: Event) {
@@ -59,9 +62,7 @@ function updateScrollRatio(e: Event) {
     const scrollTop = target.scrollTop;
     const scrollHeight = target.scrollHeight - target.clientHeight;
     const ratio = scrollHeight === 0 ? 0 : scrollTop / scrollHeight;
-    if (currentTab.value) {
-      currentTab.value.scrollRatio = ratio;
-    }
+    props.tab.scrollRatio = ratio;
   });
 }
 
@@ -98,7 +99,7 @@ function emitOutlineUpdate() {
   }
   outlineTimer = setTimeout(() => {
     outlineTimer = null;
-    if (!editor) return;
+    if (!editor || !props.isActive) return;
 
     const doc = editor.getDoc();
     const headings: Array<{ level: number; text: string; id: string; pos: number }> = [];
@@ -126,20 +127,20 @@ function emitOutlineUpdate() {
   }, 150);
 }
 
-onMounted(async () => {
+function createEditorInstance() {
   if (!containerRef.value) return;
 
-  await nextTick();
-
   // 设置全局文件路径供插件使用
-  (window as any).__currentFilePath = currentTab.value?.filePath || null;
+  if (props.isActive) {
+    (window as any).__currentFilePath = props.tab.filePath || null;
+  }
 
   // 预处理内容
-  const contentForRendering = preprocessContent(props.modelValue);
+  const contentForRendering = preprocessContent(props.tab.content);
 
   const config: MilkupConfig = {
     content: contentForRendering,
-    readonly: props.readOnly,
+    readonly: props.tab.readOnly,
     sourceView: false,
     placeholder: "写点什么吧...",
     pasteConfig: {
@@ -210,65 +211,88 @@ onMounted(async () => {
     if (isSourceViewToggling) return;
     const restoredMarkdown = postprocessContent(markdown);
     lastEmittedValue.value = restoredMarkdown;
-    emit("update:modelValue", restoredMarkdown);
+
+    // 直接写入 tab 对象
+    const tab = props.tab;
+    tab.content = restoredMarkdown;
+
+    if (tab.readOnly) {
+      tab.isModified = false;
+      return;
+    }
+
+    // 刚加载的 tab，吸收编辑器归一化产生的变化
+    if (tab.isNewlyLoaded) {
+      tab.originalContent = restoredMarkdown;
+      tab.isModified = false;
+      // 归一化每步都可能触发 change，重置定时器等待全部完成
+      scheduleNewlyLoadedCleanup();
+      return;
+    }
+
+    tab.isModified = restoredMarkdown !== tab.originalContent;
     emitOutlineUpdate();
   });
 
   // 监听选区变更
   editor.on("selectionChange", (data: { from: number; to: number }) => {
-    if (currentTab.value) {
-      currentTab.value.milkdownCursorOffset = data.from;
-      // 计算源码偏移量
-      const markdown = editor?.getMarkdown() || "";
-      currentTab.value.codeMirrorCursorOffset =
-        markdown.length > 0 ? Math.min(data.from, markdown.length) : 0;
-    }
+    props.tab.milkdownCursorOffset = data.from;
+    // 计算源码偏移量
+    const markdown = editor?.getMarkdown() || "";
+    props.tab.codeMirrorCursorOffset =
+      markdown.length > 0 ? Math.min(data.from, markdown.length) : 0;
   });
 
-  // 初始化大纲
-  emitOutlineUpdate();
+  // 初始化大纲（仅活跃编辑器）
+  if (props.isActive) {
+    emitOutlineUpdate();
+  }
 
   // 恢复光标位置
-  if (currentTab.value?.milkdownCursorOffset) {
-    editor.setCursorOffset(currentTab.value.milkdownCursorOffset);
+  if (props.tab.milkdownCursorOffset) {
+    editor.setCursorOffset(props.tab.milkdownCursorOffset);
   }
 
   // 恢复滚动位置
   nextTick(() => {
-    if (scrollViewRef.value && currentTab.value) {
-      const scrollRatio = currentTab.value.scrollRatio ?? 0;
+    if (scrollViewRef.value) {
+      const scrollRatio = props.tab.scrollRatio ?? 0;
       const targetScrollTop =
         scrollRatio * (scrollViewRef.value.scrollHeight - scrollViewRef.value.clientHeight);
       scrollViewRef.value.scrollTop = targetScrollTop;
     }
   });
+}
+
+onMounted(async () => {
+  if (!containerRef.value) return;
+  await nextTick();
+  createEditorInstance();
 });
 
 onUnmounted(() => {
   editor?.destroy();
   editor = null;
-  // 移除事件监听
+  if (newlyLoadedTimer) clearTimeout(newlyLoadedTimer);
+  if (outlineTimer) clearTimeout(outlineTimer);
   emitter.off("sourceView:toggle", handleSourceViewToggle);
   emitter.off("outline:scrollTo", handleOutlineScrollTo);
+  emitter.off("editor:reload", handleEditorReload);
 });
 
-// 处理源码模式切换事件
+// 处理源码模式切换事件（仅活跃编辑器响应）
 function handleSourceViewToggle() {
-  if (editor) {
-    isSourceViewToggling = true;
-    editor.toggleSourceView();
-    isSourceViewToggling = false;
-    // 通知状态变化
-    emitter.emit("sourceView:changed", editor.isSourceViewEnabled());
-  }
+  if (!props.isActive || !editor) return;
+  isSourceViewToggling = true;
+  editor.toggleSourceView();
+  isSourceViewToggling = false;
+  emitter.emit("sourceView:changed", editor.isSourceViewEnabled());
 }
-
-// 监听源码模式切换事件
 emitter.on("sourceView:toggle", handleSourceViewToggle);
 
-// 处理大纲点击滚动
+// 处理大纲点击滚动（仅活跃编辑器响应）
 function handleOutlineScrollTo(pos: unknown) {
-  if (!editor || typeof pos !== "number") return;
+  if (!props.isActive || !editor || typeof pos !== "number") return;
   const view = editor.view;
   const dom = view.domAtPos(pos + 1);
   if (dom.node) {
@@ -278,9 +302,22 @@ function handleOutlineScrollTo(pos: unknown) {
 }
 emitter.on("outline:scrollTo", handleOutlineScrollTo);
 
-// 监听 modelValue 变化
+// 处理编辑器重载事件（仅活跃编辑器响应）
+function handleEditorReload() {
+  if (!props.isActive || !containerRef.value) return;
+  editor?.destroy();
+  editor = null;
+  // 清空容器
+  if (containerRef.value) {
+    containerRef.value.innerHTML = "";
+  }
+  createEditorInstance();
+}
+emitter.on("editor:reload", handleEditorReload);
+
+// 监听 tab.content 变化（处理外部内容更新，如文件 watcher、useFile 打开文件等）
 watch(
-  () => props.modelValue,
+  () => props.tab.content,
   (newValue) => {
     if (newValue === lastEmittedValue.value) {
       return;
@@ -288,20 +325,17 @@ watch(
     if (editor && newValue !== undefined) {
       requestAnimationFrame(() => {
         // 更新全局文件路径
-        (window as any).__currentFilePath = currentTab.value?.filePath || null;
+        if (props.isActive) {
+          (window as any).__currentFilePath = props.tab.filePath || null;
+        }
 
         const contentForRendering = preprocessContent(newValue);
         editor?.setMarkdown(contentForRendering);
-        // 注意：不要在 setMarkdown 之后覆盖 lastEmittedValue。
-        // setMarkdown 会同步触发 change 事件，change handler 已经将
-        // lastEmittedValue 设置为序列化后的值。如果这里再覆盖为 newValue，
-        // 当序列化结果与 newValue 不同时（如引用块归一化），会导致 watch
-        // 守卫失效，触发无限循环。
 
         // 恢复滚动位置
         nextTick(() => {
-          if (scrollViewRef.value && currentTab.value) {
-            const scrollRatio = currentTab.value.scrollRatio ?? 0;
+          if (scrollViewRef.value) {
+            const scrollRatio = props.tab.scrollRatio ?? 0;
             const targetScrollTop =
               scrollRatio * (scrollViewRef.value.scrollHeight - scrollViewRef.value.clientHeight);
             scrollViewRef.value.scrollTop = targetScrollTop;
@@ -312,11 +346,26 @@ watch(
   }
 );
 
-// 监听 readOnly 变化
+// 监听 tab.readOnly 变化
 watch(
-  () => props.readOnly,
+  () => props.tab.readOnly,
   (newValue) => {
     editor?.updateConfig({ readonly: newValue });
+  }
+);
+
+// 监听 isActive 变化：激活时同步全局状态
+watch(
+  () => props.isActive,
+  (isActive) => {
+    if (isActive) {
+      // 更新全局文件路径
+      (window as any).__currentFilePath = props.tab.filePath || null;
+      // 发送大纲更新
+      emitOutlineUpdate();
+      // 通知源码模式状态
+      emitter.emit("sourceView:changed", editor?.isSourceViewEnabled() ?? false);
+    }
   }
 );
 

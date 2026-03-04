@@ -69,9 +69,6 @@ async function initFromTearOff(): Promise<boolean> {
       setCurrentMarkdownFilePath(tab.filePath);
     }
 
-    // 通知 useContent 同步内容（关键：无此步骤内容会为空）
-    emitter.emit("tab:switch", tab);
-
     return true;
   } catch (error) {
     console.error("[useTab] 初始化 tear-off 数据失败:", error);
@@ -359,7 +356,7 @@ function createNewTab(): Tab {
   return add(tab);
 }
 
-// 切换tab并同步内容
+// 切换tab（多编辑器实例模式：每个 tab 有独立编辑器，无需重建/同步内容）
 async function switchToTab(id: string) {
   const targetTab = tabs.value.find((tab) => tab.id === id);
   if (!targetTab) return;
@@ -373,17 +370,6 @@ async function switchToTab(id: string) {
   } else {
     setCurrentMarkdownFilePath(null);
   }
-
-  // 仅对未修改的 tab 标记为新加载，让编辑器首次输出捕获为 originalContent
-  // 已修改的 tab 必须保留 originalContent 和 isModified 状态，
-  // 编辑器归一化产生的微小变化不会影响 isModified 判断（因为内容本就与 originalContent 不同）
-  if (!targetTab.isModified) {
-    targetTab.isNewlyLoaded = true;
-    scheduleNewlyLoadedCleanup(targetTab.id);
-  }
-
-  // 触发内容更新事件
-  emitter.emit("tab:switch", targetTab);
 }
 
 // 计算属性
@@ -655,9 +641,6 @@ function handleTabMergeIn(tabData: TearOffTabData) {
   if (tab.filePath) {
     setCurrentMarkdownFilePath(tab.filePath);
   }
-
-  // 通知 useContent 同步内容
-  emitter.emit("tab:switch", tab);
 }
 window.electronAPI.on("tab:merge-in", handleTabMergeIn);
 
@@ -738,8 +721,6 @@ function handleTabMergePreview(tabData: TearOffTabData, screenX?: number, screen
   if (tab.filePath) {
     setCurrentMarkdownFilePath(tab.filePath);
   }
-
-  emitter.emit("tab:switch", tab);
 
   mergePreviewState = {
     tabId: tab.id,
