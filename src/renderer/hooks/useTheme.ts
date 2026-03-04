@@ -173,6 +173,10 @@ function setTheme(theme: ThemeName = currentTheme.value) {
 
   const html = document.documentElement;
 
+  // 清除启动脚本设置的内联样式，避免覆盖主题类中的 CSS 变量
+  html.style.removeProperty("--primary-color");
+  html.style.removeProperty("background");
+
   // 移除所有以 theme- 开头的类名
   const allClasses = Array.from(html.classList);
   const themeClasses = allClasses.filter((className) => className.startsWith("theme-"));

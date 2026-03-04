@@ -5,6 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>主题编辑器页面 - Milkup</title>
     <link rel="icon" type="image/x-icon" href="./favicon.ico">
+    <script>
+      ;(function () {
+        var theme = localStorage.getItem('theme-name') || 'normal'
+        var bgMap = {
+          normal: '#ffffff',
+          'normal-dark': '#3b4252',
+          crepe: '#fafbfc',
+          'crepe-dark': '#161b22',
+          frame: '#fbfbf2',
+          'frame-dark': '#383838',
+        }
+        var bg = bgMap[theme]
+        if (!bg) {
+          try {
+            var customs = JSON.parse(localStorage.getItem('custom-themes') || '[]')
+            for (var i = 0; i < customs.length; i++) {
+              if (customs[i].name === theme && customs[i].data && customs[i].data.appCssProperties) {
+                bg = customs[i].data.appCssProperties['--background-color-1']
+                break
+              }
+            }
+          } catch (e) {}
+        }
+        document.documentElement.style.background = bg || '#ffffff'
+        document.documentElement.classList.add('theme-' + theme)
+      })()
+    </script>
 </head>
 <body>
     <div id="theme-editor-app"></div>
