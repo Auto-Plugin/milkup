@@ -19,6 +19,10 @@ const ICONS = [
     // 裁剪掉阴影区域，只保留内容
     viewBox: "3 3 32 32",
   },
+  {
+    svg: join(ROOT, "src/renderer/public/file-icon.svg"),
+    output: join(ROOT, "src/assets/icons/file"),
+  },
 ];
 
 // ICO 包含的尺寸
