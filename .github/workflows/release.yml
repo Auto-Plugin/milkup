@@ -70,6 +70,11 @@ jobs:
           echo "Building for ${{ matrix.platform }}-${{ matrix.arch }}"
           pnpm run build && pnpm exec electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish=never
 
+      - name: Compress win-unpacked to zip
+        if: matrix.platform == 'win'
+        shell: pwsh
+        run: Compress-Archive -Path "dist/win-unpacked/*" -DestinationPath "dist/milkup-win-x64-unpacked.zip"
+
       - name: Upload artifacts (macOS x64)
         if: matrix.platform == 'mac' && matrix.arch == 'x64'
         uses: actions/upload-artifact@v4
@@ -100,6 +105,7 @@ jobs:
           path: |
             dist/milkup Setup *.exe
             dist/milkup Setup *.exe.blockmap
+            dist/milkup-win-x64-unpacked.zip
             dist/latest.yml
           retention-days: 5
 
@@ -113,6 +119,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -147,11 +156,12 @@ jobs:
           # Copy unique files to avoid duplicates
           find artifacts -name "*.dmg" -exec cp {} release_files/ \;
           find artifacts -name "*.exe" -exec cp {} release_files/ \;
+          find artifacts -name "*.zip" -exec cp {} release_files/ \;
           echo "=== Release files ==="
           ls -la release_files/
 
       - name: Create Release
-        run: pnpm run release
+        run: pnpm run release -- --assets "release_files/*"
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
 #      - name: Create Release
