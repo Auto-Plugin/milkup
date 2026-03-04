@@ -76,13 +76,93 @@ export function detectDarkTheme(): boolean {
 }
 
 /**
+ * 全局 mermaid 渲染队列，保证同一时刻只有一个 render 在执行
+ */
+let mermaidRenderQueue: Promise<void> = Promise.resolve();
+let mermaidIdCounter = 0;
+
+/**
  * 从当前 CSS 变量中生成 Mermaid 主题变量，实现与编辑器主题的精确适配
  */
+/**
+ * 将任意 CSS 颜色值解析为 [r, g, b]，解析失败返回 null
+ */
+function parseColorToRGB(color: string): [number, number, number] | null {
+  if (!color || color === "none" || color === "transparent" || color.startsWith("url("))
+    return null;
+  const s = color.trim().toLowerCase();
+
+  // #rgb / #rrggbb
+  const hexMatch = s.match(/^#([0-9a-f]{3,8})$/);
+  if (hexMatch) {
+    const h = hexMatch[1];
+    if (h.length === 3 || h.length === 4) {
+      return [parseInt(h[0] + h[0], 16), parseInt(h[1] + h[1], 16), parseInt(h[2] + h[2], 16)];
+    }
+    if (h.length >= 6) {
+      return [
+        parseInt(h.slice(0, 2), 16),
+        parseInt(h.slice(2, 4), 16),
+        parseInt(h.slice(4, 6), 16),
+      ];
+    }
+  }
+
+  // rgb(r, g, b) / rgba(r, g, b, a)
+  const rgbMatch = s.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  if (rgbMatch) {
+    return [parseInt(rgbMatch[1]), parseInt(rgbMatch[2]), parseInt(rgbMatch[3])];
+  }
+
+  return null;
+}
+
+/**
+ * 根据背景色亮度返回适合的文字颜色
+ */
+function contrastTextColor(color: string): string {
+  const rgb = parseColorToRGB(color);
+  if (!rgb) return "#ffffff";
+  const luminance = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
+  return luminance > 0.5 ? "#222222" : "#ffffff";
+}
+
+/**
+ * 渲染后修正：仅处理用户在图表语法中通过 style 自定义了 fill 的元素，
+ * 根据其实际背景色调整文本颜色。mermaid 主题自动派生的颜色不干预。
+ */
+function fixMermaidTextContrast(container: HTMLElement): void {
+  // 找所有有行内 style.fill 的形状（用户自定义颜色）
+  const shapes = container.querySelectorAll(
+    "rect[style], circle[style], polygon[style], path[style], ellipse[style]"
+  );
+
+  shapes.forEach((shape) => {
+    const el = shape as SVGElement;
+    // 只处理行内 style 中显式设置了 fill 的元素
+    if (!el.style.fill) return;
+    const rgb = parseColorToRGB(el.style.fill);
+    if (!rgb) return;
+
+    const textColor = contrastTextColor(el.style.fill);
+    const group = el.closest("g");
+    if (!group) return;
+
+    group.querySelectorAll(".nodeLabel, .label div").forEach((label) => {
+      (label as HTMLElement).style.color = textColor;
+    });
+    group.querySelectorAll("text").forEach((text) => {
+      text.setAttribute("fill", textColor);
+    });
+  });
+}
+
 function getMermaidThemeVariables(): Record<string, string> {
   const style = getComputedStyle(document.documentElement);
   const get = (prop: string) => style.getPropertyValue(prop).trim();
 
   const primaryColor = get("--primary-color");
+  const secondaryColor = get("--secondary-color");
   const backgroundColor = get("--background-color-1");
   const bgColor2 = get("--background-color-2");
   const bgColor3 = get("--background-color-3");
@@ -92,32 +172,98 @@ function getMermaidThemeVariables(): Record<string, string> {
 
   const isDark = detectDarkTheme();
 
+  // 文字色（primaryTextColor / secondaryTextColor / tertiaryTextColor）
+  // 不手动覆盖，交给 mermaid 根据 darkMode 自动从背景色推算对比色
+
   return {
+    // ---- 基色 ----
     primaryColor,
-    primaryTextColor: isDark ? textColor : backgroundColor,
     primaryBorderColor: borderColor,
-    lineColor: textColor2,
     secondaryColor: bgColor2,
+    secondaryBorderColor: borderColor,
     tertiaryColor: bgColor3,
+    tertiaryBorderColor: borderColor,
+    lineColor: textColor2,
+    textColor,
     background: backgroundColor,
-    mainBkg: backgroundColor,
+    mainBkg: isDark ? textColor2 : backgroundColor,
     nodeBorder: borderColor,
-    clusterBkg: bgColor2,
-    clusterBorder: borderColor,
     titleColor: textColor,
     edgeLabelBackground: backgroundColor,
-    textColor,
-    noteTextColor: textColor,
-    noteBkgColor: bgColor2,
-    noteBorderColor: borderColor,
+
+    // ---- Sequence ----
     actorBkg: backgroundColor,
     actorBorder: borderColor,
     actorTextColor: textColor,
-    signalColor: textColor,
-    signalTextColor: backgroundColor,
+    actorLineColor: textColor2,
+    signalColor: textColor2,
+    signalTextColor: textColor,
     labelBoxBkgColor: backgroundColor,
     labelBoxBorderColor: borderColor,
     labelTextColor: textColor,
+    loopTextColor: textColor,
+    activationBorderColor: borderColor,
+    activationBkgColor: bgColor2,
+
+    // ---- Note ----
+    noteBkgColor: bgColor2,
+    noteBorderColor: borderColor,
+
+    // ---- Cluster / Subgraph ----
+    clusterBkg: bgColor2,
+    clusterBorder: borderColor,
+
+    // ---- State Diagram ----
+    altBackground: bgColor2,
+
+    // ---- ER Diagram ----
+    attributeBackgroundColorEven: backgroundColor,
+    attributeBackgroundColorOdd: bgColor2,
+
+    // ---- Pie Chart ----
+    pie1: primaryColor,
+    pie2: secondaryColor || bgColor2,
+    pie3: bgColor3,
+    pie4: textColor2,
+    pieTitleTextColor: textColor,
+    pieLegendTextColor: textColor,
+    pieStrokeColor: borderColor,
+    pieOuterStrokeColor: borderColor,
+    pieOpacity: "0.9",
+
+    // ---- Gantt ----
+    gridColor: borderColor,
+    todayLineColor: primaryColor,
+    taskTextOutsideColor: textColor,
+    taskTextClickableColor: primaryColor,
+    activeTaskBkgColor: primaryColor,
+    activeTaskBorderColor: borderColor,
+    doneTaskBkgColor: bgColor3,
+    doneTaskBorderColor: borderColor,
+    critBkgColor: isDark ? "#bf616a" : "#d08770",
+    critBorderColor: isDark ? "#bf616a" : "#d08770",
+    sectionBkgColor: bgColor2,
+    sectionBkgColor2: bgColor3,
+    taskBkgColor: bgColor2,
+    taskBorderColor: borderColor,
+
+    // ---- Git Graph ----
+    git0: primaryColor,
+    git1: secondaryColor || bgColor2,
+    git2: bgColor3,
+    git3: textColor2,
+    gitInv0: backgroundColor,
+    commitLabelColor: textColor,
+    commitLabelBackground: backgroundColor,
+    tagLabelColor: textColor,
+    tagLabelBackground: bgColor2,
+    tagLabelBorder: borderColor,
+
+    // ---- Journey ----
+    fillType0: primaryColor,
+    fillType1: bgColor2,
+    fillType2: bgColor3,
+    fillType3: textColor2,
   };
 }
 
@@ -1046,6 +1192,8 @@ export class CodeBlockView implements NodeView {
           this.updateTheme(isDark);
           // 更新 Mermaid 预览
           if (this.node.attrs.language === "mermaid" && this.mermaidPreview) {
+            // 先清空旧内容，避免新旧 SVG 层叠
+            this.mermaidPreview.innerHTML = "";
             this.createMermaidPreview(this.cm.state.doc.toString());
           }
         }
@@ -1191,23 +1339,32 @@ export class CodeBlockView implements NodeView {
       this.dom.appendChild(this.mermaidPreview);
     }
 
-    try {
-      const mermaid = await import("mermaid");
-      const isDark = detectDarkTheme();
+    const preview = this.mermaidPreview;
 
-      mermaid.default.initialize({
-        startOnLoad: false,
-        darkMode: isDark,
-        theme: "base",
-        themeVariables: getMermaidThemeVariables(),
-      });
+    // 排队执行，避免多个 mermaid 块同时 render 互相干扰
+    mermaidRenderQueue = mermaidRenderQueue.then(async () => {
+      try {
+        const mermaid = await import("mermaid");
+        const isDark = detectDarkTheme();
 
-      const { svg } = await mermaid.default.render(`mermaid-${Date.now()}`, content);
-      this.mermaidPreview.innerHTML = svg;
-    } catch (error) {
-      this.mermaidPreview.innerHTML = `<div class="milkup-mermaid-error">Mermaid 渲染错误</div>`;
-    }
+        mermaid.default.initialize({
+          startOnLoad: false,
+          darkMode: isDark,
+          theme: "base",
+          themeVariables: getMermaidThemeVariables(),
+        });
 
+        const renderId = `mermaid-${++mermaidIdCounter}`;
+        const { svg } = await mermaid.default.render(renderId, content);
+        preview.innerHTML = svg;
+        // 根据实际背景色修正文本颜色
+        fixMermaidTextContrast(preview);
+      } catch (error) {
+        preview.innerHTML = `<div class="milkup-mermaid-error">Mermaid 渲染错误</div>`;
+      }
+    });
+
+    await mermaidRenderQueue;
     this.updateMermaidDisplay();
   }
 

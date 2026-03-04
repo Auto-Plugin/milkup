@@ -132,6 +132,7 @@ export class MilkupEditor implements IMilkupEditor {
   private searchUseRegex = false;
   private searchInSelection = false;
   private searchSelectionRange: { from: number; to: number } | null = null;
+  private containerKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
   private _destroyed = false;
 
   constructor(container: HTMLElement, config: MilkupConfig = {}) {
@@ -365,6 +366,10 @@ export class MilkupEditor implements IMilkupEditor {
     this.linkTooltip = null;
 
     // 清理搜索面板
+    if (this.containerKeydownHandler) {
+      this.view.dom.parentElement?.removeEventListener("keydown", this.containerKeydownHandler);
+      this.containerKeydownHandler = null;
+    }
     this.searchWrapper?.remove();
     this.searchWrapper = null;
     this.searchPanel = null;
@@ -1351,18 +1356,45 @@ export class MilkupEditor implements IMilkupEditor {
     this.searchInput = searchInput;
     this.replaceRow = replaceRow;
     this.matchCountSpan = matchCount;
+
+    // 在容器上监听快捷键，确保只读模式下也能打开搜索
+    // 设置 tabindex 使容器在只读模式下仍可聚焦接收键盘事件
+    if (!container.hasAttribute("tabindex")) {
+      container.setAttribute("tabindex", "-1");
+    }
+    this.containerKeydownHandler = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key === "f") {
+        e.preventDefault();
+        this.openSearch(false);
+      } else if (mod && e.key === "h") {
+        e.preventDefault();
+        this.openSearch(true);
+      }
+    };
+    container.addEventListener("keydown", this.containerKeydownHandler);
   }
 
   /** 打开搜索面板 */
   openSearch(showReplace: boolean): void {
     if (!this.searchWrapper || !this.searchInput) return;
 
+    const isReadonly = this.config.readonly;
+
     this.searchWrapper.classList.add("visible");
 
-    if (showReplace) {
-      this.replaceRow?.classList.remove("hidden");
-      const toggleBtn = this.searchPanel?.querySelector(".toggle-replace svg");
-      if (toggleBtn) toggleBtn.innerHTML = '<path d="M4 6l4 4 4-4z"/>';
+    // 只读模式下隐藏替换行和展开按钮
+    const toggleBtn = this.searchPanel?.querySelector(".toggle-replace") as HTMLElement | null;
+    if (isReadonly) {
+      this.replaceRow?.classList.add("hidden");
+      if (toggleBtn) toggleBtn.style.visibility = "hidden";
+    } else {
+      if (toggleBtn) toggleBtn.style.visibility = "";
+      if (showReplace) {
+        this.replaceRow?.classList.remove("hidden");
+        const toggleSvg = toggleBtn?.querySelector("svg");
+        if (toggleSvg) toggleSvg.innerHTML = '<path d="M4 6l4 4 4-4z"/>';
+      }
     }
 
     // 如有选中文本，填入搜索框
