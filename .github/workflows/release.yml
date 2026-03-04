@@ -164,6 +164,60 @@ jobs:
         run: pnpm run release -- --assets "release_files/*"
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Fix author mentions in release
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          REPO="${GITHUB_REPOSITORY}"
+
+          # 获取上一个 tag
+          PREV_TAG=$(git tag --sort=-creatordate | grep -v "^${TAG}$" | head -1)
+          if [ -z "$PREV_TAG" ]; then
+            echo "No previous tag found, skipping"
+            exit 0
+          fi
+
+          echo "Comparing $PREV_TAG...$TAG"
+
+          # 通过 GitHub API 获取两个 tag 之间的提交，提取 author name -> login 映射
+          COMPARE_DATA=$(gh api "repos/${REPO}/compare/${PREV_TAG}...${TAG}" --jq '.commits[] | select(.author != null) | "\(.commit.author.name)=\(.author.login)"' 2>/dev/null || true)
+
+          if [ -z "$COMPARE_DATA" ]; then
+            echo "No commit data or no linked GitHub accounts, skipping"
+            exit 0
+          fi
+
+          # 获取当前 release body
+          RELEASE_BODY=$(gh release view "$TAG" --json body --jq '.body' 2>/dev/null || true)
+          if [ -z "$RELEASE_BODY" ]; then
+            echo "Release body is empty, skipping"
+            exit 0
+          fi
+
+          # 用 node 替换 @AuthorName 为 @github-login
+          UPDATED_BODY=$(node -e "
+            const mappings = process.env.COMPARE_DATA.split('\n').filter(Boolean);
+            const nameToLogin = {};
+            for (const m of mappings) {
+              const [name, login] = m.split('=');
+              if (name && login) nameToLogin[name] = login;
+            }
+            let body = process.env.RELEASE_BODY;
+            for (const [name, login] of Object.entries(nameToLogin)) {
+              // 替换 **@Name** 或 @Name 格式
+              body = body.replace(new RegExp('@' + name.replace(/[.*+?^\${}()|[\\]\\\\]/g, '\\\\\\$&'), 'g'), '@' + login);
+            }
+            process.stdout.write(body);
+          ")
+
+          if [ "$UPDATED_BODY" != "$RELEASE_BODY" ]; then
+            echo "Updating release with corrected author mentions"
+            gh release edit "$TAG" --notes "$UPDATED_BODY"
+          else
+            echo "No author mentions to fix"
+          fi
 #      - name: Create Release
 #        uses: softprops/action-gh-release@v1
 #        with:
