@@ -26,6 +26,7 @@ import { html } from "@codemirror/lang-html";
 import { css } from "@codemirror/lang-css";
 import { json } from "@codemirror/lang-json";
 import { markdown } from "@codemirror/lang-markdown";
+import { go } from "@codemirror/lang-go";
 import { sourceViewManager } from "../decorations";
 import { searchPluginKey } from "../plugins/search";
 
@@ -323,6 +324,8 @@ const languageExtensions: Record<string, () => any> = {
   json: json,
   markdown: markdown,
   md: markdown,
+  go: go,
+  golang: go,
 };
 
 /** 语言别名映射（用于显示） */
@@ -348,6 +351,7 @@ const supportedLanguages = [
   { value: "bash", label: "Bash" },
   { value: "yaml", label: "YAML" },
   { value: "xml", label: "XML" },
+  { value: "go", label: "Go" },
 ];
 
 /** Mermaid 显示模式选项 */
