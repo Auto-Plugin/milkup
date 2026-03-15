@@ -38,8 +38,26 @@ export default function createMenu() {
     {
       label: "编辑",
       submenu: [
-        { label: "撤销", accelerator: "CmdOrCtrl+Z", role: "undo" },
-        { label: "重做", accelerator: "Shift+CmdOrCtrl+Z", role: "redo" },
+        // 撤销/重做由 ProseMirror 的 history 插件通过 keymap 处理（每个编辑器实例独立）
+        // 不使用 Electron 的 role: "undo"/"redo"，否则会调用浏览器原生撤销，
+        // 在多 Tab（v-show）模式下可能影响非当前文档
+        // registerAccelerator: false 仅在菜单中显示快捷键，不实际注册，让按键事件传到渲染进程
+        {
+          label: "撤销",
+          accelerator: "CmdOrCtrl+Z",
+          registerAccelerator: false,
+          click: () => {
+            getFocusedWindow()?.webContents.send("editor:undo");
+          },
+        },
+        {
+          label: "重做",
+          accelerator: "Shift+CmdOrCtrl+Z",
+          registerAccelerator: false,
+          click: () => {
+            getFocusedWindow()?.webContents.send("editor:redo");
+          },
+        },
         { label: "剪切", accelerator: "CmdOrCtrl+X", role: "cut" },
         { label: "复制", accelerator: "CmdOrCtrl+C", role: "copy" },
         { label: "粘贴", accelerator: "CmdOrCtrl+V", role: "paste" },

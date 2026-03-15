@@ -13,6 +13,7 @@ import {
   type ImagePasteMethod,
   setGlobalMermaidDefaultMode,
 } from "@/core";
+import { undo, redo } from "prosemirror-history";
 import { uploadImage } from "@/renderer/services/api";
 import { AIService } from "@/renderer/services/ai";
 import { useAIConfig } from "@/renderer/hooks/useAIConfig";
@@ -278,6 +279,8 @@ onUnmounted(() => {
   emitter.off("sourceView:toggle", handleSourceViewToggle);
   emitter.off("outline:scrollTo", handleOutlineScrollTo);
   emitter.off("editor:reload", handleEditorReload);
+  window.electronAPI.removeListener?.("editor:undo", handleMenuUndo);
+  window.electronAPI.removeListener?.("editor:redo", handleMenuRedo);
 });
 
 // 处理源码模式切换事件（仅活跃编辑器响应）
@@ -301,6 +304,20 @@ function handleOutlineScrollTo(pos: unknown) {
   }
 }
 emitter.on("outline:scrollTo", handleOutlineScrollTo);
+
+// 处理菜单栏的撤销/重做（仅活跃编辑器响应）
+function handleMenuUndo() {
+  if (!props.isActive || !editor) return;
+  const view = editor.view;
+  undo(view.state, view.dispatch.bind(view));
+}
+function handleMenuRedo() {
+  if (!props.isActive || !editor) return;
+  const view = editor.view;
+  redo(view.state, view.dispatch.bind(view));
+}
+window.electronAPI.on?.("editor:undo", handleMenuUndo);
+window.electronAPI.on?.("editor:redo", handleMenuRedo);
 
 // 处理编辑器重载事件（仅活跃编辑器响应）
 function handleEditorReload() {
