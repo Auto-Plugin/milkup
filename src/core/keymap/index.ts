@@ -120,8 +120,55 @@ function createListKeymap(schema: Schema): Record<string, any> {
 
       const parent = $from.parent;
 
-      // 检查是否在源码模式下的代码块段落中
+      // 检查是否在源码模式下
       const decorationState = decorationPluginKey.getState(state);
+
+      // 源码模式下的列表段落 Enter 处理
+      if (decorationState?.sourceView && parent.type.name === "paragraph" && parent.attrs.listId) {
+        if (dispatch) {
+          const listId = parent.attrs.listId;
+          const listLineIndex = parent.attrs.listLineIndex;
+          const listTotalLines = parent.attrs.listTotalLines;
+          const tr = state.tr.split($from.pos);
+
+          // split 后两个段落都继承了原始属性（相同的 listLineIndex）
+          // 需要更新：第二个段落 listLineIndex+1，后续段落 listLineIndex+1，所有段落 listTotalLines+1
+          let foundSplit = false;
+          tr.doc.descendants((node: any, pos: number) => {
+            if (node.type.name === "paragraph" && node.attrs.listId === listId) {
+              if (node.attrs.listLineIndex === listLineIndex && !foundSplit) {
+                foundSplit = true;
+                tr.setNodeMarkup(pos, null, {
+                  ...node.attrs,
+                  listTotalLines: listTotalLines + 1,
+                });
+              } else if (node.attrs.listLineIndex === listLineIndex && foundSplit) {
+                tr.setNodeMarkup(pos, null, {
+                  ...node.attrs,
+                  listLineIndex: listLineIndex + 1,
+                  listTotalLines: listTotalLines + 1,
+                });
+              } else if (node.attrs.listLineIndex > listLineIndex) {
+                tr.setNodeMarkup(pos, null, {
+                  ...node.attrs,
+                  listLineIndex: node.attrs.listLineIndex + 1,
+                  listTotalLines: listTotalLines + 1,
+                });
+              } else {
+                tr.setNodeMarkup(pos, null, {
+                  ...node.attrs,
+                  listTotalLines: listTotalLines + 1,
+                });
+              }
+            }
+          });
+
+          dispatch(tr);
+        }
+        return true;
+      }
+
+      // 源码模式下的代码块段落 Enter 处理
       if (
         decorationState?.sourceView &&
         parent.type.name === "paragraph" &&

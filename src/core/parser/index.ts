@@ -909,8 +909,13 @@ export class MarkdownParser {
           // 检查空行后面是否还有缩进内容
           if (!inCodeBlock && itemEndIndex + 1 < lines.length) {
             const afterEmpty = lines[itemEndIndex + 1];
-            // 如果后面是新的列表项或没有缩进，则结束
-            if (BLOCK_PATTERNS.bullet_list.test(afterEmpty) || !afterEmpty.match(/^\s{2,}/)) {
+            // 如果后面是同级/上级列表项或没有缩进，则结束
+            const afterBulletMatch = afterEmpty.match(BLOCK_PATTERNS.bullet_list);
+            if (afterBulletMatch) {
+              if (afterBulletMatch[1].length < itemIndent) {
+                break;
+              }
+            } else if (!afterEmpty.match(/^\s{2,}/)) {
               break;
             }
           }
@@ -919,9 +924,13 @@ export class MarkdownParser {
           continue;
         }
 
-        // 检查是否是新的列表项（代码块内部不检查）
-        if (!inCodeBlock && BLOCK_PATTERNS.bullet_list.test(nextLine)) {
-          break;
+        // 检查是否是同级/上级的新列表项（代码块内部不检查）
+        // 嵌套的列表项（缩进 >= itemIndent）不中断，作为子内容收集
+        if (!inCodeBlock) {
+          const nextBulletMatch = nextLine.match(BLOCK_PATTERNS.bullet_list);
+          if (nextBulletMatch && nextBulletMatch[1].length < itemIndent) {
+            break;
+          }
         }
 
         // 检查是否有足够的缩进
@@ -1027,7 +1036,13 @@ export class MarkdownParser {
         if (nextLine.trim() === "") {
           if (!inCodeBlock && itemEndIndex + 1 < lines.length) {
             const afterEmpty = lines[itemEndIndex + 1];
-            if (BLOCK_PATTERNS.ordered_list.test(afterEmpty) || !afterEmpty.match(/^\s{2,}/)) {
+            // 如果后面是同级/上级列表项或没有缩进，则结束
+            const afterOrderedMatch = afterEmpty.match(BLOCK_PATTERNS.ordered_list);
+            if (afterOrderedMatch) {
+              if (afterOrderedMatch[1].length < itemIndent) {
+                break;
+              }
+            } else if (!afterEmpty.match(/^\s{2,}/)) {
               break;
             }
           }
@@ -1036,8 +1051,13 @@ export class MarkdownParser {
           continue;
         }
 
-        if (!inCodeBlock && BLOCK_PATTERNS.ordered_list.test(nextLine)) {
-          break;
+        // 检查是否是同级/上级的新列表项（代码块内部不检查）
+        // 嵌套的列表项（缩进 >= itemIndent）不中断，作为子内容收集
+        if (!inCodeBlock) {
+          const nextOrderedMatch = nextLine.match(BLOCK_PATTERNS.ordered_list);
+          if (nextOrderedMatch && nextOrderedMatch[1].length < itemIndent) {
+            break;
+          }
         }
 
         const lineIndent = nextLine.match(/^(\s*)/)?.[1].length || 0;

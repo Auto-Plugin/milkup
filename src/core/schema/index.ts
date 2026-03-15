@@ -38,6 +38,10 @@ const paragraph: NodeSpec = {
     mathBlockId: { default: null },
     mathBlockLineIndex: { default: null },
     mathBlockTotalLines: { default: null },
+    // 列表相关属性（仅在源码模式下使用）
+    listId: { default: null },
+    listLineIndex: { default: null },
+    listTotalLines: { default: null },
   },
   content: "inline*",
   group: "block",
@@ -76,6 +80,12 @@ const paragraph: NodeSpec = {
       attrs["data-math-block-id"] = node.attrs.mathBlockId;
       attrs["data-math-block-line-index"] = node.attrs.mathBlockLineIndex;
       attrs["data-math-block-total-lines"] = node.attrs.mathBlockTotalLines;
+    }
+    // 如果是列表段落，添加数据属性
+    if (node.attrs.listId) {
+      attrs["data-list-id"] = node.attrs.listId;
+      attrs["data-list-line-index"] = node.attrs.listLineIndex;
+      attrs["data-list-total-lines"] = node.attrs.listTotalLines;
     }
     return ["p", attrs, 0];
   },

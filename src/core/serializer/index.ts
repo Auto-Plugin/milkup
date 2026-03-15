@@ -95,6 +95,12 @@ export class MarkdownSerializer {
         lines.push(indent + text);
         const isLastLine = node.attrs.mathBlockLineIndex === node.attrs.mathBlockTotalLines - 1;
         if (isLastLine && !this.options.compact) lines.push("");
+      } else if (node.attrs.listId) {
+        // 对于列表段落，直接输出文本内容（包含列表标记）
+        const text = node.textContent;
+        lines.push(indent + text);
+        const isLastLine = node.attrs.listLineIndex === node.attrs.listTotalLines - 1;
+        if (isLastLine && !this.options.compact) lines.push("");
       } else {
         const text = this.serializeInline(node);
         lines.push(indent + text);
@@ -285,12 +291,15 @@ export class MarkdownSerializer {
     const innerLines: string[] = [];
     this.serializeFragment(item.content, innerLines, "");
 
+    // 续行缩进需要与标记宽度对齐，例如 "- " = 2, "1. " = 3, "10. " = 4
+    const continuationIndent = marker.length + 1;
+
     for (let i = 0; i < innerLines.length; i++) {
       const line = innerLines[i];
       if (i === 0) {
         lines.push(indent + marker + " " + line);
       } else if (line !== "") {
-        lines.push(indent + " ".repeat(this.options.listIndent!) + line);
+        lines.push(indent + " ".repeat(continuationIndent) + line);
       }
     }
   }

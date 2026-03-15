@@ -10,6 +10,7 @@ import { Node as ProseMirrorNode, Schema, Fragment, Slice } from "prosemirror-mo
 import { ReplaceStep } from "prosemirror-transform";
 import { decorationPluginKey } from "../decorations";
 import { parseMarkdown } from "../parser";
+import { MarkdownSerializer } from "../serializer";
 
 /** 插件 Key */
 export const sourceViewTransformPluginKey = new PluginKey("milkup-source-view-transform");
@@ -393,6 +394,68 @@ function transformParagraphsToMathBlock(
 }
 
 /**
+ * 生成唯一的列表 ID
+ */
+function generateListId(): string {
+  return `li_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+/**
+ * 将列表节点转换为多个段落节点
+ */
+function transformListToParagraphs(list: ProseMirrorNode, schema: Schema): ProseMirrorNode[] {
+  const listId = generateListId();
+
+  // 使用序列化器将列表转换为 Markdown 文本
+  const serializer = new MarkdownSerializer({ compact: true });
+  const tempDoc = schema.nodes.doc.create(null, [list]);
+  const markdown = serializer.serialize(tempDoc);
+
+  // 移除末尾换行符
+  const content = markdown.replace(/\n+$/, "");
+  const lines = content.split("\n");
+
+  const paragraphs: ProseMirrorNode[] = [];
+  lines.forEach((line, index) => {
+    const textContent = line.length > 0 ? schema.text(line) : undefined;
+    const paragraph = schema.nodes.paragraph.create(
+      {
+        listId,
+        listLineIndex: index,
+        listTotalLines: lines.length,
+      },
+      textContent
+    );
+    paragraphs.push(paragraph);
+  });
+
+  return paragraphs;
+}
+
+/**
+ * 将连续的列表段落节点重新组合成列表
+ */
+function transformParagraphsToList(
+  paragraphs: Array<{ node: ProseMirrorNode; pos: number }>,
+  schema: Schema
+): ProseMirrorNode[] | null {
+  if (paragraphs.length === 0) return null;
+
+  const lines = paragraphs.map((p) => p.node.textContent);
+  const listMarkdown = lines.join("\n");
+
+  // 使用解析器重新解析列表
+  const result = parseMarkdown(listMarkdown);
+  const nodes: ProseMirrorNode[] = [];
+
+  result.doc.forEach((node) => {
+    nodes.push(node);
+  });
+
+  return nodes.length > 0 ? nodes : null;
+}
+
+/**
  * 递归处理节点，将块级元素转换为段落（用于进入源码模式）
  */
 function processNodeForSourceConversion(
@@ -411,6 +474,12 @@ function processNodeForSourceConversion(
     return transformHtmlBlockToParagraphs(node, schema);
   } else if (node.type.name === "math_block") {
     return transformMathBlockToParagraphs(node, schema);
+  } else if (
+    node.type.name === "bullet_list" ||
+    node.type.name === "ordered_list" ||
+    node.type.name === "task_list"
+  ) {
+    return transformListToParagraphs(node, schema);
   }
 
   // 递归处理子节点
@@ -486,6 +555,8 @@ function processNodeForBlockConversion(
     let currentHtmlBlockId: string | null = null;
     let mathBlockGroup: ProseMirrorNode[] = [];
     let currentMathBlockId: string | null = null;
+    let listGroup: ProseMirrorNode[] = [];
+    let currentListId: string | null = null;
 
     const flushCodeBlockGroup = () => {
       if (codeBlockGroup.length === 0) return;
@@ -539,18 +610,33 @@ function processNodeForBlockConversion(
       currentMathBlockId = null;
     };
 
+    const flushListGroup = () => {
+      if (listGroup.length === 0) return;
+      const paragraphs = listGroup.map((n) => ({ node: n, pos: 0 }));
+      const result = transformParagraphsToList(paragraphs, schema);
+      if (result) {
+        newChildren.push(...result);
+      } else {
+        newChildren.push(...listGroup);
+      }
+      listGroup = [];
+      currentListId = null;
+    };
+
     node.content.forEach((child) => {
       if (child.type.name === "paragraph") {
         const codeBlockId = child.attrs.codeBlockId;
         const tableId = child.attrs.tableId;
         const htmlBlockId = child.attrs.htmlBlockId;
         const mathBlockId = child.attrs.mathBlockId;
+        const listId = child.attrs.listId;
 
         if (codeBlockId) {
           // 代码块段落
           flushTableGroup();
           flushHtmlBlockGroup();
           flushMathBlockGroup();
+          flushListGroup();
           if (currentCodeBlockId && currentCodeBlockId !== codeBlockId) {
             flushCodeBlockGroup();
           }
@@ -564,6 +650,7 @@ function processNodeForBlockConversion(
           flushCodeBlockGroup();
           flushHtmlBlockGroup();
           flushMathBlockGroup();
+          flushListGroup();
           if (currentTableId && currentTableId !== tableId) {
             flushTableGroup();
           }
@@ -577,6 +664,7 @@ function processNodeForBlockConversion(
           flushCodeBlockGroup();
           flushTableGroup();
           flushMathBlockGroup();
+          flushListGroup();
           if (currentHtmlBlockId && currentHtmlBlockId !== htmlBlockId) {
             flushHtmlBlockGroup();
           }
@@ -590,6 +678,7 @@ function processNodeForBlockConversion(
           flushCodeBlockGroup();
           flushTableGroup();
           flushHtmlBlockGroup();
+          flushListGroup();
           if (currentMathBlockId && currentMathBlockId !== mathBlockId) {
             flushMathBlockGroup();
           }
@@ -598,11 +687,26 @@ function processNodeForBlockConversion(
           return;
         }
 
+        if (listId) {
+          // 列表段落
+          flushCodeBlockGroup();
+          flushTableGroup();
+          flushHtmlBlockGroup();
+          flushMathBlockGroup();
+          if (currentListId && currentListId !== listId) {
+            flushListGroup();
+          }
+          currentListId = listId;
+          listGroup.push(child);
+          return;
+        }
+
         // 非特殊段落，先刷新之前的组
         flushCodeBlockGroup();
         flushTableGroup();
         flushHtmlBlockGroup();
         flushMathBlockGroup();
+        flushListGroup();
 
         if (child.attrs.imageAttrs) {
           const image = transformParagraphToImage(child, schema);
@@ -618,6 +722,7 @@ function processNodeForBlockConversion(
         flushTableGroup();
         flushHtmlBlockGroup();
         flushMathBlockGroup();
+        flushListGroup();
         // 递归处理子节点
         const processed = processNodeForBlockConversion(child, schema);
         if (Array.isArray(processed)) {
@@ -633,6 +738,7 @@ function processNodeForBlockConversion(
     flushTableGroup();
     flushHtmlBlockGroup();
     flushMathBlockGroup();
+    flushListGroup();
 
     // 如果内容有变化，创建新节点
     const newContent = Fragment.from(newChildren);
@@ -665,6 +771,9 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
   // 收集数学公式块段落组
   let mathBlockGroup: ProseMirrorNode[] = [];
   let currentMathBlockId: string | null = null;
+  // 收集列表段落组
+  let listGroup: ProseMirrorNode[] = [];
+  let currentListId: string | null = null;
 
   const flushCodeBlockGroup = () => {
     if (codeBlockGroup.length === 0) return;
@@ -719,18 +828,33 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
     currentMathBlockId = null;
   };
 
+  const flushListGroup = () => {
+    if (listGroup.length === 0) return;
+    const paragraphs = listGroup.map((node) => ({ node, pos: 0 }));
+    const result = transformParagraphsToList(paragraphs, schema);
+    if (result) {
+      newContent.push(...result);
+    } else {
+      newContent.push(...listGroup);
+    }
+    listGroup = [];
+    currentListId = null;
+  };
+
   doc.forEach((node) => {
     if (node.type.name === "paragraph") {
       const codeBlockId = node.attrs.codeBlockId;
       const tableId = node.attrs.tableId;
       const htmlBlockId = node.attrs.htmlBlockId;
       const mathBlockId = node.attrs.mathBlockId;
+      const listId = node.attrs.listId;
 
       if (codeBlockId) {
         // 代码块段落
         flushTableGroup();
         flushHtmlBlockGroup();
         flushMathBlockGroup();
+        flushListGroup();
         if (currentCodeBlockId && currentCodeBlockId !== codeBlockId) {
           flushCodeBlockGroup();
         }
@@ -744,6 +868,7 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
         flushCodeBlockGroup();
         flushHtmlBlockGroup();
         flushMathBlockGroup();
+        flushListGroup();
         if (currentTableId && currentTableId !== tableId) {
           flushTableGroup();
         }
@@ -757,6 +882,7 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
         flushCodeBlockGroup();
         flushTableGroup();
         flushMathBlockGroup();
+        flushListGroup();
         if (currentHtmlBlockId && currentHtmlBlockId !== htmlBlockId) {
           flushHtmlBlockGroup();
         }
@@ -770,6 +896,7 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
         flushCodeBlockGroup();
         flushTableGroup();
         flushHtmlBlockGroup();
+        flushListGroup();
         if (currentMathBlockId && currentMathBlockId !== mathBlockId) {
           flushMathBlockGroup();
         }
@@ -778,11 +905,26 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
         return;
       }
 
+      if (listId) {
+        // 列表段落
+        flushCodeBlockGroup();
+        flushTableGroup();
+        flushHtmlBlockGroup();
+        flushMathBlockGroup();
+        if (currentListId && currentListId !== listId) {
+          flushListGroup();
+        }
+        currentListId = listId;
+        listGroup.push(node);
+        return;
+      }
+
       // 非特殊段落，先刷新之前的组
       flushCodeBlockGroup();
       flushTableGroup();
       flushHtmlBlockGroup();
       flushMathBlockGroup();
+      flushListGroup();
 
       if (node.attrs.imageAttrs) {
         // 图片段落
@@ -800,6 +942,7 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
       flushTableGroup();
       flushHtmlBlockGroup();
       flushMathBlockGroup();
+      flushListGroup();
       // 递归处理子节点
       const processed = processNodeForBlockConversion(node, schema);
       if (Array.isArray(processed)) {
@@ -815,6 +958,7 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
   flushTableGroup();
   flushHtmlBlockGroup();
   flushMathBlockGroup();
+  flushListGroup();
 
   if (newContent.length > 0) {
     const step = new ReplaceStep(0, doc.content.size, new Slice(Fragment.from(newContent), 0, 0));
@@ -868,7 +1012,10 @@ export function createSourceViewTransformPlugin(): Plugin {
             node.type.name === "horizontal_rule" ||
             node.type.name === "table" ||
             node.type.name === "html_block" ||
-            node.type.name === "math_block"
+            node.type.name === "math_block" ||
+            node.type.name === "bullet_list" ||
+            node.type.name === "ordered_list" ||
+            node.type.name === "task_list"
           ) {
             hasBlocks = true;
           }
