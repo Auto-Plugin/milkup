@@ -294,9 +294,34 @@ function createListKeymap(schema: Schema): Record<string, any> {
   };
 
   // Tab 和 Shift-Tab 操作
-  if (schema.nodes.list_item) {
-    keys["Tab"] = sinkListItem(schema.nodes.list_item);
-    keys["Shift-Tab"] = liftListItem(schema.nodes.list_item);
+  {
+    const sinkList = schema.nodes.list_item ? sinkListItem(schema.nodes.list_item) : null;
+    const liftList = schema.nodes.list_item ? liftListItem(schema.nodes.list_item) : null;
+
+    keys["Tab"] = (state: any, dispatch: any) => {
+      // 优先尝试列表缩进
+      if (sinkList && sinkList(state, dispatch)) {
+        return true;
+      }
+      // 非列表上下文：通过 execCommand 插入两个空格，走正常输入管道
+      document.execCommand("insertText", false, "  ");
+      return true;
+    };
+
+    keys["Shift-Tab"] = (state: any, dispatch: any) => {
+      // 优先尝试列表取消缩进
+      if (liftList && liftList(state, dispatch)) {
+        return true;
+      }
+      // 非列表上下文：删除行首的两个空格
+      const { $from } = state.selection;
+      const lineText = $from.parent.textContent;
+      if (lineText.startsWith("  ") && dispatch) {
+        const startOfNode = $from.pos - $from.parentOffset;
+        dispatch(state.tr.delete(startOfNode, startOfNode + 2));
+      }
+      return true;
+    };
   }
 
   // 取消列表
