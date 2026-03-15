@@ -1347,6 +1347,8 @@ export class CodeBlockView implements NodeView {
 
     // 排队执行，避免多个 mermaid 块同时 render 互相干扰
     mermaidRenderQueue = mermaidRenderQueue.then(async () => {
+      // renderId 需要在 try 外声明，以便 catch 中清理 mermaid 遗留的临时元素
+      const renderId = `mermaid-${++mermaidIdCounter}`;
       try {
         const mermaid = await import("mermaid");
         const isDark = detectDarkTheme();
@@ -1358,12 +1360,17 @@ export class CodeBlockView implements NodeView {
           themeVariables: getMermaidThemeVariables(),
         });
 
-        const renderId = `mermaid-${++mermaidIdCounter}`;
         const { svg } = await mermaid.default.render(renderId, content);
         preview.innerHTML = svg;
         // 根据实际背景色修正文本颜色
         fixMermaidTextContrast(preview);
       } catch (error) {
+        // mermaid.render() 语法错误时会在 removeTempElements() 之前抛出异常，
+        // 导致临时 DOM 元素（<div id="d..."> / <svg> / <iframe>）遗留在 document.body 中。
+        // 这些孤儿元素不断累积会干扰页面布局，导致 tab 栏等 UI 元素显示异常。
+        document.getElementById(`d${renderId}`)?.remove();
+        document.getElementById(renderId)?.remove();
+        document.getElementById(`i${renderId}`)?.remove();
         preview.innerHTML = `<div class="milkup-mermaid-error">Mermaid 渲染错误</div>`;
       }
     });
