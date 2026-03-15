@@ -86,6 +86,14 @@ export function createPastePlugin(config: PastePluginConfig = {}): Plugin {
 
         // 检查是否包含 Markdown 语法
         if (!containsMarkdownSyntax(text)) {
+          // 检查是否有外部 HTML（非编辑器内部复制）
+          const html = clipboardData.getData("text/html");
+          if (html && !html.includes("data-pm-slice")) {
+            // 外部 HTML 粘贴，作为纯文本插入，避免 ProseMirror 解析 HTML marks
+            const tr = view.state.tr.insertText(text);
+            view.dispatch(tr);
+            return true;
+          }
           return false; // 让默认处理器处理
         }
 
@@ -314,6 +322,8 @@ function containsMarkdownSyntax(text: string): boolean {
     /==[^=]+==/, // 高亮
     /^\s*\$\$/m, // 数学块（支持缩进）
     /\$[^$]+\$/, // 行内数学
+    /<su[bp]>.+?<\/su[bp]>/, // sub/sup
+    /<[a-zA-Z][a-zA-Z0-9]*(?:\s[^>]*)?>.*?<\/[a-zA-Z][a-zA-Z0-9]*>/, // 行内 HTML
     /^- \[[ xX]\]/m, // 任务列表
     /^\|.+\|$/m, // 表格
   ];

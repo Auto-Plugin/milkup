@@ -513,6 +513,78 @@ function linkedImageRule(nodeType: NodeType): InputRule {
 }
 
 /**
+ * 创建下标输入规则
+ * <sub>text</sub>
+ */
+function subRule(markType: MarkType): InputRule {
+  return createInlineRuleWithSyntax(/<sub>(.+?)<\/sub>$/, markType, "<sub>", "</sub>", 1, "sub");
+}
+
+/**
+ * 创建上标输入规则
+ * <sup>text</sup>
+ */
+function supRule(markType: MarkType): InputRule {
+  return createInlineRuleWithSyntax(/<sup>(.+?)<\/sup>$/, markType, "<sup>", "</sup>", 1, "sup");
+}
+
+/** 不应通过通用 html_inline 规则处理的标签（已有专用 mark） */
+const HTML_INLINE_SKIP_TAGS = new Set(["sub", "sup"]);
+
+/**
+ * 创建通用行内 HTML 输入规则
+ * <tag attrs>content</tag>
+ */
+function htmlInlineRule(markType: MarkType): InputRule {
+  return new InputRule(
+    /<([a-zA-Z][a-zA-Z0-9]*)(\s(?:[^>"']|"[^"]*"|'[^']*')*)?>(.+?)<\/\1>$/,
+    (state, match, start, end) => {
+      const tag = match[1].toLowerCase();
+      const htmlAttrs = (match[2] || "").trim();
+
+      // 跳过有专用 mark 的标签
+      if (HTML_INLINE_SKIP_TAGS.has(tag)) return null;
+
+      const schema = state.schema;
+      const syntaxMarkerType = schema.marks.syntax_marker;
+      const contentMark = markType.create({ tag, htmlAttrs });
+
+      const prefix = `<${match[1]}${match[2] || ""}>`;
+      const suffix = `</${match[1]}>`;
+      const content = match[3];
+
+      if (!content) return null;
+
+      let tr = state.tr.delete(start, end);
+
+      // 插入前缀（带 syntax_marker + html_inline mark）
+      tr = tr.insertText(prefix, start);
+      if (syntaxMarkerType) {
+        const syntaxMark = syntaxMarkerType.create({ syntaxType: "html_inline" });
+        tr = tr.addMark(start, start + prefix.length, syntaxMark);
+      }
+      tr = tr.addMark(start, start + prefix.length, contentMark);
+
+      // 插入内容（带 html_inline mark）
+      const contentStart = start + prefix.length;
+      tr = tr.insertText(content, contentStart);
+      tr = tr.addMark(contentStart, contentStart + content.length, contentMark);
+
+      // 插入后缀（带 syntax_marker + html_inline mark）
+      const suffixStart = contentStart + content.length;
+      tr = tr.insertText(suffix, suffixStart);
+      if (syntaxMarkerType) {
+        const syntaxMark = syntaxMarkerType.create({ syntaxType: "html_inline" });
+        tr = tr.addMark(suffixStart, suffixStart + suffix.length, syntaxMark);
+      }
+      tr = tr.addMark(suffixStart, suffixStart + suffix.length, contentMark);
+
+      return tr;
+    }
+  );
+}
+
+/**
  * 创建数学块输入规则
  * $$ 在行首输入时创建数学块
  */
@@ -648,6 +720,15 @@ export function createInputRulesPlugin(schema: Schema = milkupSchema): Plugin {
   }
   if (schema.marks.math_inline) {
     rules.push(mathInlineRule(schema.marks.math_inline));
+  }
+  if (schema.marks.sub) {
+    rules.push(subRule(schema.marks.sub));
+  }
+  if (schema.marks.sup) {
+    rules.push(supRule(schema.marks.sup));
+  }
+  if (schema.marks.html_inline) {
+    rules.push(htmlInlineRule(schema.marks.html_inline));
   }
 
   return inputRules({ rules });

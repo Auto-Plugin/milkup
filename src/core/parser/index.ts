@@ -124,6 +124,41 @@ const BLOCK_PATTERNS = {
   html_block_start: /^<([a-zA-Z][a-zA-Z0-9]*)/, // 以 < 开头后跟标签名
 };
 
+/** 行内元素集合 - 这些标签不应被解析为块级 html_block */
+const INLINE_ELEMENTS = new Set([
+  "a",
+  "abbr",
+  "b",
+  "bdi",
+  "bdo",
+  "cite",
+  "code",
+  "data",
+  "dfn",
+  "em",
+  "i",
+  "kbd",
+  "mark",
+  "q",
+  "rp",
+  "rt",
+  "ruby",
+  "s",
+  "samp",
+  "small",
+  "span",
+  "strong",
+  "sub",
+  "sup",
+  "time",
+  "u",
+  "var",
+  "del",
+  "ins",
+  "label",
+  "font",
+]);
+
 /**
  * Markdown 解析器类
  */
@@ -293,10 +328,14 @@ export class MarkdownParser {
       // HTML 块（排除 autolink 如 <https://...> 和 <http://...>）
       const htmlMatch = line.match(BLOCK_PATTERNS.html_block_start);
       if (htmlMatch && !/^<(?:https?:\/\/|mailto:)/i.test(line)) {
-        const result = this.parseHtmlBlock(lines, i);
-        blocks.push(result.node);
-        i = result.endIndex + 1;
-        continue;
+        const tagName = htmlMatch[1].toLowerCase();
+        // 行内元素不解析为 html_block，作为段落处理（行内语法由 syntax-detector 检测）
+        if (!INLINE_ELEMENTS.has(tagName)) {
+          const result = this.parseHtmlBlock(lines, i);
+          blocks.push(result.node);
+          i = result.endIndex + 1;
+          continue;
+        }
       }
 
       // 段落

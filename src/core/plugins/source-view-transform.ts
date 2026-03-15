@@ -325,7 +325,44 @@ function transformParagraphsToHtmlBlock(
   const content = lines.join("\n");
 
   // 验证内容是否以 HTML 标签开头
-  if (!content.match(/^<[a-zA-Z]/)) return null;
+  const tagMatch = content.match(/^<([a-zA-Z][a-zA-Z0-9]*)/);
+  if (!tagMatch) return null;
+
+  // 行内标签不应恢复为 html_block
+  const inlineElements = new Set([
+    "a",
+    "abbr",
+    "b",
+    "bdi",
+    "bdo",
+    "cite",
+    "code",
+    "data",
+    "dfn",
+    "em",
+    "i",
+    "kbd",
+    "mark",
+    "q",
+    "rp",
+    "rt",
+    "ruby",
+    "s",
+    "samp",
+    "small",
+    "span",
+    "strong",
+    "sub",
+    "sup",
+    "time",
+    "u",
+    "var",
+    "del",
+    "ins",
+    "label",
+    "font",
+  ]);
+  if (inlineElements.has(tagMatch[1].toLowerCase())) return null;
 
   return schema.nodes.html_block.create({}, content ? schema.text(content) : null);
 }

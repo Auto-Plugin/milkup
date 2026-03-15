@@ -96,6 +96,31 @@ const INLINE_SYNTAXES: InlineSyntax[] = [
     contentIndex: 1,
     getAttrs: (m) => ({ content: m[1] }),
   },
+  // 下标 <sub>text</sub>
+  {
+    type: "sub",
+    pattern: /<sub>(.+?)<\/sub>/g,
+    prefix: "<sub>",
+    suffix: "</sub>",
+    contentIndex: 1,
+  },
+  // 上标 <sup>text</sup>
+  {
+    type: "sup",
+    pattern: /<sup>(.+?)<\/sup>/g,
+    prefix: "<sup>",
+    suffix: "</sup>",
+    contentIndex: 1,
+  },
+  // 通用行内 HTML <tag attrs>content</tag>（排除已由专用 mark 处理的 sub/sup）
+  {
+    type: "html_inline",
+    pattern: /<([a-zA-Z][a-zA-Z0-9]*)(\s(?:[^>"']|"[^"]*"|'[^']*')*)?>(.+?)<\/\1>/g,
+    prefix: (m: RegExpExecArray) => `<${m[1]}${m[2] || ""}>`,
+    suffix: (m: RegExpExecArray) => `</${m[1]}>`,
+    contentIndex: 3,
+    getAttrs: (m: RegExpExecArray) => ({ tag: m[1].toLowerCase(), htmlAttrs: (m[2] || "").trim() }),
+  },
 ];
 
 /** 转义正则 */
@@ -472,6 +497,9 @@ function hasCorrectMarks(
               "highlight",
               "link",
               "math_inline",
+              "sub",
+              "sup",
+              "html_inline",
             ].includes(m.type.name)
         );
         if (semanticMarks.length > 0) {
@@ -495,8 +523,11 @@ function hasCorrectMarks(
       for (const markType of region.markTypes) {
         if (markType !== "strong_emphasis") {
           expectedMarks.get(pos)!.add(markType);
-          // 记录带 attrs 的 mark（如 link 的 href）
-          if (region.attrs && (markType === "link" || markType === "math_inline")) {
+          // 记录带 attrs 的 mark（如 link 的 href、html_inline 的 tag）
+          if (
+            region.attrs &&
+            (markType === "link" || markType === "math_inline" || markType === "html_inline")
+          ) {
             expectedAttrs.get(pos)!.set(markType, region.attrs);
           }
         }
@@ -533,6 +564,9 @@ function hasCorrectMarks(
                 "highlight",
                 "link",
                 "math_inline",
+                "sub",
+                "sup",
+                "html_inline",
                 "syntax_marker",
               ].includes(m.type.name)
             )
@@ -624,10 +658,35 @@ export function createSyntaxDetectorPlugin(): Plugin {
           // 检测所有语法区域
           const regions = detectNestedSyntax(textContent, basePos + contentOffset, []);
 
-          if (regions.length === 0) return true;
-
           // 检查是否需要更新
           if (hasCorrectMarks(node, basePos, regions, contentOffset)) return true;
+
+          if (regions.length === 0) {
+            // 没有检测到语法但存在残留 marks，需要全部清除
+            const cleanFrom = basePos + contentOffset;
+            const cleanTo = basePos + node.content.size;
+            const markTypesToClean = [
+              "strong",
+              "emphasis",
+              "code_inline",
+              "strikethrough",
+              "highlight",
+              "link",
+              "math_inline",
+              "sub",
+              "sup",
+              "html_inline",
+              "syntax_marker",
+            ];
+            for (const markTypeName of markTypesToClean) {
+              const markType = schema.marks[markTypeName];
+              if (markType) {
+                tr = tr.removeMark(cleanFrom, cleanTo, markType);
+              }
+            }
+            hasChanges = true;
+            return true;
+          }
 
           // 应用 marks
           for (const region of regions) {
@@ -640,6 +699,9 @@ export function createSyntaxDetectorPlugin(): Plugin {
               "highlight",
               "link",
               "math_inline",
+              "sub",
+              "sup",
+              "html_inline",
               "syntax_marker", // 也移除 syntax_marker，避免旧标记残留
             ];
             for (const markTypeName of markTypesToRemove) {
@@ -683,6 +745,97 @@ export function createSyntaxDetectorPlugin(): Plugin {
       const decoState = decorationPluginKey.getState(newState);
       const isSourceView = decoState?.sourceView ?? false;
       if (!isSourceView) {
+        // 检测 HTML 块语法（段落以 <tagname 开头）并转换为 html_block 节点
+        const htmlBlockPattern = /^<([a-zA-Z][a-zA-Z0-9]*)/;
+        // 验证开始标签结构完整（必须有闭合的 >）
+        const validOpenTagPattern = /^<[a-zA-Z][a-zA-Z0-9]*(?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?>/;
+        const voidElements = new Set([
+          "area",
+          "base",
+          "br",
+          "col",
+          "embed",
+          "hr",
+          "img",
+          "input",
+          "link",
+          "meta",
+          "param",
+          "source",
+          "track",
+          "wbr",
+        ]);
+        // 行内元素不应转换为块级 html_block，它们应在行内显示
+        const inlineElements = new Set([
+          "a",
+          "abbr",
+          "b",
+          "bdi",
+          "bdo",
+          "cite",
+          "code",
+          "data",
+          "dfn",
+          "em",
+          "i",
+          "kbd",
+          "mark",
+          "q",
+          "rp",
+          "rt",
+          "ruby",
+          "s",
+          "samp",
+          "small",
+          "span",
+          "strong",
+          "sub",
+          "sup",
+          "time",
+          "u",
+          "var",
+          "del",
+          "ins",
+          "label",
+          "font",
+        ]);
+        const htmlToConvert: Array<{ pos: number; text: string }> = [];
+
+        newState.doc.descendants((node, pos) => {
+          if (
+            node.type.name === "paragraph" &&
+            !node.attrs.codeBlockId &&
+            !node.attrs.tableId &&
+            !node.attrs.htmlBlockId &&
+            !node.attrs.mathBlockId
+          ) {
+            const text = node.textContent;
+            const match = text.match(htmlBlockPattern);
+            if (match && !/^<(?:https?:\/\/|mailto:)/i.test(text)) {
+              const tagName = match[1];
+              // 跳过行内元素，它们不应转为块级 html_block
+              if (inlineElements.has(tagName.toLowerCase())) return true;
+              const isVoid =
+                voidElements.has(tagName.toLowerCase()) || text.trimEnd().endsWith("/>");
+              // 对于非 void 元素，验证开始标签结构完整性
+              if (!isVoid && !validOpenTagPattern.test(text)) return true;
+              const closePattern = new RegExp(`</${tagName}\\s*>`, "i");
+              const hasClosing = closePattern.test(text);
+              if (isVoid || hasClosing) {
+                htmlToConvert.push({ pos, text });
+              }
+            }
+          }
+          return true;
+        });
+
+        // 从后往前替换，避免位置偏移
+        for (const h of htmlToConvert.reverse()) {
+          const htmlNode = schema.nodes.html_block.create({}, h.text ? schema.text(h.text) : []);
+          tr = tr.replaceWith(h.pos, h.pos + tr.doc.nodeAt(h.pos)!.nodeSize, htmlNode);
+          hasChanges = true;
+        }
+
         // 检测标题语法（段落以 #{1,6} 开头）并转换为标题节点
         const headingPattern = /^(#{1,6})\s+(.*)/;
         const headingsToConvert: Array<{

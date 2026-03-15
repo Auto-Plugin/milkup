@@ -382,6 +382,16 @@ export class MarkdownSerializer {
       }
       case "math_inline":
         return `$${text}$`;
+      case "sub":
+        return `<sub>${text}</sub>`;
+      case "sup":
+        return `<sup>${text}</sup>`;
+      case "html_inline": {
+        const tag = mark.attrs.tag || "span";
+        const htmlAttrs = mark.attrs.htmlAttrs || "";
+        const openTag = htmlAttrs ? `<${tag} ${htmlAttrs}>` : `<${tag}>`;
+        return `${openTag}${text}</${tag}>`;
+      }
       case "footnote_ref":
         return `[^${mark.attrs.id}]`;
       default:

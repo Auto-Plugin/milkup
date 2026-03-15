@@ -839,6 +839,19 @@
   min-height: 0;
 }
 
+/* 有内容的 HTML 块（非编辑模式）：隐藏外框，直接显示渲染结果 */
+.milkup-html-block.has-content:not(.editing) {
+  background: transparent;
+  border: none;
+  margin: 0;
+  border-radius: 0;
+}
+
+.milkup-html-block.has-content:not(.editing) .milkup-html-block-preview {
+  padding: 0;
+  min-height: 0;
+}
+
 /* 行内数学 */
 .milkup-editor .math-inline,
 .milkup-math-inline {

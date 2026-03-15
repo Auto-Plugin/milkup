@@ -430,14 +430,18 @@ export class HtmlBlockView implements NodeView {
   }
 
   /**
-   * 检测是否是简单内联 HTML（如 <br />、<hr /> 等自闭合标签）
-   * 如果是，添加 inline-html 类以隐藏外框
+   * 根据内容更新 HTML 块的显示样式
+   * - 有内容时添加 has-content 类，隐藏外框直接显示渲染结果
+   * - 空内容时保留外框（显示占位提示）
+   * - 简单自闭合标签添加 inline-html 类
    */
   private applyInlineHtmlClass(node: ProseMirrorNode): void {
     const content = node.textContent.trim();
     // 匹配纯自闭合标签：<tagname /> 或 <tagname/> 或 <tagname attr />
     const isSimpleVoid = /^<\w+(?:\s+[^>]*)?\s*\/?>$/.test(content) && !content.includes("\n");
     this.dom.classList.toggle("inline-html", isSimpleVoid);
+    // 有内容时隐藏外框
+    this.dom.classList.toggle("has-content", content.length > 0);
   }
 
   destroy(): void {

@@ -102,6 +102,9 @@ export const SYNTAX_CLASSES: Record<string, string> = {
   heading: "milkup-heading", // 标题
   strong_emphasis: "milkup-strong-emphasis", // 粗斜体
   escape: "milkup-escape", // 转义
+  sub: "milkup-sub", // 下标
+  sup: "milkup-sup", // 上标
+  html_inline: "milkup-html-inline", // 行内 HTML
 };
 
 /** 语法类型关联映射 - 用于处理嵌套语法 */
@@ -116,6 +119,9 @@ const SYNTAX_TYPE_RELATIONS: Record<string, string[]> = {
   math_inline: ["math_inline"],
   heading: ["heading"],
   escape: ["escape"],
+  sub: ["sub"],
+  sup: ["sup"],
+  html_inline: ["html_inline"],
 };
 
 /**

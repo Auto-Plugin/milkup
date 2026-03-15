@@ -9,6 +9,67 @@
 
 import { Schema, NodeSpec, MarkSpec, DOMOutputSpec } from "prosemirror-model";
 
+// ============ 辅助函数 ============
+
+/** 安全的行内标签白名单 */
+const SAFE_INLINE_TAGS = new Set([
+  "span",
+  "mark",
+  "u",
+  "s",
+  "del",
+  "ins",
+  "abbr",
+  "kbd",
+  "var",
+  "cite",
+  "small",
+  "ruby",
+  "rp",
+  "rt",
+  "samp",
+  "q",
+  "bdi",
+  "bdo",
+  "data",
+  "time",
+  "dfn",
+  "label",
+  "b",
+  "i",
+  "em",
+  "strong",
+  "code",
+  "sub",
+  "sup",
+  "a",
+  "font",
+]);
+
+/**
+ * 解析 HTML 属性字符串为安全的属性对象
+ * 过滤 on* 事件处理器和危险 URL 协议
+ */
+export function parseHtmlAttrs(attrStr: string): Record<string, string> {
+  if (!attrStr) return {};
+  const result: Record<string, string> = {};
+  const re = /([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*(?:=\s*(?:"([^"]*)"|'([^']*)'|(\S+)))?/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(attrStr)) !== null) {
+    const name = m[1].toLowerCase();
+    const value = m[2] ?? m[3] ?? m[4] ?? "";
+    // 过滤危险属性
+    if (name.startsWith("on")) continue;
+    if (
+      (name === "href" || name === "src" || name === "action") &&
+      /^\s*(javascript|vbscript|data)\s*:/i.test(value)
+    )
+      continue;
+    result[name] = value;
+  }
+  return result;
+}
+
 // ============ 节点定义 ============
 
 const doc: NodeSpec = {
@@ -536,6 +597,37 @@ const math_inline: MarkSpec = {
   },
 };
 
+const sub: MarkSpec = {
+  inclusive: false,
+  parseDOM: [{ tag: "sub" }],
+  toDOM(): DOMOutputSpec {
+    return ["sub", 0];
+  },
+};
+
+const sup: MarkSpec = {
+  inclusive: false,
+  parseDOM: [{ tag: "sup" }],
+  toDOM(): DOMOutputSpec {
+    return ["sup", 0];
+  },
+};
+
+const html_inline: MarkSpec = {
+  attrs: {
+    tag: { default: "span" },
+    htmlAttrs: { default: "" }, // 原始属性字符串，如 'style="color:red" class="foo"'
+  },
+  inclusive: false,
+  excludes: "", // 可以与其他 mark 共存
+  toDOM(mark): DOMOutputSpec {
+    const tag = mark.attrs.tag || "span";
+    const safeTag = SAFE_INLINE_TAGS.has(tag) ? tag : "span";
+    const attrs = parseHtmlAttrs(mark.attrs.htmlAttrs);
+    return [safeTag, attrs, 0];
+  },
+};
+
 const footnote_ref: MarkSpec = {
   attrs: {
     id: { default: "" },
@@ -622,6 +714,9 @@ export const milkupSchema = new Schema({
     link,
     highlight,
     math_inline,
+    sub,
+    sup,
+    html_inline,
     footnote_ref,
   },
 });
