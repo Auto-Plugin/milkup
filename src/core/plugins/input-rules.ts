@@ -173,6 +173,159 @@ function taskListRule(listType: NodeType, itemType: NodeType): InputRule {
 }
 
 /**
+ * 无序列表项 → 有序列表
+ * 在 bullet_list > list_item > paragraph 开头输入 `数字. ` 时转换
+ */
+function bulletToOrderedRule(
+  orderedListType: NodeType,
+  bulletListType: NodeType,
+  itemType: NodeType
+): InputRule {
+  return new InputRule(/^(\d+)\.\s$/, (state, match, start, end) => {
+    const startNum = parseInt(match[1], 10);
+    const $start = state.doc.resolve(start);
+
+    if ($start.depth < 2) return null;
+
+    const listItemDepth = $start.depth - 1;
+    const listItem = $start.node(listItemDepth);
+    const listDepth = listItemDepth - 1;
+    const list = $start.node(listDepth);
+
+    if (listItem.type.name !== "list_item" || list.type !== bulletListType) return null;
+
+    const paraStart = $start.start($start.depth);
+    if (start !== paraStart) return null;
+
+    const listPos = $start.before(listDepth);
+    const matchLen = end - start;
+
+    const para = $start.node($start.depth);
+    const newParaContent = para.content.cut(matchLen);
+    const newPara = para.type.create(
+      para.attrs,
+      newParaContent.size > 0 ? newParaContent : undefined
+    );
+
+    const itemChildren: any[] = [newPara];
+    for (let i = 1; i < listItem.childCount; i++) {
+      itemChildren.push(listItem.child(i));
+    }
+
+    const newItem = itemType.create(null, itemChildren);
+    const newList = orderedListType.create({ start: startNum }, newItem);
+
+    if (list.childCount === 1) {
+      let tr = state.tr.replaceWith(listPos, listPos + list.nodeSize, newList);
+      tr = tr.setSelection(TextSelection.near(tr.doc.resolve(listPos + 2)));
+      return tr;
+    }
+
+    const itemIndex = $start.index(listDepth);
+    const beforeItems: any[] = [];
+    const afterItems: any[] = [];
+    list.forEach((child, _offset, index) => {
+      if (index < itemIndex) beforeItems.push(child);
+      else if (index > itemIndex) afterItems.push(child);
+    });
+
+    const fragments: any[] = [];
+    if (beforeItems.length > 0) {
+      fragments.push(bulletListType.create(list.attrs, Fragment.from(beforeItems)));
+    }
+    fragments.push(newList);
+    if (afterItems.length > 0) {
+      fragments.push(bulletListType.create(list.attrs, Fragment.from(afterItems)));
+    }
+
+    let tr = state.tr.replaceWith(listPos, listPos + list.nodeSize, fragments);
+    let cursorPos = listPos;
+    if (beforeItems.length > 0) {
+      cursorPos += beforeItems.reduce((s: number, n: any) => s + n.nodeSize, 0) + 2;
+    }
+    cursorPos += 2;
+    tr = tr.setSelection(TextSelection.near(tr.doc.resolve(cursorPos)));
+    return tr;
+  });
+}
+
+/**
+ * 有序列表项 → 无序列表
+ * 在 ordered_list > list_item > paragraph 开头输入 `- ` 或 `* ` 或 `+ ` 时转换
+ */
+function orderedToBulletRule(
+  bulletListType: NodeType,
+  orderedListType: NodeType,
+  itemType: NodeType
+): InputRule {
+  return new InputRule(/^[-*+]\s$/, (state, match, start, end) => {
+    const $start = state.doc.resolve(start);
+
+    if ($start.depth < 2) return null;
+
+    const listItemDepth = $start.depth - 1;
+    const listItem = $start.node(listItemDepth);
+    const listDepth = listItemDepth - 1;
+    const list = $start.node(listDepth);
+
+    if (listItem.type.name !== "list_item" || list.type !== orderedListType) return null;
+
+    const paraStart = $start.start($start.depth);
+    if (start !== paraStart) return null;
+
+    const listPos = $start.before(listDepth);
+    const matchLen = end - start;
+
+    const para = $start.node($start.depth);
+    const newParaContent = para.content.cut(matchLen);
+    const newPara = para.type.create(
+      para.attrs,
+      newParaContent.size > 0 ? newParaContent : undefined
+    );
+
+    const itemChildren: any[] = [newPara];
+    for (let i = 1; i < listItem.childCount; i++) {
+      itemChildren.push(listItem.child(i));
+    }
+
+    const newItem = itemType.create(null, itemChildren);
+    const newList = bulletListType.create(null, newItem);
+
+    if (list.childCount === 1) {
+      let tr = state.tr.replaceWith(listPos, listPos + list.nodeSize, newList);
+      tr = tr.setSelection(TextSelection.near(tr.doc.resolve(listPos + 2)));
+      return tr;
+    }
+
+    const itemIndex = $start.index(listDepth);
+    const beforeItems: any[] = [];
+    const afterItems: any[] = [];
+    list.forEach((child, _offset, index) => {
+      if (index < itemIndex) beforeItems.push(child);
+      else if (index > itemIndex) afterItems.push(child);
+    });
+
+    const fragments: any[] = [];
+    if (beforeItems.length > 0) {
+      fragments.push(orderedListType.create(list.attrs, Fragment.from(beforeItems)));
+    }
+    fragments.push(newList);
+    if (afterItems.length > 0) {
+      fragments.push(orderedListType.create(list.attrs, Fragment.from(afterItems)));
+    }
+
+    let tr = state.tr.replaceWith(listPos, listPos + list.nodeSize, fragments);
+    let cursorPos = listPos;
+    if (beforeItems.length > 0) {
+      cursorPos += beforeItems.reduce((s: number, n: any) => s + n.nodeSize, 0) + 2;
+    }
+    cursorPos += 2;
+    tr = tr.setSelection(TextSelection.near(tr.doc.resolve(cursorPos)));
+    return tr;
+  });
+}
+
+/**
  * 创建带 syntax_marker 的行内规则
  * 保持与解析器一致的文档结构
  */
@@ -435,14 +588,32 @@ export function createInputRulesPlugin(schema: Schema = milkupSchema): Plugin {
   if (schema.nodes.horizontal_rule) {
     rules.push(horizontalRuleRule(schema.nodes.horizontal_rule));
   }
+  // 列表类型转换规则（必须在基础列表规则之前，否则 wrappingInputRule 会先匹配）
+  if (schema.nodes.bullet_list && schema.nodes.ordered_list && schema.nodes.list_item) {
+    rules.push(
+      bulletToOrderedRule(
+        schema.nodes.ordered_list,
+        schema.nodes.bullet_list,
+        schema.nodes.list_item
+      )
+    );
+    rules.push(
+      orderedToBulletRule(
+        schema.nodes.bullet_list,
+        schema.nodes.ordered_list,
+        schema.nodes.list_item
+      )
+    );
+  }
+  if (schema.nodes.task_list && schema.nodes.task_item) {
+    rules.push(taskListRule(schema.nodes.task_list, schema.nodes.task_item));
+  }
+  // 基础列表创建规则
   if (schema.nodes.bullet_list && schema.nodes.list_item) {
     rules.push(bulletListRule(schema.nodes.bullet_list, schema.nodes.list_item));
   }
   if (schema.nodes.ordered_list && schema.nodes.list_item) {
     rules.push(orderedListRule(schema.nodes.ordered_list, schema.nodes.list_item));
-  }
-  if (schema.nodes.task_list && schema.nodes.task_item) {
-    rules.push(taskListRule(schema.nodes.task_list, schema.nodes.task_item));
   }
   if (schema.nodes.math_block) {
     rules.push(mathBlockRule(schema.nodes.math_block));
