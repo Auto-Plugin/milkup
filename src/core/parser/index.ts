@@ -100,6 +100,30 @@ const INLINE_SYNTAXES: InlineSyntax[] = [
     contentIndex: 1,
     getAttrs: (m) => ({ content: m[1] }),
   },
+  // sub/sup 上下标
+  {
+    type: "sub",
+    pattern: /<sub>(.+?)<\/sub>/g,
+    prefix: "<sub>",
+    suffix: "</sub>",
+    contentIndex: 1,
+  },
+  {
+    type: "sup",
+    pattern: /<sup>(.+?)<\/sup>/g,
+    prefix: "<sup>",
+    suffix: "</sup>",
+    contentIndex: 1,
+  },
+  // 通用行内 HTML 元素（排除已有专用 mark 的 sub/sup）
+  {
+    type: "html_inline",
+    pattern: /<([a-zA-Z][a-zA-Z0-9]*)(\s(?:[^>"']|"[^"]*"|'[^']*')*)?>(.+?)<\/\1>/g,
+    prefix: (m: RegExpExecArray) => `<${m[1]}${m[2] || ""}>`,
+    suffix: (m: RegExpExecArray) => `</${m[1]}>`,
+    contentIndex: 3,
+    getAttrs: (m: RegExpExecArray) => ({ tag: m[1].toLowerCase(), htmlAttrs: (m[2] || "").trim() }),
+  },
 ];
 
 /** 块级语法模式 */
