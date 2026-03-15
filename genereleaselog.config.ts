@@ -1,4 +1,4 @@
-import { defineConfig } from 'genereleaselog'
+import { defineConfig } from "genereleaselog";
 
 export default defineConfig({
   description: `### 下载说明
@@ -9,5 +9,6 @@ export default defineConfig({
 ### 更新内容
 
 `,
-  assets: 'release_files/*',
-})
+  assets: "release_files/*",
+  exclude: ["docs", "chore", "build", "types", "examples", "test", "style", "ci"],
+});

@@ -182,7 +182,7 @@ jobs:
           echo "Comparing $PREV_TAG...$TAG"
 
           # 通过 GitHub API 获取两个 tag 之间的提交，提取 author name -> login 映射
-          COMPARE_DATA=$(gh api "repos/${REPO}/compare/${PREV_TAG}...${TAG}" --jq '.commits[] | select(.author != null) | "\(.commit.author.name)=\(.author.login)"' 2>/dev/null || true)
+          export COMPARE_DATA=$(gh api "repos/${REPO}/compare/${PREV_TAG}...${TAG}" --jq '.commits[] | select(.author != null) | "\(.commit.author.name)=\(.author.login)"' 2>/dev/null || true)
 
           if [ -z "$COMPARE_DATA" ]; then
             echo "No commit data or no linked GitHub accounts, skipping"
@@ -190,7 +190,7 @@ jobs:
           fi
 
           # 获取当前 release body
-          RELEASE_BODY=$(gh release view "$TAG" --json body --jq '.body' 2>/dev/null || true)
+          export RELEASE_BODY=$(gh release view "$TAG" --json body --jq '.body' 2>/dev/null || true)
           if [ -z "$RELEASE_BODY" ]; then
             echo "Release body is empty, skipping"
             exit 0
