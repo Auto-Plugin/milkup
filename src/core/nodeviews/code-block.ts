@@ -27,6 +27,24 @@ import { css } from "@codemirror/lang-css";
 import { json } from "@codemirror/lang-json";
 import { markdown } from "@codemirror/lang-markdown";
 import { go } from "@codemirror/lang-go";
+import { java } from "@codemirror/lang-java";
+import { cpp } from "@codemirror/lang-cpp";
+import { php } from "@codemirror/lang-php";
+import { rust as rustLang } from "@codemirror/lang-rust";
+import { sql as sqlLang } from "@codemirror/lang-sql";
+import { xml } from "@codemirror/lang-xml";
+import { yaml as yamlLang } from "@codemirror/lang-yaml";
+import { StreamLanguage } from "@codemirror/language";
+import { ruby } from "@codemirror/legacy-modes/mode/ruby";
+import { shell } from "@codemirror/legacy-modes/mode/shell";
+import { csharp, scala, kotlin, objectiveC } from "@codemirror/legacy-modes/mode/clike";
+import { swift } from "@codemirror/legacy-modes/mode/swift";
+import { dockerFile } from "@codemirror/legacy-modes/mode/dockerfile";
+import { toml } from "@codemirror/legacy-modes/mode/toml";
+import { r } from "@codemirror/legacy-modes/mode/r";
+import { lua } from "@codemirror/legacy-modes/mode/lua";
+import { perl } from "@codemirror/legacy-modes/mode/perl";
+import { powerShell } from "@codemirror/legacy-modes/mode/powershell";
 import { sourceViewManager } from "../decorations";
 import { searchPluginKey } from "../plugins/search";
 
@@ -326,6 +344,39 @@ const languageExtensions: Record<string, () => any> = {
   md: markdown,
   go: go,
   golang: go,
+  java: java,
+  cpp: cpp,
+  "c++": cpp,
+  c: cpp,
+  php: php,
+  rust: rustLang,
+  rs: rustLang,
+  sql: sqlLang,
+  xml: xml,
+  yaml: yamlLang,
+  yml: yamlLang,
+  ruby: () => StreamLanguage.define(ruby),
+  rb: () => StreamLanguage.define(ruby),
+  shell: () => StreamLanguage.define(shell),
+  bash: () => StreamLanguage.define(shell),
+  sh: () => StreamLanguage.define(shell),
+  csharp: () => StreamLanguage.define(csharp),
+  "c#": () => StreamLanguage.define(csharp),
+  cs: () => StreamLanguage.define(csharp),
+  kotlin: () => StreamLanguage.define(kotlin),
+  kt: () => StreamLanguage.define(kotlin),
+  scala: () => StreamLanguage.define(scala),
+  swift: () => StreamLanguage.define(swift),
+  "objective-c": () => StreamLanguage.define(objectiveC),
+  objc: () => StreamLanguage.define(objectiveC),
+  dockerfile: () => StreamLanguage.define(dockerFile),
+  toml: () => StreamLanguage.define(toml),
+  r: () => StreamLanguage.define(r),
+  lua: () => StreamLanguage.define(lua),
+  perl: () => StreamLanguage.define(perl),
+  pl: () => StreamLanguage.define(perl),
+  powershell: () => StreamLanguage.define(powerShell),
+  ps1: () => StreamLanguage.define(powerShell),
 };
 
 /** 语言别名映射（用于显示） */
@@ -334,6 +385,17 @@ const languageAliases: Record<string, string> = {
   ts: "typescript",
   py: "python",
   md: "markdown",
+  "c++": "cpp",
+  rs: "rust",
+  yml: "yaml",
+  rb: "ruby",
+  sh: "shell",
+  "c#": "csharp",
+  cs: "csharp",
+  kt: "kotlin",
+  objc: "objective-c",
+  pl: "perl",
+  ps1: "powershell",
 };
 
 /** 支持的语言列表 */
@@ -342,16 +404,34 @@ const supportedLanguages = [
   { value: "javascript", label: "JavaScript" },
   { value: "typescript", label: "TypeScript" },
   { value: "python", label: "Python" },
+  { value: "java", label: "Java" },
+  { value: "cpp", label: "C++" },
+  { value: "c", label: "C" },
+  { value: "csharp", label: "C#" },
+  { value: "php", label: "PHP" },
+  { value: "ruby", label: "Ruby" },
+  { value: "go", label: "Go" },
+  { value: "rust", label: "Rust" },
+  { value: "swift", label: "Swift" },
+  { value: "kotlin", label: "Kotlin" },
+  { value: "scala", label: "Scala" },
+  { value: "objective-c", label: "Objective-C" },
   { value: "html", label: "HTML" },
   { value: "css", label: "CSS" },
-  { value: "json", label: "JSON" },
-  { value: "markdown", label: "Markdown" },
-  { value: "mermaid", label: "Mermaid" },
   { value: "sql", label: "SQL" },
+  { value: "shell", label: "Shell" },
   { value: "bash", label: "Bash" },
-  { value: "yaml", label: "YAML" },
+  { value: "powershell", label: "PowerShell" },
+  { value: "json", label: "JSON" },
   { value: "xml", label: "XML" },
-  { value: "go", label: "Go" },
+  { value: "yaml", label: "YAML" },
+  { value: "toml", label: "TOML" },
+  { value: "markdown", label: "Markdown" },
+  { value: "dockerfile", label: "Dockerfile" },
+  { value: "lua", label: "Lua" },
+  { value: "perl", label: "Perl" },
+  { value: "r", label: "R" },
+  { value: "mermaid", label: "Mermaid" },
 ];
 
 /** Mermaid 显示模式选项 */
