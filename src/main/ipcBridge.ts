@@ -75,7 +75,8 @@ export function registerIpcOnHandlers() {
         targetWin.minimize();
         break;
       case "maximize":
-        if (targetWin.isMaximized()) targetWin.unmaximize();
+        if (targetWin.isFullScreen()) targetWin.setFullScreen(false);
+        else if (targetWin.isMaximized()) targetWin.unmaximize();
         else targetWin.maximize();
         break;
       case "close":

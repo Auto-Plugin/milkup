@@ -10,67 +10,25 @@ import useTitle from "./useTitle";
 async function onOpen(result?: { filePath: string; content: string } | null) {
   const { updateTitle } = useTitle();
   const { markdown, filePath, originalContent } = useContent();
-  const {
-    createTabFromFile,
-    updateCurrentTabContent,
-    switchToTab,
-    getFileName,
-    tabs,
-    currentTab,
-    isFileAlreadyOpen,
-  } = useTab();
+  const { openFile } = useTab();
 
   if (!result) {
     result = await window.electronAPI.openFile();
   }
-  if (result) {
-    filePath.value = result.filePath;
-    const content = result.content;
+  if (!result) return;
 
-    // 检查文件是否已在当前窗口打开
-    const existingTab = isFileAlreadyOpen(result.filePath);
-    if (existingTab) {
-      await switchToTab(existingTab.id);
-      markdown.value = existingTab.content;
-      originalContent.value = existingTab.originalContent;
-      updateTitle();
-      nextTick(() => {
-        emitter.emit("file:Change");
-      });
-      return;
-    }
+  try {
+    // 委托给 useTab.openFile — 与工作区点击打开使用相同的代码路径
+    const tab = await openFile(result.filePath);
 
-    // 检查文件是否已在其他窗口打开
-    try {
-      const crossResult = await window.electronAPI.focusFileIfOpen(result.filePath);
-      if (crossResult.found) return;
-    } catch {}
-
-    // 如果当前活跃tab是未修改的新标签页，复用它
-    const current = currentTab.value;
-    if (current && current.filePath === null && !current.isModified) {
-      current.filePath = result.filePath;
-      current.name = getFileName(result.filePath);
-      current.readOnly = await window.electronAPI.getIsReadOnly(result.filePath);
-      current.isModified = false;
-      current.isNewlyLoaded = true;
-      current.fileTraits = (result as any).fileTraits;
-
-      updateCurrentTabContent(content, false);
-
-      await switchToTab(current.id);
-      markdown.value = current.content;
-      current.originalContent = content;
-      originalContent.value = content;
-    } else {
-      // 创建新tab
-      const tab = await createTabFromFile(result.filePath, content, (result as any).fileTraits);
-      tab.readOnly = await window.electronAPI.getIsReadOnly(result.filePath);
+    if (tab) {
+      // 同步 useContent 状态
       markdown.value = tab.content;
-      originalContent.value = content;
+      filePath.value = tab.filePath || "";
+      originalContent.value = tab.originalContent;
+      updateTitle();
     }
-
-    updateTitle();
+  } finally {
     nextTick(() => {
       emitter.emit("file:Change");
     });

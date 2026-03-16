@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { onUnmounted, ref } from "vue";
 import TabBar from "@/renderer/components/workspace/TabBar.vue";
 import MenuDropDown from "./MenuDropDown.vue";
 
@@ -10,7 +10,6 @@ function minimize() {
   window.electronAPI?.windowControl?.("minimize");
 }
 function toggleMaximize() {
-  isFullScreen.value = !isFullScreen.value;
   window.electronAPI?.windowControl?.("maximize");
 }
 async function close() {
@@ -18,6 +17,21 @@ async function close() {
 }
 window.electronAPI.on("close", () => {
   close();
+});
+
+// 监听主进程的最大化/还原事件，同步按钮状态
+function handleMaximizedChange(maximized: boolean) {
+  isFullScreen.value = maximized;
+}
+function handleFullscreenChange(fullscreen: boolean) {
+  isFullScreen.value = fullscreen;
+}
+window.electronAPI.on("window:maximized-change", handleMaximizedChange);
+window.electronAPI.on("window:fullscreen-change", handleFullscreenChange);
+
+onUnmounted(() => {
+  window.electronAPI.removeListener?.("window:maximized-change", handleMaximizedChange);
+  window.electronAPI.removeListener?.("window:fullscreen-change", handleFullscreenChange);
 });
 </script>
 

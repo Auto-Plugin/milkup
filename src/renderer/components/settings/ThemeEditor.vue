@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import type { ThemeName } from "@/types/theme";
+import type { Tab } from "@/types/tab";
 import autotoast from "autotoast.js";
-import { onMounted, onUnmounted, ref } from "vue";
+import { onMounted, onUnmounted, reactive, ref } from "vue";
 import MilkupEditor from "@/renderer/components/editor/MilkupEditor.vue";
 import useTheme from "@/renderer/hooks/useTheme";
 import ColorPicker from "@/ui/ColorPicker.vue";
 
 const {
+  init,
   tempTheme,
   getAllCssVarsDes,
   getThemeByCn,
@@ -77,6 +79,9 @@ function handleSave() {
 
 // 组件挂载时初始化
 onMounted(() => {
+  // 初始化主题系统（加载主题列表、应用 CSS 变量）
+  init();
+
   // 从 localStorage 读取编辑中的主题数据
   const editingTheme = getEditingThemeFromStorage();
 
@@ -184,6 +189,18 @@ console.log(text)
 
 
 `;
+
+// 为预览编辑器创建 Tab 对象
+const previewTab: Tab = reactive({
+  id: "theme-preview",
+  name: "Preview",
+  filePath: null,
+  content: demoContent,
+  originalContent: demoContent,
+  isModified: false,
+  scrollRatio: 0,
+  readOnly: true,
+});
 </script>
 
 <template>
@@ -331,7 +348,7 @@ console.log(text)
           <h2>实时预览</h2>
         </div>
         <div class="preview-content">
-          <MilkupEditor :model-value="demoContent" class="preview-editor" />
+          <MilkupEditor :tab="previewTab" :is-active="true" class="preview-editor" />
         </div>
       </div>
     </div>

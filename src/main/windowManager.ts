@@ -100,6 +100,28 @@ export function trackWindow(win: BrowserWindow, isMain = false): void {
   const webContentsId = win.webContents.id;
   const winId = win.id;
 
+  // 监听窗口最大化/还原事件，通知渲染进程同步按钮状态
+  win.on("maximize", () => {
+    if (!win.isDestroyed()) {
+      win.webContents.send("window:maximized-change", true);
+    }
+  });
+  win.on("unmaximize", () => {
+    if (!win.isDestroyed()) {
+      win.webContents.send("window:maximized-change", false);
+    }
+  });
+  win.on("enter-full-screen", () => {
+    if (!win.isDestroyed()) {
+      win.webContents.send("window:fullscreen-change", true);
+    }
+  });
+  win.on("leave-full-screen", () => {
+    if (!win.isDestroyed()) {
+      win.webContents.send("window:fullscreen-change", false);
+    }
+  });
+
   win.on("closed", () => {
     editorWindows.delete(win);
     pendingTabData.delete(webContentsId);
