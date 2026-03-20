@@ -930,13 +930,21 @@ function cleanupInertiaScroll(container: HTMLElement) {
 // 计算属性：格式化tab显示名称
 // 仅依赖渲染所需的属性，避免 content/originalContent 变化（如归一化）触发不必要的重算
 const formattedTabs = computed(() => {
+  const nameCountMap = new Map<string, number>();
+
+  for (const tab of tabs.value) {
+    nameCountMap.set(tab.name, (nameCountMap.get(tab.name) || 0) + 1);
+  }
+
   return tabs.value.map((tab) => ({
     id: tab.id,
     name: tab.name,
+    filePath: tab.filePath,
     readOnly: tab.readOnly,
     isModified: tab.isModified,
     isMergePreview: tab.isMergePreview,
-    displayName: tab.isModified ? `*${tab.name}` : tab.name,
+    displayName: `${tab.readOnly ? "[只读] " : ""}${tab.isModified ? "*" : ""}${tab.name}`,
+    pathHint: nameCountMap.get(tab.name)! > 1 && tab.filePath ? tab.filePath : "",
   }));
 });
 

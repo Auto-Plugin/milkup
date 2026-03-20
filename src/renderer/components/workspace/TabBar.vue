@@ -330,7 +330,10 @@ onUnmounted(() => {
         :data-tab-id="tab.id"
         @click="handleTabClick(tab.id)"
       >
-        <p>{{ `${tab.readOnly ? "[只读] " : ""}${tab.displayName}` }}</p>
+        <p>
+          <span class="tab-name">{{ tab.displayName }}</span>
+          <span v-if="tab.pathHint" class="tab-path" :title="tab.pathHint">{{ tab.pathHint }}</span>
+        </p>
 
         <div class="closeIcon">
           <span class="iconfont icon-close" @click="handleCloseTab(tab.id, $event)"></span>
@@ -451,19 +454,26 @@ onUnmounted(() => {
         font-size: 12px;
         color: var(--text-color-3);
         overflow: hidden;
-        text-overflow: ellipsis;
         white-space: nowrap;
         flex: 1;
         min-width: 0;
-      }
+        display: flex;
+        align-items: center;
+        gap: 6px;
 
-      span {
-        font-size: 12px;
-        cursor: pointer;
-        color: var(--text-color-3);
+        .tab-name {
+          flex-shrink: 0;
+          min-width: 0;
+          color: inherit;
+        }
 
-        &:hover {
-          color: var(--border-color-2);
+        .tab-path {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          color: var(--text-color-4, var(--text-color-3));
+          opacity: 0.8;
         }
       }
 
@@ -474,6 +484,11 @@ onUnmounted(() => {
 
         p {
           color: var(--text-color-1);
+
+          .tab-path {
+            color: var(--text-color-2);
+            opacity: 0.9;
+          }
         }
 
         span {
@@ -494,12 +509,6 @@ onUnmounted(() => {
       }
 
       &:hover {
-        z-index: 1;
-
-        p {
-          color: var(--text-color-2);
-        }
-
         .closeIcon {
           span {
             color: var(--text-color-2);
@@ -636,10 +645,26 @@ onUnmounted(() => {
   font-size: 12px;
   color: var(--text-color-1); /* 激活态颜色 */
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+:global(.tab-drag-fallback .tab-name) {
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+:global(.tab-drag-fallback .tab-path) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-color-2);
+  opacity: 0.85;
 }
 
 :global(.tab-drag-fallback .closeIcon) {
