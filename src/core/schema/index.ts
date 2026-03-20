@@ -525,7 +525,7 @@ const code_inline: MarkSpec = {
   inclusive: false, // 新输入的文本不自动继承此 mark
   parseDOM: [{ tag: "code" }],
   toDOM(): DOMOutputSpec {
-    return ["code", 0];
+    return ["code", { class: "milkup-code-inline" }, 0];
   },
 };
 
