@@ -61,7 +61,12 @@ import {
   createTaskListNodeView,
   createTaskItemNodeView,
 } from "./nodeviews/list";
-import { toggleSourceView, setSourceView, decorationPluginKey } from "./decorations";
+import {
+  findSyntaxMarkerRegions,
+  toggleSourceView,
+  setSourceView,
+  decorationPluginKey,
+} from "./decorations";
 import type { MilkupConfig, MilkupEditor as IMilkupEditor, MilkupPlugin } from "./types";
 import {
   insertTable,
@@ -133,6 +138,10 @@ export class MilkupEditor implements IMilkupEditor {
   private searchInSelection = false;
   private searchSelectionRange: { from: number; to: number } | null = null;
   private containerKeydownHandler: ((e: KeyboardEvent) => void) | null = null;
+  private selectionCorrectionHandler: (() => void) | null = null;
+  private suppressSelectionCorrection = false;
+  private recentMouseupSelectionHead: number | null = null;
+  private recentMouseupAt = 0;
   private _destroyed = false;
 
   constructor(container: HTMLElement, config: MilkupConfig = {}) {
@@ -370,6 +379,10 @@ export class MilkupEditor implements IMilkupEditor {
       this.view.dom.parentElement?.removeEventListener("keydown", this.containerKeydownHandler);
       this.containerKeydownHandler = null;
     }
+    if (this.selectionCorrectionHandler) {
+      document.removeEventListener("selectionchange", this.selectionCorrectionHandler);
+      this.selectionCorrectionHandler = null;
+    }
     this.searchWrapper?.remove();
     this.searchWrapper = null;
     this.searchPanel = null;
@@ -392,7 +405,6 @@ export class MilkupEditor implements IMilkupEditor {
   private handleEditorClick(view: EditorView, pos: number, event: MouseEvent): boolean {
     const { state } = view;
     const { doc } = state;
-    const editorRect = view.dom.getBoundingClientRect();
     const clickY = event.clientY;
 
     // 获取第一个和最后一个块节点的位置
@@ -545,6 +557,7 @@ export class MilkupEditor implements IMilkupEditor {
       "click",
       (e: Event) => {
         const me = e as MouseEvent;
+        this.correctSelectionFromHiddenSyntaxMarker();
         const linkEl = this.findLinkElement(me.target as HTMLElement);
         if (!linkEl) return;
 
@@ -552,6 +565,16 @@ export class MilkupEditor implements IMilkupEditor {
         me.preventDefault();
       },
       true // capture 阶段
+    );
+
+    dom.addEventListener(
+      "mouseup",
+      (e: Event) => {
+        this.recordMouseupSelectionSnapshot();
+        queueMicrotask(() => this.correctSelectionFromHiddenSyntaxMarker());
+        setTimeout(() => this.correctSelectionFromHiddenSyntaxMarker(), 0);
+      },
+      true
     );
 
     // mousemove 检测链接 hover
@@ -580,6 +603,70 @@ export class MilkupEditor implements IMilkupEditor {
     if (scrollParent) {
       scrollParent.addEventListener("scroll", () => this.hideLinkTooltipImmediate(), {
         passive: true,
+      });
+    }
+
+    if (!this.selectionCorrectionHandler) {
+      this.selectionCorrectionHandler = () => {
+        if (!this.view.hasFocus()) return;
+        this.correctSelectionFromHiddenSyntaxMarker();
+      };
+      document.addEventListener("selectionchange", this.selectionCorrectionHandler);
+    }
+  }
+
+  private recordMouseupSelectionSnapshot(): void {
+    const { selection } = this.view.state;
+    if (!selection.empty) return;
+    if (this.isPositionInsideSyntaxMarker(selection.head)) return;
+    this.recentMouseupSelectionHead = selection.head;
+    this.recentMouseupAt = Date.now();
+  }
+
+  private isPositionInsideSyntaxMarker(pos: number): boolean {
+    const syntaxRegions = findSyntaxMarkerRegions(this.view.state.doc);
+    return syntaxRegions.some((region) => pos >= region.from && pos <= region.to);
+  }
+
+  private correctSelectionFromHiddenSyntaxMarker(): void {
+    if (this.suppressSelectionCorrection) return;
+
+    const nativeSelection = window.getSelection();
+    if (!nativeSelection?.isCollapsed) return;
+
+    const anchorNode = nativeSelection.anchorNode;
+    const now = Date.now();
+    const recentHead = this.recentMouseupSelectionHead;
+    if (recentHead === null || now - this.recentMouseupAt > 250) return;
+    if (this.isPositionInsideSyntaxMarker(recentHead)) return;
+
+    let nativePos: number | null = null;
+    try {
+      if (anchorNode) {
+        nativePos = this.view.posAtDOM(anchorNode, nativeSelection.anchorOffset);
+      }
+    } catch {
+      nativePos = null;
+    }
+
+    const { selection } = this.view.state;
+    const anchorText = anchorNode?.textContent ?? "";
+    const nativeLooksLikeSyntaxMarker =
+      (nativePos !== null && this.isPositionInsideSyntaxMarker(nativePos)) ||
+      (anchorText === "`" && this.isPositionInsideSyntaxMarker(selection.head));
+
+    if (!nativeLooksLikeSyntaxMarker) return;
+    if (selection.head === recentHead) return;
+
+    this.suppressSelectionCorrection = true;
+    try {
+      this.view.dispatch(
+        this.view.state.tr.setSelection(TextSelection.create(this.view.state.doc, recentHead))
+      );
+      this.view.focus();
+    } finally {
+      requestAnimationFrame(() => {
+        this.suppressSelectionCorrection = false;
       });
     }
   }

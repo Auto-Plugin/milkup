@@ -487,12 +487,16 @@ export function computeDecorations(
           decorations.push(
             Decoration.inline(region.from, region.from + hashEnd, {
               class: "milkup-syntax-hidden",
+              contenteditable: "false",
+              "aria-hidden": "true",
             })
           );
         } else {
           decorations.push(
             Decoration.inline(region.from, region.to, {
               class: "milkup-syntax-hidden",
+              contenteditable: "false",
+              "aria-hidden": "true",
             })
           );
         }
@@ -500,6 +504,8 @@ export function computeDecorations(
         decorations.push(
           Decoration.inline(region.from, region.to, {
             class: "milkup-syntax-hidden",
+            contenteditable: "false",
+            "aria-hidden": "true",
           })
         );
       }
