@@ -21,6 +21,7 @@ import { useAIConfig } from "@/renderer/hooks/useAIConfig";
 import { useConfig } from "@/renderer/hooks/useConfig";
 import emitter from "@/renderer/events";
 import "@/core/styles/milkup.css";
+import { normalizeMarkdownForDirtyCheck } from "@/renderer/utils/markdown";
 
 interface Props {
   tab: Tab;
@@ -195,7 +196,9 @@ function createEditorInstance() {
       return;
     }
 
-    tab.isModified = restoredMarkdown !== tab.originalContent;
+    tab.isModified =
+      normalizeMarkdownForDirtyCheck(restoredMarkdown) !==
+      normalizeMarkdownForDirtyCheck(tab.originalContent);
     emitOutlineUpdate();
   });
 

@@ -7,6 +7,7 @@ import { setCurrentMarkdownFilePath } from "@/plugins/imagePathPlugin";
 import emitter from "@/renderer/events";
 import { createTabDataFromFile, readAndProcessFile } from "@/renderer/services/fileService";
 import { createInertiaScroll } from "@/renderer/utils/inertiaScroll";
+import { normalizeMarkdownForDirtyCheck } from "@/renderer/utils/markdown";
 import { randomUUID } from "@/renderer/utils/tool";
 import { isShowOutline } from "./useOutline";
 import { useConfig } from "./useConfig";
@@ -168,7 +169,6 @@ function updateCurrentTabContent(content: string, isModified?: boolean) {
   const currentTab = getCurrentTab();
   if (!currentTab) return;
 
-  const prevContent = currentTab.content;
   currentTab.content = content;
 
   if (currentTab.readOnly) {
@@ -190,8 +190,9 @@ function updateCurrentTabContent(content: string, isModified?: boolean) {
     return;
   }
 
-  // 简单比较：当前内容 vs 原始内容
-  currentTab.isModified = content !== currentTab.originalContent;
+  currentTab.isModified =
+    normalizeMarkdownForDirtyCheck(content) !==
+    normalizeMarkdownForDirtyCheck(currentTab.originalContent);
 }
 
 // 更新当前tab的文件信息（用于文件覆盖场景）
