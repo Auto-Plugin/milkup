@@ -43,6 +43,7 @@ import { dockerFile } from "@codemirror/legacy-modes/mode/dockerfile";
 import { toml } from "@codemirror/legacy-modes/mode/toml";
 import { r } from "@codemirror/legacy-modes/mode/r";
 import { lua } from "@codemirror/legacy-modes/mode/lua";
+import { octave } from "@codemirror/legacy-modes/mode/octave";
 import { perl } from "@codemirror/legacy-modes/mode/perl";
 import { powerShell } from "@codemirror/legacy-modes/mode/powershell";
 import { sourceViewManager } from "../decorations";
@@ -373,6 +374,9 @@ const languageExtensions: Record<string, () => any> = {
   toml: () => StreamLanguage.define(toml),
   r: () => StreamLanguage.define(r),
   lua: () => StreamLanguage.define(lua),
+  matlab: () => StreamLanguage.define(octave),
+  m: () => StreamLanguage.define(octave),
+  octave: () => StreamLanguage.define(octave),
   perl: () => StreamLanguage.define(perl),
   pl: () => StreamLanguage.define(perl),
   powershell: () => StreamLanguage.define(powerShell),
@@ -394,6 +398,7 @@ const languageAliases: Record<string, string> = {
   cs: "csharp",
   kt: "kotlin",
   objc: "objective-c",
+  m: "matlab",
   pl: "perl",
   ps1: "powershell",
 };
@@ -429,7 +434,9 @@ const supportedLanguages = [
   { value: "markdown", label: "Markdown" },
   { value: "dockerfile", label: "Dockerfile" },
   { value: "lua", label: "Lua" },
+  { value: "matlab", label: "MATLAB" },
   { value: "perl", label: "Perl" },
+  { value: "octave", label: "Octave" },
   { value: "r", label: "R" },
   { value: "mermaid", label: "Mermaid" },
 ];
