@@ -792,11 +792,19 @@
 /* 数学块源码 - 与渲染状态保持一致的大小和颜色 */
 .milkup-editor .math-block .math-source {
   display: inline-block;
+  min-width: 1ch;
+  min-height: 1.2em;
   font-family: KaTeX_Main, 'Times New Roman', serif;
   font-size: 1.21em;
   white-space: pre-wrap;
   text-align: center;
   color: inherit;
+  caret-color: currentColor;
+  outline: none;
+}
+
+.milkup-editor .math-block .math-source:empty::before {
+  content: "\200b";
 }
 
 /* 编辑模式：隐藏预览，显示源码 */

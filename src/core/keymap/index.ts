@@ -273,11 +273,42 @@ function createListKeymap(schema: Schema): Record<string, any> {
 
   // Backspace 处理：确保可以正常删除所有字符
   keys["Backspace"] = (state: any, dispatch: any) => {
-    const { $from, $to, empty } = state.selection;
+    const { $from, empty } = state.selection;
 
     // 只处理光标选区
     if (!empty) {
       return false;
+    }
+
+    if ($from.parent.type.name === "math_block" && $from.parentOffset === 0) {
+      const mathNode = $from.parent;
+      if (dispatch) {
+        const mathDepth = $from.depth;
+        const mathPos = $from.before(mathDepth);
+        const mathEnd = $from.after(mathDepth);
+        let tr;
+
+        if (mathNode.textContent.length === 0) {
+          tr = state.tr.delete(mathPos, mathEnd);
+          if (tr.doc.content.size === 0) {
+            const paragraph = state.schema.nodes.paragraph.create();
+            tr.insert(0, paragraph);
+            tr.setSelection(TextSelection.create(tr.doc, 1));
+          } else {
+            const $pos = tr.doc.resolve(Math.min(mathPos, tr.doc.content.size));
+            tr.setSelection(TextSelection.create(tr.doc, Math.max(1, $pos.pos)));
+          }
+        } else {
+          const paragraph = state.schema.nodes.paragraph.create(
+            null,
+            mathNode.textContent ? state.schema.text(mathNode.textContent) : null
+          );
+          tr = state.tr.replaceWith(mathPos, mathEnd, paragraph);
+          tr.setSelection(TextSelection.create(tr.doc, mathPos + 1));
+        }
+        dispatch(tr);
+      }
+      return true;
     }
 
     // 如果光标在段落开头，使用默认行为（可能会合并段落或列表项）

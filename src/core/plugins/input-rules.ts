@@ -594,7 +594,9 @@ function mathBlockRule(nodeType: NodeType): InputRule {
     if (!$start.node(-1).canReplaceWith($start.index(-1), $start.indexAfter(-1), nodeType)) {
       return null;
     }
-    return state.tr.delete(start, end).setBlockType(start, start, nodeType);
+    const tr = state.tr.delete(start, end).setBlockType(start, start, nodeType);
+    tr.setSelection(TextSelection.create(tr.doc, start + 1));
+    return tr;
   });
 }
 
