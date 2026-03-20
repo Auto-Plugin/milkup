@@ -1,45 +1,68 @@
-<script setup lang='ts'>
-import autotoast from 'autotoast.js'
-import useContent from '@/renderer/hooks/useContent'
-import usefile from '@/renderer/hooks/useFile'
-import useWorkSpace from '@/renderer/hooks/useWorkSpace'
-import { exportElementAsPDF, exportMarkdownAsWord, exportElementWithStylesAndImages, exportAsText } from '@/renderer/utils/exports'
+<script setup lang="ts">
+import autotoast from "autotoast.js";
+import useContent from "@/renderer/hooks/useContent";
+import usefile from "@/renderer/hooks/useFile";
+import useWorkSpace from "@/renderer/hooks/useWorkSpace";
+import {
+  exportElementAsPDF,
+  exportMarkdownAsWord,
+  exportElementWithStylesAndImages,
+  exportAsText,
+  getActiveEditorElement,
+  getActiveEditorSelector,
+} from "@/renderer/utils/exports";
 
-const { onOpen, onSave, onSaveAs, currentTab } = usefile()
-const { setWorkSpace } = useWorkSpace()
-const { isModified, markdown } = useContent()
+const { onOpen, onSave, onSaveAs, currentTab } = usefile();
+const { setWorkSpace } = useWorkSpace();
+const { isModified, markdown } = useContent();
 
 function onOpenFolder() {
-  setWorkSpace().then(() => {
-    const escEvent = new KeyboardEvent('keydown', { key: 'Escape' })
-    document.dispatchEvent(escEvent)
-  }).catch(() => {
-    autotoast.show('取消选择')
-  })
+  setWorkSpace()
+    .then(() => {
+      const escEvent = new KeyboardEvent("keydown", { key: "Escape" });
+      document.dispatchEvent(escEvent);
+    })
+    .catch(() => {
+      autotoast.show("取消选择");
+    });
   // 发射 Escape 按键事件 关闭菜单
 }
 function exportAsPDF() {
-  exportElementAsPDF('.milkup-container', `${currentTab.value?.name.slice(0, -3)}.pdf` || '导出的文件', {
-    pageSize: 'A4',
-    scale: 1,
-  }).then(() => {
-    autotoast.show('导出成功', 'success')
-  }).catch((err) => {
-    autotoast.show(`导出失败: ${err.message}`, 'error')
-  })
+  exportElementAsPDF(
+    getActiveEditorSelector(),
+    `${currentTab.value?.name.slice(0, -3)}.pdf` || "导出的文件",
+    {
+      pageSize: "A4",
+      scale: 1,
+    }
+  )
+    .then(() => {
+      autotoast.show("导出成功", "success");
+    })
+    .catch((err) => {
+      autotoast.show(`导出失败: ${err.message}`, "error");
+    });
 }
 function exportAsHTML() {
-  exportElementWithStylesAndImages(document.querySelector('.milkup-container')!, `${currentTab.value?.name.slice(0, -3)}.html` || '导出的文件')
+  exportElementWithStylesAndImages(
+    getActiveEditorElement(),
+    `${currentTab.value?.name.slice(0, -3)}.html` || "导出的文件"
+  );
 }
 function exportAsDocx() {
-  exportMarkdownAsWord(markdown.value, `${currentTab.value?.name.slice(0, -3)}.docx` || '导出的文件').then(() => {
-    autotoast.show('导出成功', 'success')
-  }).catch((err) => {
-    autotoast.show(`导出失败: ${err.message}`, 'error')
-  })
+  exportMarkdownAsWord(
+    markdown.value,
+    `${currentTab.value?.name.slice(0, -3)}.docx` || "导出的文件"
+  )
+    .then(() => {
+      autotoast.show("导出成功", "success");
+    })
+    .catch((err) => {
+      autotoast.show(`导出失败: ${err.message}`, "error");
+    });
 }
 function exportAsTxt() {
-  exportAsText(markdown.value, `${currentTab.value?.name.slice(0, -3)}.txt` || '导出的文件')
+  exportAsText(markdown.value, `${currentTab.value?.name.slice(0, -3)}.txt` || "导出的文件");
 }
 </script>
 
@@ -59,7 +82,7 @@ function exportAsTxt() {
         <button @click="onSave">
           <span v-if="!isModified" class="iconfont icon-circle-check"></span>
           <span v-else class="iconfont icon-warning-outline"></span>
-          <span>{{ isModified ? '保存' : '已保存' }}</span>
+          <span>{{ isModified ? "保存" : "已保存" }}</span>
         </button>
         <button @click="onSaveAs">
           <span class="iconfont icon-document-copy"></span>
@@ -91,7 +114,7 @@ function exportAsTxt() {
   </div>
 </template>
 
-<style lang='less' scoped>
+<style lang="less" scoped>
 .FileOptionsBox {
   width: 100%;
   height: 100%;

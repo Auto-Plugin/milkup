@@ -379,7 +379,11 @@ defineExpose({
 </script>
 
 <template>
-  <div class="editor-box">
+  <div
+    class="editor-box milkup-editor-instance"
+    :data-tab-id="tab.id"
+    :data-active="isActive ? 'true' : 'false'"
+  >
     <div ref="scrollViewRef" class="scrollView milkup" @scroll="updateScrollRatio">
       <div ref="containerRef" class="milkup-container"></div>
     </div>

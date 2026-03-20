@@ -1,4 +1,16 @@
-import type { Block, ExportPDFOptions } from '@/main/types'
+import type { Block, ExportPDFOptions } from "@/main/types";
+
+const ACTIVE_EDITOR_SELECTOR = '.milkup-editor-instance[data-active="true"] .milkup-container';
+
+export function getActiveEditorElement(): HTMLElement {
+  const element = document.querySelector(ACTIVE_EDITOR_SELECTOR);
+  if (!(element instanceof HTMLElement)) throw new Error("Active editor element not found");
+  return element;
+}
+
+export function getActiveEditorSelector(): string {
+  return ACTIVE_EDITOR_SELECTOR;
+}
 
 /**
  * 导出选定元素为一个带样式和图片的独立 HTML 文件
@@ -7,13 +19,13 @@ import type { Block, ExportPDFOptions } from '@/main/types'
  */
 export async function exportElementWithStylesAndImages(
   element: HTMLElement,
-  filename: string = 'export.html',
+  filename: string = "export.html"
 ): Promise<void> {
   // 克隆元素并应用内联样式
-  const cloned = cloneWithInlineStyles(element)
+  const cloned = cloneWithInlineStyles(element);
 
   // 将 <img> 转为 base64
-  await inlineImages(cloned)
+  await inlineImages(cloned);
 
   // 生成完整 HTML
   const html = `<!doctype html>
@@ -49,18 +61,18 @@ export async function exportElementWithStylesAndImages(
   <body>
     <div class="export-container">${cloned.outerHTML}</div>
   </body>
-  </html>`
+  </html>`;
 
   // 下载文件
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
 
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.click()
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
 
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /**
@@ -69,9 +81,9 @@ export async function exportElementWithStylesAndImages(
  * @returns 克隆后的元素（样式已内联）
  */
 function cloneWithInlineStyles(element: HTMLElement): HTMLElement {
-  const clone = element.cloneNode(true) as HTMLElement
-  applyStylesRecursive(element, clone)
-  return clone
+  const clone = element.cloneNode(true) as HTMLElement;
+  applyStylesRecursive(element, clone);
+  return clone;
 }
 
 /**
@@ -80,24 +92,24 @@ function cloneWithInlineStyles(element: HTMLElement): HTMLElement {
  * @param dest - 克隆节点
  */
 function applyStylesRecursive(src: Element, dest: Element): void {
-  const computed = getComputedStyle(src)
+  const computed = getComputedStyle(src);
   const style = Array.from(computed)
-    .map(key => `${key}:${computed.getPropertyValue(key)};`)
-    .join('')
-  dest.setAttribute('style', style)
+    .map((key) => `${key}:${computed.getPropertyValue(key)};`)
+    .join("");
+  dest.setAttribute("style", style);
 
   // 🚨 修复 <a> 链接的点击性
   if (dest instanceof HTMLAnchorElement) {
-    dest.style.pointerEvents = 'auto'
-    dest.style.cursor = 'pointer'
-    dest.style.textDecoration = 'underline'
-    dest.setAttribute('target', '_blank') // 可选：让导出文件中点击在新标签打开
+    dest.style.pointerEvents = "auto";
+    dest.style.cursor = "pointer";
+    dest.style.textDecoration = "underline";
+    dest.setAttribute("target", "_blank"); // 可选：让导出文件中点击在新标签打开
   }
 
-  const srcChildren = Array.from(src.children)
-  const destChildren = Array.from(dest.children)
+  const srcChildren = Array.from(src.children);
+  const destChildren = Array.from(dest.children);
   for (let i = 0; i < srcChildren.length; i++) {
-    applyStylesRecursive(srcChildren[i], destChildren[i])
+    applyStylesRecursive(srcChildren[i], destChildren[i]);
   }
 }
 
@@ -106,24 +118,23 @@ function applyStylesRecursive(src: Element, dest: Element): void {
  * @param root - 要处理的根元素
  */
 async function inlineImages(root: HTMLElement): Promise<void> {
-  const images = Array.from(root.querySelectorAll('img'))
+  const images = Array.from(root.querySelectorAll("img"));
 
   const tasks = images.map(async (img) => {
-    const src = img.src
-    if (src.startsWith('data:'))
-      return // 已经是内联的
+    const src = img.src;
+    if (src.startsWith("data:")) return; // 已经是内联的
 
     try {
-      const res = await fetch(src, { mode: 'cors' })
-      const blob = await res.blob()
-      const base64 = await blobToDataURL(blob)
-      img.src = base64
+      const res = await fetch(src, { mode: "cors" });
+      const blob = await res.blob();
+      const base64 = await blobToDataURL(blob);
+      img.src = base64;
     } catch (err) {
-      console.warn('图片内联失败:', src, err)
+      console.warn("图片内联失败:", src, err);
     }
-  })
+  });
 
-  await Promise.all(tasks)
+  await Promise.all(tasks);
 }
 
 /**
@@ -133,19 +144,19 @@ async function inlineImages(root: HTMLElement): Promise<void> {
  */
 function blobToDataURL(blob: Blob): Promise<string> {
   return new Promise((resolve) => {
-    const reader = new FileReader()
-    reader.onloadend = () => resolve(reader.result as string)
-    reader.readAsDataURL(blob)
-  })
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.readAsDataURL(blob);
+  });
 }
 
 // 导出为 PDF
 export async function exportElementAsPDF(
   elementSelector: string,
   outputName: string,
-  options?: ExportPDFOptions,
+  options?: ExportPDFOptions
 ): Promise<void> {
-  await window.electronAPI.exportAsPDF(elementSelector, outputName, options)
+  await window.electronAPI.exportAsPDF(elementSelector, outputName, options);
 }
 // 导出为 Word
 
@@ -154,150 +165,145 @@ export async function exportElementAsPDF(
  * 过滤非正文节点（toolbar、控件等）
  */
 export function serializeMarkdownToBlocks(selector: string): Block[] {
-  const el = document.querySelector(selector)
-  if (!el)
-    throw new Error('Element not found')
+  const el = document.querySelector(selector);
+  if (!el) throw new Error("Element not found");
 
-  const blocks: Block[] = []
+  const blocks: Block[] = [];
 
   function traverse(node: Node) {
-    if (!(node instanceof HTMLElement))
-      return
+    if (!(node instanceof HTMLElement)) return;
 
-    const className = node.className || ''
+    const className = node.className || "";
     if (
-      className.includes('milkdown-block-handle')
-      || className.includes('crepe-drop-cursor')
-      || className.includes('milkdown-link-preview')
-      || className.includes('milkdown-link-edit')
-      || className.includes('milkdown-toolbar')
-      || className.includes('milkdown-latex-inline-edit')
-      || className.includes('milkdown-slash-menu')
+      className.includes("milkdown-block-handle") ||
+      className.includes("crepe-drop-cursor") ||
+      className.includes("milkdown-link-preview") ||
+      className.includes("milkdown-link-edit") ||
+      className.includes("milkdown-toolbar") ||
+      className.includes("milkdown-latex-inline-edit") ||
+      className.includes("milkdown-slash-menu")
     ) {
-      return
+      return;
     }
 
-    if (node.dataset.ignore)
-      return
-    if (node.classList.contains('cm-content')) {
-      const lines: string[] = []
-      node.querySelectorAll('.cm-line').forEach((line) => {
-        lines.push(line.textContent || '')
-      })
-      blocks.push({ type: 'code', lines })
-      return
+    if (node.dataset.ignore) return;
+    if (node.classList.contains("cm-content")) {
+      const lines: string[] = [];
+      node.querySelectorAll(".cm-line").forEach((line) => {
+        lines.push(line.textContent || "");
+      });
+      blocks.push({ type: "code", lines });
+      return;
     }
-    const tag = node.tagName.toLowerCase()
-    if (tag.startsWith('h')) {
-      blocks.push({ type: 'heading', level: Number(tag[1]) as 1 | 2 | 3, text: node.textContent || '' })
-    } else if (tag === 'p') {
-      blocks.push({ type: 'paragraph', text: node.textContent || '' })
-    } else if (tag === 'pre') {
-      blocks.push({ type: 'code', lines: node.textContent?.split('\n') || [] })
-    } else if (tag === 'ul' || tag === 'ol') {
-      const items: string[] = []
-      node.querySelectorAll('li').forEach(li => items.push(li.textContent || ''))
-      blocks.push({ type: 'list', items, ordered: tag === 'ol' })
+    const tag = node.tagName.toLowerCase();
+    if (tag.startsWith("h")) {
+      blocks.push({
+        type: "heading",
+        level: Number(tag[1]) as 1 | 2 | 3,
+        text: node.textContent || "",
+      });
+    } else if (tag === "p") {
+      blocks.push({ type: "paragraph", text: node.textContent || "" });
+    } else if (tag === "pre") {
+      blocks.push({ type: "code", lines: node.textContent?.split("\n") || [] });
+    } else if (tag === "ul" || tag === "ol") {
+      const items: string[] = [];
+      node.querySelectorAll("li").forEach((li) => items.push(li.textContent || ""));
+      blocks.push({ type: "list", items, ordered: tag === "ol" });
     }
 
-    node.childNodes.forEach(traverse)
+    node.childNodes.forEach(traverse);
   }
 
-  traverse(el)
-  return blocks
+  traverse(el);
+  return blocks;
 }
 
-export async function exportMarkdownAsWord(
-  markdown: string,
-  outputName: string,
-): Promise<void> {
-  const blocks = parseMarkdownToBlocks(markdown)
-  await window.electronAPI.exportAsWord(blocks, outputName)
+export async function exportMarkdownAsWord(markdown: string, outputName: string): Promise<void> {
+  const blocks = parseMarkdownToBlocks(markdown);
+  await window.electronAPI.exportAsWord(blocks, outputName);
 }
 
 /**
  * 将 Markdown 源码文本解析为结构化 Block 数据
  */
 export function parseMarkdownToBlocks(markdown: string): Block[] {
-  const blocks: Block[] = []
-  const lines = markdown.split('\n')
-  let i = 0
+  const blocks: Block[] = [];
+  const lines = markdown.split("\n");
+  let i = 0;
 
   while (i < lines.length) {
-    const line = lines[i]
+    const line = lines[i];
 
     // 标题
-    const headingMatch = line.match(/^(#{1,6})\s+(.*)/)
+    const headingMatch = line.match(/^(#{1,6})\s+(.*)/);
     if (headingMatch) {
-      const level = Math.min(headingMatch[1].length, 3) as 1 | 2 | 3
-      blocks.push({ type: 'heading', level, text: headingMatch[2] })
-      i++
-      continue
+      const level = Math.min(headingMatch[1].length, 3) as 1 | 2 | 3;
+      blocks.push({ type: "heading", level, text: headingMatch[2] });
+      i++;
+      continue;
     }
 
     // 代码块
-    if (line.trimStart().startsWith('```')) {
-      const codeLines: string[] = []
-      i++
-      while (i < lines.length && !lines[i].trimStart().startsWith('```')) {
-        codeLines.push(lines[i])
-        i++
+    if (line.trimStart().startsWith("```")) {
+      const codeLines: string[] = [];
+      i++;
+      while (i < lines.length && !lines[i].trimStart().startsWith("```")) {
+        codeLines.push(lines[i]);
+        i++;
       }
-      blocks.push({ type: 'code', lines: codeLines })
-      i++ // 跳过结束的 ```
-      continue
+      blocks.push({ type: "code", lines: codeLines });
+      i++; // 跳过结束的 ```
+      continue;
     }
 
     // 无序列表
     if (/^\s*[-*+]\s+/.test(line)) {
-      const items: string[] = []
+      const items: string[] = [];
       while (i < lines.length && /^\s*[-*+]\s+/.test(lines[i])) {
-        items.push(lines[i].replace(/^\s*[-*+]\s+/, ''))
-        i++
+        items.push(lines[i].replace(/^\s*[-*+]\s+/, ""));
+        i++;
       }
-      blocks.push({ type: 'list', items, ordered: false })
-      continue
+      blocks.push({ type: "list", items, ordered: false });
+      continue;
     }
 
     // 有序列表
     if (/^\s*\d+\.\s+/.test(line)) {
-      const items: string[] = []
+      const items: string[] = [];
       while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
-        items.push(lines[i].replace(/^\s*\d+\.\s+/, ''))
-        i++
+        items.push(lines[i].replace(/^\s*\d+\.\s+/, ""));
+        i++;
       }
-      blocks.push({ type: 'list', items, ordered: true })
-      continue
+      blocks.push({ type: "list", items, ordered: true });
+      continue;
     }
 
     // 空行跳过
-    if (line.trim() === '') {
-      i++
-      continue
+    if (line.trim() === "") {
+      i++;
+      continue;
     }
 
     // 段落
-    blocks.push({ type: 'paragraph', text: line })
-    i++
+    blocks.push({ type: "paragraph", text: line });
+    i++;
   }
 
-  return blocks
+  return blocks;
 }
 
 /**
  * 导出为纯文本文件（使用 Markdown 源码）
  */
-export function exportAsText(
-  markdown: string,
-  outputName: string = 'export.txt',
-): void {
-  const blob = new Blob([markdown], { type: 'text/plain;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
+export function exportAsText(markdown: string, outputName: string = "export.txt"): void {
+  const blob = new Blob([markdown], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
 
-  const a = document.createElement('a')
-  a.href = url
-  a.download = outputName
-  a.click()
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = outputName;
+  a.click();
 
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

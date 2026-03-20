@@ -1,7 +1,6 @@
-import * as fs from "node:fs";
 import * as path from "node:path";
 import { app, BrowserWindow, globalShortcut, ipcMain, protocol, shell } from "electron";
-import { cleanupProtocolUrls, detectFileTraits, normalizeMarkdown } from "./fileFormat";
+import { isMarkdownFilePath, normalizeMarkdownFilePath, readMarkdownFile } from "./markdownFile";
 import {
   close,
   getIsQuitting,
@@ -163,30 +162,20 @@ export async function createThemeEditorWindow() {
  * 整合了文件读取、验证和发送到渲染进程的逻辑
  */
 function sendFileToRenderer(filePath: string) {
-  // 验证文件路径
-  if (!filePath.endsWith(".md") && !filePath.endsWith(".markdown")) {
+  const result = readMarkdownFile(filePath);
+  if (!result) {
+    console.warn("[main] 无法读取启动文件:", filePath);
     return;
   }
-
-  // 检查文件是否存在
-  if (!fs.existsSync(filePath)) {
-    console.warn("[main] 文件不存在:", filePath);
-    return;
-  }
-
-  // 读取文件内容
-  const raw = fs.readFileSync(filePath, "utf-8");
-  const fileTraits = detectFileTraits(raw);
-  const content = cleanupProtocolUrls(normalizeMarkdown(raw));
 
   // 发送到渲染进程的函数
   const sendFile = () => {
     const targetWin = getAvailableWindow();
     if (targetWin) {
       targetWin.webContents.send("open-file-at-launch", {
-        filePath,
-        content,
-        fileTraits,
+        filePath: result.filePath,
+        content: result.content,
+        fileTraits: result.fileTraits,
       });
     }
   };
@@ -194,15 +183,15 @@ function sendFileToRenderer(filePath: string) {
   if (isRendererReady) {
     sendFile();
   } else {
-    pendingStartupFile = filePath;
+    pendingStartupFile = result.filePath;
   }
 }
 
 function sendLaunchFileIfExists(argv = process.argv) {
-  const fileArg = argv.find((arg) => arg.endsWith(".md") || arg.endsWith(".markdown"));
+  const fileArg = argv.find((arg) => isMarkdownFilePath(arg));
 
   if (fileArg) {
-    const absolutePath = path.resolve(fileArg);
+    const absolutePath = path.resolve(normalizeMarkdownFilePath(fileArg));
     sendFileToRenderer(absolutePath);
   }
 }

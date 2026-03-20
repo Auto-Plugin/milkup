@@ -17,6 +17,7 @@ import {
   restoreFileTraits,
 } from "./fileFormat";
 import { createThemeEditorWindow } from "./index";
+import { normalizeMarkdownFilePath, readMarkdownFile } from "./markdownFile";
 import {
   cancelDragFollow,
   clearWindowDragPreview,
@@ -365,11 +366,7 @@ export function registerIpcHandleHandlers() {
       properties: ["openFile"],
     });
     if (canceled) return null;
-    const filePath = filePaths[0];
-    const raw = fs.readFileSync(filePath, "utf-8");
-    const fileTraits = detectFileTraits(raw);
-    const content = cleanupProtocolUrls(normalizeMarkdown(raw));
-    return { filePath, content, fileTraits };
+    return filePaths[0] ? readMarkdownFile(filePaths[0]) : null;
   });
 
   // 文件保存对话框
@@ -847,15 +844,8 @@ export function registerGlobalIpcHandlers() {
   // 通过文件路径读取 Markdown 文件（用于拖拽）
   ipcMain.handle("file:readByPath", async (_event, filePath: string) => {
     try {
-      if (!filePath || !fs.existsSync(filePath)) return null;
-
-      const isMd = /\.(?:md|markdown)$/i.test(filePath);
-      if (!isMd) return null;
-
-      const raw = fs.readFileSync(filePath, "utf-8");
-      const fileTraits = detectFileTraits(raw);
-      const content = cleanupProtocolUrls(normalizeMarkdown(raw), filePath);
-      return { filePath, content, fileTraits };
+      if (!filePath) return null;
+      return readMarkdownFile(filePath);
     } catch (error) {
       console.error("Failed to read file:", error);
       return null;
@@ -1217,9 +1207,11 @@ export function isWindowClosing(winId: number): boolean {
   return windowClosingSet.has(winId);
 }
 export function isFileReadOnly(filePath: string): boolean {
+  const normalizedPath = normalizeMarkdownFilePath(filePath);
+
   // 先检测是否可写（跨平台）
   try {
-    fs.accessSync(filePath, fs.constants.W_OK);
+    fs.accessSync(normalizedPath, fs.constants.W_OK);
   } catch {
     return true;
   }
@@ -1227,18 +1219,18 @@ export function isFileReadOnly(filePath: string): boolean {
   // 如果是 Windows，再额外检测 "R" 属性
   if (process.platform === "win32") {
     try {
-      const attrs = execSync(`attrib "${filePath}"`).toString();
+      const attrs = execSync(`attrib "${normalizedPath}"`).toString();
       // attrs 输出格式类似于: "A  R       C:\path\to\file.md"
       // 我们需要解析属性部分，忽略文件路径部分
 
       // 1. 获取包含文件路径的那一行 (通常只有一行，但以防万一)
       const lines = attrs.split("\r\n").filter((line) => line.trim());
-      const fileLine = lines.find((line) => line.trim().endsWith(filePath)) || lines[0];
+      const fileLine = lines.find((line) => line.trim().endsWith(normalizedPath)) || lines[0];
 
       if (fileLine) {
         // 2. 截取文件路径之前的部分作为属性区域
         // 文件路径可能包含空格，所以不能简单 split
-        const lastIndex = fileLine.lastIndexOf(filePath);
+        const lastIndex = fileLine.lastIndexOf(normalizedPath);
         if (lastIndex > -1) {
           const attrPart = fileLine.substring(0, lastIndex);
           // 3. 检查属性区域是否包含 'R'
