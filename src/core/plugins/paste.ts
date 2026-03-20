@@ -9,6 +9,7 @@ import { Node, Schema, Slice, Fragment } from "prosemirror-model";
 import { MarkdownParser } from "../parser";
 import { milkupSchema } from "../schema";
 import { decorationPluginKey } from "../decorations";
+import { insertMarkdownTableRowAfterCurrent } from "../commands";
 
 /** 插件 Key */
 export const pastePluginKey = new PluginKey("milkup-paste");
@@ -111,6 +112,10 @@ export function createPastePlugin(config: PastePluginConfig = {}): Plugin {
         // 源码模式下：所有文本都作为纯文本插入，不解析 Markdown
         if (isSourceView) {
           return false; // 让默认处理器插入纯文本
+        }
+
+        if (insertMarkdownTableRowAfterCurrent(view.state, text, view.dispatch.bind(view))) {
+          return true;
         }
 
         // 检查是否包含 Markdown 语法

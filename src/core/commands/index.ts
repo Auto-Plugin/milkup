@@ -467,6 +467,75 @@ export function deleteColumn(state: EditorState, dispatch?: (tr: Transaction) =>
 }
 
 /**
+ * 获取当前行的 Markdown 文本
+ */
+export function getCurrentRowMarkdown(state: EditorState): string | null {
+  const ctx = findTableContext(state);
+  if (!ctx) return null;
+
+  const rowNode = ctx.tableNode.child(ctx.rowIndex);
+  const cells: string[] = [];
+
+  rowNode.forEach((cell) => {
+    cells.push(cell.textContent || "");
+  });
+
+  return `| ${cells.join(" | ")} |`;
+}
+
+function parseMarkdownTableRow(text: string): string[] | null {
+  const trimmed = text.trim();
+  if (!/^\|.*\|$/u.test(trimmed)) return null;
+
+  const inner = trimmed.slice(1, -1);
+  const cells = inner.split("|").map((cell) => cell.trim());
+  return cells;
+}
+
+/**
+ * 在当前行后插入 Markdown 表格行
+ */
+export function insertMarkdownTableRowAfterCurrent(
+  state: EditorState,
+  rowMarkdown: string,
+  dispatch?: (tr: Transaction) => void
+): boolean {
+  const ctx = findTableContext(state);
+  if (!ctx) return false;
+
+  const cells = parseMarkdownTableRow(rowMarkdown);
+  if (!cells) return false;
+
+  const colCount = ctx.tableNode.child(0)?.childCount ?? 0;
+  if (cells.length !== colCount) return false;
+
+  const { table_row, table_header, table_cell, paragraph } = state.schema.nodes;
+  if (!table_row || !table_header || !table_cell || !paragraph) return false;
+
+  const cellType = table_cell || table_header;
+  const rowNode = table_row.create(
+    null,
+    cells.map((cellText) =>
+      cellType.create(
+        null,
+        cellText ? paragraph.create(null, state.schema.text(cellText)) : paragraph.create()
+      )
+    )
+  );
+
+  if (dispatch) {
+    const { $from } = state.selection;
+    const rowPos = $from.after(ctx.rowDepth);
+    const tr = state.tr.insert(rowPos, rowNode);
+    const selectionPos = Math.min(rowPos + 2, tr.doc.content.size);
+    tr.setSelection(TextSelection.create(tr.doc, selectionPos));
+    dispatch(tr.scrollIntoView());
+  }
+
+  return true;
+}
+
+/**
  * 插入数学块
  */
 export function insertMathBlock(content = ""): Command {
@@ -526,6 +595,8 @@ export const commands = {
   addColumnAtEnd,
   deleteRow,
   deleteColumn,
+  getCurrentRowMarkdown,
+  insertMarkdownTableRowAfterCurrent,
   insertMathBlock,
   insertContainer,
 };

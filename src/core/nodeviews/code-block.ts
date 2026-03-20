@@ -1131,6 +1131,10 @@ export class CodeBlockView implements NodeView {
     // 移除已存在的右键菜单
     this.hideContextMenu();
 
+    const isHeaderContextMenu = !!(e.target instanceof HTMLElement
+      ? e.target.closest(".milkup-code-block-header")
+      : null);
+
     const menu = document.createElement("div");
     menu.className = "milkup-context-menu";
 
@@ -1201,6 +1205,18 @@ export class CodeBlockView implements NodeView {
       this.hideContextMenu();
     });
     menu.appendChild(copyBlockItem);
+
+    if (isHeaderContextMenu) {
+      const separator = document.createElement("div");
+      separator.className = "milkup-context-menu-separator";
+      menu.appendChild(separator);
+
+      const deleteBlockItem = this.createContextMenuItem("删除此代码块", false, () => {
+        this.deleteCodeBlock();
+        this.hideContextMenu();
+      });
+      menu.appendChild(deleteBlockItem);
+    }
 
     // 定位菜单
     menu.style.left = `${e.clientX}px`;

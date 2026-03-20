@@ -78,6 +78,8 @@ import {
   addColumnAtEnd,
   deleteRow,
   deleteColumn,
+  getCurrentRowMarkdown,
+  insertMarkdownTableRowAfterCurrent,
 } from "./commands";
 import { DEFAULT_SHORTCUTS, buildActionCommandMap } from "./keymap";
 import type { ShortcutActionId } from "./keymap";
@@ -767,6 +769,16 @@ export class MilkupEditor implements IMilkupEditor {
   }
 
   /**
+   * 将选区同步到右键点击位置
+   */
+  private syncSelectionToMouseEvent(e: MouseEvent): void {
+    const pos = this.view.posAtCoords({ left: e.clientX, top: e.clientY });
+    if (!pos) return;
+    const tr = this.view.state.tr.setSelection(TextSelection.create(this.view.state.doc, pos.pos));
+    this.view.dispatch(tr);
+  }
+
+  /**
    * 创建右键菜单分隔线
    */
   private createContextMenuSeparator(): HTMLElement {
@@ -972,7 +984,21 @@ export class MilkupEditor implements IMilkupEditor {
     const inTable = this.isInsideTable(e);
 
     if (inTable) {
+      this.syncSelectionToMouseEvent(e);
+
       // 表格内右键 — 追加表格操作项
+      menu.appendChild(this.createContextMenuSeparator());
+
+      menu.appendChild(
+        this.createContextMenuItem("复制本行", false, () => {
+          const rowMarkdown = getCurrentRowMarkdown(this.view.state);
+          if (rowMarkdown) {
+            navigator.clipboard.writeText(rowMarkdown);
+          }
+          this.hideContextMenu();
+        })
+      );
+
       menu.appendChild(this.createContextMenuSeparator());
 
       menu.appendChild(
@@ -1587,6 +1613,15 @@ export class MilkupEditor implements IMilkupEditor {
           const blob = await item.getType("text/plain");
           const text = await blob.text();
           if (text) {
+            if (
+              insertMarkdownTableRowAfterCurrent(
+                this.view.state,
+                text,
+                this.view.dispatch.bind(this.view)
+              )
+            ) {
+              return;
+            }
             const tr = this.view.state.tr.insertText(text);
             this.view.dispatch(tr);
           }
@@ -1598,6 +1633,15 @@ export class MilkupEditor implements IMilkupEditor {
       try {
         const text = await navigator.clipboard.readText();
         if (text) {
+          if (
+            insertMarkdownTableRowAfterCurrent(
+              this.view.state,
+              text,
+              this.view.dispatch.bind(this.view)
+            )
+          ) {
+            return;
+          }
           const tr = this.view.state.tr.insertText(text);
           this.view.dispatch(tr);
         }
