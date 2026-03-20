@@ -34,7 +34,35 @@ function joinPath(dir: string, relative: string): string {
   while (rel.startsWith("./") || rel.startsWith(".\\")) {
     rel = rel.substring(2);
   }
+  while (rel.startsWith("/") || rel.startsWith("\\")) {
+    rel = rel.substring(1);
+  }
   return (dir + sep + rel).replace(/\\/g, "/");
+}
+
+function isAbsoluteLocalPath(src: string): boolean {
+  if (!src) return false;
+
+  const platform = (window as any).electronAPI?.platform;
+  if (platform === "win32") {
+    return /^[a-z]:[\\/]/i.test(src) || /^\\\\[^\\]/.test(src);
+  }
+
+  return src.startsWith("/");
+}
+
+function toFileUrl(src: string): string {
+  const normalized = src.replace(/\\/g, "/");
+
+  if (/^\/\/[^/]/.test(normalized)) {
+    return `file:${normalized}`;
+  }
+
+  if (/^[a-z]:\//i.test(normalized)) {
+    return `file:///${normalized}`;
+  }
+
+  return `file://${normalized}`;
 }
 
 /**
@@ -51,10 +79,13 @@ function resolveImageSrc(src: string): string {
     src.startsWith("https://") ||
     src.startsWith("file://") ||
     src.startsWith("data:") ||
-    src.startsWith("milkup://") ||
-    /^(?:[a-z]:[\\/]|\\\\|\/)/i.test(src)
+    src.startsWith("milkup://")
   ) {
     return src;
+  }
+
+  if (isAbsoluteLocalPath(src)) {
+    return toFileUrl(src);
   }
 
   // 获取当前文件路径

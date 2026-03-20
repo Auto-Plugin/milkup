@@ -10,7 +10,8 @@ import {
   MilkupEditor,
   createMilkupEditor,
   type MilkupConfig,
-  type ImagePasteMethod,
+  getImagePasteMethod,
+  saveImageLocally,
   setGlobalMermaidDefaultMode,
 } from "@/core";
 import { undo, redo } from "prosemirror-history";
@@ -145,49 +146,12 @@ function createEditorInstance() {
     sourceView: false,
     placeholder: "写点什么吧...",
     pasteConfig: {
-      getImagePasteMethod: () => {
-        const method = localStorage.getItem("pasteMethod");
-        return (method as ImagePasteMethod) || "base64";
-      },
+      getImagePasteMethod,
       imageUploader: async (file: File) => {
         return await uploadImage(file);
       },
       localImageSaver: async (file: File) => {
-        // 检查是否在 Electron 环境中
-        if (typeof window !== "undefined" && (window as any).electronAPI) {
-          const electronAPI = (window as any).electronAPI;
-
-          // 尝试获取剪贴板中的文件路径
-          const filePath = await electronAPI.getFilePathInClipboard?.();
-          if (filePath) {
-            return filePath;
-          }
-
-          // 检查 File 对象是否有 path 属性（Electron 环境）
-          const absolutePath = (file as any).path;
-          if (absolutePath) {
-            return absolutePath;
-          }
-
-          // 将图片保存到临时目录
-          const arrayBuffer = await file.arrayBuffer();
-          const buffer = new Uint8Array(arrayBuffer);
-          const localImagePath = localStorage.getItem("localImagePath") || "/temp";
-          const tempPath = await electronAPI.writeTempImage?.(buffer, localImagePath);
-
-          if (tempPath) {
-            return tempPath;
-          }
-        }
-
-        // 如果不在 Electron 环境或保存失败，回退到 base64
-        console.warn("Local image saving not available, falling back to base64");
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = (error) => reject(error);
-          reader.readAsDataURL(file);
-        });
+        return await saveImageLocally(file);
       },
     },
     // AI 续写配置（使用 getter 函数以支持响应式更新）
@@ -262,6 +226,28 @@ function createEditorInstance() {
         scrollRatio * (scrollViewRef.value.scrollHeight - scrollViewRef.value.clientHeight);
       scrollViewRef.value.scrollTop = targetScrollTop;
     }
+  });
+}
+
+function syncEditorFromTab(content: string) {
+  if (!editor) return;
+
+  requestAnimationFrame(() => {
+    if (props.isActive) {
+      (window as any).__currentFilePath = props.tab.filePath || null;
+    }
+
+    const contentForRendering = preprocessContent(content);
+    editor?.setMarkdown(contentForRendering);
+
+    nextTick(() => {
+      if (scrollViewRef.value) {
+        const scrollRatio = props.tab.scrollRatio ?? 0;
+        const targetScrollTop =
+          scrollRatio * (scrollViewRef.value.scrollHeight - scrollViewRef.value.clientHeight);
+        scrollViewRef.value.scrollTop = targetScrollTop;
+      }
+    });
   });
 }
 
@@ -340,25 +326,21 @@ watch(
       return;
     }
     if (editor && newValue !== undefined) {
-      requestAnimationFrame(() => {
-        // 更新全局文件路径
-        if (props.isActive) {
-          (window as any).__currentFilePath = props.tab.filePath || null;
-        }
+      syncEditorFromTab(newValue);
+    }
+  }
+);
 
-        const contentForRendering = preprocessContent(newValue);
-        editor?.setMarkdown(contentForRendering);
-
-        // 恢复滚动位置
-        nextTick(() => {
-          if (scrollViewRef.value) {
-            const scrollRatio = props.tab.scrollRatio ?? 0;
-            const targetScrollTop =
-              scrollRatio * (scrollViewRef.value.scrollHeight - scrollViewRef.value.clientHeight);
-            scrollViewRef.value.scrollTop = targetScrollTop;
-          }
-        });
-      });
+watch(
+  () => props.tab.filePath,
+  (newValue, oldValue) => {
+    if (!editor || newValue === oldValue) return;
+    if (props.isActive) {
+      (window as any).__currentFilePath = newValue || null;
+    }
+    if (props.tab.content !== undefined) {
+      lastEmittedValue.value = null;
+      syncEditorFromTab(props.tab.content);
     }
   }
 );

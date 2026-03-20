@@ -7,9 +7,10 @@ const listenerMap = new Map<Function, Map<string, Function>>();
 contextBridge.exposeInMainWorld("electronAPI", {
   openFile: () => ipcRenderer.invoke("dialog:openFile"),
   getIsReadOnly: (filePath: string) => ipcRenderer.invoke("file:isReadOnly", filePath),
-  saveFile: (filePath: string | null, content: string, fileTraits?: any) =>
-    ipcRenderer.invoke("dialog:saveFile", { filePath, content, fileTraits }),
-  saveFileAs: (content: string) => ipcRenderer.invoke("dialog:saveFileAs", content),
+  saveFile: (filePath: string | null, content: string, fileTraits?: any, imageLocalPath?: string) =>
+    ipcRenderer.invoke("dialog:saveFile", { filePath, content, fileTraits, imageLocalPath }),
+  saveFileAs: (content: string, fileTraits?: any, imageLocalPath?: string) =>
+    ipcRenderer.invoke("dialog:saveFileAs", { content, fileTraits, imageLocalPath }),
   on: (channel: string, listener: (...args: any[]) => void) => {
     const wrapper = (_event: any, ...args: any[]) => listener(...args);
     if (!listenerMap.has(listener)) listenerMap.set(listener, new Map());
@@ -38,8 +39,20 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   openExternal: (url: string) => ipcRenderer.send("shell:openExternal", url),
   getFilePathInClipboard: () => ipcRenderer.invoke("clipboard:getFilePath"),
-  writeTempImage: (file: File, tempPath: string) =>
-    ipcRenderer.invoke("clipboard:writeTempImage", file, tempPath),
+  writeTempImage: (
+    file: Uint8Array,
+    targetPath: string,
+    currentFilePath?: string | null,
+    fileName?: string,
+    mimeType?: string
+  ) =>
+    ipcRenderer.invoke("clipboard:writeTempImage", {
+      file,
+      targetPath,
+      currentFilePath,
+      fileName,
+      mimeType,
+    }),
   // 导出为 PDF
   exportAsPDF: (elementSelector: string, outputName: string, options?: ExportPDFOptions) =>
     ipcRenderer.invoke("file:exportPDF", elementSelector, outputName, options),
@@ -87,6 +100,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   deleteFile: (filePath: string) => ipcRenderer.invoke("workspace:deleteFile", filePath),
   renameFile: (oldPath: string, newName: string) =>
     ipcRenderer.invoke("workspace:renameFile", { oldPath, newName }),
+  cleanupLocalImages: (content: string) => ipcRenderer.invoke("file:cleanupLocalImages", content),
 
   // 主题编辑器相关
   openThemeEditor: (theme?: any) => ipcRenderer.send("open-theme-editor", theme),

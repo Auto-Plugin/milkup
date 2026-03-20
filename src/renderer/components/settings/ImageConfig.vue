@@ -1,20 +1,51 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import Input from "@/ui/Input.vue";
+import { computed } from "vue";
+import { useConfig } from "@/renderer/hooks/useConfig";
 import UploadConfig from "./UploadConfig.vue";
 
 type PasteMethod = "local" | "base64" | "remote";
-const pasteMethod = ref<PasteMethod>(
-  (localStorage.getItem("pasteMethod") as PasteMethod) || "local"
-);
-const localPath = ref<string>("/temp");
+
+const { config, setConf } = useConfig();
+
+const pasteMethod = computed<PasteMethod>(() => config.value.image.pasteMethod);
+const localPath = computed<string>({
+  get: () => config.value.image.localPath,
+  set: (value) => {
+    setConf("image", "localPath", value);
+  },
+});
+
+function isAbsoluteLocalPath(pathValue: string): boolean {
+  if (!pathValue) return false;
+
+  if (window.electronAPI.platform === "win32") {
+    return /^[a-zA-Z]:[\\/]/.test(pathValue) || /^\\\\[^\\]/.test(pathValue);
+  }
+
+  return pathValue.startsWith("/");
+}
 
 function handleChangePasteMethod(method: PasteMethod) {
-  pasteMethod.value = method;
-  localStorage.setItem("pasteMethod", method);
+  setConf("image", "pasteMethod", method);
 }
-function handleChangeLoaclPath() {
-  localStorage.setItem("localImagePath", localPath.value);
+
+function handleChangeLocalPath() {
+  setConf("image", "localPath", localPath.value?.trim() || "/assets");
+}
+
+async function handleSelectDirectory() {
+  const defaultPath = isAbsoluteLocalPath(localPath.value) ? localPath.value : undefined;
+  const result = await window.electronAPI.showOpenDialog({
+    properties: ["openDirectory", "createDirectory"],
+    defaultPath,
+  });
+
+  if (!result || result.canceled || result.filePaths.length === 0) {
+    return;
+  }
+
+  localPath.value = result.filePaths[0];
+  handleChangeLocalPath();
 }
 </script>
 
@@ -57,13 +88,25 @@ function handleChangeLoaclPath() {
       </div>
     </div>
     <div class="details">
-      <div v-if="pasteMethod === 'local'">
-        <Input
-          v-model="localPath"
-          placeholder="/temp"
-          label="本地文件路径"
-          @change="handleChangeLoaclPath"
-        />
+      <div v-if="pasteMethod === 'local'" class="local-path-panel">
+        <div class="path-input-container">
+          <span class="input-label">本地文件路径</span>
+          <div class="path-input-group">
+            <input
+              v-model="localPath"
+              type="text"
+              placeholder="/assets"
+              @change="handleChangeLocalPath"
+            />
+            <button type="button" class="path-picker-btn" @click="handleSelectDirectory">
+              选择位置
+            </button>
+          </div>
+        </div>
+        <div class="path-hint">
+          相对路径基于当前 Markdown 文件目录，例如 `/assets` 会保存到当前文件目录下的 `assets`
+          文件夹；绝对路径会直接保存到指定目录。
+        </div>
       </div>
       <div v-if="pasteMethod === 'base64'">图片将自动转为 base64（可能会增大文件体积）</div>
       <UploadConfig v-if="pasteMethod === 'remote'" />
@@ -91,6 +134,58 @@ function handleChangeLoaclPath() {
       padding: 0 10px;
       border-radius: 4px;
       gap: 12px;
+    }
+  }
+
+  .local-path-panel {
+    .path-input-container {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      white-space: nowrap;
+
+      .input-label {
+        min-width: 100px;
+        display: inline-block;
+      }
+
+      .path-input-group {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      input {
+        width: 100%;
+        height: 40px;
+        border: 1px solid var(--border-color-1);
+        border-radius: 4px;
+        outline: none;
+        background-color: var(--background-color-1);
+        color: var(--text-color-1);
+        padding: 0 10px;
+        font-size: 14px;
+      }
+
+      .path-picker-btn {
+        height: 40px;
+        padding: 0 14px;
+        border: 1px solid var(--border-color-1);
+        border-radius: 4px;
+        background: var(--background-color-2);
+        color: var(--text-color-1);
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+    }
+
+    .path-hint {
+      color: var(--text-color-2);
+      font-size: 12px;
+      line-height: 1.6;
+      white-space: normal;
     }
   }
 

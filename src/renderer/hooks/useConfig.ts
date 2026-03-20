@@ -1,5 +1,5 @@
 import type { FontConfig, FontSizeConfig } from "@/types/font";
-import type { ShortcutKeyMap } from "@/core";
+import type { ImagePasteMethod, ShortcutKeyMap } from "@/core";
 import { useStorage } from "@vueuse/core";
 import { readonly, watch } from "vue";
 
@@ -10,6 +10,10 @@ interface AppConfig extends Record<string, any> {
   font: {
     family: FontConfig;
     size: FontSizeConfig;
+  };
+  image: {
+    pasteMethod: ImagePasteMethod;
+    localPath: string;
   };
   other: {
     editorPadding: string;
@@ -28,6 +32,10 @@ const defaultConfig: AppConfig = {
     family: defaultFontConfig,
     size: defaultFontSizeConfig,
   },
+  image: {
+    pasteMethod: "local",
+    localPath: "/assets",
+  },
   other: {
     editorPadding: "120px",
   },
@@ -40,13 +48,65 @@ const defaultConfig: AppConfig = {
   },
 };
 
+function mergeAppConfig(partial?: Partial<AppConfig>): AppConfig {
+  return {
+    ...defaultConfig,
+    ...partial,
+    font: {
+      ...defaultConfig.font,
+      ...partial?.font,
+    },
+    image: {
+      ...defaultConfig.image,
+      ...partial?.image,
+    },
+    other: {
+      ...defaultConfig.other,
+      ...partial?.other,
+    },
+    mermaid: {
+      ...defaultConfig.mermaid,
+      ...partial?.mermaid,
+    },
+    shortcuts: partial?.shortcuts || defaultConfig.shortcuts,
+    workspace: {
+      ...defaultConfig.workspace,
+      ...partial?.workspace,
+    },
+  };
+}
+
+function getLegacyImageConfig(): AppConfig["image"] {
+  const pasteMethod = localStorage.getItem("pasteMethod");
+  const localPath = localStorage.getItem("localImagePath");
+
+  return {
+    pasteMethod:
+      pasteMethod === "local" || pasteMethod === "base64" || pasteMethod === "remote"
+        ? pasteMethod
+        : defaultConfig.image.pasteMethod,
+    localPath: localPath || defaultConfig.image.localPath,
+  };
+}
+
 const config = useStorage<AppConfig>("milkup-config", defaultConfig, localStorage, {
   serializer: {
     read: (value: string) => {
       try {
-        return { ...defaultConfig, ...JSON.parse(value) };
+        const parsed = JSON.parse(value) as Partial<AppConfig>;
+        const merged = mergeAppConfig(parsed);
+
+        return {
+          ...merged,
+          image: {
+            ...getLegacyImageConfig(),
+            ...merged.image,
+          },
+        };
       } catch {
-        return defaultConfig;
+        return mergeAppConfig({
+          image: getLegacyImageConfig(),
+        });
       }
     },
     write: (value: AppConfig) => JSON.stringify(value),

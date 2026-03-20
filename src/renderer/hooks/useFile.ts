@@ -4,6 +4,7 @@ import { nextTick } from "vue";
 import emitter from "@/renderer/events";
 import { readAndProcessFile } from "@/renderer/services/fileService";
 import useContent from "./useContent";
+import { useConfig } from "./useConfig";
 import useTab from "./useTab";
 import useTitle from "./useTitle";
 
@@ -38,7 +39,7 @@ async function onOpen(result?: { filePath: string; content: string } | null) {
 async function onSave() {
   const { updateTitle } = useTitle();
   const { markdown, filePath, originalContent } = useContent();
-  const { updateCurrentTabContent, saveCurrentTab, currentTab } = useTab();
+  const { updateCurrentTabContent, saveCurrentTab, currentTab, applySavedTabState } = useTab();
 
   // 先更新当前tab的内容
   updateCurrentTabContent(markdown.value);
@@ -46,9 +47,26 @@ async function onSave() {
   // 保存当前tab
   const saved = await saveCurrentTab();
   if (saved) {
+    if (currentTab.value?.filePath) {
+      const fileContent = await readAndProcessFile({
+        filePath: currentTab.value.filePath,
+        checkReadOnly: false,
+      });
+
+      if (fileContent) {
+        applySavedTabState(currentTab.value, fileContent.filePath, fileContent.content);
+        currentTab.value.fileTraits = fileContent.fileTraits ?? currentTab.value.fileTraits;
+        currentTab.value.readOnly = fileContent.readOnly ?? currentTab.value.readOnly;
+      }
+    }
+
     filePath.value = currentTab.value?.filePath || "";
-    originalContent.value = markdown.value;
+    markdown.value = currentTab.value?.content || "";
+    originalContent.value = currentTab.value?.originalContent || "";
     updateTitle();
+    nextTick(() => {
+      emitter.emit("file:Change");
+    });
   }
   return saved;
 }
@@ -56,24 +74,48 @@ async function onSave() {
 async function onSaveAs() {
   const { updateTitle } = useTitle();
   const { markdown, filePath, originalContent } = useContent();
-  const { updateCurrentTabContent, currentTab } = useTab();
+  const { updateCurrentTabContent, currentTab, applySavedTabState, mergeSavedTabIntoExisting } =
+    useTab();
+  const { config } = useConfig();
 
   // 先更新当前tab的内容
   updateCurrentTabContent(markdown.value);
 
-  const result = await window.electronAPI.saveFileAs(markdown.value);
+  const result = await window.electronAPI.saveFileAs(
+    markdown.value,
+    currentTab.value?.fileTraits,
+    config.value.image.localPath
+  );
   if (result) {
+    const fileContent = await readAndProcessFile({
+      filePath: result.filePath,
+      checkReadOnly: false,
+    });
+
     // 更新当前tab的文件路径
     if (currentTab.value) {
-      currentTab.value.filePath = result.filePath;
-      currentTab.value.name = result.filePath.split(/[\\/]/).at(-1) || "Untitled";
-      currentTab.value.originalContent = markdown.value;
-      currentTab.value.isModified = false;
+      const nextContent = fileContent?.content ?? result.content;
+      const mergedTab = mergeSavedTabIntoExisting(currentTab.value, result.filePath, nextContent, {
+        fileTraits: fileContent?.fileTraits ?? currentTab.value.fileTraits,
+        readOnly: fileContent?.readOnly ?? currentTab.value.readOnly,
+      });
+
+      if (!mergedTab) {
+        applySavedTabState(currentTab.value, result.filePath, nextContent);
+        currentTab.value.fileTraits = fileContent?.fileTraits ?? currentTab.value.fileTraits;
+        currentTab.value.readOnly = fileContent?.readOnly ?? currentTab.value.readOnly;
+      }
     }
 
     filePath.value = result.filePath;
-    originalContent.value = markdown.value;
+    markdown.value = useTab().currentTab.value?.content ?? fileContent?.content ?? result.content;
+    originalContent.value =
+      useTab().currentTab.value?.originalContent ?? fileContent?.content ?? result.content;
     updateTitle();
+    nextTick(() => {
+      emitter.emit("file:Change");
+      emitter.emit("editor:reload");
+    });
   }
 }
 
@@ -124,6 +166,7 @@ export default function useFile() {
     updateCurrentTabContent,
     updateCurrentTabScrollRatio,
     saveCurrentTab,
+    cleanupTabLocalImages,
     currentTab,
     hasUnsavedTabs,
     tabs,
@@ -207,6 +250,7 @@ export default function useFile() {
         const fileContent = await readAndProcessFile({ filePath: fullPath });
         if (fileContent) {
           if (userChoice === "overwrite") {
+            await cleanupTabLocalImages(currentTab.value);
             // 覆盖更新当前tab的文件信息
             updateCurrentTabFile(fileContent.filePath, fileContent.content);
 
@@ -273,6 +317,7 @@ export default function useFile() {
       const content = await mdFile.text();
 
       if (userChoice === "overwrite") {
+        await cleanupTabLocalImages(currentTab.value);
         // 覆盖更新当前tab的文件信息
         updateCurrentTabFile(mdFile.name, content);
 

@@ -16,6 +16,11 @@ export const pastePluginKey = new PluginKey("milkup-paste");
 /** 图片粘贴方式 */
 export type ImagePasteMethod = "base64" | "local" | "remote";
 
+interface StoredImageConfig {
+  pasteMethod?: ImagePasteMethod;
+  localPath?: string;
+}
+
 /** 图片上传函数类型 */
 export type ImageUploader = (file: File) => Promise<string>;
 
@@ -32,12 +37,36 @@ export interface PastePluginConfig {
   localImageSaver?: LocalImageSaver;
 }
 
+/** 获取图片粘贴方式 */
+export function getImagePasteMethod(): ImagePasteMethod {
+  const method = getStoredImageConfig().pasteMethod || localStorage.getItem("pasteMethod");
+  if (method === "local" || method === "base64" || method === "remote") {
+    return method;
+  }
+  return "local";
+}
+
+/** 获取本地图片保存路径 */
+export function getLocalImagePath(): string {
+  const localPath = getStoredImageConfig().localPath || localStorage.getItem("localImagePath");
+  return localPath || "/assets";
+}
+
+function getStoredImageConfig(): StoredImageConfig {
+  try {
+    const rawConfig = localStorage.getItem("milkup-config");
+    if (!rawConfig) return {};
+
+    const parsed = JSON.parse(rawConfig) as { image?: StoredImageConfig };
+    return parsed.image || {};
+  } catch {
+    return {};
+  }
+}
+
 /** 默认配置 */
 const defaultConfig: PastePluginConfig = {
-  getImagePasteMethod: () => {
-    const method = localStorage.getItem("pasteMethod");
-    return (method as ImagePasteMethod) || "base64";
-  },
+  getImagePasteMethod,
 };
 
 /**
@@ -134,7 +163,7 @@ async function handleImagePaste(
   files: FileList,
   config: PastePluginConfig
 ): Promise<void> {
-  const method = config.getImagePasteMethod?.() || "base64";
+  const method = config.getImagePasteMethod?.() || getImagePasteMethod();
   const schema = view.state.schema;
   const nodes: Node[] = [];
 
@@ -206,7 +235,7 @@ async function handleImagePasteAsText(
   files: FileList,
   config: PastePluginConfig
 ): Promise<void> {
-  const method = config.getImagePasteMethod?.() || "base64";
+  const method = config.getImagePasteMethod?.() || getImagePasteMethod();
   const schema = view.state.schema;
 
   for (let i = 0; i < files.length; i++) {
@@ -274,23 +303,18 @@ export async function saveImageLocally(file: File): Promise<string> {
   if (typeof window !== "undefined" && (window as any).electronAPI) {
     const electronAPI = (window as any).electronAPI;
 
-    // 尝试获取剪贴板中的文件路径
-    const filePath = await electronAPI.getFilePathInClipboard?.();
-    if (filePath) {
-      return filePath;
-    }
-
-    // 检查 File 对象是否有 path 属性（Electron 环境）
-    const absolutePath = (file as any).path;
-    if (absolutePath) {
-      return absolutePath;
-    }
-
     // 将图片保存到临时目录
     const arrayBuffer = await file.arrayBuffer();
     const buffer = new Uint8Array(arrayBuffer);
-    const localImagePath = localStorage.getItem("localImagePath") || "/temp";
-    const tempPath = await electronAPI.writeTempImage?.(buffer, localImagePath);
+    const localImagePath = getLocalImagePath();
+    const currentFilePath = (window as any).__currentFilePath || null;
+    const tempPath = await electronAPI.writeTempImage?.(
+      buffer,
+      localImagePath,
+      currentFilePath,
+      file.name,
+      file.type
+    );
 
     if (tempPath) {
       return tempPath;

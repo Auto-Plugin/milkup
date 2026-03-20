@@ -59,6 +59,168 @@ let watcher: FSWatcher | null = null;
 let directoryWatcher: FSWatcher | null = null;
 let directoryChangedDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
+function isAbsoluteImageDirectory(inputPath: string): boolean {
+  if (!inputPath) return false;
+
+  if (process.platform === "win32") {
+    return /^[a-zA-Z]:[\\/]/.test(inputPath) || /^\\\\[^\\]/.test(inputPath);
+  }
+
+  return path.posix.isAbsolute(inputPath);
+}
+
+function normalizeRelativeImageDirectory(inputPath: string): string {
+  return inputPath
+    .replace(/^[\\/]+/, "")
+    .replace(/^\.[\\/]+/, "")
+    .trim();
+}
+
+function getImageOutputExtension(fileName?: string, mimeType?: string): string {
+  const fileExt = fileName ? path.extname(fileName) : "";
+  if (fileExt) {
+    return fileExt.toLowerCase();
+  }
+
+  switch (mimeType) {
+    case "image/jpeg":
+      return ".jpg";
+    case "image/gif":
+      return ".gif";
+    case "image/webp":
+      return ".webp";
+    case "image/svg+xml":
+      return ".svg";
+    case "image/bmp":
+      return ".bmp";
+    default:
+      return ".png";
+  }
+}
+
+function createImageFileName(fileName?: string, mimeType?: string): string {
+  const ext = getImageOutputExtension(fileName, mimeType);
+  const rawBaseName = fileName ? path.basename(fileName, path.extname(fileName)) : "image";
+  const safeBaseName = (rawBaseName || "image").replace(/[<>:"/\\|?*\x00-\x1F]/g, "-").trim();
+
+  return `${safeBaseName || "image"}-${Date.now()}${ext}`;
+}
+
+function resolveImageSaveDirectory(
+  configuredPath: string,
+  currentFilePath?: string | null
+): { absoluteDir: string; isRelative: boolean } {
+  const normalizedPath = (configuredPath || "/assets").trim();
+
+  if (isAbsoluteImageDirectory(normalizedPath)) {
+    return {
+      absoluteDir: normalizedPath,
+      isRelative: false,
+    };
+  }
+
+  const relativeDir = normalizeRelativeImageDirectory(normalizedPath) || "assets";
+  const baseDir = currentFilePath ? path.dirname(currentFilePath) : app.getPath("userData");
+
+  return {
+    absoluteDir: path.resolve(baseDir, relativeDir),
+    isRelative: true,
+  };
+}
+
+function resolveImageMarkdownPath(
+  absoluteFilePath: string,
+  isRelative: boolean,
+  currentFilePath?: string | null
+): string {
+  if (!isRelative || !currentFilePath) {
+    return absoluteFilePath.replace(/\\/g, "/");
+  }
+
+  const relativePath = path.relative(path.dirname(currentFilePath), absoluteFilePath);
+  return relativePath.replace(/\\/g, "/");
+}
+
+function isAppTempImagePath(imagePath: string): boolean {
+  if (!imagePath) return false;
+
+  const normalizedImagePath = path.normalize(imagePath);
+  const userDataPath = path.normalize(app.getPath("userData"));
+
+  return (
+    normalizedImagePath.startsWith(userDataPath + path.sep) || normalizedImagePath === userDataPath
+  );
+}
+
+function replaceMarkdownImageSources(
+  content: string,
+  replacer: (src: string) => string | null
+): string {
+  return content.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (fullMatch, alt, src) => {
+    const nextSrc = replacer(src);
+    if (!nextSrc || nextSrc === src) {
+      return fullMatch;
+    }
+    return `![${alt}](${nextSrc})`;
+  });
+}
+
+function prepareImageContentForSave(
+  content: string,
+  targetFilePath: string,
+  imageLocalPath: string
+): string {
+  const { absoluteDir, isRelative } = resolveImageSaveDirectory(imageLocalPath, targetFilePath);
+
+  if (!isRelative) {
+    return content;
+  }
+
+  if (!fs.existsSync(absoluteDir)) {
+    fs.mkdirSync(absoluteDir, { recursive: true });
+  }
+
+  return replaceMarkdownImageSources(content, (src) => {
+    if (!isAbsoluteImageDirectory(src) || !isAppTempImagePath(src)) {
+      return null;
+    }
+
+    const targetPath = path.join(absoluteDir, path.basename(src));
+    const normalizedSrc = path.normalize(src);
+    const normalizedTarget = path.normalize(targetPath);
+
+    if (normalizedSrc !== normalizedTarget && fs.existsSync(src)) {
+      fs.cpSync(src, targetPath, { force: true });
+      fs.rmSync(src, { force: true });
+    }
+
+    if (!fs.existsSync(targetPath) && !fs.existsSync(src)) {
+      return null;
+    }
+
+    return resolveImageMarkdownPath(targetPath, true, targetFilePath);
+  });
+}
+
+function cleanupTemporaryImages(content: string): void {
+  const imagePaths = new Set<string>();
+
+  replaceMarkdownImageSources(content, (src) => {
+    if (isAbsoluteImageDirectory(src) && isAppTempImagePath(src) && fs.existsSync(src)) {
+      imagePaths.add(src);
+    }
+    return null;
+  });
+
+  for (const imagePath of imagePaths) {
+    try {
+      fs.rmSync(imagePath, { force: true });
+    } catch (error) {
+      console.warn("清理临时图片失败:", imagePath, error);
+    }
+  }
+}
+
 // 所有 on 类型监听
 export function registerIpcOnHandlers() {
   ipcMain.on("set-title", (event, filePath: string | null) => {
@@ -219,7 +381,13 @@ export function registerIpcHandleHandlers() {
         filePath,
         content,
         fileTraits,
-      }: { filePath: string | null; content: string; fileTraits?: FileTraits }
+        imageLocalPath,
+      }: {
+        filePath: string | null;
+        content: string;
+        fileTraits?: FileTraits;
+        imageLocalPath?: string;
+      }
     ) => {
       const parentWin = BrowserWindow.fromWebContents(event.sender);
       if (!parentWin) return null;
@@ -230,22 +398,48 @@ export function registerIpcHandleHandlers() {
         if (canceled || !savePath) return null;
         filePath = savePath;
       }
+      const preparedContent = prepareImageContentForSave(
+        content,
+        filePath,
+        imageLocalPath || "/assets"
+      );
       // 根据原始文件格式特征还原内容
-      const restoredContent = restoreFileTraits(content, fileTraits);
+      const restoredContent = restoreFileTraits(preparedContent, fileTraits);
       fs.writeFileSync(filePath, restoredContent, "utf-8");
-      return filePath;
+      return { filePath, content: preparedContent };
     }
   );
   // 文件另存为对话框
-  ipcMain.handle("dialog:saveFileAs", async (event, content) => {
-    const parentWin = BrowserWindow.fromWebContents(event.sender);
-    if (!parentWin) return null;
-    const { canceled, filePath } = await dialog.showSaveDialog(parentWin, {
-      filters: [{ name: "Markdown", extensions: ["md", "markdown"] }],
-    });
-    if (canceled || !filePath) return null;
-    fs.writeFileSync(filePath, content, "utf-8");
-    return { filePath };
+  ipcMain.handle(
+    "dialog:saveFileAs",
+    async (
+      event,
+      {
+        content,
+        fileTraits,
+        imageLocalPath,
+      }: { content: string; fileTraits?: FileTraits; imageLocalPath?: string }
+    ) => {
+      const parentWin = BrowserWindow.fromWebContents(event.sender);
+      if (!parentWin) return null;
+      const { canceled, filePath } = await dialog.showSaveDialog(parentWin, {
+        filters: [{ name: "Markdown", extensions: ["md", "markdown"] }],
+      });
+      if (canceled || !filePath) return null;
+      const preparedContent = prepareImageContentForSave(
+        content,
+        filePath,
+        imageLocalPath || "/assets"
+      );
+      const restoredContent = restoreFileTraits(preparedContent, fileTraits);
+      fs.writeFileSync(filePath, restoredContent, "utf-8");
+      return { filePath, content: preparedContent };
+    }
+  );
+
+  ipcMain.handle("file:cleanupLocalImages", async (_event, content: string) => {
+    cleanupTemporaryImages(content);
+    return true;
   });
 
   // 同步显示消息框
@@ -688,14 +882,27 @@ export function registerGlobalIpcHandlers() {
   // 将临时图片写入剪贴板
   ipcMain.handle(
     "clipboard:writeTempImage",
-    async (_event, file: Uint8Array<ArrayBuffer>, tempPath: string) => {
-      const tempDir = path.join(__dirname, tempPath || "/temp");
-      if (!fs.existsSync(tempDir)) {
-        fs.mkdirSync(tempDir);
+    async (
+      _event,
+      payload: {
+        file: Uint8Array<ArrayBuffer>;
+        targetPath: string;
+        currentFilePath?: string | null;
+        fileName?: string;
+        mimeType?: string;
       }
-      const filePath = path.join(tempDir, `temp-image-${Date.now()}.png`);
-      fs.writeFileSync(filePath, file);
-      return filePath;
+    ) => {
+      const { file, targetPath, currentFilePath, fileName, mimeType } = payload;
+      const { absoluteDir, isRelative } = resolveImageSaveDirectory(targetPath, currentFilePath);
+
+      if (!fs.existsSync(absoluteDir)) {
+        fs.mkdirSync(absoluteDir, { recursive: true });
+      }
+
+      const outputFilePath = path.join(absoluteDir, createImageFileName(fileName, mimeType));
+      fs.writeFileSync(outputFilePath, file);
+
+      return resolveImageMarkdownPath(outputFilePath, isRelative, currentFilePath);
     }
   );
   // 获取系统字体列表

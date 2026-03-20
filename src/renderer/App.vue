@@ -26,8 +26,16 @@ const { init: initFont } = useFont();
 const { init: initOtherConfig } = useOtherConfig();
 const { isShowSource } = useSourceCode(); // 用于控制大纲显示
 const { init: initSpellCheck } = useSpellCheck();
-const { currentTab, tabs, activeTabId, close, saveCurrentTab, getUnsavedTabs, switchToTab } =
-  useTab();
+const {
+  currentTab,
+  tabs,
+  activeTabId,
+  close,
+  saveCurrentTab,
+  cleanupTabLocalImages,
+  getUnsavedTabs,
+  switchToTab,
+} = useTab();
 const {
   isDialogVisible,
   dialogType,
@@ -70,6 +78,7 @@ const handleTabCloseConfirm = async (payload: any) => {
     }
   } else if (result === "discard") {
     // 放弃更改，直接关闭
+    await cleanupTabLocalImages(tabs.value.find((tab) => tab.id === tabId));
     close(tabId);
   }
   // cancel 则不做任何操作
@@ -163,8 +172,9 @@ async function handleSafeClose(action: "close" | "update") {
         // 保存失败，中止关闭
         return;
       }
+    } else {
+      await cleanupTabLocalImages(tab);
     }
-    // 如果是 'discard'，则不做任何操作，继续下一个
   }
 
   // 所有此轮检查都通过（保存或丢弃），强制关闭/更新

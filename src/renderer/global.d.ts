@@ -12,9 +12,14 @@ interface Window {
     saveFile: (
       filePath: string | null,
       content: string,
-      fileTraits?: FileTraitsDTO
-    ) => Promise<string | null>;
-    saveFileAs: (content: string) => Promise<{ filePath: string } | null>;
+      fileTraits?: FileTraitsDTO,
+      imageLocalPath?: string
+    ) => Promise<{ filePath: string; content: string } | null>;
+    saveFileAs: (
+      content: string,
+      fileTraits?: FileTraitsDTO,
+      imageLocalPath?: string
+    ) => Promise<{ filePath: string; content: string } | null>;
     setTitle: (filePath: string | null) => void;
     changeSaveStatus: (isSaved: boolean) => void;
     on: (channel: string, listener: (...args: any[]) => void) => void;
@@ -26,7 +31,13 @@ interface Window {
     ) => void;
     openExternal: (url: string) => Promise<void>;
     getFilePathInClipboard: () => Promise<string | null>;
-    writeTempImage: (file: Uint8Array<ArrayBuffer>, tempPath: string) => Promise<string>;
+    writeTempImage: (
+      file: Uint8Array<ArrayBuffer>,
+      targetPath: string,
+      currentFilePath?: string | null,
+      fileName?: string,
+      mimeType?: string
+    ) => Promise<string>;
     // 图片路径解析
     resolveImagePath: (markdownFilePath: string, imagePath: string) => Promise<string>;
     // 导出为 PDF
@@ -73,6 +84,7 @@ interface Window {
     createFolder: (dirPath: string, folderName: string) => Promise<string | null>;
     deleteFile: (filePath: string) => Promise<boolean>;
     renameFile: (oldPath: string, newName: string) => Promise<string | null>;
+    cleanupLocalImages: (content: string) => Promise<boolean>;
     // 主题编辑器相关
     openThemeEditor: (theme?: any) => void;
     themeEditorWindowControl: (action: "minimize" | "maximize" | "close") => void;

@@ -46,6 +46,9 @@ export { createSyntaxDetectorPlugin, syntaxDetectorPluginKey } from "./plugins/s
 export {
   createPastePlugin,
   pastePluginKey,
+  getImagePasteMethod,
+  getLocalImagePath,
+  saveImageLocally,
   type ImagePasteMethod,
   type ImageUploader,
   type LocalImageSaver,

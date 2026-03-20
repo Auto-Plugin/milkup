@@ -1525,10 +1525,7 @@ export class MilkupEditor implements IMilkupEditor {
    */
   private async insertImageFromFile(file: File): Promise<void> {
     // 获取图片粘贴方式
-    const method: ImagePasteMethod =
-      this.config.pasteConfig?.getImagePasteMethod?.() ||
-      (localStorage.getItem("pasteMethod") as ImagePasteMethod) ||
-      "base64";
+    const method: ImagePasteMethod = this.config.pasteConfig?.getImagePasteMethod?.() || "local";
 
     let src: string;
 

@@ -1,0 +1,207 @@
+{
+  "frameworkSentences": [
+    {
+      "quote": "不对，你的分析方向有问题，问题1完整描述为：修复\"菜单>文件>打开>选择文件并确定\"无反应。",
+      "frequency": 2,
+      "context": "AI 误解 bug 本质时立即纠正",
+      "insight": "对问题定位的精确性要求——不接受模糊理解"
+    },
+    {
+      "quote": "没有生效，建议不手动用代码插入空格，而是改成触发两次空格键，以避免强行插入出现的问题",
+      "frequency": 1,
+      "context": "AI 直接插入文本节点不生效，用户提出模拟按键事件",
+      "insight": "对 ProseMirror 事务系统的深层理解——直接操作 DOM 可能绕过编辑器事务"
+    },
+    {
+      "quote": "目前列表标记在即时渲染模式下通过 NodeView 的外部 DOM 元素展示，不可编辑。用户希望这些标记作为段落内的普通可编辑文本存在",
+      "frequency": 2,
+      "context": "定义列表标记可编辑化的核心设计决策",
+      "insight": "所见即所得但保留 Markdown 本质——标记本身应该是用户可触及的文本"
+    },
+    {
+      "quote": "行内标签元素应以装饰器形式编辑，而不是使用 html 代码块",
+      "frequency": 3,
+      "context": "反复强调行内 HTML 元素必须用装饰器模式",
+      "insight": "对行内 vs 块级边界的清晰认知"
+    },
+    {
+      "quote": "不完整的元素标签应按普通文本显示，删掉末尾的 > 或破坏任意正确结构，都应以普通文本显示",
+      "frequency": 1,
+      "context": "定义 HTML 结构不完整时的降级规则",
+      "insight": "优雅降级原则——系统不应在中间状态下显示错误的渲染结果"
+    },
+    {
+      "quote": "希望输入时立即解析（包括删除字符时）",
+      "frequency": 1,
+      "context": "要求编辑器语法检测必须实时响应",
+      "insight": "即时反馈原则：编辑器状态应始终与用户看到的内容一致"
+    },
+    {
+      "quote": "语气直接说更强，说明强在哪，其他方面可以说各有千秋",
+      "frequency": 1,
+      "context": "指导 AI 写竞品对比文章的修辞策略",
+      "insight": "核心优势上亮剑，非核心领域保持风度——有重点的自信"
+    },
+    {
+      "quote": "参照标题解析器 parseHeading 的做法",
+      "frequency": 2,
+      "context": "要求新功能复用已有的 heading 解析模式",
+      "insight": "内部一致性原则——新功能应复用已有架构模式"
+    }
+  ],
+  "portrait": {
+    "summary": "[USER]是一位在 ProseMirror 深水区游泳的编辑器架构师。TA 用精确到行号的 bug 报告驯服 AI，用 before/after 示例定义交互规则，用「即时反馈 + 优雅降级」的哲学打磨一个 Markdown 即时渲染编辑器。把 AI 当执行层管理，自己把控方向、架构和审美。",
+    "dimensions": [
+      {
+        "label": "给 AI 纠错的速度",
+        "left": "容忍偏差",
+        "right": "秒级纠偏",
+        "score": 88,
+        "observation": "AI 一旦误解问题本质，[USER]立刻打断并给出精确描述，不允许在错误方向上浪费一轮对话。",
+        "evidence": "不对，你的分析方向有问题",
+        "tension": "纠错速度极快，但从不情绪化——每次纠正都附带完整的正确描述，像在训练一个新人。"
+      },
+      {
+        "label": "架构洁癖",
+        "left": "能跑就行",
+        "right": "必须优雅",
+        "score": 82,
+        "observation": "要求新功能复用已有模式（参照 parseHeading），行内元素必须用装饰器而非代码块，视觉层级必须与标准一致。",
+        "evidence": "参照标题解析器 parseHeading 的做法",
+        "tension": "追求架构一致性，但不是为了美而美——每个要求都有实际的用户体验理由。"
+      },
+      {
+        "label": "需求表达的工程化程度",
+        "left": "口头描述",
+        "right": "规格文档",
+        "score": 85,
+        "observation": "用编号列表、before/after 示例、预期行为对比来定义需求，每个 bug 都有复现路径。",
+        "evidence": "新增输入规则，当处于空的子列表项时，输入新的标记语法可改变当前项的列表类型",
+        "tension": "需求表达极其工程化，但消息平均只有 64 字符——用最少的字说最精确的话。"
+      },
+      {
+        "label": "对中间状态的容忍度",
+        "left": "允许脏状态",
+        "right": "零容忍",
+        "score": 90,
+        "observation": "要求输入时立即解析、删除时立即回退、不完整标签立即降级为纯文本。",
+        "evidence": "希望输入时立即解析（包括删除字符时）",
+        "tension": "对编辑器的实时性要求近乎偏执，但这恰恰是好编辑器和普通编辑器的分水岭。"
+      },
+      {
+        "label": "AI 信任边界",
+        "left": "无条件信任",
+        "right": "全程审查",
+        "score": 75,
+        "observation": "先要求出方案/大纲确认方向，执行后审查质量，发现事实错误直接给一手文档链接要求修正。",
+        "evidence": "你说的短板应该不准确，建议读一下他们的文档",
+        "tension": "不是不信任 AI，而是把 AI 当作需要 code review 的初级工程师——给自由但设边界。"
+      },
+      {
+        "label": "底层系统的手感",
+        "left": "调 API",
+        "right": "摸引擎",
+        "score": 80,
+        "observation": "当 AI 的方案不生效时，能基于对 ProseMirror 事务系统的理解提出替代方案（模拟按键代替直接插入）。",
+        "evidence": "建议不手动用代码插入空格，而是改成触发两次空格键",
+        "tension": "不只是使用框架，而是理解框架的内部机制——知道什么时候该顺着框架走，什么时候该绕过去。"
+      }
+    ]
+  },
+  "topDomains": [
+    "富文本编辑器架构",
+    "Electron 桌面应用",
+    "前端工程化",
+    "开源项目运营",
+    "技术写作与推广"
+  ],
+  "cognitiveStyle": {
+    "abstraction": 72,
+    "aestheticRigor": 82,
+    "challengeRate": 70,
+    "divergence": 45,
+    "controlGrain": 88,
+    "teachingDrive": 65
+  },
+  "capabilityRings": [
+    {
+      "name": "ProseMirror 深层架构",
+      "tier": "core"
+    },
+    {
+      "name": "Electron 桌面应用开发",
+      "tier": "core"
+    },
+    {
+      "name": "TypeScript/Vue 3 工程化",
+      "tier": "core"
+    },
+    {
+      "name": "Markdown 解析与渲染",
+      "tier": "core"
+    },
+    {
+      "name": "CI/CD 与发布流程",
+      "tier": "working"
+    },
+    {
+      "name": "技术写作",
+      "tier": "working"
+    },
+    {
+      "name": "开源推广与竞品分析",
+      "tier": "exploring"
+    }
+  ],
+  "decisionStyle": [
+    {
+      "key": "killVsInvent",
+      "name": "破立倾向",
+      "left": "渐进优化",
+      "right": "推翻重来",
+      "score": 65,
+      "evidence": [
+        {
+          "quote": "参照标题解析器 parseHeading 的做法",
+          "context": "要求新功能复用已有模式而非重新发明"
+        }
+      ],
+      "take": "偏向在已有架构上渐进演化，但当 AI 的方案触碰到设计原则底线时（如行内元素用代码块），会毫不犹豫地推翻。"
+    },
+    {
+      "key": "breadthVsDepth",
+      "name": "广度 vs 深度",
+      "left": "广泛涉猎",
+      "right": "深耕一域",
+      "score": 78,
+      "evidence": [
+        {
+          "quote": "目前列表标记在即时渲染模式下通过 NodeView 的外部 DOM 元素展示",
+          "context": "对 ProseMirror NodeView、decoration、parser 三层架构的深入理解"
+        }
+      ],
+      "take": "在编辑器这个垂直领域深耕到了 ProseMirror 的内部机制层面，但同时也在做网页智能体和技术推广——深度优先，广度不缺。"
+    },
+    {
+      "key": "trustVsVerify",
+      "name": "信任 vs 验证",
+      "left": "放手信任",
+      "right": "逐行审查",
+      "score": 72,
+      "evidence": [
+        {
+          "quote": "你说的短板应该不准确，建议读一下他们的文档",
+          "context": "发现 AI 对竞品描述不准确，要求基于一手资料修正"
+        }
+      ],
+      "take": "给 AI 足够的执行空间，但在关键节点（事实准确性、架构决策、视觉细节）上绝不放过——信任但验证。"
+    }
+  ],
+  "behavioralInsights": [
+    "Opus 占模型使用量的 49%，Haiku 占 46%——[USER]在需要深度思考的架构任务上用 Opus，在常规执行上切 Haiku，这种双模型策略说明 TA 对不同任务的认知负荷有清晰的分级。",
+    "Read 工具使用 626 次，是 Write/Edit 的 4.7 倍——[USER]花大量时间阅读代码再动手，这与 TA 要求「参照已有模式」的架构一致性原则完全吻合。",
+    "平均消息长度仅 64 字符，但拒绝率达 8.7%——用最少的字表达最精确的意图，不满意时直接否决。惜字如金但绝不含糊。",
+    "活动集中在周日（2835 次操作）和周一（1394 次），周二到周六几乎为零——这不是「不下班的人」，而是一个有明确节奏的周末开源贡献者。",
+    "下午 4-6 点是活动高峰（17 时 1335 次、18 时 931 次），上午活动极少——[USER]是一个下午型创作者，在精力最充沛的时段集中处理编辑器架构这种高认知负荷任务。"
+  ]
+}

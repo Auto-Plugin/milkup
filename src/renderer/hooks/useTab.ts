@@ -9,6 +9,7 @@ import { createTabDataFromFile, readAndProcessFile } from "@/renderer/services/f
 import { createInertiaScroll } from "@/renderer/utils/inertiaScroll";
 import { randomUUID } from "@/renderer/utils/tool";
 import { isShowOutline } from "./useOutline";
+import { useConfig } from "./useConfig";
 
 const tabs = ref<Tab[]>([]);
 const activeTabId = ref<string | null>(null);
@@ -219,24 +220,73 @@ function updateCurrentTabScrollRatio(ratio: number) {
   }
 }
 
+function applySavedTabState(tab: Tab, filePath: string, content: string) {
+  tab.filePath = filePath;
+  tab.name = getFileName(filePath);
+  tab.content = content;
+  tab.originalContent = content;
+  tab.isModified = false;
+  tab.isNewlyLoaded = true;
+  scheduleNewlyLoadedCleanup(tab.id);
+}
+
+function mergeSavedTabIntoExisting(
+  sourceTab: Tab,
+  filePath: string,
+  content: string,
+  options?: { fileTraits?: FileTraitsDTO; readOnly?: boolean }
+) {
+  const existingTab = tabs.value.find(
+    (item) => item.id !== sourceTab.id && item.filePath === filePath
+  );
+  if (!existingTab) return null;
+
+  applySavedTabState(existingTab, filePath, content);
+  existingTab.fileTraits = options?.fileTraits ?? existingTab.fileTraits;
+  existingTab.readOnly = options?.readOnly ?? existingTab.readOnly;
+
+  const sourceTabId = sourceTab.id;
+  setActive(existingTab.id);
+  close(sourceTabId);
+
+  return existingTab;
+}
+
 // 保存指定tab
 async function saveTab(tab: Tab): Promise<boolean> {
   if (!tab || tab.readOnly) return false;
 
   try {
+    const { config } = useConfig();
     // 传递 fileTraits 给主进程，由主进程负责还原 BOM、换行符、末尾换行
     // toRaw 将 Vue Proxy 转为普通对象，避免 IPC 序列化失败
     const saved = await window.electronAPI.saveFile(
       tab.filePath,
       tab.content,
-      toRaw(tab.fileTraits)
+      toRaw(tab.fileTraits),
+      config.value.image.localPath
     );
     if (saved) {
-      tab.filePath = saved;
-      tab.name = getFileName(saved);
-      // 保存后，当前内容即为原始内容
-      tab.originalContent = tab.content;
-      tab.isModified = false;
+      const fileContent = await readAndProcessFile({
+        filePath: saved.filePath,
+        checkReadOnly: false,
+      });
+
+      const nextContent = fileContent?.content ?? saved.content;
+      const mergedTab = mergeSavedTabIntoExisting(tab, saved.filePath, nextContent, {
+        fileTraits: fileContent?.fileTraits ?? tab.fileTraits,
+        readOnly: fileContent?.readOnly ?? tab.readOnly,
+      });
+      if (!mergedTab) {
+        applySavedTabState(tab, saved.filePath, nextContent);
+        tab.fileTraits = fileContent?.fileTraits ?? tab.fileTraits;
+        tab.readOnly = fileContent?.readOnly ?? tab.readOnly;
+      }
+
+      emitter.emit("file:Change");
+      nextTick(() => {
+        emitter.emit("editor:reload");
+      });
       return true;
     }
   } catch (error) {
@@ -250,6 +300,16 @@ async function saveTab(tab: Tab): Promise<boolean> {
 async function saveCurrentTab(): Promise<boolean> {
   const currentTab = getCurrentTab();
   return saveTab(currentTab!);
+}
+
+async function cleanupTabLocalImages(tab: Tab | null | undefined): Promise<void> {
+  if (!tab?.content) return;
+
+  try {
+    await window.electronAPI.cleanupLocalImages(tab.content);
+  } catch (error) {
+    console.error("清理临时图片失败:", error);
+  }
 }
 
 // 从文件创建新tab
@@ -985,6 +1045,9 @@ function useTab() {
     updateCurrentTabScrollRatio,
     saveCurrentTab,
     saveTab,
+    cleanupTabLocalImages,
+    applySavedTabState,
+    mergeSavedTabIntoExisting,
     createTabFromFile,
     updateCurrentTabFile,
     createNewTab,
