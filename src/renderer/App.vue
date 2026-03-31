@@ -12,6 +12,7 @@ import useTab from "@/renderer/hooks/useTab";
 import useTheme from "@/renderer/hooks/useTheme";
 import { useUpdateDialog } from "@/renderer/hooks/useUpdateDialog";
 import useWorkSpace from "@/renderer/hooks/useWorkSpace";
+import { shouldAutoLoadWorkspace } from "@/renderer/utils/workspacePath";
 import SaveConfirmDialog from "./components/dialogs/SaveConfirmDialog.vue";
 import UpdateConfirmDialog from "./components/dialogs/UpdateConfirmDialog.vue";
 import MilkupEditor from "./components/editor/MilkupEditor.vue";
@@ -141,7 +142,7 @@ onMounted(() => {
   initSpellCheck();
   toggleShowOutline(Boolean(config.value.workspace?.autoExpandSidebar));
   const startupPath = config.value.workspace?.startupPath;
-  if (startupPath) {
+  if (startupPath && shouldAutoLoadWorkspace(startupPath)) {
     window.electronAPI.workspaceExists(startupPath).then((exists) => {
       if (exists) {
         openWorkSpaceByPath(startupPath);

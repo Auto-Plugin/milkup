@@ -166,7 +166,7 @@ export class MilkupEditor implements IMilkupEditor {
       state,
       editable: () => !this.config.readonly,
       clipboardTextSerializer: (slice) => this.serializeSliceToMarkdown(slice),
-      clipboardTextParser: (text, $context, plain, view) => {
+      clipboardTextParser: (text) => {
         // 将粘贴的纯文本作为 Markdown 解析
         const { doc } = this.parser.parse(text);
         return new Slice(doc.content, 1, 1);
@@ -1098,7 +1098,7 @@ export class MilkupEditor implements IMilkupEditor {
 
     // 点击外部关闭
     const closeHandler = (event: MouseEvent) => {
-      if (!menu.contains(event.target as Node)) {
+      if (!(event.target instanceof globalThis.Node) || !menu.contains(event.target)) {
         this.hideContextMenu();
         document.removeEventListener("click", closeHandler);
       }

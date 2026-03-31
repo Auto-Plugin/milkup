@@ -60,7 +60,7 @@ export function readMarkdownFile(filePath: string) {
 
   const raw = fs.readFileSync(normalizedPath, "utf-8");
   const fileTraits = detectFileTraits(raw);
-  const content = cleanupProtocolUrls(normalizeMarkdown(raw), normalizedPath);
+  const content = cleanupProtocolUrls(normalizeMarkdown(raw));
 
   return {
     filePath: normalizedPath,

@@ -448,7 +448,7 @@ export function computeDecorations(
 
   for (const region of syntaxRegions) {
     // 判断这个语法标记是否应该显示
-    let shouldShow = sourceView;
+    let shouldShow: boolean = sourceView;
 
     if (!shouldShow && region.syntaxType === "escape") {
       // escape 类型特殊处理：当光标在 `\` 或紧邻的被转义字符上时显示

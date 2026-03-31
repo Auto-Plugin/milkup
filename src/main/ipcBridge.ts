@@ -5,6 +5,7 @@ import type { Block, ExportPDFOptions } from "./types";
 import type { FileTraits } from "./fileFormat";
 import { execSync } from "node:child_process";
 import * as fs from "node:fs";
+import * as fsp from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import chokidar from "chokidar";
@@ -417,8 +418,6 @@ export function registerIpcOnHandlers() {
   // 主题编辑器窗口控制
   ipcMain.on("theme-editor-window-control", async (_event, action) => {
     try {
-      // 直接导入并获取窗口引用
-      const { createThemeEditorWindow } = await import("./index");
       const themeEditorWindow = await createThemeEditorWindow();
 
       if (!themeEditorWindow) {
@@ -1057,14 +1056,23 @@ export function registerGlobalIpcHandlers() {
         return IGNORE_PATTERNS.some((pattern) => pattern.test(name));
       }
 
-      function scanDirectory(currentPath: string, depth: number = 0): WorkSpace[] {
+      async function getMtimeMs(targetPath: string): Promise<number> {
+        try {
+          const stat = await fsp.stat(targetPath);
+          return stat.mtimeMs;
+        } catch {
+          return 0;
+        }
+      }
+
+      async function scanDirectory(currentPath: string, depth: number = 0): Promise<WorkSpace[]> {
         // 限制扫描深度
         if (depth > MAX_DEPTH) {
           return [];
         }
 
         try {
-          const items = fs.readdirSync(currentPath, { withFileTypes: true });
+          const items = await fsp.readdir(currentPath, { withFileTypes: true });
 
           // 限制每个目录的文件数量
           if (items.length > MAX_FILES_PER_DIR) {
@@ -1085,12 +1093,8 @@ export function registerGlobalIpcHandlers() {
                 continue;
               }
 
-              const children = scanDirectory(itemPath, depth + 1);
-              // 显示文件夹（即使为空）
-              let dirMtime = 0;
-              try {
-                dirMtime = fs.statSync(itemPath).mtimeMs;
-              } catch {}
+              const children = await scanDirectory(itemPath, depth + 1);
+              const dirMtime = await getMtimeMs(itemPath);
               directories.push({
                 name: item.name,
                 path: itemPath,
@@ -1099,10 +1103,7 @@ export function registerGlobalIpcHandlers() {
                 children,
               });
             } else if (item.isFile() && /\.(?:md|markdown)$/i.test(item.name)) {
-              let fileMtime = 0;
-              try {
-                fileMtime = fs.statSync(itemPath).mtimeMs;
-              } catch {}
+              const fileMtime = await getMtimeMs(itemPath);
               files.push({
                 name: item.name,
                 path: itemPath,
@@ -1123,7 +1124,7 @@ export function registerGlobalIpcHandlers() {
         }
       }
 
-      return scanDirectory(dirPath);
+      return await scanDirectory(dirPath);
     } catch (error) {
       console.error("获取目录文件失败:", error);
       return [];

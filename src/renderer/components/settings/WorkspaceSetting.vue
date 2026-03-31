@@ -4,6 +4,7 @@ import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 import { Switch } from "@renderer/components/ui/switch";
 import { useConfig } from "@/renderer/hooks/useConfig";
 import useWorkSpace from "@/renderer/hooks/useWorkSpace";
+import { isAbsoluteLocalPath } from "@/renderer/utils/workspacePath";
 
 const { config, setConf } = useConfig();
 const { watchedDirPath, openWorkSpaceByPath } = useWorkSpace();
@@ -11,16 +12,6 @@ const { watchedDirPath, openWorkSpaceByPath } = useWorkSpace();
 const startupPath = computed(() => config.value.workspace?.startupPath ?? "");
 const autoExpandSidebar = computed(() => config.value.workspace?.autoExpandSidebar ?? false);
 const isPathExists = ref(true);
-
-function isAbsoluteLocalPath(pathValue: string) {
-  if (!pathValue) return false;
-
-  if (window.electronAPI.platform === "win32") {
-    return /^[a-zA-Z]:[\\/]/.test(pathValue) || /^\\\\[^\\]/.test(pathValue);
-  }
-
-  return pathValue.startsWith("/");
-}
 
 async function handleSelectWorkspace() {
   const hadStartupPath = Boolean(startupPath.value);

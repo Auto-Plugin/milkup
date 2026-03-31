@@ -49,16 +49,15 @@ export function createPlaceholderPlugin(placeholder: string): Plugin {
         }
 
         // 如果文档为空，添加 data-placeholder 属性
-        if (isEmpty(doc)) {
-          return {
-            "data-placeholder": placeholder,
-            class: className,
-          };
-        }
-
-        return {
+        const attributes: Record<string, string> = {
           class: className,
         };
+
+        if (isEmpty(doc)) {
+          attributes["data-placeholder"] = placeholder;
+        }
+
+        return attributes;
       },
     },
   });

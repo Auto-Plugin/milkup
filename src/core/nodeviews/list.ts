@@ -6,7 +6,7 @@
  */
 
 import { Node as ProseMirrorNode } from "prosemirror-model";
-import { EditorView as ProseMirrorView, NodeView } from "prosemirror-view";
+import { EditorView as ProseMirrorView, NodeView, type ViewMutationRecord } from "prosemirror-view";
 import { sourceViewManager } from "../decorations";
 
 // 存储所有列表视图实例
@@ -69,7 +69,7 @@ export class BulletListView implements NodeView {
     return true;
   }
 
-  ignoreMutation(mutation: MutationRecord): boolean {
+  ignoreMutation(mutation: ViewMutationRecord): boolean {
     // 忽略 class 属性变化
     if (mutation.type === "attributes" && mutation.attributeName === "class") {
       return true;
@@ -142,7 +142,7 @@ export class OrderedListView implements NodeView {
     return true;
   }
 
-  ignoreMutation(mutation: MutationRecord): boolean {
+  ignoreMutation(mutation: ViewMutationRecord): boolean {
     // 忽略 class 属性变化
     if (mutation.type === "attributes" && mutation.attributeName === "class") {
       return true;
@@ -269,7 +269,7 @@ export class ListItemView implements NodeView {
     return true;
   }
 
-  ignoreMutation(mutation: MutationRecord): boolean {
+  ignoreMutation(mutation: ViewMutationRecord): boolean {
     // 忽略 class 和 style 属性变化
     if (
       mutation.type === "attributes" &&
@@ -377,7 +377,7 @@ export class TaskListView implements NodeView {
     return true;
   }
 
-  ignoreMutation(mutation: MutationRecord): boolean {
+  ignoreMutation(mutation: ViewMutationRecord): boolean {
     if (mutation.type === "attributes" && mutation.attributeName === "class") {
       return true;
     }
@@ -533,7 +533,7 @@ export class TaskItemView implements NodeView {
     return true;
   }
 
-  ignoreMutation(mutation: MutationRecord): boolean {
+  ignoreMutation(mutation: ViewMutationRecord): boolean {
     // 忽略 class 和 style 属性变化
     if (
       mutation.type === "attributes" &&

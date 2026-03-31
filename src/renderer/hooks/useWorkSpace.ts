@@ -2,6 +2,7 @@ import toast from "autotoast.js";
 import { computed, onUnmounted, ref, watch } from "vue";
 import { useConfig } from "./useConfig";
 import useTab from "./useTab";
+import { shouldAutoLoadWorkspace } from "@/renderer/utils/workspacePath";
 
 const { tabs, currentTab } = useTab();
 const { config, setConf } = useConfig();
@@ -19,6 +20,7 @@ interface WorkSpace {
 
 const workSpace = ref<WorkSpace[] | null>(null);
 const watchedDirPath = ref<string | null>(null);
+let hasShownRemoteWorkspaceSkipToast = false;
 
 // 搜索
 const searchQuery = ref("");
@@ -31,7 +33,10 @@ const sortBy = computed(() => config.value.workspace?.sortBy ?? "name");
 
 function toggleSort() {
   const next = sortBy.value === "name" ? "mtime" : "name";
-  setConf("workspace", { sortBy: next });
+  setConf("workspace", {
+    ...config.value.workspace,
+    sortBy: next,
+  });
 }
 
 // 排序函数
@@ -89,6 +94,14 @@ async function getWorkSpace() {
 
   // 获取文件所在的目录路径
   const directoryPath = realFile.filePath.replace(/[^/\\]+$/, "");
+
+  if (!shouldAutoLoadWorkspace(directoryPath)) {
+    if (!hasShownRemoteWorkspaceSkipToast) {
+      hasShownRemoteWorkspaceSkipToast = true;
+      toast.show("检测到 WSL / 远程路径，已跳过自动加载工作区，可手动打开文件夹", "info");
+    }
+    return;
+  }
 
   try {
     isLoading.value = true;

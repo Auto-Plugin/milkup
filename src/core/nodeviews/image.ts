@@ -10,7 +10,7 @@
 
 import { Node } from "prosemirror-model";
 import { EditorView, NodeView } from "prosemirror-view";
-import { NodeSelection } from "prosemirror-state";
+import { NodeSelection, Selection } from "prosemirror-state";
 import { sourceViewManager } from "../decorations";
 
 // 存储所有 ImageView 实例，用于全局更新
@@ -238,7 +238,7 @@ export class ImageView implements NodeView {
         if (pos !== undefined) {
           const { state } = this.view;
           const $pos = state.doc.resolve(pos + this.node.nodeSize);
-          const tr = state.tr.setSelection(state.selection.constructor.near($pos));
+          const tr = state.tr.setSelection(Selection.near($pos));
           this.view.dispatch(tr);
           this.view.focus();
         }
@@ -266,7 +266,7 @@ export class ImageView implements NodeView {
         if (pos !== undefined) {
           const { state } = this.view;
           const $pos = state.doc.resolve(pos);
-          const tr = state.tr.setSelection(state.selection.constructor.near($pos, -1));
+          const tr = state.tr.setSelection(Selection.near($pos, -1));
           this.view.dispatch(tr);
           this.view.focus();
         }
@@ -278,7 +278,7 @@ export class ImageView implements NodeView {
         if (pos !== undefined) {
           const { state } = this.view;
           const $pos = state.doc.resolve(pos + this.node.nodeSize);
-          const tr = state.tr.setSelection(state.selection.constructor.near($pos, 1));
+          const tr = state.tr.setSelection(Selection.near($pos, 1));
           this.view.dispatch(tr);
           this.view.focus();
         }
@@ -314,7 +314,7 @@ export class ImageView implements NodeView {
         if (pos !== undefined) {
           const { state } = this.view;
           const $pos = state.doc.resolve(pos + this.node.nodeSize);
-          const tr = state.tr.setSelection(state.selection.constructor.near($pos));
+          const tr = state.tr.setSelection(Selection.near($pos));
           this.view.dispatch(tr);
           this.view.focus();
         }
@@ -754,7 +754,7 @@ export class ImageView implements NodeView {
     // 阻止源码容器的拖动
     if (
       event.target === this.sourceContainer ||
-      this.sourceContainer.contains(event.target as Node)
+      (event.target instanceof globalThis.Node && this.sourceContainer.contains(event.target))
     ) {
       if (event.type === "dragstart" || event.type === "drag") {
         event.preventDefault();
