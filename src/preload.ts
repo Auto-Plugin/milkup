@@ -87,6 +87,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // 文件夹相关
   getDirectoryFiles: (dirPath: string) =>
     ipcRenderer.invoke("workspace:getDirectoryFiles", dirPath),
+  workspaceExists: (dirPath: string) => ipcRenderer.invoke("workspace:exists", dirPath),
   // 监听文件变化
   watchFiles: (filePaths: string[]) => ipcRenderer.send("file:watch", filePaths),
 

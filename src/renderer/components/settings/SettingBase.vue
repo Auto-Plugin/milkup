@@ -3,6 +3,7 @@ import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 import AISetting from "./AISetting.vue";
 import ImageConfig from "./ImageConfig.vue";
 import SpellCheckSetter from "./SpellCheckSetter.vue";
+import WorkspaceSetting from "./WorkspaceSetting.vue";
 
 const settingSections = [
   {
@@ -22,6 +23,12 @@ const settingSections = [
     desc: "配置 AI 提供商、模型与连接参数",
     icon: "magic-wand",
     component: AISetting,
+  },
+  {
+    title: "工作区",
+    desc: "设置启动时自动打开的文件夹与左侧边栏状态",
+    icon: "folder-opened",
+    component: WorkspaceSetting,
   },
 ] as const;
 </script>

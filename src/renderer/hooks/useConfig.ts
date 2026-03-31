@@ -24,6 +24,8 @@ interface AppConfig extends Record<string, any> {
   shortcuts: ShortcutKeyMap;
   workspace: {
     sortBy: "name" | "mtime";
+    startupPath: string;
+    autoExpandSidebar: boolean;
   };
 }
 
@@ -45,6 +47,8 @@ const defaultConfig: AppConfig = {
   shortcuts: {},
   workspace: {
     sortBy: "name",
+    startupPath: "",
+    autoExpandSidebar: false,
   },
 };
 

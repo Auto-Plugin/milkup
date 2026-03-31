@@ -73,6 +73,7 @@ interface Window {
     ) => Promise<
       Array<{ name: string; path: string; isDirectory: boolean; mtime: number; children?: any[] }>
     >;
+    workspaceExists: (dirPath: string) => Promise<boolean>;
     // 监听文件变化
     watchFiles: (filePaths: string[]) => void;
 

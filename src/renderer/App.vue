@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import emitter from "@/renderer/events";
 import { useContext } from "@/renderer/hooks/useContext";
+import { useConfig } from "@/renderer/hooks/useConfig";
 import useFont from "@/renderer/hooks/useFont";
 import useOtherConfig from "@/renderer/hooks/useOtherConfig";
-import { isShowOutline } from "@/renderer/hooks/useOutline";
+import { isShowOutline, toggleShowOutline } from "@/renderer/hooks/useOutline";
 import { useSaveConfirmDialog } from "@/renderer/hooks/useSaveConfirmDialog";
 import useSourceCode from "@/renderer/hooks/useSourceCode";
 import useSpellCheck from "@/renderer/hooks/useSpellCheck";
 import useTab from "@/renderer/hooks/useTab";
 import useTheme from "@/renderer/hooks/useTheme";
 import { useUpdateDialog } from "@/renderer/hooks/useUpdateDialog";
+import useWorkSpace from "@/renderer/hooks/useWorkSpace";
 import SaveConfirmDialog from "./components/dialogs/SaveConfirmDialog.vue";
 import UpdateConfirmDialog from "./components/dialogs/UpdateConfirmDialog.vue";
 import MilkupEditor from "./components/editor/MilkupEditor.vue";
@@ -24,6 +26,8 @@ useContext();
 const { init: initTheme } = useTheme();
 const { init: initFont } = useFont();
 const { init: initOtherConfig } = useOtherConfig();
+const { config } = useConfig();
+const { openWorkSpaceByPath } = useWorkSpace();
 const { isShowSource } = useSourceCode(); // 用于控制大纲显示
 const { init: initSpellCheck } = useSpellCheck();
 const {
@@ -135,6 +139,15 @@ onMounted(() => {
   initFont();
   initOtherConfig();
   initSpellCheck();
+  toggleShowOutline(Boolean(config.value.workspace?.autoExpandSidebar));
+  const startupPath = config.value.workspace?.startupPath;
+  if (startupPath) {
+    window.electronAPI.workspaceExists(startupPath).then((exists) => {
+      if (exists) {
+        openWorkSpaceByPath(startupPath);
+      }
+    });
+  }
   emitter.on("update:available", onUpdateAvailable);
 });
 onUnmounted(() => {

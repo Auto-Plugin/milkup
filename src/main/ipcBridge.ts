@@ -1130,6 +1130,15 @@ export function registerGlobalIpcHandlers() {
     }
   });
 
+  ipcMain.handle("workspace:exists", async (_event, dirPath: string) => {
+    try {
+      if (!dirPath) return false;
+      return fs.existsSync(dirPath);
+    } catch {
+      return false;
+    }
+  });
+
   // 监听文件变化
   ipcMain.on("file:watch", (event, filePaths: string[]) => {
     // 更新主进程的文件打开索引（用于跨窗口文件去重 O(1) 查询）

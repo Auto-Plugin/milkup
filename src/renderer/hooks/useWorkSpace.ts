@@ -112,6 +112,26 @@ async function getWorkSpace() {
 }
 
 // 打开选择文件夹对话框
+async function openWorkSpaceByPath(selectedPath: string) {
+  try {
+    if (!selectedPath) return false;
+
+    isLoadWorkSpace = false;
+    workSpace.value = null;
+
+    const directoryFiles = await window.electronAPI.getDirectoryFiles(selectedPath);
+
+    if (!directoryFiles) return false;
+
+    workSpace.value = directoryFiles;
+    isLoadWorkSpace = true;
+    startWatching(selectedPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function setWorkSpace() {
   try {
     const result = await window.electronAPI.showOpenDialog({
@@ -121,19 +141,7 @@ async function setWorkSpace() {
 
     if (result && !result.canceled && result.filePaths.length > 0) {
       const selectedPath = result.filePaths[0];
-
-      isLoadWorkSpace = false;
-      workSpace.value = null;
-
-      // 获取选择的文件夹内容
-      const directoryFiles = await window.electronAPI.getDirectoryFiles(selectedPath);
-
-      if (directoryFiles && directoryFiles.length > 0) {
-        workSpace.value = directoryFiles;
-        isLoadWorkSpace = true;
-        // 开始监听目录
-        startWatching(selectedPath);
-      }
+      await openWorkSpaceByPath(selectedPath);
     }
   } catch {
     toast.show("获取目录文件失败:", "error");
@@ -333,6 +341,7 @@ function useWorkSpace() {
     renameFile,
     refreshWorkSpace,
     hardRefreshWorkSpace,
+    openWorkSpaceByPath,
     watchedDirPath,
   };
 }
