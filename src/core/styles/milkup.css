@@ -4,7 +4,8 @@
 
 /* 编辑器容器 */
 .milkup-editor {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-size: 16px;
   line-height: 1.6;
   color: var(--text-color, #333);
@@ -39,14 +40,14 @@
 .milkup-syntax-visible,
 .milkup-syntax {
   color: var(--text-color-3, #999);
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 0.9em;
 }
 
 /* 语法标记 - 默认样式 */
 .milkup-syntax-marker {
   color: var(--text-color-3, #999);
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 0.9em;
 }
 
@@ -71,8 +72,8 @@
     var(--hover-background-color, rgba(94, 129, 172, 0.1)) 100%
   );
   color: var(--text-color-1, #333);
-  font-family: var(--milkup-font-code), 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo,
-    monospace;
+  font-family:
+    var(--milkup-font-code), "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: calc(var(--milkup-font-size-code, 16px) * 0.875);
   font-weight: 600;
   line-height: 1.2;
@@ -163,12 +164,25 @@
   line-height: 1.25;
 }
 
-.milkup-editor h1 { font-size: 2em; }
-.milkup-editor h2 { font-size: 1.5em; }
-.milkup-editor h3 { font-size: 1.25em; }
-.milkup-editor h4 { font-size: 1em; }
-.milkup-editor h5 { font-size: 0.875em; }
-.milkup-editor h6 { font-size: 0.85em; color: var(--text-color-2, #6a737d); }
+.milkup-editor h1 {
+  font-size: 2em;
+}
+.milkup-editor h2 {
+  font-size: 1.5em;
+}
+.milkup-editor h3 {
+  font-size: 1.25em;
+}
+.milkup-editor h4 {
+  font-size: 1em;
+}
+.milkup-editor h5 {
+  font-size: 0.875em;
+}
+.milkup-editor h6 {
+  font-size: 0.85em;
+  color: var(--text-color-2, #6a737d);
+}
 
 /* 段落 */
 .milkup-editor p {
@@ -224,7 +238,10 @@
   color: var(--text-color-3, #999);
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.2s, background 0.2s, color 0.2s;
+  transition:
+    opacity 0.2s,
+    background 0.2s,
+    color 0.2s;
 }
 
 .milkup-code-block:hover .milkup-code-block-copy-btn {
@@ -263,7 +280,7 @@
 }
 
 .milkup-custom-select-button::after {
-  content: '';
+  content: "";
   width: 0;
   height: 0;
   border-left: 4px solid transparent;
@@ -364,8 +381,15 @@
 }
 
 .milkup-code-block-editor .cm-content {
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-  font-size: 14px;
+  font-family: var(
+    --milkup-font-code,
+    "SFMono-Regular",
+    Consolas,
+    "Liberation Mono",
+    Menlo,
+    monospace
+  ) !important;
+  font-size: var(--milkup-font-size-code, 14px) !important;
   color: var(--text-color, #333);
 }
 
@@ -435,7 +459,7 @@
 }
 
 .milkup-context-menu-item.has-submenu::after {
-  content: '';
+  content: "";
   width: 0;
   height: 0;
   border-top: 4px solid transparent;
@@ -490,7 +514,9 @@
   border-radius: 2px;
   background: var(--background-color-1, #fff);
   cursor: pointer;
-  transition: background 0.05s ease, border-color 0.05s ease;
+  transition:
+    background 0.05s ease,
+    border-color 0.05s ease;
 }
 
 .milkup-table-grid-picker .grid-cell.active {
@@ -724,7 +750,7 @@
 
 .milkup-editor .milkup-image-placeholder-src {
   font-size: 0.8em;
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   word-break: break-all;
   max-width: 100%;
   opacity: 0.7;
@@ -753,7 +779,6 @@
   overflow-x: auto;
   color: inherit;
 }
-
 
 /* 数学块预览区域 */
 .milkup-editor .math-block .math-preview {
@@ -794,7 +819,7 @@
   display: inline-block;
   min-width: 1ch;
   min-height: 1.2em;
-  font-family: KaTeX_Main, 'Times New Roman', serif;
+  font-family: KaTeX_Main, "Times New Roman", serif;
   font-size: 1.21em;
   white-space: pre-wrap;
   text-align: center;
@@ -1001,7 +1026,7 @@
   display: inline;
   user-select: auto;
   color: var(--text-color-3, #999);
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
 /* 源码模式下隐藏数学公式渲染 widget */
@@ -1049,7 +1074,7 @@
   padding-right: 8px;
   text-align: right;
   color: var(--text-color-3, #999) !important;
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace !important;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace !important;
   font-size: 14px !important;
   font-weight: normal !important;
   font-style: normal !important;
@@ -1061,8 +1086,14 @@
 }
 
 /* 列表项内段落的行号 - 补偿列表标记宽度 */
-.milkup-editor.source-view .milkup-list-item.source-view .milkup-list-item-content > .milkup-list-line-number::before,
-.milkup-editor.source-view .milkup-task-item.source-view .milkup-list-item-content > .milkup-list-line-number::before {
+.milkup-editor.source-view
+  .milkup-list-item.source-view
+  .milkup-list-item-content
+  > .milkup-list-line-number::before,
+.milkup-editor.source-view
+  .milkup-task-item.source-view
+  .milkup-list-item-content
+  > .milkup-list-line-number::before {
   left: calc(-60px - var(--marker-width, 20px));
 }
 
@@ -1071,7 +1102,7 @@
   margin: 0;
   padding: 0;
   line-height: 1.6;
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 14px;
   color: var(--secondary-color, #6a9955);
   white-space: pre-wrap;
@@ -1092,7 +1123,7 @@
 
 .milkup-editor.source-view .milkup-code-block-lines::before {
   counter-increment: line-number attr(data-line-count number, 1);
-  content: '';
+  content: "";
   display: none;
 }
 
@@ -1122,7 +1153,9 @@
 /* 源码模式下的占位符需要向右偏移以避开行号 */
 .milkup-editor.milkup-empty.source-view::before {
   padding-top: 56px;
-  padding-left: calc(var(--milkup-editor-padding, 20px) + 20px + 48px); /* 左右边距 + 上下边距 + 行号区域 */
+  padding-left: calc(
+    var(--milkup-editor-padding, 20px) + 20px + 48px
+  ); /* 左右边距 + 上下边距 + 行号区域 */
 }
 
 /* ============ 源码模式样式 ============ */
@@ -1157,7 +1190,7 @@
 
 /* 代码块源码内容 */
 .milkup-code-block-source {
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 14px;
   line-height: 1.6;
   color: inherit;
@@ -1173,7 +1206,7 @@
 }
 
 .milkup-code-block-source:empty::before {
-  content: '```\n\n```';
+  content: "```\n\n```";
   color: var(--text-color-3, #999);
   pointer-events: none;
 }
@@ -1181,7 +1214,7 @@
 /* 代码块源码模式：使用 data-line-count 属性递增行号计数器 */
 .milkup-editor.source-view .milkup-code-block-source::before {
   counter-increment: line-number attr(data-line-count number, 1);
-  content: '';
+  content: "";
   display: none;
 }
 
@@ -1251,7 +1284,7 @@
 /* 列表标记 */
 .milkup-list-marker {
   display: none;
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   color: var(--text-color-3, #999);
 }
 
@@ -1298,7 +1331,9 @@
   border-radius: 3px;
   background: var(--background-color, #fff);
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
   box-sizing: border-box;
 }
 
@@ -1378,7 +1413,7 @@
   padding: 6px 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   font-size: 13px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 .milkup-search-row,
@@ -1500,5 +1535,5 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }

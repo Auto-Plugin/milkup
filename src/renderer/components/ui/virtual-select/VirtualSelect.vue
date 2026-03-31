@@ -1,138 +1,176 @@
 <script setup lang="ts">
-import type { VirtualSelectOption } from './types'
+import type { VirtualSelectOption } from "./types";
 
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 
 const props = defineProps<{
-  modelValue?: string
-  options: VirtualSelectOption[]
-  placeholder?: string
-  disabled?: boolean
-  itemHeight?: number
-  maxHeight?: number
-}>()
+  modelValue?: string;
+  options: VirtualSelectOption[];
+  placeholder?: string;
+  disabled?: boolean;
+  itemHeight?: number;
+  maxHeight?: number;
+  searchable?: boolean;
+  searchPlaceholder?: string;
+}>();
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: string): void
-  (e: 'change', value: string, option: VirtualSelectOption | null): void
-}>()
+  (e: "update:modelValue", value: string): void;
+  (e: "change", value: string, option: VirtualSelectOption | null): void;
+}>();
 
-const isOpen = ref(false)
-const containerRef = ref<HTMLElement>()
-const listRef = ref<HTMLElement>()
-const scrollTop = ref(0)
+const isOpen = ref(false);
+const containerRef = ref<HTMLElement>();
+const listRef = ref<HTMLElement>();
+const scrollTop = ref(0);
+const searchKeyword = ref("");
 
 const selectedOption = computed(() => {
-  return props.options.find(option => option.value === props.modelValue) || null
-})
+  return props.options.find((option) => option.value === props.modelValue) || null;
+});
 
-const itemHeight = props.itemHeight || 32
-const maxHeight = props.maxHeight || 200
-const visibleCount = Math.ceil(maxHeight / itemHeight)
-const bufferSize = 5
+const normalizedKeyword = computed(() => searchKeyword.value.trim().toLowerCase());
+
+const filteredOptions = computed(() => {
+  if (!props.searchable || !normalizedKeyword.value) return props.options;
+
+  return props.options.filter((option) => {
+    return (
+      option.label.toLowerCase().includes(normalizedKeyword.value) ||
+      option.value.toLowerCase().includes(normalizedKeyword.value)
+    );
+  });
+});
+
+const itemHeight = props.itemHeight || 32;
+const maxHeight = props.maxHeight || 200;
+const visibleCount = Math.ceil(maxHeight / itemHeight);
+const bufferSize = 5;
 
 const startIndex = computed(() => {
-  const calculated = Math.floor(scrollTop.value / itemHeight) - bufferSize
-  return Math.max(0, calculated)
-})
+  const calculated = Math.floor(scrollTop.value / itemHeight) - bufferSize;
+  return Math.max(0, calculated);
+});
 
 const endIndex = computed(() => {
   return Math.min(
-    props.options.length - 1,
-    startIndex.value + visibleCount + bufferSize * 2,
-  )
-})
+    filteredOptions.value.length - 1,
+    startIndex.value + visibleCount + bufferSize * 2
+  );
+});
 
 const visibleOptions = computed(() => {
-  return props.options.slice(startIndex.value, endIndex.value + 1)
-})
+  if (!filteredOptions.value.length) return [];
+
+  return filteredOptions.value.slice(startIndex.value, endIndex.value + 1);
+});
 
 const totalHeight = computed(() => {
-  return props.options.length * itemHeight
-})
+  return filteredOptions.value.length * itemHeight;
+});
 
 const offsetY = computed(() => {
-  return startIndex.value * itemHeight
-})
+  return startIndex.value * itemHeight;
+});
 
 function toggleDropdown() {
-  if (props.disabled)
-    return
-  isOpen.value = !isOpen.value
+  if (props.disabled) return;
+  isOpen.value = !isOpen.value;
 }
 
 function closeDropdown() {
-  isOpen.value = false
+  isOpen.value = false;
+  searchKeyword.value = "";
+  scrollTop.value = 0;
 }
 
 function selectOption(option: VirtualSelectOption) {
-  if (option.disabled)
-    return
+  if (option.disabled) return;
 
-  emit('update:modelValue', option.value)
-  emit('change', option.value, option)
-  closeDropdown()
+  emit("update:modelValue", option.value);
+  emit("change", option.value, option);
+  closeDropdown();
 }
 
 function scrollToSelected() {
-  if (!selectedOption.value || !listRef.value)
-    return
+  if (!selectedOption.value || !listRef.value) return;
 
-  const selectedIndex = props.options.findIndex(
-    option => option.value === selectedOption.value?.value,
-  )
+  const selectedIndex = filteredOptions.value.findIndex(
+    (option) => option.value === selectedOption.value?.value
+  );
 
   if (selectedIndex >= 0) {
-    const containerHeight = listRef.value.clientHeight
-    const itemPosition = selectedIndex * itemHeight
+    const containerHeight = listRef.value.clientHeight;
+    const itemPosition = selectedIndex * itemHeight;
 
-    const targetScrollTop = Math.max(0, itemPosition - containerHeight / 2 + itemHeight / 2)
+    const targetScrollTop = Math.max(0, itemPosition - containerHeight / 2 + itemHeight / 2);
 
-    scrollTop.value = targetScrollTop
-    listRef.value.scrollTop = targetScrollTop
+    scrollTop.value = targetScrollTop;
+    listRef.value.scrollTop = targetScrollTop;
   }
 }
 
 function handleScroll(event: Event) {
-  const target = event.target as HTMLElement
-  scrollTop.value = target.scrollTop
+  const target = event.target as HTMLElement;
+  scrollTop.value = target.scrollTop;
 }
 
 function handleClickOutside(event: Event) {
   if (containerRef.value && !containerRef.value.contains(event.target as Node)) {
-    closeDropdown()
+    closeDropdown();
   }
 }
 
 onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-})
+  document.addEventListener("click", handleClickOutside);
+});
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-})
+  document.removeEventListener("click", handleClickOutside);
+});
 
 watch(isOpen, (newValue) => {
   if (newValue) {
+    searchKeyword.value = "";
     nextTick(() => {
       if (listRef.value) {
         if (selectedOption.value) {
-          scrollToSelected()
+          scrollToSelected();
         } else {
-          scrollTop.value = 0
-          listRef.value.scrollTop = 0
+          scrollTop.value = 0;
+          listRef.value.scrollTop = 0;
         }
-        handleScroll({ target: listRef.value } as unknown as Event)
+        handleScroll({ target: listRef.value } as unknown as Event);
       }
-    })
+    });
   }
-})
+});
 
-watch(() => props.modelValue, () => {
-  if (isOpen.value && selectedOption.value) {
-    nextTick(scrollToSelected)
+watch(
+  () => props.modelValue,
+  () => {
+    if (isOpen.value && selectedOption.value) {
+      nextTick(scrollToSelected);
+    }
   }
-})
+);
+
+watch(filteredOptions, () => {
+  if (!listRef.value) return;
+
+  scrollTop.value = 0;
+  listRef.value.scrollTop = 0;
+
+  if (isOpen.value) {
+    nextTick(() => {
+      if (selectedOption.value) {
+        scrollToSelected();
+      } else {
+        handleScroll({ target: listRef.value } as unknown as Event);
+      }
+    });
+  }
+});
 </script>
 
 <template>
@@ -144,10 +182,7 @@ watch(() => props.modelValue, () => {
       'is-disabled': disabled,
     }"
   >
-    <div
-      class="virtual-select__input"
-      @click="toggleDropdown"
-    >
+    <div class="virtual-select__input" @click="toggleDropdown">
       <span v-if="selectedOption" class="virtual-select__selected">
         {{ selectedOption.label }}
       </span>
@@ -175,16 +210,22 @@ watch(() => props.modelValue, () => {
 
     <Transition name="dropdown">
       <div v-if="isOpen" class="virtual-select__dropdown">
+        <div v-if="searchable" class="virtual-select__search">
+          <input
+            v-model="searchKeyword"
+            class="virtual-select__search-input"
+            type="search"
+            :placeholder="searchPlaceholder || '搜索...'"
+            @click.stop
+          />
+        </div>
         <div
           ref="listRef"
           class="virtual-select__list"
           :style="{ maxHeight: `${maxHeight}px` }"
           @scroll="handleScroll"
         >
-          <div
-            class="virtual-select__virtual-container"
-            :style="{ height: `${totalHeight}px` }"
-          >
+          <div class="virtual-select__virtual-container" :style="{ height: `${totalHeight}px` }">
             <div
               class="virtual-select__virtual-content"
               :style="{ transform: `translateY(${offsetY}px)` }"
@@ -205,6 +246,7 @@ watch(() => props.modelValue, () => {
             </div>
           </div>
         </div>
+        <div v-if="!filteredOptions.length" class="virtual-select__empty">无匹配项</div>
       </div>
     </Transition>
   </div>
@@ -281,9 +323,35 @@ watch(() => props.modelValue, () => {
     overflow: hidden;
   }
 
+  &__search {
+    padding: 8px;
+    border-bottom: 1px solid var(--border-color-2);
+    background: var(--background-color-2);
+  }
+
+  &__search-input {
+    width: 100%;
+    height: 32px;
+    padding: 0 10px;
+    border: 1px solid var(--border-color-2);
+    border-radius: 4px;
+    background: var(--background-color-1);
+    color: var(--text-color);
+
+    &:focus {
+      border-color: var(--primary-color);
+    }
+  }
+
   &__list {
     overflow-y: auto;
     overflow-x: hidden;
+  }
+
+  &__empty {
+    padding: 12px 10px;
+    color: var(--text-color-2);
+    text-align: center;
   }
 
   &__virtual-container {

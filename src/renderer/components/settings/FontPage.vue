@@ -1,44 +1,35 @@
 <script setup lang="ts">
-import type { FontSizeType, FontType } from '@/types/font'
-import { onMounted, ref } from 'vue'
-import { fontConfig, fontSizeConfig } from '@/config/fonts'
-import { VirtualSelect } from '@/renderer/components/ui/virtual-select'
-import useFont from '@/renderer/hooks/useFont'
+import type { FontSizeType, FontType } from "@/types/font";
+import { onMounted, ref } from "vue";
+import { fontConfig, fontSizeConfig } from "@/config/fonts";
+import { VirtualSelect } from "@/renderer/components/ui/virtual-select";
+import useFont from "@/renderer/hooks/useFont";
 
-const {
-  fontList,
-  currentFont,
-  currentFontSize,
-  fontSizeOptions,
-  setFont,
-  setFontSize,
-} = useFont()
+const { fontList, currentFont, currentFontSize, fontSizeOptions, setFont, setFontSize } = useFont();
 
-const fontSettingsExpanded = ref(false)
-const fontSizeSettingsExpanded = ref(false)
+const fontSettingsExpanded = ref(false);
+const fontSizeSettingsExpanded = ref(false);
 
 function toggleFontSettings() {
-  fontSettingsExpanded.value = !fontSettingsExpanded.value
+  fontSettingsExpanded.value = !fontSettingsExpanded.value;
 }
 
 function toggleFontSizeSettings() {
-  fontSizeSettingsExpanded.value = !fontSizeSettingsExpanded.value
+  fontSizeSettingsExpanded.value = !fontSizeSettingsExpanded.value;
 }
 
 function handleFontChange(fontType: FontType, value: string) {
-  const selectedFont = fontList.value.find(f => f.value === value)
+  const selectedFont = fontList.value.find((f) => f.value === value);
   if (selectedFont) {
-    setFont(fontType, selectedFont)
+    setFont(fontType, selectedFont);
   }
 }
 
 function handleFontSizeChange(fontSizeType: FontSizeType, value: string) {
-  setFontSize(fontSizeType, value)
+  setFontSize(fontSizeType, value);
 }
 
-onMounted(() => {
-
-})
+onMounted(() => {});
 </script>
 
 <template>
@@ -50,9 +41,7 @@ onMounted(() => {
           <h2 class="section-title">
             <span class="title-text">字体设置</span>
           </h2>
-          <p class="section-desc">
-            配置编辑器和代码的字体样式
-          </p>
+          <p class="section-desc">配置编辑器和代码的字体样式</p>
         </div>
         <span class="iconfont icon-arrow-right" :class="{ active: fontSettingsExpanded }"></span>
       </div>
@@ -60,26 +49,22 @@ onMounted(() => {
         <div class="font-sections">
           <div v-for="font in fontConfig" :key="font.value" class="font-section">
             <div
-              class="font-preview" :style="{
+              class="font-preview"
+              :style="{
                 fontFamily: currentFont[font.value as FontType]?.value,
-                fontSize: currentFontSize[font.value === 'editor-font' ? 'editor-font-size' : 'code-font-size'],
+                fontSize:
+                  currentFontSize[
+                    font.value === 'editor-font' ? 'editor-font-size' : 'code-font-size'
+                  ],
               }"
             >
               <template v-if="font.value === 'editor-font'">
-                <div class="preview-text">
-                  Aa
-                </div>
-                <div class="preview-chinese">
-                  中文
-                </div>
+                <div class="preview-text">Aa</div>
+                <div class="preview-chinese">中文</div>
               </template>
               <template v-else-if="font.value === 'code-font'">
-                <div class="preview-code">
-                  const msg = 'Hello Milkup';
-                </div>
-                <div class="preview-code-2">
-                  function() { return 123; }
-                </div>
+                <div class="preview-code">const msg = 'Hello Milkup';</div>
+                <div class="preview-code-2">function() { return 123; }</div>
               </template>
             </div>
             <h3 class="font-title">
@@ -89,15 +74,15 @@ onMounted(() => {
               {{ font.desc }}
             </p>
             <div class="font-selector">
-              <label :for="font.value" class="selector-label">
-                字体选择
-              </label>
+              <label :for="font.value" class="selector-label"> 字体选择 </label>
               <VirtualSelect
                 :model-value="currentFont[font.value as FontType]?.value || ''"
                 :options="fontList"
                 :placeholder="`选择${font.label}`"
                 :item-height="32"
                 :max-height="200"
+                searchable
+                search-placeholder="搜索字体"
                 @update:model-value="handleFontChange(font.value as FontType, $event)"
               />
             </div>
@@ -113,55 +98,43 @@ onMounted(() => {
           <h2 class="section-title">
             <span class="title-text">字号设置</span>
           </h2>
-          <p class="section-desc">
-            配置不同文本元素的字体大小
-          </p>
+          <p class="section-desc">配置不同文本元素的字体大小</p>
         </div>
-        <span class="iconfont icon-arrow-right" :class="{ active: fontSizeSettingsExpanded }"></span>
+        <span
+          class="iconfont icon-arrow-right"
+          :class="{ active: fontSizeSettingsExpanded }"
+        ></span>
       </div>
       <div class="section-content" :class="{ expanded: fontSizeSettingsExpanded }">
         <div class="font-size-grid">
           <div v-for="fontSize in fontSizeConfig" :key="fontSize.value" class="font-size-item">
-            <div class="font-size-preview" :style="{ fontSize: currentFontSize[fontSize.value as FontSizeType] }">
+            <div
+              class="font-size-preview"
+              :style="{ fontSize: currentFontSize[fontSize.value as FontSizeType] }"
+            >
               <template v-if="fontSize.value === 'editor-font-size'">
-                <div class="preview-text">
-                  正文内容
-                </div>
+                <div class="preview-text">正文内容</div>
               </template>
               <template v-else-if="fontSize.value === 'code-font-size'">
-                <div class="preview-code">
-                  const code = 'example';
-                </div>
+                <div class="preview-code">const code = 'example';</div>
               </template>
               <template v-else-if="fontSize.value === 'editor-font-size-h1'">
-                <div class="preview-h1">
-                  一级标题
-                </div>
+                <div class="preview-h1">一级标题</div>
               </template>
               <template v-else-if="fontSize.value === 'editor-font-size-h2'">
-                <div class="preview-h2">
-                  二级标题
-                </div>
+                <div class="preview-h2">二级标题</div>
               </template>
               <template v-else-if="fontSize.value === 'editor-font-size-h3'">
-                <div class="preview-h3">
-                  三级标题
-                </div>
+                <div class="preview-h3">三级标题</div>
               </template>
               <template v-else-if="fontSize.value === 'editor-font-size-h4'">
-                <div class="preview-h4">
-                  四级标题
-                </div>
+                <div class="preview-h4">四级标题</div>
               </template>
               <template v-else-if="fontSize.value === 'editor-font-size-h5'">
-                <div class="preview-h5">
-                  五级标题
-                </div>
+                <div class="preview-h5">五级标题</div>
               </template>
               <template v-else-if="fontSize.value === 'editor-font-size-h6'">
-                <div class="preview-h6">
-                  六级标题
-                </div>
+                <div class="preview-h6">六级标题</div>
               </template>
             </div>
             <h3 class="font-title">
@@ -171,9 +144,7 @@ onMounted(() => {
               {{ fontSize.desc }}
             </p>
             <div class="font-size-selector">
-              <label :for="fontSize.value" class="selector-label">
-                字体大小
-              </label>
+              <label :for="fontSize.value" class="selector-label"> 字体大小 </label>
               <VirtualSelect
                 :model-value="currentFontSize[fontSize.value as FontSizeType]"
                 :options="fontSizeOptions"
@@ -261,7 +232,9 @@ onMounted(() => {
     .section-content {
       max-height: 0;
       overflow: hidden;
-      transition: max-height 0.3s ease, opacity 0.3s ease;
+      transition:
+        max-height 0.3s ease,
+        opacity 0.3s ease;
       opacity: 0;
 
       &.expanded {
@@ -356,7 +329,6 @@ onMounted(() => {
           color: var(--text-color);
           font-weight: 500;
         }
-
       }
     }
   }
@@ -446,7 +418,6 @@ onMounted(() => {
           color: var(--text-color);
           font-weight: 500;
         }
-
       }
     }
   }

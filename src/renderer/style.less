@@ -1,5 +1,5 @@
-@import url('./styles/codemirror.less');
-@import url('./styles/vditor.less');
+@import url("./styles/codemirror.less");
+@import url("./styles/vditor.less");
 
 * {
   box-sizing: border-box;
@@ -41,7 +41,7 @@ html {
   background-color: var(--background-color-2);
 }
 
-input[type='checkbox'] {
+input[type="checkbox"] {
   width: 16px;
   height: 16px;
   cursor: pointer;
@@ -50,9 +50,9 @@ input[type='checkbox'] {
 }
 
 // 输入框和文本区域允许选中文本
-input[type='text'],
-input[type='search'],
-input[type='number'],
+input[type="text"],
+input[type="search"],
+input[type="number"],
 textarea {
   user-select: text;
   -webkit-user-select: text;
@@ -155,6 +155,15 @@ textarea {
 
   .milkup-code-block .cm-editor span {
     font-family: var(--milkup-font-code);
+    font-size: var(--milkup-font-size-code) !important;
+  }
+
+  .milkup-code-block-editor .cm-editor,
+  .milkup-code-block-editor .cm-scroller,
+  .milkup-code-block-editor .cm-content,
+  .milkup-code-block-editor .cm-content .cm-line,
+  .milkup-code-block-editor .cm-content span {
+    font-family: var(--milkup-font-code) !important;
     font-size: var(--milkup-font-size-code) !important;
   }
 }
