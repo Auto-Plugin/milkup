@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, ref, watch } from "vue";
+import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
@@ -92,9 +93,10 @@ watch(
       <div class="dialog-content" @click.stop>
         <div class="dialog-header">
           <h3>milkup 新版本现已发布！</h3>
-          <span class="link" @click="openReleasePage"
-            >前往发布页 <i class="iconfont icon-link"></i
-          ></span>
+          <span class="link" @click="openReleasePage">
+            前往发布页
+            <AppIcon name="link" class="link-icon" />
+          </span>
         </div>
 
         <!-- 进度条区域 - 固定在内容上方 -->

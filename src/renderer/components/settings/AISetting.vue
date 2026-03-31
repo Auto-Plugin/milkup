@@ -9,6 +9,7 @@ import { Switch } from "@renderer/components/ui/switch";
 import { Slider } from "@renderer/components/ui/slider";
 import Input from "@renderer/components/ui/input/Input.vue";
 import Selector from "@renderer/components/ui/selector/Selector.vue";
+import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 
 const { config, updateConfig, providerDefaultUrls: urls } = useAIConfig();
 
@@ -154,7 +155,7 @@ function updateProvider(val: string) {
             class="setting-input-width"
           />
           <button class="refresh-btn" @click="fetchOllamaModels" title="刷新模型列表">
-            <i class="iconfont icon-refresh">↻</i>
+            <AppIcon name="refresh" />
           </button>
         </div>
         <Input

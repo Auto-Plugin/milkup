@@ -5,6 +5,7 @@ import {
   formatKeyForDisplay,
   keyEventToProseMirrorKey,
 } from "@/renderer/hooks/useShortcutConfig";
+import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 import type { ShortcutActionId, ShortcutCategory } from "@/core";
 
 const {
@@ -118,10 +119,11 @@ function toggleCategory(cat: ShortcutCategory) {
       <template v-for="cat in categories" :key="cat">
         <div v-if="groupedShortcuts(cat).length > 0" class="category-section">
           <div class="category-header" @click="toggleCategory(cat)">
-            <span
-              class="iconfont icon-arrow-right"
+            <AppIcon
+              name="arrow-right"
+              class="category-arrow"
               :class="{ expanded: expandedCategories.has(cat) }"
-            ></span>
+            />
             <span class="category-label">{{ CATEGORY_LABELS[cat] }}</span>
             <span class="category-count">{{ groupedShortcuts(cat).length }}</span>
           </div>
@@ -300,7 +302,7 @@ function toggleCategory(cat: ShortcutCategory) {
     background: var(--hover-color);
   }
 
-  .iconfont {
+  .category-arrow {
     font-size: 12px;
     color: var(--text-color-2);
     transition: transform 0.2s ease;

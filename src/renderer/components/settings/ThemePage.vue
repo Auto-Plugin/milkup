@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from "vue";
+import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 import useTheme from "@/renderer/hooks/useTheme";
 
 const { themes, currentTheme, init, setTheme, addTempTheme, removeTheme, exportTheme } = useTheme();
@@ -37,21 +38,24 @@ onMounted(() => {
           <div class="custom-theme-text">
             <span class="custom-theme-label">{{ option.label }}</span>
             <div class="custom-theme-icons">
-              <span
-                class="iconfont icon-edit"
+              <AppIcon
+                name="edit"
+                class="theme-action-icon edit-icon"
                 title="编辑主题"
                 @click.stop="addTempTheme(option.name)"
-              ></span>
-              <span
-                class="iconfont icon-download"
+              />
+              <AppIcon
+                name="download"
+                class="theme-action-icon download-icon"
                 title="下载主题"
                 @click.stop="exportTheme(option.name)"
-              ></span>
-              <span
-                class="iconfont icon-close"
+              />
+              <AppIcon
+                name="close"
+                class="theme-action-icon delete-icon"
                 title="删除主题"
                 @click.stop="removeTheme(option.name)"
-              ></span>
+              />
             </div>
           </div>
         </template>
@@ -71,7 +75,7 @@ onMounted(() => {
 
       <div class="theme-select-add" @click.stop="addTempTheme()">
         <div class="theme-select-add-btn">
-          <span class="iconfont icon-plus"></span>
+          <AppIcon name="plus" />
         </div>
       </div>
     </div>
@@ -83,7 +87,7 @@ onMounted(() => {
             <div class="theme-preview-tabbar-item active">
               <p>readme.md</p>
               <div class="closeIcon">
-                <span class="iconfont icon-close"></span>
+                <AppIcon name="close" />
               </div>
               <!-- pre -->
               <svg
@@ -107,7 +111,7 @@ onMounted(() => {
 
             <div class="addTab">
               <div class="addTabLine"></div>
-              <span class="iconfont icon-plus"></span>
+              <AppIcon name="plus" />
             </div>
           </div>
           <div class="theme-preview-content">
@@ -219,7 +223,7 @@ onMounted(() => {
             visibility: hidden;
             transition: all 0.2s ease;
 
-            .iconfont {
+            .theme-action-icon {
               font-size: 16px;
               color: var(--text-color-3);
               cursor: pointer;
@@ -229,15 +233,15 @@ onMounted(() => {
                 transform: scale(1.1);
               }
 
-              &.icon-edit:hover {
+              &.edit-icon:hover {
                 color: var(--primary-color);
               }
 
-              &.icon-download:hover {
+              &.download-icon:hover {
                 color: #10b981;
               }
 
-              &.icon-close:hover {
+              &.delete-icon:hover {
                 color: #ef4444;
               }
             }
@@ -296,7 +300,7 @@ onMounted(() => {
         justify-content: center;
       }
 
-      span {
+      svg {
         color: var(--text-color-1);
         font-size: 16px;
         font-weight: bold;
@@ -402,7 +406,7 @@ onMounted(() => {
             cursor: pointer;
             flex-shrink: 0;
 
-            span {
+            svg {
               font-size: 10px;
               line-height: 20px;
               cursor: pointer;
@@ -430,7 +434,7 @@ onMounted(() => {
               color: var(--text-color-1);
             }
 
-            .closeIcon span {
+            .closeIcon svg {
               color: var(--text-color-1);
             }
           }
@@ -473,7 +477,7 @@ onMounted(() => {
           flex-shrink: 0;
           min-width: 30px;
 
-          span {
+          svg {
             border-radius: 3px;
             font-size: 10px;
             font-weight: bold;
@@ -731,7 +735,7 @@ onMounted(() => {
                 opacity: 1;
               }
 
-              .iconfont {
+              svg {
                 font-size: 16px;
               }
             }
@@ -807,7 +811,7 @@ onMounted(() => {
               font-size: 24px;
               transition: all 0.3s ease;
 
-              .iconfont {
+              svg {
                 font-size: 24px;
               }
             }

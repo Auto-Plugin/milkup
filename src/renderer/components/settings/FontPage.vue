@@ -2,6 +2,7 @@
 import type { FontSizeType, FontType } from "@/types/font";
 import { onMounted, ref } from "vue";
 import { fontConfig, fontSizeConfig } from "@/config/fonts";
+import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 import { VirtualSelect } from "@/renderer/components/ui/virtual-select";
 import useFont from "@/renderer/hooks/useFont";
 
@@ -39,11 +40,18 @@ onMounted(() => {});
       <div class="section-header" @click="toggleFontSettings">
         <div class="section-content-wrapper">
           <h2 class="section-title">
+            <span class="title-icon">
+              <AppIcon name="type" />
+            </span>
             <span class="title-text">字体设置</span>
           </h2>
           <p class="section-desc">配置编辑器和代码的字体样式</p>
         </div>
-        <span class="iconfont icon-arrow-right" :class="{ active: fontSettingsExpanded }"></span>
+        <AppIcon
+          name="arrow-right"
+          class="section-arrow"
+          :class="{ active: fontSettingsExpanded }"
+        />
       </div>
       <div class="section-content" :class="{ expanded: fontSettingsExpanded }">
         <div class="font-sections">
@@ -96,14 +104,18 @@ onMounted(() => {});
       <div class="section-header" @click="toggleFontSizeSettings">
         <div class="section-content-wrapper">
           <h2 class="section-title">
+            <span class="title-icon accent">
+              <AppIcon name="type" />
+            </span>
             <span class="title-text">字号设置</span>
           </h2>
           <p class="section-desc">配置不同文本元素的字体大小</p>
         </div>
-        <span
-          class="iconfont icon-arrow-right"
+        <AppIcon
+          name="arrow-right"
+          class="section-arrow"
           :class="{ active: fontSizeSettingsExpanded }"
-        ></span>
+        />
       </div>
       <div class="section-content" :class="{ expanded: fontSizeSettingsExpanded }">
         <div class="font-size-grid">
@@ -203,9 +215,28 @@ onMounted(() => {});
         color: var(--text-color);
         margin: 0 0 4px 0;
         line-height: 1.4;
+        display: flex;
+        align-items: center;
+        gap: 10px;
 
         .title-text {
           display: block;
+        }
+
+        .title-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 30px;
+          height: 30px;
+          border-radius: 10px;
+          background: color-mix(in srgb, var(--primary-color) 14%, transparent);
+          color: var(--primary-color);
+
+          &.accent {
+            background: color-mix(in srgb, #8b5cf6 14%, transparent);
+            color: #8b5cf6;
+          }
         }
       }
 
@@ -216,7 +247,7 @@ onMounted(() => {});
         line-height: 1.4;
       }
 
-      .iconfont {
+      .section-arrow {
         font-size: 20px;
         color: var(--text-color-2);
         transition: transform 0.2s ease;

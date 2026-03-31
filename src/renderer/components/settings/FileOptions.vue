@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import autotoast from "autotoast.js";
+import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 import useContent from "@/renderer/hooks/useContent";
 import usefile from "@/renderer/hooks/useFile";
 import useWorkSpace from "@/renderer/hooks/useWorkSpace";
@@ -16,6 +17,10 @@ const { onOpen, onSave, onSaveAs, currentTab } = usefile();
 const { setWorkSpace } = useWorkSpace();
 const { isModified, markdown } = useContent();
 
+function getExportBaseName() {
+  return currentTab.value?.name?.slice(0, -3) || "导出的文件";
+}
+
 function onOpenFolder() {
   setWorkSpace()
     .then(() => {
@@ -28,14 +33,10 @@ function onOpenFolder() {
   // 发射 Escape 按键事件 关闭菜单
 }
 function exportAsPDF() {
-  exportElementAsPDF(
-    getActiveEditorSelector(),
-    `${currentTab.value?.name.slice(0, -3)}.pdf` || "导出的文件",
-    {
-      pageSize: "A4",
-      scale: 1,
-    }
-  )
+  exportElementAsPDF(getActiveEditorSelector(), `${getExportBaseName()}.pdf`, {
+    pageSize: "A4",
+    scale: 1,
+  })
     .then(() => {
       autotoast.show("导出成功", "success");
     })
@@ -44,16 +45,10 @@ function exportAsPDF() {
     });
 }
 function exportAsHTML() {
-  exportElementWithStylesAndImages(
-    getActiveEditorElement(),
-    `${currentTab.value?.name.slice(0, -3)}.html` || "导出的文件"
-  );
+  exportElementWithStylesAndImages(getActiveEditorElement(), `${getExportBaseName()}.html`);
 }
 function exportAsDocx() {
-  exportMarkdownAsWord(
-    markdown.value,
-    `${currentTab.value?.name.slice(0, -3)}.docx` || "导出的文件"
-  )
+  exportMarkdownAsWord(markdown.value, `${getExportBaseName()}.docx`)
     .then(() => {
       autotoast.show("导出成功", "success");
     })
@@ -62,51 +57,67 @@ function exportAsDocx() {
     });
 }
 function exportAsTxt() {
-  exportAsText(markdown.value, `${currentTab.value?.name.slice(0, -3)}.txt` || "导出的文件");
+  exportAsText(markdown.value, `${getExportBaseName()}.txt`);
 }
 </script>
 
 <template>
   <div class="FileOptionsBox">
     <div class="baseOptions optionItem">
-      <span class="title">文件</span>
+      <div class="title-row">
+        <span class="title-badge">
+          <AppIcon name="document" />
+        </span>
+        <div class="title-group">
+          <h2 class="title">文件</h2>
+          <span class="desc">常用的打开、保存与另存为操作</span>
+        </div>
+      </div>
       <div class="buttons">
         <button @click="() => onOpen()">
-          <span class="iconfont icon-document"></span>
+          <AppIcon name="document" />
           <span>打开</span>
         </button>
         <button @click="onOpenFolder">
-          <span class="iconfont icon-folder-opened"></span>
+          <AppIcon name="folder-opened" />
           <span>打开文件夹</span>
         </button>
         <button @click="onSave">
-          <span v-if="!isModified" class="iconfont icon-circle-check"></span>
-          <span v-else class="iconfont icon-warning-outline"></span>
+          <AppIcon v-if="!isModified" name="circle-check" />
+          <AppIcon v-else name="warning-outline" />
           <span>{{ isModified ? "保存" : "已保存" }}</span>
         </button>
         <button @click="onSaveAs">
-          <span class="iconfont icon-document-copy"></span>
+          <AppIcon name="document-copy" />
           <span>另存为</span>
         </button>
       </div>
     </div>
     <div class="export optionItem">
-      <span class="title">导出为</span>
+      <div class="title-row">
+        <span class="title-badge export-badge">
+          <AppIcon name="export-file" />
+        </span>
+        <div class="title-group">
+          <h2 class="title">导出为</h2>
+          <span class="desc">将当前内容导出为不同格式文件</span>
+        </div>
+      </div>
       <div class="buttons">
         <button @click="exportAsPDF">
-          <span class="iconfont icon-pdf"></span>
+          <AppIcon name="pdf" />
           <span>PDF</span>
         </button>
         <button @click="exportAsHTML">
-          <span class="iconfont icon-html"></span>
+          <AppIcon name="html" />
           <span>HTML</span>
         </button>
         <button @click="exportAsDocx">
-          <span class="iconfont icon-input"></span>
+          <AppIcon name="word-file" />
           <span>Word</span>
         </button>
         <button @click="exportAsTxt">
-          <span class="iconfont icon-document"></span>
+          <AppIcon name="document" />
           <span>TXT</span>
         </button>
       </div>
@@ -117,29 +128,62 @@ function exportAsTxt() {
 <style lang="less" scoped>
 .FileOptionsBox {
   width: 100%;
-  height: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 60px;
-  padding: 0 10px;
+  gap: 40px;
+  padding: 0 10px 200px;
   box-sizing: border-box;
   user-select: none;
+  max-width: 800px;
 
   .optionItem {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     width: 100%;
+    padding: 0;
+
+    .title-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .title-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      background: color-mix(in srgb, var(--primary-color) 14%, transparent);
+      color: var(--primary-color);
+      font-size: 18px;
+
+      &.export-badge {
+        background: color-mix(in srgb, #10b981 14%, transparent);
+        color: #10b981;
+      }
+    }
+
+    .title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
 
     .title {
-      font-size: 22px;
-      font-weight: bold;
-      margin-bottom: 26px;
+      font-size: 18px;
+      font-weight: 700;
       color: var(--text-color);
-      user-select: none;
-      width: 100%;
-      text-align: left;
+      margin: 0;
+    }
+
+    .desc {
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text-color-2);
     }
 
     .buttons {
@@ -147,6 +191,7 @@ function exportAsTxt() {
       align-items: flex-start;
       flex-direction: column;
       gap: 14px;
+      padding-left: 50px;
     }
 
     &.export {
@@ -180,10 +225,22 @@ function exportAsTxt() {
       border-color: var(--border-color-2);
     }
 
-    .iconfont {
+    svg {
       font-size: 18px;
       vertical-align: middle;
       margin-right: 5px;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .FileOptionsBox {
+    padding: 0 10px 160px;
+
+    .optionItem {
+      .buttons {
+        padding-left: 0;
+      }
     }
   }
 }

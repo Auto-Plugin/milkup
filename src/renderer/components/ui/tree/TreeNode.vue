@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import type { TreeNodeProps } from "./types";
 import { computed, nextTick, ref, watch } from "vue";
+import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 import { useTreeContext } from "./context";
 
 const props = defineProps<TreeNodeProps>();
@@ -92,16 +93,16 @@ function onContextMenu(e: MouseEvent) {
         class="expand-icon"
         :class="{ expanded: isExpanded }"
       >
-        <span class="iconfont icon-arrow-right" :class="{ active: isExpanded }"></span>
+        <AppIcon name="arrow-right" :class="{ active: isExpanded }" />
       </span>
       <span v-else class="expand-icon-placeholder"></span>
 
       <!-- 文件/文件夹图标 -->
       <span class="file-icon">
-        <span
-          class="iconfont"
-          :class="[{ active: isExpanded }, node.isDirectory ? 'icon-folder-copy' : 'icon-markdown']"
-        ></span>
+        <AppIcon
+          :name="node.isDirectory ? 'folder-copy' : 'markdown'"
+          :class="{ active: isExpanded }"
+        />
       </span>
 
       <!-- 节点名称 / 编辑输入框 -->
@@ -180,7 +181,7 @@ function onContextMenu(e: MouseEvent) {
         transform: rotate(90deg);
       }
 
-      .iconfont {
+      svg {
         &.active {
           color: var(--text-color-1);
         }
@@ -205,7 +206,7 @@ function onContextMenu(e: MouseEvent) {
       color: var(--text-color-3);
       flex-shrink: 0;
 
-      .iconfont {
+      svg {
         &.active {
           color: var(--text-color-1);
         }

@@ -6,7 +6,6 @@ import ThemeEditor from "./components/settings/ThemeEditor.vue";
 
 import "./style.less";
 import "@/themes/theme-main.less";
-import "@/assets/iconfont/iconfont.css";
 
 try {
   const app = createApp(ThemeEditor);

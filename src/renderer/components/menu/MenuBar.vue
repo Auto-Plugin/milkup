@@ -6,6 +6,7 @@ import FileOptions from "@/renderer/components/settings/FileOptions.vue";
 import Language from "@/renderer/components/settings/Language.vue";
 import SettingBase from "@/renderer/components/settings/SettingBase.vue";
 import ShortcutPage from "@/renderer/components/settings/ShortcutPage.vue";
+import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 import emitter from "@/renderer/events";
 import { checkUpdate } from "@/renderer/services/api/update.js";
 
@@ -21,32 +22,32 @@ const MenuComponents = {
   shortcut: ShortcutPage,
 };
 const MenuOptions = [
-  { label: "文件", action: () => (activeTab.value = "file"), icon: "icon-document", value: "file" },
+  { label: "文件", action: () => (activeTab.value = "file"), icon: "document", value: "file" },
   {
     label: "设置",
     action: () => (activeTab.value = "settings"),
-    icon: "icon-config-props",
+    icon: "config-props",
     value: "settings",
   },
   {
     label: "外观",
     action: () => (activeTab.value = "appearance"),
-    icon: "icon-waiguan",
+    icon: "waiguan",
     value: "appearance",
   },
   {
     label: "快捷键",
     action: () => (activeTab.value = "shortcut"),
-    icon: "icon-input",
+    icon: "shortcut-key",
     value: "shortcut",
   },
   {
     label: "语言",
     action: () => (activeTab.value = "language"),
-    icon: "icon-fanyi",
+    icon: "fanyi",
     value: "language",
   },
-  { label: "关于", action: () => (activeTab.value = "about"), icon: "icon-github", value: "about" },
+  { label: "关于", action: () => (activeTab.value = "about"), icon: "github", value: "about" },
 ];
 checkUpdate().then((updateInfo) => {
   if (updateInfo) {
@@ -58,15 +59,16 @@ checkUpdate().then((updateInfo) => {
 <template>
   <div class="MenubarBox">
     <div class="optionsContainer">
-      <span
+      <button
         v-for="option in MenuOptions"
         :key="option.label"
-        class="iconfont"
-        :class="{ active: activeTab === option.value, [option.icon]: true }"
+        class="menu-option"
+        :class="{ active: activeTab === option.value }"
         @click="option.action"
       >
+        <AppIcon :name="option.icon" class="menu-option-icon" />
         {{ option.label }}
-      </span>
+      </button>
     </div>
     <div class="detailContainer">
       <div class="scrollView">
@@ -117,7 +119,7 @@ checkUpdate().then((updateInfo) => {
     -webkit-app-region: drag;
     background: var(--background-color);
 
-    span {
+    .menu-option {
       cursor: pointer;
       width: 100%;
       -webkit-app-region: no-drag;
@@ -126,12 +128,14 @@ checkUpdate().then((updateInfo) => {
       display: flex;
       align-items: center;
       gap: 8px;
+      border: none;
+      background: transparent;
+      text-align: left;
       color: var(--text-color);
 
-      &::before {
-        font-size: 16px;
-        transform: translateY(1px);
-        font-weight: 100 !important;
+      .menu-option-icon {
+        font-size: 18px;
+        flex-shrink: 0;
       }
 
       &:hover {

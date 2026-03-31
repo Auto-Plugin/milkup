@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from "vue";
 import { vDraggable } from "vue-draggable-plus";
+import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 import useFile from "@/renderer/hooks/useFile";
 import useTab from "@/renderer/hooks/useTab";
 
@@ -336,7 +337,7 @@ onUnmounted(() => {
         </p>
 
         <div class="closeIcon">
-          <span class="iconfont icon-close" @click="handleCloseTab(tab.id, $event)"></span>
+          <AppIcon name="close" @click="handleCloseTab(tab.id, $event)" />
         </div>
 
         <!-- pre -->
@@ -365,7 +366,7 @@ onUnmounted(() => {
 
       <div key="addTab" class="addTab" @click="handleAddTab">
         <div class="addTabLine"></div>
-        <span class="iconfont icon-plus"></span>
+        <AppIcon name="plus" />
       </div>
     </TransitionGroup>
   </div>

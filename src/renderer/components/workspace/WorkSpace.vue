@@ -2,6 +2,7 @@
 import type { TreeNode } from "@ui/tree";
 import { onMounted, onUnmounted, ref } from "vue";
 import { Tree } from "@ui/tree";
+import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 import useTab from "@/renderer/hooks/useTab";
 import useWorkSpace from "@/renderer/hooks/useWorkSpace";
 
@@ -196,7 +197,7 @@ function getSortLabel() {
         </svg>
       </button>
       <button class="toolbar-btn" title="新建文件" @click="toolbarNewFile">
-        <span class="iconfont icon-plus"></span>
+        <AppIcon name="plus" />
       </button>
     </div>
 
@@ -212,12 +213,12 @@ function getSortLabel() {
     />
     <div v-if="workSpace" class="change-folder-bar">
       <button class="change-folder-btn" @click="openFolder">
-        <span class="iconfont icon-folder-opened"></span>
+        <AppIcon name="folder-opened" />
         <span>更换文件夹</span>
       </button>
     </div>
     <div v-if="!workSpace" class="empty-state">
-      <span class="iconfont icon-folder-opened empty-icon"></span>
+      <AppIcon name="folder-opened" class="empty-icon" />
       <p>暂无打开的文件夹</p>
       <button class="open-folder-btn" @click="openFolder">选择文件夹</button>
     </div>
@@ -231,21 +232,21 @@ function getSortLabel() {
         @click.stop
       >
         <div class="context-menu-item" @click="handleNewFile">
-          <span class="iconfont icon-plus"></span>
+          <AppIcon name="plus" />
           <span>新建文件</span>
         </div>
         <div class="context-menu-item" @click="handleNewFolder">
-          <span class="iconfont icon-folder-opened"></span>
+          <AppIcon name="folder-opened" />
           <span>新建文件夹</span>
         </div>
         <template v-if="contextMenu.node">
           <div class="context-menu-item" @click="handleRename">
-            <span class="iconfont icon-edit"></span>
+            <AppIcon name="edit" />
             <span>重命名</span>
           </div>
           <div class="context-menu-divider" />
           <div class="context-menu-item danger" @click="handleDelete">
-            <span class="iconfont icon-close"></span>
+            <AppIcon name="close" />
             <span>删除</span>
           </div>
         </template>
@@ -365,7 +366,7 @@ function getSortLabel() {
         color: var(--text-color-1);
       }
 
-      .iconfont {
+      svg {
         font-size: 14px;
       }
     }
@@ -392,7 +393,7 @@ function getSortLabel() {
       font-size: 12px;
       transition: all 0.2s ease;
 
-      .iconfont {
+      svg {
         font-size: 13px;
       }
 
@@ -480,7 +481,7 @@ function getSortLabel() {
       }
     }
 
-    .iconfont {
+    svg {
       font-size: 13px;
     }
   }

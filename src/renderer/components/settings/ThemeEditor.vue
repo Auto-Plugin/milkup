@@ -4,6 +4,7 @@ import type { Tab } from "@/types/tab";
 import autotoast from "autotoast.js";
 import { onMounted, onUnmounted, reactive, ref } from "vue";
 import MilkupEditor from "@/renderer/components/editor/MilkupEditor.vue";
+import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 import useTheme from "@/renderer/hooks/useTheme";
 import ColorPicker from "@/ui/ColorPicker.vue";
 
@@ -209,7 +210,9 @@ const previewTab: Tab = reactive({
     <div class="TitleBarBox">
       <div class="title">主题编辑器</div>
       <div class="window-controls">
-        <span v-if="isWin" class="iconfont icon-close" @click="handleClose"></span>
+        <button v-if="isWin" class="window-close-btn" @click="handleClose">
+          <AppIcon name="close" />
+        </button>
       </div>
     </div>
 
@@ -422,17 +425,19 @@ const previewTab: Tab = reactive({
     right: 0;
 
     /* ✅ 控制按钮不能拖动 */
-    span {
+    .window-close-btn {
       cursor: pointer;
       font-size: 16px;
       color: var(--text-color-1);
       padding: 8px;
+      border: none;
+      background: transparent;
 
       &:hover {
         background: var(--hover-color);
       }
 
-      &.icon-close:hover {
+      &:hover {
         background: #ff5f56;
         color: white;
       }

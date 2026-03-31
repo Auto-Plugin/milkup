@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { reactive, ref, watch } from "vue";
+import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 import WorkSpace from "@/renderer/components/workspace/WorkSpace.vue";
 import useOutline from "@/renderer/hooks/useOutline";
 import emitter from "@/renderer/events";
@@ -161,7 +162,7 @@ onUnmounted(() => document.removeEventListener("click", onDocClick));
                 :class="{ collapsed: collapsedSet.has(oi.id) }"
                 @click.stop="toggleCollapse(oi)"
               >
-                <span class="iconfont icon-arrow-right"></span>
+                <AppIcon name="arrow-right" />
               </span>
               <span v-else class="collapse-icon-placeholder"></span>
               <span class="outlineItem-text">{{ oi.text }}</span>
@@ -169,7 +170,7 @@ onUnmounted(() => document.removeEventListener("click", onDocClick));
           </template>
         </template>
         <div v-else class="empty-state">
-          <span class="iconfont icon-List-outlined empty-icon"></span>
+          <AppIcon name="List-outlined" class="empty-icon" />
           <span class="empty-text">暂无大纲</span>
         </div>
       </div>
@@ -194,7 +195,7 @@ onUnmounted(() => document.removeEventListener("click", onDocClick));
           @mouseleave="showCollapseSubmenu = false"
         >
           <span>折叠</span>
-          <span class="iconfont icon-arrow-right submenu-arrow"></span>
+          <AppIcon name="arrow-right" class="submenu-arrow" />
           <!-- 二级菜单 -->
           <div v-if="showCollapseSubmenu" class="outline-submenu">
             <div class="outline-ctx-item" @click="collapseByLevel(1)">折叠一级标题</div>

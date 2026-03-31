@@ -1,64 +1,78 @@
 <script lang="ts" setup>
-import type { TreeNodeProps } from '@/renderer/hooks/useTreeState'
-import { useTreeNode } from '@/renderer/hooks/useTreeState'
+import type { TreeNodeProps } from "@/renderer/hooks/useTreeState";
+import AppIcon from "@/renderer/components/ui/AppIcon.vue";
+import { useTreeNode } from "@/renderer/hooks/useTreeState";
 
 const props = withDefaults(defineProps<TreeNodeProps>(), {
   level: 0,
-})
+});
 
-const isShowLine = true
+const isShowLine = true;
 
 // 使用树节点逻辑管理
-const {
-  childrenContainer,
-  isExpanded,
-  isSelected,
-  transitionHooks,
-  handleNodeClick,
-} = useTreeNode(props)
+const { childrenContainer, isExpanded, isSelected, transitionHooks, handleNodeClick } =
+  useTreeNode(props);
 </script>
 
 <template>
   <div class="tree-node">
     <!-- 当前节点 -->
     <div
-      class="node-item" :class="{ selected: isSelected }" :style="{ paddingLeft: `${level * 20 + 10}px` }"
+      class="node-item"
+      :class="{ selected: isSelected }"
+      :style="{ paddingLeft: `${level * 20 + 10}px` }"
       @click="handleNodeClick"
     >
       <!-- 展开/折叠图标 -->
-      <span v-if="node.isDirectory && node.children" class="expand-icon" :class="{ expanded: isExpanded }">
-        <span class="iconfont icon-arrow-right" :class="{ active: isExpanded }"></span>
+      <span
+        v-if="node.isDirectory && node.children"
+        class="expand-icon"
+        :class="{ expanded: isExpanded }"
+      >
+        <AppIcon name="arrow-right" :class="{ active: isExpanded }" />
       </span>
       <span v-else class="expand-icon-placeholder"></span>
 
       <!-- 文件/文件夹图标 -->
       <span class="file-icon">
-        <span
-          class="iconfont" :class="[
-            node.isDirectory ? 'icon-folder-copy' : 'icon-markdown',
-            { active: isExpanded },
-          ]"
-        ></span>
+        <AppIcon
+          :name="node.isDirectory ? 'folder-copy' : 'markdown'"
+          :class="{ active: isExpanded }"
+        />
       </span>
 
       <!-- 节点名称 -->
-      <span class="node-name" :class="{ active: isExpanded, selected: isSelected }">{{ node.name }}</span>
+      <span class="node-name" :class="{ active: isExpanded, selected: isSelected }">{{
+        node.name
+      }}</span>
     </div>
 
     <!-- 子节点容器 - 左右布局 -->
     <Transition
-      name="fold" mode="in-out" @before-enter="transitionHooks.onBeforeEnter" @enter="transitionHooks.onEnter"
-      @after-enter="transitionHooks.onAfterEnter" @before-leave="transitionHooks.onBeforeLeave"
-      @leave="transitionHooks.onLeave" @after-leave="transitionHooks.onAfterLeave"
+      name="fold"
+      mode="in-out"
+      @before-enter="transitionHooks.onBeforeEnter"
+      @enter="transitionHooks.onEnter"
+      @after-enter="transitionHooks.onAfterEnter"
+      @before-leave="transitionHooks.onBeforeLeave"
+      @leave="transitionHooks.onLeave"
+      @after-leave="transitionHooks.onAfterLeave"
     >
       <div v-if="isExpanded && node.children" ref="childrenContainer" class="children-container">
         <!-- 左侧竖线 -->
         <!-- isShowLine控制是否显示文件目录的竖线 -->
-        <div v-if="isShowLine" class="vertical-line" :style="{ marginLeft: `${level * 20 + 10 + 8}px` }"></div>
+        <div
+          v-if="isShowLine"
+          class="vertical-line"
+          :style="{ marginLeft: `${level * 20 + 10 + 8}px` }"
+        ></div>
         <!-- 右侧子节点 -->
         <div class="children">
           <TreeNode
-            v-for="child in node.children" :key="child.path" :node="child" :level="level"
+            v-for="child in node.children"
+            :key="child.path"
+            :node="child"
+            :level="level"
             :current-tab="currentTab"
           />
         </div>
@@ -105,7 +119,7 @@ const {
         transform: rotate(90deg);
       }
 
-      .iconfont {
+      svg {
         &.active {
           color: var(--text-color-1);
         }
@@ -130,7 +144,7 @@ const {
       color: var(--text-color-3);
       flex-shrink: 0;
 
-      .iconfont {
+      svg {
         &.active {
           color: var(--text-color-1);
         }
@@ -153,7 +167,6 @@ const {
 
       &.selected {
         color: var(--text-color-1);
-
       }
     }
   }
@@ -162,7 +175,7 @@ const {
   .children-container {
     display: flex;
     position: relative;
-    transition: all 0.3s cubic-bezier(0.230, 1.000, 0.320, 1.000);
+    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
   }
 
   // 左侧竖线
@@ -177,6 +190,5 @@ const {
     flex: 1;
     position: relative;
   }
-
 }
 </style>

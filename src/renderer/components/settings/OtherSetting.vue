@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 import { Input } from "@/renderer/components/ui/input";
 import useOtherConfig from "@/renderer/hooks/useOtherConfig";
 import { useConfig } from "@/renderer/hooks/useConfig";
@@ -53,11 +54,18 @@ function setMermaidMode(mode: string) {
       <div class="section-header" @click="togglePaddingSettings">
         <div class="section-content-wrapper">
           <h2 class="section-title">
+            <span class="title-icon">
+              <AppIcon name="waiguan" />
+            </span>
             <span class="title-text">编辑器其他外观设置</span>
           </h2>
           <p class="section-desc">配置编辑器其他外观设置</p>
         </div>
-        <span class="iconfont icon-arrow-right" :class="{ active: paddingSettingsExpanded }"></span>
+        <AppIcon
+          name="arrow-right"
+          class="section-arrow"
+          :class="{ active: paddingSettingsExpanded }"
+        />
       </div>
       <div class="section-content" :class="{ expanded: paddingSettingsExpanded }">
         <div class="setting-list">
@@ -81,11 +89,18 @@ function setMermaidMode(mode: string) {
       <div class="section-header" @click="toggleMermaidSettings">
         <div class="section-content-wrapper">
           <h2 class="section-title">
+            <span class="title-icon accent">
+              <AppIcon name="magic-wand" />
+            </span>
             <span class="title-text">Mermaid 图表设置</span>
           </h2>
           <p class="section-desc">配置 Mermaid 代码块的默认显示模式</p>
         </div>
-        <span class="iconfont icon-arrow-right" :class="{ active: mermaidSettingsExpanded }"></span>
+        <AppIcon
+          name="arrow-right"
+          class="section-arrow"
+          :class="{ active: mermaidSettingsExpanded }"
+        />
       </div>
       <div class="section-content" :class="{ expanded: mermaidSettingsExpanded }">
         <div class="setting-list">
@@ -150,9 +165,28 @@ function setMermaidMode(mode: string) {
         color: var(--text-color);
         margin: 0 0 4px 0;
         line-height: 1.4;
+        display: flex;
+        align-items: center;
+        gap: 10px;
 
         .title-text {
           display: block;
+        }
+
+        .title-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 30px;
+          height: 30px;
+          border-radius: 10px;
+          background: color-mix(in srgb, var(--primary-color) 14%, transparent);
+          color: var(--primary-color);
+
+          &.accent {
+            background: color-mix(in srgb, #14b8a6 14%, transparent);
+            color: #14b8a6;
+          }
         }
       }
 
@@ -163,7 +197,7 @@ function setMermaidMode(mode: string) {
         line-height: 1.4;
       }
 
-      .iconfont {
+      .section-arrow {
         font-size: 20px;
         color: var(--text-color-2);
         transition: transform 0.2s ease;

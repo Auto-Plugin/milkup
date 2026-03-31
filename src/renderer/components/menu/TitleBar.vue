@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onUnmounted, ref } from "vue";
+import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 import TabBar from "@/renderer/components/workspace/TabBar.vue";
 import MenuDropDown from "./MenuDropDown.vue";
 
@@ -46,13 +47,15 @@ onUnmounted(() => {
       <TabBar />
 
       <div class="window-controls">
-        <span class="iconfont icon-min" @click="minimize"></span>
-        <span
-          class="iconfont"
-          :class="isFullScreen ? 'icon-normal' : 'icon-max'"
-          @click="toggleMaximize"
-        ></span>
-        <span class="iconfont icon-close" @click="close"></span>
+        <button class="window-control-btn" @click="minimize">
+          <AppIcon name="min" />
+        </button>
+        <button class="window-control-btn" @click="toggleMaximize">
+          <AppIcon :name="isFullScreen ? 'normal' : 'max'" />
+        </button>
+        <button class="window-control-btn close-btn" @click="close">
+          <AppIcon name="close" />
+        </button>
       </div>
     </template>
     <template v-else>
@@ -91,7 +94,7 @@ onUnmounted(() => {
     justify-content: center;
 
     /* ✅ 控制按钮不能拖动 */
-    span {
+    .window-control-btn {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -100,15 +103,14 @@ onUnmounted(() => {
       color: var(--text-color-1);
       height: 40px;
       width: 40px;
-
-      // padding:  8px;
-      // 保持长宽比
+      border: none;
+      background: transparent;
 
       &:hover {
         background: var(--hover-color);
       }
 
-      &.icon-close:hover {
+      &.close-btn:hover {
         background: #ff5f56;
         color: white;
       }

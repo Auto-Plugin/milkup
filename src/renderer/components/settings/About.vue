@@ -5,6 +5,7 @@ import emitter from "@/renderer/events";
 import { checkUpdate } from "@/renderer/services/api/update";
 import { version } from "../../../../package.json";
 import { ref } from "vue";
+import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 import LoadingIcon from "../ui/LoadingIcon.vue";
 
 function openByDefaultBrowser(url: string) {
@@ -89,7 +90,10 @@ function handleCheckUpdate() {
         @click="openByDefaultBrowser(`https://github.com/Auto-Plugin/milkup/graphs/contributors`)"
       >
         Thank you for the contribution from
-        <span class="iconfont icon-github">Auto-Plugin</span></span
+        <span class="contributor-link">
+          <AppIcon name="github" />
+          Auto-Plugin
+        </span></span
       >
     </p>
     <p class="tip">milkup 是完全免费开源的软件</p>

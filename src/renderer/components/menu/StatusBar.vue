@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 import { toggleShowOutline } from "@/renderer/hooks/useOutline";
 import useSourceCode from "@/renderer/hooks/useSourceCode";
 
@@ -58,12 +59,11 @@ window.electronAPI.on("view:toggleView", () => {
   <div class="StatusBarBox">
     <div class="left-section">
       <div>
-        <span class="iconfont icon-List-outlined" @click="toggleShowOutline()"></span>
-        <span
-          class="iconfont"
-          :class="isShowSource ? 'icon-input' : 'icon-markdown'"
-          @click.stop="toggleSourceCode()"
-        >
+        <span class="status-icon-btn" @click="toggleShowOutline()">
+          <AppIcon name="List-outlined" />
+        </span>
+        <span class="status-icon-btn" @click.stop="toggleSourceCode()">
+          <AppIcon :name="isShowSource ? 'input' : 'markdown'" />
         </span>
       </div>
 
@@ -74,7 +74,7 @@ window.electronAPI.on("view:toggleView", () => {
         @click="handleRestore"
         title="点击恢复下载弹窗"
       >
-        <span class="iconfont icon-download"></span>
+        <AppIcon name="download" class="status-inline-icon" />
         <span>正在下载 {{ downloadProgress }}%</span>
         <div class="mini-progress-bg">
           <div class="mini-progress-fill" :style="{ width: `${downloadProgress}%` }"></div>
@@ -85,7 +85,7 @@ window.electronAPI.on("view:toggleView", () => {
         class="update-progress-bar success"
         @click="handleRestore"
       >
-        <span class="iconfont icon-check-circle"></span>
+        <AppIcon name="check-circle" class="status-inline-icon" />
         <span>下载完成，点击安装</span>
       </div>
     </div>
