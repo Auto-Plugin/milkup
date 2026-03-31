@@ -27,7 +27,10 @@ function findLinkElement(target: HTMLElement, root: HTMLElement): HTMLAnchorElem
 /** 用默认浏览器打开链接 */
 function openLinkExternal(href: string) {
   const electronAPI = (window as any).electronAPI;
-  if (electronAPI?.openExternal) {
+  const currentFilePath = (window as any).__currentFilePath || null;
+  if (electronAPI?.openLink) {
+    electronAPI.openLink(href, currentFilePath);
+  } else if (electronAPI?.openExternal) {
     electronAPI.openExternal(href);
   } else {
     window.open(href, "_blank", "noopener,noreferrer");

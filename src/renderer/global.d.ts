@@ -30,6 +30,7 @@ interface Window {
       cb: (payload: { filePath: string; content: string; fileTraits?: FileTraitsDTO }) => void
     ) => void;
     openExternal: (url: string) => Promise<void>;
+    openLink: (href: string, currentFilePath?: string | null) => Promise<void>;
     getFilePathInClipboard: () => Promise<string | null>;
     writeTempImage: (
       file: Uint8Array<ArrayBuffer>,

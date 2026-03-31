@@ -6,6 +6,7 @@ import type { FileTraits } from "./fileFormat";
 import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import chokidar from "chokidar";
 import { Document, HeadingLevel, Packer, Paragraph, TextRun } from "docx";
 import { app, BrowserWindow, clipboard, dialog, ipcMain, shell } from "electron";
@@ -17,7 +18,7 @@ import {
   restoreFileTraits,
 } from "./fileFormat";
 import { createThemeEditorWindow } from "./index";
-import { normalizeMarkdownFilePath, readMarkdownFile } from "./markdownFile";
+import { isMarkdownFilePath, normalizeMarkdownFilePath, readMarkdownFile } from "./markdownFile";
 import {
   cancelDragFollow,
   clearWindowDragPreview,
@@ -75,6 +76,86 @@ function normalizeRelativeImageDirectory(inputPath: string): string {
     .replace(/^[\\/]+/, "")
     .replace(/^\.[\\/]+/, "")
     .trim();
+}
+
+function hasUriScheme(target: string): boolean {
+  return /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(target) && !/^[a-zA-Z]:[\\/]/.test(target);
+}
+
+function isExternalLink(target: string): boolean {
+  return target.startsWith("//") || (hasUriScheme(target) && !/^file:/i.test(target));
+}
+
+function isObviousLocalPath(target: string): boolean {
+  return (
+    /^[a-zA-Z]:[\\/]/.test(target) ||
+    /^\\\\[^\\]/.test(target) ||
+    /^[\\/]/.test(target) ||
+    /^\.\.?([\\/]|$)/.test(target)
+  );
+}
+
+function localPathExists(filePath: string): boolean {
+  try {
+    return fs.existsSync(filePath);
+  } catch {
+    return false;
+  }
+}
+
+function isLikelyHostnameWithoutProtocol(target: string): boolean {
+  const candidate = target.trim().split(/[?#]/)[0];
+  if (!candidate || /[\s\\]/.test(candidate)) return false;
+  if (isObviousLocalPath(candidate) || isExternalLink(candidate)) return false;
+
+  const firstSegment = candidate.split("/")[0];
+  if (!firstSegment) return false;
+
+  if (/^localhost(?::\d+)?$/i.test(firstSegment)) return true;
+  if (/^\d{1,3}(?:\.\d{1,3}){3}(?::\d+)?$/.test(firstSegment)) return true;
+  if (/^\[[0-9a-fA-F:]+\](?::\d+)?$/.test(firstSegment)) return true;
+  if (/^[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+(?::\d+)?$/.test(firstSegment)) return true;
+
+  return false;
+}
+
+function resolveLocalLinkPath(target: string, currentFilePath?: string | null): string | null {
+  const trimmed = target.trim();
+  if (!trimmed || trimmed.startsWith("#")) return null;
+
+  if (/^file:/i.test(trimmed)) {
+    try {
+      return fileURLToPath(trimmed);
+    } catch {
+      return null;
+    }
+  }
+
+  if (isExternalLink(trimmed)) return null;
+
+  const cleanPath = trimmed.split(/[?#]/)[0];
+  if (!cleanPath) return null;
+
+  if (path.isAbsolute(cleanPath) || /^\\\\[^\\]/.test(cleanPath)) {
+    return cleanPath;
+  }
+
+  if (!currentFilePath) return null;
+  const resolvedPath = path.resolve(path.dirname(currentFilePath), cleanPath);
+  if (localPathExists(resolvedPath)) return resolvedPath;
+
+  if (isLikelyHostnameWithoutProtocol(trimmed)) return null;
+
+  return resolvedPath;
+}
+
+function normalizeExternalLink(target: string): string {
+  const trimmed = target.trim();
+  if (!trimmed) return trimmed;
+  if (isExternalLink(trimmed) || /^file:/i.test(trimmed)) {
+    return trimmed.startsWith("//") ? `https:${trimmed}` : trimmed;
+  }
+  return `https://${trimmed}`;
 }
 
 function getImageOutputExtension(fileName?: string, mimeType?: string): string {
@@ -254,6 +335,39 @@ export function registerIpcOnHandlers() {
   });
   ipcMain.on("shell:openExternal", (_event, url) => {
     shell.openExternal(url);
+  });
+  ipcMain.handle("shell:openLink", async (event, href: string, currentFilePath?: string | null) => {
+    const localPath = resolveLocalLinkPath(href, currentFilePath);
+    if (localPath) {
+      if (isMarkdownFilePath(localPath)) {
+        const sourceWin = BrowserWindow.fromWebContents(event.sender);
+        const targetWin = findWindowWithFile(localPath, sourceWin?.id);
+        if (targetWin) {
+          targetWin.webContents.send("tab:activate-file", localPath);
+          targetWin.focus();
+          return;
+        }
+
+        const result = readMarkdownFile(localPath);
+        if (result && sourceWin && !sourceWin.isDestroyed()) {
+          sourceWin.webContents.send("open-file-at-launch", {
+            filePath: result.filePath,
+            content: result.content,
+            fileTraits: result.fileTraits,
+          });
+          sourceWin.focus();
+          return;
+        }
+      }
+
+      await shell.openPath(localPath);
+      return;
+    }
+
+    const externalUrl = normalizeExternalLink(href);
+    if (externalUrl) {
+      await shell.openExternal(externalUrl);
+    }
   });
   ipcMain.on("change-save-status", (event, isSavedStatus) => {
     const targetWin = BrowserWindow.fromWebContents(event.sender);

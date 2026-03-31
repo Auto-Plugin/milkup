@@ -537,14 +537,13 @@ export class MilkupEditor implements IMilkupEditor {
         me.preventDefault();
         me.stopPropagation();
 
-        let href = this.getLinkHref(linkEl);
+        const href = this.getLinkHref(linkEl);
         if (href) {
-          // 补全协议前缀，避免被当作本地文件路径
-          if (!/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(href)) {
-            href = "https://" + href;
-          }
           const electronAPI = (window as any).electronAPI;
-          if (electronAPI?.openExternal) {
+          const currentFilePath = (window as any).__currentFilePath || null;
+          if (electronAPI?.openLink) {
+            electronAPI.openLink(href, currentFilePath);
+          } else if (electronAPI?.openExternal) {
             electronAPI.openExternal(href);
           } else {
             window.open(href, "_blank", "noopener,noreferrer");
