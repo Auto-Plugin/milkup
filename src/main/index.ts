@@ -302,10 +302,10 @@ app.on("before-quit", (event) => {
   setIsQuitting(true);
 
   if (process.platform === "darwin") {
-    const targetWin = getAvailableWindow();
-    if (targetWin) {
+    const windows = BrowserWindow.getAllWindows().filter((w) => !w.isDestroyed());
+    if (windows.length > 0) {
       event.preventDefault();
-      close(targetWin);
+      windows.forEach((targetWin) => close(targetWin));
     }
   }
 });

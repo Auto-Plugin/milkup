@@ -1,5 +1,4 @@
 import { BrowserWindow, Menu } from "electron";
-import { close } from "./ipcBridge";
 
 /**
  * 获取当前聚焦的窗口，用于菜单 click 处理器。
@@ -94,11 +93,7 @@ export default function createMenu() {
         { type: "separator" },
         {
           label: "退出 milkup",
-          accelerator: "Cmd+Q",
-          click: () => {
-            const win = getFocusedWindow();
-            if (win) close(win);
-          },
+          role: "quit",
         },
       ],
     });
