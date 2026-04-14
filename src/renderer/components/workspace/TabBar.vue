@@ -522,10 +522,12 @@ onUnmounted(() => {
       display: flex;
       align-items: center;
       justify-content: center;
+      -webkit-app-region: no-drag;
       cursor: pointer;
       gap: 6px;
       flex-shrink: 0; // 防止收缩
       min-width: 40px; // 确保最小宽度
+      height: 30px;
 
       span {
         border-radius: 4px;
