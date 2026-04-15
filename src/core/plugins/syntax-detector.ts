@@ -12,6 +12,72 @@ import { decorationPluginKey } from "../decorations";
 /** 插件 Key */
 export const syntaxDetectorPluginKey = new PluginKey("milkup-syntax-detector");
 
+const IMAGE_TOKEN_PATTERNS = {
+  linked: /\[!\[([^\]]*)\]\((.+?)(?:\s+"([^"]*)")?\)\]\((.+?)(?:\s+"([^"]*)")?\)/y,
+  normal: /!\[([^\]]*)\]\((.+?)(?:\s+"([^"]*)")?\)/y,
+};
+
+function generateConsecutiveImageGroupId(): string {
+  return `cig_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+}
+
+function parseConsecutiveImages(text: string): Array<{
+  alt: string;
+  src: string;
+  title: string;
+  linkHref: string;
+  linkTitle: string;
+}> | null {
+  const images: Array<{
+    alt: string;
+    src: string;
+    title: string;
+    linkHref: string;
+    linkTitle: string;
+  }> = [];
+  let index = 0;
+
+  while (index < text.length) {
+    while (index < text.length && /\s/.test(text[index])) {
+      index++;
+    }
+
+    if (index >= text.length) break;
+
+    IMAGE_TOKEN_PATTERNS.linked.lastIndex = index;
+    let match = IMAGE_TOKEN_PATTERNS.linked.exec(text);
+    if (match) {
+      images.push({
+        alt: match[1] || "",
+        src: match[2] || "",
+        title: match[3] || "",
+        linkHref: match[4] || "",
+        linkTitle: match[5] || "",
+      });
+      index = IMAGE_TOKEN_PATTERNS.linked.lastIndex;
+      continue;
+    }
+
+    IMAGE_TOKEN_PATTERNS.normal.lastIndex = index;
+    match = IMAGE_TOKEN_PATTERNS.normal.exec(text);
+    if (match) {
+      images.push({
+        alt: match[1] || "",
+        src: match[2] || "",
+        title: match[3] || "",
+        linkHref: "",
+        linkTitle: "",
+      });
+      index = IMAGE_TOKEN_PATTERNS.normal.lastIndex;
+      continue;
+    }
+
+    return null;
+  }
+
+  return images.length >= 2 ? images : null;
+}
+
 /** 行内语法定义 */
 interface InlineSyntax {
   type: string;
@@ -898,6 +964,27 @@ export function createSyntaxDetectorPlugin(): Plugin {
           if (node.isTextblock && !node.type.spec.code) {
             const textContent = node.textContent;
             const basePos = pos + 1;
+            const consecutiveImages = parseConsecutiveImages(textContent);
+
+            if (consecutiveImages && node.type.name === "paragraph") {
+              const imageNodeType = schema.nodes.image;
+              if (imageNodeType) {
+                const groupId = generateConsecutiveImageGroupId();
+                const imageNodes = consecutiveImages.map((img) =>
+                  imageNodeType.create({
+                    src: img.src,
+                    alt: img.alt,
+                    title: img.title,
+                    linkHref: img.linkHref,
+                    linkTitle: img.linkTitle,
+                    consecutiveGroup: groupId,
+                  })
+                );
+                tr = tr.replaceWith(pos, pos + node.nodeSize, imageNodes);
+                hasChanges = true;
+                return false;
+              }
+            }
 
             // 记录已处理的范围，避免链接图片和普通图片重复匹配
             const processedRanges: Array<{ start: number; end: number }> = [];

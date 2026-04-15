@@ -148,6 +148,15 @@ const BLOCK_PATTERNS = {
   html_block_start: /^<([a-zA-Z][a-zA-Z0-9]*)/, // 以 < 开头后跟标签名
 };
 
+const IMAGE_TOKEN_PATTERNS = {
+  linked: /\[!\[([^\]]*)\]\((.+?)(?:\s+"([^"]*)")?\)\]\((.+?)(?:\s+"([^"]*)")?\)/y,
+  normal: /!\[([^\]]*)\]\((.+?)(?:\s+"([^"]*)")?\)/y,
+};
+
+function generateConsecutiveImageGroupId(): string {
+  return `cig_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+}
+
 /** 行内元素集合 - 这些标签不应被解析为块级 html_block */
 const INLINE_ELEMENTS = new Set([
   "a",
@@ -284,6 +293,14 @@ export class MarkdownParser {
         continue;
       }
 
+      // 连续图片（非标准 Markdown，但主流编辑器普遍支持）
+      const consecutiveImages = this.parseConsecutiveImages(line);
+      if (consecutiveImages) {
+        blocks.push(...consecutiveImages);
+        i++;
+        continue;
+      }
+
       // 链接图片 [![alt](src)](href)
       const linkedImageMatch = line.match(BLOCK_PATTERNS.linked_image);
       if (linkedImageMatch) {
@@ -416,6 +433,60 @@ export class MarkdownParser {
     const linkTitle = match[5] || "";
 
     return this.schema.node("image", { src, alt, title, linkHref, linkTitle });
+  }
+
+  /**
+   * 解析同一行上的连续图片
+   * 例如：![a](1.png)![b](2.png)
+   */
+  private parseConsecutiveImages(line: string): Node[] | null {
+    const images: Node[] = [];
+    let index = 0;
+    const groupId = generateConsecutiveImageGroupId();
+
+    while (index < line.length) {
+      while (index < line.length && /\s/.test(line[index])) {
+        index++;
+      }
+
+      if (index >= line.length) break;
+
+      IMAGE_TOKEN_PATTERNS.linked.lastIndex = index;
+      let match = IMAGE_TOKEN_PATTERNS.linked.exec(line);
+      if (match) {
+        images.push(
+          this.schema.node("image", {
+            alt: match[1] || "",
+            src: match[2] || "",
+            title: match[3] || "",
+            linkHref: match[4] || "",
+            linkTitle: match[5] || "",
+            consecutiveGroup: groupId,
+          })
+        );
+        index = IMAGE_TOKEN_PATTERNS.linked.lastIndex;
+        continue;
+      }
+
+      IMAGE_TOKEN_PATTERNS.normal.lastIndex = index;
+      match = IMAGE_TOKEN_PATTERNS.normal.exec(line);
+      if (match) {
+        images.push(
+          this.schema.node("image", {
+            alt: match[1] || "",
+            src: match[2] || "",
+            title: match[3] || "",
+            consecutiveGroup: groupId,
+          })
+        );
+        index = IMAGE_TOKEN_PATTERNS.normal.lastIndex;
+        continue;
+      }
+
+      return null;
+    }
+
+    return images.length >= 2 ? images : null;
   }
 
   /**

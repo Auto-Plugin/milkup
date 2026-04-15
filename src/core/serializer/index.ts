@@ -46,17 +46,23 @@ export class MarkdownSerializer {
    */
   private serializeFragment(fragment: Fragment, lines: string[], indent: string): void {
     fragment.forEach((node, _, index) => {
-      this.serializeNode(node, lines, indent, index);
+      this.serializeNode(node, lines, indent, index, fragment);
     });
   }
 
   /**
    * 序列化节点
    */
-  private serializeNode(node: Node, lines: string[], indent: string, index: number): void {
+  private serializeNode(
+    node: Node,
+    lines: string[],
+    indent: string,
+    index: number,
+    fragment: Fragment
+  ): void {
     const handler = this.nodeHandlers[node.type.name];
     if (handler) {
-      handler.call(this, node, lines, indent, index);
+      handler.call(this, node, lines, indent, index, fragment);
     } else {
       // 默认处理：递归处理子节点
       this.serializeFragment(node.content, lines, indent);
@@ -68,7 +74,7 @@ export class MarkdownSerializer {
    */
   private nodeHandlers: Record<
     string,
-    (node: Node, lines: string[], indent: string, index: number) => void
+    (node: Node, lines: string[], indent: string, index: number, fragment: Fragment) => void
   > = {
     paragraph: (node, lines, indent) => {
       // 对于代码块段落，直接输出文本内容（包含围栏符号）
@@ -127,7 +133,7 @@ export class MarkdownSerializer {
       let prevWasContent = false; // 上一个子节点是否为有内容的段落
       node.content.forEach((child, _, index) => {
         const childLines: string[] = [];
-        this.serializeNode(child, childLines, "", index);
+        this.serializeNode(child, childLines, "", index, node.content);
 
         // 剥离 paragraph 序列化器追加的 !compact 尾部空行
         while (childLines.length > 0 && childLines[childLines.length - 1] === "") {
@@ -262,21 +268,36 @@ export class MarkdownSerializer {
       if (!this.options.compact) lines.push("");
     },
 
-    image: (node, lines, indent) => {
+    image: (node, lines, indent, index, fragment) => {
       const alt = node.attrs.alt || "";
       const src = node.attrs.src || "";
       const title = node.attrs.title || "";
       const linkHref = node.attrs.linkHref || "";
       const linkTitle = node.attrs.linkTitle || "";
+      const consecutiveGroup = node.attrs.consecutiveGroup || null;
       const titlePart = title ? ` "${title}"` : "";
       const imgMarkdown = `![${alt}](${src}${titlePart})`;
-      if (linkHref) {
-        const linkTitlePart = linkTitle ? ` "${linkTitle}"` : "";
-        lines.push(indent + `[${imgMarkdown}](${linkHref}${linkTitlePart})`);
+      const markdown = linkHref
+        ? `[${imgMarkdown}](${linkHref}${linkTitle ? ` "${linkTitle}"` : ""})`
+        : imgMarkdown;
+      const prevNode = index > 0 ? fragment.child(index - 1) : null;
+      const nextNode = index + 1 < fragment.childCount ? fragment.child(index + 1) : null;
+      const prevSameGroup =
+        !!consecutiveGroup &&
+        prevNode?.type.name === "image" &&
+        prevNode.attrs.consecutiveGroup === consecutiveGroup;
+      const nextSameGroup =
+        !!consecutiveGroup &&
+        nextNode?.type.name === "image" &&
+        nextNode.attrs.consecutiveGroup === consecutiveGroup;
+
+      if (prevSameGroup && lines.length > 0) {
+        lines[lines.length - 1] += markdown;
       } else {
-        lines.push(indent + imgMarkdown);
+        lines.push(indent + markdown);
       }
-      if (!this.options.compact) lines.push("");
+
+      if (!nextSameGroup && !this.options.compact) lines.push("");
     },
 
     hard_break: () => {

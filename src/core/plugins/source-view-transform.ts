@@ -37,6 +37,32 @@ function generateHtmlBlockId(): string {
   return `hb_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
+function generateConsecutiveImageGroupId(): string {
+  return `cig_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+}
+
+function buildImageMarkdown(image: ProseMirrorNode): string {
+  const alt = image.attrs.alt || "";
+  const src = image.attrs.src || "";
+  const title = image.attrs.title || "";
+  const linkHref = image.attrs.linkHref || "";
+  const linkTitle = image.attrs.linkTitle || "";
+  const titlePart = title ? ` "${title}"` : "";
+  const imgMarkdown = `![${alt}](${src}${titlePart})`;
+
+  if (linkHref) {
+    const linkTitlePart = linkTitle ? ` "${linkTitle}"` : "";
+    return `[${imgMarkdown}](${linkHref}${linkTitlePart})`;
+  }
+
+  return imgMarkdown;
+}
+
+const IMAGE_TOKEN_PATTERNS = {
+  linked: /\[!\[([^\]]*)\]\((.+?)(?:\s+"([^"]*)")?\)\]\((.+?)(?:\s+"([^"]*)")?\)/y,
+  normal: /!\[([^\]]*)\]\((.+?)(?:\s+"([^"]*)")?\)/y,
+};
+
 /**
  * 将代码块转换为多个段落节点
  */
@@ -121,20 +147,20 @@ function transformImageToParagraph(image: ProseMirrorNode, schema: Schema): Pros
   const title = image.attrs.title || "";
   const linkHref = image.attrs.linkHref || "";
   const linkTitle = image.attrs.linkTitle || "";
-  const titlePart = title ? ` "${title}"` : "";
-  const imgMarkdown = `![${alt}](${src}${titlePart})`;
-  let markdownText: string;
-  if (linkHref) {
-    const linkTitlePart = linkTitle ? ` "${linkTitle}"` : "";
-    markdownText = `[${imgMarkdown}](${linkHref}${linkTitlePart})`;
-  } else {
-    markdownText = imgMarkdown;
-  }
-
   return schema.nodes.paragraph.create(
     { imageAttrs: { src, alt, title, linkHref, linkTitle } },
-    schema.text(markdownText)
+    schema.text(buildImageMarkdown(image))
   );
+}
+
+function transformImageGroupToParagraph(
+  images: ProseMirrorNode[],
+  schema: Schema
+): ProseMirrorNode | null {
+  if (images.length === 0) return null;
+
+  const markdownText = images.map((image) => buildImageMarkdown(image)).join("");
+  return schema.nodes.paragraph.create({ imageGroupSource: true }, schema.text(markdownText));
 }
 
 /**
@@ -176,6 +202,62 @@ function transformParagraphToImage(
 
   // 文本不再是有效的图片语法，不转换回图片
   return null;
+}
+
+function transformParagraphToImages(
+  paragraph: ProseMirrorNode,
+  schema: Schema
+): ProseMirrorNode[] | null {
+  if (!paragraph.attrs.imageGroupSource) return null;
+
+  const images: ProseMirrorNode[] = [];
+  const text = paragraph.textContent;
+  let index = 0;
+  const groupId = generateConsecutiveImageGroupId();
+
+  while (index < text.length) {
+    while (index < text.length && /\s/.test(text[index])) {
+      index++;
+    }
+
+    if (index >= text.length) break;
+
+    IMAGE_TOKEN_PATTERNS.linked.lastIndex = index;
+    let match = IMAGE_TOKEN_PATTERNS.linked.exec(text);
+    if (match) {
+      images.push(
+        schema.nodes.image.create({
+          alt: match[1] || "",
+          src: match[2] || "",
+          title: match[3] || "",
+          linkHref: match[4] || "",
+          linkTitle: match[5] || "",
+          consecutiveGroup: groupId,
+        })
+      );
+      index = IMAGE_TOKEN_PATTERNS.linked.lastIndex;
+      continue;
+    }
+
+    IMAGE_TOKEN_PATTERNS.normal.lastIndex = index;
+    match = IMAGE_TOKEN_PATTERNS.normal.exec(text);
+    if (match) {
+      images.push(
+        schema.nodes.image.create({
+          alt: match[1] || "",
+          src: match[2] || "",
+          title: match[3] || "",
+          consecutiveGroup: groupId,
+        })
+      );
+      index = IMAGE_TOKEN_PATTERNS.normal.lastIndex;
+      continue;
+    }
+
+    return null;
+  }
+
+  return images.length > 0 ? images : null;
 }
 
 /**
@@ -522,9 +604,39 @@ function processNodeForSourceConversion(
   // 递归处理子节点
   if (node.content.size > 0) {
     const newChildren: ProseMirrorNode[] = [];
+    let consecutiveImageGroup: ProseMirrorNode[] = [];
+    let currentConsecutiveImageGroupId: string | null = null;
     let changed = false;
 
+    const flushConsecutiveImageGroup = () => {
+      if (consecutiveImageGroup.length === 0) return;
+      const paragraph = transformImageGroupToParagraph(consecutiveImageGroup, schema);
+      if (paragraph) {
+        newChildren.push(paragraph);
+        changed = true;
+      } else {
+        consecutiveImageGroup.forEach((image) =>
+          newChildren.push(transformImageToParagraph(image, schema))
+        );
+        changed = true;
+      }
+      consecutiveImageGroup = [];
+      currentConsecutiveImageGroupId = null;
+    };
+
     node.content.forEach((child) => {
+      if (child.type.name === "image" && child.attrs.consecutiveGroup) {
+        const groupId = child.attrs.consecutiveGroup as string;
+        if (currentConsecutiveImageGroupId && currentConsecutiveImageGroupId !== groupId) {
+          flushConsecutiveImageGroup();
+        }
+        currentConsecutiveImageGroupId = groupId;
+        consecutiveImageGroup.push(child);
+        return;
+      }
+
+      flushConsecutiveImageGroup();
+
       const processed = processNodeForSourceConversion(child, schema);
       if (Array.isArray(processed)) {
         newChildren.push(...processed);
@@ -536,6 +648,8 @@ function processNodeForSourceConversion(
         newChildren.push(child);
       }
     });
+
+    flushConsecutiveImageGroup();
 
     if (changed) {
       return node.type.create(node.attrs, Fragment.from(newChildren), node.marks);
@@ -553,9 +667,39 @@ export function convertBlocksToParagraphs(tr: Transaction): Transaction {
   const doc = tr.doc;
   const schema = doc.type.schema;
   const newContent: ProseMirrorNode[] = [];
+  let consecutiveImageGroup: ProseMirrorNode[] = [];
+  let currentConsecutiveImageGroupId: string | null = null;
   let changed = false;
 
+  const flushConsecutiveImageGroup = () => {
+    if (consecutiveImageGroup.length === 0) return;
+    const paragraph = transformImageGroupToParagraph(consecutiveImageGroup, schema);
+    if (paragraph) {
+      newContent.push(paragraph);
+      changed = true;
+    } else {
+      consecutiveImageGroup.forEach((image) =>
+        newContent.push(transformImageToParagraph(image, schema))
+      );
+      changed = true;
+    }
+    consecutiveImageGroup = [];
+    currentConsecutiveImageGroupId = null;
+  };
+
   doc.forEach((node) => {
+    if (node.type.name === "image" && node.attrs.consecutiveGroup) {
+      const groupId = node.attrs.consecutiveGroup as string;
+      if (currentConsecutiveImageGroupId && currentConsecutiveImageGroupId !== groupId) {
+        flushConsecutiveImageGroup();
+      }
+      currentConsecutiveImageGroupId = groupId;
+      consecutiveImageGroup.push(node);
+      return;
+    }
+
+    flushConsecutiveImageGroup();
+
     const processed = processNodeForSourceConversion(node, schema);
     if (Array.isArray(processed)) {
       newContent.push(...processed);
@@ -565,6 +709,8 @@ export function convertBlocksToParagraphs(tr: Transaction): Transaction {
       if (processed !== node) changed = true;
     }
   });
+
+  flushConsecutiveImageGroup();
 
   if (changed && newContent.length > 0) {
     const step = new ReplaceStep(0, doc.content.size, new Slice(Fragment.from(newContent), 0, 0));
@@ -745,7 +891,10 @@ function processNodeForBlockConversion(
         flushMathBlockGroup();
         flushListGroup();
 
-        if (child.attrs.imageAttrs) {
+        if (child.attrs.imageGroupSource) {
+          const images = transformParagraphToImages(child, schema);
+          newChildren.push(...(images || [child]));
+        } else if (child.attrs.imageAttrs) {
           const image = transformParagraphToImage(child, schema);
           newChildren.push(image || child);
         } else if (child.attrs.hrSource) {
@@ -963,7 +1112,10 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
       flushMathBlockGroup();
       flushListGroup();
 
-      if (node.attrs.imageAttrs) {
+      if (node.attrs.imageGroupSource) {
+        const images = transformParagraphToImages(node, schema);
+        newContent.push(...(images || [node]));
+      } else if (node.attrs.imageAttrs) {
         // 图片段落
         const image = transformParagraphToImage(node, schema);
         newContent.push(image || node);

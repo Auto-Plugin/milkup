@@ -85,6 +85,7 @@ const paragraph: NodeSpec = {
     language: { default: null },
     // 图片相关属性（仅在源码模式下使用）
     imageAttrs: { default: null },
+    imageGroupSource: { default: null },
     // 分割线相关属性（仅在源码模式下使用）
     hrSource: { default: null },
     // 表格相关属性（仅在源码模式下使用）
@@ -447,6 +448,7 @@ const image: NodeSpec = {
     title: { default: "" },
     linkHref: { default: "" },
     linkTitle: { default: "" },
+    consecutiveGroup: { default: null },
   },
   group: "block",
   draggable: true,
