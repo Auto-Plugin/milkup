@@ -30,6 +30,7 @@ import {
   SquarePen,
   SquareSquare,
   Type,
+  Trash2,
   WandSparkles,
   X,
   Plus,
@@ -69,6 +70,7 @@ const iconMap = {
   "shortcut-key": Keyboard,
   "magic-wand": WandSparkles,
   "image-config": FileOutput,
+  trash: Trash2,
 } satisfies Record<string, FunctionalComponent<LucideProps>>;
 
 type AppIconName = keyof typeof iconMap;

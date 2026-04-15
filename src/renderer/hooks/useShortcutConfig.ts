@@ -10,12 +10,16 @@ import type { ShortcutActionId, ShortcutDefinition } from "@/core";
 export function useShortcutConfig() {
   const { config } = useConfig();
 
+  function getResolvedKey(id: ShortcutActionId, defaultKey: string): string {
+    const customKey = config.value.shortcuts?.[id];
+    return customKey === undefined ? defaultKey : (customKey ?? "");
+  }
+
   /** 合并默认值和用户自定义值后的完整快捷键列表 */
   const shortcuts = computed<ShortcutDefinition[]>(() => {
-    const customMap = config.value.shortcuts || {};
     return DEFAULT_SHORTCUTS.map((def) => ({
       ...def,
-      key: customMap[def.id] || def.defaultKey,
+      key: getResolvedKey(def.id, def.defaultKey),
     }));
   });
 
@@ -23,6 +27,7 @@ export function useShortcutConfig() {
   const conflicts = computed<Map<string, ShortcutActionId[]>>(() => {
     const keyToActions = new Map<string, ShortcutActionId[]>();
     for (const s of shortcuts.value) {
+      if (!s.key) continue;
       const existing = keyToActions.get(s.key);
       if (existing) {
         existing.push(s.id);
@@ -63,7 +68,7 @@ export function useShortcutConfig() {
   }
 
   /** 更新单个快捷键 */
-  function updateShortcut(id: ShortcutActionId, newKey: string) {
+  function updateShortcut(id: ShortcutActionId, newKey: string | null) {
     const current = { ...config.value.shortcuts };
     const def = DEFAULT_SHORTCUTS.find((d) => d.id === id);
     // 如果和默认值相同，删除自定义项
@@ -73,6 +78,11 @@ export function useShortcutConfig() {
       current[id] = newKey;
     }
     config.value = { ...config.value, shortcuts: current };
+  }
+
+  /** 清除单个快捷键绑定 */
+  function clearShortcut(id: ShortcutActionId) {
+    updateShortcut(id, null);
   }
 
   /** 重置单个快捷键 */
@@ -93,6 +103,7 @@ export function useShortcutConfig() {
     hasConflict,
     getConflictLabels,
     updateShortcut,
+    clearShortcut,
     resetShortcut,
     resetAll,
     CATEGORY_LABELS,
@@ -104,6 +115,7 @@ export function useShortcutConfig() {
  * 例如：Mod-b → Ctrl+B (Windows) / Cmd+B (Mac)
  */
 export function formatKeyForDisplay(key: string): string {
+  if (!key) return "未绑定";
   const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
   return key
     .split("-")

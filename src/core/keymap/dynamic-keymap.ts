@@ -38,9 +38,10 @@ export function createDynamicKeymapPlugin(
       // 构建 ProseMirror 格式的 key → command 绑定
       const bindings: Record<string, any> = {};
       for (const shortcut of DEFAULT_SHORTCUTS) {
-        const boundKey = customMap[shortcut.id] || shortcut.defaultKey;
+        const customKey = customMap[shortcut.id];
+        const boundKey = customKey === undefined ? shortcut.defaultKey : customKey;
         const command = commandMap[shortcut.id];
-        if (command) {
+        if (command && boundKey) {
           bindings[boundKey] = command;
         }
       }

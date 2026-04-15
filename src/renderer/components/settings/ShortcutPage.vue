@@ -13,6 +13,7 @@ const {
   hasConflict,
   getConflictLabels,
   updateShortcut,
+  clearShortcut,
   resetShortcut,
   resetAll,
   CATEGORY_LABELS,
@@ -157,6 +158,12 @@ function toggleCategory(cat: ShortcutCategory) {
                         recordingKey = '';
                         return;
                       }
+                      if (e.key === 'Backspace' || e.key === 'Delete') {
+                        clearShortcut(s.id);
+                        recordingId = null;
+                        recordingKey = '';
+                        return;
+                      }
                       const k = keyEventToProseMirrorKey(e);
                       if (k) {
                         updateShortcut(s.id, k);
@@ -172,14 +179,25 @@ function toggleCategory(cat: ShortcutCategory) {
                 >
                   {{ recordingId === s.id ? "请按下新快捷键..." : formatKeyForDisplay(s.key) }}
                 </div>
-                <button
-                  v-if="s.key !== s.defaultKey"
-                  class="reset-btn"
-                  title="重置为默认值"
-                  @click="resetShortcut(s.id)"
-                >
-                  ↺
-                </button>
+                <div class="shortcut-actions">
+                  <button
+                    v-if="s.key"
+                    class="action-btn icon-btn"
+                    title="清除绑定"
+                    @click="clearShortcut(s.id)"
+                  >
+                    <AppIcon name="trash" />
+                  </button>
+                  <span v-else class="action-placeholder" aria-hidden="true"></span>
+                  <button
+                    v-if="s.key !== s.defaultKey"
+                    class="action-btn reset-btn"
+                    title="重置为默认值"
+                    @click="resetShortcut(s.id)"
+                  >
+                    ↺
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -198,15 +216,18 @@ function toggleCategory(cat: ShortcutCategory) {
 .shortcut-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   height: 100%;
-  overflow-y: auto;
+  padding: 8px 20px 24px 8px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .search-area {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   flex-shrink: 0;
+  padding: 4px 0 2px;
 
   .search-box {
     flex: 1;
@@ -238,9 +259,10 @@ function toggleCategory(cat: ShortcutCategory) {
 
   .search-input {
     width: 100%;
-    padding: 8px 12px;
+    min-height: 40px;
+    padding: 10px 14px;
     border: 1px solid var(--border-color-1);
-    border-radius: 6px;
+    border-radius: 10px;
     background: var(--background-color);
     color: var(--text-color);
     font-size: 13px;
@@ -254,9 +276,10 @@ function toggleCategory(cat: ShortcutCategory) {
 
   .key-search-input {
     width: 100%;
-    padding: 8px 12px;
+    min-height: 40px;
+    padding: 10px 14px;
     border: 1px solid var(--border-color-1);
-    border-radius: 6px;
+    border-radius: 10px;
     background: var(--background-color);
     color: var(--text-color-2);
     font-size: 13px;
@@ -279,21 +302,25 @@ function toggleCategory(cat: ShortcutCategory) {
 .shortcut-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  flex-shrink: 0;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .category-section {
   border: 1px solid var(--border-color-1);
-  border-radius: 8px;
-  overflow: hidden;
+  border-radius: 12px;
+  overflow: visible;
+  background: var(--background-color);
 }
 
 .category-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
+  padding: 14px 18px;
   cursor: pointer;
   background: var(--background-color);
   user-select: none;
@@ -339,7 +366,9 @@ function toggleCategory(cat: ShortcutCategory) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px 8px 36px;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 14px 18px 14px 42px;
   border-top: 1px solid var(--border-color-1);
 
   &:hover {
@@ -349,12 +378,18 @@ function toggleCategory(cat: ShortcutCategory) {
   .shortcut-label {
     font-size: 13px;
     color: var(--text-color);
+    flex: 1;
+    min-width: 0;
   }
 
   .shortcut-key-area {
     display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+    flex-shrink: 0;
+    margin-left: auto;
   }
 
   .conflict-icon {
@@ -364,15 +399,15 @@ function toggleCategory(cat: ShortcutCategory) {
   }
 
   .key-badge {
-    padding: 4px 10px;
+    padding: 7px 12px;
     border: 1px solid var(--border-color-1);
-    border-radius: 4px;
+    border-radius: 8px;
     background: var(--background-color);
     color: var(--text-color);
     font-size: 12px;
     font-family: monospace;
     cursor: pointer;
-    min-width: 80px;
+    min-width: 104px;
     text-align: center;
     outline: none;
     user-select: none;
@@ -404,35 +439,69 @@ function toggleCategory(cat: ShortcutCategory) {
     }
   }
 
-  .reset-btn {
-    padding: 2px 6px;
+  .shortcut-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 70px;
+    justify-content: flex-end;
+  }
+
+  .action-btn {
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    padding: 0;
     border: 1px solid var(--border-color-1);
-    border-radius: 4px;
+    border-radius: 8px;
     background: transparent;
     color: var(--text-color-2);
-    font-size: 14px;
+    font-size: 12px;
     cursor: pointer;
     line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 
     &:hover {
       background: var(--hover-color);
       color: var(--text-color);
     }
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+  }
+
+  .icon-btn {
+    font-size: 14px;
+  }
+
+  .reset-btn {
+    font-size: 14px;
+  }
+
+  .action-placeholder {
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    flex-shrink: 0;
   }
 }
 
 .footer-actions {
   display: flex;
   justify-content: flex-end;
-  padding-top: 8px;
-  padding-bottom: 16px;
+  margin-top: auto;
+  padding: 4px 0 8px;
   border-top: 1px solid var(--border-color-1);
   flex-shrink: 0;
 
   .reset-all-btn {
-    padding: 6px 16px;
+    padding: 8px 16px;
     border: 1px solid var(--border-color-1);
-    border-radius: 6px;
+    border-radius: 8px;
     background: transparent;
     color: var(--text-color);
     font-size: 13px;

@@ -44,5 +44,5 @@ export interface ShortcutDefinition {
   defaultKey: string;
 }
 
-/** 用户自定义快捷键映射（仅存储与默认值不同的部分） */
-export type ShortcutKeyMap = Partial<Record<ShortcutActionId, string>>;
+/** 用户自定义快捷键映射（仅存储与默认值不同的部分；null 表示显式清除绑定） */
+export type ShortcutKeyMap = Partial<Record<ShortcutActionId, string | null>>;

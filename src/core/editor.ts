@@ -1140,7 +1140,9 @@ export class MilkupEditor implements IMilkupEditor {
     const customMap = this.getCustomKeyMap();
     const def = DEFAULT_SHORTCUTS.find((s) => s.id === actionId);
     if (!def) return "";
-    const key = customMap[actionId] || def.defaultKey;
+    const customKey = customMap[actionId];
+    const key = customKey === undefined ? def.defaultKey : (customKey ?? "");
+    if (!key) return "";
     return formatShortcutDisplay(key);
   }
 
