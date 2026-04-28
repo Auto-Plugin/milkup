@@ -14,7 +14,7 @@ let _isModified: ComputedRef<boolean> | null = null;
 function initialize() {
   if (isInitialized) return;
 
-  const { currentTab } = useTab();
+  const { currentTab, hasUnsavedTabs } = useTab();
 
   _markdown = computed({
     get: () => currentTab.value?.content ?? "",
@@ -39,15 +39,13 @@ function initialize() {
 
   _isModified = computed(() => currentTab.value?.isModified ?? false);
 
-  // 监听 isModified 变化，通知主进程保存状态
+  // 监听窗口内所有标签页的修改状态，通知主进程保存状态。
+  // 主进程只维护窗口级状态；如果只上报当前标签页状态，切换到已保存标签页后
+  // 关闭窗口会绕过未保存标签页的确认流程。
   watch(
-    () => _isModified!.value,
-    (newValue) => {
-      const md = currentTab.value?.content ?? "";
-      const orig = currentTab.value?.originalContent ?? "";
-      if (md || orig) {
-        window.electronAPI.changeSaveStatus(!newValue);
-      }
+    () => hasUnsavedTabs.value,
+    (hasUnsaved) => {
+      window.electronAPI.changeSaveStatus(!hasUnsaved);
     },
     { immediate: true }
   );
