@@ -138,6 +138,8 @@ function onOutlineTransitionEnd(e: TransitionEvent) {
 }
 
 onMounted(() => {
+  const { windowDefaultWidth = 1200, windowDefaultHeight = 800 } = config.value.other ?? {};
+  window.electronAPI.applyStartupSize(windowDefaultWidth, windowDefaultHeight);
   initTheme();
   initFont();
   initOtherConfig();

@@ -33,6 +33,7 @@ async function createWindow() {
     height: 800,
     minWidth: 400,
     minHeight: 300,
+    show: false,
     frame: false,
     titleBarStyle: "hidden", // ✅ macOS 专属
     icon: path.join(__dirname, "../assets/icons/milkup.ico"),
@@ -258,6 +259,18 @@ app.whenReady().then(async () => {
     }
   });
 
+  let startupSizeTimeout: ReturnType<typeof setTimeout> | null = null;
+  ipcMain.on("window:apply-startup-size", (_event, width: number, height: number) => {
+    if (!win || win.isDestroyed()) return;
+    if (startupSizeTimeout) {
+      clearTimeout(startupSizeTimeout);
+      startupSizeTimeout = null;
+    }
+    win.setSize(width, height);
+    win.center();
+    win.show();
+  });
+
   // 监听渲染进程就绪事件 (Moved up to avoid race condition)
   ipcMain.on("renderer-ready", () => {
     isRendererReady = true;
@@ -268,6 +281,15 @@ app.whenReady().then(async () => {
   });
 
   await createWindow();
+
+  if (win && !win.isDestroyed()) {
+    startupSizeTimeout = setTimeout(() => {
+      if (win && !win.isDestroyed() && !win.isVisible()) {
+        win.center();
+        win.show();
+      }
+    }, 2000);
+  }
 
   sendLaunchFileIfExists();
 });

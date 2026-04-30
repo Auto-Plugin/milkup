@@ -17,6 +17,8 @@ interface AppConfig extends Record<string, any> {
   };
   other: {
     editorPadding: string;
+    windowDefaultWidth: number;
+    windowDefaultHeight: number;
   };
   mermaid: {
     defaultDisplayMode: "code" | "mixed" | "diagram";
@@ -40,6 +42,8 @@ const defaultConfig: AppConfig = {
   },
   other: {
     editorPadding: "120px",
+    windowDefaultWidth: 1200,
+    windowDefaultHeight: 800,
   },
   mermaid: {
     defaultDisplayMode: "diagram",

@@ -10,6 +10,7 @@ const { config } = useConfig();
 
 const paddingSettingsExpanded = ref(false);
 const mermaidSettingsExpanded = ref(false);
+const windowSizeExpanded = ref(false);
 
 // 从完整值中提取数字部分用于显示（如 "20px" -> "20"）
 const displayPaddingValue = computed(() => {
@@ -45,6 +46,32 @@ function setMermaidMode(mode: string) {
     mermaid: { ...config.value.mermaid, defaultDisplayMode: mode as "code" | "mixed" | "diagram" },
   };
 }
+
+function toggleWindowSize() {
+  windowSizeExpanded.value = !windowSizeExpanded.value;
+}
+
+const currentWindowWidth = computed(() => String(config.value.other?.windowDefaultWidth ?? 1200));
+const currentWindowHeight = computed(() => String(config.value.other?.windowDefaultHeight ?? 800));
+
+const WINDOW_MIN_WIDTH = 400;
+const WINDOW_MIN_HEIGHT = 300;
+
+function handleWindowWidthChange(value: string) {
+  const num = Math.max(WINDOW_MIN_WIDTH, parseInt(value) || WINDOW_MIN_WIDTH);
+  config.value = {
+    ...config.value,
+    other: { ...config.value.other, windowDefaultWidth: num },
+  };
+}
+
+function handleWindowHeightChange(value: string) {
+  const num = Math.max(WINDOW_MIN_HEIGHT, parseInt(value) || WINDOW_MIN_HEIGHT);
+  config.value = {
+    ...config.value,
+    other: { ...config.value.other, windowDefaultHeight: num },
+  };
+}
 </script>
 
 <template>
@@ -77,6 +104,50 @@ function setMermaidMode(mode: string) {
                 :model-value="displayPaddingValue"
                 placeholder="请输入数字"
                 @update:model-value="handlePaddingChange"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 窗口默认尺寸设置折叠抽屉 -->
+    <div class="collapsible-section">
+      <div class="section-header" @click="toggleWindowSize">
+        <div class="section-content-wrapper">
+          <h2 class="section-title">
+            <span class="title-icon accent-window">
+              <AppIcon name="max" />
+            </span>
+            <span class="title-text">窗口默认尺寸</span>
+          </h2>
+          <p class="section-desc">设置 Milkup 启动时的窗口宽度和高度</p>
+        </div>
+        <AppIcon name="arrow-right" class="section-arrow" :class="{ active: windowSizeExpanded }" />
+      </div>
+      <div class="section-content" :class="{ expanded: windowSizeExpanded }">
+        <div class="setting-list">
+          <div class="setting-item">
+            <label class="setting-label">宽度(PX)</label>
+            <div class="setting-input-wrapper">
+              <Input
+                type="number"
+                :model-value="currentWindowWidth"
+                placeholder="最小 400"
+                :min="WINDOW_MIN_WIDTH"
+                @update:model-value="handleWindowWidthChange"
+              />
+            </div>
+          </div>
+          <div class="setting-item">
+            <label class="setting-label">高度(PX)</label>
+            <div class="setting-input-wrapper">
+              <Input
+                type="number"
+                :model-value="currentWindowHeight"
+                placeholder="最小 300"
+                :min="WINDOW_MIN_HEIGHT"
+                @update:model-value="handleWindowHeightChange"
               />
             </div>
           </div>
@@ -186,6 +257,11 @@ function setMermaidMode(mode: string) {
           &.accent {
             background: color-mix(in srgb, #14b8a6 14%, transparent);
             color: #14b8a6;
+          }
+
+          &.accent-window {
+            background: color-mix(in srgb, #f59e0b 14%, transparent);
+            color: #f59e0b;
           }
         }
       }

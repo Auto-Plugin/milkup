@@ -112,6 +112,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   saveCustomTheme: (theme: any) => ipcRenderer.send("save-custom-theme", theme),
   platform: process.platform,
   rendererReady: () => ipcRenderer.send("renderer-ready"),
+  applyStartupSize: (width: number, height: number) =>
+    ipcRenderer.send("window:apply-startup-size", width, height),
 
   // Tab 拖拽分离
   tearOffTabStart: (

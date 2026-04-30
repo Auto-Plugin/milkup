@@ -1,22 +1,31 @@
-<script setup lang='ts'>
-import { ref } from 'vue'
+<script setup lang="ts">
+import { ref, watch } from "vue";
 
 const props = defineProps<{
-  modelValue: string
-  placeholder?: string
-  label?: string
-  required?: boolean
-  type?: 'text' | 'number'
-}>()
+  modelValue: string;
+  placeholder?: string;
+  label?: string;
+  required?: boolean;
+  type?: "text" | "number";
+  min?: string | number;
+  max?: string | number;
+}>();
 const emit = defineEmits<{
-  (e: 'update:modelValue', modelValue: string): void
-  (e: 'change'): void
-}>()
-const modelValue = ref<string>(props.modelValue)
+  (e: "update:modelValue", modelValue: string): void;
+  (e: "change"): void;
+}>();
+const modelValue = ref<string>(props.modelValue);
+
+watch(
+  () => props.modelValue,
+  (newVal) => {
+    modelValue.value = newVal;
+  }
+);
 
 function handleChange() {
-  emit('update:modelValue', modelValue.value)
-  emit('change')
+  emit("update:modelValue", modelValue.value);
+  emit("change");
 }
 </script>
 
@@ -24,12 +33,19 @@ function handleChange() {
   <div class="input-container">
     <span class="label" :class="{ required }"> {{ label }}</span>
     <div class="Input">
-      <input v-model="modelValue" :type="type" :placeholder="placeholder" @change="handleChange" />
+      <input
+        v-model="modelValue"
+        :type="type"
+        :placeholder="placeholder"
+        :min="min"
+        :max="max"
+        @change="handleChange"
+      />
     </div>
   </div>
 </template>
 
-<style lang='less' scoped>
+<style lang="less" scoped>
 .input-container {
   display: flex;
   align-items: center;
@@ -42,7 +58,7 @@ function handleChange() {
 
     &.required {
       &::after {
-        content: '*';
+        content: "*";
         color: rgba(233, 83, 83, 0.829);
       }
     }

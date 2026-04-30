@@ -93,6 +93,7 @@ interface Window {
     saveCustomTheme: (theme: any) => void;
     platform: NodeJS.Platform;
     rendererReady: () => void;
+    applyStartupSize: (width: number, height: number) => void;
     // Tab 拖拽分离
     tearOffTabStart: (
       tabData: TearOffTabData,
