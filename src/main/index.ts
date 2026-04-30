@@ -31,8 +31,8 @@ async function createWindow() {
   win = new BrowserWindow({
     width: 1200,
     height: 800,
-    minWidth: 800,
-    minHeight: 600,
+    minWidth: 400,
+    minHeight: 300,
     frame: false,
     titleBarStyle: "hidden", // ✅ macOS 专属
     icon: path.join(__dirname, "../assets/icons/milkup.ico"),
