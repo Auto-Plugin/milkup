@@ -7,6 +7,7 @@ import useContent from "./useContent";
 import { useConfig } from "./useConfig";
 import useTab from "./useTab";
 import useTitle from "./useTitle";
+import useUiLoading from "./useUiLoading";
 
 async function onOpen(result?: { filePath: string; content: string } | null) {
   const { updateTitle } = useTitle();
@@ -159,6 +160,7 @@ let listenersRegistered = false;
 export default function useFile() {
   const { updateTitle } = useTitle();
   const { markdown, filePath, originalContent } = useContent();
+  const { showLoading, hideLoading, nextFrame } = useUiLoading();
   const {
     updateCurrentTabFile,
     createTabFromFile,
@@ -228,6 +230,7 @@ export default function useFile() {
       }
     }
 
+    let didShowLoading = false;
     try {
       // 尝试获取文件的完整路径
       let fullPath: string | null = null;
@@ -247,6 +250,9 @@ export default function useFile() {
 
       if (fullPath) {
         // 使用统一的文件服务读取和处理文件
+        showLoading("正在打开文件...");
+        await nextFrame();
+        didShowLoading = true;
         const fileContent = await readAndProcessFile({ filePath: fullPath });
         if (fileContent) {
           if (userChoice === "overwrite") {
@@ -314,6 +320,9 @@ export default function useFile() {
       }
 
       // 无法获取回退到直接读取文件内容
+      showLoading("正在打开文件...");
+      await nextFrame();
+      didShowLoading = true;
       const content = await mdFile.text();
 
       if (userChoice === "overwrite") {
@@ -352,6 +361,10 @@ export default function useFile() {
       });
     } catch (error) {
       console.error("读取拖拽文件失败:", error);
+    } finally {
+      if (didShowLoading) {
+        await hideLoading(120);
+      }
     }
   };
 

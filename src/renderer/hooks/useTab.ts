@@ -11,11 +11,13 @@ import { normalizeMarkdownForDirtyCheck } from "@/renderer/utils/markdown";
 import { randomUUID } from "@/renderer/utils/tool";
 import { isShowOutline } from "./useOutline";
 import { useConfig } from "./useConfig";
+import useUiLoading from "./useUiLoading";
 
 const tabs = ref<Tab[]>([]);
 const activeTabId = ref<string | null>(null);
 const autoSaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const autoSavingTabs = new Set<string>();
+const { showLoading, hideLoading, nextFrame } = useUiLoading();
 
 // 防抖定时器 Map：每个 tab 独立跟踪归一化完成
 const newlyLoadedTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -233,6 +235,20 @@ function applySavedTabState(tab: Tab, filePath: string, content: string) {
   scheduleNewlyLoadedCleanup(tab.id);
 }
 
+function isLargeContent(content: string): boolean {
+  if (content.length >= 200_000) return true;
+
+  let lineCount = 1;
+  for (let index = 0; index < content.length; index++) {
+    if (content.charCodeAt(index) === 10) {
+      lineCount++;
+      if (lineCount >= 4_000) return true;
+    }
+  }
+
+  return false;
+}
+
 function mergeSavedTabIntoExisting(
   sourceTab: Tab,
   filePath: string,
@@ -360,25 +376,39 @@ async function createTabFromFile(
   content: string,
   fileTraits?: FileTraitsDTO
 ): Promise<Tab> {
+  const shouldShowLoading = isLargeContent(content);
+  if (shouldShowLoading) {
+    showLoading("正在加载大文件...");
+    await nextFrame();
+  }
+
   // 使用统一的文件服务创建Tab数据
-  const tabData = createTabDataFromFile(filePath, content, { fileTraits });
+  try {
+    const tabData = createTabDataFromFile(filePath, content, { fileTraits });
 
-  // 单独获取只读状态
-  const readOnly = (await window.electronAPI?.getIsReadOnly(filePath)) || false;
+    // 单独获取只读状态
+    const readOnly = (await window.electronAPI?.getIsReadOnly(filePath)) || false;
 
-  const tab: Tab = {
-    id: randomUUID(),
-    ...tabData,
-    readOnly,
-    isNewlyLoaded: true,
-  };
-  scheduleNewlyLoadedCleanup(tab.id);
+    const tab: Tab = {
+      id: randomUUID(),
+      ...tabData,
+      readOnly,
+      isNewlyLoaded: true,
+    };
+    scheduleNewlyLoadedCleanup(tab.id);
 
-  return add(tab);
+    return add(tab);
+  } finally {
+    if (shouldShowLoading) {
+      await nextFrame();
+      await hideLoading(120);
+    }
+  }
 }
 
 // 打开文件
 async function openFile(filePath: string): Promise<Tab | null> {
+  let didShowLoading = false;
   try {
     // 检查文件是否已经在当前窗口中打开
     const existingTab = isFileAlreadyOpen(filePath);
@@ -398,6 +428,10 @@ async function openFile(filePath: string): Promise<Tab | null> {
     } catch {
       // 跨窗口检查失败不影响正常打开
     }
+
+    showLoading("正在打开文件...");
+    await nextFrame();
+    didShowLoading = true;
 
     // 使用统一的文件服务读取和处理文件
     const fileContent = await readAndProcessFile({ filePath });
@@ -437,6 +471,11 @@ async function openFile(filePath: string): Promise<Tab | null> {
   } catch (error) {
     console.error("打开文件失败:", error);
     return null;
+  } finally {
+    if (didShowLoading) {
+      await nextFrame();
+      await hideLoading(120);
+    }
   }
 }
 

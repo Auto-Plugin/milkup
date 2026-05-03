@@ -10,6 +10,7 @@ import useSourceCode from "@/renderer/hooks/useSourceCode";
 import useSpellCheck from "@/renderer/hooks/useSpellCheck";
 import useTab from "@/renderer/hooks/useTab";
 import useTheme from "@/renderer/hooks/useTheme";
+import useUiLoading from "@/renderer/hooks/useUiLoading";
 import { useUpdateDialog } from "@/renderer/hooks/useUpdateDialog";
 import useWorkSpace from "@/renderer/hooks/useWorkSpace";
 import { shouldAutoLoadWorkspace } from "@/renderer/utils/workspacePath";
@@ -19,12 +20,14 @@ import MilkupEditor from "./components/editor/MilkupEditor.vue";
 import StatusBar from "./components/menu/StatusBar.vue";
 import TitleBar from "./components/menu/TitleBar.vue";
 import Outline from "./components/outline/Outline.vue";
+import LoadingIcon from "./components/ui/LoadingIcon.vue";
 
 // ✅ 应用级事件协调器（仅负责事件监听和协调）
 useContext();
 
 // ✅ 直接使用各个hooks（而不是通过useContext转发）
 const { init: initTheme } = useTheme();
+const { isLoading, loadingMessage } = useUiLoading();
 const { init: initFont } = useFont();
 const { init: initOtherConfig } = useOtherConfig();
 const { config } = useConfig();
@@ -262,6 +265,14 @@ const handleInstall = async () => {
     @cancel="handleUpdateCancel"
     @minimize="handleMinimize"
   />
+  <Transition name="global-loading-fade" appear>
+    <div v-if="isLoading" class="global-loading-overlay">
+      <div class="global-loading-card">
+        <LoadingIcon class="global-loading-icon" />
+        <span>{{ loadingMessage || "加载中..." }}</span>
+      </div>
+    </div>
+  </Transition>
 </template>
 
 <style scoped lang="less">
@@ -363,5 +374,47 @@ const handleInstall = async () => {
       transition: transform 0.2s ease;
     }
   }
+}
+
+.global-loading-fade-enter-active,
+.global-loading-fade-leave-active {
+  transition: opacity 0.18s ease;
+}
+
+.global-loading-fade-enter-from,
+.global-loading-fade-leave-to {
+  opacity: 0;
+}
+
+.global-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--background-color) 60%, rgba(0, 0, 0, 0.28));
+  backdrop-filter: blur(3px);
+  -webkit-app-region: no-drag;
+}
+
+.global-loading-card {
+  min-width: 180px;
+  padding: 18px 22px;
+  border: 1px solid var(--border-color-1);
+  border-radius: 12px;
+  background: var(--background-color-1);
+  color: var(--text-color-1);
+  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.24);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.global-loading-icon {
+  color: var(--primary-color);
+  font-size: 22px;
 }
 </style>

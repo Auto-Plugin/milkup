@@ -2,12 +2,32 @@
 import { onMounted } from "vue";
 import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 import useTheme from "@/renderer/hooks/useTheme";
+import useUiLoading from "@/renderer/hooks/useUiLoading";
+import type { ThemeName } from "@/types/theme";
 
-const { themes, currentTheme, init, setTheme, addTempTheme, removeTheme, exportTheme } = useTheme();
+const { themes, currentTheme, getThemes, setTheme, addTempTheme, removeTheme, exportTheme } =
+  useTheme();
+const { runWithLoading, nextFrame } = useUiLoading();
 
 onMounted(() => {
-  init();
+  if (!themes.value.length) {
+    themes.value = getThemes();
+  }
 });
+
+async function handleThemeSelect(themeName: ThemeName) {
+  if (themeName === currentTheme.value) return;
+
+  await runWithLoading(
+    async () => {
+      await nextFrame();
+      setTheme(themeName);
+      await nextFrame();
+    },
+    "正在切换主题...",
+    220
+  );
+}
 </script>
 
 <template>
@@ -21,7 +41,7 @@ onMounted(() => {
           active: option.name === currentTheme,
           'custom-theme': option.isCustom,
         }"
-        @click.stop="setTheme(option.name)"
+        @click.stop="handleThemeSelect(option.name)"
       >
         <!-- 自定义主题：上下色块 + 文字 -->
         <template v-if="option.isCustom">
