@@ -283,7 +283,8 @@ async function saveTab(tab: Tab): Promise<boolean> {
       tab.filePath,
       tab.content,
       toRaw(tab.fileTraits),
-      config.value.image.localPath
+      config.value.image.localPath,
+      config.value.image.useFileNameFolder
     );
     if (saved) {
       const fileContent = await readAndProcessFile({

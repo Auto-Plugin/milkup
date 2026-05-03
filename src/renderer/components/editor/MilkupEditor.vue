@@ -11,7 +11,6 @@ import {
   createMilkupEditor,
   type MilkupConfig,
   getImagePasteMethod,
-  saveImageLocally,
   setGlobalMermaidDefaultMode,
 } from "@/core";
 import { undo, redo } from "prosemirror-history";
@@ -76,6 +75,74 @@ function isLargeMarkdown(content: string): boolean {
 
   return false;
 }
+
+function getFileNameFromPath(filePath: string): string {
+  return filePath.split(/[/\\]/).pop() || "Untitled";
+}
+
+async function saveImageWithCurrentConfig(file: File): Promise<string> {
+  const imageConfig = appConfig.value.image;
+  const currentMarkdown = editor?.getMarkdown() ?? props.tab.content ?? "";
+
+  if (!imageConfig.useFileNameFolder) {
+    return writeImageFile(file, false);
+  }
+
+  if (!props.tab.filePath) {
+    const choice = await window.electronAPI.showImageUnsavedChoice();
+    if (choice === "cancel") {
+      throw new Error("用户取消插入图片");
+    }
+
+    if (choice === "fallback") {
+      return writeImageFile(file, false);
+    }
+
+    const saved = await window.electronAPI.saveFile(
+      props.tab.filePath,
+      currentMarkdown,
+      props.tab.fileTraits,
+      imageConfig.localPath,
+      imageConfig.useFileNameFolder
+    );
+
+    if (!saved) {
+      throw new Error("用户取消保存文件");
+    }
+
+    props.tab.filePath = saved.filePath;
+    props.tab.name = getFileNameFromPath(saved.filePath);
+    props.tab.content = saved.content;
+    props.tab.originalContent = saved.content;
+    props.tab.isModified = false;
+    (window as any).__currentFilePath = saved.filePath;
+    emitter.emit("file:Change");
+  }
+
+  return writeImageFile(file, true);
+}
+
+async function writeImageFile(file: File, useFileNameFolder: boolean): Promise<string> {
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = new Uint8Array(arrayBuffer);
+  const imageConfig = appConfig.value.image;
+  const currentFilePath = props.tab.filePath || (window as any).__currentFilePath || null;
+  const imagePath = await window.electronAPI.writeTempImage(
+    buffer,
+    imageConfig.localPath,
+    currentFilePath,
+    file.name,
+    file.type,
+    useFileNameFolder
+  );
+
+  if (!imagePath) {
+    throw new Error("图片保存失败");
+  }
+
+  return imagePath;
+}
+
 let editor: MilkupEditor | null = null;
 const lastEmittedValue = ref<string | null>(null);
 let isSourceViewToggling = false;
@@ -188,7 +255,7 @@ function createEditorInstance() {
         return await uploadImage(file);
       },
       localImageSaver: async (file: File) => {
-        return await saveImageLocally(file);
+        return await saveImageWithCurrentConfig(file);
       },
     },
     // AI 续写配置（使用 getter 函数以支持响应式更新）

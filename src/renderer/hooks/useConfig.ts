@@ -14,6 +14,7 @@ interface AppConfig extends Record<string, any> {
   image: {
     pasteMethod: ImagePasteMethod;
     localPath: string;
+    useFileNameFolder: boolean;
   };
   other: {
     editorPadding: string;
@@ -38,6 +39,7 @@ const defaultConfig: AppConfig = {
   image: {
     pasteMethod: "local",
     localPath: "/assets",
+    useFileNameFolder: false,
   },
   other: {
     editorPadding: "120px",
@@ -92,6 +94,7 @@ function getLegacyImageConfig(): AppConfig["image"] {
         ? pasteMethod
         : defaultConfig.image.pasteMethod,
     localPath: localPath || defaultConfig.image.localPath,
+    useFileNameFolder: defaultConfig.image.useFileNameFolder,
   };
 }
 

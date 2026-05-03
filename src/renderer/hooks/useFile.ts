@@ -85,7 +85,8 @@ async function onSaveAs() {
   const result = await window.electronAPI.saveFileAs(
     markdown.value,
     currentTab.value?.fileTraits,
-    config.value.image.localPath
+    config.value.image.localPath,
+    config.value.image.useFileNameFolder
   );
   if (result) {
     const fileContent = await readAndProcessFile({

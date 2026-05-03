@@ -13,12 +13,14 @@ interface Window {
       filePath: string | null,
       content: string,
       fileTraits?: FileTraitsDTO,
-      imageLocalPath?: string
+      imageLocalPath?: string,
+      imageUseFileNameFolder?: boolean
     ) => Promise<{ filePath: string; content: string } | null>;
     saveFileAs: (
       content: string,
       fileTraits?: FileTraitsDTO,
-      imageLocalPath?: string
+      imageLocalPath?: string,
+      imageUseFileNameFolder?: boolean
     ) => Promise<{ filePath: string; content: string } | null>;
     setTitle: (filePath: string | null) => void;
     changeSaveStatus: (isSaved: boolean) => void;
@@ -42,8 +44,10 @@ interface Window {
       targetPath: string,
       currentFilePath?: string | null,
       fileName?: string,
-      mimeType?: string
+      mimeType?: string,
+      useFileNameFolder?: boolean
     ) => Promise<string>;
+    showImageUnsavedChoice: () => Promise<"save" | "fallback" | "cancel">;
     // 图片路径解析
     resolveImagePath: (markdownFilePath: string, imagePath: string) => Promise<string>;
     // 导出为 PDF

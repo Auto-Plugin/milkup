@@ -8,6 +8,7 @@ type PasteMethod = "local" | "base64" | "remote";
 const { config, setConf } = useConfig();
 
 const pasteMethod = computed<PasteMethod>(() => config.value.image.pasteMethod);
+const useFileNameFolder = computed(() => config.value.image.useFileNameFolder);
 const localPath = computed<string>({
   get: () => config.value.image.localPath,
   set: (value) => {
@@ -33,7 +34,12 @@ function handleChangeLocalPath() {
   setConf("image", "localPath", localPath.value?.trim() || "/assets");
 }
 
+function toggleUseFileNameFolder() {
+  setConf("image", "useFileNameFolder", !useFileNameFolder.value);
+}
+
 async function handleSelectDirectory() {
+  if (useFileNameFolder.value) return;
   const defaultPath = isAbsoluteLocalPath(localPath.value) ? localPath.value : undefined;
   const result = await window.electronAPI.showOpenDialog({
     properties: ["openDirectory", "createDirectory"],
@@ -92,20 +98,37 @@ async function handleSelectDirectory() {
         <div class="path-input-container">
           <span class="input-label">本地文件路径</span>
           <div class="path-input-group">
+            <button
+              type="button"
+              class="file-name-folder-btn"
+              :class="{ active: useFileNameFolder }"
+              @click="toggleUseFileNameFolder"
+            >
+              文件同名文件夹
+            </button>
             <input
               v-model="localPath"
               type="text"
               placeholder="/assets"
+              :disabled="useFileNameFolder"
               @change="handleChangeLocalPath"
             />
-            <button type="button" class="path-picker-btn" @click="handleSelectDirectory">
+            <button
+              type="button"
+              class="path-picker-btn"
+              :disabled="useFileNameFolder"
+              @click="handleSelectDirectory"
+            >
               选择位置
             </button>
           </div>
         </div>
         <div class="path-hint">
-          相对路径基于当前 Markdown 文件目录，例如 `/assets` 会保存到当前文件目录下的 `assets`
-          文件夹；绝对路径会直接保存到指定目录。
+          {{
+            useFileNameFolder
+              ? "开启后会使用完整 Markdown 文件名创建同名文件夹，例如 demo.md/image.png。未保存文件首次粘贴图片时会询问处理方式。"
+              : "相对路径基于当前 Markdown 文件目录，例如 `/assets` 会保存到当前文件目录下的 `assets` 文件夹；绝对路径会直接保存到指定目录。"
+          }}
         </div>
       </div>
       <div v-if="pasteMethod === 'base64'">图片将自动转为 base64（可能会增大文件体积）</div>
@@ -169,6 +192,7 @@ async function handleSelectDirectory() {
         font-size: 14px;
       }
 
+      .file-name-folder-btn,
       .path-picker-btn {
         height: 40px;
         padding: 0 14px;
@@ -178,6 +202,23 @@ async function handleSelectDirectory() {
         color: var(--text-color-1);
         cursor: pointer;
         flex-shrink: 0;
+        transition:
+          background-color 0.2s,
+          border-color 0.2s,
+          color 0.2s,
+          opacity 0.2s;
+      }
+
+      .file-name-folder-btn.active {
+        border-color: var(--primary-color);
+        background: var(--primary-color);
+        color: #fff;
+      }
+
+      input:disabled,
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
       }
     }
 

@@ -7,10 +7,32 @@ const listenerMap = new Map<Function, Map<string, Function>>();
 contextBridge.exposeInMainWorld("electronAPI", {
   openFile: () => ipcRenderer.invoke("dialog:openFile"),
   getIsReadOnly: (filePath: string) => ipcRenderer.invoke("file:isReadOnly", filePath),
-  saveFile: (filePath: string | null, content: string, fileTraits?: any, imageLocalPath?: string) =>
-    ipcRenderer.invoke("dialog:saveFile", { filePath, content, fileTraits, imageLocalPath }),
-  saveFileAs: (content: string, fileTraits?: any, imageLocalPath?: string) =>
-    ipcRenderer.invoke("dialog:saveFileAs", { content, fileTraits, imageLocalPath }),
+  saveFile: (
+    filePath: string | null,
+    content: string,
+    fileTraits?: any,
+    imageLocalPath?: string,
+    imageUseFileNameFolder?: boolean
+  ) =>
+    ipcRenderer.invoke("dialog:saveFile", {
+      filePath,
+      content,
+      fileTraits,
+      imageLocalPath,
+      imageUseFileNameFolder,
+    }),
+  saveFileAs: (
+    content: string,
+    fileTraits?: any,
+    imageLocalPath?: string,
+    imageUseFileNameFolder?: boolean
+  ) =>
+    ipcRenderer.invoke("dialog:saveFileAs", {
+      content,
+      fileTraits,
+      imageLocalPath,
+      imageUseFileNameFolder,
+    }),
   on: (channel: string, listener: (...args: any[]) => void) => {
     const wrapper = (_event: any, ...args: any[]) => listener(...args);
     if (!listenerMap.has(listener)) listenerMap.set(listener, new Map());
@@ -51,7 +73,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     targetPath: string,
     currentFilePath?: string | null,
     fileName?: string,
-    mimeType?: string
+    mimeType?: string,
+    useFileNameFolder?: boolean
   ) =>
     ipcRenderer.invoke("clipboard:writeTempImage", {
       file,
@@ -59,7 +82,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
       currentFilePath,
       fileName,
       mimeType,
+      useFileNameFolder,
     }),
+  showImageUnsavedChoice: () => ipcRenderer.invoke("dialog:showImageUnsavedChoice"),
   // 导出为 PDF
   exportAsPDF: (elementSelector: string, outputName: string, options?: ExportPDFOptions) =>
     ipcRenderer.invoke("file:exportPDF", elementSelector, outputName, options),
