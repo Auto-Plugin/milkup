@@ -8,6 +8,7 @@
 import { Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { Node, Mark, Schema } from "prosemirror-model";
 import { decorationPluginKey } from "../decorations";
+import { parseMarkdown } from "../parser";
 
 /** 插件 Key */
 export const syntaxDetectorPluginKey = new PluginKey("milkup-syntax-detector");
@@ -19,6 +20,60 @@ const IMAGE_TOKEN_PATTERNS = {
 
 function generateConsecutiveImageGroupId(): string {
   return `cig_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+}
+
+function isCompleteMarkdownTable(lines: string[]): boolean {
+  if (lines.length < 2) return false;
+  if (lines.some((line) => line.trim() === "")) return false;
+
+  const tableRowPattern = /^\|(.+)\|\s*$/;
+  const tableSeparatorPattern = /^\|[-:\s|]+\|\s*$/;
+
+  if (!tableRowPattern.test(lines[0])) return false;
+  if (!tableSeparatorPattern.test(lines[1])) return false;
+
+  const expectedColumnCount = lines[0].trimEnd().slice(1, -1).split("|").length;
+  if (expectedColumnCount === 0) return false;
+  if (lines[1].trimEnd().slice(1, -1).split("|").length !== expectedColumnCount) return false;
+
+  for (let index = 2; index < lines.length; index++) {
+    if (!tableRowPattern.test(lines[index])) return false;
+    if (lines[index].trimEnd().slice(1, -1).split("|").length !== expectedColumnCount) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function parseMarkdownTableNode(lines: string[]): Node | null {
+  if (lines.length < 3) return null;
+  if (!isCompleteMarkdownTable(lines)) return null;
+
+  const result = parseMarkdown(lines.join("\n"));
+  let tableNode: Node | null = null;
+  let nodeCount = 0;
+
+  result.doc.forEach((node) => {
+    nodeCount++;
+    if (node.type.name === "table" && !tableNode) {
+      tableNode = node;
+    }
+  });
+
+  return nodeCount === 1 ? tableNode : null;
+}
+
+function isPlainTableParagraph(node: Node): boolean {
+  return (
+    node.type.name === "paragraph" &&
+    !node.attrs.codeBlockId &&
+    !node.attrs.tableId &&
+    !node.attrs.htmlBlockId &&
+    !node.attrs.mathBlockId &&
+    !node.attrs.listId &&
+    node.textContent.trimStart().startsWith("|")
+  );
 }
 
 function parseConsecutiveImages(text: string): Array<{
@@ -811,6 +866,63 @@ export function createSyntaxDetectorPlugin(): Plugin {
       const decoState = decorationPluginKey.getState(newState);
       const isSourceView = decoState?.sourceView ?? false;
       if (!isSourceView) {
+        const tablesToConvert: Array<{ from: number; to: number; table: Node }> = [];
+        const excludedTableScanParents = new Set([
+          "table",
+          "table_row",
+          "table_cell",
+          "table_header",
+          "code_block",
+          "html_block",
+          "math_block",
+        ]);
+
+        const scanTableParagraphs = (parent: Node, contentStartPos: number) => {
+          let group: Array<{ node: Node; pos: number }> = [];
+
+          const flushGroup = () => {
+            if (group.length === 0) return;
+            const table = parseMarkdownTableNode(group.map((item) => item.node.textContent));
+            if (table) {
+              const first = group[0];
+              const last = group[group.length - 1];
+              tablesToConvert.push({
+                from: first.pos,
+                to: last.pos + last.node.nodeSize,
+                table,
+              });
+            }
+            group = [];
+          };
+
+          parent.forEach((child, offset) => {
+            const childPos = contentStartPos + offset;
+
+            if (isPlainTableParagraph(child)) {
+              group.push({ node: child, pos: childPos });
+              return;
+            }
+
+            flushGroup();
+
+            if (child.content.size > 0 && !excludedTableScanParents.has(child.type.name)) {
+              scanTableParagraphs(child, childPos + 1);
+            }
+          });
+
+          flushGroup();
+        };
+
+        scanTableParagraphs(newState.doc, 0);
+
+        if (tablesToConvert.length > 0) {
+          tablesToConvert.sort((a, b) => b.from - a.from);
+          for (const table of tablesToConvert) {
+            tr = tr.replaceWith(table.from, table.to, table.table);
+          }
+          return tr;
+        }
+
         // 检测 HTML 块语法（段落以 <tagname 开头）并转换为 html_block 节点
         const htmlBlockPattern = /^<([a-zA-Z][a-zA-Z0-9]*)/;
         // 验证开始标签结构完整（必须有闭合的 >）

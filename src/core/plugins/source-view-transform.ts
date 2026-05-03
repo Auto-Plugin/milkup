@@ -351,19 +351,77 @@ function transformParagraphsToTable(
   if (paragraphs.length < 2) return null;
 
   const lines = paragraphs.map((p) => p.node.textContent);
+  if (!isCompleteMarkdownTable(lines)) return null;
+
   const tableMarkdown = lines.join("\n");
 
   // 使用解析器重新解析表格
   const result = parseMarkdown(tableMarkdown);
   let tableNode: ProseMirrorNode | null = null;
+  let nodeCount = 0;
 
   result.doc.forEach((node) => {
+    nodeCount++;
     if (node.type.name === "table" && !tableNode) {
       tableNode = node;
     }
   });
 
-  return tableNode;
+  return nodeCount === 1 ? tableNode : null;
+}
+
+function isCompleteMarkdownTable(lines: string[]): boolean {
+  if (lines.length < 2) return false;
+  if (lines.some((line) => line.trim() === "")) return false;
+
+  const tableRowPattern = /^\|(.+)\|\s*$/;
+  const tableSeparatorPattern = /^\|[-:\s|]+\|\s*$/;
+
+  if (!tableRowPattern.test(lines[0])) return false;
+  if (!tableSeparatorPattern.test(lines[1])) return false;
+
+  const expectedColumnCount = lines[0].trimEnd().slice(1, -1).split("|").length;
+  if (expectedColumnCount === 0) return false;
+  const separatorColumnCount = lines[1].trimEnd().slice(1, -1).split("|").length;
+  if (separatorColumnCount !== expectedColumnCount) return false;
+
+  for (let index = 2; index < lines.length; index++) {
+    const line = lines[index];
+    if (!tableRowPattern.test(line)) return false;
+    const columnCount = line.trimEnd().slice(1, -1).split("|").length;
+    if (columnCount !== expectedColumnCount) return false;
+  }
+
+  return true;
+}
+
+function stripTableParagraphAttrs(node: ProseMirrorNode): ProseMirrorNode {
+  if (node.type.name !== "paragraph" || !node.attrs.tableId) return node;
+  return node.type.create(
+    {
+      ...node.attrs,
+      tableId: null,
+      tableRowIndex: null,
+      tableTotalRows: null,
+    },
+    node.content,
+    node.marks
+  );
+}
+
+function isMarkdownTableCandidateLine(node: ProseMirrorNode): boolean {
+  return node.type.name === "paragraph" && node.textContent.trimStart().startsWith("|");
+}
+
+function transformMarkdownTableCandidateGroup(
+  group: ProseMirrorNode[],
+  schema: Schema
+): ProseMirrorNode[] {
+  if (group.length === 0) return [];
+  if (group.length < 3) return group;
+  const paragraphs = group.map((node) => ({ node, pos: 0 }));
+  const result = transformParagraphsToTable(paragraphs, schema);
+  return result ? [result] : group;
 }
 
 /**
@@ -741,6 +799,7 @@ function processNodeForBlockConversion(
     let currentMathBlockId: string | null = null;
     let listGroup: ProseMirrorNode[] = [];
     let currentListId: string | null = null;
+    let markdownTableCandidateGroup: ProseMirrorNode[] = [];
 
     const flushCodeBlockGroup = () => {
       if (codeBlockGroup.length === 0) return;
@@ -762,7 +821,7 @@ function processNodeForBlockConversion(
       if (result) {
         newChildren.push(result);
       } else {
-        newChildren.push(...tableGroup);
+        newChildren.push(...tableGroup.map(stripTableParagraphAttrs));
       }
       tableGroup = [];
       currentTableId = null;
@@ -807,6 +866,13 @@ function processNodeForBlockConversion(
       currentListId = null;
     };
 
+    const flushMarkdownTableCandidateGroup = () => {
+      newChildren.push(
+        ...transformMarkdownTableCandidateGroup(markdownTableCandidateGroup, schema)
+      );
+      markdownTableCandidateGroup = [];
+    };
+
     node.content.forEach((child) => {
       if (child.type.name === "paragraph") {
         const codeBlockId = child.attrs.codeBlockId;
@@ -821,6 +887,7 @@ function processNodeForBlockConversion(
           flushHtmlBlockGroup();
           flushMathBlockGroup();
           flushListGroup();
+          flushMarkdownTableCandidateGroup();
           if (currentCodeBlockId && currentCodeBlockId !== codeBlockId) {
             flushCodeBlockGroup();
           }
@@ -835,6 +902,7 @@ function processNodeForBlockConversion(
           flushHtmlBlockGroup();
           flushMathBlockGroup();
           flushListGroup();
+          flushMarkdownTableCandidateGroup();
           if (currentTableId && currentTableId !== tableId) {
             flushTableGroup();
           }
@@ -849,6 +917,7 @@ function processNodeForBlockConversion(
           flushTableGroup();
           flushMathBlockGroup();
           flushListGroup();
+          flushMarkdownTableCandidateGroup();
           if (currentHtmlBlockId && currentHtmlBlockId !== htmlBlockId) {
             flushHtmlBlockGroup();
           }
@@ -863,6 +932,7 @@ function processNodeForBlockConversion(
           flushTableGroup();
           flushHtmlBlockGroup();
           flushListGroup();
+          flushMarkdownTableCandidateGroup();
           if (currentMathBlockId && currentMathBlockId !== mathBlockId) {
             flushMathBlockGroup();
           }
@@ -877,6 +947,7 @@ function processNodeForBlockConversion(
           flushTableGroup();
           flushHtmlBlockGroup();
           flushMathBlockGroup();
+          flushMarkdownTableCandidateGroup();
           if (currentListId && currentListId !== listId) {
             flushListGroup();
           }
@@ -893,15 +964,21 @@ function processNodeForBlockConversion(
         flushListGroup();
 
         if (child.attrs.imageGroupSource) {
+          flushMarkdownTableCandidateGroup();
           const images = transformParagraphToImages(child, schema);
           newChildren.push(...(images || [child]));
         } else if (child.attrs.imageAttrs) {
+          flushMarkdownTableCandidateGroup();
           const image = transformParagraphToImage(child, schema);
           newChildren.push(image || child);
         } else if (child.attrs.hrSource) {
+          flushMarkdownTableCandidateGroup();
           const hr = transformParagraphToHr(child, schema);
           newChildren.push(hr || child);
+        } else if (isMarkdownTableCandidateLine(child)) {
+          markdownTableCandidateGroup.push(child);
         } else {
+          flushMarkdownTableCandidateGroup();
           newChildren.push(child);
         }
       } else {
@@ -910,6 +987,7 @@ function processNodeForBlockConversion(
         flushHtmlBlockGroup();
         flushMathBlockGroup();
         flushListGroup();
+        flushMarkdownTableCandidateGroup();
         // 递归处理子节点
         const processed = processNodeForBlockConversion(child, schema);
         if (Array.isArray(processed)) {
@@ -926,6 +1004,7 @@ function processNodeForBlockConversion(
     flushHtmlBlockGroup();
     flushMathBlockGroup();
     flushListGroup();
+    flushMarkdownTableCandidateGroup();
 
     // 如果内容有变化，创建新节点
     const newContent = Fragment.from(newChildren);
@@ -961,6 +1040,7 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
   // 收集列表段落组
   let listGroup: ProseMirrorNode[] = [];
   let currentListId: string | null = null;
+  let markdownTableCandidateGroup: ProseMirrorNode[] = [];
 
   const flushCodeBlockGroup = () => {
     if (codeBlockGroup.length === 0) return;
@@ -983,7 +1063,7 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
     if (result) {
       newContent.push(result);
     } else {
-      newContent.push(...tableGroup);
+      newContent.push(...tableGroup.map(stripTableParagraphAttrs));
     }
     tableGroup = [];
     currentTableId = null;
@@ -1028,6 +1108,11 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
     currentListId = null;
   };
 
+  const flushMarkdownTableCandidateGroup = () => {
+    newContent.push(...transformMarkdownTableCandidateGroup(markdownTableCandidateGroup, schema));
+    markdownTableCandidateGroup = [];
+  };
+
   doc.forEach((node) => {
     if (node.type.name === "paragraph") {
       const codeBlockId = node.attrs.codeBlockId;
@@ -1042,6 +1127,7 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
         flushHtmlBlockGroup();
         flushMathBlockGroup();
         flushListGroup();
+        flushMarkdownTableCandidateGroup();
         if (currentCodeBlockId && currentCodeBlockId !== codeBlockId) {
           flushCodeBlockGroup();
         }
@@ -1056,6 +1142,7 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
         flushHtmlBlockGroup();
         flushMathBlockGroup();
         flushListGroup();
+        flushMarkdownTableCandidateGroup();
         if (currentTableId && currentTableId !== tableId) {
           flushTableGroup();
         }
@@ -1070,6 +1157,7 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
         flushTableGroup();
         flushMathBlockGroup();
         flushListGroup();
+        flushMarkdownTableCandidateGroup();
         if (currentHtmlBlockId && currentHtmlBlockId !== htmlBlockId) {
           flushHtmlBlockGroup();
         }
@@ -1084,6 +1172,7 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
         flushTableGroup();
         flushHtmlBlockGroup();
         flushListGroup();
+        flushMarkdownTableCandidateGroup();
         if (currentMathBlockId && currentMathBlockId !== mathBlockId) {
           flushMathBlockGroup();
         }
@@ -1098,6 +1187,7 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
         flushTableGroup();
         flushHtmlBlockGroup();
         flushMathBlockGroup();
+        flushMarkdownTableCandidateGroup();
         if (currentListId && currentListId !== listId) {
           flushListGroup();
         }
@@ -1114,17 +1204,23 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
       flushListGroup();
 
       if (node.attrs.imageGroupSource) {
+        flushMarkdownTableCandidateGroup();
         const images = transformParagraphToImages(node, schema);
         newContent.push(...(images || [node]));
       } else if (node.attrs.imageAttrs) {
         // 图片段落
+        flushMarkdownTableCandidateGroup();
         const image = transformParagraphToImage(node, schema);
         newContent.push(image || node);
       } else if (node.attrs.hrSource) {
         // 分割线段落
+        flushMarkdownTableCandidateGroup();
         const hr = transformParagraphToHr(node, schema);
         newContent.push(hr || node);
+      } else if (isMarkdownTableCandidateLine(node)) {
+        markdownTableCandidateGroup.push(node);
       } else {
+        flushMarkdownTableCandidateGroup();
         newContent.push(node);
       }
     } else {
@@ -1133,6 +1229,7 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
       flushHtmlBlockGroup();
       flushMathBlockGroup();
       flushListGroup();
+      flushMarkdownTableCandidateGroup();
       // 递归处理子节点
       const processed = processNodeForBlockConversion(node, schema);
       if (Array.isArray(processed)) {
@@ -1149,6 +1246,7 @@ export function convertParagraphsToBlocks(tr: Transaction): Transaction {
   flushHtmlBlockGroup();
   flushMathBlockGroup();
   flushListGroup();
+  flushMarkdownTableCandidateGroup();
 
   if (newContent.length > 0) {
     const step = new ReplaceStep(0, doc.content.size, new Slice(Fragment.from(newContent), 0, 0));
