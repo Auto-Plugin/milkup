@@ -67,7 +67,7 @@ checkUpdate().then((updateInfo) => {
         @click="option.action"
       >
         <AppIcon :name="option.icon" class="menu-option-icon" />
-        {{ option.label }}
+        <span class="menu-option-label">{{ option.label }}</span>
       </button>
     </div>
     <div class="detailContainer">
@@ -118,6 +118,7 @@ checkUpdate().then((updateInfo) => {
     gap: 4px;
     -webkit-app-region: drag;
     background: var(--background-color);
+    transition: width 0.25s ease;
 
     .menu-option {
       cursor: pointer;
@@ -132,10 +133,19 @@ checkUpdate().then((updateInfo) => {
       background: transparent;
       text-align: left;
       color: var(--text-color);
+      transition: padding 0.25s ease;
 
       .menu-option-icon {
         font-size: 18px;
         flex-shrink: 0;
+      }
+
+      .menu-option-label {
+        white-space: nowrap;
+        overflow: hidden;
+        transition:
+          opacity 0.25s ease,
+          max-width 0.25s ease;
       }
 
       &:hover {
@@ -145,6 +155,22 @@ checkUpdate().then((updateInfo) => {
       &.active {
         background: var(--active-color);
         font-weight: bold;
+      }
+    }
+  }
+
+  @media (max-width: 600px) {
+    .optionsContainer {
+      width: 56px;
+
+      .menu-option {
+        padding: 16px 19px;
+        gap: 0;
+
+        .menu-option-label {
+          opacity: 0;
+          max-width: 0;
+        }
       }
     }
   }
