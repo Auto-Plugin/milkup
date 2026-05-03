@@ -389,7 +389,7 @@ onUnmounted(() => {
   }
 
   &.offset-right {
-    margin-left: 25%;
+    margin-left: max(25%, 150px);
   }
 
   .tabBar {

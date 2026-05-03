@@ -277,7 +277,7 @@ const handleInstall = async () => {
     position: absolute;
     left: 0;
     top: 0;
-    width: 25%;
+    width: max(25%, 150px);
     height: 100%;
     z-index: 10;
     transform: translateX(-100%);
@@ -302,7 +302,7 @@ const handleInstall = async () => {
       pointer-events: auto;
     }
     .editorBox {
-      transform: translateX(25%);
+      transform: translateX(max(25%, 150px));
     }
   }
 
@@ -334,7 +334,7 @@ const handleInstall = async () => {
     }
     .editorBox {
       width: 100%;
-      transform: translateX(25%);
+      transform: translateX(max(25%, 150px));
       transition: none;
     }
   }
