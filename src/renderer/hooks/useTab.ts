@@ -595,6 +595,32 @@ function closeWithConfirm(id: string) {
   }
 }
 
+async function closeWithConfirmAsync(id: string): Promise<boolean> {
+  const tabToClose = tabs.value.find((tab) => tab.id === id);
+  if (!tabToClose) return false;
+
+  const isLastTab = tabs.value.length === 1;
+
+  if (tabToClose.isModified) {
+    return await new Promise<boolean>((resolve) => {
+      emitter.emit("tab:close-confirm", {
+        tabId: id,
+        tabName: tabToClose.name,
+        isLastTab,
+        resolver: resolve,
+      });
+    });
+  }
+
+  if (isLastTab) {
+    window.electronAPI.closeDiscard();
+    return true;
+  }
+
+  close(id);
+  return true;
+}
+
 // 拖动排序功能
 function reorderTabs(fromIndex: number, toIndex: number) {
   if (fromIndex === toIndex) return;
@@ -1146,6 +1172,7 @@ function useTab() {
     ensureActiveTabVisible,
     handleWheelScroll,
     closeWithConfirm,
+    closeWithConfirmAsync,
     setupTabScrollListener,
     cleanupInertiaScroll,
 

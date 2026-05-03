@@ -72,21 +72,30 @@ window.electronAPI.on("close:confirm", async () => {
 
 // 监听Tab关闭确认事件
 const handleTabCloseConfirm = async (payload: any) => {
-  const { tabId, tabName } = payload;
+  const { tabId, tabName, resolver } = payload;
   const result = await showDialog(tabName);
+  let closed = false;
 
   if (result === "save") {
+    const targetTab = tabs.value.find((tab) => tab.id === tabId);
+    if (targetTab && activeTabId.value !== tabId) {
+      await switchToTab(tabId);
+      await nextTick();
+    }
     // 只有保存并成功才关闭
     const saved = await saveCurrentTab();
     if (saved) {
       close(tabId);
+      closed = true;
     }
   } else if (result === "discard") {
     // 放弃更改，直接关闭
     await cleanupTabLocalImages(tabs.value.find((tab) => tab.id === tabId));
     close(tabId);
+    closed = true;
   }
   // cancel 则不做任何操作
+  resolver?.(closed);
 };
 emitter.on("tab:close-confirm", handleTabCloseConfirm);
 

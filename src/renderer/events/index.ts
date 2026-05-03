@@ -9,7 +9,12 @@ type Events = {
   "close:discard": void; // Triggered when user chooses to discard changes
   "menu-save": boolean; // Triggered when user wants to save
   "trigger-save": boolean; // Triggered when main process requests save
-  "tab:close-confirm": { tabId: string; tabName: string; isLastTab?: boolean }; // Triggered when tab close confirmation is needed
+  "tab:close-confirm": {
+    tabId: string;
+    tabName: string;
+    isLastTab?: boolean;
+    resolver?: (closed: boolean) => void;
+  }; // Triggered when tab close confirmation is needed
   "tab:switch": {
     id: string;
     name: string;

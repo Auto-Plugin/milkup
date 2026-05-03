@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { vDraggable } from "vue-draggable-plus";
 import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 import useFile from "@/renderer/hooks/useFile";
@@ -11,7 +11,9 @@ const {
   shouldOffsetTabBar,
   switchToTab,
   handleWheelScroll,
+  close,
   closeWithConfirm,
+  closeWithConfirmAsync,
   setupTabScrollListener,
   cleanupInertiaScroll,
   reorderTabs,
@@ -21,6 +23,7 @@ const {
   isSingleTab,
   startSingleTabDrag,
   endSingleTabDrag,
+  tabs,
 } = useTab();
 
 const { createNewFile } = useFile();
@@ -39,6 +42,26 @@ window.addEventListener("keydown", handleCloseTabShortcut);
 
 // 获取tab容器的DOM引用
 const tabContainerRef = ref<HTMLElement | null>(null);
+const contextMenu = ref({
+  visible: false,
+  x: 0,
+  y: 0,
+  tabId: "",
+});
+
+const contextTabIndex = computed(() =>
+  tabs.value.findIndex((tab) => tab.id === contextMenu.value.tabId)
+);
+
+const rightTabsCount = computed(() => {
+  if (contextTabIndex.value < 0) return 0;
+  return tabs.value.length - contextTabIndex.value - 1;
+});
+
+const savedTabsCount = computed(() => tabs.value.filter((tab) => !tab.isModified).length);
+const otherTabsCount = computed(
+  () => tabs.value.filter((tab) => tab.id !== contextMenu.value.tabId).length
+);
 
 // 保存wheel事件处理器引用以便正确移除
 let wheelHandler: ((event: WheelEvent) => void) | null = null;
@@ -54,6 +77,68 @@ function handleAddTab() {
 async function handleCloseTab(id: string, event: Event) {
   event.stopPropagation();
   closeWithConfirm(id);
+}
+
+function hideContextMenu() {
+  contextMenu.value.visible = false;
+}
+
+function handleTabContextMenu(tabId: string, event: MouseEvent) {
+  const menuWidth = 170;
+  const menuHeight = 140;
+  contextMenu.value = {
+    visible: true,
+    x: Math.min(event.clientX, window.innerWidth - menuWidth),
+    y: Math.min(event.clientY, window.innerHeight - menuHeight),
+    tabId,
+  };
+}
+
+async function closeTabsByIds(tabIds: string[]) {
+  hideContextMenu();
+
+  for (const tabId of tabIds) {
+    if (!tabs.value.some((tab) => tab.id === tabId)) continue;
+    const closed = await closeWithConfirmAsync(tabId);
+    if (!closed && tabs.value.some((tab) => tab.id === tabId)) break;
+  }
+}
+
+function handleCloseContextTab() {
+  closeTabsByIds([contextMenu.value.tabId]);
+}
+
+function handleCloseRightTabs() {
+  const index = contextTabIndex.value;
+  if (index < 0) return;
+  const tabIds = tabs.value.slice(index + 1).map((tab) => tab.id);
+  closeTabsByIds(tabIds);
+}
+
+function handleCloseSavedTabs() {
+  const tabIds = tabs.value.filter((tab) => !tab.isModified).map((tab) => tab.id);
+  hideContextMenu();
+
+  for (const tabId of tabIds) {
+    const tab = tabs.value.find((item) => item.id === tabId);
+    if (!tab) continue;
+    if (tabs.value.length === 1) {
+      closeWithConfirm(tabId);
+      return;
+    }
+    close(tabId);
+  }
+}
+
+function handleCloseOtherTabs() {
+  const tabIds = tabs.value
+    .filter((tab) => tab.id !== contextMenu.value.tabId)
+    .map((tab) => tab.id);
+  closeTabsByIds(tabIds);
+}
+
+function handleContextMenuKeydown(event: KeyboardEvent) {
+  if (event.key === "Escape") hideContextMenu();
 }
 
 // ── Tab 拖拽分离检测 ────────────────────────────────────────
@@ -276,6 +361,8 @@ onMounted(() => {
     wheelHandler = (event: WheelEvent) => handleWheelScroll(event, tabContainerRef);
     container.addEventListener("wheel", wheelHandler, { passive: false });
   }
+  window.addEventListener("click", hideContextMenu);
+  window.addEventListener("keydown", handleContextMenuKeydown);
 });
 
 // 组件卸载时移除事件监听器和清理惯性滚动实例
@@ -289,6 +376,8 @@ onUnmounted(() => {
   }
   // 移除全局键盘事件监听器
   window.removeEventListener("keydown", handleCloseTabShortcut);
+  window.removeEventListener("click", hideContextMenu);
+  window.removeEventListener("keydown", handleContextMenuKeydown);
   // 清理拖拽追踪
   document.removeEventListener("pointermove", onDragPointerMove, { capture: true });
 });
@@ -330,6 +419,7 @@ onUnmounted(() => {
         :class="{ active: activeTabId === tab.id, 'merge-preview': tab.isMergePreview }"
         :data-tab-id="tab.id"
         @click="handleTabClick(tab.id)"
+        @contextmenu.prevent.stop="handleTabContextMenu(tab.id, $event)"
       >
         <p>
           <span class="tab-name">{{ tab.displayName }}</span>
@@ -369,6 +459,24 @@ onUnmounted(() => {
         <AppIcon name="plus" />
       </div>
     </TransitionGroup>
+    <div
+      v-if="contextMenu.visible"
+      class="tab-context-menu"
+      :style="{ left: `${contextMenu.x}px`, top: `${contextMenu.y}px` }"
+      @click.stop
+      @contextmenu.prevent.stop
+    >
+      <button type="button" @click="handleCloseContextTab">关闭标签</button>
+      <button type="button" :disabled="rightTabsCount === 0" @click="handleCloseRightTabs">
+        关闭右侧标签
+      </button>
+      <button type="button" :disabled="savedTabsCount === 0" @click="handleCloseSavedTabs">
+        关闭已保存
+      </button>
+      <button type="button" :disabled="otherTabsCount === 0" @click="handleCloseOtherTabs">
+        关闭其他
+      </button>
+    </div>
   </div>
 </template>
 
@@ -586,6 +694,41 @@ onUnmounted(() => {
 
       &.active {
         fill: var(--background-color-1);
+      }
+    }
+  }
+
+  .tab-context-menu {
+    position: fixed;
+    z-index: 100000;
+    min-width: 150px;
+    padding: 6px;
+    border: 1px solid var(--border-color-1);
+    border-radius: 8px;
+    background: var(--background-color-1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.24);
+    -webkit-app-region: no-drag;
+
+    button {
+      width: 100%;
+      height: 30px;
+      padding: 0 10px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-color-1);
+      text-align: left;
+      font-size: 13px;
+      cursor: pointer;
+
+      &:hover:not(:disabled) {
+        background: var(--hover-color);
+      }
+
+      &:disabled {
+        color: var(--text-color-3);
+        cursor: not-allowed;
+        opacity: 0.55;
       }
     }
   }
