@@ -26,7 +26,9 @@ import { createSyntaxDetectorPlugin } from "./plugins/syntax-detector";
 import { createHeadingSyncPlugin } from "./plugins/heading-sync";
 import {
   createPastePlugin,
+  containsMarkdownSyntax,
   fileToBase64,
+  parseMarkdownPasteSlice,
   saveImageLocally,
   ImagePasteMethod,
 } from "./plugins/paste";
@@ -168,8 +170,7 @@ export class MilkupEditor implements IMilkupEditor {
       clipboardTextSerializer: (slice) => this.serializeSliceToMarkdown(slice),
       clipboardTextParser: (text) => {
         // 将粘贴的纯文本作为 Markdown 解析
-        const { doc } = this.parser.parse(text);
-        return new Slice(doc.content, 1, 1);
+        return parseMarkdownPasteSlice(text, this.parser) || Slice.empty;
       },
       nodeViews: {
         code_block: createCodeBlockNodeView,
@@ -1614,17 +1615,7 @@ export class MilkupEditor implements IMilkupEditor {
           const blob = await item.getType("text/plain");
           const text = await blob.text();
           if (text) {
-            if (
-              insertMarkdownTableRowAfterCurrent(
-                this.view.state,
-                text,
-                this.view.dispatch.bind(this.view)
-              )
-            ) {
-              return;
-            }
-            const tr = this.view.state.tr.insertText(text);
-            this.view.dispatch(tr);
+            this.insertPastedText(text);
           }
           return;
         }
@@ -1634,22 +1625,32 @@ export class MilkupEditor implements IMilkupEditor {
       try {
         const text = await navigator.clipboard.readText();
         if (text) {
-          if (
-            insertMarkdownTableRowAfterCurrent(
-              this.view.state,
-              text,
-              this.view.dispatch.bind(this.view)
-            )
-          ) {
-            return;
-          }
-          const tr = this.view.state.tr.insertText(text);
-          this.view.dispatch(tr);
+          this.insertPastedText(text);
         }
       } catch {
         console.warn("无法访问剪贴板");
       }
     }
+  }
+
+  private insertPastedText(text: string): void {
+    if (
+      insertMarkdownTableRowAfterCurrent(this.view.state, text, this.view.dispatch.bind(this.view))
+    ) {
+      return;
+    }
+
+    if (!this.isSourceViewEnabled() && containsMarkdownSyntax(text)) {
+      const pasteSlice = parseMarkdownPasteSlice(text, this.parser);
+      if (pasteSlice) {
+        const tr = this.view.state.tr.replaceSelection(pasteSlice).scrollIntoView();
+        this.view.dispatch(tr);
+        return;
+      }
+    }
+
+    const tr = this.view.state.tr.insertText(text).scrollIntoView();
+    this.view.dispatch(tr);
   }
 
   /**

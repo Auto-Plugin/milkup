@@ -5,7 +5,7 @@
  */
 
 import { Plugin, PluginKey } from "prosemirror-state";
-import { Node, Schema, Slice, Fragment } from "prosemirror-model";
+import { Node, Slice } from "prosemirror-model";
 import { MarkdownParser } from "../parser";
 import { milkupSchema } from "../schema";
 import { decorationPluginKey } from "../decorations";
@@ -81,7 +81,7 @@ export function createPastePlugin(config: PastePluginConfig = {}): Plugin {
     key: pastePluginKey,
 
     props: {
-      handlePaste(view, event, slice) {
+      handlePaste(view, event, _slice) {
         const clipboardData = event.clipboardData;
         if (!clipboardData) return false;
 
@@ -137,27 +137,34 @@ export function createPastePlugin(config: PastePluginConfig = {}): Plugin {
           return false; // 内部复制，让 ProseMirror 默认处理
         }
 
-        // 解析 Markdown
-        const { doc } = parser.parse(text);
-
-        // 获取解析后的内容
-        const content = doc.content;
-
-        // 如果内容为空，不处理
-        if (content.size === 0) return false;
-
-        // 延迟到下一帧插入，确保 ProseMirror 完成粘贴事件处理后再更新视图
-        // 这样装饰系统能正确重新计算所有语法标记的显示/隐藏状态
-        requestAnimationFrame(() => {
-          const pasteSlice = new Slice(content, 1, 1);
-          const tr = view.state.tr.replaceSelection(pasteSlice);
-          view.dispatch(tr);
-        });
-
+        const pasteSlice = parseMarkdownPasteSlice(text, parser);
+        if (!pasteSlice) return false;
+        const tr = view.state.tr.replaceSelection(pasteSlice).scrollIntoView();
+        view.dispatch(tr);
         return true;
       },
     },
   });
+}
+
+export function parseMarkdownPasteSlice(
+  text: string,
+  parser: MarkdownParser = new MarkdownParser(milkupSchema)
+): Slice | null {
+  const { doc } = parser.parse(normalizePastedMarkdownText(text));
+  const content = doc.content;
+  if (content.size === 0) return null;
+  return new Slice(content, 0, 0);
+}
+
+function normalizePastedMarkdownText(text: string): string {
+  return text
+    .replace(/\r\n?/g, "\n")
+    .replace(/\u00a0/g, " ")
+    .replace(/\u200b/g, "")
+    .replace(/\u200c/g, "")
+    .replace(/\u200d/g, "")
+    .replace(/\ufeff/g, "");
 }
 
 /**
@@ -334,19 +341,25 @@ export async function saveImageLocally(file: File): Promise<string> {
 /**
  * 检查文本是否包含 Markdown 语法
  */
-function containsMarkdownSyntax(text: string): boolean {
+export function containsMarkdownSyntax(text: string): boolean {
+  const normalizedText = normalizePastedMarkdownText(text);
   const patterns = [
     /^#{1,6}\s/m, // 标题
     /\*\*[^*]+\*\*/, // 粗体
+    /__[^_]+__/, // 粗体
     /\*[^*]+\*/, // 斜体
+    /_[^_]+_/, // 斜体
     /~~[^~]+~~/, // 删除线
     /`[^`]+`/, // 行内代码
     /^```/m, // 代码块
+    /^~~~\w*/m, // 代码块
+    /^(?: {4}|\t)\S/m, // 缩进代码块
     /\[[^\]]+\]\([^)]*\)/, // 链接（允许空 URL）
     /!\[[^\]]*\]\([^)]+\)/, // 图片
     /^>\s?/m, // 引用
-    /^[-*+]\s/m, // 无序列表
-    /^\d+\.\s/m, // 有序列表
+    /^\s*[-*+]\s/m, // 无序列表
+    /^\s*\d+[.)]\s/m, // 有序列表
+    /^\s*[-*+]\s+\*\*[^*]+\*\*/m, // AI 回答常见：列表项内加粗标签
     /^[-*_]{3,}\s*$/m, // 分隔线
     /==[^=]+==/, // 高亮
     /^\s*\$\$/m, // 数学块（支持缩进）
@@ -357,5 +370,5 @@ function containsMarkdownSyntax(text: string): boolean {
     /^\|.+\|$/m, // 表格
   ];
 
-  return patterns.some((pattern) => pattern.test(text));
+  return patterns.some((pattern) => pattern.test(normalizedText));
 }

@@ -129,11 +129,11 @@ const INLINE_SYNTAXES: InlineSyntax[] = [
 /** 块级语法模式 */
 const BLOCK_PATTERNS = {
   heading: /^(#{1,6})\s+(.*)$/,
-  code_block_start: /^(\s*)```([^\s`]*)(.*)$/, // 允许前导空格（列表项内的代码块），语言标识后跟任意属性
-  code_block_end: /^\s*```\s*$/, // 允许前导空格和行尾空格
+  code_block_start: /^(\s*)(```|~~~)([^\s`~]*)(.*)$/, // 允许前导空格（列表项内的代码块），语言标识后跟任意属性
+  code_block_end: /^\s*(?:```|~~~)\s*$/, // 允许前导空格和行尾空格
   blockquote: /^>\s?(.*)$/,
   bullet_list: /^(\s*)([-*+])\s+(.*)$/,
-  ordered_list: /^(\s*)(\d+)\.\s+(.*)$/,
+  ordered_list: /^(\s*)(\d+)[.)]\s+(.*)$/,
   task_item: /^(\s*)[-*+]\s+\[([ xX]?)\]\s+(.*)$/,
   horizontal_rule: /^([-*_]){3,}\s*$/, // 允许行尾有空格
   table_row: /^\|(.+)\|\s*$/,
@@ -729,7 +729,9 @@ export class MarkdownParser {
     const startLine = lines[startIndex];
     const langMatch = startLine.match(BLOCK_PATTERNS.code_block_start);
     const fenceIndent = langMatch ? langMatch[1].length : 0;
-    const language = langMatch ? langMatch[2] || "" : "";
+    const fence = langMatch ? langMatch[2] : "```";
+    const language = langMatch ? langMatch[3] || "" : "";
+    const codeBlockEndPattern = fence === "~~~" ? /^\s*~~~\s*$/ : /^\s*```\s*$/;
 
     let endIndex = startIndex + 1;
     const contentLines: string[] = [];
@@ -737,7 +739,7 @@ export class MarkdownParser {
 
     while (endIndex < lines.length) {
       const line = lines[endIndex];
-      const isEnd = BLOCK_PATTERNS.code_block_end.test(line);
+      const isEnd = codeBlockEndPattern.test(line);
       const isStart = !isEnd && BLOCK_PATTERNS.code_block_start.test(line);
 
       if (isStart) {
@@ -1029,12 +1031,12 @@ export class MarkdownParser {
 
       // 收集后续缩进的行（包括代码块等）
       // 检查第一行是否是代码块开始
-      let inCodeBlock = match[3].trim().startsWith("```");
+      let inCodeBlock = /^(```|~~~)/.test(match[3].trim());
       while (itemEndIndex < lines.length) {
         const nextLine = lines[itemEndIndex];
 
         // 跟踪代码块状态（必须在列表项检测之前，避免代码块内容被误判为新列表项）
-        if (nextLine.trim().startsWith("```")) {
+        if (/^(```|~~~)/.test(nextLine.trim())) {
           inCodeBlock = !inCodeBlock;
         }
 
@@ -1070,7 +1072,7 @@ export class MarkdownParser {
         // 检查是否有足够的缩进
         const lineIndent = nextLine.match(/^(\s*)/)?.[1].length || 0;
         // 在代码块内部，接受缩进较少的行
-        if (lineIndent >= itemIndent || inCodeBlock || nextLine.trim().startsWith("```")) {
+        if (lineIndent >= itemIndent || inCodeBlock || /^(```|~~~)/.test(nextLine.trim())) {
           // 移除缩进
           const trimmedLine = nextLine.slice(Math.min(lineIndent, itemIndent));
           itemLines.push(trimmedLine);
@@ -1158,12 +1160,12 @@ export class MarkdownParser {
       let itemEndIndex = endIndex + 1;
 
       // 检查第一行是否是代码块开始
-      let inCodeBlock = match[3].trim().startsWith("```");
+      let inCodeBlock = /^(```|~~~)/.test(match[3].trim());
       while (itemEndIndex < lines.length) {
         const nextLine = lines[itemEndIndex];
 
         // 跟踪代码块状态（必须在列表项检测之前，避免代码块内容被误判为新列表项）
-        if (nextLine.trim().startsWith("```")) {
+        if (/^(```|~~~)/.test(nextLine.trim())) {
           inCodeBlock = !inCodeBlock;
         }
 
@@ -1196,7 +1198,7 @@ export class MarkdownParser {
 
         const lineIndent = nextLine.match(/^(\s*)/)?.[1].length || 0;
         // 在代码块内部，接受缩进较少的行
-        if (lineIndent >= itemIndent || inCodeBlock || nextLine.trim().startsWith("```")) {
+        if (lineIndent >= itemIndent || inCodeBlock || /^(```|~~~)/.test(nextLine.trim())) {
           const trimmedLine = nextLine.slice(Math.min(lineIndent, itemIndent));
           itemLines.push(trimmedLine);
           itemEndIndex++;
