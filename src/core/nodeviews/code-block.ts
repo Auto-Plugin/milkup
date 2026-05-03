@@ -177,6 +177,50 @@ function fixMermaidTextContrast(container: HTMLElement): void {
   });
 }
 
+function padMermaidSvgBounds(container: HTMLElement): void {
+  const svg = container.querySelector("svg");
+  if (!svg) return;
+
+  const padding = 8;
+  svg.style.overflow = "visible";
+
+  const viewBox = svg.getAttribute("viewBox");
+  if (viewBox) {
+    const values = viewBox
+      .trim()
+      .split(/[\s,]+/)
+      .map((value) => Number(value));
+
+    if (values.length === 4 && values.every(Number.isFinite)) {
+      const [x, y, width, height] = values;
+      svg.setAttribute(
+        "viewBox",
+        `${x - padding} ${y - padding} ${width + padding * 2} ${height + padding * 2}`
+      );
+    }
+  }
+
+  const expandNumericAttr = (element: Element, attr: "x" | "width", delta: number) => {
+    const rawValue = element.getAttribute(attr);
+    if (!rawValue) return;
+
+    const value = Number(rawValue);
+    if (!Number.isFinite(value)) return;
+
+    element.setAttribute(attr, String(value + delta));
+  };
+
+  container.querySelectorAll("foreignObject").forEach((foreignObject) => {
+    (foreignObject as SVGElement).style.overflow = "visible";
+    expandNumericAttr(foreignObject, "x", -padding / 2);
+    expandNumericAttr(foreignObject, "width", padding);
+  });
+
+  container.querySelectorAll(".nodeLabel, .edgeLabel, .label").forEach((label) => {
+    (label as HTMLElement).style.overflow = "visible";
+  });
+}
+
 function getMermaidThemeVariables(): Record<string, string> {
   const style = getComputedStyle(document.documentElement);
   const get = (prop: string) => style.getPropertyValue(prop).trim();
@@ -1465,6 +1509,7 @@ export class CodeBlockView implements NodeView {
 
         const { svg } = await mermaid.default.render(renderId, content);
         preview.innerHTML = svg;
+        padMermaidSvgBounds(preview);
         // 根据实际背景色修正文本颜色
         fixMermaidTextContrast(preview);
       } catch (error) {
