@@ -13,6 +13,7 @@ import { EditorState as CMEditorState, Compartment } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { html } from "@codemirror/lang-html";
 import { createThemeExtension, detectDarkTheme } from "./code-block";
+import { resolveImageSrc } from "../utils/image-path";
 
 // 存储所有 HtmlBlockView 实例，用于全局更新
 const htmlBlockViews = new Set<HtmlBlockView>();
@@ -102,6 +103,12 @@ function sanitizeNode(node: Node): void {
 function sanitizeHtml(htmlContent: string): DocumentFragment {
   const doc = new DOMParser().parseFromString(htmlContent, "text/html");
   sanitizeNode(doc.body);
+  doc.body.querySelectorAll("img[src]").forEach((img) => {
+    const src = img.getAttribute("src");
+    if (src) {
+      img.setAttribute("src", resolveImageSrc(src));
+    }
+  });
   const fragment = document.createDocumentFragment();
   while (doc.body.firstChild) {
     fragment.appendChild(doc.body.firstChild);
