@@ -830,7 +830,10 @@ export function registerGlobalIpcHandlers() {
     ): Promise<boolean> => {
       try {
         const sourceWin = BrowserWindow.fromWebContents(event.sender);
-        startDragFollow(tabData, screenX, screenY, offsetX, offsetY, sourceWin);
+        const bounds = sourceWin?.getBounds();
+        const width = bounds?.width ?? 1000;
+        const height = bounds?.height ?? 700;
+        startDragFollow(tabData, screenX, screenY, offsetX, offsetY, sourceWin, width, height);
         return true;
       } catch (error) {
         console.error("[tab:tear-off-start] 创建窗口失败:", error);

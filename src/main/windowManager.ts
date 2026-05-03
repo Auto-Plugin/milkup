@@ -158,8 +158,8 @@ export async function createEditorWindow(
   const winOptions: Electron.BrowserWindowConstructorOptions = {
     width,
     height,
-    minWidth: 800,
-    minHeight: 600,
+    minWidth: 400,
+    minHeight: 300,
     frame: false,
     titleBarStyle: "hidden",
     show: !fastCreate, // 拖拽跟随窗口初始不显示，避免抢夺焦点
@@ -416,7 +416,9 @@ export function startDragFollow(
   screenY: number,
   offsetX: number,
   offsetY: number,
-  sourceWin: BrowserWindow | null
+  sourceWin: BrowserWindow | null,
+  width: number,
+  height: number
 ): void {
   cleanupDragFollow();
 
@@ -429,6 +431,8 @@ export function startDragFollow(
     const win = await createEditorWindow({
       x: initX,
       y: initY,
+      width,
+      height,
       tabData,
       fastCreate: true,
       center: false,

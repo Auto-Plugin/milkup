@@ -260,7 +260,9 @@ app.whenReady().then(async () => {
   });
 
   let startupSizeTimeout: ReturnType<typeof setTimeout> | null = null;
-  ipcMain.on("window:apply-startup-size", (_event, width: number, height: number) => {
+  ipcMain.on("window:apply-startup-size", (event, width: number, height: number) => {
+    const senderWin = BrowserWindow.fromWebContents(event.sender);
+    if (senderWin !== win) return;
     if (!win || win.isDestroyed()) return;
     if (startupSizeTimeout) {
       clearTimeout(startupSizeTimeout);
