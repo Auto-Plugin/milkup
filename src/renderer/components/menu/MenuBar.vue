@@ -49,11 +49,15 @@ const MenuOptions = [
   },
   { label: "关于", action: () => (activeTab.value = "about"), icon: "github", value: "about" },
 ];
-checkUpdate().then((updateInfo) => {
-  if (updateInfo) {
-    emitter.emit("update:available", updateInfo);
-  }
-});
+checkUpdate()
+  .then((updateInfo) => {
+    if (updateInfo) {
+      emitter.emit("update:available", updateInfo);
+    }
+  })
+  .catch((error) => {
+    console.warn("[MenuBar] Auto update check failed silently:", error);
+  });
 </script>
 
 <template>

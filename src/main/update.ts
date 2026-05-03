@@ -261,7 +261,6 @@ export function setupUpdateHandlers() {
       }
     } catch (error: any) {
       console.error("[Main] Check update failed:", error);
-      broadcastToAll("update:status", { status: "error", error: error.message });
       throw error;
     }
   });
