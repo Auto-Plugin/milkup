@@ -120,6 +120,118 @@ function isLikelyHostnameWithoutProtocol(target: string): boolean {
   return false;
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function buildImagePreviewHtml(src: string, alt = ""): string {
+  const safeSrc = escapeHtml(src);
+  const safeAlt = escapeHtml(alt);
+
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: rgba(16, 16, 16, 0.96);
+      user-select: none;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .titlebar {
+      width: 100%;
+      height: 46px;
+      flex: 0 0 46px;
+      background: rgba(0, 0, 0, 0.18);
+      -webkit-app-region: drag;
+    }
+    .viewer {
+      width: 100vw;
+      height: calc(100vh - 46px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      -webkit-app-region: no-drag;
+    }
+    img {
+      max-width: 100vw;
+      max-height: 100vh;
+      object-fit: contain;
+      -webkit-user-drag: none;
+      transform-origin: center center;
+      transition: transform 80ms linear;
+    }
+    button {
+      position: fixed;
+      top: 8px;
+      right: 10px;
+      z-index: 2;
+      width: 34px;
+      height: 34px;
+      border: 0;
+      border-radius: 999px;
+      color: #fff;
+      background: rgba(0, 0, 0, 0.55);
+      font-size: 22px;
+      line-height: 34px;
+      cursor: pointer;
+      -webkit-app-region: no-drag;
+    }
+    button:hover {
+      background: rgba(0, 0, 0, 0.78);
+    }
+  </style>
+</head>
+<body>
+  <div class="titlebar"></div>
+  <button aria-label="关闭" title="关闭" onclick="window.close()">×</button>
+  <div class="viewer">
+    <img id="preview-image" src="${safeSrc}" alt="${safeAlt}" />
+  </div>
+  <script>
+    const image = document.getElementById("preview-image");
+    let scale = 1;
+    const minScale = 0.2;
+    const maxScale = 8;
+
+    function applyScale() {
+      image.style.transform = "scale(" + scale + ")";
+    }
+
+    window.addEventListener("wheel", (event) => {
+      event.preventDefault();
+      const delta = event.deltaY < 0 ? 1.12 : 1 / 1.12;
+      scale = Math.min(maxScale, Math.max(minScale, scale * delta));
+      applyScale();
+    }, { passive: false });
+
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") window.close();
+      if (event.key === "0") {
+        scale = 1;
+        applyScale();
+      }
+    });
+  </script>
+</body>
+</html>`;
+}
+
 function resolveLocalLinkPath(target: string, currentFilePath?: string | null): string | null {
   const trimmed = target.trim();
   if (!trimmed || trimmed.startsWith("#")) return null;
@@ -817,6 +929,41 @@ export function registerIpcHandleHandlers() {
 }
 // 无需 win 的 ipc 处理
 export function registerGlobalIpcHandlers() {
+  ipcMain.handle(
+    "image:openPreview",
+    async (event, payload: { src?: string; alt?: string }): Promise<void> => {
+      if (!payload?.src) return;
+
+      const parentWin = BrowserWindow.fromWebContents(event.sender) ?? undefined;
+      const parentBounds = parentWin?.getBounds();
+      const previewWin = new BrowserWindow({
+        width: parentBounds ? Math.max(480, Math.floor(parentBounds.width * 0.82)) : 900,
+        height: parentBounds ? Math.max(360, Math.floor(parentBounds.height * 0.82)) : 700,
+        minWidth: 320,
+        minHeight: 240,
+        parent: parentWin,
+        frame: false,
+        titleBarStyle: "hidden",
+        backgroundColor: "#101010",
+        show: false,
+        webPreferences: {
+          sandbox: true,
+          contextIsolation: true,
+          nodeIntegration: false,
+          webSecurity: false,
+        },
+      });
+
+      previewWin.once("ready-to-show", () => previewWin.show());
+      previewWin.webContents.on("before-input-event", (_inputEvent, input) => {
+        if (input.key === "Escape") previewWin.close();
+      });
+
+      const html = buildImagePreviewHtml(payload.src, payload.alt);
+      await previewWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+    }
+  );
+
   // ── Tab 拖拽分离：开始跟随（创建新窗口并跟随光标）────
   ipcMain.handle(
     "tab:tear-off-start",

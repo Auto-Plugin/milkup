@@ -218,6 +218,13 @@ export class ImageView implements NodeView {
       e.preventDefault();
       this.selectThisNode();
     });
+    this.imgElement.addEventListener("dblclick", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const { src, alt } = this.node.attrs;
+      if (!src) return;
+      window.electronAPI?.openImagePreview?.(resolveImageSrc(src), alt || "");
+    });
 
     // 源码输入框事件
     this.sourceInput.addEventListener("blur", () => {

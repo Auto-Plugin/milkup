@@ -31,6 +31,7 @@ interface Window {
     ) => void;
     openExternal: (url: string) => Promise<void>;
     openLink: (href: string, currentFilePath?: string | null) => Promise<void>;
+    openImagePreview: (src: string, alt?: string) => Promise<void>;
     getFilePathInClipboard: () => Promise<string | null>;
     writeTempImage: (
       file: Uint8Array<ArrayBuffer>,

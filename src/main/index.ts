@@ -13,7 +13,7 @@ import {
 } from "./ipcBridge";
 import createMenu from "./menu";
 import { setupUpdateHandlers } from "./update";
-import { trackWindow } from "./windowManager";
+import { getAdaptiveEditorWindowOptions, trackWindow } from "./windowManager";
 
 let win: BrowserWindow | null = null;
 let themeEditorWindow: BrowserWindow | null = null;
@@ -28,11 +28,10 @@ function getAvailableWindow(): BrowserWindow | null {
 }
 
 async function createWindow() {
+  const windowOptions = getAdaptiveEditorWindowOptions(1200, 800);
+
   win = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    minWidth: 800,
-    minHeight: 600,
+    ...windowOptions,
     frame: false,
     titleBarStyle: "hidden", // ✅ macOS 专属
     icon: path.join(__dirname, "../assets/icons/milkup.ico"),

@@ -40,6 +40,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   openExternal: (url: string) => ipcRenderer.send("shell:openExternal", url),
   openLink: (href: string, currentFilePath?: string | null) =>
     ipcRenderer.invoke("shell:openLink", href, currentFilePath),
+  openImagePreview: (src: string, alt?: string) =>
+    ipcRenderer.invoke("image:openPreview", { src, alt }),
   getFilePathInClipboard: () => ipcRenderer.invoke("clipboard:getFilePath"),
   writeTempImage: (
     file: Uint8Array,

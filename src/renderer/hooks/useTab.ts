@@ -14,6 +14,8 @@ import { useConfig } from "./useConfig";
 
 const tabs = ref<Tab[]>([]);
 const activeTabId = ref<string | null>(null);
+const autoSaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const autoSavingTabs = new Set<string>();
 
 // 防抖定时器 Map：每个 tab 独立跟踪归一化完成
 const newlyLoadedTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -295,6 +297,45 @@ async function saveTab(tab: Tab): Promise<boolean> {
     console.error("保存文件失败:", error);
   }
   return false;
+}
+
+function clearAutoSaveTimer(tabId: string) {
+  const timer = autoSaveTimers.get(tabId);
+  if (!timer) return;
+  clearTimeout(timer);
+  autoSaveTimers.delete(tabId);
+}
+
+function scheduleAutoSave(tab: Tab) {
+  clearAutoSaveTimer(tab.id);
+
+  autoSaveTimers.set(
+    tab.id,
+    setTimeout(async () => {
+      autoSaveTimers.delete(tab.id);
+      const latestTab = tabs.value.find((item) => item.id === tab.id);
+      const { config } = useConfig();
+
+      if (
+        !latestTab ||
+        !config.value.other.autoSave ||
+        !latestTab.filePath ||
+        latestTab.readOnly ||
+        latestTab.isNewlyLoaded ||
+        !latestTab.isModified ||
+        autoSavingTabs.has(latestTab.id)
+      ) {
+        return;
+      }
+
+      autoSavingTabs.add(latestTab.id);
+      try {
+        await saveTab(latestTab);
+      } finally {
+        autoSavingTabs.delete(latestTab.id);
+      }
+    }, 800)
+  );
 }
 
 // 保存当前tab
@@ -977,6 +1018,44 @@ watch(
   {
     immediate: true,
   }
+);
+
+watch(
+  () =>
+    tabs.value.map((tab) => ({
+      id: tab.id,
+      content: tab.content,
+      filePath: tab.filePath,
+      isModified: tab.isModified,
+      isNewlyLoaded: tab.isNewlyLoaded,
+      readOnly: tab.readOnly,
+    })),
+  (nextTabs) => {
+    const { config } = useConfig();
+    const nextIds = new Set(nextTabs.map((tab) => tab.id));
+
+    for (const tabId of Array.from(autoSaveTimers.keys())) {
+      if (!nextIds.has(tabId)) clearAutoSaveTimer(tabId);
+    }
+
+    if (!config.value.other.autoSave) return;
+
+    for (const tabState of nextTabs) {
+      if (
+        !tabState.filePath ||
+        !tabState.isModified ||
+        tabState.isNewlyLoaded ||
+        tabState.readOnly ||
+        autoSavingTabs.has(tabState.id)
+      ) {
+        continue;
+      }
+
+      const tab = tabs.value.find((item) => item.id === tabState.id);
+      if (tab) scheduleAutoSave(tab);
+    }
+  },
+  { deep: true }
 );
 
 // 文件变动回callback事件

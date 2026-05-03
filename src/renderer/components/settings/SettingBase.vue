@@ -1,11 +1,18 @@
 <script setup lang="ts">
 import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 import AISetting from "./AISetting.vue";
+import AutoSaveSetting from "./AutoSaveSetting.vue";
 import ImageConfig from "./ImageConfig.vue";
 import SpellCheckSetter from "./SpellCheckSetter.vue";
 import WorkspaceSetting from "./WorkspaceSetting.vue";
 
 const settingSections = [
+  {
+    title: "编辑器行为",
+    desc: "控制编辑器保存等基础行为",
+    icon: "document",
+    component: AutoSaveSetting,
+  },
   {
     title: "拼写检查",
     desc: "控制编辑器中的拼写检查能力",

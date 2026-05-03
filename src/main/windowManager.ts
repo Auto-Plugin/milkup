@@ -25,6 +25,26 @@ export interface CreateWindowOptions {
   center?: boolean;
 }
 
+export function getAdaptiveEditorWindowOptions(
+  requestedWidth?: number,
+  requestedHeight?: number
+): Pick<Electron.BrowserWindowConstructorOptions, "width" | "height" | "minWidth" | "minHeight"> {
+  const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
+  const lowResolution = screenWidth < 1200 || screenHeight < 760;
+  const minWidth = lowResolution ? 480 : 800;
+  const minHeight = lowResolution ? 360 : 600;
+  const width = Math.max(
+    minWidth,
+    Math.min(requestedWidth ?? 1200, Math.floor(screenWidth * 0.82))
+  );
+  const height = Math.max(
+    minHeight,
+    Math.min(requestedHeight ?? 800, Math.floor(screenHeight * 0.86))
+  );
+
+  return { width, height, minWidth, minHeight };
+}
+
 // ─── 状态 ────────────────────────────────────────────────────
 
 /** 所有活跃的编辑器窗口 */
@@ -153,13 +173,25 @@ export function consumePendingTabData(webContentsId: number): TearOffTabData | n
 export async function createEditorWindow(
   options: CreateWindowOptions = {}
 ): Promise<BrowserWindow> {
-  const { x, y, width = 1000, height = 700, tabData, fastCreate = false, center = true } = options;
+  const {
+    x,
+    y,
+    width: requestedWidth,
+    height: requestedHeight,
+    tabData,
+    fastCreate = false,
+    center = true,
+  } = options;
+  const { width, height, minWidth, minHeight } = getAdaptiveEditorWindowOptions(
+    requestedWidth ?? 1000,
+    requestedHeight ?? 700
+  );
 
   const winOptions: Electron.BrowserWindowConstructorOptions = {
     width,
     height,
-    minWidth: 800,
-    minHeight: 600,
+    minWidth,
+    minHeight,
     frame: false,
     titleBarStyle: "hidden",
     show: !fastCreate, // 拖拽跟随窗口初始不显示，避免抢夺焦点
