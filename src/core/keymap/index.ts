@@ -30,7 +30,29 @@ const defaultConfig: KeymapConfig = {
  * - 当输入 --- 或 *** 或 ___ 后按回车，创建分割线
  */
 function createBlockEnterKeymap(schema: Schema): Record<string, any> {
+  const insertTableCellBreak = (state: any, dispatch: any) => {
+    const { $from, empty } = state.selection;
+    if (!empty || !schema.nodes.hard_break) return false;
+
+    let inTableCell = false;
+    for (let depth = $from.depth; depth > 0; depth--) {
+      const nodeName = $from.node(depth).type.name;
+      if (nodeName === "table_cell" || nodeName === "table_header") {
+        inTableCell = true;
+        break;
+      }
+    }
+    if (!inTableCell) return false;
+
+    if (dispatch) {
+      dispatch(state.tr.replaceSelectionWith(schema.nodes.hard_break.create()).scrollIntoView());
+    }
+    return true;
+  };
+
   return {
+    "Ctrl-Enter": insertTableCellBreak,
+    "Mod-Enter": insertTableCellBreak,
     Enter: (state: any, dispatch: any) => {
       const { $from, empty } = state.selection;
 

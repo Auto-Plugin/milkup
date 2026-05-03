@@ -418,6 +418,7 @@ onUnmounted(() => {
         class="tabItem"
         :class="{ active: activeTabId === tab.id, 'merge-preview': tab.isMergePreview }"
         :data-tab-id="tab.id"
+        :title="tab.displayName"
         @click="handleTabClick(tab.id)"
         @contextmenu.prevent.stop="handleTabContextMenu(tab.id, $event)"
       >

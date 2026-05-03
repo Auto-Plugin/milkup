@@ -218,7 +218,7 @@ export class MarkdownSerializer {
       node.content.forEach((row, _, rowIndex) => {
         const cells: string[] = [];
         row.content.forEach((cell) => {
-          cells.push(this.serializeInline(cell));
+          cells.push(this.serializeTableCellInline(cell));
         });
         if (rowIndex === 0) {
           headerRow = cells;
@@ -329,14 +329,14 @@ export class MarkdownSerializer {
    * 序列化行内内容
    * 直接输出所有文本节点（包括语法标记），保留用户原始输入
    */
-  private serializeInline(node: Node): string {
+  private serializeInline(node: Node, options: { hardBreak?: string } = {}): string {
     let result = "";
 
     node.content.forEach((child) => {
       if (child.isText) {
         result += child.text || "";
       } else if (child.type.name === "hard_break") {
-        result += "  \n";
+        result += options.hardBreak ?? "  \n";
       } else if (child.type.name === "image") {
         const alt = child.attrs.alt || "";
         const src = child.attrs.src || "";
@@ -355,6 +355,14 @@ export class MarkdownSerializer {
     });
 
     return result;
+  }
+
+  /**
+   * 序列化 Markdown 表格单元格内的行内内容。
+   * Markdown 表格不能包含真实换行，单元格换行统一写成 HTML <br> 标签。
+   */
+  serializeTableCellInline(node: Node): string {
+    return this.serializeInline(node, { hardBreak: "<br>" });
   }
 
   /**

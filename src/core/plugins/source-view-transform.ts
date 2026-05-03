@@ -300,11 +300,12 @@ function transformTableToParagraphs(table: ProseMirrorNode, schema: Schema): Pro
   const tableId = generateTableId();
   const lines: string[] = [];
   const alignments: (string | null)[] = [];
+  const serializer = new MarkdownSerializer({ compact: true });
 
   table.content.forEach((row, _, rowIndex) => {
     const cells: string[] = [];
     row.content.forEach((cell) => {
-      cells.push(cell.textContent);
+      cells.push(serializer.serializeTableCellInline(cell));
       if (rowIndex === 0) {
         alignments.push(cell.attrs.align || null);
       }

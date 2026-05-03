@@ -1330,7 +1330,14 @@ export class MarkdownParser {
 
     for (let i = 0; i < cellContents.length; i++) {
       const trimmed = cellContents[i].trim();
-      const inlineContent = this.parseInlineWithSyntax(trimmed);
+      const inlineContent: Node[] = [];
+      const segments = trimmed.split(/<br\s*\/?>/gi);
+      segments.forEach((segment, segmentIndex) => {
+        if (segmentIndex > 0) {
+          inlineContent.push(this.schema.nodes.hard_break.create());
+        }
+        inlineContent.push(...this.parseInlineWithSyntax(segment));
+      });
       const nodeType = isHeader ? "table_header" : "table_cell";
       const align = alignments[i] || null;
       cells.push(
