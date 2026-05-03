@@ -15,6 +15,7 @@ import {
   FileOutput,
   FileText,
   FileType,
+  Image,
   Folder,
   FolderOpen,
   Github,
@@ -70,6 +71,7 @@ const iconMap = {
   "shortcut-key": Keyboard,
   "magic-wand": WandSparkles,
   "image-config": FileOutput,
+  image: Image,
   trash: Trash2,
 } satisfies Record<string, FunctionalComponent<LucideProps>>;
 

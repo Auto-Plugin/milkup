@@ -1,10 +1,11 @@
 <script lang="ts" setup>
 import type { TreeNode } from "@ui/tree";
-import { onMounted, onUnmounted, ref } from "vue";
+import { onMounted, onUnmounted, ref, watch } from "vue";
 import { Tree } from "@ui/tree";
 import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 import useTab from "@/renderer/hooks/useTab";
 import useWorkSpace from "@/renderer/hooks/useWorkSpace";
+import { resolveImageSrc } from "@/core/utils/image-path";
 
 const {
   workSpace,
@@ -21,6 +22,41 @@ const {
   watchedDirPath,
 } = useWorkSpace();
 const { currentTab, openFile } = useTab();
+const currentImagePath = ref<string | null>(null);
+
+function isImageFile(path: string): boolean {
+  return /\.(?:png|jpe?g|gif|webp|svg|bmp)$/i.test(path);
+}
+
+function getSiblingImages(path: string): Array<{ path: string; name: string }> {
+  const roots = workSpace.value;
+  if (!roots) return [];
+
+  const findInNodes = (nodes: TreeNode[]): Array<{ path: string; name: string }> | null => {
+    if (nodes.some((node) => node.path === path)) {
+      return nodes
+        .filter((node) => !node.isDirectory && isImageFile(node.path))
+        .map((node) => ({ path: node.path, name: node.name }));
+    }
+
+    for (const node of nodes) {
+      if (!node.children) continue;
+      const result = findInNodes(node.children);
+      if (result) return result;
+    }
+
+    return null;
+  };
+
+  return findInNodes(roots) ?? [];
+}
+
+watch(
+  () => currentTab.value?.filePath,
+  () => {
+    currentImagePath.value = null;
+  }
+);
 
 // 右键菜单状态
 const contextMenu = ref<{
@@ -49,7 +85,25 @@ function openFolder() {
   setWorkSpace();
 }
 
-function handleNodeClick({ path }: TreeNode) {
+function handleNodeClick({ path, name }: TreeNode) {
+  if (isImageFile(path)) {
+    currentImagePath.value = path;
+    const siblingImages = getSiblingImages(path);
+    const previewItems = siblingImages.map((image) => ({
+      src: resolveImageSrc(image.path),
+      alt: image.name,
+    }));
+    const previewIndex = Math.max(
+      0,
+      siblingImages.findIndex((image) => image.path === path)
+    );
+    void window.electronAPI.openImagePreview(resolveImageSrc(path), name, {
+      items: previewItems,
+      index: previewIndex,
+    });
+    return;
+  }
+  currentImagePath.value = null;
   openFile(path);
 }
 
@@ -204,7 +258,7 @@ function getSortLabel() {
     <Tree
       v-if="workSpace"
       :nodes="workSpace"
-      :current-node="currentTab ? currentTab.filePath : null"
+      :current-node="currentImagePath || (currentTab ? currentTab.filePath : null)"
       :editing-path="editingNode?.path ?? null"
       @node-click="handleNodeClick"
       @node-context-menu="handleContextMenu"

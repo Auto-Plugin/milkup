@@ -23,6 +23,10 @@ const isSelected = computed(() => currentNode.value === props.node.path);
 
 const isEditing = computed(() => editingPath.value === props.node.path);
 
+const isImageFile = computed(
+  () => !props.node.isDirectory && /\.(?:png|jpe?g|gif|webp|svg|bmp)$/i.test(props.node.name)
+);
+
 const editInputRef = ref<HTMLInputElement | null>(null);
 const editValue = ref("");
 
@@ -100,7 +104,7 @@ function onContextMenu(e: MouseEvent) {
       <!-- 文件/文件夹图标 -->
       <span class="file-icon">
         <AppIcon
-          :name="node.isDirectory ? 'folder-copy' : 'markdown'"
+          :name="node.isDirectory ? 'folder-copy' : isImageFile ? 'image' : 'markdown'"
           :class="{ active: isExpanded }"
         />
       </span>

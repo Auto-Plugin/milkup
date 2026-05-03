@@ -61,6 +61,19 @@ let watcher: FSWatcher | null = null;
 // 目录监听 watcher
 let directoryWatcher: FSWatcher | null = null;
 let directoryChangedDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+let imagePreviewWindow: BrowserWindow | null = null;
+
+interface ImagePreviewItem {
+  src: string;
+  alt?: string;
+}
+
+interface ImagePreviewPayload {
+  src?: string;
+  alt?: string;
+  items?: ImagePreviewItem[];
+  index?: number;
+}
 
 function isAbsoluteImageDirectory(inputPath: string): boolean {
   if (!inputPath) return false;
@@ -120,18 +133,30 @@ function isLikelyHostnameWithoutProtocol(target: string): boolean {
   return false;
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+function serializeForInlineScript(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, "\\u003c");
 }
 
-function buildImagePreviewHtml(src: string, alt = ""): string {
-  const safeSrc = escapeHtml(src);
-  const safeAlt = escapeHtml(alt);
+function buildImagePreviewHtml(payload: {
+  src: string;
+  alt?: string;
+  items?: ImagePreviewItem[];
+  index?: number;
+}): string {
+  const items =
+    payload.items && payload.items.length > 0
+      ? payload.items
+      : [{ src: payload.src, alt: payload.alt || "" }];
+  const initialIndex =
+    typeof payload.index === "number" && payload.index >= 0 && payload.index < items.length
+      ? payload.index
+      : Math.max(
+          0,
+          items.findIndex((item) => item.src === payload.src)
+        );
+  const safeItems = serializeForInlineScript(items);
+  const safeInitialIndex = Number.isFinite(initialIndex) ? initialIndex : 0;
+  const hasSwitcher = items.length > 1;
 
   return `<!doctype html>
 <html>
@@ -195,22 +220,91 @@ function buildImagePreviewHtml(src: string, alt = ""): string {
     button:hover {
       background: rgba(0, 0, 0, 0.78);
     }
+    .nav-button {
+      top: 50%;
+      right: auto;
+      transform: translateY(-50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      border-radius: 50%;
+      opacity: 0.72;
+    }
+    .nav-button svg {
+      width: 24px;
+      height: 24px;
+      display: block;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .nav-button:hover {
+      opacity: 1;
+    }
+    .nav-button.prev {
+      left: 16px;
+    }
+    .nav-button.next {
+      right: 16px;
+    }
+    .counter {
+      position: fixed;
+      left: 50%;
+      bottom: 12px;
+      z-index: 2;
+      transform: translateX(-50%);
+      padding: 4px 10px;
+      border-radius: 999px;
+      color: #fff;
+      background: rgba(0, 0, 0, 0.45);
+      font: 12px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-app-region: no-drag;
+    }
   </style>
 </head>
 <body>
   <div class="titlebar"></div>
   <button aria-label="关闭" title="关闭" onclick="window.close()">×</button>
+  ${
+    hasSwitcher
+      ? '<button class="nav-button prev" aria-label="上一张" title="上一张" onclick="showRelative(-1)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6 9 12l6 6"/></svg></button><button class="nav-button next" aria-label="下一张" title="下一张" onclick="showRelative(1)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button><div id="counter" class="counter"></div>'
+      : ""
+  }
   <div class="viewer">
-    <img id="preview-image" src="${safeSrc}" alt="${safeAlt}" />
+    <img id="preview-image" />
   </div>
   <script>
+    const items = ${safeItems};
+    let currentIndex = ${safeInitialIndex};
     const image = document.getElementById("preview-image");
+    const counter = document.getElementById("counter");
     let scale = 1;
     const minScale = 0.2;
     const maxScale = 8;
 
     function applyScale() {
       image.style.transform = "scale(" + scale + ")";
+    }
+
+    function showImage(index) {
+      if (!items.length) return;
+      currentIndex = (index + items.length) % items.length;
+      const item = items[currentIndex];
+      image.src = item.src;
+      image.alt = item.alt || "";
+      document.title = item.alt || "";
+      scale = 1;
+      applyScale();
+      if (counter) counter.textContent = (currentIndex + 1) + " / " + items.length;
+    }
+
+    function showRelative(offset) {
+      showImage(currentIndex + offset);
     }
 
     window.addEventListener("wheel", (event) => {
@@ -222,11 +316,15 @@ function buildImagePreviewHtml(src: string, alt = ""): string {
 
     window.addEventListener("keydown", (event) => {
       if (event.key === "Escape") window.close();
+      if (event.key === "ArrowLeft") showRelative(-1);
+      if (event.key === "ArrowRight") showRelative(1);
       if (event.key === "0") {
         scale = 1;
         applyScale();
       }
     });
+
+    showImage(currentIndex);
   </script>
 </body>
 </html>`;
@@ -931,36 +1029,48 @@ export function registerIpcHandleHandlers() {
 export function registerGlobalIpcHandlers() {
   ipcMain.handle(
     "image:openPreview",
-    async (event, payload: { src?: string; alt?: string }): Promise<void> => {
+    async (event, payload: ImagePreviewPayload): Promise<void> => {
       if (!payload?.src) return;
 
       const parentWin = BrowserWindow.fromWebContents(event.sender) ?? undefined;
-      const parentBounds = parentWin?.getBounds();
-      const previewWin = new BrowserWindow({
-        width: parentBounds ? Math.max(480, Math.floor(parentBounds.width * 0.82)) : 900,
-        height: parentBounds ? Math.max(360, Math.floor(parentBounds.height * 0.82)) : 700,
-        minWidth: 320,
-        minHeight: 240,
-        parent: parentWin,
-        frame: false,
-        titleBarStyle: "hidden",
-        backgroundColor: "#101010",
-        show: false,
-        webPreferences: {
-          sandbox: true,
-          contextIsolation: true,
-          nodeIntegration: false,
-          webSecurity: false,
-        },
-      });
+      if (!imagePreviewWindow || imagePreviewWindow.isDestroyed()) {
+        const parentBounds = parentWin?.getBounds();
+        imagePreviewWindow = new BrowserWindow({
+          width: parentBounds ? Math.max(480, Math.floor(parentBounds.width * 0.82)) : 900,
+          height: parentBounds ? Math.max(360, Math.floor(parentBounds.height * 0.82)) : 700,
+          minWidth: 320,
+          minHeight: 240,
+          parent: parentWin,
+          frame: false,
+          titleBarStyle: "hidden",
+          backgroundColor: "#101010",
+          show: false,
+          webPreferences: {
+            sandbox: true,
+            contextIsolation: true,
+            nodeIntegration: false,
+            webSecurity: false,
+          },
+        });
 
-      previewWin.once("ready-to-show", () => previewWin.show());
-      previewWin.webContents.on("before-input-event", (_inputEvent, input) => {
-        if (input.key === "Escape") previewWin.close();
-      });
+        imagePreviewWindow.once("ready-to-show", () => imagePreviewWindow?.show());
+        imagePreviewWindow.webContents.on("before-input-event", (_inputEvent, input) => {
+          if (input.key === "Escape") imagePreviewWindow?.close();
+        });
+        imagePreviewWindow.on("closed", () => {
+          imagePreviewWindow = null;
+        });
+      }
 
-      const html = buildImagePreviewHtml(payload.src, payload.alt);
-      await previewWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+      const html = buildImagePreviewHtml({
+        src: payload.src,
+        alt: payload.alt,
+        items: payload.items,
+        index: payload.index,
+      });
+      await imagePreviewWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+      imagePreviewWindow.show();
+      imagePreviewWindow.focus();
     }
   );
 
@@ -1203,6 +1313,10 @@ export function registerGlobalIpcHandlers() {
         return IGNORE_PATTERNS.some((pattern) => pattern.test(name));
       }
 
+      function isSupportedWorkspaceFile(name: string): boolean {
+        return /\.(?:md|markdown|png|jpe?g|gif|webp|svg|bmp)$/i.test(name);
+      }
+
       async function getMtimeMs(targetPath: string): Promise<number> {
         try {
           const stat = await fsp.stat(targetPath);
@@ -1249,7 +1363,7 @@ export function registerGlobalIpcHandlers() {
                 mtime: dirMtime,
                 children,
               });
-            } else if (item.isFile() && /\.(?:md|markdown)$/i.test(item.name)) {
+            } else if (item.isFile() && isSupportedWorkspaceFile(item.name)) {
               const fileMtime = await getMtimeMs(itemPath);
               files.push({
                 name: item.name,
