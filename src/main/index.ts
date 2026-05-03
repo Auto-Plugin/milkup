@@ -172,6 +172,9 @@ function sendFileToRenderer(filePath: string) {
   const sendFile = () => {
     const targetWin = getAvailableWindow();
     if (targetWin) {
+      if (targetWin.isMinimized()) targetWin.restore();
+      if (!targetWin.isVisible()) targetWin.show();
+      targetWin.focus();
       targetWin.webContents.send("open-file-at-launch", {
         filePath: result.filePath,
         content: result.content,
