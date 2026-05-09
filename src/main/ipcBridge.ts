@@ -593,6 +593,27 @@ export function registerIpcOnHandlers() {
       await shell.openExternal(externalUrl);
     }
   });
+  ipcMain.handle("shell:revealFileInFolder", async (_event, filePath: string) => {
+    if (!filePath) return false;
+
+    try {
+      const normalizedPath = path.normalize(filePath);
+      if (fs.existsSync(normalizedPath)) {
+        shell.showItemInFolder(normalizedPath);
+        return true;
+      }
+
+      const directoryPath = path.dirname(normalizedPath);
+      if (!fs.existsSync(directoryPath)) {
+        return false;
+      }
+
+      const openResult = await shell.openPath(directoryPath);
+      return openResult === "";
+    } catch {
+      return false;
+    }
+  });
   ipcMain.on("change-save-status", (event, isSavedStatus) => {
     const targetWin = BrowserWindow.fromWebContents(event.sender);
     if (!targetWin) return;
@@ -1050,6 +1071,10 @@ export function registerIpcHandleHandlers() {
 }
 // 无需 win 的 ipc 处理
 export function registerGlobalIpcHandlers() {
+  ipcMain.handle("clipboard:writeText", async (_event, text: string): Promise<boolean> => {
+    clipboard.writeText(text ?? "");
+    return true;
+  });
   ipcMain.handle(
     "image:openPreview",
     async (event, payload: ImagePreviewPayload): Promise<void> => {
