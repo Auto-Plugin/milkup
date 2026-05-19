@@ -128,7 +128,7 @@ onUnmounted(() => {
 .menu-overlay {
   position: fixed;
   inset: 0;
-  z-index: 110000;
+  z-index: 99;
   padding-top: 45px;
   display: flex;
   align-items: flex-start;
