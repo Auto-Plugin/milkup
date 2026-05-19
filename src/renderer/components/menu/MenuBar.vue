@@ -91,7 +91,6 @@ checkUpdate()
 
   .detailContainer {
     flex: 1;
-    height: calc(100% - 24px);
     padding: 12px;
     padding-top: 0;
     padding-right: 0;
@@ -117,7 +116,6 @@ checkUpdate()
     flex-direction: column;
     justify-content: flex-start;
     align-items: flex-start;
-    padding: 12px 0;
     width: 200px;
     gap: 4px;
     -webkit-app-region: drag;

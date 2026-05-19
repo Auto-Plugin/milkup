@@ -60,6 +60,26 @@ onUnmounted(() => {
     <Teleport to="body">
       <Transition name="menu-fade">
         <div v-if="isOpen" class="menu-overlay" @click="closeMenu">
+          <button
+            class="menu-close-button"
+            type="button"
+            aria-label="关闭菜单"
+            @click.stop="closeMenu"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
           <div class="dropdown-content" @click.stop>
             <MenuBar />
           </div>
@@ -109,7 +129,7 @@ onUnmounted(() => {
   position: fixed;
   inset: 0;
   z-index: 110000;
-  padding: 58px 16px 16px;
+  padding-top: 45px;
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -118,10 +138,40 @@ onUnmounted(() => {
   -webkit-app-region: no-drag;
 }
 
+.menu-close-button {
+  position: fixed;
+  top: 58px;
+  right: 18px;
+  z-index: 1;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--border-color-1) 82%, transparent);
+  border-radius: 999px;
+  color: var(--text-color);
+  background: color-mix(in srgb, var(--background-color-1) 88%, transparent);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+
+  &:hover {
+    color: var(--primary-color);
+    border-color: color-mix(in srgb, var(--primary-color) 56%, var(--border-color-1));
+    background: var(--hover-color);
+    transform: translateY(-1px);
+  }
+}
+
 .dropdown-content {
-  width: min(1180px, calc(100vw - 32px));
-  height: min(760px, calc(100vh - 74px));
-  border-radius: 22px;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px 12px 0 0;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--border-color-1) 84%, transparent);
   background: color-mix(in srgb, var(--background-color-1) 94%, transparent);

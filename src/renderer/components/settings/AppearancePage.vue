@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import FontPage from './FontPage.vue'
-import OtherSetting from './OtherSetting.vue'
-import ThemePage from './ThemePage.vue'
+import FontPage from "./FontPage.vue";
+import OtherSetting from "./OtherSetting.vue";
+import ThemePage from "./ThemePage.vue";
 </script>
 
 <template>
@@ -33,19 +33,23 @@ import ThemePage from './ThemePage.vue'
 
 <style lang="less" scoped>
 .appearance {
-    width: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 0 10px;
+  box-sizing: border-box;
+  gap: 10px;
+  padding-bottom: 200px;
+  max-width: 800px;
+
+  .appearance-item {
     display: flex;
     flex-direction: column;
-    padding: 0 10px;
-    box-sizing: border-box;
     gap: 10px;
-    padding-bottom: 200px;
-    max-width: 800px;
 
-    .appearance-item {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
+    h2 {
+      color: var(--text-color);
     }
+  }
 }
 </style>

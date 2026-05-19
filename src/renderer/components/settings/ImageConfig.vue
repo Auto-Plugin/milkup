@@ -171,6 +171,7 @@ async function handleSelectDirectory() {
       .input-label {
         min-width: 100px;
         display: inline-block;
+        color: var(--text-color);
       }
 
       .path-input-group {
