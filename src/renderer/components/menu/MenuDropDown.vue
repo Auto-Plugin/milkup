@@ -4,15 +4,18 @@ import emitter from "@/renderer/events";
 import MenuBar from "./MenuBar.vue";
 
 const isOpen = ref(false);
+function closeMenu() {
+  isOpen.value = false;
+}
 
 // 事件处理器
 function handleFileChange() {
-  isOpen.value = false;
+  closeMenu();
 }
 
 function handleKeydown(event: KeyboardEvent) {
   if (event.key === "Escape" && isOpen.value) {
-    isOpen.value = false;
+    closeMenu();
   }
 }
 
@@ -29,11 +32,10 @@ onUnmounted(() => {
 
 <template>
   <div class="MenuDropDownBox">
-    <div class="dropdown-header">
+    <button class="dropdown-header" type="button" @click="isOpen = !isOpen">
       <svg
         class="logo"
         :class="{ active: isOpen }"
-        @click="isOpen = !isOpen"
         width="13"
         height="18"
         viewBox="13.5 11.5 11 15"
@@ -54,63 +56,86 @@ onUnmounted(() => {
           fill="currentColor"
         />
       </svg>
-    </div>
-    <Transition name="menu-slide">
-      <div v-show="isOpen" class="dropdown-content">
-        <MenuBar />
-      </div>
-    </Transition>
+    </button>
+    <Teleport to="body">
+      <Transition name="menu-fade">
+        <div v-if="isOpen" class="menu-overlay" @click="closeMenu">
+          <div class="dropdown-content" @click.stop>
+            <MenuBar />
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <style lang="less" scoped>
 .MenuDropDownBox {
   height: 100%;
+  flex-shrink: 0;
+
   .dropdown-header {
     display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    padding: 0 0 3px 10px;
-    height: 100%;
-    -webkit-app-region: no-drag; /* 禁止拖动 */
+    margin-left: 6px;
+    padding: 0 10px;
+    height: 34px;
+    border: none;
+    border-radius: 12px;
+    background: transparent;
+    -webkit-app-region: no-drag;
+
+    &:hover {
+      background: var(--hover-color);
+    }
+
     .logo {
       display: inline-block;
       width: 13px;
       height: 18px;
       transition: 0.2s;
-      margin: 4px;
       color: var(--primary-color);
+
       &.active {
         transform: rotate(180deg);
       }
     }
   }
-  .dropdown-content {
-    position: absolute;
-    top: 40px; /* 与标题栏高度一致 */
-    left: 0;
-    background: var(--background-color-1);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    z-index: 1000;
-    width: 100%;
-    height: 100%;
-    border-radius: 4px;
-    -webkit-app-region: no-drag; /* 禁止拖动 */
-    white-space: nowrap;
-  }
 }
 
-.menu-slide-enter-active,
-.menu-slide-leave-active {
-  transition:
-    opacity 0.15s ease,
-    transform 0.15s ease;
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 110000;
+  padding: 58px 16px 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  background: rgba(10, 14, 24, 0.28);
+  backdrop-filter: blur(12px);
+  -webkit-app-region: no-drag;
 }
 
-.menu-slide-enter-from,
-.menu-slide-leave-to {
+.dropdown-content {
+  width: min(1180px, calc(100vw - 32px));
+  height: min(760px, calc(100vh - 74px));
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--border-color-1) 84%, transparent);
+  background: color-mix(in srgb, var(--background-color-1) 94%, transparent);
+  box-shadow: 0 28px 72px rgba(0, 0, 0, 0.28);
+  white-space: nowrap;
+}
+
+.menu-fade-enter-active,
+.menu-fade-leave-active {
+  transition: opacity 0.18s ease;
+}
+
+.menu-fade-enter-from,
+.menu-fade-leave-to {
   opacity: 0;
-  transform: translateY(-8px);
 }
 </style>

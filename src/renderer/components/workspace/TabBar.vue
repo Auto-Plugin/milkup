@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import autotoast from "autotoast.js";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { vDraggable } from "vue-draggable-plus";
 import AppIcon from "@/renderer/components/ui/AppIcon.vue";
@@ -52,6 +53,9 @@ const contextMenu = ref({
 const contextTabIndex = computed(() =>
   tabs.value.findIndex((tab) => tab.id === contextMenu.value.tabId)
 );
+const contextTab = computed(
+  () => tabs.value.find((tab) => tab.id === contextMenu.value.tabId) ?? null
+);
 
 const rightTabsCount = computed(() => {
   if (contextTabIndex.value < 0) return 0;
@@ -84,8 +88,8 @@ function hideContextMenu() {
 }
 
 function handleTabContextMenu(tabId: string, event: MouseEvent) {
-  const menuWidth = 170;
-  const menuHeight = 140;
+  const menuWidth = 210;
+  const menuHeight = 230;
   contextMenu.value = {
     visible: true,
     x: Math.min(event.clientX, window.innerWidth - menuWidth),
@@ -135,6 +139,31 @@ function handleCloseOtherTabs() {
     .filter((tab) => tab.id !== contextMenu.value.tabId)
     .map((tab) => tab.id);
   closeTabsByIds(tabIds);
+}
+
+async function handleRevealContextTabInFolder() {
+  const filePath = contextTab.value?.filePath;
+  if (!filePath) return;
+
+  hideContextMenu();
+  const opened = await window.electronAPI.revealFileInFolder(filePath);
+  if (!opened) {
+    autotoast.show("无法打开所在文件夹", "error");
+  }
+}
+
+async function handleCopyContextTabPath() {
+  const filePath = contextTab.value?.filePath;
+  if (!filePath) return;
+
+  hideContextMenu();
+  const copied = await window.electronAPI.writeTextToClipboard(filePath);
+  if (copied) {
+    autotoast.show("已复制文件路径", "success");
+    return;
+  }
+
+  autotoast.show("复制文件路径失败", "error");
 }
 
 function handleContextMenuKeydown(event: KeyboardEvent) {
@@ -467,15 +496,46 @@ onUnmounted(() => {
       @click.stop
       @contextmenu.prevent.stop
     >
-      <button type="button" @click="handleCloseContextTab">关闭标签</button>
+      <button
+        type="button"
+        :disabled="!contextTab?.filePath"
+        @click="handleRevealContextTabInFolder"
+      >
+        <span class="menu-item-content">
+          <AppIcon name="folder-opened" />
+          <span>打开所在文件夹</span>
+        </span>
+      </button>
+      <button type="button" :disabled="!contextTab?.filePath" @click="handleCopyContextTabPath">
+        <span class="menu-item-content">
+          <AppIcon name="document-copy" />
+          <span>复制文件路径</span>
+        </span>
+      </button>
+      <div class="tab-context-divider"></div>
+      <button type="button" @click="handleCloseContextTab">
+        <span class="menu-item-content">
+          <AppIcon name="close" />
+          <span>关闭标签</span>
+        </span>
+      </button>
       <button type="button" :disabled="rightTabsCount === 0" @click="handleCloseRightTabs">
-        关闭右侧标签
+        <span class="menu-item-content">
+          <AppIcon name="close" />
+          <span>关闭右侧标签</span>
+        </span>
       </button>
       <button type="button" :disabled="savedTabsCount === 0" @click="handleCloseSavedTabs">
-        关闭已保存
+        <span class="menu-item-content">
+          <AppIcon name="circle-check" />
+          <span>关闭已保存</span>
+        </span>
       </button>
       <button type="button" :disabled="otherTabsCount === 0" @click="handleCloseOtherTabs">
-        关闭其他
+        <span class="menu-item-content">
+          <AppIcon name="close" />
+          <span>关闭其他</span>
+        </span>
       </button>
     </div>
   </div>
@@ -702,25 +762,39 @@ onUnmounted(() => {
   .tab-context-menu {
     position: fixed;
     z-index: 100000;
-    min-width: 150px;
+    min-width: 210px;
     padding: 6px;
     border: 1px solid var(--border-color-1);
-    border-radius: 8px;
-    background: var(--background-color-1);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--background-color-1) 96%, transparent);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.24);
     -webkit-app-region: no-drag;
 
+    .tab-context-divider {
+      height: 1px;
+      margin: 5px 6px;
+      background: color-mix(in srgb, var(--border-color-1) 84%, transparent);
+    }
+
     button {
       width: 100%;
-      height: 30px;
+      min-height: 34px;
       padding: 0 10px;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       background: transparent;
       color: var(--text-color-1);
       text-align: left;
       font-size: 13px;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+
+      .menu-item-content {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
 
       &:hover:not(:disabled) {
         background: var(--hover-color);

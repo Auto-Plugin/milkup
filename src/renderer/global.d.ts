@@ -33,12 +33,14 @@ interface Window {
     ) => void;
     openExternal: (url: string) => Promise<void>;
     openLink: (href: string, currentFilePath?: string | null) => Promise<void>;
+    revealFileInFolder: (filePath: string) => Promise<boolean>;
     openImagePreview: (
       src: string,
       alt?: string,
       options?: { items?: Array<{ src: string; alt?: string }>; index?: number }
     ) => Promise<void>;
     getFilePathInClipboard: () => Promise<string | null>;
+    writeTextToClipboard: (text: string) => Promise<boolean>;
     writeTempImage: (
       file: Uint8Array<ArrayBuffer>,
       targetPath: string,
