@@ -31,7 +31,7 @@ function handleChangePasteMethod(method: PasteMethod) {
 }
 
 function handleChangeLocalPath() {
-  setConf("image", "localPath", localPath.value?.trim() || "/assets");
+  setConf("image", "localPath", localPath.value?.trim() || "");
 }
 
 function toggleUseFileNameFolder() {
@@ -109,7 +109,7 @@ async function handleSelectDirectory() {
             <input
               v-model="localPath"
               type="text"
-              placeholder="/assets"
+              placeholder="当前文件目录"
               :disabled="useFileNameFolder"
               @change="handleChangeLocalPath"
             />
@@ -127,7 +127,7 @@ async function handleSelectDirectory() {
           {{
             useFileNameFolder
               ? "开启后会使用完整 Markdown 文件名创建同名文件夹，例如 demo.md/image.png。未保存文件首次粘贴图片时会询问处理方式。"
-              : "相对路径基于当前 Markdown 文件目录，例如 `/assets` 会保存到当前文件目录下的 `assets` 文件夹；绝对路径会直接保存到指定目录。"
+              : "留空会保存到当前 Markdown 文件所在目录；填写相对路径时基于当前文件目录，例如 `assets` 会保存到当前文件目录下的 `assets` 文件夹；绝对路径会直接保存到指定目录。"
           }}
         </div>
       </div>

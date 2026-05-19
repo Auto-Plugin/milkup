@@ -411,7 +411,7 @@ function resolveImageSaveDirectory(
     };
   }
 
-  const normalizedPath = (configuredPath || "/assets").trim();
+  const normalizedPath = (configuredPath || "").trim();
 
   if (isAbsoluteImageDirectory(normalizedPath)) {
     return {
@@ -420,7 +420,7 @@ function resolveImageSaveDirectory(
     };
   }
 
-  const relativeDir = normalizeRelativeImageDirectory(normalizedPath) || "assets";
+  const relativeDir = normalizeRelativeImageDirectory(normalizedPath);
   const baseDir = currentFilePath ? path.dirname(currentFilePath) : app.getPath("userData");
 
   return {
@@ -472,6 +472,19 @@ function prepareImageContentForSave(
   imageLocalPath: string,
   useFileNameFolder = false
 ): string {
+  const tempImageSources = new Set<string>();
+
+  replaceMarkdownImageSources(content, (src) => {
+    if (isAbsoluteImageDirectory(src) && isAppTempImagePath(src) && fs.existsSync(src)) {
+      tempImageSources.add(src);
+    }
+    return null;
+  });
+
+  if (tempImageSources.size === 0) {
+    return content;
+  }
+
   const { absoluteDir, isRelative } = resolveImageSaveDirectory(
     imageLocalPath,
     targetFilePath,
@@ -487,7 +500,7 @@ function prepareImageContentForSave(
   }
 
   return replaceMarkdownImageSources(content, (src) => {
-    if (!isAbsoluteImageDirectory(src) || !isAppTempImagePath(src)) {
+    if (!tempImageSources.has(src)) {
       return null;
     }
 
@@ -757,7 +770,7 @@ export function registerIpcHandleHandlers() {
       const preparedContent = prepareImageContentForSave(
         content,
         filePath,
-        imageLocalPath || "/assets",
+        imageLocalPath ?? "",
         Boolean(imageUseFileNameFolder)
       );
       // 根据原始文件格式特征还原内容
@@ -792,7 +805,7 @@ export function registerIpcHandleHandlers() {
       const preparedContent = prepareImageContentForSave(
         content,
         filePath,
-        imageLocalPath || "/assets",
+        imageLocalPath ?? "",
         Boolean(imageUseFileNameFolder)
       );
       const restoredContent = restoreFileTraits(preparedContent, fileTraits);

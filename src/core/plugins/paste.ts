@@ -49,8 +49,9 @@ export function getImagePasteMethod(): ImagePasteMethod {
 
 /** 获取本地图片保存路径 */
 export function getLocalImagePath(): string {
-  const localPath = getStoredImageConfig().localPath || localStorage.getItem("localImagePath");
-  return localPath || "/assets";
+  const storedConfig = getStoredImageConfig();
+  const localPath = storedConfig.localPath ?? localStorage.getItem("localImagePath");
+  return localPath ?? "";
 }
 
 function getStoredImageConfig(): StoredImageConfig {

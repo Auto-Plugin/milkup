@@ -38,7 +38,7 @@ const defaultConfig: AppConfig = {
   },
   image: {
     pasteMethod: "local",
-    localPath: "/assets",
+    localPath: "",
     useFileNameFolder: false,
   },
   other: {
