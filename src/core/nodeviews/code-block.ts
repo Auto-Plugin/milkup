@@ -1153,19 +1153,10 @@ export class CodeBlockView implements NodeView {
   }
 
   /**
-   * 获取代码块的完整 Markdown 文本（含围栏）
-   */
-  private getCodeBlockMarkdown(): string {
-    const language = this.node.attrs.language || "";
-    const content = this.cm.state.doc.toString();
-    return `\`\`\`${language}\n${content}\n\`\`\``;
-  }
-
-  /**
    * 复制代码块到剪贴板
    */
   private copyCodeBlock(): void {
-    navigator.clipboard.writeText(this.getCodeBlockMarkdown());
+    navigator.clipboard.writeText(this.cm.state.doc.toString());
   }
 
   /**

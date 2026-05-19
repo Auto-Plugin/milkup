@@ -84,7 +84,6 @@ import {
   addColumnAtEnd,
   deleteRow,
   deleteColumn,
-  getCurrentRowMarkdown,
   insertMarkdownTableRowAfterCurrent,
 } from "./commands";
 import { DEFAULT_SHORTCUTS, buildActionCommandMap } from "./keymap";
@@ -194,6 +193,7 @@ export class MilkupEditor implements IMilkupEditor {
       handleClick: (view, pos, event) => this.handleEditorClick(view, pos, event),
       handleDOMEvents: {
         contextmenu: (view, event) => this.handleContextMenu(view, event),
+        copy: (view, event) => this.handleCopy(view, event),
       },
     });
 
@@ -787,6 +787,18 @@ export class MilkupEditor implements IMilkupEditor {
   }
 
   /**
+   * 复制时根据当前选区决定表格内容的输出格式
+   */
+  private handleCopy(_view: EditorView, event: ClipboardEvent): boolean {
+    if (this.view.state.selection.empty) return false;
+
+    const text = this.serializeSelectionForClipboard();
+    event.clipboardData?.setData("text/plain", text);
+    event.preventDefault();
+    return true;
+  }
+
+  /**
    * 创建右键菜单分隔线
    */
   private createContextMenuSeparator(): HTMLElement {
@@ -962,8 +974,7 @@ export class MilkupEditor implements IMilkupEditor {
 
     // 复制
     const copyItem = this.createContextMenuItem("复制", !hasSelection, () => {
-      const slice = this.view.state.selection.content();
-      const text = this.serializeSliceToMarkdown(slice);
+      const text = this.serializeSelectionForClipboard();
       navigator.clipboard.writeText(text);
       this.hideContextMenu();
     });
@@ -998,10 +1009,10 @@ export class MilkupEditor implements IMilkupEditor {
       menu.appendChild(this.createContextMenuSeparator());
 
       menu.appendChild(
-        this.createContextMenuItem("复制本行", false, () => {
-          const rowMarkdown = getCurrentRowMarkdown(this.view.state);
-          if (rowMarkdown) {
-            navigator.clipboard.writeText(rowMarkdown);
+        this.createContextMenuItem("复制表格", false, () => {
+          const tableMarkdown = this.getCurrentTableMarkdown();
+          if (tableMarkdown) {
+            navigator.clipboard.writeText(tableMarkdown);
           }
           this.hideContextMenu();
         })
@@ -1729,6 +1740,125 @@ export class MilkupEditor implements IMilkupEditor {
       const tr = this.view.state.tr.insert($from.pos, imageNode);
       this.view.dispatch(tr);
     }
+  }
+
+  private serializeSelectionForClipboard(): string {
+    const tableSelectionText = this.serializeTableSelectionForClipboard();
+    if (tableSelectionText !== null) return tableSelectionText;
+
+    return this.serializeSliceToMarkdown(this.view.state.selection.content());
+  }
+
+  private serializeTableSelectionForClipboard(): string | null {
+    const { selection } = this.view.state;
+    if (selection.empty) return null;
+
+    const from = selection.from;
+    const to = selection.to;
+    const tableInfo = this.getCommonSelectedTable(from, to);
+    if (!tableInfo) return null;
+
+    const selectedCells: Array<{ rowIndex: number; colIndex: number; text: string }> = [];
+    const tableContentStart = tableInfo.pos + 1;
+
+    tableInfo.node.forEach((row, rowOffset, rowIndex) => {
+      const rowStart = tableContentStart + rowOffset;
+      let cellStart = rowStart + 1;
+
+      row.forEach((cell, _cellOffset, colIndex) => {
+        const cellEnd = cellStart + cell.nodeSize;
+        if (from < cellEnd && to > cellStart) {
+          selectedCells.push({
+            rowIndex,
+            colIndex,
+            text: cell.textContent || "",
+          });
+        }
+        cellStart = cellEnd;
+      });
+    });
+
+    if (selectedCells.length === 0) return null;
+
+    const rowIndexes = [...new Set(selectedCells.map((cell) => cell.rowIndex))].sort(
+      (a, b) => a - b
+    );
+    const colIndexes = [...new Set(selectedCells.map((cell) => cell.colIndex))].sort(
+      (a, b) => a - b
+    );
+
+    if (rowIndexes.length === 1) {
+      return selectedCells
+        .sort((a, b) => a.colIndex - b.colIndex)
+        .map((cell) => cell.text)
+        .join("\t");
+    }
+
+    if (colIndexes.length === 1) {
+      return selectedCells
+        .sort((a, b) => a.rowIndex - b.rowIndex)
+        .map((cell) => cell.text)
+        .join("\n");
+    }
+
+    const cellMap = new Map<string, string>();
+    for (const cell of selectedCells) {
+      cellMap.set(`${cell.rowIndex}:${cell.colIndex}`, cell.text);
+    }
+
+    const rows = rowIndexes.map((rowIndex) =>
+      colIndexes.map((colIndex) => cellMap.get(`${rowIndex}:${colIndex}`) ?? "")
+    );
+
+    if (rows.length === 0 || rows[0].length === 0) return null;
+
+    const lines = [
+      `| ${rows[0].join(" | ")} |`,
+      `| ${rows[0].map(() => "---").join(" | ")} |`,
+      ...rows.slice(1).map((row) => `| ${row.join(" | ")} |`),
+    ];
+    return lines.join("\n");
+  }
+
+  private getCurrentTableMarkdown(): string | null {
+    const tableInfo = this.getTableAtPosition(this.view.state.selection.from);
+    if (!tableInfo) return null;
+
+    const doc = this.schema.topNodeType.create(null, tableInfo.node);
+    return serializeMarkdown(doc).trimEnd();
+  }
+
+  private getCommonSelectedTable(from: number, to: number): { node: Node; pos: number } | null {
+    const doc = this.view.state.doc;
+    const startTable = this.getTableAtPosition(from);
+    const endTable = this.getTableAtPosition(Math.max(from, to - 1));
+    if (!startTable || !endTable) return null;
+    if (startTable.pos !== endTable.pos) return null;
+
+    let hasOutsideContent = false;
+    doc.nodesBetween(from, to, (node, pos) => {
+      if (hasOutsideContent) return false;
+      if (pos === startTable.pos) return false;
+      if (pos >= startTable.pos && pos < startTable.pos + startTable.node.nodeSize) return true;
+      hasOutsideContent = true;
+      return false;
+    });
+
+    return hasOutsideContent ? null : startTable;
+  }
+
+  private getTableAtPosition(pos: number): { node: Node; pos: number } | null {
+    const $pos = this.view.state.doc.resolve(pos);
+    for (let depth = $pos.depth; depth > 0; depth--) {
+      const node = $pos.node(depth);
+      if (node.type.name === "table") {
+        return {
+          node,
+          pos: $pos.before(depth),
+        };
+      }
+    }
+    return null;
   }
 
   /**
