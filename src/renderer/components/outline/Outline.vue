@@ -1,11 +1,17 @@
 <script setup lang="ts">
-import { reactive, ref, watch } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 import WorkSpace from "@/renderer/components/workspace/WorkSpace.vue";
 import useOutline from "@/renderer/hooks/useOutline";
 import emitter from "@/renderer/events";
 
 const { outline } = useOutline();
+
+type OutlineItem = { id: string; level: number; text: string; pos: number };
+type OutlineRow = {
+  item: OutlineItem;
+  hasChildren: boolean;
+};
 
 const savedTab = localStorage.getItem("sidebar-active-tab") as "outline" | "file" | null;
 const activeTab = ref<"outline" | "file">(savedTab === "outline" ? "outline" : "file");
@@ -14,22 +20,36 @@ watch(activeTab, (val) => localStorage.setItem("sidebar-active-tab", val));
 // 折叠状态：记录哪些标题被折叠了（key 是 heading id）
 const collapsedSet = reactive(new Set<string>());
 
-// 判断某个标题项是否因父级折叠而被隐藏
-function isHiddenByCollapse(index: number): boolean {
+const outlineRows = computed<OutlineRow[]>(() => {
   const items = outline.value;
-  // 向前查找直接祖先链，逐级检查是否被折叠
-  let targetLevel = items[index].level;
-  for (let i = index - 1; i >= 0; i--) {
-    if (items[i].level < targetLevel) {
-      if (collapsedSet.has(items[i].id)) {
-        return true;
-      }
-      // 找到了直接父级且未折叠，继续向上查找更高层祖先
-      targetLevel = items[i].level;
+  const rows: OutlineRow[] = [];
+  const collapsedAncestorLevels: number[] = [];
+
+  items.forEach((item, index) => {
+    while (
+      collapsedAncestorLevels.length > 0 &&
+      collapsedAncestorLevels[collapsedAncestorLevels.length - 1] >= item.level
+    ) {
+      collapsedAncestorLevels.pop();
     }
-  }
-  return false;
-}
+
+    const hasCollapsedAncestor = collapsedAncestorLevels.length > 0;
+    const hasChildHeading = index + 1 < items.length && items[index + 1].level > item.level;
+
+    if (!hasCollapsedAncestor) {
+      rows.push({
+        item,
+        hasChildren: hasChildHeading,
+      });
+    }
+
+    if (hasChildHeading && collapsedSet.has(item.id)) {
+      collapsedAncestorLevels.push(item.level);
+    }
+  });
+
+  return rows;
+});
 
 // 判断某个标题是否有子标题
 function hasChildren(index: number): boolean {
@@ -38,7 +58,7 @@ function hasChildren(index: number): boolean {
   return index + 1 < items.length && items[index + 1].level > currentLevel;
 }
 
-function toggleCollapse(oi: { id: string }) {
+function toggleCollapse(oi: OutlineItem) {
   if (collapsedSet.has(oi.id)) {
     collapsedSet.delete(oi.id);
   } else {
@@ -46,7 +66,7 @@ function toggleCollapse(oi: { id: string }) {
   }
 }
 
-function onOiClick(oi: { id: string; text: string; level: number; pos: number }) {
+function onOiClick(oi: OutlineItem) {
   emitter.emit("outline:scrollTo", oi.pos);
 }
 
@@ -55,7 +75,7 @@ const contextMenu = ref<{
   visible: boolean;
   x: number;
   y: number;
-  item: { id: string; text: string; level: number; pos: number } | null;
+  item: OutlineItem | null;
 }>({
   visible: false,
   x: 0,
@@ -66,10 +86,7 @@ const contextMenu = ref<{
 // 折叠子菜单
 const showCollapseSubmenu = ref(false);
 
-function onItemContextMenu(
-  e: MouseEvent,
-  oi: { id: string; text: string; level: number; pos: number }
-) {
+function onItemContextMenu(e: MouseEvent, oi: OutlineItem) {
   e.preventDefault();
   e.stopPropagation();
   showCollapseSubmenu.value = false;
@@ -148,26 +165,25 @@ onUnmounted(() => document.removeEventListener("click", onDocClick));
     <div class="content-container">
       <div v-if="activeTab === 'outline'" class="outlineList">
         <template v-if="outline.length > 0">
-          <template v-for="(oi, index) in outline" :key="oi.id">
-            <div
-              v-if="!isHiddenByCollapse(index)"
-              class="outlineItem"
-              :style="{ paddingLeft: `${oi.level * 12}px` }"
-              @click="onOiClick(oi)"
-              @contextmenu="onItemContextMenu($event, oi)"
+          <div
+            v-for="{ item: oi, hasChildren: itemHasChildren } in outlineRows"
+            :key="oi.id"
+            class="outlineItem"
+            :style="{ paddingLeft: `${oi.level * 12}px` }"
+            @click="onOiClick(oi)"
+            @contextmenu="onItemContextMenu($event, oi)"
+          >
+            <span
+              v-if="itemHasChildren"
+              class="collapse-icon"
+              :class="{ collapsed: collapsedSet.has(oi.id) }"
+              @click.stop="toggleCollapse(oi)"
             >
-              <span
-                v-if="hasChildren(index)"
-                class="collapse-icon"
-                :class="{ collapsed: collapsedSet.has(oi.id) }"
-                @click.stop="toggleCollapse(oi)"
-              >
-                <AppIcon name="arrow-right" />
-              </span>
-              <span v-else class="collapse-icon-placeholder"></span>
-              <span class="outlineItem-text">{{ oi.text }}</span>
-            </div>
-          </template>
+              <AppIcon name="arrow-right" />
+            </span>
+            <span v-else class="collapse-icon-placeholder"></span>
+            <span class="outlineItem-text">{{ oi.text }}</span>
+          </div>
         </template>
         <div v-else class="empty-state">
           <AppIcon name="List-outlined" class="empty-icon" />
@@ -287,9 +303,27 @@ onUnmounted(() => document.removeEventListener("click", onDocClick));
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--text-color-3) 34%, transparent) transparent;
 
     &::-webkit-scrollbar {
-      display: none;
+      width: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: color-mix(in srgb, var(--text-color-3) 28%, transparent);
+      border: 2px solid transparent;
+      border-radius: 999px;
+      background-clip: content-box;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background: color-mix(in srgb, var(--text-color-3) 45%, transparent);
+      background-clip: content-box;
     }
   }
 

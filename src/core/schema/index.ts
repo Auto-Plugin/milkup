@@ -104,6 +104,11 @@ const paragraph: NodeSpec = {
     listId: { default: null },
     listLineIndex: { default: null },
     listTotalLines: { default: null },
+    // 引用块相关属性（仅在源码模式下使用）
+    blockquoteId: { default: null },
+    blockquoteLineIndex: { default: null },
+    blockquoteTotalLines: { default: null },
+    blockquoteSeparator: { default: null },
   },
   content: "inline*",
   group: "block",
@@ -149,6 +154,15 @@ const paragraph: NodeSpec = {
       attrs["data-list-line-index"] = node.attrs.listLineIndex;
       attrs["data-list-total-lines"] = node.attrs.listTotalLines;
     }
+    // 如果是引用块段落，添加数据属性
+    if (node.attrs.blockquoteId) {
+      attrs["data-blockquote-id"] = node.attrs.blockquoteId;
+      attrs["data-blockquote-line-index"] = node.attrs.blockquoteLineIndex;
+      attrs["data-blockquote-total-lines"] = node.attrs.blockquoteTotalLines;
+    }
+    if (node.attrs.blockquoteSeparator) {
+      attrs["data-blockquote-separator"] = "true";
+    }
     return ["p", attrs, 0];
   },
 };
@@ -174,12 +188,30 @@ const heading: NodeSpec = {
 };
 
 const blockquote: NodeSpec = {
+  attrs: {
+    alertType: { default: null },
+  },
   content: "block+",
   group: "block",
   defining: true,
-  parseDOM: [{ tag: "blockquote" }],
-  toDOM(): DOMOutputSpec {
-    return ["blockquote", 0];
+  parseDOM: [
+    {
+      tag: "blockquote",
+      getAttrs(node) {
+        const el = node as HTMLElement;
+        return {
+          alertType: el.getAttribute("data-alert-type") || null,
+        };
+      },
+    },
+  ],
+  toDOM(node): DOMOutputSpec {
+    const attrs: Record<string, string> = {};
+    if (node.attrs.alertType) {
+      attrs.class = `blockquote-alert blockquote-alert-${node.attrs.alertType}`;
+      attrs["data-alert-type"] = node.attrs.alertType;
+    }
+    return ["blockquote", attrs, 0];
   },
 };
 

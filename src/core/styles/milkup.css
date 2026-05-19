@@ -206,6 +206,65 @@
   margin-bottom: 0;
 }
 
+.milkup-editor blockquote.blockquote-alert {
+  color: var(--text-color-1, #24292f);
+  border-left-color: var(--blockquote-alert-color);
+}
+
+.milkup-blockquote-alert-marker-hidden {
+  font-size: 0;
+  line-height: 0;
+  opacity: 0;
+}
+
+.milkup-blockquote-alert-icon {
+  width: 1.1em;
+  height: 1.1em;
+  margin: 0 0.3em 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--blockquote-alert-color, #0969da);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1em;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: -0.08em;
+  opacity: 1;
+}
+
+.milkup-blockquote-alert-icon:hover {
+  opacity: 1;
+}
+
+.milkup-blockquote-alert-icon svg {
+  width: 1em;
+  height: 1em;
+}
+
+.milkup-editor blockquote.blockquote-alert-note {
+  --blockquote-alert-color: #3992d7;
+}
+
+.milkup-editor blockquote.blockquote-alert-tip {
+  --blockquote-alert-color: #1a7f37;
+}
+
+.milkup-editor blockquote.blockquote-alert-important {
+  --blockquote-alert-color: #8250df;
+}
+
+.milkup-editor blockquote.blockquote-alert-warning {
+  --blockquote-alert-color: #9a6700;
+}
+
+.milkup-editor blockquote.blockquote-alert-caution {
+  --blockquote-alert-color: #cf222e;
+}
+
 /* 代码块 */
 .milkup-code-block {
   margin: 1em 0;
@@ -1178,6 +1237,16 @@
   border-left: none;
   color: inherit;
   background: transparent;
+}
+
+.milkup-editor.source-view .milkup-blockquote-alert-icon {
+  display: none;
+}
+
+.milkup-editor.source-view .milkup-blockquote-alert-marker-hidden {
+  font-size: inherit;
+  line-height: inherit;
+  opacity: 1;
 }
 
 /* 代码块源码模式 */

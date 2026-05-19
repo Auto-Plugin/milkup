@@ -16,7 +16,7 @@
 
 import { Node, Schema, Mark } from "prosemirror-model";
 import { milkupSchema } from "../schema";
-import type { SyntaxMarker, SyntaxType } from "../types";
+import type { SyntaxMarker } from "../types";
 
 /** 解析结果 */
 export interface ParseResult {
@@ -147,6 +147,8 @@ const BLOCK_PATTERNS = {
   container_end: /^:::\s*$/, // 允许行尾有空格
   html_block_start: /^<([a-zA-Z][a-zA-Z0-9]*)/, // 以 < 开头后跟标签名
 };
+
+const BLOCKQUOTE_ALERT_PATTERN = /^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*$/i;
 
 const IMAGE_TOKEN_PATTERNS = {
   linked: /\[!\[([^\]]*)\]\((.+?)(?:\s+"([^"]*)")?\)\]\((.+?)(?:\s+"([^"]*)")?\)/y,
@@ -919,14 +921,10 @@ export class MarkdownParser {
 
     while (endIndex < lines.length) {
       const line = lines[endIndex];
-      // 空行也可以是引用的一部分（如果下一行还是引用）
+      // 空白行结束当前引用块。
+      // 若需要在同一引用块内保留空行，应显式写成 `>`。
+      // 这样相邻引用块之间只有一行普通空行时，不会被补全为 `>` 后合并。
       if (line.trim() === "") {
-        // 检查下一行是否还是引用
-        if (endIndex + 1 < lines.length && BLOCK_PATTERNS.blockquote.test(lines[endIndex + 1])) {
-          contentLines.push("");
-          endIndex++;
-          continue;
-        }
         break;
       }
       const match = line.match(BLOCK_PATTERNS.blockquote);
@@ -936,6 +934,8 @@ export class MarkdownParser {
       endIndex++;
     }
 
+    const alertMatch = contentLines[0]?.trim().match(BLOCKQUOTE_ALERT_PATTERN);
+    const alertType = alertMatch ? alertMatch[1].toLowerCase() : null;
     const innerBlocks = this.parseBlocks(contentLines);
 
     // 为每个块级元素添加 > 前缀
@@ -965,7 +965,7 @@ export class MarkdownParser {
     return {
       node: this.schema.node(
         "blockquote",
-        null,
+        alertType ? { alertType } : null,
         processedBlocks.length > 0 ? processedBlocks : [this.schema.node("paragraph")]
       ),
       endIndex: endIndex - 1,

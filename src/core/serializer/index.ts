@@ -107,6 +107,15 @@ export class MarkdownSerializer {
         lines.push(indent + text);
         const isLastLine = node.attrs.listLineIndex === node.attrs.listTotalLines - 1;
         if (isLastLine && !this.options.compact) lines.push("");
+      } else if (node.attrs.blockquoteId) {
+        // 对于引用块段落，直接输出文本内容（包含引用标记）
+        const text = node.textContent;
+        lines.push(indent + text);
+        const isLastLine = node.attrs.blockquoteLineIndex === node.attrs.blockquoteTotalLines - 1;
+        if (isLastLine && !this.options.compact) lines.push("");
+      } else if (node.attrs.blockquoteSeparator) {
+        // 源码模式下相邻引用块之间的普通空行
+        lines.push(indent + node.textContent);
       } else {
         const text = this.serializeInline(node);
         lines.push(indent + text);
@@ -122,7 +131,7 @@ export class MarkdownSerializer {
       if (!this.options.compact) lines.push("");
     },
 
-    blockquote: (node, lines, indent) => {
+    blockquote: (node, lines, indent, index, fragment) => {
       // 逐个序列化子节点，自行控制分隔符，避免 !compact 空行
       // 被转为 ">" 导致重新解析时产生多余空段落（往返膨胀问题）。
       //
@@ -131,6 +140,7 @@ export class MarkdownSerializer {
       //   N 个空段落 + 前方 1 个 ">" 分隔符 = N+1 个空 contentLine
       //   → parseBlocks 的 extra = (N+1)-1 = N → 恰好还原 N 个空段落
       let prevWasContent = false; // 上一个子节点是否为有内容的段落
+      const alertMarkerPattern = /^\s*>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*$/i;
       node.content.forEach((child, _, index) => {
         const childLines: string[] = [];
         this.serializeNode(child, childLines, "", index, node.content);
@@ -145,10 +155,15 @@ export class MarkdownSerializer {
           child.type.name === "paragraph" &&
           childLines.length === 1 &&
           (childLines[0].trim() === ">" || childLines[0] === "> ");
+        const isAlertFirstContentParagraph =
+          Boolean(node.attrs.alertType) &&
+          index === 1 &&
+          node.firstChild?.type.name === "paragraph" &&
+          alertMarkerPattern.test(node.firstChild.textContent);
 
         // 仅在上一个子节点是有内容的段落时，才插入 ">" 分隔符。
         // 空段落之间不加分隔符，避免分隔符被解析为额外空行导致膨胀。
-        if (prevWasContent) {
+        if (prevWasContent && !isAlertFirstContentParagraph) {
           lines.push(indent + ">");
         }
 
@@ -164,7 +179,8 @@ export class MarkdownSerializer {
 
         prevWasContent = !isEmptyParagraph;
       });
-      if (!this.options.compact) lines.push("");
+      const nextNode = index + 1 < fragment.childCount ? fragment.child(index + 1) : null;
+      if (!this.options.compact || nextNode?.type.name === "blockquote") lines.push("");
     },
 
     code_block: (node, lines, indent) => {

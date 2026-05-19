@@ -25,6 +25,10 @@ import { createSyntaxFixerPlugin } from "./plugins/syntax-fixer";
 import { createSyntaxDetectorPlugin } from "./plugins/syntax-detector";
 import { createHeadingSyncPlugin } from "./plugins/heading-sync";
 import {
+  createBlockquoteAlertKeymapPlugin,
+  createBlockquoteAlertSyncPlugin,
+} from "./plugins/blockquote-alert-sync";
+import {
   createPastePlugin,
   containsMarkdownSyntax,
   fileToBase64,
@@ -230,6 +234,8 @@ export class MilkupEditor implements IMilkupEditor {
           return true;
         },
       }),
+      // 引用告示块快捷键插件（需早于 keymap，优先处理 Backspace/Delete）
+      createBlockquoteAlertKeymapPlugin(),
       // 动态快捷键插件（可自定义的快捷键，优先级最高）
       createDynamicKeymapPlugin(this.schema, () => this.getCustomKeyMap()),
       // 不可自定义的快捷键（块级 Enter、列表操作等）
@@ -238,6 +244,8 @@ export class MilkupEditor implements IMilkupEditor {
       keymap(baseKeymap),
       // 即时渲染插件
       ...createInstantRenderPlugin(),
+      // 引用告示块同步/装饰插件（需晚于 instant-render，读取源码模式状态）
+      createBlockquoteAlertSyncPlugin(),
       // 输入规则
       createInputRulesPlugin(this.schema),
       // 语法修复插件

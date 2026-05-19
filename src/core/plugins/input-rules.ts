@@ -20,7 +20,78 @@ import { decorationPluginKey } from "../decorations";
  * > quote
  */
 function blockquoteRule(nodeType: NodeType): InputRule {
-  return wrappingInputRule(/^>\s$/, nodeType);
+  return new InputRule(/^>\s$/, (state, _match, start, end) => {
+    const decorationState = decorationPluginKey.getState(state);
+    if (decorationState?.sourceView) {
+      return null;
+    }
+
+    const { $from } = state.selection;
+    const paragraphDepth = $from.depth;
+    if ($from.parent.type.name !== "paragraph") return null;
+
+    const blockquoteDepth = (() => {
+      for (let depth = paragraphDepth - 1; depth > 0; depth--) {
+        if ($from.node(depth).type === nodeType) return depth;
+      }
+      return -1;
+    })();
+
+    if (blockquoteDepth === -1) {
+      const paragraphStart = $from.start(paragraphDepth);
+      const paragraphEnd = $from.end(paragraphDepth);
+      const paragraphParentDepth = paragraphDepth - 1;
+      const paragraphIndex = $from.index(paragraphParentDepth);
+      const parent = $from.node(paragraphParentDepth);
+      const previousSibling = paragraphIndex > 0 ? parent.child(paragraphIndex - 1) : null;
+      const isOnlyBlockquoteMarker = start === paragraphStart && end === paragraphEnd;
+
+      if (previousSibling?.type === nodeType && isOnlyBlockquoteMarker) {
+        const paragraphPos = $from.before(paragraphDepth);
+        const paragraph = state.schema.nodes.paragraph.create();
+        const blockquote = nodeType.create(null, paragraph);
+        const tr = state.tr.replaceWith(
+          paragraphPos,
+          paragraphPos + $from.parent.nodeSize,
+          blockquote
+        );
+        return tr.setSelection(TextSelection.create(tr.doc, paragraphPos + 2)).scrollIntoView();
+      }
+
+      return wrappingInputRule(/^>\s$/, nodeType).handler(state, _match, start, end);
+    }
+
+    const blockquoteStart = $from.before(blockquoteDepth);
+    const blockquoteEnd = $from.after(blockquoteDepth);
+    const paragraphIndex = $from.index(blockquoteDepth);
+
+    if (paragraphIndex === 0) return null;
+
+    const blockquote = $from.node(blockquoteDepth);
+    const beforeChildren: any[] = [];
+    const afterChildren: any[] = [];
+    blockquote.forEach((child, _offset, index) => {
+      if (index < paragraphIndex) beforeChildren.push(child);
+      else if (index > paragraphIndex) afterChildren.push(child);
+    });
+
+    const replacement: any[] = [];
+    if (beforeChildren.length > 0) {
+      replacement.push(nodeType.create(blockquote.attrs, Fragment.from(beforeChildren)));
+    }
+
+    const paragraph = state.schema.nodes.paragraph.create();
+    replacement.push(nodeType.create(null, paragraph));
+
+    if (afterChildren.length > 0) {
+      replacement.push(nodeType.create(blockquote.attrs, Fragment.from(afterChildren)));
+    }
+
+    const tr = state.tr.replaceWith(blockquoteStart, blockquoteEnd, replacement);
+    const beforeSize = beforeChildren.length > 0 ? replacement[0].nodeSize : 0;
+    const newBlockquotePos = blockquoteStart + beforeSize;
+    return tr.setSelection(TextSelection.create(tr.doc, newBlockquotePos + 2)).scrollIntoView();
+  });
 }
 
 /**

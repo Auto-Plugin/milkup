@@ -15,3 +15,9 @@ export {
 } from "./instant-render";
 
 export { createInputRulesPlugin } from "./input-rules";
+export {
+  createBlockquoteAlertKeymapPlugin,
+  createBlockquoteAlertSyncPlugin,
+  blockquoteAlertKeymapPluginKey,
+  blockquoteAlertSyncPluginKey,
+} from "./blockquote-alert-sync";
