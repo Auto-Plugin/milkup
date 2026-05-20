@@ -193,13 +193,23 @@ function buildImagePreviewHtml(payload: {
       overflow: hidden;
       -webkit-app-region: no-drag;
     }
+    .viewer.zoomed {
+      cursor: grab;
+    }
+    .viewer.dragging {
+      cursor: grabbing;
+    }
     img {
       max-width: 100vw;
       max-height: 100vh;
       object-fit: contain;
       -webkit-user-drag: none;
+      pointer-events: none;
       transform-origin: center center;
-      transition: transform 80ms linear;
+      transition: transform 160ms ease;
+    }
+    .viewer.dragging img {
+      transition: none;
     }
     button {
       position: fixed;
@@ -281,14 +291,69 @@ function buildImagePreviewHtml(payload: {
   <script>
     const items = ${safeItems};
     let currentIndex = ${safeInitialIndex};
+    const viewer = document.querySelector(".viewer");
     const image = document.getElementById("preview-image");
     const counter = document.getElementById("counter");
     let scale = 1;
+    let offsetX = 0;
+    let offsetY = 0;
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let dragStartOffsetX = 0;
+    let dragStartOffsetY = 0;
     const minScale = 0.2;
     const maxScale = 8;
 
-    function applyScale() {
-      image.style.transform = "scale(" + scale + ")";
+    function canDragImage() {
+      return scale > 1;
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function getDragBounds() {
+      if (!canDragImage()) return { x: 0, y: 0 };
+      const viewerRect = viewer.getBoundingClientRect();
+      const scaledWidth = image.offsetWidth * scale;
+      const scaledHeight = image.offsetHeight * scale;
+
+      return {
+        x: Math.max(0, (scaledWidth - viewerRect.width) / 2),
+        y: Math.max(0, (scaledHeight - viewerRect.height) / 2),
+      };
+    }
+
+    function clampOffsetToBounds() {
+      const bounds = getDragBounds();
+      const nextOffsetX = clamp(offsetX, -bounds.x, bounds.x);
+      const nextOffsetY = clamp(offsetY, -bounds.y, bounds.y);
+      const changed = nextOffsetX !== offsetX || nextOffsetY !== offsetY;
+      offsetX = nextOffsetX;
+      offsetY = nextOffsetY;
+      return changed;
+    }
+
+    function settleOffsetWithinBounds() {
+      if (!canDragImage()) {
+        offsetX = 0;
+        offsetY = 0;
+        applyTransform();
+        return;
+      }
+      if (clampOffsetToBounds()) {
+        applyTransform();
+      }
+    }
+
+    function applyTransform() {
+      if (!canDragImage()) {
+        offsetX = 0;
+        offsetY = 0;
+      }
+      image.style.transform = "translate(" + offsetX + "px, " + offsetY + "px) scale(" + scale + ")";
+      viewer.classList.toggle("zoomed", canDragImage());
     }
 
     function showImage(index) {
@@ -299,7 +364,9 @@ function buildImagePreviewHtml(payload: {
       image.alt = item.alt || "";
       document.title = item.alt || "";
       scale = 1;
-      applyScale();
+      offsetX = 0;
+      offsetY = 0;
+      applyTransform();
       if (counter) counter.textContent = (currentIndex + 1) + " / " + items.length;
     }
 
@@ -311,8 +378,42 @@ function buildImagePreviewHtml(payload: {
       event.preventDefault();
       const delta = event.deltaY < 0 ? 1.12 : 1 / 1.12;
       scale = Math.min(maxScale, Math.max(minScale, scale * delta));
-      applyScale();
+      if (canDragImage()) {
+        clampOffsetToBounds();
+      }
+      applyTransform();
     }, { passive: false });
+
+    viewer.addEventListener("mousedown", (event) => {
+      if (event.button !== 0 || !canDragImage()) return;
+      event.preventDefault();
+      isDragging = true;
+      dragStartX = event.clientX;
+      dragStartY = event.clientY;
+      dragStartOffsetX = offsetX;
+      dragStartOffsetY = offsetY;
+      viewer.classList.add("dragging");
+    });
+
+    window.addEventListener("mousemove", (event) => {
+      if (!isDragging) return;
+      event.preventDefault();
+      offsetX = dragStartOffsetX + event.clientX - dragStartX;
+      offsetY = dragStartOffsetY + event.clientY - dragStartY;
+      applyTransform();
+    });
+
+    function stopDrag() {
+      if (!isDragging) return;
+      isDragging = false;
+      viewer.classList.remove("dragging");
+      settleOffsetWithinBounds();
+    }
+
+    window.addEventListener("mouseup", stopDrag);
+    window.addEventListener("mouseleave", stopDrag);
+    window.addEventListener("resize", settleOffsetWithinBounds);
+    image.addEventListener("load", settleOffsetWithinBounds);
 
     window.addEventListener("keydown", (event) => {
       if (event.key === "Escape") window.close();
@@ -320,7 +421,9 @@ function buildImagePreviewHtml(payload: {
       if (event.key === "ArrowRight") showRelative(1);
       if (event.key === "0") {
         scale = 1;
-        applyScale();
+        offsetX = 0;
+        offsetY = 0;
+        applyTransform();
       }
     });
 
