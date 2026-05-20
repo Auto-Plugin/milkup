@@ -76,13 +76,13 @@ async function handleTest() {
   testing.value = true;
   testResult.value = "";
   try {
-    const success = await AIService.testConnection(config.value);
-    if (success) {
-      toast.show("连接成功！", "success");
-      testResult.value = "连接成功";
+    const result = await AIService.testConnection(config.value);
+    if (result.success) {
+      toast.show(result.message, result.degraded ? "warn" : "success");
+      testResult.value = result.message;
     } else {
-      toast.show("连接失败，请检查配置", "error");
-      testResult.value = "连接失败";
+      toast.show(result.message || "连接失败，请检查配置", "error");
+      testResult.value = result.message || "连接失败";
     }
   } catch (e: any) {
     toast.show(`连接出错: ${e.message}`, "error");
@@ -198,7 +198,10 @@ function updateProvider(val: string) {
         </button>
         <span
           class="test-result"
-          :class="{ error: testResult.includes('失败') || testResult.includes('错误') }"
+          :class="{
+            error: testResult.includes('失败') || testResult.includes('错误'),
+            warning: testResult.includes('自动使用'),
+          }"
         >
           {{ testResult }}
         </span>
@@ -315,6 +318,10 @@ function updateProvider(val: string) {
       font-weight: 500;
       &.error {
         color: #f44336;
+      }
+
+      &.warning {
+        color: #b7791f;
       }
     }
   }

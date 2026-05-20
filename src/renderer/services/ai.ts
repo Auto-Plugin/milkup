@@ -11,6 +11,12 @@ export interface CompletionResponse {
   continuation: string;
 }
 
+export interface TestConnectionResult {
+  success: boolean;
+  message: string;
+  degraded?: boolean;
+}
+
 const SYSTEM_PROMPT = `你是一个技术文档续写助手。
 严格只输出以下 JSON，**不要有任何前缀、后缀、markdown、换行、解释**：
 
@@ -43,19 +49,110 @@ export class AIService {
     try {
       const response = await fetch(url, options);
       if (!response.ok) {
-        let errorMsg = `HTTP Error: ${response.status}`;
+        let errorDetail = "";
         try {
           const errorBody = await response.json();
-          errorMsg += ` - ${JSON.stringify(errorBody)}`;
+          errorDetail = this.formatApiErrorDetail(errorBody);
         } catch {
-          errorMsg += ` - ${await response.text()}`;
+          errorDetail = await response.text();
         }
-        throw new Error(errorMsg);
+        throw new Error(`HTTP ${response.status}${errorDetail ? `: ${errorDetail}` : ""}`);
       }
       return await response.json();
     } catch (error: any) {
       console.error("[AI Service] Request failed:", error);
       throw error;
+    }
+  }
+
+  private static formatApiErrorDetail(errorBody: any): string {
+    if (!errorBody) return "";
+    if (typeof errorBody === "string") return errorBody;
+    if (errorBody.error?.message) return errorBody.error.message;
+    if (errorBody.message) return errorBody.message;
+    if (errorBody.detail) return String(errorBody.detail);
+    return JSON.stringify(errorBody);
+  }
+
+  private static isDeepSeekCompatible(config: AIConfig): boolean {
+    const baseUrl = (config.baseUrl || "").toLowerCase();
+    const model = (config.model || "").toLowerCase();
+    return baseUrl.includes("deepseek.com") || model.startsWith("deepseek");
+  }
+
+  private static shouldUseResponseFormat(config: AIConfig): boolean {
+    if (config.provider !== "openai" && config.provider !== "custom") return false;
+    return !this.isDeepSeekCompatible(config);
+  }
+
+  private static isUnsupportedResponseFormatError(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error);
+    return /response_format|json_schema|unsupported|not support|不支持|invalid request/i.test(
+      message
+    );
+  }
+
+  private static buildOpenAICompatibleBody(
+    config: AIConfig,
+    messages: Array<{ role: "system" | "user"; content: string }>,
+    options: { maxTokens?: number; useResponseFormat?: boolean } = {}
+  ): any {
+    const useResponseFormat = options.useResponseFormat ?? this.shouldUseResponseFormat(config);
+    const body: any = {
+      model: config.model,
+      messages,
+      temperature: config.temperature,
+      stream: false,
+    };
+
+    if (options.maxTokens !== undefined) {
+      body.max_tokens = options.maxTokens;
+    }
+
+    if (useResponseFormat) {
+      body.response_format = RESPONSE_SCHEMA;
+    }
+
+    return body;
+  }
+
+  private static async requestOpenAICompatible(
+    config: AIConfig,
+    url: string,
+    headers: Record<string, string>,
+    messages: Array<{ role: "system" | "user"; content: string }>,
+    options: { maxTokens?: number; parseResult?: boolean } = {}
+  ): Promise<{ response: any; degraded: boolean }> {
+    const useResponseFormat = this.shouldUseResponseFormat(config);
+
+    try {
+      const response = await this.request(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(
+          this.buildOpenAICompatibleBody(config, messages, {
+            maxTokens: options.maxTokens,
+            useResponseFormat,
+          })
+        ),
+      });
+      return { response, degraded: !useResponseFormat };
+    } catch (error) {
+      if (!useResponseFormat || !this.isUnsupportedResponseFormatError(error)) {
+        throw error;
+      }
+
+      const response = await this.request(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(
+          this.buildOpenAICompatibleBody(config, messages, {
+            maxTokens: options.maxTokens,
+            useResponseFormat: false,
+          })
+        ),
+      });
+      return { response, degraded: true };
     }
   }
 
@@ -94,34 +191,39 @@ export class AIService {
     throw new Error("Failed to parse AI response");
   }
 
-  static async testConnection(config: AIConfig): Promise<boolean> {
+  static async testConnection(config: AIConfig): Promise<TestConnectionResult> {
     if (!config.baseUrl) throw new Error("Base URL is required");
 
     switch (config.provider) {
       case "ollama":
-        try {
-          // Check tags for Ollama
-          await this.request(`${config.baseUrl}/api/tags`, { method: "GET" });
-          return true;
-        } catch {
-          return false;
-        }
+        await this.request(`${config.baseUrl}/api/tags`, { method: "GET" });
+        return { success: true, message: "连接成功" };
       default:
-        // For others, we might try a minimal model list call or just assume verified if user saves?
-        // Let's try to list models for OpenAI compatible APIs
         if (config.provider === "openai" || config.provider === "custom") {
-          try {
-            await this.request(`${config.baseUrl}/models`, {
-              headers: { Authorization: `Bearer ${config.apiKey}` },
-            });
-            return true;
-          } catch {
-            // Some endpoints might not support /models, maybe try a tiny completion?
-            // But usually /models is standard.
-            return false;
-          }
+          const url = `${config.baseUrl}/chat/completions`;
+          const headers = {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${config.apiKey}`,
+          };
+          const { degraded } = await this.requestOpenAICompatible(
+            config,
+            url,
+            headers,
+            [
+              { role: "system", content: SYSTEM_PROMPT },
+              { role: "user", content: '请返回 {"continuation":"测试"}' },
+            ],
+            { maxTokens: 32 }
+          );
+          return {
+            success: true,
+            message: degraded
+              ? "连接成功；当前接口不支持 response_format，已自动使用 JSON 提示词模式"
+              : "连接成功",
+            degraded,
+          };
         }
-        return true; // Fallback for Anthropic/Gemini verification implementation later if needed
+        return { success: true, message: "连接成功" }; // Fallback for Anthropic/Gemini verification implementation later if needed
     }
   }
 
@@ -152,17 +254,10 @@ export class AIService {
       case "custom":
         url = `${config.baseUrl}/chat/completions`;
         headers["Authorization"] = `Bearer ${config.apiKey}`;
-        body = {
-          model: config.model,
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: userMessage },
-          ],
-          temperature: config.temperature,
-          stream: false,
-          // OpenAI Structured Outputs
-          response_format: RESPONSE_SCHEMA,
-        };
+        body = this.buildOpenAICompatibleBody(config, [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: userMessage },
+        ]);
         break;
 
       case "anthropic":
@@ -242,11 +337,18 @@ export class AIService {
         break;
     }
 
-    const response = await this.request(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-    });
+    let response: any;
+
+    if (config.provider === "openai" || config.provider === "custom") {
+      const result = await this.requestOpenAICompatible(config, url, headers, body.messages, {});
+      response = result.response;
+    } else {
+      response = await this.request(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      });
+    }
 
     let content = "";
 
