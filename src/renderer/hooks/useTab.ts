@@ -142,6 +142,9 @@ function close(id: string) {
   if (tabIndex === -1) return;
 
   const isActiveTab = activeTabId.value === id;
+  if (isActiveTab) {
+    emitter.emit("outline:Update", []);
+  }
   tabs.value.splice(tabIndex, 1);
 
   // 如果关闭的是当前活跃tab，需要切换到其他tab
