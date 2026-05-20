@@ -3,7 +3,8 @@ import { ref, computed } from "vue";
 import {
   useShortcutConfig,
   formatKeyForDisplay,
-  keyEventToProseMirrorKey,
+  formatShortcutForDisplay,
+  keyEventToShortcutKey,
 } from "@/renderer/hooks/useShortcutConfig";
 import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 import type { ShortcutActionId, ShortcutCategory } from "@/core";
@@ -30,11 +31,11 @@ const recordingKey = ref("");
 
 // 分类折叠状态
 const expandedCategories = ref<Set<ShortcutCategory>>(
-  new Set(["inline", "block", "insert", "editor"])
+  new Set(["inline", "block", "insert", "editor", "app"])
 );
 
 // 按分类分组
-const categories: ShortcutCategory[] = ["inline", "block", "insert", "editor"];
+const categories: ShortcutCategory[] = ["inline", "block", "insert", "editor", "app"];
 
 const filteredShortcuts = computed(() => {
   return shortcuts.value.filter((s) => {
@@ -92,7 +93,7 @@ function toggleCategory(cat: ShortcutCategory) {
                 keySearchDisplay = '';
                 return;
               }
-              const k = keyEventToProseMirrorKey(e);
+              const k = keyEventToShortcutKey(e);
               if (k) {
                 keySearch = k;
                 keySearchDisplay = formatKeyForDisplay(k);
@@ -164,7 +165,7 @@ function toggleCategory(cat: ShortcutCategory) {
                         recordingKey = '';
                         return;
                       }
-                      const k = keyEventToProseMirrorKey(e);
+                      const k = keyEventToShortcutKey(e, s);
                       if (k) {
                         updateShortcut(s.id, k);
                         recordingId = null;
@@ -177,7 +178,13 @@ function toggleCategory(cat: ShortcutCategory) {
                     recordingKey = '';
                   "
                 >
-                  {{ recordingId === s.id ? "请按下新快捷键..." : formatKeyForDisplay(s.key) }}
+                  {{
+                    recordingId === s.id
+                      ? s.modifierOnly
+                        ? "请按下新的修饰键..."
+                        : "请按下新快捷键..."
+                      : formatShortcutForDisplay(s)
+                  }}
                 </div>
                 <div class="shortcut-actions">
                   <button

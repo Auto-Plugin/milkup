@@ -4,6 +4,7 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import { vDraggable } from "vue-draggable-plus";
 import AppIcon from "@/renderer/components/ui/AppIcon.vue";
 import useFile from "@/renderer/hooks/useFile";
+import { eventMatchesShortcutKey, useShortcutConfig } from "@/renderer/hooks/useShortcutConfig";
 import useTab from "@/renderer/hooks/useTab";
 
 const {
@@ -27,18 +28,63 @@ const {
 } = useTab();
 
 const { createNewFile } = useFile();
+const { shortcuts } = useShortcutConfig();
 
-// 拦截 ctrl/cmd + w 快捷键关闭tab
-function handleCloseTabShortcut(e: KeyboardEvent) {
+function getShortcutKey(id: string): string {
+  return shortcuts.value.find((shortcut) => shortcut.id === id)?.key ?? "";
+}
+
+function isShortcutRecordingTarget(target: EventTarget | null): boolean {
+  return target instanceof Element && Boolean(target.closest(".shortcut-page"));
+}
+
+function finishHandledShortcut(e: KeyboardEvent) {
+  e.preventDefault();
+  e.stopPropagation();
+}
+
+function switchToNextTab() {
+  if (tabs.value.length <= 1) return;
+
+  const currentIndex = tabs.value.findIndex((tab) => tab.id === activeTabId.value);
+  const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % tabs.value.length : 0;
+  switchToTab(tabs.value[nextIndex].id);
+}
+
+function switchToTabByNumber(key: string) {
+  const index = Number(key) - 1;
+  const targetTab = tabs.value[index];
+  if (!targetTab) return;
+  switchToTab(targetTab.id);
+}
+
+function handleTabKeyboardShortcut(e: KeyboardEvent) {
+  if (isShortcutRecordingTarget(e.target)) return;
+
   const isMac = window.electronAPI.platform === "darwin";
   if ((isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === "w") {
-    e.preventDefault();
+    finishHandledShortcut(e);
     if (activeTabId.value) {
       closeWithConfirm(activeTabId.value);
     }
+    return;
+  }
+
+  const nextTabShortcut = getShortcutKey("switchNextTab");
+  if (eventMatchesShortcutKey(e, nextTabShortcut)) {
+    switchToNextTab();
+    finishHandledShortcut(e);
+    return;
+  }
+
+  if (/^[1-9]$/.test(e.key)) {
+    const numberShortcut = getShortcutKey("switchTabByNumber");
+    if (eventMatchesShortcutKey(e, numberShortcut, { ignoreMainKey: true })) {
+      switchToTabByNumber(e.key);
+      finishHandledShortcut(e);
+    }
   }
 }
-window.addEventListener("keydown", handleCloseTabShortcut);
 
 // 获取tab容器的DOM引用
 const tabContainerRef = ref<HTMLElement | null>(null);
@@ -390,6 +436,7 @@ onMounted(() => {
     container.addEventListener("wheel", wheelHandler, { passive: false });
   }
   window.addEventListener("click", hideContextMenu);
+  window.addEventListener("keydown", handleTabKeyboardShortcut, { capture: true });
   window.addEventListener("keydown", handleContextMenuKeydown);
 });
 
@@ -403,7 +450,7 @@ onUnmounted(() => {
     cleanupInertiaScroll(container);
   }
   // 移除全局键盘事件监听器
-  window.removeEventListener("keydown", handleCloseTabShortcut);
+  window.removeEventListener("keydown", handleTabKeyboardShortcut, { capture: true });
   window.removeEventListener("click", hideContextMenu);
   window.removeEventListener("keydown", handleContextMenuKeydown);
   // 清理拖拽追踪

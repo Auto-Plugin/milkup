@@ -7,6 +7,9 @@ import { useConfig } from "./useConfig";
 import { DEFAULT_SHORTCUTS, CATEGORY_LABELS } from "@/core";
 import type { ShortcutActionId, ShortcutDefinition } from "@/core";
 
+const MODIFIER_KEYS = new Set(["Mod", "Ctrl", "Meta", "Shift", "Alt"]);
+const NUMBER_SHORTCUT_KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
+
 export function useShortcutConfig() {
   const { config } = useConfig();
 
@@ -28,11 +31,13 @@ export function useShortcutConfig() {
     const keyToActions = new Map<string, ShortcutActionId[]>();
     for (const s of shortcuts.value) {
       if (!s.key) continue;
-      const existing = keyToActions.get(s.key);
-      if (existing) {
-        existing.push(s.id);
-      } else {
-        keyToActions.set(s.key, [s.id]);
+      for (const conflictKey of getShortcutConflictKeys(s)) {
+        const existing = keyToActions.get(conflictKey);
+        if (existing) {
+          existing.push(s.id);
+        } else {
+          keyToActions.set(conflictKey, [s.id]);
+        }
       }
     }
     // 只保留有冲突的
@@ -49,17 +54,25 @@ export function useShortcutConfig() {
   function hasConflict(id: ShortcutActionId): boolean {
     const s = shortcuts.value.find((s) => s.id === id);
     if (!s) return false;
-    const conflicting = conflicts.value.get(s.key);
-    return !!conflicting && conflicting.length > 1;
+    return getShortcutConflictKeys(s).some((key) => {
+      const conflicting = conflicts.value.get(key);
+      return !!conflicting && conflicting.length > 1;
+    });
   }
 
   /** 获取与某个动作冲突的其他动作名称 */
   function getConflictLabels(id: ShortcutActionId): string[] {
     const s = shortcuts.value.find((s) => s.id === id);
     if (!s) return [];
-    const conflicting = conflicts.value.get(s.key);
-    if (!conflicting) return [];
-    return conflicting
+    const conflictingIds = new Set<ShortcutActionId>();
+    for (const key of getShortcutConflictKeys(s)) {
+      const conflicting = conflicts.value.get(key);
+      if (!conflicting) continue;
+      for (const cid of conflicting) {
+        if (cid !== id) conflictingIds.add(cid);
+      }
+    }
+    return Array.from(conflictingIds)
       .filter((cid) => cid !== id)
       .map((cid) => {
         const def = DEFAULT_SHORTCUTS.find((d) => d.id === cid);
@@ -110,6 +123,31 @@ export function useShortcutConfig() {
   };
 }
 
+function getShortcutConflictKeys(shortcut: ShortcutDefinition): string[] {
+  if (!shortcut.key) return [];
+  if (shortcut.modifierOnly && shortcut.withNumberKeys) {
+    return NUMBER_SHORTCUT_KEYS.flatMap((key) =>
+      expandEquivalentShortcutKeys(`${shortcut.key}-${key}`)
+    );
+  }
+  return expandEquivalentShortcutKeys(shortcut.key);
+}
+
+function expandEquivalentShortcutKeys(key: string): string[] {
+  const keys = new Set([key]);
+  if (key.includes("Mod")) {
+    keys.add(key.replace("Mod", "Ctrl"));
+    keys.add(key.replace("Mod", "Meta"));
+  }
+  if (key.includes("Ctrl")) {
+    keys.add(key.replace("Ctrl", "Mod"));
+  }
+  if (key.includes("Meta")) {
+    keys.add(key.replace("Meta", "Mod"));
+  }
+  return Array.from(keys);
+}
+
 /**
  * 将 ProseMirror 格式的快捷键转为显示格式
  * 例如：Mod-b → Ctrl+B (Windows) / Cmd+B (Mac)
@@ -121,6 +159,8 @@ export function formatKeyForDisplay(key: string): string {
     .split("-")
     .map((part) => {
       if (part === "Mod") return isMac ? "Cmd" : "Ctrl";
+      if (part === "Ctrl") return "Ctrl";
+      if (part === "Meta") return isMac ? "Cmd" : "Meta";
       if (part === "Shift") return "Shift";
       if (part === "Alt") return isMac ? "Option" : "Alt";
       if (part === "minus") return "-";
@@ -132,15 +172,119 @@ export function formatKeyForDisplay(key: string): string {
     .join("+");
 }
 
+export function formatShortcutForDisplay(shortcut: ShortcutDefinition): string {
+  const base = formatKeyForDisplay(shortcut.key);
+  if (!shortcut.key || !shortcut.withNumberKeys) return base;
+  return `${base}+数字`;
+}
+
+function eventModifiersToParts(event: KeyboardEvent): string[] {
+  const parts: string[] = [];
+  if (event.ctrlKey || event.metaKey) parts.push("Mod");
+  if (event.shiftKey) parts.push("Shift");
+  if (event.altKey) parts.push("Alt");
+  return parts;
+}
+
+function eventExactModifiersToParts(event: KeyboardEvent): string[] {
+  const parts: string[] = [];
+  if (event.ctrlKey) parts.push("Ctrl");
+  if (event.metaKey) parts.push("Meta");
+  if (event.shiftKey) parts.push("Shift");
+  if (event.altKey) parts.push("Alt");
+  return parts;
+}
+
+function normalizeKeyboardEventKey(key: string): string {
+  if (key === "-") return "minus";
+  if (key === "/" || key === "`") return key;
+  if (key.length === 1) return key.toLowerCase();
+  return key;
+}
+
+export function keyEventToShortcutKey(
+  event: KeyboardEvent,
+  shortcut?: Pick<ShortcutDefinition, "modifierOnly" | "exactModifier">
+): string | null {
+  if (shortcut?.exactModifier) return keyEventToExactShortcutKey(event, shortcut);
+  if (!shortcut?.modifierOnly) return keyEventToProseMirrorKey(event);
+
+  const parts = eventModifiersToParts(event);
+  if (event.key === "Control" || event.key === "Meta") {
+    if (!parts.includes("Mod")) parts.unshift("Mod");
+  } else if (event.key === "Shift") {
+    if (!parts.includes("Shift")) parts.push("Shift");
+  } else if (event.key === "Alt") {
+    if (!parts.includes("Alt")) parts.push("Alt");
+  }
+
+  return parts.length ? parts.join("-") : null;
+}
+
+function keyEventToExactShortcutKey(
+  event: KeyboardEvent,
+  shortcut?: Pick<ShortcutDefinition, "modifierOnly">
+): string | null {
+  const parts = eventExactModifiersToParts(event);
+  if (event.key === "Control") {
+    if (!parts.includes("Ctrl")) parts.unshift("Ctrl");
+  } else if (event.key === "Meta") {
+    if (!parts.includes("Meta")) parts.unshift("Meta");
+  } else if (event.key === "Shift") {
+    if (!parts.includes("Shift")) parts.push("Shift");
+  } else if (event.key === "Alt") {
+    if (!parts.includes("Alt")) parts.push("Alt");
+  }
+
+  if (shortcut?.modifierOnly) return parts.length ? parts.join("-") : null;
+  if (["Control", "Meta", "Shift", "Alt"].includes(event.key)) return null;
+  if (!parts.length) return null;
+
+  parts.push(normalizeKeyboardEventKey(event.key));
+  return parts.join("-");
+}
+
+export function eventMatchesShortcutKey(
+  event: KeyboardEvent,
+  shortcutKey: string,
+  options: { ignoreMainKey?: boolean } = {}
+): boolean {
+  if (!shortcutKey) return false;
+
+  const parts = shortcutKey.split("-");
+  const keyParts = parts.filter((part) => !MODIFIER_KEYS.has(part));
+  const expectedMainKey = keyParts.at(-1);
+  const expectedModifiers = parts.filter((part) => MODIFIER_KEYS.has(part));
+  if (!eventMatchesModifiers(event, expectedModifiers)) return false;
+
+  if (options.ignoreMainKey) return true;
+  if (!expectedMainKey) return false;
+
+  return normalizeKeyboardEventKey(event.key) === expectedMainKey;
+}
+
+function eventMatchesModifiers(event: KeyboardEvent, expectedModifiers: string[]): boolean {
+  const expectsMod = expectedModifiers.includes("Mod");
+  const expectsCtrl = expectedModifiers.includes("Ctrl");
+  const expectsMeta = expectedModifiers.includes("Meta");
+  const expectsShift = expectedModifiers.includes("Shift");
+  const expectsAlt = expectedModifiers.includes("Alt");
+
+  if (expectsMod) {
+    if (!event.ctrlKey && !event.metaKey) return false;
+  } else {
+    if (event.ctrlKey !== expectsCtrl) return false;
+    if (event.metaKey !== expectsMeta) return false;
+  }
+
+  return event.shiftKey === expectsShift && event.altKey === expectsAlt;
+}
+
 /**
  * 将 KeyboardEvent 转为 ProseMirror 格式字符串（用于录制快捷键）
  */
 export function keyEventToProseMirrorKey(event: KeyboardEvent): string | null {
-  const parts: string[] = [];
-
-  if (event.ctrlKey || event.metaKey) parts.push("Mod");
-  if (event.shiftKey) parts.push("Shift");
-  if (event.altKey) parts.push("Alt");
+  const parts = eventModifiersToParts(event);
 
   let key = event.key;
 
@@ -150,12 +294,7 @@ export function keyEventToProseMirrorKey(event: KeyboardEvent): string | null {
   }
 
   // 标准化按键名
-  if (key === "-") key = "minus";
-  else if (key === "/") key = "/";
-  else if (key === "`") key = "`";
-  else if (key >= "0" && key <= "9") {
-    /* 保持数字 */
-  } else if (key.length === 1) key = key.toLowerCase();
+  key = normalizeKeyboardEventKey(key);
 
   parts.push(key);
 

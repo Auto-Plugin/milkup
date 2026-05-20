@@ -25,11 +25,13 @@ export type ShortcutActionId =
   | "insertTable"
   | "insertMathBlock"
   | "toggleSourceView"
+  | "switchNextTab"
+  | "switchTabByNumber"
   | "undo"
   | "redo";
 
 /** 快捷键分类 */
-export type ShortcutCategory = "inline" | "block" | "insert" | "editor";
+export type ShortcutCategory = "inline" | "block" | "insert" | "editor" | "app";
 
 /** 快捷键定义 */
 export interface ShortcutDefinition {
@@ -42,6 +44,12 @@ export interface ShortcutDefinition {
   key: string;
   /** 默认键 */
   defaultKey: string;
+  /** 只录制修饰键，实际按键由功能自身决定 */
+  modifierOnly?: boolean;
+  /** 使用精确修饰键，不将 Ctrl/Meta 归一化为 Mod */
+  exactModifier?: boolean;
+  /** 该快捷键会与数字键组合使用 */
+  withNumberKeys?: boolean;
 }
 
 /** 用户自定义快捷键映射（仅存储与默认值不同的部分；null 表示显式清除绑定） */
