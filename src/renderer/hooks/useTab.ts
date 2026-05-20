@@ -9,7 +9,6 @@ import { createTabDataFromFile, readAndProcessFile } from "@/renderer/services/f
 import { createInertiaScroll } from "@/renderer/utils/inertiaScroll";
 import { normalizeMarkdownForDirtyCheck } from "@/renderer/utils/markdown";
 import { randomUUID } from "@/renderer/utils/tool";
-import { isShowOutline } from "./useOutline";
 import { useConfig } from "./useConfig";
 import useUiLoading from "./useUiLoading";
 
@@ -541,30 +540,24 @@ function ensureActiveTabVisible(containerRef: Ref<HTMLElement | null>) {
   const paddingOffset = 12; // 额外的内边距
   const shadowOffset = 8; // 阴影偏移量，确保阴影完全显示
 
-  // 考虑tabbar的偏移量（当大纲显示时，tabbar向右偏移25%）
-  // 由于TabBar使用margin-left: 25%，所以偏移量是相对于父容器的25%
-  const offsetLeft = isShowOutline.value ? containerRect.width * 0.25 : 0;
-
-  // 检查tab是否完全在可视区域内（包括阴影和偏移）
+  // 检查tab是否完全在可视区域内（包括阴影）
   const isFullyVisible =
-    tabRect.left >= containerRect.left + paddingOffset + offsetLeft &&
+    tabRect.left >= containerRect.left + paddingOffset &&
     tabRect.right <= containerRect.right - paddingOffset - shadowOffset;
 
   if (!isFullyVisible) {
     // 计算tab相对于容器的位置
     const tabOffsetLeft = activeTabElement.offsetLeft;
 
-    // 计算可视区域的边界（考虑偏移量）
-    // 当有大纲显示时，TabBar有margin-left: 25%，所以可视区域从25%开始
+    // 计算可视区域的边界
     const visibleLeft = paddingOffset;
     const visibleRight = container.clientWidth - paddingOffset - shadowOffset;
 
     let scrollLeft = 0;
 
     // 如果tab在左侧被遮挡
-    if (tabRect.left < containerRect.left + paddingOffset + offsetLeft) {
+    if (tabRect.left < containerRect.left + paddingOffset) {
       // 将tab滚动到可视区域的左侧
-      // 当有大纲显示时，需要考虑TabBar的margin-left偏移
       scrollLeft = tabOffsetLeft - visibleLeft;
     } else if (tabRect.right > containerRect.right - paddingOffset - shadowOffset) {
       // 如果tab在右侧被遮挡（包括阴影）
@@ -573,8 +566,7 @@ function ensureActiveTabVisible(containerRef: Ref<HTMLElement | null>) {
     }
 
     // 确保滚动位置不会超出边界
-    // 当有偏移时，最小滚动位置需要考虑偏移量
-    const minScrollLeft = isShowOutline.value ? -offsetLeft : 0;
+    const minScrollLeft = 0;
     const maxScrollLeft = container.scrollWidth - container.clientWidth;
     scrollLeft = Math.max(minScrollLeft, Math.min(scrollLeft, maxScrollLeft));
 
@@ -927,7 +919,7 @@ function handleTabMergePreviewFinalize() {
  * 动态更新合并预览 Tab 的插入位置
  * 由主进程在光标移动时持续发送，实现拖拽悬停时预览 Tab 跟随光标变换顺序
  */
-function handleTabMergePreviewUpdate(screenX: number, screenY: number) {
+function handleTabMergePreviewUpdate(screenX: number, _screenY: number) {
   if (!mergePreviewState || mergePreviewState.isExisting) return;
 
   const { tabId } = mergePreviewState;
@@ -1058,9 +1050,6 @@ const formattedTabs = computed(() => {
 
 const currentTab = computed(() => getCurrentTab());
 
-// 是否偏移
-const shouldOffsetTabBar = computed(() => isShowOutline.value);
-
 // 添加新tab时不通知，只有当filePath实际变化时才通知
 watch(
   () => tabs.value.map((tab) => tab.filePath),
@@ -1187,7 +1176,6 @@ function useTab() {
     currentTab,
     formattedTabs,
     hasUnsavedTabs,
-    shouldOffsetTabBar,
     getUnsavedTabs,
     add,
     close,

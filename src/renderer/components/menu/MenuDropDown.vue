@@ -93,6 +93,8 @@ onUnmounted(() => {
 .MenuDropDownBox {
   height: 100%;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
 
   .dropdown-header {
     display: flex;

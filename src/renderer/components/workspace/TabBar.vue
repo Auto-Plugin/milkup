@@ -9,7 +9,6 @@ import useTab from "@/renderer/hooks/useTab";
 const {
   formattedTabs,
   activeTabId,
-  shouldOffsetTabBar,
   switchToTab,
   handleWheelScroll,
   close,
@@ -413,11 +412,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div
-    ref="tabContainerRef"
-    class="tabBarContarner"
-    :class="{ 'offset-right': shouldOffsetTabBar }"
-  >
+  <div ref="tabContainerRef" class="tabBarContarner">
     <TransitionGroup
       v-draggable="[
         formattedTabs,
@@ -551,14 +546,9 @@ onUnmounted(() => {
   justify-content: flex-end;
   overflow-x: scroll;
   overflow-y: hidden;
-  transition: margin-left 0.6s 0.02s cubic-bezier(0.035, 0.63, 0, 1); //一个延迟能变得高级，你就学吧
 
   &::-webkit-scrollbar {
     display: none;
-  }
-
-  &.offset-right {
-    margin-left: 25%;
   }
 
   .tabBar {

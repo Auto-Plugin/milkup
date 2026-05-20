@@ -3,7 +3,11 @@ import type { ImagePasteMethod, ShortcutKeyMap } from "@/core";
 import { useStorage } from "@vueuse/core";
 import { readonly, watch } from "vue";
 
-import { defaultFontConfig, defaultFontSizeConfig } from "@/config/fonts";
+import {
+  defaultFontConfig,
+  defaultFontSizeConfig,
+  legacyDefaultFontSizeConfig,
+} from "@/config/fonts";
 import { setNestedProperty } from "@/renderer/utils/tool";
 
 interface AppConfig extends Record<string, any> {
@@ -57,12 +61,24 @@ const defaultConfig: AppConfig = {
 };
 
 function mergeAppConfig(partial?: Partial<AppConfig>): AppConfig {
+  const mergedFontSize = {
+    ...defaultConfig.font.size,
+    ...partial?.font?.size,
+  };
+
+  for (const type of Object.keys(defaultFontSizeConfig) as Array<keyof FontSizeConfig>) {
+    if (mergedFontSize[type] === legacyDefaultFontSizeConfig[type]) {
+      mergedFontSize[type] = defaultFontSizeConfig[type];
+    }
+  }
+
   return {
     ...defaultConfig,
     ...partial,
     font: {
       ...defaultConfig.font,
       ...partial?.font,
+      size: mergedFontSize,
     },
     image: {
       ...defaultConfig.image,

@@ -4,6 +4,7 @@
 
 /* 编辑器容器 */
 .milkup-editor {
+  --milkup-paragraph-indent: 1em;
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-size: 16px;
@@ -174,19 +175,33 @@
   font-size: 1.25em;
 }
 .milkup-editor h4 {
-  font-size: 1em;
+  font-size: 1.125em;
 }
 .milkup-editor h5 {
-  font-size: 0.875em;
+  font-size: 1em;
 }
 .milkup-editor h6 {
-  font-size: 0.85em;
+  font-size: 1em;
   color: var(--text-color-2, #6a737d);
 }
 
 /* 段落 */
 .milkup-editor p {
   margin: 0;
+}
+
+.milkup-editor > p {
+  margin-left: var(--milkup-paragraph-indent);
+}
+
+.milkup-editor.source-view > p,
+.milkup-editor.source-view > h1,
+.milkup-editor.source-view > h2,
+.milkup-editor.source-view > h3,
+.milkup-editor.source-view > h4,
+.milkup-editor.source-view > h5,
+.milkup-editor.source-view > h6 {
+  margin-left: 0;
 }
 
 /* 引用块 */
@@ -1217,7 +1232,7 @@
   /* 使用 padding 来定位，与编辑器的 padding 保持一致 */
   left: 0;
   top: 0;
-  padding: 58px calc(var(--milkup-editor-padding, 20px) + 8px);
+  padding: 58px calc(var(--milkup-editor-padding, 20px) + var(--milkup-paragraph-indent));
 }
 
 /* 源码模式下的占位符需要向右偏移以避开行号 */
