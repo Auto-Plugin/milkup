@@ -17,6 +17,7 @@
 import { Node, Schema, Mark } from "prosemirror-model";
 import { milkupSchema } from "../schema";
 import type { SyntaxMarker } from "../types";
+import { findHtmlEntityMatches, HTML_ENTITY_SYNTAX_TYPE } from "../utils/html-entities";
 
 /** 解析结果 */
 export interface ParseResult {
@@ -610,11 +611,7 @@ export class MarkdownParser {
       // 前面的纯文本
       if (m.start > pos) {
         const plainText = text.slice(pos, m.start);
-        if (inheritedMarks.length > 0) {
-          nodes.push(this.schema.text(plainText, inheritedMarks));
-        } else {
-          nodes.push(this.schema.text(plainText));
-        }
+        nodes.push(...this.createTextNodesWithHtmlEntities(plainText, inheritedMarks));
       }
 
       // 语法标记和内容
@@ -664,11 +661,61 @@ export class MarkdownParser {
     // 剩余文本
     if (pos < text.length) {
       const remainingText = text.slice(pos);
-      if (inheritedMarks.length > 0) {
-        nodes.push(this.schema.text(remainingText, inheritedMarks));
-      } else {
-        nodes.push(this.schema.text(remainingText));
+      nodes.push(...this.createTextNodesWithHtmlEntities(remainingText, inheritedMarks));
+    }
+
+    return nodes;
+  }
+
+  /**
+   * 保留 HTML entity 原文，并将其标记为可渲染语法。
+   */
+  private createTextNodesWithHtmlEntities(text: string, inheritedMarks: Mark[] = []): Node[] {
+    if (!text) return [];
+
+    const shouldRenderEntities = !inheritedMarks.some((mark) =>
+      ["code_inline", "math_inline"].includes(mark.type.name)
+    );
+    if (!shouldRenderEntities) {
+      return [this.schema.text(text, inheritedMarks.length > 0 ? inheritedMarks : undefined)];
+    }
+
+    const entityMatches = findHtmlEntityMatches(text);
+    if (entityMatches.length === 0) {
+      return [this.schema.text(text, inheritedMarks.length > 0 ? inheritedMarks : undefined)];
+    }
+
+    const nodes: Node[] = [];
+    const syntaxMark = this.schema.marks.syntax_marker?.create({
+      syntaxType: HTML_ENTITY_SYNTAX_TYPE,
+    });
+    let pos = 0;
+
+    for (const match of entityMatches) {
+      if (match.from > pos) {
+        nodes.push(
+          this.schema.text(
+            text.slice(pos, match.from),
+            inheritedMarks.length > 0 ? inheritedMarks : undefined
+          )
+        );
       }
+
+      if (syntaxMark) {
+        nodes.push(this.schema.text(match.source, [...inheritedMarks, syntaxMark]));
+      } else {
+        nodes.push(
+          this.schema.text(match.source, inheritedMarks.length > 0 ? inheritedMarks : undefined)
+        );
+      }
+
+      pos = match.to;
+    }
+
+    if (pos < text.length) {
+      nodes.push(
+        this.schema.text(text.slice(pos), inheritedMarks.length > 0 ? inheritedMarks : undefined)
+      );
     }
 
     return nodes;

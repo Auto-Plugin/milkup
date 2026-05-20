@@ -9,6 +9,7 @@ import { Plugin, PluginKey, Transaction } from "prosemirror-state";
 import { Node, Mark, Schema } from "prosemirror-model";
 import { decorationPluginKey } from "../decorations";
 import { parseMarkdown } from "../parser";
+import { findHtmlEntityMatches, HTML_ENTITY_SYNTAX_TYPE } from "../utils/html-entities";
 
 /** 插件 Key */
 export const syntaxDetectorPluginKey = new PluginKey("milkup-syntax-detector");
@@ -261,6 +262,16 @@ interface MatchInfo {
   attrs?: Record<string, any>;
 }
 
+interface DetectedRegion {
+  from: number;
+  to: number;
+  markTypes: string[];
+  isSyntax: boolean;
+  isEscape?: boolean;
+  syntaxType?: string;
+  attrs?: Record<string, any>;
+}
+
 /**
  * 检测文本中的所有语法匹配
  */
@@ -342,76 +353,89 @@ function detectSyntaxMatches(text: string): MatchInfo[] {
 }
 
 /**
- * 检测文本片段中的转义序列，生成区域标记
+ * 检测普通文本片段中的转义序列和 HTML entity，生成区域标记
  */
-function detectEscapeRegions(
+function detectPlainTextRegions(
   text: string,
   baseOffset: number,
   inheritedTypes: string[],
   inheritedAttrs?: Record<string, any>
-): Array<{
-  from: number;
-  to: number;
-  markTypes: string[];
-  isSyntax: boolean;
-  isEscape?: boolean;
-  attrs?: Record<string, any>;
-}> {
-  const results: Array<{
-    from: number;
-    to: number;
-    markTypes: string[];
-    isSyntax: boolean;
-    isEscape?: boolean;
-    attrs?: Record<string, any>;
-  }> = [];
+): DetectedRegion[] {
+  const results: DetectedRegion[] = [];
+  const events: Array<{ start: number; end: number; type: "escape" | "html_entity" }> = [];
 
   const escRe = new RegExp(ESCAPE_RE.source, "g");
   let escMatch: RegExpExecArray | null;
-  let pos = 0;
-  let hasAnyEscape = false;
-
   while ((escMatch = escRe.exec(text)) !== null) {
-    hasAnyEscape = true;
+    events.push({ start: escMatch.index, end: escMatch.index + 2, type: "escape" });
+  }
 
-    // 转义之前的普通文本
-    if (escMatch.index > pos) {
+  const canRenderEntities = !inheritedTypes.some((type) =>
+    ["code_inline", "math_inline"].includes(type)
+  );
+  if (canRenderEntities) {
+    for (const entity of findHtmlEntityMatches(text)) {
+      events.push({ start: entity.from, end: entity.to, type: "html_entity" });
+    }
+  }
+
+  if (events.length === 0) return results;
+
+  events.sort((a, b) => {
+    if (a.start !== b.start) return a.start - b.start;
+    return b.end - a.end;
+  });
+
+  let pos = 0;
+  for (const event of events) {
+    if (event.start < pos) continue;
+
+    if (event.start > pos && inheritedTypes.length > 0) {
       results.push({
         from: baseOffset + pos,
-        to: baseOffset + escMatch.index,
+        to: baseOffset + event.start,
         markTypes: inheritedTypes,
         isSyntax: false,
         attrs: inheritedAttrs,
       });
     }
 
-    // `\` 字符 → escape 类型的 syntax_marker
-    results.push({
-      from: baseOffset + escMatch.index,
-      to: baseOffset + escMatch.index + 1,
-      markTypes: inheritedTypes,
-      isSyntax: true,
-      isEscape: true,
-      attrs: inheritedAttrs,
-    });
+    if (event.type === "escape") {
+      // `\` 字符 → escape 类型的 syntax_marker
+      results.push({
+        from: baseOffset + event.start,
+        to: baseOffset + event.start + 1,
+        markTypes: inheritedTypes,
+        isSyntax: true,
+        isEscape: true,
+        syntaxType: "escape",
+        attrs: inheritedAttrs,
+      });
 
-    // 被转义的字符 → 普通文本（只带 inheritedTypes）
-    results.push({
-      from: baseOffset + escMatch.index + 1,
-      to: baseOffset + escMatch.index + 2,
-      markTypes: inheritedTypes,
-      isSyntax: false,
-      attrs: inheritedAttrs,
-    });
+      // 被转义的字符 → 普通文本（只带 inheritedTypes）
+      results.push({
+        from: baseOffset + event.start + 1,
+        to: baseOffset + event.end,
+        markTypes: inheritedTypes,
+        isSyntax: false,
+        attrs: inheritedAttrs,
+      });
+    } else {
+      results.push({
+        from: baseOffset + event.start,
+        to: baseOffset + event.end,
+        markTypes: inheritedTypes,
+        isSyntax: true,
+        syntaxType: HTML_ENTITY_SYNTAX_TYPE,
+        attrs: inheritedAttrs,
+      });
+    }
 
-    pos = escMatch.index + 2;
+    pos = event.end;
   }
 
-  // 没有转义序列，返回空数组
-  if (!hasAnyEscape) return results;
-
   // 剩余文本
-  if (pos < text.length) {
+  if (pos < text.length && inheritedTypes.length > 0) {
     results.push({
       from: baseOffset + pos,
       to: baseOffset + text.length,
@@ -432,36 +456,17 @@ function detectNestedSyntax(
   baseOffset: number,
   inheritedTypes: string[],
   inheritedAttrs?: Record<string, any>
-): Array<{
-  from: number;
-  to: number;
-  markTypes: string[];
-  isSyntax: boolean;
-  isEscape?: boolean;
-  attrs?: Record<string, any>;
-}> {
-  const results: Array<{
-    from: number;
-    to: number;
-    markTypes: string[];
-    isSyntax: boolean;
-    isEscape?: boolean;
-    attrs?: Record<string, any>;
-  }> = [];
+): DetectedRegion[] {
+  const results: DetectedRegion[] = [];
 
   const matches = detectSyntaxMatches(text);
 
-  // 检查文本中是否有转义序列
-  const hasEscapes = ESCAPE_RE.test(text);
-  // 重置 lastIndex
-  ESCAPE_RE.lastIndex = 0;
-
   if (matches.length === 0) {
-    // 没有语法匹配，检查是否有转义序列
-    if (text.length > 0 && hasEscapes) {
-      const escRegions = detectEscapeRegions(text, baseOffset, inheritedTypes, inheritedAttrs);
-      if (escRegions.length > 0) {
-        results.push(...escRegions);
+    // 没有语法匹配，检查普通文本中的转义和 HTML entity
+    if (text.length > 0) {
+      const plainRegions = detectPlainTextRegions(text, baseOffset, inheritedTypes, inheritedAttrs);
+      if (plainRegions.length > 0) {
+        results.push(...plainRegions);
         return results;
       }
     }
@@ -482,14 +487,14 @@ function detectNestedSyntax(
     // 前面的纯文本（可能包含转义）
     if (m.start > pos) {
       const plainText = text.slice(pos, m.start);
-      const escRegions = detectEscapeRegions(
+      const plainRegions = detectPlainTextRegions(
         plainText,
         baseOffset + pos,
         inheritedTypes,
         inheritedAttrs
       );
-      if (escRegions.length > 0) {
-        results.push(...escRegions);
+      if (plainRegions.length > 0) {
+        results.push(...plainRegions);
       } else if (plainText.length > 0 && inheritedTypes.length > 0) {
         results.push({
           from: baseOffset + pos,
@@ -569,14 +574,14 @@ function detectNestedSyntax(
   // 剩余文本（可能包含转义）
   if (pos < text.length) {
     const remainingText = text.slice(pos);
-    const escRegions = detectEscapeRegions(
+    const plainRegions = detectPlainTextRegions(
       remainingText,
       baseOffset + pos,
       inheritedTypes,
       inheritedAttrs
     );
-    if (escRegions.length > 0) {
-      results.push(...escRegions);
+    if (plainRegions.length > 0) {
+      results.push(...plainRegions);
     } else if (remainingText.length > 0 && inheritedTypes.length > 0) {
       results.push({
         from: baseOffset + pos,
@@ -603,13 +608,15 @@ function hasCorrectMarks(
   skipOffset: number = 0
 ): boolean {
   if (regions.length === 0) {
-    // 如果没有期望的区域，检查是否有任何语义 marks
-    let hasAnySemanticMarks = false;
+    // 如果没有期望区域，检查内容区是否仍残留由本插件管理的 marks。
+    let hasAnyManagedMarks = false;
+    let offset = 0;
     node.forEach((child) => {
       if (child.isText) {
-        const semanticMarks = child.marks.filter(
-          (m) =>
-            m.type.name !== "syntax_marker" &&
+        const childStart = basePos + offset;
+        const childEnd = childStart + child.nodeSize;
+        if (childEnd > basePos + skipOffset) {
+          const managedMarks = child.marks.filter((m) =>
             [
               "strong",
               "emphasis",
@@ -621,14 +628,17 @@ function hasCorrectMarks(
               "sub",
               "sup",
               "html_inline",
+              "syntax_marker",
             ].includes(m.type.name)
-        );
-        if (semanticMarks.length > 0) {
-          hasAnySemanticMarks = true;
+          );
+          if (managedMarks.length > 0) {
+            hasAnyManagedMarks = true;
+          }
         }
       }
+      offset += child.nodeSize;
     });
-    return !hasAnySemanticMarks;
+    return !hasAnyManagedMarks;
   }
 
   // 构建期望的 marks 映射：position -> expected mark types
@@ -776,6 +786,21 @@ export function createSyntaxDetectorPlugin(): Plugin {
             }
           }
 
+          // 引用块内部段落会保留 "> " 作为结构性语法标记，不参与行内语法重扫。
+          if (node.type.name === "paragraph" && textContent.startsWith("> ")) {
+            const firstChild = node.firstChild;
+            const hasBlockquotePrefix =
+              firstChild?.isText &&
+              firstChild.text?.startsWith("> ") &&
+              firstChild.marks.some(
+                (m) => m.type.name === "syntax_marker" && m.attrs.syntaxType === "blockquote"
+              );
+            if (hasBlockquotePrefix) {
+              contentOffset = 2;
+              textContent = textContent.slice(contentOffset);
+            }
+          }
+
           // 检测所有语法区域
           const regions = detectNestedSyntax(textContent, basePos + contentOffset, []);
 
@@ -807,6 +832,29 @@ export function createSyntaxDetectorPlugin(): Plugin {
             }
             hasChanges = true;
             return true;
+          }
+
+          // 先清理内容区内由本插件管理的旧 marks，避免用户改动后残留旧语法标记。
+          const cleanFrom = basePos + contentOffset;
+          const cleanTo = basePos + node.content.size;
+          const markTypesToClean = [
+            "strong",
+            "emphasis",
+            "code_inline",
+            "strikethrough",
+            "highlight",
+            "link",
+            "math_inline",
+            "sub",
+            "sup",
+            "html_inline",
+            "syntax_marker",
+          ];
+          for (const markTypeName of markTypesToClean) {
+            const markType = schema.marks[markTypeName];
+            if (markType) {
+              tr = tr.removeMark(cleanFrom, cleanTo, markType);
+            }
           }
 
           // 应用 marks
@@ -847,10 +895,8 @@ export function createSyntaxDetectorPlugin(): Plugin {
             if (region.isSyntax) {
               const syntaxMarkerType = schema.marks.syntax_marker;
               if (syntaxMarkerType) {
-                // escape 类型使用 "escape" 作为 syntaxType
-                const syntaxType = (region as any).isEscape
-                  ? "escape"
-                  : region.markTypes[region.markTypes.length - 1] || "unknown";
+                const syntaxType =
+                  region.syntaxType || region.markTypes[region.markTypes.length - 1] || "unknown";
                 const syntaxMark = syntaxMarkerType.create({ syntaxType });
                 tr = tr.addMark(region.from, region.to, syntaxMark);
               }

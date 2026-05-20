@@ -94,6 +94,7 @@ export type SyntaxType =
   | "image"
   | "math_inline"
   | "highlight"
+  | "html_entity"
   | "footnote_ref"
   | "hard_break";
 

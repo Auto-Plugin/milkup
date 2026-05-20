@@ -15,6 +15,7 @@ import {
   convertBlocksToParagraphs,
   convertParagraphsToBlocks,
 } from "../plugins/source-view-transform";
+import { decodeHtmlEntity, HTML_ENTITY_SYNTAX_TYPE } from "../utils/html-entities";
 
 // ============ 源码模式状态管理器 ============
 
@@ -105,6 +106,7 @@ export const SYNTAX_CLASSES: Record<string, string> = {
   sub: "milkup-sub", // 下标
   sup: "milkup-sup", // 上标
   html_inline: "milkup-html-inline", // 行内 HTML
+  html_entity: "milkup-html-entity", // HTML entity
 };
 
 /** 语法类型关联映射 - 用于处理嵌套语法 */
@@ -122,6 +124,7 @@ const SYNTAX_TYPE_RELATIONS: Record<string, string[]> = {
   sub: ["sub"],
   sup: ["sup"],
   html_inline: ["html_inline"],
+  html_entity: ["html_entity"],
 };
 
 /**
@@ -497,6 +500,29 @@ export function computeDecorations(
               class: "milkup-syntax-hidden",
               contenteditable: "false",
               "aria-hidden": "true",
+            })
+          );
+        }
+      } else if (region.syntaxType === HTML_ENTITY_SYNTAX_TYPE) {
+        const entityText = doc.textBetween(region.from, region.to);
+        const decoded = decodeHtmlEntity(entityText);
+        if (decoded) {
+          decorations.push(
+            Decoration.inline(region.from, region.to, {
+              class: "milkup-syntax-hidden",
+              contenteditable: "false",
+              "aria-hidden": "true",
+            })
+          );
+
+          const widget = document.createElement("span");
+          widget.className = "milkup-html-entity-rendered";
+          widget.textContent = decoded;
+          decorations.push(Decoration.widget(region.to, widget, { side: -1 }));
+        } else {
+          decorations.push(
+            Decoration.inline(region.from, region.to, {
+              class: "milkup-syntax-visible",
             })
           );
         }
