@@ -131,7 +131,9 @@ async function handleSelectDirectory() {
           }}
         </div>
       </div>
-      <div v-if="pasteMethod === 'base64'">图片将自动转为 base64（可能会增大文件体积）</div>
+      <div v-if="pasteMethod === 'base64'" class="base64-description">
+        图片将自动转为 base64（可能会增大文件体积）
+      </div>
       <UploadConfig v-if="pasteMethod === 'remote'" />
     </div>
   </div>
@@ -142,6 +144,7 @@ async function handleSelectDirectory() {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  color: var(--text-color-1);
 
   .details {
     width: 100%;
@@ -157,6 +160,7 @@ async function handleSelectDirectory() {
       padding: 0 10px;
       border-radius: 4px;
       gap: 12px;
+      color: var(--text-color-1);
     }
   }
 
@@ -231,6 +235,12 @@ async function handleSelectDirectory() {
     }
   }
 
+  .base64-description {
+    color: var(--text-color-1);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
   .options {
     width: 100%;
     display: flex;
@@ -272,7 +282,7 @@ async function handleSelectDirectory() {
 
         span {
           font-size: 13px;
-          color: var(--text-color-2);
+          color: var(--text-color-1);
           transition: color 0.2s ease;
           font-weight: 500;
           display: inline-block;

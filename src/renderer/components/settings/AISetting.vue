@@ -217,6 +217,7 @@ function updateProvider(val: string) {
   gap: 20px;
   padding: 10px 0;
   max-width: 600px; /* Limit max width for better readability */
+  color: var(--text-color-1);
 
   .row {
     display: flex;
@@ -230,13 +231,26 @@ function updateProvider(val: string) {
         width: 120px; /* Fixed label width for alignment */
         min-width: 120px;
         font-size: 13px;
+        color: var(--text-color-1);
       }
 
       .Input,
       .selector-container {
         width: 300px; /* Moderate width for inputs */
         flex: none; /* Do not stretch */
+        color: var(--text-color-1);
       }
+    }
+
+    :deep(.selector-item),
+    :deep(.slider-header),
+    :deep(.slider-header .value) {
+      color: var(--text-color-1);
+    }
+
+    :deep(input::placeholder) {
+      color: var(--text-color-3);
+      opacity: 1;
     }
 
     /* Exceptions */

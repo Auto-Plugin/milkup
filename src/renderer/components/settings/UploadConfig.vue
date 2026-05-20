@@ -55,5 +55,23 @@ watch(extraBody, (newValue) => localStorage.setItem("uploadExtraBody", newValue)
   padding: 0 10px;
   border-radius: 4px;
   gap: 12px;
+  color: var(--text-color-1);
+
+  :deep(.input-container),
+  :deep(.Selector) {
+    color: var(--text-color-1);
+  }
+
+  :deep(.label),
+  :deep(input),
+  :deep(.selector-container),
+  :deep(.selector-item) {
+    color: var(--text-color-1);
+  }
+
+  :deep(input::placeholder) {
+    color: var(--text-color-3);
+    opacity: 1;
+  }
 }
 </style>
