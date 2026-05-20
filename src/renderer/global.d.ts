@@ -29,7 +29,12 @@ interface Window {
     windowControl: (action: "minimize" | "maximize" | "close") => void;
     closeDiscard: () => void;
     onOpenFileAtLaunch: (
-      cb: (payload: { filePath: string; content: string; fileTraits?: FileTraitsDTO }) => void
+      cb: (payload: {
+        filePath: string;
+        content: string;
+        fileTraits?: FileTraitsDTO;
+        files?: Array<{ filePath: string; content: string; fileTraits?: FileTraitsDTO }>;
+      }) => void
     ) => void;
     openExternal: (url: string) => Promise<void>;
     openLink: (href: string, currentFilePath?: string | null) => Promise<void>;

@@ -9,6 +9,19 @@ import useTab from "./useTab";
 import useTitle from "./useTitle";
 import useUiLoading from "./useUiLoading";
 
+interface OpenFileAtLaunchPayload {
+  filePath: string;
+  content: string;
+  fileTraits?: FileTraitsDTO;
+  files?: Array<{
+    filePath: string;
+    content: string;
+    fileTraits?: FileTraitsDTO;
+  }>;
+}
+
+let launchOpenQueue: Promise<void> = Promise.resolve();
+
 async function onOpen(result?: { filePath: string; content: string } | null) {
   const { updateTitle } = useTitle();
   const { markdown, filePath, originalContent } = useContent();
@@ -173,7 +186,6 @@ export default function useFile() {
     currentTab,
     hasUnsavedTabs,
     tabs,
-    openFile,
     getFileName,
     isFileAlreadyOpen,
   } = useTab();
@@ -369,63 +381,75 @@ export default function useFile() {
     }
   };
 
-  // 注册启动时文件打开监听
-  window.electronAPI?.onOpenFileAtLaunch?.(
-    async ({ filePath: launchFilePath, content, fileTraits }) => {
-      // 检查文件是否已在当前窗口打开
-      const existing = isFileAlreadyOpen(launchFilePath);
-      if (existing) {
-        await switchToTab(existing.id);
-        markdown.value = existing.content;
-        filePath.value = launchFilePath;
-        originalContent.value = existing.originalContent;
-        updateTitle();
-        nextTick(() => {
-          emitter.emit("file:Change");
-        });
-        return;
-      }
-
-      // 检查文件是否已在其他窗口打开
-      try {
-        const crossResult = await window.electronAPI.focusFileIfOpen(launchFilePath);
-        if (crossResult.found) return;
-      } catch {}
-
-      let tab: Tab;
-      const current = currentTab.value;
-      // 复用空标签页
-      if (current && current.filePath === null && !current.isModified) {
-        current.filePath = launchFilePath;
-        current.name = getFileName(launchFilePath);
-        current.content = content;
-        current.originalContent = content;
-        current.isModified = false;
-        current.isNewlyLoaded = true;
-        current.fileTraits = fileTraits;
-        current.readOnly = await window.electronAPI.getIsReadOnly(launchFilePath);
-        await switchToTab(current.id);
-        tab = current;
-      } else {
-        tab = await createTabFromFile(launchFilePath, content, fileTraits);
-        tab.readOnly = await window.electronAPI.getIsReadOnly(launchFilePath);
-      }
-
-      // 更新当前内容状态
-      markdown.value = tab.content;
+  async function openLaunchFile({
+    filePath: launchFilePath,
+    content,
+    fileTraits,
+  }: OpenFileAtLaunchPayload): Promise<void> {
+    // 检查文件是否已在当前窗口打开
+    const existing = isFileAlreadyOpen(launchFilePath);
+    if (existing) {
+      await switchToTab(existing.id);
+      markdown.value = existing.content;
       filePath.value = launchFilePath;
-      originalContent.value = content;
-
+      originalContent.value = existing.originalContent;
       updateTitle();
       nextTick(() => {
         emitter.emit("file:Change");
       });
+      return;
     }
-  );
+
+    // 检查文件是否已在其他窗口打开
+    try {
+      const crossResult = await window.electronAPI.focusFileIfOpen(launchFilePath);
+      if (crossResult.found) return;
+    } catch {}
+
+    let tab: Tab;
+    const current = currentTab.value;
+    // 复用空标签页
+    if (current && current.filePath === null && !current.isModified) {
+      current.filePath = launchFilePath;
+      current.name = getFileName(launchFilePath);
+      current.content = content;
+      current.originalContent = content;
+      current.isModified = false;
+      current.isNewlyLoaded = true;
+      current.fileTraits = fileTraits;
+      current.readOnly = await window.electronAPI.getIsReadOnly(launchFilePath);
+      await switchToTab(current.id);
+      tab = current;
+    } else {
+      tab = await createTabFromFile(launchFilePath, content, fileTraits);
+      tab.readOnly = await window.electronAPI.getIsReadOnly(launchFilePath);
+    }
+
+    // 更新当前内容状态
+    markdown.value = tab.content;
+    filePath.value = launchFilePath;
+    originalContent.value = content;
+
+    updateTitle();
+    await nextTick();
+    emitter.emit("file:Change");
+  }
 
   // 只注册一次事件监听器，避免多个组件调用 useFile() 导致重复注册
   if (!listenersRegistered) {
     listenersRegistered = true;
+
+    // 注册启动时文件打开监听
+    window.electronAPI?.onOpenFileAtLaunch?.((payload: OpenFileAtLaunchPayload) => {
+      const files = payload.files?.length ? payload.files : [payload];
+      launchOpenQueue = launchOpenQueue
+        .catch(() => {})
+        .then(async () => {
+          for (const file of files) {
+            await openLaunchFile(file);
+          }
+        });
+    });
 
     // ✅ 通知主进程渲染进程已就绪，可以接收文件了
     window.electronAPI?.rendererReady?.();

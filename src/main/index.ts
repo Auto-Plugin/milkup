@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { app, BrowserWindow, globalShortcut, ipcMain, protocol, shell } from "electron";
+import type { FileTraits } from "./fileFormat";
 import { isMarkdownFilePath, normalizeMarkdownFilePath, readMarkdownFile } from "./markdownFile";
 import {
   close,
@@ -18,7 +19,13 @@ import { getAdaptiveEditorWindowOptions, trackWindow } from "./windowManager";
 let win: BrowserWindow | null = null;
 let themeEditorWindow: BrowserWindow | null = null;
 let isRendererReady = false;
-let pendingStartupFile: string | null = null;
+let pendingStartupFiles: string[] = [];
+
+interface LaunchFilePayload {
+  filePath: string;
+  content: string;
+  fileTraits?: FileTraits;
+}
 
 /** 安全获取一个可用的编辑器窗口（优先主窗口，回退到任意存活窗口） */
 function getAvailableWindow(): BrowserWindow | null {
@@ -161,42 +168,82 @@ export async function createThemeEditorWindow() {
  * 统一的文件发送函数
  * 整合了文件读取、验证和发送到渲染进程的逻辑
  */
-function sendFileToRenderer(filePath: string) {
-  const result = readMarkdownFile(filePath);
-  if (!result) {
-    console.warn("[main] 无法读取启动文件:", filePath);
-    return;
+function normalizeLaunchFilePaths(filePaths: string[]): string[] {
+  const normalizedPaths: string[] = [];
+  const seen = new Set<string>();
+
+  for (const filePath of filePaths) {
+    if (!isMarkdownFilePath(filePath)) continue;
+    const absolutePath = path.resolve(normalizeMarkdownFilePath(filePath));
+    const dedupeKey = process.platform === "win32" ? absolutePath.toLowerCase() : absolutePath;
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+    normalizedPaths.push(absolutePath);
   }
 
+  return normalizedPaths;
+}
+
+function readLaunchFiles(filePaths: string[]): LaunchFilePayload[] {
+  const results: LaunchFilePayload[] = [];
+
+  for (const filePath of filePaths) {
+    const result = readMarkdownFile(filePath);
+    if (!result) {
+      console.warn("[main] 无法读取启动文件:", filePath);
+      continue;
+    }
+    results.push(result);
+  }
+
+  return results;
+}
+
+function appendPendingStartupFiles(filePaths: string[]) {
+  const existing = new Set(
+    pendingStartupFiles.map((filePath) =>
+      process.platform === "win32" ? filePath.toLowerCase() : filePath
+    )
+  );
+
+  for (const filePath of filePaths) {
+    const dedupeKey = process.platform === "win32" ? filePath.toLowerCase() : filePath;
+    if (existing.has(dedupeKey)) continue;
+    existing.add(dedupeKey);
+    pendingStartupFiles.push(filePath);
+  }
+}
+
+function sendFilesToRenderer(filePaths: string[]) {
+  const normalizedPaths = normalizeLaunchFilePaths(filePaths);
+  if (normalizedPaths.length === 0) return;
+
   // 发送到渲染进程的函数
-  const sendFile = () => {
+  const sendFiles = () => {
+    const files = readLaunchFiles(normalizedPaths);
+    if (files.length === 0) return;
+
     const targetWin = getAvailableWindow();
     if (targetWin) {
       if (targetWin.isMinimized()) targetWin.restore();
       if (!targetWin.isVisible()) targetWin.show();
       targetWin.focus();
       targetWin.webContents.send("open-file-at-launch", {
-        filePath: result.filePath,
-        content: result.content,
-        fileTraits: result.fileTraits,
+        ...files[0],
+        files,
       });
     }
   };
 
   if (isRendererReady) {
-    sendFile();
+    sendFiles();
   } else {
-    pendingStartupFile = result.filePath;
+    appendPendingStartupFiles(normalizedPaths);
   }
 }
 
 function sendLaunchFileIfExists(argv = process.argv) {
-  const fileArg = argv.find((arg) => isMarkdownFilePath(arg));
-
-  if (fileArg) {
-    const absolutePath = path.resolve(normalizeMarkdownFilePath(fileArg));
-    sendFileToRenderer(absolutePath);
-  }
+  sendFilesToRenderer(argv.filter((arg) => isMarkdownFilePath(arg)));
 }
 
 // 注册自定义协议为特权协议
@@ -263,9 +310,10 @@ app.whenReady().then(async () => {
   // 监听渲染进程就绪事件 (Moved up to avoid race condition)
   ipcMain.on("renderer-ready", () => {
     isRendererReady = true;
-    if (pendingStartupFile) {
-      sendFileToRenderer(pendingStartupFile);
-      pendingStartupFile = null;
+    if (pendingStartupFiles.length > 0) {
+      const filesToOpen = pendingStartupFiles;
+      pendingStartupFiles = [];
+      sendFilesToRenderer(filesToOpen);
     }
   });
 
@@ -294,7 +342,7 @@ if (!gotTheLock) {
 // 处理应用已运行时双击文件打开的情况
 app.on("open-file", (event, filePath) => {
   event.preventDefault();
-  sendFileToRenderer(filePath);
+  sendFilesToRenderer([filePath]);
 });
 // 处理应用即将退出事件（包括右键 Dock 图标的退出、Cmd+Q）
 app.on("before-quit", (event) => {

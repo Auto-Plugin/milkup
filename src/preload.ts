@@ -53,7 +53,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.send("window-control", action),
   closeDiscard: () => ipcRenderer.send("close:discard"),
   onOpenFileAtLaunch: (
-    cb: (payload: { filePath: string; content: string; fileTraits?: any }) => void
+    cb: (payload: {
+      filePath: string;
+      content: string;
+      fileTraits?: any;
+      files?: Array<{ filePath: string; content: string; fileTraits?: any }>;
+    }) => void
   ) => {
     ipcRenderer.on("open-file-at-launch", (_event, payload) => {
       cb(payload);
