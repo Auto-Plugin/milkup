@@ -14,6 +14,7 @@ import { MarkdownSerializer } from "../serializer";
 
 /** 插件 Key */
 export const sourceViewTransformPluginKey = new PluginKey("milkup-source-view-transform");
+export const sourceViewTransformAppliedMeta = "milkup-source-view-transform-applied";
 
 /** 代码块标记属性 */
 interface CodeBlockMarker {
@@ -1435,6 +1436,8 @@ export function createSourceViewTransformPlugin(): Plugin {
     key: sourceViewTransformPluginKey,
 
     appendTransaction(transactions, oldState, newState) {
+      if (transactions.some((tr) => tr.getMeta(sourceViewTransformAppliedMeta))) return null;
+
       // 检查是否有源码模式切换
       const oldDecorationState = decorationPluginKey.getState(oldState);
       const newDecorationState = decorationPluginKey.getState(newState);

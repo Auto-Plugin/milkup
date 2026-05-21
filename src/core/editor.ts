@@ -1909,7 +1909,7 @@ export class MilkupEditor implements IMilkupEditor {
    * 切换源码视图
    */
   toggleSourceView(): void {
-    toggleSourceView(this.view.state, this.view.dispatch.bind(this.view));
+    toggleSourceView(this.view.state, this.view.dispatch.bind(this.view), this.view);
     this.config.sourceView = !this.config.sourceView;
   }
 
