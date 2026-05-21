@@ -134,6 +134,22 @@ function parseConsecutiveImages(text: string): Array<{
   return images.length >= 2 ? images : null;
 }
 
+function getHeadingSyntaxPrefixLength(text: string, level: number): number {
+  const hashes = "#".repeat(level);
+  if (!text.startsWith(hashes)) return 0;
+
+  if (text.length === level) return level;
+
+  let offset = level;
+  if (!/\s/.test(text[offset])) return 0;
+
+  while (offset < text.length && /\s/.test(text[offset])) {
+    offset++;
+  }
+
+  return offset;
+}
+
 /** 行内语法定义 */
 interface InlineSyntax {
   type: string;
@@ -779,9 +795,9 @@ export function createSyntaxDetectorPlugin(): Plugin {
           // 误移除标题前缀上的 syntax_marker(heading) 标记
           if (node.type.name === "heading") {
             const level = node.attrs.level as number;
-            const prefix = "#".repeat(level) + " ";
-            if (textContent.startsWith(prefix)) {
-              contentOffset = prefix.length;
+            const prefixLength = getHeadingSyntaxPrefixLength(textContent, level);
+            if (prefixLength > 0) {
+              contentOffset = prefixLength;
               textContent = textContent.slice(contentOffset);
             }
           }

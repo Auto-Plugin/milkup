@@ -127,9 +127,9 @@ async function onSaveAs() {
     originalContent.value =
       useTab().currentTab.value?.originalContent ?? fileContent?.content ?? result.content;
     updateTitle();
+    // 不重建编辑器实例：另存为只更新文件状态，重建会清空 ProseMirror history。
     nextTick(() => {
       emitter.emit("file:Change");
-      emitter.emit("editor:reload");
     });
   }
 }

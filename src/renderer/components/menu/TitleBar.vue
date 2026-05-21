@@ -67,7 +67,7 @@ onUnmounted(() => {
 <style lang="less" scoped>
 .TitleBarBox {
   -webkit-app-region: drag;
-  height: 46px;
+  height: 40px;
   padding-left: 6px;
   background: linear-gradient(
     180deg,

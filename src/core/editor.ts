@@ -334,7 +334,9 @@ export class MilkupEditor implements IMilkupEditor {
    */
   setMarkdown(content: string): void {
     const { doc } = this.parser.parse(content);
-    const tr = this.view.state.tr.replaceWith(0, this.view.state.doc.content.size, doc.content);
+    const tr = this.view.state.tr
+      .replaceWith(0, this.view.state.doc.content.size, doc.content)
+      .setMeta("addToHistory", false);
     this.view.dispatch(tr);
   }
 

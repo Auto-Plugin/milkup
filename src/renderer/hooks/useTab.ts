@@ -305,10 +305,8 @@ async function saveTab(tab: Tab): Promise<boolean> {
         tab.readOnly = fileContent?.readOnly ?? tab.readOnly;
       }
 
+      // 不重建编辑器实例：保存只更新文件状态，重建会清空 ProseMirror history。
       emitter.emit("file:Change");
-      nextTick(() => {
-        emitter.emit("editor:reload");
-      });
       return true;
     }
   } catch (error) {
