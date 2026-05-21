@@ -519,6 +519,7 @@ async function handleThemeSelect(themeName: ThemeName) {
         height: calc(100% - 30px);
         border-radius: 0 0 5px 5px;
         background-color: var(--background-color-1);
+        color: var(--text-color-2);
         padding: 20px;
         box-sizing: border-box;
         position: relative;
