@@ -30,6 +30,7 @@
     "dist:win-x64": "pnpm run generate-icons && pnpm run build && electron-builder --win --x64",
     "lint": "oxlint . && oxfmt --check .",
     "format": "oxlint --fix . && oxfmt .",
+    "test": "node --experimental-strip-types --test \"test/**/*.test.mjs\"",
     "prepare": "simple-git-hooks",
     "preinstall": "npx only-allow pnpm",
     "release": "genereleaselog",

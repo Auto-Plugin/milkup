@@ -5,7 +5,6 @@ import type { Block, ExportPDFOptions } from "./types";
 import type { FileTraits } from "./fileFormat";
 import { execSync } from "node:child_process";
 import * as fs from "node:fs";
-import * as fsp from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import chokidar from "chokidar";
@@ -35,6 +34,13 @@ import {
   updateWindowOpenFiles,
 } from "./windowManager";
 import type { TearOffTabData } from "./windowManager";
+import {
+  classifyWatchTarget,
+  partitionPaths,
+  scanDirectory,
+  WslDirectoryWatcher,
+  WslFileWatcher,
+} from "./wslWatch";
 
 /** 每个窗口独立追踪保存状态（windowId → isSaved） */
 const windowSaveState = new Map<number, boolean>();
@@ -52,6 +58,8 @@ export function setIsQuitting(value: boolean): void {
 function cleanupWindowState(windowId: number): void {
   windowSaveState.delete(windowId);
   windowClosingSet.delete(windowId);
+  // 窗口关闭：从 WSL 文件监听引用计数中移除（归零才真正 unwatchFile）
+  wslFileWatcher.removeWindow(windowId);
 }
 
 // 存储已监听的文件路径和对应的 watcher
@@ -62,6 +70,22 @@ let watcher: FSWatcher | null = null;
 let directoryWatcher: FSWatcher | null = null;
 let directoryChangedDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 let imagePreviewWindow: BrowserWindow | null = null;
+
+// ── WSL/远程文件监听第二层（轮询路线，见 docs/spec-wsl-file-watching-layer2.md）──
+// 广播到所有编辑器窗口
+function broadcastToEditors(channel: string, ...args: unknown[]): void {
+  for (const editorWin of getEditorWindows()) {
+    if (!editorWin.isDestroyed()) editorWin.webContents.send(channel, ...args);
+  }
+}
+// WSL 远程目录：setInterval 轮询快照（fs.watch 在 9P 上启动即 EISDIR，不可用）
+const wslDirWatcher = new WslDirectoryWatcher({
+  onChanged: () => broadcastToEditors("workspace:directory-changed"),
+});
+// WSL 远程已打开文件：fs.watchFile 轮询 + 引用计数
+const wslFileWatcher = new WslFileWatcher({
+  onChanged: (filePath) => broadcastToEditors("file:changed", filePath),
+});
 
 interface ImagePreviewItem {
   src: string;
@@ -1187,6 +1211,16 @@ export function registerIpcHandleHandlers() {
 }
 // 无需 win 的 ipc 处理
 export function registerGlobalIpcHandlers() {
+  // WSL 第二层：窗口获得焦点时主动 stat 兜底（覆盖后台轮询被节流/切回窗口的时机，§4.4）
+  app.on("browser-window-focus", (_event, win) => {
+    void wslFileWatcher.checkWindow(win.id);
+  });
+  // 退出清理：fs.watchFile 的 StatWatcher 是 ref 句柄，残留会阻止进程正常退出（§4.2）
+  app.on("before-quit", () => {
+    wslFileWatcher.dispose();
+    wslDirWatcher.unwatchAll();
+  });
+
   ipcMain.handle("clipboard:writeText", async (_event, text: string): Promise<boolean> => {
     clipboard.writeText(text ?? "");
     return true;
@@ -1465,115 +1499,14 @@ export function registerGlobalIpcHandlers() {
     }
   });
 
-  // 获取目录下的文件列表（树形结构）
+  // 获取目录下的文件列表（树形结构）。WSL 远程目录会丢弃 symlink（读不透，见 wslWatch/§0-A）。
   ipcMain.handle("workspace:getDirectoryFiles", async (_event, dirPath: string) => {
     try {
       if (!dirPath || !fs.existsSync(dirPath)) {
         return [];
       }
-
-      interface WorkSpace {
-        name: string;
-        path: string;
-        isDirectory: boolean;
-        mtime: number;
-        children?: WorkSpace[];
-      }
-
-      // 性能优化配置
-      const MAX_DEPTH = 10; // 最大扫描深度
-      const MAX_FILES_PER_DIR = 100; // 每个目录最大文件数
-      const IGNORE_PATTERNS = [
-        /^\.git$/,
-        /^\.vscode$/,
-        /^\.idea$/,
-        /^node_modules$/,
-        /^\.next$/,
-        /^\.nuxt$/,
-        /^dist$/,
-        /^build$/,
-        /^coverage$/,
-        /^\.DS_Store$/,
-        /^Thumbs\.db$/,
-      ];
-
-      function shouldIgnoreDirectory(name: string): boolean {
-        return IGNORE_PATTERNS.some((pattern) => pattern.test(name));
-      }
-
-      function isSupportedWorkspaceFile(name: string): boolean {
-        return /\.(?:md|markdown|png|jpe?g|gif|webp|svg|bmp)$/i.test(name);
-      }
-
-      async function getMtimeMs(targetPath: string): Promise<number> {
-        try {
-          const stat = await fsp.stat(targetPath);
-          return stat.mtimeMs;
-        } catch {
-          return 0;
-        }
-      }
-
-      async function scanDirectory(currentPath: string, depth: number = 0): Promise<WorkSpace[]> {
-        // 限制扫描深度
-        if (depth > MAX_DEPTH) {
-          return [];
-        }
-
-        try {
-          const items = await fsp.readdir(currentPath, { withFileTypes: true });
-
-          // 限制每个目录的文件数量
-          if (items.length > MAX_FILES_PER_DIR) {
-            console.warn(`目录 ${currentPath} 包含过多文件 (${items.length})，已限制扫描`);
-            items.splice(MAX_FILES_PER_DIR);
-          }
-
-          // 先添加文件夹，再添加文件
-          const directories: WorkSpace[] = [];
-          const files: WorkSpace[] = [];
-
-          for (const item of items) {
-            const itemPath = path.join(currentPath, item.name);
-
-            if (item.isDirectory()) {
-              // 跳过忽略的目录
-              if (shouldIgnoreDirectory(item.name)) {
-                continue;
-              }
-
-              const children = await scanDirectory(itemPath, depth + 1);
-              const dirMtime = await getMtimeMs(itemPath);
-              directories.push({
-                name: item.name,
-                path: itemPath,
-                isDirectory: true,
-                mtime: dirMtime,
-                children,
-              });
-            } else if (item.isFile() && isSupportedWorkspaceFile(item.name)) {
-              const fileMtime = await getMtimeMs(itemPath);
-              files.push({
-                name: item.name,
-                path: itemPath,
-                isDirectory: false,
-                mtime: fileMtime,
-              });
-            }
-          }
-
-          // 按名称排序
-          directories.sort((a, b) => a.name.localeCompare(b.name));
-          files.sort((a, b) => a.name.localeCompare(b.name));
-
-          return [...directories, ...files];
-        } catch (error) {
-          console.warn(`扫描目录失败: ${currentPath}`, error);
-          return [];
-        }
-      }
-
-      return await scanDirectory(dirPath);
+      const isWslRemote = classifyWatchTarget(dirPath) === "wsl";
+      return await scanDirectory(dirPath, { isWslRemote });
     } catch (error) {
       console.error("获取目录文件失败:", error);
       return [];
@@ -1595,10 +1528,14 @@ export function registerGlobalIpcHandlers() {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (win) updateWindowOpenFiles(win.id, filePaths);
 
-    // 先差异对比
-    const newFiles = filePaths.filter((filePath) => !watchedFiles.has(filePath));
+    // 按来源分流：WSL 远程走轮询(per-window 引用计数)，本地/SMB 沿用 chokidar
+    const { wsl: wslPaths, chokidar: localPaths } = partitionPaths(filePaths);
+    if (win) wslFileWatcher.setWindowFiles(win.id, wslPaths);
+
+    // 以下仅处理本地/SMB 路径（chokidar）
+    const newFiles = localPaths.filter((filePath) => !watchedFiles.has(filePath));
     const removedFiles = Array.from(watchedFiles).filter(
-      (filePath) => !filePaths.includes(filePath)
+      (filePath) => !localPaths.includes(filePath)
     );
 
     // 如果 watcher 不存在，创建它并设置事件监听
@@ -1644,13 +1581,25 @@ export function registerGlobalIpcHandlers() {
 
   // 监听目录变化（用于文件列表自动刷新）
   ipcMain.on("workspace:watchDirectory", (_event, dirPath: string) => {
-    // 先关闭旧的 watcher
+    // 先关闭旧的 chokidar watcher
     if (directoryWatcher) {
       directoryWatcher.close();
       directoryWatcher = null;
     }
 
-    if (!dirPath || !fs.existsSync(dirPath)) return;
+    if (!dirPath || !fs.existsSync(dirPath)) {
+      wslDirWatcher.unwatchAll();
+      return;
+    }
+
+    // WSL 远程目录：setInterval 轮询，不创建 chokidar（fs.watch 在 9P 上启动即 EISDIR）
+    if (classifyWatchTarget(dirPath) === "wsl") {
+      wslDirWatcher.watch(dirPath);
+      return;
+    }
+
+    // 本地 / SMB：沿用 chokidar 实时监听
+    wslDirWatcher.unwatchAll();
 
     const IGNORE_DIRS =
       /(?:^|[/\\])(?:\.git|\.vscode|\.idea|node_modules|\.next|\.nuxt|dist|build|coverage)(?:[/\\]|$)/;
@@ -1688,6 +1637,7 @@ export function registerGlobalIpcHandlers() {
 
   // 停止监听目录
   ipcMain.on("workspace:unwatchDirectory", () => {
+    wslDirWatcher.unwatchAll();
     if (directoryWatcher) {
       directoryWatcher.close();
       directoryWatcher = null;
