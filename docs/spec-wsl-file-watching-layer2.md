@@ -1,8 +1,8 @@
 # 规约：WSL/远程文件监听第二层（轮询路线）
 
-状态：草案 v2（已合入 2026-06-04 code review），待实施
-前置条件：等第一层 PR #236 合入/有结论后再动手 + 完成 §0 前置实测
-关联：上游 issue #172、PR #236（第一层修复）
+状态：草案 v3（§0 前置实测 2026-06-06 已完成，两项 PASS；symlink 分支按实测缩范围），可实施
+前置条件：~~等第一层 PR #236 合入/有结论后再动手~~（见 §8：第二层堆在 #236 之上的独立后续 PR，本地实现不再等 #236）+ ~~完成 §0 前置实测~~（已完成，结果见 §0）
+关联：上游 issue #172、PR #236（第一层修复）；§0 实测脚本与原始输出见本仓提交说明
 
 ---
 
@@ -10,10 +10,25 @@
 
 第一层之所以"跳过 WSL 工作区加载"，是因为加载会崩 EISDIR。第二层要撤销跳过，**必须先用实测证明完整建树路径全程不踩 EISDIR**，否则等于重开第一层堵住的崩溃口。
 
-- [前置实测 A] **完整建树路径无 EISDIR**：在一个含 `普通文件 / 子目录 / 指向文件的 symlink / 指向目录的 symlink / dangling symlink / >100 文件的大目录 / >10 层深目录` 的真实 WSL 目录上，跑 `scanDirectory` 等价递归（readdir withFileTypes + 对 dir 递归 + 对 file stat），断言：全程 0 次 EISDIR / 0 uncaughtException / 0 unhandledRejection。重点验证"递归进 symlink 指向的目录"和"对 dirent 做 stat 而非 lstat"两条路径。
-- [前置实测 B] **fs.watchFile 在 9P 的可靠性边界**：已初步实测可检测 `echo >>` 追加（mtime 推进）。补测：原子替换（写临时文件 + rename 覆盖、`cp -p` 保留 mtime、`mv` 保留时间戳）、删除后重建、9P 同秒内多次写。记录哪些能检测、哪些漏报——漏报项必须由 §4.4 的 size/focus 兜底覆盖。
+- [x] **前置实测 A — 完整建树路径无 EISDIR**：在一个含 `普通文件 / 子目录 / 指向文件的 symlink / 指向目录的 symlink / dangling symlink / .so.0 链 / >100 文件的大目录 / >10 层深目录` 的真实 WSL 目录上，跑生产 `scanDirectory` 逐字复刻（readdir withFileTypes + 对 dir 递归 + 对 file stat），断言：全程 0 次 EISDIR / 0 uncaughtException / 0 unhandledRejection。
+- [x] **前置实测 B — fs.watchFile 在 9P 的可靠性边界**：`fs.watchFile(interval)` 监听 `\\wsl.localhost\` 文件，逐项验证 追加 / 原子替换(mv) / 同 mtime 仅改 size / 删除 / 删后重建 / 同秒多写 能否被检测。
 
-两项任一失败，则对应设计分支需改方案或缩小范围，不得按本规约直接实现。
+### 实测结果（2026-06-06，Debian11 / Node v22 / Windows host）
+
+**A — PASS（建树安全），但 symlink 子目标触发缩范围。** 生产 `scanDirectory` 在上述 WSL 树上建出 115 节点，0 吞错 / 0 EISDIR / 0 uncaught。关键数据：
+
+| 对 WSL symlink 的操作（Windows 侧） | 结果 |
+|----------------------------------------|--------|
+| `lstat`                                | EISDIR（原崩溃面，4/4 复现，对照成立）|
+| `stat`（跟随）                         | ENOENT（**不是 EISDIR**；指向真实存在目标也 ENOENT）|
+| `readlink`                             | EISDIR |
+| `readFile`（跟随）                     | ENOENT |
+
+结论：建树之所以安全，是因为 `readdir` 用 d_type 分类（不 stat），symlink 的 Dirent `isDirectory()/isFile()` 皆 false 被天然丢弃，真实 dir/file 的 `stat` 正常。**新发现：WSL symlink 从 Windows 侧完全读不透**（与相对/绝对、指向文件/目录均无关）—— 见 §4.3 据此修订后的 symlink 设计。
+
+**B — PASS（全绿）。** 7 项修改全部被 `fs.watchFile` 检测到：追加 / 原子替换(新 inode) / **同 mtime 仅改 size**（`prev{mtime=T,size=6}`→`curr{mtime=T,size=25}` 仍触发，证明 9P 上比较含 size）/ 删除（回调 `mtimeMs=0`）/ 删后重建（跟踪跨 inode 存活）/ 同秒两次写（合并为终态）。唯一未覆盖：同 mtime + 同 size 改内容（spec §7 已认定罕见、仅内容哈希可抓，可接受）。
+
+判定：A、B 两项 §0 PASS → §4.1/§4.2/§4.4 设计成立；§4.3 symlink 分支按本结果缩范围（下方修订）。原"任一失败则改方案或缩小范围"已落实于 §4.3。
 
 ## 1. 背景
 
@@ -38,6 +53,7 @@
 - `readdir({withFileTypes:true})` 本身不对 symlink 单独 lstat，故 readdir 不踩 EISDIR；但**这不等于 symlink 会进文件树**——分类逻辑见 §4.1（必须显式加 `isSymbolicLink()` 分支，否则 symlink 被丢弃）。
 - "轮询用普通文件 stat 安全"只覆盖单文件场景。文件树轮询/建树处理对象含目录与 symlink，安全性由 §0-A 实测背书，不由该单点结论背书。
 - CudaText(FPC) 走轮询仅作旁证，不构成 Node `fs.watchFile`/`setInterval` 在 Electron 主进程 + 9P 下可靠的证据；可靠性以 §0-B 实测为准。
+- **（§0-A 实测补充）WSL symlink 从 Windows 侧完全读不透**：`lstat`/`readlink` 返回 EISDIR，`stat`(跟随)/`readFile`(跟随) 返回 ENOENT（即便目标真实存在）。只有 `readdir` 的 d_type 能识别"它是个 symlink"。这是 §4.3 symlink 分支缩范围的直接依据。
 
 ## 3. 目标、非目标与范围边界
 
@@ -88,7 +104,10 @@
 ### 4.3 renderer：`getWorkSpace`
 
 - 撤销第一层对 WSL 的"完全跳过"：WSL 也调 `getDirectoryFiles` 建树（建树安全性由 §0-A 背书）。下游监听由 main 按 §4.0 自动分流。
-- **`scanDirectory` 分类修正**（评审修正，核心）：现 `isDirectory()/isFile()` 二分会丢弃 symlink（两者皆 false）。必须加 `isSymbolicLink()` 分支：symlink 进树并标记类型；其 mtime 进快照（否则 symlink 出现/消失/重指向不刷新）。是否解引用递归由策略决定（默认不解引用，避免环 + 避免对 symlink 指向目录的额外 stat 风险）。
+- **`scanDirectory` 分类修正**（评审修正，核心；**已按 §0-A 实测缩范围**）：现 `isDirectory()/isFile()` 二分会丢弃 symlink（两者皆 false）。处理按路径来源分流：
+  - **本地 / SMB**：加 `isSymbolicLink()` 分支——symlink 可正常 `lstat`/`stat`，进树并标记类型，mtime 进快照；默认不解引用递归（避免环 + 避免对 symlink 指向目录的额外 stat 风险）。
+  - **WSL 远程（§0-A 实测发现）**：symlink 从 Windows 侧完全读不透（`lstat`/`readlink`→EISDIR，`stat`/`readFile`→ENOENT），既拿不到 mtime/size，也无法解引用，更无法点开（点开 symlink 指向的 .md 会 ENOENT）。因此 WSL 分支**默认不把 symlink 放入文件树**（维持第一层 drop 行为，避免"死节点/点开报错"）。其副作用：symlink 的出现/消失可由 readdir 列表 diff 感知，但**重指向不可知、symlink 目标内容不可读**——文档化为已知局限，不在本层解决。
+  - 说明：WSL 下"不解引用"不是策略选择而是平台强制（`stat` 直接 ENOENT）。若后续要在 WSL 树显示 symlink，只能呈现为不可展开/不可打开的 inert 节点 + 明确标记，属独立增强（见 §8 defer）。
 - **空树与一次性锁**：远程首扫慢/超时/全 symlink 时 `getDirectoryFiles` 可能返回 `[]`，现逻辑 `!result.length` 在置 `isLoadWorkSpace` 前早返回→锁不置位→tabs 变化反复整树重扫慢 9P。修正：远程返回空时也置位（或加"远程已尝试加载"独立标志），避免反复重扫；远程的周期刷新由 §4.1 interval 负责，不依赖 tabs watch 重触发。
 
 ### 4.4 已打开文件的 mtime 兜底（一期交付，非二期）
@@ -113,7 +132,7 @@
 
 1. **本地不退化（可量化）**：本地工作区文件树构建时间、外部变更提示延迟，与改动前基线相比差异 ≤ 基线的 10%（同机同目录对比，各 5 次取中位数）。SMB 工作区同样保持 chokidar 实时（变更后 < 1s 提示）。
 2. **WSL 文件**：
-   - 出现文件树，且**含 symlink 项**（验证 §4.3 分类修正）；
+   - 出现文件树（普通文件 + 子目录正常显示）；**WSL 下不含 symlink 项是预期行为**（§0-A：symlink 读不透，按 §4.3 在 WSL 分支丢弃）。symlink 进树 + 标记类型的验收改到 **local/SMB**（symlink 可 stat）；
    - WSL 内 `echo x >> file` 后，检测延迟 ≤ (单文件间隔 1500ms + 处理余量 1000ms) = **2.5s**；
    - 原子替换（保留 mtime）后，由 size 兜底或 focus 兜底检测到（验证 §4.4）；
    - 新建/删除文件后 ≤ (树间隔 4000ms + 余量 1500ms) = **5.5s**（目录 ≤100 项、≤10 层；超规模按降级策略另定，不在本条）；
@@ -135,6 +154,7 @@
 - 第二层（本规约）：恢复功能。撤销"跳过加载"、按路径分流到轮询。作为**独立后续 PR**，commit 引用本规约。
 
 暂缓（defer，#236 合入后再定）：
+- **WSL symlink 在树内的 inert 显示**：§0-A 实测 symlink 读不透，本层在 WSL 分支直接丢弃。若要在 WSL 树呈现 symlink（不可展开/不可打开的 inert 节点 + 标记），属独立增强，暂缓。
 - **SMB 是否也轮询**：第二层暂对 SMB 沿用 chokidar；待 SMB 上 fs.watch 可靠性单独实测后决定。
 - **对 #236 接口的契约假设 + 过渡态**：第二层 §4.3 撤销跳过的落点依赖 #236 的实现形态；半启用态（有树无提示/有提示树旧）待 #236 合入后据实际接口细化。
 
@@ -148,6 +168,7 @@
 - [x] [Patch] mtime 唯一真相 → §0-B 实测边界 + §4.1 快照加 size + §4.2 size 兜底 + §4.4 focus 兜底提到一期
 - [x] [Patch] 判定漏判重开 EISDIR → §4.0 前缀归一化 + §3/§4.0 文档化 Z:\ 与本地内嵌 symlink 盲区 + error handler 兜底
 - [x] [Patch] symlink 被分类丢弃 → §4.3 scanDirectory 加 isSymbolicLink() 分支 + §6.2 验收"树含 symlink 项"
+  - **（§0-A 实测修订）** WSL symlink 读不透（lstat/readlink=EISDIR，stat/readFile=ENOENT）：isSymbolicLink() 分支只对 local/SMB 有效；WSL 分支按缩范围继续丢弃 symlink，"树含 symlink 项"验收移到 local/SMB。inert 显示移入 §8 defer。
 - [x] [Patch] 撤销跳过 EISDIR 证据不足 → §0-A 前置实测（完整建树路径无 EISDIR）
 - [x] [Patch] 定时器生命周期三洞 → §4.1 per-dirPath interval + 入口自清 + in-flight guard + epoch 丢弃迟到结果
 - [x] [Patch] fs.watchFile 泄漏与误伤 → §4.2 refCount + before-quit 清理
