@@ -4,16 +4,52 @@
  * 自动转换 Markdown 语法
  */
 
+import { inputRules, InputRule } from "prosemirror-inputrules";
 import {
-  inputRules,
-  wrappingInputRule,
-  textblockTypeInputRule,
-  InputRule,
-} from "prosemirror-inputrules";
-import { NodeType, MarkType, Schema, Fragment } from "prosemirror-model";
-import { Plugin, TextSelection } from "prosemirror-state";
+  Attrs,
+  Node as ProseMirrorNode,
+  NodeType,
+  MarkType,
+  Schema,
+  Fragment,
+} from "prosemirror-model";
+import { canJoin, findWrapping } from "prosemirror-transform";
+import { EditorState, Plugin, TextSelection, Transaction } from "prosemirror-state";
 import { milkupSchema } from "../schema";
 import { decorationPluginKey } from "../decorations";
+
+function isSourceView(state: EditorState): boolean {
+  return decorationPluginKey.getState(state)?.sourceView ?? false;
+}
+
+function wrapTextblockTransaction(
+  state: EditorState,
+  match: RegExpMatchArray,
+  start: number,
+  end: number,
+  nodeType: NodeType,
+  getAttrs: Attrs | null | ((matches: RegExpMatchArray) => Attrs | null) = null,
+  joinPredicate?: (match: RegExpMatchArray, node: ProseMirrorNode) => boolean
+): Transaction | null {
+  const attrs = getAttrs instanceof Function ? getAttrs(match) : getAttrs;
+  const tr = state.tr.delete(start, end);
+  const $start = tr.doc.resolve(start);
+  const range = $start.blockRange();
+  const wrapping = range && findWrapping(range, nodeType, attrs);
+  if (!wrapping) return null;
+
+  tr.wrap(range, wrapping);
+  const before = tr.doc.resolve(start - 1).nodeBefore;
+  if (
+    before &&
+    before.type === nodeType &&
+    canJoin(tr.doc, start - 1) &&
+    (!joinPredicate || joinPredicate(match, before))
+  ) {
+    tr.join(start - 1);
+  }
+  return tr;
+}
 
 /**
  * 创建引用块输入规则
@@ -21,8 +57,7 @@ import { decorationPluginKey } from "../decorations";
  */
 function blockquoteRule(nodeType: NodeType): InputRule {
   return new InputRule(/^>\s$/, (state, _match, start, end) => {
-    const decorationState = decorationPluginKey.getState(state);
-    if (decorationState?.sourceView) {
+    if (isSourceView(state)) {
       return null;
     }
 
@@ -58,7 +93,7 @@ function blockquoteRule(nodeType: NodeType): InputRule {
         return tr.setSelection(TextSelection.create(tr.doc, paragraphPos + 2)).scrollIntoView();
       }
 
-      return wrappingInputRule(/^>\s$/, nodeType).handler(state, _match, start, end);
+      return wrapTextblockTransaction(state, _match, start, end, nodeType);
     }
 
     const blockquoteStart = $from.before(blockquoteDepth);
@@ -101,8 +136,7 @@ function blockquoteRule(nodeType: NodeType): InputRule {
 function codeBlockRule(nodeType: NodeType): InputRule {
   return new InputRule(/^```(\w*) $/, (state, match, start, end) => {
     // 源码视图模式下不自动创建代码块
-    const decorationState = decorationPluginKey.getState(state);
-    if (decorationState?.sourceView) {
+    if (isSourceView(state)) {
       return null;
     }
 
@@ -146,7 +180,18 @@ function horizontalRuleRule(nodeType: NodeType): InputRule {
  * - item 或 * item
  */
 function bulletListRule(listType: NodeType, itemType: NodeType): InputRule {
-  return wrappingInputRule(/^[-*+]\s$/, listType, null, (_, node) => node.type === itemType);
+  return new InputRule(/^[-*+]\s$/, (state, match, start, end) => {
+    if (isSourceView(state)) return null;
+    return wrapTextblockTransaction(
+      state,
+      match,
+      start,
+      end,
+      listType,
+      null,
+      (_, node) => node.type === itemType
+    );
+  });
 }
 
 /**
@@ -154,12 +199,18 @@ function bulletListRule(listType: NodeType, itemType: NodeType): InputRule {
  * 1. item
  */
 function orderedListRule(listType: NodeType, itemType: NodeType): InputRule {
-  return wrappingInputRule(
-    /^(\d+)\.\s$/,
-    listType,
-    (match) => ({ start: parseInt(match[1], 10) }),
-    (match, node) => node.type === itemType && node.childCount + parseInt(match[1], 10) === 1
-  );
+  return new InputRule(/^(\d+)\.\s$/, (state, match, start, end) => {
+    if (isSourceView(state)) return null;
+    return wrapTextblockTransaction(
+      state,
+      match,
+      start,
+      end,
+      listType,
+      (match) => ({ start: parseInt(match[1], 10) }),
+      (match, node) => node.type === itemType && node.childCount + parseInt(match[1], 10) === 1
+    );
+  });
 }
 
 /**
@@ -168,6 +219,8 @@ function orderedListRule(listType: NodeType, itemType: NodeType): InputRule {
  */
 function taskListRule(listType: NodeType, itemType: NodeType): InputRule {
   return new InputRule(/^\[([ xX]?)\]\s$/, (state, match, start, end) => {
+    if (isSourceView(state)) return null;
+
     const checked = match[1].toLowerCase() === "x";
     const $start = state.doc.resolve(start);
 
@@ -253,6 +306,8 @@ function bulletToOrderedRule(
   itemType: NodeType
 ): InputRule {
   return new InputRule(/^(\d+)\.\s$/, (state, match, start, end) => {
+    if (isSourceView(state)) return null;
+
     const startNum = parseInt(match[1], 10);
     const $start = state.doc.resolve(start);
 
@@ -330,6 +385,8 @@ function orderedToBulletRule(
   itemType: NodeType
 ): InputRule {
   return new InputRule(/^[-*+]\s$/, (state, match, start, end) => {
+    if (isSourceView(state)) return null;
+
     const $start = state.doc.resolve(start);
 
     if ($start.depth < 2) return null;
