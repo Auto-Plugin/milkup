@@ -20,7 +20,6 @@ interface WorkSpace {
 
 const workSpace = ref<WorkSpace[] | null>(null);
 const watchedDirPath = ref<string | null>(null);
-let hasShownRemoteWorkspaceSkipToast = false;
 
 // 搜索
 const searchQuery = ref("");
@@ -95,13 +94,7 @@ async function getWorkSpace() {
   // 获取文件所在的目录路径
   const directoryPath = realFile.filePath.replace(/[^/\\]+$/, "");
 
-  if (!shouldAutoLoadWorkspace(directoryPath)) {
-    if (!hasShownRemoteWorkspaceSkipToast) {
-      hasShownRemoteWorkspaceSkipToast = true;
-      toast.show("检测到 WSL / 远程路径，已跳过自动加载工作区，可手动打开文件夹", "info");
-    }
-    return;
-  }
+  if (!shouldAutoLoadWorkspace(directoryPath)) return;
 
   try {
     isLoading.value = true;
@@ -109,13 +102,13 @@ async function getWorkSpace() {
     const result = await window.electronAPI.getDirectoryFiles(directoryPath);
 
     if (!result) return;
-    if (!result.length) return;
 
-    // 已加载
+    // 已加载。注意：远程(WSL)首扫慢 / 全 symlink 时可能返回空数组——空数组也置位并开始监听，
+    // 否则 isLoadWorkSpace 不置位 → tabs 变化反复整树重扫拖慢 9P（§4.3 空树锁）。
     isLoadWorkSpace = true;
     // 更新文件夹信息
     workSpace.value = result;
-    // 开始监听目录
+    // 开始监听目录（远程的周期刷新由 main 进程的轮询 interval 负责）
     startWatching(directoryPath);
   } catch {
     toast.show("获取目录文件失败:", "error");
@@ -179,8 +172,12 @@ function stopWatching() {
 }
 
 // 刷新文件列表
+let isRefreshing = false;
 async function refreshWorkSpace() {
   if (!watchedDirPath.value) return;
+  // 与下一轮轮询 interval / 重复的 directory-changed 互斥：刷新进行中不叠加新刷新（§4.1）
+  if (isRefreshing) return;
+  isRefreshing = true;
   try {
     const result = await window.electronAPI.getDirectoryFiles(watchedDirPath.value);
     if (result) {
@@ -188,6 +185,8 @@ async function refreshWorkSpace() {
     }
   } catch {
     // 静默失败
+  } finally {
+    isRefreshing = false;
   }
 }
 

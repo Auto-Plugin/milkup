@@ -22,6 +22,10 @@ export function isRemoteWorkspacePath(pathValue: string): boolean {
   return /^\\\\wsl(?:\$|\.localhost)\\/i.test(pathValue) || /^\\\\(?![?.]\\)/.test(pathValue);
 }
 
+// 第二层（layer2）：§0-A 实测证明 WSL/远程目录建树路径安全（readdir d_type 分类 + 真实
+// dir/file stat 正常，不再 EISDIR），故撤销第一层的"远程跳过"——远程也自动加载文件树。
+// 监听方式（本地/SMB 走 chokidar、WSL 走轮询）由 main 进程按路径分流，见 src/main/wslWatch.ts。
+// isRemoteWorkspacePath 保留作远程路径判定工具（仍可被其他逻辑复用）。
 export function shouldAutoLoadWorkspace(pathValue: string): boolean {
-  return Boolean(pathValue) && !isRemoteWorkspacePath(pathValue);
+  return Boolean(pathValue);
 }
