@@ -1620,6 +1620,13 @@ export function registerGlobalIpcHandlers() {
           }
         }
       });
+
+      // chokidar 在监听/遍历出错时会 emit "error"；若无监听器，EventEmitter 会把错误
+      // 抛成主进程 uncaughtException（例如 \\wsl.localhost\ 下对 Linux 软链接 lstat 返回
+      // EISDIR）。这里吞掉并记录，避免整个应用崩溃。
+      watcher.on("error", (error) => {
+        console.warn("[file:watch] watcher error:", error);
+      });
     }
 
     // 新增的文件 - 添加到 watcher
@@ -1671,6 +1678,12 @@ export function registerGlobalIpcHandlers() {
     directoryWatcher.on("unlink", notifyChanged);
     directoryWatcher.on("addDir", notifyChanged);
     directoryWatcher.on("unlinkDir", notifyChanged);
+    // chokidar 递归遍历目录时若对某个条目 lstat 失败会 emit "error"。典型场景：监听
+    // \\wsl.localhost\ (WSL/9P) 下的目录，对 Linux 软链接（如 *.so.0）lstat 返回 EISDIR。
+    // 没有该监听器时错误会冒泡为主进程 uncaughtException 导致崩溃，这里吞掉并记录。
+    directoryWatcher.on("error", (error) => {
+      console.warn("[workspace:watchDirectory] watcher error:", error);
+    });
   });
 
   // 停止监听目录
