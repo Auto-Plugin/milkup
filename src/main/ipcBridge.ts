@@ -17,6 +17,7 @@ import {
   normalizeMarkdown,
   restoreFileTraits,
 } from "./fileFormat";
+import { createDefaultMarkdownFileName } from "./defaultMarkdownFileName";
 import { createThemeEditorWindow } from "./index";
 import { isMarkdownFilePath, normalizeMarkdownFilePath, readMarkdownFile } from "./markdownFile";
 import {
@@ -889,6 +890,7 @@ export function registerIpcHandleHandlers() {
       if (!parentWin) return null;
       if (!filePath) {
         const { canceled, filePath: savePath } = await dialog.showSaveDialog(parentWin, {
+          defaultPath: createDefaultMarkdownFileName(content),
           filters: [{ name: "Markdown", extensions: ["md", "markdown"] }],
         });
         if (canceled || !savePath) return null;
