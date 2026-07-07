@@ -1,0 +1,205 @@
+import type {
+  DocumentSession,
+  FileWatchEvent,
+  OpenFileResult,
+  SaveFileResult,
+  RevealInFolderAction,
+} from '@milkup/tauri-bridge'
+import { createFileWatchEvent, FILE_WATCH_EVENT_NAME } from '@milkup/tauri-bridge'
+
+export type FileWatchEventHandler = (event: FileWatchEvent) => void
+
+export interface DesktopFileService {
+  openFile(): Promise<OpenFileResult | undefined>
+  reloadFile(session: DocumentSession): Promise<OpenFileResult | undefined>
+  saveFile(session: DocumentSession, text: string): Promise<SaveFileResult | undefined>
+  saveFileAs(session: DocumentSession, text: string): Promise<SaveFileResult | undefined>
+  revealInFolder(action: RevealInFolderAction, path: string): Promise<boolean>
+  watchFile(session: DocumentSession): Promise<void>
+  unwatchFile(documentId: string): Promise<void>
+  listenToFileWatchEvents(handler: FileWatchEventHandler): Promise<() => void>
+}
+
+export function createDesktopFileService(): DesktopFileService {
+  return isTauriRuntime() ? createTauriFileService() : createMockFileService()
+}
+
+function isTauriRuntime(): boolean {
+  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
+}
+
+function createMockFileService(): DesktopFileService {
+  return {
+    async openFile(): Promise<OpenFileResult> {
+      return {
+        documentId: 'desktop-sample',
+        file: { path: 'D:/notes/sample.md' },
+        text: '# Sample\r\n\r\nOpened through the desktop file workflow shell.\r\n',
+        diskSnapshotHash: 'sample:0',
+      }
+    },
+    async reloadFile(session: DocumentSession): Promise<OpenFileResult | undefined> {
+      if (!session.file) {
+        return undefined
+      }
+
+      return {
+        documentId: session.documentId,
+        file: session.file,
+        text: '# Sample reloaded\r\n\r\nExternal disk content accepted.\r\n',
+        diskSnapshotHash: `reloaded:${session.documentVersion}:${session.file.path}`,
+      }
+    },
+    async saveFile(session: DocumentSession, text: string): Promise<SaveFileResult> {
+      if (!session.file) {
+        return createMockSaveResult(session, text, { path: 'D:/notes/untitled.md' })
+      }
+
+      return createMockSaveResult(session, text, session.file)
+    },
+    async saveFileAs(session: DocumentSession, text: string): Promise<SaveFileResult> {
+      const file = session.file ?? { path: 'D:/notes/untitled.md' }
+
+      return createMockSaveResult(session, text, file)
+    },
+    async revealInFolder(): Promise<boolean> {
+      return true
+    },
+    async watchFile(): Promise<void> {
+      return undefined
+    },
+    async unwatchFile(): Promise<void> {
+      return undefined
+    },
+    async listenToFileWatchEvents(): Promise<() => void> {
+      return () => undefined
+    },
+  }
+}
+
+function createTauriFileService(): DesktopFileService {
+  return {
+    async openFile(): Promise<OpenFileResult | undefined> {
+      const { invoke } = await import('@tauri-apps/api/core')
+      let selected = getNativeTestPath('open')
+
+      if (!selected) {
+        const { open } = await import('@tauri-apps/plugin-dialog')
+        const dialogSelection = await open({
+          multiple: false,
+          filters: [{ name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'txt'] }],
+        })
+
+        selected = typeof dialogSelection === 'string' ? dialogSelection : undefined
+      }
+
+      if (!selected) {
+        return undefined
+      }
+
+      return invoke<OpenFileResult>('open_markdown_file', { path: selected })
+    },
+    async saveFile(session: DocumentSession, text: string): Promise<SaveFileResult | undefined> {
+      if (!session.file) {
+        return this.saveFileAs(session, text)
+      }
+
+      const { invoke } = await import('@tauri-apps/api/core')
+      return invoke<SaveFileResult>('save_markdown_file', {
+        documentId: session.documentId,
+        path: session.file.path,
+        text,
+      })
+    },
+    async reloadFile(session: DocumentSession): Promise<OpenFileResult | undefined> {
+      if (!session.file) {
+        return undefined
+      }
+
+      const { invoke } = await import('@tauri-apps/api/core')
+      return invoke<OpenFileResult>('reload_markdown_file', {
+        documentId: session.documentId,
+        path: session.file.path,
+      })
+    },
+    async saveFileAs(session: DocumentSession, text: string): Promise<SaveFileResult | undefined> {
+      const { invoke } = await import('@tauri-apps/api/core')
+      let selected = getNativeTestPath('saveAs')
+
+      if (!selected) {
+        const { save } = await import('@tauri-apps/plugin-dialog')
+        const dialogSelection = await save({
+          defaultPath: session.file?.path ?? 'untitled.md',
+          filters: [{ name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'txt'] }],
+        })
+
+        selected = typeof dialogSelection === 'string' ? dialogSelection : undefined
+      }
+
+      if (!selected) {
+        return undefined
+      }
+
+      return invoke<SaveFileResult>('save_markdown_file', {
+        documentId: session.documentId,
+        path: selected,
+        text,
+      })
+    },
+    async revealInFolder(_action: RevealInFolderAction, _path: string): Promise<boolean> {
+      const { invoke } = await import('@tauri-apps/api/core')
+      return invoke<boolean>('reveal_in_folder', { documentId: _action.documentId, path: _path })
+    },
+    async watchFile(session: DocumentSession): Promise<void> {
+      if (!session.file) {
+        return
+      }
+
+      const { invoke } = await import('@tauri-apps/api/core')
+      await invoke<boolean>('watch_markdown_file', {
+        documentId: session.documentId,
+        path: session.file.path,
+        diskSnapshotHash: session.diskSnapshotHash,
+      })
+    },
+    async unwatchFile(documentId: string): Promise<void> {
+      const { invoke } = await import('@tauri-apps/api/core')
+      await invoke<boolean>('unwatch_markdown_file', { documentId })
+    },
+    async listenToFileWatchEvents(handler: FileWatchEventHandler): Promise<() => void> {
+      const { listen } = await import('@tauri-apps/api/event')
+      return listen<FileWatchEvent>(FILE_WATCH_EVENT_NAME, (event) => {
+        handler(createFileWatchEvent(event.payload))
+      })
+    },
+  }
+}
+
+function getNativeTestPath(kind: 'open' | 'saveAs'): string | undefined {
+  const serialized = globalThis.localStorage?.getItem('milkup.desktop.nativeTestPaths')
+
+  if (!serialized) {
+    return undefined
+  }
+
+  try {
+    const paths = JSON.parse(serialized) as Partial<Record<'open' | 'saveAs', unknown>>
+    const path = paths[kind]
+
+    return typeof path === 'string' && path.length > 0 ? path : undefined
+  } catch {
+    return undefined
+  }
+}
+
+function createMockSaveResult(
+  session: DocumentSession,
+  text: string,
+  file: { readonly path: string },
+): SaveFileResult {
+  return {
+    documentId: session.documentId,
+    file,
+    diskSnapshotHash: `memory:${text.length}:${session.documentVersion}:${file.path}`,
+  }
+}

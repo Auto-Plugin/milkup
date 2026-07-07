@@ -1,0 +1,302 @@
+:root {
+  color: #20242c;
+  background: #eef2f6;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 360px;
+  min-height: 100vh;
+  margin: 0;
+}
+
+button {
+  border: 1px solid #c8d1df;
+  background: #ffffff;
+  color: #25344d;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.desktop-shell {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #ccd5e2;
+  background: #f8fafc;
+}
+
+.document-title {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 10px;
+}
+
+.dirty-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #94a3b8;
+}
+
+.dirty-dot.is-dirty {
+  background: #d97706;
+}
+
+h1 {
+  margin: 0;
+  overflow: hidden;
+  font-size: 16px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.document-title p {
+  margin: 2px 0 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toolbar > button,
+.mode-switch button {
+  height: 34px;
+  padding: 0 12px;
+}
+
+.mode-switch {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid #c8d1df;
+}
+
+.mode-switch button {
+  min-width: 74px;
+  border: 0;
+  border-right: 1px solid #c8d1df;
+}
+
+.mode-switch button:last-child {
+  border-right: 0;
+}
+
+.mode-switch button[data-active='true'] {
+  background: #1f6feb;
+  color: #ffffff;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  min-height: 0;
+}
+
+.sidebar {
+  padding: 18px;
+  border-right: 1px solid #ccd5e2;
+  background: #f8fafc;
+}
+
+.sidebar dl {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+}
+
+.sidebar dt {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sidebar dd {
+  margin: 3px 0 0;
+  overflow-wrap: anywhere;
+  color: #1f2937;
+  font-size: 13px;
+}
+
+.editor-host {
+  min-width: 0;
+  min-height: 0;
+  padding: 18px;
+}
+
+.milkup-editor {
+  --milkup-line-height: 20px;
+  position: relative;
+  height: calc(100vh - 97px);
+  overflow: auto;
+  border: 1px solid #c8d1df;
+  background: #ffffff;
+  color: #20242c;
+  font-family: 'Cascadia Code', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 14px;
+  line-height: var(--milkup-line-height);
+}
+
+.milkup-editor-content {
+  position: relative;
+  z-index: 1;
+  min-height: 100%;
+  padding: 20px;
+  white-space: pre;
+}
+
+.milkup-line {
+  min-height: var(--milkup-line-height);
+}
+
+.milkup-line-live,
+.milkup-line-preview {
+  white-space: pre-wrap;
+}
+
+.milkup-block-heading {
+  color: #111827;
+  font-weight: 800;
+}
+
+.milkup-block-blockquote {
+  color: #475569;
+  background: #f8fafc;
+}
+
+.milkup-block-list {
+  color: #25344d;
+}
+
+.milkup-list-marker {
+  color: #64748b;
+  font-weight: 800;
+}
+
+.milkup-list-content {
+  color: inherit;
+}
+
+.milkup-block-table {
+  color: #1f2937;
+}
+
+.milkup-table-cell {
+  background: #f8fafc;
+}
+
+.milkup-table-delimiter {
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.milkup-block-code {
+  color: #27364a;
+  background: #f1f5f9;
+}
+
+.milkup-inline-strong {
+  font-weight: 800;
+}
+
+.milkup-inline-emphasis {
+  font-style: italic;
+}
+
+.milkup-inline-inlineCode {
+  padding: 1px 3px;
+  background: #edf2f7;
+  color: #9f1239;
+}
+
+.milkup-inline-link,
+.milkup-inline-autolink {
+  color: #0969da;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.milkup-inline-marker,
+.milkup-inline-syntax,
+.milkup-block-marker {
+  color: #64748b;
+}
+
+.milkup-marker-hidden {
+  display: none;
+}
+
+.milkup-selection-layer,
+.milkup-cursor-layer {
+  position: absolute;
+  inset: 20px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.milkup-selection {
+  position: absolute;
+  background: rgb(42 111 219 / 18%);
+}
+
+.milkup-cursor {
+  position: absolute;
+  width: 2px;
+  background: #1f6feb;
+}
+
+.milkup-input-proxy {
+  position: absolute;
+  left: 20px;
+  top: 20px;
+  z-index: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  opacity: 0;
+}
+
+@media (max-width: 760px) {
+  .topbar,
+  .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid #ccd5e2;
+  }
+}
