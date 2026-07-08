@@ -33,6 +33,11 @@ const defaultViewMetrics: ViewMetrics = Object.freeze({
   lineHeight: 20,
 })
 
+const defaultEditorContentInset = Object.freeze({
+  left: 26,
+  top: 24,
+})
+
 interface PastedAssetInput {
   readonly name: string
   readonly type: string
@@ -215,7 +220,7 @@ export class EditorView {
     const measuredRect = domRectForSourcePosition(
       this.ownerDocument,
       this.contentDOM,
-      this.cursorLayerDOM,
+      this.dom,
       this.currentState,
       this.mode,
       this.currentState.selection.main.head,
@@ -277,6 +282,7 @@ export class EditorView {
     )
     this.alignSelectionOverlayToDOM()
     this.alignCursorOverlayToDOM()
+    this.syncInputProxyToCursor()
   }
 
   private renderSelectionAndCursor(): void {
@@ -288,6 +294,7 @@ export class EditorView {
     )
     this.alignSelectionOverlayToDOM()
     this.alignCursorOverlayToDOM()
+    this.syncInputProxyToCursor()
   }
 
   private alignSelectionOverlayToDOM(): void {
@@ -365,6 +372,32 @@ export class EditorView {
       cursor.style.left = `${rect.left}px`
       cursor.style.top = `${rect.top}px`
       cursor.style.height = `${rect.height}px`
+    }
+  }
+
+  private syncInputProxyToCursor(): void {
+    const cursor = this.cursorLayerDOM.querySelector<HTMLElement>('.milkup-cursor')
+
+    if (!cursor) {
+      return
+    }
+
+    const left = Number.parseFloat(cursor.style.left)
+    const top = Number.parseFloat(cursor.style.top)
+    const height = Number.parseFloat(cursor.style.height)
+
+    if (!Number.isFinite(left) || !Number.isFinite(top)) {
+      return
+    }
+
+    const layerLeft = this.cursorLayerDOM.offsetLeft || defaultEditorContentInset.left
+    const layerTop = this.cursorLayerDOM.offsetTop || defaultEditorContentInset.top
+
+    this.inputDOM.style.left = `${Math.max(0, layerLeft + left)}px`
+    this.inputDOM.style.top = `${Math.max(0, layerTop + top)}px`
+
+    if (Number.isFinite(height) && height > 0) {
+      this.inputDOM.style.height = `${height}px`
     }
   }
 
@@ -482,6 +515,10 @@ export class EditorView {
 
     if (event.altKey || event.ctrlKey || event.metaKey) {
       return false
+    }
+
+    if (event.key.length === 1) {
+      return this.insertText(event.key)
     }
 
     switch (event.key) {
@@ -1963,7 +2000,7 @@ function lineElementFromEvent(
 function domRectForSourcePosition(
   document: Document,
   contentDOM: HTMLElement,
-  layerDOM: HTMLElement,
+  referenceDOM: HTMLElement,
   state: EditorState,
   mode: ViewMode,
   position: number,
@@ -1983,7 +2020,7 @@ function domRectForSourcePosition(
   const range = createRangeAtVisualOffset(document, lineDOM, offset)
 
   if (!range) {
-    return rectFromLineStart(lineDOM, layerDOM)
+    return rectFromLineStart(lineDOM, referenceDOM)
   }
 
   if (typeof range.getBoundingClientRect !== 'function') {
@@ -1998,15 +2035,15 @@ function domRectForSourcePosition(
     return undefined
   }
 
-  const layerRect = layerDOM.getBoundingClientRect()
+  const referenceRect = referenceDOM.getBoundingClientRect()
   const height = rect.height > 0 ? rect.height : lineRect.height
-  const top = rect.top - layerRect.top
+  const top = rect.top - referenceRect.top
   const bottom = top + height
 
   return Object.freeze({
-    left: rect.left - layerRect.left,
+    left: rect.left - referenceRect.left,
     top,
-    right: rect.right - layerRect.left,
+    right: rect.right - referenceRect.left,
     bottom,
     width: rect.width,
     height,
@@ -2194,21 +2231,21 @@ function isHiddenTextNode(node: Text, root: HTMLElement): boolean {
   return false
 }
 
-function rectFromLineStart(lineDOM: HTMLElement, layerDOM: HTMLElement): ViewRect | undefined {
+function rectFromLineStart(lineDOM: HTMLElement, referenceDOM: HTMLElement): ViewRect | undefined {
   const lineRect = lineDOM.getBoundingClientRect()
 
   if (!hasMeasurableLayout(lineDOM)) {
     return undefined
   }
 
-  const layerRect = layerDOM.getBoundingClientRect()
+  const referenceRect = referenceDOM.getBoundingClientRect()
   const height = lineRect.height > 0 ? lineRect.height : defaultViewMetrics.lineHeight
 
   return Object.freeze({
-    left: lineRect.left - layerRect.left,
-    top: lineRect.top - layerRect.top,
-    right: lineRect.left - layerRect.left,
-    bottom: lineRect.top - layerRect.top + height,
+    left: lineRect.left - referenceRect.left,
+    top: lineRect.top - referenceRect.top,
+    right: lineRect.left - referenceRect.left,
+    bottom: lineRect.top - referenceRect.top + height,
     width: 0,
     height,
   })

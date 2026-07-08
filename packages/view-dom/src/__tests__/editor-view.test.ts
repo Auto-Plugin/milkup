@@ -374,6 +374,38 @@ describe('EditorView', () => {
     expect(view.state.selection.main.head).toBe(2)
   })
 
+  it('inserts printable keydown text without native textarea input', () => {
+    const parent = document.createElement('main')
+    const view = new EditorView({
+      parent,
+      state: createState('hello', Selection.cursor(5)),
+    })
+    const event = new KeyboardEvent('keydown', { key: '!', cancelable: true })
+
+    view.inputDOM.dispatchEvent(event)
+
+    expect(event.defaultPrevented).toBe(true)
+    expect(view.inputDOM.value).toBe('')
+    expect(view.state.doc.text).toBe('hello!')
+    expect(view.state.selection.main.head).toBe(6)
+  })
+
+  it('inserts spaces from keydown without native textarea input', () => {
+    const parent = document.createElement('main')
+    const view = new EditorView({
+      parent,
+      state: createState('hello', Selection.cursor(5)),
+    })
+    const event = new KeyboardEvent('keydown', { key: ' ', cancelable: true })
+
+    view.inputDOM.dispatchEvent(event)
+
+    expect(event.defaultPrevented).toBe(true)
+    expect(view.inputDOM.value).toBe('')
+    expect(view.state.doc.text).toBe('hello ')
+    expect(view.state.selection.main.head).toBe(6)
+  })
+
   it('pastes plain text through one undoable transaction', () => {
     const parent = document.createElement('main')
     const view = new EditorView({
@@ -808,6 +840,18 @@ describe('EditorView', () => {
 
     expect(nextCursor?.style.top).toBe('21px')
     expect(nextCursor?.style.height).toBe('21px')
+  })
+
+  it('keeps the hidden input proxy aligned with the cursor overlay', () => {
+    const parent = document.createElement('main')
+    const view = new EditorView({
+      parent,
+      state: createState('hello\nworld', Selection.cursor(8)),
+    })
+
+    expect(view.inputDOM.style.left).toBe('42px')
+    expect(view.inputDOM.style.top).toBe('44px')
+    expect(view.inputDOM.style.height).toBe('20px')
   })
 
   it('maps live clicks through hidden heading markers', () => {
@@ -1273,6 +1317,91 @@ describe('EditorView', () => {
     view.updateState(createState('hello\nworld', Selection.cursor(0)))
 
     expect(view.dom.scrollTop).toBe(80)
+  })
+
+  it('keeps scroll position stable when typing at a visible measured cursor', () => {
+    const parent = document.createElement('main')
+    const text = Array.from({ length: 80 }, (_, index) => `line ${index + 1}`).join('\n')
+    const previousCreateRange = document.createRange.bind(document)
+    const previousGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect
+    const view = new EditorView({
+      parent,
+      state: createState(text, Selection.cursor(text.length)),
+    })
+    view.dom.scrollTop = 700
+
+    HTMLElement.prototype.getBoundingClientRect = function getBoundingClientRect() {
+      if (this.classList.contains('milkup-editor')) {
+        return {
+          left: 0,
+          right: 600,
+          top: 100,
+          bottom: 300,
+          width: 600,
+          height: 200,
+          x: 0,
+          y: 100,
+          toJSON: () => ({}),
+        } as DOMRect
+      }
+
+      if (this.classList.contains('milkup-cursor-layer')) {
+        return {
+          left: 0,
+          right: 600,
+          top: 800,
+          bottom: 1000,
+          width: 600,
+          height: 200,
+          x: 0,
+          y: 800,
+          toJSON: () => ({}),
+        } as DOMRect
+      }
+
+      if (this.classList.contains('milkup-line')) {
+        return {
+          left: 24,
+          right: 400,
+          top: 180,
+          bottom: 201,
+          width: 376,
+          height: 21,
+          x: 24,
+          y: 180,
+          toJSON: () => ({}),
+        } as DOMRect
+      }
+
+      return previousGetBoundingClientRect.call(this)
+    }
+
+    document.createRange = () => {
+      const range = previousCreateRange()
+      range.getBoundingClientRect = () =>
+        ({
+          left: 88,
+          right: 88,
+          top: 180,
+          bottom: 201,
+          width: 0,
+          height: 21,
+          x: 88,
+          y: 180,
+          toJSON: () => ({}),
+        }) as DOMRect
+      return range
+    }
+
+    try {
+      view.inputDOM.value = '1'
+      view.inputDOM.dispatchEvent(new Event('input'))
+    } finally {
+      document.createRange = previousCreateRange
+      HTMLElement.prototype.getBoundingClientRect = previousGetBoundingClientRect
+    }
+
+    expect(view.dom.scrollTop).toBe(700)
   })
 
   it('allows external dispatch to own state updates', () => {
