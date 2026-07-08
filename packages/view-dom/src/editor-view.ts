@@ -163,9 +163,12 @@ export class EditorView {
         state,
         transactions,
       )
-      this.render()
+      if (!this.renderChangedDocumentLines(previousState, state, transactions)) {
+        this.render()
+      }
     } else if (selectionChanged(previousState, state) && this.mode !== 'source') {
-      this.render()
+      this.renderSelectionChangedLines(previousState, state)
+      this.renderSelectionAndCursor()
     } else if (selectionChanged(previousState, state)) {
       this.renderSelectionAndCursor()
     }
@@ -275,10 +278,14 @@ export class EditorView {
           })),
     )
     this.selectionLayerDOM.replaceChildren(
-      ...renderSelectionOverlay(this.ownerDocument, this.currentState, this.mode),
+      ...renderSelectionOverlay(this.ownerDocument, this.currentState, this.mode, {
+        root: this.markdownParseState.cache.root,
+      }),
     )
     this.cursorLayerDOM.replaceChildren(
-      ...renderCursorOverlay(this.ownerDocument, this.currentState, this.mode),
+      ...renderCursorOverlay(this.ownerDocument, this.currentState, this.mode, {
+        root: this.markdownParseState.cache.root,
+      }),
     )
     this.alignSelectionOverlayToDOM()
     this.alignCursorOverlayToDOM()
@@ -287,14 +294,86 @@ export class EditorView {
 
   private renderSelectionAndCursor(): void {
     this.selectionLayerDOM.replaceChildren(
-      ...renderSelectionOverlay(this.ownerDocument, this.currentState, this.mode),
+      ...renderSelectionOverlay(this.ownerDocument, this.currentState, this.mode, {
+        root: this.markdownParseState.cache.root,
+      }),
     )
     this.cursorLayerDOM.replaceChildren(
-      ...renderCursorOverlay(this.ownerDocument, this.currentState, this.mode),
+      ...renderCursorOverlay(this.ownerDocument, this.currentState, this.mode, {
+        root: this.markdownParseState.cache.root,
+      }),
     )
     this.alignSelectionOverlayToDOM()
     this.alignCursorOverlayToDOM()
     this.syncInputProxyToCursor()
+  }
+
+  private renderSelectionChangedLines(previousState: EditorState, state: EditorState): void {
+    if (this.mode === 'source') {
+      this.renderSelectionAndCursor()
+      return
+    }
+
+    const lineNumbers = changedSelectionLineNumbers(previousState, state)
+
+    for (const lineNumber of lineNumbers) {
+      const line = state.doc.line(lineNumber)
+      const previousLineDOM = this.contentDOM.querySelector<HTMLElement>(
+        `.milkup-line[data-line="${line.number}"]`,
+      )
+
+      if (!previousLineDOM) {
+        this.render()
+        return
+      }
+
+      const nextLineDOM = renderMarkdownLine(
+        this.ownerDocument,
+        state,
+        this.mode,
+        this.markdownParseState.cache.root.children ?? [],
+        line.number,
+      )
+      previousLineDOM.replaceWith(nextLineDOM)
+    }
+  }
+
+  private renderChangedDocumentLines(
+    previousState: EditorState,
+    state: EditorState,
+    transactions: readonly Transaction[],
+  ): boolean {
+    if (this.mode === 'source') {
+      return false
+    }
+
+    const lineNumbers = changedDocumentLineNumbers(previousState, state, transactions)
+
+    if (!lineNumbers) {
+      return false
+    }
+
+    for (const lineNumber of lineNumbers) {
+      const previousLineDOM = this.contentDOM.querySelector<HTMLElement>(
+        `.milkup-line[data-line="${lineNumber}"]`,
+      )
+
+      if (!previousLineDOM) {
+        return false
+      }
+
+      const nextLineDOM = renderMarkdownLine(
+        this.ownerDocument,
+        state,
+        this.mode,
+        this.markdownParseState.cache.root.children ?? [],
+        lineNumber,
+      )
+      previousLineDOM.replaceWith(nextLineDOM)
+    }
+
+    this.renderSelectionAndCursor()
+    return true
   }
 
   private alignSelectionOverlayToDOM(): void {
@@ -319,6 +398,7 @@ export class EditorView {
         this.mode,
         from,
         to,
+        this.markdownParseState.cache.root,
       )
 
       if (rects.length === 0) {
@@ -363,6 +443,7 @@ export class EditorView {
         this.currentState,
         this.mode,
         position,
+        this.markdownParseState.cache.root,
       )
 
       if (!rect) {
@@ -882,100 +963,102 @@ export function renderMarkdownLines(
   const lines: HTMLElement[] = []
 
   for (let lineNumber = 1; lineNumber <= state.doc.lineCount; lineNumber += 1) {
-    const line = state.doc.line(lineNumber)
-    const lineDOM = createLineElement(document, line.number, line.from, line.to)
-    lineDOM.classList.add(`milkup-line-${mode}`)
-    applyBlockDecorations(lineDOM, blocks, line.from, line.to)
-
-    const listItem = findListItemForLine(blocks, line.from, line.to)
-    const heading = findBlockForLine(blocks, 'heading', line.from, line.to)
-    const blockquoteLine = findNestedBlockForLine(
-      blocks,
-      'blockquote',
-      'blockquoteLine',
-      line.from,
-      line.to,
-    )
-    const tableRow = findNestedBlockForLine(blocks, 'table', 'tableRow', line.from, line.to)
-    const table = findBlockForLine(blocks, 'table', line.from, line.to)
-
-    if (!shouldRenderInlineDecorations(blocks, line.from, line.to)) {
-      lineDOM.textContent = line.text.length > 0 ? line.text : '\u200b'
-    } else if (heading) {
-      lineDOM.replaceChildren(
-        ...renderBlockLineDecorations(
-          document,
-          state.doc.text,
-          state.selection,
-          heading,
-          line.from,
-          line.to,
-          {
-            contentClassName: 'milkup-heading-content',
-            markerClassName: 'milkup-heading-marker',
-          },
-        ),
-      )
-    } else if (blockquoteLine) {
-      lineDOM.replaceChildren(
-        ...renderBlockLineDecorations(
-          document,
-          state.doc.text,
-          state.selection,
-          blockquoteLine,
-          line.from,
-          line.to,
-          {
-            contentClassName: 'milkup-blockquote-content',
-            markerClassName: 'milkup-blockquote-marker',
-            hideValidMarkers: true,
-          },
-        ),
-      )
-    } else if (tableRow) {
-      lineDOM.replaceChildren(
-        ...renderTableRowDecorations(
-          document,
-          state.doc.text,
-          state.selection,
-          tableRow,
-          line.from,
-          line.to,
-        ),
-      )
-    } else if (table) {
-      lineDOM.classList.add('milkup-table-delimiter')
-      lineDOM.replaceChildren(
-        ...renderHiddenBlockMarkerLine(
-          document,
-          state.doc.text,
-          state.selection,
-          line.from,
-          line.to,
-          { hidden: true },
-        ),
-      )
-    } else if (listItem) {
-      lineDOM.replaceChildren(
-        ...renderListItemLineDecorations(
-          document,
-          state.doc.text,
-          state.selection,
-          listItem,
-          line.from,
-          line.to,
-        ),
-      )
-    } else {
-      lineDOM.replaceChildren(
-        ...renderInlineDecorations(document, state.doc.text, state.selection, line.from, line.to),
-      )
-    }
-
-    lines.push(lineDOM)
+    lines.push(renderMarkdownLine(document, state, mode, blocks, lineNumber))
   }
 
   return Object.freeze(lines)
+}
+
+function renderMarkdownLine(
+  document: Document,
+  state: EditorState,
+  mode: Exclude<ViewMode, 'source'>,
+  blocks: readonly SyntaxNode[],
+  lineNumber: number,
+): HTMLElement {
+  const line = state.doc.line(lineNumber)
+  const lineDOM = createLineElement(document, line.number, line.from, line.to)
+  lineDOM.classList.add(`milkup-line-${mode}`)
+  applyBlockDecorations(lineDOM, blocks, line.from, line.to)
+
+  const listItem = findListItemForLine(blocks, line.from, line.to)
+  const heading = findBlockForLine(blocks, 'heading', line.from, line.to)
+  const blockquoteLine = findNestedBlockForLine(
+    blocks,
+    'blockquote',
+    'blockquoteLine',
+    line.from,
+    line.to,
+  )
+  const tableRow = findNestedBlockForLine(blocks, 'table', 'tableRow', line.from, line.to)
+  const table = findBlockForLine(blocks, 'table', line.from, line.to)
+
+  if (!shouldRenderInlineDecorations(blocks, line.from, line.to)) {
+    lineDOM.textContent = line.text.length > 0 ? line.text : '\u200b'
+  } else if (heading) {
+    lineDOM.replaceChildren(
+      ...renderBlockLineDecorations(document, state.doc.text, state.selection, heading, line.from, line.to, {
+        contentClassName: 'milkup-heading-content',
+        markerClassName: 'milkup-heading-marker',
+      }),
+    )
+  } else if (blockquoteLine) {
+    lineDOM.replaceChildren(
+      ...renderBlockLineDecorations(
+        document,
+        state.doc.text,
+        state.selection,
+        blockquoteLine,
+        line.from,
+        line.to,
+        {
+          contentClassName: 'milkup-blockquote-content',
+          markerClassName: 'milkup-blockquote-marker',
+          hideValidMarkers: true,
+        },
+      ),
+    )
+  } else if (tableRow) {
+    lineDOM.replaceChildren(
+      ...renderTableRowDecorations(
+        document,
+        state.doc.text,
+        state.selection,
+        tableRow,
+        line.from,
+        line.to,
+      ),
+    )
+  } else if (table) {
+    lineDOM.classList.add('milkup-table-delimiter')
+    lineDOM.replaceChildren(
+      ...renderHiddenBlockMarkerLine(
+        document,
+        state.doc.text,
+        state.selection,
+        line.from,
+        line.to,
+        { hidden: true },
+      ),
+    )
+  } else if (listItem) {
+    lineDOM.replaceChildren(
+      ...renderListItemLineDecorations(
+        document,
+        state.doc.text,
+        state.selection,
+        listItem,
+        line.from,
+        line.to,
+      ),
+    )
+  } else {
+    lineDOM.replaceChildren(
+      ...renderInlineDecorations(document, state.doc.text, state.selection, line.from, line.to),
+    )
+  }
+
+  return lineDOM
 }
 
 function createLineElement(
@@ -1819,9 +1902,10 @@ function positionToVisualLineOffset(
   state: EditorState,
   mode: ViewMode,
   pos: number,
+  root?: SyntaxNode,
 ): PositionLineOffset {
   const line = state.doc.lineAt(pos)
-  const projection = buildRenderedLineProjection(state, mode, line.from, line.to)
+  const projection = buildRenderedLineProjection(state, mode, line.from, line.to, root)
 
   return Object.freeze({
     line,
@@ -1830,8 +1914,14 @@ function positionToVisualLineOffset(
   })
 }
 
-function visualLineLength(state: EditorState, mode: ViewMode, from: number, to: number): number {
-  const projection = buildRenderedLineProjection(state, mode, from, to)
+function visualLineLength(
+  state: EditorState,
+  mode: ViewMode,
+  from: number,
+  to: number,
+  root?: SyntaxNode,
+): number {
+  const projection = buildRenderedLineProjection(state, mode, from, to, root)
 
   return projection === undefined ? Math.max(0, to - from) : projection.visualLength
 }
@@ -1842,6 +1932,7 @@ function lineVisualOffsetToSourcePosition(
   from: number,
   to: number,
   visualOffset: number,
+  root?: SyntaxNode,
 ): number {
   const lineLength = Math.max(0, to - from)
 
@@ -1849,7 +1940,7 @@ function lineVisualOffsetToSourcePosition(
     return to
   }
 
-  const projection = buildRenderedLineProjection(state, mode, from, to)
+  const projection = buildRenderedLineProjection(state, mode, from, to, root)
 
   if (projection === undefined) {
     return from + clamp(visualOffset, 0, lineLength)
@@ -1863,12 +1954,13 @@ function buildRenderedLineProjection(
   mode: ViewMode,
   from: number,
   to: number,
+  root?: SyntaxNode,
 ): LineProjection | undefined {
   if (mode === 'source' || to <= from) {
     return undefined
   }
 
-  const blocks = parseMarkdown(state.doc.text).root.children ?? []
+  const blocks = (root ?? parseMarkdown(state.doc.text).root).children ?? []
 
   if (!shouldRenderInlineDecorations(blocks, from, to)) {
     return undefined
@@ -1915,9 +2007,10 @@ function positionToRectForMode(
   mode: ViewMode,
   pos: number,
   metrics?: Partial<ViewMetrics>,
+  root?: SyntaxNode,
 ): ViewRect {
   const resolvedMetrics = resolveViewMetrics(metrics)
-  const { line, offset } = positionToVisualLineOffset(state, mode, pos)
+  const { line, offset } = positionToVisualLineOffset(state, mode, pos, root)
   const left = offset * resolvedMetrics.charWidth
   const top = (line.number - 1) * resolvedMetrics.lineHeight
 
@@ -1944,6 +2037,7 @@ function coordinateToPositionForMode(
   mode: ViewMode,
   coordinate: ViewCoordinate,
   metrics?: Partial<ViewMetrics>,
+  root?: SyntaxNode,
 ): number {
   const resolvedMetrics = resolveViewMetrics(metrics)
   const lineNumber = clamp(
@@ -1952,14 +2046,14 @@ function coordinateToPositionForMode(
     state.doc.lineCount,
   )
   const line = state.doc.line(lineNumber)
-  const lineLength = visualLineLength(state, mode, line.from, line.to)
+  const lineLength = visualLineLength(state, mode, line.from, line.to, root)
   const offset = clamp(Math.round(coordinate.x / resolvedMetrics.charWidth), 0, lineLength)
 
   if (mode === 'source') {
     return line.from + offset
   }
 
-  return lineVisualOffsetToSourcePosition(state, mode, line.from, line.to, offset)
+  return lineVisualOffsetToSourcePosition(state, mode, line.from, line.to, offset, root)
 }
 
 function resolveViewMetrics(metrics?: Partial<ViewMetrics>): ViewMetrics {
@@ -2019,12 +2113,13 @@ function domRectForSourcePosition(
   state: EditorState,
   mode: ViewMode,
   position: number,
+  root?: SyntaxNode,
 ): ViewRect | undefined {
   if (typeof document.createRange !== 'function') {
     return undefined
   }
 
-  const { line, offset } = positionToVisualLineOffset(state, mode, position)
+  const { line, offset } = positionToVisualLineOffset(state, mode, position, root)
   const lineDOM = contentDOM.querySelector<HTMLElement>(`.milkup-line[data-line="${line.number}"]`)
 
   if (!lineDOM || !hasMeasurableLayout(lineDOM)) {
@@ -2073,6 +2168,7 @@ function domRectsForSourceRange(
   mode: ViewMode,
   from: number,
   to: number,
+  root?: SyntaxNode,
 ): readonly ViewRect[] {
   if (typeof document.createRange !== 'function') {
     return []
@@ -2100,8 +2196,8 @@ function domRectsForSourceRange(
       continue
     }
 
-    const startOffset = positionToVisualLineOffset(state, mode, lineFrom).offset
-    const endOffset = positionToVisualLineOffset(state, mode, lineTo).offset
+    const startOffset = positionToVisualLineOffset(state, mode, lineFrom, root).offset
+    const endOffset = positionToVisualLineOffset(state, mode, lineTo, root).offset
     const range = createRangeBetweenVisualOffsets(document, lineDOM, startOffset, endOffset)
 
     if (!range) {
@@ -2557,6 +2653,52 @@ function selectionChanged(previousState: EditorState, state: EditorState): boole
   )
 }
 
+function changedSelectionLineNumbers(previousState: EditorState, state: EditorState): readonly number[] {
+  const lineNumbers = new Set<number>()
+  collectSelectionBoundaryLineNumbers(previousState, previousState.selection.main, lineNumbers)
+  collectSelectionBoundaryLineNumbers(state, state.selection.main, lineNumbers)
+
+  return Object.freeze([...lineNumbers].sort((left, right) => left - right))
+}
+
+function changedDocumentLineNumbers(
+  previousState: EditorState,
+  state: EditorState,
+  transactions: readonly Transaction[],
+): readonly number[] | undefined {
+  if (previousState.doc.lineCount !== state.doc.lineCount || transactions.length !== 1) {
+    return undefined
+  }
+
+  const change = transactions[0]?.changes?.changes[0]
+
+  if (!change || transactions[0]?.changes?.changes.length !== 1 || change.insert.includes('\n')) {
+    return undefined
+  }
+
+  const previousLine = previousState.doc.lineAt(change.from)
+  const previousChangeEndLine = previousState.doc.lineAt(change.to)
+  const nextLine = state.doc.lineAt(change.from + change.insert.length)
+
+  if (previousLine.number !== previousChangeEndLine.number || previousLine.number !== nextLine.number) {
+    return undefined
+  }
+
+  return Object.freeze([nextLine.number])
+}
+
+function collectSelectionBoundaryLineNumbers(
+  state: EditorState,
+  range: Selection['main'],
+  lineNumbers: Set<number>,
+): void {
+  const fromLine = state.doc.lineAt(range.from)
+  const toLine = state.doc.lineAt(range.to)
+
+  lineNumbers.add(fromLine.number)
+  lineNumbers.add(toLine.number)
+}
+
 function shouldScrollSelectionIntoView(transactions: readonly Transaction[]): boolean {
   if (transactions.length === 0) {
     return true
@@ -2565,15 +2707,20 @@ function shouldScrollSelectionIntoView(transactions: readonly Transaction[]): bo
   return !transactions.some((transaction) => transaction.origin?.id?.startsWith('view.pointer.'))
 }
 
+export interface RenderOverlayOptions {
+  readonly root?: SyntaxNode
+}
+
 export function renderCursorOverlay(
   document: Document,
   state: EditorState,
   mode: ViewMode = 'source',
+  options: RenderOverlayOptions = {},
 ): readonly HTMLElement[] {
   return Object.freeze(
     state.selection.ranges.map((range, index) => {
       const position = range.head
-      const { line, offset } = positionToVisualLineOffset(state, mode, position)
+      const { line, offset } = positionToVisualLineOffset(state, mode, position, options.root)
       const cursor = document.createElement('div')
       cursor.className = 'milkup-cursor'
       cursor.dataset.index = String(index)
@@ -2593,13 +2740,14 @@ export function renderSelectionOverlay(
   document: Document,
   state: EditorState,
   mode: ViewMode = 'source',
+  options: RenderOverlayOptions = {},
 ): readonly HTMLElement[] {
   return Object.freeze(
     state.selection.ranges
       .filter((range) => !range.empty)
       .map((range, index) => {
-        const from = positionToVisualLineOffset(state, mode, range.from)
-        const to = positionToVisualLineOffset(state, mode, range.to)
+        const from = positionToVisualLineOffset(state, mode, range.from, options.root)
+        const to = positionToVisualLineOffset(state, mode, range.to, options.root)
         const selection = document.createElement('div')
         selection.className = 'milkup-selection'
         selection.dataset.index = String(index)

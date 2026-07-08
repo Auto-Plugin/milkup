@@ -1683,6 +1683,50 @@ describe('EditorView', () => {
     expect(view.state.undo().doc.text).toBe('x *unfinished')
   })
 
+  it('rerenders only selection-affected live lines when the cursor moves', () => {
+    const parent = document.createElement('main')
+    const state = createState('**one**\nplain\n`two`', Selection.cursor(2))
+    const view = new EditorView({ parent, state, mode: 'live' })
+    const initialLines = Array.from(view.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'))
+
+    view.updateState(createState(state.doc.text, Selection.cursor(state.doc.text.indexOf('two'))))
+
+    const nextLines = Array.from(view.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'))
+
+    expect(nextLines).toHaveLength(initialLines.length)
+    expect(nextLines[0]).not.toBe(initialLines[0])
+    expect(nextLines[1]).toBe(initialLines[1])
+    expect(nextLines[2]).not.toBe(initialLines[2])
+  })
+
+  it('rerenders only the changed live line for single-line edits', () => {
+    const parent = document.createElement('main')
+    const state = createState('**one**\nplain\n`two`', Selection.cursor(11))
+    const view = new EditorView({ parent, state, mode: 'live' })
+    const initialLines = Array.from(view.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'))
+    const nextState = state.applyTransaction({
+      changes: ChangeSet.insert(11, '!'),
+      selection: Selection.cursor(12),
+      origin: { type: 'input.type' },
+    })
+
+    view.updateState(nextState, [
+      {
+        changes: ChangeSet.insert(11, '!'),
+        selection: Selection.cursor(12),
+        origin: { type: 'input.type' },
+      },
+    ])
+
+    const nextLines = Array.from(view.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'))
+
+    expect(nextLines).toHaveLength(initialLines.length)
+    expect(nextLines[0]).toBe(initialLines[0])
+    expect(nextLines[1]).not.toBe(initialLines[1])
+    expect(nextLines[2]).toBe(initialLines[2])
+    expect(view.state).toBe(nextState)
+  })
+
   it('destroys the root DOM node', () => {
     const parent = document.createElement('main')
     const view = new EditorView({ parent, state: createState('hello') })
