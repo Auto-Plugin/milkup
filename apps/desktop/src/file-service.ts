@@ -11,6 +11,8 @@ export type FileWatchEventHandler = (event: FileWatchEvent) => void
 
 export interface DesktopFileService {
   openFile(): Promise<OpenFileResult | undefined>
+  openPath(path: string): Promise<OpenFileResult>
+  initialOpenFilePath(): Promise<string | undefined>
   reloadFile(session: DocumentSession): Promise<OpenFileResult | undefined>
   saveFile(session: DocumentSession, text: string): Promise<SaveFileResult | undefined>
   saveFileAs(session: DocumentSession, text: string): Promise<SaveFileResult | undefined>
@@ -37,6 +39,17 @@ function createMockFileService(): DesktopFileService {
         text: '# Sample\r\n\r\nOpened through the desktop file workflow shell.\r\n',
         diskSnapshotHash: 'sample:0',
       }
+    },
+    async openPath(path: string): Promise<OpenFileResult> {
+      return {
+        documentId: `file:${path}`,
+        file: { path },
+        text: '# Sample\r\n\r\nOpened through the desktop file workflow shell.\r\n',
+        diskSnapshotHash: `sample:${path}`,
+      }
+    },
+    async initialOpenFilePath(): Promise<string | undefined> {
+      return undefined
     },
     async reloadFile(session: DocumentSession): Promise<OpenFileResult | undefined> {
       if (!session.file) {
@@ -98,6 +111,16 @@ function createTauriFileService(): DesktopFileService {
       }
 
       return invoke<OpenFileResult>('open_markdown_file', { path: selected })
+    },
+    async openPath(path: string): Promise<OpenFileResult> {
+      const { invoke } = await import('@tauri-apps/api/core')
+      return invoke<OpenFileResult>('open_markdown_file', { path })
+    },
+    async initialOpenFilePath(): Promise<string | undefined> {
+      const { invoke } = await import('@tauri-apps/api/core')
+      const path = await invoke<string | null>('initial_open_file_path')
+
+      return path ?? undefined
     },
     async saveFile(session: DocumentSession, text: string): Promise<SaveFileResult | undefined> {
       if (!session.file) {

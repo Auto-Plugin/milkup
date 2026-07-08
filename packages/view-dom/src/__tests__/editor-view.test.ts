@@ -47,6 +47,67 @@ async function flushAsyncPaste(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 0))
 }
 
+function withCaretRangeFromPoint(node: Node, offset: number): () => void {
+  const documentWithCaretPoint = document as Document & {
+    caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null
+    caretRangeFromPoint?: (x: number, y: number) => Range | null
+  }
+  const previousCaretPositionFromPoint = documentWithCaretPoint.caretPositionFromPoint
+  const previousCaretRangeFromPoint = documentWithCaretPoint.caretRangeFromPoint
+
+  Object.defineProperty(document, 'caretPositionFromPoint', {
+    configurable: true,
+    value: () => ({
+      offsetNode: node,
+      offset,
+    }),
+  })
+
+  Object.defineProperty(document, 'caretRangeFromPoint', {
+    configurable: true,
+    value: () =>
+      ({
+        startContainer: node,
+        startOffset: offset,
+      }) as unknown as Range,
+  })
+
+  return () => {
+    Object.defineProperty(document, 'caretPositionFromPoint', {
+      configurable: true,
+      value: previousCaretPositionFromPoint,
+    })
+    Object.defineProperty(document, 'caretRangeFromPoint', {
+      configurable: true,
+      value: previousCaretRangeFromPoint,
+    })
+  }
+}
+
+function firstTextNode(root: ParentNode | null | undefined): Text {
+  const node = root?.ownerDocument?.createTreeWalker(root, NodeFilter.SHOW_TEXT).nextNode()
+
+  if (!(node instanceof Text)) {
+    throw new Error('Expected a text node')
+  }
+
+  return node
+}
+
+function rect(left: number, top = 0, height = 20): DOMRect {
+  return {
+    left,
+    right: left,
+    top,
+    bottom: top + height,
+    width: 0,
+    height,
+    x: left,
+    y: top,
+    toJSON: () => ({}),
+  } as DOMRect
+}
+
 describe('EditorView', () => {
   it('renders a plain text document into line wrappers', () => {
     const parent = document.createElement('main')
@@ -137,6 +198,45 @@ describe('EditorView', () => {
     expect(cursor?.dataset.offset).toBe('5')
   })
 
+  it('updates only selection and cursor layers for source selection-only changes', () => {
+    const parent = document.createElement('main')
+    const initial = createState('- one\n- two\n- three', Selection.cursor(0))
+    const view = new EditorView({ parent, state: initial, mode: 'source' })
+    const firstRenderedLine = view.contentDOM.querySelector<HTMLElement>('.milkup-line')
+    const next = new EditorState({
+      doc: initial.doc,
+      selection: Selection.cursor(13),
+      history: initial.history,
+    })
+
+    view.updateState(next, [{ selection: next.selection, origin: { type: 'command' } }])
+
+    expect(view.contentDOM.querySelector<HTMLElement>('.milkup-line')).toBe(firstRenderedLine)
+    expect(view.cursorLayerDOM.querySelector<HTMLElement>('.milkup-cursor')?.dataset.position).toBe(
+      '13',
+    )
+  })
+
+  it('rerenders live content for selection-only changes so syntax visibility updates', () => {
+    const parent = document.createElement('main')
+    const initial = createState('`coding-plan.md` later', Selection.cursor(21))
+    const view = new EditorView({ parent, state: initial, mode: 'live' })
+    const firstRenderedLine = view.contentDOM.querySelector<HTMLElement>('.milkup-line')
+    const next = new EditorState({
+      doc: initial.doc,
+      selection: Selection.cursor(6),
+      history: initial.history,
+    })
+
+    view.updateState(next, [{ selection: next.selection, origin: { type: 'command' } }])
+
+    expect(view.contentDOM.querySelector<HTMLElement>('.milkup-line')).not.toBe(firstRenderedLine)
+    expect(
+      view.contentDOM.querySelector<HTMLElement>('.milkup-inline-inlineCode')?.dataset
+        .syntaxVisible,
+    ).toBe('true')
+  })
+
   it('renders selection overlay for non-collapsed ranges', () => {
     const parent = document.createElement('main')
     const view = new EditorView({
@@ -153,6 +253,85 @@ describe('EditorView', () => {
     expect(selection?.dataset.toOffset).toBe('2')
     expect(selection?.style.left).toBe('8px')
     expect(selection?.style.top).toBe('0px')
+  })
+
+  it('aligns selection overlays to measured DOM rects after scrolling', () => {
+    const parent = document.createElement('main')
+    document.body.append(parent)
+    const previousCreateRange = document.createRange.bind(document)
+    const view = new EditorView({
+      parent,
+      state: createState('hello\nworld', Selection.cursor(0)),
+    })
+    view.selectionLayerDOM.getBoundingClientRect = () =>
+      ({
+        left: 20,
+        right: 220,
+        top: 100,
+        bottom: 300,
+        width: 200,
+        height: 200,
+        x: 20,
+        y: 100,
+        toJSON: () => ({}),
+      }) as DOMRect
+    HTMLElement.prototype.getBoundingClientRect
+    const previousGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect
+    HTMLElement.prototype.getBoundingClientRect = function getBoundingClientRect() {
+      if (this.classList.contains('milkup-line')) {
+        return {
+          left: 20,
+          right: 220,
+          top: 140,
+          bottom: 161,
+          width: 200,
+          height: 21,
+          x: 20,
+          y: 140,
+          toJSON: () => ({}),
+        } as DOMRect
+      }
+
+      return previousGetBoundingClientRect.call(this)
+    }
+    document.createRange = () => {
+      const range = previousCreateRange()
+      range.getClientRects = () =>
+        [
+          {
+            left: 52,
+            right: 92,
+            top: 146,
+            bottom: 167,
+            width: 40,
+            height: 21,
+            x: 52,
+            y: 146,
+            toJSON: () => ({}),
+          } as DOMRect,
+        ] as unknown as DOMRectList
+      return range
+    }
+
+    try {
+      view.updateState(
+        new EditorState({
+          doc: view.state.doc,
+          selection: Selection.range(1, 4),
+          history: view.state.history,
+        }),
+      )
+    } finally {
+      document.createRange = previousCreateRange
+      HTMLElement.prototype.getBoundingClientRect = previousGetBoundingClientRect
+    }
+
+    const selection = view.selectionLayerDOM.querySelector<HTMLElement>('.milkup-selection')
+
+    expect(selection?.style.left).toBe('32px')
+    expect(selection?.style.top).toBe('46px')
+    expect(selection?.style.width).toBe('40px')
+    expect(selection?.style.height).toBe('21px')
   })
 
   it('creates a hidden textarea input proxy outside document content', () => {
@@ -489,16 +668,21 @@ describe('EditorView', () => {
       state: createState('hello\nworld', Selection.cursor(0)),
     })
     const secondLine = view.contentDOM.querySelectorAll<HTMLElement>('.milkup-line')[1]
+    const textNode = firstTextNode(secondLine)
+    const restoreCaretRange = withCaretRangeFromPoint(textNode, 3)
 
-    secondLine?.setAttribute('data-click-offset', '3')
-    secondLine?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    try {
+      secondLine?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    } finally {
+      restoreCaretRange()
+    }
 
     expect(view.state.selection.main.head).toBe(9)
     expect(view.state.history.canUndo).toBe(false)
     expect(document.activeElement).toBe(view.inputDOM)
   })
 
-  it('places the cursor from the clicked line coordinate when no test offset is provided', () => {
+  it('does not guess a source cursor position without browser hit-testing', () => {
     const parent = document.createElement('main')
     document.body.append(parent)
     const view = new EditorView({
@@ -511,21 +695,9 @@ describe('EditorView', () => {
       throw new Error('Second editor line was not rendered')
     }
 
-    secondLine.getBoundingClientRect = () =>
-      ({
-        left: 100,
-        top: 20,
-        right: 180,
-        bottom: 40,
-        width: 80,
-        height: 20,
-        x: 100,
-        y: 20,
-        toJSON: () => ({}),
-      }) as DOMRect
     secondLine.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 124 }))
 
-    expect(view.state.selection.main.head).toBe(9)
+    expect(view.state.selection.main.head).toBe(0)
     expect(view.state.history.canUndo).toBe(false)
   })
 
@@ -538,33 +710,104 @@ describe('EditorView', () => {
     })
     const line = view.contentDOM.querySelector<HTMLElement>('.milkup-line')
     const text = line?.firstChild
-    const previousCaretRangeFromPoint = (
-      document as Document & { caretRangeFromPoint?: (x: number, y: number) => Range | null }
-    ).caretRangeFromPoint
 
     if (!line || !text) {
       throw new Error('Editor line text was not rendered')
     }
 
-    Object.defineProperty(document, 'caretRangeFromPoint', {
-      configurable: true,
-      value: () =>
-        ({
-          startContainer: text,
-          startOffset: 5,
-        }) as unknown as Range,
-    })
+    const restoreCaretRange = withCaretRangeFromPoint(text, 5)
 
     try {
       line.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 1, clientY: 1 }))
     } finally {
-      Object.defineProperty(document, 'caretRangeFromPoint', {
-        configurable: true,
-        value: previousCaretRangeFromPoint,
-      })
+      restoreCaretRange()
     }
 
     expect(view.state.selection.main.head).toBe(5)
+  })
+
+  it('aligns the cursor to the measured wrapped visual row', () => {
+    const parent = document.createElement('main')
+    const view = new EditorView({
+      parent,
+      state: createState('wrapped line text', Selection.cursor(8)),
+      mode: 'live',
+    })
+    const line = view.contentDOM.querySelector<HTMLElement>('.milkup-line')
+
+    if (!line) {
+      throw new Error('Expected rendered line')
+    }
+
+    const previousGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect
+    HTMLElement.prototype.getBoundingClientRect = function getBoundingClientRect() {
+      if (
+        this.classList.contains('milkup-line') ||
+        this.classList.contains('milkup-cursor-layer')
+      ) {
+        return {
+          left: 20,
+          right: 140,
+          top: 10,
+          bottom: 52,
+          width: 120,
+          height: 42,
+          x: 20,
+          y: 10,
+          toJSON: () => ({}),
+        } as DOMRect
+      }
+
+      return previousGetBoundingClientRect.call(this)
+    }
+    view.cursorLayerDOM.getBoundingClientRect = () =>
+      ({
+        left: 20,
+        right: 140,
+        top: 10,
+        bottom: 52,
+        width: 120,
+        height: 42,
+        x: 20,
+        y: 10,
+        toJSON: () => ({}),
+      }) as DOMRect
+
+    const previousCreateRange = document.createRange.bind(document)
+    document.createRange = () => {
+      const range = previousCreateRange()
+      range.getBoundingClientRect = () =>
+        ({
+          left: 84,
+          right: 84,
+          top: 31,
+          bottom: 52,
+          width: 0,
+          height: 21,
+          x: 84,
+          y: 31,
+          toJSON: () => ({}),
+        }) as DOMRect
+      return range
+    }
+
+    try {
+      view.updateState(
+        new EditorState({
+          doc: view.state.doc,
+          selection: Selection.cursor(9),
+          history: view.state.history,
+        }),
+      )
+    } finally {
+      document.createRange = previousCreateRange
+      HTMLElement.prototype.getBoundingClientRect = previousGetBoundingClientRect
+    }
+
+    const nextCursor = view.cursorLayerDOM.querySelector<HTMLElement>('.milkup-cursor')
+
+    expect(nextCursor?.style.top).toBe('21px')
+    expect(nextCursor?.style.height).toBe('21px')
   })
 
   it('maps live clicks through hidden heading markers', () => {
@@ -581,6 +824,13 @@ describe('EditorView', () => {
       throw new Error('Heading line was not rendered')
     }
 
+    const content = heading.querySelector<HTMLElement>('.milkup-heading-content')?.firstChild
+
+    if (!content) {
+      throw new Error('Heading content was not rendered')
+    }
+
+    const restoreCaretRange = withCaretRangeFromPoint(content, 0)
     heading.getBoundingClientRect = () =>
       ({
         left: 0,
@@ -593,12 +843,17 @@ describe('EditorView', () => {
         y: 0,
         toJSON: () => ({}),
       }) as DOMRect
-    heading.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 0 }))
+
+    try {
+      heading.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 0, clientY: 0 }))
+    } finally {
+      restoreCaretRange()
+    }
 
     expect(view.state.selection.main.head).toBe(2)
   })
 
-  it('places the cursor from a live visual offset across hidden link syntax', () => {
+  it('does not guess a live cursor position without browser hit-testing', () => {
     const parent = document.createElement('main')
     document.body.append(parent)
     const view = new EditorView({
@@ -608,12 +863,10 @@ describe('EditorView', () => {
     })
     const line = view.contentDOM.querySelector<HTMLElement>('.milkup-line')
 
-    line?.setAttribute('data-click-visual-offset', '0')
     line?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
 
-    expect(view.state.selection.main.head).toBe(1)
+    expect(view.state.selection.main.head).toBe(12)
     expect(view.state.history.canUndo).toBe(false)
-    expect(document.activeElement).toBe(view.inputDOM)
   })
 
   it('selects a range by dragging across line wrappers', () => {
@@ -625,13 +878,20 @@ describe('EditorView', () => {
     })
     const lines = view.contentDOM.querySelectorAll<HTMLElement>('.milkup-line')
     const firstLine = lines[0]
+    const firstText = firstTextNode(firstLine)
+    const secondLine = lines[1]
+    const secondText = firstTextNode(secondLine)
+    let restoreCaretRange = withCaretRangeFromPoint(firstText, 1)
 
-    firstLine?.setAttribute('data-click-offset', '1')
-    firstLine?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))
-    const secondLine = view.contentDOM.querySelectorAll<HTMLElement>('.milkup-line')[1]
-    secondLine?.setAttribute('data-click-offset', '3')
-    secondLine?.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, button: 0 }))
-    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0 }))
+    try {
+      firstLine?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))
+      restoreCaretRange()
+      restoreCaretRange = withCaretRangeFromPoint(secondText, 3)
+      secondLine?.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, button: 0 }))
+      document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0 }))
+    } finally {
+      restoreCaretRange()
+    }
 
     expect(view.state.selection.main.anchor).toBe(1)
     expect(view.state.selection.main.head).toBe(9)
@@ -639,7 +899,7 @@ describe('EditorView', () => {
     expect(view.selectionLayerDOM.querySelector('.milkup-selection')).not.toBeNull()
   })
 
-  it('selects through hidden inline markers from live visual drag offsets', () => {
+  it('maps live clicks through hidden inline markers from browser hit-testing', () => {
     const parent = document.createElement('main')
     document.body.append(parent)
     const view = new EditorView({
@@ -648,16 +908,216 @@ describe('EditorView', () => {
       mode: 'live',
     })
     const line = view.contentDOM.querySelector<HTMLElement>('.milkup-line')
+    const boldText = line?.querySelector<HTMLElement>(
+      '.milkup-inline-strong .milkup-inline-content',
+    )?.firstChild
 
-    line?.setAttribute('data-click-visual-offset', '0')
-    line?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))
-    const lineDuringDrag = view.contentDOM.querySelector<HTMLElement>('.milkup-line')
-    lineDuringDrag?.setAttribute('data-click-visual-offset', '10')
-    lineDuringDrag?.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, button: 0 }))
-    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0 }))
+    if (!line || !boldText) {
+      throw new Error('Expected live inline content')
+    }
 
-    expect(view.state.selection.main.anchor).toBe(0)
-    expect(view.state.selection.main.head).toBe(14)
+    const restoreCaretRange = withCaretRangeFromPoint(boldText, 4)
+
+    try {
+      line.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    } finally {
+      restoreCaretRange()
+    }
+
+    expect(view.state.selection.main.head).toBe(9)
+    expect(view.state.history.canUndo).toBe(false)
+  })
+
+  it('maps live clicks inside verification result lists without jumping across the document', () => {
+    const text = [
+      '# 手动验收状态 - 2026-07-06',
+      '',
+      '本文记录当前 Windows 本地自动化/手动证据。',
+      '',
+      '结果：',
+      '',
+      '- 通过：`Native Tauri WebDriver smoke passed`',
+      '- 覆盖范围：通过 WebDriver 启动真实 debug Tauri app。',
+    ].join('\n')
+    const parent = document.createElement('main')
+    document.body.append(parent)
+    const view = new EditorView({
+      parent,
+      state: createState(text, Selection.cursor(0)),
+      mode: 'live',
+    })
+    let resultLine = view.contentDOM.querySelector<HTMLElement>('.milkup-line[data-line="5"]')
+    let firstListLine = view.contentDOM.querySelector<HTMLElement>('.milkup-line[data-line="7"]')
+    const resultText = firstTextNode(resultLine)
+    let listContent = firstListLine?.querySelector<HTMLElement>('.milkup-list-content')
+    const listText = firstTextNode(listContent)
+    let inlineCodeText = firstListLine?.querySelector<HTMLElement>(
+      '.milkup-inline-inlineCode .milkup-inline-content',
+    )?.firstChild
+
+    if (!resultLine || !firstListLine || !inlineCodeText) {
+      throw new Error('Expected verification result lines')
+    }
+
+    let restoreCaretRange = withCaretRangeFromPoint(resultText, 3)
+
+    try {
+      resultLine.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      expect(view.state.selection.main.head).toBe(text.indexOf('结果') + 3)
+
+      restoreCaretRange()
+      firstListLine = view.contentDOM.querySelector<HTMLElement>('.milkup-line[data-line="7"]')
+      listContent = firstListLine?.querySelector<HTMLElement>('.milkup-list-content')
+      const currentListText = firstTextNode(listContent)
+      if (!firstListLine) {
+        throw new Error('Expected rerendered verification list line')
+      }
+      restoreCaretRange = withCaretRangeFromPoint(currentListText, 3)
+      firstListLine.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      expect(view.state.selection.main.head).toBe(text.indexOf('通过') + 3)
+
+      restoreCaretRange()
+      firstListLine = view.contentDOM.querySelector<HTMLElement>('.milkup-line[data-line="7"]')
+      inlineCodeText = firstListLine?.querySelector<HTMLElement>(
+        '.milkup-inline-inlineCode .milkup-inline-content',
+      )?.firstChild
+      if (!firstListLine || !inlineCodeText) {
+        throw new Error('Expected rerendered verification list line')
+      }
+      restoreCaretRange = withCaretRangeFromPoint(inlineCodeText, 6)
+      firstListLine.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      expect(view.state.selection.main.head).toBe(text.indexOf('Native') + 6)
+    } finally {
+      restoreCaretRange()
+    }
+
+    expect(view.state.history.canUndo).toBe(false)
+  })
+
+  it('shows inline syntax immediately after moving the live cursor into the node', () => {
+    const parent = document.createElement('main')
+    document.body.append(parent)
+    const view = new EditorView({
+      parent,
+      state: createState('`coding-plan.md` later', Selection.cursor(21)),
+      mode: 'live',
+    })
+    const line = view.contentDOM.querySelector<HTMLElement>('.milkup-line')
+    const inlineCode = line?.querySelector<HTMLElement>('.milkup-inline-inlineCode')
+    const codeText = inlineCode?.querySelector<HTMLElement>('.milkup-inline-content')?.firstChild
+
+    if (!line || !inlineCode || !codeText) {
+      throw new Error('Expected inline code content')
+    }
+
+    expect(
+      Array.from(inlineCode.querySelectorAll<HTMLElement>('.milkup-inline-marker')).every((node) =>
+        node.classList.contains('milkup-marker-hidden'),
+      ),
+    ).toBe(true)
+
+    const restoreCaretRange = withCaretRangeFromPoint(codeText, 'coding'.length)
+
+    try {
+      line.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))
+    } finally {
+      restoreCaretRange()
+    }
+
+    const rerenderedInlineCode = view.contentDOM.querySelector<HTMLElement>(
+      '.milkup-inline-inlineCode',
+    )
+    const markers = Array.from(
+      rerenderedInlineCode?.querySelectorAll<HTMLElement>('.milkup-inline-marker') ?? [],
+    )
+
+    expect(view.state.selection.main.head).toBe('`coding'.length)
+    expect(rerenderedInlineCode?.dataset.syntaxVisible).toBe('true')
+    expect(markers.some((node) => node.classList.contains('milkup-marker-hidden'))).toBe(false)
+  })
+
+  it('snaps live text clicks to the nearest caret boundary around punctuation', () => {
+    const parent = document.createElement('main')
+    document.body.append(parent)
+    const previousCreateRange = document.createRange.bind(document)
+    const view = new EditorView({
+      parent,
+      state: createState('`coding-plan.md` later', Selection.cursor(21)),
+      mode: 'live',
+    })
+    const line = view.contentDOM.querySelector<HTMLElement>('.milkup-line')
+    const codeText = line?.querySelector<HTMLElement>(
+      '.milkup-inline-inlineCode .milkup-inline-content',
+    )?.firstChild
+
+    if (!line || !codeText) {
+      throw new Error('Expected inline code content')
+    }
+
+    const restoreCaretRange = withCaretRangeFromPoint(codeText, 'coding-'.length)
+
+    document.createRange = () => {
+      const range = previousCreateRange()
+      const originalSetStart = range.setStart.bind(range)
+      let rangeOffset = 0
+      range.setStart = (node, offset) => {
+        rangeOffset = offset
+        originalSetStart(node, offset)
+      }
+      range.getBoundingClientRect = () =>
+        rangeOffset === 'coding'.length ? rect(60) : rect(rangeOffset * 10)
+      return range
+    }
+
+    try {
+      line.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0, clientX: 61 }))
+    } finally {
+      restoreCaretRange()
+      document.createRange = previousCreateRange
+    }
+
+    expect(view.state.selection.main.head).toBe('`coding'.length)
+  })
+
+  it('keeps the mousedown caret position when mouseup and click hit a rerendered live line', () => {
+    const text =
+      '- 覆盖范围：通过 WebDriver 启动真实 debug Tauri app，覆盖 native open/save/save-as test path、reload、reveal guard、真实 filesystem watcher-backed dirty/conflict regression checks。'
+    const parent = document.createElement('main')
+    document.body.append(parent)
+    const view = new EditorView({
+      parent,
+      state: createState(text, Selection.cursor(0)),
+      mode: 'live',
+    })
+    const line = view.contentDOM.querySelector<HTMLElement>('.milkup-line')
+    const listContent = line?.querySelector<HTMLElement>('.milkup-list-content')
+    const lineText = firstTextNode(listContent)
+    const listContentFrom = Number(listContent?.dataset.from)
+    let restoreCaretRange = withCaretRangeFromPoint(
+      lineText,
+      text.indexOf('WebDriver') - listContentFrom,
+    )
+
+    if (!line || !Number.isInteger(listContentFrom)) {
+      throw new Error('Expected list line')
+    }
+
+    try {
+      line.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))
+      expect(view.state.selection.main.head).toBe(text.indexOf('WebDriver'))
+
+      restoreCaretRange()
+      restoreCaretRange = withCaretRangeFromPoint(
+        lineText,
+        text.indexOf('watcher-backed') - listContentFrom,
+      )
+      document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0 }))
+      line.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    } finally {
+      restoreCaretRange()
+    }
+
+    expect(view.state.selection.main.head).toBe(text.indexOf('WebDriver'))
     expect(view.state.history.canUndo).toBe(false)
   })
 
@@ -670,16 +1130,21 @@ describe('EditorView', () => {
     })
     const lines = view.contentDOM.querySelectorAll<HTMLElement>('.milkup-line')
     const firstLine = lines[0]
+    const firstText = firstTextNode(firstLine)
+    const secondLineDuringDrag = lines[1]
+    const secondText = firstTextNode(secondLineDuringDrag)
+    let restoreCaretRange = withCaretRangeFromPoint(firstText, 1)
 
-    firstLine?.setAttribute('data-click-offset', '1')
-    firstLine?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))
-    const secondLineDuringDrag = view.contentDOM.querySelectorAll<HTMLElement>('.milkup-line')[1]
-    secondLineDuringDrag?.setAttribute('data-click-offset', '3')
-    secondLineDuringDrag?.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, button: 0 }))
-    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0 }))
-    const secondLineAfterDrag = view.contentDOM.querySelectorAll<HTMLElement>('.milkup-line')[1]
-    secondLineAfterDrag?.setAttribute('data-click-offset', '0')
-    secondLineAfterDrag?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    try {
+      firstLine?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))
+      restoreCaretRange()
+      restoreCaretRange = withCaretRangeFromPoint(secondText, 3)
+      secondLineDuringDrag?.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, button: 0 }))
+      document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0 }))
+      secondLineDuringDrag?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    } finally {
+      restoreCaretRange()
+    }
 
     expect(view.state.selection.main.anchor).toBe(1)
     expect(view.state.selection.main.head).toBe(9)
@@ -754,6 +1219,27 @@ describe('EditorView', () => {
     view.updateState(createState(text, Selection.cursor(text.length)))
 
     expect(view.dom.scrollTop).toBeGreaterThan(0)
+  })
+
+  it('does not scroll the editor after pointer selection updates', () => {
+    const parent = document.createElement('main')
+    const text = Array.from({ length: 20 }, (_, index) => `line ${index + 1}`).join('\n')
+    const view = new EditorView({
+      parent,
+      state: createState(text, Selection.cursor(0)),
+    })
+    view.dom.scrollTop = 120
+    const next = createState(text, Selection.cursor(text.length))
+
+    view.updateState(next, [
+      {
+        selection: next.selection,
+        origin: { type: 'command', id: 'view.pointer.dragSelection.start' },
+        addToHistory: false,
+      },
+    ])
+
+    expect(view.dom.scrollTop).toBe(120)
   })
 
   it('keeps the cursor visible inside a code block-like region', () => {
@@ -835,18 +1321,49 @@ describe('EditorView', () => {
     expect(view.contentDOM.querySelector('.milkup-inline-inlineCode')?.textContent).toBe('`code`')
   })
 
-  it('renders preview mode as a placeholder markdown projection', () => {
+  it('renders live mode as a markdown projection', () => {
     const parent = document.createElement('main')
     const view = new EditorView({
       parent,
       state: createState('# Title'),
-      mode: 'preview',
+      mode: 'live',
     })
 
     const line = view.contentDOM.querySelector<HTMLElement>('.milkup-line')
-    expect(view.dom.dataset.mode).toBe('preview')
-    expect(line?.classList.contains('milkup-line-preview')).toBe(true)
+    expect(view.dom.dataset.mode).toBe('live')
+    expect(line?.classList.contains('milkup-line-live')).toBe(true)
     expect(line?.classList.contains('milkup-block-heading')).toBe(true)
+  })
+
+  it('keeps read-only state locked while allowing selection changes', () => {
+    const parent = document.createElement('main')
+    const view = new EditorView({
+      parent,
+      state: createState('read only', Selection.cursor(0)),
+      mode: 'live',
+      editable: false,
+    })
+    const line = view.contentDOM.querySelector<HTMLElement>('.milkup-line')
+    const text = firstTextNode(line)
+    const restoreCaretRange = withCaretRangeFromPoint(text, 4)
+
+    try {
+      line?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      view.inputDOM.value = ' blocked'
+      view.inputDOM.dispatchEvent(new Event('input'))
+      view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }))
+    } finally {
+      restoreCaretRange()
+    }
+
+    expect(view.state.selection.main.head).toBe(4)
+    expect(view.state.doc.text).toBe('read only')
+
+    view.setEditable(true)
+    view.inputDOM.value = '!'
+    view.inputDOM.dispatchEvent(new Event('input'))
+
+    expect(view.state.doc.text).toBe('read! only')
   })
 
   it('does not duplicate a live heading onto the following text line', () => {
@@ -898,7 +1415,6 @@ describe('EditorView', () => {
     view.dom.scrollTop = 40
 
     view.setMode('live')
-    view.setMode('preview')
     view.setMode('source')
 
     expect(view.state.doc.text).toBe('hello world')
@@ -1033,12 +1549,23 @@ describe('renderPlainTextLines', () => {
     const unorderedContent = lines[0]?.querySelector<HTMLElement>('.milkup-list-content')
     const orderedContent = lines[2]?.querySelector<HTMLElement>('.milkup-list-content')
 
-    expect(unorderedMarker?.textContent).toBe('-')
+    expect(unorderedMarker?.textContent).toBe('•')
     expect(orderedMarker?.textContent).toBe('3.')
     expect(unorderedMarker?.dataset.from).toBe('0')
     expect(orderedMarker?.dataset.from).toBe('11')
     expect(unorderedContent?.querySelector('.milkup-inline-strong')?.textContent).toBe('**one**')
     expect(orderedContent?.querySelector('.milkup-inline-inlineCode')?.textContent).toBe('`two`')
+  })
+
+  it('renders every item in a contiguous list', () => {
+    const lines = renderMarkdownLines(document, createState('- one\n- two\n- three\n'))
+
+    expect(lines.slice(0, 3).every((line) => line.classList.contains('milkup-block-list'))).toBe(
+      true,
+    )
+    expect(
+      lines.slice(0, 3).map((line) => line.querySelector('.milkup-list-marker')?.textContent),
+    ).toEqual(['•', '•', '•'])
   })
 
   it('hides heading markers when the cursor is outside the heading', () => {

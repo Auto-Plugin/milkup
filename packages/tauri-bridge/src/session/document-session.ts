@@ -7,7 +7,7 @@ export type DocumentSessionId = string
 
 export type ExternalChangeState = 'none' | 'modified-clean' | 'deleted-clean' | 'conflict'
 
-export type SessionViewMode = 'source' | 'live' | 'preview'
+export type SessionViewMode = 'source' | 'live'
 
 export interface DocumentFileIdentity {
   readonly path: string

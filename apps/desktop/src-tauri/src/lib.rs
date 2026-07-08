@@ -13,7 +13,7 @@ use std::thread;
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, State, Window};
 
 const FILE_WATCH_EVENT_NAME: &str = "milkup-file-watch-event";
 const PLUGIN_SIDECAR_EVENT_NAME: &str = "milkup-plugin-sidecar-message";
@@ -56,6 +56,33 @@ struct LargeFileRegistration {
 #[tauri::command]
 fn bridge_status() -> &'static str {
     "ok"
+}
+
+#[tauri::command]
+fn window_control(window: Window, action: String) -> Result<bool, String> {
+    match action.as_str() {
+        "minimize" => window.minimize().map_err(|error| error.to_string())?,
+        "maximize" => {
+            if window.is_maximized().map_err(|error| error.to_string())? {
+                window.unmaximize().map_err(|error| error.to_string())?;
+            } else {
+                window.maximize().map_err(|error| error.to_string())?;
+            }
+        }
+        "close" => window.close().map_err(|error| error.to_string())?,
+        _ => return Err(format!("Unknown window control action: {action}")),
+    }
+
+    Ok(true)
+}
+
+#[tauri::command]
+fn initial_open_file_path() -> Option<String> {
+    std::env::args_os()
+        .skip(1)
+        .map(PathBuf::from)
+        .find(|path| is_supported_markdown_path(path))
+        .map(path_to_string)
 }
 
 #[derive(Clone, Serialize)]
@@ -576,6 +603,8 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             bridge_status,
+            window_control,
+            initial_open_file_path,
             open_markdown_file,
             reload_markdown_file,
             save_markdown_file,
@@ -618,6 +647,21 @@ fn read_markdown_file(document_id: String, path: String) -> Result<OpenFileResul
         disk_snapshot_hash: snapshot_hash(&text),
         text,
     })
+}
+
+fn is_supported_markdown_path(path: &Path) -> bool {
+    if !path.is_file() {
+        return false;
+    }
+
+    let Some(extension) = path.extension().and_then(|extension| extension.to_str()) else {
+        return false;
+    };
+
+    matches!(
+        extension.to_ascii_lowercase().as_str(),
+        "md" | "markdown" | "mdown" | "mkd"
+    )
 }
 
 fn poll_watched_file(

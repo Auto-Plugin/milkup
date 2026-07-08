@@ -1,7 +1,7 @@
 import type { EditorState, Line, TextRange, Transaction } from '@milkup/core'
 import type { AssetProvider } from '@milkup/assets'
 
-export type ViewMode = 'source' | 'live' | 'preview'
+export type ViewMode = 'source' | 'live'
 
 export interface Decoration extends TextRange {
   readonly className?: string
@@ -38,6 +38,7 @@ export interface EditorViewConfig {
   readonly parent: HTMLElement
   readonly state: EditorState
   readonly mode?: ViewMode
+  readonly editable?: boolean
   readonly assetProvider?: AssetProvider
   readonly document?: Document
   readonly dispatch?: EditorViewDispatch

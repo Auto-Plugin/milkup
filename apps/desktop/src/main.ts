@@ -24,26 +24,45 @@ import {
   recordFileSaveResult,
   recordModeChange,
 } from '@milkup/tauri-bridge'
-import type { FileAction, RecentFileEntry, SessionViewMode } from '@milkup/tauri-bridge'
+import type {
+  FileAction,
+  OpenFileResult,
+  RecentFileEntry,
+  SessionViewMode,
+} from '@milkup/tauri-bridge'
 import { EditorView } from '@milkup/view-dom'
 import type { ViewMode } from '@milkup/view-dom'
+import {
+  BookOpenText,
+  Bug,
+  Circle,
+  ClipboardPenLine,
+  Code2,
+  ExternalLink,
+  Eye,
+  FilePlus2,
+  FolderOpen,
+  Menu,
+  PanelLeft,
+  PanelLeftClose,
+  RotateCcw,
+  Save,
+  SaveAll,
+  Search,
+  Settings,
+  X,
+} from 'lucide'
+import type { IconNode } from 'lucide'
 
 import { createDesktopAssetProvider } from './asset-service'
 import { createDesktopFileService } from './file-service'
+import { iconSvg } from './icons'
 import { createDesktopLargeTextFileService } from './large-file-service'
 import { createDesktopPluginFileBroker } from './plugin-file-broker'
 import { createDesktopPluginSidecarProcess } from './plugin-sidecar'
 import './style.css'
 
-const initialText = [
-  '# 未命名',
-  '',
-  '这是 milkup v2 的桌面编辑器。',
-  '',
-  '- Markdown 源文档仍然是唯一事实来源。',
-  '- 保存状态由 DocumentSession 跟踪。',
-  '',
-].join('\n')
+const initialText = ''
 
 const messages = {
   titleUntitled: '未命名',
@@ -52,8 +71,13 @@ const messages = {
   pathUnsaved: '未保存',
   recentNone: '无',
   ready: '就绪',
-  newDocumentSource: '# 未命名\n\n',
+  newDocumentSource: '',
   buttons: {
+    menu: '菜单',
+    closeMenu: '关闭菜单',
+    sidebar: '侧栏',
+    search: '搜索',
+    closeSearch: '关闭搜索',
     new: '新建',
     open: '打开',
     save: '保存',
@@ -65,7 +89,20 @@ const messages = {
     reloadExternal: '重新载入外部更改',
     source: '源码',
     live: '实时',
-    preview: '预览',
+    readonly: '只读',
+  },
+  menu: {
+    file: '文件',
+    appearance: '外观',
+    language: '语言',
+    shortcuts: '快捷键',
+    about: '关于',
+    developer: '开发者面板',
+  },
+  window: {
+    minimize: '最小化',
+    maximize: '最大化',
+    close: '关闭窗口',
   },
   labels: {
     document: '文档',
@@ -96,80 +133,176 @@ const messages = {
   },
 } as const
 
+const platform = getDesktopPlatform()
+
+type DesktopPlatform = 'windows' | 'macos' | 'linux' | 'other'
+type WindowControlAction = 'minimize' | 'maximize' | 'close'
+
 const app = document.querySelector<HTMLDivElement>('#app')
 
 if (!app) {
   throw new Error('Desktop root element was not found')
 }
 
+const appRoot = app
+
+appRoot.dataset.platform = platform
+appRoot.dataset.sidebarCollapsed = 'true'
 app.innerHTML = `
   <main class="desktop-shell">
-    <header class="topbar">
-      <div class="document-title">
-        <span data-dirty-dot class="dirty-dot" aria-hidden="true"></span>
-        <div>
-          <h1 data-title>${messages.titleUntitled}</h1>
+    <header class="titlebar" data-window-drag-region>
+      <button type="button" class="titlebar-menu-button" data-menu-toggle aria-label="${messages.buttons.menu}" title="${messages.buttons.menu}">
+        ${iconSvg(Menu)}
+      </button>
+      <div class="brand" data-window-drag-region>
+        <div class="brand-mark" aria-hidden="true">${iconSvg(BookOpenText)}</div>
+        <div class="document-title" data-window-drag-region>
+          <div class="title-row" data-window-drag-region>
+            <span data-dirty-dot class="dirty-dot" aria-hidden="true"></span>
+            <h1 data-title>${messages.titleUntitled}</h1>
+          </div>
           <p data-session-state>${messages.stateClean}</p>
         </div>
       </div>
-      <div class="toolbar">
-        <button type="button" data-command="new">${messages.buttons.new}</button>
-        <button type="button" data-command="open-sample">${messages.buttons.open}</button>
-        <button type="button" data-command="save">${messages.buttons.save}</button>
-        <button type="button" data-command="save-as">${messages.buttons.saveAs}</button>
-        <button type="button" data-command="reveal">${messages.buttons.reveal}</button>
-        <button type="button" data-command="close">${messages.buttons.close}</button>
-        <button type="button" data-command="external-change">${messages.buttons.simulateChange}</button>
-        <button type="button" data-command="external-delete">${messages.buttons.simulateDelete}</button>
-        <button type="button" data-command="reload-external">${messages.buttons.reloadExternal}</button>
-        <div class="mode-switch" role="group" aria-label="编辑器模式">
-          <button type="button" data-mode-button="source">${messages.buttons.source}</button>
-          <button type="button" data-mode-button="live">${messages.buttons.live}</button>
-          <button type="button" data-mode-button="preview">${messages.buttons.preview}</button>
-        </div>
+      <div class="window-controls" aria-label="窗口控制">
+        <button type="button" class="window-control" data-window-control="minimize" aria-label="${messages.window.minimize}" title="${messages.window.minimize}">
+          <span class="window-glyph window-glyph-minimize" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="window-control" data-window-control="maximize" aria-label="${messages.window.maximize}" title="${messages.window.maximize}" data-window-maximize>
+          <span class="window-glyph window-glyph-maximize" aria-hidden="true"></span>
+        </button>
+        <button type="button" class="window-control window-control-close" data-window-control="close" aria-label="${messages.window.close}" title="${messages.window.close}">
+          <span class="window-glyph window-glyph-close" aria-hidden="true"></span>
+        </button>
       </div>
     </header>
-    <section class="workspace">
-      <aside class="sidebar" aria-label="文档会话">
-        <dl>
+    <section class="app-menu" data-app-menu hidden>
+      <div class="app-menu-surface" role="dialog" aria-modal="true" aria-label="${messages.buttons.menu}">
+        <header class="app-menu-header">
           <div>
-            <dt>${messages.labels.document}</dt>
-            <dd data-stat="document-id"></dd>
+            <h2>${messages.buttons.menu}</h2>
+            <p data-menu-document>${messages.titleUntitled}</p>
           </div>
-          <div>
-            <dt>${messages.labels.path}</dt>
-            <dd data-stat="path"></dd>
-          </div>
-          <div>
-            <dt>${messages.labels.version}</dt>
-            <dd data-stat="version"></dd>
-          </div>
-          <div>
-            <dt>${messages.labels.saved}</dt>
-            <dd data-stat="saved"></dd>
-          </div>
-          <div>
-            <dt>${messages.labels.external}</dt>
-            <dd data-stat="external"></dd>
-          </div>
-          <div>
-            <dt>${messages.labels.lineEnding}</dt>
-            <dd data-stat="line-ending"></dd>
-          </div>
-          <div>
-            <dt>${messages.labels.notice}</dt>
-            <dd data-stat="notice"></dd>
-          </div>
-          <div>
-            <dt>${messages.labels.recent}</dt>
-            <dd data-stat="recent"></dd>
-          </div>
-        </dl>
-      </aside>
-      <section class="editor-host" data-editor-host></section>
+          <button type="button" class="icon-button" data-menu-close aria-label="${messages.buttons.closeMenu}" title="${messages.buttons.closeMenu}">
+            ${iconSvg(X)}
+          </button>
+        </header>
+        <div class="app-menu-grid">
+          <nav class="app-menu-nav" aria-label="菜单分类">
+            <button type="button" data-menu-section="file" data-active="true">${messages.menu.file}</button>
+            <button type="button" data-menu-section="appearance">${messages.menu.appearance}</button>
+            <button type="button" data-menu-section="language">${messages.menu.language}</button>
+            <button type="button" data-menu-section="shortcuts">${messages.menu.shortcuts}</button>
+            <button type="button" data-menu-section="about">${messages.menu.about}</button>
+          </nav>
+          <section class="app-menu-section" data-menu-panel="file">
+            <h3>${messages.menu.file}</h3>
+            <div class="menu-command-list" aria-label="文件操作">
+              ${toolbarButton('new', messages.buttons.new, FilePlus2)}
+              ${toolbarButton('open-sample', messages.buttons.open, FolderOpen)}
+              ${toolbarButton('save', messages.buttons.save, Save)}
+              ${toolbarButton('save-as', messages.buttons.saveAs, SaveAll)}
+              ${toolbarButton('reload-external', messages.buttons.reloadExternal, RotateCcw)}
+              ${toolbarButton('reveal', messages.buttons.reveal, ExternalLink)}
+              ${toolbarButton('close', messages.buttons.close, X)}
+            </div>
+            <details class="developer-panel">
+              <summary>
+                ${iconSvg(Bug)}
+                <span>${messages.menu.developer}</span>
+              </summary>
+              <dl class="metadata-list compact">
+                <div>
+                  <dt>${messages.labels.document}</dt>
+                  <dd data-stat="document-id"></dd>
+                </div>
+                <div>
+                  <dt>${messages.labels.version}</dt>
+                  <dd data-stat="version"></dd>
+                </div>
+                <div>
+                  <dt>${messages.labels.saved}</dt>
+                  <dd data-stat="saved"></dd>
+                </div>
+              </dl>
+              <div class="diagnostic-actions">
+                ${toolbarButton('external-change', messages.buttons.simulateChange, Circle)}
+                ${toolbarButton('external-delete', messages.buttons.simulateDelete, Circle)}
+              </div>
+            </details>
+          </section>
+          <section class="app-menu-section" data-menu-panel="appearance" hidden>
+            <h3>${messages.menu.appearance}</h3>
+          </section>
+          <section class="app-menu-section" data-menu-panel="language" hidden>
+            <h3>${messages.menu.language}</h3>
+          </section>
+          <section class="app-menu-section" data-menu-panel="shortcuts" hidden>
+            <h3>${messages.menu.shortcuts}</h3>
+          </section>
+          <section class="app-menu-section" data-menu-panel="about" hidden>
+            <h3>${messages.menu.about}</h3>
+          </section>
+        </div>
+      </div>
     </section>
+    <section class="workspace">
+      <aside class="sidebar" aria-label="工作区">
+        <section class="side-section">
+          <div class="section-heading">
+            ${iconSvg(PanelLeft)}
+            <span>当前文档</span>
+          </div>
+          <dl class="metadata-list">
+            <div>
+              <dt>${messages.labels.path}</dt>
+              <dd data-stat="path"></dd>
+            </div>
+            <div>
+              <dt>${messages.labels.external}</dt>
+              <dd data-stat="external"></dd>
+            </div>
+            <div>
+              <dt>${messages.labels.lineEnding}</dt>
+              <dd data-stat="line-ending"></dd>
+            </div>
+          </dl>
+        </section>
+        <section class="side-section">
+          <div class="section-heading">
+            ${iconSvg(ClipboardPenLine)}
+            <span>最近文件</span>
+          </div>
+          <p class="recent-list" data-stat="recent"></p>
+        </section>
+      </aside>
+      <section class="editor-panel">
+        <div class="floating-search" data-floating-search hidden>
+          ${iconSvg(Search)}
+          <input type="search" aria-label="${messages.buttons.search}" placeholder="搜索文档" data-search-input />
+          <button type="button" class="icon-button" data-search-close aria-label="${messages.buttons.closeSearch}" title="${messages.buttons.closeSearch}">
+            ${iconSvg(X)}
+          </button>
+        </div>
+        <div class="editor-host" data-editor-host></div>
+      </section>
+    </section>
+    <footer class="statusbar">
+      <div class="statusbar-left">
+        <button type="button" class="statusbar-button" data-sidebar-toggle aria-label="${messages.buttons.sidebar}" title="${messages.buttons.sidebar}">
+          ${iconSvg(PanelLeft)}
+        </button>
+        <button type="button" class="statusbar-button mode-toggle" data-mode-toggle aria-label="${messages.buttons.live}" title="${messages.buttons.live}"></button>
+      </div>
+      <span data-stat="notice"></span>
+      <span class="statusbar-spacer"></span>
+      <span>milkup v2</span>
+      ${iconSvg(Settings, 'icon muted-icon')}
+    </footer>
   </main>
 `
+
+configureWindowChrome(platform)
 
 const editorHost = app.querySelector<HTMLElement>('[data-editor-host]')
 
@@ -187,11 +320,15 @@ const assetProvider = createDesktopAssetProvider({
 
 let session = createDocumentSession({
   documentId: 'desktop-untitled-1',
-  viewMode: 'source',
+  viewMode: 'live',
 })
 let notice: string = messages.ready
 let recentFiles: readonly RecentFileEntry[] = []
 let disposeFileWatchEvents: (() => void) | undefined
+let sidebarCollapsed = true
+let menuOpen = false
+let searchOpen = false
+let windowMaximized = false
 
 let view: EditorView | undefined
 
@@ -246,6 +383,7 @@ view = new EditorView({
   parent: editorHost,
   state,
   mode: session.viewMode,
+  editable: !session.readonly,
   assetProvider,
   dispatch: (transaction: Transaction) => {
     if (!view) {
@@ -260,8 +398,10 @@ view = new EditorView({
 })
 
 renderSession()
-updateModeButtons(view.viewMode)
+updateModeToggle(view.viewMode)
 view.inputDOM.focus({ preventScroll: true })
+
+void openInitialDocument()
 
 void fileService
   .listenToFileWatchEvents((event) => {
@@ -300,62 +440,131 @@ const desktopActionPermissions = Object.freeze([
   'view:write',
 ]) satisfies readonly ActionPermission[]
 
-for (const button of Array.from(app.querySelectorAll<HTMLButtonElement>('[data-mode-button]'))) {
-  button.addEventListener('click', () => {
-    const mode = button.dataset.modeButton
+app.querySelector<HTMLButtonElement>('[data-mode-toggle]')?.addEventListener('click', () => {
+  runDesktopAction('view.setMode', { mode: getNextViewMode(session.viewMode) })
+})
 
-    if (isViewMode(mode)) {
-      runDesktopAction('view.setMode', { mode })
+bindCommand('new', 'file.new')
+bindCommand('open-sample', 'file.open')
+bindCommand('save', 'file.save')
+bindCommand('reload-external', 'file.reloadExternal')
+bindCommand('save-as', 'file.saveAs')
+bindCommand('reveal', 'file.revealInFolder')
+bindCommand('close', 'file.close')
+bindCommand('external-change', 'file.simulateExternalChange')
+bindCommand('external-delete', 'file.simulateExternalDelete')
+
+app.querySelector<HTMLButtonElement>('[data-menu-toggle]')?.addEventListener('click', () => {
+  setMenuOpen(!menuOpen)
+})
+
+app.querySelector<HTMLButtonElement>('[data-menu-close]')?.addEventListener('click', () => {
+  setMenuOpen(false)
+})
+
+app.querySelector<HTMLButtonElement>('[data-sidebar-toggle]')?.addEventListener('click', () => {
+  setSidebarCollapsed(!sidebarCollapsed)
+})
+
+app.querySelector<HTMLButtonElement>('[data-search-close]')?.addEventListener('click', () => {
+  setSearchOpen(false)
+})
+
+app.querySelector<HTMLInputElement>('[data-search-input]')?.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    setSearchOpen(false)
+    return
+  }
+
+  if (
+    !event.altKey &&
+    !event.isComposing &&
+    isPrimaryShortcut(event) &&
+    event.key.toLowerCase() === 'f'
+  ) {
+    event.preventDefault()
+    setSearchOpen(false)
+  }
+})
+
+for (const button of Array.from(app.querySelectorAll<HTMLButtonElement>('[data-menu-section]'))) {
+  button.addEventListener('click', () => {
+    const section = button.dataset.menuSection
+
+    if (section) {
+      showMenuSection(section)
     }
   })
 }
 
-app
-  .querySelector<HTMLButtonElement>('[data-command="new"]')
-  ?.addEventListener('click', () => runDesktopAction('file.new'))
+for (const button of Array.from(app.querySelectorAll<HTMLButtonElement>('[data-window-control]'))) {
+  button.addEventListener('click', () => {
+    const action = button.dataset.windowControl
 
-app
-  .querySelector<HTMLButtonElement>('[data-command="open-sample"]')
-  ?.addEventListener('click', () => runDesktopAction('file.open'))
+    if (action === 'minimize' || action === 'maximize' || action === 'close') {
+      runWindowControl(action)
+    }
+  })
+}
 
-app
-  .querySelector<HTMLButtonElement>('[data-command="save"]')
-  ?.addEventListener('click', () => runDesktopAction('file.save'))
-
-app
-  .querySelector<HTMLButtonElement>('[data-command="reload-external"]')
-  ?.addEventListener('click', () => runDesktopAction('file.reloadExternal'))
-
-app
-  .querySelector<HTMLButtonElement>('[data-command="save-as"]')
-  ?.addEventListener('click', () => runDesktopAction('file.saveAs'))
-
-app
-  .querySelector<HTMLButtonElement>('[data-command="reveal"]')
-  ?.addEventListener('click', () => runDesktopAction('file.revealInFolder'))
-
-app
-  .querySelector<HTMLButtonElement>('[data-command="close"]')
-  ?.addEventListener('click', () => runDesktopAction('file.close'))
-
-app
-  .querySelector<HTMLButtonElement>('[data-command="external-change"]')
-  ?.addEventListener('click', () => runDesktopAction('file.simulateExternalChange'))
-
-app
-  .querySelector<HTMLButtonElement>('[data-command="external-delete"]')
-  ?.addEventListener('click', () => runDesktopAction('file.simulateExternalDelete'))
-
-globalThis.addEventListener('keydown', (event) => {
-  const action = getDesktopShortcutAction(event)
-
-  if (!action) {
+appRoot.addEventListener('pointerdown', (event) => {
+  if (event.button !== 0 || platform !== 'windows') {
     return
   }
 
-  event.preventDefault()
-  runDesktopAction(action.id, action.input)
+  const target = event.target
+
+  if (!(target instanceof HTMLElement) || !target.closest('[data-window-drag-region]')) {
+    return
+  }
+
+  if (target.closest('button, input, textarea, a, .window-controls')) {
+    return
+  }
+
+  void startWindowDrag()
 })
+
+globalThis.addEventListener(
+  'keydown',
+  (event) => {
+    if (event.key === 'Escape') {
+      if (searchOpen) {
+        event.preventDefault()
+        setSearchOpen(false)
+        return
+      }
+
+      if (menuOpen) {
+        event.preventDefault()
+        setMenuOpen(false)
+        return
+      }
+    }
+
+    if (
+      !event.altKey &&
+      !event.isComposing &&
+      isPrimaryShortcut(event) &&
+      event.key.toLowerCase() === 'f'
+    ) {
+      event.preventDefault()
+      setSearchOpen(!searchOpen)
+      return
+    }
+
+    const action = getDesktopShortcutAction(event)
+
+    if (!action) {
+      return
+    }
+
+    event.preventDefault()
+    runDesktopAction(action.id, action.input)
+  },
+  { capture: true },
+)
 
 view.inputDOM.addEventListener('copy', (event) => {
   if (copySelectionToClipboard(event)) {
@@ -559,6 +768,42 @@ async function openDocument(): Promise<void> {
     return
   }
 
+  openDocumentResult(result, messages.notices.openedDocument)
+}
+
+async function openInitialDocument(): Promise<void> {
+  if (!view) {
+    return
+  }
+
+  const path = await fileService.initialOpenFilePath().catch((error: unknown) => {
+    notice = `启动文件读取失败：${getErrorMessage(error)}`
+    renderSession()
+    return undefined
+  })
+
+  if (!path) {
+    return
+  }
+
+  const result = await fileService.openPath(path).catch((error: unknown) => {
+    notice = `启动文件打开失败：${getErrorMessage(error)}`
+    renderSession()
+    return undefined
+  })
+
+  if (!result) {
+    return
+  }
+
+  openDocumentResult(result, `${messages.notices.openedDocument}：${result.file.path}`)
+}
+
+function openDocumentResult(result: OpenFileResult, nextNotice: string): void {
+  if (!view) {
+    return
+  }
+
   unwatchCurrentFile()
   state = new EditorState({
     doc: new MemoryTextDocument(result.text),
@@ -567,7 +812,7 @@ async function openDocument(): Promise<void> {
   recentFiles = recordRecentFile(recentFiles, result.file, Date.now())
   watchCurrentFile()
   view.updateState(state)
-  notice = messages.notices.openedDocument
+  notice = nextNotice
   renderSession()
   view.inputDOM.focus({ preventScroll: true })
 }
@@ -787,7 +1032,7 @@ function setViewMode(mode: SessionViewMode): void {
 
   view.setMode(mode)
   session = recordModeChange(session, mode)
-  updateModeButtons(mode)
+  updateModeToggle(mode)
   renderSession()
   view.inputDOM.focus({ preventScroll: true })
 }
@@ -829,6 +1074,209 @@ function copySelectionToClipboard(event: ClipboardEvent): boolean {
   return true
 }
 
+function bindCommand(command: string, actionId: string): void {
+  app
+    .querySelector<HTMLButtonElement>(`[data-command="${command}"]`)
+    ?.addEventListener('click', () => {
+      setMenuOpen(false)
+      runDesktopAction(actionId)
+    })
+}
+
+function setSidebarCollapsed(collapsed: boolean): void {
+  sidebarCollapsed = collapsed
+  appRoot.dataset.sidebarCollapsed = String(collapsed)
+  const toggle = app.querySelector<HTMLButtonElement>('[data-sidebar-toggle]')
+
+  if (toggle) {
+    toggle.setAttribute('aria-pressed', String(!collapsed))
+    toggle.innerHTML = iconSvg(collapsed ? PanelLeft : PanelLeftClose)
+  }
+
+  view?.inputDOM.focus({ preventScroll: true })
+}
+
+function setMenuOpen(open: boolean): void {
+  menuOpen = open
+  const menu = app.querySelector<HTMLElement>('[data-app-menu]')
+  const toggle = app.querySelector<HTMLButtonElement>('[data-menu-toggle]')
+
+  if (menu) {
+    menu.hidden = !open
+  }
+
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', String(open))
+  }
+
+  if (open) {
+    showMenuSection('file')
+    for (const panel of Array.from(app.querySelectorAll<HTMLDetailsElement>('.developer-panel'))) {
+      panel.open = false
+    }
+    app.querySelector<HTMLButtonElement>('[data-menu-section="file"]')?.focus()
+  } else {
+    view?.inputDOM.focus({ preventScroll: true })
+  }
+}
+
+function showMenuSection(section: string): void {
+  for (const button of Array.from(app.querySelectorAll<HTMLButtonElement>('[data-menu-section]'))) {
+    const active = button.dataset.menuSection === section
+    button.dataset.active = String(active)
+    button.setAttribute('aria-selected', String(active))
+  }
+
+  for (const panel of Array.from(app.querySelectorAll<HTMLElement>('[data-menu-panel]'))) {
+    panel.hidden = panel.dataset.menuPanel !== section
+  }
+}
+
+function setSearchOpen(open: boolean): void {
+  searchOpen = open
+  const search = app.querySelector<HTMLElement>('[data-floating-search]')
+
+  if (search) {
+    search.hidden = !open
+  }
+
+  if (open) {
+    setMenuOpen(false)
+    app.querySelector<HTMLInputElement>('[data-search-input]')?.focus()
+  } else {
+    view?.inputDOM.focus({ preventScroll: true })
+  }
+}
+
+function getNextViewMode(mode: ViewMode): SessionViewMode {
+  return mode === 'source' ? 'live' : 'source'
+}
+
+function isPrimaryShortcut(event: KeyboardEvent): boolean {
+  const isMac = navigator.platform.toLowerCase().includes('mac')
+  return isMac ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey
+}
+
+function toolbarButton(command: string, label: string, icon: IconNode): string {
+  return [
+    `<button type="button" class="tool-button" data-command="${command}" title="${label}">`,
+    iconSvg(icon),
+    `<span>${label}</span>`,
+    '</button>',
+  ].join('')
+}
+
+function getDesktopPlatform(): DesktopPlatform {
+  const platformName = navigator.platform.toLowerCase()
+  const userAgent = navigator.userAgent.toLowerCase()
+
+  if (platformName.includes('win') || userAgent.includes('windows')) {
+    return 'windows'
+  }
+
+  if (platformName.includes('mac') || userAgent.includes('mac os')) {
+    return 'macos'
+  }
+
+  if (platformName.includes('linux') || userAgent.includes('linux')) {
+    return 'linux'
+  }
+
+  return 'other'
+}
+
+function configureWindowChrome(currentPlatform: DesktopPlatform): void {
+  appRoot.dataset.customChrome = String(currentPlatform === 'windows')
+
+  if (currentPlatform !== 'windows') {
+    return
+  }
+
+  void import('@tauri-apps/api/window')
+    .then(async ({ getCurrentWindow }) => {
+      const window = getCurrentWindow()
+      await window.setDecorations(false)
+      await syncWindowMaximizedState()
+      await window.onResized(() => {
+        void syncWindowMaximizedState()
+      })
+    })
+    .catch(() => {
+      appRoot.dataset.customChrome = 'false'
+    })
+}
+
+function runWindowControl(action: WindowControlAction): void {
+  if (platform !== 'windows') {
+    return
+  }
+
+  void import('@tauri-apps/api/core')
+    .then(async ({ invoke }) => {
+      if (action !== 'close' || canCloseWindow()) {
+        await invoke<boolean>('window_control', { action })
+        if (action === 'maximize') {
+          await syncWindowMaximizedState()
+        }
+      }
+    })
+    .catch((error: unknown) => {
+      notice = `窗口操作失败：${getErrorMessage(error)}`
+      renderSession()
+    })
+}
+
+async function syncWindowMaximizedState(): Promise<void> {
+  if (platform !== 'windows') {
+    return
+  }
+
+  try {
+    const { getCurrentWindow } = await import('@tauri-apps/api/window')
+    windowMaximized = await getCurrentWindow().isMaximized()
+  } catch {
+    windowMaximized = !windowMaximized
+  }
+
+  updateWindowMaximizeIcon()
+}
+
+function updateWindowMaximizeIcon(): void {
+  const button = app.querySelector<HTMLButtonElement>('[data-window-maximize]')
+  const glyph = button?.querySelector<HTMLElement>('.window-glyph')
+
+  if (!button || !glyph) {
+    return
+  }
+
+  glyph.className = `window-glyph ${
+    windowMaximized ? 'window-glyph-restore' : 'window-glyph-maximize'
+  }`
+}
+
+function startWindowDrag(): void {
+  void import('@tauri-apps/api/window')
+    .then(({ getCurrentWindow }) => getCurrentWindow().startDragging())
+    .catch(() => undefined)
+}
+
+function canCloseWindow(): boolean {
+  const decision = evaluateCloseProtection([session], {
+    scope: 'window',
+    documentIds: [session.documentId],
+  })
+
+  if (decision.allowClose) {
+    return true
+  }
+
+  applyCloseDecision([session], decision, 'cancel')
+  notice = `无法关闭窗口：${decision.blockedDocumentIds.join(', ')} 有未保存更改`
+  renderSession()
+  view?.inputDOM.focus({ preventScroll: true })
+  return false
+}
+
 function getDesktopShortcutAction(
   event: KeyboardEvent,
 ): { readonly id: string; readonly input?: unknown } | undefined {
@@ -836,10 +1284,7 @@ function getDesktopShortcutAction(
     return undefined
   }
 
-  const isMac = navigator.platform.toLowerCase().includes('mac')
-  const primaryPressed = isMac ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey
-
-  if (!primaryPressed) {
+  if (!isPrimaryShortcut(event)) {
     return undefined
   }
 
@@ -848,8 +1293,8 @@ function getDesktopShortcutAction(
       return { id: 'view.setMode', input: { mode: 'source' } }
     case '2':
       return { id: 'view.setMode', input: { mode: 'live' } }
-    case '3':
-      return { id: 'view.setMode', input: { mode: 'preview' } }
+    case '/':
+      return { id: 'view.setMode', input: { mode: getNextViewMode(session.viewMode) } }
     case 'a':
       return { id: 'document.selectAll' }
     case 'n':
@@ -873,6 +1318,7 @@ function getDesktopShortcutAction(
 
 function renderSession(): void {
   setText('[data-title]', session.file?.path ?? messages.titleUntitled)
+  setText('[data-menu-document]', session.file?.path ?? messages.titleUntitled)
   setText(
     '[data-session-state]',
     `${session.dirty ? messages.stateDirty : messages.stateClean} · ${state.doc.length} 字符`,
@@ -893,6 +1339,10 @@ function renderSession(): void {
 
   const dirtyDot = app?.querySelector<HTMLElement>('[data-dirty-dot]')
   dirtyDot?.classList.toggle('is-dirty', session.dirty)
+  appRoot.dataset.emptyDocument = String(state.doc.length === 0)
+  appRoot.dataset.readonly = String(session.readonly)
+  view?.setEditable(!session.readonly)
+  updateModeToggle(session.viewMode)
 }
 
 function watchCurrentFile(): void {
@@ -911,14 +1361,18 @@ function unwatchCurrentFile(): void {
   })
 }
 
-function updateModeButtons(mode: ViewMode): void {
-  for (const button of Array.from(
-    app?.querySelectorAll<HTMLButtonElement>('[data-mode-button]') ?? [],
-  )) {
-    const active = button.dataset.modeButton === mode
-    button.dataset.active = String(active)
-    button.setAttribute('aria-pressed', String(active))
+function updateModeToggle(mode: ViewMode): void {
+  const button = app?.querySelector<HTMLButtonElement>('[data-mode-toggle]')
+
+  if (!button) {
+    return
   }
+
+  const label = mode === 'source' ? messages.buttons.source : messages.buttons.live
+  button.setAttribute('aria-label', label)
+  button.title = label
+  button.dataset.mode = mode
+  button.innerHTML = iconSvg(mode === 'source' ? Code2 : Eye)
 }
 
 function setText(selector: string, value: string): void {
@@ -930,7 +1384,7 @@ function setText(selector: string, value: string): void {
 }
 
 function isViewMode(value: string | undefined): value is SessionViewMode {
-  return value === 'source' || value === 'live' || value === 'preview'
+  return value === 'source' || value === 'live'
 }
 
 function getRequiredDocumentId(action: FileAction): string {

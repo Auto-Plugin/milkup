@@ -1,6 +1,6 @@
 import { createMarkdownImage, isImageAsset } from '@milkup/assets'
 import type { AssetProvider } from '@milkup/assets'
-import { ChangeSet, Selection } from '@milkup/core'
+import { ChangeSet, Selection, transactionChangesDocument } from '@milkup/core'
 import type { EditorState, Transaction } from '@milkup/core'
 import { collectClipboardPayload, normalizePaste } from '@milkup/input'
 import {
@@ -55,8 +55,10 @@ export class EditorView {
   private compositionText = ''
   private dragAnchor: number | undefined
   private isDraggingSelection = false
+  private hasDraggedSelection = false
   private suppressNextClick = false
   private mode: ViewMode
+  private editable: boolean
   private readonly handleInputEvent = (): void => {
     this.readInputProxy()
   }
@@ -99,9 +101,11 @@ export class EditorView {
     this.assetProvider = config.assetProvider
     this.externalDispatch = config.dispatch
     this.mode = config.mode ?? 'source'
+    this.editable = config.editable ?? true
     this.dom = this.ownerDocument.createElement('div')
     this.dom.className = 'milkup-editor'
     this.dom.dataset.mode = this.mode
+    this.dom.dataset.editable = String(this.editable)
     this.contentDOM = this.ownerDocument.createElement('div')
     this.contentDOM.className = 'milkup-editor-content'
     this.contentDOM.setAttribute('role', 'textbox')
@@ -145,15 +149,23 @@ export class EditorView {
   updateState(state: EditorState, transactions: readonly Transaction[] = []): ViewUpdate {
     const previousState = this.currentState
     this.currentState = state
-    this.markdownParseState = updateEditorMarkdownParseState(
-      this.markdownParseState,
-      previousState,
-      state,
-      transactions,
-    )
-    this.render()
+    const documentChanged = transactions.some(transactionChangesDocument)
 
-    if (selectionChanged(previousState, state)) {
+    if (documentChanged || previousState.doc.text !== state.doc.text) {
+      this.markdownParseState = updateEditorMarkdownParseState(
+        this.markdownParseState,
+        previousState,
+        state,
+        transactions,
+      )
+      this.render()
+    } else if (selectionChanged(previousState, state) && this.mode !== 'source') {
+      this.render()
+    } else if (selectionChanged(previousState, state)) {
+      this.renderSelectionAndCursor()
+    }
+
+    if (selectionChanged(previousState, state) && shouldScrollSelectionIntoView(transactions)) {
       this.ensureCursorVisible()
     }
 
@@ -181,6 +193,16 @@ export class EditorView {
     }
   }
 
+  setEditable(editable: boolean): void {
+    if (this.editable === editable) {
+      return
+    }
+
+    this.editable = editable
+    this.dom.dataset.editable = String(editable)
+    this.inputDOM.readOnly = !editable
+  }
+
   positionToRect(pos: number, metrics?: Partial<ViewMetrics>): ViewRect {
     return positionToRectForMode(this.currentState, this.mode, pos, metrics)
   }
@@ -190,6 +212,27 @@ export class EditorView {
   }
 
   ensureCursorVisible(options?: CursorVisibilityOptions): number {
+    const measuredRect = domRectForSourcePosition(
+      this.ownerDocument,
+      this.contentDOM,
+      this.cursorLayerDOM,
+      this.currentState,
+      this.mode,
+      this.currentState.selection.main.head,
+    )
+
+    if (measuredRect) {
+      const nextScrollTop = scrollMeasuredRectIntoView({
+        currentScrollTop: this.dom.scrollTop,
+        rect: measuredRect,
+        viewportHeight: options?.viewportHeight ?? this.dom.clientHeight,
+        ...(options?.scrollPadding === undefined ? {} : { scrollPadding: options.scrollPadding }),
+      })
+
+      this.dom.scrollTop = nextScrollTop
+      return nextScrollTop
+    }
+
     const nextScrollTop = scrollPositionIntoViewForMode({
       currentScrollTop: this.dom.scrollTop,
       mode: this.mode,
@@ -232,7 +275,68 @@ export class EditorView {
     this.cursorLayerDOM.replaceChildren(
       ...renderCursorOverlay(this.ownerDocument, this.currentState, this.mode),
     )
+    this.alignSelectionOverlayToDOM()
     this.alignCursorOverlayToDOM()
+  }
+
+  private renderSelectionAndCursor(): void {
+    this.selectionLayerDOM.replaceChildren(
+      ...renderSelectionOverlay(this.ownerDocument, this.currentState, this.mode),
+    )
+    this.cursorLayerDOM.replaceChildren(
+      ...renderCursorOverlay(this.ownerDocument, this.currentState, this.mode),
+    )
+    this.alignSelectionOverlayToDOM()
+    this.alignCursorOverlayToDOM()
+  }
+
+  private alignSelectionOverlayToDOM(): void {
+    const measuredSelections: HTMLElement[] = []
+
+    for (const selection of Array.from(
+      this.selectionLayerDOM.querySelectorAll<HTMLElement>('.milkup-selection'),
+    )) {
+      const from = Number(selection.dataset.from)
+      const to = Number(selection.dataset.to)
+      const index = selection.dataset.index ?? '0'
+
+      if (!Number.isInteger(from) || !Number.isInteger(to) || to <= from) {
+        continue
+      }
+
+      const rects = domRectsForSourceRange(
+        this.ownerDocument,
+        this.contentDOM,
+        this.selectionLayerDOM,
+        this.currentState,
+        this.mode,
+        from,
+        to,
+      )
+
+      if (rects.length === 0) {
+        measuredSelections.push(selection)
+        continue
+      }
+
+      for (const [rectIndex, rect] of rects.entries()) {
+        const measured = this.ownerDocument.createElement('div')
+        measured.className = 'milkup-selection'
+        measured.dataset.index = index
+        measured.dataset.rectIndex = String(rectIndex)
+        measured.dataset.from = String(from)
+        measured.dataset.to = String(to)
+        measured.style.left = `${rect.left}px`
+        measured.style.top = `${rect.top}px`
+        measured.style.width = `${Math.max(1, rect.width)}px`
+        measured.style.height = `${rect.height}px`
+        measuredSelections.push(measured)
+      }
+    }
+
+    if (measuredSelections.length > 0) {
+      this.selectionLayerDOM.replaceChildren(...measuredSelections)
+    }
   }
 
   private alignCursorOverlayToDOM(): void {
@@ -274,6 +378,11 @@ export class EditorView {
   }
 
   private readInputProxy(): void {
+    if (!this.editable) {
+      this.inputDOM.value = ''
+      return
+    }
+
     if (this.isComposing) {
       return
     }
@@ -295,12 +404,21 @@ export class EditorView {
     this.compositionText = ''
     this.inputDOM.value = ''
 
+    if (!this.editable) {
+      return
+    }
+
     if (text.length > 0) {
       this.insertText(text, 'input.composition')
     }
   }
 
   private async handlePaste(event: ClipboardEvent): Promise<void> {
+    if (!this.editable) {
+      event.preventDefault()
+      return
+    }
+
     const payload = collectClipboardPayload(event)
     const paste = normalizePaste(payload, {
       inCodeBlock: isPositionInsideCodeBlock(
@@ -356,6 +474,10 @@ export class EditorView {
   private handleEditingKey(event: KeyboardEvent): boolean {
     if (this.isComposing) {
       return false
+    }
+
+    if (!this.editable) {
+      return isTextEditingKey(event)
     }
 
     if (event.altKey || event.ctrlKey || event.metaKey) {
@@ -504,7 +626,7 @@ export class EditorView {
 
     this.dispatch({
       selection: Selection.cursor(pos),
-      origin: { type: 'command', id: 'view.clickSelection' },
+      origin: { type: 'command', id: 'view.pointer.clickSelection' },
       addToHistory: false,
     })
     this.inputDOM.focus({ preventScroll: true })
@@ -523,9 +645,11 @@ export class EditorView {
 
     this.dragAnchor = pos
     this.isDraggingSelection = true
+    this.hasDraggedSelection = false
+    this.suppressNextClick = true
     this.dispatch({
       selection: Selection.cursor(pos),
-      origin: { type: 'command', id: 'view.dragSelection.start' },
+      origin: { type: 'command', id: 'view.pointer.dragSelection.start' },
       addToHistory: false,
     })
     this.inputDOM.focus({ preventScroll: true })
@@ -543,11 +667,17 @@ export class EditorView {
       return
     }
 
-    this.suppressNextClick = this.suppressNextClick || pos !== this.dragAnchor
+    if (pos === this.dragAnchor && !this.hasDraggedSelection) {
+      event.preventDefault()
+      return
+    }
+
+    this.hasDraggedSelection = true
+    this.suppressNextClick = true
     this.dispatch({
       selection:
         pos === this.dragAnchor ? Selection.cursor(pos) : Selection.range(this.dragAnchor, pos),
-      origin: { type: 'command', id: 'view.dragSelection.update' },
+      origin: { type: 'command', id: 'view.pointer.dragSelection.update' },
       addToHistory: false,
     })
     event.preventDefault()
@@ -558,15 +688,18 @@ export class EditorView {
       return
     }
 
-    this.updateSelectionDrag(event)
+    if (this.hasDraggedSelection) {
+      this.updateSelectionDrag(event)
+    }
+
     this.isDraggingSelection = false
+    this.hasDraggedSelection = false
     this.dragAnchor = undefined
     event.preventDefault()
   }
 
   private positionFromLineEvent(event: MouseEvent): number | undefined {
-    const target =
-      event.target instanceof HTMLElement ? event.target.closest<HTMLElement>('.milkup-line') : null
+    const target = lineElementFromEvent(event, this.contentDOM, this.inputDOM)
 
     if (!target) {
       return undefined
@@ -579,40 +712,26 @@ export class EditorView {
       return undefined
     }
 
-    if (this.mode !== 'source' && target.dataset.clickVisualOffset !== undefined) {
-      return lineVisualOffsetToSourcePosition(
-        this.currentState,
-        this.mode,
-        from,
-        to,
-        Number(target.dataset.clickVisualOffset),
-      )
-    }
-
-    const caretPosition = sourcePositionFromPoint(target, event)
+    const caretPosition = sourcePositionFromPoint(target, event, this.inputDOM)
 
     if (caretPosition !== undefined) {
       return clamp(caretPosition, from, to)
     }
 
-    const renderedLineLength =
-      this.mode === 'source'
-        ? Math.max(0, to - from)
-        : visualLineLength(this.currentState, this.mode, from, to)
-    const eventOffset = lineEventOffset(target, event, renderedLineLength)
-
-    if (this.mode !== 'source' && target.dataset.clickOffset === undefined) {
-      return lineVisualOffsetToSourcePosition(this.currentState, this.mode, from, to, eventOffset)
-    }
-
-    const requestedOffset =
-      target.dataset.clickOffset !== undefined ? Number(target.dataset.clickOffset) : eventOffset
-    const offset = Number.isFinite(requestedOffset)
-      ? Math.max(0, Math.min(requestedOffset, Math.max(0, to - from)))
-      : Math.max(0, to - from)
-
-    return from + offset
+    return from === to ? from : undefined
   }
+}
+
+function isTextEditingKey(event: KeyboardEvent): boolean {
+  if (event.altKey || event.ctrlKey || event.metaKey) {
+    return false
+  }
+
+  if (event.key.length === 1) {
+    return true
+  }
+
+  return ['Enter', 'Backspace', 'Delete', 'Tab'].includes(event.key)
 }
 
 export interface EditorMarkdownParseState {
@@ -858,7 +977,10 @@ function applyBlockDecorations(
       lineDOM.classList.add('milkup-block-blockquote')
     }
 
-    if (block.type === 'unorderedList' || block.type === 'orderedList') {
+    if (
+      (block.type === 'unorderedList' || block.type === 'orderedList') &&
+      findListItemForLine([block], lineFrom, lineTo)
+    ) {
       lineDOM.classList.add('milkup-block-list')
     }
 
@@ -900,21 +1022,25 @@ function findListItemForLine(
   lineFrom: number,
   lineTo: number,
 ): SyntaxNode | undefined {
-  for (const block of blocks) {
-    if (block.type !== 'unorderedList' && block.type !== 'orderedList') {
+  for (const block of walkSyntaxNodes(blocks)) {
+    if (block.type !== 'listItem' || !nodeContainsLineStart(block, lineFrom, lineTo)) {
       continue
     }
 
-    const item = (block.children ?? []).find(
-      (child) => child.type === 'listItem' && rangeIntersectsLine(child, lineFrom, lineTo),
-    )
-
-    if (item) {
-      return item
-    }
+    return block
   }
 
   return undefined
+}
+
+function* walkSyntaxNodes(nodes: readonly SyntaxNode[]): Generator<SyntaxNode> {
+  for (const node of nodes) {
+    yield node
+
+    if (node.children) {
+      yield* walkSyntaxNodes(node.children)
+    }
+  }
 }
 
 function findBlockForLine(
@@ -1059,7 +1185,7 @@ function renderListItemLineDecorations(
   from: number,
   to: number,
 ): readonly Node[] {
-  const pieces = collectListItemLinePieces(listItem, from, to)
+  const pieces = collectListItemLinePieces(source, listItem, from, to)
 
   if (pieces.length === 0) {
     return renderInlineDecorations(document, source, selection, from, to)
@@ -1070,7 +1196,7 @@ function renderListItemLineDecorations(
 
   for (const piece of pieces) {
     if (piece.from > pos) {
-      rendered.push(document.createTextNode(source.slice(pos, piece.from)))
+      rendered.push(createMappedTextNode(document, source, pos, piece.from))
     }
 
     if (piece.kind === 'marker') {
@@ -1078,8 +1204,16 @@ function renderListItemLineDecorations(
       marker.className = 'milkup-list-marker'
       marker.dataset.from = String(piece.from)
       marker.dataset.to = String(piece.to)
-      marker.textContent = source.slice(piece.from, piece.to)
+      marker.textContent = formatListMarker(source.slice(piece.from, piece.to))
       rendered.push(marker)
+    } else if (piece.kind === 'taskMarker') {
+      const task = document.createElement('span')
+      task.className = 'milkup-task-marker'
+      task.dataset.from = String(piece.from)
+      task.dataset.to = String(piece.to)
+      task.dataset.checked = String(/[xX]/u.test(source.slice(piece.from, piece.to)))
+      task.setAttribute('aria-hidden', 'true')
+      rendered.push(task)
     } else {
       const content = document.createElement('span')
       content.className = 'milkup-list-content'
@@ -1095,13 +1229,14 @@ function renderListItemLineDecorations(
   }
 
   if (pos < to) {
-    rendered.push(document.createTextNode(source.slice(pos, to)))
+    rendered.push(createMappedTextNode(document, source, pos, to))
   }
 
   return Object.freeze(rendered)
 }
 
 function collectListItemLinePieces(
+  source: string,
   listItem: SyntaxNode,
   from: number,
   to: number,
@@ -1120,11 +1255,28 @@ function collectListItemLinePieces(
 
   for (const range of listItem.contentRanges ?? []) {
     if (rangesIntersect(range.from, range.to, from, to)) {
-      pieces.push({
-        from: clamp(range.from, from, to),
-        to: clamp(range.to, from, to),
-        kind: 'content',
-      })
+      const taskMarker = taskMarkerRange(source, range.from, range.to)
+
+      if (taskMarker && rangesIntersect(taskMarker.from, taskMarker.to, from, to)) {
+        pieces.push({
+          from: clamp(taskMarker.from, from, to),
+          to: clamp(taskMarker.to, from, to),
+          kind: 'taskMarker',
+        })
+      }
+
+      const contentFrom = taskMarker ? taskMarker.to : range.from
+
+      const pieceFrom = clamp(contentFrom, from, to)
+      const pieceTo = clamp(range.to, from, to)
+
+      if (pieceTo > pieceFrom) {
+        pieces.push({
+          from: pieceFrom,
+          to: pieceTo,
+          kind: 'content',
+        })
+      }
     }
   }
 
@@ -1186,7 +1338,7 @@ function renderInlineDecorations(
 
   for (const node of nodes) {
     if (node.from > pos) {
-      fragments.push(document.createTextNode(source.slice(pos, node.from)))
+      fragments.push(createMappedTextNode(document, source, pos, node.from))
     }
 
     fragments.push(renderInlineNode(document, source, selection, node))
@@ -1194,7 +1346,7 @@ function renderInlineDecorations(
   }
 
   if (pos < to) {
-    fragments.push(document.createTextNode(source.slice(pos, to)))
+    fragments.push(createMappedTextNode(document, source, pos, to))
   }
 
   return Object.freeze(fragments)
@@ -1216,12 +1368,50 @@ function renderInlineNode(
   return span
 }
 
-type InlinePieceKind = 'content' | 'marker' | 'syntax'
+function createMappedTextNode(
+  document: Document,
+  source: string,
+  from: number,
+  to: number,
+): HTMLElement {
+  const span = document.createElement('span')
+  span.dataset.from = String(from)
+  span.dataset.to = String(to)
+  span.textContent = source.slice(from, to)
+  return span
+}
+
+type InlinePieceKind = 'content' | 'marker' | 'syntax' | 'taskMarker'
 
 interface InlinePiece {
   readonly from: number
   readonly to: number
   readonly kind: InlinePieceKind
+}
+
+function formatListMarker(marker: string): string {
+  const trimmed = marker.trim()
+
+  if (trimmed === '-' || trimmed === '*' || trimmed === '+') {
+    return '•'
+  }
+
+  return trimmed
+}
+
+function taskMarkerRange(
+  source: string,
+  from: number,
+  to: number,
+): { readonly from: number; readonly to: number } | undefined {
+  const text = source.slice(from, to)
+  const match = /^(\s*\[[ xX]\]\s*)/u.exec(text)
+
+  if (!match) {
+    return undefined
+  }
+
+  return { from, to: from + (match[1]?.length ?? 0) }
 }
 
 function renderInlineNodePieces(
@@ -1233,7 +1423,7 @@ function renderInlineNodePieces(
   const pieces = collectInlinePieces(node)
 
   if (pieces.length === 0) {
-    return [document.createTextNode(source.slice(node.from, node.to))]
+    return [createMappedTextNode(document, source, node.from, node.to)]
   }
 
   const showSyntax = shouldShowInlineSyntax(node, selection)
@@ -1242,7 +1432,7 @@ function renderInlineNodePieces(
 
   for (const piece of pieces) {
     if (piece.from > pos) {
-      rendered.push(document.createTextNode(source.slice(pos, piece.from)))
+      rendered.push(createMappedTextNode(document, source, pos, piece.from))
     }
 
     const span = document.createElement('span')
@@ -1260,7 +1450,7 @@ function renderInlineNodePieces(
   }
 
   if (pos < node.to) {
-    rendered.push(document.createTextNode(source.slice(pos, node.to)))
+    rendered.push(createMappedTextNode(document, source, pos, node.to))
   }
 
   return Object.freeze(rendered)
@@ -1549,6 +1739,16 @@ function rangeContainsLine(node: SyntaxNode, lineFrom: number, lineTo: number): 
   return node.from <= lineFrom && node.to >= normalizedLineTo
 }
 
+function nodeContainsLineStart(node: SyntaxNode, lineFrom: number, lineTo: number): boolean {
+  const normalizedLineTo = Math.max(lineFrom, lineTo)
+
+  if (lineFrom === normalizedLineTo) {
+    return node.from <= lineFrom && node.to > lineFrom
+  }
+
+  return node.from <= lineFrom && node.to > lineFrom
+}
+
 function rangesIntersect(
   leftFrom: number,
   leftTo: number,
@@ -1717,16 +1917,47 @@ function resolveViewMetrics(metrics?: Partial<ViewMetrics>): ViewMetrics {
   }
 }
 
-function lineEventOffset(lineDOM: HTMLElement, event: MouseEvent, maxOffset: number): number {
-  const rect = lineDOM.getBoundingClientRect()
-  const relativeX = event.clientX - rect.left
+function lineElementFromEvent(
+  event: MouseEvent,
+  contentDOM: HTMLElement,
+  overlayDOM?: HTMLElement,
+): HTMLElement | null {
+  if (event.target instanceof HTMLElement) {
+    const direct = event.target.closest<HTMLElement>('.milkup-line')
 
-  if (!Number.isFinite(relativeX)) {
-    return maxOffset
+    if (direct && contentDOM.contains(direct)) {
+      return direct
+    }
   }
 
-  const offset = Math.round(relativeX / defaultViewMetrics.charWidth)
-  return clamp(offset, 0, maxOffset)
+  const previousPointerEvents = overlayDOM?.style.pointerEvents
+
+  if (overlayDOM) {
+    overlayDOM.style.pointerEvents = 'none'
+  }
+
+  const elements =
+    typeof contentDOM.ownerDocument.elementsFromPoint === 'function'
+      ? contentDOM.ownerDocument.elementsFromPoint(event.clientX, event.clientY)
+      : []
+
+  if (overlayDOM) {
+    overlayDOM.style.pointerEvents = previousPointerEvents ?? ''
+  }
+
+  for (const element of elements) {
+    if (!(element instanceof HTMLElement) || !contentDOM.contains(element)) {
+      continue
+    }
+
+    const line = element.closest<HTMLElement>('.milkup-line')
+
+    if (line && contentDOM.contains(line)) {
+      return line
+    }
+  }
+
+  return null
 }
 
 function domRectForSourcePosition(
@@ -1748,14 +1979,19 @@ function domRectForSourcePosition(
     return undefined
   }
 
+  const lineRect = lineDOM.getBoundingClientRect()
   const range = createRangeAtVisualOffset(document, lineDOM, offset)
 
   if (!range) {
     return rectFromLineStart(lineDOM, layerDOM)
   }
 
+  if (typeof range.getBoundingClientRect !== 'function') {
+    range.detach()
+    return undefined
+  }
+
   const rect = range.getBoundingClientRect()
-  const lineRect = lineDOM.getBoundingClientRect()
   range.detach()
 
   if (!isUsableMeasuredRect(rect, lineRect)) {
@@ -1764,15 +2000,94 @@ function domRectForSourcePosition(
 
   const layerRect = layerDOM.getBoundingClientRect()
   const height = rect.height > 0 ? rect.height : lineRect.height
+  const top = rect.top - layerRect.top
+  const bottom = top + height
 
   return Object.freeze({
     left: rect.left - layerRect.left,
-    top: lineRect.top - layerRect.top,
+    top,
     right: rect.right - layerRect.left,
-    bottom: lineRect.top - layerRect.top + height,
+    bottom,
     width: rect.width,
     height,
   })
+}
+
+function domRectsForSourceRange(
+  document: Document,
+  contentDOM: HTMLElement,
+  layerDOM: HTMLElement,
+  state: EditorState,
+  mode: ViewMode,
+  from: number,
+  to: number,
+): readonly ViewRect[] {
+  if (typeof document.createRange !== 'function') {
+    return []
+  }
+
+  const rects: ViewRect[] = []
+  const layerRect = layerDOM.getBoundingClientRect()
+  const rangeFrom = clamp(from, 0, state.doc.length)
+  const rangeTo = clamp(to, rangeFrom, state.doc.length)
+  const fromLine = state.doc.lineAt(rangeFrom)
+  const toLine = state.doc.lineAt(rangeTo)
+
+  for (let lineNumber = fromLine.number; lineNumber <= toLine.number; lineNumber += 1) {
+    const line = state.doc.line(lineNumber)
+    const lineDOM = contentDOM.querySelector<HTMLElement>(`.milkup-line[data-line="${lineNumber}"]`)
+
+    if (!lineDOM || !hasMeasurableLayout(lineDOM)) {
+      continue
+    }
+
+    const lineFrom = Math.max(rangeFrom, line.from)
+    const lineTo = Math.min(rangeTo, line.to)
+
+    if (lineTo < lineFrom) {
+      continue
+    }
+
+    const startOffset = positionToVisualLineOffset(state, mode, lineFrom).offset
+    const endOffset = positionToVisualLineOffset(state, mode, lineTo).offset
+    const range = createRangeBetweenVisualOffsets(document, lineDOM, startOffset, endOffset)
+
+    if (!range) {
+      continue
+    }
+
+    const lineRect = lineDOM.getBoundingClientRect()
+    const clientRects = Array.from(range.getClientRects?.() ?? [])
+    const usableRects = clientRects.filter((rect) => isUsableMeasuredRect(rect, lineRect))
+
+    if (usableRects.length === 0 && typeof range.getBoundingClientRect === 'function') {
+      const rect = range.getBoundingClientRect()
+
+      if (isUsableMeasuredRect(rect, lineRect)) {
+        usableRects.push(rect)
+      }
+    }
+
+    range.detach()
+
+    for (const rect of usableRects) {
+      const top = rect.top - layerRect.top
+      const height = rect.height > 0 ? rect.height : lineRect.height
+
+      rects.push(
+        Object.freeze({
+          left: rect.left - layerRect.left,
+          top,
+          right: rect.right - layerRect.left,
+          bottom: top + height,
+          width: rect.width,
+          height,
+        }),
+      )
+    }
+  }
+
+  return Object.freeze(rects)
 }
 
 function createRangeAtVisualOffset(
@@ -1806,6 +2121,47 @@ function createRangeAtVisualOffset(
   }
 
   return undefined
+}
+
+function createRangeBetweenVisualOffsets(
+  document: Document,
+  lineDOM: HTMLElement,
+  fromOffset: number,
+  toOffset: number,
+): Range | undefined {
+  const start = resolveTextPositionAtVisualOffset(lineDOM, fromOffset)
+  const end = resolveTextPositionAtVisualOffset(lineDOM, Math.max(fromOffset, toOffset))
+
+  if (!start || !end) {
+    return undefined
+  }
+
+  const range = document.createRange()
+  range.setStart(start.node, start.offset)
+  range.setEnd(end.node, end.offset)
+  return range
+}
+
+function resolveTextPositionAtVisualOffset(
+  lineDOM: HTMLElement,
+  visualOffset: number,
+): { readonly node: Text; readonly offset: number } | undefined {
+  const textNodes = visibleTextNodes(lineDOM)
+  let remaining = Math.max(0, visualOffset)
+
+  for (const node of textNodes) {
+    const textLength = node.data.length
+
+    if (remaining <= textLength) {
+      return { node, offset: remaining }
+    }
+
+    remaining -= textLength
+  }
+
+  const last = textNodes[textNodes.length - 1]
+
+  return last ? { node: last, offset: last.data.length } : undefined
 }
 
 function visibleTextNodes(root: HTMLElement): readonly Text[] {
@@ -1871,15 +2227,28 @@ function isUsableMeasuredRect(rect: DOMRect, fallbackLineRect: DOMRect): boolean
   )
 }
 
-function sourcePositionFromPoint(lineDOM: HTMLElement, event: MouseEvent): number | undefined {
-  const point = caretPointFromDocument(lineDOM.ownerDocument, event.clientX, event.clientY)
+function sourcePositionFromPoint(
+  lineDOM: HTMLElement,
+  event: MouseEvent,
+  overlayDOM?: HTMLElement,
+): number | undefined {
+  const point = caretPointFromDocument(
+    lineDOM.ownerDocument,
+    event.clientX,
+    event.clientY,
+    overlayDOM,
+  )
 
   if (!point || !lineDOM.contains(point.node)) {
     return undefined
   }
 
   if (point.node.nodeType === Node.TEXT_NODE) {
-    return sourcePositionFromTextNode(point.node, point.offset, lineDOM)
+    return sourcePositionFromTextNode(
+      point.node,
+      nearestTextOffsetFromPoint(point.node, point.offset, event.clientX),
+      lineDOM,
+    )
   }
 
   if (point.node instanceof HTMLElement) {
@@ -1899,24 +2268,41 @@ interface CaretPoint {
   readonly offset: number
 }
 
-function caretPointFromDocument(document: Document, x: number, y: number): CaretPoint | undefined {
+function caretPointFromDocument(
+  document: Document,
+  x: number,
+  y: number,
+  overlayDOM?: HTMLElement,
+): CaretPoint | undefined {
   const documentWithCaretPosition = document as Document & {
     caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null
     caretRangeFromPoint?: (x: number, y: number) => Range | null
   }
-  const position = documentWithCaretPosition.caretPositionFromPoint?.(x, y)
+  const previousPointerEvents = overlayDOM?.style.pointerEvents
 
-  if (position) {
-    return { node: position.offsetNode, offset: position.offset }
+  if (overlayDOM) {
+    overlayDOM.style.pointerEvents = 'none'
   }
 
-  const range = documentWithCaretPosition.caretRangeFromPoint?.(x, y)
+  try {
+    const position = documentWithCaretPosition.caretPositionFromPoint?.(x, y)
 
-  if (range) {
-    return { node: range.startContainer, offset: range.startOffset }
+    if (position) {
+      return { node: position.offsetNode, offset: position.offset }
+    }
+
+    const range = documentWithCaretPosition.caretRangeFromPoint?.(x, y)
+
+    if (range) {
+      return { node: range.startContainer, offset: range.startOffset }
+    }
+
+    return undefined
+  } finally {
+    if (overlayDOM) {
+      overlayDOM.style.pointerEvents = previousPointerEvents ?? ''
+    }
   }
-
-  return undefined
 }
 
 function sourcePositionFromTextNode(
@@ -1924,7 +2310,7 @@ function sourcePositionFromTextNode(
   offset: number,
   lineDOM: HTMLElement,
 ): number | undefined {
-  const parent = node.parentElement?.closest<HTMLElement>('[data-from][data-to]')
+  const parent = closestSourceMappedElement(node, lineDOM)
   const from = Number(parent?.dataset.from ?? lineDOM.dataset.from)
   const to = Number(parent?.dataset.to ?? lineDOM.dataset.to)
 
@@ -1932,7 +2318,107 @@ function sourcePositionFromTextNode(
     return undefined
   }
 
-  return clamp(from + offset, from, to)
+  const parentOffset = parent ? textOffsetWithinElement(parent, node, offset) : offset
+  return clamp(from + parentOffset, from, to)
+}
+
+function nearestTextOffsetFromPoint(node: Node, offset: number, clientX: number): number {
+  if (!(node instanceof Text) || node.data.length === 0 || !Number.isFinite(clientX)) {
+    return offset
+  }
+
+  const currentOffset = clamp(offset, 0, node.data.length)
+  const candidates = [currentOffset]
+
+  if (currentOffset > 0) {
+    candidates.push(currentOffset - 1)
+  }
+
+  if (currentOffset < node.data.length) {
+    candidates.push(currentOffset + 1)
+  }
+
+  let bestOffset = currentOffset
+  let bestDistance = Number.POSITIVE_INFINITY
+
+  for (const candidate of candidates) {
+    const rect = caretRectForTextOffset(node, candidate)
+
+    if (!rect) {
+      continue
+    }
+
+    const distance = Math.abs(clientX - rect.left)
+
+    if (distance < bestDistance) {
+      bestDistance = distance
+      bestOffset = candidate
+    }
+  }
+
+  return bestOffset
+}
+
+function caretRectForTextOffset(node: Text, offset: number): DOMRect | undefined {
+  const range = node.ownerDocument.createRange()
+  range.setStart(node, offset)
+  range.collapse(true)
+
+  if (typeof range.getBoundingClientRect !== 'function') {
+    range.detach()
+    return undefined
+  }
+
+  const rect = range.getBoundingClientRect()
+  range.detach()
+
+  if (!Number.isFinite(rect.left)) {
+    return undefined
+  }
+
+  return rect
+}
+
+function closestSourceMappedElement(node: Node, lineDOM: HTMLElement): HTMLElement | undefined {
+  for (
+    let element = node.parentElement;
+    element && element !== lineDOM.parentElement;
+    element = element.parentElement
+  ) {
+    if (
+      element.dataset.from !== undefined &&
+      element.dataset.to !== undefined &&
+      !element.classList.contains('milkup-marker-hidden')
+    ) {
+      return element
+    }
+  }
+
+  return lineDOM
+}
+
+function textOffsetWithinElement(root: HTMLElement, node: Node, offset: number): number {
+  if (!root.contains(node)) {
+    return offset
+  }
+
+  let textOffset = 0
+  const walker = root.ownerDocument.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  let current = walker.nextNode()
+
+  while (current) {
+    if (current === node) {
+      return textOffset + offset
+    }
+
+    if (current instanceof Text && !isHiddenTextNode(current, root)) {
+      textOffset += current.data.length
+    }
+
+    current = walker.nextNode()
+  }
+
+  return offset
 }
 
 function findNearestTextNode(node: Node | null, fallbackRoot: Node): Node | undefined {
@@ -1986,11 +2472,45 @@ function scrollPositionIntoViewForMode(
   return Math.max(0, config.currentScrollTop)
 }
 
+function scrollMeasuredRectIntoView(config: {
+  readonly currentScrollTop: number
+  readonly rect: ViewRect
+  readonly viewportHeight?: number
+  readonly scrollPadding?: number
+}): number {
+  const viewportHeight =
+    config.viewportHeight && config.viewportHeight > 0 ? config.viewportHeight : 200
+  const scrollPadding = config.scrollPadding ?? 20
+  const visibleTop = scrollPadding
+  const visibleBottom = viewportHeight - scrollPadding
+
+  if (config.rect.top < visibleTop) {
+    return Math.max(0, config.currentScrollTop + config.rect.top - scrollPadding)
+  }
+
+  if (config.rect.bottom > visibleBottom) {
+    return Math.max(
+      0,
+      config.currentScrollTop + config.rect.bottom - viewportHeight + scrollPadding,
+    )
+  }
+
+  return Math.max(0, config.currentScrollTop)
+}
+
 function selectionChanged(previousState: EditorState, state: EditorState): boolean {
   return (
     previousState.selection.main.anchor !== state.selection.main.anchor ||
     previousState.selection.main.head !== state.selection.main.head
   )
+}
+
+function shouldScrollSelectionIntoView(transactions: readonly Transaction[]): boolean {
+  if (transactions.length === 0) {
+    return true
+  }
+
+  return !transactions.some((transaction) => transaction.origin?.id?.startsWith('view.pointer.'))
 }
 
 export function renderCursorOverlay(
