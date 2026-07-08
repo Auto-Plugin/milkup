@@ -1464,6 +1464,49 @@ describe('EditorView', () => {
     expect(line?.classList.contains('milkup-block-heading')).toBe(true)
   })
 
+  it('assigns heading level classes in live mode', () => {
+    const parent = document.createElement('main')
+    const view = new EditorView({
+      parent,
+      state: createState('# One\n## Two\n### Three', Selection.cursor(0)),
+      mode: 'live',
+    })
+    const lines = Array.from(view.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'))
+
+    expect(lines[0]?.classList.contains('milkup-heading-level-1')).toBe(true)
+    expect(lines[1]?.classList.contains('milkup-heading-level-2')).toBe(true)
+    expect(lines[2]?.classList.contains('milkup-heading-level-3')).toBe(true)
+  })
+
+  it('keeps blockquote syntax hidden when the cursor is inside the quote', () => {
+    const parent = document.createElement('main')
+    const view = new EditorView({
+      parent,
+      state: createState('> quoted', Selection.cursor(3)),
+      mode: 'live',
+    })
+    const marker = view.contentDOM.querySelector<HTMLElement>('.milkup-blockquote-marker')
+
+    expect(marker?.textContent).toBe('> ')
+    expect(marker?.classList.contains('milkup-marker-hidden')).toBe(true)
+  })
+
+  it('keeps table syntax hidden when the cursor is inside the table', () => {
+    const parent = document.createElement('main')
+    const text = '| Name | Status |\n| --- | --- |\n| Milk | ok |'
+    const view = new EditorView({
+      parent,
+      state: createState(text, Selection.cursor(text.indexOf('Name'))),
+      mode: 'live',
+    })
+    const markers = Array.from(view.contentDOM.querySelectorAll<HTMLElement>('.milkup-table-marker'))
+    const cells = Array.from(view.contentDOM.querySelectorAll<HTMLElement>('.milkup-table-cell'))
+
+    expect(markers.length).toBeGreaterThan(0)
+    expect(markers.every((marker) => marker.classList.contains('milkup-marker-hidden'))).toBe(true)
+    expect(cells.map((cell) => cell.textContent)).toEqual(['Name', 'Status', 'Milk', 'ok'])
+  })
+
   it('keeps read-only state locked while allowing selection changes', () => {
     const parent = document.createElement('main')
     const view = new EditorView({

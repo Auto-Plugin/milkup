@@ -33,10 +33,8 @@ import type {
 import { EditorView } from '@milkup/view-dom'
 import type { ViewMode } from '@milkup/view-dom'
 import {
-  BookOpenText,
   Bug,
   Circle,
-  ClipboardPenLine,
   Code2,
   ExternalLink,
   Eye,
@@ -49,7 +47,6 @@ import {
   Save,
   SaveAll,
   Search,
-  Settings,
   X,
 } from 'lucide'
 import type { IconNode } from 'lucide'
@@ -67,7 +64,7 @@ const initialText = ''
 const messages = {
   titleUntitled: '未命名',
   stateClean: '已保存',
-  stateDirty: '有未保存更改',
+  stateDirty: '未保存',
   pathUnsaved: '未保存',
   recentNone: '无',
   ready: '就绪',
@@ -102,7 +99,16 @@ const messages = {
   window: {
     minimize: '最小化',
     maximize: '最大化',
+    restore: '还原',
     close: '关闭窗口',
+  },
+  closeConfirm: {
+    title: '文档尚未保存',
+    body: '关闭窗口前，请选择如何处理当前未保存的更改。',
+    cancel: '取消',
+    saveAndExit: '保存并退出',
+    discardAndExit: '不保存并退出',
+    close: '关闭提示',
   },
   labels: {
     document: '文档',
@@ -154,15 +160,9 @@ app.innerHTML = `
       <button type="button" class="titlebar-menu-button" data-menu-toggle aria-label="${messages.buttons.menu}" title="${messages.buttons.menu}">
         ${iconSvg(Menu)}
       </button>
-      <div class="brand" data-window-drag-region>
-        <div class="brand-mark" aria-hidden="true">${iconSvg(BookOpenText)}</div>
-        <div class="document-title" data-window-drag-region>
-          <div class="title-row" data-window-drag-region>
-            <span data-dirty-dot class="dirty-dot" aria-hidden="true"></span>
-            <h1 data-title>${messages.titleUntitled}</h1>
-          </div>
-          <p data-session-state>${messages.stateClean}</p>
-        </div>
+      <div class="document-title" data-window-drag-region>
+        <h1 data-title>${messages.titleUntitled}</h1>
+        <p data-title-path>${messages.pathUnsaved}</p>
       </div>
       <div class="window-controls" aria-label="窗口控制">
         <button type="button" class="window-control" data-window-control="minimize" aria-label="${messages.window.minimize}" title="${messages.window.minimize}">
@@ -181,7 +181,6 @@ app.innerHTML = `
         <header class="app-menu-header">
           <div>
             <h2>${messages.buttons.menu}</h2>
-            <p data-menu-document>${messages.titleUntitled}</p>
           </div>
           <button type="button" class="icon-button" data-menu-close aria-label="${messages.buttons.closeMenu}" title="${messages.buttons.closeMenu}">
             ${iconSvg(X)}
@@ -224,6 +223,14 @@ app.innerHTML = `
                   <dt>${messages.labels.saved}</dt>
                   <dd data-stat="saved"></dd>
                 </div>
+                <div>
+                  <dt>${messages.labels.external}</dt>
+                  <dd data-stat="external"></dd>
+                </div>
+                <div>
+                  <dt>${messages.labels.lineEnding}</dt>
+                  <dd data-stat="line-ending"></dd>
+                </div>
               </dl>
               <div class="diagnostic-actions">
                 ${toolbarButton('external-change', messages.buttons.simulateChange, Circle)}
@@ -247,35 +254,7 @@ app.innerHTML = `
       </div>
     </section>
     <section class="workspace">
-      <aside class="sidebar" aria-label="工作区">
-        <section class="side-section">
-          <div class="section-heading">
-            ${iconSvg(PanelLeft)}
-            <span>当前文档</span>
-          </div>
-          <dl class="metadata-list">
-            <div>
-              <dt>${messages.labels.path}</dt>
-              <dd data-stat="path"></dd>
-            </div>
-            <div>
-              <dt>${messages.labels.external}</dt>
-              <dd data-stat="external"></dd>
-            </div>
-            <div>
-              <dt>${messages.labels.lineEnding}</dt>
-              <dd data-stat="line-ending"></dd>
-            </div>
-          </dl>
-        </section>
-        <section class="side-section">
-          <div class="section-heading">
-            ${iconSvg(ClipboardPenLine)}
-            <span>最近文件</span>
-          </div>
-          <p class="recent-list" data-stat="recent"></p>
-        </section>
-      </aside>
+      <aside class="sidebar" aria-label="工作区"></aside>
       <section class="editor-panel">
         <div class="floating-search" data-floating-search hidden>
           ${iconSvg(Search)}
@@ -287,6 +266,22 @@ app.innerHTML = `
         <div class="editor-host" data-editor-host></div>
       </section>
     </section>
+    <section class="confirm-overlay" data-close-confirm hidden>
+      <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="close-confirm-title" aria-describedby="close-confirm-body">
+        <button type="button" class="icon-button confirm-close" data-close-confirm-action="cancel" aria-label="${messages.closeConfirm.close}" title="${messages.closeConfirm.close}">
+          ${iconSvg(X)}
+        </button>
+        <div class="confirm-dialog-content">
+          <h2 id="close-confirm-title">${messages.closeConfirm.title}</h2>
+          <p id="close-confirm-body">${messages.closeConfirm.body}</p>
+        </div>
+        <footer class="confirm-dialog-actions">
+          <button type="button" class="dialog-button secondary" data-close-confirm-action="cancel">${messages.closeConfirm.cancel}</button>
+          <button type="button" class="dialog-button warning" data-close-confirm-action="discard">${messages.closeConfirm.discardAndExit}</button>
+          <button type="button" class="dialog-button primary" data-close-confirm-action="save">${messages.closeConfirm.saveAndExit}</button>
+        </footer>
+      </div>
+    </section>
     <footer class="statusbar">
       <div class="statusbar-left">
         <button type="button" class="statusbar-button" data-sidebar-toggle aria-label="${messages.buttons.sidebar}" title="${messages.buttons.sidebar}">
@@ -294,10 +289,14 @@ app.innerHTML = `
         </button>
         <button type="button" class="statusbar-button mode-toggle" data-mode-toggle aria-label="${messages.buttons.live}" title="${messages.buttons.live}"></button>
       </div>
-      <span data-stat="notice"></span>
       <span class="statusbar-spacer"></span>
-      <span>milkup v2</span>
-      ${iconSvg(Settings, 'icon muted-icon')}
+      <div class="statusbar-right">
+        <span data-stat="char-count">0 字符</span>
+        <span class="save-state" data-save-state>
+          <span data-save-dot class="dirty-dot" aria-hidden="true"></span>
+          <span data-save-label>${messages.stateClean}</span>
+        </span>
+      </div>
     </footer>
   </main>
 `
@@ -329,6 +328,7 @@ let sidebarCollapsed = true
 let menuOpen = false
 let searchOpen = false
 let windowMaximized = false
+let closeConfirmOpen = false
 
 let view: EditorView | undefined
 
@@ -508,6 +508,28 @@ for (const button of Array.from(app.querySelectorAll<HTMLButtonElement>('[data-w
   })
 }
 
+for (const button of Array.from(
+  app.querySelectorAll<HTMLButtonElement>('[data-close-confirm-action]'),
+)) {
+  button.addEventListener('click', () => {
+    const action = button.dataset.closeConfirmAction
+
+    if (action === 'cancel') {
+      closeWindowConfirm()
+      return
+    }
+
+    if (action === 'save') {
+      void saveAndExitWindow()
+      return
+    }
+
+    if (action === 'discard') {
+      void discardAndExitWindow()
+    }
+  })
+}
+
 appRoot.addEventListener('pointerdown', (event) => {
   if (event.button !== 0 || platform !== 'windows') {
     return
@@ -530,6 +552,12 @@ globalThis.addEventListener(
   'keydown',
   (event) => {
     if (event.key === 'Escape') {
+      if (closeConfirmOpen) {
+        event.preventDefault()
+        closeWindowConfirm()
+        return
+      }
+
       if (searchOpen) {
         event.preventDefault()
         setSearchOpen(false)
@@ -768,7 +796,7 @@ async function openDocument(): Promise<void> {
     return
   }
 
-  openDocumentResult(result, messages.notices.openedDocument)
+  openDocumentResult(result, '')
 }
 
 async function openInitialDocument(): Promise<void> {
@@ -796,7 +824,7 @@ async function openInitialDocument(): Promise<void> {
     return
   }
 
-  openDocumentResult(result, `${messages.notices.openedDocument}：${result.file.path}`)
+  openDocumentResult(result, '')
 }
 
 function openDocumentResult(result: OpenFileResult, nextNotice: string): void {
@@ -817,9 +845,9 @@ function openDocumentResult(result: OpenFileResult, nextNotice: string): void {
   view.inputDOM.focus({ preventScroll: true })
 }
 
-async function saveDocument(): Promise<void> {
+async function saveDocument(): Promise<boolean> {
   if (!view) {
-    return
+    return false
   }
 
   const action: FileAction = {
@@ -834,7 +862,7 @@ async function saveDocument(): Promise<void> {
     notice = translateSaveSafetyMessage(safety.message)
     renderSession()
     view.inputDOM.focus({ preventScroll: true })
-    return
+    return false
   }
 
   const result = await fileService.saveFile(
@@ -846,7 +874,7 @@ async function saveDocument(): Promise<void> {
     notice = messages.notices.saveCancelled
     renderSession()
     view.inputDOM.focus({ preventScroll: true })
-    return
+    return false
   }
 
   session = recordFileSaveResult(session, result)
@@ -855,6 +883,7 @@ async function saveDocument(): Promise<void> {
   notice = messages.notices.saved
   renderSession()
   view.inputDOM.focus({ preventScroll: true })
+  return true
 }
 
 async function reloadExternalDocument(): Promise<void> {
@@ -1075,7 +1104,7 @@ function copySelectionToClipboard(event: ClipboardEvent): boolean {
 }
 
 function bindCommand(command: string, actionId: string): void {
-  app
+  appRoot
     .querySelector<HTMLButtonElement>(`[data-command="${command}"]`)
     ?.addEventListener('click', () => {
       setMenuOpen(false)
@@ -1086,7 +1115,7 @@ function bindCommand(command: string, actionId: string): void {
 function setSidebarCollapsed(collapsed: boolean): void {
   sidebarCollapsed = collapsed
   appRoot.dataset.sidebarCollapsed = String(collapsed)
-  const toggle = app.querySelector<HTMLButtonElement>('[data-sidebar-toggle]')
+  const toggle = appRoot.querySelector<HTMLButtonElement>('[data-sidebar-toggle]')
 
   if (toggle) {
     toggle.setAttribute('aria-pressed', String(!collapsed))
@@ -1098,8 +1127,8 @@ function setSidebarCollapsed(collapsed: boolean): void {
 
 function setMenuOpen(open: boolean): void {
   menuOpen = open
-  const menu = app.querySelector<HTMLElement>('[data-app-menu]')
-  const toggle = app.querySelector<HTMLButtonElement>('[data-menu-toggle]')
+  const menu = appRoot.querySelector<HTMLElement>('[data-app-menu]')
+  const toggle = appRoot.querySelector<HTMLButtonElement>('[data-menu-toggle]')
 
   if (menu) {
     menu.hidden = !open
@@ -1111,30 +1140,34 @@ function setMenuOpen(open: boolean): void {
 
   if (open) {
     showMenuSection('file')
-    for (const panel of Array.from(app.querySelectorAll<HTMLDetailsElement>('.developer-panel'))) {
+    for (const panel of Array.from(
+      appRoot.querySelectorAll<HTMLDetailsElement>('.developer-panel'),
+    )) {
       panel.open = false
     }
-    app.querySelector<HTMLButtonElement>('[data-menu-section="file"]')?.focus()
+    appRoot.querySelector<HTMLButtonElement>('[data-menu-section="file"]')?.focus()
   } else {
     view?.inputDOM.focus({ preventScroll: true })
   }
 }
 
 function showMenuSection(section: string): void {
-  for (const button of Array.from(app.querySelectorAll<HTMLButtonElement>('[data-menu-section]'))) {
+  for (const button of Array.from(
+    appRoot.querySelectorAll<HTMLButtonElement>('[data-menu-section]'),
+  )) {
     const active = button.dataset.menuSection === section
     button.dataset.active = String(active)
     button.setAttribute('aria-selected', String(active))
   }
 
-  for (const panel of Array.from(app.querySelectorAll<HTMLElement>('[data-menu-panel]'))) {
+  for (const panel of Array.from(appRoot.querySelectorAll<HTMLElement>('[data-menu-panel]'))) {
     panel.hidden = panel.dataset.menuPanel !== section
   }
 }
 
 function setSearchOpen(open: boolean): void {
   searchOpen = open
-  const search = app.querySelector<HTMLElement>('[data-floating-search]')
+  const search = appRoot.querySelector<HTMLElement>('[data-floating-search]')
 
   if (search) {
     search.hidden = !open
@@ -1142,7 +1175,7 @@ function setSearchOpen(open: boolean): void {
 
   if (open) {
     setMenuOpen(false)
-    app.querySelector<HTMLInputElement>('[data-search-input]')?.focus()
+    appRoot.querySelector<HTMLInputElement>('[data-search-input]')?.focus()
   } else {
     view?.inputDOM.focus({ preventScroll: true })
   }
@@ -1197,6 +1230,14 @@ function configureWindowChrome(currentPlatform: DesktopPlatform): void {
       const window = getCurrentWindow()
       await window.setDecorations(false)
       await syncWindowMaximizedState()
+      await window.onCloseRequested((event) => {
+        if (canCloseWindow()) {
+          return
+        }
+
+        event.preventDefault()
+        openWindowConfirm()
+      })
       await window.onResized(() => {
         void syncWindowMaximizedState()
       })
@@ -1211,13 +1252,16 @@ function runWindowControl(action: WindowControlAction): void {
     return
   }
 
+  if (action === 'close' && !canCloseWindow()) {
+    openWindowConfirm()
+    return
+  }
+
   void import('@tauri-apps/api/core')
     .then(async ({ invoke }) => {
-      if (action !== 'close' || canCloseWindow()) {
-        await invoke<boolean>('window_control', { action })
-        if (action === 'maximize') {
-          await syncWindowMaximizedState()
-        }
+      await invoke<boolean>('window_control', { action })
+      if (action === 'maximize') {
+        await syncWindowMaximizedState()
       }
     })
     .catch((error: unknown) => {
@@ -1242,7 +1286,7 @@ async function syncWindowMaximizedState(): Promise<void> {
 }
 
 function updateWindowMaximizeIcon(): void {
-  const button = app.querySelector<HTMLButtonElement>('[data-window-maximize]')
+  const button = appRoot.querySelector<HTMLButtonElement>('[data-window-maximize]')
   const glyph = button?.querySelector<HTMLElement>('.window-glyph')
 
   if (!button || !glyph) {
@@ -1252,6 +1296,9 @@ function updateWindowMaximizeIcon(): void {
   glyph.className = `window-glyph ${
     windowMaximized ? 'window-glyph-restore' : 'window-glyph-maximize'
   }`
+  const label = windowMaximized ? messages.window.restore : messages.window.maximize
+  button.setAttribute('aria-label', label)
+  button.title = label
 }
 
 function startWindowDrag(): void {
@@ -1271,10 +1318,59 @@ function canCloseWindow(): boolean {
   }
 
   applyCloseDecision([session], decision, 'cancel')
-  notice = `无法关闭窗口：${decision.blockedDocumentIds.join(', ')} 有未保存更改`
-  renderSession()
-  view?.inputDOM.focus({ preventScroll: true })
   return false
+}
+
+function openWindowConfirm(): void {
+  closeConfirmOpen = true
+  appRoot.dataset.closeConfirmOpen = 'true'
+  const overlay = appRoot.querySelector<HTMLElement>('[data-close-confirm]')
+  overlay?.removeAttribute('hidden')
+  appRoot.querySelector<HTMLButtonElement>('[data-close-confirm-action="save"]')?.focus()
+}
+
+function closeWindowConfirm(): void {
+  closeConfirmOpen = false
+  appRoot.dataset.closeConfirmOpen = 'false'
+  appRoot.querySelector<HTMLElement>('[data-close-confirm]')?.setAttribute('hidden', '')
+  view?.inputDOM.focus({ preventScroll: true })
+}
+
+async function saveAndExitWindow(): Promise<void> {
+  const saved = await saveDocument()
+
+  if (!saved || session.dirty) {
+    openWindowConfirm()
+    return
+  }
+
+  await invokeWindowClose()
+}
+
+async function discardAndExitWindow(): Promise<void> {
+  const decision = evaluateCloseProtection([session], {
+    scope: 'window',
+    documentIds: [session.documentId],
+  })
+
+  applyCloseDecision([session], decision, 'confirm')
+  await invokeWindowClose()
+}
+
+async function invokeWindowClose(): Promise<void> {
+  closeWindowConfirm()
+
+  if (platform !== 'windows') {
+    return
+  }
+
+  try {
+    const { getCurrentWindow } = await import('@tauri-apps/api/window')
+    await getCurrentWindow().destroy()
+  } catch (error: unknown) {
+    notice = `窗口操作失败：${getErrorMessage(error)}`
+    renderSession()
+  }
 }
 
 function getDesktopShortcutAction(
@@ -1317,32 +1413,47 @@ function getDesktopShortcutAction(
 }
 
 function renderSession(): void {
-  setText('[data-title]', session.file?.path ?? messages.titleUntitled)
-  setText('[data-menu-document]', session.file?.path ?? messages.titleUntitled)
-  setText(
-    '[data-session-state]',
-    `${session.dirty ? messages.stateDirty : messages.stateClean} · ${state.doc.length} 字符`,
-  )
+  const titleInfo = getSessionTitleInfo(session.file?.path)
+  const saveStateLabel = session.dirty ? messages.stateDirty : messages.stateClean
+
+  setText('[data-title]', titleInfo.name)
+  setText('[data-title-path]', titleInfo.directory)
   setText('[data-stat="document-id"]', session.documentId)
   setText('[data-stat="path"]', session.file?.path ?? messages.pathUnsaved)
   setText('[data-stat="version"]', String(session.documentVersion))
   setText('[data-stat="saved"]', String(session.savedVersion))
   setText('[data-stat="external"]', session.externalChangeState)
   setText('[data-stat="line-ending"]', session.lineEnding)
-  setText('[data-stat="notice"]', notice)
-  setText(
-    '[data-stat="recent"]',
-    recentFiles.length === 0
-      ? messages.recentNone
-      : recentFiles.map((file) => file.path).join('\n'),
-  )
+  setText('[data-stat="char-count"]', `${state.doc.length} 字符`)
+  setText('[data-save-label]', saveStateLabel)
 
-  const dirtyDot = app?.querySelector<HTMLElement>('[data-dirty-dot]')
+  const dirtyDot = app?.querySelector<HTMLElement>('[data-save-dot]')
   dirtyDot?.classList.toggle('is-dirty', session.dirty)
   appRoot.dataset.emptyDocument = String(state.doc.length === 0)
   appRoot.dataset.readonly = String(session.readonly)
   view?.setEditable(!session.readonly)
   updateModeToggle(session.viewMode)
+}
+
+function getSessionTitleInfo(path: string | undefined): {
+  readonly name: string
+  readonly directory: string
+} {
+  if (!path) {
+    return { name: messages.titleUntitled, directory: messages.pathUnsaved }
+  }
+
+  const normalizedPath = path.replace(/\\/g, '/')
+  const slashIndex = normalizedPath.lastIndexOf('/')
+  const fileName = slashIndex >= 0 ? normalizedPath.slice(slashIndex + 1) : normalizedPath
+  const dotIndex = fileName.lastIndexOf('.')
+  const name = dotIndex > 0 ? fileName.slice(0, dotIndex) : fileName
+  const directory = slashIndex >= 0 ? normalizedPath.slice(0, slashIndex) : messages.pathUnsaved
+
+  return {
+    name: name || messages.titleUntitled,
+    directory: directory || messages.pathUnsaved,
+  }
 }
 
 function watchCurrentFile(): void {

@@ -928,6 +928,7 @@ export function renderMarkdownLines(
           {
             contentClassName: 'milkup-blockquote-content',
             markerClassName: 'milkup-blockquote-marker',
+            hideValidMarkers: true,
           },
         ),
       )
@@ -951,6 +952,7 @@ export function renderMarkdownLines(
           state.selection,
           line.from,
           line.to,
+          { hidden: true },
         ),
       )
     } else if (listItem) {
@@ -1123,6 +1125,7 @@ function renderBlockLineDecorations(
   classNames: {
     readonly markerClassName: string
     readonly contentClassName: string
+    readonly hideValidMarkers?: boolean
   },
 ): readonly Node[] {
   return renderRangedLineDecorations(document, source, selection, block, from, to, classNames)
@@ -1139,6 +1142,7 @@ function renderTableRowDecorations(
   return renderRangedLineDecorations(document, source, selection, tableRow, from, to, {
     markerClassName: 'milkup-table-marker',
     contentClassName: 'milkup-table-cell',
+    hideValidMarkers: true,
   })
 }
 
@@ -1152,6 +1156,7 @@ function renderRangedLineDecorations(
   classNames: {
     readonly markerClassName: string
     readonly contentClassName: string
+    readonly hideValidMarkers?: boolean
   },
 ): readonly Node[] {
   const pieces = collectContentLinePieces(node, from, to)
@@ -1160,7 +1165,7 @@ function renderRangedLineDecorations(
     return renderInlineDecorations(document, source, selection, from, to)
   }
 
-  const showSyntax = shouldShowBlockSyntax(node, selection)
+  const showSyntax = classNames.hideValidMarkers ? false : shouldShowBlockSyntax(node, selection)
   const rendered: Node[] = []
 
   for (const piece of pieces) {
@@ -1196,6 +1201,7 @@ function renderHiddenBlockMarkerLine(
   selection: Selection,
   from: number,
   to: number,
+  options: { readonly hidden?: boolean } = {},
 ): readonly Node[] {
   if (to <= from) {
     return [document.createTextNode('\u200b')]
@@ -1207,7 +1213,7 @@ function renderHiddenBlockMarkerLine(
   marker.dataset.to = String(to)
   marker.textContent = source.slice(from, to)
 
-  if (!shouldShowLineSyntax(selection, from, to)) {
+  if (options.hidden ?? !shouldShowLineSyntax(selection, from, to)) {
     marker.classList.add('milkup-marker-hidden')
   }
 
@@ -1642,10 +1648,11 @@ function buildRangedLineProjection(
   node: SyntaxNode,
   from: number,
   to: number,
+  options: { readonly hideValidMarkers?: boolean } = {},
 ): LineProjection {
   const segments: LineProjectionSegment[] = []
   let visualPos = 0
-  const showSyntax = shouldShowBlockSyntax(node, selection)
+  const showSyntax = options.hideValidMarkers ? false : shouldShowBlockSyntax(node, selection)
 
   const appendSegment = (
     sourceFrom: number,
@@ -1691,8 +1698,12 @@ function buildRangedLineProjection(
   })
 }
 
-function buildMarkerLineProjection(selection: Selection, from: number, to: number): LineProjection {
-  const hidden = !shouldShowLineSyntax(selection, from, to)
+function buildMarkerLineProjection(
+  from: number,
+  to: number,
+  options: { readonly hidden?: boolean } = {},
+): LineProjection {
+  const hidden = options.hidden ?? true
 
   return Object.freeze({
     sourceFrom: from,
@@ -1873,15 +1884,19 @@ function buildRenderedLineProjection(
   }
 
   if (blockquoteLine) {
-    return buildRangedLineProjection(state.doc.text, state.selection, blockquoteLine, from, to)
+    return buildRangedLineProjection(state.doc.text, state.selection, blockquoteLine, from, to, {
+      hideValidMarkers: true,
+    })
   }
 
   if (tableRow) {
-    return buildRangedLineProjection(state.doc.text, state.selection, tableRow, from, to)
+    return buildRangedLineProjection(state.doc.text, state.selection, tableRow, from, to, {
+      hideValidMarkers: true,
+    })
   }
 
   if (table) {
-    return buildMarkerLineProjection(state.selection, from, to)
+    return buildMarkerLineProjection(from, to, { hidden: true })
   }
 
   return buildLineProjection(state.doc.text, state.selection, from, to)
