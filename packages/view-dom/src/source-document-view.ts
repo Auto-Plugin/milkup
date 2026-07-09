@@ -83,6 +83,10 @@ export class SourceDocumentView {
   private readonly markdownWarmupDelayMs: number
   private readonly markdownCache = new Map<string, Promise<MarkdownWindowParseResult>>()
   private markdownWarmupTimer: ReturnType<typeof setTimeout> | undefined
+  private isComposing = false
+  private compositionText = ''
+  private compositionCommitQueue: Promise<void> = Promise.resolve()
+  private compositionCommitError: unknown
   private editCommitQueue: Promise<void> = Promise.resolve()
   private editCommitTimer: ReturnType<typeof setTimeout> | undefined
   private pendingVisibleEdit: SourceDocumentEdit | undefined
@@ -98,6 +102,20 @@ export class SourceDocumentView {
   }
   private readonly handleInputEvent = (): void => {
     void this.readInputProxy()
+  }
+  private readonly handleCompositionStartEvent = (): void => {
+    this.isComposing = true
+    this.compositionText = ''
+  }
+  private readonly handleCompositionUpdateEvent = (event: CompositionEvent): void => {
+    this.isComposing = true
+    this.compositionText = event.data
+  }
+  private readonly handleCompositionEndEvent = (event: CompositionEvent): void => {
+    this.compositionCommitError = undefined
+    this.compositionCommitQueue = this.commitComposition(event.data).catch((error: unknown) => {
+      this.compositionCommitError = error
+    })
   }
   private readonly handlePasteEvent = (event: ClipboardEvent): void => {
     if (!this.editable) {
@@ -196,6 +214,9 @@ export class SourceDocumentView {
     this.inputDOM.addEventListener('input', this.handleInputEvent)
     this.inputDOM.addEventListener('paste', this.handlePasteEvent)
     this.inputDOM.addEventListener('keydown', this.handleKeyDownEvent)
+    this.inputDOM.addEventListener('compositionstart', this.handleCompositionStartEvent)
+    this.inputDOM.addEventListener('compositionupdate', this.handleCompositionUpdateEvent)
+    this.inputDOM.addEventListener('compositionend', this.handleCompositionEndEvent)
     config.parent.append(this.dom)
     void this.renderVisibleWindow()
   }
@@ -286,6 +307,18 @@ export class SourceDocumentView {
     this.scheduleMarkdownWarmup(request)
   }
 
+  async flushPendingEdits(): Promise<void> {
+    await this.compositionCommitQueue
+
+    if (this.compositionCommitError !== undefined) {
+      const error = this.compositionCommitError
+      this.compositionCommitError = undefined
+      throw error
+    }
+
+    await this.flushPendingVisibleEdit()
+  }
+
   destroy(): void {
     this.cancelMarkdownWarmup()
     if (this.editCommitTimer !== undefined) {
@@ -301,6 +334,9 @@ export class SourceDocumentView {
     this.inputDOM.removeEventListener('input', this.handleInputEvent)
     this.inputDOM.removeEventListener('paste', this.handlePasteEvent)
     this.inputDOM.removeEventListener('keydown', this.handleKeyDownEvent)
+    this.inputDOM.removeEventListener('compositionstart', this.handleCompositionStartEvent)
+    this.inputDOM.removeEventListener('compositionupdate', this.handleCompositionUpdateEvent)
+    this.inputDOM.removeEventListener('compositionend', this.handleCompositionEndEvent)
     this.dom.remove()
   }
 
@@ -469,6 +505,10 @@ export class SourceDocumentView {
       return
     }
 
+    if (this.isComposing) {
+      return
+    }
+
     const text = this.inputDOM.value
 
     if (text.length === 0) {
@@ -480,7 +520,26 @@ export class SourceDocumentView {
     await this.applyVisibleEdit(range.from, range.to, text)
   }
 
+  private async commitComposition(data: string): Promise<void> {
+    const text = data.length > 0 ? data : this.compositionText || this.inputDOM.value
+
+    this.isComposing = false
+    this.compositionText = ''
+    this.inputDOM.value = ''
+
+    if (!this.editable || text.length === 0) {
+      return
+    }
+
+    const range = this.getSelectedRange()
+    await this.applyVisibleEdit(range.from, range.to, text)
+  }
+
   private handleEditingKey(event: KeyboardEvent): boolean {
+    if (this.isComposing || event.isComposing || event.key === 'Process' || event.keyCode === 229) {
+      return false
+    }
+
     if (!this.editable) {
       return false
     }

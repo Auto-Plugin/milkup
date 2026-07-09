@@ -1289,6 +1289,12 @@ async function saveDocument(): Promise<boolean> {
     if (largeDocumentPreview) {
       return saveLargeDocument()
     }
+    if (sourceView) {
+      return saveMemorySourceDocument()
+    }
+    notice = '当前没有可保存的编辑视图。'
+    renderSession()
+    focusActiveView()
     return false
   }
 
@@ -1328,6 +1334,44 @@ async function saveDocument(): Promise<boolean> {
   return true
 }
 
+async function saveMemorySourceDocument(): Promise<boolean> {
+  const action: FileAction = {
+    kind: 'save',
+    documentId: session.documentId,
+  }
+
+  getRequiredDocumentId(action)
+  const safety = getSaveSafety(session)
+
+  if (!safety.canSave) {
+    notice = translateSaveSafetyMessage(safety.message)
+    renderSession()
+    focusActiveView()
+    return false
+  }
+
+  await sourceView?.flushPendingEdits()
+  const result = await fileService.saveFile(
+    session,
+    prepareTextForFileSave(session, state.doc.text),
+  )
+
+  if (!result) {
+    notice = messages.notices.saveCancelled
+    renderSession()
+    focusActiveView()
+    return false
+  }
+
+  session = recordFileSaveResult(session, result)
+  recentFiles = recordRecentFile(recentFiles, result.file, Date.now())
+  watchCurrentFile()
+  notice = messages.notices.saved
+  renderSession()
+  focusActiveView()
+  return true
+}
+
 async function saveLargeDocument(): Promise<boolean> {
   if (!largeDocumentPreview?.editSession) {
     return false
@@ -1342,9 +1386,18 @@ async function saveLargeDocument(): Promise<boolean> {
     return false
   }
 
-  const editSnapshot = largeDocumentPreview.editSession.snapshot()
+  let saveStage = '提交编辑队列'
 
   try {
+    notice = `正在保存大文件：${saveStage}…`
+    renderSession()
+    console.info(`Large document save started: ${saveStage}`)
+    await sourceView?.flushPendingEdits()
+    saveStage = '写入文件'
+    notice = `正在保存大文件：${saveStage}…`
+    renderSession()
+    console.info(`Large document save progressed: ${saveStage}`)
+    const editSnapshot = largeDocumentPreview.editSession.snapshot()
     const snapshot = await largeTextFileService.flush(
       largeDocumentPreview.documentId,
       editSnapshot.version,
@@ -1361,7 +1414,8 @@ async function saveLargeDocument(): Promise<boolean> {
     focusActiveView()
     return true
   } catch (error: unknown) {
-    notice = `大文件保存失败：${translateSaveSafetyMessage(getErrorMessage(error))}`
+    console.error(`Large document save failed while ${saveStage}`, error)
+    notice = `大文件保存失败（${saveStage}）：${translateSaveSafetyMessage(getErrorMessage(error))}`
     renderSession()
     focusActiveView()
     return false
@@ -1578,7 +1632,15 @@ async function saveDocumentAs(): Promise<void> {
   if (!view) {
     if (largeDocumentPreview) {
       await saveLargeDocumentAs()
+      return
     }
+    if (sourceView) {
+      await saveMemorySourceDocumentAs()
+      return
+    }
+    notice = '当前没有可另存为的编辑视图。'
+    renderSession()
+    focusActiveView()
     return
   }
 
@@ -1617,6 +1679,43 @@ async function saveDocumentAs(): Promise<void> {
   view.inputDOM.focus({ preventScroll: true })
 }
 
+async function saveMemorySourceDocumentAs(): Promise<void> {
+  const action: FileAction = {
+    kind: 'saveAs',
+    documentId: session.documentId,
+    path: session.file?.path ?? 'untitled.md',
+  }
+  const safety = getSaveSafety(session)
+
+  if (!safety.canSave) {
+    notice = translateSaveSafetyMessage(safety.message)
+    renderSession()
+    focusActiveView()
+    return
+  }
+
+  getRequiredDocumentId(action)
+  await sourceView?.flushPendingEdits()
+  const result = await fileService.saveFileAs(
+    session,
+    prepareTextForFileSave(session, state.doc.text),
+  )
+
+  if (!result) {
+    notice = messages.notices.saveAsCancelled
+    renderSession()
+    focusActiveView()
+    return
+  }
+
+  session = recordFileSaveResult(session, result)
+  recentFiles = recordRecentFile(recentFiles, result.file, Date.now())
+  watchCurrentFile()
+  notice = messages.notices.savedAs
+  renderSession()
+  focusActiveView()
+}
+
 async function saveLargeDocumentAs(): Promise<void> {
   const preview = largeDocumentPreview
   const editSession = preview?.editSession
@@ -1637,7 +1736,17 @@ async function saveLargeDocumentAs(): Promise<void> {
     return
   }
 
+  let saveStage = '提交编辑队列'
+
   try {
+    notice = `正在另存为大文件：${saveStage}…`
+    renderSession()
+    console.info(`Large document save-as started: ${saveStage}`)
+    await sourceView?.flushPendingEdits()
+    saveStage = '写入文件'
+    notice = `正在另存为大文件：${saveStage}…`
+    renderSession()
+    console.info(`Large document save-as progressed: ${saveStage}`)
     const snapshot = await largeTextFileService.flushAs(
       preview.documentId,
       editSession.version,
@@ -1663,7 +1772,8 @@ async function saveLargeDocumentAs(): Promise<void> {
     renderSession()
     focusActiveView()
   } catch (error: unknown) {
-    notice = `大文件另存为失败：${getErrorMessage(error)}`
+    console.error(`Large document save-as failed while ${saveStage}`, error)
+    notice = `大文件另存为失败（${saveStage}）：${getErrorMessage(error)}`
     renderSession()
     focusActiveView()
   }

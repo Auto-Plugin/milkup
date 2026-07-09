@@ -594,6 +594,78 @@ describe('SourceDocumentView', () => {
     expect(onEdit).toHaveBeenCalledWith({ from: 0, to: 0, insert: 'x', deletedText: '' })
   })
 
+  it('commits only finalized IME composition text', async () => {
+    const parent = document.createElement('main')
+    const onEdit = vi.fn()
+    const view = new SourceDocumentView({
+      parent,
+      source: new MemoryDocumentSource({
+        documentId: 'source-doc',
+        text: 'alpha',
+      }),
+      editable: true,
+      onEdit,
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 40,
+        overscanLines: 0,
+      },
+    })
+
+    await view.renderVisibleWindow()
+    view.inputDOM.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }))
+    view.inputDOM.value = 'ni'
+    view.inputDOM.dispatchEvent(
+      new CompositionEvent('compositionupdate', { bubbles: true, data: 'ni' }),
+    )
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'n', bubbles: true }))
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'i', bubbles: true }))
+    view.inputDOM.dispatchEvent(new InputEvent('input', { bubbles: true, data: 'ni' }))
+    await flushPromises()
+
+    expect(onEdit).not.toHaveBeenCalled()
+
+    view.inputDOM.dispatchEvent(
+      new CompositionEvent('compositionend', { bubbles: true, data: '你' }),
+    )
+    await view.flushPendingEdits()
+
+    expect(onEdit).toHaveBeenCalledTimes(1)
+    expect(onEdit).toHaveBeenCalledWith({ from: 0, to: 0, insert: '你', deletedText: '' })
+    expect(view.inputDOM.value).toBe('')
+  })
+
+  it('flushes pending source edits before save operations', async () => {
+    const parent = document.createElement('main')
+    const onEdit = vi.fn()
+    const view = new SourceDocumentView({
+      parent,
+      source: new MemoryDocumentSource({
+        documentId: 'source-doc',
+        text: 'alpha',
+      }),
+      editable: true,
+      onEdit,
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 40,
+        overscanLines: 0,
+      },
+    })
+
+    await view.renderVisibleWindow()
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'x', bubbles: true }))
+    await flushPromises()
+
+    expect(onEdit).not.toHaveBeenCalled()
+
+    await view.flushPendingEdits()
+
+    expect(onEdit).toHaveBeenCalledWith({ from: 0, to: 0, insert: 'x', deletedText: '' })
+  })
+
   it('deletes a selected range inside the rendered source window', async () => {
     const parent = document.createElement('main')
     const onEdit = vi.fn()
