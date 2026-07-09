@@ -1,11 +1,20 @@
+import { Selection } from '@milkup/core'
 import type { EditorDocumentSource } from '@milkup/core'
 import {
+  parseInline,
   parseMarkdownWindow,
   type MarkdownWindowParseResult,
   type SyntaxNode,
 } from '@milkup/markdown'
 
 import { createInputProxy, getVisibleLineWindow } from './editor-view'
+import {
+  domRectForLineSourcePosition,
+  domRectsForLineSourceRange,
+  lineElementFromEvent,
+  sourcePositionFromPoint,
+  sourcePositionToVisualOffsetInLine,
+} from './source-position-mapping'
 import type { ViewMode, VirtualViewportConfig } from './types'
 
 export interface SourceDocumentViewConfig {
@@ -38,16 +47,24 @@ interface RenderRequest {
   readonly toLine: number
 }
 
+interface QueuedEditResolution {
+  resolve(): void
+  reject(error: unknown): void
+}
+
 const defaultLineHeight = 21
 const defaultOverscanLines = 12
 const defaultMarkdownContextLines = 24
 const defaultMarkdownCacheSize = 16
 const defaultMarkdownWarmupWindows = 1
 const defaultMarkdownWarmupDelayMs = 25
+const defaultEditCommitDelayMs = 24
 
 export class SourceDocumentView {
   readonly dom: HTMLElement
   readonly contentDOM: HTMLElement
+  readonly selectionLayerDOM: HTMLElement
+  readonly cursorLayerDOM: HTMLElement
   readonly inputDOM: HTMLTextAreaElement
 
   private readonly ownerDocument: Document
@@ -66,6 +83,14 @@ export class SourceDocumentView {
   private readonly markdownWarmupDelayMs: number
   private readonly markdownCache = new Map<string, Promise<MarkdownWindowParseResult>>()
   private markdownWarmupTimer: ReturnType<typeof setTimeout> | undefined
+  private editCommitQueue: Promise<void> = Promise.resolve()
+  private editCommitTimer: ReturnType<typeof setTimeout> | undefined
+  private pendingVisibleEdit: SourceDocumentEdit | undefined
+  private pendingVisibleEditResolutions: QueuedEditResolution[] = []
+  private editRevision = 0
+  private dragAnchor: number | undefined
+  private isDraggingSelection = false
+  private hasDraggedSelection = false
   private nextRequestId = 1
   private latestAppliedRequestId = 0
   private readonly handleScrollEvent = (): void => {
@@ -91,12 +116,29 @@ export class SourceDocumentView {
     void this.applyVisibleEdit(range.from, range.to, text)
   }
   private readonly handleKeyDownEvent = (event: KeyboardEvent): void => {
+    if (event.defaultPrevented) {
+      return
+    }
+
+    if (event.currentTarget === this.dom && event.target === this.inputDOM) {
+      return
+    }
+
     if (this.handleEditingKey(event)) {
       event.preventDefault()
     }
   }
   private readonly handlePointerDownEvent = (event: MouseEvent): void => {
-    void this.moveCursorFromPointer(event)
+    this.startSelectionDrag(event)
+  }
+  private readonly handlePointerMoveEvent = (event: PointerEvent): void => {
+    void this.updateSelectionDrag(event)
+  }
+  private readonly handlePointerUpEvent = (event: PointerEvent): void => {
+    void this.finishSelectionDrag(event)
+  }
+  private readonly handlePointerCancelEvent = (): void => {
+    this.clearSelectionDrag()
   }
 
   constructor(config: SourceDocumentViewConfig) {
@@ -136,11 +178,21 @@ export class SourceDocumentView {
     this.contentDOM.setAttribute('role', 'textbox')
     this.contentDOM.setAttribute('aria-multiline', 'true')
     this.contentDOM.setAttribute('contenteditable', 'false')
+    this.selectionLayerDOM = this.ownerDocument.createElement('div')
+    this.selectionLayerDOM.className = 'milkup-selection-layer'
+    this.cursorLayerDOM = this.ownerDocument.createElement('div')
+    this.cursorLayerDOM.className = 'milkup-cursor-layer'
     this.inputDOM = createInputProxy(this.ownerDocument)
     this.dom.append(this.contentDOM)
+    this.dom.append(this.selectionLayerDOM)
+    this.dom.append(this.cursorLayerDOM)
     this.dom.append(this.inputDOM)
     this.dom.addEventListener('scroll', this.handleScrollEvent)
+    this.dom.addEventListener('keydown', this.handleKeyDownEvent)
     this.dom.addEventListener('pointerdown', this.handlePointerDownEvent)
+    this.contentDOM.addEventListener('pointermove', this.handlePointerMoveEvent)
+    this.ownerDocument.addEventListener('pointerup', this.handlePointerUpEvent)
+    this.ownerDocument.addEventListener('pointercancel', this.handlePointerCancelEvent)
     this.inputDOM.addEventListener('input', this.handleInputEvent)
     this.inputDOM.addEventListener('paste', this.handlePasteEvent)
     this.inputDOM.addEventListener('keydown', this.handleKeyDownEvent)
@@ -236,8 +288,16 @@ export class SourceDocumentView {
 
   destroy(): void {
     this.cancelMarkdownWarmup()
+    if (this.editCommitTimer !== undefined) {
+      clearTimeout(this.editCommitTimer)
+      this.editCommitTimer = undefined
+    }
     this.dom.removeEventListener('scroll', this.handleScrollEvent)
+    this.dom.removeEventListener('keydown', this.handleKeyDownEvent)
     this.dom.removeEventListener('pointerdown', this.handlePointerDownEvent)
+    this.contentDOM.removeEventListener('pointermove', this.handlePointerMoveEvent)
+    this.ownerDocument.removeEventListener('pointerup', this.handlePointerUpEvent)
+    this.ownerDocument.removeEventListener('pointercancel', this.handlePointerCancelEvent)
     this.inputDOM.removeEventListener('input', this.handleInputEvent)
     this.inputDOM.removeEventListener('paste', this.handlePasteEvent)
     this.inputDOM.removeEventListener('keydown', this.handleKeyDownEvent)
@@ -291,7 +351,12 @@ export class SourceDocumentView {
     return Object.freeze(
       parsed.window.lines
         .filter((line) => line.number >= request.fromLine && line.number <= request.toLine)
-        .map((line) => renderLiveLine(this.ownerDocument, line, blocks)),
+        .map((line) =>
+          renderLiveLine(this.ownerDocument, line, blocks, {
+            cursorPosition: this.cursorPosition,
+            selection: this.currentSelection(),
+          }),
+        ),
     )
   }
 
@@ -446,7 +511,146 @@ export class SourceDocumentView {
       return true
     }
 
-    return false
+    switch (event.key) {
+      case 'ArrowLeft':
+        void this.moveCursor('left', event.shiftKey)
+        return true
+      case 'ArrowRight':
+        void this.moveCursor('right', event.shiftKey)
+        return true
+      case 'ArrowUp':
+        void this.moveCursor('up', event.shiftKey)
+        return true
+      case 'ArrowDown':
+        void this.moveCursor('down', event.shiftKey)
+        return true
+      default:
+        return false
+    }
+  }
+
+  private async moveCursor(
+    direction: 'left' | 'right' | 'up' | 'down',
+    extend: boolean,
+  ): Promise<void> {
+    const range = this.getSelectedRange()
+    const current = this.cursorPosition
+    const previous = current
+    let next = current
+    let targetLineNumber: number | undefined
+
+    if (!extend && range.from !== range.to) {
+      next = direction === 'right' || direction === 'down' ? range.to : range.from
+    } else if (direction === 'left') {
+      next = Math.max(0, current - 1)
+    } else if (direction === 'right') {
+      next = Math.min(this.currentSource.length ?? current + 1, current + 1)
+    } else {
+      const verticalMove = await this.moveCursorVertically(current, direction)
+      next = verticalMove.position
+      targetLineNumber = verticalMove.lineNumber
+    }
+
+    if (next === current && (!extend || range.from === range.to)) {
+      return
+    }
+
+    this.cursorPosition = next
+
+    if (!extend) {
+      this.selectionAnchor = next
+    }
+
+    await this.ensureCursorRendered(targetLineNumber)
+    await this.renderLiveSyntaxAroundPositions(previous, next)
+    this.renderSelection()
+    this.renderCursor()
+    this.inputDOM.focus({ preventScroll: true })
+  }
+
+  private async moveCursorVertically(
+    pos: number,
+    direction: 'up' | 'down',
+  ): Promise<{ readonly position: number; readonly lineNumber?: number }> {
+    const line =
+      this.findRenderedLineAtPosition(pos) ??
+      (await this.currentSource.lineAtPosition(pos).catch(() => undefined))
+
+    if (!line) {
+      return { position: pos }
+    }
+
+    const targetLineNumber = direction === 'up' ? line.number - 1 : line.number + 1
+
+    if (targetLineNumber < 1 || targetLineNumber > this.currentSource.lineCount) {
+      return { position: pos, lineNumber: line.number }
+    }
+
+    return {
+      position: await this.currentSource.positionAtLineOffset(targetLineNumber, pos - line.from),
+      lineNumber: targetLineNumber,
+    }
+  }
+
+  private async ensureCursorRendered(targetLineNumber?: number): Promise<void> {
+    const line =
+      this.findRenderedLineAtPosition(this.cursorPosition) ??
+      (await this.currentSource.lineAtPosition(this.cursorPosition).catch(() => undefined))
+    const lineNumber = line?.number ?? targetLineNumber
+
+    if (lineNumber === undefined) {
+      return
+    }
+
+    const fromLine = Number(this.contentDOM.dataset.fromLine)
+    const toLine = Number(this.contentDOM.dataset.toLine)
+
+    if (
+      Number.isInteger(fromLine) &&
+      Number.isInteger(toLine) &&
+      lineNumber >= fromLine &&
+      lineNumber <= toLine
+    ) {
+      return
+    }
+
+    const lineHeight = this.getLineHeight()
+    const viewportHeight = this.getViewportHeight() ?? lineHeight
+    const visibleLines = Math.max(1, Math.floor(viewportHeight / lineHeight))
+    const nextFirstLine = clamp(
+      lineNumber - Math.floor(visibleLines / 2),
+      1,
+      this.currentSource.lineCount,
+    )
+    this.dom.scrollTop = (nextFirstLine - 1) * lineHeight
+    await this.renderVisibleWindow()
+  }
+
+  private findRenderedLineAtPosition(position: number): SourceLine | undefined {
+    for (const lineDOM of Array.from(this.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'))) {
+      const number = Number(lineDOM.dataset.line)
+      const from = Number(lineDOM.dataset.from)
+      const to = Number(lineDOM.dataset.to)
+
+      if (
+        !Number.isInteger(number) ||
+        !Number.isInteger(from) ||
+        !Number.isInteger(to) ||
+        position < from ||
+        position > to
+      ) {
+        continue
+      }
+
+      return Object.freeze({
+        number,
+        from,
+        to,
+        text: lineDOM.textContent?.replace(/\u200b/g, '') ?? '',
+      })
+    }
+
+    return undefined
   }
 
   private async deleteAroundCursor(direction: -1 | 1): Promise<void> {
@@ -473,14 +677,122 @@ export class SourceDocumentView {
       return
     }
 
-    const deletedText = await this.readVisibleRangeText(from, to)
-    await this.onEdit({ from, to, insert, deletedText })
+    const editedLine = this.findRenderedLineAtPosition(from)
+    const structuralEdit =
+      insert.includes('\n') || editedLine === undefined || to > editedLine.to
+    const delta = insert.length - (to - from)
+    this.editRevision += 1
+    const editRevision = this.editRevision
     this.cursorPosition = from + insert.length
     this.selectionAnchor = this.cursorPosition
+    const deletedText = await this.readVisibleRangeText(from, to)
     this.cancelMarkdownWarmup()
-    this.markdownCache.clear()
-    await this.renderVisibleWindow()
+
+    if (structuralEdit) {
+      await this.queueVisibleEditCommit({ from, to, insert, deletedText }, { immediate: true })
+      this.markdownCache.clear()
+      await this.renderVisibleWindow()
+    } else {
+      this.applyOptimisticRenderedLineEdit(editedLine, from, to, insert)
+      this.shiftRenderedLinePositionsAfter(editedLine.number, delta)
+      this.renderSelection()
+      this.renderCursor()
+      const commit = this.queueVisibleEditCommit({ from, to, insert, deletedText })
+      if (this.mode === 'live') {
+        void commit
+          .then(async () => {
+            if (editRevision !== this.editRevision) {
+              return
+            }
+
+            this.markdownCache.clear()
+            await this.renderRenderedLine(editedLine.number)
+            this.renderSelection()
+            this.renderCursor()
+          })
+          .catch(() => undefined)
+      }
+    }
+
     this.inputDOM.focus({ preventScroll: true })
+  }
+
+  private queueVisibleEditCommit(
+    edit: SourceDocumentEdit,
+    options: { readonly immediate?: boolean } = {},
+  ): Promise<void> {
+    if (options.immediate) {
+      return this.flushPendingVisibleEdit().then(() => this.commitVisibleEdit(edit))
+    }
+
+    const mergedEdit = this.pendingVisibleEdit
+      ? mergeSourceDocumentEdits(this.pendingVisibleEdit, edit)
+      : edit
+
+    if (this.pendingVisibleEdit && !mergedEdit) {
+      return this.flushPendingVisibleEdit().then(() => this.queueVisibleEditCommit(edit))
+    }
+
+    this.pendingVisibleEdit = mergedEdit
+
+    const queued = new Promise<void>((resolve, reject) => {
+      this.pendingVisibleEditResolutions.push({ resolve, reject })
+    })
+
+    this.schedulePendingVisibleEditCommit()
+    return queued
+  }
+
+  private schedulePendingVisibleEditCommit(): void {
+    if (this.editCommitTimer !== undefined) {
+      clearTimeout(this.editCommitTimer)
+    }
+
+    this.editCommitTimer = setTimeout(() => {
+      this.editCommitTimer = undefined
+      void this.flushPendingVisibleEdit()
+    }, defaultEditCommitDelayMs)
+  }
+
+  private flushPendingVisibleEdit(): Promise<void> {
+    if (this.editCommitTimer !== undefined) {
+      clearTimeout(this.editCommitTimer)
+      this.editCommitTimer = undefined
+    }
+
+    const edit = this.pendingVisibleEdit
+    const resolutions = this.pendingVisibleEditResolutions.splice(
+      0,
+      this.pendingVisibleEditResolutions.length,
+    )
+    this.pendingVisibleEdit = undefined
+
+    if (!edit) {
+      return this.editCommitQueue
+    }
+
+    const commit = this.commitVisibleEdit(edit)
+
+    commit.then(
+      () => resolutions.forEach((resolution) => resolution.resolve()),
+      (error: unknown) => resolutions.forEach((resolution) => resolution.reject(error)),
+    )
+
+    return commit
+  }
+
+  private commitVisibleEdit(edit: SourceDocumentEdit): Promise<void> {
+    this.editCommitQueue = this.editCommitQueue
+      .catch(() => undefined)
+      .then(async () => {
+        if (!this.onEdit) {
+          return
+        }
+
+        await this.onEdit(edit)
+      })
+
+    return this.editCommitQueue
   }
 
   private async readVisibleRangeText(from: number, to: number): Promise<string> {
@@ -514,23 +826,118 @@ export class SourceDocumentView {
     return readLineWindowRangeText(window, from, to)
   }
 
-  private async moveCursorFromPointer(event: MouseEvent): Promise<void> {
+  private startSelectionDrag(event: MouseEvent): void {
+    if (event.button !== 0) {
+      return
+    }
+
+    const position = this.positionFromLineEvent(event)
+
+    if (position === undefined) {
+      return
+    }
+
+    const previousPosition = this.cursorPosition
+    this.dragAnchor = position
+    this.isDraggingSelection = true
+    this.hasDraggedSelection = false
+    this.cursorPosition = position
+    this.selectionAnchor = event.shiftKey ? this.selectionAnchor : position
+
+    if (this.mode === 'live') {
+      void this.renderLiveSyntaxAroundPositions(previousPosition, this.cursorPosition)
+    }
+
+    this.renderSelection()
+    this.renderCursor()
+    this.inputDOM.focus({ preventScroll: true })
+    event.preventDefault()
+  }
+
+  private async updateSelectionDrag(event: MouseEvent): Promise<void> {
+    if (!this.isDraggingSelection || this.dragAnchor === undefined) {
+      return
+    }
+
+    if (event.buttons !== undefined && (event.buttons & 1) === 0) {
+      this.clearSelectionDrag()
+      return
+    }
+
+    const position = this.positionFromLineEvent(event)
+
+    if (position === undefined) {
+      return
+    }
+
+    if (position === this.dragAnchor && !this.hasDraggedSelection) {
+      event.preventDefault()
+      return
+    }
+
+    const previousPosition = this.cursorPosition
+    this.hasDraggedSelection = true
+    this.selectionAnchor = this.dragAnchor
+    this.cursorPosition = position
+
+    if (this.mode === 'live') {
+      await this.renderLiveSyntaxAroundPositions(previousPosition, this.cursorPosition)
+    }
+
+    this.renderSelection()
+    this.renderCursor()
+    event.preventDefault()
+  }
+
+  private async finishSelectionDrag(event: MouseEvent): Promise<void> {
+    if (!this.isDraggingSelection) {
+      return
+    }
+
+    this.clearSelectionDrag()
+    event.preventDefault()
+  }
+
+  private clearSelectionDrag(): void {
+    this.isDraggingSelection = false
+    this.hasDraggedSelection = false
+    this.dragAnchor = undefined
+  }
+
+  private positionFromLineEvent(event: MouseEvent): number | undefined {
     const target = lineElementFromEvent(event, this.contentDOM, this.inputDOM)
 
     if (!target) {
-      return
+      return undefined
     }
 
     const from = Number(target.dataset.from)
     const to = Number(target.dataset.to)
 
     if (!Number.isInteger(from) || !Number.isInteger(to)) {
+      return undefined
+    }
+
+    return (
+      sourcePositionFromPoint(target, event, this.inputDOM, { allowGeometryFallback: true }) ?? from
+    )
+  }
+
+  private async moveCursorFromPointer(event: MouseEvent): Promise<void> {
+    const position = this.positionFromLineEvent(event)
+
+    if (position === undefined) {
       return
     }
 
-    this.cursorPosition = sourcePositionFromPointer(target, event) ?? from
+    const previousPosition = this.cursorPosition
+    this.cursorPosition = position
     if (!event.shiftKey) {
       this.selectionAnchor = this.cursorPosition
+    }
+
+    if (this.mode === 'live') {
+      await this.renderLiveSyntaxAroundPositions(previousPosition, this.cursorPosition)
     }
     this.renderSelection()
     this.renderCursor()
@@ -545,8 +952,14 @@ export class SourceDocumentView {
     })
   }
 
+  private currentSelection(): Selection {
+    return this.selectionAnchor === this.cursorPosition
+      ? Selection.cursor(this.cursorPosition)
+      : Selection.range(this.selectionAnchor, this.cursorPosition)
+  }
+
   private renderSelection(): void {
-    this.contentDOM.querySelectorAll<HTMLElement>('.milkup-selection').forEach((node) => {
+    this.selectionLayerDOM.querySelectorAll<HTMLElement>('.milkup-selection').forEach((node) => {
       node.remove()
     })
 
@@ -581,18 +994,44 @@ export class SourceDocumentView {
       selection.dataset.from = String(from)
       selection.dataset.to = String(to)
       selection.dataset.line = String(lineNumber)
-      const fromOffset = visualOffsetForSourcePosition(line, from)
-      const toOffset = visualOffsetForSourcePosition(line, to)
-      selection.style.left = `${fromOffset * 8}px`
-      selection.style.top = `${lineVisualTop(line, lineNumber, this.getLineHeight())}px`
-      selection.style.width = `${Math.max(1, toOffset - fromOffset) * 8}px`
-      selection.style.height = `${lineVisualHeight(line, this.getLineHeight())}px`
-      this.contentDOM.append(selection)
+      const rects = domRectsForLineSourceRange(
+        this.ownerDocument,
+        line,
+        this.selectionLayerDOM,
+        from,
+        to,
+      )
+
+      if (rects.length === 0) {
+        const fromOffset = sourcePositionToVisualOffsetInLine(line, from)
+        const toOffset = sourcePositionToVisualOffsetInLine(line, to)
+        selection.style.left = `${fromOffset * 8}px`
+        selection.style.top = `${lineLayerTop(
+          line,
+          this.selectionLayerDOM,
+          lineNumber,
+          this.getLineHeight(),
+        )}px`
+        selection.style.width = `${Math.max(1, toOffset - fromOffset) * 8}px`
+        selection.style.height = `${lineVisualHeight(line, this.getLineHeight())}px`
+        this.selectionLayerDOM.append(selection)
+        continue
+      }
+
+      for (const [rectIndex, rect] of rects.entries()) {
+        const measuredSelection = selection.cloneNode(false) as HTMLElement
+        measuredSelection.dataset.rectIndex = String(rectIndex)
+        measuredSelection.style.left = `${rect.left}px`
+        measuredSelection.style.top = `${rect.top}px`
+        measuredSelection.style.width = `${Math.max(1, rect.width)}px`
+        measuredSelection.style.height = `${rect.height}px`
+        this.selectionLayerDOM.append(measuredSelection)
+      }
     }
   }
 
   private renderCursor(): void {
-    this.contentDOM.querySelector<HTMLElement>('.milkup-cursor')?.remove()
+    this.cursorLayerDOM.querySelector<HTMLElement>('.milkup-cursor')?.remove()
 
     if (!this.editable) {
       return
@@ -622,10 +1061,209 @@ export class SourceDocumentView {
     cursor.dataset.position = String(this.cursorPosition)
     cursor.dataset.line = String(lineNumber)
     cursor.dataset.offset = String(Math.max(0, this.cursorPosition - lineFrom))
-    cursor.style.left = `${visualOffsetForSourcePosition(line, this.cursorPosition) * 8}px`
-    cursor.style.top = `${lineVisualTop(line, lineNumber, this.getLineHeight())}px`
-    cursor.style.height = `${lineVisualHeight(line, this.getLineHeight())}px`
-    this.contentDOM.append(cursor)
+    const rect = domRectForLineSourcePosition(
+      this.ownerDocument,
+      line,
+      this.cursorLayerDOM,
+      this.cursorPosition,
+      { allowGeometryFallback: true, fallbackLineHeight: this.getLineHeight() },
+    )
+    const height = lineCursorHeight(line, this.getLineHeight())
+
+    if (rect) {
+      cursor.style.left = `${rect.left}px`
+      cursor.style.top = `${rect.top}px`
+      cursor.style.height = `${height}px`
+    } else {
+      cursor.style.left = `${sourcePositionToVisualOffsetInLine(line, this.cursorPosition) * 8}px`
+      cursor.style.top = `${lineLayerTop(
+        line,
+        this.cursorLayerDOM,
+        lineNumber,
+        this.getLineHeight(),
+      )}px`
+      cursor.style.height = `${height}px`
+    }
+    this.cursorLayerDOM.append(cursor)
+    this.syncInputProxyToCursor()
+  }
+
+  private syncInputProxyToCursor(): void {
+    const cursor = this.cursorLayerDOM.querySelector<HTMLElement>('.milkup-cursor')
+
+    if (!cursor) {
+      return
+    }
+
+    const left = Number.parseFloat(cursor.style.left)
+    const top = Number.parseFloat(cursor.style.top)
+    const height = Number.parseFloat(cursor.style.height)
+
+    if (!Number.isFinite(left) || !Number.isFinite(top)) {
+      return
+    }
+
+    this.inputDOM.style.left = `${Math.max(0, this.cursorLayerDOM.offsetLeft + left)}px`
+    this.inputDOM.style.top = `${Math.max(0, this.cursorLayerDOM.offsetTop + top)}px`
+
+    if (Number.isFinite(height) && height > 0) {
+      this.inputDOM.style.height = `${height}px`
+    }
+  }
+
+  private async renderLiveSyntaxAroundPositions(
+    previousPosition: number,
+    nextPosition: number,
+  ): Promise<void> {
+    if (this.mode !== 'live') {
+      return
+    }
+
+    const lineNumbers = new Set<number>()
+
+    for (const position of [previousPosition, nextPosition]) {
+      const line = this.findRenderedLineAtPosition(position)
+
+      if (line) {
+        lineNumbers.add(line.number)
+      }
+    }
+
+    for (const lineNumber of lineNumbers) {
+      await this.renderRenderedLine(lineNumber)
+    }
+  }
+
+  private async renderRenderedLine(lineNumber: number): Promise<void> {
+    const current = this.contentDOM.querySelector<HTMLElement>(
+      `.milkup-line[data-line="${lineNumber}"]`,
+    )
+
+    if (!current) {
+      return
+    }
+
+    const replacement =
+      this.mode === 'live'
+        ? await this.renderSingleLiveLine(lineNumber)
+        : await this.renderSingleSourceLine(lineNumber)
+
+    if (replacement) {
+      current.replaceWith(replacement)
+    }
+  }
+
+  private applyOptimisticRenderedLineEdit(
+    line: SourceLine,
+    from: number,
+    to: number,
+    insert: string,
+  ): void {
+    const lineDOM = this.contentDOM.querySelector<HTMLElement>(
+      `.milkup-line[data-line="${line.number}"]`,
+    )
+
+    if (!lineDOM) {
+      return
+    }
+
+    const delta = insert.length - (to - from)
+    const mapped = Array.from(lineDOM.querySelectorAll<HTMLElement>('[data-from][data-to]'))
+      .filter((element) => !element.classList.contains('milkup-marker-hidden'))
+      .find((element) => {
+        const elementFrom = Number(element.dataset.from)
+        const elementTo = Number(element.dataset.to)
+        return Number.isInteger(elementFrom) && Number.isInteger(elementTo) && from >= elementFrom && to <= elementTo
+      })
+
+    if (mapped) {
+      const elementFrom = Number(mapped.dataset.from)
+      const elementTo = Number(mapped.dataset.to)
+      const text = mapped.textContent ?? ''
+      mapped.textContent =
+        text.slice(0, from - elementFrom) + insert + text.slice(to - elementFrom)
+      mapped.dataset.to = String(elementTo + delta)
+
+      for (const element of Array.from(lineDOM.querySelectorAll<HTMLElement>('[data-from][data-to]'))) {
+        if (element === mapped) {
+          continue
+        }
+
+        const nextFrom = Number(element.dataset.from)
+        const nextTo = Number(element.dataset.to)
+
+        if (Number.isInteger(nextFrom) && nextFrom >= to) {
+          element.dataset.from = String(nextFrom + delta)
+        }
+
+        if (Number.isInteger(nextTo) && nextTo >= to) {
+          element.dataset.to = String(nextTo + delta)
+        }
+      }
+    } else {
+      const text = lineDOM.textContent?.replace(/\u200b/g, '') ?? line.text
+      lineDOM.textContent = text.slice(0, from - line.from) + insert + text.slice(to - line.from)
+    }
+
+    lineDOM.dataset.to = String(line.to + delta)
+  }
+
+  private async renderSingleSourceLine(lineNumber: number): Promise<HTMLElement | undefined> {
+    const window = await this.currentSource.readLineWindow(lineNumber, lineNumber)
+    const line = window.lines[0]
+    return line ? renderSourceLine(this.ownerDocument, line) : undefined
+  }
+
+  private async renderSingleLiveLine(lineNumber: number): Promise<HTMLElement | undefined> {
+    const fromLine = Math.max(1, lineNumber - this.markdownContextLines)
+    const toLine = Math.min(this.currentSource.lineCount, lineNumber + this.markdownContextLines)
+    const parsed = await this.parseLiveWindow(fromLine, toLine)
+    const line = parsed.window.lines.find((item) => item.number === lineNumber)
+
+    return line
+      ? renderLiveLine(this.ownerDocument, line, parsed.root.children ?? [], {
+          cursorPosition: this.cursorPosition,
+          selection: this.currentSelection(),
+        })
+      : undefined
+  }
+
+  private shiftRenderedLinePositionsAfter(lineNumber: number, delta: number): void {
+    if (delta === 0) {
+      return
+    }
+
+    for (const lineDOM of Array.from(this.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'))) {
+      const renderedLineNumber = Number(lineDOM.dataset.line)
+
+      if (!Number.isInteger(renderedLineNumber) || renderedLineNumber <= lineNumber) {
+        continue
+      }
+
+      const from = Number(lineDOM.dataset.from)
+      const to = Number(lineDOM.dataset.to)
+
+      if (Number.isInteger(from)) {
+        lineDOM.dataset.from = String(from + delta)
+      }
+
+      if (Number.isInteger(to)) {
+        lineDOM.dataset.to = String(to + delta)
+      }
+
+      for (const mapped of Array.from(lineDOM.querySelectorAll<HTMLElement>('[data-from][data-to]'))) {
+        const mappedFrom = Number(mapped.dataset.from)
+        const mappedTo = Number(mapped.dataset.to)
+
+        if (Number.isInteger(mappedFrom)) {
+          mapped.dataset.from = String(mappedFrom + delta)
+        }
+
+        if (Number.isInteger(mappedTo)) {
+          mapped.dataset.to = String(mappedTo + delta)
+        }
+      }
+    }
   }
 }
 
@@ -646,10 +1284,12 @@ function renderLiveLine(
   document: Document,
   line: SourceLine,
   blocks: readonly SyntaxNode[],
+  options: { readonly cursorPosition?: number; readonly selection?: Selection } = {},
 ): HTMLElement {
   const lineDOM = createLineElement(document, line)
   lineDOM.classList.add('milkup-line-live')
   applyLiveBlockClasses(lineDOM, line, blocks)
+  const selection = options.selection ?? Selection.cursor(options.cursorPosition ?? line.from)
 
   const heading = findBlockForLine(blocks, 'heading', line.from, line.to)
   const blockquoteLine = findBlockForLine(blocks, 'blockquoteLine', line.from, line.to)
@@ -661,40 +1301,66 @@ function renderLiveLine(
     lineDOM.replaceChildren(
       ...renderMappedLinePieces(document, line, heading, {
         contentClassName: 'milkup-heading-content',
-        markerClassName: 'milkup-heading-marker milkup-marker-hidden',
+        markerClassName: markerClassNameForSelection(
+          'milkup-block-marker milkup-heading-marker',
+          line,
+          heading,
+          selection,
+        ),
+        selection,
       }),
     )
   } else if (blockquoteLine) {
     lineDOM.replaceChildren(
       ...renderMappedLinePieces(document, line, blockquoteLine, {
         contentClassName: 'milkup-blockquote-content',
-        markerClassName: 'milkup-blockquote-marker milkup-marker-hidden',
+        markerClassName: markerClassNameForSelection(
+          'milkup-block-marker milkup-blockquote-marker',
+          line,
+          blockquoteLine,
+          selection,
+        ),
+        selection,
       }),
     )
   } else if (tableRow) {
     lineDOM.replaceChildren(
       ...renderMappedLinePieces(document, line, tableRow, {
-        contentClassName: 'milkup-table-cell-content',
-        markerClassName: 'milkup-table-marker',
+        contentClassName: 'milkup-table-cell',
+        markerClassName: 'milkup-block-marker milkup-table-marker milkup-marker-hidden',
+        selection,
       }),
     )
   } else if (table) {
     lineDOM.classList.add('milkup-table-delimiter')
     lineDOM.replaceChildren(
-      ...renderHiddenLine(document, line, 'milkup-table-marker milkup-marker-hidden'),
+      ...renderHiddenLine(document, line, 'milkup-block-marker milkup-table-marker milkup-marker-hidden'),
     )
   } else if (listItem) {
-    lineDOM.replaceChildren(
-      ...renderMappedLinePieces(document, line, listItem, {
-        contentClassName: 'milkup-list-content',
-        markerClassName: 'milkup-list-marker milkup-marker-hidden',
-      }),
-    )
+    lineDOM.replaceChildren(...renderListItemLinePieces(document, line, selection, listItem))
   } else {
-    lineDOM.textContent = line.text.length > 0 ? line.text : '\u200b'
+    lineDOM.replaceChildren(...renderInlineDecorations(document, line, selection, line.from, line.to))
   }
 
   return lineDOM
+}
+
+function markerClassNameForSelection(
+  baseClassName: string,
+  line: SourceLine,
+  node: SyntaxNode,
+  selection: Selection,
+): string {
+  const shouldShow = selection.ranges.some((range) =>
+    range.empty
+      ? range.head >= line.from &&
+        range.head <= line.to &&
+        range.head >= node.from &&
+        range.head <= node.to
+      : range.from < node.to && range.to > node.from,
+  )
+
+  return shouldShow ? baseClassName : `${baseClassName} milkup-marker-hidden`
 }
 
 function createLineElement(document: Document, line: SourceLine): HTMLElement {
@@ -764,6 +1430,56 @@ function readWindowGapText(
   return text.length === to - from ? text : '\n'.repeat(to - from)
 }
 
+function mergeSourceDocumentEdits(
+  previous: SourceDocumentEdit,
+  next: SourceDocumentEdit,
+): SourceDocumentEdit | undefined {
+  if (
+    previous.from === previous.to &&
+    next.from === previous.from + previous.insert.length &&
+    next.from === next.to &&
+    previous.deletedText.length === 0 &&
+    next.deletedText.length === 0
+  ) {
+    return Object.freeze({
+      from: previous.from,
+      to: previous.to,
+      insert: previous.insert + next.insert,
+      deletedText: '',
+    })
+  }
+
+  if (
+    previous.insert.length === 0 &&
+    next.insert.length === 0 &&
+    next.from === previous.from &&
+    next.to === previous.from + next.deletedText.length
+  ) {
+    return Object.freeze({
+      from: previous.from,
+      to: previous.to + next.deletedText.length,
+      insert: '',
+      deletedText: previous.deletedText + next.deletedText,
+    })
+  }
+
+  if (
+    previous.insert.length === 0 &&
+    next.insert.length === 0 &&
+    next.to === previous.from &&
+    next.from + next.deletedText.length === previous.from
+  ) {
+    return Object.freeze({
+      from: next.from,
+      to: previous.to,
+      insert: '',
+      deletedText: next.deletedText + previous.deletedText,
+    })
+  }
+
+  return undefined
+}
+
 function applyLiveBlockClasses(
   lineDOM: HTMLElement,
   line: SourceLine,
@@ -808,6 +1524,7 @@ function renderMappedLinePieces(
   classNames: {
     readonly contentClassName: string
     readonly markerClassName: string
+    readonly selection: Selection
   },
 ): readonly Node[] {
   const pieces = [
@@ -840,7 +1557,15 @@ function renderMappedLinePieces(
       rendered.push(createMappedSpan(document, line, position, piece.from, 'milkup-live-text'))
     }
 
-    rendered.push(createMappedSpan(document, line, piece.from, piece.to, piece.className))
+    if (piece.className === classNames.contentClassName) {
+      const content = createMappedSpan(document, line, piece.from, piece.to, piece.className)
+      content.replaceChildren(
+        ...renderInlineDecorations(document, line, classNames.selection, piece.from, piece.to),
+      )
+      rendered.push(content)
+    } else {
+      rendered.push(createMappedSpan(document, line, piece.from, piece.to, piece.className))
+    }
     position = Math.max(position, piece.to)
   }
 
@@ -863,6 +1588,255 @@ function renderHiddenLine(
   return Object.freeze([createMappedSpan(document, line, line.from, line.to, className)])
 }
 
+function renderListItemLinePieces(
+  document: Document,
+  line: SourceLine,
+  selection: Selection,
+  listItem: SyntaxNode,
+): readonly Node[] {
+  const pieces = collectListItemLinePieces(line, listItem)
+
+  if (pieces.length === 0) {
+    return renderInlineDecorations(document, line, selection, line.from, line.to)
+  }
+
+  const rendered: Node[] = []
+  let position = line.from
+
+  for (const piece of pieces) {
+    if (piece.from > position) {
+      rendered.push(createMappedSpan(document, line, position, piece.from, 'milkup-live-text'))
+    }
+
+    if (piece.kind === 'marker') {
+      const marker = createMappedSpan(document, line, piece.from, piece.to, 'milkup-list-marker')
+      marker.textContent = formatListMarker(sourceSlice(line, piece.from, piece.to))
+      rendered.push(marker)
+    } else if (piece.kind === 'taskMarker') {
+      const task = createMappedSpan(document, line, piece.from, piece.to, 'milkup-task-marker')
+      task.dataset.checked = String(/[xX]/u.test(sourceSlice(line, piece.from, piece.to)))
+      task.setAttribute('aria-hidden', 'true')
+      task.textContent = ''
+      rendered.push(task)
+    } else {
+      const content = createMappedSpan(document, line, piece.from, piece.to, 'milkup-list-content')
+      content.replaceChildren(
+        ...renderInlineDecorations(document, line, selection, piece.from, piece.to),
+      )
+      rendered.push(content)
+    }
+
+    position = piece.to
+  }
+
+  if (position < line.to) {
+    rendered.push(createMappedSpan(document, line, position, line.to, 'milkup-live-text'))
+  }
+
+  return Object.freeze(rendered)
+}
+
+function collectListItemLinePieces(line: SourceLine, listItem: SyntaxNode): readonly InlinePiece[] {
+  const pieces: InlinePiece[] = []
+
+  for (const range of listItem.markerRanges ?? []) {
+    if (rangesIntersect(range.from, range.to, line.from, line.to)) {
+      pieces.push({
+        from: clamp(range.from, line.from, line.to),
+        to: clamp(range.to, line.from, line.to),
+        kind: 'marker',
+      })
+    }
+  }
+
+  for (const range of listItem.contentRanges ?? []) {
+    if (!rangesIntersect(range.from, range.to, line.from, line.to)) {
+      continue
+    }
+
+    const taskMarker = taskMarkerRange(line, range.from, range.to)
+
+    if (taskMarker && rangesIntersect(taskMarker.from, taskMarker.to, line.from, line.to)) {
+      pieces.push({
+        from: clamp(taskMarker.from, line.from, line.to),
+        to: clamp(taskMarker.to, line.from, line.to),
+        kind: 'taskMarker',
+      })
+    }
+
+    const contentFrom = taskMarker ? taskMarker.to : range.from
+    const pieceFrom = clamp(contentFrom, line.from, line.to)
+    const pieceTo = clamp(range.to, line.from, line.to)
+
+    if (pieceTo > pieceFrom) {
+      pieces.push({
+        from: pieceFrom,
+        to: pieceTo,
+        kind: 'content',
+      })
+    }
+  }
+
+  return Object.freeze(pieces.sort((left, right) => left.from - right.from || left.to - right.to))
+}
+
+function renderInlineDecorations(
+  document: Document,
+  line: SourceLine,
+  selection: Selection,
+  from: number,
+  to: number,
+): readonly Node[] {
+  if (to <= from) {
+    return [document.createTextNode('\u200b')]
+  }
+
+  const localFrom = from - line.from
+  const localTo = to - line.from
+  const nodes = parseInline(line.text, localFrom, localTo)
+  const fragments: Node[] = []
+  let position = localFrom
+
+  for (const node of nodes) {
+    if (node.from > position) {
+      fragments.push(
+        createMappedSpan(
+          document,
+          line,
+          line.from + position,
+          line.from + node.from,
+          'milkup-live-text',
+        ),
+      )
+    }
+
+    fragments.push(renderInlineNode(document, line, selection, node))
+    position = node.to
+  }
+
+  if (position < localTo) {
+    fragments.push(
+      createMappedSpan(
+        document,
+        line,
+        line.from + position,
+        line.from + localTo,
+        'milkup-live-text',
+      ),
+    )
+  }
+
+  return Object.freeze(fragments)
+}
+
+function renderInlineNode(
+  document: Document,
+  line: SourceLine,
+  selection: Selection,
+  node: SyntaxNode,
+): Node {
+  const span = document.createElement('span')
+  span.className = `milkup-inline milkup-inline-${node.type}`
+  span.dataset.from = String(line.from + node.from)
+  span.dataset.to = String(line.from + node.to)
+  span.dataset.status = node.status
+  span.dataset.syntaxVisible = String(shouldShowInlineSyntax(line, node, selection))
+  span.replaceChildren(...renderInlineNodePieces(document, line, selection, node))
+  return span
+}
+
+function renderInlineNodePieces(
+  document: Document,
+  line: SourceLine,
+  selection: Selection,
+  node: SyntaxNode,
+): readonly Node[] {
+  const pieces = collectInlinePieces(node)
+
+  if (pieces.length === 0) {
+    return [
+      createMappedSpan(
+        document,
+        line,
+        line.from + node.from,
+        line.from + node.to,
+        'milkup-live-text',
+      ),
+    ]
+  }
+
+  const showSyntax = shouldShowInlineSyntax(line, node, selection)
+  const rendered: Node[] = []
+  let position = node.from
+
+  for (const piece of pieces) {
+    if (piece.from > position) {
+      rendered.push(
+        createMappedSpan(
+          document,
+          line,
+          line.from + position,
+          line.from + piece.from,
+          'milkup-live-text',
+        ),
+      )
+    }
+
+    const span = createMappedSpan(
+      document,
+      line,
+      line.from + piece.from,
+      line.from + piece.to,
+      `milkup-inline-${piece.kind}`,
+    )
+
+    if (piece.kind !== 'content' && !showSyntax) {
+      span.classList.add('milkup-marker-hidden')
+    }
+
+    rendered.push(span)
+    position = piece.to
+  }
+
+  if (position < node.to) {
+    rendered.push(
+      createMappedSpan(document, line, line.from + position, line.from + node.to, 'milkup-live-text'),
+    )
+  }
+
+  return Object.freeze(rendered)
+}
+
+function collectInlinePieces(node: SyntaxNode): readonly InlinePiece[] {
+  const pieces: InlinePiece[] = []
+
+  for (const range of node.markerRanges ?? []) {
+    pieces.push({ ...range, kind: 'marker' })
+  }
+
+  for (const [index, range] of (node.contentRanges ?? []).entries()) {
+    pieces.push({
+      ...range,
+      kind: node.type === 'link' && index > 0 ? 'syntax' : 'content',
+    })
+  }
+
+  return Object.freeze(pieces.sort((left, right) => left.from - right.from || left.to - right.to))
+}
+
+function shouldShowInlineSyntax(line: SourceLine, node: SyntaxNode, selection: Selection): boolean {
+  if (node.status !== 'valid') {
+    return true
+  }
+
+  const from = line.from + node.from
+  const to = line.from + node.to
+
+  return selection.ranges.some((range) =>
+    range.empty ? range.head >= from && range.head <= to : range.from < to && range.to > from,
+  )
+}
+
 function createMappedSpan(
   document: Document,
   line: SourceLine,
@@ -876,6 +1850,43 @@ function createMappedSpan(
   span.dataset.to = String(to)
   span.textContent = line.text.slice(from - line.from, to - line.from)
   return span
+}
+
+function sourceSlice(line: SourceLine, from: number, to: number): string {
+  return line.text.slice(from - line.from, to - line.from)
+}
+
+function formatListMarker(marker: string): string {
+  const trimmed = marker.trim()
+
+  if (trimmed === '-' || trimmed === '*' || trimmed === '+') {
+    return '•'
+  }
+
+  return trimmed
+}
+
+function taskMarkerRange(
+  line: SourceLine,
+  from: number,
+  to: number,
+): { readonly from: number; readonly to: number } | undefined {
+  const text = sourceSlice(line, from, to)
+  const match = /^(\s*\[[ xX]\]\s*)/u.exec(text)
+
+  if (!match) {
+    return undefined
+  }
+
+  return { from, to: from + (match[1]?.length ?? 0) }
+}
+
+type InlinePieceKind = 'content' | 'marker' | 'syntax' | 'taskMarker'
+
+interface InlinePiece {
+  readonly from: number
+  readonly to: number
+  readonly kind: InlinePieceKind
 }
 
 function findBlockForLine(
@@ -911,6 +1922,15 @@ function rangeContainsLine(node: SyntaxNode, lineFrom: number, lineTo: number): 
   return node.from <= lineFrom && node.to >= lineTo
 }
 
+function rangesIntersect(
+  leftFrom: number,
+  leftTo: number,
+  rightFrom: number,
+  rightTo: number,
+): boolean {
+  return leftFrom < rightTo && leftTo > rightFrom
+}
+
 function renderSpacer(document: Document, position: 'top' | 'bottom', height: number): HTMLElement {
   const spacer = document.createElement('div')
   spacer.className = 'milkup-virtual-spacer'
@@ -919,242 +1939,19 @@ function renderSpacer(document: Document, position: 'top' | 'bottom', height: nu
   return spacer
 }
 
-function lineElementFromEvent(
-  event: Event,
-  contentDOM: HTMLElement,
-  excludedDOM?: HTMLElement,
-): HTMLElement | undefined {
-  const target = event.target
-
-  if (!(target instanceof Node) || target === excludedDOM || excludedDOM?.contains(target)) {
-    return undefined
-  }
-
-  const element = target instanceof HTMLElement ? target : target.parentElement
-  const line = element?.closest<HTMLElement>('.milkup-line')
-
-  return line && contentDOM.contains(line) ? line : undefined
-}
-
-function sourcePositionFromPointer(lineDOM: HTMLElement, event: MouseEvent): number | undefined {
-  const caret = caretPointFromDocument(lineDOM.ownerDocument, event.clientX, event.clientY)
-
-  if (caret && lineDOM.contains(caret.node)) {
-    const fromText = sourcePositionFromTextNode(
-      caret.node,
-      nearestTextOffsetFromPoint(caret.node, caret.offset, event.clientX),
-      lineDOM,
-    )
-
-    if (fromText !== undefined) {
-      return fromText
-    }
-  }
-
-  const target = event.target
-  const element =
-    target instanceof HTMLElement ? target : target instanceof Node ? target.parentElement : null
-  const mapped = element?.closest<HTMLElement>('[data-from][data-to]')
-
-  if (mapped && lineDOM.contains(mapped)) {
-    const from = Number(mapped.dataset.from)
-    const to = Number(mapped.dataset.to)
-
-    if (Number.isInteger(from) && Number.isInteger(to)) {
-      return clamp(from + estimateElementOffsetFromPointer(mapped, event), from, to)
-    }
-  }
-
-  const from = Number(lineDOM.dataset.from)
-  const to = Number(lineDOM.dataset.to)
-
-  if (!Number.isInteger(from) || !Number.isInteger(to)) {
-    return undefined
-  }
-
-  return clamp(from + estimateElementOffsetFromPointer(lineDOM, event), from, to)
-}
-
-interface CaretPoint {
-  readonly node: Node
-  readonly offset: number
-}
-
-function caretPointFromDocument(document: Document, x: number, y: number): CaretPoint | undefined {
-  const documentWithCaretPosition = document as Document & {
-    caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null
-    caretRangeFromPoint?: (x: number, y: number) => Range | null
-  }
-  const position = documentWithCaretPosition.caretPositionFromPoint?.(x, y)
-
-  if (position) {
-    return { node: position.offsetNode, offset: position.offset }
-  }
-
-  const range = documentWithCaretPosition.caretRangeFromPoint?.(x, y)
-
-  if (range) {
-    return { node: range.startContainer, offset: range.startOffset }
-  }
-
-  return undefined
-}
-
-function sourcePositionFromTextNode(
-  node: Node,
-  offset: number,
+function lineLayerTop(
   lineDOM: HTMLElement,
-): number | undefined {
-  const mapped = closestSourceMappedElement(node, lineDOM)
-  const from = Number(mapped?.dataset.from ?? lineDOM.dataset.from)
-  const to = Number(mapped?.dataset.to ?? lineDOM.dataset.to)
+  layerDOM: HTMLElement,
+  lineNumber: number,
+  lineHeight: number,
+): number {
+  const measuredTop = lineDOM.offsetTop - layerDOM.offsetTop
 
-  if (!Number.isInteger(from) || !Number.isInteger(to)) {
-    return undefined
+  if (measuredTop !== 0) {
+    return measuredTop
   }
 
-  const textOffset = mapped ? textOffsetWithinElement(mapped, node, offset) : offset
-  return clamp(from + textOffset, from, to)
-}
-
-function nearestTextOffsetFromPoint(node: Node, offset: number, clientX: number): number {
-  if (!(node instanceof Text) || node.data.length === 0 || !Number.isFinite(clientX)) {
-    return offset
-  }
-
-  const currentOffset = clamp(offset, 0, node.data.length)
-  const candidates = [currentOffset]
-
-  if (currentOffset > 0) {
-    candidates.push(currentOffset - 1)
-  }
-
-  if (currentOffset < node.data.length) {
-    candidates.push(currentOffset + 1)
-  }
-
-  let bestOffset = currentOffset
-  let bestDistance = Number.POSITIVE_INFINITY
-
-  for (const candidate of candidates) {
-    const rect = caretRectForTextOffset(node, candidate)
-
-    if (!rect) {
-      continue
-    }
-
-    const distance = Math.abs(clientX - rect.left)
-
-    if (distance < bestDistance) {
-      bestDistance = distance
-      bestOffset = candidate
-    }
-  }
-
-  return bestOffset
-}
-
-function caretRectForTextOffset(node: Text, offset: number): DOMRect | undefined {
-  const range = node.ownerDocument.createRange()
-  range.setStart(node, offset)
-  range.collapse(true)
-
-  if (typeof range.getBoundingClientRect !== 'function') {
-    range.detach()
-    return undefined
-  }
-
-  const rect = range.getBoundingClientRect()
-  range.detach()
-
-  return Number.isFinite(rect.left) ? rect : undefined
-}
-
-function closestSourceMappedElement(node: Node, lineDOM: HTMLElement): HTMLElement | undefined {
-  for (
-    let element = node instanceof HTMLElement ? node : node.parentElement;
-    element && element !== lineDOM.parentElement;
-    element = element.parentElement
-  ) {
-    if (
-      element.dataset.from !== undefined &&
-      element.dataset.to !== undefined &&
-      !element.classList.contains('milkup-marker-hidden')
-    ) {
-      return element
-    }
-  }
-
-  return lineDOM
-}
-
-function textOffsetWithinElement(root: HTMLElement, node: Node, offset: number): number {
-  if (!root.contains(node)) {
-    return offset
-  }
-
-  let textOffset = 0
-  const walker = root.ownerDocument.createTreeWalker(root, NodeFilter.SHOW_TEXT)
-  let current = walker.nextNode()
-
-  while (current) {
-    if (current === node) {
-      return textOffset + offset
-    }
-
-    if (current instanceof Text && !isHiddenTextNode(current, root)) {
-      textOffset += current.data.length
-    }
-
-    current = walker.nextNode()
-  }
-
-  return offset
-}
-
-function visualOffsetForSourcePosition(lineDOM: HTMLElement, position: number): number {
-  const lineFrom = Number(lineDOM.dataset.from)
-  const lineTo = Number(lineDOM.dataset.to)
-
-  if (!Number.isInteger(lineFrom) || !Number.isInteger(lineTo)) {
-    return 0
-  }
-
-  const mappedElements = Array.from(lineDOM.querySelectorAll<HTMLElement>('[data-from][data-to]'))
-    .filter((element) => !element.classList.contains('milkup-marker-hidden'))
-    .sort((left, right) => Number(left.dataset.from) - Number(right.dataset.from))
-
-  if (mappedElements.length === 0) {
-    return clamp(position, lineFrom, lineTo) - lineFrom
-  }
-
-  let visualOffset = 0
-
-  for (const element of mappedElements) {
-    const from = Number(element.dataset.from)
-    const to = Number(element.dataset.to)
-    const textLength = element.textContent?.length ?? Math.max(0, to - from)
-
-    if (!Number.isInteger(from) || !Number.isInteger(to)) {
-      continue
-    }
-
-    if (position <= from) {
-      return visualOffset
-    }
-
-    if (position <= to) {
-      return visualOffset + clamp(position - from, 0, textLength)
-    }
-
-    visualOffset += textLength
-  }
-
-  return visualOffset
-}
-
-function lineVisualTop(lineDOM: HTMLElement, lineNumber: number, lineHeight: number): number {
-  return lineDOM.offsetTop || (lineNumber - 1) * lineHeight
+  return lineNumber <= 1 ? 0 : (lineNumber - 1) * lineHeight
 }
 
 function lineVisualHeight(lineDOM: HTMLElement, lineHeight: number): number {
@@ -1162,35 +1959,17 @@ function lineVisualHeight(lineDOM: HTMLElement, lineHeight: number): number {
   return rect.height > 0 ? rect.height : lineHeight
 }
 
-function estimateElementOffsetFromPointer(element: HTMLElement, event: MouseEvent): number {
-  const from = Number(element.dataset.from)
-  const to = Number(element.dataset.to)
-  const length =
-    Number.isInteger(from) && Number.isInteger(to)
-      ? Math.max(0, to - from)
-      : (element.textContent?.length ?? 0)
-  const rect = element.getBoundingClientRect()
+function lineCursorHeight(lineDOM: HTMLElement, fallbackLineHeight: number): number {
+  const view = lineDOM.ownerDocument.defaultView
+  const inlineFontSize = Number.parseFloat(lineDOM.style.fontSize)
+  const computedFontSize = view ? Number.parseFloat(view.getComputedStyle(lineDOM).fontSize) : 0
+  const fontSize = Number.isFinite(inlineFontSize) && inlineFontSize > 0 ? inlineFontSize : computedFontSize
 
-  if (!Number.isFinite(rect.left) || rect.width <= 0) {
-    return 0
+  if (Number.isFinite(fontSize) && fontSize > 0) {
+    return fontSize
   }
 
-  const ratio = clamp((event.clientX - rect.left) / Math.max(1, rect.width), 0, 1)
-  return clamp(Math.round(ratio * length), 0, length)
-}
-
-function isHiddenTextNode(node: Text, root: HTMLElement): boolean {
-  for (
-    let parent = node.parentElement;
-    parent && parent !== root.parentElement;
-    parent = parent.parentElement
-  ) {
-    if (parent.classList.contains('milkup-marker-hidden')) {
-      return true
-    }
-  }
-
-  return false
+  return fallbackLineHeight
 }
 
 function clamp(value: number, min: number, max: number): number {

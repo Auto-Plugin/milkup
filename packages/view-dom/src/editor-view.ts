@@ -28,6 +28,12 @@ import type {
   ViewUpdate,
   VirtualViewportConfig,
 } from './types'
+import {
+  domRectForLineVisualOffset,
+  domRectsForLineVisualRange,
+  lineElementFromEvent,
+  sourcePositionFromPoint,
+} from './source-position-mapping'
 
 const defaultViewMetrics: ViewMetrics = Object.freeze({
   charWidth: 8,
@@ -2204,49 +2210,6 @@ function resolveVirtualViewportState(
   })
 }
 
-function lineElementFromEvent(
-  event: MouseEvent,
-  contentDOM: HTMLElement,
-  overlayDOM?: HTMLElement,
-): HTMLElement | null {
-  if (event.target instanceof HTMLElement) {
-    const direct = event.target.closest<HTMLElement>('.milkup-line')
-
-    if (direct && contentDOM.contains(direct)) {
-      return direct
-    }
-  }
-
-  const previousPointerEvents = overlayDOM?.style.pointerEvents
-
-  if (overlayDOM) {
-    overlayDOM.style.pointerEvents = 'none'
-  }
-
-  const elements =
-    typeof contentDOM.ownerDocument.elementsFromPoint === 'function'
-      ? contentDOM.ownerDocument.elementsFromPoint(event.clientX, event.clientY)
-      : []
-
-  if (overlayDOM) {
-    overlayDOM.style.pointerEvents = previousPointerEvents ?? ''
-  }
-
-  for (const element of elements) {
-    if (!(element instanceof HTMLElement) || !contentDOM.contains(element)) {
-      continue
-    }
-
-    const line = element.closest<HTMLElement>('.milkup-line')
-
-    if (line && contentDOM.contains(line)) {
-      return line
-    }
-  }
-
-  return null
-}
-
 function domRectForSourcePosition(
   document: Document,
   contentDOM: HTMLElement,
@@ -2256,48 +2219,15 @@ function domRectForSourcePosition(
   position: number,
   root?: SyntaxNode,
 ): ViewRect | undefined {
-  if (typeof document.createRange !== 'function') {
-    return undefined
-  }
-
   const { line, offset } = positionToVisualLineOffset(state, mode, position, root)
   const lineDOM = contentDOM.querySelector<HTMLElement>(`.milkup-line[data-line="${line.number}"]`)
 
-  if (!lineDOM || !hasMeasurableLayout(lineDOM)) {
+  if (!lineDOM) {
     return undefined
   }
 
-  const lineRect = lineDOM.getBoundingClientRect()
-  const range = createRangeAtVisualOffset(document, lineDOM, offset)
-
-  if (!range) {
-    return rectFromLineStart(lineDOM, referenceDOM)
-  }
-
-  if (typeof range.getBoundingClientRect !== 'function') {
-    range.detach()
-    return undefined
-  }
-
-  const rect = range.getBoundingClientRect()
-  range.detach()
-
-  if (!isUsableMeasuredRect(rect, lineRect)) {
-    return undefined
-  }
-
-  const referenceRect = referenceDOM.getBoundingClientRect()
-  const height = rect.height > 0 ? rect.height : lineRect.height
-  const top = rect.top - referenceRect.top
-  const bottom = top + height
-
-  return Object.freeze({
-    left: rect.left - referenceRect.left,
-    top,
-    right: rect.right - referenceRect.left,
-    bottom,
-    width: rect.width,
-    height,
+  return domRectForLineVisualOffset(document, lineDOM, referenceDOM, offset, {
+    fallbackLineHeight: defaultViewMetrics.lineHeight,
   })
 }
 
@@ -2311,12 +2241,7 @@ function domRectsForSourceRange(
   to: number,
   root?: SyntaxNode,
 ): readonly ViewRect[] {
-  if (typeof document.createRange !== 'function') {
-    return []
-  }
-
   const rects: ViewRect[] = []
-  const layerRect = layerDOM.getBoundingClientRect()
   const rangeFrom = clamp(from, 0, state.doc.length)
   const rangeTo = clamp(to, rangeFrom, state.doc.length)
   const fromLine = state.doc.lineAt(rangeFrom)
@@ -2326,7 +2251,7 @@ function domRectsForSourceRange(
     const line = state.doc.line(lineNumber)
     const lineDOM = contentDOM.querySelector<HTMLElement>(`.milkup-line[data-line="${lineNumber}"]`)
 
-    if (!lineDOM || !hasMeasurableLayout(lineDOM)) {
+    if (!lineDOM) {
       continue
     }
 
@@ -2339,388 +2264,10 @@ function domRectsForSourceRange(
 
     const startOffset = positionToVisualLineOffset(state, mode, lineFrom, root).offset
     const endOffset = positionToVisualLineOffset(state, mode, lineTo, root).offset
-    const range = createRangeBetweenVisualOffsets(document, lineDOM, startOffset, endOffset)
-
-    if (!range) {
-      continue
-    }
-
-    const lineRect = lineDOM.getBoundingClientRect()
-    const clientRects = Array.from(range.getClientRects?.() ?? [])
-    const usableRects = clientRects.filter((rect) => isUsableMeasuredRect(rect, lineRect))
-
-    if (usableRects.length === 0 && typeof range.getBoundingClientRect === 'function') {
-      const rect = range.getBoundingClientRect()
-
-      if (isUsableMeasuredRect(rect, lineRect)) {
-        usableRects.push(rect)
-      }
-    }
-
-    range.detach()
-
-    for (const rect of usableRects) {
-      const top = rect.top - layerRect.top
-      const height = rect.height > 0 ? rect.height : lineRect.height
-
-      rects.push(
-        Object.freeze({
-          left: rect.left - layerRect.left,
-          top,
-          right: rect.right - layerRect.left,
-          bottom: top + height,
-          width: rect.width,
-          height,
-        }),
-      )
-    }
+    rects.push(...domRectsForLineVisualRange(document, lineDOM, layerDOM, startOffset, endOffset))
   }
 
   return Object.freeze(rects)
-}
-
-function createRangeAtVisualOffset(
-  document: Document,
-  lineDOM: HTMLElement,
-  visualOffset: number,
-): Range | undefined {
-  const textNodes = visibleTextNodes(lineDOM)
-  let remaining = Math.max(0, visualOffset)
-
-  for (const node of textNodes) {
-    const textLength = node.data.length
-
-    if (remaining <= textLength) {
-      const range = document.createRange()
-      range.setStart(node, remaining)
-      range.collapse(true)
-      return range
-    }
-
-    remaining -= textLength
-  }
-
-  const last = textNodes[textNodes.length - 1]
-
-  if (last) {
-    const range = document.createRange()
-    range.setStart(last, last.data.length)
-    range.collapse(true)
-    return range
-  }
-
-  return undefined
-}
-
-function createRangeBetweenVisualOffsets(
-  document: Document,
-  lineDOM: HTMLElement,
-  fromOffset: number,
-  toOffset: number,
-): Range | undefined {
-  const start = resolveTextPositionAtVisualOffset(lineDOM, fromOffset)
-  const end = resolveTextPositionAtVisualOffset(lineDOM, Math.max(fromOffset, toOffset))
-
-  if (!start || !end) {
-    return undefined
-  }
-
-  const range = document.createRange()
-  range.setStart(start.node, start.offset)
-  range.setEnd(end.node, end.offset)
-  return range
-}
-
-function resolveTextPositionAtVisualOffset(
-  lineDOM: HTMLElement,
-  visualOffset: number,
-): { readonly node: Text; readonly offset: number } | undefined {
-  const textNodes = visibleTextNodes(lineDOM)
-  let remaining = Math.max(0, visualOffset)
-
-  for (const node of textNodes) {
-    const textLength = node.data.length
-
-    if (remaining <= textLength) {
-      return { node, offset: remaining }
-    }
-
-    remaining -= textLength
-  }
-
-  const last = textNodes[textNodes.length - 1]
-
-  return last ? { node: last, offset: last.data.length } : undefined
-}
-
-function visibleTextNodes(root: HTMLElement): readonly Text[] {
-  const walker = root.ownerDocument.createTreeWalker(root, NodeFilter.SHOW_TEXT)
-  const nodes: Text[] = []
-  let current = walker.nextNode()
-
-  while (current) {
-    if (current instanceof Text && current.data.length > 0 && !isHiddenTextNode(current, root)) {
-      nodes.push(current)
-    }
-
-    current = walker.nextNode()
-  }
-
-  return Object.freeze(nodes)
-}
-
-function isHiddenTextNode(node: Text, root: HTMLElement): boolean {
-  for (
-    let parent = node.parentElement;
-    parent && parent !== root.parentElement;
-    parent = parent.parentElement
-  ) {
-    if (parent.classList.contains('milkup-marker-hidden')) {
-      return true
-    }
-  }
-
-  return false
-}
-
-function rectFromLineStart(lineDOM: HTMLElement, referenceDOM: HTMLElement): ViewRect | undefined {
-  const lineRect = lineDOM.getBoundingClientRect()
-
-  if (!hasMeasurableLayout(lineDOM)) {
-    return undefined
-  }
-
-  const referenceRect = referenceDOM.getBoundingClientRect()
-  const height = lineRect.height > 0 ? lineRect.height : defaultViewMetrics.lineHeight
-
-  return Object.freeze({
-    left: lineRect.left - referenceRect.left,
-    top: lineRect.top - referenceRect.top,
-    right: lineRect.left - referenceRect.left,
-    bottom: lineRect.top - referenceRect.top + height,
-    width: 0,
-    height,
-  })
-}
-
-function hasMeasurableLayout(element: HTMLElement): boolean {
-  const rect = element.getBoundingClientRect()
-  return rect.width > 0 || rect.height > 0
-}
-
-function isUsableMeasuredRect(rect: DOMRect, fallbackLineRect: DOMRect): boolean {
-  return (
-    Number.isFinite(rect.left) &&
-    Number.isFinite(rect.top) &&
-    (rect.width > 0 || rect.height > 0 || fallbackLineRect.height > 0)
-  )
-}
-
-function sourcePositionFromPoint(
-  lineDOM: HTMLElement,
-  event: MouseEvent,
-  overlayDOM?: HTMLElement,
-): number | undefined {
-  const point = caretPointFromDocument(
-    lineDOM.ownerDocument,
-    event.clientX,
-    event.clientY,
-    overlayDOM,
-  )
-
-  if (!point || !lineDOM.contains(point.node)) {
-    return undefined
-  }
-
-  if (point.node.nodeType === Node.TEXT_NODE) {
-    return sourcePositionFromTextNode(
-      point.node,
-      nearestTextOffsetFromPoint(point.node, point.offset, event.clientX),
-      lineDOM,
-    )
-  }
-
-  if (point.node instanceof HTMLElement) {
-    const child = point.node.childNodes.item(point.offset)
-    const textNode = findNearestTextNode(child, point.node)
-
-    if (textNode) {
-      return sourcePositionFromTextNode(textNode, 0, lineDOM)
-    }
-  }
-
-  return undefined
-}
-
-interface CaretPoint {
-  readonly node: Node
-  readonly offset: number
-}
-
-function caretPointFromDocument(
-  document: Document,
-  x: number,
-  y: number,
-  overlayDOM?: HTMLElement,
-): CaretPoint | undefined {
-  const documentWithCaretPosition = document as Document & {
-    caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null
-    caretRangeFromPoint?: (x: number, y: number) => Range | null
-  }
-  const previousPointerEvents = overlayDOM?.style.pointerEvents
-
-  if (overlayDOM) {
-    overlayDOM.style.pointerEvents = 'none'
-  }
-
-  try {
-    const position = documentWithCaretPosition.caretPositionFromPoint?.(x, y)
-
-    if (position) {
-      return { node: position.offsetNode, offset: position.offset }
-    }
-
-    const range = documentWithCaretPosition.caretRangeFromPoint?.(x, y)
-
-    if (range) {
-      return { node: range.startContainer, offset: range.startOffset }
-    }
-
-    return undefined
-  } finally {
-    if (overlayDOM) {
-      overlayDOM.style.pointerEvents = previousPointerEvents ?? ''
-    }
-  }
-}
-
-function sourcePositionFromTextNode(
-  node: Node,
-  offset: number,
-  lineDOM: HTMLElement,
-): number | undefined {
-  const parent = closestSourceMappedElement(node, lineDOM)
-  const from = Number(parent?.dataset.from ?? lineDOM.dataset.from)
-  const to = Number(parent?.dataset.to ?? lineDOM.dataset.to)
-
-  if (!Number.isInteger(from) || !Number.isInteger(to)) {
-    return undefined
-  }
-
-  const parentOffset = parent ? textOffsetWithinElement(parent, node, offset) : offset
-  return clamp(from + parentOffset, from, to)
-}
-
-function nearestTextOffsetFromPoint(node: Node, offset: number, clientX: number): number {
-  if (!(node instanceof Text) || node.data.length === 0 || !Number.isFinite(clientX)) {
-    return offset
-  }
-
-  const currentOffset = clamp(offset, 0, node.data.length)
-  const candidates = [currentOffset]
-
-  if (currentOffset > 0) {
-    candidates.push(currentOffset - 1)
-  }
-
-  if (currentOffset < node.data.length) {
-    candidates.push(currentOffset + 1)
-  }
-
-  let bestOffset = currentOffset
-  let bestDistance = Number.POSITIVE_INFINITY
-
-  for (const candidate of candidates) {
-    const rect = caretRectForTextOffset(node, candidate)
-
-    if (!rect) {
-      continue
-    }
-
-    const distance = Math.abs(clientX - rect.left)
-
-    if (distance < bestDistance) {
-      bestDistance = distance
-      bestOffset = candidate
-    }
-  }
-
-  return bestOffset
-}
-
-function caretRectForTextOffset(node: Text, offset: number): DOMRect | undefined {
-  const range = node.ownerDocument.createRange()
-  range.setStart(node, offset)
-  range.collapse(true)
-
-  if (typeof range.getBoundingClientRect !== 'function') {
-    range.detach()
-    return undefined
-  }
-
-  const rect = range.getBoundingClientRect()
-  range.detach()
-
-  if (!Number.isFinite(rect.left)) {
-    return undefined
-  }
-
-  return rect
-}
-
-function closestSourceMappedElement(node: Node, lineDOM: HTMLElement): HTMLElement | undefined {
-  for (
-    let element = node.parentElement;
-    element && element !== lineDOM.parentElement;
-    element = element.parentElement
-  ) {
-    if (
-      element.dataset.from !== undefined &&
-      element.dataset.to !== undefined &&
-      !element.classList.contains('milkup-marker-hidden')
-    ) {
-      return element
-    }
-  }
-
-  return lineDOM
-}
-
-function textOffsetWithinElement(root: HTMLElement, node: Node, offset: number): number {
-  if (!root.contains(node)) {
-    return offset
-  }
-
-  let textOffset = 0
-  const walker = root.ownerDocument.createTreeWalker(root, NodeFilter.SHOW_TEXT)
-  let current = walker.nextNode()
-
-  while (current) {
-    if (current === node) {
-      return textOffset + offset
-    }
-
-    if (current instanceof Text && !isHiddenTextNode(current, root)) {
-      textOffset += current.data.length
-    }
-
-    current = walker.nextNode()
-  }
-
-  return offset
-}
-
-function findNearestTextNode(node: Node | null, fallbackRoot: Node): Node | undefined {
-  if (node?.nodeType === Node.TEXT_NODE) {
-    return node
-  }
-
-  const walker = fallbackRoot.ownerDocument?.createTreeWalker(
-    node ?? fallbackRoot,
-    NodeFilter.SHOW_TEXT,
-  )
-
-  return walker?.nextNode() ?? undefined
 }
 
 function clamp(value: number, min: number, max: number): number {

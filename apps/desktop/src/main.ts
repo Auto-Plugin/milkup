@@ -1067,7 +1067,7 @@ function createNewDocument(): void {
 
   clearSearchResults()
   unwatchCurrentFile()
-  closeLargeDocumentPreview()
+  void closeLargeDocumentPreview()
   state = new EditorState({
     doc: new MemoryTextDocument(messages.newDocumentSource),
   })
@@ -1207,7 +1207,7 @@ function openDocumentResult(
   }
 
   unwatchCurrentFile()
-  closeLargeDocumentPreview()
+  void closeLargeDocumentPreview()
   clearSearchResults()
   tracker.mark('memory-document-start', result.file.path)
   state = new EditorState({
@@ -1251,7 +1251,7 @@ async function openNativeLargeDocument(
   })
 
   if (previousLargeDocumentId) {
-    void largeTextFileService.close(previousLargeDocumentId).catch(() => undefined)
+    await largeTextFileService.close(previousLargeDocumentId).catch(() => undefined)
   }
 
   unwatchCurrentFile()
@@ -1271,7 +1271,7 @@ async function openNativeLargeDocument(
     file: { path: preview.path },
     diskSnapshotHash: largeSnapshotHash(preview.version, preview.sizeBytes),
     readonly: openPolicy.metadata.readonly ?? false,
-    viewMode: 'source',
+    viewMode: 'live',
   })
   await applyLargeSourceView()
   tracker.mark('memory-document-end', `${preview.window.lines.length} preview lines`)
@@ -1492,7 +1492,7 @@ async function reloadExternalDocument(): Promise<void> {
   state = new EditorState({
     doc: new MemoryTextDocument(result.text),
   })
-  closeLargeDocumentPreview()
+  void closeLargeDocumentPreview()
   currentOpenPolicy = resolveDesktopOpenPolicy(metadataFromOpenFileResult(result))
   session = recordFileReloadResult(session, result)
   recentFiles = recordRecentFile(recentFiles, result.file, Date.now())
@@ -1708,7 +1708,7 @@ function closeCurrentDocument(): void {
   }
 
   unwatchCurrentFile()
-  closeLargeDocumentPreview()
+  void closeLargeDocumentPreview()
   clearSearchResults()
   state = new EditorState({
     doc: new MemoryTextDocument(''),
@@ -2121,12 +2121,14 @@ function configureWindowChrome(currentPlatform: DesktopPlatform): void {
       await window.setDecorations(false)
       await syncWindowMaximizedState()
       await window.onCloseRequested((event) => {
-        if (canCloseWindow()) {
+        if (!canCloseWindow()) {
+          event.preventDefault()
+          openWindowConfirm()
           return
         }
 
         event.preventDefault()
-        openWindowConfirm()
+        void invokeWindowClose()
       })
       await window.onResized(() => {
         void syncWindowMaximizedState()
@@ -2144,6 +2146,11 @@ function runWindowControl(action: WindowControlAction): void {
 
   if (action === 'close' && !canCloseWindow()) {
     openWindowConfirm()
+    return
+  }
+
+  if (action === 'close') {
+    void invokeWindowClose()
     return
   }
 
@@ -2249,6 +2256,7 @@ async function discardAndExitWindow(): Promise<void> {
 
 async function invokeWindowClose(): Promise<void> {
   closeWindowConfirm()
+  await closeLargeDocumentPreview()
 
   if (platform !== 'windows') {
     return
@@ -2322,7 +2330,7 @@ function renderSession(): void {
 
   const dirtyDot = app?.querySelector<HTMLElement>('[data-save-dot]')
   dirtyDot?.classList.toggle('is-dirty', session.dirty)
-  appRoot.dataset.emptyDocument = String(state.doc.length === 0)
+  appRoot.dataset.emptyDocument = String(!largeDocumentPreview && state.doc.length === 0)
   appRoot.dataset.readonly = String(session.readonly)
   appRoot.dataset.loading = loadingState.phase
   view?.setEditable(!session.readonly && !isDocumentBusy())
@@ -2407,7 +2415,7 @@ function unwatchCurrentFile(): void {
   })
 }
 
-function closeLargeDocumentPreview(): void {
+async function closeLargeDocumentPreview(): Promise<void> {
   clearSearchResults()
   const documentId = largeDocumentPreview?.documentId
   largeDocumentPreview = undefined
@@ -2416,7 +2424,7 @@ function closeLargeDocumentPreview(): void {
     return
   }
 
-  void largeTextFileService.close(documentId).catch(() => undefined)
+  await largeTextFileService.close(documentId).catch(() => undefined)
 }
 
 function updateModeToggle(mode: ViewMode): void {
@@ -2932,4 +2940,5 @@ Object.assign(globalThis, {
 
 globalThis.addEventListener('beforeunload', () => {
   disposeFileWatchEvents?.()
+  void closeLargeDocumentPreview()
 })

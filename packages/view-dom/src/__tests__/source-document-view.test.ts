@@ -1,4 +1,4 @@
-import { MemoryDocumentSource, type DocumentLineWindow } from '@milkup/core'
+import { MemoryDocumentSource, MemoryTextDocument, type DocumentLineWindow } from '@milkup/core'
 import { describe, expect, it, vi } from 'vitest'
 
 import { SourceDocumentView } from '../index'
@@ -224,7 +224,9 @@ describe('SourceDocumentView', () => {
     view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'x', bubbles: true }))
     await flushPromises()
 
-    expect(view.contentDOM.querySelector<HTMLElement>('.milkup-cursor')?.dataset.position).toBe('5')
+    expect(view.dom.querySelector<HTMLElement>('.milkup-cursor')?.dataset.position).toBe('5')
+    expect(onEdit).not.toHaveBeenCalled()
+    await delay(40)
     expect(onEdit).toHaveBeenCalledWith({ from: 4, to: 4, insert: 'x', deletedText: '' })
   })
 
@@ -255,7 +257,177 @@ describe('SourceDocumentView', () => {
       ({ left: 0, top: 123, right: 60, bottom: 143, width: 60, height: 20 }) as DOMRect
     line!.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientX: 0, clientY: 130 }))
 
-    expect(view.contentDOM.querySelector<HTMLElement>('.milkup-cursor')?.style.top).toBe('123px')
+    expect(view.dom.querySelector<HTMLElement>('.milkup-cursor')?.style.top).toBe('123px')
+  })
+
+  it('moves the source cursor with arrow keys without editing', async () => {
+    const parent = document.createElement('main')
+    const onEdit = vi.fn()
+    const view = new SourceDocumentView({
+      parent,
+      source: new MemoryDocumentSource({
+        documentId: 'source-doc',
+        text: ['alpha', 'beta'].join('\n'),
+      }),
+      editable: true,
+      onEdit,
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 40,
+        overscanLines: 0,
+      },
+    })
+
+    await view.renderVisibleWindow()
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    await flushPromises()
+
+    expect(view.dom.querySelector<HTMLElement>('.milkup-cursor')?.dataset.position).toBe('1')
+    expect(onEdit).not.toHaveBeenCalled()
+  })
+
+  it('handles source cursor arrow keys from the focused root element', async () => {
+    const parent = document.createElement('main')
+    const view = new SourceDocumentView({
+      parent,
+      source: new MemoryDocumentSource({
+        documentId: 'source-doc',
+        text: 'alpha',
+      }),
+      editable: true,
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 40,
+        overscanLines: 0,
+      },
+    })
+
+    await view.renderVisibleWindow()
+    view.dom.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    await flushPromises()
+
+    expect(view.dom.querySelector<HTMLElement>('.milkup-cursor')?.dataset.position).toBe('1')
+  })
+
+  it('moves the source cursor vertically by preserving line offset', async () => {
+    const parent = document.createElement('main')
+    const view = new SourceDocumentView({
+      parent,
+      source: new MemoryDocumentSource({
+        documentId: 'source-doc',
+        text: ['alpha', 'beta'].join('\n'),
+      }),
+      editable: true,
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 40,
+        overscanLines: 0,
+      },
+    })
+
+    await view.renderVisibleWindow()
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    await flushPromises()
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }))
+    await flushPromises()
+
+    expect(view.dom.querySelector<HTMLElement>('.milkup-cursor')?.dataset.position).toBe('8')
+  })
+
+  it('moves vertically from rendered lines when the source cannot resolve positions directly', async () => {
+    const parent = document.createElement('main')
+    const view = new SourceDocumentView({
+      parent,
+      source: new RenderedOnlyLineSource({
+        documentId: 'source-doc',
+        text: ['alpha', 'beta'].join('\n'),
+      }),
+      editable: true,
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 40,
+        overscanLines: 0,
+      },
+    })
+
+    await view.renderVisibleWindow()
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    await flushPromises()
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }))
+    await flushPromises()
+
+    expect(view.dom.querySelector<HTMLElement>('.milkup-cursor')?.dataset.position).toBe('8')
+  })
+
+  it('uses measured line width when source cursor range measurement is unavailable', async () => {
+    const parent = document.createElement('main')
+    const view = new SourceDocumentView({
+      parent,
+      source: new MemoryDocumentSource({
+        documentId: 'source-doc',
+        text: 'abcdef',
+      }),
+      editable: true,
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 40,
+        overscanLines: 0,
+      },
+    })
+
+    await view.renderVisibleWindow()
+    const line = view.contentDOM.querySelector<HTMLElement>('.milkup-line[data-line="1"]')
+
+    expect(line).not.toBeNull()
+
+    line!.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, right: 72, bottom: 20, width: 72, height: 20 }) as DOMRect
+
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    await flushPromises()
+
+    expect(view.dom.querySelector<HTMLElement>('.milkup-cursor')?.style.left).toBe('36px')
+  })
+
+  it('uses font-size instead of line-height for the source cursor height', async () => {
+    const parent = document.createElement('main')
+    const view = new SourceDocumentView({
+      parent,
+      source: new MemoryDocumentSource({
+        documentId: 'source-doc',
+        text: 'alpha',
+      }),
+      editable: true,
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 24,
+        viewportHeight: 40,
+        overscanLines: 0,
+      },
+    })
+
+    await view.renderVisibleWindow()
+    const line = view.contentDOM.querySelector<HTMLElement>('.milkup-line[data-line="1"]')
+
+    expect(line).not.toBeNull()
+
+    line!.style.fontSize = '14px'
+    line!.style.lineHeight = '24px'
+    line!.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, right: 50, bottom: 24, width: 50, height: 24 }) as DOMRect
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    await flushPromises()
+
+    expect(view.dom.querySelector<HTMLElement>('.milkup-cursor')?.style.height).toBe('14px')
   })
 
   it('caches live markdown windows by document version and line range', async () => {
@@ -283,6 +455,78 @@ describe('SourceDocumentView', () => {
     expect(
       source.requests.filter((request) => request.fromLine === 1 && request.toLine === 2),
     ).toHaveLength(1)
+  })
+
+  it('shows live block syntax around the source cursor', async () => {
+    const parent = document.createElement('main')
+    const view = new SourceDocumentView({
+      parent,
+      source: new MemoryDocumentSource({
+        documentId: 'source-doc',
+        text: ['intro', '# A'].join('\n'),
+      }),
+      mode: 'live',
+      editable: true,
+      markdownContextLines: 0,
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 40,
+        overscanLines: 0,
+      },
+    })
+
+    await view.renderVisibleWindow()
+
+    expect(
+      view.contentDOM
+        .querySelector<HTMLElement>('.milkup-heading-marker')
+      ?.classList.contains('milkup-marker-hidden'),
+    ).toBe(true)
+
+    view.contentDOM
+      .querySelector<HTMLElement>('.milkup-heading-content')
+      ?.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientX: 0, clientY: 0 }))
+    await flushPromises()
+
+    expect(
+      view.contentDOM
+        .querySelector<HTMLElement>('.milkup-heading-marker')
+        ?.classList.contains('milkup-marker-hidden'),
+    ).toBe(false)
+  })
+
+  it('patches the edited visible source line without rereading the window', async () => {
+    const parent = document.createElement('main')
+    const source = new RecordingDocumentSource({
+      documentId: 'source-doc',
+      text: ['alpha', 'beta', 'gamma'].join('\n'),
+    })
+    const onEdit = vi.fn(async () => {
+      source.updateText(['xalpha', 'beta', 'gamma'].join('\n'))
+    })
+    const view = new SourceDocumentView({
+      parent,
+      source,
+      editable: true,
+      onEdit,
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 60,
+        overscanLines: 0,
+      },
+    })
+
+    await view.renderVisibleWindow()
+    source.requests.length = 0
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'x', bubbles: true }))
+    await flushPromises()
+
+    expect(source.requests).toEqual([])
+    expect(view.contentDOM.querySelector<HTMLElement>('.milkup-line[data-line="1"]')?.textContent).toBe(
+      'xalpha',
+    )
   })
 
   it('warms markdown windows around the visible viewport without repeated source reads', async () => {
@@ -343,8 +587,10 @@ describe('SourceDocumentView', () => {
 
     await view.renderVisibleWindow()
     view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'x', bubbles: true }))
-    await Promise.resolve()
+    await flushPromises()
 
+    expect(onEdit).not.toHaveBeenCalled()
+    await delay(40)
     expect(onEdit).toHaveBeenCalledWith({ from: 0, to: 0, insert: 'x', deletedText: '' })
   })
 
@@ -375,12 +621,130 @@ describe('SourceDocumentView', () => {
       .querySelector<HTMLElement>('.milkup-line[data-line="2"]')
       ?.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, shiftKey: true }))
 
-    expect(view.contentDOM.querySelector<HTMLElement>('.milkup-selection')).not.toBeNull()
+    expect(view.dom.querySelector<HTMLElement>('.milkup-selection')).not.toBeNull()
 
     view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }))
     await flushPromises()
 
     expect(onEdit).toHaveBeenCalledWith({ from: 0, to: 6, insert: '', deletedText: 'alpha\n' })
+  })
+
+  it('renders live list markers like the regular editor', async () => {
+    const parent = document.createElement('main')
+    const view = new SourceDocumentView({
+      parent,
+      source: new MemoryDocumentSource({
+        documentId: 'source-doc',
+        text: ['- one', '3. two'].join('\n'),
+      }),
+      mode: 'live',
+      markdownContextLines: 0,
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 40,
+        overscanLines: 0,
+      },
+    })
+
+    await view.renderVisibleWindow()
+
+    const markers = Array.from(view.contentDOM.querySelectorAll<HTMLElement>('.milkup-list-marker'))
+
+    expect(markers.map((marker) => marker.textContent)).toEqual(['•', '3.'])
+    expect(markers[0]?.classList.contains('milkup-marker-hidden')).toBe(false)
+  })
+
+  it('creates a selection while dragging through a rendered source window', async () => {
+    const parent = document.createElement('main')
+    const view = new SourceDocumentView({
+      parent,
+      source: new MemoryDocumentSource({
+        documentId: 'source-doc',
+        text: 'alpha',
+      }),
+      editable: true,
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 40,
+        overscanLines: 0,
+      },
+    })
+
+    await view.renderVisibleWindow()
+    const line = view.contentDOM.querySelector<HTMLElement>('.milkup-line[data-line="1"]')
+
+    expect(line).not.toBeNull()
+    line!.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, right: 50, bottom: 20, width: 50, height: 20 }) as DOMRect
+    view.selectionLayerDOM.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, right: 50, bottom: 20, width: 50, height: 20 }) as DOMRect
+    line!.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientX: 0, clientY: 10 }))
+    line!.dispatchEvent(
+      new MouseEvent('pointermove', { bubbles: true, buttons: 1, clientX: 30, clientY: 10 }),
+    )
+    document.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, clientX: 30, clientY: 10 }))
+    await flushPromises()
+
+    const selection = view.dom.querySelector<HTMLElement>('.milkup-selection')
+
+    expect(selection?.dataset.from).toBe('0')
+    expect(selection?.dataset.to).toBe('3')
+  })
+
+  it('does not let stale single-line commits replace newer optimistic input', async () => {
+    const parent = document.createElement('main')
+    const source = new RecordingDocumentSource({
+      documentId: 'source-doc',
+      text: 'alpha',
+    })
+    let text = 'alpha'
+    const pendingCommits: Array<() => void> = []
+    const onEdit = vi.fn(
+      (edit: { readonly from: number; readonly to: number; readonly insert: string }) =>
+        new Promise<void>((resolve) => {
+          pendingCommits.push(() => {
+            text = text.slice(0, edit.from) + edit.insert + text.slice(edit.to)
+            source.updateText(text)
+            resolve()
+          })
+        }),
+    )
+    const view = new SourceDocumentView({
+      parent,
+      source,
+      mode: 'live',
+      editable: true,
+      onEdit,
+      markdownContextLines: 0,
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 40,
+        overscanLines: 0,
+      },
+    })
+
+    await view.renderVisibleWindow()
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'x', bubbles: true }))
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'y', bubbles: true }))
+    await flushPromises()
+
+    expect(view.contentDOM.querySelector<HTMLElement>('.milkup-line')?.textContent).toBe('xyalpha')
+    expect(onEdit).not.toHaveBeenCalled()
+
+    await delay(40)
+
+    expect(view.contentDOM.querySelector<HTMLElement>('.milkup-line')?.textContent).toBe('xyalpha')
+    expect(onEdit).toHaveBeenCalledTimes(1)
+    expect(onEdit).toHaveBeenCalledWith({ from: 0, to: 0, insert: 'xy', deletedText: '' })
+
+    pendingCommits.shift()?.()
+    await flushPromises()
+
+    expect(view.contentDOM.querySelector<HTMLElement>('.milkup-line')?.textContent).toBe('xyalpha')
+    expect(view.dom.querySelector<HTMLElement>('.milkup-cursor')?.dataset.position).toBe('2')
   })
 
   it('does not emit edits when the source view remains readonly', async () => {
@@ -400,16 +764,32 @@ describe('SourceDocumentView', () => {
     await Promise.resolve()
 
     expect(onEdit).not.toHaveBeenCalled()
-    expect(view.contentDOM.querySelector<HTMLElement>('.milkup-cursor')).toBeNull()
+    expect(view.dom.querySelector<HTMLElement>('.milkup-cursor')).toBeNull()
   })
 })
 
 class RecordingDocumentSource extends MemoryDocumentSource {
   readonly requests: Array<{ fromLine: number; toLine: number }> = []
+  private textVersion = 0
 
   override async readLineWindow(fromLine: number, toLine: number): Promise<DocumentLineWindow> {
     this.requests.push({ fromLine, toLine })
     return super.readLineWindow(fromLine, toLine)
+  }
+
+  override get version(): number {
+    return this.textVersion
+  }
+
+  updateText(text: string): void {
+    ;(this as unknown as { document: MemoryTextDocument }).document = new MemoryTextDocument(text)
+    this.textVersion += 1
+  }
+}
+
+class RenderedOnlyLineSource extends MemoryDocumentSource {
+  override async lineAtPosition(position: number): Promise<never> {
+    throw new Error(`lineAtPosition unavailable: ${position}`)
   }
 }
 
@@ -417,4 +797,8 @@ async function flushPromises(): Promise<void> {
   await Promise.resolve()
   await Promise.resolve()
   await new Promise((resolve) => setTimeout(resolve, 0))
+}
+
+async function delay(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms))
 }
