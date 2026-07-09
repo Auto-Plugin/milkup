@@ -1,12 +1,13 @@
 import type { TextRange } from '../position/range'
 
-import type { DocumentStore } from './document-store'
+import type { DocumentLineWindow } from './document-store'
 
 export interface StoreSearchOptions {
   readonly query: string | RegExp
   readonly caseSensitive?: boolean
   readonly maxResults?: number
   readonly windowSizeLines?: number
+  readonly signal?: AbortSignal
 }
 
 export interface StoreSearchMatch extends TextRange {
@@ -24,6 +25,32 @@ export interface StoreSearchResult {
   readonly complete: boolean
 }
 
+export interface DocumentLineWindowSearchReadable {
+  readonly documentId: string
+  readonly version: number
+  readonly lineCount: number
+  readLineWindow(fromLine: number, toLine: number): Promise<DocumentLineWindow>
+}
+
+export type StoreSearchEvent =
+  | {
+      readonly type: 'match'
+      readonly documentId: string
+      readonly version: number
+      readonly query: string
+      readonly match: StoreSearchMatch
+      readonly scannedLineCount: number
+    }
+  | {
+      readonly type: 'done'
+      readonly documentId: string
+      readonly version: number
+      readonly query: string
+      readonly scannedLineCount: number
+      readonly complete: boolean
+      readonly matchCount: number
+    }
+
 interface CompiledSearchQuery {
   readonly label: string
   readonly findMatches: (line: string) => readonly SearchLineMatch[]
@@ -38,41 +65,77 @@ interface SearchLineMatch {
 const DEFAULT_WINDOW_SIZE_LINES = 512
 
 export async function searchDocumentStore(
-  store: DocumentStore,
+  store: DocumentLineWindowSearchReadable,
   options: StoreSearchOptions,
 ): Promise<StoreSearchResult> {
+  const matches: StoreSearchMatch[] = []
+  let finalEvent: Extract<StoreSearchEvent, { readonly type: 'done' }> | undefined
+
+  for await (const event of searchDocumentLineWindows(store, options)) {
+    if (event.type === 'match') {
+      matches.push(event.match)
+    } else {
+      finalEvent = event
+    }
+  }
+
+  return freezeResult(
+    store,
+    finalEvent?.query ?? formatSearchQuery(options.query),
+    matches,
+    finalEvent?.scannedLineCount ?? 0,
+    finalEvent?.complete ?? true,
+  )
+}
+
+export async function* searchDocumentLineWindows(
+  store: DocumentLineWindowSearchReadable,
+  options: StoreSearchOptions,
+): AsyncGenerator<StoreSearchEvent> {
   const query = compileSearchQuery(options)
   const maxResults = normalizeMaxResults(options.maxResults)
   const windowSizeLines = normalizeWindowSize(options.windowSizeLines)
-  const matches: StoreSearchMatch[] = []
+  let matchCount = 0
   let scannedLineCount = 0
 
   for (let fromLine = 1; fromLine <= store.lineCount; fromLine += windowSizeLines) {
+    throwIfAborted(options.signal)
+
     const toLine = Math.min(store.lineCount, fromLine + windowSizeLines - 1)
     const window = await store.readLineWindow(fromLine, toLine)
 
+    throwIfAborted(options.signal)
     scannedLineCount += window.lines.length
 
     for (const line of window.lines) {
       for (const match of query.findMatches(line.text)) {
-        matches.push(
-          Object.freeze({
-            from: line.from + match.from,
-            to: line.from + match.to,
-            line: line.number,
-            lineOffset: match.from,
-            text: match.text,
-          }),
-        )
+        const storeMatch = Object.freeze({
+          from: line.from + match.from,
+          to: line.from + match.to,
+          line: line.number,
+          lineOffset: match.from,
+          text: match.text,
+        })
 
-        if (matches.length >= maxResults) {
-          return freezeResult(store, query.label, matches, scannedLineCount, false)
+        matchCount += 1
+        yield Object.freeze({
+          type: 'match',
+          documentId: store.documentId,
+          version: store.version,
+          query: query.label,
+          match: storeMatch,
+          scannedLineCount,
+        })
+
+        if (matchCount >= maxResults) {
+          yield freezeDoneEvent(store, query.label, scannedLineCount, false, matchCount)
+          return
         }
       }
     }
   }
 
-  return freezeResult(store, query.label, matches, scannedLineCount, true)
+  yield freezeDoneEvent(store, query.label, scannedLineCount, true, matchCount)
 }
 
 function compileSearchQuery(options: StoreSearchOptions): CompiledSearchQuery {
@@ -149,6 +212,10 @@ function compileRegExpQuery(query: RegExp): CompiledSearchQuery {
   }
 }
 
+function formatSearchQuery(query: string | RegExp): string {
+  return typeof query === 'string' ? query : query.toString()
+}
+
 function normalizeMaxResults(maxResults: number | undefined): number {
   if (maxResults === undefined) {
     return Number.POSITIVE_INFINITY
@@ -172,7 +239,7 @@ function normalizeWindowSize(windowSizeLines: number | undefined): number {
 }
 
 function freezeResult(
-  store: DocumentStore,
+  store: DocumentLineWindowSearchReadable,
   query: string,
   matches: readonly StoreSearchMatch[],
   scannedLineCount: number,
@@ -186,4 +253,28 @@ function freezeResult(
     scannedLineCount,
     complete,
   })
+}
+
+function freezeDoneEvent(
+  store: DocumentLineWindowSearchReadable,
+  query: string,
+  scannedLineCount: number,
+  complete: boolean,
+  matchCount: number,
+): Extract<StoreSearchEvent, { readonly type: 'done' }> {
+  return Object.freeze({
+    type: 'done',
+    documentId: store.documentId,
+    version: store.version,
+    query,
+    scannedLineCount,
+    complete,
+    matchCount,
+  })
+}
+
+function throwIfAborted(signal: AbortSignal | undefined): void {
+  if (signal?.aborted) {
+    throw signal.reason instanceof Error ? signal.reason : new DOMException('Search aborted', 'AbortError')
+  }
 }

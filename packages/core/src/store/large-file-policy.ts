@@ -4,7 +4,6 @@ export type ParseStrategy = 'full' | 'incremental' | 'local-window' | 'on-demand
 export type RenderStrategy = 'full-dom' | 'virtual-dom' | 'viewport-dom'
 export type LiveRenderStrategy = 'full' | 'viewport' | 'source-first'
 export type SearchStrategy = 'memory' | 'background-index' | 'chunked'
-export type OutlineStrategy = 'full' | 'background' | 'on-demand' | 'disabled'
 export type PluginRenderStrategy = 'full' | 'viewport-safe' | 'manual'
 export type StoreStrategy = 'memory' | 'chunked'
 
@@ -26,7 +25,6 @@ export interface FeatureDegradationPolicy {
   readonly render: RenderStrategy
   readonly liveRender: LiveRenderStrategy
   readonly search: SearchStrategy
-  readonly outline: OutlineStrategy
   readonly pluginRendering: PluginRenderStrategy
   readonly autoRenderMermaid: boolean
   readonly fullDocumentDomRequired: boolean
@@ -37,9 +35,9 @@ export const MIB = 1024 * 1024
 export const GIB = 1024 * MIB
 
 export const DEFAULT_DOCUMENT_SCALE_THRESHOLDS: DocumentScaleThresholds = Object.freeze({
-  incrementalBytes: 10 * MIB,
-  largeBytes: 100 * MIB,
-  ultraLargeBytes: GIB,
+  incrementalBytes: 128 * 1024,
+  largeBytes: 256 * 1024,
+  ultraLargeBytes: 2 * MIB,
 })
 
 export function classifyDocumentScale(input: DocumentScaleInput): DocumentScaleMode {
@@ -71,7 +69,6 @@ export function getFeatureDegradationPolicy(mode: DocumentScaleMode): FeatureDeg
         render: 'full-dom',
         liveRender: 'full',
         search: 'memory',
-        outline: 'full',
         pluginRendering: 'full',
         autoRenderMermaid: true,
         fullDocumentDomRequired: true,
@@ -85,7 +82,6 @@ export function getFeatureDegradationPolicy(mode: DocumentScaleMode): FeatureDeg
         render: 'virtual-dom',
         liveRender: 'full',
         search: 'background-index',
-        outline: 'background',
         pluginRendering: 'viewport-safe',
         autoRenderMermaid: true,
         fullDocumentDomRequired: false,
@@ -99,7 +95,6 @@ export function getFeatureDegradationPolicy(mode: DocumentScaleMode): FeatureDeg
         render: 'viewport-dom',
         liveRender: 'viewport',
         search: 'chunked',
-        outline: 'on-demand',
         pluginRendering: 'viewport-safe',
         autoRenderMermaid: false,
         fullDocumentDomRequired: false,
@@ -113,7 +108,6 @@ export function getFeatureDegradationPolicy(mode: DocumentScaleMode): FeatureDeg
         render: 'viewport-dom',
         liveRender: 'source-first',
         search: 'chunked',
-        outline: 'disabled',
         pluginRendering: 'manual',
         autoRenderMermaid: false,
         fullDocumentDomRequired: false,

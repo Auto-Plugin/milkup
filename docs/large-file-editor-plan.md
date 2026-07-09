@@ -33,8 +33,18 @@ Use these instead of starting from zero:
   - `docs/large-file-benchmark-protocol.md`
   - `docs/native-large-file-benchmark-256mib-2026-07-06.json`
   - `docs/native-large-file-benchmark-1gib-2026-07-06.json`
+  - `docs/desktop-editor-interaction-benchmark-175kb-10mib-2026-07-09.json`
+  - `docs/desktop-editor-interaction-benchmark-100mib-2026-07-09.json`
+  - `docs/native-large-file-benchmark-working-temp-256mib-2026-07-09.json`
+  - `docs/native-large-file-benchmark-working-temp-1gib-2026-07-09.json`
 
-Important limitation: the current native large-file service still stores full text in memory after open. It proves the command path and indexed line-window operations, but it is not true lazy streaming yet.
+Historical limitation: the retained 2026-07-06 native benchmark reports were produced before the current source-backed editor integration and working-temp native edit path. The 2026-07-09 reports supersede them for current working-temp public wording at 256 MiB and 1 GiB, with measured latency caveats.
+
+Current implementation note: the native large-file save path now includes both `flush_large_text_file` for original-path atomic replacement and `flush_large_text_file_as` for Save As without frontend full-text materialization. Save As to the original path still uses the external-change conflict guard. Clean external modifications can be reloaded by reopening the same path through the native line-window service rather than by reading the full file into frontend memory.
+
+Phase 8 implementation note: `SourceDocumentView` now supports asynchronous Markdown window parse-cache warmup for the current and adjacent viewport windows. The desktop source-backed large-file path enables this warmup after viewport renders, while cancellation on source update, edit, or destroy prevents stale work from mutating the active view.
+
+Phase 6/7 implementation note: the source-backed large-file view now supports visible-window insert, paste, Backspace/Delete, undo/redo, and Shift-click range replacement/deletion without frontend full-text materialization. Whole-document selection, cross-window cut, and other full-document operations remain blocked with non-modal notices. Dirty large-file saves are blocked when an external conflict is known; Save As remains available, and reloading an externally changed dirty large file requires explicit confirmation because it discards local large-file edits.
 
 ## 3. Design principles
 
@@ -47,14 +57,14 @@ Important limitation: the current native large-file service still stores full te
 
 ## 4. Scale modes and expected behavior
 
-| Mode | Suggested size | Store | Render | Parse | Editing | User expectation |
-| --- | ---: | --- | --- | --- | --- | --- |
-| `normal` | `< 10 MB` | memory | full DOM allowed | full/incremental | full | Current rich editor behavior, but optimized |
-| `incremental` | `10-100 MB` | memory initially, store-ready | virtual DOM | incremental/window | full local edits | Smooth scrolling and typing, partial background work |
-| `large` | `100 MB-1 GB` | chunked/native | viewport DOM | local window | local edits | Open, scroll, search, edit visible regions |
-| `ultra-large` | `>= 1 GB` | chunked/native | viewport DOM | on demand/source-first | local edits with limits | Source-first, explicit degraded features |
+| Mode          |  Suggested size | Store                         | Render           | Parse                  | Editing                 | User expectation                                     |
+| ------------- | --------------: | ----------------------------- | ---------------- | ---------------------- | ----------------------- | ---------------------------------------------------- |
+| `normal`      |     `< 128 KiB` | memory                        | full DOM allowed | full/incremental       | full                    | Current rich editor behavior, but optimized          |
+| `incremental` |   `128-256 KiB` | memory initially, store-ready | virtual DOM      | incremental/window     | full local edits        | Smooth scrolling and typing, partial background work |
+| `large`       | `256 KiB-2 MiB` | chunked/native                | viewport DOM     | local window           | local edits             | Open, scroll, search, edit visible regions           |
+| `ultra-large` |      `>= 2 MiB` | chunked/native                | viewport DOM     | on demand/source-first | local edits with limits | Source-first, explicit degraded features             |
 
-Thresholds may move after Windows measurements. The architecture should not hard-code behavior in UI components; use policy resolution.
+Thresholds are intentionally conservative for Windows preview builds after manual feedback showed visible stalls on several-hundred-KiB Markdown files. The architecture should not hard-code behavior in UI components; use policy resolution.
 
 ## 5. Phase 0 - Instrument and stop obvious stalls
 
@@ -226,7 +236,6 @@ Tasks:
   - live mode in `ultra-large` defaults source-first, user can request live for current viewport
 - Avoid expensive blocks by default:
   - no automatic Mermaid/rendered diagrams
-  - no whole-document outline
   - no plugin full-document transforms
 - Cache parsed windows keyed by document version, line range, and mode.
 
@@ -295,7 +304,7 @@ Acceptance:
 - Flush creates valid output and preserves untouched content.
 - Native tests cover crash-safe temp behavior where feasible.
 
-## 13. Phase 8 - Search, outline, and background work
+## 13. Phase 8 - Search and background work
 
 Goal: Make large-file utility features non-blocking.
 
@@ -306,11 +315,6 @@ Tasks:
   - stream results
   - allow cancel
   - cap result count
-- Outline:
-  - normal: full
-  - incremental: background
-  - large: on demand / current region
-  - ultra-large: disabled unless user requests scan
 - Character count:
   - exact for normal
   - metadata/async for larger modes
@@ -369,21 +373,21 @@ Do this in order:
 6. Phase 5: local-window Markdown rendering.
 7. Phase 6: large-file editing.
 8. Phase 7: safe save/flush.
-9. Phase 8: search/outline/background indexing.
+9. Phase 8: search/background indexing.
 10. Phase 9: retained benchmark reports and release wording.
 
 Do not start Phase 6 before Phase 4 is stable. Editing without a store-backed view will create another in-memory large-file path and defeat the architecture.
 
 ## 16. Near-term checklist
 
-- [ ] Add open-stage performance marks.
-- [ ] Add delayed-open UI state.
-- [ ] Add `docs/coding-plan.md` interactive regression fixture.
-- [ ] Create `VirtualLineRenderer` or equivalent view-dom path.
-- [ ] Add viewport bounded DOM tests.
-- [ ] Route size metadata through desktop open flow.
-- [ ] Decide exact threshold for enabling virtual DOM on Windows preview builds.
-- [ ] Keep current full-DOM normal path until virtual renderer has parity.
+- [x] Add open-stage performance marks.
+- [x] Add delayed-open UI state.
+- [x] Add `docs/coding-plan.md` interactive regression fixture.
+- [x] Create `VirtualLineRenderer` or equivalent view-dom path.
+- [x] Add viewport bounded DOM tests.
+- [x] Route size metadata through desktop open flow.
+- [x] Decide exact threshold for enabling virtual DOM on Windows preview builds.
+- [x] Keep current full-DOM normal path until virtual renderer has parity.
 
 ## 17. Non-goals for the first pass
 

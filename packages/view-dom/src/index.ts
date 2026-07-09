@@ -3,10 +3,12 @@ export {
   buildLineProjection,
   coordinateToPosition,
   EditorView,
+  getVisibleLineWindow,
   positionToLineOffset,
   positionToRect,
   renderCursorOverlay,
   renderMarkdownLines,
+  renderPlainTextLineWindow,
   renderPlainTextLines,
   renderSelectionOverlay,
   scrollPositionIntoView,
@@ -18,7 +20,9 @@ export {
   type LineProjectionSegment,
   type ProjectionSegmentKind,
   type RenderMarkdownLinesOptions,
+  type VisibleLineWindowConfig,
 } from './editor-view'
+export { SourceDocumentView, type SourceDocumentViewConfig } from './source-document-view'
 export type {
   BlockView,
   CursorVisibilityOptions,
@@ -32,4 +36,5 @@ export type {
   ViewMode,
   ViewRect,
   ViewUpdate,
+  VirtualViewportConfig,
 } from './types'

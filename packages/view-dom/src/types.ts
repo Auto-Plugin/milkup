@@ -34,12 +34,20 @@ export interface EditorViewLike {
 
 export type EditorViewDispatch = (transaction: Transaction, view: EditorViewLike) => void
 
+export interface VirtualViewportConfig {
+  readonly enabled: boolean
+  readonly lineHeight?: number
+  readonly overscanLines?: number
+  readonly viewportHeight?: number
+}
+
 export interface EditorViewConfig {
   readonly parent: HTMLElement
   readonly state: EditorState
   readonly mode?: ViewMode
   readonly editable?: boolean
   readonly assetProvider?: AssetProvider
+  readonly virtualViewport?: VirtualViewportConfig
   readonly document?: Document
   readonly dispatch?: EditorViewDispatch
 }

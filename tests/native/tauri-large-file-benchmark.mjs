@@ -29,17 +29,30 @@ const baseUrl = `http://127.0.0.1:${port}`
 const sizeMib = Number(process.env.MILKUP_NATIVE_LARGE_FILE_MIB ?? '16')
 const keepFixture = process.env.MILKUP_NATIVE_LARGE_FILE_KEEP === '1'
 const reportPath = process.env.MILKUP_NATIVE_LARGE_FILE_REPORT
+const implementationMode =
+  process.env.MILKUP_NATIVE_LARGE_FILE_IMPLEMENTATION_MODE ??
+  'native-line-index-working-temp'
 
 if (!Number.isInteger(sizeMib) || sizeMib <= 0) {
   throw new Error('MILKUP_NATIVE_LARGE_FILE_MIB must be a positive integer')
 }
 
 if (!existsSync(appPath)) {
-  throw new Error(`Tauri debug binary was not found at ${appPath}`)
+  throw new Error(
+    [
+      `Tauri debug binary was not found at ${appPath}`,
+      'Build it first with: pnpm --filter @milkup/desktop tauri build --debug --target x86_64-pc-windows-gnu',
+    ].join('\n'),
+  )
 }
 
 if (!existsSync(driverPath)) {
-  throw new Error(`tauri-driver was not found at ${driverPath}`)
+  throw new Error(
+    [
+      `tauri-driver was not found at ${driverPath}`,
+      'Install or expose it with TAURI_DRIVER before running this benchmark.',
+    ].join('\n'),
+  )
 }
 
 const workDir = path.join(tmpdir(), `milkup-native-large-${process.pid}-${Date.now()}`)
@@ -89,6 +102,12 @@ try {
   const report = {
     generatedAt: new Date().toISOString(),
     sourceSnapshot: await readSourceSnapshot(),
+    implementation: {
+      mode: implementationMode,
+      expectedNativePath: 'open_large_text_file/read_large_text_file_line_window/apply_large_text_file_changes/flush_large_text_file',
+      expectedEditStorage: 'working temp file with original-file conflict guard',
+      frontendPath: 'desktop SourceDocumentView/LargeDocumentSource',
+    },
     environment: {
       platform: platform(),
       release: release(),

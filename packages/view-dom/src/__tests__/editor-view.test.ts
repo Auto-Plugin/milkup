@@ -1,5 +1,7 @@
 import { MemoryAssetProvider } from '@milkup/assets'
 import { ChangeSet, EditorState, MemoryTextDocument, Selection } from '@milkup/core'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -7,10 +9,12 @@ import {
   coordinateToPosition,
   createInputProxy,
   EditorView,
+  getVisibleLineWindow,
   positionToLineOffset,
   positionToRect,
   renderCursorOverlay,
   renderMarkdownLines,
+  renderPlainTextLineWindow,
   renderPlainTextLines,
   renderSelectionOverlay,
   scrollPositionIntoView,
@@ -23,6 +27,14 @@ function createState(text: string, selection = Selection.cursor(0)): EditorState
     doc: new MemoryTextDocument(text),
     selection,
   })
+}
+
+function readCodingPlanFixture(): string {
+  return readFileSync(resolve(__dirname, '../../../../docs/coding-plan.md'), 'utf8')
+}
+
+function createLineFixture(lineCount: number): string {
+  return Array.from({ length: lineCount }, (_value, index) => `line ${index + 1}`).join('\n')
 }
 
 function createPasteEvent(
@@ -215,6 +227,83 @@ describe('EditorView', () => {
     expect(view.cursorLayerDOM.querySelector<HTMLElement>('.milkup-cursor')?.dataset.position).toBe(
       '13',
     )
+  })
+
+  it('virtualizes source line rendering to the visible window with overscan', () => {
+    const parent = document.createElement('main')
+    const view = new EditorView({
+      parent,
+      state: createState(createLineFixture(1_000)),
+      mode: 'source',
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 100,
+        overscanLines: 2,
+      },
+    })
+    const lines = Array.from(view.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'))
+
+    expect(view.contentDOM.dataset.virtualized).toBe('true')
+    expect(view.contentDOM.dataset.fromLine).toBe('1')
+    expect(view.contentDOM.dataset.toLine).toBe('7')
+    expect(lines).toHaveLength(7)
+    expect(lines.map((line) => line.dataset.line)).toEqual(['1', '2', '3', '4', '5', '6', '7'])
+    expect(
+      view.contentDOM.querySelector<HTMLElement>('[data-spacer="bottom"]')?.style.height,
+    ).toBe('19860px')
+  })
+
+  it('updates the virtual source window on scroll without rendering offscreen lines', () => {
+    const parent = document.createElement('main')
+    const view = new EditorView({
+      parent,
+      state: createState(createLineFixture(1_000)),
+      mode: 'source',
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 100,
+        overscanLines: 1,
+      },
+    })
+
+    view.dom.scrollTop = 400
+    view.dom.dispatchEvent(new Event('scroll'))
+
+    const lines = Array.from(view.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'))
+
+    expect(view.contentDOM.dataset.fromLine).toBe('20')
+    expect(view.contentDOM.dataset.toLine).toBe('26')
+    expect(lines).toHaveLength(7)
+    expect(lines[0]?.dataset.line).toBe('20')
+    expect(lines.at(-1)?.dataset.line).toBe('26')
+    expect(view.contentDOM.querySelector<HTMLElement>('.milkup-line[data-line="1"]')).toBeNull()
+  })
+
+  it('scrolls virtual source cursors into view before rendering the target line', () => {
+    const parent = document.createElement('main')
+    const state = createState(createLineFixture(1_000))
+    const targetLine = state.doc.line(800)
+    const view = new EditorView({
+      parent,
+      state,
+      mode: 'source',
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 100,
+        overscanLines: 1,
+      },
+    })
+
+    view.updateState(createState(state.doc.text, Selection.cursor(targetLine.from)))
+    view.ensureCursorVisible({ scrollPadding: 0, viewportHeight: 100 })
+
+    expect(view.dom.scrollTop).toBeGreaterThan(0)
+    expect(Number(view.contentDOM.dataset.fromLine)).toBeLessThanOrEqual(800)
+    expect(Number(view.contentDOM.dataset.toLine)).toBeGreaterThanOrEqual(800)
+    expect(view.contentDOM.querySelector<HTMLElement>('.milkup-line[data-line="800"]')).not.toBeNull()
   })
 
   it('rerenders live content for selection-only changes so syntax visibility updates', () => {
@@ -1727,6 +1816,64 @@ describe('EditorView', () => {
     expect(view.state).toBe(nextState)
   })
 
+  it('keeps docs/coding-plan.md live interactions bounded to affected lines', () => {
+    const parent = document.createElement('main')
+    const state = createState(readCodingPlanFixture(), Selection.cursor(0))
+    const view = new EditorView({ parent, state, mode: 'live' })
+    const initialLines = Array.from(view.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'))
+    const middleLine = state.doc.line(Math.floor(state.doc.lineCount / 2))
+    const tailLine = state.doc.line(Math.max(1, state.doc.lineCount - 4))
+
+    view.updateState(createState(state.doc.text, Selection.cursor(middleLine.from)))
+    const middleLines = Array.from(view.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'))
+    const middleChangedIndexes = middleLines.flatMap((line, index) =>
+      line === initialLines[index] ? [] : [index],
+    )
+
+    expect(middleLines).toHaveLength(initialLines.length)
+    expect(middleChangedIndexes.length).toBeLessThanOrEqual(2)
+    expect(middleLines.some((line) => line.dataset.line === String(middleLine.number))).toBe(true)
+
+    view.updateState(createState(state.doc.text, Selection.cursor(tailLine.from)))
+    const tailLines = Array.from(view.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'))
+    const tailChangedIndexes = tailLines.flatMap((line, index) =>
+      line === middleLines[index] ? [] : [index],
+    )
+
+    expect(tailLines).toHaveLength(initialLines.length)
+    expect(tailChangedIndexes.length).toBeLessThanOrEqual(2)
+    expect(tailLines.some((line) => line.dataset.line === String(tailLine.number))).toBe(true)
+
+    const typedState = view.state.applyTransaction({
+      changes: ChangeSet.insert(tailLine.from, 'x'),
+      selection: Selection.cursor(tailLine.from + 1),
+      origin: { type: 'input.type' },
+    })
+
+    view.updateState(typedState, [
+      {
+        changes: ChangeSet.insert(tailLine.from, 'x'),
+        selection: Selection.cursor(tailLine.from + 1),
+        origin: { type: 'input.type' },
+      },
+    ])
+
+    const typedLines = Array.from(view.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'))
+    const typedChangedIndexes = typedLines.flatMap((line, index) =>
+      line === tailLines[index] ? [] : [index],
+    )
+
+    expect(typedLines).toHaveLength(initialLines.length)
+    expect(typedChangedIndexes.length).toBe(1)
+    const typedChangedIndex = typedChangedIndexes[0]
+
+    if (typedChangedIndex === undefined) {
+      throw new Error('Expected the typed line to be rerendered')
+    }
+
+    expect(typedLines[typedChangedIndex]?.dataset.line).toBe(String(tailLine.number))
+  }, 30_000)
+
   it('destroys the root DOM node', () => {
     const parent = document.createElement('main')
     const view = new EditorView({ parent, state: createState('hello') })
@@ -1742,6 +1889,13 @@ describe('renderPlainTextLines', () => {
     const lines = renderPlainTextLines(document, createState('x\ny'))
 
     expect(lines.map((line) => line.textContent)).toEqual(['x', 'y'])
+  })
+
+  it('can render a bounded source line window without constructing an EditorView', () => {
+    const lines = renderPlainTextLineWindow(document, createState(createLineFixture(20)), 5, 8)
+
+    expect(lines.map((line) => line.dataset.line)).toEqual(['5', '6', '7', '8'])
+    expect(lines.map((line) => line.textContent)).toEqual(['line 5', 'line 6', 'line 7', 'line 8'])
   })
 
   it('can render markdown decorations without constructing an EditorView', () => {
@@ -1981,6 +2135,23 @@ describe('position helpers', () => {
         scrollPadding: 0,
       }),
     ).toBe(40)
+  })
+
+  it('computes a visible line window with top and bottom spacers', () => {
+    expect(
+      getVisibleLineWindow({
+        lineCount: 100,
+        scrollTop: 400,
+        viewportHeight: 100,
+        lineHeight: 20,
+        overscanLines: 2,
+      }),
+    ).toEqual({
+      fromLine: 19,
+      toLine: 27,
+      topSpacerHeight: 360,
+      bottomSpacerHeight: 1460,
+    })
   })
 
   it('can render cursor overlay without constructing an EditorView', () => {

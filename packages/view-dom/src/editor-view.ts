@@ -26,6 +26,7 @@ import type {
   ViewRect,
   ViewMode,
   ViewUpdate,
+  VirtualViewportConfig,
 } from './types'
 
 const defaultViewMetrics: ViewMetrics = Object.freeze({
@@ -42,6 +43,20 @@ interface PastedAssetInput {
   readonly name: string
   readonly type: string
   readonly file?: File
+}
+
+interface VirtualViewportState {
+  readonly config: VirtualViewportConfig
+  readonly lineHeight: number
+  readonly overscanLines: number
+  readonly viewportHeight?: number
+}
+
+interface VisibleLineWindow {
+  readonly fromLine: number
+  readonly toLine: number
+  readonly topSpacerHeight: number
+  readonly bottomSpacerHeight: number
 }
 
 export class EditorView {
@@ -64,8 +79,12 @@ export class EditorView {
   private suppressNextClick = false
   private mode: ViewMode
   private editable: boolean
+  private readonly virtualViewport: VirtualViewportState | undefined
   private readonly handleInputEvent = (): void => {
     this.readInputProxy()
+  }
+  private readonly handleScrollEvent = (): void => {
+    this.renderVirtualViewportOnScroll()
   }
   private readonly handlePasteEvent = (event: ClipboardEvent): void => {
     void this.handlePaste(event)
@@ -107,6 +126,7 @@ export class EditorView {
     this.externalDispatch = config.dispatch
     this.mode = config.mode ?? 'source'
     this.editable = config.editable ?? true
+    this.virtualViewport = resolveVirtualViewportState(config.virtualViewport)
     this.dom = this.ownerDocument.createElement('div')
     this.dom.className = 'milkup-editor'
     this.dom.dataset.mode = this.mode
@@ -131,6 +151,7 @@ export class EditorView {
     this.inputDOM.addEventListener('compositionstart', this.handleCompositionStartEvent)
     this.inputDOM.addEventListener('compositionupdate', this.handleCompositionUpdateEvent)
     this.inputDOM.addEventListener('compositionend', this.handleCompositionEndEvent)
+    this.dom.addEventListener('scroll', this.handleScrollEvent)
     this.contentDOM.addEventListener('click', this.handleClickEvent)
     this.contentDOM.addEventListener('mousedown', this.handleMouseDownEvent)
     this.contentDOM.addEventListener('mousemove', this.handleMouseMoveEvent)
@@ -252,6 +273,9 @@ export class EditorView {
     })
 
     this.dom.scrollTop = nextScrollTop
+    if (this.shouldUseVirtualViewport()) {
+      this.renderVirtualViewport()
+    }
     return nextScrollTop
   }
 
@@ -262,6 +286,7 @@ export class EditorView {
     this.inputDOM.removeEventListener('compositionstart', this.handleCompositionStartEvent)
     this.inputDOM.removeEventListener('compositionupdate', this.handleCompositionUpdateEvent)
     this.inputDOM.removeEventListener('compositionend', this.handleCompositionEndEvent)
+    this.dom.removeEventListener('scroll', this.handleScrollEvent)
     this.contentDOM.removeEventListener('click', this.handleClickEvent)
     this.contentDOM.removeEventListener('mousedown', this.handleMouseDownEvent)
     this.contentDOM.removeEventListener('mousemove', this.handleMouseMoveEvent)
@@ -270,6 +295,14 @@ export class EditorView {
   }
 
   private render(): void {
+    if (this.shouldUseVirtualViewport()) {
+      this.renderVirtualViewport()
+      return
+    }
+
+    delete this.contentDOM.dataset.virtualized
+    delete this.contentDOM.dataset.fromLine
+    delete this.contentDOM.dataset.toLine
     this.contentDOM.replaceChildren(
       ...(this.mode === 'source'
         ? renderPlainTextLines(this.ownerDocument, this.currentState)
@@ -374,6 +407,46 @@ export class EditorView {
 
     this.renderSelectionAndCursor()
     return true
+  }
+
+  private shouldUseVirtualViewport(): boolean {
+    return this.virtualViewport !== undefined && this.mode === 'source'
+  }
+
+  private renderVirtualViewportOnScroll(): void {
+    if (!this.shouldUseVirtualViewport()) {
+      return
+    }
+
+    this.renderVirtualViewport()
+  }
+
+  private renderVirtualViewport(): void {
+    const viewportHeight =
+      this.virtualViewport?.viewportHeight ??
+      (this.dom.clientHeight > 0 ? this.dom.clientHeight : undefined)
+    const window = getVisibleLineWindow({
+      lineCount: this.currentState.doc.lineCount,
+      scrollTop: this.dom.scrollTop,
+      lineHeight: this.virtualViewport?.lineHeight ?? defaultViewMetrics.lineHeight,
+      overscanLines: this.virtualViewport?.overscanLines ?? 0,
+      ...(viewportHeight === undefined ? {} : { viewportHeight }),
+    })
+
+    this.contentDOM.replaceChildren(
+      renderVirtualSpacer(this.ownerDocument, 'top', window.topSpacerHeight),
+      ...renderPlainTextLineWindow(
+        this.ownerDocument,
+        this.currentState,
+        window.fromLine,
+        window.toLine,
+      ),
+      renderVirtualSpacer(this.ownerDocument, 'bottom', window.bottomSpacerHeight),
+    )
+    this.contentDOM.dataset.virtualized = 'true'
+    this.contentDOM.dataset.fromLine = String(window.fromLine)
+    this.contentDOM.dataset.toLine = String(window.toLine)
+    this.renderSelectionAndCursor()
   }
 
   private alignSelectionOverlayToDOM(): void {
@@ -933,9 +1006,20 @@ export function renderPlainTextLines(
   document: Document,
   state: EditorState,
 ): readonly HTMLElement[] {
-  const lines: HTMLElement[] = []
+  return renderPlainTextLineWindow(document, state, 1, state.doc.lineCount)
+}
 
-  for (let lineNumber = 1; lineNumber <= state.doc.lineCount; lineNumber += 1) {
+export function renderPlainTextLineWindow(
+  document: Document,
+  state: EditorState,
+  fromLine: number,
+  toLine: number,
+): readonly HTMLElement[] {
+  const lines: HTMLElement[] = []
+  const startLine = clamp(Math.floor(fromLine), 1, state.doc.lineCount)
+  const endLine = clamp(Math.floor(toLine), startLine, state.doc.lineCount)
+
+  for (let lineNumber = startLine; lineNumber <= endLine; lineNumber += 1) {
     const line = state.doc.line(lineNumber)
     const lineDOM = document.createElement('div')
     lineDOM.className = 'milkup-line'
@@ -947,6 +1031,44 @@ export function renderPlainTextLines(
   }
 
   return Object.freeze(lines)
+}
+
+export interface VisibleLineWindowConfig {
+  readonly lineCount: number
+  readonly scrollTop: number
+  readonly viewportHeight?: number
+  readonly lineHeight?: number
+  readonly overscanLines?: number
+}
+
+export function getVisibleLineWindow(config: VisibleLineWindowConfig): VisibleLineWindow {
+  const lineCount = Math.max(1, Math.floor(config.lineCount))
+  const lineHeight = Math.max(1, config.lineHeight ?? defaultViewMetrics.lineHeight)
+  const viewportHeight = Math.max(lineHeight, config.viewportHeight ?? lineHeight * 24)
+  const overscanLines = Math.max(0, Math.floor(config.overscanLines ?? 4))
+  const firstVisibleLine = clamp(Math.floor(Math.max(0, config.scrollTop) / lineHeight) + 1, 1, lineCount)
+  const visibleLineCount = Math.max(1, Math.ceil(viewportHeight / lineHeight))
+  const fromLine = clamp(firstVisibleLine - overscanLines, 1, lineCount)
+  const toLine = clamp(firstVisibleLine + visibleLineCount + overscanLines - 1, fromLine, lineCount)
+
+  return Object.freeze({
+    fromLine,
+    toLine,
+    topSpacerHeight: (fromLine - 1) * lineHeight,
+    bottomSpacerHeight: (lineCount - toLine) * lineHeight,
+  })
+}
+
+function renderVirtualSpacer(
+  document: Document,
+  position: 'top' | 'bottom',
+  height: number,
+): HTMLElement {
+  const spacer = document.createElement('div')
+  spacer.className = 'milkup-virtual-spacer'
+  spacer.dataset.spacer = position
+  spacer.style.height = `${Math.max(0, height)}px`
+  return spacer
 }
 
 export interface RenderMarkdownLinesOptions {
@@ -2061,6 +2183,25 @@ function resolveViewMetrics(metrics?: Partial<ViewMetrics>): ViewMetrics {
     charWidth: metrics?.charWidth ?? defaultViewMetrics.charWidth,
     lineHeight: metrics?.lineHeight ?? defaultViewMetrics.lineHeight,
   }
+}
+
+function resolveVirtualViewportState(
+  config: VirtualViewportConfig | undefined,
+): VirtualViewportState | undefined {
+  if (!config?.enabled) {
+    return undefined
+  }
+
+  const lineHeight = Math.max(1, config.lineHeight ?? defaultViewMetrics.lineHeight)
+
+  return Object.freeze({
+    config,
+    lineHeight,
+    overscanLines: Math.max(0, Math.floor(config.overscanLines ?? 4)),
+    ...(config.viewportHeight === undefined
+      ? {}
+      : { viewportHeight: Math.max(lineHeight, config.viewportHeight) }),
+  })
 }
 
 function lineElementFromEvent(

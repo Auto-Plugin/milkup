@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { createReadStream, createWriteStream } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { mkdir, open, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, resolve } from 'node:path'
@@ -37,6 +38,7 @@ const report = {
     throughputMibPerSecond: throughput(scanned.bytes, scanned.durationMs),
     bytes: scanned.bytes,
     lineCount: scanned.lineCount,
+    sha256: scanned.sha256,
   },
   samples: sampled,
 }
@@ -162,10 +164,12 @@ function scanFile(path, highWaterMark) {
   return new Promise((resolveScan, rejectScan) => {
     const started = performance.now()
     const stream = createReadStream(path, { highWaterMark })
+    const hash = createHash('sha256')
     let bytes = 0
     let lineCount = 0
 
     stream.on('data', (chunk) => {
+      hash.update(chunk)
       bytes += chunk.byteLength
 
       for (const byte of chunk) {
@@ -179,6 +183,7 @@ function scanFile(path, highWaterMark) {
       resolveScan({
         bytes,
         lineCount,
+        sha256: hash.digest('hex'),
         durationMs: performance.now() - started,
       })
     })

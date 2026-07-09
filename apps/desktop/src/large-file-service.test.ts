@@ -6,7 +6,7 @@ import {
 } from './large-file-service'
 
 describe('desktop large text file service', () => {
-  it('maps open, chunk, line-window, apply, flush, and close calls to dedicated Tauri commands', async () => {
+  it('maps open, chunk, line-window, apply, flush, save-as, and close calls to dedicated Tauri commands', async () => {
     const invoke = createInvokeMock({
       open_large_text_file: {
         documentId: 'large-doc',
@@ -51,6 +51,13 @@ describe('desktop large text file service', () => {
         sizeBytes: 1030,
         lineCount: 13,
       },
+      flush_large_text_file_as: {
+        documentId: 'large-doc',
+        path: 'D:/workspace/large-copy.md',
+        version: 1,
+        sizeBytes: 1030,
+        lineCount: 13,
+      },
       close_large_text_file: true,
     })
     const service = createDesktopLargeTextFileService({ invoke })
@@ -84,6 +91,12 @@ describe('desktop large text file service', () => {
       version: 1,
       sizeBytes: 1030,
     })
+    await expect(
+      service.flushAs('large-doc', 1, 'D:/workspace/large-copy.md'),
+    ).resolves.toMatchObject({
+      path: 'D:/workspace/large-copy.md',
+      version: 1,
+    })
     await expect(service.close('large-doc')).resolves.toBe(true)
 
     expect(invoke).toHaveBeenCalledWith('open_large_text_file', {
@@ -108,6 +121,11 @@ describe('desktop large text file service', () => {
     expect(invoke).toHaveBeenCalledWith('flush_large_text_file', {
       documentId: 'large-doc',
       expectedVersion: 1,
+    })
+    expect(invoke).toHaveBeenCalledWith('flush_large_text_file_as', {
+      documentId: 'large-doc',
+      expectedVersion: 1,
+      path: 'D:/workspace/large-copy.md',
     })
     expect(invoke).toHaveBeenCalledWith('close_large_text_file', {
       documentId: 'large-doc',

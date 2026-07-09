@@ -11,6 +11,7 @@ Do not claim GB-scale support until a benchmark report records:
 - Generated fixture size and checksum or retained file path.
 - Open/index time, chunk read latency, line-window read latency, local edit apply time, flush time, peak memory, and observed UI responsiveness.
 - The command output or manual notes proving the run used the native Tauri large-file path, not only the in-memory `MemoryDocumentStore`.
+- The implementation mode under test, especially whether edits use the current source-backed / working-temp native path or an older full-text-backed native snapshot.
 
 ## Fixture Generation
 
@@ -27,6 +28,17 @@ pnpm bench:large-file -- --size-mib 16
 ```
 
 The harness prints JSON with generation throughput, scan throughput, line count, and random-read samples. That output is supporting evidence only; it does not by itself prove the desktop editor can handle GB-scale files.
+
+## View Renderer Run
+
+Use the view-dom benchmark for retained renderer evidence that does not require a native Tauri driver:
+
+```powershell
+$env:MILKUP_VIEW_DOM_BENCHMARK_REPORT = "docs\large-file-view-dom-benchmark-<date>.json"
+pnpm bench:view-dom
+```
+
+This report records jsdom `EditorView` construction/update timings and bounded DOM counts for `docs/coding-plan.md` and a 10 MiB virtual-source fixture. It is useful renderer evidence, but it is not a substitute for a real desktop WebView benchmark.
 
 ## Native App Run
 
@@ -47,6 +59,31 @@ pnpm bench:native:large-file
 ```
 
 The native harness launches the debug Tauri app through WebDriver and calls the dedicated `open_large_text_file`, `read_large_text_file_chunk`, `read_large_text_file_line_window`, `apply_large_text_file_changes`, `flush_large_text_file`, and `close_large_text_file` command path from inside the WebView.
+
+Current working-temp implementation reports should set:
+
+```powershell
+$env:MILKUP_NATIVE_LARGE_FILE_IMPLEMENTATION_MODE = "native-line-index-working-temp"
+```
+
+## Desktop Editor Interaction Run
+
+Use the desktop interaction harness for retained real WebView evidence for the editor path selected by file metadata:
+
+```powershell
+$env:TAURI_DRIVER = "$env:USERPROFILE\.cargo\bin\tauri-driver.exe"
+$env:MILKUP_DESKTOP_INTERACTION_BENCHMARK_REPORT = "docs\desktop-editor-interaction-benchmark-<date>.json"
+pnpm bench:desktop:interaction
+```
+
+The default target set is `coding-plan,10mib,100mib`. To run one target:
+
+```powershell
+$env:MILKUP_DESKTOP_INTERACTION_BENCHMARK_TARGETS = "100mib"
+pnpm bench:desktop:interaction
+```
+
+The report records the real desktop open policy, first editor summary, rendered line count, middle/tail selection or scroll latency, single-character input or visible large-file edit latency, search first-result latency, large-file flush latency, checksums, and process memory. It complements the native command harness: this proves the desktop editor surface uses the intended memory or source-backed path, while the native large-file harness proves the lower-level 256 MiB / 1 GiB command path.
 
 When running manually without the harness:
 

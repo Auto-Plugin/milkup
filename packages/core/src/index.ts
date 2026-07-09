@@ -31,6 +31,18 @@ export {
   type MemoryDocumentStoreConfig,
 } from './store/document-store'
 export {
+  MemoryDocumentSource,
+  type EditorDocumentSource,
+  type EditorDocumentSourceSnapshot,
+} from './store/editor-document-source'
+export {
+  LargeEditSession,
+  largeTextEditsToChangeSet,
+  type LargeEditSessionSnapshot,
+  type LargeTextEdit,
+  type LargeTextEditBatch,
+} from './store/large-edit-session'
+export {
   classifyDocumentScale,
   DEFAULT_DOCUMENT_SCALE_THRESHOLDS,
   getFeatureDegradationPolicy,
@@ -42,7 +54,6 @@ export {
   type DocumentScaleThresholds,
   type FeatureDegradationPolicy,
   type LiveRenderStrategy,
-  type OutlineStrategy,
   type ParseStrategy,
   type PluginRenderStrategy,
   type RenderStrategy,
@@ -50,7 +61,10 @@ export {
   type StoreStrategy,
 } from './store/large-file-policy'
 export {
+  searchDocumentLineWindows,
   searchDocumentStore,
+  type DocumentLineWindowSearchReadable,
+  type StoreSearchEvent,
   type StoreSearchMatch,
   type StoreSearchOptions,
   type StoreSearchResult,

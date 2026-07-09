@@ -9,13 +9,34 @@ import { createFileWatchEvent, FILE_WATCH_EVENT_NAME } from '@milkup/tauri-bridg
 
 export type FileWatchEventHandler = (event: FileWatchEvent) => void
 
+export type OpenFileProgressPhase = 'dialog-selected' | 'metadata' | 'read-start' | 'read-end'
+
+export interface DesktopTextFileMetadata {
+  readonly path: string
+  readonly sizeBytes: number
+  readonly readonly: boolean
+}
+
+export interface OpenFileProgressEvent {
+  readonly phase: OpenFileProgressPhase
+  readonly path?: string
+  readonly metadata?: DesktopTextFileMetadata
+}
+
+export interface OpenFileRequestOptions {
+  readonly onProgress?: (event: OpenFileProgressEvent) => void
+}
+
 export interface DesktopFileService {
-  openFile(): Promise<OpenFileResult | undefined>
-  openPath(path: string): Promise<OpenFileResult>
+  selectOpenFile(): Promise<string | undefined>
+  openFile(options?: OpenFileRequestOptions): Promise<OpenFileResult | undefined>
+  openPath(path: string, options?: OpenFileRequestOptions): Promise<OpenFileResult>
+  getFileMetadata(path: string): Promise<DesktopTextFileMetadata>
   initialOpenFilePath(): Promise<string | undefined>
   reloadFile(session: DocumentSession): Promise<OpenFileResult | undefined>
   saveFile(session: DocumentSession, text: string): Promise<SaveFileResult | undefined>
   saveFileAs(session: DocumentSession, text: string): Promise<SaveFileResult | undefined>
+  selectSaveFilePath(defaultPath: string): Promise<string | undefined>
   revealInFolder(action: RevealInFolderAction, path: string): Promise<boolean>
   watchFile(session: DocumentSession): Promise<void>
   unwatchFile(documentId: string): Promise<void>
@@ -31,8 +52,31 @@ function isTauriRuntime(): boolean {
 }
 
 function createMockFileService(): DesktopFileService {
+  const sampleMetadata = Object.freeze({
+    path: 'D:/notes/sample.md',
+    sizeBytes: 58,
+    readonly: false,
+  })
+
   return {
-    async openFile(): Promise<OpenFileResult> {
+    async selectOpenFile(): Promise<string> {
+      return sampleMetadata.path
+    },
+    async openFile(options?: OpenFileRequestOptions): Promise<OpenFileResult | undefined> {
+      const selected = await this.selectOpenFile()
+
+      if (!selected) {
+        return undefined
+      }
+
+      options?.onProgress?.({ phase: 'dialog-selected', path: selected })
+      options?.onProgress?.({
+        phase: 'metadata',
+        path: sampleMetadata.path,
+        metadata: sampleMetadata,
+      })
+      options?.onProgress?.({ phase: 'read-start', path: 'D:/notes/sample.md' })
+      options?.onProgress?.({ phase: 'read-end', path: 'D:/notes/sample.md' })
       return {
         documentId: 'desktop-sample',
         file: { path: 'D:/notes/sample.md' },
@@ -40,12 +84,24 @@ function createMockFileService(): DesktopFileService {
         diskSnapshotHash: 'sample:0',
       }
     },
-    async openPath(path: string): Promise<OpenFileResult> {
+    async openPath(path: string, options?: OpenFileRequestOptions): Promise<OpenFileResult> {
+      const metadata = await this.getFileMetadata(path)
+      options?.onProgress?.({ phase: 'dialog-selected', path })
+      options?.onProgress?.({ phase: 'metadata', path, metadata })
+      options?.onProgress?.({ phase: 'read-start', path })
+      options?.onProgress?.({ phase: 'read-end', path })
       return {
         documentId: `file:${path}`,
         file: { path },
         text: '# Sample\r\n\r\nOpened through the desktop file workflow shell.\r\n',
         diskSnapshotHash: `sample:${path}`,
+      }
+    },
+    async getFileMetadata(path: string): Promise<DesktopTextFileMetadata> {
+      return {
+        path,
+        sizeBytes: path === sampleMetadata.path ? sampleMetadata.sizeBytes : 58,
+        readonly: false,
       }
     },
     async initialOpenFilePath(): Promise<string | undefined> {
@@ -71,9 +127,13 @@ function createMockFileService(): DesktopFileService {
       return createMockSaveResult(session, text, session.file)
     },
     async saveFileAs(session: DocumentSession, text: string): Promise<SaveFileResult> {
-      const file = session.file ?? { path: 'D:/notes/untitled.md' }
+      const selected = await this.selectSaveFilePath(session.file?.path ?? 'D:/notes/untitled.md')
+      const file = { path: selected ?? session.file?.path ?? 'D:/notes/untitled.md' }
 
       return createMockSaveResult(session, text, file)
+    },
+    async selectSaveFilePath(defaultPath: string): Promise<string> {
+      return defaultPath
     },
     async revealInFolder(): Promise<boolean> {
       return true
@@ -92,8 +152,7 @@ function createMockFileService(): DesktopFileService {
 
 function createTauriFileService(): DesktopFileService {
   return {
-    async openFile(): Promise<OpenFileResult | undefined> {
-      const { invoke } = await import('@tauri-apps/api/core')
+    async selectOpenFile(): Promise<string | undefined> {
       let selected = getNativeTestPath('open')
 
       if (!selected) {
@@ -106,15 +165,37 @@ function createTauriFileService(): DesktopFileService {
         selected = typeof dialogSelection === 'string' ? dialogSelection : undefined
       }
 
+      return selected
+    },
+    async openFile(options?: OpenFileRequestOptions): Promise<OpenFileResult | undefined> {
+      const { invoke } = await import('@tauri-apps/api/core')
+      const selected = await this.selectOpenFile()
+
       if (!selected) {
         return undefined
       }
 
-      return invoke<OpenFileResult>('open_markdown_file', { path: selected })
+      options?.onProgress?.({ phase: 'dialog-selected', path: selected })
+      const metadata = await this.getFileMetadata(selected)
+      options?.onProgress?.({ phase: 'metadata', path: selected, metadata })
+      options?.onProgress?.({ phase: 'read-start', path: selected })
+      const result = await invoke<OpenFileResult>('open_markdown_file', { path: selected })
+      options?.onProgress?.({ phase: 'read-end', path: selected })
+      return result
     },
-    async openPath(path: string): Promise<OpenFileResult> {
+    async openPath(path: string, options?: OpenFileRequestOptions): Promise<OpenFileResult> {
       const { invoke } = await import('@tauri-apps/api/core')
-      return invoke<OpenFileResult>('open_markdown_file', { path })
+      options?.onProgress?.({ phase: 'dialog-selected', path })
+      const metadata = await this.getFileMetadata(path)
+      options?.onProgress?.({ phase: 'metadata', path, metadata })
+      options?.onProgress?.({ phase: 'read-start', path })
+      const result = await invoke<OpenFileResult>('open_markdown_file', { path })
+      options?.onProgress?.({ phase: 'read-end', path })
+      return result
+    },
+    async getFileMetadata(path: string): Promise<DesktopTextFileMetadata> {
+      const { invoke } = await import('@tauri-apps/api/core')
+      return invoke<DesktopTextFileMetadata>('stat_text_file', { path })
     },
     async initialOpenFilePath(): Promise<string | undefined> {
       const { invoke } = await import('@tauri-apps/api/core')
@@ -146,28 +227,33 @@ function createTauriFileService(): DesktopFileService {
       })
     },
     async saveFileAs(session: DocumentSession, text: string): Promise<SaveFileResult | undefined> {
+      const selected = await this.selectSaveFilePath(session.file?.path ?? 'untitled.md')
+
+      if (!selected) {
+        return undefined
+      }
+
       const { invoke } = await import('@tauri-apps/api/core')
+      return invoke<SaveFileResult>('save_markdown_file', {
+        documentId: session.documentId,
+        path: selected,
+        text,
+      })
+    },
+    async selectSaveFilePath(defaultPath: string): Promise<string | undefined> {
       let selected = getNativeTestPath('saveAs')
 
       if (!selected) {
         const { save } = await import('@tauri-apps/plugin-dialog')
         const dialogSelection = await save({
-          defaultPath: session.file?.path ?? 'untitled.md',
+          defaultPath,
           filters: [{ name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'txt'] }],
         })
 
         selected = typeof dialogSelection === 'string' ? dialogSelection : undefined
       }
 
-      if (!selected) {
-        return undefined
-      }
-
-      return invoke<SaveFileResult>('save_markdown_file', {
-        documentId: session.documentId,
-        path: selected,
-        text,
-      })
+      return selected
     },
     async revealInFolder(_action: RevealInFolderAction, _path: string): Promise<boolean> {
       const { invoke } = await import('@tauri-apps/api/core')

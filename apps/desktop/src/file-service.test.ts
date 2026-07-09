@@ -61,4 +61,53 @@ describe('desktop file service', () => {
       text: '# Saved\n',
     })
   })
+
+  it('reports open progress around native reads', async () => {
+    const progress = vi.fn()
+    tauriMocks.open.mockResolvedValue('D:/notes/chosen.md')
+    tauriMocks.invoke.mockImplementation((command: string) => {
+      if (command === 'stat_text_file') {
+        return Promise.resolve({
+          path: 'D:/notes/chosen.md',
+          sizeBytes: 9,
+          readonly: false,
+        })
+      }
+
+      return Promise.resolve({
+        documentId: 'doc-1',
+        file: { path: 'D:/notes/chosen.md' },
+        text: '# Opened\n',
+        diskSnapshotHash: 'hash:opened',
+      })
+    })
+
+    const service = createDesktopFileService()
+    await service.openFile({ onProgress: progress })
+
+    expect(progress).toHaveBeenNthCalledWith(1, {
+      phase: 'dialog-selected',
+      path: 'D:/notes/chosen.md',
+    })
+    expect(progress).toHaveBeenNthCalledWith(2, {
+      phase: 'metadata',
+      path: 'D:/notes/chosen.md',
+      metadata: {
+        path: 'D:/notes/chosen.md',
+        sizeBytes: 9,
+        readonly: false,
+      },
+    })
+    expect(progress).toHaveBeenNthCalledWith(3, {
+      phase: 'read-start',
+      path: 'D:/notes/chosen.md',
+    })
+    expect(progress).toHaveBeenNthCalledWith(4, {
+      phase: 'read-end',
+      path: 'D:/notes/chosen.md',
+    })
+    expect(tauriMocks.invoke).toHaveBeenCalledWith('stat_text_file', {
+      path: 'D:/notes/chosen.md',
+    })
+  })
 })

@@ -39,7 +39,7 @@ The Windows release is considered 100% complete when:
 - Export pipeline baseline.
 - Plugin runtime sandbox, filesystem/network brokers, worker isolation, and sidecar host path.
 - CLI/MCP action access where already implemented.
-- Documented 1 GiB native behavior with careful wording.
+- Documented 1 GiB native working-temp behavior with careful wording.
 - Installer or portable bundle readiness.
 
 ### Deferred from the Windows release gate
@@ -62,9 +62,9 @@ The following are accepted as already closed for Windows unless a later code cha
 - Windows Ctrl shortcuts are closed by `docs/manual-verification-windows-ctrl-shortcuts-native-2026-07-07.md`.
 - Windows Chinese IME is closed by `docs/manual-verification-windows-ime-computer-use-2026-07-07.md`.
 - Native desktop smoke has covered deterministic open/save/save-as, watcher/conflict, plugins, sidecar, Ctrl shortcuts, and synthetic composition paths.
-- Large-file behavior has 256 MiB and 1 GiB native reports in `docs/native-large-file-benchmark-256mib-2026-07-06.json` and `docs/native-large-file-benchmark-1gib-2026-07-06.json`.
+- Large-file behavior has current desktop and native working-temp reports in `docs/desktop-editor-interaction-benchmark-175kb-10mib-2026-07-09.json`, `docs/desktop-editor-interaction-benchmark-100mib-2026-07-09.json`, `docs/native-large-file-benchmark-working-temp-256mib-2026-07-09.json`, and `docs/native-large-file-benchmark-working-temp-1gib-2026-07-09.json`. The retained reports are summarized in `docs/large-file-editor-phase9-evidence-2026-07-08.md`.
 
-Large-file wording constraint: public material may claim documented native 1 GiB behavior, but must not claim true lazy streaming because the current Tauri service is still full-text-backed after open.
+Large-file wording constraint: public material may claim measured current native working-temp command-path behavior through 1 GiB on the documented Windows machine, but must include the measured latency caveats and must not imply perfect rich live rendering, full-document AST/plugin transforms, or unlimited large-file edit operations.
 
 ## 4. Remaining Windows release work
 

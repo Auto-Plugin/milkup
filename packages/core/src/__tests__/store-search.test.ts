@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { MemoryDocumentStore, searchDocumentStore } from '../index'
+import {
+  MemoryDocumentStore,
+  searchDocumentLineWindows,
+  searchDocumentStore,
+  type StoreSearchEvent,
+} from '../index'
 
 describe('searchDocumentStore', () => {
   it('finds string matches with global UTF-16 offsets across line windows', async () => {
@@ -77,6 +82,73 @@ describe('searchDocumentStore', () => {
       { from: 0, to: 3, line: 1, lineOffset: 0, text: 'hit' },
       { from: 4, to: 7, line: 2, lineOffset: 0, text: 'hit' },
     ])
+  })
+
+  it('streams matches and a final completion event from line windows', async () => {
+    const store = new MemoryDocumentStore({
+      documentId: 'search-doc',
+      text: ['hit one', 'miss', 'hit two'].join('\n'),
+    })
+
+    const events: StoreSearchEvent[] = []
+
+    for await (const event of searchDocumentLineWindows(store, {
+      query: 'hit',
+      windowSizeLines: 1,
+    })) {
+      events.push(event)
+    }
+
+    expect(events).toEqual([
+      {
+        type: 'match',
+        documentId: 'search-doc',
+        version: 0,
+        query: 'hit',
+        match: { from: 0, to: 3, line: 1, lineOffset: 0, text: 'hit' },
+        scannedLineCount: 1,
+      },
+      {
+        type: 'match',
+        documentId: 'search-doc',
+        version: 0,
+        query: 'hit',
+        match: { from: 13, to: 16, line: 3, lineOffset: 0, text: 'hit' },
+        scannedLineCount: 3,
+      },
+      {
+        type: 'done',
+        documentId: 'search-doc',
+        version: 0,
+        query: 'hit',
+        scannedLineCount: 3,
+        complete: true,
+        matchCount: 2,
+      },
+    ])
+  })
+
+  it('honors abort signals before reading the next search window', async () => {
+    const store = new MemoryDocumentStore({
+      documentId: 'search-doc',
+      text: ['hit', 'hit', 'hit'].join('\n'),
+    })
+    const abort = new AbortController()
+    const events: StoreSearchEvent[] = []
+
+    await expect(async () => {
+      for await (const event of searchDocumentLineWindows(store, {
+        query: 'hit',
+        windowSizeLines: 1,
+        signal: abort.signal,
+      })) {
+        events.push(event)
+        abort.abort(new Error('cancelled'))
+      }
+    }).rejects.toThrow('cancelled')
+
+    expect(events).toHaveLength(1)
+    expect(events[0]).toMatchObject({ type: 'match', scannedLineCount: 1 })
   })
 
   it('rejects empty and invalid search inputs', async () => {

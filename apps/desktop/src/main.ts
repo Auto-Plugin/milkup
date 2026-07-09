@@ -1,4 +1,13 @@
-import { ActionRegistry, ChangeSet, EditorState, MemoryTextDocument, Selection } from '@milkup/core'
+import {
+  ActionRegistry,
+  ChangeSet,
+  EditorState,
+  LargeEditSession,
+  largeTextEditsToChangeSet,
+  MemoryDocumentSource,
+  MemoryTextDocument,
+  Selection,
+} from '@milkup/core'
 import type { ActionDefinition, ActionPermission, Command, Editor, Transaction } from '@milkup/core'
 import {
   createBrowserWorkerPluginHost,
@@ -31,11 +40,14 @@ import type {
   SessionViewMode,
 } from '@milkup/tauri-bridge'
 import { EditorView } from '@milkup/view-dom'
+import { SourceDocumentView } from '@milkup/view-dom'
 import type { ViewMode } from '@milkup/view-dom'
 import {
   Bug,
   Circle,
   Code2,
+  ChevronDown,
+  ChevronUp,
   ExternalLink,
   Eye,
   FilePlus2,
@@ -52,14 +64,45 @@ import {
 import type { IconNode } from 'lucide'
 
 import { createDesktopAssetProvider } from './asset-service'
+import {
+  metadataFromOpenFileResult,
+  resolveDesktopMemoryViewportFallbackPolicy,
+  resolveDesktopOpenPolicy,
+  type DesktopOpenPolicy,
+} from './desktop-open-policy'
+import { DesktopDocumentSearchController, type DesktopSearchState } from './desktop-document-search'
+import {
+  createDesktopSearchNavigationState,
+  moveDesktopSearchNavigationIndex,
+} from './desktop-search-navigation'
+import {
+  formatBytes,
+  openLargeDocumentPreview,
+  type LargeDocumentPreviewState,
+} from './desktop-large-open-flow'
+import { getLargeExternalReloadDecision } from './large-document-conflict'
+import { applyLargeDocumentEditBatch } from './large-document-editing'
+import {
+  getDocumentLoadingDetail,
+  getDocumentLoadingLabel,
+  type DocumentLoadingState,
+} from './document-open-flow'
 import { createDesktopFileService } from './file-service'
 import { iconSvg } from './icons'
 import { createDesktopLargeTextFileService } from './large-file-service'
+import {
+  createOpenStageTracker,
+  formatOpenStageDiagnostics,
+  type OpenStageDiagnostics,
+  type OpenStageTracker,
+} from './open-stage-diagnostics'
 import { createDesktopPluginFileBroker } from './plugin-file-broker'
 import { createDesktopPluginSidecarProcess } from './plugin-sidecar'
 import './style.css'
 
 const initialText = ''
+const desktopVirtualLineHeight = 21
+const largePreviewLineCount = 80
 
 const messages = {
   titleUntitled: '未命名',
@@ -136,6 +179,10 @@ const messages = {
     closedDocument: '已关闭文档',
     externalChangeIgnored: '未保存文档，已忽略外部修改模拟',
     externalDeleteIgnored: '未保存文档，已忽略外部删除模拟',
+  },
+  loading: {
+    title: '正在打开文档',
+    body: '正在准备内容',
   },
 } as const
 
@@ -231,6 +278,18 @@ app.innerHTML = `
                   <dt>${messages.labels.lineEnding}</dt>
                   <dd data-stat="line-ending"></dd>
                 </div>
+                <div>
+                  <dt>规模模式</dt>
+                  <dd data-stat="scale-mode"></dd>
+                </div>
+                <div>
+                  <dt>渲染策略</dt>
+                  <dd data-stat="render-strategy"></dd>
+                </div>
+                <div class="wide">
+                  <dt>打开计时</dt>
+                  <dd data-stat="open-timings"></dd>
+                </div>
               </dl>
               <div class="diagnostic-actions">
                 ${toolbarButton('external-change', messages.buttons.simulateChange, Circle)}
@@ -259,11 +318,28 @@ app.innerHTML = `
         <div class="floating-search" data-floating-search hidden>
           ${iconSvg(Search)}
           <input type="search" aria-label="${messages.buttons.search}" placeholder="搜索文档" data-search-input />
+          <span class="search-result-count" data-search-result-count>0/0</span>
+          <button type="button" class="icon-button search-nav-button" data-search-previous aria-label="上一个结果" title="上一个结果" disabled>
+            ${iconSvg(ChevronUp)}
+          </button>
+          <button type="button" class="icon-button search-nav-button" data-search-next aria-label="下一个结果" title="下一个结果" disabled>
+            ${iconSvg(ChevronDown)}
+          </button>
           <button type="button" class="icon-button" data-search-close aria-label="${messages.buttons.closeSearch}" title="${messages.buttons.closeSearch}">
             ${iconSvg(X)}
           </button>
         </div>
         <div class="editor-host" data-editor-host></div>
+        <div class="document-loading" data-document-loading hidden>
+          <div>
+            <button type="button" class="icon-button loading-dismiss" data-loading-dismiss aria-label="关闭" title="关闭" hidden>
+              ${iconSvg(X)}
+            </button>
+            <p data-loading-title>${messages.loading.title}</p>
+            <span data-loading-phase>${messages.loading.body}</span>
+            <span data-loading-detail></span>
+          </div>
+        </div>
       </section>
     </section>
     <section class="confirm-overlay" data-close-confirm hidden>
@@ -309,10 +385,14 @@ if (!editorHost) {
   throw new Error('Desktop editor host was not found')
 }
 
+const editorRoot: HTMLElement = editorHost
+
 let state = new EditorState({
   doc: new MemoryTextDocument(initialText),
 })
 const fileService = createDesktopFileService()
+const largeTextFileService = createDesktopLargeTextFileService()
+const documentSearchController = new DesktopDocumentSearchController()
 const assetProvider = createDesktopAssetProvider({
   getMarkdownPath: () => session.file?.path,
 })
@@ -327,29 +407,52 @@ let disposeFileWatchEvents: (() => void) | undefined
 let sidebarCollapsed = true
 let menuOpen = false
 let searchOpen = false
+let searchResultState: DesktopSearchState | undefined
+let activeSearchResultIndex = -1
 let windowMaximized = false
 let closeConfirmOpen = false
+let loadingState: DocumentLoadingState = Object.freeze({ phase: 'idle' })
+let lastOpenDiagnostics: OpenStageDiagnostics | undefined
+let currentOpenPolicy: DesktopOpenPolicy = resolveDesktopOpenPolicy({
+  path: 'untitled.md',
+  sizeBytes: 0,
+})
+let largeDocumentPreview: LargeDocumentPreviewState | undefined
 
 let view: EditorView | undefined
+let sourceView: SourceDocumentView | undefined
 
 const desktopPluginEditor: Editor = {
   get state() {
     return state
   },
   dispatch(transaction: Transaction): void {
-    if (!view) {
+    if (isDocumentBusy()) {
+      return
+    }
+
+    if (!view && !sourceView) {
       throw new Error('Desktop editor view was not initialized')
     }
 
     state = state.applyTransaction(transaction)
     session = recordDocumentTransaction(session, transaction)
-    view.updateState(state, [transaction])
+    updateRenderedMemoryDocument([transaction])
     renderSession()
   },
   command(command: Command): boolean {
     return command.run(desktopPluginEditor)
   },
   undo(): boolean {
+    if (largeDocumentPreview?.editSession) {
+      if (!largeDocumentPreview.editSession.canUndo) {
+        return false
+      }
+
+      void applyLargeEditHistoryBatch('undo')
+      return true
+    }
+
     if (!state.history.canUndo) {
       return false
     }
@@ -359,11 +462,20 @@ const desktopPluginEditor: Editor = {
       changes: ChangeSet.insert(state.selection.main.head, ''),
       origin: { type: 'history.undo' },
     })
-    view?.updateState(state)
+    updateRenderedMemoryDocument()
     renderSession()
     return true
   },
   redo(): boolean {
+    if (largeDocumentPreview?.editSession) {
+      if (!largeDocumentPreview.editSession.canRedo) {
+        return false
+      }
+
+      void applyLargeEditHistoryBatch('redo')
+      return true
+    }
+
     if (!state.history.canRedo) {
       return false
     }
@@ -373,33 +485,17 @@ const desktopPluginEditor: Editor = {
       changes: ChangeSet.insert(state.selection.main.head, ''),
       origin: { type: 'history.redo' },
     })
-    view?.updateState(state)
+    updateRenderedMemoryDocument()
     renderSession()
     return true
   },
 }
 
-view = new EditorView({
-  parent: editorHost,
-  state,
-  mode: session.viewMode,
-  editable: !session.readonly,
-  assetProvider,
-  dispatch: (transaction: Transaction) => {
-    if (!view) {
-      throw new Error('Desktop editor view was not initialized')
-    }
-
-    state = state.applyTransaction(transaction)
-    session = recordDocumentTransaction(session, transaction)
-    view.updateState(state, [transaction])
-    renderSession()
-  },
-})
+view = createEditorView()
 
 renderSession()
 updateModeToggle(view.viewMode)
-view.inputDOM.focus({ preventScroll: true })
+focusActiveView()
 
 void openInitialDocument()
 
@@ -470,10 +566,35 @@ app.querySelector<HTMLButtonElement>('[data-search-close]')?.addEventListener('c
   setSearchOpen(false)
 })
 
+app.querySelector<HTMLButtonElement>('[data-search-previous]')?.addEventListener('click', () => {
+  void moveSearchResult(-1)
+})
+
+app.querySelector<HTMLButtonElement>('[data-search-next]')?.addEventListener('click', () => {
+  void moveSearchResult(1)
+})
+
+app.querySelector<HTMLButtonElement>('[data-loading-dismiss]')?.addEventListener('click', () => {
+  if (loadingState.phase === 'failed') {
+    setDocumentLoadingState({ phase: 'ready' })
+    view?.inputDOM.focus({ preventScroll: true })
+  }
+})
+
 app.querySelector<HTMLInputElement>('[data-search-input]')?.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
     event.preventDefault()
     setSearchOpen(false)
+    return
+  }
+
+  if (event.key === 'Enter') {
+    event.preventDefault()
+    const input = event.currentTarget
+
+    if (input instanceof HTMLInputElement) {
+      void runDocumentSearch(input.value)
+    }
     return
   }
 
@@ -485,6 +606,20 @@ app.querySelector<HTMLInputElement>('[data-search-input]')?.addEventListener('ke
   ) {
     event.preventDefault()
     setSearchOpen(false)
+  }
+})
+
+app.querySelector<HTMLInputElement>('[data-search-input]')?.addEventListener('input', (event) => {
+  const input = event.currentTarget
+
+  if (!(input instanceof HTMLInputElement)) {
+    return
+  }
+
+  const query = input.value
+
+  if (query.trim().length === 0) {
+    clearSearchResults()
   }
 })
 
@@ -594,18 +729,7 @@ globalThis.addEventListener(
   { capture: true },
 )
 
-view.inputDOM.addEventListener('copy', (event) => {
-  if (copySelectionToClipboard(event)) {
-    event.preventDefault()
-  }
-})
-
-view.inputDOM.addEventListener('cut', (event) => {
-  if (copySelectionToClipboard(event)) {
-    event.preventDefault()
-    runDesktopAction('document.cutSelection')
-  }
-})
+bindEditorViewClipboard(view)
 
 function createDesktopActions(): readonly ActionDefinition[] {
   return Object.freeze([
@@ -741,6 +865,12 @@ function createDesktopActions(): readonly ActionDefinition[] {
 }
 
 function runDesktopAction(id: string, input: unknown = {}): void {
+  if (isDocumentBusy() && !isBusyAllowedAction(id)) {
+    notice = '文档正在打开，请稍候。'
+    renderSession()
+    return
+  }
+
   void desktopActionRegistry
     .run(
       id,
@@ -758,52 +888,213 @@ function runDesktopAction(id: string, input: unknown = {}): void {
     })
 }
 
-function createNewDocument(): void {
+function focusActiveView(): void {
+  if (view) {
+    view.inputDOM.focus({ preventScroll: true })
+    return
+  }
+
+  sourceView?.dom.focus({ preventScroll: true })
+}
+
+function focusEditableView(): void {
+  view?.inputDOM.focus({ preventScroll: true })
+}
+
+function bindEditorViewClipboard(editorView: EditorView): void {
+  editorView.inputDOM.addEventListener('copy', (event) => {
+    if (copySelectionToClipboard(event)) {
+      event.preventDefault()
+    }
+  })
+
+  editorView.inputDOM.addEventListener('cut', (event) => {
+    if (copySelectionToClipboard(event)) {
+      event.preventDefault()
+      runDesktopAction('document.cutSelection')
+    }
+  })
+}
+
+function createEditorView(): EditorView {
+  sourceView?.destroy()
+  sourceView = undefined
+
+  const nextView = new EditorView({
+    parent: editorRoot,
+    state,
+    mode: session.viewMode,
+    editable: !session.readonly && !isDocumentBusy(),
+    assetProvider,
+    ...(currentOpenPolicy.virtualViewport === undefined
+      ? {}
+      : {
+          virtualViewport: {
+            ...currentOpenPolicy.virtualViewport,
+            lineHeight: desktopVirtualLineHeight,
+          },
+        }),
+    dispatch: (transaction: Transaction) => {
+      if (isDocumentBusy()) {
+        return
+      }
+
+      if (!view) {
+        throw new Error('Desktop editor view was not initialized')
+      }
+
+      state = state.applyTransaction(transaction)
+      session = recordDocumentTransaction(session, transaction)
+      view.updateState(state, [transaction])
+      renderSession()
+    },
+  })
+  bindEditorViewClipboard(nextView)
+  return nextView
+}
+
+function recreateEditorView(): void {
+  view?.destroy()
+  view = createEditorView()
+}
+
+function applyEditorViewState(): void {
+  if (currentOpenPolicy.useMemoryVirtualViewport) {
+    applyMemorySourceView()
+    return
+  }
+
+  if (sourceView) {
+    recreateEditorView()
+  }
+
   if (!view) {
     return
   }
 
+  const shouldUseVirtualViewport = currentOpenPolicy.useMemoryVirtualViewport
+  const viewHasVirtualViewport = view.contentDOM.dataset.virtualized === 'true'
+
+  if (shouldUseVirtualViewport !== viewHasVirtualViewport) {
+    recreateEditorView()
+    return
+  }
+
+  view.updateState(state)
+}
+
+function applyMemorySourceView(): void {
+  view?.destroy()
+  view = undefined
+
+  const source = createMemoryDocumentSource()
+
+  if (sourceView && !largeDocumentPreview) {
+    sourceView.updateSource(source)
+    sourceView.setMode(session.viewMode)
+    sourceView.setEditable(!session.readonly && !isDocumentBusy())
+    return
+  }
+
+  sourceView?.destroy()
+  sourceView = new SourceDocumentView({
+    parent: editorRoot,
+    source,
+    mode: session.viewMode,
+    editable: !session.readonly && !isDocumentBusy(),
+    onEdit: (edit) => applyMemorySourceEdit(edit),
+    markdownContextLines: 24,
+    backgroundMarkdownWarmup: true,
+    markdownWarmupWindows: 1,
+    virtualViewport: {
+      enabled: true,
+      lineHeight: desktopVirtualLineHeight,
+      overscanLines: 12,
+    },
+  })
+}
+
+function updateRenderedMemoryDocument(transactions: readonly Transaction[] = []): void {
+  if (view) {
+    view.updateState(state, transactions)
+    return
+  }
+
+  if (sourceView && !largeDocumentPreview) {
+    sourceView.updateSource(createMemoryDocumentSource())
+  }
+}
+
+function createMemoryDocumentSource(): MemoryDocumentSource {
+  return new MemoryDocumentSource({
+    documentId: session.documentId,
+    document: state.doc,
+    version: session.documentVersion,
+  })
+}
+
+async function applyLargeSourceView(): Promise<void> {
+  if (!largeDocumentPreview) {
+    return
+  }
+
+  view?.destroy()
+  view = undefined
+  sourceView?.destroy()
+  sourceView = new SourceDocumentView({
+    parent: editorRoot,
+    source: largeDocumentPreview.source,
+    mode: session.viewMode,
+    editable: !session.readonly && !isDocumentBusy(),
+    onEdit: (edit) => applyLargeSourceEdit(edit),
+    markdownContextLines: 24,
+    backgroundMarkdownWarmup: true,
+    markdownWarmupWindows: 1,
+    virtualViewport: {
+      enabled: true,
+      lineHeight: desktopVirtualLineHeight,
+      overscanLines: 12,
+    },
+  })
+  await sourceView.renderVisibleWindow()
+}
+
+function createNewDocument(): void {
   const action: FileAction = {
     kind: 'new',
     documentId: `desktop-untitled-${Date.now()}`,
   }
 
+  clearSearchResults()
   unwatchCurrentFile()
+  closeLargeDocumentPreview()
   state = new EditorState({
     doc: new MemoryTextDocument(messages.newDocumentSource),
   })
+  currentOpenPolicy = resolveDesktopOpenPolicy({ path: 'untitled.md', sizeBytes: 0 })
   session = createDocumentSession({
     documentId: getRequiredDocumentId(action),
-    viewMode: view.viewMode,
+    viewMode: session.viewMode,
   })
-  view.updateState(state)
+  applyEditorViewState()
   notice = messages.notices.newDocumentCreated
   renderSession()
-  view.inputDOM.focus({ preventScroll: true })
+  focusActiveView()
 }
 
 async function openDocument(): Promise<void> {
-  if (!view) {
-    return
-  }
+  const tracker = createOpenStageTracker({
+    label: 'open-file',
+    consoleDiagnostics: isDeveloperDiagnosticsEnabled(),
+  })
 
-  const result = await fileService.openFile()
-
-  if (!result) {
-    notice = messages.notices.openCancelled
-    renderSession()
-    view.inputDOM.focus({ preventScroll: true })
-    return
-  }
-
-  openDocumentResult(result, '')
+  await openSelectedDocumentWithPolicy(tracker, () => fileService.selectOpenFile(), {
+    cancelledNotice: messages.notices.openCancelled,
+    errorPrefix: '打开文件失败',
+  })
 }
 
 async function openInitialDocument(): Promise<void> {
-  if (!view) {
-    return
-  }
-
   const path = await fileService.initialOpenFilePath().catch((error: unknown) => {
     notice = `启动文件读取失败：${getErrorMessage(error)}`
     renderSession()
@@ -814,39 +1105,190 @@ async function openInitialDocument(): Promise<void> {
     return
   }
 
-  const result = await fileService.openPath(path).catch((error: unknown) => {
-    notice = `启动文件打开失败：${getErrorMessage(error)}`
-    renderSession()
-    return undefined
+  const tracker = createOpenStageTracker({
+    label: path,
+    consoleDiagnostics: isDeveloperDiagnosticsEnabled(),
   })
 
-  if (!result) {
-    return
-  }
-
-  openDocumentResult(result, '')
+  await openSelectedDocumentWithPolicy(tracker, async () => path, {
+    errorPrefix: '启动文件打开失败',
+  })
 }
 
-function openDocumentResult(result: OpenFileResult, nextNotice: string): void {
-  if (!view) {
+async function openSelectedDocumentWithPolicy(
+  tracker: OpenStageTracker,
+  selectPath: () => Promise<string | undefined>,
+  messages: { readonly cancelledNotice?: string; readonly errorPrefix: string },
+): Promise<void> {
+  setDocumentLoadingState({ phase: 'opening' })
+
+  try {
+    const selected = await selectPath()
+
+    if (!selected) {
+      setDocumentLoadingState({ phase: 'ready' })
+      if (messages.cancelledNotice) {
+        notice = messages.cancelledNotice
+        renderSession()
+        view?.inputDOM.focus({ preventScroll: true })
+      }
+      return
+    }
+
+    tracker.mark('native-dialog-selected', selected)
+    const metadata = await fileService.getFileMetadata(selected)
+    tracker.mark('file-metadata', `${metadata.sizeBytes} bytes`)
+    const openPolicy = resolveDesktopOpenPolicy(metadata)
+    let nativeFallbackNotice = ''
+
+    if (openPolicy.useNativeLargeFile) {
+      setDocumentLoadingState({
+        phase: 'indexing',
+        path: selected,
+        sizeBytes: metadata.sizeBytes,
+      })
+      try {
+        await openNativeLargeDocument(selected, openPolicy, tracker)
+        setDocumentLoadingState({
+          phase: 'ready',
+          path: selected,
+          sizeBytes: metadata.sizeBytes,
+        })
+        return
+      } catch (error: unknown) {
+        nativeFallbackNotice = `原生行窗口打开失败，已退回内存视口渲染：${getErrorMessage(error)}`
+      }
+    }
+
+    tracker.mark('file-read-start', selected)
+    const result = await fileService.openPath(selected, {
+      onProgress: (event) => {
+        if (event.phase === 'read-end') {
+          tracker.mark('file-read-end', selected)
+        }
+      },
+    })
+    openDocumentResult(result, tracker, {
+      preResolvedPolicy: openPolicy.useNativeLargeFile
+        ? resolveDesktopMemoryViewportFallbackPolicy(metadata)
+        : openPolicy,
+    })
+    if (nativeFallbackNotice) {
+      notice = nativeFallbackNotice
+      renderSession()
+    }
+    setDocumentLoadingState({
+      phase: 'ready',
+      path: selected,
+      sizeBytes: metadata.sizeBytes,
+    })
+  } catch (error) {
+    setDocumentLoadingState({
+      phase: 'failed',
+      message: getErrorMessage(error),
+    })
+    notice = `${messages.errorPrefix}：${getErrorMessage(error)}`
+    renderSession()
+    view?.inputDOM.focus({ preventScroll: true })
+  }
+}
+
+function openDocumentResult(
+  result: OpenFileResult,
+  tracker: OpenStageTracker,
+  options: { readonly preResolvedPolicy?: DesktopOpenPolicy } = {},
+): void {
+  const nextOpenPolicy =
+    options.preResolvedPolicy ?? resolveDesktopOpenPolicy(metadataFromOpenFileResult(result))
+
+  if (nextOpenPolicy.useNativeLargeFile) {
+    void openNativeLargeDocument(result.file.path, nextOpenPolicy, tracker)
     return
   }
 
   unwatchCurrentFile()
+  closeLargeDocumentPreview()
+  clearSearchResults()
+  tracker.mark('memory-document-start', result.file.path)
   state = new EditorState({
     doc: new MemoryTextDocument(result.text),
   })
-  session = createDocumentSessionFromOpenResult(result, view.viewMode)
+  tracker.mark('memory-document-end', `${state.doc.lineCount} lines`)
+  currentOpenPolicy = nextOpenPolicy
+  const nextViewMode = session.viewMode
+  tracker.mark('markdown-parse-start', nextViewMode)
+  session = createDocumentSessionFromOpenResult(result, session.viewMode)
+  if (session.viewMode !== nextViewMode) {
+    session = recordModeChange(session, nextViewMode)
+  }
   recentFiles = recordRecentFile(recentFiles, result.file, Date.now())
   watchCurrentFile()
-  view.updateState(state)
-  notice = nextNotice
+  applyEditorViewState()
+  tracker.mark('markdown-parse-end')
+  tracker.mark('first-editor-paint')
+  notice = ''
   renderSession()
-  view.inputDOM.focus({ preventScroll: true })
+  focusActiveView()
+  tracker.mark('first-interactive-focus')
+  lastOpenDiagnostics = tracker.snapshot()
+  renderSession()
+}
+
+async function openNativeLargeDocument(
+  path: string,
+  openPolicy: DesktopOpenPolicy,
+  tracker: OpenStageTracker,
+): Promise<void> {
+  const previousLargeDocumentId = largeDocumentPreview?.documentId
+  const documentId = `desktop-large-${Date.now()}`
+
+  tracker.mark('memory-document-start', 'native-large-open')
+  const preview = await openLargeDocumentPreview({
+    service: largeTextFileService,
+    documentId,
+    path,
+    previewLineCount: largePreviewLineCount,
+  })
+
+  if (previousLargeDocumentId) {
+    void largeTextFileService.close(previousLargeDocumentId).catch(() => undefined)
+  }
+
+  unwatchCurrentFile()
+  clearSearchResults()
+  currentOpenPolicy = openPolicy
+  largeDocumentPreview = {
+    ...preview,
+    editSession: new LargeEditSession({
+      documentId,
+      baseVersion: preview.version,
+      savedVersion: preview.version,
+    }),
+  }
+  state = new EditorState({ doc: new MemoryTextDocument('') })
+  session = createDocumentSession({
+    documentId,
+    file: { path: preview.path },
+    diskSnapshotHash: largeSnapshotHash(preview.version, preview.sizeBytes),
+    readonly: openPolicy.metadata.readonly ?? false,
+    viewMode: 'source',
+  })
+  await applyLargeSourceView()
+  tracker.mark('memory-document-end', `${preview.window.lines.length} preview lines`)
+  tracker.mark('first-editor-paint', `${openPolicy.featurePolicy.mode} native-line-window`)
+  notice = `已用原生大文件路径打开预览：${formatBytes(preview.sizeBytes)}，${preview.lineCount} 行。`
+  renderSession()
+  focusActiveView()
+  tracker.mark('first-interactive-focus')
+  lastOpenDiagnostics = tracker.snapshot()
+  renderSession()
 }
 
 async function saveDocument(): Promise<boolean> {
   if (!view) {
+    if (largeDocumentPreview) {
+      return saveLargeDocument()
+    }
     return false
   }
 
@@ -861,7 +1303,7 @@ async function saveDocument(): Promise<boolean> {
   if (!safety.canSave) {
     notice = translateSaveSafetyMessage(safety.message)
     renderSession()
-    view.inputDOM.focus({ preventScroll: true })
+    focusEditableView()
     return false
   }
 
@@ -873,7 +1315,7 @@ async function saveDocument(): Promise<boolean> {
   if (!result) {
     notice = messages.notices.saveCancelled
     renderSession()
-    view.inputDOM.focus({ preventScroll: true })
+    focusEditableView()
     return false
   }
 
@@ -882,12 +1324,152 @@ async function saveDocument(): Promise<boolean> {
   watchCurrentFile()
   notice = messages.notices.saved
   renderSession()
-  view.inputDOM.focus({ preventScroll: true })
+  focusEditableView()
   return true
+}
+
+async function saveLargeDocument(): Promise<boolean> {
+  if (!largeDocumentPreview?.editSession) {
+    return false
+  }
+
+  const safety = getSaveSafety(session)
+
+  if (!safety.canSave) {
+    notice = translateSaveSafetyMessage(safety.message)
+    renderSession()
+    focusActiveView()
+    return false
+  }
+
+  const editSnapshot = largeDocumentPreview.editSession.snapshot()
+
+  try {
+    const snapshot = await largeTextFileService.flush(
+      largeDocumentPreview.documentId,
+      editSnapshot.version,
+    )
+    largeDocumentPreview.source.applyNativeSnapshot(snapshot)
+    largeDocumentPreview.editSession.markFlushed(snapshot.version)
+    session = recordFileSaveResult(session, {
+      documentId: session.documentId,
+      file: { path: snapshot.path },
+      diskSnapshotHash: largeSnapshotHash(snapshot.version, snapshot.sizeBytes),
+    })
+    notice = messages.notices.saved
+    renderSession()
+    focusActiveView()
+    return true
+  } catch (error: unknown) {
+    notice = `大文件保存失败：${translateSaveSafetyMessage(getErrorMessage(error))}`
+    renderSession()
+    focusActiveView()
+    return false
+  }
+}
+
+async function applyMemorySourceEdit(edit: {
+  readonly from: number
+  readonly to: number
+  readonly insert: string
+}): Promise<void> {
+  const transaction: Transaction = {
+    changes: ChangeSet.replace(edit.from, edit.to, edit.insert),
+    selection: Selection.cursor(edit.from + edit.insert.length),
+    origin: { type: 'input.type', id: 'memory-source-edit' },
+  }
+
+  state = state.applyTransaction(transaction)
+  session = recordDocumentTransaction(session, transaction)
+  updateRenderedMemoryDocument([transaction])
+  renderSession()
+}
+
+async function applyLargeSourceEdit(edit: {
+  readonly from: number
+  readonly to: number
+  readonly insert: string
+  readonly deletedText: string
+}): Promise<void> {
+  const preview = largeDocumentPreview
+  const editSession = preview?.editSession
+
+  if (!preview || !editSession) {
+    return
+  }
+
+  const expectedVersion = editSession.version
+  const batch = editSession.recordVisibleEdits(ChangeSet.replace(edit.from, edit.to, edit.insert), [
+    edit.deletedText,
+  ])
+  const snapshot = await applyLargeDocumentEditBatch({
+    service: largeTextFileService,
+    documentId: preview.documentId,
+    expectedVersion,
+    batch,
+  })
+
+  if (!snapshot) {
+    return
+  }
+
+  preview.source.applyNativeSnapshot(snapshot)
+  session = recordDocumentTransaction(session, {
+    changes: ChangeSet.replace(edit.from, edit.to, edit.insert),
+    selection: Selection.cursor(edit.from + edit.insert.length),
+    origin: { type: 'input.type', id: 'large-source-edit' },
+  })
+  notice = `已应用大文件可见范围编辑；版本 ${snapshot.version}。`
+  renderSession()
+}
+
+async function applyLargeEditHistoryBatch(direction: 'undo' | 'redo'): Promise<void> {
+  const preview = largeDocumentPreview
+  const editSession = preview?.editSession
+
+  if (!preview || !editSession) {
+    return
+  }
+
+  const expectedVersion = editSession.version
+  const batch = direction === 'undo' ? editSession.undo() : editSession.redo()
+
+  if (!batch) {
+    return
+  }
+
+  try {
+    const snapshot = await applyLargeDocumentEditBatch({
+      service: largeTextFileService,
+      documentId: preview.documentId,
+      expectedVersion,
+      batch,
+    })
+
+    if (snapshot) {
+      preview.source.applyNativeSnapshot(snapshot)
+    }
+
+    session = recordDocumentTransaction(session, {
+      changes: largeTextEditsToChangeSet(batch.edits),
+      origin: { type: 'history.undo', id: `large-${direction}` },
+    })
+    notice = direction === 'undo' ? '已撤销大文件编辑。' : '已重做大文件编辑。'
+    await sourceView?.renderVisibleWindow()
+    renderSession()
+    focusActiveView()
+  } catch (error: unknown) {
+    notice = `大文件${direction === 'undo' ? '撤销' : '重做'}失败：${getErrorMessage(error)}`
+    renderSession()
+    focusActiveView()
+  }
 }
 
 async function reloadExternalDocument(): Promise<void> {
   if (!view) {
+    if (largeDocumentPreview) {
+      await reloadLargeExternalDocument()
+    }
     return
   }
 
@@ -910,17 +1492,93 @@ async function reloadExternalDocument(): Promise<void> {
   state = new EditorState({
     doc: new MemoryTextDocument(result.text),
   })
+  closeLargeDocumentPreview()
+  currentOpenPolicy = resolveDesktopOpenPolicy(metadataFromOpenFileResult(result))
   session = recordFileReloadResult(session, result)
   recentFiles = recordRecentFile(recentFiles, result.file, Date.now())
   watchCurrentFile()
-  view.updateState(state)
+  applyEditorViewState()
   notice = messages.notices.reloadedExternal
   renderSession()
   view.inputDOM.focus({ preventScroll: true })
 }
 
+async function reloadLargeExternalDocument(): Promise<void> {
+  const path = session.file?.path ?? largeDocumentPreview?.source.path
+
+  if (!path) {
+    notice = '当前大文件没有可重新载入的路径。'
+    renderSession()
+    focusActiveView()
+    return
+  }
+
+  const reloadDecision = getLargeExternalReloadDecision(session)
+
+  if (reloadDecision.kind === 'blocked') {
+    notice = reloadDecision.message
+    renderSession()
+    focusActiveView()
+    return
+  }
+
+  if (
+    reloadDecision.kind === 'confirm-discard-and-reload' &&
+    !globalThis.confirm(reloadDecision.message)
+  ) {
+    notice = '已取消重新载入；本地大文件编辑仍保留。'
+    renderSession()
+    focusActiveView()
+    return
+  }
+
+  const tracker = createOpenStageTracker({
+    label: `reload-large:${path}`,
+    consoleDiagnostics: isDeveloperDiagnosticsEnabled(),
+  })
+
+  try {
+    setDocumentLoadingState({ phase: 'indexing', path })
+    tracker.mark('native-dialog-selected', path)
+    const metadata = await fileService.getFileMetadata(path)
+    tracker.mark('file-metadata', `${metadata.sizeBytes} bytes`)
+    const openPolicy = resolveDesktopOpenPolicy(metadata)
+
+    if (openPolicy.useNativeLargeFile) {
+      await openNativeLargeDocument(path, openPolicy, tracker)
+    } else {
+      tracker.mark('file-read-start', path)
+      const result = await fileService.openPath(path, {
+        onProgress: (event) => {
+          if (event.phase === 'read-end') {
+            tracker.mark('file-read-end', path)
+          }
+        },
+      })
+      openDocumentResult(result, tracker, { preResolvedPolicy: openPolicy })
+    }
+
+    setDocumentLoadingState({ phase: 'ready', path, sizeBytes: metadata.sizeBytes })
+    notice = messages.notices.reloadedExternal
+    renderSession()
+    focusActiveView()
+  } catch (error: unknown) {
+    setDocumentLoadingState({
+      phase: 'failed',
+      path,
+      message: getErrorMessage(error),
+    })
+    notice = `大文件重新载入失败：${getErrorMessage(error)}`
+    renderSession()
+    focusActiveView()
+  }
+}
+
 async function saveDocumentAs(): Promise<void> {
   if (!view) {
+    if (largeDocumentPreview) {
+      await saveLargeDocumentAs()
+    }
     return
   }
 
@@ -959,6 +1617,62 @@ async function saveDocumentAs(): Promise<void> {
   view.inputDOM.focus({ preventScroll: true })
 }
 
+async function saveLargeDocumentAs(): Promise<void> {
+  const preview = largeDocumentPreview
+  const editSession = preview?.editSession
+
+  if (!preview || !editSession) {
+    notice = '当前没有可另存为的大文件。'
+    renderSession()
+    focusActiveView()
+    return
+  }
+
+  const selected = await fileService.selectSaveFilePath(session.file?.path ?? preview.source.path)
+
+  if (!selected) {
+    notice = messages.notices.saveAsCancelled
+    renderSession()
+    focusActiveView()
+    return
+  }
+
+  try {
+    const snapshot = await largeTextFileService.flushAs(
+      preview.documentId,
+      editSession.version,
+      selected,
+    )
+    preview.source.applyNativeSnapshot(snapshot)
+    editSession.markFlushed(snapshot.version)
+    largeDocumentPreview = {
+      ...preview,
+      path: snapshot.path,
+      version: snapshot.version,
+      sizeBytes: snapshot.sizeBytes,
+      lineCount: snapshot.lineCount,
+    }
+    session = recordFileSaveResult(session, {
+      documentId: session.documentId,
+      file: { path: snapshot.path },
+      diskSnapshotHash: largeSnapshotHash(snapshot.version, snapshot.sizeBytes),
+    })
+    recentFiles = recordRecentFile(recentFiles, { path: snapshot.path }, Date.now())
+    watchCurrentFile()
+    notice = messages.notices.savedAs
+    renderSession()
+    focusActiveView()
+  } catch (error: unknown) {
+    notice = `大文件另存为失败：${getErrorMessage(error)}`
+    renderSession()
+    focusActiveView()
+  }
+}
+
+function largeSnapshotHash(version: number, sizeBytes: number): string {
+  return `large:${version}:${sizeBytes}`
+}
+
 async function revealCurrentFile(): Promise<void> {
   const action: FileAction = {
     kind: 'revealInFolder',
@@ -976,14 +1690,10 @@ async function revealCurrentFile(): Promise<void> {
   const revealed = await fileService.revealInFolder(action, target.path)
   notice = revealed ? `已在文件夹中显示：${target.path}` : messages.notices.revealFailed
   renderSession()
-  view?.inputDOM.focus({ preventScroll: true })
+  focusActiveView()
 }
 
 function closeCurrentDocument(): void {
-  if (!view) {
-    return
-  }
-
   const decision = evaluateCloseProtection([session], {
     scope: 'tab',
     documentIds: [session.documentId],
@@ -993,22 +1703,25 @@ function closeCurrentDocument(): void {
     applyCloseDecision([session], decision, 'cancel')
     notice = `无法关闭：${decision.blockedDocumentIds.join(', ')} 有未保存更改`
     renderSession()
-    view.inputDOM.focus({ preventScroll: true })
+    focusActiveView()
     return
   }
 
   unwatchCurrentFile()
+  closeLargeDocumentPreview()
+  clearSearchResults()
   state = new EditorState({
     doc: new MemoryTextDocument(''),
   })
+  currentOpenPolicy = resolveDesktopOpenPolicy({ path: 'untitled.md', sizeBytes: 0 })
   session = createDocumentSession({
     documentId: `desktop-untitled-${Date.now()}`,
-    viewMode: view.viewMode,
+    viewMode: session.viewMode,
   })
-  view.updateState(state)
+  applyEditorViewState()
   notice = messages.notices.closedDocument
   renderSession()
-  view.inputDOM.focus({ preventScroll: true })
+  focusActiveView()
 }
 
 function simulateExternalChange(): void {
@@ -1055,6 +1768,16 @@ function simulateExternalDelete(): void {
 }
 
 function setViewMode(mode: SessionViewMode): void {
+  if (sourceView) {
+    sourceView.setMode(mode)
+    session = recordModeChange(session, mode)
+    updateModeToggle(mode)
+    notice = mode === 'live' ? '已切换到窗口化实时渲染；仅解析当前视口附近内容。' : ''
+    renderSession()
+    focusActiveView()
+    return
+  }
+
   if (!view) {
     return
   }
@@ -1067,6 +1790,13 @@ function setViewMode(mode: SessionViewMode): void {
 }
 
 function selectWholeDocument(): void {
+  if (largeDocumentPreview) {
+    notice = '大文件模式暂不支持全选；请在可见窗口内选择和编辑。'
+    renderSession()
+    focusActiveView()
+    return
+  }
+
   desktopPluginEditor.dispatch({
     selection: Selection.range(0, state.doc.length),
     origin: { type: 'command', id: 'document.selectAll' },
@@ -1076,6 +1806,13 @@ function selectWholeDocument(): void {
 }
 
 function cutCurrentSelection(): boolean {
+  if (largeDocumentPreview) {
+    notice = '大文件模式暂不支持跨窗口剪切；请在可见窗口内删除或替换文本。'
+    renderSession()
+    focusActiveView()
+    return false
+  }
+
   const range = state.selection.main
 
   if (range.empty) {
@@ -1177,8 +1914,161 @@ function setSearchOpen(open: boolean): void {
     setMenuOpen(false)
     appRoot.querySelector<HTMLInputElement>('[data-search-input]')?.focus()
   } else {
-    view?.inputDOM.focus({ preventScroll: true })
+    clearSearchResults()
+    focusActiveView()
   }
+}
+
+async function runDocumentSearch(query: string): Promise<void> {
+  if (isDocumentBusy()) {
+    notice = '文档正在打开，请稍候再搜索。'
+    renderSession()
+    return
+  }
+
+  const trimmed = query.trim()
+
+  if (trimmed.length === 0) {
+    clearSearchResults()
+    return
+  }
+
+  const source = largeDocumentPreview?.source
+
+  try {
+    const result = await documentSearchController.run({
+      query: trimmed,
+      ...(source
+        ? { source, windowSizeLines: 512, maxResults: 200 }
+        : {
+            state,
+            documentId: session.documentId,
+            version: session.documentVersion,
+            windowSizeLines: currentOpenPolicy.useMemoryVirtualViewport ? 512 : 128,
+            maxResults: 200,
+          }),
+      onUpdate: (searchState) => {
+        searchResultState = searchState
+        activeSearchResultIndex =
+          searchState.matches.length > 0 && activeSearchResultIndex < 0
+            ? 0
+            : activeSearchResultIndex
+        notice = formatDesktopSearchNotice(searchState)
+        renderSession()
+        renderSearchNavigation()
+      },
+    })
+
+    searchResultState = result
+    activeSearchResultIndex = result.matches.length > 0 ? 0 : -1
+    renderSearchNavigation()
+    await jumpToSearchMatch(result, activeSearchResultIndex)
+  } catch (error: unknown) {
+    notice = `搜索失败：${getErrorMessage(error)}`
+    renderSession()
+  }
+}
+
+async function jumpToSearchMatch(
+  searchState: DesktopSearchState | undefined,
+  index: number,
+): Promise<void> {
+  const match =
+    searchState && index >= 0 && index < searchState.matches.length
+      ? searchState.matches[index]
+      : undefined
+
+  if (!match || searchState?.phase !== 'done') {
+    return
+  }
+
+  if (sourceView) {
+    await sourceView.scrollToLine(match.line)
+    focusActiveView()
+    return
+  }
+
+  if (!view) {
+    return
+  }
+
+  state = new EditorState({
+    doc: state.doc,
+    selection: Selection.cursor(match.from),
+    history: state.history,
+    facets: state.facets,
+  })
+  view.updateState(state)
+  view.ensureCursorVisible({ scrollPadding: 0 })
+  renderSession()
+  focusActiveView()
+}
+
+async function moveSearchResult(delta: -1 | 1): Promise<void> {
+  if (!searchResultState || searchResultState.matches.length === 0) {
+    return
+  }
+
+  activeSearchResultIndex = moveDesktopSearchNavigationIndex(
+    searchResultState,
+    activeSearchResultIndex,
+    delta,
+  )
+  renderSearchNavigation()
+  notice = formatDesktopSearchNotice(searchResultState)
+  renderSession()
+  await jumpToSearchMatch(searchResultState, activeSearchResultIndex)
+}
+
+function clearSearchResults(): void {
+  documentSearchController.cancel()
+  searchResultState = undefined
+  activeSearchResultIndex = -1
+  notice = messages.ready
+  renderSearchNavigation()
+  renderSession()
+}
+
+function renderSearchNavigation(): void {
+  const navigation = createDesktopSearchNavigationState(searchResultState, activeSearchResultIndex)
+
+  activeSearchResultIndex = navigation.activeIndex
+  setText('[data-search-result-count]', navigation.label)
+
+  for (const selector of ['[data-search-previous]', '[data-search-next]']) {
+    const button = appRoot.querySelector<HTMLButtonElement>(selector)
+
+    if (button) {
+      button.disabled = !navigation.canNavigate
+    }
+  }
+}
+
+function formatDesktopSearchNotice(searchState: DesktopSearchState): string {
+  switch (searchState.phase) {
+    case 'idle':
+      return messages.ready
+    case 'searching':
+      return `正在搜索“${searchState.query}”：已找到 ${searchState.matches.length} 处，已扫描 ${searchState.scannedLineCount} 行。`
+    case 'done':
+      return searchState.complete
+        ? `搜索“${searchState.query}”完成：找到 ${searchState.matches.length} 处，扫描 ${searchState.scannedLineCount} 行。`
+        : `搜索“${searchState.query}”已截断：显示前 ${searchState.matches.length} 处，扫描 ${searchState.scannedLineCount} 行。`
+    case 'cancelled':
+      return `已取消搜索“${searchState.query}”。`
+    case 'failed':
+      return `搜索失败：${searchState.message ?? searchState.query}`
+    default:
+      return messages.ready
+  }
+}
+
+function formatCharacterCount(): string {
+  if (largeDocumentPreview) {
+    return `${formatBytes(largeDocumentPreview.source.sizeBytes)} · ${largeDocumentPreview.source.lineCount} 行`
+  }
+
+  return `${state.doc.length} 字符`
 }
 
 function getNextViewMode(mode: ViewMode): SessionViewMode {
@@ -1424,15 +2314,60 @@ function renderSession(): void {
   setText('[data-stat="saved"]', String(session.savedVersion))
   setText('[data-stat="external"]', session.externalChangeState)
   setText('[data-stat="line-ending"]', session.lineEnding)
-  setText('[data-stat="char-count"]', `${state.doc.length} 字符`)
+  setText('[data-stat="char-count"]', formatCharacterCount())
+  setText('[data-stat="scale-mode"]', currentOpenPolicy.featurePolicy.mode)
+  setText('[data-stat="render-strategy"]', currentOpenPolicy.renderStrategy)
+  setText('[data-stat="open-timings"]', formatOpenStageDiagnostics(lastOpenDiagnostics))
   setText('[data-save-label]', saveStateLabel)
 
   const dirtyDot = app?.querySelector<HTMLElement>('[data-save-dot]')
   dirtyDot?.classList.toggle('is-dirty', session.dirty)
   appRoot.dataset.emptyDocument = String(state.doc.length === 0)
   appRoot.dataset.readonly = String(session.readonly)
-  view?.setEditable(!session.readonly)
+  appRoot.dataset.loading = loadingState.phase
+  view?.setEditable(!session.readonly && !isDocumentBusy())
+  sourceView?.setEditable(
+    !session.readonly &&
+      !isDocumentBusy() &&
+      (!largeDocumentPreview || Boolean(largeDocumentPreview.editSession)),
+  )
+  renderDocumentLoadingState()
   updateModeToggle(session.viewMode)
+}
+
+function setDocumentLoadingState(nextState: DocumentLoadingState): void {
+  loadingState = Object.freeze(nextState)
+  renderSession()
+}
+
+function renderDocumentLoadingState(): void {
+  const loading = appRoot.querySelector<HTMLElement>('[data-document-loading]')
+  const dismiss = appRoot.querySelector<HTMLButtonElement>('[data-loading-dismiss]')
+
+  if (!loading) {
+    return
+  }
+
+  const visible = isDocumentBusy() || loadingState.phase === 'failed'
+  loading.hidden = !visible
+  if (dismiss) {
+    dismiss.hidden = loadingState.phase !== 'failed'
+  }
+  setText('[data-loading-title]', getDocumentLoadingLabel(loadingState))
+  setText('[data-loading-phase]', loadingState.phase === 'failed' ? '未替换当前文档' : '请稍候')
+  setText('[data-loading-detail]', getDocumentLoadingDetail(loadingState))
+}
+
+function isDocumentBusy(): boolean {
+  return loadingState.phase === 'opening' || loadingState.phase === 'indexing'
+}
+
+function isBusyAllowedAction(id: string): boolean {
+  return false
+}
+
+function isDeveloperDiagnosticsEnabled(): boolean {
+  return globalThis.localStorage?.getItem('milkup.desktop.openDiagnostics') === 'true'
 }
 
 function getSessionTitleInfo(path: string | undefined): {
@@ -1470,6 +2405,18 @@ function unwatchCurrentFile(): void {
     notice = `清理文件监听失败：${getErrorMessage(error)}`
     renderSession()
   })
+}
+
+function closeLargeDocumentPreview(): void {
+  clearSearchResults()
+  const documentId = largeDocumentPreview?.documentId
+  largeDocumentPreview = undefined
+
+  if (!documentId) {
+    return
+  }
+
+  void largeTextFileService.close(documentId).catch(() => undefined)
 }
 
 function updateModeToggle(mode: ViewMode): void {
@@ -1510,7 +2457,7 @@ function getRequiredDocumentId(action: FileAction): string {
 
 function translateSaveSafetyMessage(message: string): string {
   if (message.includes('changed outside the editor')) {
-    return '文件已在编辑器外发生变化。请先重新载入或处理冲突后再保存。'
+    return '文件已在编辑器外发生变化。请先“另存为”保留本地编辑，或重新载入并丢弃本地编辑后再保存。'
   }
 
   if (message.includes('deleted outside the editor')) {
@@ -1687,6 +2634,115 @@ async function runDesktopLargeTextFileBenchmark(path: string): Promise<unknown> 
   }
 }
 
+async function runDesktopEditorInteractionBenchmark(path: string): Promise<unknown> {
+  const timings: Record<string, number> = {}
+  const tracker = createOpenStageTracker({
+    label: `desktop-editor-benchmark:${path}`,
+    consoleDiagnostics: false,
+  })
+
+  await measure('openMs', timings, () =>
+    openSelectedDocumentWithPolicy(tracker, async () => path, {
+      errorPrefix: 'Desktop editor benchmark open failed',
+    }),
+  )
+
+  if (loadingState.phase === 'failed') {
+    throw new Error(getDocumentLoadingDetail(loadingState))
+  }
+
+  const afterOpen = summarizeActiveBenchmarkDocument()
+  const interactions: Record<string, unknown> = {}
+
+  if (view) {
+    interactions.middleSelection = measureSync('middleSelectionMs', timings, () => {
+      const middleLine = state.doc.line(Math.max(1, Math.floor(state.doc.lineCount / 2)))
+      state = new EditorState({
+        doc: state.doc,
+        selection: Selection.cursor(middleLine.from),
+        history: state.history,
+        facets: state.facets,
+      })
+      view?.updateState(state)
+      view?.ensureCursorVisible({ scrollPadding: 0 })
+    })
+
+    interactions.tailSelection = measureSync('tailSelectionMs', timings, () => {
+      const tailLine = state.doc.line(Math.max(1, state.doc.lineCount - 8))
+      state = new EditorState({
+        doc: state.doc,
+        selection: Selection.cursor(tailLine.from),
+        history: state.history,
+        facets: state.facets,
+      })
+      view?.updateState(state)
+      view?.ensureCursorVisible({ scrollPadding: 0 })
+    })
+
+    interactions.visibleClickToCursor = await measure('clickToCursorMs', timings, async () => {
+      const result = await dispatchVisibleLinePointer(view?.dom, 'click')
+
+      return {
+        ...result,
+        selectionHead: state.selection.main.head,
+      }
+    })
+
+    interactions.singleCharacterInput = measureSync('singleCharacterInputMs', timings, () => {
+      const position = state.selection.main.head
+      const next = state.applyTransaction({
+        changes: ChangeSet.insert(position, 'x'),
+        selection: Selection.cursor(position + 1),
+        origin: { type: 'input.type', id: 'desktop-editor-benchmark' },
+      })
+      state = next
+      view?.updateState(state)
+    })
+  } else if (sourceView && largeDocumentPreview) {
+    const middleLine = Math.max(1, Math.floor(largeDocumentPreview.source.lineCount / 2))
+    const tailLine = Math.max(1, largeDocumentPreview.source.lineCount - 8)
+
+    interactions.middleScroll = await measure(
+      'middleScrollMs',
+      timings,
+      () => sourceView?.scrollToLine(middleLine) ?? Promise.resolve(),
+    )
+    interactions.tailScroll = await measure(
+      'tailScrollMs',
+      timings,
+      () => sourceView?.scrollToLine(tailLine) ?? Promise.resolve(),
+    )
+    interactions.visibleClickToCursor = await measure('clickToCursorMs', timings, () =>
+      dispatchVisibleLinePointer(sourceView?.dom, 'pointerdown'),
+    )
+
+    const editPosition = await largeDocumentPreview.source.positionAtLineOffset(tailLine, 0)
+    interactions.visibleEdit = await measure('visibleEditMs', timings, () =>
+      applyLargeSourceEdit({
+        from: editPosition,
+        to: editPosition,
+        insert: '<!-- benchmark-visible-edit -->\n',
+        deletedText: '',
+      }),
+    )
+    interactions.flush = await measure('flushMs', timings, () => saveLargeDocument())
+  }
+
+  const searchQuery = afterOpen.scaleMode === 'normal' ? '#' : 'marker'
+  interactions.search = await measure('searchFirstResultMs', timings, () =>
+    runDocumentSearch(searchQuery),
+  )
+
+  return {
+    path,
+    afterOpen,
+    afterInteractions: summarizeActiveBenchmarkDocument(),
+    openDiagnostics: lastOpenDiagnostics,
+    timings,
+    interactions,
+  }
+}
+
 async function measure<T>(
   name: string,
   timings: Record<string, number>,
@@ -1699,6 +2755,88 @@ async function measure<T>(
   } finally {
     timings[name] = Math.round((performance.now() - startedAt) * 100) / 100
   }
+}
+
+function measureSync<T>(name: string, timings: Record<string, number>, run: () => T): T {
+  const startedAt = performance.now()
+
+  try {
+    return run()
+  } finally {
+    timings[name] = Math.round((performance.now() - startedAt) * 100) / 100
+  }
+}
+
+function summarizeActiveBenchmarkDocument(): Record<string, unknown> {
+  const renderedView = sourceView ?? view
+  const contentDOM = renderedView?.contentDOM
+
+  return {
+    documentId: session.documentId,
+    path: session.file?.path,
+    dirty: session.dirty,
+    readonly: session.readonly,
+    viewMode: session.viewMode,
+    scaleMode: currentOpenPolicy.featurePolicy.mode,
+    renderStrategy: currentOpenPolicy.renderStrategy,
+    memoryDocLength: state.doc.length,
+    memoryDocLineCount: state.doc.lineCount,
+    sourceLineCount: largeDocumentPreview?.source.lineCount,
+    sourceSizeBytes: largeDocumentPreview?.source.sizeBytes,
+    renderedLineCount: contentDOM?.querySelectorAll('.milkup-line').length ?? 0,
+    renderedFromLine: contentDOM?.dataset.fromLine,
+    renderedToLine: contentDOM?.dataset.toLine,
+  }
+}
+
+async function dispatchVisibleLinePointer(
+  root: HTMLElement | undefined,
+  type: 'click' | 'pointerdown',
+): Promise<Record<string, unknown>> {
+  if (!root) {
+    throw new Error('Desktop editor benchmark view root was not available')
+  }
+
+  await waitForAnimationFrame()
+  await waitForAnimationFrame()
+
+  const lines = Array.from(root.querySelectorAll<HTMLElement>('.milkup-line'))
+  const line =
+    lines.find((candidate) => candidate.dataset.from === candidate.dataset.to) ?? lines.at(-1)
+
+  if (!line) {
+    throw new Error('Desktop editor benchmark could not find a visible line to click')
+  }
+
+  const rect = line.getBoundingClientRect()
+  const eventInit = {
+    bubbles: true,
+    cancelable: true,
+    button: 0,
+    buttons: type === 'pointerdown' ? 1 : 0,
+    clientX: rect.left + Math.min(Math.max(rect.width / 2, 1), 24),
+    clientY: rect.top + Math.max(rect.height / 2, 1),
+  }
+  const event =
+    type === 'pointerdown'
+      ? new PointerEvent(type, { ...eventInit, pointerId: 1, pointerType: 'mouse' })
+      : new MouseEvent(type, eventInit)
+
+  line.dispatchEvent(event)
+  await waitForAnimationFrame()
+
+  const cursor = root.querySelector<HTMLElement>('.milkup-cursor')
+
+  return {
+    clickedLine: Number(line.dataset.line),
+    clickedFrom: Number(line.dataset.from),
+    clickedTo: Number(line.dataset.to),
+    cursorPosition: cursor?.dataset.position ? Number(cursor.dataset.position) : undefined,
+  }
+}
+
+function waitForAnimationFrame(): Promise<void> {
+  return new Promise((resolve) => window.requestAnimationFrame(() => resolve()))
 }
 
 function summarizeLineWindow(window: {
@@ -1788,6 +2926,7 @@ Object.assign(globalThis, {
     runDesktopWorkerFilePluginFixture,
     runDesktopSidecarPluginFixture,
     runDesktopLargeTextFileBenchmark,
+    runDesktopEditorInteractionBenchmark,
   }),
 })
 

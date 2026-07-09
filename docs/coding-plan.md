@@ -1418,7 +1418,7 @@ Use this section to record meaningful implementation progress.
 - Added core store tests for initial snapshots, bounded UTF-16 chunk reads, out-of-range rejection, multi-change application, empty-change version stability, and full flush snapshots.
 - Verified `pnpm --filter @milkup/core test` (31 core tests) and `pnpm --filter @milkup/core typecheck` after the first M9 DocumentStore slice.
 - Verified `pnpm format`, `pnpm test`, `pnpm typecheck`, `pnpm build`, `pnpm lint`, and `pnpm test:e2e` (3 Playwright tests) after starting M9.
-- Added `DocumentScaleMode` classification and default thresholds in `@milkup/core`: normal under 10 MB, incremental from 10 MB, large from 100 MB, and ultra-large from 1 GB.
+- Added `DocumentScaleMode` classification and default thresholds in `@milkup/core`; Windows preview thresholds are now conservative after manual latency feedback: normal under 128 KiB, incremental from 128 KiB, large/native from 256 KiB, and ultra-large from 2 MiB.
 - Added `FeatureDegradationPolicy` so large and ultra-large modes explicitly avoid full-document DOM and full-document parse requirements, using viewport rendering, local/on-demand parsing, chunked search, and source-first behavior where needed.
 - Added policy tests for default thresholds, custom thresholds, invalid inputs, normal/incremental/large/ultra-large degradation behavior, and full-DOM/full-parse invariants.
 - Verified `pnpm --filter @milkup/core test` (38 core tests) and `pnpm --filter @milkup/core typecheck` after the M9 mode policy slice.

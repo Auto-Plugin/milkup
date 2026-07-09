@@ -68,6 +68,11 @@ export interface DesktopLargeTextFileService {
     changes: readonly DesktopLargeTextFileChange[],
   ): Promise<DesktopLargeTextFileSnapshot>
   flush(documentId: string, expectedVersion: number): Promise<DesktopLargeTextFileSnapshot>
+  flushAs(
+    documentId: string,
+    expectedVersion: number,
+    path: string,
+  ): Promise<DesktopLargeTextFileSnapshot>
   close(documentId: string): Promise<boolean>
 }
 
@@ -114,6 +119,12 @@ export function createDesktopLargeTextFileService(
       invoke<DesktopLargeTextFileSnapshot>('flush_large_text_file', {
         documentId,
         expectedVersion,
+      }),
+    flushAs: (documentId: string, expectedVersion: number, path: string) =>
+      invoke<DesktopLargeTextFileSnapshot>('flush_large_text_file_as', {
+        documentId,
+        expectedVersion,
+        path,
       }),
     close: (documentId: string) => invoke<boolean>('close_large_text_file', { documentId }),
   })

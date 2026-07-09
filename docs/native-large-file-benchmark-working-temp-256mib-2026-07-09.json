@@ -1,0 +1,110 @@
+{
+  "generatedAt": "2026-07-09T01:11:28.721Z",
+  "sourceSnapshot": "95c16615f6ee85cf069f7cbfc456ddeaa9337632",
+  "implementation": {
+    "mode": "native-line-index-working-temp",
+    "expectedNativePath": "open_large_text_file/read_large_text_file_line_window/apply_large_text_file_changes/flush_large_text_file",
+    "expectedEditStorage": "working temp file with original-file conflict guard",
+    "frontendPath": "desktop SourceDocumentView/LargeDocumentSource"
+  },
+  "environment": {
+    "platform": "win32",
+    "release": "10.0.22631",
+    "arch": "x64",
+    "cpu": "Intel(R) Core(TM) i7-6700HQ CPU @ 2.60GHz",
+    "cpuCount": 8,
+    "totalMemoryBytes": 17096855552,
+    "freeMemoryBytesAfterRun": 7679500288,
+    "node": "v24.18.0",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 Edg/150.0.0.0",
+    "driverPath": "C:\\Users\\admin\\.cargo\\bin\\tauri-driver.exe",
+    "nativeDriverPath": "D:\\me\\project\\milkup\\.tmp\\msedgedriver-150.0.4078.48\\msedgedriver.exe",
+    "appPath": "D:\\me\\project\\milkup\\apps\\desktop\\src-tauri\\target\\x86_64-pc-windows-gnu\\debug\\milkup-desktop.exe",
+    "desktopProcessMemory": 30396416
+  },
+  "fixture": {
+    "path": "C:\\Users\\admin\\AppData\\Local\\Temp\\milkup-native-large-23340-1783559438487\\large-256mib.md",
+    "requestedSizeMib": 256,
+    "sizeBytesBeforeRun": 268435456,
+    "sha256BeforeRun": "fab3163194cf07f65a61e5b1afe40fb2d1da8ff64820b6c619cdd77059aa3be3",
+    "sizeBytesAfterRun": 268435500,
+    "sha256AfterRun": "7f6ae4ddc70d4347cb84f6ca612f0a2b432ec0c7a3319eb6f8561d6fa4d5b810",
+    "retained": false
+  },
+  "benchmark": {
+    "changed": {
+      "documentId": "large-benchmark-1783559446846",
+      "lineCount": 3924703,
+      "path": "C:/Users/admin/AppData/Local/Temp/milkup-native-large-23340-1783559438487/large-256mib.md",
+      "sizeBytes": 268435500,
+      "version": 1
+    },
+    "documentId": "large-benchmark-1783559446846",
+    "flushed": {
+      "documentId": "large-benchmark-1783559446846",
+      "lineCount": 3924703,
+      "path": "C:/Users/admin/AppData/Local/Temp/milkup-native-large-23340-1783559438487/large-256mib.md",
+      "sizeBytes": 268435500,
+      "version": 1
+    },
+    "headChunk": {
+      "fromByte": 0,
+      "fromUtf16": 0,
+      "toByte": 4096,
+      "toUtf16": 4096
+    },
+    "opened": {
+      "documentId": "large-benchmark-1783559446846",
+      "lineCount": 3924700,
+      "path": "C:/Users/admin/AppData/Local/Temp/milkup-native-large-23340-1783559438487/large-256mib.md",
+      "sizeBytes": 268435456,
+      "version": 0
+    },
+    "path": "C:/Users/admin/AppData/Local/Temp/milkup-native-large-23340-1783559438487/large-256mib.md",
+    "timings": {
+      "applyMs": 16700.9,
+      "firstWindowMs": 8,
+      "flushMs": 3823.1,
+      "headChunkMs": 6.7,
+      "middleWindowMs": 5.9,
+      "openMs": 18392.1,
+      "tailWindowMs": 6
+    },
+    "windows": {
+      "first": {
+        "fromByte": 0,
+        "fromLine": 1,
+        "fromUtf16": 0,
+        "textLength": 132,
+        "toByte": 132,
+        "toLine": 8,
+        "toUtf16": 132
+      },
+      "middle": {
+        "fromByte": 133657572,
+        "fromLine": 1962350,
+        "fromUtf16": 133657572,
+        "textLength": 567,
+        "toByte": 133658139,
+        "toLine": 1962357,
+        "toUtf16": 133658139
+      },
+      "tail": {
+        "fromByte": 268434929,
+        "fromLine": 3924693,
+        "fromUtf16": 268434929,
+        "textLength": 527,
+        "toByte": 268435456,
+        "toLine": 3924700,
+        "toUtf16": 268435456
+      }
+    }
+  },
+  "verification": {
+    "usedNativeTauriLargeFileCommands": true,
+    "containsHeadMarker": true,
+    "containsMiddleMarker": true,
+    "containsTailMarker": true
+  },
+  "missingMarkers": []
+}
