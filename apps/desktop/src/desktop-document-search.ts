@@ -51,6 +51,8 @@ export class DesktopDocumentSearchController {
     const abort = new AbortController()
     this.activeAbort = abort
     const matches: StoreSearchMatch[] = []
+    const progressStride = (options.windowSizeLines ?? 512) * 8
+    let lastProgressLineCount = 0
     let latest = emit(options.onUpdate, createState({ phase: 'searching', query }))
 
     try {
@@ -62,10 +64,17 @@ export class DesktopDocumentSearchController {
       })) {
         if (event.type === 'match') {
           matches.push(event.match)
-          latest = emit(
-            options.onUpdate,
-            stateFromEvent(event, query, matches, 'searching'),
-          )
+          lastProgressLineCount = event.scannedLineCount
+          latest = emit(options.onUpdate, stateFromEvent(event, query, matches, 'searching'))
+        } else if (event.type === 'progress') {
+          if (
+            event.scannedLineCount > latest.scannedLineCount &&
+            (event.scannedLineCount === source.lineCount ||
+              event.scannedLineCount - lastProgressLineCount >= progressStride)
+          ) {
+            lastProgressLineCount = event.scannedLineCount
+            latest = emit(options.onUpdate, stateFromEvent(event, query, matches, 'searching'))
+          }
         } else {
           latest = emit(options.onUpdate, stateFromEvent(event, query, matches, 'done'))
         }

@@ -49,7 +49,30 @@ describe('DesktopDocumentSearchController', () => {
     expect(source.requests).toEqual([
       { fromLine: 1, toLine: 1 },
       { fromLine: 2, toLine: 2 },
+      { fromLine: 3, toLine: 3 },
+      { fromLine: 4, toLine: 4 },
     ])
+  })
+
+  it('reports progress for windows without matches until the source is fully scanned', async () => {
+    const source = new RecordingSource({
+      documentId: 'large-doc',
+      text: ['one', 'two', 'target'].join('\n'),
+    })
+    const updates: DesktopSearchState[] = []
+    const controller = new DesktopDocumentSearchController()
+
+    const result = await controller.run({
+      query: 'target',
+      source,
+      windowSizeLines: 1,
+      onUpdate: (state) => updates.push(state),
+    })
+
+    expect(
+      updates.filter((state) => state.phase === 'searching').map((state) => state.scannedLineCount),
+    ).toEqual([0, 3])
+    expect(result).toMatchObject({ phase: 'done', scannedLineCount: 3, complete: true })
   })
 
   it('cancels the previous search when a new one starts', async () => {

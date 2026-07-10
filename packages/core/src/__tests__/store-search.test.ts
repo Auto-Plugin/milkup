@@ -64,7 +64,7 @@ describe('searchDocumentStore', () => {
     ])
   })
 
-  it('stops scanning once maxResults is reached', async () => {
+  it('keeps scanning after maxResults while retaining a bounded result list', async () => {
     const store = new MemoryDocumentStore({
       documentId: 'search-doc',
       text: ['hit', 'hit', 'hit', 'hit'].join('\n'),
@@ -77,7 +77,7 @@ describe('searchDocumentStore', () => {
     })
 
     expect(result.complete).toBe(false)
-    expect(result.scannedLineCount).toBe(2)
+    expect(result.scannedLineCount).toBe(4)
     expect(result.matches).toEqual([
       { from: 0, to: 3, line: 1, lineOffset: 0, text: 'hit' },
       { from: 4, to: 7, line: 2, lineOffset: 0, text: 'hit' },
@@ -109,12 +109,36 @@ describe('searchDocumentStore', () => {
         scannedLineCount: 1,
       },
       {
+        type: 'progress',
+        documentId: 'search-doc',
+        version: 0,
+        query: 'hit',
+        scannedLineCount: 1,
+        matchCount: 1,
+      },
+      {
+        type: 'progress',
+        documentId: 'search-doc',
+        version: 0,
+        query: 'hit',
+        scannedLineCount: 2,
+        matchCount: 1,
+      },
+      {
         type: 'match',
         documentId: 'search-doc',
         version: 0,
         query: 'hit',
         match: { from: 13, to: 16, line: 3, lineOffset: 0, text: 'hit' },
         scannedLineCount: 3,
+      },
+      {
+        type: 'progress',
+        documentId: 'search-doc',
+        version: 0,
+        query: 'hit',
+        scannedLineCount: 3,
+        matchCount: 2,
       },
       {
         type: 'done',

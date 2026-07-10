@@ -42,6 +42,14 @@ export type StoreSearchEvent =
       readonly scannedLineCount: number
     }
   | {
+      readonly type: 'progress'
+      readonly documentId: string
+      readonly version: number
+      readonly query: string
+      readonly scannedLineCount: number
+      readonly matchCount: number
+    }
+  | {
       readonly type: 'done'
       readonly documentId: string
       readonly version: number
@@ -74,7 +82,7 @@ export async function searchDocumentStore(
   for await (const event of searchDocumentLineWindows(store, options)) {
     if (event.type === 'match') {
       matches.push(event.match)
-    } else {
+    } else if (event.type === 'done') {
       finalEvent = event
     }
   }
@@ -118,24 +126,31 @@ export async function* searchDocumentLineWindows(
         })
 
         matchCount += 1
-        yield Object.freeze({
-          type: 'match',
-          documentId: store.documentId,
-          version: store.version,
-          query: query.label,
-          match: storeMatch,
-          scannedLineCount,
-        })
-
-        if (matchCount >= maxResults) {
-          yield freezeDoneEvent(store, query.label, scannedLineCount, false, matchCount)
-          return
+        if (matchCount <= maxResults) {
+          yield Object.freeze({
+            type: 'match',
+            documentId: store.documentId,
+            version: store.version,
+            query: query.label,
+            match: storeMatch,
+            scannedLineCount,
+          })
         }
       }
     }
+
+    throwIfAborted(options.signal)
+    yield Object.freeze({
+      type: 'progress',
+      documentId: store.documentId,
+      version: store.version,
+      query: query.label,
+      scannedLineCount,
+      matchCount,
+    })
   }
 
-  yield freezeDoneEvent(store, query.label, scannedLineCount, true, matchCount)
+  yield freezeDoneEvent(store, query.label, scannedLineCount, matchCount <= maxResults, matchCount)
 }
 
 function compileSearchQuery(options: StoreSearchOptions): CompiledSearchQuery {
@@ -275,6 +290,8 @@ function freezeDoneEvent(
 
 function throwIfAborted(signal: AbortSignal | undefined): void {
   if (signal?.aborted) {
-    throw signal.reason instanceof Error ? signal.reason : new DOMException('Search aborted', 'AbortError')
+    throw signal.reason instanceof Error
+      ? signal.reason
+      : new DOMException('Search aborted', 'AbortError')
   }
 }

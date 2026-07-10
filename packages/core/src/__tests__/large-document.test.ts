@@ -90,7 +90,8 @@ describe('large document contracts', () => {
     expect(
       store.readWindowRequests.every((request) => request.toLine - request.fromLine < 32),
     ).toBe(true)
-    expect(result.complete).toBe(false)
+    expect(result.complete).toBe(true)
+    expect(result.scannedLineCount).toBe(store.lineCount)
     expect(result.matches).toEqual([
       {
         from: targetFrom,
