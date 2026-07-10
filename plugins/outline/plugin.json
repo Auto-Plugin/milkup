@@ -1,0 +1,41 @@
+{
+  "id": "milkup.outline",
+  "name": "Milkup Outline",
+  "version": "1.0.0",
+  "description": "Show a read-only document outline.",
+  "host": "worker",
+  "main": "./dist/plugin.js",
+  "engines": {
+    "milkup": "^0.1.0",
+    "pluginSdk": "^0.1.0"
+  },
+  "permissions": ["document:read"],
+  "contributes": {
+    "commands": [
+      {
+        "id": "outline.gotoHeading",
+        "title": "Go to heading",
+        "action": "outline.gotoHeading",
+        "category": "navigation",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "line": {
+              "type": "number",
+              "required": true,
+              "description": "Heading line number"
+            }
+          }
+        }
+      }
+    ],
+    "ui": [
+      {
+        "id": "outline-panel",
+        "slot": "sidebar-panel",
+        "title": "Outline",
+        "scope": "document"
+      }
+    ]
+  }
+}
