@@ -141,6 +141,18 @@ describe('EditorView', () => {
     ])
   })
 
+  it('renders search highlights and distinguishes the active result', () => {
+    const parent = document.createElement('main')
+    const view = new EditorView({ parent, state: createState('target text') })
+
+    view.setSearchHighlights([{ from: 0, to: 6, line: 1 }], 0)
+
+    const highlight = view.searchLayerDOM.querySelector<HTMLElement>('.milkup-search-highlight')
+    expect(highlight?.dataset.from).toBe('0')
+    expect(highlight?.dataset.to).toBe('6')
+    expect(highlight?.classList.contains('is-active')).toBe(true)
+  })
+
   it('renders empty lines with a zero-width placeholder without changing document text', () => {
     const parent = document.createElement('main')
     const view = new EditorView({

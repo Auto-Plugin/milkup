@@ -770,6 +770,29 @@ h1 {
   white-space: nowrap;
 }
 
+.search-status-icon,
+.search-status-icon > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+}
+
+.search-status-icon > span[hidden] {
+  display: none;
+}
+
+.search-status-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.search-status-icon [data-search-loading] svg {
+  animation: saving-spin 0.8s linear infinite;
+}
+
 .search-nav-button {
   width: 28px;
   height: 28px;
@@ -1073,12 +1096,28 @@ h1 {
   display: none;
 }
 
+.milkup-search-layer,
 .milkup-selection-layer,
 .milkup-cursor-layer {
   position: absolute;
   inset: 24px 26px 48px;
   z-index: 2;
   pointer-events: none;
+}
+
+.milkup-search-layer {
+  z-index: 1;
+}
+
+.milkup-search-highlight {
+  position: absolute;
+  border-radius: 2px;
+  background: rgb(247 196 59 / 42%);
+}
+
+.milkup-search-highlight.is-active {
+  outline: 1px solid #b56b00;
+  background: rgb(247 174 39 / 62%);
 }
 
 .milkup-selection {

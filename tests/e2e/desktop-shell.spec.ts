@@ -152,6 +152,56 @@ test('desktop shell imports pasted image files through asset provider', async ({
   await expect(page.locator('[data-stat="version"]')).toHaveText('1')
 })
 
+test('desktop search highlights matches and moves the active result', async ({ page }) => {
+  await page.goto('/')
+  await page.keyboard.type('alpha target beta target')
+  await page.keyboard.press('Control+F')
+
+  const search = page.getByRole('searchbox', { name: '搜索' })
+  await search.fill('target')
+  await search.press('Enter')
+
+  await expect(page.locator('[data-search-result-count]')).toHaveText('1/2')
+  await expect(page.locator('.milkup-search-highlight')).toHaveCount(2)
+  await expect(page.locator('.milkup-search-highlight.is-active')).toHaveAttribute(
+    'data-index',
+    '0',
+  )
+
+  await page.getByRole('button', { name: '下一个结果' }).click()
+  await expect(page.locator('[data-search-result-count]')).toHaveText('2/2')
+  await expect(page.locator('.milkup-search-highlight.is-active')).toHaveAttribute(
+    'data-index',
+    '1',
+  )
+})
+
+test('closing search cancels the active scan and clears highlights', async ({ page }) => {
+  await page.goto('/')
+  await page.keyboard.type('alpha target beta target')
+  await page.keyboard.press('Control+F')
+
+  await page.evaluate(() => {
+    const input = document.querySelector<HTMLInputElement>('[data-search-input]')
+    const close = document.querySelector<HTMLButtonElement>('[data-search-close]')
+
+    if (!input || !close) {
+      throw new Error('Search controls are unavailable')
+    }
+
+    input.value = 'target'
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    close.click()
+  })
+
+  await expect(page.locator('[data-floating-search]')).toBeHidden()
+  await expect(page.locator('[data-search-loading]')).toBeHidden()
+  await expect(page.locator('[data-search-idle-icon]')).not.toHaveAttribute('hidden', '')
+  await expect(page.locator('.milkup-search-highlight')).toHaveCount(0)
+  await page.waitForTimeout(100)
+  await expect(page.locator('.milkup-search-highlight')).toHaveCount(0)
+})
+
 test('desktop shell routes primary shortcuts through active document actions', async ({ page }) => {
   await page.goto('/')
 

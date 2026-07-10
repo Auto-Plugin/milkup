@@ -7,6 +7,28 @@ function createLineFixture(lineCount: number): string {
   return Array.from({ length: lineCount }, (_value, index) => `line ${index + 1}`).join('\n')
 }
 
+function createClipboardEvent(
+  type: 'copy' | 'cut' | 'paste',
+  text = '',
+): {
+  readonly event: Event
+  readonly read: () => string
+} {
+  let written = ''
+  const event = new Event(type, { bubbles: true, cancelable: true })
+
+  Object.defineProperty(event, 'clipboardData', {
+    value: {
+      getData: () => text,
+      setData: (_type: string, value: string) => {
+        written = value
+      },
+    },
+  })
+
+  return { event, read: () => written }
+}
+
 describe('SourceDocumentView', () => {
   it('renders an async document source as a bounded line window', async () => {
     const parent = document.createElement('main')
@@ -154,6 +176,61 @@ describe('SourceDocumentView', () => {
     expect(view.contentDOM.dataset.fromLine).toBe('499')
     expect(view.contentDOM.dataset.toLine).toBe('505')
     expect(view.contentDOM.querySelector<HTMLElement>('.milkup-line')?.dataset.line).toBe('499')
+  })
+
+  it('renders the requested line even when the browser clamps a huge scroll offset', async () => {
+    const parent = document.createElement('main')
+    const view = new SourceDocumentView({
+      parent,
+      source: new MemoryDocumentSource({
+        documentId: 'source-doc',
+        text: createLineFixture(1_000),
+      }),
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 100,
+        overscanLines: 1,
+      },
+    })
+    let clampedScrollTop = 0
+    Object.defineProperty(view.dom, 'scrollTop', {
+      configurable: true,
+      get: () => clampedScrollTop,
+      set: (value: number) => {
+        clampedScrollTop = Math.min(value, 1_000)
+      },
+    })
+
+    await view.scrollToLine(900)
+
+    expect(view.dom.scrollTop).toBe(1_000)
+    expect(view.contentDOM.dataset.fromLine).toBe('899')
+    expect(view.contentDOM.querySelector('.milkup-line[data-line="900"]')).not.toBeNull()
+  })
+
+  it('renders search highlights and marks the active result', async () => {
+    const parent = document.createElement('main')
+    const view = new SourceDocumentView({
+      parent,
+      source: new MemoryDocumentSource({
+        documentId: 'source-doc',
+        text: ['alpha', 'target', 'tail'].join('\n'),
+      }),
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 60,
+        overscanLines: 0,
+      },
+    })
+
+    await view.renderVisibleWindow()
+    view.setSearchHighlights([{ from: 6, to: 12, line: 2 }], 0)
+
+    const highlight = view.searchLayerDOM.querySelector<HTMLElement>('.milkup-search-highlight')
+    expect(highlight?.dataset.from).toBe('6')
+    expect(highlight?.classList.contains('is-active')).toBe(true)
   })
 
   it('renders live mode from a padded markdown line window without offscreen DOM', async () => {
@@ -481,7 +558,7 @@ describe('SourceDocumentView', () => {
     expect(
       view.contentDOM
         .querySelector<HTMLElement>('.milkup-heading-marker')
-      ?.classList.contains('milkup-marker-hidden'),
+        ?.classList.contains('milkup-marker-hidden'),
     ).toBe(true)
 
     view.contentDOM
@@ -524,9 +601,9 @@ describe('SourceDocumentView', () => {
     await flushPromises()
 
     expect(source.requests).toEqual([])
-    expect(view.contentDOM.querySelector<HTMLElement>('.milkup-line[data-line="1"]')?.textContent).toBe(
-      'xalpha',
-    )
+    expect(
+      view.contentDOM.querySelector<HTMLElement>('.milkup-line[data-line="1"]')?.textContent,
+    ).toBe('xalpha')
   })
 
   it('warms markdown windows around the visible viewport without repeated source reads', async () => {
@@ -699,6 +776,53 @@ describe('SourceDocumentView', () => {
     await flushPromises()
 
     expect(onEdit).toHaveBeenCalledWith({ from: 0, to: 6, insert: '', deletedText: 'alpha\n' })
+  })
+
+  it('copies, cuts, and pastes a selection through clipboard events', async () => {
+    const parent = document.createElement('main')
+    const onEdit = vi.fn()
+    const view = new SourceDocumentView({
+      parent,
+      source: new MemoryDocumentSource({ documentId: 'source-doc', text: 'alpha beta' }),
+      editable: true,
+      onEdit,
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 40,
+        overscanLines: 0,
+      },
+    })
+
+    await view.renderVisibleWindow()
+    const line = view.contentDOM.querySelector<HTMLElement>('.milkup-line[data-line="1"]')!
+    line.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, right: 100, bottom: 20, width: 100, height: 20 }) as DOMRect
+    line.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientX: 0, clientY: 10 }))
+    line.dispatchEvent(
+      new MouseEvent('pointermove', { bubbles: true, buttons: 1, clientX: 50, clientY: 10 }),
+    )
+    document.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, clientX: 50, clientY: 10 }))
+    await flushPromises()
+
+    const copied = createClipboardEvent('copy')
+    view.inputDOM.dispatchEvent(copied.event)
+    expect(copied.read()).toBe('alpha')
+    expect(copied.event.defaultPrevented).toBe(true)
+
+    const cut = createClipboardEvent('cut')
+    view.inputDOM.dispatchEvent(cut.event)
+    await flushPromises()
+    await view.flushPendingEdits()
+    expect(cut.read()).toBe('alpha')
+    expect(onEdit).toHaveBeenLastCalledWith({ from: 0, to: 5, insert: '', deletedText: 'alpha' })
+
+    const pasted = createClipboardEvent('paste', 'omega')
+    view.inputDOM.dispatchEvent(pasted.event)
+    await flushPromises()
+    await view.flushPendingEdits()
+    expect(pasted.event.defaultPrevented).toBe(true)
+    expect(onEdit).toHaveBeenLastCalledWith({ from: 0, to: 0, insert: 'omega', deletedText: '' })
   })
 
   it('renders live list markers like the regular editor', async () => {

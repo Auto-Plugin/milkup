@@ -31,6 +31,7 @@ export type {
   EditorViewDispatch,
   EditorViewLike,
   PositionLineOffset,
+  SearchHighlight,
   ViewCoordinate,
   ViewMetrics,
   ViewMode,

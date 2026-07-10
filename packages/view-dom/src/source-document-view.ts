@@ -1,5 +1,5 @@
 import { Selection } from '@milkup/core'
-import type { EditorDocumentSource } from '@milkup/core'
+import type { DocumentLineWindow, EditorDocumentSource } from '@milkup/core'
 import {
   parseInline,
   parseMarkdownWindow,
@@ -15,7 +15,7 @@ import {
   sourcePositionFromPoint,
   sourcePositionToVisualOffsetInLine,
 } from './source-position-mapping'
-import type { ViewMode, VirtualViewportConfig } from './types'
+import type { SearchHighlight, ViewMode, VirtualViewportConfig } from './types'
 
 export interface SourceDocumentViewConfig {
   readonly parent: HTMLElement
@@ -47,6 +47,11 @@ interface RenderRequest {
   readonly toLine: number
 }
 
+interface RenderedSourceWindow {
+  readonly lines: readonly HTMLElement[]
+  readonly sourceWindow: DocumentLineWindow
+}
+
 interface QueuedEditResolution {
   resolve(): void
   reject(error: unknown): void
@@ -63,6 +68,7 @@ const defaultEditCommitDelayMs = 24
 export class SourceDocumentView {
   readonly dom: HTMLElement
   readonly contentDOM: HTMLElement
+  readonly searchLayerDOM: HTMLElement
   readonly selectionLayerDOM: HTMLElement
   readonly cursorLayerDOM: HTMLElement
   readonly inputDOM: HTMLTextAreaElement
@@ -97,7 +103,20 @@ export class SourceDocumentView {
   private hasDraggedSelection = false
   private nextRequestId = 1
   private latestAppliedRequestId = 0
+  private renderedSourceWindow: DocumentLineWindow | undefined
+  private searchHighlights: readonly SearchHighlight[] = Object.freeze([])
+  private activeSearchHighlightIndex = -1
+  private scrollAnchor: { readonly line: number; readonly scrollTop: number } | undefined
   private readonly handleScrollEvent = (): void => {
+    const anchor = this.scrollAnchor
+
+    if (anchor && Math.abs(this.dom.scrollTop - anchor.scrollTop) <= 1) {
+      this.scrollAnchor = undefined
+      void this.renderVisibleWindow(this.createRenderRequestForLine(anchor.line))
+      return
+    }
+
+    this.scrollAnchor = undefined
     void this.renderVisibleWindow()
   }
   private readonly handleInputEvent = (): void => {
@@ -118,6 +137,10 @@ export class SourceDocumentView {
     })
   }
   private readonly handlePasteEvent = (event: ClipboardEvent): void => {
+    if (event.defaultPrevented) {
+      return
+    }
+
     if (!this.editable) {
       event.preventDefault()
       return
@@ -132,6 +155,37 @@ export class SourceDocumentView {
     event.preventDefault()
     const range = this.getSelectedRange()
     void this.applyVisibleEdit(range.from, range.to, text)
+  }
+  private readonly handleCopyEvent = (event: ClipboardEvent): void => {
+    if (event.defaultPrevented || !event.clipboardData) {
+      return
+    }
+
+    const text = this.readRenderedSelectionText()
+
+    if (text === undefined) {
+      return
+    }
+
+    event.clipboardData.setData('text/plain', text)
+    event.preventDefault()
+  }
+  private readonly handleCutEvent = (event: ClipboardEvent): void => {
+    if (!this.editable) {
+      event.preventDefault()
+      return
+    }
+
+    const text = this.readRenderedSelectionText()
+
+    if (text === undefined || !event.clipboardData) {
+      return
+    }
+
+    event.clipboardData.setData('text/plain', text)
+    event.preventDefault()
+    const range = this.getSelectedRange()
+    void this.applyVisibleEdit(range.from, range.to, '')
   }
   private readonly handleKeyDownEvent = (event: KeyboardEvent): void => {
     if (event.defaultPrevented) {
@@ -196,23 +250,28 @@ export class SourceDocumentView {
     this.contentDOM.setAttribute('role', 'textbox')
     this.contentDOM.setAttribute('aria-multiline', 'true')
     this.contentDOM.setAttribute('contenteditable', 'false')
+    this.searchLayerDOM = this.ownerDocument.createElement('div')
+    this.searchLayerDOM.className = 'milkup-search-layer'
     this.selectionLayerDOM = this.ownerDocument.createElement('div')
     this.selectionLayerDOM.className = 'milkup-selection-layer'
     this.cursorLayerDOM = this.ownerDocument.createElement('div')
     this.cursorLayerDOM.className = 'milkup-cursor-layer'
     this.inputDOM = createInputProxy(this.ownerDocument)
     this.dom.append(this.contentDOM)
+    this.dom.append(this.searchLayerDOM)
     this.dom.append(this.selectionLayerDOM)
     this.dom.append(this.cursorLayerDOM)
     this.dom.append(this.inputDOM)
     this.dom.addEventListener('scroll', this.handleScrollEvent)
     this.dom.addEventListener('keydown', this.handleKeyDownEvent)
+    this.dom.addEventListener('copy', this.handleCopyEvent)
+    this.dom.addEventListener('cut', this.handleCutEvent)
+    this.dom.addEventListener('paste', this.handlePasteEvent)
     this.dom.addEventListener('pointerdown', this.handlePointerDownEvent)
     this.contentDOM.addEventListener('pointermove', this.handlePointerMoveEvent)
     this.ownerDocument.addEventListener('pointerup', this.handlePointerUpEvent)
     this.ownerDocument.addEventListener('pointercancel', this.handlePointerCancelEvent)
     this.inputDOM.addEventListener('input', this.handleInputEvent)
-    this.inputDOM.addEventListener('paste', this.handlePasteEvent)
     this.inputDOM.addEventListener('keydown', this.handleKeyDownEvent)
     this.inputDOM.addEventListener('compositionstart', this.handleCompositionStartEvent)
     this.inputDOM.addEventListener('compositionupdate', this.handleCompositionUpdateEvent)
@@ -229,6 +288,7 @@ export class SourceDocumentView {
     const documentChanged = source.documentId !== this.currentSource.documentId
 
     this.currentSource = source
+    this.renderedSourceWindow = undefined
     this.cancelMarkdownWarmup()
     this.markdownCache.clear()
     this.cursorPosition = clamp(
@@ -263,6 +323,12 @@ export class SourceDocumentView {
     void this.renderVisibleWindow()
   }
 
+  setSearchHighlights(highlights: readonly SearchHighlight[], activeIndex = -1): void {
+    this.searchHighlights = Object.freeze([...highlights])
+    this.activeSearchHighlightIndex = activeIndex
+    this.renderSearchHighlights()
+  }
+
   async scrollToLine(lineNumber: number): Promise<void> {
     if (
       !Number.isInteger(lineNumber) ||
@@ -273,12 +339,20 @@ export class SourceDocumentView {
     }
 
     this.dom.scrollTop = (lineNumber - 1) * this.getLineHeight()
-    await this.renderVisibleWindow()
+    this.scrollAnchor = Object.freeze({ line: lineNumber, scrollTop: this.dom.scrollTop })
+    await this.renderVisibleWindow(this.createRenderRequestForLine(lineNumber))
+    const target = this.contentDOM.querySelector<HTMLElement>(
+      `.milkup-line[data-line="${lineNumber}"]`,
+    )
+
+    if (target && target.offsetTop > 0 && Math.abs(this.dom.scrollTop - target.offsetTop) > 1) {
+      this.dom.scrollTop = target.offsetTop
+      this.scrollAnchor = Object.freeze({ line: lineNumber, scrollTop: this.dom.scrollTop })
+    }
   }
 
-  async renderVisibleWindow(): Promise<void> {
-    const request = this.createRenderRequest()
-    const renderedLines =
+  async renderVisibleWindow(request: RenderRequest = this.createRenderRequest()): Promise<void> {
+    const rendered =
       this.mode === 'live'
         ? await this.renderLiveLineWindow(request)
         : await this.renderSourceLineWindow(request)
@@ -288,10 +362,11 @@ export class SourceDocumentView {
     }
 
     this.latestAppliedRequestId = request.id
+    this.renderedSourceWindow = rendered.sourceWindow
     const lineHeight = this.getLineHeight()
     this.contentDOM.replaceChildren(
       renderSpacer(this.ownerDocument, 'top', (request.fromLine - 1) * lineHeight),
-      ...renderedLines,
+      ...rendered.lines,
       renderSpacer(
         this.ownerDocument,
         'bottom',
@@ -302,6 +377,7 @@ export class SourceDocumentView {
     this.contentDOM.dataset.fromLine = String(request.fromLine)
     this.contentDOM.dataset.toLine = String(request.toLine)
     this.contentDOM.dataset.renderMode = this.mode
+    this.renderSearchHighlights()
     this.renderSelection()
     this.renderCursor()
     this.scheduleMarkdownWarmup(request)
@@ -327,12 +403,14 @@ export class SourceDocumentView {
     }
     this.dom.removeEventListener('scroll', this.handleScrollEvent)
     this.dom.removeEventListener('keydown', this.handleKeyDownEvent)
+    this.dom.removeEventListener('copy', this.handleCopyEvent)
+    this.dom.removeEventListener('cut', this.handleCutEvent)
+    this.dom.removeEventListener('paste', this.handlePasteEvent)
     this.dom.removeEventListener('pointerdown', this.handlePointerDownEvent)
     this.contentDOM.removeEventListener('pointermove', this.handlePointerMoveEvent)
     this.ownerDocument.removeEventListener('pointerup', this.handlePointerUpEvent)
     this.ownerDocument.removeEventListener('pointercancel', this.handlePointerCancelEvent)
     this.inputDOM.removeEventListener('input', this.handleInputEvent)
-    this.inputDOM.removeEventListener('paste', this.handlePasteEvent)
     this.inputDOM.removeEventListener('keydown', this.handleKeyDownEvent)
     this.inputDOM.removeEventListener('compositionstart', this.handleCompositionStartEvent)
     this.inputDOM.removeEventListener('compositionupdate', this.handleCompositionUpdateEvent)
@@ -359,6 +437,24 @@ export class SourceDocumentView {
     })
   }
 
+  private createRenderRequestForLine(lineNumber: number): RenderRequest {
+    const lineHeight = this.getLineHeight()
+    const visibleLines = Math.max(
+      1,
+      Math.ceil((this.getViewportHeight() ?? lineHeight) / lineHeight),
+    )
+    const overscan = this.virtualViewport.overscanLines ?? defaultOverscanLines
+    const fromLine = Math.max(1, lineNumber - overscan)
+    const toLine = Math.min(
+      this.currentSource.lineCount,
+      Math.max(lineNumber, fromLine + visibleLines + overscan * 2 - 1),
+    )
+    const id = this.nextRequestId
+    this.nextRequestId += 1
+
+    return Object.freeze({ id, fromLine, toLine })
+  }
+
   private getLineHeight(): number {
     return Math.max(1, this.virtualViewport.lineHeight ?? defaultLineHeight)
   }
@@ -370,12 +466,15 @@ export class SourceDocumentView {
     )
   }
 
-  private async renderSourceLineWindow(request: RenderRequest): Promise<readonly HTMLElement[]> {
+  private async renderSourceLineWindow(request: RenderRequest): Promise<RenderedSourceWindow> {
     const window = await this.currentSource.readLineWindow(request.fromLine, request.toLine)
-    return Object.freeze(window.lines.map((line) => renderSourceLine(this.ownerDocument, line)))
+    return Object.freeze({
+      lines: Object.freeze(window.lines.map((line) => renderSourceLine(this.ownerDocument, line))),
+      sourceWindow: window,
+    })
   }
 
-  private async renderLiveLineWindow(request: RenderRequest): Promise<readonly HTMLElement[]> {
+  private async renderLiveLineWindow(request: RenderRequest): Promise<RenderedSourceWindow> {
     const fromLine = Math.max(1, request.fromLine - this.markdownContextLines)
     const toLine = Math.min(
       this.currentSource.lineCount,
@@ -384,16 +483,19 @@ export class SourceDocumentView {
     const parsed = await this.parseLiveWindow(fromLine, toLine)
     const blocks = parsed.root.children ?? []
 
-    return Object.freeze(
-      parsed.window.lines
-        .filter((line) => line.number >= request.fromLine && line.number <= request.toLine)
-        .map((line) =>
-          renderLiveLine(this.ownerDocument, line, blocks, {
-            cursorPosition: this.cursorPosition,
-            selection: this.currentSelection(),
-          }),
-        ),
-    )
+    return Object.freeze({
+      lines: Object.freeze(
+        parsed.window.lines
+          .filter((line) => line.number >= request.fromLine && line.number <= request.toLine)
+          .map((line) =>
+            renderLiveLine(this.ownerDocument, line, blocks, {
+              cursorPosition: this.cursorPosition,
+              selection: this.currentSelection(),
+            }),
+          ),
+      ),
+      sourceWindow: parsed.window,
+    })
   }
 
   private async parseLiveWindow(
@@ -686,7 +788,9 @@ export class SourceDocumentView {
   }
 
   private findRenderedLineAtPosition(position: number): SourceLine | undefined {
-    for (const lineDOM of Array.from(this.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'))) {
+    for (const lineDOM of Array.from(
+      this.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'),
+    )) {
       const number = Number(lineDOM.dataset.line)
       const from = Number(lineDOM.dataset.from)
       const to = Number(lineDOM.dataset.to)
@@ -737,8 +841,7 @@ export class SourceDocumentView {
     }
 
     const editedLine = this.findRenderedLineAtPosition(from)
-    const structuralEdit =
-      insert.includes('\n') || editedLine === undefined || to > editedLine.to
+    const structuralEdit = insert.includes('\n') || editedLine === undefined || to > editedLine.to
     const delta = insert.length - (to - from)
     this.editRevision += 1
     const editRevision = this.editRevision
@@ -1011,6 +1114,17 @@ export class SourceDocumentView {
     })
   }
 
+  private readRenderedSelectionText(): string | undefined {
+    const range = this.getSelectedRange()
+    const window = this.renderedSourceWindow
+
+    if (!window || range.from === range.to || range.from < window.from || range.to > window.to) {
+      return undefined
+    }
+
+    return readLineWindowRangeText(window, range.from, range.to)
+  }
+
   private currentSelection(): Selection {
     return this.selectionAnchor === this.cursorPosition
       ? Selection.cursor(this.cursorPosition)
@@ -1085,6 +1199,72 @@ export class SourceDocumentView {
         measuredSelection.style.width = `${Math.max(1, rect.width)}px`
         measuredSelection.style.height = `${rect.height}px`
         this.selectionLayerDOM.append(measuredSelection)
+      }
+    }
+  }
+
+  private renderSearchHighlights(): void {
+    this.searchLayerDOM.replaceChildren()
+
+    for (const [index, highlight] of this.searchHighlights.entries()) {
+      const line = this.contentDOM.querySelector<HTMLElement>(
+        `.milkup-line[data-line="${highlight.line}"]`,
+      )
+
+      if (!line) {
+        continue
+      }
+
+      const lineFrom = Number(line.dataset.from)
+      const lineTo = Number(line.dataset.to)
+      const from = Math.max(highlight.from, lineFrom)
+      const to = Math.min(highlight.to, lineTo)
+
+      if (!Number.isInteger(lineFrom) || !Number.isInteger(lineTo) || to <= from) {
+        continue
+      }
+
+      const element = this.ownerDocument.createElement('div')
+      element.className =
+        index === this.activeSearchHighlightIndex
+          ? 'milkup-search-highlight is-active'
+          : 'milkup-search-highlight'
+      element.dataset.index = String(index)
+      element.dataset.from = String(from)
+      element.dataset.to = String(to)
+      element.dataset.line = String(highlight.line)
+      const rects = domRectsForLineSourceRange(
+        this.ownerDocument,
+        line,
+        this.searchLayerDOM,
+        from,
+        to,
+      )
+
+      if (rects.length === 0) {
+        const fromOffset = sourcePositionToVisualOffsetInLine(line, from)
+        const toOffset = sourcePositionToVisualOffsetInLine(line, to)
+        element.style.left = `${fromOffset * 8}px`
+        element.style.top = `${lineLayerTop(
+          line,
+          this.searchLayerDOM,
+          highlight.line,
+          this.getLineHeight(),
+        )}px`
+        element.style.width = `${Math.max(1, toOffset - fromOffset) * 8}px`
+        element.style.height = `${lineVisualHeight(line, this.getLineHeight())}px`
+        this.searchLayerDOM.append(element)
+        continue
+      }
+
+      for (const [rectIndex, rect] of rects.entries()) {
+        const measured = element.cloneNode(false) as HTMLElement
+        measured.dataset.rectIndex = String(rectIndex)
+        measured.style.left = `${rect.left}px`
+        measured.style.top = `${rect.top}px`
+        measured.style.width = `${Math.max(1, rect.width)}px`
+        measured.style.height = `${rect.height}px`
+        this.searchLayerDOM.append(measured)
       }
     }
   }
@@ -1232,18 +1412,24 @@ export class SourceDocumentView {
       .find((element) => {
         const elementFrom = Number(element.dataset.from)
         const elementTo = Number(element.dataset.to)
-        return Number.isInteger(elementFrom) && Number.isInteger(elementTo) && from >= elementFrom && to <= elementTo
+        return (
+          Number.isInteger(elementFrom) &&
+          Number.isInteger(elementTo) &&
+          from >= elementFrom &&
+          to <= elementTo
+        )
       })
 
     if (mapped) {
       const elementFrom = Number(mapped.dataset.from)
       const elementTo = Number(mapped.dataset.to)
       const text = mapped.textContent ?? ''
-      mapped.textContent =
-        text.slice(0, from - elementFrom) + insert + text.slice(to - elementFrom)
+      mapped.textContent = text.slice(0, from - elementFrom) + insert + text.slice(to - elementFrom)
       mapped.dataset.to = String(elementTo + delta)
 
-      for (const element of Array.from(lineDOM.querySelectorAll<HTMLElement>('[data-from][data-to]'))) {
+      for (const element of Array.from(
+        lineDOM.querySelectorAll<HTMLElement>('[data-from][data-to]'),
+      )) {
         if (element === mapped) {
           continue
         }
@@ -1292,7 +1478,9 @@ export class SourceDocumentView {
       return
     }
 
-    for (const lineDOM of Array.from(this.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'))) {
+    for (const lineDOM of Array.from(
+      this.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'),
+    )) {
       const renderedLineNumber = Number(lineDOM.dataset.line)
 
       if (!Number.isInteger(renderedLineNumber) || renderedLineNumber <= lineNumber) {
@@ -1310,7 +1498,9 @@ export class SourceDocumentView {
         lineDOM.dataset.to = String(to + delta)
       }
 
-      for (const mapped of Array.from(lineDOM.querySelectorAll<HTMLElement>('[data-from][data-to]'))) {
+      for (const mapped of Array.from(
+        lineDOM.querySelectorAll<HTMLElement>('[data-from][data-to]'),
+      )) {
         const mappedFrom = Number(mapped.dataset.from)
         const mappedTo = Number(mapped.dataset.to)
 
@@ -1393,12 +1583,18 @@ function renderLiveLine(
   } else if (table) {
     lineDOM.classList.add('milkup-table-delimiter')
     lineDOM.replaceChildren(
-      ...renderHiddenLine(document, line, 'milkup-block-marker milkup-table-marker milkup-marker-hidden'),
+      ...renderHiddenLine(
+        document,
+        line,
+        'milkup-block-marker milkup-table-marker milkup-marker-hidden',
+      ),
     )
   } else if (listItem) {
     lineDOM.replaceChildren(...renderListItemLinePieces(document, line, selection, listItem))
   } else {
-    lineDOM.replaceChildren(...renderInlineDecorations(document, line, selection, line.from, line.to))
+    lineDOM.replaceChildren(
+      ...renderInlineDecorations(document, line, selection, line.from, line.to),
+    )
   }
 
   return lineDOM
@@ -1859,7 +2055,13 @@ function renderInlineNodePieces(
 
   if (position < node.to) {
     rendered.push(
-      createMappedSpan(document, line, line.from + position, line.from + node.to, 'milkup-live-text'),
+      createMappedSpan(
+        document,
+        line,
+        line.from + position,
+        line.from + node.to,
+        'milkup-live-text',
+      ),
     )
   }
 
@@ -2022,7 +2224,8 @@ function lineCursorHeight(lineDOM: HTMLElement, fallbackLineHeight: number): num
   const view = lineDOM.ownerDocument.defaultView
   const inlineFontSize = Number.parseFloat(lineDOM.style.fontSize)
   const computedFontSize = view ? Number.parseFloat(view.getComputedStyle(lineDOM).fontSize) : 0
-  const fontSize = Number.isFinite(inlineFontSize) && inlineFontSize > 0 ? inlineFontSize : computedFontSize
+  const fontSize =
+    Number.isFinite(inlineFontSize) && inlineFontSize > 0 ? inlineFontSize : computedFontSize
 
   if (Number.isFinite(fontSize) && fontSize > 0) {
     return fontSize

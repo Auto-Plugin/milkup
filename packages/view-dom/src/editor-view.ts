@@ -21,6 +21,7 @@ import type {
   EditorViewConfig,
   EditorViewDispatch,
   PositionLineOffset,
+  SearchHighlight,
   ViewCoordinate,
   ViewMetrics,
   ViewRect,
@@ -68,6 +69,7 @@ interface VisibleLineWindow {
 export class EditorView {
   readonly dom: HTMLElement
   readonly contentDOM: HTMLElement
+  readonly searchLayerDOM: HTMLElement
   readonly selectionLayerDOM: HTMLElement
   readonly cursorLayerDOM: HTMLElement
   readonly inputDOM: HTMLTextAreaElement
@@ -86,6 +88,8 @@ export class EditorView {
   private mode: ViewMode
   private editable: boolean
   private readonly virtualViewport: VirtualViewportState | undefined
+  private searchHighlights: readonly SearchHighlight[] = Object.freeze([])
+  private activeSearchHighlightIndex = -1
   private readonly handleInputEvent = (): void => {
     this.readInputProxy()
   }
@@ -142,12 +146,15 @@ export class EditorView {
     this.contentDOM.setAttribute('role', 'textbox')
     this.contentDOM.setAttribute('aria-multiline', 'true')
     this.contentDOM.setAttribute('contenteditable', 'false')
+    this.searchLayerDOM = this.ownerDocument.createElement('div')
+    this.searchLayerDOM.className = 'milkup-search-layer'
     this.selectionLayerDOM = this.ownerDocument.createElement('div')
     this.selectionLayerDOM.className = 'milkup-selection-layer'
     this.cursorLayerDOM = this.ownerDocument.createElement('div')
     this.cursorLayerDOM.className = 'milkup-cursor-layer'
     this.inputDOM = createInputProxy(this.ownerDocument)
     this.dom.append(this.contentDOM)
+    this.dom.append(this.searchLayerDOM)
     this.dom.append(this.selectionLayerDOM)
     this.dom.append(this.cursorLayerDOM)
     this.dom.append(this.inputDOM)
@@ -176,6 +183,12 @@ export class EditorView {
 
   get markdownParse(): EditorMarkdownParseState {
     return this.markdownParseState
+  }
+
+  setSearchHighlights(highlights: readonly SearchHighlight[], activeIndex = -1): void {
+    this.searchHighlights = Object.freeze([...highlights])
+    this.activeSearchHighlightIndex = activeIndex
+    this.renderSearchHighlights()
   }
 
   updateState(state: EditorState, transactions: readonly Transaction[] = []): ViewUpdate {
@@ -328,6 +341,7 @@ export class EditorView {
     )
     this.alignSelectionOverlayToDOM()
     this.alignCursorOverlayToDOM()
+    this.renderSearchHighlights()
     this.syncInputProxyToCursor()
   }
 
@@ -344,7 +358,64 @@ export class EditorView {
     )
     this.alignSelectionOverlayToDOM()
     this.alignCursorOverlayToDOM()
+    this.renderSearchHighlights()
     this.syncInputProxyToCursor()
+  }
+
+  private renderSearchHighlights(): void {
+    const rendered: HTMLElement[] = []
+
+    for (const [index, highlight] of this.searchHighlights.entries()) {
+      const element = this.ownerDocument.createElement('div')
+      element.className =
+        index === this.activeSearchHighlightIndex
+          ? 'milkup-search-highlight is-active'
+          : 'milkup-search-highlight'
+      element.dataset.index = String(index)
+      element.dataset.from = String(highlight.from)
+      element.dataset.to = String(highlight.to)
+      element.dataset.line = String(highlight.line)
+      const rects = domRectsForSourceRange(
+        this.ownerDocument,
+        this.contentDOM,
+        this.searchLayerDOM,
+        this.currentState,
+        this.mode,
+        highlight.from,
+        highlight.to,
+        this.markdownParseState.cache.root,
+      )
+
+      if (rects.length === 0) {
+        const line = this.contentDOM.querySelector<HTMLElement>(
+          `.milkup-line[data-line="${highlight.line}"]`,
+        )
+
+        if (!line) {
+          continue
+        }
+
+        const lineFrom = Number(line.dataset.from)
+        element.style.left = `${Math.max(0, highlight.from - lineFrom) * defaultViewMetrics.charWidth}px`
+        element.style.top = `${line.offsetTop}px`
+        element.style.width = `${Math.max(1, highlight.to - highlight.from) * defaultViewMetrics.charWidth}px`
+        element.style.height = `${defaultViewMetrics.lineHeight}px`
+        rendered.push(element)
+        continue
+      }
+
+      for (const [rectIndex, rect] of rects.entries()) {
+        const measured = element.cloneNode(false) as HTMLElement
+        measured.dataset.rectIndex = String(rectIndex)
+        measured.style.left = `${rect.left}px`
+        measured.style.top = `${rect.top}px`
+        measured.style.width = `${Math.max(1, rect.width)}px`
+        measured.style.height = `${rect.height}px`
+        rendered.push(measured)
+      }
+    }
+
+    this.searchLayerDOM.replaceChildren(...rendered)
   }
 
   private renderSelectionChangedLines(previousState: EditorState, state: EditorState): void {

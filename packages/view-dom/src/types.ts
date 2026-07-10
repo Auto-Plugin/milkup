@@ -8,6 +8,10 @@ export interface Decoration extends TextRange {
   readonly attributes?: Readonly<Record<string, string>>
 }
 
+export interface SearchHighlight extends TextRange {
+  readonly line: number
+}
+
 export interface BlockView {
   readonly from: number
   readonly to: number
@@ -27,6 +31,7 @@ export interface EditorViewLike {
   readonly state: EditorState
   readonly dom: HTMLElement
   readonly contentDOM: HTMLElement
+  readonly searchLayerDOM: HTMLElement
   readonly selectionLayerDOM: HTMLElement
   readonly cursorLayerDOM: HTMLElement
   readonly inputDOM: HTMLTextAreaElement

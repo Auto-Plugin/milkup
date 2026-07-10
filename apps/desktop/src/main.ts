@@ -356,7 +356,10 @@ app.innerHTML = `
       <aside class="sidebar" aria-label="工作区"></aside>
       <section class="editor-panel">
         <div class="floating-search" data-floating-search hidden>
-          ${iconSvg(Search)}
+          <span class="search-status-icon" data-search-status-icon>
+            <span data-search-idle-icon>${iconSvg(Search)}</span>
+            <span data-search-loading hidden>${iconSvg(LoaderCircle)}</span>
+          </span>
           <input type="search" aria-label="${messages.buttons.search}" placeholder="搜索文档" data-search-input />
           <span class="search-result-count" data-search-result-count>0/0</span>
           <button type="button" class="icon-button search-nav-button" data-search-previous aria-label="上一个结果" title="上一个结果" disabled>
@@ -453,6 +456,7 @@ let menuOpen = false
 let searchOpen = false
 let searchResultState: DesktopSearchState | undefined
 let activeSearchResultIndex = -1
+let documentSearchRunId = 0
 let windowMaximized = false
 let closeConfirmOpen = false
 let loadingState: DocumentLoadingState = Object.freeze({ phase: 'idle' })
@@ -996,6 +1000,7 @@ function createEditorView(): EditorView {
     },
   })
   bindEditorViewClipboard(nextView)
+  nextView.setSearchHighlights(searchResultState?.matches ?? [], activeSearchResultIndex)
   return nextView
 }
 
@@ -1039,6 +1044,7 @@ function applyMemorySourceView(): void {
     sourceView.updateSource(source)
     sourceView.setMode(session.viewMode)
     sourceView.setEditable(!session.readonly && !isDocumentBusy())
+    sourceView.setSearchHighlights(searchResultState?.matches ?? [], activeSearchResultIndex)
     return
   }
 
@@ -1058,6 +1064,7 @@ function applyMemorySourceView(): void {
       overscanLines: 12,
     },
   })
+  sourceView.setSearchHighlights(searchResultState?.matches ?? [], activeSearchResultIndex)
 }
 
 function updateRenderedMemoryDocument(transactions: readonly Transaction[] = []): void {
@@ -1102,6 +1109,7 @@ async function applyLargeSourceView(): Promise<void> {
       overscanLines: 12,
     },
   })
+  sourceView.setSearchHighlights(searchResultState?.matches ?? [], activeSearchResultIndex)
   await sourceView.renderVisibleWindow()
 }
 
@@ -2140,6 +2148,7 @@ async function runDocumentSearch(query: string): Promise<void> {
     return
   }
 
+  const searchRunId = ++documentSearchRunId
   const source = largeDocumentPreview?.source
 
   try {
@@ -2155,6 +2164,10 @@ async function runDocumentSearch(query: string): Promise<void> {
             maxResults: 200,
           }),
       onUpdate: (searchState) => {
+        if (searchRunId !== documentSearchRunId) {
+          return
+        }
+
         searchResultState = searchState
         activeSearchResultIndex =
           searchState.matches.length > 0 && activeSearchResultIndex < 0
@@ -2166,11 +2179,19 @@ async function runDocumentSearch(query: string): Promise<void> {
       },
     })
 
+    if (searchRunId !== documentSearchRunId) {
+      return
+    }
+
     searchResultState = result
     activeSearchResultIndex = result.matches.length > 0 ? 0 : -1
     renderSearchNavigation()
     await jumpToSearchMatch(result, activeSearchResultIndex)
   } catch (error: unknown) {
+    if (searchRunId !== documentSearchRunId) {
+      return
+    }
+
     notice = `搜索失败：${getErrorMessage(error)}`
     renderSession()
   }
@@ -2185,7 +2206,7 @@ async function jumpToSearchMatch(
       ? searchState.matches[index]
       : undefined
 
-  if (!match || searchState?.phase !== 'done') {
+  if (!match) {
     return
   }
 
@@ -2228,6 +2249,7 @@ async function moveSearchResult(delta: -1 | 1): Promise<void> {
 }
 
 function clearSearchResults(): void {
+  documentSearchRunId += 1
   documentSearchController.cancel()
   searchResultState = undefined
   activeSearchResultIndex = -1
@@ -2241,6 +2263,24 @@ function renderSearchNavigation(): void {
 
   activeSearchResultIndex = navigation.activeIndex
   setText('[data-search-result-count]', navigation.label)
+  const highlights = searchResultState?.matches ?? []
+  view?.setSearchHighlights(highlights, navigation.activeIndex)
+  sourceView?.setSearchHighlights(highlights, navigation.activeIndex)
+  const loading = appRoot.querySelector<HTMLElement>('[data-search-loading]')
+  const idleIcon = appRoot.querySelector<HTMLElement>('[data-search-idle-icon]')
+  const searching = searchResultState?.phase === 'searching'
+
+  if (loading) {
+    loading.hidden = !searching
+    loading.setAttribute(
+      'aria-label',
+      `正在扫描文档，已扫描 ${searchResultState?.scannedLineCount ?? 0} 行`,
+    )
+  }
+
+  if (idleIcon) {
+    idleIcon.hidden = searching
+  }
 
   for (const selector of ['[data-search-previous]', '[data-search-next]']) {
     const button = appRoot.querySelector<HTMLButtonElement>(selector)
