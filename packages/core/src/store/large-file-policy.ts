@@ -1,16 +1,14 @@
-export type DocumentScaleMode = 'normal' | 'incremental' | 'large' | 'ultra-large'
+export type DocumentScaleMode = 'full' | 'performance'
 
-export type ParseStrategy = 'full' | 'incremental' | 'local-window' | 'on-demand'
+export type ParseStrategy = 'full' | 'local-window'
 export type RenderStrategy = 'full-dom' | 'virtual-dom' | 'viewport-dom'
-export type LiveRenderStrategy = 'full' | 'viewport' | 'source-first'
-export type SearchStrategy = 'memory' | 'background-index' | 'chunked'
-export type PluginRenderStrategy = 'full' | 'viewport-safe' | 'manual'
+export type LiveRenderStrategy = 'full' | 'viewport'
+export type SearchStrategy = 'memory' | 'chunked'
+export type PluginRenderStrategy = 'full' | 'viewport-safe'
 export type StoreStrategy = 'memory' | 'chunked'
 
 export interface DocumentScaleThresholds {
-  readonly incrementalBytes: number
-  readonly largeBytes: number
-  readonly ultraLargeBytes: number
+  readonly performanceBytes: number
 }
 
 export interface DocumentScaleInput {
@@ -35,33 +33,23 @@ export const MIB = 1024 * 1024
 export const GIB = 1024 * MIB
 
 export const DEFAULT_DOCUMENT_SCALE_THRESHOLDS: DocumentScaleThresholds = Object.freeze({
-  incrementalBytes: 128 * 1024,
-  largeBytes: 256 * 1024,
-  ultraLargeBytes: 2 * MIB,
+  performanceBytes: 128 * 1024,
 })
 
 export function classifyDocumentScale(input: DocumentScaleInput): DocumentScaleMode {
   const sizeBytes = assertValidSize(input.sizeBytes)
   const thresholds = normalizeThresholds(input.thresholds)
 
-  if (sizeBytes < thresholds.incrementalBytes) {
-    return 'normal'
+  if (sizeBytes < thresholds.performanceBytes) {
+    return 'full'
   }
 
-  if (sizeBytes < thresholds.largeBytes) {
-    return 'incremental'
-  }
-
-  if (sizeBytes < thresholds.ultraLargeBytes) {
-    return 'large'
-  }
-
-  return 'ultra-large'
+  return 'performance'
 }
 
 export function getFeatureDegradationPolicy(mode: DocumentScaleMode): FeatureDegradationPolicy {
   switch (mode) {
-    case 'normal':
+    case 'full':
       return freezePolicy({
         mode,
         store: 'memory',
@@ -74,20 +62,7 @@ export function getFeatureDegradationPolicy(mode: DocumentScaleMode): FeatureDeg
         fullDocumentDomRequired: true,
         fullDocumentParseRequired: true,
       })
-    case 'incremental':
-      return freezePolicy({
-        mode,
-        store: 'memory',
-        parse: 'incremental',
-        render: 'virtual-dom',
-        liveRender: 'full',
-        search: 'background-index',
-        pluginRendering: 'viewport-safe',
-        autoRenderMermaid: true,
-        fullDocumentDomRequired: false,
-        fullDocumentParseRequired: false,
-      })
-    case 'large':
+    case 'performance':
       return freezePolicy({
         mode,
         store: 'chunked',
@@ -96,19 +71,6 @@ export function getFeatureDegradationPolicy(mode: DocumentScaleMode): FeatureDeg
         liveRender: 'viewport',
         search: 'chunked',
         pluginRendering: 'viewport-safe',
-        autoRenderMermaid: false,
-        fullDocumentDomRequired: false,
-        fullDocumentParseRequired: false,
-      })
-    case 'ultra-large':
-      return freezePolicy({
-        mode,
-        store: 'chunked',
-        parse: 'on-demand',
-        render: 'viewport-dom',
-        liveRender: 'source-first',
-        search: 'chunked',
-        pluginRendering: 'manual',
         autoRenderMermaid: false,
         fullDocumentDomRequired: false,
         fullDocumentParseRequired: false,
@@ -130,12 +92,8 @@ function normalizeThresholds(
     ...(thresholds ?? {}),
   }
 
-  if (
-    normalized.incrementalBytes <= 0 ||
-    normalized.largeBytes <= normalized.incrementalBytes ||
-    normalized.ultraLargeBytes <= normalized.largeBytes
-  ) {
-    throw new RangeError('Document scale thresholds must be positive and increasing')
+  if (normalized.performanceBytes <= 0) {
+    throw new RangeError('Document scale threshold must be positive')
   }
 
   return normalized

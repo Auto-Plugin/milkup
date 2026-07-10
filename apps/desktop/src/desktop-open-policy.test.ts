@@ -7,9 +7,7 @@ import {
 } from './desktop-open-policy'
 
 const testThresholds = Object.freeze({
-  incrementalBytes: 10,
-  largeBytes: 40,
-  ultraLargeBytes: 100,
+  performanceBytes: 10,
 })
 
 describe('desktop open policy', () => {
@@ -26,16 +24,19 @@ describe('desktop open policy', () => {
     })
   })
 
-  it('routes incremental memory files to the virtual viewport renderer', () => {
+  it('routes small performance-mode files to the memory viewport renderer', () => {
     const policy = resolveDesktopOpenPolicy(
-      { path: 'D:/notes/incremental.md', sizeBytes: 20 },
-      { thresholds: testThresholds },
+      { path: 'D:/notes/performance.md', sizeBytes: 20 },
+      { thresholds: testThresholds, nativeLargeFileBytes: 40 },
     )
 
     expect(policy).toMatchObject({
       renderStrategy: 'virtual-dom',
       useMemoryVirtualViewport: true,
       useNativeLargeFile: false,
+      featurePolicy: {
+        mode: 'performance',
+      },
     })
     expect(policy.virtualViewport).toMatchObject({
       enabled: true,
@@ -43,24 +44,20 @@ describe('desktop open policy', () => {
     })
   })
 
-  it('marks large and ultra-large files for the native large-file path', () => {
+  it('uses the native large-file path as an internal performance-mode route', () => {
     expect(
       resolveDesktopOpenPolicy(
         { path: 'D:/notes/large.md', sizeBytes: 40 },
-        { thresholds: testThresholds },
+        { thresholds: testThresholds, nativeLargeFileBytes: 40 },
       ),
     ).toMatchObject({
       renderStrategy: 'viewport-dom',
       useMemoryVirtualViewport: false,
       useNativeLargeFile: true,
+      featurePolicy: {
+        mode: 'performance',
+      },
     })
-
-    expect(
-      resolveDesktopOpenPolicy(
-        { path: 'D:/notes/huge.md', sizeBytes: 100 },
-        { thresholds: testThresholds },
-      ).featurePolicy.mode,
-    ).toBe('ultra-large')
   })
 
   it('uses conservative Windows preview defaults for editor routing', () => {
@@ -79,7 +76,7 @@ describe('desktop open policy', () => {
       useMemoryVirtualViewport: false,
       useNativeLargeFile: true,
       featurePolicy: {
-        mode: 'large',
+        mode: 'performance',
       },
     })
 
@@ -88,7 +85,7 @@ describe('desktop open policy', () => {
     ).toMatchObject({
       useNativeLargeFile: true,
       featurePolicy: {
-        mode: 'ultra-large',
+        mode: 'performance',
       },
     })
   })
@@ -104,7 +101,7 @@ describe('desktop open policy', () => {
       useMemoryVirtualViewport: true,
       useNativeLargeFile: false,
       featurePolicy: {
-        mode: 'incremental',
+        mode: 'performance',
       },
     })
   })

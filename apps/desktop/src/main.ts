@@ -52,6 +52,7 @@ import {
   Eye,
   FilePlus2,
   FolderOpen,
+  LoaderCircle,
   Menu,
   PanelLeft,
   PanelLeftClose,
@@ -108,6 +109,7 @@ const messages = {
   titleUntitled: '未命名',
   stateClean: '已保存',
   stateDirty: '未保存',
+  stateSaving: '保存中',
   pathUnsaved: '未保存',
   recentNone: '无',
   ready: '就绪',
@@ -148,6 +150,8 @@ const messages = {
   closeConfirm: {
     title: '文档尚未保存',
     body: '关闭窗口前，请选择如何处理当前未保存的更改。',
+    savingTitle: '正在保存',
+    savingBody: '文档正在保存中，保存完成后会自动关闭窗口。',
     cancel: '取消',
     saveAndExit: '保存并退出',
     discardAndExit: '不保存并退出',
@@ -190,6 +194,14 @@ const platform = getDesktopPlatform()
 
 type DesktopPlatform = 'windows' | 'macos' | 'linux' | 'other'
 type WindowControlAction = 'minimize' | 'maximize' | 'close'
+type DocumentSaveState =
+  | {
+      readonly phase: 'idle'
+    }
+  | {
+      readonly phase: 'saving'
+      readonly promise: Promise<boolean>
+    }
 
 const app = document.querySelector<HTMLDivElement>('#app')
 
@@ -354,7 +366,10 @@ app.innerHTML = `
         <footer class="confirm-dialog-actions">
           <button type="button" class="dialog-button secondary" data-close-confirm-action="cancel">${messages.closeConfirm.cancel}</button>
           <button type="button" class="dialog-button warning" data-close-confirm-action="discard">${messages.closeConfirm.discardAndExit}</button>
-          <button type="button" class="dialog-button primary" data-close-confirm-action="save">${messages.closeConfirm.saveAndExit}</button>
+          <button type="button" class="dialog-button primary" data-close-confirm-action="save">
+            <span class="saving-spinner" data-close-save-spinner aria-hidden="true" hidden>${iconSvg(LoaderCircle)}</span>
+            <span data-close-save-label>${messages.closeConfirm.saveAndExit}</span>
+          </button>
         </footer>
       </div>
     </section>
@@ -369,6 +384,7 @@ app.innerHTML = `
       <div class="statusbar-right">
         <span data-stat="char-count">0 字符</span>
         <span class="save-state" data-save-state>
+          <span class="saving-spinner" data-save-spinner aria-hidden="true" hidden>${iconSvg(LoaderCircle)}</span>
           <span data-save-dot class="dirty-dot" aria-hidden="true"></span>
           <span data-save-label>${messages.stateClean}</span>
         </span>
@@ -412,6 +428,8 @@ let activeSearchResultIndex = -1
 let windowMaximized = false
 let closeConfirmOpen = false
 let loadingState: DocumentLoadingState = Object.freeze({ phase: 'idle' })
+let saveState: DocumentSaveState = Object.freeze({ phase: 'idle' })
+let closeAfterCurrentSave = false
 let lastOpenDiagnostics: OpenStageDiagnostics | undefined
 let currentOpenPolicy: DesktopOpenPolicy = resolveDesktopOpenPolicy({
   path: 'untitled.md',
@@ -1284,7 +1302,51 @@ async function openNativeLargeDocument(
   renderSession()
 }
 
+function isDocumentSaving(): boolean {
+  return saveState.phase === 'saving'
+}
+
+function runDocumentSave(task: () => Promise<boolean>): Promise<boolean> {
+  if (saveState.phase === 'saving') {
+    return saveState.promise
+  }
+
+  const promise = task()
+  saveState = Object.freeze({ phase: 'saving', promise })
+  renderSession()
+
+  void promise
+    .then(async (saved) => {
+      saveState = Object.freeze({ phase: 'idle' })
+      const shouldClose = closeAfterCurrentSave && saved && !session.dirty
+      closeAfterCurrentSave = false
+      renderSession()
+
+      if (shouldClose) {
+        await invokeWindowClose()
+      } else if (closeConfirmOpen) {
+        renderCloseConfirmState()
+      }
+    })
+    .catch((error: unknown) => {
+      saveState = Object.freeze({ phase: 'idle' })
+      closeAfterCurrentSave = false
+      notice = `保存失败：${getErrorMessage(error)}`
+      renderSession()
+
+      if (closeConfirmOpen) {
+        renderCloseConfirmState()
+      }
+    })
+
+  return promise
+}
+
 async function saveDocument(): Promise<boolean> {
+  return runDocumentSave(saveDocumentOnce)
+}
+
+async function saveDocumentOnce(): Promise<boolean> {
   if (!view) {
     if (largeDocumentPreview) {
       return saveLargeDocument()
@@ -1629,6 +1691,13 @@ async function reloadLargeExternalDocument(): Promise<void> {
 }
 
 async function saveDocumentAs(): Promise<void> {
+  await runDocumentSave(async () => {
+    await saveDocumentAsOnce()
+    return !session.dirty
+  })
+}
+
+async function saveDocumentAsOnce(): Promise<void> {
   if (!view) {
     if (largeDocumentPreview) {
       await saveLargeDocumentAs()
@@ -2315,6 +2384,11 @@ function startWindowDrag(): void {
 }
 
 function canCloseWindow(): boolean {
+  if (isDocumentSaving()) {
+    closeAfterCurrentSave = true
+    return false
+  }
+
   const decision = evaluateCloseProtection([session], {
     scope: 'window',
     documentIds: [session.documentId],
@@ -2333,10 +2407,42 @@ function openWindowConfirm(): void {
   appRoot.dataset.closeConfirmOpen = 'true'
   const overlay = appRoot.querySelector<HTMLElement>('[data-close-confirm]')
   overlay?.removeAttribute('hidden')
+  renderCloseConfirmState()
   appRoot.querySelector<HTMLButtonElement>('[data-close-confirm-action="save"]')?.focus()
 }
 
+function renderCloseConfirmState(): void {
+  const saving = isDocumentSaving() && closeAfterCurrentSave
+  const title = saving ? messages.closeConfirm.savingTitle : messages.closeConfirm.title
+  const body = saving ? messages.closeConfirm.savingBody : messages.closeConfirm.body
+
+  setText('#close-confirm-title', title)
+  setText('#close-confirm-body', body)
+  setText(
+    '[data-close-save-label]',
+    saving ? messages.stateSaving : messages.closeConfirm.saveAndExit,
+  )
+
+  const saveButton = appRoot.querySelector<HTMLButtonElement>('[data-close-confirm-action="save"]')
+  const discardButton = appRoot.querySelector<HTMLButtonElement>(
+    '[data-close-confirm-action="discard"]',
+  )
+  const saveSpinner = appRoot.querySelector<HTMLElement>('[data-close-save-spinner]')
+
+  if (saveButton) {
+    saveButton.disabled = saving
+    saveButton.dataset.saving = String(saving)
+  }
+  if (discardButton) {
+    discardButton.disabled = saving
+  }
+  if (saveSpinner) {
+    saveSpinner.hidden = !saving
+  }
+}
+
 function closeWindowConfirm(): void {
+  closeAfterCurrentSave = false
   closeConfirmOpen = false
   appRoot.dataset.closeConfirmOpen = 'false'
   appRoot.querySelector<HTMLElement>('[data-close-confirm]')?.setAttribute('hidden', '')
@@ -2344,14 +2450,14 @@ function closeWindowConfirm(): void {
 }
 
 async function saveAndExitWindow(): Promise<void> {
+  closeAfterCurrentSave = true
+  openWindowConfirm()
   const saved = await saveDocument()
 
   if (!saved || session.dirty) {
     openWindowConfirm()
     return
   }
-
-  await invokeWindowClose()
 }
 
 async function discardAndExitWindow(): Promise<void> {
@@ -2422,7 +2528,12 @@ function getDesktopShortcutAction(
 
 function renderSession(): void {
   const titleInfo = getSessionTitleInfo(session.file?.path)
-  const saveStateLabel = session.dirty ? messages.stateDirty : messages.stateClean
+  const saving = isDocumentSaving()
+  const saveStateLabel = saving
+    ? messages.stateSaving
+    : session.dirty
+      ? messages.stateDirty
+      : messages.stateClean
 
   setText('[data-title]', titleInfo.name)
   setText('[data-title-path]', titleInfo.directory)
@@ -2439,10 +2550,20 @@ function renderSession(): void {
   setText('[data-save-label]', saveStateLabel)
 
   const dirtyDot = app?.querySelector<HTMLElement>('[data-save-dot]')
-  dirtyDot?.classList.toggle('is-dirty', session.dirty)
+  dirtyDot?.classList.toggle('is-dirty', session.dirty && !saving)
+  dirtyDot?.toggleAttribute('hidden', saving)
+  appRoot.querySelector<HTMLElement>('[data-save-spinner]')?.toggleAttribute('hidden', !saving)
+  appRoot.querySelector<HTMLElement>('[data-save-state]')?.classList.toggle('is-saving', saving)
+  for (const command of ['save', 'save-as']) {
+    const button = appRoot.querySelector<HTMLButtonElement>(`[data-command="${command}"]`)
+    if (button) {
+      button.disabled = saving
+    }
+  }
   appRoot.dataset.emptyDocument = String(!largeDocumentPreview && state.doc.length === 0)
   appRoot.dataset.readonly = String(session.readonly)
   appRoot.dataset.loading = loadingState.phase
+  appRoot.dataset.saving = String(saving)
   view?.setEditable(!session.readonly && !isDocumentBusy())
   sourceView?.setEditable(
     !session.readonly &&
@@ -2450,6 +2571,9 @@ function renderSession(): void {
       (!largeDocumentPreview || Boolean(largeDocumentPreview.editSession)),
   )
   renderDocumentLoadingState()
+  if (closeConfirmOpen) {
+    renderCloseConfirmState()
+  }
   updateModeToggle(session.viewMode)
 }
 
@@ -2846,7 +2970,7 @@ async function runDesktopEditorInteractionBenchmark(path: string): Promise<unkno
     interactions.flush = await measure('flushMs', timings, () => saveLargeDocument())
   }
 
-  const searchQuery = afterOpen.scaleMode === 'normal' ? '#' : 'marker'
+  const searchQuery = afterOpen.scaleMode === 'full' ? '#' : 'marker'
   interactions.search = await measure('searchFirstResultMs', timings, () =>
     runDocumentSearch(searchQuery),
   )

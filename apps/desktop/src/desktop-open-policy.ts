@@ -24,7 +24,10 @@ export interface DesktopOpenPolicy {
 
 export interface DesktopOpenPolicyOptions {
   readonly thresholds?: Partial<DocumentScaleThresholds>
+  readonly nativeLargeFileBytes?: number
 }
+
+const defaultNativeLargeFileBytes = 256 * 1024
 
 const desktopVirtualViewportConfig: VirtualViewportConfig = Object.freeze({
   enabled: true,
@@ -40,14 +43,15 @@ export function resolveDesktopOpenPolicy(
     sizeBytes: metadata.sizeBytes,
     ...(options.thresholds === undefined ? {} : { thresholds: options.thresholds }),
   })
-  const useMemoryVirtualViewport =
-    featurePolicy.store === 'memory' && featurePolicy.render === 'virtual-dom'
-  const useNativeLargeFile = featurePolicy.store === 'chunked'
+  const nativeLargeFileBytes = options.nativeLargeFileBytes ?? defaultNativeLargeFileBytes
+  const usePerformanceMode = featurePolicy.mode === 'performance'
+  const useNativeLargeFile = usePerformanceMode && metadata.sizeBytes >= nativeLargeFileBytes
+  const useMemoryVirtualViewport = usePerformanceMode && !useNativeLargeFile
 
   return Object.freeze({
     metadata,
     featurePolicy,
-    renderStrategy: featurePolicy.render,
+    renderStrategy: useMemoryVirtualViewport ? 'virtual-dom' : featurePolicy.render,
     useMemoryVirtualViewport,
     useNativeLargeFile,
     ...(useMemoryVirtualViewport ? { virtualViewport: desktopVirtualViewportConfig } : {}),
@@ -59,10 +63,9 @@ export function resolveDesktopMemoryViewportFallbackPolicy(
 ): DesktopOpenPolicy {
   return resolveDesktopOpenPolicy(metadata, {
     thresholds: {
-      incrementalBytes: 128 * 1024,
-      largeBytes: Number.MAX_SAFE_INTEGER - 1,
-      ultraLargeBytes: Number.MAX_SAFE_INTEGER,
+      performanceBytes: 128 * 1024,
     },
+    nativeLargeFileBytes: Number.MAX_SAFE_INTEGER,
   })
 }
 

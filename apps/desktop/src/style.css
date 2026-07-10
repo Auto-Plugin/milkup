@@ -142,6 +142,31 @@ button:not(:disabled) {
   background: var(--warning);
 }
 
+.saving-spinner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: var(--accent-strong);
+  animation: milkup-spin 0.8s linear infinite;
+}
+
+.saving-spinner[hidden] {
+  display: none;
+}
+
+.saving-spinner svg {
+  width: 14px;
+  height: 14px;
+}
+
+@keyframes milkup-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 h1 {
   min-width: 0;
   margin: 0;
@@ -393,6 +418,10 @@ h1 {
 }
 
 .dialog-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   min-height: 34px;
   padding: 0 13px;
   border: 1px solid var(--border);
@@ -404,6 +433,16 @@ h1 {
 .dialog-button:hover {
   border-color: var(--border-strong);
   background: var(--panel-subtle);
+}
+
+.dialog-button:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.dialog-button:disabled:hover {
+  border-color: var(--border);
+  background: transparent;
 }
 
 .dialog-button:focus-visible,
@@ -421,6 +460,13 @@ h1 {
 .dialog-button.primary:hover {
   border-color: #111827;
   background: #111827;
+}
+
+.dialog-button.primary:disabled,
+.dialog-button.primary:disabled:hover {
+  border-color: #1f2630;
+  background: #1f2630;
+  color: #ffffff;
 }
 
 .dialog-button.warning {
