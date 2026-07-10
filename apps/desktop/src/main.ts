@@ -15,6 +15,11 @@ import {
   createSidecarPluginModule,
   PluginRuntime,
 } from '@milkup/plugin'
+import {
+  isPluginPackageArchive,
+  parsePluginPackageArchive,
+  readPluginPackageTextFile,
+} from '@milkup/plugin'
 import type { BrowserWorkerPluginHost, PluginManifest } from '@milkup/plugin'
 import {
   applyFileWatchEvent,
@@ -39,9 +44,15 @@ import type {
   RecentFileEntry,
   SessionViewMode,
 } from '@milkup/tauri-bridge'
-import { EditorView } from '@milkup/view-dom'
+import { createControlledRendererNodes, EditorView } from '@milkup/view-dom'
 import { SourceDocumentView } from '@milkup/view-dom'
-import type { ViewMode } from '@milkup/view-dom'
+import type {
+  ControlledRenderer,
+  ControlledRendererActionDetail,
+  ControlledRendererContext,
+  ControlledRendererOutput,
+  ViewMode,
+} from '@milkup/view-dom'
 import {
   Bug,
   Circle,
@@ -96,6 +107,13 @@ import {
 import { createDesktopFileService } from './file-service'
 import { iconSvg } from './icons'
 import { createDesktopLargeTextFileService } from './large-file-service'
+import {
+  createDesktopPluginActions,
+  DesktopPluginManager,
+  renderDesktopPluginManager,
+  resolvePluginEntryPath,
+} from './desktop-plugin-manager'
+import { DesktopPluginUiController } from './desktop-plugin-ui'
 import {
   createOpenStageTracker,
   formatOpenStageDiagnostics,
@@ -231,6 +249,7 @@ app.innerHTML = `
         <h1 data-title>${messages.titleUntitled}</h1>
         <p data-title-path>${messages.pathUnsaved}</p>
       </div>
+      <div class="plugin-toolbar-slot" data-plugin-slot="document-toolbar"></div>
       <div class="window-controls" aria-label="窗口控制">
         <button type="button" class="window-control" data-window-control="minimize" aria-label="${messages.window.minimize}" title="${messages.window.minimize}">
           <span class="window-glyph window-glyph-minimize" aria-hidden="true"></span>
@@ -322,12 +341,8 @@ app.innerHTML = `
           </section>
           <section class="app-menu-section" data-menu-panel="plugins" hidden>
             <h3>${messages.menu.plugins}</h3>
-            <dl class="metadata-list menu-info-list">
-              <div>
-                <dt>状态</dt>
-                <dd>暂无已安装插件</dd>
-              </div>
-            </dl>
+            <div data-plugin-manager></div>
+            <div data-plugin-slot="menu-page"></div>
           </section>
           <section class="app-menu-section" data-menu-panel="shortcuts" hidden>
             <h3>${messages.menu.shortcuts}</h3>
@@ -353,7 +368,7 @@ app.innerHTML = `
       </div>
     </section>
     <section class="workspace">
-      <aside class="sidebar" aria-label="工作区"></aside>
+      <aside class="sidebar" aria-label="工作区"><div data-plugin-slot="sidebar-panel"></div></aside>
       <section class="editor-panel">
         <div class="floating-search" data-floating-search hidden>
           <span class="search-status-icon" data-search-status-icon>
@@ -373,6 +388,7 @@ app.innerHTML = `
           </button>
         </div>
         <div class="editor-host" data-editor-host></div>
+        <div class="plugin-bottom-slot" data-plugin-slot="bottom-panel"></div>
         <div class="document-loading" data-document-loading hidden>
           <div>
             <button type="button" class="icon-button loading-dismiss" data-loading-dismiss aria-label="关闭" title="关闭" hidden>
@@ -404,6 +420,7 @@ app.innerHTML = `
         </footer>
       </div>
     </section>
+    <section class="plugin-modal-slot" data-plugin-slot="modal"></section>
     <footer class="statusbar">
       <div class="statusbar-left">
         <button type="button" class="statusbar-button" data-sidebar-toggle aria-label="${messages.buttons.sidebar}" title="${messages.buttons.sidebar}">
@@ -413,6 +430,8 @@ app.innerHTML = `
       </div>
       <span class="statusbar-spacer"></span>
       <div class="statusbar-right">
+        <span data-plugin-slot="statusbar"></span>
+        <span data-document-kind>Markdown</span>
         <span data-stat="char-count">0 字符</span>
         <span class="save-state" data-save-state>
           <span class="saving-spinner" data-save-spinner aria-hidden="true" hidden>${iconSvg(LoaderCircle)}</span>
@@ -457,6 +476,10 @@ let searchOpen = false
 let searchResultState: DesktopSearchState | undefined
 let activeSearchResultIndex = -1
 let documentSearchRunId = 0
+let documentPresentation: 'markdown' | 'generated-markdown' | 'custom-view' = 'markdown'
+let documentSourcePath: string | undefined
+let customDocumentOutput: ControlledRendererOutput | undefined
+let customDocumentTitle: string | undefined
 let windowMaximized = false
 let closeConfirmOpen = false
 let loadingState: DocumentLoadingState = Object.freeze({ phase: 'idle' })
@@ -471,6 +494,7 @@ let largeDocumentPreview: LargeDocumentPreviewState | undefined
 
 let view: EditorView | undefined
 let sourceView: SourceDocumentView | undefined
+let pluginUiViewportFrame: number | undefined
 
 const desktopPluginEditor: Editor = {
   get state() {
@@ -541,14 +565,6 @@ const desktopPluginEditor: Editor = {
   },
 }
 
-view = createEditorView()
-
-renderSession()
-updateModeToggle(view.viewMode)
-focusActiveView()
-
-void openInitialDocument()
-
 void fileService
   .listenToFileWatchEvents((event) => {
     if (event.documentId !== session.documentId) {
@@ -583,8 +599,67 @@ const desktopActionPermissions = Object.freeze([
   'document:write',
   'file:read',
   'file:write',
+  'file:delete',
+  'network:access',
   'view:write',
 ]) satisfies readonly ActionPermission[]
+let invalidatePluginUi: (pluginId: string, viewId?: string) => Promise<void> = async () => undefined
+const desktopPluginManager = new DesktopPluginManager({
+  actionRegistry: desktopActionRegistry,
+  manifestHost: createDesktopPluginManifestHost(),
+  permissions: desktopActionPermissions,
+  milkupVersion: appVersion,
+  pluginSdkVersion: '0.1.0',
+  storage: globalThis.localStorage,
+  documentSource: () => {
+    if (documentPresentation === 'custom-view') return undefined
+    return largeDocumentPreview?.source ?? createMemoryDocumentSource()
+  },
+  invalidateUi: (pluginId, viewId) => invalidatePluginUi(pluginId, viewId),
+  revealLine: (line) => revealPluginLine(line),
+  loadSidecarModule: async (manifest, executable, capabilities) => ({
+    module: createSidecarPluginModule({
+      manifest,
+      process: createDesktopPluginSidecarProcess({ executable }),
+      ...(capabilities?.documentBroker ? { documentBroker: capabilities.documentBroker } : {}),
+      ...(capabilities?.uiBroker ? { uiBroker: capabilities.uiBroker } : {}),
+      timeoutMs: 10_000,
+    }),
+    dispose: () => undefined,
+  }),
+})
+const desktopPluginUi = new DesktopPluginUiController(
+  appRoot,
+  {
+    contributions: () => desktopPluginManager.state().contributions,
+    renderUi: (pluginId, viewId, phase, uiState) =>
+      desktopPluginManager.renderUi(pluginId, viewId, phase, uiState),
+    resolveCommand: (rendererId, command) =>
+      desktopPluginManager.resolveRendererCommand(rendererId, command),
+    runCommand: (command, input) => runDesktopAction(command, input),
+  },
+  getPluginUiRenderState,
+)
+invalidatePluginUi = (pluginId, viewId) => desktopPluginUi.invalidate(pluginId, viewId)
+
+for (const action of createDesktopPluginActions(desktopPluginManager)) {
+  desktopActionRegistry.register(action)
+}
+
+renderPluginManager()
+void desktopPluginManager.ready.then(() => {
+  renderPluginManager()
+  refreshPluginContributionsInViews()
+  void desktopPluginUi.sync(session.documentId)
+})
+
+view = createEditorView()
+
+renderSession()
+updateModeToggle(view.viewMode)
+focusActiveView()
+
+void openInitialDocument()
 
 app.querySelector<HTMLButtonElement>('[data-mode-toggle]')?.addEventListener('click', () => {
   runDesktopAction('view.setMode', { mode: getNextViewMode(session.viewMode) })
@@ -599,6 +674,54 @@ bindCommand('reveal', 'file.revealInFolder')
 bindCommand('close', 'file.close')
 bindCommand('external-change', 'file.simulateExternalChange')
 bindCommand('external-delete', 'file.simulateExternalDelete')
+
+appRoot.querySelector<HTMLElement>('[data-plugin-manager]')?.addEventListener('click', (event) => {
+  const target = event.target
+  const button = target instanceof HTMLElement ? target.closest<HTMLButtonElement>('button') : null
+
+  if (!button?.dataset.pluginAction) {
+    return
+  }
+
+  const pluginId = button.dataset.pluginId
+
+  switch (button.dataset.pluginAction) {
+    case 'install':
+      runDesktopAction('plugin.installLocal')
+      break
+    case 'enable':
+      runDesktopAction('plugin.enable', { pluginId })
+      break
+    case 'disable':
+      runDesktopAction('plugin.disable', { pluginId })
+      break
+    case 'reload':
+      runDesktopAction('plugin.reload', { pluginId })
+      break
+    case 'remove':
+      runDesktopAction('plugin.remove', { pluginId })
+      break
+    case 'export':
+      runDesktopAction('plugin.export', { pluginId })
+      break
+    case 'approve':
+      runDesktopAction('plugin.approve', { pluginId })
+      break
+    case 'revoke-approval':
+      runDesktopAction('plugin.revokeApproval', { pluginId })
+      break
+    case 'command':
+      if (button.dataset.pluginCommand) {
+        runDesktopAction(button.dataset.pluginCommand)
+      }
+      break
+    case 'open-ui':
+      if (pluginId && button.dataset.pluginUiId) {
+        void desktopPluginUi.open(pluginId, button.dataset.pluginUiId)
+      }
+      break
+  }
+})
 
 app.querySelector<HTMLButtonElement>('[data-menu-toggle]')?.addEventListener('click', () => {
   setMenuOpen(!menuOpen)
@@ -931,8 +1054,18 @@ function runDesktopAction(id: string, input: unknown = {}): void {
       },
       input,
     )
+    .then(() => {
+      if (id.startsWith('plugin.')) {
+        renderPluginManager()
+        refreshPluginContributionsInViews()
+      }
+    })
     .catch((error: unknown) => {
       notice = `命令执行失败：${getErrorMessage(error)}`
+      if (id.startsWith('plugin.')) {
+        renderPluginManager()
+        refreshPluginContributionsInViews()
+      }
       renderSession()
       view?.inputDOM.focus({ preventScroll: true })
     })
@@ -976,6 +1109,8 @@ function createEditorView(): EditorView {
     mode: session.viewMode,
     editable: !session.readonly && !isDocumentBusy(),
     assetProvider,
+    controlledRenderers: createDesktopControlledRenderers(),
+    markdownSyntax: desktopPluginManager.state().contributions.markdownSyntax,
     ...(currentOpenPolicy.virtualViewport === undefined
       ? {}
       : {
@@ -999,9 +1134,35 @@ function createEditorView(): EditorView {
       renderSession()
     },
   })
+  nextView.dom.addEventListener('milkup-plugin-renderer-action', (event) => {
+    const detail = (event as CustomEvent<ControlledRendererActionDetail>).detail
+    const command = desktopPluginManager.resolveRendererCommand(detail.rendererId, detail.command)
+
+    if (command) {
+      runDesktopAction(command, detail.input ?? {})
+    }
+  })
+  nextView.dom.addEventListener('scroll', schedulePluginUiViewportUpdate, { passive: true })
   bindEditorViewClipboard(nextView)
   nextView.setSearchHighlights(searchResultState?.matches ?? [], activeSearchResultIndex)
   return nextView
+}
+
+function createDesktopControlledRenderers(): readonly ControlledRenderer[] {
+  return Object.freeze(
+    desktopPluginManager.state().contributions.renderers.map((renderer) =>
+      Object.freeze({
+        id: `${renderer.pluginId}:${renderer.id}`,
+        nodeType: renderer.nodeType,
+        render: (context: ControlledRendererContext): Promise<ControlledRendererOutput> =>
+          desktopPluginManager.render(renderer.pluginId, renderer.id, {
+            nodeType: context.nodeType,
+            source: context.source,
+            node: context.node,
+          }) as Promise<ControlledRendererOutput>,
+      }),
+    ),
+  )
 }
 
 function recreateEditorView(): void {
@@ -1009,7 +1170,36 @@ function recreateEditorView(): void {
   view = createEditorView()
 }
 
+function refreshPluginContributionsInViews(): void {
+  void desktopPluginUi.sync(session.documentId)
+  if (view) {
+    const restoreEditorFocus = editorRoot.contains(document.activeElement)
+    recreateEditorView()
+    if (restoreEditorFocus) {
+      focusActiveView()
+    }
+    return
+  }
+
+  applyEditorViewState()
+}
+
 function applyEditorViewState(): void {
+  if (documentPresentation === 'custom-view' && customDocumentOutput !== undefined) {
+    view?.destroy()
+    view = undefined
+    sourceView?.destroy()
+    sourceView = undefined
+    editorRoot.replaceChildren(
+      ...createControlledRendererNodes(
+        document,
+        `document:${session.documentId}`,
+        customDocumentOutput,
+      ),
+    )
+    return
+  }
+
   if (currentOpenPolicy.useMemoryVirtualViewport) {
     applyMemorySourceView()
     return
@@ -1064,6 +1254,7 @@ function applyMemorySourceView(): void {
       overscanLines: 12,
     },
   })
+  sourceView.dom.addEventListener('scroll', schedulePluginUiViewportUpdate, { passive: true })
   sourceView.setSearchHighlights(searchResultState?.matches ?? [], activeSearchResultIndex)
 }
 
@@ -1109,6 +1300,7 @@ async function applyLargeSourceView(): Promise<void> {
       overscanLines: 12,
     },
   })
+  sourceView.dom.addEventListener('scroll', schedulePluginUiViewportUpdate, { passive: true })
   sourceView.setSearchHighlights(searchResultState?.matches ?? [], activeSearchResultIndex)
   await sourceView.renderVisibleWindow()
 }
@@ -1121,6 +1313,7 @@ function createNewDocument(): void {
 
   clearSearchResults()
   unwatchCurrentFile()
+  clearPluginDocumentPresentation()
   void closeLargeDocumentPreview()
   state = new EditorState({
     doc: new MemoryTextDocument(messages.newDocumentSource),
@@ -1142,10 +1335,14 @@ async function openDocument(): Promise<void> {
     consoleDiagnostics: isDeveloperDiagnosticsEnabled(),
   })
 
-  await openSelectedDocumentWithPolicy(tracker, () => fileService.selectOpenFile(), {
-    cancelledNotice: messages.notices.openCancelled,
-    errorPrefix: '打开文件失败',
-  })
+  await openSelectedDocumentWithPolicy(
+    tracker,
+    () => fileService.selectOpenFile(desktopPluginManager.supportedDocumentExtensions()),
+    {
+      cancelledNotice: messages.notices.openCancelled,
+      errorPrefix: '打开文件失败',
+    },
+  )
 }
 
 async function openInitialDocument(): Promise<void> {
@@ -1193,9 +1390,12 @@ async function openSelectedDocumentWithPolicy(
     const metadata = await fileService.getFileMetadata(selected)
     tracker.mark('file-metadata', `${metadata.sizeBytes} bytes`)
     const openPolicy = resolveDesktopOpenPolicy(metadata)
+    const pluginDocumentCandidate = desktopPluginManager
+      .supportedDocumentExtensions()
+      .some((extension) => selected.toLowerCase().endsWith(`.${extension}`))
     let nativeFallbackNotice = ''
 
-    if (openPolicy.useNativeLargeFile) {
+    if (openPolicy.useNativeLargeFile && !pluginDocumentCandidate) {
       setDocumentLoadingState({
         phase: 'indexing',
         path: selected,
@@ -1222,6 +1422,17 @@ async function openSelectedDocumentWithPolicy(
         }
       },
     })
+    const pluginDocument = await desktopPluginManager.openPluginDocument(selected, result.text)
+
+    if (pluginDocument) {
+      openPluginDocumentResult(pluginDocument)
+      setDocumentLoadingState({
+        phase: 'ready',
+        path: selected,
+        sizeBytes: metadata.sizeBytes,
+      })
+      return
+    }
     openDocumentResult(result, tracker, {
       preResolvedPolicy: openPolicy.useNativeLargeFile
         ? resolveDesktopMemoryViewportFallbackPolicy(metadata)
@@ -1261,6 +1472,7 @@ function openDocumentResult(
   }
 
   unwatchCurrentFile()
+  clearPluginDocumentPresentation()
   void closeLargeDocumentPreview()
   clearSearchResults()
   tracker.mark('memory-document-start', result.file.path)
@@ -1288,6 +1500,59 @@ function openDocumentResult(
   renderSession()
 }
 
+function openPluginDocumentResult(
+  result: NonNullable<Awaited<ReturnType<DesktopPluginManager['openPluginDocument']>>>,
+): void {
+  unwatchCurrentFile()
+  void closeLargeDocumentPreview()
+  clearSearchResults()
+  documentSourcePath = result.sourcePath
+  customDocumentTitle = result.title
+  currentOpenPolicy = resolveDesktopOpenPolicy({ path: result.sourcePath, sizeBytes: 0 })
+
+  if (result.kind === 'generated-markdown') {
+    documentPresentation = 'generated-markdown'
+    customDocumentOutput = undefined
+    const transaction: Transaction = {
+      changes: ChangeSet.of([{ from: 0, to: 0, insert: result.markdown }]),
+      origin: { type: 'command', id: `plugin.importer.${result.contributionId}` },
+      historyGroup: 'isolate',
+    }
+    state = new EditorState({ doc: new MemoryTextDocument('') }).applyTransaction(transaction)
+    session = recordDocumentTransaction(
+      createDocumentSession({
+        documentId: `plugin-import:${result.pluginId}:${Date.now()}`,
+        viewMode: session.viewMode,
+      }),
+      transaction,
+    )
+  } else {
+    documentPresentation = 'custom-view'
+    customDocumentOutput = result.output as ControlledRendererOutput
+    state = new EditorState({ doc: new MemoryTextDocument('') })
+    session = createDocumentSession({
+      documentId: `plugin-view:${result.pluginId}:${Date.now()}`,
+      viewMode: session.viewMode,
+      readonly: true,
+    })
+  }
+
+  applyEditorViewState()
+  notice =
+    result.kind === 'generated-markdown'
+      ? `已从 ${result.sourcePath} 生成 Markdown；保存时将另存为新文件`
+      : `正在以只读插件视图显示 ${result.sourcePath}`
+  renderSession()
+  focusActiveView()
+}
+
+function clearPluginDocumentPresentation(): void {
+  documentPresentation = 'markdown'
+  documentSourcePath = undefined
+  customDocumentOutput = undefined
+  customDocumentTitle = undefined
+}
+
 async function openNativeLargeDocument(
   path: string,
   openPolicy: DesktopOpenPolicy,
@@ -1309,6 +1574,7 @@ async function openNativeLargeDocument(
   }
 
   unwatchCurrentFile()
+  clearPluginDocumentPresentation()
   clearSearchResults()
   currentOpenPolicy = openPolicy
   largeDocumentPreview = {
@@ -1923,6 +2189,7 @@ function closeCurrentDocument(): void {
   }
 
   unwatchCurrentFile()
+  clearPluginDocumentPresentation()
   void closeLargeDocumentPreview()
   clearSearchResults()
   state = new EditorState({
@@ -2062,6 +2329,162 @@ function bindCommand(command: string, actionId: string): void {
       setMenuOpen(false)
       runDesktopAction(actionId)
     })
+}
+
+function renderPluginManager(): void {
+  const target = appRoot.querySelector<HTMLElement>('[data-plugin-manager]')
+
+  if (!target) {
+    return
+  }
+
+  target.innerHTML = renderDesktopPluginManager(desktopPluginManager.state())
+}
+
+function createDesktopPluginManifestHost(): {
+  readonly selectManifestPath: () => Promise<string | undefined>
+  readonly readManifestText: (path: string) => Promise<string>
+  readonly prepareModule: (
+    manifest: PluginManifest,
+    manifestPath: string,
+    main: string,
+  ) => Promise<{ readonly specifier: string; dispose(): void }>
+  readonly selectPackageExportPath: (suggestedName: string) => Promise<string | undefined>
+  readonly writeText: (path: string, text: string) => Promise<void>
+  readonly installPackage: (archive: import('@milkup/plugin').PluginPackageArchive) => Promise<{
+    readonly manifestPath: string
+    readonly rootPath: string
+    readonly dataRoot: string
+    readonly storageRoot: string
+  }>
+  readonly ensureDataDirectories: (pluginId: string) => Promise<{
+    readonly packageRoot: string
+    readonly dataRoot: string
+    readonly storageRoot: string
+  }>
+  readonly removeInstalledPackage: (pluginId: string) => Promise<void>
+} {
+  return {
+    async selectManifestPath(): Promise<string | undefined> {
+      if (!isTauriRuntime()) {
+        return undefined
+      }
+
+      const { open } = await import('@tauri-apps/plugin-dialog')
+      const selected = await open({
+        multiple: false,
+        filters: [{ name: 'Milkup Plugin', extensions: ['json', 'milkup-plugin'] }],
+      })
+
+      return typeof selected === 'string' ? selected : undefined
+    },
+    async readManifestText(path: string): Promise<string> {
+      if (!isTauriRuntime()) {
+        throw new Error('Local plugin install is only available in the desktop runtime')
+      }
+
+      const { invoke } = await import('@tauri-apps/api/core')
+      return invoke<string>('read_plugin_text_file', { path })
+    },
+    async prepareModule(manifest: PluginManifest, manifestPath: string, main: string) {
+      if (manifest.host === 'sidecar') {
+        const executable = /^(?:[A-Za-z]:[\\/]|\/)/.test(main)
+          ? main.replace(/\\/g, '/')
+          : resolvePluginEntryPath(manifestPath, main)
+        return {
+          specifier: executable,
+          dispose: () => undefined,
+        }
+      }
+
+      if (/^(?:https?|data|blob|milkup):/i.test(main)) {
+        return { specifier: main, dispose: () => undefined }
+      }
+
+      const manifestText = await this.readManifestText(manifestPath)
+      const manifestValue = JSON.parse(manifestText) as unknown
+      const source = isPluginPackageArchive(manifestValue)
+        ? readPluginPackageTextFile(parsePluginPackageArchive(manifestValue), main)
+        : await this.readManifestText(resolvePluginEntryPath(manifestPath, main))
+      const specifier = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }))
+      return { specifier, dispose: () => URL.revokeObjectURL(specifier) }
+    },
+    async selectPackageExportPath(suggestedName: string): Promise<string | undefined> {
+      if (!isTauriRuntime()) {
+        return undefined
+      }
+
+      const { save } = await import('@tauri-apps/plugin-dialog')
+      const selected = await save({
+        defaultPath: suggestedName,
+        filters: [{ name: 'Milkup Plugin Package', extensions: ['milkup-plugin'] }],
+      })
+      return selected ?? undefined
+    },
+    async writeText(path: string, text: string): Promise<void> {
+      if (!isTauriRuntime()) {
+        throw new Error('Plugin package export is only available in the desktop runtime')
+      }
+
+      const { invoke } = await import('@tauri-apps/api/core')
+      await invoke<boolean>('write_plugin_text_file', { path, text })
+    },
+    async ensureDataDirectories(pluginId: string) {
+      if (!isTauriRuntime()) {
+        return {
+          packageRoot: `milkup://plugin-packages/${encodeURIComponent(pluginId)}`,
+          dataRoot: `milkup://plugin-data/${encodeURIComponent(pluginId)}`,
+          storageRoot: `milkup://plugin-storage/${encodeURIComponent(pluginId)}`,
+        }
+      }
+      const { invoke } = await import('@tauri-apps/api/core')
+      return invoke('ensure_plugin_directories', { pluginId })
+    },
+    async installPackage(archive) {
+      if (!isTauriRuntime()) {
+        throw new Error('Plugin packages can only be installed in the desktop runtime')
+      }
+      const { invoke } = await import('@tauri-apps/api/core')
+      const directories = await this.ensureDataDirectories(archive.manifest.id)
+      for (const file of archive.files) {
+        const bytes =
+          file.encoding === 'utf8'
+            ? new TextEncoder().encode(file.content)
+            : Uint8Array.from(atob(file.content), (character) => character.charCodeAt(0))
+        await invoke<string>('install_plugin_package_file', {
+          pluginId: archive.manifest.id,
+          relativePath: file.path,
+          data: Array.from(bytes),
+          executable:
+            archive.manifest.host === 'sidecar' &&
+            file.path === archive.manifest.main?.replace(/^\.\//, ''),
+        })
+      }
+      const manifestPath = await invoke<string>('install_plugin_package_file', {
+        pluginId: archive.manifest.id,
+        relativePath: 'plugin.json',
+        data: Array.from(
+          new TextEncoder().encode(`${JSON.stringify(archive.manifest, null, 2)}\n`),
+        ),
+        executable: false,
+      })
+      return {
+        manifestPath,
+        rootPath: directories.packageRoot,
+        dataRoot: directories.dataRoot,
+        storageRoot: directories.storageRoot,
+      }
+    },
+    async removeInstalledPackage(pluginId: string): Promise<void> {
+      if (!isTauriRuntime()) return
+      const { invoke } = await import('@tauri-apps/api/core')
+      await invoke<boolean>('remove_installed_plugin_package', { pluginId })
+    },
+  }
+}
+
+function isTauriRuntime(): boolean {
+  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 }
 
 function setSidebarCollapsed(collapsed: boolean): void {
@@ -2229,6 +2652,63 @@ async function jumpToSearchMatch(
   view.updateState(state)
   view.ensureCursorVisible({ scrollPadding: 0 })
   renderSession()
+  focusActiveView()
+}
+
+function getPluginUiRenderState(): Readonly<Record<string, unknown>> {
+  const editor = sourceView ?? view
+  const lineCount = sourceView?.source.lineCount ?? state.doc.lineCount
+
+  if (!editor || lineCount < 1) {
+    return Object.freeze({ viewport: Object.freeze({ fromLine: 1, toLine: 1, activeLine: 1 }) })
+  }
+
+  const fromLine = Math.min(
+    lineCount,
+    Math.max(1, Math.floor(editor.dom.scrollTop / desktopVirtualLineHeight) + 1),
+  )
+  const visibleLineCount = Math.max(
+    1,
+    Math.ceil(
+      (editor.dom.clientHeight || desktopVirtualLineHeight * 24) / desktopVirtualLineHeight,
+    ),
+  )
+
+  return Object.freeze({
+    viewport: Object.freeze({
+      fromLine,
+      toLine: Math.min(lineCount, fromLine + visibleLineCount - 1),
+      activeLine: fromLine,
+    }),
+  })
+}
+
+function schedulePluginUiViewportUpdate(): void {
+  if (pluginUiViewportFrame !== undefined) return
+  pluginUiViewportFrame = requestAnimationFrame(() => {
+    pluginUiViewportFrame = undefined
+    void desktopPluginUi.updateViewport()
+  })
+}
+
+async function revealPluginLine(line: number): Promise<void> {
+  if (sourceView) {
+    await sourceView.scrollToLine(line)
+  } else if (view) {
+    const target = state.doc.line(line)
+    state = new EditorState({
+      doc: state.doc,
+      selection: Selection.cursor(target.from),
+      history: state.history,
+      facets: state.facets,
+    })
+    view.updateState(state)
+    view.ensureCursorVisible({ scrollPadding: 0 })
+  } else {
+    throw new Error('当前文档视图不可用')
+  }
+
+  await desktopPluginUi.updateViewport()
   focusActiveView()
 }
 
@@ -2599,12 +3079,27 @@ function getDesktopShortcutAction(
     case 'z':
       return { id: event.shiftKey ? 'core.redo' : 'core.undo' }
     default:
-      return undefined
+      return pluginShortcutAction(event)
   }
 }
 
+function pluginShortcutAction(
+  event: KeyboardEvent,
+): { readonly id: string; readonly input?: unknown } | undefined {
+  const action = desktopPluginManager.findKeymapAction(event, {
+    editorFocus: editorRoot.contains(document.activeElement),
+    documentOpen: true,
+    sourceMode: session.viewMode === 'source',
+    liveMode: session.viewMode === 'live',
+  })
+  return action ? { id: action } : undefined
+}
+
 function renderSession(): void {
-  const titleInfo = getSessionTitleInfo(session.file?.path)
+  void desktopPluginUi.sync(session.documentId)
+  const titleInfo = customDocumentTitle
+    ? { name: customDocumentTitle, directory: documentSourcePath ?? messages.pathUnsaved }
+    : getSessionTitleInfo(session.file?.path)
   const saving = isDocumentSaving()
   const saveStateLabel = saving
     ? messages.stateSaving
@@ -2616,6 +3111,14 @@ function renderSession(): void {
   setText('[data-title-path]', titleInfo.directory)
   setText('[data-stat="document-id"]', session.documentId)
   setText('[data-stat="path"]', session.file?.path ?? messages.pathUnsaved)
+  setText(
+    '[data-document-kind]',
+    documentPresentation === 'markdown'
+      ? 'Markdown'
+      : documentPresentation === 'generated-markdown'
+        ? '生成的 Markdown'
+        : '只读插件视图',
+  )
   setText('[data-stat="version"]', String(session.documentVersion))
   setText('[data-stat="saved"]', String(session.savedVersion))
   setText('[data-stat="external"]', session.externalChangeState)

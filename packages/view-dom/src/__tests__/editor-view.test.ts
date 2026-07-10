@@ -261,9 +261,9 @@ describe('EditorView', () => {
     expect(view.contentDOM.dataset.toLine).toBe('7')
     expect(lines).toHaveLength(7)
     expect(lines.map((line) => line.dataset.line)).toEqual(['1', '2', '3', '4', '5', '6', '7'])
-    expect(
-      view.contentDOM.querySelector<HTMLElement>('[data-spacer="bottom"]')?.style.height,
-    ).toBe('19860px')
+    expect(view.contentDOM.querySelector<HTMLElement>('[data-spacer="bottom"]')?.style.height).toBe(
+      '19860px',
+    )
   })
 
   it('updates the virtual source window on scroll without rendering offscreen lines', () => {
@@ -315,7 +315,9 @@ describe('EditorView', () => {
     expect(view.dom.scrollTop).toBeGreaterThan(0)
     expect(Number(view.contentDOM.dataset.fromLine)).toBeLessThanOrEqual(800)
     expect(Number(view.contentDOM.dataset.toLine)).toBeGreaterThanOrEqual(800)
-    expect(view.contentDOM.querySelector<HTMLElement>('.milkup-line[data-line="800"]')).not.toBeNull()
+    expect(
+      view.contentDOM.querySelector<HTMLElement>('.milkup-line[data-line="800"]'),
+    ).not.toBeNull()
   })
 
   it('rerenders live content for selection-only changes so syntax visibility updates', () => {
@@ -1600,7 +1602,9 @@ describe('EditorView', () => {
       state: createState(text, Selection.cursor(text.indexOf('Name'))),
       mode: 'live',
     })
-    const markers = Array.from(view.contentDOM.querySelectorAll<HTMLElement>('.milkup-table-marker'))
+    const markers = Array.from(
+      view.contentDOM.querySelectorAll<HTMLElement>('.milkup-table-marker'),
+    )
     const cells = Array.from(view.contentDOM.querySelectorAll<HTMLElement>('.milkup-table-cell'))
 
     expect(markers.length).toBeGreaterThan(0)

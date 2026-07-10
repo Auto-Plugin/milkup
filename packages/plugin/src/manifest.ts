@@ -9,7 +9,10 @@ export interface PluginManifest {
   readonly version: string
   readonly host?: PluginHostKind
   readonly main?: string
+  readonly resources?: readonly string[]
+  readonly networkOrigins?: readonly string[]
   readonly description?: string
+  readonly engines?: PluginEngineCompatibility
   readonly permissions?: readonly PluginPermission[]
   readonly contributes?: PluginContributionSet
 }
@@ -19,6 +22,14 @@ export interface PluginContributionSet {
   readonly keymaps?: readonly PluginKeymapContribution[]
   readonly renderers?: readonly PluginRendererContribution[]
   readonly markdownSyntax?: readonly PluginMarkdownSyntaxContribution[]
+  readonly ui?: readonly PluginUiContribution[]
+  readonly importers?: readonly PluginImporterContribution[]
+  readonly documentTypes?: readonly PluginDocumentTypeContribution[]
+}
+
+export interface PluginEngineCompatibility {
+  readonly milkup?: string
+  readonly pluginSdk?: string
 }
 
 export interface PluginCommandContribution {
@@ -44,8 +55,36 @@ export interface PluginRendererContribution {
 
 export interface PluginMarkdownSyntaxContribution {
   readonly id: string
+  readonly nodeType: string
+  readonly pattern: string
+  readonly flags?: string
   readonly block?: boolean
   readonly inline?: boolean
+}
+
+export type PluginUiSlot =
+  'menu-page' | 'sidebar-panel' | 'bottom-panel' | 'document-toolbar' | 'statusbar' | 'modal'
+
+export interface PluginUiContribution {
+  readonly id: string
+  readonly slot: PluginUiSlot
+  readonly title: string
+  readonly scope?: 'app' | 'document'
+}
+
+export interface PluginImporterContribution {
+  readonly id: string
+  readonly title: string
+  readonly extensions: readonly string[]
+  readonly mimeTypes?: readonly string[]
+  readonly target: 'markdown' | 'custom-view'
+}
+
+export interface PluginDocumentTypeContribution {
+  readonly id: string
+  readonly title: string
+  readonly extensions: readonly string[]
+  readonly readonly?: boolean
 }
 
 export interface PluginManifestValidationError {
@@ -74,6 +113,19 @@ const KNOWN_PERMISSIONS = new Set<PluginPermission>([
   'network:access',
 ])
 const KNOWN_HOSTS = new Set<PluginHostKind>(['worker', 'sidecar'])
+const KNOWN_UI_SLOTS = new Set<PluginUiSlot>([
+  'menu-page',
+  'sidebar-panel',
+  'bottom-panel',
+  'document-toolbar',
+  'statusbar',
+  'modal',
+])
+const KNOWN_UI_SCOPES = new Set<PluginUiContribution['scope']>(['app', 'document'])
+const KNOWN_IMPORTER_TARGETS = new Set<PluginImporterContribution['target']>([
+  'markdown',
+  'custom-view',
+])
 
 export function parsePluginManifest(value: unknown): PluginManifest {
   const result = validatePluginManifest(value)
@@ -101,12 +153,16 @@ export function validatePluginManifest(value: unknown): PluginManifestValidation
   const version = readRequiredString(value, 'version', '$.version', errors)
   const host = readOptionalHost(value.host, errors)
   const main = readOptionalString(value, 'main', '$.main', errors)
+  const resources = readOptionalStringArray(value.resources, '$.resources', errors)
+  const networkOrigins = readOptionalStringArray(value.networkOrigins, '$.networkOrigins', errors)
   const description = readOptionalString(value, 'description', '$.description', errors)
+  const engines = readOptionalEngines(value.engines, errors)
   const permissions = readPermissions(value.permissions, errors, '$.permissions')
   const contributes = readContributions(value.contributes, errors)
 
   validateCommandPermissionScope(contributes?.commands, permissions, errors)
   validateContributionIntegrity(contributes, errors)
+  validateNetworkOrigins(networkOrigins, permissions, errors)
 
   if (id && !PLUGIN_ID_PATTERN.test(id)) {
     errors.push({ path: '$.id', message: 'Plugin id must be kebab/dot case' })
@@ -128,11 +184,43 @@ export function validatePluginManifest(value: unknown): PluginManifestValidation
       version,
       ...(host ? { host } : {}),
       ...(main ? { main } : {}),
+      ...(resources ? { resources: Object.freeze(resources) } : {}),
+      ...(networkOrigins ? { networkOrigins: Object.freeze(networkOrigins) } : {}),
       ...(description ? { description } : {}),
+      ...(engines ? { engines } : {}),
       ...(permissions.length > 0 ? { permissions: Object.freeze(permissions) } : {}),
       ...(contributes ? { contributes } : {}),
     }),
     errors: Object.freeze([]),
+  }
+}
+
+function validateNetworkOrigins(
+  origins: readonly string[] | undefined,
+  permissions: readonly PluginPermission[],
+  errors: PluginManifestValidationError[],
+): void {
+  if (!permissions.includes('network:access')) {
+    return
+  }
+
+  if (!origins) {
+    return
+  }
+
+  for (const [index, value] of origins.entries()) {
+    try {
+      const url = new URL(value)
+
+      if (url.origin !== value || !['http:', 'https:'].includes(url.protocol)) {
+        throw new Error('invalid origin')
+      }
+    } catch {
+      errors.push({
+        path: `$.networkOrigins[${index}]`,
+        message: 'Network origin must be an exact HTTP(S) origin',
+      })
+    }
   }
 }
 
@@ -187,12 +275,50 @@ function readContributions(
     readMarkdownSyntaxContribution,
     errors,
   )
+  const ui = readArray(value.ui, '$.contributes.ui', readUiContribution, errors)
+  const importers = readArray(
+    value.importers,
+    '$.contributes.importers',
+    readImporterContribution,
+    errors,
+  )
+  const documentTypes = readArray(
+    value.documentTypes,
+    '$.contributes.documentTypes',
+    readDocumentTypeContribution,
+    errors,
+  )
 
   return Object.freeze({
     ...(commands ? { commands: Object.freeze(commands) } : {}),
     ...(keymaps ? { keymaps: Object.freeze(keymaps) } : {}),
     ...(renderers ? { renderers: Object.freeze(renderers) } : {}),
     ...(markdownSyntax ? { markdownSyntax: Object.freeze(markdownSyntax) } : {}),
+    ...(ui ? { ui: Object.freeze(ui) } : {}),
+    ...(importers ? { importers: Object.freeze(importers) } : {}),
+    ...(documentTypes ? { documentTypes: Object.freeze(documentTypes) } : {}),
+  })
+}
+
+function readOptionalEngines(
+  value: unknown,
+  errors: PluginManifestValidationError[],
+): PluginEngineCompatibility | undefined {
+  if (value === undefined) {
+    return undefined
+  }
+
+  if (!isRecord(value)) {
+    errors.push({ path: '$.engines', message: 'Engines must be an object' })
+    return undefined
+  }
+
+  const milkup = readOptionalString(value, 'milkup', '$.engines.milkup', errors)
+  const pluginSdk = readOptionalString(value, 'pluginSdk', '$.engines.pluginSdk', errors)
+
+  return Object.freeze({
+    ...(milkup ? { milkup } : {}),
+    ...(pluginSdk ? { pluginSdk } : {}),
   })
 }
 
@@ -388,6 +514,9 @@ function readMarkdownSyntaxContribution(
   }
 
   const id = readRequiredString(value, 'id', `${path}.id`, errors)
+  const nodeType = readRequiredString(value, 'nodeType', `${path}.nodeType`, errors)
+  const pattern = readRequiredString(value, 'pattern', `${path}.pattern`, errors)
+  const flags = readOptionalString(value, 'flags', `${path}.flags`, errors)
   const block = readOptionalBoolean(value, 'block', `${path}.block`, errors)
   const inline = readOptionalBoolean(value, 'inline', `${path}.inline`, errors)
 
@@ -399,14 +528,176 @@ function readMarkdownSyntaxContribution(
     errors.push({ path, message: 'Markdown syntax contribution must enable block or inline' })
   }
 
-  if (!id) {
+  if (nodeType && !/^[a-z][A-Za-z0-9.-]*$/.test(nodeType)) {
+    errors.push({ path: `${path}.nodeType`, message: 'Markdown node type must be identifier-like' })
+  }
+
+  if (pattern) {
+    validateMarkdownSyntaxPattern(pattern, flags, path, errors)
+  }
+
+  if (!id || !nodeType || !pattern) {
     return undefined
   }
 
   return Object.freeze({
     id,
+    nodeType,
+    pattern,
+    ...(flags ? { flags } : {}),
     ...(block !== undefined ? { block } : {}),
     ...(inline !== undefined ? { inline } : {}),
+  })
+}
+
+function validateMarkdownSyntaxPattern(
+  pattern: string,
+  flags: string | undefined,
+  path: string,
+  errors: PluginManifestValidationError[],
+): void {
+  if (pattern.length > 256) {
+    errors.push({ path: `${path}.pattern`, message: 'Markdown syntax pattern is too long' })
+    return
+  }
+
+  if (/\(\?[<!=]|\\[1-9]|\([^)]*(?:\*|\+|\{\d+,?\d*\})[^)]*\)(?:\*|\+|\{)/.test(pattern)) {
+    errors.push({
+      path: `${path}.pattern`,
+      message: 'Markdown syntax pattern uses unsafe features',
+    })
+    return
+  }
+
+  if (flags && !/^[imu]*$/.test(flags)) {
+    errors.push({ path: `${path}.flags`, message: 'Markdown syntax flags may only use i, m, or u' })
+    return
+  }
+
+  try {
+    new RegExp(pattern, flags)
+  } catch {
+    errors.push({ path: `${path}.pattern`, message: 'Markdown syntax pattern is invalid' })
+  }
+}
+
+function readUiContribution(
+  value: unknown,
+  path: string,
+  errors: PluginManifestValidationError[],
+): PluginUiContribution | undefined {
+  if (!isRecord(value)) {
+    errors.push({ path, message: 'UI contribution must be an object' })
+    return undefined
+  }
+
+  const id = readRequiredString(value, 'id', `${path}.id`, errors)
+  const slot = readRequiredString(value, 'slot', `${path}.slot`, errors)
+  const title = readRequiredString(value, 'title', `${path}.title`, errors)
+  const scope = readOptionalString(value, 'scope', `${path}.scope`, errors)
+
+  if (id && !PLUGIN_ID_PATTERN.test(id)) {
+    errors.push({ path: `${path}.id`, message: 'UI contribution id must be kebab/dot case' })
+  }
+
+  if (slot && !KNOWN_UI_SLOTS.has(slot as PluginUiSlot)) {
+    errors.push({ path: `${path}.slot`, message: `Unknown UI slot: ${slot}` })
+  }
+
+  if (scope && !KNOWN_UI_SCOPES.has(scope as PluginUiContribution['scope'])) {
+    errors.push({ path: `${path}.scope`, message: `Unknown UI scope: ${scope}` })
+  }
+
+  if (!id || !slot || !title || !KNOWN_UI_SLOTS.has(slot as PluginUiSlot)) {
+    return undefined
+  }
+
+  const contribution: {
+    id: string
+    slot: PluginUiSlot
+    title: string
+    scope?: 'app' | 'document'
+  } = {
+    id,
+    slot: slot as PluginUiSlot,
+    title,
+  }
+
+  if (scope) {
+    contribution.scope = scope as 'app' | 'document'
+  }
+
+  return Object.freeze(contribution)
+}
+
+function readImporterContribution(
+  value: unknown,
+  path: string,
+  errors: PluginManifestValidationError[],
+): PluginImporterContribution | undefined {
+  if (!isRecord(value)) {
+    errors.push({ path, message: 'Importer contribution must be an object' })
+    return undefined
+  }
+
+  const id = readRequiredString(value, 'id', `${path}.id`, errors)
+  const title = readRequiredString(value, 'title', `${path}.title`, errors)
+  const extensions = readStringArray(value.extensions, `${path}.extensions`, errors)
+  const mimeTypes = readOptionalStringArray(value.mimeTypes, `${path}.mimeTypes`, errors)
+  const target = readRequiredString(value, 'target', `${path}.target`, errors)
+
+  if (id && !PLUGIN_ID_PATTERN.test(id)) {
+    errors.push({ path: `${path}.id`, message: 'Importer id must be kebab/dot case' })
+  }
+
+  if (target && !KNOWN_IMPORTER_TARGETS.has(target as PluginImporterContribution['target'])) {
+    errors.push({ path: `${path}.target`, message: `Unknown importer target: ${target}` })
+  }
+
+  if (!id || !title || !extensions || !target) {
+    return undefined
+  }
+
+  return Object.freeze({
+    id,
+    title,
+    extensions: Object.freeze(extensions),
+    ...(mimeTypes ? { mimeTypes: Object.freeze(mimeTypes) } : {}),
+    target: target as PluginImporterContribution['target'],
+  })
+}
+
+function readDocumentTypeContribution(
+  value: unknown,
+  path: string,
+  errors: PluginManifestValidationError[],
+): PluginDocumentTypeContribution | undefined {
+  if (!isRecord(value)) {
+    errors.push({ path, message: 'Document type contribution must be an object' })
+    return undefined
+  }
+
+  const id = readRequiredString(value, 'id', `${path}.id`, errors)
+  const title = readRequiredString(value, 'title', `${path}.title`, errors)
+  const extensions = readStringArray(value.extensions, `${path}.extensions`, errors)
+  const readonly = readOptionalBoolean(value, 'readonly', `${path}.readonly`, errors)
+
+  if (id && !PLUGIN_ID_PATTERN.test(id)) {
+    errors.push({
+      path: `${path}.id`,
+      message: 'Document type id must be kebab/dot case',
+    })
+  }
+
+  if (!id || !title || !extensions) {
+    return undefined
+  }
+
+  return Object.freeze({
+    id,
+    title,
+    extensions: Object.freeze(extensions),
+    ...(readonly !== undefined ? { readonly } : {}),
   })
 }
 
@@ -499,6 +790,50 @@ function validateContributionIntegrity(
     'Duplicate markdown syntax id',
     errors,
   )
+  validateUniqueValues(contributes?.ui, '$.contributes.ui', 'id', 'Duplicate UI id', errors)
+  validateUniqueValues(
+    contributes?.importers,
+    '$.contributes.importers',
+    'id',
+    'Duplicate importer id',
+    errors,
+  )
+  validateUniqueValues(
+    contributes?.documentTypes,
+    '$.contributes.documentTypes',
+    'id',
+    'Duplicate document type id',
+    errors,
+  )
+  validateRenderableContributionIds(contributes, errors)
+}
+
+function validateRenderableContributionIds(
+  contributes: PluginContributionSet | undefined,
+  errors: PluginManifestValidationError[],
+): void {
+  const groups = [
+    ['renderers', contributes?.renderers],
+    ['ui', contributes?.ui],
+    ['importers', contributes?.importers],
+    ['documentTypes', contributes?.documentTypes],
+  ] as const
+  const seen = new Map<string, string>()
+
+  for (const [group, items] of groups) {
+    for (const [index, item] of (items ?? []).entries()) {
+      const previous = seen.get(item.id)
+
+      if (previous) {
+        errors.push({
+          path: `$.contributes.${group}[${index}].id`,
+          message: `Renderable contribution id conflicts with ${previous}: ${item.id}`,
+        })
+      } else {
+        seen.set(item.id, group)
+      }
+    }
+  }
 }
 
 function validateUniqueValues<T extends Record<K, string>, K extends keyof T>(
@@ -628,6 +963,42 @@ function readOptionalBoolean(
   }
 
   return value
+}
+
+function readStringArray(
+  value: unknown,
+  path: string,
+  errors: PluginManifestValidationError[],
+): string[] | undefined {
+  if (!Array.isArray(value) || value.length === 0) {
+    errors.push({ path, message: 'Expected a non-empty string array' })
+    return undefined
+  }
+
+  const values: string[] = []
+
+  for (const [index, item] of value.entries()) {
+    if (typeof item !== 'string' || item.trim().length === 0) {
+      errors.push({ path: `${path}[${index}]`, message: 'Expected a non-empty string' })
+      continue
+    }
+
+    values.push(item)
+  }
+
+  return values
+}
+
+function readOptionalStringArray(
+  value: unknown,
+  path: string,
+  errors: PluginManifestValidationError[],
+): string[] | undefined {
+  if (value === undefined) {
+    return undefined
+  }
+
+  return readStringArray(value, path, errors)
 }
 
 function invalid(errors: readonly PluginManifestValidationError[]): PluginManifestValidationResult {

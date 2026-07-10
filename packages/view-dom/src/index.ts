@@ -1,5 +1,6 @@
 export {
   createInputProxy,
+  createControlledRendererNodes,
   buildLineProjection,
   coordinateToPosition,
   EditorView,
@@ -25,6 +26,14 @@ export {
 export { SourceDocumentView, type SourceDocumentViewConfig } from './source-document-view'
 export type {
   BlockView,
+  ControlledRenderer,
+  ControlledRendererAction,
+  ControlledRendererActionDetail,
+  ControlledRendererContext,
+  ControlledRendererElement,
+  ControlledRendererOutput,
+  ControlledRendererTag,
+  ControlledMarkdownSyntax,
   CursorVisibilityOptions,
   Decoration,
   EditorViewConfig,

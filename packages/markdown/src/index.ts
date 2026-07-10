@@ -1,4 +1,4 @@
-export { parseMarkdown, type MarkdownParseResult } from './block/parser'
+export { parseMarkdown, type MarkdownParseOptions, type MarkdownParseResult } from './block/parser'
 export { scanLines, type SourceLine } from './block/lines'
 export {
   createMarkdownParseCache,
@@ -19,9 +19,11 @@ export {
 } from './incremental/window'
 export {
   runMarkdownExtensionSafely,
+  compileMarkdownSyntaxPattern,
   type MarkdownExtensionContext,
   type MarkdownExtensionHook,
   type MarkdownExtensionResult,
+  type MarkdownSyntaxExtension,
 } from './extensions/safe'
 export {
   createMarkdownAst,

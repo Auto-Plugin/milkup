@@ -1,7 +1,10 @@
 import type { ActionPermission } from '@milkup/core'
 
+import { createPluginDocumentHostCapabilities, type PluginDocumentBroker } from './document-broker'
 import { createPluginFileHostCapabilities, type PluginFileBroker } from './filesystem-broker'
 import { createPluginNetworkHostCapabilities, type PluginNetworkBroker } from './network-broker'
+import type { PluginStorageBroker } from './storage-broker'
+import { createPluginUiHostCapabilities, type PluginUiBroker } from './ui-broker'
 import type {
   IsolatedPluginActivateRequest,
   IsolatedPluginActivateResult,
@@ -31,8 +34,11 @@ export interface PluginModuleIsolationHostConfig {
   readonly manifest: PluginManifest
   readonly module: PluginModule
   readonly host?: RestrictedPluginHost
+  readonly documentBroker?: PluginDocumentBroker
+  readonly uiBroker?: PluginUiBroker
   readonly fileBroker?: PluginFileBroker
   readonly networkBroker?: PluginNetworkBroker
+  readonly storageBroker?: PluginStorageBroker
 }
 
 export function createPluginModuleIsolationHost(
@@ -54,8 +60,11 @@ export function createPluginModuleIsolationHost(
           host: restrictHost(
             config.host ?? {},
             request.hostCapabilities,
+            config.documentBroker,
+            config.uiBroker,
             config.fileBroker,
             config.networkBroker,
+            config.storageBroker,
           ),
         })) ?? undefined
 
@@ -96,8 +105,11 @@ export function createPluginModuleIsolationHost(
         host: restrictHost(
           config.host ?? {},
           request.hostCapabilities,
+          config.documentBroker,
+          config.uiBroker,
           config.fileBroker,
           config.networkBroker,
+          config.storageBroker,
         ),
         ...(editor ? { editor } : {}),
       } as unknown as PluginCommandContext
@@ -250,13 +262,26 @@ function mapPosition(changes: readonly SerializedChange[], position: number): nu
 function restrictHost(
   host: RestrictedPluginHost,
   capabilities: readonly PluginHostCapabilityName[],
+  documentBroker?: PluginDocumentBroker,
+  uiBroker?: PluginUiBroker,
   fileBroker?: PluginFileBroker,
   networkBroker?: PluginNetworkBroker,
+  storageBroker?: PluginStorageBroker,
 ): RestrictedPluginHost {
   const fileHost = fileBroker ? createPluginFileHostCapabilities(fileBroker) : host
   const networkHost = networkBroker ? createPluginNetworkHostCapabilities(networkBroker) : host
 
   return Object.freeze({
+    ...(capabilities.includes('document:read') && documentBroker
+      ? { document: createPluginDocumentHostCapabilities(documentBroker) }
+      : capabilities.includes('document:read') && host.document
+        ? { document: host.document }
+        : {}),
+    ...(capabilities.includes('ui:update') && uiBroker
+      ? { ui: createPluginUiHostCapabilities(uiBroker) }
+      : capabilities.includes('ui:update') && host.ui
+        ? { ui: host.ui }
+        : {}),
     ...(capabilities.includes('file:read') && fileHost.readText
       ? { readText: fileHost.readText }
       : {}),
@@ -269,6 +294,7 @@ function restrictHost(
     ...(capabilities.includes('network:access') && networkHost.fetch
       ? { fetch: networkHost.fetch }
       : {}),
+    ...(capabilities.includes('storage') && storageBroker ? { storage: storageBroker } : {}),
   })
 }
 
@@ -297,8 +323,13 @@ function listContributedRenderers(
     ...Object.keys(activation?.renderers ?? {}),
   ])
 
-  return (manifest.contributes?.renderers ?? [])
-    .map((renderer: PluginRendererContribution) => renderer.id)
+  return [
+    ...(manifest.contributes?.renderers ?? []),
+    ...(manifest.contributes?.ui ?? []),
+    ...(manifest.contributes?.importers ?? []),
+    ...(manifest.contributes?.documentTypes ?? []),
+  ]
+    .map((renderer) => renderer.id)
     .filter((id) => available.has(id))
 }
 

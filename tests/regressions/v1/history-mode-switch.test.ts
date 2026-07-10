@@ -6,12 +6,12 @@ import { v1Issue } from './helpers/metadata'
 
 const issue = v1Issue({
   area: 'history',
-  lesson: 'Source/live/preview mode switches must be view changes, not document resets.',
+  lesson: 'Source/live mode switches must be view changes, not document resets.',
   risk: 'Switching modes after edits used to drop undo history.',
 })
 
 describe('v1 regression: history survives mode switches', () => {
-  it('keeps global undo history intact across repeated source/live/preview switches', async () => {
+  it('keeps global undo history intact across repeated source/live switches', async () => {
     expect(issue.area).toBe('history')
 
     const editor = createRegressionEditor('# Title\n\nBody', Selection.cursor(8))
@@ -25,9 +25,9 @@ describe('v1 regression: history survives mode switches', () => {
     const history = editor.view.state.history
 
     editor.setMode('live')
-    editor.setMode('preview')
     editor.setMode('source')
     editor.setMode('live')
+    editor.setMode('source')
 
     expect(editor.view.state.doc.text).toBe('# Title\nedited \nBody')
     expect(editor.view.state.history).toBe(history)

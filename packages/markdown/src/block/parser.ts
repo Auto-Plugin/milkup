@@ -1,4 +1,9 @@
 import { createNode, type SyntaxNode } from '../cst/node'
+import {
+  compileMarkdownSyntaxPattern,
+  runMarkdownExtensionSafely,
+  type MarkdownSyntaxExtension,
+} from '../extensions/safe'
 import { scanLines, type SourceLine } from './lines'
 
 export interface MarkdownParseResult {
@@ -6,7 +11,14 @@ export interface MarkdownParseResult {
   readonly root: SyntaxNode
 }
 
-export function parseMarkdown(source: string): MarkdownParseResult {
+export interface MarkdownParseOptions {
+  readonly syntaxExtensions?: readonly MarkdownSyntaxExtension[]
+}
+
+export function parseMarkdown(
+  source: string,
+  options: MarkdownParseOptions = {},
+): MarkdownParseResult {
   try {
     return {
       source,
@@ -15,7 +27,7 @@ export function parseMarkdown(source: string): MarkdownParseResult {
         from: 0,
         to: source.length,
         status: 'valid',
-        children: parseBlocks(source),
+        children: parseBlocks(source, options.syntaxExtensions ?? []),
       }),
     }
   } catch {
@@ -43,7 +55,10 @@ export function parseMarkdown(source: string): MarkdownParseResult {
   }
 }
 
-function parseBlocks(source: string): readonly SyntaxNode[] {
+function parseBlocks(
+  source: string,
+  extensions: readonly MarkdownSyntaxExtension[],
+): readonly SyntaxNode[] {
   const lines = scanLines(source)
   const nodes: SyntaxNode[] = []
   let index = 0
@@ -57,6 +72,14 @@ function parseBlocks(source: string): readonly SyntaxNode[] {
 
     if (isBlankLine(line)) {
       nodes.push(parseBlankLine(line))
+      index += 1
+      continue
+    }
+
+    const extensionBlock = parseExtensionBlock(line, extensions)
+
+    if (extensionBlock) {
+      nodes.push(extensionBlock)
       index += 1
       continue
     }
@@ -117,12 +140,45 @@ function parseBlocks(source: string): readonly SyntaxNode[] {
       continue
     }
 
-    const paragraph = collectParagraph(lines, index)
-    nodes.push(parseParagraph(paragraph))
+    const paragraph = collectParagraph(lines, index, extensions)
+    nodes.push(parseParagraph(source, paragraph, extensions))
     index += paragraph.length
   }
 
   return Object.freeze(nodes)
+}
+
+function parseExtensionBlock(
+  line: SourceLine,
+  extensions: readonly MarkdownSyntaxExtension[],
+): SyntaxNode | undefined {
+  for (const extension of extensions) {
+    if (!extension.block) {
+      continue
+    }
+
+    const result = runMarkdownExtensionSafely({ extensionName: extension.id, hook: 'block' }, () =>
+      compileMarkdownSyntaxPattern(extension).exec(line.text),
+    )
+    const match = result.ok ? result.value : undefined
+
+    if (!match) {
+      continue
+    }
+
+    const from = line.from + match.index
+    const to = from + match[0].length
+    return createNode({
+      type: extension.nodeType,
+      from,
+      to,
+      status: 'valid',
+      contentRanges: [{ from, to }],
+      data: { extensionId: extension.id },
+    })
+  }
+
+  return undefined
 }
 
 function isBlankLine(line: SourceLine): boolean {
@@ -726,7 +782,11 @@ function trimTableCellRange(
   return Object.freeze({ from: start, to: end })
 }
 
-function collectParagraph(lines: readonly SourceLine[], startIndex: number): readonly SourceLine[] {
+function collectParagraph(
+  lines: readonly SourceLine[],
+  startIndex: number,
+  extensions: readonly MarkdownSyntaxExtension[],
+): readonly SourceLine[] {
   const paragraph: SourceLine[] = []
 
   for (let index = startIndex; index < lines.length; index += 1) {
@@ -741,7 +801,8 @@ function collectParagraph(lines: readonly SourceLine[], startIndex: number): rea
       parseThematicBreak(line) ||
       parseAtxHeading(line) ||
       parseTable(lines, index) ||
-      parseList(lines, index)
+      parseList(lines, index) ||
+      parseExtensionBlock(line, extensions)
     ) {
       break
     }
@@ -752,7 +813,11 @@ function collectParagraph(lines: readonly SourceLine[], startIndex: number): rea
   return paragraph
 }
 
-function parseParagraph(lines: readonly SourceLine[]): SyntaxNode {
+function parseParagraph(
+  source: string,
+  lines: readonly SourceLine[],
+  extensions: readonly MarkdownSyntaxExtension[],
+): SyntaxNode {
   const first = lines[0]
   const last = lines[lines.length - 1]
 
@@ -772,5 +837,57 @@ function parseParagraph(lines: readonly SourceLine[]): SyntaxNode {
     to: last.to,
     status: 'valid',
     contentRanges: [{ from: first.from, to: last.contentTo }],
+    children: parseInlineExtensions(source, first.from, last.contentTo, extensions),
   })
+}
+
+function parseInlineExtensions(
+  source: string,
+  from: number,
+  to: number,
+  extensions: readonly MarkdownSyntaxExtension[],
+): readonly SyntaxNode[] {
+  const nodes: SyntaxNode[] = []
+  const text = source.slice(from, to)
+
+  for (const extension of extensions) {
+    if (!extension.inline) {
+      continue
+    }
+
+    const result = runMarkdownExtensionSafely(
+      { extensionName: extension.id, hook: 'inline' },
+      () => {
+        const base = compileMarkdownSyntaxPattern(extension)
+        const pattern = new RegExp(base.source, `${base.flags}g`)
+        return [...text.matchAll(pattern)]
+      },
+    )
+
+    if (!result.ok) {
+      continue
+    }
+
+    for (const match of result.value) {
+      const matchFrom = from + (match.index ?? 0)
+      const matchTo = matchFrom + match[0].length
+
+      if (matchTo <= matchFrom) {
+        continue
+      }
+
+      nodes.push(
+        createNode({
+          type: extension.nodeType,
+          from: matchFrom,
+          to: matchTo,
+          status: 'valid',
+          contentRanges: [{ from: matchFrom, to: matchTo }],
+          data: { extensionId: extension.id },
+        }),
+      )
+    }
+  }
+
+  return Object.freeze(nodes.sort((left, right) => left.from - right.from || left.to - right.to))
 }

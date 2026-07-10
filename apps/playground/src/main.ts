@@ -41,7 +41,6 @@ app.innerHTML = `
         <div class="mode-switch" role="group" aria-label="编辑器模式">
           <button type="button" data-mode-button="source">源码</button>
           <button type="button" data-mode-button="live">实时</button>
-          <button type="button" data-mode-button="preview">预览</button>
         </div>
         <button type="button" data-worker-plugin-button disabled>插件</button>
         <button type="button" data-worker-file-button disabled>文件</button>
@@ -169,7 +168,7 @@ for (const button of Array.from(app.querySelectorAll<HTMLButtonElement>('[data-m
   button.addEventListener('click', () => {
     const mode = button.dataset.modeButton
 
-    if (mode === 'source' || mode === 'live' || mode === 'preview') {
+    if (mode === 'source' || mode === 'live') {
       view.setMode(mode)
       updateModeButtons(mode)
       view.inputDOM.focus({ preventScroll: true })

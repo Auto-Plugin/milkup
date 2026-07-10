@@ -18,6 +18,11 @@ import type {
 
 import type {
   CursorVisibilityOptions,
+  ControlledRenderer,
+  ControlledMarkdownSyntax,
+  ControlledRendererActionDetail,
+  ControlledRendererElement,
+  ControlledRendererOutput,
   EditorViewConfig,
   EditorViewDispatch,
   PositionLineOffset,
@@ -78,6 +83,8 @@ export class EditorView {
   private markdownParseState: EditorMarkdownParseState
   private readonly ownerDocument: Document
   private readonly assetProvider: AssetProvider | undefined
+  private readonly controlledRenderers: readonly ControlledRenderer[]
+  private readonly markdownSyntax: readonly ControlledMarkdownSyntax[]
   private readonly externalDispatch: EditorViewDispatch | undefined
   private isComposing = false
   private compositionText = ''
@@ -131,8 +138,13 @@ export class EditorView {
   constructor(config: EditorViewConfig) {
     this.ownerDocument = config.document ?? config.parent.ownerDocument
     this.currentState = config.state
-    this.markdownParseState = createEditorMarkdownParseState(this.currentState.doc.text)
+    this.markdownSyntax = Object.freeze([...(config.markdownSyntax ?? [])])
+    this.markdownParseState = createEditorMarkdownParseState(
+      this.currentState.doc.text,
+      this.markdownSyntax,
+    )
     this.assetProvider = config.assetProvider
+    this.controlledRenderers = Object.freeze([...(config.controlledRenderers ?? [])])
     this.externalDispatch = config.dispatch
     this.mode = config.mode ?? 'source'
     this.editable = config.editable ?? true
@@ -202,6 +214,7 @@ export class EditorView {
         previousState,
         state,
         transactions,
+        this.markdownSyntax,
       )
       if (!this.renderChangedDocumentLines(previousState, state, transactions)) {
         this.render()
@@ -327,6 +340,7 @@ export class EditorView {
         ? renderPlainTextLines(this.ownerDocument, this.currentState)
         : renderMarkdownLines(this.ownerDocument, this.currentState, this.mode, {
             root: this.markdownParseState.cache.root,
+            controlledRenderers: this.controlledRenderers,
           })),
     )
     this.selectionLayerDOM.replaceChildren(
@@ -443,6 +457,7 @@ export class EditorView {
         this.mode,
         this.markdownParseState.cache.root.children ?? [],
         line.number,
+        { controlledRenderers: this.controlledRenderers },
       )
       previousLineDOM.replaceWith(nextLineDOM)
     }
@@ -478,6 +493,7 @@ export class EditorView {
         this.mode,
         this.markdownParseState.cache.root.children ?? [],
         lineNumber,
+        { controlledRenderers: this.controlledRenderers },
       )
       previousLineDOM.replaceWith(nextLineDOM)
     }
@@ -1012,8 +1028,11 @@ export interface EditorMarkdownParseState {
   readonly version: number
 }
 
-function createEditorMarkdownParseState(source: string): EditorMarkdownParseState {
-  const parsed = parseMarkdown(source)
+function createEditorMarkdownParseState(
+  source: string,
+  syntaxExtensions: readonly ControlledMarkdownSyntax[] = [],
+): EditorMarkdownParseState {
+  const parsed = parseMarkdown(source, { syntaxExtensions })
 
   return Object.freeze({
     cache: createMarkdownParseCache(parsed),
@@ -1027,6 +1046,7 @@ function updateEditorMarkdownParseState(
   previousState: EditorState,
   state: EditorState,
   transactions: readonly Transaction[],
+  syntaxExtensions: readonly ControlledMarkdownSyntax[] = [],
 ): EditorMarkdownParseState {
   if (previousState.doc === state.doc) {
     return previousParse
@@ -1036,6 +1056,7 @@ function updateEditorMarkdownParseState(
   const parsed = parseMarkdownIncremental(state.doc.text, {
     previous: previousParse.cache,
     ...(change ? { change } : {}),
+    syntaxExtensions,
   })
 
   return createEditorMarkdownParseStateFromResult(parsed, previousParse.version + 1)
@@ -1123,7 +1144,11 @@ export function getVisibleLineWindow(config: VisibleLineWindowConfig): VisibleLi
   const lineHeight = Math.max(1, config.lineHeight ?? defaultViewMetrics.lineHeight)
   const viewportHeight = Math.max(lineHeight, config.viewportHeight ?? lineHeight * 24)
   const overscanLines = Math.max(0, Math.floor(config.overscanLines ?? 4))
-  const firstVisibleLine = clamp(Math.floor(Math.max(0, config.scrollTop) / lineHeight) + 1, 1, lineCount)
+  const firstVisibleLine = clamp(
+    Math.floor(Math.max(0, config.scrollTop) / lineHeight) + 1,
+    1,
+    lineCount,
+  )
   const visibleLineCount = Math.max(1, Math.ceil(viewportHeight / lineHeight))
   const fromLine = clamp(firstVisibleLine - overscanLines, 1, lineCount)
   const toLine = clamp(firstVisibleLine + visibleLineCount + overscanLines - 1, fromLine, lineCount)
@@ -1150,6 +1175,8 @@ function renderVirtualSpacer(
 
 export interface RenderMarkdownLinesOptions {
   readonly root?: SyntaxNode
+  readonly controlledRenderers?: readonly ControlledRenderer[]
+  readonly markdownSyntax?: readonly ControlledMarkdownSyntax[]
 }
 
 export function renderMarkdownLines(
@@ -1158,11 +1185,17 @@ export function renderMarkdownLines(
   mode: Exclude<ViewMode, 'source'> = 'live',
   options: RenderMarkdownLinesOptions = {},
 ): readonly HTMLElement[] {
-  const blocks = (options.root ?? parseMarkdown(state.doc.text).root).children ?? []
+  const blocks =
+    (
+      options.root ??
+      parseMarkdown(state.doc.text, {
+        ...(options.markdownSyntax ? { syntaxExtensions: options.markdownSyntax } : {}),
+      }).root
+    ).children ?? []
   const lines: HTMLElement[] = []
 
   for (let lineNumber = 1; lineNumber <= state.doc.lineCount; lineNumber += 1) {
-    lines.push(renderMarkdownLine(document, state, mode, blocks, lineNumber))
+    lines.push(renderMarkdownLine(document, state, mode, blocks, lineNumber, options))
   }
 
   return Object.freeze(lines)
@@ -1174,11 +1207,25 @@ function renderMarkdownLine(
   mode: Exclude<ViewMode, 'source'>,
   blocks: readonly SyntaxNode[],
   lineNumber: number,
+  options: RenderMarkdownLinesOptions = {},
 ): HTMLElement {
   const line = state.doc.line(lineNumber)
   const lineDOM = createLineElement(document, line.number, line.from, line.to)
   lineDOM.classList.add(`milkup-line-${mode}`)
   applyBlockDecorations(lineDOM, blocks, line.from, line.to)
+  const renderedPluginLine = renderControlledRendererLine(
+    document,
+    state,
+    lineDOM,
+    blocks,
+    line.from,
+    line.to,
+    options.controlledRenderers ?? [],
+  )
+
+  if (renderedPluginLine) {
+    return renderedPluginLine
+  }
 
   const listItem = findListItemForLine(blocks, line.from, line.to)
   const heading = findBlockForLine(blocks, 'heading', line.from, line.to)
@@ -1196,10 +1243,18 @@ function renderMarkdownLine(
     lineDOM.textContent = line.text.length > 0 ? line.text : '\u200b'
   } else if (heading) {
     lineDOM.replaceChildren(
-      ...renderBlockLineDecorations(document, state.doc.text, state.selection, heading, line.from, line.to, {
-        contentClassName: 'milkup-heading-content',
-        markerClassName: 'milkup-heading-marker',
-      }),
+      ...renderBlockLineDecorations(
+        document,
+        state.doc.text,
+        state.selection,
+        heading,
+        line.from,
+        line.to,
+        {
+          contentClassName: 'milkup-heading-content',
+          markerClassName: 'milkup-heading-marker',
+        },
+      ),
     )
   } else if (blockquoteLine) {
     lineDOM.replaceChildren(
@@ -1258,6 +1313,155 @@ function renderMarkdownLine(
   }
 
   return lineDOM
+}
+
+function renderControlledRendererLine(
+  document: Document,
+  state: EditorState,
+  lineDOM: HTMLElement,
+  blocks: readonly SyntaxNode[],
+  lineFrom: number,
+  lineTo: number,
+  renderers: readonly ControlledRenderer[],
+): HTMLElement | undefined {
+  const match = findControlledRendererMatch(blocks, lineFrom, lineTo, renderers)
+
+  if (!match) {
+    return undefined
+  }
+
+  const { node, renderer } = match
+  const slot = document.createElement('span')
+  slot.className = 'milkup-plugin-renderer-slot'
+  slot.dataset.pluginRenderer = renderer.id
+  slot.dataset.nodeType = node.type
+  slot.textContent = state.doc.slice(lineFrom, lineTo) || '\u200b'
+  lineDOM.classList.add('milkup-block-plugin-renderer')
+  lineDOM.replaceChildren(slot)
+
+  const context = Object.freeze({
+    nodeType: node.type,
+    source: state.doc.slice(node.from, node.to),
+    node,
+  })
+
+  Promise.resolve()
+    .then(() => renderer.render(context))
+    .then((value) => {
+      slot.replaceChildren(...createControlledRendererNodes(document, renderer.id, value))
+      slot.dataset.rendererState = 'ready'
+    })
+    .catch((error: unknown) => {
+      slot.dataset.rendererState = 'failed'
+      slot.textContent = state.doc.slice(lineFrom, lineTo) || '\u200b'
+      slot.title = error instanceof Error ? error.message : String(error)
+    })
+
+  return lineDOM
+}
+
+function findControlledRendererMatch(
+  blocks: readonly SyntaxNode[],
+  lineFrom: number,
+  lineTo: number,
+  renderers: readonly ControlledRenderer[],
+): { readonly renderer: ControlledRenderer; readonly node: SyntaxNode } | undefined {
+  if (renderers.length === 0) {
+    return undefined
+  }
+
+  for (const node of walkSyntaxNodes(blocks)) {
+    if (!nodeContainsLineStart(node, lineFrom, lineTo)) {
+      continue
+    }
+
+    const renderer = renderers.find((candidate) => candidate.nodeType === node.type)
+
+    if (renderer) {
+      return { renderer, node }
+    }
+  }
+
+  return undefined
+}
+
+const controlledRendererTags = new Set(['span', 'strong', 'em', 'code', 'a', 'button'])
+const controlledRendererAttributes = new Set(['class', 'title', 'href', 'aria-label'])
+
+export function createControlledRendererNodes(
+  document: Document,
+  rendererId: string,
+  value: ControlledRendererOutput,
+): readonly Node[] {
+  if (typeof value === 'object' && value !== null && value.type === 'element') {
+    return Object.freeze([createControlledRendererElement(document, rendererId, value)])
+  }
+
+  if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') {
+    throw new Error('Renderer output must be text or a controlled element')
+  }
+
+  const span = document.createElement('span')
+  span.textContent = String(value)
+  return Object.freeze([span])
+}
+
+function createControlledRendererElement(
+  document: Document,
+  rendererId: string,
+  output: ControlledRendererElement,
+): HTMLElement {
+  if (!controlledRendererTags.has(output.tag)) {
+    throw new Error(`Renderer element is not allowed: ${output.tag}`)
+  }
+
+  const element = document.createElement(output.tag)
+
+  for (const [name, value] of Object.entries(output.attributes ?? {})) {
+    if (!controlledRendererAttributes.has(name)) {
+      throw new Error(`Renderer attribute is not allowed: ${name}`)
+    }
+
+    if (name === 'href' && !/^(?:https?:|mailto:|#)/i.test(value)) {
+      throw new Error(`Renderer link is not allowed: ${value}`)
+    }
+
+    element.setAttribute(name, value)
+  }
+
+  if (output.text !== undefined) {
+    element.textContent = output.text
+  } else if (output.children) {
+    element.replaceChildren(
+      ...output.children.flatMap((child) =>
+        createControlledRendererNodes(document, rendererId, child),
+      ),
+    )
+  }
+
+  if (output.action) {
+    element.dataset.pluginCommand = output.action.command
+    element.addEventListener('click', (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      element.dispatchEvent(
+        new document.defaultView!.CustomEvent<ControlledRendererActionDetail>(
+          'milkup-plugin-renderer-action',
+          {
+            bubbles: true,
+            composed: true,
+            detail: Object.freeze({
+              rendererId,
+              command: output.action!.command,
+              ...(output.action!.input === undefined ? {} : { input: output.action!.input }),
+            }),
+          },
+        ),
+      )
+    })
+  }
+
+  return element
 }
 
 function createLineElement(
@@ -2412,7 +2616,10 @@ function selectionChanged(previousState: EditorState, state: EditorState): boole
   )
 }
 
-function changedSelectionLineNumbers(previousState: EditorState, state: EditorState): readonly number[] {
+function changedSelectionLineNumbers(
+  previousState: EditorState,
+  state: EditorState,
+): readonly number[] {
   const lineNumbers = new Set<number>()
   collectSelectionBoundaryLineNumbers(previousState, previousState.selection.main, lineNumbers)
   collectSelectionBoundaryLineNumbers(state, state.selection.main, lineNumbers)
@@ -2439,7 +2646,10 @@ function changedDocumentLineNumbers(
   const previousChangeEndLine = previousState.doc.lineAt(change.to)
   const nextLine = state.doc.lineAt(change.from + change.insert.length)
 
-  if (previousLine.number !== previousChangeEndLine.number || previousLine.number !== nextLine.number) {
+  if (
+    previousLine.number !== previousChangeEndLine.number ||
+    previousLine.number !== nextLine.number
+  ) {
     return undefined
   }
 

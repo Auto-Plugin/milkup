@@ -85,7 +85,14 @@ export interface SerializedSelection {
   readonly head?: number
 }
 
-export type PluginHostCapabilityName = 'file:read' | 'file:write' | 'file:delete' | 'network:access'
+export type PluginHostCapabilityName =
+  | 'document:read'
+  | 'ui:update'
+  | 'file:read'
+  | 'file:write'
+  | 'file:delete'
+  | 'network:access'
+  | 'storage'
 
 export function createIsolatedPluginModule(config: IsolatedPluginModuleConfig): PluginModule {
   const { manifest, host } = config
@@ -106,7 +113,7 @@ export function createIsolatedPluginModule(config: IsolatedPluginModuleConfig): 
       )
       const allowedRenderers = new Set(
         activated.renderers ??
-          manifest.contributes?.renderers?.map((renderer) => renderer.id) ??
+          listRenderableContributions(manifest).map((renderer) => renderer.id) ??
           [],
       )
 
@@ -165,7 +172,7 @@ function createIsolatedRenderers(
 ) {
   const renderers: Record<string, (context: PluginRendererContext) => Promise<unknown>> = {}
 
-  for (const renderer of manifest.contributes?.renderers ?? []) {
+  for (const renderer of listRenderableContributions(manifest)) {
     if (!allowedRenderers.has(renderer.id)) {
       continue
     }
@@ -181,6 +188,23 @@ function createIsolatedRenderers(
   }
 
   return Object.freeze(renderers)
+}
+
+function listRenderableContributions(
+  manifest: PluginManifest,
+): readonly PluginRendererContribution[] {
+  return Object.freeze([
+    ...(manifest.contributes?.renderers ?? []),
+    ...(manifest.contributes?.ui ?? []).map((view) =>
+      Object.freeze({ id: view.id, nodeType: `ui:${view.slot}`, module: '' }),
+    ),
+    ...(manifest.contributes?.importers ?? []).map((importer) =>
+      Object.freeze({ id: importer.id, nodeType: 'document:importer', module: '' }),
+    ),
+    ...(manifest.contributes?.documentTypes ?? []).map((documentType) =>
+      Object.freeze({ id: documentType.id, nodeType: 'document:type', module: '' }),
+    ),
+  ])
 }
 
 function deserializeTransaction(
@@ -215,6 +239,14 @@ function listRestrictedHostCapabilities(
 ): readonly PluginHostCapabilityName[] {
   const capabilities: PluginHostCapabilityName[] = []
 
+  if (host.document) {
+    capabilities.push('document:read')
+  }
+
+  if (host.ui) {
+    capabilities.push('ui:update')
+  }
+
   if (host.readText) {
     capabilities.push('file:read')
   }
@@ -229,6 +261,10 @@ function listRestrictedHostCapabilities(
 
   if (host.fetch) {
     capabilities.push('network:access')
+  }
+
+  if (host.storage) {
+    capabilities.push('storage')
   }
 
   return Object.freeze(capabilities)

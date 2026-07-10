@@ -12,6 +12,11 @@ import {
 
 import { createPluginFileHostCapabilities, type PluginFileBroker } from './filesystem-broker'
 import {
+  createPluginDocumentHostCapabilities,
+  type PluginDocumentBroker,
+  type PluginDocumentHost,
+} from './document-broker'
+import {
   parsePluginManifest,
   type PluginCommandContribution,
   type PluginHostKind,
@@ -20,6 +25,8 @@ import {
   type PluginRendererContribution,
 } from './manifest'
 import { createPluginNetworkHostCapabilities, type PluginNetworkBroker } from './network-broker'
+import type { PluginStorageBroker } from './storage-broker'
+import { createPluginUiHostCapabilities, type PluginUiBroker, type PluginUiHost } from './ui-broker'
 
 export type PluginLifecycleState = 'loaded' | 'enabled' | 'disabled'
 export type PluginRuntimePhase =
@@ -32,13 +39,23 @@ export interface PluginRuntimeOptions {
   readonly allowInProcessModules?: boolean
   readonly host?: PluginHostCapabilities
   readonly fileBroker?: PluginFileBroker | PluginFileBrokerProvider
+  readonly documentBroker?: PluginDocumentBroker | PluginDocumentBrokerProvider
+  readonly uiBroker?: PluginUiBroker | PluginUiBrokerProvider
   readonly networkBroker?: PluginNetworkBroker | PluginNetworkBrokerProvider
+  readonly storageBroker?: PluginStorageBroker | PluginStorageBrokerProvider
 }
 
 export type PluginFileBrokerProvider = (manifest: PluginManifest) => PluginFileBroker | undefined
+export type PluginDocumentBrokerProvider = (
+  manifest: PluginManifest,
+) => PluginDocumentBroker | undefined
+export type PluginUiBrokerProvider = (manifest: PluginManifest) => PluginUiBroker | undefined
 export type PluginNetworkBrokerProvider = (
   manifest: PluginManifest,
 ) => PluginNetworkBroker | undefined
+export type PluginStorageBrokerProvider = (
+  manifest: PluginManifest,
+) => PluginStorageBroker | undefined
 
 export interface PluginLoadConfig {
   readonly manifest: unknown
@@ -88,6 +105,8 @@ export interface PluginModule {
 }
 
 export interface PluginHostCapabilities {
+  readonly document?: PluginDocumentHost
+  readonly ui?: PluginUiHost
   readText?(path: string): string | Promise<string>
   writeText?(path: string, text: string): void | Promise<void>
   deleteFile?(path: string): void | Promise<void>
@@ -95,10 +114,13 @@ export interface PluginHostCapabilities {
 }
 
 export interface RestrictedPluginHost {
+  readonly document?: PluginDocumentHost
+  readonly ui?: PluginUiHost
   readonly readText?: PluginHostCapabilities['readText']
   readonly writeText?: PluginHostCapabilities['writeText']
   readonly deleteFile?: PluginHostCapabilities['deleteFile']
   readonly fetch?: PluginHostCapabilities['fetch']
+  readonly storage?: PluginStorageBroker
 }
 
 export interface PluginRuntimeInfo {
@@ -162,7 +184,10 @@ export class PluginRuntime {
   private readonly allowInProcessModules: boolean
   private readonly host: PluginHostCapabilities
   private readonly fileBroker: PluginFileBroker | PluginFileBrokerProvider | undefined
+  private readonly documentBroker: PluginDocumentBroker | PluginDocumentBrokerProvider | undefined
+  private readonly uiBroker: PluginUiBroker | PluginUiBrokerProvider | undefined
   private readonly networkBroker: PluginNetworkBroker | PluginNetworkBrokerProvider | undefined
+  private readonly storageBroker: PluginStorageBroker | PluginStorageBrokerProvider | undefined
 
   constructor(options: PluginRuntimeOptions = {}) {
     this.actionRegistry = options.actionRegistry ?? new ActionRegistry()
@@ -171,7 +196,10 @@ export class PluginRuntime {
     this.allowInProcessModules = options.allowInProcessModules ?? false
     this.host = options.host ?? {}
     this.fileBroker = options.fileBroker
+    this.documentBroker = options.documentBroker
+    this.uiBroker = options.uiBroker
     this.networkBroker = options.networkBroker
+    this.storageBroker = options.storageBroker
   }
 
   loadPlugin(config: PluginLoadConfig): PluginRuntimeInfo {
@@ -213,8 +241,11 @@ export class PluginRuntime {
         host: createRestrictedHost(
           plugin.manifest,
           this.host,
+          resolvePluginDocumentBroker(plugin.manifest, this.documentBroker),
+          resolvePluginUiBroker(plugin.manifest, this.uiBroker),
           resolvePluginFileBroker(plugin.manifest, this.fileBroker),
           resolvePluginNetworkBroker(plugin.manifest, this.networkBroker),
+          resolvePluginStorageBroker(plugin.manifest, this.storageBroker),
         ),
       })
 
@@ -357,8 +388,11 @@ export class PluginRuntime {
       host: createRestrictedHost(
         plugin.manifest,
         this.host,
+        resolvePluginDocumentBroker(plugin.manifest, this.documentBroker),
+        resolvePluginUiBroker(plugin.manifest, this.uiBroker),
         resolvePluginFileBroker(plugin.manifest, this.fileBroker),
         resolvePluginNetworkBroker(plugin.manifest, this.networkBroker),
+        resolvePluginStorageBroker(plugin.manifest, this.storageBroker),
         effectiveCommandPermissions(plugin.manifest, command),
       ),
       ...(context.permissions ? { permissions: context.permissions } : {}),
@@ -612,14 +646,27 @@ function riskForPermissions(permissions: readonly ActionPermission[]): ActionRis
 function createRestrictedHost(
   manifest: PluginManifest,
   host: PluginHostCapabilities,
+  documentBroker?: PluginDocumentBroker,
+  uiBroker?: PluginUiBroker,
   fileBroker?: PluginFileBroker,
   networkBroker?: PluginNetworkBroker,
+  storageBroker?: PluginStorageBroker,
   permissions: readonly PluginPermission[] = manifest.permissions ?? [],
 ): RestrictedPluginHost {
   const fileHost = fileBroker ? createPluginFileHostCapabilities(fileBroker) : host
   const networkHost = networkBroker ? createPluginNetworkHostCapabilities(networkBroker) : host
 
   return Object.freeze({
+    ...(permissions.includes('document:read') && documentBroker
+      ? { document: createPluginDocumentHostCapabilities(documentBroker) }
+      : permissions.includes('document:read') && host.document
+        ? { document: host.document }
+        : {}),
+    ...(uiBroker
+      ? { ui: createPluginUiHostCapabilities(uiBroker) }
+      : host.ui
+        ? { ui: host.ui }
+        : {}),
     ...(permissions.includes('file:read') && fileHost.readText
       ? { readText: fileHost.readText }
       : {}),
@@ -632,7 +679,22 @@ function createRestrictedHost(
     ...(permissions.includes('network:access') && networkHost.fetch
       ? { fetch: networkHost.fetch }
       : {}),
+    ...(storageBroker ? { storage: storageBroker } : {}),
   })
+}
+
+function resolvePluginDocumentBroker(
+  manifest: PluginManifest,
+  documentBroker: PluginDocumentBroker | PluginDocumentBrokerProvider | undefined,
+): PluginDocumentBroker | undefined {
+  return typeof documentBroker === 'function' ? documentBroker(manifest) : documentBroker
+}
+
+function resolvePluginUiBroker(
+  manifest: PluginManifest,
+  uiBroker: PluginUiBroker | PluginUiBrokerProvider | undefined,
+): PluginUiBroker | undefined {
+  return typeof uiBroker === 'function' ? uiBroker(manifest) : uiBroker
 }
 
 function resolvePluginFileBroker(
@@ -647,4 +709,11 @@ function resolvePluginNetworkBroker(
   networkBroker: PluginNetworkBroker | PluginNetworkBrokerProvider | undefined,
 ): PluginNetworkBroker | undefined {
   return typeof networkBroker === 'function' ? networkBroker(manifest) : networkBroker
+}
+
+function resolvePluginStorageBroker(
+  manifest: PluginManifest,
+  storageBroker: PluginStorageBroker | PluginStorageBrokerProvider | undefined,
+): PluginStorageBroker | undefined {
+  return typeof storageBroker === 'function' ? storageBroker(manifest) : storageBroker
 }

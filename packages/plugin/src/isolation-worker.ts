@@ -1,4 +1,11 @@
 import { coercePluginModule } from './loader'
+import type { PluginDocumentBroker } from './document-broker'
+import {
+  createPluginDocumentRpcServer,
+  createRpcPluginDocumentBroker,
+  type PluginDocumentRpcServer,
+  type RpcPluginDocumentBroker,
+} from './document-rpc'
 import type { PluginFileBroker } from './filesystem-broker'
 import type { PluginNetworkBroker } from './network-broker'
 import {
@@ -14,6 +21,14 @@ import {
   type RpcPluginNetworkBroker,
 } from './network-rpc'
 import type { PluginManifest } from './manifest'
+import type { PluginStorageBroker } from './storage-broker'
+import type { PluginUiBroker } from './ui-broker'
+import { createPluginUiRpcServer, createRpcPluginUiBroker, type RpcPluginUiBroker } from './ui-rpc'
+import {
+  createPluginStorageRpcServer,
+  createRpcPluginStorageBroker,
+  type RpcPluginStorageBroker,
+} from './storage-rpc'
 import { createPluginModuleIsolationHost } from './isolation-module-host'
 import {
   createPluginIsolationRpcServer,
@@ -28,8 +43,11 @@ export interface BrowserWorkerPluginHostConfig extends PluginIsolationRpcHostOpt
   readonly worker: PluginWorkerEndpoint
   readonly manifest: PluginManifest
   readonly moduleSpecifier: string
+  readonly documentBroker?: PluginDocumentBroker
+  readonly uiBroker?: PluginUiBroker
   readonly fileBroker?: PluginFileBroker
   readonly networkBroker?: PluginNetworkBroker
+  readonly storageBroker?: PluginStorageBroker
 }
 
 export interface BrowserWorkerPluginHost {
@@ -44,8 +62,11 @@ export interface PluginWorkerEndpoint extends PluginIsolationRpcEndpoint {
 
 export interface PluginWorkerRealmOptions {
   readonly importModule?: PluginWorkerImportModule
+  readonly documentBroker?: PluginDocumentBroker
+  readonly uiBroker?: PluginUiBroker
   readonly fileBroker?: PluginFileBroker
   readonly networkBroker?: PluginNetworkBroker
+  readonly storageBroker?: PluginStorageBroker
   readonly timeoutMs?: number
 }
 
@@ -82,11 +103,28 @@ const WORKER_INIT_PROTOCOL = 'milkup.plugin.worker.init.v1'
 export function createBrowserWorkerPluginHost(
   config: BrowserWorkerPluginHostConfig,
 ): BrowserWorkerPluginHost {
-  const { worker, manifest, moduleSpecifier, timeoutMs, fileBroker, networkBroker } = config
+  const {
+    worker,
+    manifest,
+    moduleSpecifier,
+    timeoutMs,
+    documentBroker,
+    uiBroker,
+    fileBroker,
+    networkBroker,
+    storageBroker,
+  } = config
   const host = createRpcPluginIsolationHost(worker, { ...(timeoutMs ? { timeoutMs } : {}) })
   const fileRpcServer = fileBroker ? createPluginFileRpcServer(worker, fileBroker) : undefined
+  const documentRpcServer = documentBroker
+    ? createPluginDocumentRpcServer(worker, documentBroker)
+    : undefined
+  const uiRpcServer = uiBroker ? createPluginUiRpcServer(worker, uiBroker) : undefined
   const networkRpcServer = networkBroker
     ? createPluginNetworkRpcServer(worker, networkBroker)
+    : undefined
+  const storageRpcServer = storageBroker
+    ? createPluginStorageRpcServer(worker, storageBroker)
     : undefined
   let settled = false
   let removeReadyListener: (() => void) | undefined
@@ -124,8 +162,11 @@ export function createBrowserWorkerPluginHost(
     ready,
     dispose: () => {
       removeReadyListener?.()
+      documentRpcServer?.dispose()
+      uiRpcServer?.dispose()
       fileRpcServer?.dispose()
       networkRpcServer?.dispose()
+      storageRpcServer?.dispose()
       host.dispose()
 
       if (!settled) {
@@ -142,8 +183,11 @@ export function initializePluginWorkerRealm(
   options: PluginWorkerRealmOptions = {},
 ): { readonly dispose: () => void } {
   let rpcServer: { dispose(): void } | undefined
+  let rpcDocumentBroker: RpcPluginDocumentBroker | undefined
+  let rpcUiBroker: RpcPluginUiBroker | undefined
   let rpcFileBroker: RpcPluginFileBroker | undefined
   let rpcNetworkBroker: RpcPluginNetworkBroker | undefined
+  let rpcStorageBroker: RpcPluginStorageBroker | undefined
   const removeInitListener = addWorkerMessageListener(scope, async (message) => {
     const lifecycle = readWorkerLifecycleMessage(message)
 
@@ -152,6 +196,17 @@ export function initializePluginWorkerRealm(
     }
 
     try {
+      rpcDocumentBroker = options.documentBroker
+        ? undefined
+        : createRpcPluginDocumentBroker(
+            scope,
+            options.timeoutMs ? { timeoutMs: options.timeoutMs } : {},
+          )
+      const documentBrokerForHost = options.documentBroker ?? rpcDocumentBroker
+      rpcUiBroker = options.uiBroker
+        ? undefined
+        : createRpcPluginUiBroker(scope, options.timeoutMs ?? 5_000)
+      const uiBrokerForHost = options.uiBroker ?? rpcUiBroker
       rpcNetworkBroker = options.networkBroker
         ? undefined
         : createRpcPluginNetworkBroker(
@@ -159,6 +214,10 @@ export function initializePluginWorkerRealm(
             options.timeoutMs ? { timeoutMs: options.timeoutMs } : {},
           )
       const networkBrokerForHost = options.networkBroker ?? rpcNetworkBroker
+      rpcStorageBroker = options.storageBroker
+        ? undefined
+        : createRpcPluginStorageBroker(scope, options.timeoutMs ?? 5_000)
+      const storageBrokerForHost = options.storageBroker ?? rpcStorageBroker
 
       installWorkerCodeLoadingGuards(scope)
       installNetworkGuards(scope, lifecycle.payload.manifest, networkBrokerForHost)
@@ -176,8 +235,11 @@ export function initializePluginWorkerRealm(
       const host = createPluginModuleIsolationHost({
         manifest: lifecycle.payload.manifest,
         module,
+        ...(documentBrokerForHost ? { documentBroker: documentBrokerForHost } : {}),
+        ...(uiBrokerForHost ? { uiBroker: uiBrokerForHost } : {}),
         ...(fileBrokerForHost ? { fileBroker: fileBrokerForHost } : {}),
         ...(networkBrokerForHost ? { networkBroker: networkBrokerForHost } : {}),
+        ...(storageBrokerForHost ? { storageBroker: storageBrokerForHost } : {}),
       })
 
       rpcServer = createPluginIsolationRpcServer(scope, host)
@@ -200,8 +262,11 @@ export function initializePluginWorkerRealm(
     dispose: () => {
       removeInitListener()
       rpcServer?.dispose()
+      rpcDocumentBroker?.dispose()
+      rpcUiBroker?.dispose()
       rpcFileBroker?.dispose()
       rpcNetworkBroker?.dispose()
+      rpcStorageBroker?.dispose()
     },
   })
 }
@@ -218,10 +283,6 @@ export function installNetworkGuards(
     defineUnsupportedNetworkGlobal(scope, 'WebSocket')
     defineUnsupportedNetworkGlobal(scope, 'EventSource')
     defineUnsupportedNetworkGlobal(scope, 'XMLHttpRequest')
-    return
-  }
-
-  if (hasNetworkAccess) {
     return
   }
 

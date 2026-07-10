@@ -39,6 +39,53 @@ export interface EditorViewLike {
 
 export type EditorViewDispatch = (transaction: Transaction, view: EditorViewLike) => void
 
+export interface ControlledRendererContext {
+  readonly nodeType: string
+  readonly source: string
+  readonly node: unknown
+}
+
+export type ControlledRendererTag = 'span' | 'strong' | 'em' | 'code' | 'a' | 'button'
+
+export interface ControlledRendererAction {
+  readonly command: string
+  readonly input?: unknown
+}
+
+export interface ControlledRendererElement {
+  readonly type: 'element'
+  readonly tag: ControlledRendererTag
+  readonly text?: string
+  readonly children?: readonly ControlledRendererOutput[]
+  readonly attributes?: Readonly<Record<string, string>>
+  readonly action?: ControlledRendererAction
+}
+
+export type ControlledRendererOutput = string | number | boolean | ControlledRendererElement
+
+export interface ControlledRendererActionDetail {
+  readonly rendererId: string
+  readonly command: string
+  readonly input?: unknown
+}
+
+export interface ControlledRenderer {
+  readonly id: string
+  readonly nodeType: string
+  render(
+    context: ControlledRendererContext,
+  ): ControlledRendererOutput | Promise<ControlledRendererOutput>
+}
+
+export interface ControlledMarkdownSyntax {
+  readonly id: string
+  readonly nodeType: string
+  readonly pattern: string
+  readonly flags?: string
+  readonly block?: boolean
+  readonly inline?: boolean
+}
+
 export interface VirtualViewportConfig {
   readonly enabled: boolean
   readonly lineHeight?: number
@@ -53,6 +100,8 @@ export interface EditorViewConfig {
   readonly editable?: boolean
   readonly assetProvider?: AssetProvider
   readonly virtualViewport?: VirtualViewportConfig
+  readonly controlledRenderers?: readonly ControlledRenderer[]
+  readonly markdownSyntax?: readonly ControlledMarkdownSyntax[]
   readonly document?: Document
   readonly dispatch?: EditorViewDispatch
 }

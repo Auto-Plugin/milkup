@@ -32,14 +32,14 @@ test('desktop shell loads editor and tracks dirty session state', async ({ page 
   await expect(page.getByRole('heading', { name: 'sample' })).toBeVisible()
   await expect(page.locator('[data-title-path]')).toHaveText('D:/notes')
   await expect(page.locator('[data-save-label]')).toContainText('已保存')
-  await expect(page.locator('[data-stat="document-id"]')).toHaveText('desktop-sample')
+  await expect(page.locator('[data-stat="document-id"]')).toHaveText('file:D:/notes/sample.md')
   await expect(page.locator('[data-stat="line-ending"]')).toHaveText('crlf')
   await expect(page.locator('[data-stat="version"]')).toHaveText('0')
   await expect(page.locator('[data-stat="saved"]')).toHaveText('0')
 
   await runMenuCommand(page, '在文件夹中显示')
 
-  await expect(page.locator('[data-stat="document-id"]')).toHaveText('desktop-sample')
+  await expect(page.locator('[data-stat="document-id"]')).toHaveText('file:D:/notes/sample.md')
 
   await page.keyboard.type('hello')
 
@@ -104,7 +104,7 @@ test('desktop shell loads editor and tracks dirty session state', async ({ page 
   await runMenuCommand(page, '关闭标签')
 
   await expect(page.locator('[data-save-label]')).toContainText('未保存')
-  await expect(page.locator('[data-stat="document-id"]')).toHaveText('desktop-sample')
+  await expect(page.locator('[data-stat="document-id"]')).toHaveText('file:D:/notes/sample.md')
 
   await runDeveloperCommand(page, '模拟外部修改')
 
@@ -119,6 +119,60 @@ test('desktop shell loads editor and tracks dirty session state', async ({ page 
 
   await expect(page.getByRole('heading', { name: '未命名' })).toBeVisible()
   await expect(page.locator('[data-stat="document-id"]')).toContainText('desktop-untitled')
+})
+
+test('plugin manager restores, executes, disables, and reenables a Worker plugin', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const manifest = {
+      id: 'e2e-tools',
+      name: 'E2E Tools',
+      version: '1.0.0',
+      main:
+        'data:text/javascript,' +
+        encodeURIComponent(
+          "export default { commands: { 'e2e.hello': () => 'hello from plugin' } }",
+        ),
+      contributes: {
+        commands: [{ id: 'e2e.hello', title: 'Plugin Hello', action: 'e2e.hello' }],
+        keymaps: [{ command: 'e2e.hello', key: 'Mod+Alt+H', when: 'editorFocus' }],
+      },
+    }
+    const record = {
+      manifest,
+      manifestPath: 'D:/plugins/e2e/plugin.json',
+      rootPath: 'D:/plugins/e2e',
+      sourcePath: 'D:/plugins/e2e/plugin.json',
+      state: 'enabled',
+      enabled: true,
+      installedAt: 1,
+      updatedAt: 1,
+      trust: 'development',
+      dataRoot: 'milkup://plugin-data/e2e-tools',
+      storageRoot: 'milkup://plugin-storage/e2e-tools',
+      approvals: { permissions: [], hosts: ['worker'] },
+      errors: [],
+    }
+    localStorage.setItem(
+      'milkup.desktop.plugins.registry.v1',
+      JSON.stringify({ version: 1, records: [record], auditRecords: [] }),
+    )
+  })
+  await page.goto('/')
+  await page.getByRole('button', { name: '菜单' }).click()
+  await page.getByRole('button', { name: '插件', exact: true }).click()
+
+  await expect(page.getByRole('heading', { name: 'E2E Tools' })).toBeVisible()
+  await expect(page.locator('.plugin-state')).toHaveText('已启用')
+  await page.getByRole('button', { name: 'Plugin Hello' }).click()
+  await page.getByRole('button', { name: '禁用' }).click()
+
+  await expect(page.locator('.plugin-state')).toHaveText('已禁用')
+  await expect(page.getByRole('button', { name: 'Plugin Hello' })).toHaveCount(0)
+  await page.getByRole('button', { name: '启用' }).click()
+  await expect(page.locator('.plugin-state')).toHaveText('已启用')
+  await expect(page.getByText('Mod+Alt+H')).toBeVisible()
 })
 
 test('desktop shell imports pasted image files through asset provider', async ({ page }) => {
@@ -311,4 +365,3 @@ test('desktop shell confirms before closing a dirty window', async ({ page }) =>
   await expect(dialog).toBeHidden()
   await expect(page.locator('[data-save-label]')).toContainText('已保存')
 })
-

@@ -1,5 +1,34 @@
 export type MarkdownExtensionHook = 'block' | 'inline'
 
+export interface MarkdownSyntaxExtension {
+  readonly id: string
+  readonly nodeType: string
+  readonly pattern: string
+  readonly flags?: string
+  readonly block?: boolean
+  readonly inline?: boolean
+}
+
+export function compileMarkdownSyntaxPattern(extension: MarkdownSyntaxExtension): RegExp {
+  if (extension.pattern.length > 256) {
+    throw new Error(`Markdown syntax pattern is too long: ${extension.id}`)
+  }
+
+  if (
+    /\(\?[<!=]|\\[1-9]|\([^)]*(?:\*|\+|\{\d+,?\d*\})[^)]*\)(?:\*|\+|\{)/.test(extension.pattern)
+  ) {
+    throw new Error(`Markdown syntax pattern uses unsafe features: ${extension.id}`)
+  }
+
+  const flags = extension.flags ?? ''
+
+  if (!/^[imu]*$/.test(flags)) {
+    throw new Error(`Markdown syntax flags are invalid: ${extension.id}`)
+  }
+
+  return new RegExp(extension.pattern, flags)
+}
+
 export interface MarkdownExtensionContext {
   readonly extensionName: string
   readonly hook: MarkdownExtensionHook

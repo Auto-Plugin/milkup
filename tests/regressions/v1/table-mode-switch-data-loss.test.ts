@@ -12,7 +12,7 @@ const issue = v1Issue({
 })
 
 describe('v1 regression: table data survives mode switches', () => {
-  it('keeps pasted table Markdown stable across source/live/preview toggles', async () => {
+  it('keeps pasted table Markdown stable across source/live toggles', async () => {
     expect(issue.risk).toContain('lose pipes')
 
     const editor = createRegressionEditor('', Selection.cursor(0))
@@ -23,9 +23,9 @@ describe('v1 regression: table data survives mode switches', () => {
     const history = editor.view.state.history
 
     editor.setMode('live')
-    editor.setMode('preview')
     editor.setMode('source')
     editor.setMode('live')
+    editor.setMode('source')
 
     expect(editor.view.state.doc.text).toBe(pasted)
     expect(editor.view.state.doc.text).toBe('| Name | Status |\n| --- | --- |\n| paste | ok |')

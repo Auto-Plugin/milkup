@@ -28,7 +28,7 @@ export interface OpenFileRequestOptions {
 }
 
 export interface DesktopFileService {
-  selectOpenFile(): Promise<string | undefined>
+  selectOpenFile(additionalExtensions?: readonly string[]): Promise<string | undefined>
   openFile(options?: OpenFileRequestOptions): Promise<OpenFileResult | undefined>
   openPath(path: string, options?: OpenFileRequestOptions): Promise<OpenFileResult>
   getFileMetadata(path: string): Promise<DesktopTextFileMetadata>
@@ -152,14 +152,27 @@ function createMockFileService(): DesktopFileService {
 
 function createTauriFileService(): DesktopFileService {
   return {
-    async selectOpenFile(): Promise<string | undefined> {
+    async selectOpenFile(
+      additionalExtensions: readonly string[] = [],
+    ): Promise<string | undefined> {
       let selected = getNativeTestPath('open')
 
       if (!selected) {
         const { open } = await import('@tauri-apps/plugin-dialog')
         const dialogSelection = await open({
           multiple: false,
-          filters: [{ name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'txt'] }],
+          filters: [
+            {
+              name: 'Documents',
+              extensions: [
+                'md',
+                'markdown',
+                'mdown',
+                'txt',
+                ...additionalExtensions.map((item) => item.replace(/^\./, '')),
+              ],
+            },
+          ],
         })
 
         selected = typeof dialogSelection === 'string' ? dialogSelection : undefined

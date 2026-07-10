@@ -1,5 +1,6 @@
 import { parseMarkdown, type MarkdownParseResult } from '../block/parser'
 import type { SourceRange, SyntaxNode } from '../cst/node'
+import type { MarkdownSyntaxExtension } from '../extensions/safe'
 
 export interface MarkdownParseCache {
   readonly source: string
@@ -16,6 +17,7 @@ export interface ParseChange {
 export interface IncrementalParseOptions {
   readonly previous?: MarkdownParseCache
   readonly change?: ParseChange
+  readonly syntaxExtensions?: readonly MarkdownSyntaxExtension[]
 }
 
 export interface IncrementalMarkdownParseResult extends MarkdownParseResult {
@@ -45,7 +47,9 @@ export function parseMarkdownIncremental(
           to: options.change.to,
         })
       : undefined
-  const parsed = parseMarkdown(source)
+  const parsed = parseMarkdown(source, {
+    ...(options.syntaxExtensions ? { syntaxExtensions: options.syntaxExtensions } : {}),
+  })
 
   return Object.freeze({
     ...parsed,

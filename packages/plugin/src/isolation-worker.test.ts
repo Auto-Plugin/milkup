@@ -5,11 +5,14 @@ import {
   ActionRegistry,
   BasicEditor,
   EditorState,
+  MemoryDocumentSource,
   MemoryTextDocument,
   Selection,
 } from '@milkup/core'
 import { dispatchInsert } from '@milkup/plugin-sdk'
 
+import { createPluginDocumentBroker } from './document-broker'
+import { createPluginUiBroker } from './ui-broker'
 import {
   createPluginFileBroker,
   type PluginFileAuditRecord,
@@ -30,6 +33,96 @@ import type { PluginManifest } from './manifest'
 import { PluginRuntime, type PluginModule } from './runtime'
 
 describe('browser worker plugin isolation', () => {
+  it('streams document scan results into an isolated plugin', async () => {
+    const { main, worker } = createEndpointPair()
+    const manifest: PluginManifest = {
+      id: 'outline-worker',
+      name: 'Outline Worker',
+      version: '1.0.0',
+      main: './outline.js',
+      permissions: ['document:read'],
+      contributes: {
+        ui: [
+          {
+            id: 'outline',
+            title: 'Outline',
+            slot: 'sidebar-panel',
+            scope: 'document',
+          },
+        ],
+      },
+    }
+    const source = new MemoryDocumentSource({
+      documentId: 'outline-doc',
+      text: ['# One', '## Two'].join('\n'),
+      version: 3,
+    })
+    const documentBroker = createPluginDocumentBroker({
+      pluginId: manifest.id,
+      source: () => source,
+    })
+    const headings: string[] = []
+    const uiUpdates: string[] = []
+    const revealedLines: number[] = []
+    const uiBroker = createPluginUiBroker({
+      pluginId: manifest.id,
+      viewIds: ['outline'],
+      update: (pluginId, viewId) => {
+        uiUpdates.push(`${pluginId}:${viewId}`)
+      },
+      revealLine: (line) => {
+        revealedLines.push(line)
+      },
+    })
+    const module: PluginModule = {
+      activate: async (context) => {
+        const scanner = context.host.document?.scan({
+          query: { kind: 'markdownHeadings' },
+          windowSizeLines: 1,
+        })
+
+        if (!scanner) throw new Error('Document scan host is unavailable')
+        for await (const event of scanner) {
+          if (event.type === 'batch') {
+            headings.push(
+              ...event.items.filter((item) => item.kind === 'heading').map((item) => item.label),
+            )
+            await context.host.ui?.requestUpdate('outline')
+          }
+        }
+        await context.host.ui?.revealLine(2)
+      },
+    }
+    const realm = initializePluginWorkerRealm(worker, {
+      importModule: async () => ({ default: module }),
+    })
+    const workerHost = createBrowserWorkerPluginHost({
+      worker: main,
+      manifest,
+      moduleSpecifier: './outline.js',
+      documentBroker,
+      uiBroker,
+    })
+    const runtime = new PluginRuntime({
+      allowedPermissions: ['document:read'],
+      documentBroker,
+      uiBroker,
+    })
+
+    await workerHost.ready
+    runtime.loadPlugin({
+      manifest,
+      module: createIsolatedPluginModule({ manifest, host: workerHost.host }),
+    })
+    await runtime.enablePlugin(manifest.id)
+
+    expect(headings).toEqual(['One', 'Two'])
+    expect(uiUpdates).toEqual(['outline-worker:outline', 'outline-worker:outline'])
+    expect(revealedLines).toEqual([2])
+    workerHost.dispose()
+    realm.dispose()
+  })
+
   it('loads and executes a plugin module inside a worker-style realm', async () => {
     const { main, worker } = createEndpointPair()
     const manifest = commandManifest()

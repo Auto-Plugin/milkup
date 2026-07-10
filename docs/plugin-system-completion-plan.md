@@ -1,7 +1,9 @@
 # 插件系统完善计划
 
-> 状态：下一阶段实施草案。
+> 状态：M1-M7 已实现并完成主要验证（2026-07-10）；Rust 测试二进制受本机运行库问题限制，详见第 7 节。
 > 目标：把现有的沙箱化插件运行时，完善成用户可安装、可管理、可扩展 UI/行为的插件平台，同时不削弱编辑器可靠性、文件安全和大文件能力。
+
+插件作者文档见 [Milkup 插件开发指南](./plugin-development-guide.md)。
 
 ## 1. 基本原则
 
@@ -26,20 +28,21 @@
 - sidecar 基础设施已存在，但需要宿主显式允许。
 - CLI/headless 路径也复用隔离和 broker 模型。
 
-仍缺少：
+本阶段新增完成：
 
-- 桌面端插件管理器 UI。
-- 用户安装、启用、禁用、移除、更新流程。
-- 插件命令接入菜单/命令面板。
-- `keymaps` 在桌面端的完整接入。
-- `markdownSyntax` 和 `renderers` 接入真实编辑器渲染链路。
-- 稳定 UI 插槽。
-- 插件存储、设置、诊断和审计界面。
-- 插件包格式和信任策略。
+- 桌面端插件管理器，以及安装、导出、启用、禁用、重载和移除流程。
+- 插件命令、快捷键、冲突状态和上下文条件接入。
+- `.milkup-plugin` 包格式、兼容性校验、隔离数据目录和开发目录加载。
+- `markdownSyntax`、受控 `renderers` 和错误 fallback 接入真实编辑器链路。
+- 菜单页、侧边栏、底部面板、文档工具栏、状态栏和 modal 六类 UI 插槽。
+- importer、自定义文档类型、生成 Markdown 和只读自定义视图。
+- 权限审批、审计日志、network origin allowlist、隔离 storage 和 sidecar 生命周期。
 
 ## 3. 面向用户的里程碑
 
 ### M1. 桌面端插件管理器
+
+实现状态：已完成。
 
 交付内容：
 
@@ -58,6 +61,8 @@
 
 ### M2. 命令和快捷键接入
 
+实现状态：已完成。
+
 交付内容：
 
 - 将插件命令接入桌面端命令注册表。
@@ -73,6 +78,12 @@
 - 权限被拒绝时有可见错误，且不影响应用运行。
 
 ### M3. 插件包和加载流程
+
+实现状态：已完成。
+
+插件包采用 `.milkup-plugin` JSON 容器，`format` 固定为 `milkup-plugin`、`version` 固定为 `1`。容器内包含经过共享校验的 `manifest` 和 `files`；文本模块/资源使用 `utf8`，可选 sidecar 二进制使用 `base64`。所有文件路径必须是包内相对路径，不能包含向上的 `..` 跳转。
+
+开发目录仍可直接选择 `plugin.json`。Worker 插件的 `main` 指向包内自包含 ESM 入口；`resources` 列出需要随包导入导出的其他文件。
 
 交付内容：
 
@@ -90,6 +101,8 @@
 
 ### M4. Markdown 语法和渲染器贡献
 
+实现状态：已完成。
+
 交付内容：
 
 - 将 `markdownSyntax` 通过受控 API 接入解析/分词链路。
@@ -105,6 +118,8 @@
 - renderer 不能修改自己插槽外的编辑器 DOM。
 
 ### M5. UI 扩展插槽
+
+实现状态：已完成。
 
 交付内容：
 
@@ -127,6 +142,8 @@
 
 ### M6. 自定义文档类型和导入器
 
+实现状态：已完成。
+
 交付内容：
 
 - 增加 importer 贡献点，支持 ChatGPT 导出等文件类型。
@@ -142,6 +159,8 @@
 
 ### M7. 系统能力扩展
 
+实现状态：已完成。
+
 交付内容：
 
 - 为 file、network、app-control、sidecar 权限增加用户审批 UI。
@@ -156,25 +175,6 @@
 - 每个系统能力在安装/启用时都清晰可见。
 - sidecar 插件必须显式启用，并和普通 Worker 插件明显区分。
 
-### M8. 性能策略扩展点
-
-交付内容：
-
-- 当前全量/性能模式策略继续由宿主默认掌控。
-- 在插件 UI 和 document provider 稳定后，再设计受控 provider：
-  - `documentSourceProvider`
-  - `documentOpenPolicyProvider`
-  - `viewportContentProvider`
-  - `savePipelineProvider`
-- 为大文档行为增加专门 capability。
-- 增加回退到内置策略的硬保护。
-
-验收标准：
-
-- 插件不能在没有明确授权的情况下替换大文件编辑策略。
-- provider 失败时，宿主可以恢复到内置性能策略。
-- IME、选区、光标、撤销、保存、关闭保护继续由宿主验证。
-
 ## 4. 推荐实施顺序
 
 1. 在桌面端“插件”菜单页做插件管理器外壳。
@@ -184,7 +184,6 @@
 5. 增加 UI 扩展插槽。
 6. 增加 importer 和自定义 document type provider。
 7. 增加权限审批、审计、storage 和 sidecar 产品化。
-8. 最后设计受控的性能/document-source provider。
 
 ## 5. 测试策略
 
@@ -195,10 +194,22 @@
 - file broker、sidecar 生命周期、插件包加载使用 native smoke 覆盖。
 - 插件安装/移除 UX 和系统文件权限行为保留人工验证。
 
-## 6. 下一阶段不做
+## 6. 本阶段不做
 
 - 任意 DOM 注入。
 - 第三方替换核心编辑器视图。
 - 第三方替换性能模式内部实现。
 - marketplace、签名和自动更新。
 - 未 broker 化的原生能力。
+
+## 7. 实现验证
+
+2026-07-10 的验证结果：
+
+- `pnpm typecheck`：通过，覆盖 14 个工作区项目。
+- `pnpm test`：通过；其中 plugin 追加校验后为 95 个测试、desktop 52 个、markdown 55 个、view-dom 140 个。
+- `pnpm build`：通过，desktop、playground、CLI 和共享包均完成生产构建。
+- desktop Playwright E2E：5/5 通过，包含插件启动恢复、命令执行、禁用清理、重新启用和快捷键展示。
+- `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml`：通过。
+- `cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml`：测试目标编译成功，但 Windows 在启动测试二进制时返回 `0xc0000139 STATUS_ENTRYPOINT_NOT_FOUND`；这是本机动态运行库入口点问题，Rust 单测未能在该环境实际执行。
+- 应用内浏览器人工检查：默认桌面视口和 390×844 移动视口均可用；插件页无内容遮挡或横向溢出，控制台无应用错误。

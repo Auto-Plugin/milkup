@@ -3,9 +3,11 @@ use std::collections::HashMap;
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::io::{BufRead, BufReader, Read, Seek, SeekFrom, Write};
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 #[cfg(windows)]
 use std::os::windows::ffi::OsStrExt;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -13,7 +15,7 @@ use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Emitter, State, Window};
+use tauri::{AppHandle, Emitter, Manager, State, Window};
 
 const FILE_WATCH_EVENT_NAME: &str = "milkup-file-watch-event";
 const PLUGIN_SIDECAR_EVENT_NAME: &str = "milkup-plugin-sidecar-message";
@@ -313,6 +315,82 @@ fn delete_plugin_file(path: String) -> Result<bool, String> {
     let resolved = resolve_plugin_path(&path)?;
 
     fs::remove_file(resolved).map_err(|error| error.to_string())?;
+    Ok(true)
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PluginDirectoryPaths {
+    package_root: String,
+    data_root: String,
+    storage_root: String,
+}
+
+#[tauri::command]
+fn ensure_plugin_directories(
+    app: AppHandle,
+    plugin_id: String,
+) -> Result<PluginDirectoryPaths, String> {
+    validate_plugin_id(&plugin_id)?;
+    let base = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| error.to_string())?
+        .join("plugins")
+        .join(&plugin_id);
+    let package_root = base.join("package");
+    let data_root = base.join("data");
+    let storage_root = base.join("storage");
+    fs::create_dir_all(&package_root).map_err(|error| error.to_string())?;
+    fs::create_dir_all(&data_root).map_err(|error| error.to_string())?;
+    fs::create_dir_all(&storage_root).map_err(|error| error.to_string())?;
+
+    Ok(PluginDirectoryPaths {
+        package_root: path_to_string(package_root),
+        data_root: path_to_string(data_root),
+        storage_root: path_to_string(storage_root),
+    })
+}
+
+#[tauri::command]
+fn install_plugin_package_file(
+    app: AppHandle,
+    plugin_id: String,
+    relative_path: String,
+    data: Vec<u8>,
+    executable: bool,
+) -> Result<String, String> {
+    let roots = ensure_plugin_directories(app, plugin_id)?;
+    let relative = validate_plugin_relative_path(&relative_path)?;
+    let target = PathBuf::from(roots.package_root).join(relative);
+
+    if let Some(parent) = target.parent() {
+        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+    }
+    fs::write(&target, data).map_err(|error| error.to_string())?;
+    #[cfg(unix)]
+    if executable {
+        fs::set_permissions(&target, fs::Permissions::from_mode(0o700))
+            .map_err(|error| error.to_string())?;
+    }
+    #[cfg(not(unix))]
+    let _ = executable;
+    Ok(path_to_string(target))
+}
+
+#[tauri::command]
+fn remove_installed_plugin_package(app: AppHandle, plugin_id: String) -> Result<bool, String> {
+    validate_plugin_id(&plugin_id)?;
+    let root = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| error.to_string())?
+        .join("plugins")
+        .join(plugin_id);
+
+    if root.exists() {
+        fs::remove_dir_all(root).map_err(|error| error.to_string())?;
+    }
     Ok(true)
 }
 
@@ -868,6 +946,9 @@ pub fn run() {
             read_plugin_text_file,
             write_plugin_text_file,
             delete_plugin_file,
+            ensure_plugin_directories,
+            install_plugin_package_file,
+            remove_installed_plugin_package,
             open_large_text_file,
             read_large_text_file_chunk,
             read_large_text_file_line_window,
@@ -1015,6 +1096,35 @@ fn resolve_plugin_path(path: &str) -> Result<PathBuf, String> {
     let resolved_parent = parent.canonicalize().map_err(|error| error.to_string())?;
 
     Ok(resolved_parent.join(file_name))
+}
+
+fn validate_plugin_id(plugin_id: &str) -> Result<(), String> {
+    if plugin_id.is_empty()
+        || plugin_id.len() > 128
+        || !plugin_id
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '_' | '-'))
+    {
+        return Err("Plugin id contains invalid path characters".to_string());
+    }
+    Ok(())
+}
+
+fn validate_plugin_relative_path(path: &str) -> Result<PathBuf, String> {
+    let candidate = Path::new(path);
+
+    if candidate.as_os_str().is_empty() || candidate.is_absolute() {
+        return Err("Plugin package path must be relative".to_string());
+    }
+
+    if candidate
+        .components()
+        .any(|component| !matches!(component, Component::Normal(_)))
+    {
+        return Err("Plugin package path must stay inside the package root".to_string());
+    }
+
+    Ok(candidate.to_path_buf())
 }
 
 fn path_to_string(path: PathBuf) -> String {
@@ -1199,6 +1309,16 @@ fn read_text_byte_range(path: &Path, from_byte: usize, to_byte: usize) -> Result
     file.read_exact(&mut bytes)
         .map_err(|error| error.to_string())?;
     String::from_utf8(bytes).map_err(|error| error.to_string())
+}
+
+fn read_text_byte(path: &Path, byte_offset: usize) -> Result<u8, String> {
+    let mut file = fs::File::open(path).map_err(|error| error.to_string())?;
+    file.seek(SeekFrom::Start(byte_offset as u64))
+        .map_err(|error| error.to_string())?;
+    let mut byte = [0_u8; 1];
+    file.read_exact(&mut byte)
+        .map_err(|error| error.to_string())?;
+    Ok(byte[0])
 }
 
 fn read_large_text_byte_range(
@@ -1646,9 +1766,13 @@ fn line_content_end_byte(
         return Ok(raw_end);
     }
 
-    let previous = read_large_text_byte_range(store, raw_end - 1, raw_end)?;
+    let previous = if let Some(text) = store.materialized_text.as_deref() {
+        text.as_bytes()[raw_end - 1]
+    } else {
+        read_text_byte(effective_large_file_path(store), raw_end - 1)?
+    };
 
-    Ok(if previous.as_bytes() == b"\r" {
+    Ok(if previous == b'\r' {
         raw_end - 1
     } else {
         raw_end
@@ -1831,6 +1955,18 @@ mod tests {
     }
 
     #[test]
+    fn plugin_package_paths_cannot_escape_the_plugin_root() {
+        assert!(validate_plugin_id("example.tools-1").is_ok());
+        assert!(validate_plugin_id("../outside").is_err());
+        assert_eq!(
+            validate_plugin_relative_path("dist/plugin.js").expect("valid package path"),
+            PathBuf::from("dist/plugin.js")
+        );
+        assert!(validate_plugin_relative_path("../outside.exe").is_err());
+        assert!(validate_plugin_relative_path("/absolute/plugin.js").is_err());
+    }
+
+    #[test]
     fn large_file_line_index_handles_lf_crlf_and_trailing_newline() {
         let dir = create_test_dir("large-line-index");
         let store = create_large_file_store(&dir, "large.md", "alpha\r\nbeta\n");
@@ -1903,6 +2039,24 @@ mod tests {
             vec![(1, 0, 8, 0, 4, "a😀中"), (2, 10, 11, 6, 7, "b")]
         );
         assert!(store.materialized_text.is_none());
+        remove_test_dir(dir);
+    }
+
+    #[test]
+    fn large_file_line_window_accepts_utf8_character_before_lf() {
+        let dir = create_test_dir("large-utf8-before-lf");
+        let store = create_large_file_store(&dir, "large.md", "# 标题\n正文😀\n");
+
+        let (_from_byte, _to_byte, lines) =
+            read_large_line_window(&store, 1, 3).expect("read unicode LF line window");
+
+        assert_eq!(
+            lines
+                .iter()
+                .map(|line| line.text.as_str())
+                .collect::<Vec<_>>(),
+            vec!["# 标题", "正文😀", ""]
+        );
         remove_test_dir(dir);
     }
 

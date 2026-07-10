@@ -1,4 +1,62 @@
 export {
+  createPluginDocumentBroker,
+  createPluginDocumentHostCapabilities,
+  type ManagedPluginDocumentBroker,
+  type PluginDocumentBroker,
+  type PluginDocumentBrokerConfig,
+  type PluginDocumentHost,
+  type PluginDocumentScanEvent,
+  type PluginDocumentScanHeading,
+  type PluginDocumentScanItem,
+  type PluginDocumentScanMatch,
+  type PluginDocumentScanQuery,
+  type PluginDocumentScanRequest,
+  type PluginDocumentScanner,
+  type PluginDocumentScanSource,
+  type PluginDocumentScanStartResult,
+} from './document-broker'
+export {
+  createPluginDocumentRpcServer,
+  createRpcPluginDocumentBroker,
+  type PluginDocumentRpcBrokerOptions,
+  type PluginDocumentRpcServer,
+  type RpcPluginDocumentBroker,
+} from './document-rpc'
+export {
+  createPluginUiBroker,
+  createPluginUiHostCapabilities,
+  type PluginUiBroker,
+  type PluginUiBrokerConfig,
+  type PluginUiHost,
+} from './ui-broker'
+export { createPluginUiRpcServer, createRpcPluginUiBroker, type RpcPluginUiBroker } from './ui-rpc'
+export {
+  createPluginStorageBroker,
+  type PluginStorageAdapter,
+  type PluginStorageAuditRecord,
+  type PluginStorageBroker,
+  type PluginStorageBrokerConfig,
+  type PluginStorageOperation,
+} from './storage-broker'
+export {
+  createPluginStorageRpcServer,
+  createRpcPluginStorageBroker,
+  type RpcPluginStorageBroker,
+} from './storage-rpc'
+export {
+  createPluginPackageArchive,
+  isPluginPackageArchive,
+  normalizePackagePath,
+  parsePluginPackageArchive,
+  PLUGIN_PACKAGE_FORMAT,
+  PLUGIN_PACKAGE_VERSION,
+  readPluginPackageTextFile,
+  serializePluginPackageArchive,
+  type PluginPackageArchive,
+  type PluginPackageFile,
+  type PluginPackageFileEncoding,
+} from './package'
+export {
   createPluginFileBroker,
   createPluginFileHostCapabilities,
   type PluginFileAuditRecord,
@@ -99,7 +157,10 @@ export {
   validatePluginManifest,
   type PluginCommandContribution,
   type PluginContributionSet,
+  type PluginDocumentTypeContribution,
+  type PluginEngineCompatibility,
   type PluginHostKind,
+  type PluginImporterContribution,
   type PluginKeymapContribution,
   type PluginManifest,
   type PluginManifestValidationError,
@@ -107,7 +168,35 @@ export {
   type PluginMarkdownSyntaxContribution,
   type PluginPermission,
   type PluginRendererContribution,
+  type PluginUiContribution,
+  type PluginUiSlot,
 } from './manifest'
+export {
+  PluginRegistry,
+  createPluginContributionIndex,
+  createPluginScopedStorage,
+  parsePluginRegistrySnapshot,
+  serializePluginRegistry,
+  type PluginApprovalState,
+  type PluginAuditOperation,
+  type PluginAuditRecord,
+  type PluginCompatibilityTarget,
+  type PluginContributionIndex,
+  type PluginDocumentTypeBinding,
+  type PluginImporterBinding,
+  type PluginInstallState,
+  type PluginKeymapBinding,
+  type PluginPackageDescriptor,
+  type PluginRegistryOptions,
+  type PluginRegistryRecord,
+  type PluginRegistrySnapshot,
+  type PluginRendererBinding,
+  type PluginScopedStorage,
+  type PluginStorageHost,
+  type PluginSyntaxBinding,
+  type PluginTrustState,
+  type PluginUiBinding,
+} from './registry'
 export {
   PluginRuntime,
   type PluginActivation,
@@ -130,5 +219,8 @@ export {
   type PluginRuntimeOptions,
   type PluginRuntimePhase,
   type PluginFileBrokerProvider,
+  type PluginDocumentBrokerProvider,
+  type PluginUiBrokerProvider,
   type PluginNetworkBrokerProvider,
+  type PluginStorageBrokerProvider,
 } from './runtime'

@@ -10,7 +10,12 @@ describe('plugin manifest validation', () => {
       version: '1.2.3',
       main: './dist/plugin.js',
       description: 'Example plugin',
+      engines: {
+        milkup: '^0.1.0',
+        pluginSdk: '^0.1.0',
+      },
       permissions: ['document:read', 'document:write', 'network:access'],
+      networkOrigins: ['https://api.example.test'],
       contributes: {
         commands: [
           {
@@ -48,7 +53,33 @@ describe('plugin manifest validation', () => {
         markdownSyntax: [
           {
             id: 'example-callout',
+            nodeType: 'callout',
+            pattern: '^:::callout',
             block: true,
+          },
+        ],
+        ui: [
+          {
+            id: 'example-panel',
+            slot: 'sidebar-panel',
+            title: 'Example',
+            scope: 'document',
+          },
+        ],
+        importers: [
+          {
+            id: 'chatgpt-export',
+            title: 'ChatGPT Export',
+            extensions: ['json', 'html'],
+            target: 'markdown',
+          },
+        ],
+        documentTypes: [
+          {
+            id: 'conversation',
+            title: 'Conversation',
+            extensions: ['json'],
+            readonly: true,
           },
         ],
       },
@@ -58,7 +89,9 @@ describe('plugin manifest validation', () => {
     expect(result.errors).toEqual([])
     expect(result.manifest).toMatchObject({
       id: 'milkup.example-tools',
+      engines: { milkup: '^0.1.0', pluginSdk: '^0.1.0' },
       permissions: ['document:read', 'document:write', 'network:access'],
+      networkOrigins: ['https://api.example.test'],
       contributes: {
         commands: [
           {
@@ -77,7 +110,21 @@ describe('plugin manifest validation', () => {
         ],
         keymaps: [{ command: 'example.insertTimestamp' }],
         renderers: [{ nodeType: 'callout' }],
-        markdownSyntax: [{ id: 'example-callout', block: true }],
+        markdownSyntax: [
+          { id: 'example-callout', nodeType: 'callout', pattern: '^:::callout', block: true },
+        ],
+        ui: [{ id: 'example-panel', slot: 'sidebar-panel', title: 'Example', scope: 'document' }],
+        importers: [
+          {
+            id: 'chatgpt-export',
+            title: 'ChatGPT Export',
+            extensions: ['json', 'html'],
+            target: 'markdown',
+          },
+        ],
+        documentTypes: [
+          { id: 'conversation', title: 'Conversation', extensions: ['json'], readonly: true },
+        ],
       },
     })
     expect(Object.isFrozen(result.manifest)).toBe(true)
@@ -136,6 +183,33 @@ describe('plugin manifest validation', () => {
       path: '$.host',
       message: 'Unknown plugin host: process',
     })
+  })
+
+  it('requires network allowlist entries to be exact HTTP(S) origins', () => {
+    const result = validatePluginManifest({
+      id: 'network-tools',
+      name: 'Network Tools',
+      version: '1.0.0',
+      permissions: ['network:access'],
+      networkOrigins: [
+        'https://api.example.test/path',
+        'ftp://api.example.test',
+        'https://api.example.test',
+      ],
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.errors).toContainEqual({
+      path: '$.networkOrigins[0]',
+      message: 'Network origin must be an exact HTTP(S) origin',
+    })
+    expect(result.errors).toContainEqual({
+      path: '$.networkOrigins[1]',
+      message: 'Network origin must be an exact HTTP(S) origin',
+    })
+    expect(result.errors).not.toContainEqual(
+      expect.objectContaining({ path: '$.networkOrigins[2]' }),
+    )
   })
 
   it('rejects unknown permissions and malformed contribution arrays', () => {
@@ -244,10 +318,14 @@ describe('plugin manifest validation', () => {
         markdownSyntax: [
           {
             id: 'duplicate-syntax',
+            nodeType: 'callout',
+            pattern: '^:::callout',
             block: true,
           },
           {
             id: 'duplicate-syntax',
+            nodeType: 'note',
+            pattern: '^:::note',
             inline: true,
           },
         ],
@@ -274,6 +352,37 @@ describe('plugin manifest validation', () => {
     expect(result.errors).toContainEqual({
       path: '$.contributes.markdownSyntax[1].id',
       message: 'Duplicate markdown syntax id: duplicate-syntax',
+    })
+  })
+
+  it('rejects render handler ids shared by different contribution types', () => {
+    const result = validatePluginManifest({
+      id: 'render-tools',
+      name: 'Render Tools',
+      version: '1.0.0',
+      contributes: {
+        renderers: [{ id: 'shared-view', nodeType: 'callout', module: './shared-renderer.js' }],
+        ui: [{ id: 'shared-view', title: 'Shared', slot: 'sidebar-panel' }],
+        importers: [
+          {
+            id: 'shared-view',
+            title: 'Shared Importer',
+            extensions: ['json'],
+            output: 'markdown',
+            target: 'chat-export',
+          },
+        ],
+      },
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.errors).toContainEqual({
+      path: '$.contributes.ui[0].id',
+      message: 'Renderable contribution id conflicts with renderers: shared-view',
+    })
+    expect(result.errors).toContainEqual({
+      path: '$.contributes.importers[0].id',
+      message: 'Renderable contribution id conflicts with renderers: shared-view',
     })
   })
 
@@ -331,17 +440,39 @@ describe('plugin manifest validation', () => {
       name: 'Syntax Plugin',
       version: '1.0.0',
       contributes: {
-        markdownSyntax: [{ id: 'callout' }],
+        markdownSyntax: [{ id: 'callout', nodeType: 'callout', pattern: '^:::callout' }],
       },
     })
 
     expect(result.ok).toBe(false)
-    expect(result.errors).toEqual([
-      {
-        path: '$.contributes.markdownSyntax[0]',
-        message: 'Markdown syntax contribution must enable block or inline',
+    expect(result.errors).toContainEqual({
+      path: '$.contributes.markdownSyntax[0]',
+      message: 'Markdown syntax contribution must enable block or inline',
+    })
+  })
+
+  it('rejects unsafe markdown syntax patterns before plugin execution', () => {
+    const result = validatePluginManifest({
+      id: 'unsafe-syntax',
+      name: 'Unsafe Syntax',
+      version: '1.0.0',
+      contributes: {
+        markdownSyntax: [
+          {
+            id: 'unsafe',
+            nodeType: 'unsafeNode',
+            pattern: '(a+)+',
+            block: true,
+          },
+        ],
       },
-    ])
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.errors).toContainEqual({
+      path: '$.contributes.markdownSyntax[0].pattern',
+      message: 'Markdown syntax pattern uses unsafe features',
+    })
   })
 
   it('throws a readable aggregate error when parsing invalid manifests', () => {
