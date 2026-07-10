@@ -78,6 +78,7 @@ button:not(:disabled) {
 
 .titlebar {
   position: relative;
+  z-index: 25;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
@@ -298,7 +299,7 @@ h1 {
 .app-menu {
   position: fixed;
   z-index: 20;
-  inset: 0;
+  inset: 36px 0 0;
   background: rgb(244 246 248 / 94%);
   backdrop-filter: blur(10px);
 }
@@ -349,6 +350,9 @@ h1 {
 }
 
 .app-menu-nav button {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
   height: 38px;
   padding: 0 12px;
   border-radius: 7px;
@@ -521,6 +525,11 @@ h1 {
 
 .developer-panel .metadata-list {
   margin-top: 12px;
+}
+
+.menu-info-list {
+  width: min(460px, 100%);
+  margin-top: 16px;
 }
 
 .tool-button {

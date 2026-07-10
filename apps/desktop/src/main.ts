@@ -50,12 +50,17 @@ import {
   ChevronUp,
   ExternalLink,
   Eye,
+  FileText,
   FilePlus2,
   FolderOpen,
+  Info,
+  Keyboard,
   LoaderCircle,
   Menu,
+  Palette,
   PanelLeft,
   PanelLeftClose,
+  Plug,
   RotateCcw,
   Save,
   SaveAll,
@@ -104,6 +109,9 @@ import './style.css'
 const initialText = ''
 const desktopVirtualLineHeight = 21
 const largePreviewLineCount = 80
+const appProductName = 'milkup'
+const appVersion = '0.1.0'
+const appCopyright = 'Copyright (c) 2026 milkup. All rights reserved.'
 
 const messages = {
   titleUntitled: '未命名',
@@ -136,7 +144,7 @@ const messages = {
   menu: {
     file: '文件',
     appearance: '外观',
-    language: '语言',
+    plugins: '插件',
     shortcuts: '快捷键',
     about: '关于',
     developer: '开发者面板',
@@ -247,11 +255,11 @@ app.innerHTML = `
         </header>
         <div class="app-menu-grid">
           <nav class="app-menu-nav" aria-label="菜单分类">
-            <button type="button" data-menu-section="file" data-active="true">${messages.menu.file}</button>
-            <button type="button" data-menu-section="appearance">${messages.menu.appearance}</button>
-            <button type="button" data-menu-section="language">${messages.menu.language}</button>
-            <button type="button" data-menu-section="shortcuts">${messages.menu.shortcuts}</button>
-            <button type="button" data-menu-section="about">${messages.menu.about}</button>
+            ${menuNavButton('file', messages.menu.file, FileText, true)}
+            ${menuNavButton('appearance', messages.menu.appearance, Palette)}
+            ${menuNavButton('plugins', messages.menu.plugins, Plug)}
+            ${menuNavButton('shortcuts', messages.menu.shortcuts, Keyboard)}
+            ${menuNavButton('about', messages.menu.about, Info)}
           </nav>
           <section class="app-menu-section" data-menu-panel="file">
             <h3>${messages.menu.file}</h3>
@@ -312,14 +320,34 @@ app.innerHTML = `
           <section class="app-menu-section" data-menu-panel="appearance" hidden>
             <h3>${messages.menu.appearance}</h3>
           </section>
-          <section class="app-menu-section" data-menu-panel="language" hidden>
-            <h3>${messages.menu.language}</h3>
+          <section class="app-menu-section" data-menu-panel="plugins" hidden>
+            <h3>${messages.menu.plugins}</h3>
+            <dl class="metadata-list menu-info-list">
+              <div>
+                <dt>状态</dt>
+                <dd>暂无已安装插件</dd>
+              </div>
+            </dl>
           </section>
           <section class="app-menu-section" data-menu-panel="shortcuts" hidden>
             <h3>${messages.menu.shortcuts}</h3>
           </section>
           <section class="app-menu-section" data-menu-panel="about" hidden>
             <h3>${messages.menu.about}</h3>
+            <dl class="metadata-list menu-info-list">
+              <div>
+                <dt>软件名</dt>
+                <dd>${appProductName}</dd>
+              </div>
+              <div>
+                <dt>当前版本</dt>
+                <dd>${appVersion}</dd>
+              </div>
+              <div>
+                <dt>版权信息</dt>
+                <dd>${appCopyright}</dd>
+              </div>
+            </dl>
           </section>
         </div>
       </div>
@@ -2262,6 +2290,15 @@ function isPrimaryShortcut(event: KeyboardEvent): boolean {
 function toolbarButton(command: string, label: string, icon: IconNode): string {
   return [
     `<button type="button" class="tool-button" data-command="${command}" title="${label}">`,
+    iconSvg(icon),
+    `<span>${label}</span>`,
+    '</button>',
+  ].join('')
+}
+
+function menuNavButton(section: string, label: string, icon: IconNode, active = false): string {
+  return [
+    `<button type="button" data-menu-section="${section}"${active ? ' data-active="true"' : ''}>`,
     iconSvg(icon),
     `<span>${label}</span>`,
     '</button>',
