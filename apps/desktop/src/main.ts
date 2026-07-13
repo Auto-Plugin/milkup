@@ -26,7 +26,6 @@ import {
   applyCloseDecision,
   createDocumentSession,
   createDocumentSessionFromOpenResult,
-  createFileWatchEvent,
   evaluateCloseProtection,
   getFileActionDocumentId,
   getRevealTarget,
@@ -55,7 +54,6 @@ import type {
 } from '@milkup/view-dom'
 import {
   Bug,
-  Circle,
   Code2,
   ChevronDown,
   ChevronUp,
@@ -152,8 +150,6 @@ const messages = {
     saveAs: '另存为',
     reveal: '在文件夹中显示',
     close: '关闭标签',
-    simulateChange: '模拟外部修改',
-    simulateDelete: '模拟外部删除',
     reloadExternal: '重新载入外部更改',
     source: '源码',
     live: '实时',
@@ -207,8 +203,6 @@ const messages = {
     savedAs: '已另存为',
     revealFailed: '无法在文件夹中显示',
     closedDocument: '已关闭文档',
-    externalChangeIgnored: '未保存文档，已忽略外部修改模拟',
-    externalDeleteIgnored: '未保存文档，已忽略外部删除模拟',
   },
   loading: {
     title: '正在打开文档',
@@ -330,10 +324,10 @@ app.innerHTML = `
                   <dd data-stat="open-timings"></dd>
                 </div>
               </dl>
-              <div class="diagnostic-actions">
-                ${toolbarButton('external-change', messages.buttons.simulateChange, Circle)}
-                ${toolbarButton('external-delete', messages.buttons.simulateDelete, Circle)}
-              </div>
+              <label class="developer-toggle">
+                <input type="checkbox" data-developer-status-notice>
+                <span>显示状态栏提示</span>
+              </label>
             </details>
           </section>
           <section class="app-menu-section" data-menu-panel="appearance" hidden>
@@ -428,6 +422,7 @@ app.innerHTML = `
         </button>
         <button type="button" class="statusbar-button mode-toggle" data-mode-toggle aria-label="${messages.buttons.live}" title="${messages.buttons.live}"></button>
       </div>
+      <span class="statusbar-notice" data-notice hidden></span>
       <span class="statusbar-spacer"></span>
       <div class="statusbar-right">
         <span data-plugin-slot="statusbar"></span>
@@ -468,6 +463,9 @@ let session = createDocumentSession({
   viewMode: 'live',
 })
 let notice: string = messages.ready
+const developerStatusNoticeStorageKey = 'milkup.desktop.developer.showStatusNotice'
+let showDeveloperStatusNotice =
+  globalThis.localStorage?.getItem(developerStatusNoticeStorageKey) === 'true'
 let recentFiles: readonly RecentFileEntry[] = []
 let disposeFileWatchEvents: (() => void) | undefined
 let sidebarCollapsed = true
@@ -672,8 +670,21 @@ bindCommand('reload-external', 'file.reloadExternal')
 bindCommand('save-as', 'file.saveAs')
 bindCommand('reveal', 'file.revealInFolder')
 bindCommand('close', 'file.close')
-bindCommand('external-change', 'file.simulateExternalChange')
-bindCommand('external-delete', 'file.simulateExternalDelete')
+
+const developerStatusNoticeToggle = appRoot.querySelector<HTMLInputElement>(
+  '[data-developer-status-notice]',
+)
+if (developerStatusNoticeToggle) {
+  developerStatusNoticeToggle.checked = showDeveloperStatusNotice
+  developerStatusNoticeToggle.addEventListener('change', () => {
+    showDeveloperStatusNotice = developerStatusNoticeToggle.checked
+    globalThis.localStorage?.setItem(
+      developerStatusNoticeStorageKey,
+      String(showDeveloperStatusNotice),
+    )
+    renderSession()
+  })
+}
 
 appRoot.querySelector<HTMLElement>('[data-plugin-manager]')?.addEventListener('click', (event) => {
   const target = event.target
@@ -962,22 +973,6 @@ function createDesktopActions(): readonly ActionDefinition[] {
       risk: 'destructive',
       requiresConfirmation: true,
       run: () => closeCurrentDocument(),
-    },
-    {
-      id: 'file.simulateExternalChange',
-      title: 'Simulate External Change',
-      category: 'file',
-      permissions: ['file:write'],
-      risk: 'write',
-      run: () => simulateExternalChange(),
-    },
-    {
-      id: 'file.simulateExternalDelete',
-      title: 'Simulate External Delete',
-      category: 'file',
-      permissions: ['file:write'],
-      risk: 'write',
-      run: () => simulateExternalDelete(),
     },
     {
       id: 'view.setMode',
@@ -1756,30 +1751,46 @@ async function saveLargeDocument(): Promise<boolean> {
     notice = `正在保存大文件：${saveStage}…`
     renderSession()
     console.info(`Large document save started: ${saveStage}`)
-    await sourceView?.flushPendingEdits()
-    saveStage = '写入文件'
-    notice = `正在保存大文件：${saveStage}…`
-    renderSession()
-    console.info(`Large document save progressed: ${saveStage}`)
-    const editSnapshot = largeDocumentPreview.editSession.snapshot()
-    const snapshot = await largeTextFileService.flush(
-      largeDocumentPreview.documentId,
-      editSnapshot.version,
-    )
-    largeDocumentPreview.source.applyNativeSnapshot(snapshot)
-    largeDocumentPreview.editSession.markFlushed(snapshot.version)
-    session = recordFileSaveResult(session, {
-      documentId: session.documentId,
-      file: { path: snapshot.path },
-      diskSnapshotHash: largeSnapshotHash(snapshot.version, snapshot.sizeBytes),
-    })
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      await sourceView?.flushPendingEdits()
+      saveStage = '写入文件'
+      notice = `正在保存大文件：${saveStage}…`
+      renderSession()
+      console.info(`Large document save progressed: ${saveStage}`)
+      const editSnapshot = largeDocumentPreview.editSession.snapshot()
+      const snapshot = await largeTextFileService.flush(
+        largeDocumentPreview.documentId,
+        editSnapshot.version,
+      )
+      largeDocumentPreview.source.applyNativeSnapshot(snapshot)
+      largeDocumentPreview.editSession.markFlushed(snapshot.version)
+      session = recordFileSaveResult(session, {
+        documentId: session.documentId,
+        file: { path: snapshot.path },
+        diskSnapshotHash: largeSnapshotHash(snapshot.version, snapshot.sizeBytes),
+      })
+
+      // An edit can have started immediately before saving disabled the input.
+      await sourceView?.flushPendingEdits()
+      if (!session.dirty && largeDocumentPreview.editSession.version === snapshot.version) {
+        break
+      }
+
+      if (attempt === 2) {
+        throw new Error('Large document changed repeatedly while saving')
+      }
+      saveStage = '提交保存期间开始的编辑'
+    }
     notice = messages.notices.saved
     renderSession()
     focusActiveView()
     return true
   } catch (error: unknown) {
     console.error(`Large document save failed while ${saveStage}`, error)
-    notice = `大文件保存失败（${saveStage}）：${translateSaveSafetyMessage(getErrorMessage(error))}`
+    const message = getErrorMessage(error)
+    notice = message.includes('os error 32')
+      ? '原文件正被其他程序占用，未覆盖。请关闭占用程序后重试，或使用“另存为”。'
+      : `大文件保存失败（${saveStage}）：${translateSaveSafetyMessage(message)}`
     renderSession()
     focusActiveView()
     return false
@@ -1817,20 +1828,31 @@ async function applyLargeSourceEdit(edit: {
   }
 
   const expectedVersion = editSession.version
-  const batch = editSession.recordVisibleEdits(ChangeSet.replace(edit.from, edit.to, edit.insert), [
-    edit.deletedText,
-  ])
-  const snapshot = await applyLargeDocumentEditBatch({
-    service: largeTextFileService,
-    documentId: preview.documentId,
-    expectedVersion,
-    batch,
-  })
+  const batch = editSession.prepareVisibleEdits(
+    ChangeSet.replace(edit.from, edit.to, edit.insert),
+    [edit.deletedText],
+  )
+  let snapshot
+
+  try {
+    snapshot = await applyLargeDocumentEditBatch({
+      service: largeTextFileService,
+      documentId: preview.documentId,
+      expectedVersion,
+      batch,
+    })
+  } catch (error: unknown) {
+    notice = `大文件编辑失败：${getErrorMessage(error)}`
+    await sourceView?.renderVisibleWindow()
+    renderSession()
+    return
+  }
 
   if (!snapshot) {
     return
   }
 
+  editSession.confirmVisibleEdits(batch, snapshot.version)
   preview.source.applyNativeSnapshot(snapshot)
   session = recordDocumentTransaction(session, {
     changes: ChangeSet.replace(edit.from, edit.to, edit.insert),
@@ -1850,7 +1872,7 @@ async function applyLargeEditHistoryBatch(direction: 'undo' | 'redo'): Promise<v
   }
 
   const expectedVersion = editSession.version
-  const batch = direction === 'undo' ? editSession.undo() : editSession.redo()
+  const batch = direction === 'undo' ? editSession.prepareUndo() : editSession.prepareRedo()
 
   if (!batch) {
     return
@@ -1865,6 +1887,11 @@ async function applyLargeEditHistoryBatch(direction: 'undo' | 'redo'): Promise<v
     })
 
     if (snapshot) {
+      if (direction === 'undo') {
+        editSession.confirmUndo(snapshot.version)
+      } else {
+        editSession.confirmRedo(snapshot.version)
+      }
       preview.source.applyNativeSnapshot(snapshot)
     }
 
@@ -2204,49 +2231,6 @@ function closeCurrentDocument(): void {
   notice = messages.notices.closedDocument
   renderSession()
   focusActiveView()
-}
-
-function simulateExternalChange(): void {
-  if (!session.file) {
-    notice = messages.notices.externalChangeIgnored
-    renderSession()
-    view?.inputDOM.focus({ preventScroll: true })
-    return
-  }
-
-  session = applyFileWatchEvent(
-    session,
-    createFileWatchEvent({
-      kind: 'modified',
-      documentId: session.documentId,
-      file: session.file,
-      diskSnapshotHash: `external:${Date.now()}`,
-    }),
-  )
-  notice = messages.notices.externalModified
-  renderSession()
-  view?.inputDOM.focus({ preventScroll: true })
-}
-
-function simulateExternalDelete(): void {
-  if (!session.file) {
-    notice = messages.notices.externalDeleteIgnored
-    renderSession()
-    view?.inputDOM.focus({ preventScroll: true })
-    return
-  }
-
-  session = applyFileWatchEvent(
-    session,
-    createFileWatchEvent({
-      kind: 'deleted',
-      documentId: session.documentId,
-      file: session.file,
-    }),
-  )
-  notice = messages.notices.externalDeleted
-  renderSession()
-  view?.inputDOM.focus({ preventScroll: true })
 }
 
 function setViewMode(mode: SessionViewMode): void {
@@ -3128,6 +3112,10 @@ function renderSession(): void {
   setText('[data-stat="render-strategy"]', currentOpenPolicy.renderStrategy)
   setText('[data-stat="open-timings"]', formatOpenStageDiagnostics(lastOpenDiagnostics))
   setText('[data-save-label]', saveStateLabel)
+  setText('[data-notice]', notice)
+  appRoot
+    .querySelector<HTMLElement>('[data-notice]')
+    ?.toggleAttribute('hidden', !showDeveloperStatusNotice || notice.length === 0)
 
   const dirtyDot = app?.querySelector<HTMLElement>('[data-save-dot]')
   dirtyDot?.classList.toggle('is-dirty', session.dirty && !saving)

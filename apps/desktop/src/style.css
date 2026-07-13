@@ -527,6 +527,19 @@ h1 {
   margin-top: 12px;
 }
 
+.developer-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.developer-toggle input {
+  accent-color: var(--accent-strong);
+}
+
 .menu-info-list {
   width: min(460px, 100%);
   margin-top: 16px;
@@ -1037,22 +1050,6 @@ h1 {
   margin-top: auto;
 }
 
-.diagnostic-actions {
-  display: grid;
-  gap: 6px;
-}
-
-.diagnostic-actions .tool-button {
-  width: 100%;
-  justify-content: flex-start;
-  color: var(--text-muted);
-}
-
-.diagnostic-actions .icon {
-  width: 8px;
-  height: 8px;
-}
-
 .editor-panel {
   position: relative;
   display: grid;
@@ -1206,6 +1203,15 @@ h1 {
   align-items: center;
   flex: 0 0 auto;
   gap: 6px;
+}
+
+.statusbar-notice {
+  min-width: 0;
+  max-width: min(48vw, 560px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
 }
 
 .statusbar-button {
@@ -1558,8 +1564,7 @@ h1 {
     grid-template-columns: auto minmax(120px, 1fr) auto;
   }
 
-  .menu-command-list .tool-button span,
-  .diagnostic-actions .tool-button span {
+  .menu-command-list .tool-button span {
     position: static;
     width: auto;
     height: auto;
@@ -1581,8 +1586,7 @@ h1 {
     padding: 0;
   }
 
-  .menu-command-list .tool-button,
-  .diagnostic-actions .tool-button {
+  .menu-command-list .tool-button {
     padding: 0 10px;
   }
 }

@@ -2,7 +2,9 @@ use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::fs;
 use std::hash::{Hash, Hasher};
-use std::io::{BufRead, BufReader, Read, Seek, SeekFrom, Write};
+use std::io::{BufRead, BufReader, Read, Write};
+#[cfg(test)]
+use std::io::{Seek, SeekFrom};
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 #[cfg(windows)]
@@ -16,6 +18,9 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State, Window};
+
+mod piece_tree;
+use piece_tree::PieceTree;
 
 const FILE_WATCH_EVENT_NAME: &str = "milkup-file-watch-event";
 const PLUGIN_SIDECAR_EVENT_NAME: &str = "milkup-plugin-sidecar-message";
@@ -51,37 +56,18 @@ struct SidecarProcessRegistration {
 struct LargeFileRegistration {
     path: String,
     size_bytes: usize,
-    line_starts: Vec<usize>,
-    line_utf16_starts: Vec<usize>,
-    materialized_text: Option<String>,
-    pending_edits: Vec<LargeFilePendingEdit>,
-    working_path: Option<PathBuf>,
+    piece_tree: PieceTree,
     disk_snapshot_hash: String,
     version: usize,
+    saved_version: usize,
 }
 
 impl Drop for LargeFileRegistry {
     fn drop(&mut self) {
         if let Ok(stores) = self.0.get_mut() {
-            for store in stores.values_mut() {
-                if let Some(working_path) = store.working_path.take() {
-                    let _ = fs::remove_file(working_path);
-                }
-            }
+            stores.clear();
         }
     }
-}
-
-#[derive(Clone)]
-struct LargeFilePendingEdit {
-    from_byte: usize,
-    to_byte: usize,
-}
-
-struct LargeFileIndex {
-    size_bytes: usize,
-    line_starts: Vec<usize>,
-    line_utf16_starts: Vec<usize>,
 }
 
 #[tauri::command]
@@ -409,12 +395,11 @@ fn open_large_text_file_in_registry(
     path: String,
 ) -> Result<LargeFileOpenResult, String> {
     cleanup_large_file_working_temps_for_path(Path::new(&path))?;
-    let index = index_large_text_file(Path::new(&path))?;
-    let size_bytes = index.size_bytes;
-    let line_starts = index.line_starts;
-    let line_utf16_starts = index.line_utf16_starts;
+    let add_path = large_file_add_buffer_path(Path::new(&path), &document_id)?;
+    let piece_tree = PieceTree::open(Path::new(&path), add_path)?;
+    let size_bytes = piece_tree.byte_len();
     let disk_snapshot_hash = hash_file_contents(Path::new(&path))?;
-    let line_count = line_starts.len();
+    let line_count = piece_tree.line_count();
 
     {
         let mut stores = registry.lock().map_err(|error| error.to_string())?;
@@ -423,13 +408,10 @@ fn open_large_text_file_in_registry(
             LargeFileRegistration {
                 path: path.clone(),
                 size_bytes,
-                line_starts,
-                line_utf16_starts,
-                materialized_text: None,
-                pending_edits: Vec::new(),
-                working_path: None,
+                piece_tree,
                 disk_snapshot_hash,
                 version: 0,
+                saved_version: 0,
             },
         );
     }
@@ -484,8 +466,10 @@ fn read_large_text_file_line_window_from_registry(
     from_line: usize,
     to_line: usize,
 ) -> Result<LargeFileLineWindowResult, String> {
-    let stores = registry.lock().map_err(|error| error.to_string())?;
-    let store = require_large_file(&stores, &document_id)?;
+    let mut stores = registry.lock().map_err(|error| error.to_string())?;
+    let store = stores
+        .get_mut(&document_id)
+        .ok_or_else(|| format!("Unknown large text file: {document_id}"))?;
     let (from_byte, to_byte, lines) = read_large_line_window(store, from_line, to_line)?;
     let from_utf16 = lines
         .first()
@@ -535,22 +519,13 @@ fn apply_large_text_file_changes_in_registry(
     }
 
     if !changes.is_empty() {
-        materialize_large_file_text(store)?;
-        let edits = resolve_large_text_changes_to_byte_edits(store, &changes)?;
-        let current_text = store.materialized_text.as_deref().unwrap_or_default();
-        let next_text = apply_large_text_changes(current_text, &changes)?;
-        let index = index_large_text(&next_text);
-        let next_version = store.version + 1;
-
-        if let Some(previous_working_path) = store.working_path.take() {
-            let _ = fs::remove_file(previous_working_path);
-        }
-        store.size_bytes = index.size_bytes;
-        store.line_starts = index.line_starts;
-        store.line_utf16_starts = index.line_utf16_starts;
-        store.materialized_text = Some(next_text);
-        store.pending_edits.extend(edits);
-        store.version = next_version;
+        let batch = changes
+            .into_iter()
+            .map(|change| (change.from_utf16, change.to_utf16, change.insert))
+            .collect::<Vec<_>>();
+        store.piece_tree.apply_batch(&batch)?;
+        store.size_bytes = store.piece_tree.byte_len();
+        store.version += 1;
     }
 
     Ok(large_file_snapshot(&document_id, store))
@@ -582,7 +557,7 @@ fn flush_large_text_file_in_registry(
         ));
     }
 
-    if let Some(text) = store.materialized_text.clone() {
+    if store.version != store.saved_version {
         let current_disk_hash = hash_file_contents(Path::new(&store.path))?;
 
         if current_disk_hash != store.disk_snapshot_hash {
@@ -593,31 +568,17 @@ fn flush_large_text_file_in_registry(
 
         let temp_path =
             large_file_save_as_temp_path(Path::new(&store.path), &document_id, store.version)?;
-        write_text_to_synced_file(&temp_path, &text)?;
+        store.piece_tree.write_to(&temp_path)?;
+        store.piece_tree.release_base_handle();
         if let Err(error) = replace_file_with_temp(&temp_path, Path::new(&store.path)) {
+            let _ = store.piece_tree.restore_base_handle();
             let _ = fs::remove_file(&temp_path);
             return Err(error);
         }
-        store.pending_edits.clear();
-        store.materialized_text = None;
-        let index = index_large_text_file(Path::new(&store.path))?;
-        store.size_bytes = index.size_bytes;
-        store.line_starts = index.line_starts;
-        store.line_utf16_starts = index.line_utf16_starts;
+        store.piece_tree.rebase(Path::new(&store.path))?;
+        store.size_bytes = store.piece_tree.byte_len();
         store.disk_snapshot_hash = hash_file_contents(Path::new(&store.path))?;
-    } else if let Some(working_path) = store.working_path.clone() {
-        let current_disk_hash = hash_file_contents(Path::new(&store.path))?;
-
-        if current_disk_hash != store.disk_snapshot_hash {
-            return Err(
-                "Large text file changed outside the editor; refusing to overwrite".to_string(),
-            );
-        }
-
-        replace_file_with_temp(&working_path, Path::new(&store.path))?;
-        store.working_path = None;
-        store.pending_edits.clear();
-        store.disk_snapshot_hash = hash_file_contents(Path::new(&store.path))?;
+        store.saved_version = store.version;
     }
 
     Ok(large_file_snapshot(&document_id, store))
@@ -656,7 +617,7 @@ fn flush_large_text_file_as_in_registry(
     let normalized_store_path = path_to_string(PathBuf::from(&store.path));
 
     if normalized_target_path == normalized_store_path {
-        if let Some(text) = store.materialized_text.clone() {
+        if store.version != store.saved_version {
             let current_disk_hash = hash_file_contents(Path::new(&store.path))?;
 
             if current_disk_hash != store.disk_snapshot_hash {
@@ -667,31 +628,17 @@ fn flush_large_text_file_as_in_registry(
 
             let temp_path =
                 large_file_save_as_temp_path(Path::new(&store.path), &document_id, store.version)?;
-            write_text_to_synced_file(&temp_path, &text)?;
+            store.piece_tree.write_to(&temp_path)?;
+            store.piece_tree.release_base_handle();
             if let Err(error) = replace_file_with_temp(&temp_path, Path::new(&store.path)) {
+                let _ = store.piece_tree.restore_base_handle();
                 let _ = fs::remove_file(&temp_path);
                 return Err(error);
             }
-            store.pending_edits.clear();
-            store.materialized_text = None;
-            let index = index_large_text_file(Path::new(&store.path))?;
-            store.size_bytes = index.size_bytes;
-            store.line_starts = index.line_starts;
-            store.line_utf16_starts = index.line_utf16_starts;
+            store.piece_tree.rebase(Path::new(&store.path))?;
+            store.size_bytes = store.piece_tree.byte_len();
             store.disk_snapshot_hash = hash_file_contents(Path::new(&store.path))?;
-        } else if let Some(working_path) = store.working_path.clone() {
-            let current_disk_hash = hash_file_contents(Path::new(&store.path))?;
-
-            if current_disk_hash != store.disk_snapshot_hash {
-                return Err(
-                    "Large text file changed outside the editor; refusing to overwrite".to_string(),
-                );
-            }
-
-            replace_file_with_temp(&working_path, Path::new(&store.path))?;
-            store.working_path = None;
-            store.pending_edits.clear();
-            store.disk_snapshot_hash = hash_file_contents(Path::new(&store.path))?;
+            store.saved_version = store.version;
         }
 
         return Ok(large_file_snapshot(&document_id, store));
@@ -699,29 +646,17 @@ fn flush_large_text_file_as_in_registry(
 
     let temp_path = large_file_save_as_temp_path(&target_path, &document_id, store.version)?;
 
-    if let Some(text) = store.materialized_text.as_deref() {
-        write_text_to_synced_file(&temp_path, text)?;
-    } else {
-        let source_path = effective_large_file_path(store).to_path_buf();
-        copy_file_to_synced_temp(&source_path, &temp_path)?;
-    }
+    store.piece_tree.write_to(&temp_path)?;
     if let Err(error) = replace_file_with_temp(&temp_path, &target_path) {
         let _ = fs::remove_file(&temp_path);
         return Err(error);
     }
 
-    if let Some(working_path) = store.working_path.take() {
-        let _ = fs::remove_file(working_path);
-    }
-
-    let index = index_large_text_file(&target_path)?;
     store.path = normalized_target_path;
-    store.size_bytes = index.size_bytes;
-    store.line_starts = index.line_starts;
-    store.line_utf16_starts = index.line_utf16_starts;
-    store.pending_edits.clear();
-    store.materialized_text = None;
+    store.piece_tree.rebase(&target_path)?;
+    store.size_bytes = store.piece_tree.byte_len();
     store.disk_snapshot_hash = hash_file_contents(&target_path)?;
+    store.saved_version = store.version;
 
     Ok(large_file_snapshot(&document_id, store))
 }
@@ -733,11 +668,7 @@ fn close_large_text_file(
 ) -> Result<bool, String> {
     let mut stores = registry.0.lock().map_err(|error| error.to_string())?;
 
-    if let Some(store) = stores.remove(&document_id) {
-        if let Some(working_path) = store.working_path {
-            let _ = fs::remove_file(working_path);
-        }
-    }
+    stores.remove(&document_id);
     Ok(true)
 }
 
@@ -1183,84 +1114,7 @@ fn stop_sidecar_registration(mut registration: SidecarProcessRegistration) {
     let _ = registration.child.wait();
 }
 
-fn index_large_text_file(path: &Path) -> Result<LargeFileIndex, String> {
-    let file = fs::File::open(path).map_err(|error| error.to_string())?;
-    let size_bytes = file.metadata().map_err(|error| error.to_string())?.len() as usize;
-    let mut reader = BufReader::new(file);
-    let mut line_starts = vec![0];
-    let mut line_utf16_starts = vec![0];
-    let mut buffer = String::new();
-    let mut byte_offset = 0;
-    let mut utf16_offset = 0;
-
-    loop {
-        buffer.clear();
-        let read = reader
-            .read_line(&mut buffer)
-            .map_err(|error| error.to_string())?;
-
-        if read == 0 {
-            break;
-        }
-
-        byte_offset += read;
-        utf16_offset += buffer.encode_utf16().count();
-
-        if buffer.ends_with('\n') {
-            line_starts.push(byte_offset);
-            line_utf16_starts.push(utf16_offset);
-        }
-    }
-
-    Ok(LargeFileIndex {
-        size_bytes,
-        line_starts,
-        line_utf16_starts,
-    })
-}
-
-fn index_large_text(text: &str) -> LargeFileIndex {
-    if text.is_empty() {
-        return LargeFileIndex {
-            size_bytes: 0,
-            line_starts: vec![0],
-            line_utf16_starts: vec![0],
-        };
-    }
-
-    let mut line_starts = vec![0];
-    let mut line_utf16_starts = vec![0];
-    let mut byte_offset = 0;
-    let mut utf16_offset = 0;
-
-    for line in text.split_inclusive('\n') {
-        byte_offset += line.len();
-        utf16_offset += line.encode_utf16().count();
-        line_starts.push(byte_offset);
-        line_utf16_starts.push(utf16_offset);
-    }
-
-    if !text.ends_with('\n') {
-        line_starts.pop();
-        line_utf16_starts.pop();
-    }
-
-    LargeFileIndex {
-        size_bytes: text.len(),
-        line_starts,
-        line_utf16_starts,
-    }
-}
-
-fn require_large_file<'a>(
-    stores: &'a HashMap<String, LargeFileRegistration>,
-    document_id: &str,
-) -> Result<&'a LargeFileRegistration, String> {
-    stores
-        .get(document_id)
-        .ok_or_else(|| format!("Unknown large text file: {document_id}"))
-}
-
+#[cfg(test)]
 fn validate_byte_range(text: &str, from_byte: usize, to_byte: usize) -> Result<(), String> {
     if from_byte > to_byte || to_byte > text.len() {
         return Err(format!(
@@ -1290,13 +1144,10 @@ fn validate_large_file_byte_range(
         ));
     }
 
-    if let Some(text) = store.materialized_text.as_deref() {
-        validate_byte_range(text, from_byte, to_byte)?;
-    }
-
     Ok(())
 }
 
+#[cfg(test)]
 fn read_text_byte_range(path: &Path, from_byte: usize, to_byte: usize) -> Result<String, String> {
     if to_byte < from_byte {
         return Err(format!("Invalid byte range: {from_byte}-{to_byte}"));
@@ -1311,45 +1162,13 @@ fn read_text_byte_range(path: &Path, from_byte: usize, to_byte: usize) -> Result
     String::from_utf8(bytes).map_err(|error| error.to_string())
 }
 
-fn read_text_byte(path: &Path, byte_offset: usize) -> Result<u8, String> {
-    let mut file = fs::File::open(path).map_err(|error| error.to_string())?;
-    file.seek(SeekFrom::Start(byte_offset as u64))
-        .map_err(|error| error.to_string())?;
-    let mut byte = [0_u8; 1];
-    file.read_exact(&mut byte)
-        .map_err(|error| error.to_string())?;
-    Ok(byte[0])
-}
-
 fn read_large_text_byte_range(
-    store: &LargeFileRegistration,
+    store: &mut LargeFileRegistration,
     from_byte: usize,
     to_byte: usize,
 ) -> Result<String, String> {
-    if let Some(text) = store.materialized_text.as_deref() {
-        validate_byte_range(text, from_byte, to_byte)?;
-        return Ok(text[from_byte..to_byte].to_string());
-    }
-
-    read_text_byte_range(effective_large_file_path(store), from_byte, to_byte)
-}
-
-fn materialize_large_file_text(store: &mut LargeFileRegistration) -> Result<(), String> {
-    if store.materialized_text.is_none() {
-        store.materialized_text = Some(
-            fs::read_to_string(effective_large_file_path(store))
-                .map_err(|error| error.to_string())?,
-        );
-    }
-
-    Ok(())
-}
-
-fn effective_large_file_path(store: &LargeFileRegistration) -> &Path {
-    store
-        .working_path
-        .as_deref()
-        .unwrap_or_else(|| Path::new(&store.path))
+    validate_large_file_byte_range(store, from_byte, to_byte)?;
+    store.piece_tree.read_range(from_byte, to_byte)
 }
 
 #[cfg(test)]
@@ -1360,23 +1179,15 @@ fn byte_to_utf16_offset(text: &str, byte_offset: usize) -> Result<usize, String>
 }
 
 fn byte_to_utf16_offset_in_file(
-    store: &LargeFileRegistration,
+    store: &mut LargeFileRegistration,
     byte_offset: usize,
 ) -> Result<usize, String> {
     validate_large_file_byte_range(store, byte_offset, byte_offset)?;
 
-    let line_index = find_line_index_for_byte(&store.line_starts, byte_offset);
-    let line_number = line_index + 1;
-    byte_to_utf16_offset_in_line(store, line_number, byte_offset)
+    store.piece_tree.byte_to_utf16(byte_offset)
 }
 
-fn find_line_index_for_byte(line_starts: &[usize], byte_offset: usize) -> usize {
-    match line_starts.binary_search(&byte_offset) {
-        Ok(index) => index,
-        Err(index) => index.saturating_sub(1),
-    }
-}
-
+#[cfg(test)]
 fn utf16_to_byte_offset(text: &str, utf16_offset: usize) -> Result<usize, String> {
     let mut current_utf16 = 0;
 
@@ -1405,36 +1216,7 @@ fn utf16_to_byte_offset(text: &str, utf16_offset: usize) -> Result<usize, String
     }
 }
 
-fn utf16_to_byte_offset_in_large_file(
-    store: &LargeFileRegistration,
-    utf16_offset: usize,
-) -> Result<usize, String> {
-    let line_index = match store.line_utf16_starts.binary_search(&utf16_offset) {
-        Ok(index) => index,
-        Err(index) => index.saturating_sub(1),
-    };
-    let line_number = line_index + 1;
-    let line_start_byte = *store
-        .line_starts
-        .get(line_index)
-        .ok_or_else(|| format!("Invalid UTF-16 offset: {utf16_offset}"))?;
-    let line_start_utf16 = *store
-        .line_utf16_starts
-        .get(line_index)
-        .ok_or_else(|| format!("Invalid UTF-16 offset: {utf16_offset}"))?;
-    let line_end_byte = if line_number < store.line_starts.len() {
-        store.line_starts[line_number]
-    } else {
-        store.size_bytes
-    };
-    let line_text = read_large_text_byte_range(store, line_start_byte, line_end_byte)?;
-    let local_utf16 = utf16_offset
-        .checked_sub(line_start_utf16)
-        .ok_or_else(|| format!("Invalid UTF-16 offset: {utf16_offset}"))?;
-
-    Ok(line_start_byte + utf16_to_byte_offset(&line_text, local_utf16)?)
-}
-
+#[cfg(test)]
 fn apply_large_text_changes(text: &str, changes: &[LargeFileTextChange]) -> Result<String, String> {
     let mut resolved_changes = changes
         .iter()
@@ -1473,41 +1255,6 @@ fn apply_large_text_changes(text: &str, changes: &[LargeFileTextChange]) -> Resu
     Ok(next_text)
 }
 
-fn resolve_large_text_changes_to_byte_edits(
-    store: &LargeFileRegistration,
-    changes: &[LargeFileTextChange],
-) -> Result<Vec<LargeFilePendingEdit>, String> {
-    let mut edits = changes
-        .iter()
-        .map(|change| {
-            if change.from_utf16 > change.to_utf16 {
-                return Err(format!(
-                    "Invalid UTF-16 change range: {}-{}",
-                    change.from_utf16, change.to_utf16
-                ));
-            }
-
-            Ok(LargeFilePendingEdit {
-                from_byte: utf16_to_byte_offset_in_large_file(store, change.from_utf16)?,
-                to_byte: utf16_to_byte_offset_in_large_file(store, change.to_utf16)?,
-            })
-        })
-        .collect::<Result<Vec<_>, String>>()?;
-
-    edits.sort_by_key(|edit| (edit.from_byte, edit.to_byte));
-    let mut cursor = 0;
-
-    for edit in &edits {
-        if edit.from_byte < cursor {
-            return Err("Large text file changes must not overlap".to_string());
-        }
-
-        cursor = edit.to_byte;
-    }
-
-    Ok(edits)
-}
-
 fn large_file_save_as_temp_path(
     path: &Path,
     document_id: &str,
@@ -1540,30 +1287,27 @@ fn large_file_save_as_temp_path(
     )))
 }
 
-fn copy_file_to_synced_temp(source_path: &Path, temp_path: &Path) -> Result<(), String> {
-    if let Some(parent) = temp_path.parent() {
-        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
-    }
-
-    let mut source = fs::File::open(source_path).map_err(|error| error.to_string())?;
-    let mut destination = fs::File::create(temp_path).map_err(|error| error.to_string())?;
-    std::io::copy(&mut source, &mut destination).map_err(|error| error.to_string())?;
-    destination.sync_all().map_err(|error| error.to_string())?;
-
-    Ok(())
-}
-
-fn write_text_to_synced_file(path: &Path, text: &str) -> Result<(), String> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
-    }
-
-    let mut file = fs::File::create(path).map_err(|error| error.to_string())?;
-    file.write_all(text.as_bytes())
-        .map_err(|error| error.to_string())?;
-    file.sync_all().map_err(|error| error.to_string())?;
-
-    Ok(())
+fn large_file_add_buffer_path(path: &Path, document_id: &str) -> Result<PathBuf, String> {
+    let parent = path.parent().unwrap_or_else(|| Path::new("."));
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or_else(|| format!("Invalid file path: {}", path.display()))?;
+    let safe_document_id = document_id
+        .chars()
+        .map(|character| {
+            if character.is_ascii_alphanumeric() {
+                character
+            } else {
+                '-'
+            }
+        })
+        .collect::<String>();
+    Ok(parent.join(format!(
+        ".{file_name}.{LARGE_FILE_WORKING_TEMP_MARKER}.{}.{}.add.work",
+        std::process::id(),
+        safe_document_id
+    )))
 }
 
 fn cleanup_large_file_working_temps_for_path(path: &Path) -> Result<usize, String> {
@@ -1601,8 +1345,11 @@ fn cleanup_large_file_working_temps_by_prefix(dir: &Path, prefix: &str) -> Resul
         };
 
         if is_large_file_working_temp_name(name, prefix) {
-            fs::remove_file(&path).map_err(|error| error.to_string())?;
-            removed += 1;
+            match fs::remove_file(&path) {
+                Ok(()) => removed += 1,
+                Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {}
+                Err(error) => return Err(error.to_string()),
+            }
         }
     }
 
@@ -1610,7 +1357,15 @@ fn cleanup_large_file_working_temps_by_prefix(dir: &Path, prefix: &str) -> Resul
 }
 
 fn is_large_file_working_temp_name(name: &str, prefix: &str) -> bool {
-    if !name.starts_with(prefix) || !name.ends_with(".work") {
+    if !name.starts_with(prefix) {
+        return false;
+    }
+
+    if name.ends_with(".save-as.tmp") {
+        return name.contains(&format!(".{LARGE_FILE_WORKING_TEMP_MARKER}."));
+    }
+
+    if !name.ends_with(".work") {
         return false;
     }
 
@@ -1652,7 +1407,7 @@ fn large_file_snapshot(
         path: store.path.clone(),
         version: store.version,
         size_bytes: store.size_bytes,
-        line_count: store.line_starts.len(),
+        line_count: store.piece_tree.line_count(),
     }
 }
 
@@ -1720,23 +1475,24 @@ fn replace_file_atomically(from: &Path, to: &Path) -> Result<(), String> {
 }
 
 fn read_large_line_window(
-    store: &LargeFileRegistration,
+    store: &mut LargeFileRegistration,
     from_line: usize,
     to_line: usize,
 ) -> Result<(usize, usize, Vec<LargeFileLine>), String> {
-    if from_line == 0 || to_line < from_line || to_line > store.line_starts.len() {
+    let line_count = store.piece_tree.line_count();
+    if from_line == 0 || to_line < from_line || to_line > line_count {
         return Err(format!(
             "Invalid line window: {from_line}-{to_line} for {} lines",
-            store.line_starts.len()
+            line_count
         ));
     }
 
-    let from_byte = store.line_starts[from_line - 1];
+    let from_byte = store.piece_tree.line_start_byte(from_line)?;
     let to_byte = line_content_end_byte(store, to_line)?;
     let mut lines = Vec::with_capacity(to_line - from_line + 1);
 
     for number in from_line..=to_line {
-        let line_from = store.line_starts[number - 1];
+        let line_from = store.piece_tree.line_start_byte(number)?;
         let line_to = line_content_end_byte(store, number)?;
 
         lines.push(LargeFileLine {
@@ -1753,39 +1509,18 @@ fn read_large_line_window(
 }
 
 fn line_content_end_byte(
-    store: &LargeFileRegistration,
+    store: &mut LargeFileRegistration,
     line_number: usize,
 ) -> Result<usize, String> {
-    let raw_end = if line_number < store.line_starts.len() {
-        store.line_starts[line_number] - 1
-    } else {
-        store.size_bytes
-    };
-
-    if raw_end == 0 {
-        return Ok(raw_end);
-    }
-
-    let previous = if let Some(text) = store.materialized_text.as_deref() {
-        text.as_bytes()[raw_end - 1]
-    } else {
-        read_text_byte(effective_large_file_path(store), raw_end - 1)?
-    };
-
-    Ok(if previous == b'\r' {
-        raw_end - 1
-    } else {
-        raw_end
-    })
+    store.piece_tree.line_content_end_byte(line_number)
 }
 
 fn byte_to_utf16_offset_in_line(
-    store: &LargeFileRegistration,
+    store: &mut LargeFileRegistration,
     line_number: usize,
     byte_offset: usize,
 ) -> Result<usize, String> {
-    let line_start = store.line_starts[line_number - 1];
-    let line_utf16_start = store.line_utf16_starts[line_number - 1];
+    let line_start = store.piece_tree.line_start_byte(line_number)?;
 
     if byte_offset < line_start || byte_offset > store.size_bytes {
         return Err(format!(
@@ -1793,18 +1528,7 @@ fn byte_to_utf16_offset_in_line(
         ));
     }
 
-    let text = if let Some(text) = store.materialized_text.as_deref() {
-        if !text.is_char_boundary(byte_offset) {
-            return Err(format!(
-                "Byte offset {byte_offset} is not on a UTF-8 character boundary"
-            ));
-        }
-        text[line_start..byte_offset].to_string()
-    } else {
-        read_large_text_byte_range(store, line_start, byte_offset)?
-    };
-
-    Ok(line_utf16_start + text.encode_utf16().count())
+    store.piece_tree.byte_to_utf16(byte_offset)
 }
 
 #[cfg(test)]
@@ -1969,12 +1693,12 @@ mod tests {
     #[test]
     fn large_file_line_index_handles_lf_crlf_and_trailing_newline() {
         let dir = create_test_dir("large-line-index");
-        let store = create_large_file_store(&dir, "large.md", "alpha\r\nbeta\n");
+        let mut store = create_large_file_store(&dir, "large.md", "alpha\r\nbeta\n");
 
-        assert_eq!(store.line_starts, vec![0, 7, 12]);
+        assert_eq!(store.piece_tree.line_count(), 3);
 
         let (from_byte, to_byte, lines) =
-            read_large_line_window(&store, 1, 3).expect("read line window");
+            read_large_line_window(&mut store, 1, 3).expect("read line window");
 
         assert_eq!(from_byte, 0);
         assert_eq!(to_byte, 12);
@@ -2003,7 +1727,6 @@ mod tests {
                 (3, 12, 12, 12, 12, "")
             ]
         );
-        assert!(store.materialized_text.is_none());
         remove_test_dir(dir);
     }
 
@@ -2011,7 +1734,7 @@ mod tests {
     fn large_file_maps_utf8_bytes_to_utf16_offsets() {
         let dir = create_test_dir("large-utf16");
         let text = "a😀中\r\nb";
-        let store = create_large_file_store(&dir, "large.md", text);
+        let mut store = create_large_file_store(&dir, "large.md", text);
 
         assert_eq!(byte_to_utf16_offset(text, 0).expect("start offset"), 0);
         assert_eq!(byte_to_utf16_offset(text, 1).expect("ascii offset"), 1);
@@ -2020,7 +1743,7 @@ mod tests {
         assert!(byte_to_utf16_offset(text, 2).is_err());
 
         let (_from_byte, _to_byte, lines) =
-            read_large_line_window(&store, 1, 2).expect("read unicode line window");
+            read_large_line_window(&mut store, 1, 2).expect("read unicode line window");
 
         assert_eq!(
             lines
@@ -2038,17 +1761,16 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec![(1, 0, 8, 0, 4, "a😀中"), (2, 10, 11, 6, 7, "b")]
         );
-        assert!(store.materialized_text.is_none());
         remove_test_dir(dir);
     }
 
     #[test]
     fn large_file_line_window_accepts_utf8_character_before_lf() {
         let dir = create_test_dir("large-utf8-before-lf");
-        let store = create_large_file_store(&dir, "large.md", "# 标题\n正文😀\n");
+        let mut store = create_large_file_store(&dir, "large.md", "# 标题\n正文😀\n");
 
         let (_from_byte, _to_byte, lines) =
-            read_large_line_window(&store, 1, 3).expect("read unicode LF line window");
+            read_large_line_window(&mut store, 1, 3).expect("read unicode LF line window");
 
         assert_eq!(
             lines
@@ -2073,11 +1795,11 @@ mod tests {
     fn large_file_line_windows_validate_bounds() {
         let dir = create_test_dir("large-window-bounds");
         let text = "one\ntwo";
-        let store = create_large_file_store(&dir, "large.md", text);
+        let mut store = create_large_file_store(&dir, "large.md", text);
 
-        assert!(read_large_line_window(&store, 0, 1).is_err());
-        assert!(read_large_line_window(&store, 2, 1).is_err());
-        assert!(read_large_line_window(&store, 1, 3).is_err());
+        assert!(read_large_line_window(&mut store, 0, 1).is_err());
+        assert!(read_large_line_window(&mut store, 2, 1).is_err());
+        assert!(read_large_line_window(&mut store, 1, 3).is_err());
         remove_test_dir(dir);
     }
 
@@ -2160,14 +1882,17 @@ mod tests {
 
         assert_eq!(opened.size_bytes, "one\ntwo\nthree".len());
         assert_eq!(opened.line_count, 3);
-        assert!(registry
-            .0
-            .lock()
-            .expect("lock registry")
-            .get("large-doc")
-            .expect("large registration")
-            .materialized_text
-            .is_none());
+        assert_eq!(
+            registry
+                .0
+                .lock()
+                .expect("lock registry")
+                .get("large-doc")
+                .expect("large registration")
+                .piece_tree
+                .byte_len(),
+            opened.size_bytes
+        );
 
         let window = read_large_text_file_line_window_from_registry(
             &registry.0,
@@ -2178,14 +1903,17 @@ mod tests {
         .expect("read line window");
 
         assert_eq!(window.text, "two\nthree");
-        assert!(registry
-            .0
-            .lock()
-            .expect("lock registry")
-            .get("large-doc")
-            .expect("large registration")
-            .materialized_text
-            .is_none());
+        assert_eq!(
+            registry
+                .0
+                .lock()
+                .expect("lock registry")
+                .get("large-doc")
+                .expect("large registration")
+                .piece_tree
+                .byte_len(),
+            opened.size_bytes
+        );
         remove_test_dir(dir);
     }
 
@@ -2260,11 +1988,7 @@ mod tests {
         {
             let stores = registry.0.lock().expect("lock registry");
             let store = stores.get("large-doc").expect("large registration");
-            assert_eq!(
-                store.materialized_text.as_deref(),
-                Some("hello milkup\nsecond")
-            );
-            assert!(store.working_path.is_none());
+            assert_eq!(store.piece_tree.byte_len(), "hello milkup\nsecond".len());
             assert_eq!(
                 fs::read_to_string(&path).expect("read original"),
                 "hello world\nsecond"
@@ -2311,11 +2035,7 @@ mod tests {
         {
             let stores = registry.0.lock().expect("lock registry");
             let store = stores.get("large-doc").expect("large registration");
-            assert_eq!(
-                store.materialized_text.as_deref(),
-                Some("hello world\ntail")
-            );
-            assert!(store.working_path.is_none());
+            assert_eq!(store.piece_tree.byte_len(), "hello world\ntail".len());
         }
 
         flush_large_text_file_in_registry(&registry.0, "large-doc".to_string(), 1)
@@ -2328,9 +2048,7 @@ mod tests {
         {
             let stores = registry.0.lock().expect("lock registry");
             let store = stores.get("large-doc").expect("large registration");
-            assert!(store.materialized_text.is_none());
-            assert!(store.working_path.is_none());
-            assert!(store.pending_edits.is_empty());
+            assert_eq!(store.piece_tree.byte_len(), "hello world\ntail".len());
         }
         remove_test_dir(dir);
     }
@@ -2364,11 +2082,7 @@ mod tests {
         {
             let stores = registry.0.lock().expect("lock registry");
             let store = stores.get("large-doc").expect("large registration");
-            assert_eq!(
-                store.materialized_text.as_deref(),
-                Some("hello milkup\nsecond")
-            );
-            assert!(store.working_path.is_none());
+            assert_eq!(store.piece_tree.byte_len(), "hello milkup\nsecond".len());
         }
 
         let snapshot = flush_large_text_file_as_in_registry(
@@ -2392,9 +2106,7 @@ mod tests {
             let stores = registry.0.lock().expect("lock registry");
             let store = stores.get("large-doc").expect("large registration");
             assert_eq!(store.path, path_to_string(save_as_path.clone()));
-            assert!(store.working_path.is_none());
-            assert!(store.pending_edits.is_empty());
-            assert!(store.materialized_text.is_none());
+            assert_eq!(store.piece_tree.byte_len(), "hello milkup\nsecond".len());
         }
 
         let window = read_large_text_file_line_window_from_registry(
@@ -2485,16 +2197,19 @@ mod tests {
     fn large_file_temp_cleanup_only_removes_marked_work_files() {
         let dir = create_test_dir("large-clean-dir");
         let stale = dir.join(".note.md.milkup-large.999.doc.v1.work");
+        let stale_save = dir.join(".note.md.milkup-large.999.doc.v1.123.save-as.tmp");
         let keep_regular_work = dir.join("draft.work");
         let keep_tmp = dir.join(".note.md.999.tmp");
         fs::write(&stale, "stale").expect("write stale temp");
+        fs::write(&stale_save, "stale save").expect("write stale save temp");
         fs::write(&keep_regular_work, "work").expect("write regular work");
         fs::write(&keep_tmp, "tmp").expect("write tmp");
 
         let removed = cleanup_large_file_working_temps_in_dir(&dir).expect("cleanup dir");
 
-        assert_eq!(removed, 1);
+        assert_eq!(removed, 2);
         assert!(!stale.exists());
+        assert!(!stale_save.exists());
         assert!(keep_regular_work.exists());
         assert!(keep_tmp.exists());
         remove_test_dir(dir);
@@ -2503,16 +2218,13 @@ mod tests {
     #[test]
     fn large_file_registry_drop_removes_active_working_temps() {
         let dir = create_test_dir("large-registry-drop");
-        let working = dir.join(".note.md.milkup-large.999.doc.v1.work");
-        fs::write(&working, "pending").expect("write working temp");
+        let store = create_large_file_store(&dir, "note.md", "hello");
+        let working = store.piece_tree.add_path.clone();
 
         {
             let registry = LargeFileRegistry(Mutex::new(HashMap::from([(
                 "large-doc".to_string(),
-                LargeFileRegistration {
-                    working_path: Some(working.clone()),
-                    ..create_large_file_store(&dir, "note.md", "hello")
-                },
+                store,
             )])));
             drop(registry);
         }
@@ -2538,18 +2250,16 @@ mod tests {
     fn create_large_file_store(dir: &Path, name: &str, text: &str) -> LargeFileRegistration {
         let path = dir.join(name);
         fs::write(&path, text).expect("write large fixture");
-        let index = index_large_text_file(&path).expect("index large fixture");
+        let add_path = large_file_add_buffer_path(&path, "test-document").expect("add buffer path");
+        let piece_tree = PieceTree::open(&path, add_path).expect("open piece tree");
 
         LargeFileRegistration {
             path: path_to_string(path.clone()),
-            size_bytes: index.size_bytes,
-            line_starts: index.line_starts,
-            line_utf16_starts: index.line_utf16_starts,
-            materialized_text: None,
-            pending_edits: Vec::new(),
-            working_path: None,
+            size_bytes: piece_tree.byte_len(),
+            piece_tree,
             disk_snapshot_hash: hash_file_contents(&path).expect("hash large fixture"),
             version: 0,
+            saved_version: 0,
         }
     }
 

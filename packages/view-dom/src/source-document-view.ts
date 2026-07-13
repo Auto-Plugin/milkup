@@ -95,6 +95,8 @@ export class SourceDocumentView {
   private compositionCommitQueue: Promise<void> = Promise.resolve()
   private compositionCommitError: unknown
   private editCommitQueue: Promise<void> = Promise.resolve()
+  private readonly activeVisibleEditTasks = new Set<Promise<void>>()
+  private visibleEditPreparationError: unknown
   private editCommitTimer: ReturnType<typeof setTimeout> | undefined
   private pendingVisibleEdit: SourceDocumentEdit | undefined
   private pendingVisibleEditResolutions: QueuedEditResolution[] = []
@@ -121,7 +123,7 @@ export class SourceDocumentView {
     void this.renderVisibleWindow()
   }
   private readonly handleInputEvent = (): void => {
-    void this.readInputProxy()
+    void this.trackVisibleEditTask(this.readInputProxy())
   }
   private readonly handleCompositionStartEvent = (): void => {
     this.isComposing = true
@@ -155,7 +157,7 @@ export class SourceDocumentView {
 
     event.preventDefault()
     const range = this.getSelectedRange()
-    void this.applyVisibleEdit(range.from, range.to, text)
+    void this.trackVisibleEditTask(this.applyVisibleEdit(range.from, range.to, text))
   }
   private readonly handleCopyEvent = (event: ClipboardEvent): void => {
     if (event.defaultPrevented || !event.clipboardData) {
@@ -186,7 +188,7 @@ export class SourceDocumentView {
     event.clipboardData.setData('text/plain', text)
     event.preventDefault()
     const range = this.getSelectedRange()
-    void this.applyVisibleEdit(range.from, range.to, '')
+    void this.trackVisibleEditTask(this.applyVisibleEdit(range.from, range.to, ''))
   }
   private readonly handleKeyDownEvent = (event: KeyboardEvent): void => {
     if (event.defaultPrevented) {
@@ -390,6 +392,16 @@ export class SourceDocumentView {
     if (this.compositionCommitError !== undefined) {
       const error = this.compositionCommitError
       this.compositionCommitError = undefined
+      throw error
+    }
+
+    while (this.activeVisibleEditTasks.size > 0) {
+      await Promise.all([...this.activeVisibleEditTasks])
+    }
+
+    if (this.visibleEditPreparationError !== undefined) {
+      const error = this.visibleEditPreparationError
+      this.visibleEditPreparationError = undefined
       throw error
     }
 
@@ -653,23 +665,23 @@ export class SourceDocumentView {
 
     if (event.key.length === 1) {
       const range = this.getSelectedRange()
-      void this.applyVisibleEdit(range.from, range.to, event.key)
+      void this.trackVisibleEditTask(this.applyVisibleEdit(range.from, range.to, event.key))
       return true
     }
 
     if (event.key === 'Enter') {
       const range = this.getSelectedRange()
-      void this.applyVisibleEdit(range.from, range.to, '\n')
+      void this.trackVisibleEditTask(this.applyVisibleEdit(range.from, range.to, '\n'))
       return true
     }
 
     if (event.key === 'Backspace') {
-      void this.deleteAroundCursor(-1)
+      void this.trackVisibleEditTask(this.deleteAroundCursor(-1))
       return true
     }
 
     if (event.key === 'Delete') {
-      void this.deleteAroundCursor(1)
+      void this.trackVisibleEditTask(this.deleteAroundCursor(1))
       return true
     }
 
@@ -826,8 +838,40 @@ export class SourceDocumentView {
     }
 
     const position = this.cursorPosition
-    const from = direction < 0 ? Math.max(0, position - 1) : position
-    const to = direction < 0 ? position : position + 1
+    const sourceLine = this.renderedSourceWindow?.lines.find(
+      (line) => position >= line.from && position <= line.to,
+    )
+    let from = direction < 0 ? Math.max(0, position - 1) : position
+    let to = direction < 0 ? position : position + 1
+
+    if (direction < 0 && sourceLine) {
+      if (position > sourceLine.from) {
+        const before = sourceLine.text.slice(0, position - sourceLine.from)
+        const previousCharacter = Array.from(before).at(-1)
+        from = position - (previousCharacter?.length ?? 1)
+      } else if (sourceLine.number === 1) {
+        return
+      } else {
+        const previousLine = this.renderedSourceWindow?.lines.find(
+          (line) => line.number === sourceLine.number - 1,
+        )
+        from = previousLine?.to ?? from
+      }
+    }
+
+    if (direction > 0 && sourceLine) {
+      if (position < sourceLine.to) {
+        const nextCharacter = Array.from(sourceLine.text.slice(position - sourceLine.from))[0]
+        to = position + (nextCharacter?.length ?? 1)
+      } else if (sourceLine.number === this.currentSource.lineCount) {
+        return
+      } else {
+        const nextLine = this.renderedSourceWindow?.lines.find(
+          (line) => line.number === sourceLine.number + 1,
+        )
+        to = nextLine?.from ?? to
+      }
+    }
 
     if (from === to) {
       return
@@ -878,6 +922,15 @@ export class SourceDocumentView {
     }
 
     this.inputDOM.focus({ preventScroll: true })
+  }
+
+  private trackVisibleEditTask(task: Promise<void>): Promise<void> {
+    const tracked = task.catch((error: unknown) => {
+      this.visibleEditPreparationError = error
+    })
+    this.activeVisibleEditTasks.add(tracked)
+    void tracked.then(() => this.activeVisibleEditTasks.delete(tracked))
+    return tracked
   }
 
   private queueVisibleEditCommit(

@@ -69,7 +69,19 @@ export class LargeEditSession {
     return this.redoStack.length > 0
   }
 
-  recordVisibleEdits(changes: ChangeSet, deletedTextByChange: readonly string[]): LargeTextEditBatch {
+  recordVisibleEdits(
+    changes: ChangeSet,
+    deletedTextByChange: readonly string[],
+  ): LargeTextEditBatch {
+    const batch = this.prepareVisibleEdits(changes, deletedTextByChange)
+    this.confirmVisibleEdits(batch, this.currentVersion + (batch.edits.length > 0 ? 1 : 0))
+    return batch
+  }
+
+  prepareVisibleEdits(
+    changes: ChangeSet,
+    deletedTextByChange: readonly string[],
+  ): LargeTextEditBatch {
     if (changes.empty) {
       return Object.freeze({ edits: Object.freeze([]) })
     }
@@ -81,42 +93,72 @@ export class LargeEditSession {
       }),
     )
     validateDeletedText(edits)
-    const inverse = invertEdits(edits)
-
-    this.pending.push(...edits)
-    this.undoStack.push(Object.freeze({ forward: edits, inverse }))
-    this.redoStack.length = 0
-    this.currentVersion += 1
-
     return Object.freeze({ edits: Object.freeze(edits) })
   }
 
-  undo(): LargeTextEditBatch | undefined {
-    const entry = this.undoStack.pop()
-
-    if (!entry) {
-      return undefined
+  confirmVisibleEdits(batch: LargeTextEditBatch, nativeVersion: number): LargeEditSessionSnapshot {
+    if (batch.edits.length === 0) {
+      return this.snapshot()
     }
+    this.validateNextNativeVersion(nativeVersion)
+    const edits = Object.freeze([...batch.edits])
+    this.pending.push(...edits)
+    this.undoStack.push(Object.freeze({ forward: edits, inverse: invertEdits(edits) }))
+    this.redoStack.length = 0
+    this.currentVersion = nativeVersion
+    return this.snapshot()
+  }
 
+  prepareUndo(): LargeTextEditBatch | undefined {
+    const entry = this.undoStack.at(-1)
+    return entry ? Object.freeze({ edits: Object.freeze([...entry.inverse]) }) : undefined
+  }
+
+  prepareRedo(): LargeTextEditBatch | undefined {
+    const entry = this.redoStack.at(-1)
+    return entry ? Object.freeze({ edits: Object.freeze([...entry.forward]) }) : undefined
+  }
+
+  confirmUndo(nativeVersion: number): LargeEditSessionSnapshot {
+    this.validateNextNativeVersion(nativeVersion)
+    const entry = this.undoStack.pop()
+    if (!entry) {
+      throw new RangeError('Cannot confirm undo without an undo entry')
+    }
     this.pending.push(...entry.inverse)
     this.redoStack.push(entry)
-    this.currentVersion += 1
+    this.currentVersion = nativeVersion
+    return this.snapshot()
+  }
 
-    return Object.freeze({ edits: Object.freeze(entry.inverse) })
+  confirmRedo(nativeVersion: number): LargeEditSessionSnapshot {
+    this.validateNextNativeVersion(nativeVersion)
+    const entry = this.redoStack.pop()
+    if (!entry) {
+      throw new RangeError('Cannot confirm redo without a redo entry')
+    }
+    this.pending.push(...entry.forward)
+    this.undoStack.push(entry)
+    this.currentVersion = nativeVersion
+    return this.snapshot()
+  }
+
+  undo(): LargeTextEditBatch | undefined {
+    const batch = this.prepareUndo()
+    if (!batch) {
+      return undefined
+    }
+    this.confirmUndo(this.currentVersion + 1)
+    return batch
   }
 
   redo(): LargeTextEditBatch | undefined {
-    const entry = this.redoStack.pop()
-
-    if (!entry) {
+    const batch = this.prepareRedo()
+    if (!batch) {
       return undefined
     }
-
-    this.pending.push(...entry.forward)
-    this.undoStack.push(entry)
-    this.currentVersion += 1
-
-    return Object.freeze({ edits: Object.freeze(entry.forward) })
+    this.confirmRedo(this.currentVersion + 1)
+    return batch
   }
 
   consumePendingEdits(): LargeTextEditBatch {
@@ -146,6 +188,14 @@ export class LargeEditSession {
       canUndo: this.canUndo,
       canRedo: this.canRedo,
     })
+  }
+
+  private validateNextNativeVersion(nativeVersion: number): void {
+    if (!Number.isInteger(nativeVersion) || nativeVersion !== this.currentVersion + 1) {
+      throw new RangeError(
+        `Invalid native version confirmation: ${nativeVersion}; expected ${this.currentVersion + 1}`,
+      )
+    }
   }
 }
 

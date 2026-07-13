@@ -63,7 +63,7 @@ The native harness launches the debug Tauri app through WebDriver and calls the 
 Current working-temp implementation reports should set:
 
 ```powershell
-$env:MILKUP_NATIVE_LARGE_FILE_IMPLEMENTATION_MODE = "native-line-index-working-temp"
+$env:MILKUP_NATIVE_LARGE_FILE_IMPLEMENTATION_MODE = "native-persistent-piece-tree"
 ```
 
 ## Desktop Editor Interaction Run

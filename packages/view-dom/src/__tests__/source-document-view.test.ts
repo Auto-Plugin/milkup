@@ -853,6 +853,64 @@ describe('SourceDocumentView', () => {
     expect(onEdit).toHaveBeenCalledWith({ from: 0, to: 6, insert: '', deletedText: 'alpha\n' })
   })
 
+  it('commits enter and delete keys when lineAtPosition is unavailable', async () => {
+    const parent = document.createElement('main')
+    const onEdit = vi.fn()
+    const view = new SourceDocumentView({
+      parent,
+      source: new RenderedOnlyLineSource({ documentId: 'large-source', text: 'alpha\nbeta' }),
+      editable: true,
+      onEdit,
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 40,
+        overscanLines: 0,
+      },
+    })
+
+    await view.renderVisibleWindow()
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }))
+    await view.flushPendingEdits()
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    await view.flushPendingEdits()
+
+    expect(onEdit).toHaveBeenNthCalledWith(1, {
+      from: 0,
+      to: 1,
+      insert: '',
+      deletedText: 'a',
+    })
+    expect(onEdit).toHaveBeenNthCalledWith(2, {
+      from: 0,
+      to: 0,
+      insert: '\n',
+      deletedText: '',
+    })
+  })
+
+  it('deletes complete surrogate pairs from a rendered-only source', async () => {
+    const parent = document.createElement('main')
+    const onEdit = vi.fn()
+    const view = new SourceDocumentView({
+      parent,
+      source: new RenderedOnlyLineSource({ documentId: 'large-source', text: '😀alpha' }),
+      editable: true,
+      onEdit,
+    })
+
+    await view.renderVisibleWindow()
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }))
+    await view.flushPendingEdits()
+
+    expect(onEdit).toHaveBeenCalledWith({
+      from: 0,
+      to: 2,
+      insert: '',
+      deletedText: '😀',
+    })
+  })
+
   it('copies, cuts, and pastes a selection through clipboard events', async () => {
     const parent = document.createElement('main')
     const onEdit = vi.fn()

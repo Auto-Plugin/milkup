@@ -30,8 +30,7 @@ const sizeMib = Number(process.env.MILKUP_NATIVE_LARGE_FILE_MIB ?? '16')
 const keepFixture = process.env.MILKUP_NATIVE_LARGE_FILE_KEEP === '1'
 const reportPath = process.env.MILKUP_NATIVE_LARGE_FILE_REPORT
 const implementationMode =
-  process.env.MILKUP_NATIVE_LARGE_FILE_IMPLEMENTATION_MODE ??
-  'native-line-index-working-temp'
+  process.env.MILKUP_NATIVE_LARGE_FILE_IMPLEMENTATION_MODE ?? 'native-persistent-piece-tree'
 
 if (!Number.isInteger(sizeMib) || sizeMib <= 0) {
   throw new Error('MILKUP_NATIVE_LARGE_FILE_MIB must be a positive integer')
@@ -104,8 +103,9 @@ try {
     sourceSnapshot: await readSourceSnapshot(),
     implementation: {
       mode: implementationMode,
-      expectedNativePath: 'open_large_text_file/read_large_text_file_line_window/apply_large_text_file_changes/flush_large_text_file',
-      expectedEditStorage: 'working temp file with original-file conflict guard',
+      expectedNativePath:
+        'open_large_text_file/read_large_text_file_line_window/apply_large_text_file_changes/flush_large_text_file',
+      expectedEditStorage: 'immutable base ranges plus append-only add buffer',
       frontendPath: 'desktop SourceDocumentView/LargeDocumentSource',
     },
     environment: {

@@ -88,16 +88,38 @@ describe('LargeEditSession', () => {
       'Deleted text length',
     )
   })
+
+  it('does not advance version or history before native confirmation', () => {
+    const session = new LargeEditSession({ documentId: 'large-doc', baseVersion: 7 })
+    const batch = session.prepareVisibleEdits(ChangeSet.insert(0, '# '), [''])
+
+    expect(session.snapshot()).toMatchObject({ version: 7, pendingEditCount: 0, canUndo: false })
+
+    session.confirmVisibleEdits(batch, 8)
+    expect(session.snapshot()).toMatchObject({ version: 8, pendingEditCount: 1, canUndo: true })
+
+    const undo = session.prepareUndo()
+    expect(undo?.edits).toEqual([{ from: 0, to: 2, insert: '', deletedText: '# ' }])
+    expect(session.snapshot()).toMatchObject({ version: 8, canUndo: true, canRedo: false })
+
+    session.confirmUndo(9)
+    expect(session.snapshot()).toMatchObject({ version: 9, canUndo: false, canRedo: true })
+  })
+
+  it('rejects stale or skipped native confirmations without mutating state', () => {
+    const session = new LargeEditSession({ documentId: 'large-doc', baseVersion: 3 })
+    const batch = session.prepareVisibleEdits(ChangeSet.insert(0, 'x'), [''])
+
+    expect(() => session.confirmVisibleEdits(batch, 5)).toThrow('expected 4')
+    expect(session.snapshot()).toMatchObject({ version: 3, pendingEditCount: 0, canUndo: false })
+  })
 })
 
 function applyBatch(doc: MemoryTextDocument, batch: LargeTextEditBatch): MemoryTextDocument {
   try {
     return doc.apply(largeTextEditsToChangeSet(batch.edits)) as MemoryTextDocument
   } catch (error) {
-    if (
-      !(error instanceof RangeError) ||
-      !error.message.includes('sorted and non-overlapping')
-    ) {
+    if (!(error instanceof RangeError) || !error.message.includes('sorted and non-overlapping')) {
       throw error
     }
   }
