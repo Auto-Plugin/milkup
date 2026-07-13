@@ -9,6 +9,30 @@ export interface SourcePositionFromPointOptions {
   readonly allowGeometryFallback?: boolean
 }
 
+/** Preserve the browser's native drag behavior for code-block scrollbars. */
+export function isHorizontalScrollbarDragStart(event: MouseEvent): boolean {
+  const target = event.target
+
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+
+  const scrollable = target.closest<HTMLElement>('.milkup-block-code')
+
+  if (!scrollable || scrollable.scrollWidth <= scrollable.clientWidth) {
+    return false
+  }
+
+  const scrollbarHeight = scrollable.offsetHeight - scrollable.clientHeight
+
+  if (scrollbarHeight <= 0) {
+    return false
+  }
+
+  const rect = scrollable.getBoundingClientRect()
+  return event.clientY >= rect.bottom - scrollbarHeight && event.clientY <= rect.bottom
+}
+
 export function lineElementFromEvent(
   event: MouseEvent,
   contentDOM: HTMLElement,

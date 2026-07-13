@@ -573,6 +573,81 @@ describe('SourceDocumentView', () => {
     ).toBe(false)
   })
 
+  it('hides table pipes between rendered source cells', async () => {
+    const parent = document.createElement('main')
+    const view = new SourceDocumentView({
+      parent,
+      source: new MemoryDocumentSource({
+        documentId: 'source-doc',
+        text: '| Name | Status |\n| --- | --- |\n| Milk | ok |',
+      }),
+      mode: 'live',
+      markdownContextLines: 0,
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 80,
+        overscanLines: 0,
+      },
+    })
+
+    await view.renderVisibleWindow()
+
+    const cells = Array.from(view.contentDOM.querySelectorAll<HTMLElement>('.milkup-table-cell'))
+    const markers = Array.from(
+      view.contentDOM.querySelectorAll<HTMLElement>('.milkup-table-marker'),
+    )
+
+    expect(cells.map((cell) => cell.textContent)).toEqual(['Name', 'Status', 'Milk', 'ok'])
+    expect(markers.some((marker) => marker.textContent?.includes('|'))).toBe(true)
+    expect(markers.every((marker) => marker.classList.contains('milkup-marker-hidden'))).toBe(true)
+  })
+
+  it('preserves native horizontal code-scrollbar dragging in the source view', async () => {
+    const parent = document.createElement('main')
+    const view = new SourceDocumentView({
+      parent,
+      source: new MemoryDocumentSource({
+        documentId: 'source-doc',
+        text: '```\nvery long code line\n```',
+      }),
+      mode: 'live',
+      editable: true,
+      markdownContextLines: 0,
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 80,
+        overscanLines: 0,
+      },
+    })
+
+    await view.renderVisibleWindow()
+    const code = view.contentDOM.querySelector<HTMLElement>('.milkup-block-code')
+
+    expect(code).not.toBeNull()
+    Object.defineProperties(code!, {
+      scrollWidth: { configurable: true, value: 200 },
+      clientWidth: { configurable: true, value: 100 },
+      offsetHeight: { configurable: true, value: 100 },
+      clientHeight: { configurable: true, value: 85 },
+    })
+    code!.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, right: 100, bottom: 100, width: 100, height: 100 }) as DOMRect
+    const event = new MouseEvent('pointerdown', {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+      clientX: 50,
+      clientY: 95,
+    })
+
+    code!.dispatchEvent(event)
+
+    expect(event.defaultPrevented).toBe(false)
+    expect(view.dom.querySelector<HTMLElement>('.milkup-cursor')?.dataset.position).toBe('0')
+  })
+
   it('patches the edited visible source line without rereading the window', async () => {
     const parent = document.createElement('main')
     const source = new RecordingDocumentSource({

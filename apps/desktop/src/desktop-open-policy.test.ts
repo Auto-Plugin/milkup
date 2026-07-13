@@ -40,7 +40,7 @@ describe('desktop open policy', () => {
     })
     expect(policy.virtualViewport).toMatchObject({
       enabled: true,
-      overscanLines: 12,
+      overscanLines: 24,
     })
   })
 

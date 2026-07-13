@@ -11,6 +11,7 @@ import { createInputProxy, getVisibleLineWindow } from './editor-view'
 import {
   domRectForLineSourcePosition,
   domRectsForLineSourceRange,
+  isHorizontalScrollbarDragStart,
   lineElementFromEvent,
   sourcePositionFromPoint,
   sourcePositionToVisualOffsetInLine,
@@ -993,6 +994,10 @@ export class SourceDocumentView {
       return
     }
 
+    if (isHorizontalScrollbarDragStart(event)) {
+      return
+    }
+
     const position = this.positionFromLineEvent(event)
 
     if (position === undefined) {
@@ -1577,6 +1582,7 @@ function renderLiveLine(
       ...renderMappedLinePieces(document, line, tableRow, {
         contentClassName: 'milkup-table-cell',
         markerClassName: 'milkup-block-marker milkup-table-marker milkup-marker-hidden',
+        hideContentGaps: true,
         selection,
       }),
     )
@@ -1779,6 +1785,7 @@ function renderMappedLinePieces(
   classNames: {
     readonly contentClassName: string
     readonly markerClassName: string
+    readonly hideContentGaps?: boolean
     readonly selection: Selection
   },
 ): readonly Node[] {
@@ -1809,7 +1816,15 @@ function renderMappedLinePieces(
 
   for (const piece of pieces) {
     if (piece.from > position) {
-      rendered.push(createMappedSpan(document, line, position, piece.from, 'milkup-live-text'))
+      rendered.push(
+        createMappedSpan(
+          document,
+          line,
+          position,
+          piece.from,
+          classNames.hideContentGaps ? classNames.markerClassName : 'milkup-live-text',
+        ),
+      )
     }
 
     if (piece.className === classNames.contentClassName) {
@@ -1825,7 +1840,15 @@ function renderMappedLinePieces(
   }
 
   if (position < line.to) {
-    rendered.push(createMappedSpan(document, line, position, line.to, 'milkup-live-text'))
+    rendered.push(
+      createMappedSpan(
+        document,
+        line,
+        position,
+        line.to,
+        classNames.hideContentGaps ? classNames.markerClassName : 'milkup-live-text',
+      ),
+    )
   }
 
   return Object.freeze(rendered.length > 0 ? rendered : [document.createTextNode('\u200b')])

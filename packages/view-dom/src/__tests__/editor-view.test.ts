@@ -1612,6 +1612,38 @@ describe('EditorView', () => {
     expect(cells.map((cell) => cell.textContent)).toEqual(['Name', 'Status', 'Milk', 'ok'])
   })
 
+  it('preserves native horizontal code-scrollbar dragging in the editor', () => {
+    const parent = document.createElement('main')
+    const view = new EditorView({
+      parent,
+      state: createState('```\nvery long code line\n```'),
+      mode: 'live',
+    })
+    const code = view.contentDOM.querySelector<HTMLElement>('.milkup-block-code')
+
+    expect(code).not.toBeNull()
+    Object.defineProperties(code!, {
+      scrollWidth: { configurable: true, value: 200 },
+      clientWidth: { configurable: true, value: 100 },
+      offsetHeight: { configurable: true, value: 100 },
+      clientHeight: { configurable: true, value: 85 },
+    })
+    code!.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, right: 100, bottom: 100, width: 100, height: 100 }) as DOMRect
+    const event = new MouseEvent('mousedown', {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+      clientX: 50,
+      clientY: 95,
+    })
+
+    code!.dispatchEvent(event)
+
+    expect(event.defaultPrevented).toBe(false)
+    expect(view.state.selection.main.head).toBe(0)
+  })
+
   it('keeps read-only state locked while allowing selection changes', () => {
     const parent = document.createElement('main')
     const view = new EditorView({

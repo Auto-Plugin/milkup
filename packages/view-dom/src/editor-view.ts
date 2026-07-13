@@ -37,6 +37,7 @@ import type {
 import {
   domRectForLineVisualOffset,
   domRectsForLineVisualRange,
+  isHorizontalScrollbarDragStart,
   lineElementFromEvent,
   sourcePositionFromPoint,
 } from './source-position-mapping'
@@ -918,6 +919,10 @@ export class EditorView {
 
   private startSelectionDrag(event: MouseEvent): void {
     if (event.button !== 0) {
+      return
+    }
+
+    if (isHorizontalScrollbarDragStart(event)) {
       return
     }
 

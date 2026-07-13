@@ -1251,7 +1251,7 @@ function applyMemorySourceView(): void {
     virtualViewport: {
       enabled: true,
       lineHeight: desktopVirtualLineHeight,
-      overscanLines: 12,
+      overscanLines: 24,
     },
   })
   sourceView.dom.addEventListener('scroll', schedulePluginUiViewportUpdate, { passive: true })
@@ -1297,7 +1297,7 @@ async function applyLargeSourceView(): Promise<void> {
     virtualViewport: {
       enabled: true,
       lineHeight: desktopVirtualLineHeight,
-      overscanLines: 12,
+      overscanLines: 24,
     },
   })
   sourceView.dom.addEventListener('scroll', schedulePluginUiViewportUpdate, { passive: true })

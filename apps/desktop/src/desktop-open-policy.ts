@@ -32,7 +32,7 @@ const defaultNativeLargeFileBytes = 256 * 1024
 const desktopVirtualViewportConfig: VirtualViewportConfig = Object.freeze({
   enabled: true,
   lineHeight: 21,
-  overscanLines: 12,
+  overscanLines: 24,
 })
 
 export function resolveDesktopOpenPolicy(
