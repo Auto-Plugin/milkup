@@ -282,6 +282,17 @@ impl PieceTree {
         self.base = None
     }
 
+    pub(crate) fn close(&mut self) -> Result<(), String> {
+        self.base = None;
+        self.add = None;
+        remove_working_file(&self.add_path)?;
+        if let Some(path) = self.normalized_base_path.as_ref() {
+            remove_working_file(path)?;
+        }
+        self.normalized_base_path = None;
+        Ok(())
+    }
+
     pub(crate) fn restore_base_handle(&mut self) -> Result<(), String> {
         self.base = Some(RefCell::new(open_immutable_base(&self.base_path)?));
         Ok(())
@@ -569,6 +580,14 @@ impl Drop for PieceTree {
     }
 }
 
+fn remove_working_file(path: &Path) -> Result<(), String> {
+    match fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error.to_string()),
+    }
+}
+
 fn prepare_base(path: &Path) -> Result<(PathBuf, BaseEncoding, Option<PathBuf>), String> {
     let mut prefix = [0_u8; 2];
     let mut file = File::open(path).map_err(|error| error.to_string())?;
@@ -844,14 +863,14 @@ mod tests {
 
     #[test]
     fn closes_session_files_before_cleanup() {
-        let (root, tree) = fixture("hello");
+        let (root, mut tree) = fixture("hello");
         let add_path = tree.add_path.clone();
         let base_path = tree
             .normalized_base_path
             .clone()
             .expect("session base copy");
 
-        drop(tree);
+        tree.close().expect("close working files");
 
         assert!(!add_path.exists());
         assert!(!base_path.exists());

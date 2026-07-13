@@ -1309,7 +1309,7 @@ function createNewDocument(): void {
   clearSearchResults()
   unwatchCurrentFile()
   clearPluginDocumentPresentation()
-  void closeLargeDocumentPreview()
+  scheduleLargeDocumentPreviewClose()
   state = new EditorState({
     doc: new MemoryTextDocument(messages.newDocumentSource),
   })
@@ -1468,7 +1468,7 @@ function openDocumentResult(
 
   unwatchCurrentFile()
   clearPluginDocumentPresentation()
-  void closeLargeDocumentPreview()
+  scheduleLargeDocumentPreviewClose()
   clearSearchResults()
   tracker.mark('memory-document-start', result.file.path)
   state = new EditorState({
@@ -1499,7 +1499,7 @@ function openPluginDocumentResult(
   result: NonNullable<Awaited<ReturnType<DesktopPluginManager['openPluginDocument']>>>,
 ): void {
   unwatchCurrentFile()
-  void closeLargeDocumentPreview()
+  scheduleLargeDocumentPreviewClose()
   clearSearchResults()
   documentSourcePath = result.sourcePath
   customDocumentTitle = result.title
@@ -1565,7 +1565,12 @@ async function openNativeLargeDocument(
   })
 
   if (previousLargeDocumentId) {
-    await largeTextFileService.close(previousLargeDocumentId).catch(() => undefined)
+    try {
+      await largeTextFileService.close(previousLargeDocumentId)
+    } catch (error) {
+      await largeTextFileService.close(preview.documentId).catch(() => undefined)
+      throw error
+    }
   }
 
   unwatchCurrentFile()
@@ -1937,7 +1942,7 @@ async function reloadExternalDocument(): Promise<void> {
   state = new EditorState({
     doc: new MemoryTextDocument(result.text),
   })
-  void closeLargeDocumentPreview()
+  scheduleLargeDocumentPreviewClose()
   currentOpenPolicy = resolveDesktopOpenPolicy(metadataFromOpenFileResult(result))
   session = recordFileReloadResult(session, result)
   recentFiles = recordRecentFile(recentFiles, result.file, Date.now())
@@ -2217,7 +2222,7 @@ function closeCurrentDocument(): void {
 
   unwatchCurrentFile()
   clearPluginDocumentPresentation()
-  void closeLargeDocumentPreview()
+  scheduleLargeDocumentPreviewClose()
   clearSearchResults()
   state = new EditorState({
     doc: new MemoryTextDocument(''),
@@ -3013,7 +3018,20 @@ async function discardAndExitWindow(): Promise<void> {
 
 async function invokeWindowClose(): Promise<void> {
   closeWindowConfirm()
-  await closeLargeDocumentPreview()
+  const preview = largeDocumentPreview
+  setDocumentLoadingState({
+    phase: 'closing',
+    ...(preview === undefined ? {} : { path: preview.path, sizeBytes: preview.sizeBytes }),
+  })
+
+  try {
+    await closeLargeDocumentPreview()
+  } catch (error: unknown) {
+    setDocumentLoadingState({ phase: 'ready' })
+    notice = `退出前清理大文件临时文件失败：${getErrorMessage(error)}`
+    renderSession()
+    return
+  }
 
   if (platform !== 'windows') {
     return
@@ -3164,12 +3182,23 @@ function renderDocumentLoadingState(): void {
     dismiss.hidden = loadingState.phase !== 'failed'
   }
   setText('[data-loading-title]', getDocumentLoadingLabel(loadingState))
-  setText('[data-loading-phase]', loadingState.phase === 'failed' ? '未替换当前文档' : '请稍候')
+  setText(
+    '[data-loading-phase]',
+    loadingState.phase === 'failed'
+      ? '未替换当前文档'
+      : loadingState.phase === 'closing'
+        ? '正在清理临时文件'
+        : '请稍候',
+  )
   setText('[data-loading-detail]', getDocumentLoadingDetail(loadingState))
 }
 
 function isDocumentBusy(): boolean {
-  return loadingState.phase === 'opening' || loadingState.phase === 'indexing'
+  return (
+    loadingState.phase === 'opening' ||
+    loadingState.phase === 'indexing' ||
+    loadingState.phase === 'closing'
+  )
 }
 
 function isBusyAllowedAction(id: string): boolean {
@@ -3219,14 +3248,24 @@ function unwatchCurrentFile(): void {
 
 async function closeLargeDocumentPreview(): Promise<void> {
   clearSearchResults()
-  const documentId = largeDocumentPreview?.documentId
-  largeDocumentPreview = undefined
+  const preview = largeDocumentPreview
+  const documentId = preview?.documentId
 
   if (!documentId) {
     return
   }
 
-  await largeTextFileService.close(documentId).catch(() => undefined)
+  await largeTextFileService.close(documentId)
+  if (largeDocumentPreview === preview) {
+    largeDocumentPreview = undefined
+  }
+}
+
+function scheduleLargeDocumentPreviewClose(): void {
+  void closeLargeDocumentPreview().catch((error: unknown) => {
+    notice = `清理大文件临时文件失败：${getErrorMessage(error)}`
+    renderSession()
+  })
 }
 
 function updateModeToggle(mode: ViewMode): void {
@@ -3742,5 +3781,5 @@ Object.assign(globalThis, {
 
 globalThis.addEventListener('beforeunload', () => {
   disposeFileWatchEvents?.()
-  void closeLargeDocumentPreview()
+  scheduleLargeDocumentPreviewClose()
 })

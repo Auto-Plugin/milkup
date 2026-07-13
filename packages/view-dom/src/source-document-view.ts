@@ -94,6 +94,7 @@ export class SourceDocumentView {
   private compositionText = ''
   private compositionCommitQueue: Promise<void> = Promise.resolve()
   private compositionCommitError: unknown
+  private visibleEditQueue: Promise<void> = Promise.resolve()
   private editCommitQueue: Promise<void> = Promise.resolve()
   private readonly activeVisibleEditTasks = new Set<Promise<void>>()
   private visibleEditPreparationError: unknown
@@ -123,7 +124,7 @@ export class SourceDocumentView {
     void this.renderVisibleWindow()
   }
   private readonly handleInputEvent = (): void => {
-    void this.trackVisibleEditTask(this.readInputProxy())
+    void this.trackVisibleEditTask(() => this.readInputProxy())
   }
   private readonly handleCompositionStartEvent = (): void => {
     this.isComposing = true
@@ -135,7 +136,9 @@ export class SourceDocumentView {
   }
   private readonly handleCompositionEndEvent = (event: CompositionEvent): void => {
     this.compositionCommitError = undefined
-    this.compositionCommitQueue = this.commitComposition(event.data).catch((error: unknown) => {
+    this.compositionCommitQueue = this.enqueueVisibleEdit(() =>
+      this.commitComposition(event.data),
+    ).catch((error: unknown) => {
       this.compositionCommitError = error
     })
   }
@@ -156,8 +159,10 @@ export class SourceDocumentView {
     }
 
     event.preventDefault()
-    const range = this.getSelectedRange()
-    void this.trackVisibleEditTask(this.applyVisibleEdit(range.from, range.to, text))
+    void this.trackVisibleEditTask(() => {
+      const range = this.getSelectedRange()
+      return this.applyVisibleEdit(range.from, range.to, text)
+    })
   }
   private readonly handleCopyEvent = (event: ClipboardEvent): void => {
     if (event.defaultPrevented || !event.clipboardData) {
@@ -187,8 +192,10 @@ export class SourceDocumentView {
 
     event.clipboardData.setData('text/plain', text)
     event.preventDefault()
-    const range = this.getSelectedRange()
-    void this.trackVisibleEditTask(this.applyVisibleEdit(range.from, range.to, ''))
+    void this.trackVisibleEditTask(() => {
+      const range = this.getSelectedRange()
+      return this.applyVisibleEdit(range.from, range.to, '')
+    })
   }
   private readonly handleKeyDownEvent = (event: KeyboardEvent): void => {
     if (event.defaultPrevented) {
@@ -664,24 +671,28 @@ export class SourceDocumentView {
     }
 
     if (event.key.length === 1) {
-      const range = this.getSelectedRange()
-      void this.trackVisibleEditTask(this.applyVisibleEdit(range.from, range.to, event.key))
+      void this.trackVisibleEditTask(() => {
+        const range = this.getSelectedRange()
+        return this.applyVisibleEdit(range.from, range.to, event.key)
+      })
       return true
     }
 
     if (event.key === 'Enter') {
-      const range = this.getSelectedRange()
-      void this.trackVisibleEditTask(this.applyVisibleEdit(range.from, range.to, '\n'))
+      void this.trackVisibleEditTask(() => {
+        const range = this.getSelectedRange()
+        return this.applyVisibleEdit(range.from, range.to, '\n')
+      })
       return true
     }
 
     if (event.key === 'Backspace') {
-      void this.trackVisibleEditTask(this.deleteAroundCursor(-1))
+      void this.trackVisibleEditTask(() => this.deleteAroundCursor(-1))
       return true
     }
 
     if (event.key === 'Delete') {
-      void this.trackVisibleEditTask(this.deleteAroundCursor(1))
+      void this.trackVisibleEditTask(() => this.deleteAroundCursor(1))
       return true
     }
 
@@ -898,7 +909,13 @@ export class SourceDocumentView {
     if (structuralEdit) {
       await this.queueVisibleEditCommit({ from, to, insert, deletedText }, { immediate: true })
       this.markdownCache.clear()
-      await this.renderVisibleWindow()
+      // The edit is already committed at this point. A transient viewport read failure
+      // must not make a later save fail or cause the next edit to reuse a stale version.
+      try {
+        await this.renderVisibleWindow()
+      } catch {
+        // A following render (scroll, focus, or edit) retries the visible window.
+      }
     } else {
       this.applyOptimisticRenderedLineEdit(editedLine, from, to, insert)
       this.shiftRenderedLinePositionsAfter(editedLine.number, delta)
@@ -924,8 +941,14 @@ export class SourceDocumentView {
     this.inputDOM.focus({ preventScroll: true })
   }
 
-  private trackVisibleEditTask(task: Promise<void>): Promise<void> {
-    const tracked = task.catch((error: unknown) => {
+  private enqueueVisibleEdit(task: () => Promise<void>): Promise<void> {
+    const queued = this.visibleEditQueue.then(task)
+    this.visibleEditQueue = queued.catch(() => undefined)
+    return queued
+  }
+
+  private trackVisibleEditTask(task: () => Promise<void>): Promise<void> {
+    const tracked = this.enqueueVisibleEdit(task).catch((error: unknown) => {
       this.visibleEditPreparationError = error
     })
     this.activeVisibleEditTasks.add(tracked)

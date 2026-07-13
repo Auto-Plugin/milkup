@@ -818,6 +818,63 @@ describe('SourceDocumentView', () => {
     expect(onEdit).toHaveBeenCalledWith({ from: 0, to: 0, insert: 'x', deletedText: '' })
   })
 
+  it('does not block saving when a structural edit commits but its viewport refresh fails', async () => {
+    const parent = document.createElement('main')
+    const source = new FailingLineWindowSource({ documentId: 'large-source', text: 'alpha' })
+    const onEdit = vi.fn(async () => undefined)
+    const view = new SourceDocumentView({
+      parent,
+      source,
+      editable: true,
+      onEdit,
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 40,
+        overscanLines: 0,
+      },
+    })
+
+    await view.renderVisibleWindow()
+    source.failReads = true
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+
+    await expect(view.flushPendingEdits()).resolves.toBeUndefined()
+    expect(onEdit).toHaveBeenCalledWith({ from: 0, to: 0, insert: '\n', deletedText: '' })
+  })
+
+  it('serializes consecutive structural edits against the latest committed source version', async () => {
+    const parent = document.createElement('main')
+    const source = new RecordingDocumentSource({ documentId: 'large-source', text: 'alpha' })
+    let text = 'alpha'
+    const onEdit = vi.fn(
+      async (edit: { readonly from: number; readonly to: number; readonly insert: string }) => {
+        text = text.slice(0, edit.from) + edit.insert + text.slice(edit.to)
+        source.updateText(text)
+      },
+    )
+    const view = new SourceDocumentView({
+      parent,
+      source,
+      editable: true,
+      onEdit,
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 40,
+        overscanLines: 0,
+      },
+    })
+
+    await view.renderVisibleWindow()
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    await view.flushPendingEdits()
+
+    expect(onEdit).toHaveBeenNthCalledWith(1, { from: 0, to: 0, insert: '\n', deletedText: '' })
+    expect(onEdit).toHaveBeenNthCalledWith(2, { from: 1, to: 1, insert: '\n', deletedText: '' })
+  })
+
   it('deletes a selected range inside the rendered source window', async () => {
     const parent = document.createElement('main')
     const onEdit = vi.fn()
@@ -1119,6 +1176,18 @@ class RecordingDocumentSource extends MemoryDocumentSource {
 class RenderedOnlyLineSource extends MemoryDocumentSource {
   override async lineAtPosition(position: number): Promise<never> {
     throw new Error(`lineAtPosition unavailable: ${position}`)
+  }
+}
+
+class FailingLineWindowSource extends MemoryDocumentSource {
+  failReads = false
+
+  override async readLineWindow(fromLine: number, toLine: number): Promise<DocumentLineWindow> {
+    if (this.failReads) {
+      throw new Error('temporary native line window failure')
+    }
+
+    return super.readLineWindow(fromLine, toLine)
   }
 }
 

@@ -47,4 +47,35 @@ describe('desktop large open flow', () => {
     expect(preview.lineCount).toBe(1_000_000)
     expect(formatLargeDocumentPreviewText(preview)).toContain('one\ntwo')
   })
+
+  it('closes the native session when the first line window cannot be read', async () => {
+    const service: DesktopLargeTextFileService = {
+      open: vi.fn(async () => ({
+        documentId: 'large-doc',
+        path: 'D:/notes/large.md',
+        version: 0,
+        sizeBytes: 256 * 1024 * 1024,
+        lineCount: 1_000_000,
+      })),
+      readLineWindow: vi.fn(async () => {
+        throw new Error('invalid utf-8 sequence')
+      }),
+      readChunk: vi.fn(),
+      applyChanges: vi.fn(),
+      flush: vi.fn(),
+      flushAs: vi.fn(),
+      close: vi.fn(async () => true),
+    }
+
+    await expect(
+      openLargeDocumentPreview({
+        service,
+        documentId: 'large-doc',
+        path: 'D:/notes/large.md',
+        previewLineCount: 80,
+      }),
+    ).rejects.toThrow('invalid utf-8 sequence')
+
+    expect(service.close).toHaveBeenCalledWith('large-doc')
+  })
 })

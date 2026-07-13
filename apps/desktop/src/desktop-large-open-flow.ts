@@ -36,7 +36,16 @@ export async function openLargeDocumentPreview(
     sizeBytes: opened.sizeBytes,
     lineCount: opened.lineCount,
   })
-  const firstWindow = await source.readLineWindow(1, Math.min(options.previewLineCount, opened.lineCount))
+  let firstWindow: DocumentLineWindow
+  try {
+    firstWindow = await source.readLineWindow(
+      1,
+      Math.min(options.previewLineCount, opened.lineCount),
+    )
+  } catch (error) {
+    await options.service.close(opened.documentId).catch(() => undefined)
+    throw error
+  }
 
   return createLargeDocumentPreview(opened, source, firstWindow)
 }

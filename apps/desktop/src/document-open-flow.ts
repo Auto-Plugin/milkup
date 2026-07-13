@@ -3,7 +3,7 @@ import type { OpenFileResult } from '@milkup/tauri-bridge'
 import type { OpenFileProgressEvent, OpenFileRequestOptions } from './file-service'
 import type { OpenStageTracker } from './open-stage-diagnostics'
 
-export type DocumentLoadingPhase = 'idle' | 'opening' | 'indexing' | 'ready' | 'failed'
+export type DocumentLoadingPhase = 'idle' | 'opening' | 'indexing' | 'closing' | 'ready' | 'failed'
 
 export interface DocumentLoadingState {
   readonly phase: DocumentLoadingPhase
@@ -21,9 +21,7 @@ export interface RunOpenDocumentFlowOptions {
   readonly onError: (error: unknown) => void
 }
 
-export async function runOpenDocumentFlow(
-  options: RunOpenDocumentFlowOptions,
-): Promise<boolean> {
+export async function runOpenDocumentFlow(options: RunOpenDocumentFlowOptions): Promise<boolean> {
   let latestPath: string | undefined
   options.onLoadingState({ phase: 'opening' })
 
@@ -74,6 +72,8 @@ export function getDocumentLoadingLabel(state: DocumentLoadingState): string {
       return '正在打开'
     case 'indexing':
       return '正在准备编辑器'
+    case 'closing':
+      return '正在退出...'
     case 'failed':
       return '打开失败'
   }

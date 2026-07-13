@@ -668,6 +668,10 @@ fn close_large_text_file(
 ) -> Result<bool, String> {
     let mut stores = registry.0.lock().map_err(|error| error.to_string())?;
 
+    let Some(store) = stores.get_mut(&document_id) else {
+        return Ok(true);
+    };
+    store.piece_tree.close()?;
     stores.remove(&document_id);
     Ok(true)
 }
