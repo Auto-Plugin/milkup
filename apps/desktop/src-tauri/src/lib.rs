@@ -1453,19 +1453,34 @@ fn replace_file_with_temp(temp_path: &Path, path: &Path) -> Result<(), String> {
 fn replace_file_atomically(from: &Path, to: &Path) -> Result<(), String> {
     let from_wide = wide_path(from);
     let to_wide = wide_path(to);
-    let result = unsafe {
-        MoveFileExW(
-            from_wide.as_ptr(),
-            to_wide.as_ptr(),
-            MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH,
-        )
-    };
 
-    if result == 0 {
-        Err(std::io::Error::last_os_error().to_string())
-    } else {
-        Ok(())
+    for attempt in 0..4 {
+        let result = unsafe {
+            MoveFileExW(
+                from_wide.as_ptr(),
+                to_wide.as_ptr(),
+                MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH,
+            )
+        };
+
+        if result != 0 {
+            return Ok(());
+        }
+
+        let error = std::io::Error::last_os_error();
+        if attempt == 3
+            || !matches!(
+                error.kind(),
+                std::io::ErrorKind::PermissionDenied | std::io::ErrorKind::WouldBlock
+            )
+        {
+            return Err(error.to_string());
+        }
+
+        thread::sleep(Duration::from_millis(50 * (attempt + 1)));
     }
+
+    unreachable!()
 }
 
 #[cfg(windows)]
