@@ -746,6 +746,46 @@ describe('SourceDocumentView', () => {
     expect(onEdit).toHaveBeenCalledWith({ from: 0, to: 0, insert: 'x', deletedText: '' })
   })
 
+  it('continues list prefixes when editable source mode receives Enter', async () => {
+    const parent = document.createElement('main')
+    const onEdit = vi.fn()
+    const view = new SourceDocumentView({
+      parent,
+      source: new MemoryDocumentSource({
+        documentId: 'source-doc',
+        text: ['- one', '2. two', '- [x] done'].join('\n'),
+      }),
+      editable: true,
+      onEdit,
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 80,
+        overscanLines: 0,
+      },
+    })
+
+    await view.renderVisibleWindow()
+    const firstLine = view.contentDOM.querySelector<HTMLElement>('.milkup-line[data-line="1"]')
+
+    expect(firstLine).not.toBeNull()
+
+    firstLine!.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, right: 80, bottom: 20, width: 80, height: 20 }) as DOMRect
+    firstLine!.dispatchEvent(
+      new MouseEvent('pointerdown', { bubbles: true, button: 0, clientX: 80, clientY: 10 }),
+    )
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    await flushPromises()
+
+    expect(view.contentDOM.querySelector('.milkup-line[data-line="2"]')?.textContent).toBe('- ')
+    expect(onEdit).not.toHaveBeenCalled()
+
+    await view.flushPendingEdits()
+
+    expect(onEdit).toHaveBeenCalledWith({ from: 5, to: 5, insert: '\n- ', deletedText: '' })
+  })
+
   it('commits only finalized IME composition text', async () => {
     const parent = document.createElement('main')
     const onEdit = vi.fn()
@@ -786,6 +826,145 @@ describe('SourceDocumentView', () => {
     expect(onEdit).toHaveBeenCalledTimes(1)
     expect(onEdit).toHaveBeenCalledWith({ from: 0, to: 0, insert: '你', deletedText: '' })
     expect(view.inputDOM.value).toBe('')
+  })
+
+  it('clears the IME placeholder before immediately handling enter and delete', async () => {
+    const parent = document.createElement('main')
+    const source = new RecordingDocumentSource({ documentId: 'large-source', text: 'alpha' })
+    let text = 'alpha'
+    const onEdit = vi.fn(
+      async (edit: { readonly from: number; readonly to: number; readonly insert: string }) => {
+        text = text.slice(0, edit.from) + edit.insert + text.slice(edit.to)
+        source.updateText(text)
+      },
+    )
+    const view = new SourceDocumentView({
+      parent,
+      source,
+      editable: true,
+      onEdit,
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 40,
+        overscanLines: 0,
+      },
+    })
+
+    await view.renderVisibleWindow()
+    view.inputDOM.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }))
+    view.inputDOM.value = 'zhong'
+    view.inputDOM.dispatchEvent(
+      new CompositionEvent('compositionupdate', { bubbles: true, data: 'zhong' }),
+    )
+
+    expect(view.cursorLayerDOM.querySelector<HTMLElement>('.milkup-composition')?.textContent).toBe(
+      'zhong',
+    )
+
+    view.inputDOM.dispatchEvent(
+      new CompositionEvent('compositionend', { bubbles: true, data: '中' }),
+    )
+    expect(view.cursorLayerDOM.querySelector('.milkup-composition')).toBeNull()
+
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }))
+    await view.flushPendingEdits()
+
+    expect(onEdit).toHaveBeenNthCalledWith(1, {
+      from: 0,
+      to: 0,
+      insert: '中\n',
+      deletedText: '',
+    })
+    expect(onEdit).toHaveBeenNthCalledWith(2, {
+      from: 2,
+      to: 3,
+      insert: '',
+      deletedText: 'a',
+    })
+  })
+
+  it('does not let a stale composition flag block enter and delete', async () => {
+    const parent = document.createElement('main')
+    const source = new RecordingDocumentSource({ documentId: 'large-source', text: 'ab' })
+    let text = 'ab'
+    const onEdit = vi.fn(
+      async (edit: { readonly from: number; readonly to: number; readonly insert: string }) => {
+        text = text.slice(0, edit.from) + edit.insert + text.slice(edit.to)
+        source.updateText(text)
+      },
+    )
+    const view = new SourceDocumentView({
+      parent,
+      source,
+      editable: true,
+      onEdit,
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 40,
+        overscanLines: 0,
+      },
+    })
+
+    await view.renderVisibleWindow()
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    await flushPromises()
+    view.inputDOM.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }))
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }))
+    await view.flushPendingEdits()
+
+    expect(onEdit).toHaveBeenNthCalledWith(1, {
+      from: 1,
+      to: 1,
+      insert: '\n',
+      deletedText: '',
+    })
+    expect(onEdit).toHaveBeenNthCalledWith(2, {
+      from: 2,
+      to: 3,
+      insert: '',
+      deletedText: 'b',
+    })
+  })
+
+  it('handles editing keys reported with the legacy IME key code', async () => {
+    const parent = document.createElement('main')
+    const source = new RecordingDocumentSource({ documentId: 'large-source', text: 'ab' })
+    let text = 'ab'
+    const onEdit = vi.fn(
+      async (edit: { readonly from: number; readonly to: number; readonly insert: string }) => {
+        text = text.slice(0, edit.from) + edit.insert + text.slice(edit.to)
+        source.updateText(text)
+      },
+    )
+    const view = new SourceDocumentView({ parent, source, editable: true, onEdit })
+    const enter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })
+    const remove = new KeyboardEvent('keydown', { key: 'Delete', bubbles: true })
+    Object.defineProperty(enter, 'keyCode', { value: 229 })
+    Object.defineProperty(remove, 'keyCode', { value: 229 })
+
+    await view.renderVisibleWindow()
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    await flushPromises()
+    view.inputDOM.dispatchEvent(enter)
+    view.inputDOM.dispatchEvent(remove)
+    await view.flushPendingEdits()
+
+    expect(onEdit).toHaveBeenNthCalledWith(1, {
+      from: 1,
+      to: 1,
+      insert: '\n',
+      deletedText: '',
+    })
+    expect(onEdit).toHaveBeenNthCalledWith(2, {
+      from: 2,
+      to: 3,
+      insert: '',
+      deletedText: 'b',
+    })
   })
 
   it('flushes pending source edits before save operations', async () => {
@@ -843,7 +1022,7 @@ describe('SourceDocumentView', () => {
     expect(onEdit).toHaveBeenCalledWith({ from: 0, to: 0, insert: '\n', deletedText: '' })
   })
 
-  it('serializes consecutive structural edits against the latest committed source version', async () => {
+  it('batches consecutive structural edits into one native commit', async () => {
     const parent = document.createElement('main')
     const source = new RecordingDocumentSource({ documentId: 'large-source', text: 'alpha' })
     let text = 'alpha'
@@ -871,8 +1050,64 @@ describe('SourceDocumentView', () => {
     view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
     await view.flushPendingEdits()
 
-    expect(onEdit).toHaveBeenNthCalledWith(1, { from: 0, to: 0, insert: '\n', deletedText: '' })
-    expect(onEdit).toHaveBeenNthCalledWith(2, { from: 1, to: 1, insert: '\n', deletedText: '' })
+    expect(onEdit).toHaveBeenCalledTimes(1)
+    expect(onEdit).toHaveBeenCalledWith({ from: 0, to: 0, insert: '\n\n', deletedText: '' })
+  })
+
+  it('renders structural edits while the native commit is still pending', async () => {
+    const parent = document.createElement('main')
+    let releaseCommit: (() => void) | undefined
+    const onEdit = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          releaseCommit = resolve
+        }),
+    )
+    const view = new SourceDocumentView({
+      parent,
+      source: new MemoryDocumentSource({ documentId: 'large-source', text: 'alpha' }),
+      editable: true,
+      onEdit,
+    })
+
+    await view.renderVisibleWindow()
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    await flushPromises()
+
+    expect(view.contentDOM.querySelectorAll('.milkup-line')).toHaveLength(2)
+    expect(view.cursorLayerDOM.querySelector('.milkup-cursor')?.getAttribute('data-position')).toBe(
+      '1',
+    )
+
+    await delay(40)
+    expect(onEdit).toHaveBeenCalledWith({ from: 0, to: 0, insert: '\n', deletedText: '' })
+    expect(view.contentDOM.querySelectorAll('.milkup-line')).toHaveLength(2)
+
+    releaseCommit?.()
+    await view.flushPendingEdits()
+  })
+
+  it('rolls back an optimistic structural edit when the native commit fails', async () => {
+    const parent = document.createElement('main')
+    const view = new SourceDocumentView({
+      parent,
+      source: new MemoryDocumentSource({ documentId: 'large-source', text: 'alpha' }),
+      editable: true,
+      onEdit: async () => {
+        throw new Error('native edit failed')
+      },
+    })
+
+    await view.renderVisibleWindow()
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    await flushPromises()
+
+    expect(view.contentDOM.querySelectorAll('.milkup-line')).toHaveLength(2)
+    await expect(view.flushPendingEdits()).rejects.toThrow('native edit failed')
+    await flushPromises()
+
+    expect(view.contentDOM.querySelectorAll('.milkup-line')).toHaveLength(1)
+    expect(view.contentDOM.querySelector('.milkup-line')?.textContent).toBe('alpha')
   })
 
   it('deletes a selected range inside the rendered source window', async () => {
@@ -905,7 +1140,7 @@ describe('SourceDocumentView', () => {
     expect(view.dom.querySelector<HTMLElement>('.milkup-selection')).not.toBeNull()
 
     view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }))
-    await flushPromises()
+    await view.flushPendingEdits()
 
     expect(onEdit).toHaveBeenCalledWith({ from: 0, to: 6, insert: '', deletedText: 'alpha\n' })
   })
@@ -1039,6 +1274,67 @@ describe('SourceDocumentView', () => {
 
     expect(markers.map((marker) => marker.textContent)).toEqual(['•', '3.'])
     expect(markers[0]?.classList.contains('milkup-marker-hidden')).toBe(false)
+  })
+
+  it('keeps live list clicks out of source marker ranges', async () => {
+    const parent = document.createElement('main')
+    const view = new SourceDocumentView({
+      parent,
+      source: new MemoryDocumentSource({
+        documentId: 'source-doc',
+        text: '- one',
+      }),
+      mode: 'live',
+      editable: true,
+      markdownContextLines: 0,
+      virtualViewport: {
+        enabled: true,
+        lineHeight: 20,
+        viewportHeight: 40,
+        overscanLines: 0,
+      },
+    })
+
+    await view.renderVisibleWindow()
+    const marker = view.contentDOM.querySelector<HTMLElement>('.milkup-list-marker')
+
+    expect(marker).not.toBeNull()
+
+    marker!.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, right: 16, bottom: 20, width: 16, height: 20 }) as DOMRect
+    marker!.dispatchEvent(
+      new MouseEvent('pointerdown', { bubbles: true, button: 0, clientX: 4, clientY: 10 }),
+    )
+    await flushPromises()
+
+    expect(view.cursorLayerDOM.querySelector<HTMLElement>('.milkup-cursor')?.dataset.position).toBe(
+      '2',
+    )
+  })
+
+  it('keeps task-list syntax rendered after the cursor enters the item', async () => {
+    const parent = document.createElement('main')
+    const view = new SourceDocumentView({
+      parent,
+      source: new MemoryDocumentSource({
+        documentId: 'source-doc',
+        text: '- [ ] pending',
+      }),
+      mode: 'live',
+      editable: true,
+      markdownContextLines: 0,
+    })
+
+    await view.renderVisibleWindow()
+    view.contentDOM
+      .querySelector<HTMLElement>('.milkup-list-content')
+      ?.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }))
+    await flushPromises()
+
+    const line = view.contentDOM.querySelector<HTMLElement>('.milkup-line')
+    expect(line?.querySelector('.milkup-task-marker')).not.toBeNull()
+    expect(line?.textContent).not.toContain('[ ]')
+    expect(line?.querySelector('.milkup-list-marker')?.textContent).toBe('•')
   })
 
   it('creates a selection while dragging through a rendered source window', async () => {

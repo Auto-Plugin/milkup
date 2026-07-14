@@ -509,6 +509,137 @@ describe('EditorView', () => {
     expect(view.state.selection.main.head).toBe(6)
   })
 
+  it('continues markdown list prefixes when Enter is pressed', () => {
+    const cases = [
+      ['- one', '- one\n- '],
+      ['3. one', '3. one\n4. '],
+      ['- [x] done', '- [x] done\n- [ ] '],
+    ] as const
+
+    for (const [input, expected] of cases) {
+      const parent = document.createElement('main')
+      const view = new EditorView({
+        parent,
+        state: createState(input, Selection.cursor(input.length)),
+      })
+      const event = new KeyboardEvent('keydown', { key: 'Enter', cancelable: true })
+
+      view.inputDOM.dispatchEvent(event)
+
+      expect(event.defaultPrevented).toBe(true)
+      expect(view.state.doc.text).toBe(expected)
+      expect(view.state.selection.main.head).toBe(expected.length)
+    }
+  })
+
+  it('focuses from blank editor space and places the cursor by editor coordinates', () => {
+    const parent = document.createElement('main')
+    document.body.append(parent)
+    const view = new EditorView({
+      parent,
+      state: createState('one\ntwo', Selection.cursor(0)),
+    })
+    view.contentDOM.style.padding = '20px'
+    view.contentDOM.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, right: 200, bottom: 200, width: 200, height: 200 }) as DOMRect
+
+    view.contentDOM.dispatchEvent(
+      new MouseEvent('mousedown', {
+        bubbles: true,
+        button: 0,
+        clientX: 120,
+        clientY: 80,
+      }),
+    )
+
+    expect(view.state.selection.main.head).toBe(7)
+    expect(document.activeElement).toBe(view.inputDOM)
+    view.destroy()
+    parent.remove()
+  })
+
+  it('maps live table row clicks to visible cells instead of hidden pipes', () => {
+    const parent = document.createElement('main')
+    const view = new EditorView({
+      parent,
+      state: createState('| Name | Status |\n| --- | --- |\n| Milk | ok |', Selection.cursor(0)),
+      mode: 'live',
+    })
+    const line = view.contentDOM.querySelector<HTMLElement>('.milkup-line[data-line="1"]')
+    const cell = line?.querySelector<HTMLElement>('.milkup-table-cell')
+
+    expect(line).not.toBeNull()
+    expect(cell).not.toBeNull()
+
+    line!.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, right: 140, bottom: 24, width: 140, height: 24 }) as DOMRect
+    cell!.getBoundingClientRect = () =>
+      ({ left: 8, top: 0, right: 48, bottom: 24, width: 40, height: 24 }) as DOMRect
+    line!.dispatchEvent(
+      new MouseEvent('mousedown', { bubbles: true, button: 0, clientX: 24, clientY: 12 }),
+    )
+
+    expect(view.state.selection.main.head).toBeGreaterThanOrEqual(Number(cell!.dataset.from))
+    expect(view.state.selection.main.head).toBeLessThanOrEqual(Number(cell!.dataset.to))
+  })
+
+  it('ignores browser hit-testing results inside hidden table syntax', () => {
+    const parent = document.createElement('main')
+    const view = new EditorView({
+      parent,
+      state: createState('| Name | Status |\n| --- | --- |\n| Milk | ok |', Selection.cursor(0)),
+      mode: 'live',
+    })
+    const line = view.contentDOM.querySelector<HTMLElement>('.milkup-line[data-line="1"]')
+    const marker = line?.querySelector<HTMLElement>('.milkup-table-marker')
+    const cell = line?.querySelector<HTMLElement>('.milkup-table-cell')
+    const hiddenText = marker?.firstChild
+
+    expect(line).not.toBeNull()
+    expect(cell).not.toBeNull()
+
+    if (!(hiddenText instanceof Text)) {
+      throw new Error('Expected hidden table marker text')
+    }
+
+    line!.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, right: 140, bottom: 24, width: 140, height: 24 }) as DOMRect
+    cell!.getBoundingClientRect = () =>
+      ({ left: 8, top: 0, right: 48, bottom: 24, width: 40, height: 24 }) as DOMRect
+    const restoreCaretRange = withCaretRangeFromPoint(hiddenText, 0)
+
+    try {
+      line!.dispatchEvent(
+        new MouseEvent('mousedown', { bubbles: true, button: 0, clientX: 24, clientY: 12 }),
+      )
+    } finally {
+      restoreCaretRange()
+    }
+
+    expect(view.state.selection.main.head).toBeGreaterThanOrEqual(Number(cell!.dataset.from))
+    expect(view.state.selection.main.head).toBeLessThanOrEqual(Number(cell!.dataset.to))
+  })
+
+  it('keeps live list clicks out of the source marker range', () => {
+    const parent = document.createElement('main')
+    const view = new EditorView({
+      parent,
+      state: createState('- one', Selection.cursor(5)),
+      mode: 'live',
+    })
+    const marker = view.contentDOM.querySelector<HTMLElement>('.milkup-list-marker')
+
+    expect(marker).not.toBeNull()
+
+    marker!.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, right: 16, bottom: 20, width: 16, height: 20 }) as DOMRect
+    marker!.dispatchEvent(
+      new MouseEvent('mousedown', { bubbles: true, button: 0, clientX: 4, clientY: 10 }),
+    )
+
+    expect(view.state.selection.main.head).toBe(2)
+  })
+
   it('pastes plain text through one undoable transaction', () => {
     const parent = document.createElement('main')
     const view = new EditorView({
@@ -640,6 +771,39 @@ describe('EditorView', () => {
     expect(view.state.doc.text).toBe('hello你')
     expect(view.state.selection.main.head).toBe(6)
     expect(view.state.undo().doc.text).toBe('hello')
+  })
+
+  it('does not let a stale composition flag block Enter or Delete', () => {
+    const parent = document.createElement('main')
+    const view = new EditorView({
+      parent,
+      state: createState('ab', Selection.cursor(1)),
+    })
+
+    view.inputDOM.dispatchEvent(new CompositionEvent('compositionstart'))
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }))
+
+    expect(view.state.doc.text).toBe('a\n')
+    expect(view.state.selection.main.head).toBe(2)
+  })
+
+  it('handles editing keys reported with the legacy IME key code', () => {
+    const parent = document.createElement('main')
+    const view = new EditorView({
+      parent,
+      state: createState('ab', Selection.cursor(1)),
+    })
+    const enter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })
+    const remove = new KeyboardEvent('keydown', { key: 'Delete', bubbles: true })
+    Object.defineProperty(enter, 'keyCode', { value: 229 })
+    Object.defineProperty(remove, 'keyCode', { value: 229 })
+
+    view.inputDOM.dispatchEvent(enter)
+    view.inputDOM.dispatchEvent(remove)
+
+    expect(view.state.doc.text).toBe('a\n')
+    expect(view.state.selection.main.head).toBe(2)
   })
 
   it('deletes backward through the input proxy', () => {
@@ -817,7 +981,7 @@ describe('EditorView', () => {
     expect(document.activeElement).toBe(view.inputDOM)
   })
 
-  it('does not guess a source cursor position without browser hit-testing', () => {
+  it('falls back to the clicked source line when browser hit-testing is unavailable', () => {
     const parent = document.createElement('main')
     document.body.append(parent)
     const view = new EditorView({
@@ -832,7 +996,7 @@ describe('EditorView', () => {
 
     secondLine.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 124 }))
 
-    expect(view.state.selection.main.head).toBe(0)
+    expect(view.state.selection.main.head).toBe(6)
     expect(view.state.history.canUndo).toBe(false)
   })
 
@@ -1000,7 +1164,7 @@ describe('EditorView', () => {
     expect(view.state.selection.main.head).toBe(2)
   })
 
-  it('does not guess a live cursor position without browser hit-testing', () => {
+  it('falls back to the clicked live line when browser hit-testing is unavailable', () => {
     const parent = document.createElement('main')
     document.body.append(parent)
     const view = new EditorView({
@@ -1012,7 +1176,7 @@ describe('EditorView', () => {
 
     line?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
 
-    expect(view.state.selection.main.head).toBe(12)
+    expect(view.state.selection.main.head).toBe(0)
     expect(view.state.history.canUndo).toBe(false)
   })
 
@@ -1984,6 +2148,26 @@ describe('renderPlainTextLines', () => {
     expect(
       lines.slice(0, 3).map((line) => line.querySelector('.milkup-list-marker')?.textContent),
     ).toEqual(['•', '•', '•'])
+  })
+
+  it('keeps task-list syntax rendered after the cursor enters the item', () => {
+    const text = '- [ ] pending\n1. ordered'
+    const parent = document.createElement('main')
+    const view = new EditorView({
+      parent,
+      state: createState(text, Selection.cursor(text.length)),
+      mode: 'live',
+    })
+    const taskContent = view.contentDOM.querySelector<HTMLElement>(
+      '.milkup-line[data-line="1"] .milkup-list-content',
+    )
+
+    taskContent?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))
+
+    const taskLine = view.contentDOM.querySelector<HTMLElement>('.milkup-line[data-line="1"]')
+    expect(taskLine?.querySelector('.milkup-task-marker')).not.toBeNull()
+    expect(taskLine?.textContent).not.toContain('[ ]')
+    expect(taskLine?.querySelector('.milkup-list-marker')?.textContent).toBe('•')
   })
 
   it('hides heading markers when the cursor is outside the heading', () => {

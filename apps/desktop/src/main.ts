@@ -1848,9 +1848,8 @@ async function applyLargeSourceEdit(edit: {
     })
   } catch (error: unknown) {
     notice = `大文件编辑失败：${getErrorMessage(error)}`
-    await sourceView?.renderVisibleWindow()
     renderSession()
-    return
+    throw error
   }
 
   if (!snapshot) {

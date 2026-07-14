@@ -1,5 +1,9 @@
 import { Selection } from '@milkup/core'
-import type { DocumentLineWindow, EditorDocumentSource } from '@milkup/core'
+import {
+  MemoryTextDocument,
+  type DocumentLineWindow,
+  type EditorDocumentSource,
+} from '@milkup/core'
 import {
   parseInline,
   parseMarkdownWindow,
@@ -129,18 +133,27 @@ export class SourceDocumentView {
   private readonly handleCompositionStartEvent = (): void => {
     this.isComposing = true
     this.compositionText = ''
+    this.renderCompositionText()
   }
   private readonly handleCompositionUpdateEvent = (event: CompositionEvent): void => {
     this.isComposing = true
-    this.compositionText = event.data
+    this.compositionText = event.data || this.inputDOM.value
+    this.renderCompositionText()
   }
   private readonly handleCompositionEndEvent = (event: CompositionEvent): void => {
+    const text = event.data || this.compositionText || this.inputDOM.value
+    // Clear this synchronously so the next Enter/Delete is handled as an editor key,
+    // even while the finalized IME text waits for an earlier native edit to finish.
+    this.isComposing = false
+    this.compositionText = ''
+    this.inputDOM.value = ''
+    this.renderCompositionText()
     this.compositionCommitError = undefined
-    this.compositionCommitQueue = this.enqueueVisibleEdit(() =>
-      this.commitComposition(event.data),
-    ).catch((error: unknown) => {
-      this.compositionCommitError = error
-    })
+    this.compositionCommitQueue = this.enqueueVisibleEdit(() => this.commitComposition(text)).catch(
+      (error: unknown) => {
+        this.compositionCommitError = error
+      },
+    )
   }
   private readonly handlePasteEvent = (event: ClipboardEvent): void => {
     if (event.defaultPrevented) {
@@ -643,22 +656,16 @@ export class SourceDocumentView {
   }
 
   private async commitComposition(data: string): Promise<void> {
-    const text = data.length > 0 ? data : this.compositionText || this.inputDOM.value
-
-    this.isComposing = false
-    this.compositionText = ''
-    this.inputDOM.value = ''
-
-    if (!this.editable || text.length === 0) {
+    if (!this.editable || data.length === 0) {
       return
     }
 
     const range = this.getSelectedRange()
-    await this.applyVisibleEdit(range.from, range.to, text)
+    await this.applyVisibleEdit(range.from, range.to, data)
   }
 
   private handleEditingKey(event: KeyboardEvent): boolean {
-    if (this.isComposing || event.isComposing || event.key === 'Process' || event.keyCode === 229) {
+    if (isCompositionKeyEvent(event)) {
       return false
     }
 
@@ -671,6 +678,10 @@ export class SourceDocumentView {
     }
 
     if (event.key.length === 1) {
+      if (this.isComposing) {
+        return false
+      }
+
       void this.trackVisibleEditTask(() => {
         const range = this.getSelectedRange()
         return this.applyVisibleEdit(range.from, range.to, event.key)
@@ -681,7 +692,7 @@ export class SourceDocumentView {
     if (event.key === 'Enter') {
       void this.trackVisibleEditTask(() => {
         const range = this.getSelectedRange()
-        return this.applyVisibleEdit(range.from, range.to, '\n')
+        return this.applyVisibleEdit(range.from, range.to, this.enterInsertionText(range.from))
       })
       return true
     }
@@ -907,16 +918,21 @@ export class SourceDocumentView {
     this.cancelMarkdownWarmup()
 
     if (structuralEdit) {
-      await this.queueVisibleEditCommit({ from, to, insert, deletedText }, { immediate: true })
-      this.markdownCache.clear()
-      // The edit is already committed at this point. A transient viewport read failure
-      // must not make a later save fail or cause the next edit to reuse a stale version.
-      try {
-        await this.renderVisibleWindow()
-      } catch {
-        // A following render (scroll, focus, or edit) retries the visible window.
+      const optimistic = this.updateOptimisticSourceWindow(from, to, insert)
+
+      if (optimistic) {
+        await this.renderOptimisticSourceWindow(optimistic.window, optimistic.lineCount)
+        const commit = this.queueVisibleEditCommit({ from, to, insert, deletedText })
+        void commit.then(
+          () => this.refreshAfterOptimisticCommit(editRevision),
+          (error: unknown) => this.rollbackOptimisticEdit(editRevision, error),
+        )
+      } else {
+        await this.queueVisibleEditCommit({ from, to, insert, deletedText }, { immediate: true })
+        await this.refreshAfterOptimisticCommit(editRevision)
       }
     } else {
+      this.updateOptimisticSourceWindow(from, to, insert)
       this.applyOptimisticRenderedLineEdit(editedLine, from, to, insert)
       this.shiftRenderedLinePositionsAfter(editedLine.number, delta)
       this.renderSelection()
@@ -934,11 +950,125 @@ export class SourceDocumentView {
             this.renderSelection()
             this.renderCursor()
           })
-          .catch(() => undefined)
+          .catch((error: unknown) => this.rollbackOptimisticEdit(editRevision, error))
       }
     }
 
     this.inputDOM.focus({ preventScroll: true })
+  }
+
+  private updateOptimisticSourceWindow(
+    from: number,
+    to: number,
+    insert: string,
+  ):
+    | {
+        readonly window: DocumentLineWindow
+        readonly lineCount: number
+      }
+    | undefined {
+    const current = this.renderedSourceWindow
+
+    if (!current || from < current.from || to > current.to) {
+      return undefined
+    }
+
+    const text =
+      current.text.slice(0, from - current.from) + insert + current.text.slice(to - current.from)
+    const document = new MemoryTextDocument(text)
+    const lines = Array.from({ length: document.lineCount }, (_, index) => {
+      const line = document.line(index + 1)
+      return Object.freeze({
+        number: current.fromLine + index,
+        from: current.from + line.from,
+        to: current.from + line.to,
+        text: line.text,
+      })
+    })
+    const lineDelta = lines.length - current.lines.length
+    const last = lines.at(-1)
+    const window = Object.freeze({
+      fromLine: current.fromLine,
+      toLine: current.fromLine + lines.length - 1,
+      from: current.from,
+      to: last?.to ?? current.from,
+      text,
+      lines: Object.freeze(lines),
+    })
+
+    this.renderedSourceWindow = window
+    return Object.freeze({
+      window,
+      lineCount: this.currentSource.lineCount + lineDelta,
+    })
+  }
+
+  private async renderOptimisticSourceWindow(
+    window: DocumentLineWindow,
+    lineCount: number,
+  ): Promise<void> {
+    let lines: readonly HTMLElement[]
+
+    if (this.mode === 'live') {
+      const parsed = await parseMarkdownWindow(
+        {
+          documentId: `${this.currentSource.documentId}:optimistic`,
+          version: this.currentSource.version + this.editRevision,
+          readLineWindow: async () => window,
+        },
+        { fromLine: window.fromLine, toLine: window.toLine },
+      )
+      const blocks = parsed.root.children ?? []
+      lines = parsed.window.lines.map((line) =>
+        renderLiveLine(this.ownerDocument, line, blocks, {
+          cursorPosition: this.cursorPosition,
+          selection: this.currentSelection(),
+        }),
+      )
+    } else {
+      lines = window.lines.map((line) => renderSourceLine(this.ownerDocument, line))
+    }
+    const lineHeight = this.getLineHeight()
+
+    this.latestAppliedRequestId = this.nextRequestId
+    this.nextRequestId += 1
+    this.contentDOM.replaceChildren(
+      renderSpacer(this.ownerDocument, 'top', (window.fromLine - 1) * lineHeight),
+      ...lines,
+      renderSpacer(this.ownerDocument, 'bottom', (lineCount - window.toLine) * lineHeight),
+    )
+    this.contentDOM.dataset.virtualized = 'true'
+    this.contentDOM.dataset.fromLine = String(window.fromLine)
+    this.contentDOM.dataset.toLine = String(window.toLine)
+    this.contentDOM.dataset.renderMode = this.mode
+    this.renderSearchHighlights()
+    this.renderSelection()
+    this.renderCursor()
+  }
+
+  private async refreshAfterOptimisticCommit(editRevision: number): Promise<void> {
+    if (editRevision !== this.editRevision) {
+      return
+    }
+
+    this.markdownCache.clear()
+    try {
+      await this.renderVisibleWindow()
+    } catch {
+      // A following render (scroll, focus, or edit) retries the visible window.
+    }
+  }
+
+  private async rollbackOptimisticEdit(editRevision: number, error: unknown): Promise<void> {
+    this.visibleEditPreparationError = error
+
+    if (editRevision !== this.editRevision) {
+      return
+    }
+
+    this.markdownCache.clear()
+    this.renderedSourceWindow = undefined
+    await this.renderVisibleWindow().catch(() => undefined)
   }
 
   private enqueueVisibleEdit(task: () => Promise<void>): Promise<void> {
@@ -1037,6 +1167,12 @@ export class SourceDocumentView {
   private async readVisibleRangeText(from: number, to: number): Promise<string> {
     if (from === to) {
       return ''
+    }
+
+    const rendered = this.renderedSourceWindow
+
+    if (rendered && from >= rendered.from && to <= rendered.to) {
+      return readLineWindowRangeText(rendered, from, to)
     }
 
     const fromLine = await this.currentSource.lineAtPosition(from).catch(() => undefined)
@@ -1151,7 +1287,7 @@ export class SourceDocumentView {
     const target = lineElementFromEvent(event, this.contentDOM, this.inputDOM)
 
     if (!target) {
-      return undefined
+      return this.positionFromRenderedWindowEvent(event)
     }
 
     const from = Number(target.dataset.from)
@@ -1161,9 +1297,10 @@ export class SourceDocumentView {
       return undefined
     }
 
-    return (
+    const position =
       sourcePositionFromPoint(target, event, this.inputDOM, { allowGeometryFallback: true }) ?? from
-    )
+
+    return this.normalizeRenderedClickPosition(clamp(position, from, to))
   }
 
   private async moveCursorFromPointer(event: MouseEvent): Promise<void> {
@@ -1186,6 +1323,84 @@ export class SourceDocumentView {
     this.renderCursor()
     this.inputDOM.focus({ preventScroll: true })
     event.preventDefault()
+  }
+
+  private positionFromRenderedWindowEvent(event: MouseEvent): number | undefined {
+    const target = event.target
+
+    if (!(target instanceof Node) || !this.dom.contains(target)) {
+      return undefined
+    }
+
+    const lines = Array.from(this.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'))
+
+    if (lines.length === 0) {
+      return undefined
+    }
+
+    let nearest:
+      | {
+          readonly line: HTMLElement
+          readonly distance: number
+        }
+      | undefined
+
+    for (const line of lines) {
+      const rect = line.getBoundingClientRect()
+
+      if (event.clientY >= rect.top && event.clientY <= rect.bottom) {
+        return this.normalizePositionFromLine(line, event)
+      }
+
+      const distance =
+        event.clientY < rect.top ? rect.top - event.clientY : event.clientY - rect.bottom
+
+      if (!nearest || distance < nearest.distance) {
+        nearest = { line, distance }
+      }
+    }
+
+    return nearest ? this.normalizePositionFromLine(nearest.line, event) : undefined
+  }
+
+  private normalizePositionFromLine(line: HTMLElement, event: MouseEvent): number | undefined {
+    const from = Number(line.dataset.from)
+    const to = Number(line.dataset.to)
+
+    if (!Number.isInteger(from) || !Number.isInteger(to)) {
+      return undefined
+    }
+
+    const position =
+      sourcePositionFromPoint(line, event, this.inputDOM, { allowGeometryFallback: true }) ?? to
+
+    return this.normalizeRenderedClickPosition(clamp(position, from, to))
+  }
+
+  private normalizeRenderedClickPosition(position: number): number {
+    if (this.mode === 'source') {
+      return position
+    }
+
+    const line = this.findRenderedSourceLineAtPosition(position)
+    const contentStart = line ? listSyntaxContentStart(line.text, line.from) : undefined
+
+    if (contentStart === undefined || position >= contentStart) {
+      return position
+    }
+
+    return clamp(contentStart, line?.from ?? position, line?.to ?? position)
+  }
+
+  private enterInsertionText(position: number): string {
+    const line = this.findRenderedSourceLineAtPosition(position)
+    return `\n${line ? (listContinuationPrefix(line.text) ?? '') : ''}`
+  }
+
+  private findRenderedSourceLineAtPosition(position: number): SourceLine | undefined {
+    return this.renderedSourceWindow?.lines.find(
+      (line) => position >= line.from && position <= line.to,
+    )
   }
 
   private getSelectedRange(): { readonly from: number; readonly to: number } {
@@ -1406,6 +1621,29 @@ export class SourceDocumentView {
     }
     this.cursorLayerDOM.append(cursor)
     this.syncInputProxyToCursor()
+    this.renderCompositionText()
+  }
+
+  private renderCompositionText(): void {
+    this.cursorLayerDOM.querySelector<HTMLElement>('.milkup-composition')?.remove()
+
+    if (!this.isComposing || this.compositionText.length === 0) {
+      return
+    }
+
+    const cursor = this.cursorLayerDOM.querySelector<HTMLElement>('.milkup-cursor')
+
+    if (!cursor) {
+      return
+    }
+
+    const composition = this.ownerDocument.createElement('span')
+    composition.className = 'milkup-composition'
+    composition.textContent = this.compositionText
+    composition.style.left = cursor.style.left
+    composition.style.top = cursor.style.top
+    composition.style.minHeight = cursor.style.height
+    this.cursorLayerDOM.append(composition)
   }
 
   private syncInputProxyToCursor(): void {
@@ -1625,7 +1863,8 @@ function renderLiveLine(
   const blockquoteLine = findBlockForLine(blocks, 'blockquoteLine', line.from, line.to)
   const tableRow = findBlockForLine(blocks, 'tableRow', line.from, line.to)
   const table = findBlockForLine(blocks, 'table', line.from, line.to)
-  const listItem = findBlockForLine(blocks, 'listItem', line.from, line.to)
+  const listItem =
+    findListItemForLine(blocks, line.from, line.to) ?? fallbackListItemForLine(line, blocks)
 
   if (heading) {
     lineDOM.replaceChildren(
@@ -1672,6 +1911,7 @@ function renderLiveLine(
       ),
     )
   } else if (listItem) {
+    lineDOM.classList.add('milkup-block-list')
     lineDOM.replaceChildren(...renderListItemLinePieces(document, line, selection, listItem))
   } else {
     lineDOM.replaceChildren(
@@ -2241,6 +2481,45 @@ function taskMarkerRange(
   return { from, to: from + (match[1]?.length ?? 0) }
 }
 
+function listContinuationPrefix(lineText: string): string | undefined {
+  const unordered = /^(\s*)([-+*])([ \t]+)(?:\[[ xX]\]([ \t]+))?/u.exec(lineText)
+
+  if (unordered) {
+    return `${unordered[1] ?? ''}${unordered[2] ?? '-'}${unordered[3] ?? ' '}${
+      unordered[4] === undefined ? '' : `[ ]${unordered[4]}`
+    }`
+  }
+
+  const ordered = /^(\s*)(\d{1,9})([.)])([ \t]+)(?:\[[ xX]\]([ \t]+))?/u.exec(lineText)
+
+  if (!ordered) {
+    return undefined
+  }
+
+  const numberText = ordered[2] ?? '1'
+  const nextNumber = String(Number.parseInt(numberText, 10) + 1).padStart(numberText.length, '0')
+
+  return `${ordered[1] ?? ''}${nextNumber}${ordered[3] ?? '.'}${ordered[4] ?? ' '}${
+    ordered[5] === undefined ? '' : `[ ]${ordered[5]}`
+  }`
+}
+
+function listSyntaxContentStart(lineText: string, lineFrom: number): number | undefined {
+  const unordered = /^(\s*)([-+*])([ \t]+)(?:\[[ xX]\]([ \t]+))?/u.exec(lineText)
+
+  if (unordered) {
+    return lineFrom + (unordered[0]?.length ?? 0)
+  }
+
+  const ordered = /^(\s*)(\d{1,9})([.)])([ \t]+)(?:\[[ xX]\]([ \t]+))?/u.exec(lineText)
+
+  return ordered ? lineFrom + (ordered[0]?.length ?? 0) : undefined
+}
+
+function isCompositionKeyEvent(event: KeyboardEvent): boolean {
+  return event.isComposing || event.key === 'Process'
+}
+
 type InlinePieceKind = 'content' | 'marker' | 'syntax' | 'taskMarker'
 
 interface InlinePiece {
@@ -2262,6 +2541,69 @@ function findBlockForLine(
   }
 
   return undefined
+}
+
+function findListItemForLine(
+  blocks: readonly SyntaxNode[],
+  lineFrom: number,
+  lineTo: number,
+): SyntaxNode | undefined {
+  let containingItem: SyntaxNode | undefined
+
+  for (const block of walkSyntaxNodes(blocks)) {
+    if (block.type !== 'listItem' || !rangeContainsLine(block, lineFrom, lineTo)) {
+      continue
+    }
+
+    if (
+      (block.markerRanges ?? []).some((range) =>
+        rangesIntersect(range.from, range.to, lineFrom, Math.max(lineFrom + 1, lineTo)),
+      )
+    ) {
+      return block
+    }
+
+    if (!containingItem || block.to - block.from < containingItem.to - containingItem.from) {
+      containingItem = block
+    }
+  }
+
+  return containingItem
+}
+
+function fallbackListItemForLine(
+  line: SourceLine,
+  blocks: readonly SyntaxNode[],
+): SyntaxNode | undefined {
+  const match = /^(\s*)(?:([-+*])|(\d{1,9})([.)]))(?:[ \t]+|$)/u.exec(line.text)
+
+  if (!match) {
+    return undefined
+  }
+
+  if (
+    [...walkSyntaxNodes(blocks)].some(
+      (block) =>
+        (block.type === 'fencedCode' || block.type === 'indentedCode') &&
+        rangeContainsLine(block, line.from, line.to),
+    )
+  ) {
+    return undefined
+  }
+
+  const indentationLength = match[1]?.length ?? 0
+  const markerLength = (match[2] ?? '').length + (match[3] ?? '').length + (match[4] ?? '').length
+  const markerFrom = line.from + indentationLength
+  const markerTo = markerFrom + markerLength
+
+  return {
+    type: 'listItem',
+    from: line.from,
+    to: line.to,
+    status: 'valid',
+    markerRanges: [{ from: markerFrom, to: markerTo }],
+    contentRanges: [{ from: line.from + match[0].length, to: line.to }],
+  }
 }
 
 function* walkSyntaxNodes(nodes: readonly SyntaxNode[]): Generator<SyntaxNode> {

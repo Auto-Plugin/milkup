@@ -106,6 +106,10 @@ impl PieceTree {
     }
 
     pub(crate) fn read_range(&self, from: usize, to: usize) -> Result<String, String> {
+        String::from_utf8(self.read_range_bytes(from, to)?).map_err(|error| error.to_string())
+    }
+
+    fn read_range_bytes(&self, from: usize, to: usize) -> Result<Vec<u8>, String> {
         if from > to || to > self.byte_len() {
             return Err(format!(
                 "Invalid byte range: {from}-{to} for {} bytes",
@@ -114,7 +118,7 @@ impl PieceTree {
         }
         let mut output = Vec::with_capacity(to - from);
         self.read_node_range(self.root.as_deref(), 0, from as u64, to as u64, &mut output)?;
-        String::from_utf8(output).map_err(|error| error.to_string())
+        Ok(output)
     }
 
     pub(crate) fn byte_to_utf16(&self, byte_offset: usize) -> Result<usize, String> {
@@ -135,12 +139,14 @@ impl PieceTree {
             } else {
                 result += utf16s(&current.left);
                 let local = (remaining - left_bytes) as usize;
-                let text = self.read_piece(&current.piece, 0, local)?;
-                if local != current.piece.byte_len as usize && !text.is_char_boundary(text.len()) {
+                let bytes = self.read_piece_bytes(&current.piece, 0, local)?;
+                let valid_prefix = utf8_prefix_len(&bytes);
+                if valid_prefix != local {
                     return Err(format!(
                         "Byte offset {byte_offset} is not on a UTF-8 character boundary"
                     ));
                 }
+                let text = std::str::from_utf8(&bytes).map_err(|error| error.to_string())?;
                 result += text.encode_utf16().count() as u64;
                 return Ok(result as usize);
             }
@@ -179,7 +185,7 @@ impl PieceTree {
         } else {
             self.byte_len()
         };
-        if raw_end > 0 && self.read_range(raw_end - 1, raw_end)?.as_bytes() == b"\r" {
+        if raw_end > 0 && self.read_range_bytes(raw_end - 1, raw_end)?.as_slice() == b"\r" {
             Ok(raw_end - 1)
         } else {
             Ok(raw_end)
@@ -812,6 +818,17 @@ mod tests {
     }
 
     #[test]
+    fn reports_utf8_boundary_errors_without_decoding_partial_prefixes() {
+        let (root, tree) = fixture("é\n```js\nx\n```");
+        let error = tree.byte_to_utf16(1).unwrap_err();
+
+        assert!(error.contains("UTF-8 character boundary"));
+        assert!(!error.contains("invalid utf-8 sequence"));
+        drop(tree);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn reads_line_windows_after_newline_insertion_and_deletion() {
         let (root, mut tree) = fixture("alpha\nbeta");
 
@@ -825,6 +842,17 @@ mod tests {
         assert_eq!(tree.line_count(), 2);
         assert_eq!(read_line(&tree, 1), "alpha");
         assert_eq!(read_line(&tree, 2), "beta");
+
+        drop(tree);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn reads_line_ending_after_a_multibyte_character() {
+        let (root, tree) = fixture("- 中文\nnext");
+
+        let to = tree.line_content_end_byte(1).unwrap();
+        assert_eq!(tree.read_range(0, to).unwrap(), "- 中文");
 
         drop(tree);
         fs::remove_dir_all(root).unwrap();

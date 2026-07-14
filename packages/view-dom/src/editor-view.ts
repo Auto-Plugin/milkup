@@ -753,7 +753,7 @@ export class EditorView {
   }
 
   private handleEditingKey(event: KeyboardEvent): boolean {
-    if (this.isComposing) {
+    if (isCompositionKeyEvent(event)) {
       return false
     }
 
@@ -766,12 +766,16 @@ export class EditorView {
     }
 
     if (event.key.length === 1) {
+      if (this.isComposing) {
+        return false
+      }
+
       return this.insertText(event.key)
     }
 
     switch (event.key) {
       case 'Enter':
-        return this.insertText('\n', 'input.enter')
+        return this.insertText(this.enterInsertionText(), 'input.enter')
       case 'Backspace':
         return this.deleteBackward()
       case 'Delete':
@@ -991,7 +995,7 @@ export class EditorView {
     const target = lineElementFromEvent(event, this.contentDOM, this.inputDOM)
 
     if (!target) {
-      return undefined
+      return this.positionFromEditorEvent(event)
     }
 
     const from = Number(target.dataset.from)
@@ -1001,13 +1005,66 @@ export class EditorView {
       return undefined
     }
 
-    const caretPosition = sourcePositionFromPoint(target, event, this.inputDOM)
+    const caretPosition = sourcePositionFromPoint(target, event, this.inputDOM, {
+      allowGeometryFallback: true,
+    })
 
     if (caretPosition !== undefined) {
-      return clamp(caretPosition, from, to)
+      return this.normalizeRenderedClickPosition(clamp(caretPosition, from, to))
     }
 
-    return from === to ? from : undefined
+    return from === to ? from : this.positionFromEditorEvent(event)
+  }
+
+  private positionFromEditorEvent(event: MouseEvent): number | undefined {
+    const target = event.target
+
+    if (
+      !(target instanceof Node) ||
+      (!this.contentDOM.contains(target) && target !== this.contentDOM)
+    ) {
+      return undefined
+    }
+
+    const rect = this.contentDOM.getBoundingClientRect()
+    const view = this.ownerDocument.defaultView
+    const style = view ? view.getComputedStyle(this.contentDOM) : undefined
+    const paddingLeft = Number.parseFloat(style?.paddingLeft ?? '0') || 0
+    const paddingTop = Number.parseFloat(style?.paddingTop ?? '0') || 0
+    const x = Math.max(0, event.clientX - rect.left - paddingLeft)
+    const y = Math.max(0, event.clientY - rect.top - paddingTop)
+
+    return this.coordinateToPosition({ x, y })
+  }
+
+  private normalizeRenderedClickPosition(position: number): number {
+    if (this.mode === 'source') {
+      return position
+    }
+
+    const line = this.currentState.doc.lineAt(position)
+    const blocks = this.markdownParseState.cache.root.children ?? []
+    const listItem =
+      findListItemForLine(blocks, line.from, line.to) ??
+      fallbackListItemForLine(this.currentState.doc.text, line.from, line.to, blocks)
+
+    if (!listItem) {
+      return position
+    }
+
+    return normalizeListSyntaxPosition(
+      this.currentState.doc.text,
+      listItem,
+      line.from,
+      line.to,
+      position,
+    )
+  }
+
+  private enterInsertionText(): string {
+    const range = this.currentState.selection.main
+    const line = this.currentState.doc.lineAt(range.from)
+    return `\n${listContinuationPrefix(line.text) ?? ''}`
   }
 }
 
@@ -1021,6 +1078,10 @@ function isTextEditingKey(event: KeyboardEvent): boolean {
   }
 
   return ['Enter', 'Backspace', 'Delete', 'Tab'].includes(event.key)
+}
+
+function isCompositionKeyEvent(event: KeyboardEvent): boolean {
+  return event.isComposing || event.key === 'Process'
 }
 
 export interface EditorMarkdownParseState {
@@ -1232,7 +1293,9 @@ function renderMarkdownLine(
     return renderedPluginLine
   }
 
-  const listItem = findListItemForLine(blocks, line.from, line.to)
+  const listItem =
+    findListItemForLine(blocks, line.from, line.to) ??
+    fallbackListItemForLine(state.doc.text, line.from, line.to, blocks)
   const heading = findBlockForLine(blocks, 'heading', line.from, line.to)
   const blockquoteLine = findNestedBlockForLine(
     blocks,
@@ -1301,6 +1364,7 @@ function renderMarkdownLine(
       ),
     )
   } else if (listItem) {
+    lineDOM.classList.add('milkup-block-list')
     lineDOM.replaceChildren(
       ...renderListItemLineDecorations(
         document,
@@ -1552,15 +1616,65 @@ function findListItemForLine(
   lineFrom: number,
   lineTo: number,
 ): SyntaxNode | undefined {
+  let containingItem: SyntaxNode | undefined
+
   for (const block of walkSyntaxNodes(blocks)) {
     if (block.type !== 'listItem' || !nodeContainsLineStart(block, lineFrom, lineTo)) {
       continue
     }
 
-    return block
+    if (
+      (block.markerRanges ?? []).some((range) =>
+        rangesIntersect(range.from, range.to, lineFrom, Math.max(lineFrom + 1, lineTo)),
+      )
+    ) {
+      return block
+    }
+
+    if (!containingItem || block.to - block.from < containingItem.to - containingItem.from) {
+      containingItem = block
+    }
   }
 
-  return undefined
+  return containingItem
+}
+
+function fallbackListItemForLine(
+  source: string,
+  lineFrom: number,
+  lineTo: number,
+  blocks: readonly SyntaxNode[],
+): SyntaxNode | undefined {
+  const lineText = source.slice(lineFrom, lineTo)
+  const match = /^(\s*)(?:([-+*])|(\d{1,9})([.)]))(?:[ \t]+|$)/u.exec(lineText)
+
+  if (!match) {
+    return undefined
+  }
+
+  if (
+    [...walkSyntaxNodes(blocks)].some(
+      (block) =>
+        (block.type === 'fencedCode' || block.type === 'indentedCode') &&
+        rangeIntersectsLine(block, lineFrom, lineTo),
+    )
+  ) {
+    return undefined
+  }
+
+  const indentationLength = match[1]?.length ?? 0
+  const markerLength = (match[2] ?? '').length + (match[3] ?? '').length + (match[4] ?? '').length
+  const markerFrom = lineFrom + indentationLength
+  const markerTo = markerFrom + markerLength
+
+  return {
+    type: 'listItem',
+    from: lineFrom,
+    to: lineTo,
+    status: 'valid',
+    markerRanges: [{ from: markerFrom, to: markerTo }],
+    contentRanges: [{ from: lineFrom + match[0].length, to: lineTo }],
+  }
 }
 
 function* walkSyntaxNodes(nodes: readonly SyntaxNode[]): Generator<SyntaxNode> {
@@ -1948,6 +2062,58 @@ function taskMarkerRange(
   return { from, to: from + (match[1]?.length ?? 0) }
 }
 
+function normalizeListSyntaxPosition(
+  source: string,
+  listItem: SyntaxNode,
+  lineFrom: number,
+  lineTo: number,
+  position: number,
+): number {
+  const contentRange = (listItem.contentRanges ?? []).find((range) =>
+    rangesIntersect(range.from, range.to, lineFrom, lineTo),
+  )
+
+  if (!contentRange) {
+    return position
+  }
+
+  const taskMarker = taskMarkerRange(source, contentRange.from, contentRange.to)
+  const contentStart = taskMarker ? taskMarker.to : contentRange.from
+
+  if (position < contentStart) {
+    return clamp(contentStart, lineFrom, lineTo)
+  }
+
+  if (taskMarker && position >= taskMarker.from && position <= taskMarker.to) {
+    return clamp(taskMarker.to, lineFrom, lineTo)
+  }
+
+  return position
+}
+
+function listContinuationPrefix(lineText: string): string | undefined {
+  const unordered = /^(\s*)([-+*])([ \t]+)(?:\[[ xX]\]([ \t]+))?/u.exec(lineText)
+
+  if (unordered) {
+    return `${unordered[1] ?? ''}${unordered[2] ?? '-'}${unordered[3] ?? ' '}${
+      unordered[4] === undefined ? '' : `[ ]${unordered[4]}`
+    }`
+  }
+
+  const ordered = /^(\s*)(\d{1,9})([.)])([ \t]+)(?:\[[ xX]\]([ \t]+))?/u.exec(lineText)
+
+  if (!ordered) {
+    return undefined
+  }
+
+  const numberText = ordered[2] ?? '1'
+  const nextNumber = String(Number.parseInt(numberText, 10) + 1).padStart(numberText.length, '0')
+
+  return `${ordered[1] ?? ''}${nextNumber}${ordered[3] ?? '.'}${ordered[4] ?? ' '}${
+    ordered[5] === undefined ? '' : `[ ]${ordered[5]}`
+  }`
+}
+
 function renderInlineNodePieces(
   document: Document,
   source: string,
@@ -2189,6 +2355,60 @@ function buildRangedLineProjection(
   })
 }
 
+function buildListItemLineProjection(
+  source: string,
+  selection: Selection,
+  listItem: SyntaxNode,
+  from: number,
+  to: number,
+): LineProjection {
+  const segments: LineProjectionSegment[] = []
+  let visualPos = 0
+
+  const appendSegment = (
+    sourceFrom: number,
+    sourceTo: number,
+    kind: ProjectionSegmentKind,
+    hidden: boolean,
+  ): void => {
+    if (sourceTo <= sourceFrom) {
+      return
+    }
+
+    const visualFrom = visualPos
+    const visualTo = hidden ? visualFrom : visualFrom + sourceTo - sourceFrom
+    segments.push({
+      sourceFrom,
+      sourceTo,
+      visualFrom,
+      visualTo,
+      hidden,
+      kind,
+    })
+    visualPos = visualTo
+  }
+
+  for (const piece of collectListItemLinePieces(source, listItem, from, to)) {
+    if (piece.kind === 'content') {
+      const contentProjection = buildLineProjection(source, selection, piece.from, piece.to)
+
+      for (const segment of contentProjection.segments) {
+        appendSegment(segment.sourceFrom, segment.sourceTo, segment.kind, segment.hidden)
+      }
+      continue
+    }
+
+    appendSegment(piece.from, piece.to, piece.kind, true)
+  }
+
+  return Object.freeze({
+    sourceFrom: from,
+    sourceTo: to,
+    visualLength: visualPos,
+    segments: Object.freeze(segments),
+  })
+}
+
 function buildMarkerLineProjection(
   from: number,
   to: number,
@@ -2378,6 +2598,9 @@ function buildRenderedLineProjection(
   const blockquoteLine = findNestedBlockForLine(blocks, 'blockquote', 'blockquoteLine', from, to)
   const tableRow = findNestedBlockForLine(blocks, 'table', 'tableRow', from, to)
   const table = findBlockForLine(blocks, 'table', from, to)
+  const listItem =
+    findListItemForLine(blocks, from, to) ??
+    fallbackListItemForLine(state.doc.text, from, to, blocks)
 
   if (heading) {
     return buildRangedLineProjection(state.doc.text, state.selection, heading, from, to)
@@ -2397,6 +2620,10 @@ function buildRenderedLineProjection(
 
   if (table) {
     return buildMarkerLineProjection(from, to, { hidden: true })
+  }
+
+  if (listItem) {
+    return buildListItemLineProjection(state.doc.text, state.selection, listItem, from, to)
   }
 
   return buildLineProjection(state.doc.text, state.selection, from, to)

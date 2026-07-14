@@ -23,11 +23,44 @@ test('live render projection hides inline markers and keeps editor geometry usab
 
   const listMarker = page.locator('.milkup-block-list .milkup-list-marker').first()
   await expect(listMarker).toBeVisible()
-  await expect(listMarker).toHaveText('-')
+  await expect(listMarker).toHaveText('•')
 
   const cursor = page.locator('.milkup-cursor').first()
   await expect(cursor).toBeVisible()
   await expect(cursor).toHaveAttribute('data-position', /\d+/)
+})
+
+test('live table and task-list clicks preserve visual cursor mapping', async ({ page }) => {
+  await page.goto('/')
+  await page.locator('.milkup-input-proxy').focus()
+  await page.keyboard.press('Control+A')
+  await page.keyboard.type(
+    '| Name | Status |\n| --- | --- |\n| Milk | ok |\n\n- [ ] pending\n1. ordered',
+  )
+  await page.getByRole('button', { name: '实时' }).click()
+
+  const firstCell = page.locator('.milkup-table-cell').first()
+  const cellBox = await firstCell.boundingBox()
+
+  if (!cellBox) {
+    throw new Error('Rendered table cell has no browser geometry')
+  }
+
+  await page.mouse.click(cellBox.x + cellBox.width - 2, cellBox.y + cellBox.height / 2)
+  await expect(page.locator('.milkup-cursor')).toHaveAttribute(
+    'data-position',
+    (await firstCell.getAttribute('data-to')) ?? '',
+  )
+
+  await page
+    .locator('.milkup-list-content')
+    .first()
+    .click({ position: { x: 5, y: 5 } })
+  const taskLine = page.locator('.milkup-block-list').filter({ hasText: 'pending' })
+  await expect(taskLine).toContainText('• pending')
+  await expect(taskLine).not.toContainText('[ ]')
+  await expect(taskLine.locator('.milkup-task-marker')).toHaveCount(1)
+  await expect(page.locator('.milkup-input-proxy')).toBeFocused()
 })
 
 test('browser selection rendering follows keyboard selection changes', async ({ page }) => {

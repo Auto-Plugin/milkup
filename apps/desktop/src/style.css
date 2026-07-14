@@ -1286,6 +1286,7 @@ h1 {
   font-family: 'Cascadia Code', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   font-size: 14px;
   line-height: var(--milkup-line-height);
+  cursor: text;
 }
 
 .milkup-editor:focus-within {
@@ -1299,6 +1300,7 @@ h1 {
   min-height: 100%;
   padding: 24px 26px 48px;
   white-space: pre;
+  cursor: text;
 }
 
 .milkup-line {
@@ -1518,6 +1520,14 @@ h1 {
   width: 2px;
   background: var(--accent);
   animation: milkup-cursor-blink 0.8s linear infinite;
+}
+
+.milkup-composition {
+  position: absolute;
+  color: var(--text);
+  border-bottom: 1px solid var(--accent);
+  line-height: inherit;
+  white-space: pre;
 }
 
 @keyframes milkup-cursor-blink {

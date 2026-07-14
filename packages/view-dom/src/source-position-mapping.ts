@@ -90,10 +90,10 @@ export function sourcePositionFromPoint(
   )
 
   if (point && lineDOM.contains(point.node)) {
-    if (point.node.nodeType === Node.TEXT_NODE) {
+    if (point.node instanceof Text) {
       const fromText = sourcePositionFromTextNode(
         point.node,
-        nearestTextOffsetFromPoint(point.node, point.offset, event.clientX),
+        nearestTextOffsetFromPointer(point.node, event.clientX, event.clientY, point.offset),
         lineDOM,
       )
 
@@ -106,8 +106,12 @@ export function sourcePositionFromPoint(
       const child = point.node.childNodes.item(point.offset)
       const textNode = findNearestTextNode(child, point.node)
 
-      if (textNode) {
-        const fromText = sourcePositionFromTextNode(textNode, 0, lineDOM)
+      if (textNode instanceof Text && !isHiddenTextNode(textNode, lineDOM)) {
+        const fromText = sourcePositionFromTextNode(
+          textNode,
+          nearestTextOffsetFromPointer(textNode, event.clientX, event.clientY),
+          lineDOM,
+        )
 
         if (fromText !== undefined) {
           return fromText
@@ -132,6 +136,12 @@ export function sourcePositionFromPoint(
     if (Number.isInteger(from) && Number.isInteger(to)) {
       return clamp(from + estimateElementOffsetFromPointer(mapped, event), from, to)
     }
+  }
+
+  const visibleMappedPosition = estimateVisibleMappedPositionFromPointer(lineDOM, event)
+
+  if (visibleMappedPosition !== undefined) {
+    return visibleMappedPosition
   }
 
   const from = Number(lineDOM.dataset.from)
@@ -280,10 +290,7 @@ export function domRectsForLineVisualRange(
   )
 }
 
-export function sourcePositionToVisualOffsetInLine(
-  lineDOM: HTMLElement,
-  position: number,
-): number {
+export function sourcePositionToVisualOffsetInLine(lineDOM: HTMLElement, position: number): number {
   const lineFrom = Number(lineDOM.dataset.from)
   const lineTo = Number(lineDOM.dataset.to)
 
@@ -371,6 +378,10 @@ function sourcePositionFromTextNode(
   offset: number,
   lineDOM: HTMLElement,
 ): number | undefined {
+  if (node instanceof Text && isHiddenTextNode(node, lineDOM)) {
+    return undefined
+  }
+
   const mapped = closestSourceMappedElement(node, lineDOM)
   const from = Number(mapped?.dataset.from ?? lineDOM.dataset.from)
   const to = Number(mapped?.dataset.to ?? lineDOM.dataset.to)
@@ -381,43 +392,6 @@ function sourcePositionFromTextNode(
 
   const textOffset = mapped ? textOffsetWithinElement(mapped, node, offset) : offset
   return clamp(from + textOffset, from, to)
-}
-
-function nearestTextOffsetFromPoint(node: Node, offset: number, clientX: number): number {
-  if (!(node instanceof Text) || node.data.length === 0 || !Number.isFinite(clientX)) {
-    return offset
-  }
-
-  const currentOffset = clamp(offset, 0, node.data.length)
-  const candidates = [currentOffset]
-
-  if (currentOffset > 0) {
-    candidates.push(currentOffset - 1)
-  }
-
-  if (currentOffset < node.data.length) {
-    candidates.push(currentOffset + 1)
-  }
-
-  let bestOffset = currentOffset
-  let bestDistance = Number.POSITIVE_INFINITY
-
-  for (const candidate of candidates) {
-    const rect = caretRectForTextOffset(node, candidate)
-
-    if (!rect) {
-      continue
-    }
-
-    const distance = Math.abs(clientX - rect.left)
-
-    if (distance < bestDistance) {
-      bestDistance = distance
-      bestOffset = candidate
-    }
-  }
-
-  return bestOffset
 }
 
 function caretRectForTextOffset(node: Text, offset: number): DOMRect | undefined {
@@ -613,9 +587,7 @@ function hasMeasurableLayout(element: HTMLElement): boolean {
 
 function isUsableMeasuredRect(rect: DOMRect, fallbackLineRect: DOMRect): boolean {
   return (
-    Number.isFinite(rect.left) &&
-    Number.isFinite(rect.top) &&
-    (rect.width > 0 || rect.height > 0)
+    Number.isFinite(rect.left) && Number.isFinite(rect.top) && (rect.width > 0 || rect.height > 0)
   )
 }
 
@@ -628,12 +600,172 @@ function estimateElementOffsetFromPointer(element: HTMLElement, event: MouseEven
       : (element.textContent?.length ?? 0)
   const rect = element.getBoundingClientRect()
 
+  const textOffset = nearestElementTextOffsetFromPointer(element, event.clientX, event.clientY)
+
+  if (textOffset !== undefined) {
+    const textLength = visibleTextNodes(element).reduce((length, node) => length + node.length, 0)
+
+    if (textLength > 0) {
+      return clamp(Math.round((textOffset / textLength) * length), 0, length)
+    }
+  }
+
   if (!Number.isFinite(rect.left) || rect.width <= 0) {
     return 0
   }
 
   const ratio = clamp((event.clientX - rect.left) / Math.max(1, rect.width), 0, 1)
   return clamp(Math.round(ratio * length), 0, length)
+}
+
+function nearestTextOffsetFromPointer(
+  node: Text,
+  clientX: number,
+  clientY: number,
+  fallbackOffset = 0,
+): number {
+  let nearestOffset = clamp(fallbackOffset, 0, node.length)
+  let nearestDistance = Number.POSITIVE_INFINITY
+  const candidates = new Set<number>()
+
+  if (node.length <= 256) {
+    for (let offset = 0; offset <= node.length; offset += 1) {
+      candidates.add(offset)
+    }
+  } else {
+    let low = 0
+    let high = node.length
+
+    while (low <= high) {
+      const offset = Math.floor((low + high) / 2)
+      const rect = caretRectForTextOffset(node, offset)
+
+      candidates.add(offset)
+
+      if (!rect) {
+        break
+      }
+
+      if (clientY > rect.bottom || (clientY >= rect.top && clientX > rect.left)) {
+        low = offset + 1
+      } else {
+        high = offset - 1
+      }
+    }
+
+    for (const offset of [0, node.length, fallbackOffset, low, high]) {
+      for (let nearby = offset - 2; nearby <= offset + 2; nearby += 1) {
+        candidates.add(clamp(nearby, 0, node.length))
+      }
+    }
+  }
+
+  for (const offset of candidates) {
+    const rect = caretRectForTextOffset(node, offset)
+
+    if (!rect) {
+      continue
+    }
+
+    const distance = pointToRectDistance(clientX, clientY, rect)
+
+    if (distance < nearestDistance) {
+      nearestDistance = distance
+      nearestOffset = offset
+    }
+  }
+
+  return nearestOffset
+}
+
+function nearestElementTextOffsetFromPointer(
+  element: HTMLElement,
+  clientX: number,
+  clientY: number,
+): number | undefined {
+  let elementOffset = 0
+  let nearestOffset: number | undefined
+  let nearestDistance = Number.POSITIVE_INFINITY
+
+  for (const node of visibleTextNodes(element)) {
+    const offset = nearestTextOffsetFromPointer(node, clientX, clientY)
+    const rect = caretRectForTextOffset(node, offset)
+
+    if (rect) {
+      const distance = pointToRectDistance(clientX, clientY, rect)
+
+      if (distance < nearestDistance) {
+        nearestDistance = distance
+        nearestOffset = elementOffset + offset
+      }
+    }
+
+    elementOffset += node.length
+  }
+
+  return nearestOffset
+}
+
+function pointToRectDistance(clientX: number, clientY: number, rect: DOMRect): number {
+  const horizontal =
+    clientX < rect.left ? rect.left - clientX : clientX > rect.right ? clientX - rect.right : 0
+  const vertical =
+    clientY < rect.top ? rect.top - clientY : clientY > rect.bottom ? clientY - rect.bottom : 0
+  return horizontal * horizontal + vertical * vertical
+}
+
+function estimateVisibleMappedPositionFromPointer(
+  lineDOM: HTMLElement,
+  event: MouseEvent,
+): number | undefined {
+  const mappedElements = Array.from(lineDOM.querySelectorAll<HTMLElement>('[data-from][data-to]'))
+    .filter((element) => !element.classList.contains('milkup-marker-hidden'))
+    .sort((left, right) => Number(left.dataset.from) - Number(right.dataset.from))
+
+  if (mappedElements.length === 0) {
+    return undefined
+  }
+
+  let nearest:
+    | {
+        readonly element: HTMLElement
+        readonly distance: number
+      }
+    | undefined
+
+  for (const element of mappedElements) {
+    const rect = element.getBoundingClientRect()
+
+    if (!Number.isFinite(rect.left) || !Number.isFinite(rect.right)) {
+      continue
+    }
+
+    if (event.clientX >= rect.left && event.clientX <= rect.right) {
+      const from = Number(element.dataset.from)
+      const to = Number(element.dataset.to)
+      return Number.isInteger(from) && Number.isInteger(to)
+        ? clamp(from + estimateElementOffsetFromPointer(element, event), from, to)
+        : undefined
+    }
+
+    const distance =
+      event.clientX < rect.left ? rect.left - event.clientX : event.clientX - rect.right
+
+    if (!nearest || distance < nearest.distance) {
+      nearest = { element, distance }
+    }
+  }
+
+  if (!nearest) {
+    return undefined
+  }
+
+  const from = Number(nearest.element.dataset.from)
+  const to = Number(nearest.element.dataset.to)
+
+  return Number.isInteger(from) && Number.isInteger(to)
+    ? clamp(from + estimateElementOffsetFromPointer(nearest.element, event), from, to)
+    : undefined
 }
 
 function estimateLineSourcePositionRect(
@@ -708,7 +840,8 @@ function estimateLineSourcePositionClientLeft(
 
   const from = Number(lineDOM.dataset.from)
   const to = Number(lineDOM.dataset.to)
-  const offset = Number.isInteger(from) && Number.isInteger(to) ? clamp(position, from, to) - from : 0
+  const offset =
+    Number.isInteger(from) && Number.isInteger(to) ? clamp(position, from, to) - from : 0
   const textLength = Math.max(1, lineDOM.textContent?.replace(/\u200b/g, '').length ?? to - from)
   const characterWidth = lineRect.width > 0 ? lineRect.width / textLength : 8
 
@@ -719,7 +852,8 @@ function resolveLineCursorHeight(lineDOM: HTMLElement, fallbackLineHeight: numbe
   const view = lineDOM.ownerDocument.defaultView
   const inlineFontSize = Number.parseFloat(lineDOM.style.fontSize)
   const computedFontSize = view ? Number.parseFloat(view.getComputedStyle(lineDOM).fontSize) : 0
-  const fontSize = Number.isFinite(inlineFontSize) && inlineFontSize > 0 ? inlineFontSize : computedFontSize
+  const fontSize =
+    Number.isFinite(inlineFontSize) && inlineFontSize > 0 ? inlineFontSize : computedFontSize
 
   if (Number.isFinite(fontSize) && fontSize > 0) {
     return fontSize
