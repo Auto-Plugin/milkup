@@ -33,13 +33,17 @@ test('live render projection hides inline markers and keeps editor geometry usab
 test('live table and task-list clicks preserve visual cursor mapping', async ({ page }) => {
   await page.goto('/')
   await page.locator('.milkup-input-proxy').focus()
-  await page.keyboard.press('Control+A')
-  await page.keyboard.type(
-    '| Name | Status |\n| --- | --- |\n| Milk | ok |\n\n- [ ] pending\n1. ordered',
+  await page.keyboard.press('Control+Home')
+  await page.keyboard.insertText(
+    '|第一个单元（点击此处）格||第二个单元格（落到此处）|\n|---|---|---|\n\n- [ ] pending\n',
   )
   await page.getByRole('button', { name: '实时' }).click()
 
-  const firstCell = page.locator('.milkup-table-cell').first()
+  const headerCells = page.locator('.milkup-line[data-line="1"] .milkup-table-cell')
+  await expect(headerCells).toHaveCount(3)
+  await expect(headerCells.nth(1)).toHaveText('')
+
+  const firstCell = headerCells.first()
   const cellBox = await firstCell.boundingBox()
 
   if (!cellBox) {
@@ -51,6 +55,41 @@ test('live table and task-list clicks preserve visual cursor mapping', async ({ 
     'data-position',
     (await firstCell.getAttribute('data-to')) ?? '',
   )
+
+  const lastCell = headerCells.nth(2)
+  const lastCellBox = await lastCell.boundingBox()
+
+  if (!lastCellBox) {
+    throw new Error('Rendered final table cell has no browser geometry')
+  }
+
+  const targetX = lastCellBox.x + Math.min(120, lastCellBox.width * 0.4)
+  const targetY = lastCellBox.y + lastCellBox.height / 2
+  await page.mouse.click(targetX, targetY)
+  const cursorBox = await page.locator('.milkup-cursor').boundingBox()
+
+  expect(cursorBox).not.toBeNull()
+  expect(cursorBox!.x).toBeGreaterThanOrEqual(lastCellBox.x - 2)
+  expect(cursorBox!.x).toBeLessThanOrEqual(lastCellBox.x + lastCellBox.width + 2)
+
+  await page.mouse.move(lastCellBox.x + 20, targetY)
+  await page.mouse.down()
+  await page.mouse.move(targetX, targetY, { steps: 4 })
+  await page.mouse.up()
+  const selectionBoxes = await page.locator('.milkup-selection').evaluateAll((elements) =>
+    elements.map((element) => {
+      const rect = element.getBoundingClientRect()
+      return { left: rect.left, right: rect.right }
+    }),
+  )
+
+  expect(selectionBoxes.length).toBeGreaterThan(0)
+  expect(
+    selectionBoxes.every(
+      (rect) =>
+        rect.left >= lastCellBox.x - 2 && rect.right <= lastCellBox.x + lastCellBox.width + 2,
+    ),
+  ).toBe(true)
 
   await page
     .locator('.milkup-list-content')

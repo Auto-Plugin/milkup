@@ -1898,6 +1898,7 @@ function renderLiveLine(
         contentClassName: 'milkup-table-cell',
         markerClassName: 'milkup-block-marker milkup-table-marker milkup-marker-hidden',
         hideContentGaps: true,
+        preserveEmptyContentRanges: true,
         selection,
       }),
     )
@@ -2102,6 +2103,7 @@ function renderMappedLinePieces(
     readonly contentClassName: string
     readonly markerClassName: string
     readonly hideContentGaps?: boolean
+    readonly preserveEmptyContentRanges?: boolean
     readonly selection: Selection
   },
 ): readonly Node[] {
@@ -2120,7 +2122,11 @@ function renderMappedLinePieces(
       from: Math.max(piece.from, line.from),
       to: Math.min(piece.to, line.to),
     }))
-    .filter((piece) => piece.to > piece.from)
+    .filter(
+      (piece) =>
+        piece.to > piece.from ||
+        (classNames.preserveEmptyContentRanges === true && piece.to === piece.from),
+    )
     .sort((left, right) => left.from - right.from)
 
   if (pieces.length === 0) {
@@ -2145,9 +2151,11 @@ function renderMappedLinePieces(
 
     if (piece.className === classNames.contentClassName) {
       const content = createMappedSpan(document, line, piece.from, piece.to, piece.className)
-      content.replaceChildren(
-        ...renderInlineDecorations(document, line, classNames.selection, piece.from, piece.to),
-      )
+      if (piece.to > piece.from) {
+        content.replaceChildren(
+          ...renderInlineDecorations(document, line, classNames.selection, piece.from, piece.to),
+        )
+      }
       rendered.push(content)
     } else {
       rendered.push(createMappedSpan(document, line, piece.from, piece.to, piece.className))

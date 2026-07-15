@@ -579,7 +579,7 @@ describe('SourceDocumentView', () => {
       parent,
       source: new MemoryDocumentSource({
         documentId: 'source-doc',
-        text: '| Name | Status |\n| --- | --- |\n| Milk | ok |',
+        text: '| Name || Status |\n| --- | --- | --- |\n| Milk || ok |',
       }),
       mode: 'live',
       markdownContextLines: 0,
@@ -598,7 +598,7 @@ describe('SourceDocumentView', () => {
       view.contentDOM.querySelectorAll<HTMLElement>('.milkup-table-marker'),
     )
 
-    expect(cells.map((cell) => cell.textContent)).toEqual(['Name', 'Status', 'Milk', 'ok'])
+    expect(cells.map((cell) => cell.textContent)).toEqual(['Name', '', 'Status', 'Milk', '', 'ok'])
     expect(markers.some((marker) => marker.textContent?.includes('|'))).toBe(true)
     expect(markers.every((marker) => marker.classList.contains('milkup-marker-hidden'))).toBe(true)
   })

@@ -82,6 +82,18 @@ export function sourcePositionFromPoint(
   overlayDOM?: HTMLElement,
   options: SourcePositionFromPointOptions = {},
 ): number | undefined {
+  const tableCell = tableCellFromPointer(lineDOM, event)
+
+  if (tableCell) {
+    const mapped = mappedElementInTableCellFromPointer(tableCell, event)
+    const from = Number(mapped.dataset.from)
+    const to = Number(mapped.dataset.to)
+
+    if (Number.isInteger(from) && Number.isInteger(to)) {
+      return clamp(from + estimateElementOffsetFromPointer(mapped, event), from, to)
+    }
+  }
+
   const point = caretPointFromDocument(
     lineDOM.ownerDocument,
     event.clientX,
@@ -152,6 +164,72 @@ export function sourcePositionFromPoint(
   }
 
   return clamp(from + estimateElementOffsetFromPointer(lineDOM, event), from, to)
+}
+
+function tableCellFromPointer(lineDOM: HTMLElement, event: MouseEvent): HTMLElement | undefined {
+  const target = event.target
+  const targetElement =
+    target instanceof HTMLElement ? target : target instanceof Node ? target.parentElement : null
+  const direct = targetElement?.closest<HTMLElement>('.milkup-table-cell')
+
+  if (direct && lineDOM.contains(direct)) {
+    return direct
+  }
+
+  return Array.from(lineDOM.querySelectorAll<HTMLElement>('.milkup-table-cell')).find((cell) => {
+    const rect = cell.getBoundingClientRect()
+    return (
+      event.clientX >= rect.left &&
+      event.clientX <= rect.right &&
+      event.clientY >= rect.top &&
+      event.clientY <= rect.bottom
+    )
+  })
+}
+
+function mappedElementInTableCellFromPointer(
+  tableCell: HTMLElement,
+  event: MouseEvent,
+): HTMLElement {
+  const target = event.target
+  const targetElement =
+    target instanceof HTMLElement ? target : target instanceof Node ? target.parentElement : null
+  const direct = targetElement?.closest<HTMLElement>('[data-from][data-to]')
+
+  if (
+    direct &&
+    (direct === tableCell || tableCell.contains(direct)) &&
+    !direct.classList.contains('milkup-marker-hidden')
+  ) {
+    return direct
+  }
+
+  let nearest = tableCell
+
+  for (const candidate of Array.from(
+    tableCell.querySelectorAll<HTMLElement>('[data-from][data-to]'),
+  )) {
+    if (candidate.classList.contains('milkup-marker-hidden')) {
+      continue
+    }
+
+    const rect = candidate.getBoundingClientRect()
+
+    if (
+      event.clientX < rect.left ||
+      event.clientX > rect.right ||
+      event.clientY < rect.top ||
+      event.clientY > rect.bottom
+    ) {
+      continue
+    }
+
+    if (nearest === tableCell || nearest.contains(candidate)) {
+      nearest = candidate
+    }
+  }
+
+  return nearest
 }
 
 export function domRectForLineSourcePosition(
@@ -298,37 +376,65 @@ export function sourcePositionToVisualOffsetInLine(lineDOM: HTMLElement, positio
     return 0
   }
 
-  const mappedElements = Array.from(lineDOM.querySelectorAll<HTMLElement>('[data-from][data-to]'))
-    .filter((element) => !element.classList.contains('milkup-marker-hidden'))
-    .sort((left, right) => Number(left.dataset.from) - Number(right.dataset.from))
+  const segments = visibleTextSourceSegments(lineDOM)
 
-  if (mappedElements.length === 0) {
+  if (segments.length === 0) {
     return clamp(position, lineFrom, lineTo) - lineFrom
   }
 
-  let visualOffset = 0
-
-  for (const element of mappedElements) {
-    const from = Number(element.dataset.from)
-    const to = Number(element.dataset.to)
-    const textLength = element.textContent?.length ?? Math.max(0, to - from)
-
-    if (!Number.isInteger(from) || !Number.isInteger(to)) {
-      continue
+  for (const segment of segments) {
+    if (position <= segment.from) {
+      return segment.visualFrom
     }
 
-    if (position <= from) {
-      return visualOffset
-    }
+    if (position <= segment.to) {
+      const sourceLength = segment.to - segment.from
 
-    if (position <= to) {
-      return visualOffset + clamp(position - from, 0, textLength)
-    }
+      if (sourceLength <= 0) {
+        return segment.visualFrom
+      }
 
-    visualOffset += textLength
+      const ratio = clamp((position - segment.from) / sourceLength, 0, 1)
+      return Math.round(segment.visualFrom + ratio * (segment.visualTo - segment.visualFrom))
+    }
   }
 
-  return visualOffset
+  return segments.at(-1)?.visualTo ?? 0
+}
+
+interface VisibleTextSourceSegment {
+  readonly node: Text
+  readonly from: number
+  readonly to: number
+  readonly visualFrom: number
+  readonly visualTo: number
+}
+
+function visibleTextSourceSegments(lineDOM: HTMLElement): readonly VisibleTextSourceSegment[] {
+  const segments: VisibleTextSourceSegment[] = []
+  let visualOffset = 0
+
+  for (const node of visibleTextNodes(lineDOM)) {
+    const from = sourcePositionFromTextNode(node, 0, lineDOM)
+    const to = sourcePositionFromTextNode(node, node.length, lineDOM)
+    const visualTo = visualOffset + node.length
+
+    if (from !== undefined && to !== undefined) {
+      segments.push(
+        Object.freeze({
+          node,
+          from,
+          to,
+          visualFrom: visualOffset,
+          visualTo,
+        }),
+      )
+    }
+
+    visualOffset = visualTo
+  }
+
+  return Object.freeze(segments)
 }
 
 interface CaretPoint {
@@ -800,6 +906,30 @@ function estimateLineSourcePositionClientLeft(
   position: number,
   lineRect: DOMRect,
 ): number {
+  const tableCells = Array.from(lineDOM.querySelectorAll<HTMLElement>('.milkup-table-cell'))
+
+  if (tableCells.length > 0) {
+    const containing = tableCells.find((cell) => {
+      const from = Number(cell.dataset.from)
+      const to = Number(cell.dataset.to)
+      return Number.isInteger(from) && Number.isInteger(to) && position >= from && position <= to
+    })
+    const cell =
+      containing ?? tableCells.find((candidate) => position <= Number(candidate.dataset.from))
+
+    if (cell) {
+      const from = Number(cell.dataset.from)
+      const to = Number(cell.dataset.to)
+      const rect = cell.getBoundingClientRect()
+
+      if (Number.isInteger(from) && Number.isInteger(to) && Number.isFinite(rect.left)) {
+        const sourceLength = to - from
+        const ratio = sourceLength > 0 ? clamp((position - from) / sourceLength, 0, 1) : 0
+        return rect.left + rect.width * ratio
+      }
+    }
+  }
+
   const mappedElements = Array.from(lineDOM.querySelectorAll<HTMLElement>('[data-from][data-to]'))
     .filter((element) => !element.classList.contains('milkup-marker-hidden'))
     .sort((left, right) => Number(left.dataset.from) - Number(right.dataset.from))

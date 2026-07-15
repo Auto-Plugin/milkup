@@ -1748,6 +1748,7 @@ function renderTableRowDecorations(
     markerClassName: 'milkup-table-marker',
     contentClassName: 'milkup-table-cell',
     hideValidMarkers: true,
+    preserveEmptyContentRanges: true,
   })
 }
 
@@ -1762,9 +1763,17 @@ function renderRangedLineDecorations(
     readonly markerClassName: string
     readonly contentClassName: string
     readonly hideValidMarkers?: boolean
+    readonly preserveEmptyContentRanges?: boolean
   },
 ): readonly Node[] {
-  const pieces = collectContentLinePieces(node, from, to)
+  const pieces = collectContentLinePieces(
+    node,
+    from,
+    to,
+    classNames.preserveEmptyContentRanges === true
+      ? { preserveEmptyContentRanges: true }
+      : {},
+  )
 
   if (pieces.length === 0) {
     return renderInlineDecorations(document, source, selection, from, to)
@@ -1783,9 +1792,11 @@ function renderRangedLineDecorations(
     span.dataset.to = String(piece.to)
 
     if (piece.kind === 'content') {
-      span.replaceChildren(
-        ...renderInlineDecorations(document, source, selection, piece.from, piece.to),
-      )
+      if (piece.to > piece.from) {
+        span.replaceChildren(
+          ...renderInlineDecorations(document, source, selection, piece.from, piece.to),
+        )
+      }
     } else {
       span.textContent = source.slice(piece.from, piece.to)
 
@@ -1935,6 +1946,7 @@ function collectContentLinePieces(
   node: SyntaxNode,
   from: number,
   to: number,
+  options: { readonly preserveEmptyContentRanges?: boolean } = {},
 ): readonly InlinePiece[] {
   const contentPieces = (node.contentRanges ?? [])
     .filter((range) => rangesIntersect(range.from, range.to, from, to))
@@ -1943,7 +1955,11 @@ function collectContentLinePieces(
       to: clamp(range.to, from, to),
       kind: 'content' as const,
     }))
-    .filter((piece) => piece.to > piece.from)
+    .filter(
+      (piece) =>
+        piece.to > piece.from ||
+        (options.preserveEmptyContentRanges === true && piece.to === piece.from),
+    )
     .sort((left, right) => left.from - right.from || left.to - right.to)
 
   const pieces: InlinePiece[] = []

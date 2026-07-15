@@ -620,6 +620,44 @@ describe('EditorView', () => {
     expect(view.state.selection.main.head).toBeLessThanOrEqual(Number(cell!.dataset.to))
   })
 
+  it('constrains incorrect browser hit-testing to the clicked table cell', () => {
+    const parent = document.createElement('main')
+    const view = new EditorView({
+      parent,
+      state: createState('| first || second |\n| --- | --- | --- |', Selection.cursor(0)),
+      mode: 'live',
+    })
+    const cells = Array.from(
+      view.contentDOM.querySelectorAll<HTMLElement>(
+        '.milkup-line[data-line="1"] .milkup-table-cell',
+      ),
+    )
+    const first = cells[0]
+    const secondText = firstTextNode(cells[2])
+
+    expect(cells).toHaveLength(3)
+    expect(cells[1]?.textContent).toBe('')
+
+    if (!first) {
+      throw new Error('Expected first and second table cell text')
+    }
+
+    first.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, right: 100, bottom: 24, width: 100, height: 24 }) as DOMRect
+    const restoreCaretRange = withCaretRangeFromPoint(secondText, 3)
+
+    try {
+      first.dispatchEvent(
+        new MouseEvent('mousedown', { bubbles: true, button: 0, clientX: 80, clientY: 12 }),
+      )
+    } finally {
+      restoreCaretRange()
+    }
+
+    expect(view.state.selection.main.head).toBeGreaterThanOrEqual(Number(first.dataset.from))
+    expect(view.state.selection.main.head).toBeLessThanOrEqual(Number(first.dataset.to))
+  })
+
   it('keeps live list clicks out of the source marker range', () => {
     const parent = document.createElement('main')
     const view = new EditorView({
@@ -2203,7 +2241,10 @@ describe('renderPlainTextLines', () => {
   it('renders table rows as editable live cells', () => {
     const lines = renderMarkdownLines(
       document,
-      createState('| Name | Status |\n| --- | --- |\n| milk | ok |\n', Selection.cursor(34)),
+      createState(
+        '| Name || Status |\n| --- | --- | --- |\n| milk || ok |\n',
+        Selection.cursor(45),
+      ),
     )
     const headerCells = Array.from(
       lines[0]?.querySelectorAll<HTMLElement>('.milkup-table-cell') ?? [],
@@ -2214,9 +2255,9 @@ describe('renderPlainTextLines', () => {
     )
 
     expect(lines[0]?.classList.contains('milkup-block-table')).toBe(true)
-    expect(headerCells.map((cell) => cell.textContent)).toEqual(['Name', 'Status'])
+    expect(headerCells.map((cell) => cell.textContent)).toEqual(['Name', '', 'Status'])
     expect(delimiterMarker?.classList.contains('milkup-marker-hidden')).toBe(true)
-    expect(bodyCells.map((cell) => cell.textContent)).toEqual(['milk', 'ok'])
+    expect(bodyCells.map((cell) => cell.textContent)).toEqual(['milk', '', 'ok'])
   })
 
   it('can render link decorations without constructing an EditorView', () => {
