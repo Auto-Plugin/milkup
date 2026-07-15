@@ -3,10 +3,64 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
     <title>milkup desktop</title>
+    <style>
+      html,
+      body,
+      #app {
+        min-height: 100%;
+        margin: 0;
+        background: #f4f6f8;
+      }
+
+      .startup-shell {
+        display: grid;
+        grid-template-rows: 36px minmax(0, 1fr) 30px;
+        width: 100%;
+        height: 100vh;
+        background: #f4f6f8;
+      }
+
+      .startup-titlebar,
+      .startup-statusbar {
+        background: #fbfcfd;
+      }
+
+      .startup-titlebar {
+        display: flex;
+        align-items: center;
+        padding-left: 16px;
+        border-bottom: 1px solid #d9dee7;
+      }
+
+      .startup-menu {
+        width: 12px;
+        height: 8px;
+        border-top: 1px solid #687385;
+        border-bottom: 1px solid #687385;
+      }
+
+      .startup-editor {
+        background: #ffffff;
+      }
+
+      .startup-statusbar {
+        border-top: 1px solid #d9dee7;
+      }
+    </style>
+    <script>
+      performance.mark('milkup:startup:html-ready')
+    </script>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <main class="startup-shell" aria-hidden="true">
+        <header class="startup-titlebar"><span class="startup-menu"></span></header>
+        <section class="startup-editor"></section>
+        <footer class="startup-statusbar"></footer>
+      </main>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

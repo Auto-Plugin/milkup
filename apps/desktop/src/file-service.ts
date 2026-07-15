@@ -25,6 +25,7 @@ export interface OpenFileProgressEvent {
 
 export interface OpenFileRequestOptions {
   readonly onProgress?: (event: OpenFileProgressEvent) => void
+  readonly metadata?: DesktopTextFileMetadata
 }
 
 export interface DesktopFileService {
@@ -85,7 +86,7 @@ function createMockFileService(): DesktopFileService {
       }
     },
     async openPath(path: string, options?: OpenFileRequestOptions): Promise<OpenFileResult> {
-      const metadata = await this.getFileMetadata(path)
+      const metadata = options?.metadata ?? (await this.getFileMetadata(path))
       options?.onProgress?.({ phase: 'dialog-selected', path })
       options?.onProgress?.({ phase: 'metadata', path, metadata })
       options?.onProgress?.({ phase: 'read-start', path })
@@ -199,7 +200,7 @@ function createTauriFileService(): DesktopFileService {
     async openPath(path: string, options?: OpenFileRequestOptions): Promise<OpenFileResult> {
       const { invoke } = await import('@tauri-apps/api/core')
       options?.onProgress?.({ phase: 'dialog-selected', path })
-      const metadata = await this.getFileMetadata(path)
+      const metadata = options?.metadata ?? (await this.getFileMetadata(path))
       options?.onProgress?.({ phase: 'metadata', path, metadata })
       options?.onProgress?.({ phase: 'read-start', path })
       const result = await invoke<OpenFileResult>('open_markdown_file', { path })

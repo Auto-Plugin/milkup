@@ -863,7 +863,10 @@ pub fn run() {
         .manage(LargeFileRegistry(Mutex::new(HashMap::new())))
         .plugin(tauri_plugin_dialog::init())
         .setup(|_app| {
-            let _ = cleanup_large_file_working_temps_in_dir(&std::env::temp_dir());
+            let temp_dir = std::env::temp_dir();
+            thread::spawn(move || {
+                let _ = cleanup_large_file_working_temps_in_dir(&temp_dir);
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

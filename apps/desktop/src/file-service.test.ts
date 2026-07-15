@@ -110,4 +110,26 @@ describe('desktop file service', () => {
       path: 'D:/notes/chosen.md',
     })
   })
+
+  it('reuses metadata supplied by the open policy caller', async () => {
+    const metadata = {
+      path: 'D:/notes/chosen.md',
+      sizeBytes: 9,
+      readonly: false,
+    }
+    tauriMocks.invoke.mockResolvedValue({
+      documentId: 'doc-1',
+      file: { path: metadata.path },
+      text: '# Opened\n',
+      diskSnapshotHash: 'hash:opened',
+    })
+
+    const service = createDesktopFileService()
+    await service.openPath(metadata.path, { metadata })
+
+    expect(tauriMocks.invoke).toHaveBeenCalledTimes(1)
+    expect(tauriMocks.invoke).toHaveBeenCalledWith('open_markdown_file', {
+      path: metadata.path,
+    })
+  })
 })

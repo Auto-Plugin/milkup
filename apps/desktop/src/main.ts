@@ -102,7 +102,9 @@ import {
   getDocumentLoadingLabel,
   type DocumentLoadingState,
 } from './document-open-flow'
+import { createDocumentLoadingVisibilityController } from './document-loading-visibility'
 import { createDesktopFileService } from './file-service'
+import { resolvePluginContributionViewRefreshAction } from './editor-view-refresh'
 import { iconSvg } from './icons'
 import { createDesktopLargeTextFileService } from './large-file-service'
 import {
@@ -121,6 +123,8 @@ import {
 import { createDesktopPluginFileBroker } from './plugin-file-broker'
 import { createDesktopPluginSidecarProcess } from './plugin-sidecar'
 import './style.css'
+
+markStartupStage('module-evaluated')
 
 const initialText = ''
 const desktopVirtualLineHeight = 21
@@ -437,6 +441,7 @@ app.innerHTML = `
     </footer>
   </main>
 `
+markStartupStage('shell-created')
 
 configureWindowChrome(platform)
 
@@ -452,6 +457,17 @@ let state = new EditorState({
   doc: new MemoryTextDocument(initialText),
 })
 const fileService = createDesktopFileService()
+markStartupStage('initial-path-requested')
+const initialOpenFilePathPromise = fileService.initialOpenFilePath().then(
+  (path) => {
+    markStartupStage('initial-path-resolved')
+    return path
+  },
+  (error: unknown) => {
+    markStartupStage('initial-path-failed')
+    throw error
+  },
+)
 const largeTextFileService = createDesktopLargeTextFileService()
 const documentSearchController = new DesktopDocumentSearchController()
 const assetProvider = createDesktopAssetProvider({
@@ -481,6 +497,9 @@ let customDocumentTitle: string | undefined
 let windowMaximized = false
 let closeConfirmOpen = false
 let loadingState: DocumentLoadingState = Object.freeze({ phase: 'idle' })
+const loadingVisibility = createDocumentLoadingVisibilityController({
+  onChange: () => renderSession(),
+})
 let saveState: DocumentSaveState = Object.freeze({ phase: 'idle' })
 let closeAfterCurrentSave = false
 let lastOpenDiagnostics: OpenStageDiagnostics | undefined
@@ -645,19 +664,24 @@ for (const action of createDesktopPluginActions(desktopPluginManager)) {
 }
 
 renderPluginManager()
-void desktopPluginManager.ready.then(() => {
-  renderPluginManager()
-  refreshPluginContributionsInViews()
-  void desktopPluginUi.sync(session.documentId)
-})
 
 view = createEditorView()
 
 renderSession()
 updateModeToggle(view.viewMode)
 focusActiveView()
+void waitForNextPaint().then(() => {
+  markStartupStage('shell-painted')
+  focusActiveView()
+})
 
-void openInitialDocument()
+const initialDocumentOpenPromise = openInitialDocument(initialOpenFilePathPromise)
+void desktopPluginManager.ready.then(async () => {
+  await initialDocumentOpenPromise
+  renderPluginManager()
+  refreshPluginContributionsInViews()
+  void desktopPluginUi.sync(session.documentId)
+})
 
 app.querySelector<HTMLButtonElement>('[data-mode-toggle]')?.addEventListener('click', () => {
   runDesktopAction('view.setMode', { mode: getNextViewMode(session.viewMode) })
@@ -1167,7 +1191,28 @@ function recreateEditorView(): void {
 
 function refreshPluginContributionsInViews(): void {
   void desktopPluginUi.sync(session.documentId)
-  if (view) {
+  const action = resolvePluginContributionViewRefreshAction({
+    hasEditorView: view !== undefined,
+    hasSourceView: sourceView !== undefined,
+    hasLargeDocumentPreview: largeDocumentPreview !== undefined,
+  })
+
+  if (action === 'preserve-large-source') {
+    sourceView?.setMode(session.viewMode)
+    sourceView?.setEditable(!session.readonly && !isDocumentBusy())
+    sourceView?.setSearchHighlights(searchResultState?.matches ?? [], activeSearchResultIndex)
+    return
+  }
+
+  if (action === 'restore-large-source') {
+    void applyLargeSourceView().catch((error: unknown) => {
+      notice = `刷新大文件视图失败：${getErrorMessage(error)}`
+      renderSession()
+    })
+    return
+  }
+
+  if (action === 'recreate-editor') {
     const restoreEditorFocus = editorRoot.contains(document.activeElement)
     recreateEditorView()
     if (restoreEditorFocus) {
@@ -1340,8 +1385,10 @@ async function openDocument(): Promise<void> {
   )
 }
 
-async function openInitialDocument(): Promise<void> {
-  const path = await fileService.initialOpenFilePath().catch((error: unknown) => {
+async function openInitialDocument(
+  initialPath: Promise<string | undefined> = fileService.initialOpenFilePath(),
+): Promise<void> {
+  const path = await initialPath.catch((error: unknown) => {
     notice = `启动文件读取失败：${getErrorMessage(error)}`
     renderSession()
     return undefined
@@ -1358,13 +1405,23 @@ async function openInitialDocument(): Promise<void> {
 
   await openSelectedDocumentWithPolicy(tracker, async () => path, {
     errorPrefix: '启动文件打开失败',
+    preferBuiltinDocument: true,
   })
+  if (loadingState.phase === 'ready') {
+    markStartupStage('initial-document-ready')
+    await waitForNextPaint()
+    markStartupStage('initial-document-painted')
+  }
 }
 
 async function openSelectedDocumentWithPolicy(
   tracker: OpenStageTracker,
   selectPath: () => Promise<string | undefined>,
-  messages: { readonly cancelledNotice?: string; readonly errorPrefix: string },
+  messages: {
+    readonly cancelledNotice?: string
+    readonly errorPrefix: string
+    readonly preferBuiltinDocument?: boolean
+  },
 ): Promise<void> {
   setDocumentLoadingState({ phase: 'opening' })
 
@@ -1411,13 +1468,21 @@ async function openSelectedDocumentWithPolicy(
 
     tracker.mark('file-read-start', selected)
     const result = await fileService.openPath(selected, {
+      metadata,
       onProgress: (event) => {
         if (event.phase === 'read-end') {
           tracker.mark('file-read-end', selected)
         }
       },
     })
-    const pluginDocument = await desktopPluginManager.openPluginDocument(selected, result.text)
+    tracker.mark(
+      'plugin-check-start',
+      messages.preferBuiltinDocument ? 'skipped for startup Markdown' : selected,
+    )
+    const pluginDocument = messages.preferBuiltinDocument
+      ? undefined
+      : await desktopPluginManager.openPluginDocument(selected, result.text)
+    tracker.mark('plugin-check-end', pluginDocument?.kind ?? 'built-in Markdown')
 
     if (pluginDocument) {
       openPluginDocumentResult(pluginDocument)
@@ -1428,7 +1493,7 @@ async function openSelectedDocumentWithPolicy(
       })
       return
     }
-    openDocumentResult(result, tracker, {
+    await openDocumentResult(result, tracker, {
       preResolvedPolicy: openPolicy.useNativeLargeFile
         ? resolveDesktopMemoryViewportFallbackPolicy(metadata)
         : openPolicy,
@@ -1453,16 +1518,16 @@ async function openSelectedDocumentWithPolicy(
   }
 }
 
-function openDocumentResult(
+async function openDocumentResult(
   result: OpenFileResult,
   tracker: OpenStageTracker,
   options: { readonly preResolvedPolicy?: DesktopOpenPolicy } = {},
-): void {
+): Promise<void> {
   const nextOpenPolicy =
     options.preResolvedPolicy ?? resolveDesktopOpenPolicy(metadataFromOpenFileResult(result))
 
   if (nextOpenPolicy.useNativeLargeFile) {
-    void openNativeLargeDocument(result.file.path, nextOpenPolicy, tracker)
+    await openNativeLargeDocument(result.file.path, nextOpenPolicy, tracker)
     return
   }
 
@@ -1486,9 +1551,11 @@ function openDocumentResult(
   watchCurrentFile()
   applyEditorViewState()
   tracker.mark('markdown-parse-end')
-  tracker.mark('first-editor-paint')
+  tracker.mark('editor-dom-commit')
   notice = ''
   renderSession()
+  await waitForNextPaint()
+  tracker.mark('first-editor-paint')
   focusActiveView()
   tracker.mark('first-interactive-focus')
   lastOpenDiagnostics = tracker.snapshot()
@@ -1595,9 +1662,11 @@ async function openNativeLargeDocument(
   })
   await applyLargeSourceView()
   tracker.mark('memory-document-end', `${preview.window.lines.length} preview lines`)
-  tracker.mark('first-editor-paint', `${openPolicy.featurePolicy.mode} native-line-window`)
+  tracker.mark('editor-dom-commit', `${openPolicy.featurePolicy.mode} native-line-window`)
   notice = `已用原生大文件路径打开预览：${formatBytes(preview.sizeBytes)}，${preview.lineCount} 行。`
   renderSession()
+  await waitForNextPaint()
+  tracker.mark('first-editor-paint', `${openPolicy.featurePolicy.mode} native-line-window`)
   focusActiveView()
   tracker.mark('first-interactive-focus')
   lastOpenDiagnostics = tracker.snapshot()
@@ -2004,7 +2073,7 @@ async function reloadLargeExternalDocument(): Promise<void> {
           }
         },
       })
-      openDocumentResult(result, tracker, { preResolvedPolicy: openPolicy })
+      await openDocumentResult(result, tracker, { preResolvedPolicy: openPolicy })
     }
 
     setDocumentLoadingState({ phase: 'ready', path, sizeBytes: metadata.sizeBytes })
@@ -3164,6 +3233,7 @@ function renderSession(): void {
 
 function setDocumentLoadingState(nextState: DocumentLoadingState): void {
   loadingState = Object.freeze(nextState)
+  loadingVisibility.update(nextState)
   renderSession()
 }
 
@@ -3175,7 +3245,7 @@ function renderDocumentLoadingState(): void {
     return
   }
 
-  const visible = isDocumentBusy() || loadingState.phase === 'failed'
+  const visible = loadingVisibility.visible
   loading.hidden = !visible
   if (dismiss) {
     dismiss.hidden = loadingState.phase !== 'failed'
@@ -3321,6 +3391,40 @@ function translateSaveSafetyMessage(message: string): string {
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
+}
+
+function markStartupStage(stage: string): void {
+  const name = `milkup:startup:${stage}`
+  performance.mark(name)
+
+  if (isDeveloperDiagnosticsEnabled()) {
+    console.debug(`[milkup:startup] ${stage} ${Math.round(performance.now() * 10) / 10}ms`)
+  }
+}
+
+function getStartupDiagnostics(): readonly {
+  readonly stage: string
+  readonly startTimeMs: number
+}[] {
+  return Object.freeze(
+    performance
+      .getEntriesByType('mark')
+      .filter((entry) => entry.name.startsWith('milkup:startup:'))
+      .map((entry) =>
+        Object.freeze({
+          stage: entry.name.slice('milkup:startup:'.length),
+          startTimeMs: Math.round(entry.startTime * 10) / 10,
+        }),
+      ),
+  )
+}
+
+async function waitForNextPaint(): Promise<void> {
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => resolve())
+    })
+  })
 }
 
 async function runDesktopWorkerFilePluginFixture(path: string): Promise<unknown> {
@@ -3771,6 +3875,7 @@ function getDirectoryPath(path: string): string {
 
 Object.assign(globalThis, {
   __milkupDesktopTest: Object.freeze({
+    getStartupDiagnostics,
     runDesktopWorkerFilePluginFixture,
     runDesktopSidecarPluginFixture,
     runDesktopLargeTextFileBenchmark,
@@ -3779,6 +3884,7 @@ Object.assign(globalThis, {
 })
 
 globalThis.addEventListener('beforeunload', () => {
+  loadingVisibility.dispose()
   disposeFileWatchEvents?.()
   scheduleLargeDocumentPreviewClose()
 })

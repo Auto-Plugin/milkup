@@ -3,10 +3,13 @@ export type OpenStageMark =
   | 'file-metadata'
   | 'file-read-start'
   | 'file-read-end'
+  | 'plugin-check-start'
+  | 'plugin-check-end'
   | 'memory-document-start'
   | 'memory-document-end'
   | 'markdown-parse-start'
   | 'markdown-parse-end'
+  | 'editor-dom-commit'
   | 'first-editor-paint'
   | 'first-interactive-focus'
 
@@ -82,9 +85,7 @@ export function createOpenStageTracker(options: OpenStageTrackerOptions): OpenSt
   }
 }
 
-export function formatOpenStageDiagnostics(
-  diagnostics: OpenStageDiagnostics | undefined,
-): string {
+export function formatOpenStageDiagnostics(diagnostics: OpenStageDiagnostics | undefined): string {
   if (!diagnostics || diagnostics.timings.length === 0) {
     return '无'
   }
