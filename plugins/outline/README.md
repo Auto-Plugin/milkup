@@ -8,7 +8,9 @@ Milkup Outline is a read-only Worker-hosted plugin that adds a document-scoped o
 - Incremental full-document heading scan that also works for virtualized and very large files.
 - The sidebar updates as result batches arrive and automatically rescans after document changes.
 - Shows at most 500 headings around the current editor viewport.
-- Tracks the active section while the editor scrolls.
+- Keeps selection under manual control; editor scrolling does not change or reload the outline.
+- Loads adjacent outline windows only when the outline itself reaches the top or bottom.
+- Retains two adjacent scan blocks so reversing direction does not immediately trigger another load.
 - Click a heading to jump to it without modifying the document.
 - Requires only the `document:read` permission.
 

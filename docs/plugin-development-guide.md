@@ -356,7 +356,8 @@ UI 贡献点：
   "id": "example-status",
   "slot": "statusbar",
   "title": "Example status",
-  "scope": "document"
+  "scope": "document",
+  "viewportUpdates": true
 }
 ```
 
@@ -380,8 +381,11 @@ const plugin = {
 
 - `scope: "app"`：跨文档保留，默认值。
 - `scope: "document"`：切换文档时销毁旧实例并为新文档挂载。
+- `viewportUpdates` 默认为 `true`。设置为 `false` 后，编辑器滚动不会触发该 UI 的 `update`；插件仍可通过 `requestUpdate()` 主动刷新。无需跟随编辑器视口的面板应关闭它，避免无效渲染。
 - 生命周期 phase：`mount`、`update`、`focus`、`blur`、`dispose`。
 - UI 输出使用与 renderer 相同的受控元素格式。
+- `sidebar-panel` 由宿主使用 manifest 的 `title` 提供折叠栏；插件内容不要重复渲染面板标题或外层边框。
+- 多个 `sidebar-panel` 会纵向排列。用户可以调整相邻展开面板的高度，折叠面板会集中排列在侧栏底部；renderer 应适应宿主分配的可用高度，并在自己的长列表区域使用滚动。
 - 插件不能访问插槽外的 DOM，也不能自行覆盖应用头部。
 
 ## 9. Importer 和自定义文档类型
@@ -443,6 +447,8 @@ const scanner = context.host.document?.scan({
   windowSizeLines: 512,
   batchSize: 64,
   maxResults: 10_000,
+  fromLine: 1,
+  toLine: 20_000,
 })
 
 if (!scanner) throw new Error('Document scanning is unavailable')
@@ -473,74 +479,105 @@ for await (const event of scanner) {
 - `text` 和 `regexp` 返回 `kind: "match"`，包括 `from`、`to`、`line`、`lineOffset`、`text`，正则捕获组位于 `captures`。
 - `markdownHeadings` 返回 `kind: "heading"`，额外包括 `level`、`label`、`labelFrom` 和 `labelTo`。宿主会跨扫描窗口保留 Markdown 代码围栏状态。
 - 每个事件都带 `documentId`、`version`、`scannedLineCount`、`totalLineCount` 和 `resultCount`。
+- `fromLine` 和 `toLine` 可将扫描限制在指定的闭区间；省略时扫描全文。`scannedLineCount` 表示本次区间内已扫描的行数，`totalLineCount` 仍表示文档总行数。
 - 文档切换或版本变化后，旧扫描以 `reason: "invalidated"` 结束。不要把不同版本的结果合并。
 - 提前退出 `for await` 会自动取消扫描，也可以显式调用 `await scanner.cancel()`。
-- 单个插件默认最多同时运行 2 个扫描；`batchSize` 最大 256，`windowSizeLines` 最大 4096，`maxResults` 最大 50000。
+- 单个插件默认最多同时运行 2 个扫描；`batchSize` 最大 256，`windowSizeLines` 最大 4096，`maxResults` 最大 50000。`windowSizeLines` 是插件期望的读取窗口上限，宿主可以把它继续拆成较小的后台任务，以免长扫描阻塞编辑器交互。
 - 正则表达式最长 256 字符，只支持 `i`、`m`、`s`、`u` flags；反向引用、lookbehind 和明显的嵌套量词会被拒绝。
 - 返回的匹配文本、捕获组和标题最长 4096 字符。被截断时会设置 `textTruncated` 或 `labelTruncated`，位置范围仍指向完整内容。
 
-#### 渐进式大纲 UI
+#### 手动扩展的大纲 UI
 
-受控 UI 不直接操作 DOM。扫描得到一批结果后，调用 `context.host.ui.requestUpdate(viewId)` 请求宿主重新执行该插件的 UI renderer：
+大纲类插件不应在挂载后自动扫描全文。可以在 manifest 中设置 `"viewportUpdates": false`，只在首次挂载时根据 `node.viewport.activeLine` 扫描一个初始窗口：
 
 ```ts
-let headings = []
-let activeScanner
-
-export default {
-  async activate(context) {
-    async function startOutlineScan() {
-      await activeScanner?.cancel()
-      headings = []
-      activeScanner = context.host.document?.scan({
-        query: { kind: 'markdownHeadings' },
-        batchSize: 64,
-      })
-
-      if (!activeScanner) return
-
-      for await (const event of activeScanner) {
-        if (event.type === 'batch') {
-          headings = [...headings, ...event.items.filter((item) => item.kind === 'heading')]
-          await context.host.ui?.requestUpdate('outline')
-        }
-      }
-    }
-
-    return {
-      renderers: {
-        outline: async ({ node }) => {
-          if (node?.phase === 'mount') void startOutlineScan()
-          if (node?.phase === 'dispose') await activeScanner?.cancel()
-
-          return {
-            type: 'element',
-            tag: 'span',
-            children: headings.map((heading) => ({
-              type: 'element',
-              tag: 'span',
-              text: `${'#'.repeat(heading.level)} ${heading.label}`,
-            })),
-          }
-        },
-      },
-      dispose: () => activeScanner?.cancel(),
-    }
-  },
-}
+const activeLine = node.viewport.activeLine
+const scanner = context.host.document?.scan({
+  query: { kind: 'markdownHeadings' },
+  fromLine: Math.max(1, activeLine - 8192),
+  toLine: activeLine + 8192,
+  batchSize: 128,
+})
 ```
+
+完成该窗口后再调用 `context.host.ui.requestUpdate(viewId)`。不要每个 batch 都重建 UI。关闭视口更新后，编辑器滚动不会触发大纲扫描、列表跟随或选中状态变化；大纲只在自身真正触顶或触底时请求相邻窗口。
 
 `requestUpdate()` 只能刷新当前插件在 manifest 中声明的 UI。省略 `viewId` 时刷新该插件所有已挂载 UI；传入未声明的 ID 会被拒绝。文档作用域 UI 在切换文档时会先收到 `dispose`，再为新文档收到 `mount`，应在这两个阶段分别取消和重启扫描。
 
-桌面端会在文档 UI 的 `node.viewport` 中提供当前视口：
+桌面端会在首次挂载文档 UI 时提供当前视口：
 
 ```ts
 const { fromLine, toLine, activeLine } = node.viewport
 ```
 
 - `fromLine`、`toLine` 是当前可见行范围。
-- `activeLine` 是用于导航 UI 跟随滚动的当前行，目前等于视口首行。
-- 编辑器滚动后，宿主会节流触发 UI 的 `update` phase。插件应从已经扫描到的结构结果中按行号二分查找，只渲染当前行附近的有限结果，不要一次渲染几万项。
+- `activeLine` 可作为初始扫描窗口的锚点，目前等于视口首行。
+- 如果 contribution 保持默认的 `viewportUpdates: true`，编辑器滚动后宿主会节流触发 `update`；设置为 `false` 后不会触发。
+
+侧栏中的定高长列表可以使用宿主虚拟滚动协议。列表元素输出以下受控属性：
+
+```ts
+{
+  type: 'element',
+  tag: 'span',
+  attributes: {
+    class: 'plugin-virtual-list',
+    'data-virtual-list': 'outline',
+    'data-virtual-total': String(allItems.length),
+    'data-virtual-start': String(start),       // 当前切片，包含
+    'data-virtual-end': String(end),           // 当前切片，不包含
+    'data-virtual-item-height': '28',          // 每项固定像素高度
+    'data-virtual-active': String(clickedIndex),
+    'data-virtual-follow-active': 'false',
+    'data-virtual-has-before': String(scannedFromLine > 1),
+    'data-virtual-has-after': String(scannedToLine < totalLineCount),
+    'data-virtual-scroll-adjust': String(prependedCount * 28),
+    'data-virtual-revision': String(cacheRevision),
+  },
+  children: allItems.slice(start, end).map(renderItem),
+}
+```
+
+宿主根据 `total`、`start`、`end` 和 `item-height` 建立完整滚动高度，但 DOM 中只保留当前切片。宿主请求的新切片会包含较大的上下缓冲，并仅在可视区接近切片内边界时再次换窗，避免细小滚动反复重建 UI。用户滚动到缓冲区边缘时，宿主会静默触发 `update`，并在 `node.virtualViewport` 中请求新区间：
+
+```ts
+const { id, fromIndex, toIndex, userInitiated, edge, requestId } = node.virtualViewport
+```
+
+- `fromIndex` 包含，`toIndex` 不包含；插件应截取该区间并在下一次输出中回填实际的 `start` 和 `end`。
+- `userInitiated` 表示该区间来自用户主动滚动列表。
+- `edge` 为 `before` 或 `after` 时表示用户真正抵达当前缓存顶部或底部。每个 `requestId` 只能处理一次；扫描完成后的 UI 刷新不能沿用同一 ID 继续加载下一块。
+- 前向追加不会改变当前滚动位置。向列表头部插入项目时，通过 `data-virtual-scroll-adjust` 提供需要补偿的像素值，并递增 `data-virtual-revision`；宿主对每个 revision 只应用一次。
+- 宿主只会在用户真正触顶或触底时发出 `edge`，普通滚动不会预取相邻窗口。手动分页列表适合保留两个相邻扫描块：第二块触底加载第三块并淘汰第一块，第一块触顶加载上一块并淘汰第二块。这样用户短距离反向滚动不会立即再次扫描。
+- 插件仍应限制单次输出规模。宿主请求包含可视区和上下缓冲，但插件不能假设请求永远小于自己的安全上限。
+- 手动型大纲应始终输出 `data-virtual-follow-active: "false"`。点击标题时由插件保存选中行、调用 `revealLine()` 并主动刷新 UI；编辑器滚动不应修改选中项。
+- 虚拟列表的每项必须保持与 `data-virtual-item-height` 一致的固定高度。相邻窗口扫描期间，可以在列表外部的顶部或底部输出 `plugin-list-progress plugin-ui-loading-icon`，并使用 `data-host-icon="loader-circle"` 给出明确反馈。
+- 这些 `data-virtual-*` 是受控 UI 唯一允许的虚拟列表属性；除下述 `data-host-icon` 外，任意其他 `data-*` 仍会被拒绝。
+
+宿主还提供一组与具体插件无关的可选 UI 类，插件可以直接组合使用：
+
+- `plugin-list-panel`：铺满可用区域的纵向列表面板。
+- `plugin-virtual-list`：可滚动的虚拟列表容器。
+- `plugin-list-item`、`plugin-list-item is-active`：固定高度列表项及选中状态。
+- `plugin-list-level-2` 到 `plugin-list-level-6`：分级缩进。
+- `plugin-ui-state`、`plugin-ui-state-empty|error|loading`：空、错误、加载状态容器。
+- `plugin-ui-state-icon`、`plugin-ui-state-message`、`plugin-ui-loading-icon`：状态图标、提示文本和旋转加载图标。
+- `plugin-list-progress`：列表级进度或限制提示。
+
+需要使用宿主图标时，在空的受控元素上设置 `data-host-icon`：
+
+```ts
+{
+  type: 'element',
+  tag: 'span',
+  attributes: {
+    class: 'plugin-ui-state-icon plugin-ui-loading-icon',
+    'data-host-icon': 'loader-circle',
+  },
+}
+```
+
+当前支持的精确值为 `list-tree`、`circle-alert` 和 `loader-circle`。宿主只根据这个通用属性装饰图标，不识别任何插件专用类名；未知值不会生成图标。插件自己的业务状态、文案、层级和列表内容仍由插件独立处理。
 
 只读导航不需要 `document:write` 或 `view:write`。UI 命令可调用受控导航方法：
 
