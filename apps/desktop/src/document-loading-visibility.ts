@@ -3,6 +3,7 @@ import type { DocumentLoadingState } from './document-open-flow'
 export interface DocumentLoadingVisibilityController {
   readonly visible: boolean
   update(state: DocumentLoadingState): void
+  reveal(): void
   dispose(): void
 }
 
@@ -55,6 +56,10 @@ export function createDocumentLoadingVisibilityController(
 
       cancelReveal()
       setVisible(state.phase === 'closing' || state.phase === 'failed')
+    },
+    reveal(): void {
+      cancelReveal()
+      setVisible(true)
     },
     dispose(): void {
       cancelReveal()

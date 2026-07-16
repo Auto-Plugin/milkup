@@ -54,4 +54,17 @@ describe('document loading visibility', () => {
     controller.update({ phase: 'failed', message: 'nope' })
     expect(controller.visible).toBe(true)
   })
+
+  it('can reveal startup loading without waiting for the delay', () => {
+    const onChange = vi.fn()
+    const controller = createDocumentLoadingVisibilityController({ delayMs: 150, onChange })
+
+    controller.update({ phase: 'opening' })
+    controller.reveal()
+
+    expect(controller.visible).toBe(true)
+    expect(onChange).toHaveBeenCalledTimes(1)
+    vi.advanceTimersByTime(150)
+    expect(onChange).toHaveBeenCalledTimes(1)
+  })
 })

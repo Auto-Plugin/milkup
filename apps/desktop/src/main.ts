@@ -498,7 +498,12 @@ let windowMaximized = false
 let closeConfirmOpen = false
 let loadingState: DocumentLoadingState = Object.freeze({ phase: 'idle' })
 const loadingVisibility = createDocumentLoadingVisibilityController({
-  onChange: () => renderSession(),
+  onChange: () => {
+    renderSession()
+    if (loadingVisibility.visible) {
+      void showStartupWindow()
+    }
+  },
 })
 let saveState: DocumentSaveState = Object.freeze({ phase: 'idle' })
 let closeAfterCurrentSave = false
@@ -673,10 +678,12 @@ focusActiveView()
 void waitForNextPaint().then(() => {
   markStartupStage('shell-painted')
   focusActiveView()
-  document.querySelector<HTMLElement>('#startup-screen')?.remove()
 })
 
 const initialDocumentOpenPromise = openInitialDocument(initialOpenFilePathPromise)
+void initialDocumentOpenPromise.finally(() => {
+  void showStartupWindow()
+})
 void desktopPluginManager.ready.then(async () => {
   await initialDocumentOpenPromise
   renderPluginManager()
@@ -1407,9 +1414,11 @@ async function openInitialDocument(
   await openSelectedDocumentWithPolicy(tracker, async () => path, {
     errorPrefix: '启动文件打开失败',
     preferBuiltinDocument: true,
+    startup: true,
   })
   if (loadingState.phase === 'ready') {
     markStartupStage('initial-document-ready')
+    await showStartupWindow()
     await waitForNextPaint()
     markStartupStage('initial-document-painted')
   }
@@ -1422,9 +1431,13 @@ async function openSelectedDocumentWithPolicy(
     readonly cancelledNotice?: string
     readonly errorPrefix: string
     readonly preferBuiltinDocument?: boolean
+    readonly startup?: boolean
   },
 ): Promise<void> {
   setDocumentLoadingState({ phase: 'opening' })
+  if (messages.startup) {
+    loadingVisibility.reveal()
+  }
 
   try {
     const selected = await selectPath()
@@ -3236,6 +3249,32 @@ function setDocumentLoadingState(nextState: DocumentLoadingState): void {
   loadingState = Object.freeze(nextState)
   loadingVisibility.update(nextState)
   renderSession()
+}
+
+let startupWindowShowPromise: Promise<void> | undefined
+
+function showStartupWindow(): Promise<void> {
+  if (startupWindowShowPromise) {
+    return startupWindowShowPromise
+  }
+
+  if (!('isTauri' in globalThis)) {
+    return Promise.resolve()
+  }
+
+  markStartupStage('window-show-requested')
+  startupWindowShowPromise = import('@tauri-apps/api/window')
+    .then(async ({ getCurrentWindow }) => {
+      await getCurrentWindow().show()
+      markStartupStage('window-shown')
+      focusActiveView()
+    })
+    .catch((error: unknown) => {
+      startupWindowShowPromise = undefined
+      console.error('Failed to show the startup window', error)
+    })
+
+  return startupWindowShowPromise
 }
 
 function renderDocumentLoadingState(): void {
