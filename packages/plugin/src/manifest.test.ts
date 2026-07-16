@@ -64,6 +64,7 @@ describe('plugin manifest validation', () => {
             slot: 'sidebar-panel',
             title: 'Example',
             scope: 'document',
+            viewportUpdates: false,
           },
         ],
         importers: [
@@ -113,7 +114,15 @@ describe('plugin manifest validation', () => {
         markdownSyntax: [
           { id: 'example-callout', nodeType: 'callout', pattern: '^:::callout', block: true },
         ],
-        ui: [{ id: 'example-panel', slot: 'sidebar-panel', title: 'Example', scope: 'document' }],
+        ui: [
+          {
+            id: 'example-panel',
+            slot: 'sidebar-panel',
+            title: 'Example',
+            scope: 'document',
+            viewportUpdates: false,
+          },
+        ],
         importers: [
           {
             id: 'chatgpt-export',

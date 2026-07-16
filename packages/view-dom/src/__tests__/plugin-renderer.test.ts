@@ -1,9 +1,38 @@
 import { EditorState, MemoryTextDocument } from '@milkup/core'
 import { describe, expect, it, vi } from 'vitest'
 
-import { renderMarkdownLines } from '../index'
+import { createControlledRendererNodes, renderMarkdownLines } from '../index'
 
 describe('controlled plugin renderers', () => {
+  it('allows the host-owned virtual list metadata used by controlled UI', () => {
+    const [list] = createControlledRendererNodes(document, 'outline', {
+      type: 'element',
+      tag: 'span',
+      attributes: {
+        'data-host-icon': 'list-tree',
+        'data-virtual-list': 'outline',
+        'data-virtual-total': '1000',
+        'data-virtual-start': '100',
+        'data-virtual-end': '160',
+        'data-virtual-item-height': '28',
+        'data-virtual-active': '124',
+        'data-virtual-follow-active': 'true',
+      },
+    })
+
+    expect(list).toBeInstanceOf(HTMLElement)
+    expect((list as HTMLElement).dataset).toMatchObject({
+      hostIcon: 'list-tree',
+      virtualList: 'outline',
+      virtualTotal: '1000',
+      virtualStart: '100',
+      virtualEnd: '160',
+      virtualItemHeight: '28',
+      virtualActive: '124',
+      virtualFollowActive: 'true',
+    })
+  })
+
   it('mounts renderer output inside the assigned line slot', async () => {
     const lines = renderMarkdownLines(document, createState('# Title\n'), 'live', {
       controlledRenderers: [

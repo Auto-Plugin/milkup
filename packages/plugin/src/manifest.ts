@@ -70,6 +70,7 @@ export interface PluginUiContribution {
   readonly slot: PluginUiSlot
   readonly title: string
   readonly scope?: 'app' | 'document'
+  readonly viewportUpdates?: boolean
 }
 
 export interface PluginImporterContribution {
@@ -595,6 +596,12 @@ function readUiContribution(
   const slot = readRequiredString(value, 'slot', `${path}.slot`, errors)
   const title = readRequiredString(value, 'title', `${path}.title`, errors)
   const scope = readOptionalString(value, 'scope', `${path}.scope`, errors)
+  const viewportUpdates = readOptionalBoolean(
+    value,
+    'viewportUpdates',
+    `${path}.viewportUpdates`,
+    errors,
+  )
 
   if (id && !PLUGIN_ID_PATTERN.test(id)) {
     errors.push({ path: `${path}.id`, message: 'UI contribution id must be kebab/dot case' })
@@ -617,6 +624,7 @@ function readUiContribution(
     slot: PluginUiSlot
     title: string
     scope?: 'app' | 'document'
+    viewportUpdates?: boolean
   } = {
     id,
     slot: slot as PluginUiSlot,
@@ -625,6 +633,9 @@ function readUiContribution(
 
   if (scope) {
     contribution.scope = scope as 'app' | 'document'
+  }
+  if (viewportUpdates !== undefined) {
+    contribution.viewportUpdates = viewportUpdates
   }
 
   return Object.freeze(contribution)

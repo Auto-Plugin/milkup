@@ -234,9 +234,15 @@ if (!app) {
 }
 
 const appRoot = app
+const sidebarWidthStorageKey = 'milkup.desktop.sidebar.width'
+const defaultSidebarWidth = 240
+const minimumSidebarWidth = 160
+const maximumSidebarWidth = 520
+const initialSidebarWidth = readStoredSidebarWidth()
 
 appRoot.dataset.platform = platform
 appRoot.dataset.sidebarCollapsed = 'true'
+appRoot.style.setProperty('--sidebar-width', `${initialSidebarWidth}px`)
 app.innerHTML = `
   <main class="desktop-shell">
     <header class="titlebar" data-window-drag-region>
@@ -367,6 +373,7 @@ app.innerHTML = `
     </section>
     <section class="workspace">
       <aside class="sidebar" aria-label="工作区"><div data-plugin-slot="sidebar-panel"></div></aside>
+      <div class="sidebar-resize-handle" data-sidebar-resize role="separator" aria-label="调整侧栏宽度" aria-orientation="vertical" tabindex="0"></div>
       <section class="editor-panel">
         <div class="floating-search" data-floating-search hidden>
           <span class="search-status-icon" data-search-status-icon>
@@ -485,6 +492,7 @@ let showDeveloperStatusNotice =
 let recentFiles: readonly RecentFileEntry[] = []
 let disposeFileWatchEvents: (() => void) | undefined
 let sidebarCollapsed = true
+let sidebarWidth = initialSidebarWidth
 let menuOpen = false
 let searchOpen = false
 let searchResultState: DesktopSearchState | undefined
@@ -516,7 +524,8 @@ let largeDocumentPreview: LargeDocumentPreviewState | undefined
 
 let view: EditorView | undefined
 let sourceView: SourceDocumentView | undefined
-let pluginUiViewportFrame: number | undefined
+let pluginUiViewportTimer: ReturnType<typeof setTimeout> | undefined
+let pluginUiViewportIdleCallback: number | undefined
 
 const desktopPluginEditor: Editor = {
   get state() {
@@ -777,6 +786,24 @@ app.querySelector<HTMLButtonElement>('[data-menu-close]')?.addEventListener('cli
 app.querySelector<HTMLButtonElement>('[data-sidebar-toggle]')?.addEventListener('click', () => {
   setSidebarCollapsed(!sidebarCollapsed)
 })
+
+app
+  .querySelector<HTMLElement>('[data-sidebar-resize]')
+  ?.addEventListener('pointerdown', (event) => {
+    startSidebarWidthResize(event)
+  })
+
+app.querySelector<HTMLElement>('[data-sidebar-resize]')?.addEventListener('keydown', (event) => {
+  if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+  event.preventDefault()
+  setSidebarWidth(sidebarWidth + (event.key === 'ArrowLeft' ? -16 : 16))
+})
+
+app.querySelector<HTMLElement>('[data-sidebar-resize]')?.addEventListener('dblclick', () => {
+  setSidebarWidth(defaultSidebarWidth)
+})
+
+globalThis.addEventListener('resize', () => setSidebarWidth(sidebarWidth, false))
 
 app.querySelector<HTMLButtonElement>('[data-search-close]')?.addEventListener('click', () => {
   setSearchOpen(false)
@@ -2571,6 +2598,49 @@ function setSidebarCollapsed(collapsed: boolean): void {
   view?.inputDOM.focus({ preventScroll: true })
 }
 
+function startSidebarWidthResize(event: PointerEvent): void {
+  if (event.button !== 0 || sidebarCollapsed) return
+  event.preventDefault()
+  const startX = event.clientX
+  const startWidth = sidebarWidth
+  const handleMove = (moveEvent: PointerEvent): void => {
+    setSidebarWidth(startWidth + moveEvent.clientX - startX, false)
+  }
+  const handleUp = (): void => {
+    document.removeEventListener('pointermove', handleMove)
+    document.removeEventListener('pointerup', handleUp)
+    document.documentElement.dataset.sidebarResizing = 'false'
+    setSidebarWidth(sidebarWidth)
+  }
+
+  document.documentElement.dataset.sidebarResizing = 'true'
+  document.addEventListener('pointermove', handleMove)
+  document.addEventListener('pointerup', handleUp)
+}
+
+function setSidebarWidth(width: number, persist = true): void {
+  const viewportMaximum = Math.max(
+    minimumSidebarWidth,
+    Math.min(maximumSidebarWidth, Math.floor(globalThis.innerWidth * 0.55)),
+  )
+  sidebarWidth = Math.round(Math.min(viewportMaximum, Math.max(minimumSidebarWidth, width)))
+  appRoot.style.setProperty('--sidebar-width', `${sidebarWidth}px`)
+
+  if (persist) {
+    globalThis.localStorage?.setItem(sidebarWidthStorageKey, String(sidebarWidth))
+  }
+}
+
+function readStoredSidebarWidth(): number {
+  const stored = Number(globalThis.localStorage?.getItem(sidebarWidthStorageKey))
+  const width = Number.isFinite(stored) && stored > 0 ? stored : defaultSidebarWidth
+  const viewportMaximum = Math.max(
+    minimumSidebarWidth,
+    Math.min(maximumSidebarWidth, Math.floor(globalThis.innerWidth * 0.55)),
+  )
+  return Math.round(Math.min(viewportMaximum, Math.max(minimumSidebarWidth, width)))
+}
+
 function setMenuOpen(open: boolean): void {
   menuOpen = open
   const menu = appRoot.querySelector<HTMLElement>('[data-app-menu]')
@@ -2755,14 +2825,39 @@ function getPluginUiRenderState(): Readonly<Record<string, unknown>> {
 }
 
 function schedulePluginUiViewportUpdate(): void {
-  if (pluginUiViewportFrame !== undefined) return
-  pluginUiViewportFrame = requestAnimationFrame(() => {
-    pluginUiViewportFrame = undefined
-    void desktopPluginUi.updateViewport()
-  })
+  cancelScheduledPluginUiViewportUpdate()
+  pluginUiViewportTimer = setTimeout(() => {
+    pluginUiViewportTimer = undefined
+    if (typeof window.requestIdleCallback === 'function') {
+      pluginUiViewportIdleCallback = window.requestIdleCallback(
+        () => {
+          pluginUiViewportIdleCallback = undefined
+          void desktopPluginUi.updateViewport()
+        },
+        { timeout: 500 },
+      )
+    } else {
+      pluginUiViewportTimer = setTimeout(() => {
+        pluginUiViewportTimer = undefined
+        void desktopPluginUi.updateViewport()
+      }, 0)
+    }
+  }, 240)
+}
+
+function cancelScheduledPluginUiViewportUpdate(): void {
+  if (pluginUiViewportTimer !== undefined) {
+    clearTimeout(pluginUiViewportTimer)
+    pluginUiViewportTimer = undefined
+  }
+  if (pluginUiViewportIdleCallback !== undefined) {
+    window.cancelIdleCallback?.(pluginUiViewportIdleCallback)
+    pluginUiViewportIdleCallback = undefined
+  }
 }
 
 async function revealPluginLine(line: number): Promise<void> {
+  cancelScheduledPluginUiViewportUpdate()
   if (sourceView) {
     await sourceView.scrollToLine(line)
   } else if (view) {

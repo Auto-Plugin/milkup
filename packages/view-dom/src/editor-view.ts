@@ -1455,7 +1455,24 @@ function findControlledRendererMatch(
 }
 
 const controlledRendererTags = new Set(['span', 'strong', 'em', 'code', 'a', 'button'])
-const controlledRendererAttributes = new Set(['class', 'title', 'href', 'aria-label'])
+const controlledRendererAttributes = new Set([
+  'class',
+  'title',
+  'href',
+  'aria-label',
+  'data-host-icon',
+  'data-virtual-list',
+  'data-virtual-total',
+  'data-virtual-start',
+  'data-virtual-end',
+  'data-virtual-item-height',
+  'data-virtual-active',
+  'data-virtual-follow-active',
+  'data-virtual-has-before',
+  'data-virtual-has-after',
+  'data-virtual-scroll-adjust',
+  'data-virtual-revision',
+])
 
 export function createControlledRendererNodes(
   document: Document,
@@ -1770,9 +1787,7 @@ function renderRangedLineDecorations(
     node,
     from,
     to,
-    classNames.preserveEmptyContentRanges === true
-      ? { preserveEmptyContentRanges: true }
-      : {},
+    classNames.preserveEmptyContentRanges === true ? { preserveEmptyContentRanges: true } : {},
   )
 
   if (pieces.length === 0) {
