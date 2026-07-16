@@ -673,6 +673,7 @@ focusActiveView()
 void waitForNextPaint().then(() => {
   markStartupStage('shell-painted')
   focusActiveView()
+  document.querySelector<HTMLElement>('#startup-screen')?.remove()
 })
 
 const initialDocumentOpenPromise = openInitialDocument(initialOpenFilePathPromise)
