@@ -57,6 +57,8 @@ export interface SdkDocumentScanRequest {
   readonly batchSize?: number
   readonly windowSizeLines?: number
   readonly maxResults?: number
+  readonly fromLine?: number
+  readonly toLine?: number
 }
 
 export type SdkDocumentScanItem =

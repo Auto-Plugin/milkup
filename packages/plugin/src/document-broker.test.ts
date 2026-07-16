@@ -72,6 +72,67 @@ describe('plugin document broker', () => {
     ).rejects.toThrow('unsafe nested quantifier')
   })
 
+  it('limits scanning to an explicit line range', async () => {
+    const source = new MemoryDocumentSource({
+      documentId: 'range-doc',
+      text: ['# One', 'text', '## Two', 'text', '### Three'].join('\n'),
+    })
+    const broker = createPluginDocumentBroker({ pluginId: 'outline', source: () => source })
+    const events = await collectEvents(
+      createPluginDocumentHostCapabilities(broker).scan({
+        query: { kind: 'markdownHeadings' },
+        fromLine: 2,
+        toLine: 4,
+        windowSizeLines: 2,
+      }),
+    )
+
+    expect(batchItems(events)).toMatchObject([{ kind: 'heading', label: 'Two', line: 3 }])
+    expect(events.at(-1)).toMatchObject({
+      type: 'done',
+      complete: true,
+      scannedLineCount: 3,
+      totalLineCount: 5,
+      resultCount: 1,
+    })
+  })
+
+  it('yields before bounded scan slices so large windows remain cooperative', async () => {
+    const source = new MemoryDocumentSource({
+      documentId: 'cooperative-doc',
+      text: Array.from({ length: 300 }, (_, index) => `line ${index + 1}`).join('\n'),
+    })
+    const windows: Array<{ fromLine: number; toLine: number }> = []
+    let yieldCount = 0
+    const broker = createPluginDocumentBroker({
+      pluginId: 'scanner',
+      source: () => ({
+        documentId: source.documentId,
+        version: source.version,
+        lineCount: source.lineCount,
+        readLineWindow: async (fromLine, toLine) => {
+          windows.push({ fromLine, toLine })
+          return source.readLineWindow(fromLine, toLine)
+        },
+      }),
+      yieldToMainThread: async () => {
+        yieldCount += 1
+      },
+    })
+
+    const events = await collectEvents(
+      createPluginDocumentHostCapabilities(broker).scan({
+        query: { kind: 'text', text: 'missing' },
+        windowSizeLines: 4_096,
+      }),
+    )
+
+    expect(events.at(-1)).toMatchObject({ type: 'done', scannedLineCount: 300 })
+    expect(windows).toHaveLength(3)
+    expect(windows.every(({ fromLine, toLine }) => toLine - fromLine + 1 <= 128)).toBe(true)
+    expect(yieldCount).toBe(windows.length)
+  })
+
   it('invalidates an active scan when the document version changes', async () => {
     let source: PluginDocumentScanSource = new MemoryDocumentSource({
       documentId: 'changing-doc',

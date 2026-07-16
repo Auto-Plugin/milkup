@@ -21,6 +21,8 @@ export interface PluginDocumentScanRequest {
   readonly batchSize?: number
   readonly windowSizeLines?: number
   readonly maxResults?: number
+  readonly fromLine?: number
+  readonly toLine?: number
 }
 
 export interface PluginDocumentScanSource {
@@ -113,6 +115,7 @@ export interface PluginDocumentBrokerConfig {
   readonly pluginId: string
   readonly source: () => PluginDocumentScanSource | undefined
   readonly maxConcurrentScans?: number
+  readonly yieldToMainThread?: () => Promise<void>
 }
 
 interface ScanSession {
@@ -122,6 +125,7 @@ interface ScanSession {
   readonly batchSize: number
   readonly windowSizeLines: number
   readonly maxResults: number
+  readonly endLine: number
   readonly pending: PluginDocumentScanItem[]
   nextLine: number
   scannedLineCount: number
@@ -148,11 +152,13 @@ const MAX_RESULTS = 50_000
 const MAX_PATTERN_LENGTH = 256
 const MAX_RESULT_TEXT_LENGTH = 4_096
 const MAX_REGEXP_LINE_LENGTH = 64 * 1_024
+const MAX_COOPERATIVE_SCAN_LINES = 128
 
 export function createPluginDocumentBroker(
   config: PluginDocumentBrokerConfig,
 ): ManagedPluginDocumentBroker {
   const sessions = new Map<string, ScanSession>()
+  const yieldToMainThread = config.yieldToMainThread ?? yieldToBackgroundTask
   const maxConcurrentScans = normalizeInteger(
     config.maxConcurrentScans,
     2,
@@ -175,6 +181,12 @@ export function createPluginDocumentBroker(
       }
 
       const id = `${config.pluginId}:${Date.now().toString(36)}:${(nextScanId++).toString(36)}`
+      const fromLine = normalizeInteger(request.fromLine, 1, 1, source.lineCount, 'fromLine')
+      const requestedToLine = request.toLine ?? source.lineCount
+      if (!Number.isInteger(requestedToLine) || requestedToLine < fromLine) {
+        throw new Error(`toLine must be an integer from ${fromLine} to ${source.lineCount}`)
+      }
+      const toLine = Math.min(source.lineCount, requestedToLine)
       sessions.set(id, {
         id,
         source,
@@ -200,8 +212,9 @@ export function createPluginDocumentBroker(
           MAX_RESULTS,
           'maxResults',
         ),
+        endLine: toLine,
         pending: [],
-        nextLine: 1,
+        nextLine: fromLine,
         scannedLineCount: 0,
         resultCount: 0,
         fence: undefined,
@@ -242,16 +255,20 @@ export function createPluginDocumentBroker(
         return freezeDoneEvent(session, session.terminalReason, false)
       }
 
-      if (session.nextLine > session.source.lineCount) {
+      if (session.nextLine > session.endLine) {
         sessions.delete(scanId)
         return freezeDoneEvent(session, 'complete', true)
       }
 
       const fromLine = session.nextLine
-      const toLine = Math.min(session.source.lineCount, fromLine + session.windowSizeLines - 1)
+      const toLine = Math.min(
+        session.endLine,
+        fromLine + Math.min(session.windowSizeLines, MAX_COOPERATIVE_SCAN_LINES) - 1,
+      )
       let window: DocumentLineWindow
 
       try {
+        await yieldToMainThread()
         window = await session.source.readLineWindow(fromLine, toLine)
       } catch (error) {
         sessions.delete(scanId)
@@ -596,4 +613,21 @@ function normalizeInteger(
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+async function yieldToBackgroundTask(): Promise<void> {
+  const scheduler = (
+    globalThis as typeof globalThis & {
+      scheduler?: {
+        postTask(callback: () => void, options: { priority: 'background' }): Promise<unknown>
+      }
+    }
+  ).scheduler
+
+  if (scheduler) {
+    await scheduler.postTask(() => undefined, { priority: 'background' })
+    return
+  }
+
+  await new Promise<void>((resolve) => setTimeout(resolve, 0))
 }
