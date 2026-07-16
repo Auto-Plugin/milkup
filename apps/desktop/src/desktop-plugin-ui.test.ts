@@ -397,7 +397,7 @@ describe('DesktopPluginUiController', () => {
     list.scrollTop = 14_000
     list.dispatchEvent(new Event('pointerdown'))
     list.dispatchEvent(new Event('scroll'))
-    await new Promise((resolve) => setTimeout(resolve, 70))
+    await new Promise((resolve) => setTimeout(resolve, 220))
     expect(phases).toEqual(['mount'])
     expect(document.querySelector('.plugin-virtual-list')).toBe(list)
     document.dispatchEvent(new Event('pointerup'))
@@ -405,21 +405,21 @@ describe('DesktopPluginUiController', () => {
     await vi.waitFor(() => expect(phases).toEqual(['mount', 'update']))
     expect(renderStates[1]?.virtualViewport).toEqual({
       id: 'outline',
-      fromIndex: 420,
-      toIndex: 590,
+      fromIndex: 340,
+      toIndex: 670,
       userInitiated: true,
     })
     const updatedList = document.querySelector<HTMLElement>('.plugin-virtual-list')!
-    expect(updatedList.dataset.virtualStart).toBe('420')
-    expect(updatedList.dataset.virtualEnd).toBe('590')
-    expect(updatedList.querySelectorAll('.plugin-list-item')).toHaveLength(170)
+    expect(updatedList.dataset.virtualStart).toBe('340')
+    expect(updatedList.dataset.virtualEnd).toBe('670')
+    expect(updatedList.querySelectorAll('.plugin-list-item')).toHaveLength(330)
     expect(updatedList.scrollTop).toBe(14_000)
 
     updatedList.scrollTop = 505 * 28
     updatedList.dispatchEvent(new Event('pointerdown'))
     updatedList.dispatchEvent(new Event('scroll'))
     document.dispatchEvent(new Event('pointerup'))
-    await new Promise((resolve) => setTimeout(resolve, 70))
+    await new Promise((resolve) => setTimeout(resolve, 220))
     expect(phases).toEqual(['mount', 'update'])
     scrollTopSetterSpy.mockRestore()
     scrollTopGetterSpy.mockRestore()
@@ -456,7 +456,7 @@ describe('DesktopPluginUiController', () => {
     list.dispatchEvent(new Event('pointerdown'))
     list.dispatchEvent(new Event('scroll'))
     document.dispatchEvent(new Event('pointerup'))
-    await new Promise((resolve) => setTimeout(resolve, 70))
+    await new Promise((resolve) => setTimeout(resolve, 220))
 
     expect(phases).toEqual(['mount'])
     clientHeightSpy.mockRestore()
@@ -493,7 +493,7 @@ describe('DesktopPluginUiController', () => {
     list.dispatchEvent(new Event('pointerdown'))
     list.dispatchEvent(new Event('scroll'))
     document.dispatchEvent(new Event('pointerup'))
-    await new Promise((resolve) => setTimeout(resolve, 70))
+    await new Promise((resolve) => setTimeout(resolve, 220))
     expect(phases).toEqual(['mount'])
 
     total = 1200
@@ -545,13 +545,15 @@ describe('DesktopPluginUiController', () => {
 
     await controller.sync('doc-a')
     const list = document.querySelector<HTMLElement>('.plugin-virtual-list')!
-    list.scrollTop = 1120
+    list.scrollTop = 1160
     list.dispatchEvent(new WheelEvent('wheel', { deltaY: 120 }))
-    await new Promise((resolve) => setTimeout(resolve, 70))
+    list.scrollTop = 1170
+    list.dispatchEvent(new Event('scroll'))
+    await new Promise((resolve) => setTimeout(resolve, 220))
     expect(phases).toEqual(['mount'])
 
-    list.scrollTop = 1170
     list.dispatchEvent(new WheelEvent('wheel', { deltaY: 120 }))
+    list.dispatchEvent(new Event('scroll'))
     await vi.waitFor(() => expect(phases).toEqual(['mount', 'update']))
     expect(renderStates[1]?.virtualViewport).toEqual({
       id: 'outline',
@@ -561,7 +563,7 @@ describe('DesktopPluginUiController', () => {
       edge: 'after',
       requestId: 1,
     })
-    await new Promise((resolve) => setTimeout(resolve, 70))
+    await new Promise((resolve) => setTimeout(resolve, 220))
     expect(phases).toEqual(['mount', 'update'])
     scrollHeightSpy.mockRestore()
     clientHeightSpy.mockRestore()
@@ -599,11 +601,13 @@ describe('DesktopPluginUiController', () => {
     const list = document.querySelector<HTMLElement>('.plugin-virtual-list')!
     list.scrollTop = 1
     list.dispatchEvent(new WheelEvent('wheel', { deltaY: -120 }))
-    await new Promise((resolve) => setTimeout(resolve, 70))
+    list.scrollTop = 0
+    list.dispatchEvent(new Event('scroll'))
+    await new Promise((resolve) => setTimeout(resolve, 220))
     expect(phases).toEqual(['mount'])
 
-    list.scrollTop = 0
     list.dispatchEvent(new WheelEvent('wheel', { deltaY: -120 }))
+    list.dispatchEvent(new Event('scroll'))
     await vi.waitFor(() => expect(phases).toEqual(['mount', 'update']))
     expect(renderStates[1]?.virtualViewport).toMatchObject({
       edge: 'before',
@@ -642,7 +646,7 @@ describe('DesktopPluginUiController', () => {
     list.scrollTop = 280
     list.dispatchEvent(new WheelEvent('wheel', { deltaY: 120 }))
     list.dispatchEvent(new Event('scroll'))
-    await new Promise((resolve) => setTimeout(resolve, 70))
+    await new Promise((resolve) => setTimeout(resolve, 220))
 
     expect(phases).toEqual(['mount'])
     clientHeightSpy.mockRestore()
@@ -686,7 +690,7 @@ describe('DesktopPluginUiController', () => {
     list.dispatchEvent(new Event('pointerdown'))
     list.dispatchEvent(new Event('scroll'))
     document.dispatchEvent(new Event('pointerup'))
-    await new Promise((resolve) => setTimeout(resolve, 70))
+    await new Promise((resolve) => setTimeout(resolve, 220))
 
     prepended = true
     await controller.invalidate('example', 'outline')

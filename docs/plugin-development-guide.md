@@ -486,7 +486,7 @@ for await (const event of scanner) {
 - 正则表达式最长 256 字符，只支持 `i`、`m`、`s`、`u` flags；反向引用、lookbehind 和明显的嵌套量词会被拒绝。
 - 返回的匹配文本、捕获组和标题最长 4096 字符。被截断时会设置 `textTruncated` 或 `labelTruncated`，位置范围仍指向完整内容。
 
-#### 手动扩展的大纲 UI
+#### 分段扫描与手动扩展的虚拟列表
 
 大纲类插件不应在挂载后自动扫描全文。可以在 manifest 中设置 `"viewportUpdates": false`，只在首次挂载时根据 `node.viewport.activeLine` 扫描一个初始窗口：
 
@@ -538,7 +538,9 @@ const { fromLine, toLine, activeLine } = node.viewport
 }
 ```
 
-宿主根据 `total`、`start`、`end` 和 `item-height` 建立完整滚动高度，但 DOM 中只保留当前切片。宿主请求的新切片会包含较大的上下缓冲，并仅在可视区接近切片内边界时再次换窗，避免细小滚动反复重建 UI。用户滚动到缓冲区边缘时，宿主会静默触发 `update`，并在 `node.virtualViewport` 中请求新区间：
+宿主根据 `total`、`start`、`end` 和 `item-height` 建立完整滚动高度，但 DOM 中只保留当前切片。宿主请求的新切片会包含较大的上下缓冲，并仅在可视区接近切片内边界时再次换窗，避免细小滚动反复重建 UI。当前桌面宿主会把连续滚动合并，在滚动停稳约 160 ms 后才请求新切片；缓冲至少为 160 项，并会随可视项数量增大。插件不能依赖这些具体数值，它们属于宿主的性能策略。
+
+用户滚动时，宿主会按需触发 `update`，并在 `node.virtualViewport` 中请求新区间：
 
 ```ts
 const { id, fromIndex, toIndex, userInitiated, edge, requestId } = node.virtualViewport
@@ -546,13 +548,18 @@ const { id, fromIndex, toIndex, userInitiated, edge, requestId } = node.virtualV
 
 - `fromIndex` 包含，`toIndex` 不包含；插件应截取该区间并在下一次输出中回填实际的 `start` 和 `end`。
 - `userInitiated` 表示该区间来自用户主动滚动列表。
-- `edge` 为 `before` 或 `after` 时表示用户真正抵达当前缓存顶部或底部。每个 `requestId` 只能处理一次；扫描完成后的 UI 刷新不能沿用同一 ID 继续加载下一块。
+- 没有 `edge` 的更新只表示虚拟 DOM 切片需要换窗。插件只能重新截取已有缓存，不应因此扫描新的文档区间。
+- `edge` 为 `before` 或 `after` 时才表示用户请求越过当前文档缓存的顶部或底部。此时插件可以扫描相邻文档块。每个 `requestId` 只能处理一次；扫描完成后的 UI 刷新不能沿用同一 ID 继续加载下一块。
 - 前向追加不会改变当前滚动位置。向列表头部插入项目时，通过 `data-virtual-scroll-adjust` 提供需要补偿的像素值，并递增 `data-virtual-revision`；宿主对每个 revision 只应用一次。
-- 宿主只会在用户真正触顶或触底时发出 `edge`，普通滚动不会预取相邻窗口。手动分页列表适合保留两个相邻扫描块：第二块触底加载第三块并淘汰第一块，第一块触顶加载上一块并淘汰第二块。这样用户短距离反向滚动不会立即再次扫描。
+- 普通 `scroll` 事件不会产生 `edge`。滚轮第一次把列表带到真实顶部或底部时也不会产生 `edge`；只有列表已经位于该边缘，用户继续向外滚动，才会发出对应方向的 `edge`。
+- 拖动滚动条时，宿主会等到指针释放后再判断。只有拖动方向与最终边缘一致，并且释放时确实位于真实顶部或底部，才会产生 `edge`。
+- 手动分页列表适合保留两个相邻扫描块：第二块触底加载第三块并淘汰第一块，第一块触顶加载上一块并淘汰第二块。这样用户短距离反向滚动不会立即再次扫描。
 - 插件仍应限制单次输出规模。宿主请求包含可视区和上下缓冲，但插件不能假设请求永远小于自己的安全上限。
 - 手动型大纲应始终输出 `data-virtual-follow-active: "false"`。点击标题时由插件保存选中行、调用 `revealLine()` 并主动刷新 UI；编辑器滚动不应修改选中项。
 - 虚拟列表的每项必须保持与 `data-virtual-item-height` 一致的固定高度。相邻窗口扫描期间，可以在列表外部的顶部或底部输出 `plugin-list-progress plugin-ui-loading-icon`，并使用 `data-host-icon="loader-circle"` 给出明确反馈。
 - 这些 `data-virtual-*` 是受控 UI 唯一允许的虚拟列表属性；除下述 `data-host-icon` 外，任意其他 `data-*` 仍会被拒绝。
+
+职责边界如下：宿主负责监听滚轮、滚动条和键盘操作，计算虚拟 DOM 切片，并准确报告真实边缘；插件负责文档扫描、缓存块大小、相邻块保留与淘汰、加载状态以及 `requestId` 去重。插件不应把每次虚拟切片更新都当作文档加载请求，宿主也不会识别某个具体插件的分页业务。
 
 宿主还提供一组与具体插件无关的可选 UI 类，插件可以直接组合使用：
 

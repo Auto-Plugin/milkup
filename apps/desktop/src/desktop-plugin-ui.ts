@@ -44,6 +44,7 @@ interface MountedPluginUi {
   virtualUserIntentUntil?: number
   virtualPointerActive?: boolean
   virtualPointerCleanup?: () => void
+  virtualPendingEdgeHint?: 'before' | 'after'
   virtualRequestSequence?: number
   virtualAdjustmentRevision?: number
 }
@@ -58,8 +59,8 @@ interface PluginVirtualViewportState {
 }
 
 const sidebarPanelMinimumHeight = 96
-const virtualListScrollDelay = 40
-const virtualListMinimumBufferItems = 80
+const virtualListScrollDelay = 160
+const virtualListMinimumBufferItems = 160
 const virtualListMinimumRefreshMarginItems = 12
 
 export class DesktopPluginUiController {
@@ -414,6 +415,7 @@ export class DesktopPluginUiController {
       () => {
         mount.virtualPointerCleanup?.()
         mount.virtualPointerActive = true
+        const startScrollTop = list.scrollTop
         this.markVirtualUserIntent(mount, 5000)
         const ownerDocument = list.ownerDocument
         const finishPointerInteraction = (): void => {
@@ -422,7 +424,18 @@ export class DesktopPluginUiController {
           delete mount.virtualPointerCleanup
           mount.virtualPointerActive = false
           this.markVirtualUserIntent(mount, 750)
-          this.scheduleVirtualViewportUpdate(mount, list)
+          const direction =
+            list.scrollTop < startScrollTop
+              ? 'before'
+              : list.scrollTop > startScrollTop
+                ? 'after'
+                : undefined
+          this.scheduleVirtualViewportUpdate(
+            mount,
+            list,
+            direction && isVirtualListAtEdge(list, direction) ? direction : undefined,
+            true,
+          )
         }
         mount.virtualPointerCleanup = () => {
           ownerDocument.removeEventListener('pointerup', finishPointerInteraction)
@@ -439,10 +452,12 @@ export class DesktopPluginUiController {
       'wheel',
       (event) => {
         this.markVirtualUserIntent(mount, 750)
+        const direction = event.deltaY < 0 ? 'before' : event.deltaY > 0 ? 'after' : undefined
         this.scheduleVirtualViewportUpdate(
           mount,
           list,
-          event.deltaY < 0 ? 'before' : event.deltaY > 0 ? 'after' : undefined,
+          direction && isVirtualListAtEdge(list, direction) ? direction : undefined,
+          true,
         )
       },
       { passive: true },
@@ -464,10 +479,15 @@ export class DesktopPluginUiController {
     mount: MountedPluginUi,
     list: HTMLElement,
     edgeHint?: 'before' | 'after',
+    replaceEdgeHint = false,
   ): void {
     mount.virtualScrollTop = list.scrollTop
     if (mount.virtualPointerActive) return
     if ((mount.virtualUserIntentUntil ?? 0) < Date.now()) return
+    if (replaceEdgeHint) {
+      if (edgeHint) mount.virtualPendingEdgeHint = edgeHint
+      else delete mount.virtualPendingEdgeHint
+    }
     if (mount.virtualScrollTimer !== undefined) clearTimeout(mount.virtualScrollTimer)
     mount.virtualScrollTimer = setTimeout(() => {
       delete mount.virtualScrollTimer
@@ -477,6 +497,8 @@ export class DesktopPluginUiController {
 
       const metadata = readVirtualListMetadata(list)
       if (!metadata || list.clientHeight <= 0) return
+      const requestedEdge = mount.virtualPendingEdgeHint
+      delete mount.virtualPendingEdgeHint
 
       const visibleStart = Math.max(0, Math.floor(list.scrollTop / metadata.itemHeight))
       const visibleEnd = Math.min(
@@ -491,25 +513,16 @@ export class DesktopPluginUiController {
       )
       const fromIndex = Math.max(0, visibleStart - bufferItems)
       const toIndex = Math.min(metadata.total, visibleEnd + bufferItems)
-      const estimatedMaximumScrollTop = Math.max(
-        0,
-        metadata.total * metadata.itemHeight - list.clientHeight,
-      )
-      const measuredMaximumScrollTop = Math.max(0, list.scrollHeight - list.clientHeight)
-      const maximumScrollTop =
-        measuredMaximumScrollTop > 0 ? measuredMaximumScrollTop : estimatedMaximumScrollTop
-      const atBeforeEdge = list.scrollTop <= 0
-      const atAfterEdge = list.scrollTop >= maximumScrollTop
       const edge =
-        edgeHint === 'before' && metadata.hasBefore && atBeforeEdge
+        requestedEdge === 'before' &&
+        metadata.hasBefore &&
+        isVirtualListAtEdge(list, 'before', metadata)
           ? 'before'
-          : edgeHint === 'after' && metadata.hasAfter && atAfterEdge
+          : requestedEdge === 'after' &&
+              metadata.hasAfter &&
+              isVirtualListAtEdge(list, 'after', metadata)
             ? 'after'
-            : metadata.hasBefore && atBeforeEdge
-              ? 'before'
-              : metadata.hasAfter && atAfterEdge
-                ? 'after'
-                : undefined
+            : undefined
 
       const needsRangeBefore =
         metadata.start > 0 && visibleStart - metadata.start < refreshMarginItems
@@ -760,6 +773,24 @@ function readVirtualListMetadata(list: HTMLElement): VirtualListMetadata | undef
     scrollAdjust,
     revision,
   }
+}
+
+function isVirtualListAtEdge(
+  list: HTMLElement,
+  direction: 'before' | 'after',
+  metadata = readVirtualListMetadata(list),
+): boolean {
+  if (!metadata || list.clientHeight <= 0) return false
+  if (direction === 'before') return list.scrollTop <= 0.5
+
+  const estimatedMaximumScrollTop = Math.max(
+    0,
+    metadata.total * metadata.itemHeight - list.clientHeight,
+  )
+  const measuredMaximumScrollTop = Math.max(0, list.scrollHeight - list.clientHeight)
+  const maximumScrollTop =
+    measuredMaximumScrollTop > 0 ? measuredMaximumScrollTop : estimatedMaximumScrollTop
+  return list.scrollTop >= maximumScrollTop - 0.5
 }
 
 function readNonNegativeInteger(value: string | undefined): number | undefined {
