@@ -35,7 +35,9 @@ import type {
   VirtualViewportConfig,
 } from './types'
 import {
+  domRectForLineSourcePosition,
   domRectForLineVisualOffset,
+  domRectsForLineSourceRange,
   domRectsForLineVisualRange,
   isHorizontalScrollbarDragStart,
   lineElementFromEvent,
@@ -2764,9 +2766,14 @@ function domRectForSourcePosition(
     return undefined
   }
 
-  return domRectForLineVisualOffset(document, lineDOM, referenceDOM, offset, {
-    fallbackLineHeight: defaultViewMetrics.lineHeight,
-  })
+  return (
+    domRectForLineSourcePosition(document, lineDOM, referenceDOM, position, {
+      fallbackLineHeight: defaultViewMetrics.lineHeight,
+    }) ??
+    domRectForLineVisualOffset(document, lineDOM, referenceDOM, offset, {
+      fallbackLineHeight: defaultViewMetrics.lineHeight,
+    })
+  )
 }
 
 function domRectsForSourceRange(
@@ -2797,6 +2804,13 @@ function domRectsForSourceRange(
     const lineTo = Math.min(rangeTo, line.to)
 
     if (lineTo < lineFrom) {
+      continue
+    }
+
+    const sourceRects = domRectsForLineSourceRange(document, lineDOM, layerDOM, lineFrom, lineTo)
+
+    if (sourceRects.length > 0) {
+      rects.push(...sourceRects)
       continue
     }
 

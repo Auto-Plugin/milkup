@@ -1147,6 +1147,79 @@ describe('EditorView', () => {
     expect(nextCursor?.style.height).toBe('21px')
   })
 
+  it('aligns live list cursors to content spans instead of marker text', () => {
+    const parent = document.createElement('main')
+    const previousGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect
+    const previousCreateRange = document.createRange.bind(document)
+    let measuredRegion = ''
+
+    HTMLElement.prototype.getBoundingClientRect = function getBoundingClientRect() {
+      if (
+        this.classList.contains('milkup-line') ||
+        this.classList.contains('milkup-cursor-layer')
+      ) {
+        return {
+          left: 20,
+          right: 220,
+          top: 10,
+          bottom: 31,
+          width: 200,
+          height: 21,
+          x: 20,
+          y: 10,
+          toJSON: () => ({}),
+        } as DOMRect
+      }
+
+      return previousGetBoundingClientRect.call(this)
+    }
+
+    document.createRange = () => {
+      const range = previousCreateRange()
+      let startNode: Node | undefined
+      let startOffset = 0
+      range.setStart = (node: Node, offset: number) => {
+        startNode = node
+        startOffset = offset
+      }
+      range.getBoundingClientRect = () => {
+        const parentElement = startNode instanceof Text ? startNode.parentElement : undefined
+        const isContent = Boolean(parentElement?.closest('.milkup-list-content'))
+        const isMarker = Boolean(parentElement?.closest('.milkup-list-marker'))
+        measuredRegion = isContent ? 'content' : isMarker ? 'marker' : 'other'
+        const left = isContent ? 60 + startOffset * 8 : isMarker ? 20 + startOffset * 8 : 40
+
+        return {
+          left,
+          right: left,
+          top: 10,
+          bottom: 31,
+          width: 0,
+          height: 21,
+          x: left,
+          y: 10,
+          toJSON: () => ({}),
+        } as DOMRect
+      }
+      return range
+    }
+
+    try {
+      const view = new EditorView({
+        parent,
+        state: createState('1. abc', Selection.cursor(5)),
+        mode: 'live',
+      })
+      const cursor = view.cursorLayerDOM.querySelector<HTMLElement>('.milkup-cursor')
+
+      expect(measuredRegion).toBe('content')
+      expect(cursor?.style.left).toBe('56px')
+    } finally {
+      document.createRange = previousCreateRange
+      HTMLElement.prototype.getBoundingClientRect = previousGetBoundingClientRect
+    }
+  })
+
   it('keeps the hidden input proxy aligned with the cursor overlay', () => {
     const parent = document.createElement('main')
     const view = new EditorView({

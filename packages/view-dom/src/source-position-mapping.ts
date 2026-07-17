@@ -239,6 +239,18 @@ export function domRectForLineSourcePosition(
   position: number,
   options: SourcePositionRectOptions = {},
 ): ViewRect | undefined {
+  const sourceRect = domRectForMappedSourcePosition(
+    document,
+    lineDOM,
+    referenceDOM,
+    position,
+    options,
+  )
+
+  if (sourceRect) {
+    return sourceRect
+  }
+
   const rect = domRectForLineVisualOffset(
     document,
     lineDOM,
@@ -261,6 +273,12 @@ export function domRectsForLineSourceRange(
   from: number,
   to: number,
 ): readonly ViewRect[] {
+  const sourceRects = domRectsForMappedSourceRange(document, lineDOM, referenceDOM, from, to)
+
+  if (sourceRects.length > 0) {
+    return sourceRects
+  }
+
   return domRectsForLineVisualRange(
     document,
     lineDOM,
@@ -408,6 +426,238 @@ interface VisibleTextSourceSegment {
   readonly to: number
   readonly visualFrom: number
   readonly visualTo: number
+}
+
+function domRectForMappedSourcePosition(
+  document: Document,
+  lineDOM: HTMLElement,
+  referenceDOM: HTMLElement,
+  position: number,
+  options: SourcePositionRectOptions,
+): ViewRect | undefined {
+  if (typeof document.createRange !== 'function' || !hasMeasurableLayout(lineDOM)) {
+    return undefined
+  }
+
+  const textPosition = resolveTextPositionAtSourcePosition(lineDOM, position, 1)
+
+  if (!textPosition) {
+    return undefined
+  }
+
+  const range = document.createRange()
+  range.setStart(textPosition.node, textPosition.offset)
+  range.collapse(true)
+
+  if (typeof range.getBoundingClientRect !== 'function') {
+    range.detach()
+    return undefined
+  }
+
+  const lineRect = lineDOM.getBoundingClientRect()
+  const rect = range.getBoundingClientRect()
+  range.detach()
+
+  if (!isUsableMeasuredRect(rect, lineRect)) {
+    return undefined
+  }
+
+  return viewRectFromClientRect(rect, referenceDOM, lineRect, options.fallbackLineHeight)
+}
+
+function domRectsForMappedSourceRange(
+  document: Document,
+  lineDOM: HTMLElement,
+  referenceDOM: HTMLElement,
+  from: number,
+  to: number,
+): readonly ViewRect[] {
+  if (typeof document.createRange !== 'function' || to <= from) {
+    return Object.freeze([])
+  }
+
+  const start = resolveTextPositionAtSourcePosition(lineDOM, from, 1)
+  const end = resolveTextPositionAtSourcePosition(lineDOM, to, -1)
+
+  if (!start || !end) {
+    return Object.freeze([])
+  }
+
+  const range = document.createRange()
+  range.setStart(start.node, start.offset)
+  range.setEnd(end.node, end.offset)
+
+  const lineRect = lineDOM.getBoundingClientRect()
+  const referenceRect = referenceDOM.getBoundingClientRect()
+  const clientRects = Array.from(range.getClientRects?.() ?? [])
+  const usableRects = clientRects.filter((rect) => isUsableMeasuredRect(rect, lineRect))
+
+  if (usableRects.length === 0 && typeof range.getBoundingClientRect === 'function') {
+    const rect = range.getBoundingClientRect()
+
+    if (isUsableMeasuredRect(rect, lineRect)) {
+      usableRects.push(rect)
+    }
+  }
+
+  range.detach()
+
+  return Object.freeze(
+    usableRects.map((rect) => {
+      const top = rect.top - referenceRect.top
+      const height = rect.height > 0 ? rect.height : lineRect.height
+
+      return Object.freeze({
+        left: rect.left - referenceRect.left,
+        top,
+        right: rect.right - referenceRect.left,
+        bottom: top + height,
+        width: rect.width,
+        height,
+      })
+    }),
+  )
+}
+
+function resolveTextPositionAtSourcePosition(
+  lineDOM: HTMLElement,
+  position: number,
+  affinity: -1 | 1,
+): { readonly node: Text; readonly offset: number } | undefined {
+  const element = sourceMappedElementAtPosition(lineDOM, position, affinity)
+
+  if (!element) {
+    return undefined
+  }
+
+  const from = Number(element.dataset.from)
+  const to = Number(element.dataset.to)
+
+  if (!Number.isInteger(from) || !Number.isInteger(to)) {
+    return undefined
+  }
+
+  const sourceLength = Math.max(0, to - from)
+  const textNodes = visibleTextNodes(element)
+  const textLength = textNodes.reduce((length, node) => length + node.length, 0)
+
+  if (textLength <= 0) {
+    return undefined
+  }
+
+  const sourceOffset = clamp(position, from, to) - from
+  const textOffset = sourceLength > 0 ? Math.round((sourceOffset / sourceLength) * textLength) : 0
+
+  return resolveTextPositionInNodes(textNodes, textOffset)
+}
+
+function sourceMappedElementAtPosition(
+  lineDOM: HTMLElement,
+  position: number,
+  affinity: -1 | 1,
+): HTMLElement | undefined {
+  const lineFrom = Number(lineDOM.dataset.from)
+  const lineTo = Number(lineDOM.dataset.to)
+
+  if (!Number.isInteger(lineFrom) || !Number.isInteger(lineTo)) {
+    return undefined
+  }
+
+  const sourcePosition = clamp(position, lineFrom, lineTo)
+  const elements = visibleSourceMappedElements(lineDOM)
+
+  if (elements.length === 0) {
+    return undefined
+  }
+
+  const exactBoundary =
+    affinity > 0
+      ? elements.filter((element) => Number(element.dataset.from) === sourcePosition)
+      : elements.filter((element) => Number(element.dataset.to) === sourcePosition)
+
+  if (exactBoundary.length > 0) {
+    return mostSpecificMappedElement(exactBoundary)
+  }
+
+  const containing = elements.filter((element) => {
+    const from = Number(element.dataset.from)
+    const to = Number(element.dataset.to)
+    return (
+      Number.isInteger(from) && Number.isInteger(to) && sourcePosition > from && sourcePosition < to
+    )
+  })
+
+  if (containing.length > 0) {
+    return mostSpecificMappedElement(containing)
+  }
+
+  const adjacentBoundary =
+    affinity > 0
+      ? elements.filter((element) => Number(element.dataset.to) === sourcePosition)
+      : elements.filter((element) => Number(element.dataset.from) === sourcePosition)
+
+  if (adjacentBoundary.length > 0) {
+    return mostSpecificMappedElement(adjacentBoundary)
+  }
+
+  const next = elements.find((element) => sourcePosition < Number(element.dataset.from))
+
+  if (next) {
+    return next
+  }
+
+  return elements.at(-1)
+}
+
+function visibleSourceMappedElements(lineDOM: HTMLElement): readonly HTMLElement[] {
+  return Object.freeze(
+    Array.from(lineDOM.querySelectorAll<HTMLElement>('[data-from][data-to]'))
+      .filter((element) => !element.classList.contains('milkup-marker-hidden'))
+      .filter((element) => visibleTextNodes(element).length > 0)
+      .sort((left, right) => {
+        const leftFrom = Number(left.dataset.from)
+        const rightFrom = Number(right.dataset.from)
+        const leftTo = Number(left.dataset.to)
+        const rightTo = Number(right.dataset.to)
+        return leftFrom - rightFrom || leftTo - rightTo || elementDepth(right) - elementDepth(left)
+      }),
+  )
+}
+
+function mostSpecificMappedElement(elements: readonly HTMLElement[]): HTMLElement | undefined {
+  return [...elements].sort((left, right) => {
+    const leftLength = Number(left.dataset.to) - Number(left.dataset.from)
+    const rightLength = Number(right.dataset.to) - Number(right.dataset.from)
+    return leftLength - rightLength || elementDepth(right) - elementDepth(left)
+  })[0]
+}
+
+function elementDepth(element: HTMLElement): number {
+  let depth = 0
+
+  for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+    depth += 1
+  }
+
+  return depth
+}
+
+function resolveTextPositionInNodes(
+  textNodes: readonly Text[],
+  textOffset: number,
+): { readonly node: Text; readonly offset: number } | undefined {
+  let remaining = Math.max(0, textOffset)
+
+  for (const node of textNodes) {
+    if (remaining <= node.length) {
+      return { node, offset: remaining }
+    }
+
+    remaining -= node.length
+  }
+
+  const last = textNodes.at(-1)
+  return last ? { node: last, offset: last.length } : undefined
 }
 
 function visibleTextSourceSegments(lineDOM: HTMLElement): readonly VisibleTextSourceSegment[] {
@@ -682,6 +932,26 @@ function rectFromLineStart(
     right: lineRect.left - referenceRect.left,
     bottom: lineRect.top - referenceRect.top + height,
     width: 0,
+    height,
+  })
+}
+
+function viewRectFromClientRect(
+  rect: DOMRect,
+  referenceDOM: HTMLElement,
+  fallbackLineRect: DOMRect,
+  fallbackLineHeight = 20,
+): ViewRect {
+  const referenceRect = referenceDOM.getBoundingClientRect()
+  const height = rect.height > 0 ? rect.height : fallbackLineRect.height || fallbackLineHeight
+  const top = rect.top - referenceRect.top
+
+  return Object.freeze({
+    left: rect.left - referenceRect.left,
+    top,
+    right: rect.right - referenceRect.left,
+    bottom: top + height,
+    width: rect.width,
     height,
   })
 }
