@@ -60,7 +60,7 @@ milkup 致力于为用户提供高效、简洁的 Markdown 编辑体验。我们
 
 <img src="./public/qun.jpg" alt="联系方式" width="200">
 
-### 堡垒 AI
+## 堡垒 AI
 
 [欢迎使用堡垒 AI，Codex 低至 x0.02，支持 Fable 5，邀请返利 12%！](https://ourbastion.com/register?aff=4A3VM2B7KSEM)
 
