@@ -52,7 +52,7 @@ milkup 致力于为用户提供高效、简洁的 Markdown 编辑体验。我们
 
 ## ⭐️ Star 历史
 
-![Star History Chart](https://api.star-history.com/svg?repos=Auto-Plugin/milkup&type=Date)
+![Star History Chart](https://star-history.dera.page/svg?repos=Auto-Plugin/milkup&type=Date)
 
 ##  联系我们
 
