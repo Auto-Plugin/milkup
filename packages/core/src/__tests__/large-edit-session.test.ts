@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   ChangeSet,
+  Selection,
   LargeEditSession,
   MemoryTextDocument,
   largeTextEditsToChangeSet,
@@ -130,3 +131,19 @@ function applyBatch(doc: MemoryTextDocument, batch: LargeTextEditBatch): MemoryT
     doc,
   )
 }
+
+it('restores directional selections only after confirmed native history changes', () => {
+  const session = new LargeEditSession({ documentId: 'selection-history', baseVersion: 0 })
+  const before = Selection.range(8, 0),
+    after = Selection.range(11, 2)
+  const batch = session.prepareVisibleEdits(
+    ChangeSet.replace(0, 8, '  - a\n  - b'),
+    ['- a\n- b!'],
+    { selectionBefore: before, selectionAfter: after },
+  )
+  expect(session.prepareUndo()).toBeUndefined()
+  session.confirmVisibleEdits(batch, 1)
+  expect(session.prepareUndo()?.selectionAfter).toEqual(before)
+  session.confirmUndo(2)
+  expect(session.prepareRedo()?.selectionAfter).toEqual(after)
+})

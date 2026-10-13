@@ -59,6 +59,77 @@ describe('LargeDocumentSource', () => {
     expect(source.snapshot()).toMatchObject({ version: 3, lineCount: 13, length: 1050 })
   })
 
+  it('locates UTF-16 caret positions across CRLF and an empty final line', async () => {
+    const service = createService()
+    const texts = ['😀x', '', 'last', '']
+    const starts = [0, 5, 7, 13]
+    service.readLineWindow = vi.fn(async (_id, fromLine, toLine) => {
+      const lines = texts.slice(fromLine - 1, toLine).map((text, index) => {
+        const number = fromLine + index
+        const fromUtf16 = starts[number - 1]!
+        return {
+          number,
+          fromUtf16,
+          toUtf16: fromUtf16 + text.length,
+          fromByte: 99,
+          toByte: 199,
+          text,
+        }
+      })
+      return {
+        documentId: 'large-doc',
+        fromLine,
+        toLine,
+        fromByte: 99,
+        toByte: 199,
+        fromUtf16: lines[0]!.fromUtf16,
+        toUtf16: lines.at(-1)!.toUtf16,
+        text: lines.map((line) => line.text).join('\r\n'),
+        lines,
+      }
+    })
+    const source = new LargeDocumentSource({
+      service,
+      documentId: 'large-doc',
+      path: '/test.md',
+      version: 1,
+      lineCount: 4,
+      sizeBytes: 15,
+    })
+    for (const [position, number] of [
+      [0, 1],
+      [3, 1],
+      [4, 1],
+      [5, 2],
+      [6, 2],
+      [7, 3],
+      [12, 3],
+      [13, 4],
+    ]) {
+      expect((await source.lineAtPosition(position!)).number).toBe(number)
+    }
+    await expect(source.lineAtPosition(14)).rejects.toThrow(RangeError)
+    await expect(source.lineAtPosition(-1)).rejects.toThrow(RangeError)
+  })
+
+  it('rejects native line lookup when its document version changes mid-read', async () => {
+    const service = createService()
+    const source = new LargeDocumentSource({
+      service,
+      documentId: 'large-doc',
+      path: '/test.md',
+      version: 1,
+      lineCount: 3,
+      sizeBytes: 20,
+    })
+    const read = service.readLineWindow
+    service.readLineWindow = async (...args) => {
+      source.applyNativeSnapshot({ version: 2, lineCount: 3, sizeBytes: 20 })
+      return read(...args)
+    }
+    await expect(source.lineAtPosition(8)).rejects.toThrow('changed')
+  })
+
   it('maps native UTF-16 offsets without byte offset leakage', () => {
     expect(
       mapLargeLineWindow({

@@ -1,0 +1,31 @@
+$ node tests/native/tauri-windowed-blocks.mjs
+2026-10-13T13:02:00.141Z POST /session
+2026-10-13T13:02:51.250Z POST /session/29f8f6d9-0e9e-4511-ad17-46d4e0cc74ba/execute/sync localStorage.removeItem("milkup.desktop.nativeTestPaths")
+2026-10-13T13:02:53.596Z DELETE /session/29f8f6d9-0e9e-4511-ad17-46d4e0cc74ba
+node:internal/child_process:1160
+    result.error = new ErrnoException(result.error, 'spawnSync ' + options.file);
+                   ^
+
+<ref *1> Error: spawnSync xwininfo ETIMEDOUT
+    at Object.spawnSync (node:internal/child_process:1160:20)
+    at spawnSync (node:child_process:928:24)
+    at execFileSync (node:child_process:971:15)
+    at waitForNativeWindow (file:///workspace/milkup/tests/helpers/native-startup.mjs:13:18)
+    at async start (file:///workspace/milkup/tests/native/tauri-windowed-blocks.mjs:180:3)
+    at async file:///workspace/milkup/tests/native/tauri-windowed-blocks.mjs:251:3 {
+  errno: -110,
+  code: 'ETIMEDOUT',
+  syscall: 'spawnSync xwininfo',
+  path: 'xwininfo',
+  spawnargs: [ '-root', '-tree' ],
+  error: [Circular *1],
+  status: null,
+  signal: 'SIGTERM',
+  output: [ null, '', '' ],
+  pid: 84831,
+  stdout: '',
+  stderr: ''
+}
+
+Node.js v24.19.0
+[ELIFECYCLE] Command failed with exit code 1.

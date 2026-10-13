@@ -1,0 +1,73 @@
+$ vitest run --passWithNoTests -- src/large-document-source.test.ts
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ✓ src/large-document-editing.test.ts (3 tests) 182ms
+ ✓ src/file-service.test.ts (4 tests) 99ms
+ ✓ src/desktop-plugin-manager.test.ts (10 tests) 215ms
+ ✓ src/large-file-service.test.ts (1 test) 42ms
+ ✓ src/plugin-file-broker.test.ts (5 tests) 155ms
+ ❯ src/desktop-plugin-ui.test.ts (18 tests | 1 failed) 22736ms
+   ✓ DesktopPluginUiController > mounts controlled slots and recreates document-scoped views on document changes  1172ms
+   ✓ DesktopPluginUiController > opens and closes modal views repeatedly and bridges declared commands 57ms
+   ✓ DesktopPluginUiController > rerenders only the requested plugin view when invalidated 82ms
+   ✓ DesktopPluginUiController > passes fresh viewport state when an editor scroll update rerenders mounted UI 46ms
+   ✓ DesktopPluginUiController > skips editor viewport updates for views that opt out 49ms
+   ✓ DesktopPluginUiController > collapses sidebar panels to the bottom and exposes resizers only between expanded panels 74ms
+   ✓ DesktopPluginUiController > resizes adjacent expanded sidebar panels as a bounded pair  883ms
+   ✓ DesktopPluginUiController > keeps identical controlled output mounted and preserves internal scroll on changes 96ms
+   ✓ DesktopPluginUiController > decorates a controlled host icon without relying on plugin-specific classes 41ms
+   ✓ DesktopPluginUiController > projects a virtual outline slice into the full scroll height and follows its active item  433ms
+   × DesktopPluginUiController > requests a new buffered range when the outline is scrolled outside its rendered slice 5295ms
+     → Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+   ✓ DesktopPluginUiController > does not rerender while outline scrolling remains inside the current overscan buffer  330ms
+   ✓ DesktopPluginUiController > keeps the virtual outline viewport stable while background scanning extends the total  533ms
+   ✓ DesktopPluginUiController > requests one adjacent buffer only after a real user wheel gesture reaches an edge  1666ms
+   ✓ DesktopPluginUiController > requests the previous buffer only when the list reaches the exact top edge  2695ms
+   ✓ DesktopPluginUiController > does not request an adjacent buffer for a small scroll far from the cache edge  1586ms
+   ✓ DesktopPluginUiController > compensates scroll position once when headings are prepended  3624ms
+   ✓ DesktopPluginUiController > coalesces viewport updates without running concurrent plugin renders  3963ms
+ ✓ src/document-loading-visibility.test.ts (4 tests) 77ms
+ ✓ src/document-transition.test.ts (15 tests) 2320ms
+ ✓ src/large-document-conflict.test.ts (3 tests) 229ms
+ ✓ src/desktop-open-policy.test.ts (6 tests) 546ms
+   ✓ desktop open policy > keeps small files on the full DOM memory path  456ms
+ ✓ src/save-watch-reconciliation.test.ts (6 tests) 57ms
+ ✓ src/plugin-sidecar.test.ts (2 tests) 50ms
+ ✓ src/document-open-flow.test.ts (3 tests) 2794ms
+   ✓ document open flow > publishes loading state before a delayed open resolves  2716ms
+ ✓ src/large-document-source.test.ts (5 tests) 157ms
+ ✓ src/desktop-large-open-flow.test.ts (2 tests) 734ms
+   ✓ desktop large open flow > opens a native large file and reads only the first preview line window  647ms
+ ✓ src/desktop-document-search.test.ts (6 tests) 228ms
+ ✓ src/open-stage-diagnostics.test.ts (2 tests) 2222ms
+   ✓ open stage diagnostics > records elapsed and delta timings in order  2172ms
+ ✓ src/asset-service.test.ts (3 tests) 67ms
+ ✓ src/editor-view-refresh.test.ts (3 tests) 56ms
+ ✓ src/desktop-search-navigation.test.ts (3 tests) 47ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/desktop-plugin-ui.test.ts > DesktopPluginUiController > requests a new buffered range when the outline is scrolled outside its rendered slice
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ src/desktop-plugin-ui.test.ts:344:3
+    342|   })
+    343|
+    344|   it('requests a new buffered range when the outline is scrolled outsi…
+       |   ^
+    345|     document.body.innerHTML = '<main><div data-plugin-slot="sidebar-pa…
+    346|     const phases: string[] = []
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 19 passed (20)
+      Tests  1 failed | 103 passed (104)
+   Start at  13:31:51
+   Duration  98.76s (transform 19.78s, setup 0ms, collect 47.83s, tests 33.01s, environment 2.84s, prepare 60.98s)
+
+/workspace/milkup/apps/desktop:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/desktop@0.1.0 test: `vitest run --passWithNoTests -- src/large-document-source.test.ts`
+Exit status 1

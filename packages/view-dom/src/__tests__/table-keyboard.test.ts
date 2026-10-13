@@ -231,3 +231,62 @@ it('does not capture Tab/Enter on the empty line after a trailing table newline'
   s.key('Enter')
   expect(s.text()).toBe(text + '\n')
 })
+
+// Arrow keys navigate visible cells without landing on hidden Markdown delimiters.
+describe('live table arrow navigation', () => {
+  it('moves across Unicode and rendered break/pipe atoms without splitting their source', () => {
+    const text = table.replace('| A |', '| 😀<br>é\\| |')
+    const start = text.indexOf('😀')
+    const s = setup(start, text)
+    for (const offset of [2, 6, 8, 10]) {
+      s.key('ArrowRight')
+      expect(s.view.state.selection.main.head).toBe(start + offset)
+    }
+    for (const offset of [8, 6, 2, 0]) {
+      s.key('ArrowLeft')
+      expect(s.view.state.selection.main.head).toBe(start + offset)
+    }
+    expect(s.text()).toBe(text)
+  })
+
+  it('leaves the table for adjacent paragraphs without creating rows or history', () => {
+    const text = 'before\n' + table + '\n\nafter'
+    const s = setup(text.indexOf('Name'), text)
+    s.key('ArrowUp')
+    expect(s.view.state.selection.main.head).toBe(6)
+    const last = setup(text.lastIndexOf('2'), text)
+    last.key('ArrowDown')
+    expect(last.view.state.doc.lineAt(last.view.state.selection.main.head).text).toBe('')
+    expect(last.text()).toBe(text)
+  })
+
+  it('crosses cell edges and skips the delimiter row without editing history', () => {
+    const s = setup(table.indexOf('A') + 1)
+    s.key('ArrowRight')
+    expect(s.view.state.selection.main.head).toBe(table.indexOf('1'))
+    s.key('ArrowLeft')
+    expect(s.view.state.selection.main.head).toBe(table.indexOf('A') + 1)
+    s.key('Home')
+    s.key('ArrowUp')
+    expect(s.view.state.selection.main.head).toBe(table.indexOf('Name'))
+    s.key('ArrowDown')
+    expect(s.view.state.selection.main.head).toBe(table.indexOf('A'))
+    expect(s.text()).toBe(table)
+    s.undo()
+    expect(s.text()).toBe(table)
+  })
+
+  it('keeps a shifted selection within its cell so typing cannot erase hidden separators', () => {
+    const s = setup(table.indexOf('A'))
+    s.key('ArrowLeft', true)
+    expect(s.view.state.selection.main.head).toBe(table.indexOf('A'))
+    s.key('ArrowRight', true)
+    s.key('ArrowRight', true)
+    expect(s.view.state.selection.main.from).toBe(table.indexOf('A'))
+    expect(s.view.state.selection.main.to).toBe(table.indexOf('A') + 1)
+    s.key('x')
+    expect(s.text()).toBe(table.replace('| A |', '| x |'))
+    s.undo()
+    expect(s.text()).toBe(table)
+  })
+})

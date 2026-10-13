@@ -1305,3 +1305,33 @@ test('phase9 narrow search and outline stay reachable and source mode removes in
   await expect(page.locator('.milkup-input-proxy')).toBeFocused()
   await expect(child).toHaveAttribute('aria-current', 'location')
 })
+
+test('phase10 live table arrows skip delimiters and protect shifted cell selections', async ({
+  page,
+}, testInfo) => {
+  await openEditableTable(page)
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press('ArrowRight')
+  await expect(page.locator('.milkup-cursor')).toHaveAttribute(
+    'data-position',
+    String(editableTable.indexOf('1')),
+  )
+  await page.keyboard.press('ArrowLeft')
+  await page.keyboard.press('Home')
+  await page.keyboard.press('ArrowUp')
+  await expect(page.locator('.milkup-cursor')).toHaveAttribute(
+    'data-position',
+    String(editableTable.indexOf('Name')),
+  )
+  await page.keyboard.press('ArrowDown')
+  await page.keyboard.press('Shift+ArrowLeft')
+  await page.keyboard.press('Shift+ArrowRight')
+  await page.keyboard.press('Shift+ArrowRight')
+  await page.keyboard.type('x')
+  await page.keyboard.press('Control+1')
+  await expect(page.locator('.milkup-line[data-line="3"]')).toHaveText('| x | 1 |')
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-line[data-line="3"]')).toHaveText('| A | 1 |')
+  await page.keyboard.press('Control+2')
+  await page.screenshot({ path: testInfo.outputPath('table-arrows.png') })
+})

@@ -1,4 +1,4 @@
-import { Selection } from '@milkup/core'
+import { ChangeSet, Selection } from '@milkup/core'
 import {
   MemoryTextDocument,
   type DocumentLineWindow,
@@ -49,6 +49,8 @@ export interface SourceDocumentEdit {
   readonly deletedText: string
   /** Keep paste, finalized IME input and structural edits separate from typing batches. */
   readonly historyGroup?: 'isolate'
+  readonly selectionBefore?: Selection | undefined
+  readonly selectionAfter?: Selection | undefined
 }
 
 export type SourceDocumentEditHandler = (edit: SourceDocumentEdit) => Promise<void> | void
@@ -92,6 +94,9 @@ export class SourceDocumentView {
   private mode: ViewMode
   private editable: boolean
   private navigationRevision = 0
+  private destroyed = false
+  private fenceContextKey = ''
+  private readonly fenceCheckpoints = new Map<number, string | undefined>()
   private cursorPosition = 0
   private selectionAnchor = 0
   private readonly onEdit: SourceDocumentEditHandler | undefined
@@ -329,8 +334,14 @@ export class SourceDocumentView {
       0,
       this.currentSource.length ?? this.cursorPosition,
     )
-    this.selectionAnchor = this.cursorPosition
+    this.selectionAnchor = clamp(
+      this.selectionAnchor,
+      0,
+      this.currentSource.length ?? this.selectionAnchor,
+    )
     if (documentChanged) {
+      this.cursorPosition = 0
+      this.selectionAnchor = 0
       this.dom.scrollTop = 0
     }
     void this.renderVisibleWindow()
@@ -486,6 +497,7 @@ export class SourceDocumentView {
   }
 
   destroy(): void {
+    this.destroyed = true
     this.navigationRevision += 1
     this.cancelMarkdownWarmup()
     if (this.editCommitTimer !== undefined) {
@@ -748,20 +760,17 @@ export class SourceDocumentView {
     }
 
     if (event.key === 'Enter') {
-      void this.trackVisibleEditTask(() => {
-        const range = this.getSelectedRange()
-        return this.applyVisibleEdit(
-          range.from,
-          range.to,
-          this.enterInsertionText(range.from),
-          'isolate',
-        )
-      })
+      void this.trackVisibleEditTask(() => this.enterBlock())
+      return true
+    }
+
+    if (event.key === 'Tab' || (event.key === 'Unidentified' && event.code === 'Tab')) {
+      void this.trackVisibleEditTask(() => this.indentBlock(event.shiftKey))
       return true
     }
 
     if (event.key === 'Backspace') {
-      void this.trackVisibleEditTask(() => this.deleteAroundCursor(-1))
+      void this.trackVisibleEditTask(() => this.backspaceBlock())
       return true
     }
 
@@ -771,6 +780,22 @@ export class SourceDocumentView {
     }
 
     switch (event.key) {
+      case 'Home':
+      case 'End':
+        void this.trackVisibleEditTask(async () => {
+          await this.flushPendingVisibleEdit()
+          const documentId = this.currentSource.documentId
+          const line =
+            this.findRenderedSourceLineAtPosition(this.cursorPosition) ??
+            (await this.currentSource.lineAtPosition(this.cursorPosition))
+          if (this.destroyed || documentId !== this.currentSource.documentId) return
+          this.cursorPosition = event.key === 'End' ? line.to : line.from
+          if (!event.shiftKey) this.selectionAnchor = this.cursorPosition
+          await this.ensureCursorRendered(line.number)
+          this.renderSelection()
+          this.renderCursor()
+        })
+        return true
       case 'ArrowLeft':
         void this.trackVisibleEditTask(() => this.moveCursor('left', event.shiftKey))
         return true
@@ -980,6 +1005,7 @@ export class SourceDocumentView {
     to: number,
     insert: string,
     historyGroup?: 'isolate',
+    selectionAfter = Selection.cursor(from + insert.length),
   ): Promise<void> {
     if (!this.onEdit) {
       return
@@ -990,14 +1016,17 @@ export class SourceDocumentView {
     const delta = insert.length - (to - from)
     this.editRevision += 1
     const editRevision = this.editRevision
-    this.cursorPosition = from + insert.length
-    this.selectionAnchor = this.cursorPosition
+    const selectionBefore = this.currentSelection()
+    this.cursorPosition = selectionAfter.main.head
+    this.selectionAnchor = selectionAfter.main.anchor
     const { text: deletedText, lineNumber } = await this.readVisibleEditRange(from, to)
     const edit: SourceDocumentEdit = {
       from,
       to,
       insert,
       deletedText,
+      selectionBefore,
+      selectionAfter,
       ...(historyGroup ? { historyGroup } : {}),
     }
     this.cancelMarkdownWarmup()
@@ -1165,7 +1194,10 @@ export class SourceDocumentView {
   }
 
   private trackVisibleEditTask(task: () => Promise<void>): Promise<void> {
-    const tracked = this.enqueueVisibleEdit(task).catch((error: unknown) => {
+    const documentId = this.currentSource.documentId
+    const tracked = this.enqueueVisibleEdit(async () => {
+      if (!this.destroyed && documentId === this.currentSource.documentId) await task()
+    }).catch((error: unknown) => {
       this.visibleEditPreparationError = error
     })
     this.activeVisibleEditTasks.add(tracked)
@@ -1496,9 +1528,184 @@ export class SourceDocumentView {
     return clamp(contentStart, line?.from ?? position, line?.to ?? position)
   }
 
-  private enterInsertionText(position: number): string {
-    const line = this.findRenderedSourceLineAtPosition(position)
-    return `\n${line ? (listContinuationPrefix(line.text) ?? '') : ''}`
+  private async blockContext(position: number) {
+    await this.flushPendingVisibleEdit()
+    const source = this.currentSource
+    const version = source.version
+    const current = () =>
+      !this.destroyed &&
+      this.currentSource.documentId === source.documentId &&
+      this.currentSource.version === version
+    const line =
+      this.findRenderedSourceLineAtPosition(position) ?? (await source.lineAtPosition(position))
+    if (!current()) return undefined
+    const key = `${source.documentId}:${version}`
+    if (key !== this.fenceContextKey) {
+      this.fenceContextKey = key
+      this.fenceCheckpoints.clear()
+      this.fenceCheckpoints.set(1, undefined)
+    }
+    // Carry top-level fence state from the document start, in bounded pages.
+    // Parsing only the viewport misclassifies list-looking text inside long fences.
+    let from = 1
+    for (const checkpoint of this.fenceCheckpoints.keys())
+      if (checkpoint <= line.number && checkpoint > from) from = checkpoint
+    let fence = this.fenceCheckpoints.get(from)
+    let code = false,
+      closing = false
+    for (; from <= line.number; from += 512) {
+      const window = await this.readBlockWindow(from, Math.min(line.number, from + 511))
+      if (!current()) return undefined
+      for (const item of window.lines) {
+        const marker = /^( {0,3})(`{3,}|~{3,})(.*)$/.exec(item.text)
+        const ends =
+          !!fence &&
+          !!marker &&
+          marker[2]![0] === fence[0] &&
+          marker[2]!.length >= fence.length &&
+          /^[ \t]*$/.test(marker[3]!)
+        if (item.number === line.number) {
+          code = !!fence || !!marker || /^(?: {4}|\t)/.test(item.text)
+          closing = ends
+        }
+        if (ends) fence = undefined
+        else if (!fence && marker) fence = marker[2]
+      }
+      if (window.toLine < line.number) this.fenceCheckpoints.set(window.toLine + 1, fence)
+    }
+    const adjacent = await this.readBlockWindow(
+      Math.max(1, line.number - 1),
+      Math.min(source.lineCount, line.number + 1),
+    )
+    const newline = adjacent.text.includes('\r\n') ? '\r\n' : '\n'
+    return current() ? { line, code, closing, newline, current } : undefined
+  }
+
+  private async readBlockWindow(fromLine: number, toLine: number): Promise<DocumentLineWindow> {
+    const cached = this.renderedSourceWindow
+    if (cached && fromLine >= cached.fromLine && toLine <= cached.toLine) {
+      const lines = cached.lines.filter((line) => line.number >= fromLine && line.number <= toLine)
+      const from = lines[0]!.from,
+        to = lines.at(-1)!.to
+      return { fromLine, toLine, from, to, lines, text: readLineWindowRangeText(cached, from, to) }
+    }
+    return this.currentSource.readLineWindow(fromLine, toLine)
+  }
+
+  private async enterBlock(): Promise<void> {
+    const range = this.getSelectedRange()
+    const context = await this.blockContext(range.from)
+    if (!context) return
+    const { line, code, closing, newline } = context
+    const prefix = listEditingPrefix(line.text)
+    if (!code && prefix && range.from >= line.from + prefix[0].length && range.to <= line.to) {
+      if (range.from === range.to && line.text.slice(prefix[0].length).trim() === '') {
+        const remove = prefix[1] ? indentRemovalLength(prefix[1]) : line.text.length
+        const changes = ChangeSet.delete(line.from, line.from + remove)
+        await this.applyVisibleEdit(
+          line.from,
+          line.from + remove,
+          '',
+          'isolate',
+          this.currentSelection().map(changes),
+        )
+        return
+      }
+      await this.applyVisibleEdit(
+        range.from,
+        range.to,
+        newline + (listContinuationPrefix(line.text) ?? ''),
+        'isolate',
+      )
+      return
+    }
+    const indent =
+      code && !closing ? /^[ \t]*/.exec(line.text.slice(0, range.from - line.from))![0] : ''
+    await this.applyVisibleEdit(range.from, range.to, newline + indent, 'isolate')
+  }
+
+  private async indentBlock(outdent: boolean): Promise<void> {
+    const range = this.getSelectedRange()
+    const context = await this.blockContext(range.from)
+    if (!context) return
+    const first = context.line
+    const lastPosition = range.to > range.from ? range.to - 1 : range.to
+    const last =
+      this.findRenderedSourceLineAtPosition(lastPosition) ??
+      (await this.currentSource.lineAtPosition(lastPosition))
+    if (!context.current()) return
+    if (
+      !outdent &&
+      context.code &&
+      range.from === range.to &&
+      /[^ \t]/.test(first.text.slice(0, range.from - first.from))
+    ) {
+      await this.applyVisibleEdit(range.from, range.to, '  ', 'isolate')
+      return
+    }
+    const window = await this.readBlockWindow(first.number, last.number)
+    if (!context.current()) return
+    const edits = window.lines.flatMap((line) => {
+      const remove = outdent ? indentRemovalLength(line.text) : 0
+      return outdent && !remove
+        ? []
+        : [{ from: line.from, to: line.from + remove, insert: outdent ? '' : '  ' }]
+    })
+    if (!edits.length) return
+    const changes = ChangeSet.of(edits)
+    const local = ChangeSet.of(
+      edits.map((edit) => ({ ...edit, from: edit.from - window.from, to: edit.to - window.from })),
+    )
+    const insert = new MemoryTextDocument(window.text).apply(local).text
+    await this.applyVisibleEdit(
+      window.from,
+      window.to,
+      insert,
+      'isolate',
+      this.currentSelection().map(changes),
+    )
+  }
+
+  private async backspaceBlock(): Promise<void> {
+    const range = this.getSelectedRange()
+    const visible = this.findRenderedSourceLineAtPosition(range.from)
+    const prefix = visible ? listEditingPrefix(visible.text) : null
+    const before = visible?.text.slice(0, range.from - visible.from) ?? ''
+    if (
+      range.from !== range.to ||
+      (!/^[ \t]+$/.test(before) && (!prefix || before.length !== prefix[0].length))
+    ) {
+      await this.deleteAroundCursor(-1)
+      return
+    }
+    if (range.from === range.to) {
+      const context = await this.blockContext(range.from)
+      if (!context) return
+      const { line, code } = context
+      const offset = range.from - line.from
+      const prefix = listEditingPrefix(line.text)
+      if (!code && prefix && offset === prefix[0].length) {
+        const remove = prefix[1] ? indentRemovalLength(prefix[1]) : prefix[0].length
+        const changes = ChangeSet.delete(line.from, line.from + remove)
+        await this.applyVisibleEdit(
+          line.from,
+          line.from + remove,
+          '',
+          'isolate',
+          this.currentSelection().map(changes),
+        )
+        return
+      }
+      const before = line.text.slice(0, offset)
+      if (/^[ \t]+$/.test(before)) {
+        const remove = before.endsWith('\t')
+          ? 1
+          : Math.min(offset % 2 || 2, / *$/.exec(before)![0].length)
+        await this.applyVisibleEdit(range.from - remove, range.from, '', 'isolate')
+        return
+      }
+    }
+    await this.deleteAroundCursor(-1)
   }
 
   private findRenderedSourceLineAtPosition(position: number): SourceLine | undefined {
@@ -2117,6 +2324,10 @@ function mergeSourceDocumentEdits(
   next: SourceDocumentEdit,
 ): SourceDocumentEdit | undefined {
   if (previous.historyGroup === 'isolate' || next.historyGroup === 'isolate') return undefined
+  const selections = {
+    selectionBefore: previous.selectionBefore,
+    selectionAfter: next.selectionAfter,
+  }
 
   if (
     previous.from === previous.to &&
@@ -2130,6 +2341,7 @@ function mergeSourceDocumentEdits(
       to: previous.to,
       insert: previous.insert + next.insert,
       deletedText: '',
+      ...selections,
     })
   }
 
@@ -2144,6 +2356,7 @@ function mergeSourceDocumentEdits(
       to: previous.to + next.deletedText.length,
       insert: '',
       deletedText: previous.deletedText + next.deletedText,
+      ...selections,
     })
   }
 
@@ -2158,6 +2371,7 @@ function mergeSourceDocumentEdits(
       to: previous.to,
       insert: '',
       deletedText: next.deletedText + previous.deletedText,
+      ...selections,
     })
   }
 
@@ -2791,4 +3005,11 @@ function lineCursorHeight(lineDOM: HTMLElement, fallbackLineHeight: number): num
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max)
+}
+
+function listEditingPrefix(line: string): RegExpExecArray | null {
+  return /^([ \t]*)(?:[-+*]|\d{1,9}[.)])[ \t]+(?:\[[ xX]\][ \t]+)?/u.exec(line)
+}
+function indentRemovalLength(text: string): number {
+  return /^(?:\t| {1,2})/u.exec(text)?.[0].length ?? 0
 }

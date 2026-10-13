@@ -622,6 +622,10 @@ function applyEditHistory(direction: 'undo' | 'redo'): boolean {
           await applyLargeEditHistoryBatch(direction)
         } else {
           applyMemoryEditHistory(direction)
+          await activeSourceView.revealSelection(
+            state.doc.lineAt(state.selection.main.head).number,
+            state.selection,
+          )
         }
       })
       .catch((error: unknown) => {
@@ -2076,10 +2080,19 @@ async function applyMemorySourceEdit(edit: {
   readonly from: number
   readonly to: number
   readonly insert: string
+  readonly selectionBefore?: Selection | undefined
+  readonly selectionAfter?: Selection | undefined
 }): Promise<void> {
+  if (edit.selectionBefore)
+    state = new EditorState({
+      doc: state.doc,
+      selection: edit.selectionBefore,
+      history: state.history,
+      facets: state.facets,
+    })
   const transaction: Transaction = {
     changes: ChangeSet.replace(edit.from, edit.to, edit.insert),
-    selection: Selection.cursor(edit.from + edit.insert.length),
+    selection: edit.selectionAfter ?? Selection.cursor(edit.from + edit.insert.length),
     origin: {
       type: edit.insert.length === 0 ? 'input.delete' : 'input.type',
       id: 'memory-source-edit',
@@ -2098,6 +2111,8 @@ async function applyLargeSourceEdit(edit: {
   readonly to: number
   readonly insert: string
   readonly deletedText: string
+  readonly selectionBefore?: Selection | undefined
+  readonly selectionAfter?: Selection | undefined
 }): Promise<void> {
   const preview = largeDocumentPreview
   const editSession = preview?.editSession
@@ -2110,6 +2125,7 @@ async function applyLargeSourceEdit(edit: {
   const batch = editSession.prepareVisibleEdits(
     ChangeSet.replace(edit.from, edit.to, edit.insert),
     [edit.deletedText],
+    { selectionBefore: edit.selectionBefore, selectionAfter: edit.selectionAfter },
   )
   let snapshot
 
@@ -2134,7 +2150,7 @@ async function applyLargeSourceEdit(edit: {
   preview.source.applyNativeSnapshot(snapshot)
   session = recordDocumentTransaction(session, {
     changes: ChangeSet.replace(edit.from, edit.to, edit.insert),
-    selection: Selection.cursor(edit.from + edit.insert.length),
+    selection: edit.selectionAfter ?? Selection.cursor(edit.from + edit.insert.length),
     origin: { type: 'input.type', id: 'large-source-edit' },
   })
   notice = `已应用大文件可见范围编辑；版本 ${snapshot.version}。`
@@ -2179,6 +2195,10 @@ async function applyLargeEditHistoryBatch(direction: 'undo' | 'redo'): Promise<v
     })
     notice = direction === 'undo' ? '已撤销大文件编辑。' : '已重做大文件编辑。'
     await sourceView?.renderVisibleWindow()
+    if (sourceView && batch.selectionAfter) {
+      const line = await preview.source.lineAtPosition(batch.selectionAfter.main.head)
+      await sourceView.revealSelection(line.number, batch.selectionAfter)
+    }
     renderSession()
     focusActiveView()
   } catch (error: unknown) {

@@ -1,4 +1,5 @@
 import { ChangeSet, type Change } from '../change/change'
+import type { Selection } from '../selection/selection'
 
 export interface LargeTextEdit extends Change {
   readonly deletedText: string
@@ -6,6 +7,8 @@ export interface LargeTextEdit extends Change {
 
 export interface LargeTextEditBatch {
   readonly edits: readonly LargeTextEdit[]
+  readonly selectionBefore?: Selection | undefined
+  readonly selectionAfter?: Selection | undefined
 }
 
 export interface LargeEditSessionSnapshot {
@@ -22,6 +25,8 @@ export interface LargeEditSessionSnapshot {
 interface HistoryEntry {
   readonly forward: readonly LargeTextEdit[]
   readonly inverse: readonly LargeTextEdit[]
+  readonly selectionBefore?: Selection | undefined
+  readonly selectionAfter?: Selection | undefined
 }
 
 export class LargeEditSession {
@@ -81,6 +86,10 @@ export class LargeEditSession {
   prepareVisibleEdits(
     changes: ChangeSet,
     deletedTextByChange: readonly string[],
+    selections: {
+      readonly selectionBefore?: Selection | undefined
+      readonly selectionAfter?: Selection | undefined
+    } = {},
   ): LargeTextEditBatch {
     if (changes.empty) {
       return Object.freeze({ edits: Object.freeze([]) })
@@ -93,7 +102,7 @@ export class LargeEditSession {
       }),
     )
     validateDeletedText(edits)
-    return Object.freeze({ edits: Object.freeze(edits) })
+    return Object.freeze({ edits: Object.freeze(edits), ...selections })
   }
 
   confirmVisibleEdits(batch: LargeTextEditBatch, nativeVersion: number): LargeEditSessionSnapshot {
@@ -103,7 +112,14 @@ export class LargeEditSession {
     this.validateNextNativeVersion(nativeVersion)
     const edits = Object.freeze([...batch.edits])
     this.pending.push(...edits)
-    this.undoStack.push(Object.freeze({ forward: edits, inverse: invertEdits(edits) }))
+    this.undoStack.push(
+      Object.freeze({
+        forward: edits,
+        inverse: invertEdits(edits),
+        selectionBefore: batch.selectionBefore,
+        selectionAfter: batch.selectionAfter,
+      }),
+    )
     this.redoStack.length = 0
     this.currentVersion = nativeVersion
     return this.snapshot()
@@ -111,12 +127,22 @@ export class LargeEditSession {
 
   prepareUndo(): LargeTextEditBatch | undefined {
     const entry = this.undoStack.at(-1)
-    return entry ? Object.freeze({ edits: Object.freeze([...entry.inverse]) }) : undefined
+    return entry
+      ? Object.freeze({
+          edits: Object.freeze([...entry.inverse]),
+          selectionAfter: entry.selectionBefore,
+        })
+      : undefined
   }
 
   prepareRedo(): LargeTextEditBatch | undefined {
     const entry = this.redoStack.at(-1)
-    return entry ? Object.freeze({ edits: Object.freeze([...entry.forward]) }) : undefined
+    return entry
+      ? Object.freeze({
+          edits: Object.freeze([...entry.forward]),
+          selectionAfter: entry.selectionAfter,
+        })
+      : undefined
   }
 
   confirmUndo(nativeVersion: number): LargeEditSessionSnapshot {

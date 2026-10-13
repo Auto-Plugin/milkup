@@ -309,7 +309,9 @@ describe('SourceDocumentView', () => {
     expect(view.dom.querySelector<HTMLElement>('.milkup-cursor')?.dataset.position).toBe('5')
     expect(onEdit).not.toHaveBeenCalled()
     await delay(40)
-    expect(onEdit).toHaveBeenCalledWith({ from: 4, to: 4, insert: 'x', deletedText: '' })
+    expect(onEdit).toHaveBeenCalledWith(
+      expect.objectContaining({ from: 4, to: 4, insert: 'x', deletedText: '' }),
+    )
   })
 
   it('positions the source cursor from the rendered line box instead of guessed line number', async () => {
@@ -748,7 +750,9 @@ describe('SourceDocumentView', () => {
 
     expect(onEdit).not.toHaveBeenCalled()
     await delay(40)
-    expect(onEdit).toHaveBeenCalledWith({ from: 0, to: 0, insert: 'x', deletedText: '' })
+    expect(onEdit).toHaveBeenCalledWith(
+      expect.objectContaining({ from: 0, to: 0, insert: 'x', deletedText: '' }),
+    )
   })
 
   it('continues list prefixes when editable source mode receives Enter', async () => {
@@ -788,13 +792,15 @@ describe('SourceDocumentView', () => {
 
     await view.flushPendingEdits()
 
-    expect(onEdit).toHaveBeenCalledWith({
-      from: 5,
-      to: 5,
-      insert: '\n- ',
-      deletedText: '',
-      historyGroup: 'isolate',
-    })
+    expect(onEdit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from: 5,
+        to: 5,
+        insert: '\n- ',
+        deletedText: '',
+        historyGroup: 'isolate',
+      }),
+    )
   })
 
   it('commits only finalized IME composition text', async () => {
@@ -835,13 +841,15 @@ describe('SourceDocumentView', () => {
     await view.flushPendingEdits()
 
     expect(onEdit).toHaveBeenCalledTimes(1)
-    expect(onEdit).toHaveBeenCalledWith({
-      from: 0,
-      to: 0,
-      insert: '你',
-      deletedText: '',
-      historyGroup: 'isolate',
-    })
+    expect(onEdit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from: 0,
+        to: 0,
+        insert: '你',
+        deletedText: '',
+        historyGroup: 'isolate',
+      }),
+    )
     expect(view.inputDOM.value).toBe('')
   })
 
@@ -888,26 +896,35 @@ describe('SourceDocumentView', () => {
     view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }))
     await view.flushPendingEdits()
 
-    expect(onEdit).toHaveBeenNthCalledWith(1, {
-      from: 0,
-      to: 0,
-      insert: '中',
-      deletedText: '',
-      historyGroup: 'isolate',
-    })
-    expect(onEdit).toHaveBeenNthCalledWith(2, {
-      from: 1,
-      to: 1,
-      insert: '\n',
-      deletedText: '',
-      historyGroup: 'isolate',
-    })
-    expect(onEdit).toHaveBeenNthCalledWith(3, {
-      from: 2,
-      to: 3,
-      insert: '',
-      deletedText: 'a',
-    })
+    expect(onEdit).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        from: 0,
+        to: 0,
+        insert: '中',
+        deletedText: '',
+        historyGroup: 'isolate',
+      }),
+    )
+    expect(onEdit).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        from: 1,
+        to: 1,
+        insert: '\n',
+        deletedText: '',
+        historyGroup: 'isolate',
+      }),
+    )
+    expect(onEdit).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        from: 2,
+        to: 3,
+        insert: '',
+        deletedText: 'a',
+      }),
+    )
     expect(text).toBe('中\nlpha')
   })
 
@@ -942,19 +959,25 @@ describe('SourceDocumentView', () => {
     view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }))
     await view.flushPendingEdits()
 
-    expect(onEdit).toHaveBeenNthCalledWith(1, {
-      from: 1,
-      to: 1,
-      insert: '\n',
-      deletedText: '',
-      historyGroup: 'isolate',
-    })
-    expect(onEdit).toHaveBeenNthCalledWith(2, {
-      from: 2,
-      to: 3,
-      insert: '',
-      deletedText: 'b',
-    })
+    expect(onEdit).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        from: 1,
+        to: 1,
+        insert: '\n',
+        deletedText: '',
+        historyGroup: 'isolate',
+      }),
+    )
+    expect(onEdit).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        from: 2,
+        to: 3,
+        insert: '',
+        deletedText: 'b',
+      }),
+    )
   })
 
   it('handles editing keys reported with the legacy IME key code', async () => {
@@ -980,19 +1003,25 @@ describe('SourceDocumentView', () => {
     view.inputDOM.dispatchEvent(remove)
     await view.flushPendingEdits()
 
-    expect(onEdit).toHaveBeenNthCalledWith(1, {
-      from: 1,
-      to: 1,
-      insert: '\n',
-      deletedText: '',
-      historyGroup: 'isolate',
-    })
-    expect(onEdit).toHaveBeenNthCalledWith(2, {
-      from: 2,
-      to: 3,
-      insert: '',
-      deletedText: 'b',
-    })
+    expect(onEdit).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        from: 1,
+        to: 1,
+        insert: '\n',
+        deletedText: '',
+        historyGroup: 'isolate',
+      }),
+    )
+    expect(onEdit).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        from: 2,
+        to: 3,
+        insert: '',
+        deletedText: 'b',
+      }),
+    )
   })
 
   it('flushes pending source edits before save operations', async () => {
@@ -1022,7 +1051,9 @@ describe('SourceDocumentView', () => {
 
     await view.flushPendingEdits()
 
-    expect(onEdit).toHaveBeenCalledWith({ from: 0, to: 0, insert: 'x', deletedText: '' })
+    expect(onEdit).toHaveBeenCalledWith(
+      expect.objectContaining({ from: 0, to: 0, insert: 'x', deletedText: '' }),
+    )
   })
 
   it('does not block saving when a structural edit commits but its viewport refresh fails', async () => {
@@ -1047,13 +1078,15 @@ describe('SourceDocumentView', () => {
     view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
 
     await expect(view.flushPendingEdits()).resolves.toBeUndefined()
-    expect(onEdit).toHaveBeenCalledWith({
-      from: 0,
-      to: 0,
-      insert: '\n',
-      deletedText: '',
-      historyGroup: 'isolate',
-    })
+    expect(onEdit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from: 0,
+        to: 0,
+        insert: '\n',
+        deletedText: '',
+        historyGroup: 'isolate',
+      }),
+    )
   })
 
   it('keeps consecutive structural edits in separate native history commits', async () => {
@@ -1085,20 +1118,26 @@ describe('SourceDocumentView', () => {
     await view.flushPendingEdits()
 
     expect(onEdit).toHaveBeenCalledTimes(2)
-    expect(onEdit).toHaveBeenNthCalledWith(1, {
-      from: 0,
-      to: 0,
-      insert: '\n',
-      deletedText: '',
-      historyGroup: 'isolate',
-    })
-    expect(onEdit).toHaveBeenNthCalledWith(2, {
-      from: 1,
-      to: 1,
-      insert: '\n',
-      deletedText: '',
-      historyGroup: 'isolate',
-    })
+    expect(onEdit).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        from: 0,
+        to: 0,
+        insert: '\n',
+        deletedText: '',
+        historyGroup: 'isolate',
+      }),
+    )
+    expect(onEdit).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        from: 1,
+        to: 1,
+        insert: '\n',
+        deletedText: '',
+        historyGroup: 'isolate',
+      }),
+    )
     expect(text).toBe('\n\nalpha')
   })
 
@@ -1180,13 +1219,15 @@ describe('SourceDocumentView', () => {
     )
 
     await delay(40)
-    expect(onEdit).toHaveBeenCalledWith({
-      from: 0,
-      to: 0,
-      insert: '\n',
-      deletedText: '',
-      historyGroup: 'isolate',
-    })
+    expect(onEdit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from: 0,
+        to: 0,
+        insert: '\n',
+        deletedText: '',
+        historyGroup: 'isolate',
+      }),
+    )
     expect(view.contentDOM.querySelectorAll('.milkup-line')).toHaveLength(2)
 
     releaseCommit?.()
@@ -1248,7 +1289,9 @@ describe('SourceDocumentView', () => {
     view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }))
     await view.flushPendingEdits()
 
-    expect(onEdit).toHaveBeenCalledWith({ from: 0, to: 6, insert: '', deletedText: 'alpha\n' })
+    expect(onEdit).toHaveBeenCalledWith(
+      expect.objectContaining({ from: 0, to: 6, insert: '', deletedText: 'alpha\n' }),
+    )
   })
 
   it('commits enter and delete keys when lineAtPosition is unavailable', async () => {
@@ -1273,19 +1316,25 @@ describe('SourceDocumentView', () => {
     view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
     await view.flushPendingEdits()
 
-    expect(onEdit).toHaveBeenNthCalledWith(1, {
-      from: 0,
-      to: 1,
-      insert: '',
-      deletedText: 'a',
-    })
-    expect(onEdit).toHaveBeenNthCalledWith(2, {
-      from: 0,
-      to: 0,
-      insert: '\n',
-      deletedText: '',
-      historyGroup: 'isolate',
-    })
+    expect(onEdit).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        from: 0,
+        to: 1,
+        insert: '',
+        deletedText: 'a',
+      }),
+    )
+    expect(onEdit).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        from: 0,
+        to: 0,
+        insert: '\n',
+        deletedText: '',
+        historyGroup: 'isolate',
+      }),
+    )
   })
 
   it('deletes complete surrogate pairs from a rendered-only source', async () => {
@@ -1302,12 +1351,14 @@ describe('SourceDocumentView', () => {
     view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }))
     await view.flushPendingEdits()
 
-    expect(onEdit).toHaveBeenCalledWith({
-      from: 0,
-      to: 2,
-      insert: '',
-      deletedText: '😀',
-    })
+    expect(onEdit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from: 0,
+        to: 2,
+        insert: '',
+        deletedText: '😀',
+      }),
+    )
   })
 
   it('copies, cuts, and pastes a selection through clipboard events', async () => {
@@ -1347,20 +1398,24 @@ describe('SourceDocumentView', () => {
     await flushPromises()
     await view.flushPendingEdits()
     expect(cut.read()).toBe('alpha')
-    expect(onEdit).toHaveBeenLastCalledWith({ from: 0, to: 5, insert: '', deletedText: 'alpha' })
+    expect(onEdit).toHaveBeenLastCalledWith(
+      expect.objectContaining({ from: 0, to: 5, insert: '', deletedText: 'alpha' }),
+    )
 
     const pasted = createClipboardEvent('paste', 'omega')
     view.inputDOM.dispatchEvent(pasted.event)
     await flushPromises()
     await view.flushPendingEdits()
     expect(pasted.event.defaultPrevented).toBe(true)
-    expect(onEdit).toHaveBeenLastCalledWith({
-      from: 0,
-      to: 0,
-      insert: 'omega',
-      deletedText: '',
-      historyGroup: 'isolate',
-    })
+    expect(onEdit).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        from: 0,
+        to: 0,
+        insert: 'omega',
+        deletedText: '',
+        historyGroup: 'isolate',
+      }),
+    )
   })
 
   it('renders live list markers like the regular editor', async () => {
@@ -1533,7 +1588,9 @@ describe('SourceDocumentView', () => {
 
     expect(view.contentDOM.querySelector<HTMLElement>('.milkup-line')?.textContent).toBe('xyalpha')
     expect(onEdit).toHaveBeenCalledTimes(1)
-    expect(onEdit).toHaveBeenCalledWith({ from: 0, to: 0, insert: 'xy', deletedText: '' })
+    expect(onEdit).toHaveBeenCalledWith(
+      expect.objectContaining({ from: 0, to: 0, insert: 'xy', deletedText: '' }),
+    )
 
     pendingCommits.shift()?.()
     await flushPromises()
@@ -1663,6 +1720,140 @@ it('ignores a pending reveal after the document identity changes', async () => {
   view.updateSource(new MemoryDocumentSource({ documentId: 'after', text: 'new text' }))
   resume()
   await pending
+  expect(view.selection.main.head).toBe(0)
+  view.destroy()
+})
+
+for (const mode of ['source', 'live'] as const) {
+  describe(`windowed ${mode} block commands`, () => {
+    async function setup(initial: string, line: number, selection: Selection) {
+      let text = initial
+      const source = new RecordingDocumentSource({ documentId: 'windowed-blocks', text })
+      const edits: unknown[] = []
+      const view = new SourceDocumentView({
+        parent: document.createElement('main'),
+        source,
+        mode,
+        editable: true,
+        backgroundMarkdownWarmup: false,
+        markdownContextLines: 0,
+        virtualViewport: { enabled: true, lineHeight: 20, viewportHeight: 40, overscanLines: 0 },
+        onEdit(edit) {
+          edits.push(edit)
+          text = text.slice(0, edit.from) + edit.insert + text.slice(edit.to)
+          source.updateText(text)
+        },
+      })
+      await view.revealSelection(line, selection)
+      return {
+        view,
+        source,
+        edits,
+        text: () => text,
+        async key(key: string, shiftKey = false) {
+          view.inputDOM.dispatchEvent(
+            new KeyboardEvent('keydown', { key, shiftKey, bubbles: true, cancelable: true }),
+          )
+          await view.flushPendingEdits()
+        },
+      }
+    }
+    it('exits an empty nested list without inserting another marker', async () => {
+      const s = await setup('before\n  - ', 2, Selection.cursor(11))
+      try {
+        await s.key('Enter')
+        expect(s.text()).toBe('before\n- ')
+        expect(s.view.selection.main.head).toBe(9)
+      } finally {
+        s.view.destroy()
+      }
+    })
+    it('does not continue literal lists inside a fence outside the rendered window and preserves CRLF', async () => {
+      const initial = '```md\r\n' + 'literal\r\n'.repeat(40) + '- text\r\n```'
+      const end = initial.indexOf('- text') + 6
+      const s = await setup(initial, 42, Selection.cursor(end))
+      try {
+        await s.key('Enter')
+        expect(s.text()).toBe(initial.slice(0, end) + '\r\n' + initial.slice(end))
+      } finally {
+        s.view.destroy()
+      }
+    })
+    it('indents a reversed selection across windows in one edit and preserves its direction', async () => {
+      const initial = Array.from({ length: 20 }, (_, i) => `- item${i}`).join('\r\n')
+      const end = initial.indexOf('\r\n- item19')
+      const s = await setup(initial, 1, Selection.range(end, 0))
+      try {
+        await s.key('Tab')
+        const expected = initial
+          .split('\r\n')
+          .map((x, i) => (i < 19 ? '  ' + x : x))
+          .join('\r\n')
+        expect(s.text()).toBe(expected)
+        expect(s.edits).toHaveLength(1)
+        expect(s.view.selection.main.anchor).toBe(end + 38)
+        expect(s.view.selection.main.head).toBe(2)
+        await s.key('Tab', true)
+        expect(s.text()).toBe(initial)
+      } finally {
+        s.view.destroy()
+      }
+    })
+  })
+}
+
+it('does not scan the document prefix for ordinary windowed character backspace', async () => {
+  const text = createLineFixture(1000)
+  const source = new RecordingDocumentSource({ documentId: 'fast-delete', text })
+  const view = new SourceDocumentView({
+    parent: document.createElement('main'),
+    source,
+    editable: true,
+    backgroundMarkdownWarmup: false,
+    virtualViewport: { enabled: true, viewportHeight: 40, lineHeight: 20, overscanLines: 0 },
+    onEdit(edit) {
+      source.updateText(text.slice(0, edit.from) + edit.insert + text.slice(edit.to))
+    },
+  })
+  const line = await source.readLineWindow(800, 800)
+  await view.revealSelection(800, Selection.cursor(line.to))
+  source.requests.length = 0
+  view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }))
+  await view.flushPendingEdits()
+  expect(source.requests.every((request) => request.fromLine > 700)).toBe(true)
+  view.destroy()
+})
+
+it('discards a delayed fence scan after the active document changes', async () => {
+  const source = new RecordingDocumentSource({
+    documentId: 'old-block',
+    text: createLineFixture(1000),
+  })
+  const onEdit = vi.fn()
+  const view = new SourceDocumentView({
+    parent: document.createElement('main'),
+    source,
+    editable: true,
+    onEdit,
+    backgroundMarkdownWarmup: false,
+    virtualViewport: { enabled: true, viewportHeight: 40, lineHeight: 20, overscanLines: 0 },
+  })
+  const line = await source.readLineWindow(800, 800)
+  await view.revealSelection(800, Selection.cursor(line.to))
+  const oldWindow = await source.readLineWindow(1, 512)
+  let resolve!: (window: DocumentLineWindow) => void
+  vi.spyOn(source, 'readLineWindow').mockImplementationOnce(
+    () =>
+      new Promise((r) => {
+        resolve = r
+      }),
+  )
+  view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+  await flushPromises()
+  view.updateSource(new MemoryDocumentSource({ documentId: 'new-block', text: 'keep me' }))
+  resolve(oldWindow)
+  await view.flushPendingEdits()
+  expect(onEdit).not.toHaveBeenCalled()
   expect(view.selection.main.head).toBe(0)
   view.destroy()
 })

@@ -1,0 +1,53 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/core
+
+ ❯ src/__tests__/large-edit-session.test.ts (8 tests | 1 failed) 42ms
+   ✓ LargeEditSession > records visible edits as pending UTF-16 patches without storing the full document 5ms
+   ✓ LargeEditSession > creates inverse undo and redo patches for visible edits 2ms
+   ✓ LargeEditSession > inverts multi-change batches in reverse applied order 2ms
+   ✓ LargeEditSession > consumes pending edits and marks a native flush version as saved 4ms
+   ✓ LargeEditSession > rejects visible edits when the caller cannot provide the deleted text 2ms
+   ✓ LargeEditSession > does not advance version or history before native confirmation 1ms
+   ✓ LargeEditSession > rejects stale or skipped native confirmations without mutating state 1ms
+   × restores directional selections only after confirmed native history changes 19ms
+     → expected undefined to deeply equal Selection{ ranges: [ …(1) ], …(1) }
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/large-edit-session.test.ts > restores directional selections only after confirmed native history changes
+AssertionError: expected undefined to deeply equal Selection{ ranges: [ …(1) ], …(1) }
+
+- Expected:
+Selection {
+  "mainIndex": 0,
+  "ranges": [
+    SelectionRange {
+      "affinity": 1,
+      "anchor": 8,
+      "head": 0,
+    },
+  ],
+}
+
++ Received:
+undefined
+
+ ❯ src/__tests__/large-edit-session.test.ts:141:49
+    139|   expect(session.prepareUndo()).toBeUndefined()
+    140|   session.confirmVisibleEdits(batch, 1)
+    141|   expect(session.prepareUndo()?.selectionAfter).toEqual(before)
+       |                                                 ^
+    142|   session.confirmUndo(2)
+    143|   expect(session.prepareRedo()?.selectionAfter).toEqual(after)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 passed (8)
+   Start at  12:43:16
+   Duration  2.90s (transform 703ms, setup 0ms, collect 912ms, tests 42ms, environment 0ms, prepare 618ms)
+
+undefined
+/workspace/milkup/packages/core:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/large-edit-session.test.ts

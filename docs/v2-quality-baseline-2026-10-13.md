@@ -91,4 +91,7 @@ v2 为 Tauri + 自研 TypeScript 编辑内核，不是 main 的 Vue/Electron。�
 
 - [第九阶段：当前文档搜索、替换与大纲](./v2-phase9-search-outline-verification-2026-10-13.md)：查询／版本隔离、Unicode 匹配、替换撤销、精确窗口化定位、大纲同步与窄窗布局；保留大文件替换和平台验收差距。
 
+- [第十阶段 A：启动诊断与旧表格补验](./v2-phase10a-native-startup-recovery-2026-10-13.md)：原 HEAD 七组表格分运行补齐，普通启动慢和根因未定继续保留。
+- [第十阶段 B：方向键与窗口化块编辑](./v2-phase10-keyboard-verification-2026-10-13.md)：新增块语义、选区历史和原生行定位；最终原生验收仍待完成，包含精确恢复流程与冻结旧环境的交接边界。
+
 各阶段编号按实际实施顺序记录，不把本表早期规划的阶段名视为已验收声明。中文系统 IME、Windows／macOS、Word 2016、完整性能基准仍单列验收。

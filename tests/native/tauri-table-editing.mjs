@@ -1,3 +1,9 @@
+import {
+  nativeRequestTimeout,
+  waitForNativeWindow,
+  beginNativeStartup,
+  cleanupNativeApplication,
+} from '../helpers/native-startup.mjs'
 // Real Tauri/WebKit + real disk regression. Start tauri-driver and the Vite
 // desktop server first; file picker paths are supplied through the existing
 // native test seam. This does NOT claim OS file-picker or system IME coverage.
@@ -26,7 +32,7 @@ async function req(method, route, body) {
     method,
     headers: { 'content-type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
-    signal: AbortSignal.timeout(20000),
+    signal: AbortSignal.timeout(nativeRequestTimeout(method, route)),
   }).catch((error) => {
     throw Error(`${method} ${route}: ${error}`)
   })
@@ -153,6 +159,7 @@ async function shot(name) {
 }
 async function check(name, action) {
   if (process.env.MILKUP_NATIVE_CASE && !name.includes(process.env.MILKUP_NATIVE_CASE)) return
+  if (process.env.MILKUP_NATIVE_CASE && !name.includes(process.env.MILKUP_NATIVE_CASE)) return
   try {
     await action()
   } catch (error) {
@@ -169,10 +176,12 @@ async function check(name, action) {
   console.log(`PASS ${name}`)
 }
 async function start() {
+  const started = beginNativeStartup()
   const session = await req('POST', '/session', {
     capabilities: { alwaysMatch: { browserName: 'wry', 'tauri:options': { application } } },
   })
   sid = session.sessionId
+  await waitForNativeWindow(started)
   await until(
     () => execute('return !!document.querySelector(".milkup-input-proxy")'),
     'native editor',
@@ -209,10 +218,17 @@ async function openFixture(name, content, mode) {
   await focus()
 }
 async function place(position) {
+  const mode = await execute('return document.querySelector(".milkup-editor")?.dataset.mode')
+  // Fixture offsets are source coordinates; live arrows now navigate visible cells.
+  if (mode === 'live') await shortcut('1')
   await shortcut('a')
   await key('\uE012')
-  if (position) await key(...Array.from({ length: position }, () => '\uE014'))
+  // Keep each WebDriver request bounded while still sending every real arrow key.
+  for (let moved = 0; moved < position; moved += 8)
+    await key(...Array.from({ length: Math.min(8, position - moved) }, () => '\uE014'))
   await until(async () => Number(await cursor()) === position, 'cursor position')
+  if (mode === 'live') await shortcut('2')
+  await focus()
 }
 async function saved(expected) {
   await shortcut('s')
@@ -452,6 +468,55 @@ try {
     await chord('\uE008', '\uE004')
     await saved('\n' + basic)
   })
+  await check('live arrows skip structure and shifted ranges stay within the cell', async () => {
+    await openFixture('arrows', basic, 'live')
+    await place(basic.indexOf('A') + 1)
+    await key('\uE014')
+    assert.equal(Number(await cursor()), basic.indexOf('1'))
+    await key('\uE012')
+    assert.equal(Number(await cursor()), basic.indexOf('A') + 1)
+    await key('\uE011', '\uE013')
+    assert.equal(Number(await cursor()), basic.indexOf('Name'))
+    await key('\uE015')
+    assert.equal(Number(await cursor()), basic.indexOf('A'))
+    await chord('\uE008', '\uE012')
+    assert.equal(Number(await cursor()), basic.indexOf('A'))
+    await chord('\uE008', '\uE014')
+    await chord('\uE008', '\uE014')
+    await text('x')
+    await saved(basic.replace('| A |', '| x |'))
+    await shortcut('z')
+    await saved(basic)
+    await shot('live-table-arrows')
+  })
+  await check('live arrows preserve Unicode and rendered break/pipe atoms', async () => {
+    const content = basic.replace('| A |', '| 😀<br>é\\| |').replaceAll('\n', '\r\n')
+    const start = content.indexOf('😀')
+    await openFixture('arrow-atoms', content, 'live')
+    // CRLF is one cursor step, so use a real cell click and Home here.
+    const cell = await req('POST', `/session/${sid}/element`, {
+      using: 'css selector',
+      value: '.milkup-line[data-line="3"] .milkup-table-cell',
+    })
+    await req(
+      'POST',
+      `/session/${sid}/element/${cell['element-6066-11e4-a52e-4f735466cecf']}/click`,
+      {},
+    )
+    await key('\uE011')
+    for (const offset of [2, 6, 8, 10]) {
+      await key('\uE014')
+      assert.equal(Number(await cursor()), start + offset)
+    }
+    for (const offset of [8, 6, 2, 0]) {
+      await key('\uE012')
+      assert.equal(Number(await cursor()), start + offset)
+    }
+    await text('X')
+    await saved(content.replace('😀', 'X😀'))
+    await shortcut('z')
+    await saved(content)
+  })
   await check('trailing empty paragraph remains outside table editing', async () => {
     await openFixture('trailing', basic + '\n', 'live')
     await place(basic.length + 1)
@@ -464,5 +529,6 @@ try {
   if (sid) {
     await execute('localStorage.removeItem("milkup.desktop.nativeTestPaths")').catch(() => {})
     await req('DELETE', `/session/${sid}`).catch(() => {})
+    cleanupNativeApplication(application)
   }
 }

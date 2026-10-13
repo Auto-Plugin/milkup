@@ -1,3 +1,9 @@
+import {
+  nativeRequestTimeout,
+  waitForNativeWindow,
+  beginNativeStartup,
+  cleanupNativeApplication,
+} from '../helpers/native-startup.mjs'
 // Real Tauri/WebKit + real disk regression. Start tauri-driver and the Vite
 // desktop server first; file picker paths are supplied through the existing
 // native test seam. This does NOT claim OS file-picker or system IME coverage.
@@ -29,7 +35,7 @@ async function req(method, route, body) {
     method,
     headers: { 'content-type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
-    signal: AbortSignal.timeout(20000),
+    signal: AbortSignal.timeout(nativeRequestTimeout(method, route)),
   }).catch((error) => {
     throw Error(`${method} ${route}: ${error}`)
   })
@@ -172,10 +178,12 @@ async function check(name, action) {
   console.log(`PASS ${name}`)
 }
 async function start() {
+  const started = beginNativeStartup()
   const session = await req('POST', '/session', {
     capabilities: { alwaysMatch: { browserName: 'wry', 'tauri:options': { application } } },
   })
   sid = session.sessionId
+  await waitForNativeWindow(started)
   await until(
     () => execute('return !!document.querySelector(".milkup-input-proxy")'),
     'native editor',
@@ -534,5 +542,6 @@ try {
       registryCaptured,
     ).catch(() => {})
     await req('DELETE', `/session/${sid}`).catch(() => {})
+    cleanupNativeApplication(application)
   }
 }
