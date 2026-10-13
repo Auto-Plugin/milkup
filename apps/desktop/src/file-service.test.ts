@@ -59,6 +59,34 @@ describe('desktop file service', () => {
       documentId: 'doc-1',
       path: 'D:/notes/chosen.md',
       text: '# Saved\n',
+      expectedDiskSnapshotHash: undefined,
+      expectedFilePath: 'D:/notes/source.md',
+    })
+  })
+
+  it('passes the opened disk snapshot to native saves including Save As aliases', async () => {
+    const session = createDocumentSession({
+      documentId: 'doc-guard',
+      file: { path: '/notes/source.md' },
+      diskSnapshotHash: 'opened-version',
+    })
+    const service = createDesktopFileService()
+    await service.saveFile(session, 'local')
+    expect(tauriMocks.invoke).toHaveBeenLastCalledWith('save_markdown_file', {
+      documentId: 'doc-guard',
+      path: '/notes/source.md',
+      text: 'local',
+      expectedDiskSnapshotHash: 'opened-version',
+      expectedFilePath: '/notes/source.md',
+    })
+    tauriMocks.save.mockResolvedValue('/notes/./source.md')
+    await service.saveFileAs(session, 'local')
+    expect(tauriMocks.invoke).toHaveBeenLastCalledWith('save_markdown_file', {
+      documentId: 'doc-guard',
+      path: '/notes/./source.md',
+      text: 'local',
+      expectedDiskSnapshotHash: 'opened-version',
+      expectedFilePath: '/notes/source.md',
     })
   })
 

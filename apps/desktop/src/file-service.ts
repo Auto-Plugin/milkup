@@ -227,6 +227,8 @@ function createTauriFileService(): DesktopFileService {
         documentId: session.documentId,
         path: session.file.path,
         text,
+        expectedDiskSnapshotHash: session.diskSnapshotHash,
+        expectedFilePath: session.file.path,
       })
     },
     async reloadFile(session: DocumentSession): Promise<OpenFileResult | undefined> {
@@ -252,6 +254,8 @@ function createTauriFileService(): DesktopFileService {
         documentId: session.documentId,
         path: selected,
         text,
+        expectedDiskSnapshotHash: session.diskSnapshotHash,
+        expectedFilePath: session.file?.path,
       })
     },
     async selectSaveFilePath(defaultPath: string): Promise<string | undefined> {

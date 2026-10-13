@@ -246,14 +246,125 @@ fn save_markdown_file(
     document_id: String,
     path: String,
     text: String,
+    expected_disk_snapshot_hash: Option<String>,
+    expected_file_path: Option<String>,
 ) -> Result<SaveFileResult, String> {
-    fs::write(&path, &text).map_err(|error| error.to_string())?;
+    let target = Path::new(&path);
+    let same_file = expected_file_path
+        .as_deref()
+        .map_or(true, |source| same_file_path(Path::new(source), target));
+    let expected = if same_file {
+        expected_disk_snapshot_hash.as_deref()
+    } else {
+        None
+    };
+    write_markdown_atomically(target, expected, |file| {
+        file.write_all(text.as_bytes())
+            .map_err(|error| error.to_string())
+    })?;
 
     Ok(SaveFileResult {
         document_id,
         file: DocumentFileIdentity { path },
         disk_snapshot_hash: snapshot_hash(&text),
     })
+}
+
+fn same_file_path(left: &Path, right: &Path) -> bool {
+    left == right
+        || match (fs::canonicalize(left), fs::canonicalize(right)) {
+            (Ok(left), Ok(right)) => left == right,
+            _ => false,
+        }
+}
+
+// Stage bytes beside the destination. Compare again after writing so a delayed
+// watcher or an external edit during staging cannot silently replace newer text.
+// The final comparison/rename is not an OS-level compare-and-swap against writers
+// that ignore our protocol; the remaining inter-process race is documented.
+fn write_markdown_atomically(
+    path: &Path,
+    expected_hash: Option<&str>,
+    write: impl FnOnce(&mut fs::File) -> Result<(), String>,
+) -> Result<(), String> {
+    let target = match fs::canonicalize(path) {
+        Ok(target) => target,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => path.to_path_buf(),
+        Err(error) => return Err(error.to_string()),
+    };
+    let read_snapshot = || match fs::read_to_string(&target) {
+        Ok(text) => Ok(Some(snapshot_hash(&text))),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(error.to_string()),
+    };
+    let initial = read_snapshot()?;
+    if expected_hash.is_some() && initial.as_deref() != expected_hash {
+        return Err("File changed outside the editor; refusing to overwrite".into());
+    }
+    let permissions = match fs::metadata(&target) {
+        Ok(metadata) => {
+            if metadata.permissions().readonly() {
+                return Err("File is read-only; save a copy to another path".into());
+            }
+            Some(metadata.permissions())
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+        Err(error) => return Err(error.to_string()),
+    };
+    let parent = target.parent().unwrap_or_else(|| Path::new("."));
+    let name = target
+        .file_name()
+        .ok_or_else(|| "Invalid save path".to_string())?;
+    static NEXT_SAVE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let (temp_path, mut temp) = loop {
+        let sequence = NEXT_SAVE.fetch_add(1, Ordering::Relaxed);
+        let candidate = parent.join(format!(
+            ".{}.milkup-save.{}.{}.tmp",
+            name.to_string_lossy(),
+            std::process::id(),
+            sequence
+        ));
+        let mut options = fs::OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.mode(0o600);
+        }
+        match options.open(&candidate) {
+            Ok(file) => break (candidate, file),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(error) => return Err(error.to_string()),
+        }
+    };
+    let staged = (|| {
+        write(&mut temp)?;
+        if let Some(permissions) = permissions {
+            temp.set_permissions(permissions)
+                .map_err(|error| error.to_string())?;
+        }
+        temp.sync_all().map_err(|error| error.to_string())?;
+        if read_snapshot()? != initial {
+            return Err(
+                "File changed outside the editor during save; refusing to overwrite".into(),
+            );
+        }
+        Ok(())
+    })();
+    drop(temp);
+    let result = staged.and_then(|()| replace_file_atomically(&temp_path, &target));
+    result.map_err(|error| save_error_with_cleanup(&temp_path, error))
+}
+
+fn save_error_with_cleanup(temp_path: &Path, error: String) -> String {
+    match fs::remove_file(temp_path) {
+        Ok(()) => error,
+        Err(cleanup) if cleanup.kind() == std::io::ErrorKind::NotFound => error,
+        Err(cleanup) => format!(
+            "{error}; temporary file retained at {} (cleanup failed: {cleanup})",
+            temp_path.display()
+        ),
+    }
 }
 
 #[tauri::command]
@@ -568,9 +679,16 @@ fn flush_large_text_file_in_registry(
 
         let temp_path =
             large_file_save_as_temp_path(Path::new(&store.path), &document_id, store.version)?;
-        store.piece_tree.write_to(&temp_path)?;
+        if let Err(error) = store.piece_tree.write_to(&temp_path) {
+            let _ = fs::remove_file(&temp_path);
+            return Err(error);
+        }
         store.piece_tree.release_base_handle();
-        if let Err(error) = replace_file_with_temp(&temp_path, Path::new(&store.path)) {
+        if let Err(error) = replace_file_with_temp(
+            &temp_path,
+            Path::new(&store.path),
+            Some(&store.disk_snapshot_hash),
+        ) {
             let _ = store.piece_tree.restore_base_handle();
             let _ = fs::remove_file(&temp_path);
             return Err(error);
@@ -614,9 +732,7 @@ fn flush_large_text_file_as_in_registry(
 
     let target_path = PathBuf::from(&path);
     let normalized_target_path = path_to_string(target_path.clone());
-    let normalized_store_path = path_to_string(PathBuf::from(&store.path));
-
-    if normalized_target_path == normalized_store_path {
+    if same_file_path(&target_path, Path::new(&store.path)) {
         if store.version != store.saved_version {
             let current_disk_hash = hash_file_contents(Path::new(&store.path))?;
 
@@ -628,9 +744,16 @@ fn flush_large_text_file_as_in_registry(
 
             let temp_path =
                 large_file_save_as_temp_path(Path::new(&store.path), &document_id, store.version)?;
-            store.piece_tree.write_to(&temp_path)?;
+            if let Err(error) = store.piece_tree.write_to(&temp_path) {
+                let _ = fs::remove_file(&temp_path);
+                return Err(error);
+            }
             store.piece_tree.release_base_handle();
-            if let Err(error) = replace_file_with_temp(&temp_path, Path::new(&store.path)) {
+            if let Err(error) = replace_file_with_temp(
+                &temp_path,
+                Path::new(&store.path),
+                Some(&store.disk_snapshot_hash),
+            ) {
                 let _ = store.piece_tree.restore_base_handle();
                 let _ = fs::remove_file(&temp_path);
                 return Err(error);
@@ -644,10 +767,14 @@ fn flush_large_text_file_as_in_registry(
         return Ok(large_file_snapshot(&document_id, store));
     }
 
+    let target_hash = optional_file_hash(&target_path)?;
     let temp_path = large_file_save_as_temp_path(&target_path, &document_id, store.version)?;
 
-    store.piece_tree.write_to(&temp_path)?;
-    if let Err(error) = replace_file_with_temp(&temp_path, &target_path) {
+    if let Err(error) = store.piece_tree.write_to(&temp_path) {
+        let _ = fs::remove_file(&temp_path);
+        return Err(error);
+    }
+    if let Err(error) = replace_file_with_temp(&temp_path, &target_path, target_hash.as_deref()) {
         let _ = fs::remove_file(&temp_path);
         return Err(error);
     }
@@ -1343,7 +1470,11 @@ fn cleanup_large_file_working_temps_by_prefix(dir: &Path, prefix: &str) -> Resul
         let entry = entry.map_err(|error| error.to_string())?;
         let path = entry.path();
 
-        if !path.is_file() {
+        if !entry
+            .file_type()
+            .map_err(|error| error.to_string())?
+            .is_file()
+        {
             continue;
         }
 
@@ -1351,10 +1482,14 @@ fn cleanup_large_file_working_temps_by_prefix(dir: &Path, prefix: &str) -> Resul
             continue;
         };
 
-        if is_large_file_working_temp_name(name, prefix) {
+        if is_large_file_working_temp_name(name, prefix) && working_temp_owner_is_gone(name) {
             match fs::remove_file(&path) {
                 Ok(()) => removed += 1,
-                Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {}
+                Err(error)
+                    if matches!(
+                        error.kind(),
+                        std::io::ErrorKind::PermissionDenied | std::io::ErrorKind::NotFound
+                    ) => {}
                 Err(error) => return Err(error.to_string()),
             }
         }
@@ -1367,19 +1502,91 @@ fn is_large_file_working_temp_name(name: &str, prefix: &str) -> bool {
     if !name.starts_with(prefix) {
         return false;
     }
-
-    if name.ends_with(".save-as.tmp") {
-        return name.contains(&format!(".{LARGE_FILE_WORKING_TEMP_MARKER}."));
+    let marker = format!(".{LARGE_FILE_WORKING_TEMP_MARKER}.");
+    if let Some((file_prefix, rest)) = name.rsplit_once(&marker) {
+        // A per-document sweep must match the complete file name, not note.md.*.
+        if prefix != "." && format!("{file_prefix}.") != prefix {
+            return false;
+        }
+        let parts: Vec<_> = rest.split('.').collect();
+        let digits = |part: &str| !part.is_empty() && part.chars().all(|ch| ch.is_ascii_digit());
+        let doc_id = |part: &str| {
+            !part.is_empty()
+                && part
+                    .chars()
+                    .all(|ch| ch.is_ascii_alphanumeric() || ch == '-')
+        };
+        let version = |part: &str| part.strip_prefix('v').map_or(false, digits);
+        return match parts.as_slice() {
+            [pid, doc, kind, "work"] => {
+                digits(pid) && doc_id(doc) && (*kind == "add" || *kind == "base" || version(kind))
+            }
+            [pid, doc, ver, nonce, "save-as", "tmp"] => {
+                digits(pid) && doc_id(doc) && version(ver) && digits(nonce)
+            }
+            _ => false,
+        };
     }
+    // Historical unmarked files are only recognized in a sweep for one exact
+    // document; scanning a directory cannot establish their ownership safely.
+    prefix != "."
+        && name
+            .strip_prefix(prefix)
+            .and_then(|rest| rest.strip_suffix(".work"))
+            .map_or(false, looks_like_legacy_large_file_working_temp)
+}
 
-    if !name.ends_with(".work") {
+// Never unlink another live session's add/base buffers or in-flight save.
+// Unknown ownership is deliberately retained rather than risking unsaved data.
+fn working_temp_owner_is_gone(name: &str) -> bool {
+    let marker = format!(".{LARGE_FILE_WORKING_TEMP_MARKER}.");
+    let pid = if let Some((_, rest)) = name.rsplit_once(&marker) {
+        rest.split('.')
+            .next()
+            .and_then(|part| part.parse::<u32>().ok())
+    } else {
+        name.strip_suffix(".work")
+            .and_then(|rest| rest.rsplit('.').nth(2))
+            .and_then(|part| part.parse::<u32>().ok())
+    };
+    let Some(pid) = pid.filter(|pid| *pid > 0 && *pid <= i32::MAX as u32) else {
+        return false;
+    };
+    if pid == std::process::id() {
         return false;
     }
-
-    let rest = &name[prefix.len()..name.len() - ".work".len()];
-
-    rest.contains(&format!(".{LARGE_FILE_WORKING_TEMP_MARKER}."))
-        || looks_like_legacy_large_file_working_temp(rest)
+    #[cfg(unix)]
+    {
+        extern "C" {
+            fn kill(pid: i32, signal: i32) -> i32;
+        }
+        // Signal zero checks existence without delivering a signal. EPERM and
+        // other unknown errors mean retain; only ESRCH proves absence.
+        unsafe {
+            kill(pid as i32, 0) != 0 && std::io::Error::last_os_error().raw_os_error() == Some(3)
+        }
+    }
+    #[cfg(windows)]
+    {
+        #[link(name = "kernel32")]
+        extern "system" {
+            fn OpenProcess(access: u32, inherit: i32, pid: u32) -> *mut std::ffi::c_void;
+            fn CloseHandle(handle: *mut std::ffi::c_void) -> i32;
+        }
+        unsafe {
+            let handle = OpenProcess(0x00100000, 0, pid);
+            if handle.is_null() {
+                std::io::Error::last_os_error().raw_os_error() == Some(87)
+            } else {
+                CloseHandle(handle);
+                false
+            }
+        }
+    }
+    #[cfg(not(any(unix, windows)))]
+    {
+        false
+    }
 }
 
 fn looks_like_legacy_large_file_working_temp(rest: &str) -> bool {
@@ -1387,7 +1594,7 @@ fn looks_like_legacy_large_file_working_temp(rest: &str) -> bool {
     let Some(pid) = parts.next() else {
         return false;
     };
-    let Some(_document_id) = parts.next() else {
+    let Some(document_id) = parts.next() else {
         return false;
     };
     let Some(version) = parts.next() else {
@@ -1398,7 +1605,13 @@ fn looks_like_legacy_large_file_working_temp(rest: &str) -> bool {
         return false;
     }
 
-    pid.chars().all(|character| character.is_ascii_digit())
+    !pid.is_empty()
+        && !document_id.is_empty()
+        && document_id
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || ch == '-')
+        && pid.chars().all(|character| character.is_ascii_digit())
+        && version.len() > 1
         && version.starts_with('v')
         && version[1..]
             .chars()
@@ -1443,10 +1656,46 @@ fn write_large_file_atomically(path: &Path, text: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn replace_file_with_temp(temp_path: &Path, path: &Path) -> Result<(), String> {
-    if let Err(error) = replace_file_atomically(temp_path, path) {
-        let _ = fs::remove_file(temp_path);
-        return Err(error);
+fn optional_file_hash(path: &Path) -> Result<Option<String>, String> {
+    match fs::metadata(path) {
+        Ok(_) => hash_file_contents(path).map(Some),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(error.to_string()),
+    }
+}
+
+fn replace_file_with_temp(
+    temp_path: &Path,
+    path: &Path,
+    expected_hash: Option<&str>,
+) -> Result<(), String> {
+    let result = (|| {
+        let target = match fs::canonicalize(path) {
+            Ok(target) => target,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => path.to_path_buf(),
+            Err(error) => return Err(error.to_string()),
+        };
+        match fs::metadata(&target) {
+            Ok(metadata) => {
+                if metadata.permissions().readonly() {
+                    return Err("File is read-only; save a copy to another path".into());
+                }
+                fs::set_permissions(temp_path, metadata.permissions())
+                    .map_err(|error| error.to_string())?;
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error.to_string()),
+        }
+        if optional_file_hash(&target)?.as_deref() != expected_hash {
+            return Err(
+                "Large text file changed outside the editor during save; refusing to overwrite"
+                    .into(),
+            );
+        }
+        replace_file_atomically(temp_path, &target)
+    })();
+    if let Err(error) = result {
+        return Err(save_error_with_cleanup(temp_path, error));
     }
 
     Ok(())
@@ -1591,8 +1840,14 @@ mod tests {
         let path = dir.join("saved.md");
         let text = "alpha\r\nbeta\r\n".to_string();
 
-        let result = save_markdown_file("doc-save".to_string(), path_to_string(path.clone()), text)
-            .expect("save markdown file");
+        let result = save_markdown_file(
+            "doc-save".to_string(),
+            path_to_string(path.clone()),
+            text,
+            None,
+            None,
+        )
+        .expect("save markdown file");
 
         assert_eq!(result.document_id, "doc-save");
         assert_eq!(result.file.path, path_to_string(path.clone()));
@@ -1601,6 +1856,267 @@ mod tests {
             "alpha\r\nbeta\r\n",
         );
 
+        remove_test_dir(dir);
+    }
+
+    #[test]
+    fn save_markdown_file_rejects_unobserved_external_changes_and_deletion() {
+        let dir = create_test_dir("save-conflict");
+        let path = dir.join("note.md");
+        fs::write(&path, "original").unwrap();
+        let opened = open_markdown_file(path_to_string(path.clone())).unwrap();
+        fs::write(&path, "external").unwrap();
+        let result = save_markdown_file(
+            "doc".into(),
+            path_to_string(path.clone()),
+            "local".into(),
+            Some(opened.disk_snapshot_hash.clone()),
+            Some(path_to_string(path.clone())),
+        );
+        assert!(
+            result.is_err(),
+            "must reject stale snapshot before watcher notification"
+        );
+        assert_eq!(fs::read_to_string(&path).unwrap(), "external");
+        fs::remove_file(&path).unwrap();
+        assert!(save_markdown_file(
+            "doc".into(),
+            path_to_string(path.clone()),
+            "local".into(),
+            Some(opened.disk_snapshot_hash),
+            Some(path_to_string(path.clone()))
+        )
+        .is_err());
+        assert!(!path.exists());
+        remove_test_dir(dir);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn large_file_commit_preserves_mode_and_rejects_readonly_destination() {
+        let dir = create_test_dir("large-permissions");
+        let path = dir.join("note.md");
+        let staged = dir.join("staged.tmp");
+        fs::write(&path, "original").unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o640)).unwrap();
+        fs::write(&staged, "saved").unwrap();
+        replace_file_with_temp(&staged, &path, Some(&hash_file_contents(&path).unwrap())).unwrap();
+        assert_eq!(
+            fs::metadata(&path).unwrap().permissions().mode() & 0o777,
+            0o640
+        );
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o444)).unwrap();
+        fs::write(&staged, "local").unwrap();
+        assert!(
+            replace_file_with_temp(&staged, &path, Some(&hash_file_contents(&path).unwrap()))
+                .unwrap_err()
+                .contains("read-only")
+        );
+        assert_eq!(fs::read_to_string(&path).unwrap(), "saved");
+        assert!(!staged.exists());
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
+        remove_test_dir(dir);
+    }
+
+    #[test]
+    fn large_file_commit_rechecks_disk_after_staging_and_cleans_failed_temp() {
+        let dir = create_test_dir("large-stage-conflict");
+        let path = dir.join("note.md");
+        let staged = dir.join("staged.tmp");
+        fs::write(&path, "original").unwrap();
+        let expected = hash_file_contents(&path).unwrap();
+        fs::write(&staged, "local staged snapshot").unwrap();
+        fs::write(&path, "external during staging").unwrap();
+        assert!(replace_file_with_temp(&staged, &path, Some(&expected))
+            .unwrap_err()
+            .contains("during save"));
+        assert!(!staged.exists());
+        assert_eq!(
+            fs::read_to_string(&path).unwrap(),
+            "external during staging"
+        );
+        remove_test_dir(dir);
+    }
+
+    #[test]
+    fn atomic_save_preserves_original_and_cleans_temp_after_partial_write_failure() {
+        let dir = create_test_dir("save-partial");
+        let path = dir.join("note.md");
+        fs::write(&path, "original").unwrap();
+        let result = write_markdown_atomically(&path, Some(&snapshot_hash("original")), |file| {
+            file.write_all(b"partial").unwrap();
+            Err("injected disk write failure".into())
+        });
+        assert!(result.unwrap_err().contains("injected"));
+        assert_eq!(fs::read_to_string(&path).unwrap(), "original");
+        assert_eq!(fs::read_dir(&dir).unwrap().count(), 1);
+        remove_test_dir(dir);
+    }
+
+    #[test]
+    fn atomic_save_rechecks_external_changes_after_staging() {
+        let dir = create_test_dir("save-staging-race");
+        let path = dir.join("note.md");
+        fs::write(&path, "original").unwrap();
+        let result = write_markdown_atomically(&path, Some(&snapshot_hash("original")), |file| {
+            file.write_all(b"local").unwrap();
+            fs::write(&path, "external while staging").unwrap();
+            Ok(())
+        });
+        assert!(result.unwrap_err().contains("during save"));
+        assert_eq!(fs::read_to_string(&path).unwrap(), "external while staging");
+        assert_eq!(fs::read_dir(&dir).unwrap().count(), 1);
+        remove_test_dir(dir);
+    }
+
+    #[test]
+    fn atomic_save_does_not_overwrite_new_destination_created_during_staging() {
+        let dir = create_test_dir("save-new-race");
+        let path = dir.join("new.md");
+        assert!(write_markdown_atomically(&path, None, |file| {
+            file.write_all(b"local").unwrap();
+            fs::write(&path, "external creation").unwrap();
+            Ok(())
+        })
+        .is_err());
+        assert_eq!(fs::read_to_string(&path).unwrap(), "external creation");
+        assert_eq!(fs::read_dir(&dir).unwrap().count(), 1);
+        remove_test_dir(dir);
+    }
+
+    #[test]
+    fn save_as_copy_allows_rescue_but_same_path_preserves_conflict_guard() {
+        let dir = create_test_dir("save-copy");
+        let path = dir.join("note.md");
+        let copy = dir.join("copy.md");
+        fs::write(&path, "external").unwrap();
+        let save = |target: &Path| {
+            save_markdown_file(
+                "doc".into(),
+                path_to_string(target.to_path_buf()),
+                "local".into(),
+                Some(snapshot_hash("original")),
+                Some(path_to_string(path.clone())),
+            )
+        };
+        assert!(save(&path).is_err());
+        save(&copy).unwrap();
+        assert_eq!(fs::read_to_string(&path).unwrap(), "external");
+        assert_eq!(fs::read_to_string(&copy).unwrap(), "local");
+        remove_test_dir(dir);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn atomic_save_preserves_permissions_symlinks_and_readonly_files() {
+        let dir = create_test_dir("save-metadata");
+        let path = dir.join("note.md");
+        let link = dir.join("link.md");
+        fs::write(&path, "original").unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o640)).unwrap();
+        std::os::unix::fs::symlink(&path, &link).unwrap();
+        save_markdown_file(
+            "doc".into(),
+            path_to_string(link.clone()),
+            "saved".into(),
+            Some(snapshot_hash("original")),
+            Some(path_to_string(path.clone())),
+        )
+        .unwrap();
+        assert!(fs::symlink_metadata(&link).unwrap().is_symlink());
+        assert_eq!(
+            fs::metadata(&path).unwrap().permissions().mode() & 0o777,
+            0o640
+        );
+        assert_eq!(fs::read_to_string(&path).unwrap(), "saved");
+        fs::write(&path, "external").unwrap();
+        assert!(save_markdown_file(
+            "doc".into(),
+            path_to_string(link),
+            "local".into(),
+            Some(snapshot_hash("saved")),
+            Some(path_to_string(path.clone()))
+        )
+        .is_err());
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o444)).unwrap();
+        assert!(write_markdown_atomically(&path, None, |file| {
+            file.write_all(b"local").map_err(|error| error.to_string())
+        })
+        .unwrap_err()
+        .contains("read-only"));
+        assert_eq!(fs::read_to_string(&path).unwrap(), "external");
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
+        remove_test_dir(dir);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn atomic_replace_and_cleanup_permission_failure_preserves_original_and_reports_temp() {
+        let dir = create_test_dir("save-cleanup-error");
+        let path = dir.join("note.md");
+        fs::write(&path, "original").unwrap();
+        let result = write_markdown_atomically(&path, None, |file| {
+            file.write_all(b"staged").unwrap();
+            fs::set_permissions(&dir, fs::Permissions::from_mode(0o500)).unwrap();
+            Ok(())
+        });
+        fs::set_permissions(&dir, fs::Permissions::from_mode(0o700)).unwrap();
+        let error = result.unwrap_err();
+        assert!(error.contains("temporary file retained"), "{error}");
+        assert!(error.contains("cleanup failed"));
+        assert_eq!(fs::read_to_string(&path).unwrap(), "original");
+        assert_eq!(fs::read_dir(&dir).unwrap().count(), 2);
+        remove_test_dir(dir);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn stale_cleanup_retains_files_when_unlink_is_denied() {
+        let dir = create_test_dir("cleanup-permission");
+        let stale = dir.join(".note.md.milkup-large.2147483647.doc.v1.work");
+        fs::write(&stale, "stale").unwrap();
+        fs::set_permissions(&dir, fs::Permissions::from_mode(0o500)).unwrap();
+        let result = cleanup_large_file_working_temps_in_dir(&dir);
+        fs::set_permissions(&dir, fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(result.unwrap(), 0);
+        assert!(stale.exists());
+        remove_test_dir(dir);
+    }
+
+    #[test]
+    fn cleanup_requires_exact_app_filename_shape_and_preserves_unknown_ownership() {
+        let dir = create_test_dir("cleanup-shape");
+        let keep = [
+            ".note.md.work",
+            ".note.md.milkup-large.2147483647.doc.notes.work",
+            ".note.md.extra.milkup-large.2147483647.doc.v1.work",
+            ".note.md.milkup-large.unknown.doc.add.work",
+            ".note.md.milkup-large.2147483647.doc.v.save-as.tmp",
+            ".note.md..doc.v1.work",
+        ];
+        for name in keep {
+            fs::write(dir.join(name), "keep").unwrap();
+        }
+        assert_eq!(
+            cleanup_large_file_working_temps_for_path(&dir.join("note.md")).unwrap(),
+            0
+        );
+        for name in keep {
+            assert!(dir.join(name).exists(), "{name}");
+        }
+        remove_test_dir(dir);
+    }
+
+    #[test]
+    fn cleanup_preserves_active_process_working_files() {
+        let dir = create_test_dir("cleanup-active");
+        let active = dir.join(format!(
+            ".note.md.milkup-large.{}.doc.add.work",
+            std::process::id()
+        ));
+        fs::write(&active, "unsaved edits").unwrap();
+        assert_eq!(cleanup_large_file_working_temps_in_dir(&dir).unwrap(), 0);
+        assert_eq!(fs::read_to_string(&active).unwrap(), "unsaved edits");
         remove_test_dir(dir);
     }
 
@@ -2180,6 +2696,17 @@ mod tests {
         };
 
         assert!(error.contains("changed outside the editor"));
+        let alias = dir.join(".").join(path.file_name().unwrap());
+        assert!(
+            flush_large_text_file_as_in_registry(
+                &registry.0,
+                "large-doc".into(),
+                1,
+                path_to_string(alias)
+            )
+            .is_err(),
+            "Save As aliases must retain the original snapshot guard"
+        );
         assert_eq!(
             fs::read_to_string(&path).expect("read conflicted file"),
             "external change"
@@ -2194,9 +2721,9 @@ mod tests {
         let other_path = dir.join("other.md");
         fs::write(&path, "hello").expect("write large fixture");
         fs::write(&other_path, "other").expect("write other fixture");
-        let stale = dir.join(".large.md.milkup-large.999.doc.v1.work");
-        let legacy_stale = dir.join(".large.md.999.doc.v2.work");
-        let unrelated = dir.join(".other.md.milkup-large.999.doc.v1.work");
+        let stale = dir.join(".large.md.milkup-large.2147483647.doc.v1.work");
+        let legacy_stale = dir.join(".large.md.2147483647.doc.v2.work");
+        let unrelated = dir.join(".other.md.milkup-large.2147483647.doc.v1.work");
         fs::write(&stale, "stale").expect("write stale temp");
         fs::write(&legacy_stale, "legacy").expect("write legacy temp");
         fs::write(&unrelated, "other").expect("write unrelated temp");
@@ -2218,10 +2745,10 @@ mod tests {
     #[test]
     fn large_file_temp_cleanup_only_removes_marked_work_files() {
         let dir = create_test_dir("large-clean-dir");
-        let stale = dir.join(".note.md.milkup-large.999.doc.v1.work");
-        let stale_save = dir.join(".note.md.milkup-large.999.doc.v1.123.save-as.tmp");
+        let stale = dir.join(".note.md.milkup-large.2147483647.doc.v1.work");
+        let stale_save = dir.join(".note.md.milkup-large.2147483647.doc.v1.123.save-as.tmp");
         let keep_regular_work = dir.join("draft.work");
-        let keep_tmp = dir.join(".note.md.999.tmp");
+        let keep_tmp = dir.join(".note.md.2147483647.tmp");
         fs::write(&stale, "stale").expect("write stale temp");
         fs::write(&stale_save, "stale save").expect("write stale save temp");
         fs::write(&keep_regular_work, "work").expect("write regular work");
