@@ -7,18 +7,36 @@ export function nativeRequestTimeout(method, route) {
 }
 const env = () => ({ ...process.env, DISPLAY: process.env.DISPLAY ?? ':99' })
 function tree() {
-  return execFileSync('xwininfo', ['-root', '-tree'], {
-    encoding: 'utf8',
-    timeout: 3000,
-    env: env(),
-  })
+  // X11 tree traversal is not atomic while a just-closed window disappears.
+  // Retry only this identified observation race, at most three reads.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      return execFileSync('xwininfo', ['-root', '-tree'], {
+        encoding: 'utf8',
+        timeout: 3000,
+        env: env(),
+        stdio: 'pipe',
+      })
+    } catch (error) {
+      if (attempt === 2 || !/Bad (Window|Drawable)/.test(String(error.stderr))) throw error
+    }
+  }
 }
+
 function windowPid(id) {
-  const result = execFileSync('xprop', ['-id', id, '_NET_WM_PID'], {
-    encoding: 'utf8',
-    timeout: 3000,
-    env: env(),
-  })
+  let result
+  try {
+    result = execFileSync('xprop', ['-id', id, '_NET_WM_PID'], {
+      encoding: 'utf8',
+      timeout: 3000,
+      env: env(),
+      stdio: 'pipe',
+    })
+  } catch (error) {
+    // A window can disappear between the tree snapshot and this property read.
+    if (String(error.stderr).includes('BadWindow')) return NaN
+    throw error
+  }
   return Number(/= (\d+)/.exec(result)?.[1])
 }
 function milkupPids(output) {

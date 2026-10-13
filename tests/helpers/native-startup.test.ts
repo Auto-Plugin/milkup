@@ -1,9 +1,21 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
-const mock = vi.hoisted(() => ({ tree: '', identities: new Map<number, string>() }))
+const mock = vi.hoisted(() => ({
+  tree: '',
+  vanished: false,
+  treeRaces: 0,
+  identities: new Map<number, string>(),
+}))
 vi.mock('node:child_process', () => ({
-  execFileSync: (command: string, args: string[]) =>
-    command === 'xwininfo' ? mock.tree : `_NET_WM_PID(CARDINAL) = ${parseInt(args[1]!, 16)}`,
+  execFileSync: (command: string, args: string[]) => {
+    if (command === 'xwininfo') {
+      if (mock.treeRaces-- > 0)
+        throw Object.assign(new Error('tree changed'), { stderr: 'Bad Drawable' })
+      return mock.tree
+    }
+    if (mock.vanished) throw Object.assign(new Error('xprop failed'), { stderr: 'BadWindow' })
+    return `_NET_WM_PID(CARDINAL) = ${parseInt(args[1]!, 16)}`
+  },
 }))
 vi.mock('node:fs', () => ({
   readFileSync: (path: string) => {
@@ -23,6 +35,8 @@ const window = (pid: number) =>
 let kill: ReturnType<typeof vi.spyOn>
 beforeEach(() => {
   mock.tree = ''
+  mock.vanished = false
+  mock.treeRaces = 0
   mock.identities.clear()
   vi.stubEnv('MILKUP_NATIVE_EXCLUSIVE_DISPLAY', '1')
   kill = vi.spyOn(process, 'kill').mockImplementation(() => true)
@@ -63,4 +77,27 @@ it('does not signal a reused PID or an unexpected executable', async () => {
   mock.identities.set(200, 'birth2')
   cleanupNativeApplication('/test/milkup')
   expect(kill).not.toHaveBeenCalled()
+})
+
+it('ignores only a window which vanished during the initial snapshot', () => {
+  mock.tree = window(200)
+  mock.vanished = true
+  expect(() => beginNativeStartup()).not.toThrow()
+  cleanupNativeApplication('/test/milkup')
+  expect(kill).not.toHaveBeenCalled()
+})
+
+it('retries only bounded non-atomic X11 tree observations', () => {
+  mock.treeRaces = 2
+  expect(() => beginNativeStartup()).not.toThrow()
+  mock.treeRaces = 3
+  expect(() => beginNativeStartup()).toThrow('tree changed')
+})
+
+import { unwrapWebDriverValue } from './native-production.mjs'
+it('preserves null and false WebDriver results instead of turning them into truthy envelopes', () => {
+  expect(unwrapWebDriverValue({ value: null })).toBeNull()
+  expect(unwrapWebDriverValue({ value: false })).toBe(false)
+  expect(unwrapWebDriverValue({ value: 0 })).toBe(0)
+  expect(unwrapWebDriverValue({ sessionId: 's' })).toEqual({ sessionId: 's' })
 })

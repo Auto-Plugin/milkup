@@ -154,7 +154,11 @@ try {
     await app.until(async () => (await app.probe()).dirty, 'column edit')
     await app.focus('.milkup-input-proxy')
     await app.key('ctrl+s')
-    await app.until(async () => !(await app.probe()).dirty, 'column saved')
+    await app.until(async () => {
+      const p = await app.probe()
+      // The dirty dot is hidden while saving; wait for the write acknowledgement.
+      return !p.saving && !p.dirty
+    }, 'column saved')
     const changed = await readFile(file),
       head = changed.toString().slice(0, 5000)
     assert(head.includes('| Name |  | Value |'))
@@ -230,7 +234,11 @@ try {
     await app.until(async () => (await app.probe()).dirty, 'column added')
     await app.focus('.milkup-input-proxy')
     await app.key('ctrl+s')
-    await app.until(async () => !(await app.probe()).dirty, 'column saved')
+    await app.until(async () => {
+      const p = await app.probe()
+      // The dirty dot is hidden while saving; wait for the write acknowledgement.
+      return !p.saving && !p.dirty
+    }, 'column saved')
     const added = await readFile(file)
     await app.click('[data-table-action="delete-column"]')
     await app.focus('.milkup-input-proxy')

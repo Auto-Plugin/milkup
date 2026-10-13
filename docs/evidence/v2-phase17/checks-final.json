@@ -1,0 +1,57 @@
+[
+  {
+    "name": "js",
+    "command": ["pnpm", "-r", "--workspace-concurrency=1", "test"],
+    "exitCode": 0,
+    "finished": "2026-10-13T20:30:34.217305+00:00"
+  },
+  {
+    "name": "supplemental",
+    "command": [
+      "pnpm",
+      "exec",
+      "vitest",
+      "run",
+      "plugins/outline/src/plugin.test.ts",
+      "tests/helpers/native-startup.test.ts"
+    ],
+    "exitCode": 0,
+    "finished": "2026-10-13T20:30:35.540273+00:00"
+  },
+  {
+    "name": "typecheck",
+    "command": ["pnpm", "typecheck"],
+    "exitCode": 0,
+    "finished": "2026-10-13T20:30:48.322313+00:00"
+  },
+  {
+    "name": "rust-final",
+    "command": ["cargo", "test", "--manifest-path", "apps/desktop/src-tauri/Cargo.toml", "--lib"],
+    "exitCode": 0,
+    "finished": "2026-10-13T21:22:36.266164+00:00"
+  },
+  {
+    "name": "rustfmt-final",
+    "command": ["cargo", "fmt", "--manifest-path", "apps/desktop/src-tauri/Cargo.toml", "--check"],
+    "exitCode": 0,
+    "finished": "2026-10-13T21:22:36.355531+00:00"
+  },
+  {
+    "name": "lint-final",
+    "command": ["pnpm", "lint"],
+    "exitCode": 0,
+    "finished": "2026-10-13T21:22:48.865593+00:00"
+  },
+  {
+    "name": "build",
+    "exitCode": 0
+  },
+  {
+    "name": "supplemental-final",
+    "exitCode": 0
+  },
+  {
+    "name": "browser-final",
+    "exitCode": 0
+  }
+]

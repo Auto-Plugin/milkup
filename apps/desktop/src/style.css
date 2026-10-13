@@ -1929,3 +1929,34 @@ select:focus-visible,
   font-size: 13px;
   line-height: 1.6;
 }
+
+.recovery-status {
+  max-width: 220px;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recovery-status[data-error='true'],
+[data-recovery-error] {
+  color: var(--danger);
+}
+.recovery-overlay {
+  z-index: 40;
+}
+.recovery-dialog {
+  width: min(620px, 100%);
+}
+.recovery-record {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.recovery-record h3 {
+  margin: 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.recovery-record button {
+  margin: 8px 6px 0 0;
+}

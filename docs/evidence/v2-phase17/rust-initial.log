@@ -1,0 +1,131 @@
+   Compiling generic-array v0.14.7
+   Compiling typenum v1.20.1
+   Compiling cpufeatures v0.2.17
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling tauri-codegen v2.6.3
+   Compiling tauri-macros v2.6.3
+   Compiling tauri v2.11.5
+   Compiling tauri-plugin-fs v2.5.1
+   Compiling tauri-plugin-dialog v2.7.1
+   Compiling milkup-desktop v0.1.0 (/workspace/milkup/apps/desktop/src-tauri)
+warning: function `is_large_file_working_temp_name` is never used
+    --> src/lib.rs:1522:4
+     |
+1522 | fn is_large_file_working_temp_name(name: &str, prefix: &str) -> bool {
+     |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `working_temp_owner_is_gone` is never used
+    --> src/lib.rs:1562:4
+     |
+1562 | fn working_temp_owner_is_gone(name: &str) -> bool {
+     |    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `looks_like_legacy_large_file_working_temp` is never used
+    --> src/lib.rs:1613:4
+     |
+1613 | fn looks_like_legacy_large_file_working_temp(rest: &str) -> bool {
+     |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `kill` is never used
+    --> src/lib.rs:1582:16
+     |
+1582 |             fn kill(pid: i32, signal: i32) -> i32;
+     |                ^^^^
+
+warning: `milkup-desktop` (lib test) generated 4 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.54s
+     Running unittests src/lib.rs (apps/desktop/src-tauri/target/debug/deps/milkup_desktop_lib-764809d52bd15b7e)
+
+running 63 tests
+test native_search::tests::cancellation_and_document_close_release_preparations_indexes_and_history ... ok
+test native_search::tests::preparation_cancel_and_stale_commit_leave_document_unchanged ... ok
+test native_search::tests::replace_all_and_whole_history_preserve_utf16_encoding_and_crlf_disk_bytes ... ok
+test native_search::tests::replacement_undo_restores_unsaved_piece_tree_edits_not_the_original_file ... ok
+test native_search::tests::selected_dense_member_and_empty_replacement_preserve_surrounding_text ... ok
+test native_search::tests::disk_budget_and_preparation_io_failure_do_not_mutate_the_document ... ok
+test native_search::tests::stale_queries_and_mutated_documents_never_publish_current_results ... ok
+test native_search::tests::unicode_fallback_validates_utf16_and_does_not_repeat_payload_on_ack ... ok
+test piece_tree::tests::closes_session_files_before_cleanup ... ok
+test piece_tree::tests::edits_and_saves_utf16le_bom_files_without_changing_the_encoding ... ok
+test piece_tree::tests::edits_unicode_and_reads_lines_without_materializing_document ... ok
+test piece_tree::tests::randomized_edits_match_a_string_reference ... ok
+test piece_tree::tests::reads_line_ending_after_a_multibyte_character ... ok
+test piece_tree::tests::reads_line_windows_after_newline_insertion_and_deletion ... ok
+test piece_tree::tests::rejects_surrogate_boundaries_and_overlapping_batches_atomically ... ok
+test piece_tree::tests::reports_utf8_boundary_errors_without_decoding_partial_prefixes ... ok
+test recovery::tests::checkpoints_are_complete_hashed_and_keep_previous_committed_generation ... ok
+test recovery::tests::corruption_is_detected_without_modifying_payload_or_original ... ok
+test recovery::tests::identifiers_cannot_escape_recovery_root_and_live_owner_is_retained ... ok
+test recovery::tests::partial_write_and_failed_publish_preserve_last_valid_manifest ... ok
+test search_profile_baseline::profile_legacy_search_windows ... ignored, explicit same-fixture native search transport baseline
+test tests::asset_commands_create_directories_write_files_and_check_existence ... ok
+test tests::atomic_replace_and_cleanup_permission_failure_preserves_original_and_reports_temp ... ok
+test tests::atomic_save_does_not_overwrite_new_destination_created_during_staging ... ok
+test tests::atomic_save_preserves_original_and_cleans_temp_after_partial_write_failure ... ok
+test tests::atomic_save_preserves_permissions_symlinks_and_readonly_files ... ok
+test tests::atomic_save_rechecks_external_changes_after_staging ... ok
+test tests::bounded_line_windows_use_utf16_before_text_allocation ... ok
+test tests::cleanup_preserves_active_process_working_files ... ok
+test tests::cleanup_requires_exact_app_filename_shape_and_preserves_unknown_ownership ... ok
+test tests::large_file_applies_non_overlapping_utf16_changes_safely ... ok
+test tests::large_file_chunk_ranges_must_align_to_utf8_boundaries ... ok
+test tests::large_file_commit_preserves_mode_and_rejects_readonly_destination ... ok
+test tests::large_file_commit_rechecks_disk_after_staging_and_cleans_failed_temp ... ok
+test tests::large_file_flush_commits_memory_snapshot_and_clears_edit_log ... ok
+test tests::large_file_flush_rejects_external_modification_after_visible_edit ... ok
+test tests::large_file_flush_writes_atomically_to_disk ... ok
+test tests::large_file_line_index_handles_lf_crlf_and_trailing_newline ... ok
+test tests::large_file_line_window_accepts_utf8_character_before_lf ... ok
+test tests::large_file_line_windows_validate_bounds ... ok
+test tests::large_file_maps_utf8_bytes_to_utf16_offsets ... ok
+test tests::large_file_open_and_window_reads_do_not_materialize_full_text ... ok
+test tests::large_file_open_cleans_stale_working_temps_for_same_path_only ... FAILED
+test tests::large_file_registry_drop_removes_active_working_temps ... ok
+test tests::large_file_save_as_to_same_path_preserves_external_conflict_guard ... ok
+test tests::large_file_save_as_writes_memory_snapshot_without_overwriting_original ... ok
+test tests::large_file_temp_cleanup_only_removes_marked_work_files ... FAILED
+test tests::large_file_visible_edit_uses_memory_snapshot_without_working_file ... ok
+test native_search::tests::unicode_sensitive_batch_boundary_and_empty_query_results ... ok
+test tests::open_and_reload_markdown_files_preserve_document_identity ... ok
+test tests::plugin_file_commands_resolve_and_mutate_canonical_paths ... ok
+test tests::plugin_package_paths_cannot_escape_the_plugin_root ... ok
+test tests::plugin_sidecar_event_uses_camel_case_payload ... ok
+test tests::plugin_sidecar_executable_must_be_absolute ... ok
+test tests::line_window_offsets_match_unicode_crlf_and_piece_boundaries_after_edits ... ok
+test tests::profiles_distant_line_windows_with_unicode_crlf_fixture ... ok
+test tests::save_as_copy_allows_rescue_but_same_path_preserves_conflict_guard ... ok
+test tests::save_markdown_file_rejects_unobserved_external_changes_and_deletion ... ok
+test tests::save_markdown_file_writes_text_and_returns_matching_document_id ... ok
+test tests::stale_cleanup_retains_files_when_unlink_is_denied ... ok
+test tests::stat_text_file_reports_size_and_readonly_flag ... ok
+test native_search::tests::complete_dense_search_pages_all_hits_without_materializing_them ... ok
+test native_search::tests::oversized_line_fails_explicitly_and_close_removes_private_artifacts ... ok
+
+failures:
+
+---- tests::large_file_open_cleans_stale_working_temps_for_same_path_only stdout ----
+
+thread 'tests::large_file_open_cleans_stale_working_temps_for_same_path_only' (120666) panicked at src/lib.rs:2874:9:
+assertion failed: !stale.exists()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tests::large_file_temp_cleanup_only_removes_marked_work_files stdout ----
+
+thread 'tests::large_file_temp_cleanup_only_removes_marked_work_files' (120670) panicked at src/lib.rs:2894:9:
+assertion `left == right` failed
+  left: 0
+ right: 2
+
+
+failures:
+    tests::large_file_open_cleans_stale_working_temps_for_same_path_only
+    tests::large_file_temp_cleanup_only_removes_marked_work_files
+
+test result: FAILED. 60 passed; 2 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.39s
+
+error: test failed, to rerun pass `--lib`

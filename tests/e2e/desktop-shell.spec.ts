@@ -1426,7 +1426,7 @@ test('phase16 confirmation remains scrollable at a 380 by 260 effective viewport
   await page.goto('/')
   await page.keyboard.type('keep')
   await page.keyboard.press('Control+n')
-  const dialog = page.locator('.confirm-dialog')
+  const dialog = page.getByRole('dialog', { name: '文档尚未保存' })
   const rect = await dialog.boundingBox()
   expect(rect!.y).toBeGreaterThanOrEqual(0)
   expect(rect!.y + rect!.height).toBeLessThanOrEqual(260)

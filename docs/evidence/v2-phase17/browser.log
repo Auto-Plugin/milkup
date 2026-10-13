@@ -1,0 +1,108 @@
+$ playwright test --workers=1
+[WebServer] (node:134759) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:134779) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:134804) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:134821) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 63 tests using 1 worker
+
+(node:134851) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [playground-msedge] › tests/e2e/live-render.spec.ts:3:1 › live render projection hides inline markers and keeps editor geometry usable (664ms)
+  ✓   2 [playground-msedge] › tests/e2e/live-render.spec.ts:33:1 › live table and task-list clicks preserve visual cursor mapping (687ms)
+  ✓   3 [playground-msedge] › tests/e2e/live-render.spec.ts:105:1 › browser selection rendering follows keyboard selection changes (535ms)
+  ✓   4 [playground-msedge] › tests/e2e/live-render.spec.ts:121:1 › browser mode switches preserve editor scroll position (1.3s)
+  ✓   5 [playground-msedge] › tests/e2e/live-render.spec.ts:143:1 › browser worker plugin command mutates the editor through global history (681ms)
+  ✓   6 [playground-msedge] › tests/e2e/live-render.spec.ts:159:1 › browser worker plugin fetches through the main-thread network broker (568ms)
+  ✓   7 [playground-msedge] › tests/e2e/live-render.spec.ts:172:1 › browser worker plugin reads through the main-thread file broker (679ms)
+(node:135350) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   8 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:32:1 › desktop shell loads editor and tracks dirty session state (2.1s)
+  ✓   9 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:144:1 › plugin manager restores, executes, disables, and reenables a Worker plugin (1.2s)
+  ✓  10 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:198:1 › desktop shell imports pasted image files through asset provider (819ms)
+  ✓  11 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:230:1 › desktop search highlights matches and moves the active result (1.0s)
+  ✓  12 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:253:1 › closing search cancels the active scan and clears highlights (886ms)
+  ✓  13 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:279:1 › desktop shell routes primary shortcuts through active document actions (1.2s)
+  ✓  14 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:358:1 › desktop shell confirms before closing a dirty window (844ms)
+  ✓  15 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:422:3 › existing-file success keeps subsequent input and history dirty until their own save (697ms)
+  ✓  16 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:422:3 › existing-file cancel keeps subsequent input and history dirty until their own save (716ms)
+  ✓  17 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:422:3 › existing-file error keeps subsequent input and history dirty until their own save (824ms)
+  ✓  18 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:459:3 › dirty Control+n supports cancel, focus containment and explicit discard (931ms)
+  ✓  19 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:459:3 › dirty Control+o supports cancel, focus containment and explicit discard (945ms)
+  ✓  20 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:459:3 › dirty Control+w supports cancel, focus containment and explicit discard (1.1s)
+  ✓  21 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:492:1 › save before new retains the draft after cancellation or failure and supports retry (1.1s)
+  ✓  22 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:516:1 › cancelling a pending save continuation never navigates after the write completes (917ms)
+  ✓  23 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:544:3 › opening cancel after discard preserves original content and history (942ms)
+  ✓  24 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:544:3 › opening error after discard preserves original content and history (1.0s)
+  ✓  25 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:569:1 › ordinary save failures are visible without developer diagnostics and recover on retry (809ms)
+  ✓  26 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:586:1 › browser reload cancellation keeps the unsaved editor alive (5.8s)
+  ✓  27 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:601:3 › synthetic composition cancellation preserves selected text and history in source (607ms)
+  ✓  28 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:601:3 › synthetic composition cancellation preserves selected text and history in live (605ms)
+  ✓  29 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:656:1 › multiline code paste and following typing undo independently across mode changes (669ms)
+  ✓  30 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:684:1 › typing after cursor movement restores only the local edit on undo (569ms)
+  ✓  31 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:696:1 › cancelled and failed Save As preserve the path and dirty content (726ms)
+  ✓  32 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:712:1 › windowed memory documents keep finalized composition separate from adjacent typing (1.2s)
+  ✓  33 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:779:1 › late image imports never write into a newly created document (688ms)
+  ✓  34 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:796:3 › pending save reconciles modified events before allowing navigation (888ms)
+  ✓  35 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:796:3 › pending save reconciles deleted events before allowing navigation (973ms)
+  ✓  36 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:796:3 › pending save reconciles own-save events before allowing navigation (869ms)
+  ✓  37 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:839:1 › saving cancels a pending image import without dirtying the saved snapshot (796ms)
+  ✓  38 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:859:1 › failed image imports show an error and a subsequent paste can succeed (703ms)
+  ✓  39 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:881:3 › Unicode graphemes survive keyboard selection, deletion and undo in source (586ms)
+  ✓  40 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:881:3 › Unicode graphemes survive keyboard selection, deletion and undo in live (840ms)
+  ✓  41 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:906:3 › windowed source keyboard edits preserve whole graphemes and undo (1.0s)
+  ✓  42 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:906:3 › windowed live keyboard edits preserve whole graphemes and undo (1.0s)
+  ✓  43 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:938:1 › issue 255 bracket typing keeps its position after delayed rendering (3.2s)
+  ✓  44 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:955:1 › issue 255 single-space headings render immediately after an image line (694ms)
+  ✓  45 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:971:3 › source list keyboard nesting, exit and undo survive mode changes (657ms)
+  ✓  46 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:993:3 › source code block Enter preserves literal markers and blank lines (735ms)
+  ✓  47 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:971:3 › live list keyboard nesting, exit and undo survive mode changes (589ms)
+  ✓  48 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:993:3 › live code block Enter preserves literal markers and blank lines (671ms)
+  ✓  49 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1037:1 › live table navigation replaces one cell, keeps line breaks and supports undo (768ms)
+  ✓  50 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1067:1 › table toolbar preserves row and column content through undo and redo (895ms)
+  ✓  51 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1098:1 › rendered table copy offers HTML and exact Markdown; source copy stays plain (587ms)
+  ✓  52 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1135:1 › native-style multiline clipboard paste stays within a cell and table exit is undoable (752ms)
+  ✓  53 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1156:1 › phase9 search updates queries and keeps keyboard navigation in the search box (734ms)
+  ✓  54 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1176:1 › phase9 outline updates renamed headings and highlights the current section (1.8s)
+  ✓  55 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1200:1 › phase9 literal replacement preserves Unicode offsets and one undo boundary (1.3s)
+  ✓  56 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1229:1 › phase9 replace all deletes literally and rejects a stale query (1.1s)
+  ✓  57 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1248:1 › phase9 editing refreshes results without moving the caret and switching documents clears them (1.1s)
+  ✓  58 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1273:1 › phase9 truncated results are explicit and cannot be replaced as a complete set (767ms)
+  ✓  59 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1286:1 › phase9 narrow search and outline stay reachable and source mode removes inline code styling (1.1s)
+  ✓  60 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1349:1 › phase10 live table arrows skip delimiters and protect shifted cell selections (745ms)
+  ✓  61 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1379:1 › phase16 modal menu contains keyboard focus and closes ahead of background search (741ms)
+  ✓  62 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1403:1 › phase16 F6 reaches shell and table controls without inserting document text (668ms)
+  ✘  63 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1422:1 › phase16 confirmation remains scrollable at a 380 by 260 effective viewport (523ms)
+
+
+  1) [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1422:1 › phase16 confirmation remains scrollable at a 380 by 260 effective viewport 
+
+    Error: locator.boundingBox: Error: strict mode violation: locator('.confirm-dialog') resolved to 2 elements:
+        1) <div role="dialog" aria-modal="true" class="confirm-dialog" aria-labelledby="close-confirm-title" aria-describedby="close-confirm-body">…</div> aka getByRole('dialog', { name: '文档尚未保存' })
+        2) <section role="dialog" aria-modal="true" aria-labelledby="recovery-title" class="confirm-dialog recovery-dialog" aria-describedby="recovery-description">…</section> aka getByLabel('恢复记录')
+
+    Call log:
+      - waiting for locator('.confirm-dialog')
+
+
+      1428 |   await page.keyboard.press('Control+n')
+      1429 |   const dialog = page.locator('.confirm-dialog')
+    > 1430 |   const rect = await dialog.boundingBox()
+           |                             ^
+      1431 |   expect(rect!.y).toBeGreaterThanOrEqual(0)
+      1432 |   expect(rect!.y + rect!.height).toBeLessThanOrEqual(260)
+      1433 |   await page.keyboard.press('Tab')
+        at /workspace/milkup/tests/e2e/desktop-shell.spec.ts:1430:29
+
+    Error Context: test-results/desktop-shell-phase16-conf-cec45-0-by-260-effective-viewport-desktop-msedge/error-context.md
+
+  1 failed
+    [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1422:1 › phase16 confirmation remains scrollable at a 380 by 260 effective viewport 
+  62 passed (1.2m)
+[ELIFECYCLE] Command failed with exit code 1.

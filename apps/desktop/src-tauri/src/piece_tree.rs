@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 use std::fs::{self, File, OpenOptions};
-use std::io::{BufReader, Read, Seek, SeekFrom, Write};
+use std::io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -233,7 +233,8 @@ impl PieceTree {
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent).map_err(|error| error.to_string())?;
         }
-        let mut output = File::create(path).map_err(|error| error.to_string())?;
+        let file = File::create(path).map_err(|error| error.to_string())?;
+        let mut output = BufWriter::with_capacity(PIECE_BYTES, file);
         match self.base_encoding {
             BaseEncoding::Utf8 => {}
             BaseEncoding::Utf16Le => output
@@ -265,7 +266,11 @@ impl PieceTree {
                 }
             }
         }
-        output.sync_all().map_err(|error| error.to_string())
+        output.flush().map_err(|error| error.to_string())?;
+        output
+            .get_ref()
+            .sync_all()
+            .map_err(|error| error.to_string())
     }
 
     pub(crate) fn rebase(&mut self, path: &Path) -> Result<(), String> {
@@ -863,6 +868,50 @@ mod tests {
         assert_eq!(tree.read_range(0, to).unwrap(), "- 中文");
 
         drop(tree);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn utf16_checkpoints_flush_multiple_buffers_and_preserve_bom_and_crlf() {
+        let root = std::env::temp_dir().join(format!(
+            "milkup-utf16-buffer-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir_all(&root).unwrap();
+        let original = "中文😀 abcdefghijklmnopqrstuvwxyz\r\n".repeat(40000);
+        for big_endian in [false, true] {
+            let encode = |text: &str| {
+                let mut bytes = if big_endian {
+                    vec![0xfe, 0xff]
+                } else {
+                    vec![0xff, 0xfe]
+                };
+                for unit in text.encode_utf16() {
+                    bytes.extend_from_slice(&if big_endian {
+                        unit.to_be_bytes()
+                    } else {
+                        unit.to_le_bytes()
+                    });
+                }
+                bytes
+            };
+            let base = root.join("base.md");
+            fs::write(&base, encode(&original)).unwrap();
+            let mut tree = PieceTree::open(&base, root.join("add.buf")).unwrap();
+            tree.apply_batch(&[(0, 0, "CHECKPOINT17".into())]).unwrap();
+            let saved = root.join("saved.md");
+            tree.write_to(&saved).unwrap();
+            assert_eq!(
+                fs::read(saved).unwrap(),
+                encode(&format!("CHECKPOINT17{original}"))
+            );
+            assert_eq!(fs::read(base).unwrap(), encode(&original));
+            drop(tree);
+        }
         fs::remove_dir_all(root).unwrap();
     }
 

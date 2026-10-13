@@ -10,6 +10,9 @@ import {
   cleanupNativeApplication,
   nativeRequestTimeout,
 } from './native-startup.mjs'
+export function unwrapWebDriverValue(data) {
+  return Object.prototype.hasOwnProperty.call(data, 'value') ? data.value : data
+}
 export async function startProduction(file, output) {
   const application = path.resolve(
     process.env.TAURI_APP_PATH ?? 'apps/desktop/src-tauri/target/release/milkup-desktop',
@@ -28,7 +31,7 @@ export async function startProduction(file, output) {
     const data = await response.json()
     if (!response.ok || (data.value?.error && !('ok' in data.value)))
       throw Error(JSON.stringify(data))
-    return data.value ?? data
+    return unwrapWebDriverValue(data)
   }
   const execute = (script, ...args) =>
     request('POST', `/session/${sid}/execute/sync`, { script, args })

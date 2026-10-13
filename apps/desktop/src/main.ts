@@ -1,3 +1,5 @@
+import { createRecoveryController, type RecoveryRecord, type RecoveryStatus } from './recovery'
+import { createRecoveryUi } from './recovery-ui'
 import { createMarkdownClipboardPayload } from '@milkup/export'
 import { reconcileSaveWatchEvents } from './save-watch-reconciliation'
 import {
@@ -305,6 +307,7 @@ app.innerHTML = `
               ${toolbarButton('reload-external', messages.buttons.reloadExternal, RotateCcw)}
               ${toolbarButton('reveal', messages.buttons.reveal, ExternalLink)}
               ${toolbarButton('close', messages.buttons.close, X)}
+              <button type="button" class="tool-button" data-open-recovery ${isTauriRuntime() ? '' : 'hidden'}>恢复记录（含已归档）</button>
             </div>
             <details class="developer-panel">
               <summary>
@@ -475,6 +478,7 @@ app.innerHTML = `
         <button type="button" class="statusbar-button mode-toggle" data-mode-toggle aria-label="${messages.buttons.live}" title="${messages.buttons.live}"></button>
       </div>
       <span class="statusbar-notice" data-notice role="status" aria-live="polite" hidden></span>
+      <span class="recovery-status" data-recovery-status role="status" hidden></span>
       <span class="statusbar-spacer"></span>
       <div class="statusbar-right">
         <span data-plugin-slot="statusbar"></span>
@@ -555,6 +559,7 @@ let customDocumentOutput: ControlledRendererOutput | undefined
 let customDocumentTitle: string | undefined
 let windowMaximized = false
 let closeConfirmOpen = false
+let recoveryDialogOpen = false
 let loadingState: DocumentLoadingState = Object.freeze({ phase: 'idle' })
 const loadingVisibility = createDocumentLoadingVisibilityController({
   onChange: () => {
@@ -600,6 +605,86 @@ let view: EditorView | undefined
 let sourceView: SourceDocumentView | undefined
 let pluginUiViewportTimer: ReturnType<typeof setTimeout> | undefined
 let pluginUiViewportIdleCallback: number | undefined
+
+async function recoveryInvoke<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
+  const { invoke } = await import('@tauri-apps/api/core')
+  return invoke<T>(command, args)
+}
+
+function renderRecoveryStatus(status: RecoveryStatus): void {
+  const element = appRoot.querySelector<HTMLElement>('[data-recovery-status]')!
+  appRoot.dataset.recoveryPhase = status.phase
+  appRoot.dataset.recoveryVersion = String(status.version ?? -1)
+  element.hidden = status.phase === 'idle'
+  element.dataset.error = String(status.phase === 'error')
+  element.textContent =
+    status.phase === 'error'
+      ? '恢复点未更新'
+      : status.phase === 'writing'
+        ? '正在保留恢复点…'
+        : status.phase === 'ready'
+          ? `恢复点 v${status.version}`
+          : status.version === undefined
+            ? '尚无恢复点'
+            : `恢复点 v${status.version} · 新编辑待保留`
+  element.title =
+    status.error ??
+    (status.at
+      ? `最近恢复点：${new Date(status.at).toLocaleString()}。之后输入可能尚未保留；恢复点不等于保存原文件。`
+      : '检查点完成前异常退出可能丢失输入；恢复点不等于保存原文件。')
+}
+
+const recovery = isTauriRuntime()
+  ? createRecoveryController({
+      read: (includeText) => ({
+        documentId: session.documentId,
+        ...(session.file ? { originalPath: session.file.path } : {}),
+        version: session.documentVersion,
+        dirty: session.dirty,
+        ...(largeDocumentPreview
+          ? { nativeVersion: largeDocumentPreview.source.version }
+          : includeText
+            ? { text: prepareTextForFileSave(session, state.doc.text) }
+            : {}),
+      }),
+      service: {
+        checkpoint: (input) => recoveryInvoke<RecoveryRecord>('checkpoint_recovery', { input }),
+        settle: (key, disposition) => recoveryInvoke<void>('settle_recovery', { key, disposition }),
+      },
+      onStatus: renderRecoveryStatus,
+    })
+  : undefined
+const recoveryUi = createRecoveryUi(appRoot, {
+  list: (includeArchived) => recoveryInvoke('list_recovery_records', { includeArchived }),
+  dismiss: (record) =>
+    recoveryInvoke('archive_recovery', { id: record.id, disposition: 'dismissed' }),
+  restore: async (record) => {
+    recoveryUi.hide()
+    await documentTransitions.request('open', async () => {
+      const path = await recoveryInvoke<string>('materialize_recovery', { id: record.id })
+      await openSelectedDocumentAfterConfirmation(
+        createOpenStageTracker({ label: 'recovery-copy', consoleDiagnostics: false }),
+        async () => path,
+        { cancelledNotice: '恢复已取消；记录仍保留', errorPrefix: '恢复副本打开失败' },
+      )
+      if (session.file?.path !== path || loadingState.phase !== 'ready')
+        throw new Error('恢复副本未打开；原恢复记录仍保留')
+      await recoveryInvoke('archive_recovery', { id: record.id, disposition: 'restored' })
+      notice = '已打开恢复副本，原文件未改动。请另存为到需要的位置。'
+      importantNotice = true
+      renderSession()
+    })
+  },
+  changed: (open) => {
+    recoveryDialogOpen = open
+    appRoot.querySelector<HTMLElement>('.desktop-shell')!.inert = open
+    if (!open) focusActiveView()
+  },
+})
+appRoot.querySelector('[data-open-recovery]')?.addEventListener('click', () => {
+  setMenuOpen(false)
+  void recoveryUi.open(true)
+})
 
 const desktopPluginEditor: Editor = {
   get state() {
@@ -771,6 +856,7 @@ void waitForNextPaint().then(() => {
 const initialDocumentOpenPromise = openInitialDocument(initialOpenFilePathPromise)
 void initialDocumentOpenPromise.finally(() => {
   void showStartupWindow()
+  if (recovery) void recoveryUi.open(false, true)
 })
 void desktopPluginManager.ready.then(async () => {
   await initialDocumentOpenPromise
@@ -1270,7 +1356,7 @@ function runDesktopAction(id: string, input: unknown = {}): void {
 }
 
 function focusActiveView(): void {
-  if (closeConfirmOpen) return
+  if (closeConfirmOpen || recoveryDialogOpen) return
   if (loadingState.phase === 'failed') {
     appRoot.querySelector<HTMLButtonElement>('[data-loading-dismiss]')?.focus()
     return
@@ -1588,6 +1674,7 @@ async function applyLargeSourceView(): Promise<void> {
 }
 
 function createNewDocument(): void {
+  recovery?.endDocument()
   const action: FileAction = {
     kind: 'new',
     documentId: `desktop-untitled-${Date.now()}`,
@@ -1798,6 +1885,7 @@ async function openDocumentResult(
   clearPluginDocumentPresentation()
   scheduleLargeDocumentPreviewClose()
   clearSearchResults()
+  recovery?.endDocument()
   tracker.mark('memory-document-start', result.file.path)
   state = new EditorState({
     doc: new MemoryTextDocument(result.text),
@@ -1828,6 +1916,7 @@ async function openDocumentResult(
 function openPluginDocumentResult(
   result: NonNullable<Awaited<ReturnType<DesktopPluginManager['openPluginDocument']>>>,
 ): void {
+  void recovery?.endDocument()
   unwatchCurrentFile()
   scheduleLargeDocumentPreviewClose()
   clearSearchResults()
@@ -1907,6 +1996,7 @@ async function openNativeLargeDocument(
   clearPluginDocumentPresentation()
   clearSearchResults()
   currentOpenPolicy = openPolicy
+  recovery?.endDocument()
   largeDocumentPreview = {
     ...preview,
     editSession: new LargeEditSession({
@@ -1950,7 +2040,10 @@ function runDocumentSave(task: () => Promise<boolean>, allowEditing = false): Pr
   const watchEvents: FileWatchEvent[] = []
   // Establish the lock before invoking the async operation, including Save As dialogs.
   const promise = Promise.resolve()
-    .then(task)
+    .then(async () => {
+      await recovery?.flush()
+      return task()
+    })
     .then(
       (saved) => {
         if (saved) {
@@ -2624,6 +2717,7 @@ async function revealCurrentFile(): Promise<void> {
 }
 
 function closeCurrentDocument(): void {
+  void recovery?.endDocument()
   unwatchCurrentFile()
   clearPluginDocumentPresentation()
   scheduleLargeDocumentPreviewClose()
@@ -3271,6 +3365,7 @@ async function replaceLargeSearchMatches(all: boolean, result: DesktopSearchStat
     const selectionAfter = Selection.cursor(first.from + insert.length)
     operation.preparing = true
     renderSession()
+    await recovery?.flush()
     await prepareLargeReplacement(
       largeSearchService,
       {
@@ -3745,6 +3840,8 @@ async function invokeWindowClose(): Promise<void> {
     return
   }
 
+  await recovery?.endDocument()
+
   if (!isTauriRuntime()) {
     setDocumentLoadingState({ phase: 'ready' })
     return
@@ -3812,6 +3909,7 @@ function pluginShortcutAction(
 }
 
 function renderSession(): void {
+  recovery?.observe()
   if (searchOpen && !isDocumentBusy() && searchSignature !== currentSearchSignature())
     scheduleDocumentSearch(false)
   const navigationSignature = JSON.stringify([
@@ -3959,6 +4057,7 @@ function renderDocumentLoadingState(): void {
 
 function isDocumentBusy(): boolean {
   return (
+    recoveryDialogOpen ||
     nativeReplacement?.preparing === true ||
     loadingState.phase === 'opening' ||
     loadingState.phase === 'indexing' ||

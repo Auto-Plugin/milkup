@@ -21,6 +21,7 @@ use tauri::{AppHandle, Emitter, Manager, State, Window};
 
 mod native_search;
 mod piece_tree;
+mod recovery;
 use piece_tree::PieceTree;
 
 const FILE_WATCH_EVENT_NAME: &str = "milkup-file-watch-event";
@@ -1024,7 +1025,10 @@ pub fn run() {
         .manage(LargeFileRegistry(Mutex::new(HashMap::new())))
         .manage(native_search::NativeSearchRegistry::default())
         .plugin(tauri_plugin_dialog::init())
-        .setup(|_app| {
+        .setup(|app| {
+            app.manage(recovery::RecoveryStore::new(
+                app.path().app_data_dir()?.join("recovery-v1"),
+            ));
             let temp_dir = std::env::temp_dir();
             thread::spawn(move || {
                 let _ = cleanup_large_file_working_temps_in_dir(&temp_dir);
@@ -1032,6 +1036,11 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            recovery::list_recovery_records,
+            recovery::checkpoint_recovery,
+            recovery::settle_recovery,
+            recovery::materialize_recovery,
+            recovery::archive_recovery,
             bridge_status,
             window_control,
             initial_open_file_path,
@@ -1503,164 +1512,11 @@ fn cleanup_large_file_working_temps_in_dir(dir: &Path) -> Result<usize, String> 
     cleanup_large_file_working_temps_by_prefix(dir, ".")
 }
 
-fn cleanup_large_file_working_temps_by_prefix(dir: &Path, prefix: &str) -> Result<usize, String> {
-    let entries = match fs::read_dir(dir) {
-        Ok(entries) => entries,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(0),
-        Err(error) => return Err(error.to_string()),
-    };
-    let mut removed = 0;
-
-    for entry in entries {
-        let entry = entry.map_err(|error| error.to_string())?;
-        let path = entry.path();
-
-        if !entry
-            .file_type()
-            .map_err(|error| error.to_string())?
-            .is_file()
-        {
-            continue;
-        }
-
-        let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
-            continue;
-        };
-
-        if is_large_file_working_temp_name(name, prefix) && working_temp_owner_is_gone(name) {
-            match fs::remove_file(&path) {
-                Ok(()) => removed += 1,
-                Err(error)
-                    if matches!(
-                        error.kind(),
-                        std::io::ErrorKind::PermissionDenied | std::io::ErrorKind::NotFound
-                    ) => {}
-                Err(error) => return Err(error.to_string()),
-            }
-        }
-    }
-
-    Ok(removed)
-}
-
-fn is_large_file_working_temp_name(name: &str, prefix: &str) -> bool {
-    if !name.starts_with(prefix) {
-        return false;
-    }
-    let marker = format!(".{LARGE_FILE_WORKING_TEMP_MARKER}.");
-    if let Some((file_prefix, rest)) = name.rsplit_once(&marker) {
-        // A per-document sweep must match the complete file name, not note.md.*.
-        if prefix != "." && format!("{file_prefix}.") != prefix {
-            return false;
-        }
-        let parts: Vec<_> = rest.split('.').collect();
-        let digits = |part: &str| !part.is_empty() && part.chars().all(|ch| ch.is_ascii_digit());
-        let doc_id = |part: &str| {
-            !part.is_empty()
-                && part
-                    .chars()
-                    .all(|ch| ch.is_ascii_alphanumeric() || ch == '-')
-        };
-        let version = |part: &str| part.strip_prefix('v').map_or(false, digits);
-        return match parts.as_slice() {
-            [pid, doc, kind, "work"] => {
-                digits(pid) && doc_id(doc) && (*kind == "add" || *kind == "base" || version(kind))
-            }
-            [pid, doc, ver, nonce, "save-as", "tmp"] => {
-                digits(pid) && doc_id(doc) && version(ver) && digits(nonce)
-            }
-            _ => false,
-        };
-    }
-    // Historical unmarked files are only recognized in a sweep for one exact
-    // document; scanning a directory cannot establish their ownership safely.
-    prefix != "."
-        && name
-            .strip_prefix(prefix)
-            .and_then(|rest| rest.strip_suffix(".work"))
-            .map_or(false, looks_like_legacy_large_file_working_temp)
-}
-
-// Never unlink another live session's add/base buffers or in-flight save.
-// Unknown ownership is deliberately retained rather than risking unsaved data.
-fn working_temp_owner_is_gone(name: &str) -> bool {
-    let marker = format!(".{LARGE_FILE_WORKING_TEMP_MARKER}.");
-    let pid = if let Some((_, rest)) = name.rsplit_once(&marker) {
-        rest.split('.')
-            .next()
-            .and_then(|part| part.parse::<u32>().ok())
-    } else {
-        name.strip_suffix(".work")
-            .and_then(|rest| rest.rsplit('.').nth(2))
-            .and_then(|part| part.parse::<u32>().ok())
-    };
-    let Some(pid) = pid.filter(|pid| *pid > 0 && *pid <= i32::MAX as u32) else {
-        return false;
-    };
-    if pid == std::process::id() {
-        return false;
-    }
-    #[cfg(unix)]
-    {
-        extern "C" {
-            fn kill(pid: i32, signal: i32) -> i32;
-        }
-        // Signal zero checks existence without delivering a signal. EPERM and
-        // other unknown errors mean retain; only ESRCH proves absence.
-        unsafe {
-            kill(pid as i32, 0) != 0 && std::io::Error::last_os_error().raw_os_error() == Some(3)
-        }
-    }
-    #[cfg(windows)]
-    {
-        #[link(name = "kernel32")]
-        extern "system" {
-            fn OpenProcess(access: u32, inherit: i32, pid: u32) -> *mut std::ffi::c_void;
-            fn CloseHandle(handle: *mut std::ffi::c_void) -> i32;
-        }
-        unsafe {
-            let handle = OpenProcess(0x00100000, 0, pid);
-            if handle.is_null() {
-                std::io::Error::last_os_error().raw_os_error() == Some(87)
-            } else {
-                CloseHandle(handle);
-                false
-            }
-        }
-    }
-    #[cfg(not(any(unix, windows)))]
-    {
-        false
-    }
-}
-
-fn looks_like_legacy_large_file_working_temp(rest: &str) -> bool {
-    let mut parts = rest.split('.');
-    let Some(pid) = parts.next() else {
-        return false;
-    };
-    let Some(document_id) = parts.next() else {
-        return false;
-    };
-    let Some(version) = parts.next() else {
-        return false;
-    };
-
-    if parts.next().is_some() {
-        return false;
-    }
-
-    !pid.is_empty()
-        && !document_id.is_empty()
-        && document_id
-            .chars()
-            .all(|ch| ch.is_ascii_alphanumeric() || ch == '-')
-        && pid.chars().all(|character| character.is_ascii_digit())
-        && version.len() > 1
-        && version.starts_with('v')
-        && version[1..]
-            .chars()
-            .all(|character| character.is_ascii_digit())
+fn cleanup_large_file_working_temps_by_prefix(_dir: &Path, _prefix: &str) -> Result<usize, String> {
+    // A dead PID does not prove the buffers are expendable. Legacy add/work and
+    // save staging files have no durable reconstruction manifest: preserve them.
+    // Live-session cleanup remains owned by PieceTree::close/Drop only.
+    Ok(0)
 }
 
 fn large_file_snapshot(
@@ -2874,7 +2730,7 @@ mod tests {
     }
 
     #[test]
-    fn large_file_open_cleans_stale_working_temps_for_same_path_only() {
+    fn large_file_open_preserves_unrecoverable_stale_buffers() {
         let dir = create_test_dir("large-clean-open");
         let path = dir.join("large.md");
         let other_path = dir.join("other.md");
@@ -2895,14 +2751,14 @@ mod tests {
         )
         .expect("open large file");
 
-        assert!(!stale.exists());
-        assert!(!legacy_stale.exists());
+        assert!(stale.exists());
+        assert!(legacy_stale.exists());
         assert!(unrelated.exists());
         remove_test_dir(dir);
     }
 
     #[test]
-    fn large_file_temp_cleanup_only_removes_marked_work_files() {
+    fn large_file_temp_cleanup_retains_dead_owner_and_unknown_buffers() {
         let dir = create_test_dir("large-clean-dir");
         let stale = dir.join(".note.md.milkup-large.2147483647.doc.v1.work");
         let stale_save = dir.join(".note.md.milkup-large.2147483647.doc.v1.123.save-as.tmp");
@@ -2915,9 +2771,9 @@ mod tests {
 
         let removed = cleanup_large_file_working_temps_in_dir(&dir).expect("cleanup dir");
 
-        assert_eq!(removed, 2);
-        assert!(!stale.exists());
-        assert!(!stale_save.exists());
+        assert_eq!(removed, 0);
+        assert!(stale.exists());
+        assert!(stale_save.exists());
         assert!(keep_regular_work.exists());
         assert!(keep_tmp.exists());
         remove_test_dir(dir);

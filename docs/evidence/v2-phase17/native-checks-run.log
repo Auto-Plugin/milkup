@@ -1,0 +1,19 @@
+quality 0
+Traceback (most recent call last):
+  File "/tmp/milkup-v2-phase17/run-native-checks.py", line 26, in <module>
+    try:driver.wait(timeout=5)
+        ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1264, in wait
+    return self._wait(timeout=timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 2045, in _wait
+    raise TimeoutExpired(self.args, timeout)
+subprocess.TimeoutExpired: Command '['/workspace/.cloud/milkup-v2/run-native.sh', 'env', 'XDG_DATA_HOME=/tmp/milkup-v2-phase17/regression-runtime-quality/data', 'TMPDIR=/tmp/milkup-v2-phase17/regression-runtime-quality/tmp', '/workspace/.cargo/bin/tauri-driver', '--port', '4444', '--native-port', '9515', '--native-driver', '/workspace/.cloud/milkup-v2/sysroot/usr/bin/WebKitWebDriver']' timed out after 5 seconds
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/tmp/milkup-v2-phase17/run-native-checks.py", line 27, in <module>
+    except subprocess.TimeoutExpired:raise RuntimeError('owned driver did not exit after SIGTERM')
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: owned driver did not exit after SIGTERM

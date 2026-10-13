@@ -1,0 +1,19 @@
+2026-10-13T21:14:20.252Z NATIVE_STARTUP_WINDOW 1693ms
+2026-10-13T21:14:28.386Z NATIVE_STARTUP_WINDOW 1786ms
+
+<--- Last few GCs --->
+
+[134584:0x1ee0d000]    49596 ms: Scavenge (interleaved) 4019.9 (4037.2) -> 4019.9 (4084.2) MB, pooled: 0 MB, 60.47 / 0.00 ms  (average mu = 0.185, current mu = 0.105) allocation failure; 
+[134584:0x1ee0d000]    52417 ms: Mark-Compact (reduce) 4020.0 (4084.2) -> 4020.0 (4022.5) MB, pooled: 0 MB, 2674.45 / 0.00 ms  (+ 2.7 ms in 2 steps since start of marking, biggest step 2.7 ms, walltime since start of marking 2684 ms) (average mu = 0.167, 
+FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
+----- Native stack trace -----
+
+ 1: 0x75356c node::OOMErrorHandler(char const*, v8::OOMDetails const&) [node]
+ 2: 0xc52cd0  [node]
+ 3: 0xc52dbf  [node]
+ 4: 0xef6695  [node]
+ 5: 0xef66c2  [node]
+ 6: 0xef69ba  [node]
+ 7: 0xf076ba  [node]
+ 8: 0xf0ba60  [node]
+ 9: 0x199e0d1  [node]
