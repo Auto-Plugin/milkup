@@ -70,6 +70,19 @@ function parseEscape(source: string, pos: number, to: number): InlineParseResult
 }
 
 function parseHardBreak(source: string, pos: number, to: number): InlineParseResult | undefined {
+  const html = source[pos] === '<' ? /^<br[ \t]*\/?>/i.exec(source.slice(pos, to))?.[0] : undefined
+  if (html)
+    return {
+      node: createNode({
+        type: 'hardBreak',
+        from: pos,
+        to: pos + html.length,
+        status: 'valid',
+        markerRanges: [{ from: pos, to: pos + html.length }],
+        data: { kind: 'html' },
+      }),
+      next: pos + html.length,
+    }
   if (pos + 2 < to && source[pos] === ' ' && source[pos + 1] === ' ' && source[pos + 2] === '\n') {
     return {
       node: createNode({

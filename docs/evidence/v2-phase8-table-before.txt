@@ -1,0 +1,181 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/table-keyboard.test.ts (10 tests | 9 failed) 521ms
+   × live table editing > Tab selects the next cell without changing source 178ms
+     → expected false to be true // Object.is equality
+   × live table editing > Shift+Tab skips the delimiter row 24ms
+     → expected 33 to be 9 // Object.is equality
+   × live table editing > Enter goes down the same column without splitting the row 34ms
+     → expected 34 to be 43 // Object.is equality
+   × live table editing > Tab at the last cell appends one row and undo/redo restores it 26ms
+     → expected '| Name | Value |\n| --- | --- |\n| A …' to be '| Name | Value |\n| --- | --- |\n| A …' // Object.is equality
+   × live table editing > Shift+Enter inserts a cell line break without adding a Markdown row 43ms
+     → expected '| Name | Value |\n| --- | --- |\n| A\…' to be '| Name | Value |\n| --- | --- |\n| A<…' // Object.is equality
+   × live table editing > a literal pipe does not silently add a column 40ms
+     → expected '| Name | Value |\n| --- | --- |\n| A|…' to be '| Name | Value |\n| --- | --- |\n| A\…' // Object.is equality
+   × live table editing > Backspace at the cell start does not erase a separator 38ms
+     → expected '| Name | Value |\n| --- | --- |\n|A |…' to be '| Name | Value |\n| --- | --- |\n| A …' // Object.is equality
+   × live table editing > Delete at the cell end does not erase a separator 58ms
+     → expected '| Name | Value |\n| --- | --- |\n| A|…' to be '| Name | Value |\n| --- | --- |\n| A …' // Object.is equality
+   × live table editing > Escape exits after the table into a separate paragraph 35ms
+     → expected '| Name | Value |\n| --- | --- |\n| A …' to be '| Name | Value |\n| --- | --- |\n| A …' // Object.is equality
+   ✓ live table editing > source mode keeps literal Enter and source/live switching preserves selection 40ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/table-keyboard.test.ts > live table editing > Tab selects the next cell without changing source
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/__tests__/table-keyboard.test.ts:14:105
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  src/__tests__/table-keyboard.test.ts > live table editing > Shift+Tab skips the delimiter row
+AssertionError: expected 33 to be 9 // Object.is equality
+
+- Expected
++ Received
+
+- 9
++ 33
+
+ ❯ src/__tests__/table-keyboard.test.ts:15:128
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  src/__tests__/table-keyboard.test.ts > live table editing > Enter goes down the same column without splitting the row
+AssertionError: expected 34 to be 43 // Object.is equality
+
+- Expected
++ Received
+
+- 43
++ 34
+
+ ❯ src/__tests__/table-keyboard.test.ts:16:148
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  src/__tests__/table-keyboard.test.ts > live table editing > Tab at the last cell appends one row and undo/redo restores it
+AssertionError: expected '| Name | Value |\n| --- | --- |\n| A …' to be '| Name | Value |\n| --- | --- |\n| A …' // Object.is equality
+
+- Expected
++ Received
+
+  | Name | Value |
+  | --- | --- |
+  | A | 1 |
+  | B | 2 |
+- |  |  |
+
+ ❯ src/__tests__/table-keyboard.test.ts:17:149
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  src/__tests__/table-keyboard.test.ts > live table editing > Shift+Enter inserts a cell line break without adding a Markdown row
+AssertionError: expected '| Name | Value |\n| --- | --- |\n| A\…' to be '| Name | Value |\n| --- | --- |\n| A<…' // Object.is equality
+
+- Expected
++ Received
+
+  | Name | Value |
+  | --- | --- |
+- | A<br> | 1 |
++ | A
++  | 1 |
+  | B | 2 |
+
+ ❯ src/__tests__/table-keyboard.test.ts:18:159
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  src/__tests__/table-keyboard.test.ts > live table editing > a literal pipe does not silently add a column
+AssertionError: expected '| Name | Value |\n| --- | --- |\n| A|…' to be '| Name | Value |\n| --- | --- |\n| A\…' // Object.is equality
+
+- Expected
++ Received
+
+  | Name | Value |
+  | --- | --- |
+- | A\| | 1 |
++ | A| | 1 |
+  | B | 2 |
+
+ ❯ src/__tests__/table-keyboard.test.ts:19:128
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  src/__tests__/table-keyboard.test.ts > live table editing > Backspace at the cell start does not erase a separator
+AssertionError: expected '| Name | Value |\n| --- | --- |\n|A |…' to be '| Name | Value |\n| --- | --- |\n| A …' // Object.is equality
+
+- Expected
++ Received
+
+  | Name | Value |
+  | --- | --- |
+- | A | 1 |
++ |A | 1 |
+  | B | 2 |
+
+ ❯ src/__tests__/table-keyboard.test.ts:20:125
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+ FAIL  src/__tests__/table-keyboard.test.ts > live table editing > Delete at the cell end does not erase a separator
+AssertionError: expected '| Name | Value |\n| --- | --- |\n| A|…' to be '| Name | Value |\n| --- | --- |\n| A …' // Object.is equality
+
+- Expected
++ Received
+
+  | Name | Value |
+  | --- | --- |
+- | A | 1 |
++ | A| 1 |
+  | B | 2 |
+
+ ❯ src/__tests__/table-keyboard.test.ts:21:137
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯
+
+ FAIL  src/__tests__/table-keyboard.test.ts > live table editing > Escape exits after the table into a separate paragraph
+AssertionError: expected '| Name | Value |\n| --- | --- |\n| A …' to be '| Name | Value |\n| --- | --- |\n| A …' // Object.is equality
+
+- Expected
++ Received
+
+  | Name | Value |
+  | --- | --- |
+  | A | 1 |
+  | B | 2 |
+-
+-
+
+ ❯ src/__tests__/table-keyboard.test.ts:22:122
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  9 failed | 1 passed (10)
+   Start at  10:20:48
+   Duration  4.70s (transform 1.31s, setup 0ms, collect 1.56s, tests 521ms, environment 1.64s, prepare 328ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/table-keyboard.test.ts '--maxWorkers=1'

@@ -48,3 +48,5 @@ export type {
   ViewUpdate,
   VirtualViewportConfig,
 } from './types'
+
+export type { TableCommand, TableContext } from './table-editing'

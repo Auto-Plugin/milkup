@@ -604,7 +604,12 @@ function parseTable(
   const delimiterLine = lines[startIndex + 1]
   const delimiter = parseTableDelimiterRow(delimiterLine)
 
-  if (!header || !delimiter || header.cells.length < 2) {
+  if (
+    !header ||
+    !delimiter ||
+    header.cells.length < 2 ||
+    header.cells.length !== delimiter.alignments.length
+  ) {
     return undefined
   }
 
@@ -628,7 +633,7 @@ function parseTable(
     node: createNode({
       type: 'table',
       from: header.node.from,
-      to: last.to,
+      to: Math.max(last.to, delimiterLine!.to),
       status: 'valid',
       children: rows,
       data: {
@@ -740,7 +745,8 @@ function splitTableCells(line: SourceLine): readonly TableCellRange[] {
   const ranges: TableCellRange[] = []
   const text = line.text
   const startsWithPipe = text.trimStart().startsWith('|')
-  const endsWithPipe = text.trimEnd().endsWith('|')
+  const lastPipe = text.trimEnd().length - 1
+  const endsWithPipe = text[lastPipe] === '|' && !isEscapedPipe(text, lastPipe)
   const start = startsWithPipe ? text.indexOf('|') + 1 : 0
   const end = endsWithPipe ? text.lastIndexOf('|') : text.length
   let cellStart = start
@@ -749,7 +755,7 @@ function splitTableCells(line: SourceLine): readonly TableCellRange[] {
   while (pos <= end) {
     const atCellEnd = pos === end
     const char = text[pos]
-    const escaped = pos > 0 && text[pos - 1] === '\\'
+    const escaped = isEscapedPipe(text, pos)
 
     if (atCellEnd || (char === '|' && !escaped)) {
       ranges.push(trimTableCellRange(line.from + cellStart, line.from + pos, text, line.from))
@@ -760,6 +766,12 @@ function splitTableCells(line: SourceLine): readonly TableCellRange[] {
   }
 
   return Object.freeze(ranges)
+}
+
+function isEscapedPipe(text: string, position: number): boolean {
+  let slashes = 0
+  for (let i = position - 1; i >= 0 && text[i] === '\\'; i--) slashes++
+  return slashes % 2 === 1
 }
 
 function trimTableCellRange(

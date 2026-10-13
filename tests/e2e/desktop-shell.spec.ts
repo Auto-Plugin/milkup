@@ -988,3 +988,129 @@ for (const mode of ['source', 'live'] as const) {
     await expect(page.locator('.milkup-line[data-line="4"]')).toHaveText('```')
   })
 }
+
+const editableTable = '| Name | Value |\n| --- | --- |\n| A | 1 |\n| B | 2 |'
+async function openEditableTable(page: Page): Promise<void> {
+  await page.goto('/')
+  await page.locator('.milkup-input-proxy').focus()
+  await page.keyboard.insertText(editableTable)
+  await page.locator('.milkup-line[data-line="3"] .milkup-table-cell').first().click()
+  await page.getByRole('button', { name: '选中单元格', exact: true }).click()
+}
+test('live table navigation replaces one cell, keeps line breaks and supports undo', async ({
+  page,
+}) => {
+  await openEditableTable(page)
+  await page.keyboard.press('Tab')
+  await page.keyboard.type('x')
+  await expect(page.locator('.milkup-line[data-line="3"] .milkup-table-cell').nth(1)).toHaveText(
+    'x',
+  )
+  await page.keyboard.press('Control+z')
+  await page.keyboard.press('Shift+Tab')
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('second')
+  await expect(page.locator('.milkup-line[data-line="4"] .milkup-table-cell').first()).toHaveText(
+    'second',
+  )
+  await page.keyboard.press('Shift+Enter')
+  await page.keyboard.type('line|value')
+  await expect(page.locator('.milkup-line[data-line="4"] .milkup-table-cell')).toHaveCount(2)
+  await expect(page.locator('.milkup-line[data-line="4"] .milkup-table-cell br')).toHaveCount(1)
+  await page.keyboard.press('Control+1')
+  await expect(page.locator('.milkup-line[data-line="4"]')).toHaveText(
+    '| second<br>line\\|value | 2 |',
+  )
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-line[data-line="4"]')).toHaveText('| second<br> | 2 |')
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-line[data-line="4"]')).toHaveText('| second | 2 |')
+})
+test('table toolbar preserves row and column content through undo and redo', async ({ page }) => {
+  await openEditableTable(page)
+  await page.getByRole('button', { name: '右侧加列', exact: true }).click()
+  await expect(page.locator('.milkup-line[data-line="1"] .milkup-table-cell')).toHaveCount(3)
+  const cellBox = await page
+    .locator('.milkup-line[data-line="3"] .milkup-table-cell')
+    .nth(1)
+    .boundingBox()
+  const cursorBox = await page.locator('.milkup-cursor').boundingBox()
+  expect(cursorBox!.x).toBeGreaterThanOrEqual(cellBox!.x)
+  expect(cursorBox!.x).toBeLessThan(cellBox!.x + cellBox!.width)
+  await page.getByRole('button', { name: '删除列', exact: true }).click()
+  await expect(page.locator('.milkup-line[data-line="1"] .milkup-table-cell')).toHaveCount(2)
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-line[data-line="1"] .milkup-table-cell')).toHaveCount(3)
+  await page.keyboard.press('Control+Shift+z')
+  await expect(page.locator('.milkup-line[data-line="1"] .milkup-table-cell')).toHaveCount(2)
+  await page.getByRole('button', { name: '下方加行', exact: true }).click()
+  await page.keyboard.type('new')
+  await expect(page.locator('.milkup-line[data-line="4"] .milkup-table-cell').nth(1)).toHaveText(
+    'new',
+  )
+  await page.getByRole('button', { name: '删除行', exact: true }).click()
+  await expect(page.locator('.milkup-line[data-line="4"] .milkup-table-cell').first()).toHaveText(
+    'B',
+  )
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-line[data-line="4"] .milkup-table-cell').nth(1)).toHaveText(
+    'new',
+  )
+})
+test('rendered table copy offers HTML and exact Markdown; source copy stays plain', async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await page.goto('/')
+  const source = '| 名称 | Value |\n| :--- | ---: |\n| A & <x> | **1**<br>two |'
+  await page.locator('.milkup-input-proxy').focus()
+  await page.keyboard.insertText(source)
+  await page.keyboard.press('Control+a')
+  await page.keyboard.press('Control+c')
+  const payload = await page.evaluate(async () => {
+    const item = (await navigator.clipboard.read())[0]!
+    return {
+      text: await (await item.getType('text/plain')).text(),
+      html: await (await item.getType('text/html')).text(),
+    }
+  })
+  expect(payload.text).toBe(source)
+  const structure = await page.evaluate((html) => {
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+    return {
+      rows: doc.querySelectorAll('table tr').length,
+      headers: doc.querySelectorAll('th').length,
+      cell: doc.querySelector('td')?.textContent,
+      breaks: doc.querySelectorAll('td br').length,
+      scripts: doc.querySelectorAll('script').length,
+    }
+  }, payload.html)
+  expect(structure).toEqual({ rows: 2, headers: 2, cell: 'A & <x>', breaks: 1, scripts: 0 })
+  await page.keyboard.press('Control+1')
+  await page.keyboard.press('Control+c')
+  expect(
+    await page.evaluate(async () => (await navigator.clipboard.read())[0]!.types),
+  ).not.toContain('text/html')
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(source)
+})
+test('native-style multiline clipboard paste stays within a cell and table exit is undoable', async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await openEditableTable(page)
+  await page.evaluate(() => navigator.clipboard.writeText('one\ntwo|three'))
+  await page.keyboard.press('Control+v')
+  await expect(page.locator('.milkup-line[data-line="3"] .milkup-table-cell')).toHaveCount(2)
+  await page.keyboard.press('Control+1')
+  await expect(page.locator('.milkup-line[data-line="3"]')).toHaveText('| one<br>two\\|three | 1 |')
+  await page.keyboard.press('Control+2')
+  await page.keyboard.press('Control+z')
+  await page.getByRole('button', { name: '退出表格', exact: true }).click()
+  await page.keyboard.type('after')
+  await expect(page.locator('.milkup-line[data-line="6"]')).toHaveText('after')
+  await page.keyboard.press('Control+z')
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-line')).toHaveCount(4)
+})

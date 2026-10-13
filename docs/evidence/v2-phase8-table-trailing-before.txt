@@ -1,0 +1,370 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/table-keyboard.test.ts (23 tests | 1 failed) 893ms
+   ✓ live table editing > Tab selects the next cell without changing source 156ms
+   ✓ live table editing > Shift+Tab skips the delimiter row 36ms
+   ✓ live table editing > Enter goes down the same column without splitting the row 38ms
+   ✓ live table editing > Tab at the last cell appends one row and undo/redo restores it 72ms
+   ✓ live table editing > Shift+Enter inserts a cell line break without adding a Markdown row 35ms
+   ✓ live table editing > a literal pipe does not silently add a column 26ms
+   ✓ live table editing > Backspace at the cell start does not erase a separator 9ms
+   ✓ live table editing > Delete at the cell end does not erase a separator 12ms
+   ✓ live table editing > Escape exits after the table into a separate paragraph 58ms
+   ✓ live table editing > source mode keeps literal Enter and source/live switching preserves selection 45ms
+   ✓ explicit table structure commands > adds/deletes a data row as separate undo steps 65ms
+   ✓ explicit table structure commands > adds/deletes a column preserving cells and alignment 42ms
+   ✓ explicit table structure commands > never deletes the header or reduces a table below two columns 6ms
+   ✓ explicit table structure commands > appends a row to a header-only table without losing its delimiter 24ms
+   ✓ explicit table structure commands > keeps CRLF and adjacent paragraphs during column/row changes 23ms
+   ✓ explicit table structure commands > selects the table including the delimiter and preserves the source selection across modes 78ms
+   ✓ explicit table structure commands > keeps cross-cell selections intact instead of indenting or splitting the table 21ms
+   ✓ explicit table structure commands > replaces the selected next cell and undoes typing independently of navigation 40ms
+   ✓ explicit table structure commands > pastes multiline content into one cell and undoes it as a unit 22ms
+   ✓ explicit table structure commands > deletes the inline break as one unit and restores it on undo 22ms
+   ✓ explicit table structure commands > preserves an already typed pipe escape 15ms
+   ✓ explicit table structure commands > does not modify a readonly or composing table 11ms
+   × does not capture Tab/Enter on the empty line after a trailing table newline 30ms
+     → expected { Object (table, rows, ...) } to be undefined
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/table-keyboard.test.ts > does not capture Tab/Enter on the empty line after a trailing table newline
+AssertionError: expected { Object (table, rows, ...) } to be undefined
+
+- Expected: 
+undefined
+
++ Received: 
+{
+  "cell": {
+    "contentRanges": [
+      {
+        "from": 47,
+        "to": 48,
+      },
+    ],
+    "from": 47,
+    "status": "valid",
+    "to": 48,
+    "type": "tableCell",
+  },
+  "cells": [
+    {
+      "contentRanges": [
+        {
+          "from": 43,
+          "to": 44,
+        },
+      ],
+      "from": 43,
+      "status": "valid",
+      "to": 44,
+      "type": "tableCell",
+    },
+    {
+      "contentRanges": [
+        {
+          "from": 47,
+          "to": 48,
+        },
+      ],
+      "from": 47,
+      "status": "valid",
+      "to": 48,
+      "type": "tableCell",
+    },
+  ],
+  "column": 1,
+  "columnCount": 2,
+  "row": 2,
+  "rows": [
+    {
+      "children": [
+        {
+          "contentRanges": [
+            {
+              "from": 2,
+              "to": 6,
+            },
+          ],
+          "from": 2,
+          "status": "valid",
+          "to": 6,
+          "type": "tableCell",
+        },
+        {
+          "contentRanges": [
+            {
+              "from": 9,
+              "to": 14,
+            },
+          ],
+          "from": 9,
+          "status": "valid",
+          "to": 14,
+          "type": "tableCell",
+        },
+      ],
+      "contentRanges": [
+        {
+          "from": 2,
+          "to": 6,
+        },
+        {
+          "from": 9,
+          "to": 14,
+        },
+      ],
+      "from": 0,
+      "status": "valid",
+      "to": 17,
+      "type": "tableRow",
+    },
+    {
+      "children": [
+        {
+          "contentRanges": [
+            {
+              "from": 33,
+              "to": 34,
+            },
+          ],
+          "from": 33,
+          "status": "valid",
+          "to": 34,
+          "type": "tableCell",
+        },
+        {
+          "contentRanges": [
+            {
+              "from": 37,
+              "to": 38,
+            },
+          ],
+          "from": 37,
+          "status": "valid",
+          "to": 38,
+          "type": "tableCell",
+        },
+      ],
+      "contentRanges": [
+        {
+          "from": 33,
+          "to": 34,
+        },
+        {
+          "from": 37,
+          "to": 38,
+        },
+      ],
+      "from": 31,
+      "status": "valid",
+      "to": 41,
+      "type": "tableRow",
+    },
+    {
+      "children": [
+        {
+          "contentRanges": [
+            {
+              "from": 43,
+              "to": 44,
+            },
+          ],
+          "from": 43,
+          "status": "valid",
+          "to": 44,
+          "type": "tableCell",
+        },
+        {
+          "contentRanges": [
+            {
+              "from": 47,
+              "to": 48,
+            },
+          ],
+          "from": 47,
+          "status": "valid",
+          "to": 48,
+          "type": "tableCell",
+        },
+      ],
+      "contentRanges": [
+        {
+          "from": 43,
+          "to": 44,
+        },
+        {
+          "from": 47,
+          "to": 48,
+        },
+      ],
+      "from": 41,
+      "status": "valid",
+      "to": 51,
+      "type": "tableRow",
+    },
+  ],
+  "table": {
+    "children": [
+      {
+        "children": [
+          {
+            "contentRanges": [
+              {
+                "from": 2,
+                "to": 6,
+              },
+            ],
+            "from": 2,
+            "status": "valid",
+            "to": 6,
+            "type": "tableCell",
+          },
+          {
+            "contentRanges": [
+              {
+                "from": 9,
+                "to": 14,
+              },
+            ],
+            "from": 9,
+            "status": "valid",
+            "to": 14,
+            "type": "tableCell",
+          },
+        ],
+        "contentRanges": [
+          {
+            "from": 2,
+            "to": 6,
+          },
+          {
+            "from": 9,
+            "to": 14,
+          },
+        ],
+        "from": 0,
+        "status": "valid",
+        "to": 17,
+        "type": "tableRow",
+      },
+      {
+        "children": [
+          {
+            "contentRanges": [
+              {
+                "from": 33,
+                "to": 34,
+              },
+            ],
+            "from": 33,
+            "status": "valid",
+            "to": 34,
+            "type": "tableCell",
+          },
+          {
+            "contentRanges": [
+              {
+                "from": 37,
+                "to": 38,
+              },
+            ],
+            "from": 37,
+            "status": "valid",
+            "to": 38,
+            "type": "tableCell",
+          },
+        ],
+        "contentRanges": [
+          {
+            "from": 33,
+            "to": 34,
+          },
+          {
+            "from": 37,
+            "to": 38,
+          },
+        ],
+        "from": 31,
+        "status": "valid",
+        "to": 41,
+        "type": "tableRow",
+      },
+      {
+        "children": [
+          {
+            "contentRanges": [
+              {
+                "from": 43,
+                "to": 44,
+              },
+            ],
+            "from": 43,
+            "status": "valid",
+            "to": 44,
+            "type": "tableCell",
+          },
+          {
+            "contentRanges": [
+              {
+                "from": 47,
+                "to": 48,
+              },
+            ],
+            "from": 47,
+            "status": "valid",
+            "to": 48,
+            "type": "tableCell",
+          },
+        ],
+        "contentRanges": [
+          {
+            "from": 43,
+            "to": 44,
+          },
+          {
+            "from": 47,
+            "to": 48,
+          },
+        ],
+        "from": 41,
+        "status": "valid",
+        "to": 51,
+        "type": "tableRow",
+      },
+    ],
+    "data": {
+      "alignments": [
+        undefined,
+        undefined,
+      ],
+    },
+    "from": 0,
+    "status": "valid",
+    "to": 51,
+    "type": "table",
+  },
+  "withinCell": false,
+}
+
+ ❯ src/__tests__/table-keyboard.test.ts:228:30
+    226| it('does not capture Tab/Enter on the empty line after a trailing tabl…
+    227|   const text=table+'\n';const s=setup(text.length,text)
+    228|   expect(s.view.activeTable).toBeUndefined()
+       |                              ^
+    229|   expect(s.key('Tab')).toBe(false)
+    230|   s.key('Enter');expect(s.text()).toBe(text+'\n')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 22 passed (23)
+   Start at  10:40:08
+   Duration  6.86s (transform 2.02s, setup 0ms, collect 2.60s, tests 893ms, environment 2.27s, prepare 362ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/table-keyboard.test.ts '--maxWorkers=1'

@@ -1,3 +1,4 @@
+import { createMarkdownClipboardPayload } from '@milkup/export'
 import { reconcileSaveWatchEvents } from './save-watch-reconciliation'
 import {
   createDocumentTransitionController,
@@ -50,6 +51,7 @@ import type {
 import { createControlledRendererNodes, EditorView } from '@milkup/view-dom'
 import { SourceDocumentView } from '@milkup/view-dom'
 import type {
+  TableCommand,
   ControlledRenderer,
   ControlledRendererActionDetail,
   ControlledRendererContext,
@@ -398,6 +400,16 @@ app.innerHTML = `
           </button>
         </div>
         <div class="editor-host" data-editor-host></div>
+        <div class="table-tools" data-table-tools role="toolbar" aria-label="表格操作" hidden>
+          <span data-table-position title="Tab 切换单元格 · Enter 向下 · Shift+Enter 单元格内换行 · Esc 退出"></span>
+          <button type="button" data-table-action="select-cell">选中单元格</button>
+          <button type="button" data-table-action="select-table">选中表格</button>
+          <button type="button" data-table-action="add-row" title="在当前行下方插入">下方加行</button>
+          <button type="button" data-table-action="delete-row" title="删除当前数据行；保留表头">删除行</button>
+          <button type="button" data-table-action="add-column" title="在当前列右侧插入">右侧加列</button>
+          <button type="button" data-table-action="delete-column" title="删除当前列；至少保留两列">删除列</button>
+          <button type="button" data-table-action="exit" title="退出到表格后的段落（Esc）">退出表格</button>
+        </div>
         <div class="plugin-bottom-slot" data-plugin-slot="bottom-panel"></div>
         <div class="document-loading" data-document-loading hidden>
           <div>
@@ -1179,6 +1191,38 @@ function focusActiveView(): void {
 function focusEditableView(): void {
   if (closeConfirmOpen) return
   view?.inputDOM.focus({ preventScroll: true })
+}
+
+for (const button of Array.from(
+  appRoot.querySelectorAll<HTMLButtonElement>('[data-table-action]'),
+)) {
+  button.addEventListener('mousedown', (event) => event.preventDefault())
+  button.addEventListener('click', () => {
+    view?.runTableCommand(button.dataset.tableAction as TableCommand)
+    focusActiveView()
+  })
+}
+
+function renderTableTools(): void {
+  const tools = appRoot.querySelector<HTMLElement>('[data-table-tools]')!
+  const context = view?.activeTable
+  tools.hidden = !context || closeConfirmOpen || isDocumentBusy()
+  if (!context) return
+  setText(
+    '[data-table-position]',
+    `${context.row === 0 ? '表头' : `第 ${context.row} 行`} · 第 ${context.column + 1} 列`,
+  )
+  for (const button of Array.from(
+    tools.querySelectorAll<HTMLButtonElement>('[data-table-action]'),
+  )) {
+    const action = button.dataset.tableAction
+    button.disabled =
+      session.readonly ||
+      isDocumentSaving() ||
+      (!context.withinCell && action !== 'select-table' && action !== 'select-cell') ||
+      (action === 'delete-row' && context.row === 0) ||
+      (action === 'delete-column' && context.columnCount <= 2)
+  }
 }
 
 function bindEditorViewClipboard(editorView: EditorView): void {
@@ -2504,7 +2548,12 @@ function copySelectionToClipboard(event: ClipboardEvent): boolean {
     return false
   }
 
-  event.clipboardData.setData('text/plain', state.doc.slice(range.from, range.to))
+  const payload = createMarkdownClipboardPayload(
+    state.doc.slice(range.from, range.to),
+    session.viewMode === 'live',
+  )
+  event.clipboardData.setData('text/plain', payload.text)
+  if (payload.html) event.clipboardData.setData('text/html', payload.html)
   return true
 }
 
@@ -3337,6 +3386,7 @@ function pluginShortcutAction(
 }
 
 function renderSession(): void {
+  renderTableTools()
   void desktopPluginUi.sync(session.documentId)
   const titleInfo = customDocumentTitle
     ? { name: customDocumentTitle, directory: documentSourcePath ?? messages.pathUnsaved }

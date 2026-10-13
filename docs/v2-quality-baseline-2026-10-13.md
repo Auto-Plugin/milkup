@@ -87,4 +87,6 @@ v2 为 Tauri + 自研 TypeScript 编辑内核，不是 main 的 Vue/Electron。�
 
 - [第七阶段：常规文档列表与代码块键盘](./v2-phase7-block-keyboard-verification-2026-10-13.md)：有界帧尾延迟复核、列表退出／缩进、代码空行／边界、选区撤销与原生 Shift+Tab；窗口化大文档仍单列差距。
 
+- [第八阶段：表格编辑与富文本复制](./v2-phase8-table-editing-verification-2026-10-13.md)：明确 live 表格交互、行列与历史，验证系统剪贴板 HTML／Markdown；保留 Word 2016 与窗口化语义差距。
+
 各阶段编号按实际实施顺序记录，不把本表早期规划的阶段名视为已验收声明。中文系统 IME、Windows／macOS、Word 2016、完整性能基准仍单列验收。

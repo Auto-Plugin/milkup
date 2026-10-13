@@ -1803,3 +1803,51 @@ html[data-sidebar-resizing='true'] * {
   padding: 10px 12px;
   overflow-wrap: anywhere;
 }
+
+.table-tools {
+  position: absolute;
+  z-index: 3;
+  right: 16px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 32px);
+  padding: 6px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 4px 18px rgb(30 45 60 / 10%);
+  white-space: nowrap;
+  font-size: 12px;
+}
+.table-tools[hidden] {
+  display: none;
+}
+.table-tools span {
+  padding: 0 8px;
+  color: #637184;
+}
+.table-tools button {
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 5px;
+  color: #27364a;
+  background: transparent;
+  cursor: pointer;
+}
+.table-tools button:hover:not(:disabled) {
+  background: #eef3f6;
+}
+.table-tools button:focus-visible {
+  outline: 2px solid #16856b;
+  outline-offset: -2px;
+}
+.table-tools button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.editor-panel:has(.table-tools:not([hidden])) .milkup-editor-content {
+  padding-bottom: 84px;
+}

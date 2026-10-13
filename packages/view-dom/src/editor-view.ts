@@ -1,3 +1,10 @@
+import {
+  tableContext,
+  tableCommand,
+  tableCellText,
+  type TableCommand,
+  type TableContext,
+} from './table-editing'
 import { createMarkdownImage, isImageAsset } from '@milkup/assets'
 import type { AssetProvider } from '@milkup/assets'
 import { ChangeSet, Selection, transactionChangesDocument } from '@milkup/core'
@@ -209,6 +216,22 @@ export class EditorView {
 
   get markdownParse(): EditorMarkdownParseState {
     return this.markdownParseState
+  }
+
+  get activeTable(): TableContext | undefined {
+    return this.mode === 'live'
+      ? tableContext(this.currentState, this.markdownParseState.cache.root)
+      : undefined
+  }
+
+  runTableCommand(command: TableCommand): boolean {
+    if (!this.editable || this.isComposing) return false
+    const context = this.activeTable
+    if (!context) return false
+    const transaction = tableCommand(this.currentState, context, command)
+    if (!transaction) return false
+    this.dispatch(transaction)
+    return true
   }
 
   setSearchHighlights(highlights: readonly SearchHighlight[], activeIndex = -1): void {
@@ -806,6 +829,45 @@ export class EditorView {
       return false
     }
 
+    const table = this.activeTable
+    if (table?.withinCell) {
+      if (isTab) return this.runTableCommand(event.shiftKey ? 'previous' : 'next')
+      if (event.key === 'Enter')
+        return event.shiftKey
+          ? this.insertText('<br>', 'table.break')
+          : this.runTableCommand('down')
+      if (event.key === 'Escape') return this.runTableCommand('exit')
+      const range = this.currentState.selection.main
+      if (
+        range.empty &&
+        ((event.key === 'Backspace' && range.head === table.cell.from) ||
+          (event.key === 'Delete' && range.head === table.cell.to))
+      )
+        return true
+      if (range.empty && (event.key === 'Backspace' || event.key === 'Delete')) {
+        const before = this.currentState.doc.slice(table.cell.from, range.head)
+        const after = this.currentState.doc.slice(range.head, table.cell.to)
+        const tag =
+          event.key === 'Backspace'
+            ? /<br[ \t]*\/?>$/i.exec(before)?.[0]
+            : /^<br[ \t]*\/?>/i.exec(after)?.[0]
+        if (tag) {
+          const from = event.key === 'Backspace' ? range.head - tag.length : range.head
+          this.dispatch({
+            changes: ChangeSet.delete(from, from + tag.length),
+            selection: Selection.cursor(from),
+            origin: { type: 'command', id: 'table.delete-break' },
+            historyGroup: 'isolate',
+          })
+          return true
+        }
+      }
+    } else if (table && (isTab || event.key === 'Enter')) {
+      // A linear selection across cells is not a rectangular cell selection.
+      // Keep structure commands from replacing its delimiters accidentally.
+      return true
+    }
+
     if (event.key.length === 1) {
       if (this.isComposing) {
         return false
@@ -838,6 +900,11 @@ export class EditorView {
 
   private insertText(text: string, originId?: string): boolean {
     const range = this.currentState.selection.main
+    if (this.activeTable?.withinCell && originId !== 'table.break')
+      text = tableCellText(
+        text,
+        this.currentState.doc.slice(this.activeTable.cell.from, range.from),
+      )
     const insertAt = range.from
     const origin =
       originId === undefined
@@ -2189,6 +2256,8 @@ function renderInlineNode(
   span.dataset.status = node.status
   span.dataset.syntaxVisible = String(shouldShowInlineSyntax(node, selection))
   span.replaceChildren(...renderInlineNodePieces(document, source, selection, node))
+  if (node.type === 'hardBreak' && node.data?.kind === 'html')
+    span.append(document.createElement('br'))
   return span
 }
 

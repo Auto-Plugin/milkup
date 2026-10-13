@@ -239,6 +239,27 @@ export function domRectForLineSourcePosition(
   position: number,
   options: SourcePositionRectOptions = {},
 ): ViewRect | undefined {
+  // An empty cell has no text node. Resolve it before searching adjacent
+  // mapped text, otherwise its caret is drawn in the following column.
+  const emptyCell = Array.from(lineDOM.querySelectorAll<HTMLElement>('.milkup-table-cell')).find(
+    (cell) => Number(cell.dataset.from) === position && Number(cell.dataset.to) === position,
+  )
+  if (emptyCell) {
+    const rect = emptyCell.getBoundingClientRect()
+    if (rect.width > 0 && rect.height > 0) {
+      const reference = referenceDOM.getBoundingClientRect()
+      const style = document.defaultView?.getComputedStyle(emptyCell)
+      const left = rect.left - reference.left + (Number.parseFloat(style?.paddingLeft ?? '') || 0)
+      const top =
+        rect.top -
+        reference.top +
+        (Number.parseFloat(style?.paddingTop ?? '') || 0) +
+        (Number.parseFloat(style?.borderTopWidth ?? '') || 0)
+      const height = resolveLineCursorHeight(emptyCell, options.fallbackLineHeight ?? 20)
+      return { left, top, right: left, bottom: top + height, width: 0, height }
+    }
+  }
+
   const sourceRect = domRectForMappedSourcePosition(
     document,
     lineDOM,
