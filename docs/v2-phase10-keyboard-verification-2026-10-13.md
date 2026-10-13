@@ -48,8 +48,8 @@
 | 全工作区 JS 单元／集成 | 774 项分运行覆盖通过。首轮递归在 view-dom 有 1 项 30 秒超时（其余已运行项通过）；该项保持原期限隔离复验约 20.2 秒通过，随后剩余包全部通过。不是一次全绿运行。 |
 | 大纲／驱动保护补充     | 6 项通过（大纲 2、驱动保护 4）                                                                                                                                |
 | Rust                   | 46 项通过，含清理回归；本阶段无 Rust 产品修改                                                                                                                 |
-| 全仓类型／构建／格式   | 交接保全提交时正在最终收尾，随后补充真实结果                                                                                                                  |
-| Chromium 浏览器        | 新套件 57 项待本轮最终运行，不能提前记作通过                                                                                                                  |
+| 全仓类型／构建／格式   | 全部通过。首轮格式仅发现收尾编辑中的本报告差异；格式化后全仓复核通过                                                                                          |
+| Chromium 浏览器        | 57 项全部通过（单 worker，7.4 分钟），含新增 live 表格方向键；前端测试适配器，不计原生磁盘或系统 IME                                                          |
 | 原生旧表格             | 原 HEAD 七组分两次补齐（6 + 1）                                                                                                                               |
 | 原生新增语义           | 未完整验收；最后行定位修复待真实键盘／磁盘复验                                                                                                                |
 
@@ -77,3 +77,13 @@
 - 非原生验证：[首轮完整递归日志](./evidence/v2-phase10-unit-final.log)、[原期限定点复验](./evidence/v2-phase10-unit-isolated-performance.log)、[剩余工作区包](./evidence/v2-phase10-unit-remaining.log)、[大纲与驱动保护](./evidence/v2-phase10-outline-harness-final.log)、[Rust](./evidence/v2-phase10-rust-final.log)。
 
 最初桌面检查的命令错误地把测试文件放在脚本的 `--` 后，实际执行了整个桌面包，103 项通过、1 项既有大纲用例超过 5 秒。该运行期间也发生了源码修复，因此只保留为初次检查记录，不作为最终版本的通过证据；后续完整剩余包检查才覆盖最终代码。[原始记录](./evidence/v2-phase10-desktop-initial-check.log)。
+
+产品修改保全提交：`9ab5bb48a23ea63b9968282641f29ed29fa73015`，已推送并以 `ls-remote` 核对专用分支。后续收尾提交只补充验收结果和证据。
+
+验证命令：全仓单 worker 递归测试；一次保留原 30 秒期限的 `coding-plan.md` 定点复验；`--no-bail` 补完剩余插件、regressions、CLI、desktop、playground 包；`pnpm typecheck`、`pnpm build`、`MILKUP_BROWSER_EXECUTABLE=/usr/bin/chromium pnpm test:e2e --workers=1`、`pnpm lint`。Rust 用 `cargo test --locked --manifest-path apps/desktop/src-tauri/Cargo.toml`，先取消会掩盖测试状态的环境 runner。源代码提交后没有再次尝试启动原生应用。
+
+最终前端证据：[全仓类型](./evidence/v2-phase10-types-complete.log)、[全仓 JS/TS/Vite 构建](./evidence/v2-phase10-build-final.log)、[完整 Chromium 57 项](./evidence/v2-phase10-browser-final.log)、[新增方向键场景截图](./evidence/v2-phase10-browser-table-arrows.png)。截图已人工查看，表格内容和布局正常；浏览器测试使用 mock 文件适配器，不作原生验收替代。
+
+格式检查：[首次报告格式差异](./evidence/v2-phase10-lint-before-report-format.log)、[格式化后的全仓检查](./evidence/v2-phase10-lint-final.log)。检查差异仅涉及本报告的表格排版和空行，没有改变或跳过产品检查。
+
+最终完整原始运行材料保存于 `/workspace/milkup/.tmp/phase10-handoff-final-20261013/runtime-evidence.tar.gz`，同目录 `manifest.json` 记录最终 HEAD、工作树状态和 SHA-256。源码、脚本、关键日志和截图均已入库；该原始归档仅供需要完整中间状态时额外迁移。旧环境在最终推送核验后停止代码修改并保留，未删除环境或用户文件。
