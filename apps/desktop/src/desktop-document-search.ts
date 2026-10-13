@@ -28,6 +28,9 @@ export interface DesktopSearchState {
   readonly matches: readonly StoreSearchMatch[]
   readonly scannedLineCount: number
   readonly complete: boolean
+  readonly matchCount?: number
+  readonly matchOffset?: number
+  readonly nativeSearchId?: string
   readonly message?: string
 }
 

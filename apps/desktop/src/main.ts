@@ -37,6 +37,7 @@ import {
   prepareTextForFileSave,
   recordRecentFile,
   recordDocumentTransaction,
+  recordNativeDocumentMutation,
   recordFileReloadResult,
   recordFileSaveResult,
   recordModeChange,
@@ -92,6 +93,8 @@ import {
   type DesktopOpenPolicy,
 } from './desktop-open-policy'
 import { DesktopDocumentSearchController, type DesktopSearchState } from './desktop-document-search'
+import { LargeDocumentSearchController, prepareLargeReplacement } from './large-document-search'
+import { createLargeSearchService, type LargeReplaceProgress } from './large-search-service'
 import {
   createDesktopSearchNavigationState,
   moveDesktopSearchNavigationIndex,
@@ -406,6 +409,7 @@ app.innerHTML = `
             <input type="text" aria-label="替换为" placeholder="替换为" data-replace-input />
             <button type="button" class="search-text-button" data-replace-one disabled>替换</button>
             <button type="button" class="search-text-button" data-replace-all disabled>全部替换</button>
+            <button type="button" class="search-text-button" data-replace-cancel hidden>取消替换</button>
           </div>
           <div class="search-message" data-search-message role="status">字面匹配 · 忽略大小写 · 忽略查询首尾空白</div>
         </div>
@@ -505,6 +509,11 @@ const initialOpenFilePathPromise = fileService.initialOpenFilePath().then(
 )
 const largeTextFileService = createDesktopLargeTextFileService()
 const documentSearchController = new DesktopDocumentSearchController()
+const largeSearchService = createLargeSearchService()
+const largeSearchController = new LargeDocumentSearchController(largeSearchService)
+let nativeReplacement:
+  | { abort: AbortController; preparing: boolean; progress?: LargeReplaceProgress | undefined }
+  | undefined
 const assetProvider = createDesktopAssetProvider({
   getMarkdownPath: () => session.file?.path,
 })
@@ -911,6 +920,19 @@ appRoot
 appRoot
   .querySelector<HTMLButtonElement>('[data-replace-all]')
   ?.addEventListener('click', () => replaceSearchMatches(true))
+appRoot
+  .querySelector('[data-replace-cancel]')
+  ?.addEventListener('click', () => nativeReplacement?.abort.abort())
+document.addEventListener(
+  'keydown',
+  (event) => {
+    if (nativeReplacement && event.key === 'Escape') {
+      event.preventDefault()
+      nativeReplacement.abort.abort()
+    }
+  },
+  true,
+)
 appRoot
   .querySelector<HTMLInputElement>('[data-replace-input]')
   ?.addEventListener('keydown', (event) => {
@@ -2174,6 +2196,8 @@ async function applyLargeSourceEdit(edit: {
       documentId: preview.documentId,
       expectedVersion,
       batch,
+      restoreNativeHistory: (token, direction) =>
+        largeSearchService.restore(preview.documentId, expectedVersion, token, direction),
     })
   } catch (error: unknown) {
     notice = `大文件编辑失败：${getErrorMessage(error)}`
@@ -2217,6 +2241,8 @@ async function applyLargeEditHistoryBatch(direction: 'undo' | 'redo'): Promise<v
       documentId: preview.documentId,
       expectedVersion,
       batch,
+      restoreNativeHistory: (token, direction) =>
+        largeSearchService.restore(preview.documentId, expectedVersion, token, direction),
     })
 
     if (snapshot) {
@@ -2228,10 +2254,12 @@ async function applyLargeEditHistoryBatch(direction: 'undo' | 'redo'): Promise<v
       preview.source.applyNativeSnapshot(snapshot)
     }
 
-    session = recordDocumentTransaction(session, {
-      changes: largeTextEditsToChangeSet(batch.edits),
-      origin: { type: 'history.undo', id: `large-${direction}` },
-    })
+    session = batch.nativeHistory
+      ? recordNativeDocumentMutation(session)
+      : recordDocumentTransaction(session, {
+          changes: largeTextEditsToChangeSet(batch.edits),
+          origin: { type: 'history.undo', id: `large-${direction}` },
+        })
     notice = direction === 'undo' ? '已撤销大文件编辑。' : '已重做大文件编辑。'
     await sourceView?.renderVisibleWindow()
     if (sourceView && batch.selectionAfter) {
@@ -2941,6 +2969,7 @@ function scheduleDocumentSearch(navigate: boolean): void {
   if (searchRefreshTimer !== undefined) clearTimeout(searchRefreshTimer)
   documentSearchRunId += 1
   documentSearchController.cancel()
+  largeSearchController.cancel()
   searchSignature = currentSearchSignature()
   searchResultState = undefined
   activeSearchResultIndex = -1
@@ -2968,6 +2997,30 @@ async function runDocumentSearch(query: string, navigate = true): Promise<void> 
     clearSearchResults()
     return
   }
+  const startingView = sourceView
+  const startingDocument = session.documentId
+  try {
+    await startingView?.flushPendingEdits()
+  } catch (error) {
+    if (startingDocument !== session.documentId || currentSearchQuery() !== query.trim()) return
+    searchResultState = {
+      phase: 'failed',
+      query,
+      matches: [],
+      scannedLineCount: 0,
+      complete: false,
+      message: getErrorMessage(error),
+    }
+    renderSearchNavigation()
+    return
+  }
+  if (
+    !searchOpen ||
+    isDocumentBusy() ||
+    startingDocument !== session.documentId ||
+    currentSearchQuery() !== query.trim()
+  )
+    return
   const searchRunId = ++documentSearchRunId
   searchSignature = currentSearchSignature()
   const signature = searchSignature
@@ -2975,7 +3028,7 @@ async function runDocumentSearch(query: string, navigate = true): Promise<void> 
   const current = () =>
     searchOpen && searchRunId === documentSearchRunId && signature === currentSearchSignature()
   try {
-    const result = await documentSearchController.run({
+    const options = {
       query,
       caseSensitive: searchCaseSensitive,
       ...(source
@@ -2987,14 +3040,17 @@ async function runDocumentSearch(query: string, navigate = true): Promise<void> 
             windowSizeLines: currentOpenPolicy.useMemoryVirtualViewport ? 512 : 128,
             maxResults: 200,
           }),
-      onUpdate: (searchState) => {
+      onUpdate: (searchState: DesktopSearchState) => {
         if (!current()) return
         searchResultState = searchState
         activeSearchResultIndex = searchState.matches.length ? 0 : -1
         if (searchRenderFrame === undefined)
           searchRenderFrame = requestAnimationFrame(() => renderSearchNavigation())
       },
-    })
+    }
+    const result = source
+      ? await largeSearchController.run({ ...options, source })
+      : await documentSearchController.run(options)
     if (!current()) return
     searchResultState = result
     activeSearchResultIndex = result.matches.length ? 0 : -1
@@ -3019,7 +3075,24 @@ async function jumpToSearchMatch(
   index: number,
 ): Promise<void> {
   if (searchSignature !== currentSearchSignature() || searchState !== searchResultState) return
-  const match = searchState?.matches[index]
+  if (
+    searchState?.nativeSearchId &&
+    (index < (searchState.matchOffset ?? 0) ||
+      index >= (searchState.matchOffset ?? 0) + searchState.matches.length)
+  ) {
+    try {
+      const page = await largeSearchController.page(index)
+      if (searchSignature !== currentSearchSignature() || searchState !== searchResultState) return
+      searchResultState = page
+      searchState = page
+      renderSearchNavigation()
+    } catch (error) {
+      notice = getErrorMessage(error)
+      renderSession()
+      return
+    }
+  }
+  const match = searchState?.matches[index - (searchState.matchOffset ?? 0)]
   if (!match) return
   const selection = Selection.range(match.from, match.to)
   if (sourceView) {
@@ -3041,6 +3114,10 @@ async function jumpToSearchMatch(
 function replaceSearchMatches(all: boolean): void {
   const result = searchResultState
   if (!canReplaceSearch() || !result || (all && !result.complete)) return
+  if (largeDocumentPreview) {
+    void replaceLargeSearchMatches(all, result)
+    return
+  }
   const matches = all
     ? result.matches
     : result.matches.slice(activeSearchResultIndex, activeSearchResultIndex + 1)
@@ -3069,10 +3146,95 @@ function replaceSearchMatches(all: boolean): void {
   renderSession()
 }
 
+async function replaceLargeSearchMatches(all: boolean, result: DesktopSearchState): Promise<void> {
+  const preview = largeDocumentPreview
+  const editor = sourceView
+  if (!preview || !preview.editSession || !editor || !result.nativeSearchId) return
+  const editSession = preview.editSession
+  const signature = currentSearchSignature()
+  const operation = {
+    abort: new AbortController(),
+    preparing: false,
+    progress: undefined as LargeReplaceProgress | undefined,
+  }
+  nativeReplacement = operation
+  const replacementId = crypto.randomUUID()
+  const insert = appRoot.querySelector<HTMLInputElement>('[data-replace-input]')!.value
+  const index = all ? 0 : activeSearchResultIndex
+  let committedSuccessfully = false
+  try {
+    renderSearchNavigation()
+    await editor.flushPendingEdits()
+    if (
+      preview !== largeDocumentPreview ||
+      signature !== currentSearchSignature() ||
+      operation.abort.signal.aborted
+    )
+      throw new Error('文档或搜索已改变，替换已取消')
+    const page =
+      index >= (result.matchOffset ?? 0) &&
+      index < (result.matchOffset ?? 0) + result.matches.length
+        ? result
+        : await largeSearchController.page(index)
+    const first = page.matches[index - (page.matchOffset ?? 0)]
+    if (!first || signature !== currentSearchSignature() || operation.abort.signal.aborted)
+      throw new Error('替换已取消')
+    const selectionBefore = editor.selection
+    const selectionAfter = Selection.cursor(first.from + insert.length)
+    operation.preparing = true
+    renderSession()
+    await prepareLargeReplacement(
+      largeSearchService,
+      {
+        documentId: preview.documentId,
+        expectedVersion: preview.source.version,
+        searchId: result.nativeSearchId,
+        replacementId,
+        insert,
+        selectedIndex: all ? null : index,
+      },
+      operation.abort.signal,
+      (progress) => {
+        operation.progress = progress
+        renderSearchNavigation()
+      },
+    )
+    await editor.runAfterPendingEdits(async () => {
+      if (operation.abort.signal.aborted) throw new Error('替换已取消')
+      const committed = await largeSearchService.commitReplacement(replacementId)
+      committedSuccessfully = true
+      editSession.confirmNativeHistory(committed.historyId, committed.snapshot.version, {
+        selectionBefore,
+        selectionAfter,
+      })
+      preview.source.applyNativeSnapshot(committed.snapshot)
+      session = recordNativeDocumentMutation(session)
+      notice = all
+        ? `已替换 ${result.matchCount ?? result.matches.length} 处，可整笔撤销。`
+        : '已替换，可撤销。'
+      await editor.renderVisibleWindow()
+      const line = await preview.source.lineAtPosition(selectionAfter.main.head)
+      await editor.revealSelection(line.number, selectionAfter)
+    })
+  } catch (error) {
+    await largeSearchService.cancelReplacement(replacementId).catch(() => {})
+    notice = committedSuccessfully
+      ? `替换已提交；视图更新失败：${getErrorMessage(error)}`
+      : operation.abort.signal.aborted
+        ? '替换已取消，文档未修改。'
+        : `替换失败：${getErrorMessage(error)}`
+  } finally {
+    nativeReplacement = undefined
+    renderSession()
+    renderSearchNavigation()
+    focusActiveView()
+  }
+}
+
 function canReplaceSearch(): boolean {
   return (
     searchOpen &&
-    !largeDocumentPreview &&
+    !nativeReplacement &&
     !session.readonly &&
     !isDocumentBusy() &&
     !isDocumentSaving() &&
@@ -3194,6 +3356,7 @@ function clearSearchResults(): void {
   searchSignature = currentSearchSignature()
   documentSearchRunId += 1
   documentSearchController.cancel()
+  largeSearchController.cancel()
   searchResultState = undefined
   activeSearchResultIndex = -1
   notice = messages.ready
@@ -3222,14 +3385,26 @@ function renderSearchNavigation(): void {
             : hint
   setText(
     '[data-search-message]',
-    largeDocumentPreview ? `${status} · 大文件模式暂不支持替换` : status,
+    nativeReplacement
+      ? `正在准备替换 ${Math.round((100 * (nativeReplacement.progress?.copiedBytes ?? 0)) / Math.max(1, nativeReplacement.progress?.totalBytes ?? 1))}% · 提交前可取消`
+      : status,
   )
   appRoot.querySelector<HTMLButtonElement>('[data-replace-one]')!.disabled = !canReplaceSearch()
   appRoot.querySelector<HTMLButtonElement>('[data-replace-all]')!.disabled =
     !canReplaceSearch() || !searchResultState?.complete
+  for (const selector of [
+    '[data-search-input]',
+    '[data-replace-input]',
+    '[data-search-case]',
+    '[data-search-close]',
+  ]) {
+    appRoot.querySelector<HTMLInputElement>(selector)!.disabled = !!nativeReplacement
+  }
+  appRoot.querySelector<HTMLButtonElement>('[data-replace-cancel]')!.hidden = !nativeReplacement
   const highlights = searchResultState?.matches ?? []
-  view?.setSearchHighlights(highlights, navigation.activeIndex)
-  sourceView?.setSearchHighlights(highlights, navigation.activeIndex)
+  const localActiveIndex = navigation.activeIndex - (searchResultState?.matchOffset ?? 0)
+  view?.setSearchHighlights(highlights, localActiveIndex)
+  sourceView?.setSearchHighlights(highlights, localActiveIndex)
   const loading = appRoot.querySelector<HTMLElement>('[data-search-loading]')
   const idleIcon = appRoot.querySelector<HTMLElement>('[data-search-idle-icon]')
   const searching = searchResultState?.phase === 'searching'
@@ -3691,6 +3866,7 @@ function renderDocumentLoadingState(): void {
 
 function isDocumentBusy(): boolean {
   return (
+    nativeReplacement?.preparing === true ||
     loadingState.phase === 'opening' ||
     loadingState.phase === 'indexing' ||
     loadingState.phase === 'closing'

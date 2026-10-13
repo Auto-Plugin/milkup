@@ -77,6 +77,10 @@ export function recordDocumentTransaction(
     return session
   }
 
+  return recordNativeDocumentMutation(session)
+}
+
+export function recordNativeDocumentMutation(session: DocumentSession): DocumentSession {
   const documentVersion = session.documentVersion + 1
 
   return freezeSession({

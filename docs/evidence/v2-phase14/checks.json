@@ -1,0 +1,57 @@
+[
+  {
+    "name": "workspace-tests",
+    "command": [
+      "pnpm",
+      "-r",
+      "--workspace-concurrency=1",
+      "test",
+      "--maxWorkers=1",
+      "--no-file-parallelism"
+    ],
+    "started": "2026-10-13T18:19:16.844150+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "outline",
+    "command": ["pnpm", "test:outline"],
+    "started": "2026-10-13T18:19:58.366232+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "harness",
+    "command": ["pnpm", "test:native:harness"],
+    "started": "2026-10-13T18:19:59.621871+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "typecheck",
+    "command": ["pnpm", "typecheck"],
+    "started": "2026-10-13T18:20:00.536875+00:00",
+    "exitCode": 2
+  },
+  {
+    "name": "build",
+    "command": ["pnpm", "build"],
+    "started": "2026-10-13T18:20:12.074363+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "rust-tests",
+    "command": [
+      "cargo",
+      "test",
+      "--locked",
+      "--manifest-path",
+      "apps/desktop/src-tauri/Cargo.toml"
+    ],
+    "started": "2026-10-13T18:20:22.388080+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "rust-format",
+    "command": ["cargo", "fmt", "--manifest-path", "apps/desktop/src-tauri/Cargo.toml", "--check"],
+    "started": "2026-10-13T18:20:24.442410+00:00",
+    "exitCode": 0
+  }
+]

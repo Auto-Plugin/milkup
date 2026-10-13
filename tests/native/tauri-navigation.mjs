@@ -440,8 +440,12 @@ try {
       await openFixture('narrow', '# Heading\ntext `code` tail\n### Child\nbody', 'live')
       await req('POST', `/session/${sid}/window/rect`, { width: 760, height: 520 })
       await search('code', '1/1')
+      assert.equal(
+        await execute('return document.querySelector("[data-replace-cancel]").hidden'),
+        true,
+      )
       const bounds = await execute(
-        `const s=document.querySelector('[data-floating-search]').getBoundingClientRect(), e=document.querySelector('[data-editor-host]').getBoundingClientRect();return {width:innerWidth,right:s.right,bottom:s.bottom,editorTop:e.top,editorHeight:e.height,overflow:document.documentElement.scrollWidth>innerWidth,controls:Array.from(document.querySelectorAll('[data-floating-search] button,[data-floating-search] input')).every(n=>{const r=n.getBoundingClientRect();return r.left>=s.left&&r.right<=s.right})}`,
+        `const s=document.querySelector('[data-floating-search]').getBoundingClientRect(), e=document.querySelector('[data-editor-host]').getBoundingClientRect();return {width:innerWidth,right:s.right,bottom:s.bottom,editorTop:e.top,editorHeight:e.height,overflow:document.documentElement.scrollWidth>innerWidth,controls:Array.from(document.querySelectorAll('[data-floating-search] button,[data-floating-search] input')).filter(n=>n.getClientRects().length>0).every(n=>{const r=n.getBoundingClientRect();return r.left>=s.left&&r.right<=s.right})}`,
       )
       assert.ok(
         bounds.right <= bounds.width &&
@@ -509,9 +513,9 @@ try {
       )
       assert.equal(
         await execute('return document.querySelector("[data-replace-one]").disabled'),
-        true,
+        false,
       )
-      assert.match((await info()).status, /大文件模式暂不支持替换/)
+      assert.doesNotMatch((await info()).status, /大文件模式暂不支持替换/)
       await shot('native-windowed-search')
       await key('\uE00C')
       await text('changed')

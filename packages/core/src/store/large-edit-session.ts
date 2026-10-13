@@ -6,6 +6,8 @@ export interface LargeTextEdit extends Change {
 }
 
 export interface LargeTextEditBatch {
+  readonly nativeHistory?:
+    { readonly token: string; readonly direction: 'undo' | 'redo' } | undefined
   readonly edits: readonly LargeTextEdit[]
   readonly selectionBefore?: Selection | undefined
   readonly selectionAfter?: Selection | undefined
@@ -23,6 +25,7 @@ export interface LargeEditSessionSnapshot {
 }
 
 interface HistoryEntry {
+  readonly nativeHistory?: string | undefined
   readonly forward: readonly LargeTextEdit[]
   readonly inverse: readonly LargeTextEdit[]
   readonly selectionBefore?: Selection | undefined
@@ -125,11 +128,34 @@ export class LargeEditSession {
     return this.snapshot()
   }
 
+  confirmNativeHistory(
+    token: string,
+    nativeVersion: number,
+    selections: Pick<LargeTextEditBatch, 'selectionBefore' | 'selectionAfter'> = {},
+  ): LargeEditSessionSnapshot {
+    this.validateNextNativeVersion(nativeVersion)
+    if (!token) throw new Error('Missing native history token')
+    this.undoStack.push(
+      Object.freeze({
+        forward: Object.freeze([]),
+        inverse: Object.freeze([]),
+        nativeHistory: token,
+        ...selections,
+      }),
+    )
+    this.redoStack.length = 0
+    this.currentVersion = nativeVersion
+    return this.snapshot()
+  }
+
   prepareUndo(): LargeTextEditBatch | undefined {
     const entry = this.undoStack.at(-1)
     return entry
       ? Object.freeze({
           edits: Object.freeze([...entry.inverse]),
+          nativeHistory: entry.nativeHistory
+            ? { token: entry.nativeHistory, direction: 'undo' as const }
+            : undefined,
           selectionAfter: entry.selectionBefore,
         })
       : undefined
@@ -140,6 +166,9 @@ export class LargeEditSession {
     return entry
       ? Object.freeze({
           edits: Object.freeze([...entry.forward]),
+          nativeHistory: entry.nativeHistory
+            ? { token: entry.nativeHistory, direction: 'redo' as const }
+            : undefined,
           selectionAfter: entry.selectionAfter,
         })
       : undefined

@@ -81,3 +81,5 @@ export {
   type TransactionOrigin,
   type TransactionOriginType,
 } from './transaction/transaction'
+
+export { createLiteralLineMatcher, type LiteralLineMatch } from './store/literal-search'

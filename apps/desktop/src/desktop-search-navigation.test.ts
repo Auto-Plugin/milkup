@@ -50,3 +50,25 @@ function createSearchState(count: number): DesktopSearchState {
     complete: true,
   }
 }
+
+it('uses the complete native result count across bounded pages', () => {
+  const search = {
+    phase: 'done' as const,
+    query: 'x',
+    matches: [],
+    matchCount: 1000000,
+    matchOffset: 999900,
+    nativeSearchId: 'native',
+    complete: true,
+    scannedLineCount: 10000,
+  }
+  expect(createDesktopSearchNavigationState(search, 999999)).toMatchObject({
+    label: '1000000/1000000',
+    canNavigate: true,
+  })
+  expect(moveDesktopSearchNavigationIndex(search, 999999, 1)).toBe(0)
+  expect(moveDesktopSearchNavigationIndex(search, 0, -1)).toBe(999999)
+  expect(createDesktopSearchNavigationState({ ...search, phase: 'searching' }, 0).canNavigate).toBe(
+    false,
+  )
+})

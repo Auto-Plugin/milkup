@@ -29,7 +29,11 @@
     "test:native:navigation": "node tests/native/tauri-navigation.mjs",
     "test:outline": "vitest run plugins/outline/src/plugin.test.ts",
     "test:native:windowed-blocks": "node tests/native/tauri-windowed-blocks.mjs",
-    "test:native:harness": "vitest run tests/helpers/native-startup.test.ts"
+    "test:native:harness": "vitest run tests/helpers/native-startup.test.ts",
+    "dev:native:search-profile": "node tests/helpers/native-search-profile-server.mjs",
+    "bench:native:search": "node tests/native/tauri-search-profile.mjs",
+    "test:native:large-search": "node tests/native/tauri-large-search-quality.mjs",
+    "test:native:unicode-search": "node tests/native/tauri-unicode-search-quality.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",

@@ -8,6 +8,7 @@ import {
   markExternalFileModified,
   markSessionReadonly,
   recordDocumentTransaction,
+  recordNativeDocumentMutation,
   recordFileReloadResult,
   recordFileSave,
   recordFileSaveResult,
@@ -297,5 +298,19 @@ describe('asynchronous save acknowledgement', () => {
     expect(() => recordFileSave(session, { savedVersion: 0 })).toThrow(
       'Invalid saved document version',
     )
+  })
+})
+
+it('marks native snapshot mutations dirty without fabricating a text transaction', () => {
+  const before = markExternalFileModified(
+    createDocumentSession({ documentId: 'native', diskSnapshotHash: 'disk' }),
+  )
+  const after = recordNativeDocumentMutation(before)
+  expect(after).toMatchObject({
+    documentVersion: 1,
+    savedVersion: 0,
+    dirty: true,
+    externalChangeState: 'conflict',
+    diskSnapshotHash: 'disk',
   })
 })

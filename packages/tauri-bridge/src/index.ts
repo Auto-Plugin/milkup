@@ -43,6 +43,7 @@ export {
   markExternalFileModified,
   markSessionReadonly,
   recordDocumentTransaction,
+  recordNativeDocumentMutation,
   recordFileSave,
   recordFileReloadResult,
   recordFileSaveResult,

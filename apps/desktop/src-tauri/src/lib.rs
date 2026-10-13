@@ -19,6 +19,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State, Window};
 
+mod native_search;
 mod piece_tree;
 use piece_tree::PieceTree;
 
@@ -791,6 +792,7 @@ fn flush_large_text_file_as_in_registry(
 #[tauri::command]
 fn close_large_text_file(
     registry: State<LargeFileRegistry>,
+    searches: State<native_search::NativeSearchRegistry>,
     document_id: String,
 ) -> Result<bool, String> {
     let mut stores = registry.0.lock().map_err(|error| error.to_string())?;
@@ -800,6 +802,7 @@ fn close_large_text_file(
     };
     store.piece_tree.close()?;
     stores.remove(&document_id);
+    native_search::close_document(&searches, &document_id);
     Ok(true)
 }
 
@@ -988,6 +991,7 @@ pub fn run() {
         .manage(WatchRegistry(Mutex::new(HashMap::new())))
         .manage(SidecarRegistry(Mutex::new(HashMap::new())))
         .manage(LargeFileRegistry(Mutex::new(HashMap::new())))
+        .manage(native_search::NativeSearchRegistry::default())
         .plugin(tauri_plugin_dialog::init())
         .setup(|_app| {
             let temp_dir = std::env::temp_dir();
@@ -1014,6 +1018,16 @@ pub fn run() {
             ensure_plugin_directories,
             install_plugin_package_file,
             remove_installed_plugin_package,
+            native_search::begin_large_text_search,
+            native_search::step_large_text_search,
+            native_search::append_large_text_search_matches,
+            native_search::page_large_text_search,
+            native_search::cancel_large_text_search,
+            native_search::begin_large_text_replacement,
+            native_search::step_large_text_replacement,
+            native_search::commit_large_text_replacement,
+            native_search::cancel_large_text_replacement,
+            native_search::restore_large_text_history,
             open_large_text_file,
             read_large_text_file_chunk,
             read_large_text_file_line_window,
@@ -2883,5 +2897,43 @@ mod tests {
 
     fn remove_test_dir(path: PathBuf) {
         fs::remove_dir_all(path).expect("remove test directory");
+    }
+}
+
+#[cfg(test)]
+mod search_profile_baseline {
+    use super::*;
+    #[test]
+    #[ignore = "explicit same-fixture native search transport baseline"]
+    fn profile_legacy_search_windows() {
+        let path = std::env::var("MILKUP_SEARCH_FIXTURE").expect("fixture path");
+        let registry = Mutex::new(HashMap::new());
+        let opened = open_large_text_file_in_registry(&registry, "baseline".into(), path).unwrap();
+        let mut read_micros = 0_u128;
+        let mut serialization_micros = 0_u128;
+        let mut serialized_bytes = 0_usize;
+        let mut windows = 0;
+        for from in (1..=opened.line_count).step_by(512) {
+            let to = opened.line_count.min(from + 511);
+            let at = std::time::Instant::now();
+            let window = read_large_text_file_line_window_from_registry(
+                &registry,
+                "baseline".into(),
+                from,
+                to,
+            )
+            .unwrap();
+            read_micros += at.elapsed().as_micros();
+            let at = std::time::Instant::now();
+            let encoded = serde_json::to_vec(&window).unwrap();
+            serialization_micros += at.elapsed().as_micros();
+            serialized_bytes += encoded.len();
+            windows += 1;
+        }
+        let result = serde_json::json!({"windows": windows, "readMicros": read_micros, "serializationMicros": serialization_micros, "serializedBytes": serialized_bytes, "lineCount": opened.line_count, "sizeBytes": opened.size_bytes});
+        println!("{result}");
+        if let Ok(output) = std::env::var("MILKUP_SEARCH_PROFILE_OUTPUT") {
+            fs::write(output, serde_json::to_vec_pretty(&result).unwrap()).unwrap();
+        }
     }
 }

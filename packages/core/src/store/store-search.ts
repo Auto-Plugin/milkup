@@ -1,3 +1,4 @@
+import { createLiteralLineMatcher } from './literal-search'
 import type { TextRange } from '../position/range'
 
 import type { DocumentLineWindow } from './document-store'
@@ -61,7 +62,7 @@ export type StoreSearchEvent =
 
 interface CompiledSearchQuery {
   readonly label: string
-  readonly findMatches: (line: string) => readonly SearchLineMatch[]
+  readonly findMatches: (line: string) => Iterable<SearchLineMatch>
 }
 
 interface SearchLineMatch {
@@ -162,45 +163,7 @@ function compileSearchQuery(options: StoreSearchOptions): CompiledSearchQuery {
 }
 
 function compileStringQuery(query: string, caseSensitive: boolean): CompiledSearchQuery {
-  if (query.length === 0) {
-    throw new RangeError('Search query must not be empty')
-  }
-
-  const needle = caseSensitive ? query : query.toLocaleLowerCase()
-
-  return {
-    label: query,
-    findMatches: (line) => {
-      const haystack = caseSensitive ? line : line.toLocaleLowerCase()
-      const matches: SearchLineMatch[] = []
-      let found = haystack.indexOf(needle)
-      if (found < 0) return matches
-      // Case folding can expand a source code point (e.g. İ -> i + dot).
-      // Keep matches in original UTF-16 coordinates, including after expansions.
-      const boundaries: Array<{ from: number; to: number }> = []
-      if (haystack.length !== line.length) {
-        let offset = 0
-        for (const point of line) {
-          const width = point.toLocaleLowerCase().length
-          for (let index = 0; index < width; index++) {
-            boundaries.push({ from: offset, to: offset + point.length })
-          }
-          offset += point.length
-        }
-      }
-      while (found >= 0) {
-        const end = found + needle.length
-        const from = boundaries[found]?.from ?? found
-        const to = boundaries[end - 1]?.to ?? end
-        if (from >= (matches.at(-1)?.to ?? 0)) {
-          matches.push({ from, to, text: line.slice(from, to) })
-        }
-        found = haystack.indexOf(needle, Math.max(end, found + 1))
-      }
-
-      return matches
-    },
-  }
+  return { label: query, findMatches: createLiteralLineMatcher(query, caseSensitive) }
 }
 
 function compileRegExpQuery(query: RegExp): CompiledSearchQuery {

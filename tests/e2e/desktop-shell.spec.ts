@@ -1293,6 +1293,7 @@ test('phase9 narrow search and outline stay reachable and source mode removes in
   await page.keyboard.press('Control+f')
   await page.getByRole('searchbox', { name: '搜索', exact: true }).fill('code')
   await expect(page.locator('[data-search-result-count]')).toHaveText('1/1')
+  await expect(page.locator('[data-replace-cancel]')).toBeHidden()
   const bounds = await page.evaluate(() => {
     const search = document.querySelector('[data-floating-search]')!.getBoundingClientRect()
     const editor = document.querySelector('[data-editor-host]')!.getBoundingClientRect()
@@ -1304,10 +1305,12 @@ test('phase9 narrow search and outline stay reachable and source mode removes in
       overflow: document.documentElement.scrollWidth > innerWidth,
       controls: Array.from(
         document.querySelectorAll('[data-floating-search] button, [data-floating-search] input'),
-      ).every((e) => {
-        const r = e.getBoundingClientRect()
-        return r.left >= search.left && r.right <= search.right
-      }),
+      )
+        .filter((e) => e.getClientRects().length > 0)
+        .every((e) => {
+          const r = e.getBoundingClientRect()
+          return r.left >= search.left && r.right <= search.right
+        }),
     }
   })
   expect(bounds.right).toBeLessThanOrEqual(760)

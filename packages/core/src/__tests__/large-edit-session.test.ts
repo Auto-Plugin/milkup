@@ -147,3 +147,32 @@ it('restores directional selections only after confirmed native history changes'
   session.confirmUndo(2)
   expect(session.prepareRedo()?.selectionAfter).toEqual(after)
 })
+
+it('orders opaque native replacement history with ordinary edits and preserves selections', () => {
+  const session = new LargeEditSession({ documentId: 'native-history', baseVersion: 0 })
+  const before = Selection.range(8, 0),
+    after = Selection.cursor(4)
+  session.confirmNativeHistory('snapshot-token', 1, {
+    selectionBefore: before,
+    selectionAfter: after,
+  })
+  expect(session.dirty).toBe(true)
+  expect(session.pendingEditCount).toBe(0)
+  const edit = session.prepareVisibleEdits(ChangeSet.insert(4, '!'), [''])
+  session.confirmVisibleEdits(edit, 2)
+  expect(session.prepareUndo()?.nativeHistory).toBeUndefined()
+  session.confirmUndo(3)
+  expect(session.prepareUndo()).toMatchObject({
+    edits: [],
+    nativeHistory: { token: 'snapshot-token', direction: 'undo' },
+    selectionAfter: before,
+  })
+  session.confirmUndo(4)
+  expect(session.prepareRedo()).toMatchObject({
+    nativeHistory: { token: 'snapshot-token', direction: 'redo' },
+    selectionAfter: after,
+  })
+  session.confirmRedo(5)
+  session.markFlushed(5)
+  expect(session.dirty).toBe(false)
+})

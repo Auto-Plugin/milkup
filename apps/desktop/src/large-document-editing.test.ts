@@ -74,3 +74,19 @@ function createService(): DesktopLargeTextFileService {
     close: vi.fn(),
   }
 }
+
+it('restores opaque native history instead of treating its empty edit array as a no-op', async () => {
+  const service = createService()
+  const restore = vi.fn().mockResolvedValue({ documentId: 'doc', version: 4 })
+  await expect(
+    applyLargeDocumentEditBatch({
+      service,
+      documentId: 'doc',
+      expectedVersion: 3,
+      batch: { edits: [], nativeHistory: { token: 'snapshot', direction: 'undo' } },
+      restoreNativeHistory: restore,
+    }),
+  ).resolves.toMatchObject({ version: 4 })
+  expect(restore).toHaveBeenCalledWith('snapshot', 'undo')
+  expect(service.applyChanges).not.toHaveBeenCalled()
+})

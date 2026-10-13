@@ -13,7 +13,7 @@ enum Source {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum BaseEncoding {
+pub(crate) enum BaseEncoding {
     Utf8,
     Utf16Le,
     Utf16Be,
@@ -93,6 +93,14 @@ impl PieceTree {
         Ok(tree)
     }
 
+    pub(crate) fn encoding(&self) -> BaseEncoding {
+        self.base_encoding
+    }
+
+    pub(crate) fn set_encoding(&mut self, encoding: BaseEncoding) {
+        self.base_encoding = encoding;
+    }
+
     pub(crate) fn byte_len(&self) -> usize {
         bytes(&self.root) as usize
     }
@@ -109,7 +117,7 @@ impl PieceTree {
         String::from_utf8(self.read_range_bytes(from, to)?).map_err(|error| error.to_string())
     }
 
-    fn read_range_bytes(&self, from: usize, to: usize) -> Result<Vec<u8>, String> {
+    pub(crate) fn read_range_bytes(&self, from: usize, to: usize) -> Result<Vec<u8>, String> {
         if from > to || to > self.byte_len() {
             return Err(format!(
                 "Invalid byte range: {from}-{to} for {} bytes",

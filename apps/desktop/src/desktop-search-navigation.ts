@@ -11,14 +11,15 @@ export function createDesktopSearchNavigationState(
   searchState: DesktopSearchState | undefined,
   activeIndex: number,
 ): DesktopSearchNavigationState {
-  const count = searchState?.matches.length ?? 0
-  const normalizedIndex = count > 0 ? clamp(activeIndex, 0, count - 1) : -1
+  const count = searchState?.matchCount ?? searchState?.matches.length ?? 0
+  const canNavigate = count > 0 && (!searchState?.nativeSearchId || searchState.phase === 'done')
+  const normalizedIndex = canNavigate ? clamp(activeIndex, 0, count - 1) : -1
 
   return Object.freeze({
     activeIndex: normalizedIndex,
     count,
     label: count > 0 ? `${normalizedIndex + 1}/${count}` : '0/0',
-    canNavigate: count > 0,
+    canNavigate,
   })
 }
 
@@ -27,7 +28,7 @@ export function moveDesktopSearchNavigationIndex(
   activeIndex: number,
   delta: -1 | 1,
 ): number {
-  const count = searchState?.matches.length ?? 0
+  const count = searchState?.matchCount ?? searchState?.matches.length ?? 0
 
   if (count === 0) {
     return -1
