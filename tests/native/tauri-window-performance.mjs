@@ -204,6 +204,7 @@ try {
     `const done=arguments[arguments.length-1];
     Promise.all([import(arguments[0]),import('/src/large-document-source.ts')]).then(([{SourceDocumentView},{LargeDocumentSource}])=>{
       window.__windowProfile={ipc:[],render:[]};
+      if(arguments[1]) SourceDocumentView.prototype.scheduleMarkdownWarmup = function() {};
       const read=LargeDocumentSource.prototype.readLineWindow;
       LargeDocumentSource.prototype.readLineWindow=async function(fromLine,toLine){
         const start=performance.now();window.__windowProfile.documentId=this.documentId;
@@ -224,6 +225,7 @@ try {
         .resolve('packages/view-dom/src/source-document-view.ts')
         .replaceAll('\\', '/')
         .replace(/^\/+/, ''),
+    Boolean(process.env.MILKUP_PROFILE_NO_WARMUP),
   )
   assert.equal(attached.ok, true, JSON.stringify(attached))
   for (const mode of ['source', 'live']) {
@@ -281,7 +283,7 @@ try {
         assert.equal(sample.ok, true, JSON.stringify(sample))
         assert.ok(sample.renderedLines < 200)
         assert.ok(sample.render.length > 0, 'render instrumentation attached')
-        if (mode === 'source' && requestedBytes >= 1048576)
+        if (mode === 'source' && requestedBytes >= 1048576 && repeat === 0 && direction === 'away')
           assert.ok(sample.ipc.length > 0, 'source window RPC instrumentation attached')
         samples.push({
           mode,
@@ -390,6 +392,7 @@ try {
     JSON.stringify(
       {
         executionStatus: failure ? 'error' : 'completed',
+        diagnosticNoWarmup: Boolean(process.env.MILKUP_PROFILE_NO_WARMUP),
         latencyTargetsMs: { firstAway: 500, warm: 200 },
         targetViolations: samples
           .filter(

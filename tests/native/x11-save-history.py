@@ -84,7 +84,7 @@ try:
     newline_width = 1 if initial["backend"] == "editor" else 2
     for mode in ['source', 'live']:
         x.shortcut('1' if mode == 'source' else '2'); settled()
-        x.shortcut('a'); x.key('Left'); x.key('End')
+        x.shortcut('Home'); x.key('End')
         end = expected.index('\r\n'); position = utf16(expected[:end])
         state_is(position, False)
         for _ in range(20): x.key('a', delay=0)
@@ -130,9 +130,19 @@ try:
         stop(); s = start()
         assert file.read_bytes() == expected.encode()
         assert not s['dirty'] and s['version'] == 0 and s['savedVersion'] == 0, s
-        x.shortcut('a'); x.key('Left'); x.key('End')
+        x.shortcut('Home'); x.key('End')
         s = state_is(utf16(expected.split('\r\n')[0]), False)
         record(mode + ': normal CLI reopen matches bytes and UTF-16 end caret', s)
+        if s['backend'] == 'native':
+            x.shortcut('Home'); state_is(0, False)
+            rows = expected.split('\r\n')
+            target_line = min(41, len(rows))
+            for _ in range(target_line-1): x.key('Down')
+            head = utf16('\r\n'.join(rows[:target_line-1]) + '\r\n')
+            s = state_is(head, False)
+            c, v = s['cursorRect'], s['viewport']
+            assert c and v['y'] <= c['y'] and c['y']+c['height'] <= v['y']+v['height']+2, s
+            record(mode + ': repeated ArrowDown keeps the logical caret visible across windows', s)
 except BaseException as error:
     (root / 'failure.json').write_text(json.dumps({'error': str(error), 'observation': observation()}, ensure_ascii=False, indent=2) + '\n')
     if window: shot('failure')

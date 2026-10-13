@@ -12,6 +12,7 @@ import {
 } from '@milkup/markdown'
 
 import { createInputProxy, getVisibleLineWindow } from './editor-view'
+import { boundedScrollGeometry, maxVirtualContentHeight } from './bounded-scroll'
 import {
   nextGraphemeOffset,
   previousGraphemeOffset,
@@ -21,6 +22,7 @@ import {
   domRectForLineSourcePosition,
   domRectsForLineSourceRange,
   isHorizontalScrollbarDragStart,
+  isEditorScrollbarDragStart,
   lineElementFromEvent,
   sourcePositionFromPoint,
   sourcePositionToVisualOffsetInLine,
@@ -59,6 +61,7 @@ interface RenderRequest {
   readonly id: number
   readonly fromLine: number
   readonly toLine: number
+  readonly spacers?: { readonly top: number; readonly bottom: number }
 }
 
 interface RenderedSourceWindow {
@@ -125,6 +128,9 @@ export class SourceDocumentView {
   private nextRequestId = 1
   private latestAppliedRequestId = 0
   private renderedSourceWindow: DocumentLineWindow | undefined
+  private sourceWindowCacheKey = ''
+  private sourceWindowCacheLength = 0
+  private readonly sourceWindowCache = new Map<string, DocumentLineWindow>()
   private searchHighlights: readonly SearchHighlight[] = Object.freeze([])
   private activeSearchHighlightIndex = -1
   private scrollAnchor: { readonly line: number; readonly scrollTop: number } | undefined
@@ -321,11 +327,28 @@ export class SourceDocumentView {
     return this.currentSource
   }
 
+  get visibleLineRange(): { readonly fromLine: number; readonly toLine: number } {
+    const geometry = this.scrollGeometry()
+    const scrollTop = geometry.compressed
+      ? Math.max(0, geometry.toLogical(this.dom.scrollTop) - this.contentPadding().top)
+      : this.dom.scrollTop
+    const window = getVisibleLineWindow({
+      lineCount: this.currentSource.lineCount,
+      scrollTop,
+      lineHeight: this.getLineHeight(),
+      viewportHeight: this.getViewportHeight() ?? this.getLineHeight() * 24,
+      overscanLines: 0,
+    })
+    return Object.freeze({ fromLine: window.fromLine, toLine: window.toLine })
+  }
+
   updateSource(source: EditorDocumentSource): void {
     this.navigationRevision += 1
     const documentChanged = source.documentId !== this.currentSource.documentId
 
     this.currentSource = source
+    this.sourceWindowCache.clear()
+    this.sourceWindowCacheLength = 0
     this.renderedSourceWindow = undefined
     this.cancelMarkdownWarmup()
     this.markdownCache.clear()
@@ -417,7 +440,10 @@ export class SourceDocumentView {
       throw new RangeError(`Invalid line number: ${lineNumber}`)
     }
 
-    this.dom.scrollTop = (lineNumber - 1) * this.getLineHeight()
+    const geometry = this.scrollGeometry()
+    this.dom.scrollTop = geometry.compressed
+      ? geometry.toPhysical((lineNumber - 1) * this.getLineHeight() + this.contentPadding().top)
+      : (lineNumber - 1) * this.getLineHeight()
     this.scrollAnchor = Object.freeze({ line: lineNumber, scrollTop: this.dom.scrollTop })
     await this.renderVisibleWindow(this.createRenderRequestForLine(lineNumber))
     const target = this.contentDOM.querySelector<HTMLElement>(
@@ -431,12 +457,35 @@ export class SourceDocumentView {
   }
 
   async renderVisibleWindow(request: RenderRequest = this.createRenderRequest()): Promise<void> {
+    const editRevision = this.editRevision
+    const source = this.currentSource
+    const version = source.version
+    // A scroll may arrive after optimistic input but before its source commit.
+    // Failed commits are reported by the edit queue; rollback must still render.
+    // Observe the normal batch timer; scrolling must not split typing history.
+    await (
+      this.pendingVisibleEdit
+        ? new Promise<void>((resolve, reject) => {
+            this.pendingVisibleEditResolutions.push({ resolve, reject })
+          })
+        : this.editCommitQueue
+    ).catch(() => undefined)
+    if (this.destroyed || source !== this.currentSource || editRevision !== this.editRevision)
+      return
+    if (version !== source.version) request = this.createRenderRequest()
+    const renderVersion = source.version
     const rendered =
       this.mode === 'live'
         ? await this.renderLiveLineWindow(request)
         : await this.renderSourceLineWindow(request)
 
-    if (request.id < this.latestAppliedRequestId) {
+    if (
+      this.destroyed ||
+      source !== this.currentSource ||
+      renderVersion !== source.version ||
+      request.id < this.latestAppliedRequestId ||
+      editRevision !== this.editRevision
+    ) {
       return
     }
 
@@ -444,12 +493,16 @@ export class SourceDocumentView {
     this.renderedSourceWindow = rendered.sourceWindow
     const lineHeight = this.getLineHeight()
     this.contentDOM.replaceChildren(
-      renderSpacer(this.ownerDocument, 'top', (request.fromLine - 1) * lineHeight),
+      renderSpacer(
+        this.ownerDocument,
+        'top',
+        request.spacers?.top ?? (request.fromLine - 1) * lineHeight,
+      ),
       ...rendered.lines,
       renderSpacer(
         this.ownerDocument,
         'bottom',
-        (this.currentSource.lineCount - request.toLine) * lineHeight,
+        request.spacers?.bottom ?? (this.currentSource.lineCount - request.toLine) * lineHeight,
       ),
     )
     this.contentDOM.dataset.virtualized = 'true'
@@ -524,32 +577,71 @@ export class SourceDocumentView {
     this.dom.remove()
   }
 
-  private createRenderRequest(): RenderRequest {
+  private contentPadding(): { top: number; bottom: number } {
+    const style = this.ownerDocument.defaultView?.getComputedStyle(this.contentDOM)
+    return {
+      top: Number.parseFloat(style?.paddingTop ?? '') || 0,
+      bottom: Number.parseFloat(style?.paddingBottom ?? '') || 0,
+    }
+  }
+
+  private scrollGeometry(lineCount = this.currentSource.lineCount) {
+    const padding =
+      lineCount * this.getLineHeight() > maxVirtualContentHeight
+        ? this.contentPadding()
+        : { top: 0, bottom: 0 }
+    return boundedScrollGeometry(
+      lineCount,
+      this.getLineHeight(),
+      this.getViewportHeight() ?? this.getLineHeight() * 24,
+      padding.top + padding.bottom,
+    )
+  }
+
+  private createRenderRequest(scrollTop = this.dom.scrollTop): RenderRequest {
+    const geometry = this.scrollGeometry()
+    const logicalTop = geometry.compressed ? geometry.toLogical(scrollTop) : scrollTop
     const viewportHeight = this.getViewportHeight()
     const lineWindow = getVisibleLineWindow({
       lineCount: this.currentSource.lineCount,
-      scrollTop: this.dom.scrollTop,
+      scrollTop: geometry.compressed
+        ? Math.max(0, logicalTop - this.contentPadding().top)
+        : scrollTop,
       lineHeight: this.getLineHeight(),
-      overscanLines: this.virtualViewport.overscanLines ?? defaultOverscanLines,
+      overscanLines: this.getOverscanLines(),
       ...(viewportHeight === undefined ? {} : { viewportHeight }),
     })
-    const id = this.nextRequestId
-    this.nextRequestId += 1
-
+    // Near the start there may be less physical space than a full overscan.
+    // Trim only that offscreen margin, so the top spacer stays nonnegative.
+    const fromLine = geometry.compressed
+      ? Math.max(
+          lineWindow.fromLine,
+          Math.ceil((logicalTop - scrollTop) / this.getLineHeight()) + 1,
+        )
+      : lineWindow.fromLine
+    const id = this.nextRequestId++
     return Object.freeze({
       id,
-      fromLine: lineWindow.fromLine,
+      fromLine,
       toLine: lineWindow.toLine,
+      ...(geometry.compressed
+        ? { spacers: geometry.spacers(fromLine, lineWindow.toLine, scrollTop) }
+        : {}),
     })
   }
 
   private createRenderRequestForLine(lineNumber: number): RenderRequest {
+    const geometry = this.scrollGeometry()
+    if (geometry.compressed)
+      return this.createRenderRequest(
+        geometry.toPhysical((lineNumber - 1) * this.getLineHeight() + this.contentPadding().top),
+      )
     const lineHeight = this.getLineHeight()
     const visibleLines = Math.max(
       1,
       Math.ceil((this.getViewportHeight() ?? lineHeight) / lineHeight),
     )
-    const overscan = this.virtualViewport.overscanLines ?? defaultOverscanLines
+    const overscan = this.getOverscanLines()
     const fromLine = Math.max(1, lineNumber - overscan)
     const toLine = Math.min(
       this.currentSource.lineCount,
@@ -559,6 +651,16 @@ export class SourceDocumentView {
     this.nextRequestId += 1
 
     return Object.freeze({ id, fromLine, toLine })
+  }
+
+  private getOverscanLines(): number {
+    const configured = this.virtualViewport.overscanLines ?? defaultOverscanLines
+    const window = this.renderedSourceWindow
+    const averageLength = window
+      ? window.text.length / Math.max(1, window.lines.length)
+      : (this.currentSource.length ?? 0) / Math.max(1, this.currentSource.lineCount)
+    // Bound offscreen work by text volume without reducing the visible viewport.
+    return Math.min(configured, Math.max(2, Math.floor(16_384 / Math.max(1, averageLength))))
   }
 
   private getLineHeight(): number {
@@ -573,7 +675,39 @@ export class SourceDocumentView {
   }
 
   private async renderSourceLineWindow(request: RenderRequest): Promise<RenderedSourceWindow> {
-    const window = await this.currentSource.readLineWindow(request.fromLine, request.toLine)
+    const source = this.currentSource
+    const version = source.version
+    const versionKey = `${source.documentId}:${version}`
+    if (this.sourceWindowCacheKey !== versionKey) {
+      this.sourceWindowCache.clear()
+      this.sourceWindowCacheLength = 0
+      this.sourceWindowCacheKey = versionKey
+    }
+    const key = `${request.fromLine}:${request.toLine}`
+    let window = this.sourceWindowCache.get(key)
+    if (window) {
+      this.sourceWindowCache.delete(key)
+      this.sourceWindowCache.set(key, window)
+    } else {
+      window = await source.readLineWindow(request.fromLine, request.toLine)
+      // Cache only completed windows from the current revision, with finite
+      // text and entry budgets. Edits never reuse an earlier source revision.
+      if (
+        source === this.currentSource &&
+        version === source.version &&
+        versionKey === this.sourceWindowCacheKey &&
+        window.text.length <= 524_288
+      ) {
+        const previous = this.sourceWindowCache.get(key)
+        this.sourceWindowCacheLength += window.text.length - (previous?.text.length ?? 0)
+        this.sourceWindowCache.set(key, window)
+        while (this.sourceWindowCache.size > 16 || this.sourceWindowCacheLength > 524_288) {
+          const oldest = this.sourceWindowCache.keys().next().value!
+          this.sourceWindowCacheLength -= this.sourceWindowCache.get(oldest)!.text.length
+          this.sourceWindowCache.delete(oldest)
+        }
+      }
+    }
     return Object.freeze({
       lines: Object.freeze(window.lines.map((line) => renderSourceLine(this.ownerDocument, line))),
       sourceWindow: window,
@@ -655,11 +789,15 @@ export class SourceDocumentView {
   }
 
   private scheduleMarkdownWarmup(request: RenderRequest): void {
-    if (!this.backgroundMarkdownWarmup) {
+    this.cancelMarkdownWarmup()
+    if (
+      !this.backgroundMarkdownWarmup ||
+      this.mode !== 'live' ||
+      (this.renderedSourceWindow?.text.length ?? 0) > 65_536
+    ) {
       return
     }
 
-    this.cancelMarkdownWarmup()
     this.markdownWarmupTimer = setTimeout(() => {
       this.markdownWarmupTimer = undefined
       void this.warmMarkdownCacheForRequest(request).catch(() => undefined)
@@ -746,8 +884,31 @@ export class SourceDocumentView {
       return false
     }
 
+    if (
+      !event.altKey &&
+      (event.ctrlKey || event.metaKey) &&
+      (event.key === 'Home' || event.key === 'End')
+    ) {
+      void this.trackVisibleEditTask(async () => {
+        await this.flushPendingVisibleEdit()
+        const number = event.key === 'Home' ? 1 : this.currentSource.lineCount
+        const line = await this.readSourceLine(number)
+        const head = event.key === 'Home' ? line.from : line.to
+        await this.revealSelection(
+          number,
+          Selection.range(event.shiftKey ? this.selectionAnchor : head, head),
+        )
+      })
+      return true
+    }
     if (event.altKey || event.ctrlKey || event.metaKey) {
       return false
+    }
+    if (event.key === 'PageUp' || event.key === 'PageDown') {
+      void this.trackVisibleEditTask(() =>
+        this.movePage(event.key === 'PageUp' ? -1 : 1, event.shiftKey),
+      )
+      return true
     }
 
     if (event.key.length === 1) {
@@ -814,6 +975,30 @@ export class SourceDocumentView {
       default:
         return false
     }
+  }
+
+  private async movePage(direction: -1 | 1, extend: boolean): Promise<void> {
+    await this.flushPendingVisibleEdit()
+    const current =
+      this.findRenderedSourceLineAtPosition(this.cursorPosition) ??
+      (await this.currentSource.lineAtPosition(this.cursorPosition))
+    const height = this.getLineHeight()
+    const delta =
+      direction * Math.max(1, Math.floor((this.getViewportHeight() ?? height * 24) / height) - 1)
+    const target = await this.readSourceLine(
+      clamp(current.number + delta, 1, this.currentSource.lineCount),
+    )
+    const geometry = this.scrollGeometry()
+    const logicalTop = geometry.compressed
+      ? geometry.toLogical(this.dom.scrollTop) - this.contentPadding().top
+      : this.dom.scrollTop
+    const first = Math.max(1, Math.floor(logicalTop / height) + 1)
+    this.cursorPosition =
+      target.from + snapGraphemeOffset(target.text, this.cursorPosition - current.from)
+    if (!extend) this.selectionAnchor = this.cursorPosition
+    await this.scrollToLine(clamp(first + delta, 1, this.currentSource.lineCount))
+    this.renderSelection()
+    this.renderCursor()
   }
 
   private async moveCursor(
@@ -939,7 +1124,19 @@ export class SourceDocumentView {
       lineNumber >= fromLine &&
       lineNumber <= toLine
     ) {
-      return
+      const element = this.contentDOM.querySelector<HTMLElement>(
+        `.milkup-line[data-line="${lineNumber}"]`,
+      )
+      const bounds = element?.getBoundingClientRect()
+      const viewport = this.dom.getBoundingClientRect()
+      // A line in overscan is rendered but may still be outside the viewport.
+      // Preserve the no-layout fallback used by non-browser consumers.
+      if (
+        !bounds ||
+        viewport.height === 0 ||
+        (bounds.top >= viewport.top && bounds.bottom <= viewport.bottom)
+      )
+        return
     }
 
     const lineHeight = this.getLineHeight()
@@ -950,8 +1147,7 @@ export class SourceDocumentView {
       1,
       this.currentSource.lineCount,
     )
-    this.dom.scrollTop = (nextFirstLine - 1) * lineHeight
-    await this.renderVisibleWindow()
+    await this.scrollToLine(nextFirstLine)
   }
 
   private findRenderedLineAtPosition(position: number): SourceLine | undefined {
@@ -1149,12 +1345,20 @@ export class SourceDocumentView {
     }
     const lineHeight = this.getLineHeight()
 
+    const geometry = this.scrollGeometry(lineCount)
+    const spacers = geometry.compressed
+      ? geometry.spacers(window.fromLine, window.toLine, this.dom.scrollTop)
+      : undefined
     this.latestAppliedRequestId = this.nextRequestId
     this.nextRequestId += 1
     this.contentDOM.replaceChildren(
-      renderSpacer(this.ownerDocument, 'top', (window.fromLine - 1) * lineHeight),
+      renderSpacer(this.ownerDocument, 'top', spacers?.top ?? (window.fromLine - 1) * lineHeight),
       ...lines,
-      renderSpacer(this.ownerDocument, 'bottom', (lineCount - window.toLine) * lineHeight),
+      renderSpacer(
+        this.ownerDocument,
+        'bottom',
+        spacers?.bottom ?? (lineCount - window.toLine) * lineHeight,
+      ),
     )
     this.contentDOM.dataset.virtualized = 'true'
     this.contentDOM.dataset.fromLine = String(window.fromLine)
@@ -1171,6 +1375,8 @@ export class SourceDocumentView {
     }
 
     this.markdownCache.clear()
+    this.sourceWindowCache.clear()
+    this.sourceWindowCacheLength = 0
     try {
       await this.renderVisibleWindow()
     } catch {
@@ -1345,7 +1551,7 @@ export class SourceDocumentView {
       return
     }
 
-    if (isHorizontalScrollbarDragStart(event)) {
+    if (isHorizontalScrollbarDragStart(event) || isEditorScrollbarDragStart(event, this.dom)) {
       return
     }
 

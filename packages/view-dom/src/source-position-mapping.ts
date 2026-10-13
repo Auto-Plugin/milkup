@@ -33,6 +33,26 @@ export function isHorizontalScrollbarDragStart(event: MouseEvent): boolean {
   return event.clientY >= rect.bottom - scrollbarHeight && event.clientY <= rect.bottom
 }
 
+/** Overlay scrollbars still occupy the themed gutter even when clientWidth
+ * equals offsetWidth. Do not turn their native drag into a text selection. */
+export function isEditorScrollbarDragStart(event: MouseEvent, editor: HTMLElement): boolean {
+  const rect = editor.getBoundingClientRect()
+  const vertical = Math.max(editor.offsetWidth - editor.clientWidth, 10)
+  const horizontal = Math.max(editor.offsetHeight - editor.clientHeight, 10)
+  return (
+    (editor.scrollHeight > editor.clientHeight &&
+      event.clientX >= rect.right - vertical &&
+      event.clientX <= rect.right &&
+      event.clientY >= rect.top &&
+      event.clientY <= rect.bottom) ||
+    (editor.scrollWidth > editor.clientWidth &&
+      event.clientY >= rect.bottom - horizontal &&
+      event.clientY <= rect.bottom &&
+      event.clientX >= rect.left &&
+      event.clientX <= rect.right)
+  )
+}
+
 export function lineElementFromEvent(
   event: MouseEvent,
   contentDOM: HTMLElement,

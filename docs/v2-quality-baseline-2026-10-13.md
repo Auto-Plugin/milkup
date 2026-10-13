@@ -1,5 +1,7 @@
 # v2 产品质量基线与第一阶段验收
 
+> 最新进展：[第十三阶段大文件滚动及编辑一致性验收](./v2-phase13-scroll-verification-2026-10-13.md)。100 MiB 末尾访问已修复；性能、真实 IME 和跨平台缺口仍按新报告保留。本文原始基线不回写为当前结果。
+
 ## 基线来源
 
 2026-10-13，`Auto-Plugin/milkup` 远端 v2 `f713d91d311ff22e7b19a01b3b94938b714ba375`。开始时工作树干净，本地 `work` 指向 main `513eb48`，fetch 验证远端 v2 后从该提交建立本地跟踪分支。main 遗留的未跟踪 Electron 编译产物移到 `/tmp/milkup-main-build-backup`，没有删除用户源码。未发现项目级 AGENTS.md / .agents/skills；遵循 coding-plan、product-architecture、v1-lessons-and-regressions 和 regression-policy。
@@ -98,3 +100,5 @@ v2 为 Tauri + 自研 TypeScript 编辑内核，不是 main 的 Vue/Electron。�
 - [第十二阶段：独立输入安全与长文矩阵](./v2-phase12-input-safety-verification-2026-10-13.md)：修复保存期间真实键盘丢字，完成三条路径 XTest 闭环与八格长文样本；保留 IME、长行延迟和百万行末尾滚动范围缺陷。
 
 各阶段编号按实际实施顺序记录，不把本表早期规划的阶段名视为已验收声明。中文系统 IME、Windows／macOS、Word 2016、完整性能基准仍单列验收。
+
+- [第十三阶段：大文件滚动和编辑一致性](./v2-phase13-scroll-verification-2026-10-13.md)：修复 100 MiB 末尾不可达、异步窗口覆盖编辑及长行额外工作；保留完整搜索、live 热跳转、系统 IME 与跨平台缺口。

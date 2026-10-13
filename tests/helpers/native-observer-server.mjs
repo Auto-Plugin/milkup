@@ -12,23 +12,34 @@ const route = '/__milkup_native_observation'
 const observer = `
 if (import.meta.env.DEV) {
   let observerEvents = [], observerSending = false;
-  const observe = () => ({
+  const rect = e => e ? {x:e.getBoundingClientRect().x,y:e.getBoundingClientRect().y,width:e.getBoundingClientRect().width,height:e.getBoundingClientRect().height} : undefined;
+  const observe = (detailed=true) => ({
     at: performance.now(), wall: Date.now(), path: session.file?.path,
     backend: largeDocumentPreview ? "native" : sourceView ? "memory-window" : "editor",
     dirty: session.dirty, version: session.documentVersion, savedVersion: session.savedVersion,
     saving: isDocumentSaving(), loading: loadingState.phase, mode: session.viewMode,
     selection: {anchor:(sourceView?.selection ?? state.selection).main.anchor, head:(sourceView?.selection ?? state.selection).main.head},
     pending: sourceView?.activeVisibleEditTasks.size ?? 0,
+    sourceVersion:sourceView?.source.version, sourceLines:sourceView?.renderedSourceWindow?.lines.slice(0,3).map(l=>({...l,text:l.text.slice(0,90)})),
     editable: !(sourceView?.inputDOM ?? view?.inputDOM)?.readOnly,
     cursor: document.querySelector('.milkup-cursor')?.getAttribute('data-position'),
     lines: Array.from(document.querySelectorAll('.milkup-line')).slice(0,3).map(e=>e.textContent?.slice(0,100)),
     renderedLines: document.querySelectorAll('.milkup-line').length,
     fromLine: document.querySelector('.milkup-editor-content')?.getAttribute('data-from-line'),
     scrollTop: sourceView?.dom.scrollTop, notice,
+    ...(detailed ? {
+      viewport:rect(sourceView?.dom),scrollHeight:sourceView?.dom.scrollHeight,
+      lineCount:sourceView?.source.lineCount,toLine:document.querySelector('.milkup-editor-content')?.getAttribute('data-to-line'),
+      lineRects:Array.from(document.querySelectorAll('.milkup-line')).map(e=>({number:Number(e.dataset.line),from:Number(e.dataset.from),to:Number(e.dataset.to),text:e.textContent?.slice(0,80),...rect(e)})),
+      cursorRect:rect(document.querySelector('.milkup-cursor')),
+      search:searchResultState,
+      searchCount:document.querySelector('[data-search-result-count]')?.textContent,
+      searchMessage:document.querySelector('[data-search-message]')?.textContent
+    } : {}),
     focused: document.activeElement?.className
   });
-  for (const type of ['keydown','input','compositionstart','compositionupdate','compositionend'])
-    globalThis.addEventListener(type, event => observerEvents.push({type, key:event.key, data:event.data, ctrl:event.ctrlKey, shift:event.shiftKey, trusted:event.isTrusted, ...observe()}), true);
+  for (const type of ['keydown','input','compositionstart','compositionupdate','compositionend','pointerdown','pointerup'])
+    globalThis.addEventListener(type, event => observerEvents.push({type, key:event.key, data:event.data, clientX:event.clientX, clientY:event.clientY, targetClass:event.target?.className, ctrl:event.ctrlKey, shift:event.shiftKey, trusted:event.isTrusted, ...observe(false)}), true);
   setInterval(async () => {
     if(observerSending) return;
     observerSending = true;

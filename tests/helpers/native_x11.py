@@ -18,6 +18,8 @@ class XTest:
         self.x.XFlush.argtypes = [ctypes.c_void_p]
         self.x.XCloseDisplay.argtypes = [ctypes.c_void_p]
         self.t.XTestFakeKeyEvent.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_int, ctypes.c_ulong]
+        self.t.XTestFakeMotionEvent.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_ulong]
+        self.t.XTestFakeButtonEvent.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_int, ctypes.c_ulong]
         self.display = self.x.XOpenDisplay(None)
         assert self.display
         self.x.XSetInputFocus(self.display, int(window, 16), 2, 0)
@@ -39,6 +41,20 @@ class XTest:
 
     def shortcut(self, key, **kwargs):
         self.chord('Control_L', key, **kwargs)
+
+    def move(self, x, y):
+        self.t.XTestFakeMotionEvent(self.display, -1, round(x), round(y), 0)
+        self.x.XFlush(self.display)
+
+    def button(self, number, down, delay=.03):
+        self.t.XTestFakeButtonEvent(self.display, number, int(down), 0)
+        self.x.XFlush(self.display)
+        if delay: time.sleep(delay)
+
+    def click(self, x, y):
+        self.move(x, y)
+        self.button(1, True)
+        self.button(1, False)
 
     def close(self):
         self.x.XCloseDisplay(self.display)

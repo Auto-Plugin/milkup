@@ -3095,10 +3095,13 @@ function getPluginUiRenderState(): Readonly<Record<string, unknown>> {
     return Object.freeze({ viewport: Object.freeze({ fromLine: 1, toLine: 1, activeLine: 1 }) })
   }
 
-  const fromLine = Math.min(
-    lineCount,
-    Math.max(1, Math.floor(editor.dom.scrollTop / desktopVirtualLineHeight) + 1),
-  )
+  const sourceRange = sourceView?.visibleLineRange
+  const fromLine =
+    sourceRange?.fromLine ??
+    Math.min(
+      lineCount,
+      Math.max(1, Math.floor(editor.dom.scrollTop / desktopVirtualLineHeight) + 1),
+    )
   const visibleLineCount = Math.max(
     1,
     Math.ceil(
@@ -3110,7 +3113,7 @@ function getPluginUiRenderState(): Readonly<Record<string, unknown>> {
     documentVersion: session.documentVersion,
     viewport: Object.freeze({
       fromLine,
-      toLine: Math.min(lineCount, fromLine + visibleLineCount - 1),
+      toLine: sourceRange?.toLine ?? Math.min(lineCount, fromLine + visibleLineCount - 1),
       activeLine,
     }),
   })

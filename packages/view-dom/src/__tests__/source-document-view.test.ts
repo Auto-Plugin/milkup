@@ -1568,6 +1568,92 @@ describe('SourceDocumentView', () => {
     expect(selection?.dataset.to).toBe('3')
   })
 
+  it.each(['source', 'live'] as const)(
+    'commits optimistic input before a new %s viewport read',
+    async (mode) => {
+      const source = new RecordingDocumentSource({ documentId: 'pending-render', text: 'alpha' })
+      let commit: (() => void) | undefined
+      const view = new SourceDocumentView({
+        parent: document.createElement('main'),
+        source,
+        mode,
+        editable: true,
+        onEdit: (edit) =>
+          new Promise<void>((resolve) => {
+            commit = () => {
+              source.updateText(edit.insert + 'alpha')
+              resolve()
+            }
+          }),
+      })
+      vi.useFakeTimers()
+      try {
+        await view.renderVisibleWindow()
+        view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true }))
+        await vi.advanceTimersByTimeAsync(0)
+        const rendering = view.renderVisibleWindow()
+        await vi.advanceTimersByTimeAsync(0)
+        expect(view.contentDOM.querySelector('.milkup-line')?.textContent).toBe('qalpha')
+        // A viewport refresh must not force a history boundary before the batch timer.
+        expect(commit).toBeUndefined()
+        await vi.advanceTimersByTimeAsync(40)
+        commit?.()
+        await rendering
+        expect(view.contentDOM.querySelector('.milkup-line')?.textContent).toBe('qalpha')
+      } finally {
+        view.destroy()
+        vi.useRealTimers()
+      }
+    },
+  )
+
+  it.each(['source', 'live'] as const)(
+    'does not apply a %s window read started before a newer optimistic edit',
+    async (mode) => {
+      const source = new RecordingDocumentSource({ documentId: 'render-edit-race', text: 'alpha' })
+      const read = source.readLineWindow.bind(source)
+      let release: (() => void) | undefined
+      let delayed = false
+      source.readLineWindow = async (from, to) => {
+        const snapshot = await read(from, to)
+        if (delayed)
+          await new Promise<void>((resolve) => {
+            release = resolve
+          })
+        return snapshot
+      }
+      const view = new SourceDocumentView({
+        parent: document.createElement('main'),
+        source,
+        mode,
+        editable: true,
+        onEdit: async (edit) => {
+          source.updateText(edit.insert + 'alpha')
+        },
+      })
+      await view.renderVisibleWindow()
+      source.updateText('alpha')
+      delayed = true
+      const oldRender = view.renderVisibleWindow()
+      await flushPromises()
+      view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true }))
+      await flushPromises()
+      expect(view.contentDOM.querySelector('.milkup-line')?.textContent).toBe('qalpha')
+      delayed = false
+      release?.()
+      await oldRender
+      expect(view.contentDOM.querySelector('.milkup-line')?.textContent).toBe('qalpha')
+      await view.runAfterPendingEdits(async () => {})
+      view.inputDOM.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowLeft', shiftKey: true, bubbles: true }),
+      )
+      await flushPromises()
+      expect(view.selection.main.anchor).toBe(1)
+      expect(view.selection.main.head).toBe(0)
+      view.destroy()
+    },
+  )
+
   it('does not let stale single-line commits replace newer optimistic input', async () => {
     const parent = document.createElement('main')
     const source = new RecordingDocumentSource({

@@ -1,0 +1,136 @@
+$ vitest run --maxWorkers=1 --no-file-parallelism
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ✓ src/__tests__/editor-view.test.ts (121 tests) 1953ms
+   ✓ EditorView > keeps docs/coding-plan.md live interactions bounded to affected lines  1524ms
+ ❯ src/__tests__/source-document-view.test.ts (62 tests | 1 failed) 909ms
+   ✓ SourceDocumentView > restores the source caret after a save lock rerenders the window 127ms
+   ✓ SourceDocumentView > restores the live caret after a save lock rerenders the window 37ms
+   ✓ SourceDocumentView > renders an async document source as a bounded line window 4ms
+   ✓ SourceDocumentView > refreshes the source line window on scroll without rendering offscreen lines 5ms
+   ✓ SourceDocumentView > can swap to another source and resets the scroll window 1ms
+   ✓ SourceDocumentView > keeps scroll position when updating the same source document version 3ms
+   ✓ SourceDocumentView > scrolls directly to a requested line window 2ms
+   ✓ SourceDocumentView > renders the requested line even when the browser clamps a huge scroll offset 2ms
+   ✓ SourceDocumentView > renders search highlights and marks the active result 3ms
+   ✓ SourceDocumentView > renders live mode from a padded markdown line window without offscreen DOM 4ms
+   ✓ SourceDocumentView > maps live-mode clicks through visible source spans before editing 62ms
+   ✓ SourceDocumentView > positions the source cursor from the rendered line box instead of guessed line number 9ms
+   ✓ SourceDocumentView > moves the source cursor with arrow keys without editing 8ms
+   ✓ SourceDocumentView > handles source cursor arrow keys from the focused root element 5ms
+   ✓ SourceDocumentView > moves the source cursor vertically by preserving line offset 8ms
+   ✓ SourceDocumentView > moves vertically from rendered lines when the source cannot resolve positions directly 8ms
+   ✓ SourceDocumentView > uses measured line width when source cursor range measurement is unavailable 8ms
+   ✓ SourceDocumentView > uses font-size instead of line-height for the source cursor height 6ms
+   ✓ SourceDocumentView > caches live markdown windows by document version and line range 3ms
+   ✓ SourceDocumentView > shows live block syntax around the source cursor 10ms
+   ✓ SourceDocumentView > hides table pipes between rendered source cells 4ms
+   ✓ SourceDocumentView > preserves native horizontal code-scrollbar dragging in the source view 9ms
+   ✓ SourceDocumentView > patches the edited visible source line without rereading the window 8ms
+   ✓ SourceDocumentView > warms markdown windows around the visible viewport without repeated source reads 2ms
+   ✓ SourceDocumentView > emits bounded visible edits when editable source mode receives keyboard input 48ms
+   ✓ SourceDocumentView > continues list prefixes when editable source mode receives Enter 14ms
+   ✓ SourceDocumentView > commits only finalized IME composition text 10ms
+   ✓ SourceDocumentView > clears the IME placeholder before immediately handling enter and delete 11ms
+   ✓ SourceDocumentView > does not let a stale composition flag block enter and delete 10ms
+   ✓ SourceDocumentView > handles editing keys reported with the legacy IME key code 8ms
+   ✓ SourceDocumentView > flushes pending source edits before save operations 7ms
+   ✓ SourceDocumentView > does not block saving when a structural edit commits but its viewport refresh fails 7ms
+   ✓ SourceDocumentView > keeps consecutive structural edits in separate native history commits 10ms
+   ✓ SourceDocumentView > flush waits for every isolated batch even when the first commit is delayed 11ms
+   ✓ SourceDocumentView > flush rejects when a later isolated edit fails instead of reporting a successful save 9ms
+   ✓ SourceDocumentView > renders structural edits while the native commit is still pending 49ms
+   × SourceDocumentView > rolls back an optimistic structural edit when the native commit fails 14ms
+     → expected …(2) to have a length of 1 but got 2
+   ✓ SourceDocumentView > deletes a selected range inside the rendered source window 14ms
+   ✓ SourceDocumentView > commits enter and delete keys when lineAtPosition is unavailable 10ms
+   ✓ SourceDocumentView > deletes complete surrogate pairs from a rendered-only source 5ms
+   ✓ SourceDocumentView > copies, cuts, and pastes a selection through clipboard events 14ms
+   ✓ SourceDocumentView > renders live list markers like the regular editor 2ms
+   ✓ SourceDocumentView > keeps live list clicks out of source marker ranges 10ms
+   ✓ SourceDocumentView > keeps task-list syntax rendered after the cursor enters the item 6ms
+   ✓ SourceDocumentView > creates a selection while dragging through a rendered source window 11ms
+   ✓ SourceDocumentView > commits optimistic input before a new source viewport read 56ms
+   ✓ SourceDocumentView > commits optimistic input before a new live viewport read 59ms
+   ✓ SourceDocumentView > does not apply a source window read started before a newer optimistic edit 8ms
+   ✓ SourceDocumentView > does not apply a live window read started before a newer optimistic edit 10ms
+   ✓ SourceDocumentView > does not let stale single-line commits replace newer optimistic input 52ms
+   ✓ SourceDocumentView > does not emit edits when the source view remains readonly 1ms
+   ✓ reveals an exact source search selection without stealing focus 16ms
+   ✓ moves a source outline cursor to the revealed heading line 6ms
+   ✓ ignores a pending reveal after the document identity changes 5ms
+   ✓ windowed source block commands > exits an empty nested list without inserting another marker 5ms
+   ✓ windowed source block commands > does not continue literal lists inside a fence outside the rendered window and preserves CRLF 7ms
+   ✓ windowed source block commands > indents a reversed selection across windows in one edit and preserves its direction 11ms
+   ✓ windowed live block commands > exits an empty nested list without inserting another marker 7ms
+   ✓ windowed live block commands > does not continue literal lists inside a fence outside the rendered window and preserves CRLF 11ms
+   ✓ windowed live block commands > indents a reversed selection across windows in one edit and preserves its direction 20ms
+   ✓ does not scan the document prefix for ordinary windowed character backspace 8ms
+   ✓ discards a delayed fence scan after the active document changes 7ms
+ ✓ src/__tests__/source-unicode.test.ts (33 tests) 453ms
+ ✓ src/__tests__/source-scroll-limits.test.ts (9 tests) 309ms
+ ✓ src/__tests__/table-keyboard.test.ts (27 tests) 279ms
+ ✓ src/__tests__/block-keyboard.test.ts (35 tests) 187ms
+ ✓ src/__tests__/input-boundaries.test.ts (6 tests) 136ms
+ ✓ src/__tests__/async-paste-unicode.test.ts (15 tests) 92ms
+ ✓ src/__tests__/table-cursor.test.ts (1 test) 89ms
+ ✓ src/__tests__/plugin-renderer.test.ts (5 tests) 19ms
+ ✓ src/__tests__/view-benchmark.test.ts (1 test) 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/source-document-view.test.ts > SourceDocumentView > rolls back an optimistic structural edit when the native commit fails
+AssertionError: expected …(2) to have a length of 1 but got 2
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ src/__tests__/source-document-view.test.ts:1281:62
+    1279|     await flushPromises()
+    1280|
+    1281|     expect(view.contentDOM.querySelectorAll('.milkup-line')).toHaveLen…
+       |                                                              ^
+    1282|     expect(view.contentDOM.querySelector('.milkup-line')?.textContent)…
+    1283|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+RangeError: Invalid line window: 1-5
+ ❯ assertValidLineWindow ../core/src/store/editor-document-source.ts:105:11
+    103|     toLine > lineCount
+    104|   ) {
+    105|     throw new RangeError(`Invalid line window: ${fromLine}-${toLine}`)
+       |           ^
+    106|   }
+    107| }
+ ❯ MemoryDocumentSource.readLineWindow ../core/src/store/editor-document-source.ts:53:5
+ ❯ SourceDocumentView.renderSourceLineWindow src/source-document-view.ts:669:41
+ ❯ SourceDocumentView.renderVisibleWindow src/source-document-view.ts:465:22
+ ❯ processTicksAndRejections node:internal/process/task_queues:104:5
+
+This error originated in "src/__tests__/source-document-view.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "maps live-mode clicks through visible source spans before editing". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  1 failed | 10 passed (11)
+      Tests  1 failed | 314 passed (315)
+     Errors  1 error
+   Start at  16:33:42
+   Duration  10.49s (transform 360ms, setup 0ms, collect 857ms, tests 4.43s, environment 3.60s, prepare 477ms)
+
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/view-dom@0.0.0 test: `vitest run --maxWorkers=1 --no-file-parallelism`
+Exit status 1

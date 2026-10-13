@@ -1,0 +1,44 @@
+$ vitest run source-scroll-limits.test.ts --maxWorkers=1 --no-file-parallelism
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/source-scroll-limits.test.ts (10 tests | 1 failed) 307ms
+   ✓ bounded document scroll coordinates > keeps physical height bounded and reaches the last logical line at the scrollbar end 121ms
+   ✓ bounded document scroll coordinates > maps explicit far jumps and subsequent scroll events to the same lines 63ms
+   ✓ bounded document scroll coordinates > uses document end/start and page navigation while preserving shifted selection direction 44ms
+   ✓ bounded document scroll coordinates > bounds long-line overscan while keeping the entire visible viewport 6ms
+   ✓ reuses repeated source windows but invalidates them when the source revision changes 19ms
+   ✓ keeps document Home and the first visible line reachable with real content padding 20ms
+   ✓ leaves the root overlay scrollbar gesture to the browser 11ms
+   ✓ preserves edge pixel coordinates and round trips distant logical offsets 0ms
+   ✓ reports logical viewport lines to plugin UI after a far jump 11ms
+   × invalidates source windows when a replacement source restarts the same document revision 11ms
+     → expected 'before' to be 'after' // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/source-scroll-limits.test.ts > invalidates source windows when a replacement source restarts the same document revision
+AssertionError: expected 'before' to be 'after' // Object.is equality
+
+Expected: "after"
+Received: "before"
+
+ ❯ src/__tests__/source-scroll-limits.test.ts:208:70
+    206|   view.updateSource(new MemoryDocumentSource({ documentId: 'reopened',…
+    207|   await view.renderVisibleWindow()
+    208|   expect(view.contentDOM.querySelector('.milkup-line')?.textContent).t…
+       |                                                                      ^
+    209|   view.destroy()
+    210| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 9 passed (10)
+   Start at  16:47:38
+   Duration  1.18s (transform 271ms, setup 0ms, collect 340ms, tests 307ms, environment 355ms, prepare 58ms)
+
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/view-dom@0.0.0 test: `vitest run source-scroll-limits.test.ts --maxWorkers=1 --no-file-parallelism`
+Exit status 1
