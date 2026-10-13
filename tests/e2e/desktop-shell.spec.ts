@@ -6,13 +6,30 @@ async function runMenuCommand(page: Page, name: string): Promise<void> {
   await page.getByRole('button', { name, exact: true }).click()
 }
 
-async function runDeveloperCommand(page: Page, name: string): Promise<void> {
-  await page.getByRole('button', { name: '菜单' }).click()
-  await page.getByText('开发者面板').click()
-  await page.getByRole('button', { name, exact: true }).click()
+async function installFileWatchProbe(page: Page): Promise<void> {
+  await page.route(/\/src\/file-service\.ts(?:\?|$)/, async (route) => {
+    const response = await route.fetch()
+    const body = (await response.text()).replace(
+      'async listenToFileWatchEvents() {',
+      'async listenToFileWatchEvents(handler) { window.__milkupFileWatch = handler;',
+    )
+    await route.fulfill({ response, body })
+  })
+}
+
+async function emitExternalChange(page: Page, kind: 'modified' | 'deleted'): Promise<void> {
+  await page.evaluate((kind) => {
+    const host = window as unknown as { __milkupFileWatch: (event: unknown) => void }
+    host.__milkupFileWatch({
+      kind,
+      documentId: document.querySelector('[data-stat="document-id"]')!.textContent,
+      file: { path: 'D:/notes/sample.md' },
+    })
+  }, kind)
 }
 
 test('desktop shell loads editor and tracks dirty session state', async ({ page }) => {
+  await installFileWatchProbe(page)
   await page.goto('/')
 
   await expect(page.getByRole('heading', { name: '未命名' })).toBeVisible()
@@ -75,7 +92,7 @@ test('desktop shell loads editor and tracks dirty session state', async ({ page 
   await expect(page.locator('[data-stat="version"]')).toHaveText('6')
   await expect(page.locator('[data-stat="saved"]')).toHaveText('6')
 
-  await runDeveloperCommand(page, '模拟外部修改')
+  await emitExternalChange(page, 'modified')
 
   await expect(page.locator('[data-stat="external"]')).toHaveText('modified-clean')
   await expect(page.locator('[data-save-label]')).toContainText('已保存')
@@ -89,7 +106,7 @@ test('desktop shell loads editor and tracks dirty session state', async ({ page 
   await expect(page.locator('[data-stat="saved"]')).toHaveText('7')
   await expect(page.locator('[data-stat="line-ending"]')).toHaveText('crlf')
 
-  await runDeveloperCommand(page, '模拟外部删除')
+  await emitExternalChange(page, 'deleted')
 
   await expect(page.locator('[data-stat="external"]')).toHaveText('deleted-clean')
   await expect(page.locator('[data-save-label]')).toContainText('已保存')
@@ -106,7 +123,8 @@ test('desktop shell loads editor and tracks dirty session state', async ({ page 
   await expect(page.locator('[data-save-label]')).toContainText('未保存')
   await expect(page.locator('[data-stat="document-id"]')).toHaveText('file:D:/notes/sample.md')
 
-  await runDeveloperCommand(page, '模拟外部修改')
+  await page.keyboard.press('Escape')
+  await emitExternalChange(page, 'modified')
 
   await expect(page.locator('[data-stat="external"]')).toHaveText('conflict')
   await runMenuCommand(page, '保存')
@@ -115,6 +133,7 @@ test('desktop shell loads editor and tracks dirty session state', async ({ page 
   await expect(page.locator('[data-stat="external"]')).toHaveText('conflict')
 
   await runMenuCommand(page, '新建')
+  await page.getByRole('button', { name: '不保存并新建文档', exact: true }).click()
   await runMenuCommand(page, '在文件夹中显示')
 
   await expect(page.getByRole('heading', { name: '未命名' })).toBeVisible()
@@ -178,6 +197,7 @@ test('plugin manager restores, executes, disables, and reenables a Worker plugin
 test('desktop shell imports pasted image files through asset provider', async ({ page }) => {
   await page.goto('/')
   await runMenuCommand(page, '打开')
+  await expect(page.locator('#app')).toHaveAttribute('data-loading', 'ready')
 
   await page.evaluate(() => {
     const dataTransfer = new DataTransfer()
@@ -325,6 +345,7 @@ test('desktop shell routes primary shortcuts through active document actions', a
   await page.keyboard.press('Control+W')
   await expect(page.locator('[data-save-label]')).toContainText('未保存')
 
+  await page.keyboard.press('Escape')
   await page.keyboard.press('Control+S')
   await expect(page.locator('[data-save-label]')).toContainText('已保存')
   await page.keyboard.press('Control+W')
@@ -364,4 +385,175 @@ test('desktop shell confirms before closing a dirty window', async ({ page }) =>
   await dialog.getByRole('button', { name: '保存并退出', exact: true }).click()
   await expect(dialog).toBeHidden()
   await expect(page.locator('[data-save-label]')).toContainText('已保存')
+})
+
+// Exercise the real desktop UI while controlling only its asynchronous file adapter.
+async function installSaveProbe(page: Page): Promise<void> {
+  await page.route(/\/src\/file-service\.ts(?:\?|$)/, async (route) => {
+    const response = await route.fetch()
+    const body = (await response.text()).replace(
+      'function createDesktopFileService() {',
+      `function createDesktopFileService() {
+        const service = createMockFileService();
+        const probe = window.__milkupSaveProbe = { calls: 0, outcome: 'success', text: '', open: 'success' };
+        service.saveFile = async (session, text) => {
+          probe.calls++; probe.text = text;
+          let outcome = probe.outcome;
+          if (outcome === 'pending') outcome = await new Promise(resolve => { probe.release = resolve; });
+          if (outcome === 'cancel') return undefined;
+          if (outcome === 'error') throw new Error('disk full');
+          return { documentId: session.documentId, file: { path: '/notes/saved.md' }, diskSnapshotHash: 'saved:' + text };
+        };
+        const openPath = service.openPath.bind(service);
+        service.selectOpenFile = async () => probe.open === 'cancel' ? undefined : '/notes/next.md';
+        service.openPath = async (...args) => {
+          if (probe.open === 'error') throw new Error('cannot read file');
+          return openPath(...args);
+        };
+        return service;`,
+    )
+    await route.fulfill({ response, body })
+  })
+}
+
+for (const [shortcut, action] of [
+  ['Control+n', '新建文档'],
+  ['Control+o', '打开另一份文档'],
+  ['Control+w', '关闭文档'],
+] as const) {
+  test(`dirty ${shortcut} supports cancel, focus containment and explicit discard`, async ({
+    page,
+  }) => {
+    await page.goto('/')
+    await page.keyboard.type('KEEP-MY-DRAFT')
+    const originalId = await page.locator('[data-stat="document-id"]').textContent()
+    await page.keyboard.press(shortcut)
+    const dialog = page.getByRole('dialog', { name: '文档尚未保存' })
+    await expect(dialog).toBeVisible()
+    await expect(dialog.locator('.dialog-button[data-close-confirm-action="cancel"]')).toBeFocused()
+    for (let i = 0; i < 6; i++) await page.keyboard.press('Tab')
+    expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true)
+    await page.keyboard.press('Shift+Tab')
+    expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true)
+    await page.keyboard.press('Control+n')
+    await page.keyboard.press('Control+o')
+    await expect(
+      dialog.getByRole('button', { name: `不保存并${action}`, exact: true }),
+    ).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(dialog).toBeHidden()
+    await expect(page.locator('[data-stat="document-id"]')).toHaveText(originalId!)
+    await expect(page.locator('.milkup-editor-content')).toContainText('KEEP-MY-DRAFT')
+    await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+    await page.keyboard.type('-still-editable')
+    await expect(page.locator('.milkup-editor-content')).toContainText('still-editable')
+    await page.keyboard.press(shortcut)
+    await dialog.getByRole('button', { name: `不保存并${action}`, exact: true }).click()
+    await expect(dialog).toBeHidden()
+    await expect(page.locator('.milkup-editor-content')).not.toContainText('KEEP-MY-DRAFT')
+  })
+}
+
+test('save before new retains the draft after cancellation or failure and supports retry', async ({
+  page,
+}) => {
+  await installSaveProbe(page)
+  await page.goto('/')
+  await page.keyboard.type('ONLY-SAVED-WHEN-WRITTEN')
+  await page.evaluate("window.__milkupSaveProbe.outcome = 'cancel'")
+  await page.keyboard.press('Control+n')
+  const dialog = page.getByRole('dialog', { name: '文档尚未保存' })
+  await dialog.getByRole('button', { name: '保存并新建文档', exact: true }).click()
+  await expect(dialog.getByRole('alert')).toContainText('已取消保存')
+  await expect(page.locator('[data-save-label]')).toContainText('未保存')
+  await page.evaluate("window.__milkupSaveProbe.outcome = 'error'")
+  await dialog.getByRole('button', { name: '保存并新建文档', exact: true }).click()
+  await expect(dialog.getByRole('alert')).toContainText('disk full')
+  await expect(page.locator('.milkup-editor-content')).toContainText('ONLY-SAVED-WHEN-WRITTEN')
+  await page.evaluate("window.__milkupSaveProbe.outcome = 'success'")
+  await dialog.getByRole('button', { name: '保存并新建文档', exact: true }).click()
+  await expect(dialog).toBeHidden()
+  await expect(page.locator('.milkup-editor-content')).not.toContainText('ONLY-SAVED-WHEN-WRITTEN')
+  expect(await page.evaluate('window.__milkupSaveProbe.text')).toBe('ONLY-SAVED-WHEN-WRITTEN')
+  expect(await page.evaluate('window.__milkupSaveProbe.calls')).toBe(3)
+})
+
+test('cancelling a pending save continuation never navigates after the write completes', async ({
+  page,
+}) => {
+  await installSaveProbe(page)
+  await page.goto('/')
+  await page.keyboard.type('SAVE-BUT-STAY')
+  const originalId = await page.locator('[data-stat="document-id"]').textContent()
+  await page.evaluate("window.__milkupSaveProbe.outcome = 'pending'")
+  await page.keyboard.press('Control+n')
+  await page.getByRole('button', { name: '保存并新建文档', exact: true }).click()
+  await expect(page.locator('#app')).toHaveAttribute('data-saving', 'true')
+  await expect(page.locator('[data-close-confirm-action="save"]')).toBeDisabled()
+  await expect(page.locator('[data-close-confirm-action="discard"]')).toBeDisabled()
+  await page.keyboard.press('Control+s')
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('Control+n')
+  await page.evaluate("window.__milkupSaveProbe.release('success')")
+  await expect(page.locator('#app')).toHaveAttribute('data-saving', 'false')
+  await expect(page.locator('[data-close-confirm]')).toBeHidden()
+  await expect(page.locator('[data-stat="document-id"]')).toHaveText(originalId!)
+  await expect(page.locator('.milkup-editor-content')).toContainText('SAVE-BUT-STAY')
+  await expect(page.locator('[data-save-label]')).toContainText('已保存')
+  expect(await page.evaluate('window.__milkupSaveProbe.calls')).toBe(1)
+  await page.keyboard.type('-MORE')
+  await expect(page.locator('[data-save-label]')).toContainText('未保存')
+})
+
+for (const outcome of ['cancel', 'error']) {
+  test(`opening ${outcome} after discard preserves original content and history`, async ({
+    page,
+  }) => {
+    await installSaveProbe(page)
+    await page.goto('/')
+    await page.keyboard.type('ORIGINAL')
+    await page.evaluate(`window.__milkupSaveProbe.open = '${outcome}'`)
+    await page.keyboard.press('Control+o')
+    await page.getByRole('button', { name: '不保存并打开另一份文档', exact: true }).click()
+    await expect(page.locator('#app')).toHaveAttribute(
+      'data-loading',
+      outcome === 'error' ? 'failed' : 'ready',
+    )
+    if (outcome === 'error') await page.locator('[data-loading-dismiss]').click()
+    await expect(page.locator('.milkup-editor-content')).toContainText('ORIGINAL')
+    await expect(page.locator('[data-save-label]')).toContainText('未保存')
+    await page.keyboard.press('Control+z')
+    await expect(page.locator('.milkup-editor-content')).not.toContainText('ORIGINAL')
+  })
+}
+
+test('ordinary save failures are visible without developer diagnostics and recover on retry', async ({
+  page,
+}) => {
+  await installSaveProbe(page)
+  await page.goto('/')
+  await page.keyboard.type('RECOVERABLE')
+  await page.evaluate("window.__milkupSaveProbe.outcome = 'error'")
+  await page.keyboard.press('Control+s')
+  await expect(page.locator('[data-notice]')).toBeVisible()
+  await expect(page.locator('[data-notice]')).toContainText('disk full')
+  await expect(page.locator('[data-save-label]')).toContainText('未保存')
+  await page.evaluate("window.__milkupSaveProbe.outcome = 'success'")
+  await page.keyboard.press('Control+s')
+  await expect(page.locator('[data-save-label]')).toContainText('已保存')
+  await expect(page.locator('[data-notice]')).toBeHidden()
+})
+
+test('browser reload cancellation keeps the unsaved editor alive', async ({ page }) => {
+  await page.goto('/')
+  await page.keyboard.type('RELOAD-PROTECTED')
+  const pendingDialog = page.waitForEvent('dialog')
+  const reload = page.reload({ timeout: 5000 }).catch(() => null)
+  const dialog = await pendingDialog
+  expect(dialog.type()).toBe('beforeunload')
+  await dialog.dismiss()
+  await reload
+  await expect(page.locator('.milkup-editor-content')).toContainText('RELOAD-PROTECTED')
+  await page.keyboard.type('-still-alive')
+  await expect(page.locator('.milkup-editor-content')).toContainText('still-alive')
 })

@@ -91,17 +91,27 @@ export function recordDocumentTransaction(
 export interface FileSaveResult {
   readonly file?: DocumentFileIdentity
   readonly diskSnapshotHash?: string
+  /** Version of the text actually submitted to disk, captured before asynchronous I/O. */
+  readonly savedVersion?: number
 }
 
 export function recordFileSave(session: DocumentSession, result: FileSaveResult): DocumentSession {
   const file = result.file ?? session.file
+  const savedVersion = result.savedVersion ?? session.documentVersion
+  if (
+    !Number.isInteger(savedVersion) ||
+    savedVersion < session.savedVersion ||
+    savedVersion > session.documentVersion
+  ) {
+    throw new Error(`Invalid saved document version: ${savedVersion}`)
+  }
 
   return freezeSession({
     ...session,
     ...(file === undefined ? {} : { file }),
-    savedVersion: session.documentVersion,
+    savedVersion,
     diskSnapshotHash: result.diskSnapshotHash ?? session.diskSnapshotHash,
-    dirty: false,
+    dirty: session.documentVersion !== savedVersion,
     externalChangeState: 'none',
   })
 }
@@ -109,6 +119,7 @@ export function recordFileSave(session: DocumentSession, result: FileSaveResult)
 export function recordFileSaveResult(
   session: DocumentSession,
   result: SaveFileResult,
+  savedVersion: number = session.documentVersion,
 ): DocumentSession {
   if (result.documentId !== session.documentId) {
     throw new Error(
@@ -116,7 +127,7 @@ export function recordFileSaveResult(
     )
   }
 
-  return recordFileSave(session, result)
+  return recordFileSave(session, { ...result, savedVersion })
 }
 
 export function recordFileReloadResult(

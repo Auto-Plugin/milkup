@@ -1,5 +1,10 @@
 import { defineConfig, devices } from '@playwright/test'
 
+// Keep the established Edge default; CI/Linux can use an installed Chromium explicitly.
+const browser = process.env.MILKUP_BROWSER_EXECUTABLE
+  ? { launchOptions: { executablePath: process.env.MILKUP_BROWSER_EXECUTABLE } }
+  : { channel: process.env.MILKUP_BROWSER_CHANNEL ?? 'msedge' }
+
 export default defineConfig({
   testDir: './tests/e2e',
   timeout: 60_000,
@@ -16,7 +21,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         baseURL: 'http://127.0.0.1:5174',
-        channel: 'msedge',
+        ...browser,
       },
     },
     {
@@ -25,7 +30,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         baseURL: 'http://127.0.0.1:1420',
-        channel: 'msedge',
+        ...browser,
       },
     },
   ],

@@ -1,4 +1,8 @@
 import {
+  createDocumentTransitionController,
+  type DocumentTransitionPrompt,
+} from './document-transition'
+import {
   ActionRegistry,
   ChangeSet,
   EditorState,
@@ -23,10 +27,8 @@ import {
 import type { BrowserWorkerPluginHost, PluginManifest } from '@milkup/plugin'
 import {
   applyFileWatchEvent,
-  applyCloseDecision,
   createDocumentSession,
   createDocumentSessionFromOpenResult,
-  evaluateCloseProtection,
   getFileActionDocumentId,
   getRevealTarget,
   getSaveSafety,
@@ -414,6 +416,7 @@ app.innerHTML = `
         <div class="confirm-dialog-content">
           <h2 id="close-confirm-title">${messages.closeConfirm.title}</h2>
           <p id="close-confirm-body">${messages.closeConfirm.body}</p>
+          <p data-transition-error role="alert" hidden></p>
         </div>
         <footer class="confirm-dialog-actions">
           <button type="button" class="dialog-button secondary" data-close-confirm-action="cancel">${messages.closeConfirm.cancel}</button>
@@ -433,7 +436,7 @@ app.innerHTML = `
         </button>
         <button type="button" class="statusbar-button mode-toggle" data-mode-toggle aria-label="${messages.buttons.live}" title="${messages.buttons.live}"></button>
       </div>
-      <span class="statusbar-notice" data-notice hidden></span>
+      <span class="statusbar-notice" data-notice role="status" aria-live="polite" hidden></span>
       <span class="statusbar-spacer"></span>
       <div class="statusbar-right">
         <span data-plugin-slot="statusbar"></span>
@@ -513,8 +516,31 @@ const loadingVisibility = createDocumentLoadingVisibilityController({
     }
   },
 })
+let importantNotice = false
 let saveState: DocumentSaveState = Object.freeze({ phase: 'idle' })
-let closeAfterCurrentSave = false
+let transitionPrompt: DocumentTransitionPrompt | undefined
+const documentTransitions = createDocumentTransitionController({
+  session: () => session,
+  busy: () => isDocumentBusy() || isDocumentSaving(),
+  flushEdits: async () => {
+    await sourceView?.flushPendingEdits()
+  },
+  save: () => saveDocument(),
+  saveFailureMessage: () => notice,
+  show: (prompt) => {
+    transitionPrompt = prompt
+    openWindowConfirm()
+  },
+  hide: () => {
+    transitionPrompt = undefined
+    closeWindowConfirm()
+  },
+  onError: (error) => {
+    importantNotice = true
+    notice = `文档操作失败：${getErrorMessage(error)}`
+    renderSession()
+  },
+})
 let lastOpenDiagnostics: OpenStageDiagnostics | undefined
 let currentOpenPolicy: DesktopOpenPolicy = resolveDesktopOpenPolicy({
   path: 'untitled.md',
@@ -893,17 +919,17 @@ for (const button of Array.from(
     const action = button.dataset.closeConfirmAction
 
     if (action === 'cancel') {
-      closeWindowConfirm()
+      documentTransitions.cancel()
       return
     }
 
     if (action === 'save') {
-      void saveAndExitWindow()
+      void documentTransitions.save()
       return
     }
 
     if (action === 'discard') {
-      void discardAndExitWindow()
+      void documentTransitions.discard()
     }
   })
 }
@@ -929,13 +955,26 @@ appRoot.addEventListener('pointerdown', (event) => {
 globalThis.addEventListener(
   'keydown',
   (event) => {
-    if (event.key === 'Escape') {
-      if (closeConfirmOpen) {
+    if (closeConfirmOpen) {
+      if (event.isComposing) return
+      if (event.key === 'Escape') {
         event.preventDefault()
-        closeWindowConfirm()
-        return
+        documentTransitions.cancel()
+      } else if (event.key === 'Tab') {
+        const buttons = Array.from(
+          appRoot.querySelectorAll<HTMLButtonElement>('[data-close-confirm] button:not(:disabled)'),
+        )
+        const index = buttons.indexOf(document.activeElement as HTMLButtonElement)
+        const next = (index + (event.shiftKey ? -1 : 1) + buttons.length) % buttons.length
+        event.preventDefault()
+        buttons[next]?.focus()
+      } else if (isPrimaryShortcut(event)) {
+        event.preventDefault()
       }
-
+      event.stopPropagation()
+      return
+    }
+    if (event.key === 'Escape') {
       if (searchOpen) {
         event.preventDefault()
         setSearchOpen(false)
@@ -982,7 +1021,7 @@ function createDesktopActions(): readonly ActionDefinition[] {
       category: 'file',
       permissions: ['app:control'],
       risk: 'safe',
-      run: () => createNewDocument(),
+      run: () => documentTransitions.request('new', createNewDocument),
     },
     {
       id: 'file.open',
@@ -1031,7 +1070,7 @@ function createDesktopActions(): readonly ActionDefinition[] {
       permissions: ['app:control'],
       risk: 'destructive',
       requiresConfirmation: true,
-      run: () => closeCurrentDocument(),
+      run: () => documentTransitions.request('close', closeCurrentDocument),
     },
     {
       id: 'view.setMode',
@@ -1092,6 +1131,8 @@ function createDesktopActions(): readonly ActionDefinition[] {
 }
 
 function runDesktopAction(id: string, input: unknown = {}): void {
+  if (closeConfirmOpen || isDocumentSaving()) return
+  importantNotice = false
   if (isDocumentBusy() && !isBusyAllowedAction(id)) {
     notice = '文档正在打开，请稍候。'
     renderSession()
@@ -1126,6 +1167,7 @@ function runDesktopAction(id: string, input: unknown = {}): void {
 }
 
 function focusActiveView(): void {
+  if (closeConfirmOpen) return
   if (view) {
     view.inputDOM.focus({ preventScroll: true })
     return
@@ -1135,6 +1177,7 @@ function focusActiveView(): void {
 }
 
 function focusEditableView(): void {
+  if (closeConfirmOpen) return
   view?.inputDOM.focus({ preventScroll: true })
 }
 
@@ -1161,7 +1204,7 @@ function createEditorView(): EditorView {
     parent: editorRoot,
     state,
     mode: session.viewMode,
-    editable: !session.readonly && !isDocumentBusy(),
+    editable: !session.readonly && !isDocumentBusy() && !isDocumentSaving() && !closeConfirmOpen,
     assetProvider,
     controlledRenderers: createDesktopControlledRenderers(),
     markdownSyntax: desktopPluginManager.state().contributions.markdownSyntax,
@@ -1234,7 +1277,9 @@ function refreshPluginContributionsInViews(): void {
 
   if (action === 'preserve-large-source') {
     sourceView?.setMode(session.viewMode)
-    sourceView?.setEditable(!session.readonly && !isDocumentBusy())
+    sourceView?.setEditable(
+      !session.readonly && !isDocumentBusy() && !isDocumentSaving() && !closeConfirmOpen,
+    )
     sourceView?.setSearchHighlights(searchResultState?.matches ?? [], activeSearchResultIndex)
     return
   }
@@ -1308,7 +1353,9 @@ function applyMemorySourceView(): void {
   if (sourceView && !largeDocumentPreview) {
     sourceView.updateSource(source)
     sourceView.setMode(session.viewMode)
-    sourceView.setEditable(!session.readonly && !isDocumentBusy())
+    sourceView.setEditable(
+      !session.readonly && !isDocumentBusy() && !isDocumentSaving() && !closeConfirmOpen,
+    )
     sourceView.setSearchHighlights(searchResultState?.matches ?? [], activeSearchResultIndex)
     return
   }
@@ -1318,7 +1365,7 @@ function applyMemorySourceView(): void {
     parent: editorRoot,
     source,
     mode: session.viewMode,
-    editable: !session.readonly && !isDocumentBusy(),
+    editable: !session.readonly && !isDocumentBusy() && !isDocumentSaving() && !closeConfirmOpen,
     onEdit: (edit) => applyMemorySourceEdit(edit),
     markdownContextLines: 24,
     backgroundMarkdownWarmup: true,
@@ -1364,7 +1411,7 @@ async function applyLargeSourceView(): Promise<void> {
     parent: editorRoot,
     source: largeDocumentPreview.source,
     mode: session.viewMode,
-    editable: !session.readonly && !isDocumentBusy(),
+    editable: !session.readonly && !isDocumentBusy() && !isDocumentSaving() && !closeConfirmOpen,
     onEdit: (edit) => applyLargeSourceEdit(edit),
     markdownContextLines: 24,
     backgroundMarkdownWarmup: true,
@@ -1452,6 +1499,21 @@ async function openInitialDocument(
 }
 
 async function openSelectedDocumentWithPolicy(
+  tracker: OpenStageTracker,
+  selectPath: () => Promise<string | undefined>,
+  messages: {
+    readonly cancelledNotice?: string
+    readonly errorPrefix: string
+    readonly preferBuiltinDocument?: boolean
+    readonly startup?: boolean
+  },
+): Promise<void> {
+  return documentTransitions.request('open', async () => {
+    await openSelectedDocumentAfterConfirmation(tracker, selectPath, messages)
+  })
+}
+
+async function openSelectedDocumentAfterConfirmation(
   tracker: OpenStageTracker,
   selectPath: () => Promise<string | undefined>,
   messages: {
@@ -1719,38 +1781,27 @@ function isDocumentSaving(): boolean {
 }
 
 function runDocumentSave(task: () => Promise<boolean>): Promise<boolean> {
-  if (saveState.phase === 'saving') {
-    return saveState.promise
-  }
-
-  const promise = task()
+  if (saveState.phase === 'saving') return saveState.promise
+  importantNotice = false
+  // Establish the lock before invoking the async operation, including Save As dialogs.
+  const promise = Promise.resolve()
+    .then(task)
+    .then(
+      (saved) => {
+        saveState = Object.freeze({ phase: 'idle' })
+        renderSession()
+        return saved
+      },
+      (error: unknown) => {
+        saveState = Object.freeze({ phase: 'idle' })
+        importantNotice = true
+        notice = `保存失败：${getErrorMessage(error)}`
+        renderSession()
+        throw error
+      },
+    )
   saveState = Object.freeze({ phase: 'saving', promise })
   renderSession()
-
-  void promise
-    .then(async (saved) => {
-      saveState = Object.freeze({ phase: 'idle' })
-      const shouldClose = closeAfterCurrentSave && saved && !session.dirty
-      closeAfterCurrentSave = false
-      renderSession()
-
-      if (shouldClose) {
-        await invokeWindowClose()
-      } else if (closeConfirmOpen) {
-        renderCloseConfirmState()
-      }
-    })
-    .catch((error: unknown) => {
-      saveState = Object.freeze({ phase: 'idle' })
-      closeAfterCurrentSave = false
-      notice = `保存失败：${getErrorMessage(error)}`
-      renderSession()
-
-      if (closeConfirmOpen) {
-        renderCloseConfirmState()
-      }
-    })
-
   return promise
 }
 
@@ -1781,25 +1832,28 @@ async function saveDocumentOnce(): Promise<boolean> {
   const safety = getSaveSafety(session)
 
   if (!safety.canSave) {
+    importantNotice = true
     notice = translateSaveSafetyMessage(safety.message)
     renderSession()
     focusEditableView()
     return false
   }
 
+  const savedVersion = session.documentVersion
   const result = await fileService.saveFile(
     session,
     prepareTextForFileSave(session, state.doc.text),
   )
 
   if (!result) {
+    importantNotice = true
     notice = messages.notices.saveCancelled
     renderSession()
     focusEditableView()
     return false
   }
 
-  session = recordFileSaveResult(session, result)
+  session = recordFileSaveResult(session, result, savedVersion)
   recentFiles = recordRecentFile(recentFiles, result.file, Date.now())
   watchCurrentFile()
   notice = messages.notices.saved
@@ -1818,6 +1872,7 @@ async function saveMemorySourceDocument(): Promise<boolean> {
   const safety = getSaveSafety(session)
 
   if (!safety.canSave) {
+    importantNotice = true
     notice = translateSaveSafetyMessage(safety.message)
     renderSession()
     focusActiveView()
@@ -1825,19 +1880,21 @@ async function saveMemorySourceDocument(): Promise<boolean> {
   }
 
   await sourceView?.flushPendingEdits()
+  const savedVersion = session.documentVersion
   const result = await fileService.saveFile(
     session,
     prepareTextForFileSave(session, state.doc.text),
   )
 
   if (!result) {
+    importantNotice = true
     notice = messages.notices.saveCancelled
     renderSession()
     focusActiveView()
     return false
   }
 
-  session = recordFileSaveResult(session, result)
+  session = recordFileSaveResult(session, result, savedVersion)
   recentFiles = recordRecentFile(recentFiles, result.file, Date.now())
   watchCurrentFile()
   notice = messages.notices.saved
@@ -1854,6 +1911,7 @@ async function saveLargeDocument(): Promise<boolean> {
   const safety = getSaveSafety(session)
 
   if (!safety.canSave) {
+    importantNotice = true
     notice = translateSaveSafetyMessage(safety.message)
     renderSession()
     focusActiveView()
@@ -1872,6 +1930,7 @@ async function saveLargeDocument(): Promise<boolean> {
       notice = `正在保存大文件：${saveStage}…`
       renderSession()
       console.info(`Large document save progressed: ${saveStage}`)
+      const savedVersion = session.documentVersion
       const editSnapshot = largeDocumentPreview.editSession.snapshot()
       const snapshot = await largeTextFileService.flush(
         largeDocumentPreview.documentId,
@@ -1879,11 +1938,15 @@ async function saveLargeDocument(): Promise<boolean> {
       )
       largeDocumentPreview.source.applyNativeSnapshot(snapshot)
       largeDocumentPreview.editSession.markFlushed(snapshot.version)
-      session = recordFileSaveResult(session, {
-        documentId: session.documentId,
-        file: { path: snapshot.path },
-        diskSnapshotHash: largeSnapshotHash(snapshot.version, snapshot.sizeBytes),
-      })
+      session = recordFileSaveResult(
+        session,
+        {
+          documentId: session.documentId,
+          file: { path: snapshot.path },
+          diskSnapshotHash: largeSnapshotHash(snapshot.version, snapshot.sizeBytes),
+        },
+        savedVersion,
+      )
 
       // An edit can have started immediately before saving disabled the input.
       await sourceView?.flushPendingEdits()
@@ -2164,6 +2227,7 @@ async function saveDocumentAsOnce(): Promise<void> {
   const safety = getSaveSafety(session)
 
   if (!safety.canSave) {
+    importantNotice = true
     notice = translateSaveSafetyMessage(safety.message)
     renderSession()
     view.inputDOM.focus({ preventScroll: true })
@@ -2171,19 +2235,21 @@ async function saveDocumentAsOnce(): Promise<void> {
   }
 
   getRequiredDocumentId(action)
+  const savedVersion = session.documentVersion
   const result = await fileService.saveFileAs(
     session,
     prepareTextForFileSave(session, state.doc.text),
   )
 
   if (!result) {
+    importantNotice = true
     notice = messages.notices.saveAsCancelled
     renderSession()
     view.inputDOM.focus({ preventScroll: true })
     return
   }
 
-  session = recordFileSaveResult(session, result)
+  session = recordFileSaveResult(session, result, savedVersion)
   recentFiles = recordRecentFile(recentFiles, result.file, Date.now())
   watchCurrentFile()
   notice = messages.notices.savedAs
@@ -2200,6 +2266,7 @@ async function saveMemorySourceDocumentAs(): Promise<void> {
   const safety = getSaveSafety(session)
 
   if (!safety.canSave) {
+    importantNotice = true
     notice = translateSaveSafetyMessage(safety.message)
     renderSession()
     focusActiveView()
@@ -2208,19 +2275,21 @@ async function saveMemorySourceDocumentAs(): Promise<void> {
 
   getRequiredDocumentId(action)
   await sourceView?.flushPendingEdits()
+  const savedVersion = session.documentVersion
   const result = await fileService.saveFileAs(
     session,
     prepareTextForFileSave(session, state.doc.text),
   )
 
   if (!result) {
+    importantNotice = true
     notice = messages.notices.saveAsCancelled
     renderSession()
     focusActiveView()
     return
   }
 
-  session = recordFileSaveResult(session, result)
+  session = recordFileSaveResult(session, result, savedVersion)
   recentFiles = recordRecentFile(recentFiles, result.file, Date.now())
   watchCurrentFile()
   notice = messages.notices.savedAs
@@ -2242,6 +2311,7 @@ async function saveLargeDocumentAs(): Promise<void> {
   const selected = await fileService.selectSaveFilePath(session.file?.path ?? preview.source.path)
 
   if (!selected) {
+    importantNotice = true
     notice = messages.notices.saveAsCancelled
     renderSession()
     focusActiveView()
@@ -2259,6 +2329,7 @@ async function saveLargeDocumentAs(): Promise<void> {
     notice = `正在另存为大文件：${saveStage}…`
     renderSession()
     console.info(`Large document save-as progressed: ${saveStage}`)
+    const savedVersion = session.documentVersion
     const snapshot = await largeTextFileService.flushAs(
       preview.documentId,
       editSession.version,
@@ -2273,11 +2344,15 @@ async function saveLargeDocumentAs(): Promise<void> {
       sizeBytes: snapshot.sizeBytes,
       lineCount: snapshot.lineCount,
     }
-    session = recordFileSaveResult(session, {
-      documentId: session.documentId,
-      file: { path: snapshot.path },
-      diskSnapshotHash: largeSnapshotHash(snapshot.version, snapshot.sizeBytes),
-    })
+    session = recordFileSaveResult(
+      session,
+      {
+        documentId: session.documentId,
+        file: { path: snapshot.path },
+        diskSnapshotHash: largeSnapshotHash(snapshot.version, snapshot.sizeBytes),
+      },
+      savedVersion,
+    )
     recentFiles = recordRecentFile(recentFiles, { path: snapshot.path }, Date.now())
     watchCurrentFile()
     notice = messages.notices.savedAs
@@ -2316,19 +2391,6 @@ async function revealCurrentFile(): Promise<void> {
 }
 
 function closeCurrentDocument(): void {
-  const decision = evaluateCloseProtection([session], {
-    scope: 'tab',
-    documentIds: [session.documentId],
-  })
-
-  if (!decision.allowClose) {
-    applyCloseDecision([session], decision, 'cancel')
-    notice = `无法关闭：${decision.blockedDocumentIds.join(', ')} 有未保存更改`
-    renderSession()
-    focusActiveView()
-    return
-  }
-
   unwatchCurrentFile()
   clearPluginDocumentPresentation()
   scheduleLargeDocumentPreviewClose()
@@ -3013,24 +3075,18 @@ function getDesktopPlatform(): DesktopPlatform {
 function configureWindowChrome(currentPlatform: DesktopPlatform): void {
   appRoot.dataset.customChrome = String(currentPlatform === 'windows')
 
-  if (currentPlatform !== 'windows') {
-    return
-  }
+  if (!isTauriRuntime()) return
 
   void import('@tauri-apps/api/window')
     .then(async ({ getCurrentWindow }) => {
       const window = getCurrentWindow()
-      await window.setDecorations(false)
-      await syncWindowMaximizedState()
+      if (currentPlatform === 'windows') {
+        await window.setDecorations(false)
+        await syncWindowMaximizedState()
+      }
       await window.onCloseRequested((event) => {
-        if (!canCloseWindow()) {
-          event.preventDefault()
-          openWindowConfirm()
-          return
-        }
-
         event.preventDefault()
-        void invokeWindowClose()
+        void documentTransitions.request('window', invokeWindowClose)
       })
       await window.onResized(() => {
         void syncWindowMaximizedState()
@@ -3046,13 +3102,8 @@ function runWindowControl(action: WindowControlAction): void {
     return
   }
 
-  if (action === 'close' && !canCloseWindow()) {
-    openWindowConfirm()
-    return
-  }
-
   if (action === 'close') {
-    void invokeWindowClose()
+    void documentTransitions.request('window', invokeWindowClose)
     return
   }
 
@@ -3070,7 +3121,8 @@ function runWindowControl(action: WindowControlAction): void {
 }
 
 async function syncWindowMaximizedState(): Promise<void> {
-  if (platform !== 'windows') {
+  if (!isTauriRuntime()) {
+    setDocumentLoadingState({ phase: 'ready' })
     return
   }
 
@@ -3106,45 +3158,41 @@ function startWindowDrag(): void {
     .catch(() => undefined)
 }
 
-function canCloseWindow(): boolean {
-  if (isDocumentSaving()) {
-    closeAfterCurrentSave = true
-    return false
-  }
-
-  const decision = evaluateCloseProtection([session], {
-    scope: 'window',
-    documentIds: [session.documentId],
-  })
-
-  if (decision.allowClose) {
-    return true
-  }
-
-  applyCloseDecision([session], decision, 'cancel')
-  return false
-}
-
 function openWindowConfirm(): void {
+  const wasOpen = closeConfirmOpen
   closeConfirmOpen = true
   appRoot.dataset.closeConfirmOpen = 'true'
   const overlay = appRoot.querySelector<HTMLElement>('[data-close-confirm]')
   overlay?.removeAttribute('hidden')
-  renderCloseConfirmState()
-  appRoot.querySelector<HTMLButtonElement>('[data-close-confirm-action="save"]')?.focus()
+  setTransitionBackgroundInert(true)
+  renderSession()
+  if (!wasOpen)
+    appRoot
+      .querySelector<HTMLButtonElement>('.dialog-button[data-close-confirm-action="cancel"]')
+      ?.focus()
 }
 
 function renderCloseConfirmState(): void {
-  const saving = isDocumentSaving() && closeAfterCurrentSave
+  const saving = transitionPrompt?.phase === 'saving'
   const title = saving ? messages.closeConfirm.savingTitle : messages.closeConfirm.title
-  const body = saving ? messages.closeConfirm.savingBody : messages.closeConfirm.body
+  const actionLabel = {
+    new: '新建文档',
+    open: '打开另一份文档',
+    close: '关闭文档',
+    window: '退出',
+  }[transitionPrompt?.kind ?? 'window']
+  const body = saving
+    ? '正在保存当前文档。取消可停止后续操作，已开始的保存仍会完成。'
+    : `“${getSessionTitleInfo(session.file?.path).name}”有未保存的更改。${actionLabel}前是否保存？`
+  setText('[data-close-confirm-action="discard"]', `不保存并${actionLabel}`)
+  setText('[data-transition-error]', transitionPrompt?.error ?? '')
+  appRoot
+    .querySelector<HTMLElement>('[data-transition-error]')
+    ?.toggleAttribute('hidden', !transitionPrompt?.error)
 
   setText('#close-confirm-title', title)
   setText('#close-confirm-body', body)
-  setText(
-    '[data-close-save-label]',
-    saving ? messages.stateSaving : messages.closeConfirm.saveAndExit,
-  )
+  setText('[data-close-save-label]', saving ? messages.stateSaving : `保存并${actionLabel}`)
 
   const saveButton = appRoot.querySelector<HTMLButtonElement>('[data-close-confirm-action="save"]')
   const discardButton = appRoot.querySelector<HTMLButtonElement>(
@@ -3165,32 +3213,18 @@ function renderCloseConfirmState(): void {
 }
 
 function closeWindowConfirm(): void {
-  closeAfterCurrentSave = false
   closeConfirmOpen = false
   appRoot.dataset.closeConfirmOpen = 'false'
   appRoot.querySelector<HTMLElement>('[data-close-confirm]')?.setAttribute('hidden', '')
-  view?.inputDOM.focus({ preventScroll: true })
+  setTransitionBackgroundInert(false)
+  renderSession()
+  focusActiveView()
 }
 
-async function saveAndExitWindow(): Promise<void> {
-  closeAfterCurrentSave = true
-  openWindowConfirm()
-  const saved = await saveDocument()
-
-  if (!saved || session.dirty) {
-    openWindowConfirm()
-    return
+function setTransitionBackgroundInert(inert: boolean): void {
+  for (const child of Array.from(appRoot.querySelector('.desktop-shell')!.children)) {
+    if (child instanceof HTMLElement && !child.matches('[data-close-confirm]')) child.inert = inert
   }
-}
-
-async function discardAndExitWindow(): Promise<void> {
-  const decision = evaluateCloseProtection([session], {
-    scope: 'window',
-    documentIds: [session.documentId],
-  })
-
-  applyCloseDecision([session], decision, 'confirm')
-  await invokeWindowClose()
 }
 
 async function invokeWindowClose(): Promise<void> {
@@ -3210,7 +3244,8 @@ async function invokeWindowClose(): Promise<void> {
     return
   }
 
-  if (platform !== 'windows') {
+  if (!isTauriRuntime()) {
+    setDocumentLoadingState({ phase: 'ready' })
     return
   }
 
@@ -3218,6 +3253,7 @@ async function invokeWindowClose(): Promise<void> {
     const { getCurrentWindow } = await import('@tauri-apps/api/window')
     await getCurrentWindow().destroy()
   } catch (error: unknown) {
+    setDocumentLoadingState({ phase: 'ready' })
     notice = `窗口操作失败：${getErrorMessage(error)}`
     renderSession()
   }
@@ -3310,7 +3346,10 @@ function renderSession(): void {
   setText('[data-notice]', notice)
   appRoot
     .querySelector<HTMLElement>('[data-notice]')
-    ?.toggleAttribute('hidden', !showDeveloperStatusNotice || notice.length === 0)
+    ?.toggleAttribute(
+      'hidden',
+      (!showDeveloperStatusNotice && !importantNotice) || notice.length === 0,
+    )
 
   const dirtyDot = app?.querySelector<HTMLElement>('[data-save-dot]')
   dirtyDot?.classList.toggle('is-dirty', session.dirty && !saving)
@@ -3327,10 +3366,14 @@ function renderSession(): void {
   appRoot.dataset.readonly = String(session.readonly)
   appRoot.dataset.loading = loadingState.phase
   appRoot.dataset.saving = String(saving)
-  view?.setEditable(!session.readonly && !isDocumentBusy())
+  view?.setEditable(
+    !session.readonly && !isDocumentBusy() && !isDocumentSaving() && !closeConfirmOpen,
+  )
   sourceView?.setEditable(
     !session.readonly &&
       !isDocumentBusy() &&
+      !isDocumentSaving() &&
+      !closeConfirmOpen &&
       (!largeDocumentPreview || Boolean(largeDocumentPreview.editSession)),
   )
   renderDocumentLoadingState()
@@ -4018,7 +4061,14 @@ Object.assign(globalThis, {
   }),
 })
 
-globalThis.addEventListener('beforeunload', () => {
+globalThis.addEventListener('beforeunload', (event) => {
+  if (session.dirty || session.externalChangeState === 'conflict' || isDocumentSaving()) {
+    event.preventDefault()
+    event.returnValue = ''
+  }
+})
+
+globalThis.addEventListener('unload', () => {
   loadingVisibility.dispose()
   disposeFileWatchEvents?.()
   scheduleLargeDocumentPreviewClose()

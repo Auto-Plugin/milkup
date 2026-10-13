@@ -258,3 +258,44 @@ describe('DocumentSession', () => {
     expect(markExternalFileDeleted(dirty).externalChangeState).toBe('conflict')
   })
 })
+
+describe('asynchronous save acknowledgement', () => {
+  it('keeps edits made after the submitted snapshot dirty', () => {
+    const submitted = recordDocumentTransaction(
+      createDocumentSession({ documentId: 'draft' }),
+      editTransaction,
+    )
+    const edited = recordDocumentTransaction(submitted, editTransaction)
+    const saved = recordFileSaveResult(
+      edited,
+      { documentId: 'draft', file: { path: '/draft.md' }, diskSnapshotHash: 'submitted' },
+      submitted.documentVersion,
+    )
+    expect(saved).toMatchObject({ documentVersion: 2, savedVersion: 1, dirty: true })
+    expect(
+      recordFileSaveResult(
+        saved,
+        { documentId: 'draft', file: { path: '/draft.md' }, diskSnapshotHash: 'latest' },
+        2,
+      ).dirty,
+    ).toBe(false)
+  })
+  it.each([-1, 0.5, 2, NaN])('rejects an invalid acknowledgement version %s', (version) => {
+    const session = recordDocumentTransaction(
+      createDocumentSession({ documentId: 'draft' }),
+      editTransaction,
+    )
+    expect(() => recordFileSave(session, { savedVersion: version })).toThrow(
+      'Invalid saved document version',
+    )
+  })
+  it('rejects stale acknowledgement after a more recent save', () => {
+    const session = recordFileSave(
+      recordDocumentTransaction(createDocumentSession({ documentId: 'draft' }), editTransaction),
+      {},
+    )
+    expect(() => recordFileSave(session, { savedVersion: 0 })).toThrow(
+      'Invalid saved document version',
+    )
+  })
+})

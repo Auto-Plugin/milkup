@@ -382,7 +382,7 @@ h1 {
 .confirm-dialog {
   position: relative;
   display: grid;
-  width: min(420px, 100%);
+  width: min(480px, 100%);
   gap: 18px;
   padding: 22px;
   border: 1px solid var(--border-strong);
@@ -409,6 +409,7 @@ h1 {
 }
 
 .confirm-dialog p {
+  overflow-wrap: anywhere;
   margin: 8px 0 0;
   color: var(--text-muted);
   font-size: 13px;
@@ -417,6 +418,7 @@ h1 {
 
 .confirm-dialog-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
 }
@@ -1792,4 +1794,12 @@ html[data-sidebar-resizing='true'] * {
     display: grid;
     grid-template-columns: 1fr;
   }
+}
+
+.confirm-dialog [data-transition-error] {
+  color: #b42318;
+  background: #fff1f0;
+  border-radius: 6px;
+  padding: 10px 12px;
+  overflow-wrap: anywhere;
 }
