@@ -91,6 +91,7 @@ export class SourceDocumentView {
   private currentSource: EditorDocumentSource
   private mode: ViewMode
   private editable: boolean
+  private navigationRevision = 0
   private cursorPosition = 0
   private selectionAnchor = 0
   private readonly onEdit: SourceDocumentEditHandler | undefined
@@ -316,6 +317,7 @@ export class SourceDocumentView {
   }
 
   updateSource(source: EditorDocumentSource): void {
+    this.navigationRevision += 1
     const documentChanged = source.documentId !== this.currentSource.documentId
 
     this.currentSource = source
@@ -358,6 +360,38 @@ export class SourceDocumentView {
     this.searchHighlights = Object.freeze([...highlights])
     this.activeSearchHighlightIndex = activeIndex
     this.renderSearchHighlights()
+  }
+
+  get selection(): Selection {
+    return this.currentSelection()
+  }
+
+  async revealSelection(lineNumber: number, selection?: Selection): Promise<void> {
+    const revision = ++this.navigationRevision
+    const documentId = this.currentSource.documentId
+    const version = this.currentSource.version
+    await this.scrollToLine(lineNumber)
+    if (
+      revision !== this.navigationRevision ||
+      documentId !== this.currentSource.documentId ||
+      version !== this.currentSource.version
+    )
+      return
+    const line = this.contentDOM.querySelector<HTMLElement>(
+      `.milkup-line[data-line="${lineNumber}"]`,
+    )
+    if (!line) return
+    const from = Number(line.dataset.from)
+    const target = selection ?? Selection.cursor(from)
+    this.cursorPosition = clamp(target.main.head, 0, this.currentSource.length ?? target.main.head)
+    this.selectionAnchor = clamp(
+      target.main.anchor,
+      0,
+      this.currentSource.length ?? target.main.anchor,
+    )
+    if (this.mode === 'live') await this.renderLiveSyntaxAroundPositions(from, this.cursorPosition)
+    this.renderSelection()
+    this.renderCursor()
   }
 
   async scrollToLine(lineNumber: number): Promise<void> {
@@ -452,6 +486,7 @@ export class SourceDocumentView {
   }
 
   destroy(): void {
+    this.navigationRevision += 1
     this.cancelMarkdownWarmup()
     if (this.editCommitTimer !== undefined) {
       clearTimeout(this.editCommitTimer)

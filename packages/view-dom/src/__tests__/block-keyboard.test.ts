@@ -172,3 +172,24 @@ for (const mode of ['source', 'live'] as const) {
     })
   })
 }
+
+for (const mode of ['source', 'live'] as const) {
+  it(`${mode}: Home/End and Shift select a logical line without splitting CRLF or adding history`, () => {
+    const s = setup('# First\r\nnext', mode, Selection.cursor(0))
+    expect(s.key('End')).toBe(true)
+    expect(s.view.state.selection.main.head).toBe(7)
+    expect(s.key('Home', true)).toBe(true)
+    expect(s.view.state.selection.main.from).toBe(0)
+    expect(s.view.state.selection.main.to).toBe(7)
+    expect(s.view.state.history.canUndo).toBe(false)
+    expect(s.text()).toBe('# First\r\nnext')
+  })
+}
+it('live table Home/End stay inside the current cell', () => {
+  const source = '| Name | Value |\n| --- | --- |\n| first | 1 |'
+  const s = setup(source, 'live', Selection.cursor(source.indexOf('first') + 2))
+  s.key('Home')
+  expect(s.view.state.selection.main.head).toBe(source.indexOf('first'))
+  s.key('End', true)
+  expect(s.view.state.selection.main.to).toBe(source.indexOf('first') + 5)
+})

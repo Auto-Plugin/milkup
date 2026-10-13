@@ -149,6 +149,7 @@ async function shot(name) {
   )
 }
 async function check(name, action) {
+  if (process.env.MILKUP_NATIVE_CASE && !name.includes(process.env.MILKUP_NATIVE_CASE)) return
   await action()
   results.push({ name, result: 'PASS' })
   console.log(`PASS ${name}`)

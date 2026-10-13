@@ -196,3 +196,35 @@ function hasElement(
     output.children?.some((child) => hasElement(child, predicate)) === true
   )
 }
+
+it('rescans a changed document version and follows the preceding heading', async () => {
+  let title = 'Original'
+  const scan = vi.fn(() => scanner([heading(title, 1), { ...heading('Child', 3), level: 3 }], 4))
+  const lifecycle = plugin.activate({
+    host: { document: { scan }, ui: { requestUpdate: async () => {}, revealLine: async () => {} } },
+  })
+  const render = (version: number, activeLine: number, phase = 'update') =>
+    plugin.renderers['outline-panel']({
+      node: { phase, documentId: 'same', documentVersion: version, viewport: { activeLine } },
+    })
+  render(1, 1, 'mount')
+  await vi.waitFor(() => expect(outputText(render(1, 2))).toContain('Original'))
+  expect(
+    hasElement(
+      render(1, 2),
+      (a) => a['aria-current'] === 'location' && a['aria-label']?.includes('Original') === true,
+    ),
+  ).toBe(true)
+  title = 'Renamed'
+  render(2, 2)
+  await vi.waitFor(() => expect(outputText(render(2, 2))).toContain('Renamed'))
+  expect(outputText(render(2, 4))).not.toContain('Original')
+  expect(
+    hasElement(
+      render(2, 4),
+      (a) => a['aria-current'] === 'location' && a['aria-label']?.includes('Child') === true,
+    ),
+  ).toBe(true)
+  expect(scan).toHaveBeenCalledTimes(2)
+  await lifecycle.dispose()
+})

@@ -160,3 +160,14 @@ class SlowRecordingSource extends RecordingSource {
     }
   }
 }
+
+it('keeps desktop queries literal and only enables case sensitivity explicitly', async () => {
+  const controller = new DesktopDocumentSearchController()
+  const state = new EditorState({ doc: new MemoryTextDocument('Target target .* [') })
+  expect((await controller.run({ query: ' target ', state })).matches).toHaveLength(2)
+  expect(
+    (await controller.run({ query: 'target', state, caseSensitive: true })).matches,
+  ).toHaveLength(1)
+  expect((await controller.run({ query: '.*', state })).matches[0]?.text).toBe('.*')
+  expect((await controller.run({ query: '[', state })).phase).toBe('done')
+})

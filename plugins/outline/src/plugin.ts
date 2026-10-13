@@ -15,6 +15,7 @@ interface RendererContext {
   node?: {
     phase?: string
     documentId?: string
+    documentVersion?: number
     viewport?: { fromLine?: unknown; toLine?: unknown; activeLine?: unknown }
     virtualViewport?: {
       id?: unknown
@@ -81,6 +82,8 @@ let host: ActivationContext['host'] | undefined
 let outlineItems: OutlineItem[] = []
 let activeScanner: DocumentScanner | undefined
 let activeDocumentId = ''
+let activeDocumentVersion: number | undefined
+let lastActiveLine = 1
 let scanGeneration = 0
 let scanStatus: ScanStatus = 'idle'
 let scannedFromLine = 1
@@ -132,9 +135,20 @@ function renderPanel(context: RendererContext): ControlledOutput {
     return ''
   }
 
-  if (phase === 'mount' || documentId !== activeDocumentId) {
+  const version = context.node?.documentVersion
+  const outsideWindow =
+    activeLine !== lastActiveLine && (activeLine < scannedFromLine || activeLine > scannedToLine)
+  if (
+    phase === 'mount' ||
+    documentId !== activeDocumentId ||
+    version !== activeDocumentVersion ||
+    (!activeScanner && outsideWindow)
+  ) {
+    activeDocumentVersion = version
     void startCenteredOutlineScan(documentId, activeLine)
   }
+  if (context.node?.viewport?.activeLine !== undefined) selectedHeadingLine = activeLine
+  lastActiveLine = activeLine
 
   const activeIndex = findHeadingIndex(outlineItems, selectedHeadingLine)
   const children: ControlledOutput[] = []
@@ -372,6 +386,8 @@ async function stopOutlineScan(clear: boolean): Promise<void> {
     clearPanelUpdate()
     outlineItems = []
     activeDocumentId = ''
+    activeDocumentVersion = undefined
+    lastActiveLine = 1
     scanStatus = 'idle'
     scannedFromLine = 1
     scannedToLine = 0
@@ -401,11 +417,11 @@ function findHeadingIndex(items: readonly OutlineItem[], line: number | undefine
 
   while (low < high) {
     const middle = Math.floor((low + high) / 2)
-    if ((items[middle]?.line ?? 0) < line) low = middle + 1
+    if ((items[middle]?.line ?? 0) <= line) low = middle + 1
     else high = middle
   }
 
-  return items[low]?.line === line ? low : -1
+  return low - 1
 }
 
 interface VirtualViewportRequest {
@@ -607,6 +623,7 @@ function button(text: string, line: number, level: number, active: boolean): Con
       class: `plugin-list-item plugin-list-level-${Math.max(1, Math.min(6, level))}${active ? ' is-active' : ''}`,
       title: `${text}（第 ${line} 行）`,
       'aria-label': `跳转到 ${text}，第 ${line} 行`,
+      'aria-current': active ? 'location' : 'false',
     },
     action: { command: 'outline.gotoHeading', input: { line } },
   }

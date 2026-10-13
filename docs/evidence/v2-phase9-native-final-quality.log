@@ -1,0 +1,26 @@
+$ node tests/native/tauri-quality.mjs
+PASS new: cancel, focus, discard
+PASS new: save then transition with disk bytes
+PASS open: cancel, focus, discard
+PASS open: save then transition with disk bytes
+PASS close: cancel, focus, discard
+PASS close: save then transition with disk bytes
+PASS real missing-directory save failure retains draft and supports retry
+PASS native save catches external write before watcher and saves rescue copy
+PASS real readonly failure preserves bytes and recovers after permissions restored
+PASS native large file disk save, conflict guard and active buffer lifecycle
+PASS native window close event: cancel and save
+file:///workspace/milkup/tests/native/tauri-quality.mjs:48
+    throw Error(`${method} ${route}: ${error}`)
+          ^
+
+Error: POST /session/80e2e47b-7644-4bba-bd3e-e2b0eb3bf117/execute/sync: TimeoutError: The operation was aborted due to timeout
+    at file:///workspace/milkup/tests/native/tauri-quality.mjs:48:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async req (file:///workspace/milkup/tests/native/tauri-quality.mjs:42:13)
+    at async until (file:///workspace/milkup/tests/native/tauri-quality.mjs:58:19)
+    at async start (file:///workspace/milkup/tests/native/tauri-quality.mjs:161:3)
+    at async file:///workspace/milkup/tests/native/tauri-quality.mjs:406:3
+
+Node.js v24.19.0
+[ELIFECYCLE] Command failed with exit code 1.

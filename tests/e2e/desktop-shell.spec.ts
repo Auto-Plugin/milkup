@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
+import { outlineRegistry } from '../helpers/outline-fixture.mjs'
 
 async function runMenuCommand(page: Page, name: string): Promise<void> {
   await page.getByRole('button', { name: '菜单' }).click()
@@ -233,7 +234,6 @@ test('desktop search highlights matches and moves the active result', async ({ p
 
   const search = page.getByRole('searchbox', { name: '搜索' })
   await search.fill('target')
-  await search.press('Enter')
 
   await expect(page.locator('[data-search-result-count]')).toHaveText('1/2')
   await expect(page.locator('.milkup-search-highlight')).toHaveCount(2)
@@ -1014,7 +1014,8 @@ test('live table navigation replaces one cell, keeps line breaks and supports un
     'second',
   )
   await page.keyboard.press('Shift+Enter')
-  await page.keyboard.type('line|value')
+  // Assert one committed input undo boundary independently of host key dispatch latency.
+  await page.keyboard.insertText('line|value')
   await expect(page.locator('.milkup-line[data-line="4"] .milkup-table-cell')).toHaveCount(2)
   await expect(page.locator('.milkup-line[data-line="4"] .milkup-table-cell br')).toHaveCount(1)
   await page.keyboard.press('Control+1')
@@ -1113,4 +1114,194 @@ test('native-style multiline clipboard paste stays within a cell and table exit 
   await page.keyboard.press('Control+z')
   await page.keyboard.press('Control+z')
   await expect(page.locator('.milkup-line')).toHaveCount(4)
+})
+
+test('phase9 search updates queries and keeps keyboard navigation in the search box', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.locator('.milkup-input-proxy').focus()
+  await page.keyboard.insertText('alpha target beta target')
+  await page.keyboard.press('Control+f')
+  const search = page.getByRole('searchbox', { name: '搜索', exact: true })
+  await search.fill('target')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('1/2')
+  await expect(search).toBeFocused()
+  await search.press('Enter')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('2/2')
+  await search.press('Shift+Enter')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('1/2')
+  await search.fill('missing')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('0/0')
+  await expect(page.locator('.milkup-search-highlight')).toHaveCount(0)
+})
+
+test('phase9 outline updates renamed headings and highlights the current section', async ({
+  page,
+}) => {
+  await page.addInitScript(
+    (registry) => localStorage.setItem('milkup.desktop.plugins.registry.v1', registry),
+    outlineRegistry(600),
+  )
+  await page.goto('/')
+  await page.locator('.milkup-input-proxy').focus()
+  await page.keyboard.insertText('# First\nbody\n### Third\ntext')
+  await page.getByRole('button', { name: '侧栏', exact: true }).click()
+  const outline = page.locator('[data-plugin-ui="milkup.outline:outline-panel"]')
+  await expect(
+    outline.getByRole('button', { name: '跳转到 First，第 1 行', exact: true }),
+  ).toBeVisible()
+  await outline.getByRole('button', { name: '跳转到 First，第 1 行', exact: true }).click()
+  await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+  await page.keyboard.press('End')
+  await page.keyboard.insertText(' renamed')
+  await expect(
+    outline.getByRole('button', { name: '跳转到 First renamed，第 1 行', exact: true }),
+  ).toBeVisible()
+})
+
+test('phase9 literal replacement preserves Unicode offsets and one undo boundary', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.keyboard.insertText('İ foo 😀 FOO [x] .*')
+  await page.keyboard.press('Control+f')
+  const search = page.getByRole('searchbox', { name: '搜索', exact: true })
+  await search.fill('foo')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('1/2')
+  await page.getByRole('button', { name: '区分大小写', exact: true }).click()
+  await expect(page.locator('[data-search-result-count]')).toHaveText('1/1')
+  await page.getByRole('textbox', { name: '替换为', exact: true }).fill('$1中')
+  await page.getByRole('button', { name: '替换', exact: true }).click()
+  await expect(page.locator('.milkup-editor-content')).toHaveText('İ $1中 😀 FOO [x] .*')
+  await expect(page.locator('[data-search-message]')).toHaveText('没有匹配结果')
+  await search.focus()
+  await search.press('Control+a')
+  await search.press('Backspace')
+  await search.press('f')
+  await expect(search).toHaveValue('f')
+  await expect(page.locator('.milkup-editor-content')).toHaveText('İ $1中 😀 FOO [x] .*')
+  await search.press('Escape')
+  await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-editor-content')).toHaveText('İ foo 😀 FOO [x] .*')
+  await page.keyboard.press('Control+Shift+z')
+  await expect(page.locator('.milkup-editor-content')).toHaveText('İ $1中 😀 FOO [x] .*')
+})
+
+test('phase9 replace all deletes literally and rejects a stale query', async ({ page }) => {
+  await page.goto('/')
+  await page.keyboard.insertText('aa .* aa .*')
+  await page.keyboard.press('Control+h')
+  await expect(page.getByRole('textbox', { name: '替换为', exact: true })).toBeFocused()
+  const search = page.getByRole('searchbox', { name: '搜索', exact: true })
+  await search.fill('.*')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('1/2')
+  await page.getByRole('button', { name: '全部替换', exact: true }).click()
+  await expect(page.locator('.milkup-editor-content')).toHaveText('aa  aa ')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('0/0')
+  await search.fill('[')
+  await expect(page.locator('[data-search-message]')).toHaveText('没有匹配结果')
+  await expect(page.getByRole('button', { name: '全部替换', exact: true })).toBeDisabled()
+  await search.press('Escape')
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-editor-content')).toHaveText('aa .* aa .*')
+})
+
+test('phase9 editing refreshes results without moving the caret and switching documents clears them', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.keyboard.insertText('target target')
+  await page.keyboard.press('Control+f')
+  const search = page.getByRole('searchbox', { name: '搜索', exact: true })
+  await search.fill('target')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('1/2')
+  await search.press('F3')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('2/2')
+  await search.press('Shift+F3')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('1/2')
+  await page.locator('.milkup-input-proxy').focus()
+  await page.keyboard.insertText('changed')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('1/1')
+  await page.keyboard.insertText('!')
+  await expect(page.locator('.milkup-editor-content')).toHaveText('changed! target')
+  await page.keyboard.press('Control+n')
+  await page.locator('[data-close-confirm-action="discard"].dialog-button').click()
+  await expect(page.locator('.milkup-editor-content')).toHaveText('')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('0/0')
+  await expect(page.locator('.milkup-search-highlight')).toHaveCount(0)
+})
+
+test('phase9 truncated results are explicit and cannot be replaced as a complete set', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.keyboard.insertText('target '.repeat(205))
+  await page.keyboard.press('Control+f')
+  await page.getByRole('searchbox', { name: '搜索', exact: true }).fill('target')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('1/200+')
+  await expect(page.locator('[data-search-message]')).toContainText('仅显示前 200 处')
+  await expect(page.getByRole('button', { name: '全部替换', exact: true })).toBeDisabled()
+  await expect(page.getByRole('button', { name: '替换', exact: true })).toBeEnabled()
+})
+
+test('phase9 narrow search and outline stay reachable and source mode removes inline code styling', async ({
+  page,
+}) => {
+  await page.addInitScript(
+    (registry) => localStorage.setItem('milkup.desktop.plugins.registry.v1', registry),
+    outlineRegistry(),
+  )
+  await page.setViewportSize({ width: 760, height: 520 })
+  await page.goto('/')
+  await page.keyboard.insertText('# Heading\ntext `code` tail\n### Child\nbody')
+  await page.getByRole('button', { name: '侧栏', exact: true }).click()
+  await page.keyboard.press('Control+f')
+  await page.getByRole('searchbox', { name: '搜索', exact: true }).fill('code')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('1/1')
+  const bounds = await page.evaluate(() => {
+    const search = document.querySelector('[data-floating-search]')!.getBoundingClientRect()
+    const editor = document.querySelector('[data-editor-host]')!.getBoundingClientRect()
+    return {
+      right: search.right,
+      bottom: search.bottom,
+      editorTop: editor.top,
+      editorHeight: editor.height,
+      overflow: document.documentElement.scrollWidth > innerWidth,
+      controls: Array.from(
+        document.querySelectorAll('[data-floating-search] button, [data-floating-search] input'),
+      ).every((e) => {
+        const r = e.getBoundingClientRect()
+        return r.left >= search.left && r.right <= search.right
+      }),
+    }
+  })
+  expect(bounds.right).toBeLessThanOrEqual(760)
+  expect(bounds.bottom).toBeLessThanOrEqual(bounds.editorTop)
+  expect(bounds.overflow).toBe(false)
+  expect(bounds.controls).toBe(true)
+  expect(bounds.editorHeight).toBeGreaterThanOrEqual(200)
+  await page.keyboard.press('Escape')
+  for (let i = 0; i < 3; i++) {
+    await page.keyboard.press('Control+1')
+    await expect(page.locator('.milkup-editor')).toHaveAttribute('data-mode', 'source')
+    await expect(page.locator('.milkup-line[data-line="2"]')).toHaveText('text `code` tail')
+    const styles = await page.locator('.milkup-line[data-line="2"]').evaluate((e) =>
+      Array.from(e.querySelectorAll('*')).map((n) => ({
+        background: getComputedStyle(n).backgroundColor,
+        font: getComputedStyle(n).fontFamily,
+        border: getComputedStyle(n).borderWidth,
+      })),
+    )
+    expect(styles.every((s) => s.background === 'rgba(0, 0, 0, 0)' && s.border === '0px')).toBe(
+      true,
+    )
+    await page.keyboard.press('Control+2')
+  }
+  const child = page.getByRole('button', { name: '跳转到 Child，第 3 行', exact: true })
+  await child.focus()
+  await child.press('Enter')
+  await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+  await expect(child).toHaveAttribute('aria-current', 'location')
 })

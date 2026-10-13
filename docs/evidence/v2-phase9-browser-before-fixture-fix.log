@@ -1,0 +1,109 @@
+$ playwright test --workers=2
+[WebServer] (node:74724) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:74737) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:74763) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:74778) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 56 tests using 2 workers
+
+(node:74819) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:74818) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [playground-msedge] › tests/e2e/live-render.spec.ts:3:1 › live render projection hides inline markers and keeps editor geometry usable (5.2s)
+  ✓   3 [playground-msedge] › tests/e2e/live-render.spec.ts:33:1 › live table and task-list clicks preserve visual cursor mapping (17.3s)
+  ✓   4 [playground-msedge] › tests/e2e/live-render.spec.ts:105:1 › browser selection rendering follows keyboard selection changes (4.5s)
+  ✓   2 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:32:1 › desktop shell loads editor and tracks dirty session state (29.5s)
+  ✓   5 [playground-msedge] › tests/e2e/live-render.spec.ts:121:1 › browser mode switches preserve editor scroll position (8.0s)
+  ✓   7 [playground-msedge] › tests/e2e/live-render.spec.ts:143:1 › browser worker plugin command mutates the editor through global history (4.6s)
+  ✓   6 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:144:1 › plugin manager restores, executes, disables, and reenables a Worker plugin (9.3s)
+  ✓   8 [playground-msedge] › tests/e2e/live-render.spec.ts:159:1 › browser worker plugin fetches through the main-thread network broker (5.8s)
+  ✓   9 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:198:1 › desktop shell imports pasted image files through asset provider (5.5s)
+  ✓  10 [playground-msedge] › tests/e2e/live-render.spec.ts:172:1 › browser worker plugin reads through the main-thread file broker (6.9s)
+  ✓  11 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:230:1 › desktop search highlights matches and moves the active result (6.2s)
+  ✓  12 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:253:1 › closing search cancels the active scan and clears highlights (3.6s)
+  ✓  13 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:279:1 › desktop shell routes primary shortcuts through active document actions (6.8s)
+  ✓  14 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:358:1 › desktop shell confirms before closing a dirty window (6.3s)
+  ✓  15 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:426:3 › dirty Control+n supports cancel, focus containment and explicit discard (10.0s)
+  ✓  16 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:426:3 › dirty Control+o supports cancel, focus containment and explicit discard (10.4s)
+  ✓  17 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:426:3 › dirty Control+w supports cancel, focus containment and explicit discard (4.1s)
+  ✓  18 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:459:1 › save before new retains the draft after cancellation or failure and supports retry (4.2s)
+  ✓  19 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:483:1 › cancelling a pending save continuation never navigates after the write completes (3.7s)
+  ✓  20 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:511:3 › opening cancel after discard preserves original content and history (2.6s)
+  ✓  21 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:511:3 › opening error after discard preserves original content and history (2.9s)
+  ✓  22 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:532:1 › ordinary save failures are visible without developer diagnostics and recover on retry (3.1s)
+  ✓  23 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:549:1 › browser reload cancellation keeps the unsaved editor alive (7.9s)
+  ✓  24 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:564:3 › synthetic composition cancellation preserves selected text and history in source (2.8s)
+  ✓  25 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:564:3 › synthetic composition cancellation preserves selected text and history in live (3.2s)
+  ✓  26 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:619:1 › multiline code paste and following typing undo independently across mode changes (2.4s)
+  ✓  27 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:647:1 › typing after cursor movement restores only the local edit on undo (2.4s)
+  ✓  28 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:659:1 › cancelled and failed Save As preserve the path and dirty content (2.6s)
+  ✓  29 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:675:1 › windowed memory documents keep finalized composition separate from adjacent typing (3.6s)
+  ✓  30 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:742:1 › late image imports never write into a newly created document (3.0s)
+  ✓  31 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:759:3 › pending save reconciles modified events before allowing navigation (4.7s)
+  ✓  32 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:759:3 › pending save reconciles deleted events before allowing navigation (2.9s)
+  ✓  33 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:759:3 › pending save reconciles own-save events before allowing navigation (3.9s)
+  ✓  34 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:802:1 › saving cancels a pending image import without dirtying the saved snapshot (15.9s)
+  ✓  35 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:822:1 › failed image imports show an error and a subsequent paste can succeed (15.4s)
+  ✓  36 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:844:3 › Unicode graphemes survive keyboard selection, deletion and undo in source (6.7s)
+  ✓  37 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:844:3 › Unicode graphemes survive keyboard selection, deletion and undo in live (3.6s)
+  ✓  38 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:869:3 › windowed source keyboard edits preserve whole graphemes and undo (4.9s)
+  ✓  39 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:869:3 › windowed live keyboard edits preserve whole graphemes and undo (4.3s)
+  ✓  40 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:901:1 › issue 255 bracket typing keeps its position after delayed rendering (4.9s)
+  ✓  41 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:918:1 › issue 255 single-space headings render immediately after an image line (3.2s)
+  ✓  42 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:934:3 › source list keyboard nesting, exit and undo survive mode changes (3.2s)
+  ✓  43 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:956:3 › source code block Enter preserves literal markers and blank lines (3.8s)
+  ✓  44 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:934:3 › live list keyboard nesting, exit and undo survive mode changes (3.2s)
+  ✓  45 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:956:3 › live code block Enter preserves literal markers and blank lines (4.9s)
+  ✘  46 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1000:1 › live table navigation replaces one cell, keeps line breaks and supports undo (15.1s)
+(node:76853) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  47 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1029:1 › table toolbar preserves row and column content through undo and redo (12.9s)
+  ✓  48 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1060:1 › rendered table copy offers HTML and exact Markdown; source copy stays plain (6.3s)
+  ✓  49 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1097:1 › native-style multiline clipboard paste stays within a cell and table exit is undoable (6.3s)
+  ✓  50 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1118:1 › phase9 search updates queries and keeps keyboard navigation in the search box (6.8s)
+  ✓  51 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1138:1 › phase9 outline updates renamed headings and highlights the current section (9.5s)
+  ✓  52 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1162:1 › phase9 literal replacement preserves Unicode offsets and one undo boundary (6.4s)
+  ✓  53 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1191:1 › phase9 replace all deletes literally and rejects a stale query (6.6s)
+  ✓  54 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1210:1 › phase9 editing refreshes results without moving the caret and switching documents clears them (9.9s)
+  ✓  55 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1235:1 › phase9 truncated results are explicit and cannot be replaced as a complete set (8.0s)
+  ✓  56 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1248:1 › phase9 narrow search and outline stay reachable and source mode removes inline code styling (11.1s)
+
+
+  1) [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1000:1 › live table navigation replaces one cell, keeps line breaks and supports undo
+
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator:  locator('.milkup-line[data-line="4"]')
+    Expected: "| second<br> | 2 |"
+    Received: "| second<br>line | 2 |"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveText" with timeout 5000ms
+      - waiting for locator('.milkup-line[data-line="4"]')
+        10 × locator resolved to <div data-to="63" data-line="4" data-from="41" class="milkup-line">| second<br>line | 2 |</div>
+           - unexpected value "| second<br>line | 2 |"
+
+
+      1023 |   )
+      1024 |   await page.keyboard.press('Control+z')
+    > 1025 |   await expect(page.locator('.milkup-line[data-line="4"]')).toHaveText('| second<br> | 2 |')
+           |                                                             ^
+      1026 |   await page.keyboard.press('Control+z')
+      1027 |   await expect(page.locator('.milkup-line[data-line="4"]')).toHaveText('| second | 2 |')
+      1028 | })
+        at /workspace/milkup/tests/e2e/desktop-shell.spec.ts:1025:61
+
+    Error Context: test-results/desktop-shell-live-table-n-1f84f-ne-breaks-and-supports-undo-desktop-msedge/error-context.md
+
+  1 failed
+    [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1000:1 › live table navigation replaces one cell, keeps line breaks and supports undo
+  55 passed (6.3m)
+[ELIFECYCLE] Command failed with exit code 1.

@@ -1,0 +1,24 @@
+$ node tests/native/tauri-navigation.mjs
+PASS native find keyboard loop, literal queries, focus and disk edit at selected hit
+FAIL diagnostics {
+  keys: null,
+  cursor: '27',
+  active: '<textarea class="milkup-input-proxy" aria-hidden="true" autocomplete="off" spellcheck="false" tabindex="0" style="left: 31px; top: 47px; height: 16px;"></textarea>',
+  text: 'alpha changed beta target[ literal .*'
+}
+file:///workspace/milkup/tests/native/tauri-navigation.mjs:33
+    throw Error(`${method} ${route}: ${error}`)
+          ^
+
+Error: POST /session/298ecfd7-4943-46d0-a03c-9e0264a2d49b/execute/sync: TimeoutError: The operation was aborted due to timeout
+    at file:///workspace/milkup/tests/native/tauri-navigation.mjs:33:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async req (file:///workspace/milkup/tests/native/tauri-navigation.mjs:27:13)
+    at async fresh (file:///workspace/milkup/tests/native/tauri-navigation.mjs:136:3)
+    at async openFixture (file:///workspace/milkup/tests/native/tauri-navigation.mjs:195:3)
+    at async file:///workspace/milkup/tests/native/tauri-navigation.mjs:325:7
+    at async check (file:///workspace/milkup/tests/native/tauri-navigation.mjs:159:5)
+    at async file:///workspace/milkup/tests/native/tauri-navigation.mjs:321:3
+
+Node.js v24.19.0
+[ELIFECYCLE] Command failed with exit code 1.

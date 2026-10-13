@@ -1,4 +1,9 @@
-import { MemoryDocumentSource, MemoryTextDocument, type DocumentLineWindow } from '@milkup/core'
+import {
+  MemoryDocumentSource,
+  MemoryTextDocument,
+  Selection,
+  type DocumentLineWindow,
+} from '@milkup/core'
 import { describe, expect, it, vi } from 'vitest'
 
 import { SourceDocumentView } from '../index'
@@ -1604,3 +1609,60 @@ async function flushPromises(): Promise<void> {
 async function delay(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms))
 }
+
+it('reveals an exact source search selection without stealing focus', async () => {
+  const parent = document.createElement('main')
+  document.body.append(parent)
+  const input = document.createElement('input')
+  document.body.append(input)
+  const view = new SourceDocumentView({
+    parent,
+    source: new MemoryDocumentSource({ documentId: 'navigation', text: 'one\nİ target 😀' }),
+    editable: true,
+  })
+  await view.renderVisibleWindow()
+  input.focus()
+  await view.revealSelection(2, Selection.range(6, 12))
+  expect(view.selection.main.from).toBe(6)
+  expect(view.selection.main.to).toBe(12)
+  expect(document.activeElement).toBe(input)
+  view.destroy()
+  parent.remove()
+  input.remove()
+})
+
+it('moves a source outline cursor to the revealed heading line', async () => {
+  const parent = document.createElement('main')
+  const view = new SourceDocumentView({
+    parent,
+    source: new MemoryDocumentSource({ documentId: 'outline-nav', text: 'body\n# Heading\ntail' }),
+    editable: true,
+  })
+  await view.renderVisibleWindow()
+  await view.revealSelection(2)
+  expect(view.selection.main.from).toBe(5)
+  expect(view.selection.main.empty).toBe(true)
+  view.destroy()
+})
+
+it('ignores a pending reveal after the document identity changes', async () => {
+  const view = new SourceDocumentView({
+    parent: document.createElement('main'),
+    source: new MemoryDocumentSource({ documentId: 'before', text: 'one\ntarget' }),
+    editable: true,
+  })
+  await view.renderVisibleWindow()
+  let resume!: () => void
+  vi.spyOn(view, 'scrollToLine').mockImplementation(
+    () =>
+      new Promise<void>((resolve) => {
+        resume = resolve
+      }),
+  )
+  const pending = view.revealSelection(2, Selection.range(4, 10))
+  view.updateSource(new MemoryDocumentSource({ documentId: 'after', text: 'new text' }))
+  resume()
+  await pending
+  expect(view.selection.main.head).toBe(0)
+  view.destroy()
+})

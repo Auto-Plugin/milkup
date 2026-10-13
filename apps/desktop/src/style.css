@@ -1266,20 +1266,74 @@ html[data-sidebar-resizing='true'] * {
 }
 
 .floating-search {
-  position: absolute;
-  z-index: 10;
-  top: 30px;
-  right: 30px;
-  display: grid;
-  grid-template-columns: auto minmax(120px, 220px) auto auto auto auto;
-  align-items: center;
-  gap: 8px;
-  height: 40px;
-  padding: 0 6px 0 12px;
+  grid-row: 1;
+  min-width: 0;
+  margin: 10px 12px 0;
+  padding: 8px;
   border: 1px solid var(--border-strong);
   border-radius: 8px;
   background: var(--panel-bg);
   box-shadow: var(--shadow-soft);
+}
+
+.editor-panel {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.editor-host {
+  grid-row: 2;
+  min-height: 0;
+}
+
+.search-query-row {
+  display: grid;
+  grid-template-columns: auto minmax(40px, 1fr) auto auto auto auto auto;
+  align-items: center;
+  gap: 4px;
+}
+
+.search-replace-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.search-replace-row input {
+  flex: 1;
+  width: 0;
+}
+.search-text-button {
+  min-height: 28px;
+  flex-shrink: 0;
+  padding: 3px 7px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel-bg);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+.search-text-button[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.search-text-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.search-message {
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-soft);
+  overflow-wrap: anywhere;
+}
+.floating-search input:focus-visible,
+.floating-search button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .search-result-count {
@@ -1745,7 +1799,7 @@ html[data-sidebar-resizing='true'] * {
 @media (max-width: 760px) {
   .workspace {
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(0, 40vh) minmax(0, 1fr);
+    grid-template-rows: minmax(0, min(160px, 25vh)) minmax(0, 1fr);
   }
 
   #app[data-sidebar-collapsed='true'] .workspace {

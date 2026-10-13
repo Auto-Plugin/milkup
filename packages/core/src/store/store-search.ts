@@ -173,17 +173,29 @@ function compileStringQuery(query: string, caseSensitive: boolean): CompiledSear
     findMatches: (line) => {
       const haystack = caseSensitive ? line : line.toLocaleLowerCase()
       const matches: SearchLineMatch[] = []
-      let from = haystack.indexOf(needle)
-
-      while (from >= 0) {
-        const to = from + query.length
-
-        matches.push({
-          from,
-          to,
-          text: line.slice(from, to),
-        })
-        from = haystack.indexOf(needle, Math.max(to, from + 1))
+      let found = haystack.indexOf(needle)
+      if (found < 0) return matches
+      // Case folding can expand a source code point (e.g. İ -> i + dot).
+      // Keep matches in original UTF-16 coordinates, including after expansions.
+      const boundaries: Array<{ from: number; to: number }> = []
+      if (haystack.length !== line.length) {
+        let offset = 0
+        for (const point of line) {
+          const width = point.toLocaleLowerCase().length
+          for (let index = 0; index < width; index++) {
+            boundaries.push({ from: offset, to: offset + point.length })
+          }
+          offset += point.length
+        }
+      }
+      while (found >= 0) {
+        const end = found + needle.length
+        const from = boundaries[found]?.from ?? found
+        const to = boundaries[end - 1]?.to ?? end
+        if (from >= (matches.at(-1)?.to ?? 0)) {
+          matches.push({ from, to, text: line.slice(from, to) })
+        }
+        found = haystack.indexOf(needle, Math.max(end, found + 1))
       }
 
       return matches
@@ -211,7 +223,11 @@ function compileRegExpQuery(query: RegExp): CompiledSearchQuery {
         const text = match[0] ?? ''
 
         if (text.length === 0) {
-          globalQuery.lastIndex += 1
+          globalQuery.lastIndex +=
+            (globalQuery.unicode || globalQuery.flags.includes('v')) &&
+            (line.codePointAt(globalQuery.lastIndex) ?? 0) > 0xffff
+              ? 2
+              : 1
           continue
         }
 

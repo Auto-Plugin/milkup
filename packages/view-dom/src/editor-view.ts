@@ -885,6 +885,9 @@ export class EditorView {
         return this.deleteBackward()
       case 'Delete':
         return this.deleteForward()
+      case 'Home':
+      case 'End':
+        return this.moveToLineBoundary(event.key === 'End', event.shiftKey)
       case 'ArrowLeft':
         return this.moveCursor('left', event.shiftKey)
       case 'ArrowRight':
@@ -991,6 +994,19 @@ export class EditorView {
       changes: ChangeSet.delete(from, to),
       selection: Selection.cursor(from),
       origin: { type: 'input.delete' },
+    })
+    return true
+  }
+
+  private moveToLineBoundary(end: boolean, extend: boolean): boolean {
+    const range = this.currentState.selection.main
+    const table = this.activeTable
+    const bounds = table?.withinCell ? table.cell : this.currentState.doc.lineAt(range.head)
+    const next = end ? bounds.to : bounds.from
+    this.dispatch({
+      selection: extend ? Selection.range(range.anchor, next) : Selection.cursor(next),
+      origin: { type: 'command', id: end ? 'view.lineEnd' : 'view.lineStart' },
+      addToHistory: false,
     })
     return true
   }
@@ -1672,6 +1688,7 @@ const controlledRendererAttributes = new Set([
   'title',
   'href',
   'aria-label',
+  'aria-current',
   'data-host-icon',
   'data-virtual-list',
   'data-virtual-total',

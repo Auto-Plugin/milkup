@@ -10,6 +10,7 @@ import type { EditorState } from '@milkup/core'
 
 export interface DesktopSearchRunOptions {
   readonly query: string
+  readonly caseSensitive?: boolean
   readonly state?: EditorState
   readonly source?: EditorDocumentSource
   readonly documentId?: string
@@ -58,6 +59,7 @@ export class DesktopDocumentSearchController {
     try {
       for await (const event of searchDocumentLineWindows(source, {
         query,
+        caseSensitive: options.caseSensitive ?? false,
         maxResults: options.maxResults ?? 200,
         windowSizeLines: options.windowSizeLines ?? 512,
         signal: abort.signal,

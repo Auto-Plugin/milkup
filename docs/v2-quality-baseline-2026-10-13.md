@@ -89,4 +89,6 @@ v2 为 Tauri + 自研 TypeScript 编辑内核，不是 main 的 Vue/Electron。�
 
 - [第八阶段：表格编辑与富文本复制](./v2-phase8-table-editing-verification-2026-10-13.md)：明确 live 表格交互、行列与历史，验证系统剪贴板 HTML／Markdown；保留 Word 2016 与窗口化语义差距。
 
+- [第九阶段：当前文档搜索、替换与大纲](./v2-phase9-search-outline-verification-2026-10-13.md)：查询／版本隔离、Unicode 匹配、替换撤销、精确窗口化定位、大纲同步与窄窗布局；保留大文件替换和平台验收差距。
+
 各阶段编号按实际实施顺序记录，不把本表早期规划的阶段名视为已验收声明。中文系统 IME、Windows／macOS、Word 2016、完整性能基准仍单列验收。

@@ -187,3 +187,28 @@ describe('searchDocumentStore', () => {
     )
   })
 })
+
+it('keeps literal match offsets on the original UTF-16 source after expanding case folds', async () => {
+  const store = new MemoryDocumentStore({ documentId: 'unicode', text: 'İ foo 😀 FOO' })
+  const result = await searchDocumentStore(store, { query: 'foo' })
+  expect(result.matches.map(({ from, to, text }) => ({ from, to, text }))).toEqual([
+    { from: 2, to: 5, text: 'foo' },
+    { from: 9, to: 12, text: 'FOO' },
+  ])
+})
+
+it('advances empty Unicode regex matches over astral code points', async () => {
+  const store = new MemoryDocumentStore({ documentId: 'unicode-regex', text: '😀x' })
+  const result = await searchDocumentStore(store, { query: /(?=😀)|x/u })
+  expect(result.matches).toEqual([{ from: 2, to: 3, line: 1, lineOffset: 2, text: 'x' }])
+  expect(result.complete).toBe(true)
+})
+
+it('maps a length-changing case-folded query to its full source range', async () => {
+  const store = new MemoryDocumentStore({ documentId: 'fold', text: 'İ i̇ I' })
+  const result = await searchDocumentStore(store, { query: 'İ' })
+  expect(result.matches.map(({ from, to, text }) => ({ from, to, text }))).toEqual([
+    { from: 0, to: 1, text: 'İ' },
+    { from: 2, to: 4, text: 'i̇' },
+  ])
+})

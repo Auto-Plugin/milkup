@@ -307,6 +307,11 @@ export class DesktopPluginUiController {
         return
       }
 
+      const focused = this.root.ownerDocument.activeElement
+      const focusedLabel =
+        focused instanceof HTMLElement && mount.body.contains(focused)
+          ? focused.getAttribute('aria-label')
+          : null
       const scrollOffsets = captureScrollOffsets(mount.body)
       const existingClose = mount.body.querySelector('.plugin-ui-close')
       mount.body.replaceChildren(
@@ -317,6 +322,11 @@ export class DesktopPluginUiController {
           output,
         ),
       )
+      if (focusedLabel) {
+        Array.from(mount.body.querySelectorAll<HTMLElement>('button[aria-label]'))
+          .find((button) => button.getAttribute('aria-label') === focusedLabel)
+          ?.focus({ preventScroll: true })
+      }
       decorateControlledUiIcons(mount.body)
       if (!this.configureVirtualList(mount, scrollOffsets)) {
         restoreScrollOffsets(mount.body, scrollOffsets)

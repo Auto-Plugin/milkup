@@ -382,13 +382,15 @@ app.innerHTML = `
       <aside class="sidebar" aria-label="工作区"><div data-plugin-slot="sidebar-panel"></div></aside>
       <div class="sidebar-resize-handle" data-sidebar-resize role="separator" aria-label="调整侧栏宽度" aria-orientation="vertical" tabindex="0"></div>
       <section class="editor-panel">
-        <div class="floating-search" data-floating-search hidden>
+        <div class="floating-search" data-floating-search role="search" aria-label="当前文档查找和替换" hidden>
+          <div class="search-query-row">
           <span class="search-status-icon" data-search-status-icon>
             <span data-search-idle-icon>${iconSvg(Search)}</span>
             <span data-search-loading hidden>${iconSvg(LoaderCircle)}</span>
           </span>
           <input type="search" aria-label="${messages.buttons.search}" placeholder="搜索文档" data-search-input />
-          <span class="search-result-count" data-search-result-count>0/0</span>
+          <button type="button" class="search-text-button" data-search-case aria-label="区分大小写" aria-pressed="false" title="区分大小写">Aa</button>
+          <span class="search-result-count" data-search-result-count aria-live="polite">0/0</span>
           <button type="button" class="icon-button search-nav-button" data-search-previous aria-label="上一个结果" title="上一个结果" disabled>
             ${iconSvg(ChevronUp)}
           </button>
@@ -398,6 +400,13 @@ app.innerHTML = `
           <button type="button" class="icon-button" data-search-close aria-label="${messages.buttons.closeSearch}" title="${messages.buttons.closeSearch}">
             ${iconSvg(X)}
           </button>
+          </div>
+          <div class="search-replace-row">
+            <input type="text" aria-label="替换为" placeholder="替换为" data-replace-input />
+            <button type="button" class="search-text-button" data-replace-one disabled>替换</button>
+            <button type="button" class="search-text-button" data-replace-all disabled>全部替换</button>
+          </div>
+          <div class="search-message" data-search-message role="status">字面匹配 · 忽略大小写 · 忽略查询首尾空白</div>
         </div>
         <div class="editor-host" data-editor-host></div>
         <div class="table-tools" data-table-tools role="toolbar" aria-label="表格操作" hidden>
@@ -516,6 +525,11 @@ let searchOpen = false
 let searchResultState: DesktopSearchState | undefined
 let activeSearchResultIndex = -1
 let documentSearchRunId = 0
+let searchCaseSensitive = false
+let searchSignature = ''
+let searchRenderFrame: number | undefined
+let searchRefreshTimer: ReturnType<typeof setTimeout> | undefined
+let lastNavigationSignature = ''
 let documentPresentation: 'markdown' | 'generated-markdown' | 'custom-view' = 'markdown'
 let documentSourcePath: string | undefined
 let customDocumentOutput: ControlledRendererOutput | undefined
@@ -697,10 +711,14 @@ const desktopPluginManager = new DesktopPluginManager({
     dispose: () => undefined,
   }),
 })
+let pluginUiReady = false
 const desktopPluginUi = new DesktopPluginUiController(
   appRoot,
   {
-    contributions: () => desktopPluginManager.state().contributions,
+    contributions: () => {
+      const contributions = desktopPluginManager.state().contributions
+      return pluginUiReady ? contributions : { ...contributions, ui: [] }
+    },
     renderUi: (pluginId, viewId, phase, uiState) =>
       desktopPluginManager.renderUi(pluginId, viewId, phase, uiState),
     resolveCommand: (rendererId, command) =>
@@ -733,6 +751,7 @@ void initialDocumentOpenPromise.finally(() => {
 })
 void desktopPluginManager.ready.then(async () => {
   await initialDocumentOpenPromise
+  pluginUiReady = true
   renderPluginManager()
   refreshPluginContributionsInViews()
   void desktopPluginUi.sync(session.documentId)
@@ -862,47 +881,39 @@ app.querySelector<HTMLButtonElement>('[data-loading-dismiss]')?.addEventListener
   }
 })
 
-app.querySelector<HTMLInputElement>('[data-search-input]')?.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape') {
-    event.preventDefault()
-    setSearchOpen(false)
-    return
-  }
-
+const searchInput = appRoot.querySelector<HTMLInputElement>('[data-search-input]')!
+searchInput.addEventListener('keydown', (event) => {
+  if (event.isComposing || event.keyCode === 229) return
   if (event.key === 'Enter') {
     event.preventDefault()
-    const input = event.currentTarget
-
-    if (input instanceof HTMLInputElement) {
-      void runDocumentSearch(input.value)
+    void navigateSearch(event.shiftKey ? -1 : 1)
+  }
+})
+searchInput.addEventListener('input', (event) => {
+  if (!(event as InputEvent).isComposing) scheduleDocumentSearch(true)
+})
+searchInput.addEventListener('compositionend', () => scheduleDocumentSearch(true))
+appRoot.querySelector<HTMLButtonElement>('[data-search-case]')?.addEventListener('click', () => {
+  searchCaseSensitive = !searchCaseSensitive
+  appRoot
+    .querySelector('[data-search-case]')
+    ?.setAttribute('aria-pressed', String(searchCaseSensitive))
+  scheduleDocumentSearch(true)
+})
+appRoot
+  .querySelector<HTMLButtonElement>('[data-replace-one]')
+  ?.addEventListener('click', () => replaceSearchMatches(false))
+appRoot
+  .querySelector<HTMLButtonElement>('[data-replace-all]')
+  ?.addEventListener('click', () => replaceSearchMatches(true))
+appRoot
+  .querySelector<HTMLInputElement>('[data-replace-input]')
+  ?.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && !event.isComposing && event.keyCode !== 229) {
+      event.preventDefault()
+      replaceSearchMatches(false)
     }
-    return
-  }
-
-  if (
-    !event.altKey &&
-    !event.isComposing &&
-    isPrimaryShortcut(event) &&
-    event.key.toLowerCase() === 'f'
-  ) {
-    event.preventDefault()
-    setSearchOpen(false)
-  }
-})
-
-app.querySelector<HTMLInputElement>('[data-search-input]')?.addEventListener('input', (event) => {
-  const input = event.currentTarget
-
-  if (!(input instanceof HTMLInputElement)) {
-    return
-  }
-
-  const query = input.value
-
-  if (query.trim().length === 0) {
-    clearSearchResults()
-  }
-})
+  })
 
 for (const button of Array.from(app.querySelectorAll<HTMLButtonElement>('[data-menu-section]'))) {
   button.addEventListener('click', () => {
@@ -986,6 +997,7 @@ globalThis.addEventListener(
       event.stopPropagation()
       return
     }
+    if (event.isComposing || event.keyCode === 229) return
     if (event.key === 'Escape') {
       if (searchOpen) {
         event.preventDefault()
@@ -1004,13 +1016,30 @@ globalThis.addEventListener(
       !event.altKey &&
       !event.isComposing &&
       isPrimaryShortcut(event) &&
-      event.key.toLowerCase() === 'f'
+      (event.key.toLowerCase() === 'f' || event.key.toLowerCase() === 'h')
     ) {
       event.preventDefault()
-      setSearchOpen(!searchOpen)
+      setSearchOpen(true)
+      if (event.key.toLowerCase() === 'h')
+        appRoot.querySelector<HTMLInputElement>('[data-replace-input]')?.focus()
       return
     }
 
+    if (event.key === 'F3' && !event.altKey && !isPrimaryShortcut(event)) {
+      event.preventDefault()
+      if (!searchOpen) setSearchOpen(true)
+      void navigateSearch(event.shiftKey ? -1 : 1)
+      return
+    }
+
+    const target = event.target
+    if (
+      target instanceof HTMLElement &&
+      target.closest('[data-floating-search]') &&
+      isPrimaryShortcut(event) &&
+      ['a', 'z', 'y'].includes(event.key.toLowerCase())
+    )
+      return
     const action = getDesktopShortcutAction(event)
 
     if (!action) {
@@ -1024,6 +1053,8 @@ globalThis.addEventListener(
 )
 
 bindEditorViewClipboard(view)
+editorRoot.addEventListener('keyup', schedulePluginUiViewportUpdate)
+editorRoot.addEventListener('pointerup', schedulePluginUiViewportUpdate)
 
 function createDesktopActions(): readonly ActionDefinition[] {
   return Object.freeze([
@@ -1185,7 +1216,7 @@ function focusActiveView(): void {
     return
   }
 
-  sourceView?.dom.focus({ preventScroll: true })
+  sourceView?.inputDOM.focus({ preventScroll: true })
 }
 
 function focusEditableView(): void {
@@ -2820,41 +2851,74 @@ function showMenuSection(section: string): void {
 
 function setSearchOpen(open: boolean): void {
   searchOpen = open
-  const search = appRoot.querySelector<HTMLElement>('[data-floating-search]')
-
-  if (search) {
-    search.hidden = !open
-  }
-
+  appRoot.querySelector<HTMLElement>('[data-floating-search]')!.hidden = !open
   if (open) {
     setMenuOpen(false)
-    appRoot.querySelector<HTMLInputElement>('[data-search-input]')?.focus()
+    const input = appRoot.querySelector<HTMLInputElement>('[data-search-input]')!
+    input.focus()
+    input.select()
+    if (searchSignature !== currentSearchSignature()) scheduleDocumentSearch(false)
   } else {
     clearSearchResults()
     focusActiveView()
+    view?.ensureCursorVisible()
   }
 }
 
-async function runDocumentSearch(query: string): Promise<void> {
-  if (isDocumentBusy()) {
-    notice = '文档正在打开，请稍候再搜索。'
-    renderSession()
-    return
+function currentSearchQuery(): string {
+  return appRoot.querySelector<HTMLInputElement>('[data-search-input]')!.value.trim()
+}
+
+function currentSearchSignature(): string {
+  return JSON.stringify([
+    session.documentId,
+    session.documentVersion,
+    currentSearchQuery(),
+    searchCaseSensitive,
+  ])
+}
+
+function scheduleDocumentSearch(navigate: boolean): void {
+  if (searchRefreshTimer !== undefined) clearTimeout(searchRefreshTimer)
+  documentSearchRunId += 1
+  documentSearchController.cancel()
+  searchSignature = currentSearchSignature()
+  searchResultState = undefined
+  activeSearchResultIndex = -1
+  renderSearchNavigation()
+  if (!searchOpen || !currentSearchQuery() || isDocumentBusy()) return
+  searchRefreshTimer = setTimeout(() => {
+    searchRefreshTimer = undefined
+    void runDocumentSearch(currentSearchQuery(), navigate)
+  }, 150)
+}
+
+async function navigateSearch(delta: -1 | 1): Promise<void> {
+  if (searchSignature === currentSearchSignature() && searchResultState?.phase === 'done') {
+    await moveSearchResult(delta)
+  } else {
+    await runDocumentSearch(currentSearchQuery(), true)
   }
+}
 
-  const trimmed = query.trim()
-
-  if (trimmed.length === 0) {
+async function runDocumentSearch(query: string, navigate = true): Promise<void> {
+  if (searchRefreshTimer !== undefined) clearTimeout(searchRefreshTimer)
+  searchRefreshTimer = undefined
+  if (isDocumentBusy() || !searchOpen) return
+  if (!query.trim()) {
     clearSearchResults()
     return
   }
-
   const searchRunId = ++documentSearchRunId
+  searchSignature = currentSearchSignature()
+  const signature = searchSignature
   const source = largeDocumentPreview?.source
-
+  const current = () =>
+    searchOpen && searchRunId === documentSearchRunId && signature === currentSearchSignature()
   try {
     const result = await documentSearchController.run({
-      query: trimmed,
+      query,
+      caseSensitive: searchCaseSensitive,
       ...(source
         ? { source, windowSizeLines: 512, maxResults: 200 }
         : {
@@ -2865,36 +2929,29 @@ async function runDocumentSearch(query: string): Promise<void> {
             maxResults: 200,
           }),
       onUpdate: (searchState) => {
-        if (searchRunId !== documentSearchRunId) {
-          return
-        }
-
+        if (!current()) return
         searchResultState = searchState
-        activeSearchResultIndex =
-          searchState.matches.length > 0 && activeSearchResultIndex < 0
-            ? 0
-            : activeSearchResultIndex
-        notice = formatDesktopSearchNotice(searchState)
-        renderSession()
-        renderSearchNavigation()
+        activeSearchResultIndex = searchState.matches.length ? 0 : -1
+        if (searchRenderFrame === undefined)
+          searchRenderFrame = requestAnimationFrame(() => renderSearchNavigation())
       },
     })
-
-    if (searchRunId !== documentSearchRunId) {
-      return
-    }
-
+    if (!current()) return
     searchResultState = result
-    activeSearchResultIndex = result.matches.length > 0 ? 0 : -1
+    activeSearchResultIndex = result.matches.length ? 0 : -1
     renderSearchNavigation()
-    await jumpToSearchMatch(result, activeSearchResultIndex)
+    if (navigate) await jumpToSearchMatch(result, activeSearchResultIndex)
   } catch (error: unknown) {
-    if (searchRunId !== documentSearchRunId) {
-      return
+    if (!current()) return
+    searchResultState = {
+      phase: 'failed',
+      query,
+      matches: [],
+      scannedLineCount: 0,
+      complete: false,
+      message: getErrorMessage(error),
     }
-
-    notice = `搜索失败：${getErrorMessage(error)}`
-    renderSession()
+    renderSearchNavigation()
   }
 }
 
@@ -2902,40 +2959,78 @@ async function jumpToSearchMatch(
   searchState: DesktopSearchState | undefined,
   index: number,
 ): Promise<void> {
-  const match =
-    searchState && index >= 0 && index < searchState.matches.length
-      ? searchState.matches[index]
-      : undefined
-
-  if (!match) {
-    return
-  }
-
+  if (searchSignature !== currentSearchSignature() || searchState !== searchResultState) return
+  const match = searchState?.matches[index]
+  if (!match) return
+  const selection = Selection.range(match.from, match.to)
   if (sourceView) {
-    await sourceView.scrollToLine(match.line)
-    focusActiveView()
+    await sourceView.revealSelection(match.line, selection)
+  } else if (view) {
+    state = new EditorState({
+      doc: state.doc,
+      selection,
+      history: state.history,
+      facets: state.facets,
+    })
+    view.updateState(state)
+    view.ensureCursorVisible({ scrollPadding: 0 })
+    renderSession()
+  }
+  // Keep the invoking search control focused. Escape returns to the selected result.
+}
+
+function replaceSearchMatches(all: boolean): void {
+  const result = searchResultState
+  if (!canReplaceSearch() || !result || (all && !result.complete)) return
+  const matches = all
+    ? result.matches
+    : result.matches.slice(activeSearchResultIndex, activeSearchResultIndex + 1)
+  if (!matches.length) return
+  // Recheck original source slices before building a single isolated undo transaction.
+  if (matches.some((match) => state.doc.slice(match.from, match.to) !== match.text)) {
+    scheduleDocumentSearch(false)
     return
   }
-
-  if (!view) {
-    return
+  const insert = appRoot.querySelector<HTMLInputElement>('[data-replace-input]')!.value
+  const changes = ChangeSet.of(matches.map(({ from, to }) => ({ from, to, insert })))
+  const transaction: Transaction = {
+    changes,
+    selection: Selection.cursor(matches[0]!.from + insert.length),
+    origin: { type: 'input.type', id: 'search-replace' },
+    historyGroup: 'isolate',
   }
-
-  state = new EditorState({
-    doc: state.doc,
-    selection: Selection.cursor(match.from),
-    history: state.history,
-    facets: state.facets,
-  })
-  view.updateState(state)
-  view.ensureCursorVisible({ scrollPadding: 0 })
+  state = state.applyTransaction(transaction)
+  session = recordDocumentTransaction(session, transaction)
+  updateRenderedMemoryDocument([transaction])
+  if (sourceView)
+    void sourceView.revealSelection(
+      state.doc.lineAt(state.selection.main.head).number,
+      state.selection,
+    )
   renderSession()
-  focusActiveView()
+}
+
+function canReplaceSearch(): boolean {
+  return (
+    searchOpen &&
+    !largeDocumentPreview &&
+    !session.readonly &&
+    !isDocumentBusy() &&
+    !isDocumentSaving() &&
+    !closeConfirmOpen &&
+    searchSignature === currentSearchSignature() &&
+    searchResultState?.phase === 'done' &&
+    !!searchResultState.matches.length
+  )
 }
 
 function getPluginUiRenderState(): Readonly<Record<string, unknown>> {
   const editor = sourceView ?? view
   const lineCount = sourceView?.source.lineCount ?? state.doc.lineCount
+  const activePosition = sourceView?.selection.main.head ?? state.selection.main.head
+  const activeLine = sourceView
+    ? Number(sourceView.cursorLayerDOM.querySelector<HTMLElement>('[data-line]')?.dataset.line ?? 1)
+    : state.doc.lineAt(activePosition).number
 
   if (!editor || lineCount < 1) {
     return Object.freeze({ viewport: Object.freeze({ fromLine: 1, toLine: 1, activeLine: 1 }) })
@@ -2953,10 +3048,11 @@ function getPluginUiRenderState(): Readonly<Record<string, unknown>> {
   )
 
   return Object.freeze({
+    documentVersion: session.documentVersion,
     viewport: Object.freeze({
       fromLine,
       toLine: Math.min(lineCount, fromLine + visibleLineCount - 1),
-      activeLine: fromLine,
+      activeLine,
     }),
   })
 }
@@ -2996,7 +3092,7 @@ function cancelScheduledPluginUiViewportUpdate(): void {
 async function revealPluginLine(line: number): Promise<void> {
   cancelScheduledPluginUiViewportUpdate()
   if (sourceView) {
-    await sourceView.scrollToLine(line)
+    await sourceView.revealSelection(line)
   } else if (view) {
     const target = state.doc.line(line)
     state = new EditorState({
@@ -3026,12 +3122,14 @@ async function moveSearchResult(delta: -1 | 1): Promise<void> {
     delta,
   )
   renderSearchNavigation()
-  notice = formatDesktopSearchNotice(searchResultState)
   renderSession()
   await jumpToSearchMatch(searchResultState, activeSearchResultIndex)
 }
 
 function clearSearchResults(): void {
+  if (searchRefreshTimer !== undefined) clearTimeout(searchRefreshTimer)
+  searchRefreshTimer = undefined
+  searchSignature = currentSearchSignature()
   documentSearchRunId += 1
   documentSearchController.cancel()
   searchResultState = undefined
@@ -3042,10 +3140,31 @@ function clearSearchResults(): void {
 }
 
 function renderSearchNavigation(): void {
+  if (searchRenderFrame !== undefined) cancelAnimationFrame(searchRenderFrame)
+  searchRenderFrame = undefined
   const navigation = createDesktopSearchNavigationState(searchResultState, activeSearchResultIndex)
 
   activeSearchResultIndex = navigation.activeIndex
-  setText('[data-search-result-count]', navigation.label)
+  const truncated = searchResultState?.phase === 'done' && !searchResultState.complete
+  setText('[data-search-result-count]', navigation.label + (truncated ? '+' : ''))
+  const hint = `字面匹配 · ${searchCaseSensitive ? '区分大小写' : '忽略大小写'} · 忽略查询首尾空白`
+  const status =
+    searchResultState?.phase === 'failed'
+      ? `搜索失败：${searchResultState.message}`
+      : searchResultState?.phase === 'searching'
+        ? '正在搜索…'
+        : truncated
+          ? '仅显示前 200 处；请缩小查询后使用全部替换'
+          : searchResultState?.phase === 'done' && !navigation.canNavigate
+            ? '没有匹配结果'
+            : hint
+  setText(
+    '[data-search-message]',
+    largeDocumentPreview ? `${status} · 大文件模式暂不支持替换` : status,
+  )
+  appRoot.querySelector<HTMLButtonElement>('[data-replace-one]')!.disabled = !canReplaceSearch()
+  appRoot.querySelector<HTMLButtonElement>('[data-replace-all]')!.disabled =
+    !canReplaceSearch() || !searchResultState?.complete
   const highlights = searchResultState?.matches ?? []
   view?.setSearchHighlights(highlights, navigation.activeIndex)
   sourceView?.setSearchHighlights(highlights, navigation.activeIndex)
@@ -3071,25 +3190,6 @@ function renderSearchNavigation(): void {
     if (button) {
       button.disabled = !navigation.canNavigate
     }
-  }
-}
-
-function formatDesktopSearchNotice(searchState: DesktopSearchState): string {
-  switch (searchState.phase) {
-    case 'idle':
-      return messages.ready
-    case 'searching':
-      return `正在搜索“${searchState.query}”：已找到 ${searchState.matches.length} 处，已扫描 ${searchState.scannedLineCount} 行。`
-    case 'done':
-      return searchState.complete
-        ? `搜索“${searchState.query}”完成：找到 ${searchState.matches.length} 处，扫描 ${searchState.scannedLineCount} 行。`
-        : `搜索“${searchState.query}”已截断：显示前 ${searchState.matches.length} 处，扫描 ${searchState.scannedLineCount} 行。`
-    case 'cancelled':
-      return `已取消搜索“${searchState.query}”。`
-    case 'failed':
-      return `搜索失败：${searchState.message ?? searchState.query}`
-    default:
-      return messages.ready
   }
 }
 
@@ -3386,6 +3486,17 @@ function pluginShortcutAction(
 }
 
 function renderSession(): void {
+  if (searchOpen && !isDocumentBusy() && searchSignature !== currentSearchSignature())
+    scheduleDocumentSearch(false)
+  const navigationSignature = JSON.stringify([
+    session.documentId,
+    session.documentVersion,
+    sourceView?.selection.main.head ?? state.selection.main.head,
+  ])
+  if (lastNavigationSignature !== navigationSignature) {
+    lastNavigationSignature = navigationSignature
+    schedulePluginUiViewportUpdate()
+  }
   renderTableTools()
   void desktopPluginUi.sync(session.documentId)
   const titleInfo = customDocumentTitle
