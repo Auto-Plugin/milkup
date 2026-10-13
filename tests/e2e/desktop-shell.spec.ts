@@ -929,3 +929,62 @@ test('issue 255 single-space headings render immediately after an image line', a
     'title',
   )
 })
+
+for (const mode of ['source', 'live'] as const) {
+  test(`${mode} list keyboard nesting, exit and undo survive mode changes`, async ({ page }) => {
+    await page.goto('/')
+    if (mode === 'source') await page.keyboard.press('Control+1')
+    await page.locator('.milkup-input-proxy').focus()
+    await page.keyboard.type('- item')
+    await page.keyboard.press('Tab')
+    await expect(page.locator('.milkup-cursor')).toHaveAttribute('data-position', '8')
+    await page.keyboard.press(mode === 'source' ? 'Control+2' : 'Control+1')
+    await expect(page.locator('.milkup-cursor')).toHaveAttribute('data-position', '8')
+    await page.keyboard.press(mode === 'source' ? 'Control+1' : 'Control+2')
+    await page.keyboard.press('Shift+Tab')
+    await page.keyboard.press('Enter')
+    await expect(page.locator('.milkup-cursor')).toHaveAttribute('data-position', '9')
+    await page.keyboard.press('Enter')
+    await expect(page.locator('.milkup-cursor')).toHaveAttribute('data-position', '7')
+    await page.keyboard.press('Control+z')
+    await expect(page.locator('.milkup-cursor')).toHaveAttribute('data-position', '9')
+    await page.keyboard.press('Control+1')
+    await expect(page.locator('.milkup-line[data-line="2"]')).toHaveText('-')
+    await page.keyboard.press('Backspace')
+    await expect(page.locator('.milkup-cursor')).toHaveAttribute('data-position', '7')
+  })
+  test(`${mode} code block Enter preserves literal markers and blank lines`, async ({ page }) => {
+    await page.goto('/')
+    if (mode === 'source') await page.keyboard.press('Control+1')
+    await page.locator('.milkup-input-proxy').focus()
+    const code = '```js\n- literal\n  value\n```'
+    await page.keyboard.insertText(code)
+    await page.keyboard.press('Control+a')
+    await page.keyboard.press('ArrowLeft')
+    for (let i = 0; i < code.indexOf('\n  value'); i++) await page.keyboard.press('ArrowRight')
+    await page.keyboard.press('Enter')
+    await expect
+      .poll(() =>
+        page
+          .locator('.milkup-line[data-line="3"]')
+          .evaluate((el) => el.textContent?.replace(/\u200b/g, '')),
+      )
+      .toBe('')
+    await page.keyboard.press('Control+z')
+    await expect
+      .poll(() => page.locator('.milkup-line[data-line="3"]').evaluate((el) => el.textContent))
+      .toBe('  value')
+    await page.keyboard.press('ArrowDown')
+    await page.keyboard.press('Enter')
+    await expect
+      .poll(() =>
+        page
+          .locator('.milkup-line[data-line="4"]')
+          .evaluate((el) => el.textContent?.replace(/\u200b/g, '')),
+      )
+      .toBe('  ')
+    await page.keyboard.press(mode === 'source' ? 'Control+2' : 'Control+1')
+    await page.keyboard.press('Control+z')
+    await expect(page.locator('.milkup-line[data-line="4"]')).toHaveText('```')
+  })
+}

@@ -213,14 +213,20 @@ try {
           const view=document.querySelector('.milkup-source-document-view'),content=document.querySelector('.milkup-editor-content'),profile=window.__windowProfile;
           profile.ipc=[];profile.render=[];
           const started=performance.now();let finished=false;
-          const timer=setTimeout(()=>{if(!finished){finished=true;done({ok:false,error:'viewport timeout',ipc:profile.ipc,render:profile.render})}},15000);
+          let scrollEventAt,domTargetAt,firstFrameAt,maxTimerGapMs=0,lastTick=started;
+          const markScroll=()=>{scrollEventAt=performance.now()};view.addEventListener('scroll',markScroll,{once:true,capture:true});
+          const observer=new MutationObserver(()=>{const from=Number(content.dataset.fromLine);if(domTargetAt===undefined&&(far?from>1000:from===1))domTargetAt=performance.now()});
+          observer.observe(content,{attributes:true,attributeFilter:['data-from-line']});
+          const pulse=setInterval(()=>{const now=performance.now();maxTimerGapMs=Math.max(maxTimerGapMs,now-lastTick);lastTick=now},20);
+          const cleanup=()=>{clearInterval(pulse);observer.disconnect();view.removeEventListener('scroll',markScroll,true)};
+          const timer=setTimeout(()=>{if(!finished){finished=true;cleanup();done({ok:false,error:'viewport timeout',ipc:profile.ipc,render:profile.render})}},15000);
           view.scrollTop=top;
           const check=()=>{if(finished)return;const from=Number(content.dataset.fromLine);
-            if(far?from>1000:from===1) requestAnimationFrame(()=>requestAnimationFrame(()=>{
-              if(finished)return;finished=true;clearTimeout(timer);
+            if(far?from>1000:from===1) requestAnimationFrame(()=>{firstFrameAt=performance.now();requestAnimationFrame(()=>{
+              if(finished)return;finished=true;clearTimeout(timer);cleanup();
               const layoutStart=performance.now();const rect=content.getBoundingClientRect();const layoutMs=performance.now()-layoutStart;
-              done({ok:true,start:started,end:performance.now(),elapsedMs:performance.now()-started,layoutProbeMs:layoutMs,height:rect.height,from:Number(content.dataset.fromLine),to:Number(content.dataset.toLine),renderedLines:content.querySelectorAll('.milkup-line').length,ipc:profile.ipc,render:profile.render});
-            }));else requestAnimationFrame(check);
+              done({ok:true,start:started,scrollEventAt,domTargetAt,firstFrameAt,maxTimerGapMs,end:performance.now(),elapsedMs:performance.now()-started,layoutProbeMs:layoutMs,height:rect.height,from:Number(content.dataset.fromLine),to:Number(content.dataset.toLine),renderedLines:content.querySelectorAll('.milkup-line').length,ipc:profile.ipc,render:profile.render});
+            });});else requestAnimationFrame(check);
           };check();`,
           direction === 'away' ? 100000 : 0,
           direction === 'away',

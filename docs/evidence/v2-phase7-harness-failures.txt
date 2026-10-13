@@ -1,0 +1,51 @@
+native-blocks.log
+file:///workspace/milkup/tests/native/tauri-block-keyboard.mjs:45
+  throw Error(`Timeout: ${label}`)
+        ^
+
+Error: Timeout: fixture path
+    at until (file:///workspace/milkup/tests/native/tauri-block-keyboard.mjs:45:9)
+    at async openFixture (file:///workspace/milkup/tests/native/tauri-block-keyboard.mjs:159:3)
+    at async file:///workspace/milkup/tests/native/tauri-block-keyboard.mjs:196:7
+    at async check (file:///workspace/milkup/tests/native/tauri-block-keyboard.mjs:128:3)
+    at async file:///workspace/milkup/tests/native/tauri-block-keyboard.mjs:195:5
+
+Node.js v24.19.0
+
+
+native-blocks-rerun.log
+file:///workspace/milkup/tests/native/tauri-block-keyboard.mjs:34
+  if (!r.ok || (j.value?.error && !('ok' in j.value))) throw Error(JSON.stringify(j))
+                                                             ^
+
+Error: {"value":{"error":"javascript error","message":"null is not an object (evaluating 'document.querySelector(\"[data-stat=path]\").textContent')","stacktrace":""}}
+    at req (file:///workspace/milkup/tests/native/tauri-block-keyboard.mjs:34:62)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async until (file:///workspace/milkup/tests/native/tauri-block-keyboard.mjs:41:19)
+    at async openFixture (file:///workspace/milkup/tests/native/tauri-block-keyboard.mjs:159:3)
+    at async file:///workspace/milkup/tests/native/tauri-block-keyboard.mjs:196:7
+    at async check (file:///workspace/milkup/tests/native/tauri-block-keyboard.mjs:128:3)
+    at async file:///workspace/milkup/tests/native/tauri-block-keyboard.mjs:195:5
+
+Node.js v24.19.0
+
+
+native-blocks-x11.log
+FAIL diagnostics {
+  keys: null,
+  cursor: '0',
+  active: '<textarea class="milkup-input-proxy" aria-hidden="true" autocomplete="off" spellcheck="false" tabindex="0" style="left: 26px; top: 26px; height: 16px;"></textarea>',
+  text: '​'
+}
+file:///workspace/milkup/tests/native/tauri-block-keyboard.mjs:45
+  throw Error(`Timeout: ${label}`)
+        ^
+
+Error: Timeout: cursor position
+    at until (file:///workspace/milkup/tests/native/tauri-block-keyboard.mjs:45:9)
+    at async place (file:///workspace/milkup/tests/native/tauri-block-keyboard.mjs:198:3)
+    at async file:///workspace/milkup/tests/native/tauri-block-keyboard.mjs:221:7
+    at async check (file:///workspace/milkup/tests/native/tauri-block-keyboard.mjs:146:9)
+    at async file:///workspace/milkup/tests/native/tauri-block-keyboard.mjs:219:5
+
+Node.js v24.19.0

@@ -796,8 +796,10 @@ export class EditorView {
       return false
     }
 
+    // WebKitGTK may report the native ISO_Left_Tab keysym as Unidentified.
+    const isTab = event.key === 'Tab' || (event.key === 'Unidentified' && event.code === 'Tab')
     if (!this.editable) {
-      return isTextEditingKey(event)
+      return isTab || isTextEditingKey(event)
     }
 
     if (event.altKey || event.ctrlKey || event.metaKey) {
@@ -812,9 +814,11 @@ export class EditorView {
       return this.insertText(event.key)
     }
 
-    switch (event.key) {
+    switch (isTab ? 'Tab' : event.key) {
       case 'Enter':
-        return this.insertText(this.enterInsertionText(), 'input.enter')
+        return this.handleBlockEnter()
+      case 'Tab':
+        return this.indentBlockLines(event.shiftKey)
       case 'Backspace':
         return this.deleteBackward()
       case 'Delete':
@@ -863,6 +867,27 @@ export class EditorView {
 
     if (range.head === 0) {
       return false
+    }
+
+    const line = this.currentState.doc.lineAt(range.head)
+    const offset = range.head - line.from
+    const prefix = listEditingPrefix(line.text)
+    if (!this.codeBlockAt(range.head) && prefix && offset === prefix[0].length) {
+      const remove = prefix[1] ? indentRemovalLength(prefix[1]) : prefix[0].length
+      return this.applyBlockChanges(
+        ChangeSet.delete(line.from, line.from + remove),
+        'view.list.backspace',
+      )
+    }
+    const before = line.text.slice(0, offset)
+    if (/^[ \t]+$/u.test(before)) {
+      const remove = before.endsWith('\t')
+        ? 1
+        : Math.min(offset % 2 || 2, / *$/u.exec(before)![0].length)
+      return this.applyBlockChanges(
+        ChangeSet.delete(range.head - remove, range.head),
+        'view.indent.backspace',
+      )
     }
 
     const from = previousGraphemePosition(this.currentState.doc, range.head)
@@ -1106,10 +1131,85 @@ export class EditorView {
     )
   }
 
-  private enterInsertionText(): string {
+  private codeBlockAt(position: number): SyntaxNode | undefined {
+    for (const block of walkSyntaxNodes(this.markdownParseState.cache.root.children ?? [])) {
+      if (
+        (block.type === 'fencedCode' || block.type === 'indentedCode') &&
+        position >= block.from &&
+        (position < block.to ||
+          (position === block.to && block.to === this.currentState.doc.length))
+      )
+        return block
+    }
+    return undefined
+  }
+
+  private applyBlockChanges(changes: ChangeSet, id: string): boolean {
+    if (changes.empty) return true
+    this.dispatch({
+      changes,
+      selection: this.currentState.selection.map(changes),
+      origin: { type: 'command', id },
+      historyGroup: 'isolate',
+    })
+    return true
+  }
+
+  private handleBlockEnter(): boolean {
     const range = this.currentState.selection.main
     const line = this.currentState.doc.lineAt(range.from)
-    return `\n${listContinuationPrefix(line.text) ?? ''}`
+    const code = this.codeBlockAt(range.from)
+    if (code) {
+      const closing =
+        code.type === 'fencedCode' && code.status === 'valid'
+          ? code.markerRanges?.at(-1)
+          : undefined
+      const atClosingFence =
+        closing !== undefined && closing.from >= line.from && closing.to <= line.to
+      const indent = atClosingFence
+        ? ''
+        : (/^[ \t]*/u.exec(line.text.slice(0, range.from - line.from))?.[0] ?? '')
+      return this.insertText(`\n${indent}`, 'input.enter')
+    }
+    const prefix = listEditingPrefix(line.text)
+    if (prefix && range.from >= line.from + prefix[0].length) {
+      if (range.empty && line.text.slice(prefix[0].length).trim() === '') {
+        const remove = prefix[1] ? indentRemovalLength(prefix[1]) : line.text.length
+        return this.applyBlockChanges(
+          ChangeSet.delete(line.from, line.from + remove),
+          'view.list.exit',
+        )
+      }
+      if (range.to <= line.to)
+        return this.insertText(`\n${listContinuationPrefix(line.text) ?? ''}`, 'input.enter')
+    }
+    return this.insertText('\n', 'input.enter')
+  }
+
+  private indentBlockLines(outdent: boolean): boolean {
+    const range = this.currentState.selection.main
+    const doc = this.currentState.doc
+    const first = doc.lineAt(range.from)
+    const last = doc.lineAt(range.empty ? range.to : Math.max(range.from, range.to - 1))
+    const code = this.codeBlockAt(range.from)
+    const list = !code && listEditingPrefix(first.text)
+    if (!code && !list && first.number === last.number && !/^[ \t]+/u.test(first.text)) return false
+    if (
+      !outdent &&
+      code &&
+      range.empty &&
+      /[^ \t]/u.test(first.text.slice(0, range.from - first.from))
+    ) {
+      return this.insertText('  ', 'input.indent')
+    }
+    const edits = []
+    for (let number = first.number; number <= last.number; number++) {
+      const line = doc.line(number)
+      const remove = outdent ? indentRemovalLength(line.text) : 0
+      if (outdent && remove === 0) continue
+      edits.push({ from: line.from, to: line.from + remove, insert: outdent ? '' : '  ' })
+    }
+    return this.applyBlockChanges(ChangeSet.of(edits), outdent ? 'view.outdent' : 'view.indent')
   }
 }
 
@@ -2165,6 +2265,14 @@ function normalizeListSyntaxPosition(
   }
 
   return position
+}
+
+function listEditingPrefix(line: string): RegExpExecArray | null {
+  return /^([ \t]*)(?:[-+*]|\d{1,9}[.)])[ \t]+(?:\[[ xX]\][ \t]+)?/u.exec(line)
+}
+
+function indentRemovalLength(text: string): number {
+  return /^(?:\t| {1,2})/u.exec(text)?.[0].length ?? 0
 }
 
 function listContinuationPrefix(lineText: string): string | undefined {

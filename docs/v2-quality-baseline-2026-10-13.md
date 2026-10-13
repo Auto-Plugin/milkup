@@ -85,4 +85,6 @@ v2 为 Tauri + 自研 TypeScript 编辑内核，不是 main 的 Vue/Electron。�
 - [第五阶段：窗口化 Unicode、换行边界与即时撤销](./v2-phase5-windowed-unicode-verification-2026-10-13.md)：当前失败复现、局部修复、原生大文档交互及性能样本；包含整体差距和下一阶段列表／代码块、表格、搜索大纲与视觉重点。
 - [第六阶段：原生行窗口性能](./v2-phase6-native-window-performance-2026-10-13.md)：分离 Rust／IPC／视图与帧呈现，修复重复前缀读取；保留未全面达到的 200／500 ms 目标、尾延迟及平台差距。
 
+- [第七阶段：常规文档列表与代码块键盘](./v2-phase7-block-keyboard-verification-2026-10-13.md)：有界帧尾延迟复核、列表退出／缩进、代码空行／边界、选区撤销与原生 Shift+Tab；窗口化大文档仍单列差距。
+
 各阶段编号按实际实施顺序记录，不把本表早期规划的阶段名视为已验收声明。中文系统 IME、Windows／macOS、Word 2016、完整性能基准仍单列验收。
