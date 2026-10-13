@@ -554,7 +554,11 @@ for (const outcome of ['cancel', 'error']) {
       'data-loading',
       outcome === 'error' ? 'failed' : 'ready',
     )
-    if (outcome === 'error') await page.locator('[data-loading-dismiss]').click()
+    if (outcome === 'error') {
+      await expect(page.locator('[data-loading-dismiss]')).toBeFocused()
+      await page.keyboard.press('Escape')
+      await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+    }
     await expect(page.locator('.milkup-editor-content')).toContainText('ORIGINAL')
     await expect(page.locator('[data-save-label]')).toContainText('未保存')
     await page.keyboard.press('Control+z')
@@ -1370,4 +1374,69 @@ test('phase10 live table arrows skip delimiters and protect shifted cell selecti
   await expect(page.locator('.milkup-line[data-line="3"]')).toHaveText('| A | 1 |')
   await page.keyboard.press('Control+2')
   await page.screenshot({ path: testInfo.outputPath('table-arrows.png') })
+})
+
+test('phase16 modal menu contains keyboard focus and closes ahead of background search', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.keyboard.type('keep')
+  await page.keyboard.press('Control+f')
+  await page.getByRole('button', { name: '菜单', exact: true }).click()
+  await page.keyboard.press('Shift+Tab')
+  await page.keyboard.press('Shift+Tab')
+  expect(
+    await page.locator('[data-app-menu]').evaluate((e) => e.contains(document.activeElement)),
+  ).toBe(true)
+  await page.keyboard.press('Escape')
+  await expect(page.locator('[data-app-menu]')).toBeHidden()
+  await expect(page.locator('[data-floating-search]')).toBeVisible()
+  await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+  await page.getByRole('button', { name: '菜单', exact: true }).click()
+  await page.keyboard.press('Control+n')
+  await expect(page.locator('[data-close-confirm]')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('[data-app-menu]')).toBeHidden()
+  await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+})
+
+test('phase16 F6 reaches shell and table controls without inserting document text', async ({
+  page,
+}) => {
+  await openEditableTable(page)
+  const before = await page.locator('.milkup-editor-content').textContent()
+  await page.keyboard.press('F6')
+  await expect(page.locator('[data-table-action="select-cell"]')).toBeFocused()
+  await page.keyboard.press('F6')
+  await expect(page.locator('[data-sidebar-toggle]')).toBeFocused()
+  await page.keyboard.press('F6')
+  await expect(page.locator('[data-menu-toggle]')).toBeFocused()
+  await page.keyboard.press('Enter')
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+  await expect(page.locator('.milkup-input-proxy')).toHaveAttribute('aria-label', 'Markdown 编辑器')
+  await expect(page.locator('.milkup-input-proxy')).not.toHaveAttribute('aria-hidden', 'true')
+  await expect(page.locator('.milkup-editor-content')).toHaveText(before!)
+})
+
+test('phase16 confirmation remains scrollable at a 380 by 260 effective viewport', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 380, height: 260 })
+  await page.goto('/')
+  await page.keyboard.type('keep')
+  await page.keyboard.press('Control+n')
+  const dialog = page.locator('.confirm-dialog')
+  const rect = await dialog.boundingBox()
+  expect(rect!.y).toBeGreaterThanOrEqual(0)
+  expect(rect!.y + rect!.height).toBeLessThanOrEqual(260)
+  await page.keyboard.press('Tab')
+  await page.keyboard.press('Tab')
+  const save = page.locator('[data-close-confirm-action="save"]')
+  await expect(save).toBeFocused()
+  const button = await save.boundingBox()
+  expect(button!.y).toBeGreaterThanOrEqual(0)
+  expect(button!.y + button!.height).toBeLessThanOrEqual(260)
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.milkup-input-proxy')).toBeFocused()
 })

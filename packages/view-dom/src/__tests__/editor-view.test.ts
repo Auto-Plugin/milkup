@@ -437,13 +437,15 @@ describe('EditorView', () => {
     expect(selection?.style.height).toBe('21px')
   })
 
-  it('creates a hidden textarea input proxy outside document content', () => {
+  it('names the focusable input proxy without hiding it from accessibility APIs', () => {
     const parent = document.createElement('main')
     const view = new EditorView({ parent, state: createState('hello') })
 
     expect(view.inputDOM).toBeInstanceOf(HTMLTextAreaElement)
     expect(view.inputDOM.className).toBe('milkup-input-proxy')
-    expect(view.inputDOM.getAttribute('aria-hidden')).toBe('true')
+    expect(view.inputDOM.getAttribute('aria-hidden')).not.toBe('true')
+    expect(view.inputDOM.getAttribute('aria-label')).toBe('Markdown 编辑器')
+    expect(view.inputDOM.tabIndex).toBe(0)
     expect(view.contentDOM.contains(view.inputDOM)).toBe(false)
     expect(view.dom.contains(view.inputDOM)).toBe(true)
   })

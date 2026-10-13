@@ -257,7 +257,7 @@ appRoot.style.setProperty('--sidebar-width', `${initialSidebarWidth}px`)
 app.innerHTML = `
   <main class="desktop-shell">
     <header class="titlebar" data-window-drag-region>
-      <button type="button" class="titlebar-menu-button" data-menu-toggle aria-label="${messages.buttons.menu}" title="${messages.buttons.menu}">
+      <button type="button" class="titlebar-menu-button" data-menu-toggle aria-haspopup="dialog" aria-expanded="false" aria-label="${messages.buttons.menu}" title="${messages.buttons.menu}">
         ${iconSvg(Menu)}
       </button>
       <div class="document-title" data-window-drag-region>
@@ -353,6 +353,7 @@ app.innerHTML = `
           </section>
           <section class="app-menu-section" data-menu-panel="appearance" hidden>
             <h3>${messages.menu.appearance}</h3>
+            <p class="menu-help">当前使用浅色外观。暗色主题与界面缩放尚未提供。</p>
           </section>
           <section class="app-menu-section" data-menu-panel="plugins" hidden>
             <h3>${messages.menu.plugins}</h3>
@@ -361,6 +362,14 @@ app.innerHTML = `
           </section>
           <section class="app-menu-section" data-menu-panel="shortcuts" hidden>
             <h3>${messages.menu.shortcuts}</h3>
+            <dl class="metadata-list menu-info-list">
+              <div><dt>切换操作区域</dt><dd>F6 / Shift+F6</dd></div>
+              <div><dt>区域内移动焦点</dt><dd>Tab / Shift+Tab</dd></div>
+              <div><dt>关闭菜单、搜索或确认框</dt><dd>Esc</dd></div>
+              <div><dt>查找 / 替换</dt><dd>${platform === 'macos' ? '⌘' : 'Ctrl'}+F / H</dd></div>
+              <div><dt>源码 / 即时预览</dt><dd>${platform === 'macos' ? '⌘' : 'Ctrl'}+1 / 2</dd></div>
+            </dl>
+            <p class="menu-help">正文中的 Tab 用于缩进或切换表格单元格。按 F6 可前往表格操作、状态栏和菜单。</p>
           </section>
           <section class="app-menu-section" data-menu-panel="about" hidden>
             <h3>${messages.menu.about}</h3>
@@ -430,9 +439,9 @@ app.innerHTML = `
             <button type="button" class="icon-button loading-dismiss" data-loading-dismiss aria-label="关闭" title="关闭" hidden>
               ${iconSvg(X)}
             </button>
-            <p data-loading-title>${messages.loading.title}</p>
+            <p data-loading-title id="document-loading-title">${messages.loading.title}</p>
             <span data-loading-phase>${messages.loading.body}</span>
-            <span data-loading-detail></span>
+            <span data-loading-detail role="status" aria-live="polite"></span>
           </div>
         </div>
       </section>
@@ -891,7 +900,7 @@ app.querySelector<HTMLButtonElement>('[data-search-next]')?.addEventListener('cl
 app.querySelector<HTMLButtonElement>('[data-loading-dismiss]')?.addEventListener('click', () => {
   if (loadingState.phase === 'failed') {
     setDocumentLoadingState({ phase: 'ready' })
-    view?.inputDOM.focus({ preventScroll: true })
+    focusActiveView()
   }
 })
 
@@ -1010,7 +1019,7 @@ globalThis.addEventListener(
       if (event.key === 'Escape') {
         event.preventDefault()
         documentTransitions.cancel()
-      } else if (event.key === 'Tab') {
+      } else if (event.key === 'Tab' || event.code === 'Tab') {
         const buttons = Array.from(
           appRoot.querySelectorAll<HTMLButtonElement>('[data-close-confirm] button:not(:disabled)'),
         )
@@ -1025,18 +1034,36 @@ globalThis.addEventListener(
       return
     }
     if (event.isComposing || event.keyCode === 229) return
+    if (menuOpen && (event.key === 'Tab' || event.code === 'Tab')) {
+      const controls = visibleFocusTargets(appRoot.querySelector('[data-app-menu]')!)
+      const index = controls.indexOf(document.activeElement as HTMLElement)
+      const next = (index + (event.shiftKey ? -1 : 1) + controls.length) % controls.length
+      event.preventDefault()
+      controls[next]?.focus()
+      return
+    }
     if (event.key === 'Escape') {
-      if (searchOpen) {
-        event.preventDefault()
-        setSearchOpen(false)
-        return
-      }
-
       if (menuOpen) {
         event.preventDefault()
         setMenuOpen(false)
         return
       }
+      if (searchOpen) {
+        event.preventDefault()
+        setSearchOpen(false)
+        return
+      }
+      if (loadingState.phase === 'failed') {
+        event.preventDefault()
+        setDocumentLoadingState({ phase: 'ready' })
+        focusActiveView()
+        return
+      }
+    }
+    if (event.key === 'F6' && !event.altKey && !isPrimaryShortcut(event)) {
+      event.preventDefault()
+      if (!menuOpen) cycleWorkspaceFocus(event.shiftKey)
+      return
     }
 
     if (
@@ -1074,6 +1101,7 @@ globalThis.addEventListener(
     }
 
     event.preventDefault()
+    if (menuOpen) setMenuOpen(false)
     runDesktopAction(action.id, action.input)
   },
   { capture: true },
@@ -1243,6 +1271,10 @@ function runDesktopAction(id: string, input: unknown = {}): void {
 
 function focusActiveView(): void {
   if (closeConfirmOpen) return
+  if (loadingState.phase === 'failed') {
+    appRoot.querySelector<HTMLButtonElement>('[data-loading-dismiss]')?.focus()
+    return
+  }
   if (view) {
     view.inputDOM.focus({ preventScroll: true })
     return
@@ -1745,7 +1777,7 @@ async function openSelectedDocumentAfterConfirmation(
     })
     notice = `${messages.errorPrefix}：${getErrorMessage(error)}`
     renderSession()
-    view?.inputDOM.focus({ preventScroll: true })
+    focusActiveView()
   }
 }
 
@@ -2863,7 +2895,7 @@ function setSidebarCollapsed(collapsed: boolean): void {
     toggle.innerHTML = iconSvg(collapsed ? PanelLeft : PanelLeftClose)
   }
 
-  view?.inputDOM.focus({ preventScroll: true })
+  focusActiveView()
 }
 
 function startSidebarWidthResize(event: PointerEvent): void {
@@ -2909,8 +2941,51 @@ function readStoredSidebarWidth(): number {
   return Math.round(Math.min(viewportMaximum, Math.max(minimumSidebarWidth, width)))
 }
 
+function visibleFocusTargets(root: Element): HTMLElement[] {
+  return Array.from(
+    root.querySelectorAll<HTMLElement>(
+      'button, input, textarea, select, summary, a[href], [tabindex]',
+    ),
+  ).filter(
+    (element) =>
+      element.tabIndex >= 0 &&
+      !element.matches(':disabled') &&
+      !element.closest('[inert]') &&
+      element.getClientRects().length > 0 &&
+      getComputedStyle(element).visibility !== 'hidden',
+  )
+}
+
+function cycleWorkspaceFocus(backward: boolean): void {
+  const regions = [
+    '.titlebar',
+    '[data-floating-search]',
+    '.sidebar',
+    '[data-editor-host]',
+    '[data-table-tools]',
+    '.statusbar',
+  ]
+    .map((selector) => appRoot.querySelector<HTMLElement>(selector)!)
+    .map((root) => ({
+      root,
+      target: root.matches('[data-editor-host]')
+        ? root.querySelector<HTMLElement>('.milkup-input-proxy')
+        : visibleFocusTargets(root)[0],
+    }))
+    .filter(
+      (region) =>
+        region.target &&
+        region.target.getClientRects().length > 0 &&
+        !region.target.closest('[inert]'),
+    )
+  const index = regions.findIndex((region) => region.root.contains(document.activeElement))
+  regions[(index + (backward ? -1 : 1) + regions.length) % regions.length]?.target?.focus()
+}
+
 function setMenuOpen(open: boolean): void {
+  const wasOpen = menuOpen
   menuOpen = open
+  setTransitionBackgroundInert(closeConfirmOpen)
   const menu = appRoot.querySelector<HTMLElement>('[data-app-menu]')
   const toggle = appRoot.querySelector<HTMLButtonElement>('[data-menu-toggle]')
 
@@ -2930,8 +3005,8 @@ function setMenuOpen(open: boolean): void {
       panel.open = false
     }
     appRoot.querySelector<HTMLButtonElement>('[data-menu-section="file"]')?.focus()
-  } else {
-    view?.inputDOM.focus({ preventScroll: true })
+  } else if (wasOpen) {
+    focusActiveView()
   }
 }
 
@@ -2941,7 +3016,7 @@ function showMenuSection(section: string): void {
   )) {
     const active = button.dataset.menuSection === section
     button.dataset.active = String(active)
-    button.setAttribute('aria-selected', String(active))
+    button.setAttribute('aria-current', String(active))
   }
 
   for (const panel of Array.from(appRoot.querySelectorAll<HTMLElement>('[data-menu-panel]'))) {
@@ -3648,7 +3723,8 @@ function closeWindowConfirm(): void {
 
 function setTransitionBackgroundInert(inert: boolean): void {
   for (const child of Array.from(appRoot.querySelector('.desktop-shell')!.children)) {
-    if (child instanceof HTMLElement && !child.matches('[data-close-confirm]')) child.inert = inert
+    if (child instanceof HTMLElement && !child.matches('[data-close-confirm]'))
+      child.inert = inert || (menuOpen && !child.matches('[data-app-menu]'))
   }
 }
 
@@ -3860,10 +3936,14 @@ function renderDocumentLoadingState(): void {
     return
   }
 
+  const wasFailed = loading.dataset.failed === 'true'
+  loading.dataset.failed = String(loadingState.phase === 'failed')
+  editorHost?.setAttribute('aria-busy', String(isDocumentBusy()))
   const visible = loadingVisibility.visible
   loading.hidden = !visible
   if (dismiss) {
     dismiss.hidden = loadingState.phase !== 'failed'
+    if (visible && !wasFailed && !dismiss.hidden && !closeConfirmOpen && !menuOpen) dismiss.focus()
   }
   setText('[data-loading-title]', getDocumentLoadingLabel(loadingState))
   setText(

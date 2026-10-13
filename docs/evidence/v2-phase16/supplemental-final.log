@@ -1,0 +1,23 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+stdout | tests/helpers/native-startup.test.ts > only cleans a new process with the same executable and birth time
+2026-10-13T19:59:47.155Z NATIVE_STARTUP_WINDOW 2ms
+
+stdout | tests/helpers/native-startup.test.ts > only cleans a new process with the same executable and birth time
+2026-10-13T19:59:47.157Z NATIVE_APPLICATION_CLEANUP 200
+
+stdout | tests/helpers/native-startup.test.ts > never kills automatically on a shared display
+2026-10-13T19:59:47.159Z NATIVE_STARTUP_WINDOW 1ms
+
+stdout | tests/helpers/native-startup.test.ts > does not signal a reused PID or an unexpected executable
+2026-10-13T19:59:47.160Z NATIVE_STARTUP_WINDOW 1ms
+
+ ✓ tests/helpers/native-startup.test.ts (4 tests) 10ms
+ ✓ plugins/outline/src/plugin.test.ts (2 tests) 317ms
+
+ Test Files  2 passed (2)
+      Tests  6 passed (6)
+   Start at  19:59:46
+   Duration  599ms (transform 101ms, setup 0ms, collect 128ms, tests 326ms, environment 0ms, prepare 104ms)
+

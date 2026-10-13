@@ -159,6 +159,10 @@ async function shot(name) {
     path.join(output, `${name}.png`),
     Buffer.from(await req('GET', `/session/${sid}/screenshot`), 'base64'),
   )
+  if (process.env.MILKUP_NATIVE_X11_SCREENSHOT === '1')
+    execFileSync('import', ['-window', 'root', path.join(output, `${name}-x11.png`)], {
+      env: { ...process.env, DISPLAY: process.env.DISPLAY ?? ':99' },
+    })
 }
 async function check(name, action) {
   if (process.env.MILKUP_NATIVE_CASE && !name.includes(process.env.MILKUP_NATIVE_CASE)) return

@@ -1,0 +1,51 @@
+$ playwright test --workers=1 --grep phase16
+[WebServer] (node:103784) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:103797) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:103821) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:103836) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:103862) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1375:1 › phase16 modal menu contains keyboard focus and closes ahead of background search (618ms)
+  ✘  2 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1392:1 › phase16 F6 reaches shell and table controls without inserting document text (5.4s)
+
+
+  1) [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1392:1 › phase16 F6 reaches shell and table controls without inserting document text 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  locator('[data-table-tools]')
+    Expected: visible
+    Received: hidden
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('[data-table-tools]')
+        14 × locator resolved to <div hidden="" role="toolbar" aria-label="表格操作" class="table-tools" data-table-tools="">…</div>
+           - unexpected value "hidden"
+
+
+      1398 |   await page.keyboard.press('ArrowRight')
+      1399 |   await page.keyboard.press('ArrowRight')
+    > 1400 |   await expect(page.locator('[data-table-tools]')).toBeVisible()
+           |                                                    ^
+      1401 |   const before = await page.locator('.milkup-editor-content').textContent()
+      1402 |   await page.keyboard.press('F6')
+      1403 |   await expect(page.locator('[data-table-action="select-cell"]')).toBeFocused()
+        at /workspace/milkup/tests/e2e/desktop-shell.spec.ts:1400:52
+
+    Error Context: test-results/desktop-shell-phase16-F6-r-c08b1-out-inserting-document-text-desktop-msedge/error-context.md
+
+  1 failed
+    [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1392:1 › phase16 F6 reaches shell and table controls without inserting document text 
+  1 passed (9.6s)
+[ELIFECYCLE] Command failed with exit code 1.

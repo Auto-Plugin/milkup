@@ -1,0 +1,288 @@
+Scope: 14 of 15 workspace projects
+$ vitest run
+
+ RUN  v3.2.6 /workspace/milkup/packages/assets
+
+ ✓ src/provider.test.ts (6 tests) 6ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  19:58:01
+   Duration  210ms (transform 35ms, setup 0ms, collect 37ms, tests 6ms, environment 0ms, prepare 52ms)
+
+$ vitest run
+
+ RUN  v3.2.6 /workspace/milkup/packages/core
+
+ ✓ src/__tests__/store-search.test.ts (10 tests) 8ms
+ ✓ src/__tests__/action-registry.test.ts (8 tests) 19ms
+ ✓ src/__tests__/large-edit-session.test.ts (12 tests) 15ms
+ ✓ src/__tests__/document-store.test.ts (9 tests) 6ms
+ ✓ src/__tests__/memory-text-document.test.ts (14 tests) 5ms
+ ✓ src/__tests__/editor-history.test.ts (12 tests) 6ms
+ ✓ src/__tests__/editor-document-source.test.ts (2 tests) 4ms
+ ✓ src/__tests__/literal-search.test.ts (3 tests) 4ms
+ ✓ src/__tests__/large-document.test.ts (4 tests) 754ms
+   ✓ large document contracts > searches a virtual 100 MiB synthetic Markdown document through line windows  503ms
+ ✓ src/__tests__/large-file-policy.test.ts (5 tests) 5ms
+
+ Test Files  10 passed (10)
+      Tests  79 passed (79)
+   Start at  19:58:02
+   Duration  1.14s (transform 204ms, setup 0ms, collect 623ms, tests 827ms, environment 1ms, prepare 541ms)
+
+$ vitest run
+
+ RUN  v3.2.6 /workspace/milkup/packages/input
+
+ ✓ src/paste.test.ts (8 tests) 23ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  19:58:03
+   Duration  659ms (transform 44ms, setup 0ms, collect 41ms, tests 23ms, environment 402ms, prepare 55ms)
+
+$ vitest run
+
+ RUN  v3.2.6 /workspace/milkup/packages/markdown
+
+ ✓ src/__tests__/incremental-parser.test.ts (4 tests) 6ms
+ ✓ src/__tests__/inline-parser.test.ts (18 tests) 8ms
+ ✓ src/__tests__/block-parser.test.ts (22 tests) 14ms
+ ✓ src/__tests__/window-parser.test.ts (3 tests) 7ms
+ ✓ src/__tests__/table-boundaries.test.ts (4 tests) 5ms
+ ✓ src/__tests__/ast-stringify.test.ts (3 tests) 6ms
+ ✓ src/__tests__/plugin-syntax.test.ts (2 tests) 4ms
+ ✓ src/__tests__/extension-safety.test.ts (3 tests) 3ms
+
+ Test Files  8 passed (8)
+      Tests  59 passed (59)
+   Start at  19:58:04
+   Duration  693ms (transform 181ms, setup 0ms, collect 540ms, tests 52ms, environment 1ms, prepare 403ms)
+
+$ vitest run
+
+ RUN  v3.2.6 /workspace/milkup/packages/export
+
+ ✓ src/clipboard.test.ts (4 tests) 8ms
+ ✓ src/scoped-export.test.ts (12 tests) 10ms
+ ✓ src/browser-print-pdf.test.ts (2 tests) 7ms
+
+ Test Files  3 passed (3)
+      Tests  18 passed (18)
+   Start at  19:58:05
+   Duration  325ms (transform 182ms, setup 0ms, collect 397ms, tests 24ms, environment 0ms, prepare 162ms)
+
+$ vitest run
+
+ RUN  v3.2.6 /workspace/milkup/packages/mcp
+
+ ✓ src/projection.test.ts (5 tests) 11ms
+ ✓ src/server.test.ts (6 tests) 14ms
+
+ Test Files  2 passed (2)
+      Tests  11 passed (11)
+   Start at  19:58:06
+   Duration  347ms (transform 144ms, setup 0ms, collect 316ms, tests 26ms, environment 0ms, prepare 101ms)
+
+$ vitest run
+
+ RUN  v3.2.6 /workspace/milkup/packages/plugin-sdk
+
+ ✓ src/index.test.js (5 tests) 5ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  19:58:07
+   Duration  304ms (transform 101ms, setup 0ms, collect 129ms, tests 5ms, environment 0ms, prepare 52ms)
+
+$ vitest run
+
+ RUN  v3.2.6 /workspace/milkup/packages/tauri-bridge
+
+ ✓ src/session/close-protection.test.ts (6 tests) 4ms
+ ✓ src/session/document-session.test.ts (22 tests) 8ms
+ ✓ src/session/v1-file-workflow-regressions.test.ts (4 tests) 5ms
+ ✓ src/file/file-actions.test.ts (2 tests) 2ms
+ ✓ src/file/file-watcher.test.ts (7 tests) 4ms
+ ✓ src/file/recent-files.test.ts (4 tests) 3ms
+ ✓ src/session/save-safety.test.ts (3 tests) 3ms
+ ✓ src/file/reveal-target.test.ts (3 tests) 2ms
+ ✓ src/file/line-ending.test.ts (4 tests) 2ms
+
+ Test Files  9 passed (9)
+      Tests  55 passed (55)
+   Start at  19:58:07
+   Duration  731ms (transform 245ms, setup 0ms, collect 667ms, tests 33ms, environment 1ms, prepare 456ms)
+
+$ vitest run
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ✓ src/__tests__/source-document-view.test.ts (62 tests) 989ms
+ ✓ src/__tests__/windowed-table.test.ts (8 tests) 994ms
+   ✓ keeps Unicode, escaped pipes, visual breaks and complete-column history atomic  349ms
+ ✓ src/__tests__/source-scroll-limits.test.ts (11 tests) 358ms
+ ✓ src/__tests__/source-unicode.test.ts (33 tests) 556ms
+ ❯ src/__tests__/editor-view.test.ts (121 tests | 1 failed) 2297ms
+   ✓ EditorView > renders a plain text document into line wrappers 25ms
+   ✓ EditorView > renders search highlights and distinguishes the active result 8ms
+   ✓ EditorView > renders empty lines with a zero-width placeholder without changing document text 6ms
+   ✓ EditorView > updates rendered lines when editor state changes 6ms
+   ✓ EditorView > renders cursor overlay from editor selection 2ms
+   ✓ EditorView > updates cursor overlay when editor state changes 3ms
+   ✓ EditorView > updates only selection and cursor layers for source selection-only changes 3ms
+   ✓ EditorView > virtualizes source line rendering to the visible window with overscan 5ms
+   ✓ EditorView > updates the virtual source window on scroll without rendering offscreen lines 8ms
+   ✓ EditorView > scrolls virtual source cursors into view before rendering the target line 9ms
+   ✓ EditorView > rerenders live content for selection-only changes so syntax visibility updates 13ms
+   ✓ EditorView > renders selection overlay for non-collapsed ranges 3ms
+   ✓ EditorView > aligns selection overlays to measured DOM rects after scrolling 10ms
+   × EditorView > creates a hidden textarea input proxy outside document content 11ms
+     → expected null to be 'true' // Object.is equality
+   ✓ EditorView > inserts text from the input proxy through a transaction 4ms
+   ✓ EditorView > replaces selected text from the input proxy through a transaction 3ms
+   ✓ EditorView > inserts printable keydown text without native textarea input 7ms
+   ✓ EditorView > inserts spaces from keydown without native textarea input 4ms
+   ✓ EditorView > continues markdown list prefixes when Enter is pressed 11ms
+   ✓ EditorView > focuses from blank editor space and places the cursor by editor coordinates 146ms
+   ✓ EditorView > maps live table row clicks to visible cells instead of hidden pipes 9ms
+   ✓ EditorView > ignores browser hit-testing results inside hidden table syntax 5ms
+   ✓ EditorView > constrains incorrect browser hit-testing to the clicked table cell 12ms
+   ✓ EditorView > keeps live list clicks out of the source marker range 13ms
+   ✓ EditorView > pastes plain text through one undoable transaction 10ms
+   ✓ EditorView > converts html-only paste to markdown before dispatching 9ms
+   ✓ EditorView > pastes html tables and survives source/live mode switches 15ms
+   ✓ EditorView > imports pasted image files and inserts markdown image syntax 4ms
+   ✓ EditorView > pastes literal plain text inside fenced code blocks 3ms
+   ✓ EditorView > does not commit document changes during composition updates 1ms
+   ✓ EditorView > commits composition text as one history entry 2ms
+   ✓ EditorView > does not let a stale composition flag block Enter or Delete 5ms
+   ✓ EditorView > handles editing keys reported with the legacy IME key code 3ms
+   ✓ EditorView > deletes backward through the input proxy 2ms
+   ✓ EditorView > deletes the selected range on Backspace 2ms
+   ✓ EditorView > inserts a newline on Enter through a transaction 2ms
+   ✓ EditorView > replaces the selected range with a newline on Enter 2ms
+   ✓ EditorView > deletes forward through the input proxy 1ms
+   ✓ EditorView > deletes the selected range on Delete 4ms
+   ✓ EditorView > moves the cursor with horizontal arrows without entering history 2ms
+   ✓ EditorView > extends selection with shift-arrow keys without entering history 4ms
+   ✓ EditorView > collapses a selected range with horizontal arrows 4ms
+   ✓ EditorView > moves the cursor vertically while preserving line offset when possible 3ms
+   ✓ EditorView > caps vertical arrow movement to the target line length 2ms
+   ✓ EditorView > places the cursor by clicking a line wrapper 5ms
+   ✓ EditorView > falls back to the clicked source line when browser hit-testing is unavailable 2ms
+   ✓ EditorView > uses browser caret hit-testing for precise click placement when available 3ms
+   ✓ EditorView > aligns the cursor to the measured wrapped visual row 4ms
+   ✓ EditorView > aligns live list cursors to content spans instead of marker text 3ms
+   ✓ EditorView > keeps the hidden input proxy aligned with the cursor overlay 1ms
+   ✓ EditorView > maps live clicks through hidden heading markers 6ms
+   ✓ EditorView > falls back to the clicked live line when browser hit-testing is unavailable 5ms
+   ✓ EditorView > selects a range by dragging across line wrappers 4ms
+   ✓ EditorView > maps live clicks through hidden inline markers from browser hit-testing 5ms
+   ✓ EditorView > maps live clicks inside verification result lists without jumping across the document 17ms
+   ✓ EditorView > shows inline syntax immediately after moving the live cursor into the node 4ms
+   ✓ EditorView > snaps live text clicks to the nearest caret boundary around punctuation 4ms
+   ✓ EditorView > keeps the mousedown caret position when mouseup and click hit a rerendered live line 10ms
+   ✓ EditorView > does not collapse a dragged selection on the following click 4ms
+   ✓ EditorView > maps positions and coordinates through the view smoke geometry 1ms
+   ✓ EditorView > maps live positions and coordinates through hidden marker projections 2ms
+   ✓ EditorView > renders live cursor overlays at projected visual offsets 1ms
+   ✓ EditorView > ensures the cursor is visible by updating scrollTop 3ms
+   ✓ EditorView > keeps the cursor visible after selection-changing updates 3ms
+   ✓ EditorView > does not scroll the editor after pointer selection updates 3ms
+   ✓ EditorView > keeps the cursor visible inside a code block-like region 3ms
+   ✓ EditorView > does not force cursor scrolling when selection is unchanged 1ms
+   ✓ EditorView > keeps scroll position stable when typing at a visible measured cursor 12ms
+   ✓ EditorView > allows external dispatch to own state updates 1ms
+   ✓ EditorView > updates view mode without changing document state 2ms
+   ✓ EditorView > rerenders live mode with markdown decorations without changing source text 3ms
+   ✓ EditorView > renders live mode as a markdown projection 1ms
+   ✓ EditorView > assigns heading level classes in live mode 2ms
+   ✓ EditorView > keeps blockquote syntax hidden when the cursor is inside the quote 1ms
+   ✓ EditorView > keeps table syntax hidden when the cursor is inside the table 2ms
+   ✓ EditorView > preserves native horizontal code-scrollbar dragging in the editor 1ms
+   ✓ EditorView > keeps read-only state locked while allowing selection changes 11ms
+   ✓ EditorView > does not duplicate a live heading onto the following text line 1ms
+   ✓ EditorView > does not render an extra heading line when a heading is followed by a blank line 1ms
+   ✓ EditorView > switches modes without changing document history, selection, or scroll position 2ms
+   ✓ EditorView > switches source and live mode with the cursor near link markers 3ms
+   ✓ EditorView > switches source and live mode in the middle of a document without moving anchors 3ms
+   ✓ EditorView > keeps the cursor visible after a mode switch when the viewport is measurable 4ms
+   ✓ EditorView > can toggle source and live mode repeatedly without changing text or history 45ms
+   ✓ EditorView > keeps incomplete inline syntax editable in live mode 2ms
+   ✓ EditorView > rerenders only selection-affected live lines when the cursor moves 3ms
+   ✓ EditorView > rerenders only the changed live line for single-line edits 3ms
+   ✓ EditorView > keeps docs/coding-plan.md live interactions bounded to affected lines  1672ms
+   ✓ EditorView > destroys the root DOM node 2ms
+   ✓ renderPlainTextLines > can render without constructing an EditorView 0ms
+   ✓ renderPlainTextLines > can render a bounded source line window without constructing an EditorView 0ms
+   ✓ renderPlainTextLines > can render markdown decorations without constructing an EditorView 1ms
+   ✓ renderPlainTextLines > renders list markers separately from inline-decorated list content 1ms
+   ✓ renderPlainTextLines > renders every item in a contiguous list 1ms
+   ✓ renderPlainTextLines > keeps task-list syntax rendered after the cursor enters the item 3ms
+   ✓ renderPlainTextLines > hides heading markers when the cursor is outside the heading 0ms
+   ✓ renderPlainTextLines > shows heading markers when the cursor is inside the heading 0ms
+   ✓ renderPlainTextLines > renders blockquote markers separately from quote content 0ms
+   ✓ renderPlainTextLines > renders table rows as editable live cells 1ms
+   ✓ renderPlainTextLines > can render link decorations without constructing an EditorView 0ms
+   ✓ renderPlainTextLines > hides inline markers when the cursor is outside the syntax node 1ms
+   ✓ renderPlainTextLines > shows inline markers when the cursor is inside the syntax node 0ms
+   ✓ renderPlainTextLines > shows inline markers when selection crosses the syntax node 0ms
+   ✓ renderPlainTextLines > hides link syntax while keeping the label visible when cursor is outside 1ms
+   ✓ renderPlainTextLines > shows link syntax when the cursor is inside the link node 0ms
+   ✓ renderPlainTextLines > hides and shows inline code markers based on cursor position 1ms
+   ✓ renderPlainTextLines > does not hide markers for incomplete inline syntax 0ms
+   ✓ position helpers > maps a document position to line and offset 0ms
+   ✓ position helpers > maps a document position to a smoke rect 0ms
+   ✓ position helpers > maps a smoke coordinate to a document position 0ms
+   ✓ position helpers > clamps smoke coordinates to the document line bounds 0ms
+   ✓ position helpers > computes the scrollTop needed to reveal a position 0ms
+   ✓ position helpers > computes a visible line window with top and bottom spacers 0ms
+   ✓ position helpers > can render cursor overlay without constructing an EditorView 0ms
+   ✓ position helpers > can render selection overlay without constructing an EditorView 0ms
+   ✓ position helpers > can create an input proxy directly 0ms
+   ✓ line projection helpers > builds collapsed visual segments for hidden emphasis markers 0ms
+   ✓ line projection helpers > maps source positions through hidden marker boundaries 0ms
+   ✓ line projection helpers > maps visual offsets back to source positions around hidden markers 0ms
+   ✓ line projection helpers > keeps syntax ranges visible in projection when cursor is inside the node 0ms
+   ✓ line projection helpers > collapses link marker and destination syntax while preserving label mapping 0ms
+ ✓ src/__tests__/table-keyboard.test.ts (27 tests) 253ms
+ ✓ src/__tests__/block-keyboard.test.ts (35 tests) 238ms
+ ✓ src/__tests__/input-boundaries.test.ts (6 tests) 137ms
+ ✓ src/__tests__/table-cursor.test.ts (1 test) 92ms
+ ✓ src/__tests__/async-paste-unicode.test.ts (15 tests) 98ms
+ ✓ src/__tests__/plugin-renderer.test.ts (5 tests) 19ms
+ ✓ src/__tests__/measured-line-heights.test.ts (1 test) 2ms
+ ✓ src/__tests__/view-benchmark.test.ts (1 test) 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/editor-view.test.ts > EditorView > creates a hidden textarea input proxy outside document content
+AssertionError: expected null to be 'true' // Object.is equality
+
+- Expected: 
+"true"
+
++ Received: 
+null
+
+ ❯ src/__tests__/editor-view.test.ts:446:55
+    444|     expect(view.inputDOM).toBeInstanceOf(HTMLTextAreaElement)
+    445|     expect(view.inputDOM.className).toBe('milkup-input-proxy')
+    446|     expect(view.inputDOM.getAttribute('aria-hidden')).toBe('true')
+       |                                                       ^
+    447|     expect(view.contentDOM.contains(view.inputDOM)).toBe(false)
+    448|     expect(view.dom.contains(view.inputDOM)).toBe(true)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 12 passed (13)
+      Tests  1 failed | 325 passed (326)
+   Start at  19:58:08
+   Duration  5.29s (transform 552ms, setup 0ms, collect 1.78s, tests 6.04s, environment 4.78s, prepare 634ms)
+
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/view-dom@0.0.0 test: `vitest run`
+Exit status 1

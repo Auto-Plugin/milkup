@@ -1,0 +1,27 @@
+[
+  {
+    "name": "GTK 200%",
+    "command": ["node", "/tmp/milkup-v2-phase16/hidpi-probe.mjs"],
+    "environment": {
+      "DISPLAY": ":100",
+      "GDK_SCALE": "2",
+      "TAURI_DRIVER_URL": "http://127.0.0.1:4445"
+    },
+    "exitCode": 0,
+    "result": "native-gtk-scale2/results.json"
+  },
+  {
+    "name": "Loading single frame",
+    "command": ["node", "tests/native/tauri-visual-states.mjs"],
+    "exitCode": 0,
+    "result": "states-loading-capture/results.json",
+    "note": "DOM indexing observed; captured system frame was earlier dialog, not loading acceptance"
+  },
+  {
+    "name": "Loading video",
+    "command": ["node", "/tmp/milkup-v2-phase16/loading-video-probe.mjs"],
+    "exitCode": 0,
+    "result": "loading-video/timing.json",
+    "note": "FFmpeg SIGINT returns 255 after normal MP4 finalization; ffprobe confirms 62 frames. Frame 09 actually shows loading."
+  }
+]

@@ -6,7 +6,7 @@
   --border-strong: #c4ccd8;
   --text: #1f2630;
   --text-muted: #687385;
-  --text-soft: #8993a3;
+  --text-soft: #647083;
   --accent: #246b4f;
   --accent-strong: #1f5d45;
   --accent-soft: #e5f2ec;
@@ -381,6 +381,9 @@ h1 {
 
 .confirm-dialog {
   position: relative;
+  min-height: 0;
+  max-height: 100%;
+  overflow: auto;
   display: grid;
   width: min(480px, 100%);
   gap: 18px;
@@ -1904,4 +1907,25 @@ html[data-sidebar-resizing='true'] * {
 }
 .editor-panel:has(.table-tools:not([hidden])) .milkup-editor-content {
   padding-bottom: 84px;
+}
+
+/* Keep keyboard location visible across the shell, including custom input proxies. */
+button:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.milkup-editor:has(.milkup-input-proxy:focus-visible) {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.menu-help {
+  max-width: 48em;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.6;
 }

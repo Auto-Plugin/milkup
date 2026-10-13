@@ -3268,7 +3268,7 @@ export function renderSelectionOverlay(
 export function createInputProxy(document: Document): HTMLTextAreaElement {
   const input = document.createElement('textarea')
   input.className = 'milkup-input-proxy'
-  input.setAttribute('aria-hidden', 'true')
+  input.setAttribute('aria-label', 'Markdown 编辑器')
   input.autocomplete = 'off'
   input.spellcheck = false
   input.tabIndex = 0

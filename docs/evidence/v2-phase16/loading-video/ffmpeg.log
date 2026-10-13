@@ -1,0 +1,41 @@
+ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 14 (Debian 14.2.0-19)
+  configuration: --prefix=/usr --extra-version=0+deb13u1 --toolchain=hardened --libdir=/usr/lib/x86_64-linux-gnu --incdir=/usr/include/x86_64-linux-gnu --arch=amd64 --enable-gpl --disable-stripping --disable-libmfx --disable-omx --enable-gnutls --enable-libaom --enable-libass --enable-libbs2b --enable-libcdio --enable-libcodec2 --enable-libdav1d --enable-libflite --enable-libfontconfig --enable-libfreetype --enable-libfribidi --enable-libglslang --enable-libgme --enable-libgsm --enable-libharfbuzz --enable-libmp3lame --enable-libmysofa --enable-libopenjpeg --enable-libopenmpt --enable-libopus --enable-librubberband --enable-libshine --enable-libsnappy --enable-libsoxr --enable-libspeex --enable-libtheora --enable-libtwolame --enable-libvidstab --enable-libvorbis --enable-libvpx --enable-libwebp --enable-libx265 --enable-libxml2 --enable-libxvid --enable-libzimg --enable-openal --enable-opencl --enable-opengl --disable-sndio --enable-libvpl --enable-libdc1394 --enable-libdrm --enable-libiec61883 --enable-chromaprint --enable-frei0r --enable-ladspa --enable-libbluray --enable-libcaca --enable-libdvdnav --enable-libdvdread --enable-libjack --enable-libpulse --enable-librabbitmq --enable-librist --enable-libsrt --enable-libssh --enable-libsvtav1 --enable-libx264 --enable-libzmq --enable-libzvbi --enable-lv2 --enable-sdl2 --enable-libplacebo --enable-librav1e --enable-pocketsphinx --enable-librsvg --enable-libjxl --enable-shared
+  libavutil      59. 39.100 / 59. 39.100
+  libavcodec     61. 19.101 / 61. 19.101
+  libavformat    61.  7.103 / 61.  7.103
+  libavdevice    61.  3.100 / 61.  3.100
+  libavfilter    10.  5.100 / 10.  5.100
+  libswscale      8.  3.100 /  8.  3.100
+  libswresample   5.  3.100 /  5.  3.100
+  libpostproc    58.  3.100 / 58.  3.100
+[x11grab @ 0x55d07d701340] Cannot get the image data event_error: response_type:0 error_code:128 sequence:9 resource_id:8388608 minor_code:4 major_code:130.
+[x11grab @ 0x55d07d701340] Continuing without shared memory.
+[x11grab @ 0x55d07d701340] Stream #0: not enough frames to estimate rate; consider increasing probesize
+Input #0, x11grab, from ':99':
+  Duration: N/A, start: 1791921702.130574, bitrate: 983040 kb/s
+  Stream #0:0: Video: rawvideo (BGR[0] / 0x524742), bgr0, 1280x800, 983040 kb/s, 30 fps, 1000k tbr, 1000k tbn
+Stream mapping:
+  Stream #0:0 -> #0:0 (rawvideo (native) -> h264 (libx264))
+Press [q] to stop, [?] for help
+[libx264 @ 0x55d07d707880] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2 AVX512
+[libx264 @ 0x55d07d707880] profile High 4:4:4 Predictive, level 3.2, 4:4:4, 8-bit
+[libx264 @ 0x55d07d707880] 264 - core 164 r3108 31e19f9 - H.264/MPEG-4 AVC codec - Copyleft 2003-2023 - http://www.videolan.org/x264.html - options: cabac=0 ref=1 deblock=0:0:0 analyse=0:0 me=dia subme=0 psy=1 psy_rd=1.00:0.00 mixed_ref=0 me_range=16 chroma_me=1 trellis=0 8x8dct=0 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=6 threads=7 lookahead_threads=1 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=0 weightp=0 keyint=250 keyint_min=25 scenecut=0 intra_refresh=0 rc=crf mbtree=0 crf=18.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 ip_ratio=1.40 aq=0
+Output #0, mp4, to '/tmp/milkup-v2-phase16/loading-video/open.mp4':
+  Metadata:
+    encoder         : Lavf61.7.103
+  Stream #0:0: Video: h264 (avc1 / 0x31637661), yuv444p(tv, progressive), 1280x800, q=2-31, 30 fps, 15360 tbn
+      Metadata:
+        encoder         : Lavc61.19.101 libx264
+      Side data:
+        cpb: bitrate max/min/avg: 0/0/0 buffer size: 0 vbv_delay: N/A
+frame=    9 fps=0.0 q=8.0 size=       0KiB time=00:00:00.30 bitrate=   1.3kbits/s speed=0.599x    frame=   23 fps= 23 q=8.0 size=       0KiB time=00:00:00.80 bitrate=   0.5kbits/s speed=0.799x    frame=   39 fps= 26 q=8.0 size=       0KiB time=00:00:01.30 bitrate=   0.3kbits/s speed=0.866x    [out#0/mp4 @ 0x55d07d709300] video:353KiB audio:0KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.301003%
+frame=   62 fps= 30 q=-1.0 Lsize=     354KiB time=00:00:02.06 bitrate=1404.7kbits/s speed=1.01x    
+[libx264 @ 0x55d07d707880] frame I:1     Avg QP:15.00  size: 12950
+[libx264 @ 0x55d07d707880] frame P:61    Avg QP: 9.30  size:  5709
+[libx264 @ 0x55d07d707880] mb I  I16..4: 100.0%  0.0%  0.0%
+[libx264 @ 0x55d07d707880] mb P  I16..4:  5.6%  0.0%  0.0%  P16..4:  5.1%  0.0%  0.0%  0.0%  0.0%    skip:89.4%
+[libx264 @ 0x55d07d707880] coded y,u,v intra: 9.3% 0.5% 0.4% inter: 2.4% 0.8% 0.5%
+[libx264 @ 0x55d07d707880] i16 v,h,dc,p: 83% 17%  1%  0%
+[libx264 @ 0x55d07d707880] kb/s:1398.16
+Exiting normally, received signal 2.

@@ -1,0 +1,74 @@
+$ playwright test --workers=1 --grep 'phase16|opening error'
+[WebServer] (node:106207) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:106220) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:106244) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:106260) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+(node:106286) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:544:3 › opening error after discard preserves original content and history (5.6s)
+(node:106430) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1379:1 › phase16 modal menu contains keyboard focus and closes ahead of background search (663ms)
+  ✓  3 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1403:1 › phase16 F6 reaches shell and table controls without inserting document text (601ms)
+  ✘  4 [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1422:1 › phase16 confirmation remains scrollable at a 380 by 260 effective viewport (449ms)
+
+
+  1) [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:544:3 › opening error after discard preserves original content and history 
+
+    Error: expect(locator).toBeFocused() failed
+
+    Locator:  locator('[data-loading-dismiss]')
+    Expected: focused
+    Received: inactive
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeFocused" with timeout 5000ms
+      - waiting for locator('[data-loading-dismiss]')
+        14 × locator resolved to <button title="关闭" type="button" aria-label="关闭" data-loading-dismiss="" class="icon-button loading-dismiss">…</button>
+           - unexpected value "inactive"
+
+
+      556 |     )
+      557 |     if (outcome === 'error') {
+    > 558 |       await expect(page.locator('[data-loading-dismiss]')).toBeFocused()
+          |                                                            ^
+      559 |       await page.keyboard.press('Escape')
+      560 |       await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+      561 |     }
+        at /workspace/milkup/tests/e2e/desktop-shell.spec.ts:558:60
+
+    Error Context: test-results/desktop-shell-opening-erro-804bb-riginal-content-and-history-desktop-msedge/error-context.md
+
+  2) [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1422:1 › phase16 confirmation remains scrollable at a 380 by 260 effective viewport 
+
+    Error: expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 260
+    Received:    275.53125
+
+      1428 |   const rect = await dialog.boundingBox()
+      1429 |   expect(rect!.y).toBeGreaterThanOrEqual(0)
+    > 1430 |   expect(rect!.y + rect!.height).toBeLessThanOrEqual(260)
+           |                                  ^
+      1431 |   await page.keyboard.press('Tab')
+      1432 |   await page.keyboard.press('Tab')
+      1433 |   const save = page.locator('[data-close-confirm-action="save"]')
+        at /workspace/milkup/tests/e2e/desktop-shell.spec.ts:1430:34
+
+    Error Context: test-results/desktop-shell-phase16-conf-cec45-0-by-260-effective-viewport-desktop-msedge/error-context.md
+
+  2 failed
+    [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:544:3 › opening error after discard preserves original content and history 
+    [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1422:1 › phase16 confirmation remains scrollable at a 380 by 260 effective viewport 
+  2 passed (11.8s)
+[ELIFECYCLE] Command failed with exit code 1.
