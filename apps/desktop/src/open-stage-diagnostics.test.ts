@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  createOpenStageTracker,
-  formatOpenStageDiagnostics,
-} from './open-stage-diagnostics'
+import { createOpenStageTracker, formatOpenStageDiagnostics } from './open-stage-diagnostics'
 
 describe('open stage diagnostics', () => {
   it('records elapsed and delta timings in order', () => {

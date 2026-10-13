@@ -34,8 +34,7 @@ describe('view-dom benchmark report', () => {
         codingPlan175Kb: benchmarkCodingPlanFixture(),
         synthetic10MiBVirtualSource: benchmarkVirtualSourceFixture(10),
       },
-      note:
-        'This jsdom benchmark records view-dom construction/render/update costs and DOM bounds. It is retained renderer evidence, not a native desktop/WebView latency report.',
+      note: 'This jsdom benchmark records view-dom construction/render/update costs and DOM bounds. It is retained renderer evidence, not a native desktop/WebView latency report.',
     }
 
     report.environment.freeMemoryBytesAfterRun = freemem()
