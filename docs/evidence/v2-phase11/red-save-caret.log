@@ -1,0 +1,97 @@
+$ vitest run src/__tests__/source-document-view.test.ts -t 'after a save lock'
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/source-document-view.test.ts (58 tests | 2 failed | 56 skipped) 213ms
+   × SourceDocumentView > restores the source caret after a save lock rerenders the window 157ms
+     → expected undefined to be '2' // Object.is equality
+   × SourceDocumentView > restores the live caret after a save lock rerenders the window 54ms
+     → expected undefined to be '2' // Object.is equality
+   ↓ SourceDocumentView > renders an async document source as a bounded line window
+   ↓ SourceDocumentView > refreshes the source line window on scroll without rendering offscreen lines
+   ↓ SourceDocumentView > can swap to another source and resets the scroll window
+   ↓ SourceDocumentView > keeps scroll position when updating the same source document version
+   ↓ SourceDocumentView > scrolls directly to a requested line window
+   ↓ SourceDocumentView > renders the requested line even when the browser clamps a huge scroll offset
+   ↓ SourceDocumentView > renders search highlights and marks the active result
+   ↓ SourceDocumentView > renders live mode from a padded markdown line window without offscreen DOM
+   ↓ SourceDocumentView > maps live-mode clicks through visible source spans before editing
+   ↓ SourceDocumentView > positions the source cursor from the rendered line box instead of guessed line number
+   ↓ SourceDocumentView > moves the source cursor with arrow keys without editing
+   ↓ SourceDocumentView > handles source cursor arrow keys from the focused root element
+   ↓ SourceDocumentView > moves the source cursor vertically by preserving line offset
+   ↓ SourceDocumentView > moves vertically from rendered lines when the source cannot resolve positions directly
+   ↓ SourceDocumentView > uses measured line width when source cursor range measurement is unavailable
+   ↓ SourceDocumentView > uses font-size instead of line-height for the source cursor height
+   ↓ SourceDocumentView > caches live markdown windows by document version and line range
+   ↓ SourceDocumentView > shows live block syntax around the source cursor
+   ↓ SourceDocumentView > hides table pipes between rendered source cells
+   ↓ SourceDocumentView > preserves native horizontal code-scrollbar dragging in the source view
+   ↓ SourceDocumentView > patches the edited visible source line without rereading the window
+   ↓ SourceDocumentView > warms markdown windows around the visible viewport without repeated source reads
+   ↓ SourceDocumentView > emits bounded visible edits when editable source mode receives keyboard input
+   ↓ SourceDocumentView > continues list prefixes when editable source mode receives Enter
+   ↓ SourceDocumentView > commits only finalized IME composition text
+   ↓ SourceDocumentView > clears the IME placeholder before immediately handling enter and delete
+   ↓ SourceDocumentView > does not let a stale composition flag block enter and delete
+   ↓ SourceDocumentView > handles editing keys reported with the legacy IME key code
+   ↓ SourceDocumentView > flushes pending source edits before save operations
+   ↓ SourceDocumentView > does not block saving when a structural edit commits but its viewport refresh fails
+   ↓ SourceDocumentView > keeps consecutive structural edits in separate native history commits
+   ↓ SourceDocumentView > flush waits for every isolated batch even when the first commit is delayed
+   ↓ SourceDocumentView > flush rejects when a later isolated edit fails instead of reporting a successful save
+   ↓ SourceDocumentView > renders structural edits while the native commit is still pending
+   ↓ SourceDocumentView > rolls back an optimistic structural edit when the native commit fails
+   ↓ SourceDocumentView > deletes a selected range inside the rendered source window
+   ↓ SourceDocumentView > commits enter and delete keys when lineAtPosition is unavailable
+   ↓ SourceDocumentView > deletes complete surrogate pairs from a rendered-only source
+   ↓ SourceDocumentView > copies, cuts, and pastes a selection through clipboard events
+   ↓ SourceDocumentView > renders live list markers like the regular editor
+   ↓ SourceDocumentView > keeps live list clicks out of source marker ranges
+   ↓ SourceDocumentView > keeps task-list syntax rendered after the cursor enters the item
+   ↓ SourceDocumentView > creates a selection while dragging through a rendered source window
+   ↓ SourceDocumentView > does not let stale single-line commits replace newer optimistic input
+   ↓ SourceDocumentView > does not emit edits when the source view remains readonly
+   ↓ reveals an exact source search selection without stealing focus
+   ↓ moves a source outline cursor to the revealed heading line
+   ↓ ignores a pending reveal after the document identity changes
+   ↓ windowed source block commands > exits an empty nested list without inserting another marker
+   ↓ windowed source block commands > does not continue literal lists inside a fence outside the rendered window and preserves CRLF
+   ↓ windowed source block commands > indents a reversed selection across windows in one edit and preserves its direction
+   ↓ windowed live block commands > exits an empty nested list without inserting another marker
+   ↓ windowed live block commands > does not continue literal lists inside a fence outside the rendered window and preserves CRLF
+   ↓ windowed live block commands > indents a reversed selection across windows in one edit and preserves its direction
+   ↓ does not scan the document prefix for ordinary windowed character backspace
+   ↓ discards a delayed fence scan after the active document changes
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/source-document-view.test.ts > SourceDocumentView > restores the source caret after a save lock rerenders the window
+ FAIL  src/__tests__/source-document-view.test.ts > SourceDocumentView > restores the live caret after a save lock rerenders the window
+AssertionError: expected undefined to be '2' // Object.is equality
+
+- Expected:
+"2"
+
++ Received:
+undefined
+
+ ❯ src/__tests__/source-document-view.test.ts:58:85
+     56|       expect(view.selection.main.anchor).toBe(6)
+     57|       expect(view.selection.main.head).toBe(2)
+     58|       expect(parent.querySelector<HTMLElement>('.milkup-cursor')?.data…
+       |                                                                                     ^
+     59|       view.destroy()
+     60|     },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 56 skipped (58)
+   Start at  14:22:13
+   Duration  1.57s (transform 471ms, setup 0ms, collect 597ms, tests 213ms, environment 498ms, prepare 61ms)
+
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/view-dom@0.0.0 test: `vitest run src/__tests__/source-document-view.test.ts -t 'after a save lock'`
+Exit status 1
