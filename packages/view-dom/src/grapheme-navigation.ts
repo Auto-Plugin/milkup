@@ -29,3 +29,17 @@ export function snapGraphemePosition(
   if (!segment || segment.index === offset) return position
   return line.from + segment.index + (direction === 'forward' ? segment.segment.length : 0)
 }
+
+export function previousGraphemeOffset(text: string, offset: number): number {
+  return segmenter.segment(text).containing(offset - 1)?.index ?? 0
+}
+
+export function nextGraphemeOffset(text: string, offset: number): number {
+  const segment = segmenter.segment(text).containing(offset)
+  return segment ? segment.index + segment.segment.length : text.length
+}
+
+export function snapGraphemeOffset(text: string, offset: number): number {
+  const clamped = Math.max(0, Math.min(offset, text.length))
+  return segmenter.segment(text).containing(clamped)?.index ?? clamped
+}

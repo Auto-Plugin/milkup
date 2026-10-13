@@ -864,3 +864,68 @@ for (const mode of ['source', 'live'] as const) {
     await expect(page.locator('.milkup-editor-content')).toHaveText('AB')
   })
 }
+
+for (const mode of ['source', 'live'] as const) {
+  test(`windowed ${mode} keyboard edits preserve whole graphemes and undo`, async ({ page }) => {
+    await page.route(/\/src\/file-service\.ts(?:\?|$)/, async (route) => {
+      const response = await route.fetch()
+      const body = (await response.text()).replace(
+        'function createDesktopFileService() {',
+        `function createDesktopFileService() {
+          const service = createMockFileService();
+          const text = 'A👩🏽‍💻B\\r\\n' + 'body line\\r\\n'.repeat(16000);
+          service.getFileMetadata = async path => ({ path, sizeBytes: text.length, readonly: false });
+          service.openPath = async path => ({ documentId: 'unicode-window', file: {path}, text, diskSnapshotHash: 'initial' });
+          return service;`,
+      )
+      await route.fulfill({ response, body })
+    })
+    await page.goto('/')
+    await runMenuCommand(page, '打开')
+    await expect(page.locator('#app')).toHaveAttribute('data-loading', 'ready')
+    await expect(page.locator('.milkup-source-document-view')).toBeVisible()
+    if (mode === 'source') await page.keyboard.press('Control+1')
+    await page.locator('.milkup-input-proxy').focus()
+    await page.keyboard.press('ArrowRight')
+    await page.keyboard.press('ArrowRight')
+    await expect(page.locator('.milkup-cursor')).toHaveAttribute('data-position', '8')
+    await page.keyboard.press('Backspace')
+    await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('AB')
+    await page.keyboard.press('Control+z')
+    await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('A👩🏽‍💻B')
+    await page.keyboard.press('Control+Shift+z')
+    await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('AB')
+  })
+}
+
+test('issue 255 bracket typing keeps its position after delayed rendering', async ({ page }) => {
+  await page.goto('/')
+  const input = page.locator('.milkup-input-proxy')
+  await input.focus()
+  await page.keyboard.type('()tail')
+  await page.keyboard.press('Control+a')
+  await page.keyboard.press('ArrowLeft')
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.type('abc123')
+  await expect(page.locator('.milkup-cursor')).toHaveAttribute('data-position', '7')
+  // The historical report specifically describes a 1–2 second delayed jump.
+  await page.waitForTimeout(2500)
+  await expect(page.locator('.milkup-cursor')).toHaveAttribute('data-position', '7')
+  await page.keyboard.type('X')
+  await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('(abc123X)tail')
+})
+
+test('issue 255 single-space headings render immediately after an image line', async ({ page }) => {
+  await page.goto('/')
+  await page.locator('.milkup-input-proxy').focus()
+  await page.keyboard.type('![alt](missing.png)')
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('## 3')
+  await page.keyboard.press('Enter')
+  await expect(page.locator('.milkup-line[data-line="2"] .milkup-heading-content')).toHaveText('3')
+  await page.keyboard.type('## title')
+  await page.keyboard.press('Enter')
+  await expect(page.locator('.milkup-line[data-line="3"] .milkup-heading-content')).toHaveText(
+    'title',
+  )
+})

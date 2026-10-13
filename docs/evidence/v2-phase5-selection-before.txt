@@ -1,0 +1,70 @@
+$ vitest run src/__tests__/source-unicode.test.ts
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/source-unicode.test.ts (33 tests | 1 failed) 2797ms
+   ✓ windowed source Unicode keys > moves and extends selection over the whole 😀  839ms
+   ✓ windowed source Unicode keys > deletes the whole 😀 forward 99ms
+   ✓ windowed source Unicode keys > deletes the whole 😀 backward 130ms
+   ✓ windowed source Unicode keys > moves and extends selection over the whole é 51ms
+   ✓ windowed source Unicode keys > deletes the whole é forward 24ms
+   ✓ windowed source Unicode keys > deletes the whole é backward 46ms
+   ✓ windowed source Unicode keys > moves and extends selection over the whole 👩🏽‍💻 47ms
+   ✓ windowed source Unicode keys > deletes the whole 👩🏽‍💻 forward 28ms
+   ✓ windowed source Unicode keys > deletes the whole 👩🏽‍💻 backward 207ms
+   ✓ windowed source Unicode keys > moves and extends selection over the whole 🇨🇳 79ms
+   ✓ windowed source Unicode keys > deletes the whole 🇨🇳 forward 42ms
+   ✓ windowed source Unicode keys > deletes the whole 🇨🇳 backward 38ms
+   ✓ windowed source Unicode keys > snaps vertical movement to the beginning of a grapheme 37ms
+   ✓ windowed source Unicode keys > deletes an entire offscreen CRLF backward with the correct undo payload 34ms
+   ✓ windowed source Unicode keys > crosses and deletes an offscreen CRLF forward using bounded reads 36ms
+   ✓ windowed live Unicode keys > moves and extends selection over the whole 😀 104ms
+   ✓ windowed live Unicode keys > deletes the whole 😀 forward 57ms
+   ✓ windowed live Unicode keys > deletes the whole 😀 backward 43ms
+   ✓ windowed live Unicode keys > moves and extends selection over the whole é 50ms
+   ✓ windowed live Unicode keys > deletes the whole é forward 29ms
+   ✓ windowed live Unicode keys > deletes the whole é backward 74ms
+   ✓ windowed live Unicode keys > moves and extends selection over the whole 👩🏽‍💻 36ms
+   ✓ windowed live Unicode keys > deletes the whole 👩🏽‍💻 forward 22ms
+   ✓ windowed live Unicode keys > deletes the whole 👩🏽‍💻 backward 64ms
+   ✓ windowed live Unicode keys > moves and extends selection over the whole 🇨🇳 35ms
+   ✓ windowed live Unicode keys > deletes the whole 🇨🇳 forward 67ms
+   ✓ windowed live Unicode keys > deletes the whole 🇨🇳 backward 128ms
+   ✓ windowed live Unicode keys > snaps vertical movement to the beginning of a grapheme 69ms
+   ✓ windowed live Unicode keys > deletes an entire offscreen CRLF backward with the correct undo payload 52ms
+   ✓ windowed live Unicode keys > crosses and deletes an offscreen CRLF forward using bounded reads 52ms
+   ✓ windowed edit ordering and viewport stability > commits visible edits before history and queues subsequent typing after it 61ms
+   ✓ windowed edit ordering and viewport stability > preserves the cursor when scrolling away and back without reading the whole document 28ms
+   × windowed edit ordering and viewport stability > selects across a CRLF window boundary and retains all deleted text for undo 81ms
+     → expected NaN to be 1 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/source-unicode.test.ts > windowed edit ordering and viewport stability > selects across a CRLF window boundary and retains all deleted text for undo
+AssertionError: expected NaN to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ NaN
+
+ ❯ src/__tests__/source-unicode.test.ts:164:24
+    162|     await s.view.flushPendingEdits()
+    163|     expect(s.text()).toBe('AB\r\ntail\r\nend')
+    164|     expect(s.cursor()).toBe(1)
+       |                        ^
+    165|     expect(s.edits[0]).toMatchObject({ from: 1, to: 14, deletedText: '…
+    166|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 32 passed (33)
+   Start at  08:42:51
+   Duration  12.63s (transform 2.70s, setup 0ms, collect 3.20s, tests 2.80s, environment 4.34s, prepare 668ms)
+
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/view-dom@0.0.0 test: `vitest run src/__tests__/source-unicode.test.ts`
+Exit status 1

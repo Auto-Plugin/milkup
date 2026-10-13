@@ -13,6 +13,11 @@ import {
 
 import { createInputProxy, getVisibleLineWindow } from './editor-view'
 import {
+  nextGraphemeOffset,
+  previousGraphemeOffset,
+  snapGraphemeOffset,
+} from './grapheme-navigation'
+import {
   domRectForLineSourcePosition,
   domRectsForLineSourceRange,
   isHorizontalScrollbarDragStart,
@@ -409,6 +414,21 @@ export class SourceDocumentView {
     this.scheduleMarkdownWarmup(request)
   }
 
+  // History must share the key queue: optimistic text can be visible before its
+  // transaction exists, and following keys must wait for the history operation.
+  runAfterPendingEdits(action: () => Promise<void> | void): Promise<void> {
+    const queued = this.enqueueVisibleEdit(async () => {
+      await this.flushPendingVisibleEdit()
+      await action()
+    })
+    this.activeVisibleEditTasks.add(queued)
+    void queued.then(
+      () => this.activeVisibleEditTasks.delete(queued),
+      () => this.activeVisibleEditTasks.delete(queued),
+    )
+    return queued
+  }
+
   async flushPendingEdits(): Promise<void> {
     await this.compositionCommitQueue
 
@@ -717,16 +737,16 @@ export class SourceDocumentView {
 
     switch (event.key) {
       case 'ArrowLeft':
-        void this.moveCursor('left', event.shiftKey)
+        void this.trackVisibleEditTask(() => this.moveCursor('left', event.shiftKey))
         return true
       case 'ArrowRight':
-        void this.moveCursor('right', event.shiftKey)
+        void this.trackVisibleEditTask(() => this.moveCursor('right', event.shiftKey))
         return true
       case 'ArrowUp':
-        void this.moveCursor('up', event.shiftKey)
+        void this.trackVisibleEditTask(() => this.moveCursor('up', event.shiftKey))
         return true
       case 'ArrowDown':
-        void this.moveCursor('down', event.shiftKey)
+        void this.trackVisibleEditTask(() => this.moveCursor('down', event.shiftKey))
         return true
       default:
         return false
@@ -745,10 +765,10 @@ export class SourceDocumentView {
 
     if (!extend && range.from !== range.to) {
       next = direction === 'right' || direction === 'down' ? range.to : range.from
-    } else if (direction === 'left') {
-      next = Math.max(0, current - 1)
-    } else if (direction === 'right') {
-      next = Math.min(this.currentSource.length ?? current + 1, current + 1)
+    } else if (direction === 'left' || direction === 'right') {
+      const move = await this.horizontalCursorTarget(current, direction === 'left' ? -1 : 1)
+      next = move.position
+      targetLineNumber = move.lineNumber
     } else {
       const verticalMove = await this.moveCursorVertically(current, direction)
       next = verticalMove.position
@@ -777,7 +797,7 @@ export class SourceDocumentView {
     direction: 'up' | 'down',
   ): Promise<{ readonly position: number; readonly lineNumber?: number }> {
     const line =
-      this.findRenderedLineAtPosition(pos) ??
+      this.findRenderedSourceLineAtPosition(pos) ??
       (await this.currentSource.lineAtPosition(pos).catch(() => undefined))
 
     if (!line) {
@@ -790,10 +810,51 @@ export class SourceDocumentView {
       return { position: pos, lineNumber: line.number }
     }
 
+    const target = await this.readSourceLine(targetLineNumber)
     return {
-      position: await this.currentSource.positionAtLineOffset(targetLineNumber, pos - line.from),
+      position: target.from + snapGraphemeOffset(target.text, pos - line.from),
       lineNumber: targetLineNumber,
     }
+  }
+
+  private async readSourceLine(number: number): Promise<SourceLine> {
+    const cached = this.renderedSourceWindow?.lines.find((line) => line.number === number)
+    if (cached) return cached
+    // The source must include optimistic edits before an offscreen IPC read.
+    await this.flushPendingVisibleEdit()
+    const window = await this.currentSource.readLineWindow(number, number)
+    const line = window.lines[0]
+    if (!line) throw new RangeError(`Missing source line: ${number}`)
+    return line
+  }
+
+  private async horizontalCursorTarget(
+    position: number,
+    direction: -1 | 1,
+  ): Promise<{ readonly position: number; readonly lineNumber?: number }> {
+    const line =
+      this.findRenderedSourceLineAtPosition(position) ??
+      (await this.currentSource.lineAtPosition(position).catch(() => undefined))
+    if (!line) return { position }
+    const offset = position - line.from
+    if (direction < 0 && offset > 0) {
+      return {
+        position: line.from + previousGraphemeOffset(line.text, offset),
+        lineNumber: line.number,
+      }
+    }
+    if (direction > 0 && position < line.to) {
+      return {
+        position: line.from + nextGraphemeOffset(line.text, offset),
+        lineNumber: line.number,
+      }
+    }
+    const adjacentNumber = line.number + direction
+    if (adjacentNumber < 1 || adjacentNumber > this.currentSource.lineCount) {
+      return { position, lineNumber: line.number }
+    }
+    const adjacent = await this.readSourceLine(adjacentNumber)
+    return { position: direction < 0 ? adjacent.to : adjacent.from, lineNumber: adjacent.number }
   }
 
   private async ensureCursorRendered(targetLineNumber?: number): Promise<void> {
@@ -868,40 +929,9 @@ export class SourceDocumentView {
     }
 
     const position = this.cursorPosition
-    const sourceLine = this.renderedSourceWindow?.lines.find(
-      (line) => position >= line.from && position <= line.to,
-    )
-    let from = direction < 0 ? Math.max(0, position - 1) : position
-    let to = direction < 0 ? position : position + 1
-
-    if (direction < 0 && sourceLine) {
-      if (position > sourceLine.from) {
-        const before = sourceLine.text.slice(0, position - sourceLine.from)
-        const previousCharacter = Array.from(before).at(-1)
-        from = position - (previousCharacter?.length ?? 1)
-      } else if (sourceLine.number === 1) {
-        return
-      } else {
-        const previousLine = this.renderedSourceWindow?.lines.find(
-          (line) => line.number === sourceLine.number - 1,
-        )
-        from = previousLine?.to ?? from
-      }
-    }
-
-    if (direction > 0 && sourceLine) {
-      if (position < sourceLine.to) {
-        const nextCharacter = Array.from(sourceLine.text.slice(position - sourceLine.from))[0]
-        to = position + (nextCharacter?.length ?? 1)
-      } else if (sourceLine.number === this.currentSource.lineCount) {
-        return
-      } else {
-        const nextLine = this.renderedSourceWindow?.lines.find(
-          (line) => line.number === sourceLine.number + 1,
-        )
-        to = nextLine?.from ?? to
-      }
-    }
+    const target = await this.horizontalCursorTarget(position, direction)
+    const from = Math.min(position, target.position)
+    const to = Math.max(position, target.position)
 
     if (from === to) {
       return
@@ -927,7 +957,7 @@ export class SourceDocumentView {
     const editRevision = this.editRevision
     this.cursorPosition = from + insert.length
     this.selectionAnchor = this.cursorPosition
-    const deletedText = await this.readVisibleRangeText(from, to)
+    const { text: deletedText, lineNumber } = await this.readVisibleEditRange(from, to)
     const edit: SourceDocumentEdit = {
       from,
       to,
@@ -951,6 +981,8 @@ export class SourceDocumentView {
         await this.queueVisibleEditCommit(edit, { immediate: true })
         await this.refreshAfterOptimisticCommit(editRevision)
       }
+      await this.ensureCursorRendered(lineNumber)
+      this.renderCursor()
     } else {
       this.updateOptimisticSourceWindow(from, to, insert)
       this.applyOptimisticRenderedLineEdit(editedLine, from, to, insert)
@@ -1187,25 +1219,30 @@ export class SourceDocumentView {
     return this.editCommitQueue
   }
 
-  private async readVisibleRangeText(from: number, to: number): Promise<string> {
+  private async readVisibleEditRange(
+    from: number,
+    to: number,
+  ): Promise<{ readonly text: string; readonly lineNumber: number | undefined }> {
     if (from === to) {
-      return ''
+      return { text: '', lineNumber: this.findRenderedSourceLineAtPosition(from)?.number }
     }
+    const readWindow = (window: DocumentLineWindow) => ({
+      text: readLineWindowRangeText(window, from, to),
+      lineNumber: window.lines.find((line) => from >= line.from && from <= line.to)?.number,
+    })
 
     const rendered = this.renderedSourceWindow
 
     if (rendered && from >= rendered.from && to <= rendered.to) {
-      return readLineWindowRangeText(rendered, from, to)
+      return readWindow(rendered)
     }
 
     const fromLine = await this.currentSource.lineAtPosition(from).catch(() => undefined)
-    const toLine = await this.currentSource
-      .lineAtPosition(Math.max(from, to - 1))
-      .catch(() => undefined)
+    const toLine = await this.currentSource.lineAtPosition(to).catch(() => undefined)
 
     if (fromLine && toLine) {
       const window = await this.currentSource.readLineWindow(fromLine.number, toLine.number)
-      return readLineWindowRangeText(window, from, to)
+      return readWindow(window)
     }
 
     const renderedFromLine = Number(this.contentDOM.dataset.fromLine)
@@ -1215,13 +1252,22 @@ export class SourceDocumentView {
       throw new RangeError('Visible edit range is outside the rendered document window')
     }
 
-    const window = await this.currentSource.readLineWindow(renderedFromLine, renderedToLine)
+    await this.flushPendingVisibleEdit()
+    // A keyboard boundary edit may include the separator immediately outside the
+    // viewport. Native sources have no global position lookup; read one neighbour.
+    const window = await this.currentSource.readLineWindow(
+      Math.max(1, renderedFromLine - (rendered && from < rendered.from ? 1 : 0)),
+      Math.min(
+        this.currentSource.lineCount,
+        renderedToLine + (rendered && to > rendered.to ? 1 : 0),
+      ),
+    )
 
     if (from < window.from || to > window.to) {
       throw new RangeError('Visible edit range is outside the rendered document window')
     }
 
-    return readLineWindowRangeText(window, from, to)
+    return readWindow(window)
   }
 
   private startSelectionDrag(event: MouseEvent): void {

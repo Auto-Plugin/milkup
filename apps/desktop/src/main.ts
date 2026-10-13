@@ -578,51 +578,47 @@ const desktopPluginEditor: Editor = {
     return command.run(desktopPluginEditor)
   },
   undo(): boolean {
-    if (largeDocumentPreview?.editSession) {
-      if (!largeDocumentPreview.editSession.canUndo) {
-        return false
-      }
-
-      void applyLargeEditHistoryBatch('undo')
-      return true
-    }
-
-    if (!state.history.canUndo) {
-      return false
-    }
-
-    state = state.undo()
-    session = recordDocumentTransaction(session, {
-      changes: ChangeSet.insert(state.selection.main.head, ''),
-      origin: { type: 'history.undo' },
-    })
-    updateRenderedMemoryDocument()
-    renderSession()
-    return true
+    return applyEditHistory('undo')
   },
   redo(): boolean {
-    if (largeDocumentPreview?.editSession) {
-      if (!largeDocumentPreview.editSession.canRedo) {
-        return false
-      }
-
-      void applyLargeEditHistoryBatch('redo')
-      return true
-    }
-
-    if (!state.history.canRedo) {
-      return false
-    }
-
-    state = state.redo()
-    session = recordDocumentTransaction(session, {
-      changes: ChangeSet.insert(state.selection.main.head, ''),
-      origin: { type: 'history.redo' },
-    })
-    updateRenderedMemoryDocument()
-    renderSession()
-    return true
+    return applyEditHistory('redo')
   },
+}
+
+function applyEditHistory(direction: 'undo' | 'redo'): boolean {
+  const activeSourceView = sourceView
+  if (activeSourceView) {
+    const documentId = session.documentId
+    void activeSourceView
+      .runAfterPendingEdits(async () => {
+        if (sourceView !== activeSourceView || session.documentId !== documentId) return
+        if (largeDocumentPreview?.editSession) {
+          await applyLargeEditHistoryBatch(direction)
+        } else {
+          applyMemoryEditHistory(direction)
+        }
+      })
+      .catch((error: unknown) => {
+        if (sourceView !== activeSourceView || session.documentId !== documentId) return
+        importantNotice = true
+        notice = `历史操作失败：${getErrorMessage(error)}`
+        renderSession()
+      })
+    return true
+  }
+  return applyMemoryEditHistory(direction)
+}
+
+function applyMemoryEditHistory(direction: 'undo' | 'redo'): boolean {
+  if (!(direction === 'undo' ? state.history.canUndo : state.history.canRedo)) return false
+  state = direction === 'undo' ? state.undo() : state.redo()
+  session = recordDocumentTransaction(session, {
+    changes: ChangeSet.insert(state.selection.main.head, ''),
+    origin: { type: direction === 'undo' ? 'history.undo' : 'history.redo' },
+  })
+  updateRenderedMemoryDocument()
+  renderSession()
+  return true
 }
 
 void fileService
