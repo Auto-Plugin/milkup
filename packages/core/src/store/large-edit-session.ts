@@ -6,6 +6,7 @@ export interface LargeTextEdit extends Change {
 }
 
 export interface LargeTextEditBatch {
+  readonly historyGroup?: 'typing' | undefined
   readonly nativeHistory?:
     { readonly token: string; readonly direction: 'undo' | 'redo' } | undefined
   readonly edits: readonly LargeTextEdit[]
@@ -41,6 +42,8 @@ export class LargeEditSession {
   private readonly pending: LargeTextEdit[] = []
   private readonly undoStack: HistoryEntry[] = []
   private readonly redoStack: HistoryEntry[] = []
+  private typingEntry: HistoryEntry | undefined
+  private typingAt = 0
 
   constructor(config: {
     readonly documentId: string
@@ -90,6 +93,7 @@ export class LargeEditSession {
     changes: ChangeSet,
     deletedTextByChange: readonly string[],
     selections: {
+      readonly historyGroup?: 'typing' | undefined
       readonly selectionBefore?: Selection | undefined
       readonly selectionAfter?: Selection | undefined
     } = {},
@@ -115,14 +119,44 @@ export class LargeEditSession {
     this.validateNextNativeVersion(nativeVersion)
     const edits = Object.freeze([...batch.edits])
     this.pending.push(...edits)
-    this.undoStack.push(
-      Object.freeze({
-        forward: edits,
-        inverse: invertEdits(edits),
-        selectionBefore: batch.selectionBefore,
-        selectionAfter: batch.selectionAfter,
-      }),
-    )
+    // Native transport batches are not user-visible undo boundaries. Coalesce
+    // only opted-in adjacent insertions; structural/paste/save/history actions
+    // break the group, and text plus time budgets keep each entry bounded.
+    const now = Date.now(),
+      previous = this.undoStack.at(-1)
+    const first = previous?.forward[0],
+      next = edits[0]
+    const merge =
+      batch.historyGroup === 'typing' &&
+      previous === this.typingEntry &&
+      now >= this.typingAt &&
+      now - this.typingAt <= 750 &&
+      (!previous?.selectionAfter ||
+        !batch.selectionBefore ||
+        (previous.selectionAfter.main.empty &&
+          batch.selectionBefore.main.empty &&
+          previous.selectionAfter.main.head === batch.selectionBefore.main.head)) &&
+      first &&
+      next &&
+      previous.forward.length === 1 &&
+      edits.length === 1 &&
+      next.from === next.to &&
+      next.from === first.from + first.insert.length &&
+      first.insert.length + next.insert.length <= 65_536 &&
+      !/[\r\n]/.test(first.insert + next.insert)
+    const forward = merge
+      ? Object.freeze([freezeEdit({ ...first, insert: first.insert + next.insert })])
+      : edits
+    const entry = Object.freeze({
+      forward,
+      inverse: invertEdits(forward),
+      selectionBefore: merge ? previous.selectionBefore : batch.selectionBefore,
+      selectionAfter: batch.selectionAfter,
+    })
+    if (merge) this.undoStack.pop()
+    this.undoStack.push(entry)
+    this.typingEntry = batch.historyGroup === 'typing' ? entry : undefined
+    this.typingAt = now
     this.redoStack.length = 0
     this.currentVersion = nativeVersion
     return this.snapshot()
@@ -135,6 +169,7 @@ export class LargeEditSession {
   ): LargeEditSessionSnapshot {
     this.validateNextNativeVersion(nativeVersion)
     if (!token) throw new Error('Missing native history token')
+    this.typingEntry = undefined
     this.undoStack.push(
       Object.freeze({
         forward: Object.freeze([]),
@@ -176,6 +211,7 @@ export class LargeEditSession {
 
   confirmUndo(nativeVersion: number): LargeEditSessionSnapshot {
     this.validateNextNativeVersion(nativeVersion)
+    this.typingEntry = undefined
     const entry = this.undoStack.pop()
     if (!entry) {
       throw new RangeError('Cannot confirm undo without an undo entry')
@@ -188,6 +224,7 @@ export class LargeEditSession {
 
   confirmRedo(nativeVersion: number): LargeEditSessionSnapshot {
     this.validateNextNativeVersion(nativeVersion)
+    this.typingEntry = undefined
     const entry = this.redoStack.pop()
     if (!entry) {
       throw new RangeError('Cannot confirm redo without a redo entry')
@@ -222,6 +259,7 @@ export class LargeEditSession {
   }
 
   markFlushed(version: number): LargeEditSessionSnapshot {
+    this.typingEntry = undefined
     if (!Number.isInteger(version) || version < this.currentVersion) {
       throw new RangeError(`Invalid flushed version: ${version}`)
     }

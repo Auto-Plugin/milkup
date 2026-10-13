@@ -568,20 +568,51 @@ fn read_large_text_file_line_window(
     document_id: String,
     from_line: usize,
     to_line: usize,
+    max_text_length: Option<usize>,
 ) -> Result<LargeFileLineWindowResult, String> {
-    read_large_text_file_line_window_from_registry(&registry.0, document_id, from_line, to_line)
+    read_bounded_large_line_window(
+        &registry.0,
+        document_id,
+        from_line,
+        to_line,
+        max_text_length,
+    )
 }
 
+#[cfg(test)]
 fn read_large_text_file_line_window_from_registry(
     registry: &Mutex<HashMap<String, LargeFileRegistration>>,
     document_id: String,
     from_line: usize,
     to_line: usize,
 ) -> Result<LargeFileLineWindowResult, String> {
+    read_bounded_large_line_window(registry, document_id, from_line, to_line, None)
+}
+
+fn read_bounded_large_line_window(
+    registry: &Mutex<HashMap<String, LargeFileRegistration>>,
+    document_id: String,
+    from_line: usize,
+    to_line: usize,
+    max_text_length: Option<usize>,
+) -> Result<LargeFileLineWindowResult, String> {
     let mut stores = registry.lock().map_err(|error| error.to_string())?;
     let store = stores
         .get_mut(&document_id)
         .ok_or_else(|| format!("Unknown large text file: {document_id}"))?;
+    if let Some(budget) = max_text_length {
+        if from_line == 0 || to_line < from_line || to_line > store.piece_tree.line_count() {
+            return Err("Invalid line window".to_string());
+        }
+        let start = store.piece_tree.line_start_byte(from_line)?;
+        let end = store.piece_tree.line_content_end_byte(to_line)?;
+        // Check indexed coordinates before allocating the requested text or IPC payload.
+        let length =
+            store.piece_tree.byte_to_utf16(end)? - store.piece_tree.byte_to_utf16(start)?;
+        if length > budget {
+            return Err("Line window exceeds text budget".to_string());
+        }
+    }
     let (from_byte, to_byte, lines) = read_large_line_window(store, from_line, to_line)?;
     let from_utf16 = lines
         .first()
@@ -2525,6 +2556,22 @@ mod tests {
 
         assert_eq!(window.text, "two\nthree");
         assert_eq!(
+            read_bounded_large_line_window(&registry.0, "large-doc".into(), 2, 3, Some(9))
+                .unwrap()
+                .text,
+            "two\nthree"
+        );
+        assert!(
+            read_bounded_large_line_window(&registry.0, "large-doc".into(), 2, 3, Some(8))
+                .err()
+                .unwrap()
+                .contains("text budget")
+        );
+        assert!(
+            read_bounded_large_line_window(&registry.0, "large-doc".into(), 3, 2, Some(8)).is_err()
+        );
+
+        assert_eq!(
             registry
                 .0
                 .lock()
@@ -2534,6 +2581,35 @@ mod tests {
                 .piece_tree
                 .byte_len(),
             opened.size_bytes
+        );
+        remove_test_dir(dir);
+    }
+
+    #[test]
+    fn bounded_line_windows_use_utf16_before_text_allocation() {
+        let dir = create_test_dir("bounded-window-utf16");
+        let path = dir.join("unicode.md");
+        fs::write(&path, "中文😀\r\nend").unwrap();
+        let registry = LargeFileRegistry(Mutex::new(HashMap::new()));
+        open_large_text_file_in_registry(&registry.0, "doc".into(), path_to_string(path)).unwrap();
+        assert_eq!(
+            read_bounded_large_line_window(&registry.0, "doc".into(), 1, 1, Some(4))
+                .unwrap()
+                .text,
+            "中文😀"
+        );
+        assert!(
+            read_bounded_large_line_window(&registry.0, "doc".into(), 1, 1, Some(3))
+                .err()
+                .unwrap()
+                .contains("text budget")
+        );
+        assert!(read_bounded_large_line_window(&registry.0, "doc".into(), 1, 2, Some(8)).is_err());
+        assert_eq!(
+            read_bounded_large_line_window(&registry.0, "doc".into(), 1, 2, Some(9))
+                .unwrap()
+                .to_utf16,
+            9
         );
         remove_test_dir(dir);
     }

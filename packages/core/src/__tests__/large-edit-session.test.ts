@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
   ChangeSet,
@@ -175,4 +175,93 @@ it('orders opaque native replacement history with ordinary edits and preserves s
   session.confirmRedo(5)
   session.markFlushed(5)
   expect(session.dirty).toBe(false)
+})
+
+it('groups adjacent typing across native batches but keeps structural, save and history boundaries', () => {
+  const session = new LargeEditSession({ documentId: 'typing', baseVersion: 0 })
+  const type = (from: number, text: string, typing = true) => {
+    const batch = session.prepareVisibleEdits(ChangeSet.insert(from, text), [''], {
+      selectionBefore: Selection.cursor(from),
+      selectionAfter: Selection.cursor(from + text.length),
+      ...(typing ? { historyGroup: 'typing' as const } : {}),
+    })
+    session.confirmVisibleEdits(batch, session.version + 1)
+  }
+  type(0, '<br>', false)
+  type(4, 'q')
+  type(5, 'uick中文😀')
+  expect(session.undo()?.edits).toEqual([
+    { from: 4, to: 13, insert: '', deletedText: 'quick中文😀' },
+  ])
+  expect(session.redo()?.edits).toEqual([
+    { from: 4, to: 4, insert: 'quick中文😀', deletedText: '' },
+  ])
+  type(13, '!')
+  expect(session.undo()?.edits[0]?.deletedText).toBe('!')
+  session.redo()
+  session.markFlushed(session.version)
+  type(14, '?')
+  expect(session.undo()?.edits[0]?.deletedText).toBe('?')
+  expect(session.undo()?.edits[0]?.deletedText).toBe('!')
+  expect(session.undo()?.edits[0]?.deletedText).toBe('quick中文😀')
+  expect(session.undo()?.edits[0]?.deletedText).toBe('<br>')
+  const selected = new LargeEditSession({ documentId: 'direction', baseVersion: 0 })
+  const first = selected.prepareVisibleEdits(ChangeSet.replace(1, 5, 'q'), ['bcde'], {
+    historyGroup: 'typing',
+    selectionBefore: Selection.range(5, 1),
+    selectionAfter: Selection.cursor(2),
+  })
+  selected.confirmVisibleEdits(first, 1)
+  selected.confirmVisibleEdits(
+    selected.prepareVisibleEdits(ChangeSet.insert(2, 'uick'), [''], {
+      historyGroup: 'typing',
+      selectionBefore: Selection.cursor(2),
+      selectionAfter: Selection.cursor(6),
+    }),
+    2,
+  )
+  const undo = selected.prepareUndo()!
+  expect(undo.edits).toEqual([{ from: 1, to: 6, insert: 'bcde', deletedText: 'quick' }])
+  expect(undo.selectionAfter?.main.anchor).toBe(5)
+  expect(undo.selectionAfter?.main.head).toBe(1)
+})
+it('bounds typing groups and never merges separate locations or native snapshot history', () => {
+  const session = new LargeEditSession({ documentId: 'typing-budget', baseVersion: 0 })
+  const type = (from: number, text: string) => {
+    const batch = session.prepareVisibleEdits(ChangeSet.insert(from, text), [''], {
+      historyGroup: 'typing',
+    })
+    session.confirmVisibleEdits(batch, session.version + 1)
+  }
+  type(0, 'x'.repeat(65_536))
+  type(65_536, 'y')
+  expect(session.undo()?.edits[0]?.deletedText).toBe('y')
+  session.confirmNativeHistory('snapshot', session.version + 1)
+  type(0, 'z')
+  expect(session.undo()?.edits[0]?.deletedText).toBe('z')
+  expect(session.prepareUndo()?.nativeHistory?.token).toBe('snapshot')
+})
+
+it('ends a typing group after its time window or a directional selection change', () => {
+  const clock = vi.spyOn(Date, 'now').mockReturnValue(1000)
+  try {
+    const session = new LargeEditSession({ documentId: 'time', baseVersion: 0 })
+    const type = (from: number, text: string, selectionBefore = Selection.cursor(from)) => {
+      const batch = session.prepareVisibleEdits(ChangeSet.insert(from, text), [''], {
+        historyGroup: 'typing',
+        selectionBefore,
+        selectionAfter: Selection.cursor(from + text.length),
+      })
+      session.confirmVisibleEdits(batch, session.version + 1)
+    }
+    type(0, 'a')
+    clock.mockReturnValue(1800)
+    type(1, 'b')
+    type(2, 'c', Selection.range(3, 2))
+    expect(session.undo()?.edits[0]?.deletedText).toBe('c')
+    expect(session.undo()?.edits[0]?.deletedText).toBe('b')
+    expect(session.undo()?.edits[0]?.deletedText).toBe('a')
+  } finally {
+    clock.mockRestore()
+  }
 })

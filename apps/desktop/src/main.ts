@@ -1261,14 +1261,20 @@ for (const button of Array.from(
 )) {
   button.addEventListener('mousedown', (event) => event.preventDefault())
   button.addEventListener('click', () => {
-    view?.runTableCommand(button.dataset.tableAction as TableCommand)
+    if (view) view.runTableCommand(button.dataset.tableAction as TableCommand)
+    else
+      void sourceView
+        ?.runTableCommand(button.dataset.tableAction as TableCommand)
+        .then(renderTableTools)
     focusActiveView()
   })
 }
 
+appRoot.addEventListener('milkup-selection-change', () => renderTableTools(), true)
+
 function renderTableTools(): void {
   const tools = appRoot.querySelector<HTMLElement>('[data-table-tools]')!
-  const context = view?.activeTable
+  const context = view?.activeTable ?? sourceView?.activeTable
   tools.hidden = !context || closeConfirmOpen || isDocumentBusy()
   if (!context) return
   setText(
@@ -2172,6 +2178,7 @@ async function applyLargeSourceEdit(edit: {
   readonly to: number
   readonly insert: string
   readonly deletedText: string
+  readonly historyGroup?: 'isolate'
   readonly selectionBefore?: Selection | undefined
   readonly selectionAfter?: Selection | undefined
 }): Promise<void> {
@@ -2186,7 +2193,13 @@ async function applyLargeSourceEdit(edit: {
   const batch = editSession.prepareVisibleEdits(
     ChangeSet.replace(edit.from, edit.to, edit.insert),
     [edit.deletedText],
-    { selectionBefore: edit.selectionBefore, selectionAfter: edit.selectionAfter },
+    {
+      selectionBefore: edit.selectionBefore,
+      selectionAfter: edit.selectionAfter,
+      ...(!edit.historyGroup && edit.insert && !/[\r\n]/.test(edit.insert)
+        ? { historyGroup: 'typing' as const }
+        : {}),
+    },
   )
   let snapshot
 

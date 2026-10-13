@@ -1,0 +1,91 @@
+$ vitest run
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ✓ src/__tests__/windowed-table.test.ts (5 tests) 844ms
+   ✓ recovers the full table across viewport boundaries without rendering every row  346ms
+ ✓ src/__tests__/source-document-view.test.ts (62 tests) 1038ms
+ ✓ src/__tests__/table-keyboard.test.ts (27 tests) 341ms
+ ✓ src/__tests__/source-unicode.test.ts (33 tests) 661ms
+ ✓ src/__tests__/editor-view.test.ts (121 tests) 2396ms
+   ✓ EditorView > keeps docs/coding-plan.md live interactions bounded to affected lines  1791ms
+ ✓ src/__tests__/block-keyboard.test.ts (35 tests) 255ms
+ ❯ src/__tests__/source-scroll-limits.test.ts (11 tests | 3 failed) 386ms
+   ✓ bounded document scroll coordinates > keeps physical height bounded and reaches the last logical line at the scrollbar end 118ms
+   × bounded document scroll coordinates > maps explicit far jumps and subsequent scroll events to the same lines 96ms
+     → expected 2 to be less than or equal to 1
+   × bounded document scroll coordinates > uses document end/start and page navigation while preserving shifted selection direction 66ms
+     → expected 104857727 to be +0 // Object.is equality
+   ✓ bounded document scroll coordinates > bounds long-line overscan while keeping the entire visible viewport 8ms
+   ✓ reuses repeated source windows but invalidates them when the source revision changes 24ms
+   × keeps document Home and the first visible line reachable with real content padding 15ms
+     → expected '2' to be '1' // Object.is equality
+   ✓ leaves the root overlay scrollbar gesture to the browser 13ms
+   ✓ preserves edge pixel coordinates and round trips distant logical offsets 1ms
+   ✓ reports logical viewport lines to plugin UI after a far jump 25ms
+   ✓ invalidates source windows when a replacement source restarts the same document revision 11ms
+   ✓ does not let an in-flight old source repopulate the replacement source cache 8ms
+ ✓ src/__tests__/input-boundaries.test.ts (6 tests) 169ms
+ ✓ src/__tests__/table-cursor.test.ts (1 test) 102ms
+ ✓ src/__tests__/async-paste-unicode.test.ts (15 tests) 105ms
+ ✓ src/__tests__/plugin-renderer.test.ts (5 tests) 21ms
+ ✓ src/__tests__/view-benchmark.test.ts (1 test) 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/source-scroll-limits.test.ts > bounded document scroll coordinates > maps explicit far jumps and subsequent scroll events to the same lines
+AssertionError: expected 2 to be less than or equal to 1
+ ❯ src/__tests__/source-scroll-limits.test.ts:74:56
+     72|       expect(view.dom.scrollTop).toBeLessThan(16_000_000)
+     73|       await view.renderVisibleWindow()
+     74|       expect(Number(view.contentDOM.dataset.fromLine)).toBeLessThanOrE…
+       |                                                        ^
+     75|       expect(Number(view.contentDOM.dataset.toLine)).toBeGreaterThanOr…
+     76|       expect(height(view)).toBeLessThan(16_000_000)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/__tests__/source-scroll-limits.test.ts > bounded document scroll coordinates > uses document end/start and page navigation while preserving shifted selection direction
+AssertionError: expected 104857727 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 104857727
+
+ ❯ src/__tests__/source-scroll-limits.test.ts:97:38
+     95|     expect(view.selection.main.head).toBe(view.source.length)
+     96|     await key('Home', true)
+     97|     expect(view.selection.main.head).toBe(0)
+       |                                      ^
+     98|     view.destroy()
+     99|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/__tests__/source-scroll-limits.test.ts > keeps document Home and the first visible line reachable with real content padding
+AssertionError: expected '2' to be '1' // Object.is equality
+
+Expected: "1"
+Received: "2"
+
+ ❯ src/__tests__/source-scroll-limits.test.ts:155:44
+    153|   await view.scrollToLine(1)
+    154|   await view.renderVisibleWindow()
+    155|   expect(view.contentDOM.dataset.fromLine).toBe('1')
+       |                                            ^
+    156|   expect(view.contentDOM.querySelector('.milkup-line')?.getAttribute('…
+    157|   view.destroy()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed | 11 passed (12)
+      Tests  3 failed | 319 passed (322)
+   Start at  18:58:47
+   Duration  5.47s (transform 679ms, setup 0ms, collect 1.98s, tests 6.32s, environment 4.64s, prepare 662ms)
+
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/view-dom@0.0.0 test: `vitest run`
+Exit status 1

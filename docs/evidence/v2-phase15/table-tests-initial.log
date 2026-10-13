@@ -1,0 +1,42 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ✓ src/__tests__/table-keyboard.test.ts (27 tests) 397ms
+ ❯ src/__tests__/windowed-table.test.ts (5 tests | 1 failed) 739ms
+   ✓ recovers the full table across viewport boundaries without rendering every row  346ms
+   × keeps Unicode, escaped pipes, visual breaks and complete-column history atomic 249ms
+     → expected [ '| Name |  | Value |\r', …(96) ] to have a length of 98 but got 97
+   ✓ keeps typing queued during an asynchronous column command without dropping characters 116ms
+   ✓ preserves literal source and disables whole-table operations for an over-budget block or fenced code 24ms
+   ✓ checks allocation budgets and discards version changes during context loading 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/windowed-table.test.ts > keeps Unicode, escaped pipes, visual breaks and complete-column history atomic
+AssertionError: expected [ '| Name |  | Value |\r', …(96) ] to have a length of 98 but got 97
+
+- Expected
++ Received
+
+- 98
++ 97
+
+ ❯ src/__tests__/windowed-table.test.ts:36:94
+     34|  await s.key('Backspace');expect(s.text()).toContain('r80\\|中文😀')
+     35|  await s.view.runTableCommand('add-column');await s.view.flushPendingE…
+     36|  expect(s.text().split('\n').filter(line=>line.startsWith('|')&&line.s…
+       |                                                                                              ^
+     37|  const edit=s.edits.at(-1)!;expect(edit.deletedText).toContain('Name')…
+     38|  expect(edit.selectionAfter?.main.head).toBeGreaterThan(table.indexOf(…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 31 passed (32)
+   Start at  18:57:40
+   Duration  2.02s (transform 485ms, setup 0ms, collect 971ms, tests 1.14s, environment 1.01s, prepare 136ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/windowed-table.test.ts src/__tests__/table-keyboard.test.ts

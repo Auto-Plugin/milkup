@@ -1,3 +1,8 @@
+import {
+  nextGraphemePosition,
+  previousGraphemePosition,
+  snapGraphemePosition,
+} from './grapheme-navigation'
 import { ChangeSet, Selection } from '@milkup/core'
 import type { EditorState, Transaction } from '@milkup/core'
 import { parseMarkdown } from '@milkup/markdown'
@@ -229,4 +234,60 @@ export function tableCellText(text: string, prefix = ''): string {
       (slashes.length + (offset === 0 ? precedingSlashes : 0)) % 2 ? match : `${slashes}\\|`,
     )
     .replace(/\r\n|\r|\n/g, '<br>')
+}
+
+export function tableArrowSelection(
+  state: EditorState,
+  table: TableContext,
+  direction: 'left' | 'right' | 'up' | 'down',
+  extend: boolean,
+): Selection {
+  const { doc, selection } = state
+  const range = selection.main
+  const forward = direction === 'right' || direction === 'down'
+  let next = range.head
+  let target = table.cell
+  if (!extend && !range.empty) next = forward ? range.to : range.from
+  else if (extend && (direction === 'up' || direction === 'down'))
+    next = forward ? target.to : target.from
+  else if (direction === 'left' || direction === 'right') {
+    next = forward
+      ? nextGraphemePosition(doc, range.head)
+      : previousGraphemePosition(doc, range.head)
+    if (next < target.from || next > target.to) {
+      if (extend) next = forward ? target.to : target.from
+      else {
+        const adjacent = forward
+          ? (table.cells[table.column + 1] ?? table.rows[table.row + 1]?.children?.[0])
+          : (table.cells[table.column - 1] ?? table.rows[table.row - 1]?.children?.at(-1))
+        if (adjacent) {
+          target = adjacent
+          next = forward ? target.from : target.to
+        } else next = outsidePosition(state, table, forward)
+      }
+    }
+  } else {
+    const row = table.rows[table.row + (forward ? 1 : -1)]
+    const adjacent = row?.children?.[Math.min(table.column, (row.children?.length ?? 1) - 1)]
+    if (adjacent) {
+      target = adjacent
+      next = snapGraphemePosition(
+        doc,
+        Math.min(target.to, target.from + range.head - table.cell.from),
+      )
+    } else next = outsidePosition(state, table, forward)
+  }
+  // A rendered line break or escaped pipe is one visible unit in a live cell.
+  for (const atom of doc.slice(target.from, target.to).matchAll(/<br[ \t]*\/?>|\\\|/gi)) {
+    const from = target.from + atom.index
+    const to = from + atom[0].length
+    if (next > from && next < to) next = forward ? to : from
+  }
+  return extend ? Selection.range(range.anchor, next) : Selection.cursor(next)
+}
+
+function outsidePosition(state: EditorState, table: TableContext, forward: boolean): number {
+  const doc = state.doc
+  if (forward) return table.table.to < doc.length ? table.table.to : table.cell.to
+  return table.table.from > 0 ? doc.lineAt(table.table.from - 1).to : table.cell.from
 }

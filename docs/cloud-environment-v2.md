@@ -1,5 +1,7 @@
 # v2 云环境适配（2026-10-13）
 
+> 生产构建补验：[第十五阶段报告](./v2-phase15-production-verification-2026-10-13.md)记录关闭开发服务器后的 release 二进制、`tauri://localhost` Worker、真实 IPC 与磁盘闭环。网络安全配置未改变；系统截图与 WebDriver 截图差异单独留证。
+
 > 干净环境对照：本轮新建环境仍默认检出旧 `f713d91`，已安全恢复专用分支 `cefe9e4157ef7bcd909ee273004595f3b832e075`。真实原生启动／回归可用，系统 IBus 会话仍阻塞；精确时序、验证边界及最小下一步见 [第十一阶段报告](./v2-phase11-clean-environment-verification-2026-10-13.md)。以下旧阶段安装与配置记录保留，不当作最新测试结果。
 
 > 后续原生云环境补验：当前已能加载用户级 GTK/WebKitGTK 并实际运行恢复后的专用分支；下面的缺库结论是旧容器历史记录。准确环境、恢复 SHA、Rust runner 退出码问题及 GTK 选择器限制见 [第四阶段报告](./v2-phase4-native-safety-verification-2026-10-13.md)。

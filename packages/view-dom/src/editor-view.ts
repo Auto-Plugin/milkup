@@ -1,5 +1,6 @@
 import {
   tableContext,
+  tableArrowSelection,
   tableCommand,
   tableCellText,
   type TableCommand,
@@ -1045,59 +1046,12 @@ export class EditorView {
     direction: 'left' | 'right' | 'up' | 'down',
     extend: boolean,
   ): boolean {
-    const { doc, selection } = this.currentState
-    const range = selection.main
-    const forward = direction === 'right' || direction === 'down'
-    let next = range.head
-    let target = table.cell
-    if (!extend && !range.empty) next = forward ? range.to : range.from
-    else if (extend && (direction === 'up' || direction === 'down'))
-      next = forward ? target.to : target.from
-    else if (direction === 'left' || direction === 'right') {
-      next = forward
-        ? nextGraphemePosition(doc, range.head)
-        : previousGraphemePosition(doc, range.head)
-      if (next < target.from || next > target.to) {
-        if (extend) next = forward ? target.to : target.from
-        else {
-          const adjacent = forward
-            ? (table.cells[table.column + 1] ?? table.rows[table.row + 1]?.children?.[0])
-            : (table.cells[table.column - 1] ?? table.rows[table.row - 1]?.children?.at(-1))
-          if (adjacent) {
-            target = adjacent
-            next = forward ? target.from : target.to
-          } else next = this.tableOutsidePosition(table, forward)
-        }
-      }
-    } else {
-      const row = table.rows[table.row + (forward ? 1 : -1)]
-      const adjacent = row?.children?.[Math.min(table.column, (row.children?.length ?? 1) - 1)]
-      if (adjacent) {
-        target = adjacent
-        next = snapGraphemePosition(
-          doc,
-          Math.min(target.to, target.from + range.head - table.cell.from),
-        )
-      } else next = this.tableOutsidePosition(table, forward)
-    }
-    // A rendered line break or escaped pipe is one visible unit in a live cell.
-    for (const atom of doc.slice(target.from, target.to).matchAll(/<br[ \t]*\/?>|\\\|/gi)) {
-      const from = target.from + atom.index
-      const to = from + atom[0].length
-      if (next > from && next < to) next = forward ? to : from
-    }
     this.dispatch({
-      selection: extend ? Selection.range(range.anchor, next) : Selection.cursor(next),
+      selection: tableArrowSelection(this.currentState, table, direction, extend),
       origin: { type: 'command', id: `table.arrow.${direction}` },
       addToHistory: false,
     })
     return true
-  }
-
-  private tableOutsidePosition(table: TableContext, forward: boolean): number {
-    const doc = this.currentState.doc
-    if (forward) return table.table.to < doc.length ? table.table.to : table.cell.to
-    return table.table.from > 0 ? doc.lineAt(table.table.from - 1).to : table.cell.from
   }
 
   private moveCursorVertically(pos: number, direction: 'up' | 'down'): number {

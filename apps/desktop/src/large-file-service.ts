@@ -61,6 +61,7 @@ export interface DesktopLargeTextFileService {
     documentId: string,
     fromLine: number,
     toLine: number,
+    maxTextLength?: number,
   ): Promise<DesktopLargeTextFileLineWindow>
   applyChanges(
     documentId: string,
@@ -99,11 +100,17 @@ export function createDesktopLargeTextFileService(
         fromByte,
         toByte,
       }),
-    readLineWindow: (documentId: string, fromLine: number, toLine: number) =>
+    readLineWindow: (
+      documentId: string,
+      fromLine: number,
+      toLine: number,
+      maxTextLength?: number,
+    ) =>
       invoke<DesktopLargeTextFileLineWindow>('read_large_text_file_line_window', {
         documentId,
         fromLine,
         toLine,
+        ...(maxTextLength === undefined ? {} : { maxTextLength }),
       }),
     applyChanges: (
       documentId: string,

@@ -113,6 +113,13 @@ describe('desktop large text file service', () => {
       fromLine: 2,
       toLine: 3,
     })
+    await service.readLineWindow('large-doc', 2, 3, 262_144)
+    expect(invoke).toHaveBeenLastCalledWith('read_large_text_file_line_window', {
+      documentId: 'large-doc',
+      fromLine: 2,
+      toLine: 3,
+      maxTextLength: 262_144,
+    })
     expect(invoke).toHaveBeenCalledWith('apply_large_text_file_changes', {
       documentId: 'large-doc',
       expectedVersion: 0,

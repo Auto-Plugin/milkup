@@ -1,3 +1,12 @@
+import { MeasuredLineHeights } from './measured-line-heights'
+import { WindowedTableReader, boundedTableState, pipeLine } from './windowed-table'
+import {
+  tableCommand,
+  tableArrowSelection,
+  tableCellText,
+  type TableCommand,
+} from './table-editing'
+import type { Transaction } from '@milkup/core'
 import { ChangeSet, Selection } from '@milkup/core'
 import {
   MemoryTextDocument,
@@ -67,6 +76,7 @@ interface RenderRequest {
 interface RenderedSourceWindow {
   readonly lines: readonly HTMLElement[]
   readonly sourceWindow: DocumentLineWindow
+  readonly tableStarts?: readonly number[]
 }
 
 interface QueuedEditResolution {
@@ -94,6 +104,9 @@ export class SourceDocumentView {
   private readonly virtualViewport: Required<Pick<VirtualViewportConfig, 'enabled'>> &
     Omit<VirtualViewportConfig, 'enabled'>
   private currentSource: EditorDocumentSource
+  private readonly measuredHeights = new MeasuredLineHeights()
+  private readonly tableReader = new WindowedTableReader()
+  private tableStarts: readonly number[] = []
   private mode: ViewMode
   private editable: boolean
   private navigationRevision = 0
@@ -194,7 +207,7 @@ export class SourceDocumentView {
     event.preventDefault()
     void this.trackVisibleEditTask(() => {
       const range = this.getSelectedRange()
-      return this.applyVisibleEdit(range.from, range.to, text, 'isolate')
+      return this.applyTextInput(range.from, range.to, text, 'isolate')
     })
   }
   private readonly handleCopyEvent = (event: ClipboardEvent): void => {
@@ -334,7 +347,7 @@ export class SourceDocumentView {
       : this.dom.scrollTop
     const window = getVisibleLineWindow({
       lineCount: this.currentSource.lineCount,
-      scrollTop,
+      scrollTop: (this.lineAtTop(scrollTop) - 1) * this.getLineHeight(),
       lineHeight: this.getLineHeight(),
       viewportHeight: this.getViewportHeight() ?? this.getLineHeight() * 24,
       overscanLines: 0,
@@ -346,10 +359,12 @@ export class SourceDocumentView {
     this.navigationRevision += 1
     const documentChanged = source.documentId !== this.currentSource.documentId
 
+    this.measuredHeights.clear()
     this.currentSource = source
     this.sourceWindowCache.clear()
     this.sourceWindowCacheLength = 0
     this.renderedSourceWindow = undefined
+    this.tableStarts = []
     this.cancelMarkdownWarmup()
     this.markdownCache.clear()
     this.cursorPosition = clamp(
@@ -389,6 +404,7 @@ export class SourceDocumentView {
     }
 
     this.mode = mode
+    this.measuredHeights.clear()
     this.dom.dataset.mode = mode
     void this.renderVisibleWindow()
   }
@@ -442,8 +458,8 @@ export class SourceDocumentView {
 
     const geometry = this.scrollGeometry()
     this.dom.scrollTop = geometry.compressed
-      ? geometry.toPhysical((lineNumber - 1) * this.getLineHeight() + this.contentPadding().top)
-      : (lineNumber - 1) * this.getLineHeight()
+      ? geometry.toPhysical(this.lineTop(lineNumber) + this.contentPadding().top)
+      : this.lineTop(lineNumber)
     this.scrollAnchor = Object.freeze({ line: lineNumber, scrollTop: this.dom.scrollTop })
     await this.renderVisibleWindow(this.createRenderRequestForLine(lineNumber))
     const target = this.contentDOM.querySelector<HTMLElement>(
@@ -491,24 +507,27 @@ export class SourceDocumentView {
 
     this.latestAppliedRequestId = request.id
     this.renderedSourceWindow = rendered.sourceWindow
+    this.tableStarts = rendered.tableStarts ?? []
     const lineHeight = this.getLineHeight()
     this.contentDOM.replaceChildren(
       renderSpacer(
         this.ownerDocument,
         'top',
-        request.spacers?.top ?? (request.fromLine - 1) * lineHeight,
+        request.spacers?.top ?? this.lineTop(request.fromLine),
       ),
       ...rendered.lines,
       renderSpacer(
         this.ownerDocument,
         'bottom',
-        request.spacers?.bottom ?? (this.currentSource.lineCount - request.toLine) * lineHeight,
+        request.spacers?.bottom ??
+          this.lineTop(this.currentSource.lineCount + 1) - this.lineTop(request.toLine + 1),
       ),
     )
     this.contentDOM.dataset.virtualized = 'true'
     this.contentDOM.dataset.fromLine = String(request.fromLine)
     this.contentDOM.dataset.toLine = String(request.toLine)
     this.contentDOM.dataset.renderMode = this.mode
+    this.measureTableRows()
     this.renderSearchHighlights()
     this.renderSelection()
     this.renderCursor()
@@ -585,6 +604,46 @@ export class SourceDocumentView {
     }
   }
 
+  private lineTop(line: number): number {
+    return this.measuredHeights.top(line, this.getLineHeight())
+  }
+  private lineAtTop(top: number): number {
+    return this.measuredHeights.lineAt(top, this.currentSource.lineCount, this.getLineHeight())
+  }
+  private lineSpacers(fromLine: number, toLine: number, scrollTop = this.dom.scrollTop) {
+    const geometry = this.scrollGeometry()
+    const top = Math.max(
+      0,
+      (geometry.compressed ? scrollTop - geometry.toLogical(scrollTop) : 0) +
+        this.lineTop(fromLine),
+    )
+    return {
+      top,
+      bottom: Math.max(
+        0,
+        geometry.physicalHeight - top - (this.lineTop(toLine + 1) - this.lineTop(fromLine)),
+      ),
+    }
+  }
+  private measureTableRows(): void {
+    if (this.mode !== 'live') return
+    for (const row of Array.from(
+      this.contentDOM.querySelectorAll<HTMLElement>('.milkup-block-table'),
+    )) {
+      const height = row.getBoundingClientRect().height
+      if (height > 0 || row.classList.contains('milkup-table-delimiter'))
+        this.measuredHeights.set(Number(row.dataset.line), height)
+    }
+    const from = Number(this.contentDOM.dataset.fromLine),
+      to = Number(this.contentDOM.dataset.toLine)
+    if (!from || !to) return
+    const spacers = this.lineSpacers(from, to)
+    for (const side of ['top', 'bottom'] as const) {
+      const spacer = this.contentDOM.querySelector<HTMLElement>(`[data-spacer="${side}"]`)
+      if (spacer) spacer.style.height = `${spacers[side]}px`
+    }
+  }
+
   private scrollGeometry(lineCount = this.currentSource.lineCount) {
     const padding =
       lineCount * this.getLineHeight() > maxVirtualContentHeight
@@ -592,7 +651,7 @@ export class SourceDocumentView {
         : { top: 0, bottom: 0 }
     return boundedScrollGeometry(
       lineCount,
-      this.getLineHeight(),
+      this.lineTop(lineCount + 1) / Math.max(1, lineCount),
       this.getViewportHeight() ?? this.getLineHeight() * 24,
       padding.top + padding.bottom,
     )
@@ -604,9 +663,12 @@ export class SourceDocumentView {
     const viewportHeight = this.getViewportHeight()
     const lineWindow = getVisibleLineWindow({
       lineCount: this.currentSource.lineCount,
-      scrollTop: geometry.compressed
-        ? Math.max(0, logicalTop - this.contentPadding().top)
-        : scrollTop,
+      scrollTop:
+        (this.lineAtTop(
+          geometry.compressed ? Math.max(0, logicalTop - this.contentPadding().top) : scrollTop,
+        ) -
+          1) *
+        this.getLineHeight(),
       lineHeight: this.getLineHeight(),
       overscanLines: this.getOverscanLines(),
       ...(viewportHeight === undefined ? {} : { viewportHeight }),
@@ -616,7 +678,8 @@ export class SourceDocumentView {
     const fromLine = geometry.compressed
       ? Math.max(
           lineWindow.fromLine,
-          Math.ceil((logicalTop - scrollTop) / this.getLineHeight()) + 1,
+          this.lineAtTop(logicalTop - scrollTop) +
+            (this.lineTop(this.lineAtTop(logicalTop - scrollTop)) < logicalTop - scrollTop ? 1 : 0),
         )
       : lineWindow.fromLine
     const id = this.nextRequestId++
@@ -625,7 +688,7 @@ export class SourceDocumentView {
       fromLine,
       toLine: lineWindow.toLine,
       ...(geometry.compressed
-        ? { spacers: geometry.spacers(fromLine, lineWindow.toLine, scrollTop) }
+        ? { spacers: this.lineSpacers(fromLine, lineWindow.toLine, scrollTop) }
         : {}),
     })
   }
@@ -634,7 +697,7 @@ export class SourceDocumentView {
     const geometry = this.scrollGeometry()
     if (geometry.compressed)
       return this.createRenderRequest(
-        geometry.toPhysical((lineNumber - 1) * this.getLineHeight() + this.contentPadding().top),
+        geometry.toPhysical(this.lineTop(lineNumber) + this.contentPadding().top),
       )
     const lineHeight = this.getLineHeight()
     const visibleLines = Math.max(
@@ -735,6 +798,7 @@ export class SourceDocumentView {
           ),
       ),
       sourceWindow: parsed.window,
+      tableStarts: blocks.filter((node) => node.type === 'table').map((node) => node.from),
     })
   }
 
@@ -751,7 +815,7 @@ export class SourceDocumentView {
       return cached
     }
 
-    const parsed = parseMarkdownWindow(this.currentSource, { fromLine, toLine })
+    const parsed = this.parseCompleteTableWindow(fromLine, toLine)
     this.markdownCache.set(key, parsed)
     this.trimMarkdownCache()
 
@@ -761,6 +825,167 @@ export class SourceDocumentView {
       this.markdownCache.delete(key)
       throw error
     }
+  }
+
+  private async parseCompleteTableWindow(
+    fromLine: number,
+    toLine: number,
+  ): Promise<MarkdownWindowParseResult> {
+    const source = this.currentSource,
+      version = source.version
+    const base = await parseMarkdownWindow(source, { fromLine, toLine })
+    const starts: number[] = []
+    let first = fromLine,
+      last = toLine,
+      previousPipe = false
+    for (const line of base.window.lines) {
+      const pipe = pipeLine(line.text)
+      if (pipe && !previousPipe) {
+        const window = await this.tableReader.read(source, line.number)
+        if (source !== this.currentSource || source.version !== version) return base
+        if (window) {
+          const context = await this.blockContext(line.from, 262_144, false).catch((error) => {
+            if (String(error).includes('text budget')) return undefined
+            throw error
+          })
+          if (context && !context.code) {
+            const parsed = await parseMarkdownWindow(
+              { documentId: source.documentId, version, readLineWindow: async () => window },
+              { fromLine: window.fromLine, toLine: window.toLine },
+            )
+            starts.push(
+              ...(parsed.root.children ?? []).filter((n) => n.type === 'table').map((n) => n.from),
+            )
+            first = Math.min(first, window.fromLine)
+            last = Math.max(last, window.toLine)
+          }
+        }
+      }
+      previousPipe = pipe
+    }
+    const parsed =
+      first === fromLine && last === toLine
+        ? base
+        : await parseMarkdownWindow(
+            {
+              documentId: source.documentId,
+              version,
+              readLineWindow: (from, to) =>
+                source.readLineWindow(from, to, base.window.text.length + 1_048_576),
+            },
+            { fromLine: first, toLine: last },
+          )
+    // An unverified or over-budget table stays literal; never hide its delimiter.
+    return {
+      ...parsed,
+      root: {
+        ...parsed.root,
+        children: (parsed.root.children ?? []).filter(
+          (node) => node.type !== 'table' || starts.includes(node.from),
+        ),
+      },
+    }
+  }
+
+  private localTable() {
+    const window = this.renderedSourceWindow
+    const range = this.currentSelection().main
+    if (
+      this.mode !== 'live' ||
+      !window ||
+      range.from < window.from ||
+      range.to > window.to ||
+      !this.tableStarts.length
+    )
+      return
+    const table = boundedTableState(window, this.currentSelection())
+    return table && this.tableStarts.includes(table.context.table.from + table.offset)
+      ? table
+      : undefined
+  }
+
+  get activeTable() {
+    return this.localTable()?.context
+  }
+
+  runTableCommand(command: TableCommand): Promise<void> {
+    return this.trackVisibleEditTask(() => this.applyTableCommand(command))
+  }
+
+  private async applyTableCommand(command: TableCommand): Promise<void> {
+    const table = this.localTable()
+    if (!table || !this.editable) return
+    const transaction = tableCommand(table.state, table.context, command)
+    if (transaction) await this.applyLocalTableTransaction(transaction, table.offset)
+  }
+
+  private async applyLocalTableTransaction(
+    transaction: Transaction,
+    offset: number,
+  ): Promise<void> {
+    const selected = transaction.selection
+    const selection = selected
+      ? Selection.range(offset + selected.main.anchor, offset + selected.main.head)
+      : this.currentSelection()
+    const changes = transaction.changes?.changes ?? []
+    if (changes.length) {
+      // Current shared table commands emit one bounded replacement/insertion.
+      if (changes.length !== 1) throw new Error('Table command requires one atomic edit')
+      const change = changes[0]!
+      await this.applyVisibleEdit(
+        offset + change.from,
+        offset + change.to,
+        change.insert,
+        'isolate',
+        selection,
+      )
+    } else {
+      this.cursorPosition = selection.main.head
+      this.selectionAnchor = selection.main.anchor
+      await this.ensureCursorRendered()
+      this.renderSelection()
+      this.renderCursor()
+    }
+  }
+
+  private async applyTextInput(
+    from: number,
+    to: number,
+    text: string,
+    historyGroup?: 'isolate',
+  ): Promise<void> {
+    const table = this.localTable()
+    await this.applyVisibleEdit(
+      from,
+      to,
+      table?.context.withinCell
+        ? tableCellText(
+            text,
+            table.state.doc.slice(table.context.cell.from, table.state.selection.main.from),
+          )
+        : text,
+      historyGroup,
+    )
+  }
+
+  private async deleteTableText(direction: -1 | 1): Promise<boolean> {
+    const table = this.localTable()
+    if (!table?.context.withinCell || !table.state.selection.main.empty) return false
+    const position = table.state.selection.main.head,
+      cell = table.context.cell
+    if (position === (direction < 0 ? cell.from : cell.to)) return true
+    const text = table.state.doc.slice(
+      direction < 0 ? cell.from : position,
+      direction < 0 ? position : cell.to,
+    )
+    const atom =
+      direction < 0
+        ? /(?:<br[ \t]*\/?>|\\\|)$/i.exec(text)?.[0]
+        : /^(?:<br[ \t]*\/?>|\\\|)/i.exec(text)?.[0]
+    if (!atom) return false
+    const from = table.offset + position - (direction < 0 ? atom.length : 0)
+    await this.applyVisibleEdit(from, from + atom.length, '', 'isolate')
+    return true
   }
 
   private trimMarkdownCache(): void {
@@ -863,7 +1088,7 @@ export class SourceDocumentView {
 
     this.inputDOM.value = ''
     const range = this.getSelectedRange()
-    await this.applyVisibleEdit(range.from, range.to, text)
+    await this.applyTextInput(range.from, range.to, text)
   }
 
   private async commitComposition(data: string): Promise<void> {
@@ -872,7 +1097,7 @@ export class SourceDocumentView {
     }
 
     const range = this.getSelectedRange()
-    await this.applyVisibleEdit(range.from, range.to, data, 'isolate')
+    await this.applyTextInput(range.from, range.to, data, 'isolate')
   }
 
   private handleEditingKey(event: KeyboardEvent): boolean {
@@ -918,18 +1143,35 @@ export class SourceDocumentView {
 
       void this.trackVisibleEditTask(() => {
         const range = this.getSelectedRange()
-        return this.applyVisibleEdit(range.from, range.to, event.key)
+        return this.applyTextInput(range.from, range.to, event.key)
       })
       return true
     }
 
+    if (event.key === 'Escape' && this.activeTable) {
+      void this.runTableCommand('exit')
+      return true
+    }
+
     if (event.key === 'Enter') {
-      void this.trackVisibleEditTask(() => this.enterBlock())
+      void this.trackVisibleEditTask(async () => {
+        const table = this.localTable()
+        if (table) {
+          if (table.context.withinCell && event.shiftKey) {
+            const range = this.getSelectedRange()
+            await this.applyVisibleEdit(range.from, range.to, '<br>', 'isolate')
+          } else await this.applyTableCommand('down')
+        } else await this.enterBlock()
+      })
       return true
     }
 
     if (event.key === 'Tab' || (event.key === 'Unidentified' && event.code === 'Tab')) {
-      void this.trackVisibleEditTask(() => this.indentBlock(event.shiftKey))
+      void this.trackVisibleEditTask(() =>
+        this.localTable()
+          ? this.applyTableCommand(event.shiftKey ? 'previous' : 'next')
+          : this.indentBlock(event.shiftKey),
+      )
       return true
     }
 
@@ -953,7 +1195,12 @@ export class SourceDocumentView {
             this.findRenderedSourceLineAtPosition(this.cursorPosition) ??
             (await this.currentSource.lineAtPosition(this.cursorPosition))
           if (this.destroyed || documentId !== this.currentSource.documentId) return
-          this.cursorPosition = event.key === 'End' ? line.to : line.from
+          const table = this.localTable()
+          this.cursorPosition = table?.context.withinCell
+            ? table.offset + (event.key === 'End' ? table.context.cell.to : table.context.cell.from)
+            : event.key === 'End'
+              ? line.to
+              : line.from
           if (!event.shiftKey) this.selectionAnchor = this.cursorPosition
           await this.ensureCursorRendered(line.number)
           this.renderSelection()
@@ -992,7 +1239,7 @@ export class SourceDocumentView {
     const logicalTop = geometry.compressed
       ? geometry.toLogical(this.dom.scrollTop) - this.contentPadding().top
       : this.dom.scrollTop
-    const first = Math.max(1, Math.floor(logicalTop / height) + 1)
+    const first = this.lineAtTop(logicalTop)
     this.cursorPosition =
       target.from + snapGraphemeOffset(target.text, this.cursorPosition - current.from)
     if (!extend) this.selectionAnchor = this.cursorPosition
@@ -1005,6 +1252,17 @@ export class SourceDocumentView {
     direction: 'left' | 'right' | 'up' | 'down',
     extend: boolean,
   ): Promise<void> {
+    const table = this.localTable()
+    if (table?.context.withinCell) {
+      await this.applyLocalTableTransaction(
+        {
+          selection: tableArrowSelection(table.state, table.context, direction, extend),
+          addToHistory: false,
+        },
+        table.offset,
+      )
+      return
+    }
     const range = this.getSelectedRange()
     const current = this.cursorPosition
     const previous = current
@@ -1148,6 +1406,15 @@ export class SourceDocumentView {
       this.currentSource.lineCount,
     )
     await this.scrollToLine(nextFirstLine)
+    const target = this.contentDOM.querySelector<HTMLElement>(
+      `.milkup-line[data-line="${lineNumber}"]`,
+    )
+    if (target && this.dom.clientHeight > 0) {
+      const bounds = target.getBoundingClientRect(),
+        viewport = this.dom.getBoundingClientRect()
+      if (bounds.top < viewport.top || bounds.bottom > viewport.bottom)
+        await this.scrollToLine(lineNumber)
+    }
   }
 
   private findRenderedLineAtPosition(position: number): SourceLine | undefined {
@@ -1180,6 +1447,7 @@ export class SourceDocumentView {
   }
 
   private async deleteAroundCursor(direction: -1 | 1): Promise<void> {
+    if (await this.deleteTableText(direction)) return
     const range = this.getSelectedRange()
 
     if (range.from !== range.to) {
@@ -1211,8 +1479,13 @@ export class SourceDocumentView {
     }
 
     const editedLine = this.findRenderedLineAtPosition(from)
+    const liveTableEdit = !!this.localTable()
     const structuralEdit = insert.includes('\n') || editedLine === undefined || to > editedLine.to
+    if (structuralEdit) this.measuredHeights.clear()
     const delta = insert.length - (to - from)
+    this.tableStarts = this.tableStarts.map((start) =>
+      start < from ? start : start >= to ? start + delta : from,
+    )
     this.editRevision += 1
     const editRevision = this.editRevision
     const selectionBefore = this.currentSelection()
@@ -1247,9 +1520,29 @@ export class SourceDocumentView {
       await this.ensureCursorRendered(lineNumber)
       this.renderCursor()
     } else {
-      this.updateOptimisticSourceWindow(from, to, insert)
-      this.applyOptimisticRenderedLineEdit(editedLine, from, to, insert)
+      const optimistic = this.updateOptimisticSourceWindow(from, to, insert)
+      if (liveTableEdit && optimistic) {
+        // Keep existing <br>/escape nodes during rapid typing. Replacing a mapped
+        // cell's textContent flattens its visual line breaks until native parsing.
+        const parsed = await parseMarkdownWindow(
+          {
+            documentId: this.currentSource.documentId,
+            version: this.currentSource.version,
+            readLineWindow: async () => optimistic.window,
+          },
+          { fromLine: optimistic.window.fromLine, toLine: optimistic.window.toLine },
+        )
+        const line = optimistic.window.lines.find((line) => line.number === editedLine.number)!
+        this.contentDOM
+          .querySelector(`.milkup-line[data-line="${editedLine.number}"]`)
+          ?.replaceWith(
+            renderLiveLine(this.ownerDocument, line, parsed.root.children ?? [], {
+              selection: this.currentSelection(),
+            }),
+          )
+      } else this.applyOptimisticRenderedLineEdit(editedLine, from, to, insert)
       this.shiftRenderedLinePositionsAfter(editedLine.number, delta)
+      if (liveTableEdit) this.measureTableRows()
       this.renderSelection()
       this.renderCursor()
       const commit = this.queueVisibleEditCommit(edit)
@@ -1262,6 +1555,7 @@ export class SourceDocumentView {
 
             this.markdownCache.clear()
             await this.renderRenderedLine(editedLine.number)
+            this.measureTableRows()
             this.renderSelection()
             this.renderCursor()
           })
@@ -1333,7 +1627,9 @@ export class SourceDocumentView {
         },
         { fromLine: window.fromLine, toLine: window.toLine },
       )
-      const blocks = parsed.root.children ?? []
+      const blocks = (parsed.root.children ?? []).filter(
+        (node) => node.type !== 'table' || this.tableStarts.includes(node.from),
+      )
       lines = parsed.window.lines.map((line) =>
         renderLiveLine(this.ownerDocument, line, blocks, {
           cursorPosition: this.cursorPosition,
@@ -1364,6 +1660,7 @@ export class SourceDocumentView {
     this.contentDOM.dataset.fromLine = String(window.fromLine)
     this.contentDOM.dataset.toLine = String(window.toLine)
     this.contentDOM.dataset.renderMode = this.mode
+    this.measureTableRows()
     this.renderSearchHighlights()
     this.renderSelection()
     this.renderCursor()
@@ -1737,8 +2034,8 @@ export class SourceDocumentView {
     return clamp(contentStart, line?.from ?? position, line?.to ?? position)
   }
 
-  private async blockContext(position: number) {
-    await this.flushPendingVisibleEdit()
+  private async blockContext(position: number, maxTextLength?: number, flush = true) {
+    if (flush) await this.flushPendingVisibleEdit()
     const source = this.currentSource
     const version = source.version
     const current = () =>
@@ -1763,7 +2060,11 @@ export class SourceDocumentView {
     let code = false,
       closing = false
     for (; from <= line.number; from += 512) {
-      const window = await this.readBlockWindow(from, Math.min(line.number, from + 511))
+      const window = await this.readBlockWindow(
+        from,
+        Math.min(line.number, from + 511),
+        maxTextLength,
+      )
       if (!current()) return undefined
       for (const item of window.lines) {
         const marker = /^( {0,3})(`{3,}|~{3,})(.*)$/.exec(item.text)
@@ -1785,20 +2086,27 @@ export class SourceDocumentView {
     const adjacent = await this.readBlockWindow(
       Math.max(1, line.number - 1),
       Math.min(source.lineCount, line.number + 1),
+      maxTextLength,
     )
     const newline = adjacent.text.includes('\r\n') ? '\r\n' : '\n'
     return current() ? { line, code, closing, newline, current } : undefined
   }
 
-  private async readBlockWindow(fromLine: number, toLine: number): Promise<DocumentLineWindow> {
+  private async readBlockWindow(
+    fromLine: number,
+    toLine: number,
+    maxTextLength?: number,
+  ): Promise<DocumentLineWindow> {
     const cached = this.renderedSourceWindow
     if (cached && fromLine >= cached.fromLine && toLine <= cached.toLine) {
       const lines = cached.lines.filter((line) => line.number >= fromLine && line.number <= toLine)
       const from = lines[0]!.from,
         to = lines.at(-1)!.to
+      if (maxTextLength !== undefined && to - from > maxTextLength)
+        throw new RangeError('Line window exceeds text budget')
       return { fromLine, toLine, from, to, lines, text: readLineWindowRangeText(cached, from, to) }
     }
-    return this.currentSource.readLineWindow(fromLine, toLine)
+    return this.currentSource.readLineWindow(fromLine, toLine, maxTextLength)
   }
 
   private async enterBlock(): Promise<void> {
@@ -1876,6 +2184,7 @@ export class SourceDocumentView {
   }
 
   private async backspaceBlock(): Promise<void> {
+    if (await this.deleteTableText(-1)) return
     const range = this.getSelectedRange()
     const visible = this.findRenderedSourceLineAtPosition(range.from)
     const prefix = visible ? listEditingPrefix(visible.text) : null
@@ -2142,6 +2451,7 @@ export class SourceDocumentView {
     this.cursorLayerDOM.append(cursor)
     this.syncInputProxyToCursor()
     this.renderCompositionText()
+    this.dom.dispatchEvent(new Event('milkup-selection-change'))
   }
 
   private renderCompositionText(): void {
@@ -2221,12 +2531,22 @@ export class SourceDocumentView {
       return
     }
 
+    const source = this.currentSource,
+      version = source.version,
+      revision = this.editRevision
     const replacement =
       this.mode === 'live'
         ? await this.renderSingleLiveLine(lineNumber)
         : await this.renderSingleSourceLine(lineNumber)
 
-    if (replacement) {
+    if (
+      replacement &&
+      !this.destroyed &&
+      source === this.currentSource &&
+      version === source.version &&
+      revision === this.editRevision &&
+      this.contentDOM.contains(current)
+    ) {
       current.replaceWith(replacement)
     }
   }
@@ -2873,6 +3193,8 @@ function renderInlineNode(
   span.dataset.status = node.status
   span.dataset.syntaxVisible = String(shouldShowInlineSyntax(line, node, selection))
   span.replaceChildren(...renderInlineNodePieces(document, line, selection, node))
+  if (node.type === 'hardBreak' && node.data?.kind === 'html')
+    span.append(document.createElement('br'))
   return span
 }
 

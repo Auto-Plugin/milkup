@@ -48,8 +48,16 @@ export class LargeDocumentSource implements EditorDocumentSource {
     return this.sourceSizeBytes
   }
 
-  async readLineWindow(fromLine: number, toLine: number): Promise<DocumentLineWindow> {
-    return mapLargeLineWindow(await this.service.readLineWindow(this.documentId, fromLine, toLine))
+  async readLineWindow(
+    fromLine: number,
+    toLine: number,
+    maxTextLength?: number,
+  ): Promise<DocumentLineWindow> {
+    return mapLargeLineWindow(
+      await (maxTextLength === undefined
+        ? this.service.readLineWindow(this.documentId, fromLine, toLine)
+        : this.service.readLineWindow(this.documentId, fromLine, toLine, maxTextLength)),
+    )
   }
 
   async lineAtPosition(position: number): Promise<Line> {

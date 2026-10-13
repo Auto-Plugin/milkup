@@ -14,7 +14,11 @@ export interface EditorDocumentSource {
   readonly version: number
   readonly lineCount: number
   readonly length?: number
-  readLineWindow(fromLine: number, toLine: number): Promise<DocumentLineWindow>
+  readLineWindow(
+    fromLine: number,
+    toLine: number,
+    maxTextLength?: number,
+  ): Promise<DocumentLineWindow>
   lineAtPosition(position: number): Promise<Line>
   positionAtLineOffset(lineNumber: number, offset: number): Promise<number>
   snapshot(): EditorDocumentSourceSnapshot
@@ -49,8 +53,17 @@ export class MemoryDocumentSource implements EditorDocumentSource {
     return this.document.length
   }
 
-  async readLineWindow(fromLine: number, toLine: number): Promise<DocumentLineWindow> {
+  async readLineWindow(
+    fromLine: number,
+    toLine: number,
+    maxTextLength?: number,
+  ): Promise<DocumentLineWindow> {
     assertValidLineWindow(fromLine, toLine, this.document.lineCount)
+
+    const start = this.document.line(fromLine).from
+    const end = this.document.line(toLine).to
+    if (maxTextLength !== undefined && end - start > maxTextLength)
+      throw new RangeError('Line window exceeds text budget')
 
     const lines: Line[] = []
 

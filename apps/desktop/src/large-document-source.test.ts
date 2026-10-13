@@ -26,6 +26,8 @@ describe('LargeDocumentSource', () => {
         { number: 3, from: 10, to: 15, text: 'three' },
       ],
     })
+    await source.readLineWindow(2, 3, 262_144)
+    expect(service.readLineWindow).toHaveBeenLastCalledWith('large-doc', 2, 3, 262_144)
     await expect(source.positionAtLineOffset(2, 99)).resolves.toBe(9)
     expect(source.snapshot()).toEqual({
       documentId: 'large-doc',
