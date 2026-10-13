@@ -355,6 +355,9 @@ export class SourceDocumentView {
     this.editable = editable
     this.dom.dataset.editable = String(editable)
     this.inputDOM.readOnly = !editable
+    // Saving can rerender the window while editing is locked. Restore the
+    // existing caret on unlock even when no text or selection changes follow.
+    this.renderCursor()
   }
 
   setMode(mode: ViewMode): void {

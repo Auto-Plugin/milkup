@@ -187,10 +187,15 @@ try {
       await until(async () => (await lineText(1)) === 'AB', 'emoji deleted')
       await shortcut('z')
       await until(async () => (await lineText(1)) === 'A👩🏽‍💻B', 'emoji undo')
+      await until(async () => (await cursor()) === '8', 'undo restores pre-delete caret')
       await chord('\uE009', '\uE008', 'z')
       await until(async () => (await lineText(1)) === 'AB', 'emoji redo')
+      await until(async () => (await cursor()) === '1', 'redo restores post-delete caret')
       await shortcut('z')
       await until(async () => (await lineText(1)) === 'A👩🏽‍💻B', 'restore emoji')
+      // Native history paints the text before its async UTF-16 line lookup
+      // restores selection. Observe the required final caret before scrolling.
+      await until(async () => (await cursor()) === '8', 'restored emoji caret')
     })
     await check(`${mode}: distant viewport and return preserve cursor`, async () => {
       const position = await cursor()

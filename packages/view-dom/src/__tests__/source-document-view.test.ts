@@ -35,6 +35,31 @@ function createClipboardEvent(
 }
 
 describe('SourceDocumentView', () => {
+  it.each(['source', 'live'] as const)(
+    'restores the %s caret after a save lock rerenders the window',
+    async (mode) => {
+      const parent = document.createElement('main')
+      const view = new SourceDocumentView({
+        parent,
+        mode,
+        editable: true,
+        source: new MemoryDocumentSource({ documentId: 'save-caret', text: '- 中文😀\r\nnext' }),
+      })
+      await view.renderVisibleWindow()
+      await view.revealSelection(1, Selection.range(6, 2))
+      view.setEditable(false)
+      await view.renderVisibleWindow()
+      expect(parent.querySelector('.milkup-cursor')).toBeNull()
+
+      view.setEditable(true)
+      expect(view.inputDOM.readOnly).toBe(false)
+      expect(view.selection.main.anchor).toBe(6)
+      expect(view.selection.main.head).toBe(2)
+      expect(parent.querySelector<HTMLElement>('.milkup-cursor')?.dataset.position).toBe('2')
+      view.destroy()
+    },
+  )
+
   it('renders an async document source as a bounded line window', async () => {
     const parent = document.createElement('main')
     const source = new MemoryDocumentSource({

@@ -344,8 +344,39 @@ try {
         await saved(original)
         assert.equal(Number(await cursor()), prefix.length)
         await shot(`${mode}-windowed-reverse-selection`)
+        // Verify both ends and the direction through the real editing path,
+        // rather than checking only the head exposed by the painted caret.
+        await chord('\uE008', '\uE011')
+        await text('x')
+        await saved(prefix + 'x' + suffix)
+        await shortcut('z')
+        await saved(original)
       },
     )
+    await check(`${mode}: UTF-16 undo caret and subsequent real input`, async () => {
+      const body = '中文😀\r\n- uniqueUnicode é😀\r\nnext'
+      const original = prefix + body + suffix
+      const end = original.indexOf('\r\nnext')
+      await openFixture('utf16-caret', original, mode)
+      await findText('uniqueUnicode')
+      await key('\uE010', '\uE007')
+      const continued = original.slice(0, end) + '\r\n- ' + original.slice(end)
+      await saved(continued)
+      await shortcut('z')
+      await saved(original)
+      assert.equal(Number(await cursor()), end)
+      await shortcut('y')
+      await saved(continued)
+      assert.equal(Number(await cursor()), end + 4)
+      await shortcut('z')
+      await saved(original)
+      await text('x')
+      await saved(original.slice(0, end) + 'x' + original.slice(end))
+      assert.equal(Number(await cursor()), end + 1)
+      await shortcut('z')
+      await saved(original)
+      await shot(`${mode}-windowed-utf16-caret`)
+    })
   }
 } finally {
   await writeFile(path.join(output, 'results.json'), JSON.stringify({ results }, null, 2))
