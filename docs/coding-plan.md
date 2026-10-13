@@ -11,6 +11,7 @@
 - [x] 保存确认绑定提交版本；弹窗焦点和可见错误反馈。
 - [x] v2 专用 cloud setup／启动草稿，固定项目 pnpm 版本，缺原生依赖时明确失败。
 - [x] 第二阶段：组合输入取消、paste/composition/enter 历史隔离、光标移位与 undo 后新分支；窗口化批次 flush 和另存为返回值复核。见 [第二阶段验收](./v2-phase2-input-verification-2026-10-13.md)。
+- [x] 第三阶段：异步图片跨视图归属、保存期间外部通知保留、普通视图 Unicode 键盘边界；见 [第三阶段验收](./v2-phase3-async-unicode-verification-2026-10-13.md)。
 - [ ] Linux 原生镜像补齐 GTK/WebKitGTK、适配原生 smoke 并实测磁盘与窗口流程。
 - [ ] 后续输入、真实系统 IME、原生保存竞态、Markdown 交互及长文性能按新基线逐阶段验收。
 
