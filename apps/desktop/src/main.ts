@@ -1976,6 +1976,7 @@ async function saveLargeDocument(): Promise<boolean> {
 }
 
 async function applyMemorySourceEdit(edit: {
+  readonly historyGroup?: 'isolate'
   readonly from: number
   readonly to: number
   readonly insert: string
@@ -1983,7 +1984,11 @@ async function applyMemorySourceEdit(edit: {
   const transaction: Transaction = {
     changes: ChangeSet.replace(edit.from, edit.to, edit.insert),
     selection: Selection.cursor(edit.from + edit.insert.length),
-    origin: { type: 'input.type', id: 'memory-source-edit' },
+    origin: {
+      type: edit.insert.length === 0 ? 'input.delete' : 'input.type',
+      id: 'memory-source-edit',
+    },
+    ...(edit.historyGroup ? { historyGroup: edit.historyGroup } : {}),
   }
 
   state = state.applyTransaction(transaction)
@@ -2196,27 +2201,22 @@ async function reloadLargeExternalDocument(): Promise<void> {
   }
 }
 
-async function saveDocumentAs(): Promise<void> {
-  await runDocumentSave(async () => {
-    await saveDocumentAsOnce()
-    return !session.dirty
-  })
+async function saveDocumentAs(): Promise<boolean> {
+  return runDocumentSave(saveDocumentAsOnce)
 }
 
-async function saveDocumentAsOnce(): Promise<void> {
+async function saveDocumentAsOnce(): Promise<boolean> {
   if (!view) {
     if (largeDocumentPreview) {
-      await saveLargeDocumentAs()
-      return
+      return saveLargeDocumentAs()
     }
     if (sourceView) {
-      await saveMemorySourceDocumentAs()
-      return
+      return saveMemorySourceDocumentAs()
     }
     notice = '当前没有可另存为的编辑视图。'
     renderSession()
     focusActiveView()
-    return
+    return false
   }
 
   const action: FileAction = {
@@ -2231,7 +2231,7 @@ async function saveDocumentAsOnce(): Promise<void> {
     notice = translateSaveSafetyMessage(safety.message)
     renderSession()
     view.inputDOM.focus({ preventScroll: true })
-    return
+    return false
   }
 
   getRequiredDocumentId(action)
@@ -2246,7 +2246,7 @@ async function saveDocumentAsOnce(): Promise<void> {
     notice = messages.notices.saveAsCancelled
     renderSession()
     view.inputDOM.focus({ preventScroll: true })
-    return
+    return false
   }
 
   session = recordFileSaveResult(session, result, savedVersion)
@@ -2255,9 +2255,10 @@ async function saveDocumentAsOnce(): Promise<void> {
   notice = messages.notices.savedAs
   renderSession()
   view.inputDOM.focus({ preventScroll: true })
+  return true
 }
 
-async function saveMemorySourceDocumentAs(): Promise<void> {
+async function saveMemorySourceDocumentAs(): Promise<boolean> {
   const action: FileAction = {
     kind: 'saveAs',
     documentId: session.documentId,
@@ -2270,7 +2271,7 @@ async function saveMemorySourceDocumentAs(): Promise<void> {
     notice = translateSaveSafetyMessage(safety.message)
     renderSession()
     focusActiveView()
-    return
+    return false
   }
 
   getRequiredDocumentId(action)
@@ -2286,7 +2287,7 @@ async function saveMemorySourceDocumentAs(): Promise<void> {
     notice = messages.notices.saveAsCancelled
     renderSession()
     focusActiveView()
-    return
+    return false
   }
 
   session = recordFileSaveResult(session, result, savedVersion)
@@ -2295,9 +2296,10 @@ async function saveMemorySourceDocumentAs(): Promise<void> {
   notice = messages.notices.savedAs
   renderSession()
   focusActiveView()
+  return true
 }
 
-async function saveLargeDocumentAs(): Promise<void> {
+async function saveLargeDocumentAs(): Promise<boolean> {
   const preview = largeDocumentPreview
   const editSession = preview?.editSession
 
@@ -2305,7 +2307,7 @@ async function saveLargeDocumentAs(): Promise<void> {
     notice = '当前没有可另存为的大文件。'
     renderSession()
     focusActiveView()
-    return
+    return false
   }
 
   const selected = await fileService.selectSaveFilePath(session.file?.path ?? preview.source.path)
@@ -2315,7 +2317,7 @@ async function saveLargeDocumentAs(): Promise<void> {
     notice = messages.notices.saveAsCancelled
     renderSession()
     focusActiveView()
-    return
+    return false
   }
 
   let saveStage = '提交编辑队列'
@@ -2358,11 +2360,14 @@ async function saveLargeDocumentAs(): Promise<void> {
     notice = messages.notices.savedAs
     renderSession()
     focusActiveView()
+    return true
   } catch (error: unknown) {
     console.error(`Large document save-as failed while ${saveStage}`, error)
+    importantNotice = true
     notice = `大文件另存为失败（${saveStage}）：${getErrorMessage(error)}`
     renderSession()
     focusActiveView()
+    return false
   }
 }
 

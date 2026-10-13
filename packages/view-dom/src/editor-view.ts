@@ -681,7 +681,8 @@ export class EditorView {
   }
 
   private commitComposition(data: string): void {
-    const text = data.length > 0 ? data : this.compositionText || this.inputDOM.value
+    // Empty final data is cancellation, never the last uncommitted candidate.
+    const text = data
 
     this.isComposing = false
     this.compositionText = ''
@@ -807,6 +808,7 @@ export class EditorView {
       changes: ChangeSet.replace(range.from, range.to, text),
       selection: Selection.cursor(insertAt + text.length),
       origin,
+      historyGroup: originId === undefined ? 'merge' : 'isolate',
     })
     return true
   }

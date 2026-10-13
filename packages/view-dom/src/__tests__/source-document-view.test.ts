@@ -783,7 +783,13 @@ describe('SourceDocumentView', () => {
 
     await view.flushPendingEdits()
 
-    expect(onEdit).toHaveBeenCalledWith({ from: 5, to: 5, insert: '\n- ', deletedText: '' })
+    expect(onEdit).toHaveBeenCalledWith({
+      from: 5,
+      to: 5,
+      insert: '\n- ',
+      deletedText: '',
+      historyGroup: 'isolate',
+    })
   })
 
   it('commits only finalized IME composition text', async () => {
@@ -824,7 +830,13 @@ describe('SourceDocumentView', () => {
     await view.flushPendingEdits()
 
     expect(onEdit).toHaveBeenCalledTimes(1)
-    expect(onEdit).toHaveBeenCalledWith({ from: 0, to: 0, insert: '你', deletedText: '' })
+    expect(onEdit).toHaveBeenCalledWith({
+      from: 0,
+      to: 0,
+      insert: '你',
+      deletedText: '',
+      historyGroup: 'isolate',
+    })
     expect(view.inputDOM.value).toBe('')
   })
 
@@ -874,15 +886,24 @@ describe('SourceDocumentView', () => {
     expect(onEdit).toHaveBeenNthCalledWith(1, {
       from: 0,
       to: 0,
-      insert: '中\n',
+      insert: '中',
       deletedText: '',
+      historyGroup: 'isolate',
     })
     expect(onEdit).toHaveBeenNthCalledWith(2, {
+      from: 1,
+      to: 1,
+      insert: '\n',
+      deletedText: '',
+      historyGroup: 'isolate',
+    })
+    expect(onEdit).toHaveBeenNthCalledWith(3, {
       from: 2,
       to: 3,
       insert: '',
       deletedText: 'a',
     })
+    expect(text).toBe('中\nlpha')
   })
 
   it('does not let a stale composition flag block enter and delete', async () => {
@@ -921,6 +942,7 @@ describe('SourceDocumentView', () => {
       to: 1,
       insert: '\n',
       deletedText: '',
+      historyGroup: 'isolate',
     })
     expect(onEdit).toHaveBeenNthCalledWith(2, {
       from: 2,
@@ -958,6 +980,7 @@ describe('SourceDocumentView', () => {
       to: 1,
       insert: '\n',
       deletedText: '',
+      historyGroup: 'isolate',
     })
     expect(onEdit).toHaveBeenNthCalledWith(2, {
       from: 2,
@@ -1019,10 +1042,16 @@ describe('SourceDocumentView', () => {
     view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
 
     await expect(view.flushPendingEdits()).resolves.toBeUndefined()
-    expect(onEdit).toHaveBeenCalledWith({ from: 0, to: 0, insert: '\n', deletedText: '' })
+    expect(onEdit).toHaveBeenCalledWith({
+      from: 0,
+      to: 0,
+      insert: '\n',
+      deletedText: '',
+      historyGroup: 'isolate',
+    })
   })
 
-  it('batches consecutive structural edits into one native commit', async () => {
+  it('keeps consecutive structural edits in separate native history commits', async () => {
     const parent = document.createElement('main')
     const source = new RecordingDocumentSource({ documentId: 'large-source', text: 'alpha' })
     let text = 'alpha'
@@ -1050,8 +1079,74 @@ describe('SourceDocumentView', () => {
     view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
     await view.flushPendingEdits()
 
-    expect(onEdit).toHaveBeenCalledTimes(1)
-    expect(onEdit).toHaveBeenCalledWith({ from: 0, to: 0, insert: '\n\n', deletedText: '' })
+    expect(onEdit).toHaveBeenCalledTimes(2)
+    expect(onEdit).toHaveBeenNthCalledWith(1, {
+      from: 0,
+      to: 0,
+      insert: '\n',
+      deletedText: '',
+      historyGroup: 'isolate',
+    })
+    expect(onEdit).toHaveBeenNthCalledWith(2, {
+      from: 1,
+      to: 1,
+      insert: '\n',
+      deletedText: '',
+      historyGroup: 'isolate',
+    })
+    expect(text).toBe('\n\nalpha')
+  })
+
+  it('flush waits for every isolated batch even when the first commit is delayed', async () => {
+    const source = new RecordingDocumentSource({ documentId: 'delayed', text: 'alpha' })
+    let text = 'alpha'
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    let count = 0
+    const onEdit = vi.fn(async (edit: { from: number; to: number; insert: string }) => {
+      if (++count === 1) await gate
+      text = text.slice(0, edit.from) + edit.insert + text.slice(edit.to)
+      source.updateText(text)
+    })
+    const view = new SourceDocumentView({
+      parent: document.createElement('main'),
+      source,
+      editable: true,
+      onEdit,
+    })
+    await view.renderVisibleWindow()
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    const completed = vi.fn()
+    const flush = view.flushPendingEdits().then(completed)
+    await flushPromises()
+    expect(completed).not.toHaveBeenCalled()
+    release()
+    await flush
+    expect(onEdit).toHaveBeenCalledTimes(2)
+    expect(text).toBe('\n\nalpha')
+    view.destroy()
+  })
+
+  it('flush rejects when a later isolated edit fails instead of reporting a successful save', async () => {
+    const source = new RecordingDocumentSource({ documentId: 'failing', text: 'alpha' })
+    let count = 0
+    const view = new SourceDocumentView({
+      parent: document.createElement('main'),
+      source,
+      editable: true,
+      onEdit: async () => {
+        if (++count === 2) throw new Error('second edit failed')
+      },
+    })
+    await view.renderVisibleWindow()
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    await expect(view.flushPendingEdits()).rejects.toThrow('second edit failed')
+    expect(count).toBe(2)
+    view.destroy()
   })
 
   it('renders structural edits while the native commit is still pending', async () => {
@@ -1080,7 +1175,13 @@ describe('SourceDocumentView', () => {
     )
 
     await delay(40)
-    expect(onEdit).toHaveBeenCalledWith({ from: 0, to: 0, insert: '\n', deletedText: '' })
+    expect(onEdit).toHaveBeenCalledWith({
+      from: 0,
+      to: 0,
+      insert: '\n',
+      deletedText: '',
+      historyGroup: 'isolate',
+    })
     expect(view.contentDOM.querySelectorAll('.milkup-line')).toHaveLength(2)
 
     releaseCommit?.()
@@ -1178,6 +1279,7 @@ describe('SourceDocumentView', () => {
       to: 0,
       insert: '\n',
       deletedText: '',
+      historyGroup: 'isolate',
     })
   })
 
@@ -1247,7 +1349,13 @@ describe('SourceDocumentView', () => {
     await flushPromises()
     await view.flushPendingEdits()
     expect(pasted.event.defaultPrevented).toBe(true)
-    expect(onEdit).toHaveBeenLastCalledWith({ from: 0, to: 0, insert: 'omega', deletedText: '' })
+    expect(onEdit).toHaveBeenLastCalledWith({
+      from: 0,
+      to: 0,
+      insert: 'omega',
+      deletedText: '',
+      historyGroup: 'isolate',
+    })
   })
 
   it('renders live list markers like the regular editor', async () => {

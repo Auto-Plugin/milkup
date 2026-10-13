@@ -404,6 +404,7 @@ async function installSaveProbe(page: Page): Promise<void> {
           if (outcome === 'error') throw new Error('disk full');
           return { documentId: session.documentId, file: { path: '/notes/saved.md' }, diskSnapshotHash: 'saved:' + text };
         };
+        service.saveFileAs = service.saveFile;
         const openPath = service.openPath.bind(service);
         service.selectOpenFile = async () => probe.open === 'cancel' ? undefined : '/notes/next.md';
         service.openPath = async (...args) => {
@@ -556,4 +557,155 @@ test('browser reload cancellation keeps the unsaved editor alive', async ({ page
   await expect(page.locator('.milkup-editor-content')).toContainText('RELOAD-PROTECTED')
   await page.keyboard.type('-still-alive')
   await expect(page.locator('.milkup-editor-content')).toContainText('still-alive')
+})
+
+for (const mode of ['source', 'live'] as const) {
+  test(`synthetic composition cancellation preserves selected text and history in ${mode}`, async ({
+    page,
+  }) => {
+    await page.goto('/')
+    await page.keyboard.press(mode === 'source' ? 'Control+1' : 'Control+2')
+    await page.keyboard.insertText('保留原文')
+    await page.keyboard.press('Control+a')
+    const version = await page.locator('[data-stat="version"]').textContent()
+    await page.evaluate(() => {
+      const input = document.querySelector<HTMLTextAreaElement>('.milkup-input-proxy')!
+      input.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }))
+      input.value = 'zhong'
+      input.dispatchEvent(
+        new CompositionEvent('compositionupdate', { data: 'zhong', bubbles: true }),
+      )
+      input.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'n',
+          ctrlKey: true,
+          isComposing: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      )
+      input.value = ''
+      input.dispatchEvent(new CompositionEvent('compositionend', { data: '', bubbles: true }))
+    })
+    await expect(page.locator('[data-close-confirm]')).toBeHidden()
+    await expect(page.locator('[data-stat="version"]')).toHaveText(version!)
+    await expect(page.locator('.milkup-editor-content')).toContainText('保留原文')
+    await expect(page.locator('.milkup-selection')).toHaveCount(1)
+    await page.evaluate(() => {
+      const input = document.querySelector<HTMLTextAreaElement>('.milkup-input-proxy')!
+      input.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }))
+      input.value = '中文'
+      input.dispatchEvent(new CompositionEvent('compositionend', { data: '中文', bubbles: true }))
+      input.dispatchEvent(
+        new InputEvent('input', {
+          bubbles: true,
+          data: '中文',
+          inputType: 'insertCompositionText',
+        }),
+      )
+    })
+    await expect(page.locator('.milkup-editor-content')).toContainText('中文')
+    await expect(page.locator('.milkup-editor-content')).not.toContainText('保留原文')
+    await page.keyboard.press('Control+z')
+    await expect(page.locator('.milkup-editor-content')).toContainText('保留原文')
+    await expect(page.locator('.milkup-selection')).toHaveCount(1)
+    await page.keyboard.press('Control+Shift+z')
+    await expect(page.locator('.milkup-editor-content')).toContainText('中文')
+    await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+  })
+}
+
+test('multiline code paste and following typing undo independently across mode changes', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.keyboard.type('KEEP ')
+  await page.evaluate(() => {
+    const data = new DataTransfer()
+    data.setData('text/plain', '\n```python\nfirst()\n\n\nsecond()\n```\n')
+    document
+      .querySelector('.milkup-input-proxy')!
+      .dispatchEvent(
+        new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }),
+      )
+  })
+  await page.keyboard.type('TAIL')
+  await page.keyboard.press('Control+1')
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-editor-content')).not.toContainText('TAIL')
+  await expect(page.locator('.milkup-editor-content')).toContainText('second()')
+  await page.keyboard.press('Control+2')
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-editor-content')).toContainText('KEEP')
+  await expect(page.locator('.milkup-editor-content')).not.toContainText('first()')
+  await page.keyboard.press('Control+Shift+z')
+  await page.keyboard.press('Control+Shift+z')
+  await expect(page.locator('.milkup-editor-content')).toContainText('TAIL')
+})
+
+test('typing after cursor movement restores only the local edit on undo', async ({ page }) => {
+  await page.goto('/')
+  await page.keyboard.type('AB')
+  await page.keyboard.press('ArrowLeft')
+  await page.keyboard.type('X')
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-editor-content')).toContainText('AB')
+  await expect(page.locator('.milkup-cursor')).toHaveAttribute('data-position', '1')
+  await page.keyboard.press('Control+Shift+z')
+  await expect(page.locator('.milkup-editor-content')).toContainText('AXB')
+})
+
+test('cancelled and failed Save As preserve the path and dirty content', async ({ page }) => {
+  await installSaveProbe(page)
+  await page.goto('/')
+  await page.keyboard.type('SAVE-AS-DRAFT')
+  for (const outcome of ['cancel', 'error']) {
+    await page.evaluate(`window.__milkupSaveProbe.outcome = '${outcome}'`)
+    await page.keyboard.press('Control+Shift+s')
+    await expect(page.locator('[data-notice]')).toContainText(
+      outcome === 'cancel' ? '取消另存为' : 'disk full',
+    )
+    await expect(page.locator('[data-title-path]')).toHaveText('未保存')
+    await expect(page.locator('[data-save-label]')).toContainText('未保存')
+    await expect(page.locator('.milkup-editor-content')).toContainText('SAVE-AS-DRAFT')
+  }
+})
+
+test('windowed memory documents keep finalized composition separate from adjacent typing', async ({
+  page,
+}) => {
+  await page.route(/\/src\/file-service\.ts(?:\?|$)/, async (route) => {
+    const response = await route.fetch()
+    const body = (await response.text()).replace(
+      'function createDesktopFileService() {',
+      `function createDesktopFileService() {
+      const service = createMockFileService();
+      const text = 'ORIGINAL\\n' + 'body line\\n'.repeat(16000);
+      service.getFileMetadata = async path => ({ path, sizeBytes: text.length, readonly: false });
+      service.openPath = async path => ({ documentId: 'windowed', file: {path}, text, diskSnapshotHash: 'initial' });
+      return service;`,
+    )
+    await route.fulfill({ response, body })
+  })
+  await page.goto('/')
+  await runMenuCommand(page, '打开')
+  await expect(page.locator('#app')).toHaveAttribute('data-loading', 'ready')
+  await expect(page.locator('.milkup-source-document-view')).toBeVisible()
+  await page.keyboard.press('Control+1')
+  await page.keyboard.type('A')
+  await expect(page.locator('[data-stat="version"]')).toHaveText('1')
+  await page.evaluate(() => {
+    const input = document.querySelector<HTMLTextAreaElement>('.milkup-input-proxy')!
+    input.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }))
+    input.value = '中'
+    input.dispatchEvent(new CompositionEvent('compositionend', { data: '中', bubbles: true }))
+  })
+  await expect(page.locator('[data-stat="version"]')).toHaveText('2')
+  await page.keyboard.type('X')
+  await expect(page.locator('[data-stat="version"]')).toHaveText('3')
+  await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('A中XORIGINAL')
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('A中ORIGINAL')
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('AORIGINAL')
 })

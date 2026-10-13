@@ -181,4 +181,23 @@ describe('Editor history', () => {
     expect(editor.state.selection.main.anchor).toBe(0)
     expect(editor.state.history.canUndo).toBe(false)
   })
+  it('does not merge a new edit into an older group after undo', () => {
+    const editor = createEditor()
+    editor.dispatch({
+      changes: ChangeSet.insert(0, 'A'),
+      origin: { type: 'input.type' },
+      time: 100,
+    })
+    editor.dispatch({ changes: ChangeSet.insert(1, 'paste'), origin: { type: 'paste' }, time: 110 })
+    editor.undo()
+    editor.dispatch({
+      changes: ChangeSet.insert(1, 'X'),
+      origin: { type: 'input.type' },
+      time: 120,
+    })
+    expect(editor.state.doc.text).toBe('AX')
+    expect(editor.state.history.canRedo).toBe(false)
+    editor.undo()
+    expect(editor.state.doc.text).toBe('A')
+  })
 })

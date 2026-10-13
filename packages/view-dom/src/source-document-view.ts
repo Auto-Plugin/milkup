@@ -42,6 +42,8 @@ export interface SourceDocumentEdit {
   readonly to: number
   readonly insert: string
   readonly deletedText: string
+  /** Keep paste, finalized IME input and structural edits separate from typing batches. */
+  readonly historyGroup?: 'isolate'
 }
 
 export type SourceDocumentEditHandler = (edit: SourceDocumentEdit) => Promise<void> | void
@@ -137,11 +139,12 @@ export class SourceDocumentView {
   }
   private readonly handleCompositionUpdateEvent = (event: CompositionEvent): void => {
     this.isComposing = true
-    this.compositionText = event.data || this.inputDOM.value
+    this.compositionText = event.data
     this.renderCompositionText()
   }
   private readonly handleCompositionEndEvent = (event: CompositionEvent): void => {
-    const text = event.data || this.compositionText || this.inputDOM.value
+    // compositionend.data is authoritative, including cancellation's empty string.
+    const text = event.data
     // Clear this synchronously so the next Enter/Delete is handled as an editor key,
     // even while the finalized IME text waits for an earlier native edit to finish.
     this.isComposing = false
@@ -174,7 +177,7 @@ export class SourceDocumentView {
     event.preventDefault()
     void this.trackVisibleEditTask(() => {
       const range = this.getSelectedRange()
-      return this.applyVisibleEdit(range.from, range.to, text)
+      return this.applyVisibleEdit(range.from, range.to, text, 'isolate')
     })
   }
   private readonly handleCopyEvent = (event: ClipboardEvent): void => {
@@ -661,7 +664,7 @@ export class SourceDocumentView {
     }
 
     const range = this.getSelectedRange()
-    await this.applyVisibleEdit(range.from, range.to, data)
+    await this.applyVisibleEdit(range.from, range.to, data, 'isolate')
   }
 
   private handleEditingKey(event: KeyboardEvent): boolean {
@@ -692,7 +695,12 @@ export class SourceDocumentView {
     if (event.key === 'Enter') {
       void this.trackVisibleEditTask(() => {
         const range = this.getSelectedRange()
-        return this.applyVisibleEdit(range.from, range.to, this.enterInsertionText(range.from))
+        return this.applyVisibleEdit(
+          range.from,
+          range.to,
+          this.enterInsertionText(range.from),
+          'isolate',
+        )
       })
       return true
     }
@@ -902,7 +910,12 @@ export class SourceDocumentView {
     await this.applyVisibleEdit(from, to, '')
   }
 
-  private async applyVisibleEdit(from: number, to: number, insert: string): Promise<void> {
+  private async applyVisibleEdit(
+    from: number,
+    to: number,
+    insert: string,
+    historyGroup?: 'isolate',
+  ): Promise<void> {
     if (!this.onEdit) {
       return
     }
@@ -915,6 +928,13 @@ export class SourceDocumentView {
     this.cursorPosition = from + insert.length
     this.selectionAnchor = this.cursorPosition
     const deletedText = await this.readVisibleRangeText(from, to)
+    const edit: SourceDocumentEdit = {
+      from,
+      to,
+      insert,
+      deletedText,
+      ...(historyGroup ? { historyGroup } : {}),
+    }
     this.cancelMarkdownWarmup()
 
     if (structuralEdit) {
@@ -922,13 +942,13 @@ export class SourceDocumentView {
 
       if (optimistic) {
         await this.renderOptimisticSourceWindow(optimistic.window, optimistic.lineCount)
-        const commit = this.queueVisibleEditCommit({ from, to, insert, deletedText })
+        const commit = this.queueVisibleEditCommit(edit)
         void commit.then(
           () => this.refreshAfterOptimisticCommit(editRevision),
           (error: unknown) => this.rollbackOptimisticEdit(editRevision, error),
         )
       } else {
-        await this.queueVisibleEditCommit({ from, to, insert, deletedText }, { immediate: true })
+        await this.queueVisibleEditCommit(edit, { immediate: true })
         await this.refreshAfterOptimisticCommit(editRevision)
       }
     } else {
@@ -937,7 +957,7 @@ export class SourceDocumentView {
       this.shiftRenderedLinePositionsAfter(editedLine.number, delta)
       this.renderSelection()
       this.renderCursor()
-      const commit = this.queueVisibleEditCommit({ from, to, insert, deletedText })
+      const commit = this.queueVisibleEditCommit(edit)
       if (this.mode === 'live') {
         void commit
           .then(async () => {
@@ -1099,7 +1119,10 @@ export class SourceDocumentView {
       : edit
 
     if (this.pendingVisibleEdit && !mergedEdit) {
-      return this.flushPendingVisibleEdit().then(() => this.queueVisibleEditCommit(edit))
+      // Register the next batch synchronously. Native commits already serialize through
+      // editCommitQueue; deferring registration lets flushPendingEdits miss this batch.
+      void this.flushPendingVisibleEdit()
+      return this.queueVisibleEditCommit(edit)
     }
 
     this.pendingVisibleEdit = mergedEdit
@@ -2012,6 +2035,8 @@ function mergeSourceDocumentEdits(
   previous: SourceDocumentEdit,
   next: SourceDocumentEdit,
 ): SourceDocumentEdit | undefined {
+  if (previous.historyGroup === 'isolate' || next.historyGroup === 'isolate') return undefined
+
   if (
     previous.from === previous.to &&
     next.from === previous.from + previous.insert.length &&

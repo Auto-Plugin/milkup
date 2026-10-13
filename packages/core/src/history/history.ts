@@ -46,7 +46,7 @@ export class HistoryState {
     const undoStack = [...this.undoStack]
     const last = undoStack[undoStack.length - 1]
 
-    if (last && shouldMergeEntries(last, entry)) {
+    if (last && this.redoStack.length === 0 && shouldMergeEntries(last, entry)) {
       undoStack[undoStack.length - 1] = {
         beforeDoc: last.beforeDoc,
         afterDoc: entry.afterDoc,
@@ -125,5 +125,26 @@ function shouldMergeEntries(previous: HistoryEntry, next: HistoryEntry): boolean
     return false
   }
 
-  return next.time - previous.time <= 1000
+  // A new caret/selection or input source is a separate user intent even within the time window.
+  const before = next.beforeSelection
+  const after = previous.afterSelection
+  if (
+    previous.origin?.id !== next.origin?.id ||
+    previous.afterDoc !== next.beforeDoc ||
+    after.mainIndex !== before.mainIndex ||
+    after.ranges.length !== before.ranges.length ||
+    after.ranges.some((range, index) => {
+      const other = before.ranges[index]
+      return (
+        !other ||
+        range.anchor !== other.anchor ||
+        range.head !== other.head ||
+        range.affinity !== other.affinity
+      )
+    })
+  )
+    return false
+
+  const elapsed = next.time - previous.time
+  return elapsed >= 0 && elapsed <= 1000
 }
