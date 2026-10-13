@@ -84,14 +84,14 @@
 
 ## 全仓验证
 
-| 检查                               | 结果                                                                                                                                               |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 全 workspace JS，单 worker 串行    | 776 项一次完整通过；[日志](./evidence/v2-phase11/unit-final.log)                                                                                   |
-| 大纲／原生启动 helper 独立覆盖     | 2 + 4 通过；[大纲](./evidence/v2-phase11/outline-final.log)、[helper](./evidence/v2-phase11/harness-final.log)                                     |
-| Chromium 实际浏览器                | 57 项一次完整通过，48 秒；[日志](./evidence/v2-phase11/browser-final.log)                                                                          |
-| Rust                               | 46 通过，取消会掩盖退出码的 runner；[日志](./evidence/v2-phase11/rust-final.log)                                                                   |
-| 全仓类型／JS 构建／原生 debug 编译 | 通过；[类型](./evidence/v2-phase11/types-final.log)、[构建](./evidence/v2-phase11/build-final.log)、[原生](./evidence/v2-phase11/native-build.log) |
-| Rust 格式                          | 通过；[日志](./evidence/v2-phase11/rust-fmt.log)                                                                                                   |
+| 检查                               | 结果                                                                                                                                                                                       |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 全 workspace JS，单 worker 串行    | 776 项一次完整通过；[日志](./evidence/v2-phase11/unit-final.log)                                                                                                                           |
+| 大纲／原生启动 helper 独立覆盖     | 2 + 4 通过；[大纲](./evidence/v2-phase11/outline-final.log)、[helper](./evidence/v2-phase11/harness-final.log)                                                                             |
+| Chromium 实际浏览器                | 57 项一次完整通过，48 秒；[日志](./evidence/v2-phase11/browser-final.log)                                                                                                                  |
+| Rust                               | 46 通过，取消会掩盖退出码的 runner；[日志](./evidence/v2-phase11/rust-final.log)                                                                                                           |
+| 全仓类型／JS 构建／原生 debug 编译 | 通过；[类型](./evidence/v2-phase11/types-final.log)、[构建](./evidence/v2-phase11/build-final.log)、[原生](./evidence/v2-phase11/native-build.log)                                         |
+| Rust 格式                          | 原报告误标通过，归档日志实际为缺少 cargo-fmt；[原日志](./evidence/v2-phase11/rust-fmt.log)。第十二阶段补装并重跑通过，见[证据校正](./v2-phase12-input-safety-verification-2026-10-13.md)。 |
 
 命令使用既有 `env.sh`，测试串行，原生和浏览器／性能测量分开运行，没有提高测试时限、降低安全设置或缩小性能 fixture。收尾全仓 Prettier 与 `git diff --check` 结果见同目录日志。
 

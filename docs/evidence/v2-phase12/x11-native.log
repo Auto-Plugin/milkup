@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/workspace/milkup/tests/native/x11-save-history.py", line 84, in <module>
+    x.shortcut('1' if mode == 'source' else '2'); settled()
+                                                  ^^^^^^^^^
+  File "/workspace/milkup/tests/native/x11-save-history.py", line 57, in settled
+    x.barrier()
+  File "/workspace/milkup/tests/helpers/native_x11.py", line 50, in barrier
+    self.key('F24', delay=0)
+  File "/workspace/milkup/tests/helpers/native_x11.py", line 38, in key
+    self.chord(key, **kwargs)
+  File "/workspace/milkup/tests/helpers/native_x11.py", line 28, in chord
+    assert all(codes), keys
+           ^^^^^^^^^^
+AssertionError: ('F24',)

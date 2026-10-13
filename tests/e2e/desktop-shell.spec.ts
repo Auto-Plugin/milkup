@@ -418,6 +418,39 @@ async function installSaveProbe(page: Page): Promise<void> {
   })
 }
 
+for (const outcome of ['success', 'cancel', 'error'] as const) {
+  test(`existing-file ${outcome} keeps subsequent input and history dirty until their own save`, async ({
+    page,
+  }) => {
+    await installSaveProbe(page)
+    await page.goto('/')
+    await page.keyboard.insertText('base')
+    await page.keyboard.press('Control+s')
+    await expect(page.locator('[data-save-label]')).toContainText('已保存')
+    await page.keyboard.press('Enter')
+    await page.evaluate("window.__milkupSaveProbe.outcome = 'pending'")
+    await page.keyboard.press('Control+s')
+    await expect(page.locator('#app')).toHaveAttribute('data-saving', 'true')
+    await page.keyboard.press('Control+z')
+    await expect(page.locator('.milkup-editor-content')).toHaveText('base')
+    await page.keyboard.press('Control+y')
+    await page.keyboard.insertText('R')
+    await expect(page.locator('.milkup-line')).toHaveText(['base', 'R'])
+    expect(await page.evaluate('window.__milkupSaveProbe.text')).toBe('base\n')
+    await page.evaluate((result) => {
+      ;(
+        window as unknown as { __milkupSaveProbe: { release: (value: string) => void } }
+      ).__milkupSaveProbe.release(result)
+    }, outcome)
+    await expect(page.locator('#app')).toHaveAttribute('data-saving', 'false')
+    await expect(page.locator('[data-save-label]')).toContainText('未保存')
+    await page.evaluate("window.__milkupSaveProbe.outcome = 'success'")
+    await page.keyboard.press('Control+s')
+    await expect(page.locator('[data-save-label]')).toContainText('已保存')
+    expect(await page.evaluate('window.__milkupSaveProbe.text')).toBe('base\nR')
+  })
+}
+
 for (const [shortcut, action] of [
   ['Control+n', '新建文档'],
   ['Control+o', '打开另一份文档'],

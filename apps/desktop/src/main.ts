@@ -232,6 +232,7 @@ type DocumentSaveState =
       readonly phase: 'saving'
       readonly promise: Promise<boolean>
       readonly watchEvents: FileWatchEvent[]
+      readonly allowEditing: boolean
     }
 
 const app = document.querySelector<HTMLDivElement>('#app')
@@ -1178,7 +1179,12 @@ function createDesktopActions(): readonly ActionDefinition[] {
 }
 
 function runDesktopAction(id: string, input: unknown = {}): void {
-  if (closeConfirmOpen || isDocumentSaving()) return
+  if (closeConfirmOpen) return
+  if (
+    isDocumentSaving() &&
+    (isDocumentInputLocked() || !['core.undo', 'core.redo', 'file.save'].includes(id))
+  )
+    return
   importantNotice = false
   if (isDocumentBusy() && !isBusyAllowedAction(id)) {
     notice = '文档正在打开，请稍候。'
@@ -1283,7 +1289,8 @@ function createEditorView(): EditorView {
     parent: editorRoot,
     state,
     mode: session.viewMode,
-    editable: !session.readonly && !isDocumentBusy() && !isDocumentSaving() && !closeConfirmOpen,
+    editable:
+      !session.readonly && !isDocumentBusy() && !isDocumentInputLocked() && !closeConfirmOpen,
     assetProvider,
     controlledRenderers: createDesktopControlledRenderers(),
     markdownSyntax: desktopPluginManager.state().contributions.markdownSyntax,
@@ -1296,7 +1303,7 @@ function createEditorView(): EditorView {
           },
         }),
     dispatch: (transaction: Transaction) => {
-      if (view !== nextView || isDocumentBusy() || isDocumentSaving() || closeConfirmOpen) {
+      if (view !== nextView || isDocumentBusy() || isDocumentInputLocked() || closeConfirmOpen) {
         return
       }
 
@@ -1369,7 +1376,7 @@ function refreshPluginContributionsInViews(): void {
   if (action === 'preserve-large-source') {
     sourceView?.setMode(session.viewMode)
     sourceView?.setEditable(
-      !session.readonly && !isDocumentBusy() && !isDocumentSaving() && !closeConfirmOpen,
+      !session.readonly && !isDocumentBusy() && !isDocumentInputLocked() && !closeConfirmOpen,
     )
     sourceView?.setSearchHighlights(searchResultState?.matches ?? [], activeSearchResultIndex)
     return
@@ -1445,7 +1452,7 @@ function applyMemorySourceView(): void {
     sourceView.updateSource(source)
     sourceView.setMode(session.viewMode)
     sourceView.setEditable(
-      !session.readonly && !isDocumentBusy() && !isDocumentSaving() && !closeConfirmOpen,
+      !session.readonly && !isDocumentBusy() && !isDocumentInputLocked() && !closeConfirmOpen,
     )
     sourceView.setSearchHighlights(searchResultState?.matches ?? [], activeSearchResultIndex)
     return
@@ -1456,7 +1463,8 @@ function applyMemorySourceView(): void {
     parent: editorRoot,
     source,
     mode: session.viewMode,
-    editable: !session.readonly && !isDocumentBusy() && !isDocumentSaving() && !closeConfirmOpen,
+    editable:
+      !session.readonly && !isDocumentBusy() && !isDocumentInputLocked() && !closeConfirmOpen,
     onEdit: (edit) => applyMemorySourceEdit(edit),
     markdownContextLines: 24,
     backgroundMarkdownWarmup: true,
@@ -1502,7 +1510,8 @@ async function applyLargeSourceView(): Promise<void> {
     parent: editorRoot,
     source: largeDocumentPreview.source,
     mode: session.viewMode,
-    editable: !session.readonly && !isDocumentBusy() && !isDocumentSaving() && !closeConfirmOpen,
+    editable:
+      !session.readonly && !isDocumentBusy() && !isDocumentInputLocked() && !closeConfirmOpen,
     onEdit: (edit) => applyLargeSourceEdit(edit),
     markdownContextLines: 24,
     backgroundMarkdownWarmup: true,
@@ -1871,7 +1880,11 @@ function isDocumentSaving(): boolean {
   return saveState.phase === 'saving'
 }
 
-function runDocumentSave(task: () => Promise<boolean>): Promise<boolean> {
+function isDocumentInputLocked(): boolean {
+  return saveState.phase === 'saving' && !saveState.allowEditing
+}
+
+function runDocumentSave(task: () => Promise<boolean>, allowEditing = false): Promise<boolean> {
   if (saveState.phase === 'saving') return saveState.promise
   importantNotice = false
   const watchEvents: FileWatchEvent[] = []
@@ -1900,13 +1913,36 @@ function runDocumentSave(task: () => Promise<boolean>): Promise<boolean> {
         throw error
       },
     )
-  saveState = Object.freeze({ phase: 'saving', promise, watchEvents })
+  saveState = Object.freeze({ phase: 'saving', promise, watchEvents, allowEditing })
   renderSession()
   return promise
 }
 
 async function saveDocument(): Promise<boolean> {
-  return runDocumentSave(saveDocumentOnce)
+  // Existing-file saves are ordered with windowed edits/history. Later keys
+  // remain accepted and run after the write; they must not be silently dropped
+  // by a readonly input proxy or absorbed into the saved revision.
+  const allowEditing = Boolean(session.file) && !closeConfirmOpen
+  const activeSourceView = sourceView
+  if (allowEditing && activeSourceView) {
+    const documentId = session.documentId
+    let saved = false
+    await activeSourceView.runAfterPendingEdits(async () => {
+      if (sourceView !== activeSourceView || session.documentId !== documentId) return
+      saved = await runDocumentSave(
+        () => (largeDocumentPreview ? saveLargeDocument(true) : saveMemorySourceDocument(true)),
+        true,
+      )
+    })
+    return saved
+  }
+  if (allowEditing && saveState.phase === 'saving' && saveState.allowEditing) {
+    const documentId = session.documentId
+    await saveState.promise
+    if (session.documentId !== documentId) return false
+    return saveDocument()
+  }
+  return runDocumentSave(saveDocumentOnce, allowEditing)
 }
 
 async function saveDocumentOnce(): Promise<boolean> {
@@ -1962,14 +1998,14 @@ async function saveDocumentOnce(): Promise<boolean> {
   return true
 }
 
-async function saveMemorySourceDocument(): Promise<boolean> {
+async function saveMemorySourceDocument(inEditQueue = false): Promise<boolean> {
   const action: FileAction = {
     kind: 'save',
     documentId: session.documentId,
   }
 
   getRequiredDocumentId(action)
-  await sourceView?.flushPendingEdits()
+  if (!inEditQueue) await sourceView?.flushPendingEdits()
   const safety = getSaveSafety(session)
 
   if (!safety.canSave) {
@@ -2003,7 +2039,7 @@ async function saveMemorySourceDocument(): Promise<boolean> {
   return true
 }
 
-async function saveLargeDocument(): Promise<boolean> {
+async function saveLargeDocument(inEditQueue = false): Promise<boolean> {
   if (!largeDocumentPreview?.editSession) {
     return false
   }
@@ -2025,7 +2061,7 @@ async function saveLargeDocument(): Promise<boolean> {
     renderSession()
     console.info(`Large document save started: ${saveStage}`)
     for (let attempt = 0; attempt < 3; attempt += 1) {
-      await sourceView?.flushPendingEdits()
+      if (!inEditQueue) await sourceView?.flushPendingEdits()
       saveStage = '写入文件'
       notice = `正在保存大文件：${saveStage}…`
       renderSession()
@@ -2048,6 +2084,9 @@ async function saveLargeDocument(): Promise<boolean> {
         savedVersion,
       )
 
+      // Queued saves have already flushed earlier edits and hold later edits
+      // behind this write. Awaiting their own queue here would deadlock.
+      if (inEditQueue) break
       // An edit can have started immediately before saving disabled the input.
       await sourceView?.flushPendingEdits()
       if (!session.dirty && largeDocumentPreview.editSession.version === snapshot.version) {
@@ -3574,12 +3613,12 @@ function renderSession(): void {
   appRoot.dataset.loading = loadingState.phase
   appRoot.dataset.saving = String(saving)
   view?.setEditable(
-    !session.readonly && !isDocumentBusy() && !isDocumentSaving() && !closeConfirmOpen,
+    !session.readonly && !isDocumentBusy() && !isDocumentInputLocked() && !closeConfirmOpen,
   )
   sourceView?.setEditable(
     !session.readonly &&
       !isDocumentBusy() &&
-      !isDocumentSaving() &&
+      !isDocumentInputLocked() &&
       !closeConfirmOpen &&
       (!largeDocumentPreview || Boolean(largeDocumentPreview.editSession)),
   )

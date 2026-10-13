@@ -1,0 +1,115 @@
+{
+  "results": [
+    {
+      "name": "source: whole grapheme movement, deletion, immediate undo and redo",
+      "result": "PASS"
+    },
+    {
+      "name": "source: distant viewport and return preserve cursor",
+      "result": "PASS"
+    },
+    {
+      "name": "source: CRLF cross-line selection, delete, undo and disk save",
+      "result": "PASS"
+    },
+    {
+      "name": "live: whole grapheme movement, deletion, immediate undo and redo",
+      "result": "PASS"
+    },
+    {
+      "name": "live: distant viewport and return preserve cursor",
+      "result": "PASS"
+    },
+    {
+      "name": "live: CRLF cross-line selection, delete, undo and disk save",
+      "result": "PASS"
+    }
+  ],
+  "fixtureBytes": 1100019,
+  "samples": [
+    {
+      "mode": "source",
+      "kind": "page-render-plus-two-frames-ms",
+      "measurements": [
+        {
+          "direction": "away",
+          "ok": true,
+          "renderedLines": 82,
+          "elapsedMs": 81
+        },
+        {
+          "direction": "return",
+          "ok": true,
+          "renderedLines": 58,
+          "elapsedMs": 81
+        },
+        {
+          "direction": "away",
+          "ok": true,
+          "renderedLines": 82,
+          "elapsedMs": 87
+        },
+        {
+          "direction": "return",
+          "ok": true,
+          "renderedLines": 58,
+          "elapsedMs": 75
+        },
+        {
+          "direction": "away",
+          "ok": true,
+          "renderedLines": 82,
+          "elapsedMs": 91
+        },
+        {
+          "direction": "return",
+          "ok": true,
+          "renderedLines": 58,
+          "elapsedMs": 75
+        }
+      ]
+    },
+    {
+      "mode": "live",
+      "kind": "page-render-plus-two-frames-ms",
+      "measurements": [
+        {
+          "direction": "away",
+          "ok": true,
+          "renderedLines": 82,
+          "elapsedMs": 86.00000000000091
+        },
+        {
+          "direction": "return",
+          "ok": true,
+          "renderedLines": 58,
+          "elapsedMs": 65.99999999999909
+        },
+        {
+          "direction": "away",
+          "ok": true,
+          "renderedLines": 82,
+          "elapsedMs": 87
+        },
+        {
+          "direction": "return",
+          "ok": true,
+          "renderedLines": 58,
+          "elapsedMs": 29
+        },
+        {
+          "direction": "away",
+          "ok": true,
+          "renderedLines": 82,
+          "elapsedMs": 175
+        },
+        {
+          "direction": "return",
+          "ok": true,
+          "renderedLines": 58,
+          "elapsedMs": 39
+        }
+      ]
+    }
+  ]
+}

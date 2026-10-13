@@ -1,0 +1,619 @@
+{
+  "quantile": "nearest rank; small samples, not steady-state guarantees",
+  "cache": "new application per case; first target after document open versus repeated target; OS cache not dropped",
+  "cases": [
+    {
+      "case": "175k-short",
+      "mode": "source",
+      "fixtureBytes": 179219,
+      "fixtureLines": 2802,
+      "peakSampledCgroupBytes": 2467393536,
+      "violations": [],
+      "viewport": {
+        "n": 8,
+        "p50": 62,
+        "p95": 92,
+        "max": 92
+      },
+      "actual-x-key-to-content": {
+        "n": 4,
+        "p50": 26,
+        "p95": 67,
+        "max": 67
+      },
+      "save-to-ready": {
+        "n": 4,
+        "p50": 119.63990700000068,
+        "p95": 131.32862099999966,
+        "max": 131.32862099999966
+      },
+      "open-to-ready": {
+        "n": 1,
+        "p50": 280.25088800000003,
+        "p95": 280.25088800000003,
+        "max": 280.25088800000003
+      }
+    },
+    {
+      "case": "175k-short",
+      "mode": "live",
+      "fixtureBytes": 179219,
+      "fixtureLines": 2802,
+      "peakSampledCgroupBytes": 2467393536,
+      "violations": [],
+      "viewport": {
+        "n": 8,
+        "p50": 68,
+        "p95": 87.99999999999909,
+        "max": 87.99999999999909
+      },
+      "actual-x-key-to-content": {
+        "n": 4,
+        "p50": 52,
+        "p95": 65,
+        "max": 65
+      },
+      "save-to-ready": {
+        "n": 4,
+        "p50": 117.0595429999994,
+        "p95": 153.59364800000003,
+        "max": 153.59364800000003
+      },
+      "open-to-ready": {
+        "n": 1,
+        "p50": 254.17983300000014,
+        "p95": 254.17983300000014,
+        "max": 254.17983300000014
+      }
+    },
+    {
+      "case": "175k-long",
+      "mode": "source",
+      "fixtureBytes": 180243,
+      "fixtureLines": 46,
+      "peakSampledCgroupBytes": 2468528128,
+      "violations": [],
+      "viewport": {
+        "n": 8,
+        "p50": 122,
+        "p95": 132,
+        "max": 132
+      },
+      "actual-x-key-to-content": {
+        "n": 4,
+        "p50": 86.99999999999955,
+        "p95": 92,
+        "max": 92
+      },
+      "save-to-ready": {
+        "n": 4,
+        "p50": 106.2250610000001,
+        "p95": 125.92325900000014,
+        "max": 125.92325900000014
+      },
+      "open-to-ready": {
+        "n": 1,
+        "p50": 480.88593900000023,
+        "p95": 480.88593900000023,
+        "max": 480.88593900000023
+      }
+    },
+    {
+      "case": "175k-long",
+      "mode": "live",
+      "fixtureBytes": 180243,
+      "fixtureLines": 46,
+      "peakSampledCgroupBytes": 2468528128,
+      "violations": [],
+      "viewport": {
+        "n": 8,
+        "p50": 122,
+        "p95": 145.0000000000009,
+        "max": 145.0000000000009
+      },
+      "actual-x-key-to-content": {
+        "n": 4,
+        "p50": 110,
+        "p95": 124,
+        "max": 124
+      },
+      "save-to-ready": {
+        "n": 4,
+        "p50": 105.57253899999887,
+        "p95": 174.85757100000046,
+        "max": 174.85757100000046
+      },
+      "open-to-ready": {
+        "n": 1,
+        "p50": 282.8446300000005,
+        "p95": 282.8446300000005,
+        "max": 282.8446300000005
+      }
+    },
+    {
+      "case": "1m-short",
+      "mode": "source",
+      "fixtureBytes": 1048595,
+      "fixtureLines": 16386,
+      "peakSampledCgroupBytes": 2441965568,
+      "violations": [],
+      "viewport": {
+        "n": 8,
+        "p50": 81.99999999999955,
+        "p95": 120.00000000000023,
+        "max": 120.00000000000023
+      },
+      "actual-x-key-to-content": {
+        "n": 4,
+        "p50": 44.999999999999545,
+        "p95": 75,
+        "max": 75
+      },
+      "save-to-ready": {
+        "n": 4,
+        "p50": 133.28259900000012,
+        "p95": 190.71995400000014,
+        "max": 190.71995400000014
+      },
+      "open-to-ready": {
+        "n": 1,
+        "p50": 271.7490479999999,
+        "p95": 271.7490479999999,
+        "max": 271.7490479999999
+      }
+    },
+    {
+      "case": "1m-short",
+      "mode": "live",
+      "fixtureBytes": 1048595,
+      "fixtureLines": 16386,
+      "peakSampledCgroupBytes": 2441965568,
+      "violations": [],
+      "viewport": {
+        "n": 8,
+        "p50": 64,
+        "p95": 126.00000000000091,
+        "max": 126.00000000000091
+      },
+      "actual-x-key-to-content": {
+        "n": 4,
+        "p50": 37,
+        "p95": 81,
+        "max": 81
+      },
+      "save-to-ready": {
+        "n": 4,
+        "p50": 141.78371999999945,
+        "p95": 215.0356150000007,
+        "max": 215.0356150000007
+      },
+      "open-to-ready": {
+        "n": 1,
+        "p50": 269.9358750000001,
+        "p95": 269.9358750000001,
+        "max": 269.9358750000001
+      }
+    },
+    {
+      "case": "1m-long-complete",
+      "mode": "source",
+      "fixtureBytes": 1048595,
+      "fixtureLines": 258,
+      "peakSampledCgroupBytes": 2451619840,
+      "violations": [
+        {
+          "mode": "source",
+          "repeat": 0,
+          "direction": "away",
+          "elapsedMs": 506.00000000000045
+        },
+        {
+          "mode": "source",
+          "repeat": 0,
+          "direction": "return",
+          "elapsedMs": 227
+        },
+        {
+          "mode": "source",
+          "repeat": 1,
+          "direction": "away",
+          "elapsedMs": 268
+        },
+        {
+          "mode": "source",
+          "repeat": 2,
+          "direction": "away",
+          "elapsedMs": 319
+        },
+        {
+          "mode": "source",
+          "repeat": 3,
+          "direction": "away",
+          "elapsedMs": 299.00000000000045
+        }
+      ],
+      "viewport": {
+        "n": 8,
+        "p50": 227,
+        "p95": 506.00000000000045,
+        "max": 506.00000000000045
+      },
+      "actual-x-key-to-content": {
+        "n": 4,
+        "p50": 69,
+        "p95": 76,
+        "max": 76
+      },
+      "save-to-ready": {
+        "n": 4,
+        "p50": 153.267656,
+        "p95": 187.46117699999922,
+        "max": 187.46117699999922
+      },
+      "open-to-ready": {
+        "n": 1,
+        "p50": 685.7279890000002,
+        "p95": 685.7279890000002,
+        "max": 685.7279890000002
+      }
+    },
+    {
+      "case": "1m-long-complete",
+      "mode": "live",
+      "fixtureBytes": 1048595,
+      "fixtureLines": 258,
+      "peakSampledCgroupBytes": 2451619840,
+      "violations": [],
+      "viewport": {
+        "n": 8,
+        "p50": 120,
+        "p95": 434,
+        "max": 434
+      },
+      "actual-x-key-to-content": {
+        "n": 4,
+        "p50": 70.00000000000182,
+        "p95": 86,
+        "max": 86
+      },
+      "save-to-ready": {
+        "n": 4,
+        "p50": 171.391787999999,
+        "p95": 223.01968500000112,
+        "max": 223.01968500000112
+      },
+      "open-to-ready": {
+        "n": 1,
+        "p50": 481.66011699999945,
+        "p95": 481.66011699999945,
+        "max": 481.66011699999945
+      }
+    },
+    {
+      "case": "10m-short",
+      "mode": "source",
+      "fixtureBytes": 10485779,
+      "fixtureLines": 163842,
+      "peakSampledCgroupBytes": 2534752256,
+      "violations": [],
+      "viewport": {
+        "n": 8,
+        "p50": 82.99999999999955,
+        "p95": 110.99999999999955,
+        "max": 110.99999999999955
+      },
+      "actual-x-key-to-content": {
+        "n": 4,
+        "p50": 39.00000000000091,
+        "p95": 55,
+        "max": 55
+      },
+      "save-to-ready": {
+        "n": 4,
+        "p50": 479.0743970000003,
+        "p95": 499.8214080000007,
+        "max": 499.8214080000007
+      },
+      "open-to-ready": {
+        "n": 1,
+        "p50": 979.10349,
+        "p95": 979.10349,
+        "max": 979.10349
+      }
+    },
+    {
+      "case": "10m-short",
+      "mode": "live",
+      "fixtureBytes": 10485779,
+      "fixtureLines": 163842,
+      "peakSampledCgroupBytes": 2534752256,
+      "violations": [],
+      "viewport": {
+        "n": 8,
+        "p50": 72.00000000000182,
+        "p95": 108,
+        "max": 108
+      },
+      "actual-x-key-to-content": {
+        "n": 4,
+        "p50": 58,
+        "p95": 80,
+        "max": 80
+      },
+      "save-to-ready": {
+        "n": 4,
+        "p50": 460.25105500000063,
+        "p95": 510.3929820000012,
+        "max": 510.3929820000012
+      },
+      "open-to-ready": {
+        "n": 1,
+        "p50": 514.0243559999999,
+        "p95": 514.0243559999999,
+        "max": 514.0243559999999
+      }
+    },
+    {
+      "case": "10m-long-complete",
+      "mode": "source",
+      "fixtureBytes": 10485779,
+      "fixtureLines": 2562,
+      "peakSampledCgroupBytes": 2542432256,
+      "violations": [
+        {
+          "mode": "source",
+          "repeat": 0,
+          "direction": "return",
+          "elapsedMs": 253.00000000000045
+        },
+        {
+          "mode": "source",
+          "repeat": 1,
+          "direction": "away",
+          "elapsedMs": 266
+        },
+        {
+          "mode": "source",
+          "repeat": 2,
+          "direction": "away",
+          "elapsedMs": 282
+        },
+        {
+          "mode": "source",
+          "repeat": 3,
+          "direction": "away",
+          "elapsedMs": 267
+        }
+      ],
+      "viewport": {
+        "n": 8,
+        "p50": 253.00000000000045,
+        "p95": 422,
+        "max": 422
+      },
+      "actual-x-key-to-content": {
+        "n": 4,
+        "p50": 57,
+        "p95": 94,
+        "max": 94
+      },
+      "save-to-ready": {
+        "n": 4,
+        "p50": 468.87270100000023,
+        "p95": 519.4931320000005,
+        "max": 519.4931320000005
+      },
+      "open-to-ready": {
+        "n": 1,
+        "p50": 859.8706319999997,
+        "p95": 859.8706319999997,
+        "max": 859.8706319999997
+      }
+    },
+    {
+      "case": "10m-long-complete",
+      "mode": "live",
+      "fixtureBytes": 10485779,
+      "fixtureLines": 2562,
+      "peakSampledCgroupBytes": 2542432256,
+      "violations": [
+        {
+          "mode": "live",
+          "repeat": 0,
+          "direction": "away",
+          "elapsedMs": 592
+        },
+        {
+          "mode": "live",
+          "repeat": 3,
+          "direction": "away",
+          "elapsedMs": 219.00000000000182
+        }
+      ],
+      "viewport": {
+        "n": 8,
+        "p50": 152.00000000000182,
+        "p95": 592,
+        "max": 592
+      },
+      "actual-x-key-to-content": {
+        "n": 4,
+        "p50": 55,
+        "p95": 72,
+        "max": 72
+      },
+      "save-to-ready": {
+        "n": 4,
+        "p50": 459.7754079999977,
+        "p95": 554.8800360000005,
+        "max": 554.8800360000005
+      },
+      "open-to-ready": {
+        "n": 1,
+        "p50": 840.131089999999,
+        "p95": 840.131089999999,
+        "max": 840.131089999999
+      }
+    },
+    {
+      "case": "100m-short",
+      "mode": "source",
+      "fixtureBytes": 104857619,
+      "fixtureLines": 1638402,
+      "peakSampledCgroupBytes": 3141963776,
+      "violations": [],
+      "viewport": {
+        "n": 8,
+        "p50": 65,
+        "p95": 75,
+        "max": 75
+      },
+      "actual-x-key-to-content": {
+        "n": 4,
+        "p50": 48,
+        "p95": 53,
+        "max": 53
+      },
+      "save-to-ready": {
+        "n": 4,
+        "p50": 3824.1333300000006,
+        "p95": 4068.7268879999992,
+        "max": 4068.7268879999992
+      },
+      "open-to-ready": {
+        "n": 1,
+        "p50": 3254.266927,
+        "p95": 3254.266927,
+        "max": 3254.266927
+      }
+    },
+    {
+      "case": "100m-short",
+      "mode": "live",
+      "fixtureBytes": 104857619,
+      "fixtureLines": 1638402,
+      "peakSampledCgroupBytes": 3141963776,
+      "violations": [],
+      "viewport": {
+        "n": 8,
+        "p50": 59,
+        "p95": 134,
+        "max": 134
+      },
+      "actual-x-key-to-content": {
+        "n": 4,
+        "p50": 45,
+        "p95": 74,
+        "max": 74
+      },
+      "save-to-ready": {
+        "n": 4,
+        "p50": 3677.1356150000065,
+        "p95": 3797.1094139999987,
+        "max": 3797.1094139999987
+      },
+      "open-to-ready": {
+        "n": 1,
+        "p50": 3096.0399780000007,
+        "p95": 3096.0399780000007,
+        "max": 3096.0399780000007
+      }
+    },
+    {
+      "case": "100m-long",
+      "mode": "source",
+      "fixtureBytes": 104857619,
+      "fixtureLines": 25602,
+      "peakSampledCgroupBytes": 3309293568,
+      "violations": [
+        {
+          "mode": "source",
+          "repeat": 0,
+          "direction": "return",
+          "elapsedMs": 214
+        },
+        {
+          "mode": "source",
+          "repeat": 1,
+          "direction": "away",
+          "elapsedMs": 279
+        },
+        {
+          "mode": "source",
+          "repeat": 2,
+          "direction": "away",
+          "elapsedMs": 246
+        },
+        {
+          "mode": "source",
+          "repeat": 3,
+          "direction": "away",
+          "elapsedMs": 225.0000000000009
+        }
+      ],
+      "viewport": {
+        "n": 8,
+        "p50": 214,
+        "p95": 437,
+        "max": 437
+      },
+      "actual-x-key-to-content": {
+        "n": 4,
+        "p50": 60.00000000000364,
+        "p95": 72,
+        "max": 72
+      },
+      "save-to-ready": {
+        "n": 4,
+        "p50": 3676.5906130000003,
+        "p95": 3751.064214000002,
+        "max": 3751.064214000002
+      },
+      "open-to-ready": {
+        "n": 1,
+        "p50": 3103.4167939999998,
+        "p95": 3103.4167939999998,
+        "max": 3103.4167939999998
+      }
+    },
+    {
+      "case": "100m-long",
+      "mode": "live",
+      "fixtureBytes": 104857619,
+      "fixtureLines": 25602,
+      "peakSampledCgroupBytes": 3309293568,
+      "violations": [
+        {
+          "mode": "live",
+          "repeat": 0,
+          "direction": "away",
+          "elapsedMs": 508.00000000000364
+        }
+      ],
+      "viewport": {
+        "n": 8,
+        "p50": 122,
+        "p95": 508.00000000000364,
+        "max": 508.00000000000364
+      },
+      "actual-x-key-to-content": {
+        "n": 4,
+        "p50": 56,
+        "p95": 67,
+        "max": 67
+      },
+      "save-to-ready": {
+        "n": 4,
+        "p50": 3669.9082770000023,
+        "p95": 3854.082596,
+        "max": 3854.082596
+      },
+      "open-to-ready": {
+        "n": 1,
+        "p50": 2790.919984,
+        "p95": 2790.919984,
+        "max": 2790.919984
+      }
+    }
+  ]
+}
