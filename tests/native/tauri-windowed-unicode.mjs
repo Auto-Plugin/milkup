@@ -230,12 +230,16 @@ try {
         'document.querySelector(arguments[0]).scrollIntoView({block:"center"})',
         '.milkup-line[data-line="80"]',
       )
-      const element = await req('POST', `/session/${sid}/element`, {
-        using: 'css selector',
-        value: '.milkup-line[data-line="80"]',
+      // Scrolling replaces virtualized row elements. Read coordinates atomically
+      // after frames settle instead of retaining a WebDriver element across renders.
+      const rect = await req('POST', `/session/${sid}/execute/async`, {
+        script: `const selector=arguments[0],done=arguments[arguments.length-1];
+          requestAnimationFrame(()=>requestAnimationFrame(()=>{
+            const rect=document.querySelector(selector).getBoundingClientRect();
+            done({x:rect.x,y:rect.y,width:rect.width,height:rect.height});
+          }));`,
+        args: ['.milkup-line[data-line="80"]'],
       })
-      const id = Object.values(element)[0]
-      const rect = await req('GET', `/session/${sid}/element/${id}/rect`)
       await req('POST', `/session/${sid}/actions`, {
         actions: [
           {

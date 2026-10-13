@@ -1760,20 +1760,32 @@ fn read_large_line_window(
 
     let from_byte = store.piece_tree.line_start_byte(from_line)?;
     let to_byte = line_content_end_byte(store, to_line)?;
+    // Resolve tree offsets only at the window boundary. Re-resolving every row
+    // reads/scans the same piece prefixes repeatedly, and blocks native IPC.
+    let text = read_large_text_byte_range(store, from_byte, to_byte)?;
+    let mut byte_offset = from_byte;
+    let mut utf16_offset = store.piece_tree.byte_to_utf16(from_byte)?;
     let mut lines = Vec::with_capacity(to_line - from_line + 1);
-
-    for number in from_line..=to_line {
-        let line_from = store.piece_tree.line_start_byte(number)?;
-        let line_to = line_content_end_byte(store, number)?;
-
+    for (index, raw_line) in text.split('\n').enumerate() {
+        let number = from_line + index;
+        // The final line's CR has already been excluded by line_content_end_byte.
+        // Intermediate rows still contain their CRLF separator; remove one CR only.
+        let content = if number == to_line {
+            raw_line
+        } else {
+            raw_line.strip_suffix('\r').unwrap_or(raw_line)
+        };
+        let content_utf16_len = content.encode_utf16().count();
         lines.push(LargeFileLine {
             number,
-            from_byte: line_from,
-            to_byte: line_to,
-            from_utf16: byte_to_utf16_offset_in_line(store, number, line_from)?,
-            to_utf16: byte_to_utf16_offset_in_line(store, number, line_to)?,
-            text: read_large_text_byte_range(store, line_from, line_to)?,
+            from_byte: byte_offset,
+            to_byte: byte_offset + content.len(),
+            from_utf16: utf16_offset,
+            to_utf16: utf16_offset + content_utf16_len,
+            text: content.to_string(),
         });
+        byte_offset += raw_line.len() + 1;
+        utf16_offset += raw_line.encode_utf16().count() + 1;
     }
 
     Ok((from_byte, to_byte, lines))
@@ -1784,22 +1796,6 @@ fn line_content_end_byte(
     line_number: usize,
 ) -> Result<usize, String> {
     store.piece_tree.line_content_end_byte(line_number)
-}
-
-fn byte_to_utf16_offset_in_line(
-    store: &mut LargeFileRegistration,
-    line_number: usize,
-    byte_offset: usize,
-) -> Result<usize, String> {
-    let line_start = store.piece_tree.line_start_byte(line_number)?;
-
-    if byte_offset < line_start || byte_offset > store.size_bytes {
-        return Err(format!(
-            "Invalid line byte offset: {byte_offset} for line {line_number}"
-        ));
-    }
-
-    store.piece_tree.byte_to_utf16(byte_offset)
 }
 
 #[cfg(test)]
@@ -2265,6 +2261,79 @@ mod tests {
                 (3, 12, 12, 12, 12, "")
             ]
         );
+        remove_test_dir(dir);
+    }
+
+    #[test]
+    fn line_window_offsets_match_unicode_crlf_and_piece_boundaries_after_edits() {
+        let dir = create_test_dir("window-boundaries");
+        // Cross both the 64 KiB piece boundary and a CRLF boundary, retaining
+        // literal CRs before separators, empty rows and an empty final row.
+        let text = format!("{}\r\nA👩🏽‍💻é🇨🇳\r\r\n\r\n尾\n", "x".repeat(65_535));
+        let mut store = create_large_file_store(&dir, "large.md", &text);
+        assert_window_offsets(&mut store, &text);
+        store
+            .piece_tree
+            .apply_batch(&[(65_535, 65_537, "😀\n中\r\n".to_string())])
+            .unwrap();
+        store.size_bytes = store.piece_tree.byte_len();
+        let edited = text.replacen("\r\n", "😀\n中\r\n", 1);
+        assert_window_offsets(&mut store, &edited);
+        drop(store);
+        remove_test_dir(dir);
+    }
+
+    fn assert_window_offsets(store: &mut LargeFileRegistration, text: &str) {
+        let raw_lines = text.split('\n').collect::<Vec<_>>();
+        for from in 1..=raw_lines.len() {
+            for to in from..=raw_lines.len() {
+                let (_, _, lines) = read_large_line_window(store, from, to).unwrap();
+                assert_eq!(lines.len(), to - from + 1);
+                let mut byte_offset = 0;
+                let mut utf16_offset = 0;
+                for (index, raw_line) in raw_lines.iter().enumerate() {
+                    let number = index + 1;
+                    let content = raw_line.strip_suffix('\r').unwrap_or(raw_line);
+                    if number >= from && number <= to {
+                        let line = &lines[number - from];
+                        assert_eq!(line.number, number);
+                        assert_eq!(line.text, content);
+                        assert_eq!(
+                            (line.from_byte, line.to_byte),
+                            (byte_offset, byte_offset + content.len())
+                        );
+                        assert_eq!(
+                            (line.from_utf16, line.to_utf16),
+                            (utf16_offset, utf16_offset + content.encode_utf16().count())
+                        );
+                    }
+                    byte_offset += raw_line.len() + 1;
+                    utf16_offset += raw_line.encode_utf16().count() + 1;
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn profiles_distant_line_windows_with_unicode_crlf_fixture() {
+        let dir = create_test_dir("window-profile");
+        let text = format!("A👩🏽‍💻B\r\n{}", "body line\r\n".repeat(100_000));
+        let mut store = create_large_file_store(&dir, "large.md", &text);
+        for repeat in 0..4 {
+            for (from, to) in [(4738, 4819), (1, 58)] {
+                let started = std::time::Instant::now();
+                let (_, _, lines) = read_large_line_window(&mut store, from, to).unwrap();
+                let elapsed = started.elapsed().as_secs_f64() * 1000.0;
+                assert_eq!(lines.len(), to - from + 1);
+                assert_eq!(
+                    lines[0].from_utf16,
+                    if from == 1 { 0 } else { (from - 1) * 11 }
+                );
+                assert_eq!(lines.last().unwrap().text, "body line");
+                println!("WINDOW_PROFILE {{\"repeat\":{repeat},\"from\":{from},\"to\":{to},\"rustMs\":{elapsed}}}");
+            }
+        }
+        drop(store);
         remove_test_dir(dir);
     }
 
