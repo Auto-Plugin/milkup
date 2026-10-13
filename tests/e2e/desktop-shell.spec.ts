@@ -405,6 +405,7 @@ async function installSaveProbe(page: Page): Promise<void> {
           return { documentId: session.documentId, file: { path: '/notes/saved.md' }, diskSnapshotHash: 'saved:' + text };
         };
         service.saveFileAs = service.saveFile;
+        service.listenToFileWatchEvents = async handler => { window.__milkupFileWatch = handler; return () => {}; };
         const openPath = service.openPath.bind(service);
         service.selectOpenFile = async () => probe.open === 'cancel' ? undefined : '/notes/next.md';
         service.openPath = async (...args) => {
@@ -709,3 +710,157 @@ test('windowed memory documents keep finalized composition separate from adjacen
   await page.keyboard.press('Control+z')
   await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('AORIGINAL')
 })
+
+async function installPendingAssetProbe(page: Page): Promise<void> {
+  await page.route(/\/src\/asset-service\.ts(?:\?|$)/, async (route) => {
+    const response = await route.fetch()
+    const body = (await response.text()).replace(
+      'return new SessionAssetProvider(config);',
+      `const probe = window.__milkupAssetProbe = { calls: 0 };
+       return { async importAsset(input) {
+         probe.calls++;
+         const outcome = await new Promise(resolve => { probe.release = resolve; });
+         if (outcome === 'error') throw new Error('asset disk full');
+         return { originalName: input.name, fileName: 'a.png', relativePath: 'assets/a.png', mimeType: input.type };
+       } };`,
+    )
+    await route.fulfill({ response, body })
+  })
+}
+
+async function pasteDelayedImage(page: Page): Promise<void> {
+  await page.locator('.milkup-input-proxy').evaluate((input) => {
+    const data = new DataTransfer()
+    data.items.add(new File(['image'], 'a.png', { type: 'image/png' }))
+    input.dispatchEvent(
+      new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }),
+    )
+  })
+  await expect.poll(() => page.evaluate('window.__milkupAssetProbe.calls')).toBe(1)
+}
+
+test('late image imports never write into a newly created document', async ({ page }) => {
+  await installPendingAssetProbe(page)
+  await page.goto('/')
+  await pasteDelayedImage(page)
+  const previousId = await page.locator('[data-stat="document-id"]').textContent()
+  await page.keyboard.press('Control+n')
+  await expect(page.locator('[data-stat="document-id"]')).not.toHaveText(previousId!)
+  await page.evaluate('window.__milkupAssetProbe.release()')
+  await page.evaluate(() => new Promise(requestAnimationFrame))
+  await expect(page.locator('[data-stat="char-count"]')).toHaveText('0 字符')
+  await expect(page.locator('[data-save-label]')).toContainText('已保存')
+  await page.keyboard.type('NEW')
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('[data-stat="char-count"]')).toHaveText('0 字符')
+})
+
+for (const kind of ['modified', 'deleted', 'own-save'] as const) {
+  test(`pending save reconciles ${kind} events before allowing navigation`, async ({ page }) => {
+    await installSaveProbe(page)
+    await page.goto('/')
+    await page.keyboard.type('KEEP')
+    await page.keyboard.press('Control+s')
+    await expect(page.locator('[data-save-label]')).toContainText('已保存')
+    await page.keyboard.type('!')
+    const previousId = await page.locator('[data-stat="document-id"]').textContent()
+    await page.evaluate("window.__milkupSaveProbe.outcome = 'pending'")
+    await page.keyboard.press('Control+n')
+    const dialog = page.getByRole('dialog', { name: '文档尚未保存' })
+    await dialog.getByRole('button', { name: '保存并新建文档', exact: true }).click()
+    await expect.poll(() => page.evaluate('window.__milkupSaveProbe.calls')).toBe(2)
+    await page.evaluate((kind) => {
+      const host = window as unknown as {
+        __milkupFileWatch: (event: unknown) => void
+        __milkupSaveProbe: { text: string; release: (value: string) => void }
+      }
+      host.__milkupFileWatch({
+        kind: kind === 'deleted' ? 'deleted' : 'modified',
+        documentId: document.querySelector('[data-stat="document-id"]')!.textContent,
+        file: { path: '/notes/saved.md' },
+        ...(kind === 'own-save'
+          ? { diskSnapshotHash: 'saved:' + host.__milkupSaveProbe.text }
+          : {}),
+      })
+      host.__milkupSaveProbe.release('success')
+    }, kind)
+    if (kind === 'own-save') {
+      await expect(dialog).toBeHidden()
+      await expect(page.locator('[data-stat="document-id"]')).not.toHaveText(previousId!)
+    } else {
+      await expect(dialog.getByRole('alert')).toContainText('外部')
+      await expect(page.locator('[data-stat="document-id"]')).toHaveText(previousId!)
+      await expect(page.locator('.milkup-editor-content')).toContainText('KEEP!')
+      await expect(page.locator('[data-stat="external"]')).not.toHaveText('none')
+      await page.keyboard.press('Escape')
+      await page.keyboard.press('Control+s')
+      expect(await page.evaluate('window.__milkupSaveProbe.calls')).toBe(2)
+    }
+  })
+}
+
+test('saving cancels a pending image import without dirtying the saved snapshot', async ({
+  page,
+}) => {
+  await installPendingAssetProbe(page)
+  await installSaveProbe(page)
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  await page.goto('/')
+  await page.keyboard.type('BEFORE')
+  await pasteDelayedImage(page)
+  await page.keyboard.press('Control+s')
+  await expect(page.locator('[data-save-label]')).toContainText('已保存')
+  await page.evaluate('window.__milkupAssetProbe.release()')
+  await expect(page.locator('[data-notice]')).toContainText('图片导入已取消')
+  await expect(page.locator('.milkup-editor-content')).toHaveText('BEFORE')
+  await expect(page.locator('[data-save-label]')).toContainText('已保存')
+  expect(await page.evaluate('window.__milkupSaveProbe.text')).toBe('BEFORE')
+  expect(errors).toEqual([])
+})
+
+test('failed image imports show an error and a subsequent paste can succeed', async ({ page }) => {
+  await installPendingAssetProbe(page)
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  await page.goto('/')
+  await pasteDelayedImage(page)
+  await page.evaluate("window.__milkupAssetProbe.release('error')")
+  await expect(page.locator('[data-notice]')).toContainText('asset disk full')
+  await expect(page.locator('[data-save-label]')).toContainText('已保存')
+  await page.evaluate('window.__milkupAssetProbe.calls = 0')
+  await pasteDelayedImage(page)
+  await page.evaluate('window.__milkupAssetProbe.release()')
+  await expect(page.locator('[data-save-label]')).toContainText('未保存')
+  await page.keyboard.press('Control+1')
+  await expect(page.locator('.milkup-editor-content')).toContainText('![a](assets/a.png)')
+  await expect(page.locator('[data-notice]')).toBeHidden()
+  await page.keyboard.press('Control+z')
+  await expect(page.locator('[data-stat="char-count"]')).toHaveText('0 字符')
+  expect(errors).toEqual([])
+})
+
+for (const mode of ['source', 'live'] as const) {
+  test(`Unicode graphemes survive keyboard selection, deletion and undo in ${mode}`, async ({
+    page,
+  }) => {
+    await page.goto('/')
+    if (mode === 'source') await page.keyboard.press('Control+1')
+    await page.keyboard.insertText('A👩🏽‍💻B')
+    await page.keyboard.press('ArrowLeft')
+    await page.keyboard.press('Backspace')
+    await expect(page.locator('.milkup-editor-content')).toHaveText('AB')
+    await page.keyboard.press('Control+z')
+    await expect(page.locator('.milkup-editor-content')).toHaveText('A👩🏽‍💻B')
+    await page.keyboard.press('Control+a')
+    await page.keyboard.press('ArrowLeft')
+    await page.keyboard.press('ArrowRight')
+    await page.keyboard.press('Shift+ArrowRight')
+    await page.keyboard.press('Delete')
+    await expect(page.locator('.milkup-editor-content')).toHaveText('AB')
+    await page.keyboard.press('Control+z')
+    await expect(page.locator('.milkup-editor-content')).toHaveText('A👩🏽‍💻B')
+    await page.keyboard.press('Control+Shift+z')
+    await expect(page.locator('.milkup-editor-content')).toHaveText('AB')
+  })
+}

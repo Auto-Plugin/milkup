@@ -1,3 +1,4 @@
+import { reconcileSaveWatchEvents } from './save-watch-reconciliation'
 import {
   createDocumentTransitionController,
   type DocumentTransitionPrompt,
@@ -41,6 +42,7 @@ import {
 } from '@milkup/tauri-bridge'
 import type {
   FileAction,
+  FileWatchEvent,
   OpenFileResult,
   RecentFileEntry,
   SessionViewMode,
@@ -227,6 +229,7 @@ type DocumentSaveState =
   | {
       readonly phase: 'saving'
       readonly promise: Promise<boolean>
+      readonly watchEvents: FileWatchEvent[]
     }
 
 const app = document.querySelector<HTMLDivElement>('#app')
@@ -630,6 +633,7 @@ void fileService
 
     try {
       session = applyFileWatchEvent(session, event)
+      if (saveState.phase === 'saving') saveState.watchEvents.push(event)
       notice =
         event.kind === 'deleted'
           ? messages.notices.externalDeleted
@@ -1217,7 +1221,7 @@ function createEditorView(): EditorView {
           },
         }),
     dispatch: (transaction: Transaction) => {
-      if (isDocumentBusy()) {
+      if (view !== nextView || isDocumentBusy() || isDocumentSaving() || closeConfirmOpen) {
         return
       }
 
@@ -1230,6 +1234,18 @@ function createEditorView(): EditorView {
       view.updateState(state, [transaction])
       renderSession()
     },
+  })
+  nextView.dom.addEventListener('milkup-input-error', (event) => {
+    if (view !== nextView) return
+    importantNotice = true
+    notice = `图片粘贴未完成：${getErrorMessage((event as CustomEvent<unknown>).detail)}`
+    renderSession()
+  })
+  nextView.dom.addEventListener('milkup-image-imported', () => {
+    if (view !== nextView || !notice.startsWith('图片粘贴未完成：')) return
+    importantNotice = false
+    notice = ''
+    renderSession()
   })
   nextView.dom.addEventListener('milkup-plugin-renderer-action', (event) => {
     const detail = (event as CustomEvent<ControlledRendererActionDetail>).detail
@@ -1783,11 +1799,20 @@ function isDocumentSaving(): boolean {
 function runDocumentSave(task: () => Promise<boolean>): Promise<boolean> {
   if (saveState.phase === 'saving') return saveState.promise
   importantNotice = false
+  const watchEvents: FileWatchEvent[] = []
   // Establish the lock before invoking the async operation, including Save As dialogs.
   const promise = Promise.resolve()
     .then(task)
     .then(
       (saved) => {
+        if (saved) {
+          session = reconcileSaveWatchEvents(session, watchEvents)
+          if (session.externalChangeState !== 'none') {
+            importantNotice = true
+            notice = '保存期间检测到外部文件更改，已保留当前文档。请核对磁盘内容后再继续。'
+            saved = false
+          }
+        }
         saveState = Object.freeze({ phase: 'idle' })
         renderSession()
         return saved
@@ -1800,7 +1825,7 @@ function runDocumentSave(task: () => Promise<boolean>): Promise<boolean> {
         throw error
       },
     )
-  saveState = Object.freeze({ phase: 'saving', promise })
+  saveState = Object.freeze({ phase: 'saving', promise, watchEvents })
   renderSession()
   return promise
 }
@@ -1869,6 +1894,7 @@ async function saveMemorySourceDocument(): Promise<boolean> {
   }
 
   getRequiredDocumentId(action)
+  await sourceView?.flushPendingEdits()
   const safety = getSaveSafety(session)
 
   if (!safety.canSave) {
@@ -1879,7 +1905,6 @@ async function saveMemorySourceDocument(): Promise<boolean> {
     return false
   }
 
-  await sourceView?.flushPendingEdits()
   const savedVersion = session.documentVersion
   const result = await fileService.saveFile(
     session,

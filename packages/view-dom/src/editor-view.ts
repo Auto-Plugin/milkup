@@ -2,6 +2,11 @@ import { createMarkdownImage, isImageAsset } from '@milkup/assets'
 import type { AssetProvider } from '@milkup/assets'
 import { ChangeSet, Selection, transactionChangesDocument } from '@milkup/core'
 import type { EditorState, Transaction } from '@milkup/core'
+import {
+  nextGraphemePosition,
+  previousGraphemePosition,
+  snapGraphemePosition,
+} from './grapheme-navigation'
 import { collectClipboardPayload, normalizePaste } from '@milkup/input'
 import {
   createMarkdownParseCache,
@@ -97,6 +102,8 @@ export class EditorView {
   private suppressNextClick = false
   private mode: ViewMode
   private editable: boolean
+  private destroyed = false
+  private asyncInputGeneration = 0
   private readonly virtualViewport: VirtualViewportState | undefined
   private searchHighlights: readonly SearchHighlight[] = Object.freeze([])
   private activeSearchHighlightIndex = -1
@@ -107,7 +114,11 @@ export class EditorView {
     this.renderVirtualViewportOnScroll()
   }
   private readonly handlePasteEvent = (event: ClipboardEvent): void => {
-    void this.handlePaste(event)
+    void this.handlePaste(event).catch((error: unknown) => {
+      if (!this.destroyed) {
+        this.dom.dispatchEvent(new CustomEvent('milkup-input-error', { detail: error }))
+      }
+    })
   }
   private readonly handleKeyDownEvent = (event: KeyboardEvent): void => {
     if (this.handleEditingKey(event)) {
@@ -208,6 +219,7 @@ export class EditorView {
 
   updateState(state: EditorState, transactions: readonly Transaction[] = []): ViewUpdate {
     const previousState = this.currentState
+    if (state.doc !== previousState.doc) this.asyncInputGeneration += 1
     this.currentState = state
     const documentChanged = transactions.some(transactionChangesDocument)
 
@@ -262,6 +274,7 @@ export class EditorView {
       return
     }
 
+    if (!editable) this.asyncInputGeneration += 1
     this.editable = editable
     this.dom.dataset.editable = String(editable)
     this.inputDOM.readOnly = !editable
@@ -315,6 +328,8 @@ export class EditorView {
   }
 
   destroy(): void {
+    this.destroyed = true
+    this.asyncInputGeneration += 1
     this.inputDOM.removeEventListener('input', this.handleInputEvent)
     this.inputDOM.removeEventListener('paste', this.handlePasteEvent)
     this.inputDOM.removeEventListener('keydown', this.handleKeyDownEvent)
@@ -717,13 +732,22 @@ export class EditorView {
       }
 
       event.preventDefault()
-      const imported = await this.importPastedImages(payload.files ?? [])
+      const generation = this.asyncInputGeneration
+      const range = this.currentState.selection.main
+      const imported = await this.importPastedImages(payload.files ?? [], generation)
 
-      if (imported.length === 0) {
+      if (imported.length === 0 || !this.isImageImportCurrent(generation)) {
         return
       }
 
-      this.insertText(imported.join('\n'), 'input.paste')
+      const text = imported.join('\n')
+      this.dispatch({
+        changes: ChangeSet.replace(range.from, range.to, text),
+        selection: Selection.cursor(range.from + text.length),
+        origin: { type: 'input.type', id: 'input.paste' },
+        historyGroup: 'isolate',
+      })
+      this.dom.dispatchEvent(new Event('milkup-image-imported'))
       return
     }
 
@@ -735,7 +759,10 @@ export class EditorView {
     this.insertText(paste.text, 'input.paste')
   }
 
-  private async importPastedImages(files: readonly PastedAssetInput[]): Promise<readonly string[]> {
+  private async importPastedImages(
+    files: readonly PastedAssetInput[],
+    generation: number,
+  ): Promise<readonly string[]> {
     if (!this.assetProvider) {
       return []
     }
@@ -749,10 +776,19 @@ export class EditorView {
         type: image.type,
         data: image.file,
       })
+      if (!this.isImageImportCurrent(generation)) return []
       imported.push(createMarkdownImage(asset))
     }
 
     return Object.freeze(imported)
+  }
+
+  private isImageImportCurrent(generation: number): boolean {
+    if (this.destroyed) return false
+    if (generation !== this.asyncInputGeneration || !this.editable) {
+      throw new Error('图片导入已取消：文档内容或编辑状态已改变，请重新粘贴。')
+    }
+    return true
   }
 
   private handleEditingKey(event: KeyboardEvent): boolean {
@@ -829,10 +865,11 @@ export class EditorView {
       return false
     }
 
-    const from = range.head - 1
+    const from = previousGraphemePosition(this.currentState.doc, range.head)
+    const to = snapGraphemePosition(this.currentState.doc, range.head, 'forward')
 
     this.dispatch({
-      changes: ChangeSet.delete(from, range.head),
+      changes: ChangeSet.delete(from, to),
       selection: Selection.cursor(from),
       origin: { type: 'input.delete' },
     })
@@ -855,11 +892,12 @@ export class EditorView {
       return false
     }
 
-    const to = range.head + 1
+    const from = snapGraphemePosition(this.currentState.doc, range.head)
+    const to = nextGraphemePosition(this.currentState.doc, range.head)
 
     this.dispatch({
-      changes: ChangeSet.delete(range.head, to),
-      selection: Selection.cursor(range.head),
+      changes: ChangeSet.delete(from, to),
+      selection: Selection.cursor(from),
       origin: { type: 'input.delete' },
     })
     return true
@@ -873,9 +911,9 @@ export class EditorView {
     if (!extend && !range.empty) {
       next = direction === 'right' || direction === 'down' ? range.to : range.from
     } else if (direction === 'left') {
-      next = Math.max(0, current - 1)
+      next = previousGraphemePosition(this.currentState.doc, current)
     } else if (direction === 'right') {
-      next = Math.min(this.currentState.doc.length, current + 1)
+      next = nextGraphemePosition(this.currentState.doc, current)
     } else {
       next = this.moveCursorVertically(current, direction)
     }
@@ -901,7 +939,10 @@ export class EditorView {
     }
 
     const targetLine = this.currentState.doc.line(targetLineNumber)
-    return targetLine.from + Math.min(offset, targetLine.to - targetLine.from)
+    return snapGraphemePosition(
+      this.currentState.doc,
+      targetLine.from + Math.min(offset, targetLine.to - targetLine.from),
+    )
   }
 
   private placeCursorFromClick(event: MouseEvent): void {
