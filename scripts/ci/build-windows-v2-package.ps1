@@ -48,8 +48,12 @@ try {
     $manifest['tools'] = [ordered]@{ node = (& node --version); pnpm = (& pnpm --version); rust = (& rustc --version); cargo = (& cargo --version) }
     if ((Get-PSDrive -Name (Get-Location).Drive.Name).Free -lt 8GB) { throw 'Less than 8 GiB build disk budget remains' }
     Invoke-Checked 'pnpm' @('install', '--frozen-lockfile')
+    $tauriVersion = (& pnpm --filter '@milkup/desktop' exec tauri --version).Trim()
+    if ($LASTEXITCODE -ne 0 -or $tauriVersion -ne 'tauri-cli 2.11.4') { throw 'Review binary verification contract before changing Tauri CLI version' }
+    $manifest.tools['tauriCli'] = $tauriVersion
     Invoke-Checked 'pnpm' @('-r', '--workspace-concurrency=1', 'test')
     Invoke-Checked 'pnpm' @('typecheck')
+    Invoke-Checked 'node' @('--test', 'tests/windows/verify-installed-binary.test.mjs')
     Invoke-Checked 'cargo' @('test', '--locked', '--manifest-path', 'apps/desktop/src-tauri/Cargo.toml', '--lib')
     Invoke-Checked 'pnpm' @('--filter', '@milkup/desktop', 'tauri', 'build', '--target', 'x86_64-pc-windows-msvc', '--bundles', 'nsis', '--ci', '--', '--locked')
     $target = Join-Path (Get-Location) 'apps/desktop/src-tauri/target/x86_64-pc-windows-msvc/release'

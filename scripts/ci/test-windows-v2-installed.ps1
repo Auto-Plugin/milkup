@@ -42,17 +42,23 @@ try {
     $application = Join-Path $installRoot 'milkup-desktop.exe'
     if (-not (Test-Path -LiteralPath $application)) { throw 'Installed application executable is missing' }
     $installedHash = (Get-FileHash -LiteralPath $application -Algorithm SHA256).Hash
-    if ($installedHash -ne (Get-FileHash -LiteralPath $BuiltBinary -Algorithm SHA256).Hash) { throw 'Installed binary differs from built binary' }
+    $result['installedBinary'] = [ordered]@{
+        path = $application; sha256 = $installedHash.ToLowerInvariant()
+        signature = (Get-AuthenticodeSignature -LiteralPath $application).Status.ToString()
+    }
+    $comparisonPath = Join-Path $EvidenceDirectory 'binary-comparison.json'
+    & node tests/windows/verify-installed-binary.mjs $BuiltBinary $application 1> $comparisonPath
+    $comparisonExitCode = $LASTEXITCODE
+    $result['binaryComparison'] = Get-Content -LiteralPath $comparisonPath -Raw | ConvertFrom-Json
+    if ($comparisonExitCode -ne 0 -or $result.binaryComparison.status -ne 'passed') { throw 'Installed binary does not match the exact Tauri NSIS transformation' }
+    if ($result.installedBinary.signature -ne 'NotSigned') { throw 'Unexpected installed application signing state' }
     $reader = [System.IO.BinaryReader]::new([System.IO.File]::OpenRead($application))
     try {
         $reader.BaseStream.Position = 0x3c
         $reader.BaseStream.Position = $reader.ReadInt32()
         if ($reader.ReadUInt32() -ne 0x4550 -or $reader.ReadUInt16() -ne 0x8664) { throw 'Installed application is not PE x64' }
     } finally { $reader.Dispose() }
-    $result['installedBinary'] = [ordered]@{
-        path = $application; sha256 = $installedHash.ToLowerInvariant(); peMachine = '0x8664'
-        signature = (Get-AuthenticodeSignature -LiteralPath $application).Status.ToString()
-    }
+    $result.installedBinary['peMachine'] = '0x8664'
     $result['registryAfterInstall'] = Registry-State
     $runtimeRoot = Join-Path ${env:ProgramFiles(x86)} 'Microsoft/EdgeWebView/Application'
     $versions = @(Get-ChildItem -LiteralPath $runtimeRoot -Directory | Where-Object Name -Match '^\d+\.\d+\.\d+\.\d+$' | Sort-Object { [version]$_.Name } -Descending)
