@@ -65,9 +65,7 @@ try {
     if ($manifest.installer.signature -ne 'NotSigned' -or $manifest.binary.signature -ne 'NotSigned') {
         throw 'Expected explicitly unsigned local test artifacts; review unexpected signing state.'
     }
-    Invoke-Checked 'cargo' @('install', 'tauri-driver', '--version', '2.0.5', '--locked')
-    $driver = Join-Path $env:USERPROFILE '.cargo/bin/tauri-driver.exe'
-    $manifest.installedTest = & "$PSScriptRoot/test-windows-v2-installed.ps1" -Installer $packages[0].FullName -BuiltBinary $binary -TauriDriver $driver -EvidenceDirectory $evidence
+    $manifest.installedTest = & "$PSScriptRoot/test-windows-v2-installed.ps1" -Installer $packages[0].FullName -BuiltBinary $binary -EvidenceDirectory $evidence
     if ($manifest.installedTest.status -ne 'passed') { throw 'Installed application acceptance did not pass' }
     if (git status --porcelain) { throw 'Build changed tracked or untracked source files' }
     $manifest.status = 'passed'

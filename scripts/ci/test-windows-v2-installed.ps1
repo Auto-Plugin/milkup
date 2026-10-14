@@ -2,7 +2,6 @@
 param(
     [Parameter(Mandatory)][string]$Installer,
     [Parameter(Mandatory)][string]$BuiltBinary,
-    [Parameter(Mandatory)][string]$TauriDriver,
     [Parameter(Mandatory)][string]$EvidenceDirectory
 )
 Set-StrictMode -Version Latest
@@ -77,7 +76,6 @@ try {
     $result['webview2'] = $runtime
     $result['edgeDriver'] = [ordered]@{ version = $driverVersion; source = $driverUrl; sha256 = (Get-FileHash $edgeDriver -Algorithm SHA256).Hash.ToLowerInvariant() }
     $env:MILKUP_WINDOWS_INSTALLED_APP = $application
-    $env:MILKUP_WINDOWS_TAURI_DRIVER = $TauriDriver
     $env:MILKUP_WINDOWS_EDGE_DRIVER = $edgeDriver
     $env:MILKUP_WINDOWS_SMOKE_WORK = Join-Path $runRoot 'fixtures'
     $env:MILKUP_WINDOWS_SMOKE_EVIDENCE = $EvidenceDirectory
@@ -92,6 +90,18 @@ try {
     $result['error'] = $_.ToString()
     throw
 } finally {
+    $result['applicationProcessesBeforeCleanup'] = @(Get-Process -Name 'milkup-desktop' -ErrorAction SilentlyContinue | ForEach-Object {
+        $ownedProcess = $_
+        try {
+            if ($_.Path -and $_.Path.StartsWith($installRoot + '\', [StringComparison]::OrdinalIgnoreCase)) {
+                [ordered]@{ id = $_.Id; path = $_.Path; responding = $_.Responding; mainWindowHandle = $_.MainWindowHandle.ToInt64(); mainWindowTitle = $_.MainWindowTitle }
+            }
+        } catch { [ordered]@{ id = $ownedProcess.Id; inspectionError = 'Process exited during inspection' } }
+    })
+    $result['applicationErrorEvents'] = @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; StartTime = $started; Id = 1000, 1001, 1002 } -MaxEvents 20 -ErrorAction SilentlyContinue |
+        Where-Object { $_.Message -match 'milkup-desktop' } | ForEach-Object {
+            [ordered]@{ time = $_.TimeCreated.ToUniversalTime().ToString('o'); id = $_.Id; message = $_.Message.Substring(0, [Math]::Min($_.Message.Length, 16384)) }
+        })
     # Only processes launched from this newly created installer/driver directory.
     foreach ($process in Get-Process -ErrorAction SilentlyContinue) {
         try {

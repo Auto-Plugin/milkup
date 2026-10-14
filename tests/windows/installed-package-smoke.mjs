@@ -13,7 +13,6 @@ const required = (name) => {
   return path.resolve(process.env[name])
 }
 const application = required('MILKUP_WINDOWS_INSTALLED_APP')
-const driverPath = required('MILKUP_WINDOWS_TAURI_DRIVER')
 const edgeDriver = required('MILKUP_WINDOWS_EDGE_DRIVER')
 const work = required('MILKUP_WINDOWS_SMOKE_WORK')
 const evidence = required('MILKUP_WINDOWS_SMOKE_EVIDENCE')
@@ -34,11 +33,14 @@ let driverOutput = ''
 const saveResult = () =>
   writeFile(path.join(evidence, 'installed-smoke.json'), JSON.stringify(result, null, 2))
 const request = async (method, route, body) => {
-  const response = await fetch('http://127.0.0.1:4444' + route, {
+  result.lastRequest = { method, route, startedAt: new Date().toISOString() }
+  const response = await fetch('http://127.0.0.1:9515' + route, {
     method,
     headers: { 'content-type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
-    signal: AbortSignal.timeout(45000),
+    signal: AbortSignal.timeout(route === '/session' && method === 'POST' ? 90000 : 45000),
+  }).catch((error) => {
+    throw new Error(`${method} ${route}: ${error}`, { cause: error })
   })
   const data = await response.json()
   if (!response.ok || data.value?.error) throw Error(JSON.stringify(data))
@@ -75,7 +77,15 @@ const state = () =>
 `)
 async function open(file) {
   const response = await request('POST', '/session', {
-    capabilities: { alwaysMatch: { 'tauri:options': { application, args: [file] } } },
+    // The same Windows capabilities produced by tauri-driver 2.0.5, sent
+    // directly so the native driver's launch diagnostics can be retained.
+    capabilities: {
+      alwaysMatch: {
+        browserName: 'webview2',
+        'ms:edgeChromium': true,
+        'ms:edgeOptions': { binary: application, args: [file] },
+      },
+    },
   })
   session = response.sessionId
   assert(session, 'WebDriver session ID')
@@ -103,11 +113,12 @@ async function savedBytes(file, expected) {
 }
 try {
   driver = spawn(
-    driverPath,
-    ['--port', '4444', '--native-port', '9515', '--native-driver', edgeDriver],
+    edgeDriver,
+    ['--port=9515', '--verbose', `--log-path=${path.join(evidence, 'native-driver.log')}`],
     {
       stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
+      env: { ...process.env, TAURI_WEBVIEW_AUTOMATION: 'true' },
     },
   )
   driver.once('error', (error) => {
@@ -120,7 +131,7 @@ try {
     })
   await until(
     async () => {
-      if (driver.exitCode !== null) throw Error('tauri-driver exited before readiness')
+      if (driver.exitCode !== null) throw Error('EdgeDriver exited before readiness')
       return request('GET', '/status').then(
         () => true,
         () => false,
