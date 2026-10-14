@@ -2070,7 +2070,9 @@ mod tests {
 
         let resolved =
             resolve_plugin_file_path(path_to_string(path.clone())).expect("resolve plugin path");
-        assert_eq!(resolved, path_to_string(path.clone()));
+        // Windows temp paths may use an 8.3 alias (RUNNER~1); this API promises
+        // the canonical path, which expands that alias to the actual name.
+        assert_eq!(resolved, path_to_string(fs::canonicalize(&path).unwrap()));
         assert_eq!(
             read_plugin_text_file(path_to_string(path.clone())).expect("read plugin file"),
             "plugin",

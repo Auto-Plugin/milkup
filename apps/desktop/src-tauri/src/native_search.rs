@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use std::fs::{self, File, OpenOptions};
 use std::io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use tauri::State;
@@ -31,23 +32,39 @@ struct Registry {
 struct PrivateDir(PathBuf);
 impl PrivateDir {
     fn new() -> Result<Arc<Self>, String> {
-        let name = format!(
-            "milkup-search-{}-{}",
-            std::process::id(),
+        static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+        Self::create_at(
+            &std::env::temp_dir(),
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .map_err(err)?
-                .as_nanos()
-        );
-        let path = std::env::temp_dir().join(name);
-        let mut builder = fs::DirBuilder::new();
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::DirBuilderExt;
-            builder.mode(0o700);
+                .as_nanos(),
+            &NEXT_ID,
+        )
+    }
+    fn create_at(root: &Path, timestamp: u128, next_id: &AtomicU64) -> Result<Arc<Self>, String> {
+        // Windows wall-clock ticks can repeat across successive preparations.
+        // Never reuse or remove a colliding directory, including a stale owner.
+        for _ in 0..16 {
+            let id = next_id.fetch_add(1, Ordering::Relaxed);
+            let path = root.join(format!(
+                "milkup-search-{}-{timestamp}-{id}",
+                std::process::id()
+            ));
+            #[allow(unused_mut)]
+            let mut builder = fs::DirBuilder::new();
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::DirBuilderExt;
+                builder.mode(0o700);
+            }
+            match builder.create(&path) {
+                Ok(()) => return Ok(Arc::new(Self(path))),
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                Err(error) => return Err(err(error)),
+            }
         }
-        builder.create(&path).map_err(err)?;
-        Ok(Arc::new(Self(path)))
+        Err("Could not allocate a unique search directory after 16 attempts".into())
     }
 }
 impl Drop for PrivateDir {
@@ -1102,6 +1119,27 @@ pub(crate) fn close_document(registry: &NativeSearchRegistry, document_id: &str)
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn repeated_clock_ticks_and_existing_directories_never_share_search_storage() {
+        let root = PrivateDir::new().unwrap();
+        let occupied = root
+            .0
+            .join(format!("milkup-search-{}-17-0", std::process::id()));
+        fs::create_dir(&occupied).unwrap();
+        fs::write(occupied.join("retained"), b"existing evidence").unwrap();
+        let next = AtomicU64::new(0);
+        let first = PrivateDir::create_at(&root.0, 17, &next).unwrap();
+        let second = PrivateDir::create_at(&root.0, 17, &next).unwrap();
+        assert_ne!(first.0, second.0);
+        assert_ne!(first.0, occupied);
+        assert!(first.0.is_dir() && second.0.is_dir());
+        drop(first);
+        drop(second);
+        assert_eq!(
+            fs::read(occupied.join("retained")).unwrap(),
+            b"existing evidence"
+        );
+    }
     fn fixture(
         bytes: &[u8],
     ) -> (
