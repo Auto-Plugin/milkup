@@ -301,11 +301,11 @@ function classifyAutolink(value: string): 'url' | 'email' | undefined {
 }
 
 function parseStrong(source: string, pos: number, to: number): InlineParseResult | undefined {
-  if (source.slice(pos, pos + 2) !== '**') {
+  if (pos + 2 > to || source.slice(pos, pos + 2) !== '**') {
     return undefined
   }
 
-  const closing = source.indexOf('**', pos + 2)
+  const closing = findEmphasisClosing(source, pos + 2, to, 2)
 
   if (closing === -1 || closing >= to) {
     return {
@@ -339,11 +339,11 @@ function parseStrong(source: string, pos: number, to: number): InlineParseResult
 }
 
 function parseEmphasis(source: string, pos: number, to: number): InlineParseResult | undefined {
-  if (source[pos] !== '*' || source[pos + 1] === '*') {
+  if (source[pos] !== '*' || (pos + 1 < to && source[pos + 1] === '*')) {
     return undefined
   }
 
-  const closing = source.indexOf('*', pos + 1)
+  const closing = findEmphasisClosing(source, pos + 1, to, 1)
 
   if (closing === -1 || closing >= to) {
     return {
@@ -374,6 +374,62 @@ function parseEmphasis(source: string, pos: number, to: number): InlineParseResu
     }),
     next: closing + 1,
   }
+}
+
+function findEmphasisClosing(
+  source: string,
+  from: number,
+  to: number,
+  markerLength: 1 | 2,
+): number {
+  let nestedEmphasis = false
+
+  for (let pos = from; pos < to;) {
+    if (source[pos] === '\\') {
+      pos += 2
+      continue
+    }
+
+    if (source[pos] === '`') {
+      const markerTo = consumeRun(source, pos, to, '`')
+      const closing = findClosingRun(source, markerTo, to, '`', markerTo - pos)
+
+      if (closing === -1) {
+        // Preserve live-editing behavior: an unfinished code span may remain
+        // an incomplete child of an otherwise closed emphasis node.
+        for (let candidate = markerTo; candidate + markerLength <= to; candidate += 1) {
+          if (source[candidate] === '*' && (markerLength === 1 || source[candidate + 1] === '*')) {
+            return candidate
+          }
+        }
+        return -1
+      }
+
+      // Complete code spans cannot contribute emphasis delimiters.
+      pos = closing + (markerTo - pos)
+      continue
+    }
+
+    if (source[pos] !== '*') {
+      pos += 1
+      continue
+    }
+
+    if (markerLength === 1) return pos
+
+    if (pos + 1 < to && source[pos + 1] === '*') {
+      // In **bold *italic***, the first star closes the nested emphasis;
+      // the remaining two close strong. A plain ** still closes strong,
+      // preserving an incomplete child while the user is typing.
+      const closesNested = nestedEmphasis && pos + 2 < to && source[pos + 2] === '*'
+      return pos + (closesNested ? 1 : 0)
+    }
+
+    nestedEmphasis = !nestedEmphasis
+    pos += 1
+  }
+
+  return -1
 }
 
 function createTextNode(source: string, from: number, to: number): SyntaxNode {

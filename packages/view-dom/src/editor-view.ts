@@ -1,4 +1,11 @@
 import {
+  applyTableAlignments,
+  createTaskMarker,
+  syncTaskAvailability,
+  taskMarkerEdit,
+  taskMarkerFromEvent,
+} from './live-controls'
+import {
   tableContext,
   tableArrowSelection,
   tableCommand,
@@ -53,6 +60,9 @@ import {
   domRectsForLineSourceRange,
   domRectsForLineVisualRange,
   isHorizontalScrollbarDragStart,
+  scrollCodePositionIntoView,
+  scrollSourcePositionIntoView,
+  isCodePositionClipped,
   lineElementFromEvent,
   sourcePositionFromPoint,
 } from './source-position-mapping'
@@ -128,15 +138,37 @@ export class EditorView {
       }
     })
   }
+  private readonly handleTaskKeyDownEvent = (event: KeyboardEvent): void => {
+    const task = taskMarkerFromEvent(event, this.contentDOM)
+    if (!task || (event.key !== ' ' && event.key !== 'Enter')) return
+    event.preventDefault()
+    if (!event.repeat) this.toggleTask(task)
+  }
+  private readonly handleInnerScrollEvent = (event: Event): void => {
+    if (event.target instanceof HTMLElement && event.target.classList.contains('milkup-block-code'))
+      this.renderSelectionAndCursor()
+  }
   private readonly handleKeyDownEvent = (event: KeyboardEvent): void => {
     if (this.handleEditingKey(event)) {
       event.preventDefault()
     }
   }
   private readonly handleClickEvent = (event: MouseEvent): void => {
+    const task = taskMarkerFromEvent(event, this.contentDOM)
+    if (task) {
+      event.preventDefault()
+      this.toggleTask(task)
+      return
+    }
     this.placeCursorFromClick(event)
   }
   private readonly handleMouseDownEvent = (event: MouseEvent): void => {
+    const task = taskMarkerFromEvent(event, this.contentDOM)
+    if (task) {
+      event.preventDefault()
+      task.focus({ preventScroll: true })
+      return
+    }
     this.startSelectionDrag(event)
   }
   private readonly handleMouseMoveEvent = (event: MouseEvent): void => {
@@ -199,6 +231,8 @@ export class EditorView {
     this.inputDOM.addEventListener('compositionupdate', this.handleCompositionUpdateEvent)
     this.inputDOM.addEventListener('compositionend', this.handleCompositionEndEvent)
     this.dom.addEventListener('scroll', this.handleScrollEvent)
+    this.contentDOM.addEventListener('scroll', this.handleInnerScrollEvent, true)
+    this.contentDOM.addEventListener('keydown', this.handleTaskKeyDownEvent)
     this.contentDOM.addEventListener('click', this.handleClickEvent)
     this.contentDOM.addEventListener('mousedown', this.handleMouseDownEvent)
     this.contentDOM.addEventListener('mousemove', this.handleMouseMoveEvent)
@@ -302,6 +336,7 @@ export class EditorView {
     this.editable = editable
     this.dom.dataset.editable = String(editable)
     this.inputDOM.readOnly = !editable
+    syncTaskAvailability(this.contentDOM, editable)
   }
 
   positionToRect(pos: number, metrics?: Partial<ViewMetrics>): ViewRect {
@@ -313,6 +348,18 @@ export class EditorView {
   }
 
   ensureCursorVisible(options?: CursorVisibilityOptions): number {
+    const position = this.currentState.selection.main.head
+    const line = this.contentDOM.querySelector<HTMLElement>(
+      `.milkup-line[data-line="${this.currentState.doc.lineAt(position).number}"]`,
+    )
+    if (
+      line &&
+      (this.mode === 'source'
+        ? scrollSourcePositionIntoView(this.dom, line, position)
+        : scrollCodePositionIntoView(line, position))
+    )
+      this.renderSelectionAndCursor()
+
     const measuredRect = domRectForSourcePosition(
       this.ownerDocument,
       this.contentDOM,
@@ -361,6 +408,8 @@ export class EditorView {
     this.inputDOM.removeEventListener('compositionupdate', this.handleCompositionUpdateEvent)
     this.inputDOM.removeEventListener('compositionend', this.handleCompositionEndEvent)
     this.dom.removeEventListener('scroll', this.handleScrollEvent)
+    this.contentDOM.removeEventListener('scroll', this.handleInnerScrollEvent, true)
+    this.contentDOM.removeEventListener('keydown', this.handleTaskKeyDownEvent)
     this.contentDOM.removeEventListener('click', this.handleClickEvent)
     this.contentDOM.removeEventListener('mousedown', this.handleMouseDownEvent)
     this.contentDOM.removeEventListener('mousemove', this.handleMouseMoveEvent)
@@ -466,6 +515,7 @@ export class EditorView {
         measured.style.left = `${rect.left}px`
         measured.style.top = `${rect.top}px`
         measured.style.width = `${Math.max(1, rect.width)}px`
+        measured.style.visibility = rect.width <= 0 ? 'hidden' : ''
         measured.style.height = `${rect.height}px`
         rendered.push(measured)
       }
@@ -501,7 +551,9 @@ export class EditorView {
         line.number,
         { controlledRenderers: this.controlledRenderers },
       )
+      const scrollLeft = previousLineDOM.scrollLeft
       previousLineDOM.replaceWith(nextLineDOM)
+      nextLineDOM.scrollLeft = scrollLeft
     }
   }
 
@@ -537,7 +589,9 @@ export class EditorView {
         lineNumber,
         { controlledRenderers: this.controlledRenderers },
       )
+      const scrollLeft = previousLineDOM.scrollLeft
       previousLineDOM.replaceWith(nextLineDOM)
+      nextLineDOM.scrollLeft = scrollLeft
     }
 
     this.renderSelectionAndCursor()
@@ -624,6 +678,7 @@ export class EditorView {
         measured.style.left = `${rect.left}px`
         measured.style.top = `${rect.top}px`
         measured.style.width = `${Math.max(1, rect.width)}px`
+        measured.style.visibility = rect.width <= 0 ? 'hidden' : ''
         measured.style.height = `${rect.height}px`
         measuredSelections.push(measured)
       }
@@ -635,6 +690,7 @@ export class EditorView {
   }
 
   private alignCursorOverlayToDOM(): void {
+    syncTaskAvailability(this.contentDOM, this.editable)
     for (const cursor of Array.from(
       this.cursorLayerDOM.querySelectorAll<HTMLElement>('.milkup-cursor'),
     )) {
@@ -658,6 +714,11 @@ export class EditorView {
         continue
       }
 
+      const line = this.contentDOM.querySelector<HTMLElement>(
+        `.milkup-line[data-line="${this.currentState.doc.lineAt(position).number}"]`,
+      )
+      cursor.style.visibility =
+        line && isCodePositionClipped(line, this.cursorLayerDOM, rect) ? 'hidden' : ''
       cursor.style.left = `${rect.left}px`
       cursor.style.top = `${rect.top}px`
       cursor.style.height = `${rect.height}px`
@@ -688,6 +749,26 @@ export class EditorView {
     if (Number.isFinite(height) && height > 0) {
       this.inputDOM.style.height = `${height}px`
     }
+  }
+
+  private toggleTask(task: HTMLButtonElement): void {
+    if (!this.editable || this.isComposing || this.destroyed || this.mode !== 'live') return
+    const from = Number(task.dataset.from),
+      to = Number(task.dataset.to)
+    if (!Number.isInteger(from) || !Number.isInteger(to)) return
+    const edit = taskMarkerEdit(from, this.currentState.doc.text.slice(from, to))
+    if (!edit) return
+    const focused = this.ownerDocument.activeElement === task
+    this.dispatch({
+      changes: ChangeSet.replace(edit.from, edit.to, edit.insert),
+      selection: this.currentState.selection,
+      historyGroup: 'isolate',
+      origin: { type: 'command', id: 'task.toggle' },
+    })
+    if (focused)
+      this.contentDOM
+        .querySelector<HTMLButtonElement>(`.milkup-task-marker[data-from="${from}"]`)
+        ?.focus({ preventScroll: true })
   }
 
   private dispatch(transaction: Transaction): void {
@@ -1643,6 +1724,7 @@ function renderMarkdownLine(
     )
   }
 
+  applyTableAlignments(lineDOM, table)
   return lineDOM
 }
 
@@ -2142,14 +2224,16 @@ function renderListItemLineDecorations(
       marker.dataset.from = String(piece.from)
       marker.dataset.to = String(piece.to)
       marker.textContent = formatListMarker(source.slice(piece.from, piece.to))
+      if (pieces.some((piece) => piece.kind === 'taskMarker'))
+        marker.classList.add('milkup-marker-hidden')
       rendered.push(marker)
     } else if (piece.kind === 'taskMarker') {
-      const task = document.createElement('span')
-      task.className = 'milkup-task-marker'
-      task.dataset.from = String(piece.from)
-      task.dataset.to = String(piece.to)
-      task.dataset.checked = String(/[xX]/u.test(source.slice(piece.from, piece.to)))
-      task.setAttribute('aria-hidden', 'true')
+      const task = createTaskMarker(
+        document,
+        piece.from,
+        piece.to,
+        source.slice(piece.from, piece.to),
+      )
       rendered.push(task)
     } else {
       const content = document.createElement('span')
@@ -2448,7 +2532,11 @@ function renderInlineNodePieces(
       span.classList.add('milkup-marker-hidden')
     }
 
-    span.textContent = source.slice(piece.from, piece.to)
+    if (piece.kind === 'content' && node.children?.some((child) => child.type !== 'text')) {
+      span.replaceChildren(
+        ...renderInlineDecorations(document, source, selection, piece.from, piece.to),
+      )
+    } else span.textContent = source.slice(piece.from, piece.to)
     rendered.push(span)
     pos = piece.to
   }
@@ -2580,7 +2668,13 @@ export function buildLineProjection(
         appendSegment(nodePos, piece.from, 'text', false)
       }
 
-      appendSegment(piece.from, piece.to, piece.kind, piece.kind !== 'content' && !showSyntax)
+      if (piece.kind === 'content' && node.children?.some((child) => child.type !== 'text')) {
+        for (const segment of buildLineProjection(source, selection, piece.from, piece.to)
+          .segments) {
+          appendSegment(segment.sourceFrom, segment.sourceTo, segment.kind, segment.hidden)
+        }
+      } else
+        appendSegment(piece.from, piece.to, piece.kind, piece.kind !== 'content' && !showSyntax)
       nodePos = piece.to
     }
 

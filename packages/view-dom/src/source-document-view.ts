@@ -1,3 +1,10 @@
+import {
+  applyTableAlignments,
+  createTaskMarker,
+  syncTaskAvailability,
+  taskMarkerEdit,
+  taskMarkerFromEvent,
+} from './live-controls'
 import { MeasuredLineHeights } from './measured-line-heights'
 import { WindowedTableReader, boundedTableState, pipeLine } from './windowed-table'
 import {
@@ -31,6 +38,9 @@ import {
   domRectForLineSourcePosition,
   domRectsForLineSourceRange,
   isHorizontalScrollbarDragStart,
+  scrollCodePositionIntoView,
+  scrollSourcePositionIntoView,
+  isCodePositionClipped,
   isEditorScrollbarDragStart,
   lineElementFromEvent,
   sourcePositionFromPoint,
@@ -109,6 +119,7 @@ export class SourceDocumentView {
   private tableStarts: readonly number[] = []
   private mode: ViewMode
   private editable: boolean
+  private taskTogglePending = false
   private navigationRevision = 0
   private destroyed = false
   private fenceContextKey = ''
@@ -245,7 +256,33 @@ export class SourceDocumentView {
       return this.applyVisibleEdit(range.from, range.to, '')
     })
   }
+  private readonly handleTaskClickEvent = (event: MouseEvent): void => {
+    const task = taskMarkerFromEvent(event, this.contentDOM)
+    if (task) {
+      event.preventDefault()
+      this.toggleTask(task)
+    }
+  }
+  private readonly handleInnerScrollEvent = (event: Event): void => {
+    if (
+      event.target instanceof HTMLElement &&
+      event.target.classList.contains('milkup-block-code')
+    ) {
+      this.renderSelection()
+      this.renderSearchHighlights()
+      this.renderCursor()
+    }
+  }
   private readonly handleKeyDownEvent = (event: KeyboardEvent): void => {
+    const task = taskMarkerFromEvent(event, this.contentDOM)
+    if (task) {
+      if (event.key === ' ' || event.key === 'Enter') {
+        event.preventDefault()
+        if (!event.repeat) this.toggleTask(task)
+      }
+      return
+    }
+
     if (event.defaultPrevented) {
       return
     }
@@ -259,6 +296,12 @@ export class SourceDocumentView {
     }
   }
   private readonly handlePointerDownEvent = (event: MouseEvent): void => {
+    const task = taskMarkerFromEvent(event, this.contentDOM)
+    if (task) {
+      event.preventDefault()
+      task.focus({ preventScroll: true })
+      return
+    }
     this.startSelectionDrag(event)
   }
   private readonly handlePointerMoveEvent = (event: PointerEvent): void => {
@@ -320,6 +363,8 @@ export class SourceDocumentView {
     this.dom.append(this.selectionLayerDOM)
     this.dom.append(this.cursorLayerDOM)
     this.dom.append(this.inputDOM)
+    this.contentDOM.addEventListener('scroll', this.handleInnerScrollEvent, true)
+    this.contentDOM.addEventListener('click', this.handleTaskClickEvent)
     this.dom.addEventListener('scroll', this.handleScrollEvent)
     this.dom.addEventListener('keydown', this.handleKeyDownEvent)
     this.dom.addEventListener('copy', this.handleCopyEvent)
@@ -438,13 +483,16 @@ export class SourceDocumentView {
     if (!line) return
     const from = Number(line.dataset.from)
     const target = selection ?? Selection.cursor(from)
+    const previousPosition = this.cursorPosition
     this.cursorPosition = clamp(target.main.head, 0, this.currentSource.length ?? target.main.head)
     this.selectionAnchor = clamp(
       target.main.anchor,
       0,
       this.currentSource.length ?? target.main.anchor,
     )
-    if (this.mode === 'live') await this.renderLiveSyntaxAroundPositions(from, this.cursorPosition)
+    if (this.mode === 'live')
+      await this.renderLiveSyntaxAroundPositions(previousPosition, this.cursorPosition)
+    this.revealHorizontalCursor()
     this.renderSelection()
     this.renderCursor()
   }
@@ -511,6 +559,18 @@ export class SourceDocumentView {
     this.renderedSourceWindow = rendered.sourceWindow
     this.tableStarts = rendered.tableStarts ?? []
     const lineHeight = this.getLineHeight()
+    const focusedTask =
+      this.ownerDocument.activeElement instanceof HTMLElement &&
+      this.contentDOM.contains(this.ownerDocument.activeElement) &&
+      this.ownerDocument.activeElement.classList.contains('milkup-task-marker')
+        ? this.ownerDocument.activeElement.dataset.from
+        : undefined
+    const codeScroll = new Map(
+      Array.from(this.contentDOM.querySelectorAll<HTMLElement>('.milkup-block-code'), (line) => [
+        line.dataset.line,
+        line.scrollLeft,
+      ]),
+    )
     this.contentDOM.replaceChildren(
       renderSpacer(
         this.ownerDocument,
@@ -525,6 +585,9 @@ export class SourceDocumentView {
           this.lineTop(this.currentSource.lineCount + 1) - this.lineTop(request.toLine + 1),
       ),
     )
+    this.contentDOM.querySelectorAll<HTMLElement>('.milkup-block-code').forEach((line) => {
+      line.scrollLeft = codeScroll.get(line.dataset.line) ?? 0
+    })
     this.contentDOM.dataset.virtualized = 'true'
     this.contentDOM.dataset.fromLine = String(request.fromLine)
     this.contentDOM.dataset.toLine = String(request.toLine)
@@ -533,6 +596,10 @@ export class SourceDocumentView {
     this.renderSearchHighlights()
     this.renderSelection()
     this.renderCursor()
+    if (focusedTask !== undefined)
+      this.contentDOM
+        .querySelector<HTMLButtonElement>(`.milkup-task-marker[data-from="${focusedTask}"]`)
+        ?.focus({ preventScroll: true })
     this.scheduleMarkdownWarmup(request)
   }
 
@@ -581,6 +648,8 @@ export class SourceDocumentView {
       clearTimeout(this.editCommitTimer)
       this.editCommitTimer = undefined
     }
+    this.contentDOM.removeEventListener('scroll', this.handleInnerScrollEvent, true)
+    this.contentDOM.removeEventListener('click', this.handleTaskClickEvent)
     this.dom.removeEventListener('scroll', this.handleScrollEvent)
     this.dom.removeEventListener('keydown', this.handleKeyDownEvent)
     this.dom.removeEventListener('copy', this.handleCopyEvent)
@@ -1365,7 +1434,26 @@ export class SourceDocumentView {
     return { position: direction < 0 ? adjacent.to : adjacent.from, lineNumber: adjacent.number }
   }
 
+  private revealHorizontalCursor(): void {
+    const line = Array.from(this.contentDOM.querySelectorAll<HTMLElement>('.milkup-line')).find(
+      (line) =>
+        this.cursorPosition >= Number(line.dataset.from) &&
+        this.cursorPosition <= Number(line.dataset.to),
+    )
+    if (
+      line &&
+      (this.mode === 'source'
+        ? scrollSourcePositionIntoView(this.dom, line, this.cursorPosition)
+        : scrollCodePositionIntoView(line, this.cursorPosition))
+    ) {
+      this.renderSelection()
+      this.renderSearchHighlights()
+      this.renderCursor()
+    }
+  }
+
   private async ensureCursorRendered(targetLineNumber?: number): Promise<void> {
+    this.revealHorizontalCursor()
     const line =
       this.findRenderedLineAtPosition(this.cursorPosition) ??
       (await this.currentSource.lineAtPosition(this.cursorPosition).catch(() => undefined))
@@ -1417,6 +1505,7 @@ export class SourceDocumentView {
       if (bounds.top < viewport.top || bounds.bottom > viewport.bottom)
         await this.scrollToLine(lineNumber)
     }
+    this.revealHorizontalCursor()
   }
 
   private findRenderedLineAtPosition(position: number): SourceLine | undefined {
@@ -1467,6 +1556,70 @@ export class SourceDocumentView {
     }
 
     await this.applyVisibleEdit(from, to, '')
+  }
+
+  private toggleTask(task: HTMLButtonElement): void {
+    // A stale DOM marker must never address text moved by an unfinished edit.
+    if (
+      !this.editable ||
+      !this.onEdit ||
+      this.isComposing ||
+      this.destroyed ||
+      this.mode !== 'live' ||
+      this.taskTogglePending ||
+      this.pendingVisibleEdit ||
+      this.activeVisibleEditTasks.size > 0
+    )
+      return
+    const source = this.currentSource,
+      version = source.version,
+      revision = this.editRevision
+    const from = Number(task.dataset.from),
+      to = Number(task.dataset.to)
+    const window = this.renderedSourceWindow
+    if (
+      !window ||
+      !Number.isInteger(from) ||
+      !Number.isInteger(to) ||
+      from < window.from ||
+      to > window.to
+    )
+      return
+    const edit = taskMarkerEdit(from, readLineWindowRangeText(window, from, to))
+    if (!edit) return
+    const focused = this.ownerDocument.activeElement === task
+    this.taskTogglePending = true
+    syncTaskAvailability(this.contentDOM, false)
+    void this.trackVisibleEditTask(async () => {
+      try {
+        await this.editCommitQueue
+        if (
+          !this.editable ||
+          this.destroyed ||
+          this.mode !== 'live' ||
+          source !== this.currentSource ||
+          version !== source.version ||
+          revision !== this.editRevision
+        )
+          return
+        await this.applyVisibleEdit(
+          edit.from,
+          edit.to,
+          edit.insert,
+          'isolate',
+          this.currentSelection(),
+        )
+        await this.flushPendingVisibleEdit()
+        await this.renderVisibleWindow()
+      } finally {
+        this.taskTogglePending = false
+        syncTaskAvailability(this.contentDOM, this.editable && !!this.onEdit)
+        if (focused && !this.destroyed && this.currentSource.documentId === source.documentId)
+          this.contentDOM
+            .querySelector<HTMLButtonElement>(`.milkup-task-marker[data-from="${from}"]`)
+            ?.focus({ preventScroll: true })
+      }
+    })
   }
 
   private async applyVisibleEdit(
@@ -1545,6 +1698,7 @@ export class SourceDocumentView {
       } else this.applyOptimisticRenderedLineEdit(editedLine, from, to, insert)
       this.shiftRenderedLinePositionsAfter(editedLine.number, delta)
       if (liveTableEdit) this.measureTableRows()
+      this.revealHorizontalCursor()
       this.renderSelection()
       this.renderCursor()
       const commit = this.queueVisibleEditCommit(edit)
@@ -2324,6 +2478,7 @@ export class SourceDocumentView {
         measuredSelection.style.left = `${rect.left}px`
         measuredSelection.style.top = `${rect.top}px`
         measuredSelection.style.width = `${Math.max(1, rect.width)}px`
+        measuredSelection.style.visibility = rect.width <= 0 ? 'hidden' : ''
         measuredSelection.style.height = `${rect.height}px`
         this.selectionLayerDOM.append(measuredSelection)
       }
@@ -2390,6 +2545,7 @@ export class SourceDocumentView {
         measured.style.left = `${rect.left}px`
         measured.style.top = `${rect.top}px`
         measured.style.width = `${Math.max(1, rect.width)}px`
+        measured.style.visibility = rect.width <= 0 ? 'hidden' : ''
         measured.style.height = `${rect.height}px`
         this.searchLayerDOM.append(measured)
       }
@@ -2397,6 +2553,7 @@ export class SourceDocumentView {
   }
 
   private renderCursor(): void {
+    syncTaskAvailability(this.contentDOM, this.editable && !!this.onEdit && !this.taskTogglePending)
     this.cursorLayerDOM.querySelector<HTMLElement>('.milkup-cursor')?.remove()
 
     if (!this.editable) {
@@ -2437,6 +2594,9 @@ export class SourceDocumentView {
     const height = lineCursorHeight(line, this.getLineHeight())
 
     if (rect) {
+      cursor.style.visibility = isCodePositionClipped(line, this.cursorLayerDOM, rect)
+        ? 'hidden'
+        : ''
       cursor.style.left = `${rect.left}px`
       cursor.style.top = `${rect.top}px`
       cursor.style.height = `${height}px`
@@ -2549,7 +2709,21 @@ export class SourceDocumentView {
       revision === this.editRevision &&
       this.contentDOM.contains(current)
     ) {
+      const scrollLeft = current.scrollLeft
+      const active = this.ownerDocument.activeElement
+      const focusedTask =
+        active instanceof HTMLElement &&
+        current.contains(active) &&
+        active.classList.contains('milkup-task-marker')
+          ? active.dataset.from
+          : undefined
       current.replaceWith(replacement)
+      replacement.scrollLeft = scrollLeft
+      syncTaskAvailability(replacement, this.editable && !!this.onEdit && !this.taskTogglePending)
+      if (focusedTask !== undefined)
+        replacement
+          .querySelector<HTMLButtonElement>(`.milkup-task-marker[data-from="${focusedTask}"]`)
+          ?.focus({ preventScroll: true })
     }
   }
 
@@ -2585,7 +2759,12 @@ export class SourceDocumentView {
       const elementFrom = Number(mapped.dataset.from)
       const elementTo = Number(mapped.dataset.to)
       const text = mapped.textContent ?? ''
-      mapped.textContent = text.slice(0, from - elementFrom) + insert + text.slice(to - elementFrom)
+      if (mapped.classList.contains('milkup-task-marker')) {
+        mapped.dataset.checked = String(insert !== ' ')
+        mapped.setAttribute('aria-checked', mapped.dataset.checked)
+      } else
+        mapped.textContent =
+          text.slice(0, from - elementFrom) + insert + text.slice(to - elementFrom)
       mapped.dataset.to = String(elementTo + delta)
 
       for (const element of Array.from(
@@ -2708,7 +2887,9 @@ function renderLiveLine(
   const listItem =
     findListItemForLine(blocks, line.from, line.to) ?? fallbackListItemForLine(line, blocks)
 
-  if (heading) {
+  if (lineDOM.classList.contains('milkup-block-code')) {
+    lineDOM.textContent = line.text.length > 0 ? line.text : '\u200b'
+  } else if (heading) {
     lineDOM.replaceChildren(
       ...renderMappedLinePieces(document, line, heading, {
         contentClassName: 'milkup-heading-content',
@@ -2762,6 +2943,7 @@ function renderLiveLine(
     )
   }
 
+  applyTableAlignments(lineDOM, table)
   return lineDOM
 }
 
@@ -3064,12 +3246,16 @@ function renderListItemLinePieces(
     if (piece.kind === 'marker') {
       const marker = createMappedSpan(document, line, piece.from, piece.to, 'milkup-list-marker')
       marker.textContent = formatListMarker(sourceSlice(line, piece.from, piece.to))
+      if (pieces.some((piece) => piece.kind === 'taskMarker'))
+        marker.classList.add('milkup-marker-hidden')
       rendered.push(marker)
     } else if (piece.kind === 'taskMarker') {
-      const task = createMappedSpan(document, line, piece.from, piece.to, 'milkup-task-marker')
-      task.dataset.checked = String(/[xX]/u.test(sourceSlice(line, piece.from, piece.to)))
-      task.setAttribute('aria-hidden', 'true')
-      task.textContent = ''
+      const task = createTaskMarker(
+        document,
+        piece.from,
+        piece.to,
+        sourceSlice(line, piece.from, piece.to),
+      )
       rendered.push(task)
     } else {
       const content = createMappedSpan(document, line, piece.from, piece.to, 'milkup-list-content')
@@ -3244,6 +3430,18 @@ function renderInlineNodePieces(
       line.from + piece.to,
       `milkup-inline-${piece.kind}`,
     )
+
+    if (piece.kind === 'content' && node.children?.some((child) => child.type !== 'text')) {
+      span.replaceChildren(
+        ...renderInlineDecorations(
+          document,
+          line,
+          selection,
+          line.from + piece.from,
+          line.from + piece.to,
+        ),
+      )
+    }
 
     if (piece.kind !== 'content' && !showSyntax) {
       span.classList.add('milkup-marker-hidden')

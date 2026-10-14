@@ -154,6 +154,150 @@ describe('parseInline', () => {
     ])
   })
 
+  it.each([
+    ['粗体中的 ', '斜体', ''],
+    ['粗体中的 ', '斜体', ' 后续文字'],
+    ['中文 bold ', 'italic 斜体', ' following 中文 text'],
+    ['English 中文 ', '斜体 italic', ' 后续 English'],
+    ['粗体😀 ', '斜体🧑‍💻', ' 中文 English🚀'],
+  ])('closes nested emphasis before strong in %s', (bold, italic, trailing) => {
+    const source = `**${bold}*${italic}***${trailing}`
+    const emphasisFrom = 2 + bold.length
+    const closingFrom = emphasisFrom + 1 + italic.length
+    const strongTo = closingFrom + 3
+
+    const nodes = parseInline(source)
+    expect(nodes).toHaveLength(trailing ? 2 : 1)
+    expect(nodes[0]).toMatchObject({
+      type: 'strong',
+      from: 0,
+      to: strongTo,
+      status: 'valid',
+      markerRanges: [
+        { from: 0, to: 2 },
+        { from: closingFrom + 1, to: strongTo },
+      ],
+      contentRanges: [{ from: 2, to: closingFrom + 1 }],
+      children: [
+        { type: 'text', data: { value: bold } },
+        {
+          type: 'emphasis',
+          from: emphasisFrom,
+          to: closingFrom + 1,
+          status: 'valid',
+          markerRanges: [
+            { from: emphasisFrom, to: emphasisFrom + 1 },
+            { from: closingFrom, to: closingFrom + 1 },
+          ],
+          children: [{ type: 'text', data: { value: italic } }],
+        },
+      ],
+    })
+    if (trailing) {
+      expect(nodes[1]).toMatchObject({
+        type: 'text',
+        from: strongTo,
+        to: source.length,
+        data: { value: trailing },
+      })
+    }
+  })
+
+  it.each(['\\* ', '`*` ', '``a * ` b`` ', '*earlier* '])(
+    'ignores already consumed star delimiters before nested emphasis: %s',
+    (prefix) => {
+      const source = `**${prefix}*斜体*** 后续`
+      const nodes = parseInline(source)
+      expect(nodes).toHaveLength(2)
+      expect(nodes[0]).toMatchObject({ type: 'strong', status: 'valid' })
+      expect(nodes[0]?.children?.at(-1)).toMatchObject({
+        type: 'emphasis',
+        status: 'valid',
+        children: [{ type: 'text', data: { value: '斜体' } }],
+      })
+      expect(nodes[1]).toMatchObject({ type: 'text', data: { value: ' 后续' } })
+    },
+  )
+
+  it.each(['\\*', '`*`', '``a * ` b``'])(
+    'keeps literal stars inside nested emphasis: %s',
+    (literal) => {
+      const nodes = parseInline(`**粗体 *斜体 ${literal} text*** 后续`)
+      expect(nodes).toHaveLength(2)
+      expect(nodes[0]).toMatchObject({
+        type: 'strong',
+        status: 'valid',
+        children: [
+          { type: 'text' },
+          {
+            type: 'emphasis',
+            status: 'valid',
+            children: [
+              { type: 'text', data: { value: '斜体 ' } },
+              { type: literal.startsWith('\\') ? 'escape' : 'inlineCode' },
+              { type: 'text', data: { value: ' text' } },
+            ],
+          },
+        ],
+      })
+      expect(nodes[1]).toMatchObject({ type: 'text', data: { value: ' 后续' } })
+    },
+  )
+
+  it('keeps successive mixed-language emphasis independent', () => {
+    expect(parseInline('中文 *italic* English **粗体 *斜体*** 后续 **bold**')).toMatchObject([
+      { type: 'text', data: { value: '中文 ' } },
+      { type: 'emphasis', status: 'valid' },
+      { type: 'text', data: { value: ' English ' } },
+      { type: 'strong', status: 'valid' },
+      { type: 'text', data: { value: ' 后续 ' } },
+      { type: 'strong', status: 'valid' },
+    ])
+  })
+
+  it('preserves incomplete strong and emphasis children while typing', () => {
+    expect(parseInline('**粗体 *斜体')).toMatchObject([
+      { type: 'strong', status: 'incomplete', markerRanges: [{ from: 0, to: 2 }] },
+    ])
+    expect(parseInline('**粗体 *斜体** 后续')).toMatchObject([
+      {
+        type: 'strong',
+        status: 'valid',
+        children: [{ type: 'text' }, { type: 'emphasis', status: 'incomplete' }],
+      },
+      { type: 'text', data: { value: ' 后续' } },
+    ])
+    expect(parseInline('**粗体 `code** 后续')).toMatchObject([
+      {
+        type: 'strong',
+        status: 'valid',
+        children: [{ type: 'text' }, { type: 'inlineCode', status: 'incomplete' }],
+      },
+      { type: 'text', data: { value: ' 后续' } },
+    ])
+  })
+
+  it('respects requested ranges when a closing run continues outside them', () => {
+    expect(parseInline('**粗体**', 0, 5)).toMatchObject([
+      {
+        type: 'strong',
+        from: 0,
+        to: 5,
+        status: 'incomplete',
+        markerRanges: [{ from: 0, to: 2 }],
+      },
+    ])
+    expect(parseInline('***', 0, 1)).toMatchObject([
+      {
+        type: 'emphasis',
+        from: 0,
+        to: 1,
+        status: 'incomplete',
+        markerRanges: [{ from: 0, to: 1 }],
+      },
+    ])
+  })
+
   it('represents unclosed emphasis as an incomplete node', () => {
     expect(parseInline('*em')).toEqual([
       {

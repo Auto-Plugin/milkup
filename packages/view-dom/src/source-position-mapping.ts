@@ -415,12 +415,18 @@ export function domRectsForLineVisualRange(
       const top = rect.top - referenceRect.top
       const height = rect.height > 0 ? rect.height : lineRect.height
 
+      // Selection/search layers live outside the line's overflow clip.
+      const clipCode = lineDOM.classList.contains('milkup-block-code') && lineDOM.clientWidth > 0
+      const clipLeft = lineRect.left + lineDOM.clientLeft
+      const clipRight = clipLeft + lineDOM.clientWidth
+      const left = clipCode ? clamp(rect.left, clipLeft, clipRight) : rect.left
+      const right = clipCode ? clamp(rect.right, clipLeft, clipRight) : rect.right
       return Object.freeze({
-        left: rect.left - referenceRect.left,
+        left: left - referenceRect.left,
         top,
-        right: rect.right - referenceRect.left,
+        right: right - referenceRect.left,
         bottom: top + height,
-        width: rect.width,
+        width: Math.max(0, right - left),
         height,
       })
     }),
@@ -548,12 +554,18 @@ function domRectsForMappedSourceRange(
       const top = rect.top - referenceRect.top
       const height = rect.height > 0 ? rect.height : lineRect.height
 
+      // Selection/search layers live outside the line's overflow clip.
+      const clipCode = lineDOM.classList.contains('milkup-block-code') && lineDOM.clientWidth > 0
+      const clipLeft = lineRect.left + lineDOM.clientLeft
+      const clipRight = clipLeft + lineDOM.clientWidth
+      const left = clipCode ? clamp(rect.left, clipLeft, clipRight) : rect.left
+      const right = clipCode ? clamp(rect.right, clipLeft, clipRight) : rect.right
       return Object.freeze({
-        left: rect.left - referenceRect.left,
+        left: left - referenceRect.left,
         top,
-        right: rect.right - referenceRect.left,
+        right: right - referenceRect.left,
         bottom: top + height,
-        width: rect.width,
+        width: Math.max(0, right - left),
         height,
       })
     }),
@@ -1318,4 +1330,45 @@ function findNearestTextNode(node: Node | null, fallbackRoot: Node): Node | unde
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(value, max))
+}
+
+/** Reveal the caret in the code line that owns horizontal overflow. */
+export function scrollCodePositionIntoView(line: HTMLElement, position: number): boolean {
+  return (
+    line.classList.contains('milkup-block-code') &&
+    scrollSourcePositionIntoView(line, line, position)
+  )
+}
+
+/** Source lines use the outer editor; live code lines use their own scroller. */
+export function scrollSourcePositionIntoView(
+  scrollable: HTMLElement,
+  line: HTMLElement,
+  position: number,
+): boolean {
+  if (scrollable.clientWidth <= 0 || scrollable.scrollWidth <= scrollable.clientWidth) return false
+  const rect = domRectForLineSourcePosition(line.ownerDocument, line, scrollable, position)
+  if (!rect) return false
+  const padding = 8
+  const left = scrollable.clientLeft + padding
+  const right = scrollable.clientLeft + scrollable.clientWidth - padding
+  const delta = rect.left < left ? rect.left - left : rect.right > right ? rect.right - right : 0
+  const previous = scrollable.scrollLeft
+  scrollable.scrollLeft = clamp(
+    previous + delta,
+    0,
+    scrollable.scrollWidth - scrollable.clientWidth,
+  )
+  return scrollable.scrollLeft !== previous
+}
+
+export function isCodePositionClipped(
+  line: HTMLElement,
+  reference: HTMLElement,
+  rect: ViewRect,
+): boolean {
+  if (!line.classList.contains('milkup-block-code') || line.clientWidth <= 0) return false
+  const left =
+    line.getBoundingClientRect().left + line.clientLeft - reference.getBoundingClientRect().left
+  return rect.left < left || rect.left > left + line.clientWidth
 }

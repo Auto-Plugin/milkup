@@ -1,0 +1,56 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/live-controls.test.ts (29 tests | 2 failed) 4744ms
+   ✓ ordinary live controls > applies left, center and right alignment to header and body cells  312ms
+   ✓ ordinary live controls > replaces the task bullet with one accessible checkbox, retaining normal bullets 64ms
+   ✓ ordinary live controls > click toggles only the source marker, preserves reversed Unicode selection, and isolates history 204ms
+   ✓ ordinary live controls > Space toggles uppercase X and read-only rejects further activation 39ms
+   ✓ windowed live controls > applies left, center and right alignment to header and body cells  785ms
+   ✓ windowed live controls > replaces the task bullet with one accessible checkbox, retaining normal bullets 114ms
+   ✓ windowed live controls > click toggles only the source marker, preserves reversed Unicode selection, and isolates history  468ms
+   ✓ windowed live controls > Space toggles uppercase X and read-only rejects further activation 238ms
+   ✓ ordinary End scrolls the inner code line and a manual scroll refreshes overlays 49ms
+   ✓ windowed End scrolls the inner code line and a manual scroll refreshes overlays 150ms
+   ✓ ordinary checkbox activation keeps adjacent typing in separate undo steps 47ms
+   ✓ ordinary ignores repeated keydown and composition-time checkbox activation 12ms
+   ✓ ordinary keeps code literal, including inline markup and task-looking text 11ms
+   ✓ windowed checkbox activation keeps adjacent typing in separate undo steps 244ms
+   ✓ windowed ignores repeated keydown and composition-time checkbox activation 140ms
+   ✓ windowed keeps code literal, including inline markup and task-looking text 95ms
+   ✓ windowed rejects a queued checkbox click after a document switch 171ms
+   ✓ windowed ignores a stale marker while text input is queued  347ms
+   ✓ ordinary clips code selection/search to the inner viewport and preserves scroll on rerender 76ms
+   ✓ windowed clips code selection/search to the inner viewport and preserves scroll on rerender 164ms
+   ✓ ordinary renders nested inline children and hides their delimiters outside selection 40ms
+   ✓ windowed renders nested inline children and hides their delimiters outside selection 203ms
+   ✓ windowed cancels checkbox preparation when editing is locked before its queue runs 148ms
+   ✓ windowed serializes a delayed checkbox commit and ignores duplicate activation 260ms
+   ✓ ordinary maps a scrolled code click back to its source offset 46ms
+   ✓ windowed maps a scrolled code click back to its source offset 112ms
+   ✓ nested projection maps text after inner delimiters to its rendered offset 1ms
+   × ordinary source End and Home reveal the caret by scrolling the editor horizontally 59ms
+     → expected 0 to be greater than 0
+   × windowed source End and Home reveal the caret by scrolling the editor horizontally 135ms
+     → expected 0 to be greater than 0
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/live-controls.test.ts > ordinary source End and Home reveal the caret by scrolling the editor horizontally
+ FAIL  src/__tests__/live-controls.test.ts > windowed source End and Home reveal the caret by scrolling the editor horizontally
+AssertionError: expected 0 to be greater than 0
+ ❯ src/__tests__/live-controls.test.ts:397:33
+    395|   }
+    396|   await key('End', true)
+    397|   expect(s.view.dom.scrollLeft).toBeGreaterThan(0)
+       |                                 ^
+    398|   const cursorLeft = () => Number.parseFloat(s.view.cursorLayerDOM.que…
+    399|   expect(cursorLeft()).toBeLessThanOrEqual(240)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 27 passed (29)
+   Start at  08:15:26
+   Duration  7.13s (transform 1.01s, setup 0ms, collect 1.35s, tests 4.74s, environment 550ms, prepare 84ms)

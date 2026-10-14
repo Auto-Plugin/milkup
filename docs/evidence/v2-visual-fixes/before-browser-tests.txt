@@ -1,0 +1,326 @@
+$ playwright test tests/e2e/desktop-visual-fixes.spec.ts --workers=2
+[WebServer] (node:16600) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:16655) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:16720) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:16788) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 12 tests using 1 worker
+
+(node:16844) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   1 [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:21:5 › visual fixes light › table delimiters align header and body (1.7s)
+(node:17055) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   2 [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:28:5 › visual fixes light › long unbroken table text stays inside its cell (2.2s)
+(node:17221) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   3 [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:43:5 › visual fixes light › nested bold italic closes before mixed language tail (2.0s)
+(node:17391) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   4 [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:51:5 › visual fixes light › code End reveals caret and shifted selection inside viewport (6.1s)
+(node:17618) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   5 [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:68:5 › visual fixes light › editor focus is quiet while keyboard controls retain focus indication (2.9s)
+(node:17828) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   6 [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:78:5 › visual fixes light › task click changes source once and supports undo redo and keyboard (3.5s)
+(node:18153) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   7 [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:21:5 › visual fixes dark › table delimiters align header and body (2.8s)
+(node:18315) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   8 [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:28:5 › visual fixes dark › long unbroken table text stays inside its cell (2.4s)
+(node:18548) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   9 [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:43:5 › visual fixes dark › nested bold italic closes before mixed language tail (2.5s)
+(node:18790) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  10 [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:51:5 › visual fixes dark › code End reveals caret and shifted selection inside viewport (6.2s)
+(node:19254) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  11 [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:68:5 › visual fixes dark › editor focus is quiet while keyboard controls retain focus indication (1.8s)
+(node:19464) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  12 [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:78:5 › visual fixes dark › task click changes source once and supports undo redo and keyboard (1.3s)
+
+
+  1) [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:21:5 › visual fixes light › table delimiters align header and body
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 6
+    + Received  + 6
+
+      Array [
+    -   "left",
+    -   "center",
+    -   "right",
+    -   "left",
+    -   "center",
+    -   "right",
+    +   "start",
+    +   "start",
+    +   "start",
+    +   "start",
+    +   "start",
+    +   "start",
+      ]
+
+      24 |         cells.map((cell) => getComputedStyle(cell).textAlign),
+      25 |       )
+    > 26 |       expect(alignment).toEqual(['left', 'center', 'right', 'left', 'center', 'right'])
+         |                         ^
+      27 |     })
+      28 |     test('long unbroken table text stays inside its cell', async ({ page }) => {
+      29 |       await seed(page, '| L | C | R |\n| :--- | :---: | ---: |\n| identifier_without_breaks_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789 | 完成 | 123.45 |')
+        at /workspace/milkup-visual-baseline/tests/e2e/desktop-visual-fixes.spec.ts:26:25
+
+    Error Context: test-results/desktop-visual-fixes-visua-4855f-iters-align-header-and-body-desktop-msedge/error-context.md
+
+  2) [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:28:5 › visual fixes light › long unbroken table text stays inside its cell
+
+    Error: {"cell":{"left":27,"right":262.65625},"text":[{"left":37,"right":526.984375},{"left":37,"right":526.984375}]}
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      38 |         const m = await measure()
+      39 |         expect(m.text.length).toBeGreaterThan(0)
+    > 40 |         expect(m.text.every(r => r.left >= m.cell.left && r.right <= m.cell.right + 1), JSON.stringify(m)).toBe(true)
+         |                                                                                                            ^
+      41 |       }
+      42 |     })
+      43 |     test('nested bold italic closes before mixed language tail', async ({ page }) => {
+        at /workspace/milkup-visual-baseline/tests/e2e/desktop-visual-fixes.spec.ts:40:108
+
+    Error Context: test-results/desktop-visual-fixes-visua-bef4e--text-stays-inside-its-cell-desktop-msedge/error-context.md
+
+  3) [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:43:5 › visual fixes light › nested bold italic closes before mixed language tail
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "粗体中的 斜体 tail 后文"
+    Received: "粗体中的 *斜体* tail 后文"
+
+      46 |       const line = page.locator('.milkup-line[data-line="1"]')
+      47 |       const visible = await line.evaluate(el => (el as HTMLElement).innerText)
+    > 48 |       expect(visible).toBe('粗体中的 斜体 tail 后文')
+         |                       ^
+      49 |       expect(await line.locator('.milkup-inline-emphasis').evaluateAll(nodes => nodes.map(n => (n as HTMLElement).innerText))).toEqual(['斜体'])
+      50 |     })
+      51 |     test('code End reveals caret and shifted selection inside viewport', async ({ page }) => {
+        at /workspace/milkup-visual-baseline/tests/e2e/desktop-visual-fixes.spec.ts:48:23
+
+    Error Context: test-results/desktop-visual-fixes-visua-38292--before-mixed-language-tail-desktop-msedge/error-context.md
+
+  4) [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:51:5 › visual fixes light › code End reveals caret and shifted selection inside viewport
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      57 |         return c.left >= v.left && c.right <= v.right && c.top >= v.top && c.bottom <= v.bottom
+      58 |       })
+    > 59 |       await expect.poll(visible).toBe(true)
+         |                                  ^
+      60 |       await page.keyboard.press('Shift+ArrowLeft')
+      61 |       expect(await visible()).toBe(true)
+      62 |       await expect(page.locator('.milkup-selection')).toHaveCount(1)
+        at /workspace/milkup-visual-baseline/tests/e2e/desktop-visual-fixes.spec.ts:59:34
+
+    Error Context: test-results/desktop-visual-fixes-visua-7d9d8-d-selection-inside-viewport-desktop-msedge/error-context.md
+
+  5) [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:68:5 › visual fixes light › editor focus is quiet while keyboard controls retain focus indication
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "none"
+    Received: "rgb(36, 107, 79) 0px 0px 0px 2px inset"
+
+      70 |       await page.locator('.milkup-input-proxy').focus()
+      71 |       const style = await page.locator('.milkup-editor').evaluate(el => ({shadow:getComputedStyle(el).boxShadow,outline:getComputedStyle(el).outlineStyle}))
+    > 72 |       expect(style.shadow).toBe('none')
+         |                            ^
+      73 |       expect(style.outline).toBe('none')
+      74 |       await page.getByRole('button', {name:'菜单',exact:true}).focus()
+      75 |       await page.keyboard.press('Tab')
+        at /workspace/milkup-visual-baseline/tests/e2e/desktop-visual-fixes.spec.ts:72:28
+
+    Error Context: test-results/desktop-visual-fixes-visua-1e200-ols-retain-focus-indication-desktop-msedge/error-context.md
+
+  6) [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:78:5 › visual fixes light › task click changes source once and supports undo redo and keyboard
+
+    Error: expect(received).not.toContain(expected) // indexOf
+
+    Expected substring: not "•"
+    Received string:        "•
+
+    中文 😀 task"
+
+      80 |       await seed(page, text)
+      81 |       const taskLine = page.locator('.milkup-line[data-line="1"]')
+    > 82 |       expect(await taskLine.evaluate(el => (el as HTMLElement).innerText)).not.toContain('•')
+         |                                                                                ^
+      83 |       await expect(page.locator('.milkup-line[data-line="2"] .milkup-list-marker')).toHaveText('•')
+      84 |       await page.locator('.milkup-task-marker').first().click()
+      85 |       await expect(page.locator('.milkup-task-marker').first()).toHaveAttribute('data-checked','true')
+        at /workspace/milkup-visual-baseline/tests/e2e/desktop-visual-fixes.spec.ts:82:80
+
+    Error Context: test-results/desktop-visual-fixes-visua-fec17-orts-undo-redo-and-keyboard-desktop-msedge/error-context.md
+
+  7) [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:21:5 › visual fixes dark › table delimiters align header and body
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 6
+    + Received  + 6
+
+      Array [
+    -   "left",
+    -   "center",
+    -   "right",
+    -   "left",
+    -   "center",
+    -   "right",
+    +   "start",
+    +   "start",
+    +   "start",
+    +   "start",
+    +   "start",
+    +   "start",
+      ]
+
+      24 |         cells.map((cell) => getComputedStyle(cell).textAlign),
+      25 |       )
+    > 26 |       expect(alignment).toEqual(['left', 'center', 'right', 'left', 'center', 'right'])
+         |                         ^
+      27 |     })
+      28 |     test('long unbroken table text stays inside its cell', async ({ page }) => {
+      29 |       await seed(page, '| L | C | R |\n| :--- | :---: | ---: |\n| identifier_without_breaks_ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789 | 完成 | 123.45 |')
+        at /workspace/milkup-visual-baseline/tests/e2e/desktop-visual-fixes.spec.ts:26:25
+
+    Error Context: test-results/desktop-visual-fixes-visua-c8ec8-iters-align-header-and-body-desktop-msedge/error-context.md
+
+  8) [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:28:5 › visual fixes dark › long unbroken table text stays inside its cell
+
+    Error: {"cell":{"left":27,"right":262.65625},"text":[{"left":37,"right":526.984375},{"left":37,"right":526.984375}]}
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      38 |         const m = await measure()
+      39 |         expect(m.text.length).toBeGreaterThan(0)
+    > 40 |         expect(m.text.every(r => r.left >= m.cell.left && r.right <= m.cell.right + 1), JSON.stringify(m)).toBe(true)
+         |                                                                                                            ^
+      41 |       }
+      42 |     })
+      43 |     test('nested bold italic closes before mixed language tail', async ({ page }) => {
+        at /workspace/milkup-visual-baseline/tests/e2e/desktop-visual-fixes.spec.ts:40:108
+
+    Error Context: test-results/desktop-visual-fixes-visua-e25ab--text-stays-inside-its-cell-desktop-msedge/error-context.md
+
+  9) [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:43:5 › visual fixes dark › nested bold italic closes before mixed language tail
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "粗体中的 斜体 tail 后文"
+    Received: "粗体中的 *斜体* tail 后文"
+
+      46 |       const line = page.locator('.milkup-line[data-line="1"]')
+      47 |       const visible = await line.evaluate(el => (el as HTMLElement).innerText)
+    > 48 |       expect(visible).toBe('粗体中的 斜体 tail 后文')
+         |                       ^
+      49 |       expect(await line.locator('.milkup-inline-emphasis').evaluateAll(nodes => nodes.map(n => (n as HTMLElement).innerText))).toEqual(['斜体'])
+      50 |     })
+      51 |     test('code End reveals caret and shifted selection inside viewport', async ({ page }) => {
+        at /workspace/milkup-visual-baseline/tests/e2e/desktop-visual-fixes.spec.ts:48:23
+
+    Error Context: test-results/desktop-visual-fixes-visua-29759--before-mixed-language-tail-desktop-msedge/error-context.md
+
+  10) [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:51:5 › visual fixes dark › code End reveals caret and shifted selection inside viewport
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      57 |         return c.left >= v.left && c.right <= v.right && c.top >= v.top && c.bottom <= v.bottom
+      58 |       })
+    > 59 |       await expect.poll(visible).toBe(true)
+         |                                  ^
+      60 |       await page.keyboard.press('Shift+ArrowLeft')
+      61 |       expect(await visible()).toBe(true)
+      62 |       await expect(page.locator('.milkup-selection')).toHaveCount(1)
+        at /workspace/milkup-visual-baseline/tests/e2e/desktop-visual-fixes.spec.ts:59:34
+
+    Error Context: test-results/desktop-visual-fixes-visua-12023-d-selection-inside-viewport-desktop-msedge/error-context.md
+
+  11) [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:68:5 › visual fixes dark › editor focus is quiet while keyboard controls retain focus indication
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "none"
+    Received: "rgb(120, 217, 172) 0px 0px 0px 2px inset"
+
+      70 |       await page.locator('.milkup-input-proxy').focus()
+      71 |       const style = await page.locator('.milkup-editor').evaluate(el => ({shadow:getComputedStyle(el).boxShadow,outline:getComputedStyle(el).outlineStyle}))
+    > 72 |       expect(style.shadow).toBe('none')
+         |                            ^
+      73 |       expect(style.outline).toBe('none')
+      74 |       await page.getByRole('button', {name:'菜单',exact:true}).focus()
+      75 |       await page.keyboard.press('Tab')
+        at /workspace/milkup-visual-baseline/tests/e2e/desktop-visual-fixes.spec.ts:72:28
+
+    Error Context: test-results/desktop-visual-fixes-visua-031f0-ols-retain-focus-indication-desktop-msedge/error-context.md
+
+  12) [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:78:5 › visual fixes dark › task click changes source once and supports undo redo and keyboard
+
+    Error: expect(received).not.toContain(expected) // indexOf
+
+    Expected substring: not "•"
+    Received string:        "•
+
+    中文 😀 task"
+
+      80 |       await seed(page, text)
+      81 |       const taskLine = page.locator('.milkup-line[data-line="1"]')
+    > 82 |       expect(await taskLine.evaluate(el => (el as HTMLElement).innerText)).not.toContain('•')
+         |                                                                                ^
+      83 |       await expect(page.locator('.milkup-line[data-line="2"] .milkup-list-marker')).toHaveText('•')
+      84 |       await page.locator('.milkup-task-marker').first().click()
+      85 |       await expect(page.locator('.milkup-task-marker').first()).toHaveAttribute('data-checked','true')
+        at /workspace/milkup-visual-baseline/tests/e2e/desktop-visual-fixes.spec.ts:82:80
+
+    Error Context: test-results/desktop-visual-fixes-visua-0ddc4-orts-undo-redo-and-keyboard-desktop-msedge/error-context.md
+
+  12 failed
+    [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:21:5 › visual fixes light › table delimiters align header and body
+    [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:28:5 › visual fixes light › long unbroken table text stays inside its cell
+    [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:43:5 › visual fixes light › nested bold italic closes before mixed language tail
+    [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:51:5 › visual fixes light › code End reveals caret and shifted selection inside viewport
+    [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:68:5 › visual fixes light › editor focus is quiet while keyboard controls retain focus indication
+    [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:78:5 › visual fixes light › task click changes source once and supports undo redo and keyboard
+    [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:21:5 › visual fixes dark › table delimiters align header and body
+    [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:28:5 › visual fixes dark › long unbroken table text stays inside its cell
+    [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:43:5 › visual fixes dark › nested bold italic closes before mixed language tail
+    [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:51:5 › visual fixes dark › code End reveals caret and shifted selection inside viewport
+    [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:68:5 › visual fixes dark › editor focus is quiet while keyboard controls retain focus indication
+    [desktop-msedge] › tests/e2e/desktop-visual-fixes.spec.ts:78:5 › visual fixes dark › task click changes source once and supports undo redo and keyboard
+[ELIFECYCLE] Command failed with exit code 1.
