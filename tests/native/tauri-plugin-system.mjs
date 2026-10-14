@@ -6,6 +6,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import path from 'node:path'
 import { startProduction } from '../helpers/native-production.mjs'
+import { ownedApplication } from '../helpers/native-owned-process.mjs'
 const output = process.env.MILKUP_NATIVE_EVIDENCE_DIR
 const archivePath = process.env.MILKUP_PLUGIN_ARCHIVE
 assert(output && archivePath, 'Set MILKUP_NATIVE_EVIDENCE_DIR and MILKUP_PLUGIN_ARCHIVE')
@@ -14,7 +15,9 @@ const fixture = path.join(output, 'outline.md')
 const original =
   '# Guide\nIntro 中文。\n\n## Getting started\nBody\n### Install\nBody\n#### Configure\nBody\n##### Details\nBody\n###### Deep heading\nBody\n\n## Usage\nBody\n\n# Second chapter\n```md\n# Fenced pseudo heading\n```\nTail\n'
 await writeFile(fixture, original)
-await writeFile(path.join(output, 'other.md'), '# Other document\n## Other child\nContent\n')
+const other =
+  '# Other document\n## Other child\nContent\n\nSetext one\n===\n\nSetext two\n---\n\n## Duplicate\n## Duplicate\n'
+await writeFile(path.join(output, 'other.md'), other)
 await writeFile(path.join(output, 'empty.md'), '')
 const large =
   Array.from({ length: 40000 }, (_, n) => {
@@ -37,6 +40,48 @@ const observe = () =>
   app.execute(
     `return {items:[...document.querySelectorAll('.plugin-list-item')].map(x=>({text:x.textContent,current:x.getAttribute('aria-current'),title:x.title})),tree:[...document.querySelectorAll('.plugin-tree-row')].map(x=>({level:x.getAttribute('aria-level'),expanded:x.getAttribute('aria-expanded')})),summary:document.querySelector('.plugin-list-summary')?.textContent,panel:document.querySelector('[data-plugin-ui]')?.textContent,manager:document.querySelector('[data-plugin-manager]')?.textContent,virtual:document.querySelector('[data-virtual-list]')?.dataset,diagnostics:window.__productionDiagnostics}`,
   )
+const resources = () =>
+  execFileSync(
+    'ps',
+    ['-C', 'milkup-desktop', '-C', 'WebKitWebProcess', '-o', 'pid,stat,rss,pcpu,comm'],
+    { encoding: 'utf8' },
+  )
+const temporary = () =>
+  app.execute(
+    `return new Promise((resolve,reject)=>{const r=indexedDB.open('milkup-plugin-temporary-v1',1);r.onerror=()=>reject(String(r.error));r.onsuccess=()=>{const db=r.result;const q=db.transaction('meta','readonly').objectStore('meta').getAll();q.onsuccess=()=>{resolve(q.result);db.close()};q.onerror=()=>reject(String(q.error))}})`,
+  )
+async function closeNormally() {
+  execFileSync(
+    'python3',
+    [
+      '-c',
+      `import ctypes,sys
+x=ctypes.CDLL('libX11.so.6')
+x.XOpenDisplay.restype=ctypes.c_void_p
+x.XInternAtom.argtypes=[ctypes.c_void_p,ctypes.c_char_p,ctypes.c_int]; x.XInternAtom.restype=ctypes.c_ulong
+class E(ctypes.Structure):
+ _fields_=[('type',ctypes.c_int),('serial',ctypes.c_ulong),('send_event',ctypes.c_int),('display',ctypes.c_void_p),('window',ctypes.c_ulong),('message_type',ctypes.c_ulong),('format',ctypes.c_int),('data',ctypes.c_long*5),('pad',ctypes.c_long*12)]
+d=x.XOpenDisplay(None);e=E();e.type=33;e.display=d;e.window=int(sys.argv[1]);e.message_type=x.XInternAtom(d,b'WM_PROTOCOLS',0);e.format=32;e.data[0]=x.XInternAtom(d,b'WM_DELETE_WINDOW',0)
+x.XSendEvent.argtypes=[ctypes.c_void_p,ctypes.c_ulong,ctypes.c_int,ctypes.c_long,ctypes.c_void_p];x.XFlush.argtypes=[ctypes.c_void_p]
+x.XSendEvent(d,e.window,0,0,ctypes.byref(e));x.XFlush(d)
+`,
+      windowId,
+    ],
+    { env: process.env },
+  )
+  await app.until(
+    () => {
+      try {
+        x('getwindowgeometry', windowId)
+        return false
+      } catch {
+        return true
+      }
+    },
+    'native close cleanup',
+    30000,
+  )
+}
 async function record(name, extra = {}) {
   const value = {
     name,
@@ -116,7 +161,13 @@ async function open(file) {
 }
 async function start() {
   app = await startProduction(fixture, output)
-  windowId = x('search', '--onlyvisible', '--class', 'milkup-desktop').split('\n').at(-1)
+  windowId = x('search', '--onlyvisible', '--class', 'milkup-desktop')
+    .split('\n')
+    .map((id) => {
+      const g = x('getwindowgeometry', '--shell', id)
+      return { id, area: Number(/WIDTH=(\d+)/.exec(g)[1]) * Number(/HEIGHT=(\d+)/.exec(g)[1]) }
+    })
+    .sort((a, b) => b.area - a.area)[0].id
 }
 try {
   await start()
@@ -129,6 +180,10 @@ try {
   await app.until(
     async () => (await observe()).manager.includes('milkup.outline'),
     'installed archive',
+  )
+  await app.until(
+    () => app.execute('return !!document.querySelector("[data-plugin-action=enable]")'),
+    'installed enable control',
   )
   await record('normal-gtk-install')
   await click('[data-plugin-action="enable"]')
@@ -166,6 +221,7 @@ try {
   assert.equal((await observe()).items[0].current, 'location')
   await click('[data-plugin-ui] [data-plugin-command="outline.expandAll"]')
   await app.key('ctrl+1')
+  await app.until(async () => (await app.probe()).mode === 'source', 'source mode ready')
   await app.focus('.milkup-input-proxy')
   await app.key('ctrl+End')
   await app.text('# Added heading')
@@ -196,61 +252,143 @@ try {
   await open(path.join(output, 'other.md'))
   await app.until(
     async () =>
-      (await observe()).items.length === 2 && (await observe()).items[0].text === 'Other document',
+      (await observe()).items.length === 6 && (await observe()).items[0].text === 'Other document',
     'document switch',
   )
+  assert.deepEqual(
+    (await observe()).tree.map((x) => x.level),
+    ['1', '2', '1', '2', '2', '2'],
+  )
+  await click('.plugin-list-item[title="Duplicate（第 12 行）"]')
+  await app.until(
+    async () => (await app.probe()).cursor === other.lastIndexOf('## Duplicate'),
+    'duplicate identity navigation',
+  )
+  await record('setext-duplicate-headings')
   await open(path.join(output, 'empty.md'))
   await app.until(async () => (await observe()).panel?.includes('文档无标题'), 'empty document')
   await shot('05-empty')
-  const at = performance.now()
-  await open(path.join(output, 'large.md'))
-  await app.until(async () => (await observe()).items.length > 0, 'large headings', 30000)
-  await record('large-initial', {
-    elapsedMs: performance.now() - at,
-    bytes: Buffer.byteLength(large),
-  })
-  assert((await observe()).items.length <= 500)
-  assert(!(await observe()).items.some((x) => /^Heading (?:[1-9]\d{2}|[1-4]\d{3})$/.test(x.text)))
-  await app.key('ctrl+1')
-  await app.focus('.milkup-input-proxy')
-  const navAt = performance.now()
-  await app.key('ctrl+End')
-  await app.until(
-    async () => (await observe()).items.some((x) => x.text === 'Heading 40000'),
-    'tail headings',
-    30000,
-  )
-  await record('large-tail', {
-    elapsedMs: performance.now() - navAt,
-    processes: execFileSync(
-      'ps',
-      ['-C', 'milkup-desktop', '-C', 'WebKitWebProcess', '-o', 'pid,rss,pcpu,comm'],
-      { encoding: 'utf8' },
-    ),
-  })
-  assert((await observe()).items.length <= 500)
-  await click('.plugin-list-item[title^="Heading 40000"]')
-  await shot('06-large-tail')
-  const navigationSamples = []
-  for (let i = 0; i < 10; i++) {
-    const tail = i % 2 === 1
-    await app.focus('.milkup-input-proxy')
-    const started = performance.now()
-    await app.key(tail ? 'ctrl+End' : 'ctrl+Home')
+  if (process.env.MILKUP_PLUGIN_SKIP_LARGE !== '1') {
+    const at = performance.now()
+    await open(path.join(output, 'large.md'))
+    await app.until(async () => (await observe()).items.length > 0, 'large headings', 30000)
+    await record('large-initial', {
+      elapsedMs: performance.now() - at,
+      bytes: Buffer.byteLength(large),
+    })
+    assert((await observe()).items.length <= 500)
+    await click('[data-plugin-ui] [data-plugin-command="outline.cancel"]')
+    await app.until(async () => (await observe()).panel.includes('扫描已取消'), 'cancel full scan')
+    await record('large-cancelled-partial')
+    await click('[data-plugin-ui] [data-plugin-command="outline.retry"]')
+    const indexAt = performance.now()
     await app.until(
-      async () =>
-        (await observe()).items.some((x) => x.text === (tail ? 'Heading 40000' : 'Large start')),
-      'repeated navigation',
+      async () => (await observe()).summary?.startsWith('全文索引完成'),
+      'whole document index',
+      180000,
+    )
+    assert.equal(Number((await observe()).virtual.virtualTotal), 8775)
+    await record('large-complete', {
+      indexMs: performance.now() - indexAt,
+      temporary: await temporary(),
+      processes: resources(),
+    })
+    assert(!(await observe()).items.some((x) => /^Heading (?:[1-9]\d{2}|[1-4]\d{3})$/.test(x.text)))
+    await app.key('ctrl+1')
+    await app.until(async () => (await app.probe()).mode === 'source', 'source mode ready')
+    await app.focus('.milkup-input-proxy')
+    const navAt = performance.now()
+    await app.key('ctrl+End')
+    await app.until(
+      async () => (await observe()).items.some((x) => x.text === 'Heading 40000'),
+      'tail headings',
       30000,
     )
-    navigationSamples.push({
-      target: tail ? 'tail' : 'head',
-      elapsedMs: performance.now() - started,
-      rendered: (await observe()).items.length,
+    await record('large-tail', {
+      elapsedMs: performance.now() - navAt,
+      processes: execFileSync(
+        'ps',
+        ['-C', 'milkup-desktop', '-C', 'WebKitWebProcess', '-o', 'pid,rss,pcpu,comm'],
+        { encoding: 'utf8' },
+      ),
     })
+    assert((await observe()).items.length <= 500)
+    await click('.plugin-list-item[title^="Heading 40000"]')
+    await shot('06-large-tail')
+    const navigationSamples = []
+    for (let i = 0; i < 10; i++) {
+      const tail = i % 2 === 1
+      await app.focus('.milkup-input-proxy')
+      const started = performance.now()
+      await app.key(tail ? 'ctrl+End' : 'ctrl+Home')
+      await app.until(
+        async () =>
+          (await observe()).items.some((x) => x.text === (tail ? 'Heading 40000' : 'Large start')),
+        'repeated navigation',
+        30000,
+      )
+      navigationSamples.push({
+        target: tail ? 'tail' : 'head',
+        elapsedMs: performance.now() - started,
+        rendered: (await observe()).items.length,
+      })
+    }
+    await record('large-navigation-distribution', { samples: navigationSamples })
+    const listRect = await app.execute(
+      "return document.querySelector('[data-virtual-list]').getBoundingClientRect().toJSON()",
+    )
+    x(
+      'mousemove',
+      '--window',
+      windowId,
+      String(Math.round(listRect.x + listRect.width / 2)),
+      String(Math.round(listRect.top + listRect.height / 2)),
+      'click',
+      '--repeat',
+      '1000',
+      '--delay',
+      '0',
+      '4',
+    )
+    const middle = await app.until(
+      () =>
+        app.execute(
+          `const list=document.querySelector('[data-virtual-list]'),r=list.getBoundingClientRect();return [...list.querySelectorAll('.plugin-list-item')].map(x=>({text:x.textContent,title:x.title,rect:x.getBoundingClientRect()})).find(x=>/^Heading /.test(x.text)&&x.rect.top>=r.top&&x.rect.bottom<=r.bottom&&Number(x.text.split(' ')[1])>10000&&Number(x.text.split(' ')[1])<35000)?.title`,
+        ),
+      'middle virtual wheel navigation',
+      30000,
+    )
+    await click('.plugin-list-item[title=' + JSON.stringify(middle) + ']')
+    const middleLine = Number(/^Heading (\d+)/.exec(middle)[1])
+    await app.until(
+      async () => (await app.probe()).cursor === large.indexOf('## Heading ' + middleLine + '\n'),
+      'middle heading exact position',
+    )
+    await shot('06b-large-middle')
+    const collapseAt = performance.now()
+    await click('[data-plugin-ui] [data-plugin-command="outline.collapseAll"]')
+    await app.until(
+      async () =>
+        Number((await observe()).virtual.virtualTotal) === 1 &&
+        (await observe()).items.length === 1,
+      'large collapse all',
+      180000,
+    )
+    await record('large-collapse-all', { elapsedMs: performance.now() - collapseAt })
+    await click('[data-plugin-ui] [data-plugin-command="outline.expandAll"]')
+    await app.until(
+      async () =>
+        Number((await observe()).virtual.virtualTotal) === 8775 &&
+        !(await observe()).panel.includes('正在更新折叠视图'),
+      'large expand all',
+      180000,
+    )
+    await record('large-after-navigation', { temporary: await temporary(), processes: resources() })
   }
-  await record('large-navigation-distribution', { samples: navigationSamples })
   await open(fixture)
+  await app.until(async () => (await observe()).items.length === 9, 'returned small index')
+  const beforeClose = await temporary()
+  await closeNormally()
   await app.close()
   await start()
   await app.until(
@@ -261,11 +399,31 @@ try {
     await app.execute('return document.querySelector("#app").dataset.sidebarCollapsed === "true"')
   )
     await click('[data-sidebar-toggle]')
+  const afterClose = await temporary()
+  assert(!afterClose.some((row) => row.id && beforeClose.some((old) => old.id === row.id)))
+  await record('normal-close-index-cleanup', { beforeClose, afterClose })
   await shot('07-restored')
+  let retainedStores = 0
+  if (process.env.MILKUP_PLUGIN_TEST_CRASH === '1') {
+    const beforeCrash = await temporary()
+    const owner = await ownedApplication(app.application, fixture)
+    const termination = await owner.signal('SIGKILL')
+    await app.close()
+    await start()
+    await app.until(async () => (await observe()).items.length === 9, 'plugin after forced exit')
+    const afterCrash = await temporary()
+    const oldIds = beforeCrash.filter((row) => row.id).map((row) => row.id)
+    assert(oldIds.every((id) => afterCrash.some((row) => row.id === id)))
+    assert(afterCrash.some((row) => row.id && !oldIds.includes(row.id)))
+    retainedStores = oldIds.length
+    await record('crash-retains-unknown-owner', { beforeCrash, afterCrash, termination })
+  }
+
   await menu()
   await click('[data-plugin-action="disable"]')
   await app.until(async () => (await observe()).items.length === 0, 'disabled UI removed')
   assert((await observe()).manager.includes('命令 0'))
+  assert.equal((await temporary()).find((row) => 'stores' in row)?.stores ?? 0, retainedStores)
   await record('disabled-contributions-removed')
   await click('[data-plugin-action="enable"]')
   await app.until(async () => (await observe()).items.length === 9, 'reenabled')
@@ -274,6 +432,7 @@ try {
   assert.equal((await observe()).items.length, 0)
   await app.key('Escape')
   await app.key('ctrl+1')
+  await app.until(async () => (await app.probe()).mode === 'source', 'source mode ready')
   await app.focus('.milkup-input-proxy')
   await app.key('ctrl+End')
   await app.text(' after uninstall')
@@ -306,6 +465,10 @@ try {
   await app.until(
     async () => (await observe()).manager.includes('example.independent-outline'),
     'renamed installed',
+  )
+  await app.until(
+    () => app.execute('return !!document.querySelector("[data-plugin-action=enable]")'),
+    'renamed enable control',
   )
   await click('[data-plugin-action="enable"]')
   await app.key('Escape')

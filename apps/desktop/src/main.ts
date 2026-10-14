@@ -915,7 +915,7 @@ const desktopPluginManager = new DesktopPluginManager({
   manifestHost: createDesktopPluginManifestHost(),
   permissions: desktopActionPermissions,
   milkupVersion: appVersion,
-  pluginSdkVersion: '0.1.0',
+  pluginSdkVersion: '0.1.1',
   storage: globalThis.localStorage,
   documentSource: () => {
     if (documentPresentation === 'custom-view') return undefined
@@ -3999,6 +3999,7 @@ async function invokeWindowClose(): Promise<void> {
 
   try {
     const { getCurrentWindow } = await import('@tauri-apps/api/window')
+    await desktopPluginManager.disposeTemporaryStorage()
     await getCurrentWindow().destroy()
   } catch (error: unknown) {
     setDocumentLoadingState({ phase: 'ready' })

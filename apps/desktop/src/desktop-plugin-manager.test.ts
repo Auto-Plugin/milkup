@@ -2,6 +2,12 @@ import { ActionRegistry, MemoryDocumentSource } from '@milkup/core'
 import { parsePluginPackageArchive } from '@milkup/plugin'
 import type { PluginManifest, PluginModule } from '@milkup/plugin'
 import { describe, expect, it, vi } from 'vitest'
+import { IDBFactory, IDBKeyRange } from 'fake-indexeddb'
+import {
+  createDesktopTemporaryStorage,
+  type DesktopTemporaryStorage,
+} from './plugin-temporary-storage'
+import type { PluginStorageBroker, PluginTemporaryStore } from '@milkup/plugin'
 
 import {
   createDesktopPluginActions,
@@ -13,6 +19,63 @@ import {
 } from './desktop-plugin-manager'
 
 describe('DesktopPluginManager', () => {
+  it('rejects a temporary-store plugin on SDK 0.1.0 before executing its module', async () => {
+    const loadModule = vi.fn(async () => fakeLoadedModule())
+    const manager = createManager({
+      registry: new ActionRegistry(),
+      storage: createMemoryStorage(),
+      loadModule,
+      readManifestText: async () =>
+        JSON.stringify({ ...pluginManifest(), engines: { pluginSdk: '^0.1.1' } }),
+    })
+    const record = await manager.installManifestPath('D:/plugins/new/plugin.json')
+    expect(record.errors.join(' ')).toContain('0.1.1')
+    await manager.enable(record.manifest.id)
+    expect(loadModule).not.toHaveBeenCalled()
+  })
+
+  it('cleans temporary stores on disable and close, and permits a fresh activation after close fails', async () => {
+    const adapter = createDesktopTemporaryStorage({
+      indexedDB: new IDBFactory(),
+      keyRange: IDBKeyRange,
+    })
+    const storeCreate = vi.fn(adapter.create)
+    let storage: PluginStorageBroker | undefined
+    let page: PluginTemporaryStore | undefined
+    const manager = createManager({
+      registry: new ActionRegistry(),
+      storage: createMemoryStorage(),
+      temporaryStorage: { create: storeCreate },
+      loadModule: async () => ({
+        module: {
+          runtimeHost: 'isolated',
+          activate: async (context) => {
+            storage = context.host.storage
+            page = await storage!.createTemporaryStore!()
+            await page.set('p', 'index')
+            return { commands: { 'example.insert': () => undefined } }
+          },
+        },
+        dispose: () => undefined,
+      }),
+    })
+    await manager.installManifestPath('D:/plugins/example/plugin.json')
+    await manager.enable('example-tools')
+    const first = page!
+    await manager.disable('example-tools')
+    await expect(first.get('p')).rejects.toThrow('disposed')
+    await manager.enable('example-tools')
+    const second = page!
+    await manager.disposeTemporaryStorage()
+    await expect(second.get('p')).rejects.toThrow('disposed')
+    await expect(storage!.createTemporaryStore!()).rejects.toThrow('disposed')
+    await manager.enable('example-tools')
+    await expect(page!.get('p')).resolves.toBe('index')
+    expect(storeCreate).toHaveBeenCalledTimes(3)
+    await manager.remove('example-tools')
+    await expect(page!.get('p')).rejects.toThrow('disposed')
+  })
+
   it('loads a relative entry from the plugin root and cleans runtime resources on disable', async () => {
     const registry = new ActionRegistry()
     const storage = createMemoryStorage()
@@ -421,6 +484,7 @@ describe('resolvePluginEntryPath', () => {
 function createManager(options: {
   registry: ActionRegistry
   storage: Storage
+  temporaryStorage?: DesktopTemporaryStorage
   readManifestText?: (path: string) => Promise<string>
   loadModule?: (manifest: PluginManifest, specifier: string) => Promise<DesktopLoadedPluginModule>
 }): DesktopPluginManager {
@@ -434,6 +498,7 @@ function createManager(options: {
     milkupVersion: '0.1.0',
     pluginSdkVersion: '0.1.0',
     storage: options.storage,
+    ...(options.temporaryStorage ? { temporaryStorage: options.temporaryStorage } : {}),
     loadModule: options.loadModule ?? (async () => fakeLoadedModule()),
     now: () => 10,
   })

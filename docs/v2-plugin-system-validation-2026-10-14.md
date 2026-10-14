@@ -1,5 +1,7 @@
 # 独立插件系统与标准大纲验收（2026-10-14）
 
+> 此文保留 b86edd3 初版区域大纲的设计和验收记录；当前 SDK 0.1.1 与全文分页大纲 1.1.0 的实现、性能和限制见[后续验收报告](v2-full-outline-validation-2026-10-14.md)。
+
 本轮在 `566babb93fde847251a9f3f458d77c6603bf8ba4` 上建立 `dot/milkup-v2-plugin-system`。SDK、独立插件包、通用宿主修补和 Linux 生产安装流程已完成验证。没有合并其他分支、发布 npm/Release 或上传 Windows 安装包；原有上传请求仍为 `enabled:false`、`uploadConsumed:true`。
 
 这不是整个产品达到 Typora 品质的声明。大文件大纲冷扫描仍有显著延迟，Windows/macOS、真实 IME、Word 2016、辅助技术仍待目标环境验证。编辑器视觉七项由另一线程处理，本分支没有修复这些项目。

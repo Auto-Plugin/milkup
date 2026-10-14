@@ -45,6 +45,16 @@ export interface SdkPluginStorage {
   getItem(key: string): Promise<string | null>
   setItem(key: string, value: string): Promise<void>
   removeItem(key: string): Promise<void>
+  /** Optional on older hosts. Temporary pages are quota limited and never document recovery data. */
+  createTemporaryStore?(): Promise<SdkTemporaryStore>
+}
+
+export interface SdkTemporaryStore {
+  get(key: string): Promise<string | null>
+  set(key: string, value: string): Promise<void>
+  getMany(keys: readonly string[]): Promise<readonly (string | null)[]>
+  setMany(entries: readonly { readonly key: string; readonly value: string }[]): Promise<void>
+  dispose(): Promise<void>
 }
 
 export type SdkDocumentScanQuery =

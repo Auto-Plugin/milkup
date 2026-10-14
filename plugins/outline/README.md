@@ -12,10 +12,22 @@ outline registration or outline-specific document access.
 - Document identity/version, active line and source/live mode come from public UI
   lifecycle snapshots. Edits and document switches invalidate stale scans.
 - Explicit empty, loading and failure states.
-- Reads 8,192-line windows and retains at most 16,384 logical lines of heading
-  results. The panel renders at most 500 rows; adjacent windows load on user scroll.
-  This is a bounded regional outline, not an in-memory copy of every heading in an
-  arbitrarily large document. Collapse/expand all applies to loaded headings.
+- Builds a complete heading index in the background for each document/version,
+  scanning consecutive 4,096-line ranges, including ATX and Setext headings.
+- Persists heading records in eight-record pages and visible ordinal mappings in
+  256-record pages through the public temporary-store API. Each page cache has
+  eight entries. The 500-row limit applies only to DOM rendering; there is no
+  16,384-line index limit and no all-heading array in memory.
+- Collapse state and ancestors work across page boundaries; collapse all also
+  applies to headings indexed later. A cancelled scan leaves the indexed portion
+  navigable with an incomplete status. Retry starts a new indexing session.
+- Rapid edits debounce indexing startup; an obsolete store is disposed before a
+  new one is created. Actions from earlier document versions/sessions are rejected.
+- Indexing progress and incomplete/cancelled/failed states remain explicit. A
+  storage quota failure never masquerades as a complete outline. The host enforces
+  a 256 MiB charged limit per temporary store and a shared 512 MiB limit. Pages are
+  temporary indexes, not recovery copies; interrupted-session pages still count
+  against the shared quota, without deleting another possibly active owner.
 - Requires only `document:read`. No private host imports, internal store access,
   DOM access, filesystem permission or network permission.
 
@@ -33,7 +45,7 @@ pnpm --dir packages/plugin-sdk pack --pack-destination /absolute/sdk-output
 
 # Run in the copied standalone plugin directory. This installs the public SDK
 # archive and the declared TypeScript/esbuild tools; no workspace links are needed.
-npm install --no-save --package-lock=false /absolute/sdk-output/milkup-plugin-sdk-0.1.0.tgz
+npm install --no-save --package-lock=false /absolute/sdk-output/milkup-plugin-sdk-0.1.1.tgz
 npm run build
 ```
 
@@ -42,7 +54,7 @@ The build checks that imports come only from local plugin source or the public S
 then rejects any residual imports in the ESM output. Outputs:
 
 - `dist/plugin.js`: one self-contained ESM module with its default plugin export.
-- `dist/milkup.outline-1.0.0.milkup-plugin`: JSON archive containing the manifest and
+- `dist/milkup.outline-1.1.0.milkup-plugin`: JSON archive containing the manifest and
   UTF-8 module, using the host's standard `milkup-plugin` version 1 archive format.
 - `dist/build-meta.json`: esbuild input/output inventory for auditing dependencies.
 
@@ -51,7 +63,7 @@ No new repository, registry publication or host source modification is needed.
 ## Install, enable, disable, uninstall
 
 1. In Milkup choose `菜单 > 插件 > 安装本地插件`.
-2. Select `dist/milkup.outline-1.0.0.milkup-plugin`.
+2. Select `dist/milkup.outline-1.1.0.milkup-plugin`.
 3. Review the manifest and enable `Milkup Outline`.
 4. Open a Markdown document and use the sidebar panel.
 5. Disable the plugin in the same manager to remove its UI and stop its Worker.

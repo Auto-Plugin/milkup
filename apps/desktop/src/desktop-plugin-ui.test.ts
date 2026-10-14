@@ -6,6 +6,51 @@ import { describe, expect, it, vi } from 'vitest'
 import { DesktopPluginUiController, type DesktopPluginUiRuntime } from './desktop-plugin-ui'
 
 describe('DesktopPluginUiController', () => {
+  it('keeps a pressed controlled button until click and coalesces progress renders', async () => {
+    document.body.innerHTML = '<main><div data-plugin-slot="sidebar-panel"></div></main>'
+    let progress = 0
+    const run = vi.fn()
+    const runtime = createRuntime(
+      [
+        {
+          pluginId: 'example',
+          id: 'progress',
+          title: 'Progress',
+          slot: 'sidebar-panel',
+          scope: 'document',
+        },
+      ],
+      [],
+      run,
+      () => ({
+        type: 'element',
+        tag: 'button',
+        text: `Cancel ${progress}`,
+        action: { command: 'example.run' },
+      }),
+    )
+    const controller = new DesktopPluginUiController(document.body, runtime)
+    await controller.sync('doc-a')
+    const button = document.querySelector<HTMLButtonElement>('[data-plugin-command]')!
+    button.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }))
+    for (progress = 1; progress <= 4; progress++) await controller.invalidate('example', 'progress')
+    expect(document.querySelector('[data-plugin-command]')).toBe(button)
+    document.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, button: 0 }))
+    button.click()
+    expect(run).toHaveBeenCalledOnce()
+    await vi.waitFor(() =>
+      expect(document.querySelector('[data-plugin-command]')?.textContent).toBe('Cancel 5'),
+    )
+    const next = document.querySelector('[data-plugin-command]')!
+    next.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }))
+    progress = 6
+    await controller.invalidate('example', 'progress')
+    document.dispatchEvent(new MouseEvent('pointercancel', { bubbles: true, button: 0 }))
+    await vi.waitFor(() =>
+      expect(document.querySelector('[data-plugin-command]')?.textContent).toBe('Cancel 6'),
+    )
+    await controller.dispose()
+  })
   it('mounts controlled slots and recreates document-scoped views on document changes', async () => {
     document.body.innerHTML = '<main><div data-plugin-slot="sidebar-panel"></div></main>'
     const phases: string[] = []

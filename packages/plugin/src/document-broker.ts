@@ -21,6 +21,8 @@ export interface PluginDocumentScanRequest {
   readonly batchSize?: number
   readonly windowSizeLines?: number
   readonly maxResults?: number
+  /** Heading results belong to the line confirming their syntax. A Setext
+   * heading can therefore start before fromLine when its underline is inside. */
   readonly fromLine?: number
   readonly toLine?: number
 }
@@ -120,6 +122,28 @@ export interface PluginDocumentBrokerConfig {
   readonly source: () => PluginDocumentScanSource | undefined
   readonly maxConcurrentScans?: number
   readonly yieldToMainThread?: () => Promise<void>
+  /** Host-only instrumentation; never included in document RPC responses. */
+  readonly onDiagnostics?: (diagnostics: PluginDocumentScanDiagnostics) => void
+}
+
+export interface PluginDocumentScanDiagnostics {
+  readonly scanId: string
+  readonly reason: 'complete' | 'cancelled' | 'invalidated' | 'truncated' | 'error'
+  readonly nextCount: number
+  readonly progressCount: number
+  readonly readCount: number
+  readonly readTextUtf16: number
+  readonly readMs: number
+  readonly yieldCount: number
+  readonly yieldMs: number
+  readonly scanCpuMs: number
+  readonly maxScanCpuMs: number
+}
+
+type ScanMetrics = {
+  -readonly [
+    K in keyof Omit<PluginDocumentScanDiagnostics, 'scanId' | 'reason'>
+  ]: PluginDocumentScanDiagnostics[K]
 }
 
 interface ScanSession {
@@ -136,7 +160,11 @@ interface ScanSession {
   nextLine: number
   scannedLineCount: number
   resultCount: number
-  fence: MarkdownFence | undefined
+  context: HeadingContext
+  readSizeLines: number
+  readonly metrics: ScanMetrics | undefined
+  readonly onDiagnostics: PluginDocumentBrokerConfig['onDiagnostics']
+  reported: boolean
   terminalReason: 'truncated' | undefined
 }
 
@@ -149,6 +177,25 @@ interface MarkdownFence {
   readonly length: number
 }
 
+interface HeadingParagraph {
+  readonly from: number
+  readonly line: number
+  readonly lineOffset: number
+  readonly labelFrom: number
+  readonly labelTo: number
+  readonly label: string
+  readonly truncated: boolean
+  readonly lastLineHasPipe: boolean
+}
+
+interface HeadingContext {
+  readonly fence?: MarkdownFence
+  readonly paragraph?: HeadingParagraph
+  readonly lazyContainer?: boolean
+  readonly table?: boolean
+  readonly html?: RegExp | 'blank'
+}
+
 const DEFAULT_BATCH_SIZE = 64
 const MAX_BATCH_SIZE = 256
 const DEFAULT_WINDOW_SIZE_LINES = 512
@@ -158,9 +205,9 @@ const MAX_RESULTS = 50_000
 const MAX_PATTERN_LENGTH = 256
 const MAX_RESULT_TEXT_LENGTH = 4_096
 const MAX_REGEXP_LINE_LENGTH = 64 * 1_024
-const MAX_COOPERATIVE_SCAN_LINES = 128
+const MAX_COOPERATIVE_SCAN_LINES = 512
 const MAX_SCAN_TEXT_LENGTH = 262_144
-const MAX_FENCE_CHECKPOINTS = 256
+const MAX_HEADING_CHECKPOINTS = 256
 
 export function createPluginDocumentBroker(
   config: PluginDocumentBrokerConfig,
@@ -177,7 +224,7 @@ export function createPluginDocumentBroker(
   let nextScanId = 0
   let contextDocumentId = ''
   let contextVersion = -1
-  const fenceCheckpoints = new Map<number, MarkdownFence | undefined>()
+  const headingCheckpoints = new Map<number, HeadingContext>()
 
   return Object.freeze({
     start: async (request: PluginDocumentScanRequest): Promise<PluginDocumentScanStartResult> => {
@@ -200,19 +247,19 @@ export function createPluginDocumentBroker(
       const toLine = Math.min(source.lineCount, requestedToLine)
       const query = compileQuery(request.query)
       if (contextDocumentId !== source.documentId || contextVersion !== source.version) {
-        fenceCheckpoints.clear()
+        headingCheckpoints.clear()
         contextDocumentId = source.documentId
         contextVersion = source.version
       }
       // Heading ranges need the fence state preceding their first line. Reuse
       // only version-matched checkpoints; otherwise cooperatively scan the prefix.
       let nextLine = query.kind === 'markdownHeadings' ? 1 : fromLine
-      let fence: MarkdownFence | undefined
+      let context: HeadingContext = {}
       if (query.kind === 'markdownHeadings') {
-        for (const [line, state] of fenceCheckpoints) {
+        for (const [line, state] of headingCheckpoints) {
           if (line <= fromLine && line > nextLine) {
             nextLine = line
-            fence = state
+            context = state
           }
         }
       }
@@ -248,7 +295,23 @@ export function createPluginDocumentBroker(
         nextLine,
         scannedLineCount: 0,
         resultCount: 0,
-        fence,
+        context,
+        readSizeLines: MAX_COOPERATIVE_SCAN_LINES,
+        metrics: config.onDiagnostics
+          ? {
+              nextCount: 0,
+              progressCount: 0,
+              readCount: 0,
+              readTextUtf16: 0,
+              readMs: 0,
+              yieldCount: 0,
+              yieldMs: 0,
+              scanCpuMs: 0,
+              maxScanCpuMs: 0,
+            }
+          : undefined,
+        onDiagnostics: config.onDiagnostics,
+        reported: false,
         terminalReason: undefined,
       })
 
@@ -266,6 +329,7 @@ export function createPluginDocumentBroker(
         throw new Error(`Unknown document scan: ${scanId}`)
       }
 
+      if (session.metrics) session.metrics.nextCount += 1
       const current = config.source()
 
       if (
@@ -291,78 +355,116 @@ export function createPluginDocumentBroker(
         return freezeDoneEvent(session, 'complete', true)
       }
 
-      const fromLine = session.nextLine
-      let toLine = Math.min(
-        session.endLine,
-        fromLine + Math.min(session.windowSizeLines, MAX_COOPERATIVE_SCAN_LINES) - 1,
-      )
-      let window: DocumentLineWindow
+      const deadline = performance.now() + 16
+      const roundEndLine = Math.min(session.endLine, session.nextLine + session.windowSizeLines - 1)
+      for (let iteration = 0; ; iteration += 1) {
+        const fromLine = session.nextLine
+        let toLine = Math.min(
+          roundEndLine,
+          fromLine + Math.min(session.windowSizeLines, session.readSizeLines) - 1,
+        )
+        let window: DocumentLineWindow
 
-      try {
-        await yieldToMainThread()
-        if (!sessions.has(scanId)) return freezeDoneEvent(session, 'cancelled', false)
-        for (;;) {
-          try {
-            window = await session.source.readLineWindow(fromLine, toLine, MAX_SCAN_TEXT_LENGTH)
-            if (window.text.length > MAX_SCAN_TEXT_LENGTH)
-              throw new RangeError('Line window exceeds text budget')
-            break
-          } catch (error) {
-            if (!sessions.has(scanId)) return freezeDoneEvent(session, 'cancelled', false)
-            const latest = config.source()
-            if (
-              !latest ||
-              latest.documentId !== session.source.documentId ||
-              latest.version !== session.version
-            ) {
-              sessions.delete(scanId)
-              return freezeDoneEvent(session, 'invalidated', false, latest?.version)
-            }
-            if (!/text budget/i.test(String(error)) || fromLine === toLine) throw error
-            toLine = fromLine + Math.floor((toLine - fromLine) / 2)
+        try {
+          const yieldStarted = session.metrics ? performance.now() : 0
+          await yieldToMainThread()
+          if (session.metrics) {
+            session.metrics.yieldCount += 1
+            session.metrics.yieldMs += performance.now() - yieldStarted
           }
+          if (!sessions.has(scanId)) return freezeDoneEvent(session, 'cancelled', false)
+          for (;;) {
+            try {
+              const readStarted = session.metrics ? performance.now() : 0
+              try {
+                window = await session.source.readLineWindow(fromLine, toLine, MAX_SCAN_TEXT_LENGTH)
+                if (session.metrics) session.metrics.readTextUtf16 += window.text.length
+              } finally {
+                if (session.metrics) {
+                  session.metrics.readCount += 1
+                  session.metrics.readMs += performance.now() - readStarted
+                }
+              }
+              if (window.text.length > MAX_SCAN_TEXT_LENGTH)
+                throw new RangeError('Line window exceeds text budget')
+              break
+            } catch (error) {
+              if (!sessions.has(scanId)) return freezeDoneEvent(session, 'cancelled', false)
+              const latest = config.source()
+              if (
+                !latest ||
+                latest.documentId !== session.source.documentId ||
+                latest.version !== session.version
+              ) {
+                sessions.delete(scanId)
+                return freezeDoneEvent(session, 'invalidated', false, latest?.version)
+              }
+              if (!/text budget/i.test(String(error)) || fromLine === toLine) throw error
+              toLine = fromLine + Math.floor((toLine - fromLine) / 2)
+              session.readSizeLines = toLine - fromLine + 1
+            }
+          }
+        } catch (error) {
+          sessions.delete(scanId)
+          reportDiagnostics(session, 'error')
+          throw error
         }
-      } catch (error) {
-        sessions.delete(scanId)
-        throw error
-      }
 
-      const latest = config.source()
-      if (!sessions.has(scanId)) return freezeDoneEvent(session, 'cancelled', false)
+        const latest = config.source()
+        if (!sessions.has(scanId)) return freezeDoneEvent(session, 'cancelled', false)
 
-      if (
-        !latest ||
-        latest.documentId !== session.source.documentId ||
-        latest.version !== session.version
-      ) {
-        sessions.delete(scanId)
-        return freezeDoneEvent(session, 'invalidated', false, latest?.version)
-      }
+        if (
+          !latest ||
+          latest.documentId !== session.source.documentId ||
+          latest.version !== session.version
+        ) {
+          sessions.delete(scanId)
+          return freezeDoneEvent(session, 'invalidated', false, latest?.version)
+        }
 
-      try {
-        scanWindow(session, window.lines)
-      } catch (error) {
-        sessions.delete(scanId)
-        throw error
-      }
-      session.nextLine = toLine + 1
-      session.scannedLineCount += window.lines.filter(
-        (line) => line.number >= session.startLine,
-      ).length
-      if (session.query.kind === 'markdownHeadings' && !session.terminalReason) {
-        fenceCheckpoints.set(session.nextLine, session.fence)
-        while (fenceCheckpoints.size > MAX_FENCE_CHECKPOINTS)
-          fenceCheckpoints.delete(fenceCheckpoints.keys().next().value!)
-      }
+        try {
+          const scanStarted = session.metrics ? performance.now() : 0
+          scanWindow(session, window.lines)
+          if (session.metrics) {
+            const elapsed = performance.now() - scanStarted
+            session.metrics.scanCpuMs += elapsed
+            session.metrics.maxScanCpuMs = Math.max(session.metrics.maxScanCpuMs, elapsed)
+          }
+        } catch (error) {
+          sessions.delete(scanId)
+          reportDiagnostics(session, 'error')
+          throw error
+        }
+        session.nextLine = toLine + 1
+        session.scannedLineCount += window.lines.filter(
+          (line) => line.number >= session.startLine,
+        ).length
+        if (session.query.kind === 'markdownHeadings' && !session.terminalReason) {
+          headingCheckpoints.set(session.nextLine, session.context)
+          while (headingCheckpoints.size > MAX_HEADING_CHECKPOINTS)
+            headingCheckpoints.delete(headingCheckpoints.keys().next().value!)
+        }
 
-      return session.pending.length > 0 ? takeBatch(session) : freezeProgressEvent(session)
+        if (
+          session.pending.length >= session.batchSize ||
+          session.terminalReason ||
+          session.nextLine > roundEndLine ||
+          iteration >= 3 ||
+          performance.now() >= deadline
+        ) {
+          return session.pending.length > 0 ? takeBatch(session) : freezeProgressEvent(session)
+        }
+      }
     },
     cancel: async (scanId: string): Promise<void> => {
+      const session = sessions.get(scanId)
+      if (session) reportDiagnostics(session, 'cancelled')
       sessions.delete(scanId)
     },
     cancelAll: async (): Promise<void> => {
+      for (const session of sessions.values()) reportDiagnostics(session, 'cancelled')
       sessions.clear()
-      fenceCheckpoints.clear()
+      headingCheckpoints.clear()
     },
   })
 }
@@ -515,55 +617,142 @@ function scanMarkdownHeading(
     return undefined
   }
 
-  if (session.fence) {
-    if (isClosingFence(line.text, session.fence)) {
-      session.fence = undefined
-    }
+  const context = session.context
+  const text = line.text
+  if (context.fence) {
+    if (isClosingFence(text, context.fence)) session.context = {}
     return undefined
   }
-
-  const openingFence = /^( {0,3})(`{3,}|~{3,})/.exec(line.text)?.[2]
-
-  if (openingFence) {
-    session.fence = {
-      marker: openingFence[0] as '`' | '~',
-      length: openingFence.length,
-    }
+  if (context.html) {
+    if (context.html === 'blank' ? /^[ \t]*$/.test(text) : context.html.test(text))
+      session.context = {}
     return undefined
   }
-
-  if (/^ {4}/.test(line.text)) {
+  if (/^[ \t]*$/.test(text)) {
+    session.context = {}
     return undefined
   }
-
-  const match = /^( {0,3})(#{1,6})([ \t]+|$)(.*)$/.exec(line.text)
-  const marker = match?.[2]
-
-  if (!match || !marker || !query.levels.has(marker.length)) {
+  const opening = /^( {0,3})(`{3,}|~{3,})(.*)$/.exec(text)
+  if (opening && !(opening[2]![0] === '`' && opening[3]!.includes('`'))) {
+    session.context = { fence: { marker: opening[2]![0] as '`' | '~', length: opening[2]!.length } }
     return undefined
   }
+  const html = htmlBlockEnd(text, context.paragraph !== undefined)
+  if (html) {
+    session.context = html !== 'blank' && html.test(text) ? {} : { html }
+    return undefined
+  }
+  const atx = /^( {0,3})(#{1,6})([ \t]+|$)(.*)$/.exec(text)
+  if (atx) {
+    session.context = {}
+    const level = atx[2]!.length
+    if (!query.levels.has(level)) return undefined
+    const content = atx[4]!
+    const normalized = content.replace(/(?:^|[ \t]+)#+[ \t]*$/, '').replace(/[ \t]+$/, '')
+    const start = atx[1]!.length + atx[2]!.length + atx[3]!.length
+    const label = truncateText(normalized)
+    return Object.freeze({
+      kind: 'heading',
+      from: line.from,
+      to: line.to,
+      line: line.number,
+      lineOffset: atx[1]!.length,
+      level,
+      label: label.value,
+      ...(label.truncated ? { labelTruncated: true } : {}),
+      labelFrom: line.from + start,
+      labelTo: line.from + start + normalized.length,
+    })
+  }
+  const underline = /^ {0,3}(=+|-+)[ \t]*$/.exec(text)
+  if (underline && context.paragraph && !context.lazyContainer) {
+    session.context = {}
+    const level = underline[1]![0] === '=' ? 1 : 2
+    if (!query.levels.has(level)) return undefined
+    const paragraph = context.paragraph
+    // The confirming underline owns a ranged result, while navigation retains
+    // the paragraph's real first line, possibly in the preceding scan range.
+    return Object.freeze({
+      kind: 'heading',
+      from: paragraph.from,
+      to: line.to,
+      line: paragraph.line,
+      lineOffset: paragraph.lineOffset,
+      level,
+      label: paragraph.label,
+      ...(paragraph.truncated ? { labelTruncated: true } : {}),
+      labelFrom: paragraph.labelFrom,
+      labelTo: paragraph.labelTo,
+    })
+  }
+  if (/^ {0,3}(?:(?:\*[ \t]*){3,}|(?:-[ \t]*){3,}|(?:_[ \t]*){3,})$/.test(text)) {
+    session.context = {}
+    return undefined
+  }
+  if (
+    /^ {0,3}>/.test(text) ||
+    (/^ {0,3}(?:[-+*](?:[ \t]+|$)|\d{1,9}[.)](?:[ \t]+|$))/.test(text) &&
+      (!context.paragraph || /^ {0,3}(?:[-+*]|1[.)])[ \t]+\S/.test(text)))
+  ) {
+    session.context = { lazyContainer: true }
+    return undefined
+  }
+  if (context.lazyContainer) return undefined
+  if (
+    (context.table && text.includes('|')) ||
+    (context.paragraph?.lastLineHasPipe &&
+      /^ *\|? *:?-{3,}:? *(?:\| *:?-{3,}:? *)+\|? *$/.test(text))
+  ) {
+    session.context = { table: true }
+    return undefined
+  }
+  if (!context.paragraph && /^(?: {4}| {0,3}\t)/.test(text)) {
+    session.context = {}
+    return undefined
+  }
+  const content = text.replace(/^[ \t]+|[ \t]+$/g, '')
+  const leading = text.match(/^[ \t]*/)?.[0].length ?? 0
+  const previous = context.paragraph
+  const label = previous?.truncated
+    ? { value: previous.label, truncated: true }
+    : truncateText(previous ? previous.label + '\n' + content : content)
+  session.context = {
+    paragraph: {
+      from: previous?.from ?? line.from,
+      line: previous?.line ?? line.number,
+      lineOffset: previous?.lineOffset ?? leading,
+      labelFrom: previous?.labelFrom ?? line.from + leading,
+      labelTo: line.from + text.replace(/[ \t]+$/, '').length,
+      label: label.value,
+      truncated: previous?.truncated === true || label.truncated,
+      lastLineHasPipe: text.includes('|'),
+    },
+  }
+  return undefined
+}
 
-  const separator = match[3] ?? ''
-  const content = match[4] ?? ''
-  const contentStart = match[1]!.length + marker.length + separator.length
-  const normalizedLabel = content
-    .trim()
-    .replace(/[ \t]+#+[ \t]*$/, '')
-    .trimEnd()
-  const label = truncateText(normalizedLabel)
-
-  return Object.freeze({
-    kind: 'heading',
-    from: line.from,
-    to: line.to,
-    line: line.number,
-    lineOffset: match[1]!.length,
-    level: marker.length,
-    label: label.value,
-    ...(label.truncated ? { labelTruncated: true } : {}),
-    labelFrom: line.from + contentStart,
-    labelTo: line.from + contentStart + normalizedLabel.length,
-  })
+// Opaque HTML block boundaries are recognized for heading context only.
+function htmlBlockEnd(text: string, inParagraph: boolean): RegExp | 'blank' | undefined {
+  const special = /^ {0,3}<(script|pre|style|textarea)(?:[ \t>]|$)/i.exec(text)
+  if (special) return new RegExp(`</${special[1]}>`, 'i')
+  if (/^ {0,3}<!--/.test(text)) return /-->/
+  if (/^ {0,3}<\?/.test(text)) return /\?>/
+  if (/^ {0,3}<!\[CDATA\[/.test(text)) return /\]\]>/
+  if (/^ {0,3}<![A-Z]/.test(text)) return />/
+  if (
+    /^ {0,3}<\/?(?:address|article|aside|base|basefont|blockquote|body|caption|center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|h[1-6]|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|nav|noframes|ol|optgroup|option|p|param|search|section|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul)(?:[ \t/>]|$)/i.test(
+      text,
+    )
+  )
+    return 'blank'
+  if (
+    !inParagraph &&
+    /^ {0,3}(?:<\/[a-zA-Z][\w-]*[ \t]*>|<[a-zA-Z][\w-]*(?:[ \t]+[a-zA-Z_:][\w.:-]*(?:[ \t]*=[ \t]*(?:[^ \t"'=<>`]+|'[^']*'|"[^"]*"))?)*[ \t]*\/?>)[ \t]*$/.test(
+      text,
+    )
+  )
+    return 'blank'
+  return undefined
 }
 
 function addResult(session: ScanSession, item: PluginDocumentScanItemInput): void {
@@ -585,6 +774,7 @@ function takeBatch(session: ScanSession): PluginDocumentScanEvent {
 }
 
 function freezeProgressEvent(session: ScanSession): PluginDocumentScanEvent {
+  if (session.metrics) session.metrics.progressCount += 1
   return Object.freeze({ ...eventBase(session), type: 'progress' })
 }
 
@@ -594,6 +784,7 @@ function freezeDoneEvent(
   complete: boolean,
   currentVersion?: number,
 ): PluginDocumentScanEvent {
+  reportDiagnostics(session, reason)
   return Object.freeze({
     ...eventBase(session),
     type: 'done',
@@ -601,6 +792,19 @@ function freezeDoneEvent(
     reason,
     ...(currentVersion === undefined ? {} : { currentVersion }),
   })
+}
+
+function reportDiagnostics(
+  session: ScanSession,
+  reason: PluginDocumentScanDiagnostics['reason'],
+): void {
+  if (!session.metrics || !session.onDiagnostics || session.reported) return
+  session.reported = true
+  try {
+    session.onDiagnostics(Object.freeze({ scanId: session.id, reason, ...session.metrics }))
+  } catch {
+    // Observability must not change the scan result or its cleanup.
+  }
 }
 
 function eventBase(session: ScanSession): PluginDocumentScanEventBase {

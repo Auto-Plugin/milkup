@@ -42,6 +42,437 @@ describe('plugin document broker', () => {
     })
   })
 
+  // CommonMark 0.31.2 section 4.3, top-level heading context.
+  it.each([
+    {
+      name: 'single equal underline',
+      text: 'Alpha\n=\n',
+      expected: [
+        {
+          level: 1,
+          label: 'Alpha',
+          line: 1,
+        },
+      ],
+    },
+    {
+      name: 'single dash underline',
+      text: 'Alpha\n-\n',
+      expected: [
+        {
+          level: 2,
+          label: 'Alpha',
+          line: 1,
+        },
+      ],
+    },
+    {
+      name: 'multiline paragraph',
+      text: 'Alpha\nbeta\n---\n',
+      expected: [
+        {
+          level: 2,
+          label: 'Alpha\nbeta',
+          line: 1,
+        },
+      ],
+    },
+    {
+      name: 'adjacent headings and thematic break',
+      text: '---\nAlpha\n---\nBeta\n---\n',
+      expected: [
+        {
+          level: 2,
+          label: 'Alpha',
+          line: 2,
+        },
+        {
+          level: 2,
+          label: 'Beta',
+          line: 4,
+        },
+      ],
+    },
+    {
+      name: 'no empty heading',
+      text: '===\n',
+      expected: [],
+    },
+    {
+      name: 'blank paragraph boundary',
+      text: 'Alpha\n\n---\n',
+      expected: [],
+    },
+    {
+      name: 'indented code',
+      text: '    Alpha\n---\n',
+      expected: [],
+    },
+    {
+      name: 'tab indented code',
+      text: '\tAlpha\n---\n',
+      expected: [],
+    },
+    {
+      name: 'indented underline',
+      text: 'Alpha\n    ---\n',
+      expected: [],
+    },
+    {
+      name: 'indented paragraph continuation',
+      text: 'Alpha\n    beta\n---\n',
+      expected: [
+        {
+          level: 2,
+          label: 'Alpha\nbeta',
+          line: 1,
+        },
+      ],
+    },
+    {
+      name: 'list boundary',
+      text: '- Alpha\n---\n',
+      expected: [],
+    },
+    {
+      name: 'lazy list continuation',
+      text: '- Alpha\nbeta\n===\n',
+      expected: [],
+    },
+    {
+      name: 'ordered marker cannot interrupt paragraph',
+      text: 'Alpha\n2. beta\n---\n',
+      expected: [
+        {
+          level: 2,
+          label: 'Alpha\n2. beta',
+          line: 1,
+        },
+      ],
+    },
+    {
+      name: 'empty bullet cannot interrupt paragraph',
+      text: 'Alpha\n+\n---\n',
+      expected: [
+        {
+          level: 2,
+          label: 'Alpha\n+',
+          line: 1,
+        },
+      ],
+    },
+    {
+      name: 'blockquote boundary',
+      text: '> Alpha\n---\n',
+      expected: [],
+    },
+    {
+      name: 'lazy blockquote continuation',
+      text: '> Alpha\nbeta\n===\n',
+      expected: [],
+    },
+    {
+      name: 'thematic break interrupts paragraph',
+      text: 'Alpha\n***\nBeta\n---\n',
+      expected: [
+        {
+          level: 2,
+          label: 'Beta',
+          line: 3,
+        },
+      ],
+    },
+    {
+      name: 'internally spaced underlines',
+      text: 'Alpha\n= =\n\nBeta\n--- -\n',
+      expected: [],
+    },
+    {
+      name: 'unfinished inline code',
+      text: '`Alpha\n---\n',
+      expected: [
+        {
+          level: 2,
+          label: '`Alpha',
+          line: 1,
+        },
+      ],
+    },
+    {
+      name: 'escaped block marker',
+      text: '\\> Alpha\n---\n',
+      expected: [
+        {
+          level: 2,
+          label: '\\> Alpha',
+          line: 1,
+        },
+      ],
+    },
+    {
+      name: 'escaped underline',
+      text: 'Alpha\n\\---\n',
+      expected: [],
+    },
+    {
+      name: 'fenced pseudo headings',
+      text: '```\nAlpha\n---\n# Pseudo\n```\nReal\n===\n',
+      expected: [
+        {
+          level: 1,
+          label: 'Real',
+          line: 6,
+        },
+      ],
+    },
+    {
+      name: 'backtick in fence info',
+      text: '```info`literal\n---\n',
+      expected: [
+        {
+          level: 2,
+          label: '```info`literal',
+          line: 1,
+        },
+      ],
+    },
+    {
+      name: 'ATX closing markers',
+      text: '## ATX ##\n---\n# ###\n### escaped \\###\n',
+      expected: [
+        {
+          level: 2,
+          label: 'ATX',
+          line: 1,
+        },
+        {
+          level: 1,
+          label: '',
+          line: 3,
+        },
+        {
+          level: 3,
+          label: 'escaped \\###',
+          line: 4,
+        },
+      ],
+    },
+    {
+      name: 'ATX paragraph boundary',
+      text: 'before\n# Root\nAfter\n---\n',
+      expected: [
+        {
+          level: 1,
+          label: 'Root',
+          line: 2,
+        },
+        {
+          level: 2,
+          label: 'After',
+          line: 3,
+        },
+      ],
+    },
+    {
+      name: 'pipe table boundary',
+      text: '| A | B |\n| --- | --- |\n| X | Y |\n---\n# Root\n',
+      expected: [
+        {
+          level: 1,
+          label: 'Root',
+          line: 5,
+        },
+      ],
+    },
+    {
+      name: 'HTML comment boundary',
+      text: '<!--\n# Pseudo\nTitle\n---\n-->\n# Real\n',
+      expected: [
+        {
+          level: 1,
+          label: 'Real',
+          line: 6,
+        },
+      ],
+    },
+    {
+      name: 'HTML block boundary',
+      text: '<div>\nTitle\n---\n</div>\n\nReal\n---\n',
+      expected: [
+        {
+          level: 2,
+          label: 'Real',
+          line: 6,
+        },
+      ],
+    },
+    {
+      name: 'incomplete inline HTML',
+      text: '<a title="long\n---\n',
+      expected: [
+        {
+          level: 2,
+          label: '<a title="long',
+          line: 1,
+        },
+      ],
+    },
+    {
+      name: 'inline HTML cannot interrupt paragraph',
+      text: 'Alpha\n<span>\n---\n',
+      expected: [
+        {
+          level: 2,
+          label: 'Alpha\n<span>',
+          line: 1,
+        },
+      ],
+    },
+    {
+      name: 'standalone HTML tag block',
+      text: '<span>\nTitle\n---\n\n# Real\n',
+      expected: [
+        {
+          level: 1,
+          label: 'Real',
+          line: 5,
+        },
+      ],
+    },
+    {
+      name: 'ATX interrupts quote continuation',
+      text: '> paragraph\n## Root\n',
+      expected: [
+        {
+          level: 2,
+          label: 'Root',
+          line: 2,
+        },
+      ],
+    },
+  ])('recognizes Setext/ATX context: $name', async ({ text, expected }) => {
+    const source = new MemoryDocumentSource({ documentId: 'headings', text })
+    const events = await collectEvents(
+      createPluginDocumentHostCapabilities(
+        createPluginDocumentBroker({
+          pluginId: 'headings',
+          source: () => source,
+          yieldToMainThread: async () => {},
+        }),
+      ).scan({ query: { kind: 'markdownHeadings' }, windowSizeLines: 1, batchSize: 1 }),
+    )
+    expect(
+      batchItems(events).map((item) =>
+        item.kind === 'heading' ? { level: item.level, label: item.label, line: item.line } : item,
+      ),
+    ).toEqual(expected)
+  })
+
+  it('emits a cross-range Setext heading once in the underline range with bounded paragraph context', async () => {
+    const source = new MemoryDocumentSource({
+      documentId: 'long-paragraph',
+      text: [...Array.from({ length: 8192 }, () => 'paragraph'), '---', '# Following'].join('\n'),
+    })
+    const reads: number[] = []
+    const broker = createPluginDocumentBroker({
+      pluginId: 'headings',
+      yieldToMainThread: async () => {},
+      source: () => ({
+        documentId: source.documentId,
+        version: source.version,
+        lineCount: source.lineCount,
+        readLineWindow: (from, to, budget) => {
+          reads.push(from)
+          return source.readLineWindow(from, to, budget)
+        },
+      }),
+    })
+    const host = createPluginDocumentHostCapabilities(broker)
+    for (const fromLine of [1, 4097]) {
+      const events = await collectEvents(
+        host.scan({ query: { kind: 'markdownHeadings' }, fromLine, toLine: fromLine + 4095 }),
+      )
+      expect(batchItems(events)).toEqual([])
+      expect(events.at(-1)).toMatchObject({ complete: true, scannedLineCount: 4096 })
+    }
+    reads.length = 0
+    const tail = await collectEvents(
+      host.scan({ query: { kind: 'markdownHeadings' }, fromLine: 8193 }),
+    )
+    expect(reads[0]).toBe(8193)
+    const headings = batchItems(tail)
+    expect(headings).toHaveLength(2)
+    expect(headings[0]).toMatchObject({
+      kind: 'heading',
+      line: 1,
+      from: 0,
+      level: 2,
+      labelTruncated: true,
+      labelTo: source.length - '\n---\n# Following'.length,
+    })
+    if (headings[0]?.kind === 'heading') expect(headings[0].label).toHaveLength(4096)
+    expect(headings[1]).toMatchObject({ kind: 'heading', line: 8194, label: 'Following' })
+    expect(tail.at(-1)).toMatchObject({ scannedLineCount: 2, complete: true })
+  })
+
+  it('uses a cold prefix and clears excluded heading context before a ranged Setext result', async () => {
+    const source = new MemoryDocumentSource({
+      documentId: 'cold',
+      text: ['ATX body', '# Excluded', 'Title', 'continuation', '===', 'Second', '-'].join('\n'),
+    })
+    const events = await collectEvents(
+      createPluginDocumentHostCapabilities(
+        createPluginDocumentBroker({ pluginId: 'reader', source: () => source }),
+      ).scan({
+        query: { kind: 'markdownHeadings', levels: [2] },
+        fromLine: 5,
+        toLine: 7,
+        windowSizeLines: 1,
+      }),
+    )
+    expect(batchItems(events)).toMatchObject([{ level: 2, label: 'Second', line: 6 }])
+    expect(batchItems(events)).toHaveLength(1)
+  })
+
+  it('bounds each next call and keeps diagnostic counters off protocol events', async () => {
+    const source = new MemoryDocumentSource({ documentId: 'metrics', text: 'body\n'.repeat(10000) })
+    const reports: unknown[] = []
+    let reads = 0
+    const broker = createPluginDocumentBroker({
+      pluginId: 'metrics',
+      yieldToMainThread: async () => {},
+      onDiagnostics: (report) => {
+        reports.push(report)
+        throw new Error('observer failure')
+      },
+      source: () => ({
+        documentId: source.documentId,
+        version: source.version,
+        lineCount: source.lineCount,
+        readLineWindow: (from, to, budget) => {
+          reads++
+          return source.readLineWindow(from, to, budget)
+        },
+      }),
+    })
+    const start = await broker.start({ query: { kind: 'markdownHeadings' }, windowSizeLines: 4096 })
+    const event = await broker.next(start.scanId)
+    expect(reads).toBeGreaterThan(0)
+    expect(reads).toBeLessThanOrEqual(4)
+    expect(event).toMatchObject({ type: 'progress' })
+    expect(event).not.toHaveProperty('metrics')
+    await broker.cancel(start.scanId)
+    expect(reports).toHaveLength(1)
+    expect(reports[0]).toMatchObject({
+      reason: 'cancelled',
+      nextCount: 1,
+      progressCount: 1,
+      readCount: reads,
+      yieldCount: reads,
+    })
+    expect(reports[0]).toHaveProperty('maxScanCpuMs')
+  })
+
   it('supports text and restricted regular expression scans with captures', async () => {
     const source = new MemoryDocumentSource({
       documentId: 'find-doc',
@@ -380,7 +811,7 @@ describe('plugin document broker', () => {
   it('yields before bounded scan slices so large windows remain cooperative', async () => {
     const source = new MemoryDocumentSource({
       documentId: 'cooperative-doc',
-      text: Array.from({ length: 300 }, (_, index) => `line ${index + 1}`).join('\n'),
+      text: Array.from({ length: 1200 }, (_, index) => `line ${index + 1}`).join('\n'),
     })
     const windows: Array<{ fromLine: number; toLine: number }> = []
     let yieldCount = 0
@@ -407,9 +838,9 @@ describe('plugin document broker', () => {
       }),
     )
 
-    expect(events.at(-1)).toMatchObject({ type: 'done', scannedLineCount: 300 })
+    expect(events.at(-1)).toMatchObject({ type: 'done', scannedLineCount: 1200 })
     expect(windows).toHaveLength(3)
-    expect(windows.every(({ fromLine, toLine }) => toLine - fromLine + 1 <= 128)).toBe(true)
+    expect(windows.every(({ fromLine, toLine }) => toLine - fromLine + 1 <= 512)).toBe(true)
     expect(yieldCount).toBe(windows.length)
   })
 

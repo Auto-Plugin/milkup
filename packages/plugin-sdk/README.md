@@ -13,12 +13,12 @@ distribution for this development stage; no npm publication is required.
 pnpm --dir packages/plugin-sdk pack --pack-destination /absolute/sdk-output
 
 # In a separately copied plugin directory containing its own package.json.
-npm install --no-save --package-lock=false /absolute/sdk-output/milkup-plugin-sdk-0.1.0.tgz
+npm install --no-save --package-lock=false /absolute/sdk-output/milkup-plugin-sdk-0.1.1.tgz
 npm run build
 ```
 
 The outline example has its own manifest, tsconfig and build script. Its build
-produces `dist/plugin.js` and `dist/milkup.outline-1.0.0.milkup-plugin`. Install that
+produces `dist/plugin.js` and `dist/milkup.outline-1.1.0.milkup-plugin`. Install that
 archive through Milkup's local plugin manager, then explicitly enable it. Disabling
 and uninstalling go through the same manager. No host source registration is used.
 
@@ -145,6 +145,47 @@ cached per document/version; a distant first scan has no fixed 200 ms guarantee.
 
 ## Capability and trust boundary
 
+### Temporary paged indexes (SDK 0.1.1)
+
+`host.storage.createTemporaryStore()` creates a disposable, plugin-activation-owned
+key/value store. It is optional in the type contract for older hosts; a plugin that
+requires it must declare `engines.pluginSdk: "^0.1.1"` and check the capability.
+The returned `SdkTemporaryStore` exposes `get(key)`, `set(key, value)`,
+`getMany(keys)`, `setMany([{ key, value }])`, and idempotent async `dispose()`.
+`getMany` returns values in key order, with `null` for missing keys; `setMany` is
+atomic. Keys contain 1–128 ASCII letters, digits, dots, underscores or hyphens.
+Duplicate keys in a batch are rejected. No file paths or arbitrary storage IDs
+cross this API.
+
+Each call accepts at most 32 keys/entries and at most 256 KiB of UTF-8 value data
+in total. An oversized `getMany` fails explicitly: split the batch rather than
+assuming every page fits together. There are at most 16 in-flight storage RPCs,
+four active/creating stores per plugin activation and 32 stores in the shared
+temporary database. Per-store charged space is capped at 256 MiB; global charged
+space at 512 MiB and 131,072 pages. Charges include UTF-8 values, ASCII keys and
+1 KiB overhead per page/store. These are application accounting limits, not an
+exact browser database file-size promise; the engine can add its own overhead.
+Database quota failures are surfaced; there is no fallback to full in-memory or
+localStorage copies.
+
+The desktop adapter persists pages in a separate IndexedDB database, using one
+transaction for pages and their quota counters. It keeps no all-page in-memory
+index. Replacing a page adjusts its charge; a failed batch rolls back both data
+and accounting. Two plugin activations or application instances never share store
+handles, even when their plugin IDs match. Normal disable/uninstall and awaited
+application close dispose the owning stores. Disposal seals the handle before
+deleting its pages; late reads/writes reject and cannot recreate it.
+
+These values are rebuildable indexes, **not recovery copies or durable plugin
+settings**. After a crash the new session cannot safely decide whether an unknown
+owner is dead or another live instance. Such stores remain isolated and count
+against the shared quota; they are never cleared by a timeout, another plugin, or
+a new application instance. Repeated interruptions can therefore exhaust the
+budget and indexing will fail explicitly until those temporary indexes are
+separately cleared with confirmed ownership. This release adds no automatic
+orphan sweep or long-term storage-management UI. Ordinary documents and recovery
+data are never touched by temporary-store disposal.
+
 The standard outline requests only `document:read`; navigation and controlled UI
 are host-mediated. It needs no filesystem, network, storage or edit permissions.
 The host brokers declared capabilities and terminates disabled plugin Workers.
@@ -155,5 +196,5 @@ only locally reviewed, trusted plugins. This release neither loads untrusted thi
 party code nor grants new credentials, persistent permissions, or security bypasses.
 
 Compatibility is explicit in `engines.pluginSdk` and `engines.milkup`; this SDK's
-local version is `0.1.0`. Adding optional snapshot fields is compatible; removing
+local version is `0.1.1`. Adding optional snapshot fields is compatible; removing
 or changing their meaning requires a new compatibility contract.
