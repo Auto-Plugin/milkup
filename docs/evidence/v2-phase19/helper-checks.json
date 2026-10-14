@@ -1,0 +1,134 @@
+{
+  "fixtureValidationOnly": true,
+  "realImeAccepted": false,
+  "cases": [
+    {
+      "name": "external-prepare",
+      "command": [
+        "node",
+        "scripts/prepare-v2-external-acceptance.mjs",
+        "prepare",
+        "/workspace/.milkup-v2-phase19/external-fixture-smoke"
+      ],
+      "exitCode": 0,
+      "expectedExit": 0
+    },
+    {
+      "name": "external-reject-existing",
+      "command": [
+        "node",
+        "scripts/prepare-v2-external-acceptance.mjs",
+        "prepare",
+        "/workspace/.milkup-v2-phase19/external-fixture-smoke"
+      ],
+      "exitCode": 1,
+      "expectedExit": 1
+    },
+    {
+      "name": "external-reject-unchanged",
+      "command": [
+        "node",
+        "scripts/prepare-v2-external-acceptance.mjs",
+        "verify",
+        "/workspace/.milkup-v2-phase19/external-fixture-smoke",
+        "ordinary-source"
+      ],
+      "exitCode": 1,
+      "expectedExit": 1
+    },
+    {
+      "name": "external-bytes-windowed-js-live",
+      "command": [
+        "node",
+        "scripts/prepare-v2-external-acceptance.mjs",
+        "verify",
+        "/workspace/.milkup-v2-phase19/external-fixture-smoke",
+        "windowed-js-live"
+      ],
+      "exitCode": 0,
+      "expectedExit": 0
+    },
+    {
+      "name": "external-bytes-windowed-native-source",
+      "command": [
+        "node",
+        "scripts/prepare-v2-external-acceptance.mjs",
+        "verify",
+        "/workspace/.milkup-v2-phase19/external-fixture-smoke",
+        "windowed-native-source"
+      ],
+      "exitCode": 0,
+      "expectedExit": 0
+    },
+    {
+      "name": "external-bytes-ordinary-source",
+      "command": [
+        "node",
+        "scripts/prepare-v2-external-acceptance.mjs",
+        "verify",
+        "/workspace/.milkup-v2-phase19/external-fixture-smoke",
+        "ordinary-source"
+      ],
+      "exitCode": 0,
+      "expectedExit": 0
+    },
+    {
+      "name": "external-bytes-ordinary-live",
+      "command": [
+        "node",
+        "scripts/prepare-v2-external-acceptance.mjs",
+        "verify",
+        "/workspace/.milkup-v2-phase19/external-fixture-smoke",
+        "ordinary-live"
+      ],
+      "exitCode": 0,
+      "expectedExit": 0
+    },
+    {
+      "name": "external-bytes-windowed-js-source",
+      "command": [
+        "node",
+        "scripts/prepare-v2-external-acceptance.mjs",
+        "verify",
+        "/workspace/.milkup-v2-phase19/external-fixture-smoke",
+        "windowed-js-source"
+      ],
+      "exitCode": 0,
+      "expectedExit": 0
+    },
+    {
+      "name": "external-bytes-windowed-native-live",
+      "command": [
+        "node",
+        "scripts/prepare-v2-external-acceptance.mjs",
+        "verify",
+        "/workspace/.milkup-v2-phase19/external-fixture-smoke",
+        "windowed-native-live"
+      ],
+      "exitCode": 0,
+      "expectedExit": 0
+    },
+    {
+      "name": "external-reject-case",
+      "command": [
+        "node",
+        "scripts/prepare-v2-external-acceptance.mjs",
+        "verify",
+        "/workspace/.milkup-v2-phase19/external-fixture-smoke",
+        "../../unknown"
+      ],
+      "exitCode": 1,
+      "expectedExit": 1
+    },
+    {
+      "name": "inventory-reject-link",
+      "command": [
+        "node",
+        "scripts/inspect-v2-recovery.mjs",
+        "/workspace/.milkup-v2-phase19/inventory-link-smoke"
+      ],
+      "exitCode": 1,
+      "expectedExit": 1
+    }
+  ]
+}

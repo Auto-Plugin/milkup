@@ -1,0 +1,55 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/source-scroll-limits.test.ts (13 tests | 2 failed) 377ms
+   × bounded document scroll coordinates > renders an explicit jump once but still renders a subsequent user scroll 152ms
+     → expected "renderVisibleWindow" to be called 1 times, but got 2 times
+   × bounded document scroll coordinates > does not duplicate a jump while its source read is pending 25ms
+     → expected "renderVisibleWindow" to be called 1 times, but got 2 times
+   ✓ bounded document scroll coordinates > keeps physical height bounded and reaches the last logical line at the scrollbar end 15ms
+   ✓ bounded document scroll coordinates > maps explicit far jumps and subsequent scroll events to the same lines 51ms
+   ✓ bounded document scroll coordinates > uses document end/start and page navigation while preserving shifted selection direction 48ms
+   ✓ bounded document scroll coordinates > bounds long-line overscan while keeping the entire visible viewport 6ms
+   ✓ reuses repeated source windows but invalidates them when the source revision changes 19ms
+   ✓ keeps document Home and the first visible line reachable with real content padding 21ms
+   ✓ leaves the root overlay scrollbar gesture to the browser 11ms
+   ✓ preserves edge pixel coordinates and round trips distant logical offsets 1ms
+   ✓ reports logical viewport lines to plugin UI after a far jump 15ms
+   ✓ invalidates source windows when a replacement source restarts the same document revision 7ms
+   ✓ does not let an in-flight old source repopulate the replacement source cache 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/source-scroll-limits.test.ts > bounded document scroll coordinates > renders an explicit jump once but still renders a subsequent user scroll
+AssertionError: expected "renderVisibleWindow" to be called 1 times, but got 2 times
+ ❯ src/__tests__/source-scroll-limits.test.ts:65:20
+     63|     view.dom.dispatchEvent(new Event('scroll'))
+     64|     await Promise.all(render.mock.results.map((result) => result.value…
+     65|     expect(render).toHaveBeenCalledTimes(1)
+       |                    ^
+     66|     expect(Number(view.contentDOM.dataset.fromLine)).toBeLessThanOrEqu…
+     67|     expect(Number(view.contentDOM.dataset.toLine)).toBeGreaterThanOrEq…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/__tests__/source-scroll-limits.test.ts > bounded document scroll coordinates > does not duplicate a jump while its source read is pending
+AssertionError: expected "renderVisibleWindow" to be called 1 times, but got 2 times
+ ❯ src/__tests__/source-scroll-limits.test.ts:97:20
+     95|     await jump
+     96|     await Promise.all(render.mock.results.map((result) => result.value…
+     97|     expect(render).toHaveBeenCalledTimes(1)
+       |                    ^
+     98|     expect(Number(view.contentDOM.dataset.fromLine)).toBeLessThanOrEqu…
+     99|     expect(Number(view.contentDOM.dataset.toLine)).toBeGreaterThanOrEq…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 11 passed (13)
+   Start at  00:53:13
+   Duration  1.34s (transform 283ms, setup 0ms, collect 371ms, tests 377ms, environment 372ms, prepare 61ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/source-scroll-limits.test.ts

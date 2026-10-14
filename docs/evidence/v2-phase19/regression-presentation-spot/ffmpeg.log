@@ -1,0 +1,29 @@
+[x11grab @ 0x55559e3a2380] Cannot get the image data event_error: response_type:0 error_code:128 sequence:9 resource_id:8388608 minor_code:4 major_code:130.
+[x11grab @ 0x55559e3a2380] Continuing without shared memory.
+[x11grab @ 0x55559e3a2380] Stream #0: not enough frames to estimate rate; consider increasing probesize
+Input #0, x11grab, from ':99.0':
+  Duration: N/A, start: 1791940022.411256, bitrate: 1605120 kb/s
+  Stream #0:0: Video: rawvideo (BGR[0] / 0x524742), bgr0, 1100x760, 1605120 kb/s, 60 fps, 1000k tbr, 1000k tbn
+Stream mapping:
+  Stream #0:0 -> #0:0 (rawvideo (native) -> h264 (libx264))
+[libx264 @ 0x55559e3a88c0] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2 AVX512
+[libx264 @ 0x55559e3a88c0] profile High 4:4:4 Predictive, level 3.2, 4:4:4, 8-bit
+[libx264 @ 0x55559e3a88c0] 264 - core 164 r3108 31e19f9 - H.264/MPEG-4 AVC codec - Copyleft 2003-2023 - http://www.videolan.org/x264.html - options: cabac=0 ref=1 deblock=0:0:0 analyse=0:0 me=dia subme=0 psy=0 mixed_ref=0 me_range=16 chroma_me=1 trellis=0 8x8dct=0 cqm=0 deadzone=21,11 fast_pskip=0 chroma_qp_offset=0 threads=7 lookahead_threads=1 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=0 weightp=0 keyint=250 keyint_min=25 scenecut=0 intra_refresh=0 rc=cqp mbtree=0 qp=0
+Output #0, matroska, to '/workspace/.milkup-v2-phase19/regression-presentation-spot/native-presentation.mkv':
+  Metadata:
+    encoder         : Lavf61.7.103
+  Stream #0:0: Video: h264 (H264 / 0x34363248), yuv444p(tv, progressive), 1100x760, q=2-31, 60 fps, 1k tbn
+      Metadata:
+        encoder         : Lavc61.19.101 libx264
+      Side data:
+        cpb: bitrate max/min/avg: 0/0/0 buffer size: 0 vbv_delay: N/A
+frame=   23 fps=0.0 q=0.0 size=       1KiB time=00:00:00.40 bitrate=  11.8kbits/s speed= 0.8x    frame=   53 fps= 53 q=0.0 size=       1KiB time=00:00:00.88 bitrate=   5.3kbits/s speed=0.883x    frame=   84 fps= 56 q=0.0 size=       1KiB time=00:00:01.40 bitrate=   3.4kbits/s speed=0.933x    [out#0/matroska @ 0x55559e3aa3c0] video:621KiB audio:0KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.234208%
+frame=  122 fps= 60 q=-1.0 Lsize=     622KiB time=00:00:02.03 bitrate=2507.2kbits/s speed=   1x    
+[libx264 @ 0x55559e3a88c0] frame I:1     Avg QP: 0.00  size:381938
+[libx264 @ 0x55559e3a88c0] frame P:121   Avg QP: 0.00  size:  2093
+[libx264 @ 0x55559e3a88c0] mb I  I16..4: 100.0%  0.0%  0.0%
+[libx264 @ 0x55559e3a88c0] mb P  I16..4: 47.1%  0.0%  0.0%  P16..4:  0.0%  0.0%  0.0%  0.0%  0.0%    skip:52.9%
+[libx264 @ 0x55559e3a88c0] coded y,u,v intra: 0.5% 0.5% 0.5% inter: 0.0% 0.0% 0.0%
+[libx264 @ 0x55559e3a88c0] i16 v,h,dc,p: 99%  1%  0%  0%
+[libx264 @ 0x55559e3a88c0] kb/s:2499.29
+Exiting normally, received signal 2.

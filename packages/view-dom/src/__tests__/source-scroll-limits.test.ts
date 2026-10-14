@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { MemoryDocumentSource, type EditorDocumentSource, type Line } from '@milkup/core'
 import { SourceDocumentView } from '../source-document-view'
 
@@ -55,6 +55,55 @@ function height(view: SourceDocumentView) {
 }
 
 describe('bounded document scroll coordinates', () => {
+  it('renders an explicit jump once but still renders a subsequent user scroll', async () => {
+    const view = viewFor()
+    await view.renderVisibleWindow()
+    const render = vi.spyOn(view, 'renderVisibleWindow')
+    await view.scrollToLine(700_000)
+    view.dom.dispatchEvent(new Event('scroll'))
+    await Promise.all(render.mock.results.map((result) => result.value))
+    expect(render).toHaveBeenCalledTimes(1)
+    expect(Number(view.contentDOM.dataset.fromLine)).toBeLessThanOrEqual(700_000)
+    expect(Number(view.contentDOM.dataset.toLine)).toBeGreaterThanOrEqual(700_000)
+    view.dom.scrollTop += 1000
+    view.dom.dispatchEvent(new Event('scroll'))
+    await Promise.all(render.mock.results.map((result) => result.value))
+    expect(render).toHaveBeenCalledTimes(2)
+    expect(Number(view.contentDOM.dataset.toLine)).toBeGreaterThan(700_000)
+    view.destroy()
+  })
+
+  it('does not duplicate a jump while its source read is pending', async () => {
+    const source = generatedSource()
+    const view = viewFor(source)
+    await view.renderVisibleWindow()
+    const read = source.readLineWindow.bind(source)
+    let release!: () => void
+    let began!: () => void
+    const started = new Promise<void>((resolve) => {
+      began = resolve
+    })
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    source.readLineWindow = async (from, to) => {
+      began()
+      await gate
+      return read(from, to)
+    }
+    const render = vi.spyOn(view, 'renderVisibleWindow')
+    const jump = view.scrollToLine(700_000)
+    await started
+    view.dom.dispatchEvent(new Event('scroll'))
+    release()
+    await jump
+    await Promise.all(render.mock.results.map((result) => result.value))
+    expect(render).toHaveBeenCalledTimes(1)
+    expect(Number(view.contentDOM.dataset.fromLine)).toBeLessThanOrEqual(700_000)
+    expect(Number(view.contentDOM.dataset.toLine)).toBeGreaterThanOrEqual(700_000)
+    view.destroy()
+  })
+
   it('keeps physical height bounded and reaches the last logical line at the scrollbar end', async () => {
     const view = viewFor()
     await view.renderVisibleWindow()

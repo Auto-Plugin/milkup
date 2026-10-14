@@ -146,13 +146,15 @@ export class SourceDocumentView {
   private readonly sourceWindowCache = new Map<string, DocumentLineWindow>()
   private searchHighlights: readonly SearchHighlight[] = Object.freeze([])
   private activeSearchHighlightIndex = -1
-  private scrollAnchor: { readonly line: number; readonly scrollTop: number } | undefined
+  private scrollAnchor: { readonly scrollTop: number } | undefined
   private readonly handleScrollEvent = (): void => {
     const anchor = this.scrollAnchor
 
     if (anchor && Math.abs(this.dom.scrollTop - anchor.scrollTop) <= 1) {
       this.scrollAnchor = undefined
-      void this.renderVisibleWindow(this.createRenderRequestForLine(anchor.line))
+      // scrollToLine already owns the target render, even if its read is still
+      // pending. Rebuilding it here duplicates DOM/layout work. A changed
+      // scroll position below still renders a real user scroll normally.
       return
     }
 
@@ -460,7 +462,7 @@ export class SourceDocumentView {
     this.dom.scrollTop = geometry.compressed
       ? geometry.toPhysical(this.lineTop(lineNumber) + this.contentPadding().top)
       : this.lineTop(lineNumber)
-    this.scrollAnchor = Object.freeze({ line: lineNumber, scrollTop: this.dom.scrollTop })
+    this.scrollAnchor = Object.freeze({ scrollTop: this.dom.scrollTop })
     await this.renderVisibleWindow(this.createRenderRequestForLine(lineNumber))
     const target = this.contentDOM.querySelector<HTMLElement>(
       `.milkup-line[data-line="${lineNumber}"]`,
@@ -468,7 +470,7 @@ export class SourceDocumentView {
 
     if (target && target.offsetTop > 0 && Math.abs(this.dom.scrollTop - target.offsetTop) > 1) {
       this.dom.scrollTop = target.offsetTop
-      this.scrollAnchor = Object.freeze({ line: lineNumber, scrollTop: this.dom.scrollTop })
+      this.scrollAnchor = Object.freeze({ scrollTop: this.dom.scrollTop })
     }
   }
 

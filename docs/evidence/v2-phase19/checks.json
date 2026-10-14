@@ -1,0 +1,57 @@
+[
+  {
+    "name": "js",
+    "command": ["pnpm", "-r", "--workspace-concurrency=1", "test"],
+    "started": "2026-10-14T01:08:31.149685+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "supplemental",
+    "command": [
+      "pnpm",
+      "exec",
+      "vitest",
+      "run",
+      "plugins/outline/src/plugin.test.ts",
+      "tests/helpers/native-startup.test.ts"
+    ],
+    "started": "2026-10-14T01:09:02.274780+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "rust",
+    "command": ["cargo", "test", "--manifest-path", "apps/desktop/src-tauri/Cargo.toml", "--lib"],
+    "started": "2026-10-14T01:09:03.710959+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "typecheck",
+    "command": ["pnpm", "typecheck"],
+    "started": "2026-10-14T01:09:04.885570+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "rust-format",
+    "command": ["cargo", "fmt", "--manifest-path", "apps/desktop/src-tauri/Cargo.toml", "--check"],
+    "started": "2026-10-14T01:09:19.068549+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "workspace-build",
+    "command": ["pnpm", "build"],
+    "started": "2026-10-14T01:09:19.172422+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "chromium",
+    "command": ["pnpm", "test:e2e", "--workers=1"],
+    "started": "2026-10-14T01:09:33.006205+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "format",
+    "command": ["pnpm", "lint"],
+    "exitCode": 0,
+    "recordedAt": "2026-10-14T01:17:09.470987+00:00"
+  }
+]

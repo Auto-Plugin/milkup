@@ -86,3 +86,14 @@ bash scripts/cloud/start-v2.sh native
 - apt 安装尝试失败：无系统写权限；未通过更改权限、凭证、安全配置绕过。
 - Rust 和 Corepack 缓存只在当前 workspace 可见；未来环境是否保留缓存取决于平台挂载，脚本不依赖缓存必然存在。
 - 后续应把默认 checkout 设置为**已存在的 v2**，setup 引用本文件的脚本，在管理员镜像层补齐系统库。配置发布由平台界面管理，本次未执行。
+
+## 本项目后续提交身份（2026-10-14）
+
+用户要求后续提交关联真实 GitHub 账号。已通过已连接 GitHub 的 authenticated profile 核验 `LarryZhu-dev`（numeric ID `40397402`，显示名 Larry Zhu）。本仓库配置：
+
+```bash
+git config --local user.name LarryZhu-dev
+git config --local user.email larryzhu@foxmail.com
+```
+
+原仓库未设 local identity，继承全局名称 Larry；最近基线提交在 GitHub 的 author.login/committer.login 均为空。用户随后明确要求使用绑定邮箱 `larryzhu@foxmail.com`，该邮箱已与 authenticated profile 一致核验，取代临时 noreply 建议；没有使用临时 noreply 创建提交。只改本仓库，不改全局，不伪造 Codex 官方身份。提交前检查 `git var GIT_AUTHOR_IDENT` / `git var GIT_COMMITTER_IDENT` 及四个 `GIT_AUTHOR_*`/`GIT_COMMITTER_*` 身份变量；若环境覆盖，仅在本项目该次提交显式设置正确值。正常推送后用 GitHub commit API 核验 author.login 与 committer.login 均为 `LarryZhu-dev`，不能只检查本地 config。已推送历史保持不变，禁止为改署名 amend/重写历史/强推。
