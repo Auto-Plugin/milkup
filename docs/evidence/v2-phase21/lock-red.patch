@@ -1,0 +1,85 @@
+--- a/apps/desktop/src-tauri/src/recovery.rs
++++ b/apps/desktop/src-tauri/src/recovery.rs
+@@ -395,6 +395,15 @@
+     input: Checkpoint,
+     after_write: impl FnOnce() -> Result<(), String>,
+ ) -> Result<Record, String> {
++    checkpoint_native_with_hooks(store, files, input, || Ok(()), after_write)
++}
++fn checkpoint_native_with_hooks(
++    store: &RecoveryStore,
++    files: &LargeFileRegistry,
++    input: Checkpoint,
++    before_write: impl FnOnce() -> Result<(), String>,
++    after_write: impl FnOnce() -> Result<(), String>,
++) -> Result<Record, String> {
+     let native_version = input.native_version.ok_or("Missing native version")?;
+     let stores = files.0.lock().map_err(err)?;
+     let source = stores
+@@ -415,6 +424,7 @@
+             // Keep the same guard from version validation through durable snapshot
+             // creation: no reopen, save or edit can change the captured source.
+             let source = stores.get(&document_id).ok_or("Document no longer open")?;
++            before_write()?;
+             OpenOptions::new()
+                 .create_new(true)
+                 .write(true)
+@@ -588,6 +598,58 @@
+         )
+         .unwrap();
+     }
++    #[test]
++    fn captured_native_snapshot_allows_save_close_and_reopen_before_streaming() {
++        for encoding in [crate::piece_tree::BaseEncoding::Utf8, crate::piece_tree::BaseEncoding::Utf16Le, crate::piece_tree::BaseEncoding::Utf16Be] {
++            let store = store();
++            let original = store.root.with_extension("original.md");
++            let text = "A中文👩🏽‍💻\r\n".repeat(9000);
++            let encode = |text: &str| -> Vec<u8> {
++                match encoding {
++                    crate::piece_tree::BaseEncoding::Utf8 => text.as_bytes().to_vec(),
++                    _ => {
++                        let le = encoding == crate::piece_tree::BaseEncoding::Utf16Le;
++                        let mut out = if le { vec![0xff,0xfe] } else { vec![0xfe,0xff] };
++                        for unit in text.encode_utf16() { out.extend(if le { unit.to_le_bytes() } else { unit.to_be_bytes() }); }
++                        out
++                    }
++                }
++            };
++            fs::write(&original, encode(&text)).unwrap();
++            let files = LargeFileRegistry(Mutex::new(std::collections::HashMap::new()));
++            crate::open_large_text_file_in_registry(&files.0,"doc".into(),original.to_string_lossy().into()).unwrap();
++            let before = checkpoint_native_with_after_write(&store,&files,native_input(0,&original),||Ok(())).unwrap();
++            native_insert(&files,0,"X");
++            let record = checkpoint_native_with_hooks(&store,&files,native_input(1,&original),|| {
++                assert!(files.0.try_lock().is_ok(), "snapshot streaming must not hold document registry");
++                assert!(store.gate.try_lock().is_err(), "publication and settlement remain serialized");
++                assert_eq!(store.read(&before.id)?.payload,before.payload);
++                native_insert(&files,1,"Y");
++                crate::flush_large_text_file_in_registry(&files.0,"doc".into(),2)?;
++                native_insert(&files,2,"Z");
++                // Undo-like inverse edit consumes the new add generation, not the pinned one.
++                crate::apply_large_text_file_changes_in_registry(&files.0,"doc".into(),3,vec![crate::LargeFileTextChange{from_utf16:0,to_utf16:1,insert:String::new()}])?;
++                {
++                    let mut stores=files.0.lock().unwrap();
++                    stores.get_mut("doc").unwrap().piece_tree.close()?;
++                    stores.remove("doc");
++                }
++                crate::open_large_text_file_in_registry(&files.0,"doc".into(),original.to_string_lossy().into())?;
++                native_insert(&files,0,"REOPEN");
++                Ok(())
++            },||Ok(())).unwrap();
++            let payload=store.directory(&record.id).unwrap().join(&record.payload);
++            assert_eq!(record.version,1);
++            assert_eq!(fs::read(&payload).unwrap(),encode(&format!("X{text}")));
++            assert_eq!(fs::read(&original).unwrap(),encode(&format!("YX{text}")));
++            assert_eq!(digest(&payload).unwrap(),(record.bytes,record.sha256));
++            assert_eq!(record.previous,Some(before.payload));
++            drop(files);
++            fs::remove_file(original).unwrap();
++            fs::remove_dir_all(&store.root).unwrap();
++        }
++    }
++
+     #[test]
+     fn completed_native_snapshot_releases_registry_during_validation_and_publication() {
+         use std::sync::{mpsc, Arc};

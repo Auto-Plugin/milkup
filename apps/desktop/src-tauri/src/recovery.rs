@@ -244,7 +244,17 @@ impl RecoveryStore {
         write: impl FnOnce(&Path) -> Result<(), String>,
         after_write: impl FnOnce() -> Result<(), String>,
     ) -> Result<Record, String> {
-        let _guard = self.gate.lock().map_err(err)?;
+        let guard = self.gate.lock().map_err(err)?;
+        self.checkpoint_under_gate(&guard, input, expected_bytes, write, after_write)
+    }
+    fn checkpoint_under_gate(
+        &self,
+        _guard: &std::sync::MutexGuard<'_, ()>,
+        input: Checkpoint,
+        expected_bytes: u64,
+        write: impl FnOnce(&Path) -> Result<(), String>,
+        after_write: impl FnOnce() -> Result<(), String>,
+    ) -> Result<Record, String> {
         if !safe(&input.key) {
             return Err("Invalid recovery key".into());
         }
@@ -395,41 +405,56 @@ fn checkpoint_native_with_after_write(
     input: Checkpoint,
     after_write: impl FnOnce() -> Result<(), String>,
 ) -> Result<Record, String> {
+    checkpoint_native_with_hooks(store, files, input, || Ok(()), after_write)
+}
+fn checkpoint_native_with_hooks(
+    store: &RecoveryStore,
+    files: &LargeFileRegistry,
+    input: Checkpoint,
+    before_write: impl FnOnce() -> Result<(), String>,
+    after_write: impl FnOnce() -> Result<(), String>,
+) -> Result<Record, String> {
+    // Preserve the oversized-document fast refusal without holding the registry
+    // while waiting for recovery. Version validation and capture happen together below.
+    {
+        let stores = files.0.lock().map_err(err)?;
+        if stores
+            .get(&input.document_id)
+            .is_some_and(|s| s.piece_tree.saved_byte_len() > MAX_BYTES)
+        {
+            return Err("恢复副本超过 256 MiB 预算".into());
+        }
+    }
+    let gate = store.gate.lock().map_err(err)?;
     let native_version = input.native_version.ok_or("Missing native version")?;
-    let stores = files.0.lock().map_err(err)?;
-    let source = stores
-        .get(&input.document_id)
-        .ok_or("Document no longer open")?;
-    if source.version != native_version {
-        return Err("Document changed before recovery checkpoint".into());
-    }
-    let expected_bytes = source.piece_tree.saved_byte_len();
-    if expected_bytes > MAX_BYTES {
-        return Err("恢复副本超过 256 MiB 预算".into());
-    }
-    let document_id = input.document_id.clone();
-    store.checkpoint_with_after_write(
+    let (mut snapshot, expected_bytes) = {
+        let stores = files.0.lock().map_err(err)?;
+        let source = stores
+            .get(&input.document_id)
+            .ok_or("Document no longer open")?;
+        if source.version != native_version {
+            return Err("Document changed before recovery checkpoint".into());
+        }
+        let bytes = source.piece_tree.saved_byte_len();
+        if bytes > MAX_BYTES {
+            return Err("恢复副本超过 256 MiB 预算".into());
+        }
+        (source.piece_tree.snapshot()?, bytes)
+    };
+    // The recovery gate serializes capture through publication and settlement.
+    // The document registry is free for the entire stream, fsync, hash and commit.
+    store.checkpoint_under_gate(
+        &gate,
         input,
         expected_bytes,
         move |path| {
-            // Keep the same guard from version validation through durable snapshot
-            // creation: no reopen, save or edit can change the captured source.
-            let source = stores.get(&document_id).ok_or("Document no longer open")?;
-            OpenOptions::new()
-                .create_new(true)
-                .write(true)
-                .open(path)
-                .map_err(err)?;
-            let written = source.piece_tree.write_to(path);
-            // The synced, uniquely named payload is now independent of the source.
-            // Hashing/publication keep the recovery gate and storage lock, but must
-            // not block unrelated reads, edits, saves or source destruction.
-            drop(stores);
-            written
+            before_write()?;
+            snapshot.write_to(path)
         },
         after_write,
     )
 }
+
 #[tauri::command]
 pub(crate) async fn settle_recovery(
     store: State<'_, RecoveryStore>,
@@ -588,6 +613,115 @@ mod tests {
         )
         .unwrap();
     }
+    #[test]
+    fn captured_native_snapshot_allows_save_close_and_reopen_before_streaming() {
+        for encoding in [
+            crate::piece_tree::BaseEncoding::Utf8,
+            crate::piece_tree::BaseEncoding::Utf16Le,
+            crate::piece_tree::BaseEncoding::Utf16Be,
+        ] {
+            let store = store();
+            let original = store.root.with_extension("original.md");
+            let text = "A中文👩🏽‍💻\r\n".repeat(9000);
+            let encode = |text: &str| -> Vec<u8> {
+                match encoding {
+                    crate::piece_tree::BaseEncoding::Utf8 => text.as_bytes().to_vec(),
+                    _ => {
+                        let le = encoding == crate::piece_tree::BaseEncoding::Utf16Le;
+                        let mut out = if le {
+                            vec![0xff, 0xfe]
+                        } else {
+                            vec![0xfe, 0xff]
+                        };
+                        for unit in text.encode_utf16() {
+                            out.extend(if le {
+                                unit.to_le_bytes()
+                            } else {
+                                unit.to_be_bytes()
+                            });
+                        }
+                        out
+                    }
+                }
+            };
+            fs::write(&original, encode(&text)).unwrap();
+            let files = LargeFileRegistry(Mutex::new(std::collections::HashMap::new()));
+            crate::open_large_text_file_in_registry(
+                &files.0,
+                "doc".into(),
+                original.to_string_lossy().into(),
+            )
+            .unwrap();
+            let before = checkpoint_native_with_after_write(
+                &store,
+                &files,
+                native_input(0, &original),
+                || Ok(()),
+            )
+            .unwrap();
+            native_insert(&files, 0, "X");
+            let record = checkpoint_native_with_hooks(
+                &store,
+                &files,
+                native_input(1, &original),
+                || {
+                    assert!(
+                        files.0.try_lock().is_ok(),
+                        "snapshot streaming must not hold document registry"
+                    );
+                    assert!(
+                        store.gate.try_lock().is_err(),
+                        "publication and settlement remain serialized"
+                    );
+                    assert_eq!(store.read(&before.id)?.payload, before.payload);
+                    native_insert(&files, 1, "Y");
+                    crate::flush_large_text_file_in_registry(&files.0, "doc".into(), 2)?;
+                    native_insert(&files, 2, "Z");
+                    // Undo-like inverse edit consumes the new add generation, not the pinned one.
+                    crate::apply_large_text_file_changes_in_registry(
+                        &files.0,
+                        "doc".into(),
+                        3,
+                        vec![crate::LargeFileTextChange {
+                            from_utf16: 0,
+                            to_utf16: 1,
+                            insert: String::new(),
+                        }],
+                    )?;
+                    {
+                        let mut stores = files.0.lock().unwrap();
+                        stores.get_mut("doc").unwrap().piece_tree.close()?;
+                        stores.remove("doc");
+                    }
+                    crate::open_large_text_file_in_registry(
+                        &files.0,
+                        "doc".into(),
+                        original.to_string_lossy().into(),
+                    )?;
+                    native_insert(&files, 0, "REOPEN");
+                    Ok(())
+                },
+                || Ok(()),
+            )
+            .unwrap();
+            let payload = store.directory(&record.id).unwrap().join(&record.payload);
+            assert_eq!(record.version, 1);
+            assert!(
+                fs::read(&payload).unwrap() == encode(&format!("X{text}")),
+                "captured version bytes changed"
+            );
+            assert!(
+                fs::read(&original).unwrap() == encode(&format!("YX{text}")),
+                "saved version bytes changed"
+            );
+            assert_eq!(digest(&payload).unwrap(), (record.bytes, record.sha256));
+            assert_eq!(record.previous, Some(before.payload));
+            drop(files);
+            fs::remove_file(original).unwrap();
+            fs::remove_dir_all(&store.root).unwrap();
+        }
+    }
+
     #[test]
     fn completed_native_snapshot_releases_registry_during_validation_and_publication() {
         use std::sync::{mpsc, Arc};

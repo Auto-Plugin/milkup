@@ -1,0 +1,21 @@
+2026-10-14T03:45:23.178Z NATIVE_STARTUP_WINDOW 1395ms
+2026-10-14T03:45:27.932Z NATIVE_STARTUP_WINDOW 1457ms
+2026-10-14T03:45:30.452Z NATIVE_APPLICATION_CLEANUP 13000
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert((await readFile(path.join(dir, unpublished))).equals(partial))
+
+    at file:///workspace/milkup/tests/native/tauri-recovery-write-interrupt.mjs:106:3 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.19.0

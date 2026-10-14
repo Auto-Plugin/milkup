@@ -2,9 +2,81 @@ use std::cell::RefCell;
 use std::fs::{self, File, OpenOptions};
 use std::io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const PIECE_BYTES: usize = 64 * 1024;
+// Bound descriptor capture as well as the streaming buffer; never copy document text.
+const MAX_SNAPSHOT_PIECES: usize = 65_536;
+
+struct WorkingFile(PathBuf);
+impl Drop for WorkingFile {
+    fn drop(&mut self) {
+        let _ = fs::remove_file(&self.0);
+    }
+}
+
+pub(crate) struct PieceSnapshot {
+    // Independent opens, not try_clone: seek cursors must not race editor reads.
+    base: File,
+    add: File,
+    _base_lifetime: Arc<WorkingFile>,
+    _add_lifetime: Arc<WorkingFile>,
+    pieces: Vec<Piece>,
+    encoding: BaseEncoding,
+}
+impl PieceSnapshot {
+    pub(crate) fn write_to(&mut self, path: &Path) -> Result<(), String> {
+        self.write_with_progress(path, || Ok(()))
+    }
+    fn write_with_progress(
+        &mut self,
+        path: &Path,
+        mut progress: impl FnMut() -> Result<(), String>,
+    ) -> Result<(), String> {
+        let file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(path)
+            .map_err(|e| e.to_string())?;
+        let mut output = BufWriter::with_capacity(PIECE_BYTES, file);
+        match self.encoding {
+            BaseEncoding::Utf8 => {}
+            BaseEncoding::Utf16Le => output.write_all(&[0xff, 0xfe]).map_err(|e| e.to_string())?,
+            BaseEncoding::Utf16Be => output.write_all(&[0xfe, 0xff]).map_err(|e| e.to_string())?,
+        }
+        let mut buffer = vec![0; PIECE_BYTES + 3];
+        for piece in &self.pieces {
+            let file = match piece.source {
+                Source::Base => &mut self.base,
+                Source::Add => &mut self.add,
+            };
+            let bytes = &mut buffer[..piece.byte_len as usize];
+            file.seek(SeekFrom::Start(piece.byte_start))
+                .map_err(|e| e.to_string())?;
+            file.read_exact(bytes).map_err(|e| e.to_string())?;
+            match self.encoding {
+                BaseEncoding::Utf8 => output.write_all(bytes).map_err(|e| e.to_string())?,
+                BaseEncoding::Utf16Le | BaseEncoding::Utf16Be => {
+                    for unit in std::str::from_utf8(bytes)
+                        .map_err(|e| e.to_string())?
+                        .encode_utf16()
+                    {
+                        let bytes = if self.encoding == BaseEncoding::Utf16Le {
+                            unit.to_le_bytes()
+                        } else {
+                            unit.to_be_bytes()
+                        };
+                        output.write_all(&bytes).map_err(|e| e.to_string())?;
+                    }
+                }
+            }
+            progress()?;
+        }
+        output.flush().map_err(|e| e.to_string())?;
+        output.get_ref().sync_all().map_err(|e| e.to_string())
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Source {
@@ -62,6 +134,8 @@ pub(crate) struct PieceTree {
     base_path: PathBuf,
     base_encoding: BaseEncoding,
     normalized_base_path: Option<PathBuf>,
+    base_lifetime: Option<Arc<WorkingFile>>,
+    add_lifetime: Arc<WorkingFile>,
     pub(crate) add_path: PathBuf,
     add: Option<RefCell<File>>,
     root: Link,
@@ -73,16 +147,19 @@ impl PieceTree {
         let (indexed_path, base_encoding, normalized_base_path) = prepare_base(base_path)?;
         let base = open_immutable_base(&indexed_path)?;
         let add = OpenOptions::new()
-            .create(true)
+            .create_new(true)
             .read(true)
             .write(true)
-            .truncate(true)
             .open(&add_path)
             .map_err(|error| error.to_string())?;
         let mut tree = Self {
             base: Some(RefCell::new(base)),
             base_path: indexed_path,
             base_encoding,
+            base_lifetime: normalized_base_path
+                .clone()
+                .map(|p| Arc::new(WorkingFile(p))),
+            add_lifetime: Arc::new(WorkingFile(add_path.clone())),
             normalized_base_path,
             add_path,
             add: Some(RefCell::new(add)),
@@ -280,27 +357,77 @@ impl PieceTree {
             .map_err(|error| error.to_string())
     }
 
+    pub(crate) fn snapshot(&self) -> Result<PieceSnapshot, String> {
+        fn collect(node: Option<&Node>, pieces: &mut Vec<Piece>) -> Result<(), String> {
+            if let Some(node) = node {
+                collect(node.left.as_deref(), pieces)?;
+                if pieces.len() == MAX_SNAPSHOT_PIECES
+                    || node.piece.byte_len > (PIECE_BYTES + 3) as u64
+                {
+                    return Err("恢复分片描述超过有界预算；已有恢复点保留".into());
+                }
+                pieces.push(node.piece.clone());
+                collect(node.right.as_deref(), pieces)?;
+            }
+            Ok(())
+        }
+        if self.base.is_none() || self.add.is_none() {
+            return Err("Document working files are closed".into());
+        }
+        let mut pieces = Vec::new();
+        collect(self.root.as_deref(), &mut pieces)?;
+        Ok(PieceSnapshot {
+            base: open_immutable_base(&self.base_path)?,
+            add: File::open(&self.add_path).map_err(|e| e.to_string())?,
+            _base_lifetime: self
+                .base_lifetime
+                .as_ref()
+                .ok_or("Missing base lifetime")?
+                .clone(),
+            _add_lifetime: self.add_lifetime.clone(),
+            pieces,
+            encoding: self.base_encoding,
+        })
+    }
+
     pub(crate) fn rebase(&mut self, path: &Path) -> Result<(), String> {
         let (indexed_path, base_encoding, normalized_base_path) = prepare_base(path)?;
-        self.base = Some(RefCell::new(open_immutable_base(&indexed_path)?));
-        if let Some(previous) = self.normalized_base_path.take() {
-            let _ = fs::remove_file(previous);
-        }
+        let next_lifetime = normalized_base_path
+            .clone()
+            .map(|p| Arc::new(WorkingFile(p)));
+        let next_base = open_immutable_base(&indexed_path)?;
+        let next_add = if Arc::strong_count(&self.add_lifetime) > 1 {
+            // Allocate before changing the live tree: failure must leave its sources intact.
+            let next_path = session_base_path(path)?.with_extension("add.work");
+            let next = OpenOptions::new()
+                .create_new(true)
+                .read(true)
+                .write(true)
+                .open(&next_path)
+                .map_err(|e| e.to_string())?;
+            Some((next_path, next))
+        } else {
+            None
+        };
+        self.base = Some(RefCell::new(next_base));
+        self.base_lifetime = next_lifetime;
         self.base_path = indexed_path;
         self.base_encoding = base_encoding;
         self.normalized_base_path = normalized_base_path;
-        self.add
-            .as_mut()
-            .ok_or_else(|| "Large file add buffer is unavailable".to_string())?
-            .get_mut()
-            .set_len(0)
-            .map_err(|error| error.to_string())?;
-        self.add
-            .as_mut()
-            .ok_or_else(|| "Large file add buffer is unavailable".to_string())?
-            .get_mut()
-            .seek(SeekFrom::Start(0))
-            .map_err(|error| error.to_string())?;
+        if let Some((next_path, next)) = next_add {
+            // A recovery writer owns the old append-only generation; never truncate it.
+            self.add = Some(RefCell::new(next));
+            self.add_lifetime = Arc::new(WorkingFile(next_path.clone()));
+            self.add_path = next_path;
+        } else {
+            let add = self
+                .add
+                .as_mut()
+                .ok_or("Large file add buffer is unavailable")?
+                .get_mut();
+            add.set_len(0).map_err(|e| e.to_string())?;
+            add.seek(SeekFrom::Start(0)).map_err(|e| e.to_string())?;
+        }
         self.rebuild_base_index()
     }
 
@@ -311,11 +438,20 @@ impl PieceTree {
     pub(crate) fn close(&mut self) -> Result<(), String> {
         self.base = None;
         self.add = None;
-        remove_working_file(&self.add_path)?;
+        if Arc::strong_count(&self.add_lifetime) == 1 {
+            remove_working_file(&self.add_path)?;
+        }
         if let Some(path) = self.normalized_base_path.as_ref() {
-            remove_working_file(path)?;
+            if self
+                .base_lifetime
+                .as_ref()
+                .is_some_and(|p| Arc::strong_count(p) == 1)
+            {
+                remove_working_file(path)?;
+            }
         }
         self.normalized_base_path = None;
+        self.base_lifetime = None;
         Ok(())
     }
 
@@ -599,10 +735,8 @@ impl Drop for PieceTree {
     fn drop(&mut self) {
         self.base = None;
         self.add = None;
-        let _ = fs::remove_file(&self.add_path);
-        if let Some(path) = self.normalized_base_path.take() {
-            let _ = fs::remove_file(path);
-        }
+        // WorkingFile leases clean up only after every snapshot closes its handles.
+        self.base_lifetime = None;
     }
 }
 
@@ -789,6 +923,7 @@ fn open_immutable_base(path: &Path) -> Result<File, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Arc;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn fixture(text: &str) -> (PathBuf, PieceTree) {
@@ -805,6 +940,73 @@ mod tests {
         fs::write(&base, text).unwrap();
         let tree = PieceTree::open(&base, root.join("add.buf")).unwrap();
         (root, tree)
+    }
+
+    #[test]
+    fn streaming_snapshot_survives_concurrent_edit_save_and_close() {
+        use std::sync::mpsc;
+        use std::time::Duration;
+        let text = "中文👩🏽‍💻\r\n".repeat(20000);
+        let (root, mut tree) = fixture(&text);
+        tree.apply_batch(&[(0, 0, "PREFIX".into())]).unwrap();
+        let expected = format!("PREFIX{text}").into_bytes();
+        let mut snapshot = tree.snapshot().unwrap();
+        let pinned_add = tree.add_path.clone();
+        let pinned_base = tree.base_path.clone();
+        let target = root.join("snapshot.md");
+        let (ready_tx, ready_rx) = mpsc::channel();
+        let (resume_tx, resume_rx) = mpsc::channel();
+        let writer = std::thread::spawn(move || {
+            let mut first = true;
+            snapshot
+                .write_with_progress(&target, || {
+                    if first {
+                        first = false;
+                        ready_tx.send(()).unwrap();
+                        resume_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+                    }
+                    Ok(())
+                })
+                .unwrap();
+            fs::read(target).unwrap()
+        });
+        ready_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+        for _ in 0..25 {
+            assert_eq!(tree.read_range(0, 6).unwrap(), "PREFIX");
+            tree.apply_batch(&[(tree.utf16_len(), tree.utf16_len(), "TAIL".into())])
+                .unwrap();
+        }
+        let saved = root.join("saved.md");
+        tree.write_to(&saved).unwrap();
+        tree.rebase(&saved).unwrap();
+        assert_ne!(tree.add_path, pinned_add);
+        tree.apply_batch(&[(0, 6, String::new())]).unwrap();
+        tree.close().unwrap();
+        drop(tree);
+        assert!(pinned_add.exists());
+        assert!(pinned_base.exists());
+        resume_tx.send(()).unwrap();
+        assert_eq!(writer.join().unwrap(), expected);
+        assert!(!pinned_add.exists());
+        assert!(!pinned_base.exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn snapshot_descriptor_budget_is_checked_before_copying_text() {
+        let (root, mut tree) = fixture("x");
+        tree.root = None;
+        for _ in 0..MAX_SNAPSHOT_PIECES {
+            tree.push_base_piece(0, "x");
+        }
+        let snapshot = tree.snapshot().unwrap();
+        assert_eq!(snapshot.pieces.len(), MAX_SNAPSHOT_PIECES);
+        assert!(snapshot.pieces.capacity() * std::mem::size_of::<Piece>() <= 3 * 1024 * 1024);
+        drop(snapshot);
+        tree.push_base_piece(0, "x");
+        assert!(tree.snapshot().err().unwrap().contains("预算"));
+        drop(tree);
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

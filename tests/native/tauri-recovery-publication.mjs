@@ -1,6 +1,8 @@
 // Production crash at a completed payload / unpublished manifest boundary.
 // File-size observation does not distinguish fsync from hashing; the exact
 // post-write lock boundary is covered separately by deterministic Rust tests.
+// Wait for exit after SIGKILL before inspecting the interrupted state; SIGSTOP
+// submission alone does not acknowledge that every traced thread has stopped.
 import assert from 'node:assert/strict'
 import { mkdir, copyFile, readFile, writeFile, readdir, stat } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
@@ -18,9 +20,7 @@ const original = await readFile(file),
   next = Buffer.concat([Buffer.from('BASE20NEXT20'), original])
 const hash = (b) => createHash('sha256').update(b).digest('hex')
 const evidence = { original: { bytes: original.length, sha256: hash(original) }, events: [] }
-let app,
-  owner,
-  stopped = false
+let app, owner
 try {
   app = await startProduction(file, root)
   await app.focus('.milkup-input-proxy')
@@ -69,8 +69,19 @@ try {
     payload: unpublished,
     bytes: next.length,
   })
-  evidence.events.push(await owner.signal('SIGSTOP'))
-  stopped = true
+  evidence.events.push(await owner.signal('SIGKILL'))
+  await app.until(async () => {
+    try {
+      const value = await readFile(`/proc/${owner.identity.pid}/stat`, 'utf8')
+      const fields = value.slice(value.lastIndexOf(')') + 2).split(' ')
+      return fields[19] !== owner.identity.birth || fields[0] === 'Z'
+    } catch (error) {
+      if (error.code === 'ENOENT') return true
+      throw error
+    }
+  }, 'owned killed process exited')
+  await app.close()
+  app = undefined
   assert.equal(JSON.parse(await readFile(manifest, 'utf8')).payload, record.payload)
   assert((await readFile(path.join(dir, unpublished))).equals(next))
   assert((await readFile(file)).equals(original))
@@ -80,9 +91,6 @@ try {
     sha256: hash(next),
     manifestStillPrevious: true,
   }
-  evidence.events.push(await owner.signal('SIGKILL'))
-  stopped = false
-  await app.close()
   app = await startProduction(file, root)
   await app.until(
     () =>
@@ -111,7 +119,6 @@ try {
   evidence.error = String(error)
   throw error
 } finally {
-  if (stopped) await owner.signal('SIGCONT')
   await writeFile(path.join(root, 'results.json'), JSON.stringify(evidence, null, 2))
   await app?.close()
 }

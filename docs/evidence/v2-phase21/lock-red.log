@@ -1,0 +1,35 @@
+   Compiling generic-array v0.14.7
+   Compiling typenum v1.20.1
+   Compiling cpufeatures v0.2.17
+   Compiling milkup-desktop v0.1.0 (/workspace/milkup/apps/desktop/src-tauri)
+   Compiling fs2 v0.4.3
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling tauri-codegen v2.6.3
+   Compiling tauri-macros v2.6.3
+   Compiling tauri v2.11.5
+   Compiling tauri-plugin-fs v2.5.1
+   Compiling tauri-plugin-dialog v2.7.1
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.17s
+     Running unittests src/lib.rs (apps/desktop/src-tauri/target/debug/deps/milkup_desktop_lib-1d1ac97e79819ebd)
+
+running 1 test
+test recovery::tests::captured_native_snapshot_allows_save_close_and_reopen_before_streaming ... FAILED
+
+failures:
+
+---- recovery::tests::captured_native_snapshot_allows_save_close_and_reopen_before_streaming stdout ----
+
+thread 'recovery::tests::captured_native_snapshot_allows_save_close_and_reopen_before_streaming' (9999) panicked at src/recovery.rs:624:17:
+snapshot streaming must not hold document registry
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    recovery::tests::captured_native_snapshot_allows_save_close_and_reopen_before_streaming
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 72 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--lib`

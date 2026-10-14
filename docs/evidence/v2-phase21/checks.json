@@ -1,0 +1,58 @@
+[
+  {
+    "name": "js",
+    "command": ["pnpm", "-r", "--workspace-concurrency=1", "test"],
+    "started": "2026-10-14T03:55:19.652981+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "supplemental",
+    "command": [
+      "pnpm",
+      "exec",
+      "vitest",
+      "run",
+      "plugins/outline/src/plugin.test.ts",
+      "tests/helpers/native-startup.test.ts"
+    ],
+    "started": "2026-10-14T03:55:43.306714+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "rust",
+    "command": ["cargo", "test", "--manifest-path", "apps/desktop/src-tauri/Cargo.toml", "--lib"],
+    "started": "2026-10-14T03:55:44.532696+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "typecheck",
+    "command": ["pnpm", "typecheck"],
+    "started": "2026-10-14T03:55:47.368047+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "rust-format",
+    "command": ["cargo", "fmt", "--manifest-path", "apps/desktop/src-tauri/Cargo.toml", "--check"],
+    "started": "2026-10-14T03:55:57.857283+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "workspace-build",
+    "command": ["pnpm", "build"],
+    "started": "2026-10-14T03:55:57.951140+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "chromium",
+    "command": ["pnpm", "test:e2e", "--workers=1"],
+    "started": "2026-10-14T03:56:07.969684+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "format-final",
+    "command": ["pnpm", "lint"],
+    "exitCode": 0,
+    "completedAt": "2026-10-14T03:59:28.293632+00:00",
+    "note": "Initial archive formatting missed five nested JSON files; corrected explicit recursive glob, all JSON values preserved."
+  }
+]

@@ -1,0 +1,59 @@
+{
+  "original": {
+    "bytes": 104857619,
+    "sha256": "0d2ec2918834ac17bea6cdf96459e4f3f5934d8a19299cfca1b19dd815af664c"
+  },
+  "events": [
+    {
+      "kind": "partial-size-observed",
+      "wall": 1791949526357,
+      "payload": "snapshot-1791949526355645827",
+      "bytes": 425984
+    },
+    {
+      "pid": 12868,
+      "argv": [
+        "/workspace/milkup/apps/desktop/src-tauri/target/release/milkup-desktop",
+        "/workspace/.milkup-v2-phase21/regression-recovery-write-interrupt/partial-write.md",
+        ""
+      ],
+      "birth": "95554",
+      "signal": "SIGSTOP",
+      "at": "2026-10-14T03:45:26.359Z"
+    },
+    {
+      "pid": 12868,
+      "argv": [
+        "/workspace/milkup/apps/desktop/src-tauri/target/release/milkup-desktop",
+        "/workspace/.milkup-v2-phase21/regression-recovery-write-interrupt/partial-write.md",
+        ""
+      ],
+      "birth": "95554",
+      "signal": "SIGKILL",
+      "at": "2026-10-14T03:45:26.465Z"
+    }
+  ],
+  "before": {
+    "schema": 1,
+    "id": "12868-1791949522322253579-mv7kh8wg-1",
+    "ownerPid": 12868,
+    "ownerBirth": "95554",
+    "originalPath": "/workspace/.milkup-v2-phase21/regression-recovery-write-interrupt/partial-write.md",
+    "version": 3,
+    "createdAt": 1791949525185,
+    "bytes": 104857625,
+    "sha256": "6aba5baa3cce3db63b48a4f5e78d14df8464ff5a5581260797efd03c752942c6",
+    "payload": "snapshot-1791949524801910634",
+    "previous": null,
+    "disposition": "pending"
+  },
+  "unpublished": {
+    "payload": "snapshot-1791949526355645827",
+    "bytes": 1179660,
+    "sha256": "8926779f00039c37c06e6da0408f0b50938944e41e8bc4ef96121e955187ffaf",
+    "expectedCompleteBytes": 104857631,
+    "manifestStillPrevious": true
+  },
+  "ok": false,
+  "error": "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:\n\n  assert((await readFile(path.join(dir, unpublished))).equals(partial))\n"
+}

@@ -1492,10 +1492,17 @@ fn large_file_add_buffer_path(path: &Path, document_id: &str) -> Result<PathBuf,
             }
         })
         .collect::<String>();
+    // Reopening the same document ID must never truncate a generation still
+    // leased by a recovery writer (or an unknown buffer from an earlier process).
+    static NEXT_ADD: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+    let sequence = NEXT_ADD.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|e| e.to_string())?
+        .as_nanos();
     Ok(parent.join(format!(
-        ".{file_name}.{LARGE_FILE_WORKING_TEMP_MARKER}.{}.{}.add.work",
-        std::process::id(),
-        safe_document_id
+        ".{file_name}.{LARGE_FILE_WORKING_TEMP_MARKER}.{}.{safe_document_id}.{nonce}.{sequence}.add.work",
+        std::process::id()
     )))
 }
 
