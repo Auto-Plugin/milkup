@@ -350,29 +350,32 @@ try {
       windowId,
       String(Math.round(listRect.x + listRect.width / 2)),
       String(Math.round(listRect.top + listRect.height / 2)),
-      'click',
-      '--repeat',
-      '1000',
-      '--delay',
-      '0',
-      '4',
     )
     let previousMiddleState = '',
-      middleStable = 0
+      middleStable = 0,
+      middleWheelBatches = 0
     const middle = await app.until(
       async () => {
         const state = await app.execute(
           `const list=document.querySelector('[data-virtual-list]'),r=list.getBoundingClientRect();return {signature:[list.dataset.virtualRevision,list.dataset.virtualStart,list.dataset.virtualEnd,list.scrollTop].join(':'),title:[...list.querySelectorAll('.plugin-list-item')].map(x=>({text:x.textContent,title:x.title,rect:x.getBoundingClientRect()})).find(x=>/^Heading /.test(x.text)&&x.rect.top>=r.top&&x.rect.bottom<=r.bottom&&Number(x.text.split(' ')[1])>10000&&Number(x.text.split(' ')[1])<35000)?.title}`,
         )
-        // XTest's wheel burst can finish before its final virtual slice arrives.
-        // Select a target only after three unchanged observations, not a transient row.
+        // Native wheel events may coalesce differently across displays. Observe
+        // the settled slice, then send another bounded real-input batch as needed.
         middleStable = state.signature === previousMiddleState ? middleStable + 1 : 0
         previousMiddleState = state.signature
-        return middleStable >= 3 && state.title
+        if (middleStable < 3) return false
+        if (state.title) return state.title
+        assert(middleWheelBatches < 24, 'Middle range not reached after bounded wheel input')
+        x('click', '--repeat', '120', '--delay', '4', '4')
+        middleWheelBatches++
+        middleStable = 0
+        previousMiddleState = ''
+        return false
       },
       'middle virtual wheel navigation',
       30000,
     )
+    await record('large-middle-wheel-settled', { middleWheelBatches, middle })
     await click('.plugin-list-item[title=' + JSON.stringify(middle) + ']')
     const middleLine = Number(/^Heading (\d+)/.exec(middle)[1])
     await app.until(

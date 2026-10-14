@@ -1,0 +1,70 @@
+$ pnpm -r build
+Scope: 14 of 15 workspace projects
+packages/assets build$ tsc -p tsconfig.json
+packages/core build$ tsc -p tsconfig.json
+packages/input build$ tsc -p tsconfig.json
+packages/markdown build$ tsc -p tsconfig.json
+packages/input build: Done
+packages/markdown build: Done
+packages/assets build: Done
+packages/core build: Done
+packages/export build$ tsc -p tsconfig.json
+packages/mcp build$ tsc -p tsconfig.json && vite build
+packages/plugin-sdk build$ tsc -p tsconfig.json
+packages/tauri-bridge build$ tsc -p tsconfig.json
+packages/plugin-sdk build: Done
+packages/view-dom build$ tsc -p tsconfig.json
+packages/tauri-bridge build: Done
+packages/export build: Done
+packages/mcp build: vite v7.3.6 building ssr environment for production...
+packages/mcp build: transforming...
+packages/mcp build: ✓ 21 modules transformed.
+packages/mcp build: rendering chunks...
+packages/mcp build: dist/bin/milkup-mcp.js  28.41 kB
+packages/mcp build: ✓ built in 704ms
+packages/mcp build: Done
+packages/view-dom build: Done
+packages/plugin build$ tsc -p tsconfig.json
+tests/regressions build$ tsc -p tsconfig.json
+tests/regressions build: Done
+packages/plugin build: Done
+apps/desktop build$ vite build
+apps/playground build$ vite build
+packages/cli build$ tsc -p tsconfig.json && vite build
+apps/desktop build: vite v7.3.6 building client environment for production...
+apps/playground build: vite v7.3.6 building client environment for production...
+apps/desktop build: transforming...
+apps/playground build: transforming...
+apps/playground build: ✓ 66 modules transformed.
+apps/playground build: rendering chunks...
+apps/playground build: computing gzip size...
+apps/playground build: dist/index.html                               0.40 kB │ gzip:  0.27 kB
+apps/playground build: dist/assets/worker-demo-plugin-D1RLylmX.js    2.28 kB
+apps/playground build: dist/assets/plugin-worker-CW6j0HA0.js        17.32 kB
+apps/playground build: dist/assets/index-NEfibDu7.css                3.49 kB │ gzip:  1.29 kB
+apps/playground build: dist/assets/index-BECb9mhh.js               136.73 kB │ gzip: 37.88 kB
+apps/playground build: ✓ built in 7.14s
+apps/playground build: Done
+apps/desktop build: ✓ 1872 modules transformed.
+apps/desktop build: rendering chunks...
+apps/desktop build: computing gzip size...
+apps/desktop build: dist/index.html                                0.67 kB │ gzip:   0.39 kB
+apps/desktop build: dist/assets/large-search-worker-BwuKh3LS.js    1.32 kB
+apps/desktop build: dist/assets/worker-file-plugin-BcWd8aV7.js     2.85 kB
+apps/desktop build: dist/assets/plugin-worker-DQkF8QLu.js         17.25 kB
+apps/desktop build: dist/assets/index-DYAVmw9Q.css                34.01 kB │ gzip:   7.37 kB
+apps/desktop build: dist/assets/index-lBcCbJoJ.js                  0.29 kB │ gzip:   0.18 kB
+apps/desktop build: dist/assets/event-BK_86lmQ.js                  1.41 kB │ gzip:   0.68 kB
+apps/desktop build: dist/assets/core-DhEqZVGG.js                   2.44 kB │ gzip:   0.98 kB
+apps/desktop build: dist/assets/webview-Dd-2IzEi.js                3.36 kB │ gzip:   1.15 kB
+apps/desktop build: dist/assets/window-6lX1olBp.js                14.16 kB │ gzip:   3.57 kB
+apps/desktop build: dist/assets/index-BFDZ0jcr.js                400.56 kB │ gzip: 113.61 kB
+apps/desktop build: ✓ built in 9.57s
+apps/desktop build: Done
+packages/cli build: vite v7.3.6 building ssr environment for production...
+packages/cli build: transforming...
+packages/cli build: ✓ 57 modules transformed.
+packages/cli build: rendering chunks...
+packages/cli build: dist/bin/milkup.js  145.70 kB
+packages/cli build: ✓ built in 2.89s
+packages/cli build: Done
