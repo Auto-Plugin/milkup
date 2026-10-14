@@ -6,6 +6,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { setTimeout as delay } from 'node:timers/promises'
 import path from 'node:path'
+import { captureStartup } from './startup-diagnostics.mjs'
 
 assert.equal(process.platform, 'win32', 'Windows installed-package acceptance only')
 const required = (name) => {
@@ -270,6 +271,10 @@ try {
 } catch (error) {
   result.status = 'failed'
   result.error = String(error)
+  const launch = result.launches.at(-1)
+  if (launch?.pid) {
+    result.failureStartup = await captureStartup(launch, evidence, 'product-failure')
+  }
   if (session) {
     result.failureState = await state().catch(() => null)
     await request('GET', `/session/${session}/screenshot`)

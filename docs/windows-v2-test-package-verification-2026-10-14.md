@@ -42,7 +42,7 @@ Windows x64 未签名 NSIS 安装包已在标准 GitHub-hosted runner 构建，�
 
 `Actions permissions` 与组织 billing usage／summary 的只读查询返回 403，但精确分支 push 已实际成功触发五次标准 Windows 工作流，说明管理查询权限与运行权限不同。未扩大凭据或绕过管理限制。Git／gh 曾短暂返回 401，后续正常远端读取及 push 恢复，未新增凭据。各已推送 commit 的 GitHub author／committer 都核验关联 `LarryZhu-dev`，本仓库身份保持 `LarryZhu-dev <larryzhu@foxmail.com>`。
 
-当前标准公开 runner 的运行免费；日志不计入 artifact 存储，但不能推导 artifact 免费。取包需要父线程核实共享免费余额／零支出保护，或一次性批准 GitHub 共享存储费用。可采用**一次上传总量不超过 256 MiB、1 天自动到期、费用上限 $0.01（税费另计）**的方案：官方单价 $0.25/GiB/月，以 28 天月份保守计算该体积／保留时间约 $0.00224。实际 NSIS 目前约 2.16 MiB；上传总量仍需计入 ZIP 与清单，超过硬限则停止。此处是待确认方案，尚无上传步骤，不将预算提案当作已有账户支出上限。[GitHub 计费](https://docs.github.com/en/billing/concepts/product-billing/github-actions)、[保留时间设置](https://docs.github.com/en/actions/tutorials/store-and-share-data)
+当前标准公开 runner 的运行免费；日志不计入 artifact 存储，但不能推导 artifact 免费。取包需要父线程核实共享免费余额／零支出保护，或一次性批准 GitHub 共享存储费用。可采用**一次上传总量不超过 50 MiB、最多 7 天自动到期、额外费用上限 $0.01（税费另计）**的方案：官方单价 $0.25/GiB/月，以 28 天月份保守计算该体积／保留时间约 $0.00306。实际 NSIS 目前约 2.16 MiB；上传总量仍需计入 ZIP 与清单，超过硬限则停止。这是父线程当前正在向用户确认的方案，取代先前 256 MiB／1 天提案；尚无上传步骤，不将预算提案当作已有账户支出上限。[GitHub 计费](https://docs.github.com/en/billing/concepts/product-billing/github-actions)、[保留时间设置](https://docs.github.com/en/actions/tutorials/store-and-share-data)
 
 启动闭环和存储授权是两个独立缺口。先解决启动诊断，再取得存储授权并重新构建／验收，才上传通过的安装包、manifest 与 SHA256SUMS，下载后再次核验。不会把二进制编码进日志、提交到源码仓库或使用未授权外部存储来绕开这项费用确认。
 

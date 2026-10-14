@@ -65,6 +65,10 @@ try {
     if ($manifest.installer.signature -ne 'NotSigned' -or $manifest.binary.signature -ne 'NotSigned') {
         throw 'Expected explicitly unsigned local test artifacts; review unexpected signing state.'
     }
+    # Same locked release runtime, compiled once in this job. The control has no
+    # editor setup/plugins and never counts toward installed product acceptance.
+    Invoke-Checked 'cargo' @('build', '--locked', '--manifest-path', 'apps/desktop/src-tauri/Cargo.toml', '--release', '--target', 'x86_64-pc-windows-msvc', '--features', 'tauri/custom-protocol', '--example', 'windows_startup_control')
+    Invoke-Checked 'node' @('tests/windows/minimal-startup-control.mjs', (Join-Path $target 'examples/windows_startup_control.exe'), $evidence)
     $manifest.installedTest = & "$PSScriptRoot/test-windows-v2-installed.ps1" -Installer $packages[0].FullName -BuiltBinary $binary -EvidenceDirectory $evidence
     if ($manifest.installedTest.status -ne 'passed') { throw 'Installed application acceptance did not pass' }
     if (git status --porcelain) { throw 'Build changed tracked or untracked source files' }
