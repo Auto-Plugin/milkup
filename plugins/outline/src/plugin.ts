@@ -1,153 +1,18 @@
 import { definePlugin } from '@milkup/plugin-sdk'
 import type {
   SdkDocumentScanner,
-  SdkDocumentScanHeading,
   SdkPluginActivationContext,
   SdkPluginRendererContext,
   SdkRendererOutput,
   SdkTemporaryStore,
 } from '@milkup/plugin-sdk'
 
+import { OutlineIndex, type Heading, type HeadingMetadata } from './outline-index'
+
 const scanLines = 4096
-// Eight records keep worst-case JSON-escaped 4096-character labels below 256 KiB.
-const recordPageSize = 8
-const projectionPageSize = 256
-const cachedPages = 8
 const maximumRows = 500
 const defaultRows = 160
 const rowHeight = 28
-
-/** Direct ordinal addressing: neither the page directory nor the title tree lives in RAM. */
-class PagedArray<T> {
-  length = 0
-  private readonly pages = new Map<number, { values: T[]; dirty: boolean }>()
-
-  constructor(
-    private readonly store: SdkTemporaryStore,
-    private readonly prefix: string,
-    private readonly pageSize: number,
-  ) {}
-
-  async get(index: number): Promise<T | undefined> {
-    if (index < 0 || index >= this.length) return undefined
-    return (await this.page(Math.floor(index / this.pageSize))).values[index % this.pageSize]
-  }
-
-  async set(index: number, value: T): Promise<void> {
-    const page = await this.page(Math.floor(index / this.pageSize))
-    page.values[index % this.pageSize] = value
-    page.dirty = true
-    this.length = Math.max(this.length, index + 1)
-  }
-
-  async append(value: T): Promise<number> {
-    const index = this.length
-    await this.set(index, value)
-    return index
-  }
-
-  async flush(): Promise<void> {
-    let entries: { key: string; value: string }[] = []
-    let dirty: { values: T[]; dirty: boolean }[] = []
-    let bytes = 0
-    const send = async () => {
-      if (!entries.length) return
-      await this.store.setMany(entries)
-      for (const page of dirty) page.dirty = false
-      entries = []
-      dirty = []
-      bytes = 0
-    }
-    for (const [index, page] of this.pages) {
-      if (!page.dirty) continue
-      const value = JSON.stringify(page.values)
-      const size = new TextEncoder().encode(value).length
-      if (bytes + size > 256 * 1024) await send()
-      entries.push({ key: `${this.prefix}-${index}`, value })
-      dirty.push(page)
-      bytes += size
-    }
-    await send()
-  }
-
-  async clear(): Promise<void> {
-    await this.flush()
-    this.pages.clear()
-    this.length = 0
-  }
-
-  private async page(index: number): Promise<{ values: T[]; dirty: boolean }> {
-    const cached = this.pages.get(index)
-    if (cached) {
-      this.pages.delete(index)
-      this.pages.set(index, cached)
-      return cached
-    }
-    // Missing logical pages are new writes, even if an older projection used the same key.
-    if (index * this.pageSize >= this.length) {
-      await this.makeRoom()
-      const empty = { values: [] as T[], dirty: false }
-      this.pages.set(index, empty)
-      return empty
-    }
-    const indices: number[] = []
-    for (
-      let next = index;
-      next < Math.min(index + 4, Math.ceil(this.length / this.pageSize));
-      next++
-    ) {
-      if (!this.pages.has(next)) indices.push(next)
-    }
-    const values = await this.readPages(indices)
-    for (let offset = 0; offset < indices.length; offset++) {
-      await this.makeRoom()
-      const json = values[offset]
-      if (json === null || json === undefined) throw new Error('大纲索引页缺失，请重试全文扫描')
-      this.pages.set(indices[offset]!, { values: JSON.parse(json) as T[], dirty: false })
-    }
-    return this.pages.get(index)!
-  }
-
-  private async readPages(indices: readonly number[]): Promise<readonly (string | null)[]> {
-    try {
-      return await this.store.getMany(indices.map((index) => `${this.prefix}-${index}`))
-    } catch (error) {
-      // Long labels can exceed the response budget even for four pages; split bounded requests.
-      if (indices.length <= 1) throw error
-      const middle = Math.floor(indices.length / 2)
-      return [
-        ...(await this.readPages(indices.slice(0, middle))),
-        ...(await this.readPages(indices.slice(middle))),
-      ]
-    }
-  }
-
-  private async makeRoom(): Promise<void> {
-    if (this.pages.size < cachedPages) return
-    await this.flush()
-    // Evict a bounded group after a batched flush, so sequential writes do not
-    // turn every new eight-record page into a separate storage transaction.
-    for (let count = 0; count < cachedPages / 2; count++) {
-      const oldest = this.pages.keys().next().value
-      if (oldest !== undefined) this.pages.delete(oldest)
-    }
-  }
-}
-
-interface Heading {
-  ordinal: number
-  id: string
-  from: number
-  line: number
-  level: number
-  title: string
-  parent?: number
-  ancestors: number[]
-  subtreeEnd?: number
-  hasChildren: boolean
-  collapsed: boolean
-  visibleIndex?: number
-}
 
 type Status = 'starting' | 'scanning' | 'complete' | 'cancelled' | 'invalidated' | 'failed'
 interface Session {
@@ -159,12 +24,9 @@ interface Session {
   store?: SdkTemporaryStore
   storeReady?: Promise<SdkTemporaryStore>
   startTimer?: ReturnType<typeof setTimeout>
-  records?: PagedArray<Heading>
-  projection?: PagedArray<number>
+  records?: OutlineIndex
   scanner?: SdkDocumentScanner
   queue: Promise<unknown>
-  stack: { ordinal: number; level: number }[]
-  lastSourceFrom: number
   scannedLines: number
   totalLines: number
   activeLine: number
@@ -178,12 +40,12 @@ interface Session {
   rowsDirty: boolean
   rowStart: number
   rowEnd: number
+  returnedStart: number
+  returnedEnd: number
   revision: number
   renderRequest: number
   refreshTimer?: ReturnType<typeof setTimeout>
   rebuilding: boolean
-  rebuiltCount: number
-  defaultCollapsed: boolean
   error: string
 }
 
@@ -212,16 +74,15 @@ const plugin = definePlugin({
       await enqueue(current, async () => {
         const item = await requireHeading(current, input)
         if (!host?.ui) throw new Error('大纲导航暂时不可用')
-        let unfold = false
+        const foldedAncestors: number[] = []
         for (const ordinal of item.ancestors) {
-          const ancestor = (await current.records!.get(ordinal))!
-          if (ancestor.collapsed) {
-            ancestor.collapsed = false
-            await current.records!.set(ordinal, ancestor)
-            unfold = true
-          }
+          if ((await current.records!.get(ordinal))!.collapsed) foldedAncestors.push(ordinal)
         }
-        if (unfold) await rebuildProjection(current)
+        if (foldedAncestors.length)
+          await changeFold(current, async () => {
+            for (const ordinal of foldedAncestors)
+              await current.records!.setCollapsed(ordinal, false)
+          })
         await host.ui.revealLine(item.line)
         assertCurrent(current)
         current.activeLine = item.line
@@ -234,26 +95,40 @@ const plugin = definePlugin({
       await enqueue(current, async () => {
         const item = await requireHeading(current, input)
         if (!item.hasChildren) return
-        item.collapsed = !item.collapsed
-        await current.records!.set(item.ordinal, item)
-        await rebuildProjection(current)
+        await changeFold(current, () =>
+          current.records!.setCollapsed(item.ordinal, !item.collapsed),
+        )
       })
     },
     'outline.collapseAll': async () => {
       const current = session
       if (!current?.records) return
-      await enqueue(current, () => rebuildProjection(current, true))
+      await enqueue(current, () =>
+        changeFold(current, async () => current.records!.resetCollapsed(true), false),
+      )
     },
     'outline.expandAll': async () => {
       const current = session
       if (!current?.records) return
-      await enqueue(current, () => rebuildProjection(current, false))
+      await enqueue(current, () =>
+        changeFold(current, async () => current.records!.resetCollapsed(false), false),
+      )
     },
     'outline.cancel': async () => {
       const current = session
       if (!current || (current.status !== 'starting' && current.status !== 'scanning')) return
       current.status = 'cancelled'
       await current.scanner?.cancel().catch(() => undefined)
+      try {
+        await enqueue(current, async () => {
+          await current.records?.flush()
+        })
+      } catch (error) {
+        if (isCurrent(current)) {
+          current.status = 'failed'
+          current.error = error instanceof Error ? error.message : '临时索引写入失败'
+        }
+      }
       scheduleRefresh(current)
     },
     'outline.retry': async () => {
@@ -291,7 +166,7 @@ function renderPanel(context: SdkPluginRendererContext): SdkRendererOutput {
     viewport?.id === 'outline' &&
     viewport.userInitiated === true &&
     // The host echoes the rendered slice after mounting. It is not a new scroll request.
-    (viewport.fromIndex !== current.rowStart || viewport.toIndex !== current.rowEnd) &&
+    (viewport.fromIndex !== current.returnedStart || viewport.toIndex !== current.returnedEnd) &&
     Number.isInteger(viewport.fromIndex) &&
     Number.isInteger(viewport.toIndex)
   ) {
@@ -300,11 +175,21 @@ function renderPanel(context: SdkPluginRendererContext): SdkRendererOutput {
     if (from !== current.fromIndex || count !== current.rowCount) {
       current.fromIndex = from
       current.rowCount = count
-      if (viewport.userInitiated) current.followActive = false
+      if (viewport.userInitiated) {
+        current.followActive = false
+        // The synchronous response still contains the previous slice. It must
+        // not replay that slice's active-heading scroll while new pages load.
+        current.preparedFollow = false
+      }
       scheduleRefresh(current)
     }
   }
-  return panel(current)
+  const output = panel(current)
+  // Async preparation can already have advanced rowStart/rowEnd while the host
+  // still echoes our previous response. Compare against what was actually returned.
+  current.returnedStart = current.rowStart
+  current.returnedEnd = current.rowEnd
+  return output
 }
 
 function beginSession(
@@ -321,8 +206,6 @@ function beginSession(
     alive: true,
     status: 'starting',
     queue: Promise.resolve(),
-    stack: [],
-    lastSourceFrom: -1,
     scannedLines: 0,
     totalLines,
     activeLine,
@@ -336,11 +219,11 @@ function beginSession(
     rowsDirty: true,
     rowStart: 0,
     rowEnd: 0,
+    returnedStart: 0,
+    returnedEnd: 0,
     revision: 0,
     renderRequest: 0,
     rebuilding: false,
-    rebuiltCount: 0,
-    defaultCollapsed: false,
     error: '',
   }
   session = current
@@ -378,8 +261,7 @@ async function buildIndex(current: Session): Promise<void> {
     const store = await current.storeReady
     if (!isCurrent(current)) return
     current.store = store
-    current.records = new PagedArray(store, 'headings', recordPageSize)
-    current.projection = new PagedArray(store, 'visible', projectionPageSize)
+    current.records = new OutlineIndex(store, current.version)
     if (current.status === 'cancelled') {
       scheduleRefresh(current)
       return
@@ -405,10 +287,15 @@ async function buildIndex(current: Session): Promise<void> {
           await enqueue(current, async () => {
             for (const item of event.items) {
               assertCurrent(current)
-              if (item.kind === 'heading') await appendHeading(current, item)
+              if (item.kind === 'heading') {
+                const changedParent = await current.records!.append(item)
+                if (
+                  changedParent !== undefined &&
+                  current.rows.some((row) => row.ordinal === changedParent)
+                )
+                  current.rowsDirty = true
+              }
             }
-            await current.records!.flush()
-            await current.projection!.flush()
           })
         }
         current.scannedLines = Math.min(
@@ -440,14 +327,14 @@ async function buildIndex(current: Session): Promise<void> {
       if (!done) throw new Error('扫描被中断，全文索引尚未完成')
       if (current.scannedLines >= current.totalLines) {
         await enqueue(current, async () => {
-          while (current.stack.length) await closeBranch(current, current.stack.pop()!.ordinal)
-          await current.records!.flush()
+          await current.records!.finish()
           if (current.status === 'scanning') current.status = 'complete'
           current.followActive = true
         })
         scheduleRefresh(current)
         return
       }
+      await enqueue(current, () => current.records!.flush())
       fromLine = current.scannedLines + 1
       await yieldTask()
     }
@@ -461,85 +348,18 @@ async function buildIndex(current: Session): Promise<void> {
   }
 }
 
-async function appendHeading(current: Session, item: SdkDocumentScanHeading): Promise<void> {
-  // A Setext heading may start before this scan range; source offsets deduplicate range overlap.
-  if (item.from <= current.lastSourceFrom) return
-  while (current.stack.length && current.stack[current.stack.length - 1]!.level >= item.level) {
-    await closeBranch(current, current.stack.pop()!.ordinal)
-  }
-  const records = current.records!
-  const projection = current.projection!
-  const ancestors = current.stack.map((entry) => entry.ordinal)
-  const parent = ancestors[ancestors.length - 1]
-  let visible = true
-  for (const ancestor of ancestors) {
-    const record = (await records.get(ancestor))!
-    if (record.collapsed) visible = false
-    if (ancestor === parent && !record.hasChildren) {
-      record.hasChildren = true
-      if (current.rows.some((row) => row.ordinal === ancestor)) current.rowsDirty = true
-      await records.set(ancestor, record)
-    }
-  }
-  const ordinal = records.length
-  const record: Heading = {
-    ordinal,
-    id: `${current.version}:${item.from}`,
-    from: item.from,
-    line: item.line,
-    level: Math.max(1, Math.min(6, item.level)),
-    title: item.label.slice(0, 4096).replace(/\s+/gu, ' ').trim(),
-    ...(parent === undefined ? {} : { parent }),
-    ancestors,
-    hasChildren: false,
-    collapsed: current.defaultCollapsed,
-    ...(visible ? { visibleIndex: projection.length } : {}),
-  }
-  await records.append(record)
-  if (visible) await projection.append(ordinal)
-  current.stack.push({ ordinal, level: record.level })
-  current.lastSourceFrom = item.from
-}
-
-async function closeBranch(current: Session, ordinal: number): Promise<void> {
-  const record = (await current.records!.get(ordinal))!
-  record.subtreeEnd = current.records!.length
-  await current.records!.set(ordinal, record)
-}
-
-async function rebuildProjection(current: Session, collapseAll?: boolean): Promise<void> {
+async function changeFold(
+  current: Session,
+  action: () => Promise<void>,
+  persist = true,
+): Promise<void> {
   assertCurrent(current)
   current.rebuilding = true
   current.rowsDirty = true
-  current.rebuiltCount = 0
-  if (collapseAll !== undefined) current.defaultCollapsed = collapseAll
-  await updatePanel(current)
   try {
-    const records = current.records!
-    const projection = current.projection!
-    await projection.clear()
-    let hiddenBelow: number | undefined
-    for (let ordinal = 0; ordinal < records.length; ordinal++) {
-      assertCurrent(current)
-      const record = (await records.get(ordinal))!
-      if (collapseAll !== undefined) record.collapsed = collapseAll
-      const visible = hiddenBelow === undefined || record.level <= hiddenBelow
-      if (visible) {
-        record.visibleIndex = await projection.append(ordinal)
-        hiddenBelow = record.collapsed ? record.level : undefined
-      } else delete record.visibleIndex
-      await records.set(ordinal, record)
-      current.rebuiltCount = ordinal + 1
-      if (ordinal % projectionPageSize === projectionPageSize - 1) {
-        await records.flush()
-        await projection.flush()
-        await updatePanel(current)
-        await yieldTask()
-      }
-    }
-    await records.flush()
-    await projection.flush()
-    current.revision += 1
+    await action()
+    if (persist) await current.records!.flush()
+    current.revision++
     current.followActive = true
   } catch (error) {
     if (isCurrent(current)) {
@@ -554,13 +374,16 @@ async function rebuildProjection(current: Session, collapseAll?: boolean): Promi
 }
 
 function scheduleRefresh(current: Session): void {
-  if (!isCurrent(current) || current.refreshTimer !== undefined) return
+  if (!isCurrent(current)) return
+  current.renderRequest++
+  if (current.refreshTimer !== undefined) return
   current.refreshTimer = setTimeout(() => {
     delete current.refreshTimer
-    const request = ++current.renderRequest
+    const request = current.renderRequest
     void enqueue(current, async () => {
       if (request !== current.renderRequest) return
-      await prepareRows(current)
+      await prepareRows(current, request)
+      if (request !== current.renderRequest) return
       await updatePanel(current)
     }).catch((error) => {
       if (!isCurrent(current)) return
@@ -571,56 +394,51 @@ function scheduleRefresh(current: Session): void {
   }, 0)
 }
 
-async function prepareRows(current: Session): Promise<void> {
-  if (!current.records || !current.projection) return
+async function prepareRows(current: Session, request: number): Promise<void> {
   const records = current.records
-  const projection = current.projection
-  let low = 0
-  let high = records.length
-  while (low < high) {
-    const middle = Math.floor((low + high) / 2)
-    if ((await records.get(middle))!.line <= current.activeLine) low = middle + 1
-    else high = middle
-  }
-  current.activeOrdinal =
-    current.status !== 'complete' && current.activeLine > current.scannedLines ? -1 : low - 1
-  const active = await records.get(current.activeOrdinal)
-  current.activeVisible = active?.visibleIndex ?? -1
-  if (active && current.activeVisible < 0) {
-    for (const ancestor of active.ancestors) {
-      const record = (await records.get(ancestor))!
-      if (record.visibleIndex !== undefined && record.collapsed) {
-        current.activeVisible = record.visibleIndex
+  if (!records) return
+  const { activeLine, followActive, rowCount, fromIndex } = current
+  const activeOrdinal =
+    current.status !== 'complete' && activeLine > current.scannedLines
+      ? -1
+      : await records.atLine(activeLine)
+  const active = await records.get(activeOrdinal)
+  let activeVisible = active ? await records.rank(active.ordinal) : -1
+  if (active && activeVisible < 0) {
+    for (const ordinal of active.ancestors) {
+      const ancestor = (await records.get(ordinal))!
+      const rank = await records.rank(ordinal)
+      if (rank >= 0 && ancestor.collapsed) {
+        activeVisible = rank
         break
       }
     }
   }
-  const count = Math.min(maximumRows, current.rowCount)
-  let start = Math.min(current.fromIndex, Math.max(0, projection.length - count))
-  if (current.followActive && current.activeVisible >= 0)
-    start = Math.max(0, current.activeVisible - Math.floor(count / 2))
-  const end = Math.min(projection.length, start + count)
-  let rows = current.rows
-  if (current.rowsDirty || start !== current.rowStart || end !== current.rowEnd) {
-    rows = []
-    for (let index = start; index < end; index++) {
-      assertCurrent(current)
-      const ordinal = (await projection.get(index))!
-      rows.push({ ...(await records.get(ordinal))! })
-    }
-    current.rowsDirty = false
-  }
-  current.preparedFollow = current.followActive
-  current.followActive = false
+  const count = Math.min(maximumRows, rowCount)
+  let start = Math.min(fromIndex, Math.max(0, records.visibleSize - count))
+  if (followActive && activeVisible >= 0) start = Math.max(0, activeVisible - Math.floor(count / 2))
+  const end = Math.min(records.visibleSize, start + count)
+  const rows =
+    current.rowsDirty || start !== current.rowStart || end !== current.rowEnd
+      ? await records.rows(start, end)
+      : current.rows
+  // A user can request another range while storage is awaited. Commit only the
+  // newest request; the cache work is reusable, but its viewport is obsolete.
+  if (!isCurrent(current) || request !== current.renderRequest) return
+  current.activeOrdinal = activeOrdinal
+  current.activeVisible = activeVisible
   current.rows = rows
+  current.rowsDirty = false
+  current.preparedFollow = followActive
+  current.followActive = false
   current.rowStart = start
   current.rowEnd = end
   current.fromIndex = start
-  current.revision += 1
+  current.revision++
 }
 
 function panel(current: Session): SdkRendererOutput {
-  const count = current.records?.length ?? 0
+  const count = current.records?.size ?? 0
   const state = current.status
   const progress =
     state === 'complete'
@@ -642,10 +460,7 @@ function panel(current: Session): SdkRendererOutput {
         'plugin-tree-toolbar',
       ),
     )
-  if (current.rebuilding)
-    children.push(
-      span([`正在更新折叠视图 ${current.rebuiltCount} / ${count}`], 'plugin-list-summary'),
-    )
+  if (current.rebuilding) children.push(span(['正在更新折叠视图'], 'plugin-list-summary'))
   if (state === 'failed')
     children.push(span([`大纲加载失败：${current.error}`], 'plugin-ui-state plugin-ui-state-error'))
   if (state === 'cancelled')
@@ -667,7 +482,7 @@ function panel(current: Session): SdkRendererOutput {
         role: 'tree',
         'aria-label': '文档大纲',
         'data-virtual-list': 'outline',
-        'data-virtual-total': String(current.projection?.length ?? 0),
+        'data-virtual-total': String(current.records?.visibleSize ?? 0),
         'data-virtual-start': String(current.rowStart),
         'data-virtual-end': String(current.rowEnd),
         'data-virtual-item-height': String(rowHeight),
@@ -750,7 +565,7 @@ function requireSession(input: unknown): Session {
   return current
 }
 
-async function requireHeading(current: Session, input: unknown): Promise<Heading> {
+async function requireHeading(current: Session, input: unknown): Promise<HeadingMetadata> {
   assertCurrent(current)
   const value = input as { ordinal?: unknown; id?: unknown }
   if (!Number.isInteger(value.ordinal) || Number(value.ordinal) < 0) throw new Error('标题标识无效')

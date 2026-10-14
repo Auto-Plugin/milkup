@@ -14,9 +14,11 @@ outline registration or outline-specific document access.
 - Explicit empty, loading and failure states.
 - Builds a complete heading index in the background for each document/version,
   scanning consecutive 4,096-line ranges, including ATX and Setext headings.
-- Persists heading records in eight-record pages and visible ordinal mappings in
-  256-record pages through the public temporary-store API. Each page cache has
-  eight entries. The 500-row limit applies only to DOM rendering; there is no
+- Persists compact metadata in 128-record pages, titles in byte-packed pages
+  (at most 256 titles), and a 32-way visibility tree through the public temporary-store
+  API. A shared cache holds at most 24 pages, each at most 64 KiB. Global folds
+  reset a lazy epoch without rewriting the tree; individual folds update only
+  bounded tree paths and their own metadata. The 500-row limit applies only to DOM rendering; there is no
   16,384-line index limit and no all-heading array in memory.
 - Collapse state and ancestors work across page boundaries; collapse all also
   applies to headings indexed later. A cancelled scan leaves the indexed portion
@@ -34,7 +36,7 @@ outline registration or outline-specific document access.
 ## Independent build
 
 Copy this entire directory to any location outside the Milkup checkout. Keep
-`package.json`, `tsconfig.json`, `plugin.json`, `src/plugin.ts` and `scripts/build.mjs`.
+`package.json`, `tsconfig.json`, `plugin.json`, `src/*.ts` and `scripts/build.mjs`.
 Tests are development-only and are not needed to build the package.
 
 The SDK is distributed as a local archive at this stage, not published to npm:
@@ -54,7 +56,7 @@ The build checks that imports come only from local plugin source or the public S
 then rejects any residual imports in the ESM output. Outputs:
 
 - `dist/plugin.js`: one self-contained ESM module with its default plugin export.
-- `dist/milkup.outline-1.1.0.milkup-plugin`: JSON archive containing the manifest and
+- `dist/milkup.outline-1.2.0.milkup-plugin`: JSON archive containing the manifest and
   UTF-8 module, using the host's standard `milkup-plugin` version 1 archive format.
 - `dist/build-meta.json`: esbuild input/output inventory for auditing dependencies.
 
@@ -63,7 +65,7 @@ No new repository, registry publication or host source modification is needed.
 ## Install, enable, disable, uninstall
 
 1. In Milkup choose `菜单 > 插件 > 安装本地插件`.
-2. Select `dist/milkup.outline-1.1.0.milkup-plugin`.
+2. Select `dist/milkup.outline-1.2.0.milkup-plugin`.
 3. Review the manifest and enable `Milkup Outline`.
 4. Open a Markdown document and use the sidebar panel.
 5. Disable the plugin in the same manager to remove its UI and stop its Worker.

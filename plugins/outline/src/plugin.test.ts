@@ -202,6 +202,80 @@ function gate() {
 }
 
 describe('complete paged outline index', () => {
+  it('ignores delayed echoes of the last returned slice rather than oscillating between old and prepared ranges', async () => {
+    const env = setup(
+      Array.from({ length: 1000 }, (_, i) => heading(`Title ${i}`, i + 1)),
+      1000,
+    )
+    render()
+    await complete()
+    render('doc', 1, 1000)
+    await vi.waitFor(() => expect(activeTitle(render())).toBe('Title 999'))
+    const old = elements(render(), (e) => e.attributes['data-virtual-list'] === 'outline')[0]!
+      .attributes
+    const oldRange = {
+      from: Number(old['data-virtual-start']),
+      to: Number(old['data-virtual-end']),
+    }
+    const before = env.requestUpdate.mock.calls.length
+    render('doc', 1, undefined, { from: 300, to: 400 })
+    await vi.waitFor(() => expect(env.requestUpdate.mock.calls.length).toBeGreaterThan(before))
+    // The host echoes the slice it received synchronously, before async preparation.
+    render('doc', 1, undefined, oldRange)
+    const after = env.requestUpdate.mock.calls.length
+    await new Promise((resolve) => setTimeout(resolve, 40))
+    expect(env.requestUpdate.mock.calls.length).toBe(after)
+    expect(
+      elements(render(), (e) => e.attributes['data-virtual-list'] === 'outline')[0]!.attributes[
+        'data-virtual-start'
+      ],
+    ).toBe('300')
+    // A later real scroll back to that old range is still accepted.
+    render('doc', 1, undefined, oldRange)
+    await vi.waitFor(() =>
+      expect(
+        elements(render(), (e) => e.attributes['data-virtual-list'] === 'outline')[0]!.attributes[
+          'data-virtual-start'
+        ],
+      ).toBe(String(oldRange.from)),
+    )
+  })
+
+  it('stops following the old active heading immediately and keeps the newest scroll request during storage reads', async () => {
+    const env = setup(
+      Array.from({ length: 5000 }, (_, i) => heading(`Title ${i}`, i + 1)),
+      5000,
+    )
+    render()
+    await complete()
+    render('doc', 1, 5000)
+    await vi.waitFor(() => expect(activeTitle(render())).toBe('Title 4999'))
+    const pending = gate(),
+      started = gate()
+    const store = env.stores[0]!
+    store.get.mockImplementationOnce(async (key) => {
+      started.resolve()
+      await pending.promise
+      return store.pages.get(key) ?? null
+    })
+    const immediate = render('doc', 1, undefined, { from: 1500, to: 1600 })
+    expect(
+      elements(immediate, (e) => e.attributes['data-virtual-list'] === 'outline')[0]!.attributes[
+        'data-virtual-follow-active'
+      ],
+    ).toBe('false')
+    await started.promise
+    render('doc', 1, undefined, { from: 3500, to: 3600 })
+    pending.resolve()
+    await vi.waitFor(() => {
+      const list = elements(render(), (e) => e.attributes['data-virtual-list'] === 'outline')[0]!
+      expect(list.attributes['data-virtual-start']).toBe('3500')
+      expect(list.attributes['data-virtual-end']).toBe('3600')
+      expect(text(render())).toContain('Title 3500')
+    })
+    expect(env.scan).toHaveBeenCalledTimes(2)
+  })
+
   it('ignores host slice echoes and settles without a render feedback loop', async () => {
     const env = setup([heading('Root', 1), heading('Child', 2, 2)], 2)
     render()
@@ -487,14 +561,15 @@ describe('complete paged outline index', () => {
     render('doc', 1, 1)
     await vi.waitFor(() => expect(activeTitle(render())).toBe('Title 0'), { timeout: 10000 })
     expect(env.scan).toHaveBeenCalledTimes(5)
-    expect(env.stores[0]!.pages.size).toBeGreaterThan(2000)
+    expect(env.stores[0]!.pages.size).toBeGreaterThan(0)
+    expect(env.stores[0]!.pages.size).toBeLessThan(1000)
     const readsBefore = env.stores[0]!.get.mock.calls.length
     render('doc', 1, 9000)
     await vi.waitFor(() => expect(activeTitle(render())).toBe('Title 8999'), { timeout: 10000 })
     expect(env.stores[0]!.get.mock.calls.length).toBeGreaterThan(readsBefore)
   }, 20000)
 
-  it('bounds persisted pages for worst-case escaped labels and rebuilds projection without losing nested state', async () => {
+  it('bounds persisted pages for worst-case escaped labels while preserving folds', async () => {
     const long = '\u0001'.repeat(4096)
     const fixture = Array.from({ length: 300 }, (_, index) =>
       heading(index === 0 ? 'Root' : long, index + 1, index === 0 ? 1 : 2),
@@ -502,7 +577,7 @@ describe('complete paged outline index', () => {
     const env = setup(fixture, 300)
     render()
     await complete()
-    expect(env.stores[0]!.maximumValueBytes()).toBeLessThanOrEqual(256 * 1024)
+    expect(env.stores[0]!.maximumValueBytes()).toBeLessThanOrEqual(64 * 1024)
     await plugin.commands['outline.collapseAll']()
     await vi.waitFor(() => expect(rows(render())).toHaveLength(1))
     await plugin.commands['outline.expandAll']()
@@ -636,16 +711,16 @@ it('cancels a debounced startup before allocating a store and can retry normally
   expect(env.createTemporaryStore).toHaveBeenCalledTimes(1)
 })
 
-it('reports failed projection writes rather than claiming the folded tree is complete', async () => {
+it('reports failed sparse fold writes rather than claiming the folded tree is complete', async () => {
   const env = setup([heading('Root', 1), heading('Child', 2, 2)], 3)
   render()
   await complete()
   env.stores[0]!.store.setMany = async () => {
-    throw new Error('projection quota exceeded')
+    throw new Error('fold write quota exceeded')
   }
-  await expect(plugin.commands['outline.collapseAll']()).rejects.toThrow(
-    'projection quota exceeded',
-  )
+  await expect(
+    plugin.commands['outline.toggleHeading']({}, action(render(), 'outline.toggleHeading')),
+  ).rejects.toThrow('fold write quota exceeded')
   expect(text(render())).toContain('折叠视图更新失败')
   expect(text(render())).not.toContain('全文索引完成')
 })
