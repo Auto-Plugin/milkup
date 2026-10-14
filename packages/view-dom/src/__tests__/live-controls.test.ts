@@ -290,6 +290,28 @@ for (const kind of ['ordinary', 'windowed'] as const)
     )
   })
 
+for (const kind of ['ordinary', 'windowed'] as const)
+  for (const newline of ['\n', '\r\n'])
+    it(`${kind} combines Setext headings, nested emphasis and task history (${JSON.stringify(newline)})`, async () => {
+      const text = ['**粗体中的 *斜体*** tail 😀', '===', '', '- [ ] task é', '', 'elsewhere'].join(
+        newline,
+      )
+      const s = await setup(kind, text)
+      const strong = s.view.contentDOM.querySelector('.milkup-inline-strong')!
+      expect(
+        strong.querySelector('.milkup-inline-emphasis .milkup-inline-content')?.textContent,
+      ).toBe('斜体')
+      expect(strong.textContent).not.toContain('tail')
+      expect(s.view.contentDOM.querySelector('[data-line="1"]')?.textContent).toBe(
+        '**粗体中的 *斜体*** tail 😀',
+      )
+      s.view.contentDOM.querySelector<HTMLElement>('.milkup-task-marker')!.click()
+      await s.flush()
+      expect(s.current().doc.text).toBe(text.replace('[ ]', '[x]'))
+      expect(s.current().undo().doc.text).toBe(text)
+      expect(s.current().undo().redo().doc.text).toBe(text.replace('[ ]', '[x]'))
+    })
+
 it('windowed cancels checkbox preparation when editing is locked before its queue runs', async () => {
   const s = await setup('windowed', '- [ ] a')
   s.view.contentDOM.querySelector<HTMLElement>('.milkup-task-marker')!.click()

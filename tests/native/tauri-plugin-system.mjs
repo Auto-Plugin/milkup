@@ -7,6 +7,7 @@ import { createHash } from 'node:crypto'
 import path from 'node:path'
 import { startProduction } from '../helpers/native-production.mjs'
 import { ownedApplication } from '../helpers/native-owned-process.mjs'
+import { checkPluginVisualCombination } from '../helpers/native-plugin-visual-combination.mjs'
 const output = process.env.MILKUP_NATIVE_EVIDENCE_DIR
 const archivePath = process.env.MILKUP_PLUGIN_ARCHIVE
 assert(output && archivePath, 'Set MILKUP_NATIVE_EVIDENCE_DIR and MILKUP_PLUGIN_ARCHIVE')
@@ -500,6 +501,35 @@ try {
     'renamed uninstalled',
   )
   await record('renamed-plugin-removed')
+  if (process.env.MILKUP_PLUGIN_VISUAL_INTEGRATION === '1') {
+    // Run crash combinations after the clean lifecycle checks: crash-owned stores
+    // deliberately survive, so they must not be mistaken for a normal-close leak.
+    await click('[data-plugin-action="install"]')
+    await picker(archivePath)
+    await app.until(
+      () => app.execute('return !!document.querySelector("[data-plugin-action=enable]")'),
+      'combined normal install',
+    )
+    await click('[data-plugin-action="enable"]')
+    await app.key('Escape')
+    await checkPluginVisualCombination({
+      getApp: () => app,
+      restart: start,
+      open,
+      click,
+      record,
+      shot,
+      output,
+      launchFile: fixture,
+    })
+    await menu()
+    await click('[data-plugin-action="remove"]')
+    await app.until(
+      async () => (await observe()).manager.includes('0 个已安装'),
+      'combined uninstall',
+    )
+    await record('combined-plugin-removed', { retainedCrashStores: await temporary() })
+  }
   console.log('PASS production plugin system')
 } catch (error) {
   try {
