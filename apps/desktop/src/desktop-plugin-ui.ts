@@ -47,6 +47,9 @@ interface MountedPluginUi {
   virtualPendingEdgeHint?: 'before' | 'after'
   virtualRequestSequence?: number
   virtualAdjustmentRevision?: number
+  pointerActive?: boolean
+  pointerRenderPending?: boolean
+  pointerCleanup?: () => void
 }
 
 interface PluginVirtualViewportState {
@@ -272,6 +275,7 @@ export class DesktopPluginUiController {
       renderSignature: undefined,
     }
     this.mounts.set(uiKey(contribution), mount)
+    body.addEventListener('pointerdown', (event) => this.holdPointerRender(mount, event))
     this.reorderSidebarPanels()
     await this.renderMount(mount, 'mount')
   }
@@ -298,6 +302,13 @@ export class DesktopPluginUiController {
         this.mounts.get(uiKey(mount.contribution))?.generation !== mount.generation ||
         renderSequence !== mount.renderSequence
       ) {
+        return
+      }
+
+      // Replacing a pressed button between pointerdown and click loses the action.
+      // Drop intermediate output and request one fresh render after the gesture.
+      if (mount.pointerActive) {
+        mount.pointerRenderPending = true
         return
       }
 
@@ -361,6 +372,7 @@ export class DesktopPluginUiController {
     this.collapsedSidebarPanels.delete(key)
     if (mount.virtualScrollTimer !== undefined) clearTimeout(mount.virtualScrollTimer)
     mount.virtualPointerCleanup?.()
+    mount.pointerCleanup?.()
     mount.container.remove()
     this.reorderSidebarPanels()
     await this.runtime
@@ -368,6 +380,34 @@ export class DesktopPluginUiController {
         documentId: mount.documentId,
       })
       .catch(() => undefined)
+  }
+
+  private holdPointerRender(mount: MountedPluginUi, event: PointerEvent): void {
+    if (event.button !== 0 || mount.pointerActive) return
+    mount.pointerActive = true
+    const document = this.root.ownerDocument
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const cleanup = (): void => {
+      document.removeEventListener('pointerup', release)
+      document.removeEventListener('pointercancel', release)
+      if (timer !== undefined) clearTimeout(timer)
+      mount.pointerActive = false
+      delete mount.pointerCleanup
+    }
+    const release = (): void => {
+      // Click dispatch follows pointerup in the same task.
+      timer = setTimeout(() => {
+        cleanup()
+        if (this.mounts.get(uiKey(mount.contribution)) !== mount) return
+        if (mount.pointerRenderPending) {
+          mount.pointerRenderPending = false
+          void this.updateMount(mount)
+        }
+      }, 0)
+    }
+    mount.pointerCleanup = cleanup
+    document.addEventListener('pointerup', release, { once: true })
+    document.addEventListener('pointercancel', release, { once: true })
   }
 
   private configureVirtualList(

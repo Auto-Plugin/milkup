@@ -9,6 +9,35 @@ import {
 } from './registry'
 
 describe('plugin registry', () => {
+  it.each([
+    ['^0.1.1', '0.1.0', false],
+    ['^0.1.1', '0.1.1', true],
+    ['^0.1.1', '0.1.9', true],
+    ['^0.1.1', '0.2.0', false],
+    ['^0.0.2', '0.0.1', false],
+    ['^0.0.2', '0.0.2', true],
+    ['^0.0.2', '0.0.3', false],
+    ['^1.2.3', '1.2.2', false],
+    ['^1.2.3', '1.9.0', true],
+    ['^1.2.3', '2.0.0', false],
+    ['^0.1.0', '0.1.1', true],
+    ['>=0.1.1', '0.1.0', false],
+    ['>=0.1.1', '0.2.0', true],
+    ['^0.1.1', '0.1.1-beta', false],
+    ['^garbage', '0.1.1', false],
+    ['^0.1', '0.1.1', false],
+    ['^0.1.1', '0.1.1+build.2', true],
+  ])('enforces SDK range %s against %s', (range, version, compatible) => {
+    const registry = new PluginRegistry({
+      compatibility: { milkupVersion: '0.1.0', pluginSdkVersion: version },
+    })
+    const record = registry.installLocalPlugin({
+      manifest: { ...pluginManifest(), engines: { pluginSdk: range } },
+      manifestPath: '/plugins/example/plugin.json',
+    })
+    expect(record.errors.length === 0).toBe(compatible)
+  })
+
   it('installs local plugins, persists enable state, and restores records', () => {
     const registry = new PluginRegistry({
       now: () => 10,

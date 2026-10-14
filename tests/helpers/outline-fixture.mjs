@@ -1,22 +1,30 @@
 import { readFileSync } from 'node:fs'
-import ts from 'typescript'
+import { fileURLToPath } from 'node:url'
+import { buildSync } from 'esbuild'
 
-// Install the actual repository plugin through the existing development registry.
+// Fast browser fixtures still seed a development registry. Production acceptance
+// separately installs the standalone .milkup-plugin through the native picker.
 export function outlineRegistry(loadDelay = 0) {
   const manifest = JSON.parse(
     readFileSync(new URL('../../plugins/outline/plugin.json', import.meta.url), 'utf8'),
   )
-  const source = readFileSync(
-    new URL('../../plugins/outline/src/plugin.ts', import.meta.url),
-    'utf8',
-  )
-  const { outputText } = ts.transpileModule(source, {
-    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
+  const { outputFiles } = buildSync({
+    entryPoints: [fileURLToPath(new URL('../../plugins/outline/src/plugin.ts', import.meta.url))],
+    alias: {
+      '@milkup/plugin-sdk': fileURLToPath(
+        new URL('../../packages/plugin-sdk/src/index.js', import.meta.url),
+      ),
+    },
+    bundle: true,
+    write: false,
+    platform: 'browser',
+    format: 'esm',
+    target: 'es2022',
   })
   manifest.main =
     'data:text/javascript,' +
     encodeURIComponent(
-      `await new Promise(resolve => setTimeout(resolve, ${loadDelay}));\n` + outputText,
+      `await new Promise(resolve => setTimeout(resolve, ${loadDelay}));\n` + outputFiles[0].text,
     )
   return JSON.stringify({
     version: 1,

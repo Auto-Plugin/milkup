@@ -1,7 +1,13 @@
 import { ActionRegistry, MemoryDocumentSource } from '@milkup/core'
 import { parsePluginPackageArchive } from '@milkup/plugin'
 import type { PluginManifest, PluginModule } from '@milkup/plugin'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { IDBFactory, IDBKeyRange } from 'fake-indexeddb'
+import {
+  createDesktopTemporaryStorage,
+  type DesktopTemporaryStorage,
+} from './plugin-temporary-storage'
+import type { PluginStorageBroker, PluginTemporaryStore } from '@milkup/plugin'
 
 import {
   createDesktopPluginActions,
@@ -13,6 +19,63 @@ import {
 } from './desktop-plugin-manager'
 
 describe('DesktopPluginManager', () => {
+  it('rejects a temporary-store plugin on SDK 0.1.0 before executing its module', async () => {
+    const loadModule = vi.fn(async () => fakeLoadedModule())
+    const manager = createManager({
+      registry: new ActionRegistry(),
+      storage: createMemoryStorage(),
+      loadModule,
+      readManifestText: async () =>
+        JSON.stringify({ ...pluginManifest(), engines: { pluginSdk: '^0.1.1' } }),
+    })
+    const record = await manager.installManifestPath('D:/plugins/new/plugin.json')
+    expect(record.errors.join(' ')).toContain('0.1.1')
+    await manager.enable(record.manifest.id)
+    expect(loadModule).not.toHaveBeenCalled()
+  })
+
+  it('cleans temporary stores on disable and close, and permits a fresh activation after close fails', async () => {
+    const adapter = createDesktopTemporaryStorage({
+      indexedDB: new IDBFactory(),
+      keyRange: IDBKeyRange,
+    })
+    const storeCreate = vi.fn(adapter.create)
+    let storage: PluginStorageBroker | undefined
+    let page: PluginTemporaryStore | undefined
+    const manager = createManager({
+      registry: new ActionRegistry(),
+      storage: createMemoryStorage(),
+      temporaryStorage: { create: storeCreate },
+      loadModule: async () => ({
+        module: {
+          runtimeHost: 'isolated',
+          activate: async (context) => {
+            storage = context.host.storage
+            page = await storage!.createTemporaryStore!()
+            await page.set('p', 'index')
+            return { commands: { 'example.insert': () => undefined } }
+          },
+        },
+        dispose: () => undefined,
+      }),
+    })
+    await manager.installManifestPath('D:/plugins/example/plugin.json')
+    await manager.enable('example-tools')
+    const first = page!
+    await manager.disable('example-tools')
+    await expect(first.get('p')).rejects.toThrow('disposed')
+    await manager.enable('example-tools')
+    const second = page!
+    await manager.disposeTemporaryStorage()
+    await expect(second.get('p')).rejects.toThrow('disposed')
+    await expect(storage!.createTemporaryStore!()).rejects.toThrow('disposed')
+    await manager.enable('example-tools')
+    await expect(page!.get('p')).resolves.toBe('index')
+    expect(storeCreate).toHaveBeenCalledTimes(3)
+    await manager.remove('example-tools')
+    await expect(page!.get('p')).rejects.toThrow('disposed')
+  })
+
   it('loads a relative entry from the plugin root and cleans runtime resources on disable', async () => {
     const registry = new ActionRegistry()
     const storage = createMemoryStorage()
@@ -45,6 +108,73 @@ describe('DesktopPluginManager', () => {
     expect(registry.get('example.insert')).toBeUndefined()
     expect(manager.state().contributions.keymaps).toEqual([])
   })
+
+  it.each(['error', 'silent', 'transport'] as const)(
+    'reports %s Worker startup failure and releases the Worker',
+    async (failure) => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+      const listeners = new Set<(event: { data: unknown }) => void>()
+      const terminate = vi.fn()
+      vi.stubGlobal(
+        'Worker',
+        class {
+          terminate = terminate
+          addEventListener(_type: string, listener: (event: { data: unknown }) => void) {
+            listeners.add(listener)
+          }
+          removeEventListener(_type: string, listener: (event: { data: unknown }) => void) {
+            listeners.delete(listener)
+          }
+          postMessage() {
+            if (failure === 'transport') throw new Error('worker transport closed')
+            if (failure !== 'error') return
+            queueMicrotask(() => {
+              for (const listener of listeners) {
+                listener({
+                  data: {
+                    protocol: 'milkup.plugin.worker.init.v1',
+                    type: 'error',
+                    error: { message: 'plugin module failed to import' },
+                  },
+                })
+              }
+            })
+          }
+        },
+      )
+      try {
+        const manager = new DesktopPluginManager({
+          actionRegistry: new ActionRegistry(),
+          manifestHost: {
+            selectManifestPath: async () => undefined,
+            readManifestText: async () => JSON.stringify(pluginManifest()),
+          },
+          permissions: ['document:write'],
+          milkupVersion: '0.1.0',
+          pluginSdkVersion: '0.1.0',
+          storage: createMemoryStorage(),
+        })
+        await manager.installManifestPath('/plugins/example/plugin.json')
+        const enabling = manager.enable('example-tools')
+        await vi.advanceTimersByTimeAsync(10_000)
+        await enabling
+        const errorMessage =
+          failure === 'silent'
+            ? 'initialization timed out'
+            : failure === 'error'
+              ? 'failed to import'
+              : 'transport closed'
+        expect(manager.state().records[0]).toMatchObject({ state: 'failed', enabled: false })
+        expect(manager.state().records[0]?.errors.join(' ')).toContain(errorMessage)
+        expect(terminate).toHaveBeenCalledTimes(1)
+        expect(listeners.size).toBe(0)
+        expect(vi.getTimerCount()).toBe(0)
+      } finally {
+        vi.unstubAllGlobals()
+        vi.useRealTimers()
+      }
+    },
+  )
 
   it('reactivates persisted enabled plugins during startup', async () => {
     const storage = createMemoryStorage()
@@ -354,6 +484,7 @@ describe('resolvePluginEntryPath', () => {
 function createManager(options: {
   registry: ActionRegistry
   storage: Storage
+  temporaryStorage?: DesktopTemporaryStorage
   readManifestText?: (path: string) => Promise<string>
   loadModule?: (manifest: PluginManifest, specifier: string) => Promise<DesktopLoadedPluginModule>
 }): DesktopPluginManager {
@@ -367,6 +498,7 @@ function createManager(options: {
     milkupVersion: '0.1.0',
     pluginSdkVersion: '0.1.0',
     storage: options.storage,
+    ...(options.temporaryStorage ? { temporaryStorage: options.temporaryStorage } : {}),
     loadModule: options.loadModule ?? (async () => fakeLoadedModule()),
     now: () => 10,
   })

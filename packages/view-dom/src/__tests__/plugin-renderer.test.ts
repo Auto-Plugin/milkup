@@ -4,6 +4,21 @@ import { describe, expect, it, vi } from 'vitest'
 import { createControlledRendererNodes, renderMarkdownLines } from '../index'
 
 describe('controlled plugin renderers', () => {
+  it('supports public tree semantics without admitting arbitrary attributes or DOM handlers', () => {
+    const [row] = createControlledRendererNodes(document, 'tree-plugin', {
+      type: 'element',
+      tag: 'span',
+      attributes: { role: 'treeitem', 'aria-level': '2', 'aria-expanded': 'false' },
+    })
+    expect((row as HTMLElement).getAttribute('aria-expanded')).toBe('false')
+    expect(() =>
+      createControlledRendererNodes(document, 'tree-plugin', {
+        type: 'element',
+        tag: 'span',
+        attributes: { onclick: 'alert(1)' },
+      }),
+    ).toThrow('Renderer attribute is not allowed')
+  })
   it('allows the host-owned virtual list metadata used by controlled UI', () => {
     const [list] = createControlledRendererNodes(document, 'outline', {
       type: 'element',

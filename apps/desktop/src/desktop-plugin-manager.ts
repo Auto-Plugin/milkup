@@ -24,6 +24,7 @@ import {
   serializePluginRegistry,
   type PluginContributionIndex,
   type ManagedPluginDocumentBroker,
+  type ManagedPluginStorageBroker,
   type PluginManifest,
   type PluginModule,
   type PluginPackageArchive,
@@ -34,6 +35,10 @@ import {
 } from '@milkup/plugin'
 
 import { createDesktopPluginFileBroker } from './plugin-file-broker'
+import {
+  createDesktopTemporaryStorage,
+  type DesktopTemporaryStorage,
+} from './plugin-temporary-storage'
 
 export interface DesktopPluginManifestHost {
   selectManifestPath(): Promise<string | undefined>
@@ -123,6 +128,7 @@ export interface DesktopPluginManagerOptions {
   readonly milkupVersion: string
   readonly pluginSdkVersion: string
   readonly storage?: Storage
+  readonly temporaryStorage?: DesktopTemporaryStorage
   readonly documentSource?: () => PluginDocumentScanSource | undefined
   readonly invalidateUi?: (pluginId: string, viewId?: string) => void | Promise<void>
   readonly revealLine?: (line: number) => void | Promise<void>
@@ -163,6 +169,9 @@ export class DesktopPluginManager {
   private readonly loadSidecarModule: DesktopPluginModuleLoader
   private readonly loadedModules = new Map<string, DesktopLoadedPluginModule>()
   private readonly documentBrokers = new Map<string, ManagedPluginDocumentBroker>()
+  private readonly storageBrokers = new Map<string, ManagedPluginStorageBroker>()
+  private readonly temporaryStorage: DesktopTemporaryStorage
+  private temporaryStorageStopped = false
   private readonly preparedModules = new Map<string, DesktopPreparedPluginModule>()
   private readonly installFailures: DesktopPluginInstallFailure[] = []
   private readonly activeUi = new Map<string, Set<string>>()
@@ -172,6 +181,7 @@ export class DesktopPluginManager {
   constructor(options: DesktopPluginManagerOptions) {
     this.manifestHost = options.manifestHost
     this.storage = options.storage
+    this.temporaryStorage = options.temporaryStorage ?? createDesktopTemporaryStorage()
     this.documentSource = options.documentSource
     this.invalidateUi = options.invalidateUi
     this.revealLine = options.revealLine
@@ -300,6 +310,7 @@ export class DesktopPluginManager {
       this.assertApproved(record)
 
       await this.unloadRuntimePlugin(pluginId)
+      this.temporaryStorageStopped = false
       const main = record.manifest.main
 
       if (!main) {
@@ -581,29 +592,37 @@ export class DesktopPluginManager {
       type: 'module',
       name: `milkup-plugin-${manifest.id}`,
     })
-    const fileBroker = this.createFileBroker(manifest)
-    const networkBroker = this.createNetworkBroker(manifest)
-    const storageBroker = this.createStorageBroker(manifest)
-    const workerHost = createBrowserWorkerPluginHost({
-      worker,
-      manifest,
-      moduleSpecifier,
-      ...(capabilities?.documentBroker ? { documentBroker: capabilities.documentBroker } : {}),
-      ...(capabilities?.uiBroker ? { uiBroker: capabilities.uiBroker } : {}),
-      ...(fileBroker ? { fileBroker } : {}),
-      ...(networkBroker ? { networkBroker } : {}),
-      ...(storageBroker ? { storageBroker } : {}),
-      timeoutMs: 10_000,
-    })
-
-    await workerHost.ready
-    return Object.freeze({
-      module: createIsolatedPluginModule({
+    let workerHost: ReturnType<typeof createBrowserWorkerPluginHost> | undefined
+    try {
+      const fileBroker = this.createFileBroker(manifest)
+      const networkBroker = this.createNetworkBroker(manifest)
+      const storageBroker = this.createStorageBroker(manifest)
+      workerHost = createBrowserWorkerPluginHost({
+        worker,
         manifest,
-        host: workerHost.host,
-      }),
-      dispose: () => workerHost.dispose(),
-    })
+        moduleSpecifier,
+        ...(capabilities?.documentBroker ? { documentBroker: capabilities.documentBroker } : {}),
+        ...(capabilities?.uiBroker ? { uiBroker: capabilities.uiBroker } : {}),
+        ...(fileBroker ? { fileBroker } : {}),
+        ...(networkBroker ? { networkBroker } : {}),
+        ...(storageBroker ? { storageBroker } : {}),
+        timeoutMs: 10_000,
+      })
+
+      await workerHost.ready
+      const initializedHost = workerHost
+      return Object.freeze({
+        module: createIsolatedPluginModule({
+          manifest,
+          host: initializedHost.host,
+        }),
+        dispose: () => initializedHost.dispose(),
+      })
+    } catch (error) {
+      if (workerHost) workerHost.dispose()
+      else worker.terminate()
+      throw error
+    }
   }
 
   private createFileBroker(manifest: PluginManifest) {
@@ -699,14 +718,26 @@ export class DesktopPluginManager {
     })
   }
 
+  async disposeTemporaryStorage(): Promise<void> {
+    this.temporaryStorageStopped = true
+    await Promise.all([...this.storageBrokers.values()].map((broker) => broker.dispose()))
+    this.storageBrokers.clear()
+  }
+
   private createStorageBroker(manifest: PluginManifest) {
     if (!this.storage) {
       return undefined
     }
 
-    return createPluginStorageBroker({
+    const existing = this.storageBrokers.get(manifest.id)
+    if (existing) return existing
+    const broker = createPluginStorageBroker({
       pluginId: manifest.id,
       adapter: this.storage,
+      createTemporaryStore: async () => {
+        if (this.temporaryStorageStopped) throw new Error('Temporary plugin storage is closing')
+        return this.temporaryStorage.create(manifest.id)
+      },
       audit: (auditRecord) =>
         this.recordAuditAndPersist(
           manifest.id,
@@ -715,6 +746,8 @@ export class DesktopPluginManager {
           auditRecord.ok === false,
         ),
     })
+    this.storageBrokers.set(manifest.id, broker)
+    return broker
   }
 
   private assertApproved(record: PluginRegistryRecord): void {
@@ -753,6 +786,8 @@ export class DesktopPluginManager {
     await this.runtime.unloadPlugin(pluginId).catch(() => undefined)
     this.loadedModules.get(pluginId)?.dispose()
     this.loadedModules.delete(pluginId)
+    await this.storageBrokers.get(pluginId)?.dispose()
+    this.storageBrokers.delete(pluginId)
     await this.documentBrokers.get(pluginId)?.cancelAll()
     this.documentBrokers.delete(pluginId)
     this.preparedModules.get(pluginId)?.dispose?.()

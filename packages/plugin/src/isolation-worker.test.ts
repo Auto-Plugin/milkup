@@ -188,6 +188,8 @@ describe('browser worker plugin isolation', () => {
 
   it('reports worker module import failures during initialization', async () => {
     const { main, worker } = createEndpointPair()
+    const terminate = vi.fn()
+    main.onTerminate = terminate
     const realm = initializePluginWorkerRealm(worker, {
       importModule: async () => {
         throw new Error('missing plugin module')
@@ -200,9 +202,130 @@ describe('browser worker plugin isolation', () => {
     })
 
     await expect(workerHost.ready).rejects.toThrow('missing plugin module')
+    expect(main.listenerCount).toBe(0)
+    expect(worker.listenerCount).toBe(0)
+    expect(terminate).toHaveBeenCalledTimes(1)
 
     workerHost.dispose()
+    expect(terminate).toHaveBeenCalledTimes(1)
     realm.dispose()
+  })
+
+  it('times out silent startup and releases host and broker listeners exactly once', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    try {
+      const { main, worker } = createEndpointPair()
+      const terminate = vi.fn()
+      main.onTerminate = terminate
+      const workerHost = createBrowserWorkerPluginHost({
+        worker: main,
+        manifest: commandManifest(),
+        moduleSpecifier: './silent.js',
+        timeoutMs: 25,
+        documentBroker: createPluginDocumentBroker({
+          pluginId: 'worker-tools',
+          source: () => undefined,
+        }),
+        uiBroker: createPluginUiBroker({
+          pluginId: 'worker-tools',
+          viewIds: [],
+          update: () => undefined,
+        }),
+      })
+      expect(main.listenerCount).toBeGreaterThan(2)
+      const failed = expect(workerHost.ready).rejects.toThrow(
+        'Plugin worker initialization timed out: worker-tools',
+      )
+      await vi.advanceTimersByTimeAsync(25)
+      await failed
+      expect(main.listenerCount).toBe(0)
+      expect(terminate).toHaveBeenCalledTimes(1)
+      await expect(workerHost.host.render({} as never)).rejects.toThrow('host is disposed')
+      worker.postMessage({ protocol: 'milkup.plugin.worker.init.v1', type: 'ready' })
+      workerHost.dispose()
+      workerHost.dispose()
+      expect(terminate).toHaveBeenCalledTimes(1)
+      expect(vi.getTimerCount()).toBe(0)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('uses a bounded default startup timeout', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    try {
+      const { main } = createEndpointPair()
+      const workerHost = createBrowserWorkerPluginHost({
+        worker: main,
+        manifest: commandManifest(),
+        moduleSpecifier: './silent.js',
+      })
+      const failed = expect(workerHost.ready).rejects.toThrow('initialization timed out')
+      await vi.advanceTimersByTimeAsync(5_000)
+      await failed
+      expect(main.listenerCount).toBe(0)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('rejects early disposal even when startup is awaited later', async () => {
+    const { main } = createEndpointPair()
+    const terminate = vi.fn()
+    main.onTerminate = terminate
+    const workerHost = createBrowserWorkerPluginHost({
+      worker: main,
+      manifest: commandManifest(),
+      moduleSpecifier: './pending.js',
+    })
+    workerHost.dispose()
+    workerHost.dispose()
+    // A later task may observe ready; disposal must not produce an unhandled rejection.
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    await expect(workerHost.ready).rejects.toThrow('disposed before initialization')
+    expect(main.listenerCount).toBe(0)
+    expect(terminate).toHaveBeenCalledTimes(1)
+  })
+
+  it('cleans listeners and terminates when posting initialization fails', async () => {
+    const { main } = createEndpointPair()
+    const terminate = vi.fn()
+    main.onTerminate = terminate
+    vi.spyOn(main, 'postMessage').mockImplementation(() => {
+      throw new Error('worker transport closed')
+    })
+    const workerHost = createBrowserWorkerPluginHost({
+      worker: main,
+      manifest: commandManifest(),
+      moduleSpecifier: './unavailable.js',
+    })
+    await expect(workerHost.ready).rejects.toThrow('worker transport closed')
+    expect(main.listenerCount).toBe(0)
+    expect(terminate).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not recreate realm RPC listeners after disposal during module import', async () => {
+    const { main, worker } = createEndpointPair()
+    let finishImport!: (module: unknown) => void
+    const importing = new Promise((resolve) => {
+      finishImport = resolve
+    })
+    const realm = initializePluginWorkerRealm(worker, { importModule: () => importing })
+    const messages = vi.spyOn(worker, 'postMessage')
+    const workerHost = createBrowserWorkerPluginHost({
+      worker: main,
+      manifest: commandManifest(),
+      moduleSpecifier: './pending-import.js',
+    })
+    await Promise.resolve()
+    expect(worker.listenerCount).toBeGreaterThan(0)
+    realm.dispose()
+    finishImport({ commands: {} })
+    await Promise.resolve()
+    expect(worker.listenerCount).toBe(0)
+    expect(messages).not.toHaveBeenCalled()
+    workerHost.dispose()
+    await expect(workerHost.ready).rejects.toThrow('disposed before initialization')
   })
 
   it('installs network guards before importing plugins without network permission', async () => {
@@ -836,24 +959,34 @@ describe('browser worker plugin isolation', () => {
     expect(() => scope.WebSocket('wss://api.example.test')).toThrow('not brokered')
   })
 
-  it('terminates the worker endpoint when the browser worker host is disposed', async () => {
-    const { main, worker } = createEndpointPair()
-    const terminate = vi.fn()
-    const realm = initializePluginWorkerRealm(worker, {
-      importModule: async () => ({ commands: {} }),
-    })
-    main.onTerminate = terminate
-    const workerHost = createBrowserWorkerPluginHost({
-      worker: main,
-      manifest: commandManifest(),
-      moduleSpecifier: './worker-plugin.js',
-    })
+  it('clears the startup timeout on success and disposes a ready host only once', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    try {
+      const { main, worker } = createEndpointPair()
+      const terminate = vi.fn()
+      const realm = initializePluginWorkerRealm(worker, {
+        importModule: async () => ({ commands: {} }),
+      })
+      main.onTerminate = terminate
+      const workerHost = createBrowserWorkerPluginHost({
+        worker: main,
+        manifest: commandManifest(),
+        moduleSpecifier: './worker-plugin.js',
+      })
 
-    await workerHost.ready
-    workerHost.dispose()
-
-    expect(terminate).toHaveBeenCalledTimes(1)
-    realm.dispose()
+      await workerHost.ready
+      expect(vi.getTimerCount()).toBe(0)
+      await vi.advanceTimersByTimeAsync(5_001)
+      expect(terminate).not.toHaveBeenCalled()
+      workerHost.dispose()
+      workerHost.dispose()
+      await expect(workerHost.ready).resolves.toBeUndefined()
+      expect(main.listenerCount).toBe(0)
+      expect(terminate).toHaveBeenCalledTimes(1)
+      realm.dispose()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
 
@@ -883,6 +1016,10 @@ class MemoryWorkerEndpoint {
     constructor(_url: string) {}
   }
   private readonly listeners = new Set<(event: { readonly data: unknown }) => void>()
+
+  get listenerCount(): number {
+    return this.listeners.size
+  }
 
   postMessage(message: unknown): void {
     queueMicrotask(() => {

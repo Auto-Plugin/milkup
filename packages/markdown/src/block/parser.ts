@@ -84,6 +84,13 @@ function parseBlocks(
       continue
     }
 
+    const htmlBlock = parseHtmlBlock(lines, index)
+    if (htmlBlock) {
+      nodes.push(htmlBlock.node)
+      index = htmlBlock.nextIndex
+      continue
+    }
+
     const fencedCode = parseFencedCode(lines, index)
 
     if (fencedCode) {
@@ -140,9 +147,15 @@ function parseBlocks(
       continue
     }
 
-    const paragraph = collectParagraph(lines, index, extensions)
-    nodes.push(parseParagraph(source, paragraph, extensions))
-    index += paragraph.length
+    const previous = nodes.at(-1)
+    const allowSetext =
+      !previous || !['unorderedList', 'orderedList', 'blockquote'].includes(previous.type)
+    const paragraph = collectParagraph(lines, index, extensions, allowSetext)
+    const setext = allowSetext
+      ? parseSetextHeading(paragraph, lines[index + paragraph.length])
+      : undefined
+    nodes.push(setext ?? parseParagraph(source, paragraph, extensions))
+    index += paragraph.length + (setext ? 1 : 0)
   }
 
   return Object.freeze(nodes)
@@ -212,22 +225,107 @@ function parseAtxHeading(line: SourceLine): SyntaxNode | undefined {
   const markerFrom = line.from + indent
   const markerTo = markerFrom + marker.length
   const contentFrom = findHeadingContentStart(line.text, markerTo - line.from)
-  const contentRange = { from: line.from + contentFrom, to: line.contentTo }
+  const content = line.text.slice(contentFrom)
+  const closing = /(?:^|[ \t]+)(#+)[ \t]*$/.exec(content)
+  const contentEnd = closing ? contentFrom + closing.index : line.text.length
+  const trimmedContentEnd = line.text.slice(0, contentEnd).replace(/[ \t]+$/, '').length
+  const contentRange = {
+    from: line.from + contentFrom,
+    to: line.from + Math.max(contentFrom, trimmedContentEnd),
+  }
+  const closingRange = closing
+    ? {
+        from: line.from + contentFrom + closing.index + closing[0].indexOf('#'),
+        to: line.from + contentFrom + closing.index + closing[0].indexOf('#') + closing[1]!.length,
+      }
+    : undefined
 
   return createNode({
     type: 'heading',
     from: line.from,
     to: line.to,
     status: 'valid',
-    markerRanges: [{ from: markerFrom, to: markerTo }],
+    markerRanges: [{ from: markerFrom, to: markerTo }, ...(closingRange ? [closingRange] : [])],
     contentRanges: contentRange.from <= contentRange.to ? [contentRange] : [],
     data: { level: marker.length },
+  })
+}
+
+function parseSetextHeading(
+  lines: readonly SourceLine[],
+  underline: SourceLine | undefined,
+): SyntaxNode | undefined {
+  const first = lines[0]
+  const last = lines.at(-1)
+  const match = underline && /^ {0,3}(=+|-+)[ \t]*$/.exec(underline.text)
+  if (!first || !last || !underline || !match) return undefined
+  const contentFrom = first.from + (first.text.match(/^[ \t]*/)?.[0].length ?? 0)
+  const contentTo = last.from + last.text.replace(/[ \t]+$/, '').length
+  const markerFrom = underline.from + underline.text.indexOf(match[1]!)
+  return createNode({
+    type: 'heading',
+    from: first.from,
+    to: underline.to,
+    status: 'valid',
+    markerRanges: [{ from: markerFrom, to: markerFrom + match[1]!.length }],
+    contentRanges: [{ from: contentFrom, to: contentTo }],
+    data: { level: match[1]![0] === '=' ? 1 : 2, style: 'setext' },
   })
 }
 
 interface BlockParseResult {
   readonly node: SyntaxNode
   readonly nextIndex: number
+}
+
+// Opaque HTML block boundaries are recognized for heading context only.
+function htmlBlockEnd(text: string, inParagraph: boolean): RegExp | 'blank' | undefined {
+  const special = /^ {0,3}<(script|pre|style|textarea)(?:[ \t>]|$)/i.exec(text)
+  if (special) return new RegExp(`</${special[1]}>`, 'i')
+  if (/^ {0,3}<!--/.test(text)) return /-->/
+  if (/^ {0,3}<\?/.test(text)) return /\?>/
+  if (/^ {0,3}<!\[CDATA\[/.test(text)) return /\]\]>/
+  if (/^ {0,3}<![A-Z]/.test(text)) return />/
+  if (
+    /^ {0,3}<\/?(?:address|article|aside|base|basefont|blockquote|body|caption|center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|h[1-6]|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|nav|noframes|ol|optgroup|option|p|param|search|section|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul)(?:[ \t/>]|$)/i.test(
+      text,
+    )
+  )
+    return 'blank'
+  if (
+    !inParagraph &&
+    /^ {0,3}(?:<\/[a-zA-Z][\w-]*[ \t]*>|<[a-zA-Z][\w-]*(?:[ \t]+[a-zA-Z_:][\w.:-]*(?:[ \t]*=[ \t]*(?:[^ \t"'=<>`]+|'[^']*'|"[^"]*"))?)*[ \t]*\/?>)[ \t]*$/.test(
+      text,
+    )
+  )
+    return 'blank'
+  return undefined
+}
+
+function parseHtmlBlock(lines: readonly SourceLine[], index: number): BlockParseResult | undefined {
+  const first = lines[index]
+  if (!first) return undefined
+  const end = htmlBlockEnd(first.text, false)
+  if (!end) return undefined
+  let nextIndex = index
+  while (nextIndex < lines.length) {
+    const line = lines[nextIndex]!
+    if (end === 'blank' && isBlankLine(line)) break
+    nextIndex += 1
+    if (end !== 'blank' && end.test(line.text)) break
+  }
+  const last = lines[nextIndex - 1] ?? first
+  return {
+    node: createNode({
+      type: 'fallbackText',
+      from: first.from,
+      to: last.to,
+      status: 'valid',
+      contentRanges: [{ from: first.from, to: last.to }],
+      data: { block: 'html' },
+    }),
+    nextIndex,
+  }
 }
 
 function parseFencedCode(
@@ -256,7 +354,7 @@ function parseFencedCode(
 
   const fenceChar = fence[0]
 
-  if (!fenceChar) {
+  if (!fenceChar || (fenceChar === '`' && info.includes('`'))) {
     return undefined
   }
   const fenceLength = fence.length
@@ -361,15 +459,25 @@ function parseIndentedCode(
       from: first.from,
       to: last.to,
       status: 'valid',
-      markerRanges: codeLines.map((line) => ({ from: line.from, to: line.from + 4 })),
-      contentRanges: codeLines.map((line) => ({ from: line.from + 4, to: line.contentTo })),
+      markerRanges: codeLines.map((line) => ({
+        from: line.from,
+        to: line.from + indentedCodePrefixLength(line.text),
+      })),
+      contentRanges: codeLines.map((line) => ({
+        from: line.from + indentedCodePrefixLength(line.text),
+        to: line.contentTo,
+      })),
     }),
     nextIndex,
   }
 }
 
 function isIndentedCodeLine(line: SourceLine): boolean {
-  return line.text.startsWith('    ')
+  return /^(?: {4}| {0,3}\t)/.test(line.text)
+}
+
+function indentedCodePrefixLength(text: string): number {
+  return /^(?: {4}| {0,3}\t)/.exec(text)?.[0].length ?? 0
 }
 
 function parseBlockquote(
@@ -798,6 +906,7 @@ function collectParagraph(
   lines: readonly SourceLine[],
   startIndex: number,
   extensions: readonly MarkdownSyntaxExtension[],
+  allowSetext: boolean,
 ): readonly SourceLine[] {
   const paragraph: SourceLine[] = []
 
@@ -807,13 +916,14 @@ function collectParagraph(
     if (
       !line ||
       isBlankLine(line) ||
+      (allowSetext && paragraph.length > 0 && /^ {0,3}(=+|-+)[ \t]*$/.test(line.text)) ||
+      htmlBlockEnd(line.text, true) ||
       parseFencedCode(lines, index) ||
-      parseIndentedCode(lines, index) ||
       parseBlockquote(lines, index) ||
       parseThematicBreak(line) ||
       parseAtxHeading(line) ||
       parseTable(lines, index) ||
-      parseList(lines, index) ||
+      /^ {0,3}(?:[-+*]|1[.)])[ \t]+\S/.test(line.text) ||
       parseExtensionBlock(line, extensions)
     ) {
       break

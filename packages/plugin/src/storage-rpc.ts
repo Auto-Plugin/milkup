@@ -1,13 +1,33 @@
 import type { PluginIsolationRpcEndpoint, PluginIsolationRpcMessageListener } from './isolation-rpc'
-import type { PluginStorageBroker } from './storage-broker'
+import {
+  assertTemporaryKeys,
+  assertTemporaryEntries,
+  assertTemporaryValues,
+  type PluginStorageBroker,
+  type PluginTemporaryStore,
+} from './storage-broker'
 
-type StorageMethod = 'getItem' | 'setItem' | 'removeItem'
+type StorageMethod =
+  | 'getItem'
+  | 'setItem'
+  | 'removeItem'
+  | 'temporaryCreate'
+  | 'temporaryGet'
+  | 'temporarySet'
+  | 'temporaryDispose'
+interface StoragePayload {
+  readonly key?: string
+  readonly value?: string
+  readonly storeId?: string
+  readonly keys?: readonly string[]
+  readonly entries?: readonly { readonly key: string; readonly value: string }[]
+}
 interface StorageMessage {
   readonly protocol: 'milkup.plugin.storage.rpc.v1'
   readonly type: 'request' | 'response'
   readonly id: string
   readonly method?: StorageMethod
-  readonly payload?: { readonly key: string; readonly value?: string }
+  readonly payload?: StoragePayload
   readonly ok?: boolean
   readonly value?: unknown
   readonly error?: { readonly message: string }
@@ -22,6 +42,7 @@ export function createRpcPluginStorageBroker(
   timeoutMs = 5_000,
 ): RpcPluginStorageBroker {
   let nextId = 0
+  let disposed = false
   const pending = new Map<
     string,
     {
@@ -32,7 +53,6 @@ export function createRpcPluginStorageBroker(
   >()
   const remove = addListener(endpoint, (value) => {
     const message = readMessage(value)
-
     if (!message || message.type !== 'response') return
     const request = pending.get(message.id)
     if (!request) return
@@ -41,11 +61,10 @@ export function createRpcPluginStorageBroker(
     if (message.ok) request.resolve(message.value)
     else request.reject(new Error(message.error?.message ?? 'Plugin storage RPC failed'))
   })
-
-  function call(
-    method: StorageMethod,
-    payload: NonNullable<StorageMessage['payload']>,
-  ): Promise<unknown> {
+  function call(method: StorageMethod, payload: StoragePayload): Promise<unknown> {
+    if (disposed) return Promise.reject(new Error('Plugin storage RPC broker is disposed'))
+    if (pending.size >= 16)
+      return Promise.reject(new Error('Plugin storage RPC concurrency quota exceeded'))
     const id = `${Date.now().toString(36)}-${nextId++}`
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -53,16 +72,21 @@ export function createRpcPluginStorageBroker(
         reject(new Error(`Plugin storage RPC timed out: ${method}`))
       }, timeoutMs)
       pending.set(id, { resolve, reject, timer })
-      endpoint.postMessage({
-        protocol: 'milkup.plugin.storage.rpc.v1',
-        type: 'request',
-        id,
-        method,
-        payload,
-      } satisfies StorageMessage)
+      try {
+        endpoint.postMessage({
+          protocol: 'milkup.plugin.storage.rpc.v1',
+          type: 'request',
+          id,
+          method,
+          payload,
+        } satisfies StorageMessage)
+      } catch (error) {
+        pending.delete(id)
+        clearTimeout(timer)
+        reject(error)
+      }
     })
   }
-
   return Object.freeze({
     getItem: (key: string) => call('getItem', { key }) as Promise<string | null>,
     setItem: async (key: string, value: string) => {
@@ -71,7 +95,42 @@ export function createRpcPluginStorageBroker(
     removeItem: async (key: string) => {
       await call('removeItem', { key })
     },
+    createTemporaryStore: async (): Promise<PluginTemporaryStore> => {
+      const storeId = (await call('temporaryCreate', {})) as string
+      let closed = false
+      let disposal: Promise<void> | undefined
+      const assertOpen = () => {
+        if (closed) throw new Error('Temporary store is disposed')
+      }
+      const getMany = async (keys: readonly string[]) => {
+        assertOpen()
+        assertTemporaryKeys(keys)
+        const values = (await call('temporaryGet', { storeId, keys })) as readonly (string | null)[]
+        assertOpen()
+        assertTemporaryValues(values)
+        return values
+      }
+      const setMany = async (
+        entries: readonly { readonly key: string; readonly value: string }[],
+      ) => {
+        assertOpen()
+        assertTemporaryEntries(entries)
+        await call('temporarySet', { storeId, entries })
+        assertOpen()
+      }
+      return Object.freeze({
+        get: async (key: string) => (await getMany([key]))[0] ?? null,
+        set: (key: string, value: string) => setMany([{ key, value }]),
+        getMany,
+        setMany,
+        dispose: () => {
+          closed = true
+          return (disposal ??= call('temporaryDispose', { storeId }).then(() => undefined))
+        },
+      })
+    },
     dispose: () => {
+      disposed = true
       remove()
       for (const request of pending.values()) {
         clearTimeout(request.timer)
@@ -86,42 +145,79 @@ export function createPluginStorageRpcServer(
   endpoint: PluginIsolationRpcEndpoint,
   broker: PluginStorageBroker,
 ): { dispose(): void } {
-  return Object.freeze({
-    dispose: addListener(endpoint, async (value) => {
-      const message = readMessage(value)
-      if (!message || message.type !== 'request' || !message.method || !message.payload) return
-
-      try {
-        const result = await runRequest(broker, message.method, message.payload)
-        endpoint.postMessage({
-          protocol: 'milkup.plugin.storage.rpc.v1',
-          type: 'response',
-          id: message.id,
-          ok: true,
-          value: result,
-        } satisfies StorageMessage)
-      } catch (error) {
-        endpoint.postMessage({
-          protocol: 'milkup.plugin.storage.rpc.v1',
-          type: 'response',
-          id: message.id,
-          ok: false,
-          error: { message: error instanceof Error ? error.message : String(error) },
-        } satisfies StorageMessage)
+  const stores = new Map<string, PluginTemporaryStore>()
+  let nextStore = 0
+  let disposed = false
+  let inFlight = 0
+  async function runRequest(method: StorageMethod, payload: StoragePayload): Promise<unknown> {
+    if (method === 'getItem') return broker.getItem(payload.key ?? '')
+    if (method === 'removeItem') return broker.removeItem(payload.key ?? '')
+    if (method === 'setItem') {
+      if (payload.value === undefined) throw new Error('Storage value is required')
+      return broker.setItem(payload.key ?? '', payload.value)
+    }
+    if (method === 'temporaryCreate') {
+      if (!broker.createTemporaryStore) throw new Error('Temporary plugin storage is unavailable')
+      const store = await broker.createTemporaryStore()
+      if (disposed) {
+        await store.dispose()
+        throw new Error('Storage RPC server is disposed')
       }
-    }),
+      const id = `temporary-${nextStore++}`
+      stores.set(id, store)
+      return id
+    }
+    const store = stores.get(payload.storeId ?? '')
+    if (!store) {
+      if (method === 'temporaryDispose') return
+      throw new Error('Unknown temporary store')
+    }
+    if (method === 'temporaryDispose') {
+      stores.delete(payload.storeId!)
+      await store.dispose()
+      return
+    }
+    if (method === 'temporaryGet') return store.getMany(payload.keys ?? [])
+    if (method === 'temporarySet') return store.setMany(payload.entries ?? [])
+    throw new Error('Unknown storage method')
+  }
+  const remove = addListener(endpoint, async (value) => {
+    const message = readMessage(value)
+    if (disposed || !message || message.type !== 'request' || !message.method || !message.payload)
+      return
+    const reply = (result: Partial<StorageMessage>) => {
+      if (!disposed)
+        endpoint.postMessage({
+          protocol: 'milkup.plugin.storage.rpc.v1',
+          type: 'response',
+          id: message.id,
+          ...result,
+        } satisfies StorageMessage)
+    }
+    if (inFlight >= 16) {
+      reply({ ok: false, error: { message: 'Plugin storage RPC concurrency quota exceeded' } })
+      return
+    }
+    inFlight++
+    try {
+      reply({ ok: true, value: await runRequest(message.method, message.payload) })
+    } catch (error) {
+      reply({
+        ok: false,
+        error: { message: error instanceof Error ? error.message : String(error) },
+      })
+    } finally {
+      inFlight--
+    }
   })
-}
-
-function runRequest(
-  broker: PluginStorageBroker,
-  method: StorageMethod,
-  payload: { readonly key: string; readonly value?: string },
-): Promise<unknown> {
-  if (method === 'getItem') return broker.getItem(payload.key)
-  if (method === 'removeItem') return broker.removeItem(payload.key)
-  if (payload.value === undefined) return Promise.reject(new Error('Storage value is required'))
-  return broker.setItem(payload.key, payload.value)
+  return Object.freeze({
+    dispose: () => {
+      disposed = true
+      remove()
+      for (const store of stores.values()) void store.dispose().catch(() => undefined)
+      stores.clear()
+    },
+  })
 }
 
 function addListener(
@@ -139,7 +235,6 @@ function addListener(
   }
   throw new Error('Plugin storage RPC endpoint does not support message listeners')
 }
-
 function readMessage(value: unknown): StorageMessage | undefined {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined
   const message = value as Partial<StorageMessage>

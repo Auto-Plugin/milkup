@@ -49,6 +49,348 @@ describe('parseMarkdown block parser', () => {
     ])
   })
 
+  // CommonMark 0.31.2 section 4.3; nested container headings remain outside this parser's scope.
+  it.each([
+    {
+      name: 'single equal underline',
+      text: 'Alpha\n=\n',
+      expected: [
+        {
+          level: 1,
+          label: 'Alpha',
+          line: 1,
+        },
+      ],
+    },
+    {
+      name: 'single dash underline',
+      text: 'Alpha\n-\n',
+      expected: [
+        {
+          level: 2,
+          label: 'Alpha',
+          line: 1,
+        },
+      ],
+    },
+    {
+      name: 'multiline paragraph',
+      text: 'Alpha\nbeta\n---\n',
+      expected: [
+        {
+          level: 2,
+          label: 'Alpha\nbeta',
+          line: 1,
+        },
+      ],
+    },
+    {
+      name: 'adjacent headings and thematic break',
+      text: '---\nAlpha\n---\nBeta\n---\n',
+      expected: [
+        {
+          level: 2,
+          label: 'Alpha',
+          line: 2,
+        },
+        {
+          level: 2,
+          label: 'Beta',
+          line: 4,
+        },
+      ],
+    },
+    {
+      name: 'no empty heading',
+      text: '===\n',
+      expected: [],
+    },
+    {
+      name: 'blank paragraph boundary',
+      text: 'Alpha\n\n---\n',
+      expected: [],
+    },
+    {
+      name: 'indented code',
+      text: '    Alpha\n---\n',
+      expected: [],
+    },
+    {
+      name: 'tab indented code',
+      text: '\tAlpha\n---\n',
+      expected: [],
+    },
+    {
+      name: 'indented underline',
+      text: 'Alpha\n    ---\n',
+      expected: [],
+    },
+    {
+      name: 'indented paragraph continuation',
+      text: 'Alpha\n    beta\n---\n',
+      expected: [
+        {
+          level: 2,
+          label: 'Alpha\nbeta',
+          line: 1,
+        },
+      ],
+    },
+    {
+      name: 'list boundary',
+      text: '- Alpha\n---\n',
+      expected: [],
+    },
+    {
+      name: 'lazy list continuation',
+      text: '- Alpha\nbeta\n===\n',
+      expected: [],
+    },
+    {
+      name: 'ordered marker cannot interrupt paragraph',
+      text: 'Alpha\n2. beta\n---\n',
+      expected: [
+        {
+          level: 2,
+          label: 'Alpha\n2. beta',
+          line: 1,
+        },
+      ],
+    },
+    {
+      name: 'empty bullet cannot interrupt paragraph',
+      text: 'Alpha\n+\n---\n',
+      expected: [
+        {
+          level: 2,
+          label: 'Alpha\n+',
+          line: 1,
+        },
+      ],
+    },
+    {
+      name: 'blockquote boundary',
+      text: '> Alpha\n---\n',
+      expected: [],
+    },
+    {
+      name: 'lazy blockquote continuation',
+      text: '> Alpha\nbeta\n===\n',
+      expected: [],
+    },
+    {
+      name: 'thematic break interrupts paragraph',
+      text: 'Alpha\n***\nBeta\n---\n',
+      expected: [
+        {
+          level: 2,
+          label: 'Beta',
+          line: 3,
+        },
+      ],
+    },
+    {
+      name: 'internally spaced underlines',
+      text: 'Alpha\n= =\n\nBeta\n--- -\n',
+      expected: [],
+    },
+    {
+      name: 'unfinished inline code',
+      text: '`Alpha\n---\n',
+      expected: [
+        {
+          level: 2,
+          label: '`Alpha',
+          line: 1,
+        },
+      ],
+    },
+    {
+      name: 'escaped block marker',
+      text: '\\> Alpha\n---\n',
+      expected: [
+        {
+          level: 2,
+          label: '\\> Alpha',
+          line: 1,
+        },
+      ],
+    },
+    {
+      name: 'escaped underline',
+      text: 'Alpha\n\\---\n',
+      expected: [],
+    },
+    {
+      name: 'fenced pseudo headings',
+      text: '```\nAlpha\n---\n# Pseudo\n```\nReal\n===\n',
+      expected: [
+        {
+          level: 1,
+          label: 'Real',
+          line: 6,
+        },
+      ],
+    },
+    {
+      name: 'backtick in fence info',
+      text: '```info`literal\n---\n',
+      expected: [
+        {
+          level: 2,
+          label: '```info`literal',
+          line: 1,
+        },
+      ],
+    },
+    {
+      name: 'ATX closing markers',
+      text: '## ATX ##\n---\n# ###\n### escaped \\###\n',
+      expected: [
+        {
+          level: 2,
+          label: 'ATX',
+          line: 1,
+        },
+        {
+          level: 1,
+          label: '',
+          line: 3,
+        },
+        {
+          level: 3,
+          label: 'escaped \\###',
+          line: 4,
+        },
+      ],
+    },
+    {
+      name: 'ATX paragraph boundary',
+      text: 'before\n# Root\nAfter\n---\n',
+      expected: [
+        {
+          level: 1,
+          label: 'Root',
+          line: 2,
+        },
+        {
+          level: 2,
+          label: 'After',
+          line: 3,
+        },
+      ],
+    },
+    {
+      name: 'pipe table boundary',
+      text: '| A | B |\n| --- | --- |\n| X | Y |\n---\n# Root\n',
+      expected: [
+        {
+          level: 1,
+          label: 'Root',
+          line: 5,
+        },
+      ],
+    },
+    {
+      name: 'HTML comment boundary',
+      text: '<!--\n# Pseudo\nTitle\n---\n-->\n# Real\n',
+      expected: [
+        {
+          level: 1,
+          label: 'Real',
+          line: 6,
+        },
+      ],
+    },
+    {
+      name: 'HTML block boundary',
+      text: '<div>\nTitle\n---\n</div>\n\nReal\n---\n',
+      expected: [
+        {
+          level: 2,
+          label: 'Real',
+          line: 6,
+        },
+      ],
+    },
+    {
+      name: 'incomplete inline HTML',
+      text: '<a title="long\n---\n',
+      expected: [
+        {
+          level: 2,
+          label: '<a title="long',
+          line: 1,
+        },
+      ],
+    },
+    {
+      name: 'inline HTML cannot interrupt paragraph',
+      text: 'Alpha\n<span>\n---\n',
+      expected: [
+        {
+          level: 2,
+          label: 'Alpha\n<span>',
+          line: 1,
+        },
+      ],
+    },
+    {
+      name: 'standalone HTML tag block',
+      text: '<span>\nTitle\n---\n\n# Real\n',
+      expected: [
+        {
+          level: 1,
+          label: 'Real',
+          line: 5,
+        },
+      ],
+    },
+    {
+      name: 'ATX interrupts quote continuation',
+      text: '> paragraph\n## Root\n',
+      expected: [
+        {
+          level: 2,
+          label: 'Root',
+          line: 2,
+        },
+      ],
+    },
+  ])('recognizes Setext/ATX context: $name', ({ text, expected }) => {
+    const result = parseMarkdown(text)
+    const headings = (result.root.children ?? [])
+      .filter((node) => node.type === 'heading')
+      .map((node) => ({
+        level: node.data?.level,
+        label: (node.contentRanges ?? [])
+          .map((range) => text.slice(range.from, range.to))
+          .join('')
+          .split(/\r?\n/)
+          .map((line) => line.replace(/^[ \t]+|[ \t]+$/g, ''))
+          .join('\n'),
+        line: text.slice(0, node.from).split('\n').length,
+      }))
+    expect(headings).toEqual(expected)
+  })
+
+  it('preserves CRLF and precise multiline Setext content/marker ranges', () => {
+    const source = '  Alpha\r\n beta  \r\n ===  \r\n'
+    const node = parseMarkdown(source).root.children?.[0]
+    expect(node).toMatchObject({
+      type: 'heading',
+      from: 0,
+      to: source.length,
+      data: { level: 1, style: 'setext' },
+      markerRanges: [{ from: 19, to: 22 }],
+      contentRanges: [{ from: 2, to: 14 }],
+    })
+    for (const range of [...(node?.contentRanges ?? []), ...(node?.markerRanges ?? [])]) {
+      expect(range.from).toBeGreaterThanOrEqual(0)
+      expect(range.to).toBeLessThanOrEqual(source.length)
+    }
+  })
+
   it('parses ATX headings with marker and content ranges', () => {
     const result = parseMarkdown('###   Title\n')
 

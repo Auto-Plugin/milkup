@@ -915,7 +915,7 @@ const desktopPluginManager = new DesktopPluginManager({
   manifestHost: createDesktopPluginManifestHost(),
   permissions: desktopActionPermissions,
   milkupVersion: appVersion,
-  pluginSdkVersion: '0.1.0',
+  pluginSdkVersion: '0.1.1',
   storage: globalThis.localStorage,
   documentSource: () => {
     if (documentPresentation === 'custom-view') return undefined
@@ -3602,6 +3602,8 @@ function getPluginUiRenderState(): Readonly<Record<string, unknown>> {
 
   return Object.freeze({
     documentVersion: session.documentVersion,
+    documentLineCount: lineCount,
+    viewMode: session.viewMode,
     viewport: Object.freeze({
       fromLine,
       toLine: sourceRange?.toLine ?? Math.min(lineCount, fromLine + visibleLineCount - 1),
@@ -3997,6 +3999,7 @@ async function invokeWindowClose(): Promise<void> {
 
   try {
     const { getCurrentWindow } = await import('@tauri-apps/api/window')
+    await desktopPluginManager.disposeTemporaryStorage()
     await getCurrentWindow().destroy()
   } catch (error: unknown) {
     setDocumentLoadingState({ phase: 'ready' })

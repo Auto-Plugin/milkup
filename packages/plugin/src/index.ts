@@ -35,6 +35,11 @@ export {
   type PluginStorageAdapter,
   type PluginStorageAuditRecord,
   type PluginStorageBroker,
+  type ManagedPluginStorageBroker,
+  type PluginTemporaryStore,
+  assertTemporaryKeys,
+  assertTemporaryEntries,
+  assertTemporaryValues,
   type PluginStorageBrokerConfig,
   type PluginStorageOperation,
 } from './storage-broker'

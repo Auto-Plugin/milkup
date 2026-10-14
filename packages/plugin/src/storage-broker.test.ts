@@ -57,7 +57,128 @@ describe('plugin storage broker', () => {
     client.dispose()
     server.dispose()
   })
+
+  it('bounds active temporary stores and cleans a store created during broker disposal', async () => {
+    const created = [] as ReturnType<typeof temporaryStore>[]
+    let release: (() => void) | undefined
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const broker = createPluginStorageBroker({
+      pluginId: 'pages',
+      adapter: persistentAdapter(),
+      createTemporaryStore: async () => {
+        await gate
+        const store = temporaryStore()
+        created.push(store)
+        return store
+      },
+    })
+    const pending = Array.from({ length: 4 }, () => broker.createTemporaryStore!())
+    const settled = Promise.allSettled(pending)
+    await expect(broker.createTemporaryStore!()).rejects.toThrow('4 stores')
+    const disposal = broker.dispose()
+    release!()
+    expect((await settled).every((result) => result.status === 'rejected')).toBe(true)
+    await disposal
+    expect(created).toHaveLength(4)
+    for (const store of created) expect(store.dispose).toHaveBeenCalledOnce()
+    await expect(broker.createTemporaryStore!()).rejects.toThrow('disposed')
+  })
+
+  it('brokers bounded batches and refuses temporary access after endpoint disposal', async () => {
+    const [hostEndpoint, pluginEndpoint] = createEndpointPair()
+    const store = temporaryStore()
+    const broker = createPluginStorageBroker({
+      pluginId: 'pages',
+      adapter: persistentAdapter(),
+      createTemporaryStore: async () => store,
+    })
+    const server = createPluginStorageRpcServer(hostEndpoint, broker)
+    const client = createRpcPluginStorageBroker(pluginEndpoint)
+    const remote = await client.createTemporaryStore!()
+    await remote.setMany([
+      { key: 'p0', value: '中文' },
+      { key: 'p1', value: 'next' },
+    ])
+    await expect(remote.getMany(['p1', 'p0', 'missing'])).resolves.toEqual(['next', '中文', null])
+    await expect(remote.set('huge', 'x'.repeat(262145))).rejects.toThrow('256 KiB')
+    await remote.dispose()
+    await expect(remote.get('p0')).rejects.toThrow('disposed')
+    expect(store.dispose).toHaveBeenCalledOnce()
+    client.dispose()
+    server.dispose()
+    await broker.dispose()
+    await expect(client.createTemporaryStore!()).rejects.toThrow('disposed')
+  })
+
+  it('closes server-owned stores without waiting for a cooperative Worker', async () => {
+    const [hostEndpoint, pluginEndpoint] = createEndpointPair()
+    const store = temporaryStore()
+    const broker = createPluginStorageBroker({
+      pluginId: 'pages',
+      adapter: persistentAdapter(),
+      createTemporaryStore: async () => store,
+    })
+    const server = createPluginStorageRpcServer(hostEndpoint, broker)
+    const client = createRpcPluginStorageBroker(pluginEndpoint)
+    await client.createTemporaryStore!()
+    server.dispose()
+    await broker.dispose()
+    expect(store.dispose).toHaveBeenCalledOnce()
+    client.dispose()
+  })
+
+  it('disposes a late-created store after its RPC server has already closed', async () => {
+    const [hostEndpoint, pluginEndpoint] = createEndpointPair()
+    const store = temporaryStore()
+    let release: (() => void) | undefined
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const started = vi.fn()
+    const broker = createPluginStorageBroker({
+      pluginId: 'late',
+      adapter: persistentAdapter(),
+      createTemporaryStore: async () => {
+        started()
+        await gate
+        return store
+      },
+    })
+    const server = createPluginStorageRpcServer(hostEndpoint, broker)
+    const client = createRpcPluginStorageBroker(pluginEndpoint)
+    const pending = client.createTemporaryStore!()
+    const rejected = expect(pending).rejects.toThrow('disposed')
+    await vi.waitFor(() => expect(started).toHaveBeenCalledOnce())
+    server.dispose()
+    client.dispose()
+    release!()
+    await rejected
+    await vi.waitFor(() => expect(store.dispose).toHaveBeenCalledOnce())
+    await broker.dispose()
+  })
 })
+
+function persistentAdapter() {
+  return { getItem: () => null, setItem: () => undefined, removeItem: () => undefined }
+}
+function temporaryStore() {
+  const pages = new Map<string, string>()
+  return {
+    get: async (key: string) => pages.get(key) ?? null,
+    set: async (key: string, value: string) => {
+      pages.set(key, value)
+    },
+    getMany: async (keys: readonly string[]) => keys.map((key) => pages.get(key) ?? null),
+    setMany: async (entries: readonly { readonly key: string; readonly value: string }[]) => {
+      for (const entry of entries) pages.set(entry.key, entry.value)
+    },
+    dispose: vi.fn(async () => {
+      pages.clear()
+    }),
+  }
+}
 
 class MemoryEndpoint {
   peer: MemoryEndpoint | undefined

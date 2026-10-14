@@ -558,44 +558,35 @@ function validateCompatibility(
 }
 
 function isCompatibleVersionRange(range: string, version: string): boolean {
-  if (range === '*' || range === version) {
-    return true
-  }
-
-  if (range.startsWith('^')) {
-    return majorOf(range.slice(1)) === majorOf(version)
-  }
-
-  if (range.startsWith('>=')) {
-    return compareVersions(version, range.slice(2)) >= 0
-  }
-
-  return false
+  if (range === '*' || range === version) return true
+  // Only stable complete versions are supported by this deliberately small
+  // range grammar. Reject unknown forms instead of widening compatibility.
+  const actual = versionParts(version)
+  const required = versionParts(range.replace(/^(\^|>=)/, ''))
+  if (!actual || !required) return false
+  const lower = compareVersions(actual, required)
+  if (range.startsWith('>=')) return lower >= 0
+  if (!range.startsWith('^') || lower < 0) return false
+  const [major, minor, patch] = required
+  const upper: readonly [number, number, number] =
+    major > 0 ? [major + 1, 0, 0] : minor > 0 ? [0, minor + 1, 0] : [0, 0, patch + 1]
+  return compareVersions(actual, upper) < 0
 }
 
-function compareVersions(left: string, right: string): number {
-  const leftParts = versionParts(left)
-  const rightParts = versionParts(right)
-
+function compareVersions(left: readonly number[], right: readonly number[]): number {
   for (let index = 0; index < 3; index += 1) {
-    const delta = (leftParts[index] ?? 0) - (rightParts[index] ?? 0)
-
-    if (delta !== 0) {
-      return delta
-    }
+    const delta = left[index]! - right[index]!
+    if (delta !== 0) return delta
   }
-
   return 0
 }
 
-function versionParts(version: string): readonly [number, number, number] {
-  const stableVersion = version.split(/[+-]/, 1)[0] ?? ''
-  const [major = '0', minor = '0', patch = '0'] = stableVersion.split('.')
-  return [Number(major) || 0, Number(minor) || 0, Number(patch) || 0]
-}
-
-function majorOf(version: string): number {
-  return versionParts(version)[0]
+function versionParts(version: string): readonly [number, number, number] | undefined {
+  if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:\+[0-9A-Za-z.-]+)?$/.test(version))
+    return undefined
+  const [major, minor, patch] = version.split('+')[0]!.split('.').map(Number)
+  if (![major, minor, patch].every(Number.isSafeInteger)) return undefined
+  return [major!, minor!, patch!]
 }
 
 function normalizeKeymap(key: string): string {

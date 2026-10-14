@@ -1,13 +1,13 @@
 {
   "id": "milkup.outline",
   "name": "Milkup Outline",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Show a read-only document outline.",
   "host": "worker",
   "main": "./dist/plugin.js",
   "engines": {
     "milkup": "^0.1.0",
-    "pluginSdk": "^0.1.0"
+    "pluginSdk": "^0.1.1"
   },
   "permissions": ["document:read"],
   "contributes": {
@@ -24,9 +24,89 @@
               "type": "number",
               "required": true,
               "description": "Heading line number"
+            },
+            "documentId": {
+              "type": "string",
+              "required": true
+            },
+            "version": {
+              "type": "number",
+              "required": true
+            },
+            "generation": {
+              "type": "number",
+              "required": true
+            },
+            "ordinal": {
+              "type": "number",
+              "required": true
+            },
+            "id": {
+              "type": "string",
+              "required": true
             }
           }
         }
+      },
+      {
+        "id": "outline.toggleHeading",
+        "title": "Collapse or expand heading",
+        "action": "outline.toggleHeading",
+        "category": "navigation",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "line": {
+              "type": "number",
+              "required": true,
+              "description": "Positive integer heading line number"
+            },
+            "documentId": {
+              "type": "string",
+              "required": true
+            },
+            "version": {
+              "type": "number",
+              "required": true
+            },
+            "generation": {
+              "type": "number",
+              "required": true
+            },
+            "ordinal": {
+              "type": "number",
+              "required": true
+            },
+            "id": {
+              "type": "string",
+              "required": true
+            }
+          }
+        }
+      },
+      {
+        "id": "outline.collapseAll",
+        "title": "Collapse all headings",
+        "action": "outline.collapseAll",
+        "category": "navigation"
+      },
+      {
+        "id": "outline.expandAll",
+        "title": "Expand all headings",
+        "action": "outline.expandAll",
+        "category": "navigation"
+      },
+      {
+        "id": "outline.cancel",
+        "title": "Cancel outline indexing",
+        "action": "outline.cancel",
+        "category": "navigation"
+      },
+      {
+        "id": "outline.retry",
+        "title": "Retry outline indexing",
+        "action": "outline.retry",
+        "category": "navigation"
       }
     ],
     "ui": [
