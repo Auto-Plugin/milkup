@@ -1,0 +1,71 @@
+[
+  {
+    "name": "js",
+    "command": ["pnpm", "-r", "--workspace-concurrency=1", "test"],
+    "started": "2026-10-14T01:41:18.439365+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "supplemental",
+    "command": [
+      "pnpm",
+      "exec",
+      "vitest",
+      "run",
+      "plugins/outline/src/plugin.test.ts",
+      "tests/helpers/native-startup.test.ts"
+    ],
+    "started": "2026-10-14T01:41:45.977479+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "rust",
+    "command": ["cargo", "test", "--manifest-path", "apps/desktop/src-tauri/Cargo.toml", "--lib"],
+    "started": "2026-10-14T01:41:47.330659+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "typecheck",
+    "command": ["pnpm", "typecheck"],
+    "started": "2026-10-14T01:41:48.515456+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "rust-format",
+    "command": ["cargo", "fmt", "--manifest-path", "apps/desktop/src-tauri/Cargo.toml", "--check"],
+    "started": "2026-10-14T01:42:03.045227+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "workspace-build",
+    "command": ["pnpm", "build"],
+    "started": "2026-10-14T01:42:03.173051+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "chromium",
+    "command": ["pnpm", "test:e2e", "--workers=1"],
+    "started": "2026-10-14T01:42:16.388779+00:00",
+    "exitCode": 0
+  },
+  {
+    "name": "rust-final",
+    "command": ["cargo", "test", "--manifest-path", "apps/desktop/src-tauri/Cargo.toml", "--lib"],
+    "exitCode": 0
+  },
+  {
+    "name": "production-final",
+    "command": ["pnpm", "--filter", "@milkup/desktop", "tauri", "build", "--no-bundle"],
+    "exitCode": 0
+  },
+  {
+    "name": "rust-format-final",
+    "command": ["cargo", "fmt", "--manifest-path", "apps/desktop/src-tauri/Cargo.toml", "--check"],
+    "exitCode": 0
+  },
+  {
+    "name": "format-final",
+    "command": ["pnpm", "lint"],
+    "exitCode": 0
+  }
+]

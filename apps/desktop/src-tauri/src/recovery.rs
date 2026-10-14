@@ -235,6 +235,15 @@ impl RecoveryStore {
         expected_bytes: u64,
         write: impl FnOnce(&Path) -> Result<(), String>,
     ) -> Result<Record, String> {
+        self.checkpoint_with_after_write(input, expected_bytes, write, || Ok(()))
+    }
+    fn checkpoint_with_after_write(
+        &self,
+        input: Checkpoint,
+        expected_bytes: u64,
+        write: impl FnOnce(&Path) -> Result<(), String>,
+        after_write: impl FnOnce() -> Result<(), String>,
+    ) -> Result<Record, String> {
         let _guard = self.gate.lock().map_err(err)?;
         if !safe(&input.key) {
             return Err("Invalid recovery key".into());
@@ -261,6 +270,7 @@ impl RecoveryStore {
         let payload = format!("snapshot-{}", now());
         let target = dir.join(&payload);
         write(&target)?;
+        after_write()?;
         let (bytes, sha256) = digest(&target)?;
         if bytes > expected_bytes {
             return Err("恢复副本超过本次保留预算，未发布新恢复点".into());
@@ -360,26 +370,8 @@ pub(crate) async fn checkpoint_recovery(
     files: State<'_, LargeFileRegistry>,
     input: Checkpoint,
 ) -> Result<Record, String> {
-    if let Some(native_version) = input.native_version {
-        let stores = files.0.lock().map_err(err)?;
-        let source = stores
-            .get(&input.document_id)
-            .ok_or("Document no longer open")?;
-        if source.version != native_version {
-            return Err("Document changed before recovery checkpoint".into());
-        }
-        if source.piece_tree.saved_byte_len() > MAX_BYTES {
-            return Err("恢复副本超过 256 MiB 预算".into());
-        }
-        store.checkpoint(input, source.piece_tree.saved_byte_len(), |path| {
-            // Reserve the generation name; never truncate an existing checkpoint.
-            OpenOptions::new()
-                .create_new(true)
-                .write(true)
-                .open(path)
-                .map_err(err)?;
-            source.piece_tree.write_to(path)
-        })
+    if input.native_version.is_some() {
+        checkpoint_native_with_after_write(&store, &files, input, || Ok(()))
     } else {
         let text = input.text.clone().ok_or("Missing recovery text")?;
         if text.len() as u64 > MAX_BYTES {
@@ -395,6 +387,48 @@ pub(crate) async fn checkpoint_recovery(
             file.sync_all().map_err(err)
         })
     }
+}
+
+fn checkpoint_native_with_after_write(
+    store: &RecoveryStore,
+    files: &LargeFileRegistry,
+    input: Checkpoint,
+    after_write: impl FnOnce() -> Result<(), String>,
+) -> Result<Record, String> {
+    let native_version = input.native_version.ok_or("Missing native version")?;
+    let stores = files.0.lock().map_err(err)?;
+    let source = stores
+        .get(&input.document_id)
+        .ok_or("Document no longer open")?;
+    if source.version != native_version {
+        return Err("Document changed before recovery checkpoint".into());
+    }
+    let expected_bytes = source.piece_tree.saved_byte_len();
+    if expected_bytes > MAX_BYTES {
+        return Err("恢复副本超过 256 MiB 预算".into());
+    }
+    let document_id = input.document_id.clone();
+    store.checkpoint_with_after_write(
+        input,
+        expected_bytes,
+        move |path| {
+            // Keep the same guard from version validation through durable snapshot
+            // creation: no reopen, save or edit can change the captured source.
+            let source = stores.get(&document_id).ok_or("Document no longer open")?;
+            OpenOptions::new()
+                .create_new(true)
+                .write(true)
+                .open(path)
+                .map_err(err)?;
+            let written = source.piece_tree.write_to(path);
+            // The synced, uniquely named payload is now independent of the source.
+            // Hashing/publication keep the recovery gate and storage lock, but must
+            // not block unrelated reads, edits, saves or source destruction.
+            drop(stores);
+            written
+        },
+        after_write,
+    )
 }
 #[tauri::command]
 pub(crate) async fn settle_recovery(
@@ -522,6 +556,151 @@ mod tests {
         let mut f = File::create(path).map_err(err)?;
         f.write_all(text.as_bytes()).map_err(err)?;
         f.sync_all().map_err(err)
+    }
+    fn native_input(version: usize, original: &Path) -> Checkpoint {
+        let mut value = input(version);
+        value.native_version = Some(version);
+        value.original_path = Some(original.to_string_lossy().into_owned());
+        value
+    }
+    fn native_fixture(store: &RecoveryStore) -> (LargeFileRegistry, PathBuf) {
+        let original = store.root.with_extension("original.md");
+        fs::write(&original, "A中文👩🏽‍💻\r\n").unwrap();
+        let files = LargeFileRegistry(Mutex::new(std::collections::HashMap::new()));
+        crate::open_large_text_file_in_registry(
+            &files.0,
+            "doc".into(),
+            original.to_string_lossy().into_owned(),
+        )
+        .unwrap();
+        (files, original)
+    }
+    fn native_insert(files: &LargeFileRegistry, version: usize, text: &str) {
+        crate::apply_large_text_file_changes_in_registry(
+            &files.0,
+            "doc".into(),
+            version,
+            vec![crate::LargeFileTextChange {
+                from_utf16: 0,
+                to_utf16: 0,
+                insert: text.into(),
+            }],
+        )
+        .unwrap();
+    }
+    #[test]
+    fn completed_native_snapshot_releases_registry_during_validation_and_publication() {
+        use std::sync::{mpsc, Arc};
+        use std::time::Duration;
+        let store = Arc::new(store());
+        let (files, original) = native_fixture(&store);
+        let files = Arc::new(files);
+        let initial =
+            checkpoint_native_with_after_write(&store, &files, native_input(0, &original), || {
+                Ok(())
+            })
+            .unwrap();
+        let mut older_input = input(0);
+        older_input.key = "earlier".into();
+        let mut older = store
+            .checkpoint(older_input, 32, |p| write(p, "older recoverable copy"))
+            .unwrap();
+        older.owner_pid = 2147483647;
+        older.owner_birth = None;
+        store
+            .commit(&store.directory(&older.id).unwrap(), &older)
+            .unwrap();
+        native_insert(&files, 0, "X");
+        let (ready_tx, ready_rx) = mpsc::channel();
+        let (resume_tx, resume_rx) = mpsc::channel();
+        let checkpoint = {
+            let store = store.clone();
+            let files = files.clone();
+            let input = native_input(1, &original);
+            std::thread::spawn(move || {
+                checkpoint_native_with_after_write(&store, &files, input, || {
+                    ready_tx.send(()).unwrap();
+                    resume_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+                    Ok(())
+                })
+            })
+        };
+        ready_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+        let unlocked = files.0.try_lock().is_ok();
+        // Publication remains serialized even though independent document operations may proceed.
+        assert!(store.gate.try_lock().is_err());
+        assert_eq!(store.read(&initial.id).unwrap().payload, initial.payload);
+        if unlocked {
+            let read =
+                crate::read_bounded_large_line_window(&files.0, "doc".into(), 1, 1, None).unwrap();
+            assert_eq!(read.text, "XA中文👩🏽‍💻");
+            native_insert(&files, 1, "Y");
+            crate::flush_large_text_file_in_registry(&files.0, "doc".into(), 2).unwrap();
+            files.0.lock().unwrap().remove("doc"); // Closing the source cannot invalidate the completed snapshot.
+        }
+        let restore = {
+            let store = store.clone();
+            let id = older.id.clone();
+            std::thread::spawn(move || materialize(&store, &id, None))
+        };
+        resume_tx.send(()).unwrap();
+        let record = checkpoint.join().unwrap().unwrap();
+        let recovered = restore.join().unwrap().unwrap();
+        assert!(unlocked, "completed snapshot must not retain the native document lock during hashing/publication");
+        assert_eq!(record.version, 1);
+        let snapshot = store.directory(&record.id).unwrap().join(&record.payload);
+        assert_eq!(fs::read(&snapshot).unwrap(), "XA中文👩🏽‍💻\r\n".as_bytes());
+        assert_eq!(digest(&snapshot).unwrap(), (record.bytes, record.sha256));
+        assert_eq!(fs::read(&original).unwrap(), "YXA中文👩🏽‍💻\r\n".as_bytes());
+        assert_eq!(fs::read(recovered).unwrap(), b"older recoverable copy");
+        assert_eq!(
+            store.read(&initial.id).unwrap().previous,
+            Some(initial.payload)
+        );
+        drop(files);
+        fs::remove_file(original).unwrap();
+        fs::remove_dir_all(&store.root).unwrap();
+    }
+    #[test]
+    fn interrupted_post_write_validation_keeps_previous_manifest_and_both_payloads() {
+        let store = store();
+        let (files, original) = native_fixture(&store);
+        let before =
+            checkpoint_native_with_after_write(&store, &files, native_input(0, &original), || {
+                Ok(())
+            })
+            .unwrap();
+        native_insert(&files, 0, "X");
+        let result =
+            checkpoint_native_with_after_write(&store, &files, native_input(1, &original), || {
+                assert!(
+                    files.0.try_lock().is_ok(),
+                    "snapshot is independent before publication"
+                );
+                Err("injected interruption after durable snapshot".into())
+            });
+        assert!(result.unwrap_err().contains("injected interruption"));
+        let retained = store.read(&before.id).unwrap();
+        assert_eq!(retained.payload, before.payload);
+        assert_eq!(retained.sha256, before.sha256);
+        let dir = store.directory(&retained.id).unwrap();
+        let payloads: Vec<_> = fs::read_dir(&dir)
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .filter(|p| snapshot_name(p.file_name().unwrap().to_str().unwrap()))
+            .collect();
+        assert_eq!(payloads.len(), 2);
+        assert_eq!(
+            digest(&dir.join(&retained.payload)).unwrap(),
+            (retained.bytes, retained.sha256)
+        );
+        assert!(payloads
+            .iter()
+            .any(|p| fs::read(p).unwrap() == "XA中文👩🏽‍💻\r\n".as_bytes()));
+        assert_eq!(fs::read(&original).unwrap(), "A中文👩🏽‍💻\r\n".as_bytes());
+        drop(files);
+        fs::remove_file(original).unwrap();
+        fs::remove_dir_all(&store.root).unwrap();
     }
     #[test]
     fn quota_does_not_block_verified_export_or_overwrite_an_existing_target() {

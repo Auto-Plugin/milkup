@@ -1,0 +1,127 @@
+diff --git a/apps/desktop/src-tauri/src/lib.rs b/apps/desktop/src-tauri/src/lib.rs
+index 3261991..e358d95 100644
+--- a/apps/desktop/src-tauri/src/lib.rs
++++ b/apps/desktop/src-tauri/src/lib.rs
+@@ -598,7 +598,9 @@ fn read_bounded_large_line_window(
+     to_line: usize,
+     max_text_length: Option<usize>,
+ ) -> Result<LargeFileLineWindowResult, String> {
++    let phase20 = Phase20Span::new("read-window");
+     let mut stores = registry.lock().map_err(|error| error.to_string())?;
++    phase20.mark("locked");
+     let store = stores
+         .get_mut(&document_id)
+         .ok_or_else(|| format!("Unknown large text file: {document_id}"))?;
+@@ -651,7 +653,9 @@ fn apply_large_text_file_changes_in_registry(
+     expected_version: usize,
+     changes: Vec<LargeFileTextChange>,
+ ) -> Result<LargeFileSnapshotResult, String> {
++    let phase20 = Phase20Span::new("apply");
+     let mut stores = registry.lock().map_err(|error| error.to_string())?;
++    phase20.mark("locked");
+     let store = stores
+         .get_mut(&document_id)
+         .ok_or_else(|| format!("Unknown large text file: {document_id}"))?;
+@@ -2870,3 +2874,18 @@ mod search_profile_baseline {
+         }
+     }
+ }
++
++// Temporary phase20 diagnostic build only; removed before product changes.
++pub(crate) struct Phase20Span { id: u64, name: String, start: std::time::Instant }
++impl Phase20Span {
++    pub(crate) fn new(name: impl Into<String>) -> Self {
++        static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
++        let span = Self { id: NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed), name: name.into(), start: std::time::Instant::now() };
++        span.mark("begin"); span
++    }
++    pub(crate) fn mark(&self, stage: &str) {
++        let wall = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_micros();
++        eprintln!("PHASE20 {} {} {:?} {} {} {:.3}", wall, self.id, std::thread::current().id(), self.name, stage, self.start.elapsed().as_secs_f64()*1000.0);
++    }
++}
++impl Drop for Phase20Span { fn drop(&mut self) { self.mark("end"); } }
+diff --git a/apps/desktop/src-tauri/src/piece_tree.rs b/apps/desktop/src-tauri/src/piece_tree.rs
+index 09ebbe5..e09ac66 100644
+--- a/apps/desktop/src-tauri/src/piece_tree.rs
++++ b/apps/desktop/src-tauri/src/piece_tree.rs
+@@ -237,6 +237,7 @@ impl PieceTree {
+     }
+ 
+     pub(crate) fn write_to(&self, path: &Path) -> Result<(), String> {
++        let phase20 = crate::Phase20Span::new("checkpoint-write");
+         if let Some(parent) = path.parent() {
+             fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+         }
+@@ -274,6 +275,7 @@ impl PieceTree {
+             }
+         }
+         output.flush().map_err(|error| error.to_string())?;
++        phase20.mark("flushed");
+         output
+             .get_ref()
+             .sync_all()
+diff --git a/apps/desktop/src-tauri/src/recovery.rs b/apps/desktop/src-tauri/src/recovery.rs
+index e893f0d..1b50688 100644
+--- a/apps/desktop/src-tauri/src/recovery.rs
++++ b/apps/desktop/src-tauri/src/recovery.rs
+@@ -235,7 +235,9 @@ impl RecoveryStore {
+         expected_bytes: u64,
+         write: impl FnOnce(&Path) -> Result<(), String>,
+     ) -> Result<Record, String> {
++        let phase20 = crate::Phase20Span::new("checkpoint-store");
+         let _guard = self.gate.lock().map_err(err)?;
++        phase20.mark("gate-locked");
+         if !safe(&input.key) {
+             return Err("Invalid recovery key".into());
+         }
+@@ -244,6 +246,7 @@ impl RecoveryStore {
+         }
+         let storage = StorageGuard::acquire(&self.root)?;
+         storage.admit(expected_bytes)?;
++        phase20.mark("admitted");
+         let id = format!("{}-{}", self.owner, input.key);
+         let dir = self.directory(&id)?;
+         private_dir(&dir)?;
+@@ -260,8 +263,11 @@ impl RecoveryStore {
+         }
+         let payload = format!("snapshot-{}", now());
+         let target = dir.join(&payload);
++        phase20.mark("write-begin");
+         write(&target)?;
++        phase20.mark("write-end");
+         let (bytes, sha256) = digest(&target)?;
++        phase20.mark("hash-end");
+         if bytes > expected_bytes {
+             return Err("恢复副本超过本次保留预算，未发布新恢复点".into());
+         }
+@@ -280,6 +286,7 @@ impl RecoveryStore {
+             disposition: "pending".into(),
+         };
+         self.commit(&dir, &record)?;
++        phase20.mark("commit-end");
+         // Only superseded, owned committed generations are pruned, after the new
+         // payload + manifest have been synced. Unknown partial files are retained.
+         if let Some(previous) = old.and_then(|r| r.previous) {
+@@ -361,7 +368,9 @@ pub(crate) async fn checkpoint_recovery(
+     input: Checkpoint,
+ ) -> Result<Record, String> {
+     if let Some(native_version) = input.native_version {
++        let phase20 = crate::Phase20Span::new("checkpoint-registry");
+         let stores = files.0.lock().map_err(err)?;
++        phase20.mark("locked");
+         let source = stores
+             .get(&input.document_id)
+             .ok_or("Document no longer open")?;
+diff --git a/packages/view-dom/src/source-document-view.ts b/packages/view-dom/src/source-document-view.ts
+index 26d4dad..6d676d6 100644
+--- a/packages/view-dom/src/source-document-view.ts
++++ b/packages/view-dom/src/source-document-view.ts
+@@ -335,6 +335,7 @@ export class SourceDocumentView {
+     this.inputDOM.addEventListener('compositionupdate', this.handleCompositionUpdateEvent)
+     this.inputDOM.addEventListener('compositionend', this.handleCompositionEndEvent)
+     config.parent.append(this.dom)
++    ;(globalThis as unknown as { __phase20View: SourceDocumentView }).__phase20View = this
+     void this.renderVisibleWindow()
+   }
+ 
