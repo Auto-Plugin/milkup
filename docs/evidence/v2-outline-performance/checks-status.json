@@ -1,0 +1,49 @@
+[
+  {
+    "name": "all-tests",
+    "command": ["pnpm", "test"],
+    "start": 1791977258.5028925,
+    "status": "passed",
+    "exitCode": 0,
+    "end": 1791977282.7579281
+  },
+  {
+    "name": "typecheck",
+    "command": ["pnpm", "typecheck"],
+    "start": 1791977282.7582924,
+    "status": "passed",
+    "exitCode": 0,
+    "end": 1791977297.167581
+  },
+  {
+    "name": "build",
+    "command": ["pnpm", "build"],
+    "start": 1791977297.1682398,
+    "status": "passed",
+    "exitCode": 0,
+    "end": 1791977310.669392
+  },
+  {
+    "name": "rust",
+    "command": [
+      "cargo",
+      "test",
+      "--offline",
+      "--manifest-path",
+      "apps/desktop/src-tauri/Cargo.toml",
+      "--lib"
+    ],
+    "start": 1791977310.6697085,
+    "status": "passed",
+    "exitCode": 0,
+    "end": 1791977312.1042688
+  },
+  {
+    "name": "browser",
+    "command": ["pnpm", "test:e2e", "--workers=2"],
+    "start": 1791977312.1047072,
+    "status": "passed",
+    "exitCode": 0,
+    "end": 1791977366.0450299
+  }
+]

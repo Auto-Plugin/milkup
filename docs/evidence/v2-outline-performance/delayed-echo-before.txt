@@ -1,0 +1,54 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ plugins/outline/src/plugin.test.ts (21 tests | 1 failed | 20 skipped) 306ms
+   × complete paged outline index > ignores delayed echoes of the last returned slice rather than oscillating between old and prepared ranges 304ms
+     → expected 4 to be 3 // Object.is equality
+   ↓ complete paged outline index > stops following the old active heading immediately and keeps the newest scroll request during storage reads
+   ↓ complete paged outline index > ignores host slice echoes and settles without a render feedback loop
+   ↓ complete paged outline index > indexes every contiguous range, preserves the full hierarchy and does not rescan when navigating
+   ↓ complete paged outline index > folds subtrees across scan boundaries, highlights ancestors and restores a navigated child
+   ↓ complete paged outline index > uses source identity for duplicate titles and rejects stale version actions immediately
+   ↓ complete paged outline index > discards old scans after quick document changes and disposes each temporary index
+   ↓ complete paged outline index > invalidates cached visible ancestors when a later range adds their first child
+   ↓ complete paged outline index > shows a partial index honestly, supports cancellation/retry and does not reuse cancelled identities
+   ↓ complete paged outline index > supports empty documents and reports storage capability or quota failures explicitly
+   ↓ complete paged outline index > does not silently complete after invalidated, truncated or interrupted scans
+   ↓ complete paged outline index > accepts Setext headings starting before the next range and deduplicates overlap by source offset
+   ↓ complete paged outline index > keeps every indexed title available beyond 16384 lines while rendering no more than 500 rows
+   ↓ complete paged outline index > bounds persisted pages for worst-case escaped labels while preserving folds
+   ↓ complete paged outline index > does not accept a delayed old-document navigation as current selection
+   ↓ reports a temporary-index quota failure without presenting a complete or silently empty outline
+   ↓ disposes delayed storage creation on disable without scheduling stale updates
+   ↓ does not highlight a guessed current heading before the active line has been scanned
+   ↓ debounces rapid edits/undo-redo and waits for old temporary-store disposal before indexing the newest version
+   ↓ cancels a debounced startup before allocating a store and can retry normally
+   ↓ reports failed sparse fold writes rather than claiming the folded tree is complete
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  plugins/outline/src/plugin.test.ts > complete paged outline index > ignores delayed echoes of the last returned slice rather than oscillating between old and prepared ranges
+AssertionError: expected 4 to be 3 // Object.is equality
+
+- Expected
++ Received
+
+- 3
++ 4
+
+ ❯ plugins/outline/src/plugin.test.ts:220:49
+    218|     const after = env.requestUpdate.mock.calls.length
+    219|     await new Promise(resolve => setTimeout(resolve, 40))
+    220|     expect(env.requestUpdate.mock.calls.length).toBe(after)
+       |                                                 ^
+    221|     expect(elements(render(), e => e.attributes['data-virtual-list'] =…
+    222|     // A later real scroll back to that old range is still accepted.
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 20 skipped (21)
+   Start at  11:19:43
+   Duration  645ms (transform 97ms, setup 0ms, collect 106ms, tests 306ms, environment 0ms, prepare 52ms)
+

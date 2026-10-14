@@ -192,7 +192,10 @@ try {
     await app.execute('return document.querySelector("#app").dataset.sidebarCollapsed === "true"')
   )
     await click('[data-sidebar-toggle]')
-  await app.until(async () => (await observe()).items.length === 8, 'H1-H6 headings')
+  await app.until(async () => {
+    const outline = await observe()
+    return outline.items.length === 8 && outline.summary?.startsWith('全文索引完成')
+  }, 'complete H1-H6 headings')
   assert.deepEqual(
     (await observe()).tree.map((x) => x.level),
     ['1', '2', '3', '4', '5', '6', '2', '1'],
@@ -250,11 +253,14 @@ try {
   await shot('04-source-edited-saved')
   await app.key('ctrl+2')
   await open(path.join(output, 'other.md'))
-  await app.until(
-    async () =>
-      (await observe()).items.length === 6 && (await observe()).items[0].text === 'Other document',
-    'document switch',
-  )
+  await app.until(async () => {
+    const outline = await observe()
+    return (
+      outline.items.length === 6 &&
+      outline.items[0].text === 'Other document' &&
+      outline.summary?.startsWith('全文索引完成')
+    )
+  }, 'document switch')
   assert.deepEqual(
     (await observe()).tree.map((x) => x.level),
     ['1', '2', '1', '2', '2', '2'],
@@ -350,11 +356,19 @@ try {
       '0',
       '4',
     )
+    let previousMiddleState = '',
+      middleStable = 0
     const middle = await app.until(
-      () =>
-        app.execute(
-          `const list=document.querySelector('[data-virtual-list]'),r=list.getBoundingClientRect();return [...list.querySelectorAll('.plugin-list-item')].map(x=>({text:x.textContent,title:x.title,rect:x.getBoundingClientRect()})).find(x=>/^Heading /.test(x.text)&&x.rect.top>=r.top&&x.rect.bottom<=r.bottom&&Number(x.text.split(' ')[1])>10000&&Number(x.text.split(' ')[1])<35000)?.title`,
-        ),
+      async () => {
+        const state = await app.execute(
+          `const list=document.querySelector('[data-virtual-list]'),r=list.getBoundingClientRect();return {signature:[list.dataset.virtualRevision,list.dataset.virtualStart,list.dataset.virtualEnd,list.scrollTop].join(':'),title:[...list.querySelectorAll('.plugin-list-item')].map(x=>({text:x.textContent,title:x.title,rect:x.getBoundingClientRect()})).find(x=>/^Heading /.test(x.text)&&x.rect.top>=r.top&&x.rect.bottom<=r.bottom&&Number(x.text.split(' ')[1])>10000&&Number(x.text.split(' ')[1])<35000)?.title}`,
+        )
+        // XTest's wheel burst can finish before its final virtual slice arrives.
+        // Select a target only after three unchanged observations, not a transient row.
+        middleStable = state.signature === previousMiddleState ? middleStable + 1 : 0
+        previousMiddleState = state.signature
+        return middleStable >= 3 && state.title
+      },
       'middle virtual wheel navigation',
       30000,
     )
