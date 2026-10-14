@@ -26,10 +26,14 @@ const result = {
   inputMethod: 'Edge WebDriver W3C trusted key actions; not real IME',
   realImeAccepted: false,
   nativeFilePickerAccepted: false,
+  launchMethod:
+    'Direct installed executable with literal file argument; Edge WebDriver attaches over loopback',
+  launches: [],
   cases: [],
 }
-let session, driver, driverError
+let session, driver, driverError, applicationProcess, applicationError
 let driverOutput = ''
+let applicationOutput = ''
 const saveResult = () =>
   writeFile(path.join(evidence, 'installed-smoke.json'), JSON.stringify(result, null, 2))
 const request = async (method, route, body) => {
@@ -52,6 +56,10 @@ async function until(check, label, milliseconds = 25000) {
   const deadline = Date.now() + milliseconds
   while (Date.now() < deadline) {
     if (driverError) throw driverError
+    if (applicationError) throw applicationError
+    if (applicationProcess && applicationProcess.exitCode !== null) {
+      throw Error(`Installed application exited with code ${applicationProcess.exitCode}`)
+    }
     if (await check()) return
     await delay(100)
   }
@@ -76,14 +84,62 @@ const state = () =>
  cursor:Number(document.querySelector('.milkup-cursor')?.dataset.position)};
 `)
 async function open(file) {
+  const launchNumber = result.launches.length + 1
+  const debugPort = 9222 + launchNumber
+  const profile = path.join(work, `webview2-profile-${launchNumber}`)
+  applicationError = undefined
+  applicationProcess = spawn(application, [file], {
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: {
+      ...process.env,
+      TAURI_WEBVIEW_AUTOMATION: 'true',
+      WEBVIEW2_USER_DATA_FOLDER: profile,
+      WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${debugPort} --remote-debugging-address=127.0.0.1`,
+    },
+  })
+  applicationProcess.once('error', (error) => {
+    applicationError = error
+  })
+  for (const stream of [applicationProcess.stdout, applicationProcess.stderr]) {
+    stream.on('data', (chunk) => {
+      if (applicationOutput.length < 2 * 1024 * 1024) applicationOutput += chunk.toString()
+    })
+  }
+  const launch = {
+    pid: applicationProcess.pid,
+    application,
+    args: [file],
+    profile,
+    debugPort,
+    startedAt: new Date().toISOString(),
+  }
+  applicationProcess.once('exit', (code, signal) => {
+    Object.assign(launch, { exitCode: code, signal, exitedAt: new Date().toISOString() })
+  })
+  result.launches.push(launch)
+  await saveResult()
+  await until(
+    async () => {
+      const version = await fetch(`http://127.0.0.1:${debugPort}/json/version`, {
+        signal: AbortSignal.timeout(1000),
+      })
+        .then((response) => (response.ok ? response.json() : null))
+        .catch(() => null)
+      if (!version) return false
+      launch.devTools = version
+      return true
+    },
+    'installed WebView2 startup on loopback',
+    60000,
+  )
   const response = await request('POST', '/session', {
-    // The same Windows capabilities produced by tauri-driver 2.0.5, sent
-    // directly so the native driver's launch diagnostics can be retained.
+    // Microsoft documents attach mode for WebView2 apps. Launching directly
+    // preserves literal application arguments instead of EdgeDriver switches.
     capabilities: {
       alwaysMatch: {
         browserName: 'webview2',
         'ms:edgeChromium': true,
-        'ms:edgeOptions': { binary: application, args: [file] },
+        'ms:edgeOptions': { debuggerAddress: `127.0.0.1:${debugPort}` },
       },
     },
   })
@@ -101,9 +157,23 @@ async function open(file) {
   return { ...p, windowRect: rect, capabilities: response.capabilities }
 }
 async function close() {
-  if (!session) return
-  await request('DELETE', `/session/${session}`)
-  session = undefined
+  try {
+    if (session) await request('DELETE', `/session/${session}`)
+  } finally {
+    session = undefined
+    if (applicationProcess && applicationProcess.exitCode === null) {
+      const owned = applicationProcess
+      const exited = new Promise((resolve) => owned.once('exit', resolve))
+      result.launches.at(-1).stopRequestedByHarness = true
+      owned.kill()
+      await Promise.race([exited, delay(5000)])
+      assert(
+        owned.exitCode !== null || owned.signalCode !== null,
+        'Owned application process stopped',
+      )
+    }
+    applicationProcess = undefined
+  }
 }
 async function savedBytes(file, expected) {
   await until(async () => {
@@ -192,7 +262,7 @@ try {
       )
       await close()
       entry.closeMethod =
-        'WebDriver session deletion after save; not unsaved-close dialog acceptance'
+        'WebDriver detach and owned process stop after full saved-byte checks; not unsaved-close dialog acceptance'
       entry.status = 'passed'
       await saveResult()
     }
@@ -213,5 +283,6 @@ try {
   })
   if (driver && driver.exitCode === null) driver.kill()
   await writeFile(path.join(evidence, 'driver.log'), driverOutput)
+  await writeFile(path.join(evidence, 'application.log'), applicationOutput)
   await saveResult()
 }

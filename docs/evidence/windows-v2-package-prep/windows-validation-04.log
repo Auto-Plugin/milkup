@@ -1,0 +1,1775 @@
+﻿2026-10-14T05:52:37.6119262Z Current runner version: '2.337.0'
+2026-10-14T05:52:37.6142377Z ##[group]Runner Image Provisioner
+2026-10-14T05:52:37.6143052Z Hosted Compute Agent
+2026-10-14T05:52:37.6143538Z Version: 20260901.588
+2026-10-14T05:52:37.6144014Z Commit: f88ec8081b781fac6c440065ac7ff9e710ce3d0b
+2026-10-14T05:52:37.6144628Z Build Date: 2026-09-01T19:56:44Z
+2026-10-14T05:52:37.6145143Z Worker ID: {bd8160aa-fd04-4ebe-aa86-a9b860570e1d}
+2026-10-14T05:52:37.6145668Z Azure Region: westus3
+2026-10-14T05:52:37.6146119Z ##[endgroup]
+2026-10-14T05:52:37.6147221Z ##[group]Operating System
+2026-10-14T05:52:37.6147716Z Microsoft Windows Server 2025
+2026-10-14T05:52:37.6148182Z 10.0.26100
+2026-10-14T05:52:37.6148901Z Datacenter
+2026-10-14T05:52:37.6149330Z ##[endgroup]
+2026-10-14T05:52:37.6149747Z ##[group]Runner Image
+2026-10-14T05:52:37.6150193Z Image: windows-2025-vs2026
+2026-10-14T05:52:37.6150662Z Version: 20260925.250.1
+2026-10-14T05:52:37.6151882Z Included Software: https://github.com/actions/runner-images/blob/win25-vs2026/20260925.250/images/windows/Windows2025-VS2026-Readme.md
+2026-10-14T05:52:37.6153118Z Image Release: https://github.com/actions/runner-images/releases/tag/win25-vs2026%2F20260925.250
+2026-10-14T05:52:37.6153852Z ##[endgroup]
+2026-10-14T05:52:37.6154705Z ##[group]GITHUB_TOKEN Permissions
+2026-10-14T05:52:37.6156198Z Contents: read
+2026-10-14T05:52:37.6156659Z Metadata: read
+2026-10-14T05:52:37.6157102Z ##[endgroup]
+2026-10-14T05:52:37.6158778Z Secret source: Actions
+2026-10-14T05:52:37.6159447Z Cache mode: write
+2026-10-14T05:52:37.6160022Z Prepare workflow directory
+2026-10-14T05:52:37.6515378Z Prepare all required actions
+2026-10-14T05:52:37.6555286Z Getting action download info
+2026-10-14T05:52:37.9390497Z Download action repository 'actions/checkout@11d5960a326750d5838078e36cf38b85af677262' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-10-14T05:52:38.0390191Z Download action repository 'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2026-10-14T05:52:38.4027859Z Complete job name: package
+2026-10-14T05:52:38.5309501Z ##[group]Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+2026-10-14T05:52:38.5310494Z with:
+2026-10-14T05:52:38.5310842Z   ref: f487172895cb993930b0a060356036abde2da6c8
+2026-10-14T05:52:38.5311451Z   fetch-depth: 0
+2026-10-14T05:52:38.5311786Z   persist-credentials: false
+2026-10-14T05:52:38.5312165Z   repository: Auto-Plugin/milkup
+2026-10-14T05:52:38.5315693Z   token: ***
+2026-10-14T05:52:38.5316010Z   ssh-strict: true
+2026-10-14T05:52:38.5316330Z   ssh-user: git
+2026-10-14T05:52:38.5316634Z   clean: true
+2026-10-14T05:52:38.5316956Z   sparse-checkout-cone-mode: true
+2026-10-14T05:52:38.5317332Z   fetch-tags: false
+2026-10-14T05:52:38.5317648Z   show-progress: true
+2026-10-14T05:52:38.5317963Z   lfs: false
+2026-10-14T05:52:38.5318253Z   submodules: false
+2026-10-14T05:52:38.5318574Z   set-safe-directory: true
+2026-10-14T05:52:38.5318945Z   allow-unsafe-pr-checkout: false
+2026-10-14T05:52:38.5319541Z env:
+2026-10-14T05:52:38.5319848Z   CARGO_BUILD_JOBS: 3
+2026-10-14T05:52:38.5320189Z   CARGO_INCREMENTAL: 0
+2026-10-14T05:52:38.5320536Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-14T05:52:38.5320886Z ##[endgroup]
+2026-10-14T05:52:38.6578467Z Syncing repository: Auto-Plugin/milkup
+2026-10-14T05:52:38.6580996Z ##[group]Getting Git version info
+2026-10-14T05:52:38.6582250Z Working directory is 'D:\a\milkup\milkup'
+2026-10-14T05:52:38.7288025Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-10-14T05:52:39.2034054Z git version 2.55.0.windows.5
+2026-10-14T05:52:39.2080489Z ##[endgroup]
+2026-10-14T05:52:39.2100796Z Temporarily overriding HOME='D:\a\_temp\a7404ead-9601-40b5-bd08-753f88b9c7b6' before making global git config changes
+2026-10-14T05:52:39.2102556Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-14T05:52:39.2110974Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\milkup\milkup
+2026-10-14T05:52:39.2731596Z Deleting the contents of 'D:\a\milkup\milkup'
+2026-10-14T05:52:39.2736589Z ##[group]Initializing the repository
+2026-10-14T05:52:39.2744064Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\milkup\milkup
+2026-10-14T05:52:39.3523774Z Initialized empty Git repository in D:/a/milkup/milkup/.git/
+2026-10-14T05:52:39.3565914Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/Auto-Plugin/milkup
+2026-10-14T05:52:39.4163339Z ##[endgroup]
+2026-10-14T05:52:39.4164814Z ##[group]Disabling automatic garbage collection
+2026-10-14T05:52:39.4172324Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+2026-10-14T05:52:39.4430599Z ##[endgroup]
+2026-10-14T05:52:39.4431582Z ##[group]Setting up auth
+2026-10-14T05:52:39.4444338Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-10-14T05:52:39.4687450Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-10-14T05:52:41.7368142Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-14T05:52:41.7624733Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-10-14T05:52:42.1613524Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-14T05:52:42.1868055Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-10-14T05:52:42.5877074Z [command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+2026-10-14T05:52:42.6144063Z ##[endgroup]
+2026-10-14T05:52:42.6146686Z ##[group]Fetching the repository
+2026-10-14T05:52:42.6155245Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+2026-10-14T05:52:46.1214896Z From https://github.com/Auto-Plugin/milkup
+2026-10-14T05:52:46.1215523Z  * [new branch]      charles-lee/refactor  -> origin/charles-lee/refactor
+2026-10-14T05:52:46.1216153Z  * [new branch]      dot/milkup-v2-quality -> origin/dot/milkup-v2-quality
+2026-10-14T05:52:46.1216770Z  * [new branch]      feat-ai               -> origin/feat-ai
+2026-10-14T05:52:46.1217377Z  * [new branch]      feat-ir               -> origin/feat-ir
+2026-10-14T05:52:46.1217799Z  * [new branch]      feat-mi               -> origin/feat-mi
+2026-10-14T05:52:46.1218228Z  * [new branch]      feat-milkupcore       -> origin/feat-milkupcore
+2026-10-14T05:52:46.1218691Z  * [new branch]      feat-vs               -> origin/feat-vs
+2026-10-14T05:52:46.1219201Z  * [new branch]      feat-vs-v2            -> origin/feat-vs-v2
+2026-10-14T05:52:46.1219652Z  * [new branch]      main                  -> origin/main
+2026-10-14T05:52:46.1220026Z  * [new branch]      oco                   -> origin/oco
+2026-10-14T05:52:46.1220324Z  * [new branch]      rookie-orange-patch-1 -> origin/rookie-orange-patch-1
+2026-10-14T05:52:46.1220688Z  * [new branch]      v2                    -> origin/v2
+2026-10-14T05:52:46.1220953Z  * [new tag]         Beta-v0.0.1           -> Beta-v0.0.1
+2026-10-14T05:52:46.1221216Z  * [new tag]         Beta-v0.0.2           -> Beta-v0.0.2
+2026-10-14T05:52:46.1221454Z  * [new tag]         Beta-v0.0.3           -> Beta-v0.0.3
+2026-10-14T05:52:46.1221677Z  * [new tag]         Beta-v0.0.4           -> Beta-v0.0.4
+2026-10-14T05:52:46.1221899Z  * [new tag]         Beta-v0.0.5           -> Beta-v0.0.5
+2026-10-14T05:52:46.1222131Z  * [new tag]         Beta-v0.0.6           -> Beta-v0.0.6
+2026-10-14T05:52:46.1223325Z  * [new tag]         Beta-v0.1.0           -> Beta-v0.1.0
+2026-10-14T05:52:46.1223568Z  * [new tag]         Beta-v0.1.1           -> Beta-v0.1.1
+2026-10-14T05:52:46.1223968Z  * [new tag]         Beta-v0.2.0           -> Beta-v0.2.0
+2026-10-14T05:52:46.1224254Z  * [new tag]         Beta-v0.2.1           -> Beta-v0.2.1
+2026-10-14T05:52:46.1224485Z  * [new tag]         Beta-v0.2.2           -> Beta-v0.2.2
+2026-10-14T05:52:46.1225199Z  * [new tag]         Beta-v0.3.0           -> Beta-v0.3.0
+2026-10-14T05:52:46.1226068Z  * [new tag]         Beta-v0.4.0           -> Beta-v0.4.0
+2026-10-14T05:52:46.1226623Z  * [new tag]         Beta-v0.4.1           -> Beta-v0.4.1
+2026-10-14T05:52:46.1226882Z  * [new tag]         Beta-v0.4.10          -> Beta-v0.4.10
+2026-10-14T05:52:46.1227126Z  * [new tag]         Beta-v0.4.11          -> Beta-v0.4.11
+2026-10-14T05:52:46.1227387Z  * [new tag]         Beta-v0.4.12          -> Beta-v0.4.12
+2026-10-14T05:52:46.1227635Z  * [new tag]         Beta-v0.4.2           -> Beta-v0.4.2
+2026-10-14T05:52:46.1227904Z  * [new tag]         Beta-v0.4.3           -> Beta-v0.4.3
+2026-10-14T05:52:46.1228133Z  * [new tag]         Beta-v0.4.4           -> Beta-v0.4.4
+2026-10-14T05:52:46.1228372Z  * [new tag]         Beta-v0.4.5           -> Beta-v0.4.5
+2026-10-14T05:52:46.1228595Z  * [new tag]         Beta-v0.4.6           -> Beta-v0.4.6
+2026-10-14T05:52:46.1228821Z  * [new tag]         Beta-v0.4.7           -> Beta-v0.4.7
+2026-10-14T05:52:46.1229047Z  * [new tag]         Beta-v0.4.8           -> Beta-v0.4.8
+2026-10-14T05:52:46.1229293Z  * [new tag]         Beta-v0.4.9           -> Beta-v0.4.9
+2026-10-14T05:52:46.1229524Z  * [new tag]         v1.0.0                -> v1.0.0
+2026-10-14T05:52:46.1229762Z  * [new tag]         v1.0.1                -> v1.0.1
+2026-10-14T05:52:46.1229984Z  * [new tag]         v1.0.10               -> v1.0.10
+2026-10-14T05:52:46.1230201Z  * [new tag]         v1.0.11               -> v1.0.11
+2026-10-14T05:52:46.1230407Z  * [new tag]         v1.0.12               -> v1.0.12
+2026-10-14T05:52:46.1231305Z  * [new tag]         v1.0.13               -> v1.0.13
+2026-10-14T05:52:46.1231566Z  * [new tag]         v1.0.14               -> v1.0.14
+2026-10-14T05:52:46.1231802Z  * [new tag]         v1.0.15               -> v1.0.15
+2026-10-14T05:52:46.1232036Z  * [new tag]         v1.0.16               -> v1.0.16
+2026-10-14T05:52:46.1232245Z  * [new tag]         v1.0.17               -> v1.0.17
+2026-10-14T05:52:46.1232455Z  * [new tag]         v1.0.18               -> v1.0.18
+2026-10-14T05:52:46.1232672Z  * [new tag]         v1.0.2                -> v1.0.2
+2026-10-14T05:52:46.1232889Z  * [new tag]         v1.0.3                -> v1.0.3
+2026-10-14T05:52:46.1233094Z  * [new tag]         v1.0.4                -> v1.0.4
+2026-10-14T05:52:46.1233379Z  * [new tag]         v1.0.5                -> v1.0.5
+2026-10-14T05:52:46.1233603Z  * [new tag]         v1.0.6                -> v1.0.6
+2026-10-14T05:52:46.1233817Z  * [new tag]         v1.0.7                -> v1.0.7
+2026-10-14T05:52:46.1234064Z  * [new tag]         v1.0.8                -> v1.0.8
+2026-10-14T05:52:46.1234272Z  * [new tag]         v1.0.9                -> v1.0.9
+2026-10-14T05:52:46.1265938Z [command]"C:\Program Files\Git\bin\git.exe" rev-parse --verify --quiet f487172895cb993930b0a060356036abde2da6c8^{object}
+2026-10-14T05:52:46.1499456Z f487172895cb993930b0a060356036abde2da6c8
+2026-10-14T05:52:46.1529767Z ##[endgroup]
+2026-10-14T05:52:46.1530589Z ##[group]Determining the checkout info
+2026-10-14T05:52:46.1531585Z ##[endgroup]
+2026-10-14T05:52:46.1540188Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+2026-10-14T05:52:46.1920843Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+2026-10-14T05:52:46.2166282Z ##[group]Checking out the ref
+2026-10-14T05:52:46.2166808Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force f487172895cb993930b0a060356036abde2da6c8
+2026-10-14T05:52:47.2630502Z Updating files:  87% (3721/4261)
+2026-10-14T05:52:47.2741387Z Updating files:  88% (3750/4261)
+2026-10-14T05:52:47.2828747Z Updating files:  89% (3793/4261)
+2026-10-14T05:52:47.2915466Z Updating files:  90% (3835/4261)
+2026-10-14T05:52:47.3012399Z Updating files:  91% (3878/4261)
+2026-10-14T05:52:47.3104110Z Updating files:  92% (3921/4261)
+2026-10-14T05:52:47.3190235Z Updating files:  93% (3963/4261)
+2026-10-14T05:52:47.3270899Z Updating files:  94% (4006/4261)
+2026-10-14T05:52:47.3357004Z Updating files:  95% (4048/4261)
+2026-10-14T05:52:47.6959960Z Updating files:  96% (4091/4261)
+2026-10-14T05:52:47.7066709Z Updating files:  97% (4134/4261)
+2026-10-14T05:52:47.7165237Z Updating files:  98% (4176/4261)
+2026-10-14T05:52:47.7270293Z Updating files:  99% (4219/4261)
+2026-10-14T05:52:47.7270575Z Updating files: 100% (4261/4261)
+2026-10-14T05:52:47.7270864Z Updating files: 100% (4261/4261), done.
+2026-10-14T05:52:47.7392705Z Note: switching to 'f487172895cb993930b0a060356036abde2da6c8'.
+2026-10-14T05:52:47.7393017Z 
+2026-10-14T05:52:47.7393187Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-14T05:52:47.7393544Z changes and commit them, and you can discard any commits you make in this
+2026-10-14T05:52:47.7393888Z state without impacting any branches by switching back to a branch.
+2026-10-14T05:52:47.7394099Z 
+2026-10-14T05:52:47.7394233Z If you want to create a new branch to retain commits you create, you may
+2026-10-14T05:52:47.7394577Z do so (now or later) by using -c with the switch command. Example:
+2026-10-14T05:52:47.7394779Z 
+2026-10-14T05:52:47.7394924Z   git switch -c <new-branch-name>
+2026-10-14T05:52:47.7395056Z 
+2026-10-14T05:52:47.7395133Z Or undo this operation with:
+2026-10-14T05:52:47.7395253Z 
+2026-10-14T05:52:47.7395321Z   git switch -
+2026-10-14T05:52:47.7395584Z 
+2026-10-14T05:52:47.7396389Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-14T05:52:47.7396633Z 
+2026-10-14T05:52:47.7559431Z HEAD is now at f487172 test: capture native WebView2 startup diagnostics [windows-v2-test-package]
+2026-10-14T05:52:47.7723444Z ##[endgroup]
+2026-10-14T05:52:47.8084333Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+2026-10-14T05:52:47.8308235Z f487172895cb993930b0a060356036abde2da6c8
+2026-10-14T05:52:47.8345921Z ##[group]Removing auth
+2026-10-14T05:52:47.8355127Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-10-14T05:52:47.8597425Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-10-14T05:52:48.2789498Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-14T05:52:48.2994606Z http.https://github.com/.extraheader
+2026-10-14T05:52:48.3029178Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all http.https://github.com/.extraheader
+2026-10-14T05:52:48.3277686Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-10-14T05:52:48.7738819Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-14T05:52:48.8006537Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-10-14T05:52:49.2454589Z ##[endgroup]
+2026-10-14T05:52:49.2756959Z ##[group]Run $ErrorActionPreference = 'Stop'
+2026-10-14T05:52:49.2757349Z [36;1m$ErrorActionPreference = 'Stop'[0m
+2026-10-14T05:52:49.2757778Z [36;1m$request = Get-Content scripts/ci/windows-v2-package-request.json -Raw | ConvertFrom-Json[0m
+2026-10-14T05:52:49.2758267Z [36;1mif ($request.enabled -ne $true -or $request.publicArtifactsAccepted -ne $true -or[0m
+2026-10-14T05:52:49.2758858Z [36;1m    $request.unsignedTestPackageAccepted -ne $true -or[0m
+2026-10-14T05:52:49.2759189Z [36;1m    $request.deliveryMode -ne 'validation-only-no-artifacts') {[0m
+2026-10-14T05:52:49.2759561Z [36;1m  throw 'Validation request is not approved; no build is authorized.'[0m
+2026-10-14T05:52:49.2759845Z [36;1m}[0m
+2026-10-14T05:52:49.2760176Z [36;1mif ($request.baselineSha -ne 'a73131e4b46f88fa85f2f59f1c4ae3f75d16d778') { throw 'Unexpected baseline' }[0m
+2026-10-14T05:52:49.2760690Z [36;1mif ((git rev-parse HEAD).Trim() -ne $env:GITHUB_SHA) { throw 'Checkout SHA mismatch' }[0m
+2026-10-14T05:52:49.2761061Z [36;1mgit merge-base --is-ancestor $request.baselineSha HEAD[0m
+2026-10-14T05:52:49.2761427Z [36;1mif ($LASTEXITCODE -ne 0) { throw 'Source does not descend from the reviewed baseline' }[0m
+2026-10-14T05:52:49.2761777Z [36;1mif (git status --porcelain) { throw 'Dirty checkout' }[0m
+2026-10-14T05:52:49.2762116Z [36;1m"MILKUP_PACKAGE_OUTPUT=$env:RUNNER_TEMP\milkup-v2-package" >> $env:GITHUB_ENV[0m
+2026-10-14T05:52:49.2762437Z [36;1m'approved=true' >> $env:GITHUB_OUTPUT[0m
+2026-10-14T05:52:49.4957417Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-14T05:52:49.4957703Z env:
+2026-10-14T05:52:49.4957856Z   CARGO_BUILD_JOBS: 3
+2026-10-14T05:52:49.4958017Z   CARGO_INCREMENTAL: 0
+2026-10-14T05:52:49.4958179Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-14T05:52:49.4958352Z ##[endgroup]
+2026-10-14T05:52:50.2712642Z ##[group]Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+2026-10-14T05:52:50.2713000Z with:
+2026-10-14T05:52:50.2713161Z   node-version: 24.19.0
+2026-10-14T05:52:50.2713332Z   always-auth: false
+2026-10-14T05:52:50.2713491Z   check-latest: false
+2026-10-14T05:52:50.2715604Z   token: ***
+2026-10-14T05:52:50.2715755Z env:
+2026-10-14T05:52:50.2715887Z   CARGO_BUILD_JOBS: 3
+2026-10-14T05:52:50.2716051Z   CARGO_INCREMENTAL: 0
+2026-10-14T05:52:50.2716229Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-14T05:52:50.2716452Z   MILKUP_PACKAGE_OUTPUT: D:\a\_temp\milkup-v2-package
+2026-10-14T05:52:50.2716684Z ##[endgroup]
+2026-10-14T05:52:50.4032495Z Attempting to download 24.19.0...
+2026-10-14T05:52:50.4200185Z (node:936) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-14T05:52:50.4201277Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-14T05:52:51.4030174Z Acquiring 24.19.0 - x64 from https://github.com/actions/node-versions/releases/download/24.19.0-30872449280/node-24.19.0-win32-x64.7z
+2026-10-14T05:52:51.8623489Z Extracting ...
+2026-10-14T05:52:53.8970528Z Adding to the cache ...
+2026-10-14T05:52:58.3967151Z ##[group]Environment details
+2026-10-14T05:53:00.5082404Z node: v24.19.0
+2026-10-14T05:53:00.5082614Z npm: 11.17.0
+2026-10-14T05:53:00.5082768Z yarn: 1.22.22
+2026-10-14T05:53:00.5083434Z ##[endgroup]
+2026-10-14T05:53:00.5340081Z ##[group]Run $ErrorActionPreference = 'Stop'
+2026-10-14T05:53:00.5340444Z [36;1m$ErrorActionPreference = 'Stop'[0m
+2026-10-14T05:53:00.5340717Z [36;1mnpm install --global pnpm@11.7.0 --ignore-scripts[0m
+2026-10-14T05:53:00.5341029Z [36;1mif ($LASTEXITCODE -ne 0) { throw 'pnpm install failed' }[0m
+2026-10-14T05:53:00.5341384Z [36;1mrustup toolchain install 1.99.0 --profile minimal --component rustfmt[0m
+2026-10-14T05:53:00.5341758Z [36;1mif ($LASTEXITCODE -ne 0) { throw 'Rust toolchain install failed' }[0m
+2026-10-14T05:53:00.5342065Z [36;1m'RUSTUP_TOOLCHAIN=1.99.0' >> $env:GITHUB_ENV[0m
+2026-10-14T05:53:00.5402369Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-14T05:53:00.5402652Z env:
+2026-10-14T05:53:00.5402802Z   CARGO_BUILD_JOBS: 3
+2026-10-14T05:53:00.5402958Z   CARGO_INCREMENTAL: 0
+2026-10-14T05:53:00.5403119Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-14T05:53:00.5403334Z   MILKUP_PACKAGE_OUTPUT: D:\a\_temp\milkup-v2-package
+2026-10-14T05:53:00.5403616Z ##[endgroup]
+2026-10-14T05:53:11.9035558Z 
+2026-10-14T05:53:11.9042325Z added 1 package in 11s
+2026-10-14T05:53:11.9042615Z 
+2026-10-14T05:53:11.9042820Z 1 package is looking for funding
+2026-10-14T05:53:11.9043219Z   run `npm fund` for details
+2026-10-14T05:53:19.0495899Z info: syncing channel updates for 1.99.0-x86_64-pc-windows-msvc
+2026-10-14T05:53:20.3635837Z info: latest update on 2026-10-01 for version 1.99.0 (b940084d7 2026-09-28)
+2026-10-14T05:53:20.3745260Z info: downloading 4 components
+2026-10-14T05:53:28.9504053Z 
+2026-10-14T05:53:28.9771166Z   1.99.0-x86_64-pc-windows-msvc installed - rustc 1.99.0 (b940084d7 2026-09-28)
+2026-10-14T05:53:28.9771623Z 
+2026-10-14T05:53:29.0176556Z ##[group]Run ./scripts/ci/build-windows-v2-package.ps1 -OutputDirectory $env:MILKUP_PACKAGE_OUTPUT -ExpectedCommit $env:GITHUB_SHA
+2026-10-14T05:53:29.0177354Z [36;1m./scripts/ci/build-windows-v2-package.ps1 -OutputDirectory $env:MILKUP_PACKAGE_OUTPUT -ExpectedCommit $env:GITHUB_SHA[0m
+2026-10-14T05:53:29.0231906Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-14T05:53:29.0232191Z env:
+2026-10-14T05:53:29.0232351Z   CARGO_BUILD_JOBS: 3
+2026-10-14T05:53:29.0232529Z   CARGO_INCREMENTAL: 0
+2026-10-14T05:53:29.0232697Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-14T05:53:29.0232917Z   MILKUP_PACKAGE_OUTPUT: D:\a\_temp\milkup-v2-package
+2026-10-14T05:53:29.0233160Z   RUSTUP_TOOLCHAIN: 1.99.0
+2026-10-14T05:53:29.0233335Z ##[endgroup]
+2026-10-14T05:53:33.3440725Z Scope: all 15 workspace projects
+2026-10-14T05:53:33.3963130Z ? Verifying lockfile against supply-chain policies (165 entries)...
+2026-10-14T05:53:33.4052196Z Lockfile is up to date, resolution step is skipped
+2026-10-14T05:53:33.5008844Z Progress: resolved 1, reused 0, downloaded 0, added 0
+2026-10-14T05:53:33.5183361Z Packages: +105
+2026-10-14T05:53:33.5202852Z ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+2026-10-14T05:53:34.5043769Z Progress: resolved 105, reused 0, downloaded 59, added 8
+2026-10-14T05:53:35.4486592Z ✓ Lockfile passes supply-chain policies (165 entries in 2s)
+2026-10-14T05:53:35.5044874Z Progress: resolved 105, reused 0, downloaded 104, added 76
+2026-10-14T05:53:36.5115719Z Progress: resolved 105, reused 0, downloaded 105, added 104
+2026-10-14T05:53:36.6506960Z Progress: resolved 105, reused 0, downloaded 105, added 105, done
+2026-10-14T05:53:36.7598710Z .../esbuild@0.28.1/node_modules/esbuild postinstall$ node install.js
+2026-10-14T05:53:36.8906812Z .../esbuild@0.28.1/node_modules/esbuild postinstall: Done
+2026-10-14T05:53:36.9320479Z [WARN] Failed to create bin at D:\a\milkup\milkup\packages\plugin\node_modules\.bin\milkup-mcp. ENOENT: no such file or directory, stat 'D:\a\milkup\milkup\packages\mcp\dist\bin\milkup-mcp.js.EXE'
+2026-10-14T05:53:36.9780271Z 
+2026-10-14T05:53:36.9780841Z devDependencies:
+2026-10-14T05:53:36.9781206Z + @playwright/test 1.61.1
+2026-10-14T05:53:36.9781531Z + @types/node 24.13.2
+2026-10-14T05:53:36.9782005Z + prettier 3.9.4
+2026-10-14T05:53:36.9782308Z + typescript 5.9.3
+2026-10-14T05:53:36.9782627Z + vite 7.3.6
+2026-10-14T05:53:36.9782851Z + vitest 3.2.6
+2026-10-14T05:53:36.9782992Z 
+2026-10-14T05:53:37.0333443Z [WARN] Failed to create bin at D:\a\milkup\milkup\packages\plugin\node_modules\.bin\milkup-mcp. ENOENT: no such file or directory, stat 'D:\a\milkup\milkup\packages\plugin\node_modules\@milkup\mcp\dist\bin\milkup-mcp.js.EXE'
+2026-10-14T05:53:37.0813199Z Done in 4.1s using pnpm v11.7.0
+2026-10-14T05:53:38.1127404Z Scope: 14 of 15 workspace projects
+2026-10-14T05:53:38.1186301Z ##[group]@milkup/assets@0.0.0 : test packages\assets
+2026-10-14T05:53:38.1188250Z $ vitest run
+2026-10-14T05:53:38.5836501Z 
+2026-10-14T05:53:38.5838899Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/milkup/milkup/packages/assets[39m
+2026-10-14T05:53:38.5839314Z 
+2026-10-14T05:53:38.8713152Z  [32m✓[39m src/provider.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+2026-10-14T05:53:38.8813669Z 
+2026-10-14T05:53:38.8818670Z [2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+2026-10-14T05:53:38.8819463Z [2m      Tests [22m [1m[32m6 passed[39m[22m[90m (6)[39m
+2026-10-14T05:53:38.8819804Z [2m   Start at [22m 05:53:38
+2026-10-14T05:53:38.8821590Z [2m   Duration [22m 297ms[2m (transform 41ms, setup 0ms, collect 42ms, tests 6ms, environment 0ms, prepare 84ms)[22m
+2026-10-14T05:53:38.8822334Z 
+2026-10-14T05:53:38.9966868Z ##[endgroup]
+2026-10-14T05:53:38.9971224Z ##[group]@milkup/core@0.0.0 : test packages\core
+2026-10-14T05:53:38.9971755Z $ vitest run
+2026-10-14T05:53:39.3978021Z 
+2026-10-14T05:53:39.3982149Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/milkup/milkup/packages/core[39m
+2026-10-14T05:53:39.3982592Z 
+2026-10-14T05:53:39.8587429Z  [32m✓[39m src/__tests__/store-search.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+2026-10-14T05:53:39.8588625Z  [32m✓[39m src/__tests__/large-edit-session.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-14T05:53:40.1502669Z  [32m✓[39m src/__tests__/editor-history.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+2026-10-14T05:53:40.1958413Z  [32m✓[39m src/__tests__/action-registry.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+2026-10-14T05:53:40.4398902Z  [32m✓[39m src/__tests__/document-store.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+2026-10-14T05:53:40.4920462Z  [32m✓[39m src/__tests__/memory-text-document.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-14T05:53:40.7140693Z  [32m✓[39m src/__tests__/large-file-policy.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+2026-10-14T05:53:40.7479392Z  [32m✓[39m src/__tests__/literal-search.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+2026-10-14T05:53:40.9884976Z  [32m✓[39m src/__tests__/editor-document-source.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+2026-10-14T05:53:41.0523076Z  [32m✓[39m src/__tests__/large-document.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 1212[2mms[22m[39m
+2026-10-14T05:53:41.0524801Z    [33m[2m✓[22m[39m large document contracts[2m > [22msearches a virtual 100 MiB synthetic Markdown document through line windows [33m 877[2mms[22m[39m
+2026-10-14T05:53:41.0719033Z 
+2026-10-14T05:53:41.0739514Z [2m Test Files [22m [1m[32m10 passed[39m[22m[90m (10)[39m
+2026-10-14T05:53:41.0741109Z [2m      Tests [22m [1m[32m79 passed[39m[22m[90m (79)[39m
+2026-10-14T05:53:41.0742217Z [2m   Start at [22m 05:53:39
+2026-10-14T05:53:41.0743966Z [2m   Duration [22m 1.67s[2m (transform 240ms, setup 0ms, collect 796ms, tests 1.29s, environment 2ms, prepare 925ms)[22m
+2026-10-14T05:53:41.0744504Z 
+2026-10-14T05:53:41.1970541Z ##[endgroup]
+2026-10-14T05:53:41.1974030Z ##[group]@milkup/input@0.0.0 : test packages\input
+2026-10-14T05:53:41.1974850Z $ vitest run
+2026-10-14T05:53:41.5943637Z 
+2026-10-14T05:53:41.5945879Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/milkup/milkup/packages/input[39m
+2026-10-14T05:53:41.5946375Z 
+2026-10-14T05:53:42.3711535Z  [32m✓[39m src/paste.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+2026-10-14T05:53:42.3985217Z 
+2026-10-14T05:53:42.3989132Z [2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+2026-10-14T05:53:42.3989861Z [2m      Tests [22m [1m[32m8 passed[39m[22m[90m (8)[39m
+2026-10-14T05:53:42.3990626Z [2m   Start at [22m 05:53:41
+2026-10-14T05:53:42.4004353Z [2m   Duration [22m 803ms[2m (transform 41ms, setup 0ms, collect 42ms, tests 22ms, environment 489ms, prepare 82ms)[22m
+2026-10-14T05:53:42.4004989Z 
+2026-10-14T05:53:42.5119417Z ##[endgroup]
+2026-10-14T05:53:42.5123332Z $ vitest run
+2026-10-14T05:53:42.5123802Z ##[group]@milkup/markdown@0.0.0 : test packages\markdown
+2026-10-14T05:53:42.9064613Z 
+2026-10-14T05:53:42.9066391Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/milkup/milkup/packages/markdown[39m
+2026-10-14T05:53:42.9066984Z 
+2026-10-14T05:53:43.3367437Z  [32m✓[39m src/__tests__/window-parser.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-14T05:53:43.3381118Z  [32m✓[39m src/__tests__/inline-parser.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-14T05:53:43.3402550Z  [32m✓[39m src/__tests__/block-parser.test.ts [2m([22m[2m22 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-14T05:53:43.6424210Z  [32m✓[39m src/__tests__/incremental-parser.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-14T05:53:43.6426951Z  [32m✓[39m src/__tests__/plugin-syntax.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-14T05:53:43.6452270Z  [32m✓[39m src/__tests__/ast-stringify.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+2026-10-14T05:53:43.9108935Z  [32m✓[39m src/__tests__/extension-safety.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+2026-10-14T05:53:43.9110050Z  [32m✓[39m src/__tests__/table-boundaries.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-14T05:53:43.9260061Z 
+2026-10-14T05:53:43.9261772Z [2m Test Files [22m [1m[32m8 passed[39m[22m[90m (8)[39m
+2026-10-14T05:53:43.9263048Z [2m      Tests [22m [1m[32m59 passed[39m[22m[90m (59)[39m
+2026-10-14T05:53:43.9269555Z [2m   Start at [22m 05:53:42
+2026-10-14T05:53:43.9281936Z [2m   Duration [22m 1.02s[2m (transform 237ms, setup 0ms, collect 653ms, tests 89ms, environment 1ms, prepare 763ms)[22m
+2026-10-14T05:53:43.9309684Z 
+2026-10-14T05:53:44.0580805Z ##[endgroup]
+2026-10-14T05:53:44.0584897Z ##[group]@milkup/export@0.0.0 : test packages\export
+2026-10-14T05:53:44.0585373Z $ vitest run
+2026-10-14T05:53:44.4528608Z 
+2026-10-14T05:53:44.4530239Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/milkup/milkup/packages/export[39m
+2026-10-14T05:53:44.4530565Z 
+2026-10-14T05:53:44.8922977Z  [32m✓[39m src/browser-print-pdf.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-14T05:53:44.8942168Z  [32m✓[39m src/clipboard.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-14T05:53:44.8994805Z  [32m✓[39m src/scoped-export.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-14T05:53:44.9313961Z 
+2026-10-14T05:53:44.9341617Z [2m Test Files [22m [1m[32m3 passed[39m[22m[90m (3)[39m
+2026-10-14T05:53:44.9376774Z [2m      Tests [22m [1m[32m18 passed[39m[22m[90m (18)[39m
+2026-10-14T05:53:44.9380705Z [2m   Start at [22m 05:53:44
+2026-10-14T05:53:44.9383429Z [2m   Duration [22m 477ms[2m (transform 236ms, setup 0ms, collect 533ms, tests 31ms, environment 0ms, prepare 302ms)[22m
+2026-10-14T05:53:44.9385727Z 
+2026-10-14T05:53:45.0786775Z ##[endgroup]
+2026-10-14T05:53:45.0790556Z $ vitest run
+2026-10-14T05:53:45.0791181Z ##[group]@milkup/mcp@0.0.0 : test packages\mcp
+2026-10-14T05:53:45.4748185Z 
+2026-10-14T05:53:45.4750078Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/milkup/milkup/packages/mcp[39m
+2026-10-14T05:53:45.4750409Z 
+2026-10-14T05:53:45.9022728Z  [32m✓[39m src/projection.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-14T05:53:45.9148818Z  [32m✓[39m src/server.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+2026-10-14T05:53:45.9365035Z 
+2026-10-14T05:53:45.9372666Z [2m Test Files [22m [1m[32m2 passed[39m[22m[90m (2)[39m
+2026-10-14T05:53:45.9374000Z [2m      Tests [22m [1m[32m11 passed[39m[22m[90m (11)[39m
+2026-10-14T05:53:45.9413426Z [2m   Start at [22m 05:53:45
+2026-10-14T05:53:45.9416128Z [2m   Duration [22m 457ms[2m (transform 166ms, setup 0ms, collect 354ms, tests 34ms, environment 0ms, prepare 182ms)[22m
+2026-10-14T05:53:45.9416850Z 
+2026-10-14T05:53:46.0568109Z ##[endgroup]
+2026-10-14T05:53:46.0571869Z $ vitest run
+2026-10-14T05:53:46.0572508Z ##[group]@milkup/plugin-sdk@0.0.0 : test packages\plugin-sdk
+2026-10-14T05:53:46.4655284Z 
+2026-10-14T05:53:46.4657592Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/milkup/milkup/packages/plugin-sdk[39m
+2026-10-14T05:53:46.4658084Z 
+2026-10-14T05:53:46.8681609Z  [32m✓[39m src/index.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+2026-10-14T05:53:46.8938716Z 
+2026-10-14T05:53:46.8956015Z [2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+2026-10-14T05:53:46.8956711Z [2m      Tests [22m [1m[32m5 passed[39m[22m[90m (5)[39m
+2026-10-14T05:53:46.8957209Z [2m   Start at [22m 05:53:46
+2026-10-14T05:53:46.8958314Z [2m   Duration [22m 428ms[2m (transform 118ms, setup 0ms, collect 168ms, tests 5ms, environment 0ms, prepare 79ms)[22m
+2026-10-14T05:53:46.8959892Z 
+2026-10-14T05:53:47.0111526Z ##[endgroup]
+2026-10-14T05:53:47.0115342Z $ vitest run
+2026-10-14T05:53:47.0115960Z ##[group]@milkup/tauri-bridge@0.0.0 : test packages\tauri-bridge
+2026-10-14T05:53:47.4299116Z 
+2026-10-14T05:53:47.4300904Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/milkup/milkup/packages/tauri-bridge[39m
+2026-10-14T05:53:47.4301393Z 
+2026-10-14T05:53:47.9044588Z  [32m✓[39m src/file/file-watcher.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+2026-10-14T05:53:47.9077620Z  [32m✓[39m src/session/document-session.test.ts [2m([22m[2m22 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-14T05:53:47.9373418Z  [32m✓[39m src/session/v1-file-workflow-regressions.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+2026-10-14T05:53:48.1972557Z  [32m✓[39m src/file/line-ending.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+2026-10-14T05:53:48.1974260Z  [32m✓[39m src/session/close-protection.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+2026-10-14T05:53:48.2301344Z  [32m✓[39m src/file/recent-files.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+2026-10-14T05:53:48.4731901Z  [32m✓[39m src/file/file-actions.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+2026-10-14T05:53:48.4929552Z  [32m✓[39m src/session/save-safety.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+2026-10-14T05:53:48.5299740Z  [32m✓[39m src/file/reveal-target.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+2026-10-14T05:53:48.5584031Z 
+2026-10-14T05:53:48.5653287Z [2m Test Files [22m [1m[32m9 passed[39m[22m[90m (9)[39m
+2026-10-14T05:53:48.5654628Z [2m      Tests [22m [1m[32m55 passed[39m[22m[90m (55)[39m
+2026-10-14T05:53:48.5655298Z [2m   Start at [22m 05:53:47
+2026-10-14T05:53:48.5656313Z [2m   Duration [22m 1.12s[2m (transform 274ms, setup 0ms, collect 840ms, tests 46ms, environment 2ms, prepare 922ms)[22m
+2026-10-14T05:53:48.5656991Z 
+2026-10-14T05:53:48.8022411Z ##[endgroup]
+2026-10-14T05:53:48.8027130Z ##[group]@milkup/view-dom@0.0.0 : test packages\view-dom
+2026-10-14T05:53:48.8027645Z $ vitest run
+2026-10-14T05:53:49.3222108Z 
+2026-10-14T05:53:49.3224298Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/milkup/milkup/packages/view-dom[39m
+2026-10-14T05:53:49.3225007Z 
+2026-10-14T05:53:51.7129319Z  [32m✓[39m src/__tests__/table-keyboard.test.ts [2m([22m[2m27 tests[22m[2m)[22m[33m 516[2mms[22m[39m
+2026-10-14T05:53:52.6404200Z  [32m✓[39m src/__tests__/source-document-view.test.ts [2m([22m[2m62 tests[22m[2m)[22m[33m 1459[2mms[22m[39m
+2026-10-14T05:53:53.6267519Z  [32m✓[39m src/__tests__/source-scroll-limits.test.ts [2m([22m[2m13 tests[22m[2m)[22m[33m 570[2mms[22m[39m
+2026-10-14T05:53:54.3085529Z  [32m✓[39m src/__tests__/block-keyboard.test.ts [2m([22m[2m37 tests[22m[2m)[22m[33m 337[2mms[22m[39m
+2026-10-14T05:53:54.7202297Z  [32m✓[39m src/__tests__/editor-view.test.ts [2m([22m[2m121 tests[22m[2m)[22m[33m 3532[2mms[22m[39m
+2026-10-14T05:53:54.7203992Z    [33m[2m✓[22m[39m EditorView[2m > [22mkeeps docs/coding-plan.md live interactions bounded to affected lines [33m 2710[2mms[22m[39m
+2026-10-14T05:53:55.6154011Z  [32m✓[39m src/__tests__/async-paste-unicode.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 154[2mms[22m[39m
+2026-10-14T05:53:56.4591121Z  [32m✓[39m src/__tests__/windowed-table.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 1751[2mms[22m[39m
+2026-10-14T05:53:56.4601761Z    [33m[2m✓[22m[39m recovers the full table across viewport boundaries without rendering every row [33m 364[2mms[22m[39m
+2026-10-14T05:53:56.4613493Z    [33m[2m✓[22m[39m keeps Unicode, escaped pipes, visual breaks and complete-column history atomic [33m 646[2mms[22m[39m
+2026-10-14T05:53:56.6897923Z  [32m✓[39m src/__tests__/source-unicode.test.ts [2m([22m[2m33 tests[22m[2m)[22m[33m 822[2mms[22m[39m
+2026-10-14T05:53:56.8378107Z  [32m✓[39m src/__tests__/view-benchmark.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 2[2mms[22m[39m
+2026-10-14T05:53:57.5460843Z  [32m✓[39m src/__tests__/plugin-renderer.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+2026-10-14T05:53:57.9771994Z  [32m✓[39m src/__tests__/input-boundaries.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 235[2mms[22m[39m
+2026-10-14T05:53:58.0265943Z  [32m✓[39m src/__tests__/table-cursor.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 171[2mms[22m[39m
+2026-10-14T05:53:58.4500343Z  [32m✓[39m src/__tests__/measured-line-heights.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 2[2mms[22m[39m
+2026-10-14T05:53:58.4686498Z 
+2026-10-14T05:53:58.4696637Z [2m Test Files [22m [1m[32m13 passed[39m[22m[90m (13)[39m
+2026-10-14T05:53:58.4703079Z [2m      Tests [22m [1m[32m330 passed[39m[22m[90m (330)[39m
+2026-10-14T05:53:58.4703865Z [2m   Start at [22m 05:53:49
+2026-10-14T05:53:58.4705466Z [2m   Duration [22m 9.15s[2m (transform 711ms, setup 0ms, collect 3.27s, tests 9.58s, environment 9.67s, prepare 1.47s)[22m
+2026-10-14T05:53:58.4706213Z 
+2026-10-14T05:53:58.6020728Z ##[endgroup]
+2026-10-14T05:53:58.6024964Z ##[group]@milkup/plugin@0.0.0 : test packages\plugin
+2026-10-14T05:53:58.6025510Z $ vitest run
+2026-10-14T05:53:59.0287971Z 
+2026-10-14T05:53:59.0290093Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/milkup/milkup/packages/plugin[39m
+2026-10-14T05:53:59.0290392Z 
+2026-10-14T05:53:59.4575481Z  [32m✓[39m src/manifest.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-14T05:53:59.6946071Z  [32m✓[39m src/runtime.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 40[2mms[22m[39m
+2026-10-14T05:53:59.7952864Z  [32m✓[39m src/isolation-worker.test.ts [2m([22m[2m16 tests[22m[2m)[22m[32m 37[2mms[22m[39m
+2026-10-14T05:53:59.8223708Z  [32m✓[39m src/isolation-module-host.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+2026-10-14T05:54:00.0835576Z  [32m✓[39m src/isolation.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-14T05:54:00.1523369Z  [32m✓[39m src/filesystem-broker.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+2026-10-14T05:54:00.1720188Z  [32m✓[39m src/isolation-rpc.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+2026-10-14T05:54:00.4237405Z  [32m✓[39m src/document-broker.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+2026-10-14T05:54:00.4986386Z  [32m✓[39m src/isolation-sidecar.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+2026-10-14T05:54:00.5158989Z  [32m✓[39m src/loader.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+2026-10-14T05:54:00.7355668Z  [32m✓[39m src/registry.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+2026-10-14T05:54:00.8108906Z  [32m✓[39m src/network-broker.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+2026-10-14T05:54:00.8207809Z  [32m✓[39m src/storage-broker.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+2026-10-14T05:54:01.0247344Z  [32m✓[39m src/document-rpc.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 9[2mms[22m[39m
+2026-10-14T05:54:01.0845430Z  [32m✓[39m src/package.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+2026-10-14T05:54:01.0992271Z 
+2026-10-14T05:54:01.0993887Z [2m Test Files [22m [1m[32m15 passed[39m[22m[90m (15)[39m
+2026-10-14T05:54:01.0994893Z [2m      Tests [22m [1m[32m104 passed[39m[22m[90m (104)[39m
+2026-10-14T05:54:01.0996292Z [2m   Start at [22m 05:53:59
+2026-10-14T05:54:01.1026172Z [2m   Duration [22m 2.07s[2m (transform 662ms, setup 0ms, collect 1.50s, tests 261ms, environment 3ms, prepare 1.59s)[22m
+2026-10-14T05:54:01.1100448Z 
+2026-10-14T05:54:01.2251600Z ##[endgroup]
+2026-10-14T05:54:01.2256342Z ##[group]@milkup/regressions@0.0.0 : test tests\regressions
+2026-10-14T05:54:01.2256739Z $ vitest run
+2026-10-14T05:54:01.6447291Z 
+2026-10-14T05:54:01.6449158Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/milkup/milkup/tests/regressions[39m
+2026-10-14T05:54:01.6449477Z 
+2026-10-14T05:54:02.8762928Z  [32m✓[39m v1/file-watcher-conflict.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
+2026-10-14T05:54:02.8768583Z  [32m✓[39m v1/dirty-state-open-save.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
+2026-10-14T05:54:03.3943855Z  [32m✓[39m v1/cursor-scroll-code-block.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 74[2mms[22m[39m
+2026-10-14T05:54:04.0221824Z  [32m✓[39m v1/history-mode-switch.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 72[2mms[22m[39m
+2026-10-14T05:54:04.0231048Z  [32m✓[39m v1/paste-ai-output.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 70[2mms[22m[39m
+2026-10-14T05:54:04.4778098Z  [32m✓[39m v1/ime-windows-chinese.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 53[2mms[22m[39m
+2026-10-14T05:54:05.0377812Z  [32m✓[39m policy/regression-policy.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+2026-10-14T05:54:05.0996948Z  [32m✓[39m v1/active-document-export.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-14T05:54:05.6160627Z  [32m✓[39m v1/table-mode-switch-data-loss.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 81[2mms[22m[39m
+2026-10-14T05:54:06.0712437Z  [32m✓[39m v1/renderer-error-boundary.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
+2026-10-14T05:54:06.1318335Z  [32m✓[39m v1/history-code-block.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 51[2mms[22m[39m
+2026-10-14T05:54:06.5814785Z  [32m✓[39m v1/paste-code-block-blank-lines.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 42[2mms[22m[39m
+2026-10-14T05:54:06.6033687Z 
+2026-10-14T05:54:06.6035085Z [2m Test Files [22m [1m[32m12 passed[39m[22m[90m (12)[39m
+2026-10-14T05:54:06.6035858Z [2m      Tests [22m [1m[32m12 passed[39m[22m[90m (12)[39m
+2026-10-14T05:54:06.6036365Z [2m   Start at [22m 05:54:01
+2026-10-14T05:54:06.6037328Z [2m   Duration [22m 4.96s[2m (transform 635ms, setup 0ms, collect 1.94s, tests 470ms, environment 8.32s, prepare 1.19s)[22m
+2026-10-14T05:54:06.6037890Z 
+2026-10-14T05:54:08.1509980Z ##[endgroup]
+2026-10-14T05:54:08.1513556Z ##[group]@milkup/desktop@0.1.0 : test apps\desktop
+2026-10-14T05:54:08.1514557Z $ vitest run --passWithNoTests
+2026-10-14T05:54:08.5472595Z 
+2026-10-14T05:54:08.5474798Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/milkup/milkup/apps/desktop[39m
+2026-10-14T05:54:08.5475274Z 
+2026-10-14T05:54:09.9248827Z  [32m✓[39m src/plugin-file-broker.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+2026-10-14T05:54:09.9771480Z  [32m✓[39m src/desktop-plugin-manager.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 46[2mms[22m[39m
+2026-10-14T05:54:10.6804656Z  [32m✓[39m src/desktop-document-search.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+2026-10-14T05:54:10.8899168Z  [32m✓[39m src/document-transition.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+2026-10-14T05:54:11.0101468Z  [32m✓[39m src/recovery.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+2026-10-14T05:54:11.2936749Z  [32m✓[39m src/large-document-source.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-14T05:54:11.7907679Z  [32m✓[39m src/file-service.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-14T05:54:11.8244215Z  [32m✓[39m src/large-file-service.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-14T05:54:12.1443481Z  [32m✓[39m src/plugin-sidecar.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-14T05:54:12.1447813Z  [32m✓[39m src/large-document-search.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+2026-10-14T05:54:12.9376508Z  [32m✓[39m src/desktop-open-policy.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+2026-10-14T05:54:12.9442993Z  [32m✓[39m src/appearance.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+2026-10-14T05:54:13.9045112Z  [32m✓[39m src/document-open-flow.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+2026-10-14T05:54:13.9144505Z  [32m✓[39m src/large-document-editing.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+2026-10-14T05:54:14.0203920Z  [32m✓[39m src/desktop-plugin-ui.test.ts [2m([22m[2m18 tests[22m[2m)[22m[33m 2793[2mms[22m[39m
+2026-10-14T05:54:14.0208833Z    [33m[2m✓[22m[39m DesktopPluginUiController[2m > [22mrequests a new buffered range when the outline is scrolled outside its rendered slice [33m 647[2mms[22m[39m
+2026-10-14T05:54:14.0210874Z    [33m[2m✓[22m[39m DesktopPluginUiController[2m > [22mrequests one adjacent buffer only after a real user wheel gesture reaches an edge [33m 627[2mms[22m[39m
+2026-10-14T05:54:14.0212735Z    [33m[2m✓[22m[39m DesktopPluginUiController[2m > [22mrequests the previous buffer only when the list reaches the exact top edge [33m 459[2mms[22m[39m
+2026-10-14T05:54:14.7498024Z  [32m✓[39m src/desktop-large-open-flow.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+2026-10-14T05:54:15.7738852Z  [32m✓[39m src/desktop-search-navigation.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+2026-10-14T05:54:15.7762574Z  [32m✓[39m src/document-loading-visibility.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+2026-10-14T05:54:16.3265386Z  [32m✓[39m src/asset-service.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+2026-10-14T05:54:16.4668390Z  [32m✓[39m src/large-document-conflict.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+2026-10-14T05:54:16.4995902Z  [32m✓[39m src/save-watch-reconciliation.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+2026-10-14T05:54:16.6375991Z  [32m✓[39m src/open-stage-diagnostics.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+2026-10-14T05:54:17.2582859Z  [32m✓[39m src/editor-view-refresh.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 2[2mms[22m[39m
+2026-10-14T05:54:17.2834643Z 
+2026-10-14T05:54:17.2848990Z [2m Test Files [22m [1m[32m23 passed[39m[22m[90m (23)[39m
+2026-10-14T05:54:17.2852398Z [2m      Tests [22m [1m[32m123 passed[39m[22m[90m (123)[39m
+2026-10-14T05:54:17.2853416Z [2m   Start at [22m 05:54:08
+2026-10-14T05:54:17.2854276Z [2m   Duration [22m 8.74s[2m (transform 1.17s, setup 0ms, collect 12.91s, tests 3.01s, environment 636ms, prepare 4.49s)[22m
+2026-10-14T05:54:17.2854823Z 
+2026-10-14T05:54:18.0406398Z ##[endgroup]
+2026-10-14T05:54:18.0409612Z ##[group]@milkup/playground@0.0.0 : test apps\playground
+2026-10-14T05:54:18.0410143Z $ vitest run --passWithNoTests
+2026-10-14T05:54:18.4458480Z 
+2026-10-14T05:54:18.4460801Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/milkup/milkup/apps/playground[39m
+2026-10-14T05:54:18.4461102Z 
+2026-10-14T05:54:18.4509036Z No test files found, exiting with code 0
+2026-10-14T05:54:18.4509316Z 
+2026-10-14T05:54:18.4510861Z [2minclude: [22m[33m**/*.{test,spec}.?(c|m)[jt]s?(x)[39m
+2026-10-14T05:54:18.4512294Z [2mexclude:  [22m[33m**/node_modules/**[2m, [22m**/dist/**[2m, [22m**/cypress/**[2m, [22m**/.{idea,git,cache,output,temp}/**[2m, [22m**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build,eslint,prettier}.config.*[39m
+2026-10-14T05:54:18.4513204Z 
+2026-10-14T05:54:18.4720971Z ##[endgroup]
+2026-10-14T05:54:18.4725173Z $ vitest run
+2026-10-14T05:54:18.4725687Z ##[group]@milkup/cli@0.0.0 : test packages\cli
+2026-10-14T05:54:18.8806617Z 
+2026-10-14T05:54:18.8808514Z [1m[46m RUN [49m[22m [36mv3.2.6 [39m[90mD:/a/milkup/milkup/packages/cli[39m
+2026-10-14T05:54:18.8809061Z 
+2026-10-14T05:54:19.7471665Z  [32m✓[39m src/milkup.test.ts [2m([22m[2m21 tests[22m[2m)[22m[32m 93[2mms[22m[39m
+2026-10-14T05:54:19.7769202Z 
+2026-10-14T05:54:19.7772815Z [2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+2026-10-14T05:54:19.7785861Z [2m      Tests [22m [1m[32m21 passed[39m[22m[90m (21)[39m
+2026-10-14T05:54:19.7786395Z [2m   Start at [22m 05:54:18
+2026-10-14T05:54:19.7787276Z [2m   Duration [22m 896ms[2m (transform 344ms, setup 0ms, collect 540ms, tests 93ms, environment 0ms, prepare 78ms)[22m
+2026-10-14T05:54:19.7787806Z 
+2026-10-14T05:54:19.9253616Z ##[endgroup]
+2026-10-14T05:54:20.3515340Z $ pnpm -r typecheck
+2026-10-14T05:54:20.7576247Z Scope: 14 of 15 workspace projects
+2026-10-14T05:54:20.7627348Z packages/assets typecheck$ tsc -p tsconfig.json --noEmit
+2026-10-14T05:54:20.7648298Z packages/core typecheck$ tsc -p tsconfig.json --noEmit
+2026-10-14T05:54:20.7660697Z packages/input typecheck$ tsc -p tsconfig.json --noEmit
+2026-10-14T05:54:20.7667508Z packages/markdown typecheck$ tsc -p tsconfig.json --noEmit
+2026-10-14T05:54:23.3468567Z packages/input typecheck: Done
+2026-10-14T05:54:23.3518628Z packages/assets typecheck: Done
+2026-10-14T05:54:23.6200144Z packages/markdown typecheck: Done
+2026-10-14T05:54:23.7229375Z packages/core typecheck: Done
+2026-10-14T05:54:23.7237948Z packages/export typecheck$ tsc -p tsconfig.json --noEmit
+2026-10-14T05:54:23.7240760Z packages/mcp typecheck$ tsc -p tsconfig.json --noEmit
+2026-10-14T05:54:23.7243346Z packages/plugin-sdk typecheck$ tsc -p tsconfig.json --noEmit
+2026-10-14T05:54:23.7245750Z packages/tauri-bridge typecheck$ tsc -p tsconfig.json --noEmit
+2026-10-14T05:54:25.4244627Z packages/plugin-sdk typecheck: Done
+2026-10-14T05:54:25.4263921Z packages/view-dom typecheck$ tsc -p tsconfig.json --noEmit
+2026-10-14T05:54:27.0331575Z packages/export typecheck: Done
+2026-10-14T05:54:27.0759936Z packages/tauri-bridge typecheck: Done
+2026-10-14T05:54:27.0847009Z packages/mcp typecheck: Done
+2026-10-14T05:54:28.4416466Z packages/view-dom typecheck: Done
+2026-10-14T05:54:28.4423639Z packages/plugin typecheck$ tsc -p tsconfig.json --noEmit
+2026-10-14T05:54:28.4425588Z tests/regressions typecheck$ tsc -p tsconfig.json --noEmit
+2026-10-14T05:54:30.9603040Z packages/plugin typecheck: Done
+2026-10-14T05:54:31.1415987Z tests/regressions typecheck: Done
+2026-10-14T05:54:31.1422180Z apps/desktop typecheck$ tsc -p tsconfig.json --noEmit
+2026-10-14T05:54:31.1423827Z apps/playground typecheck$ tsc -p tsconfig.json --noEmit
+2026-10-14T05:54:31.1426151Z packages/cli typecheck$ tsc -p tsconfig.json --noEmit
+2026-10-14T05:54:34.4943158Z packages/cli typecheck: Done
+2026-10-14T05:54:35.0671855Z apps/playground typecheck: Done
+2026-10-14T05:54:36.0284051Z apps/desktop typecheck: Done
+2026-10-14T05:54:36.1646011Z ✔ accepts exactly the Tauri NSIS transformation and records both hashes (1.2079ms)
+2026-10-14T05:54:36.1646975Z ✔ rejects changed application bytes outside the bundle marker (0.7461ms)
+2026-10-14T05:54:36.1649904Z ✔ rejects unpatched output and an incorrect bundle type (0.4083ms)
+2026-10-14T05:54:36.1653935Z ✔ rejects truncated or extended output (0.5285ms)
+2026-10-14T05:54:36.1657924Z ✔ rejects missing or ambiguous original markers (0.2976ms)
+2026-10-14T05:54:36.1758699Z ℹ tests 5
+2026-10-14T05:54:36.1759113Z ℹ suites 0
+2026-10-14T05:54:36.1759391Z ℹ pass 5
+2026-10-14T05:54:36.1759650Z ℹ fail 0
+2026-10-14T05:54:36.1760299Z ℹ cancelled 0
+2026-10-14T05:54:36.1760564Z ℹ skipped 0
+2026-10-14T05:54:36.1760808Z ℹ todo 0
+2026-10-14T05:54:36.1761088Z ℹ duration_ms 76.1037
+2026-10-14T05:54:36.2677016Z     Updating crates.io index
+2026-10-14T05:54:37.9217896Z  Downloading crates ...
+2026-10-14T05:54:38.0421393Z   Downloaded scopeguard v1.2.0
+2026-10-14T05:54:38.0538470Z   Downloaded time-core v0.1.9
+2026-10-14T05:54:38.0619755Z   Downloaded stable_deref_trait v1.2.1
+2026-10-14T05:54:38.0872186Z   Downloaded adler2 v2.0.1
+2026-10-14T05:54:38.0989036Z   Downloaded windows-collections v0.2.0
+2026-10-14T05:54:38.1093842Z   Downloaded vswhom-sys v0.1.3
+2026-10-14T05:54:39.1116047Z   Downloaded same-file v1.0.6
+2026-10-14T05:54:39.1250705Z   Downloaded unic-ucd-ident v0.9.0
+2026-10-14T05:54:39.1384645Z   Downloaded unic-char-property v0.9.0
+2026-10-14T05:54:39.1509879Z   Downloaded tauri-plugin v2.6.3
+2026-10-14T05:54:39.1637184Z   Downloaded rustc-hash v2.1.3
+2026-10-14T05:54:39.1726289Z   Downloaded schemars v0.8.22
+2026-10-14T05:54:39.3580940Z   Downloaded unic-ucd-version v0.9.0
+2026-10-14T05:54:39.3676137Z   Downloaded ident_case v1.0.1
+2026-10-14T05:54:39.3735084Z   Downloaded idna_adapter v1.2.2
+2026-10-14T05:54:39.3795850Z   Downloaded webview2-com v0.38.2
+2026-10-14T05:54:39.3869131Z   Downloaded mime v0.3.17
+2026-10-14T05:54:39.3967353Z   Downloaded windows-link v0.2.1
+2026-10-14T05:54:39.4040118Z   Downloaded serde_with_macros v3.21.0
+2026-10-14T05:54:39.4156007Z   Downloaded percent-encoding v2.3.2
+2026-10-14T05:54:39.4213700Z   Downloaded rustc_version v0.4.1
+2026-10-14T05:54:39.4295698Z   Downloaded version_check v0.9.5
+2026-10-14T05:54:39.4374568Z   Downloaded serde v1.0.228
+2026-10-14T05:54:39.4577630Z   Downloaded toml_datetime v0.7.5+spec-1.1.0
+2026-10-14T05:54:39.4651165Z   Downloaded unic-common v0.9.0
+2026-10-14T05:54:39.4709435Z   Downloaded rfd v0.16.0
+2026-10-14T05:54:39.5090358Z   Downloaded typeid v1.0.3
+2026-10-14T05:54:39.5170708Z   Downloaded webview2-com-macros v0.8.1
+2026-10-14T05:54:39.5223284Z   Downloaded toml_parser v1.1.2+spec-1.1.0
+2026-10-14T05:54:39.5356708Z   Downloaded unic-char-range v0.9.0
+2026-10-14T05:54:39.5463165Z   Downloaded uuid v1.23.4
+2026-10-14T05:54:39.5657996Z   Downloaded vswhom v0.1.0
+2026-10-14T05:54:39.5734340Z   Downloaded windows-strings v0.4.2
+2026-10-14T05:54:39.5870688Z   Downloaded utf-8 v0.7.6
+2026-10-14T05:54:39.5947484Z   Downloaded windows-threading v0.1.0
+2026-10-14T05:54:39.6011482Z   Downloaded tinyvec_macros v0.1.1
+2026-10-14T05:54:39.6067463Z   Downloaded thiserror v2.0.18
+2026-10-14T05:54:39.6761787Z   Downloaded tinystr v0.8.3
+2026-10-14T05:54:39.6922979Z   Downloaded servo_arc v0.4.3
+2026-10-14T05:54:39.6985028Z   Downloaded toml_writer v1.1.1+spec-1.1.0
+2026-10-14T05:54:39.7065157Z   Downloaded cpufeatures v0.2.17
+2026-10-14T05:54:39.7155694Z   Downloaded serialize-to-javascript-impl v0.1.2
+2026-10-14T05:54:39.7247396Z   Downloaded toml v1.1.2+spec-1.1.0
+2026-10-14T05:54:39.7530459Z   Downloaded walkdir v2.5.0
+2026-10-14T05:54:39.7677239Z   Downloaded serde_repr v0.1.20
+2026-10-14T05:54:39.7848953Z   Downloaded string_cache_codegen v0.6.1
+2026-10-14T05:54:39.7902395Z   Downloaded strsim v0.11.1
+2026-10-14T05:54:39.7988894Z   Downloaded utf8_iter v1.0.4
+2026-10-14T05:54:39.8063288Z   Downloaded unicode-segmentation v1.13.3
+2026-10-14T05:54:39.8188114Z   Downloaded option-ext v0.2.0
+2026-10-14T05:54:39.8249526Z   Downloaded serde_derive_internals v0.29.1
+2026-10-14T05:54:39.8351663Z   Downloaded synstructure v0.13.2
+2026-10-14T05:54:39.8420039Z   Downloaded thiserror-impl v1.0.69
+2026-10-14T05:54:39.8521493Z   Downloaded unicode-ident v1.0.24
+2026-10-14T05:54:39.9086247Z   Downloaded new_debug_unreachable v1.0.6
+2026-10-14T05:54:39.9156755Z   Downloaded siphasher v1.0.3
+2026-10-14T05:54:39.9242312Z   Downloaded dpi v0.1.2
+2026-10-14T05:54:39.9338975Z   Downloaded schemars_derive v0.8.22
+2026-10-14T05:54:39.9454040Z   Downloaded serde-untagged v0.1.9
+2026-10-14T05:54:39.9586602Z   Downloaded serde_core v1.0.228
+2026-10-14T05:54:39.9761817Z   Downloaded serde_derive v1.0.228
+2026-10-14T05:54:40.0007625Z   Downloaded serde_spanned v1.1.1
+2026-10-14T05:54:40.0077135Z   Downloaded serialize-to-javascript v0.1.2
+2026-10-14T05:54:40.0151720Z   Downloaded softbuffer v0.4.8
+2026-10-14T05:54:40.0380854Z   Downloaded string_cache v0.9.0
+2026-10-14T05:54:40.0532680Z   Downloaded tinyvec v1.11.0
+2026-10-14T05:54:40.0716268Z   Downloaded tray-icon v0.24.1
+2026-10-14T05:54:40.0940919Z   Downloaded winapi-util v0.1.11
+2026-10-14T05:54:40.4473425Z   Downloaded cargo-platform v0.1.9
+2026-10-14T05:54:40.4550359Z   Downloaded erased-serde v0.4.10
+2026-10-14T05:54:40.4702360Z   Downloaded toml_datetime v1.1.1+spec-1.1.0
+2026-10-14T05:54:40.4842068Z   Downloaded ctor-proc-macro v0.0.7
+2026-10-14T05:54:40.4900939Z   Downloaded sha2 v0.10.9
+2026-10-14T05:54:40.5110943Z   Downloaded simd-adler32 v0.3.9
+2026-10-14T05:54:40.5252972Z   Downloaded bs58 v0.5.1
+2026-10-14T05:54:40.5378970Z   Downloaded semver v1.0.28
+2026-10-14T05:54:40.7082506Z   Downloaded tauri-codegen v2.6.3
+2026-10-14T05:54:40.7165044Z   Downloaded web_atoms v0.2.5
+2026-10-14T05:54:40.7234410Z   Downloaded shlex v2.0.1
+2026-10-14T05:54:40.7313194Z   Downloaded tauri-utils v2.9.3
+2026-10-14T05:54:40.7582134Z   Downloaded toml v0.9.12+spec-1.1.0
+2026-10-14T05:54:40.7874482Z   Downloaded urlpattern v0.3.0
+2026-10-14T05:54:40.8015726Z   Downloaded deranged v0.5.8
+2026-10-14T05:54:40.8087812Z   Downloaded dtor-proc-macro v0.0.6
+2026-10-14T05:54:40.8162875Z   Downloaded equivalent v1.0.2
+2026-10-14T05:54:40.8248691Z   Downloaded schemars v0.9.0
+2026-10-14T05:54:40.9403386Z   Downloaded tauri-runtime v2.11.3
+2026-10-14T05:54:40.9486564Z   Downloaded url v2.5.8
+2026-10-14T05:54:40.9666838Z   Downloaded quote v1.0.46
+2026-10-14T05:54:40.9860095Z   Downloaded tauri-build v2.6.3
+2026-10-14T05:54:40.9962828Z   Downloaded tauri-macros v2.6.3
+2026-10-14T05:54:41.0050838Z   Downloaded tauri-winres v0.3.6
+2026-10-14T05:54:41.0165238Z   Downloaded tendril v0.5.0
+2026-10-14T05:54:41.0282219Z   Downloaded thiserror-impl v2.0.18
+2026-10-14T05:54:41.0390202Z   Downloaded time-macros v0.2.31
+2026-10-14T05:54:41.0634122Z   Downloaded windows-implement v0.60.2
+2026-10-14T05:54:41.0701770Z   Downloaded thiserror v1.0.69
+2026-10-14T05:54:41.1243740Z   Downloaded tracing-core v0.1.36
+2026-10-14T05:54:41.1423940Z   Downloaded windows-targets v0.52.6
+2026-10-14T05:54:41.1523045Z   Downloaded ref-cast-impl v1.0.25
+2026-10-14T05:54:41.1581249Z   Downloaded windows-version v0.1.7
+2026-10-14T05:54:41.1647059Z   Downloaded camino v1.2.4
+2026-10-14T05:54:41.1763456Z   Downloaded smallvec v1.15.2
+2026-10-14T05:54:41.1847224Z   Downloaded socket2 v0.6.4
+2026-10-14T05:54:41.1935187Z   Downloaded phf_codegen v0.13.1
+2026-10-14T05:54:41.2000745Z   Downloaded cfb v0.7.3
+2026-10-14T05:54:41.2257683Z   Downloaded typenum v1.20.1
+2026-10-14T05:54:41.2454047Z   Downloaded selectors v0.36.1
+2026-10-14T05:54:41.2569564Z   Downloaded tauri-runtime-wry v2.11.4
+2026-10-14T05:54:41.2741187Z   Downloaded dom_query v0.27.0
+2026-10-14T05:54:41.3088950Z   Downloaded form_urlencoded v1.2.2
+2026-10-14T05:54:41.3146749Z   Downloaded cssparser-macros v0.6.1
+2026-10-14T05:54:41.3192924Z   Downloaded darling_core v0.23.0
+2026-10-14T05:54:41.3591196Z   Downloaded fnv v1.0.7
+2026-10-14T05:54:41.3679532Z   Downloaded schemars v1.2.1
+2026-10-14T05:54:42.0011904Z   Downloaded byteorder v1.5.0
+2026-10-14T05:54:42.0121496Z   Downloaded darling v0.23.0
+2026-10-14T05:54:42.0574918Z   Downloaded json-patch v3.0.1
+2026-10-14T05:54:42.0773182Z   Downloaded markup5ever v0.38.0
+2026-10-14T05:54:42.0845478Z   Downloaded precomputed-hash v0.1.1
+2026-10-14T05:54:42.0891758Z   Downloaded raw-window-handle v0.6.2
+2026-10-14T05:54:42.1017401Z   Downloaded ref-cast v1.0.25
+2026-10-14T05:54:42.1270891Z   Downloaded regex v1.12.4
+2026-10-14T05:54:42.1611135Z   Downloaded serde_json v1.0.150
+2026-10-14T05:54:42.2127631Z   Downloaded windows-targets v0.53.5
+2026-10-14T05:54:42.2184794Z   Downloaded fdeflate v0.3.7
+2026-10-14T05:54:42.2314586Z   Downloaded find-msvc-tools v0.1.9
+2026-10-14T05:54:42.2425947Z   Downloaded tauri-plugin-dialog v2.7.1
+2026-10-14T05:54:42.2790099Z   Downloaded tauri-plugin-fs v2.5.1
+2026-10-14T05:54:42.3400848Z   Downloaded digest v0.10.7
+2026-10-14T05:54:42.3549172Z   Downloaded cargo_metadata v0.19.2
+2026-10-14T05:54:42.3677348Z   Downloaded derive_more v2.1.1
+2026-10-14T05:54:42.4830918Z   Downloaded dirs-sys v0.5.0
+2026-10-14T05:54:42.4903884Z   Downloaded serde_with v3.21.0
+2026-10-14T05:54:42.5891161Z   Downloaded tao v0.35.3
+2026-10-14T05:54:42.6625279Z   Downloaded bytes v1.12.0
+2026-10-14T05:54:42.7593842Z   Downloaded cargo_toml v0.22.3
+2026-10-14T05:54:42.7793830Z   Downloaded cssparser v0.36.0
+2026-10-14T05:54:42.7940924Z   Downloaded derive_more-impl v2.1.1
+2026-10-14T05:54:42.8272007Z   Downloaded dtoa v1.0.11
+2026-10-14T05:54:42.8364956Z   Downloaded fastrand v2.4.1
+2026-10-14T05:54:42.8447039Z   Downloaded foldhash v0.2.0
+2026-10-14T05:54:42.8521774Z   Downloaded hashbrown v0.12.3
+2026-10-14T05:54:43.3703333Z   Downloaded phf_shared v0.13.1
+2026-10-14T05:54:43.3768791Z   Downloaded windows-interface v0.59.3
+2026-10-14T05:54:43.3833690Z   Downloaded windows-numerics v0.2.0
+2026-10-14T05:54:43.3944914Z   Downloaded zerofrom v0.1.8
+2026-10-14T05:54:43.4006029Z   Downloaded itoa v1.0.18
+2026-10-14T05:54:43.4092239Z   Downloaded regex-syntax v0.8.11
+2026-10-14T05:54:43.4541905Z   Downloaded tauri v2.11.5
+2026-10-14T05:54:43.5511296Z   Downloaded time v0.3.53
+2026-10-14T05:54:43.6657803Z   Downloaded windows-link v0.1.3
+2026-10-14T05:54:43.6716144Z   Downloaded crossbeam-utils v0.8.21
+2026-10-14T05:54:43.7212181Z   Downloaded ctor v0.8.0
+2026-10-14T05:54:43.7282497Z   Downloaded dirs v6.0.0
+2026-10-14T05:54:43.7368339Z   Downloaded displaydoc v0.2.6
+2026-10-14T05:54:43.7518735Z   Downloaded hashbrown v0.17.1
+2026-10-14T05:54:43.8176799Z   Downloaded hex v0.4.3
+2026-10-14T05:54:43.8282031Z   Downloaded syn v2.0.118
+2026-10-14T05:54:43.9780901Z   Downloaded block-buffer v0.10.4
+2026-10-14T05:54:43.9851915Z   Downloaded cookie v0.18.1
+2026-10-14T05:54:43.9998756Z   Downloaded dtor v0.3.0
+2026-10-14T05:54:44.0067615Z   Downloaded phf_generator v0.13.1
+2026-10-14T05:54:44.1600892Z   Downloaded zerofrom-derive v0.1.7
+2026-10-14T05:54:44.1668305Z   Downloaded alloc-stdlib v0.2.4
+2026-10-14T05:54:44.1762742Z   Downloaded embed-resource v3.0.11
+2026-10-14T05:54:44.1912848Z   Downloaded fs2 v0.4.3
+2026-10-14T05:54:44.2112069Z   Downloaded num-conv v0.2.2
+2026-10-14T05:54:44.2171461Z   Downloaded crossbeam-channel v0.5.15
+2026-10-14T05:54:44.2446298Z   Downloaded flate2 v1.1.9
+2026-10-14T05:54:44.7034174Z   Downloaded bit-set v0.8.0
+2026-10-14T05:54:44.7117243Z   Downloaded tracing v0.1.44
+2026-10-14T05:54:44.7967172Z   Downloaded windows-future v0.2.1
+2026-10-14T05:54:44.8069799Z   Downloaded winreg v0.55.0
+2026-10-14T05:54:44.8282305Z   Downloaded autocfg v1.5.1
+2026-10-14T05:54:44.8395018Z   Downloaded bit-vec v0.8.0
+2026-10-14T05:54:44.8485887Z   Downloaded lock_api v0.4.14
+2026-10-14T05:54:44.8556998Z   Downloaded phf_macros v0.13.1
+2026-10-14T05:54:44.8616401Z   Downloaded darling_macro v0.23.0
+2026-10-14T05:54:44.8666946Z   Downloaded dtoa-short v0.3.5
+2026-10-14T05:54:44.8720286Z   Downloaded regex-automata v0.4.14
+2026-10-14T05:54:44.9362396Z   Downloaded alloc-no-stdlib v2.0.4
+2026-10-14T05:54:44.9857747Z   Downloaded chrono v0.4.45
+2026-10-14T05:54:45.0199409Z   Downloaded crypto-common v0.1.7
+2026-10-14T05:54:45.0263703Z   Downloaded phf v0.13.1
+2026-10-14T05:54:45.0359409Z   Downloaded potential_utf v0.1.5
+2026-10-14T05:54:45.0427009Z   Downloaded powerfmt v0.2.0
+2026-10-14T05:54:45.1161371Z   Downloaded windows-result v0.3.4
+2026-10-14T05:54:45.1265721Z   Downloaded writeable v0.6.3
+2026-10-14T05:54:45.1443422Z   Downloaded yoke-derive v0.8.2
+2026-10-14T05:54:45.1596237Z   Downloaded cfg-if v1.0.4
+2026-10-14T05:54:45.1681600Z   Downloaded crc32fast v1.5.0
+2026-10-14T05:54:45.1786182Z   Downloaded dunce v1.0.5
+2026-10-14T05:54:45.1862206Z   Downloaded dyn-clone v1.0.20
+2026-10-14T05:54:45.1969277Z   Downloaded generic-array v0.14.7
+2026-10-14T05:54:45.2081061Z   Downloaded heck v0.5.0
+2026-10-14T05:54:45.2215647Z   Downloaded bitflags v1.3.2
+2026-10-14T05:54:45.2492545Z   Downloaded getrandom v0.3.4
+2026-10-14T05:54:45.2975290Z   Downloaded zerovec-derive v0.11.3
+2026-10-14T05:54:45.3403909Z   Downloaded zmij v1.0.21
+2026-10-14T05:54:45.3506896Z   Downloaded glob v0.3.3
+2026-10-14T05:54:45.3602866Z   Downloaded icu_properties v2.2.0
+2026-10-14T05:54:45.3744090Z   Downloaded infer v0.19.0
+2026-10-14T05:54:45.3888041Z   Downloaded litemap v0.8.2
+2026-10-14T05:54:45.4049887Z   Downloaded muda v0.19.3
+2026-10-14T05:54:45.4291858Z   Downloaded once_cell v1.21.4
+2026-10-14T05:54:45.4470278Z   Downloaded parking_lot_core v0.9.12
+2026-10-14T05:54:45.4650481Z   Downloaded yoke v0.8.3
+2026-10-14T05:54:45.4767233Z   Downloaded anyhow v1.0.103
+2026-10-14T05:54:45.5049950Z   Downloaded indexmap v1.9.3
+2026-10-14T05:54:45.5641486Z   Downloaded jsonptr v0.6.3
+2026-10-14T05:54:45.5826084Z   Downloaded keyboard-types v0.7.0
+2026-10-14T05:54:45.5939316Z   Downloaded log v0.4.33
+2026-10-14T05:54:45.6078676Z   Downloaded parking_lot v0.12.5
+2026-10-14T05:54:45.6311876Z   Downloaded pin-project-lite v0.2.17
+2026-10-14T05:54:46.5745581Z   Downloaded plist v1.10.0
+2026-10-14T05:54:46.6041219Z   Downloaded proc-macro2 v1.0.106
+2026-10-14T05:54:46.6249997Z   Downloaded windows-core v0.61.2
+2026-10-14T05:54:46.7549330Z   Downloaded bitflags v2.13.0
+2026-10-14T05:54:46.7909105Z   Downloaded getrandom v0.4.3
+2026-10-14T05:54:46.8166888Z   Downloaded icu_provider v2.2.0
+2026-10-14T05:54:46.8314554Z   Downloaded idna v1.1.0
+2026-10-14T05:54:46.8457018Z   Downloaded miniz_oxide v0.8.9
+2026-10-14T05:54:46.8597660Z   Downloaded num-traits v0.2.19
+2026-10-14T05:54:46.8771589Z   Downloaded base64 v0.22.1
+2026-10-14T05:54:46.9425814Z   Downloaded html5ever v0.38.0
+2026-10-14T05:54:46.9696550Z   Downloaded icu_normalizer v2.2.0
+2026-10-14T05:54:46.9928120Z   Downloaded icu_normalizer_data v2.2.0
+2026-10-14T05:54:47.0043344Z   Downloaded zerotrie v0.2.4
+2026-10-14T05:54:47.0292711Z   Downloaded tokio v1.52.3
+2026-10-14T05:54:48.1036318Z   Downloaded icu_collections v2.2.0
+2026-10-14T05:54:48.1510829Z   Downloaded memchr v2.8.2
+2026-10-14T05:54:48.1822954Z   Downloaded http v1.4.2
+2026-10-14T05:54:48.2061097Z   Downloaded ico v0.5.0
+2026-10-14T05:54:48.2266501Z   Downloaded icu_locale_core v2.2.0
+2026-10-14T05:54:48.2757934Z   Downloaded mio v1.2.1
+2026-10-14T05:54:48.3151167Z   Downloaded indexmap v2.14.0
+2026-10-14T05:54:48.3387037Z   Downloaded png v0.17.16
+2026-10-14T05:54:48.3615813Z   Downloaded cc v1.2.66
+2026-10-14T05:54:48.3786522Z   Downloaded zerovec v0.11.6
+2026-10-14T05:54:48.4192730Z   Downloaded icu_properties_data v2.2.0
+2026-10-14T05:54:48.5589772Z   Downloaded brotli-decompressor v5.0.3
+2026-10-14T05:54:48.6169872Z   Downloaded winnow v0.7.15
+2026-10-14T05:54:49.7525398Z   Downloaded winnow v1.0.3
+2026-10-14T05:54:49.8163704Z   Downloaded wry v0.55.1
+2026-10-14T05:54:49.8667040Z   Downloaded aho-corasick v1.1.4
+2026-10-14T05:54:49.8946261Z   Downloaded quick-xml v0.41.0
+2026-10-14T05:54:49.9718480Z   Downloaded winapi v0.3.9
+2026-10-14T05:54:50.5994587Z   Downloaded window-vibrancy v0.6.0
+2026-10-14T05:54:50.6244770Z   Downloaded brotli v8.0.4
+2026-10-14T05:54:50.7083124Z   Downloaded windows_x86_64_msvc v0.53.1
+2026-10-14T05:54:50.7259253Z   Downloaded libc v0.2.186
+2026-10-14T05:54:51.5093277Z   Downloaded windows_x86_64_msvc v0.52.6
+2026-10-14T05:54:51.5254370Z   Downloaded windows-sys v0.59.0
+2026-10-14T05:54:52.0875616Z   Downloaded windows-sys v0.61.2
+2026-10-14T05:54:52.3492678Z   Downloaded windows-sys v0.60.2
+2026-10-14T05:54:52.6317207Z   Downloaded webview2-com-sys v0.38.2
+2026-10-14T05:54:52.7137856Z   Downloaded windows v0.61.3
+2026-10-14T05:54:56.8000601Z    Compiling proc-macro2 v1.0.106
+2026-10-14T05:54:56.8001139Z    Compiling unicode-ident v1.0.24
+2026-10-14T05:54:56.8002520Z    Compiling quote v1.0.46
+2026-10-14T05:54:56.8956170Z    Compiling serde_core v1.0.228
+2026-10-14T05:54:59.8226333Z    Compiling windows-link v0.2.1
+2026-10-14T05:54:59.8670161Z    Compiling smallvec v1.15.2
+2026-10-14T05:55:00.0617332Z    Compiling cfg-if v1.0.4
+2026-10-14T05:55:00.1152691Z    Compiling siphasher v1.0.3
+2026-10-14T05:55:00.2648194Z    Compiling litemap v0.8.2
+2026-10-14T05:55:00.6447201Z    Compiling syn v2.0.118
+2026-10-14T05:55:00.7340663Z    Compiling writeable v0.6.3
+2026-10-14T05:55:00.9313700Z    Compiling phf_shared v0.13.1
+2026-10-14T05:55:01.1634001Z    Compiling memchr v2.8.2
+2026-10-14T05:55:01.7837878Z    Compiling fastrand v2.4.1
+2026-10-14T05:55:01.9131094Z    Compiling utf8_iter v1.0.4
+2026-10-14T05:55:02.0152390Z    Compiling phf_generator v0.13.1
+2026-10-14T05:55:02.1849919Z    Compiling stable_deref_trait v1.2.1
+2026-10-14T05:55:02.2367969Z    Compiling itoa v1.0.18
+2026-10-14T05:55:02.2395890Z    Compiling icu_normalizer_data v2.2.0
+2026-10-14T05:55:02.3901601Z    Compiling icu_properties_data v2.2.0
+2026-10-14T05:55:02.6909535Z    Compiling zmij v1.0.21
+2026-10-14T05:55:03.3473141Z    Compiling serde v1.0.228
+2026-10-14T05:55:03.5745310Z    Compiling thiserror v2.0.18
+2026-10-14T05:55:03.9541719Z    Compiling num-conv v0.2.2
+2026-10-14T05:55:04.0714237Z    Compiling synstructure v0.13.2
+2026-10-14T05:55:04.6497299Z    Compiling parking_lot_core v0.9.12
+2026-10-14T05:55:04.8323746Z    Compiling winnow v1.0.3
+2026-10-14T05:55:05.0131625Z    Compiling time-core v0.1.9
+2026-10-14T05:55:05.1749572Z    Compiling toml_parser v1.1.2+spec-1.1.0
+2026-10-14T05:55:05.1939726Z    Compiling phf_codegen v0.13.1
+2026-10-14T05:55:05.2927774Z    Compiling powerfmt v0.2.0
+2026-10-14T05:55:05.4563128Z    Compiling deranged v0.5.8
+2026-10-14T05:55:05.8472465Z    Compiling ident_case v1.0.1
+2026-10-14T05:55:05.9190437Z    Compiling zerofrom-derive v0.1.7
+2026-10-14T05:55:05.9191495Z    Compiling yoke-derive v0.8.2
+2026-10-14T05:55:06.5241151Z    Compiling zerovec-derive v0.11.3
+2026-10-14T05:55:07.3470862Z    Compiling displaydoc v0.2.6
+2026-10-14T05:55:07.3472806Z    Compiling zerofrom v0.1.8
+2026-10-14T05:55:07.4442664Z    Compiling serde_derive v1.0.228
+2026-10-14T05:55:07.5135862Z    Compiling yoke v0.8.3
+2026-10-14T05:55:07.6593143Z    Compiling zerovec v0.11.6
+2026-10-14T05:55:08.0283606Z    Compiling thiserror-impl v2.0.18
+2026-10-14T05:55:08.2529735Z    Compiling phf_macros v0.13.1
+2026-10-14T05:55:08.9444537Z    Compiling tinystr v0.8.3
+2026-10-14T05:55:09.0922967Z    Compiling typeid v1.0.3
+2026-10-14T05:55:09.2935258Z    Compiling strsim v0.11.1
+2026-10-14T05:55:09.3092748Z    Compiling log v0.4.33
+2026-10-14T05:55:09.4562034Z    Compiling scopeguard v1.2.0
+2026-10-14T05:55:09.5181481Z    Compiling toml_writer v1.1.1+spec-1.1.0
+2026-10-14T05:55:09.5759048Z    Compiling lock_api v0.4.14
+2026-10-14T05:55:09.6672405Z    Compiling darling_core v0.23.0
+2026-10-14T05:55:09.8140405Z    Compiling icu_locale_core v2.2.0
+2026-10-14T05:55:10.9339354Z    Compiling potential_utf v0.1.5
+2026-10-14T05:55:11.0371628Z    Compiling zerotrie v0.2.4
+2026-10-14T05:55:11.2958435Z    Compiling erased-serde v0.4.10
+2026-10-14T05:55:11.4514338Z    Compiling byteorder v1.5.0
+2026-10-14T05:55:11.5889789Z    Compiling parking_lot v0.12.5
+2026-10-14T05:55:11.6309784Z    Compiling icu_provider v2.2.0
+2026-10-14T05:55:11.9189706Z    Compiling icu_collections v2.2.0
+2026-10-14T05:55:11.9880308Z    Compiling aho-corasick v1.1.4
+2026-10-14T05:55:12.3766990Z    Compiling new_debug_unreachable v1.0.6
+2026-10-14T05:55:12.4186190Z    Compiling fnv v1.0.7
+2026-10-14T05:55:12.4828009Z    Compiling regex-syntax v0.8.11
+2026-10-14T05:55:12.5413476Z    Compiling darling_macro v0.23.0
+2026-10-14T05:55:12.8523249Z    Compiling thiserror v1.0.69
+2026-10-14T05:55:13.0550300Z    Compiling unic-common v0.9.0
+2026-10-14T05:55:13.1248257Z    Compiling unic-char-range v0.9.0
+2026-10-14T05:55:13.2025490Z    Compiling unic-char-property v0.9.0
+2026-10-14T05:55:13.2775262Z    Compiling unic-ucd-version v0.9.0
+2026-10-14T05:55:13.3703462Z    Compiling darling v0.23.0
+2026-10-14T05:55:13.4273613Z    Compiling phf v0.13.1
+2026-10-14T05:55:13.5519005Z    Compiling thiserror-impl v1.0.69
+2026-10-14T05:55:13.7216529Z    Compiling string_cache_codegen v0.6.1
+2026-10-14T05:55:14.0492979Z    Compiling equivalent v1.0.2
+2026-10-14T05:55:14.0984445Z    Compiling alloc-no-stdlib v2.0.4
+2026-10-14T05:55:14.1659228Z    Compiling getrandom v0.4.3
+2026-10-14T05:55:14.3570432Z    Compiling regex-automata v0.4.14
+2026-10-14T05:55:14.7411806Z    Compiling bytes v1.12.0
+2026-10-14T05:55:15.3090500Z    Compiling precomputed-hash v0.1.1
+2026-10-14T05:55:15.3608000Z    Compiling hashbrown v0.17.1
+2026-10-14T05:55:15.3612238Z    Compiling serde_json v1.0.150
+2026-10-14T05:55:15.8552429Z    Compiling indexmap v2.14.0
+2026-10-14T05:55:16.0156031Z    Compiling alloc-stdlib v0.2.4
+2026-10-14T05:55:16.0751108Z    Compiling web_atoms v0.2.5
+2026-10-14T05:55:16.5006020Z    Compiling regex v1.12.4
+2026-10-14T05:55:16.5904732Z    Compiling serde_with_macros v3.21.0
+2026-10-14T05:55:16.8863577Z    Compiling unic-ucd-ident v0.9.0
+2026-10-14T05:55:17.0902475Z    Compiling icu_normalizer v2.2.0
+2026-10-14T05:55:17.5885586Z    Compiling icu_properties v2.2.0
+2026-10-14T05:55:17.6331021Z    Compiling serde_spanned v1.1.1
+2026-10-14T05:55:17.7110807Z    Compiling quick-xml v0.41.0
+2026-10-14T05:55:18.5118958Z    Compiling windows-sys v0.61.2
+2026-10-14T05:55:18.6638769Z    Compiling anyhow v1.0.103
+2026-10-14T05:55:20.1768997Z    Compiling base64 v0.22.1
+2026-10-14T05:55:20.4337656Z    Compiling dunce v1.0.5
+2026-10-14T05:55:20.6417429Z    Compiling idna_adapter v1.2.2
+2026-10-14T05:55:20.9575309Z    Compiling brotli-decompressor v5.0.3
+2026-10-14T05:55:21.7723618Z    Compiling string_cache v0.9.0
+2026-10-14T05:55:21.8302015Z    Compiling http v1.4.2
+2026-10-14T05:55:21.9268998Z    Compiling semver v1.0.28
+2026-10-14T05:55:22.2207483Z    Compiling dtoa v1.0.11
+2026-10-14T05:55:22.3505278Z    Compiling percent-encoding v2.3.2
+2026-10-14T05:55:22.5026039Z    Compiling ctor-proc-macro v0.0.7
+2026-10-14T05:55:22.7625126Z    Compiling utf-8 v0.7.6
+2026-10-14T05:55:22.8263464Z    Compiling autocfg v1.5.1
+2026-10-14T05:55:22.8614614Z    Compiling tendril v0.5.0
+2026-10-14T05:55:22.8814416Z    Compiling ctor v0.8.0
+2026-10-14T05:55:22.9281378Z    Compiling form_urlencoded v1.2.2
+2026-10-14T05:55:23.0352836Z    Compiling dtoa-short v0.3.5
+2026-10-14T05:55:23.1920013Z    Compiling indexmap v1.9.3
+2026-10-14T05:55:23.3374970Z    Compiling uuid v1.23.4
+2026-10-14T05:55:23.4420523Z    Compiling brotli v8.0.4
+2026-10-14T05:55:23.7353313Z    Compiling idna v1.1.0
+2026-10-14T05:55:24.0451018Z    Compiling derive_more-impl v2.1.1
+2026-10-14T05:55:24.3502164Z    Compiling cssparser-macros v0.6.1
+2026-10-14T05:55:24.7193572Z    Compiling selectors v0.36.1
+2026-10-14T05:55:25.0330485Z    Compiling toml_datetime v1.1.1+spec-1.1.0
+2026-10-14T05:55:25.2424809Z    Compiling glob v0.3.3
+2026-10-14T05:55:25.3695194Z    Compiling windows_x86_64_msvc v0.52.6
+2026-10-14T05:55:25.5464450Z    Compiling camino v1.2.4
+2026-10-14T05:55:25.9009919Z    Compiling toml v1.1.2+spec-1.1.0
+2026-10-14T05:55:25.9050448Z    Compiling derive_more v2.1.1
+2026-10-14T05:55:25.9851216Z    Compiling cssparser v0.36.0
+2026-10-14T05:55:26.6883973Z    Compiling url v2.5.8
+2026-10-14T05:55:26.7422024Z    Compiling markup5ever v0.38.0
+2026-10-14T05:55:27.2899903Z    Compiling winapi-util v0.1.11
+2026-10-14T05:55:27.4548098Z    Compiling serde_derive_internals v0.29.1
+2026-10-14T05:55:27.4810695Z    Compiling servo_arc v0.4.3
+2026-10-14T05:55:27.6081177Z    Compiling version_check v0.9.5
+2026-10-14T05:55:27.6435899Z    Compiling rustc-hash v2.1.3
+2026-10-14T05:55:27.7125683Z    Compiling bit-vec v0.8.0
+2026-10-14T05:55:27.8721887Z    Compiling hashbrown v0.12.3
+2026-10-14T05:55:27.9273603Z    Compiling schemars v0.8.22
+2026-10-14T05:55:28.3267809Z    Compiling bitflags v2.13.0
+2026-10-14T05:55:28.3872076Z    Compiling libc v0.2.186
+2026-10-14T05:55:28.4980812Z    Compiling schemars_derive v0.8.22
+2026-10-14T05:55:29.1127949Z    Compiling bit-set v0.8.0
+2026-10-14T05:55:29.2585631Z    Compiling same-file v1.0.6
+2026-10-14T05:55:29.3736806Z    Compiling html5ever v0.38.0
+2026-10-14T05:55:29.8355336Z    Compiling cfb v0.7.3
+2026-10-14T05:55:30.2036209Z    Compiling jsonptr v0.6.3
+2026-10-14T05:55:30.4902642Z    Compiling cargo-platform v0.1.9
+2026-10-14T05:55:30.6363818Z    Compiling time v0.3.53
+2026-10-14T05:55:30.6997679Z    Compiling find-msvc-tools v0.1.9
+2026-10-14T05:55:30.9006682Z    Compiling windows-link v0.1.3
+2026-10-14T05:55:30.9413870Z    Compiling foldhash v0.2.0
+2026-10-14T05:55:31.0767696Z    Compiling dyn-clone v1.0.20
+2026-10-14T05:55:31.1606401Z    Compiling shlex v2.0.1
+2026-10-14T05:55:31.3093310Z    Compiling cc v1.2.66
+2026-10-14T05:55:32.5330329Z    Compiling dom_query v0.27.0
+2026-10-14T05:55:32.9258767Z    Compiling plist v1.10.0
+2026-10-14T05:55:32.9565550Z    Compiling serde-untagged v0.1.9
+2026-10-14T05:55:33.1694626Z    Compiling cargo_metadata v0.19.2
+2026-10-14T05:55:33.8727989Z    Compiling json-patch v3.0.1
+2026-10-14T05:55:34.1060889Z    Compiling infer v0.19.0
+2026-10-14T05:55:34.2770621Z    Compiling windows-targets v0.52.6
+2026-10-14T05:55:34.3120851Z    Compiling walkdir v2.5.0
+2026-10-14T05:55:34.5892512Z    Compiling urlpattern v0.3.0
+2026-10-14T05:55:34.5892972Z    Compiling serde_with v3.21.0
+2026-10-14T05:55:34.7347215Z    Compiling vswhom-sys v0.1.3
+2026-10-14T05:55:36.2084151Z    Compiling windows-result v0.3.4
+2026-10-14T05:55:36.3450216Z    Compiling tauri-utils v2.9.3
+2026-10-14T05:55:36.3777126Z    Compiling windows-strings v0.4.2
+2026-10-14T05:55:36.9079392Z    Compiling windows-interface v0.59.3
+2026-10-14T05:55:37.6015536Z    Compiling windows-implement v0.60.2
+2026-10-14T05:55:38.3857032Z    Compiling option-ext v0.2.0
+2026-10-14T05:55:38.4306777Z    Compiling windows-core v0.61.2
+2026-10-14T05:55:39.4072343Z    Compiling windows-sys v0.59.0
+2026-10-14T05:55:45.3707129Z    Compiling winreg v0.55.0
+2026-10-14T05:55:45.5877540Z    Compiling rustc_version v0.4.1
+2026-10-14T05:55:45.7971771Z    Compiling toml_datetime v0.7.5+spec-1.1.0
+2026-10-14T05:55:45.9960353Z    Compiling winnow v0.7.15
+2026-10-14T05:55:47.2800174Z    Compiling toml v0.9.12+spec-1.1.0
+2026-10-14T05:55:48.8747772Z    Compiling dirs-sys v0.5.0
+2026-10-14T05:55:48.9525161Z    Compiling windows-threading v0.1.0
+2026-10-14T05:55:49.0219025Z    Compiling generic-array v0.14.7
+2026-10-14T05:55:49.3702618Z    Compiling heck v0.5.0
+2026-10-14T05:55:49.5661360Z    Compiling windows-future v0.2.1
+2026-10-14T05:55:49.9841974Z    Compiling dirs v6.0.0
+2026-10-14T05:55:50.0234680Z    Compiling vswhom v0.1.0
+2026-10-14T05:55:50.0435978Z    Compiling cargo_toml v0.22.3
+2026-10-14T05:55:50.0689944Z    Compiling windows-collections v0.2.0
+2026-10-14T05:55:50.1066571Z    Compiling embed-resource v3.0.11
+2026-10-14T05:55:50.2823474Z    Compiling tauri-winres v0.3.6
+2026-10-14T05:55:50.3696896Z    Compiling windows-numerics v0.2.0
+2026-10-14T05:55:50.5283962Z    Compiling time-macros v0.2.31
+2026-10-14T05:55:50.5716363Z    Compiling crc32fast v1.5.0
+2026-10-14T05:55:50.9062152Z    Compiling simd-adler32 v0.3.9
+2026-10-14T05:55:51.0897861Z    Compiling typenum v1.20.1
+2026-10-14T05:55:51.8156888Z    Compiling raw-window-handle v0.6.2
+2026-10-14T05:55:52.5137896Z    Compiling tauri-build v2.6.3
+2026-10-14T05:55:53.2050359Z    Compiling windows v0.61.3
+2026-10-14T05:55:54.3648264Z    Compiling webview2-com-sys v0.38.2
+2026-10-14T05:55:54.5690460Z    Compiling crossbeam-utils v0.8.21
+2026-10-14T05:55:54.8533001Z    Compiling adler2 v2.0.1
+2026-10-14T05:55:54.9407109Z    Compiling miniz_oxide v0.8.9
+2026-10-14T05:55:55.8474672Z    Compiling dpi v0.1.2
+2026-10-14T05:55:56.1360305Z    Compiling cookie v0.18.1
+2026-10-14T05:55:56.4795106Z    Compiling flate2 v1.1.9
+2026-10-14T05:55:57.3428703Z    Compiling tauri v2.11.5
+2026-10-14T05:55:57.6922413Z    Compiling crypto-common v0.1.7
+2026-10-14T05:55:57.7706334Z    Compiling block-buffer v0.10.4
+2026-10-14T05:55:57.8589183Z    Compiling fdeflate v0.3.7
+2026-10-14T05:55:58.2234004Z    Compiling tauri-plugin v2.6.3
+2026-10-14T05:55:58.5599701Z    Compiling webview2-com-macros v0.8.1
+2026-10-14T05:55:59.1288133Z    Compiling windows-version v0.1.7
+2026-10-14T05:55:59.2019385Z    Compiling unicode-segmentation v1.13.3
+2026-10-14T05:55:59.2996277Z    Compiling bitflags v1.3.2
+2026-10-14T05:55:59.3399596Z    Compiling once_cell v1.21.4
+2026-10-14T05:55:59.5223513Z    Compiling pin-project-lite v0.2.17
+2026-10-14T05:55:59.5841571Z    Compiling png v0.17.16
+2026-10-14T05:56:00.8821824Z    Compiling digest v0.10.7
+2026-10-14T05:56:01.0397038Z    Compiling crossbeam-channel v0.5.15
+2026-10-14T05:56:03.2747203Z    Compiling wry v0.55.1
+2026-10-14T05:56:03.5421845Z    Compiling tauri-runtime v2.11.3
+2026-10-14T05:56:03.7589215Z    Compiling cpufeatures v0.2.17
+2026-10-14T05:56:03.8046245Z    Compiling tracing-core v0.1.36
+2026-10-14T05:56:04.1986542Z    Compiling windows_x86_64_msvc v0.53.1
+2026-10-14T05:56:04.6762303Z    Compiling tracing v0.1.44
+2026-10-14T05:56:04.8685434Z    Compiling sha2 v0.10.9
+2026-10-14T05:56:05.2558464Z    Compiling ico v0.5.0
+2026-10-14T05:56:05.8083006Z    Compiling tauri-plugin-fs v2.5.1
+2026-10-14T05:56:06.8287336Z    Compiling getrandom v0.3.4
+2026-10-14T05:56:07.1573887Z    Compiling tauri-runtime-wry v2.11.4
+2026-10-14T05:56:07.4182616Z    Compiling tauri-codegen v2.6.3
+2026-10-14T05:56:09.0704978Z    Compiling softbuffer v0.4.8
+2026-10-14T05:56:09.5375799Z    Compiling keyboard-types v0.7.0
+2026-10-14T05:56:11.9428057Z    Compiling serialize-to-javascript-impl v0.1.2
+2026-10-14T05:56:12.2677621Z    Compiling serialize-to-javascript v0.1.2
+2026-10-14T05:56:12.3555739Z    Compiling window-vibrancy v0.6.0
+2026-10-14T05:56:12.5223639Z    Compiling muda v0.19.3
+2026-10-14T05:56:13.7023150Z    Compiling windows-targets v0.53.5
+2026-10-14T05:56:13.7440586Z    Compiling tauri-macros v2.6.3
+2026-10-14T05:56:13.8728557Z    Compiling tokio v1.52.3
+2026-10-14T05:56:15.3474838Z    Compiling tauri-plugin-dialog v2.7.1
+2026-10-14T05:56:16.1000571Z    Compiling serde_repr v0.1.20
+2026-10-14T05:56:16.5413549Z    Compiling mime v0.3.17
+2026-10-14T05:56:16.7905100Z    Compiling winapi v0.3.9
+2026-10-14T05:56:17.1421715Z    Compiling rfd v0.16.0
+2026-10-14T05:56:17.3440311Z    Compiling windows-sys v0.60.2
+2026-10-14T05:56:19.5235029Z    Compiling milkup-desktop v0.1.0 (D:\a\milkup\milkup\apps\desktop\src-tauri)
+2026-10-14T05:56:20.2151736Z    Compiling fs2 v0.4.3
+2026-10-14T05:56:22.8234450Z    Compiling tao v0.35.3
+2026-10-14T05:56:26.0260696Z    Compiling webview2-com v0.38.2
+2026-10-14T05:56:34.9438319Z warning: unused import: `std::sync::Arc`
+2026-10-14T05:56:34.9438823Z    --> src\piece_tree.rs:926:9
+2026-10-14T05:56:34.9439157Z     |
+2026-10-14T05:56:34.9439416Z 926 |     use std::sync::Arc;
+2026-10-14T05:56:34.9439702Z     |         ^^^^^^^^^^^^^^
+2026-10-14T05:56:34.9439961Z     |
+2026-10-14T05:56:34.9440386Z     = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+2026-10-14T05:56:34.9440750Z 
+2026-10-14T05:56:42.6822625Z warning: `milkup-desktop` (lib test) generated 1 warning (run `cargo fix --lib -p milkup-desktop --tests` to apply 1 suggestion)
+2026-10-14T05:56:42.7755988Z     Finished `test` profile [unoptimized] target(s) in 2m 06s
+2026-10-14T05:56:42.7756557Z      Running unittests src\lib.rs (apps\desktop\src-tauri\target\debug\deps\milkup_desktop_lib-8758a542d48baa65.exe)
+2026-10-14T05:56:42.7847410Z 
+2026-10-14T05:56:42.7847789Z running 70 tests
+2026-10-14T05:56:44.5050580Z test native_search::tests::cancellation_and_document_close_release_preparations_indexes_and_history ... ok
+2026-10-14T05:56:44.5097914Z test native_search::tests::disk_budget_and_preparation_io_failure_do_not_mutate_the_document ... ok
+2026-10-14T05:56:44.5283450Z test native_search::tests::repeated_clock_ticks_and_existing_directories_never_share_search_storage ... ok
+2026-10-14T05:56:44.5560879Z test native_search::tests::oversized_line_fails_explicitly_and_close_removes_private_artifacts ... ok
+2026-10-14T05:56:44.6164419Z test native_search::tests::complete_dense_search_pages_all_hits_without_materializing_them ... ok
+2026-10-14T05:56:44.6662702Z test native_search::tests::preparation_cancel_and_stale_commit_leave_document_unchanged ... ok
+2026-10-14T05:56:44.7896706Z test native_search::tests::stale_queries_and_mutated_documents_never_publish_current_results ... ok
+2026-10-14T05:56:44.8844585Z test native_search::tests::replace_all_and_whole_history_preserve_utf16_encoding_and_crlf_disk_bytes ... ok
+2026-10-14T05:56:44.8891800Z test native_search::tests::unicode_fallback_validates_utf16_and_does_not_repeat_payload_on_ack ... ok
+2026-10-14T05:56:44.9125956Z test native_search::tests::replacement_undo_restores_unsaved_piece_tree_edits_not_the_original_file ... ok
+2026-10-14T05:56:44.9169256Z test native_search::tests::selected_dense_member_and_empty_replacement_preserve_surrounding_text ... ok
+2026-10-14T05:56:45.1018002Z test piece_tree::tests::closes_session_files_before_cleanup ... ok
+2026-10-14T05:56:45.1069374Z test piece_tree::tests::edits_and_saves_utf16le_bom_files_without_changing_the_encoding ... ok
+2026-10-14T05:56:45.1070415Z test piece_tree::tests::edits_unicode_and_reads_lines_without_materializing_document ... ok
+2026-10-14T05:56:45.2875074Z test piece_tree::tests::reads_line_ending_after_a_multibyte_character ... ok
+2026-10-14T05:56:45.3470576Z test piece_tree::tests::randomized_edits_match_a_string_reference ... ok
+2026-10-14T05:56:45.3527523Z test piece_tree::tests::reads_line_windows_after_newline_insertion_and_deletion ... ok
+2026-10-14T05:56:45.4456966Z test native_search::tests::unicode_sensitive_batch_boundary_and_empty_query_results ... ok
+2026-10-14T05:56:45.5118783Z test piece_tree::tests::rejects_surrogate_boundaries_and_overlapping_batches_atomically ... ok
+2026-10-14T05:56:45.5161836Z test piece_tree::tests::reports_utf8_boundary_errors_without_decoding_partial_prefixes ... ok
+2026-10-14T05:56:45.6198796Z test piece_tree::tests::snapshot_descriptor_budget_is_checked_before_copying_text ... ok
+2026-10-14T05:56:46.1044320Z test piece_tree::tests::streaming_snapshot_survives_concurrent_edit_save_and_close ... ok
+2026-10-14T05:56:47.4921822Z test recovery::tests::checkpoints_are_complete_hashed_and_keep_previous_committed_generation ... ok
+2026-10-14T05:56:47.4923554Z test piece_tree::tests::utf16_checkpoints_flush_multiple_buffers_and_preserve_bom_and_crlf ... ok
+2026-10-14T05:56:48.1228021Z test recovery::tests::corruption_is_detected_without_modifying_payload_or_original ... ok
+2026-10-14T05:56:48.1936497Z test recovery::tests::full_directory_refuses_new_checkpoint_without_eviction ... ok
+2026-10-14T05:56:48.2714788Z test recovery::tests::identifiers_cannot_escape_recovery_root_and_live_owner_is_retained ... ok
+2026-10-14T05:56:48.3405236Z test recovery::tests::completed_native_snapshot_releases_registry_during_validation_and_publication ... ok
+2026-10-14T05:56:48.6084172Z test recovery::tests::interrupted_post_write_validation_keeps_previous_manifest_and_both_payloads ... ok
+2026-10-14T05:56:48.6085281Z test recovery_storage::tests::capacity_keeps_write_peak_and_free_space_reserve_without_eviction ... ok
+2026-10-14T05:56:48.6428567Z test recovery_storage::tests::counts_archived_partial_and_unknown_files_and_serializes_independent_handles ... ok
+2026-10-14T05:56:48.6430288Z test search_profile_baseline::profile_legacy_search_windows ... ignored, explicit same-fixture native search transport baseline
+2026-10-14T05:56:48.6879052Z test tests::asset_commands_create_directories_write_files_and_check_existence ... ok
+2026-10-14T05:56:48.6880164Z test recovery::tests::partial_write_and_failed_publish_preserve_last_valid_manifest ... ok
+2026-10-14T05:56:48.6994167Z test tests::atomic_save_preserves_original_and_cleans_temp_after_partial_write_failure ... ok
+2026-10-14T05:56:48.7304985Z test tests::atomic_save_does_not_overwrite_new_destination_created_during_staging ... ok
+2026-10-14T05:56:48.7867971Z test tests::bounded_line_windows_use_utf16_before_text_allocation ... ok
+2026-10-14T05:56:48.7916827Z test tests::cleanup_preserves_active_process_working_files ... ok
+2026-10-14T05:56:48.7971834Z test recovery::tests::quota_does_not_block_verified_export_or_overwrite_an_existing_target ... ok
+2026-10-14T05:56:48.7974215Z test tests::large_file_applies_non_overlapping_utf16_changes_safely ... ok
+2026-10-14T05:56:48.7976221Z test tests::large_file_chunk_ranges_must_align_to_utf8_boundaries ... ok
+2026-10-14T05:56:48.8022775Z test tests::cleanup_requires_exact_app_filename_shape_and_preserves_unknown_ownership ... ok
+2026-10-14T05:56:48.8028653Z test tests::large_file_commit_rechecks_disk_after_staging_and_cleans_failed_temp ... ok
+2026-10-14T05:56:48.8212820Z test tests::atomic_save_rechecks_external_changes_after_staging ... ok
+2026-10-14T05:56:48.8380816Z test tests::large_file_flush_rejects_external_modification_after_visible_edit ... ok
+2026-10-14T05:56:48.8459376Z test tests::large_file_flush_commits_memory_snapshot_and_clears_edit_log ... ok
+2026-10-14T05:56:48.8697186Z test tests::large_file_flush_writes_atomically_to_disk ... ok
+2026-10-14T05:56:48.8697983Z test tests::large_file_line_index_handles_lf_crlf_and_trailing_newline ... ok
+2026-10-14T05:56:48.8794616Z test tests::large_file_line_window_accepts_utf8_character_before_lf ... ok
+2026-10-14T05:56:48.8871834Z test tests::large_file_maps_utf8_bytes_to_utf16_offsets ... ok
+2026-10-14T05:56:48.8872525Z test tests::large_file_line_windows_validate_bounds ... ok
+2026-10-14T05:56:48.9802756Z test tests::large_file_open_and_window_reads_do_not_materialize_full_text ... ok
+2026-10-14T05:56:49.0419870Z test tests::large_file_registry_drop_removes_active_working_temps ... ok
+2026-10-14T05:56:49.1111593Z test tests::large_file_save_as_to_same_path_preserves_external_conflict_guard ... ok
+2026-10-14T05:56:49.1550935Z test tests::large_file_open_preserves_unrecoverable_stale_buffers ... ok
+2026-10-14T05:56:49.1641313Z test tests::large_file_save_as_writes_memory_snapshot_without_overwriting_original ... ok
+2026-10-14T05:56:49.1694817Z test tests::large_file_temp_cleanup_retains_dead_owner_and_unknown_buffers ... ok
+2026-10-14T05:56:49.1764088Z test tests::open_and_reload_markdown_files_preserve_document_identity ... ok
+2026-10-14T05:56:49.2282472Z test tests::large_file_visible_edit_uses_memory_snapshot_without_working_file ... ok
+2026-10-14T05:56:49.2284159Z test tests::plugin_package_paths_cannot_escape_the_plugin_root ... ok
+2026-10-14T05:56:49.2286492Z test tests::plugin_sidecar_event_uses_camel_case_payload ... ok
+2026-10-14T05:56:49.2288362Z test tests::plugin_sidecar_executable_must_be_absolute ... ok
+2026-10-14T05:56:49.2325993Z test recovery::tests::captured_native_snapshot_allows_save_close_and_reopen_before_streaming ... ok
+2026-10-14T05:56:49.2898496Z test tests::plugin_file_commands_resolve_and_mutate_canonical_paths ... ok
+2026-10-14T05:56:49.3166841Z test tests::line_window_offsets_match_unicode_crlf_and_piece_boundaries_after_edits ... ok
+2026-10-14T05:56:49.3418961Z test tests::save_markdown_file_rejects_unobserved_external_changes_and_deletion ... ok
+2026-10-14T05:56:49.3422061Z test tests::save_as_copy_allows_rescue_but_same_path_preserves_conflict_guard ... ok
+2026-10-14T05:56:49.3757141Z test tests::save_markdown_file_writes_text_and_returns_matching_document_id ... ok
+2026-10-14T05:56:49.3803898Z test tests::stat_text_file_reports_size_and_readonly_flag ... ok
+2026-10-14T05:56:49.4711386Z test tests::profiles_distant_line_windows_with_unicode_crlf_fixture ... ok
+2026-10-14T05:56:49.4711689Z 
+2026-10-14T05:56:49.4712027Z test result: ok. 69 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 6.69s
+2026-10-14T05:56:49.4712328Z 
+2026-10-14T05:56:49.9106590Z $ tauri "build" "--target" "x86_64-pc-windows-msvc" "--bundles" "nsis" "--ci" "--" "--locked"
+2026-10-14T05:56:51.0297870Z         Info Looking up installed tauri packages to check mismatched versions...
+2026-10-14T05:56:51.5114472Z      Running beforeBuildCommand `pnpm build`
+2026-10-14T05:56:51.8968704Z $ vite build
+2026-10-14T05:56:52.2130660Z [36mvite v7.3.6 [32mbuilding client environment for production...[36m[39m
+2026-10-14T05:56:52.5737676Z transforming...
+2026-10-14T05:56:54.3003207Z [32m✓[39m 1870 modules transformed.
+2026-10-14T05:56:54.3715554Z rendering chunks...
+2026-10-14T05:56:54.4533042Z computing gzip size...
+2026-10-14T05:56:54.4634879Z [2mdist/[22m[32mindex.html                              [39m[1m[2m  0.69 kB[22m[1m[22m[2m │ gzip:   0.40 kB[22m
+2026-10-14T05:56:54.4636217Z [2mdist/[22m[32massets/large-search-worker-BwuKh3LS.js  [39m[1m[2m  1.32 kB[22m[1m[22m
+2026-10-14T05:56:54.4637240Z [2mdist/[22m[32massets/worker-file-plugin-BcWd8aV7.js   [39m[1m[2m  2.85 kB[22m[1m[22m
+2026-10-14T05:56:54.4638042Z [2mdist/[22m[32massets/plugin-worker-D1SAD1gm.js        [39m[1m[2m 15.37 kB[22m[1m[22m
+2026-10-14T05:56:54.4638731Z [2mdist/[22m[35massets/index-DYpqHbeK.css               [39m[1m[2m 32.62 kB[22m[1m[22m[2m │ gzip:   7.18 kB[22m
+2026-10-14T05:56:54.4639719Z [2mdist/[22m[36massets/index-lBcCbJoJ.js                [39m[1m[2m  0.29 kB[22m[1m[22m[2m │ gzip:   0.18 kB[22m
+2026-10-14T05:56:54.4640557Z [2mdist/[22m[36massets/event-BK_86lmQ.js                [39m[1m[2m  1.41 kB[22m[1m[22m[2m │ gzip:   0.68 kB[22m
+2026-10-14T05:56:54.4641185Z [2mdist/[22m[36massets/core-DhEqZVGG.js                 [39m[1m[2m  2.44 kB[22m[1m[22m[2m │ gzip:   0.98 kB[22m
+2026-10-14T05:56:54.4641987Z [2mdist/[22m[36massets/webview-Dd-2IzEi.js              [39m[1m[2m  3.36 kB[22m[1m[22m[2m │ gzip:   1.15 kB[22m
+2026-10-14T05:56:54.4642927Z [2mdist/[22m[36massets/window-6lX1olBp.js               [39m[1m[2m 14.16 kB[22m[1m[22m[2m │ gzip:   3.57 kB[22m
+2026-10-14T05:56:54.4643874Z [2mdist/[22m[36massets/index-vLfruit4.js                [39m[1m[2m377.26 kB[22m[1m[22m[2m │ gzip: 106.58 kB[22m
+2026-10-14T05:56:54.4645595Z [32m✓ built in 2.23s[39m
+2026-10-14T05:56:56.4249109Z    Compiling proc-macro2 v1.0.106
+2026-10-14T05:56:56.4249641Z    Compiling unicode-ident v1.0.24
+2026-10-14T05:56:56.4250324Z    Compiling quote v1.0.46
+2026-10-14T05:56:56.5136845Z    Compiling serde_core v1.0.228
+2026-10-14T05:56:56.6640074Z    Compiling siphasher v1.0.3
+2026-10-14T05:56:56.7950508Z    Compiling phf_shared v0.13.1
+2026-10-14T05:56:56.9865715Z    Compiling cfg-if v1.0.4
+2026-10-14T05:56:57.0305211Z    Compiling icu_normalizer_data v2.2.0
+2026-10-14T05:56:57.2864654Z    Compiling icu_properties_data v2.2.0
+2026-10-14T05:56:57.4339629Z    Compiling fastrand v2.4.1
+2026-10-14T05:56:57.7890079Z    Compiling syn v2.0.118
+2026-10-14T05:56:57.7974747Z    Compiling phf_generator v0.13.1
+2026-10-14T05:56:57.9824171Z    Compiling stable_deref_trait v1.2.1
+2026-10-14T05:56:58.0389244Z    Compiling zmij v1.0.21
+2026-10-14T05:56:58.2363836Z    Compiling smallvec v1.15.2
+2026-10-14T05:56:58.7234009Z    Compiling thiserror v2.0.18
+2026-10-14T05:56:59.3636765Z    Compiling windows-link v0.2.1
+2026-10-14T05:56:59.4021158Z    Compiling parking_lot_core v0.9.12
+2026-10-14T05:56:59.6185524Z    Compiling serde v1.0.228
+2026-10-14T05:56:59.8975527Z    Compiling memchr v2.8.2
+2026-10-14T05:57:00.5244784Z    Compiling typeid v1.0.3
+2026-10-14T05:57:00.7441707Z    Compiling time-core v0.1.9
+2026-10-14T05:57:00.9258155Z    Compiling num-conv v0.2.2
+2026-10-14T05:57:01.1235164Z    Compiling phf_codegen v0.13.1
+2026-10-14T05:57:01.2167910Z    Compiling synstructure v0.13.2
+2026-10-14T05:57:01.6585072Z    Compiling ident_case v1.0.1
+2026-10-14T05:57:01.7316230Z    Compiling erased-serde v0.4.10
+2026-10-14T05:57:01.7935564Z    Compiling writeable v0.6.3
+2026-10-14T05:57:01.9311028Z    Compiling itoa v1.0.18
+2026-10-14T05:57:01.9785446Z    Compiling litemap v0.8.2
+2026-10-14T05:57:02.0799780Z    Compiling thiserror v1.0.69
+2026-10-14T05:57:02.1494588Z    Compiling strsim v0.11.1
+2026-10-14T05:57:02.3144293Z    Compiling version_check v0.9.5
+2026-10-14T05:57:02.4445981Z    Compiling darling_core v0.23.0
+2026-10-14T05:57:02.5659339Z    Compiling utf8_iter v1.0.4
+2026-10-14T05:57:02.7056880Z    Compiling new_debug_unreachable v1.0.6
+2026-10-14T05:57:02.7726560Z    Compiling scopeguard v1.2.0
+2026-10-14T05:57:02.8310451Z    Compiling anyhow v1.0.103
+2026-10-14T05:57:03.1054464Z    Compiling lock_api v0.4.14
+2026-10-14T05:57:03.2834651Z    Compiling zerofrom-derive v0.1.7
+2026-10-14T05:57:03.3259093Z    Compiling yoke-derive v0.8.2
+2026-10-14T05:57:04.4493024Z    Compiling zerovec-derive v0.11.3
+2026-10-14T05:57:04.7831768Z    Compiling displaydoc v0.2.6
+2026-10-14T05:57:05.5181202Z    Compiling serde_derive v1.0.228
+2026-10-14T05:57:05.9946739Z    Compiling zerofrom v0.1.8
+2026-10-14T05:57:05.9995904Z    Compiling thiserror-impl v2.0.18
+2026-10-14T05:57:06.0919796Z    Compiling yoke v0.8.3
+2026-10-14T05:57:06.2477692Z    Compiling zerovec v0.11.6
+2026-10-14T05:57:06.8627645Z    Compiling phf_macros v0.13.1
+2026-10-14T05:57:08.1060056Z    Compiling tinystr v0.8.3
+2026-10-14T05:57:08.2575524Z    Compiling potential_utf v0.1.5
+2026-10-14T05:57:08.2908193Z    Compiling icu_locale_core v2.2.0
+2026-10-14T05:57:08.3727340Z    Compiling zerotrie v0.2.4
+2026-10-14T05:57:08.6471579Z    Compiling icu_collections v2.2.0
+2026-10-14T05:57:08.7897754Z    Compiling darling_macro v0.23.0
+2026-10-14T05:57:09.0766612Z    Compiling thiserror-impl v1.0.69
+2026-10-14T05:57:09.4112552Z    Compiling icu_provider v2.2.0
+2026-10-14T05:57:09.4146028Z    Compiling darling v0.23.0
+2026-10-14T05:57:09.4687882Z    Compiling phf v0.13.1
+2026-10-14T05:57:09.7777159Z    Compiling string_cache_codegen v0.6.1
+2026-10-14T05:57:09.9235216Z    Compiling serde_json v1.0.150
+2026-10-14T05:57:10.1498143Z    Compiling windows_x86_64_msvc v0.52.6
+2026-10-14T05:57:10.1782334Z    Compiling winnow v1.0.3
+2026-10-14T05:57:10.2361340Z    Compiling getrandom v0.4.3
+2026-10-14T05:57:10.3210782Z    Compiling precomputed-hash v0.1.1
+2026-10-14T05:57:10.3862427Z    Compiling web_atoms v0.2.5
+2026-10-14T05:57:10.4944870Z    Compiling parking_lot v0.12.5
+2026-10-14T05:57:10.5636663Z    Compiling toml_parser v1.1.2+spec-1.1.0
+2026-10-14T05:57:10.8742133Z    Compiling icu_properties v2.2.0
+2026-10-14T05:57:11.0771868Z    Compiling icu_normalizer v2.2.0
+2026-10-14T05:57:11.2430027Z    Compiling serde_with_macros v3.21.0
+2026-10-14T05:57:11.6625738Z    Compiling windows-sys v0.61.2
+2026-10-14T05:57:12.2335690Z    Compiling serde_spanned v1.1.1
+2026-10-14T05:57:12.3416550Z    Compiling ctor-proc-macro v0.0.7
+2026-10-14T05:57:12.3490161Z    Compiling toml_writer v1.1.1+spec-1.1.0
+2026-10-14T05:57:12.6605656Z    Compiling idna_adapter v1.2.2
+2026-10-14T05:57:13.1274302Z    Compiling string_cache v0.9.0
+2026-10-14T05:57:13.3989943Z    Compiling semver v1.0.28
+2026-10-14T05:57:13.6786901Z    Compiling libc v0.2.186
+2026-10-14T05:57:13.8327204Z    Compiling percent-encoding v2.3.2
+2026-10-14T05:57:13.9651627Z    Compiling log v0.4.33
+2026-10-14T05:57:13.9691464Z    Compiling dtoa v1.0.11
+2026-10-14T05:57:14.0968359Z    Compiling utf-8 v0.7.6
+2026-10-14T05:57:14.1047881Z    Compiling autocfg v1.5.1
+2026-10-14T05:57:14.1103276Z    Compiling dtoa-short v0.3.5
+2026-10-14T05:57:14.1866874Z    Compiling tendril v0.5.0
+2026-10-14T05:57:14.2049969Z    Compiling form_urlencoded v1.2.2
+2026-10-14T05:57:14.3273756Z    Compiling uuid v1.23.4
+2026-10-14T05:57:14.4781317Z    Compiling indexmap v1.9.3
+2026-10-14T05:57:14.6474113Z    Compiling idna v1.1.0
+2026-10-14T05:57:14.7152325Z    Compiling cssparser-macros v0.6.1
+2026-10-14T05:57:15.0318006Z    Compiling derive_more-impl v2.1.1
+2026-10-14T05:57:15.2314913Z    Compiling selectors v0.36.1
+2026-10-14T05:57:15.4268250Z    Compiling aho-corasick v1.1.4
+2026-10-14T05:57:15.5395011Z    Compiling toml_datetime v1.1.1+spec-1.1.0
+2026-10-14T05:57:15.7748555Z    Compiling regex-syntax v0.8.11
+2026-10-14T05:57:16.1455704Z    Compiling camino v1.2.4
+2026-10-14T05:57:16.3846076Z    Compiling unic-char-range v0.9.0
+2026-10-14T05:57:16.4664606Z    Compiling byteorder v1.5.0
+2026-10-14T05:57:16.6590805Z    Compiling alloc-no-stdlib v2.0.4
+2026-10-14T05:57:16.9681298Z    Compiling unic-common v0.9.0
+2026-10-14T05:57:17.0297450Z    Compiling unic-ucd-version v0.9.0
+2026-10-14T05:57:17.1108066Z    Compiling alloc-stdlib v0.2.4
+2026-10-14T05:57:17.1376617Z    Compiling unic-char-property v0.9.0
+2026-10-14T05:57:17.2099464Z    Compiling derive_more v2.1.1
+2026-10-14T05:57:17.2159187Z    Compiling toml v1.1.2+spec-1.1.0
+2026-10-14T05:57:17.3676949Z    Compiling markup5ever v0.38.0
+2026-10-14T05:57:17.5583144Z    Compiling regex-automata v0.4.14
+2026-10-14T05:57:18.3082520Z    Compiling cssparser v0.36.0
+2026-10-14T05:57:18.6171584Z    Compiling url v2.5.8
+2026-10-14T05:57:19.1682385Z    Compiling winapi-util v0.1.11
+2026-10-14T05:57:19.4382191Z    Compiling serde_derive_internals v0.29.1
+2026-10-14T05:57:20.0165157Z    Compiling servo_arc v0.4.3
+2026-10-14T05:57:20.1438831Z    Compiling rustc-hash v2.1.3
+2026-10-14T05:57:20.2077575Z    Compiling bit-vec v0.8.0
+2026-10-14T05:57:20.3556092Z    Compiling deranged v0.5.8
+2026-10-14T05:57:20.4183229Z    Compiling hashbrown v0.17.1
+2026-10-14T05:57:20.9235972Z    Compiling schemars v0.8.22
+2026-10-14T05:57:21.0037489Z    Compiling hashbrown v0.12.3
+2026-10-14T05:57:21.0880664Z    Compiling equivalent v1.0.2
+2026-10-14T05:57:21.1425440Z    Compiling powerfmt v0.2.0
+2026-10-14T05:57:21.3030705Z    Compiling fnv v1.0.7
+2026-10-14T05:57:21.3689340Z    Compiling bitflags v2.13.0
+2026-10-14T05:57:21.4857932Z    Compiling time v0.3.53
+2026-10-14T05:57:21.8589044Z    Compiling cfb v0.7.3
+2026-10-14T05:57:22.4687719Z    Compiling indexmap v2.14.0
+2026-10-14T05:57:22.6507482Z    Compiling bit-set v0.8.0
+2026-10-14T05:57:22.7787641Z    Compiling schemars_derive v0.8.22
+2026-10-14T05:57:23.1141925Z    Compiling regex v1.12.4
+2026-10-14T05:57:23.7557822Z    Compiling same-file v1.0.6
+2026-10-14T05:57:23.8752210Z    Compiling html5ever v0.38.0
+2026-10-14T05:57:24.0763902Z    Compiling unic-ucd-ident v0.9.0
+2026-10-14T05:57:24.2953596Z    Compiling brotli-decompressor v5.0.3
+2026-10-14T05:57:24.6430246Z    Compiling jsonptr v0.6.3
+2026-10-14T05:57:24.9435527Z    Compiling cargo-platform v0.1.9
+2026-10-14T05:57:25.1299905Z    Compiling generic-array v0.14.7
+2026-10-14T05:57:25.1362482Z    Compiling quick-xml v0.41.0
+2026-10-14T05:57:25.2754967Z    Compiling base64 v0.22.1
+2026-10-14T05:57:25.3984775Z    Compiling shlex v2.0.1
+2026-10-14T05:57:25.5434516Z    Compiling windows-link v0.1.3
+2026-10-14T05:57:25.5837017Z    Compiling foldhash v0.2.0
+2026-10-14T05:57:25.5893385Z    Compiling dyn-clone v1.0.20
+2026-10-14T05:57:25.6623362Z    Compiling dunce v1.0.5
+2026-10-14T05:57:25.7292217Z    Compiling find-msvc-tools v0.1.9
+2026-10-14T05:57:25.7693156Z    Compiling bytes v1.12.0
+2026-10-14T05:57:26.0865202Z    Compiling plist v1.10.0
+2026-10-14T05:57:26.3905892Z    Compiling http v1.4.2
+2026-10-14T05:57:26.5152989Z    Compiling cc v1.2.66
+2026-10-14T05:57:26.9944470Z    Compiling dom_query v0.27.0
+2026-10-14T05:57:27.8843187Z    Compiling brotli v8.0.4
+2026-10-14T05:57:28.7516897Z    Compiling cargo_metadata v0.19.2
+2026-10-14T05:57:28.7989089Z    Compiling json-patch v3.0.1
+2026-10-14T05:57:29.2081058Z    Compiling urlpattern v0.3.0
+2026-10-14T05:57:30.1468393Z    Compiling serde-untagged v0.1.9
+2026-10-14T05:57:30.1998300Z    Compiling walkdir v2.5.0
+2026-10-14T05:57:30.3624380Z    Compiling infer v0.19.0
+2026-10-14T05:57:30.4985935Z    Compiling ctor v0.8.0
+2026-10-14T05:57:30.5526468Z    Compiling serde_with v3.21.0
+2026-10-14T05:57:31.2972859Z    Compiling glob v0.3.3
+2026-10-14T05:57:31.6542092Z    Compiling vswhom-sys v0.1.3
+2026-10-14T05:57:32.4421687Z    Compiling tauri-utils v2.9.3
+2026-10-14T05:57:32.9475073Z    Compiling windows-targets v0.52.6
+2026-10-14T05:57:32.9899476Z    Compiling windows-strings v0.4.2
+2026-10-14T05:57:33.5724143Z    Compiling windows-result v0.3.4
+2026-10-14T05:57:34.4101139Z    Compiling windows-interface v0.59.3
+2026-10-14T05:57:35.0816257Z    Compiling windows-implement v0.60.2
+2026-10-14T05:57:36.1492301Z    Compiling windows-core v0.61.2
+2026-10-14T05:57:37.0614867Z    Compiling windows-sys v0.59.0
+2026-10-14T05:57:40.5191273Z    Compiling winreg v0.55.0
+2026-10-14T05:57:40.8548441Z    Compiling vswhom v0.1.0
+2026-10-14T05:57:40.9452627Z    Compiling rustc_version v0.4.1
+2026-10-14T05:57:41.1950413Z    Compiling toml_datetime v0.7.5+spec-1.1.0
+2026-10-14T05:57:41.4472141Z    Compiling option-ext v0.2.0
+2026-10-14T05:57:41.5014922Z    Compiling winnow v0.7.15
+2026-10-14T05:57:42.0251437Z    Compiling dirs-sys v0.5.0
+2026-10-14T05:57:42.1148760Z    Compiling embed-resource v3.0.11
+2026-10-14T05:57:43.0505656Z    Compiling toml v0.9.12+spec-1.1.0
+2026-10-14T05:57:44.3928489Z    Compiling windows-threading v0.1.0
+2026-10-14T05:57:44.5017963Z    Compiling heck v0.5.0
+2026-10-14T05:57:45.2847761Z    Compiling windows-future v0.2.1
+2026-10-14T05:57:45.6332675Z    Compiling cargo_toml v0.22.3
+2026-10-14T05:57:45.8638616Z    Compiling tauri-winres v0.3.6
+2026-10-14T05:57:46.1260888Z    Compiling dirs v6.0.0
+2026-10-14T05:57:46.1932630Z    Compiling windows-numerics v0.2.0
+2026-10-14T05:57:46.3814197Z    Compiling windows-collections v0.2.0
+2026-10-14T05:57:46.6572885Z    Compiling time-macros v0.2.31
+2026-10-14T05:57:48.0754426Z    Compiling raw-window-handle v0.6.2
+2026-10-14T05:57:48.2359332Z    Compiling typenum v1.20.1
+2026-10-14T05:57:48.7599054Z    Compiling simd-adler32 v0.3.9
+2026-10-14T05:57:49.0825036Z    Compiling crc32fast v1.5.0
+2026-10-14T05:57:49.6787521Z    Compiling tauri-build v2.6.3
+2026-10-14T05:57:50.1545495Z    Compiling windows v0.61.3
+2026-10-14T05:57:55.8785630Z    Compiling webview2-com-sys v0.38.2
+2026-10-14T05:58:01.4453892Z    Compiling crossbeam-utils v0.8.21
+2026-10-14T05:58:02.7519996Z    Compiling adler2 v2.0.1
+2026-10-14T05:58:02.8390402Z    Compiling miniz_oxide v0.8.9
+2026-10-14T05:58:10.0211959Z    Compiling dpi v0.1.2
+2026-10-14T05:58:10.3932778Z    Compiling cookie v0.18.1
+2026-10-14T05:58:18.4429203Z    Compiling flate2 v1.1.9
+2026-10-14T05:58:24.7390148Z    Compiling tauri v2.11.5
+2026-10-14T05:58:24.9723493Z    Compiling block-buffer v0.10.4
+2026-10-14T05:58:25.0685267Z    Compiling crypto-common v0.1.7
+2026-10-14T05:58:25.1460652Z    Compiling fdeflate v0.3.7
+2026-10-14T05:58:25.7193319Z    Compiling tauri-plugin v2.6.3
+2026-10-14T05:58:28.7504750Z    Compiling windows-version v0.1.7
+2026-10-14T05:58:28.8527093Z    Compiling webview2-com-macros v0.8.1
+2026-10-14T05:58:30.6583357Z    Compiling unicode-segmentation v1.13.3
+2026-10-14T05:58:31.0703244Z    Compiling pin-project-lite v0.2.17
+2026-10-14T05:58:31.1214099Z    Compiling bitflags v1.3.2
+2026-10-14T05:58:31.1679519Z    Compiling once_cell v1.21.4
+2026-10-14T05:58:33.6899020Z    Compiling png v0.17.16
+2026-10-14T05:58:34.6119062Z    Compiling webview2-com v0.38.2
+2026-10-14T05:58:35.4752468Z    Compiling digest v0.10.7
+2026-10-14T05:58:37.8554050Z    Compiling crossbeam-channel v0.5.15
+2026-10-14T05:58:45.2637960Z    Compiling tracing-core v0.1.36
+2026-10-14T05:58:46.0610853Z    Compiling wry v0.55.1
+2026-10-14T05:58:46.2389708Z    Compiling cpufeatures v0.2.17
+2026-10-14T05:58:46.5804863Z    Compiling windows_x86_64_msvc v0.53.1
+2026-10-14T05:58:46.5983716Z    Compiling tauri-runtime v2.11.3
+2026-10-14T05:58:46.8947871Z    Compiling sha2 v0.10.9
+2026-10-14T05:58:47.2375047Z    Compiling tracing v0.1.44
+2026-10-14T05:58:47.6474650Z    Compiling ico v0.5.0
+2026-10-14T05:58:48.1815443Z    Compiling tauri-plugin-fs v2.5.1
+2026-10-14T05:58:49.6794544Z    Compiling getrandom v0.3.4
+2026-10-14T05:58:49.8189150Z    Compiling tauri-runtime-wry v2.11.4
+2026-10-14T05:58:50.2921334Z    Compiling tauri-codegen v2.6.3
+2026-10-14T05:58:50.7726012Z    Compiling tao v0.35.3
+2026-10-14T05:58:53.2905387Z    Compiling softbuffer v0.4.8
+2026-10-14T05:58:57.3562229Z    Compiling keyboard-types v0.7.0
+2026-10-14T05:58:58.7895850Z    Compiling serialize-to-javascript-impl v0.1.2
+2026-10-14T05:58:59.2335684Z    Compiling serialize-to-javascript v0.1.2
+2026-10-14T05:58:59.3993945Z    Compiling muda v0.19.3
+2026-10-14T05:59:00.0821289Z    Compiling windows-targets v0.53.5
+2026-10-14T05:59:02.8752565Z    Compiling window-vibrancy v0.6.0
+2026-10-14T05:59:03.0577603Z    Compiling tauri-macros v2.6.3
+2026-10-14T05:59:05.0483573Z    Compiling tokio v1.52.3
+2026-10-14T05:59:05.1667155Z    Compiling tauri-plugin-dialog v2.7.1
+2026-10-14T05:59:05.8735829Z    Compiling serde_repr v0.1.20
+2026-10-14T05:59:07.5348556Z    Compiling winapi v0.3.9
+2026-10-14T05:59:07.9822132Z    Compiling mime v0.3.17
+2026-10-14T05:59:08.6634278Z    Compiling rfd v0.16.0
+2026-10-14T05:59:16.4515516Z    Compiling windows-sys v0.60.2
+2026-10-14T05:59:24.6625042Z    Compiling milkup-desktop v0.1.0 (D:\a\milkup\milkup\apps\desktop\src-tauri)
+2026-10-14T05:59:28.3120211Z    Compiling fs2 v0.4.3
+2026-10-14T06:00:35.0648694Z     Finished `release` profile [optimized] target(s) in 3m 39s
+2026-10-14T06:00:35.0988260Z        Built application at: D:\a\milkup\milkup\apps\desktop\src-tauri\target\x86_64-pc-windows-msvc\release\milkup-desktop.exe
+2026-10-14T06:00:35.1099595Z         Info Patching D:\a\milkup\milkup\apps\desktop\src-tauri\target\x86_64-pc-windows-msvc\release\milkup-desktop.exe with bundle type information: nsis
+2026-10-14T06:00:35.1269214Z         Info Verifying NSIS package
+2026-10-14T06:00:35.1270222Z  Downloading https://github.com/tauri-apps/binary-releases/releases/download/nsis-3.11/nsis-3.11.zip
+2026-10-14T06:00:35.5570170Z         Info validating hash
+2026-10-14T06:00:35.5581917Z         Info extracting NSIS
+2026-10-14T06:00:36.6957836Z  Downloading https://github.com/tauri-apps/nsis-tauri-utils/releases/download/nsis_tauri_utils-v0.5.3/nsis_tauri_utils.dll
+2026-10-14T06:00:36.9794193Z         Info validating hash
+2026-10-14T06:00:36.9800688Z         Info Target: x64
+2026-10-14T06:00:36.9919412Z      Running makensis to produce D:\a\milkup\milkup\apps\desktop\src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\milkup_0.1.0_x64-setup.exe
+2026-10-14T06:00:41.1275544Z     Finished 1 bundle at:
+2026-10-14T06:00:41.1276432Z         D:\a\milkup\milkup\apps\desktop\src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\milkup_0.1.0_x64-setup.exe
+2026-10-14T06:00:41.1277009Z 
+2026-10-14T06:02:08.5239506Z [31;1mException: [0mD:\a\milkup\milkup\scripts\ci\test-windows-v2-installed.ps1:83[0m
+2026-10-14T06:02:08.5240319Z [31;1m[0m[36;1mLine |[0m
+2026-10-14T06:02:08.5241065Z [31;1m[0m[36;1m[36;1m  83 | [0m … DE -ne 0) { [36;1mthrow 'Installed application open/edit/save/reopen smoke [0m …[0m
+2026-10-14T06:02:08.5241843Z [31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m     | [31;1m               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+2026-10-14T06:02:08.5242752Z [31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m[31;1m[31;1m[36;1m     | [31;1mInstalled application open/edit/save/reopen smoke failed; inspect retained evidence.[0m
+2026-10-14T06:02:08.5531246Z ##[error]Process completed with exit code 1.
+2026-10-14T06:02:08.5694479Z ##[group]Run $ErrorActionPreference = 'Stop'
+2026-10-14T06:02:08.5694918Z [36;1m$ErrorActionPreference = 'Stop'[0m
+2026-10-14T06:02:08.5695561Z [36;1mforeach ($name in @('build-result.json', 'binary-comparison.json', 'installation-result.json', 'installed-smoke.json', 'smoke-stderr.log', 'driver.log', 'native-driver.log')) {[0m
+2026-10-14T06:02:08.5696250Z [36;1m  $path = Join-Path $env:MILKUP_PACKAGE_OUTPUT "evidence/$name"[0m
+2026-10-14T06:02:08.5696631Z [36;1m  if (Test-Path -LiteralPath $path) {[0m
+2026-10-14T06:02:08.5696982Z [36;1m    Write-Output "VALIDATION EVIDENCE: $name"[0m
+2026-10-14T06:02:08.5697301Z [36;1m    $text = [System.IO.File]::ReadAllText($path)[0m
+2026-10-14T06:02:08.5697615Z [36;1m    if ($name -eq 'native-driver.log') {[0m
+2026-10-14T06:02:08.5697974Z [36;1m      Write-Output $text.Substring([Math]::Max(0, $text.Length - 65536))[0m
+2026-10-14T06:02:08.5698512Z [36;1m    } else {[0m
+2026-10-14T06:02:08.5698862Z [36;1m      Write-Output $text.Substring(0, [Math]::Min($text.Length, 65536))[0m
+2026-10-14T06:02:08.5699224Z [36;1m    }[0m
+2026-10-14T06:02:08.5699713Z [36;1m  }[0m
+2026-10-14T06:02:08.5699917Z [36;1m}[0m
+2026-10-14T06:02:08.5700266Z [36;1m'Validation only. No artifact upload or package delivery occurred.' >> $env:GITHUB_STEP_SUMMARY[0m
+2026-10-14T06:02:08.5763444Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-14T06:02:08.5763793Z env:
+2026-10-14T06:02:08.5764002Z   CARGO_BUILD_JOBS: 3
+2026-10-14T06:02:08.5764252Z   CARGO_INCREMENTAL: 0
+2026-10-14T06:02:08.5764475Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-14T06:02:08.5764766Z   MILKUP_PACKAGE_OUTPUT: D:\a\_temp\milkup-v2-package
+2026-10-14T06:02:08.5765034Z   RUSTUP_TOOLCHAIN: 1.99.0
+2026-10-14T06:02:08.5765251Z ##[endgroup]
+2026-10-14T06:02:09.2135544Z VALIDATION EVIDENCE: build-result.json
+2026-10-14T06:02:09.2242514Z {
+2026-10-14T06:02:09.2242937Z   "commitSha": "f487172895cb993930b0a060356036abde2da6c8",
+2026-10-14T06:02:09.2243333Z   "platform": "windows",
+2026-10-14T06:02:09.2243592Z   "architecture": "x64",
+2026-10-14T06:02:09.2243950Z   "status": "failed",
+2026-10-14T06:02:09.2244239Z   "runId": "38518996976",
+2026-10-14T06:02:09.2244578Z   "runAttempt": "1",
+2026-10-14T06:02:09.2244868Z   "runnerImage": "win25-vs2026",
+2026-10-14T06:02:09.2245220Z   "runnerImageVersion": "20260925.250.1",
+2026-10-14T06:02:09.2245600Z   "os": "Microsoft Windows 10.0.26100",
+2026-10-14T06:02:09.2246019Z   "runnerAccount": "runnervmfi6oq\\runneradmin",
+2026-10-14T06:02:09.2246446Z   "signedPackageRequested": false,
+2026-10-14T06:02:09.2246794Z   "realImeAccepted": false,
+2026-10-14T06:02:09.2247193Z   "windowsDesktopManualAcceptance": "pending",
+2026-10-14T06:02:09.2247609Z   "releaseCreated": false,
+2026-10-14T06:02:09.2248027Z   "deliveryMode": "validation-only-no-artifacts",
+2026-10-14T06:02:09.2248501Z   "artifactUploaded": false,
+2026-10-14T06:02:09.2248764Z   "packageDelivered": false,
+2026-10-14T06:02:09.2249005Z   "knownLimits": [
+2026-10-14T06:02:09.2249248Z     "Unsigned test installer",
+2026-10-14T06:02:09.2249546Z     "GitHub runner is not a consumer Windows desktop",
+2026-10-14T06:02:09.2250070Z     "Real IME, Word 2016, assistive technology, DPI/multi-monitor and power-loss acceptance pending"
+2026-10-14T06:02:09.2250731Z   ],
+2026-10-14T06:02:09.2251026Z   "tools": {
+2026-10-14T06:02:09.2251486Z     "node": "v24.19.0",
+2026-10-14T06:02:09.2251802Z     "pnpm": "11.7.0",
+2026-10-14T06:02:09.2252160Z     "rust": "rustc 1.99.0 (b940084d7 2026-09-28)",
+2026-10-14T06:02:09.2252478Z     "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+2026-10-14T06:02:09.2252801Z     "tauriCli": "tauri-cli 2.11.4"
+2026-10-14T06:02:09.2253039Z   },
+2026-10-14T06:02:09.2253236Z   "installer": {
+2026-10-14T06:02:09.2253477Z     "name": "milkup_0.1.0_x64-setup.exe",
+2026-10-14T06:02:09.2253787Z     "bytes": 2261939,
+2026-10-14T06:02:09.2254277Z     "sha256": "d1c5a948dab3c8849b4a3c1266b086b7935ee9e6d8d240b2d23cb0018a14d7f6",
+2026-10-14T06:02:09.2256857Z     "signature": "NotSigned",
+2026-10-14T06:02:09.2257199Z     "signer": null
+2026-10-14T06:02:09.2257424Z   },
+2026-10-14T06:02:09.2257624Z   "binary": {
+2026-10-14T06:02:09.2257869Z     "name": "milkup-desktop.exe",
+2026-10-14T06:02:09.2258126Z     "bytes": 10181120,
+2026-10-14T06:02:09.2258483Z     "sha256": "59b7b79199c0f6a1adccb23d5899e0e1d8e51ffd1b79386f32893016c290bc2c",
+2026-10-14T06:02:09.2258862Z     "signature": "NotSigned",
+2026-10-14T06:02:09.2259104Z     "signer": null
+2026-10-14T06:02:09.2259306Z   },
+2026-10-14T06:02:09.2259684Z   "error": "Installed application open/edit/save/reopen smoke failed; inspect retained evidence."
+2026-10-14T06:02:09.2260250Z }
+2026-10-14T06:02:09.2260365Z 
+2026-10-14T06:02:09.2260626Z VALIDATION EVIDENCE: binary-comparison.json
+2026-10-14T06:02:09.2261012Z {
+2026-10-14T06:02:09.2261282Z   "status": "passed",
+2026-10-14T06:02:09.2261779Z   "bytes": 10181120,
+2026-10-14T06:02:09.2262135Z   "builtSha256": "59b7b79199c0f6a1adccb23d5899e0e1d8e51ffd1b79386f32893016c290bc2c",
+2026-10-14T06:02:09.2262700Z   "expectedInstalledSha256": "408e980c395adffd9946dd5e4e8062fc2bfef717ba52f126554fb8650fa82536",
+2026-10-14T06:02:09.2263302Z   "installedSha256": "408e980c395adffd9946dd5e4e8062fc2bfef717ba52f126554fb8650fa82536",
+2026-10-14T06:02:09.2263866Z   "bundleMarkerOffset": 7648010,
+2026-10-14T06:02:09.2264426Z   "transformation": "__TAURI_BUNDLE_TYPE_VAR_UNK -> __TAURI_BUNDLE_TYPE_VAR_NSS",
+2026-10-14T06:02:09.2265000Z   "bundlerVersion": "2.9.4"
+2026-10-14T06:02:09.2265225Z }
+2026-10-14T06:02:09.2265314Z 
+2026-10-14T06:02:09.2265498Z VALIDATION EVIDENCE: installation-result.json
+2026-10-14T06:02:09.2265757Z {
+2026-10-14T06:02:09.2265945Z   "status": "failed",
+2026-10-14T06:02:09.2266368Z   "installDirectory": "D:\\a\\_temp\\milkup-v2-installed-7cc2d93944c34cac8c27d6e0ab91ef49\\app",
+2026-10-14T06:02:09.2266789Z   "account": "runnervmfi6oq\\runneradmin",
+2026-10-14T06:02:09.2267052Z   "registryBefore": {
+2026-10-14T06:02:09.2267270Z     ".md": null,
+2026-10-14T06:02:09.2267589Z     ".markdown": null,
+2026-10-14T06:02:09.2267892Z     ".mdown": null,
+2026-10-14T06:02:09.2268092Z     ".mkd": null,
+2026-10-14T06:02:09.2268310Z     "Markdown Document": null,
+2026-10-14T06:02:09.2268567Z     "Markdown Document\\DefaultIcon": null
+2026-10-14T06:02:09.2268813Z   },
+2026-10-14T06:02:09.2269026Z   "installerExitCode": 0,
+2026-10-14T06:02:09.2269379Z   "securitySettingsChanged": false,
+2026-10-14T06:02:09.2270009Z   "isolation": "Fresh GitHub-hosted VM and its existing runner account; not a new persistent user",
+2026-10-14T06:02:09.2270996Z   "consumerSmartScreenAndUacAcceptance": "pending; GitHub runner defaults differ from a normal desktop",
+2026-10-14T06:02:09.2271601Z   "realImeAccepted": false,
+2026-10-14T06:02:09.2271846Z   "installedBinary": {
+2026-10-14T06:02:09.2272308Z     "path": "D:\\a\\_temp\\milkup-v2-installed-7cc2d93944c34cac8c27d6e0ab91ef49\\app\\milkup-desktop.exe",
+2026-10-14T06:02:09.2272953Z     "sha256": "408e980c395adffd9946dd5e4e8062fc2bfef717ba52f126554fb8650fa82536",
+2026-10-14T06:02:09.2273451Z     "signature": "NotSigned",
+2026-10-14T06:02:09.2273820Z     "peMachine": "0x8664"
+2026-10-14T06:02:09.2274125Z   },
+2026-10-14T06:02:09.2274445Z   "binaryComparison": {
+2026-10-14T06:02:09.2274689Z     "status": "passed",
+2026-10-14T06:02:09.2274906Z     "bytes": 10181120,
+2026-10-14T06:02:09.2275268Z     "builtSha256": "59b7b79199c0f6a1adccb23d5899e0e1d8e51ffd1b79386f32893016c290bc2c",
+2026-10-14T06:02:09.2275814Z     "expectedInstalledSha256": "408e980c395adffd9946dd5e4e8062fc2bfef717ba52f126554fb8650fa82536",
+2026-10-14T06:02:09.2276410Z     "installedSha256": "408e980c395adffd9946dd5e4e8062fc2bfef717ba52f126554fb8650fa82536",
+2026-10-14T06:02:09.2276807Z     "bundleMarkerOffset": 7648010,
+2026-10-14T06:02:09.2277180Z     "transformation": "__TAURI_BUNDLE_TYPE_VAR_UNK -> __TAURI_BUNDLE_TYPE_VAR_NSS",
+2026-10-14T06:02:09.2277537Z     "bundlerVersion": "2.9.4"
+2026-10-14T06:02:09.2277762Z   },
+2026-10-14T06:02:09.2278487Z   "registryAfterInstall": {
+2026-10-14T06:02:09.2278914Z     ".md": "Markdown Document",
+2026-10-14T06:02:09.2279288Z     ".markdown": "Markdown Document",
+2026-10-14T06:02:09.2279686Z     ".mdown": "Markdown Document",
+2026-10-14T06:02:09.2280069Z     ".mkd": "Markdown Document",
+2026-10-14T06:02:09.2280398Z     "Markdown Document": "Markdown document",
+2026-10-14T06:02:09.2280911Z     "Markdown Document\\DefaultIcon": "D:\\a\\_temp\\milkup-v2-installed-7cc2d93944c34cac8c27d6e0ab91ef49\\app\\file.ico"
+2026-10-14T06:02:09.2281380Z   },
+2026-10-14T06:02:09.2281586Z   "webview2": "153.0.4234.48",
+2026-10-14T06:02:09.2281920Z   "edgeDriver": {
+2026-10-14T06:02:09.2282467Z     "version": "Microsoft Edge WebDriver 153.0.4234.48 (cf31d6623d8718e7a3c3e181e55e59c1aae57a73)",
+2026-10-14T06:02:09.2283277Z     "source": "https://msedgedriver.microsoft.com/153.0.4234.48/edgedriver_win64.zip",
+2026-10-14T06:02:09.2283934Z     "sha256": "4ae19c1db425d12f30952bc6b02abf4e61a84f82b33bb17721b4150fafc0402e"
+2026-10-14T06:02:09.2284275Z   },
+2026-10-14T06:02:09.2284649Z   "error": "Installed application open/edit/save/reopen smoke failed; inspect retained evidence.",
+2026-10-14T06:02:09.2285090Z   "applicationProcessesBeforeCleanup": [],
+2026-10-14T06:02:09.2285383Z   "applicationErrorEvents": []
+2026-10-14T06:02:09.2285645Z }
+2026-10-14T06:02:09.2285737Z 
+2026-10-14T06:02:09.2285908Z VALIDATION EVIDENCE: installed-smoke.json
+2026-10-14T06:02:09.2286168Z {
+2026-10-14T06:02:09.2286368Z   "status": "failed",
+2026-10-14T06:02:09.2286809Z   "application": "D:\\a\\_temp\\milkup-v2-installed-7cc2d93944c34cac8c27d6e0ab91ef49\\app\\milkup-desktop.exe",
+2026-10-14T06:02:09.2287532Z   "applicationSha256": "408e980c395adffd9946dd5e4e8062fc2bfef717ba52f126554fb8650fa82536",
+2026-10-14T06:02:09.2288209Z   "inputMethod": "Edge WebDriver W3C trusted key actions; not real IME",
+2026-10-14T06:02:09.2288729Z   "realImeAccepted": false,
+2026-10-14T06:02:09.2289082Z   "nativeFilePickerAccepted": false,
+2026-10-14T06:02:09.2289338Z   "cases": [
+2026-10-14T06:02:09.2289560Z     {
+2026-10-14T06:02:09.2289780Z       "name": "ordinary-source",
+2026-10-14T06:02:09.2290818Z       "file": "D:\\a\\_temp\\milkup-v2-installed-7cc2d93944c34cac8c27d6e0ab91ef49\\fixtures\\ordinary-source-中文.md",
+2026-10-14T06:02:09.2291625Z       "originalBytes": 33,
+2026-10-14T06:02:09.2292217Z       "originalSha256": "bcd506462ef2ae8f8b4c7c77e8439f2f804f9cc5f153b088c032015bcc169772",
+2026-10-14T06:02:09.2292635Z       "status": "started"
+2026-10-14T06:02:09.2292856Z     }
+2026-10-14T06:02:09.2293036Z   ],
+2026-10-14T06:02:09.2293232Z   "lastRequest": {
+2026-10-14T06:02:09.2293446Z     "method": "POST",
+2026-10-14T06:02:09.2293663Z     "route": "/session",
+2026-10-14T06:02:09.2293914Z     "startedAt": "2026-10-14T06:00:47.312Z"
+2026-10-14T06:02:09.2294188Z   },
+2026-10-14T06:02:09.2298252Z   "error": "Error: {\"value\":{\"error\":\"session not created\",\"message\":\"session not created: DevToolsActivePort file doesn't exist\",\"stacktrace\":\"\\tmsedgedriver!GetHandleVerifier [0x7ff656451e55+4ca5]\\n\\tmsedgedriver!(No symbol) [0x7ff6563a29d4]\\n\\tmsedgedriver!GetHandleVerifier [0x7ff6567d13af+3841ff]\\n\\tmsedgedriver!(No symbol) [0x7ff6561712f9]\\n\\tmsedgedriver!(No symbol) [0x7ff65616cd32]\\n\\tmsedgedriver!(No symbol) [0x7ff656169923]\\n\\tmsedgedriver!(No symbol) [0x7ff6561abe7b]\\n\\tmsedgedriver!(No symbol) [0x7ff6561ab806]\\n\\tmsedgedriver!(No symbol) [0x7ff65617599c]\\n\\tmsedgedriver!(No symbol) [0x7ff656174c1d]\\n\\tmsedgedriver!(No symbol) [0x7ff6561757c3]\\n\\tmsedgedriver!(No symbol) [0x7ff6562ac4c2]\\n\\tmsedgedriver!(No symbol) [0x7ff6562bbee9]\\n\\tmsedgedriver!GetHandleVerifier [0x7ff6564f9d85+acbd5]\\n\\tmsedgedriver!GetHandleVerifier [0x7ff656500261+b30b1]\\n\\tmsedgedriver!(No symbol) [0x7ff6563ae74f]\\n\\tmsedgedriver!(No symbol) [0x7ff6563a9124]\\n\\tmsedgedriver!(No symbol) [0x7ff6563a924a]\\n\\tmsedgedriver!(No symbol) [0x7ff65639a808]\\n\\tKERNEL32!BaseThreadInitThunk [0x7ff9970ce987+17]\\n\\tntdll!RtlUserThreadStart [0x7ff998a6c53c+2c]\\n\"}}"
+2026-10-14T06:02:09.2301562Z }
+2026-10-14T06:02:09.2301809Z VALIDATION EVIDENCE: smoke-stderr.log
+2026-10-14T06:02:09.2302224Z file:///D:/a/milkup/milkup/tests/windows/installed-package-smoke.mjs:46
+2026-10-14T06:02:09.2302672Z   if (!response.ok || data.value?.error) throw Error(JSON.stringify(data))
+2026-10-14T06:02:09.2303028Z                                                ^
+2026-10-14T06:02:09.2303208Z 
+2026-10-14T06:02:09.2306668Z Error: {"value":{"error":"session not created","message":"session not created: DevToolsActivePort file doesn't exist","stacktrace":"\tmsedgedriver!GetHandleVerifier [0x7ff656451e55+4ca5]\n\tmsedgedriver!(No symbol) [0x7ff6563a29d4]\n\tmsedgedriver!GetHandleVerifier [0x7ff6567d13af+3841ff]\n\tmsedgedriver!(No symbol) [0x7ff6561712f9]\n\tmsedgedriver!(No symbol) [0x7ff65616cd32]\n\tmsedgedriver!(No symbol) [0x7ff656169923]\n\tmsedgedriver!(No symbol) [0x7ff6561abe7b]\n\tmsedgedriver!(No symbol) [0x7ff6561ab806]\n\tmsedgedriver!(No symbol) [0x7ff65617599c]\n\tmsedgedriver!(No symbol) [0x7ff656174c1d]\n\tmsedgedriver!(No symbol) [0x7ff6561757c3]\n\tmsedgedriver!(No symbol) [0x7ff6562ac4c2]\n\tmsedgedriver!(No symbol) [0x7ff6562bbee9]\n\tmsedgedriver!GetHandleVerifier [0x7ff6564f9d85+acbd5]\n\tmsedgedriver!GetHandleVerifier [0x7ff656500261+b30b1]\n\tmsedgedriver!(No symbol) [0x7ff6563ae74f]\n\tmsedgedriver!(No symbol) [0x7ff6563a9124]\n\tmsedgedriver!(No symbol) [0x7ff6563a924a]\n\tmsedgedriver!(No symbol) [0x7ff65639a808]\n\tKERNEL32!BaseThreadInitThunk [0x7ff9970ce987+17]\n\tntdll!RtlUserThreadStart [0x7ff998a6c53c+2c]\n"}}
+2026-10-14T06:02:09.2310013Z     at request (file:///D:/a/milkup/milkup/tests/windows/installed-package-smoke.mjs:46:48)
+2026-10-14T06:02:09.2310608Z     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+2026-10-14T06:02:09.2311210Z     at async open (file:///D:/a/milkup/milkup/tests/windows/installed-package-smoke.mjs:79:20)
+2026-10-14T06:02:09.2311857Z     at async file:///D:/a/milkup/milkup/tests/windows/installed-package-smoke.mjs:161:20
+2026-10-14T06:02:09.2312146Z 
+2026-10-14T06:02:09.2312230Z Node.js v24.19.0
+2026-10-14T06:02:09.2312362Z 
+2026-10-14T06:02:09.2312514Z VALIDATION EVIDENCE: driver.log
+2026-10-14T06:02:09.2312932Z Starting msedgedriver 153.0.4234.48 (cf31d6623d8718e7a3c3e181e55e59c1aae57a73) on port 9515
+2026-10-14T06:02:09.2313574Z To submit feedback, report a bug, or suggest new features, please visit https://github.com/MicrosoftEdge/EdgeWebDriver
+2026-10-14T06:02:09.2313937Z 
+2026-10-14T06:02:09.2314053Z Only local connections are allowed.
+2026-10-14T06:02:09.2314559Z Please see https://aka.ms/WebDriverSecurity for suggestions on keeping Microsoft Edge WebDriver safe.
+2026-10-14T06:02:09.2315035Z msedgedriver was started successfully on port 9515.
+2026-10-14T06:02:09.2315244Z 
+2026-10-14T06:02:09.2315369Z VALIDATION EVIDENCE: native-driver.log
+2026-10-14T06:02:09.2331505Z [1791957647.193][INFO]: Starting Microsoft Edge WebDriver 153.0.4234.48 (cf31d6623d8718e7a3c3e181e55e59c1aae57a73) on port 9515
+2026-10-14T06:02:09.2332896Z [1791957647.194][INFO]: Please see https://aka.ms/WebDriverSecurity for suggestions on keeping Microsoft Edge WebDriver safe.
+2026-10-14T06:02:09.2333959Z [1791957647.199][INFO]: msedgedriver was started successfully on port 9515
+2026-10-14T06:02:09.2334782Z [1791957647.318][INFO]: [078be64be7dabf46229f6d6dc3e69947] COMMAND InitSession {
+2026-10-14T06:02:09.2335350Z    "capabilities": {
+2026-10-14T06:02:09.2335695Z       "alwaysMatch": {
+2026-10-14T06:02:09.2336083Z          "browserName": "webview2",
+2026-10-14T06:02:09.2336505Z          "ms:edgeChromium": true,
+2026-10-14T06:02:09.2336885Z          "ms:edgeOptions": {
+2026-10-14T06:02:09.2337976Z             "args": [ "D:\\a\\_temp\\milkup-v2-installed-7cc2d93944c34cac8c27d6e0ab91ef49\\fixtures\\ordinary-source-中文.md" ],
+2026-10-14T06:02:09.2339323Z             "binary": "D:\\a\\_temp\\milkup-v2-installed-7cc2d93944c34cac8c27d6e0ab91ef49\\app\\milkup-desktop.exe"
+2026-10-14T06:02:09.2340034Z          }
+2026-10-14T06:02:09.2340317Z       }
+2026-10-14T06:02:09.2340587Z    }
+2026-10-14T06:02:09.2340892Z }
+2026-10-14T06:02:09.2341314Z [1791957647.320][INFO]: Populating Preferences file: {
+2026-10-14T06:02:09.2341779Z    "alternate_error_pages": {
+2026-10-14T06:02:09.2342143Z       "enabled": false
+2026-10-14T06:02:09.2342455Z    },
+2026-10-14T06:02:09.2342737Z    "autofill": {
+2026-10-14T06:02:09.2343048Z       "enabled": false
+2026-10-14T06:02:09.2343386Z    },
+2026-10-14T06:02:09.2343658Z    "browser": {
+2026-10-14T06:02:09.2343995Z       "check_default_browser": false
+2026-10-14T06:02:09.2344357Z    },
+2026-10-14T06:02:09.2344638Z    "distribution": {
+2026-10-14T06:02:09.2344994Z       "import_bookmarks": false,
+2026-10-14T06:02:09.2345424Z       "import_history": false,
+2026-10-14T06:02:09.2345816Z       "import_search_engine": false,
+2026-10-14T06:02:09.2346375Z       "make_chrome_default_for_user": false,
+2026-10-14T06:02:09.2346814Z       "skip_first_run_ui": true
+2026-10-14T06:02:09.2347174Z    },
+2026-10-14T06:02:09.2347465Z    "dns_prefetching": {
+2026-10-14T06:02:09.2347833Z       "enabled": false
+2026-10-14T06:02:09.2348145Z    },
+2026-10-14T06:02:09.2348419Z    "profile": {
+2026-10-14T06:02:09.2348730Z       "content_settings": {
+2026-10-14T06:02:09.2349085Z          "pattern_pairs": {
+2026-10-14T06:02:09.2349439Z             "https://*,*": {
+2026-10-14T06:02:09.2349826Z                "media-stream": {
+2026-10-14T06:02:09.2350244Z                   "audio": "Default",
+2026-10-14T06:02:09.2350650Z                   "video": "Default"
+2026-10-14T06:02:09.2351228Z                }
+2026-10-14T06:02:09.2351558Z             }
+2026-10-14T06:02:09.2351839Z          }
+2026-10-14T06:02:09.2352113Z       },
+2026-10-14T06:02:09.2352447Z       "default_content_setting_values": {
+2026-10-14T06:02:09.2352860Z          "geolocation": 1
+2026-10-14T06:02:09.2353194Z       },
+2026-10-14T06:02:09.2353551Z       "default_content_settings": {
+2026-10-14T06:02:09.2353939Z          "geolocation": 1,
+2026-10-14T06:02:09.2354283Z          "mouselock": 1,
+2026-10-14T06:02:09.2354623Z          "notifications": 1,
+2026-10-14T06:02:09.2354971Z          "popups": 1,
+2026-10-14T06:02:09.2355304Z          "ppapi-broker": 1
+2026-10-14T06:02:09.2355660Z       },
+2026-10-14T06:02:09.2355993Z       "password_manager_enabled": false
+2026-10-14T06:02:09.2356372Z    },
+2026-10-14T06:02:09.2356657Z    "safebrowsing": {
+2026-10-14T06:02:09.2356977Z       "enabled": false
+2026-10-14T06:02:09.2357283Z    },
+2026-10-14T06:02:09.2357586Z    "search": {
+2026-10-14T06:02:09.2357919Z       "suggest_enabled": false
+2026-10-14T06:02:09.2358254Z    },
+2026-10-14T06:02:09.2358532Z    "translate": {
+2026-10-14T06:02:09.2358839Z       "enabled": false
+2026-10-14T06:02:09.2359139Z    }
+2026-10-14T06:02:09.2359402Z }
+2026-10-14T06:02:09.2359836Z [1791957647.321][INFO]: Populating Local State file: {
+2026-10-14T06:02:09.2360292Z    "background_mode": {
+2026-10-14T06:02:09.2360622Z       "enabled": false
+2026-10-14T06:02:09.2360923Z    },
+2026-10-14T06:02:09.2361189Z    "ssl": {
+2026-10-14T06:02:09.2361476Z       "rev_checking": {
+2026-10-14T06:02:09.2361842Z          "enabled": false
+2026-10-14T06:02:09.2362168Z       }
+2026-10-14T06:02:09.2362438Z    }
+2026-10-14T06:02:09.2362708Z }
+2026-10-14T06:02:09.2363493Z [1791957647.321][INFO]: ChromeDriver supports communication with Chrome via pipes. This is more reliable and more secure.
+2026-10-14T06:02:09.2364947Z [1791957647.321][INFO]: Use the --remote-debugging-pipe Chrome switch instead of the default --remote-debugging-port to enable this communication mode.
+2026-10-14T06:02:09.2369946Z [1791957647.322][INFO]: WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = --allow-pre-commit-input --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-client-side-phishing-detection --disable-default-apps --disable-features=IgnoreDuplicateNavs,Prewarm --disable-hang-monitor --disable-popup-blocking --disable-prompt-on-repost --disable-sync --enable-automation --enable-logging --log-level=0 --no-first-run --no-service-autorun --password-store=basic --remote-debugging-port=0 --test-type=webdriver --use-mock-keychain
+2026-10-14T06:02:09.2374879Z [1791957647.322][INFO]: Launching Microsoft Edge: "D:\a\_temp\milkup-v2-installed-7cc2d93944c34cac8c27d6e0ab91ef49\app\milkup-desktop.exe" --d:\a\_temp\milkup-v2-installed-7cc2d93944c34cac8c27d6e0ab91ef49\fixtures\ordinary-source-中文.md
+2026-10-14T06:02:09.2376432Z [1791957707.346][INFO]: Failed to connect to msedge. Attempting to kill it.
+2026-10-14T06:02:09.2377635Z [1791957709.014][INFO]: [078be64be7dabf46229f6d6dc3e69947] RESPONSE InitSession ERROR session not created: DevToolsActivePort file doesn't exist
+2026-10-14T06:02:09.2378707Z [1791957709.015][DEBUG]: Log type 'driver' lost 0 entries on destruction
+2026-10-14T06:02:09.2380055Z [1791957709.015][DEBUG]: Log type 'browser' lost 0 entries on destruction
+2026-10-14T06:02:09.2380477Z 
+2026-10-14T06:02:09.3039037Z Post job cleanup.
+2026-10-14T06:02:09.4513025Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-10-14T06:02:09.4746939Z git version 2.55.0.windows.5
+2026-10-14T06:02:09.4800753Z Temporarily overriding HOME='D:\a\_temp\925109e7-0b09-4ccc-8ad8-2be70ca55d3f' before making global git config changes
+2026-10-14T06:02:09.4801780Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-14T06:02:09.4809771Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\milkup\milkup
+2026-10-14T06:02:09.5078260Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-10-14T06:02:09.5344514Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-10-14T06:02:10.2684479Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-14T06:02:10.2928166Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-10-14T06:02:11.3248774Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-14T06:02:11.3479537Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-10-14T06:02:12.1944823Z Cleaning up orphan processes
+2026-10-14T06:02:12.2141881Z Terminate orphan process: pid (3144) (vctip)
+2026-10-14T06:02:12.2545721Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@11d5960a326750d5838078e36cf38b85af677262, actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
