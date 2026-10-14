@@ -364,6 +364,15 @@ try {
       async () => (await app.probe()).cursor === large.indexOf('## Heading ' + middleLine + '\n'),
       'middle heading exact position',
     )
+    await app.until(
+      () =>
+        app.execute(
+          `const x=[...document.querySelectorAll('.plugin-list-item')].find(x=>x.title===arguments[0]&&x.getAttribute('aria-current')==='location');if(!x)return false;const r=x.getBoundingClientRect(),p=x.closest('[data-virtual-list]').getBoundingClientRect();return r.top>=p.top&&r.bottom<=p.bottom`,
+          middle,
+        ),
+      'active middle title visible',
+    )
+    await app.delay(1200)
     await shot('06b-large-middle')
     const collapseAt = performance.now()
     await click('[data-plugin-ui] [data-plugin-command="outline.collapseAll"]')
