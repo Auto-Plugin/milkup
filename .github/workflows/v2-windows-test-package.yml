@@ -1,5 +1,5 @@
 # Canonical source for .github/workflows/v2-windows-test-package.yml.
-# Validation only: no artifact upload, Actions cache, Release or paid runner.
+# One explicitly approved user-trial artifact; no cache, Release or paid runner.
 name: Windows v2 test package
 on:
   push:
@@ -37,14 +37,22 @@ jobs:
           persist-credentials: false
       - name: Check explicit request and exact source
         id: request
+        env:
+          UPLOAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           $ErrorActionPreference = 'Stop'
           $request = Get-Content scripts/ci/windows-v2-package-request.json -Raw | ConvertFrom-Json
           if ($request.enabled -ne $true -or $request.publicArtifactsAccepted -ne $true -or
               $request.unsignedTestPackageAccepted -ne $true -or
-              $request.deliveryMode -ne 'validation-only-no-artifacts') {
-            throw 'Validation request is not approved; no build is authorized.'
+              $request.deliveryMode -ne 'user-trial-package' -or
+              $request.storageBudgetApproved -ne $true -or
+              $request.artifactLimitBytes -ne 52428800 -or
+              $request.artifactRetentionDays -ne 7 -or
+              $request.maxExtraStorageCostUsd -ne 0.01) {
+            throw 'User-trial delivery request is not approved; no build or upload is authorized.'
           }
+          if ($env:GITHUB_RUN_ATTEMPT -ne '1') { throw 'Single upload budget: do not rerun this request' }
+          if (-not $env:UPLOAD_COMMIT_MESSAGE.Contains('[upload:' + $request.requestId + ']')) { throw 'Commit does not authorize this upload request' }
           if ($request.baselineSha -ne 'a73131e4b46f88fa85f2f59f1c4ae3f75d16d778') { throw 'Unexpected baseline' }
           if ((git rev-parse HEAD).Trim() -ne $env:GITHUB_SHA) { throw 'Checkout SHA mismatch' }
           git merge-base --is-ancestor $request.baselineSha HEAD
@@ -63,8 +71,8 @@ jobs:
           rustup toolchain install 1.99.0 --profile minimal --component rustfmt
           if ($LASTEXITCODE -ne 0) { throw 'Rust toolchain install failed' }
           'RUSTUP_TOOLCHAIN=1.99.0' >> $env:GITHUB_ENV
-      - name: Build unsigned NSIS and verify installed application
-        run: ./scripts/ci/build-windows-v2-package.ps1 -OutputDirectory $env:MILKUP_PACKAGE_OUTPUT -ExpectedCommit $env:GITHUB_SHA
+      - name: Build unsigned NSIS for user manual trial
+        run: ./scripts/ci/build-windows-v2-package.ps1 -OutputDirectory $env:MILKUP_PACKAGE_OUTPUT -ExpectedCommit $env:GITHUB_SHA -UserTrialPackage
       - name: Record bounded validation results in logs only
         if: ${{ always() && steps.request.outputs.approved == 'true' }}
         run: |
@@ -81,4 +89,42 @@ jobs:
               }
             }
           }
-          'Validation only. No artifact upload or package delivery occurred.' >> $env:GITHUB_STEP_SUMMARY
+          'User-trial build. Automated installation/startup/editing acceptance is not a delivery prerequisite and remains unverified.' >> $env:GITHUB_STEP_SUMMARY
+      - name: Enforce one small delivery payload
+        id: payload
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $directory = Join-Path $env:MILKUP_PACKAGE_OUTPUT 'deliverable'
+          $files = @(Get-ChildItem -LiteralPath $directory -File)
+          if ($files.Count -ne 4 -or (Get-ChildItem -LiteralPath $directory -Directory)) { throw 'Unexpected delivery payload' }
+          $expected = @("milkup-v2-test-windows-x64-$env:GITHUB_SHA.exe", 'manifest.json', 'SHA256SUMS.txt', 'README.txt')
+          if (@($files | Where-Object Name -NotIn $expected).Count -ne 0) { throw 'Unapproved payload file' }
+          $bytes = ($files | Measure-Object Length -Sum).Sum
+          # Reserve 1 MiB for ZIP metadata/framing; upload four files once.
+          if ($bytes -gt 49MB) { throw 'Payload exceeds the approved total 50 MiB upload budget' }
+          $manifest = Get-Content (Join-Path $directory 'manifest.json') -Raw | ConvertFrom-Json
+          $installer = Join-Path $directory $manifest.installer.deliveredName
+          if ($manifest.status -ne 'built-for-user-trial' -or $manifest.commitSha -ne $env:GITHUB_SHA) { throw 'Unexpected candidate manifest' }
+          if ((Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant() -ne $manifest.installer.sha256) { throw 'Installer changed after build' }
+          "Verified delivery payload: $bytes bytes; one upload; expires after 7 days."
+          "directory=$directory" >> $env:GITHUB_OUTPUT
+      - name: Upload the approved user-trial package once
+        id: upload
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: milkup-v2-test-windows-x64-${{ github.sha }}
+          path: ${{ steps.payload.outputs.directory }}/*
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+          overwrite: false
+          include-hidden-files: false
+      - name: Record download link
+        env:
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+          ARTIFACT_DIGEST: ${{ steps.upload.outputs.artifact-digest }}
+        run: |
+          "Download (GitHub login required): $env:ARTIFACT_URL" >> $env:GITHUB_STEP_SUMMARY
+          "Artifact ID: $env:ARTIFACT_ID; ZIP SHA-256: $env:ARTIFACT_DIGEST" >> $env:GITHUB_STEP_SUMMARY
+          'Unsigned Windows x64 NSIS for user manual trial; startup/editing acceptance unverified. Automatic expiry: 7 days.' >> $env:GITHUB_STEP_SUMMARY
