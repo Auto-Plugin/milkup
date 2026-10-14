@@ -56,6 +56,7 @@ try {
     Invoke-Checked 'pnpm' @('-r', '--workspace-concurrency=1', 'test')
     Invoke-Checked 'pnpm' @('typecheck')
     Invoke-Checked 'node' @('--test', 'tests/windows/verify-installed-binary.test.mjs')
+    Invoke-Checked 'node' @('--test', 'tests/windows/verify-build-tree.test.mjs')
     Invoke-Checked 'cargo' @('test', '--locked', '--manifest-path', 'apps/desktop/src-tauri/Cargo.toml', '--lib')
     Invoke-Checked 'pnpm' @('--filter', '@milkup/desktop', 'tauri', 'build', '--target', 'x86_64-pc-windows-msvc', '--bundles', 'nsis', '--ci', '--', '--locked')
     $target = Join-Path (Get-Location) 'apps/desktop/src-tauri/target/x86_64-pc-windows-msvc/release'
@@ -82,7 +83,11 @@ try {
         $manifest.installedTest = & "$PSScriptRoot/test-windows-v2-installed.ps1" -Installer $packages[0].FullName -BuiltBinary $binary -EvidenceDirectory $evidence
         if ($manifest.installedTest.status -ne 'passed') { throw 'Installed application acceptance did not pass' }
     }
-    if (git status --porcelain) { throw 'Build changed tracked or untracked source files' }
+    # Tauri writes these editor-support JSON schemas for the current platform.
+    # Verify all other source paths remain unchanged and retain generated hashes.
+    $treeEvidence = Join-Path $evidence 'build-tree.json'
+    Invoke-Checked 'node' @('tests/windows/verify-build-tree.mjs', (Get-Location).Path, $treeEvidence)
+    $manifest.buildTree = Get-Content -LiteralPath $treeEvidence -Raw | ConvertFrom-Json
     $manifest.status = if ($UserTrialPackage) { 'built-for-user-trial' } else { 'passed' }
     $deliverable = Join-Path $OutputDirectory 'deliverable'
     New-Item -ItemType Directory -Path $deliverable | Out-Null
