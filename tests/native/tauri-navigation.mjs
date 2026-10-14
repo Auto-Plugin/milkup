@@ -246,6 +246,13 @@ async function saved(expected) {
 }
 async function activate(selector) {
   await execute('document.querySelector(arguments[0]).focus()', selector)
+  assert(
+    await execute(
+      'return document.activeElement === document.querySelector(arguments[0])',
+      selector,
+    ),
+    'visible control receives focus: ' + selector,
+  )
   await key('\uE007')
 }
 async function fill(selector, value) {
@@ -531,6 +538,10 @@ try {
           ),
         'windowed heading scan',
       )
+      if (
+        await execute('return document.querySelector("#app").dataset.sidebarCollapsed === "true"')
+      )
+        await activate('[data-sidebar-toggle]')
       await activate('[aria-label="跳转到 Distant，第 60002 行"]')
       await editorFocused()
       await until(

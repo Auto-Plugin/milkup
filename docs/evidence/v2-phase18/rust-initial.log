@@ -1,0 +1,18 @@
+   Compiling fs2 v0.4.3
+   Compiling milkup-desktop v0.1.0 (/workspace/milkup/apps/desktop/src-tauri)
+error[E0277]: `StorageStatus` doesn't implement `Debug`
+   --> src/recovery_storage.rs:196:32
+    |
+196 |         assert!(guard.status().unwrap_err().contains("层级"));
+    |                                ^^^^^^^^^^ the trait `Debug` is not implemented for `StorageStatus`
+    |
+note: required by a bound in `Result::<T, E>::unwrap_err`
+   --> /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs:1323:4
+help: consider annotating `StorageStatus` with `#[derive(Debug)]`
+    |
+ 15 + #[derive(Debug)]
+ 16 | pub(crate) struct StorageStatus {
+    |
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `milkup-desktop` (lib test) due to 1 previous error

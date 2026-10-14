@@ -1,6 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import {
   createRecoveryController,
+  formatRecoveryError,
   type RecoveryDocument,
   type RecoveryRecord,
   type RecoveryStatus,
@@ -122,4 +123,11 @@ it('an explicit flush captures native version without materializing a large docu
   f.controller.observe()
   await vi.advanceTimersByTimeAsync(10000)
   expect(f.checkpoint).toHaveBeenCalledTimes(1)
+})
+
+it('explains real OS disk and permission failures without hiding other diagnostics', () => {
+  expect(formatRecoveryError('No space left on device (os error 28)')).toContain('磁盘已满')
+  expect(formatRecoveryError('Permission denied (os error 13)')).toContain('无法写入')
+  expect(formatRecoveryError('File exists (os error 17)')).toContain('目标文件已存在')
+  expect(formatRecoveryError('checksum mismatch')).toBe('checksum mismatch')
 })

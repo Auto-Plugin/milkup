@@ -193,3 +193,36 @@ it('live table Home/End stay inside the current cell', () => {
   s.key('End', true)
   expect(s.view.state.selection.main.to).toBe(source.indexOf('first') + 5)
 })
+
+for (const mode of ['source', 'live'] as const) {
+  it(`${mode}: primary Home/End replace or extend directional selection without changing text or history`, () => {
+    const text = '# 中文 😀\r\nend'
+    const s = setup(text, mode, Selection.range(5, 2))
+    const key = (key: string, shiftKey = false, metaKey = false) => {
+      const event = new KeyboardEvent('keydown', {
+        key,
+        shiftKey,
+        metaKey,
+        ctrlKey: !metaKey,
+        bubbles: true,
+        cancelable: true,
+      })
+      s.view.inputDOM.dispatchEvent(event)
+      expect(event.defaultPrevented).toBe(true)
+    }
+    key('Home', true)
+    expect(s.view.state.selection.main.anchor).toBe(5)
+    expect(s.view.state.selection.main.head).toBe(0)
+    key('End', true, true)
+    expect(s.view.state.selection.main.anchor).toBe(5)
+    expect(s.view.state.selection.main.head).toBe(text.length)
+    key('Home')
+    expect(s.view.state.selection.main.empty).toBe(true)
+    expect(s.view.state.selection.main.head).toBe(0)
+    key('End')
+    expect(s.view.state.selection.main.empty).toBe(true)
+    expect(s.view.state.selection.main.head).toBe(text.length)
+    expect(s.text()).toBe(text)
+    expect(s.view.state.history.canUndo).toBe(false)
+  })
+}

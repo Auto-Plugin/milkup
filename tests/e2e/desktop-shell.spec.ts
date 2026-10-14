@@ -1339,7 +1339,12 @@ test('phase9 narrow search and outline stay reachable and source mode removes in
     )
     await page.keyboard.press('Control+2')
   }
-  const child = page.getByRole('button', { name: '跳转到 Child，第 3 行', exact: true })
+  await page.getByRole('button', { name: '侧栏', exact: true }).click()
+  const child = page.getByRole('button', {
+    name: '跳转到 Child，第 3 行',
+    exact: true,
+    includeHidden: true,
+  })
   await child.focus()
   await child.press('Enter')
   await expect(page.locator('.milkup-input-proxy')).toBeFocused()
@@ -1439,4 +1444,106 @@ test('phase16 confirmation remains scrollable at a 380 by 260 effective viewport
   expect(button!.y + button!.height).toBeLessThanOrEqual(260)
   await page.keyboard.press('Escape')
   await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+})
+
+test('phase18 theme follows system only when selected, persists explicit dark and keeps contrast', async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: 'light' })
+  await page.goto('/')
+  await page.keyboard.insertText('# Heading\n\ntext `code` and [link](https://example.com)\n')
+  await page.getByRole('button', { name: '菜单', exact: true }).click()
+  await page.locator('[data-menu-section="appearance"]').click()
+  await page.getByRole('combobox', { name: '主题', exact: true }).selectOption('dark')
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  const contrast = await page.evaluate(() => {
+    const css = getComputedStyle(document.documentElement)
+    const rgb = (value: string) => {
+      const node = document.createElement('span')
+      node.style.color = value
+      document.body.append(node)
+      const valueRgb = getComputedStyle(node).color
+      node.remove()
+      return valueRgb
+        .match(/[\d.]+/g)!
+        .slice(0, 3)
+        .map(Number)
+    }
+    const light = (value: string) =>
+      rgb(value)
+        .map((n) => {
+          const v = n / 255
+          return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+        })
+        .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i]!, 0)
+    return [
+      ['--text', '--panel-bg'],
+      ['--text-muted', '--panel-bg'],
+      ['--code-text', '--code-bg'],
+      ['--inline-code-text', '--inline-code-bg'],
+      ['--on-primary', '--primary-bg'],
+      ['--danger', '--danger-soft'],
+    ].map(([fg, bg]) => {
+      const a = light(css.getPropertyValue(fg!)),
+        b = light(css.getPropertyValue(bg!))
+      return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+    })
+  })
+  expect(contrast.every((r) => r >= 4.5)).toBe(true)
+  await page.emulateMedia({ colorScheme: 'light' })
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  // Browser preview does not pretend its CSS zoom is native WebView zoom.
+  await expect(page.getByRole('combobox', { name: '界面缩放', exact: true })).toBeDisabled()
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('Control+s')
+  await page.reload()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  await page.getByRole('button', { name: '菜单', exact: true }).click()
+  await page.locator('[data-menu-section="appearance"]').click()
+  await page.getByRole('combobox', { name: '主题', exact: true }).selectOption('system')
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+})
+
+test('phase18 narrow sidebar overlays without shrinking text and search controls remain reachable', async ({
+  page,
+}) => {
+  await page.addInitScript(
+    (registry) => localStorage.setItem('milkup.desktop.plugins.registry.v1', registry),
+    outlineRegistry(),
+  )
+  await page.setViewportSize({ width: 380, height: 260 })
+  await page.goto('/')
+  await page.keyboard.insertText('# Heading\nbody\n## Child\ntail')
+  const before = await page.locator('[data-editor-host]').boundingBox()
+  await page.getByRole('button', { name: '侧栏', exact: true }).click()
+  await expect(page.locator('[data-sidebar-close]')).toBeFocused()
+  const after = await page.locator('[data-editor-host]').boundingBox()
+  expect(after!.width).toBe(before!.width)
+  expect(after!.height).toBe(before!.height)
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+  await page.keyboard.press('Control+f')
+  await page.getByRole('searchbox', { name: '搜索', exact: true }).fill('body')
+  await expect(page.locator('[data-search-result-count]')).toHaveText('1/1')
+  const reachable = await page.locator('[data-floating-search]').evaluate((root) =>
+    Array.from(root.querySelectorAll('input,button'))
+      .filter((e) => e.getClientRects().length)
+      .every((e) => {
+        const r = e.getBoundingClientRect()
+        return r.left >= 0 && r.right <= innerWidth
+      }),
+  )
+  expect(reachable).toBe(true)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await page.keyboard.press('Escape')
+  await page.locator('[data-menu-toggle]').click()
+  await page.locator('[data-menu-section="appearance"]').click()
+  const content = await page.locator('[data-menu-panel="appearance"]').boundingBox()
+  expect(content!.height).toBeGreaterThanOrEqual(120)
+  await page.locator('[data-appearance-theme]').focus()
+  const field = await page.locator('[data-appearance-theme]').boundingBox()
+  expect(field!.y).toBeGreaterThanOrEqual(content!.y)
+  expect(field!.y + field!.height).toBeLessThanOrEqual(content!.y + content!.height)
 })

@@ -826,6 +826,24 @@ export class EditorView {
       return isTab || isTextEditingKey(event)
     }
 
+    if (
+      !event.altKey &&
+      (event.ctrlKey || event.metaKey) &&
+      (event.key === 'Home' || event.key === 'End')
+    ) {
+      const range = this.currentState.selection.main
+      const head = event.key === 'Home' ? 0 : this.currentState.doc.length
+      this.dispatch({
+        selection: Selection.range(event.shiftKey ? range.anchor : head, head),
+        origin: {
+          type: 'command',
+          id: event.key === 'Home' ? 'view.documentStart' : 'view.documentEnd',
+        },
+        addToHistory: false,
+      })
+      return true
+    }
+
     if (event.altKey || event.ctrlKey || event.metaKey) {
       return false
     }

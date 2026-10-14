@@ -229,6 +229,13 @@ impl PieceTree {
         Ok(())
     }
 
+    pub(crate) fn saved_byte_len(&self) -> u64 {
+        match self.base_encoding {
+            BaseEncoding::Utf8 => self.byte_len() as u64,
+            BaseEncoding::Utf16Le | BaseEncoding::Utf16Be => 2 + 2 * self.utf16_len() as u64,
+        }
+    }
+
     pub(crate) fn write_to(&self, path: &Path) -> Result<(), String> {
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent).map_err(|error| error.to_string())?;

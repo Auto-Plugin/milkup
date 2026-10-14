@@ -1,0 +1,35 @@
+2026-10-14T00:09:56.984Z NATIVE_STARTUP_WINDOW 1318ms
+PASS light 125% uses native viewport scaling with clean document
+PASS light 125% narrow search, sidebar and appearance controls remain reachable
+PASS light 150% uses native viewport scaling with clean document
+PASS light 150% narrow search, sidebar and appearance controls remain reachable
+PASS light 200% uses native viewport scaling with clean document
+PASS light 200% narrow search, sidebar and appearance controls remain reachable
+PASS dark 125% uses native viewport scaling with clean document
+PASS dark 125% narrow search, sidebar and appearance controls remain reachable
+PASS dark 150% uses native viewport scaling with clean document
+PASS dark 150% narrow search, sidebar and appearance controls remain reachable
+PASS dark 200% uses native viewport scaling with clean document
+PASS dark 200% narrow search, sidebar and appearance controls remain reachable
+PASS native pointer hit testing at 200% lands on the intended Unicode-safe source position
+PASS 200% editing, caret, undo, redo and save preserve CRLF and Unicode bytes
+2026-10-14T00:10:18.775Z NATIVE_STARTUP_WINDOW 1039ms
+PASS theme and 200% native scale survive a real application restart
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: zoom select receives focus
+    at file:///workspace/milkup/tests/native/tauri-appearance.mjs:285:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async check (file:///workspace/milkup/tests/native/tauri-appearance.mjs:30:3)
+    at async file:///workspace/milkup/tests/native/tauri-appearance.mjs:279:3 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.19.0

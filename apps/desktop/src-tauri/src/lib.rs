@@ -22,6 +22,7 @@ use tauri::{AppHandle, Emitter, Manager, State, Window};
 mod native_search;
 mod piece_tree;
 mod recovery;
+mod recovery_storage;
 use piece_tree::PieceTree;
 
 const FILE_WATCH_EVENT_NAME: &str = "milkup-file-watch-event";

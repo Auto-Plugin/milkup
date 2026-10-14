@@ -9,10 +9,21 @@ const root = process.env.MILKUP_NATIVE_EVIDENCE_DIR ?? '/tmp/milkup-v2-phase17/l
 const profile =
   process.env.MILKUP_RECOVERY_PROFILE ??
   '/tmp/milkup-v2-phase17/runtime/data/app.milkup.desktop/recovery-v1'
-const runtimeTmp = '/tmp/milkup-v2-phase17/runtime/tmp'
+const runtimeTmp = process.env.MILKUP_NATIVE_TMP_DIR ?? '/tmp/milkup-v2-phase17/runtime/tmp'
 await mkdir(root, { recursive: true })
 const results = []
 const hash = (b) => createHash('sha256').update(b).digest('hex')
+const assertBytes = (actual, expected) => {
+  if (!actual.equals(expected))
+    assert.fail(
+      JSON.stringify({
+        actualBytes: actual.length,
+        expectedBytes: expected.length,
+        actualSha256: hash(actual),
+        expectedSha256: hash(expected),
+      }),
+    )
+}
 async function recordFor(file) {
   const records = []
   for (const id of await readdir(profile)) {
@@ -90,7 +101,7 @@ if (!process.env.MILKUP_NATIVE_CASE || process.env.MILKUP_NATIVE_CASE === 'lifec
       () => app.execute(`return !!document.querySelector('[data-recovery-restore="${r.id}"]')`),
       'pending record',
     )
-    assert.deepEqual(await readFile(payload), expected)
+    assertBytes(await readFile(payload), expected)
     const backgroundPath = (await app.probe()).path
     for (let n = 0; n < 4; n++) {
       await app.key('Tab')
@@ -124,10 +135,13 @@ if (!process.env.MILKUP_NATIVE_CASE || process.env.MILKUP_NATIVE_CASE === 'lifec
     assert.equal((await recordFor(file)).disposition, 'pending')
     await app.shot('checksum-error')
     await writeFile(payload, expected)
+    // A failed restore keeps the recovery dialog visible so the error can be read.
+    assert(await app.execute('return !document.querySelector(".recovery-overlay").hidden'))
+    await app.key('Escape')
     await menu(app)
     await app.click(`[data-recovery-dismiss="${r.id}"]`)
     await app.until(async () => (await recordFor(file)).disposition === 'dismissed', 'archived')
-    assert.deepEqual(await readFile(payload), expected)
+    assertBytes(await readFile(payload), expected)
     await app.click('[data-recovery-close]')
     await app.close()
     app = await startProduction(file, dir)
@@ -143,7 +157,7 @@ if (!process.env.MILKUP_NATIVE_CASE || process.env.MILKUP_NATIVE_CASE === 'lifec
       async () => (await app.probe()).path.includes('/copies/recovered-'),
       'restored archived',
     )
-    assert.deepEqual(await readFile((await app.probe()).path), expected)
+    assertBytes(await readFile((await app.probe()).path), expected)
     await app.shot('archived-restored')
   })
 if (process.env.MILKUP_NATIVE_CASE === 'large-pending')
@@ -259,7 +273,7 @@ for (const kind of ['save-interrupt', 'replace-interrupt']) {
     await ready(app)
     const r = await recordFor(file),
       expected = Buffer.concat([Buffer.from('CHECKPOINT17'), original])
-    assert.deepEqual(await readFile(path.join(profile, r.id, r.payload)), expected)
+    assertBytes(await readFile(path.join(profile, r.id, r.payload)), expected)
     const owner = await ownedApplication(app.application, file)
     if (kind === 'replace-interrupt') {
       await app.key('ctrl+f')
@@ -314,7 +328,7 @@ for (const kind of ['save-interrupt', 'replace-interrupt']) {
       if (stopped && !entry.termination) await owner.signal('SIGCONT')
     }
     await app.close()
-    assert.deepEqual(await readFile(file), original)
+    assertBytes(await readFile(file), original)
     app = await startProduction(file, dir)
     setApp(app)
     await app.until(
@@ -332,10 +346,10 @@ for (const kind of ['save-interrupt', 'replace-interrupt']) {
       20000,
     )
     const actual = await readFile((await app.probe()).path)
-    assert.deepEqual(actual, expected)
+    assertBytes(actual, expected)
     entry.recoveredSha256 = hash(actual)
     entry.expectedSha256 = hash(expected)
-    assert.deepEqual(await readFile(file), original)
+    assertBytes(await readFile(file), original)
     await app.shot('restored')
   })
 }

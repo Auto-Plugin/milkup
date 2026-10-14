@@ -1,3 +1,20 @@
+export function formatRecoveryError(error: unknown): string {
+  const message = String(error)
+  if (/os error (28|112)\b|no space left on device/i.test(message))
+    return '磁盘已满，恢复点未更新。已有恢复点保留；请释放空间或另存为到其他磁盘。'
+  if (/os error (13|5)\b|permission denied|access is denied/i.test(message))
+    return '恢复目录无法写入。已有恢复点保留；请检查目录权限，或手动保存当前文档。'
+  if (/os error (17|80|183)\b|file exists|already exists/i.test(message))
+    return '目标文件已存在，未覆盖任何内容。请选择新的文件名；原恢复记录仍保留。'
+  return message
+}
+export interface RecoveryStorageStatus {
+  readonly usedBytes: number
+  readonly limitBytes: number
+  readonly availableBytes: number
+  readonly minFreeBytes: number
+  readonly path: string
+}
 export interface RecoveryRecord {
   readonly id: string
   readonly originalPath?: string | null
@@ -50,7 +67,7 @@ export function createRecoveryController(options: {
     options.onStatus({
       phase,
       ...(durable ? { version: durable.version, at: durable.createdAt } : {}),
-      ...(error === undefined ? {} : { error: String(error) }),
+      ...(error === undefined ? {} : { error: formatRecoveryError(error) }),
     })
   const settle = (oldKey: string, disposition: 'saved' | 'closed') => {
     queue = queue

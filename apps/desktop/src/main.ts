@@ -1,3 +1,4 @@
+import { createAppearanceController, type ThemePreference } from './appearance'
 import { createRecoveryController, type RecoveryRecord, type RecoveryStatus } from './recovery'
 import { createRecoveryUi } from './recovery-ui'
 import { createMarkdownClipboardPayload } from '@milkup/export'
@@ -356,7 +357,10 @@ app.innerHTML = `
           </section>
           <section class="app-menu-section" data-menu-panel="appearance" hidden>
             <h3>${messages.menu.appearance}</h3>
-            <p class="menu-help">当前使用浅色外观。暗色主题与界面缩放尚未提供。</p>
+            <label class="appearance-field"><span>主题</span><select data-appearance-theme aria-label="主题"><option value="system">跟随系统</option><option value="light">浅色</option><option value="dark">暗色</option></select></label>
+            <label class="appearance-field"><span>界面缩放</span><select data-appearance-zoom aria-label="界面缩放" ${isTauriRuntime() ? '' : 'disabled'}><option value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option></select></label>
+            <p class="menu-help">${isTauriRuntime() ? '缩放包含正文、菜单与侧栏。Ctrl/⌘ + 加号或减号调整，Ctrl/⌘ + 0 恢复 100%。' : '浏览器预览请使用浏览器自身缩放；桌面版可在此调整整个界面。'}</p>
+            <p class="appearance-error" data-appearance-error role="alert" hidden></p>
           </section>
           <section class="app-menu-section" data-menu-panel="plugins" hidden>
             <h3>${messages.menu.plugins}</h3>
@@ -394,8 +398,14 @@ app.innerHTML = `
         </div>
       </div>
     </section>
+    <aside class="recovery-warning" data-recovery-warning role="alert" hidden>
+      <span data-recovery-warning-text></span>
+      <button type="button" class="dialog-button secondary" data-recovery-retry>重试</button>
+      <button type="button" class="dialog-button secondary" data-recovery-storage-details>存储详情</button>
+    </aside>
     <section class="workspace">
-      <aside class="sidebar" aria-label="工作区"><div data-plugin-slot="sidebar-panel"></div></aside>
+      <button type="button" class="sidebar-backdrop" data-sidebar-dismiss aria-label="关闭侧栏" tabindex="-1"></button>
+      <aside class="sidebar" aria-label="工作区"><button type="button" class="sidebar-close icon-button" data-sidebar-close aria-label="关闭侧栏">${iconSvg(X)}</button><div data-plugin-slot="sidebar-panel"></div></aside>
       <div class="sidebar-resize-handle" data-sidebar-resize role="separator" aria-label="调整侧栏宽度" aria-orientation="vertical" tabindex="0"></div>
       <section class="editor-panel">
         <div class="floating-search" data-floating-search role="search" aria-label="当前文档查找和替换" hidden>
@@ -611,7 +621,20 @@ async function recoveryInvoke<T>(command: string, args: Record<string, unknown> 
   return invoke<T>(command, args)
 }
 
+let lastRecoveryError: string | undefined
 function renderRecoveryStatus(status: RecoveryStatus): void {
+  if (status.phase === 'error') lastRecoveryError = status.error
+  else if (status.phase === 'ready' || status.phase === 'idle') lastRecoveryError = undefined
+  const warning = appRoot.querySelector<HTMLElement>('[data-recovery-warning]')!
+  warning.hidden = !lastRecoveryError
+  const warningText = appRoot.querySelector<HTMLElement>('[data-recovery-warning-text]')!
+  warningText.textContent = lastRecoveryError
+    ? `恢复点未更新：${lastRecoveryError.split('。')[0]}。${status.version === undefined ? '尚无成功恢复点。' : `最后恢复点 v${status.version}。`}`
+    : ''
+  warningText.title = lastRecoveryError ?? ''
+  appRoot.querySelector<HTMLButtonElement>('[data-recovery-retry]')!.disabled =
+    status.phase === 'writing'
+
   const element = appRoot.querySelector<HTMLElement>('[data-recovery-status]')!
   appRoot.dataset.recoveryPhase = status.phase
   appRoot.dataset.recoveryVersion = String(status.version ?? -1)
@@ -634,6 +657,69 @@ function renderRecoveryStatus(status: RecoveryStatus): void {
       : '检查点完成前异常退出可能丢失输入；恢复点不等于保存原文件。')
 }
 
+const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
+const appearance = createAppearanceController({
+  storage: globalThis.localStorage,
+  isSystemDark: () => systemTheme.matches,
+  applyTheme: async (theme) => {
+    if (isTauriRuntime()) {
+      const { getCurrentWindow } = await import('@tauri-apps/api/window')
+      await getCurrentWindow().setTheme(theme === 'system' ? null : theme)
+    }
+  },
+  applyZoom: async (zoom) => {
+    if (!isTauriRuntime()) {
+      if (zoom !== 1) throw new Error('浏览器预览请使用浏览器自身缩放')
+      return
+    }
+    const { getCurrentWebview } = await import('@tauri-apps/api/webview')
+    await getCurrentWebview().setZoom(zoom)
+  },
+  onState: (state) => {
+    document.documentElement.dataset.theme = state.resolvedTheme
+    appRoot.dataset.appearanceZoom = String(state.zoom)
+    const theme = appRoot.querySelector<HTMLSelectElement>('[data-appearance-theme]')!
+    const zoom = appRoot.querySelector<HTMLSelectElement>('[data-appearance-zoom]')!
+    theme.value = state.theme
+    theme.disabled = state.busy
+    zoom.value = String(state.zoom)
+    zoom.disabled = state.busy || !isTauriRuntime()
+    const error = appRoot.querySelector<HTMLElement>('[data-appearance-error]')!
+    error.hidden = !state.error
+    error.textContent = state.error ?? ''
+  },
+})
+systemTheme.addEventListener('change', () => appearance.refreshSystemTheme())
+appRoot
+  .querySelector<HTMLSelectElement>('[data-appearance-theme]')!
+  .addEventListener('change', (event) => {
+    void appearance.changeTheme((event.currentTarget as HTMLSelectElement).value as ThemePreference)
+  })
+appRoot
+  .querySelector<HTMLSelectElement>('[data-appearance-zoom]')!
+  .addEventListener('change', (event) => {
+    void appearance.changeZoom(Number((event.currentTarget as HTMLSelectElement).value))
+  })
+window.addEventListener(
+  'keydown',
+  (event) => {
+    if (
+      !isTauriRuntime() ||
+      event.isComposing ||
+      event.keyCode === 229 ||
+      event.altKey ||
+      !(event.ctrlKey || event.metaKey)
+    )
+      return
+    if (!['+', '=', '-', '0'].includes(event.key)) return
+    event.preventDefault()
+    event.stopImmediatePropagation()
+    if (event.key === '0') void appearance.changeZoom(1)
+    else void appearance.stepZoom(event.key === '-' ? -1 : 1)
+  },
+  true,
+)
+
 const recovery = isTauriRuntime()
   ? createRecoveryController({
       read: (includeText) => ({
@@ -655,25 +741,47 @@ const recovery = isTauriRuntime()
     })
   : undefined
 const recoveryUi = createRecoveryUi(appRoot, {
-  list: (includeArchived) => recoveryInvoke('list_recovery_records', { includeArchived }),
+  list: async (includeArchived) => {
+    const result = await recoveryInvoke<{
+      records: readonly RecoveryRecord[]
+      warnings: readonly string[]
+      storage: import('./recovery').RecoveryStorageStatus | null
+    }>('list_recovery_records', { includeArchived })
+    return {
+      ...result,
+      warnings: lastRecoveryError ? [lastRecoveryError, ...result.warnings] : result.warnings,
+    }
+  },
+  exportRecord: async (record) => {
+    const destination = await fileService.selectSaveFilePath(`recovered-${record.createdAt}.md`)
+    if (!destination) return undefined
+    return recoveryInvoke<string>('materialize_recovery', { id: record.id, destination })
+  },
   dismiss: (record) =>
     recoveryInvoke('archive_recovery', { id: record.id, disposition: 'dismissed' }),
   restore: async (record) => {
     recoveryUi.hide()
+    let recoveryError: unknown
     await documentTransitions.request('open', async () => {
-      const path = await recoveryInvoke<string>('materialize_recovery', { id: record.id })
-      await openSelectedDocumentAfterConfirmation(
-        createOpenStageTracker({ label: 'recovery-copy', consoleDiagnostics: false }),
-        async () => path,
-        { cancelledNotice: '恢复已取消；记录仍保留', errorPrefix: '恢复副本打开失败' },
-      )
-      if (session.file?.path !== path || loadingState.phase !== 'ready')
-        throw new Error('恢复副本未打开；原恢复记录仍保留')
-      await recoveryInvoke('archive_recovery', { id: record.id, disposition: 'restored' })
-      notice = '已打开恢复副本，原文件未改动。请另存为到需要的位置。'
-      importantNotice = true
-      renderSession()
+      try {
+        const path = await recoveryInvoke<string>('materialize_recovery', { id: record.id })
+        await openSelectedDocumentAfterConfirmation(
+          createOpenStageTracker({ label: 'recovery-copy', consoleDiagnostics: false }),
+          async () => path,
+          { cancelledNotice: '恢复已取消；记录仍保留', errorPrefix: '恢复副本打开失败' },
+        )
+        if (session.file?.path !== path || loadingState.phase !== 'ready')
+          throw new Error('恢复副本未打开；原恢复记录仍保留')
+        await recoveryInvoke('archive_recovery', { id: record.id, disposition: 'restored' })
+        notice = '已打开恢复副本，原文件未改动。请另存为到需要的位置。'
+        importantNotice = true
+        renderSession()
+      } catch (error) {
+        recoveryError = error
+        throw error
+      }
     })
+    if (recoveryError) throw recoveryError
   },
   changed: (open) => {
     recoveryDialogOpen = open
@@ -683,6 +791,13 @@ const recoveryUi = createRecoveryUi(appRoot, {
 })
 appRoot.querySelector('[data-open-recovery]')?.addEventListener('click', () => {
   setMenuOpen(false)
+  void recoveryUi.open(true)
+})
+
+appRoot.querySelector('[data-recovery-retry]')?.addEventListener('click', () => {
+  void recovery?.flush()
+})
+appRoot.querySelector('[data-recovery-storage-details]')?.addEventListener('click', () => {
   void recoveryUi.open(true)
 })
 
@@ -854,7 +969,8 @@ void waitForNextPaint().then(() => {
 })
 
 const initialDocumentOpenPromise = openInitialDocument(initialOpenFilePathPromise)
-void initialDocumentOpenPromise.finally(() => {
+void initialDocumentOpenPromise.finally(async () => {
+  await appearance.ready
   void showStartupWindow()
   if (recovery) void recoveryUi.open(false, true)
 })
@@ -947,6 +1063,17 @@ app.querySelector<HTMLButtonElement>('[data-menu-toggle]')?.addEventListener('cl
 
 app.querySelector<HTMLButtonElement>('[data-menu-close]')?.addEventListener('click', () => {
   setMenuOpen(false)
+})
+
+appRoot
+  .querySelector('[data-sidebar-close]')
+  ?.addEventListener('click', () => setSidebarCollapsed(true))
+appRoot
+  .querySelector('[data-sidebar-dismiss]')
+  ?.addEventListener('click', () => setSidebarCollapsed(true))
+window.matchMedia('(max-width: 760px)').addEventListener('change', () => {
+  updateSidebarPresentation()
+  focusActiveView()
 })
 
 app.querySelector<HTMLButtonElement>('[data-sidebar-toggle]')?.addEventListener('click', () => {
@@ -1132,6 +1259,11 @@ globalThis.addEventListener(
       if (menuOpen) {
         event.preventDefault()
         setMenuOpen(false)
+        return
+      }
+      if (!sidebarCollapsed && window.matchMedia('(max-width: 760px)').matches) {
+        event.preventDefault()
+        setSidebarCollapsed(true)
         return
       }
       if (searchOpen) {
@@ -1357,6 +1489,10 @@ function runDesktopAction(id: string, input: unknown = {}): void {
 
 function focusActiveView(): void {
   if (closeConfirmOpen || recoveryDialogOpen) return
+  if (!sidebarCollapsed && window.matchMedia('(max-width: 760px)').matches) {
+    appRoot.querySelector<HTMLButtonElement>('[data-sidebar-close]')?.focus()
+    return
+  }
   if (loadingState.phase === 'failed') {
     appRoot.querySelector<HTMLButtonElement>('[data-loading-dismiss]')?.focus()
     return
@@ -2989,7 +3125,15 @@ function setSidebarCollapsed(collapsed: boolean): void {
     toggle.innerHTML = iconSvg(collapsed ? PanelLeft : PanelLeftClose)
   }
 
-  focusActiveView()
+  updateSidebarPresentation()
+  if (!collapsed && window.matchMedia('(max-width: 760px)').matches)
+    appRoot.querySelector<HTMLButtonElement>('[data-sidebar-close]')?.focus()
+  else focusActiveView()
+}
+
+function updateSidebarPresentation(): void {
+  appRoot.querySelector<HTMLElement>('.editor-panel')!.inert =
+    !sidebarCollapsed && window.matchMedia('(max-width: 760px)').matches
 }
 
 function startSidebarWidthResize(event: PointerEvent): void {
@@ -3119,6 +3263,8 @@ function showMenuSection(section: string): void {
 }
 
 function setSearchOpen(open: boolean): void {
+  if (open && !sidebarCollapsed && window.matchMedia('(max-width: 760px)').matches)
+    setSidebarCollapsed(true)
   searchOpen = open
   appRoot.querySelector<HTMLElement>('[data-floating-search]')!.hidden = !open
   if (open) {
@@ -3497,6 +3643,8 @@ function cancelScheduledPluginUiViewportUpdate(): void {
 }
 
 async function revealPluginLine(line: number): Promise<void> {
+  if (!sidebarCollapsed && window.matchMedia('(max-width: 760px)').matches)
+    setSidebarCollapsed(true)
   cancelScheduledPluginUiViewportUpdate()
   if (sourceView) {
     await sourceView.revealSelection(line)

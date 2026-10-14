@@ -1,0 +1,10 @@
+2026-10-13T23:54:23.644Z NATIVE_STARTUP_WINDOW 1345ms
+PASS global quota refuses a new point and visibly preserves the last complete checkpoint
+PASS manual original-file save remains possible when recovery storage is full
+PASS real filesystem permission failure is visible and does not replace the published record
+PASS explicit retry after permissions recover writes the latest accepted revision
+2026-10-13T23:54:31.761Z NATIVE_STARTUP_WINDOW 1302ms
+PASS quota blocks internal materialization but leaves a visible error and the candidate available
+PASS verified export to a new path works at quota without deleting or archiving the unique checkpoint
+PASS export refuses an existing file and retains both external bytes and recovery data
+{"passed":7}

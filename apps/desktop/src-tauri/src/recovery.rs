@@ -1,4 +1,5 @@
 //! Durable, opt-in-to-restore copies. Source paths are labels, never write targets.
+use crate::recovery_storage::{admit_export, StorageGuard, StorageStatus};
 use crate::LargeFileRegistry;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -32,7 +33,7 @@ fn snapshot_name(value: &str) -> bool {
         .map(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()))
         .unwrap_or(false)
 }
-fn private_dir(path: &Path) -> Result<(), String> {
+pub(crate) fn private_dir(path: &Path) -> Result<(), String> {
     let mut builder = fs::DirBuilder::new();
     builder.recursive(true);
     #[cfg(unix)]
@@ -231,12 +232,18 @@ impl RecoveryStore {
     fn checkpoint(
         &self,
         input: Checkpoint,
+        expected_bytes: u64,
         write: impl FnOnce(&Path) -> Result<(), String>,
     ) -> Result<Record, String> {
         let _guard = self.gate.lock().map_err(err)?;
         if !safe(&input.key) {
             return Err("Invalid recovery key".into());
         }
+        if expected_bytes > MAX_BYTES {
+            return Err("恢复副本超过 256 MiB 预算；已有恢复点保留".into());
+        }
+        let storage = StorageGuard::acquire(&self.root)?;
+        storage.admit(expected_bytes)?;
         let id = format!("{}-{}", self.owner, input.key);
         let dir = self.directory(&id)?;
         private_dir(&dir)?;
@@ -255,6 +262,9 @@ impl RecoveryStore {
         let target = dir.join(&payload);
         write(&target)?;
         let (bytes, sha256) = digest(&target)?;
+        if bytes > expected_bytes {
+            return Err("恢复副本超过本次保留预算，未发布新恢复点".into());
+        }
         let record = Record {
             schema: 1,
             id,
@@ -285,6 +295,7 @@ impl RecoveryStore {
 pub(crate) struct RecoveryList {
     records: Vec<Record>,
     warnings: Vec<String>,
+    storage: Option<StorageStatus>,
 }
 #[tauri::command]
 pub(crate) async fn list_recovery_records(
@@ -294,14 +305,29 @@ pub(crate) async fn list_recovery_records(
     let _guard = store.gate.lock().map_err(err)?;
     let mut records = Vec::new();
     let mut warnings = Vec::new();
+    let storage = match StorageGuard::acquire(&store.root).and_then(|guard| guard.status()) {
+        Ok(status) => Some(status),
+        Err(e) => {
+            warnings.push(format!("存储统计失败；已有记录保留：{e}"));
+            None
+        }
+    };
     let entries = match fs::read_dir(&store.root) {
         Ok(e) => e,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            return Ok(RecoveryList { records, warnings })
+            return Ok(RecoveryList {
+                records,
+                warnings,
+                storage,
+            })
         }
         Err(e) => return Err(err(e)),
     };
-    for entry in entries {
+    for (index, entry) in entries.enumerate() {
+        if index >= 20_000 {
+            warnings.push("恢复目录条目超过扫描上限；其余记录仍保留，请备份后整理目录".into());
+            break;
+        }
         let entry = entry.map_err(err)?;
         if !entry.file_type().map_err(err)?.is_dir() {
             continue;
@@ -322,7 +348,11 @@ pub(crate) async fn list_recovery_records(
         }
     }
     records.sort_by_key(|r| std::cmp::Reverse(r.created_at));
-    Ok(RecoveryList { records, warnings })
+    Ok(RecoveryList {
+        records,
+        warnings,
+        storage,
+    })
 }
 #[tauri::command]
 pub(crate) async fn checkpoint_recovery(
@@ -338,10 +368,10 @@ pub(crate) async fn checkpoint_recovery(
         if source.version != native_version {
             return Err("Document changed before recovery checkpoint".into());
         }
-        if source.piece_tree.byte_len() as u64 > MAX_BYTES {
+        if source.piece_tree.saved_byte_len() > MAX_BYTES {
             return Err("恢复副本超过 256 MiB 预算".into());
         }
-        store.checkpoint(input, |path| {
+        store.checkpoint(input, source.piece_tree.saved_byte_len(), |path| {
             // Reserve the generation name; never truncate an existing checkpoint.
             OpenOptions::new()
                 .create_new(true)
@@ -355,7 +385,7 @@ pub(crate) async fn checkpoint_recovery(
         if text.len() as u64 > MAX_BYTES {
             return Err("恢复副本超过 256 MiB 预算".into());
         }
-        store.checkpoint(input, |path| {
+        store.checkpoint(input, text.len() as u64, |path| {
             let mut file = OpenOptions::new()
                 .create_new(true)
                 .write(true)
@@ -373,6 +403,7 @@ pub(crate) async fn settle_recovery(
     disposition: String,
 ) -> Result<(), String> {
     let _guard = store.gate.lock().map_err(err)?;
+    let _storage = StorageGuard::acquire(&store.root)?;
     if !safe(&key) || !["saved", "closed"].contains(&disposition.as_str()) {
         return Err("Invalid recovery disposition".into());
     }
@@ -389,13 +420,22 @@ pub(crate) async fn settle_recovery(
 pub(crate) async fn materialize_recovery(
     store: State<'_, RecoveryStore>,
     id: String,
+    destination: Option<String>,
+) -> Result<String, String> {
+    materialize(&store, &id, destination)
+}
+fn materialize(
+    store: &RecoveryStore,
+    id: &str,
+    destination: Option<String>,
 ) -> Result<String, String> {
     let _guard = store.gate.lock().map_err(err)?;
-    let record = store.read(&id)?;
+    let storage = StorageGuard::acquire(&store.root)?;
+    let record = store.read(id)?;
     if owner_active(record.owner_pid, &record.owner_birth) {
         return Err("该恢复记录仍属于活跃会话".into());
     }
-    let source = store.directory(&id)?.join(&record.payload);
+    let source = store.directory(id)?.join(&record.payload);
     if fs::symlink_metadata(&source)
         .map_err(err)?
         .file_type()
@@ -407,9 +447,26 @@ pub(crate) async fn materialize_recovery(
     if bytes != record.bytes || hash != record.sha256 {
         return Err("恢复副本校验失败；文件已保留，未覆盖原文件".into());
     }
-    let copies = store.root.join("copies");
-    private_dir(&copies)?;
-    let output = copies.join(format!("recovered-{}.md", now()));
+    let output = if let Some(destination) = destination {
+        let target = PathBuf::from(destination);
+        let name = target.file_name().ok_or("请选择新的副本文件名")?;
+        let parent = target
+            .parent()
+            .ok_or("请选择完整导出路径")?
+            .canonicalize()
+            .map_err(err)?;
+        if parent.starts_with(store.root.canonicalize().map_err(err)?) {
+            return Err("导出副本请选择恢复目录以外的位置".into());
+        }
+        admit_export(&parent, bytes)?;
+        parent.join(name)
+    } else {
+        // Reserve the copy plus worst-case UTF-16 normalization/base work files.
+        storage.admit(bytes.saturating_mul(4))?;
+        let copies = store.root.join("copies");
+        private_dir(&copies)?;
+        copies.join(format!("recovered-{}.md", now()))
+    };
     let mut from = File::open(source).map_err(err)?;
     let mut to = OpenOptions::new()
         .create_new(true)
@@ -419,7 +476,7 @@ pub(crate) async fn materialize_recovery(
     std::io::copy(&mut from, &mut to).map_err(err)?;
     to.sync_all().map_err(err)?;
     drop(to);
-    sync_dir(&copies)?;
+    sync_dir(output.parent().ok_or("Invalid recovery output parent")?)?;
     let (size, actual) = digest(&output)?;
     if size != bytes || actual != hash {
         return Err("恢复复制校验失败，保留记录".into());
@@ -433,6 +490,7 @@ pub(crate) async fn archive_recovery(
     disposition: String,
 ) -> Result<(), String> {
     let _guard = store.gate.lock().map_err(err)?;
+    let _storage = StorageGuard::acquire(&store.root)?;
     if !["restored", "dismissed"].contains(&disposition.as_str()) {
         return Err("Invalid recovery disposition".into());
     }
@@ -466,14 +524,97 @@ mod tests {
         f.sync_all().map_err(err)
     }
     #[test]
+    fn quota_does_not_block_verified_export_or_overwrite_an_existing_target() {
+        let store = store();
+        let mut record = store
+            .checkpoint(input(1), 32, |p| write(p, "unique draft"))
+            .unwrap();
+        record.owner_pid = 2147483647;
+        record.owner_birth = None;
+        store
+            .commit(&store.directory(&record.id).unwrap(), &record)
+            .unwrap();
+        File::create(store.root.join("quota"))
+            .unwrap()
+            .set_len(crate::recovery_storage::LIMIT_BYTES)
+            .unwrap();
+        assert!(materialize(&store, &record.id, None)
+            .unwrap_err()
+            .contains("容量上限"));
+        let target = store.root.with_extension("export.md");
+        let output = materialize(
+            &store,
+            &record.id,
+            Some(target.to_string_lossy().into_owned()),
+        )
+        .unwrap();
+        assert_eq!(fs::read(&output).unwrap(), b"unique draft");
+        fs::write(&target, b"external replacement").unwrap();
+        assert!(materialize(&store, &record.id, Some(output)).is_err());
+        assert_eq!(fs::read(&target).unwrap(), b"external replacement");
+        assert_eq!(store.read(&record.id).unwrap().disposition, "pending");
+        fs::remove_file(target).unwrap();
+        fs::remove_dir_all(store.root).unwrap();
+    }
+
+    #[test]
+    fn full_directory_refuses_new_checkpoint_without_eviction() {
+        let store = store();
+        let first = store
+            .checkpoint(input(1), 32, |p| write(p, "unique draft"))
+            .unwrap();
+        let filler = File::create(store.root.join("retained-unknown-file")).unwrap();
+        filler
+            .set_len(crate::recovery_storage::LIMIT_BYTES)
+            .unwrap();
+        let error = store
+            .checkpoint(input(2), 32, |p| write(p, "new draft"))
+            .unwrap_err();
+        assert!(error.contains("容量上限"));
+        assert_eq!(store.read(&first.id).unwrap().version, 1);
+        assert_eq!(
+            fs::read(store.directory(&first.id).unwrap().join(first.payload)).unwrap(),
+            b"unique draft"
+        );
+        assert!(store.root.join("retained-unknown-file").exists());
+        fs::remove_dir_all(store.root).unwrap();
+    }
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn kernel_disk_full_error_leaves_published_checkpoint_intact() {
+        let store = store();
+        let first = store
+            .checkpoint(input(1), 32, |p| write(p, "unique draft"))
+            .unwrap();
+        let error = store
+            .checkpoint(input(2), 32, |_| {
+                let mut full = OpenOptions::new()
+                    .write(true)
+                    .open("/dev/full")
+                    .map_err(err)?;
+                full.write_all(b"new draft").map_err(err)
+            })
+            .unwrap_err();
+        assert!(error.contains("os error 28"), "{error}");
+        assert_eq!(store.read(&first.id).unwrap().version, 1);
+        assert_eq!(
+            fs::read(store.directory(&first.id).unwrap().join(first.payload)).unwrap(),
+            b"unique draft"
+        );
+        fs::remove_dir_all(store.root).unwrap();
+    }
+
+    #[test]
     fn checkpoints_are_complete_hashed_and_keep_previous_committed_generation() {
         let store = store();
         let first = store
-            .checkpoint(input(1), |p| write(p, "中文😀\r\n"))
+            .checkpoint(input(1), 32, |p| write(p, "中文😀\r\n"))
             .unwrap();
-        let second = store.checkpoint(input(2), |p| write(p, "two")).unwrap();
+        let second = store.checkpoint(input(2), 32, |p| write(p, "two")).unwrap();
         assert_eq!(second.previous, Some(first.payload.clone()));
-        let third = store.checkpoint(input(3), |p| write(p, "three")).unwrap();
+        let third = store
+            .checkpoint(input(3), 32, |p| write(p, "three"))
+            .unwrap();
         let dir = store.directory(&third.id).unwrap();
         assert!(!dir.join(first.payload).exists());
         assert!(dir.join(second.payload).exists());
@@ -484,9 +625,11 @@ mod tests {
     #[test]
     fn partial_write_and_failed_publish_preserve_last_valid_manifest() {
         let store = store();
-        let first = store.checkpoint(input(1), |p| write(p, "safe")).unwrap();
+        let first = store
+            .checkpoint(input(1), 32, |p| write(p, "safe"))
+            .unwrap();
         assert!(store
-            .checkpoint(input(2), |p| {
+            .checkpoint(input(2), 32, |p| {
                 write(p, "partial")?;
                 Err("interrupted write".into())
             })
@@ -497,7 +640,9 @@ mod tests {
             fs::read(store.directory(&first.id).unwrap().join(record.payload)).unwrap(),
             b"safe"
         );
-        assert!(store.checkpoint(input(0), |p| write(p, "stale")).is_err());
+        assert!(store
+            .checkpoint(input(0), 32, |p| write(p, "stale"))
+            .is_err());
         fs::remove_dir_all(store.root).unwrap();
     }
     #[test]
@@ -511,14 +656,18 @@ mod tests {
             std::process::id(),
             &Some("different-birth".into())
         ));
-        let record = store.checkpoint(input(1), |p| write(p, "saved")).unwrap();
+        let record = store
+            .checkpoint(input(1), 32, |p| write(p, "saved"))
+            .unwrap();
         assert!(owner_active(record.owner_pid, &record.owner_birth));
         fs::remove_dir_all(store.root).unwrap();
     }
     #[test]
     fn corruption_is_detected_without_modifying_payload_or_original() {
         let store = store();
-        let record = store.checkpoint(input(1), |p| write(p, "saved")).unwrap();
+        let record = store
+            .checkpoint(input(1), 32, |p| write(p, "saved"))
+            .unwrap();
         let payload = store.directory(&record.id).unwrap().join(&record.payload);
         fs::write(&payload, "other").unwrap();
         assert_ne!(digest(&payload).unwrap().1, record.sha256);

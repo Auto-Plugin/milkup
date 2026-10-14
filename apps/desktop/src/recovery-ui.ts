@@ -1,13 +1,16 @@
-import type { RecoveryRecord } from './recovery'
+import { formatRecoveryError, type RecoveryRecord, type RecoveryStorageStatus } from './recovery'
 
 export function createRecoveryUi(
   root: HTMLElement,
   options: {
-    list: (
-      includeArchived: boolean,
-    ) => Promise<{ records: readonly RecoveryRecord[]; warnings: readonly string[] }>
+    list: (includeArchived: boolean) => Promise<{
+      records: readonly RecoveryRecord[]
+      warnings: readonly string[]
+      storage?: RecoveryStorageStatus | null
+    }>
     restore: (record: RecoveryRecord) => Promise<void>
     dismiss: (record: RecoveryRecord) => Promise<void>
+    exportRecord: (record: RecoveryRecord) => Promise<string | undefined>
     changed: (open: boolean) => void
   },
 ) {
@@ -17,7 +20,7 @@ export function createRecoveryUi(
   overlay.innerHTML = `<section class="confirm-dialog recovery-dialog" role="dialog" aria-modal="true" aria-labelledby="recovery-title" aria-describedby="recovery-description">
     <h2 id="recovery-title">恢复记录</h2>
     <p id="recovery-description">恢复点只包含已完成检查点的内容，之后的输入可能丢失。恢复将打开独立副本，不覆盖原文件。放弃恢复仅归档，数据仍保留。</p>
-    <div data-recovery-list></div><p data-recovery-error role="alert" hidden></p>
+    <p class="recovery-storage" data-recovery-storage></p><p data-recovery-export-result role="status" hidden></p><div data-recovery-list></div><p data-recovery-error role="alert" hidden></p>
     <footer class="confirm-dialog-actions"><button type="button" class="dialog-button secondary" data-recovery-close>暂不恢复</button></footer>
   </section>`
   root.append(overlay)
@@ -54,8 +57,9 @@ export function createRecoveryUi(
     true,
   )
   const showError = (value: unknown) => {
-    error.textContent = String(value)
+    error.textContent = formatRecoveryError(value)
     error.hidden = false
+    error.scrollIntoView({ block: 'nearest' })
   }
   const setBusy = (value: boolean) => {
     busy = value
@@ -64,7 +68,13 @@ export function createRecoveryUi(
   }
   const render = async () => {
     error.hidden = true
+    overlay.querySelector<HTMLElement>('[data-recovery-export-result]')!.hidden = true
     const result = await options.list(includeArchived)
+    const storage = overlay.querySelector<HTMLElement>('[data-recovery-storage]')!
+    const mib = (value: number) => `${(value / 1024 / 1024).toFixed(1)} MiB`
+    storage.textContent = result.storage
+      ? `恢复目录 ${mib(result.storage.usedBytes)} / ${mib(result.storage.limitBytes)}；磁盘可用 ${mib(result.storage.availableBytes)}。归档不会释放容量；超限时可导出到新位置。目录：${result.storage.path}`
+      : '存储用量暂不可用；已有记录保留。'
     const list = overlay.querySelector<HTMLElement>('[data-recovery-list]')!
     list.replaceChildren()
     for (const record of result.records) {
@@ -87,7 +97,33 @@ export function createRecoveryUi(
           close()
         } catch (e) {
           setBusy(false)
+          overlay.hidden = false
+          options.changed(true)
+          closeButton.focus()
           showError(e)
+        }
+      })
+      const exportButton = document.createElement('button')
+      exportButton.type = 'button'
+      exportButton.className = 'dialog-button secondary'
+      exportButton.textContent = '导出副本…'
+      exportButton.dataset.recoveryExport = record.id
+      exportButton.addEventListener('click', async () => {
+        error.hidden = true
+        overlay.querySelector<HTMLElement>('[data-recovery-export-result]')!.hidden = true
+        setBusy(true)
+        try {
+          const path = await options.exportRecord(record)
+          if (path) {
+            const message = overlay.querySelector<HTMLElement>('[data-recovery-export-result]')!
+            message.textContent = `副本已导出：${path}。原恢复记录仍保留。`
+            message.hidden = false
+          }
+        } catch (e) {
+          showError(e)
+        } finally {
+          setBusy(false)
+          exportButton.focus()
         }
       })
       const dismiss = document.createElement('button')
@@ -107,7 +143,7 @@ export function createRecoveryUi(
           showError(e)
         }
       })
-      row.append(title, detail, restore, dismiss)
+      row.append(title, detail, restore, exportButton, dismiss)
       list.append(row)
     }
     if (!result.records.length) {
