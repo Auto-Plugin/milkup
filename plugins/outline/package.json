@@ -1,11 +1,14 @@
 {
+  "name": "milkup-outline",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "esbuild src/plugin.ts --bundle --format=esm --platform=browser --outfile=dist/plugin.js",
+    "build": "tsc --noEmit && node scripts/build.mjs",
     "check": "tsc --noEmit"
   },
   "devDependencies": {
+    "@milkup/plugin-sdk": "0.1.0",
     "esbuild": "^0.25.0",
     "typescript": "^5.8.0"
   }

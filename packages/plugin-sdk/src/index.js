@@ -1,5 +1,10 @@
 const POSITION_ERROR = 'Position must be a non-negative integer'
 
+/** @template {import('./index.js').SdkPluginModule} T @param {T} plugin @returns {T} */
+export function definePlugin(plugin) {
+  return plugin
+}
+
 export function insertText(position, text) {
   assertPosition(position)
   assertString(text, 'Inserted text must be a string')

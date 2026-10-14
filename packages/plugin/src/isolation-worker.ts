@@ -127,26 +127,62 @@ export function createBrowserWorkerPluginHost(
     ? createPluginStorageRpcServer(worker, storageBroker)
     : undefined
   let settled = false
+  let disposed = false
   let removeReadyListener: (() => void) | undefined
-
+  let timer: ReturnType<typeof setTimeout> | undefined
+  let resolveReady!: () => void
+  let rejectReady!: (error: Error) => void
   const ready = new Promise<void>((resolve, reject) => {
+    resolveReady = resolve
+    rejectReady = reject
+  })
+  // Disposal may precede the caller awaiting startup. Keep that cancellation
+  // handled while preserving the original rejected promise for ready consumers.
+  void ready.catch(() => undefined)
+
+  function stopWaiting(): void {
+    clearTimeout(timer)
+    removeReadyListener?.()
+    removeReadyListener = undefined
+  }
+
+  function cleanup(): void {
+    if (disposed) return
+    disposed = true
+    stopWaiting()
+    documentRpcServer?.dispose()
+    uiRpcServer?.dispose()
+    fileRpcServer?.dispose()
+    networkRpcServer?.dispose()
+    storageRpcServer?.dispose()
+    host.dispose()
+    worker.terminate?.()
+  }
+
+  function fail(error: Error): void {
+    if (settled) return
+    settled = true
+    rejectReady(error)
+    cleanup()
+  }
+
+  try {
     removeReadyListener = addWorkerMessageListener(worker, (message) => {
+      if (settled) return
       const lifecycle = readWorkerLifecycleMessage(message)
 
-      if (!lifecycle || lifecycle.type === 'init') {
-        return
-      }
-
-      settled = true
-      removeReadyListener?.()
-
+      if (!lifecycle || lifecycle.type === 'init') return
       if (lifecycle.type === 'ready') {
-        resolve()
+        settled = true
+        stopWaiting()
+        resolveReady()
       } else {
-        reject(new Error(lifecycle.error.message))
+        fail(new Error(lifecycle.error?.message ?? 'Plugin worker initialization failed'))
       }
     })
-
+    timer = setTimeout(() => {
+      fail(new Error(`Plugin worker initialization timed out: ${manifest.id}`))
+    }, timeoutMs ?? 5_000)
     worker.postMessage({
       protocol: WORKER_INIT_PROTOCOL,
       type: 'init',
@@ -155,25 +191,16 @@ export function createBrowserWorkerPluginHost(
         moduleSpecifier,
       },
     } satisfies WorkerInitMessage)
-  })
+  } catch (error) {
+    fail(error instanceof Error ? error : new Error(String(error)))
+  }
 
   return Object.freeze({
     host,
     ready,
     dispose: () => {
-      removeReadyListener?.()
-      documentRpcServer?.dispose()
-      uiRpcServer?.dispose()
-      fileRpcServer?.dispose()
-      networkRpcServer?.dispose()
-      storageRpcServer?.dispose()
-      host.dispose()
-
-      if (!settled) {
-        settled = true
-      }
-
-      worker.terminate?.()
+      fail(new Error(`Plugin worker disposed before initialization: ${manifest.id}`))
+      cleanup()
     },
   })
 }
@@ -182,6 +209,8 @@ export function initializePluginWorkerRealm(
   scope: PluginWorkerEndpoint,
   options: PluginWorkerRealmOptions = {},
 ): { readonly dispose: () => void } {
+  let initialized = false
+  let disposed = false
   let rpcServer: { dispose(): void } | undefined
   let rpcDocumentBroker: RpcPluginDocumentBroker | undefined
   let rpcUiBroker: RpcPluginUiBroker | undefined
@@ -191,10 +220,12 @@ export function initializePluginWorkerRealm(
   const removeInitListener = addWorkerMessageListener(scope, async (message) => {
     const lifecycle = readWorkerLifecycleMessage(message)
 
-    if (!lifecycle || lifecycle.type !== 'init') {
+    if (disposed || initialized || !lifecycle || lifecycle.type !== 'init') {
       return
     }
 
+    initialized = true
+    removeInitListener()
     try {
       rpcDocumentBroker = options.documentBroker
         ? undefined
@@ -224,6 +255,7 @@ export function initializePluginWorkerRealm(
       const imported = await (options.importModule ?? defaultImportModule)(
         lifecycle.payload.moduleSpecifier,
       )
+      if (disposed) return
       const module = coercePluginModule(imported)
       rpcFileBroker = options.fileBroker
         ? undefined
@@ -248,6 +280,8 @@ export function initializePluginWorkerRealm(
         type: 'ready',
       } satisfies WorkerReadyMessage)
     } catch (error) {
+      cleanup()
+      if (disposed) return
       scope.postMessage({
         protocol: WORKER_INIT_PROTOCOL,
         type: 'error',
@@ -258,15 +292,21 @@ export function initializePluginWorkerRealm(
     }
   })
 
+  function cleanup(): void {
+    rpcServer?.dispose()
+    rpcDocumentBroker?.dispose()
+    rpcUiBroker?.dispose()
+    rpcFileBroker?.dispose()
+    rpcNetworkBroker?.dispose()
+    rpcStorageBroker?.dispose()
+  }
+
   return Object.freeze({
     dispose: () => {
+      if (disposed) return
+      disposed = true
       removeInitListener()
-      rpcServer?.dispose()
-      rpcDocumentBroker?.dispose()
-      rpcUiBroker?.dispose()
-      rpcFileBroker?.dispose()
-      rpcNetworkBroker?.dispose()
-      rpcStorageBroker?.dispose()
+      cleanup()
     },
   })
 }

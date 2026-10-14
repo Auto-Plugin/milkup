@@ -581,29 +581,37 @@ export class DesktopPluginManager {
       type: 'module',
       name: `milkup-plugin-${manifest.id}`,
     })
-    const fileBroker = this.createFileBroker(manifest)
-    const networkBroker = this.createNetworkBroker(manifest)
-    const storageBroker = this.createStorageBroker(manifest)
-    const workerHost = createBrowserWorkerPluginHost({
-      worker,
-      manifest,
-      moduleSpecifier,
-      ...(capabilities?.documentBroker ? { documentBroker: capabilities.documentBroker } : {}),
-      ...(capabilities?.uiBroker ? { uiBroker: capabilities.uiBroker } : {}),
-      ...(fileBroker ? { fileBroker } : {}),
-      ...(networkBroker ? { networkBroker } : {}),
-      ...(storageBroker ? { storageBroker } : {}),
-      timeoutMs: 10_000,
-    })
-
-    await workerHost.ready
-    return Object.freeze({
-      module: createIsolatedPluginModule({
+    let workerHost: ReturnType<typeof createBrowserWorkerPluginHost> | undefined
+    try {
+      const fileBroker = this.createFileBroker(manifest)
+      const networkBroker = this.createNetworkBroker(manifest)
+      const storageBroker = this.createStorageBroker(manifest)
+      workerHost = createBrowserWorkerPluginHost({
+        worker,
         manifest,
-        host: workerHost.host,
-      }),
-      dispose: () => workerHost.dispose(),
-    })
+        moduleSpecifier,
+        ...(capabilities?.documentBroker ? { documentBroker: capabilities.documentBroker } : {}),
+        ...(capabilities?.uiBroker ? { uiBroker: capabilities.uiBroker } : {}),
+        ...(fileBroker ? { fileBroker } : {}),
+        ...(networkBroker ? { networkBroker } : {}),
+        ...(storageBroker ? { storageBroker } : {}),
+        timeoutMs: 10_000,
+      })
+
+      await workerHost.ready
+      const initializedHost = workerHost
+      return Object.freeze({
+        module: createIsolatedPluginModule({
+          manifest,
+          host: initializedHost.host,
+        }),
+        dispose: () => initializedHost.dispose(),
+      })
+    } catch (error) {
+      if (workerHost) workerHost.dispose()
+      else worker.terminate()
+      throw error
+    }
   }
 
   private createFileBroker(manifest: PluginManifest) {

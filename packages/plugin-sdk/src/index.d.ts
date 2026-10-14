@@ -87,6 +87,8 @@ export type SdkDocumentScanItem =
       readonly labelTo: number
     }
 
+export type SdkDocumentScanHeading = Extract<SdkDocumentScanItem, { readonly kind: 'heading' }>
+
 interface SdkDocumentScanEventBase {
   readonly scanId: string
   readonly documentId: string
@@ -138,6 +140,92 @@ export interface SdkPluginActivationContext {
   readonly host: SdkPluginHost
 }
 
+/** Logical document lines are one-based and inclusive, independent of visual wrapping. */
+export interface SdkPluginViewport {
+  readonly fromLine: number
+  readonly toLine: number
+  readonly activeLine: number
+}
+
+/** Item indices are zero-based; toIndex is exclusive. Requests are coalesced by the host. */
+export interface SdkPluginVirtualViewport {
+  readonly id: string
+  readonly fromIndex: number
+  readonly toIndex: number
+  readonly userInitiated?: boolean
+  readonly edge?: 'before' | 'after'
+  readonly requestId?: number
+}
+
+export type SdkPluginUiPhase = 'mount' | 'update' | 'focus' | 'blur' | 'dispose'
+
+/** UI lifecycle snapshot. dispose may contain only phase and documentId. */
+export interface SdkPluginUiNode {
+  readonly phase?: SdkPluginUiPhase
+  readonly documentId?: string
+  readonly documentVersion?: number
+  readonly documentLineCount?: number
+  readonly viewMode?: 'source' | 'live'
+  readonly viewport?: SdkPluginViewport
+  readonly virtualViewport?: SdkPluginVirtualViewport
+}
+
+/** Public UI renderer context; this exposes snapshots, never host DOM or stores. */
+export interface SdkPluginRendererContext {
+  readonly nodeType?: string
+  readonly source?: string
+  readonly node?: SdkPluginUiNode
+}
+
+export type SdkPluginCommandHandler = (
+  context: SdkPluginCommandContext,
+  input: unknown,
+) => unknown | Promise<unknown>
+
+export type SdkPluginRenderer = (
+  context: SdkPluginRendererContext,
+) => SdkRendererOutput | Promise<SdkRendererOutput>
+
+export interface SdkPluginActivation {
+  readonly commands?: Readonly<Record<string, SdkPluginCommandHandler>>
+  readonly renderers?: Readonly<Record<string, SdkPluginRenderer>>
+  dispose?(): void | Promise<void>
+}
+
+export interface SdkPluginModule {
+  readonly commands?: Readonly<Record<string, SdkPluginCommandHandler>>
+  readonly renderers?: Readonly<Record<string, SdkPluginRenderer>>
+  activate?(
+    context: SdkPluginActivationContext,
+  ): SdkPluginActivation | void | Promise<SdkPluginActivation | void>
+  deactivate?(): void | Promise<void>
+}
+
+/** Type-check a module without registering it or adding runtime host dependencies. */
+export function definePlugin<T extends SdkPluginModule>(plugin: T): T
+
+export type SdkRendererAttribute =
+  | 'class'
+  | 'title'
+  | 'href'
+  | 'role'
+  | 'aria-label'
+  | 'aria-current'
+  | 'aria-level'
+  | 'aria-expanded'
+  | 'data-host-icon'
+  | 'data-virtual-list'
+  | 'data-virtual-total'
+  | 'data-virtual-start'
+  | 'data-virtual-end'
+  | 'data-virtual-item-height'
+  | 'data-virtual-active'
+  | 'data-virtual-follow-active'
+  | 'data-virtual-has-before'
+  | 'data-virtual-has-after'
+  | 'data-virtual-scroll-adjust'
+  | 'data-virtual-revision'
+
 export type SdkRendererOutput =
   | string
   | number
@@ -147,7 +235,7 @@ export type SdkRendererOutput =
       readonly tag: 'span' | 'strong' | 'em' | 'code' | 'a' | 'button'
       readonly text?: string
       readonly children?: readonly SdkRendererOutput[]
-      readonly attributes?: Readonly<Record<string, string>>
+      readonly attributes?: Readonly<Partial<Record<SdkRendererAttribute, string>>>
       readonly action?: { readonly command: string; readonly input?: unknown }
     }
 

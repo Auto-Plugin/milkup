@@ -3602,6 +3602,8 @@ function getPluginUiRenderState(): Readonly<Record<string, unknown>> {
 
   return Object.freeze({
     documentVersion: session.documentVersion,
+    documentLineCount: lineCount,
+    viewMode: session.viewMode,
     viewport: Object.freeze({
       fromLine,
       toLine: sourceRange?.toLine ?? Math.min(lineCount, fromLine + visibleLineCount - 1),

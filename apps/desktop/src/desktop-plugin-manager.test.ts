@@ -1,7 +1,7 @@
 import { ActionRegistry, MemoryDocumentSource } from '@milkup/core'
 import { parsePluginPackageArchive } from '@milkup/plugin'
 import type { PluginManifest, PluginModule } from '@milkup/plugin'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
   createDesktopPluginActions,
@@ -45,6 +45,73 @@ describe('DesktopPluginManager', () => {
     expect(registry.get('example.insert')).toBeUndefined()
     expect(manager.state().contributions.keymaps).toEqual([])
   })
+
+  it.each(['error', 'silent', 'transport'] as const)(
+    'reports %s Worker startup failure and releases the Worker',
+    async (failure) => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+      const listeners = new Set<(event: { data: unknown }) => void>()
+      const terminate = vi.fn()
+      vi.stubGlobal(
+        'Worker',
+        class {
+          terminate = terminate
+          addEventListener(_type: string, listener: (event: { data: unknown }) => void) {
+            listeners.add(listener)
+          }
+          removeEventListener(_type: string, listener: (event: { data: unknown }) => void) {
+            listeners.delete(listener)
+          }
+          postMessage() {
+            if (failure === 'transport') throw new Error('worker transport closed')
+            if (failure !== 'error') return
+            queueMicrotask(() => {
+              for (const listener of listeners) {
+                listener({
+                  data: {
+                    protocol: 'milkup.plugin.worker.init.v1',
+                    type: 'error',
+                    error: { message: 'plugin module failed to import' },
+                  },
+                })
+              }
+            })
+          }
+        },
+      )
+      try {
+        const manager = new DesktopPluginManager({
+          actionRegistry: new ActionRegistry(),
+          manifestHost: {
+            selectManifestPath: async () => undefined,
+            readManifestText: async () => JSON.stringify(pluginManifest()),
+          },
+          permissions: ['document:write'],
+          milkupVersion: '0.1.0',
+          pluginSdkVersion: '0.1.0',
+          storage: createMemoryStorage(),
+        })
+        await manager.installManifestPath('/plugins/example/plugin.json')
+        const enabling = manager.enable('example-tools')
+        await vi.advanceTimersByTimeAsync(10_000)
+        await enabling
+        const errorMessage =
+          failure === 'silent'
+            ? 'initialization timed out'
+            : failure === 'error'
+              ? 'failed to import'
+              : 'transport closed'
+        expect(manager.state().records[0]).toMatchObject({ state: 'failed', enabled: false })
+        expect(manager.state().records[0]?.errors.join(' ')).toContain(errorMessage)
+        expect(terminate).toHaveBeenCalledTimes(1)
+        expect(listeners.size).toBe(0)
+        expect(vi.getTimerCount()).toBe(0)
+      } finally {
+        vi.unstubAllGlobals()
+        vi.useRealTimers()
+      }
+    },
+  )
 
   it('reactivates persisted enabled plugins during startup', async () => {
     const storage = createMemoryStorage()

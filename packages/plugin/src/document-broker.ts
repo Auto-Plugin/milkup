@@ -29,7 +29,11 @@ export interface PluginDocumentScanSource {
   readonly documentId: string
   readonly version: number
   readonly lineCount: number
-  readLineWindow(fromLine: number, toLine: number): Promise<DocumentLineWindow>
+  readLineWindow(
+    fromLine: number,
+    toLine: number,
+    maxTextLength?: number,
+  ): Promise<DocumentLineWindow>
 }
 
 export interface PluginDocumentScanStartResult {
@@ -121,6 +125,8 @@ export interface PluginDocumentBrokerConfig {
 interface ScanSession {
   readonly id: string
   readonly source: PluginDocumentScanSource
+  readonly version: number
+  readonly startLine: number
   readonly query: CompiledQuery
   readonly batchSize: number
   readonly windowSizeLines: number
@@ -153,6 +159,8 @@ const MAX_PATTERN_LENGTH = 256
 const MAX_RESULT_TEXT_LENGTH = 4_096
 const MAX_REGEXP_LINE_LENGTH = 64 * 1_024
 const MAX_COOPERATIVE_SCAN_LINES = 128
+const MAX_SCAN_TEXT_LENGTH = 262_144
+const MAX_FENCE_CHECKPOINTS = 256
 
 export function createPluginDocumentBroker(
   config: PluginDocumentBrokerConfig,
@@ -167,6 +175,9 @@ export function createPluginDocumentBroker(
     'maxConcurrentScans',
   )
   let nextScanId = 0
+  let contextDocumentId = ''
+  let contextVersion = -1
+  const fenceCheckpoints = new Map<number, MarkdownFence | undefined>()
 
   return Object.freeze({
     start: async (request: PluginDocumentScanRequest): Promise<PluginDocumentScanStartResult> => {
@@ -187,10 +198,30 @@ export function createPluginDocumentBroker(
         throw new Error(`toLine must be an integer from ${fromLine} to ${source.lineCount}`)
       }
       const toLine = Math.min(source.lineCount, requestedToLine)
+      const query = compileQuery(request.query)
+      if (contextDocumentId !== source.documentId || contextVersion !== source.version) {
+        fenceCheckpoints.clear()
+        contextDocumentId = source.documentId
+        contextVersion = source.version
+      }
+      // Heading ranges need the fence state preceding their first line. Reuse
+      // only version-matched checkpoints; otherwise cooperatively scan the prefix.
+      let nextLine = query.kind === 'markdownHeadings' ? 1 : fromLine
+      let fence: MarkdownFence | undefined
+      if (query.kind === 'markdownHeadings') {
+        for (const [line, state] of fenceCheckpoints) {
+          if (line <= fromLine && line > nextLine) {
+            nextLine = line
+            fence = state
+          }
+        }
+      }
       sessions.set(id, {
         id,
         source,
-        query: compileQuery(request.query),
+        version: source.version,
+        startLine: fromLine,
+        query,
         batchSize: normalizeInteger(
           request.batchSize,
           DEFAULT_BATCH_SIZE,
@@ -214,10 +245,10 @@ export function createPluginDocumentBroker(
         ),
         endLine: toLine,
         pending: [],
-        nextLine: fromLine,
+        nextLine,
         scannedLineCount: 0,
         resultCount: 0,
-        fence: undefined,
+        fence,
         terminalReason: undefined,
       })
 
@@ -240,7 +271,7 @@ export function createPluginDocumentBroker(
       if (
         !current ||
         current.documentId !== session.source.documentId ||
-        current.version !== session.source.version
+        current.version !== session.version
       ) {
         sessions.delete(scanId)
         return freezeDoneEvent(session, 'invalidated', false, current?.version)
@@ -261,7 +292,7 @@ export function createPluginDocumentBroker(
       }
 
       const fromLine = session.nextLine
-      const toLine = Math.min(
+      let toLine = Math.min(
         session.endLine,
         fromLine + Math.min(session.windowSizeLines, MAX_COOPERATIVE_SCAN_LINES) - 1,
       )
@@ -269,18 +300,40 @@ export function createPluginDocumentBroker(
 
       try {
         await yieldToMainThread()
-        window = await session.source.readLineWindow(fromLine, toLine)
+        if (!sessions.has(scanId)) return freezeDoneEvent(session, 'cancelled', false)
+        for (;;) {
+          try {
+            window = await session.source.readLineWindow(fromLine, toLine, MAX_SCAN_TEXT_LENGTH)
+            if (window.text.length > MAX_SCAN_TEXT_LENGTH)
+              throw new RangeError('Line window exceeds text budget')
+            break
+          } catch (error) {
+            if (!sessions.has(scanId)) return freezeDoneEvent(session, 'cancelled', false)
+            const latest = config.source()
+            if (
+              !latest ||
+              latest.documentId !== session.source.documentId ||
+              latest.version !== session.version
+            ) {
+              sessions.delete(scanId)
+              return freezeDoneEvent(session, 'invalidated', false, latest?.version)
+            }
+            if (!/text budget/i.test(String(error)) || fromLine === toLine) throw error
+            toLine = fromLine + Math.floor((toLine - fromLine) / 2)
+          }
+        }
       } catch (error) {
         sessions.delete(scanId)
         throw error
       }
 
       const latest = config.source()
+      if (!sessions.has(scanId)) return freezeDoneEvent(session, 'cancelled', false)
 
       if (
         !latest ||
         latest.documentId !== session.source.documentId ||
-        latest.version !== session.source.version
+        latest.version !== session.version
       ) {
         sessions.delete(scanId)
         return freezeDoneEvent(session, 'invalidated', false, latest?.version)
@@ -293,7 +346,14 @@ export function createPluginDocumentBroker(
         throw error
       }
       session.nextLine = toLine + 1
-      session.scannedLineCount += window.lines.length
+      session.scannedLineCount += window.lines.filter(
+        (line) => line.number >= session.startLine,
+      ).length
+      if (session.query.kind === 'markdownHeadings' && !session.terminalReason) {
+        fenceCheckpoints.set(session.nextLine, session.fence)
+        while (fenceCheckpoints.size > MAX_FENCE_CHECKPOINTS)
+          fenceCheckpoints.delete(fenceCheckpoints.keys().next().value!)
+      }
 
       return session.pending.length > 0 ? takeBatch(session) : freezeProgressEvent(session)
     },
@@ -302,6 +362,7 @@ export function createPluginDocumentBroker(
     },
     cancelAll: async (): Promise<void> => {
       sessions.clear()
+      fenceCheckpoints.clear()
     },
   })
 }
@@ -323,7 +384,12 @@ export function createPluginDocumentHostCapabilities(
               }
 
               started ??= await broker.start(request)
+              if (finished) {
+                await broker.cancel(started.scanId)
+                return { value: undefined, done: true }
+              }
               const event = await broker.next(started.scanId)
+              if (finished) return { value: undefined, done: true }
 
               if (event.type === 'done') {
                 finished = true
@@ -338,10 +404,9 @@ export function createPluginDocumentHostCapabilities(
           }
         },
         cancel: async (): Promise<void> => {
-          if (!finished && started) {
-            await broker.cancel(started.scanId)
-          }
+          if (finished) return
           finished = true
+          if (started) await broker.cancel(started.scanId)
         },
       }
 
@@ -392,7 +457,7 @@ function scanWindow(session: ScanSession, lines: readonly DocumentLine[]): void 
     if (session.query.kind === 'markdownHeadings') {
       const heading = scanMarkdownHeading(session, line)
 
-      if (heading) {
+      if (heading && line.number >= session.startLine) {
         addResult(session, heading)
       }
       continue
@@ -542,7 +607,7 @@ function eventBase(session: ScanSession): PluginDocumentScanEventBase {
   return {
     scanId: session.id,
     documentId: session.source.documentId,
-    version: session.source.version,
+    version: session.version,
     scannedLineCount: session.scannedLineCount,
     totalLineCount: session.source.lineCount,
     resultCount: session.resultCount,

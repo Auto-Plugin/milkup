@@ -4,6 +4,7 @@ import { BasicEditor, EditorState, MemoryTextDocument, Selection } from '@milkup
 
 import {
   cursor,
+  definePlugin,
   deleteRange,
   dispatchInsert,
   insertText,
@@ -12,6 +13,28 @@ import {
 } from './index.js'
 
 describe('@milkup/plugin-sdk', () => {
+  it('defines a module without a host registry or global side effects', async () => {
+    const calls = []
+    const plugin = {
+      activate(context) {
+        calls.push(context.pluginId)
+        return { dispose: () => calls.push('disposed') }
+      },
+      renderers: { panel: () => 'standalone' },
+    }
+    const defined = definePlugin(plugin)
+    expect(defined).toBe(plugin)
+    expect(calls).toEqual([])
+    const activation = await defined.activate({
+      pluginId: 'example.local',
+      permissions: [],
+      host: {},
+    })
+    expect(defined.renderers.panel()).toBe('standalone')
+    activation.dispose()
+    expect(calls).toEqual(['example.local', 'disposed'])
+  })
+
   it('creates structural ChangeSet objects accepted by the core editor', () => {
     const editor = createEditor('hello')
 

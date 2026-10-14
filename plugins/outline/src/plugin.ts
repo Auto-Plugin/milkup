@@ -1,67 +1,11 @@
-type ControlledOutput =
-  | string
-  | number
-  | boolean
-  | {
-      type: 'element'
-      tag: 'span' | 'strong' | 'em' | 'code' | 'a' | 'button'
-      text?: string
-      children?: readonly ControlledOutput[]
-      attributes?: Record<string, string>
-      action?: { command: string; input?: unknown }
-    }
-
-interface RendererContext {
-  node?: {
-    phase?: string
-    documentId?: string
-    documentVersion?: number
-    viewport?: { fromLine?: unknown; toLine?: unknown; activeLine?: unknown }
-    virtualViewport?: {
-      id?: unknown
-      fromIndex?: unknown
-      toIndex?: unknown
-      userInitiated?: unknown
-      edge?: unknown
-      requestId?: unknown
-    }
-  }
-}
-
-interface DocumentScanHeading {
-  id: string
-  kind: 'heading'
-  from: number
-  to: number
-  line: number
-  lineOffset: number
-  level: number
-  label: string
-}
-
-interface DocumentScanEvent {
-  type: 'batch' | 'progress' | 'done'
-  scannedLineCount: number
-  totalLineCount: number
-  resultCount: number
-  items?: readonly DocumentScanHeading[]
-  complete?: boolean
-  reason?: 'complete' | 'cancelled' | 'invalidated' | 'truncated'
-}
-
-interface DocumentScanner extends AsyncIterable<DocumentScanEvent> {
-  cancel(): Promise<void>
-}
-
-interface ActivationContext {
-  host: {
-    document?: { scan(request: unknown): DocumentScanner }
-    ui?: {
-      requestUpdate(viewId?: string): Promise<void>
-      revealLine(line: number): Promise<void>
-    }
-  }
-}
+import { definePlugin } from '@milkup/plugin-sdk'
+import type {
+  SdkDocumentScanner as DocumentScanner,
+  SdkDocumentScanHeading as DocumentScanHeading,
+  SdkPluginActivationContext as ActivationContext,
+  SdkPluginRendererContext as RendererContext,
+  SdkRendererOutput as ControlledOutput,
+} from '@milkup/plugin-sdk'
 
 interface OutlineItem {
   key: string
@@ -96,17 +40,49 @@ let scanAnchorLine = 1
 let virtualRevision = 0
 let virtualScrollAdjustment = 0
 let pendingVirtualIndexShift = 0
+let collapsedLines = new Set<number>()
+let followActive = false
 let panelUpdateTimer: ReturnType<typeof setTimeout> | undefined
 let panelUpdateInFlight = false
 let panelUpdatePending = false
 
-const plugin = {
+const plugin = definePlugin({
   commands: {
     'outline.gotoHeading': async (_context: unknown, input: unknown) => {
       const line = readHeadingLine(input)
       if (!host?.ui) throw new Error('大纲导航暂时不可用')
+      const generation = scanGeneration
       await host.ui.revealLine(line)
+      if (generation !== scanGeneration) return
       selectedHeadingLine = line
+      lastActiveLine = line
+      revealAncestors(line)
+      followActive = true
+      await requestPanelUpdate()
+    },
+    'outline.toggleHeading': async (_context: unknown, input: unknown) => {
+      const line = readHeadingLine(input)
+      if (!hasChildren(line)) return
+      if (collapsedLines.has(line)) collapsedLines.delete(line)
+      else collapsedLines.add(line)
+      virtualRevision += 1
+      followActive = true
+      await requestPanelUpdate()
+    },
+    'outline.collapseAll': async () => {
+      collapsedLines = new Set(
+        outlineItems
+          .filter((item, index) => (outlineItems[index + 1]?.level ?? 0) > item.level)
+          .map((item) => item.line),
+      )
+      virtualRevision += 1
+      followActive = true
+      await requestPanelUpdate()
+    },
+    'outline.expandAll': async () => {
+      collapsedLines.clear()
+      virtualRevision += 1
+      followActive = true
       await requestPanelUpdate()
     },
   },
@@ -115,42 +91,55 @@ const plugin = {
   },
   activate(context: ActivationContext) {
     host = context.host
-    return { dispose: () => stopOutlineScan(true) }
+    return {
+      dispose: () => {
+        host = undefined
+        return stopOutlineScan(true)
+      },
+    }
   },
   deactivate() {
     host = undefined
     void stopOutlineScan(true)
   },
-}
+})
 
 export default plugin
 
 function renderPanel(context: RendererContext): ControlledOutput {
   const phase = context.node?.phase
   const documentId = context.node?.documentId ?? ''
-  const activeLine = readPositiveInteger(context.node?.viewport?.activeLine) ?? 1
+  const requestedActiveLine = readPositiveInteger(context.node?.viewport?.activeLine)
+  const documentChanged = documentId !== activeDocumentId
+  const activeLine = requestedActiveLine ?? (documentChanged ? 1 : lastActiveLine)
+  const activeChanged = requestedActiveLine !== undefined && activeLine !== lastActiveLine
 
   if (phase === 'dispose') {
     void stopOutlineScan(true)
     return ''
   }
 
-  const version = context.node?.documentVersion
+  const version =
+    context.node?.documentVersion ?? (documentChanged ? undefined : activeDocumentVersion)
   const outsideWindow =
     activeLine !== lastActiveLine && (activeLine < scannedFromLine || activeLine > scannedToLine)
   if (
-    phase === 'mount' ||
+    (phase === 'mount' && scanStatus === 'idle') ||
     documentId !== activeDocumentId ||
     version !== activeDocumentVersion ||
-    (!activeScanner && outsideWindow)
+    outsideWindow
   ) {
+    if (documentChanged || version !== activeDocumentVersion) collapsedLines.clear()
     activeDocumentVersion = version
     void startCenteredOutlineScan(documentId, activeLine)
   }
   if (context.node?.viewport?.activeLine !== undefined) selectedHeadingLine = activeLine
   lastActiveLine = activeLine
 
-  const activeIndex = findHeadingIndex(outlineItems, selectedHeadingLine)
+  const visibleItems = unfoldedItems()
+  const activeIndex = findHeadingIndex(visibleItems, selectedHeadingLine)
+  const shouldFollowActive = followActive || activeChanged
+  followActive = false
   const children: ControlledOutput[] = []
   const virtualViewport = readVirtualViewport(context.node?.virtualViewport)
   if (virtualViewport?.edge && virtualViewport.requestId > lastEdgeRequestId) {
@@ -159,6 +148,30 @@ function renderPanel(context: RendererContext): ControlledOutput {
       edgeLoadingDirection = virtualViewport.edge
       void extendOutlineWindow(virtualViewport.edge)
     }
+  }
+
+  if (outlineItems.length > 0) {
+    children.push(
+      span(
+        [
+          commandButton('全部展开', 'outline.expandAll'),
+          commandButton('全部折叠', 'outline.collapseAll'),
+        ],
+        'plugin-tree-toolbar',
+      ),
+    )
+  }
+  if (scanStatus !== 'scanning' && scanStatus !== 'idle' && scanStatus !== 'failed') {
+    children.push(
+      span(
+        [
+          scannedFromLine <= 1 && scannedToLine >= totalLineCount
+            ? `已加载全文 · ${outlineItems.length} 个标题`
+            : `已加载第 ${scannedFromLine}–${Math.max(scannedFromLine, scannedToLine)} 行 / 共 ${totalLineCount} 行；上下滚动继续加载`,
+        ],
+        'plugin-list-summary',
+      ),
+    )
   }
 
   if (scanStatus === 'failed') {
@@ -177,7 +190,18 @@ function renderPanel(context: RendererContext): ControlledOutput {
       if (edgeLoadingDirection === 'before') children.push(edgeLoadingIndicator())
       children.push(
         span(
-          [stateBlock('empty', 'list-tree', '当前区域无标题', '滚动到顶部或底部可继续查找。')],
+          [
+            stateBlock(
+              'empty',
+              'list-tree',
+              scannedFromLine <= 1 && scannedToLine >= totalLineCount
+                ? '文档无标题'
+                : '当前区域无标题',
+              scannedFromLine <= 1 && scannedToLine >= totalLineCount
+                ? '添加 H1–H6 标题后将在此显示。'
+                : '滚动到顶部或底部可继续查找。',
+            ),
+          ],
           'plugin-virtual-list',
           virtualListAttributes(0, 0, 0, -1),
         ),
@@ -193,16 +217,24 @@ function renderPanel(context: RendererContext): ControlledOutput {
             toIndex: Math.max(0, virtualViewport.toIndex + pendingVirtualIndexShift),
           }
         : virtualViewport
-    const visible = selectVirtualItems(outlineItems, renderViewport)
-    const list = visible.items.map(({ item, index }) =>
-      button(item.title || `第 ${item.line} 行`, item.line, item.level, index === activeIndex),
+    const visible = selectVirtualItems(
+      visibleItems,
+      renderViewport,
+      shouldFollowActive ? activeIndex : undefined,
     )
+    const list = visible.items.map(({ item, index }) => treeRow(item, index === activeIndex))
     if (edgeLoadingDirection === 'before') children.push(edgeLoadingIndicator())
     children.push(
       span(
         list,
         'plugin-virtual-list',
-        virtualListAttributes(outlineItems.length, visible.start, visible.end, activeIndex),
+        virtualListAttributes(
+          visibleItems.length,
+          visible.start,
+          visible.end,
+          activeIndex,
+          shouldFollowActive,
+        ),
       ),
     )
     if (edgeLoadingDirection === 'after') children.push(edgeLoadingIndicator())
@@ -220,9 +252,13 @@ async function startCenteredOutlineScan(documentId: string, activeLine: number):
   const scanner = activeScanner
   activeScanner = undefined
   outlineItems = []
+  if (activeDocumentId !== documentId) {
+    totalLineCount = 1
+    lastEdgeRequestId = 0
+  }
   activeDocumentId = documentId
   scanAnchorLine = activeLine
-  selectedHeadingLine = undefined
+  selectedHeadingLine = activeLine
   scanStatus = 'scanning'
   scannedFromLine = Math.max(1, activeLine - Math.floor(outlineInitialWindowLines / 2))
   scannedToLine = scannedFromLine - 1
@@ -270,14 +306,22 @@ async function scanOutlineRange(
   fromLine: number,
   toLine: number,
 ): Promise<void> {
-  const scanner = host?.document?.scan({
-    query: { kind: 'markdownHeadings' },
-    fromLine,
-    toLine,
-    windowSizeLines: 512,
-    batchSize: 128,
-    maxResults: 50_000,
-  })
+  let scanner: DocumentScanner | undefined
+  try {
+    scanner = host?.document?.scan({
+      query: { kind: 'markdownHeadings' },
+      fromLine,
+      toLine,
+      windowSizeLines: 512,
+      batchSize: 128,
+      maxResults: outlineScanEdgeWindowLines,
+    })
+  } catch {
+    scanStatus = 'failed'
+    edgeLoadingDirection = undefined
+    schedulePanelUpdate(0)
+    return
+  }
 
   if (!scanner) {
     if (mode === 'center') scanStatus = 'failed'
@@ -294,7 +338,15 @@ async function scanOutlineRange(
       if (generation !== scanGeneration) return
 
       if (event.type === 'batch') {
-        collected.push(...(event.items ?? []).map(toOutlineItem))
+        collected.push(
+          ...event.items
+            .filter(
+              (item): item is DocumentScanHeading =>
+                item.kind === 'heading' && item.line >= fromLine && item.line <= toLine,
+            )
+            .slice(0, outlineScanEdgeWindowLines - collected.length)
+            .map(toOutlineItem),
+        )
       } else if (event.type === 'done') {
         activeScanner = undefined
         totalLineCount = event.totalLineCount
@@ -305,17 +357,31 @@ async function scanOutlineRange(
           return
         }
 
+        if (event.reason === 'cancelled') {
+          scanStatus = mode === 'center' ? 'failed' : 'ready'
+          edgeLoadingDirection = undefined
+          schedulePanelUpdate(0)
+          return
+        }
+
         const actualToLine = Math.min(toLine, fromLine + event.scannedLineCount - 1)
         applyScannedOutlineRange(mode, fromLine, actualToLine, collected)
         scanStatus = event.reason === 'truncated' ? 'truncated' : 'ready'
         edgeLoadingDirection = undefined
         schedulePanelUpdate(0)
+        return
       }
 
       eventCount += 1
-      if (event.type !== 'done' && eventCount % 8 === 0) {
+      if (eventCount % 8 === 0) {
         await yieldBackgroundScan()
       }
+    }
+    if (generation === scanGeneration) {
+      activeScanner = undefined
+      if (mode === 'center') scanStatus = 'failed'
+      edgeLoadingDirection = undefined
+      schedulePanelUpdate(0)
     }
   } catch {
     if (generation !== scanGeneration) return
@@ -332,10 +398,12 @@ function applyScannedOutlineRange(
   toLine: number,
   incoming: readonly OutlineItem[],
 ): void {
+  const previousVisible = unfoldedItems()
   const existingLines = new Set(outlineItems.map((item) => item.line))
   const addedItems = incoming.filter((item) => !existingLines.has(item.line))
 
   if (mode === 'center') {
+    followActive = true
     outlineItems = [...incoming].sort((left, right) => left.line - right.line)
     scannedFromLine = fromLine
     scannedToLine = toLine
@@ -353,6 +421,18 @@ function applyScannedOutlineRange(
     }
   }
   trimOutlineBuffer(mode)
+  const retainedLines = new Set(outlineItems.map((item) => item.line))
+  collapsedLines = new Set([...collapsedLines].filter((line) => retainedLines.has(line)))
+  if (mode !== 'center') {
+    const nextVisible = unfoldedItems()
+    const nextVisibleLines = new Set(nextVisible.map((item) => item.line))
+    const common = previousVisible.find((item) => nextVisibleLines.has(item.line))
+    const shift = common
+      ? nextVisible.findIndex((item) => item.line === common.line) - previousVisible.indexOf(common)
+      : 0
+    virtualScrollAdjustment = shift * virtualItemHeight
+    pendingVirtualIndexShift = shift
+  }
   virtualRevision += 1
 }
 
@@ -380,8 +460,6 @@ async function stopOutlineScan(clear: boolean): Promise<void> {
   scanGeneration += 1
   const scanner = activeScanner
   activeScanner = undefined
-  await scanner?.cancel().catch(() => undefined)
-
   if (clear) {
     clearPanelUpdate()
     outlineItems = []
@@ -398,7 +476,10 @@ async function stopOutlineScan(clear: boolean): Promise<void> {
     scanAnchorLine = 1
     virtualScrollAdjustment = 0
     pendingVirtualIndexShift = 0
+    collapsedLines.clear()
+    followActive = false
   }
+  await scanner?.cancel().catch(() => undefined)
 }
 
 function toOutlineItem(heading: DocumentScanHeading): OutlineItem {
@@ -442,12 +523,16 @@ interface VirtualOutlineSlice {
 function selectVirtualItems(
   items: readonly OutlineItem[],
   requested: VirtualViewportRequest | undefined,
+  activeIndex?: number,
 ): VirtualOutlineSlice {
   let start: number
   let end: number
 
-  if (requested?.id === 'outline') {
-    start = Math.min(items.length, requested.fromIndex)
+  if (activeIndex !== undefined && activeIndex >= 0) {
+    start = Math.max(0, activeIndex - Math.floor(initialVirtualItemCount / 2))
+    end = Math.min(items.length, start + initialVirtualItemCount)
+  } else if (requested?.id === 'outline') {
+    start = Math.min(Math.max(0, items.length - initialVirtualItemCount), requested.fromIndex)
     end = Math.min(items.length, Math.max(start, requested.toIndex))
     if (end - start > maxVirtualItemCount) {
       const middle = Math.floor((start + end) / 2)
@@ -501,6 +586,7 @@ function virtualListAttributes(
   start: number,
   end: number,
   active: number,
+  follow = false,
 ): Record<string, string> {
   return {
     'data-virtual-list': 'outline',
@@ -509,7 +595,9 @@ function virtualListAttributes(
     'data-virtual-end': String(end),
     'data-virtual-item-height': String(virtualItemHeight),
     'data-virtual-active': String(active),
-    'data-virtual-follow-active': 'false',
+    'data-virtual-follow-active': String(follow),
+    role: 'tree',
+    'aria-label': '文档大纲',
     'data-virtual-has-before': String(scannedFromLine > 1),
     'data-virtual-has-after': String(scannedToLine < totalLineCount),
     'data-virtual-scroll-adjust': String(virtualScrollAdjustment),
@@ -614,17 +702,78 @@ function strong(text: string): ControlledOutput {
   return { type: 'element', tag: 'strong', text }
 }
 
-function button(text: string, line: number, level: number, active: boolean): ControlledOutput {
+function hasChildren(line: number): boolean {
+  const index = findHeadingIndex(outlineItems, line)
+  const item = outlineItems[index]
+  return item?.line === line && (outlineItems[index + 1]?.level ?? 0) > item.level
+}
+
+function unfoldedItems(): OutlineItem[] {
+  let hiddenBelow: number | undefined
+  return outlineItems.filter((item) => {
+    if (hiddenBelow !== undefined && item.level > hiddenBelow) return false
+    hiddenBelow = collapsedLines.has(item.line) ? item.level : undefined
+    return true
+  })
+}
+
+function revealAncestors(line: number): void {
+  const ancestors: OutlineItem[] = []
+  for (const item of outlineItems) {
+    if (item.line >= line) break
+    while (ancestors.length && ancestors[ancestors.length - 1]!.level >= item.level) ancestors.pop()
+    ancestors.push(item)
+  }
+  for (const ancestor of ancestors) collapsedLines.delete(ancestor.line)
+}
+
+function commandButton(text: string, command: string, input?: unknown): ControlledOutput {
   return {
     type: 'element',
     tag: 'button',
     text,
-    attributes: {
-      class: `plugin-list-item plugin-list-level-${Math.max(1, Math.min(6, level))}${active ? ' is-active' : ''}`,
-      title: `${text}（第 ${line} 行）`,
-      'aria-label': `跳转到 ${text}，第 ${line} 行`,
-      'aria-current': active ? 'location' : 'false',
-    },
-    action: { command: 'outline.gotoHeading', input: { line } },
+    attributes: { 'aria-label': text },
+    action: { command, ...(input === undefined ? {} : { input }) },
   }
+}
+
+function treeRow(item: OutlineItem, active: boolean): ControlledOutput {
+  const text = item.title || `第 ${item.line} 行`
+  const children = hasChildren(item.line)
+  const expanded = !collapsedLines.has(item.line)
+  return span(
+    [
+      children
+        ? {
+            type: 'element',
+            tag: 'button',
+            text: expanded ? '▾' : '▸',
+            attributes: {
+              class: 'plugin-tree-toggle',
+              'aria-label': `${expanded ? '折叠' : '展开'} ${text}`,
+              'aria-expanded': String(expanded),
+            },
+            action: { command: 'outline.toggleHeading', input: { line: item.line } },
+          }
+        : span([], 'plugin-tree-toggle'),
+      {
+        type: 'element',
+        tag: 'button',
+        text,
+        attributes: {
+          class: `plugin-list-item${active ? ' is-active' : ''}`,
+          title: `${text}（第 ${item.line} 行）`,
+          'aria-label': `跳转到 ${text}，第 ${item.line} 行`,
+          'aria-current': active ? 'location' : 'false',
+        },
+        action: { command: 'outline.gotoHeading', input: { line: item.line } },
+      },
+    ],
+    `plugin-tree-row plugin-list-level-${Math.max(1, Math.min(6, item.level))}${active ? ' is-active' : ''}`,
+    {
+      role: 'treeitem',
+      'aria-level': String(item.level),
+      ...(children ? { 'aria-expanded': String(expanded) } : {}),
+    },
+  )
 }

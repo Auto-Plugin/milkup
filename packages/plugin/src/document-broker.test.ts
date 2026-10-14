@@ -1,5 +1,5 @@
 import { MemoryDocumentSource } from '@milkup/core'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
   createPluginDocumentBroker,
@@ -95,6 +95,286 @@ describe('plugin document broker', () => {
       totalLineCount: 5,
       resultCount: 1,
     })
+  })
+
+  it('inherits fenced-code context before a requested range and only counts requested lines', async () => {
+    const source = new MemoryDocumentSource({
+      documentId: 'range-fence',
+      text: ['# Earlier', '```md', '# Not a heading', '```', '## Real', 'tail'].join('\n'),
+    })
+    const events = await collectEvents(
+      createPluginDocumentHostCapabilities(
+        createPluginDocumentBroker({ pluginId: 'reader', source: () => source }),
+      ).scan({
+        query: { kind: 'markdownHeadings' },
+        fromLine: 3,
+        toLine: 5,
+        windowSizeLines: 1,
+      }),
+    )
+    expect(batchItems(events)).toMatchObject([{ label: 'Real', line: 5 }])
+    expect(events.at(-1)).toMatchObject({ scannedLineCount: 3, resultCount: 1, complete: true })
+  })
+
+  it('reuses bounded fence checkpoints only for the same document version', async () => {
+    let source = new MemoryDocumentSource({
+      documentId: 'cached',
+      version: 1,
+      text: ['```', ...Array.from({ length: 300 }, () => '# code'), '```', '# Real'].join('\n'),
+    })
+    const reads: number[] = []
+    const broker = createPluginDocumentBroker({
+      pluginId: 'reader',
+      yieldToMainThread: async () => {},
+      source: () => ({
+        documentId: source.documentId,
+        version: source.version,
+        lineCount: source.lineCount,
+        readLineWindow: (from, to, budget) => {
+          reads.push(from)
+          return source.readLineWindow(from, to, budget)
+        },
+      }),
+    })
+    const host = createPluginDocumentHostCapabilities(broker)
+    await collectEvents(
+      host.scan({ query: { kind: 'markdownHeadings' }, fromLine: 200, toLine: 250 }),
+    )
+    reads.length = 0
+    const next = await collectEvents(
+      host.scan({ query: { kind: 'markdownHeadings' }, fromLine: 251, toLine: 303 }),
+    )
+    expect(reads[0]).toBe(251)
+    expect(batchItems(next)).toMatchObject([{ label: 'Real', line: 303 }])
+    source = new MemoryDocumentSource({
+      documentId: 'cached',
+      version: 2,
+      text: Array.from({ length: 303 }, () => '# New').join('\n'),
+    })
+    reads.length = 0
+    await collectEvents(
+      host.scan({ query: { kind: 'markdownHeadings' }, fromLine: 251, toLine: 303 }),
+    )
+    expect(reads[0]).toBe(1)
+  })
+
+  it('splits scan windows before native text materialization and rejects an oversized single line', async () => {
+    let source = new MemoryDocumentSource({
+      documentId: 'budget',
+      text: Array.from({ length: 128 }, () => 'x'.repeat(4096)).join('\n'),
+    })
+    const successfulSizes: number[] = []
+    const broker = createPluginDocumentBroker({
+      pluginId: 'reader',
+      yieldToMainThread: async () => {},
+      source: () => ({
+        documentId: source.documentId,
+        version: source.version,
+        lineCount: source.lineCount,
+        readLineWindow: async (from, to, budget) => {
+          expect(budget).toBe(262_144)
+          const window = await source.readLineWindow(from, to, budget)
+          successfulSizes.push(window.text.length)
+          return window
+        },
+      }),
+    })
+    const host = createPluginDocumentHostCapabilities(broker)
+    const events = await collectEvents(host.scan({ query: { kind: 'markdownHeadings' } }))
+    expect(events.at(-1)).toMatchObject({ scannedLineCount: 128, complete: true })
+    expect(successfulSizes.length).toBeGreaterThan(1)
+    expect(Math.max(...successfulSizes)).toBeLessThanOrEqual(262_144)
+    source = new MemoryDocumentSource({ documentId: 'oversized', text: '# ' + 'x'.repeat(262_144) })
+    await expect(collectEvents(host.scan({ query: { kind: 'markdownHeadings' } }))).rejects.toThrow(
+      'text budget',
+    )
+    await expect(broker.start({ query: { kind: 'markdownHeadings' } })).resolves.toBeDefined()
+  })
+
+  it('pins mutable native source versions and suppresses in-flight reads after cancellation', async () => {
+    const source = new MemoryDocumentSource({ documentId: 'mutable', text: '# Old' })
+    let version = 1
+    let release!: () => void
+    const waiting = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const read = vi.fn(async () => {
+      await waiting
+      return source.readLineWindow(1, 1)
+    })
+    const mutable = {
+      documentId: 'mutable',
+      get version() {
+        return version
+      },
+      lineCount: 1,
+      readLineWindow: read,
+    }
+    const broker = createPluginDocumentBroker({
+      pluginId: 'reader',
+      source: () => mutable,
+      yieldToMainThread: async () => {},
+    })
+    const started = await broker.start({ query: { kind: 'markdownHeadings' } })
+    const next = broker.next(started.scanId)
+    await vi.waitFor(() => expect(read).toHaveBeenCalled())
+    version = 2
+    release()
+    await expect(next).resolves.toMatchObject({
+      type: 'done',
+      reason: 'invalidated',
+      version: 1,
+      currentVersion: 2,
+    })
+    const cancelled = await broker.start({ query: { kind: 'markdownHeadings' } })
+    const pending = broker.next(cancelled.scanId)
+    await broker.cancelAll()
+    await expect(pending).resolves.toMatchObject({
+      type: 'done',
+      reason: 'cancelled',
+      resultCount: 0,
+    })
+  })
+
+  it.each(['version', 'document', 'closed', 'cancelled', 'unchanged'] as const)(
+    'classifies a rejected in-flight read after the source is %s',
+    async (change) => {
+      let version = 1
+      let rejectRead!: (error: Error) => void
+      const read = vi.fn(
+        () =>
+          new Promise<never>((_resolve, reject) => {
+            rejectRead = reject
+          }),
+      )
+      const source = {
+        documentId: 'original',
+        get version() {
+          return version
+        },
+        lineCount: 128,
+        readLineWindow: read,
+      }
+      let current: PluginDocumentScanSource | undefined = source
+      const broker = createPluginDocumentBroker({
+        pluginId: 'reader',
+        source: () => current,
+        maxConcurrentScans: 1,
+        yieldToMainThread: async () => {},
+      })
+      const started = await broker.start({ query: { kind: 'markdownHeadings' } })
+      const pending = broker.next(started.scanId)
+      await vi.waitFor(() => expect(read).toHaveBeenCalledTimes(1))
+      if (change === 'version' || change === 'cancelled') version = 2
+      if (change === 'document') current = { ...source, documentId: 'replacement' }
+      if (change === 'closed') current = undefined
+      if (change === 'cancelled') await broker.cancel(started.scanId)
+      const failure = new Error('Invalid line window')
+      rejectRead(failure)
+      if (change === 'unchanged') await expect(pending).rejects.toBe(failure)
+      else {
+        await expect(pending).resolves.toMatchObject({
+          type: 'done',
+          reason: change === 'cancelled' ? 'cancelled' : 'invalidated',
+          complete: false,
+          version: 1,
+          resultCount: 0,
+        })
+      }
+      // Terminal failures must release the single available scan slot.
+      current = source
+      await expect(broker.start({ query: { kind: 'markdownHeadings' } })).resolves.toBeDefined()
+    },
+  )
+
+  it.each([false, true])(
+    'suppresses a late batch when cancellation is confirmed=%s',
+    async (confirmed) => {
+      let releaseNext!: (event: PluginDocumentScanEvent) => void
+      let confirmCancellation!: () => void
+      const next = vi.fn(
+        () =>
+          new Promise<PluginDocumentScanEvent>((resolve) => {
+            releaseNext = resolve
+          }),
+      )
+      const cancel = vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            confirmCancellation = resolve
+          }),
+      )
+      const scanner = createPluginDocumentHostCapabilities({
+        start: async () => ({ scanId: 'late-batch', documentId: 'd', version: 1, lineCount: 1 }),
+        next,
+        cancel,
+      }).scan({ query: { kind: 'markdownHeadings' } })
+      const iterator = scanner[Symbol.asyncIterator]()
+      const pending = iterator.next()
+      await vi.waitFor(() => expect(next).toHaveBeenCalledTimes(1))
+      const cancelling = scanner.cancel()
+      if (confirmed) {
+        confirmCancellation()
+        await cancelling
+      }
+      releaseNext({
+        type: 'batch',
+        scanId: 'late-batch',
+        documentId: 'd',
+        version: 1,
+        scannedLineCount: 1,
+        totalLineCount: 1,
+        resultCount: 1,
+        items: [
+          {
+            id: 'heading',
+            kind: 'heading',
+            from: 0,
+            to: 7,
+            line: 1,
+            lineOffset: 0,
+            level: 1,
+            label: 'stale',
+            labelFrom: 2,
+            labelTo: 7,
+          },
+        ],
+      })
+      await expect(pending).resolves.toEqual({ value: undefined, done: true })
+      confirmCancellation()
+      await cancelling
+      await expect(iterator.next()).resolves.toMatchObject({ done: true })
+      expect(next).toHaveBeenCalledTimes(1)
+      expect(cancel).toHaveBeenCalledTimes(1)
+    },
+  )
+
+  it('cancels a scanner whose asynchronous start resolves after disposal', async () => {
+    let release!: (value: {
+      scanId: string
+      documentId: string
+      version: number
+      lineCount: number
+    }) => void
+    const start = vi.fn(
+      () =>
+        new Promise<{ scanId: string; documentId: string; version: number; lineCount: number }>(
+          (resolve) => {
+            release = resolve
+          },
+        ),
+    )
+    const next = vi.fn()
+    const cancel = vi.fn(async () => {})
+    const scanner = createPluginDocumentHostCapabilities({ start, next, cancel }).scan({
+      query: { kind: 'markdownHeadings' },
+    })
+    const pending = scanner[Symbol.asyncIterator]().next()
+    await scanner.cancel()
+    release({ scanId: 'late', documentId: 'd', version: 0, lineCount: 1 })
+    await expect(pending).resolves.toMatchObject({ done: true })
+    expect(cancel).toHaveBeenCalledWith('late')
+    expect(next).not.toHaveBeenCalled()
   })
 
   it('yields before bounded scan slices so large windows remain cooperative', async () => {
