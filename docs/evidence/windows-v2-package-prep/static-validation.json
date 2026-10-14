@@ -1,0 +1,112 @@
+{
+  "date": "2026-10-14T04:19:38.783583+00:00",
+  "baselineSha": "a73131e4b46f88fa85f2f59f1c4ae3f75d16d778",
+  "kind": "static validation only",
+  "windowsBuildRun": false,
+  "windowsInstallRun": false,
+  "artifactsUploaded": false,
+  "activeWorkflowCreated": false,
+  "request": {
+    "enabled": false,
+    "baselineSha": "a73131e4b46f88fa85f2f59f1c4ae3f75d16d778",
+    "requestId": "pending-user-confirmation",
+    "publicArtifactsAccepted": false,
+    "unsignedTestPackageAccepted": false,
+    "storageBudgetVerified": false
+  },
+  "checks": [
+    {
+      "command": [
+        "/workspace/.milkup-v2-windows-prep/actionlint/actionlint",
+        "scripts/ci/windows-v2-test-package.yml"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "bash",
+        "-c",
+        "source /workspace/.cloud/milkup-v2/env.sh\nnode --check tests/windows/installed-package-smoke.mjs\npnpm exec prettier --check scripts/ci/windows-v2-test-package.yml scripts/ci/windows-v2-package-request.json tests/windows/installed-package-smoke.mjs docs/windows-v2-test-package-plan-2026-10-14.md docs/v2-phase21-windows-package-readiness-2026-10-14.md"
+      ],
+      "exitCode": 0,
+      "stdout": "Checking formatting...\nAll matched files use Prettier code style!\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/workspace/.milkup-v2-windows-prep/pwsh/pwsh",
+        "-NoLogo",
+        "-NoProfile",
+        "-Command",
+        "$failed=$false; Get-ChildItem /workspace/milkup/scripts/ci/*.ps1,/workspace/.milkup-v2-windows-prep/workflow-step-*.ps1 | ForEach-Object { $tokens=$null; $errors=$null; [System.Management.Automation.Language.Parser]::ParseFile($_.FullName,[ref]$tokens,[ref]$errors) | Out-Null; if ($errors) { $errors | Format-List; $failed=$true } else { \"PASS $($_.Name)\" } }; if($failed){exit 1}"
+      ],
+      "exitCode": 0,
+      "stdout": "PASS build-windows-v2-package.ps1\nPASS test-windows-v2-installed.ps1\nPASS workflow-step-1.ps1\nPASS workflow-step-3.ps1\nPASS workflow-step-4.ps1\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "actionsPermissions": {
+    "command": [
+      "gh",
+      "api",
+      "repos/Auto-Plugin/milkup/actions/permissions"
+    ],
+    "exitCode": 1,
+    "stdout": "{\"message\":\"Resource not accessible by integration\",\"documentation_url\":\"https://docs.github.com/rest/actions/permissions#get-github-actions-permissions-for-a-repository\",\"status\":\"403\"}",
+    "stderr": "gh: Resource not accessible by integration (HTTP 403)\n"
+  },
+  "files": [
+    {
+      "path": "docs/windows-v2-test-package-plan-2026-10-14.md",
+      "bytes": 8024,
+      "sha256": "123d1289fdb19c6d4e9d4154f2de2bfbdf09e75a567b4aa51d7ffa3d8450e9e7"
+    },
+    {
+      "path": "scripts/ci/build-windows-v2-package.ps1",
+      "bytes": 5204,
+      "sha256": "bb9157c1460e8362f9fb06107a964e2c1949e2572ed27d899a317842fdf1931a"
+    },
+    {
+      "path": "scripts/ci/test-windows-v2-installed.ps1",
+      "bytes": 6413,
+      "sha256": "8652ba8b453c1134ef9edd323f37ca6597134a1f31aebc9363b69ca4a391913a"
+    },
+    {
+      "path": "scripts/ci/windows-v2-package-request.json",
+      "bytes": 238,
+      "sha256": "836ae7edc554c2bdec161c32b0f503020947f32848546d7591e832ba60a70725"
+    },
+    {
+      "path": "scripts/ci/windows-v2-test-package.yml",
+      "bytes": 3809,
+      "sha256": "900681b0a5295966d4003254a9512d1361c3b1c5960ede079e28758b4c1711e7"
+    },
+    {
+      "path": "tests/windows/installed-package-smoke.mjs",
+      "bytes": 8274,
+      "sha256": "dbe4d45bc52e5c6eadb6f489210d23a2bd71d8b4a65c3e7dd75639d7aaa7f89d"
+    }
+  ],
+  "toolArchives": [
+    {
+      "name": "powershell-7.6.7-linux-x64.tar.gz",
+      "sha256": "6896f9e3a6b0a354bf470835a96da76d2f801cd50dcf047ad7c4563bf93bf431"
+    },
+    {
+      "name": "actionlint_1.7.12_linux_amd64.tar.gz",
+      "sha256": "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8"
+    }
+  ]
+}

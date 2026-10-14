@@ -1,0 +1,80 @@
+# Canonical source for .github/workflows/v2-windows-test-package.yml.
+# Validation only: no artifact upload, Actions cache, Release or paid runner.
+name: Windows v2 test package
+on:
+  push:
+    branches: [dot/milkup-v2-quality]
+    paths:
+      - .github/workflows/v2-windows-test-package.yml
+      - scripts/ci/windows-v2-package-request.json
+permissions:
+  contents: read
+concurrency:
+  group: windows-v2-test-package
+  cancel-in-progress: false
+jobs:
+  package:
+    if: >-
+      github.repository == 'Auto-Plugin/milkup' &&
+      github.ref == 'refs/heads/dot/milkup-v2-quality' &&
+      github.event.repository.private == false &&
+      github.event.deleted == false &&
+      contains(github.event.head_commit.message, '[windows-v2-test-package]')
+    runs-on: windows-2025
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CARGO_BUILD_JOBS: '3'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check explicit request and exact source
+        id: request
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $request = Get-Content scripts/ci/windows-v2-package-request.json -Raw | ConvertFrom-Json
+          if ($request.enabled -ne $true -or $request.publicArtifactsAccepted -ne $true -or
+              $request.unsignedTestPackageAccepted -ne $true -or
+              $request.deliveryMode -ne 'validation-only-no-artifacts') {
+            throw 'Validation request is not approved; no build is authorized.'
+          }
+          if ($request.baselineSha -ne 'a73131e4b46f88fa85f2f59f1c4ae3f75d16d778') { throw 'Unexpected baseline' }
+          if ((git rev-parse HEAD).Trim() -ne $env:GITHUB_SHA) { throw 'Checkout SHA mismatch' }
+          git merge-base --is-ancestor $request.baselineSha HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'Source does not descend from the reviewed baseline' }
+          if (git status --porcelain) { throw 'Dirty checkout' }
+          "MILKUP_PACKAGE_OUTPUT=$env:RUNNER_TEMP\milkup-v2-package" >> $env:GITHUB_ENV
+          'approved=true' >> $env:GITHUB_OUTPUT
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.19.0
+      - name: Install pinned build tools
+        run: |
+          $ErrorActionPreference = 'Stop'
+          npm install --global pnpm@11.7.0 --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { throw 'pnpm install failed' }
+          rustup toolchain install 1.99.0 --profile minimal --component rustfmt
+          if ($LASTEXITCODE -ne 0) { throw 'Rust toolchain install failed' }
+          'RUSTUP_TOOLCHAIN=1.99.0' >> $env:GITHUB_ENV
+      - name: Build unsigned NSIS and verify installed application
+        run: ./scripts/ci/build-windows-v2-package.ps1 -OutputDirectory $env:MILKUP_PACKAGE_OUTPUT -ExpectedCommit $env:GITHUB_SHA
+      - name: Record bounded validation results in logs only
+        if: ${{ always() && steps.request.outputs.approved == 'true' }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($name in @('build-result.json', 'installation-result.json', 'installed-smoke.json', 'smoke-stderr.log', 'driver.log')) {
+            $path = Join-Path $env:MILKUP_PACKAGE_OUTPUT "evidence/$name"
+            if (Test-Path -LiteralPath $path) {
+              Write-Output "VALIDATION EVIDENCE: $name"
+              $text = [System.IO.File]::ReadAllText($path)
+              Write-Output $text.Substring(0, [Math]::Min($text.Length, 65536))
+            }
+          }
+          'Validation only. No artifact upload or package delivery occurred.' >> $env:GITHUB_STEP_SUMMARY
