@@ -37,3 +37,9 @@ Linux 生产矩阵覆盖 light/dark × 原生 100/125/150/200% × 1100×760/760�
 - Linux deb 仅用于本阶段生产 UI/IPC 验证，不把它当作已支持的自动更新目标；Tauri Linux 自动更新包格式需在发行方案中明确。Windows NSIS 更新安装、重启、权限/UAC、用户文件保留、真实 IME/DPI 未由 Linux 或浏览器测试替代。
 - 本阶段未构建或上传 Windows 包。用户新批准的 WebView2 Runtime 再分发条款与单次 ≤256 MiB、≤1 天、≤US$0.01（税费另计）上传额度已记录在计划，尚未消费。P2 可据此继续标准/离线双包与安装升级矩阵；需要新的单次请求记录，不复用已消费额度。
 - 正常推送此隔离工作分支后向父线程报告阶段边界；不整合 main/v2/quality，不强推，不自行宣布 P2–P9 完成。
+
+## 提交与证据来源
+
+实现提交 [`ffc90ff8e0b2d4c3815ad74f94b1e5a09d1cf8e3`](https://github.com/Auto-Plugin/milkup/commit/ffc90ff8e0b2d4c3815ad74f94b1e5a09d1cf8e3) 已正常推送专用分支，远端 SHA 一致；GitHub author/committer 均核验为 LarryZhu-dev，邮箱 larryzhu@foxmail.com，见[身份核验](evidence/v2-product-phase1/source-commit-verification.json)。沿用既有单次 `SKIP_SIMPLE_GIT_HOOKS=1`：旧 Electron hooks 仍指向 v2 不存在的 lint-staged 配置及提交脚本；未改 hooks，本阶段实际全仓检查替代它们。
+
+仓库证据日志仅清理行尾空白，完整原始日志及所有截图保存在 `/workspace/milkup-product-phase1-evidence`。归档中保留产品失败回归、测试脚本竞态与重跑结果，未把初次失败改写成通过。最后的证据记录提交仅改文档，不改变已验收生产字节。
