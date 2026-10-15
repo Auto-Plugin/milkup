@@ -1,0 +1,97 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ❯ src/desktop-plugin-ui.test.ts (27 tests | 3 failed) 2961ms
+   ✓ DesktopPluginUiController > keeps a pressed controlled button until click and coalesces progress renders 136ms
+   ✓ DesktopPluginUiController > mounts controlled slots and recreates document-scoped views on document changes 11ms
+   ✓ DesktopPluginUiController > opens and closes modal views repeatedly and bridges declared commands 9ms
+   ✓ DesktopPluginUiController > takes modal focus before pending mount output, so immediate Escape closes and restores the opener 5ms
+   ✓ DesktopPluginUiController > does not take focus back from a host confirmation when asynchronous opening completes 4ms
+   ✓ DesktopPluginUiController > restores an available card when unloading removes the opener and ignores late output 6ms
+   × DesktopPluginUiController > resumes focus after a pending output removes controls, with final Action A 17ms
+     → expected 'Dialog' to be 'Action A' // Object.is equality
+   × DesktopPluginUiController > resumes focus after a pending output removes controls, with final Action B 5ms
+     → expected 'Dialog' to be 'Action B' // Object.is equality
+   ✓ DesktopPluginUiController > does not resume a removed action after the user focuses close 6ms
+   ✓ DesktopPluginUiController > does not resume a removed action after the user focuses confirmation 5ms
+   × DesktopPluginUiController > traps native WebKit Shift+Tab with Unidentified key and Tab code at the close button 5ms
+     → expected false to be true // Object.is equality
+   ✓ DesktopPluginUiController > rerenders only the requested plugin view when invalidated 9ms
+   ✓ DesktopPluginUiController > passes fresh viewport state when an editor scroll update rerenders mounted UI 5ms
+   ✓ DesktopPluginUiController > skips editor viewport updates for views that opt out 5ms
+   ✓ DesktopPluginUiController > collapses sidebar panels to the bottom and exposes resizers only between expanded panels 14ms
+   ✓ DesktopPluginUiController > resizes adjacent expanded sidebar panels as a bounded pair 12ms
+   ✓ DesktopPluginUiController > keeps identical controlled output mounted and preserves internal scroll on changes 8ms
+   ✓ DesktopPluginUiController > decorates a controlled host icon without relying on plugin-specific classes 7ms
+   ✓ DesktopPluginUiController > projects a virtual outline slice into the full scroll height and follows its active item 15ms
+   ✓ DesktopPluginUiController > requests a new buffered range when the outline is scrolled outside its rendered slice  674ms
+   ✓ DesktopPluginUiController > does not rerender while outline scrolling remains inside the current overscan buffer 228ms
+   ✓ DesktopPluginUiController > keeps the virtual outline viewport stable while background scanning extends the total 231ms
+   ✓ DesktopPluginUiController > requests one adjacent buffer only after a real user wheel gesture reaches an edge  648ms
+   ✓ DesktopPluginUiController > requests the previous buffer only when the list reaches the exact top edge  431ms
+   ✓ DesktopPluginUiController > does not request an adjacent buffer for a small scroll far from the cache edge 228ms
+   ✓ DesktopPluginUiController > compensates scroll position once when headings are prepended 228ms
+   ✓ DesktopPluginUiController > coalesces viewport updates without running concurrent plugin renders 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/desktop-plugin-ui.test.ts > DesktopPluginUiController > resumes focus after a pending output removes controls, with final Action A
+AssertionError: expected 'Dialog' to be 'Action A' // Object.is equality
+
+Expected: "Action A"
+Received: "Dialog"
+
+ ❯ src/desktop-plugin-ui.test.ts:240:66
+    238|       label = finalLabel
+    239|       await controller.invalidate('example', 'dialog')
+    240|       expect(document.activeElement?.getAttribute('aria-label')).toBe(…
+       |                                                                  ^
+    241|       await controller.dispose()
+    242|     },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/desktop-plugin-ui.test.ts > DesktopPluginUiController > resumes focus after a pending output removes controls, with final Action B
+AssertionError: expected 'Dialog' to be 'Action B' // Object.is equality
+
+Expected: "Action B"
+Received: "Dialog"
+
+ ❯ src/desktop-plugin-ui.test.ts:240:66
+    238|       label = finalLabel
+    239|       await controller.invalidate('example', 'dialog')
+    240|       expect(document.activeElement?.getAttribute('aria-label')).toBe(…
+       |                                                                  ^
+    241|       await controller.dispose()
+    242|     },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/desktop-plugin-ui.test.ts > DesktopPluginUiController > traps native WebKit Shift+Tab with Unidentified key and Tab code at the close button
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/desktop-plugin-ui.test.ts:309:36
+    307|     })
+    308|     close.dispatchEvent(event)
+    309|     expect(event.defaultPrevented).toBe(true)
+       |                                    ^
+    310|     expect(document.activeElement?.getAttribute('aria-label')).toBe('A…
+    311|     await controller.dispose()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 24 passed (27)
+   Start at  03:34:52
+   Duration  4.56s (transform 535ms, setup 0ms, collect 730ms, tests 2.96s, environment 540ms, prepare 80ms)
+
+undefined
+/workspace/milkup/apps/desktop:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/desktop-plugin-ui.test.ts

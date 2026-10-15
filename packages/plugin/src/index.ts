@@ -228,4 +228,24 @@ export {
   type PluginUiBrokerProvider,
   type PluginNetworkBrokerProvider,
   type PluginStorageBrokerProvider,
+  type PluginReleasesBrokerProvider,
 } from './runtime'
+
+export {
+  createPluginReleasesBroker,
+  createPluginReleasesHostCapabilities,
+  type PluginReleasesBroker,
+  type RevocablePluginReleasesBroker,
+  type PluginReleasesHost,
+  type PluginReleasesBrokerAdapter,
+  type PluginReleasesBrokerConfig,
+  type PluginReleaseCheckResult,
+  type PluginReleaseStatus,
+  type PluginReleaseInstallResult,
+} from './releases-broker'
+export {
+  createRpcPluginReleasesBroker,
+  createPluginReleasesRpcServer,
+  type RpcPluginReleasesBroker,
+  type PluginReleasesRpcServer,
+} from './releases-rpc'

@@ -490,3 +490,31 @@ describe('plugin manifest validation', () => {
     )
   })
 })
+
+describe('package icon declaration', () => {
+  const base = { id: 'test.icon', name: 'Icon', version: '1.0.0' }
+  it('preserves a declared package PNG and keeps old manifests valid', () => {
+    expect(parsePluginManifest(base).icon).toBeUndefined()
+    expect(
+      parsePluginManifest({ ...base, icon: 'assets/logo.png', resources: ['assets/logo.png'] })
+        .icon,
+    ).toBe('assets/logo.png')
+  })
+  it.each([
+    'https://example.test/icon.png',
+    'data:image/png;base64,AA==',
+    '/logo.png',
+    '../logo.png',
+    'assets/../logo.png',
+    'assets\\logo.png',
+    'assets/%2e.png',
+    'logo.svg',
+    './logo.png',
+    '',
+  ])('rejects unsafe icon %s', (icon) => {
+    expect(validatePluginManifest({ ...base, icon, resources: [icon] }).ok).toBe(false)
+  })
+  it('requires the icon to be listed in package resources', () => {
+    expect(validatePluginManifest({ ...base, icon: 'logo.png' }).ok).toBe(false)
+  })
+})

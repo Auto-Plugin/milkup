@@ -2356,40 +2356,102 @@ textarea {
     font-size: 12px;
   }
 }
-.application-update {
-  margin-top: 1.25rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-color, #8885);
+
+/* Plugin summaries deliberately expose only identity and description. */
+.plugin-summary-card {
+  width: 100%;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: center;
+  text-align: left;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+.plugin-summary-card:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.plugin-summary-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.plugin-logo {
+  display: grid;
+  place-items: center;
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 22px;
+  font-weight: 700;
+}
+.plugin-logo img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--panel-bg);
+}
+.plugin-card-copy {
   min-width: 0;
+  display: grid;
+  gap: 5px;
 }
-.application-update h4 {
-  margin: 0 0 0.5rem;
-}
-.application-update p {
+.plugin-card-title {
+  font-size: 14px;
+  font-weight: 700;
   overflow-wrap: anywhere;
 }
-.update-release-notes {
-  white-space: pre-wrap;
-  max-height: 12rem;
-  overflow-y: auto;
-  line-height: 1.6;
+.plugin-card-description {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
 }
-.application-update progress {
-  width: 100%;
+.plugin-detail {
+  width: min(760px, 100%);
+  box-sizing: border-box;
 }
-.update-actions,
-.update-confirmation {
-  display: flex;
+.plugin-detail-heading {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.plugin-detail footer {
   flex-wrap: wrap;
-  gap: 0.5rem;
 }
-.update-confirmation p {
-  flex-basis: 100%;
+.plugin-detail .plugin-meta {
+  grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
 }
-.update-confirmation[hidden] {
-  display: none;
+.plugin-detail .plugin-meta dd {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.plugin-manager-toolbar {
+  flex-wrap: wrap;
 }
 
-.application-update button {
+/* Generic controlled plugin content; no feature-specific updater selectors. */
+.plugin-text-block {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-align: left;
+  max-height: 240px;
+  overflow: auto;
+  margin: 12px 0;
+}
+.plugin-ui-state > .plugin-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.plugin-ui-modal button {
   scroll-margin-block: 6px;
 }

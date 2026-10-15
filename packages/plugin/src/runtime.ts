@@ -25,6 +25,11 @@ import {
   type PluginRendererContribution,
 } from './manifest'
 import { createPluginNetworkHostCapabilities, type PluginNetworkBroker } from './network-broker'
+import {
+  createPluginReleasesHostCapabilities,
+  type PluginReleasesBroker,
+  type PluginReleasesHost,
+} from './releases-broker'
 import type { PluginStorageBroker } from './storage-broker'
 import { createPluginUiHostCapabilities, type PluginUiBroker, type PluginUiHost } from './ui-broker'
 
@@ -42,6 +47,7 @@ export interface PluginRuntimeOptions {
   readonly documentBroker?: PluginDocumentBroker | PluginDocumentBrokerProvider
   readonly uiBroker?: PluginUiBroker | PluginUiBrokerProvider
   readonly networkBroker?: PluginNetworkBroker | PluginNetworkBrokerProvider
+  readonly releasesBroker?: PluginReleasesBroker | PluginReleasesBrokerProvider
   readonly storageBroker?: PluginStorageBroker | PluginStorageBrokerProvider
 }
 
@@ -53,6 +59,9 @@ export type PluginUiBrokerProvider = (manifest: PluginManifest) => PluginUiBroke
 export type PluginNetworkBrokerProvider = (
   manifest: PluginManifest,
 ) => PluginNetworkBroker | undefined
+export type PluginReleasesBrokerProvider = (
+  manifest: PluginManifest,
+) => PluginReleasesBroker | undefined
 export type PluginStorageBrokerProvider = (
   manifest: PluginManifest,
 ) => PluginStorageBroker | undefined
@@ -120,6 +129,7 @@ export interface RestrictedPluginHost {
   readonly writeText?: PluginHostCapabilities['writeText']
   readonly deleteFile?: PluginHostCapabilities['deleteFile']
   readonly fetch?: PluginHostCapabilities['fetch']
+  readonly releases?: PluginReleasesHost
   readonly storage?: PluginStorageBroker
 }
 
@@ -174,6 +184,7 @@ const ACTION_PERMISSIONS = new Set<ActionPermission>([
   'file:delete',
   'network:access',
   'app:control',
+  'app:updates',
 ])
 
 export class PluginRuntime {
@@ -187,6 +198,7 @@ export class PluginRuntime {
   private readonly documentBroker: PluginDocumentBroker | PluginDocumentBrokerProvider | undefined
   private readonly uiBroker: PluginUiBroker | PluginUiBrokerProvider | undefined
   private readonly networkBroker: PluginNetworkBroker | PluginNetworkBrokerProvider | undefined
+  private readonly releasesBroker: PluginReleasesBroker | PluginReleasesBrokerProvider | undefined
   private readonly storageBroker: PluginStorageBroker | PluginStorageBrokerProvider | undefined
 
   constructor(options: PluginRuntimeOptions = {}) {
@@ -199,6 +211,7 @@ export class PluginRuntime {
     this.documentBroker = options.documentBroker
     this.uiBroker = options.uiBroker
     this.networkBroker = options.networkBroker
+    this.releasesBroker = options.releasesBroker
     this.storageBroker = options.storageBroker
   }
 
@@ -213,6 +226,7 @@ export class PluginRuntime {
       manifest,
       module: config.module,
       state: 'loaded',
+      capabilityGeneration: 0,
       activation: undefined,
       registeredActions: [],
       errors: [],
@@ -233,6 +247,7 @@ export class PluginRuntime {
     this.assertModuleHostAllowed(plugin)
     this.assertPermissionsAllowed(plugin)
 
+    const generation = ++plugin.capabilityGeneration
     try {
       const activation = await plugin.module?.activate?.({
         manifest: plugin.manifest,
@@ -246,6 +261,8 @@ export class PluginRuntime {
           resolvePluginFileBroker(plugin.manifest, this.fileBroker),
           resolvePluginNetworkBroker(plugin.manifest, this.networkBroker),
           resolvePluginStorageBroker(plugin.manifest, this.storageBroker),
+          resolvePluginReleasesBroker(plugin.manifest, this.releasesBroker),
+          () => plugin.capabilityGeneration === generation,
         ),
       })
 
@@ -254,6 +271,7 @@ export class PluginRuntime {
       plugin.state = 'enabled'
     } catch (error) {
       this.unregisterPluginActions(plugin)
+      plugin.capabilityGeneration++
       throw this.recordError(plugin, 'enable', error)
     }
 
@@ -263,6 +281,7 @@ export class PluginRuntime {
   async disablePlugin(pluginId: string): Promise<PluginRuntimeInfo> {
     const plugin = this.requirePlugin(pluginId)
 
+    plugin.capabilityGeneration++
     if (plugin.state !== 'enabled') {
       plugin.state = 'disabled'
       return toInfo(plugin)
@@ -381,6 +400,7 @@ export class PluginRuntime {
       }
     }
 
+    const generation = plugin.capabilityGeneration
     const bufferedEditor = context.editor ? new BufferedPluginEditor(context.editor) : undefined
     const commandContext: PluginCommandContext = {
       plugin: toInfo(plugin),
@@ -393,6 +413,8 @@ export class PluginRuntime {
         resolvePluginFileBroker(plugin.manifest, this.fileBroker),
         resolvePluginNetworkBroker(plugin.manifest, this.networkBroker),
         resolvePluginStorageBroker(plugin.manifest, this.storageBroker),
+        resolvePluginReleasesBroker(plugin.manifest, this.releasesBroker),
+        () => plugin.state === 'enabled' && plugin.capabilityGeneration === generation,
         effectiveCommandPermissions(plugin.manifest, command),
       ),
       ...(context.permissions ? { permissions: context.permissions } : {}),
@@ -544,6 +566,7 @@ export class PluginRuntime {
 }
 
 interface LoadedPlugin {
+  capabilityGeneration: number
   manifest: PluginManifest
   module: PluginModule | undefined
   state: PluginLifecycleState
@@ -627,7 +650,11 @@ function effectivePluginHost(manifest: PluginManifest): PluginHostKind {
 }
 
 function riskForPermissions(permissions: readonly ActionPermission[]): ActionRiskLevel {
-  if (permissions.includes('file:delete') || permissions.includes('app:control')) {
+  if (
+    permissions.includes('file:delete') ||
+    permissions.includes('app:control') ||
+    permissions.includes('app:updates')
+  ) {
     return 'destructive'
   }
 
@@ -651,6 +678,8 @@ function createRestrictedHost(
   fileBroker?: PluginFileBroker,
   networkBroker?: PluginNetworkBroker,
   storageBroker?: PluginStorageBroker,
+  releasesBroker?: PluginReleasesBroker,
+  isActive?: () => boolean,
   permissions: readonly PluginPermission[] = manifest.permissions ?? [],
 ): RestrictedPluginHost {
   const fileHost = fileBroker ? createPluginFileHostCapabilities(fileBroker) : host
@@ -680,6 +709,9 @@ function createRestrictedHost(
       ? { fetch: networkHost.fetch }
       : {}),
     ...(storageBroker ? { storage: storageBroker } : {}),
+    ...(permissions.includes('app:updates') && releasesBroker
+      ? { releases: createPluginReleasesHostCapabilities(releasesBroker, isActive) }
+      : {}),
   })
 }
 
@@ -716,4 +748,12 @@ function resolvePluginStorageBroker(
   storageBroker: PluginStorageBroker | PluginStorageBrokerProvider | undefined,
 ): PluginStorageBroker | undefined {
   return typeof storageBroker === 'function' ? storageBroker(manifest) : storageBroker
+}
+
+function resolvePluginReleasesBroker(
+  manifest: PluginManifest,
+  broker: PluginReleasesBroker | PluginReleasesBrokerProvider | undefined,
+): PluginReleasesBroker | undefined {
+  if (!manifest.permissions?.includes('app:updates')) return undefined
+  return typeof broker === 'function' ? broker(manifest) : broker
 }

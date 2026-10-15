@@ -1,0 +1,114 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ❯ src/desktop-plugin-ui.test.ts (22 tests | 2 failed) 4634ms
+   ✓ DesktopPluginUiController > keeps a pressed controlled button until click and coalesces progress renders 179ms
+   ✓ DesktopPluginUiController > mounts controlled slots and recreates document-scoped views on document changes 74ms
+   ✓ DesktopPluginUiController > opens and closes modal views repeatedly and bridges declared commands 179ms
+   × DesktopPluginUiController > takes modal focus before pending mount output, so immediate Escape closes and restores the opener 404ms
+     → expected <button id="opener"></button> to be <section …(6)>…(1)</section> // Object.is equality
+   × DesktopPluginUiController > does not take focus back from a host confirmation when asynchronous opening completes 105ms
+     → expected <section …(7)>…(2)</section> to be <button id="host-confirm"></button> // Object.is equality
+   ✓ DesktopPluginUiController > restores the opener when an in-flight modal is unloaded and ignores its late output 20ms
+   ✓ DesktopPluginUiController > rerenders only the requested plugin view when invalidated 93ms
+   ✓ DesktopPluginUiController > passes fresh viewport state when an editor scroll update rerenders mounted UI 11ms
+   ✓ DesktopPluginUiController > skips editor viewport updates for views that opt out 73ms
+   ✓ DesktopPluginUiController > collapses sidebar panels to the bottom and exposes resizers only between expanded panels 153ms
+   ✓ DesktopPluginUiController > resizes adjacent expanded sidebar panels as a bounded pair 185ms
+   ✓ DesktopPluginUiController > keeps identical controlled output mounted and preserves internal scroll on changes 50ms
+   ✓ DesktopPluginUiController > decorates a controlled host icon without relying on plugin-specific classes 31ms
+   ✓ DesktopPluginUiController > projects a virtual outline slice into the full scroll height and follows its active item 98ms
+   ✓ DesktopPluginUiController > requests a new buffered range when the outline is scrolled outside its rendered slice  817ms
+   ✓ DesktopPluginUiController > does not rerender while outline scrolling remains inside the current overscan buffer 238ms
+   ✓ DesktopPluginUiController > keeps the virtual outline viewport stable while background scanning extends the total 239ms
+   ✓ DesktopPluginUiController > requests one adjacent buffer only after a real user wheel gesture reaches an edge  713ms
+   ✓ DesktopPluginUiController > requests the previous buffer only when the list reaches the exact top edge  408ms
+   ✓ DesktopPluginUiController > does not request an adjacent buffer for a small scroll far from the cache edge 252ms
+   ✓ DesktopPluginUiController > compensates scroll position once when headings are prepended 254ms
+   ✓ DesktopPluginUiController > coalesces viewport updates without running concurrent plugin renders 45ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/desktop-plugin-ui.test.ts > DesktopPluginUiController > takes modal focus before pending mount output, so immediate Escape closes and restores the opener
+AssertionError: expected <button id="opener"></button> to be <section …(6)>…(1)</section> // Object.is equality
+
+- Expected
++ Received
+
+- <section
+-   aria-label="Dialog"
+-   aria-modal="true"
+-   class="plugin-ui plugin-ui-modal"
+-   data-plugin-ui="example:dialog"
+-   role="dialog"
+-   tabindex="-1"
+- >
+  <button
+-     aria-label="关闭"
+-     class="icon-button plugin-ui-close"
+-     type="button"
++   id="opener"
+  >
+-     ×
++   Open
+  </button>
+- </section>
+
+ ❯ src/desktop-plugin-ui.test.ts:142:36
+    140|     const modal = document.querySelector<HTMLElement>('[role="dialog"]…
+    141|     expect(modal).not.toBeNull()
+    142|     expect(document.activeElement).toBe(modal)
+       |                                    ^
+    143|     modal.dispatchEvent(
+    144|       new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, can…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/desktop-plugin-ui.test.ts > DesktopPluginUiController > does not take focus back from a host confirmation when asynchronous opening completes
+AssertionError: expected <section …(7)>…(2)</section> to be <button id="host-confirm"></button> // Object.is equality
+
+- Expected
++ Received
+
++ <section
++   aria-label="Dialog"
++   aria-modal="true"
++   class="plugin-ui plugin-ui-modal"
++   data-plugin-ui="example:dialog"
++   data-ui-state="ready"
++   role="dialog"
++   tabindex="-1"
++ >
+    <button
+-   id="host-confirm"
++     aria-label="关闭"
++     class="icon-button plugin-ui-close"
++     type="button"
+    >
+-   Host confirmation
++     ×
+    </button>
++   <span>
++     mount output
++   </span>
++ </section>
+
+ ❯ src/desktop-plugin-ui.test.ts:175:36
+    173|     finish('mount output')
+    174|     await opening
+    175|     expect(document.activeElement).toBe(confirmation)
+       |                                    ^
+    176|     await controller.close('example', 'dialog')
+    177|     expect(document.activeElement).toBe(confirmation)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 20 passed (22)
+   Start at  03:26:34
+   Duration  14.30s (transform 4.77s, setup 0ms, collect 6.82s, tests 4.63s, environment 1.17s, prepare 198ms)
+
+undefined
+/workspace/milkup/apps/desktop:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/desktop-plugin-ui.test.ts

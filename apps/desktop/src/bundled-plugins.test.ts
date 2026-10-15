@@ -48,7 +48,7 @@ function setup(saved = storage(), bundled = archive()) {
   const manager = new DesktopPluginManager({
     actionRegistry: new ActionRegistry(),
     storage: saved,
-    permissions: ['document:read'],
+    permissions: ['document:read', 'file:write', 'app:updates'],
     milkupVersion: '0.1.0',
     pluginSdkVersion: '0.1.1',
     bundledPackagePaths: async () => ['/bundled/sample.milkup-plugin'],
@@ -139,12 +139,16 @@ describe('bundled plugin first-run installation', () => {
     },
   )
 
-  it('does not auto-approve privileged packages', async () => {
+  it('installs privileged packages inactive without approving or executing them', async () => {
     const { manager, install, load } = setup(storage(), archive('1.0.0', ['file:write']))
     await manager.ready
-    expect(install).not.toHaveBeenCalled()
+    expect(install).toHaveBeenCalledTimes(1)
     expect(load).not.toHaveBeenCalled()
-    expect(manager.state().installFailures).toHaveLength(1)
+    expect(manager.state().records[0]).toMatchObject({
+      enabled: false,
+      approvals: { permissions: [] },
+    })
+    expect(manager.state().installFailures).toHaveLength(0)
   })
 
   it('fails closed on corrupt receipts without preventing ordinary startup', async () => {

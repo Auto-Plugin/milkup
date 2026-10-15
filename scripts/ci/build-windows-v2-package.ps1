@@ -3,7 +3,8 @@ param(
     [Parameter(Mandatory)][string]$OutputDirectory,
     [Parameter(Mandatory)][ValidatePattern('^[0-9a-f]{40}$')][string]$ExpectedCommit,
     [switch]$UserTrialPackage,
-    [switch]$BundledPlugins
+    [switch]$BundledPlugins,
+    [switch]$OfflineEvergreen
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -12,8 +13,15 @@ if (-not $IsWindows -or $env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONME
 }
 if ($env:GITHUB_REPOSITORY -ne 'Auto-Plugin/milkup' -or
     ($env:GITHUB_REF -ne 'refs/heads/dot/milkup-v2-quality' -and
-      -not ($BundledPlugins -and $env:GITHUB_REF -eq 'refs/heads/dot/milkup-v2-windows-delivery'))) {
+      -not ($BundledPlugins -and -not $OfflineEvergreen -and $env:GITHUB_REF -eq 'refs/heads/dot/milkup-v2-windows-delivery') -and
+      -not ($OfflineEvergreen -and $BundledPlugins -and $UserTrialPackage -and $env:GITHUB_REF -eq 'refs/heads/dot/milkup-v2-product-completion-phase1'))) {
     throw 'Unexpected repository or branch.'
+}
+if ($OfflineEvergreen -and $env:GITHUB_REF -ne 'refs/heads/dot/milkup-v2-product-completion-phase1') {
+    throw 'Offline Evergreen is restricted to the reviewed product-completion branch.'
+}
+if ($OfflineEvergreen -and (-not $BundledPlugins -or -not $UserTrialPackage)) {
+    throw 'Offline Evergreen requires the explicitly approved bundled-plugin user-trial delivery.'
 }
 function Invoke-Checked([string]$Program, [string[]]$Arguments) {
     & $Program @Arguments
@@ -60,6 +68,9 @@ try {
     Invoke-Checked 'pnpm' @('typecheck')
     Invoke-Checked 'node' @('--test', 'tests/windows/verify-installed-binary.test.mjs')
     Invoke-Checked 'node' @('--test', 'tests/windows/verify-build-tree.test.mjs')
+    if ($OfflineEvergreen) {
+        Invoke-Checked 'node' @('--test', 'tests/windows/plugin-offline-delivery.test.mjs')
+    }
     Invoke-Checked 'cargo' @('test', '--locked', '--manifest-path', 'apps/desktop/src-tauri/Cargo.toml', '--lib')
     if ($BundledPlugins) {
         $standardConfig = Get-Content 'apps/desktop/src-tauri/tauri.conf.json' -Raw | ConvertFrom-Json
@@ -70,12 +81,35 @@ try {
         }
         Invoke-Checked 'pnpm' @('test:outline')
         Invoke-Checked 'node' @('scripts/ci/prepare-bundled-plugins.mjs')
-        $pluginFiles = @(Get-ChildItem -LiteralPath 'apps/desktop/src/bundled-plugins' -Filter '*.milkup-plugin' -File)
-        if ($pluginFiles.Count -ne 1) { throw 'Unexpected bundled plugin inventory' }
-        $manifest['bundledPlugin'] = File-Record $pluginFiles[0].FullName
-        $manifest['webviewInstallMode'] = 'downloadBootstrapper (Tauri default; internet required if Runtime is missing)'
+        $pluginFiles = @(Get-ChildItem -LiteralPath 'apps/desktop/src/bundled-plugins' -Filter '*.milkup-plugin' -File | Sort-Object Name)
+        if ($OfflineEvergreen) {
+            $inventoryPath = Join-Path $evidence 'plugin-inventory.json'
+            Invoke-Checked 'node' @('scripts/ci/plugin-offline-delivery.mjs', 'inventory', (Get-Location).Path, $inventoryPath)
+            $inventory = @(Get-Content $inventoryPath -Raw | ConvertFrom-Json)
+            if ($pluginFiles.Count -ne 2 -or (Compare-Object @($pluginFiles.Name) @($inventory.name))) { throw 'Bundled plugins do not match the reviewed release inventory' }
+            $overlayPath = (Resolve-Path 'scripts/ci/tauri-windows-offline.json').Path
+            $overlay = Get-Content $overlayPath -Raw | ConvertFrom-Json
+            $expectedOverlay = '{"bundle":{"windows":{"webviewInstallMode":{"type":"offlineInstaller","silent":true}}}}'
+            if (($overlay | ConvertTo-Json -Depth 10 -Compress) -cne $expectedOverlay) { throw 'Unreviewed offline config overlay' }
+            $manifest['webviewInstallMode'] = 'offlineInstaller'
+            $manifest['pluginSdkVersion'] = (Get-Content 'packages/plugin-sdk/package.json' -Raw | ConvertFrom-Json).version
+            $globalModules = (& npm root --global).Trim()
+            if ($LASTEXITCODE -ne 0) { throw 'Cannot resolve the pinned pnpm CLI' }
+            $pnpmCli = Join-Path $globalModules 'pnpm/bin/pnpm.cjs'
+            $publicBuild = Join-Path $OutputDirectory 'public-sdk-verification'
+            Invoke-Checked 'node' @('scripts/ci/verify-public-plugin-builds.mjs', $publicBuild, $pnpmCli)
+            $manifest['publicSdkVerification'] = Get-Content (Join-Path $publicBuild 'verification.json') -Raw | ConvertFrom-Json
+        } else {
+            if ($pluginFiles.Count -ne 1) { throw 'Legacy standard delivery expects its reviewed single-plugin inventory' }
+            $manifest['bundledPlugin'] = File-Record $pluginFiles[0].FullName
+            $manifest['webviewInstallMode'] = 'downloadBootstrapper (Tauri default; internet required if Runtime is missing)'
+        }
+        $manifest['bundledPlugins'] = @($pluginFiles | ForEach-Object { File-Record $_.FullName })
     }
-    Invoke-Checked 'pnpm' @('--filter', '@milkup/desktop', 'tauri', 'build', '--target', 'x86_64-pc-windows-msvc', '--bundles', 'nsis', '--ci', '--', '--locked')
+    $tauriArguments = @('--filter', '@milkup/desktop', 'tauri', 'build', '--target', 'x86_64-pc-windows-msvc', '--bundles', 'nsis', '--ci')
+    if ($OfflineEvergreen) { $tauriArguments += @('--config', $overlayPath) }
+    $tauriArguments += @('--', '--locked')
+    Invoke-Checked 'pnpm' $tauriArguments
     $target = Join-Path (Get-Location) 'apps/desktop/src-tauri/target/x86_64-pc-windows-msvc/release'
     $packages = @(Get-ChildItem -LiteralPath (Join-Path $target 'bundle/nsis') -Filter '*.exe' -File)
     if ($packages.Count -ne 1) { throw 'Expected exactly one NSIS installer' }
@@ -111,13 +145,17 @@ try {
     $name = "milkup-v2-test-windows-x64-$checkout.exe"
     Copy-Item -LiteralPath $packages[0].FullName -Destination (Join-Path $deliverable $name)
     if ($BundledPlugins) {
-        Copy-Item -LiteralPath $pluginFiles[0].FullName -Destination (Join-Path $deliverable $pluginFiles[0].Name)
+        foreach ($pluginFile in $pluginFiles) {
+            Copy-Item -LiteralPath $pluginFile.FullName -Destination (Join-Path $deliverable $pluginFile.Name)
+        }
     }
     $manifest.installer.deliveredName = $name
     $manifest | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath (Join-Path $deliverable 'manifest.json') -Encoding utf8
     "$($manifest.installer.sha256)  $name" | Set-Content -LiteralPath (Join-Path $deliverable 'SHA256SUMS.txt') -Encoding ascii
     if ($BundledPlugins) {
-        "$($manifest.bundledPlugin.sha256)  $($manifest.bundledPlugin.name)" | Add-Content -LiteralPath (Join-Path $deliverable 'SHA256SUMS.txt') -Encoding ascii
+        foreach ($plugin in $manifest.bundledPlugins) {
+            "$($plugin.sha256)  $($plugin.name)" | Add-Content -LiteralPath (Join-Path $deliverable 'SHA256SUMS.txt') -Encoding ascii
+        }
     }
     if ($UserTrialPackage) {
         @"
@@ -135,15 +173,25 @@ Windows PowerShell 校验：Get-FileHash -Algorithm SHA256 .\$name
 请核对结果与 SHA256SUMS.txt 一致。安装器为 NSIS currentUser，含 Markdown 文件关联。
 "@ | Set-Content -LiteralPath (Join-Path $deliverable 'README.txt') -Encoding utf8
         if ($BundledPlugins) {
-            @"
+            if ($OfflineEvergreen) {
+                @"
 
-标准小体积安装包：缺少 WebView2 Runtime 时，安装器需要联网下载并安装。
-此包未内嵌完整 Runtime，不是离线安装包。未改变系统安全设置。
-包含通过公开插件机制预装的 Milkup Outline 1.2.0，可在插件管理中禁用或卸载。
-已有同 ID 插件的版本及启用状态保持不变；卸载后重启不会自动装回。
-单独的 $($manifest.bundledPlugin.name) 与预装包字节相同，可通过“安装本地插件”安装。
-插件 SHA-256: $($manifest.bundledPlugin.sha256)
+离线 Evergreen WebView2 Runtime 安装包：包含离线安装程序，缺少 Runtime 时无需联网获取安装文件。
+用户已明确接受本次 Runtime 条款；应用安装包仍未签名，不是正式 Release。
+通过公开插件机制预装 Outline 与 Updates；Updates 含敏感 app:updates 权限，安装后不默认审批或启用。
+请在插件管理详情中明确审批后启用 Updates。禁用或卸载后重启不会自动恢复。
+版本、签名、安全保存与恢复由宿主保护；关闭可选插件不影响基础打开、编辑、保存和恢复。
+更新渠道默认未配置，不能用此试用包声称真实更新安装或 Windows 实机体验已验收。
 "@ | Add-Content -LiteralPath (Join-Path $deliverable 'README.txt') -Encoding utf8
+            } else {
+                @"
+
+标准小体积安装包：缺少 WebView2 Runtime 时需要联网下载，不是离线安装包。
+"@ | Add-Content -LiteralPath (Join-Path $deliverable 'README.txt') -Encoding utf8
+            }
+            foreach ($plugin in $manifest.bundledPlugins) {
+                "插件 $($plugin.name)，SHA-256: $($plugin.sha256)。此独立档案与预装包字节相同，可通过安装本地插件导入。" | Add-Content -LiteralPath (Join-Path $deliverable 'README.txt') -Encoding utf8
+            }
         }
     }
 } catch {

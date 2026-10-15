@@ -58,3 +58,32 @@ const style: SdkRendererOutput = {
   attributes: { style: 'color:red' },
 }
 void [script, handler, style]
+
+import type {
+  SdkPluginReleasesHost,
+  SdkReleaseCheckResult,
+  SdkReleaseInstallResult,
+  SdkReleaseStatus,
+} from '../src/index.js'
+
+async function releasesContract(host: SdkPluginReleasesHost): Promise<void> {
+  const result: SdkReleaseCheckResult = await host.check()
+  if (!result.release) return
+  await host.stage(result.release.id)
+  const status: SdkReleaseStatus = await host.status(result.release.id)
+  if (status.phase === 'ready') {
+    const installed: SdkReleaseInstallResult = await host.requestInstall(result.release.id)
+    const outcome: 'cancelled' | 'installing' = installed.status
+    void outcome
+  }
+  await host.cancel(result.release.id)
+  // @ts-expect-error Plugins cannot supply download URLs or payloads.
+  await host.stage({ url: 'https://example.invalid/update', payload: [] })
+  // @ts-expect-error Installation confirmation cannot be bypassed through options.
+  await host.requestInstall(result.release.id, { confirmed: true })
+  // @ts-expect-error Arbitrary execution is not a release capability.
+  await host.execute('installer')
+  // @ts-expect-error Release metadata contains no payload URL.
+  void result.release.url
+}
+void releasesContract

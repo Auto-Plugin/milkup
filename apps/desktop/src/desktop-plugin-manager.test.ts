@@ -230,6 +230,72 @@ describe('DesktopPluginManager', () => {
     expect(archive.files.map((file) => file.path)).toEqual(['dist/plugin.js', 'assets/template.md'])
   })
 
+  it('exports installed PNG icons as base64 and preserves them when reinstalling the archive', async () => {
+    const icon = Uint8Array.from(
+      Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZZkAAAAASUVORK5CYII=',
+        'base64',
+      ),
+    )
+    const manifest: PluginManifest = {
+      ...pluginManifest(),
+      icon: 'assets/logo.png',
+      resources: ['assets/logo.png'],
+    }
+    let exported = ''
+    const readPackageIcon = vi.fn(async () => icon)
+    const manager = new DesktopPluginManager({
+      actionRegistry: new ActionRegistry(),
+      manifestHost: {
+        selectManifestPath: async () => undefined,
+        readManifestText: async (path) => {
+          if (path.endsWith('plugin.json')) return JSON.stringify(manifest)
+          if (path.endsWith('plugin.js')) return 'export default {}'
+          throw new Error('Binary icons must not be read as UTF-8')
+        },
+        readPackageIcon,
+        selectPackageExportPath: async () => '/exports/icon.milkup-plugin',
+        writeText: async (_path, text) => {
+          exported = text
+        },
+      },
+      permissions: ['document:write'],
+      milkupVersion: '0.1.0',
+      pluginSdkVersion: '0.1.0',
+      storage: createMemoryStorage(),
+      loadModule: async () => fakeLoadedModule(),
+    })
+    await manager.installManifestPath('/installed/example/plugin.json')
+    await manager.exportLocalPackage('example-tools')
+    expect(readPackageIcon).toHaveBeenCalledWith('example-tools')
+    const archive = parsePluginPackageArchive(JSON.parse(exported))
+    const exportedIcon = archive.files.find((file) => file.path === manifest.icon)!
+    expect(exportedIcon.encoding).toBe('base64')
+    expect(Uint8Array.from(Buffer.from(exportedIcon.content, 'base64'))).toEqual(icon)
+    const installPackage = vi.fn(async () => ({
+      manifestPath: '/reinstalled/plugin.json',
+      rootPath: '/reinstalled',
+      dataRoot: '/data',
+      storageRoot: '/storage',
+    }))
+    const reinstalled = new DesktopPluginManager({
+      actionRegistry: new ActionRegistry(),
+      manifestHost: {
+        selectManifestPath: async () => undefined,
+        readManifestText: async () => exported,
+        installPackage,
+      },
+      permissions: ['document:write'],
+      milkupVersion: '0.1.0',
+      pluginSdkVersion: '0.1.0',
+      storage: createMemoryStorage(),
+      loadModule: async () => fakeLoadedModule(),
+    })
+    const record = await reinstalled.installManifestPath('/exports/icon.milkup-plugin')
+    expect(record.manifest.icon).toBe('assets/logo.png')
+    expect(installPackage).toHaveBeenCalledWith(archive)
+  })
+
   it('keeps invalid manifests visible as install failures without damaging installed records', async () => {
     const registry = new ActionRegistry()
     const storage = createMemoryStorage()
@@ -284,7 +350,9 @@ describe('DesktopPluginManager', () => {
         liveMode: true,
       }),
     ).toBe('example.insert')
-    expect(renderDesktopPluginManager(manager.state())).toContain('Mod+Alt+T')
+    expect(
+      renderDesktopPluginManager(manager.state(), { selectedPluginId: 'example-tools' }),
+    ).toContain('Mod+Alt+T')
   })
 
   it('runs ChatGPT-style importers and returns generated Markdown without a source file identity', async () => {

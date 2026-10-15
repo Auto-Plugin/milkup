@@ -3,6 +3,7 @@ import type { ActionPermission } from '@milkup/core'
 import { createPluginDocumentHostCapabilities, type PluginDocumentBroker } from './document-broker'
 import { createPluginFileHostCapabilities, type PluginFileBroker } from './filesystem-broker'
 import { createPluginNetworkHostCapabilities, type PluginNetworkBroker } from './network-broker'
+import { createPluginReleasesHostCapabilities, type PluginReleasesBroker } from './releases-broker'
 import type { PluginStorageBroker } from './storage-broker'
 import { createPluginUiHostCapabilities, type PluginUiBroker } from './ui-broker'
 import type {
@@ -38,6 +39,7 @@ export interface PluginModuleIsolationHostConfig {
   readonly uiBroker?: PluginUiBroker
   readonly fileBroker?: PluginFileBroker
   readonly networkBroker?: PluginNetworkBroker
+  readonly releasesBroker?: PluginReleasesBroker
   readonly storageBroker?: PluginStorageBroker
 }
 
@@ -46,27 +48,41 @@ export function createPluginModuleIsolationHost(
 ): PluginIsolationHost {
   const { manifest, module } = config
   let activation: PluginActivation | undefined
+  let generation = 0
+  let active = false
 
   return Object.freeze({
     activate: async (
       request: IsolatedPluginActivateRequest,
     ): Promise<IsolatedPluginActivateResult> => {
       assertPluginId(manifest, request.pluginId)
-      activation =
-        (await module.activate?.({
-          manifest: request.manifest,
-          pluginId: request.pluginId,
-          permissions: request.permissions,
-          host: restrictHost(
-            config.host ?? {},
-            request.hostCapabilities,
-            config.documentBroker,
-            config.uiBroker,
-            config.fileBroker,
-            config.networkBroker,
-            config.storageBroker,
-          ),
-        })) ?? undefined
+      const current = ++generation
+      active = true
+      try {
+        activation =
+          (await module.activate?.({
+            manifest: request.manifest,
+            pluginId: request.pluginId,
+            permissions: request.permissions,
+            host: restrictHost(
+              config.host ?? {},
+              request.hostCapabilities,
+              config.documentBroker,
+              config.uiBroker,
+              config.fileBroker,
+              config.networkBroker,
+              config.storageBroker,
+              manifest.permissions?.includes('app:updates') ? config.releasesBroker : undefined,
+              () => active && generation === current,
+            ),
+          })) ?? undefined
+      } catch (error) {
+        if (generation === current) {
+          active = false
+          generation++
+        }
+        throw error
+      }
 
       return Object.freeze({
         commands: Object.freeze(listContributedCommands(manifest, activation, module)),
@@ -75,6 +91,8 @@ export function createPluginModuleIsolationHost(
     },
     deactivate: async (request: IsolatedPluginDeactivateRequest): Promise<void> => {
       assertPluginId(manifest, request.pluginId)
+      active = false
+      generation++
       await module.deactivate?.()
       activation = undefined
     },
@@ -89,6 +107,7 @@ export function createPluginModuleIsolationHost(
         throw new Error(`Isolated command is not available: ${request.command.action}`)
       }
 
+      const current = generation
       const editor = request.selection ? new IsolatedEditorProxy(request.selection) : undefined
       const commandContext = {
         plugin: {
@@ -110,6 +129,8 @@ export function createPluginModuleIsolationHost(
           config.fileBroker,
           config.networkBroker,
           config.storageBroker,
+          manifest.permissions?.includes('app:updates') ? config.releasesBroker : undefined,
+          () => active && generation === current,
         ),
         ...(editor ? { editor } : {}),
       } as unknown as PluginCommandContext
@@ -133,6 +154,8 @@ export function createPluginModuleIsolationHost(
     },
     dispose: async (request: IsolatedPluginDeactivateRequest): Promise<void> => {
       assertPluginId(manifest, request.pluginId)
+      active = false
+      generation++
       await activation?.dispose?.()
     },
   })
@@ -267,6 +290,8 @@ function restrictHost(
   fileBroker?: PluginFileBroker,
   networkBroker?: PluginNetworkBroker,
   storageBroker?: PluginStorageBroker,
+  releasesBroker?: PluginReleasesBroker,
+  isActive?: () => boolean,
 ): RestrictedPluginHost {
   const fileHost = fileBroker ? createPluginFileHostCapabilities(fileBroker) : host
   const networkHost = networkBroker ? createPluginNetworkHostCapabilities(networkBroker) : host
@@ -295,6 +320,9 @@ function restrictHost(
       ? { fetch: networkHost.fetch }
       : {}),
     ...(capabilities.includes('storage') && storageBroker ? { storage: storageBroker } : {}),
+    ...(capabilities.includes('app:updates') && releasesBroker
+      ? { releases: createPluginReleasesHostCapabilities(releasesBroker, isActive) }
+      : {}),
   })
 }
 

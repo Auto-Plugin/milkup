@@ -10,6 +10,9 @@ import {
   createPluginDocumentBroker,
   createIsolatedPluginModule,
   createPluginUiBroker,
+  createPluginReleasesBroker,
+  type PluginReleasesBrokerAdapter,
+  type RevocablePluginReleasesBroker,
   createPluginNetworkBroker,
   createPluginStorageBroker,
   createPluginPackageArchive,
@@ -43,6 +46,8 @@ import {
 export interface DesktopPluginManifestHost {
   selectManifestPath(): Promise<string | undefined>
   readManifestText(path: string): Promise<string>
+  /** Read only the installed, declared and bounded PNG icon for this plugin. */
+  readPackageIcon?(pluginId: string): Promise<Uint8Array>
   prepareModule?(
     manifest: PluginManifest,
     manifestPath: string,
@@ -78,6 +83,7 @@ export interface DesktopLoadedPluginModule {
 
 export interface DesktopPluginModuleCapabilities {
   readonly documentBroker?: ManagedPluginDocumentBroker
+  readonly releasesBroker?: RevocablePluginReleasesBroker
   readonly uiBroker?: PluginUiBroker
 }
 
@@ -137,6 +143,10 @@ export interface DesktopPluginManagerOptions {
   readonly now?: () => number
   /** Distribution-provided packages; never used to upgrade an existing user installation. */
   readonly bundledPackagePaths?: () => Promise<readonly string[]>
+  readonly releasesAdapter?: (pluginId: string) => {
+    adapter: PluginReleasesBrokerAdapter
+    dispose(): void
+  }
 }
 
 export interface DesktopPluginManagerState {
@@ -157,6 +167,7 @@ const sensitivePermissions = new Set([
   'file:delete',
   'network:access',
   'app:control',
+  'app:updates',
 ])
 
 export class DesktopPluginManager {
@@ -171,6 +182,8 @@ export class DesktopPluginManager {
   private readonly loadModule: DesktopPluginModuleLoader
   private readonly loadSidecarModule: DesktopPluginModuleLoader
   private readonly loadedModules = new Map<string, DesktopLoadedPluginModule>()
+  private readonly releasesBrokers = new Map<string, RevocablePluginReleasesBroker>()
+  private readonly releasesAdapter: DesktopPluginManagerOptions['releasesAdapter']
   private readonly documentBrokers = new Map<string, ManagedPluginDocumentBroker>()
   private readonly storageBrokers = new Map<string, ManagedPluginStorageBroker>()
   private readonly temporaryStorage: DesktopTemporaryStorage
@@ -182,6 +195,7 @@ export class DesktopPluginManager {
   readonly ready: Promise<void>
 
   constructor(options: DesktopPluginManagerOptions) {
+    this.releasesAdapter = options.releasesAdapter
     this.manifestHost = options.manifestHost
     this.storage = options.storage
     this.temporaryStorage = options.temporaryStorage ?? createDesktopTemporaryStorage()
@@ -212,6 +226,7 @@ export class DesktopPluginManager {
       fileBroker: (manifest) => this.createFileBroker(manifest),
       documentBroker: (manifest) => this.getDocumentBroker(manifest),
       uiBroker: (manifest) => this.createUiBroker(manifest),
+      releasesBroker: (manifest) => this.getReleasesBroker(manifest),
       networkBroker: (manifest) => this.createNetworkBroker(manifest),
       storageBroker: (manifest) => this.createStorageBroker(manifest),
     })
@@ -253,14 +268,16 @@ export class DesktopPluginManager {
         considered.add(id)
         this.storage.setItem(bundledStorageKey, JSON.stringify([...considered]))
         if (this.registry.list().some((record) => record.manifest.id === id)) continue
-        if (
-          archive.manifest.host !== 'worker' ||
-          (archive.manifest.permissions ?? []).some((permission) => permission !== 'document:read')
-        ) {
-          throw new Error('Bundled automatic activation supports only read-only document Workers')
+        if (archive.manifest.host !== 'worker') {
+          throw new Error('Bundled installation supports only Worker packages')
         }
         const record = await this.installManifestPath(path)
         if (record.errors.length > 0) throw new Error(record.errors.join('; '))
+        // Privileged distribution packages are discoverable but never automatically approved or run.
+        if (
+          (archive.manifest.permissions ?? []).some((permission) => permission !== 'document:read')
+        )
+          continue
         this.registry.approve(id)
         this.persist()
         await this.enableRestoredPlugin(id)
@@ -383,8 +400,10 @@ export class DesktopPluginManager {
       const prepared = await this.prepareModule(record.manifest, record.manifestPath, main)
       this.preparedModules.set(pluginId, prepared)
       const documentBroker = this.getDocumentBroker(record.manifest)
+      const releasesBroker = this.getReleasesBroker(record.manifest)
       const uiBroker = this.createUiBroker(record.manifest)
       const capabilities = Object.freeze({
+        ...(releasesBroker ? { releasesBroker } : {}),
         ...(documentBroker ? { documentBroker } : {}),
         ...(uiBroker ? { uiBroker } : {}),
       })
@@ -666,6 +685,7 @@ export class DesktopPluginManager {
         moduleSpecifier,
         ...(capabilities?.documentBroker ? { documentBroker: capabilities.documentBroker } : {}),
         ...(capabilities?.uiBroker ? { uiBroker: capabilities.uiBroker } : {}),
+        ...(capabilities?.releasesBroker ? { releasesBroker: capabilities.releasesBroker } : {}),
         ...(fileBroker ? { fileBroker } : {}),
         ...(networkBroker ? { networkBroker } : {}),
         ...(storageBroker ? { storageBroker } : {}),
@@ -727,6 +747,28 @@ export class DesktopPluginManager {
       source: this.documentSource,
     })
     this.documentBrokers.set(manifest.id, broker)
+    return broker
+  }
+
+  private getReleasesBroker(manifest: PluginManifest): RevocablePluginReleasesBroker | undefined {
+    const record = this.registry.get(manifest.id)
+    if (
+      !this.releasesAdapter ||
+      !manifest.permissions?.includes('app:updates') ||
+      !record?.approvals.permissions.includes('app:updates')
+    )
+      return undefined
+    const existing = this.releasesBrokers.get(manifest.id)
+    if (existing) return existing
+    const service = this.releasesAdapter(manifest.id)
+    const broker = createPluginReleasesBroker({
+      manifest,
+      adapter: service.adapter,
+      isActive: () =>
+        this.registry.get(manifest.id)?.approvals.permissions.includes('app:updates') === true,
+      onDispose: () => service.dispose(),
+    })
+    this.releasesBrokers.set(manifest.id, broker)
     return broker
   }
 
@@ -842,6 +884,8 @@ export class DesktopPluginManager {
   }
 
   private async unloadRuntimePlugin(pluginId: string): Promise<void> {
+    this.releasesBrokers.get(pluginId)?.dispose()
+    this.releasesBrokers.delete(pluginId)
     for (const viewId of this.activeUi.get(pluginId) ?? []) {
       await this.renderUi(pluginId, viewId, 'dispose').catch(() => undefined)
     }
@@ -911,6 +955,22 @@ export class DesktopPluginManager {
     for (const path of paths) {
       if (/^[a-zA-Z][a-zA-Z\d+.-]*:/.test(path) || /^(?:\/|\\|[a-zA-Z]:)/.test(path)) {
         throw new Error(`Only files inside the plugin root can be exported: ${path}`)
+      }
+
+      if (path === record.manifest.icon) {
+        if (!this.manifestHost.readPackageIcon) {
+          throw new Error('Installed package icon export is unavailable in this host')
+        }
+        const bytes = await this.manifestHost.readPackageIcon(record.manifest.id)
+        if (bytes.byteLength > 256 * 1024) throw new Error('Plugin icon exceeds 256 KiB')
+        files.push(
+          Object.freeze({
+            path: normalizePackagePath(path),
+            encoding: 'base64',
+            content: btoa(Array.from(bytes, (byte) => String.fromCharCode(byte)).join('')),
+          }),
+        )
+        continue
       }
 
       files.push(
@@ -1108,31 +1168,71 @@ export function createDesktopPluginActions(
   return Object.freeze(actions)
 }
 
-export function renderDesktopPluginManager(state: DesktopPluginManagerState): string {
-  const records = state.records
+export interface DesktopPluginManagerView {
+  readonly selectedPluginId?: string
+  readonly icons?: ReadonlyMap<string, string>
+}
 
+export function renderDesktopPluginManager(
+  state: DesktopPluginManagerState,
+  view: DesktopPluginManagerView = {},
+): string {
+  const selected = state.records.find((record) => record.manifest.id === view.selectedPluginId)
+  const content = selected
+    ? renderPluginRecord(selected, view.icons?.get(selected.manifest.id)) +
+      renderPluginDetails(state, selected)
+    : state.records.length === 0
+      ? '<p class="empty-copy">暂无已安装插件</p>'
+      : `<div class="plugin-list">${state.records.map((record) => renderPluginCard(record, view.icons?.get(record.manifest.id))).join('')}</div>`
   return [
     '<div class="plugin-manager">',
     '<div class="plugin-manager-toolbar">',
-    '<button type="button" class="dialog-button primary" data-plugin-action="install">安装本地插件</button>',
-    `<span>${records.length} 个已安装 · ${state.auditCount} 条审计</span>`,
+    selected
+      ? '<button type="button" class="dialog-button" data-plugin-action="back">返回插件列表</button>'
+      : '<button type="button" class="dialog-button primary" data-plugin-action="install">安装本地插件</button>',
+    selected ? '' : `<span>${state.records.length} 个已安装</span>`,
     '</div>',
     state.installFailures.length > 0
       ? `<div class="plugin-install-failures">${state.installFailures.map(renderInstallFailure).join('')}</div>`
       : '',
-    records.length === 0
-      ? '<p class="empty-copy">暂无已安装插件</p>'
-      : `<div class="plugin-list">${records.map(renderPluginRecord).join('')}</div>`,
-    '<section class="plugin-contribution-summary">',
-    '<h4>贡献点</h4>',
-    `<p>命令 ${state.contributions.commands.length} · 快捷键 ${state.contributions.keymaps.length} · 渲染器 ${state.contributions.renderers.length} · UI ${state.contributions.ui.length} · 导入器 ${state.contributions.importers.length}</p>`,
-    renderPluginCommands(state.contributions),
-    renderPluginKeymaps(state.contributions),
-    renderPluginUiContributions(state.contributions),
-    renderPluginAudit(state.auditRecords),
-    '</section>',
+    content,
     '</div>',
   ].join('')
+}
+
+function renderPluginLogo(name: string, icon?: string): string {
+  const image =
+    icon && /^data:image\/png;base64,[A-Za-z0-9+/]+=*$/.test(icon)
+      ? `<img src="${icon}" alt="" data-plugin-icon />`
+      : ''
+  return `<span class="plugin-logo" aria-hidden="true"><span>${escapeHtml(Array.from(name)[0] || '◇')}</span>${image}</span>`
+}
+
+function renderPluginCard(record: PluginRegistryRecord, icon?: string): string {
+  const manifest = record.manifest
+  return `<button type="button" class="plugin-card plugin-summary-card" data-plugin-action="details" data-plugin-id="${escapeHtml(manifest.id)}" aria-label="${escapeHtml(manifest.name)}">${renderPluginLogo(manifest.name, icon)}<span class="plugin-card-copy"><span class="plugin-card-title">${escapeHtml(manifest.name)}</span><span class="plugin-card-description">${escapeHtml(manifest.description || '暂无描述')}</span></span></button>`
+}
+
+function renderPluginDetails(
+  state: DesktopPluginManagerState,
+  record: PluginRegistryRecord,
+): string {
+  const id = record.manifest.id
+  const commandIds = new Set(record.manifest.contributes?.commands?.map((command) => command.id))
+  const contributions: PluginContributionIndex = {
+    ...state.contributions,
+    commands: state.contributions.commands.filter((command) => commandIds.has(command.id)),
+    keymaps: state.contributions.keymaps.filter((binding) => binding.pluginId === id),
+    ui: state.contributions.ui.filter((view) => view.pluginId === id),
+  }
+  return (
+    '<section class="plugin-contribution-summary">' +
+    renderPluginCommands(contributions) +
+    renderPluginKeymaps(contributions) +
+    renderPluginUiContributions(contributions) +
+    renderPluginAudit(state.auditRecords.filter((entry) => entry.pluginId === id)) +
+    '</section>'
+  )
 }
 
 function renderPluginUiContributions(contributions: PluginContributionIndex): string {
@@ -1143,7 +1243,7 @@ function renderPluginUiContributions(contributions: PluginContributionIndex): st
   return [
     '<section class="plugin-detail-section"><h4>界面扩展</h4><div class="plugin-command-list">',
     ...contributions.ui.map((view) =>
-      view.slot === 'modal'
+      view.slot === 'modal' || view.slot === 'menu-page'
         ? `<button type="button" class="dialog-button" data-plugin-action="open-ui" data-plugin-id="${escapeHtml(view.pluginId)}" data-plugin-ui-id="${escapeHtml(view.id)}">打开 ${escapeHtml(view.title)}</button>`
         : `<span class="plugin-ui-contribution-label">${escapeHtml(view.title)} · ${escapeHtml(view.slot)}</span>`,
     ),
@@ -1203,7 +1303,7 @@ function renderPluginAudit(records: DesktopPluginManagerState['auditRecords']): 
   ].join('')
 }
 
-function renderPluginRecord(record: PluginRegistryRecord): string {
+function renderPluginRecord(record: PluginRegistryRecord, icon?: string): string {
   const manifest = record.manifest
   const host = manifest.host ?? 'worker'
   const permissions = manifest.permissions?.join(', ') || '无'
@@ -1216,15 +1316,19 @@ function renderPluginRecord(record: PluginRegistryRecord): string {
     : `<button type="button" class="dialog-button primary" data-plugin-action="enable" data-plugin-id="${escapeHtml(manifest.id)}">启用</button>`
 
   return [
-    '<article class="plugin-card">',
+    '<article class="plugin-card plugin-detail" aria-labelledby="plugin-detail-title">',
     '<header>',
-    '<div>',
-    `<h4>${escapeHtml(manifest.name)}</h4>`,
+    renderPluginLogo(manifest.name, icon),
+    '<div class="plugin-detail-heading">',
+    `<h4 id="plugin-detail-title" tabindex="-1">${escapeHtml(manifest.name)}</h4>`,
     `<p>${escapeHtml(manifest.id)} · v${escapeHtml(manifest.version)}</p>`,
     '</div>',
     `<span class="plugin-state" data-state="${record.state}">${stateLabel(record.state)}</span>`,
     '</header>',
+    `<p>${escapeHtml(manifest.description || '暂无描述')}</p>`,
     '<dl class="plugin-meta">',
+    `<div><dt>Milkup 兼容要求</dt><dd>${escapeHtml(manifest.engines?.milkup || '未声明')}</dd></div>`,
+    `<div><dt>SDK 兼容要求</dt><dd>${escapeHtml(manifest.engines?.pluginSdk || '未声明')}</dd></div>`,
     `<div><dt>Host</dt><dd>${escapeHtml(host)}</dd></div>`,
     `<div><dt>权限</dt><dd>${escapeHtml(permissions)}</dd></div>`,
     `<div><dt>审批</dt><dd>${approvalRequired ? '待审批' : '已批准'}</dd></div>`,

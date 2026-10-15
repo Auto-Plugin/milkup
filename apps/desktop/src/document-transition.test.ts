@@ -42,6 +42,18 @@ function fixture() {
 }
 
 describe('document transition protection', () => {
+  it('forces trusted confirmation even for a clean update and does not save an empty document', async () => {
+    const { controller, options, setSession } = fixture()
+    setSession(createDocumentSession({ documentId: 'clean' }))
+    const install = vi.fn()
+    await controller.request('update', install)
+    expect(install).not.toHaveBeenCalled()
+    expect(options.show).toHaveBeenCalledWith({ kind: 'update', phase: 'confirming' })
+    await controller.save()
+    expect(options.save).not.toHaveBeenCalled()
+    expect(install).toHaveBeenCalledOnce()
+  })
+
   it('requires a successful save for an update and never discards the draft', async () => {
     const { controller, options } = fixture()
     const install = vi.fn()

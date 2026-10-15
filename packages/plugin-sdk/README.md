@@ -1,4 +1,4 @@
-# Milkup plugin SDK 0.1
+# Milkup plugin SDK 0.2
 
 This is the public, dependency-free ESM API for local Milkup plugins. It contains
 JavaScript helpers and TypeScript declarations; importing it never imports the
@@ -13,7 +13,7 @@ distribution for this development stage; no npm publication is required.
 pnpm --dir packages/plugin-sdk pack --pack-destination /absolute/sdk-output
 
 # In a separately copied plugin directory containing its own package.json.
-npm install --no-save --package-lock=false /absolute/sdk-output/milkup-plugin-sdk-0.1.1.tgz
+npm install --no-save --package-lock=false /absolute/sdk-output/milkup-plugin-sdk-0.2.0.tgz
 npm run build
 ```
 
@@ -196,5 +196,36 @@ only locally reviewed, trusted plugins. This release neither loads untrusted thi
 party code nor grants new credentials, persistent permissions, or security bypasses.
 
 Compatibility is explicit in `engines.pluginSdk` and `engines.milkup`; this SDK's
-local version is `0.1.1`. Adding optional snapshot fields is compatible; removing
+local version is `0.2.0`. Adding optional snapshot fields is compatible; removing
 or changing their meaning requires a new compatibility contract.
+
+## Managed application releases (SDK 0.2.0)
+
+Declare `permissions: ["app:updates"]` and `engines.pluginSdk: "^0.2.0"` in the
+manifest. `host.releases` is optional and absent without both approval and a host
+provider. Retain it from activation only for that activation's lifetime.
+
+- `check()` returns `{ configured, channel, currentVersion, release? }`; `release`
+  contains only `{ id, version, notes, date }`, with a nullable date.
+- `stage(release.id)` starts background download and signature verification.
+- `status(release.id)` returns `{ phase, received, total, error? }`; phases are
+  `available`, `downloading`, `verifying`, `ready` and `error`; total may be null.
+- `cancel(release.id)` asks the host to cancel staging.
+- `requestInstall(release.id)` opens mandatory trusted host confirmation and
+  dirty-document handling, then returns `{ status: "cancelled" | "installing" }`.
+  Cancellation never installs. Plugins cannot supply confirmation, save decisions,
+  an executable, installer arguments, URLs, paths, payload bytes or signing keys.
+
+IDs are opaque, scoped to the broker activation, and must have been returned by
+`check()`; never construct them from versions or interpret them as paths. The
+host owns release configuration, trusted keys, signature checks, staging and the
+install gate. A successful `stage()` means staging started, not that the release
+is ready. Poll `status()` at a bounded cadence and stop timers in `dispose()`.
+
+Install confirmation may remain open longer than command execution. Start the
+asynchronous request from a user command, return promptly, and update the UI when
+it settles. Release RPCs normally time out after 30 seconds; install requests have
+a ten-minute bound. The trusted host must expire the confirmation within that
+bound and cancel pending confirmation/staging when its broker is disposed.
+Permission revocation, disable and Worker disposal invalidate captured methods
+and pending RPCs. Re-enabling creates a fresh capability; old handles stay invalid.

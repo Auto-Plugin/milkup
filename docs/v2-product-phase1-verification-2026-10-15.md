@@ -1,5 +1,7 @@
 # Milkup 2.0 P1：版本体系与应用更新
 
+> 历史记录：本报告描述的宿主内更新业务 UI 未通过用户后续的独立插件架构验收，已被移除。当前修正以[独立插件架构报告](v2-product-phase1-plugin-correction-2026-10-15.md)为准；下列旧截图、测试及预算状态仅保留历史，不代表最新验收。
+
 本阶段从交付基线 `0f2ccc754c138b925d0db7c925f2b1d741200fc1` 开始，工作分支 `dot/milkup-v2-product-completion-phase1`。完整产品计划见[阶段计划与验收矩阵](v2-product-completion-plan.md)。P1 完成代码和本地可验证链路；真实发布渠道、签名发布包、Windows 更新安装/重启仍是外部门槛，不能据此宣布整个产品完成。
 
 ## 用户可见变化

@@ -246,8 +246,14 @@ pub async fn download_application_update(
 }
 
 #[tauri::command]
-pub fn cancel_application_update(service: State<'_, UpdateService>) -> Result<(), String> {
+pub fn cancel_application_update(
+    token: u64,
+    service: State<'_, UpdateService>,
+) -> Result<(), String> {
     let mut candidate = service.candidate.lock().map_err(|_| "更新状态不可用")?;
+    if candidate.generation != token {
+        return Ok(());
+    }
     if let Some(abort) = &candidate.abort {
         let _ = abort.send(true);
     }

@@ -120,6 +120,197 @@ describe('DesktopPluginUiController', () => {
     expect(document.querySelector('[data-plugin-ui]')).toBeNull()
   })
 
+  it('takes modal focus before pending mount output, so immediate Escape closes and restores the opener', async () => {
+    document.body.innerHTML =
+      '<button id="opener">Open</button><div data-plugin-slot="modal"></div>'
+    const opener = document.querySelector<HTMLButtonElement>('#opener')!
+    opener.focus()
+    let finish!: (output: unknown) => void
+    const pending = new Promise((resolve) => {
+      finish = resolve
+    })
+    const runtime = createRuntime(
+      [{ pluginId: 'example', id: 'dialog', title: 'Dialog', slot: 'modal' }],
+      [],
+      vi.fn(),
+      (phase) => (phase === 'mount' ? pending : ''),
+    )
+    const controller = new DesktopPluginUiController(document.body, runtime)
+    const opening = controller.open('example', 'dialog')
+    const modal = document.querySelector<HTMLElement>('[role="dialog"]')!
+    expect(modal).not.toBeNull()
+    expect(document.activeElement).toBe(modal)
+    modal.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+    )
+    expect(document.querySelector('[role="dialog"]')).toBeNull()
+    expect(document.activeElement).toBe(opener)
+    finish('late mount output')
+    await opening
+    expect(document.querySelector('[role="dialog"]')).toBeNull()
+    expect(document.activeElement).toBe(opener)
+  })
+
+  it('does not take focus back from a host confirmation when asynchronous opening completes', async () => {
+    document.body.innerHTML =
+      '<button id="opener">Open</button><button id="host-confirm">Host confirmation</button><div data-plugin-slot="modal"></div>'
+    const opener = document.querySelector<HTMLButtonElement>('#opener')!
+    const confirmation = document.querySelector<HTMLButtonElement>('#host-confirm')!
+    opener.focus()
+    let finish!: (output: unknown) => void
+    const pending = new Promise((resolve) => {
+      finish = resolve
+    })
+    const runtime = createRuntime(
+      [{ pluginId: 'example', id: 'dialog', title: 'Dialog', slot: 'modal' }],
+      [],
+      vi.fn(),
+      (phase) => (phase === 'mount' ? pending : ''),
+    )
+    const controller = new DesktopPluginUiController(document.body, runtime)
+    const opening = controller.open('example', 'dialog')
+    confirmation.focus()
+    finish('mount output')
+    await opening
+    expect(document.activeElement).toBe(confirmation)
+    await controller.close('example', 'dialog')
+    expect(document.activeElement).toBe(confirmation)
+  })
+
+  it('restores an available card when unloading removes the opener and ignores late output', async () => {
+    document.body.innerHTML =
+      '<button id="opener">Open</button><div data-plugin-slot="modal"></div>'
+    const opener = document.querySelector<HTMLButtonElement>('#opener')!
+    opener.focus()
+    let finish!: (output: unknown) => void
+    const pending = new Promise((resolve) => {
+      finish = resolve
+    })
+    const runtime = createRuntime(
+      [{ pluginId: 'example', id: 'dialog', title: 'Dialog', slot: 'modal' }],
+      [],
+      vi.fn(),
+      (phase) => (phase === 'mount' ? pending : ''),
+    )
+    const controller = new DesktopPluginUiController(document.body, runtime)
+    const opening = controller.open('example', 'dialog')
+    const nextCard = document.createElement('button')
+    nextCard.dataset.pluginAction = 'details'
+    nextCard.textContent = 'Another plugin'
+    opener.replaceWith(nextCard)
+    const emptyIndex = { ...runtime.contributions(), ui: [] }
+    runtime.contributions = () => emptyIndex
+    await controller.sync('doc')
+    expect(document.activeElement).toBe(nextCard)
+    finish('removed plugin output')
+    await opening
+    expect(document.querySelector('[role="dialog"]')).toBeNull()
+    expect(document.activeElement).toBe(nextCard)
+  })
+
+  it.each(['Action A', 'Action B'])(
+    'resumes focus after a pending output removes controls, with final %s',
+    async (finalLabel) => {
+      document.body.innerHTML = '<div data-plugin-slot="modal"></div>'
+      let label: string | undefined = 'Action A'
+      const runtime = createRuntime(
+        [{ pluginId: 'example', id: 'dialog', title: 'Dialog', slot: 'modal' }],
+        [],
+        vi.fn(),
+        () =>
+          label
+            ? {
+                type: 'element',
+                tag: 'button',
+                text: label,
+                attributes: { 'aria-label': label },
+                action: { command: 'example.run' },
+              }
+            : 'Checking…',
+      )
+      const controller = new DesktopPluginUiController(document.body, runtime)
+      await controller.open('example', 'dialog')
+      const modal = document.querySelector<HTMLElement>('[role="dialog"]')!
+      document.querySelector<HTMLButtonElement>('[data-plugin-command]')!.focus()
+      label = undefined
+      await controller.invalidate('example', 'dialog')
+      expect(document.activeElement).toBe(modal)
+      label = finalLabel
+      await controller.invalidate('example', 'dialog')
+      expect(document.activeElement?.getAttribute('aria-label')).toBe(finalLabel)
+      await controller.dispose()
+    },
+  )
+
+  it.each(['close', 'confirmation'])(
+    'does not resume a removed action after the user focuses %s',
+    async (destination) => {
+      document.body.innerHTML =
+        '<button id="confirmation">Confirmation</button><div data-plugin-slot="modal"></div>'
+      let waiting = false
+      const runtime = createRuntime(
+        [{ pluginId: 'example', id: 'dialog', title: 'Dialog', slot: 'modal' }],
+        [],
+        vi.fn(),
+        () =>
+          waiting
+            ? 'Checking…'
+            : {
+                type: 'element',
+                tag: 'button',
+                text: 'Action A',
+                attributes: { 'aria-label': 'Action A' },
+                action: { command: 'example.run' },
+              },
+      )
+      const controller = new DesktopPluginUiController(document.body, runtime)
+      await controller.open('example', 'dialog')
+      document.querySelector<HTMLButtonElement>('[data-plugin-command]')!.focus()
+      waiting = true
+      await controller.invalidate('example', 'dialog')
+      const next = document.querySelector<HTMLButtonElement>(
+        destination === 'close' ? '.plugin-ui-close' : '#confirmation',
+      )!
+      next.focus()
+      waiting = false
+      await controller.invalidate('example', 'dialog')
+      expect(document.activeElement).toBe(next)
+      await controller.dispose()
+    },
+  )
+
+  it('traps native WebKit Shift+Tab with Unidentified key and Tab code at the close button', async () => {
+    document.body.innerHTML =
+      '<button id="outside">Outside</button><div data-plugin-slot="modal"></div>'
+    const runtime = createRuntime(
+      [{ pluginId: 'example', id: 'dialog', title: 'Dialog', slot: 'modal' }],
+      [],
+      vi.fn(),
+      () => ({
+        type: 'element',
+        tag: 'button',
+        text: 'Action A',
+        attributes: { 'aria-label': 'Action A' },
+        action: { command: 'example.run' },
+      }),
+    )
+    const controller = new DesktopPluginUiController(document.body, runtime)
+    await controller.open('example', 'dialog')
+    const close = document.querySelector<HTMLButtonElement>('.plugin-ui-close')!
+    close.focus()
+    const event = new KeyboardEvent('keydown', {
+      key: 'Unidentified',
+      code: 'Tab',
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    })
+    close.dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(true)
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('Action A')
+    await controller.dispose()
+  })
+
   it('rerenders only the requested plugin view when invalidated', async () => {
     document.body.innerHTML = '<main><div data-plugin-slot="sidebar-panel"></div></main>'
     const phases: string[] = []

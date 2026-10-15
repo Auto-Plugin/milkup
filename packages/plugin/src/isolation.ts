@@ -93,6 +93,7 @@ export type PluginHostCapabilityName =
   | 'file:delete'
   | 'network:access'
   | 'storage'
+  | 'app:updates'
 
 export function createIsolatedPluginModule(config: IsolatedPluginModuleConfig): PluginModule {
   const { manifest, host } = config
@@ -262,6 +263,8 @@ function listRestrictedHostCapabilities(
   if (host.fetch) {
     capabilities.push('network:access')
   }
+
+  if (host.releases) capabilities.push('app:updates')
 
   if (host.storage) {
     capabilities.push('storage')

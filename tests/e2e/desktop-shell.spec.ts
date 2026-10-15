@@ -183,6 +183,7 @@ test('plugin manager restores, executes, disables, and reenables a Worker plugin
   await page.getByRole('button', { name: '菜单' }).click()
   await page.getByRole('button', { name: '插件', exact: true }).click()
 
+  await page.getByRole('button', { name: 'E2E Tools', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'E2E Tools' })).toBeVisible()
   await expect(page.locator('.plugin-state')).toHaveText('已启用')
   await page.getByRole('button', { name: 'Plugin Hello' }).click()

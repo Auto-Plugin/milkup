@@ -10,6 +10,8 @@ export interface PluginManifest {
   readonly host?: PluginHostKind
   readonly main?: string
   readonly resources?: readonly string[]
+  /** Package-relative PNG icon, explicitly listed in resources. */
+  readonly icon?: string
   readonly networkOrigins?: readonly string[]
   readonly description?: string
   readonly engines?: PluginEngineCompatibility
@@ -111,6 +113,7 @@ const KNOWN_PERMISSIONS = new Set<PluginPermission>([
   'file:write',
   'file:delete',
   'app:control',
+  'app:updates',
   'network:access',
 ])
 const KNOWN_HOSTS = new Set<PluginHostKind>(['worker', 'sidecar'])
@@ -155,6 +158,13 @@ export function validatePluginManifest(value: unknown): PluginManifestValidation
   const host = readOptionalHost(value.host, errors)
   const main = readOptionalString(value, 'main', '$.main', errors)
   const resources = readOptionalStringArray(value.resources, '$.resources', errors)
+  const icon = readOptionalString(value, 'icon', '$.icon', errors)
+  if (icon !== undefined && (!isPluginIconPath(icon) || !resources?.includes(icon))) {
+    errors.push({
+      path: '$.icon',
+      message: 'Icon must be a package-relative PNG path explicitly listed in resources',
+    })
+  }
   const networkOrigins = readOptionalStringArray(value.networkOrigins, '$.networkOrigins', errors)
   const description = readOptionalString(value, 'description', '$.description', errors)
   const engines = readOptionalEngines(value.engines, errors)
@@ -186,6 +196,7 @@ export function validatePluginManifest(value: unknown): PluginManifestValidation
       ...(host ? { host } : {}),
       ...(main ? { main } : {}),
       ...(resources ? { resources: Object.freeze(resources) } : {}),
+      ...(icon ? { icon } : {}),
       ...(networkOrigins ? { networkOrigins: Object.freeze(networkOrigins) } : {}),
       ...(description ? { description } : {}),
       ...(engines ? { engines } : {}),
@@ -194,6 +205,11 @@ export function validatePluginManifest(value: unknown): PluginManifestValidation
     }),
     errors: Object.freeze([]),
   }
+}
+
+/** Strict paths avoid URL loading, traversal, encoding ambiguity and platform separators. */
+export function isPluginIconPath(path: string): boolean {
+  return /^(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+\.png$/i.test(path)
 }
 
 function validateNetworkOrigins(

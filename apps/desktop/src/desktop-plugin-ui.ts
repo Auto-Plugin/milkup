@@ -38,6 +38,7 @@ interface MountedPluginUi {
   readonly generation: number
   renderSequence: number
   renderSignature: string | undefined
+  pendingFocusLabel: string | undefined
   virtualViewport?: PluginVirtualViewportState
   virtualScrollTimer?: ReturnType<typeof setTimeout>
   virtualScrollTop?: number
@@ -69,6 +70,7 @@ const virtualListMinimumRefreshMarginItems = 12
 export class DesktopPluginUiController {
   private readonly mounts = new Map<string, MountedPluginUi>()
   private readonly openModals = new Set<string>()
+  private readonly modalReturnFocus = new Map<string, HTMLElement>()
   private generation = 0
   private documentId = ''
   private lastSyncSignature = ''
@@ -121,6 +123,8 @@ export class DesktopPluginUiController {
     }
 
     for (const [key, contribution] of desired) {
+      // A modal may be closed while an earlier view is still rendering.
+      if (contribution.slot === 'modal' && !this.openModals.has(key)) continue
       const mount = this.mounts.get(key)
 
       if (mount) {
@@ -132,9 +136,14 @@ export class DesktopPluginUiController {
   }
 
   async open(pluginId: string, viewId: string): Promise<void> {
-    this.openModals.add(`${pluginId}:${viewId}`)
+    const key = `${pluginId}:${viewId}`
+    const existing = this.mounts.get(key)
+    const previous = this.root.ownerDocument.activeElement
+    if (!existing && previous instanceof HTMLElement) this.modalReturnFocus.set(key, previous)
+    this.openModals.add(key)
+    // Explicitly reopening an existing view may focus it now, never after an await.
+    existing?.container.focus()
     await this.sync(this.documentId)
-    this.mounts.get(`${pluginId}:${viewId}`)?.container.focus()
   }
 
   async close(pluginId: string, viewId: string): Promise<void> {
@@ -237,6 +246,31 @@ export class DesktopPluginUiController {
     if (contribution.slot === 'modal') {
       container.setAttribute('role', 'dialog')
       container.setAttribute('aria-modal', 'true')
+      container.addEventListener('keydown', (event) => {
+        if (event.defaultPrevented || event.isComposing) return
+        if (event.key === 'Escape') {
+          event.preventDefault()
+          event.stopPropagation()
+          void this.close(contribution.pluginId, contribution.id)
+        } else if (event.key === 'Tab' || event.code === 'Tab') {
+          const buttons = Array.from(
+            container.querySelectorAll<HTMLElement>('button, a[href], [tabindex="0"]'),
+          ).filter((element) => !element.hasAttribute('disabled') && !element.hidden)
+          const active = this.root.ownerDocument.activeElement
+          const first = buttons[0],
+            last = buttons.at(-1)
+          if (!first) {
+            event.preventDefault()
+            container.focus()
+          } else if (event.shiftKey && (active === first || active === container)) {
+            event.preventDefault()
+            last?.focus()
+          } else if (!event.shiftKey && (active === last || active === container)) {
+            event.preventDefault()
+            first.focus()
+          }
+        }
+      })
       const close = this.root.ownerDocument.createElement('button')
       close.type = 'button'
       close.className = 'icon-button plugin-ui-close'
@@ -273,11 +307,33 @@ export class DesktopPluginUiController {
       generation,
       renderSequence: 0,
       renderSignature: undefined,
+      pendingFocusLabel: undefined as string | undefined,
     }
+    // A deferred action may resume only while focus stays on our fallback shell.
+    // Explicit focus on another control or outside the modal cancels that intent.
+    container.addEventListener('focusin', (event) => {
+      if (event.target !== container) mount.pendingFocusLabel = undefined
+    })
+    container.addEventListener('focusout', (event) => {
+      if (!(event.relatedTarget instanceof Node) || !container.contains(event.relatedTarget)) {
+        mount.pendingFocusLabel = undefined
+      }
+    })
     this.mounts.set(uiKey(contribution), mount)
     body.addEventListener('pointerdown', (event) => this.holdPointerRender(mount, event))
     this.reorderSidebarPanels()
-    await this.renderMount(mount, 'mount')
+    const previous = this.root.ownerDocument.activeElement
+    const rendering = this.renderMount(mount, 'mount')
+    // The shell is already visible. Claim focus before yielding to plugin output,
+    // so Escape is handled by this modal instead of the underlying details page.
+    // A synchronous host confirmation may have taken focus during renderUi.
+    if (
+      this.openModals.has(uiKey(contribution)) &&
+      this.root.ownerDocument.activeElement === previous
+    ) {
+      container.focus()
+    }
+    await rendering
   }
 
   private async updateMount(mount: MountedPluginUi): Promise<void> {
@@ -320,9 +376,11 @@ export class DesktopPluginUiController {
 
       const focused = this.root.ownerDocument.activeElement
       const focusedLabel =
-        focused instanceof HTMLElement && mount.body.contains(focused)
-          ? focused.getAttribute('aria-label')
-          : null
+        focused === mount.container
+          ? mount.pendingFocusLabel
+          : focused instanceof HTMLElement && mount.body.contains(focused)
+            ? focused.getAttribute('aria-label')
+            : undefined
       const scrollOffsets = captureScrollOffsets(mount.body)
       const existingClose = mount.body.querySelector('.plugin-ui-close')
       mount.body.replaceChildren(
@@ -334,9 +392,15 @@ export class DesktopPluginUiController {
         ),
       )
       if (focusedLabel) {
-        Array.from(mount.body.querySelectorAll<HTMLElement>('button[aria-label]'))
-          .find((button) => button.getAttribute('aria-label') === focusedLabel)
-          ?.focus({ preventScroll: true })
+        const next =
+          Array.from(mount.body.querySelectorAll<HTMLElement>('button[aria-label]')).find(
+            (button) => button.getAttribute('aria-label') === focusedLabel,
+          ) ??
+          mount.body.querySelector<HTMLElement>('[data-plugin-command]') ??
+          mount.container
+        mount.pendingFocusLabel = next === mount.container ? focusedLabel : undefined
+        next.focus({ preventScroll: true })
+        if (mount.contribution.slot === 'modal') next.scrollIntoView?.({ block: 'nearest' })
       }
       decorateControlledUiIcons(mount.body)
       if (!this.configureVirtualList(mount, scrollOffsets)) {
@@ -373,7 +437,31 @@ export class DesktopPluginUiController {
     if (mount.virtualScrollTimer !== undefined) clearTimeout(mount.virtualScrollTimer)
     mount.virtualPointerCleanup?.()
     mount.pointerCleanup?.()
+    const hadFocus = mount.container.contains(this.root.ownerDocument.activeElement)
     mount.container.remove()
+    if (mount.contribution.slot === 'modal') {
+      this.openModals.delete(key)
+      const previous = this.modalReturnFocus.get(key)
+      this.modalReturnFocus.delete(key)
+      if (hadFocus) {
+        const opener = previous?.isConnected
+          ? previous
+          : Array.from(
+              this.root.querySelectorAll<HTMLElement>('[data-plugin-action="open-ui"]'),
+            ).find(
+              (element) =>
+                element.dataset.pluginId === mount.contribution.pluginId &&
+                element.dataset.pluginUiId === mount.contribution.id,
+            )
+        // Disable/uninstall may have rebuilt the manager and removed the opener.
+        const target =
+          opener ??
+          this.root.querySelector<HTMLElement>(
+            '#plugin-detail-title, [data-plugin-action="details"], [data-plugin-action="install"]',
+          )
+        target?.focus()
+      }
+    }
     this.reorderSidebarPanels()
     await this.runtime
       .renderUi(mount.contribution.pluginId, mount.contribution.id, 'dispose', {

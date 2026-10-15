@@ -29,6 +29,23 @@ describe('plugin package archive', () => {
     )
   })
 
+  it('round-trips declared base64 icons and rejects an archive missing its icon resource', () => {
+    const manifest = {
+      id: 'example.icon',
+      name: 'Icon',
+      version: '1.0.0',
+      icon: 'assets/logo.png',
+      resources: ['assets/logo.png'],
+    }
+    const archive = createPluginPackageArchive(manifest, [
+      { path: 'assets/logo.png', encoding: 'base64', content: 'iVBORw0KGgo=' },
+    ])
+    expect(
+      parsePluginPackageArchive(JSON.parse(serializePluginPackageArchive(archive))).manifest.icon,
+    ).toBe('assets/logo.png')
+    expect(() => createPluginPackageArchive(manifest, [])).toThrow('resource is missing')
+  })
+
   it('rejects missing entries and paths escaping the package', () => {
     expect(() =>
       createPluginPackageArchive(

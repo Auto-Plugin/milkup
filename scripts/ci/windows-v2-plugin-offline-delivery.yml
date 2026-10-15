@@ -1,0 +1,106 @@
+# Canonical source for .github/workflows/v2-windows-plugin-offline-delivery.yml.
+# One explicitly approved user-trial artifact; no cache, Release or paid runner.
+name: Windows v2 plugin offline delivery
+on:
+  push:
+    branches: [dot/milkup-v2-product-completion-phase1]
+    paths:
+      - .github/workflows/v2-windows-plugin-offline-delivery.yml
+      - scripts/ci/windows-v2-plugin-offline-request.json
+permissions:
+  contents: read
+concurrency:
+  group: windows-v2-plugin-offline-delivery
+  cancel-in-progress: false
+jobs:
+  package:
+    if: >-
+      github.repository == 'Auto-Plugin/milkup' &&
+      github.ref == 'refs/heads/dot/milkup-v2-product-completion-phase1' &&
+      github.event.repository.private == false &&
+      github.event.deleted == false &&
+      contains(github.event.head_commit.message, '[windows-v2-plugin-offline-delivery]') &&
+      contains(github.event.head_commit.message, '[upload:windows-plugin-offline-2026-10-15-01]')
+    runs-on: windows-2025
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CARGO_BUILD_JOBS: '3'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check explicit request and exact source
+        id: request
+        run: |
+          $ErrorActionPreference = 'Stop'
+          node scripts/ci/plugin-offline-delivery.mjs request .
+          if ($LASTEXITCODE -ne 0) { throw 'Offline delivery request gate rejected this run' }
+          "MILKUP_PACKAGE_OUTPUT=$env:RUNNER_TEMP\milkup-v2-plugin-offline-package" >> $env:GITHUB_ENV
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.19.0
+      - name: Install pinned build tools
+        run: |
+          $ErrorActionPreference = 'Stop'
+          npm install --global pnpm@11.7.0 --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { throw 'pnpm install failed' }
+          rustup toolchain install 1.99.0 --profile minimal --component rustfmt
+          if ($LASTEXITCODE -ne 0) { throw 'Rust toolchain install failed' }
+          'RUSTUP_TOOLCHAIN=1.99.0' >> $env:GITHUB_ENV
+      - name: Build unsigned NSIS for user manual trial
+        run: ./scripts/ci/build-windows-v2-package.ps1 -OutputDirectory $env:MILKUP_PACKAGE_OUTPUT -ExpectedCommit $env:GITHUB_SHA -UserTrialPackage -BundledPlugins -OfflineEvergreen
+      - name: Record bounded validation results in logs only
+        if: ${{ always() && steps.request.outputs.approved == 'true' }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($name in @('build-result.json', 'build-tree.json', 'binary-comparison.json', 'installation-result.json', 'installed-smoke.json', 'smoke-stderr.log', 'driver.log', 'native-driver.log', 'application.log', 'minimal-control-result.json', 'minimal-control-startup.json', 'product-failure-startup.json')) {
+            $path = Join-Path $env:MILKUP_PACKAGE_OUTPUT "evidence/$name"
+            if (Test-Path -LiteralPath $path) {
+              Write-Output "VALIDATION EVIDENCE: $name"
+              $text = [System.IO.File]::ReadAllText($path)
+              if ($name -eq 'native-driver.log') {
+                Write-Output $text.Substring([Math]::Max(0, $text.Length - 65536))
+              } else {
+                Write-Output $text.Substring(0, [Math]::Min($text.Length, 65536))
+              }
+            }
+          }
+          'User-trial build. Automated installation/startup/editing acceptance is not a delivery prerequisite and remains unverified.' >> $env:GITHUB_STEP_SUMMARY
+      - name: Enforce the six-file offline payload and 256 MiB artifact budget
+        id: payload
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $directory = Join-Path $env:MILKUP_PACKAGE_OUTPUT 'deliverable'
+          node scripts/ci/plugin-offline-delivery.mjs payload . $directory $env:GITHUB_SHA
+          if ($LASTEXITCODE -ne 0) { throw 'Offline payload validation failed; upload forbidden' }
+          "directory=$directory" >> $env:GITHUB_OUTPUT
+      - name: Upload the approved user-trial package once
+        if: ${{ steps.request.outputs.approved == 'true' }}
+        id: upload
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: milkup-v2-plugin-offline-windows-x64-${{ github.sha }}
+          path: ${{ steps.payload.outputs.directory }}/*
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+          overwrite: false
+          include-hidden-files: false
+      - name: Record download link
+        if: ${{ steps.request.outputs.approved == 'true' }}
+        env:
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+          ARTIFACT_DIGEST: ${{ steps.upload.outputs.artifact-digest }}
+        run: |
+          "Download (GitHub login required): $env:ARTIFACT_URL" >> $env:GITHUB_STEP_SUMMARY
+          "Artifact ID: $env:ARTIFACT_ID; ZIP SHA-256: $env:ARTIFACT_DIGEST" >> $env:GITHUB_STEP_SUMMARY
+          'Unsigned offline Evergreen Windows x64 NSIS, Outline and Updates plugins. Updates requires explicit permission approval. Manual Windows acceptance remains unverified. Automatic expiry: 1 day.' >> $env:GITHUB_STEP_SUMMARY
+          'Budget consumed by this artifact: windows-plugin-offline-2026-10-15-01. Record the run/artifact IDs and expiry in the request ledger; never rerun this request.' >> $env:GITHUB_STEP_SUMMARY

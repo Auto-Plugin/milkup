@@ -134,7 +134,43 @@ export interface SdkPluginUiHost {
   revealLine(line: number): Promise<void>
 }
 
+/** Host-managed releases; requires the sensitive app:updates permission (SDK 0.2.0). */
+export interface SdkPluginReleasesHost {
+  check(): Promise<SdkReleaseCheckResult>
+  /** Starts background signed staging; poll status for completion. */
+  stage(releaseId: string): Promise<void>
+  status(releaseId: string): Promise<SdkReleaseStatus>
+  cancel(releaseId: string): Promise<void>
+  /** Always passes through trusted host confirmation and dirty-document save handling. */
+  requestInstall(releaseId: string): Promise<SdkReleaseInstallResult>
+}
+
+export interface SdkReleaseCheckResult {
+  readonly configured: boolean
+  readonly channel: string
+  readonly currentVersion: string
+  readonly release?: {
+    /** Opaque host-issued ID. Never a URL, path, payload or signing key. */
+    readonly id: string
+    readonly version: string
+    readonly notes: string
+    readonly date: string | null
+  }
+}
+
+export interface SdkReleaseStatus {
+  readonly phase: 'available' | 'downloading' | 'verifying' | 'ready' | 'error'
+  readonly received: number
+  readonly total: number | null
+  readonly error?: string
+}
+
+export interface SdkReleaseInstallResult {
+  readonly status: 'cancelled' | 'installing'
+}
+
 export interface SdkPluginHost {
+  readonly releases?: SdkPluginReleasesHost
   readonly document?: SdkPluginDocumentHost
   readonly ui?: SdkPluginUiHost
   readonly storage?: SdkPluginStorage

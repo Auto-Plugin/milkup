@@ -21,6 +21,7 @@ use tauri::{AppHandle, Emitter, Manager, State, Window};
 
 mod native_search;
 mod piece_tree;
+mod plugin_icon;
 mod recovery;
 mod recovery_storage;
 mod updates;
@@ -1061,6 +1062,7 @@ pub fn run() {
             write_asset_file,
             resolve_plugin_file_path,
             read_plugin_text_file,
+            plugin_icon::read_plugin_icon,
             write_plugin_text_file,
             delete_plugin_file,
             ensure_plugin_directories,

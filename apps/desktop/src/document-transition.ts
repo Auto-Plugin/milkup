@@ -55,7 +55,7 @@ export function createDocumentTransitionController(options: {
           pending = undefined
           return
         }
-        if (!shouldPromptBeforeClose(options.session())) {
+        if (kind !== 'update' && !shouldPromptBeforeClose(options.session())) {
           await proceed(request)
           return
         }
@@ -80,6 +80,10 @@ export function createDocumentTransitionController(options: {
     async save(): Promise<void> {
       if (pending?.phase !== 'confirming') return
       const request = pending
+      if (request.kind === 'update' && !shouldPromptBeforeClose(options.session())) {
+        await proceed(request)
+        return
+      }
       request.phase = 'saving'
       options.show({ kind: request.kind, phase: 'saving' })
       let error: string | undefined

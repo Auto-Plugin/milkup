@@ -134,22 +134,25 @@ Worker 从单个包内 ESM 入口加载代码。使用 `@milkup/plugin-sdk` 或�
 
 ### 3.1 顶层字段
 
-| 字段                | 必填 | 说明                                          |
-| ------------------- | ---- | --------------------------------------------- |
-| `id`                | 是   | 小写 kebab/dot case，例如 `example.my-plugin` |
-| `name`              | 是   | 用户可见名称                                  |
-| `version`           | 是   | semver 风格版本，例如 `1.2.0`                 |
-| `host`              | 否   | `worker` 或 `sidecar`，默认 `worker`          |
-| `main`              | 否   | 包内 ESM 入口或 sidecar 可执行文件            |
-| `resources`         | 否   | 导入、导出时必须随包携带的相对路径            |
-| `description`       | 否   | 插件说明                                      |
-| `engines.milkup`    | 否   | 兼容的 Milkup 版本范围                        |
-| `engines.pluginSdk` | 否   | 兼容的插件 SDK 版本范围                       |
-| `permissions`       | 否   | 插件请求的宿主权限                            |
-| `networkOrigins`    | 否   | 网络访问的精确 HTTP(S) origin 白名单          |
-| `contributes`       | 否   | 命令、快捷键、渲染器、UI 等贡献点             |
+| 字段                | 必填 | 说明                                                              |
+| ------------------- | ---- | ----------------------------------------------------------------- |
+| `id`                | 是   | 小写 kebab/dot case，例如 `example.my-plugin`                     |
+| `name`              | 是   | 用户可见名称                                                      |
+| `version`           | 是   | semver 风格版本，例如 `1.2.0`                                     |
+| `host`              | 否   | `worker` 或 `sidecar`，默认 `worker`                              |
+| `main`              | 否   | 包内 ESM 入口或 sidecar 可执行文件                                |
+| `resources`         | 否   | 导入、导出时必须随包携带的相对路径                                |
+| `icon`              | 否   | `resources` 中显式列出的包内 PNG 图标路径，例如 `assets/logo.png` |
+| `description`       | 否   | 插件说明                                                          |
+| `engines.milkup`    | 否   | 兼容的 Milkup 版本范围                                            |
+| `engines.pluginSdk` | 否   | 兼容的插件 SDK 版本范围                                           |
+| `permissions`       | 否   | 插件请求的宿主权限                                                |
+| `networkOrigins`    | 否   | 网络访问的精确 HTTP(S) origin 白名单                              |
+| `contributes`       | 否   | 命令、快捷键、渲染器、UI 等贡献点                                 |
 
 相对路径不能包含向上的 `..` 跳转，也不能逃出插件目录或插件包。
+
+插件列表卡片只显示图标、名称和描述；点击或按 Enter/Space 打开详情后查看版本、兼容要求、权限、审批和启停/卸载操作。Esc 或“返回插件列表”恢复原卡片焦点。`icon` 当前支持不超过 256 KiB、宽高各不超过 1024 像素的 PNG；路径段只使用字母、数字、下划线和连字符，不接受绝对路径、URL、`..`、反斜线或 SVG。图标必须来自已安装包目录或内置分发包；裸开发目录清单、缺图或损坏图标使用默认标识。`.milkup-plugin` 中的 PNG 文件使用 `base64` 编码。
 
 ### 3.2 权限
 

@@ -1,13 +1,12 @@
+import { renderDesktopPluginManagerElement } from './desktop-plugin-manager-ui'
+import { loadDesktopPluginIcon } from './plugin-icon'
 import { createAppearanceController, type ThemePreference } from './appearance'
 import { bundledPluginPaths, readBundledPlugin } from './bundled-plugin-catalog'
 import { createRecoveryController, type RecoveryRecord, type RecoveryStatus } from './recovery'
 import { createRecoveryUi } from './recovery-ui'
 import { createMarkdownClipboardPayload } from '@milkup/export'
-import {
-  createApplicationUpdateController,
-  nativeApplicationUpdateBackend,
-} from './application-update'
-import { applicationUpdateMarkup, renderApplicationUpdate } from './application-update-ui'
+import { createDesktopReleaseAdapter, nativeReleaseTransport } from './plugin-release-service'
+import { createProtectedInstallGate } from './protected-install'
 import { reconcileSaveWatchEvents } from './save-watch-reconciliation'
 import {
   createDocumentTransitionController,
@@ -128,7 +127,6 @@ import { createDesktopLargeTextFileService } from './large-file-service'
 import {
   createDesktopPluginActions,
   DesktopPluginManager,
-  renderDesktopPluginManager,
   resolvePluginEntryPath,
 } from './desktop-plugin-manager'
 import { DesktopPluginUiController } from './desktop-plugin-ui'
@@ -400,7 +398,6 @@ app.innerHTML = `
                 <dd>${appCopyright}</dd>
               </div>
             </dl>
-            ${applicationUpdateMarkup}
           </section>
         </div>
       </div>
@@ -607,6 +604,7 @@ const documentTransitions = createDocumentTransitionController({
     closeWindowConfirm()
   },
   onError: (error) => {
+    protectedInstallGate?.fail(error)
     importantNotice = true
     notice = `文档操作失败：${getErrorMessage(error)}`
     renderSession()
@@ -906,9 +904,27 @@ void fileService
     renderSession()
   })
 
+const protectedInstallGate = createProtectedInstallGate({
+  busy: () => isDocumentBusy() || isDocumentSaving() || closeConfirmOpen,
+  requestTransition: (proceed) => documentTransitions.request('update', proceed),
+  cancelTransition: () => documentTransitions.cancel(),
+  prepareDocument: async () => {
+    await sourceView?.flushPendingEdits()
+    await recovery?.flush()
+    if (session.dirty || session.externalChangeState !== 'none' || isDocumentSaving())
+      throw Error('文档尚未安全保存。请处理未保存内容或外部修改冲突后重试。')
+  },
+  setInstalling: (value) => {
+    applicationUpdateInstalling = value
+    renderSession()
+  },
+  returnFocus: () => appRoot.querySelector<HTMLElement>('.plugin-ui-modal')?.focus(),
+})
+
 const desktopActionRegistry = new ActionRegistry(createDesktopActions())
 const desktopActionPermissions = Object.freeze([
   'app:control',
+  'app:updates',
   'document:read',
   'document:write',
   'file:read',
@@ -924,6 +940,12 @@ const desktopPluginManager = new DesktopPluginManager({
   permissions: desktopActionPermissions,
   milkupVersion: appVersion,
   pluginSdkVersion: __MILKUP_PLUGIN_SDK_VERSION__,
+  releasesAdapter: () =>
+    createDesktopReleaseAdapter({
+      transport: nativeReleaseTransport(),
+      currentVersion: appVersion,
+      confirmInstall: (request) => protectedInstallGate.request(request),
+    }),
   storage: globalThis.localStorage,
   bundledPackagePaths: async () => (isTauriRuntime() ? bundledPluginPaths() : []),
   documentSource: () => {
@@ -938,6 +960,7 @@ const desktopPluginManager = new DesktopPluginManager({
       process: createDesktopPluginSidecarProcess({ executable }),
       ...(capabilities?.documentBroker ? { documentBroker: capabilities.documentBroker } : {}),
       ...(capabilities?.uiBroker ? { uiBroker: capabilities.uiBroker } : {}),
+      ...(capabilities?.releasesBroker ? { releasesBroker: capabilities.releasesBroker } : {}),
       timeoutMs: 10_000,
     }),
     dispose: () => undefined,
@@ -1066,55 +1089,9 @@ appRoot.querySelector<HTMLElement>('[data-plugin-manager]')?.addEventListener('c
   }
 })
 
-const updateBackend = nativeApplicationUpdateBackend()
-const applicationUpdate = createApplicationUpdateController(
-  {
-    ...updateBackend,
-    async install(token) {
-      await sourceView?.flushPendingEdits()
-      await recovery?.flush()
-      if (session.dirty || session.externalChangeState !== 'none' || isDocumentSaving())
-        throw Error('文档尚未安全保存。请处理未保存内容或外部修改冲突后重试。')
-      await updateBackend.install(token)
-    },
-  },
-  (state) => {
-    applicationUpdateInstalling = state.phase === 'installing'
-    renderApplicationUpdate(appRoot, state, isTauriRuntime())
-    renderSession()
-  },
-)
-renderApplicationUpdate(appRoot, applicationUpdate.state, isTauriRuntime())
-appRoot.querySelector('[data-update-check]')?.addEventListener('click', () => {
-  void applicationUpdate.check()
-})
-appRoot.querySelector('[data-update-download]')?.addEventListener('click', () => {
-  void applicationUpdate.download()
-})
-appRoot.querySelector('[data-update-cancel]')?.addEventListener('click', () => {
-  void applicationUpdate.cancelDownload()
-})
-appRoot.querySelector('[data-update-install]')?.addEventListener('click', () => {
-  applicationUpdate.requestInstallation()
-  appRoot.querySelector<HTMLButtonElement>('[data-update-later]')?.focus()
-})
-appRoot.querySelector('[data-update-later]')?.addEventListener('click', () => {
-  applicationUpdate.cancelConfirmation()
-  appRoot.querySelector<HTMLButtonElement>('[data-update-install]')?.focus()
-})
-appRoot.querySelector('[data-update-confirm]')?.addEventListener('click', () => {
-  void documentTransitions.request('update', () => applicationUpdate.installAfterDocumentGuard())
-})
-
 function cancelDocumentTransition(): void {
-  const update = transitionPrompt?.kind === 'update'
-  documentTransitions.cancel()
-  if (update) {
-    applicationUpdate.cancelConfirmation()
-    setMenuOpen(true)
-    showMenuSection('about')
-    appRoot.querySelector<HTMLButtonElement>('[data-update-install]')?.focus()
-  }
+  if (transitionPrompt?.kind === 'update') protectedInstallGate.cancel()
+  else documentTransitions.cancel()
 }
 
 app.querySelector<HTMLButtonElement>('[data-menu-toggle]')?.addEventListener('click', () => {
@@ -1294,7 +1271,9 @@ globalThis.addEventListener(
         cancelDocumentTransition()
       } else if (event.key === 'Tab' || event.code === 'Tab') {
         const buttons = Array.from(
-          appRoot.querySelectorAll<HTMLButtonElement>('[data-close-confirm] button:not(:disabled)'),
+          appRoot.querySelectorAll<HTMLButtonElement>(
+            '[data-close-confirm] button:not(:disabled):not([hidden])',
+          ),
         )
         const index = buttons.indexOf(document.activeElement as HTMLButtonElement)
         const next = (index + (event.shiftKey ? -1 : 1) + buttons.length) % buttons.length
@@ -1307,6 +1286,7 @@ globalThis.addEventListener(
       return
     }
     if (event.isComposing || event.keyCode === 229) return
+    if (event.target instanceof HTMLElement && event.target.closest('.plugin-ui-modal')) return
     if (menuOpen && (event.key === 'Tab' || event.code === 'Tab')) {
       const controls = visibleFocusTargets(appRoot.querySelector('[data-app-menu]')!)
       const index = controls.indexOf(document.activeElement as HTMLElement)
@@ -1543,7 +1523,7 @@ function runDesktopAction(id: string, input: unknown = {}): void {
         refreshPluginContributionsInViews()
       }
       renderSession()
-      view?.inputDOM.focus({ preventScroll: true })
+      if (!id.startsWith('plugin.')) view?.inputDOM.focus({ preventScroll: true })
     })
 }
 
@@ -3026,12 +3006,13 @@ function renderPluginManager(): void {
     return
   }
 
-  target.innerHTML = renderDesktopPluginManager(desktopPluginManager.state())
+  renderDesktopPluginManagerElement(target, desktopPluginManager.state(), loadDesktopPluginIcon)
 }
 
 function createDesktopPluginManifestHost(): {
   readonly selectManifestPath: () => Promise<string | undefined>
   readonly readManifestText: (path: string) => Promise<string>
+  readonly readPackageIcon: (pluginId: string) => Promise<Uint8Array>
   readonly prepareModule: (
     manifest: PluginManifest,
     manifestPath: string,
@@ -3075,6 +3056,12 @@ function createDesktopPluginManifestHost(): {
 
       const { invoke } = await import('@tauri-apps/api/core')
       return invoke<string>('read_plugin_text_file', { path })
+    },
+    async readPackageIcon(pluginId: string): Promise<Uint8Array> {
+      if (!isTauriRuntime())
+        throw new Error('Installed plugin icon export requires the desktop runtime')
+      const { invoke } = await import('@tauri-apps/api/core')
+      return new Uint8Array(await invoke<number[]>('read_plugin_icon', { pluginId }))
     },
     async prepareModule(manifest: PluginManifest, manifestPath: string, main: string) {
       if (manifest.host === 'sidecar') {
@@ -3283,8 +3270,6 @@ function cycleWorkspaceFocus(backward: boolean): void {
 }
 
 function setMenuOpen(open: boolean): void {
-  if (!open && applicationUpdate.state.phase === 'confirming' && !closeConfirmOpen)
-    applicationUpdate.cancelConfirmation()
   const wasOpen = menuOpen
   menuOpen = open
   setTransitionBackgroundInert(closeConfirmOpen)
@@ -3983,7 +3968,12 @@ function openWindowConfirm(): void {
 
 function renderCloseConfirmState(): void {
   const saving = transitionPrompt?.phase === 'saving'
-  const title = saving ? messages.closeConfirm.savingTitle : messages.closeConfirm.title
+  const protectedRestart = transitionPrompt?.kind === 'update'
+  const title = saving
+    ? messages.closeConfirm.savingTitle
+    : protectedRestart
+      ? '确认安装已验证的应用版本'
+      : messages.closeConfirm.title
   const actionLabel = {
     new: '新建文档',
     open: '打开另一份文档',
@@ -3993,7 +3983,9 @@ function renderCloseConfirmState(): void {
   }[transitionPrompt?.kind ?? 'window']
   const body = saving
     ? '正在保存当前文档。取消可停止后续操作，已开始的保存仍会完成。'
-    : `“${getSessionTitleInfo(session.file?.path).name}”有未保存的更改。${actionLabel}前是否保存？`
+    : protectedRestart
+      ? `安装已验证版本 ${protectedInstallGate.version ?? ''} 将关闭并重新启动 Milkup。${session.dirty ? '继续前必须保存当前文档。' : '请确认继续安装。'}`
+      : `“${getSessionTitleInfo(session.file?.path).name}”有未保存的更改。${actionLabel}前是否保存？`
   setText('[data-close-confirm-action="discard"]', `不保存并${actionLabel}`)
   setText('[data-transition-error]', transitionPrompt?.error ?? '')
   appRoot
@@ -4002,7 +3994,14 @@ function renderCloseConfirmState(): void {
 
   setText('#close-confirm-title', title)
   setText('#close-confirm-body', body)
-  setText('[data-close-save-label]', saving ? messages.stateSaving : `保存并${actionLabel}`)
+  setText(
+    '[data-close-save-label]',
+    saving
+      ? messages.stateSaving
+      : protectedRestart && !session.dirty
+        ? actionLabel
+        : `保存并${actionLabel}`,
+  )
 
   const saveButton = appRoot.querySelector<HTMLButtonElement>('[data-close-confirm-action="save"]')
   const discardButton = appRoot.querySelector<HTMLButtonElement>(
@@ -4035,7 +4034,8 @@ function closeWindowConfirm(): void {
 function setTransitionBackgroundInert(inert: boolean): void {
   for (const child of Array.from(appRoot.querySelector('.desktop-shell')!.children)) {
     if (child instanceof HTMLElement && !child.matches('[data-close-confirm]'))
-      child.inert = inert || (menuOpen && !child.matches('[data-app-menu]'))
+      child.inert =
+        inert || (menuOpen && !child.matches('[data-app-menu], [data-plugin-slot="modal"]'))
   }
 }
 

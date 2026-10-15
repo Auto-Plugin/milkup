@@ -14,6 +14,7 @@ export type ActionPermission =
   | 'file:delete'
   | 'network:access'
   | 'app:control'
+  | 'app:updates'
 
 export interface ActionInputField {
   readonly type: 'string' | 'number' | 'boolean'
