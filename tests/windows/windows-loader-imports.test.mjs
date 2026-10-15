@@ -155,8 +155,33 @@ test('MSVC build links one Common Controls manifest into binaries and library te
   assert.match(source, /WindowsAttributes::new_without_app_manifest\(\)/)
   assert.match(source, /windows_attributes\(windows\)/)
   assert.match(source, /cargo:rustc-link-arg=\/MANIFEST:EMBED/)
-  assert.match(source, /cargo:rustc-link-arg=\/MANIFESTDEPENDENCY:/)
-  assert.match(source, /name='Microsoft.Windows.Common-Controls' version='6\.0\.0\.0'/)
+  assert.match(source, /cargo:rustc-link-arg=\/MANIFESTINPUT:\{\}/)
+  assert.match(source, /Path::new\(env!\("CARGO_MANIFEST_DIR"\)\)/)
+  assert.match(source, /join\("windows-app.manifest"\)/)
+  assert.match(source, /cargo:rerun-if-changed=windows-app.manifest/)
+  assert.doesNotMatch(source, /MANIFESTDEPENDENCY|MANIFESTINPUT:\\\"/)
+  const manifest = await readFile(
+    new URL('../../apps/desktop/src-tauri/windows-app.manifest', import.meta.url),
+    'utf8',
+  )
+  const identities = [...manifest.matchAll(/<assemblyIdentity\s+([^>]+)\/>/g)]
+  assert.equal(identities.length, 1)
+  assert.deepEqual(
+    Object.fromEntries(
+      [...identities[0][1].matchAll(/(\w+)="([^"]*)"/g)].map((match) => [match[1], match[2]]),
+    ),
+    {
+      type: 'win32',
+      name: 'Microsoft.Windows.Common-Controls',
+      version: '6.0.0.0',
+      processorArchitecture: '*',
+      publicKeyToken: '6595b64144ccf1df',
+      language: '*',
+    },
+  )
+  assert.doesNotMatch(manifest, /<!DOCTYPE|<!ENTITY|requestedExecutionLevel/)
+  assert.match(manifest, /xmlns="urn:schemas-microsoft-com:asm.v1"/)
+
   assert.doesNotMatch(source, /rustc-link-arg-tests|rustc-link-arg-bins/)
   assert.match(source, /else \{\s*tauri_build::build\(\)/)
 })

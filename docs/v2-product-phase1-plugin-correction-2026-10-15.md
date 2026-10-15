@@ -31,7 +31,7 @@ SDK 新增受 `app:updates` 审批保护的 `host.releases.check/stage/status/ca
 
 ## 源码与身份
 
-最终实现提交 `097d6735086927d6075c1d32b32a588284542303` 已推送隔离分支并核对远端 SHA。GitHub 返回 author/committer 均为 `LarryZhu-dev`（ID 40397402），提交身份为 `LarryZhu-dev <larryzhu@foxmail.com>`。源码提交保持请求禁用；其后仅修改请求文件的 `db9be7d8456e0e5e3588d578b7226380ab13e90e` 启用本轮构建，精确引用已验证源码。仓库旧 hooks 引用缺失的工具，本轮按既有授权仅在提交命令设置 `SKIP_SIMPLE_GIT_HOOKS=1`，没有修改 hooks；实际检查记录见前文。
+插件架构实现提交 `097d6735086927d6075c1d32b32a588284542303` 已推送隔离分支并核对远端 SHA。GitHub 返回 author/committer 均为 `LarryZhu-dev`（ID 40397402），提交身份为 `LarryZhu-dev <larryzhu@foxmail.com>`。源码提交保持请求禁用；其后仅修改请求文件的 `db9be7d8456e0e5e3588d578b7226380ab13e90e` 启用本轮构建，精确引用已验证源码。Windows 加载修复及只读产物 manifest 核验的最终源码为 `43d873504a7d10585ff6a884677c71758b91ccf4`，构建触发提交为 `5690dfb8d333c215618fc32f05abeeb48d736a31`；二者产品业务代码与 Linux 已验版本相同，仅 Windows MSVC 链接配置和 CI 取证发生变化。修复后 Linux Rust 84 项通过、1 忽略，CI 契约测试共 53 项通过。仓库旧 hooks 引用缺失的工具，本轮按既有授权仅在提交命令设置 `SKIP_SIMPLE_GIT_HOOKS=1`，没有修改 hooks；实际检查记录见前文。
 
 ## Windows 交付授权与剩余边界
 
@@ -40,6 +40,8 @@ SDK 新增受 `app:updates` 审批保护的 `host.releases.check/stage/status/ca
 首轮 Windows run [38678616137](https://github.com/Auto-Plugin/milkup/actions/runs/38678616137) 已通过 1090 项工作区测试、类型检查和 44 项构建辅助测试；Rust 测试 exe 编译成功后在进入 harness 前以 `0xc0000139 STATUS_ENTRYPOINT_NOT_FOUND` 退出，故整个任务失败。上传未运行，API 确认 artifact 为零，预算未消费；此失败不能计入 Rust 或 Windows 安装验收。
 
 诊断 run [38679750892](https://github.com/Auto-Plugin/milkup/actions/runs/38679750892) 保留失败且 artifact 为零。实证显示库测试 exe 直接导入 `comctl32.dll!TaskDialogIndirect`，默认系统 DLL 不导出它，原 exe 无 manifest resource。临时副本仅补 Common Controls v6 manifest 后，77 项 Rust 测试通过、1 项既有忽略；该副本只用于对照，不替代原始测试门禁。依赖资源工具只把默认 manifest 链接到 binary targets，漏掉 lib harness，故需正式修正 Windows MSVC 的 manifest 链接配置。
+
+后续 run [38680397725](https://github.com/Auto-Plugin/milkup/actions/runs/38680397725) 暴露首版修复的 MSVC 参数转义问题：内嵌引号的 `/MANIFESTDEPENDENCY` 被拆分，链接以 `LNK1181` 失败。没有生成测试 exe 或 artifact。改用受版本控制的 XML manifest 与 `/MANIFESTINPUT`，避免嵌套命令行引号；实际产物仍须提取 XML 验证。
 
 上传前门禁检查六个文件：一个未签名 Windows x64 NSIS、两个独立插件包、manifest、SHA256SUMS 和 README。裸文件总量不超过 255 MiB，为 ZIP 留余量；单 artifact、一天保留、不覆盖、不创建 Release 或 cache。实际 run、artifact 字节和到期时间待执行后记录。费用依据于 2026-10-15 核对 [GitHub 官方计费说明](https://docs.github.com/en/billing/concepts/product-billing/github-actions)：公共仓库标准 runner 免费，超额 artifact 存储为每 GiB/月 US$0.25、按小时累计。即使不使用免费额度，256 MiB 保留一天按最短 28 天月估算约 US$0.00224（税前；尚非实际账单），低于本次 US$0.01 上限；本流程不生成 cache。
 

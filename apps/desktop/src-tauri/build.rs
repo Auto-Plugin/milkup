@@ -1,6 +1,7 @@
 fn main() {
     println!("cargo:rerun-if-changed=../../../package.json");
     println!("cargo:rerun-if-changed=../package.json");
+    println!("cargo:rerun-if-changed=windows-app.manifest");
     let root: serde_json::Value = serde_json::from_str(
         &std::fs::read_to_string("../../../package.json").expect("read application version"),
     )
@@ -28,9 +29,11 @@ fn main() {
         tauri_build::try_build(tauri_build::Attributes::new().windows_attributes(windows))
             .expect("build Tauri resources");
         println!("cargo:rustc-link-arg=/MANIFEST:EMBED");
-        println!(
-            "cargo:rustc-link-arg=/MANIFESTDEPENDENCY:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\""
-        );
+        // Pass one path argument, not manifest attributes with nested quotes.
+        // CARGO_MANIFEST_DIR is absolute; do not add manual command-line quoting.
+        let manifest =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("windows-app.manifest");
+        println!("cargo:rustc-link-arg=/MANIFESTINPUT:{}", manifest.display());
     } else {
         tauri_build::build()
     }
