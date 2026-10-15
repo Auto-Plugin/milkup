@@ -24,8 +24,10 @@
 
 ## 验证记录
 
-新增预装回归先记录 7 项失败；实现后扩展为 10 项并全部通过（含首次预装与主动安装的顺序）。全仓单元测试 1007 项通过；最后增加安装顺序回归后，受影响桌面 144 项通过。大纲 24 项、Windows 构建树/二进制工具 9 项通过；Rust 75 通过，1 个既有性能基准忽略。类型检查、全仓构建、格式检查和 Chromium 浏览器 79 项通过。生产 Linux deb 重建并解包运行；原生与浏览器最终结果在完成后补记。
+新增预装回归先记录 7 项失败；实现后扩展为 10 项并全部通过（含首次预装与主动安装的顺序）。全仓单元测试 1007 项通过；最后增加安装顺序回归后，受影响桌面 144 项通过。大纲 24 项、Windows 构建树/二进制工具 9 项通过；Rust 75 通过，1 个既有性能基准忽略。类型检查、全仓构建、格式检查和 Chromium 浏览器 79 项通过。生产 Linux deb 重建并解包运行。首轮完整插件组合通过（39 阶段，含 26 MB 全文大纲及中部导航）。最后仅增加用户安装等待初始化后，重建并用全新 profile 再验首次预装/禁用/卸载/重启、正常 GTK 手动安装、改名插件和普通/180015 行窗口化任务编辑/保存/实际 SIGKILL 恢复（29 阶段，全部通过；此轮不重复 26 MB 大纲部分）。完整字节比较、文档原件保护与独立插件卸载后的编辑均通过。记录见 [证据摘要](evidence/v2-windows-standard-delivery/summary.json)、[最终原生结果](evidence/v2-windows-standard-delivery/native-final-results.json)、[首次预装截图](evidence/v2-windows-standard-delivery/bundled-first-start.png)。
 
 完整当前证据位于 `/workspace/milkup-windows-delivery-evidence`。Linux 原生结果不代替 Windows/WebView2、真实系统 IME 或用户桌面安装验收。Windows 下载件的实际大小、SHA、构建 run 和上传结果须待实际生成后记录，不能以旧包替代。
 
 提交身份已通过 GitHub authenticated profile 再次核验为 LarryZhu-dev（40397402），邮箱 larryzhu@foxmail.com。沿用已有单次 `SKIP_SIMPLE_GIT_HOOKS=1`：旧 Electron hooks 调用 v2 不存在的 lint-staged 配置/提交脚本，未修改 hooks 或安全设置，以本轮实际检查为准。
+
+源码提交 `9e03ca2e30944df05b7a87391a5e07b710a4db24` 已推送专用分支，GitHub author/committer 均为 LarryZhu-dev。无上传 Windows 验证 [38664582584](https://github.com/Auto-Plugin/milkup/actions/runs/38664582584) 失败于独立插件测试的 SDK 解析：干净 runner 未安装插件自己的 node_modules。此前 Windows 全仓 1008 项、类型检查、Rust 69 通过/1 忽略及二进制/构建树 9 项通过，未进入打包且 artifact 数为 0。已为该测试入口显式解析 SDK 公共导出；本地暂存并移走插件 node_modules 后，24 项测试及同字节独立档案构建通过。未跳过测试或修改插件实现，准备再次无上传验证。

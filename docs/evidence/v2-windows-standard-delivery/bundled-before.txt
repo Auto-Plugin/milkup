@@ -1,0 +1,151 @@
+$ vitest run --passWithNoTests -- src/bundled-plugins.test.ts
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ✓ src/file-service.test.ts (4 tests) 36ms
+ ✓ src/recovery.test.ts (7 tests) 31ms
+ ✓ src/desktop-plugin-manager.test.ts (15 tests) 92ms
+ ✓ src/plugin-file-broker.test.ts (5 tests) 33ms
+ ✓ src/document-transition.test.ts (15 tests) 24ms
+ ❯ src/bundled-plugins.test.ts (7 tests | 7 failed) 31ms
+   × bundled plugin first-run installation > uses the package installer and isolated loader for an arbitrary readonly plugin 11ms
+     → expected "spy" to be called 1 times, but got 0 times
+   × bundled plugin first-run installation > preserves disable and uninstall across restart and newer bundled versions 7ms
+     → Unknown plugin registry record: generic.sample
+   × bundled plugin first-run installation > preserves an existing user version 0.5.0 and its disabled state 1ms
+     → Unknown plugin registry record: generic.sample
+   × bundled plugin first-run installation > preserves an existing user version 9.0.0 and its disabled state 1ms
+     → Unknown plugin registry record: generic.sample
+   × bundled plugin first-run installation > does not auto-approve privileged packages 6ms
+     → expected [] to have a length of 1 but got +0
+   × bundled plugin first-run installation > fails closed on corrupt receipts without preventing ordinary startup 2ms
+     → expected [] to have a length of 1 but got +0
+   × bundled plugin first-run installation > does not install if durable receipt storage fails 2ms
+     → the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+ ✓ src/plugin-temporary-storage.test.ts (5 tests) 39ms
+ ✓ src/plugin-sidecar.test.ts (2 tests) 8ms
+ ✓ src/appearance.test.ts (5 tests) 12ms
+ ✓ src/asset-service.test.ts (3 tests) 5ms
+ ✓ src/desktop-search-navigation.test.ts (4 tests) 6ms
+ ✓ src/large-file-service.test.ts (1 test) 7ms
+ ✓ src/desktop-document-search.test.ts (6 tests) 12ms
+ ✓ src/large-document-source.test.ts (5 tests) 15ms
+ ✓ src/large-document-editing.test.ts (4 tests) 11ms
+ ✓ src/large-document-search.test.ts (5 tests) 17ms
+ ✓ src/document-loading-visibility.test.ts (4 tests) 8ms
+ ✓ src/desktop-large-open-flow.test.ts (2 tests) 11ms
+ ✓ src/document-open-flow.test.ts (3 tests) 8ms
+ ✓ src/large-document-conflict.test.ts (3 tests) 4ms
+ ✓ src/save-watch-reconciliation.test.ts (6 tests) 3ms
+ ✓ src/open-stage-diagnostics.test.ts (2 tests) 5ms
+ ✓ src/desktop-open-policy.test.ts (6 tests) 6ms
+ ✓ src/editor-view-refresh.test.ts (3 tests) 4ms
+ ✓ src/desktop-plugin-ui.test.ts (19 tests) 3033ms
+   ✓ DesktopPluginUiController > requests a new buffered range when the outline is scrolled outside its rendered slice  695ms
+   ✓ DesktopPluginUiController > requests one adjacent buffer only after a real user wheel gesture reaches an edge  659ms
+   ✓ DesktopPluginUiController > requests the previous buffer only when the list reaches the exact top edge  432ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/bundled-plugins.test.ts > bundled plugin first-run installation > uses the package installer and isolated loader for an arbitrary readonly plugin
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ src/bundled-plugins.test.ts:44:21
+     42|     const { manager, install, load } = setup()
+     43|     await manager.ready
+     44|     expect(install).toHaveBeenCalledTimes(1)
+       |                     ^
+     45|     expect(load).toHaveBeenCalledTimes(1)
+     46|     expect(manager.state().records[0]).toMatchObject({ enabled: true,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  src/bundled-plugins.test.ts > bundled plugin first-run installation > preserves disable and uninstall across restart and newer bundled versions
+Error: Unknown plugin registry record: generic.sample
+ ❯ PluginRegistry.require ../../packages/plugin/src/registry.ts:385:13
+    383| 
+    384|     if (!record) {
+    385|       throw new Error(`Unknown plugin registry record: ${pluginId}`)
+       |             ^
+    386|     }
+    387| 
+ ❯ PluginRegistry.markDisabled ../../packages/plugin/src/registry.ts:266:25
+ ❯ DesktopPluginManager.disable src/desktop-plugin-manager.ts:354:34
+ ❯ src/bundled-plugins.test.ts:53:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  src/bundled-plugins.test.ts > bundled plugin first-run installation > preserves an existing user version 0.5.0 and its disabled state
+ FAIL  src/bundled-plugins.test.ts > bundled plugin first-run installation > preserves an existing user version 9.0.0 and its disabled state
+Error: Unknown plugin registry record: generic.sample
+ ❯ PluginRegistry.require ../../packages/plugin/src/registry.ts:385:13
+    383| 
+    384|     if (!record) {
+    385|       throw new Error(`Unknown plugin registry record: ${pluginId}`)
+       |             ^
+    386|     }
+    387| 
+ ❯ PluginRegistry.markDisabled ../../packages/plugin/src/registry.ts:266:25
+ ❯ DesktopPluginManager.disable src/desktop-plugin-manager.ts:354:34
+ ❯ src/bundled-plugins.test.ts:71:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  src/bundled-plugins.test.ts > bundled plugin first-run installation > does not auto-approve privileged packages
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/bundled-plugins.test.ts:90:45
+     88|     expect(install).not.toHaveBeenCalled()
+     89|     expect(load).not.toHaveBeenCalled()
+     90|     expect(manager.state().installFailures).toHaveLength(1)
+       |                                             ^
+     91|   })
+     92| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  src/bundled-plugins.test.ts > bundled plugin first-run installation > fails closed on corrupt receipts without preventing ordinary startup
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/bundled-plugins.test.ts:99:45
+     97|     await manager.ready
+     98|     expect(install).not.toHaveBeenCalled()
+     99|     expect(manager.state().installFailures).toHaveLength(1)
+       |                                             ^
+    100|     expect(saved.getItem('milkup.desktop.plugins.bundled.v1')).toBe('{…
+    101|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  src/bundled-plugins.test.ts > bundled plugin first-run installation > does not install if durable receipt storage fails
+AssertionError: the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+ ❯ src/bundled-plugins.test.ts:113:57
+    111|     await manager.ready
+    112|     expect(install).not.toHaveBeenCalled()
+    113|     expect(manager.state().installFailures[0]?.message).toContain('quo…
+       |                                                         ^
+    114|   })
+    115| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+
+ Test Files  1 failed | 24 passed (25)
+      Tests  7 failed | 134 passed (141)
+   Start at  01:02:59
+   Duration  5.97s (transform 1.81s, setup 0ms, collect 3.57s, tests 3.46s, environment 1.24s, prepare 2.49s)
+
+/workspace/milkup/apps/desktop:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/desktop@0.1.0 test: `vitest run --passWithNoTests -- src/bundled-plugins.test.ts`
+Exit status 1

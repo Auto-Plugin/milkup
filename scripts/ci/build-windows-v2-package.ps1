@@ -68,7 +68,7 @@ try {
             (Test-Path 'apps/desktop/src-tauri/tauri.windows.conf.json')) {
             throw 'Standard delivery requires the reviewed default WebView2 mode without overrides.'
         }
-        Invoke-Checked 'pnpm' @('exec', 'vitest', 'run', 'plugins/outline/src')
+        Invoke-Checked 'pnpm' @('test:outline')
         Invoke-Checked 'node' @('scripts/ci/prepare-bundled-plugins.mjs')
         $pluginFiles = @(Get-ChildItem -LiteralPath 'apps/desktop/src/bundled-plugins' -Filter '*.milkup-plugin' -File)
         if ($pluginFiles.Count -ne 1) { throw 'Unexpected bundled plugin inventory' }
