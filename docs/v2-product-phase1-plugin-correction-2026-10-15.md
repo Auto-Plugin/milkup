@@ -23,16 +23,22 @@ SDK 新增受 `app:updates` 审批保护的 `host.releases.check/stage/status/ca
 
 ## 验证记录
 
-本轮初始完整单元测试 1082 项通过，完整类型检查与前端构建通过；随后通用 UI 的新增/修复测试单独完整验证。外部 SDK tarball 构建大纲与更新插件，分别 24 和 17 项测试通过。CI 上传/构建树门禁 39 项通过。Rust 直接运行 84 项通过、1 项原有性能测试忽略；环境包装 runner 下出现的 3 项目录清理 `Bad address` 失败原样保留，未当作产品通过。
+本轮初始完整单元测试 1082 项通过；最终源码在 Windows CI 完整执行 1090 项通过（含后增 8 项 UI 回归），完整类型检查与前端构建通过；随后通用 UI 的新增/修复测试单独完整验证。外部 SDK tarball 构建大纲与更新插件，分别 24 和 17 项测试通过。CI 上传/构建树门禁 39 项通过。Rust 直接运行 84 项通过、1 项原有性能测试忽略；环境包装 runner 下出现的 3 项目录清理 `Bad address` 失败原样保留，未当作产品通过。
 
 最终 Chromium 全仓 98 项通过；随后桌面 181 项单元测试、全仓类型和格式通过，冻结锁文件安装未改变锁文件。最新 deb 的生产原生矩阵已覆盖 light/dark × 100/125/150/200% 原生缩放 × 1100×760/760×520 共 16 组合；正常档案安装、显式审批、禁用/卸载、重启不复活、source/live 编辑撤销重做与完整字节保存、真实 SIGKILL 后恢复副本且保留原文件均通过。真实 0.1.0 档案迁移通过：旧大纲兼容拒绝、外部 1.3.1 安装启用、重启状态保持，更新仍未审批。18,000 行窗口化文档在 source/live 切换后保留选区与光标，两种模式输入、撤销重做及保存均比对完整 Unicode/CRLF 字节；末尾光标等于完整 UTF-16 长度。窗口化首轮即时读取少一个按键属于测试观察竞态，失败捕获已收到最后按键，改为等待同一快照的目标选区后通过；未修改产品。首次结果像素专项在不含连续 rAF 观察器、静置 5 秒时即正确显示，无需移动鼠标或 resize；保留短等待的旧截图，不据此宣称已建立绘制延迟性能结论。真实更新渠道仍未配置，原生 UI 如实显示未配置；浏览器网络/安装替身与 Rust 真实签名测试向量分别注明，不冒充在线生产更新。
 
 像素与原始日志见[证据目录](evidence/v2-plugin-architecture)：[简洁卡片及 PNG](evidence/v2-plugin-architecture/plugin-cards-with-png.png)、[外部包审批前](evidence/v2-plugin-architecture/external-package-awaiting-approval.png)、[深色 200% 窄窗](evidence/v2-plugin-architecture/native-dark-760-200.png)、[卸载更新插件后的恢复](evidence/v2-plugin-architecture/recovery-without-updates.png)。另有[迁移重启](evidence/v2-plugin-architecture/migration-after-restart.png)、[窗口化选区](evidence/v2-plugin-architecture/windowed-live-selection.png)和[无需 resize 的首次结果](evidence/v2-plugin-architecture/first-result-without-resize.png)。[原生索引](evidence/v2-plugin-architecture/native-summary.json)区分完整流程、补验和保留失败。原生截图为真实 X11 像素，不以浏览器视口模拟原生缩放。
 
+## 源码与身份
+
+最终实现提交 `097d6735086927d6075c1d32b32a588284542303` 已推送隔离分支并核对远端 SHA。GitHub 返回 author/committer 均为 `LarryZhu-dev`（ID 40397402），提交身份为 `LarryZhu-dev <larryzhu@foxmail.com>`。源码提交保持请求禁用；其后仅修改请求文件的 `db9be7d8456e0e5e3588d578b7226380ab13e90e` 启用本轮构建，精确引用已验证源码。仓库旧 hooks 引用缺失的工具，本轮按既有授权仅在提交命令设置 `SKIP_SIMPLE_GIT_HOOKS=1`，没有修改 hooks；实际检查记录见前文。
+
 ## Windows 交付授权与剩余边界
 
 用户本次明确接受离线 Evergreen Runtime 条款，并新增一轮 artifact 上传额度：总量不超过 256 MiB、保留不超过 1 天、额外费用不超过 US$0.01（税费另计）。旧标准包额度保持已消费。本轮独立请求 `windows-plugin-offline-2026-10-15-01` 默认关闭；最终代码提交验证后，启用提交只能改该请求，且需要精确 reviewed source SHA 和两个触发标记。
 
-上传前门禁检查六个文件：一个未签名 Windows x64 NSIS、两个独立插件包、manifest、SHA256SUMS 和 README。裸文件总量不超过 255 MiB，为 ZIP 留余量；单 artifact、一天保留、不覆盖、不创建 Release 或 cache。实际 run、artifact 字节和到期时间待执行后记录。
+首轮 Windows run [38678616137](https://github.com/Auto-Plugin/milkup/actions/runs/38678616137) 已通过 1090 项工作区测试、类型检查和 44 项构建辅助测试；Rust 测试 exe 编译成功后在进入 harness 前以 `0xc0000139 STATUS_ENTRYPOINT_NOT_FOUND` 退出，故整个任务失败。上传未运行，API 确认 artifact 为零，预算未消费；此失败不能计入 Rust 或 Windows 安装验收。
+
+上传前门禁检查六个文件：一个未签名 Windows x64 NSIS、两个独立插件包、manifest、SHA256SUMS 和 README。裸文件总量不超过 255 MiB，为 ZIP 留余量；单 artifact、一天保留、不覆盖、不创建 Release 或 cache。实际 run、artifact 字节和到期时间待执行后记录。费用依据于 2026-10-15 核对 [GitHub 官方计费说明](https://docs.github.com/en/billing/concepts/product-billing/github-actions)：公共仓库标准 runner 免费，超额 artifact 存储为每 GiB/月 US$0.25、按小时累计。即使不使用免费额度，256 MiB 保留一天按最短 28 天月估算约 US$0.00224（税前；尚非实际账单），低于本次 US$0.01 上限；本流程不生成 cache。
 
 Linux 和 Chromium 不能替代 Windows 实机验收。真实 Windows 更新安装/重启、缺 Runtime 机器安装、IME、读屏、DPI/多屏及完整升级矩阵仍需实机验证；本轮不生成真实发布密钥，不部署更新渠道，不合并 main/v2/质量分支。

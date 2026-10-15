@@ -71,7 +71,8 @@ try {
     if ($OfflineEvergreen) {
         Invoke-Checked 'node' @('--test', 'tests/windows/plugin-offline-delivery.test.mjs')
     }
-    Invoke-Checked 'cargo' @('test', '--locked', '--manifest-path', 'apps/desktop/src-tauri/Cargo.toml', '--lib')
+    Invoke-Checked 'node' @('--test', 'tests/windows/windows-loader-imports.test.mjs')
+    & "$PSScriptRoot/test-windows-rust-library.ps1" -EvidenceDirectory $evidence
     if ($BundledPlugins) {
         $standardConfig = Get-Content 'apps/desktop/src-tauri/tauri.conf.json' -Raw | ConvertFrom-Json
         if ($env:TAURI_CONFIG -or

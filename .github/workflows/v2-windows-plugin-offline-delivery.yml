@@ -60,7 +60,7 @@ jobs:
         if: ${{ always() && steps.request.outputs.approved == 'true' }}
         run: |
           $ErrorActionPreference = 'Stop'
-          foreach ($name in @('build-result.json', 'build-tree.json', 'binary-comparison.json', 'installation-result.json', 'installed-smoke.json', 'smoke-stderr.log', 'driver.log', 'native-driver.log', 'application.log', 'minimal-control-result.json', 'minimal-control-startup.json', 'product-failure-startup.json')) {
+          foreach ($name in @('rust-test-result.json', 'rust-loader-result.json', 'rust-loader-imports.log', 'rust-loader-manifest.log', 'rust-v6-embed.log', 'rust-v6-list.log', 'rust-v6-tests.log', 'build-result.json', 'build-tree.json', 'binary-comparison.json', 'installation-result.json', 'installed-smoke.json', 'smoke-stderr.log', 'driver.log', 'native-driver.log', 'application.log', 'minimal-control-result.json', 'minimal-control-startup.json', 'product-failure-startup.json')) {
             $path = Join-Path $env:MILKUP_PACKAGE_OUTPUT "evidence/$name"
             if (Test-Path -LiteralPath $path) {
               Write-Output "VALIDATION EVIDENCE: $name"
