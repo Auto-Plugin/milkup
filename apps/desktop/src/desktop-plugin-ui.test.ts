@@ -6,6 +6,137 @@ import { describe, expect, it, vi } from 'vitest'
 import { DesktopPluginUiController, type DesktopPluginUiRuntime } from './desktop-plugin-ui'
 
 describe('DesktopPluginUiController', () => {
+  it('combines embedding slot visibility with panel collapse without affecting other slots', async () => {
+    document.body.innerHTML =
+      '<div data-plugin-slot="sidebar-panel"></div><div data-plugin-slot="menu-page"></div>'
+    const calls: { id: string; visible: unknown }[] = []
+    const runtime = createRuntime(
+      [
+        {
+          pluginId: 'example',
+          id: 'tree',
+          title: 'Tree',
+          slot: 'sidebar-panel',
+          viewportUpdates: false,
+        },
+        { pluginId: 'example', id: 'page', title: 'Page', slot: 'menu-page' },
+      ],
+      [],
+    )
+    runtime.renderUi = async (_plugin, id, _phase, state) => {
+      calls.push({ id, visible: state?.visible })
+      return 'content'
+    }
+    const controller = new DesktopPluginUiController(document.body, runtime)
+    controller.setSlotVisible('sidebar-panel', false)
+    await controller.sync('doc')
+    expect(calls).toEqual([
+      { id: 'tree', visible: false },
+      { id: 'page', visible: true },
+    ])
+    calls.length = 0
+    controller.setSlotVisible('sidebar-panel', false)
+    expect(calls).toHaveLength(0)
+    controller.setSlotVisible('sidebar-panel', true)
+    expect(calls).toEqual([{ id: 'tree', visible: true }])
+    const toggle = document.querySelector<HTMLButtonElement>('.plugin-ui-panel-toggle')!
+    toggle.click()
+    expect(calls.at(-1)).toEqual({ id: 'tree', visible: false })
+    controller.setSlotVisible('sidebar-panel', false)
+    controller.setSlotVisible('sidebar-panel', true)
+    expect(calls.at(-1)).toEqual({ id: 'tree', visible: false })
+    toggle.click()
+    expect(calls.at(-1)).toEqual({ id: 'tree', visible: true })
+    await controller.dispose()
+  })
+
+  it('traps modal Tab using only the current tree tab stop', async () => {
+    document.body.innerHTML = '<div data-plugin-slot="modal"></div>'
+    const runtime = createRuntime(
+      [{ pluginId: 'example', id: 'dialog', title: 'Tree', slot: 'modal' }],
+      [],
+      vi.fn(),
+      () => ({
+        type: 'element',
+        tag: 'span',
+        attributes: { role: 'tree' },
+        children: ['a', 'b'].map((label) => ({
+          type: 'element',
+          tag: 'button',
+          text: label,
+          attributes: { role: 'treeitem', 'aria-label': label },
+        })),
+      }),
+    )
+    const controller = new DesktopPluginUiController(document.body, runtime)
+    await controller.open('example', 'dialog')
+    const close = document.querySelector<HTMLButtonElement>('.plugin-ui-close')!
+    const first = document.querySelector<HTMLButtonElement>('[aria-label="a"]')!
+    close.focus()
+    close.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'Unidentified',
+        code: 'Tab',
+        shiftKey: true,
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+    expect(document.activeElement).toBe(first)
+    first.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }),
+    )
+    expect(document.activeElement).toBe(close)
+    await controller.dispose()
+  })
+
+  it('does not treat scripted clicks or forged action details as trusted user gestures', async () => {
+    document.body.innerHTML = '<div data-plugin-slot="sidebar-panel"></div>'
+    const run = vi.fn()
+    const runtime = createRuntime(
+      [{ pluginId: 'example', id: 'tree', title: 'Tree', slot: 'sidebar-panel' }],
+      [],
+      run,
+      () => ({
+        type: 'element',
+        tag: 'span',
+        attributes: { role: 'tree' },
+        children: [
+          {
+            type: 'element',
+            tag: 'button',
+            text: 'docs',
+            attributes: { role: 'treeitem', 'aria-label': 'docs', 'aria-expanded': 'false' },
+            action: { command: 'example.run' },
+          },
+        ],
+      }),
+    )
+    const controller = new DesktopPluginUiController(document.body, runtime)
+    await controller.sync('doc')
+    const button = document.querySelector<HTMLButtonElement>('[role="treeitem"]')!
+    button.click()
+    button.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    const detail = {
+      rendererId: 'example:tree',
+      command: 'example.run',
+      input: {},
+      isTrusted: true,
+      trusted: true,
+    }
+    button.dispatchEvent(
+      new CustomEvent('milkup-plugin-renderer-action', { detail, bubbles: true }),
+    )
+    button.dispatchEvent(
+      new CustomEvent('milkup-plugin-renderer-action', {
+        detail: { ...detail, rendererId: 'another:tree' },
+        bubbles: true,
+      }),
+    )
+    expect(run.mock.calls).toEqual(Array.from({ length: 3 }, () => ['example.run', {}]))
+    await controller.dispose()
+  })
+
   it('keeps a pressed controlled button until click and coalesces progress renders', async () => {
     document.body.innerHTML = '<main><div data-plugin-slot="sidebar-panel"></div></main>'
     let progress = 0
@@ -440,6 +571,61 @@ describe('DesktopPluginUiController', () => {
 
     outline.querySelector<HTMLButtonElement>('.plugin-ui-panel-toggle')!.click()
     expect(Array.from(slot.children)).toEqual([outline, notes])
+  })
+
+  it('reports actual visibility on collapse and expand, independent of focus lifecycle', async () => {
+    document.body.innerHTML =
+      '<button id="outside">Outside</button><div data-plugin-slot="sidebar-panel"></div><div data-plugin-slot="modal"></div>'
+    const states: { phase: string; visible: unknown }[] = []
+    const runtime = createRuntime(
+      [
+        {
+          pluginId: 'example',
+          id: 'tree',
+          title: 'Files',
+          slot: 'sidebar-panel',
+          viewportUpdates: false,
+        },
+        { pluginId: 'example', id: 'dialog', title: 'Dialog', slot: 'modal' },
+      ],
+      [],
+      vi.fn(),
+      (phase, state) => {
+        states.push({ phase, visible: state.visible })
+        return {
+          type: 'element',
+          tag: 'button',
+          text: 'Open',
+          attributes: { 'aria-label': 'Open' },
+          action: { command: 'example.run' },
+        }
+      },
+    )
+    const controller = new DesktopPluginUiController(document.body, runtime)
+    await controller.sync('doc')
+    expect(states[0]).toEqual({ phase: 'mount', visible: true })
+    const toggle = document.querySelector<HTMLButtonElement>('.plugin-ui-panel-toggle')!
+    document.querySelector<HTMLButtonElement>('[data-plugin-command]')!.focus()
+    document.querySelector<HTMLButtonElement>('#outside')!.focus()
+    expect(
+      states.filter((state) => state.phase === 'blur').every((state) => state.visible === true),
+    ).toBe(true)
+    toggle.focus()
+    toggle.click()
+    expect(states.at(-1)).toEqual({ phase: 'update', visible: false })
+    await Promise.resolve()
+    expect(document.activeElement).toBe(toggle)
+    toggle.click()
+    expect(states.at(-1)).toEqual({ phase: 'update', visible: true })
+    await controller.open('example', 'dialog')
+    expect(states.filter((state) => state.phase === 'mount').at(-1)).toEqual({
+      phase: 'mount',
+      visible: true,
+    })
+    await controller.dispose()
+    expect(
+      states.filter((state) => state.phase === 'dispose').every((state) => state.visible === false),
+    ).toBe(true)
   })
 
   it('resizes adjacent expanded sidebar panels as a bounded pair', async () => {

@@ -35,6 +35,8 @@ export interface SdkEditor {
 }
 
 export interface SdkPluginCommandContext {
+  /** Per-command capabilities; workspace picker/open require a trusted user command. */
+  readonly host?: SdkPluginCommandHost
   readonly editor?: SdkEditor
   readonly command?: {
     readonly action: string
@@ -134,6 +136,56 @@ export interface SdkPluginUiHost {
   revealLine(line: number): Promise<void>
 }
 
+/** Host-issued handles are valid only within the current activation and root grant. */
+export interface SdkWorkspaceRoot {
+  readonly id: string
+  /** Stable plugin-storage partition key. Never an authorization token. */
+  readonly key: string
+  readonly label: string
+}
+export interface SdkWorkspaceEntry {
+  readonly id: string
+  readonly name: string
+  readonly kind: 'file' | 'directory'
+  readonly relativePath: string
+}
+export interface SdkWorkspacePage {
+  readonly entries: readonly SdkWorkspaceEntry[]
+  readonly nextCursor: string | null
+}
+export interface SdkWorkspaceOperationOptions {
+  readonly signal?: AbortSignal
+}
+export interface SdkWorkspaceListOptions extends SdkWorkspaceOperationOptions {
+  readonly directoryId?: string
+  readonly cursor?: string
+  /** Integer 1..200; defaults to 100. */
+  readonly limit?: number
+}
+export interface SdkPluginWorkspaceReadHost {
+  /** Omitting cursor restarts this directory enumeration and invalidates old cursors. */
+  listChildren(rootId: string, options?: SdkWorkspaceListOptions): Promise<SdkWorkspacePage>
+  resolveEntry(
+    rootId: string,
+    relativePath: string,
+    options?: SdkWorkspaceOperationOptions,
+  ): Promise<SdkWorkspaceEntry | null>
+  /** Returns a new root grant; all old entries and cursors are invalidated. */
+  refreshRoot(rootId: string, options?: SdkWorkspaceOperationOptions): Promise<SdkWorkspaceRoot>
+  releaseRoot(rootId: string): Promise<void>
+}
+export interface SdkPluginWorkspaceHost extends SdkPluginWorkspaceReadHost {
+  chooseRoot(options?: SdkWorkspaceOperationOptions): Promise<SdkWorkspaceRoot | null>
+  /** Always uses the trusted host's single-document save/conflict/recovery guard. */
+  requestOpen(
+    fileId: string,
+    options?: SdkWorkspaceOperationOptions,
+  ): Promise<{ readonly status: 'opened' | 'cancelled' }>
+}
+export interface SdkPluginCommandHost extends SdkPluginHost {
+  readonly workspace?: SdkPluginWorkspaceHost
+}
+
 /** Host-managed releases; requires the sensitive app:updates permission (SDK 0.2.0). */
 export interface SdkPluginReleasesHost {
   check(): Promise<SdkReleaseCheckResult>
@@ -170,6 +222,7 @@ export interface SdkReleaseInstallResult {
 }
 
 export interface SdkPluginHost {
+  readonly workspace?: SdkPluginWorkspaceReadHost
   readonly releases?: SdkPluginReleasesHost
   readonly document?: SdkPluginDocumentHost
   readonly ui?: SdkPluginUiHost
@@ -207,6 +260,8 @@ export type SdkPluginUiPhase = 'mount' | 'update' | 'focus' | 'blur' | 'dispose'
 
 /** UI lifecycle snapshot. dispose may contain only phase and documentId. */
 export interface SdkPluginUiNode {
+  /** Actual host view visibility; false when collapsed. Older hosts default to true. */
+  readonly visible?: boolean
   readonly phase?: SdkPluginUiPhase
   readonly documentId?: string
   readonly documentVersion?: number

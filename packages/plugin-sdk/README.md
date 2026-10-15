@@ -13,7 +13,7 @@ distribution for this development stage; no npm publication is required.
 pnpm --dir packages/plugin-sdk pack --pack-destination /absolute/sdk-output
 
 # In a separately copied plugin directory containing its own package.json.
-npm install --no-save --package-lock=false /absolute/sdk-output/milkup-plugin-sdk-0.2.0.tgz
+npm install --no-save --package-lock=false /absolute/sdk-output/milkup-plugin-sdk-0.3.0.tgz
 npm run build
 ```
 
@@ -196,12 +196,13 @@ only locally reviewed, trusted plugins. This release neither loads untrusted thi
 party code nor grants new credentials, persistent permissions, or security bypasses.
 
 Compatibility is explicit in `engines.pluginSdk` and `engines.milkup`; this SDK's
-local version is `0.2.0`. Adding optional snapshot fields is compatible; removing
+local version is `0.3.0`. Adding optional snapshot fields is compatible; removing
 or changing their meaning requires a new compatibility contract.
 
 ## Managed application releases (SDK 0.2.0)
 
-Declare `permissions: ["app:updates"]` and `engines.pluginSdk: "^0.2.0"` in the
+Declare `permissions: ["app:updates"]` and an explicitly tested SDK range, such as
+`engines.pluginSdk: ">=0.2.0 <0.4.0"`, in the
 manifest. `host.releases` is optional and absent without both approval and a host
 provider. Retain it from activation only for that activation's lifetime.
 
@@ -229,3 +230,60 @@ a ten-minute bound. The trusted host must expire the confirmation within that
 bound and cancel pending confirmation/staging when its broker is disposed.
 Permission revocation, disable and Worker disposal invalidate captured methods
 and pending RPCs. Re-enabling creates a fresh capability; old handles stay invalid.
+
+## Scoped workspaces (SDK 0.3.0)
+
+Declare `workspace:read` and `engines.pluginSdk: "^0.3.0"`. This sensitive permission
+requires explicit approval. It provides metadata for a user-selected directory and
+protected document opening; it does not grant arbitrary filesystem reads or writes.
+
+Activation `host.workspace` exposes `listChildren`, `resolveEntry`, `refreshRoot`
+and `releaseRoot`. Only a command's `context.host?.workspace` exposes `chooseRoot`
+and `requestOpen`. Those methods require a genuine host-routed click or key command:
+a one-use internal authorization expires after five seconds if unused. Start the
+operation promptly and update UI asynchronously; do not hold a command open while
+waiting for a directory picker or dirty-document confirmation. The host performs
+all saving, conflict and recovery checks. Cancellation never discards a draft.
+
+`chooseRoot({signal})` returns `{id,key,label}` or `null` if dismissed. `id` is an
+activation-local grant. `key` is only a stable metadata partition key and cannot
+restore access. A successful new selection replaces the old root.
+
+`listChildren(rootId,{directoryId?,cursor?,limit?,signal?})` returns `{entries,
+nextCursor}`. Entries contain `{id,name,kind,relativePath}` with kind `file` or
+`directory`. Omit directoryId to list the root. Limit is 1–200 (default 100).
+Omitting cursor restarts the directory enumeration and invalidates its previous
+cursors. `refreshRoot(rootId,{signal})` returns a fresh grant and invalidates all
+old file, directory and cursor IDs. Directory changes can also invalidate cursors;
+restart rather than treating invalidation as an empty directory.
+
+The plugin owns recent-file UI and persistence. Store bounded relative paths under
+`root.key` with `host.storage`, only after `requestOpen(fileId)` reports `opened`.
+After a restart or re-enable, the user must select the root again. Call
+`resolveEntry(newRoot.id, relativePath,{signal})` to obtain a new entry token;
+missing entries return null. Relative paths use `/`, are never URL-decoded, and
+must have no absolute/drive/UNC prefix, backslashes, empty/dot/parent components,
+control characters or trailing dots/spaces. Maximum length is 4096 characters and
+maximum depth is 64 components. The native host additionally enforces containment,
+rejects links/reparse points and rechecks identity before protected opening.
+
+Abort a view's outstanding operations when closing it. Cancellation, timeout,
+disablement, permission revocation, uninstall and root release invalidate pending
+work; late replies cannot publish grants or switch documents. No AbortSignal is
+sent over RPC: the host receives a dedicated cancellation message. `releaseRoot`
+relinquishes the grant without changing the active document or recovery records.
+Workspace failures have a safe `code` (`revoked`, `invalid-token`, `invalid-path`,
+`invalidated`, `gesture-required`, `quota`, `busy`, `aborted`, `unavailable`); native
+absolute paths and internal errors are not exposed. Host dialogs have bounded
+waiting time, and their cancellation does not authorize a later operation.
+
+UI lifecycle snapshots may include `node.visible`: `false` means the controlled
+view is collapsed or not visible. Missing means visible for compatibility. Cancel
+outstanding enumeration when hidden, then request fresh data when visible again.
+
+The engine-range grammar supports full-version exact, caret, minimum (`>=`), `*`,
+and an explicit bounded interval `>=FULL_VERSION <FULL_VERSION`. For example,
+`>=0.2.0 <0.4.0` accepts SDK 0.2 and 0.3 releases and rejects 0.4. This uses ordinary
+SemVer rules, including prerelease opt-in; OR expressions, partial versions and
+combined wildcard expressions are unsupported. Expand a plugin's declared range
+only after testing it against the added SDK version.

@@ -1,3 +1,5 @@
+import type { PluginWorkspaceBroker } from './workspace-broker'
+import { createPluginWorkspaceRpcServer, type PluginWorkspaceRpcServer } from './workspace-rpc'
 import type { PluginManifest } from './manifest'
 import type { PluginDocumentBroker } from './document-broker'
 import { createPluginDocumentRpcServer, type PluginDocumentRpcServer } from './document-rpc'
@@ -16,6 +18,7 @@ export interface PluginSidecarHostConfig extends PluginIsolationRpcHostOptions {
   readonly manifest: PluginManifest
   readonly process: PluginSidecarProcess
   readonly moduleSpecifier?: string
+  readonly workspaceBroker?: PluginWorkspaceBroker
   readonly documentBroker?: PluginDocumentBroker
   readonly uiBroker?: PluginUiBroker
 }
@@ -40,7 +43,15 @@ export interface PluginSidecarStopRequest {
 }
 
 export function createSidecarPluginModule(config: PluginSidecarHostConfig): PluginModule {
-  const { manifest, process, moduleSpecifier, timeoutMs, documentBroker, uiBroker } = config
+  const {
+    manifest,
+    process,
+    moduleSpecifier,
+    timeoutMs,
+    documentBroker,
+    uiBroker,
+    workspaceBroker,
+  } = config
   let sidecar: ActiveSidecar | undefined
 
   async function ensureSidecar(): Promise<ActiveSidecar> {
@@ -56,6 +67,10 @@ export function createSidecarPluginModule(config: PluginSidecarHostConfig): Plug
     const host = createRpcPluginIsolationHost(endpoint, {
       ...(timeoutMs ? { timeoutMs } : {}),
     })
+    const workspaceRpcServer =
+      workspaceBroker && manifest.permissions?.includes('workspace:read')
+        ? createPluginWorkspaceRpcServer(endpoint, workspaceBroker)
+        : undefined
     const documentRpcServer = documentBroker
       ? createPluginDocumentRpcServer(endpoint, documentBroker)
       : undefined
@@ -67,6 +82,7 @@ export function createSidecarPluginModule(config: PluginSidecarHostConfig): Plug
       host,
       module,
       ...(documentRpcServer ? { documentRpcServer } : {}),
+      ...(workspaceRpcServer ? { workspaceRpcServer } : {}),
       ...(uiRpcServer ? { uiRpcServer } : {}),
     }
     sidecar = active
@@ -90,6 +106,7 @@ export function createSidecarPluginModule(config: PluginSidecarHostConfig): Plug
       try {
         await active.module.deactivate?.()
       } finally {
+        active.workspaceRpcServer?.dispose()
         active.documentRpcServer?.dispose()
         active.uiRpcServer?.dispose()
         active.host.dispose()
@@ -105,6 +122,7 @@ interface ActiveSidecar {
   readonly endpoint: PluginSidecarEndpoint
   readonly host: RpcPluginIsolationHost
   readonly module: PluginModule
+  readonly workspaceRpcServer?: PluginWorkspaceRpcServer
   readonly documentRpcServer?: PluginDocumentRpcServer
   readonly uiRpcServer?: { dispose(): void }
 }

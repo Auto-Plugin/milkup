@@ -15,6 +15,7 @@ import {
 
 import type { DesktopPluginUiPhase } from './desktop-plugin-manager'
 import { iconSvg } from './icons'
+import { decorateControlledTrees, type ControlledTreeFocus } from './controlled-tree-ui'
 
 export interface DesktopPluginUiRuntime {
   contributions(): PluginContributionIndex
@@ -25,7 +26,7 @@ export interface DesktopPluginUiRuntime {
     state?: Readonly<Record<string, unknown>>,
   ): Promise<unknown>
   resolveCommand(rendererId: string, command: string): string | undefined
-  runCommand(command: string, input: unknown): void
+  runCommand(command: string, input: unknown, originalEvent?: Event): void
 }
 
 interface MountedPluginUi {
@@ -39,6 +40,7 @@ interface MountedPluginUi {
   renderSequence: number
   renderSignature: string | undefined
   pendingFocusLabel: string | undefined
+  readonly treeFocus: Map<string, ControlledTreeFocus>
   virtualViewport?: PluginVirtualViewportState
   virtualScrollTimer?: ReturnType<typeof setTimeout>
   virtualScrollTop?: number
@@ -69,12 +71,20 @@ const virtualListMinimumRefreshMarginItems = 12
 
 export class DesktopPluginUiController {
   private readonly mounts = new Map<string, MountedPluginUi>()
+  private commandGesture:
+    | {
+        readonly button: HTMLButtonElement
+        readonly command: string
+        readonly originalEvent: Event
+      }
+    | undefined
   private readonly openModals = new Set<string>()
   private readonly modalReturnFocus = new Map<string, HTMLElement>()
   private generation = 0
   private documentId = ''
   private lastSyncSignature = ''
   private readonly collapsedSidebarPanels = new Set<string>()
+  private readonly hiddenSlots = new Set<PluginUiBinding['slot']>()
   private viewportUpdatePending = false
   private viewportUpdatePromise: Promise<void> | undefined
 
@@ -167,6 +177,23 @@ export class DesktopPluginUiController {
     await Promise.all(targets.map((mount) => this.updateMount(mount)))
   }
 
+  /** The embedding shell owns slot visibility; plugins receive an actual lifecycle snapshot. */
+  setSlotVisible(slot: PluginUiBinding['slot'], visible: boolean): void {
+    if (this.hiddenSlots.has(slot) === !visible) return
+    if (visible) this.hiddenSlots.delete(slot)
+    else this.hiddenSlots.add(slot)
+    for (const mount of this.mounts.values()) {
+      if (mount.contribution.slot === slot) void this.updateMount(mount)
+    }
+  }
+
+  private isVisible(contribution: PluginUiBinding): boolean {
+    return (
+      !this.hiddenSlots.has(contribution.slot) &&
+      !this.collapsedSidebarPanels.has(uiKey(contribution))
+    )
+  }
+
   async updateViewport(): Promise<void> {
     this.viewportUpdatePending = true
     if (this.viewportUpdatePromise) return this.viewportUpdatePromise
@@ -255,7 +282,10 @@ export class DesktopPluginUiController {
         } else if (event.key === 'Tab' || event.code === 'Tab') {
           const buttons = Array.from(
             container.querySelectorAll<HTMLElement>('button, a[href], [tabindex="0"]'),
-          ).filter((element) => !element.hasAttribute('disabled') && !element.hidden)
+          ).filter(
+            (element) =>
+              !element.hasAttribute('disabled') && !element.hidden && element.tabIndex >= 0,
+          )
           const active = this.root.ownerDocument.activeElement
           const first = buttons[0],
             last = buttons.at(-1)
@@ -288,13 +318,59 @@ export class DesktopPluginUiController {
     container.addEventListener('focusout', () => {
       void this.sendLifecycle(contribution, 'blur')
     })
+    container.addEventListener(
+      'click',
+      (event) => {
+        const button =
+          event.target instanceof Element
+            ? event.target.closest<HTMLButtonElement>('button[data-plugin-command]')
+            : null
+        if (!button || !container.contains(button)) return
+        const command = button.dataset.pluginCommand!
+        const keyboard = this.commandGesture
+        const originalEvent = event.isTrusted
+          ? event
+          : keyboard?.button === button &&
+              keyboard.command === command &&
+              keyboard.originalEvent.type === 'keydown' &&
+              keyboard.originalEvent.isTrusted &&
+              keyboard.originalEvent.eventPhase !== Event.NONE
+            ? keyboard.originalEvent
+            : undefined
+        const gesture = originalEvent ? { button, command, originalEvent } : undefined
+        this.commandGesture = gesture
+        // Only the synchronous controlled action dispatched by this click can use it.
+        // Native dispatch can checkpoint microtasks between capture and target listeners.
+        // Keep the binding through this event task; eventPhase still rejects later replay.
+        setTimeout(() => {
+          if (this.commandGesture === gesture) this.commandGesture = undefined
+        }, 0)
+      },
+      true,
+    )
     container.addEventListener('milkup-plugin-renderer-action', (event) => {
       const detail = (event as CustomEvent<ControlledRendererActionDetail>).detail
+      if (
+        !detail ||
+        detail.rendererId !== uiKey(contribution) ||
+        typeof detail.command !== 'string'
+      )
+        return
       const command = this.runtime.resolveCommand(detail.rendererId, detail.command)
-
-      if (command) {
-        this.runtime.runCommand(command, detail.input ?? {})
-      }
+      if (!command) return
+      const gesture = this.commandGesture
+      const originalEvent =
+        gesture &&
+        event.target === gesture.button &&
+        gesture.command === detail.command &&
+        gesture.button.dataset.pluginCommand === detail.command &&
+        gesture.originalEvent.isTrusted &&
+        gesture.originalEvent.eventPhase !== Event.NONE
+          ? gesture.originalEvent
+          : undefined
+      if (originalEvent) this.commandGesture = undefined
+      if (originalEvent) this.runtime.runCommand(command, detail.input ?? {}, originalEvent)
+      else this.runtime.runCommand(command, detail.input ?? {})
     })
     target.append(container)
     const mount = {
@@ -308,6 +384,7 @@ export class DesktopPluginUiController {
       renderSequence: 0,
       renderSignature: undefined,
       pendingFocusLabel: undefined as string | undefined,
+      treeFocus: new Map<string, ControlledTreeFocus>(),
     }
     // A deferred action may resume only while focus stays on our fallback shell.
     // Explicit focus on another control or outside the modal cancels that intent.
@@ -350,6 +427,7 @@ export class DesktopPluginUiController {
         {
           documentId: this.documentId,
           ...this.renderState(),
+          visible: this.isVisible(mount.contribution),
           ...(mount.virtualViewport ? { virtualViewport: mount.virtualViewport } : {}),
         },
       )) as ControlledRendererOutput
@@ -381,6 +459,10 @@ export class DesktopPluginUiController {
           : focused instanceof HTMLElement && mount.body.contains(focused)
             ? focused.getAttribute('aria-label')
             : undefined
+      const focusedTreeKey =
+        focused instanceof Element
+          ? focused.closest<HTMLElement>('[data-controlled-tree-key]')?.dataset.controlledTreeKey
+          : undefined
       const scrollOffsets = captureScrollOffsets(mount.body)
       const existingClose = mount.body.querySelector('.plugin-ui-close')
       mount.body.replaceChildren(
@@ -391,11 +473,29 @@ export class DesktopPluginUiController {
           output,
         ),
       )
-      if (focusedLabel) {
+      decorateControlledTrees(mount.body, mount.treeFocus, (button, event) => {
+        this.commandGesture =
+          event.isTrusted && button.dataset.pluginCommand
+            ? { button, command: button.dataset.pluginCommand, originalEvent: event }
+            : undefined
+        try {
+          button.click()
+        } finally {
+          if (this.commandGesture?.originalEvent === event) this.commandGesture = undefined
+        }
+      })
+      if (focusedLabel && this.isVisible(mount.contribution)) {
+        const treeFallback =
+          focusedTreeKey === undefined
+            ? undefined
+            : Array.from(mount.body.querySelectorAll<HTMLElement>('[data-controlled-tree-key]'))
+                .find((tree) => tree.dataset.controlledTreeKey === focusedTreeKey)
+                ?.querySelector<HTMLElement>('button[role="treeitem"][tabindex="0"]')
         const next =
           Array.from(mount.body.querySelectorAll<HTMLElement>('button[aria-label]')).find(
             (button) => button.getAttribute('aria-label') === focusedLabel,
           ) ??
+          treeFallback ??
           mount.body.querySelector<HTMLElement>('[data-plugin-command]') ??
           mount.container
         mount.pendingFocusLabel = next === mount.container ? focusedLabel : undefined
@@ -427,6 +527,7 @@ export class DesktopPluginUiController {
       .renderUi(contribution.pluginId, contribution.id, phase, {
         documentId: this.documentId,
         ...this.renderState(),
+        visible: this.isVisible(contribution),
       })
       .catch(() => undefined)
   }
@@ -466,6 +567,7 @@ export class DesktopPluginUiController {
     await this.runtime
       .renderUi(mount.contribution.pluginId, mount.contribution.id, 'dispose', {
         documentId: mount.documentId,
+        visible: false,
       })
       .catch(() => undefined)
   }
@@ -695,6 +797,7 @@ export class DesktopPluginUiController {
     if (!mount?.toggle || mount.contribution.slot !== 'sidebar-panel') return
 
     const collapsed = !this.collapsedSidebarPanels.has(key)
+    const hadFocus = mount.container.contains(this.root.ownerDocument.activeElement)
     if (collapsed) this.collapsedSidebarPanels.add(key)
     else this.collapsedSidebarPanels.delete(key)
 
@@ -704,6 +807,8 @@ export class DesktopPluginUiController {
     mount.toggle.setAttribute('aria-expanded', String(!collapsed))
     mount.toggle.innerHTML = `${iconSvg(collapsed ? ChevronRight : ChevronDown)}<span>${escapeText(mount.contribution.title)}</span>`
     this.reorderSidebarPanels()
+    if (hadFocus) mount.toggle.focus({ preventScroll: true })
+    void this.updateMount(mount)
   }
 
   private reorderSidebarPanels(): void {

@@ -87,3 +87,38 @@ async function releasesContract(host: SdkPluginReleasesHost): Promise<void> {
   void result.release.url
 }
 void releasesContract
+
+import type {
+  SdkPluginWorkspaceHost,
+  SdkPluginWorkspaceReadHost,
+  SdkWorkspaceRoot,
+  SdkWorkspaceEntry,
+  SdkWorkspacePage,
+} from '../src/index.js'
+async function workspaceContract(
+  host: SdkPluginWorkspaceHost,
+  activation: SdkPluginWorkspaceReadHost,
+) {
+  const controller = new AbortController()
+  const root: SdkWorkspaceRoot | null = await host.chooseRoot({ signal: controller.signal })
+  if (!root) return
+  const page: SdkWorkspacePage = await activation.listChildren(root.id, {
+    limit: 100,
+    signal: controller.signal,
+  })
+  const resolved: SdkWorkspaceEntry | null = await activation.resolveEntry(
+    root.id,
+    'notes/readme.md',
+  )
+  if (resolved?.kind === 'file') await host.requestOpen(resolved.id)
+  const fresh = await activation.refreshRoot(root.id)
+  await activation.releaseRoot(fresh.id)
+  // @ts-expect-error Activation cannot launch a picker.
+  activation.chooseRoot()
+  // @ts-expect-error Plugins cannot supply a gesture proof.
+  host.chooseRoot({ gesture: 'forged' })
+  // @ts-expect-error Opening requires an opaque ID, never a path object.
+  host.requestOpen({ path: '/outside.md' })
+  void page
+}
+void workspaceContract

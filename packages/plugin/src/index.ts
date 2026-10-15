@@ -229,6 +229,8 @@ export {
   type PluginNetworkBrokerProvider,
   type PluginStorageBrokerProvider,
   type PluginReleasesBrokerProvider,
+  type PluginWorkspaceBrokerProvider,
+  type RestrictedPluginCommandHost,
 } from './runtime'
 
 export {
@@ -249,3 +251,7 @@ export {
   type RpcPluginReleasesBroker,
   type PluginReleasesRpcServer,
 } from './releases-rpc'
+
+export * from './workspace-broker'
+export * from './workspace-rpc'
+export { markTrustedPluginCommand } from './workspace-gesture'

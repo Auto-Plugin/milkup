@@ -10,10 +10,12 @@ import { createDocumentTransitionController } from './document-transition'
 
 function deferred<T>() {
   let resolve!: (value: T) => void
-  const promise = new Promise<T>((done) => {
+  let reject!: (error: unknown) => void
+  const promise = new Promise<T>((done, fail) => {
     resolve = done
+    reject = fail
   })
-  return { promise, resolve }
+  return { promise, resolve, reject }
 }
 function fixture() {
   let session = recordDocumentTransaction(createDocumentSession({ documentId: 'draft' }), {
@@ -204,5 +206,358 @@ describe('document transition protection', () => {
     await controller.discard()
     expect(oldAction).not.toHaveBeenCalled()
     expect(newAction).toHaveBeenCalledOnce()
+  })
+})
+
+describe('awaited document transitions', () => {
+  it('makes commit final before post-commit rendering while keeping the execution lock', async () => {
+    const { controller, options, setSession } = fixture()
+    setSession(createDocumentSession({ documentId: 'draft' }))
+    const abort = new AbortController()
+    const paint = deferred<void>()
+    let actionSignal!: AbortSignal
+    const result = controller.requestAndWait(
+      'open',
+      async (signal, commit) => {
+        actionSignal = signal
+        setSession(createDocumentSession({ documentId: 'opened' }))
+        commit()
+        await paint.promise
+      },
+      { signal: abort.signal },
+    )
+    await expect(result).resolves.toEqual({ status: 'completed' })
+    abort.abort()
+    controller.cancel()
+    expect(actionSignal.aborted).toBe(false)
+    expect(options.session().documentId).toBe('opened')
+    await expect(controller.requestAndWait('new', vi.fn())).resolves.toEqual({
+      status: 'cancelled',
+      reason: 'busy',
+    })
+    paint.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+    await expect(controller.requestAndWait('new', vi.fn())).resolves.toEqual({
+      status: 'completed',
+    })
+  })
+
+  it('reports a post-commit render error once without rejecting completed navigation', async () => {
+    const { controller, options, setSession } = fixture()
+    setSession(createDocumentSession({ documentId: 'draft' }))
+    const paint = deferred<void>()
+    const result = controller.requestAndWait('open', async (_signal, commit) => {
+      commit()
+      await paint.promise
+    })
+    await expect(result).resolves.toEqual({ status: 'completed' })
+    const error = new Error('render failed')
+    paint.reject(error)
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(options.onError).toHaveBeenCalledExactlyOnceWith(error)
+    await expect(controller.requestAndWait('new', vi.fn())).resolves.toEqual({
+      status: 'completed',
+    })
+  })
+
+  it('does not revive a cancelled request through a late commit callback', async () => {
+    const { controller, options, setSession } = fixture()
+    setSession(createDocumentSession({ documentId: 'draft' }))
+    const prepare = deferred<void>()
+    const abort = new AbortController()
+    const result = controller.requestAndWait(
+      'open',
+      async (_signal, commit) => {
+        await prepare.promise
+        commit()
+      },
+      { signal: abort.signal },
+    )
+    await Promise.resolve()
+    abort.abort()
+    await expect(result).resolves.toEqual({ status: 'cancelled', reason: 'abort' })
+    prepare.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(options.onError).not.toHaveBeenCalled()
+    await expect(controller.requestAndWait('new', vi.fn())).resolves.toEqual({
+      status: 'completed',
+    })
+  })
+  it('returns immediately for pre-aborted and busy requests without changing the prompt', async () => {
+    const { controller, options } = fixture()
+    const abort = new AbortController()
+    abort.abort()
+    const proceed = vi.fn()
+    await expect(
+      controller.requestAndWait('open', proceed, { signal: abort.signal }),
+    ).resolves.toEqual({ status: 'cancelled', reason: 'abort' })
+    options.busy = () => true
+    await expect(controller.requestAndWait('open', proceed)).resolves.toEqual({
+      status: 'cancelled',
+      reason: 'busy',
+    })
+    expect(options.flushEdits).not.toHaveBeenCalled()
+    expect(options.show).not.toHaveBeenCalled()
+    expect(options.hide).not.toHaveBeenCalled()
+    expect(proceed).not.toHaveBeenCalled()
+  })
+
+  it('preserves an existing request when another request is rejected as busy', async () => {
+    const { controller, options } = fixture()
+    const firstAction = vi.fn()
+    const secondAction = vi.fn()
+    const first = controller.requestAndWait('open', firstAction)
+    await Promise.resolve()
+    await expect(controller.requestAndWait('new', secondAction)).resolves.toEqual({
+      status: 'cancelled',
+      reason: 'busy',
+    })
+    expect(options.hide).not.toHaveBeenCalled()
+    await controller.discard()
+    await expect(first).resolves.toEqual({ status: 'completed' })
+    expect(firstAction).toHaveBeenCalledOnce()
+    expect(secondAction).not.toHaveBeenCalled()
+  })
+
+  it('returns explicit cancellation and removes the external abort listener', async () => {
+    const { controller, options } = fixture()
+    const abort = new AbortController()
+    const remove = vi.spyOn(abort.signal, 'removeEventListener')
+    const first = controller.requestAndWait('open', vi.fn(), { signal: abort.signal })
+    await Promise.resolve()
+    controller.cancel()
+    await expect(first).resolves.toEqual({ status: 'cancelled', reason: 'cancel' })
+    expect(remove).toHaveBeenCalledWith('abort', expect.any(Function))
+    const nextAction = vi.fn()
+    const next = controller.requestAndWait('new', nextAction)
+    await Promise.resolve()
+    options.hide.mockClear()
+    abort.abort()
+    expect(options.hide).not.toHaveBeenCalled()
+    await controller.discard()
+    await expect(next).resolves.toEqual({ status: 'completed' })
+    expect(nextAction).toHaveBeenCalledOnce()
+  })
+
+  it('waits through confirmation and action completion', async () => {
+    const { controller, options } = fixture()
+    const action = deferred<void>()
+    const proceed = vi.fn(() => action.promise)
+    const settled = vi.fn()
+    const result = controller.requestAndWait('open', proceed).then(settled)
+    await Promise.resolve()
+    expect(options.show).toHaveBeenCalledWith({ kind: 'open', phase: 'confirming' })
+    expect(settled).not.toHaveBeenCalled()
+    const discarding = controller.discard()
+    expect(proceed).toHaveBeenCalledOnce()
+    expect(settled).not.toHaveBeenCalled()
+    action.resolve()
+    await discarding
+    await result
+    expect(settled).toHaveBeenCalledExactlyOnceWith({ status: 'completed' })
+  })
+
+  it('returns cancellation and prevents navigation when aborted during save', async () => {
+    const { controller, options, setSession } = fixture()
+    const signal = new AbortController()
+    const disk = deferred<boolean>()
+    options.save.mockImplementation(() => disk.promise)
+    const proceed = vi.fn()
+    const result = controller.requestAndWait('open', proceed, { signal: signal.signal })
+    await Promise.resolve()
+    const saving = controller.save()
+    signal.abort()
+    await expect(result).resolves.toEqual({ status: 'cancelled', reason: 'abort' })
+    setSession(recordFileSave(options.session(), {}))
+    disk.resolve(true)
+    await saving
+    expect(proceed).not.toHaveBeenCalled()
+  })
+
+  it.each(['false', 'error'] as const)(
+    'continues waiting after save %s and completes after a successful retry',
+    async (outcome) => {
+      const { controller, options } = fixture()
+      if (outcome === 'error') options.save.mockRejectedValueOnce(new Error('disk full'))
+      else options.save.mockResolvedValueOnce(false)
+      const proceed = vi.fn()
+      const settled = vi.fn()
+      const result = controller.requestAndWait('open', proceed).then(settled)
+      await Promise.resolve()
+      await controller.save()
+      expect(settled).not.toHaveBeenCalled()
+      expect(proceed).not.toHaveBeenCalled()
+      expect(options.show).toHaveBeenLastCalledWith({
+        kind: 'open',
+        phase: 'confirming',
+        error: expect.any(String),
+      })
+      expect(options.onError).not.toHaveBeenCalled()
+      await controller.save()
+      await result
+      expect(settled).toHaveBeenCalledExactlyOnceWith({ status: 'completed' })
+      expect(proceed).toHaveBeenCalledOnce()
+    },
+  )
+
+  it('does not let an aborted flush rejection disturb a newer prompt', async () => {
+    const { controller, options } = fixture()
+    const flush = deferred<void>()
+    options.flushEdits.mockImplementationOnce(() => flush.promise)
+    const abort = new AbortController()
+    const oldAction = vi.fn()
+    const first = controller.requestAndWait('open', oldAction, { signal: abort.signal })
+    abort.abort()
+    await expect(first).resolves.toEqual({ status: 'cancelled', reason: 'abort' })
+    const nextAction = vi.fn()
+    const next = controller.requestAndWait('new', nextAction)
+    await Promise.resolve()
+    options.hide.mockClear()
+    flush.reject(new Error('late flush error'))
+    await Promise.resolve()
+    expect(options.hide).not.toHaveBeenCalled()
+    expect(options.onError).not.toHaveBeenCalled()
+    await controller.discard()
+    await expect(next).resolves.toEqual({ status: 'completed' })
+    expect(oldAction).not.toHaveBeenCalled()
+    expect(nextAction).toHaveBeenCalledOnce()
+  })
+
+  it.each(['resolve', 'reject'] as const)(
+    'holds the navigation lock until an aborted action unwinds with %s',
+    async (outcome) => {
+      const { controller, options, setSession } = fixture()
+      setSession(createDocumentSession({ documentId: 'draft' }))
+      const work = deferred<void>()
+      const abort = new AbortController()
+      const commit = vi.fn()
+      let actionSignal!: AbortSignal
+      const result = controller.requestAndWait(
+        'open',
+        async (signal) => {
+          actionSignal = signal
+          await work.promise
+          if (!signal.aborted) commit()
+        },
+        { signal: abort.signal },
+      )
+      await Promise.resolve()
+      abort.abort()
+      await expect(result).resolves.toEqual({ status: 'cancelled', reason: 'abort' })
+      expect(actionSignal.aborted).toBe(true)
+      const nextAction = vi.fn()
+      await expect(controller.requestAndWait('new', nextAction)).resolves.toEqual({
+        status: 'cancelled',
+        reason: 'busy',
+      })
+      await controller.request('new', nextAction)
+      expect(nextAction).not.toHaveBeenCalled()
+      if (outcome === 'reject') work.reject(new Error('late action error'))
+      else work.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+      await expect(controller.requestAndWait('new', nextAction)).resolves.toEqual({
+        status: 'completed',
+      })
+      expect(nextAction).toHaveBeenCalledOnce()
+      expect(commit).not.toHaveBeenCalled()
+      expect(options.onError).not.toHaveBeenCalled()
+    },
+  )
+
+  it('detaches a completed request before an external signal can affect a later prompt', async () => {
+    const { controller, options, setSession } = fixture()
+    setSession(createDocumentSession({ documentId: 'draft' }))
+    const abort = new AbortController()
+    const remove = vi.spyOn(abort.signal, 'removeEventListener')
+    await controller.requestAndWait('open', vi.fn(), { signal: abort.signal })
+    expect(remove).toHaveBeenCalledWith('abort', expect.any(Function))
+    setSession(
+      recordDocumentTransaction(options.session(), { changes: ChangeSet.insert(0, '草稿') }),
+    )
+    const result = controller.requestAndWait('new', vi.fn())
+    await Promise.resolve()
+    options.hide.mockClear()
+    abort.abort()
+    expect(options.hide).not.toHaveBeenCalled()
+    await controller.discard()
+    await expect(result).resolves.toEqual({ status: 'completed' })
+  })
+
+  it('rejects flush errors once while legacy requests retain their single onError report', async () => {
+    const { controller, options } = fixture()
+    const error = new Error('flush failed')
+    options.flushEdits.mockRejectedValueOnce(error)
+    await expect(controller.requestAndWait('open', vi.fn())).rejects.toBe(error)
+    expect(options.onError).not.toHaveBeenCalled()
+    options.flushEdits.mockRejectedValueOnce(error)
+    await controller.request('open', vi.fn())
+    expect(options.onError).toHaveBeenCalledExactlyOnceWith(error)
+  })
+
+  it('rejects action failures without also reporting them through legacy onError', async () => {
+    const { controller, options, setSession } = fixture()
+    setSession(createDocumentSession({ documentId: 'draft' }))
+    const error = new Error('unreadable')
+    const result = controller.requestAndWait('open', async () => {
+      throw error
+    })
+    await expect(result).rejects.toBe(error)
+    expect(options.onError).not.toHaveBeenCalled()
+    await expect(controller.requestAndWait('new', vi.fn())).resolves.toEqual({
+      status: 'completed',
+    })
+  })
+
+  it('cancels a changed document instead of leaving an awaited request pending', async () => {
+    const { controller, options, setSession } = fixture()
+    options.save.mockImplementation(async () => {
+      setSession(createDocumentSession({ documentId: 'different' }))
+      return true
+    })
+    const proceed = vi.fn()
+    const result = controller.requestAndWait('open', proceed)
+    await Promise.resolve()
+    await controller.save()
+    await expect(result).resolves.toEqual({ status: 'cancelled', reason: 'document-changed' })
+    expect(proceed).not.toHaveBeenCalled()
+    expect(options.hide).toHaveBeenCalledOnce()
+  })
+
+  it.each(['flush', 'discard', 'save'] as const)(
+    'cancels a changed document before %s can continue navigation',
+    async (stage) => {
+      const { controller, options, setSession } = fixture()
+      const changeDocument = () => setSession(createDocumentSession({ documentId: 'different' }))
+      if (stage === 'flush') options.flushEdits.mockImplementationOnce(async () => changeDocument())
+      const proceed = vi.fn()
+      const result = controller.requestAndWait('open', proceed)
+      await Promise.resolve()
+      if (stage !== 'flush') {
+        changeDocument()
+        await controller[stage]()
+      }
+      await expect(result).resolves.toEqual({ status: 'cancelled', reason: 'document-changed' })
+      expect(proceed).not.toHaveBeenCalled()
+      expect(options.save).not.toHaveBeenCalled()
+    },
+  )
+
+  it('keeps update confirmation and discard protection for awaited requests', async () => {
+    const { controller, options, setSession } = fixture()
+    setSession(createDocumentSession({ documentId: 'draft' }))
+    const install = vi.fn()
+    const result = controller.requestAndWait('update', install)
+    await Promise.resolve()
+    expect(options.show).toHaveBeenCalledWith({ kind: 'update', phase: 'confirming' })
+    await controller.discard()
+    expect(install).not.toHaveBeenCalled()
+    await controller.save()
+    await expect(result).resolves.toEqual({ status: 'completed' })
+    expect(options.save).not.toHaveBeenCalled()
+    expect(install).toHaveBeenCalledOnce()
   })
 })

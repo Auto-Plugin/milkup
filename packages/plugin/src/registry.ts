@@ -568,6 +568,11 @@ function isCompatibleVersionRange(range: string, version: string): boolean {
   if (range === '*') return satisfies(version, range)
   // Keep the deliberately small public range grammar. Prereleases require
   // explicit opt-in on the same major/minor/patch line, per SemVer ranges.
+  const bounded = /^>=(\S+) <(\S+)$/.exec(range)
+  if (bounded) {
+    if (!valid(bounded[1]) || !valid(bounded[2])) return false
+    return satisfies(version, range)
+  }
   const required = range.replace(/^(\^|>=)/, '')
   if (!valid(required)) return false
   return satisfies(version, range)

@@ -225,6 +225,32 @@ for (const mode of ['source', 'live']) {
   test(`windowed ${mode} plugin install guard saves complete Unicode data before installer failure`, async ({
     page,
   }) => {
+    await page.addInitScript(() => {
+      const history: unknown[] = []
+      const snapshot = (event: Event) => {
+        if (history.length >= 80) return
+        const target = event.target as HTMLElement | null
+        history.push({
+          type: event.type,
+          key: (event as KeyboardEvent).key,
+          data: (event as InputEvent).data,
+          target: target?.className,
+          loading: document.querySelector<HTMLElement>('#app')?.dataset.loading,
+          mode: document.querySelector<HTMLElement>('.milkup-source-document-view')?.dataset.mode,
+          editable: document.querySelector<HTMLElement>('.milkup-source-document-view')?.dataset
+            .editable,
+          version: document.querySelector('[data-stat="version"]')?.textContent,
+          inputReadonly:
+            document.querySelector<HTMLTextAreaElement>('.milkup-input-proxy')?.readOnly,
+          inputDisabled:
+            document.querySelector<HTMLTextAreaElement>('.milkup-input-proxy')?.disabled,
+        })
+      }
+      document.addEventListener('keydown', snapshot, true)
+      document.addEventListener('beforeinput', snapshot, true)
+      document.addEventListener('input', snapshot, true)
+      Object.assign(window, { updateInputDiagnostics: history })
+    })
     await page.route(/\/src\/file-service\.ts(?:\?|$)/, async (route) => {
       const response = await route.fetch()
       const body = (await response.text()).replace(
@@ -244,10 +270,17 @@ for (const mode of ['source', 'live']) {
     await fixture(page)
     await page.getByRole('button', { name: '菜单', exact: true }).click()
     await page.getByRole('button', { name: '打开', exact: true }).click()
-    await expect(page.locator('.milkup-source-document-view')).toBeVisible()
+    const sourceView = page.locator('.milkup-source-document-view')
+    await expect(sourceView).toBeVisible()
+    // The window DOM is committed before first paint releases the document input lock.
+    await expect(page.locator('#app')).toHaveAttribute('data-loading', 'ready')
+    await expect(sourceView).toHaveAttribute('data-editable', 'true')
     await page.keyboard.press(mode === 'source' ? 'Control+1' : 'Control+2')
+    await expect(sourceView).toHaveAttribute('data-mode', mode)
     await page.locator('.milkup-input-proxy').focus()
+    await expect(page.locator('.milkup-input-proxy')).toBeFocused()
     await page.keyboard.type('SAFE-')
+    await expect(sourceView).toContainText('SAFE-ORIGINAL')
     await ready(page)
     await modal(page).getByRole('button', { name: '请求安装更新', exact: true }).click()
     await expect(page.locator('[data-close-confirm]')).toBeVisible()
@@ -255,12 +288,42 @@ for (const mode of ['source', 'live']) {
     await page.locator('[data-close-confirm-action="save"]').click()
     await expect.poll(() => installCount(page)).toBe(1)
     await expect(modal(page).getByRole('alert')).toContainText('测试安装器失败')
-    expect(
-      await page.evaluate(() => {
-        const state = window as unknown as { updateSavedText: string; updateOriginalText: string }
-        return state.updateSavedText === 'SAFE-' + state.updateOriginalText
-      }),
-    ).toBe(true)
+    const savedDiagnostics = await page.evaluate(() => {
+      const state = window as unknown as {
+        updateSavedText: string
+        updateOriginalText: string
+        updateInputDiagnostics: unknown[]
+      }
+      const expected = 'SAFE-' + state.updateOriginalText
+      const saved = state.updateSavedText ?? ''
+      let firstDifference = 0
+      while (
+        firstDifference < Math.min(saved.length, expected.length) &&
+        saved[firstDifference] === expected[firstDifference]
+      )
+        firstDifference++
+      return {
+        equal: saved === expected,
+        originalLength: state.updateOriginalText.length,
+        savedLength: saved.length,
+        expectedLength: expected.length,
+        savedPrefix: saved.slice(0, 80),
+        expectedPrefix: expected.slice(0, 80),
+        firstDifference,
+        savedContext: saved.slice(Math.max(0, firstDifference - 20), firstDifference + 40),
+        expectedContext: expected.slice(Math.max(0, firstDifference - 20), firstDifference + 40),
+        safeAt: saved.indexOf('SAFE-'),
+        mode: document.querySelector<HTMLElement>('.milkup-source-document-view')?.dataset.mode,
+        loading: document.querySelector<HTMLElement>('#app')?.dataset.loading,
+        version: document.querySelector('[data-stat="version"]')?.textContent,
+        inputHistory: state.updateInputDiagnostics,
+      }
+    })
+    await test.info().attach('windowed-save-diagnostics', {
+      body: JSON.stringify(savedDiagnostics, null, 2),
+      contentType: 'application/json',
+    })
+    expect(savedDiagnostics.equal, JSON.stringify(savedDiagnostics)).toBe(true)
     await page.keyboard.press('Escape')
     await page.getByRole('button', { name: '关闭菜单', exact: true }).click()
     await page.locator('.milkup-input-proxy').focus()

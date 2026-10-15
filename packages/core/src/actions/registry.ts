@@ -15,6 +15,7 @@ export type ActionPermission =
   | 'network:access'
   | 'app:control'
   | 'app:updates'
+  | 'workspace:read'
 
 export interface ActionInputField {
   readonly type: 'string' | 'number' | 'boolean'

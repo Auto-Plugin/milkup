@@ -460,6 +460,62 @@ describe('DesktopPluginManager', () => {
     expect(manager.state().records[0]).toMatchObject({ state: 'disabled', enabled: false })
   })
 
+  it('gates workspace scope creation on explicit approval and revokes captured brokers before unload', async () => {
+    const registry = new ActionRegistry()
+    const manifest: PluginManifest = {
+      ...pluginManifest(),
+      permissions: ['workspace:read'],
+      contributes: {},
+    }
+    const disposed = vi.fn()
+    const adapter = {
+      chooseRoot: vi.fn(async () => null),
+      listChildren: vi.fn(async () => ({ entries: [], nextCursor: null })),
+      resolveEntry: vi.fn(async () => null),
+      refreshRoot: vi.fn(async () => ({ id: 'root', key: 'key', label: 'Notes' })),
+      requestOpen: vi.fn(async () => ({ status: 'cancelled' as const })),
+      releaseRoot: vi.fn(async () => {}),
+    }
+    const factory = vi.fn(() => ({ adapter, dispose: disposed }))
+    const brokers: NonNullable<DesktopPluginModuleCapabilities['workspaceBroker']>[] = []
+    const manager = new DesktopPluginManager({
+      actionRegistry: registry,
+      manifestHost: {
+        selectManifestPath: async () => undefined,
+        readManifestText: async () => JSON.stringify(manifest),
+      },
+      permissions: ['workspace:read'],
+      milkupVersion: '2.0.0-beta.1',
+      pluginSdkVersion: '0.3.0',
+      storage: createMemoryStorage(),
+      workspaceAdapter: factory,
+      loadModule: async (_manifest, _specifier, capabilities) => {
+        brokers.push(capabilities!.workspaceBroker!)
+        return {
+          module: { runtimeHost: 'isolated', activate: async () => ({}) },
+          dispose: () => {},
+        }
+      },
+    })
+    await manager.installManifestPath('D:/plugins/example/plugin.json')
+    await manager.enable('example-tools')
+    expect(factory).not.toHaveBeenCalled()
+    expect(manager.state().records[0]?.enabled).toBe(false)
+    manager.approve('example-tools')
+    await manager.enable('example-tools')
+    expect(factory).toHaveBeenCalledTimes(1)
+    await manager.disable('example-tools')
+    expect(disposed).toHaveBeenCalledTimes(1)
+    await expect(brokers[0]!.listChildren('root')).rejects.toThrow('revoked')
+    await manager.enable('example-tools')
+    expect(factory).toHaveBeenCalledTimes(2)
+    expect(brokers[1]).not.toBe(brokers[0])
+    await manager.revokeApproval('example-tools')
+    expect(disposed).toHaveBeenCalledTimes(2)
+    await expect(brokers[1]!.listChildren('root')).rejects.toThrow('revoked')
+    expect(adapter.listChildren).not.toHaveBeenCalled()
+  })
+
   it('keeps sidecar plugins disabled until their host is explicitly approved', async () => {
     const registry = new ActionRegistry()
     const manifest: PluginManifest = {

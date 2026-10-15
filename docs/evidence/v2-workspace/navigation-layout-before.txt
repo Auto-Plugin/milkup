@@ -1,0 +1,40 @@
+[WebServer] (node:122265) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:122278) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:122333) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:122348) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:122383) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop-msedge] › tests/e2e/desktop-plugin-tree.spec.ts:332:7 › navigation secondary list light 1100 with 3 recent rows preserves the primary tree (1.3s)
+
+
+  1) [desktop-msedge] › tests/e2e/desktop-plugin-tree.spec.ts:332:7 › navigation secondary list light 1100 with 3 recent rows preserves the primary tree
+
+    Error: {"panel":316,"tree":44,"secondary":140,"padding":"28px","secondaryScrollable":false,"panelScrollable":false}
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "0px"
+    Received: "28px"
+
+      423 |             contentType: 'application/json',
+      424 |           })
+    > 425 |         expect(dimensions.padding, JSON.stringify(dimensions)).toBe('0px')
+          |                                                                ^
+      426 |         expect(dimensions.tree, JSON.stringify(dimensions)).toBeGreaterThanOrEqual(84)
+      427 |         expect(dimensions.tree, JSON.stringify(dimensions)).toBeGreaterThan(dimensions.secondary)
+      428 |         expect(dimensions.secondary, JSON.stringify(dimensions)).toBeLessThanOrEqual(
+        at /workspace/milkup/tests/e2e/desktop-plugin-tree.spec.ts:425:64
+
+    Error Context: ../milkup-workspace-evidence/browser-review/navigation-before/desktop-plugin-tree-naviga-426a9--preserves-the-primary-tree-desktop-msedge/error-context.md
+
+  1 failed
+    [desktop-msedge] › tests/e2e/desktop-plugin-tree.spec.ts:332:7 › navigation secondary list light 1100 with 3 recent rows preserves the primary tree

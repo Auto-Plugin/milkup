@@ -1,3 +1,9 @@
+import { type PluginWorkspaceBroker } from './workspace-broker'
+import {
+  createPluginWorkspaceRpcServer,
+  createRpcPluginWorkspaceBroker,
+  type RpcPluginWorkspaceBroker,
+} from './workspace-rpc'
 import { coercePluginModule } from './loader'
 import type { PluginDocumentBroker } from './document-broker'
 import {
@@ -53,6 +59,7 @@ export interface BrowserWorkerPluginHostConfig extends PluginIsolationRpcHostOpt
   readonly uiBroker?: PluginUiBroker
   readonly fileBroker?: PluginFileBroker
   readonly networkBroker?: PluginNetworkBroker
+  readonly workspaceBroker?: PluginWorkspaceBroker
   readonly releasesBroker?: PluginReleasesBroker
   readonly storageBroker?: PluginStorageBroker
 }
@@ -73,6 +80,7 @@ export interface PluginWorkerRealmOptions {
   readonly uiBroker?: PluginUiBroker
   readonly fileBroker?: PluginFileBroker
   readonly networkBroker?: PluginNetworkBroker
+  readonly workspaceBroker?: PluginWorkspaceBroker
   readonly releasesBroker?: PluginReleasesBroker
   readonly storageBroker?: PluginStorageBroker
   readonly timeoutMs?: number
@@ -122,6 +130,7 @@ export function createBrowserWorkerPluginHost(
     networkBroker,
     storageBroker,
     releasesBroker,
+    workspaceBroker,
   } = config
   const host = createRpcPluginIsolationHost(worker, { ...(timeoutMs ? { timeoutMs } : {}) })
   const fileRpcServer = fileBroker ? createPluginFileRpcServer(worker, fileBroker) : undefined
@@ -135,6 +144,10 @@ export function createBrowserWorkerPluginHost(
   const storageRpcServer = storageBroker
     ? createPluginStorageRpcServer(worker, storageBroker)
     : undefined
+  const workspaceRpcServer =
+    workspaceBroker && manifest.permissions?.includes('workspace:read')
+      ? createPluginWorkspaceRpcServer(worker, workspaceBroker)
+      : undefined
   const releasesRpcServer =
     releasesBroker && manifest.permissions?.includes('app:updates')
       ? createPluginReleasesRpcServer(worker, releasesBroker)
@@ -168,6 +181,7 @@ export function createBrowserWorkerPluginHost(
     fileRpcServer?.dispose()
     networkRpcServer?.dispose()
     storageRpcServer?.dispose()
+    workspaceRpcServer?.dispose()
     releasesRpcServer?.dispose()
     host.dispose()
     worker.terminate?.()
@@ -232,6 +246,7 @@ export function initializePluginWorkerRealm(
   let rpcFileBroker: RpcPluginFileBroker | undefined
   let rpcNetworkBroker: RpcPluginNetworkBroker | undefined
   let rpcStorageBroker: RpcPluginStorageBroker | undefined
+  let rpcWorkspaceBroker: RpcPluginWorkspaceBroker | undefined
   let rpcReleasesBroker: RpcPluginReleasesBroker | undefined
   const removeInitListener = addWorkerMessageListener(scope, async (message) => {
     const lifecycle = readWorkerLifecycleMessage(message)
@@ -265,6 +280,12 @@ export function initializePluginWorkerRealm(
         ? undefined
         : createRpcPluginStorageBroker(scope, options.timeoutMs ?? 5_000)
       const storageBrokerForHost = options.storageBroker ?? rpcStorageBroker
+      rpcWorkspaceBroker =
+        lifecycle.payload.manifest.permissions?.includes('workspace:read') &&
+        !options.workspaceBroker
+          ? createRpcPluginWorkspaceBroker(scope, options.timeoutMs ?? 30_000)
+          : undefined
+      const workspaceBrokerForHost = options.workspaceBroker ?? rpcWorkspaceBroker
       rpcReleasesBroker =
         lifecycle.payload.manifest.permissions?.includes('app:updates') && !options.releasesBroker
           ? createRpcPluginReleasesBroker(scope, options.timeoutMs ?? 30_000)
@@ -286,6 +307,7 @@ export function initializePluginWorkerRealm(
           )
       const fileBrokerForHost = options.fileBroker ?? rpcFileBroker
       const host = createPluginModuleIsolationHost({
+        isActive: () => capabilityActive,
         manifest: lifecycle.payload.manifest,
         module,
         ...(documentBrokerForHost ? { documentBroker: documentBrokerForHost } : {}),
@@ -293,6 +315,7 @@ export function initializePluginWorkerRealm(
         ...(fileBrokerForHost ? { fileBroker: fileBrokerForHost } : {}),
         ...(networkBrokerForHost ? { networkBroker: networkBrokerForHost } : {}),
         ...(storageBrokerForHost ? { storageBroker: storageBrokerForHost } : {}),
+        ...(workspaceBrokerForHost ? { workspaceBroker: workspaceBrokerForHost } : {}),
         ...(releasesBrokerForHost
           ? {
               releasesBroker: createPluginReleasesHostCapabilities(
@@ -329,6 +352,7 @@ export function initializePluginWorkerRealm(
     rpcFileBroker?.dispose()
     rpcNetworkBroker?.dispose()
     rpcStorageBroker?.dispose()
+    rpcWorkspaceBroker?.dispose()
     rpcReleasesBroker?.dispose()
   }
 

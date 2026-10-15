@@ -11,6 +11,9 @@ import {
   createIsolatedPluginModule,
   createPluginUiBroker,
   createPluginReleasesBroker,
+  createPluginWorkspaceBroker,
+  type PluginWorkspaceBrokerAdapter,
+  type RevocablePluginWorkspaceBroker,
   type PluginReleasesBrokerAdapter,
   type RevocablePluginReleasesBroker,
   createPluginNetworkBroker,
@@ -83,6 +86,7 @@ export interface DesktopLoadedPluginModule {
 
 export interface DesktopPluginModuleCapabilities {
   readonly documentBroker?: ManagedPluginDocumentBroker
+  readonly workspaceBroker?: RevocablePluginWorkspaceBroker
   readonly releasesBroker?: RevocablePluginReleasesBroker
   readonly uiBroker?: PluginUiBroker
 }
@@ -143,6 +147,10 @@ export interface DesktopPluginManagerOptions {
   readonly now?: () => number
   /** Distribution-provided packages; never used to upgrade an existing user installation. */
   readonly bundledPackagePaths?: () => Promise<readonly string[]>
+  readonly workspaceAdapter?: (pluginId: string) => {
+    adapter: PluginWorkspaceBrokerAdapter
+    dispose(): void
+  }
   readonly releasesAdapter?: (pluginId: string) => {
     adapter: PluginReleasesBrokerAdapter
     dispose(): void
@@ -168,6 +176,7 @@ const sensitivePermissions = new Set([
   'network:access',
   'app:control',
   'app:updates',
+  'workspace:read',
 ])
 
 export class DesktopPluginManager {
@@ -182,6 +191,8 @@ export class DesktopPluginManager {
   private readonly loadModule: DesktopPluginModuleLoader
   private readonly loadSidecarModule: DesktopPluginModuleLoader
   private readonly loadedModules = new Map<string, DesktopLoadedPluginModule>()
+  private readonly workspaceBrokers = new Map<string, RevocablePluginWorkspaceBroker>()
+  private readonly workspaceAdapter: DesktopPluginManagerOptions['workspaceAdapter']
   private readonly releasesBrokers = new Map<string, RevocablePluginReleasesBroker>()
   private readonly releasesAdapter: DesktopPluginManagerOptions['releasesAdapter']
   private readonly documentBrokers = new Map<string, ManagedPluginDocumentBroker>()
@@ -195,6 +206,7 @@ export class DesktopPluginManager {
   readonly ready: Promise<void>
 
   constructor(options: DesktopPluginManagerOptions) {
+    this.workspaceAdapter = options.workspaceAdapter
     this.releasesAdapter = options.releasesAdapter
     this.manifestHost = options.manifestHost
     this.storage = options.storage
@@ -227,6 +239,7 @@ export class DesktopPluginManager {
       documentBroker: (manifest) => this.getDocumentBroker(manifest),
       uiBroker: (manifest) => this.createUiBroker(manifest),
       releasesBroker: (manifest) => this.getReleasesBroker(manifest),
+      workspaceBroker: (manifest) => this.getWorkspaceBroker(manifest),
       networkBroker: (manifest) => this.createNetworkBroker(manifest),
       storageBroker: (manifest) => this.createStorageBroker(manifest),
     })
@@ -400,9 +413,11 @@ export class DesktopPluginManager {
       const prepared = await this.prepareModule(record.manifest, record.manifestPath, main)
       this.preparedModules.set(pluginId, prepared)
       const documentBroker = this.getDocumentBroker(record.manifest)
+      const workspaceBroker = this.getWorkspaceBroker(record.manifest)
       const releasesBroker = this.getReleasesBroker(record.manifest)
       const uiBroker = this.createUiBroker(record.manifest)
       const capabilities = Object.freeze({
+        ...(workspaceBroker ? { workspaceBroker } : {}),
         ...(releasesBroker ? { releasesBroker } : {}),
         ...(documentBroker ? { documentBroker } : {}),
         ...(uiBroker ? { uiBroker } : {}),
@@ -686,6 +701,7 @@ export class DesktopPluginManager {
         ...(capabilities?.documentBroker ? { documentBroker: capabilities.documentBroker } : {}),
         ...(capabilities?.uiBroker ? { uiBroker: capabilities.uiBroker } : {}),
         ...(capabilities?.releasesBroker ? { releasesBroker: capabilities.releasesBroker } : {}),
+        ...(capabilities?.workspaceBroker ? { workspaceBroker: capabilities.workspaceBroker } : {}),
         ...(fileBroker ? { fileBroker } : {}),
         ...(networkBroker ? { networkBroker } : {}),
         ...(storageBroker ? { storageBroker } : {}),
@@ -747,6 +763,28 @@ export class DesktopPluginManager {
       source: this.documentSource,
     })
     this.documentBrokers.set(manifest.id, broker)
+    return broker
+  }
+
+  private getWorkspaceBroker(manifest: PluginManifest): RevocablePluginWorkspaceBroker | undefined {
+    const record = this.registry.get(manifest.id)
+    if (
+      !this.workspaceAdapter ||
+      !manifest.permissions?.includes('workspace:read') ||
+      !record?.approvals.permissions.includes('workspace:read')
+    )
+      return undefined
+    const existing = this.workspaceBrokers.get(manifest.id)
+    if (existing) return existing
+    const service = this.workspaceAdapter(manifest.id)
+    const broker = createPluginWorkspaceBroker({
+      manifest,
+      adapter: service.adapter,
+      isActive: () =>
+        this.registry.get(manifest.id)?.approvals.permissions.includes('workspace:read') === true,
+      onDispose: () => service.dispose(),
+    })
+    this.workspaceBrokers.set(manifest.id, broker)
     return broker
   }
 
@@ -884,6 +922,8 @@ export class DesktopPluginManager {
   }
 
   private async unloadRuntimePlugin(pluginId: string): Promise<void> {
+    this.workspaceBrokers.get(pluginId)?.dispose()
+    this.workspaceBrokers.delete(pluginId)
     this.releasesBrokers.get(pluginId)?.dispose()
     this.releasesBrokers.delete(pluginId)
     for (const viewId of this.activeUi.get(pluginId) ?? []) {

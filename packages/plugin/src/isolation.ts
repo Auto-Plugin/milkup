@@ -1,3 +1,4 @@
+import { pluginCommandGesture } from './workspace-gesture'
 import { ChangeSet, Selection, type Transaction } from '@milkup/core'
 
 import type {
@@ -49,6 +50,8 @@ export interface IsolatedPluginDeactivateRequest {
 }
 
 export interface IsolatedPluginCommandRequest {
+  /** Internal trusted-host proof, never part of plugin command input. */
+  readonly workspaceGesture?: string
   readonly pluginId: string
   readonly command: PluginCommandContribution
   readonly input: unknown
@@ -94,6 +97,7 @@ export type PluginHostCapabilityName =
   | 'network:access'
   | 'storage'
   | 'app:updates'
+  | 'workspace:read'
 
 export function createIsolatedPluginModule(config: IsolatedPluginModuleConfig): PluginModule {
   const { manifest, host } = config
@@ -144,7 +148,9 @@ function createIsolatedCommandHandlers(
     }
 
     handlers[command.action] = async (context, input) => {
+      const workspaceGesture = pluginCommandGesture(context, manifest.id)
       const result = await host.runCommand({
+        ...(workspaceGesture ? { workspaceGesture } : {}),
         pluginId: manifest.id,
         command,
         input,
@@ -265,6 +271,7 @@ function listRestrictedHostCapabilities(
   }
 
   if (host.releases) capabilities.push('app:updates')
+  if (host.workspace) capabilities.push('workspace:read')
 
   if (host.storage) {
     capabilities.push('storage')

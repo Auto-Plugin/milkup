@@ -1,3 +1,7 @@
+import {
+  createPluginWorkspaceHostCapabilities,
+  type PluginWorkspaceBroker,
+} from './workspace-broker'
 import type { ActionPermission } from '@milkup/core'
 
 import { createPluginDocumentHostCapabilities, type PluginDocumentBroker } from './document-broker'
@@ -34,11 +38,13 @@ import type {
 export interface PluginModuleIsolationHostConfig {
   readonly manifest: PluginManifest
   readonly module: PluginModule
+  readonly isActive?: () => boolean
   readonly host?: RestrictedPluginHost
   readonly documentBroker?: PluginDocumentBroker
   readonly uiBroker?: PluginUiBroker
   readonly fileBroker?: PluginFileBroker
   readonly networkBroker?: PluginNetworkBroker
+  readonly workspaceBroker?: PluginWorkspaceBroker
   readonly releasesBroker?: PluginReleasesBroker
   readonly storageBroker?: PluginStorageBroker
 }
@@ -73,7 +79,8 @@ export function createPluginModuleIsolationHost(
               config.networkBroker,
               config.storageBroker,
               manifest.permissions?.includes('app:updates') ? config.releasesBroker : undefined,
-              () => active && generation === current,
+              manifest.permissions?.includes('workspace:read') ? config.workspaceBroker : undefined,
+              () => active && generation === current && config.isActive?.() !== false,
             ),
           })) ?? undefined
       } catch (error) {
@@ -130,7 +137,10 @@ export function createPluginModuleIsolationHost(
           config.networkBroker,
           config.storageBroker,
           manifest.permissions?.includes('app:updates') ? config.releasesBroker : undefined,
-          () => active && generation === current,
+          manifest.permissions?.includes('workspace:read') ? config.workspaceBroker : undefined,
+          () => active && generation === current && config.isActive?.() !== false,
+          true,
+          request.workspaceGesture,
         ),
         ...(editor ? { editor } : {}),
       } as unknown as PluginCommandContext
@@ -291,7 +301,10 @@ function restrictHost(
   networkBroker?: PluginNetworkBroker,
   storageBroker?: PluginStorageBroker,
   releasesBroker?: PluginReleasesBroker,
+  workspaceBroker?: PluginWorkspaceBroker,
   isActive?: () => boolean,
+  command = false,
+  workspaceGesture?: string,
 ): RestrictedPluginHost {
   const fileHost = fileBroker ? createPluginFileHostCapabilities(fileBroker) : host
   const networkHost = networkBroker ? createPluginNetworkHostCapabilities(networkBroker) : host
@@ -320,6 +333,16 @@ function restrictHost(
       ? { fetch: networkHost.fetch }
       : {}),
     ...(capabilities.includes('storage') && storageBroker ? { storage: storageBroker } : {}),
+    ...(capabilities.includes('workspace:read') && workspaceBroker
+      ? {
+          workspace: createPluginWorkspaceHostCapabilities(
+            workspaceBroker,
+            isActive,
+            command,
+            workspaceGesture,
+          ),
+        }
+      : {}),
     ...(capabilities.includes('app:updates') && releasesBroker
       ? { releases: createPluginReleasesHostCapabilities(releasesBroker, isActive) }
       : {}),

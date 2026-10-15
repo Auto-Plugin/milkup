@@ -6,6 +6,10 @@ import { createRecoveryController, type RecoveryRecord, type RecoveryStatus } fr
 import { createRecoveryUi } from './recovery-ui'
 import { createMarkdownClipboardPayload } from '@milkup/export'
 import { createDesktopReleaseAdapter, nativeReleaseTransport } from './plugin-release-service'
+import {
+  createDesktopWorkspaceAdapter,
+  type WorkspaceOpenRequest,
+} from './plugin-workspace-service'
 import { createProtectedInstallGate } from './protected-install'
 import { reconcileSaveWatchEvents } from './save-watch-reconciliation'
 import {
@@ -27,6 +31,7 @@ import {
   createBrowserWorkerPluginHost,
   createIsolatedPluginModule,
   createSidecarPluginModule,
+  markTrustedPluginCommand,
   PluginRuntime,
 } from '@milkup/plugin'
 import {
@@ -925,6 +930,7 @@ const desktopActionRegistry = new ActionRegistry(createDesktopActions())
 const desktopActionPermissions = Object.freeze([
   'app:control',
   'app:updates',
+  'workspace:read',
   'document:read',
   'document:write',
   'file:read',
@@ -940,6 +946,7 @@ const desktopPluginManager = new DesktopPluginManager({
   permissions: desktopActionPermissions,
   milkupVersion: appVersion,
   pluginSdkVersion: __MILKUP_PLUGIN_SDK_VERSION__,
+  workspaceAdapter: () => createDesktopWorkspaceAdapter({ openDocument: openWorkspaceDocument }),
   releasesAdapter: () =>
     createDesktopReleaseAdapter({
       transport: nativeReleaseTransport(),
@@ -961,6 +968,7 @@ const desktopPluginManager = new DesktopPluginManager({
       ...(capabilities?.documentBroker ? { documentBroker: capabilities.documentBroker } : {}),
       ...(capabilities?.uiBroker ? { uiBroker: capabilities.uiBroker } : {}),
       ...(capabilities?.releasesBroker ? { releasesBroker: capabilities.releasesBroker } : {}),
+      ...(capabilities?.workspaceBroker ? { workspaceBroker: capabilities.workspaceBroker } : {}),
       timeoutMs: 10_000,
     }),
     dispose: () => undefined,
@@ -978,10 +986,11 @@ const desktopPluginUi = new DesktopPluginUiController(
       desktopPluginManager.renderUi(pluginId, viewId, phase, uiState),
     resolveCommand: (rendererId, command) =>
       desktopPluginManager.resolveRendererCommand(rendererId, command),
-    runCommand: (command, input) => runDesktopAction(command, input),
+    runCommand: (command, input, originalEvent) => runDesktopAction(command, input, originalEvent),
   },
   getPluginUiRenderState,
 )
+desktopPluginUi.setSlotVisible('sidebar-panel', !sidebarCollapsed)
 invalidatePluginUi = (pluginId, viewId) => desktopPluginUi.invalidate(pluginId, viewId)
 
 for (const action of createDesktopPluginActions(desktopPluginManager)) {
@@ -1078,7 +1087,7 @@ appRoot.querySelector<HTMLElement>('[data-plugin-manager]')?.addEventListener('c
       break
     case 'command':
       if (button.dataset.pluginCommand) {
-        runDesktopAction(button.dataset.pluginCommand)
+        runDesktopAction(button.dataset.pluginCommand, {}, event)
       }
       break
     case 'open-ui':
@@ -1360,7 +1369,7 @@ globalThis.addEventListener(
 
     event.preventDefault()
     if (menuOpen) setMenuOpen(false)
-    runDesktopAction(action.id, action.input)
+    runDesktopAction(action.id, action.input, event)
   },
   { capture: true },
 )
@@ -1486,7 +1495,7 @@ function createDesktopActions(): readonly ActionDefinition[] {
   ])
 }
 
-function runDesktopAction(id: string, input: unknown = {}): void {
+function runDesktopAction(id: string, input: unknown = {}, originalEvent?: Event): void {
   if (closeConfirmOpen) return
   if (
     isDocumentSaving() &&
@@ -1500,16 +1509,14 @@ function runDesktopAction(id: string, input: unknown = {}): void {
     return
   }
 
+  const context = {
+    editor: desktopPluginEditor,
+    permissions: desktopActionPermissions,
+    confirm: () => true,
+  }
+  if (originalEvent) markTrustedPluginCommand(context, originalEvent)
   void desktopActionRegistry
-    .run(
-      id,
-      {
-        editor: desktopPluginEditor,
-        permissions: desktopActionPermissions,
-        confirm: () => true,
-      },
-      input,
-    )
+    .run(id, context, input)
     .then(() => {
       if (id.startsWith('plugin.')) {
         renderPluginManager()
@@ -1874,6 +1881,89 @@ function createNewDocument(): void {
   focusActiveView()
 }
 
+/** Plugin files enter the same dirty/save/conflict transition as the host Open command.
+ * Native descriptor leases keep preparation inside the selected directory; no plugin path is used.
+ */
+async function openWorkspaceDocument(
+  request: WorkspaceOpenRequest,
+): Promise<{ status: 'opened' | 'cancelled' }> {
+  const outcome = await documentTransitions.requestAndWait(
+    'open',
+    async (signal, commit) => {
+      const before = {
+        id: session.documentId,
+        version: session.documentVersion,
+        external: session.externalChangeState,
+      }
+      const assertCurrent = () => {
+        if (
+          signal.aborted ||
+          request.signal.aborted ||
+          session.documentId !== before.id ||
+          session.documentVersion !== before.version ||
+          session.externalChangeState !== before.external
+        )
+          throw new DOMException('文档切换已取消或当前文档发生变化', 'AbortError')
+      }
+      let preview: LargeDocumentPreviewState | undefined
+      let committed = false
+      setDocumentLoadingState({ phase: 'opening' })
+      try {
+        await recovery?.flush()
+        assertCurrent()
+        const lease = await request.prepare()
+        assertCurrent()
+        const policy = resolveDesktopOpenPolicy(lease.metadata)
+        const tracker = createOpenStageTracker({
+          label: 'workspace-open',
+          consoleDiagnostics: isDeveloperDiagnosticsEnabled(),
+        })
+        if (policy.useNativeLargeFile) {
+          setDocumentLoadingState({
+            phase: 'indexing',
+            path: lease.metadata.path,
+            sizeBytes: lease.metadata.sizeBytes,
+          })
+          preview = await openLargeDocumentPreview({
+            service: { ...largeTextFileService, open: (id) => lease.openLarge(id) },
+            documentId: `desktop-workspace-${crypto.randomUUID()}`,
+            path: lease.metadata.path,
+            previewLineCount: largePreviewLineCount,
+          })
+          await lease.validate()
+          assertCurrent()
+          await lease.accept()
+          assertCurrent()
+          // All fallible preparation precedes replacement. The old preview stays usable until here.
+          scheduleLargeDocumentPreviewClose()
+          committed = true
+          await commitLargeDocumentPreview(preview, policy, tracker, commit)
+        } else {
+          const result = await lease.read(`file:${lease.metadata.path}`)
+          await lease.validate()
+          assertCurrent()
+          await lease.accept()
+          assertCurrent()
+          committed = true
+          await openDocumentResult(result, tracker, { preResolvedPolicy: policy, onCommit: commit })
+        }
+        setDocumentLoadingState({
+          phase: 'ready',
+          path: lease.metadata.path,
+          sizeBytes: lease.metadata.sizeBytes,
+        })
+      } catch (error) {
+        if (!committed && preview)
+          await largeTextFileService.close(preview.documentId).catch(() => undefined)
+        setDocumentLoadingState({ phase: 'ready' })
+        throw error
+      }
+    },
+    { signal: request.signal },
+  )
+  return { status: outcome.status === 'completed' ? 'opened' : 'cancelled' }
+}
+
 async function openDocument(): Promise<void> {
   const tracker = createOpenStageTracker({
     label: 'open-file',
@@ -2047,7 +2137,7 @@ async function openSelectedDocumentAfterConfirmation(
 async function openDocumentResult(
   result: OpenFileResult,
   tracker: OpenStageTracker,
-  options: { readonly preResolvedPolicy?: DesktopOpenPolicy } = {},
+  options: { readonly preResolvedPolicy?: DesktopOpenPolicy; readonly onCommit?: () => void } = {},
 ): Promise<void> {
   const nextOpenPolicy =
     options.preResolvedPolicy ?? resolveDesktopOpenPolicy(metadataFromOpenFileResult(result))
@@ -2079,6 +2169,7 @@ async function openDocumentResult(
   applyEditorViewState()
   tracker.mark('markdown-parse-end')
   tracker.mark('editor-dom-commit')
+  options.onCommit?.()
   notice = ''
   renderSession()
   await waitForNextPaint()
@@ -2168,6 +2259,16 @@ async function openNativeLargeDocument(
     }
   }
 
+  await commitLargeDocumentPreview(preview, openPolicy, tracker)
+}
+
+async function commitLargeDocumentPreview(
+  preview: LargeDocumentPreviewState,
+  openPolicy: DesktopOpenPolicy,
+  tracker: OpenStageTracker,
+  onCommit?: () => void,
+): Promise<void> {
+  const documentId = preview.documentId
   unwatchCurrentFile()
   clearPluginDocumentPresentation()
   clearSearchResults()
@@ -2189,6 +2290,7 @@ async function openNativeLargeDocument(
     readonly: openPolicy.metadata.readonly ?? false,
     viewMode: 'live',
   })
+  onCommit?.()
   await applyLargeSourceView()
   tracker.mark('memory-document-end', `${preview.window.lines.length} preview lines`)
   tracker.mark('editor-dom-commit', `${openPolicy.featurePolicy.mode} native-line-window`)
@@ -3166,6 +3268,7 @@ function isTauriRuntime(): boolean {
 
 function setSidebarCollapsed(collapsed: boolean): void {
   sidebarCollapsed = collapsed
+  desktopPluginUi.setSlotVisible('sidebar-panel', !collapsed)
   appRoot.dataset.sidebarCollapsed = String(collapsed)
   const toggle = appRoot.querySelector<HTMLButtonElement>('[data-sidebar-toggle]')
 

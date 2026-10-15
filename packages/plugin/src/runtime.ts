@@ -1,4 +1,11 @@
 import {
+  createPluginWorkspaceHostCapabilities,
+  type PluginWorkspaceBroker,
+  type PluginWorkspaceReadHost,
+  type PluginWorkspaceHost,
+} from './workspace-broker'
+import { pluginCommandGesture, bindPluginCommandGesture } from './workspace-gesture'
+import {
   ActionRegistry,
   BasicEditor,
   type ActionContext,
@@ -47,6 +54,7 @@ export interface PluginRuntimeOptions {
   readonly documentBroker?: PluginDocumentBroker | PluginDocumentBrokerProvider
   readonly uiBroker?: PluginUiBroker | PluginUiBrokerProvider
   readonly networkBroker?: PluginNetworkBroker | PluginNetworkBrokerProvider
+  readonly workspaceBroker?: PluginWorkspaceBroker | PluginWorkspaceBrokerProvider
   readonly releasesBroker?: PluginReleasesBroker | PluginReleasesBrokerProvider
   readonly storageBroker?: PluginStorageBroker | PluginStorageBrokerProvider
 }
@@ -59,6 +67,9 @@ export type PluginUiBrokerProvider = (manifest: PluginManifest) => PluginUiBroke
 export type PluginNetworkBrokerProvider = (
   manifest: PluginManifest,
 ) => PluginNetworkBroker | undefined
+export type PluginWorkspaceBrokerProvider = (
+  manifest: PluginManifest,
+) => PluginWorkspaceBroker | undefined
 export type PluginReleasesBrokerProvider = (
   manifest: PluginManifest,
 ) => PluginReleasesBroker | undefined
@@ -78,10 +89,14 @@ export interface PluginActivationContext {
   readonly host: RestrictedPluginHost
 }
 
+export interface RestrictedPluginCommandHost extends RestrictedPluginHost {
+  readonly workspace?: PluginWorkspaceHost
+}
+
 export interface PluginCommandContext extends ActionContext {
   readonly plugin: PluginRuntimeInfo
   readonly command: PluginCommandContribution
-  readonly host: RestrictedPluginHost
+  readonly host: RestrictedPluginCommandHost
 }
 
 export type PluginCommandHandler = (
@@ -123,6 +138,7 @@ export interface PluginHostCapabilities {
 }
 
 export interface RestrictedPluginHost {
+  readonly workspace?: PluginWorkspaceReadHost
   readonly document?: PluginDocumentHost
   readonly ui?: PluginUiHost
   readonly readText?: PluginHostCapabilities['readText']
@@ -185,6 +201,7 @@ const ACTION_PERMISSIONS = new Set<ActionPermission>([
   'network:access',
   'app:control',
   'app:updates',
+  'workspace:read',
 ])
 
 export class PluginRuntime {
@@ -198,6 +215,8 @@ export class PluginRuntime {
   private readonly documentBroker: PluginDocumentBroker | PluginDocumentBrokerProvider | undefined
   private readonly uiBroker: PluginUiBroker | PluginUiBrokerProvider | undefined
   private readonly networkBroker: PluginNetworkBroker | PluginNetworkBrokerProvider | undefined
+  private readonly workspaceBroker:
+    PluginWorkspaceBroker | PluginWorkspaceBrokerProvider | undefined
   private readonly releasesBroker: PluginReleasesBroker | PluginReleasesBrokerProvider | undefined
   private readonly storageBroker: PluginStorageBroker | PluginStorageBrokerProvider | undefined
 
@@ -211,6 +230,7 @@ export class PluginRuntime {
     this.documentBroker = options.documentBroker
     this.uiBroker = options.uiBroker
     this.networkBroker = options.networkBroker
+    this.workspaceBroker = options.workspaceBroker
     this.releasesBroker = options.releasesBroker
     this.storageBroker = options.storageBroker
   }
@@ -262,6 +282,7 @@ export class PluginRuntime {
           resolvePluginNetworkBroker(plugin.manifest, this.networkBroker),
           resolvePluginStorageBroker(plugin.manifest, this.storageBroker),
           resolvePluginReleasesBroker(plugin.manifest, this.releasesBroker),
+          resolvePluginWorkspaceBroker(plugin.manifest, this.workspaceBroker),
           () => plugin.capabilityGeneration === generation,
         ),
       })
@@ -402,6 +423,7 @@ export class PluginRuntime {
 
     const generation = plugin.capabilityGeneration
     const bufferedEditor = context.editor ? new BufferedPluginEditor(context.editor) : undefined
+    const workspaceGesture = pluginCommandGesture(context, plugin.manifest.id)
     const commandContext: PluginCommandContext = {
       plugin: toInfo(plugin),
       command,
@@ -414,14 +436,18 @@ export class PluginRuntime {
         resolvePluginNetworkBroker(plugin.manifest, this.networkBroker),
         resolvePluginStorageBroker(plugin.manifest, this.storageBroker),
         resolvePluginReleasesBroker(plugin.manifest, this.releasesBroker),
+        resolvePluginWorkspaceBroker(plugin.manifest, this.workspaceBroker),
         () => plugin.state === 'enabled' && plugin.capabilityGeneration === generation,
         effectiveCommandPermissions(plugin.manifest, command),
-      ),
+        true,
+        workspaceGesture,
+      ) as RestrictedPluginCommandHost,
       ...(context.permissions ? { permissions: context.permissions } : {}),
       ...(context.confirm ? { confirm: context.confirm } : {}),
       ...(bufferedEditor ? { editor: bufferedEditor } : {}),
     }
 
+    bindPluginCommandGesture(commandContext, workspaceGesture)
     try {
       const value = await handler(commandContext, input)
       bufferedEditor?.commit()
@@ -679,8 +705,11 @@ function createRestrictedHost(
   networkBroker?: PluginNetworkBroker,
   storageBroker?: PluginStorageBroker,
   releasesBroker?: PluginReleasesBroker,
+  workspaceBroker?: PluginWorkspaceBroker,
   isActive?: () => boolean,
   permissions: readonly PluginPermission[] = manifest.permissions ?? [],
+  command = false,
+  workspaceGesture?: string,
 ): RestrictedPluginHost {
   const fileHost = fileBroker ? createPluginFileHostCapabilities(fileBroker) : host
   const networkHost = networkBroker ? createPluginNetworkHostCapabilities(networkBroker) : host
@@ -709,6 +738,16 @@ function createRestrictedHost(
       ? { fetch: networkHost.fetch }
       : {}),
     ...(storageBroker ? { storage: storageBroker } : {}),
+    ...(permissions.includes('workspace:read') && workspaceBroker
+      ? {
+          workspace: createPluginWorkspaceHostCapabilities(
+            workspaceBroker,
+            isActive,
+            command,
+            workspaceGesture,
+          ),
+        }
+      : {}),
     ...(permissions.includes('app:updates') && releasesBroker
       ? { releases: createPluginReleasesHostCapabilities(releasesBroker, isActive) }
       : {}),
@@ -755,5 +794,13 @@ function resolvePluginReleasesBroker(
   broker: PluginReleasesBroker | PluginReleasesBrokerProvider | undefined,
 ): PluginReleasesBroker | undefined {
   if (!manifest.permissions?.includes('app:updates')) return undefined
+  return typeof broker === 'function' ? broker(manifest) : broker
+}
+
+function resolvePluginWorkspaceBroker(
+  manifest: PluginManifest,
+  broker?: PluginWorkspaceBroker | PluginWorkspaceBrokerProvider,
+): PluginWorkspaceBroker | undefined {
+  if (!manifest.permissions?.includes('workspace:read')) return undefined
   return typeof broker === 'function' ? broker(manifest) : broker
 }

@@ -9,7 +9,13 @@ const PIECE_BYTES: usize = 64 * 1024;
 // Bound descriptor capture as well as the streaming buffer; never copy document text.
 const MAX_SNAPSHOT_PIECES: usize = 65_536;
 
-struct WorkingFile(PathBuf);
+pub(crate) struct WorkingDirectory(pub(crate) PathBuf);
+impl Drop for WorkingDirectory {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir(&self.0);
+    }
+}
+struct WorkingFile(PathBuf, Option<Arc<WorkingDirectory>>);
 impl Drop for WorkingFile {
     fn drop(&mut self) {
         let _ = fs::remove_file(&self.0);
@@ -144,7 +150,33 @@ pub(crate) struct PieceTree {
 
 impl PieceTree {
     pub(crate) fn open(base_path: &Path, add_path: PathBuf) -> Result<Self, String> {
-        let (indexed_path, base_encoding, normalized_base_path) = prepare_base(base_path)?;
+        Self::open_from_file(
+            base_path,
+            File::open(base_path).map_err(|error| error.to_string())?,
+            add_path,
+        )
+    }
+
+    /// Workspace callers supply a verified descriptor and a private staging path.
+    pub(crate) fn open_from_file(
+        base_path: &Path,
+        file: File,
+        add_path: PathBuf,
+    ) -> Result<Self, String> {
+        Self::open_from_file_with_progress(base_path, file, add_path, || Ok(()))
+    }
+
+    pub(crate) fn open_from_file_with_progress(
+        base_path: &Path,
+        mut file: File,
+        add_path: PathBuf,
+        mut progress: impl FnMut() -> Result<(), String>,
+    ) -> Result<Self, String> {
+        let (indexed_path, base_encoding, normalized_base_path) =
+            prepare_base_from_file(base_path, &mut file, &mut progress)?;
+        let base_lifetime = normalized_base_path
+            .clone()
+            .map(|p| Arc::new(WorkingFile(p, None)));
         let base = open_immutable_base(&indexed_path)?;
         let add = OpenOptions::new()
             .create_new(true)
@@ -156,18 +188,25 @@ impl PieceTree {
             base: Some(RefCell::new(base)),
             base_path: indexed_path,
             base_encoding,
-            base_lifetime: normalized_base_path
-                .clone()
-                .map(|p| Arc::new(WorkingFile(p))),
-            add_lifetime: Arc::new(WorkingFile(add_path.clone())),
+            base_lifetime,
+            add_lifetime: Arc::new(WorkingFile(add_path.clone(), None)),
             normalized_base_path,
             add_path,
             add: Some(RefCell::new(add)),
             root: None,
             next_priority: 1,
         };
-        tree.rebuild_base_index()?;
+        tree.rebuild_base_index_with_progress(&mut progress)?;
         Ok(tree)
+    }
+
+    pub(crate) fn retain_working_directory(&mut self, directory: Arc<WorkingDirectory>) {
+        if let Some(base) = self.base_lifetime.as_mut().and_then(Arc::get_mut) {
+            base.1 = Some(directory.clone());
+        }
+        if let Some(add) = Arc::get_mut(&mut self.add_lifetime) {
+            add.1 = Some(directory);
+        }
     }
 
     pub(crate) fn encoding(&self) -> BaseEncoding {
@@ -394,7 +433,7 @@ impl PieceTree {
         let (indexed_path, base_encoding, normalized_base_path) = prepare_base(path)?;
         let next_lifetime = normalized_base_path
             .clone()
-            .map(|p| Arc::new(WorkingFile(p)));
+            .map(|p| Arc::new(WorkingFile(p, None)));
         let next_base = open_immutable_base(&indexed_path)?;
         let next_add = if Arc::strong_count(&self.add_lifetime) > 1 {
             // Allocate before changing the live tree: failure must leave its sources intact.
@@ -417,7 +456,7 @@ impl PieceTree {
         if let Some((next_path, next)) = next_add {
             // A recovery writer owns the old append-only generation; never truncate it.
             self.add = Some(RefCell::new(next));
-            self.add_lifetime = Arc::new(WorkingFile(next_path.clone()));
+            self.add_lifetime = Arc::new(WorkingFile(next_path.clone(), None));
             self.add_path = next_path;
         } else {
             let add = self
@@ -461,6 +500,13 @@ impl PieceTree {
     }
 
     fn rebuild_base_index(&mut self) -> Result<(), String> {
+        self.rebuild_base_index_with_progress(&mut || Ok(()))
+    }
+
+    fn rebuild_base_index_with_progress(
+        &mut self,
+        progress: &mut impl FnMut() -> Result<(), String>,
+    ) -> Result<(), String> {
         self.root = None;
         self.next_priority = 1;
         self.base
@@ -480,6 +526,7 @@ impl PieceTree {
         let mut carry = Vec::new();
         let mut source_offset = 0_u64;
         loop {
+            progress()?;
             let mut chunk = vec![0_u8; PIECE_BYTES];
             let read = reader.read(&mut chunk).map_err(|error| error.to_string())?;
             chunk.truncate(read);
@@ -749,24 +796,80 @@ fn remove_working_file(path: &Path) -> Result<(), String> {
 }
 
 fn prepare_base(path: &Path) -> Result<(PathBuf, BaseEncoding, Option<PathBuf>), String> {
-    let mut prefix = [0_u8; 2];
     let mut file = File::open(path).map_err(|error| error.to_string())?;
+    prepare_base_from_file(path, &mut file, &mut || Ok(()))
+}
+
+fn prepare_base_from_file(
+    path: &Path,
+    file: &mut File,
+    progress: &mut impl FnMut() -> Result<(), String>,
+) -> Result<(PathBuf, BaseEncoding, Option<PathBuf>), String> {
+    file.seek(SeekFrom::Start(0))
+        .map_err(|error| error.to_string())?;
+    let mut prefix = [0_u8; 2];
     let read = file.read(&mut prefix).map_err(|error| error.to_string())?;
     let Some(encoding) = detect_utf16_encoding(&prefix[..read]) else {
         let session_base = session_base_path(path)?;
-        fs::copy(path, &session_base).map_err(|error| error.to_string())?;
+        file.seek(SeekFrom::Start(0))
+            .map_err(|error| error.to_string())?;
+        let mut target = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&session_base)
+            .map_err(|error| error.to_string())?;
+        let copied = copy_with_progress(file, &mut target, progress);
+        drop(target);
+        if let Err(error) = copied {
+            let _ = fs::remove_file(&session_base);
+            return Err(error);
+        }
         return Ok((session_base.clone(), BaseEncoding::Utf8, Some(session_base)));
     };
 
-    let bytes = fs::read(path).map_err(|error| error.to_string())?;
+    file.seek(SeekFrom::Start(0))
+        .map_err(|error| error.to_string())?;
+    let mut bytes = Vec::new();
+    copy_with_progress(file, &mut bytes, progress)?;
     let text = decode_utf16(&bytes, encoding)?;
+    progress()?;
     let nonce = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|error| error.to_string())?
         .as_nanos();
     let normalized = session_base_path_with_nonce(path, nonce)?;
-    fs::write(&normalized, text.as_bytes()).map_err(|error| error.to_string())?;
+    let mut target = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&normalized)
+        .map_err(|error| error.to_string())?;
+    let copied = copy_with_progress(&mut text.as_bytes(), &mut target, progress);
+    drop(target);
+    if let Err(error) = copied {
+        let _ = fs::remove_file(&normalized);
+        return Err(error);
+    }
     Ok((normalized.clone(), encoding, Some(normalized)))
+}
+
+fn copy_with_progress(
+    reader: &mut impl Read,
+    writer: &mut impl Write,
+    progress: &mut impl FnMut() -> Result<(), String>,
+) -> Result<(), String> {
+    let mut buffer = [0; PIECE_BYTES];
+    loop {
+        progress()?;
+        let count = reader
+            .read(&mut buffer)
+            .map_err(|error| error.to_string())?;
+        if count == 0 {
+            return Ok(());
+        }
+        writer
+            .write_all(&buffer[..count])
+            .map_err(|error| error.to_string())?;
+    }
 }
 
 fn session_base_path(path: &Path) -> Result<PathBuf, String> {

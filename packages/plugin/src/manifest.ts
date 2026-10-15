@@ -114,6 +114,7 @@ const KNOWN_PERMISSIONS = new Set<PluginPermission>([
   'file:delete',
   'app:control',
   'app:updates',
+  'workspace:read',
   'network:access',
 ])
 const KNOWN_HOSTS = new Set<PluginHostKind>(['worker', 'sidecar'])

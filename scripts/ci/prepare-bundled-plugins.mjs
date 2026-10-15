@@ -1,7 +1,7 @@
 import { build } from 'esbuild'
 import { createHash } from 'node:crypto'
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
-import { dirname, resolve } from 'node:path'
+import { dirname, resolve, relative, isAbsolute } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
@@ -47,13 +47,40 @@ for (const item of distribution) {
   ) {
     throw Error('Plugin entry must be a single self-contained module')
   }
+  const resources = []
+  for (const resource of manifest.resources || []) {
+    const source = resolve(pluginRoot, resource)
+    const relativePath = relative(pluginRoot, source)
+    if (
+      !relativePath ||
+      relativePath.startsWith('..') ||
+      isAbsolute(relativePath) ||
+      resource.includes('\\')
+    ) {
+      throw Error(`Resource must stay within plugin directory: ${resource}`)
+    }
+    const bytes = await readFile(source)
+    if (
+      resource === manifest.icon &&
+      (!resource.endsWith('.png') ||
+        !bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])))
+    ) {
+      throw Error('Declared plugin icon must be a PNG resource')
+    }
+    resources.push({ path: resource, encoding: 'base64', content: bytes.toString('base64') })
+  }
+  if (manifest.icon && !resources.some((resource) => resource.path === manifest.icon))
+    throw Error('Declared icon must be listed in plugin resources')
   const archive =
     JSON.stringify(
       {
         format: 'milkup-plugin',
         version: 1,
         manifest,
-        files: [{ path: 'dist/plugin.js', encoding: 'utf8', content: result.outputFiles[0].text }],
+        files: [
+          { path: 'dist/plugin.js', encoding: 'utf8', content: result.outputFiles[0].text },
+          ...resources,
+        ],
       },
       null,
       2,

@@ -25,6 +25,7 @@ mod plugin_icon;
 mod recovery;
 mod recovery_storage;
 mod updates;
+mod workspace;
 use piece_tree::PieceTree;
 
 const FILE_WATCH_EVENT_NAME: &str = "milkup-file-watch-event";
@@ -1028,6 +1029,7 @@ pub fn run() {
         .manage(LargeFileRegistry(Mutex::new(HashMap::new())))
         .manage(native_search::NativeSearchRegistry::default())
         .manage(updates::UpdateService::default())
+        .manage(workspace::WorkspaceRegistry::default())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
@@ -1041,6 +1043,19 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            workspace::workspace_create_scope,
+            workspace::workspace_choose_root,
+            workspace::workspace_list_children,
+            workspace::workspace_resolve_entry,
+            workspace::workspace_refresh_root,
+            workspace::workspace_cancel_cursor,
+            workspace::workspace_release_root,
+            workspace::workspace_release_scope,
+            workspace::workspace_prepare_open,
+            workspace::workspace_read_file,
+            workspace::workspace_open_large_file,
+            workspace::workspace_validate_open,
+            workspace::workspace_finish_open,
             updates::check_application_update,
             updates::download_application_update,
             updates::cancel_application_update,
@@ -1104,10 +1119,22 @@ fn snapshot_hash(text: &str) -> String {
 
 fn hash_file_contents(path: &Path) -> Result<String, String> {
     let mut file = fs::File::open(path).map_err(|error| error.to_string())?;
+    hash_open_file_contents(&mut file)
+}
+
+fn hash_open_file_contents(file: &mut fs::File) -> Result<String, String> {
+    hash_open_file_contents_with_progress(file, || Ok(()))
+}
+
+fn hash_open_file_contents_with_progress(
+    file: &mut fs::File,
+    mut progress: impl FnMut() -> Result<(), String>,
+) -> Result<String, String> {
     let mut hasher = DefaultHasher::new();
     let mut buffer = [0_u8; 64 * 1024];
 
     loop {
+        progress()?;
         let read = file.read(&mut buffer).map_err(|error| error.to_string())?;
 
         if read == 0 {
