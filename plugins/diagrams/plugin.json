@@ -1,0 +1,15 @@
+{
+  "id": "milkup.diagrams",
+  "name": "Milkup Diagrams",
+  "version": "1.0.0",
+  "description": "离线呈现 Mermaid 流程图、时序图与饼图的受限安全子集；不支持的语法保留完整源码。",
+  "host": "worker",
+  "main": "./dist/plugin.js",
+  "engines": { "milkup": "^2.0.0-0", "pluginSdk": ">=0.3.3 <0.4.0" },
+  "permissions": ["document:read"],
+  "contributes": {
+    "documentRenderers": [
+      { "id": "diagrams.mermaid", "contexts": ["fence"], "fenceLanguages": ["mermaid"] }
+    ]
+  }
+}

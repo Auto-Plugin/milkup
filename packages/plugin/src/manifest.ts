@@ -1,3 +1,4 @@
+import type { DocumentRendererDeclaration } from '@milkup/core'
 import { copyPluginSettingsDescriptor, type PluginSettingsDescriptor } from './settings-schema'
 import type { ActionInputField, ActionInputSchema, ActionPermission } from '@milkup/core'
 
@@ -21,7 +22,10 @@ export interface PluginManifest {
   readonly contributes?: PluginContributionSet
 }
 
+export type PluginDocumentRendererContribution = DocumentRendererDeclaration
+
 export interface PluginContributionSet {
+  readonly documentRenderers?: readonly PluginDocumentRendererContribution[]
   readonly commands?: readonly PluginCommandContribution[]
   readonly pasteHandlers?: readonly PluginPasteHandlerContribution[]
   readonly keymaps?: readonly PluginKeymapContribution[]
@@ -200,6 +204,8 @@ export function validatePluginManifest(value: unknown): PluginManifestValidation
     }
   }
   const contributes = readContributions(value.contributes, errors)
+  if (contributes?.documentRenderers?.length && !permissions.includes('document:read'))
+    errors.push({ path: '$.permissions', message: 'Document renderers require document:read' })
 
   validateCommandPermissionScope(contributes?.commands, permissions, errors)
   validateContributionIntegrity(contributes, errors)
@@ -338,6 +344,25 @@ function readContributions(
     readRendererContribution,
     errors,
   )
+  const documentRenderers = readArray(
+    value.documentRenderers,
+    '$.contributes.documentRenderers',
+    readDocumentRendererContribution,
+    errors,
+  )
+  if (documentRenderers && documentRenderers.length > 16)
+    errors.push({
+      path: '$.contributes.documentRenderers',
+      message: 'At most 16 document renderers',
+    })
+  if (
+    documentRenderers &&
+    new Set(documentRenderers.map((r) => r.id)).size !== documentRenderers.length
+  )
+    errors.push({
+      path: '$.contributes.documentRenderers',
+      message: 'Duplicate document renderer id',
+    })
   const markdownSyntax = readArray(
     value.markdownSyntax,
     '$.contributes.markdownSyntax',
@@ -363,6 +388,7 @@ function readContributions(
     ...(pasteHandlers ? { pasteHandlers: Object.freeze(pasteHandlers) } : {}),
     ...(keymaps ? { keymaps: Object.freeze(keymaps) } : {}),
     ...(renderers ? { renderers: Object.freeze(renderers) } : {}),
+    ...(documentRenderers ? { documentRenderers: Object.freeze(documentRenderers) } : {}),
     ...(markdownSyntax ? { markdownSyntax: Object.freeze(markdownSyntax) } : {}),
     ...(ui ? { ui: Object.freeze(ui) } : {}),
     ...(importers ? { importers: Object.freeze(importers) } : {}),
@@ -1108,4 +1134,48 @@ function readPasteHandler(
     return undefined
   }
   return Object.freeze({ kind: 'image', command: value.command })
+}
+
+function readDocumentRendererContribution(
+  value: unknown,
+  path: string,
+  errors: PluginManifestValidationError[],
+): PluginDocumentRendererContribution | undefined {
+  const invalid = () => {
+    errors.push({ path, message: 'Invalid bounded document renderer declaration' })
+    return undefined
+  }
+  if (
+    !isRecord(value) ||
+    Object.keys(value).some((k) => !['id', 'contexts', 'fenceLanguages'].includes(k))
+  )
+    return invalid()
+  if (typeof value.id !== 'string' || value.id.length > 128 || !PLUGIN_ID_PATTERN.test(value.id))
+    return invalid()
+  if (
+    !Array.isArray(value.contexts) ||
+    !value.contexts.length ||
+    value.contexts.length > 2 ||
+    new Set(value.contexts).size !== value.contexts.length ||
+    value.contexts.some((v) => v !== 'text' && v !== 'fence')
+  )
+    return invalid()
+  if (
+    value.fenceLanguages !== undefined &&
+    (!Array.isArray(value.fenceLanguages) ||
+      !value.fenceLanguages.length ||
+      value.fenceLanguages.length > 16 ||
+      value.fenceLanguages.some(
+        (v) => typeof v !== 'string' || !/^[a-zA-Z0-9][a-zA-Z0-9_+-]{0,31}$/.test(v),
+      ))
+  )
+    return invalid()
+  if (value.contexts.includes('fence') !== !!value.fenceLanguages) return invalid()
+  return Object.freeze({
+    id: value.id,
+    contexts: Object.freeze(value.contexts) as readonly ('text' | 'fence')[],
+    ...(value.fenceLanguages
+      ? { fenceLanguages: Object.freeze(value.fenceLanguages as string[]) }
+      : {}),
+  })
 }

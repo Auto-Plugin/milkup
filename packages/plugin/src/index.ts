@@ -268,3 +268,20 @@ export * from './editing-broker'
 export * from './resources-broker'
 export * from './editing-rpc'
 export * from './resources-rpc'
+
+export type { PluginDocumentRendererContribution } from './manifest'
+export type { PluginDocumentRendererBinding } from './registry'
+export type { IsolatedPluginDocumentRenderRequest } from './isolation'
+export * from './document-render-rpc'
+export type {
+  PluginDocumentReadWindowRequest,
+  PluginDocumentReadWindowResult,
+  PluginDocumentReadOptions,
+  PluginDocumentInvalidatePresentationRequest,
+  PluginDocumentOperationContext,
+} from './document-broker'
+export type {
+  PluginUiRevealLocationRequest,
+  PluginUiOperationOptions,
+  PluginUiOperationContext,
+} from './ui-broker'

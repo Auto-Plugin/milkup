@@ -1,3 +1,5 @@
+import { locateDocumentPresentationTarget } from './document-navigation'
+import { createDesktopDocumentPresentationService } from './document-presentation-service'
 import { renderDesktopPluginManagerElement } from './desktop-plugin-manager-ui'
 import { loadDesktopPluginIcon } from './plugin-icon'
 import { zoomLevels, type ThemePreference } from './appearance'
@@ -44,7 +46,13 @@ import {
   parsePluginPackageArchive,
   readPluginPackageTextFile,
 } from '@milkup/plugin'
-import type { BrowserWorkerPluginHost, PluginManifest, PluginSettingsValues } from '@milkup/plugin'
+import type {
+  BrowserWorkerPluginHost,
+  PluginManifest,
+  PluginSettingsValues,
+  PluginUiRevealLocationRequest,
+  PluginUiOperationContext,
+} from '@milkup/plugin'
 import {
   applyFileWatchEvent,
   createDocumentSession,
@@ -81,6 +89,7 @@ import type {
   ControlledRendererContext,
   ControlledRendererOutput,
   ViewMode,
+  DocumentPresentationConfig,
 } from '@milkup/view-dom'
 import {
   Bug,
@@ -741,6 +750,8 @@ const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
 function refreshSystemTheme(): void {
   document.documentElement.dataset.theme =
     appliedTheme === 'system' ? (systemTheme.matches ? 'dark' : 'light') : appliedTheme
+  view?.invalidateDocumentPresentation()
+  sourceView?.invalidateDocumentPresentation()
 }
 function reportSettingsError(error: unknown): void {
   importantNotice = true
@@ -1297,6 +1308,19 @@ const desktopPluginManager: DesktopPluginManager = new DesktopPluginManager({
   },
   invalidateUi: (pluginId, viewId) => invalidatePluginUi(pluginId, viewId),
   revealLine: (line) => revealPluginLine(line),
+  revealLocation: revealPluginLocation,
+  invalidatePresentation: () => {
+    desktopDocumentPresentation.invalidate()
+    view?.invalidateDocumentPresentation()
+    sourceView?.invalidateDocumentPresentation()
+  },
+  onDocumentRenderFailure: (pluginId) => {
+    importantNotice = true
+    notice = `插件 ${pluginId} 渲染超时，已停用；可在插件管理中手动重新启用。`
+    refreshPluginContributionsInViews()
+    renderPluginManager()
+    renderSession()
+  },
   loadSidecarModule: async (manifest, executable, capabilities) => ({
     module: createSidecarPluginModule({
       manifest,
@@ -1309,11 +1333,54 @@ const desktopPluginManager: DesktopPluginManager = new DesktopPluginManager({
       ...(capabilities?.keymapBroker ? { keymapBroker: capabilities.keymapBroker } : {}),
       ...(capabilities?.editingBroker ? { editingBroker: capabilities.editingBroker } : {}),
       ...(capabilities?.resourcesBroker ? { resourcesBroker: capabilities.resourcesBroker } : {}),
+      ...(capabilities?.onDocumentRenderTimeout
+        ? { onDocumentRenderTimeout: capabilities.onDocumentRenderTimeout }
+        : {}),
       timeoutMs: 10_000,
     }),
     dispose: () => undefined,
   }),
 })
+let presentationMemorySource: MemoryDocumentSource | undefined
+let presentationMemoryDocument: object | undefined
+function currentPresentationDocument() {
+  if (documentPresentation === 'custom-view') return undefined
+  if (sourceView) return { source: sourceView.source, identity: sourceView.source }
+  if (
+    !presentationMemorySource ||
+    presentationMemoryDocument !== state.doc ||
+    presentationMemorySource.documentId !== session.documentId ||
+    presentationMemorySource.version !== session.documentVersion
+  ) {
+    presentationMemoryDocument = state.doc
+    presentationMemorySource = createMemoryDocumentSource()
+  }
+  return { source: presentationMemorySource, identity: state.doc }
+}
+const desktopDocumentPresentation = createDesktopDocumentPresentationService({
+  current: currentPresentationDocument,
+  theme: () => (document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'),
+  renderers: () => desktopPluginManager.state().contributions.documentRenderers ?? [],
+  render: (pluginId, rendererId, request, options) =>
+    desktopPluginManager.renderDocument(pluginId, rendererId, request, options),
+})
+function createDesktopDocumentPresentation(): DocumentPresentationConfig | undefined {
+  if (!desktopPluginManager.state().contributions.documentRenderers?.length) return undefined
+  return {
+    provide: desktopDocumentPresentation.provide,
+    onNavigate: (target) =>
+      revealPluginLocation(target, {
+        signal: new AbortController().signal,
+        assertActive: () => undefined,
+      }),
+  }
+}
+function desktopDocumentPresentationOptions(): {
+  documentPresentation?: DocumentPresentationConfig
+} {
+  const config = createDesktopDocumentPresentation()
+  return config ? { documentPresentation: config } : {}
+}
 let pluginUiReady = false
 const desktopPluginUi: DesktopPluginUiController = new DesktopPluginUiController(
   appRoot,
@@ -2036,6 +2103,7 @@ function createEditorView(): EditorView {
     onImagePaste: desktopImagePaste,
     onEmptyPaste: desktopEmptyPaste,
     imageResolver: desktopImageResolver,
+    ...desktopDocumentPresentationOptions(),
     presentation: editorPresentation,
     state,
     mode: session.viewMode,
@@ -2103,6 +2171,9 @@ function recreateEditorView(): void {
 }
 
 function refreshPluginContributionsInViews(): void {
+  desktopDocumentPresentation.clear()
+  sourceView?.setDocumentPresentation(createDesktopDocumentPresentation())
+  view?.setDocumentPresentation(createDesktopDocumentPresentation())
   void desktopPluginUi.sync(session.documentId)
   const action = resolvePluginContributionViewRefreshAction({
     hasEditorView: view !== undefined,
@@ -2201,6 +2272,7 @@ function applyMemorySourceView(): void {
     onImagePaste: desktopImagePaste,
     onEmptyPaste: desktopEmptyPaste,
     imageResolver: desktopImageResolver,
+    ...desktopDocumentPresentationOptions(),
     presentation: editorPresentation,
     source,
     mode: session.viewMode,
@@ -2252,6 +2324,7 @@ async function applyLargeSourceView(): Promise<void> {
     onImagePaste: desktopImagePaste,
     onEmptyPaste: desktopEmptyPaste,
     imageResolver: desktopImageResolver,
+    ...desktopDocumentPresentationOptions(),
     presentation: editorPresentation,
     source: largeDocumentPreview.source,
     mode: session.viewMode,
@@ -4302,6 +4375,58 @@ function cancelScheduledPluginUiViewportUpdate(): void {
     window.cancelIdleCallback?.(pluginUiViewportIdleCallback)
     pluginUiViewportIdleCallback = undefined
   }
+}
+
+async function revealPluginLocation(
+  request: PluginUiRevealLocationRequest,
+  context: PluginUiOperationContext,
+): Promise<void> {
+  const initial = currentPresentationDocument()
+  const editor = sourceView ?? view
+  const assertCurrent = () => {
+    context.assertActive()
+    context.signal.throwIfAborted()
+    const current = currentPresentationDocument()
+    if (
+      !initial ||
+      !editor ||
+      editor !== (sourceView ?? view) ||
+      !current ||
+      current.identity !== initial.identity ||
+      current.source.documentId !== request.documentId ||
+      current.source.version !== request.version ||
+      !Number.isSafeInteger(request.from) ||
+      request.from < 0 ||
+      (request.to ?? request.from) < request.from ||
+      (current.source.length !== undefined && (request.to ?? request.from) > current.source.length)
+    )
+      throw new Error('文档位置已失效')
+  }
+  assertCurrent()
+  const selection = Selection.range(request.from, request.to ?? request.from)
+  if (sourceView) {
+    const target = sourceView
+    const location = await locateDocumentPresentationTarget(target.source, request, {
+      signal: context.signal,
+      assertCurrent,
+    })
+    assertCurrent()
+    await target.revealSelection(location.fromLine, selection, {
+      signal: context.signal,
+      assertCurrent,
+    })
+  } else if (view) {
+    state = new EditorState({
+      doc: state.doc,
+      selection,
+      history: state.history,
+      facets: state.facets,
+    })
+    view.updateState(state)
+    view.ensureCursorVisible({ scrollPadding: 0 })
+  }
+  assertCurrent()
+  focusActiveView()
 }
 
 async function revealPluginLine(line: number): Promise<void> {

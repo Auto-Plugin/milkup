@@ -75,6 +75,8 @@ export function createSidecarPluginModule(config: PluginSidecarHostConfig): Plug
       return sidecar
     }
 
+    if (manifest.contributes?.documentRenderers?.length && !process.stop)
+      throw new Error('Document renderer process requires stop')
     const endpoint = await process.start({
       pluginId: manifest.id,
       manifest,
@@ -82,6 +84,20 @@ export function createSidecarPluginModule(config: PluginSidecarHostConfig): Plug
     })
     const host = createRpcPluginIsolationHost(endpoint, {
       ...(timeoutMs ? { timeoutMs } : {}),
+      onDocumentRenderTimeout: () => {
+        active.keymapRpcServer?.dispose()
+        active.editingRpcServer?.dispose()
+        active.resourcesRpcServer?.dispose()
+        active.settingsRpcServer?.dispose()
+        active.workspaceRpcServer?.dispose()
+        active.documentRpcServer?.dispose()
+        active.uiRpcServer?.dispose()
+        active.host.dispose()
+        active.endpoint.close?.()
+        void Promise.resolve(process.stop?.({ pluginId: manifest.id })).catch(() => undefined)
+        sidecar = undefined
+        config.onDocumentRenderTimeout?.()
+      },
     })
     const keymapRpcServer =
       keymapBroker && manifest.permissions?.includes('app:keymap')
@@ -103,9 +119,10 @@ export function createSidecarPluginModule(config: PluginSidecarHostConfig): Plug
       workspaceBroker && manifest.permissions?.includes('workspace:read')
         ? createPluginWorkspaceRpcServer(endpoint, workspaceBroker)
         : undefined
-    const documentRpcServer = documentBroker
-      ? createPluginDocumentRpcServer(endpoint, documentBroker)
-      : undefined
+    const documentRpcServer =
+      documentBroker && manifest.permissions?.includes('document:read')
+        ? createPluginDocumentRpcServer(endpoint, documentBroker)
+        : undefined
     const uiRpcServer = uiBroker ? createPluginUiRpcServer(endpoint, uiBroker) : undefined
     const module = createIsolatedPluginModule({ manifest, host })
 

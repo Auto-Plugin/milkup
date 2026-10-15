@@ -431,3 +431,52 @@ reports bounded plain text (1,000 characters, rate limited); it does not accept
 HTML. `context-menu` is a controlled document UI contribution slot. None of
 these additions changes existing manifest engine ranges, approvals or enabled
 state; SDK 0.3.2 remains compatible with previously installed 0.3.x packages.
+
+### Offline document rendering (0.3.3)
+
+This additive API preserves the 0.3.2 command and UI renderer contracts. Declare
+`contributes.documentRenderers: [{id: "example", contexts: ["text"]}]` and
+`document:read`, then export `documentRenderers.example(request, {signal})` from
+the module or activation. Fence providers declare `contexts: ["fence"]` plus an
+explicit `fenceLanguages` list. There is no plugin-specific host parser.
+
+`SdkDocumentPresentationRequest` contains a bounded immutable source window and
+trusted block/protected-range context. All offsets, selections, and reference
+targets are **absolute UTF-16**. Return `{fragments, complete}`; each fragment has
+`from`, `to`, `layout`, `content`, and plain `accessibleText`. Fragments must be
+sorted and nonoverlapping. Text providers cannot cover code/protected/unknown
+ranges. Fence fragments replace exactly one complete fence of a declared
+language. `complete: false` means provisional results, never a completed global
+index. Unknown context or failed validation preserves the source.
+
+`SdkDocumentPresentationNode` is an inert typed tree: text, grouping, emphasis,
+code, superscript/subscript, document/version-bound references, allowlisted MathML,
+and bounded vector primitives. No raw HTML/XML/SVG, CSS, URL, DOM, script, event
+handler or arbitrary attribute is accepted. Semantic output can be reused by an
+export serializer without executing plugin code in the exported document.
+
+Each request is limited to 64 Ki UTF-16 and 256 lines. Each result is limited to
+256 KiB UTF-8 JSON, 128 fragments, 4096 combined semantic/MathML/vector nodes and
+depth 64. Each vector point also counts toward the node budget. Each fragment
+allows 8192 UTF-16 units of accessible text and 1000 units of diagnostic message.
+Geometry is finite and bounded; see the public types for supported
+shapes and attributes. Unsupported output rejects the result. Bundle all parsing
+and layout dependencies locally; rendering does not grant network permission.
+
+The host allows one active render and two queued requests per plugin. Honour the
+realm-local AbortSignal. A two-second execution watchdog terminates an
+unresponsive Worker/process and revokes its capabilities; manual enable is
+required afterwards. Cancellation immediately rejects the caller but retains the
+watchdog until remote settlement, so ignoring cancellation cannot hide runaway
+execution. Disable, document switches and version changes invalidate pending work.
+
+For document-wide indexes, `host.document.readWindow({documentId, version,
+fromLine, lineCount}, {signal})` reads at most 4096 complete lines / 128 Ki UTF-16;
+a single over-limit line fails instead of being truncated. Results include exact
+line offsets, source, and actual-document `completeStart`/`completeEnd` flags.
+Build indexes incrementally in the plugin, return cached/provisional rendering
+promptly, and call `host.document.invalidatePresentation({documentId, version,
+rendererId})` when ready. The host checks ownership/version and coalesces requests
+at four per second. `host.ui.revealLocation({documentId, version, from, to?},
+{signal})` rechecks the target before navigation; no file path or arbitrary command
+is exposed. Old `scan` and `revealLine` remain available.

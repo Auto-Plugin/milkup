@@ -1,5 +1,33 @@
 import type { DocumentLine, DocumentLineWindow } from '@milkup/core'
 
+export interface PluginDocumentReadWindowRequest {
+  readonly documentId: string
+  readonly version: number
+  readonly fromLine: number
+  readonly lineCount: number
+}
+export interface PluginDocumentReadWindowResult extends DocumentLineWindow {
+  readonly documentId: string
+  readonly version: number
+  readonly totalLines: number
+  /** True only at the document's actual first/last logical line. */
+  readonly completeStart: boolean
+  readonly completeEnd: boolean
+}
+export interface PluginDocumentReadOptions {
+  readonly signal?: AbortSignal
+}
+export interface PluginDocumentInvalidatePresentationRequest {
+  readonly documentId: string
+  readonly version: number
+  readonly rendererId: string
+}
+export interface PluginDocumentOperationContext {
+  readonly signal: AbortSignal
+  /** Call again immediately before a host-side effect after any await. */
+  readonly assertActive: () => void
+}
+
 export type PluginDocumentScanQuery =
   | {
       readonly kind: 'text'
@@ -100,13 +128,31 @@ export type PluginDocumentScanEvent =
     })
 
 export interface PluginDocumentBroker {
+  dispose?(): void
+  readWindow?(
+    request: PluginDocumentReadWindowRequest,
+    options?: PluginDocumentReadOptions,
+  ): Promise<PluginDocumentReadWindowResult>
+  invalidatePresentation?(
+    request: PluginDocumentInvalidatePresentationRequest,
+    options?: PluginDocumentReadOptions,
+  ): Promise<void>
   start(request: PluginDocumentScanRequest): Promise<PluginDocumentScanStartResult>
   next(scanId: string): Promise<PluginDocumentScanEvent>
   cancel(scanId: string): Promise<void>
 }
 
 export interface ManagedPluginDocumentBroker extends PluginDocumentBroker {
+  readWindow(
+    request: PluginDocumentReadWindowRequest,
+    options?: PluginDocumentReadOptions,
+  ): Promise<PluginDocumentReadWindowResult>
+  invalidatePresentation(
+    request: PluginDocumentInvalidatePresentationRequest,
+    options?: PluginDocumentReadOptions,
+  ): Promise<void>
   cancelAll(): Promise<void>
+  dispose(): void
 }
 
 export interface PluginDocumentScanner extends AsyncIterable<PluginDocumentScanEvent> {
@@ -114,12 +160,23 @@ export interface PluginDocumentScanner extends AsyncIterable<PluginDocumentScanE
 }
 
 export interface PluginDocumentHost {
+  readWindow(
+    request: PluginDocumentReadWindowRequest,
+    options?: PluginDocumentReadOptions,
+  ): Promise<PluginDocumentReadWindowResult>
+  invalidatePresentation(request: PluginDocumentInvalidatePresentationRequest): Promise<void>
   scan(request: PluginDocumentScanRequest): PluginDocumentScanner
 }
 
 export interface PluginDocumentBrokerConfig {
   readonly pluginId: string
   readonly source: () => PluginDocumentScanSource | undefined
+  readonly isActive?: () => boolean
+  readonly rendererIds?: readonly string[]
+  readonly invalidatePresentation?: (
+    request: PluginDocumentInvalidatePresentationRequest,
+    context: PluginDocumentOperationContext,
+  ) => void | Promise<void>
   readonly maxConcurrentScans?: number
   readonly yieldToMainThread?: () => Promise<void>
   /** Host-only instrumentation; never included in document RPC responses. */
@@ -208,6 +265,15 @@ const MAX_REGEXP_LINE_LENGTH = 64 * 1_024
 const MAX_COOPERATIVE_SCAN_LINES = 512
 const MAX_SCAN_TEXT_LENGTH = 262_144
 const MAX_HEADING_CHECKPOINTS = 256
+interface PendingInvalidation {
+  readonly request: PluginDocumentInvalidatePresentationRequest
+  resolve(): void
+  reject(error: unknown): void
+  readonly promise: Promise<void>
+  readonly controller: AbortController
+  readonly callers: Set<AbortSignal>
+  unabortable: boolean
+}
 
 export function createPluginDocumentBroker(
   config: PluginDocumentBrokerConfig,
@@ -225,9 +291,256 @@ export function createPluginDocumentBroker(
   let contextDocumentId = ''
   let contextVersion = -1
   const headingCheckpoints = new Map<number, HeadingContext>()
+  let disposed = false
+  const operations = new Set<AbortController>()
+  const rendererIds = new Set(config.rendererIds ?? [])
+  let invalidationTimer: ReturnType<typeof setTimeout> | undefined
+  let lastInvalidation = -Infinity
+  let invalidationRunning = false
+  const invalidations = new Map<string, PendingInvalidation>()
+  const active = () => {
+    if (disposed || config.isActive?.() === false)
+      throw new Error('Plugin document capability was revoked')
+  }
+  const current = (request: { documentId: string; version: number }) => {
+    active()
+    const value = config.source()
+    if (!value || value.documentId !== request.documentId || value.version !== request.version)
+      throw new Error('Plugin document changed')
+    return value
+  }
+  const cancelOperations = () => {
+    for (const controller of operations) controller.abort()
+    operations.clear()
+    clearTimeout(invalidationTimer)
+    invalidationTimer = undefined
+    for (const item of invalidations.values()) {
+      item.controller.abort()
+      item.reject(new Error('Plugin document operation aborted'))
+    }
+    invalidations.clear()
+  }
+  const flushInvalidation = () => {
+    invalidationTimer = undefined
+    const item = invalidations.values().next().value
+    if (!item) return
+    invalidations.delete(item.request.rendererId)
+    invalidationRunning = true
+    lastInvalidation = Date.now()
+    const controller = item.controller
+    operations.add(controller)
+    const assertActive = () => {
+      current(item.request)
+      if (controller.signal.aborted) throw new Error('Plugin document operation aborted')
+    }
+    void (async () => {
+      try {
+        assertActive()
+        await abortableDocumentOperation(
+          Promise.resolve(
+            config.invalidatePresentation!(item.request, {
+              signal: controller.signal,
+              assertActive,
+            }),
+          ),
+          controller.signal,
+        )
+        assertActive()
+        item.resolve()
+      } catch (error) {
+        item.reject(error)
+      } finally {
+        invalidationRunning = false
+        operations.delete(controller)
+        if (invalidations.size && !invalidationTimer && !disposed)
+          invalidationTimer = setTimeout(flushInvalidation, 250)
+      }
+    })()
+  }
+  const subscribeInvalidation = (
+    item: PendingInvalidation,
+    signal?: AbortSignal,
+  ): Promise<void> => {
+    if (!signal) {
+      item.unabortable = true
+      return item.promise
+    }
+    item.callers.add(signal)
+    const abort = () => {
+      item.callers.delete(signal)
+      if (item.unabortable || item.callers.size) return
+      item.controller.abort()
+      if (invalidations.get(item.request.rendererId) === item)
+        invalidations.delete(item.request.rendererId)
+      item.reject(new Error('Plugin document operation aborted'))
+    }
+    signal.addEventListener('abort', abort, { once: true })
+    return abortableDocumentOperation(item.promise, signal).finally(() => {
+      signal.removeEventListener('abort', abort)
+      item.callers.delete(signal)
+    })
+  }
 
   return Object.freeze({
+    readWindow: async (
+      request: PluginDocumentReadWindowRequest,
+      options: PluginDocumentReadOptions = {},
+    ): Promise<PluginDocumentReadWindowResult> => {
+      assertDocumentIdentity(request)
+      const source = current(request)
+      if (
+        !Number.isSafeInteger(request.fromLine) ||
+        request.fromLine < 1 ||
+        request.fromLine > source.lineCount ||
+        !Number.isSafeInteger(request.lineCount) ||
+        request.lineCount < 1 ||
+        request.lineCount > 4096
+      )
+        throw new Error('Invalid document window range')
+      if (operations.size >= 8) throw new Error('Plugin document operation limit reached')
+      const identity = Object.freeze({ documentId: request.documentId, version: request.version })
+      const fromLine = request.fromLine,
+        totalLines = source.lineCount
+      let toLine = Math.min(totalLines, fromLine + request.lineCount - 1)
+      const controller = new AbortController()
+      const abort = () => controller.abort()
+      if (options.signal?.aborted) controller.abort()
+      options.signal?.addEventListener('abort', abort, { once: true })
+      operations.add(controller)
+      const check = () => {
+        if (controller.signal.aborted) throw new Error('Plugin document operation aborted')
+        if (current(identity).lineCount !== totalLines) throw new Error('Plugin document changed')
+      }
+      try {
+        for (;;) {
+          check()
+          let window: DocumentLineWindow
+          try {
+            window = await abortableDocumentOperation(
+              source.readLineWindow(fromLine, toLine, 131072),
+              controller.signal,
+            )
+            check()
+            if (window.text.length > 131072) throw new RangeError('Line window exceeds text budget')
+          } catch (error) {
+            check()
+            if (/text budget/i.test(String(error))) {
+              if (fromLine === toLine)
+                throw new Error('Document single line exceeds text budget (131072 UTF-16 units)')
+              toLine = fromLine + Math.floor((toLine - fromLine) / 2)
+              continue
+            }
+            throw new Error('Document window read failed')
+          }
+          if (
+            window.fromLine !== fromLine ||
+            window.toLine !== toLine ||
+            !Number.isSafeInteger(window.from) ||
+            window.from < 0 ||
+            !Number.isSafeInteger(window.to) ||
+            window.to - window.from !== window.text.length ||
+            window.lines.length !== toLine - fromLine + 1
+          )
+            throw new Error('Invalid document window response')
+          const lines = window.lines.map((line, index) => {
+            if (
+              line.number !== fromLine + index ||
+              !Number.isSafeInteger(line.from) ||
+              !Number.isSafeInteger(line.to) ||
+              line.from < window.from ||
+              line.to > window.to ||
+              line.to - line.from !== line.text.length ||
+              window.text.slice(line.from - window.from, line.to - window.from) !== line.text ||
+              (index === 0
+                ? line.from !== window.from
+                : line.from <= window.lines[index - 1]!.to) ||
+              (index === window.lines.length - 1 && line.to !== window.to)
+            )
+              throw new Error('Invalid document window response')
+            return Object.freeze({
+              number: line.number,
+              from: line.from,
+              to: line.to,
+              text: line.text,
+            })
+          })
+          check()
+          return Object.freeze({
+            ...identity,
+            fromLine,
+            toLine,
+            from: window.from,
+            to: window.to,
+            text: window.text,
+            lines: Object.freeze(lines),
+            totalLines,
+            completeStart: fromLine === 1,
+            completeEnd: toLine === totalLines,
+          })
+        }
+      } finally {
+        options.signal?.removeEventListener('abort', abort)
+        operations.delete(controller)
+      }
+    },
+    invalidatePresentation: (
+      request: PluginDocumentInvalidatePresentationRequest,
+      options: PluginDocumentReadOptions = {},
+    ): Promise<void> => {
+      try {
+        if (options.signal?.aborted) throw new Error('Plugin document operation aborted')
+        assertDocumentIdentity(request)
+        current(request)
+        if (!rendererIds.has(request.rendererId) || !config.invalidatePresentation)
+          throw new Error('Plugin presentation renderer is unavailable')
+        const previous = invalidations.get(request.rendererId)
+        if (
+          previous &&
+          previous.request.documentId === request.documentId &&
+          previous.request.version === request.version
+        )
+          return subscribeInvalidation(previous, options.signal)
+        if (!previous && invalidations.size >= 64)
+          throw new Error('Plugin presentation queue limit reached')
+        previous?.controller.abort()
+        previous?.reject(new Error('Plugin document changed'))
+        let resolve!: () => void, reject!: (error: unknown) => void
+        const promise = new Promise<void>((done, fail) => {
+          resolve = done
+          reject = fail
+        })
+        const item: PendingInvalidation = {
+          request: Object.freeze({
+            documentId: request.documentId,
+            version: request.version,
+            rendererId: request.rendererId,
+          }),
+          resolve,
+          reject,
+          promise,
+          controller: new AbortController(),
+          callers: new Set(),
+          unabortable: false,
+        }
+        invalidations.set(request.rendererId, item)
+        if (!invalidationTimer && !invalidationRunning)
+          invalidationTimer = setTimeout(
+            flushInvalidation,
+            Math.max(0, 250 - (Date.now() - lastInvalidation)),
+          )
+        return subscribeInvalidation(item, options.signal)
+      } catch (error) {
+        return Promise.reject(error)
+      }
+    },
+    dispose: () => {
+      disposed = true
+      cancelOperations()
+      sessions.clear()
+      headingCheckpoints.clear()
+    },
     start: async (request: PluginDocumentScanRequest): Promise<PluginDocumentScanStartResult> => {
+      active()
       const source = config.source()
 
       if (!source) {
@@ -323,6 +636,7 @@ export function createPluginDocumentBroker(
       })
     },
     next: async (scanId: string): Promise<PluginDocumentScanEvent> => {
+      active()
       const session = sessions.get(scanId)
 
       if (!session) {
@@ -462,6 +776,7 @@ export function createPluginDocumentBroker(
       sessions.delete(scanId)
     },
     cancelAll: async (): Promise<void> => {
+      cancelOperations()
       for (const session of sessions.values()) reportDiagnostics(session, 'cancelled')
       sessions.clear()
       headingCheckpoints.clear()
@@ -471,9 +786,31 @@ export function createPluginDocumentBroker(
 
 export function createPluginDocumentHostCapabilities(
   broker: PluginDocumentBroker,
+  isActive: () => boolean = () => true,
 ): PluginDocumentHost {
+  const active = () => {
+    if (!isActive()) throw new Error('Plugin document capability was revoked')
+  }
   return Object.freeze({
+    readWindow: async (
+      request: PluginDocumentReadWindowRequest,
+      options?: PluginDocumentReadOptions,
+    ) => {
+      active()
+      if (!broker.readWindow) throw new Error('Plugin document windows are unavailable')
+      const value = await broker.readWindow(request, options)
+      active()
+      return value
+    },
+    invalidatePresentation: async (request: PluginDocumentInvalidatePresentationRequest) => {
+      active()
+      if (!broker.invalidatePresentation)
+        throw new Error('Plugin presentation invalidation is unavailable')
+      await broker.invalidatePresentation(request)
+      active()
+    },
     scan: (request: PluginDocumentScanRequest): PluginDocumentScanner => {
+      active()
       let started: PluginDocumentScanStartResult | undefined
       let finished = false
 
@@ -481,6 +818,7 @@ export function createPluginDocumentHostCapabilities(
         [Symbol.asyncIterator](): AsyncIterator<PluginDocumentScanEvent> {
           return {
             next: async (): Promise<IteratorResult<PluginDocumentScanEvent>> => {
+              active()
               if (finished) {
                 return { value: undefined, done: true }
               }
@@ -491,6 +829,7 @@ export function createPluginDocumentHostCapabilities(
                 return { value: undefined, done: true }
               }
               const event = await broker.next(started.scanId)
+              active()
               if (finished) return { value: undefined, done: true }
 
               if (event.type === 'done') {
@@ -514,6 +853,43 @@ export function createPluginDocumentHostCapabilities(
 
       return Object.freeze(scanner)
     },
+  })
+}
+
+function assertDocumentIdentity(
+  request: unknown,
+): asserts request is { documentId: string; version: number } {
+  if (!request || typeof request !== 'object' || Array.isArray(request))
+    throw new Error('Invalid document identity')
+  const value = request as Record<string, unknown>
+  if (
+    typeof value.documentId !== 'string' ||
+    value.documentId.length < 1 ||
+    value.documentId.length > 512 ||
+    !Number.isSafeInteger(value.version) ||
+    (value.version as number) < 0
+  )
+    throw new Error('Invalid document identity')
+}
+function abortableDocumentOperation<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => {
+      signal.removeEventListener('abort', abort)
+      reject(new Error('Plugin document operation aborted'))
+    }
+    signal.addEventListener('abort', abort, { once: true })
+    if (signal.aborted) abort()
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', abort)
+        if (signal.aborted) abort()
+        else resolve(value)
+      },
+      (error: unknown) => {
+        signal.removeEventListener('abort', abort)
+        reject(error)
+      },
+    )
   })
 }
 

@@ -1,0 +1,87 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ❯ src/desktop-plugin-manager.test.ts (20 tests | 3 failed | 17 skipped) 75ms
+   ↓ DesktopPluginManager > rejects a temporary-store plugin on SDK 0.1.0 before executing its module
+   ↓ DesktopPluginManager > cleans temporary stores on disable and close, and permits a fresh activation after close fails
+   ↓ DesktopPluginManager > loads a relative entry from the plugin root and cleans runtime resources on disable
+   ↓ DesktopPluginManager > reports error Worker startup failure and releases the Worker
+   ↓ DesktopPluginManager > reports silent Worker startup failure and releases the Worker
+   ↓ DesktopPluginManager > reports transport Worker startup failure and releases the Worker
+   ↓ DesktopPluginManager > reactivates persisted enabled plugins during startup
+   ↓ DesktopPluginManager > exports a validated local development package with its entry and resources
+   ↓ DesktopPluginManager > exports installed PNG icons as base64 and preserves them when reinstalling the archive
+   ↓ DesktopPluginManager > keeps invalid manifests visible as install failures without damaging installed records
+   ↓ DesktopPluginManager > honors keymap when contexts and exposes conflicts in manager markup
+   ↓ DesktopPluginManager > runs ChatGPT-style importers and returns generated Markdown without a source file identity
+   ↓ DesktopPluginManager > requires explicit approval for file capabilities and revokes enabled resources
+   ↓ DesktopPluginManager > gates workspace scope creation on explicit approval and revokes captured brokers before unload
+   ↓ DesktopPluginManager > keeps sidecar plugins disabled until their host is explicitly approved
+   ↓ DesktopPluginManager > provides document scan capabilities to plugins with document read permission
+   × DesktopPluginManager > permits explicit retry after a render timeout while keeping the old broker revoked 19ms
+     → expected 'failed' to be 'enabled' // Object.is equality
+   × DesktopPluginManager > ignores a retired worker timeout callback after a new activation 1ms
+     → expected 'failed' to be 'enabled' // Object.is equality
+   × DesktopPluginManager > waits for timed-out activation cleanup before publishing a replacement 53ms
+     → expected 'failed' to be 'enabled' // Object.is equality
+   ↓ resolvePluginEntryPath > resolves package entries and rejects paths outside the package
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/desktop-plugin-manager.test.ts > DesktopPluginManager > permits explicit retry after a render timeout while keeping the old broker revoked
+AssertionError: expected 'failed' to be 'enabled' // Object.is equality
+
+Expected: "enabled"
+Received: "failed"
+
+ ❯ src/desktop-plugin-manager.test.ts:605:27
+    603|     await expect(old.documentBroker!.readWindow!({ documentId: 'render…
+    604|     const retried = await fixture.manager.enable('renderer-lifecycle')
+    605|     expect(retried.state).toBe('enabled')
+       |                           ^
+    606|     expect(fixture.capabilities).toHaveLength(2)
+    607|     expect(await fixture.capabilities[1]!.documentBroker!.readWindow!(…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/desktop-plugin-manager.test.ts > DesktopPluginManager > ignores a retired worker timeout callback after a new activation
+AssertionError: expected 'failed' to be 'enabled' // Object.is equality
+
+Expected: "enabled"
+Received: "failed"
+
+ ❯ src/desktop-plugin-manager.test.ts:619:55
+    617|     await fixture.manager.enable('renderer-lifecycle')
+    618|     retired.onDocumentRenderTimeout!()
+    619|     expect(fixture.manager.state().records[0]?.state).toBe('enabled')
+       |                                                       ^
+    620|     expect(await fixture.capabilities[1]!.documentBroker!.readWindow!(…
+    621|     await fixture.manager.disable('renderer-lifecycle')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/desktop-plugin-manager.test.ts > DesktopPluginManager > waits for timed-out activation cleanup before publishing a replacement
+AssertionError: expected 'failed' to be 'enabled' // Object.is equality
+
+Expected: "enabled"
+Received: "failed"
+
+ ❯ src/desktop-plugin-manager.test.ts:637:39
+    635|     expect(fixture.capabilities).toHaveLength(1)
+    636|     release()
+    637|     expect((await replacement).state).toBe('enabled')
+       |                                       ^
+    638|     expect(fixture.disposed).toEqual([0])
+    639|     expect(await fixture.capabilities[1]!.documentBroker!.readWindow!(…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 17 skipped (20)
+   Start at  11:45:04
+   Duration  2.00s (transform 883ms, setup 0ms, collect 1.31s, tests 75ms, environment 0ms, prepare 230ms)
+
+undefined
+/workspace/milkup/apps/desktop:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/desktop-plugin-manager.test.ts -t 'explicit retry|retired worker|timed-out activation'

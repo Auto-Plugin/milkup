@@ -1,0 +1,23 @@
+2026-10-15T12:28:37.979Z NATIVE_STARTUP_WINDOW 3617ms
+PASS ordinary-root-source-revealed
+PASS ordinary-flow-source-revealed
+PASS ordinary-graph-keyboard-focus
+PASS FAIL
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Preview intersects actual viewport
+    at assertSample (file:///workspace/milkup/tests/native/tauri-markdown-extensions.mjs:765:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async semantics (file:///workspace/milkup/tests/native/tauri-markdown-extensions.mjs:895:3)
+    at async file:///workspace/milkup/tests/native/tauri-markdown-extensions.mjs:1115:5 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.19.0

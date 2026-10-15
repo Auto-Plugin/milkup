@@ -1,3 +1,4 @@
+import { createDocumentRenderRpcClient, createDocumentRenderRpcServer } from './document-render-rpc'
 import type {
   IsolatedPluginActivateRequest,
   IsolatedPluginActivateResult,
@@ -19,6 +20,8 @@ export interface PluginIsolationRpcEndpoint {
 export type PluginIsolationRpcMessageListener = (event: { readonly data: unknown }) => void
 
 export interface PluginIsolationRpcHostOptions {
+  /** Host-owned hard stop and revocation. Required for document render providers. */
+  readonly onDocumentRenderTimeout?: () => void
   readonly timeoutMs?: number
 }
 
@@ -62,6 +65,10 @@ export function createRpcPluginIsolationHost(
   endpoint: PluginIsolationRpcEndpoint,
   options: PluginIsolationRpcHostOptions = {},
 ): RpcPluginIsolationHost {
+  const documentClient = createDocumentRenderRpcClient(endpoint, () => {
+    options.onDocumentRenderTimeout?.()
+    disposeRpcHost()
+  })
   let nextId = 0
   let disposed = false
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
@@ -123,6 +130,7 @@ export function createRpcPluginIsolationHost(
 
   function disposeRpcHost(): void {
     disposed = true
+    documentClient.dispose()
     removeListener()
 
     for (const [id, request] of pending) {
@@ -144,6 +152,7 @@ export function createRpcPluginIsolationHost(
   }) as RpcPluginIsolationHost['dispose']
 
   return Object.freeze({
+    renderDocument: documentClient.render,
     activate: (request: IsolatedPluginActivateRequest) =>
       call('activate', request) as Promise<IsolatedPluginActivateResult>,
     deactivate: async (request: IsolatedPluginDeactivateRequest) => {
@@ -160,6 +169,7 @@ export function createPluginIsolationRpcServer(
   endpoint: PluginIsolationRpcEndpoint,
   host: PluginIsolationHost,
 ): PluginIsolationRpcServer {
+  const documentServer = createDocumentRenderRpcServer(endpoint, host)
   const removeListener = addMessageListener(endpoint, async (message) => {
     const request = readRpcMessage(message)
 
@@ -190,7 +200,10 @@ export function createPluginIsolationRpcServer(
   })
 
   return Object.freeze({
-    dispose: removeListener,
+    dispose: () => {
+      documentServer.dispose()
+      removeListener()
+    },
   })
 }
 

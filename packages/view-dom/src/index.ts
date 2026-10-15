@@ -68,3 +68,11 @@ export type {
   ImageResolver,
   ResolvedImageResource,
 } from './image-presentation'
+
+export { createDocumentPresentationNode } from './document-presentation'
+export type {
+  DocumentPresentationConfig,
+  DocumentPresentationWindow,
+  DocumentPresentationResponse,
+  DocumentPresentationTarget,
+} from './document-presentation'

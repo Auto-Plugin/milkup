@@ -1,0 +1,55 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/document-presentation.test.ts (26 tests | 1 failed) 705ms
+   ✓ uses real MathML, retains mapped source and reveals on selection (false) 80ms
+   ✓ keeps source literal and disable restores source without a transaction (false) 32ms
+   ✓ excludes preview text from mapped offsets, coalesces and invalidates (false) 31ms
+   ✓ mounts a multiline block once and restores every original line (false) 32ms
+   ✓ uses accessible references without editing or swallowing keyboard activation (false) 17ms
+   ✓ preserves an ordinary task control alongside inline presentation (false) 18ms
+   ✓ rejects protected and malformed output while preserving editable source (false) 9ms
+   ✓ bounds requests before invoking a provider on a huge line (false) 16ms
+   ✓ discards old-document results while a fresh document remains editable (false) 59ms
+   ✓ discards an asynchronous result after disable (false) 13ms
+   ✓ uses real MathML, retains mapped source and reveals on selection (true) 45ms
+   ✓ keeps source literal and disable restores source without a transaction (true) 26ms
+   ✓ excludes preview text from mapped offsets, coalesces and invalidates (true) 29ms
+   ✓ mounts a multiline block once and restores every original line (true) 31ms
+   ✓ uses accessible references without editing or swallowing keyboard activation (true) 16ms
+   ✓ preserves an ordinary task control alongside inline presentation (true) 19ms
+   ✓ rejects protected and malformed output while preserving editable source (true) 10ms
+   ✓ bounds requests before invoking a provider on a huge line (true) 11ms
+   ✓ discards old-document results while a fresh document remains editable (true) 41ms
+   ✓ discards an asynchronous result after disable (true) 38ms
+   ✓ constructs inert SVG and maps only validated MathML attribute names 10ms
+   ✓ checks the host navigation lease after asynchronous viewport loading 8ms
+   ✓ checks the host navigation assertion before changing selection 9ms
+   ✓ measures collapsed block continuation lines as zero and restores their heights 60ms
+   × allows bounded host snapshot preparation beyond the renderer worker deadline 33ms
+     → expected null not to be null
+   ✓ cancels a slow host preparation without waiting for its deadline 12ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation.test.ts > allows bounded host snapshot preparation beyond the renderer worker deadline
+AssertionError: expected null not to be null
+ ❯ src/__tests__/document-presentation.test.ts:424:55
+    422|     views.push(view)
+    423|     await vi.advanceTimersByTimeAsync(3001)
+    424|     expect(view.contentDOM.querySelector('math')).not.toBeNull()
+       |                                                       ^
+    425|   } finally {vi.useRealTimers()}
+    426| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 25 passed (26)
+   Start at  11:48:32
+   Duration  3.85s (transform 883ms, setup 0ms, collect 1.16s, tests 705ms, environment 786ms, prepare 157ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/document-presentation.test.ts

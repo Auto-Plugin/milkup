@@ -352,11 +352,58 @@ export interface SdkDocumentScanner extends AsyncIterable<SdkDocumentScanEvent> 
   cancel(): Promise<void>
 }
 
+export interface SdkDocumentOperationOptions {
+  readonly signal?: AbortSignal
+}
+export interface SdkDocumentReadWindowRequest {
+  readonly documentId: string
+  readonly version: number
+  readonly fromLine: number
+  readonly lineCount: number
+}
+export interface SdkDocumentReadWindowResult {
+  readonly documentId: string
+  readonly version: number
+  readonly fromLine: number
+  readonly toLine: number
+  readonly from: number
+  readonly to: number
+  readonly text: string
+  readonly totalLines: number
+  readonly completeStart: boolean
+  readonly completeEnd: boolean
+  readonly lines: readonly {
+    readonly number: number
+    readonly from: number
+    readonly to: number
+    readonly text: string
+  }[]
+}
+export interface SdkDocumentInvalidatePresentationRequest {
+  readonly documentId: string
+  readonly version: number
+  readonly rendererId: string
+}
+export interface SdkUiRevealLocationRequest {
+  readonly documentId: string
+  readonly version: number
+  readonly from: number
+  readonly to?: number
+}
 export interface SdkPluginDocumentHost {
+  readWindow(
+    request: SdkDocumentReadWindowRequest,
+    options?: SdkDocumentOperationOptions,
+  ): Promise<SdkDocumentReadWindowResult>
+  invalidatePresentation(request: SdkDocumentInvalidatePresentationRequest): Promise<void>
   scan(request: SdkDocumentScanRequest): SdkDocumentScanner
 }
 
 export interface SdkPluginUiHost {
+  revealLocation(
+    request: SdkUiRevealLocationRequest,
+    options?: SdkDocumentOperationOptions,
+  ): Promise<void>
   open(viewId: string): Promise<void>
   notify(notice: { readonly kind: 'info' | 'error'; readonly message: string }): Promise<void>
   requestUpdate(viewId?: string): Promise<void>
@@ -521,12 +568,14 @@ export type SdkPluginRenderer = (
 ) => SdkRendererOutput | Promise<SdkRendererOutput>
 
 export interface SdkPluginActivation {
+  readonly documentRenderers?: Readonly<Record<string, SdkDocumentRenderer>>
   readonly commands?: Readonly<Record<string, SdkPluginCommandHandler>>
   readonly renderers?: Readonly<Record<string, SdkPluginRenderer>>
   dispose?(): void | Promise<void>
 }
 
 export interface SdkPluginModule {
+  readonly documentRenderers?: Readonly<Record<string, SdkDocumentRenderer>>
   readonly commands?: Readonly<Record<string, SdkPluginCommandHandler>>
   readonly renderers?: Readonly<Record<string, SdkPluginRenderer>>
   activate?(
@@ -621,3 +670,167 @@ export function dispatchInsert(
   text: string,
   options?: DispatchInsertOptions,
 ): void
+
+/** Shared, inert document presentation data. All source offsets are absolute UTF-16. */
+export interface SdkDocumentPresentationRange {
+  readonly from: number
+  readonly to: number
+}
+export interface SdkDocumentPresentationBlock extends SdkDocumentPresentationRange {
+  readonly kind: 'text' | 'fence' | 'code' | 'unknown'
+  readonly complete: boolean
+  readonly info?: string
+  readonly contentRanges: readonly SdkDocumentPresentationRange[]
+}
+export interface SdkDocumentPresentationRequest extends SdkDocumentPresentationRange {
+  readonly documentId: string
+  readonly version: number
+  readonly source: string
+  readonly fromLine: number
+  readonly toLine: number
+  readonly completeStart: boolean
+  readonly completeEnd: boolean
+  readonly contextKnown: boolean
+  readonly protectedRanges: readonly SdkDocumentPresentationRange[]
+  readonly blocks: readonly SdkDocumentPresentationBlock[]
+  readonly selection: { readonly anchor: number; readonly head: number }
+  readonly theme: 'light' | 'dark'
+  readonly target: 'screen' | 'export'
+  readonly width: number
+}
+export type SdkDocumentPresentationTone =
+  'foreground' | 'muted' | 'accent' | 'background' | 'border'
+export type SdkDocumentMathTag =
+  | 'math'
+  | 'mrow'
+  | 'mi'
+  | 'mn'
+  | 'mo'
+  | 'mtext'
+  | 'mspace'
+  | 'msup'
+  | 'msub'
+  | 'msubsup'
+  | 'mfrac'
+  | 'msqrt'
+  | 'mroot'
+  | 'mover'
+  | 'munder'
+  | 'munderover'
+  | 'mtable'
+  | 'mtr'
+  | 'mtd'
+  | 'mstyle'
+export interface SdkDocumentMathNode {
+  readonly tag: SdkDocumentMathTag
+  readonly text?: string
+  readonly children?: readonly SdkDocumentMathNode[]
+  readonly attributes?: {
+    readonly scriptLevel?: number
+    readonly displayStyle?: boolean
+    readonly rowSpacingEm?: readonly number[]
+    readonly columnSpacingEm?: readonly number[]
+    readonly columnAlign?: readonly ('left' | 'center' | 'right')[]
+    readonly widthEm?: number
+    readonly lspaceEm?: number
+    readonly rspaceEm?: number
+    readonly display?: 'inline' | 'block'
+    readonly mathvariant?:
+      | 'normal'
+      | 'bold'
+      | 'italic'
+      | 'bold-italic'
+      | 'double-struck'
+      | 'script'
+      | 'fraktur'
+      | 'monospace'
+    readonly stretchy?: boolean
+    readonly fence?: boolean
+    readonly separator?: boolean
+    readonly accent?: boolean
+  }
+}
+export interface SdkDocumentVectorStyle {
+  readonly stroke?: SdkDocumentPresentationTone
+  readonly fill?: SdkDocumentPresentationTone | 'none'
+  readonly strokeWidth?: number
+}
+export type SdkDocumentVectorPrimitive =
+  | (SdkDocumentVectorStyle & {
+      readonly type: 'rect'
+      readonly x: number
+      readonly y: number
+      readonly width: number
+      readonly height: number
+      readonly radius?: number
+    })
+  | (SdkDocumentVectorStyle & {
+      readonly type: 'ellipse'
+      readonly cx: number
+      readonly cy: number
+      readonly rx: number
+      readonly ry: number
+    })
+  | (SdkDocumentVectorStyle & {
+      readonly type: 'line'
+      readonly x1: number
+      readonly y1: number
+      readonly x2: number
+      readonly y2: number
+    })
+  | (SdkDocumentVectorStyle & {
+      readonly type: 'polyline' | 'polygon'
+      readonly points: readonly { readonly x: number; readonly y: number }[]
+    })
+  | {
+      readonly type: 'text'
+      readonly x: number
+      readonly y: number
+      readonly text: string
+      readonly tone?: SdkDocumentPresentationTone
+      readonly fontSize?: number
+      readonly anchor?: 'start' | 'middle' | 'end'
+    }
+export type SdkDocumentPresentationNode =
+  | { readonly type: 'text'; readonly text: string }
+  | {
+      readonly type: 'group' | 'emphasis' | 'code' | 'sup' | 'sub'
+      readonly children: readonly SdkDocumentPresentationNode[]
+    }
+  | {
+      readonly type: 'reference'
+      readonly label: string
+      readonly target: {
+        readonly documentId: string
+        readonly version: number
+        readonly from: number
+        readonly to: number
+      }
+    }
+  | { readonly type: 'math'; readonly tree: SdkDocumentMathNode }
+  | {
+      readonly type: 'vector'
+      readonly width: number
+      readonly height: number
+      readonly children: readonly SdkDocumentVectorPrimitive[]
+    }
+export interface SdkDocumentPresentationFragment extends SdkDocumentPresentationRange {
+  readonly layout: 'inline' | 'block'
+  readonly content: SdkDocumentPresentationNode
+  readonly accessibleText: string
+  readonly status?: 'ready' | 'error'
+  readonly message?: string
+}
+export interface SdkDocumentPresentationResult {
+  readonly fragments: readonly SdkDocumentPresentationFragment[]
+  readonly complete: boolean
+}
+export interface SdkDocumentRendererDeclaration {
+  readonly id: string
+  readonly contexts: readonly ('text' | 'fence')[]
+  readonly fenceLanguages?: readonly string[]
+}
+export type SdkDocumentRenderer = (
+  request: SdkDocumentPresentationRequest,
+  options: { readonly signal: AbortSignal },
+) => SdkDocumentPresentationResult | Promise<SdkDocumentPresentationResult>

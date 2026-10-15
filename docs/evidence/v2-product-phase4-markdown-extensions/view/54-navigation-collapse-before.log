@@ -1,0 +1,63 @@
+[WebServer] (node:420491) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:420506) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:420530) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:420548) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:420586) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:107:1 › footnote navigation reveals editable original and remains read only (7.4s)
+
+
+  1) [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:107:1 › footnote navigation reveals editable original and remains read only 
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('.milkup-selection')
+    Expected: 0
+    Received: 6
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 5000ms
+      - waiting for locator('.milkup-selection')
+        14 × locator resolved to 6 elements
+           - unexpected value "6"
+
+
+      115 |   await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+      116 |   await page.keyboard.press('ArrowRight')
+    > 117 |   await expect(page.locator('.milkup-selection')).toHaveCount(0)
+          |                                                   ^
+      118 |   await page.keyboard.press('ArrowDown')
+      119 |   const back = page.locator(`[data-presentation-from="${fixture.indexOf('[^n]:')}"] .milkup-document-reference`).first()
+      120 |   await expect(back).toBeVisible()
+        at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:117:51
+
+    attachment #1: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "untitled" [level=1]
+      - paragraph: D:/notes
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - textbox:
+        - 'group "$x^2 + \\frac{1}{2}$"':
+          - math: x 2 + 1 2
+        - 'group "$$ \\begin{pmatrix}a&b\\\\c&d\\end{pmatrix} $$"':
+          - math: ( a b c d )
+      ...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/desktop-markdown-extension-cb355-ginal-and-remains-read-only-desktop-msedge/error-context.md
+
+  1 failed
+    [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:107:1 › footnote navigation reveals editable original and remains read only 

@@ -590,9 +590,131 @@ describe('DesktopPluginManager', () => {
     })
 
     await manager.disable(manifest.id)
-    await expect(documentBroker!.next(started.scanId)).rejects.toThrow('Unknown document scan')
+    await expect(documentBroker!.next(started.scanId)).rejects.toThrow(
+      'Plugin document capability was revoked',
+    )
+  })
+
+  it('permits explicit retry after a render timeout while keeping the old broker revoked', async () => {
+    const fixture = rendererLifecycleFixture()
+    await fixture.manager.installManifestPath('/plugins/renderer/plugin.json')
+    await fixture.manager.enable('renderer-lifecycle')
+    const old = fixture.capabilities[0]!
+    old.onDocumentRenderTimeout!()
+    expect(fixture.manager.state().records[0]?.state).toBe('failed')
+    await expect(
+      old.documentBroker!.readWindow!({
+        documentId: 'render-doc',
+        version: 1,
+        fromLine: 1,
+        lineCount: 1,
+      }),
+    ).rejects.toThrow(/revoked/)
+    const retried = await fixture.manager.enable('renderer-lifecycle')
+    expect(retried.state).toBe('enabled')
+    expect(fixture.capabilities).toHaveLength(2)
+    expect(
+      await fixture.capabilities[1]!.documentBroker!.readWindow!({
+        documentId: 'render-doc',
+        version: 1,
+        fromLine: 1,
+        lineCount: 1,
+      }),
+    ).toMatchObject({ text: '# Content' })
+    await fixture.manager.disable('renderer-lifecycle')
+  })
+
+  it('ignores a retired worker timeout callback after a new activation', async () => {
+    const fixture = rendererLifecycleFixture()
+    await fixture.manager.installManifestPath('/plugins/renderer/plugin.json')
+    await fixture.manager.enable('renderer-lifecycle')
+    const retired = fixture.capabilities[0]!
+    await fixture.manager.disable('renderer-lifecycle')
+    await fixture.manager.enable('renderer-lifecycle')
+    retired.onDocumentRenderTimeout!()
+    expect(fixture.manager.state().records[0]?.state).toBe('enabled')
+    expect(
+      await fixture.capabilities[1]!.documentBroker!.readWindow!({
+        documentId: 'render-doc',
+        version: 1,
+        fromLine: 1,
+        lineCount: 1,
+      }),
+    ).toMatchObject({ text: '# Content' })
+    await fixture.manager.disable('renderer-lifecycle')
+  })
+
+  it('waits for timed-out activation cleanup before publishing a replacement', async () => {
+    let release!: () => void
+    const wait = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const deactivating = vi.fn()
+    const fixture = rendererLifecycleFixture(async (generation) => {
+      if (generation === 0) {
+        deactivating()
+        await wait
+      }
+    })
+    await fixture.manager.installManifestPath('/plugins/renderer/plugin.json')
+    await fixture.manager.enable('renderer-lifecycle')
+    fixture.capabilities[0]!.onDocumentRenderTimeout!()
+    await vi.waitFor(() => expect(deactivating).toHaveBeenCalled())
+    const replacement = fixture.manager.enable('renderer-lifecycle')
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(fixture.capabilities).toHaveLength(1)
+    release()
+    expect((await replacement).state).toBe('enabled')
+    expect(fixture.disposed).toEqual([0])
+    expect(
+      await fixture.capabilities[1]!.documentBroker!.readWindow!({
+        documentId: 'render-doc',
+        version: 1,
+        fromLine: 1,
+        lineCount: 1,
+      }),
+    ).toMatchObject({ text: '# Content' })
+    await fixture.manager.disable('renderer-lifecycle')
+    expect(fixture.disposed).toEqual([0, 1])
   })
 })
+
+function rendererLifecycleFixture(deactivate?: (generation: number) => Promise<void>) {
+  const capabilities: DesktopPluginModuleCapabilities[] = [],
+    disposed: number[] = []
+  const manifest: PluginManifest = {
+    id: 'renderer-lifecycle',
+    name: 'Renderer lifecycle',
+    version: '1.0.0',
+    main: './plugin.js',
+    permissions: ['document:read'],
+  }
+  const manager = new DesktopPluginManager({
+    actionRegistry: new ActionRegistry(),
+    manifestHost: {
+      selectManifestPath: async () => undefined,
+      readManifestText: async () => JSON.stringify(manifest),
+    },
+    permissions: ['document:read'],
+    milkupVersion: '2.0.0',
+    pluginSdkVersion: '0.3.3',
+    storage: createMemoryStorage(),
+    documentSource: () =>
+      new MemoryDocumentSource({ documentId: 'render-doc', version: 1, text: '# Content' }),
+    loadModule: async (_manifest, _specifier, instance) => {
+      const generation = capabilities.length
+      capabilities.push(instance!)
+      return {
+        module: { runtimeHost: 'isolated', deactivate: () => deactivate?.(generation) },
+        dispose: () => {
+          disposed.push(generation)
+        },
+      }
+    },
+  })
+  return { manager, capabilities, disposed }
+}
 
 describe('resolvePluginEntryPath', () => {
   it('resolves package entries and rejects paths outside the package', () => {

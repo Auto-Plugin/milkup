@@ -1,3 +1,8 @@
+import {
+  copyDocumentPresentationRequest,
+  copyDocumentPresentationResult,
+  DocumentPresentationError,
+} from '@milkup/core'
 import { createPluginKeymapHostCapabilities, type PluginKeymapBroker } from './keymap-broker'
 import { createPluginEditingHostCapabilities, type PluginEditingBroker } from './editing-broker'
 import {
@@ -24,6 +29,7 @@ import type {
   IsolatedPluginCommandResult,
   IsolatedPluginDeactivateRequest,
   IsolatedPluginRenderRequest,
+  IsolatedPluginDocumentRenderRequest,
   PluginHostCapabilityName,
   PluginIsolationHost,
   SerializedChange,
@@ -67,6 +73,7 @@ export function createPluginModuleIsolationHost(
   let activation: PluginActivation | undefined
   let generation = 0
   let active = false
+  const renderControllers = new Set<AbortController>()
 
   return Object.freeze({
     activate: async (
@@ -109,12 +116,27 @@ export function createPluginModuleIsolationHost(
       return Object.freeze({
         commands: Object.freeze(listContributedCommands(manifest, activation, module)),
         renderers: Object.freeze(listContributedRenderers(manifest, activation, module)),
+        ...(manifest.contributes?.documentRenderers?.length
+          ? {
+              documentRenderers: Object.freeze(
+                (manifest.contributes?.documentRenderers ?? [])
+                  .filter(
+                    (r) =>
+                      typeof (
+                        activation?.documentRenderers?.[r.id] ?? module.documentRenderers?.[r.id]
+                      ) === 'function',
+                  )
+                  .map((r) => r.id),
+              ),
+            }
+          : {}),
       })
     },
     deactivate: async (request: IsolatedPluginDeactivateRequest): Promise<void> => {
       assertPluginId(manifest, request.pluginId)
       active = false
       generation++
+      for (const controller of renderControllers) controller.abort()
       await module.deactivate?.()
       activation = undefined
     },
@@ -174,6 +196,43 @@ export function createPluginModuleIsolationHost(
         transactions: Object.freeze(editor?.flush() ?? []),
       })
     },
+    renderDocument: async (
+      input: IsolatedPluginDocumentRenderRequest,
+      options: { readonly signal?: AbortSignal } = {},
+    ) => {
+      assertPluginId(manifest, input.pluginId)
+      const current = generation
+      const controller = new AbortController()
+      const abort = () => controller.abort()
+      options.signal?.addEventListener('abort', abort, { once: true })
+      if (options.signal?.aborted) abort()
+      const assert = () => {
+        if (!active || generation !== current || config.isActive?.() === false)
+          throw new DocumentPresentationError('revoked')
+        if (controller.signal.aborted) throw new DocumentPresentationError('aborted')
+      }
+      renderControllers.add(controller)
+      try {
+        assert()
+        const declaration = manifest.contributes?.documentRenderers?.find(
+          (r) => r.id === input.rendererId,
+        )
+        const renderer =
+          activation?.documentRenderers?.[input.rendererId] ??
+          module.documentRenderers?.[input.rendererId]
+        if (!declaration || !renderer || !manifest.permissions?.includes('document:read'))
+          throw new DocumentPresentationError('unavailable')
+        const request = copyDocumentPresentationRequest(input.request)
+        const value = await renderer(request, {
+          signal: controller.signal,
+        })
+        assert()
+        return copyDocumentPresentationResult(value, request, declaration)
+      } finally {
+        renderControllers.delete(controller)
+        options.signal?.removeEventListener('abort', abort)
+      }
+    },
     render: async (request: IsolatedPluginRenderRequest): Promise<unknown> => {
       assertPluginId(manifest, request.pluginId)
       const renderer =
@@ -183,12 +242,18 @@ export function createPluginModuleIsolationHost(
         throw new Error(`Isolated renderer is not available: ${request.renderer.id}`)
       }
 
-      return renderer(request.context)
+      const current = generation
+      if (!active || config.isActive?.() === false) throw new DocumentPresentationError('revoked')
+      const result = await renderer(request.context)
+      if (!active || generation !== current || config.isActive?.() === false)
+        throw new DocumentPresentationError('revoked')
+      return result
     },
     dispose: async (request: IsolatedPluginDeactivateRequest): Promise<void> => {
       assertPluginId(manifest, request.pluginId)
       active = false
       generation++
+      for (const controller of renderControllers) controller.abort()
       await activation?.dispose?.()
     },
   })
@@ -336,7 +401,7 @@ function restrictHost(
 
   return Object.freeze({
     ...(capabilities.includes('document:read') && documentBroker
-      ? { document: createPluginDocumentHostCapabilities(documentBroker) }
+      ? { document: createPluginDocumentHostCapabilities(documentBroker, isActive) }
       : capabilities.includes('document:read') && host.document
         ? { document: host.document }
         : {}),

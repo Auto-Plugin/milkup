@@ -1,0 +1,205 @@
+
+ RUN  v3.2.6 /workspace/milkup-markdown-extensions-phase4-evidence/footnotes/service-cas-before
+
+ ❯ document-presentation-service.test.ts (6 tests | 2 failed) 29ms
+   ✓ desktop document presentation service > uses trusted context and validates inert results 6ms
+   ✓ desktop document presentation service > rejects results after document replacement even when IDs and versions match 2ms
+   × desktop document presentation service > rejects a mutable native source version changed while its renderer is pending 13ms
+     → promise resolved "{ request: { …(16) }, …(2) }" instead of rejecting
+   × desktop document presentation service > rejects source replacement with unchanged view identity, document ID and version 4ms
+     → promise resolved "{ request: { …(16) }, …(2) }" instead of rejecting
+   ✓ desktop document presentation service > drops code-overlap and stale contributions while preserving source 1ms
+   ✓ desktop document presentation service > invalidates in-flight work and does not cache a rejected provider 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  document-presentation-service.test.ts > desktop document presentation service > rejects a mutable native source version changed while its renderer is pending
+AssertionError: promise resolved "{ request: { …(16) }, …(2) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "declarations": [
++     {
++       "contexts": [
++         "text",
++       ],
++       "id": "extension",
++       "pluginId": "test",
++     },
++   ],
++   "request": {
++     "blocks": [
++       {
++         "complete": true,
++         "contentRanges": [
++           {
++             "from": 0,
++             "to": 9,
++           },
++         ],
++         "from": 0,
++         "kind": "text",
++         "to": 9,
++       },
++       {
++         "complete": true,
++         "contentRanges": [
++           {
++             "from": 10,
++             "to": 10,
++           },
++         ],
++         "from": 10,
++         "kind": "text",
++         "to": 10,
++       },
++     ],
++     "completeEnd": true,
++     "completeStart": true,
++     "contextKnown": true,
++     "documentId": "doc",
++     "from": 0,
++     "fromLine": 1,
++     "protectedRanges": [],
++     "selection": {
++       "anchor": 0,
++       "head": 0,
++     },
++     "source": "Hello $x$
++ ",
++     "target": "screen",
++     "theme": "light",
++     "to": 10,
++     "toLine": 2,
++     "version": 1,
++     "width": 760,
++   },
++   "result": {
++     "complete": true,
++     "fragments": [
++       {
++         "accessibleText": "x",
++         "content": {
++           "text": "x",
++           "type": "text",
++         },
++         "from": 6,
++         "layout": "inline",
++         "to": 9,
++       },
++     ],
++   },
+  }
+
+ ❯ document-presentation-service.test.ts:57:25
+     55|     version = 2
+     56|     finish()
+     57|     await expect(pending).rejects.toThrow()
+       |                         ^
+     58|   })
+     59|   it('rejects source replacement with unchanged view identity, documen…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  document-presentation-service.test.ts > desktop document presentation service > rejects source replacement with unchanged view identity, document ID and version
+AssertionError: promise resolved "{ request: { …(16) }, …(2) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "declarations": [
++     {
++       "contexts": [
++         "text",
++       ],
++       "id": "extension",
++       "pluginId": "test",
++     },
++   ],
++   "request": {
++     "blocks": [
++       {
++         "complete": true,
++         "contentRanges": [
++           {
++             "from": 0,
++             "to": 9,
++           },
++         ],
++         "from": 0,
++         "kind": "text",
++         "to": 9,
++       },
++       {
++         "complete": true,
++         "contentRanges": [
++           {
++             "from": 10,
++             "to": 10,
++           },
++         ],
++         "from": 10,
++         "kind": "text",
++         "to": 10,
++       },
++     ],
++     "completeEnd": true,
++     "completeStart": true,
++     "contextKnown": true,
++     "documentId": "doc",
++     "from": 0,
++     "fromLine": 1,
++     "protectedRanges": [],
++     "selection": {
++       "anchor": 0,
++       "head": 0,
++     },
++     "source": "Hello $x$
++ ",
++     "target": "screen",
++     "theme": "light",
++     "to": 10,
++     "toLine": 2,
++     "version": 1,
++     "width": 760,
++   },
++   "result": {
++     "complete": true,
++     "fragments": [
++       {
++         "accessibleText": "x",
++         "content": {
++           "text": "x",
++           "type": "text",
++         },
++         "from": 6,
++         "layout": "inline",
++         "to": 9,
++       },
++     ],
++   },
+  }
+
+ ❯ document-presentation-service.test.ts:75:25
+     73|     currentSource = new MemoryDocumentSource({ documentId: 'doc', vers…
+     74|     finish()
+     75|     await expect(pending).rejects.toThrow()
+       |                         ^
+     76|   })
+     77|   it('drops code-overlap and stale contributions while preserving sour…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 4 passed (6)
+   Start at  11:51:11
+   Duration  657ms (transform 265ms, setup 0ms, collect 337ms, tests 29ms, environment 0ms, prepare 81ms)
+

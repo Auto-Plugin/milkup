@@ -1,0 +1,76 @@
+$ pnpm version:check && pnpm -r build
+$ node scripts/check-versions.mjs
+Application 2.0.0-beta.1; SDK 0.3.3; outline 1.3.1
+Scope: 14 of 15 workspace projects
+packages/assets build$ tsc -p tsconfig.json
+packages/core build$ tsc -p tsconfig.json
+packages/input build$ tsc -p tsconfig.json
+packages/markdown build$ tsc -p tsconfig.json
+packages/assets build: Done
+packages/input build: Done
+packages/markdown build: Done
+packages/core build: Done
+packages/export build$ tsc -p tsconfig.json
+packages/mcp build$ tsc -p tsconfig.json && vite build
+packages/plugin-sdk build$ tsc -p tsconfig.json
+packages/tauri-bridge build$ tsc -p tsconfig.json
+packages/plugin-sdk build: Done
+packages/view-dom build$ tsc -p tsconfig.json
+packages/export build: Done
+packages/tauri-bridge build: Done
+packages/mcp build: vite v7.3.6 building ssr environment for production...
+packages/mcp build: transforming...
+packages/mcp build: ✓ 22 modules transformed.
+packages/mcp build: rendering chunks...
+packages/mcp build: dist/bin/milkup-mcp.js  28.28 kB
+packages/mcp build: ✓ built in 353ms
+packages/mcp build: Done
+packages/view-dom build: Done
+packages/plugin build$ tsc -p tsconfig.json
+tests/regressions build$ tsc -p tsconfig.json
+tests/regressions build: Done
+packages/plugin build: Done
+apps/playground build$ vite build
+packages/cli build$ tsc -p tsconfig.json && vite build
+apps/desktop build$ vite build
+apps/playground build: vite v7.3.6 building client environment for production...
+apps/desktop build: vite v7.3.6 building client environment for production...
+apps/playground build: transforming...
+apps/desktop build: transforming...
+apps/playground build: ✓ 138 modules transformed.
+apps/playground build: rendering chunks...
+apps/playground build: computing gzip size...
+apps/playground build: dist/index.html                               0.40 kB │ gzip:  0.27 kB
+apps/playground build: dist/assets/worker-demo-plugin-C-hDPU5f.js    2.31 kB
+apps/playground build: dist/assets/plugin-worker-BivtyBX0.js        90.72 kB
+apps/playground build: dist/assets/index-NEfibDu7.css                3.49 kB │ gzip:  1.29 kB
+apps/playground build: dist/assets/index-bwHCqA7O.js               243.37 kB │ gzip: 69.31 kB
+apps/playground build: ✓ built in 6.85s
+apps/playground build: Done
+packages/cli build: vite v7.3.6 building ssr environment for production...
+packages/cli build: transforming...
+packages/cli build: ✓ 124 modules transformed.
+packages/cli build: rendering chunks...
+packages/cli build: dist/bin/milkup.js  252.22 kB
+packages/cli build: ✓ built in 2.10s
+packages/cli build: Done
+apps/desktop build: ✓ 1971 modules transformed.
+apps/desktop build: rendering chunks...
+apps/desktop build: computing gzip size...
+apps/desktop build: dist/index.html                                  0.67 kB │ gzip:   0.39 kB
+apps/desktop build: dist/assets/large-search-worker-BwuKh3LS.js      1.32 kB
+apps/desktop build: dist/assets/worker-file-plugin-C6Pu6mbd.js       2.79 kB
+apps/desktop build: dist/assets/plugin-worker-CmA3rOYz.js           90.65 kB
+apps/desktop build: dist/assets/index-RroQuXw8.css                  39.90 kB │ gzip:   8.41 kB
+apps/desktop build: dist/assets/index-lBcCbJoJ.js                    0.29 kB │ gzip:   0.18 kB
+apps/desktop build: dist/assets/event-BK_86lmQ.js                    1.41 kB │ gzip:   0.68 kB
+apps/desktop build: dist/assets/core-DhEqZVGG.js                     2.44 kB │ gzip:   0.98 kB
+apps/desktop build: dist/assets/webview-Dd-2IzEi.js                  3.36 kB │ gzip:   1.15 kB
+apps/desktop build: dist/assets/window-6lX1olBp.js                  14.16 kB │ gzip:   3.57 kB
+apps/desktop build: dist/assets/index-BlSG117c.js                1,454.92 kB │ gzip: 348.49 kB
+apps/desktop build: ✓ built in 11.94s
+apps/desktop build: (!) Some chunks are larger than 500 kB after minification. Consider:
+apps/desktop build: - Using dynamic import() to code-split the application
+apps/desktop build: - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+apps/desktop build: - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+apps/desktop build: Done

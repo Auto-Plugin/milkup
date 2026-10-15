@@ -42,3 +42,11 @@ export {
   type SyntaxNodeType,
   type SyntaxStatus,
 } from './cst/node'
+
+export {
+  createMarkdownWindowContextReader,
+  type MarkdownContextSource,
+  type MarkdownContextWindow,
+  type MarkdownWindowContext,
+  type MarkdownContextBlock,
+} from './extensions/window-context'

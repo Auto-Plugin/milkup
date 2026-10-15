@@ -1,11 +1,19 @@
 import type { PluginIsolationRpcEndpoint, PluginIsolationRpcMessageListener } from './isolation-rpc'
-import { assertPluginUiNotice, type PluginUiNotice, type PluginUiBroker } from './ui-broker'
+import {
+  assertPluginUiNotice,
+  assertPluginUiLocation,
+  type PluginUiNotice,
+  type PluginUiBroker,
+  type PluginUiRevealLocationRequest,
+  type PluginUiOperationOptions,
+} from './ui-broker'
 
 interface UiRpcMessage {
   readonly protocol: typeof UI_RPC_PROTOCOL
-  readonly type: 'request' | 'response'
+  readonly type: 'request' | 'response' | 'cancelRequest'
   readonly id: string
-  readonly method?: 'requestUpdate' | 'revealLine' | 'open' | 'notify'
+  readonly method?: 'requestUpdate' | 'revealLine' | 'revealLocation' | 'open' | 'notify'
+  readonly location?: PluginUiRevealLocationRequest
   readonly viewId?: string
   readonly line?: number
   readonly gesture?: string
@@ -28,7 +36,12 @@ export function createRpcPluginUiBroker(
   let disposed = false
   const pending = new Map<
     string,
-    { resolve(): void; reject(error: Error): void; timer: ReturnType<typeof setTimeout> }
+    {
+      resolve(): void
+      reject(error: Error): void
+      timer: ReturnType<typeof setTimeout>
+      cleanup(): void
+    }
   >()
   const remove = addListener(endpoint, (value) => {
     const message = readMessage(value)
@@ -37,6 +50,7 @@ export function createRpcPluginUiBroker(
     if (!request) return
     pending.delete(message.id)
     clearTimeout(request.timer)
+    request.cleanup()
     if (message.ok) request.resolve()
     else request.reject(new Error(message.error?.message ?? 'Plugin UI RPC failed'))
   })
@@ -45,14 +59,18 @@ export function createRpcPluginUiBroker(
     requestUpdate: (viewId?: string) =>
       request('requestUpdate', viewId === undefined ? {} : { viewId }),
     revealLine: (line: number) => request('revealLine', { line }),
+    revealLocation: (location: PluginUiRevealLocationRequest, options?: PluginUiOperationOptions) =>
+      request('revealLocation', { location }, options?.signal),
     open: (viewId: string, gesture?: string) =>
       request('open', { viewId, ...(gesture ? { gesture } : {}) }),
     notify: (notice: PluginUiNotice) => request('notify', { notice }),
     dispose: () => {
       disposed = true
       remove()
-      for (const request of pending.values()) {
+      for (const [id, request] of pending) {
         clearTimeout(request.timer)
+        request.cleanup()
+        cancelRequest(id)
         request.reject(new Error('Plugin UI RPC broker is disposed'))
       }
       pending.clear()
@@ -61,24 +79,62 @@ export function createRpcPluginUiBroker(
 
   function request(
     method: NonNullable<UiRpcMessage['method']>,
-    input: Pick<UiRpcMessage, 'viewId' | 'line' | 'gesture' | 'notice'>,
+    input: Pick<UiRpcMessage, 'viewId' | 'line' | 'gesture' | 'notice' | 'location'>,
+    signal?: AbortSignal,
   ): Promise<void> {
     if (disposed) return Promise.reject(new Error('Plugin UI RPC broker is disposed'))
+    if (signal?.aborted) return Promise.reject(new Error('Plugin UI RPC aborted'))
+    if (pending.size >= 32) return Promise.reject(new Error('Plugin UI RPC request limit reached'))
     const id = `${Date.now().toString(36)}-${(nextId++).toString(36)}`
     return new Promise<void>((resolve, reject) => {
+      const abort = () => {
+        const entry = pending.get(id)
+        if (!entry) return
+        pending.delete(id)
+        clearTimeout(entry.timer)
+        entry.cleanup()
+        cancelRequest(id)
+        reject(new Error('Plugin UI RPC aborted'))
+      }
       const timer = setTimeout(() => {
         pending.delete(id)
+        signal?.removeEventListener('abort', abort)
+        cancelRequest(id)
         reject(new Error(`Plugin UI RPC timed out: ${method}`))
       }, timeoutMs)
-      pending.set(id, { resolve, reject, timer })
+      pending.set(id, {
+        resolve,
+        reject,
+        timer,
+        cleanup: () => signal?.removeEventListener('abort', abort),
+      })
+      signal?.addEventListener('abort', abort, { once: true })
+      try {
+        endpoint.postMessage({
+          protocol: UI_RPC_PROTOCOL,
+          type: 'request',
+          id,
+          method,
+          ...input,
+        } satisfies UiRpcMessage)
+      } catch (error) {
+        pending.delete(id)
+        clearTimeout(timer)
+        signal?.removeEventListener('abort', abort)
+        reject(error)
+      }
+    })
+  }
+  function cancelRequest(id: string): void {
+    try {
       endpoint.postMessage({
         protocol: UI_RPC_PROTOCOL,
-        type: 'request',
+        type: 'cancelRequest',
         id,
-        method,
-        ...input,
       } satisfies UiRpcMessage)
-    })
+    } catch {
+      /* Transport already gone. */
+    }
   }
 }
 
@@ -86,39 +142,65 @@ export function createPluginUiRpcServer(
   endpoint: PluginIsolationRpcEndpoint,
   broker: PluginUiBroker,
 ): { dispose(): void } {
-  return Object.freeze({
-    dispose: addListener(endpoint, async (value) => {
-      const message = readMessage(value)
-      if (!message || message.type !== 'request') return
-      try {
-        if (message.method === 'revealLine') {
-          await broker.revealLine(Number(message.line))
-        } else if (message.method === 'open') {
-          if (!broker.open) throw new Error('Plugin modal is unavailable')
-          await broker.open(message.viewId!, message.gesture)
-        } else if (message.method === 'notify') {
-          assertPluginUiNotice(message.notice)
-          if (!broker.notify) throw new Error('Plugin notices unavailable')
-          await broker.notify(message.notice)
-        } else {
-          await broker.requestUpdate(message.viewId)
-        }
-        endpoint.postMessage({
-          protocol: UI_RPC_PROTOCOL,
-          type: 'response',
-          id: message.id,
-          ok: true,
-        } satisfies UiRpcMessage)
-      } catch (error) {
-        endpoint.postMessage({
-          protocol: UI_RPC_PROTOCOL,
-          type: 'response',
-          id: message.id,
-          ok: false,
-          error: { message: error instanceof Error ? error.message : String(error) },
-        } satisfies UiRpcMessage)
+  let disposed = false
+  const operations = new Map<string, AbortController>()
+  const remove = addListener(endpoint, async (value) => {
+    const message = readMessage(value)
+    if (disposed || !message) return
+    if (message.type === 'cancelRequest') {
+      operations.get(message.id)?.abort()
+      return
+    }
+    if (!message || message.type !== 'request') return
+    if (operations.has(message.id) || operations.size >= 32) return
+    const controller = new AbortController()
+    operations.set(message.id, controller)
+    try {
+      if (message.method === 'revealLocation') {
+        assertPluginUiLocation(message.location)
+        if (!broker.revealLocation) throw new Error('Plugin UI navigation unavailable')
+        await broker.revealLocation(message.location, { signal: controller.signal })
+      } else if (message.method === 'revealLine') {
+        await broker.revealLine(Number(message.line))
+      } else if (message.method === 'open') {
+        if (!broker.open) throw new Error('Plugin modal is unavailable')
+        await broker.open(message.viewId!, message.gesture)
+      } else if (message.method === 'notify') {
+        assertPluginUiNotice(message.notice)
+        if (!broker.notify) throw new Error('Plugin notices unavailable')
+        await broker.notify(message.notice)
+      } else {
+        await broker.requestUpdate(message.viewId)
       }
-    }),
+      if (disposed || controller.signal.aborted) return
+      endpoint.postMessage({
+        protocol: UI_RPC_PROTOCOL,
+        type: 'response',
+        id: message.id,
+        ok: true,
+      } satisfies UiRpcMessage)
+    } catch (error) {
+      if (disposed || controller.signal.aborted) return
+      endpoint.postMessage({
+        protocol: UI_RPC_PROTOCOL,
+        type: 'response',
+        id: message.id,
+        ok: false,
+        error: { message: error instanceof Error ? error.message : String(error) },
+      } satisfies UiRpcMessage)
+    } finally {
+      operations.delete(message.id)
+    }
+  })
+  return Object.freeze({
+    dispose: () => {
+      if (disposed) return
+      disposed = true
+      remove()
+      for (const operation of operations.values()) operation.abort()
+      operations.clear()
+      broker.dispose?.()
+    },
   })
 }
 
@@ -147,17 +229,20 @@ function readMessage(value: unknown): UiRpcMessage | undefined {
     message.id.length > 128
   )
     return undefined
+  if (message.type === 'cancelRequest') return message as UiRpcMessage
   if (message.type === 'request') {
     const keys =
       message.method === 'requestUpdate'
         ? ['viewId']
         : message.method === 'revealLine'
           ? ['line']
-          : message.method === 'open'
-            ? ['viewId', 'gesture']
-            : message.method === 'notify'
-              ? ['notice']
-              : undefined
+          : message.method === 'revealLocation'
+            ? ['location']
+            : message.method === 'open'
+              ? ['viewId', 'gesture']
+              : message.method === 'notify'
+                ? ['notice']
+                : undefined
     if (
       !keys ||
       Object.keys(message).some((k) => !['protocol', 'type', 'id', 'method', ...keys].includes(k))

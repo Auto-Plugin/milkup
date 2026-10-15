@@ -214,3 +214,28 @@ async function editingResourcesContract(
   await ui.notify({ kind: 'error', message: 'Error', html: '<script>' })
 }
 void editingResourcesContract
+
+// 0.3.3 adds a separate inert document contract without changing UI renderers.
+import type { SdkDocumentRenderer, SdkDocumentPresentationNode } from '../src/index.js'
+const documentRenderer: SdkDocumentRenderer = async (request, { signal }) => {
+  if (signal.aborted) return { fragments: [], complete: false }
+  return {
+    fragments: [
+      {
+        from: request.from,
+        to: request.to,
+        layout: 'inline',
+        content: { type: 'text', text: request.source },
+        accessibleText: request.source,
+      },
+    ],
+    complete: true,
+  }
+}
+definePlugin({
+  documentRenderers: { example: documentRenderer },
+  renderers: { legacy: () => ({ type: 'element', tag: 'span', text: 'Still compatible' }) },
+})
+// @ts-expect-error Raw HTML is deliberately not a document semantic node.
+const unsafePresentation: SdkDocumentPresentationNode = { type: 'html', html: '<script/>' }
+void unsafePresentation

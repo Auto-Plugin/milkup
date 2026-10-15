@@ -1,3 +1,4 @@
+import { DocumentPresentation, type DocumentPresentationConfig } from './document-presentation'
 import { createControlledRendererNodes } from './controlled-renderer'
 import { ImagePasteSession, ImagePresentation } from './image-presentation'
 import {
@@ -138,6 +139,7 @@ export class EditorView {
   private asyncInputGeneration = 0
   private readonly imagePaste: ImagePasteSession
   private readonly images: ImagePresentation
+  private readonly documentPresentation: DocumentPresentation
   private readonly virtualViewport: VirtualViewportState | undefined
   private presentation: EditorPresentation | undefined
   private searchHighlights: readonly SearchHighlight[] = Object.freeze([])
@@ -266,6 +268,26 @@ export class EditorView {
     this.images = new ImagePresentation(this.contentDOM, config.imageResolver, () => {
       if (!this.destroyed) this.renderSelectionAndCursor()
     })
+    this.documentPresentation = new DocumentPresentation(
+      this.dom,
+      this.contentDOM,
+      config.documentPresentation,
+      () => ({
+        mode: this.mode,
+        sourceIdentity: this.currentState.doc,
+        sourceVersion: this.markdownParseState.version,
+        selection: this.currentState.selection.main,
+        lineCount: this.currentState.doc.lineCount,
+        read: (from, to) => this.currentState.doc.slice(from, to),
+      }),
+      () => {
+        if (!this.destroyed) this.renderSelectionAndCursor()
+      },
+      (from, to) => {
+        this.dispatch({ selection: Selection.range(from, to), addToHistory: false })
+        this.inputDOM.focus({ preventScroll: true })
+      },
+    )
     if (config.presentation) {
       this.presentation = validatePresentation(config.presentation)
       applyPresentation(this.dom, this.presentation)
@@ -275,6 +297,13 @@ export class EditorView {
 
   get isComposing(): boolean {
     return this.composing
+  }
+
+  setDocumentPresentation(config: DocumentPresentationConfig | undefined): void {
+    this.documentPresentation.setConfig(config)
+  }
+  invalidateDocumentPresentation(): void {
+    this.documentPresentation.invalidate()
   }
 
   refreshResourceImages(): void {
@@ -520,6 +549,7 @@ export class EditorView {
   destroy(): void {
     this.imagePaste.abort()
     this.images.destroy()
+    this.documentPresentation.destroy()
     this.destroyed = true
     this.asyncInputGeneration += 1
     this.inputDOM.removeEventListener('input', this.handleInputEvent)
@@ -547,14 +577,16 @@ export class EditorView {
     delete this.contentDOM.dataset.virtualized
     delete this.contentDOM.dataset.fromLine
     delete this.contentDOM.dataset.toLine
-    this.contentDOM.replaceChildren(
-      ...(this.mode === 'source'
-        ? renderPlainTextLines(this.ownerDocument, this.currentState)
-        : renderMarkdownLines(this.ownerDocument, this.currentState, this.mode, {
-            root: this.markdownParseState.cache.root,
-            controlledRenderers: this.controlledRenderers,
-          })),
-    )
+    this.documentPresentation.updateContent(() => {
+      this.contentDOM.replaceChildren(
+        ...(this.mode === 'source'
+          ? renderPlainTextLines(this.ownerDocument, this.currentState)
+          : renderMarkdownLines(this.ownerDocument, this.currentState, this.mode, {
+              root: this.markdownParseState.cache.root,
+              controlledRenderers: this.controlledRenderers,
+            })),
+      )
+    })
     this.selectionLayerDOM.replaceChildren(
       ...renderSelectionOverlay(this.ownerDocument, this.currentState, this.mode, {
         root: this.markdownParseState.cache.root,
@@ -574,6 +606,7 @@ export class EditorView {
   }
 
   private renderSelectionAndCursor(): void {
+    this.documentPresentation?.selectionChanged()
     this.selectionLayerDOM.replaceChildren(
       ...renderSelectionOverlay(this.ownerDocument, this.currentState, this.mode, {
         root: this.markdownParseState.cache.root,
@@ -1256,7 +1289,7 @@ export class EditorView {
       next = this.moveCursorVertically(current, direction)
     }
 
-    if (next === current && (!extend || range.empty)) {
+    if (next === current && (extend || range.empty)) {
       return false
     }
 

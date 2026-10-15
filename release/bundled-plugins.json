@@ -26,5 +26,24 @@
   {
     "directory": "plugins/images",
     "permissions": ["document:read", "document:write", "images:import"]
+  },
+  {
+    "directory": "plugins/math",
+    "permissions": ["document:read"],
+    "bundledDependencies": [
+      {
+        "name": "katex",
+        "version": "0.19.0",
+        "entries": ["dist/katex.mjs"]
+      }
+    ]
+  },
+  {
+    "directory": "plugins/diagrams",
+    "permissions": ["document:read"]
+  },
+  {
+    "directory": "plugins/footnotes",
+    "permissions": ["document:read"]
   }
 ]

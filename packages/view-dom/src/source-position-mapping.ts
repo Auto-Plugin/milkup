@@ -957,7 +957,10 @@ function isHiddenTextNode(node: Text, root: HTMLElement): boolean {
     parent && parent !== root.parentElement;
     parent = parent.parentElement
   ) {
-    if (parent.classList.contains('milkup-marker-hidden')) {
+    if (
+      parent.classList.contains('milkup-marker-hidden') ||
+      parent.hasAttribute('data-document-presentation')
+    ) {
       return true
     }
   }

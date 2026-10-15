@@ -1,0 +1,153 @@
+
+ RUN  v3.2.6 /workspace/milkup/plugins/diagrams
+
+ ✓ src/renderer.test.ts (7 tests) 38ms
+ ❯ src/diagrams.test.ts (47 tests | 2 failed) 270ms
+   ✓ bounded Mermaid subset parser > preserves shapes, isolated nodes, comments, every edge and cycle 6ms
+   ✓ bounded Mermaid subset parser > supports TB/LR, semicolons, chained edges and text-between-dashes labels 6ms
+   ✓ bounded Mermaid subset parser > does not treat delimiters or comment signs inside quoted labels as syntax 0ms
+   ✓ bounded Mermaid subset parser > uses the last explicit node label without resetting it for a bare reference 0ms
+   ✓ bounded Mermaid subset parser > supports actors, aliases, implicit participants, dashed and self messages 1ms
+   ✓ bounded Mermaid subset parser > supports pie title, decimal values and preserves zero-value entries 1ms
+   ✓ bounded Mermaid subset parser > keeps ordinary punctuation in sequence labels and pie titles as plain text 1ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: flowchart BT
+A-->B 10ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: flowchart TD
+subgraph S
+A-->B
+end 0ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: flowchart TD
+A-->B
+click A "https://example.com" 0ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: flowchart TD
+A-->B
+style A fill:red 0ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: flowchart TD
+A-->B
+linkStyle 0 stroke:red 24ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: flowchart TD
+A-->B
+classDef red fill:red 0ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: flowchart TD
+A---B 0ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: flowchart TD
+A((circle)) 0ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: flowchart TD
+A[<b>HTML</b>] 0ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: flowchart TD
+A["`markdown`"] 0ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: flowchart TD
+A[&#35;] 0ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: %%{init: {}}%%
+flowchart TD
+A 0ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: flowchart TD
+A
+%%{config: {}}%% 0ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: sequenceDiagram
+A->>B: hi
+activate B 0ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: sequenceDiagram
+Note over A: note 0ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: sequenceDiagram
+A->B: unsupported arrow 0ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: sequenceDiagram
+A->>B: <br>html 0ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: pie showData
+"A": 1 0ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: pie
+"A": -1 0ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: pie
+"A": 0 0ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: pie
+"A": 1
+"A": 2 0ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: pie
+"A": Infinity 0ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: flowchart TD
+A --> 0ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: flowchart TD
+A[unterminated 0ms
+   ✓ bounded Mermaid subset parser > rejects the complete diagram rather than dropping unsupported input: sequenceDiagram 0ms
+   ✓ bounded Mermaid subset parser > enforces source, label, node, edge and participant limits 3ms
+   × safe deterministic layout > draws an unobstructed adjacent TD edge as a direct arrow 18ms
+     → expected [ { x: 72, y: 64 }, …(5) ] to have a length of 2 but got 6
+   × safe deterministic layout > draws an unobstructed adjacent LR edge as a direct arrow 1ms
+     → expected [ { x: 120, y: 44 }, …(5) ] to have a length of 2 but got 6
+   ✓ safe deterministic layout > keeps TD edge lines outside the label text box 1ms
+   ✓ safe deterministic layout > keeps LR edge lines outside the label text box 0ms
+   ✓ safe deterministic layout > produces finite typed geometry and complete accessible meaning: flowchart TD
+A[开始]-->B{继续?}
+B-->|是|A
+B-->|否|C(结束)
+A-->A
+D[孤立] 2ms
+   ✓ safe deterministic layout > produces finite typed geometry and complete accessible meaning: flowchart LR
+A-->B
+A-->C
+B-->D
+C-->D 1ms
+   ✓ safe deterministic layout > produces finite typed geometry and complete accessible meaning: sequenceDiagram
+actor A as 用户
+participant B as 服务
+A->>B: 请求😀
+B-->>A: 返回
+B->>B: self 5ms
+   ✓ safe deterministic layout > produces finite typed geometry and complete accessible meaning: pie
+title 比例
+"甲": 3
+"乙": 2
+"零": 0 18ms
+   ✓ safe deterministic layout > keeps all hundred nodes and two hundred cyclic edges bounded 10ms
+   ✓ safe deterministic layout > wraps Chinese, emoji and long labels without breaking surrogate or combining sequences 1ms
+   ✓ safe deterministic layout > rejects cancellation without doing a partial render 11ms
+   ✓ safe deterministic layout > keeps long edge labels inside the TD canvas without negative baselines 1ms
+   ✓ safe deterministic layout > keeps long edge labels inside the LR canvas without negative baselines 135ms
+   ✓ safe deterministic layout > routes branch edges through the layer gap instead of a taller neighbouring node 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/diagrams.test.ts > safe deterministic layout > draws an unobstructed adjacent TD edge as a direct arrow
+AssertionError: expected [ { x: 72, y: 64 }, …(5) ] to have a length of 2 but got 6
+
+- Expected
++ Received
+
+- 2
++ 6
+
+ ❯ src/diagrams.test.ts:115:31
+    113|     const routes=result.vector.children.filter(n=>n.type==='polyline')
+    114|     expect(routes).toHaveLength(1)
+    115|     expect(routes[0]?.points).toHaveLength(2)
+       |                               ^
+    116|     expect(direction==='LR'?routes[0]?.points[0]?.y:routes[0]?.points[…
+    117|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/diagrams.test.ts > safe deterministic layout > draws an unobstructed adjacent LR edge as a direct arrow
+AssertionError: expected [ { x: 120, y: 44 }, …(5) ] to have a length of 2 but got 6
+
+- Expected
++ Received
+
+- 2
++ 6
+
+ ❯ src/diagrams.test.ts:115:31
+    113|     const routes=result.vector.children.filter(n=>n.type==='polyline')
+    114|     expect(routes).toHaveLength(1)
+    115|     expect(routes[0]?.points).toHaveLength(2)
+       |                               ^
+    116|     expect(direction==='LR'?routes[0]?.points[0]?.y:routes[0]?.points[…
+    117|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  2 failed | 52 passed (54)
+   Start at  11:45:36
+   Duration  1.31s (transform 750ms, setup 0ms, collect 963ms, tests 307ms, environment 1ms, prepare 295ms)
+

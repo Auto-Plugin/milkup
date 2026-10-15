@@ -9,6 +9,7 @@ import {
   type PluginMarkdownSyntaxContribution,
   type PluginPermission,
   type PluginRendererContribution,
+  type PluginDocumentRendererContribution,
   type PluginUiContribution,
 } from './manifest'
 
@@ -104,7 +105,12 @@ export interface PluginKeymapBinding {
   readonly conflictWith?: string
 }
 
+export interface PluginDocumentRendererBinding extends PluginDocumentRendererContribution {
+  readonly pluginId: string
+}
+
 export interface PluginContributionIndex {
+  readonly documentRenderers?: readonly PluginDocumentRendererBinding[]
   readonly pasteHandlers?: readonly {
     readonly pluginId: string
     readonly kind: 'image'
@@ -442,6 +448,13 @@ export function createPluginContributionIndex(
   )
   return Object.freeze({
     pasteHandlers: Object.freeze(pasteHandlers),
+    documentRenderers: Object.freeze(
+      enabled.flatMap((record) =>
+        (record.manifest.contributes?.documentRenderers ?? []).map((renderer) =>
+          Object.freeze({ ...renderer, pluginId: record.manifest.id }),
+        ),
+      ),
+    ),
     commands: Object.freeze(actions.filter((action) => pluginCommandIds.has(action.id))),
     keymaps: Object.freeze(resolvePluginKeymaps(enabled, actions)),
     renderers: Object.freeze(

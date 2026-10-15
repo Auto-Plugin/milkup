@@ -1,6 +1,6 @@
 import { build } from 'esbuild'
 import { createHash } from 'node:crypto'
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, writeFile, realpath } from 'node:fs/promises'
 import { dirname, resolve, relative, isAbsolute } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -21,6 +21,27 @@ for (const item of distribution) {
   ) {
     throw Error('Review distribution default before bundling a different capability set')
   }
+  const approvedInputs = new Set()
+  const packageJson = JSON.parse(await readFile(resolve(pluginRoot, 'package.json'), 'utf8'))
+  for (const dependency of item.bundledDependencies ?? []) {
+    if (
+      !/^(?:@[a-z0-9-]+\/)?[a-z0-9-]+$/.test(dependency.name) ||
+      dependency.name.startsWith('@milkup/') ||
+      packageJson.dependencies?.[dependency.name] !== dependency.version
+    )
+      throw Error('Unreviewed bundled dependency declaration')
+    const directory = await realpath(resolve(pluginRoot, 'node_modules', dependency.name))
+    const metadata = JSON.parse(await readFile(resolve(directory, 'package.json'), 'utf8'))
+    if (metadata.name !== dependency.name || metadata.version !== dependency.version)
+      throw Error('Bundled dependency version mismatch')
+    for (const entry of dependency.entries) {
+      const path = await realpath(resolve(directory, entry))
+      const within = relative(directory, path)
+      if (!within || within.startsWith('..') || isAbsolute(within))
+        throw Error('Dependency entry escapes its package')
+      approvedInputs.add(path)
+    }
+  }
   // Use only the SDK package's public export, with the repository's locked build tool.
   // This does not add a runtime host dependency on the plugin implementation.
   const result = await build({
@@ -37,7 +58,11 @@ for (const item of distribution) {
   })
   for (const input of Object.keys(result.metafile.inputs)) {
     const normalized = input.replaceAll('\\', '/')
-    if (!normalized.startsWith('src/') && normalized !== '../../packages/plugin-sdk/src/index.js') {
+    if (
+      !normalized.startsWith('src/') &&
+      normalized !== '../../packages/plugin-sdk/src/index.js' &&
+      !approvedInputs.has(await realpath(resolve(pluginRoot, input)))
+    ) {
       throw Error(`Non-public plugin dependency: ${input}`)
     }
   }

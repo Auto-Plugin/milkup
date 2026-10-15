@@ -1,4 +1,12 @@
 import {
+  copyDocumentPresentationRequest,
+  copyDocumentPresentationResult,
+  DocumentPresentationError,
+  type DocumentPresentationRequest,
+  type DocumentPresentationResult,
+  type DocumentRenderer,
+} from '@milkup/core'
+import {
   createPluginKeymapHostCapabilities,
   type PluginKeymapBroker,
   type PluginKeymapHost,
@@ -149,12 +157,14 @@ export interface PluginRendererContext {
 export type PluginRenderer = (context: PluginRendererContext) => unknown | Promise<unknown>
 
 export interface PluginActivation {
+  readonly documentRenderers?: Readonly<Record<string, DocumentRenderer>>
   readonly commands?: Readonly<Record<string, PluginCommandHandler>>
   readonly renderers?: Readonly<Record<string, PluginRenderer>>
   dispose?(): void | Promise<void>
 }
 
 export interface PluginModule {
+  readonly documentRenderers?: Readonly<Record<string, DocumentRenderer>>
   readonly runtimeHost?: 'isolated'
   readonly commands?: Readonly<Record<string, PluginCommandHandler>>
   readonly renderers?: Readonly<Record<string, PluginRenderer>>
@@ -299,6 +309,7 @@ export class PluginRuntime {
       module: config.module,
       state: 'loaded',
       capabilityGeneration: 0,
+      presentationJobs: new Set(),
       activation: undefined,
       registeredActions: [],
       errors: [],
@@ -359,6 +370,7 @@ export class PluginRuntime {
     const plugin = this.requirePlugin(pluginId)
 
     plugin.capabilityGeneration++
+    for (const job of plugin.presentationJobs) job.abort()
     if (plugin.state !== 'enabled') {
       plugin.state = 'disabled'
       return toInfo(plugin)
@@ -428,6 +440,64 @@ export class PluginRuntime {
     return this.actionRegistry
   }
 
+  async renderDocument(
+    pluginId: string,
+    rendererId: string,
+    input: DocumentPresentationRequest,
+    options: { readonly signal?: AbortSignal } = {},
+  ): Promise<DocumentPresentationResult> {
+    const plugin = this.requirePlugin(pluginId),
+      generation = plugin.capabilityGeneration
+    const declaration = plugin.manifest.contributes?.documentRenderers?.find(
+      (r) => r.id === rendererId,
+    )
+    const renderer =
+      plugin.activation?.documentRenderers?.[rendererId] ??
+      plugin.module?.documentRenderers?.[rendererId]
+    if (
+      plugin.state !== 'enabled' ||
+      !declaration ||
+      !renderer ||
+      !plugin.manifest.permissions?.includes('document:read')
+    )
+      throw new DocumentPresentationError('unavailable')
+    if (plugin.presentationJobs.size >= 3) throw new DocumentPresentationError('busy')
+    const controller = new AbortController()
+    const abort = () => controller.abort()
+    options.signal?.addEventListener('abort', abort, { once: true })
+    if (options.signal?.aborted) abort()
+    const assert = () => {
+      if (plugin.state !== 'enabled' || plugin.capabilityGeneration !== generation)
+        throw new DocumentPresentationError('revoked')
+      if (controller.signal.aborted) throw new DocumentPresentationError('aborted')
+    }
+    plugin.presentationJobs.add(controller)
+    try {
+      assert()
+      const request = copyDocumentPresentationRequest(input)
+      const value = await renderer(request, { signal: controller.signal })
+      assert()
+      return copyDocumentPresentationResult(value, request, declaration)
+    } catch (error) {
+      const safe =
+        error instanceof DocumentPresentationError
+          ? error
+          : new DocumentPresentationError('unavailable')
+      if (safe.code === 'timeout') {
+        plugin.capabilityGeneration++
+        plugin.state = 'disabled'
+        this.unregisterPluginActions(plugin)
+        for (const job of plugin.presentationJobs) job.abort()
+      }
+      if (safe.code !== 'aborted' && safe.code !== 'revoked')
+        this.recordError(plugin, 'renderer', safe, { rendererId })
+      throw safe
+    } finally {
+      plugin.presentationJobs.delete(controller)
+      options.signal?.removeEventListener('abort', abort)
+    }
+  }
+
   async render(
     pluginId: string,
     rendererId: string,
@@ -446,11 +516,12 @@ export class PluginRuntime {
       }
     }
 
+    const generation = plugin.capabilityGeneration
     try {
-      return Object.freeze({
-        ok: true,
-        value: await renderer(context),
-      })
+      const value = await renderer(context)
+      if (plugin.state !== 'enabled' || plugin.capabilityGeneration !== generation)
+        throw new DocumentPresentationError('revoked')
+      return Object.freeze({ ok: true, value })
     } catch (error) {
       return {
         ok: false,
@@ -659,6 +730,7 @@ export class PluginRuntime {
 }
 
 interface LoadedPlugin {
+  readonly presentationJobs: Set<AbortController>
   capabilityGeneration: number
   manifest: PluginManifest
   module: PluginModule | undefined
@@ -813,7 +885,7 @@ function createRestrictedHost(
 
   return Object.freeze({
     ...(permissions.includes('document:read') && documentBroker
-      ? { document: createPluginDocumentHostCapabilities(documentBroker) }
+      ? { document: createPluginDocumentHostCapabilities(documentBroker, isActive) }
       : permissions.includes('document:read') && host.document
         ? { document: host.document }
         : {}),

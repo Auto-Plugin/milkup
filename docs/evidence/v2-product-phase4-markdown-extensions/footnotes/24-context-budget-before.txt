@@ -1,0 +1,47 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/markdown
+
+ ❯ src/__tests__/window-context.test.ts (8 tests | 1 failed) 31ms
+   ✓ protects a window inside an earlier fence and excludes inline code/link destinations 6ms
+   ✓ returns whole valid fence ranges and preserves absolute CRLF Unicode positions 2ms
+   ✓ falls back after uncertain nested code or HTML and respects work budgets 4ms
+   ✓ invalidates cached context on version change and rejects aborted/stale windows 2ms
+   ✓ keeps delimiter escapes available to plugin rules instead of masking TeX commands 0ms
+   ✓ resumes budgeted prefix scans and clears checkpoints when source changes 4ms
+   ✓ rejects a version change while an asynchronous prefix read is pending 0ms
+   × honors per-operation remaining line and UTF-16 budgets without increasing constructor limits 11ms
+     → expected { pending: false, …(5) } to match object { Object (pending, scannedThroughLine) }
+(4 matching properties omitted from actual)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/window-context.test.ts > honors per-operation remaining line and UTF-16 budgets without increasing constructor limits
+AssertionError: expected { pending: false, …(5) } to match object { Object (pending, scannedThroughLine) }
+(4 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "pending": true,
+-   "scannedThroughLine": 1,
++   "pending": false,
++   "scannedThroughLine": 4,
+  }
+
+ ❯ src/__tests__/window-context.test.ts:145:66
+    143|   const f = setup('abc\ndef\nghi\nvisible')
+    144|   const reader = createMarkdownWindowContextReader({ source: () => f.s…
+    145|   expect(await reader.read(f.window(4, 4), { maxScanLines: 1 })).toMat…
+       |                                                                  ^
+    146|   const count = f.calls.length
+    147|   expect(await reader.read(f.window(4, 4), { maxScanChars: 0 })).toMat…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 passed (8)
+   Start at  11:54:06
+   Duration  421ms (transform 84ms, setup 0ms, collect 101ms, tests 31ms, environment 0ms, prepare 70ms)
+

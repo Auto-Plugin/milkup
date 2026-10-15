@@ -4,6 +4,8 @@ import type {
   ActionInputSchema,
   ActionPermission,
   ActionRegistry,
+  DocumentPresentationRequest,
+  DocumentPresentationResult,
 } from '@milkup/core'
 import {
   createBrowserWorkerPluginHost,
@@ -50,6 +52,8 @@ import {
   type PluginRegistryRecord,
   type PluginDocumentScanSource,
   type PluginUiBroker,
+  type PluginUiRevealLocationRequest,
+  type PluginUiOperationContext,
 } from '@milkup/plugin'
 
 import { createDesktopPluginFileBroker } from './plugin-file-broker'
@@ -97,6 +101,7 @@ export interface DesktopLoadedPluginModule {
 }
 
 export interface DesktopPluginModuleCapabilities {
+  readonly onDocumentRenderTimeout?: () => void
   readonly editingBroker?: RevocablePluginEditingBroker
   readonly resourcesBroker?: RevocablePluginResourcesBroker
   readonly documentBroker?: ManagedPluginDocumentBroker
@@ -158,6 +163,12 @@ export interface DesktopPluginManagerOptions {
   readonly documentSource?: () => PluginDocumentScanSource | undefined
   readonly invalidateUi?: (pluginId: string, viewId?: string) => void | Promise<void>
   readonly revealLine?: (line: number) => void | Promise<void>
+  readonly revealLocation?: (
+    request: PluginUiRevealLocationRequest,
+    context: PluginUiOperationContext,
+  ) => void | Promise<void>
+  readonly invalidatePresentation?: () => void
+  readonly onDocumentRenderFailure?: (pluginId: string) => void
   readonly loadModule?: DesktopPluginModuleLoader
   readonly loadSidecarModule?: DesktopPluginModuleLoader
   readonly now?: () => number
@@ -200,6 +211,8 @@ const registryStorageKey = 'milkup.desktop.plugins.registry.v1'
 const failuresStorageKey = 'milkup.desktop.plugins.failures.v1'
 const bundledStorageKey = 'milkup.desktop.plugins.bundled.v1'
 const allowedHosts = Object.freeze(['worker', 'sidecar'] as const)
+const documentRendererTimeoutMessage =
+  'Document renderer exceeded its execution deadline; manually enable to retry'
 const sensitivePermissions = new Set([
   'file:read',
   'file:write',
@@ -222,9 +235,14 @@ export class DesktopPluginManager {
   private readonly invalidateUi:
     ((pluginId: string, viewId?: string) => void | Promise<void>) | undefined
   private readonly revealLine: ((line: number) => void | Promise<void>) | undefined
+  private readonly revealLocation: DesktopPluginManagerOptions['revealLocation']
+  private readonly invalidatePresentation: DesktopPluginManagerOptions['invalidatePresentation']
+  private readonly onDocumentRenderFailure: DesktopPluginManagerOptions['onDocumentRenderFailure']
   private readonly loadModule: DesktopPluginModuleLoader
   private readonly loadSidecarModule: DesktopPluginModuleLoader
   private readonly loadedModules = new Map<string, DesktopLoadedPluginModule>()
+  private readonly lifecycleTasks = new Map<string, Promise<void>>()
+  private readonly activationEpochs = new Map<string, number>()
   private readonly uiBrokers = new Map<string, PluginUiBroker>()
   private readonly editingBrokers = new Map<string, RevocablePluginEditingBroker>()
   private readonly resourcesBrokers = new Map<string, RevocablePluginResourcesBroker>()
@@ -277,6 +295,9 @@ export class DesktopPluginManager {
     this.documentSource = options.documentSource
     this.invalidateUi = options.invalidateUi
     this.revealLine = options.revealLine
+    this.revealLocation = options.revealLocation
+    this.invalidatePresentation = options.invalidatePresentation
+    this.onDocumentRenderFailure = options.onDocumentRenderFailure
     this.now = options.now ?? (() => Date.now())
     this.loadModule =
       options.loadModule ??
@@ -460,16 +481,24 @@ export class DesktopPluginManager {
   }
 
   private async enableRestoredPlugin(pluginId: string): Promise<PluginRegistryRecord> {
+    return this.runPluginLifecycle(pluginId, () => this.enablePluginInstance(pluginId))
+  }
+
+  private async enablePluginInstance(pluginId: string): Promise<PluginRegistryRecord> {
     const record = this.require(pluginId)
 
     try {
-      if (record.errors.length > 0) {
-        throw new Error(record.errors.join('; '))
+      const blockingErrors = record.errors.filter(
+        (error) => error !== documentRendererTimeoutMessage,
+      )
+      if (blockingErrors.length > 0) {
+        throw new Error(blockingErrors.join('; '))
       }
 
       this.assertApproved(record)
 
       await this.unloadRuntimePlugin(pluginId)
+      const epoch = this.activationEpochs.get(pluginId) ?? 0
       this.temporaryStorageStopped = false
       const main = record.manifest.main
 
@@ -488,6 +517,7 @@ export class DesktopPluginManager {
       const releasesBroker = this.getReleasesBroker(record.manifest)
       const uiBroker = this.createUiBroker(record.manifest)
       const capabilities = Object.freeze({
+        onDocumentRenderTimeout: () => this.failDocumentRenderer(pluginId, epoch),
         ...(settingsBroker ? { settingsBroker } : {}),
         ...(keymapBroker ? { keymapBroker } : {}),
         ...(editingBroker ? { editingBroker } : {}),
@@ -500,6 +530,10 @@ export class DesktopPluginManager {
       const loaded = await (record.manifest.host === 'sidecar'
         ? this.loadSidecarModule(record.manifest, prepared.specifier, capabilities)
         : this.loadModule(record.manifest, prepared.specifier, capabilities))
+      if (this.activationEpochs.get(pluginId) !== epoch) {
+        loaded.dispose()
+        throw new Error(documentRendererTimeoutMessage)
+      }
       this.loadedModules.set(pluginId, loaded)
       if (record.manifest.host === 'sidecar') {
         this.recordAuditAndPersist(pluginId, 'sidecar', 'started', false)
@@ -509,6 +543,8 @@ export class DesktopPluginManager {
         module: loaded.module,
       })
       await this.runtime.enablePlugin(pluginId)
+      if (this.activationEpochs.get(pluginId) !== epoch)
+        throw new Error(documentRendererTimeoutMessage)
       const next = this.registry.markEnabled(pluginId)
       this.persist()
       return next
@@ -522,37 +558,44 @@ export class DesktopPluginManager {
 
   async disable(pluginId: string): Promise<PluginRegistryRecord> {
     await this.ready
-    await this.unloadRuntimePlugin(pluginId)
-    const record = this.registry.markDisabled(pluginId)
-    this.persist()
-    return record
+    return this.runPluginLifecycle(pluginId, async () => {
+      await this.unloadRuntimePlugin(pluginId)
+      const record = this.registry.markDisabled(pluginId)
+      this.persist()
+      return record
+    })
   }
 
   async reload(pluginId: string): Promise<PluginRegistryRecord> {
     await this.ready
-    const record = this.require(pluginId)
-    const wasEnabled = record.enabled
-    await this.disable(pluginId)
-    const reinstalled = await this.installManifestPath(record.sourcePath)
-    this.registry.recordAudit(pluginId, 'reload')
-    this.persist()
+    return this.runPluginLifecycle(pluginId, async () => {
+      const record = this.require(pluginId)
+      const wasEnabled = record.enabled
+      await this.unloadRuntimePlugin(pluginId)
+      this.registry.markDisabled(pluginId)
+      const reinstalled = await this.installManifestPath(record.sourcePath)
+      this.registry.recordAudit(pluginId, 'reload')
+      this.persist()
 
-    if (wasEnabled && reinstalled.errors.length === 0) {
-      return this.enable(pluginId)
-    }
+      if (wasEnabled && reinstalled.errors.length === 0) {
+        return this.enablePluginInstance(pluginId)
+      }
 
-    return reinstalled
+      return reinstalled
+    })
   }
 
   async remove(pluginId: string): Promise<void> {
     await this.ready
-    await this.unloadRuntimePlugin(pluginId)
-    const record = this.registry.remove(pluginId)
-    if (record) {
-      await this.manifestHost.removeInstalledPackage?.(pluginId)
-      this.clearPluginStorage(pluginId)
-    }
-    this.persist()
+    return this.runPluginLifecycle(pluginId, async () => {
+      await this.unloadRuntimePlugin(pluginId)
+      const record = this.registry.remove(pluginId)
+      if (record) {
+        await this.manifestHost.removeInstalledPackage?.(pluginId)
+        this.clearPluginStorage(pluginId)
+      }
+      this.persist()
+    })
   }
 
   approve(pluginId: string): PluginRegistryRecord {
@@ -563,10 +606,12 @@ export class DesktopPluginManager {
 
   async revokeApproval(pluginId: string): Promise<PluginRegistryRecord> {
     await this.ready
-    await this.unloadRuntimePlugin(pluginId)
-    const record = this.registry.revokeApproval(pluginId)
-    this.persist()
-    return record
+    return this.runPluginLifecycle(pluginId, async () => {
+      await this.unloadRuntimePlugin(pluginId)
+      const record = this.registry.revokeApproval(pluginId)
+      this.persist()
+      return record
+    })
   }
 
   findKeymapAction(
@@ -604,6 +649,15 @@ export class DesktopPluginManager {
     }
 
     throw new Error(result.error.message)
+  }
+
+  async renderDocument(
+    pluginId: string,
+    rendererId: string,
+    request: DocumentPresentationRequest,
+    options: { readonly signal?: AbortSignal } = {},
+  ): Promise<DocumentPresentationResult> {
+    return this.runtime.renderDocument(pluginId, rendererId, request, options)
   }
 
   async renderUi(
@@ -784,6 +838,9 @@ export class DesktopPluginManager {
         ...(fileBroker ? { fileBroker } : {}),
         ...(networkBroker ? { networkBroker } : {}),
         ...(storageBroker ? { storageBroker } : {}),
+        ...(capabilities?.onDocumentRenderTimeout
+          ? { onDocumentRenderTimeout: capabilities.onDocumentRenderTimeout }
+          : {}),
         timeoutMs: 10_000,
       })
 
@@ -840,6 +897,11 @@ export class DesktopPluginManager {
     const broker = createPluginDocumentBroker({
       pluginId: manifest.id,
       source: this.documentSource,
+      rendererIds: (manifest.contributes?.documentRenderers ?? []).map((renderer) => renderer.id),
+      invalidatePresentation: (_request, context) => {
+        context.assertActive()
+        this.invalidatePresentation?.()
+      },
     })
     this.documentBrokers.set(manifest.id, broker)
     return broker
@@ -1014,7 +1076,11 @@ export class DesktopPluginManager {
     if (existing) return existing
     const viewIds = (manifest.contributes?.ui ?? []).map((view) => view.id)
 
-    if (viewIds.length === 0 || !this.invalidateUi) return undefined
+    if (
+      (viewIds.length === 0 && !manifest.contributes?.documentRenderers?.length) ||
+      !this.invalidateUi
+    )
+      return undefined
     const broker = createPluginUiBroker({
       pluginId: manifest.id,
       viewIds,
@@ -1025,6 +1091,9 @@ export class DesktopPluginManager {
       ...(this.notifyUi ? { notify: this.notifyUi } : {}),
       update: this.invalidateUi,
       ...(this.revealLine ? { revealLine: this.revealLine } : {}),
+      ...(this.revealLocation && manifest.permissions?.includes('document:read')
+        ? { revealLocation: this.revealLocation }
+        : {}),
     })
     this.uiBrokers.set(manifest.id, broker)
     return broker
@@ -1129,7 +1198,45 @@ export class DesktopPluginManager {
     this.persist()
   }
 
+  private runPluginLifecycle<T>(pluginId: string, operation: () => Promise<T>): Promise<T> {
+    const pending = this.lifecycleTasks.get(pluginId) ?? Promise.resolve()
+    const result = pending.then(operation)
+    const completed = result.then(
+      () => undefined,
+      () => undefined,
+    )
+    this.lifecycleTasks.set(pluginId, completed)
+    void completed.then(() => {
+      if (this.lifecycleTasks.get(pluginId) === completed) this.lifecycleTasks.delete(pluginId)
+    })
+    return result
+  }
+
+  private failDocumentRenderer(pluginId: string, epoch: number): void {
+    if (this.activationEpochs.get(pluginId) !== epoch) return
+    this.activationEpochs.set(pluginId, epoch + 1)
+    // The isolation host already terminated the runaway realm. Revoke host
+    // capabilities synchronously, before asynchronous service cleanup.
+    this.documentBrokers.get(pluginId)?.dispose()
+    this.uiBrokers.get(pluginId)?.dispose?.()
+    this.editingBrokers.get(pluginId)?.dispose()
+    this.resourcesBrokers.get(pluginId)?.dispose()
+    this.keymapBrokers.get(pluginId)?.dispose()
+    this.settingsBrokers.get(pluginId)?.dispose()
+    this.workspaceBrokers.get(pluginId)?.dispose()
+    this.releasesBrokers.get(pluginId)?.dispose()
+    this.registry.markFailed(pluginId, new Error(documentRendererTimeoutMessage))
+    this.persist()
+    this.invalidatePresentation?.()
+    this.onDocumentRenderFailure?.(pluginId)
+    void this.runPluginLifecycle(pluginId, () => this.unloadRuntimePlugin(pluginId)).catch(
+      () => undefined,
+    )
+  }
+
   private async unloadRuntimePlugin(pluginId: string): Promise<void> {
+    this.activationEpochs.set(pluginId, (this.activationEpochs.get(pluginId) ?? 0) + 1)
+    this.documentBrokers.get(pluginId)?.dispose()
     this.uiBrokers.get(pluginId)?.dispose?.()
     this.uiBrokers.delete(pluginId)
     this.editingBrokers.get(pluginId)?.dispose()

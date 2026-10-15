@@ -1,0 +1,112 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/document-presentation.test.ts (31 tests | 5 failed) 2056ms
+   × refreshes selection-dependent third-party output without repaint loops (false) 592ms
+     → expected '15/15' to be '11/14' // Object.is equality
+   × cancels the old selection job and discards its late output (false) 48ms
+     → expected undefined to be true // Object.is equality
+   ✓ uses real MathML, retains mapped source and reveals on selection (false) 26ms
+   ✓ keeps source literal and disable restores source without a transaction (false) 66ms
+   ✓ excludes preview text from mapped offsets, coalesces and invalidates (false) 30ms
+   ✓ mounts a multiline block once and restores every original line (false) 217ms
+   ✓ uses accessible references without editing or swallowing keyboard activation (false) 27ms
+   ✓ preserves an ordinary task control alongside inline presentation (false) 77ms
+   ✓ rejects protected and malformed output while preserving editable source (false) 56ms
+   ✓ bounds requests before invoking a provider on a huge line (false) 40ms
+   ✓ discards old-document results while a fresh document remains editable (false) 28ms
+   ✓ discards an asynchronous result after disable (false) 19ms
+   × refreshes selection-dependent third-party output without repaint loops (true) 75ms
+     → expected '0/0' to be '11/14' // Object.is equality
+   × cancels the old selection job and discards its late output (true) 54ms
+     → expected undefined to be true // Object.is equality
+   ✓ uses real MathML, retains mapped source and reveals on selection (true) 30ms
+   ✓ keeps source literal and disable restores source without a transaction (true) 26ms
+   ✓ excludes preview text from mapped offsets, coalesces and invalidates (true) 30ms
+   ✓ mounts a multiline block once and restores every original line (true) 47ms
+   ✓ uses accessible references without editing or swallowing keyboard activation (true) 24ms
+   ✓ preserves an ordinary task control alongside inline presentation (true)  338ms
+   ✓ rejects protected and malformed output while preserving editable source (true) 50ms
+   ✓ bounds requests before invoking a provider on a huge line (true) 12ms
+   ✓ discards old-document results while a fresh document remains editable (true) 42ms
+   ✓ discards an asynchronous result after disable (true) 17ms
+   ✓ constructs inert SVG and maps only validated MathML attribute names 6ms
+   ✓ checks the host navigation lease after asynchronous viewport loading 5ms
+   ✓ checks the host navigation assertion before changing selection 3ms
+   ✓ measures collapsed block continuation lines as zero and restores their heights 38ms
+   ✓ allows bounded host snapshot preparation beyond the renderer worker deadline 7ms
+   ✓ cancels a slow host preparation without waiting for its deadline 4ms
+   × rejects a completed job if selection changed before the next synchronization 20ms
+     → expected Element{ …(1) } to be null
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation.test.ts > refreshes selection-dependent third-party output without repaint loops (false)
+AssertionError: expected '15/15' to be '11/14' // Object.is equality
+
+Expected: "11/14"
+Received: "15/15"
+
+ ❯ src/__tests__/document-presentation.test.ts:100:88
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  src/__tests__/document-presentation.test.ts > cancels the old selection job and discards its late output (false)
+ FAIL  src/__tests__/document-presentation.test.ts > cancels the old selection job and discards its late output (true)
+AssertionError: expected undefined to be true // Object.is equality
+
+- Expected: 
+true
+
++ Received: 
+undefined
+
+ ❯ src/__tests__/document-presentation.test.ts:118:32
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  src/__tests__/document-presentation.test.ts > refreshes selection-dependent third-party output without repaint loops (true)
+AssertionError: expected '0/0' to be '11/14' // Object.is equality
+
+Expected: "11/14"
+Received: "0/0"
+
+ ❯ src/__tests__/document-presentation.test.ts:100:88
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  src/__tests__/document-presentation.test.ts > rejects a completed job if selection changed before the next synchronization
+AssertionError: expected Element{ …(1) } to be null
+
+- Expected: 
+null
+
++ Received: 
+<math>
+  <mfrac>
+    <mi>
+      a
+    </mi>
+    <mi>
+      b
+    </mi>
+  </mfrac>
+</math>
+
+ ❯ src/__tests__/document-presentation.test.ts:517:132
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 26 passed (31)
+   Start at  11:59:06
+   Duration  10.91s (transform 4.07s, setup 0ms, collect 6.27s, tests 2.06s, environment 1.99s, prepare 132ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/document-presentation.test.ts '--maxWorkers=2'

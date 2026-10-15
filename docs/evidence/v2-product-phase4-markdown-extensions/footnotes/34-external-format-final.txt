@@ -1,0 +1,41 @@
+Progress: resolved 1, reused 0, downloaded 0, added 0
+
+   ╭──────────────────────────────────────────╮
+   │                                          │
+   │   Update available! 11.25.0 → 12.11.2.   │
+   │   Changelog: https://pnpm.io/v/12.11.2   │
+   │     To update, run: pnpm self-update     │
+   │                                          │
+   ╰──────────────────────────────────────────╯
+
+Progress: resolved 124, reused 52, downloaded 0, added 0
+Packages: +55
++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Packages are hard linked from the content-addressable store to the virtual store.
+  Content-addressable store is at: /workspace/.cache/pnpm/store/v11
+  Virtual store is at:             node_modules/.pnpm
+Progress: resolved 130, reused 55, downloaded 0, added 55, done
+
+devDependencies:
++ @milkup/plugin-sdk 0.3.3
++ esbuild 0.25.12 (0.28.2 is available)
++ typescript 5.9.3 (7.0.2 is available)
++ vitest 3.2.7 (5.0.4 is available)
+
+Done in 4s using pnpm v11.25.0
+$ tsc --noEmit && node scripts/build.mjs
+Built dist/plugin.js and dist/milkup.footnotes-1.0.0.milkup-plugin
+$ vitest run --config vitest.config.ts
+
+ RUN  v3.2.7 /workspace/milkup-markdown-extensions-phase4-evidence/footnotes/external-format-final
+
+ ✓ src/presentation.test.ts (4 tests) 38ms
+ ✓ src/controller.test.ts (3 tests) 26ms
+ ✓ src/indexer.test.ts (7 tests) 189ms
+
+ Test Files  3 passed (3)
+      Tests  14 passed (14)
+   Start at  12:04:59
+   Duration  1.24s (transform 587ms, setup 0ms, collect 817ms, tests 253ms, environment 1ms, prepare 1.02s)
+
+Independent footnotes plugin verified: /workspace/milkup-markdown-extensions-phase4-evidence/footnotes/external-format-final

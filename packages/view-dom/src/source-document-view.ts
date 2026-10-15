@@ -1,3 +1,4 @@
+import { DocumentPresentation, type DocumentPresentationConfig } from './document-presentation'
 import {
   applyPresentation,
   validatePresentation,
@@ -71,6 +72,7 @@ import {
 import type { SearchHighlight, ViewMode, VirtualViewportConfig } from './types'
 
 export interface SourceDocumentViewConfig {
+  readonly documentPresentation?: DocumentPresentationConfig
   readonly onImagePaste?: ImagePasteHandler
   readonly onEmptyPaste?: EmptyPasteHandler
   readonly imageResolver?: ImageResolver
@@ -155,6 +157,7 @@ export class SourceDocumentView {
     | undefined
   private readonly imagePaste: ImagePasteSession
   private readonly images: ImagePresentation
+  private readonly documentPresentation: DocumentPresentation
   private tableStarts: readonly number[] = []
   private mode: ViewMode
   private editable: boolean
@@ -206,6 +209,7 @@ export class SourceDocumentView {
   private nextRequestId = 1
   private latestAppliedRequestId = 0
   private renderedSourceWindow: DocumentLineWindow | undefined
+  private renderedDocumentVersion: number | undefined
   private sourceWindowCacheKey = ''
   private sourceWindowCacheLength = 0
   private readonly sourceWindowCache = new Map<string, DocumentLineWindow>()
@@ -452,6 +456,47 @@ export class SourceDocumentView {
         this.renderCursor()
       }
     })
+    this.documentPresentation = new DocumentPresentation(
+      this.dom,
+      this.contentDOM,
+      config.documentPresentation,
+      () => ({
+        mode: this.mode,
+        sourceIdentity: this.currentSource,
+        sourceVersion: this.currentSource.version + this.editRevision,
+        documentVersion: this.currentSource.version,
+        selection: this.currentSelection().main,
+        lineCount: this.currentSource.lineCount,
+        read: (from, to) => {
+          const window = this.renderedSourceWindow
+          return window &&
+            this.renderedDocumentVersion === this.currentSource.version &&
+            from >= window.from &&
+            to <= window.to
+            ? window.text.slice(from - window.from, to - window.from)
+            : undefined
+        },
+      }),
+      () => {
+        if (!this.destroyed) {
+          this.measureTableRows()
+          this.renderSelection()
+          this.renderCursor()
+          this.renderSearchHighlights()
+        }
+      },
+      (from, to) => {
+        const line =
+          this.contentDOM.querySelector<HTMLElement>(`.milkup-line[data-from="${from}"]`) ??
+          Array.from(this.contentDOM.querySelectorAll<HTMLElement>('.milkup-line')).find(
+            (line) => Number(line.dataset.from) <= from && Number(line.dataset.to) >= from,
+          )
+        if (line)
+          void this.revealSelection(Number(line.dataset.line), Selection.range(from, to)).then(() =>
+            this.inputDOM.focus({ preventScroll: true }),
+          )
+      },
+    )
     if (config.presentation) {
       this.presentation = validatePresentation(config.presentation)
       applyPresentation(this.dom, this.presentation)
@@ -461,6 +506,13 @@ export class SourceDocumentView {
 
   get isComposing(): boolean {
     return this.composing
+  }
+
+  setDocumentPresentation(config: DocumentPresentationConfig | undefined): void {
+    this.documentPresentation.setConfig(config)
+  }
+  invalidateDocumentPresentation(): void {
+    this.documentPresentation.invalidate()
   }
 
   refreshResourceImages(): void {
@@ -596,12 +648,35 @@ export class SourceDocumentView {
     return this.currentSelection()
   }
 
-  async revealSelection(lineNumber: number, selection?: Selection): Promise<void> {
+  async revealSelection(
+    lineNumber: number,
+    selection?: Selection,
+    options: { readonly signal?: AbortSignal; readonly assertCurrent?: () => void } = {},
+  ): Promise<void> {
+    options.signal?.throwIfAborted()
+    options.assertCurrent?.()
     const revision = ++this.navigationRevision
-    const documentId = this.currentSource.documentId
-    const version = this.currentSource.version
-    await this.scrollToLine(lineNumber)
+    const source = this.currentSource
+    const documentId = source.documentId
+    const version = source.version
+    const assertCurrent = () => {
+      options.signal?.throwIfAborted()
+      options.assertCurrent?.()
+      if (options.assertCurrent || options.signal) {
+        if (
+          this.destroyed ||
+          revision !== this.navigationRevision ||
+          source !== this.currentSource ||
+          version !== source.version
+        )
+          throw new DOMException('Navigation invalidated', 'AbortError')
+      }
+    }
+    await this.scrollToLine(lineNumber, { assertCurrent })
+    assertCurrent()
     if (
+      this.destroyed ||
+      source !== this.currentSource ||
       revision !== this.navigationRevision ||
       documentId !== this.currentSource.documentId ||
       version !== this.currentSource.version
@@ -622,12 +697,31 @@ export class SourceDocumentView {
     )
     if (this.mode === 'live')
       await this.renderLiveSyntaxAroundPositions(previousPosition, this.cursorPosition)
+    assertCurrent()
+    if (
+      this.destroyed ||
+      source !== this.currentSource ||
+      version !== source.version ||
+      revision !== this.navigationRevision
+    )
+      return
     this.revealHorizontalCursor()
     this.renderSelection()
     this.renderCursor()
   }
 
-  async scrollToLine(lineNumber: number): Promise<void> {
+  async scrollToLine(
+    lineNumber: number,
+    options: { readonly signal?: AbortSignal; readonly assertCurrent?: () => void } = {},
+  ): Promise<void> {
+    const source = this.currentSource,
+      version = source.version
+    const check = () => {
+      options.signal?.throwIfAborted()
+      options.assertCurrent?.()
+      return !this.destroyed && source === this.currentSource && version === source.version
+    }
+    if (!check()) return
     if (
       !Number.isInteger(lineNumber) ||
       lineNumber < 1 ||
@@ -642,6 +736,7 @@ export class SourceDocumentView {
       : this.lineTop(lineNumber)
     this.scrollAnchor = Object.freeze({ scrollTop: this.dom.scrollTop })
     await this.renderVisibleWindow(this.createRenderRequestForLine(lineNumber))
+    if (!check()) return
     const target = this.contentDOM.querySelector<HTMLElement>(
       `.milkup-line[data-line="${lineNumber}"]`,
     )
@@ -687,6 +782,7 @@ export class SourceDocumentView {
 
     this.latestAppliedRequestId = request.id
     this.renderedSourceWindow = rendered.sourceWindow
+    this.renderedDocumentVersion = renderVersion
     this.tableStarts = rendered.tableStarts ?? []
     const lineHeight = this.getLineHeight()
     const focusedTask =
@@ -701,20 +797,22 @@ export class SourceDocumentView {
         line.scrollLeft,
       ]),
     )
-    this.contentDOM.replaceChildren(
-      renderSpacer(
-        this.ownerDocument,
-        'top',
-        request.spacers?.top ?? this.lineTop(request.fromLine),
-      ),
-      ...rendered.lines,
-      renderSpacer(
-        this.ownerDocument,
-        'bottom',
-        request.spacers?.bottom ??
-          this.lineTop(this.currentSource.lineCount + 1) - this.lineTop(request.toLine + 1),
-      ),
-    )
+    this.documentPresentation.updateContent(() => {
+      this.contentDOM.replaceChildren(
+        renderSpacer(
+          this.ownerDocument,
+          'top',
+          request.spacers?.top ?? this.lineTop(request.fromLine),
+        ),
+        ...rendered.lines,
+        renderSpacer(
+          this.ownerDocument,
+          'bottom',
+          request.spacers?.bottom ??
+            this.lineTop(this.currentSource.lineCount + 1) - this.lineTop(request.toLine + 1),
+        ),
+      )
+    })
     this.contentDOM.querySelectorAll<HTMLElement>('.milkup-block-code').forEach((line) => {
       line.scrollLeft = codeScroll.get(line.dataset.line) ?? 0
     })
@@ -773,6 +871,7 @@ export class SourceDocumentView {
   destroy(): void {
     this.imagePaste.abort()
     this.images.destroy()
+    this.documentPresentation.destroy()
     this.destroyed = true
     this.navigationRevision += 1
     this.cancelMarkdownWarmup()
@@ -830,15 +929,13 @@ export class SourceDocumentView {
   }
   private measureTableRows(): void {
     if (this.mode !== 'live') return
-    for (const row of Array.from(
-      this.contentDOM.querySelectorAll<HTMLElement>(
-        this.presentation
-          ? '.milkup-line'
-          : '.milkup-block-table, .milkup-line:has(.milkup-image-preview)',
-      ),
-    )) {
+    for (const row of Array.from(this.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'))) {
       const height = row.getBoundingClientRect().height
-      if (height > 0 || row.classList.contains('milkup-table-delimiter'))
+      if (
+        height > 0 ||
+        row.classList.contains('milkup-table-delimiter') ||
+        row.dataset.presentationCollapsed === 'true'
+      )
         this.measuredHeights.set(Number(row.dataset.line), height)
     }
     const from = Number(this.contentDOM.dataset.fromLine),
@@ -889,13 +986,17 @@ export class SourceDocumentView {
             (this.lineTop(this.lineAtTop(logicalTop - scrollTop)) < logicalTop - scrollTop ? 1 : 0),
         )
       : lineWindow.fromLine
+    const expanded = this.documentPresentation?.expandLineWindow(fromLine, lineWindow.toLine) ?? {
+      fromLine,
+      toLine: lineWindow.toLine,
+    }
     const id = this.nextRequestId++
     return Object.freeze({
       id,
-      fromLine,
-      toLine: lineWindow.toLine,
+      fromLine: expanded.fromLine,
+      toLine: expanded.toLine,
       ...(geometry.compressed
-        ? { spacers: this.lineSpacers(fromLine, lineWindow.toLine, scrollTop) }
+        ? { spacers: this.lineSpacers(expanded.fromLine, expanded.toLine, scrollTop) }
         : {}),
     })
   }
@@ -920,7 +1021,10 @@ export class SourceDocumentView {
     const id = this.nextRequestId
     this.nextRequestId += 1
 
-    return Object.freeze({ id, fromLine, toLine })
+    return Object.freeze({
+      id,
+      ...(this.documentPresentation?.expandLineWindow(fromLine, toLine) ?? { fromLine, toLine }),
+    })
   }
 
   private getOverscanLines(): number {
@@ -1565,7 +1669,7 @@ export class SourceDocumentView {
       targetLineNumber = verticalMove.lineNumber
     }
 
-    if (next === current && (!extend || range.from === range.to)) {
+    if (next === current && (extend || range.from === range.to)) {
       return
     }
 
@@ -1975,6 +2079,8 @@ export class SourceDocumentView {
     })
 
     this.renderedSourceWindow = window
+    // Optimistic text is editable immediately, but cannot be submitted as a committed snapshot.
+    this.renderedDocumentVersion = undefined
     return Object.freeze({
       window,
       lineCount: this.currentSource.lineCount + lineDelta,
@@ -2651,6 +2757,7 @@ export class SourceDocumentView {
   }
 
   private renderSelection(): void {
+    this.documentPresentation?.selectionChanged()
     this.selectionLayerDOM.querySelectorAll<HTMLElement>('.milkup-selection').forEach((node) => {
       node.remove()
     })

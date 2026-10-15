@@ -1,3 +1,8 @@
+import type {
+  DocumentPresentationRequest,
+  DocumentPresentationResult,
+  DocumentRenderer,
+} from '@milkup/core'
 import { pluginCommandGesture } from './workspace-gesture'
 import { ChangeSet, Selection, type Transaction } from '@milkup/core'
 
@@ -16,7 +21,17 @@ import type {
   RestrictedPluginHost,
 } from './runtime'
 
+export interface IsolatedPluginDocumentRenderRequest {
+  readonly pluginId: string
+  readonly rendererId: string
+  readonly request: DocumentPresentationRequest
+}
+
 export interface PluginIsolationHost {
+  renderDocument?(
+    request: IsolatedPluginDocumentRenderRequest,
+    options?: { readonly signal?: AbortSignal },
+  ): Promise<DocumentPresentationResult>
   activate(
     request: IsolatedPluginActivateRequest,
   ): IsolatedPluginActivateResult | Promise<IsolatedPluginActivateResult>
@@ -41,6 +56,7 @@ export interface IsolatedPluginActivateRequest {
 }
 
 export interface IsolatedPluginActivateResult {
+  readonly documentRenderers?: readonly string[]
   readonly commands?: readonly string[]
   readonly renderers?: readonly string[]
 }
@@ -129,6 +145,22 @@ export function createIsolatedPluginModule(config: IsolatedPluginModuleConfig): 
       return Object.freeze({
         commands: createIsolatedCommandHandlers(manifest, host, allowedCommands),
         renderers: createIsolatedRenderers(manifest, host, allowedRenderers),
+        documentRenderers: Object.freeze(
+          Object.fromEntries(
+            (manifest.contributes?.documentRenderers ?? [])
+              .filter((r) => activated.documentRenderers?.includes(r.id))
+              .map((r) => [
+                r.id,
+                ((request, options) => {
+                  if (!host.renderDocument) throw new Error('Document renderer unavailable')
+                  return host.renderDocument(
+                    { pluginId: manifest.id, rendererId: r.id, request },
+                    options,
+                  )
+                }) satisfies DocumentRenderer,
+              ]),
+          ),
+        ),
         dispose: () => host.dispose?.({ pluginId: manifest.id }),
       })
     },

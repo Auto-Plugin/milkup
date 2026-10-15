@@ -1,0 +1,78 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/document-presentation.test.ts (40 tests | 2 failed) 1450ms
+   ✓ anchors an asynchronously growing preview above the visible selection (false) 121ms
+   ✓ refreshes selection-dependent third-party output without repaint loops (false) 187ms
+   ✓ cancels the old selection job and discards its late output (false) 68ms
+   ✓ uses real MathML, retains mapped source and reveals on selection (false) 19ms
+   ✓ keeps source literal and disable restores source without a transaction (false) 25ms
+   ✓ excludes preview text from mapped offsets, coalesces and invalidates (false) 48ms
+   ✓ mounts a multiline block once and restores every original line (false) 47ms
+   ✓ renders the native CRLF matrix range without consuming its line ending (false) 96ms
+   ✓ uses accessible references without editing or swallowing keyboard activation (false) 32ms
+   ✓ preserves an ordinary task control alongside inline presentation (false) 31ms
+   ✓ rejects protected and malformed output while preserving editable source (false) 20ms
+   ✓ bounds requests before invoking a provider on a huge line (false) 20ms
+   ✓ discards old-document results while a fresh document remains editable (false) 26ms
+   ✓ discards an asynchronous result after disable (false) 17ms
+   ✓ anchors an asynchronously growing preview above the visible selection (true) 46ms
+   ✓ refreshes selection-dependent third-party output without repaint loops (true) 146ms
+   ✓ cancels the old selection job and discards its late output (true) 36ms
+   ✓ uses real MathML, retains mapped source and reveals on selection (true) 23ms
+   ✓ keeps source literal and disable restores source without a transaction (true) 23ms
+   ✓ excludes preview text from mapped offsets, coalesces and invalidates (true) 25ms
+   ✓ mounts a multiline block once and restores every original line (true) 27ms
+   ✓ renders the native CRLF matrix range without consuming its line ending (true) 68ms
+   ✓ uses accessible references without editing or swallowing keyboard activation (true) 11ms
+   ✓ preserves an ordinary task control alongside inline presentation (true) 15ms
+   ✓ rejects protected and malformed output while preserving editable source (true) 20ms
+   ✓ bounds requests before invoking a provider on a huge line (true) 11ms
+   ✓ discards old-document results while a fresh document remains editable (true) 38ms
+   ✓ discards an asynchronous result after disable (true) 21ms
+   ✓ constructs inert SVG and maps only validated MathML attribute names 9ms
+   ✓ checks the host navigation lease after asynchronous viewport loading 10ms
+   ✓ checks the host navigation assertion before changing selection 9ms
+   ✓ measures collapsed block continuation lines as zero and restores their heights 34ms
+   ✓ allows bounded host snapshot preparation beyond the renderer worker deadline 17ms
+   ✓ cancels a slow host preparation without waiting for its deadline 7ms
+   ✓ rejects a completed job if selection changed before the next synchronization 20ms
+   ✓ preserves the correct viewport anchor during preview growth (visible) 10ms
+   ✓ preserves the correct viewport anchor during preview growth (scrolled-away) 11ms
+   ✓ preserves the correct viewport anchor during preview growth (source) 10ms
+   × preserves block focus across a viewport job without stealing a later external focus 32ms
+     → expected false to be true // Object.is equality
+   × preserves reference focus across a viewport job without stealing a later external focus 13ms
+     → expected false to be true // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation.test.ts > preserves block focus across a viewport job without stealing a later external focus
+ FAIL  src/__tests__/document-presentation.test.ts > preserves reference focus across a viewport job without stealing a later external focus
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/__tests__/document-presentation.test.ts:855:35
+    853|       manager.schedule()
+    854|       await settle()
+    855|       expect(focused.isConnected).toBe(true)
+       |                                   ^
+    856|       expect(document.activeElement).toBe(focused)
+    857|       resume!()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 38 passed (40)
+   Start at  13:34:26
+   Duration  3.75s (transform 815ms, setup 0ms, collect 1.06s, tests 1.45s, environment 911ms, prepare 87ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/document-presentation.test.ts '--maxWorkers=2'

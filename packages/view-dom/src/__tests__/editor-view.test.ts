@@ -2584,3 +2584,33 @@ describe('line projection helpers', () => {
     expect(visualOffsetToSourcePosition(projection, 4)).toBe(11)
   })
 })
+
+for (const mode of ['source', 'live'] as const) {
+  it(`collapses both selection directions at either existing endpoint in ${mode}`, () => {
+    const text = 'prefix 中文😀\nselected definition\nnext line'
+    const from = text.indexOf('selected'),
+      to = text.indexOf('\nnext')
+    const view = new EditorView({
+      parent: document.createElement('main'),
+      mode,
+      state: createState(text),
+    })
+    try {
+      for (const reversed of [false, true])
+        for (const key of ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']) {
+          view.updateState(
+            createState(text, Selection.range(reversed ? to : from, reversed ? from : to)),
+          )
+          const event = new KeyboardEvent('keydown', { key, cancelable: true })
+          view.inputDOM.dispatchEvent(event)
+          const expected = key === 'ArrowRight' || key === 'ArrowDown' ? to : from
+          expect(view.state.selection.main).toMatchObject({ anchor: expected, head: expected })
+          expect(event.defaultPrevented).toBe(true)
+          expect(view.state.doc.text).toBe(text)
+          expect(view.state.history.canUndo).toBe(false)
+        }
+    } finally {
+      view.destroy()
+    }
+  })
+}

@@ -1,0 +1,161 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/document-presentation.test.ts (42 tests | 1 failed | 41 skipped) 102ms
+   × keeps preview keyboard focus when the view refreshes its source DOM (false) 100ms
+     → expected <body><main>…(1)</main></body> to be <span …(8)><math>…(1)</math></span> // Object.is equality
+   ↓ anchors an asynchronously growing preview above the visible selection (false)
+   ↓ refreshes selection-dependent third-party output without repaint loops (false)
+   ↓ cancels the old selection job and discards its late output (false)
+   ↓ uses real MathML, retains mapped source and reveals on selection (false)
+   ↓ keeps source literal and disable restores source without a transaction (false)
+   ↓ excludes preview text from mapped offsets, coalesces and invalidates (false)
+   ↓ mounts a multiline block once and restores every original line (false)
+   ↓ renders the native CRLF matrix range without consuming its line ending (false)
+   ↓ uses accessible references without editing or swallowing keyboard activation (false)
+   ↓ preserves an ordinary task control alongside inline presentation (false)
+   ↓ rejects protected and malformed output while preserving editable source (false)
+   ↓ bounds requests before invoking a provider on a huge line (false)
+   ↓ discards old-document results while a fresh document remains editable (false)
+   ↓ discards an asynchronous result after disable (false)
+   ↓ keeps preview keyboard focus when the view refreshes its source DOM (true)
+   ↓ anchors an asynchronously growing preview above the visible selection (true)
+   ↓ refreshes selection-dependent third-party output without repaint loops (true)
+   ↓ cancels the old selection job and discards its late output (true)
+   ↓ uses real MathML, retains mapped source and reveals on selection (true)
+   ↓ keeps source literal and disable restores source without a transaction (true)
+   ↓ excludes preview text from mapped offsets, coalesces and invalidates (true)
+   ↓ mounts a multiline block once and restores every original line (true)
+   ↓ renders the native CRLF matrix range without consuming its line ending (true)
+   ↓ uses accessible references without editing or swallowing keyboard activation (true)
+   ↓ preserves an ordinary task control alongside inline presentation (true)
+   ↓ rejects protected and malformed output while preserving editable source (true)
+   ↓ bounds requests before invoking a provider on a huge line (true)
+   ↓ discards old-document results while a fresh document remains editable (true)
+   ↓ discards an asynchronous result after disable (true)
+   ↓ constructs inert SVG and maps only validated MathML attribute names
+   ↓ checks the host navigation lease after asynchronous viewport loading
+   ↓ checks the host navigation assertion before changing selection
+   ↓ measures collapsed block continuation lines as zero and restores their heights
+   ↓ allows bounded host snapshot preparation beyond the renderer worker deadline
+   ↓ cancels a slow host preparation without waiting for its deadline
+   ↓ rejects a completed job if selection changed before the next synchronization
+   ↓ preserves the correct viewport anchor during preview growth (visible)
+   ↓ preserves the correct viewport anchor during preview growth (scrolled-away)
+   ↓ preserves the correct viewport anchor during preview growth (source)
+   ↓ preserves block focus across a viewport job without stealing a later external focus
+   ↓ preserves reference focus across a viewport job without stealing a later external focus
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation.test.ts > keeps preview keyboard focus when the view refreshes its source DOM (false)
+AssertionError: expected <body><main>…(1)</main></body> to be <span …(8)><math>…(1)</math></span> // Object.is equality
+
+- Expected
++ Received
+
+@@ -1,5 +1,26 @@
++ <body>
++   <main>
++     <div
++       class="milkup-editor"
++       data-editable="true"
++       data-mode="live"
++       style="font-family: \"Cascadia Code\", \"SFMono-Regular\", Consolas, \"Liberation Mono\", Menlo, monospace; font-size: 16px; line-height: 24px; --milkup-line-height: 24px; --milkup-content-width: none;"
++     >
++       <div
++         aria-multiline="true"
++         class="milkup-editor-content"
++         contenteditable="false"
++         role="textbox"
++       >
++         <div
++           class="milkup-line milkup-line-live"
++           data-from="0"
++           data-line="1"
++           data-to="15"
++           style="min-height: 1em;"
++         >
+            <span
+              aria-label="fraction"
+              class="milkup-document-presentation"
+              data-document-presentation="block"
+              data-presentation-from="0"
+@@ -16,6 +37,57 @@
+                  <mi>
+                    b
+                  </mi>
+                </mfrac>
+              </math>
++           </span>
++           <span
++             data-from="5"
++             data-to="15"
++           >
++             <span
++               class="milkup-inline milkup-inline-text"
++               data-from="5"
++               data-status="valid"
++               data-syntax-visible="true"
++               data-to="15"
++             >
++               <span
++                 class="milkup-inline-content"
++                 data-from="5"
++                 data-to="15"
++               >
++                  中文😀 tail
++               </span>
++             </span>
+            </span>
++         </div>
++       </div>
++       <div
++         class="milkup-search-layer"
++       />
++       <div
++         class="milkup-selection-layer"
++       />
++       <div
++         class="milkup-cursor-layer"
++       >
++         <div
++           class="milkup-cursor"
++           data-empty="true"
++           data-index="0"
++           data-line="1"
++           data-offset="15"
++           data-position="15"
++           style="left: 137.14285714285714px; top: 0px; height: 24px;"
++         />
++       </div>
++       <textarea
++         aria-label="Markdown 编辑器"
++         autocomplete="off"
++         class="milkup-input-proxy"
++         style="left: 163.14285714285714px; top: 24px; height: 24px;"
++         tabindex="0"
++       />
++     </div>
++   </main>
++ </body>
+
+ ❯ src/__tests__/document-presentation.test.ts:122:36
+    120|       })
+    121|     await settle()
+    122|     expect(document.activeElement).toBe(
+       |                                    ^
+    123|       view.contentDOM.querySelector('[data-document-presentation]'),
+    124|     )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 41 skipped (42)
+   Start at  13:41:43
+   Duration  1.42s (transform 500ms, setup 0ms, collect 646ms, tests 102ms, environment 430ms, prepare 83ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/document-presentation.test.ts '--maxWorkers=2' -t 'source DOM \(false\)'

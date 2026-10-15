@@ -1968,3 +1968,34 @@ it('discards a delayed fence scan after the active document changes', async () =
   expect(view.selection.main.head).toBe(0)
   view.destroy()
 })
+
+for (const mode of ['source', 'live'] as const) {
+  it(`collapses both windowed selection directions at either existing endpoint in ${mode}`, async () => {
+    const text = 'prefix 中文😀\nselected definition\nnext line'
+    const from = text.indexOf('selected'),
+      to = text.indexOf('\nnext')
+    const source = new MemoryDocumentSource({ documentId: 'collapse', text })
+    const view = new SourceDocumentView({
+      parent: document.createElement('main'),
+      mode,
+      source,
+      editable: true,
+    })
+    try {
+      for (const reversed of [false, true])
+        for (const key of ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']) {
+          await view.revealSelection(2, Selection.range(reversed ? to : from, reversed ? from : to))
+          const event = new KeyboardEvent('keydown', { key, cancelable: true })
+          view.inputDOM.dispatchEvent(event)
+          await view.runAfterPendingEdits(async () => {})
+          const expected = key === 'ArrowRight' || key === 'ArrowDown' ? to : from
+          expect(view.selection.main).toMatchObject({ anchor: expected, head: expected })
+          expect(event.defaultPrevented).toBe(true)
+          expect(source.version).toBe(0)
+          expect((await source.readLineWindow(1, source.lineCount)).text).toBe(text)
+        }
+    } finally {
+      view.destroy()
+    }
+  })
+}

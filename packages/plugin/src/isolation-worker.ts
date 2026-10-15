@@ -168,11 +168,20 @@ export function createBrowserWorkerPluginHost(
     editingBroker,
     resourcesBroker,
   } = config
-  const host = createRpcPluginIsolationHost(worker, { ...(timeoutMs ? { timeoutMs } : {}) })
+  if (manifest.contributes?.documentRenderers?.length && !worker.terminate)
+    throw new Error('Document renderer Worker requires termination')
+  const host = createRpcPluginIsolationHost(worker, {
+    ...(timeoutMs ? { timeoutMs } : {}),
+    onDocumentRenderTimeout: () => {
+      cleanup()
+      config.onDocumentRenderTimeout?.()
+    },
+  })
   const fileRpcServer = fileBroker ? createPluginFileRpcServer(worker, fileBroker) : undefined
-  const documentRpcServer = documentBroker
-    ? createPluginDocumentRpcServer(worker, documentBroker)
-    : undefined
+  const documentRpcServer =
+    documentBroker && manifest.permissions?.includes('document:read')
+      ? createPluginDocumentRpcServer(worker, documentBroker)
+      : undefined
   const uiRpcServer = uiBroker ? createPluginUiRpcServer(worker, uiBroker) : undefined
   const networkRpcServer = networkBroker
     ? createPluginNetworkRpcServer(worker, networkBroker)

@@ -1,0 +1,56 @@
+
+ RUN  v3.2.6 /workspace/milkup/plugins/math
+
+ ✓ src/math.test.ts (38 tests) 48ms
+ ❯ src/renderer.test.ts (18 tests | 1 failed) 58ms
+   ✓ context-bound math discovery > finds inline Unicode expressions without changing source offsets 8ms
+   ✓ context-bound math discovery > keeps ambiguous currency/escaped/unclosed literal cost undefined and undefined 0ms
+   ✓ context-bound math discovery > keeps ambiguous currency/escaped/unclosed literal \$x$ 1ms
+   ✓ context-bound math discovery > keeps ambiguous currency/escaped/unclosed literal $ x$ 0ms
+   ✓ context-bound math discovery > keeps ambiguous currency/escaped/unclosed literal $x $ 0ms
+   ✓ context-bound math discovery > keeps ambiguous currency/escaped/unclosed literal $x$2 0ms
+   ✓ context-bound math discovery > keeps ambiguous currency/escaped/unclosed literal $$x$$ 0ms
+   ✓ context-bound math discovery > keeps ambiguous currency/escaped/unclosed literal $unfinished 0ms
+   ✓ context-bound math discovery > excludes protected code and link target ranges 1ms
+   ✓ context-bound math discovery > never guesses opaque contexts or incomplete document edges 0ms
+   × context-bound math discovery > finds a standalone multiline block across trusted paragraphs and CRLF 9ms
+     → expected '$$\r\n\frac{x}{y}\r\n\r\n+1\r\n$$\r' to be '$$\r\n\frac{x}{y}\r\n\r\n+1\r\n$$' // Object.is equality
+   ✓ context-bound math discovery > keeps the entire unclosed display body literal 0ms
+   ✓ context-bound math discovery > does not cross opaque or protected regions for block math 0ms
+   ✓ context-bound math discovery > uses only complete declared math fences 1ms
+   ✓ context-bound math discovery > handles absolute UTF16 offsets 1ms
+   ✓ context-bound math discovery > returns accessible source fallback for unsafe and oversized formulas 3ms
+   ✓ context-bound math discovery > scans a near-limit malformed delimiter stream in one pass 12ms
+   ✓ context-bound math discovery > honors cancellation and fragment budget 18ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/renderer.test.ts > context-bound math discovery > finds a standalone multiline block across trusted paragraphs and CRLF
+AssertionError: expected '$$\r\n\frac{x}{y}\r\n\r\n+1\r\n$$\r' to be '$$\r\n\frac{x}{y}\r\n\r\n+1\r\n$$' // Object.is equality
+
+- Expected
++ Received
+
+  $$
+  \frac{x}{y}
+  
+  +1
+- $$
++ $$
+
+ ❯ src/renderer.test.ts:74:78
+     72|     expect(result.fragments).toHaveLength(1)
+     73|     expect(result.fragments[0]).toMatchObject({ layout: 'block', statu…
+     74|     expect(source.slice(result.fragments[0]!.from, result.fragments[0]…
+       |                                                                              ^
+     75|       source.slice(0, -2),
+     76|     )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 55 passed (56)
+   Start at  12:21:35
+   Duration  1.44s (transform 418ms, setup 0ms, collect 449ms, tests 106ms, environment 0ms, prepare 476ms)
+

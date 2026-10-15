@@ -83,3 +83,5 @@ export {
 } from './transaction/transaction'
 
 export { createLiteralLineMatcher, type LiteralLineMatch } from './store/literal-search'
+
+export * from './document-presentation'

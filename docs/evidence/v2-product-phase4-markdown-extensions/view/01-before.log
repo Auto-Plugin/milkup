@@ -1,0 +1,74 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/document-presentation.test.ts (6 tests | 6 failed) 170ms
+   × uses real MathML, retains mapped source and reveals on selection (false) 82ms
+     → expected undefined to be 'http://www.w3.org/1998/Math/MathML' // Object.is equality
+   × keeps source literal and disable restores source without a transaction (false) 23ms
+     → expected null not to be null
+   × discards an asynchronous result after disable (false) 9ms
+     → view.setDocumentPresentation is not a function
+   × uses real MathML, retains mapped source and reveals on selection (true) 23ms
+     → expected undefined to be 'http://www.w3.org/1998/Math/MathML' // Object.is equality
+   × keeps source literal and disable restores source without a transaction (true) 20ms
+     → expected null not to be null
+   × discards an asynchronous result after disable (true) 13ms
+     → view.setDocumentPresentation is not a function
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation.test.ts > uses real MathML, retains mapped source and reveals on selection (false)
+ FAIL  src/__tests__/document-presentation.test.ts > uses real MathML, retains mapped source and reveals on selection (true)
+AssertionError: expected undefined to be 'http://www.w3.org/1998/Math/MathML' // Object.is equality
+
+- Expected: 
+"http://www.w3.org/1998/Math/MathML"
+
++ Received: 
+undefined
+
+ ❯ src/__tests__/document-presentation.test.ts:21:65
+     19|   it(`uses real MathML, retains mapped source and reveals on selection…
+     20|     const view = await make()
+     21|     expect(view.contentDOM.querySelector('math')?.namespaceURI).toBe('…
+       |                                                                 ^
+     22|     expect(view.contentDOM.querySelector('mfrac')).not.toBeNull()
+     23|     expect(view.contentDOM.querySelector('[data-document-presentation]…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  src/__tests__/document-presentation.test.ts > keeps source literal and disable restores source without a transaction (false)
+ FAIL  src/__tests__/document-presentation.test.ts > keeps source literal and disable restores source without a transaction (true)
+AssertionError: expected null not to be null
+ ❯ src/__tests__/document-presentation.test.ts:36:55
+     34|     expect(spy).not.toHaveBeenCalled()
+     35|     view.setMode('live'); await settle()
+     36|     expect(view.contentDOM.querySelector('math')).not.toBeNull()
+       |                                                       ^
+     37|     const selection = view instanceof SourceDocumentView ? view.select…
+     38|     view.setDocumentPresentation(undefined); await settle()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  src/__tests__/document-presentation.test.ts > discards an asynchronous result after disable (false)
+ FAIL  src/__tests__/document-presentation.test.ts > discards an asynchronous result after disable (true)
+TypeError: view.setDocumentPresentation is not a function
+ ❯ src/__tests__/document-presentation.test.ts:48:10
+     46|     const base = provider(); let signal: AbortSignal | undefined
+     47|     const view = await make('live', {provide: async (window, options) …
+     48|     view.setDocumentPresentation(undefined); release(); await settle()
+       |          ^
+     49|     expect(signal?.aborted).toBe(true)
+     50|     expect(view.contentDOM.querySelector('math')).toBeNull()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed (6)
+   Start at  11:29:28
+   Duration  1.97s (transform 680ms, setup 0ms, collect 893ms, tests 170ms, environment 622ms, prepare 83ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/document-presentation.test.ts

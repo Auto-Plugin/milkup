@@ -1,3 +1,4 @@
+import type { DocumentPresentationConfig } from './document-presentation'
 import type { EditorState, Line, TextRange, Transaction } from '@milkup/core'
 import type { EditorPresentation } from './presentation'
 import type { AssetProvider } from '@milkup/assets'
@@ -119,6 +120,7 @@ export interface VirtualViewportConfig {
 }
 
 export interface EditorViewConfig {
+  readonly documentPresentation?: DocumentPresentationConfig
   readonly onImagePaste?: ImagePasteHandler
   readonly onEmptyPaste?: EmptyPasteHandler
   readonly imageResolver?: ImageResolver
