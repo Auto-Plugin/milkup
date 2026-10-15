@@ -38,8 +38,14 @@ try {
     & node "$PSScriptRoot/windows-loader-imports.mjs" $inputPath $importsPath
     if ($LASTEXITCODE -ne 0) { throw 'Static import analysis failed' }
     $analysis = Get-Content $importsPath -Raw | ConvertFrom-Json
-    $record['missingCandidates'] = @($analysis.missing)
-    $record['staticAnalysisErrors'] = @($analysis.errors)
+    # The complete static graph stays in the local JSON; keep logged conclusions
+    # small so the original/probe manifest and exit codes cannot be truncated.
+    $record['missingCandidateCount'] = @($analysis.missing).Count
+    $record['missingCandidateSample'] = @($analysis.missing | Select-Object -First 8 | ForEach-Object {
+        @{ importer = $_.importer; dll = $_.dll; path = $_.path; delayed = $_.delayed; names = @($_.names | Select-Object -First 8); nameCount = @($_.names).Count }
+    })
+    $record['staticAnalysisErrorCount'] = @($analysis.errors).Count
+    $record['staticAnalysisErrors'] = @($analysis.errors | Select-Object -First 4)
     $record['staticAnalysisTruncated'] = $analysis.truncated
     $record['staticAnalysisLimit'] = $analysis.limitation
     $mtCandidates = @(Get-ChildItem "${env:ProgramFiles(x86)}/Windows Kits/10/bin/*/x64/mt.exe" -File | Sort-Object FullName -Descending)
@@ -47,7 +53,10 @@ try {
     $mt = $mtCandidates[0].FullName
     $manifestPath = Join-Path $EvidenceDirectory 'rust-original.manifest'
     $record['manifestExtractExitCode'] = Invoke-Probe $mt @('-nologo', "-inputresource:$Executable;#1", "-out:$manifestPath") 'rust-loader-manifest'
-    if (Test-Path $manifestPath) { $record['originalManifest'] = Get-Content $manifestPath -Raw }
+    if (Test-Path $manifestPath) {
+        $manifestText = Get-Content $manifestPath -Raw
+        $record['originalManifest'] = $manifestText.Substring(0, [Math]::Min($manifestText.Length, 8192))
+    }
     # Hypothesis check only when the static evidence points to this precise symbol.
     $controlMissing = @($analysis.missing | Where-Object { $_.dll -ieq 'comctl32.dll' -and $_.names -contains 'TaskDialogIndirect' -and -not $_.delayed })
     if ($controlMissing.Count -gt 0) {

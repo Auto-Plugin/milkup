@@ -21,8 +21,13 @@ $artifacts = [System.Collections.Generic.List[string]]::new()
 $testExitCode = $LASTEXITCODE
 $result = [ordered]@{ cargoExitCode = $testExitCode; testExecutables = $artifacts.ToArray(); status = 'failed'; diagnosticOnly = $false }
 if ($testExitCode -eq 0) {
-    $result.status = 'passed'
-    $result | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $EvidenceDirectory 'rust-test-result.json')
+    try {
+        if ($artifacts.Count -ne 1) { throw 'Expected exactly one successfully tested library executable' }
+        & "$PSScriptRoot/verify-windows-app-manifest.ps1" -Executable $artifacts[0] -EvidenceDirectory $EvidenceDirectory -EvidenceName 'rust-harness'
+        $result['manifestEvidence'] = 'rust-harness-manifest.json'
+        $result.status = 'passed'
+    } catch { $result['manifestError'] = $_.ToString(); throw }
+    finally { $result | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $EvidenceDirectory 'rust-test-result.json') }
     return
 }
 try {

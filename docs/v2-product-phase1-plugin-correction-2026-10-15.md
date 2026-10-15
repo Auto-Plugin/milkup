@@ -39,6 +39,8 @@ SDK 新增受 `app:updates` 审批保护的 `host.releases.check/stage/status/ca
 
 首轮 Windows run [38678616137](https://github.com/Auto-Plugin/milkup/actions/runs/38678616137) 已通过 1090 项工作区测试、类型检查和 44 项构建辅助测试；Rust 测试 exe 编译成功后在进入 harness 前以 `0xc0000139 STATUS_ENTRYPOINT_NOT_FOUND` 退出，故整个任务失败。上传未运行，API 确认 artifact 为零，预算未消费；此失败不能计入 Rust 或 Windows 安装验收。
 
+诊断 run [38679750892](https://github.com/Auto-Plugin/milkup/actions/runs/38679750892) 保留失败且 artifact 为零。实证显示库测试 exe 直接导入 `comctl32.dll!TaskDialogIndirect`，默认系统 DLL 不导出它，原 exe 无 manifest resource。临时副本仅补 Common Controls v6 manifest 后，77 项 Rust 测试通过、1 项既有忽略；该副本只用于对照，不替代原始测试门禁。依赖资源工具只把默认 manifest 链接到 binary targets，漏掉 lib harness，故需正式修正 Windows MSVC 的 manifest 链接配置。
+
 上传前门禁检查六个文件：一个未签名 Windows x64 NSIS、两个独立插件包、manifest、SHA256SUMS 和 README。裸文件总量不超过 255 MiB，为 ZIP 留余量；单 artifact、一天保留、不覆盖、不创建 Release 或 cache。实际 run、artifact 字节和到期时间待执行后记录。费用依据于 2026-10-15 核对 [GitHub 官方计费说明](https://docs.github.com/en/billing/concepts/product-billing/github-actions)：公共仓库标准 runner 免费，超额 artifact 存储为每 GiB/月 US$0.25、按小时累计。即使不使用免费额度，256 MiB 保留一天按最短 28 天月估算约 US$0.00224（税前；尚非实际账单），低于本次 US$0.01 上限；本流程不生成 cache。
 
 Linux 和 Chromium 不能替代 Windows 实机验收。真实 Windows 更新安装/重启、缺 Runtime 机器安装、IME、读屏、DPI/多屏及完整升级矩阵仍需实机验证；本轮不生成真实发布密钥，不部署更新渠道，不合并 main/v2/质量分支。

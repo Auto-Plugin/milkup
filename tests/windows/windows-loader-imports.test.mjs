@@ -142,3 +142,60 @@ test('build retains the fatal Rust gate and workflow publishes bounded diagnosti
   assert.equal((workflow.match(/actions\/upload-artifact@/g) ?? []).length, 1)
   assert.doesNotMatch(workflow, /continue-on-error/)
 })
+
+test('MSVC build links one Common Controls manifest into binaries and library tests without duplicate Tauri resources', async () => {
+  const source = await readFile(
+    new URL('../../apps/desktop/src-tauri/build.rs', import.meta.url),
+    'utf8',
+  )
+  assert.match(
+    source,
+    /CARGO_CFG_TARGET_OS[\s\S]*Ok\("windows"\)[\s\S]*CARGO_CFG_TARGET_ENV[\s\S]*Ok\("msvc"\)/,
+  )
+  assert.match(source, /WindowsAttributes::new_without_app_manifest\(\)/)
+  assert.match(source, /windows_attributes\(windows\)/)
+  assert.match(source, /cargo:rustc-link-arg=\/MANIFEST:EMBED/)
+  assert.match(source, /cargo:rustc-link-arg=\/MANIFESTDEPENDENCY:/)
+  assert.match(source, /name='Microsoft.Windows.Common-Controls' version='6\.0\.0\.0'/)
+  assert.doesNotMatch(source, /rustc-link-arg-tests|rustc-link-arg-bins/)
+  assert.match(source, /else \{\s*tauri_build::build\(\)/)
+})
+test('successful harness and production binary must pass read-only embedded manifest verification before delivery', async () => {
+  const read = (name) => readFile(new URL(`../../${name}`, import.meta.url), 'utf8')
+  const wrapper = await read('scripts/ci/test-windows-rust-library.ps1')
+  const successBranch = wrapper.slice(
+    wrapper.indexOf('if ($testExitCode -eq 0)'),
+    wrapper.indexOf('return\n}'),
+  )
+  assert.ok(
+    successBranch.indexOf('verify-windows-app-manifest.ps1') <
+      successBranch.indexOf("$result.status = 'passed'"),
+  )
+  assert.match(successBranch, /manifestError[\s\S]*throw/)
+  const build = await read('scripts/ci/build-windows-v2-package.ps1')
+  assert.ok(
+    build.indexOf('verify-windows-app-manifest.ps1') <
+      build.indexOf('$manifest.status = if ($UserTrialPackage)'),
+  )
+  const verifier = await read('scripts/ci/verify-windows-app-manifest.ps1')
+  assert.match(verifier, /-inputresource:\$Executable;#1/)
+  assert.doesNotMatch(verifier, /outputresource|Copy-Item|Remove-Item/)
+  assert.match(verifier, /DtdProcessing.*Prohibit/)
+  assert.match(verifier, /\$dependencies.Count -ne 1/)
+  for (const field of ['version', 'publicKeyToken', 'processorArchitecture', 'language'])
+    assert.ok(verifier.includes(`GetAttribute('${field}')`))
+  assert.match(verifier, /\$record.sha256 -ne \$record.sha256After/)
+  const workflow = await read('.github/workflows/v2-windows-plugin-offline-delivery.yml')
+  assert.ok(workflow.includes('rust-harness-manifest.json'))
+  assert.ok(workflow.includes('production-binary-manifest.json'))
+})
+test('loader diagnostic summaries bound graph samples so probe outcomes and original hashes remain visible', async () => {
+  const probe = await readFile(
+    new URL('../../scripts/ci/capture-windows-rust-loader.ps1', import.meta.url),
+    'utf8',
+  )
+  assert.match(probe, /missingCandidateCount/)
+  assert.match(probe, /missingCandidateSample[\s\S]*Select-Object -First 8/)
+  assert.match(probe, /staticAnalysisErrors.*Select-Object -First 4/)
+  assert.doesNotMatch(probe, /missingCandidates'\] = @\(\$analysis.missing\)/)
+})

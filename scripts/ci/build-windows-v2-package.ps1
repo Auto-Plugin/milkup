@@ -115,6 +115,8 @@ try {
     $packages = @(Get-ChildItem -LiteralPath (Join-Path $target 'bundle/nsis') -Filter '*.exe' -File)
     if ($packages.Count -ne 1) { throw 'Expected exactly one NSIS installer' }
     $binary = Join-Path $target 'milkup-desktop.exe'
+    & "$PSScriptRoot/verify-windows-app-manifest.ps1" -Executable $binary -EvidenceDirectory $evidence -EvidenceName 'production-binary'
+    $manifest['windowsManifestVerification'] = Get-Content (Join-Path $evidence 'production-binary-manifest.json') -Raw | ConvertFrom-Json
     $manifest.installer = File-Record $packages[0].FullName
     $manifest.binary = File-Record $binary
     if ($manifest.installer.signature -ne 'NotSigned' -or $manifest.binary.signature -ne 'NotSigned') {
