@@ -1,0 +1,37 @@
+[WebServer] (node:184520) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:184642) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:184701) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:184931) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:185380) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop-msedge] › tests/e2e/desktop-shortcuts-before.spec.ts:181:1 › shadowed plugin defaults retain their context after user rebinding and restart (12.0s)
+
+
+  1) [desktop-msedge] › tests/e2e/desktop-shortcuts-before.spec.ts:181:1 › shadowed plugin defaults retain their context after user rebinding and restart
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "second-hit|"
+    Received: "second-hit|second-hit|second-hit|"
+
+      264 |   await page.keyboard.press('Control+s')
+      265 |   await expect(page.locator('[data-save-dot]')).not.toHaveClass(/is-dirty/)
+    > 266 |   expect(await page.locator('.milkup-editor-content').innerText()).toBe('second-hit|')
+          |                                                                    ^
+      267 | })
+      268 |
+        at /workspace/milkup/tests/e2e/desktop-shortcuts-before.spec.ts:266:68
+
+    Error Context: ../milkup-preferences-phase3-evidence/keymap/browser/shadowed-before-results/desktop-shortcuts-before-s-94af2--user-rebinding-and-restart-desktop-msedge/error-context.md
+
+  1 failed
+    [desktop-msedge] › tests/e2e/desktop-shortcuts-before.spec.ts:181:1 › shadowed plugin defaults retain their context after user rebinding and restart

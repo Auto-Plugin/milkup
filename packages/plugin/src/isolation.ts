@@ -98,6 +98,8 @@ export type PluginHostCapabilityName =
   | 'storage'
   | 'app:updates'
   | 'workspace:read'
+  | 'settings:write'
+  | 'app:keymap'
 
 export function createIsolatedPluginModule(config: IsolatedPluginModuleConfig): PluginModule {
   const { manifest, host } = config
@@ -272,6 +274,8 @@ function listRestrictedHostCapabilities(
 
   if (host.releases) capabilities.push('app:updates')
   if (host.workspace) capabilities.push('workspace:read')
+  if (host.settings) capabilities.push('settings:write')
+  if (host.keymap) capabilities.push('app:keymap')
 
   if (host.storage) {
     capabilities.push('storage')

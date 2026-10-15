@@ -6,6 +6,49 @@ import { describe, expect, it, vi } from 'vitest'
 import { DesktopPluginUiController, type DesktopPluginUiRuntime } from './desktop-plugin-ui'
 
 describe('DesktopPluginUiController', () => {
+  it('holds modal focus while a controlled save action is temporarily disabled', async () => {
+    document.body.innerHTML = '<div data-plugin-slot="modal"></div>'
+    let busy = false
+    const runtime = createRuntime(
+      [{ pluginId: 'example', id: 'form', title: 'Form', slot: 'modal' }],
+      [],
+      vi.fn(),
+      () => ({
+        type: 'element',
+        tag: 'span',
+        children: [
+          {
+            type: 'field',
+            key: 'value',
+            kind: 'text',
+            label: 'Value',
+            value: '',
+            disabled: busy,
+            onChange: { command: 'example.run' },
+          },
+          {
+            type: 'element',
+            tag: 'button',
+            text: 'Save',
+            attributes: { 'aria-label': 'Save' },
+            disabled: busy,
+            action: { command: 'example.run' },
+          },
+        ],
+      }),
+    )
+    const controller = new DesktopPluginUiController(document.body, runtime)
+    await controller.open('example', 'form')
+    document.querySelector<HTMLButtonElement>('[aria-label="Save"]')!.focus()
+    busy = true
+    await controller.invalidate('example', 'form')
+    expect(document.activeElement).toBe(document.querySelector('.plugin-ui-modal'))
+    busy = false
+    await controller.invalidate('example', 'form')
+    expect(document.activeElement).toBe(document.querySelector('[aria-label="Save"]'))
+    await controller.dispose()
+  })
+
   it('combines embedding slot visibility with panel collapse without affecting other slots', async () => {
     document.body.innerHTML =
       '<div data-plugin-slot="sidebar-panel"></div><div data-plugin-slot="menu-page"></div>'

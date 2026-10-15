@@ -1,4 +1,5 @@
 import type { EditorState, Line, TextRange, Transaction } from '@milkup/core'
+import type { EditorPresentation } from './presentation'
 import type { AssetProvider } from '@milkup/assets'
 
 export type ViewMode = 'source' | 'live'
@@ -59,9 +60,32 @@ export interface ControlledRendererElement {
   readonly children?: readonly ControlledRendererOutput[]
   readonly attributes?: Readonly<Record<string, string>>
   readonly action?: ControlledRendererAction
+  readonly disabled?: boolean
 }
 
-export type ControlledRendererOutput = string | number | boolean | ControlledRendererElement
+export interface ControlledRendererField {
+  readonly type: 'field'
+  readonly key: string
+  readonly kind: 'text' | 'number' | 'select'
+  readonly label: string
+  readonly value: string
+  readonly onChange: { readonly command: string }
+  readonly options?: readonly {
+    readonly value: string
+    readonly label: string
+    readonly disabled?: boolean
+  }[]
+  readonly disabled?: boolean
+  readonly invalid?: boolean
+  readonly help?: string
+  readonly placeholder?: string
+  readonly min?: number
+  readonly max?: number
+  readonly step?: number
+}
+
+export type ControlledRendererOutput =
+  string | number | boolean | ControlledRendererElement | ControlledRendererField
 
 export interface ControlledRendererActionDetail {
   readonly rendererId: string
@@ -94,6 +118,7 @@ export interface VirtualViewportConfig {
 }
 
 export interface EditorViewConfig {
+  readonly presentation?: EditorPresentation
   readonly parent: HTMLElement
   readonly state: EditorState
   readonly mode?: ViewMode

@@ -1,3 +1,12 @@
+import { createControlledRendererNodes } from './controlled-renderer'
+import {
+  applyPresentation,
+  validatePresentation,
+  samePresentationLayout,
+  indentationText,
+  presentationOutdent,
+  type EditorPresentation,
+} from './presentation'
 import {
   applyTableAlignments,
   createTaskMarker,
@@ -40,9 +49,6 @@ import type {
   CursorVisibilityOptions,
   ControlledRenderer,
   ControlledMarkdownSyntax,
-  ControlledRendererActionDetail,
-  ControlledRendererElement,
-  ControlledRendererOutput,
   EditorViewConfig,
   EditorViewDispatch,
   PositionLineOffset,
@@ -60,6 +66,7 @@ import {
   domRectsForLineSourceRange,
   domRectsForLineVisualRange,
   isHorizontalScrollbarDragStart,
+  isEditorScrollbarDragStart,
   scrollCodePositionIntoView,
   scrollSourcePositionIntoView,
   isCodePositionClipped,
@@ -123,6 +130,7 @@ export class EditorView {
   private destroyed = false
   private asyncInputGeneration = 0
   private readonly virtualViewport: VirtualViewportState | undefined
+  private presentation: EditorPresentation | undefined
   private searchHighlights: readonly SearchHighlight[] = Object.freeze([])
   private activeSearchHighlightIndex = -1
   private readonly handleInputEvent = (): void => {
@@ -233,12 +241,60 @@ export class EditorView {
     this.dom.addEventListener('scroll', this.handleScrollEvent)
     this.contentDOM.addEventListener('scroll', this.handleInnerScrollEvent, true)
     this.contentDOM.addEventListener('keydown', this.handleTaskKeyDownEvent)
-    this.contentDOM.addEventListener('click', this.handleClickEvent)
-    this.contentDOM.addEventListener('mousedown', this.handleMouseDownEvent)
-    this.contentDOM.addEventListener('mousemove', this.handleMouseMoveEvent)
+    this.dom.addEventListener('click', this.handleClickEvent)
+    this.dom.addEventListener('mousedown', this.handleMouseDownEvent)
+    this.dom.addEventListener('mousemove', this.handleMouseMoveEvent)
     this.ownerDocument.addEventListener('mouseup', this.handleMouseUpEvent)
     config.parent.append(this.dom)
+    if (config.presentation) {
+      this.presentation = validatePresentation(config.presentation)
+      applyPresentation(this.dom, this.presentation)
+    }
     this.render()
+  }
+
+  get lineHeight(): number {
+    return this.presentation
+      ? this.presentation.fontSize * this.presentation.lineHeight
+      : (this.virtualViewport?.lineHeight ?? defaultViewMetrics.lineHeight)
+  }
+
+  setPresentation(value: EditorPresentation): void {
+    if (this.destroyed) return
+    const next = validatePresentation(value)
+    if (samePresentationLayout(this.presentation, next)) {
+      this.presentation = next
+      return
+    }
+    const scrollLine = this.dom.scrollTop / this.lineHeight
+    const codeScroll = new Map(
+      Array.from(this.contentDOM.querySelectorAll<HTMLElement>('.milkup-block-code'), (line) => [
+        line.dataset.line,
+        line.scrollLeft,
+      ]),
+    )
+    this.presentation = next
+    applyPresentation(this.dom, next)
+    const scrollTop = scrollLine * this.lineHeight
+    this.render()
+    // Install the new scroll extent before assigning an offset that could have
+    // been clamped against the previous, shorter document.
+    this.dom.scrollTop = scrollTop
+    if (this.shouldUseVirtualViewport()) this.renderVirtualViewport()
+    this.contentDOM.querySelectorAll<HTMLElement>('.milkup-block-code').forEach((line) => {
+      line.scrollLeft = codeScroll.get(line.dataset.line) ?? 0
+    })
+    this.renderSelectionAndCursor()
+  }
+
+  private presentationMetrics(metrics?: Partial<ViewMetrics>): Partial<ViewMetrics> {
+    return {
+      lineHeight: this.lineHeight,
+      ...(this.presentation
+        ? { charWidth: (defaultViewMetrics.charWidth * this.presentation.fontSize) / 14 }
+        : {}),
+      ...metrics,
+    }
   }
 
   get state(): EditorState {
@@ -340,11 +396,21 @@ export class EditorView {
   }
 
   positionToRect(pos: number, metrics?: Partial<ViewMetrics>): ViewRect {
-    return positionToRectForMode(this.currentState, this.mode, pos, metrics)
+    return positionToRectForMode(
+      this.currentState,
+      this.mode,
+      pos,
+      this.presentationMetrics(metrics),
+    )
   }
 
   coordinateToPosition(coordinate: ViewCoordinate, metrics?: Partial<ViewMetrics>): number {
-    return coordinateToPositionForMode(this.currentState, this.mode, coordinate, metrics)
+    return coordinateToPositionForMode(
+      this.currentState,
+      this.mode,
+      coordinate,
+      this.presentationMetrics(metrics),
+    )
   }
 
   ensureCursorVisible(options?: CursorVisibilityOptions): number {
@@ -388,7 +454,7 @@ export class EditorView {
       state: this.currentState,
       viewportHeight: options?.viewportHeight ?? this.dom.clientHeight,
       ...(options?.scrollPadding === undefined ? {} : { scrollPadding: options.scrollPadding }),
-      ...(options?.metrics === undefined ? {} : { metrics: options.metrics }),
+      metrics: this.presentationMetrics(options?.metrics),
     })
 
     this.dom.scrollTop = nextScrollTop
@@ -410,9 +476,9 @@ export class EditorView {
     this.dom.removeEventListener('scroll', this.handleScrollEvent)
     this.contentDOM.removeEventListener('scroll', this.handleInnerScrollEvent, true)
     this.contentDOM.removeEventListener('keydown', this.handleTaskKeyDownEvent)
-    this.contentDOM.removeEventListener('click', this.handleClickEvent)
-    this.contentDOM.removeEventListener('mousedown', this.handleMouseDownEvent)
-    this.contentDOM.removeEventListener('mousemove', this.handleMouseMoveEvent)
+    this.dom.removeEventListener('click', this.handleClickEvent)
+    this.dom.removeEventListener('mousedown', this.handleMouseDownEvent)
+    this.dom.removeEventListener('mousemove', this.handleMouseMoveEvent)
     this.ownerDocument.removeEventListener('mouseup', this.handleMouseUpEvent)
     this.dom.remove()
   }
@@ -437,11 +503,13 @@ export class EditorView {
     this.selectionLayerDOM.replaceChildren(
       ...renderSelectionOverlay(this.ownerDocument, this.currentState, this.mode, {
         root: this.markdownParseState.cache.root,
+        metrics: this.presentationMetrics(),
       }),
     )
     this.cursorLayerDOM.replaceChildren(
       ...renderCursorOverlay(this.ownerDocument, this.currentState, this.mode, {
         root: this.markdownParseState.cache.root,
+        metrics: this.presentationMetrics(),
       }),
     )
     this.alignSelectionOverlayToDOM()
@@ -454,11 +522,13 @@ export class EditorView {
     this.selectionLayerDOM.replaceChildren(
       ...renderSelectionOverlay(this.ownerDocument, this.currentState, this.mode, {
         root: this.markdownParseState.cache.root,
+        metrics: this.presentationMetrics(),
       }),
     )
     this.cursorLayerDOM.replaceChildren(
       ...renderCursorOverlay(this.ownerDocument, this.currentState, this.mode, {
         root: this.markdownParseState.cache.root,
+        metrics: this.presentationMetrics(),
       }),
     )
     this.alignSelectionOverlayToDOM()
@@ -504,7 +574,7 @@ export class EditorView {
         element.style.left = `${Math.max(0, highlight.from - lineFrom) * defaultViewMetrics.charWidth}px`
         element.style.top = `${line.offsetTop}px`
         element.style.width = `${Math.max(1, highlight.to - highlight.from) * defaultViewMetrics.charWidth}px`
-        element.style.height = `${defaultViewMetrics.lineHeight}px`
+        element.style.height = `${this.lineHeight}px`
         rendered.push(element)
         continue
       }
@@ -617,7 +687,7 @@ export class EditorView {
     const window = getVisibleLineWindow({
       lineCount: this.currentState.doc.lineCount,
       scrollTop: this.dom.scrollTop,
-      lineHeight: this.virtualViewport?.lineHeight ?? defaultViewMetrics.lineHeight,
+      lineHeight: this.lineHeight,
       overscanLines: this.virtualViewport?.overscanLines ?? 0,
       ...(viewportHeight === undefined ? {} : { viewportHeight }),
     })
@@ -1169,6 +1239,7 @@ export class EditorView {
   }
 
   private placeCursorFromClick(event: MouseEvent): void {
+    if (isEditorScrollbarDragStart(event, this.dom)) return
     if (this.suppressNextClick) {
       this.suppressNextClick = false
       event.preventDefault()
@@ -1194,7 +1265,7 @@ export class EditorView {
       return
     }
 
-    if (isHorizontalScrollbarDragStart(event)) {
+    if (isHorizontalScrollbarDragStart(event) || isEditorScrollbarDragStart(event, this.dom)) {
       return
     }
 
@@ -1260,6 +1331,14 @@ export class EditorView {
   }
 
   private positionFromLineEvent(event: MouseEvent): number | undefined {
+    // The editor owns its blank gutters, while embedded controls keep their own
+    // focus and pointer behavior (task markers are handled before this method).
+    if (
+      event.target instanceof Element &&
+      event.target.closest('input, textarea, select, button')
+    ) {
+      return undefined
+    }
     const target = lineElementFromEvent(event, this.contentDOM, this.inputDOM)
 
     if (!target) {
@@ -1287,11 +1366,34 @@ export class EditorView {
   private positionFromEditorEvent(event: MouseEvent): number | undefined {
     const target = event.target
 
-    if (
-      !(target instanceof Node) ||
-      (!this.contentDOM.contains(target) && target !== this.contentDOM)
-    ) {
+    if (!(target instanceof Node) || !this.dom.contains(target)) {
       return undefined
+    }
+
+    // Live lines may wrap or have block-specific heights. A click beside the
+    // centered body must use the nearest rendered line, not a fixed row height.
+    let nearest: { line: HTMLElement; distance: number } | undefined
+    for (const line of Array.from(this.contentDOM.querySelectorAll<HTMLElement>('.milkup-line'))) {
+      const rect = line.getBoundingClientRect()
+      if (rect.height <= 0) continue
+      const distance = Math.max(rect.top - event.clientY, event.clientY - rect.bottom, 0)
+      if (!nearest || distance < nearest.distance) nearest = { line, distance }
+      if (distance === 0) break
+    }
+    if (nearest) {
+      const line = nearest.line
+      const rect = line.getBoundingClientRect()
+      const from = Number(line.dataset.from),
+        to = Number(line.dataset.to)
+      const position =
+        event.clientX <= rect.left
+          ? from
+          : event.clientX >= rect.right
+            ? to
+            : sourcePositionFromPoint(line, event, this.inputDOM, { allowGeometryFallback: true })
+      if (position !== undefined && Number.isInteger(from) && Number.isInteger(to)) {
+        return this.normalizeRenderedClickPosition(clamp(position, from, to))
+      }
     }
 
     const rect = this.contentDOM.getBoundingClientRect()
@@ -1398,14 +1500,18 @@ export class EditorView {
       range.empty &&
       /[^ \t]/u.test(first.text.slice(0, range.from - first.from))
     ) {
-      return this.insertText('  ', 'input.indent')
+      return this.insertText(indentationText(this.presentation), 'input.indent')
     }
     const edits = []
     for (let number = first.number; number <= last.number; number++) {
       const line = doc.line(number)
-      const remove = outdent ? indentRemovalLength(line.text) : 0
+      const remove = outdent ? presentationOutdent(line.text, this.presentation) : 0
       if (outdent && remove === 0) continue
-      edits.push({ from: line.from, to: line.from + remove, insert: outdent ? '' : '  ' })
+      edits.push({
+        from: line.from,
+        to: line.from + remove,
+        insert: outdent ? '' : indentationText(this.presentation),
+      })
     }
     return this.applyBlockChanges(ChangeSet.of(edits), outdent ? 'view.outdent' : 'view.indent')
   }
@@ -1796,106 +1902,6 @@ function findControlledRendererMatch(
   }
 
   return undefined
-}
-
-const controlledRendererTags = new Set(['span', 'strong', 'em', 'code', 'a', 'button'])
-const controlledRendererAttributes = new Set([
-  'class',
-  'title',
-  'href',
-  'aria-label',
-  'aria-current',
-  'aria-expanded',
-  'aria-level',
-  'role',
-  'data-host-icon',
-  'data-virtual-list',
-  'data-virtual-total',
-  'data-virtual-start',
-  'data-virtual-end',
-  'data-virtual-item-height',
-  'data-virtual-active',
-  'data-virtual-follow-active',
-  'data-virtual-has-before',
-  'data-virtual-has-after',
-  'data-virtual-scroll-adjust',
-  'data-virtual-revision',
-])
-
-export function createControlledRendererNodes(
-  document: Document,
-  rendererId: string,
-  value: ControlledRendererOutput,
-): readonly Node[] {
-  if (typeof value === 'object' && value !== null && value.type === 'element') {
-    return Object.freeze([createControlledRendererElement(document, rendererId, value)])
-  }
-
-  if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') {
-    throw new Error('Renderer output must be text or a controlled element')
-  }
-
-  const span = document.createElement('span')
-  span.textContent = String(value)
-  return Object.freeze([span])
-}
-
-function createControlledRendererElement(
-  document: Document,
-  rendererId: string,
-  output: ControlledRendererElement,
-): HTMLElement {
-  if (!controlledRendererTags.has(output.tag)) {
-    throw new Error(`Renderer element is not allowed: ${output.tag}`)
-  }
-
-  const element = document.createElement(output.tag)
-
-  for (const [name, value] of Object.entries(output.attributes ?? {})) {
-    if (!controlledRendererAttributes.has(name)) {
-      throw new Error(`Renderer attribute is not allowed: ${name}`)
-    }
-
-    if (name === 'href' && !/^(?:https?:|mailto:|#)/i.test(value)) {
-      throw new Error(`Renderer link is not allowed: ${value}`)
-    }
-
-    element.setAttribute(name, value)
-  }
-
-  if (output.text !== undefined) {
-    element.textContent = output.text
-  } else if (output.children) {
-    element.replaceChildren(
-      ...output.children.flatMap((child) =>
-        createControlledRendererNodes(document, rendererId, child),
-      ),
-    )
-  }
-
-  if (output.action) {
-    element.dataset.pluginCommand = output.action.command
-    element.addEventListener('click', (event) => {
-      event.preventDefault()
-      event.stopPropagation()
-      element.dispatchEvent(
-        new document.defaultView!.CustomEvent<ControlledRendererActionDetail>(
-          'milkup-plugin-renderer-action',
-          {
-            bubbles: true,
-            composed: true,
-            detail: Object.freeze({
-              rendererId,
-              command: output.action!.command,
-              ...(output.action!.input === undefined ? {} : { input: output.action!.input }),
-            }),
-          },
-        ),
-      )
-    })
-  }
-
-  return element
 }
 
 function createLineElement(
@@ -3136,10 +3142,16 @@ function domRectForSourcePosition(
 
   return (
     domRectForLineSourcePosition(document, lineDOM, referenceDOM, position, {
-      fallbackLineHeight: defaultViewMetrics.lineHeight,
+      fallbackLineHeight:
+        Number.parseFloat(
+          contentDOM.parentElement?.style.getPropertyValue('--milkup-line-height') ?? '',
+        ) || defaultViewMetrics.lineHeight,
     }) ??
     domRectForLineVisualOffset(document, lineDOM, referenceDOM, offset, {
-      fallbackLineHeight: defaultViewMetrics.lineHeight,
+      fallbackLineHeight:
+        Number.parseFloat(
+          contentDOM.parentElement?.style.getPropertyValue('--milkup-line-height') ?? '',
+        ) || defaultViewMetrics.lineHeight,
     })
   )
 }
@@ -3322,6 +3334,7 @@ function shouldScrollSelectionIntoView(transactions: readonly Transaction[]): bo
 }
 
 export interface RenderOverlayOptions {
+  readonly metrics?: Partial<ViewMetrics>
   readonly root?: SyntaxNode
 }
 
@@ -3342,9 +3355,9 @@ export function renderCursorOverlay(
       cursor.dataset.line = String(line.number)
       cursor.dataset.offset = String(offset)
       cursor.dataset.empty = String(range.empty)
-      cursor.style.left = `${offset * defaultViewMetrics.charWidth}px`
-      cursor.style.top = `${(line.number - 1) * defaultViewMetrics.lineHeight}px`
-      cursor.style.height = `${defaultViewMetrics.lineHeight}px`
+      cursor.style.left = `${offset * (options.metrics?.charWidth ?? defaultViewMetrics.charWidth)}px`
+      cursor.style.top = `${(line.number - 1) * (options.metrics?.lineHeight ?? defaultViewMetrics.lineHeight)}px`
+      cursor.style.height = `${options.metrics?.lineHeight ?? defaultViewMetrics.lineHeight}px`
       return cursor
     }),
   )
@@ -3371,10 +3384,10 @@ export function renderSelectionOverlay(
         selection.dataset.fromOffset = String(from.offset)
         selection.dataset.toLine = String(to.line.number)
         selection.dataset.toOffset = String(to.offset)
-        selection.style.left = `${from.offset * defaultViewMetrics.charWidth}px`
-        selection.style.top = `${(from.line.number - 1) * defaultViewMetrics.lineHeight}px`
-        selection.style.height = `${defaultViewMetrics.lineHeight}px`
-        selection.style.width = `${Math.max(1, to.offset - from.offset) * defaultViewMetrics.charWidth}px`
+        selection.style.left = `${from.offset * (options.metrics?.charWidth ?? defaultViewMetrics.charWidth)}px`
+        selection.style.top = `${(from.line.number - 1) * (options.metrics?.lineHeight ?? defaultViewMetrics.lineHeight)}px`
+        selection.style.height = `${options.metrics?.lineHeight ?? defaultViewMetrics.lineHeight}px`
+        selection.style.width = `${Math.max(1, to.offset - from.offset) * (options.metrics?.charWidth ?? defaultViewMetrics.charWidth)}px`
         return selection
       }),
   )

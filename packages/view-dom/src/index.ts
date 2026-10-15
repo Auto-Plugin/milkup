@@ -1,6 +1,6 @@
+export { createControlledRendererNodes } from './controlled-renderer'
 export {
   createInputProxy,
-  createControlledRendererNodes,
   buildLineProjection,
   coordinateToPosition,
   EditorView,
@@ -31,6 +31,7 @@ export type {
   ControlledRendererActionDetail,
   ControlledRendererContext,
   ControlledRendererElement,
+  ControlledRendererField,
   ControlledRendererOutput,
   ControlledRendererTag,
   ControlledMarkdownSyntax,
@@ -50,3 +51,5 @@ export type {
 } from './types'
 
 export type { TableCommand, TableContext } from './table-editing'
+
+export type { EditorPresentation } from './presentation'

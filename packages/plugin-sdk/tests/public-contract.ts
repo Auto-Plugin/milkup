@@ -122,3 +122,53 @@ async function workspaceContract(
   void page
 }
 void workspaceContract
+
+// SDK 0.3.1 adds only optional capabilities and controlled field output.
+import type {
+  SdkPluginSettingsHost,
+  SdkSettingsDescriptor,
+  SdkRendererField,
+} from '../src/index.js'
+const settingsDescriptor: SdkSettingsDescriptor = {
+  schema: { size: { type: 'number', minimum: 12, maximum: 32, step: 1 } },
+  defaults: { size: 14 },
+}
+async function settingsContract(host: SdkPluginSettingsHost) {
+  const schema = await host.describe('application')
+  const tx = await host.begin('plugin')
+  await host.preview(tx.id, schema.defaults)
+  await host.commit(tx.id)
+  await host.cancel(tx.id)
+  // @ts-expect-error A plugin cannot request another plugin's settings namespace.
+  await host.get('plugin:other')
+  // @ts-expect-error Settings patches contain scalar values, not nested file/network requests.
+  await host.preview(tx.id, { target: { path: '/private' } })
+}
+const field: SdkRendererField = {
+  type: 'field',
+  kind: 'number',
+  key: 'size',
+  label: 'Size',
+  value: '',
+  onChange: { command: 'settings.edit' },
+  min: 12,
+  max: 32,
+}
+void settingsDescriptor
+void settingsContract
+void field
+
+import type { SdkPluginKeymapHost } from '../src/index.js'
+async function keymapContract(host: SdkPluginKeymapHost) {
+  const current = await host.snapshot()
+  await host.update({
+    revision: current.revision,
+    bindings: [{ command: 'document.save', keys: ['Mod+S'] }],
+  })
+  await host.reset({ revision: current.revision })
+  // @ts-expect-error Shortcut capability cannot execute commands.
+  await host.execute('document.save')
+  // @ts-expect-error Updates must carry an observed revision.
+  await host.update({ bindings: [] })
+}
+void keymapContract

@@ -1,0 +1,19 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ✓ src/controlled-form-ui.test.ts (3 tests) 1649ms
+   ✓ controlled form reconciliation > keeps the exact connected input and selection while validation changes  776ms
+   ✓ controlled form reconciliation > does not overwrite an edit made after an asynchronous render started  755ms
+ ✓ src/desktop-plugin-ui.test.ts (32 tests) 6909ms
+   ✓ DesktopPluginUiController > holds modal focus while a controlled save action is temporarily disabled  627ms
+   ✓ DesktopPluginUiController > requests a new buffered range when the outline is scrolled outside its rendered slice  930ms
+   ✓ DesktopPluginUiController > does not rerender while outline scrolling remains inside the current overscan buffer  408ms
+   ✓ DesktopPluginUiController > keeps the virtual outline viewport stable while background scanning extends the total  477ms
+   ✓ DesktopPluginUiController > requests one adjacent buffer only after a real user wheel gesture reaches an edge  710ms
+   ✓ DesktopPluginUiController > requests the previous buffer only when the list reaches the exact top edge  611ms
+   ✓ DesktopPluginUiController > compensates scroll position once when headings are prepended  310ms
+
+ Test Files  2 passed (2)
+      Tests  35 passed (35)
+   Start at  06:08:40
+   Duration  17.95s (transform 6.43s, setup 0ms, collect 15.09s, tests 8.56s, environment 4.64s, prepare 375ms)

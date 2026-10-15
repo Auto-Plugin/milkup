@@ -1,3 +1,15 @@
+import type { PluginKeymapBroker } from './keymap-broker'
+import {
+  createRpcPluginKeymapBroker,
+  createPluginKeymapRpcServer,
+  type RpcPluginKeymapBroker,
+} from './keymap-rpc'
+import type { PluginSettingsBroker } from './settings-broker'
+import {
+  createRpcPluginSettingsBroker,
+  createPluginSettingsRpcServer,
+  type RpcPluginSettingsBroker,
+} from './settings-rpc'
 import { type PluginWorkspaceBroker } from './workspace-broker'
 import {
   createPluginWorkspaceRpcServer,
@@ -59,6 +71,8 @@ export interface BrowserWorkerPluginHostConfig extends PluginIsolationRpcHostOpt
   readonly uiBroker?: PluginUiBroker
   readonly fileBroker?: PluginFileBroker
   readonly networkBroker?: PluginNetworkBroker
+  readonly keymapBroker?: PluginKeymapBroker
+  readonly settingsBroker?: PluginSettingsBroker
   readonly workspaceBroker?: PluginWorkspaceBroker
   readonly releasesBroker?: PluginReleasesBroker
   readonly storageBroker?: PluginStorageBroker
@@ -80,6 +94,8 @@ export interface PluginWorkerRealmOptions {
   readonly uiBroker?: PluginUiBroker
   readonly fileBroker?: PluginFileBroker
   readonly networkBroker?: PluginNetworkBroker
+  readonly keymapBroker?: PluginKeymapBroker
+  readonly settingsBroker?: PluginSettingsBroker
   readonly workspaceBroker?: PluginWorkspaceBroker
   readonly releasesBroker?: PluginReleasesBroker
   readonly storageBroker?: PluginStorageBroker
@@ -131,6 +147,8 @@ export function createBrowserWorkerPluginHost(
     storageBroker,
     releasesBroker,
     workspaceBroker,
+    settingsBroker,
+    keymapBroker,
   } = config
   const host = createRpcPluginIsolationHost(worker, { ...(timeoutMs ? { timeoutMs } : {}) })
   const fileRpcServer = fileBroker ? createPluginFileRpcServer(worker, fileBroker) : undefined
@@ -144,6 +162,14 @@ export function createBrowserWorkerPluginHost(
   const storageRpcServer = storageBroker
     ? createPluginStorageRpcServer(worker, storageBroker)
     : undefined
+  const keymapRpcServer =
+    keymapBroker && manifest.permissions?.includes('app:keymap')
+      ? createPluginKeymapRpcServer(worker, keymapBroker)
+      : undefined
+  const settingsRpcServer =
+    settingsBroker && manifest.permissions?.includes('settings:write')
+      ? createPluginSettingsRpcServer(worker, settingsBroker)
+      : undefined
   const workspaceRpcServer =
     workspaceBroker && manifest.permissions?.includes('workspace:read')
       ? createPluginWorkspaceRpcServer(worker, workspaceBroker)
@@ -181,6 +207,8 @@ export function createBrowserWorkerPluginHost(
     fileRpcServer?.dispose()
     networkRpcServer?.dispose()
     storageRpcServer?.dispose()
+    keymapRpcServer?.dispose()
+    settingsRpcServer?.dispose()
     workspaceRpcServer?.dispose()
     releasesRpcServer?.dispose()
     host.dispose()
@@ -246,6 +274,8 @@ export function initializePluginWorkerRealm(
   let rpcFileBroker: RpcPluginFileBroker | undefined
   let rpcNetworkBroker: RpcPluginNetworkBroker | undefined
   let rpcStorageBroker: RpcPluginStorageBroker | undefined
+  let rpcKeymapBroker: RpcPluginKeymapBroker | undefined
+  let rpcSettingsBroker: RpcPluginSettingsBroker | undefined
   let rpcWorkspaceBroker: RpcPluginWorkspaceBroker | undefined
   let rpcReleasesBroker: RpcPluginReleasesBroker | undefined
   const removeInitListener = addWorkerMessageListener(scope, async (message) => {
@@ -280,6 +310,17 @@ export function initializePluginWorkerRealm(
         ? undefined
         : createRpcPluginStorageBroker(scope, options.timeoutMs ?? 5_000)
       const storageBrokerForHost = options.storageBroker ?? rpcStorageBroker
+      rpcKeymapBroker =
+        lifecycle.payload.manifest.permissions?.includes('app:keymap') && !options.keymapBroker
+          ? createRpcPluginKeymapBroker(scope, options.timeoutMs ?? 30_000)
+          : undefined
+      const keymapBrokerForHost = options.keymapBroker ?? rpcKeymapBroker
+      rpcSettingsBroker =
+        lifecycle.payload.manifest.permissions?.includes('settings:write') &&
+        !options.settingsBroker
+          ? createRpcPluginSettingsBroker(scope, options.timeoutMs ?? 30_000)
+          : undefined
+      const settingsBrokerForHost = options.settingsBroker ?? rpcSettingsBroker
       rpcWorkspaceBroker =
         lifecycle.payload.manifest.permissions?.includes('workspace:read') &&
         !options.workspaceBroker
@@ -315,6 +356,8 @@ export function initializePluginWorkerRealm(
         ...(fileBrokerForHost ? { fileBroker: fileBrokerForHost } : {}),
         ...(networkBrokerForHost ? { networkBroker: networkBrokerForHost } : {}),
         ...(storageBrokerForHost ? { storageBroker: storageBrokerForHost } : {}),
+        ...(keymapBrokerForHost ? { keymapBroker: keymapBrokerForHost } : {}),
+        ...(settingsBrokerForHost ? { settingsBroker: settingsBrokerForHost } : {}),
         ...(workspaceBrokerForHost ? { workspaceBroker: workspaceBrokerForHost } : {}),
         ...(releasesBrokerForHost
           ? {
@@ -352,6 +395,8 @@ export function initializePluginWorkerRealm(
     rpcFileBroker?.dispose()
     rpcNetworkBroker?.dispose()
     rpcStorageBroker?.dispose()
+    rpcKeymapBroker?.dispose()
+    rpcSettingsBroker?.dispose()
     rpcWorkspaceBroker?.dispose()
     rpcReleasesBroker?.dispose()
   }

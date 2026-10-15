@@ -1,6 +1,9 @@
 import { renderDesktopPluginManagerElement } from './desktop-plugin-manager-ui'
 import { loadDesktopPluginIcon } from './plugin-icon'
-import { createAppearanceController, type ThemePreference } from './appearance'
+import { zoomLevels, type ThemePreference } from './appearance'
+import { createDesktopSettingsService } from './settings-service'
+import { createKeymapService } from './keymap-service'
+import { applyEditorSettings, applyPresentationToCurrentViews } from './apply-editor-settings'
 import { bundledPluginPaths, readBundledPlugin } from './bundled-plugin-catalog'
 import { createRecoveryController, type RecoveryRecord, type RecoveryStatus } from './recovery'
 import { createRecoveryUi } from './recovery-ui'
@@ -39,7 +42,7 @@ import {
   parsePluginPackageArchive,
   readPluginPackageTextFile,
 } from '@milkup/plugin'
-import type { BrowserWorkerPluginHost, PluginManifest } from '@milkup/plugin'
+import type { BrowserWorkerPluginHost, PluginManifest, PluginSettingsValues } from '@milkup/plugin'
 import {
   applyFileWatchEvent,
   createDocumentSession,
@@ -65,6 +68,7 @@ import type {
 import { createControlledRendererNodes, EditorView } from '@milkup/view-dom'
 import { SourceDocumentView } from '@milkup/view-dom'
 import type {
+  EditorPresentation,
   TableCommand,
   ControlledRenderer,
   ControlledRendererActionDetail,
@@ -83,10 +87,8 @@ import {
   FilePlus2,
   FolderOpen,
   Info,
-  Keyboard,
   LoaderCircle,
   Menu,
-  Palette,
   PanelLeft,
   PanelLeftClose,
   Plug,
@@ -145,10 +147,31 @@ import { createDesktopPluginFileBroker } from './plugin-file-broker'
 import { createDesktopPluginSidecarProcess } from './plugin-sidecar'
 import './style.css'
 
+let desktopStorage: Storage | undefined
+try {
+  desktopStorage = globalThis.localStorage
+} catch {
+  /* Settings saves report unavailable; basic editing remains usable. */
+}
+function readOptionalPreference(key: string): string | null {
+  try {
+    return desktopStorage?.getItem(key) ?? null
+  } catch {
+    return null
+  }
+}
 markStartupStage('module-evaluated')
 
 const initialText = ''
-const desktopVirtualLineHeight = 21
+let editorPresentation: EditorPresentation = Object.freeze({
+  fontFamily: 'monospace',
+  fontSize: 14,
+  lineHeight: 1.5,
+  contentWidth: 0,
+  indentation: 'spaces-2',
+})
+let appliedTheme: ThemePreference = 'system'
+let appliedZoom = 1
 const largePreviewLineCount = 80
 const appProductName = 'milkup'
 const appVersion = __MILKUP_VERSION__
@@ -302,9 +325,8 @@ app.innerHTML = `
         <div class="app-menu-grid">
           <nav class="app-menu-nav" aria-label="菜单分类">
             ${menuNavButton('file', messages.menu.file, FileText, true)}
-            ${menuNavButton('appearance', messages.menu.appearance, Palette)}
             ${menuNavButton('plugins', messages.menu.plugins, Plug)}
-            ${menuNavButton('shortcuts', messages.menu.shortcuts, Keyboard)}
+            <div data-plugin-menu-entries></div>
             ${menuNavButton('about', messages.menu.about, Info)}
           </nav>
           <section class="app-menu-section" data-menu-panel="file">
@@ -364,28 +386,10 @@ app.innerHTML = `
               </label>
             </details>
           </section>
-          <section class="app-menu-section" data-menu-panel="appearance" hidden>
-            <h3>${messages.menu.appearance}</h3>
-            <label class="appearance-field"><span>主题</span><select data-appearance-theme aria-label="主题"><option value="system">跟随系统</option><option value="light">浅色</option><option value="dark">暗色</option></select></label>
-            <label class="appearance-field"><span>界面缩放</span><select data-appearance-zoom aria-label="界面缩放" ${isTauriRuntime() ? '' : 'disabled'}><option value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option></select></label>
-            <p class="menu-help">${isTauriRuntime() ? '缩放包含正文、菜单与侧栏。Ctrl/⌘ + 加号或减号调整，Ctrl/⌘ + 0 恢复 100%。' : '浏览器预览请使用浏览器自身缩放；桌面版可在此调整整个界面。'}</p>
-            <p class="appearance-error" data-appearance-error role="alert" hidden></p>
-          </section>
           <section class="app-menu-section" data-menu-panel="plugins" hidden>
             <h3>${messages.menu.plugins}</h3>
             <div data-plugin-manager></div>
             <div data-plugin-slot="menu-page"></div>
-          </section>
-          <section class="app-menu-section" data-menu-panel="shortcuts" hidden>
-            <h3>${messages.menu.shortcuts}</h3>
-            <dl class="metadata-list menu-info-list">
-              <div><dt>切换操作区域</dt><dd>F6 / Shift+F6</dd></div>
-              <div><dt>区域内移动焦点</dt><dd>Tab / Shift+Tab</dd></div>
-              <div><dt>关闭菜单、搜索或确认框</dt><dd>Esc</dd></div>
-              <div><dt>查找 / 替换</dt><dd>${platform === 'macos' ? '⌘' : 'Ctrl'}+F / H</dd></div>
-              <div><dt>源码 / 即时预览</dt><dd>${platform === 'macos' ? '⌘' : 'Ctrl'}+1 / 2</dd></div>
-            </dl>
-            <p class="menu-help">正文中的 Tab 用于缩进或切换表格单元格。按 F6 可前往表格操作、状态栏和菜单。</p>
           </section>
           <section class="app-menu-section" data-menu-panel="about" hidden>
             <h3>${messages.menu.about}</h3>
@@ -556,8 +560,7 @@ let session = createDocumentSession({
 })
 let notice: string = messages.ready
 const developerStatusNoticeStorageKey = 'milkup.desktop.developer.showStatusNotice'
-let showDeveloperStatusNotice =
-  globalThis.localStorage?.getItem(developerStatusNoticeStorageKey) === 'true'
+let showDeveloperStatusNotice = readOptionalPreference(developerStatusNoticeStorageKey) === 'true'
 let recentFiles: readonly RecentFileEntry[] = []
 let disposeFileWatchEvents: (() => void) | undefined
 let sidebarCollapsed = true
@@ -669,67 +672,58 @@ function renderRecoveryStatus(status: RecoveryStatus): void {
 }
 
 const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
-const appearance = createAppearanceController({
-  storage: globalThis.localStorage,
-  isSystemDark: () => systemTheme.matches,
-  applyTheme: async (theme) => {
-    if (isTauriRuntime()) {
-      const { getCurrentWindow } = await import('@tauri-apps/api/window')
-      await getCurrentWindow().setTheme(theme === 'system' ? null : theme)
-    }
-  },
-  applyZoom: async (zoom) => {
-    if (!isTauriRuntime()) {
-      if (zoom !== 1) throw new Error('浏览器预览请使用浏览器自身缩放')
-      return
-    }
-    const { getCurrentWebview } = await import('@tauri-apps/api/webview')
-    await getCurrentWebview().setZoom(zoom)
-  },
-  onState: (state) => {
-    document.documentElement.dataset.theme = state.resolvedTheme
-    appRoot.dataset.appearanceZoom = String(state.zoom)
-    const theme = appRoot.querySelector<HTMLSelectElement>('[data-appearance-theme]')!
-    const zoom = appRoot.querySelector<HTMLSelectElement>('[data-appearance-zoom]')!
-    theme.value = state.theme
-    theme.disabled = state.busy
-    zoom.value = String(state.zoom)
-    zoom.disabled = state.busy || !isTauriRuntime()
-    const error = appRoot.querySelector<HTMLElement>('[data-appearance-error]')!
-    error.hidden = !state.error
-    error.textContent = state.error ?? ''
-  },
+function refreshSystemTheme(): void {
+  document.documentElement.dataset.theme =
+    appliedTheme === 'system' ? (systemTheme.matches ? 'dark' : 'light') : appliedTheme
+}
+function reportSettingsError(error: unknown): void {
+  importantNotice = true
+  notice = `设置未保存或应用失败：${getErrorMessage(error)}`
+  renderSession()
+}
+const desktopSettings = createDesktopSettingsService({
+  ...(desktopStorage ? { storage: desktopStorage } : {}),
+  applyView: (values: PluginSettingsValues, signal?: AbortSignal) =>
+    applyEditorSettings(
+      values,
+      {
+        theme: async (theme) => {
+          if (isTauriRuntime()) {
+            const { getCurrentWindow } = await import('@tauri-apps/api/window')
+            await getCurrentWindow().setTheme(theme === 'system' ? null : theme)
+          }
+        },
+        zoom: async (zoom) => {
+          if (isTauriRuntime()) {
+            const { getCurrentWebview } = await import('@tauri-apps/api/webview')
+            await getCurrentWebview().setZoom(zoom)
+          } else if (zoom !== 1) throw new Error('浏览器预览请使用浏览器自身缩放')
+        },
+        editor: (presentation) =>
+          applyPresentationToCurrentViews(() => [view, sourceView], presentation, signal),
+        applied: ({ theme, zoom, presentation }) => {
+          editorPresentation = Object.freeze(presentation)
+          appliedTheme = theme
+          appliedZoom = zoom
+          refreshSystemTheme()
+          appRoot.dataset.appearanceZoom = String(zoom)
+        },
+      },
+      signal,
+    ),
+  onError: reportSettingsError,
 })
-systemTheme.addEventListener('change', () => appearance.refreshSystemTheme())
-appRoot
-  .querySelector<HTMLSelectElement>('[data-appearance-theme]')!
-  .addEventListener('change', (event) => {
-    void appearance.changeTheme((event.currentTarget as HTMLSelectElement).value as ThemePreference)
-  })
-appRoot
-  .querySelector<HTMLSelectElement>('[data-appearance-zoom]')!
-  .addEventListener('change', (event) => {
-    void appearance.changeZoom(Number((event.currentTarget as HTMLSelectElement).value))
-  })
-window.addEventListener(
-  'keydown',
-  (event) => {
-    if (
-      !isTauriRuntime() ||
-      event.isComposing ||
-      event.keyCode === 229 ||
-      event.altKey ||
-      !(event.ctrlKey || event.metaKey)
-    )
-      return
-    if (!['+', '=', '-', '0'].includes(event.key)) return
-    event.preventDefault()
-    event.stopImmediatePropagation()
-    if (event.key === '0') void appearance.changeZoom(1)
-    else void appearance.stepZoom(event.key === '-' ? -1 : 1)
-  },
-  true,
-)
+const settingsReady = desktopSettings.ready.catch(reportSettingsError)
+systemTheme.addEventListener('change', refreshSystemTheme)
+refreshSystemTheme()
+async function changeNativeZoom(direction: -1 | 0 | 1): Promise<void> {
+  const index = zoomLevels.findIndex((value) => value === appliedZoom)
+  const zoom =
+    direction === 0
+      ? 1
+      : zoomLevels[Math.max(0, Math.min(zoomLevels.length - 1, index + direction))]!
+  await desktopSettings.changeApplication({ 'appearance.zoom': zoom })
+}
 
 const recovery = isTauriRuntime()
   ? createRecoveryController({
@@ -931,6 +925,8 @@ const desktopActionPermissions = Object.freeze([
   'app:control',
   'app:updates',
   'workspace:read',
+  'settings:write',
+  'app:keymap',
   'document:read',
   'document:write',
   'file:read',
@@ -940,12 +936,41 @@ const desktopActionPermissions = Object.freeze([
   'view:write',
 ]) satisfies readonly ActionPermission[]
 let invalidatePluginUi: (pluginId: string, viewId?: string) => Promise<void> = async () => undefined
+const desktopKeymap = createKeymapService({
+  ...(desktopStorage ? { storage: desktopStorage } : {}),
+  commands: () => {
+    const bindings = desktopPluginManager.state().contributions.keymaps
+    return desktopActionRegistry.list().map((action) => ({
+      id: action.id,
+      title: action.title,
+      category: action.category,
+      available: !action.id.startsWith('appearance.') || isTauriRuntime(),
+      bindable: !action.inputSchema,
+      ...(action.inputSchema
+        ? { input: `需要参数：${Object.keys(action.inputSchema.properties ?? {}).join('、')}` }
+        : {}),
+      ...(bindings.some((binding) => binding.command === action.id && binding.status !== 'invalid')
+        ? {
+            defaultKeys: bindings
+              .filter((binding) => binding.command === action.id && binding.status === 'active')
+              .map(({ key }) => key),
+            // A shadowed default still constrains a user's replacement key.
+            defaultBindings: bindings
+              .filter((binding) => binding.command === action.id && binding.status !== 'invalid')
+              .map(({ key, when }) => ({ key, ...(when ? { when } : {}) })),
+          }
+        : {}),
+    }))
+  },
+})
 const desktopPluginManager = new DesktopPluginManager({
   actionRegistry: desktopActionRegistry,
   manifestHost: createDesktopPluginManifestHost(),
   permissions: desktopActionPermissions,
   milkupVersion: appVersion,
   pluginSdkVersion: __MILKUP_PLUGIN_SDK_VERSION__,
+  keymapAdapter: () => desktopKeymap,
+  settingsAdapter: (manifest) => desktopSettings.adapterForPlugin(manifest.id, manifest.settings),
   workspaceAdapter: () => createDesktopWorkspaceAdapter({ openDocument: openWorkspaceDocument }),
   releasesAdapter: () =>
     createDesktopReleaseAdapter({
@@ -953,7 +978,7 @@ const desktopPluginManager = new DesktopPluginManager({
       currentVersion: appVersion,
       confirmInstall: (request) => protectedInstallGate.request(request),
     }),
-  storage: globalThis.localStorage,
+  ...(desktopStorage ? { storage: desktopStorage } : {}),
   bundledPackagePaths: async () => (isTauriRuntime() ? bundledPluginPaths() : []),
   documentSource: () => {
     if (documentPresentation === 'custom-view') return undefined
@@ -969,6 +994,8 @@ const desktopPluginManager = new DesktopPluginManager({
       ...(capabilities?.uiBroker ? { uiBroker: capabilities.uiBroker } : {}),
       ...(capabilities?.releasesBroker ? { releasesBroker: capabilities.releasesBroker } : {}),
       ...(capabilities?.workspaceBroker ? { workspaceBroker: capabilities.workspaceBroker } : {}),
+      ...(capabilities?.settingsBroker ? { settingsBroker: capabilities.settingsBroker } : {}),
+      ...(capabilities?.keymapBroker ? { keymapBroker: capabilities.keymapBroker } : {}),
       timeoutMs: 10_000,
     }),
     dispose: () => undefined,
@@ -1011,7 +1038,7 @@ void waitForNextPaint().then(() => {
 
 const initialDocumentOpenPromise = openInitialDocument(initialOpenFilePathPromise)
 void initialDocumentOpenPromise.finally(async () => {
-  await appearance.ready
+  await settingsReady
   void showStartupWindow()
   if (recovery) void recoveryUi.open(false, true)
 })
@@ -1042,10 +1069,7 @@ if (developerStatusNoticeToggle) {
   developerStatusNoticeToggle.checked = showDeveloperStatusNotice
   developerStatusNoticeToggle.addEventListener('change', () => {
     showDeveloperStatusNotice = developerStatusNoticeToggle.checked
-    globalThis.localStorage?.setItem(
-      developerStatusNoticeStorageKey,
-      String(showDeveloperStatusNotice),
-    )
+    desktopStorage?.setItem(developerStatusNoticeStorageKey, String(showDeveloperStatusNotice))
     renderSession()
   })
 }
@@ -1333,34 +1357,6 @@ globalThis.addEventListener(
       return
     }
 
-    if (
-      !event.altKey &&
-      !event.isComposing &&
-      isPrimaryShortcut(event) &&
-      (event.key.toLowerCase() === 'f' || event.key.toLowerCase() === 'h')
-    ) {
-      event.preventDefault()
-      setSearchOpen(true)
-      if (event.key.toLowerCase() === 'h')
-        appRoot.querySelector<HTMLInputElement>('[data-replace-input]')?.focus()
-      return
-    }
-
-    if (event.key === 'F3' && !event.altKey && !isPrimaryShortcut(event)) {
-      event.preventDefault()
-      if (!searchOpen) setSearchOpen(true)
-      void navigateSearch(event.shiftKey ? -1 : 1)
-      return
-    }
-
-    const target = event.target
-    if (
-      target instanceof HTMLElement &&
-      target.closest('[data-floating-search]') &&
-      isPrimaryShortcut(event) &&
-      ['a', 'z', 'y'].includes(event.key.toLowerCase())
-    )
-      return
     const action = getDesktopShortcutAction(event)
 
     if (!action) {
@@ -1369,7 +1365,7 @@ globalThis.addEventListener(
 
     event.preventDefault()
     if (menuOpen) setMenuOpen(false)
-    runDesktopAction(action.id, action.input, event)
+    runDesktopAction(action.id, {}, event)
   },
   { capture: true },
 )
@@ -1460,6 +1456,38 @@ function createDesktopActions(): readonly ActionDefinition[] {
         setViewMode(viewMode)
       },
     },
+    ...(['source', 'live', 'toggle'] as const).map((mode): ActionDefinition => ({
+      id: `view.${mode}`,
+      title: mode === 'source' ? '源码模式' : mode === 'live' ? '实时模式' : '切换编辑模式',
+      category: 'view',
+      permissions: ['view:write'],
+      risk: 'safe',
+      run: () => setViewMode(mode === 'toggle' ? getNextViewMode(session.viewMode) : mode),
+    })),
+    ...(['find', 'replace', 'next', 'previous'] as const).map((operation): ActionDefinition => ({
+      id: `search.${operation}`,
+      title: { find: '查找', replace: '替换', next: '下一个匹配', previous: '上一个匹配' }[
+        operation
+      ],
+      category: 'view',
+      permissions: ['view:write'],
+      risk: 'safe',
+      run: () => {
+        if (!searchOpen || operation === 'find' || operation === 'replace') setSearchOpen(true)
+        if (operation === 'replace')
+          appRoot.querySelector<HTMLInputElement>('[data-replace-input]')?.focus()
+        if (operation === 'next' || operation === 'previous')
+          return navigateSearch(operation === 'next' ? 1 : -1)
+      },
+    })),
+    ...(['zoomIn', 'zoomOut', 'zoomReset'] as const).map((operation): ActionDefinition => ({
+      id: `appearance.${operation}`,
+      title: { zoomIn: '放大界面', zoomOut: '缩小界面', zoomReset: '界面缩放恢复100%' }[operation],
+      category: 'view',
+      permissions: ['view:write'],
+      risk: 'safe',
+      run: () => changeNativeZoom(operation === 'zoomIn' ? 1 : operation === 'zoomOut' ? -1 : 0),
+    })),
     {
       id: 'document.selectAll',
       title: 'Select All',
@@ -1616,6 +1644,7 @@ function createEditorView(): EditorView {
 
   const nextView = new EditorView({
     parent: editorRoot,
+    presentation: editorPresentation,
     state,
     mode: session.viewMode,
     editable:
@@ -1628,7 +1657,7 @@ function createEditorView(): EditorView {
       : {
           virtualViewport: {
             ...currentOpenPolicy.virtualViewport,
-            lineHeight: desktopVirtualLineHeight,
+            lineHeight: editorPresentation.fontSize * editorPresentation.lineHeight,
           },
         }),
     dispatch: (transaction: Transaction) => {
@@ -1790,6 +1819,7 @@ function applyMemorySourceView(): void {
   sourceView?.destroy()
   sourceView = new SourceDocumentView({
     parent: editorRoot,
+    presentation: editorPresentation,
     source,
     mode: session.viewMode,
     editable:
@@ -1800,7 +1830,7 @@ function applyMemorySourceView(): void {
     markdownWarmupWindows: 1,
     virtualViewport: {
       enabled: true,
-      lineHeight: desktopVirtualLineHeight,
+      lineHeight: editorPresentation.fontSize * editorPresentation.lineHeight,
       overscanLines: 24,
     },
   })
@@ -1837,6 +1867,7 @@ async function applyLargeSourceView(): Promise<void> {
   sourceView?.destroy()
   sourceView = new SourceDocumentView({
     parent: editorRoot,
+    presentation: editorPresentation,
     source: largeDocumentPreview.source,
     mode: session.viewMode,
     editable:
@@ -1847,7 +1878,7 @@ async function applyLargeSourceView(): Promise<void> {
     markdownWarmupWindows: 1,
     virtualViewport: {
       enabled: true,
-      lineHeight: desktopVirtualLineHeight,
+      lineHeight: editorPresentation.fontSize * editorPresentation.lineHeight,
       overscanLines: 24,
     },
   })
@@ -3109,6 +3140,28 @@ function renderPluginManager(): void {
   }
 
   renderDesktopPluginManagerElement(target, desktopPluginManager.state(), loadDesktopPluginIcon)
+  const entries = appRoot.querySelector<HTMLElement>('[data-plugin-menu-entries]')!
+  const modals = desktopPluginManager
+    .state()
+    .contributions.ui.filter((item) => item.slot === 'modal')
+  const signature = JSON.stringify(modals.map(({ pluginId, id, title }) => [pluginId, id, title]))
+  if (entries.dataset.signature !== signature) {
+    entries.dataset.signature = signature
+    entries.replaceChildren(
+      ...modals.map((item) => {
+        const button = document.createElement('button')
+        button.type = 'button'
+        button.className = 'app-menu-nav-button'
+        button.dataset.pluginMenuEntry = `${item.pluginId}:${item.id}`
+        button.textContent = item.title
+        button.addEventListener('click', () => {
+          setMenuOpen(false)
+          void desktopPluginUi.open(item.pluginId, item.id)
+        })
+        return button
+      }),
+    )
+  }
 }
 
 function createDesktopPluginManifestHost(): {
@@ -3317,12 +3370,12 @@ function setSidebarWidth(width: number, persist = true): void {
   appRoot.style.setProperty('--sidebar-width', `${sidebarWidth}px`)
 
   if (persist) {
-    globalThis.localStorage?.setItem(sidebarWidthStorageKey, String(sidebarWidth))
+    desktopStorage?.setItem(sidebarWidthStorageKey, String(sidebarWidth))
   }
 }
 
 function readStoredSidebarWidth(): number {
-  const stored = Number(globalThis.localStorage?.getItem(sidebarWidthStorageKey))
+  const stored = Number(readOptionalPreference(sidebarWidthStorageKey))
   const width = Number.isFinite(stored) && stored > 0 ? stored : defaultSidebarWidth
   const viewportMaximum = Math.max(
     minimumSidebarWidth,
@@ -3738,6 +3791,7 @@ function getPluginUiRenderState(): Readonly<Record<string, unknown>> {
     return Object.freeze({ viewport: Object.freeze({ fromLine: 1, toLine: 1, activeLine: 1 }) })
   }
 
+  const desktopVirtualLineHeight = editor.lineHeight
   const sourceRange = sourceView?.visibleLineRange
   const fromLine =
     sourceRange?.fromLine ??
@@ -4177,55 +4231,21 @@ async function invokeWindowClose(): Promise<void> {
   }
 }
 
-function getDesktopShortcutAction(
-  event: KeyboardEvent,
-): { readonly id: string; readonly input?: unknown } | undefined {
-  if (event.altKey || event.isComposing) {
-    return undefined
-  }
-
-  if (!isPrimaryShortcut(event)) {
-    return undefined
-  }
-
-  switch (event.key.toLowerCase()) {
-    case '1':
-      return { id: 'view.setMode', input: { mode: 'source' } }
-    case '2':
-      return { id: 'view.setMode', input: { mode: 'live' } }
-    case '/':
-      return { id: 'view.setMode', input: { mode: getNextViewMode(session.viewMode) } }
-    case 'a':
-      return { id: 'document.selectAll' }
-    case 'n':
-      return { id: 'file.new' }
-    case 'o':
-      return { id: 'file.open' }
-    case 'r':
-      return { id: 'file.reloadExternal' }
-    case 's':
-      return { id: event.shiftKey ? 'file.saveAs' : 'file.save' }
-    case 'w':
-      return { id: 'file.close' }
-    case 'y':
-      return { id: 'core.redo' }
-    case 'z':
-      return { id: event.shiftKey ? 'core.redo' : 'core.undo' }
-    default:
-      return pluginShortcutAction(event)
-  }
-}
-
-function pluginShortcutAction(
-  event: KeyboardEvent,
-): { readonly id: string; readonly input?: unknown } | undefined {
-  const action = desktopPluginManager.findKeymapAction(event, {
+function getDesktopShortcutAction(event: KeyboardEvent): { readonly id: string } | undefined {
+  const target = event.target
+  const inputFocus =
+    target instanceof HTMLElement &&
+    !target.closest('.milkup-input-proxy') &&
+    (target.matches('input,textarea,select') || target.isContentEditable)
+  return desktopKeymap.match(event, {
+    platform: platform === 'other' ? 'linux' : platform,
     editorFocus: editorRoot.contains(document.activeElement),
     documentOpen: true,
     sourceMode: session.viewMode === 'source',
     liveMode: session.viewMode === 'live',
+    inputFocus,
+    searchFocus: target instanceof HTMLElement && Boolean(target.closest('[data-floating-search]')),
   })
-  return action ? { id: action } : undefined
 }
 
 function renderSession(): void {
@@ -4391,7 +4411,7 @@ function isBusyAllowedAction(id: string): boolean {
 }
 
 function isDeveloperDiagnosticsEnabled(): boolean {
-  return globalThis.localStorage?.getItem('milkup.desktop.openDiagnostics') === 'true'
+  return readOptionalPreference('milkup.desktop.openDiagnostics') === 'true'
 }
 
 function getSessionTitleInfo(path: string | undefined): {

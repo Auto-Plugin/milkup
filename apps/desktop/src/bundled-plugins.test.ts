@@ -48,7 +48,14 @@ function setup(saved = storage(), bundled = archive()) {
   const manager = new DesktopPluginManager({
     actionRegistry: new ActionRegistry(),
     storage: saved,
-    permissions: ['document:read', 'file:write', 'app:updates', 'workspace:read'],
+    permissions: [
+      'document:read',
+      'file:write',
+      'app:updates',
+      'workspace:read',
+      'settings:write',
+      'app:keymap',
+    ],
     milkupVersion: '0.1.0',
     pluginSdkVersion: '0.1.1',
     bundledPackagePaths: async () => ['/bundled/sample.milkup-plugin'],
@@ -139,7 +146,7 @@ describe('bundled plugin first-run installation', () => {
     },
   )
 
-  it.each(['file:write', 'app:updates', 'workspace:read'])(
+  it.each(['file:write', 'app:updates', 'workspace:read', 'settings:write', 'app:keymap'])(
     'installs %s packages inactive without approving or executing them',
     async (permission) => {
       const { manager, install, load } = setup(storage(), archive('1.0.0', [permission]))

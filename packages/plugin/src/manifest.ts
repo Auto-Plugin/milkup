@@ -1,3 +1,4 @@
+import { copyPluginSettingsDescriptor, type PluginSettingsDescriptor } from './settings-schema'
 import type { ActionInputField, ActionInputSchema, ActionPermission } from '@milkup/core'
 
 export type PluginPermission = ActionPermission
@@ -16,6 +17,7 @@ export interface PluginManifest {
   readonly description?: string
   readonly engines?: PluginEngineCompatibility
   readonly permissions?: readonly PluginPermission[]
+  readonly settings?: PluginSettingsDescriptor
   readonly contributes?: PluginContributionSet
 }
 
@@ -115,6 +117,8 @@ const KNOWN_PERMISSIONS = new Set<PluginPermission>([
   'app:control',
   'app:updates',
   'workspace:read',
+  'settings:write',
+  'app:keymap',
   'network:access',
 ])
 const KNOWN_HOSTS = new Set<PluginHostKind>(['worker', 'sidecar'])
@@ -170,6 +174,17 @@ export function validatePluginManifest(value: unknown): PluginManifestValidation
   const description = readOptionalString(value, 'description', '$.description', errors)
   const engines = readOptionalEngines(value.engines, errors)
   const permissions = readPermissions(value.permissions, errors, '$.permissions')
+  let settings: PluginSettingsDescriptor | undefined
+  if (value.settings !== undefined) {
+    try {
+      settings = copyPluginSettingsDescriptor(value.settings)
+    } catch {
+      errors.push({
+        path: '$.settings',
+        message: 'Settings must define a bounded schema and valid defaults',
+      })
+    }
+  }
   const contributes = readContributions(value.contributes, errors)
 
   validateCommandPermissionScope(contributes?.commands, permissions, errors)
@@ -202,6 +217,7 @@ export function validatePluginManifest(value: unknown): PluginManifestValidation
       ...(description ? { description } : {}),
       ...(engines ? { engines } : {}),
       ...(permissions.length > 0 ? { permissions: Object.freeze(permissions) } : {}),
+      ...(settings ? { settings } : {}),
       ...(contributes ? { contributes } : {}),
     }),
     errors: Object.freeze([]),

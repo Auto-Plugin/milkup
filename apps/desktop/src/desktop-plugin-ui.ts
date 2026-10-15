@@ -13,6 +13,8 @@ import {
   type ControlledRendererOutput,
 } from '@milkup/view-dom'
 
+import { ControlledFormState, revealModalFocus } from './controlled-form-ui'
+
 import type { DesktopPluginUiPhase } from './desktop-plugin-manager'
 import { iconSvg } from './icons'
 import { decorateControlledTrees, type ControlledTreeFocus } from './controlled-tree-ui'
@@ -40,6 +42,7 @@ interface MountedPluginUi {
   renderSequence: number
   renderSignature: string | undefined
   pendingFocusLabel: string | undefined
+  readonly forms: ControlledFormState
   readonly treeFocus: Map<string, ControlledTreeFocus>
   virtualViewport?: PluginVirtualViewportState
   virtualScrollTimer?: ReturnType<typeof setTimeout>
@@ -50,6 +53,7 @@ interface MountedPluginUi {
   virtualPendingEdgeHint?: 'before' | 'after'
   virtualRequestSequence?: number
   virtualAdjustmentRevision?: number
+  modalFocusFrame?: number | undefined
   pointerActive?: boolean
   pointerRenderPending?: boolean
   pointerCleanup?: () => void
@@ -74,6 +78,13 @@ export class DesktopPluginUiController {
   private commandGesture:
     | {
         readonly button: HTMLButtonElement
+        readonly command: string
+        readonly originalEvent: Event
+      }
+    | undefined
+  private fieldEvent:
+    | {
+        readonly control: HTMLInputElement | HTMLSelectElement
         readonly command: string
         readonly originalEvent: Event
       }
@@ -281,7 +292,9 @@ export class DesktopPluginUiController {
           void this.close(contribution.pluginId, contribution.id)
         } else if (event.key === 'Tab' || event.code === 'Tab') {
           const buttons = Array.from(
-            container.querySelectorAll<HTMLElement>('button, a[href], [tabindex="0"]'),
+            container.querySelectorAll<HTMLElement>(
+              'button, input, select, a[href], [tabindex="0"]',
+            ),
           ).filter(
             (element) =>
               !element.hasAttribute('disabled') && !element.hidden && element.tabIndex >= 0,
@@ -348,6 +361,28 @@ export class DesktopPluginUiController {
       },
       true,
     )
+    for (const type of ['input', 'change'])
+      container.addEventListener(
+        type,
+        (event) => {
+          const control = event.target
+          if (
+            !(control instanceof HTMLInputElement || control instanceof HTMLSelectElement) ||
+            !control.dataset.pluginFieldControl ||
+            !control.dataset.pluginCommand ||
+            control.disabled
+          )
+            return
+          const binding = event.isTrusted
+            ? { control, command: control.dataset.pluginCommand, originalEvent: event }
+            : undefined
+          this.fieldEvent = binding
+          setTimeout(() => {
+            if (this.fieldEvent === binding) this.fieldEvent = undefined
+          }, 0)
+        },
+        true,
+      )
     container.addEventListener('milkup-plugin-renderer-action', (event) => {
       const detail = (event as CustomEvent<ControlledRendererActionDetail>).detail
       if (
@@ -359,21 +394,32 @@ export class DesktopPluginUiController {
       const command = this.runtime.resolveCommand(detail.rendererId, detail.command)
       if (!command) return
       const gesture = this.commandGesture
+      const field = this.fieldEvent
       const originalEvent =
-        gesture &&
-        event.target === gesture.button &&
-        gesture.command === detail.command &&
-        gesture.button.dataset.pluginCommand === detail.command &&
-        gesture.originalEvent.isTrusted &&
-        gesture.originalEvent.eventPhase !== Event.NONE
-          ? gesture.originalEvent
-          : undefined
-      if (originalEvent) this.commandGesture = undefined
+        field &&
+        event.target === field.control &&
+        field.command === detail.command &&
+        field.control.dataset.pluginCommand === detail.command &&
+        field.originalEvent.isTrusted &&
+        field.originalEvent.eventPhase !== Event.NONE
+          ? field.originalEvent
+          : gesture &&
+              event.target === gesture.button &&
+              gesture.command === detail.command &&
+              gesture.button.dataset.pluginCommand === detail.command &&
+              gesture.originalEvent.isTrusted &&
+              gesture.originalEvent.eventPhase !== Event.NONE
+            ? gesture.originalEvent
+            : undefined
+      if (originalEvent) {
+        this.commandGesture = undefined
+        this.fieldEvent = undefined
+      }
       if (originalEvent) this.runtime.runCommand(command, detail.input ?? {}, originalEvent)
       else this.runtime.runCommand(command, detail.input ?? {})
     })
     target.append(container)
-    const mount = {
+    const mount: MountedPluginUi = {
       contribution,
       container,
       body,
@@ -384,12 +430,27 @@ export class DesktopPluginUiController {
       renderSequence: 0,
       renderSignature: undefined,
       pendingFocusLabel: undefined as string | undefined,
+      forms: new ControlledFormState(body),
       treeFocus: new Map<string, ControlledTreeFocus>(),
     }
     // A deferred action may resume only while focus stays on our fallback shell.
     // Explicit focus on another control or outside the modal cancels that intent.
     container.addEventListener('focusin', (event) => {
       if (event.target !== container) mount.pendingFocusLabel = undefined
+      if (contribution.slot === 'modal') {
+        const window = container.ownerDocument.defaultView
+        if (mount.modalFocusFrame !== undefined) window?.cancelAnimationFrame(mount.modalFocusFrame)
+        const target = event.target
+        mount.modalFocusFrame = window?.requestAnimationFrame(() => {
+          mount.modalFocusFrame = undefined
+          if (
+            this.mounts.get(uiKey(contribution)) === mount &&
+            this.isVisible(contribution) &&
+            container.ownerDocument.activeElement === target
+          )
+            revealModalFocus(container)
+        })
+      }
     })
     container.addEventListener('focusout', (event) => {
       if (!(event.relatedTarget instanceof Node) || !container.contains(event.relatedTarget)) {
@@ -418,6 +479,7 @@ export class DesktopPluginUiController {
   }
 
   private async renderMount(mount: MountedPluginUi, phase: 'mount' | 'update'): Promise<void> {
+    const formRevision = mount.forms.snapshot()
     const renderSequence = ++mount.renderSequence
     try {
       const output = (await this.runtime.renderUi(
@@ -447,7 +509,7 @@ export class DesktopPluginUiController {
       }
 
       const signature = controlledOutputSignature(output)
-      if (signature === mount.renderSignature) {
+      if (signature === mount.renderSignature && !mount.body.querySelector('[data-plugin-field]')) {
         mount.container.dataset.uiState = 'ready'
         return
       }
@@ -465,13 +527,17 @@ export class DesktopPluginUiController {
           : undefined
       const scrollOffsets = captureScrollOffsets(mount.body)
       const existingClose = mount.body.querySelector('.plugin-ui-close')
-      mount.body.replaceChildren(
-        ...(existingClose ? [existingClose] : []),
-        ...createControlledRendererNodes(
-          this.root.ownerDocument,
-          uiKey(mount.contribution),
-          output,
-        ),
+      mount.forms.reconcile(
+        mount.body,
+        [
+          ...(existingClose ? [existingClose] : []),
+          ...createControlledRendererNodes(
+            this.root.ownerDocument,
+            uiKey(mount.contribution),
+            output,
+          ),
+        ],
+        formRevision,
       )
       decorateControlledTrees(mount.body, mount.treeFocus, (button, event) => {
         this.commandGesture =
@@ -492,19 +558,21 @@ export class DesktopPluginUiController {
                 .find((tree) => tree.dataset.controlledTreeKey === focusedTreeKey)
                 ?.querySelector<HTMLElement>('button[role="treeitem"][tabindex="0"]')
         const next =
-          Array.from(mount.body.querySelectorAll<HTMLElement>('button[aria-label]')).find(
-            (button) => button.getAttribute('aria-label') === focusedLabel,
-          ) ??
+          Array.from(
+            mount.body.querySelectorAll<HTMLElement>('button[aria-label]:not([disabled])'),
+          ).find((button) => button.getAttribute('aria-label') === focusedLabel) ??
           treeFallback ??
-          mount.body.querySelector<HTMLElement>('[data-plugin-command]') ??
+          mount.body.querySelector<HTMLElement>('[data-plugin-command]:not([disabled])') ??
           mount.container
         mount.pendingFocusLabel = next === mount.container ? focusedLabel : undefined
         next.focus({ preventScroll: true })
-        if (mount.contribution.slot === 'modal') next.scrollIntoView?.({ block: 'nearest' })
       }
       decorateControlledUiIcons(mount.body)
       if (!this.configureVirtualList(mount, scrollOffsets)) {
         restoreScrollOffsets(mount.body, scrollOffsets)
+      }
+      if (mount.contribution.slot === 'modal' && this.isVisible(mount.contribution)) {
+        revealModalFocus(mount.container)
       }
       mount.renderSignature = signature
       mount.container.dataset.uiState = 'ready'
@@ -538,6 +606,8 @@ export class DesktopPluginUiController {
     if (mount.virtualScrollTimer !== undefined) clearTimeout(mount.virtualScrollTimer)
     mount.virtualPointerCleanup?.()
     mount.pointerCleanup?.()
+    if (mount.modalFocusFrame !== undefined)
+      mount.container.ownerDocument.defaultView?.cancelAnimationFrame(mount.modalFocusFrame)
     const hadFocus = mount.container.contains(this.root.ownerDocument.activeElement)
     mount.container.remove()
     if (mount.contribution.slot === 'modal') {

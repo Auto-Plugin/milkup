@@ -13,7 +13,7 @@ distribution for this development stage; no npm publication is required.
 pnpm --dir packages/plugin-sdk pack --pack-destination /absolute/sdk-output
 
 # In a separately copied plugin directory containing its own package.json.
-npm install --no-save --package-lock=false /absolute/sdk-output/milkup-plugin-sdk-0.3.0.tgz
+npm install --no-save --package-lock=false /absolute/sdk-output/milkup-plugin-sdk-0.3.1.tgz
 npm run build
 ```
 
@@ -196,7 +196,7 @@ only locally reviewed, trusted plugins. This release neither loads untrusted thi
 party code nor grants new credentials, persistent permissions, or security bypasses.
 
 Compatibility is explicit in `engines.pluginSdk` and `engines.milkup`; this SDK's
-local version is `0.3.0`. Adding optional snapshot fields is compatible; removing
+local version is `0.3.1`. Adding optional snapshot fields is compatible; removing
 or changing their meaning requires a new compatibility contract.
 
 ## Managed application releases (SDK 0.2.0)
@@ -287,3 +287,83 @@ and an explicit bounded interval `>=FULL_VERSION <FULL_VERSION`. For example,
 SemVer rules, including prerelease opt-in; OR expressions, partial versions and
 combined wildcard expressions are unsupported. Expand a plugin's declared range
 only after testing it against the added SDK version.
+
+## Settings transactions (SDK 0.3.1)
+
+`host.settings` is optional and requires the explicit `settings:write` permission.
+It exposes only schema-defined scalar settings, with no filesystem or network
+capability. `describe(scope)` returns `{ schema, defaults }`; `get(scope)` returns
+`{ revision, schema, defaults, values }`. The scope is either `application` or
+`plugin`. A plugin cannot supply another plugin ID. Its own scope is enabled by
+its manifest's `settings: { schema, defaults }` declaration and stored separately
+by the trusted host.
+
+Fields are `boolean`, `enum` with string/number `options`, or `number` with
+`minimum`, `maximum`, optional positive `step` and optional `allowZero`.
+Descriptors contain 1–64 fields. Values are flat strings (up to 256 characters),
+finite numbers or booleans; patch keys must exist in the schema. Unknown keys,
+nested values, unknown schema properties and prototype keys are rejected.
+
+```ts
+const settings = context.host.settings
+if (settings) {
+  const draft = await settings.begin('application')
+  try {
+    await settings.preview(draft.id, { 'editor.fontSize': 16 })
+    // Render the preview, then commit only after the user's Save command.
+    // await settings.commit(draft.id)
+  } finally {
+    // Cancel/close restores the committed values. Reset previews draft.snapshot.defaults.
+    await settings.cancel(draft.id)
+  }
+}
+```
+
+The application scope permits one active transaction across all plugins. Each
+plugin scope permits one transaction for that plugin. Transaction IDs belong to
+the issuing activation; forged, foreign, committed or cancelled IDs cannot edit
+settings. A preview updates effective values but does not persist. A successful
+commit consumes its ID and advances the revision; a failed commit remains
+retryable. Cancel is idempotent for a recently issued, already closed ID. Cancel,
+plugin disable/unload and permission revocation roll back active previews.
+Every method accepts an optional final `{ signal?: AbortSignal }`. Cancelling an
+in-flight preview rolls back its transaction; late begin replies are cancelled.
+The host rechecks cancellation before durable commit. Once a commit has completed,
+its saved values remain when the optional preferences plugin is disabled.
+
+Application keys are `editor.fontFamily` (`system`, `serif`, `monospace`; default
+`monospace`), `editor.fontSize` (12–32; default 14), `editor.lineWidth` (480–1200 or
+0 for adaptive width; default 0), `editor.lineHeight` (1.2–2.4; default 1.5),
+`editor.indentSize` (2 or 4), `editor.indentStyle` (`spaces` or `tabs`),
+`appearance.theme` (`system`, `light`, `dark`) and `appearance.zoom`
+(1, 1.25, 1.5 or 2). Read actual defaults and constraints from `describe()`.
+Errors expose a bounded `code`: `revoked`, `invalid-scope`, `invalid-transaction`,
+`invalid-input`, `busy`, `conflict`, `aborted` or `unavailable`. They do not expose
+native storage locations or diagnostics.
+
+## Controlled fields and shortcuts (SDK 0.3.1)
+
+A renderer can return `{ type: 'field', key, kind, label, value, onChange }`.
+`kind` is `text`, `number` or `select`; `value` is always a string so empty or
+invalid drafts remain editable. `onChange: { command }` invokes the command with
+`{ field: key, value: string }`. Optional metadata includes select `options`,
+`disabled`, `invalid`, `help`, `placeholder`, `min`, `max` and `step`.
+The host supplies the native control and enforces bounds. There is no plugin HTML,
+CSS, inline script or arbitrary attribute access. Native input/change events do
+not grant workspace picker/open authority. A controlled `element` button can set
+`disabled: true`; other element tags cannot use this property.
+
+`host.keymap` is optional and requires `app:keymap`. `snapshot()` returns a
+revision, registered command metadata and fixed shortcuts. A command describes
+its `defaultKeys`, current `keys`, `available` and `bindable` flags; optional
+`input` explains required parameters that prevent safe rebinding. To save, call
+`update({ revision, bindings: [{ command, keys }] })`; `reset({ revision })`
+restores defaults. Both return the new snapshot. The trusted host rejects stale
+revisions, conflicts, reserved keys and unsupported chords before persistence.
+Each method accepts a final `{ signal?: AbortSignal }`. The host does not expose
+arbitrary action execution through this capability.
+
+SDK 0.3.1 is additive: existing 0.3.0 optional capabilities, event shapes and
+method signatures are unchanged. Existing manifests retain their declared engine
+ranges and approvals; upgrading the SDK does not enable plugins or expand their
+permissions automatically.

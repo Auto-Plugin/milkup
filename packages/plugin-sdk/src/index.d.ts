@@ -1,3 +1,87 @@
+export interface SdkKeymapCommand {
+  readonly id: string
+  readonly title: string
+  readonly category: string
+  readonly defaultKeys: readonly string[]
+  readonly keys: readonly string[]
+  readonly available: boolean
+  readonly bindable: boolean
+  readonly input?: string
+}
+export interface SdkKeymapSnapshot {
+  readonly revision: number
+  readonly commands: readonly SdkKeymapCommand[]
+  readonly fixedShortcuts: readonly {
+    readonly keys: string
+    readonly title: string
+    readonly description: string
+  }[]
+  readonly error?: string
+}
+export interface SdkKeymapUpdate {
+  readonly revision: number
+  readonly bindings: readonly { readonly command: string; readonly keys: readonly string[] }[]
+}
+export interface SdkKeymapOperationOptions {
+  readonly signal?: AbortSignal
+}
+export interface SdkPluginKeymapHost {
+  snapshot(options?: SdkKeymapOperationOptions): Promise<SdkKeymapSnapshot>
+  update(input: SdkKeymapUpdate, options?: SdkKeymapOperationOptions): Promise<SdkKeymapSnapshot>
+  reset(
+    input: { readonly revision: number },
+    options?: SdkKeymapOperationOptions,
+  ): Promise<SdkKeymapSnapshot>
+}
+
+export type SdkSettingsScope = 'application' | 'plugin'
+export type SdkSettingsValue = string | number | boolean
+export type SdkSettingsValues = Readonly<Record<string, SdkSettingsValue>>
+export type SdkSettingsField =
+  | { readonly type: 'enum'; readonly options: readonly (string | number)[] }
+  | {
+      readonly type: 'number'
+      readonly minimum: number
+      readonly maximum: number
+      readonly step?: number
+      readonly allowZero?: boolean
+    }
+  | { readonly type: 'boolean' }
+export type SdkSettingsSchema = Readonly<Record<string, SdkSettingsField>>
+export interface SdkSettingsDescriptor {
+  readonly schema: SdkSettingsSchema
+  readonly defaults: SdkSettingsValues
+}
+export interface SdkSettingsSnapshot extends SdkSettingsDescriptor {
+  readonly revision: number
+  readonly values: SdkSettingsValues
+}
+export interface SdkSettingsTransaction {
+  readonly id: string
+  readonly snapshot: SdkSettingsSnapshot
+}
+export interface SdkSettingsOperationOptions {
+  readonly signal?: AbortSignal
+}
+export interface SdkPluginSettingsHost {
+  describe(
+    scope: SdkSettingsScope,
+    options?: SdkSettingsOperationOptions,
+  ): Promise<SdkSettingsDescriptor>
+  get(scope: SdkSettingsScope, options?: SdkSettingsOperationOptions): Promise<SdkSettingsSnapshot>
+  begin(
+    scope: SdkSettingsScope,
+    options?: SdkSettingsOperationOptions,
+  ): Promise<SdkSettingsTransaction>
+  preview(
+    id: string,
+    patch: SdkSettingsValues,
+    options?: SdkSettingsOperationOptions,
+  ): Promise<SdkSettingsSnapshot>
+  commit(id: string, options?: SdkSettingsOperationOptions): Promise<SdkSettingsSnapshot>
+  cancel(id: string, options?: SdkSettingsOperationOptions): Promise<void>
+}
+
 export interface SdkChange {
   readonly from: number
   readonly to: number
@@ -223,6 +307,8 @@ export interface SdkReleaseInstallResult {
 
 export interface SdkPluginHost {
   readonly workspace?: SdkPluginWorkspaceReadHost
+  readonly keymap?: SdkPluginKeymapHost
+  readonly settings?: SdkPluginSettingsHost
   readonly releases?: SdkPluginReleasesHost
   readonly document?: SdkPluginDocumentHost
   readonly ui?: SdkPluginUiHost
@@ -327,13 +413,36 @@ export type SdkRendererAttribute =
   | 'data-virtual-scroll-adjust'
   | 'data-virtual-revision'
 
+export interface SdkRendererField {
+  readonly type: 'field'
+  readonly key: string
+  readonly kind: 'text' | 'number' | 'select'
+  readonly label: string
+  readonly value: string
+  readonly onChange: { readonly command: string }
+  readonly options?: readonly {
+    readonly value: string
+    readonly label: string
+    readonly disabled?: boolean
+  }[]
+  readonly disabled?: boolean
+  readonly invalid?: boolean
+  readonly help?: string
+  readonly placeholder?: string
+  readonly min?: number
+  readonly max?: number
+  readonly step?: number
+}
 export type SdkRendererOutput =
+  | SdkRendererField
   | string
   | number
   | boolean
   | {
       readonly type: 'element'
       readonly tag: 'span' | 'strong' | 'em' | 'code' | 'a' | 'button'
+      /** Host only permits disabled on button elements. */
+      readonly disabled?: boolean
       readonly text?: string
       readonly children?: readonly SdkRendererOutput[]
       readonly attributes?: Readonly<Partial<Record<SdkRendererAttribute, string>>>

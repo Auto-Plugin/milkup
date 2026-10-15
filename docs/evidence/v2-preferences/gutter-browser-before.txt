@@ -1,0 +1,72 @@
+[WebServer] (node:176832) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:176846) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:176902) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/e2e/desktop-preferences.spec.ts:299:3 › ordinary live centered body focuses and selects from both editor gutters (8.3s)
+(node:177040) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 tests/e2e/desktop-preferences.spec.ts:299:3 › windowed live centered body focuses and selects from both editor gutters (8.3s)
+
+
+  1) tests/e2e/desktop-preferences.spec.ts:299:3 › ordinary live centered body focuses and selects from both editor gutters
+
+    Error: expect(locator).toBeFocused() failed
+
+    Locator:  locator('.milkup-input-proxy')
+    Expected: focused
+    Received: inactive
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeFocused" with timeout 5000ms
+      - waiting for locator('.milkup-input-proxy')
+        14 × locator resolved to <textarea tabindex="0" autocomplete="off" spellcheck="false" aria-label="Markdown 编辑器" class="milkup-input-proxy"></textarea>
+           - unexpected value "inactive"
+
+
+      326 |     expect(geometry.right).toBeGreaterThan(geometry.contentRight)
+      327 |     await page.mouse.click(geometry.left, geometry.y)
+    > 328 |     await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+          |                                                       ^
+      329 |     await expect(page.locator('.milkup-cursor')).toHaveAttribute('data-position', '0')
+      330 |     await page.keyboard.type('L')
+      331 |     await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('Lfirst 中文😀')
+        at /workspace/milkup/tests/e2e/desktop-preferences.spec.ts:328:55
+
+    Error Context: ../milkup-preferences-phase3-evidence/view/gutter-browser-artifacts/desktop-preferences-ordina-ea51b-ts-from-both-editor-gutters/error-context.md
+
+  2) tests/e2e/desktop-preferences.spec.ts:299:3 › windowed live centered body focuses and selects from both editor gutters
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  locator('.milkup-cursor')
+    Expected: "11"
+    Received: "10"
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveAttribute" with timeout 5000ms
+      - waiting for locator('.milkup-cursor')
+        14 × locator resolved to <div data-line="1" data-offset="10" data-position="10" class="milkup-cursor"></div>
+           - unexpected value "10"
+
+
+      332 |     await page.mouse.click(geometry.right, geometry.y)
+      333 |     await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+    > 334 |     await expect(page.locator('.milkup-cursor')).toHaveAttribute('data-position', String(original.indexOf('\r\n') + 1))
+          |                                                  ^
+      335 |     await page.keyboard.type('R')
+      336 |     await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('Lfirst 中文😀R')
+      337 |     await page.mouse.move(geometry.left, geometry.y)
+        at /workspace/milkup/tests/e2e/desktop-preferences.spec.ts:334:50
+
+    Error Context: ../milkup-preferences-phase3-evidence/view/gutter-browser-artifacts/desktop-preferences-window-9afda-ts-from-both-editor-gutters/error-context.md
+
+  2 failed
+    tests/e2e/desktop-preferences.spec.ts:299:3 › ordinary live centered body focuses and selects from both editor gutters
+    tests/e2e/desktop-preferences.spec.ts:299:3 › windowed live centered body focuses and selects from both editor gutters

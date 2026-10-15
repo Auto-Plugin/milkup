@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
+import { installPreferencesFixture } from '../../plugins/preferences/scripts/browser-fixture.mjs'
 import { outlineRegistry } from '../helpers/outline-fixture.mjs'
 
 async function runMenuCommand(page: Page, name: string): Promise<void> {
@@ -1450,12 +1451,13 @@ test('phase16 confirmation remains scrollable at a 380 by 260 effective viewport
 test('phase18 theme follows system only when selected, persists explicit dark and keeps contrast', async ({
   page,
 }) => {
+  await installPreferencesFixture(page, { enabled: true, approved: true })
   await page.emulateMedia({ colorScheme: 'light' })
   await page.goto('/')
   await page.keyboard.insertText('# Heading\n\ntext `code` and [link](https://example.com)\n')
   await page.getByRole('button', { name: '菜单', exact: true }).click()
-  await page.locator('[data-menu-section="appearance"]').click()
-  await page.getByRole('combobox', { name: '主题', exact: true }).selectOption('dark')
+  await page.locator('[data-plugin-menu-entry="milkup.preferences:preferences-panel"]').click()
+  await page.getByRole('combobox', { name: '外观主题', exact: true }).selectOption('dark')
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   const contrast = await page.evaluate(() => {
     const css = getComputedStyle(document.documentElement)
@@ -1493,15 +1495,25 @@ test('phase18 theme follows system only when selected, persists explicit dark an
   expect(contrast.every((r) => r >= 4.5)).toBe(true)
   await page.emulateMedia({ colorScheme: 'light' })
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
-  // Browser preview does not pretend its CSS zoom is native WebView zoom.
-  await expect(page.getByRole('combobox', { name: '界面缩放', exact: true })).toBeDisabled()
+  // Preferences commits through the real Worker broker and host persistence.
+  const preferences = page.locator('[data-plugin-ui="milkup.preferences:preferences-panel"]')
+  await preferences.getByRole('button', { name: '保存', exact: true }).click()
+  await expect(preferences.getByRole('status')).toHaveText('偏好已保存。')
+  // Browser preview must report unsupported native zoom without pretending to apply it.
+  await preferences.getByRole('combobox', { name: '界面缩放', exact: true }).selectOption('1.25')
+  await expect(preferences.getByRole('alert')).toBeVisible()
+  await expect(page.locator('#app')).toHaveAttribute('data-appearance-zoom', '1')
+  await preferences.getByRole('button', { name: '取消更改', exact: true }).click()
+  await expect(preferences.getByRole('combobox', { name: '界面缩放', exact: true })).toHaveValue(
+    '1',
+  )
   await page.keyboard.press('Escape')
   await page.keyboard.press('Control+s')
   await page.reload()
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   await page.getByRole('button', { name: '菜单', exact: true }).click()
-  await page.locator('[data-menu-section="appearance"]').click()
-  await page.getByRole('combobox', { name: '主题', exact: true }).selectOption('system')
+  await page.locator('[data-plugin-menu-entry="milkup.preferences:preferences-panel"]').click()
+  await page.getByRole('combobox', { name: '外观主题', exact: true }).selectOption('system')
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
   await page.emulateMedia({ colorScheme: 'dark' })
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
@@ -1514,6 +1526,7 @@ test('phase18 narrow sidebar overlays without shrinking text and search controls
     (registry) => localStorage.setItem('milkup.desktop.plugins.registry.v1', registry),
     outlineRegistry(),
   )
+  await installPreferencesFixture(page, { enabled: true, approved: true })
   await page.setViewportSize({ width: 380, height: 260 })
   await page.goto('/')
   await page.keyboard.insertText('# Heading\nbody\n## Child\ntail')
@@ -1540,11 +1553,13 @@ test('phase18 narrow sidebar overlays without shrinking text and search controls
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.keyboard.press('Escape')
   await page.locator('[data-menu-toggle]').click()
-  await page.locator('[data-menu-section="appearance"]').click()
-  const content = await page.locator('[data-menu-panel="appearance"]').boundingBox()
+  await page.locator('[data-plugin-menu-entry="milkup.preferences:preferences-panel"]').click()
+  const content = await page
+    .locator('[data-plugin-ui="milkup.preferences:preferences-panel"]')
+    .boundingBox()
   expect(content!.height).toBeGreaterThanOrEqual(120)
-  await page.locator('[data-appearance-theme]').focus()
-  const field = await page.locator('[data-appearance-theme]').boundingBox()
+  await page.getByRole('combobox', { name: '外观主题', exact: true }).focus()
+  const field = await page.getByRole('combobox', { name: '外观主题', exact: true }).boundingBox()
   expect(field!.y).toBeGreaterThanOrEqual(content!.y)
   expect(field!.y + field!.height).toBeLessThanOrEqual(content!.y + content!.height)
 })

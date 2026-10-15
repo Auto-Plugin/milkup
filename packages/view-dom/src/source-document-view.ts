@@ -1,4 +1,12 @@
 import {
+  applyPresentation,
+  validatePresentation,
+  samePresentationLayout,
+  indentationText,
+  presentationOutdent,
+  type EditorPresentation,
+} from './presentation'
+import {
   applyTableAlignments,
   createTaskMarker,
   syncTaskAvailability,
@@ -49,6 +57,7 @@ import {
 import type { SearchHighlight, ViewMode, VirtualViewportConfig } from './types'
 
 export interface SourceDocumentViewConfig {
+  readonly presentation?: EditorPresentation
   readonly parent: HTMLElement
   readonly source: EditorDocumentSource
   readonly mode?: ViewMode
@@ -113,6 +122,8 @@ export class SourceDocumentView {
   private readonly ownerDocument: Document
   private readonly virtualViewport: Required<Pick<VirtualViewportConfig, 'enabled'>> &
     Omit<VirtualViewportConfig, 'enabled'>
+  private presentation: EditorPresentation | undefined
+  private presentationLayoutRevision = 0
   private currentSource: EditorDocumentSource
   private readonly measuredHeights = new MeasuredLineHeights()
   private readonly tableReader = new WindowedTableReader()
@@ -371,7 +382,7 @@ export class SourceDocumentView {
     this.dom.addEventListener('cut', this.handleCutEvent)
     this.dom.addEventListener('paste', this.handlePasteEvent)
     this.dom.addEventListener('pointerdown', this.handlePointerDownEvent)
-    this.contentDOM.addEventListener('pointermove', this.handlePointerMoveEvent)
+    this.dom.addEventListener('pointermove', this.handlePointerMoveEvent)
     this.ownerDocument.addEventListener('pointerup', this.handlePointerUpEvent)
     this.ownerDocument.addEventListener('pointercancel', this.handlePointerCancelEvent)
     this.inputDOM.addEventListener('input', this.handleInputEvent)
@@ -380,7 +391,50 @@ export class SourceDocumentView {
     this.inputDOM.addEventListener('compositionupdate', this.handleCompositionUpdateEvent)
     this.inputDOM.addEventListener('compositionend', this.handleCompositionEndEvent)
     config.parent.append(this.dom)
+    if (config.presentation) {
+      this.presentation = validatePresentation(config.presentation)
+      applyPresentation(this.dom, this.presentation)
+    }
     void this.renderVisibleWindow()
+  }
+
+  get lineHeight(): number {
+    return this.getLineHeight()
+  }
+
+  async setPresentation(value: EditorPresentation): Promise<void> {
+    if (this.destroyed) return
+    const next = validatePresentation(value)
+    if (samePresentationLayout(this.presentation, next)) {
+      this.presentation = next
+      return
+    }
+    const firstLine = this.visibleLineRange.fromLine
+    const layoutRevision = ++this.presentationLayoutRevision
+    this.presentation = next
+    applyPresentation(this.dom, next)
+    this.measuredHeights.clear()
+    // Invalidate any old-layout request before it can install stale spacers.
+    this.latestAppliedRequestId = this.nextRequestId++
+    const geometry = this.scrollGeometry()
+    const scrollTop = geometry.compressed
+      ? geometry.toPhysical(this.lineTop(firstLine) + this.contentPadding().top)
+      : this.lineTop(firstLine)
+    this.dom.scrollTop = scrollTop
+    this.scrollAnchor = Object.freeze({ scrollTop: this.dom.scrollTop })
+    const source = this.currentSource
+    const request = this.createRenderRequestForLine(firstLine)
+    await this.renderVisibleWindow(request)
+    if (
+      layoutRevision === this.presentationLayoutRevision &&
+      this.latestAppliedRequestId === request.id &&
+      source === this.currentSource &&
+      !this.destroyed
+    ) {
+      this.dom.scrollTop = scrollTop
+      this.scrollAnchor = Object.freeze({ scrollTop: this.dom.scrollTop })
+      this.revealHorizontalCursor()
+    }
   }
 
   get source(): EditorDocumentSource {
@@ -656,7 +710,7 @@ export class SourceDocumentView {
     this.dom.removeEventListener('cut', this.handleCutEvent)
     this.dom.removeEventListener('paste', this.handlePasteEvent)
     this.dom.removeEventListener('pointerdown', this.handlePointerDownEvent)
-    this.contentDOM.removeEventListener('pointermove', this.handlePointerMoveEvent)
+    this.dom.removeEventListener('pointermove', this.handlePointerMoveEvent)
     this.ownerDocument.removeEventListener('pointerup', this.handlePointerUpEvent)
     this.ownerDocument.removeEventListener('pointercancel', this.handlePointerCancelEvent)
     this.inputDOM.removeEventListener('input', this.handleInputEvent)
@@ -699,7 +753,9 @@ export class SourceDocumentView {
   private measureTableRows(): void {
     if (this.mode !== 'live') return
     for (const row of Array.from(
-      this.contentDOM.querySelectorAll<HTMLElement>('.milkup-block-table'),
+      this.contentDOM.querySelectorAll<HTMLElement>(
+        this.presentation ? '.milkup-line' : '.milkup-block-table',
+      ),
     )) {
       const height = row.getBoundingClientRect().height
       if (height > 0 || row.classList.contains('milkup-table-delimiter'))
@@ -798,7 +854,9 @@ export class SourceDocumentView {
   }
 
   private getLineHeight(): number {
-    return Math.max(1, this.virtualViewport.lineHeight ?? defaultLineHeight)
+    return this.presentation
+      ? this.presentation.fontSize * this.presentation.lineHeight
+      : Math.max(1, this.virtualViewport.lineHeight ?? defaultLineHeight)
   }
 
   private getViewportHeight(): number | undefined {
@@ -2082,6 +2140,12 @@ export class SourceDocumentView {
   }
 
   private positionFromLineEvent(event: MouseEvent): number | undefined {
+    if (
+      event.target instanceof Element &&
+      event.target.closest('input, textarea, select, button')
+    ) {
+      return undefined
+    }
     const target = lineElementFromEvent(event, this.contentDOM, this.inputDOM)
 
     if (!target) {
@@ -2169,8 +2233,16 @@ export class SourceDocumentView {
       return undefined
     }
 
+    const rect = line.getBoundingClientRect()
+    // A gutter is outside the text hit-test area. Use exact UTF-16 endpoints,
+    // including an emoji at EOL, rather than estimating a text-node caret.
     const position =
-      sourcePositionFromPoint(line, event, this.inputDOM, { allowGeometryFallback: true }) ?? to
+      rect.width > 0 && event.clientX <= rect.left
+        ? from
+        : rect.width > 0 && event.clientX >= rect.right
+          ? to
+          : (sourcePositionFromPoint(line, event, this.inputDOM, { allowGeometryFallback: true }) ??
+            to)
 
     return this.normalizeRenderedClickPosition(clamp(position, from, to))
   }
@@ -2313,16 +2385,27 @@ export class SourceDocumentView {
       range.from === range.to &&
       /[^ \t]/.test(first.text.slice(0, range.from - first.from))
     ) {
-      await this.applyVisibleEdit(range.from, range.to, '  ', 'isolate')
+      await this.applyVisibleEdit(
+        range.from,
+        range.to,
+        indentationText(this.presentation),
+        'isolate',
+      )
       return
     }
     const window = await this.readBlockWindow(first.number, last.number)
     if (!context.current()) return
     const edits = window.lines.flatMap((line) => {
-      const remove = outdent ? indentRemovalLength(line.text) : 0
+      const remove = outdent ? presentationOutdent(line.text, this.presentation) : 0
       return outdent && !remove
         ? []
-        : [{ from: line.from, to: line.from + remove, insert: outdent ? '' : '  ' }]
+        : [
+            {
+              from: line.from,
+              to: line.from + remove,
+              insert: outdent ? '' : indentationText(this.presentation),
+            },
+          ]
     })
     if (!edits.length) return
     const changes = ChangeSet.of(edits)

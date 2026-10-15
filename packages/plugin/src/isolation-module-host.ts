@@ -1,3 +1,5 @@
+import { createPluginKeymapHostCapabilities, type PluginKeymapBroker } from './keymap-broker'
+import { createPluginSettingsHostCapabilities, type PluginSettingsBroker } from './settings-broker'
 import {
   createPluginWorkspaceHostCapabilities,
   type PluginWorkspaceBroker,
@@ -44,6 +46,8 @@ export interface PluginModuleIsolationHostConfig {
   readonly uiBroker?: PluginUiBroker
   readonly fileBroker?: PluginFileBroker
   readonly networkBroker?: PluginNetworkBroker
+  readonly keymapBroker?: PluginKeymapBroker
+  readonly settingsBroker?: PluginSettingsBroker
   readonly workspaceBroker?: PluginWorkspaceBroker
   readonly releasesBroker?: PluginReleasesBroker
   readonly storageBroker?: PluginStorageBroker
@@ -80,6 +84,8 @@ export function createPluginModuleIsolationHost(
               config.storageBroker,
               manifest.permissions?.includes('app:updates') ? config.releasesBroker : undefined,
               manifest.permissions?.includes('workspace:read') ? config.workspaceBroker : undefined,
+              manifest.permissions?.includes('settings:write') ? config.settingsBroker : undefined,
+              manifest.permissions?.includes('app:keymap') ? config.keymapBroker : undefined,
               () => active && generation === current && config.isActive?.() !== false,
             ),
           })) ?? undefined
@@ -138,6 +144,8 @@ export function createPluginModuleIsolationHost(
           config.storageBroker,
           manifest.permissions?.includes('app:updates') ? config.releasesBroker : undefined,
           manifest.permissions?.includes('workspace:read') ? config.workspaceBroker : undefined,
+          manifest.permissions?.includes('settings:write') ? config.settingsBroker : undefined,
+          manifest.permissions?.includes('app:keymap') ? config.keymapBroker : undefined,
           () => active && generation === current && config.isActive?.() !== false,
           true,
           request.workspaceGesture,
@@ -302,6 +310,8 @@ function restrictHost(
   storageBroker?: PluginStorageBroker,
   releasesBroker?: PluginReleasesBroker,
   workspaceBroker?: PluginWorkspaceBroker,
+  settingsBroker?: PluginSettingsBroker,
+  keymapBroker?: PluginKeymapBroker,
   isActive?: () => boolean,
   command = false,
   workspaceGesture?: string,
@@ -342,6 +352,12 @@ function restrictHost(
             workspaceGesture,
           ),
         }
+      : {}),
+    ...(capabilities.includes('app:keymap') && keymapBroker
+      ? { keymap: createPluginKeymapHostCapabilities(keymapBroker, isActive) }
+      : {}),
+    ...(capabilities.includes('settings:write') && settingsBroker
+      ? { settings: createPluginSettingsHostCapabilities(settingsBroker, isActive) }
       : {}),
     ...(capabilities.includes('app:updates') && releasesBroker
       ? { releases: createPluginReleasesHostCapabilities(releasesBroker, isActive) }

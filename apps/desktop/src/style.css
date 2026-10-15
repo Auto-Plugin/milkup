@@ -1631,6 +1631,11 @@ html[data-sidebar-resizing='true'] * {
   cursor: text;
 }
 
+.milkup-editor[data-mode='live'] .milkup-editor-content {
+  max-width: var(--milkup-content-width, none);
+  margin-inline: auto;
+}
+
 /* Include the trailing source padding in horizontal scroll extent so End can
    reveal the whole caret, including fractional pixels at native zoom. */
 .milkup-editor[data-mode='source'] .milkup-editor-content {
@@ -1766,14 +1771,7 @@ html[data-sidebar-resizing='true'] * {
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
   background: var(--panel-bg);
-  font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
+  font-family: inherit;
   white-space: pre-wrap;
 }
 
@@ -2522,4 +2520,72 @@ textarea {
 .plugin-navigation-panel .plugin-tree-toolbar > button {
   white-space: normal;
   overflow-wrap: anywhere;
+}
+
+/* Controlled fields are host-rendered; plugins supply only typed values and text. */
+.plugin-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  min-width: 0;
+}
+
+.plugin-form-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  min-width: 0;
+  text-align: left;
+}
+
+.plugin-form-label {
+  color: var(--text);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.plugin-form-control {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--panel-bg);
+  color: var(--text);
+  font: inherit;
+  color-scheme: inherit;
+}
+
+.plugin-form-control:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.plugin-form-control[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.plugin-form-control:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.plugin-form-help {
+  color: var(--text-muted);
+  font-size: 0.9em;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.plugin-form-help[hidden] {
+  display: none;
+}
+.plugin-form-control[aria-invalid='true'] + .plugin-form-help {
+  color: var(--danger);
+}
+
+[data-plugin-menu-entries] {
+  display: contents;
 }

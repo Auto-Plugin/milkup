@@ -1,0 +1,37 @@
+[WebServer] (node:199316) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:199339) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:199373) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:199392) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:199452) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop-msedge] › tests/e2e/desktop-plugin-forms.spec.ts:348:1 › modal keeps the entire focused field and ring visible after asynchronous layout changes (1.5s)
+
+
+  1) [desktop-msedge] › tests/e2e/desktop-plugin-forms.spec.ts:348:1 › modal keeps the entire focused field and ring visible after asynchronous layout changes
+
+    Error: expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 205
+    Received:    350.703125
+
+      367 |   await page.screenshot({ path: '/workspace/milkup-preferences-phase3-evidence/forms/focused-control-layout.png' })
+      368 |   expect(geometry.top - 4).toBeGreaterThanOrEqual(geometry.visibleTop)
+    > 369 |   expect(geometry.bottom + 4).toBeLessThanOrEqual(geometry.visibleBottom)
+          |                               ^
+      370 | })
+      371 |
+        at /workspace/milkup/tests/e2e/desktop-plugin-forms.spec.ts:369:31
+
+    Error Context: test-results/desktop-plugin-forms-modal-c4895-asynchronous-layout-changes-desktop-msedge/error-context.md
+
+  1 failed
+    [desktop-msedge] › tests/e2e/desktop-plugin-forms.spec.ts:348:1 › modal keeps the entire focused field and ring visible after asynchronous layout changes

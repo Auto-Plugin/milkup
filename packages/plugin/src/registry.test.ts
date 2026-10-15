@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -9,6 +10,39 @@ import {
 } from './registry'
 
 describe('plugin registry', () => {
+  it.each(['outline', 'updates', 'workspace'])(
+    'restores installed %s under SDK 0.3.1 without altering range, approvals or enable state',
+    (name) => {
+      const manifest = JSON.parse(
+        readFileSync(new URL(`../../../plugins/${name}/plugin.json`, import.meta.url), 'utf8'),
+      )
+      const expectedRange = name === 'workspace' ? '^0.3.0' : '>=0.2.0 <0.4.0'
+      expect(manifest.engines.pluginSdk).toBe(expectedRange)
+      for (const mode of ['unapproved', 'disabled', 'enabled']) {
+        const old = new PluginRegistry({
+          compatibility: { milkupVersion: '2.0.0-beta.1', pluginSdkVersion: '0.3.0' },
+          now: () => 123,
+        })
+        old.installLocalPlugin({ manifest, manifestPath: `/plugins/${name}/plugin.json` })
+        if (mode !== 'unapproved') old.approve(manifest.id)
+        if (mode === 'enabled') old.markEnabled(manifest.id)
+        const before = parsePluginRegistrySnapshot(serializePluginRegistry(old))
+        const upgraded = new PluginRegistry({
+          compatibility: { milkupVersion: '2.0.0-beta.1', pluginSdkVersion: '0.3.1' },
+          now: () => 456,
+        })
+        upgraded.restore(before)
+        const restored = upgraded.get(manifest.id)!
+        expect(restored.manifest.engines?.pluginSdk).toBe(expectedRange)
+        expect(restored.approvals).toEqual(before.records[0]!.approvals)
+        expect(restored.enabled).toBe(before.records[0]!.enabled)
+        expect(restored.state).toBe(before.records[0]!.state)
+        expect(restored.manifest.permissions).toEqual(before.records[0]!.manifest.permissions)
+        expect(restored.errors).toEqual(before.records[0]!.errors)
+      }
+    },
+  )
+
   it('revalidates restored enabled plugins against the upgraded application before loading', () => {
     const old = new PluginRegistry({
       compatibility: { milkupVersion: '0.1.0', pluginSdkVersion: '0.1.1' },

@@ -5,7 +5,7 @@ import { cp, mkdir, readFile, realpath, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { readPluginInventory } from './plugin-offline-delivery.mjs'
+import { readPublicPluginBuildInputs } from './public-plugin-build-contract.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const [directory, pnpmCli] = process.argv.slice(2)
@@ -40,22 +40,25 @@ function run(args, cwd) {
 }
 const sdkDirectory = path.join(output, 'sdk')
 await mkdir(sdkDirectory)
-assert.equal(
-  JSON.parse(await readFile(path.join(root, 'packages/plugin-sdk/package.json'))).version,
-  '0.2.0',
-)
+const { sdkVersion, sdkTarballName, plugins } = await readPublicPluginBuildInputs(root)
 run(
   ['--dir', path.join(root, 'packages/plugin-sdk'), 'pack', '--pack-destination', sdkDirectory],
   root,
 )
-const sdk = path.join(sdkDirectory, 'milkup-plugin-sdk-0.2.0.tgz')
+const sdk = path.join(sdkDirectory, sdkTarballName)
 const sdkBytes = await readFile(sdk)
 const records = []
-for (const entry of await readPluginInventory(root)) {
+for (const entry of plugins) {
   const target = path.join(output, entry.id)
   await mkdir(target)
   for (const name of ['package.json', 'plugin.json', 'tsconfig.json', 'src'])
     await cp(path.join(root, entry.directory, name), path.join(target, name), { recursive: true })
+  for (const resource of entry.resources) {
+    await mkdir(path.dirname(path.join(target, resource)), { recursive: true })
+    await cp(path.join(root, entry.directory, resource), path.join(target, resource), {
+      dereference: true,
+    })
+  }
   await mkdir(path.join(target, 'scripts'))
   await cp(
     path.join(root, entry.directory, 'scripts/build.mjs'),
@@ -95,7 +98,7 @@ for (const entry of await readPluginInventory(root)) {
 }
 const result = {
   status: 'passed',
-  sdkVersion: '0.2.0',
+  sdkVersion,
   sdkSha256: createHash('sha256').update(sdkBytes).digest('hex'),
   tools,
   plugins: records,

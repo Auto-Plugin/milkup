@@ -1,4 +1,14 @@
 import {
+  createPluginKeymapHostCapabilities,
+  type PluginKeymapBroker,
+  type PluginKeymapHost,
+} from './keymap-broker'
+import {
+  createPluginSettingsHostCapabilities,
+  type PluginSettingsBroker,
+  type PluginSettingsHost,
+} from './settings-broker'
+import {
   createPluginWorkspaceHostCapabilities,
   type PluginWorkspaceBroker,
   type PluginWorkspaceReadHost,
@@ -55,6 +65,8 @@ export interface PluginRuntimeOptions {
   readonly uiBroker?: PluginUiBroker | PluginUiBrokerProvider
   readonly networkBroker?: PluginNetworkBroker | PluginNetworkBrokerProvider
   readonly workspaceBroker?: PluginWorkspaceBroker | PluginWorkspaceBrokerProvider
+  readonly keymapBroker?: PluginKeymapBroker | PluginKeymapBrokerProvider
+  readonly settingsBroker?: PluginSettingsBroker | PluginSettingsBrokerProvider
   readonly releasesBroker?: PluginReleasesBroker | PluginReleasesBrokerProvider
   readonly storageBroker?: PluginStorageBroker | PluginStorageBrokerProvider
 }
@@ -70,6 +82,12 @@ export type PluginNetworkBrokerProvider = (
 export type PluginWorkspaceBrokerProvider = (
   manifest: PluginManifest,
 ) => PluginWorkspaceBroker | undefined
+export type PluginKeymapBrokerProvider = (
+  manifest: PluginManifest,
+) => PluginKeymapBroker | undefined
+export type PluginSettingsBrokerProvider = (
+  manifest: PluginManifest,
+) => PluginSettingsBroker | undefined
 export type PluginReleasesBrokerProvider = (
   manifest: PluginManifest,
 ) => PluginReleasesBroker | undefined
@@ -145,6 +163,8 @@ export interface RestrictedPluginHost {
   readonly writeText?: PluginHostCapabilities['writeText']
   readonly deleteFile?: PluginHostCapabilities['deleteFile']
   readonly fetch?: PluginHostCapabilities['fetch']
+  readonly keymap?: PluginKeymapHost
+  readonly settings?: PluginSettingsHost
   readonly releases?: PluginReleasesHost
   readonly storage?: PluginStorageBroker
 }
@@ -202,6 +222,8 @@ const ACTION_PERMISSIONS = new Set<ActionPermission>([
   'app:control',
   'app:updates',
   'workspace:read',
+  'settings:write',
+  'app:keymap',
 ])
 
 export class PluginRuntime {
@@ -217,6 +239,8 @@ export class PluginRuntime {
   private readonly networkBroker: PluginNetworkBroker | PluginNetworkBrokerProvider | undefined
   private readonly workspaceBroker:
     PluginWorkspaceBroker | PluginWorkspaceBrokerProvider | undefined
+  private readonly keymapBroker: PluginKeymapBroker | PluginKeymapBrokerProvider | undefined
+  private readonly settingsBroker: PluginSettingsBroker | PluginSettingsBrokerProvider | undefined
   private readonly releasesBroker: PluginReleasesBroker | PluginReleasesBrokerProvider | undefined
   private readonly storageBroker: PluginStorageBroker | PluginStorageBrokerProvider | undefined
 
@@ -231,6 +255,8 @@ export class PluginRuntime {
     this.uiBroker = options.uiBroker
     this.networkBroker = options.networkBroker
     this.workspaceBroker = options.workspaceBroker
+    this.keymapBroker = options.keymapBroker
+    this.settingsBroker = options.settingsBroker
     this.releasesBroker = options.releasesBroker
     this.storageBroker = options.storageBroker
   }
@@ -283,6 +309,8 @@ export class PluginRuntime {
           resolvePluginStorageBroker(plugin.manifest, this.storageBroker),
           resolvePluginReleasesBroker(plugin.manifest, this.releasesBroker),
           resolvePluginWorkspaceBroker(plugin.manifest, this.workspaceBroker),
+          resolvePluginSettingsBroker(plugin.manifest, this.settingsBroker),
+          resolvePluginKeymapBroker(plugin.manifest, this.keymapBroker),
           () => plugin.capabilityGeneration === generation,
         ),
       })
@@ -437,6 +465,8 @@ export class PluginRuntime {
         resolvePluginStorageBroker(plugin.manifest, this.storageBroker),
         resolvePluginReleasesBroker(plugin.manifest, this.releasesBroker),
         resolvePluginWorkspaceBroker(plugin.manifest, this.workspaceBroker),
+        resolvePluginSettingsBroker(plugin.manifest, this.settingsBroker),
+        resolvePluginKeymapBroker(plugin.manifest, this.keymapBroker),
         () => plugin.state === 'enabled' && plugin.capabilityGeneration === generation,
         effectiveCommandPermissions(plugin.manifest, command),
         true,
@@ -706,6 +736,8 @@ function createRestrictedHost(
   storageBroker?: PluginStorageBroker,
   releasesBroker?: PluginReleasesBroker,
   workspaceBroker?: PluginWorkspaceBroker,
+  settingsBroker?: PluginSettingsBroker,
+  keymapBroker?: PluginKeymapBroker,
   isActive?: () => boolean,
   permissions: readonly PluginPermission[] = manifest.permissions ?? [],
   command = false,
@@ -747,6 +779,12 @@ function createRestrictedHost(
             workspaceGesture,
           ),
         }
+      : {}),
+    ...(permissions.includes('app:keymap') && keymapBroker
+      ? { keymap: createPluginKeymapHostCapabilities(keymapBroker, isActive) }
+      : {}),
+    ...(permissions.includes('settings:write') && settingsBroker
+      ? { settings: createPluginSettingsHostCapabilities(settingsBroker, isActive) }
       : {}),
     ...(permissions.includes('app:updates') && releasesBroker
       ? { releases: createPluginReleasesHostCapabilities(releasesBroker, isActive) }
@@ -802,5 +840,21 @@ function resolvePluginWorkspaceBroker(
   broker?: PluginWorkspaceBroker | PluginWorkspaceBrokerProvider,
 ): PluginWorkspaceBroker | undefined {
   if (!manifest.permissions?.includes('workspace:read')) return undefined
+  return typeof broker === 'function' ? broker(manifest) : broker
+}
+
+function resolvePluginSettingsBroker(
+  manifest: PluginManifest,
+  broker: PluginSettingsBroker | PluginSettingsBrokerProvider | undefined,
+): PluginSettingsBroker | undefined {
+  if (!manifest.permissions?.includes('settings:write')) return undefined
+  return typeof broker === 'function' ? broker(manifest) : broker
+}
+
+function resolvePluginKeymapBroker(
+  manifest: PluginManifest,
+  broker: PluginKeymapBroker | PluginKeymapBrokerProvider | undefined,
+): PluginKeymapBroker | undefined {
+  if (!manifest.permissions?.includes('app:keymap')) return undefined
   return typeof broker === 'function' ? broker(manifest) : broker
 }

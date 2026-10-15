@@ -255,3 +255,11 @@ export {
 export * from './workspace-broker'
 export * from './workspace-rpc'
 export { markTrustedPluginCommand } from './workspace-gesture'
+
+export * from './settings-broker'
+export * from './settings-rpc'
+export type { PluginSettingsBrokerProvider } from './runtime'
+
+export * from './keymap-broker'
+export * from './keymap-rpc'
+export type { PluginKeymapBrokerProvider } from './runtime'
