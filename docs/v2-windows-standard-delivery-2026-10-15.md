@@ -33,3 +33,5 @@
 源码提交 `9e03ca2e30944df05b7a87391a5e07b710a4db24` 已推送专用分支，GitHub author/committer 均为 LarryZhu-dev。无上传 Windows 验证 [38664582584](https://github.com/Auto-Plugin/milkup/actions/runs/38664582584) 失败于独立插件测试的 SDK 解析：干净 runner 未安装插件自己的 node_modules。此前 Windows 全仓 1008 项、类型检查、Rust 69 通过/1 忽略及二进制/构建树 9 项通过，未进入打包且 artifact 数为 0。已为该测试入口显式解析 SDK 公共导出；本地暂存并移走插件 node_modules 后，24 项测试及同字节独立档案构建通过。未跳过测试或修改插件实现，准备再次无上传验证。
 
 第二次无上传 Windows 验证 [38665094452](https://github.com/Auto-Plugin/milkup/actions/runs/38665094452) 在源码 `82273ad6dd547e9eda83306489009c23ede573e6` 全部通过；打包得到 2276284 字节标准安装器，五文件合计 2321131 字节，未上传任何 artifact。独立插件 SHA 与已交付 Library 一致。该次安装器未保留，交付件将使用授权构建的实测 SHA。
+
+首次授权交付构建 [38665728736](https://github.com/Auto-Plugin/milkup/actions/runs/38665728736) 在大纲测试阶段失败，artifact 数为 0，尚未打包或消费上传额度。已定位测试等待条件：扫描状态完成与异步可见切片刷新并不同步，旧 helper 仅等待任意非空切片，偶尔读取前一轮六行。仅将原有完整七级断言置于有界 `vi.waitFor`，保留全部预期与后续导航/不重复扫描断言；未修改大纲实现、SDK 或产物字节。修正后本地 24 项大纲测试通过。

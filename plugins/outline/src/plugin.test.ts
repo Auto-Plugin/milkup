@@ -316,15 +316,19 @@ describe('complete paged outline index', () => {
       [12289, 16384],
       [16385, 20480],
     ])
-    expect(rows(render()).map((row) => row.attributes['aria-level'])).toEqual([
-      '1',
-      '2',
-      '3',
-      '4',
-      '5',
-      '6',
-      '1',
-    ])
+    // Scan completion precedes the asynchronous refresh of the visible slice.
+    // An earlier nonempty slice can still be returned while that refresh runs.
+    await vi.waitFor(() =>
+      expect(rows(render()).map((row) => row.attributes['aria-level'])).toEqual([
+        '1',
+        '2',
+        '3',
+        '4',
+        '5',
+        '6',
+        '1',
+      ]),
+    )
     const tail = action(render(), 'outline.gotoHeading', 'Tail')
     await plugin.commands['outline.gotoHeading']({}, tail)
     expect(env.revealLine).toHaveBeenCalledWith(17000)
