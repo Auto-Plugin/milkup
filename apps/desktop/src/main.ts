@@ -3,6 +3,11 @@ import { bundledPluginPaths, readBundledPlugin } from './bundled-plugin-catalog'
 import { createRecoveryController, type RecoveryRecord, type RecoveryStatus } from './recovery'
 import { createRecoveryUi } from './recovery-ui'
 import { createMarkdownClipboardPayload } from '@milkup/export'
+import {
+  createApplicationUpdateController,
+  nativeApplicationUpdateBackend,
+} from './application-update'
+import { applicationUpdateMarkup, renderApplicationUpdate } from './application-update-ui'
 import { reconcileSaveWatchEvents } from './save-watch-reconciliation'
 import {
   createDocumentTransitionController,
@@ -143,7 +148,7 @@ const initialText = ''
 const desktopVirtualLineHeight = 21
 const largePreviewLineCount = 80
 const appProductName = 'milkup'
-const appVersion = '0.1.0'
+const appVersion = __MILKUP_VERSION__
 const appCopyright = 'Copyright (c) 2026 milkup. All rights reserved.'
 
 const messages = {
@@ -388,13 +393,14 @@ app.innerHTML = `
               </div>
               <div>
                 <dt>当前版本</dt>
-                <dd>${appVersion}</dd>
+                <dd data-app-version>${appVersion}</dd>
               </div>
               <div>
                 <dt>版权信息</dt>
                 <dd>${appCopyright}</dd>
               </div>
             </dl>
+            ${applicationUpdateMarkup}
           </section>
         </div>
       </div>
@@ -570,6 +576,7 @@ let customDocumentOutput: ControlledRendererOutput | undefined
 let customDocumentTitle: string | undefined
 let windowMaximized = false
 let closeConfirmOpen = false
+let applicationUpdateInstalling = false
 let recoveryDialogOpen = false
 let loadingState: DocumentLoadingState = Object.freeze({ phase: 'idle' })
 const loadingVisibility = createDocumentLoadingVisibilityController({
@@ -916,7 +923,7 @@ const desktopPluginManager = new DesktopPluginManager({
   manifestHost: createDesktopPluginManifestHost(),
   permissions: desktopActionPermissions,
   milkupVersion: appVersion,
-  pluginSdkVersion: '0.1.1',
+  pluginSdkVersion: __MILKUP_PLUGIN_SDK_VERSION__,
   storage: globalThis.localStorage,
   bundledPackagePaths: async () => (isTauriRuntime() ? bundledPluginPaths() : []),
   documentSource: () => {
@@ -1059,6 +1066,57 @@ appRoot.querySelector<HTMLElement>('[data-plugin-manager]')?.addEventListener('c
   }
 })
 
+const updateBackend = nativeApplicationUpdateBackend()
+const applicationUpdate = createApplicationUpdateController(
+  {
+    ...updateBackend,
+    async install(token) {
+      await sourceView?.flushPendingEdits()
+      await recovery?.flush()
+      if (session.dirty || session.externalChangeState !== 'none' || isDocumentSaving())
+        throw Error('文档尚未安全保存。请处理未保存内容或外部修改冲突后重试。')
+      await updateBackend.install(token)
+    },
+  },
+  (state) => {
+    applicationUpdateInstalling = state.phase === 'installing'
+    renderApplicationUpdate(appRoot, state, isTauriRuntime())
+    renderSession()
+  },
+)
+renderApplicationUpdate(appRoot, applicationUpdate.state, isTauriRuntime())
+appRoot.querySelector('[data-update-check]')?.addEventListener('click', () => {
+  void applicationUpdate.check()
+})
+appRoot.querySelector('[data-update-download]')?.addEventListener('click', () => {
+  void applicationUpdate.download()
+})
+appRoot.querySelector('[data-update-cancel]')?.addEventListener('click', () => {
+  void applicationUpdate.cancelDownload()
+})
+appRoot.querySelector('[data-update-install]')?.addEventListener('click', () => {
+  applicationUpdate.requestInstallation()
+  appRoot.querySelector<HTMLButtonElement>('[data-update-later]')?.focus()
+})
+appRoot.querySelector('[data-update-later]')?.addEventListener('click', () => {
+  applicationUpdate.cancelConfirmation()
+  appRoot.querySelector<HTMLButtonElement>('[data-update-install]')?.focus()
+})
+appRoot.querySelector('[data-update-confirm]')?.addEventListener('click', () => {
+  void documentTransitions.request('update', () => applicationUpdate.installAfterDocumentGuard())
+})
+
+function cancelDocumentTransition(): void {
+  const update = transitionPrompt?.kind === 'update'
+  documentTransitions.cancel()
+  if (update) {
+    applicationUpdate.cancelConfirmation()
+    setMenuOpen(true)
+    showMenuSection('about')
+    appRoot.querySelector<HTMLButtonElement>('[data-update-install]')?.focus()
+  }
+}
+
 app.querySelector<HTMLButtonElement>('[data-menu-toggle]')?.addEventListener('click', () => {
   setMenuOpen(!menuOpen)
 })
@@ -1193,7 +1251,7 @@ for (const button of Array.from(
     const action = button.dataset.closeConfirmAction
 
     if (action === 'cancel') {
-      documentTransitions.cancel()
+      cancelDocumentTransition()
       return
     }
 
@@ -1233,7 +1291,7 @@ globalThis.addEventListener(
       if (event.isComposing) return
       if (event.key === 'Escape') {
         event.preventDefault()
-        documentTransitions.cancel()
+        cancelDocumentTransition()
       } else if (event.key === 'Tab' || event.code === 'Tab') {
         const buttons = Array.from(
           appRoot.querySelectorAll<HTMLButtonElement>('[data-close-confirm] button:not(:disabled)'),
@@ -3225,6 +3283,8 @@ function cycleWorkspaceFocus(backward: boolean): void {
 }
 
 function setMenuOpen(open: boolean): void {
+  if (!open && applicationUpdate.state.phase === 'confirming' && !closeConfirmOpen)
+    applicationUpdate.cancelConfirmation()
   const wasOpen = menuOpen
   menuOpen = open
   setTransitionBackgroundInert(closeConfirmOpen)
@@ -3929,6 +3989,7 @@ function renderCloseConfirmState(): void {
     open: '打开另一份文档',
     close: '关闭文档',
     window: '退出',
+    update: '安装更新并重启',
   }[transitionPrompt?.kind ?? 'window']
   const body = saving
     ? '正在保存当前文档。取消可停止后续操作，已开始的保存仍会完成。'
@@ -3955,6 +4016,7 @@ function renderCloseConfirmState(): void {
   }
   if (discardButton) {
     discardButton.disabled = saving
+    discardButton.hidden = transitionPrompt?.kind === 'update'
   }
   if (saveSpinner) {
     saveSpinner.hidden = !saving
@@ -4212,6 +4274,7 @@ function renderDocumentLoadingState(): void {
 
 function isDocumentBusy(): boolean {
   return (
+    applicationUpdateInstalling ||
     recoveryDialogOpen ||
     nativeReplacement?.preparing === true ||
     loadingState.phase === 'opening' ||

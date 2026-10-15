@@ -9,6 +9,25 @@ import {
 } from './registry'
 
 describe('plugin registry', () => {
+  it('revalidates restored enabled plugins against the upgraded application before loading', () => {
+    const old = new PluginRegistry({
+      compatibility: { milkupVersion: '0.1.0', pluginSdkVersion: '0.1.1' },
+    })
+    old.installLocalPlugin({ manifest: pluginManifest(), manifestPath: '/plugins/old/plugin.json' })
+    old.markEnabled('example-tools')
+    const snapshot = old.snapshot()
+    const upgraded = new PluginRegistry({
+      compatibility: { milkupVersion: '2.0.0-beta.1', pluginSdkVersion: '0.1.1' },
+    })
+    upgraded.restore(snapshot)
+    expect(upgraded.get('example-tools')).toMatchObject({
+      enabled: false,
+      state: 'failed',
+      errors: ['Requires Milkup ^0.1.0'],
+    })
+    expect(snapshot.records[0]!.enabled).toBe(true)
+    expect(upgraded.get('example-tools')!.approvals).toEqual(snapshot.records[0]!.approvals)
+  })
   it.each([
     ['^0.1.1', '0.1.0', false],
     ['^0.1.1', '0.1.1', true],
@@ -27,6 +46,14 @@ describe('plugin registry', () => {
     ['^garbage', '0.1.1', false],
     ['^0.1', '0.1.1', false],
     ['^0.1.1', '0.1.1+build.2', true],
+    ['^2.0.0-0', '2.0.0-beta.1', true],
+    ['^2.0.0-0', '2.0.0', true],
+    ['^2.0.0-0', '2.4.0', true],
+    ['^2.0.0-0', '2.1.0-beta.1', false],
+    ['^2.0.0-0', '3.0.0', false],
+    ['^2.0.0', '2.0.0-beta.1', false],
+    ['>=2.0.0-beta.2', '2.0.0-beta.10', true],
+    ['>=2.0.0-beta.2', '2.0.0-beta.1', false],
   ])('enforces SDK range %s against %s', (range, version, compatible) => {
     const registry = new PluginRegistry({
       compatibility: { milkupVersion: '0.1.0', pluginSdkVersion: version },

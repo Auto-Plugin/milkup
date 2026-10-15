@@ -1,3 +1,4 @@
+import { satisfies, valid } from 'semver'
 import type { ActionDefinition } from '@milkup/core'
 
 import {
@@ -216,12 +217,17 @@ export class PluginRegistry {
 
     for (const record of snapshot.records) {
       const manifest = parsePluginManifest(record.manifest)
+      const errors = [
+        ...new Set([...record.errors, ...validateCompatibility(manifest, this.compatibility)]),
+      ]
       this.records.set(
         manifest.id,
         freezeRecord({
           ...record,
           manifest,
-          enabled: record.enabled && record.state === 'enabled',
+          enabled: errors.length === 0 && record.enabled && record.state === 'enabled',
+          state: errors.length ? 'failed' : record.state,
+          errors,
         }),
       )
     }
@@ -558,35 +564,13 @@ function validateCompatibility(
 }
 
 function isCompatibleVersionRange(range: string, version: string): boolean {
-  if (range === '*' || range === version) return true
-  // Only stable complete versions are supported by this deliberately small
-  // range grammar. Reject unknown forms instead of widening compatibility.
-  const actual = versionParts(version)
-  const required = versionParts(range.replace(/^(\^|>=)/, ''))
-  if (!actual || !required) return false
-  const lower = compareVersions(actual, required)
-  if (range.startsWith('>=')) return lower >= 0
-  if (!range.startsWith('^') || lower < 0) return false
-  const [major, minor, patch] = required
-  const upper: readonly [number, number, number] =
-    major > 0 ? [major + 1, 0, 0] : minor > 0 ? [0, minor + 1, 0] : [0, 0, patch + 1]
-  return compareVersions(actual, upper) < 0
-}
-
-function compareVersions(left: readonly number[], right: readonly number[]): number {
-  for (let index = 0; index < 3; index += 1) {
-    const delta = left[index]! - right[index]!
-    if (delta !== 0) return delta
-  }
-  return 0
-}
-
-function versionParts(version: string): readonly [number, number, number] | undefined {
-  if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:\+[0-9A-Za-z.-]+)?$/.test(version))
-    return undefined
-  const [major, minor, patch] = version.split('+')[0]!.split('.').map(Number)
-  if (![major, minor, patch].every(Number.isSafeInteger)) return undefined
-  return [major!, minor!, patch!]
+  if (!valid(version)) return false
+  if (range === '*') return satisfies(version, range)
+  // Keep the deliberately small public range grammar. Prereleases require
+  // explicit opt-in on the same major/minor/patch line, per SemVer ranges.
+  const required = range.replace(/^(\^|>=)/, '')
+  if (!valid(required)) return false
+  return satisfies(version, range)
 }
 
 function normalizeKeymap(key: string): string {

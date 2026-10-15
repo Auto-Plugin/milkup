@@ -1,6 +1,6 @@
 [package]
 name = "milkup-desktop"
-version = "0.1.0"
+version = "2.0.0-beta.1"
 description = "milkup desktop shell"
 edition = "2021"
 
@@ -9,6 +9,7 @@ name = "milkup_desktop_lib"
 crate-type = ["rlib"]
 
 [build-dependencies]
+serde_json = "1"
 tauri-build = { version = "2.5.1", features = [] }
 
 [dependencies]
@@ -18,3 +19,10 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
 fs2 = "0.4.3"
+tauri-plugin-updater = "=2.10.1"
+tokio = { version = "1", features = ["sync", "macros", "rt", "time"] }
+semver = "1"
+
+[dev-dependencies]
+tauri = { version = "2.9.5", features = ["test"] }
+base64 = "0.22"

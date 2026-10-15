@@ -1,12 +1,12 @@
 {
   "name": "milkup2",
-  "version": "0.0.0",
+  "version": "2.0.0-beta.1",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.7.0",
   "scripts": {
     "dev": "pnpm --filter @milkup/playground dev",
-    "build": "pnpm -r build",
+    "build": "pnpm version:check && pnpm -r build",
     "bench:large-file": "node scripts/large-file-benchmark.mjs",
     "bench:native:large-file": "node tests/native/tauri-large-file-benchmark.mjs",
     "bench:desktop:interaction": "node tests/native/tauri-desktop-editor-interaction-benchmark.mjs",
@@ -33,7 +33,9 @@
     "dev:native:search-profile": "node tests/helpers/native-search-profile-server.mjs",
     "bench:native:search": "node tests/native/tauri-search-profile.mjs",
     "test:native:large-search": "node tests/native/tauri-large-search-quality.mjs",
-    "test:native:unicode-search": "node tests/native/tauri-unicode-search-quality.mjs"
+    "test:native:unicode-search": "node tests/native/tauri-unicode-search-quality.mjs",
+    "version:check": "node scripts/check-versions.mjs",
+    "version:sync": "node scripts/check-versions.mjs --write"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",

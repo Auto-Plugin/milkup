@@ -23,6 +23,7 @@ mod native_search;
 mod piece_tree;
 mod recovery;
 mod recovery_storage;
+mod updates;
 use piece_tree::PieceTree;
 
 const FILE_WATCH_EVENT_NAME: &str = "milkup-file-watch-event";
@@ -1025,7 +1026,9 @@ pub fn run() {
         .manage(SidecarRegistry(Mutex::new(HashMap::new())))
         .manage(LargeFileRegistry(Mutex::new(HashMap::new())))
         .manage(native_search::NativeSearchRegistry::default())
+        .manage(updates::UpdateService::default())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             app.manage(recovery::RecoveryStore::new(
                 app.path().app_data_dir()?.join("recovery-v1"),
@@ -1037,6 +1040,10 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            updates::check_application_update,
+            updates::download_application_update,
+            updates::cancel_application_update,
+            updates::install_application_update,
             recovery::list_recovery_records,
             recovery::checkpoint_recovery,
             recovery::settle_recovery,

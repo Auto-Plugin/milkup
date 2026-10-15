@@ -1,0 +1,71 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/plugin
+
+ ❯ src/registry.test.ts (29 tests | 4 failed) 37ms
+   ✓ plugin registry > enforces SDK range ^0.1.1 against 0.1.0 4ms
+   ✓ plugin registry > enforces SDK range ^0.1.1 against 0.1.1 1ms
+   ✓ plugin registry > enforces SDK range ^0.1.1 against 0.1.9 0ms
+   ✓ plugin registry > enforces SDK range ^0.1.1 against 0.2.0 0ms
+   ✓ plugin registry > enforces SDK range ^0.0.2 against 0.0.1 0ms
+   ✓ plugin registry > enforces SDK range ^0.0.2 against 0.0.2 0ms
+   ✓ plugin registry > enforces SDK range ^0.0.2 against 0.0.3 0ms
+   ✓ plugin registry > enforces SDK range ^1.2.3 against 1.2.2 0ms
+   ✓ plugin registry > enforces SDK range ^1.2.3 against 1.9.0 0ms
+   ✓ plugin registry > enforces SDK range ^1.2.3 against 2.0.0 0ms
+   ✓ plugin registry > enforces SDK range ^0.1.0 against 0.1.1 0ms
+   ✓ plugin registry > enforces SDK range >=0.1.1 against 0.1.0 0ms
+   ✓ plugin registry > enforces SDK range >=0.1.1 against 0.2.0 0ms
+   ✓ plugin registry > enforces SDK range ^0.1.1 against 0.1.1-beta 0ms
+   ✓ plugin registry > enforces SDK range ^garbage against 0.1.1 0ms
+   ✓ plugin registry > enforces SDK range ^0.1 against 0.1.1 0ms
+   ✓ plugin registry > enforces SDK range ^0.1.1 against 0.1.1+build.2 0ms
+   × plugin registry > enforces SDK range ^2.0.0-0 against 2.0.0-beta.1 21ms
+     → expected false to be true // Object.is equality
+   × plugin registry > enforces SDK range ^2.0.0-0 against 2.0.0 1ms
+     → expected false to be true // Object.is equality
+   × plugin registry > enforces SDK range ^2.0.0-0 against 2.4.0 1ms
+     → expected false to be true // Object.is equality
+   ✓ plugin registry > enforces SDK range ^2.0.0-0 against 2.1.0-beta.1 0ms
+   ✓ plugin registry > enforces SDK range ^2.0.0-0 against 3.0.0 0ms
+   ✓ plugin registry > enforces SDK range ^2.0.0 against 2.0.0-beta.1 0ms
+   × plugin registry > enforces SDK range >=2.0.0-beta.2 against 2.0.0-beta.10 1ms
+     → expected false to be true // Object.is equality
+   ✓ plugin registry > enforces SDK range >=2.0.0-beta.2 against 2.0.0-beta.1 0ms
+   ✓ plugin registry > installs local plugins, persists enable state, and restores records 2ms
+   ✓ plugin registry > marks incompatible plugins as failed and keeps sidecar approval explicit 0ms
+   ✓ plugin registry > indexes enabled contributions and makes keymap priority deterministic 2ms
+   ✓ plugin registry > isolates plugin storage keys 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/registry.test.ts > plugin registry > enforces SDK range ^2.0.0-0 against 2.0.0-beta.1
+ FAIL  src/registry.test.ts > plugin registry > enforces SDK range ^2.0.0-0 against 2.0.0
+ FAIL  src/registry.test.ts > plugin registry > enforces SDK range ^2.0.0-0 against 2.4.0
+ FAIL  src/registry.test.ts > plugin registry > enforces SDK range >=2.0.0-beta.2 against 2.0.0-beta.10
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/registry.test.ts:46:40
+     44|       manifestPath: '/plugins/example/plugin.json',
+     45|     })
+     46|     expect(record.errors.length === 0).toBe(compatible)
+       |                                        ^
+     47|   })
+     48| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 25 passed (29)
+   Start at  02:26:22
+   Duration  640ms (transform 148ms, setup 0ms, collect 152ms, tests 37ms, environment 0ms, prepare 90ms)
+
+undefined
+/workspace/milkup/packages/plugin:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/registry.test.ts

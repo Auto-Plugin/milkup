@@ -1,6 +1,6 @@
 import { shouldPromptBeforeClose, type DocumentSession } from '@milkup/tauri-bridge'
 
-export type DocumentTransitionKind = 'new' | 'open' | 'close' | 'window'
+export type DocumentTransitionKind = 'new' | 'open' | 'close' | 'window' | 'update'
 export interface DocumentTransitionPrompt {
   readonly kind: DocumentTransitionKind
   readonly phase: 'confirming' | 'saving'
@@ -73,6 +73,8 @@ export function createDocumentTransitionController(options: {
     },
     async discard(): Promise<void> {
       if (pending?.phase !== 'confirming') return
+      // Application updates never offer to throw away an unsaved document.
+      if (pending.kind === 'update') return
       await proceed(pending)
     },
     async save(): Promise<void> {

@@ -42,6 +42,33 @@ function fixture() {
 }
 
 describe('document transition protection', () => {
+  it('requires a successful save for an update and never discards the draft', async () => {
+    const { controller, options } = fixture()
+    const install = vi.fn()
+    await controller.request('update', install)
+    await controller.discard()
+    expect(install).not.toHaveBeenCalled()
+    options.save.mockResolvedValueOnce(false)
+    await controller.save()
+    expect(install).not.toHaveBeenCalled()
+    expect(options.session().dirty).toBe(true)
+    await controller.save()
+    expect(install).toHaveBeenCalledTimes(1)
+    expect(options.session().dirty).toBe(false)
+  })
+  it('cancelling an update while its save finishes never installs or restarts', async () => {
+    const { controller, options, setSession } = fixture()
+    const disk = deferred<boolean>(),
+      install = vi.fn()
+    options.save.mockImplementation(() => disk.promise)
+    await controller.request('update', install)
+    const saving = controller.save()
+    controller.cancel()
+    setSession(recordFileSave(options.session(), {}))
+    disk.resolve(true)
+    await saving
+    expect(install).not.toHaveBeenCalled()
+  })
   it.each(['new', 'open', 'close', 'window'] as const)(
     'protects dirty %s and allows explicit discard',
     async (kind) => {
