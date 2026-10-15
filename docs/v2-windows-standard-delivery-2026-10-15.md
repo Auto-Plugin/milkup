@@ -6,7 +6,7 @@
 
 用户最新指令限定本次交付小体积标准 Windows x64 NSIS 和独立大纲包。`tauri.conf.json` 未配置 `webviewInstallMode`；构建脚本也没有传覆盖配置，故使用 Tauri 默认 `downloadBootstrapper`。缺 Runtime 时需要目标电脑联网下载并安装，包内不含完整 Runtime。旧 Windows runner 已有 Runtime，旧验证不能证明缺 Runtime 的电脑上安装成功。没有用户电脑的安装日志，不能把具体报错归因于网络、权限或 Runtime 注册损坏。
 
-本次不修改这个模式，不下载或接受新的 Runtime 许可，不构建 offlineInstaller/fixedRuntime。未来正式整合 main 时，可另提供包含 Evergreen 安装程序的离线选项，同时保留标准小包；这只是后续方案，不是此次 main 合并授权。官方大小参考：内嵌联网引导程序约 2 MB，离线 Evergreen 约 127 MB，实物以当次 Microsoft 版本及生成文件为准。[Tauri 安装方式](https://v2.tauri.app/distribute/windows-installer/)、[Microsoft 分发说明](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution)。
+本次不修改这个模式，不下载或捆绑 Runtime，不构建 offlineInstaller/fixedRuntime。未来正式整合 main 时，可另提供包含 Evergreen 安装程序的离线选项，同时保留标准小包；这只是后续方案，不是此次 main 合并授权。官方大小参考：内嵌联网引导程序约 2 MB，离线 Evergreen 约 127 MB，实物以当次 Microsoft 版本及生成文件为准。[Tauri 安装方式](https://v2.tauri.app/distribute/windows-installer/)、[Microsoft 分发说明](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution)。
 
 ## 通用预装行为
 
@@ -20,7 +20,7 @@
 
 新增专用分支工作流，保留旧质量分支的已消费请求不变。新请求绑定上述精确基线、单次 request ID、提交消息、首次 run attempt、公开仓库及标准 windows-2025 runner。只允许五个文件：安装器、同字节独立插件、manifest、SHA256SUMS、README。原始文件合计不超过 49 MiB，为上传 ZIP 留 1 MiB；一次 artifact 总量上限 50 MiB，保留 1 天，无 cache、Release 或额外存储服务。
 
-父线程正在向用户申请新的总额含税不超过 US$0.01 预算；旧预算已消费，不能复用。按 GitHub 官方 $0.25/GB/月、28 天月份保守估算，50 MiB/1 天约 $0.00044（税前），实际账户余额及账单不可读取。当前仅启用免费标准 runner 的无上传验证，安装器大小与哈希记入日志；产物不留存。待明确授权才切换一次性交付请求并上传。标准公开 runner 分钟免费不代表 artifact 存储无费用。[GitHub 计费](https://docs.github.com/en/billing/concepts/product-billing/github-actions)。
+用户明确批准新的总量 ≤50 MiB、保留 1 天、额外存储费用含税 ≤US$0.01 额度（父线程 2026-10-15 转达原文），沿用现有 GitHub 计费方式。旧预算不复用，不新增订阅或付费 runner。按 GitHub 官方 $0.25/GB/月、28 天月份保守估算，本轮约 2.4 MB / 1 天约 $0.00002（税前），50 MiB 上限约 $0.00044（税前）；实际账户余额及账单不可读取。两次无上传验证 artifact 均为 0。仅切换一次请求上传，下载核验后立即关闭请求，禁止重跑上传。[GitHub 计费](https://docs.github.com/en/billing/concepts/product-billing/github-actions)。
 
 ## 验证记录
 
@@ -31,3 +31,5 @@
 提交身份已通过 GitHub authenticated profile 再次核验为 LarryZhu-dev（40397402），邮箱 larryzhu@foxmail.com。沿用已有单次 `SKIP_SIMPLE_GIT_HOOKS=1`：旧 Electron hooks 调用 v2 不存在的 lint-staged 配置/提交脚本，未修改 hooks 或安全设置，以本轮实际检查为准。
 
 源码提交 `9e03ca2e30944df05b7a87391a5e07b710a4db24` 已推送专用分支，GitHub author/committer 均为 LarryZhu-dev。无上传 Windows 验证 [38664582584](https://github.com/Auto-Plugin/milkup/actions/runs/38664582584) 失败于独立插件测试的 SDK 解析：干净 runner 未安装插件自己的 node_modules。此前 Windows 全仓 1008 项、类型检查、Rust 69 通过/1 忽略及二进制/构建树 9 项通过，未进入打包且 artifact 数为 0。已为该测试入口显式解析 SDK 公共导出；本地暂存并移走插件 node_modules 后，24 项测试及同字节独立档案构建通过。未跳过测试或修改插件实现，准备再次无上传验证。
+
+第二次无上传 Windows 验证 [38665094452](https://github.com/Auto-Plugin/milkup/actions/runs/38665094452) 在源码 `82273ad6dd547e9eda83306489009c23ede573e6` 全部通过；打包得到 2276284 字节标准安装器，五文件合计 2321131 字节，未上传任何 artifact。独立插件 SHA 与已交付 Library 一致。该次安装器未保留，交付件将使用授权构建的实测 SHA。
