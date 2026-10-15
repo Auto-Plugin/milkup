@@ -143,10 +143,11 @@ button:not(:disabled) {
   position: relative;
   z-index: 25;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: 36px auto;
   align-items: center;
   gap: 0;
-  height: 36px;
+  min-height: 36px;
   padding: 0 0 0 10px;
   border-bottom: 1px solid var(--border);
   background: var(--chrome-bg);
@@ -169,6 +170,8 @@ button:not(:disabled) {
 }
 
 .titlebar-menu-button {
+  grid-column: 1;
+  grid-row: 1;
   width: 34px;
   height: 100%;
   border-radius: 0;
@@ -182,12 +185,12 @@ button:not(:disabled) {
 }
 
 .document-title {
-  position: absolute;
-  top: 50%;
-  left: 50%;
+  grid-column: 2;
+  grid-row: 1;
   display: grid;
-  width: min(560px, 58vw);
-  transform: translate(-50%, -50%);
+  width: min(560px, 100%);
+  box-sizing: border-box;
+  justify-self: center;
   justify-items: center;
   min-width: 0;
   padding: 0 12px;
@@ -265,7 +268,7 @@ h1 {
 
 #app[data-custom-chrome='true'] .window-controls {
   display: flex;
-  grid-column: 2;
+  grid-column: 3;
   grid-row: 1;
 }
 
@@ -796,12 +799,32 @@ h1 {
 }
 
 .plugin-toolbar-slot {
-  position: absolute;
-  right: 10px;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  min-width: 0;
+  max-width: 100%;
+  padding: 4px 8px 4px 4px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  border-top: 1px solid var(--border);
 }
 
-#app[data-custom-chrome='true'] .plugin-toolbar-slot {
-  right: 148px;
+.plugin-toolbar-slot:empty {
+  display: none;
+}
+
+.plugin-ui-document-toolbar,
+.plugin-ui-document-toolbar .plugin-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.plugin-ui-document-toolbar button {
+  flex-shrink: 0;
+  scroll-margin-inline: 4px;
 }
 
 .plugin-ui {
@@ -1922,7 +1945,7 @@ html[data-sidebar-resizing='true'] * {
 
 @media (max-width: 900px) {
   .titlebar {
-    grid-template-columns: auto minmax(120px, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
   }
 
   .menu-command-list .tool-button span {
@@ -2295,9 +2318,6 @@ textarea {
   }
 }
 @media (max-width: 420px) {
-  .titlebar .document-title {
-    width: calc(100% - 100px);
-  }
   .statusbar [data-stat='char-count'] {
     max-width: 100px;
   }
@@ -2588,4 +2608,27 @@ textarea {
 
 [data-plugin-menu-entries] {
   display: contents;
+}
+
+.editor-context-menu {
+  position: fixed;
+  z-index: 90;
+  max-width: min(360px, calc(100vw - 16px));
+  max-height: calc(100vh - 16px);
+  overflow: auto;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  background: var(--panel-bg);
+  box-shadow: var(--shadow-soft);
+}
+.editor-context-menu[hidden] {
+  display: none;
+}
+.editor-context-menu .plugin-ui-context-menu {
+  display: block;
+}
+.editor-context-menu button {
+  min-height: 30px;
 }

@@ -367,3 +367,67 @@ SDK 0.3.1 is additive: existing 0.3.0 optional capabilities, event shapes and
 method signatures are unchanged. Existing manifests retain their declared engine
 ranges and approvals; upgrading the SDK does not enable plugins or expand their
 permissions automatically.
+
+## Bounded editing and images (SDK 0.3.2)
+
+`host.editing` requires both `document:read` and `document:write`. Capture a
+selection or complete lines with `capture({ extent: 'selection' | 'lines',
+beforeLines?, afterLines? })`. A snapshot contains at most 65,536 UTF-16 code
+units and 256 lines; oversized requests fail with `too-large`, never a truncated
+editable result. Up to eight snapshots may be held per activation. Release
+unused snapshots with `release(id)`.
+
+Snapshot `from`/`to` are absolute document offsets; `selection.anchor/head`,
+syntax node ranges, and all `apply()` change offsets are relative to snapshot
+text. Result selection offsets are relative to the changed snapshot text.
+Direction is preserved. Optional `context`, bounded `syntax.nodes`, and `table`
+metadata describe host-verified context; unknown or incomplete context must not
+be treated as proof of safe Markdown structure. There is no arbitrary CST data.
+
+Call `apply({ snapshotId, changes, selection?, assetIds? })` with at most 64 sorted,
+non-overlapping changes and at most 65,536 inserted UTF-16 units. The host checks
+session, text version, editor selection revision, save-location generation,
+read-only state and activation again immediately before one atomic history
+transaction. `table({ snapshotId, operation, ... })` exposes only bounded table
+primitives: insert, add/delete row or column, align, clear/set/select cell,
+select table and exit. `insert-table.rows` counts body rows, excluding the header
+(1–64 rows, 1–16 columns). Both successful operations consume their snapshot.
+`UiNode.selectionRevision` changes when the real editor selection changes;
+focus moving into plugin UI alone does not move the editor selection.
+`UiNode.documentEditable` reflects the current read-only/busy/save/composition
+gate so a plugin can retry a bounded capture when editing becomes available.
+
+`host.resources` additionally requires `images:import`; it never grants arbitrary
+filesystem, network or clipboard access. A genuine command click/keydown can call
+`prepareDocument()`. A declared `contributes.pasteHandlers: [{ kind: 'image',
+command: 'your.imagePaste' }]` instead receives `{ grantId }` from the trusted
+paste route and calls `prepareDocument({ pasteId: grantId })`. The host binds that
+single-use grant to the original document and selection. Synthetic events and
+invented IDs cannot authorize import. Conflicting image paste contributions are
+shadowed after the first active, valid handler.
+
+Preparation returns `{ status: 'cancelled' }` or `{ status: 'ready', id }`; an
+unnamed document first passes through ordinary Save As. Only then capture the
+editing selection. Call `choose(intentId)` for an opaque image source, then
+`stage({ sourceId, snapshotId, strategy: 'assets' | 'document-assets' })`. The host
+derives either `assets/` or `<document>.assets/`; the plugin cannot choose a path.
+Only PNG, JPEG and WebP are supported, bounded to 16 MiB, dimensions 16,384 and
+40 million pixels. A staged asset has an opaque `id` and relative `reference`.
+Insert the Markdown reference using `editing.apply(..., assetIds: [asset.id])`.
+The host atomically validates/adopts the files with the edit. Accepted images
+belong to the document and remain after plugin disable or undo. `abort(id)`
+cleans unaccepted grants; it never deletes an accepted asset.
+
+Every editing/resource method accepts a final `{ signal?: AbortSignal }`.
+Disable, revocation and disposal cancel pending work and clean unaccepted grants;
+late responses cannot revive handles. Interactive resource RPCs have a bounded
+five-minute timeout. Start long picker workflows asynchronously from a command
+so the command itself does not occupy its shorter execution timeout. Failures
+expose fixed error codes, not native paths or diagnostics.
+
+`host.ui.open(viewId)` opens only the caller's declared modal and requires a
+current trusted command. `host.ui.notify({ kind: 'info' | 'error', message })`
+reports bounded plain text (1,000 characters, rate limited); it does not accept
+HTML. `context-menu` is a controlled document UI contribution slot. None of
+these additions changes existing manifest engine ranges, approvals or enabled
+state; SDK 0.3.2 remains compatible with previously installed 0.3.x packages.

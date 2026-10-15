@@ -201,6 +201,12 @@ describe('PluginModuleIsolationHost', () => {
         adapter,
       }),
     })
+    await host.activate({
+      pluginId: 'realm-capabilities',
+      manifest: capabilityManifest(),
+      permissions: ['file:read'],
+      hostCapabilities: ['file:read'],
+    })
     const command = {
       id: 'realm.readFile',
       title: 'Read File',
@@ -254,6 +260,12 @@ describe('PluginModuleIsolationHost', () => {
         adapter,
         allowedOrigins: ['https://api.example.test'],
       }),
+    })
+    await host.activate({
+      pluginId: manifest.id,
+      manifest,
+      permissions: ['network:access'],
+      hostCapabilities: ['network:access'],
     })
     const command = {
       id: 'realm.fetch',

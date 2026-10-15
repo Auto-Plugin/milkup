@@ -54,7 +54,9 @@ fn sync_dir(path: &Path) -> Result<(), String> {
     Ok(())
 }
 fn digest(path: &Path) -> Result<(u64, String), String> {
-    let mut file = File::open(path).map_err(err)?;
+    digest_open(File::open(path).map_err(err)?)
+}
+fn digest_open(mut file: File) -> Result<(u64, String), String> {
     let mut hash = Sha256::new();
     let mut size = 0;
     let mut buffer = [0; 65536];
@@ -543,6 +545,52 @@ fn materialize(
     Ok(output.to_string_lossy().into_owned())
 }
 #[tauri::command]
+pub(crate) async fn resources_restore_recovery(
+    store: State<'_, RecoveryStore>,
+    recovery_id: String,
+    document_id: String,
+    relative_urls: Vec<String>,
+) -> Result<bool, String> {
+    restore_resources(&store, &recovery_id, &document_id, relative_urls)?;
+    Ok(true)
+}
+fn restore_resources(
+    store: &RecoveryStore,
+    recovery_id: &str,
+    document_id: &str,
+    relative_urls: Vec<String>,
+) -> Result<(), String> {
+    let _guard = store.gate.lock().map_err(err)?;
+    let storage = StorageGuard::acquire(&store.root)?;
+    let record = store.read(recovery_id)?;
+    if owner_active(record.owner_pid, &record.owner_birth) {
+        return Err("该恢复记录仍属于活跃会话".into());
+    }
+    let (copy, copy_file) = crate::resources::registered_document_file(document_id)?;
+    let copies_path = store.root.join("copies");
+    let _copies_guard = crate::workspace::open_absolute_directory(&copies_path)?;
+    let copies = copies_path.canonicalize().map_err(err)?;
+    if copy.parent() != Some(copies.as_path())
+        || !copy
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| name.starts_with("recovered-") && name.ends_with(".md"))
+    {
+        return Err("资源恢复目标不是已验证的恢复副本".into());
+    }
+    let (bytes, hash) = digest_open(copy_file)?;
+    if bytes != record.bytes || hash != record.sha256 {
+        return Err("恢复副本与记录不一致；资源未复制，记录保留".into());
+    }
+    crate::resources::restore_recovery_resources(
+        document_id,
+        &copy,
+        record.original_path.as_deref(),
+        relative_urls,
+        |bytes| storage.admit(bytes as u64),
+    )
+}
+#[tauri::command]
 pub(crate) async fn archive_recovery(
     store: State<'_, RecoveryStore>,
     id: String,
@@ -581,6 +629,165 @@ mod tests {
         let mut f = File::create(path).map_err(err)?;
         f.write_all(text.as_bytes()).map_err(err)?;
         f.sync_all().map_err(err)
+    }
+    struct ResourceRecoveryFixture {
+        store: RecoveryStore,
+        record: Record,
+        original: PathBuf,
+        copy: PathBuf,
+        document_id: String,
+        bytes: Vec<u8>,
+    }
+    impl ResourceRecoveryFixture {
+        fn new() -> Self {
+            let store = store();
+            let original = store.root.with_extension("origin").join("source.md");
+            fs::create_dir_all(original.parent().unwrap().join("assets")).unwrap();
+            let mut encoded = std::io::Cursor::new(Vec::new());
+            image::DynamicImage::new_rgb8(2, 3)
+                .write_to(&mut encoded, image::ImageFormat::Png)
+                .unwrap();
+            let bytes = encoded.into_inner();
+            fs::write(original.parent().unwrap().join("assets/a.png"), &bytes).unwrap();
+            fs::write(&original, "original unchanged").unwrap();
+            let text = "# recovered\r\n![image](assets/a.png)\r\n";
+            let mut request = input(1);
+            request.original_path = Some(original.to_string_lossy().into_owned());
+            let mut record = store
+                .checkpoint(request, text.len() as u64, |path| write(path, text))
+                .unwrap();
+            record.owner_pid = 2147483647;
+            record.owner_birth = None;
+            store
+                .commit(&store.directory(&record.id).unwrap(), &record)
+                .unwrap();
+            let copy = PathBuf::from(materialize(&store, &record.id, None).unwrap());
+            let document_id = crate::workspace::id("recovery-resource-test").unwrap();
+            crate::resources::register_document(&document_id, &copy);
+            Self {
+                store,
+                record,
+                original,
+                copy,
+                document_id,
+                bytes,
+            }
+        }
+        fn restore(&self, references: &[&str]) -> Result<(), String> {
+            restore_resources(
+                &self.store,
+                &self.record.id,
+                &self.document_id,
+                references.iter().map(|url| (*url).into()).collect(),
+            )
+        }
+        fn still_pending(&self) {
+            assert_eq!(
+                self.store.read(&self.record.id).unwrap().disposition,
+                "pending"
+            );
+            assert!(self
+                .store
+                .directory(&self.record.id)
+                .unwrap()
+                .join(&self.record.payload)
+                .exists());
+        }
+    }
+    impl Drop for ResourceRecoveryFixture {
+        fn drop(&mut self) {
+            let _ = crate::resources::resources_release_document(self.document_id.clone());
+            let _ = fs::remove_dir_all(&self.store.root);
+            let _ = fs::remove_dir_all(self.original.parent().unwrap());
+        }
+    }
+    #[test]
+    fn recovery_resources_copy_from_record_origin_and_resolve_after_reopen_without_touching_original(
+    ) {
+        let f = ResourceRecoveryFixture::new();
+        assert!(
+            crate::resources::resources_resolve_image(f.document_id.clone(), "assets/a.png".into())
+                .is_err(),
+            "materializing Markdown alone leaves its image unresolved"
+        );
+        f.restore(&["assets/a.png"]).unwrap();
+        assert_eq!(
+            fs::read_to_string(&f.original).unwrap(),
+            "original unchanged"
+        );
+        assert_eq!(
+            fs::read(f.original.parent().unwrap().join("assets/a.png")).unwrap(),
+            f.bytes
+        );
+        crate::resources::resources_release_document(f.document_id.clone()).unwrap();
+        crate::resources::register_document(&f.document_id, &f.copy);
+        assert_eq!(
+            crate::resources::resources_resolve_image(f.document_id.clone(), "assets/a.png".into())
+                .unwrap()
+                .data,
+            f.bytes
+        );
+        // Assets remain recoverable when the original Markdown was removed.
+        fs::remove_file(&f.original).unwrap();
+        f.restore(&["assets/a.png"]).unwrap();
+        f.still_pending();
+    }
+    #[test]
+    fn recovery_resources_missing_and_conflicting_images_preserve_record_and_originals() {
+        let f = ResourceRecoveryFixture::new();
+        assert!(f.restore(&["assets/a.png", "assets/missing.png"]).is_err());
+        assert!(!f.copy.parent().unwrap().join("assets/a.png").exists());
+        f.still_pending();
+        let conflict = f.copy.parent().unwrap().join("assets/a.png");
+        fs::write(&conflict, b"existing different bytes").unwrap();
+        assert!(f
+            .restore(&["assets/a.png"])
+            .unwrap_err()
+            .contains("different bytes"));
+        assert_eq!(fs::read(conflict).unwrap(), b"existing different bytes");
+        assert_eq!(
+            fs::read(f.original.parent().unwrap().join("assets/a.png")).unwrap(),
+            f.bytes
+        );
+        f.still_pending();
+    }
+    #[test]
+    fn recovery_resources_reject_unrelated_or_modified_documents_and_missing_origins() {
+        let mut f = ResourceRecoveryFixture::new();
+        fs::write(&f.copy, "changed recovery copy").unwrap();
+        assert!(f.restore(&["assets/a.png"]).unwrap_err().contains("不一致"));
+        fs::copy(
+            f.store
+                .directory(&f.record.id)
+                .unwrap()
+                .join(&f.record.payload),
+            &f.copy,
+        )
+        .unwrap();
+        crate::resources::register_document(&f.document_id, &f.original);
+        assert!(f.restore(&["assets/a.png"]).unwrap_err().contains("目标"));
+        crate::resources::register_document(&f.document_id, &f.copy);
+        f.record.original_path = None;
+        f.store
+            .commit(&f.store.directory(&f.record.id).unwrap(), &f.record)
+            .unwrap();
+        assert!(f
+            .restore(&["assets/a.png"])
+            .unwrap_err()
+            .contains("no original"));
+        assert!(!f.copy.parent().unwrap().join("assets/a.png").exists());
+        f.still_pending();
+    }
+    #[cfg(unix)]
+    #[test]
+    fn recovery_resources_reject_symlink_source_directories_without_archiving() {
+        let f = ResourceRecoveryFixture::new();
+        let origin = f.original.parent().unwrap();
+        fs::rename(origin.join("assets"), origin.join("outside")).unwrap();
+        std::os::unix::fs::symlink(origin.join("outside"), origin.join("assets")).unwrap();
+        assert!(f.restore(&["assets/a.png"]).is_err());
+        assert_eq!(fs::read(origin.join("outside/a.png")).unwrap(), f.bytes);
+        f.still_pending();
     }
     fn native_input(version: usize, original: &Path) -> Checkpoint {
         let mut value = input(version);

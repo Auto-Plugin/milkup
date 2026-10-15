@@ -1,0 +1,37 @@
+{
+  "scope": "P4 candidate03 source fix; candidate02 production before independently reproduced by native owner",
+  "cause": "matchMedia(max-width:760px) change unconditionally called focusActiveView, stealing focus from visible plugin modal fields during native zoom",
+  "changedFiles": [
+    "apps/desktop/src/main.ts (media change handler only)",
+    "tests/e2e/desktop-preferences.spec.ts (two focused regressions)"
+  ],
+  "fix": "After updating sidebar inert state, preserve valid visible focus. Fall back only for body/documentElement (browser already cleared hidden focus), an inert target, absent layout rectangles, or hidden visibility. Existing explicit sidebar open/close behavior is unchanged; no plugin-ID checks.",
+  "browserBefore": {
+    "passed": 1,
+    "failed": 1,
+    "failure": "appearance.zoom SELECT becomes inactive across 1100px to700px while modal remains open"
+  },
+  "intermediate": {
+    "passed": 1,
+    "failed": 1,
+    "failure": "CSS hides focused sidebar close before media callback; activeElement becomes body, requiring explicit no-focus fallback"
+  },
+  "browserAfter": {
+    "passed": 2,
+    "failed": 0,
+    "coverage": [
+      "preferences SELECT and number input focus across narrow/wide breakpoint",
+      "document text and version unchanged",
+      "search input focus and text entry remain separate from document",
+      "editor newly inert transfers to narrow sidebar close",
+      "hidden sidebar close on widening transfers to editor",
+      "hidden resize handle transfers to sidebar close",
+      "explicit Escape closes sidebar and focuses editor"
+    ]
+  },
+  "nativeBefore": "../native/run-zoom-focus02/zoom-focus-trace.json",
+  "nativeAfter": "pending candidate03 production rebuild and native-owner verification",
+  "productFreeze": true,
+  "testsUsed": "frozen Vite config, no HMR, no injected editor actions",
+  "committed": false
+}

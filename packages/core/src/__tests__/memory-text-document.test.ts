@@ -110,4 +110,31 @@ describe('MemoryTextDocument', () => {
       ]),
     ).toThrow('sorted and non-overlapping')
   })
+
+  it('keeps earlier deltas when mapping later edit boundaries and interiors', () => {
+    const changes = ChangeSet.of([
+      { from: 0, to: 0, insert: '##' },
+      { from: 5, to: 8, insert: '**' },
+    ])
+    expect(changes.mapPosition(5, -1)).toBe(7)
+    expect(changes.mapPosition(5, 1)).toBe(9)
+    expect(changes.mapPosition(6, -1)).toBe(7)
+    expect(changes.mapPosition(8, 1)).toBe(9)
+    expect(changes.mapPosition(9)).toBe(10)
+  })
+
+  it('maps adjacent replacements and same-position insertions with affinity', () => {
+    const adjacent = ChangeSet.of([
+      { from: 0, to: 2, insert: 'x' },
+      { from: 2, to: 4, insert: 'yyy' },
+    ])
+    expect(adjacent.mapPosition(2, -1)).toBe(1)
+    expect(adjacent.mapPosition(2, 1)).toBe(4)
+    const insertions = ChangeSet.of([
+      { from: 0, to: 0, insert: 'a' },
+      { from: 0, to: 0, insert: 'b' },
+    ])
+    expect(insertions.mapPosition(0, -1)).toBe(0)
+    expect(insertions.mapPosition(0, 1)).toBe(2)
+  })
 })

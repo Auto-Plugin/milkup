@@ -265,3 +265,22 @@ it('ends a typing group after its time window or a directional selection change'
     clock.mockRestore()
   }
 })
+
+it('isolates formatting from adjacent typing and keeps selection-only plans clean', () => {
+  const session = new LargeEditSession({ documentId: 'isolated-format', baseVersion: 0 })
+  const selectionOnly = session.prepareVisibleEdits(ChangeSet.of([]), [], {
+    historyGroup: 'isolate',
+    selectionAfter: Selection.cursor(0),
+  })
+  session.confirmVisibleEdits(selectionOnly, 0)
+  expect(session.snapshot()).toMatchObject({ version: 0, dirty: false, canUndo: false })
+  for (const [index, historyGroup] of (['typing', 'isolate', 'typing'] as const).entries()) {
+    const batch = session.prepareVisibleEdits(ChangeSet.insert(index, 'x'), [''], { historyGroup })
+    session.confirmVisibleEdits(batch, index + 1)
+  }
+  expect(session.prepareUndo()?.edits).toEqual([{ from: 2, to: 3, insert: '', deletedText: 'x' }])
+  session.confirmUndo(4)
+  expect(session.prepareUndo()?.edits).toEqual([{ from: 1, to: 2, insert: '', deletedText: 'x' }])
+  session.confirmUndo(5)
+  expect(session.prepareUndo()?.edits).toEqual([{ from: 0, to: 1, insert: '', deletedText: 'x' }])
+})

@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test'
+import { readFileSync } from 'node:fs'
+import { installImagesFixture } from '../../plugins/images/scripts/browser-fixture.mjs'
 import type { Page } from '@playwright/test'
 import { installPreferencesFixture } from '../../plugins/preferences/scripts/browser-fixture.mjs'
 import { outlineRegistry } from '../helpers/outline-fixture.mjs'
+import { formattingFixture } from '../helpers/formatting-plugin'
 
 async function runMenuCommand(page: Page, name: string): Promise<void> {
   await page.getByRole('button', { name: '菜单' }).click()
@@ -197,36 +200,17 @@ test('plugin manager restores, executes, disables, and reenables a Worker plugin
   await expect(page.getByText('Mod+Alt+H')).toBeVisible()
 })
 
-test('desktop shell imports pasted image files through asset provider', async ({ page }) => {
+test('desktop shell rejects image paste without approved plugin authority', async ({ page }) => {
+  await installImagesFixture(page, { enabled: false, approved: false })
   await page.goto('/')
   await runMenuCommand(page, '打开')
   await expect(page.locator('#app')).toHaveAttribute('data-loading', 'ready')
-
-  await page.evaluate(() => {
-    const dataTransfer = new DataTransfer()
-    dataTransfer.items.add(
-      new File([new Uint8Array([1, 2, 3])], 'Diagram Final.PNG', { type: 'image/png' }),
-    )
-    const input = document.querySelector<HTMLTextAreaElement>('.milkup-input-proxy')
-
-    if (!input) {
-      throw new Error('Editor input proxy was not found')
-    }
-
-    input.dispatchEvent(
-      new ClipboardEvent('paste', {
-        clipboardData: dataTransfer,
-        bubbles: true,
-        cancelable: true,
-      }),
-    )
-  })
-
-  await expect(page.locator('.milkup-editor-content')).toContainText(
-    '![diagram-final](assets/diagram-final.png)',
-  )
-  await expect(page.locator('[data-save-label]')).toContainText('未保存')
-  await expect(page.locator('[data-stat="version"]')).toHaveText('1')
+  const original = await page.locator('.milkup-editor-content').textContent()
+  await pasteSyntheticImage(page)
+  await expect(page.locator('[data-notice]')).toContainText('请先启用并授权图片插件')
+  await expect(page.locator('.milkup-editor-content')).toHaveText(original!)
+  await expect(page.locator('[data-save-label]')).toContainText('已保存')
+  await expect(page.locator('[data-stat="version"]')).toHaveText('0')
 })
 
 test('desktop search highlights matches and moves the active result', async ({ page }) => {
@@ -750,42 +734,55 @@ test('windowed memory documents keep finalized composition separate from adjacen
   await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText('AORIGINAL')
 })
 
-async function installPendingAssetProbe(page: Page): Promise<void> {
-  await page.route(/\/src\/asset-service\.ts(?:\?|$)/, async (route) => {
-    const response = await route.fetch()
-    const body = (await response.text()).replace(
-      'return new SessionAssetProvider(config);',
-      `const probe = window.__milkupAssetProbe = { calls: 0 };
-       return { async importAsset(input) {
-         probe.calls++;
-         const outcome = await new Promise(resolve => { probe.release = resolve; });
-         if (outcome === 'error') throw new Error('asset disk full');
-         return { originalName: input.name, fileName: 'a.png', relativePath: 'assets/a.png', mimeType: input.type };
-       } };`,
-    )
-    await route.fulfill({ response, body })
-  })
+// These browser cases exercise the real SDK Worker and reject untrusted ClipboardEvents.
+// Delayed native stage/CAS/disposal races live in resource-service.test.ts and
+// plugins/images/src/controller.test.ts; actual chooser/clipboard success requires native evidence.
+const imageFixtureBytes = Array.from(
+  readFileSync(new URL('../../plugins/images/assets/images.png', import.meta.url)),
+)
+const imagesPanel = (page: Page) => page.locator('[data-plugin-ui="milkup.images:images-panel"]')
+async function openImagesPanel(page: Page): Promise<void> {
+  await page.getByRole('button', { name: '菜单', exact: true }).click()
+  await page.locator('[data-plugin-menu-entry="milkup.images:images-panel"]').click()
+  await expect(imagesPanel(page).getByLabel('资源目录', { exact: true })).toBeEnabled()
 }
-
-async function pasteDelayedImage(page: Page): Promise<void> {
-  await page.locator('.milkup-input-proxy').evaluate((input) => {
-    const data = new DataTransfer()
-    data.items.add(new File(['image'], 'a.png', { type: 'image/png' }))
-    input.dispatchEvent(
-      new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }),
-    )
-  })
-  await expect.poll(() => page.evaluate('window.__milkupAssetProbe.calls')).toBe(1)
+async function closeImagesPanel(page: Page): Promise<void> {
+  await page.keyboard.press('Escape')
+  await expect(imagesPanel(page)).toHaveCount(0)
+  if (await page.locator('[data-menu-close]').isVisible())
+    await page.locator('[data-menu-close]').click()
+  await page.locator('.milkup-input-proxy').focus()
 }
-
-test('late image imports never write into a newly created document', async ({ page }) => {
-  await installPendingAssetProbe(page)
+async function setupImagesWorker(page: Page): Promise<void> {
+  await installImagesFixture(page, { enabled: true, approved: true })
   await page.goto('/')
-  await pasteDelayedImage(page)
+  await expect(page.locator('#app')).toHaveAttribute('data-loading', /^(idle|ready)$/)
+  await openImagesPanel(page)
+  await closeImagesPanel(page)
+}
+async function pasteSyntheticImage(page: Page): Promise<void> {
+  await page.locator('.milkup-input-proxy').evaluate((input, bytes) => {
+    const data = new DataTransfer()
+    data.items.add(new File([new Uint8Array(bytes)], 'valid-image.png', { type: 'image/png' }))
+    const event = new ClipboardEvent('paste', {
+      clipboardData: data,
+      bubbles: true,
+      cancelable: true,
+    })
+    if (event.isTrusted) throw new Error('This negative fixture must remain an untrusted event')
+    input.dispatchEvent(event)
+  }, imageFixtureBytes)
+}
+
+test('rejected synthetic image paste cannot inject references into a newly created document', async ({
+  page,
+}) => {
+  await setupImagesWorker(page)
+  await pasteSyntheticImage(page)
+  await expect(page.locator('[data-notice]')).toContainText('图片粘贴未完成')
   const previousId = await page.locator('[data-stat="document-id"]').textContent()
   await page.keyboard.press('Control+n')
   await expect(page.locator('[data-stat="document-id"]')).not.toHaveText(previousId!)
-  await page.evaluate('window.__milkupAssetProbe.release()')
   await page.evaluate(() => new Promise(requestAnimationFrame))
   await expect(page.locator('[data-stat="char-count"]')).toHaveText('0 字符')
   await expect(page.locator('[data-save-label]')).toContainText('已保存')
@@ -838,44 +835,62 @@ for (const kind of ['modified', 'deleted', 'own-save'] as const) {
   })
 }
 
-test('saving cancels a pending image import without dirtying the saved snapshot', async ({
+test('saving after rejected synthetic image paste preserves the exact saved snapshot', async ({
   page,
 }) => {
-  await installPendingAssetProbe(page)
   await installSaveProbe(page)
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
-  await page.goto('/')
-  await page.keyboard.type('BEFORE')
-  await pasteDelayedImage(page)
+  await setupImagesWorker(page)
+  const original = 'BEFORE 中文 👩🏽‍💻'
+  await page.keyboard.insertText(original)
+  const version = await page.locator('[data-stat="version"]').textContent()
+  await pasteSyntheticImage(page)
+  await expect(page.locator('[data-notice]')).toContainText('图片粘贴未完成')
   await page.keyboard.press('Control+s')
   await expect(page.locator('[data-save-label]')).toContainText('已保存')
-  await page.evaluate('window.__milkupAssetProbe.release()')
-  await expect(page.locator('[data-notice]')).toContainText('图片导入已取消')
-  await expect(page.locator('.milkup-editor-content')).toHaveText('BEFORE')
-  await expect(page.locator('[data-save-label]')).toContainText('已保存')
-  expect(await page.evaluate('window.__milkupSaveProbe.text')).toBe('BEFORE')
+  await expect(page.locator('.milkup-editor-content')).toHaveText(original)
+  await expect(page.locator('[data-stat="version"]')).toHaveText(version!)
+  expect(await page.evaluate('window.__milkupSaveProbe.text')).toBe(original)
   expect(errors).toEqual([])
 })
 
-test('failed image imports show an error and a subsequent paste can succeed', async ({ page }) => {
-  await installPendingAssetProbe(page)
+test('browser image chooser failure and retry preserve the document and editable history', async ({
+  page,
+}) => {
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
-  await page.goto('/')
-  await pasteDelayedImage(page)
-  await page.evaluate("window.__milkupAssetProbe.release('error')")
-  await expect(page.locator('[data-notice]')).toContainText('asset disk full')
+  await setupImagesWorker(page)
+  await runMenuCommand(page, '打开')
+  await expect(page.locator('#app')).toHaveAttribute('data-loading', 'ready')
+  const original = await page.locator('.milkup-editor-content').textContent()
+  const version = await page.locator('[data-stat="version"]').textContent()
+  await openImagesPanel(page)
+  await imagesPanel(page).getByRole('button', { name: '选择并插入图片', exact: true }).click()
+  await expect(imagesPanel(page).getByRole('alert')).toContainText('暂不支持')
+  const renderedAgain = imagesPanel(page).evaluate(
+    (element) =>
+      new Promise<void>((resolve) => {
+        const observer = new MutationObserver(() => {
+          observer.disconnect()
+          resolve()
+        })
+        observer.observe(element, { childList: true, subtree: true, characterData: true })
+      }),
+  )
+  await imagesPanel(page).getByRole('button', { name: '重新选择图片', exact: true }).click()
+  await renderedAgain
+  await expect(
+    imagesPanel(page).getByRole('button', { name: '重新选择图片', exact: true }),
+  ).toBeEnabled()
+  await expect(imagesPanel(page).getByRole('alert')).toContainText('暂不支持')
+  await closeImagesPanel(page)
+  await expect(page.locator('.milkup-editor-content')).toHaveText(original!)
+  await expect(page.locator('[data-stat="version"]')).toHaveText(version!)
   await expect(page.locator('[data-save-label]')).toContainText('已保存')
-  await page.evaluate('window.__milkupAssetProbe.calls = 0')
-  await pasteDelayedImage(page)
-  await page.evaluate('window.__milkupAssetProbe.release()')
-  await expect(page.locator('[data-save-label]')).toContainText('未保存')
-  await page.keyboard.press('Control+1')
-  await expect(page.locator('.milkup-editor-content')).toContainText('![a](assets/a.png)')
-  await expect(page.locator('[data-notice]')).toBeHidden()
+  await page.keyboard.type('AFTER')
   await page.keyboard.press('Control+z')
-  await expect(page.locator('[data-stat="char-count"]')).toHaveText('0 字符')
+  await expect(page.locator('.milkup-editor-content')).toHaveText(original!)
   expect(errors).toEqual([])
 })
 
@@ -1030,11 +1045,14 @@ for (const mode of ['source', 'live'] as const) {
 
 const editableTable = '| Name | Value |\n| --- | --- |\n| A | 1 |\n| B | 2 |'
 async function openEditableTable(page: Page): Promise<void> {
-  await page.goto('/')
+  await formattingFixture(page)
+  await page.keyboard.press('Control+2')
   await page.locator('.milkup-input-proxy').focus()
   await page.keyboard.insertText(editableTable)
   await page.locator('.milkup-line[data-line="3"] .milkup-table-cell').first().click()
-  await page.getByRole('button', { name: '选中单元格', exact: true }).click()
+  // Native Shift+Tab/Tab selects the first body cell without a modal focus hop.
+  await page.keyboard.press('Tab')
+  await page.keyboard.press('Shift+Tab')
 }
 test('live table navigation replaces one cell, keeps line breaks and supports undo', async ({
   page,
@@ -1084,6 +1102,8 @@ test('table toolbar preserves row and column content through undo and redo', asy
   await page.keyboard.press('Control+Shift+z')
   await expect(page.locator('.milkup-line[data-line="1"] .milkup-table-cell')).toHaveCount(2)
   await page.getByRole('button', { name: '下方加行', exact: true }).click()
+  await expect(page.locator('.milkup-line')).toHaveCount(5)
+  await expect(page.locator('.milkup-input-proxy')).toBeFocused()
   await page.keyboard.type('new')
   await expect(page.locator('.milkup-line[data-line="4"] .milkup-table-cell').nth(1)).toHaveText(
     'new',
@@ -1148,6 +1168,10 @@ test('native-style multiline clipboard paste stays within a cell and table exit 
   await page.keyboard.press('Control+2')
   await page.keyboard.press('Control+z')
   await page.getByRole('button', { name: '退出表格', exact: true }).click()
+  // The public Worker command commits asynchronously; observe its structural
+  // result before issuing the next, independent typing transaction.
+  await expect(page.locator('.milkup-line[data-line="6"]')).toHaveCount(1)
+  await expect(page.locator('.milkup-input-proxy')).toBeFocused()
   await page.keyboard.type('after')
   await expect(page.locator('.milkup-line[data-line="6"]')).toHaveText('after')
   await page.keyboard.press('Control+z')
@@ -1407,13 +1431,16 @@ test('phase16 modal menu contains keyboard focus and closes ahead of background 
   await expect(page.locator('.milkup-input-proxy')).toBeFocused()
 })
 
-test('phase16 F6 reaches shell and table controls without inserting document text', async ({
+test('phase16 F6 reaches shell without plugins and keeps basic table navigation and document text', async ({
   page,
 }) => {
-  await openEditableTable(page)
+  await page.goto('/')
+  await page.locator('.milkup-input-proxy').focus()
+  await page.keyboard.insertText(editableTable)
+  await page.locator('.milkup-line[data-line="3"] .milkup-table-cell').first().click()
+  await page.keyboard.press('Tab')
+  await page.keyboard.press('Shift+Tab')
   const before = await page.locator('.milkup-editor-content').textContent()
-  await page.keyboard.press('F6')
-  await expect(page.locator('[data-table-action="select-cell"]')).toBeFocused()
   await page.keyboard.press('F6')
   await expect(page.locator('[data-sidebar-toggle]')).toBeFocused()
   await page.keyboard.press('F6')

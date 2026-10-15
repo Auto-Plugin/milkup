@@ -18,6 +18,7 @@ export type ActionPermission =
   | 'workspace:read'
   | 'settings:write'
   | 'app:keymap'
+  | 'images:import'
 
 export interface ActionInputField {
   readonly type: 'string' | 'number' | 'boolean'

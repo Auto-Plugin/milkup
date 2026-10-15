@@ -1,5 +1,9 @@
 import type { PluginKeymapBroker } from './keymap-broker'
+import type { PluginEditingBroker } from './editing-broker'
+import type { PluginResourcesBroker } from './resources-broker'
 import { createPluginKeymapRpcServer, type PluginKeymapRpcServer } from './keymap-rpc'
+import { createPluginEditingRpcServer, type PluginEditingRpcServer } from './editing-rpc'
+import { createPluginResourcesRpcServer, type PluginResourcesRpcServer } from './resources-rpc'
 import type { PluginSettingsBroker } from './settings-broker'
 import { createPluginSettingsRpcServer, type PluginSettingsRpcServer } from './settings-rpc'
 import type { PluginWorkspaceBroker } from './workspace-broker'
@@ -23,6 +27,8 @@ export interface PluginSidecarHostConfig extends PluginIsolationRpcHostOptions {
   readonly process: PluginSidecarProcess
   readonly moduleSpecifier?: string
   readonly keymapBroker?: PluginKeymapBroker
+  readonly editingBroker?: PluginEditingBroker
+  readonly resourcesBroker?: PluginResourcesBroker
   readonly settingsBroker?: PluginSettingsBroker
   readonly workspaceBroker?: PluginWorkspaceBroker
   readonly documentBroker?: PluginDocumentBroker
@@ -59,6 +65,8 @@ export function createSidecarPluginModule(config: PluginSidecarHostConfig): Plug
     workspaceBroker,
     settingsBroker,
     keymapBroker,
+    editingBroker,
+    resourcesBroker,
   } = config
   let sidecar: ActiveSidecar | undefined
 
@@ -78,6 +86,14 @@ export function createSidecarPluginModule(config: PluginSidecarHostConfig): Plug
     const keymapRpcServer =
       keymapBroker && manifest.permissions?.includes('app:keymap')
         ? createPluginKeymapRpcServer(endpoint, keymapBroker)
+        : undefined
+    const editingRpcServer =
+      editingBroker && manifest.permissions?.includes('document:write')
+        ? createPluginEditingRpcServer(endpoint, editingBroker)
+        : undefined
+    const resourcesRpcServer =
+      resourcesBroker && manifest.permissions?.includes('images:import')
+        ? createPluginResourcesRpcServer(endpoint, resourcesBroker)
         : undefined
     const settingsRpcServer =
       settingsBroker && manifest.permissions?.includes('settings:write')
@@ -99,6 +115,8 @@ export function createSidecarPluginModule(config: PluginSidecarHostConfig): Plug
       module,
       ...(documentRpcServer ? { documentRpcServer } : {}),
       ...(keymapRpcServer ? { keymapRpcServer } : {}),
+      ...(editingRpcServer ? { editingRpcServer } : {}),
+      ...(resourcesRpcServer ? { resourcesRpcServer } : {}),
       ...(settingsRpcServer ? { settingsRpcServer } : {}),
       ...(workspaceRpcServer ? { workspaceRpcServer } : {}),
       ...(uiRpcServer ? { uiRpcServer } : {}),
@@ -125,6 +143,8 @@ export function createSidecarPluginModule(config: PluginSidecarHostConfig): Plug
         await active.module.deactivate?.()
       } finally {
         active.keymapRpcServer?.dispose()
+        active.editingRpcServer?.dispose()
+        active.resourcesRpcServer?.dispose()
         active.settingsRpcServer?.dispose()
         active.workspaceRpcServer?.dispose()
         active.documentRpcServer?.dispose()
@@ -143,6 +163,8 @@ interface ActiveSidecar {
   readonly host: RpcPluginIsolationHost
   readonly module: PluginModule
   readonly keymapRpcServer?: PluginKeymapRpcServer
+  readonly editingRpcServer?: PluginEditingRpcServer
+  readonly resourcesRpcServer?: PluginResourcesRpcServer
   readonly settingsRpcServer?: PluginSettingsRpcServer
   readonly workspaceRpcServer?: PluginWorkspaceRpcServer
   readonly documentRpcServer?: PluginDocumentRpcServer

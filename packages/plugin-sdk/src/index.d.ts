@@ -1,3 +1,144 @@
+export interface SdkEditingOperationOptions {
+  readonly signal?: AbortSignal
+}
+export interface SdkEditingRange {
+  readonly from: number
+  readonly to: number
+}
+export interface SdkEditingSelection {
+  readonly anchor: number
+  readonly head: number
+}
+export interface SdkEditingCaptureRequest {
+  readonly extent: 'selection' | 'lines'
+  readonly beforeLines?: number
+  readonly afterLines?: number
+}
+export interface SdkEditingSyntaxNode extends SdkEditingRange {
+  readonly type: string
+  readonly status: 'valid' | 'incomplete' | 'invalid' | 'fallback'
+  readonly markerRanges: readonly SdkEditingRange[]
+  readonly contentRanges?: readonly SdkEditingRange[]
+}
+export interface SdkEditingSnapshot extends SdkEditingRange {
+  readonly id: string
+  readonly documentId: string
+  readonly version: number
+  readonly selectionRevision: number
+  readonly saveLocationGeneration: number
+  readonly text: string
+  readonly selection: SdkEditingSelection
+  readonly startLine: number
+  readonly lineCount: number
+  readonly lineEnding: 'lf' | 'crlf'
+  readonly mode: 'memory' | 'windowed'
+  readonly context?: {
+    readonly kind: 'text' | 'code' | 'table' | 'unknown'
+    readonly complete: boolean
+  }
+  readonly syntax?: { readonly nodes: readonly SdkEditingSyntaxNode[] }
+  readonly table?: {
+    readonly row: number
+    readonly column: number
+    readonly rowCount: number
+    readonly columnCount: number
+    readonly alignment: 'left' | 'center' | 'right' | 'default'
+    readonly withinCell: boolean
+  }
+}
+export interface SdkEditingApplyRequest {
+  readonly snapshotId: string
+  readonly changes: readonly (SdkEditingRange & { readonly insert: string })[]
+  readonly selection?: SdkEditingSelection
+  readonly assetIds?: readonly string[]
+}
+export type SdkEditingTableRequest =
+  | {
+      readonly snapshotId: string
+      readonly operation: 'insert-table'
+      readonly rows: number
+      readonly columns: number
+    }
+  | {
+      readonly snapshotId: string
+      readonly operation: 'align-column'
+      readonly alignment: 'left' | 'center' | 'right' | 'default'
+    }
+  | { readonly snapshotId: string; readonly operation: 'set-cell'; readonly text: string }
+  | {
+      readonly snapshotId: string
+      readonly operation:
+        | 'add-row'
+        | 'delete-row'
+        | 'add-column'
+        | 'delete-column'
+        | 'clear-cell'
+        | 'select-cell'
+        | 'select-table'
+        | 'exit'
+    }
+export interface SdkEditingApplyResult {
+  readonly documentId: string
+  readonly version: number
+}
+export interface SdkPluginEditingHost {
+  capture(
+    request: SdkEditingCaptureRequest,
+    options?: SdkEditingOperationOptions,
+  ): Promise<SdkEditingSnapshot>
+  apply(
+    request: SdkEditingApplyRequest,
+    options?: SdkEditingOperationOptions,
+  ): Promise<SdkEditingApplyResult>
+  table(
+    request: SdkEditingTableRequest,
+    options?: SdkEditingOperationOptions,
+  ): Promise<SdkEditingApplyResult>
+  release(id: string, options?: SdkEditingOperationOptions): Promise<void>
+}
+export interface SdkResourcesOperationOptions {
+  readonly signal?: AbortSignal
+}
+export interface SdkResourcesPrepareRequest {
+  readonly pasteId?: string
+}
+export type SdkResourcesPrepareResult =
+  { readonly status: 'ready'; readonly id: string } | { readonly status: 'cancelled' }
+export type SdkResourcesMimeType = 'image/png' | 'image/jpeg' | 'image/webp'
+export interface SdkResourcesSource {
+  readonly id: string
+  readonly name: string
+  readonly mimeType: SdkResourcesMimeType
+  readonly sizeBytes: number
+}
+export interface SdkResourcesStageRequest {
+  readonly sourceId: string
+  readonly snapshotId: string
+  readonly strategy: 'assets' | 'document-assets'
+}
+export interface SdkResourcesAsset {
+  readonly id: string
+  readonly reference: string
+  readonly mimeType: SdkResourcesMimeType
+  readonly width: number
+  readonly height: number
+  readonly sizeBytes: number
+}
+export interface SdkPluginResourcesHost {
+  prepareDocument(
+    request?: SdkResourcesPrepareRequest,
+    options?: SdkResourcesOperationOptions,
+  ): Promise<SdkResourcesPrepareResult>
+  choose(
+    intentId: string,
+    options?: SdkResourcesOperationOptions,
+  ): Promise<SdkResourcesSource | null>
+  stage(
+    request: SdkResourcesStageRequest,
+    options?: SdkResourcesOperationOptions,
+  ): Promise<SdkResourcesAsset>
+  abort(id: string, options?: SdkResourcesOperationOptions): Promise<void>
+}
 export interface SdkKeymapCommand {
   readonly id: string
   readonly title: string
@@ -216,6 +357,8 @@ export interface SdkPluginDocumentHost {
 }
 
 export interface SdkPluginUiHost {
+  open(viewId: string): Promise<void>
+  notify(notice: { readonly kind: 'info' | 'error'; readonly message: string }): Promise<void>
   requestUpdate(viewId?: string): Promise<void>
   revealLine(line: number): Promise<void>
 }
@@ -306,6 +449,8 @@ export interface SdkReleaseInstallResult {
 }
 
 export interface SdkPluginHost {
+  readonly editing?: SdkPluginEditingHost
+  readonly resources?: SdkPluginResourcesHost
   readonly workspace?: SdkPluginWorkspaceReadHost
   readonly keymap?: SdkPluginKeymapHost
   readonly settings?: SdkPluginSettingsHost
@@ -346,6 +491,8 @@ export type SdkPluginUiPhase = 'mount' | 'update' | 'focus' | 'blur' | 'dispose'
 
 /** UI lifecycle snapshot. dispose may contain only phase and documentId. */
 export interface SdkPluginUiNode {
+  readonly documentEditable?: boolean
+  readonly selectionRevision?: number
   /** Actual host view visibility; false when collapsed. Older hosts default to true. */
   readonly visible?: boolean
   readonly phase?: SdkPluginUiPhase

@@ -1,13 +1,15 @@
 import type { PluginIsolationRpcEndpoint, PluginIsolationRpcMessageListener } from './isolation-rpc'
-import type { PluginUiBroker } from './ui-broker'
+import { assertPluginUiNotice, type PluginUiNotice, type PluginUiBroker } from './ui-broker'
 
 interface UiRpcMessage {
   readonly protocol: typeof UI_RPC_PROTOCOL
   readonly type: 'request' | 'response'
   readonly id: string
-  readonly method?: 'requestUpdate' | 'revealLine'
+  readonly method?: 'requestUpdate' | 'revealLine' | 'open' | 'notify'
   readonly viewId?: string
   readonly line?: number
+  readonly gesture?: string
+  readonly notice?: PluginUiNotice
   readonly ok?: boolean
   readonly error?: { readonly message: string }
 }
@@ -43,6 +45,9 @@ export function createRpcPluginUiBroker(
     requestUpdate: (viewId?: string) =>
       request('requestUpdate', viewId === undefined ? {} : { viewId }),
     revealLine: (line: number) => request('revealLine', { line }),
+    open: (viewId: string, gesture?: string) =>
+      request('open', { viewId, ...(gesture ? { gesture } : {}) }),
+    notify: (notice: PluginUiNotice) => request('notify', { notice }),
     dispose: () => {
       disposed = true
       remove()
@@ -56,7 +61,7 @@ export function createRpcPluginUiBroker(
 
   function request(
     method: NonNullable<UiRpcMessage['method']>,
-    input: Pick<UiRpcMessage, 'viewId' | 'line'>,
+    input: Pick<UiRpcMessage, 'viewId' | 'line' | 'gesture' | 'notice'>,
   ): Promise<void> {
     if (disposed) return Promise.reject(new Error('Plugin UI RPC broker is disposed'))
     const id = `${Date.now().toString(36)}-${(nextId++).toString(36)}`
@@ -88,6 +93,13 @@ export function createPluginUiRpcServer(
       try {
         if (message.method === 'revealLine') {
           await broker.revealLine(Number(message.line))
+        } else if (message.method === 'open') {
+          if (!broker.open) throw new Error('Plugin modal is unavailable')
+          await broker.open(message.viewId!, message.gesture)
+        } else if (message.method === 'notify') {
+          assertPluginUiNotice(message.notice)
+          if (!broker.notify) throw new Error('Plugin notices unavailable')
+          await broker.notify(message.notice)
         } else {
           await broker.requestUpdate(message.viewId)
         }
@@ -129,9 +141,45 @@ function addListener(
 function readMessage(value: unknown): UiRpcMessage | undefined {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined
   const message = value as Partial<UiRpcMessage>
-  return message.protocol === UI_RPC_PROTOCOL &&
-    typeof message.id === 'string' &&
-    (message.type === 'request' || message.type === 'response')
-    ? (message as UiRpcMessage)
-    : undefined
+  if (
+    message.protocol !== UI_RPC_PROTOCOL ||
+    typeof message.id !== 'string' ||
+    message.id.length > 128
+  )
+    return undefined
+  if (message.type === 'request') {
+    const keys =
+      message.method === 'requestUpdate'
+        ? ['viewId']
+        : message.method === 'revealLine'
+          ? ['line']
+          : message.method === 'open'
+            ? ['viewId', 'gesture']
+            : message.method === 'notify'
+              ? ['notice']
+              : undefined
+    if (
+      !keys ||
+      Object.keys(message).some((k) => !['protocol', 'type', 'id', 'method', ...keys].includes(k))
+    )
+      return undefined
+    if (
+      message.viewId !== undefined &&
+      (typeof message.viewId !== 'string' || message.viewId.length > 128)
+    )
+      return undefined
+    if (
+      message.method === 'open' &&
+      (typeof message.viewId !== 'string' ||
+        (message.gesture !== undefined && typeof message.gesture !== 'string'))
+    )
+      return undefined
+    if (
+      message.method === 'revealLine' &&
+      (!Number.isSafeInteger(message.line) || message.line! < 1)
+    )
+      return undefined
+    return message as UiRpcMessage
+  }
+  return message.type === 'response' ? (message as UiRpcMessage) : undefined
 }

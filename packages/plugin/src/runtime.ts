@@ -4,6 +4,16 @@ import {
   type PluginKeymapHost,
 } from './keymap-broker'
 import {
+  createPluginEditingHostCapabilities,
+  type PluginEditingBroker,
+  type PluginEditingHost,
+} from './editing-broker'
+import {
+  createPluginResourcesHostCapabilities,
+  type PluginResourcesBroker,
+  type PluginResourcesHost,
+} from './resources-broker'
+import {
   createPluginSettingsHostCapabilities,
   type PluginSettingsBroker,
   type PluginSettingsHost,
@@ -66,6 +76,8 @@ export interface PluginRuntimeOptions {
   readonly networkBroker?: PluginNetworkBroker | PluginNetworkBrokerProvider
   readonly workspaceBroker?: PluginWorkspaceBroker | PluginWorkspaceBrokerProvider
   readonly keymapBroker?: PluginKeymapBroker | PluginKeymapBrokerProvider
+  readonly editingBroker?: PluginEditingBroker | PluginEditingBrokerProvider
+  readonly resourcesBroker?: PluginResourcesBroker | PluginResourcesBrokerProvider
   readonly settingsBroker?: PluginSettingsBroker | PluginSettingsBrokerProvider
   readonly releasesBroker?: PluginReleasesBroker | PluginReleasesBrokerProvider
   readonly storageBroker?: PluginStorageBroker | PluginStorageBrokerProvider
@@ -85,6 +97,12 @@ export type PluginWorkspaceBrokerProvider = (
 export type PluginKeymapBrokerProvider = (
   manifest: PluginManifest,
 ) => PluginKeymapBroker | undefined
+export type PluginEditingBrokerProvider = (
+  manifest: PluginManifest,
+) => PluginEditingBroker | undefined
+export type PluginResourcesBrokerProvider = (
+  manifest: PluginManifest,
+) => PluginResourcesBroker | undefined
 export type PluginSettingsBrokerProvider = (
   manifest: PluginManifest,
 ) => PluginSettingsBroker | undefined
@@ -164,6 +182,8 @@ export interface RestrictedPluginHost {
   readonly deleteFile?: PluginHostCapabilities['deleteFile']
   readonly fetch?: PluginHostCapabilities['fetch']
   readonly keymap?: PluginKeymapHost
+  readonly editing?: PluginEditingHost
+  readonly resources?: PluginResourcesHost
   readonly settings?: PluginSettingsHost
   readonly releases?: PluginReleasesHost
   readonly storage?: PluginStorageBroker
@@ -224,6 +244,7 @@ const ACTION_PERMISSIONS = new Set<ActionPermission>([
   'workspace:read',
   'settings:write',
   'app:keymap',
+  'images:import',
 ])
 
 export class PluginRuntime {
@@ -240,6 +261,9 @@ export class PluginRuntime {
   private readonly workspaceBroker:
     PluginWorkspaceBroker | PluginWorkspaceBrokerProvider | undefined
   private readonly keymapBroker: PluginKeymapBroker | PluginKeymapBrokerProvider | undefined
+  private readonly editingBroker: PluginEditingBroker | PluginEditingBrokerProvider | undefined
+  private readonly resourcesBroker:
+    PluginResourcesBroker | PluginResourcesBrokerProvider | undefined
   private readonly settingsBroker: PluginSettingsBroker | PluginSettingsBrokerProvider | undefined
   private readonly releasesBroker: PluginReleasesBroker | PluginReleasesBrokerProvider | undefined
   private readonly storageBroker: PluginStorageBroker | PluginStorageBrokerProvider | undefined
@@ -256,6 +280,8 @@ export class PluginRuntime {
     this.networkBroker = options.networkBroker
     this.workspaceBroker = options.workspaceBroker
     this.keymapBroker = options.keymapBroker
+    this.editingBroker = options.editingBroker
+    this.resourcesBroker = options.resourcesBroker
     this.settingsBroker = options.settingsBroker
     this.releasesBroker = options.releasesBroker
     this.storageBroker = options.storageBroker
@@ -311,6 +337,8 @@ export class PluginRuntime {
           resolvePluginWorkspaceBroker(plugin.manifest, this.workspaceBroker),
           resolvePluginSettingsBroker(plugin.manifest, this.settingsBroker),
           resolvePluginKeymapBroker(plugin.manifest, this.keymapBroker),
+          resolvePluginEditingBroker(plugin.manifest, this.editingBroker),
+          resolvePluginResourcesBroker(plugin.manifest, this.resourcesBroker),
           () => plugin.capabilityGeneration === generation,
         ),
       })
@@ -450,7 +478,12 @@ export class PluginRuntime {
     }
 
     const generation = plugin.capabilityGeneration
-    const bufferedEditor = context.editor ? new BufferedPluginEditor(context.editor) : undefined
+    const bufferedEditor = context.editor
+      ? new BufferedPluginEditor(
+          context.editor,
+          effectiveCommandPermissions(plugin.manifest, command),
+        )
+      : undefined
     const workspaceGesture = pluginCommandGesture(context, plugin.manifest.id)
     const commandContext: PluginCommandContext = {
       plugin: toInfo(plugin),
@@ -467,6 +500,8 @@ export class PluginRuntime {
         resolvePluginWorkspaceBroker(plugin.manifest, this.workspaceBroker),
         resolvePluginSettingsBroker(plugin.manifest, this.settingsBroker),
         resolvePluginKeymapBroker(plugin.manifest, this.keymapBroker),
+        resolvePluginEditingBroker(plugin.manifest, this.editingBroker),
+        resolvePluginResourcesBroker(plugin.manifest, this.resourcesBroker),
         () => plugin.state === 'enabled' && plugin.capabilityGeneration === generation,
         effectiveCommandPermissions(plugin.manifest, command),
         true,
@@ -480,6 +515,8 @@ export class PluginRuntime {
     bindPluginCommandGesture(commandContext, workspaceGesture)
     try {
       const value = await handler(commandContext, input)
+      if (plugin.state !== 'enabled' || plugin.capabilityGeneration !== generation)
+        throw new Error('Plugin command capability was revoked')
       bufferedEditor?.commit()
 
       return Object.freeze({
@@ -640,7 +677,12 @@ class BufferedPluginEditor implements Editor {
   private readonly shadow: BasicEditor
   private readonly transactions: Transaction[] = []
 
-  constructor(private readonly target: Editor) {
+  private readonly initialState: Editor['state']
+  constructor(
+    private readonly target: Editor,
+    private readonly permissions: readonly PluginPermission[],
+  ) {
+    this.initialState = target.state
     this.shadow = new BasicEditor(target.state)
   }
 
@@ -649,6 +691,25 @@ class BufferedPluginEditor implements Editor {
   }
 
   dispatch(transaction: Transaction): void {
+    if (
+      transaction.changes &&
+      !transaction.changes.empty &&
+      !this.permissions.includes('document:write')
+    )
+      throw new Error('Plugin document write permission is required')
+    if (
+      transaction.selection &&
+      !this.permissions.includes('view:write') &&
+      !this.permissions.includes('document:write')
+    )
+      throw new Error('Plugin view write permission is required')
+    if (
+      this.transactions.length >= 64 ||
+      (transaction.changes?.changes.length ?? 0) > 64 ||
+      (transaction.changes?.changes.reduce((sum, change) => sum + change.insert.length, 0) ?? 0) >
+        65536
+    )
+      throw new Error('Plugin transaction exceeds limits')
     this.transactions.push(transaction)
     this.shadow.dispatch(transaction)
   }
@@ -666,6 +727,8 @@ class BufferedPluginEditor implements Editor {
   }
 
   commit(): void {
+    if (this.transactions.length && this.target.state !== this.initialState)
+      throw new Error('Plugin editor snapshot is stale')
     for (const transaction of this.transactions) {
       this.target.dispatch(transaction)
     }
@@ -738,6 +801,8 @@ function createRestrictedHost(
   workspaceBroker?: PluginWorkspaceBroker,
   settingsBroker?: PluginSettingsBroker,
   keymapBroker?: PluginKeymapBroker,
+  editingBroker?: PluginEditingBroker,
+  resourcesBroker?: PluginResourcesBroker,
   isActive?: () => boolean,
   permissions: readonly PluginPermission[] = manifest.permissions ?? [],
   command = false,
@@ -753,7 +818,13 @@ function createRestrictedHost(
         ? { document: host.document }
         : {}),
     ...(uiBroker
-      ? { ui: createPluginUiHostCapabilities(uiBroker) }
+      ? {
+          ui: createPluginUiHostCapabilities(
+            uiBroker,
+            isActive,
+            command ? workspaceGesture : undefined,
+          ),
+        }
       : host.ui
         ? { ui: host.ui }
         : {}),
@@ -782,6 +853,20 @@ function createRestrictedHost(
       : {}),
     ...(permissions.includes('app:keymap') && keymapBroker
       ? { keymap: createPluginKeymapHostCapabilities(keymapBroker, isActive) }
+      : {}),
+    ...(permissions.includes('document:read') &&
+    permissions.includes('document:write') &&
+    editingBroker
+      ? { editing: createPluginEditingHostCapabilities(editingBroker, isActive) }
+      : {}),
+    ...(permissions.includes('images:import') && resourcesBroker
+      ? {
+          resources: createPluginResourcesHostCapabilities(
+            resourcesBroker,
+            isActive,
+            workspaceGesture,
+          ),
+        }
       : {}),
     ...(permissions.includes('settings:write') && settingsBroker
       ? { settings: createPluginSettingsHostCapabilities(settingsBroker, isActive) }
@@ -856,5 +941,19 @@ function resolvePluginKeymapBroker(
   broker: PluginKeymapBroker | PluginKeymapBrokerProvider | undefined,
 ): PluginKeymapBroker | undefined {
   if (!manifest.permissions?.includes('app:keymap')) return undefined
+  return typeof broker === 'function' ? broker(manifest) : broker
+}
+function resolvePluginEditingBroker(
+  manifest: PluginManifest,
+  broker: PluginEditingBroker | PluginEditingBrokerProvider | undefined,
+): PluginEditingBroker | undefined {
+  if (!manifest.permissions?.includes('document:write')) return undefined
+  return typeof broker === 'function' ? broker(manifest) : broker
+}
+function resolvePluginResourcesBroker(
+  manifest: PluginManifest,
+  broker: PluginResourcesBroker | PluginResourcesBrokerProvider | undefined,
+): PluginResourcesBroker | undefined {
+  if (!manifest.permissions?.includes('images:import')) return undefined
   return typeof broker === 'function' ? broker(manifest) : broker
 }

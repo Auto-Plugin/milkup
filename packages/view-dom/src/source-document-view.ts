@@ -14,6 +14,19 @@ import {
   taskMarkerFromEvent,
 } from './live-controls'
 import { MeasuredLineHeights } from './measured-line-heights'
+import {
+  ImagePasteSession,
+  ImagePresentation,
+  type ImagePasteHandler,
+  type EmptyPasteHandler,
+  type ImageResolver,
+} from './image-presentation'
+import {
+  editingContextFromState,
+  editingContextLimits,
+  type EditingContext,
+  type EditingSelection,
+} from './editing-context'
 import { WindowedTableReader, boundedTableState, pipeLine } from './windowed-table'
 import {
   tableCommand,
@@ -22,7 +35,7 @@ import {
   type TableCommand,
 } from './table-editing'
 import type { Transaction } from '@milkup/core'
-import { ChangeSet, Selection } from '@milkup/core'
+import { ChangeSet, Selection, EditorState } from '@milkup/core'
 import {
   MemoryTextDocument,
   type DocumentLineWindow,
@@ -30,6 +43,7 @@ import {
 } from '@milkup/core'
 import {
   parseInline,
+  parseMarkdown,
   parseMarkdownWindow,
   type MarkdownWindowParseResult,
   type SyntaxNode,
@@ -57,6 +71,9 @@ import {
 import type { SearchHighlight, ViewMode, VirtualViewportConfig } from './types'
 
 export interface SourceDocumentViewConfig {
+  readonly onImagePaste?: ImagePasteHandler
+  readonly onEmptyPaste?: EmptyPasteHandler
+  readonly imageResolver?: ImageResolver
   readonly presentation?: EditorPresentation
   readonly parent: HTMLElement
   readonly source: EditorDocumentSource
@@ -127,6 +144,17 @@ export class SourceDocumentView {
   private currentSource: EditorDocumentSource
   private readonly measuredHeights = new MeasuredLineHeights()
   private readonly tableReader = new WindowedTableReader()
+  private editingContextCache:
+    | {
+        readonly source: EditorDocumentSource
+        readonly version: number
+        readonly window: DocumentLineWindow
+        readonly state: EditorState
+        readonly root: SyntaxNode
+      }
+    | undefined
+  private readonly imagePaste: ImagePasteSession
+  private readonly images: ImagePresentation
   private tableStarts: readonly number[] = []
   private mode: ViewMode
   private editable: boolean
@@ -135,8 +163,23 @@ export class SourceDocumentView {
   private destroyed = false
   private fenceContextKey = ''
   private readonly fenceCheckpoints = new Map<number, string | undefined>()
-  private cursorPosition = 0
-  private selectionAnchor = 0
+  private selectionGeneration = 0
+  private storedCursorPosition = 0
+  private get cursorPosition(): number {
+    return this.storedCursorPosition
+  }
+  private set cursorPosition(value: number) {
+    if (value !== this.storedCursorPosition) this.selectionGeneration++
+    this.storedCursorPosition = value
+  }
+  private storedSelectionAnchor = 0
+  private get selectionAnchor(): number {
+    return this.storedSelectionAnchor
+  }
+  private set selectionAnchor(value: number) {
+    if (value !== this.storedSelectionAnchor) this.selectionGeneration++
+    this.storedSelectionAnchor = value
+  }
   private readonly onEdit: SourceDocumentEditHandler | undefined
   private readonly markdownContextLines: number
   private readonly markdownCacheSize: number
@@ -145,7 +188,7 @@ export class SourceDocumentView {
   private readonly markdownWarmupDelayMs: number
   private readonly markdownCache = new Map<string, Promise<MarkdownWindowParseResult>>()
   private markdownWarmupTimer: ReturnType<typeof setTimeout> | undefined
-  private isComposing = false
+  private composing = false
   private compositionText = ''
   private compositionCommitQueue: Promise<void> = Promise.resolve()
   private compositionCommitError: unknown
@@ -187,12 +230,12 @@ export class SourceDocumentView {
     void this.trackVisibleEditTask(() => this.readInputProxy())
   }
   private readonly handleCompositionStartEvent = (): void => {
-    this.isComposing = true
+    this.composing = true
     this.compositionText = ''
     this.renderCompositionText()
   }
   private readonly handleCompositionUpdateEvent = (event: CompositionEvent): void => {
-    this.isComposing = true
+    this.composing = true
     this.compositionText = event.data
     this.renderCompositionText()
   }
@@ -201,7 +244,7 @@ export class SourceDocumentView {
     const text = event.data
     // Clear this synchronously so the next Enter/Delete is handled as an editor key,
     // even while the finalized IME text waits for an earlier native edit to finish.
-    this.isComposing = false
+    this.composing = false
     this.compositionText = ''
     this.inputDOM.value = ''
     this.renderCompositionText()
@@ -221,6 +264,9 @@ export class SourceDocumentView {
       event.preventDefault()
       return
     }
+
+    if (this.composing) return
+    if (this.imagePaste.handle(event, this.currentSelection().main)) return
 
     const text = event.clipboardData?.getData('text/plain') ?? ''
 
@@ -391,11 +437,38 @@ export class SourceDocumentView {
     this.inputDOM.addEventListener('compositionupdate', this.handleCompositionUpdateEvent)
     this.inputDOM.addEventListener('compositionend', this.handleCompositionEndEvent)
     config.parent.append(this.dom)
+    this.imagePaste = new ImagePasteSession(
+      config.onImagePaste,
+      (error) => {
+        if (!this.destroyed)
+          this.dom.dispatchEvent(new CustomEvent('milkup-input-error', { detail: error }))
+      },
+      config.onEmptyPaste,
+    )
+    this.images = new ImagePresentation(this.contentDOM, config.imageResolver, () => {
+      if (!this.destroyed) {
+        this.measureTableRows()
+        this.renderSelection()
+        this.renderCursor()
+      }
+    })
     if (config.presentation) {
       this.presentation = validatePresentation(config.presentation)
       applyPresentation(this.dom, this.presentation)
     }
     void this.renderVisibleWindow()
+  }
+
+  get isComposing(): boolean {
+    return this.composing
+  }
+
+  refreshResourceImages(): void {
+    this.images.refresh()
+  }
+
+  get selectionRevision(): number {
+    return this.selectionGeneration
   }
 
   get lineHeight(): number {
@@ -457,11 +530,13 @@ export class SourceDocumentView {
   }
 
   updateSource(source: EditorDocumentSource): void {
+    this.imagePaste.abort()
     this.navigationRevision += 1
     const documentChanged = source.documentId !== this.currentSource.documentId
 
     this.measuredHeights.clear()
     this.currentSource = source
+    this.editingContextCache = undefined
     this.sourceWindowCache.clear()
     this.sourceWindowCacheLength = 0
     this.renderedSourceWindow = undefined
@@ -487,6 +562,7 @@ export class SourceDocumentView {
   }
 
   setEditable(editable: boolean): void {
+    if (!editable) this.imagePaste.abort()
     if (this.editable === editable) {
       return
     }
@@ -695,6 +771,8 @@ export class SourceDocumentView {
   }
 
   destroy(): void {
+    this.imagePaste.abort()
+    this.images.destroy()
     this.destroyed = true
     this.navigationRevision += 1
     this.cancelMarkdownWarmup()
@@ -754,7 +832,9 @@ export class SourceDocumentView {
     if (this.mode !== 'live') return
     for (const row of Array.from(
       this.contentDOM.querySelectorAll<HTMLElement>(
-        this.presentation ? '.milkup-line' : '.milkup-block-table',
+        this.presentation
+          ? '.milkup-line'
+          : '.milkup-block-table, .milkup-line:has(.milkup-image-preview)',
       ),
     )) {
       const height = row.getBoundingClientRect().height
@@ -1038,12 +1118,87 @@ export class SourceDocumentView {
   }
 
   runTableCommand(command: TableCommand): Promise<void> {
-    return this.trackVisibleEditTask(() => this.applyTableCommand(command))
+    return this.trackVisibleEditTask(async () => {
+      if (this.mode === 'live') return this.applyTableCommand(command)
+      if (!this.editable || this.composing) return
+      const revision = this.selectionRevision
+      const context = await this.readEditingContext()
+      if (!context.table || !this.editable || this.composing || this.selectionRevision !== revision)
+        return
+      const table = context.table
+      const text = table.text + (this.editingContextCache?.window.text.slice(table.to) ?? '')
+      const state = new EditorState({
+        doc: new MemoryTextDocument(text),
+        selection: Selection.range(
+          table.selection.anchor - table.from,
+          table.selection.head - table.from,
+        ),
+      })
+      const local = boundedTableState(
+        {
+          from: table.from,
+          to: table.from + text.length,
+          fromLine: 1,
+          toLine: state.doc.lineCount,
+          text,
+          lines: [],
+        },
+        this.currentSelection(),
+      )
+      if (!local) return
+      const transaction = tableCommand(local.state, local.context, command)
+      if (transaction) await this.applyLocalTableTransaction(transaction, table.from)
+    })
+  }
+
+  /** No edit queue is entered here: a host may call this inside runAfterPendingEdits. */
+  async readEditingContext(
+    selection: EditingSelection = this.currentSelection().main,
+    signal?: AbortSignal,
+  ): Promise<EditingContext> {
+    signal?.throwIfAborted()
+    const source = this.currentSource,
+      version = source.version
+    const unknown: EditingContext = { kind: 'unknown', complete: false }
+    const current = () =>
+      !this.destroyed && this.currentSource === source && source.version === version
+    try {
+      // Parse from a proven document boundary. Existing distant top-level fence
+      // checkpoints cannot prove nested-container context, so those remain unknown.
+      let cached = this.editingContextCache
+      if (!cached || cached.source !== source || cached.version !== version) {
+        const window = await source.readLineWindow(
+          1,
+          Math.min(source.lineCount, editingContextLimits.lines),
+          editingContextLimits.text,
+        )
+        signal?.throwIfAborted()
+        if (!current()) return unknown
+        const state = new EditorState({ doc: new MemoryTextDocument(window.text) })
+        cached = { source, version, window, state, root: parseMarkdown(window.text).root }
+        this.editingContextCache = cached
+      }
+      const { window } = cached
+      signal?.throwIfAborted()
+      if (!current() || Math.max(selection.anchor, selection.head) > window.to) return unknown
+      const state = cached.state.applyTransaction({
+        selection: Selection.range(selection.anchor, selection.head),
+        addToHistory: false,
+      })
+      const context = editingContextFromState(state, cached.root)
+      if (context.table && window.toLine < source.lineCount && context.table.to >= window.to)
+        return { kind: 'table', complete: false }
+      return context
+    } catch (error) {
+      signal?.throwIfAborted()
+      if (error instanceof RangeError && String(error).includes('text budget')) return unknown
+      throw error
+    }
   }
 
   private async applyTableCommand(command: TableCommand): Promise<void> {
     const table = this.localTable()
-    if (!table || !this.editable) return
+    if (!table || !this.editable || this.composing) return
     const transaction = tableCommand(table.state, table.context, command)
     if (transaction) await this.applyLocalTableTransaction(transaction, table.offset)
   }
@@ -1205,7 +1360,7 @@ export class SourceDocumentView {
       return
     }
 
-    if (this.isComposing) {
+    if (this.composing) {
       return
     }
 
@@ -1266,7 +1421,7 @@ export class SourceDocumentView {
     }
 
     if (event.key.length === 1) {
-      if (this.isComposing) {
+      if (this.composing) {
         return false
       }
 
@@ -1621,7 +1776,7 @@ export class SourceDocumentView {
     if (
       !this.editable ||
       !this.onEdit ||
-      this.isComposing ||
+      this.composing ||
       this.destroyed ||
       this.mode !== 'live' ||
       this.taskTogglePending ||
@@ -2702,7 +2857,7 @@ export class SourceDocumentView {
   private renderCompositionText(): void {
     this.cursorLayerDOM.querySelector<HTMLElement>('.milkup-composition')?.remove()
 
-    if (!this.isComposing || this.compositionText.length === 0) {
+    if (!this.composing || this.compositionText.length === 0) {
       return
     }
 
@@ -3464,6 +3619,15 @@ function renderInlineNode(
   span.dataset.status = node.status
   span.dataset.syntaxVisible = String(shouldShowInlineSyntax(line, node, selection))
   span.replaceChildren(...renderInlineNodePieces(document, line, selection, node))
+  if (
+    node.type === 'image' &&
+    node.status === 'valid' &&
+    typeof node.data?.destination === 'string'
+  ) {
+    span.dataset.imageUrl = node.data.destination
+    span.dataset.imageAlt = typeof node.data.label === 'string' ? node.data.label : ''
+  }
+  if (node.type === 'strikethrough') span.style.textDecoration = 'line-through'
   if (node.type === 'hardBreak' && node.data?.kind === 'html')
     span.append(document.createElement('br'))
   return span

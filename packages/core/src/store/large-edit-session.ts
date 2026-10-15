@@ -6,7 +6,7 @@ export interface LargeTextEdit extends Change {
 }
 
 export interface LargeTextEditBatch {
-  readonly historyGroup?: 'typing' | undefined
+  readonly historyGroup?: 'typing' | 'isolate' | undefined
   readonly nativeHistory?:
     { readonly token: string; readonly direction: 'undo' | 'redo' } | undefined
   readonly edits: readonly LargeTextEdit[]
@@ -93,7 +93,7 @@ export class LargeEditSession {
     changes: ChangeSet,
     deletedTextByChange: readonly string[],
     selections: {
-      readonly historyGroup?: 'typing' | undefined
+      readonly historyGroup?: 'typing' | 'isolate' | undefined
       readonly selectionBefore?: Selection | undefined
       readonly selectionAfter?: Selection | undefined
     } = {},

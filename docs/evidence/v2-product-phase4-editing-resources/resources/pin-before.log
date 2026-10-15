@@ -1,0 +1,70 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ❯ src/resource-service.test.ts (14 tests | 2 failed) 79ms
+   ✓ desktop host-owned resource transactions > finishes the ordinary first Save As before allowing the native chooser 5ms
+   ✓ desktop host-owned resource transactions > cancelled first save creates no native resource or chooser grant 1ms
+   ✓ desktop host-owned resource transactions > a new save location invalidates a staged source before disk writes 2ms
+   ✓ desktop host-owned resource transactions > binds source handles to their plugin instance 2ms
+   ✓ desktop host-owned resource transactions > disposal rejects and releases a chooser result arriving after disable 52ms
+   ✓ desktop host-owned resource transactions > rolls back a stage arriving after document selection changed 1ms
+   ✓ desktop host-owned resource transactions > rechecks document CAS after native asset verification 1ms
+   ✓ desktop host-owned resource transactions > accepted resources survive abort/disposal even if the native ACK throws 1ms
+   ✓ desktop host-owned resource transactions > disposing an unaccepted asset cleans only its native transaction once 1ms
+   × desktop host-owned resource transactions > pins a native commit against worker disposal until successful adoption 7ms
+     → expected true to be false // Object.is equality
+   × desktop host-owned resource transactions > defers worker-disposal cleanup until a failed native commit releases its pin 1ms
+     → expected true to be false // Object.is equality
+   ✓ desktop host-owned resource transactions > never resolves network, traversal or arbitrary local paths 1ms
+   ✓ desktop host-owned resource transactions > revokes its object URL on abort and disposal is idempotent 1ms
+   ✓ desktop host-owned resource transactions > rejects a forged clipboard event before creating any grant 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/resource-service.test.ts > desktop host-owned resource transactions > pins a native commit against worker disposal until successful adoption
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/resource-service.test.ts:217:77
+    215|     f.owner.dispose()
+    216|     await f.owner.adapter.abort(asset.id)
+    217|     expect(f.calls.mock.calls.some(([name]) => name === 'resources_abo…
+       |                                                                             ^
+    218|     f.service.acceptAssets([asset.id])
+    219|     await f.service.releasePins([asset.id])
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/resource-service.test.ts > desktop host-owned resource transactions > defers worker-disposal cleanup until a failed native commit releases its pin
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/resource-service.test.ts:228:77
+    226|     f.service.pinAssets([asset.id])
+    227|     f.owner.dispose()
+    228|     expect(f.calls.mock.calls.some(([name]) => name === 'resources_abo…
+       |                                                                             ^
+    229|     await f.service.releasePins([asset.id])
+    230|     expect(f.calls.mock.calls.filter(([name]) => name === 'resources_a…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 12 passed (14)
+   Start at  08:32:32
+   Duration  954ms (transform 434ms, setup 0ms, collect 573ms, tests 79ms, environment 0ms, prepare 70ms)
+
+undefined
+/workspace/milkup/apps/desktop:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/resource-service.test.ts

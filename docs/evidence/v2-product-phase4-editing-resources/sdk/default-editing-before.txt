@@ -1,0 +1,28 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/desktop-editing-capabilities.test.ts (2 tests | 1 failed) 23ms
+   × desktop editing capability lifecycle > enables ordinary document editing without inventing sensitive approvals 13ms
+     → expected "spy" to be called 1 times, but got 0 times
+   ✓ desktop editing capability lifecycle > requires approval, routes paste by contribution, revokes both brokers and awaits cleanup 9ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/desktop-editing-capabilities.test.ts > desktop editing capability lifecycle > enables ordinary document editing without inventing sensitive approvals
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ apps/desktop/src/desktop-editing-capabilities.test.ts:52:21
+     50|     expect(manager.state().records[0]?.enabled).toBe(true)
+     51|     expect(manager.state().records[0]?.approvals.permissions).toEqual(…
+     52|     expect(factory).toHaveBeenCalledTimes(1)
+       |                     ^
+     53|     const first = loaded[0]!.editingBroker!
+     54|     expect(await first.capture({ extent: 'selection' })).toEqual(snaps…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  08:33:35
+   Duration  995ms (transform 486ms, setup 0ms, collect 641ms, tests 23ms, environment 0ms, prepare 66ms)
+

@@ -30,7 +30,7 @@ type Result<T> = std::result::Result<T, String>;
 fn err(error: impl std::fmt::Display) -> String {
     error.to_string()
 }
-fn id(kind: &str) -> Result<String> {
+pub(crate) fn id(kind: &str) -> Result<String> {
     static NEXT: AtomicU64 = AtomicU64::new(0);
     static SECRET: OnceLock<Result<[u8; 32]>> = OnceLock::new();
     let secret = SECRET
@@ -223,7 +223,7 @@ fn supported(path: &Path) -> bool {
 }
 
 #[cfg(unix)]
-fn open_child(
+pub(crate) fn open_child(
     parent: &File,
     _parent_path: &Path,
     name: &std::ffi::OsStr,
@@ -247,7 +247,7 @@ fn open_child(
     }
 }
 #[cfg(windows)]
-fn open_child(
+pub(crate) fn open_child(
     _parent: &File,
     parent_path: &Path,
     name: &std::ffi::OsStr,
@@ -287,7 +287,7 @@ fn open_child(
     Ok(file)
 }
 #[cfg(windows)]
-fn windows_identity(file: &File) -> Result<(u64, u64)> {
+pub(crate) fn windows_identity(file: &File) -> Result<(u64, u64)> {
     use std::os::windows::io::AsRawHandle;
     #[repr(C)]
     struct Info {
@@ -316,7 +316,7 @@ fn windows_identity(file: &File) -> Result<(u64, u64)> {
         ((info.index_high as u64) << 32) | info.index_low as u64,
     ))
 }
-fn open_absolute_directory(path: &Path) -> Result<(File, Vec<File>)> {
+pub(crate) fn open_absolute_directory(path: &Path) -> Result<(File, Vec<File>)> {
     if !path.is_absolute() {
         return Err("Workspace root must be absolute".into());
     }

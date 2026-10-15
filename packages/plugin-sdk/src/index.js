@@ -100,6 +100,7 @@ function mapPosition(changes, position, affinity) {
   assertPosition(position)
 
   let mapped = position
+  let offset = 0
 
   for (const change of changes) {
     const deletedLength = change.to - change.from
@@ -111,11 +112,14 @@ function mapPosition(changes, position, affinity) {
     }
 
     if (position > change.to) {
-      mapped += delta
+      offset += delta
+      mapped = position + offset
       continue
     }
 
-    mapped = affinity < 0 ? change.from : change.from + insertedLength
+    mapped = change.from + offset + (affinity < 0 ? 0 : insertedLength)
+    if (deletedLength === 0 && affinity < 0) return mapped
+    offset += delta
   }
 
   return mapped

@@ -100,6 +100,8 @@ export type PluginHostCapabilityName =
   | 'workspace:read'
   | 'settings:write'
   | 'app:keymap'
+  | 'document:write'
+  | 'images:import'
 
 export function createIsolatedPluginModule(config: IsolatedPluginModuleConfig): PluginModule {
   const { manifest, host } = config
@@ -276,6 +278,8 @@ function listRestrictedHostCapabilities(
   if (host.workspace) capabilities.push('workspace:read')
   if (host.settings) capabilities.push('settings:write')
   if (host.keymap) capabilities.push('app:keymap')
+  if (host.editing) capabilities.push('document:write')
+  if (host.resources) capabilities.push('images:import')
 
   if (host.storage) {
     capabilities.push('storage')

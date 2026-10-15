@@ -1,0 +1,45 @@
+[WebServer] (node:332553) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:332572) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:332630) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:366:1 › responsive breakpoint preserves preferences select and input focus without editing the document (9.9s)
+(node:332791) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:434:1 › responsive breakpoint moves focus only when sidebar controls or the editor become unavailable (1.5s)
+
+
+  1) [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:366:1 › responsive breakpoint preserves preferences select and input focus without editing the document 
+
+    Error: expect(locator).toBeFocused() failed
+
+    Locator:  locator('[data-plugin-ui="milkup.preferences:preferences-panel"]').getByLabel('界面缩放', { exact: true })
+    Expected: focused
+    Received: inactive
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeFocused" with timeout 5000ms
+      - waiting for locator('[data-plugin-ui="milkup.preferences:preferences-panel"]').getByLabel('界面缩放', { exact: true })
+        13 × locator resolved to <select aria-invalid="false" class="plugin-form-control" data-plugin-command="preferences.change" data-plugin-field-control="appearance.zoom" id="plugin-field-6d-69-6c-6b-75-70-2e-70-72-65-66-65-72-65-6e-63-65-73-3a-70-72-65-66-65-72-65-6e-63-65-73-2d-70-61-6e-65-6c-3a-61-70-70-65-61-72-61-6e-63-65-2e-7a-6f-6f-6d" aria-describedby="plugin-field-6d-69-6c-6b-75-70-2e-70-72-65-66-65-72-65-6e-63-65-73-3a-70-72-65-66-65-72-65-6e-63-65-73-2d-70-61-6e-65-6c-3a-61-70-70-65-61-72-61-6e-63-65-2e-7a-6f-6f-6d-hel…>…</select>
+           - unexpected value "inactive"
+
+
+      388 |         )
+      389 |         await expect(view(page)).toBeVisible()
+    > 390 |         await expect(control).toBeFocused()
+          |                               ^
+      391 |         await expect(page.locator('[data-stat="version"]')).toHaveText(version!)
+      392 |         await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText(original)
+      393 |       }
+        at /workspace/milkup/tests/e2e/desktop-preferences.spec.ts:390:31
+
+    Error Context: test-results/desktop-preferences-respon-1187a-ithout-editing-the-document-desktop-msedge/error-context.md
+
+  1 failed
+    [desktop-msedge] › tests/e2e/desktop-preferences.spec.ts:366:1 › responsive breakpoint preserves preferences select and input focus without editing the document 
+  1 passed (19.7s)

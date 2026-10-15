@@ -1,0 +1,44 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/image-hooks.test.ts (13 tests | 2 failed | 11 skipped) 157ms
+   × refreshes a newly available local image without a document transaction (false) 126ms
+     → view.refreshResourceImages is not a function
+   ↓ delivers real paste files with the event-time selection and aborts on disable (false)
+   ↓ renders only resolver-owned blobs, preserves text, and disposes on destroy (false)
+   ↓ reports selection ABA changes and composition without changing content (false)
+   ↓ disposes a late resolver response after the view is destroyed (false)
+   ↓ renders nested strikethrough with mapped Unicode content (false)
+   × refreshes a newly available local image without a document transaction (true) 28ms
+     → view.refreshResourceImages is not a function
+   ↓ delivers real paste files with the event-time selection and aborts on disable (true)
+   ↓ renders only resolver-owned blobs, preserves text, and disposes on destroy (true)
+   ↓ reports selection ABA changes and composition without changing content (true)
+   ↓ disposes a late resolver response after the view is destroyed (true)
+   ↓ renders nested strikethrough with mapped Unicode content (true)
+   ↓ rejects remote, absolute, traversal and encoded path escapes before resource lookup
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/image-hooks.test.ts > refreshes a newly available local image without a document transaction (false)
+ FAIL  src/__tests__/image-hooks.test.ts > refreshes a newly available local image without a document transaction (true)
+TypeError: view.refreshResourceImages is not a function
+ ❯ src/__tests__/image-hooks.test.ts:22:10
+     20|     const revision=view.selectionRevision
+     21|     available=true
+     22|     view.refreshResourceImages()
+       |          ^
+     23|     await settle();await settle()
+     24|     expect(view.contentDOM.querySelector('img')?.getAttribute('src')).…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 11 skipped (13)
+   Start at  08:45:01
+   Duration  4.45s (transform 1.44s, setup 0ms, collect 2.14s, tests 157ms, environment 1.59s, prepare 290ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/image-hooks.test.ts -t 'refreshes a newly available'

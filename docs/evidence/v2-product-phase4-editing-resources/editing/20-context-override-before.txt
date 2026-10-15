@@ -1,0 +1,67 @@
+$ vitest run --passWithNoTests src/editing-service.test.ts
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ❯ src/editing-service.test.ts (26 tests | 1 failed) 60ms
+   ✓ bounded desktop editing leases > captures complete CRLF lines, reverse selection and valid CST markers 11ms
+   ✓ bounded desktop editing leases > applies one isolated undo entry with absolute selection and consumes the lease 4ms
+   × bounded desktop editing leases > does not let a text-only view context downgrade an unsafe HTML block 11ms
+     → expected { kind: 'text', complete: true } to deeply equal { kind: 'unknown', complete: false }
+   ✓ bounded desktop editing leases > changes selection without marking the document dirty or advancing its version/history 2ms
+   ✓ bounded desktop editing leases > computes the post-edit cursor line from bounded CRLF text 1ms
+   ✓ bounded desktop editing leases > rejects changed selectionRevision before writing 1ms
+   ✓ bounded desktop editing leases > rejects changed saveLocationGeneration before writing 1ms
+   ✓ bounded desktop editing leases > rechecks readonly at apply 1ms
+   ✓ bounded desktop editing leases > rechecks busy at apply 1ms
+   ✓ bounded desktop editing leases > rejects document identity or source replacement with the same public ID/version 1ms
+   ✓ bounded desktop editing leases > does not include the next line when selection ends at its start 1ms
+   ✓ bounded desktop editing leases > captures selection without silently expanding the editable range 1ms
+   ✓ bounded desktop editing leases > rejects grapheme and CRLF splits without changing the document 1ms
+   ✓ bounded desktop editing leases > keeps a failed atomic commit retryable 2ms
+   ✓ bounded desktop editing leases > releases only owned leases and revokes in-flight capture after disable 1ms
+   ✓ bounded desktop editing leases > rejects oversized lines and limits active snapshots 3ms
+   ✓ bounded desktop editing leases > reports code context when capturing a line inside a bounded known fence 1ms
+   ✓ bounded desktop editing leases > does not claim complete inline syntax when a wrapper crosses the captured lines 1ms
+   ✓ bounded desktop editing leases > reports code for a mixed selection crossing a fenced block 1ms
+   ✓ bounded desktop editing leases > returns complete strike metadata and keeps inline code as a distinct node 1ms
+   ✓ bounded desktop editing leases > uses bounded native-compatible reads and reports unknown distant syntax 5ms
+   ✓ bounded desktop editing leases > invalidates a capture if source identity changes during an awaited read 1ms
+   ✓ bounded desktop editing leases > rechecks the host guard at the actual commit point 1ms
+   ✓ bounded desktop editing leases > rejects precommit abort but reports a completed commit after a late abort 1ms
+   ✓ bounded desktop editing leases > copies queued requests and prevents concurrent lease reuse 1ms
+   ✓ bounded desktop editing leases > rejects unknown operations, malformed edits and resource IDs before committing 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/editing-service.test.ts > bounded desktop editing leases > does not let a text-only view context downgrade an unsafe HTML block
+AssertionError: expected { kind: 'text', complete: true } to deeply equal { kind: 'unknown', complete: false }
+
+- Expected
++ Received
+
+  {
+-   "complete": false,
+-   "kind": "unknown",
++   "complete": true,
++   "kind": "text",
+  }
+
+ ❯ src/editing-service.test.ts:118:30
+    116|     const service = createDesktopEditingService({ current: f.current, …
+    117|     const snapshot = await service.adapterForPlugin('html-guard').adap…
+    118|     expect(snapshot.context).toEqual({ kind: 'unknown', complete: fals…
+       |                              ^
+    119|     expect(snapshot.syntax?.nodes).toEqual([])
+    120|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 25 passed (26)
+   Start at  08:33:12
+   Duration  1.09s (transform 510ms, setup 0ms, collect 710ms, tests 60ms, environment 0ms, prepare 71ms)
+
+/workspace/milkup/apps/desktop:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/desktop@2.0.0-beta.1 test: `vitest run --passWithNoTests src/editing-service.test.ts`
+Exit status 1

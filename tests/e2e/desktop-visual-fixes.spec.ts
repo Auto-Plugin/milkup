@@ -77,7 +77,9 @@ for (const theme of ['light', 'dark']) {
         })
       await expect.poll(visible).toBe(true)
       await page.keyboard.press('Shift+ArrowLeft')
-      expect(await visible()).toBe(true)
+      // Browser focus/scroll events can follow the key event; require the same
+      // eventual viewport invariant as End instead of racing that delivery.
+      await expect.poll(visible).toBe(true)
       await expect(page.locator('.milkup-selection')).toHaveCount(1)
       await page.keyboard.insertText('Z')
       await page.keyboard.press('Control+z')

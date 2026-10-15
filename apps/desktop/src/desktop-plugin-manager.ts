@@ -14,6 +14,13 @@ import {
   createPluginWorkspaceBroker,
   createPluginSettingsBroker,
   createPluginKeymapBroker,
+  createPluginEditingBroker,
+  createPluginResourcesBroker,
+  type PluginEditingBrokerAdapter,
+  type PluginResourcesBrokerAdapter,
+  type RevocablePluginEditingBroker,
+  type RevocablePluginResourcesBroker,
+  type PluginUiNotice,
   type PluginKeymapHost,
   type PluginSettingsBrokerAdapter,
   type RevocablePluginSettingsBroker,
@@ -90,6 +97,8 @@ export interface DesktopLoadedPluginModule {
 }
 
 export interface DesktopPluginModuleCapabilities {
+  readonly editingBroker?: RevocablePluginEditingBroker
+  readonly resourcesBroker?: RevocablePluginResourcesBroker
   readonly documentBroker?: ManagedPluginDocumentBroker
   readonly keymapBroker?: ReturnType<typeof createPluginKeymapBroker>
   readonly settingsBroker?: RevocablePluginSettingsBroker
@@ -154,6 +163,16 @@ export interface DesktopPluginManagerOptions {
   readonly now?: () => number
   /** Distribution-provided packages; never used to upgrade an existing user installation. */
   readonly bundledPackagePaths?: () => Promise<readonly string[]>
+  readonly editingAdapter?: (manifest: PluginManifest) => {
+    adapter: PluginEditingBrokerAdapter
+    dispose(): void | Promise<void>
+  }
+  readonly resourcesAdapter?: (manifest: PluginManifest) => {
+    adapter: PluginResourcesBrokerAdapter
+    dispose(): void | Promise<void>
+  }
+  readonly openUi?: (pluginId: string, viewId: string) => void | Promise<void>
+  readonly notifyUi?: (pluginId: string, notice: PluginUiNotice) => void | Promise<void>
   readonly keymapAdapter?: (manifest: PluginManifest) => PluginKeymapHost
   readonly settingsAdapter?: (manifest: PluginManifest) => {
     adapter: PluginSettingsBrokerAdapter
@@ -191,6 +210,7 @@ const sensitivePermissions = new Set([
   'workspace:read',
   'settings:write',
   'app:keymap',
+  'images:import',
 ])
 
 export class DesktopPluginManager {
@@ -205,6 +225,21 @@ export class DesktopPluginManager {
   private readonly loadModule: DesktopPluginModuleLoader
   private readonly loadSidecarModule: DesktopPluginModuleLoader
   private readonly loadedModules = new Map<string, DesktopLoadedPluginModule>()
+  private readonly uiBrokers = new Map<string, PluginUiBroker>()
+  private readonly editingBrokers = new Map<string, RevocablePluginEditingBroker>()
+  private readonly resourcesBrokers = new Map<string, RevocablePluginResourcesBroker>()
+  private readonly editingServices = new Map<
+    string,
+    ReturnType<NonNullable<DesktopPluginManagerOptions['editingAdapter']>>
+  >()
+  private readonly resourcesServices = new Map<
+    string,
+    ReturnType<NonNullable<DesktopPluginManagerOptions['resourcesAdapter']>>
+  >()
+  private readonly editingAdapter: DesktopPluginManagerOptions['editingAdapter']
+  private readonly resourcesAdapter: DesktopPluginManagerOptions['resourcesAdapter']
+  private readonly openUi: DesktopPluginManagerOptions['openUi']
+  private readonly notifyUi: DesktopPluginManagerOptions['notifyUi']
   private readonly keymapBrokers = new Map<string, ReturnType<typeof createPluginKeymapBroker>>()
   private readonly keymapAdapter: DesktopPluginManagerOptions['keymapAdapter']
   private readonly settingsBrokers = new Map<string, RevocablePluginSettingsBroker>()
@@ -228,6 +263,10 @@ export class DesktopPluginManager {
   readonly ready: Promise<void>
 
   constructor(options: DesktopPluginManagerOptions) {
+    this.editingAdapter = options.editingAdapter
+    this.resourcesAdapter = options.resourcesAdapter
+    this.openUi = options.openUi
+    this.notifyUi = options.notifyUi
     this.keymapAdapter = options.keymapAdapter
     this.settingsAdapter = options.settingsAdapter
     this.workspaceAdapter = options.workspaceAdapter
@@ -265,6 +304,8 @@ export class DesktopPluginManager {
       releasesBroker: (manifest) => this.getReleasesBroker(manifest),
       workspaceBroker: (manifest) => this.getWorkspaceBroker(manifest),
       settingsBroker: (manifest) => this.getSettingsBroker(manifest),
+      editingBroker: (manifest) => this.getEditingBroker(manifest),
+      resourcesBroker: (manifest) => this.getResourcesBroker(manifest),
       keymapBroker: (manifest) => this.getKeymapBroker(manifest),
       networkBroker: (manifest) => this.createNetworkBroker(manifest),
       storageBroker: (manifest) => this.createStorageBroker(manifest),
@@ -439,6 +480,8 @@ export class DesktopPluginManager {
       const prepared = await this.prepareModule(record.manifest, record.manifestPath, main)
       this.preparedModules.set(pluginId, prepared)
       const documentBroker = this.getDocumentBroker(record.manifest)
+      const editingBroker = this.getEditingBroker(record.manifest)
+      const resourcesBroker = this.getResourcesBroker(record.manifest)
       const keymapBroker = this.getKeymapBroker(record.manifest)
       const settingsBroker = this.getSettingsBroker(record.manifest)
       const workspaceBroker = this.getWorkspaceBroker(record.manifest)
@@ -447,6 +490,8 @@ export class DesktopPluginManager {
       const capabilities = Object.freeze({
         ...(settingsBroker ? { settingsBroker } : {}),
         ...(keymapBroker ? { keymapBroker } : {}),
+        ...(editingBroker ? { editingBroker } : {}),
+        ...(resourcesBroker ? { resourcesBroker } : {}),
         ...(workspaceBroker ? { workspaceBroker } : {}),
         ...(releasesBroker ? { releasesBroker } : {}),
         ...(documentBroker ? { documentBroker } : {}),
@@ -734,6 +779,8 @@ export class DesktopPluginManager {
         ...(capabilities?.workspaceBroker ? { workspaceBroker: capabilities.workspaceBroker } : {}),
         ...(capabilities?.settingsBroker ? { settingsBroker: capabilities.settingsBroker } : {}),
         ...(capabilities?.keymapBroker ? { keymapBroker: capabilities.keymapBroker } : {}),
+        ...(capabilities?.editingBroker ? { editingBroker: capabilities.editingBroker } : {}),
+        ...(capabilities?.resourcesBroker ? { resourcesBroker: capabilities.resourcesBroker } : {}),
         ...(fileBroker ? { fileBroker } : {}),
         ...(networkBroker ? { networkBroker } : {}),
         ...(storageBroker ? { storageBroker } : {}),
@@ -798,6 +845,82 @@ export class DesktopPluginManager {
     return broker
   }
 
+  resolveImagePasteHandler(): { readonly pluginId: string; readonly command: string } | undefined {
+    const handler = this.state().contributions.pasteHandlers?.find(
+      (value) => value.status === 'active',
+    )
+    return handler
+      ? Object.freeze({ pluginId: handler.pluginId, command: handler.command })
+      : undefined
+  }
+  grantImagePaste(pluginId: string, grantId: string): void {
+    const record = this.registry.get(pluginId)
+    if (!record?.enabled || record.state !== 'enabled')
+      throw new Error('Image paste handler is unavailable')
+    const broker = this.getResourcesBroker(record.manifest)
+    if (!broker) throw new Error('Image import permission is unavailable')
+    broker.grantPaste(grantId)
+  }
+  private getEditingBroker(manifest: PluginManifest): RevocablePluginEditingBroker | undefined {
+    const allowed = () => {
+      const record = this.registry.get(manifest.id)
+      if (
+        !record ||
+        !['document:read', 'document:write'].every((permission) =>
+          manifest.permissions?.includes(permission as ActionPermission),
+        )
+      )
+        return false
+      // Ordinary document capabilities are authorized by enable. Only the
+      // manager's sensitive permissions and execution host need separate approval.
+      // Activation creates brokers before markEnabled, so do not gate on enabled.
+      try {
+        this.assertApproved(record)
+        return true
+      } catch {
+        return false
+      }
+    }
+    if (!this.editingAdapter || !allowed()) return undefined
+    const existing = this.editingBrokers.get(manifest.id)
+    if (existing) return existing
+    const service = this.editingAdapter(manifest)
+    this.editingServices.set(manifest.id, service)
+    const broker = createPluginEditingBroker({
+      manifest,
+      adapter: service.adapter,
+      isActive: allowed,
+      validateAssets: (ids, snapshotId) => {
+        const resources = this.resourcesBrokers.get(manifest.id)
+        if (!resources) throw new Error('Image grants unavailable')
+        resources.assertAssets(ids, snapshotId)
+      },
+      acceptAssets: (ids, snapshotId) =>
+        this.resourcesBrokers.get(manifest.id)?.acceptAssets(ids, snapshotId),
+    })
+    this.editingBrokers.set(manifest.id, broker)
+    return broker
+  }
+  private getResourcesBroker(manifest: PluginManifest): RevocablePluginResourcesBroker | undefined {
+    const allowed = () =>
+      manifest.permissions?.includes('images:import') === true &&
+      this.registry.get(manifest.id)?.approvals.permissions.includes('images:import') === true
+    if (!this.resourcesAdapter || !allowed()) return undefined
+    const existing = this.resourcesBrokers.get(manifest.id)
+    if (existing) return existing
+    const editing = this.getEditingBroker(manifest)
+    if (!editing) return undefined
+    const service = this.resourcesAdapter(manifest)
+    this.resourcesServices.set(manifest.id, service)
+    const broker = createPluginResourcesBroker({
+      manifest,
+      adapter: service.adapter,
+      isActive: allowed,
+      getSnapshot: (id) => editing.getSnapshot(id),
+    })
+    this.resourcesBrokers.set(manifest.id, broker)
+    return broker
+  }
   private getKeymapBroker(
     manifest: PluginManifest,
   ): ReturnType<typeof createPluginKeymapBroker> | undefined {
@@ -887,15 +1010,24 @@ export class DesktopPluginManager {
   }
 
   private createUiBroker(manifest: PluginManifest): PluginUiBroker | undefined {
+    const existing = this.uiBrokers.get(manifest.id)
+    if (existing) return existing
     const viewIds = (manifest.contributes?.ui ?? []).map((view) => view.id)
 
     if (viewIds.length === 0 || !this.invalidateUi) return undefined
-    return createPluginUiBroker({
+    const broker = createPluginUiBroker({
       pluginId: manifest.id,
       viewIds,
+      modalViewIds: (manifest.contributes?.ui ?? [])
+        .filter((v) => v.slot === 'modal')
+        .map((v) => v.id),
+      ...(this.openUi ? { open: this.openUi } : {}),
+      ...(this.notifyUi ? { notify: this.notifyUi } : {}),
       update: this.invalidateUi,
       ...(this.revealLine ? { revealLine: this.revealLine } : {}),
     })
+    this.uiBrokers.set(manifest.id, broker)
+    return broker
   }
 
   private createNetworkBroker(manifest: PluginManifest) {
@@ -998,6 +1130,16 @@ export class DesktopPluginManager {
   }
 
   private async unloadRuntimePlugin(pluginId: string): Promise<void> {
+    this.uiBrokers.get(pluginId)?.dispose?.()
+    this.uiBrokers.delete(pluginId)
+    this.editingBrokers.get(pluginId)?.dispose()
+    this.editingBrokers.delete(pluginId)
+    this.resourcesBrokers.get(pluginId)?.dispose()
+    this.resourcesBrokers.delete(pluginId)
+    await this.editingServices.get(pluginId)?.dispose()
+    this.editingServices.delete(pluginId)
+    await this.resourcesServices.get(pluginId)?.dispose()
+    this.resourcesServices.delete(pluginId)
     this.keymapBrokers.get(pluginId)?.dispose()
     this.keymapBrokers.delete(pluginId)
     this.settingsBrokers.get(pluginId)?.dispose()

@@ -51,5 +51,20 @@ export type {
 } from './types'
 
 export type { TableCommand, TableContext } from './table-editing'
+export { prepareTableEdit, prepareTableInsertion, editingContextLimits } from './editing-context'
+export type {
+  EditingContext,
+  EditingSelection,
+  TableEditingContext,
+  TableEditOperation,
+  TableEditPlan,
+  TableAlignment,
+} from './editing-context'
 
 export type { EditorPresentation } from './presentation'
+export type {
+  EmptyPasteHandler,
+  ImagePasteHandler,
+  ImageResolver,
+  ResolvedImageResource,
+} from './image-presentation'

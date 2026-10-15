@@ -37,6 +37,7 @@ export interface DesktopFileService {
   reloadFile(session: DocumentSession): Promise<OpenFileResult | undefined>
   saveFile(session: DocumentSession, text: string): Promise<SaveFileResult | undefined>
   saveFileAs(session: DocumentSession, text: string): Promise<SaveFileResult | undefined>
+  saveToSelectedPath(session: DocumentSession, text: string, path: string): Promise<SaveFileResult>
   selectSaveFilePath(defaultPath: string): Promise<string | undefined>
   revealInFolder(action: RevealInFolderAction, path: string): Promise<boolean>
   watchFile(session: DocumentSession): Promise<void>
@@ -132,6 +133,9 @@ function createMockFileService(): DesktopFileService {
       const file = { path: selected ?? session.file?.path ?? 'D:/notes/untitled.md' }
 
       return createMockSaveResult(session, text, file)
+    },
+    async saveToSelectedPath(session, text, path): Promise<SaveFileResult> {
+      return createMockSaveResult(session, text, { path })
     },
     async selectSaveFilePath(defaultPath: string): Promise<string> {
       return defaultPath
@@ -253,6 +257,16 @@ function createTauriFileService(): DesktopFileService {
       return invoke<SaveFileResult>('save_markdown_file', {
         documentId: session.documentId,
         path: selected,
+        text,
+        expectedDiskSnapshotHash: session.diskSnapshotHash,
+        expectedFilePath: session.file?.path,
+      })
+    },
+    async saveToSelectedPath(session, text, path): Promise<SaveFileResult> {
+      const { invoke } = await import('@tauri-apps/api/core')
+      return invoke<SaveFileResult>('save_markdown_file', {
+        documentId: session.documentId,
+        path,
         text,
         expectedDiskSnapshotHash: session.diskSnapshotHash,
         expectedFilePath: session.file?.path,

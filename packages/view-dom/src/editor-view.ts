@@ -1,4 +1,10 @@
 import { createControlledRendererNodes } from './controlled-renderer'
+import { ImagePasteSession, ImagePresentation } from './image-presentation'
+import {
+  editingContextFromState,
+  type EditingSelection,
+  type EditingContext,
+} from './editing-context'
 import {
   applyPresentation,
   validatePresentation,
@@ -119,7 +125,8 @@ export class EditorView {
   private readonly controlledRenderers: readonly ControlledRenderer[]
   private readonly markdownSyntax: readonly ControlledMarkdownSyntax[]
   private readonly externalDispatch: EditorViewDispatch | undefined
-  private isComposing = false
+  private selectionGeneration = 0
+  private composing = false
   private compositionText = ''
   private dragAnchor: number | undefined
   private isDraggingSelection = false
@@ -129,6 +136,8 @@ export class EditorView {
   private editable: boolean
   private destroyed = false
   private asyncInputGeneration = 0
+  private readonly imagePaste: ImagePasteSession
+  private readonly images: ImagePresentation
   private readonly virtualViewport: VirtualViewportState | undefined
   private presentation: EditorPresentation | undefined
   private searchHighlights: readonly SearchHighlight[] = Object.freeze([])
@@ -186,11 +195,11 @@ export class EditorView {
     this.finishSelectionDrag(event)
   }
   private readonly handleCompositionStartEvent = (): void => {
-    this.isComposing = true
+    this.composing = true
     this.compositionText = ''
   }
   private readonly handleCompositionUpdateEvent = (event: CompositionEvent): void => {
-    this.isComposing = true
+    this.composing = true
     this.compositionText = event.data
   }
   private readonly handleCompositionEndEvent = (event: CompositionEvent): void => {
@@ -246,11 +255,34 @@ export class EditorView {
     this.dom.addEventListener('mousemove', this.handleMouseMoveEvent)
     this.ownerDocument.addEventListener('mouseup', this.handleMouseUpEvent)
     config.parent.append(this.dom)
+    this.imagePaste = new ImagePasteSession(
+      config.onImagePaste,
+      (error) => {
+        if (!this.destroyed)
+          this.dom.dispatchEvent(new CustomEvent('milkup-input-error', { detail: error }))
+      },
+      config.onEmptyPaste,
+    )
+    this.images = new ImagePresentation(this.contentDOM, config.imageResolver, () => {
+      if (!this.destroyed) this.renderSelectionAndCursor()
+    })
     if (config.presentation) {
       this.presentation = validatePresentation(config.presentation)
       applyPresentation(this.dom, this.presentation)
     }
     this.render()
+  }
+
+  get isComposing(): boolean {
+    return this.composing
+  }
+
+  refreshResourceImages(): void {
+    this.images.refresh()
+  }
+
+  get selectionRevision(): number {
+    return this.selectionGeneration
   }
 
   get lineHeight(): number {
@@ -316,13 +348,25 @@ export class EditorView {
   }
 
   runTableCommand(command: TableCommand): boolean {
-    if (!this.editable || this.isComposing) return false
-    const context = this.activeTable
+    if (!this.editable || this.composing) return false
+    const context = tableContext(this.currentState, this.markdownParseState.cache.root)
     if (!context) return false
     const transaction = tableCommand(this.currentState, context, command)
     if (!transaction) return false
     this.dispatch(transaction)
     return true
+  }
+
+  async readEditingContext(
+    selection: EditingSelection = this.currentState.selection.main,
+    signal?: AbortSignal,
+  ): Promise<EditingContext> {
+    signal?.throwIfAborted()
+    const state = this.currentState.applyTransaction({
+      selection: Selection.range(selection.anchor, selection.head),
+      addToHistory: false,
+    })
+    return editingContextFromState(state, this.markdownParseState.cache.root)
   }
 
   setSearchHighlights(highlights: readonly SearchHighlight[], activeIndex = -1): void {
@@ -333,7 +377,15 @@ export class EditorView {
 
   updateState(state: EditorState, transactions: readonly Transaction[] = []): ViewUpdate {
     const previousState = this.currentState
-    if (state.doc !== previousState.doc) this.asyncInputGeneration += 1
+    if (state.doc !== previousState.doc) {
+      this.asyncInputGeneration += 1
+      this.imagePaste.abort()
+    }
+    if (
+      state.selection.main.anchor !== previousState.selection.main.anchor ||
+      state.selection.main.head !== previousState.selection.main.head
+    )
+      this.selectionGeneration++
     this.currentState = state
     const documentChanged = transactions.some(transactionChangesDocument)
 
@@ -384,6 +436,7 @@ export class EditorView {
   }
 
   setEditable(editable: boolean): void {
+    if (!editable) this.imagePaste.abort()
     if (this.editable === editable) {
       return
     }
@@ -465,6 +518,8 @@ export class EditorView {
   }
 
   destroy(): void {
+    this.imagePaste.abort()
+    this.images.destroy()
     this.destroyed = true
     this.asyncInputGeneration += 1
     this.inputDOM.removeEventListener('input', this.handleInputEvent)
@@ -822,7 +877,7 @@ export class EditorView {
   }
 
   private toggleTask(task: HTMLButtonElement): void {
-    if (!this.editable || this.isComposing || this.destroyed || this.mode !== 'live') return
+    if (!this.editable || this.composing || this.destroyed || this.mode !== 'live') return
     const from = Number(task.dataset.from),
       to = Number(task.dataset.to)
     if (!Number.isInteger(from) || !Number.isInteger(to)) return
@@ -856,7 +911,7 @@ export class EditorView {
       return
     }
 
-    if (this.isComposing) {
+    if (this.composing) {
       return
     }
 
@@ -874,7 +929,7 @@ export class EditorView {
     // Empty final data is cancellation, never the last uncommitted candidate.
     const text = data
 
-    this.isComposing = false
+    this.composing = false
     this.compositionText = ''
     this.inputDOM.value = ''
 
@@ -892,6 +947,9 @@ export class EditorView {
       event.preventDefault()
       return
     }
+
+    if (event.defaultPrevented || this.composing) return
+    if (this.imagePaste.handle(event, this.currentState.selection.main)) return
 
     const payload = collectClipboardPayload(event)
     const paste = normalizePaste(payload, {
@@ -1039,7 +1097,7 @@ export class EditorView {
     }
 
     if (event.key.length === 1) {
-      if (this.isComposing) {
+      if (this.composing) {
         return false
       }
 
@@ -2400,6 +2458,15 @@ function renderInlineNode(
   span.dataset.status = node.status
   span.dataset.syntaxVisible = String(shouldShowInlineSyntax(node, selection))
   span.replaceChildren(...renderInlineNodePieces(document, source, selection, node))
+  if (
+    node.type === 'image' &&
+    node.status === 'valid' &&
+    typeof node.data?.destination === 'string'
+  ) {
+    span.dataset.imageUrl = node.data.destination
+    span.dataset.imageAlt = typeof node.data.label === 'string' ? node.data.label : ''
+  }
+  if (node.type === 'strikethrough') span.style.textDecoration = 'line-through'
   if (node.type === 'hardBreak' && node.data?.kind === 'html')
     span.append(document.createElement('br'))
   return span

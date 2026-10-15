@@ -105,6 +105,12 @@ export interface PluginKeymapBinding {
 }
 
 export interface PluginContributionIndex {
+  readonly pasteHandlers?: readonly {
+    readonly pluginId: string
+    readonly kind: 'image'
+    readonly command: string
+    readonly status: 'active' | 'shadowed' | 'invalid'
+  }[]
   readonly commands: readonly ActionDefinition[]
   readonly keymaps: readonly PluginKeymapBinding[]
   readonly renderers: readonly PluginRendererBinding[]
@@ -423,7 +429,19 @@ export function createPluginContributionIndex(
     ),
   )
 
+  let claimedPaste = false
+  const pasteHandlers = enabled.flatMap((record) =>
+    (record.manifest.contributes?.pasteHandlers ?? []).map((handler) => {
+      const valid =
+        record.manifest.permissions?.includes('images:import') &&
+        actions.some((a) => a.id === handler.command)
+      const status = !valid ? 'invalid' : claimedPaste ? 'shadowed' : 'active'
+      if (valid) claimedPaste = true
+      return Object.freeze({ ...handler, pluginId: record.manifest.id, status })
+    }),
+  )
   return Object.freeze({
+    pasteHandlers: Object.freeze(pasteHandlers),
     commands: Object.freeze(actions.filter((action) => pluginCommandIds.has(action.id))),
     keymaps: Object.freeze(resolvePluginKeymaps(enabled, actions)),
     renderers: Object.freeze(

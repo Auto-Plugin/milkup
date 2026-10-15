@@ -1,0 +1,69 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/core
+
+ ❯ src/__tests__/memory-text-document.test.ts (16 tests | 2 failed) 16ms
+   ✓ MemoryTextDocument > creates an empty document 2ms
+   ✓ MemoryTextDocument > inserts text at the beginning 0ms
+   ✓ MemoryTextDocument > inserts text at the end 0ms
+   ✓ MemoryTextDocument > inserts text in the middle 0ms
+   ✓ MemoryTextDocument > deletes a range at the beginning 0ms
+   ✓ MemoryTextDocument > deletes a range in the middle 0ms
+   ✓ MemoryTextDocument > deletes a range at the end 0ms
+   ✓ MemoryTextDocument > replaces a range 0ms
+   ✓ MemoryTextDocument > applies multiple non-overlapping changes 0ms
+   ✓ MemoryTextDocument > preserves blank lines and trailing newline 0ms
+   ✓ MemoryTextDocument > finds lines by document position 0ms
+   ✓ MemoryTextDocument > maps positions through insertions 1ms
+   ✓ MemoryTextDocument > maps positions through replacements 0ms
+   ✓ MemoryTextDocument > rejects overlapping changes 1ms
+   × MemoryTextDocument > keeps earlier deltas when mapping later edit boundaries and interiors 8ms
+     → expected 5 to be 7 // Object.is equality
+   × MemoryTextDocument > maps adjacent replacements and same-position insertions with affinity 1ms
+     → expected 2 to be 1 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/memory-text-document.test.ts > MemoryTextDocument > keeps earlier deltas when mapping later edit boundaries and interiors
+AssertionError: expected 5 to be 7 // Object.is equality
+
+- Expected
++ Received
+
+- 7
++ 5
+
+ ❯ src/__tests__/memory-text-document.test.ts:119:40
+    117|       { from: 5, to: 8, insert: '**' },
+    118|     ])
+    119|     expect(changes.mapPosition(5, -1)).toBe(7)
+       |                                        ^
+    120|     expect(changes.mapPosition(5, 1)).toBe(9)
+    121|     expect(changes.mapPosition(6, -1)).toBe(7)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/__tests__/memory-text-document.test.ts > MemoryTextDocument > maps adjacent replacements and same-position insertions with affinity
+AssertionError: expected 2 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ src/__tests__/memory-text-document.test.ts:131:41
+    129|       { from: 2, to: 4, insert: 'yyy' },
+    130|     ])
+    131|     expect(adjacent.mapPosition(2, -1)).toBe(1)
+       |                                         ^
+    132|     expect(adjacent.mapPosition(2, 1)).toBe(4)
+    133|     const insertions = ChangeSet.of([
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 14 passed (16)
+   Start at  07:56:29
+   Duration  1.02s (transform 335ms, setup 0ms, collect 381ms, tests 16ms, environment 1ms, prepare 151ms)
+

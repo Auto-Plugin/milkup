@@ -172,3 +172,45 @@ async function keymapContract(host: SdkPluginKeymapHost) {
   await host.update({ bindings: [] })
 }
 void keymapContract
+
+import type { SdkPluginEditingHost, SdkPluginResourcesHost, SdkPluginUiHost } from '../src/index.js'
+async function editingResourcesContract(
+  editing: SdkPluginEditingHost,
+  resources: SdkPluginResourcesHost,
+  ui: SdkPluginUiHost,
+) {
+  const target = await resources.prepareDocument()
+  if (target.status === 'cancelled') return
+  const snapshot = await editing.capture({ extent: 'selection' })
+  const source = await resources.choose(target.id)
+  if (!source) {
+    await editing.release(snapshot.id)
+    return
+  }
+  const asset = await resources.stage({
+    sourceId: source.id,
+    snapshotId: snapshot.id,
+    strategy: 'assets',
+  })
+  await editing.apply({
+    snapshotId: snapshot.id,
+    changes: [{ from: 0, to: snapshot.text.length, insert: asset.reference }],
+    assetIds: [asset.id],
+  })
+  await ui.notify({ kind: 'error', message: 'Import cancelled' })
+  await ui.open('images.settings')
+  await resources.stage({
+    sourceId: source.id,
+    snapshotId: snapshot.id,
+    strategy: 'assets',
+    // @ts-expect-error Resource paths are host-derived, never arbitrary plugin input.
+    path: '/tmp/file',
+  })
+  // @ts-expect-error Plugins cannot pass privileged gesture proofs.
+  await resources.prepareDocument({}, { gesture: 'forged' })
+  // @ts-expect-error Table operations are a bounded allowlist, not arbitrary host commands.
+  await editing.table({ snapshotId: snapshot.id, operation: 'execute' })
+  // @ts-expect-error UI notifications do not accept HTML.
+  await ui.notify({ kind: 'error', message: 'Error', html: '<script>' })
+}
+void editingResourcesContract

@@ -1,6 +1,7 @@
 import type { EditorState, Line, TextRange, Transaction } from '@milkup/core'
 import type { EditorPresentation } from './presentation'
 import type { AssetProvider } from '@milkup/assets'
+import type { EmptyPasteHandler, ImagePasteHandler, ImageResolver } from './image-presentation'
 
 export type ViewMode = 'source' | 'live'
 
@@ -118,6 +119,9 @@ export interface VirtualViewportConfig {
 }
 
 export interface EditorViewConfig {
+  readonly onImagePaste?: ImagePasteHandler
+  readonly onEmptyPaste?: EmptyPasteHandler
+  readonly imageResolver?: ImageResolver
   readonly presentation?: EditorPresentation
   readonly parent: HTMLElement
   readonly state: EditorState

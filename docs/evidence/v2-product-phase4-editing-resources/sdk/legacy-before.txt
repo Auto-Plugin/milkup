@@ -1,0 +1,52 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ packages/plugin/src/editing-legacy-guard.test.ts (3 tests | 3 failed) 14ms
+   × legacy editor boundary > rejects document changes from a read-only plugin 11ms
+     → expected 'Xabc' to be 'abc' // Object.is equality
+   × legacy editor boundary > rejects stale buffered changes after host edits 1ms
+     → expected 'XYabc' to be 'Yabc' // Object.is equality
+   × legacy editor boundary > rejects a late buffered command after disable 1ms
+     → expected 'Xabc' to be 'abc' // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/plugin/src/editing-legacy-guard.test.ts > legacy editor boundary > rejects document changes from a read-only plugin
+AssertionError: expected 'Xabc' to be 'abc' // Object.is equality
+
+Expected: "abc"
+Received: "Xabc"
+
+ ❯ packages/plugin/src/editing-legacy-guard.test.ts:10:259
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  packages/plugin/src/editing-legacy-guard.test.ts > legacy editor boundary > rejects stale buffered changes after host edits
+AssertionError: expected 'XYabc' to be 'Yabc' // Object.is equality
+
+Expected: "Yabc"
+Received: "XYabc"
+
+ ❯ packages/plugin/src/editing-legacy-guard.test.ts:11:337
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  packages/plugin/src/editing-legacy-guard.test.ts > legacy editor boundary > rejects a late buffered command after disable
+AssertionError: expected 'Xabc' to be 'abc' // Object.is equality
+
+Expected: "abc"
+Received: "Xabc"
+
+ ❯ packages/plugin/src/editing-legacy-guard.test.ts:12:325
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed (3)
+   Start at  08:11:08
+   Duration  771ms (transform 292ms, setup 0ms, collect 377ms, tests 14ms, environment 0ms, prepare 67ms)
+

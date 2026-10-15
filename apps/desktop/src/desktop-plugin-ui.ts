@@ -205,6 +205,14 @@ export class DesktopPluginUiController {
     )
   }
 
+  async refreshSlot(slot: PluginUiBinding['slot']): Promise<void> {
+    await Promise.all(
+      [...this.mounts.values()]
+        .filter((mount) => mount.contribution.slot === slot)
+        .map((mount) => this.updateMount(mount)),
+    )
+  }
+
   async updateViewport(): Promise<void> {
     this.viewportUpdatePending = true
     if (this.viewportUpdatePromise) return this.viewportUpdatePromise
@@ -459,6 +467,24 @@ export class DesktopPluginUiController {
     })
     this.mounts.set(uiKey(contribution), mount)
     body.addEventListener('pointerdown', (event) => this.holdPointerRender(mount, event))
+    if (contribution.slot === 'document-toolbar') {
+      body.addEventListener('focusin', (event) => {
+        if (event.target instanceof HTMLElement) {
+          event.target.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+        }
+      })
+      // Mouse commands operate on the editor's current selection. Keep that
+      // focus while leaving keyboard navigation and form fields untouched.
+      body.addEventListener('mousedown', (event) => {
+        const button =
+          event.target instanceof Element
+            ? event.target.closest<HTMLButtonElement>('button[data-plugin-command]')
+            : null
+        if (event.button === 0 && button && !button.disabled && body.contains(button)) {
+          event.preventDefault()
+        }
+      })
+    }
     this.reorderSidebarPanels()
     const previous = this.root.ownerDocument.activeElement
     const rendering = this.renderMount(mount, 'mount')

@@ -3,6 +3,57 @@ import { describe, expect, it } from 'vitest'
 import { parseInline, parseInlineText } from '../index'
 
 describe('parseInline', () => {
+  it('parses strikethrough with nested emphasis and leaves following Unicode text plain', () => {
+    const source = '~~中文 **bold *斜体***~~ 后文👩🏽‍💻'
+    const nodes = parseInline(source)
+    const closing = source.indexOf('~~', 2)
+    expect(nodes[0]).toMatchObject({
+      type: 'strikethrough',
+      status: 'valid',
+      from: 0,
+      to: closing + 2,
+      markerRanges: [
+        { from: 0, to: 2 },
+        { from: closing, to: closing + 2 },
+      ],
+      contentRanges: [{ from: 2, to: closing }],
+      children: expect.arrayContaining([
+        expect.objectContaining({ type: 'strong', status: 'valid' }),
+      ]),
+    })
+    expect(nodes[1]).toMatchObject({ type: 'text', from: closing + 2, data: { value: ' 后文👩🏽‍💻' } })
+  })
+
+  it('ignores strike delimiters in escaped text and complete code spans', () => {
+    expect(parseInline('\\~\\~literal\\~\\~').some((node) => node.type === 'strikethrough')).toBe(
+      false,
+    )
+    expect(parseInline('`~~literal~~`')[0]).toMatchObject({ type: 'inlineCode', status: 'valid' })
+    expect(parseInline('~~a `~~` b~~ tail')[0]).toMatchObject({
+      type: 'strikethrough',
+      status: 'valid',
+      to: 12,
+      children: expect.arrayContaining([
+        expect.objectContaining({ type: 'inlineCode', status: 'valid' }),
+      ]),
+    })
+    expect(parseInline('~~a \\~\\~ b~~')[0]).toMatchObject({
+      type: 'strikethrough',
+      status: 'valid',
+    })
+  })
+
+  it('preserves incomplete strike while typing and does not treat single or triple tildes as strike', () => {
+    expect(parseInline('~~未完成')[0]).toMatchObject({
+      type: 'strikethrough',
+      status: 'incomplete',
+      markerRanges: [{ from: 0, to: 2 }],
+    })
+    for (const source of ['~single~', '~~~literal~~~', '~~ whitespace ~~', '~~~~']) {
+      expect(parseInline(source).some((node) => node.type === 'strikethrough')).toBe(false)
+    }
+  })
+
   it('parses plain text', () => {
     expect(parseInline('hello')).toEqual([
       {
@@ -341,6 +392,50 @@ describe('parseInline', () => {
         data: { label: 'title', destination: 'url' },
       },
     ])
+  })
+
+  it.each(['!', ''])(
+    'recognizes escaped closing brackets in %s labels without extending the range',
+    (prefix) => {
+      const label = String.raw`左\]右 😀`,
+        source = `${prefix}[${label}](assets/pic.png) tail`
+      const nodes = parseInline(source)
+      expect(nodes[0]).toMatchObject({
+        type: prefix ? 'image' : 'link',
+        status: 'valid',
+        from: 0,
+        to: source.indexOf(' tail'),
+        data: { label, destination: 'assets/pic.png' },
+        contentRanges: [
+          { from: prefix.length + 1, to: source.indexOf('](') },
+          { from: source.indexOf('](') + 2, to: source.indexOf(')') },
+        ],
+      })
+      expect(nodes[1]).toMatchObject({ type: 'text', data: { value: ' tail' } })
+    },
+  )
+
+  it('uses backslash parity for label delimiters and preserves incomplete bounded labels', () => {
+    const even = String.raw`![left\\](assets/x.png)`
+    expect(parseInline(even)[0]).toMatchObject({
+      type: 'image',
+      status: 'valid',
+      data: { label: String.raw`left\\` },
+    })
+    const odd = String.raw`![left\\\]right](assets/x.png)`
+    expect(parseInline(odd)[0]).toMatchObject({
+      type: 'image',
+      status: 'valid',
+      data: { label: String.raw`left\\\]right` },
+    })
+    const partial = String.raw`![left\]right](assets/x.png)`
+    const end = partial.indexOf('](')
+    expect(parseInline(partial, 0, end)[0]).toMatchObject({
+      type: 'image',
+      status: 'incomplete',
+      to: end,
+      contentRanges: [{ from: 2, to: end }],
+    })
   })
 
   it('parses images with alt text and destination ranges', () => {

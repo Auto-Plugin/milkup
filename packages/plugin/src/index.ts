@@ -28,6 +28,7 @@ export {
   type PluginUiBroker,
   type PluginUiBrokerConfig,
   type PluginUiHost,
+  type PluginUiNotice,
 } from './ui-broker'
 export { createPluginUiRpcServer, createRpcPluginUiBroker, type RpcPluginUiBroker } from './ui-rpc'
 export {
@@ -263,3 +264,7 @@ export type { PluginSettingsBrokerProvider } from './runtime'
 export * from './keymap-broker'
 export * from './keymap-rpc'
 export type { PluginKeymapBrokerProvider } from './runtime'
+export * from './editing-broker'
+export * from './resources-broker'
+export * from './editing-rpc'
+export * from './resources-rpc'

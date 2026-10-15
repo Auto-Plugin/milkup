@@ -1,0 +1,118 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/public-table-editing.test.ts (14 tests | 5 failed) 403ms
+   ✓ rejects an untrusted table command instead of falling through to column deletion 49ms
+   ✓ runs explicit ordinary table operations in source with one undo transaction 11ms
+   ✓ runs explicit windowed table operations in source against the complete table 200ms
+   ✓ runs explicit ordinary table operations in live with one undo transaction 12ms
+   ✓ runs explicit windowed table operations in live against the complete table 65ms
+   ✓ prepares alignment and clearing as bounded absolute plans without changing state 8ms
+   ✓ inserts the requested body rows with captured CRLF and rejects unbounded dimensions 1ms
+   ✓ does not misclassify a table-looking block inside code and bounds far windowed syntax reads 11ms
+   ✓ keeps an EOF cursor inside an unfinished code block out of formatting context 2ms
+   × does not claim plain-text safety inside unsupported container/HTML context: > ```md
+> code
+> ``` 9ms
+     → expected 'text' to be 'unknown' // Object.is equality
+   × does not claim plain-text safety inside unsupported container/HTML context: - item
+    code 3ms
+     → expected 'code' to be 'unknown' // Object.is equality
+   × does not claim plain-text safety inside unsupported container/HTML context: <div>
+code
+</div> 2ms
+     → expected 'text' to be 'unknown' // Object.is equality
+   × reads windowed syntax with a budget before any unbounded position-to-line access 9ms
+     → Unbounded position read must not be used
+   × prepares table exit using the captured suffix rather than inventing table EOF 6ms
+     → expected [ Array(1) ] to deeply equal []
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/public-table-editing.test.ts > does not claim plain-text safety inside unsupported container/HTML context: > ```md
+> code
+> ```
+ FAIL  src/__tests__/public-table-editing.test.ts > does not claim plain-text safety inside unsupported container/HTML context: <div>
+code
+</div>
+AssertionError: expected 'text' to be 'unknown' // Object.is equality
+
+Expected: "unknown"
+Received: "text"
+
+ ❯ src/__tests__/public-table-editing.test.ts:174:52
+    172|     const view = new EditorView({parent:document.createElement('main')…
+    173|     views.push(view)
+    174|     expect((await view.readEditingContext()).kind).toBe('unknown')
+       |                                                    ^
+    175|   })
+    176| }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  src/__tests__/public-table-editing.test.ts > does not claim plain-text safety inside unsupported container/HTML context: - item
+    code
+AssertionError: expected 'code' to be 'unknown' // Object.is equality
+
+Expected: "unknown"
+Received: "code"
+
+ ❯ src/__tests__/public-table-editing.test.ts:174:52
+    172|     const view = new EditorView({parent:document.createElement('main')…
+    173|     views.push(view)
+    174|     expect((await view.readEditingContext()).kind).toBe('unknown')
+       |                                                    ^
+    175|   })
+    176| }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  src/__tests__/public-table-editing.test.ts > reads windowed syntax with a budget before any unbounded position-to-line access
+Error: Unbounded position read must not be used
+ ❯ MemoryDocumentSource.source.lineAtPosition src/__tests__/public-table-editing.test.ts:183:47
+    181|   views.push(view)
+    182|   await view.renderVisibleWindow()
+    183|   source.lineAtPosition = async () => { throw new Error('Unbounded pos…
+       |                                               ^
+    184|   expect(await view.readEditingContext({anchor:2,head:2})).toEqual({ki…
+    185| })
+ ❯ SourceDocumentView.readEditingContext src/source-document-view.ts:1144:30
+ ❯ src/__tests__/public-table-editing.test.ts:184:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  src/__tests__/public-table-editing.test.ts > prepares table exit using the captured suffix rather than inventing table EOF
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "from": 56,
++     "insert": "
++ ",
++     "to": 56,
++   },
++ ]
+
+ ❯ src/__tests__/public-table-editing.test.ts:193:24
+    191|   const context = (await view.readEditingContext()).table!
+    192|   const plan = prepareTableEdit(context,{operation:'exit'},text.slice(…
+    193|   expect(plan.changes).toEqual([])
+       |                        ^
+    194|   expect(plan.selectionAfter).toEqual({anchor:context.to,head:context.…
+    195| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 9 passed (14)
+   Start at  08:33:04
+   Duration  1.95s (transform 520ms, setup 0ms, collect 686ms, tests 403ms, environment 571ms, prepare 86ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/public-table-editing.test.ts

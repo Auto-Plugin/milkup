@@ -265,7 +265,9 @@ test('base host remains editable and saves with persistent storage access denied
       'function createDesktopFileService() {',
       `function createDesktopFileService() {
       const service = createMockFileService(); const save = service.saveFile.bind(service);
-      service.saveFile = async (session,text) => { window.preferencesStorageFaultSaved = text; return save(session,text); }; return service;`,
+      const saveAs = service.saveFileAs.bind(service);
+      service.saveFile = async (session,text) => { window.preferencesStorageFaultSaved = text; return save(session,text); };
+      service.saveFileAs = async (session,text) => { window.preferencesStorageFaultSaved = text; return saveAs(session,text); }; return service;`,
     )
     expect(body).toContain('window.preferencesStorageFaultSaved = text')
     await route.fulfill({ response, body })
@@ -360,3 +362,94 @@ for (const windowed of [false, true]) {
     await expect(page.locator('.milkup-input-proxy')).toBeFocused()
   })
 }
+
+test('responsive breakpoint preserves preferences select and input focus without editing the document', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1100, height: 760 })
+  await setup(page)
+  await page.keyboard.press('Control+1')
+  await page.locator('.milkup-input-proxy').focus()
+  const original = 'Breakpoint preserves 中文 👩🏽‍💻 é'
+  await page.keyboard.insertText(original)
+  const version = await page.locator('[data-stat="version"]').textContent()
+  await open(page)
+  try {
+    for (const label of ['界面缩放', '字体大小']) {
+      const control = field(page, label)
+      await control.focus()
+      for (const width of [700, 1100]) {
+        await page.setViewportSize({ width, height: 760 })
+        await page.evaluate(
+          () =>
+            new Promise<void>((resolve) =>
+              requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+            ),
+        )
+        await expect(view(page)).toBeVisible()
+        await expect(control).toBeFocused()
+        await expect(page.locator('[data-stat="version"]')).toHaveText(version!)
+        await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText(original)
+      }
+    }
+    await close(page)
+    await page.keyboard.press('Control+f')
+    const search = page.locator('[data-search-input]')
+    await expect(search).toBeFocused()
+    await page.setViewportSize({ width: 700, height: 760 })
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+        ),
+    )
+    await expect(search).toBeFocused()
+    await page.keyboard.type('find only')
+    await expect(search).toHaveValue('find only')
+    await expect(page.locator('[data-stat="version"]')).toHaveText(version!)
+    await expect(page.locator('.milkup-line[data-line="1"]')).toHaveText(original)
+  } finally {
+    await test.info().attach('breakpoint-focus', {
+      body: JSON.stringify(
+        await page.evaluate(() => ({
+          width: innerWidth,
+          narrow: matchMedia('(max-width: 760px)').matches,
+          activeTag: document.activeElement?.tagName,
+          activeLabel: document.activeElement?.getAttribute('aria-label'),
+          activeField: (document.activeElement as HTMLElement)?.dataset.pluginFieldControl,
+          modalVisible: !!document.querySelector('.plugin-ui-modal')?.getClientRects().length,
+          editorInert: document.querySelector('.editor-panel')?.hasAttribute('inert'),
+          version: document.querySelector('[data-stat="version"]')?.textContent,
+          text: document.querySelector('.milkup-line[data-line="1"]')?.textContent,
+        })),
+        null,
+        2,
+      ),
+      contentType: 'application/json',
+    })
+    await page.screenshot({ path: test.info().outputPath('breakpoint-focus.png') })
+  }
+})
+
+test('responsive breakpoint moves focus only when sidebar controls or the editor become unavailable', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1100, height: 760 })
+  await setup(page)
+  await page.locator('[data-sidebar-toggle]').click()
+  await expect(page.locator('#app')).toHaveAttribute('data-sidebar-collapsed', 'false')
+  await page.locator('.milkup-input-proxy').focus()
+  await page.setViewportSize({ width: 700, height: 760 })
+  await expect(page.locator('.editor-panel')).toHaveAttribute('inert', '')
+  await expect(page.locator('[data-sidebar-close]')).toBeFocused()
+  await page.setViewportSize({ width: 1100, height: 760 })
+  await expect(page.locator('[data-sidebar-close]')).toBeHidden()
+  await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+  await page.locator('[data-sidebar-resize]').focus()
+  await page.setViewportSize({ width: 700, height: 760 })
+  await expect(page.locator('[data-sidebar-resize]')).toBeHidden()
+  await expect(page.locator('[data-sidebar-close]')).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('#app')).toHaveAttribute('data-sidebar-collapsed', 'true')
+  await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+})

@@ -23,6 +23,7 @@ export interface PluginManifest {
 
 export interface PluginContributionSet {
   readonly commands?: readonly PluginCommandContribution[]
+  readonly pasteHandlers?: readonly PluginPasteHandlerContribution[]
   readonly keymaps?: readonly PluginKeymapContribution[]
   readonly renderers?: readonly PluginRendererContribution[]
   readonly markdownSyntax?: readonly PluginMarkdownSyntaxContribution[]
@@ -43,6 +44,11 @@ export interface PluginCommandContribution {
   readonly category?: string
   readonly permissions?: readonly PluginPermission[]
   readonly inputSchema?: ActionInputSchema
+}
+
+export interface PluginPasteHandlerContribution {
+  readonly kind: 'image'
+  readonly command: string
 }
 
 export interface PluginKeymapContribution {
@@ -67,7 +73,13 @@ export interface PluginMarkdownSyntaxContribution {
 }
 
 export type PluginUiSlot =
-  'menu-page' | 'sidebar-panel' | 'bottom-panel' | 'document-toolbar' | 'statusbar' | 'modal'
+  | 'menu-page'
+  | 'sidebar-panel'
+  | 'bottom-panel'
+  | 'document-toolbar'
+  | 'statusbar'
+  | 'modal'
+  | 'context-menu'
 
 export interface PluginUiContribution {
   readonly id: string
@@ -119,6 +131,7 @@ const KNOWN_PERMISSIONS = new Set<PluginPermission>([
   'workspace:read',
   'settings:write',
   'app:keymap',
+  'images:import',
   'network:access',
 ])
 const KNOWN_HOSTS = new Set<PluginHostKind>(['worker', 'sidecar'])
@@ -129,6 +142,7 @@ const KNOWN_UI_SLOTS = new Set<PluginUiSlot>([
   'document-toolbar',
   'statusbar',
   'modal',
+  'context-menu',
 ])
 const KNOWN_UI_SCOPES = new Set<PluginUiContribution['scope']>(['app', 'document'])
 const KNOWN_IMPORTER_TARGETS = new Set<PluginImporterContribution['target']>([
@@ -189,6 +203,21 @@ export function validatePluginManifest(value: unknown): PluginManifestValidation
 
   validateCommandPermissionScope(contributes?.commands, permissions, errors)
   validateContributionIntegrity(contributes, errors)
+  for (const [i, handler] of (contributes?.pasteHandlers ?? []).entries()) {
+    if (
+      !permissions.includes('images:import') ||
+      !contributes?.commands?.some((c) => c.action === handler.command)
+    )
+      errors.push({
+        path: `$.contributes.pasteHandlers[${i}]`,
+        message: 'Image paste requires images:import and an owned contributed command',
+      })
+  }
+  if ((contributes?.pasteHandlers?.length ?? 0) > 1)
+    errors.push({
+      path: '$.contributes.pasteHandlers',
+      message: 'Only one image paste handler is allowed',
+    })
   validateNetworkOrigins(networkOrigins, permissions, errors)
 
   if (id && !PLUGIN_ID_PATTERN.test(id)) {
@@ -296,6 +325,12 @@ function readContributions(
     readCommandContribution,
     errors,
   )
+  const pasteHandlers = readArray(
+    value.pasteHandlers,
+    '$.contributes.pasteHandlers',
+    readPasteHandler,
+    errors,
+  )
   const keymaps = readArray(value.keymaps, '$.contributes.keymaps', readKeymapContribution, errors)
   const renderers = readArray(
     value.renderers,
@@ -325,6 +360,7 @@ function readContributions(
 
   return Object.freeze({
     ...(commands ? { commands: Object.freeze(commands) } : {}),
+    ...(pasteHandlers ? { pasteHandlers: Object.freeze(pasteHandlers) } : {}),
     ...(keymaps ? { keymaps: Object.freeze(keymaps) } : {}),
     ...(renderers ? { renderers: Object.freeze(renderers) } : {}),
     ...(markdownSyntax ? { markdownSyntax: Object.freeze(markdownSyntax) } : {}),
@@ -1054,4 +1090,22 @@ function invalid(errors: readonly PluginManifestValidationError[]): PluginManife
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function readPasteHandler(
+  value: unknown,
+  path: string,
+  errors: PluginManifestValidationError[],
+): PluginPasteHandlerContribution | undefined {
+  if (
+    !isRecord(value) ||
+    Object.keys(value).some((k) => !['kind', 'command'].includes(k)) ||
+    value.kind !== 'image' ||
+    typeof value.command !== 'string' ||
+    !ACTION_ID_PATTERN.test(value.command)
+  ) {
+    errors.push({ path, message: 'Paste handler must declare kind image and a command' })
+    return undefined
+  }
+  return Object.freeze({ kind: 'image', command: value.command })
 }

@@ -44,6 +44,7 @@ export class ChangeSet {
     }
 
     let mapped = pos
+    let offset = 0
 
     for (const change of this.changes) {
       const deletedLength = change.to - change.from
@@ -55,21 +56,16 @@ export class ChangeSet {
       }
 
       if (pos > change.to) {
-        mapped += delta
+        offset += delta
+        mapped = pos + offset
         continue
       }
 
-      if (pos === change.from) {
-        mapped = affinity < 0 ? change.from : change.from + insertedLength
-        continue
-      }
-
-      if (pos === change.to) {
-        mapped = affinity < 0 ? change.from : change.from + insertedLength
-        continue
-      }
-
-      mapped = affinity < 0 ? change.from : change.from + insertedLength
+      // Changes use original-document coordinates. Later boundaries need the
+      // cumulative delta of earlier changes, including adjacent replacements.
+      mapped = change.from + offset + (affinity < 0 ? 0 : insertedLength)
+      if (deletedLength === 0 && affinity < 0) return mapped
+      offset += delta
     }
 
     return mapped

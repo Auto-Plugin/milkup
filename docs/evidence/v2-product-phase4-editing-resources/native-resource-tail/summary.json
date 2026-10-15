@@ -1,0 +1,396 @@
+{
+  "status": "PARTIAL_DIAGNOSTIC_PASS",
+  "stage": "tail",
+  "skippedClipboard": false,
+  "skippedMatrix": false,
+  "records": 6,
+  "matrix": 0,
+  "packages": [
+    {
+      "id": "milkup.formatting",
+      "archive": "/workspace/milkup-editing-resources-phase4-evidence/sdk/public-build-seven-final/milkup.formatting/dist/milkup.formatting-1.0.0.milkup-plugin",
+      "sha256": "8f74a6882c2a38cbccecd8f554c057b5e75554fbe050e7058e2450329de33237",
+      "manifest": {
+        "id": "milkup.formatting",
+        "name": "Milkup Formatting",
+        "version": "1.0.0",
+        "description": "通过公开版本校验编辑接口应用 Markdown 格式与真实表格结构操作。",
+        "host": "worker",
+        "main": "./dist/plugin.js",
+        "engines": {
+          "milkup": "^2.0.0-0",
+          "pluginSdk": ">=0.3.2 <0.4.0"
+        },
+        "permissions": ["document:read", "document:write"],
+        "contributes": {
+          "commands": [
+            {
+              "id": "formatting.open",
+              "title": "格式与表格",
+              "action": "formatting.open",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.link",
+              "title": "编辑链接",
+              "action": "formatting.link",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.refresh",
+              "title": "重新读取格式选区",
+              "action": "formatting.refresh",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.heading1",
+              "title": "1级标题",
+              "action": "formatting.heading1",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.heading2",
+              "title": "2级标题",
+              "action": "formatting.heading2",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.heading3",
+              "title": "3级标题",
+              "action": "formatting.heading3",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.heading4",
+              "title": "4级标题",
+              "action": "formatting.heading4",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.heading5",
+              "title": "5级标题",
+              "action": "formatting.heading5",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.heading6",
+              "title": "6级标题",
+              "action": "formatting.heading6",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.bold",
+              "title": "粗体",
+              "action": "formatting.bold",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.italic",
+              "title": "斜体",
+              "action": "formatting.italic",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.strike",
+              "title": "删除线",
+              "action": "formatting.strike",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.bullet",
+              "title": "无序列表",
+              "action": "formatting.bullet",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.ordered",
+              "title": "有序列表",
+              "action": "formatting.ordered",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.task",
+              "title": "任务列表",
+              "action": "formatting.task",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.quote",
+              "title": "引用",
+              "action": "formatting.quote",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.inlineCode",
+              "title": "行内代码",
+              "action": "formatting.inlineCode",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.fence",
+              "title": "代码块",
+              "action": "formatting.fence",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.tableAddRow",
+              "title": "下方加行",
+              "action": "formatting.tableAddRow",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.tableDeleteRow",
+              "title": "删除行",
+              "action": "formatting.tableDeleteRow",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.tableAddColumn",
+              "title": "右侧加列",
+              "action": "formatting.tableAddColumn",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.tableDeleteColumn",
+              "title": "删除列",
+              "action": "formatting.tableDeleteColumn",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.tableAlignLeft",
+              "title": "列左对齐",
+              "action": "formatting.tableAlignLeft",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.tableAlignCenter",
+              "title": "列居中",
+              "action": "formatting.tableAlignCenter",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.tableAlignRight",
+              "title": "列右对齐",
+              "action": "formatting.tableAlignRight",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.tableClearCell",
+              "title": "清空单元格",
+              "action": "formatting.tableClearCell",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.tableSelectCell",
+              "title": "选中单元格",
+              "action": "formatting.tableSelectCell",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.tableSelect",
+              "title": "选中表格",
+              "action": "formatting.tableSelect",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.applyLink",
+              "title": "应用链接",
+              "action": "formatting.applyLink",
+              "category": "formatting",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "draft": {
+                    "type": "boolean",
+                    "required": true
+                  }
+                }
+              }
+            },
+            {
+              "id": "formatting.tableInsert",
+              "title": "插入表格",
+              "action": "formatting.tableInsert",
+              "category": "formatting",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "draft": {
+                    "type": "boolean",
+                    "required": true
+                  }
+                }
+              }
+            },
+            {
+              "id": "formatting.field",
+              "title": "编辑格式字段",
+              "action": "formatting.field",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "field": {
+                    "type": "string",
+                    "required": true
+                  },
+                  "value": {
+                    "type": "string",
+                    "required": true
+                  }
+                }
+              }
+            },
+            {
+              "id": "formatting.unlink",
+              "title": "取消链接",
+              "action": "formatting.unlink",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.tableAlignDefault",
+              "title": "清除列对齐",
+              "action": "formatting.tableAlignDefault",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.tableExit",
+              "title": "退出表格",
+              "action": "formatting.tableExit",
+              "category": "formatting"
+            },
+            {
+              "id": "formatting.tableSetCell",
+              "title": "替换单元格内容",
+              "action": "formatting.tableSetCell",
+              "category": "formatting",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "draft": {
+                    "type": "boolean",
+                    "required": true
+                  }
+                }
+              }
+            }
+          ],
+          "keymaps": [
+            {
+              "command": "formatting.bold",
+              "key": "Mod+B",
+              "when": "editorFocus"
+            },
+            {
+              "command": "formatting.italic",
+              "key": "Mod+I",
+              "when": "editorFocus"
+            }
+          ],
+          "ui": [
+            {
+              "id": "formatting-toolbar",
+              "slot": "document-toolbar",
+              "title": "格式",
+              "scope": "document",
+              "viewportUpdates": true
+            },
+            {
+              "id": "formatting-modal",
+              "slot": "modal",
+              "title": "格式与表格",
+              "scope": "document"
+            },
+            {
+              "id": "formatting-context",
+              "slot": "context-menu",
+              "title": "格式",
+              "scope": "document",
+              "viewportUpdates": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "milkup.images",
+      "archive": "/workspace/milkup-editing-resources-phase4-evidence/sdk/public-build-seven-final/milkup.images/dist/milkup.images-1.0.0.milkup-plugin",
+      "sha256": "f46f36ada6c2b28cb42a90d524e69e3d84ffc1e6f9e00f24be4a81bace767356",
+      "manifest": {
+        "id": "milkup.images",
+        "name": "图片与资源",
+        "version": "1.0.0",
+        "description": "选择或粘贴本地图片，先安全保存资源，再插入 Markdown 引用；支持资源目录策略与取消。",
+        "host": "worker",
+        "main": "./dist/plugin.js",
+        "engines": {
+          "milkup": "^2.0.0-0",
+          "pluginSdk": "^0.3.2"
+        },
+        "permissions": ["document:read", "document:write", "images:import"],
+        "icon": "assets/images.png",
+        "resources": ["assets/images.png"],
+        "contributes": {
+          "commands": [
+            {
+              "id": "images.choose",
+              "title": "选择并插入图片",
+              "action": "images.choose"
+            },
+            {
+              "id": "images.paste",
+              "title": "粘贴图片",
+              "action": "images.paste",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "grantId": {
+                    "type": "string"
+                  }
+                },
+                "required": ["grantId"]
+              }
+            },
+            {
+              "id": "images.change",
+              "title": "修改图片选项",
+              "action": "images.change",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "field": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                },
+                "required": ["field", "value"]
+              }
+            },
+            {
+              "id": "images.cancel",
+              "title": "取消图片导入",
+              "action": "images.cancel"
+            }
+          ],
+          "ui": [
+            {
+              "id": "images-panel",
+              "slot": "modal",
+              "title": "图片与资源",
+              "scope": "app",
+              "viewportUpdates": false
+            }
+          ],
+          "pasteHandlers": [
+            {
+              "kind": "image",
+              "command": "images.paste"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "binarySha256": "47695136eeb999cd2aa713f95ee1179953ea3d8dfecbc60a8d65bf64f7d488f5"
+}

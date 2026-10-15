@@ -19,6 +19,35 @@ export type TableCommand =
   | 'delete-column'
   | 'select-cell'
   | 'select-table'
+  | 'clear-cell'
+  | 'set-cell'
+  | 'align-left'
+  | 'align-center'
+  | 'align-right'
+  | 'align-default'
+export function isTableCommand(value: unknown): value is TableCommand {
+  return (
+    typeof value === 'string' &&
+    [
+      'next',
+      'previous',
+      'down',
+      'exit',
+      'add-row',
+      'delete-row',
+      'add-column',
+      'delete-column',
+      'select-cell',
+      'select-table',
+      'clear-cell',
+      'set-cell',
+      'align-left',
+      'align-center',
+      'align-right',
+      'align-default',
+    ].includes(value)
+  )
+}
 export interface TableContext {
   readonly table: SyntaxNode
   readonly rows: readonly SyntaxNode[]
@@ -129,7 +158,9 @@ export function tableCommand(
   state: EditorState,
   context: TableContext,
   command: TableCommand,
+  text?: string,
 ): Transaction | undefined {
+  if (!isTableCommand(command)) return
   const { table, rows, row, column, cell, columnCount } = context
   if (command === 'select-table')
     return {
@@ -139,6 +170,37 @@ export function tableCommand(
     }
   if (command === 'select-cell') return select(cell)
   if (!context.withinCell) return
+  if (command === 'clear-cell')
+    return edit(ChangeSet.delete(cell.from, cell.to), cell.from, command)
+  if (command === 'set-cell') {
+    if (typeof text !== 'string') return
+    const insert = tableCellText(text)
+    return edit(ChangeSet.replace(cell.from, cell.to, insert), cell.from + insert.length, command)
+  }
+  if (command.startsWith('align-')) {
+    const delimiter = state.doc.line(state.doc.lineAt(table.from).number + 1)
+    const matches = [...delimiter.text.matchAll(/:?-+:?/g)]
+    const target = matches[column]
+    if (!target || target.index === undefined) return
+    const alignment = command.slice(6)
+    const insert =
+      alignment === 'left'
+        ? ':---'
+        : alignment === 'right'
+          ? '---:'
+          : alignment === 'center'
+            ? ':---:'
+            : '---'
+    const changes = ChangeSet.replace(
+      delimiter.from + target.index,
+      delimiter.from + target.index + target[0].length,
+      insert,
+    )
+    return {
+      ...edit(changes, changes.mapPosition(state.selection.main.head), command),
+      selection: state.selection.map(changes),
+    }
+  }
   if (command === 'exit') {
     const nl = eol(state, context)
     if (table.to < state.doc.length && state.doc.lineAt(table.to).text === '')
@@ -191,6 +253,7 @@ export function tableCommand(
     )
   }
   if (command === 'delete-column' && columnCount <= 2) return
+  if (command !== 'add-column' && command !== 'delete-column') return
   const contents = rows.map((row) =>
     Array.from({ length: columnCount }, (_, index) => {
       const cell = row.children?.[index]

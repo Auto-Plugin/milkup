@@ -1,0 +1,30 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/resource-reference-scan.test.ts [ src/resource-reference-scan.test.ts ]
+Error: Cannot find module './resource-reference-scan' imported from '/workspace/milkup/apps/desktop/src/resource-reference-scan.test.ts'
+ ❯ src/resource-reference-scan.test.ts:3:1
+      1| import { describe, expect, it, vi } from 'vitest'
+      2| import { MemoryDocumentSource } from '@milkup/core'
+      3| import { scanResourceReferences, scanDocumentResourceReferences, RESOU…
+       | ^
+      4| 
+      5| describe('bounded Save As image reference scan', () => {
+
+Caused by: Error: Failed to load url ./resource-reference-scan (resolved id: ./resource-reference-scan) in /workspace/milkup/apps/desktop/src/resource-reference-scan.test.ts. Does the file exist?
+ ❯ loadAndTransform ../../node_modules/.pnpm/vite@7.3.6_@types+node@24.13.2/node_modules/vite/dist/node/chunks/config.js:22739:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  08:23:40
+   Duration  484ms (transform 144ms, setup 0ms, collect 0ms, tests 0ms, environment 0ms, prepare 77ms)
+
+undefined
+/workspace/milkup/apps/desktop:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/resource-reference-scan.test.ts

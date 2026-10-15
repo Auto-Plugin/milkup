@@ -335,10 +335,12 @@ for (const mode of ['source', 'live']) {
 test('save failure prevents plugin installation and preserves editable draft', async ({ page }) => {
   await page.route(/\/src\/file-service\.ts(?:\?|$)/, async (route) => {
     const response = await route.fetch()
-    const body = (await response.text()).replace(
-      'async saveFile(session, text) {',
-      'async saveFile(session, text) { throw Error("磁盘空间不足");',
-    )
+    let body = await response.text()
+    for (const method of ['saveFile', 'saveFileAs']) {
+      const failure = `async ${method}(session, text) { throw Error("磁盘空间不足");`
+      body = body.replace(`async ${method}(session, text) {`, failure)
+      expect(body).toContain(failure)
+    }
     await route.fulfill({ response, body })
   })
   await fixture(page)

@@ -10,17 +10,24 @@ import {
 } from './registry'
 
 describe('plugin registry', () => {
-  it.each(['outline', 'updates', 'workspace'])(
-    'restores installed %s under SDK 0.3.1 without altering range, approvals or enable state',
+  it.each(['outline', 'updates', 'workspace', 'preferences', 'shortcuts'])(
+    'restores installed %s under SDK 0.3.2 without altering range, approvals or enable state',
     (name) => {
       const manifest = JSON.parse(
         readFileSync(new URL(`../../../plugins/${name}/plugin.json`, import.meta.url), 'utf8'),
       )
-      const expectedRange = name === 'workspace' ? '^0.3.0' : '>=0.2.0 <0.4.0'
+      const expectedRange =
+        name === 'preferences'
+          ? '^0.3.1'
+          : name === 'shortcuts'
+            ? '>=0.3.1 <0.4.0'
+            : name === 'workspace'
+              ? '^0.3.0'
+              : '>=0.2.0 <0.4.0'
       expect(manifest.engines.pluginSdk).toBe(expectedRange)
       for (const mode of ['unapproved', 'disabled', 'enabled']) {
         const old = new PluginRegistry({
-          compatibility: { milkupVersion: '2.0.0-beta.1', pluginSdkVersion: '0.3.0' },
+          compatibility: { milkupVersion: '2.0.0-beta.1', pluginSdkVersion: '0.3.1' },
           now: () => 123,
         })
         old.installLocalPlugin({ manifest, manifestPath: `/plugins/${name}/plugin.json` })
@@ -28,7 +35,7 @@ describe('plugin registry', () => {
         if (mode === 'enabled') old.markEnabled(manifest.id)
         const before = parsePluginRegistrySnapshot(serializePluginRegistry(old))
         const upgraded = new PluginRegistry({
-          compatibility: { milkupVersion: '2.0.0-beta.1', pluginSdkVersion: '0.3.1' },
+          compatibility: { milkupVersion: '2.0.0-beta.1', pluginSdkVersion: '0.3.2' },
           now: () => 456,
         })
         upgraded.restore(before)

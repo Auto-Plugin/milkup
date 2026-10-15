@@ -2,6 +2,7 @@ import { renderDesktopPluginManagerElement } from './desktop-plugin-manager-ui'
 import { loadDesktopPluginIcon } from './plugin-icon'
 import { zoomLevels, type ThemePreference } from './appearance'
 import { createDesktopSettingsService } from './settings-service'
+import { createDesktopEditingService, type DesktopEditingCurrent } from './editing-service'
 import { createKeymapService } from './keymap-service'
 import { applyEditorSettings, applyPresentationToCurrentViews } from './apply-editor-settings'
 import { bundledPluginPaths, readBundledPlugin } from './bundled-plugin-catalog'
@@ -36,6 +37,7 @@ import {
   createSidecarPluginModule,
   markTrustedPluginCommand,
   PluginRuntime,
+  PluginEditingError,
 } from '@milkup/plugin'
 import {
   isPluginPackageArchive,
@@ -65,11 +67,15 @@ import type {
   RecentFileEntry,
   SessionViewMode,
 } from '@milkup/tauri-bridge'
-import { createControlledRendererNodes, EditorView } from '@milkup/view-dom'
+import {
+  createControlledRendererNodes,
+  EditorView,
+  prepareTableEdit,
+  prepareTableInsertion,
+} from '@milkup/view-dom'
 import { SourceDocumentView } from '@milkup/view-dom'
 import type {
   EditorPresentation,
-  TableCommand,
   ControlledRenderer,
   ControlledRendererActionDetail,
   ControlledRendererContext,
@@ -100,7 +106,10 @@ import {
 } from 'lucide'
 import type { IconNode } from 'lucide'
 
-import { createDesktopAssetProvider } from './asset-service'
+import { EditorContextMenu } from './editor-context-menu'
+import { createDesktopResourceService } from './resource-service'
+import { saveWithResources } from './resource-save'
+import { scanResourceReferences, scanDocumentResourceReferences } from './resource-reference-scan'
 import {
   metadataFromOpenFileResult,
   resolveDesktopMemoryViewportFallbackPolicy,
@@ -449,16 +458,6 @@ app.innerHTML = `
           <div class="search-message" data-search-message role="status">字面匹配 · 忽略大小写 · 忽略查询首尾空白</div>
         </div>
         <div class="editor-host" data-editor-host></div>
-        <div class="table-tools" data-table-tools role="toolbar" aria-label="表格操作" hidden>
-          <span data-table-position title="Tab 切换单元格 · Enter 向下 · Shift+Enter 单元格内换行 · Esc 退出"></span>
-          <button type="button" data-table-action="select-cell">选中单元格</button>
-          <button type="button" data-table-action="select-table">选中表格</button>
-          <button type="button" data-table-action="add-row" title="在当前行下方插入">下方加行</button>
-          <button type="button" data-table-action="delete-row" title="删除当前数据行；保留表头">删除行</button>
-          <button type="button" data-table-action="add-column" title="在当前列右侧插入">右侧加列</button>
-          <button type="button" data-table-action="delete-column" title="删除当前列；至少保留两列">删除列</button>
-          <button type="button" data-table-action="exit" title="退出到表格后的段落（Esc）">退出表格</button>
-        </div>
         <div class="plugin-bottom-slot" data-plugin-slot="bottom-panel"></div>
         <div class="document-loading" data-document-loading hidden>
           <div>
@@ -492,6 +491,7 @@ app.innerHTML = `
         </footer>
       </div>
     </section>
+    <div class="editor-context-menu" data-plugin-slot="context-menu" hidden></div>
     <section class="plugin-modal-slot" data-plugin-slot="modal"></section>
     <footer class="statusbar">
       <div class="statusbar-left">
@@ -550,9 +550,6 @@ const largeSearchController = new LargeDocumentSearchController(largeSearchServi
 let nativeReplacement:
   | { abort: AbortController; preparing: boolean; progress?: LargeReplaceProgress | undefined }
   | undefined
-const assetProvider = createDesktopAssetProvider({
-  getMarkdownPath: () => session.file?.path,
-})
 
 let session = createDocumentSession({
   documentId: 'desktop-untitled-1',
@@ -583,6 +580,7 @@ let windowMaximized = false
 let closeConfirmOpen = false
 let applicationUpdateInstalling = false
 let recoveryDialogOpen = false
+let restoringResourceCopy = false
 let loadingState: DocumentLoadingState = Object.freeze({ phase: 'idle' })
 const loadingVisibility = createDocumentLoadingVisibilityController({
   onChange: () => {
@@ -593,6 +591,7 @@ const loadingVisibility = createDocumentLoadingVisibilityController({
   },
 })
 let importantNotice = false
+let resourceSaveWarning: string | undefined
 let saveState: DocumentSaveState = Object.freeze({ phase: 'idle' })
 let transitionPrompt: DocumentTransitionPrompt | undefined
 const documentTransitions = createDocumentTransitionController({
@@ -627,6 +626,73 @@ let largeDocumentPreview: LargeDocumentPreviewState | undefined
 
 let view: EditorView | undefined
 let sourceView: SourceDocumentView | undefined
+let controlledEditingCommit = false
+let editingDocumentIdentity: object = {}
+let editingDocumentId = session.documentId
+let editingSavedPath = session.file?.path
+let saveLocationGeneration = 0
+let currentSelectionRevision = 0
+let editingObservedView: EditorView | SourceDocumentView | undefined
+let editingObservedSelectionRevision = -1
+let editingMemorySource: MemoryDocumentSource | undefined
+let editingMemoryDocument: EditorState['doc'] | undefined
+
+/** Call after each successful Save As location change, including A -> B -> A. */
+function invalidateDesktopSaveLocation(): void {
+  saveLocationGeneration++
+  editingSavedPath = session.file?.path
+}
+
+function getDesktopEditingCurrent(): DesktopEditingCurrent | undefined {
+  const editor = sourceView ?? view
+  if (!editor || documentPresentation === 'custom-view') return undefined
+  if (editingDocumentId !== session.documentId) {
+    editingDocumentId = session.documentId
+    editingDocumentIdentity = {}
+    editingMemorySource = undefined
+    saveLocationGeneration++
+  }
+  if (editingSavedPath !== session.file?.path) invalidateDesktopSaveLocation()
+  if (editingObservedView !== editor) editingDocumentIdentity = {}
+  if (
+    editingObservedView !== editor ||
+    editingObservedSelectionRevision !== editor.selectionRevision
+  ) {
+    currentSelectionRevision++
+    editingObservedView = editor
+    editingObservedSelectionRevision = editor.selectionRevision
+  }
+  const version = largeDocumentPreview?.source.version ?? session.documentVersion
+  if (
+    !editingMemorySource ||
+    editingMemoryDocument !== state.doc ||
+    editingMemorySource.version !== version
+  ) {
+    editingMemorySource = new MemoryDocumentSource({
+      documentId: session.documentId,
+      document: state.doc,
+      version,
+    })
+    editingMemoryDocument = state.doc
+  }
+  return {
+    identity: editingDocumentIdentity,
+    source: largeDocumentPreview?.source ?? sourceView?.source ?? editingMemorySource,
+    documentId: session.documentId,
+    version,
+    selection: sourceView?.selection ?? state.selection,
+    selectionRevision: currentSelectionRevision,
+    saveLocationGeneration,
+    readonly: session.readonly,
+    busy:
+      isDocumentBusy() ||
+      isDocumentSaving() ||
+      closeConfirmOpen ||
+      recoveryDialogOpen ||
+      editor.isComposing,
+    mode: sourceView ? 'windowed' : 'memory',
+  }
+}
 let pluginUiViewportTimer: ReturnType<typeof setTimeout> | undefined
 let pluginUiViewportIdleCallback: number | undefined
 
@@ -768,6 +834,7 @@ const recoveryUi = createRecoveryUi(appRoot, {
     recoveryUi.hide()
     let recoveryError: unknown
     await documentTransitions.request('open', async () => {
+      restoringResourceCopy = true
       try {
         const path = await recoveryInvoke<string>('materialize_recovery', { id: record.id })
         await openSelectedDocumentAfterConfirmation(
@@ -777,6 +844,18 @@ const recoveryUi = createRecoveryUi(appRoot, {
         )
         if (session.file?.path !== path || loadingState.phase !== 'ready')
           throw new Error('恢复副本未打开；原恢复记录仍保留')
+        const references = largeDocumentPreview
+          ? (
+              await scanDocumentResourceReferences(largeDocumentPreview.source, {
+                chunks: readNativeResourceChunks(largeDocumentPreview),
+              })
+            ).references
+          : scanResourceReferences(state.doc.text)
+        if (references.length) {
+          await resourceService.restoreRecovery(record.id, session.documentId, references)
+          view?.refreshResourceImages()
+          sourceView?.refreshResourceImages()
+        }
         await recoveryInvoke('archive_recovery', { id: record.id, disposition: 'restored' })
         notice = '已打开恢复副本，原文件未改动。请另存为到需要的位置。'
         importantNotice = true
@@ -784,6 +863,9 @@ const recoveryUi = createRecoveryUi(appRoot, {
       } catch (error) {
         recoveryError = error
         throw error
+      } finally {
+        restoringResourceCopy = false
+        renderSession()
       }
     })
     if (recoveryError) throw recoveryError
@@ -806,14 +888,192 @@ appRoot.querySelector('[data-recovery-storage-details]')?.addEventListener('clic
   void recoveryUi.open(true)
 })
 
+const resourceService = createDesktopResourceService({
+  currentDocument: () => {
+    const current = getDesktopEditingCurrent()
+    return {
+      documentId: session.documentId,
+      version: current?.version ?? session.documentVersion,
+      selectionRevision: current?.selectionRevision ?? 0,
+      saveLocationGeneration: current?.saveLocationGeneration ?? 0,
+      ...(session.file ? { path: session.file.path } : {}),
+      editable: !!current && !current.readonly && !current.busy,
+    }
+  },
+  ensureDocumentSaved: async () => Boolean(session.file) || (await saveDocumentAs()),
+  onError: (error) => {
+    importantNotice = true
+    notice = `图片资源操作未完成：${getErrorMessage(error)}`
+    renderSession()
+  },
+})
+
+let resourceDocumentId = session.documentId
+
+const desktopEditing = createDesktopEditingService({
+  current: getDesktopEditingCurrent,
+  async runExclusive<T>(action: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+    const active = sourceView
+    if (!active) return action()
+    let result!: T
+    await active.runAfterPendingEdits(async () => {
+      if (sourceView !== active) throw new PluginEditingError('stale')
+      signal?.throwIfAborted()
+      result = await action()
+    })
+    return result
+  },
+  context: async (window, _current, signal) => {
+    const editor = sourceView ?? view
+    if (!editor) throw new PluginEditingError('unavailable')
+    const context = await editor.readEditingContext(window.selection.main, signal)
+    const table = context.table
+    return {
+      kind: context.kind,
+      complete:
+        context.complete && (!table || (table.from >= window.from && table.to <= window.to)),
+      ...(table
+        ? {
+            table: {
+              row: table.row,
+              column: table.column,
+              rowCount: table.rowCount,
+              columnCount: table.columnCount,
+              alignment: table.alignment,
+              withinCell: table.withinCell,
+            },
+          }
+        : {}),
+    }
+  },
+  table: async (snapshot, request, _current, signal) => {
+    const editor = sourceView ?? view
+    if (!editor) throw new PluginEditingError('unavailable')
+    const selection = {
+      anchor: snapshot.from + snapshot.selection.anchor,
+      head: snapshot.from + snapshot.selection.head,
+    }
+    const context = await editor.readEditingContext(selection, signal)
+    if (!context.complete || context.kind === 'unknown' || context.kind === 'code')
+      throw new PluginEditingError('unsupported')
+    let plan
+    if (request.operation === 'insert-table') {
+      if (context.kind !== 'text') throw new PluginEditingError('unsupported')
+      plan = prepareTableInsertion(
+        { from: snapshot.from, text: snapshot.text, selection, lineEnding: snapshot.lineEnding },
+        request.rows,
+        request.columns,
+      )
+    } else {
+      const table = context.table
+      if (!table || table.from < snapshot.from || table.to > snapshot.to)
+        throw new PluginEditingError('unsupported')
+      plan = prepareTableEdit(table, request, snapshot.text.slice(table.to - snapshot.from))
+    }
+    if (!plan) throw new PluginEditingError('unsupported')
+    return {
+      changes: plan.changes.map((change) => ({
+        from: change.from - snapshot.from,
+        to: change.to - snapshot.from,
+        insert: change.insert,
+      })),
+      selection: {
+        anchor: plan.selectionAfter.anchor - snapshot.from,
+        head: plan.selectionAfter.head - snapshot.from,
+      },
+    }
+  },
+  supportsAssets: true,
+  commit: async (batch, guard, signal) => {
+    if (batch.assetIds?.length) await resourceService.assertAssets(batch.snapshot, batch.assetIds)
+    guard()
+    signal?.throwIfAborted()
+    const activeSourceView = sourceView
+    const preview = largeDocumentPreview
+    let version: number
+    let committed = false
+    const assetIds = batch.assetIds ?? []
+    resourceService.pinAssets(assetIds)
+    controlledEditingCommit = true
+    try {
+      renderSession()
+      if (preview) {
+        const edits = preview.editSession
+        if (!edits) throw new PluginEditingError('unsupported')
+        const pending = edits.prepareVisibleEdits(batch.changes, batch.deletedTextByChange, {
+          historyGroup: batch.historyGroup,
+          selectionBefore: batch.selectionBefore,
+          selectionAfter: batch.selectionAfter,
+        })
+        const snapshot = await applyLargeDocumentEditBatch({
+          service: largeTextFileService,
+          documentId: preview.documentId,
+          expectedVersion: edits.version,
+          batch: pending,
+        })
+        committed = true
+        resourceService.acceptAssets(assetIds)
+        if (snapshot) {
+          edits.confirmVisibleEdits(pending, snapshot.version)
+          preview.source.applyNativeSnapshot(snapshot)
+        }
+        version = preview.source.version
+        session = recordDocumentTransaction(session, batch)
+      } else {
+        const before = new EditorState({
+          doc: state.doc,
+          selection: batch.selectionBefore,
+          history: state.history,
+          facets: state.facets,
+        })
+        state = before.applyTransaction(batch)
+        committed = true
+        resourceService.acceptAssets(assetIds)
+        session = recordDocumentTransaction(session, batch)
+        version = session.documentVersion
+      }
+      // Document/history have committed. Rendering errors are reported without
+      // turning the accepted edit into an apparent cancellable failure.
+      try {
+        if (!preview) updateRenderedMemoryDocument([batch])
+        if (activeSourceView && activeSourceView === sourceView) {
+          await activeSourceView.revealSelection(batch.selectionAfterLine, batch.selectionAfter)
+        }
+        notice = ''
+      } catch (error) {
+        importantNotice = true
+        notice = `编辑已提交，视图更新失败：${getErrorMessage(error)}`
+      }
+      return { documentId: batch.snapshot.documentId, version }
+    } finally {
+      if (!committed) {
+        try {
+          await resourceService.releasePins(assetIds)
+        } catch (error) {
+          console.error('Uncommitted asset cleanup failed', error)
+        }
+      }
+      controlledEditingCommit = false
+      try {
+        renderSession()
+      } catch (error) {
+        console.error('Editing status render failed', error)
+      }
+    }
+  },
+})
+
 const desktopPluginEditor: Editor = {
   get state() {
     return state
   },
   dispatch(transaction: Transaction): void {
-    if (isDocumentBusy()) {
-      return
-    }
+    if (session.readonly) throw new PluginEditingError('readonly')
+    if (isDocumentBusy() || isDocumentSaving() || closeConfirmOpen || view?.isComposing)
+      throw new PluginEditingError('busy')
+    // Legacy serialized transactions have no native CAS or source-view queue.
+    // Windowed writers must use the bounded editing host instead.
+    if (sourceView) throw new PluginEditingError('unsupported')
 
     if (!view && !sourceView) {
       throw new Error('Desktop editor view was not initialized')
@@ -833,6 +1093,48 @@ const desktopPluginEditor: Editor = {
   redo(): boolean {
     return applyEditHistory('redo')
   },
+}
+
+/** Bind legacy command writes to the document and save destination at invocation. */
+function createDesktopLegacyCommandEditor(): Editor {
+  const expected = getDesktopEditingCurrent()
+  const assertCurrent = (): void => {
+    const current = getDesktopEditingCurrent()
+    if (!current || !expected) throw new PluginEditingError('stale')
+    if (current.readonly) throw new PluginEditingError('readonly')
+    if (current.busy) throw new PluginEditingError('busy')
+    if (
+      current.identity !== expected.identity ||
+      current.source !== expected.source ||
+      current.documentId !== expected.documentId ||
+      current.version !== expected.version ||
+      current.selectionRevision !== expected.selectionRevision ||
+      current.saveLocationGeneration !== expected.saveLocationGeneration
+    )
+      throw new PluginEditingError('stale')
+    if (current.mode === 'windowed') throw new PluginEditingError('unsupported')
+  }
+  const facade: Editor = {
+    get state() {
+      return desktopPluginEditor.state
+    },
+    dispatch(transaction) {
+      assertCurrent()
+      desktopPluginEditor.dispatch(transaction)
+    },
+    command(command) {
+      return command.run(facade)
+    },
+    undo() {
+      assertCurrent()
+      return desktopPluginEditor.undo()
+    },
+    redo() {
+      assertCurrent()
+      return desktopPluginEditor.redo()
+    },
+  }
+  return facade
 }
 
 function applyEditHistory(direction: 'undo' | 'redo'): boolean {
@@ -927,6 +1229,7 @@ const desktopActionPermissions = Object.freeze([
   'workspace:read',
   'settings:write',
   'app:keymap',
+  'images:import',
   'document:read',
   'document:write',
   'file:read',
@@ -963,13 +1266,21 @@ const desktopKeymap = createKeymapService({
     }))
   },
 })
-const desktopPluginManager = new DesktopPluginManager({
+const desktopPluginManager: DesktopPluginManager = new DesktopPluginManager({
   actionRegistry: desktopActionRegistry,
   manifestHost: createDesktopPluginManifestHost(),
   permissions: desktopActionPermissions,
   milkupVersion: appVersion,
   pluginSdkVersion: __MILKUP_PLUGIN_SDK_VERSION__,
   keymapAdapter: () => desktopKeymap,
+  editingAdapter: (manifest) => desktopEditing.adapterForPlugin(manifest.id),
+  resourcesAdapter: (manifest) => resourceService.adapterForPlugin(manifest.id),
+  openUi: (pluginId, viewId) => desktopPluginUi.open(pluginId, viewId),
+  notifyUi: (_pluginId, notification) => {
+    importantNotice = true
+    notice = notification.message
+    renderSession()
+  },
   settingsAdapter: (manifest) => desktopSettings.adapterForPlugin(manifest.id, manifest.settings),
   workspaceAdapter: () => createDesktopWorkspaceAdapter({ openDocument: openWorkspaceDocument }),
   releasesAdapter: () =>
@@ -996,13 +1307,15 @@ const desktopPluginManager = new DesktopPluginManager({
       ...(capabilities?.workspaceBroker ? { workspaceBroker: capabilities.workspaceBroker } : {}),
       ...(capabilities?.settingsBroker ? { settingsBroker: capabilities.settingsBroker } : {}),
       ...(capabilities?.keymapBroker ? { keymapBroker: capabilities.keymapBroker } : {}),
+      ...(capabilities?.editingBroker ? { editingBroker: capabilities.editingBroker } : {}),
+      ...(capabilities?.resourcesBroker ? { resourcesBroker: capabilities.resourcesBroker } : {}),
       timeoutMs: 10_000,
     }),
     dispose: () => undefined,
   }),
 })
 let pluginUiReady = false
-const desktopPluginUi = new DesktopPluginUiController(
+const desktopPluginUi: DesktopPluginUiController = new DesktopPluginUiController(
   appRoot,
   {
     contributions: () => {
@@ -1018,6 +1331,21 @@ const desktopPluginUi = new DesktopPluginUiController(
   getPluginUiRenderState,
 )
 desktopPluginUi.setSlotVisible('sidebar-panel', !sidebarCollapsed)
+desktopPluginUi.setSlotVisible('context-menu', false)
+const editorContextMenu = new EditorContextMenu(
+  editorRoot,
+  appRoot.querySelector<HTMLElement>('[data-plugin-slot="context-menu"]')!,
+  {
+    available: () =>
+      !isDocumentBusy() &&
+      !closeConfirmOpen &&
+      !recoveryDialogOpen &&
+      desktopPluginManager.state().contributions.ui.some((item) => item.slot === 'context-menu'),
+    identity: () => getDesktopEditingCurrent()?.identity,
+    refresh: () => desktopPluginUi.refreshSlot('context-menu'),
+    visible: (value) => desktopPluginUi.setSlotVisible('context-menu', value),
+  },
+)
 invalidatePluginUi = (pluginId, viewId) => desktopPluginUi.invalidate(pluginId, viewId)
 
 for (const action of createDesktopPluginActions(desktopPluginManager)) {
@@ -1142,8 +1470,20 @@ appRoot
   .querySelector('[data-sidebar-dismiss]')
   ?.addEventListener('click', () => setSidebarCollapsed(true))
 window.matchMedia('(max-width: 760px)').addEventListener('change', () => {
+  const focused = document.activeElement
   updateSidebarPresentation()
-  focusActiveView()
+  // A responsive sidebar can hide its resize/close control or make the editor
+  // inert. Preserve all other focus, including modal fields during native zoom.
+  if (
+    focused instanceof HTMLElement &&
+    (focused === document.body ||
+      focused === document.documentElement ||
+      focused.closest('[inert]') ||
+      focused.getClientRects().length === 0 ||
+      getComputedStyle(focused).visibility === 'hidden')
+  ) {
+    focusActiveView()
+  }
 })
 
 app.querySelector<HTMLButtonElement>('[data-sidebar-toggle]')?.addEventListener('click', () => {
@@ -1287,7 +1627,11 @@ appRoot.addEventListener('pointerdown', (event) => {
     return
   }
 
-  if (target.closest('button, input, textarea, a, .window-controls')) {
+  if (
+    target.closest(
+      'button, input, textarea, a, .window-controls, [data-plugin-slot="document-toolbar"]',
+    )
+  ) {
     return
   }
 
@@ -1523,22 +1867,33 @@ function createDesktopActions(): readonly ActionDefinition[] {
   ])
 }
 
-function runDesktopAction(id: string, input: unknown = {}, originalEvent?: Event): void {
-  if (closeConfirmOpen) return
+function runDesktopAction(
+  id: string,
+  input: unknown = {},
+  originalEvent?: Event,
+  onFailure?: () => void,
+): void {
+  if (closeConfirmOpen) {
+    onFailure?.()
+    return
+  }
   if (
     isDocumentSaving() &&
     (isDocumentInputLocked() || !['core.undo', 'core.redo', 'file.save'].includes(id))
-  )
+  ) {
+    onFailure?.()
     return
+  }
   importantNotice = false
   if (isDocumentBusy() && !isBusyAllowedAction(id)) {
+    onFailure?.()
     notice = '文档正在打开，请稍候。'
     renderSession()
     return
   }
 
   const context = {
-    editor: desktopPluginEditor,
+    editor: createDesktopLegacyCommandEditor(),
     permissions: desktopActionPermissions,
     confirm: () => true,
   }
@@ -1552,6 +1907,8 @@ function runDesktopAction(id: string, input: unknown = {}, originalEvent?: Event
       }
     })
     .catch((error: unknown) => {
+      onFailure?.()
+      importantNotice = true
       notice = `命令执行失败：${getErrorMessage(error)}`
       if (id.startsWith('plugin.')) {
         renderPluginManager()
@@ -1585,43 +1942,17 @@ function focusEditableView(): void {
   view?.inputDOM.focus({ preventScroll: true })
 }
 
-for (const button of Array.from(
-  appRoot.querySelectorAll<HTMLButtonElement>('[data-table-action]'),
-)) {
-  button.addEventListener('mousedown', (event) => event.preventDefault())
-  button.addEventListener('click', () => {
-    if (view) view.runTableCommand(button.dataset.tableAction as TableCommand)
-    else
-      void sourceView
-        ?.runTableCommand(button.dataset.tableAction as TableCommand)
-        .then(renderTableTools)
-    focusActiveView()
-  })
-}
-
-appRoot.addEventListener('milkup-selection-change', () => renderTableTools(), true)
-
-function renderTableTools(): void {
-  const tools = appRoot.querySelector<HTMLElement>('[data-table-tools]')!
-  const context = view?.activeTable ?? sourceView?.activeTable
-  tools.hidden = !context || closeConfirmOpen || isDocumentBusy()
-  if (!context) return
-  setText(
-    '[data-table-position]',
-    `${context.row === 0 ? '表头' : `第 ${context.row} 行`} · 第 ${context.column + 1} 列`,
-  )
-  for (const button of Array.from(
-    tools.querySelectorAll<HTMLButtonElement>('[data-table-action]'),
-  )) {
-    const action = button.dataset.tableAction
-    button.disabled =
-      session.readonly ||
-      isDocumentSaving() ||
-      (!context.withinCell && action !== 'select-table' && action !== 'select-cell') ||
-      (action === 'delete-row' && context.row === 0) ||
-      (action === 'delete-column' && context.columnCount <= 2)
-  }
-}
+appRoot.addEventListener('milkup-selection-change', schedulePluginUiViewportUpdate, true)
+editorRoot.addEventListener(
+  'milkup-input-error',
+  (event) => {
+    if (event.target !== (sourceView ?? view)?.dom) return
+    importantNotice = true
+    notice = `图片粘贴未完成：${getErrorMessage((event as CustomEvent<unknown>).detail)}`
+    renderSession()
+  },
+  true,
+)
 
 function bindEditorViewClipboard(editorView: EditorView): void {
   editorView.inputDOM.addEventListener('copy', (event) => {
@@ -1638,18 +1969,78 @@ function bindEditorViewClipboard(editorView: EditorView): void {
   })
 }
 
+function desktopImagePaste(
+  ...[files, context]: Parameters<import('@milkup/view-dom').ImagePasteHandler>
+): void {
+  if (files.length !== 1) throw new Error('请一次粘贴一张 PNG、JPEG 或 WebP 图片。')
+  const handler = desktopPluginManager.resolveImagePasteHandler()
+  if (!handler) throw new Error('请先启用并授权图片插件。')
+  const pasteId = resourceService.grantPaste(files[0]!, context.event, handler.pluginId)
+  context.signal.addEventListener(
+    'abort',
+    () => {
+      void resourceService.abort(pasteId)
+    },
+    { once: true },
+  )
+  try {
+    desktopPluginManager.grantImagePaste(handler.pluginId, pasteId)
+    runDesktopAction(handler.command, { grantId: pasteId }, context.event, () => {
+      void resourceService.abort(pasteId)
+    })
+  } catch (error) {
+    void resourceService.abort(pasteId)
+    throw error
+  }
+}
+function desktopEmptyPaste(context: {
+  readonly event: ClipboardEvent
+  readonly signal: AbortSignal
+}): boolean {
+  const handler = desktopPluginManager.resolveImagePasteHandler()
+  if (!handler || !navigator.clipboard?.read) return false
+  const pasteId = resourceService.grantClipboardPaste(context.event, {
+    signal: context.signal,
+    pluginId: handler.pluginId,
+  })
+  context.signal.addEventListener(
+    'abort',
+    () => {
+      void resourceService.abort(pasteId)
+    },
+    { once: true },
+  )
+  try {
+    desktopPluginManager.grantImagePaste(handler.pluginId, pasteId)
+    runDesktopAction(handler.command, { grantId: pasteId }, context.event, () => {
+      void resourceService.abort(pasteId)
+    })
+    return true
+  } catch (error) {
+    void resourceService.abort(pasteId)
+    throw error
+  }
+}
+function desktopImageResolver(
+  ...[url, context]: Parameters<import('@milkup/view-dom').ImageResolver>
+) {
+  return resourceService.resolveImage(session.documentId, url, context)
+}
+
 function createEditorView(): EditorView {
   sourceView?.destroy()
   sourceView = undefined
 
   const nextView = new EditorView({
     parent: editorRoot,
+    onImagePaste: desktopImagePaste,
+    onEmptyPaste: desktopEmptyPaste,
+    imageResolver: desktopImageResolver,
     presentation: editorPresentation,
     state,
     mode: session.viewMode,
     editable:
       !session.readonly && !isDocumentBusy() && !isDocumentInputLocked() && !closeConfirmOpen,
-    assetProvider,
     controlledRenderers: createDesktopControlledRenderers(),
     markdownSyntax: desktopPluginManager.state().contributions.markdownSyntax,
     ...(currentOpenPolicy.virtualViewport === undefined
@@ -1674,18 +2065,6 @@ function createEditorView(): EditorView {
       view.updateState(state, [transaction])
       renderSession()
     },
-  })
-  nextView.dom.addEventListener('milkup-input-error', (event) => {
-    if (view !== nextView) return
-    importantNotice = true
-    notice = `图片粘贴未完成：${getErrorMessage((event as CustomEvent<unknown>).detail)}`
-    renderSession()
-  })
-  nextView.dom.addEventListener('milkup-image-imported', () => {
-    if (view !== nextView || !notice.startsWith('图片粘贴未完成：')) return
-    importantNotice = false
-    notice = ''
-    renderSession()
   })
   nextView.dom.addEventListener('milkup-plugin-renderer-action', (event) => {
     const detail = (event as CustomEvent<ControlledRendererActionDetail>).detail
@@ -1819,6 +2198,9 @@ function applyMemorySourceView(): void {
   sourceView?.destroy()
   sourceView = new SourceDocumentView({
     parent: editorRoot,
+    onImagePaste: desktopImagePaste,
+    onEmptyPaste: desktopEmptyPaste,
+    imageResolver: desktopImageResolver,
     presentation: editorPresentation,
     source,
     mode: session.viewMode,
@@ -1867,6 +2249,9 @@ async function applyLargeSourceView(): Promise<void> {
   sourceView?.destroy()
   sourceView = new SourceDocumentView({
     parent: editorRoot,
+    onImagePaste: desktopImagePaste,
+    onEmptyPaste: desktopEmptyPaste,
+    imageResolver: desktopImageResolver,
     presentation: editorPresentation,
     source: largeDocumentPreview.source,
     mode: session.viewMode,
@@ -2347,6 +2732,7 @@ function runDocumentSave(task: () => Promise<boolean>, allowEditing = false): Pr
   if (saveState.phase === 'saving') return saveState.promise
   importantNotice = false
   const watchEvents: FileWatchEvent[] = []
+  resourceSaveWarning = undefined
   // Establish the lock before invoking the async operation, including Save As dialogs.
   const promise = Promise.resolve()
     .then(async () => {
@@ -2438,10 +2824,9 @@ async function saveDocumentOnce(): Promise<boolean> {
   }
 
   const savedVersion = session.documentVersion
-  const result = await fileService.saveFile(
-    session,
-    prepareTextForFileSave(session, state.doc.text),
-  )
+  const result = session.file
+    ? await fileService.saveFile(session, prepareTextForFileSave(session, state.doc.text))
+    : await saveMemoryWithResourceRelocation()
 
   if (!result) {
     importantNotice = true
@@ -2452,9 +2837,10 @@ async function saveDocumentOnce(): Promise<boolean> {
   }
 
   session = recordFileSaveResult(session, result, savedVersion)
+  invalidateDesktopSaveLocation()
   recentFiles = recordRecentFile(recentFiles, result.file, Date.now())
   watchCurrentFile()
-  notice = messages.notices.saved
+  notice = resourceSaveWarning ?? messages.notices.saved
   renderSession()
   focusEditableView()
   return true
@@ -2479,10 +2865,9 @@ async function saveMemorySourceDocument(inEditQueue = false): Promise<boolean> {
   }
 
   const savedVersion = session.documentVersion
-  const result = await fileService.saveFile(
-    session,
-    prepareTextForFileSave(session, state.doc.text),
-  )
+  const result = session.file
+    ? await fileService.saveFile(session, prepareTextForFileSave(session, state.doc.text))
+    : await saveMemoryWithResourceRelocation()
 
   if (!result) {
     importantNotice = true
@@ -2493,9 +2878,10 @@ async function saveMemorySourceDocument(inEditQueue = false): Promise<boolean> {
   }
 
   session = recordFileSaveResult(session, result, savedVersion)
+  invalidateDesktopSaveLocation()
   recentFiles = recordRecentFile(recentFiles, result.file, Date.now())
   watchCurrentFile()
-  notice = messages.notices.saved
+  notice = resourceSaveWarning ?? messages.notices.saved
   renderSession()
   focusActiveView()
   return true
@@ -2560,7 +2946,7 @@ async function saveLargeDocument(inEditQueue = false): Promise<boolean> {
       }
       saveStage = '提交保存期间开始的编辑'
     }
-    notice = messages.notices.saved
+    notice = resourceSaveWarning ?? messages.notices.saved
     renderSession()
     focusActiveView()
     return true
@@ -2831,6 +3217,53 @@ async function reloadLargeExternalDocument(): Promise<void> {
   }
 }
 
+async function* readNativeResourceChunks(
+  preview: LargeDocumentPreviewState,
+): AsyncGenerator<string> {
+  const version = preview.source.version
+  let fromByte = 0
+  while (fromByte < preview.source.sizeBytes) {
+    if (largeDocumentPreview !== preview || preview.source.version !== version)
+      throw new Error('扫描图片资源期间文档已改变。')
+    const chunk = await resourceService.readDocumentChunk(preview.documentId, version, fromByte)
+    if (
+      chunk.nextByte <= fromByte ||
+      chunk.nextByte > chunk.totalBytes ||
+      chunk.totalBytes !== preview.source.sizeBytes
+    )
+      throw new Error('图片资源扫描返回无效范围。')
+    yield chunk.text
+    fromByte = chunk.nextByte
+  }
+  if (preview.source.version !== version) throw new Error('扫描图片资源期间文档已改变。')
+}
+
+/** The save lock is held by runDocumentSave through chooser, copy and write. */
+async function saveMemoryWithResourceRelocation() {
+  const text = prepareTextForFileSave(session, state.doc.text)
+  if (!isTauriRuntime()) return fileService.saveFileAs(session, text)
+  const target = await resourceService.selectSaveTarget(session.file?.path ?? 'untitled.md')
+  if (!target) return undefined
+  const references = scanResourceReferences(state.doc.text)
+  if (!session.file && references.length)
+    throw new Error(
+      '未命名文档中的已有相对图片无法确定来源，请先移除该引用或保存文档后重新导入图片。',
+    )
+  return saveWithResources({
+    prepare: () =>
+      session.file
+        ? resourceService.prepareRelocation(session.documentId, target.id, references)
+        : Promise.resolve(undefined),
+    write: () => fileService.saveToSelectedPath(session, text, target.path),
+    accept: (id) => resourceService.commitRelocation(id),
+    abort: (id) => resourceService.abort(id),
+    report: (error) => {
+      importantNotice = true
+      notice = resourceSaveWarning = `文件已保存，资源确认未完成：${getErrorMessage(error)}`
+    },
+  })
+}
+
 async function saveDocumentAs(): Promise<boolean> {
   return runDocumentSave(saveDocumentAsOnce)
 }
@@ -2866,10 +3299,7 @@ async function saveDocumentAsOnce(): Promise<boolean> {
 
   getRequiredDocumentId(action)
   const savedVersion = session.documentVersion
-  const result = await fileService.saveFileAs(
-    session,
-    prepareTextForFileSave(session, state.doc.text),
-  )
+  const result = await saveMemoryWithResourceRelocation()
 
   if (!result) {
     importantNotice = true
@@ -2880,9 +3310,10 @@ async function saveDocumentAsOnce(): Promise<boolean> {
   }
 
   session = recordFileSaveResult(session, result, savedVersion)
+  invalidateDesktopSaveLocation()
   recentFiles = recordRecentFile(recentFiles, result.file, Date.now())
   watchCurrentFile()
-  notice = messages.notices.savedAs
+  notice = resourceSaveWarning ?? messages.notices.savedAs
   renderSession()
   view.inputDOM.focus({ preventScroll: true })
   return true
@@ -2907,10 +3338,7 @@ async function saveMemorySourceDocumentAs(): Promise<boolean> {
   getRequiredDocumentId(action)
   await sourceView?.flushPendingEdits()
   const savedVersion = session.documentVersion
-  const result = await fileService.saveFileAs(
-    session,
-    prepareTextForFileSave(session, state.doc.text),
-  )
+  const result = await saveMemoryWithResourceRelocation()
 
   if (!result) {
     importantNotice = true
@@ -2921,9 +3349,10 @@ async function saveMemorySourceDocumentAs(): Promise<boolean> {
   }
 
   session = recordFileSaveResult(session, result, savedVersion)
+  invalidateDesktopSaveLocation()
   recentFiles = recordRecentFile(recentFiles, result.file, Date.now())
   watchCurrentFile()
-  notice = messages.notices.savedAs
+  notice = resourceSaveWarning ?? messages.notices.savedAs
   renderSession()
   focusActiveView()
   return true
@@ -2940,7 +3369,12 @@ async function saveLargeDocumentAs(): Promise<boolean> {
     return false
   }
 
-  const selected = await fileService.selectSaveFilePath(session.file?.path ?? preview.source.path)
+  const target = isTauriRuntime()
+    ? await resourceService.selectSaveTarget(session.file?.path ?? preview.source.path)
+    : undefined
+  const selected = isTauriRuntime()
+    ? target?.path
+    : await fileService.selectSaveFilePath(session.file?.path ?? preview.source.path)
 
   if (!selected) {
     importantNotice = true
@@ -2962,11 +3396,26 @@ async function saveLargeDocumentAs(): Promise<boolean> {
     renderSession()
     console.info(`Large document save-as progressed: ${saveStage}`)
     const savedVersion = session.documentVersion
-    const snapshot = await largeTextFileService.flushAs(
-      preview.documentId,
-      editSession.version,
-      selected,
-    )
+    const references = target
+      ? (
+          await scanDocumentResourceReferences(preview.source, {
+            chunks: readNativeResourceChunks(preview),
+          })
+        ).references
+      : []
+    const snapshot = await saveWithResources({
+      prepare: () =>
+        target
+          ? resourceService.prepareRelocation(session.documentId, target.id, references)
+          : Promise.resolve(undefined),
+      write: () => largeTextFileService.flushAs(preview.documentId, editSession.version, selected),
+      accept: (id) => resourceService.commitRelocation(id),
+      abort: (id) => resourceService.abort(id),
+      report: (error) => {
+        importantNotice = true
+        notice = resourceSaveWarning = `文件已保存，资源确认未完成：${getErrorMessage(error)}`
+      },
+    })
     preview.source.applyNativeSnapshot(snapshot)
     editSession.markFlushed(snapshot.version)
     largeDocumentPreview = {
@@ -2985,9 +3434,10 @@ async function saveLargeDocumentAs(): Promise<boolean> {
       },
       savedVersion,
     )
+    invalidateDesktopSaveLocation()
     recentFiles = recordRecentFile(recentFiles, { path: snapshot.path }, Date.now())
     watchCurrentFile()
-    notice = messages.notices.savedAs
+    notice = resourceSaveWarning ?? messages.notices.savedAs
     renderSession()
     focusActiveView()
     return true
@@ -3405,10 +3855,10 @@ function cycleWorkspaceFocus(backward: boolean): void {
     '[data-floating-search]',
     '.sidebar',
     '[data-editor-host]',
-    '[data-table-tools]',
     '.statusbar',
   ]
-    .map((selector) => appRoot.querySelector<HTMLElement>(selector)!)
+    .map((selector) => appRoot.querySelector<HTMLElement>(selector))
+    .filter((root): root is HTMLElement => root !== null)
     .map((root) => ({
       root,
       target: root.matches('[data-editor-host]')
@@ -3780,6 +4230,7 @@ function canReplaceSearch(): boolean {
 }
 
 function getPluginUiRenderState(): Readonly<Record<string, unknown>> {
+  const editingCurrent = getDesktopEditingCurrent()
   const editor = sourceView ?? view
   const lineCount = sourceView?.source.lineCount ?? state.doc.lineCount
   const activePosition = sourceView?.selection.main.head ?? state.selection.main.head
@@ -3808,6 +4259,9 @@ function getPluginUiRenderState(): Readonly<Record<string, unknown>> {
 
   return Object.freeze({
     documentVersion: session.documentVersion,
+    selectionRevision: editingCurrent?.selectionRevision ?? currentSelectionRevision,
+    documentEditable: !!editingCurrent && !editingCurrent.readonly && !editingCurrent.busy,
+    saveLocationGeneration: editingCurrent?.saveLocationGeneration ?? saveLocationGeneration,
     documentLineCount: lineCount,
     viewMode: session.viewMode,
     viewport: Object.freeze({
@@ -4249,6 +4703,13 @@ function getDesktopShortcutAction(event: KeyboardEvent): { readonly id: string }
 }
 
 function renderSession(): void {
+  if (resourceDocumentId !== session.documentId) {
+    const previous = resourceDocumentId
+    resourceDocumentId = session.documentId
+    void resourceService.releaseDocument(previous).catch((error) => {
+      console.error('Previous document resource cleanup failed', error)
+    })
+  }
   recovery?.observe()
   if (searchOpen && !isDocumentBusy() && searchSignature !== currentSearchSignature())
     scheduleDocumentSearch(false)
@@ -4261,7 +4722,7 @@ function renderSession(): void {
     lastNavigationSignature = navigationSignature
     schedulePluginUiViewportUpdate()
   }
-  renderTableTools()
+  editorContextMenu.reconcile()
   void desktopPluginUi.sync(session.documentId)
   const titleInfo = customDocumentTitle
     ? { name: customDocumentTitle, directory: documentSourcePath ?? messages.pathUnsaved }
@@ -4397,6 +4858,8 @@ function renderDocumentLoadingState(): void {
 
 function isDocumentBusy(): boolean {
   return (
+    controlledEditingCommit ||
+    restoringResourceCopy ||
     applicationUpdateInstalling ||
     recoveryDialogOpen ||
     nativeReplacement?.preparing === true ||
@@ -5028,6 +5491,7 @@ globalThis.addEventListener('beforeunload', (event) => {
 
 globalThis.addEventListener('unload', () => {
   loadingVisibility.dispose()
+  editorContextMenu.dispose()
   disposeFileWatchEvents?.()
   scheduleLargeDocumentPreviewClose()
 })

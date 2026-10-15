@@ -26,6 +26,7 @@ export type SyntaxNodeType =
   | 'inlineCode'
   | 'emphasis'
   | 'strong'
+  | 'strikethrough'
   | 'link'
   | 'image'
   | 'autolink'

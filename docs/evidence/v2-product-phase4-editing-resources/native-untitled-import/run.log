@@ -1,0 +1,21 @@
+2026-10-15T09:56:15.197Z NATIVE_STARTUP_WINDOW 2391ms
+PASS installed-milkup.formatting
+PASS installed-milkup.images
+PASS ordinary-source-image-picker
+PASS ordinary-source-image-reopen
+PASS windowed-live-image-clipboard
+PASS windowed-live-image-reopen
+PASS untitled-image-save-as-before-image
+PASS untitled-image-resource-save-as-reopen
+PASS untitled-clipboard-save-as-before-image
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+Error: Timeout: GTK Save As complete
+    at Object.until (file:///workspace/milkup/tests/helpers/native-production.mjs:46:11)
+    at async saveAsPicker (file:///workspace/milkup/tests/native/tauri-editing-resources.mjs:429:3)
+    at async untitledImage (file:///workspace/milkup/tests/native/tauri-editing-resources.mjs:495:3)
+    at async file:///workspace/milkup/tests/native/tauri-editing-resources.mjs:858:53
+
+Node.js v24.19.0

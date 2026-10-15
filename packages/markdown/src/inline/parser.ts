@@ -16,6 +16,7 @@ export function parseInline(source: string, from = 0, to = source.length): reado
       parseImage(source, pos, to) ??
       parseLink(source, pos, to) ??
       parseAutolink(source, pos, to) ??
+      parseStrikethrough(source, pos, to) ??
       parseStrong(source, pos, to) ??
       parseEmphasis(source, pos, to)
 
@@ -178,7 +179,16 @@ function parseLinkLike(
 ): InlineParseResult | undefined {
   const labelOpen = image ? pos + 1 : pos
   const labelStart = labelOpen + 1
-  const labelClose = source.indexOf(']', labelStart)
+  // Escape pairs are opaque in labels. Consuming each pair also handles even
+  // backslash runs: their following bracket remains a real closing delimiter.
+  let labelClose = -1
+  for (let index = labelStart; index < to; index++) {
+    if (source[index] === '\\') index++
+    else if (source[index] === ']') {
+      labelClose = index
+      break
+    }
+  }
   const initialMarkerRanges = image
     ? [
         { from: pos, to: pos + 1 },
@@ -298,6 +308,67 @@ function classifyAutolink(value: string): 'url' | 'email' | undefined {
   }
 
   return undefined
+}
+
+/** A strike delimiter is exactly two unescaped tildes. Code-span contents are
+ * opaque, and unmatched openers keep the same incomplete-node editing model as
+ * emphasis. Single tildes and fence-length runs remain literal inline text. */
+function parseStrikethrough(
+  source: string,
+  pos: number,
+  to: number,
+): InlineParseResult | undefined {
+  if (
+    source.slice(pos, pos + 2) !== '~~' ||
+    source[pos - 1] === '~' ||
+    source[pos + 2] === '~' ||
+    pos + 2 >= to ||
+    /\s/u.test(source[pos + 2]!)
+  )
+    return undefined
+  let closing = -1
+  for (let index = pos + 2; index < to;) {
+    if (source[index] === '\\') {
+      index += 2
+      continue
+    }
+    if (source[index] === '`') {
+      const end = consumeRun(source, index, to, '`')
+      const codeEnd = findClosingRun(source, end, to, '`', end - index)
+      if (codeEnd < 0) break
+      index = codeEnd + end - index
+      continue
+    }
+    if (source[index] === '~') {
+      const end = consumeRun(source, index, to, '~')
+      if (end - index === 2 && !/\s/u.test(source[index - 1]!)) {
+        closing = index
+        break
+      }
+      index = end
+      continue
+    }
+    index++
+  }
+  const contentTo = closing < 0 ? to : closing
+  return {
+    node: createNode({
+      type: 'strikethrough',
+      from: pos,
+      to: closing < 0 ? to : closing + 2,
+      status: closing < 0 ? 'incomplete' : 'valid',
+      markerRanges:
+        closing < 0
+          ? [{ from: pos, to: pos + 2 }]
+          : [
+              { from: pos, to: pos + 2 },
+              { from: closing, to: closing + 2 },
+            ],
+      contentRanges: [{ from: pos + 2, to: contentTo }],
+      ...(closing >= 0 ? { children: parseInline(source, pos + 2, closing) } : {}),
+    }),
+    next: closing < 0 ? to : closing + 2,
+  }
 }
 
 function parseStrong(source: string, pos: number, to: number): InlineParseResult | undefined {
@@ -451,6 +522,7 @@ function findNextSpecial(source: string, from: number, to: number): number {
       char === '\\' ||
       char === '`' ||
       char === '*' ||
+      (char === '~' && source[pos + 1] === '~') ||
       char === '[' ||
       char === '!' ||
       char === '<' ||

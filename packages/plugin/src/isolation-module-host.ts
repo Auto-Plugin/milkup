@@ -1,4 +1,9 @@
 import { createPluginKeymapHostCapabilities, type PluginKeymapBroker } from './keymap-broker'
+import { createPluginEditingHostCapabilities, type PluginEditingBroker } from './editing-broker'
+import {
+  createPluginResourcesHostCapabilities,
+  type PluginResourcesBroker,
+} from './resources-broker'
 import { createPluginSettingsHostCapabilities, type PluginSettingsBroker } from './settings-broker'
 import {
   createPluginWorkspaceHostCapabilities,
@@ -47,6 +52,8 @@ export interface PluginModuleIsolationHostConfig {
   readonly fileBroker?: PluginFileBroker
   readonly networkBroker?: PluginNetworkBroker
   readonly keymapBroker?: PluginKeymapBroker
+  readonly editingBroker?: PluginEditingBroker
+  readonly resourcesBroker?: PluginResourcesBroker
   readonly settingsBroker?: PluginSettingsBroker
   readonly workspaceBroker?: PluginWorkspaceBroker
   readonly releasesBroker?: PluginReleasesBroker
@@ -86,6 +93,8 @@ export function createPluginModuleIsolationHost(
               manifest.permissions?.includes('workspace:read') ? config.workspaceBroker : undefined,
               manifest.permissions?.includes('settings:write') ? config.settingsBroker : undefined,
               manifest.permissions?.includes('app:keymap') ? config.keymapBroker : undefined,
+              manifest.permissions?.includes('document:write') ? config.editingBroker : undefined,
+              manifest.permissions?.includes('images:import') ? config.resourcesBroker : undefined,
               () => active && generation === current && config.isActive?.() !== false,
             ),
           })) ?? undefined
@@ -120,6 +129,8 @@ export function createPluginModuleIsolationHost(
         throw new Error(`Isolated command is not available: ${request.command.action}`)
       }
 
+      if (!active || config.isActive?.() === false)
+        throw new Error('Plugin command capability was revoked')
       const current = generation
       const editor = request.selection ? new IsolatedEditorProxy(request.selection) : undefined
       const commandContext = {
@@ -146,6 +157,8 @@ export function createPluginModuleIsolationHost(
           manifest.permissions?.includes('workspace:read') ? config.workspaceBroker : undefined,
           manifest.permissions?.includes('settings:write') ? config.settingsBroker : undefined,
           manifest.permissions?.includes('app:keymap') ? config.keymapBroker : undefined,
+          manifest.permissions?.includes('document:write') ? config.editingBroker : undefined,
+          manifest.permissions?.includes('images:import') ? config.resourcesBroker : undefined,
           () => active && generation === current && config.isActive?.() !== false,
           true,
           request.workspaceGesture,
@@ -153,6 +166,8 @@ export function createPluginModuleIsolationHost(
         ...(editor ? { editor } : {}),
       } as unknown as PluginCommandContext
       const value = await handler(commandContext, request.input)
+      if (!active || generation !== current || config.isActive?.() === false)
+        throw new Error('Plugin command capability was revoked')
 
       return Object.freeze({
         value,
@@ -282,21 +297,19 @@ function fromSelectionShape(selection: SelectionShape): SerializedSelection {
 }
 
 function mapPosition(changes: readonly SerializedChange[], position: number): number {
-  let mapped = position
-
+  let mapped = position,
+    offset = 0
   for (const change of changes) {
-    if (position < change.from) {
-      break
-    }
-
+    if (position < change.from) break
+    const delta = change.insert.length - (change.to - change.from)
     if (position > change.to) {
-      mapped += change.insert.length - (change.to - change.from)
+      offset += delta
+      mapped = position + offset
       continue
     }
-
-    mapped = change.from + change.insert.length
+    mapped = change.from + offset + change.insert.length
+    offset += delta
   }
-
   return mapped
 }
 
@@ -312,6 +325,8 @@ function restrictHost(
   workspaceBroker?: PluginWorkspaceBroker,
   settingsBroker?: PluginSettingsBroker,
   keymapBroker?: PluginKeymapBroker,
+  editingBroker?: PluginEditingBroker,
+  resourcesBroker?: PluginResourcesBroker,
   isActive?: () => boolean,
   command = false,
   workspaceGesture?: string,
@@ -326,7 +341,13 @@ function restrictHost(
         ? { document: host.document }
         : {}),
     ...(capabilities.includes('ui:update') && uiBroker
-      ? { ui: createPluginUiHostCapabilities(uiBroker) }
+      ? {
+          ui: createPluginUiHostCapabilities(
+            uiBroker,
+            isActive,
+            command ? workspaceGesture : undefined,
+          ),
+        }
       : capabilities.includes('ui:update') && host.ui
         ? { ui: host.ui }
         : {}),
@@ -355,6 +376,18 @@ function restrictHost(
       : {}),
     ...(capabilities.includes('app:keymap') && keymapBroker
       ? { keymap: createPluginKeymapHostCapabilities(keymapBroker, isActive) }
+      : {}),
+    ...(capabilities.includes('document:write') && editingBroker
+      ? { editing: createPluginEditingHostCapabilities(editingBroker, isActive) }
+      : {}),
+    ...(capabilities.includes('images:import') && resourcesBroker
+      ? {
+          resources: createPluginResourcesHostCapabilities(
+            resourcesBroker,
+            isActive,
+            workspaceGesture,
+          ),
+        }
       : {}),
     ...(capabilities.includes('settings:write') && settingsBroker
       ? { settings: createPluginSettingsHostCapabilities(settingsBroker, isActive) }

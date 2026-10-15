@@ -24,6 +24,7 @@ mod piece_tree;
 mod plugin_icon;
 mod recovery;
 mod recovery_storage;
+mod resources;
 mod updates;
 mod workspace;
 use piece_tree::PieceTree;
@@ -269,6 +270,8 @@ fn save_markdown_file(
             .map_err(|error| error.to_string())
     })?;
 
+    resources::document_write_committed(&document_id, target);
+    resources::register_document(&document_id, target);
     Ok(SaveFileResult {
         document_id,
         file: DocumentFileIdentity { path },
@@ -374,24 +377,16 @@ fn save_error_with_cleanup(temp_path: &Path, error: String) -> String {
 }
 
 #[tauri::command]
-fn ensure_asset_directory(path: String) -> Result<bool, String> {
-    fs::create_dir_all(&path).map_err(|error| error.to_string())?;
-    Ok(true)
+fn ensure_asset_directory(_path: String) -> Result<bool, String> {
+    Err("Legacy path-based asset writes are disabled; use authorized resource transactions".into())
 }
-
 #[tauri::command]
-fn asset_file_exists(path: String) -> Result<bool, String> {
-    Ok(Path::new(&path).exists())
+fn asset_file_exists(_path: String) -> Result<bool, String> {
+    Err("Legacy path-based asset access is disabled".into())
 }
-
 #[tauri::command]
-fn write_asset_file(path: String, data: Vec<u8>) -> Result<bool, String> {
-    if let Some(parent) = Path::new(&path).parent() {
-        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
-    }
-
-    fs::write(&path, data).map_err(|error| error.to_string())?;
-    Ok(true)
+fn write_asset_file(_path: String, _data: Vec<u8>) -> Result<bool, String> {
+    Err("Legacy path-based asset writes are disabled; use authorized resource transactions".into())
 }
 
 #[tauri::command]
@@ -533,6 +528,7 @@ fn open_large_text_file_in_registry(
         );
     }
 
+    resources::register_document(&document_id, Path::new(&path));
     Ok(LargeFileOpenResult {
         document_id,
         path,
@@ -768,7 +764,6 @@ fn flush_large_text_file_as_in_registry(
     }
 
     let target_path = PathBuf::from(&path);
-    let normalized_target_path = path_to_string(target_path.clone());
     if same_file_path(&target_path, Path::new(&store.path)) {
         if store.version != store.saved_version {
             let current_disk_hash = hash_file_contents(Path::new(&store.path))?;
@@ -795,10 +790,7 @@ fn flush_large_text_file_as_in_registry(
                 let _ = fs::remove_file(&temp_path);
                 return Err(error);
             }
-            store.piece_tree.rebase(Path::new(&store.path))?;
-            store.size_bytes = store.piece_tree.byte_len();
-            store.disk_snapshot_hash = hash_file_contents(Path::new(&store.path))?;
-            store.saved_version = store.version;
+            finish_large_save_after_rename(store, &document_id, &target_path)?;
         }
 
         return Ok(large_file_snapshot(&document_id, store));
@@ -816,13 +808,36 @@ fn flush_large_text_file_as_in_registry(
         return Err(error);
     }
 
-    store.path = normalized_target_path;
-    store.piece_tree.rebase(&target_path)?;
-    store.size_bytes = store.piece_tree.byte_len();
-    store.disk_snapshot_hash = hash_file_contents(&target_path)?;
-    store.saved_version = store.version;
+    finish_large_save_after_rename(store, &document_id, &target_path)?;
 
     Ok(large_file_snapshot(&document_id, store))
+}
+
+#[cfg(test)]
+thread_local! {
+    static FAIL_LARGE_SAVE_AFTER_RENAME: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+fn finish_large_save_after_rename(
+    store: &mut LargeFileRegistration,
+    document_id: &str,
+    target: &Path,
+) -> Result<(), String> {
+    resources::document_write_committed(document_id, target);
+    let completed = (|| {
+        #[cfg(test)]
+        if FAIL_LARGE_SAVE_AFTER_RENAME.with(|value| value.replace(false)) {
+            return Err("Injected post-rename indexing failure".to_string());
+        }
+        let disk_snapshot_hash = hash_file_contents(target)?;
+        store.piece_tree.rebase(target)?;
+        store.path = path_to_string(target.to_owned());
+        store.size_bytes = store.piece_tree.byte_len();
+        store.disk_snapshot_hash = disk_snapshot_hash;
+        store.saved_version = store.version;
+        resources::register_document(document_id, target);
+        Ok(())
+    })();
+    completed.map_err(|error: String| format!("Document was written to {} and its image resources were retained, but editor refresh failed: {error}. Reopen the saved file to continue.", target.display()))
 }
 
 #[tauri::command]
@@ -1064,6 +1079,7 @@ pub fn run() {
             recovery::checkpoint_recovery,
             recovery::settle_recovery,
             recovery::materialize_recovery,
+            recovery::resources_restore_recovery,
             recovery::archive_recovery,
             bridge_status,
             window_control,
@@ -1072,6 +1088,19 @@ pub fn run() {
             open_markdown_file,
             reload_markdown_file,
             save_markdown_file,
+            resources::resources_read_document_chunk,
+            resources::resources_choose_image,
+            resources::resources_grant_clipboard,
+            resources::resources_stage_image,
+            resources::resources_validate_assets,
+            resources::resources_accept,
+            resources::resources_abort,
+            resources::resources_resolve_image,
+            resources::resources_choose_save_target,
+            resources::resources_prepare_relocation,
+            resources::resources_commit_relocation,
+            resources::resources_release_document,
+            resources::resources_release_source,
             ensure_asset_directory,
             asset_file_exists,
             write_asset_file,
@@ -1150,6 +1179,7 @@ fn hash_open_file_contents_with_progress(
 fn read_markdown_file(document_id: String, path: String) -> Result<OpenFileResult, String> {
     let text = fs::read_to_string(&path).map_err(|error| error.to_string())?;
 
+    resources::register_document(&document_id, Path::new(&path));
     Ok(OpenFileResult {
         document_id,
         file: DocumentFileIdentity { path },
@@ -2078,22 +2108,14 @@ mod tests {
     }
 
     #[test]
-    fn asset_commands_create_directories_write_files_and_check_existence() {
-        let dir = create_test_dir("asset");
-        let asset_dir = dir.join("assets");
-        let asset_path = asset_dir.join("image.bin");
-
-        assert!(ensure_asset_directory(path_to_string(asset_dir.clone())).expect("ensure dir"));
-        assert!(
-            !asset_file_exists(path_to_string(asset_path.clone())).expect("missing asset check")
-        );
-        assert!(
-            write_asset_file(path_to_string(asset_path.clone()), vec![1, 2, 3])
-                .expect("write asset")
-        );
-        assert!(asset_file_exists(path_to_string(asset_path.clone())).expect("asset exists"));
-        assert_eq!(fs::read(&asset_path).expect("read asset"), vec![1, 2, 3]);
-
+    fn legacy_asset_commands_cannot_overwrite_arbitrary_existing_files() {
+        let dir = create_test_dir("asset-unsafe");
+        let asset_path = dir.join("original.png");
+        fs::write(&asset_path, [7, 8, 9]).unwrap();
+        assert!(write_asset_file(path_to_string(asset_path.clone()), vec![1, 2, 3]).is_err());
+        assert_eq!(fs::read(&asset_path).unwrap(), vec![7, 8, 9]);
+        assert!(ensure_asset_directory(path_to_string(dir.join("new"))).is_err());
+        assert!(asset_file_exists(path_to_string(asset_path)).is_err());
         remove_test_dir(dir);
     }
 
