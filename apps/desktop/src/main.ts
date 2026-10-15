@@ -1,4 +1,5 @@
 import { createAppearanceController, type ThemePreference } from './appearance'
+import { bundledPluginPaths, readBundledPlugin } from './bundled-plugin-catalog'
 import { createRecoveryController, type RecoveryRecord, type RecoveryStatus } from './recovery'
 import { createRecoveryUi } from './recovery-ui'
 import { createMarkdownClipboardPayload } from '@milkup/export'
@@ -917,6 +918,7 @@ const desktopPluginManager = new DesktopPluginManager({
   milkupVersion: appVersion,
   pluginSdkVersion: '0.1.1',
   storage: globalThis.localStorage,
+  bundledPackagePaths: async () => (isTauriRuntime() ? bundledPluginPaths() : []),
   documentSource: () => {
     if (documentPresentation === 'custom-view') return undefined
     return largeDocumentPreview?.source ?? createMemoryDocumentSource()
@@ -3007,6 +3009,8 @@ function createDesktopPluginManifestHost(): {
       return typeof selected === 'string' ? selected : undefined
     },
     async readManifestText(path: string): Promise<string> {
+      const bundled = readBundledPlugin(path)
+      if (bundled !== undefined) return bundled
       if (!isTauriRuntime()) {
         throw new Error('Local plugin install is only available in the desktop runtime')
       }

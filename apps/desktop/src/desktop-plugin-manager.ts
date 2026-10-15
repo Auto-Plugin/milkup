@@ -135,6 +135,8 @@ export interface DesktopPluginManagerOptions {
   readonly loadModule?: DesktopPluginModuleLoader
   readonly loadSidecarModule?: DesktopPluginModuleLoader
   readonly now?: () => number
+  /** Distribution-provided packages; never used to upgrade an existing user installation. */
+  readonly bundledPackagePaths?: () => Promise<readonly string[]>
 }
 
 export interface DesktopPluginManagerState {
@@ -147,6 +149,7 @@ export interface DesktopPluginManagerState {
 
 const registryStorageKey = 'milkup.desktop.plugins.registry.v1'
 const failuresStorageKey = 'milkup.desktop.plugins.failures.v1'
+const bundledStorageKey = 'milkup.desktop.plugins.bundled.v1'
 const allowedHosts = Object.freeze(['worker', 'sidecar'] as const)
 const sensitivePermissions = new Set([
   'file:read',
@@ -214,7 +217,66 @@ export class DesktopPluginManager {
     })
     this.restore()
     this.restoreFailures()
-    this.ready = this.restoreEnabledPlugins()
+    this.ready = this.restoreEnabledPlugins().then(() =>
+      this.installBundledPackages(options.bundledPackagePaths),
+    )
+  }
+
+  private async installBundledPackages(
+    listPaths: DesktopPluginManagerOptions['bundledPackagePaths'],
+  ): Promise<void> {
+    if (!listPaths || !this.storage) return
+    let paths: readonly string[]
+    let considered: Set<string>
+    try {
+      paths = await listPaths()
+      if (paths.length === 0) return
+      const value: unknown = JSON.parse(this.storage.getItem(bundledStorageKey) ?? '[]')
+      if (!Array.isArray(value) || !value.every((id) => typeof id === 'string')) {
+        throw new Error('Invalid bundled plugin receipt')
+      }
+      considered = new Set(value)
+    } catch (error) {
+      this.recordBundledFailure('bundled-plugins', error)
+      return
+    }
+    for (const path of paths) {
+      try {
+        const archive = parsePluginPackageArchive(
+          parseManifestJson(await this.manifestHost.readManifestText(path), path),
+        )
+        const { id } = archive.manifest
+        if (considered.has(id)) continue
+        // Persist before installing: a crash or subsequent uninstall must not cause
+        // an automatic reinstall. A failed attempt remains visible and can be
+        // retried manually through the ordinary package picker.
+        considered.add(id)
+        this.storage.setItem(bundledStorageKey, JSON.stringify([...considered]))
+        if (this.registry.list().some((record) => record.manifest.id === id)) continue
+        if (
+          archive.manifest.host !== 'worker' ||
+          (archive.manifest.permissions ?? []).some((permission) => permission !== 'document:read')
+        ) {
+          throw new Error('Bundled automatic activation supports only read-only document Workers')
+        }
+        const record = await this.installManifestPath(path)
+        if (record.errors.length > 0) throw new Error(record.errors.join('; '))
+        this.registry.approve(id)
+        this.persist()
+        await this.enableRestoredPlugin(id)
+      } catch (error) {
+        this.recordBundledFailure(path, error)
+      }
+    }
+  }
+
+  private recordBundledFailure(path: string, error: unknown): void {
+    try {
+      this.recordInstallFailure(path, error)
+    } catch {
+      // The in-memory failure is already visible. Full local storage must not
+      // turn an optional distribution default into an editor startup failure.
+    }
   }
 
   state(): DesktopPluginManagerState {
@@ -231,6 +293,7 @@ export class DesktopPluginManager {
   }
 
   async installFromPicker(): Promise<PluginRegistryRecord | undefined> {
+    await this.ready
     const path = await this.manifestHost.selectManifestPath()
 
     if (!path) {

@@ -172,6 +172,40 @@ async function start() {
 }
 try {
   await start()
+  if (process.env.MILKUP_BUNDLED_PLUGIN_CHECK === '1') {
+    if (
+      await app.execute('return document.querySelector("#app").dataset.sidebarCollapsed === "true"')
+    ) {
+      await click('[data-sidebar-toggle]')
+    }
+    await app.until(async () => (await observe()).items.length === 8, 'bundled plugin activated')
+    await shot('00-bundled-first-start')
+    await menu()
+    assert((await observe()).manager.includes('1 个已安装'))
+    await click('[data-plugin-action="disable"]')
+    await app.until(async () => (await observe()).items.length === 0, 'bundled plugin disabled')
+    await closeNormally()
+    await app.close()
+    await start()
+    await menu()
+    assert((await observe()).manager.includes('1 个已安装'))
+    assert.equal((await observe()).items.length, 0)
+    await app.until(
+      () => app.execute('return !!document.querySelector("[data-plugin-action=enable]")'),
+      'bundled disabled state restored',
+    )
+    await record('00-bundled-disabled-after-restart')
+    await click('[data-plugin-action="remove"]')
+    await app.until(async () => (await observe()).manager.includes('0 个已安装'), 'bundled removed')
+    await closeNormally()
+    await app.close()
+    await start()
+    await menu()
+    assert((await observe()).manager.includes('0 个已安装'))
+    assert.equal((await observe()).items.length, 0)
+    await record('00-bundled-uninstalled-after-restart')
+    await app.key('Escape')
+  }
   assert.equal((await observe()).items.length, 0)
   await shot('01-host-without-plugin')
   await menu()

@@ -1,0 +1,68 @@
+import { build } from 'esbuild'
+import { createHash } from 'node:crypto'
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
+const pluginRoot = resolve(root, 'plugins/outline')
+const destination = resolve(root, 'apps/desktop/src/bundled-plugins')
+const manifest = JSON.parse(await readFile(resolve(pluginRoot, 'plugin.json'), 'utf8'))
+if (
+  manifest.host !== 'worker' ||
+  manifest.main !== './dist/plugin.js' ||
+  manifest.permissions.some((permission) => permission !== 'document:read')
+) {
+  throw Error('Review distribution default before bundling a different capability set')
+}
+// Use only the SDK package's public export, with the repository's locked build tool.
+// This does not add a runtime host dependency on the plugin implementation.
+const result = await build({
+  absWorkingDir: pluginRoot,
+  entryPoints: ['src/plugin.ts'],
+  bundle: true,
+  format: 'esm',
+  platform: 'browser',
+  target: 'es2022',
+  outfile: 'dist/plugin.js',
+  write: false,
+  metafile: true,
+  alias: { '@milkup/plugin-sdk': resolve(root, 'packages/plugin-sdk/src/index.js') },
+})
+for (const input of Object.keys(result.metafile.inputs)) {
+  const normalized = input.replaceAll('\\', '/')
+  if (!normalized.startsWith('src/') && normalized !== '../../packages/plugin-sdk/src/index.js') {
+    throw Error(`Non-public plugin dependency: ${input}`)
+  }
+}
+if (
+  result.outputFiles.length !== 1 ||
+  Object.values(result.metafile.outputs).some((output) => output.imports.length)
+) {
+  throw Error('Plugin entry must be a single self-contained module')
+}
+const archive =
+  JSON.stringify(
+    {
+      format: 'milkup-plugin',
+      version: 1,
+      manifest,
+      files: [{ path: 'dist/plugin.js', encoding: 'utf8', content: result.outputFiles[0].text }],
+    },
+    null,
+    2,
+  ) + '\n'
+await mkdir(destination, { recursive: true })
+const name = `${manifest.id}-${manifest.version}.milkup-plugin`
+const existing = await readdir(destination)
+if (existing.some((file) => file !== name)) {
+  throw Error('Unexpected staged plugin; refusing to silently change the distribution')
+}
+await writeFile(resolve(destination, name), archive)
+const record = {
+  name,
+  bytes: Buffer.byteLength(archive),
+  sha256: createHash('sha256').update(archive).digest('hex'),
+  sdkVersion: JSON.parse(await readFile(resolve(root, 'packages/plugin-sdk/package.json'))).version,
+}
+console.log(JSON.stringify(record))

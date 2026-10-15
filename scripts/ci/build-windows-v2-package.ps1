@@ -2,14 +2,17 @@
 param(
     [Parameter(Mandatory)][string]$OutputDirectory,
     [Parameter(Mandatory)][ValidatePattern('^[0-9a-f]{40}$')][string]$ExpectedCommit,
-    [switch]$UserTrialPackage
+    [switch]$UserTrialPackage,
+    [switch]$BundledPlugins
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 if (-not $IsWindows -or $env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted') {
     throw 'Run only in an approved disposable GitHub-hosted Windows job.'
 }
-if ($env:GITHUB_REPOSITORY -ne 'Auto-Plugin/milkup' -or $env:GITHUB_REF -ne 'refs/heads/dot/milkup-v2-quality') {
+if ($env:GITHUB_REPOSITORY -ne 'Auto-Plugin/milkup' -or
+    ($env:GITHUB_REF -ne 'refs/heads/dot/milkup-v2-quality' -and
+      -not ($BundledPlugins -and $env:GITHUB_REF -eq 'refs/heads/dot/milkup-v2-windows-delivery'))) {
     throw 'Unexpected repository or branch.'
 }
 function Invoke-Checked([string]$Program, [string[]]$Arguments) {
@@ -58,6 +61,20 @@ try {
     Invoke-Checked 'node' @('--test', 'tests/windows/verify-installed-binary.test.mjs')
     Invoke-Checked 'node' @('--test', 'tests/windows/verify-build-tree.test.mjs')
     Invoke-Checked 'cargo' @('test', '--locked', '--manifest-path', 'apps/desktop/src-tauri/Cargo.toml', '--lib')
+    if ($BundledPlugins) {
+        $standardConfig = Get-Content 'apps/desktop/src-tauri/tauri.conf.json' -Raw | ConvertFrom-Json
+        if ($env:TAURI_CONFIG -or
+            $standardConfig.bundle.windows.PSObject.Properties.Name -contains 'webviewInstallMode' -or
+            (Test-Path 'apps/desktop/src-tauri/tauri.windows.conf.json')) {
+            throw 'Standard delivery requires the reviewed default WebView2 mode without overrides.'
+        }
+        Invoke-Checked 'pnpm' @('exec', 'vitest', 'run', 'plugins/outline/src')
+        Invoke-Checked 'node' @('scripts/ci/prepare-bundled-plugins.mjs')
+        $pluginFiles = @(Get-ChildItem -LiteralPath 'apps/desktop/src/bundled-plugins' -Filter '*.milkup-plugin' -File)
+        if ($pluginFiles.Count -ne 1) { throw 'Unexpected bundled plugin inventory' }
+        $manifest['bundledPlugin'] = File-Record $pluginFiles[0].FullName
+        $manifest['webviewInstallMode'] = 'downloadBootstrapper (Tauri default; internet required if Runtime is missing)'
+    }
     Invoke-Checked 'pnpm' @('--filter', '@milkup/desktop', 'tauri', 'build', '--target', 'x86_64-pc-windows-msvc', '--bundles', 'nsis', '--ci', '--', '--locked')
     $target = Join-Path (Get-Location) 'apps/desktop/src-tauri/target/x86_64-pc-windows-msvc/release'
     $packages = @(Get-ChildItem -LiteralPath (Join-Path $target 'bundle/nsis') -Filter '*.exe' -File)
@@ -74,7 +91,7 @@ try {
         $manifest.packagePurpose = 'Unsigned Windows x64 NSIS for user manual trial'
         $manifest.Remove('artifactUploaded')
         $manifest.Remove('packageDelivered')
-        $manifest.artifactPublication = 'Workflow uploads once after this build manifest is written'
+        $manifest.artifactPublication = 'Workflow separately gates upload on the approved request; a build-only run publishes no artifact'
         $manifest.installedTest = @{ status = 'not-run'; reason = 'User requested direct download and personal installation'; startupAndEditingAcceptance = 'unverified' }
     } else {
         # Same locked release runtime; never substitutes for product acceptance.
@@ -93,9 +110,15 @@ try {
     New-Item -ItemType Directory -Path $deliverable | Out-Null
     $name = "milkup-v2-test-windows-x64-$checkout.exe"
     Copy-Item -LiteralPath $packages[0].FullName -Destination (Join-Path $deliverable $name)
+    if ($BundledPlugins) {
+        Copy-Item -LiteralPath $pluginFiles[0].FullName -Destination (Join-Path $deliverable $pluginFiles[0].Name)
+    }
     $manifest.installer.deliveredName = $name
     $manifest | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath (Join-Path $deliverable 'manifest.json') -Encoding utf8
     "$($manifest.installer.sha256)  $name" | Set-Content -LiteralPath (Join-Path $deliverable 'SHA256SUMS.txt') -Encoding ascii
+    if ($BundledPlugins) {
+        "$($manifest.bundledPlugin.sha256)  $($manifest.bundledPlugin.name)" | Add-Content -LiteralPath (Join-Path $deliverable 'SHA256SUMS.txt') -Encoding ascii
+    }
     if ($UserTrialPackage) {
         @"
 milkup v2 Windows x64 test installer (unsigned)
@@ -111,6 +134,17 @@ SHA-256: $($manifest.installer.sha256)
 Windows PowerShell 校验：Get-FileHash -Algorithm SHA256 .\$name
 请核对结果与 SHA256SUMS.txt 一致。安装器为 NSIS currentUser，含 Markdown 文件关联。
 "@ | Set-Content -LiteralPath (Join-Path $deliverable 'README.txt') -Encoding utf8
+        if ($BundledPlugins) {
+            @"
+
+标准小体积安装包：缺少 WebView2 Runtime 时，安装器需要联网下载并安装。
+此包未内嵌完整 Runtime，不是离线安装包。未改变系统安全设置。
+包含通过公开插件机制预装的 Milkup Outline 1.2.0，可在插件管理中禁用或卸载。
+已有同 ID 插件的版本及启用状态保持不变；卸载后重启不会自动装回。
+单独的 $($manifest.bundledPlugin.name) 与预装包字节相同，可通过“安装本地插件”安装。
+插件 SHA-256: $($manifest.bundledPlugin.sha256)
+"@ | Add-Content -LiteralPath (Join-Path $deliverable 'README.txt') -Encoding utf8
+        }
     }
 } catch {
     $manifest.status = 'failed'
