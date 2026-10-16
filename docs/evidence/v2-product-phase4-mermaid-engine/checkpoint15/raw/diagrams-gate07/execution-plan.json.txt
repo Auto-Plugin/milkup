@@ -1,0 +1,33 @@
+{
+  "atUtc": "2026-10-16T21:41:44.229914+00:00",
+  "supersedesStaticPlan": "research/gate07-production07-preparation/PLAN.md local duplication and generic-all10 steps",
+  "commands": [
+    {
+      "name": "standalone",
+      "cwd": "/workspace/milkup",
+      "argv": [
+        "node",
+        "plugins/diagrams/scripts/verify-external.mjs",
+        "/workspace/milkup/plugins/diagrams/vendor/plugin-sdk.tgz",
+        "/workspace/milkup-mermaid-engine-evidence/diagrams-gate07/standalone"
+      ]
+    },
+    {
+      "name": "trusted-staging",
+      "cwd": "/workspace/milkup",
+      "argv": [
+        "node",
+        "scripts/ci/prepare-bundled-plugins.mjs"
+      ]
+    },
+    {
+      "name": "repository-gates",
+      "argv": [
+        "python3",
+        "/workspace/milkup-mermaid-engine-evidence/repository-gates07/run.py"
+      ],
+      "cwd": "/workspace/milkup"
+    }
+  ],
+  "qualification": "Standalone runs real check as build tsc + build + tests once. Trusted staging independently verifies/rebuilds current closure and produces exact archive equality. No repeated local or generic-all10 install/test. Generated local dist copies are attributed to external successful build, not claimed as a local build. Product07 build awaits commit and separate GO."
+}

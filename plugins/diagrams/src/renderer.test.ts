@@ -160,6 +160,7 @@ describe('official Mermaid document wrapper (mock engine; native layout tested s
         fontFamily: 'Arial, sans-serif',
         legacyMathML: false,
         forceLegacyMathML: false,
+        handDrawnSeed: 1,
       })
       expect(call[0].secure).toEqual(
         expect.arrayContaining([
@@ -173,6 +174,7 @@ describe('official Mermaid document wrapper (mock engine; native layout tested s
           'arrowMarkerAbsolute',
           'deterministicIds',
           'deterministicIDSeed',
+          'handDrawnSeed',
         ]),
       )
       expect(call[0]).not.toHaveProperty('journey')

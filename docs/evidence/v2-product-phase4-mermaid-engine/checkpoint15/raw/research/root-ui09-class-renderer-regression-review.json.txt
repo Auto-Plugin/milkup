@@ -1,0 +1,46 @@
+{
+  "status": "PASS_BOUNDED_REAL_CHROMIUM_REGRESSION_REVIEW",
+  "manifestVerifiedFiles": 46,
+  "manifestSha256": "49d90816eddfdbe005c147dac8d69b685ef95c4dde9d575e66a27a849a922ea1",
+  "sameBeforeAfterRequests": true,
+  "baselineThreeDistinctResults": true,
+  "fixedThreeEqualCompleteResultsAndCanonical": true,
+  "guards": [
+    {
+      "variant": "source",
+      "repeatExact": true,
+      "imageEqualsBaseline": false
+    },
+    {
+      "variant": "theme",
+      "repeatExact": true,
+      "imageEqualsBaseline": false
+    },
+    {
+      "variant": "width",
+      "repeatExact": true,
+      "imageEqualsBaseline": false
+    },
+    {
+      "variant": "frontmatter",
+      "repeatExact": true,
+      "imageEqualsBaseline": true
+    },
+    {
+      "variant": "directive",
+      "repeatExact": true,
+      "imageEqualsBaseline": true
+    }
+  ],
+  "actualViewedImages": [
+    "guards-pixels/before-original.png",
+    "guards-pixels/after-original.png",
+    "guards-pixels/after-canonical.png"
+  ],
+  "pixelFinding": "The three viewed images retain four class boxes, both notes, relationships and title. Original/canonical microdifferences and changed random-vs-fixed stroke pixels remain explicit in source report.",
+  "limits": [
+    "Linux Chromium at width1100/scale1 only, not native scroll or complete matrix acceptance.",
+    "First default executable setup error preserved before the actual baseline RED.",
+    "Manifest excludes rebuildable bundles; this verification covers46 listed files, not excluded bodies."
+  ]
+}

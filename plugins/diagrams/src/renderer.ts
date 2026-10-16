@@ -114,6 +114,9 @@ export const renderDocuments: SdkDocumentRenderer = async (request, { signal }) 
             maxEdges: 500,
             deterministicIds: true,
             deterministicIDSeed: 'milkup-offline',
+            // Classic class shapes also use roughjs. Keep equal inputs stable
+            // so a refresh does not replace their image and reset inner scroll.
+            handDrawnSeed: 1,
             arrowMarkerAbsolute: false,
             fontFamily: 'Arial, sans-serif',
             legacyMathML: false,
@@ -140,6 +143,7 @@ export const renderDocuments: SdkDocumentRenderer = async (request, { signal }) 
               'arrowMarkerAbsolute',
               'deterministicIds',
               'deterministicIDSeed',
+              'handDrawnSeed',
             ],
           })
           sequence = (sequence + 1) % 0x1_0000_0000

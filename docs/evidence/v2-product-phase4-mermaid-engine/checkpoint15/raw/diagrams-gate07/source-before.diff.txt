@@ -1,0 +1,42 @@
+diff --git a/plugins/diagrams/src/renderer.test.ts b/plugins/diagrams/src/renderer.test.ts
+index f12b4c57..4c4f6a3d 100644
+--- a/plugins/diagrams/src/renderer.test.ts
++++ b/plugins/diagrams/src/renderer.test.ts
+@@ -160,6 +160,7 @@ describe('official Mermaid document wrapper (mock engine; native layout tested s
+         fontFamily: 'Arial, sans-serif',
+         legacyMathML: false,
+         forceLegacyMathML: false,
++        handDrawnSeed: 1,
+       })
+       expect(call[0].secure).toEqual(
+         expect.arrayContaining([
+@@ -173,6 +174,7 @@ describe('official Mermaid document wrapper (mock engine; native layout tested s
+           'arrowMarkerAbsolute',
+           'deterministicIds',
+           'deterministicIDSeed',
++          'handDrawnSeed',
+         ]),
+       )
+       expect(call[0]).not.toHaveProperty('journey')
+diff --git a/plugins/diagrams/src/renderer.ts b/plugins/diagrams/src/renderer.ts
+index 4e4613e0..977368ea 100644
+--- a/plugins/diagrams/src/renderer.ts
++++ b/plugins/diagrams/src/renderer.ts
+@@ -114,6 +114,9 @@ export const renderDocuments: SdkDocumentRenderer = async (request, { signal })
+             maxEdges: 500,
+             deterministicIds: true,
+             deterministicIDSeed: 'milkup-offline',
++            // Classic class shapes also use roughjs. Keep equal inputs stable
++            // so a refresh does not replace their image and reset inner scroll.
++            handDrawnSeed: 1,
+             arrowMarkerAbsolute: false,
+             fontFamily: 'Arial, sans-serif',
+             legacyMathML: false,
+@@ -140,6 +143,7 @@ export const renderDocuments: SdkDocumentRenderer = async (request, { signal })
+               'arrowMarkerAbsolute',
+               'deterministicIds',
+               'deterministicIDSeed',
++              'handDrawnSeed',
+             ],
+           })
+           sequence = (sequence + 1) % 0x1_0000_0000

@@ -1,0 +1,1246 @@
+// Prepared production UI harness. Run only against an explicitly frozen candidate.
+// Reuses P4 GTK/XTest startup and controls; page execution observes public DOM or
+// focuses public controls. No editor/plugin internals, raw SVG or IPC are injected.
+import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
+import { mkdir, readFile, writeFile, realpath, appendFile } from 'node:fs/promises'
+import path from 'node:path'
+import { startProduction } from '../helpers/native-production.mjs'
+import { ownedApplication } from '../helpers/native-owned-process.mjs'
+import { ownNativeClipboard } from '../helpers/native-clipboard.mjs'
+import { action, nativeFixture, x } from '../helpers/native-updates-fixture.mjs'
+
+const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex')
+const output = path.resolve(process.env.MILKUP_NATIVE_EVIDENCE_DIR || '')
+assert(process.env.MILKUP_NATIVE_EVIDENCE_DIR, 'A fresh evidence directory is required')
+assert(process.env.MILKUP_MERMAID_CASES_JSON, 'An explicit reviewed case catalog is required')
+assert(
+  process.env.MILKUP_MERMAID_ARCHIVE,
+  'An independently built official-engine archive is required',
+)
+await mkdir(output, { recursive: true })
+const journal = path.join(output, 'results.json')
+await writeFile(journal, '[]\n', { flag: 'wx' })
+const archivePath = await realpath(process.env.MILKUP_MERMAID_ARCHIVE)
+assert(
+  !archivePath.startsWith(path.resolve('plugins') + path.sep),
+  'Use an independently built external package',
+)
+const archiveBytes = await readFile(archivePath)
+assert.match(
+  process.env.MILKUP_MERMAID_ARCHIVE_SHA256 ?? '',
+  /^[a-f0-9]{64}$/,
+  'Supply the reviewed independent archive hash',
+)
+assert.equal(sha256(archiveBytes), process.env.MILKUP_MERMAID_ARCHIVE_SHA256)
+const archive = JSON.parse(archiveBytes)
+assert.equal(archive.format, 'milkup-plugin')
+assert.equal(archive.version, 1)
+assert.equal(archive.manifest.id, 'milkup.diagrams')
+assert.equal(archive.manifest.version, '1.1.0')
+assert.equal(archive.manifest.host, 'dom')
+assert.deepEqual(archive.manifest.permissions, ['document:read'])
+assert(archive.manifest.engines.pluginSdk.includes('0.3.4'))
+for (const resource of ['THIRD-PARTY-NOTICES.txt', 'dependency-provenance.json']) {
+  assert(archive.manifest.resources.includes(resource))
+  assert(
+    archive.files.some(
+      (file) =>
+        file.path === resource &&
+        ['utf8', 'base64'].includes(file.encoding) &&
+        file.content.length > 0,
+    ),
+  )
+}
+const catalogPath = path.resolve(process.env.MILKUP_MERMAID_CASES_JSON)
+const catalogBytes = await readFile(catalogPath)
+const samples = JSON.parse(catalogBytes)
+assert(Array.isArray(samples) && samples.length > 0 && samples.length <= 64)
+const ids = new Set()
+let source = '# Official Mermaid production UI acceptance 中文 é 👩🏽‍💻\n\n'
+for (const sample of samples) {
+  assert(/^[a-zA-Z0-9_-]{1,100}$/.test(sample.id) && !ids.has(sample.id))
+  ids.add(sample.id)
+  assert(['ready', 'fallback'].includes(sample.expected))
+  assert.equal(sha256(Buffer.from(sample.source)), sample.sourceSha256)
+  assert(!sample.source.includes('```'), 'The fixture cannot escape its Markdown fence')
+  sample.marker = 'MERMAID-SAMPLE-' + sample.id
+  source += sample.marker + '\n\n'
+  sample.from = source.length
+  source += '```mermaid\n' + sample.source + (sample.source.endsWith('\n') ? '' : '\n') + '```'
+  sample.to = source.length
+  source += '\n\nAFTER-' + sample.id + '\n\n'
+}
+const contents = new Map([
+  ['ordinary', source],
+  ['windowed', source + 'retained Unicode 中文 é 👩🏽‍💻 body\n'.repeat(160_000)],
+])
+const isolatedFallbacks = samples
+  .filter((sample) => sample.expected === 'fallback')
+  .map((sample) => {
+    const name = 'fallback-' + sample.id
+    const prefix = sample.marker + '\n\n'
+    const fence =
+      '```mermaid\n' + sample.source + (sample.source.endsWith('\n') ? '' : '\n') + '```'
+    contents.set(name, prefix + fence + '\n\nAFTER-' + sample.id + '\n')
+    return { ...sample, name, from: prefix.length, to: prefix.length + fence.length }
+  })
+assert.equal(isolatedFallbacks.length, 4, 'The reviewed four fallbacks need isolated UI checks')
+for (const [name, text] of contents) await writeFile(path.join(output, name + '.md'), text)
+const matrixSamples = samples.filter((sample) => sample.matrix === true)
+assert(matrixSamples.length > 0)
+const matrix = []
+for (const view of ['ordinary', 'windowed'])
+  for (const mode of ['source', 'live'])
+    for (const theme of ['light', 'dark'])
+      for (const zoom of [1, 1.25, 1.5, 2])
+        for (const narrow of [false, true])
+          matrix.push({
+            view,
+            mode,
+            theme,
+            zoom,
+            narrow,
+            key: `${view}-${mode}-${theme}-${zoom * 100}-${narrow ? 'narrow' : 'wide'}`,
+          })
+const plan = {
+  preparedOnly: process.argv.includes('--preflight'),
+  archive: { path: archivePath, sha256: sha256(archiveBytes), manifest: archive.manifest },
+  catalog: { path: catalogPath, sha256: sha256(catalogBytes) },
+  samples,
+  isolatedFallbacks,
+  matrix,
+  scope:
+    'Actual production image decoding and UI behavior. Screenshots require separate visual review; geometry is not pixel fidelity proof.',
+  excludes: [
+    'native process lifetime/timeout audit (separate harness)',
+    'Windows',
+    'system DPI',
+    'inline-vs-image pixel comparison (separate isolated probe)',
+  ],
+}
+await writeFile(path.join(output, 'plan.json'), JSON.stringify(plan, null, 2) + '\n')
+if (process.argv.includes('--preflight')) {
+  console.log('PREPARED ONLY: catalog hashes, source fixtures and 64-case plan; no UI launched')
+  process.exit(0)
+}
+assert.equal(
+  process.env.MILKUP_MERMAID_BINARY_CONFIRMED,
+  '1',
+  'Explicit current-candidate gate required',
+)
+assert(process.env.TAURI_APP_PATH && process.env.MILKUP_MERMAID_BINARY_SHA256)
+assert(
+  process.env.TAURI_DRIVER_URL && process.env.DISPLAY,
+  'Explicit dedicated native driver and display required',
+)
+assert.equal(process.env.MILKUP_NATIVE_EXCLUSIVE_DISPLAY, '1')
+assert.equal(process.env.MILKUP_DOM_DIAGNOSTICS, '1', 'Native phase diagnostics are required')
+assert(process.env.MILKUP_NATIVE_APP_LOG, 'Retain the actual native driver/application log')
+const profileRoot = process.env.MILKUP_NATIVE_PROFILE_ROOT
+assert(
+  profileRoot && path.isAbsolute(profileRoot) && path.resolve(profileRoot) !== '/',
+  'Disposable profile root required',
+)
+for (const key of ['XDG_DATA_HOME', 'XDG_CONFIG_HOME', 'XDG_CACHE_HOME']) {
+  assert(
+    process.env[key] &&
+      path.resolve(process.env[key]).startsWith(path.resolve(profileRoot) + path.sep),
+    key + ' must be within the disposable profile',
+  )
+}
+const binary = await realpath(process.env.TAURI_APP_PATH)
+assert(!binary.includes('/target/'), 'Use a frozen binary copy outside the shared Cargo target')
+process.env.TAURI_APP_PATH = binary
+assert.equal(sha256(await readFile(binary)), process.env.MILKUP_MERMAID_BINARY_SHA256)
+await writeFile(
+  path.join(output, 'provenance.json'),
+  JSON.stringify(
+    {
+      binary,
+      binarySha256: process.env.MILKUP_MERMAID_BINARY_SHA256,
+      head: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+      profile: process.env.XDG_DATA_HOME,
+      display: process.env.DISPLAY,
+      driver: process.env.TAURI_DRIVER_URL,
+      nativeDiagnostics: {
+        enabled: true,
+        log: process.env.MILKUP_NATIVE_APP_LOG,
+        overhead:
+          'Native monotonic clock reads and bounded try_send to an asynchronous diagnostic thread; observations can add scheduling overhead. Page Worker diagnostics remain disabled.',
+      },
+      harness: await Promise.all(
+        [
+          import.meta.url,
+          ...[
+            'native-production.mjs',
+            'native-owned-process.mjs',
+            'native-updates-fixture.mjs',
+            'native-clipboard.mjs',
+          ].map((name) => new URL('../helpers/' + name, import.meta.url).href),
+        ].map(async (url) => ({
+          path: new URL(url).pathname,
+          sha256: sha256(await readFile(new URL(url))),
+        })),
+      ),
+      input: 'GTK picker and native XTest keyboard/pointer; public DOM observation/focus only',
+    },
+    null,
+    2,
+  ) + '\n',
+)
+
+let app, nativeWindow, activeFile
+let wireObserverInstalled = false
+const ui = nativeFixture(() => app),
+  results = []
+const preferences = '[data-plugin-ui="milkup.preferences:preferences-panel"]'
+const registry = () =>
+  app.execute(
+    `return JSON.parse(localStorage.getItem('milkup.desktop.plugins.registry.v1')||'{"records":[]}').records.map(r=>({id:r.manifest.id,host:r.manifest.host,state:r.state,enabled:r.enabled,errors:r.errors,sourcePath:r.sourcePath}))`,
+  )
+const diagramsAudit = () =>
+  app.execute(
+    `return (JSON.parse(localStorage.getItem('milkup.desktop.plugins.registry.v1')||'{}').auditRecords||[]).filter(r=>r.pluginId==='milkup.diagrams')`,
+  )
+const observe = () =>
+  app.execute(`
+const rect=e=>e.getBoundingClientRect().toJSON(),editor=document.querySelector('.milkup-editor');
+return {width:innerWidth,height:innerHeight,theme:document.documentElement.dataset.theme,zoom:Number(document.querySelector('#app')?.dataset.appearanceZoom),windowed:!!document.querySelector('.milkup-source-document-view'),editor:rect(editor),fonts:document.fonts.status,previews:[...document.querySelectorAll('[data-document-presentation]')].map(e=>({from:Number(e.dataset.presentationFrom),to:Number(e.dataset.presentationTo),label:e.getAttribute('aria-label'),rect:rect(e),top:e.scrollTop,left:e.scrollLeft,scrollWidth:e.scrollWidth,clientWidth:e.clientWidth,scrollHeight:e.scrollHeight,clientHeight:e.clientHeight,inlineSvg:e.querySelectorAll('svg,foreignObject,script').length,images:[...e.querySelectorAll('img')].map(i=>({src:i.currentSrc,complete:i.complete,naturalWidth:i.naturalWidth,naturalHeight:i.naturalHeight,width:i.width,height:i.height,draggable:i.draggable,tabIndex:i.tabIndex,rect:rect(i),slot:rect(i.parentElement),ink:rect(i.parentElement.parentElement),offset:{left:i.style.left,top:i.style.top,slotLeft:i.parentElement.style.left,slotTop:i.parentElement.style.top},slotOverflow:getComputedStyle(i.parentElement).overflow}))})),notices:[...document.querySelectorAll('[data-document-presentation-notice]')].map(e=>e.textContent),noticeBoxes:[...document.querySelectorAll('[data-document-presentation-notice]')].map(e=>({text:e.textContent,rect:rect(e),display:getComputedStyle(e).display,visibility:getComputedStyle(e).visibility,opacity:Number(getComputedStyle(e).opacity)})),diagnostics:window.__productionDiagnostics}
+`)
+const selectorFor = (sample) =>
+  `[data-document-presentation][data-presentation-from="${sample.from}"]`
+function assertCapturedPreview(dom, expected, stage) {
+  const actual = dom.previews.find((item) => item.from === expected.from && item.to === expected.to)
+  assert(actual && visible(actual.rect, dom), stage + ': same range remains visible')
+  assert.equal(actual.inlineSvg, 0, stage + ': no injected inline SVG')
+  assert.equal(actual.images.length, expected.images.length, stage + ': all images remain mounted')
+  assert(
+    actual.images.every(
+      (item) =>
+        item.src.startsWith('blob:') &&
+        item.complete &&
+        item.naturalWidth > 0 &&
+        item.naturalHeight > 0,
+    ),
+    stage + ': same range remains fully decoded',
+  )
+}
+function noticeIsVisible(notice, dom) {
+  const rect = notice.rect
+  return (
+    notice.display !== 'none' &&
+    notice.visibility === 'visible' &&
+    notice.opacity > 0 &&
+    rect.width > 0 &&
+    rect.height > 0 &&
+    rect.top >= Math.max(0, dom.editor.top) &&
+    rect.bottom <= Math.min(dom.height, dom.editor.bottom) &&
+    rect.left >= Math.max(0, dom.editor.left) &&
+    rect.right <= Math.min(dom.width, dom.editor.right)
+  )
+}
+function assertCapturedNotice(dom, expected, stage) {
+  assert(
+    dom.noticeBoxes.some((notice) => notice.text === expected && noticeIsVisible(notice, dom)),
+    stage + ': the current isolated fallback notice is fully visible',
+  )
+  assert.equal(dom.previews.length, 0, stage + ': single fallback remains full source')
+}
+let assertionFailureSequence = 0
+async function preserveAssertion(kind, dom, expected, stage, document = null) {
+  try {
+    if (kind === 'preview') assertCapturedPreview(dom, expected, stage)
+    else assertCapturedNotice(dom, expected, stage)
+  } catch (error) {
+    const file =
+      'assertion-failure-' +
+      String(++assertionFailureSequence).padStart(3, '0') +
+      '-' +
+      kind +
+      '-' +
+      stage.replaceAll(' ', '-') +
+      '.json'
+    // Preserve the observations already made by the failing check. A before-shot
+    // check has no document probe; do not add one and change the observed timing.
+    await writeFile(
+      path.join(output, file),
+      JSON.stringify(
+        {
+          recordedAt: new Date().toISOString(),
+          kind,
+          stage,
+          document,
+          documentBoundary:
+            document === null
+              ? 'Not read at this stage; no extra browser observation was made.'
+              : 'Already-read public document probe from this record call.',
+          dom,
+          expected,
+          error: {
+            message: String(error),
+            stack: error.stack,
+            actual: error.actual,
+            actualIsUndefined: error.actual === undefined,
+            expected: error.expected,
+            operator: error.operator,
+          },
+        },
+        null,
+        2,
+      ) + '\n',
+      { flag: 'wx' },
+    ).catch((writeError) => {
+      console.error('Failed to preserve assertion snapshot ' + file + ': ' + String(writeError))
+    })
+    throw error
+  }
+}
+async function record(name, extra = {}) {
+  const document = await app.probe()
+  const dom = await observe()
+  if (extra.preview)
+    await preserveAssertion('preview', dom, extra.preview, 'after screenshot', document)
+  if (extra.fallbackNotice) {
+    assert.equal(document.path, activeFile)
+    await preserveAssertion('notice', dom, extra.fallbackNotice, 'after screenshot', document)
+  }
+  const currentRegistry = await registry()
+  const audit = await diagramsAudit()
+  if (extra.coldBundled) {
+    const provider = currentRegistry.find((row) => row.id === 'milkup.diagrams')
+    assert(provider?.sourcePath.startsWith('bundled:'))
+    assert.equal(provider.state, 'enabled')
+    assert.equal(provider.enabled, true)
+    assert.deepEqual(provider.errors, [])
+    assert(
+      !audit.some((item) => item.denied && /execution deadline/i.test(item.detail || '')),
+      'Cold bundled instance must not have a deadline-denied audit',
+    )
+  }
+  results.push({
+    name,
+    at: new Date().toISOString(),
+    ...extra,
+    document,
+    dom,
+    registry: currentRegistry,
+    diagramsAudit: audit,
+  })
+  await writeFile(journal, JSON.stringify(results, null, 2) + '\n')
+  console.log('PASS ' + name)
+}
+async function shot(name, extra = {}) {
+  await app.delay(250)
+  if (extra.preview)
+    await preserveAssertion('preview', await observe(), extra.preview, 'before screenshot')
+  if (extra.fallbackNotice)
+    await preserveAssertion('notice', await observe(), extra.fallbackNotice, 'before screenshot')
+  await app.shot(name + '-webview')
+  execFileSync('import', ['-window', 'root', path.join(output, name + '-x11.png')], {
+    env: process.env,
+  })
+  const screenshots = await Promise.all(
+    ['webview', 'x11'].map(async (kind) => {
+      const file = name + '-' + kind + '.png',
+        bytes = await readFile(path.join(output, file))
+      return { file, bytes: bytes.length, sha256: sha256(bytes), reviewed: false }
+    }),
+  )
+  await record(name, { ...extra, screenshots })
+}
+async function closeUI() {
+  if (await ui.exists(preferences)) await ui.click(preferences + ' .plugin-ui-close')
+  await ui.closeMenu()
+}
+async function openDocument(name) {
+  await closeUI()
+  activeFile = path.join(output, name + '.md')
+  await app.key('ctrl+o')
+  await ui.picker(activeFile)
+  await app.until(
+    async () => {
+      const p = await app.probe()
+      return p.path === activeFile && p.loading === 'ready'
+    },
+    'open ' + name,
+    30_000,
+  )
+  assert.equal((await observe()).windowed, name === 'windowed')
+}
+async function install() {
+  await app.until(
+    async () => (await registry()).some((row) => row.id === 'milkup.preferences'),
+    'distribution plugins',
+    30_000,
+  )
+  if ((await registry()).some((row) => row.id === 'milkup.diagrams')) {
+    await ui.details('milkup.diagrams')
+    if (await ui.exists(action('disable', 'milkup.diagrams')))
+      await ui.click(action('disable', 'milkup.diagrams'))
+    await ui.click(action('remove', 'milkup.diagrams'))
+    await app.until(
+      async () => !(await registry()).some((row) => row.id === 'milkup.diagrams'),
+      'remove bundled diagrams',
+    )
+    const audit = await diagramsAudit()
+    assert(
+      !audit.some((item) => item.denied && /execution deadline/i.test(item.detail || '')),
+      'Do not overlook a bundled deadline between cold capture and manual removal',
+    )
+    await record('bundled-removed-before-independent-install')
+  }
+  await ui.list()
+  await ui.click('[data-plugin-action="install"]')
+  await ui.picker(archivePath)
+  await app.until(
+    async () =>
+      (await registry()).some(
+        (row) => row.id === 'milkup.diagrams' && row.sourcePath === archivePath,
+      ),
+    'install independent archive',
+    30_000,
+  )
+  for (const id of ['milkup.diagrams', 'milkup.preferences']) {
+    await ui.details(id)
+    if (await ui.exists(action('approve', id))) await ui.click(action('approve', id))
+    if (await ui.exists(action('enable', id))) await ui.click(action('enable', id))
+    await ui.ready(action('disable', id))
+  }
+  await closeUI()
+  await shot('installed-official-engine')
+}
+async function coldBundledWindow() {
+  const bundled = JSON.parse(await readFile('release/bundled-plugins.json', 'utf8'))
+  const manifests = await Promise.all(
+    bundled.map(async (item) => {
+      const file = path.resolve(item.directory, 'plugin.json')
+      const bytes = await readFile(file)
+      return { id: JSON.parse(bytes).id, path: file, sha256: sha256(bytes) }
+    }),
+  )
+  await app.until(
+    async () => {
+      const ids = new Set((await registry()).map((row) => row.id))
+      return manifests.every((item) => ids.has(item.id))
+    },
+    'whole automatic bundled installation before cold rendering check',
+    30_000,
+  )
+  await record('preinstalled-cold-before-render', { expectedBundled: manifests })
+  await app.until(async () => (await app.probe()).mode === 'live', 'initial live document')
+  const sample = samples.find((item) => item.id === 'block-000-first-official-example')
+  assert(sample?.expected === 'ready')
+  const result = await assertSample(sample, 'live')
+  await shot('preinstalled-cold-window', {
+    ...result,
+    sample: sample.id,
+    coldBundled: true,
+    excludesCoverageCount: true,
+  })
+}
+async function setField(key, value) {
+  const selector = preferences + ` [data-plugin-field-control="${key}"]`
+  await ui.ready(selector)
+  await app.focus(selector)
+  const values = await app.execute(
+    'return [...document.querySelector(arguments[0]).options].map(o=>o.value)',
+    selector,
+  )
+  const index = values.indexOf(String(value))
+  assert(index >= 0)
+  await app.key('Home')
+  for (let i = 0; i < index; i++) await app.key('Down')
+  await app.key('Tab')
+  await app.until(
+    () =>
+      app.execute(
+        'return document.querySelector(arguments[0])?.value===arguments[1]',
+        selector,
+        String(value),
+      ),
+    'appearance field ' + key,
+  )
+}
+async function appearance(theme, zoom) {
+  await closeUI()
+  const before = await observe()
+  if (before.theme !== theme || before.zoom !== zoom) {
+    await ui.menu()
+    const entry = '[data-plugin-menu-entry="milkup.preferences:preferences-panel"]'
+    if (await ui.exists(entry)) await ui.click(entry)
+    else {
+      await ui.details('milkup.preferences')
+      await ui.click(action('open-ui', 'milkup.preferences'))
+    }
+    if (before.theme !== theme) await setField('appearance.theme', theme)
+    if (before.zoom !== zoom) await setField('appearance.zoom', zoom)
+    await ui.click(preferences + ' button[aria-label="保存"]')
+    await app.until(
+      () =>
+        app.execute(
+          'return document.querySelector(arguments[0])?.textContent.includes("偏好已保存")',
+          preferences,
+        ),
+      'saved appearance',
+    )
+    await closeUI()
+  }
+  const physical = Number(/WIDTH=(\d+)/.exec(x('getwindowgeometry', '--shell', nativeWindow))[1])
+  await app.until(async () => {
+    const dom = await observe()
+    return dom.theme === theme && dom.zoom === zoom && Math.abs(dom.width * zoom - physical) <= 2
+  }, 'native full UI zoom geometry')
+}
+async function seek(sample, mode) {
+  await closeUI()
+  await app.focus('.milkup-input-proxy')
+  await app.key(mode === 'source' ? 'ctrl+1' : 'ctrl+2')
+  await app.until(async () => (await app.probe()).mode === mode, 'mode ' + mode)
+  await app.key('ctrl+f')
+  await ui.ready('[data-search-input]')
+  await app.focus('[data-search-input]')
+  await app.key('ctrl+a')
+  await app.text(sample.marker)
+  await app.until(
+    async () => {
+      const p = await app.probe()
+      return p.query === sample.marker && !p.searching && /1/.test(p.count || '')
+    },
+    'unique sample search',
+    30_000,
+  )
+  await app.key('Escape')
+  await app.focus('.milkup-input-proxy')
+  // Search results can arrive before windowed navigation finishes. These are
+  // mounted selection projections, so first require the complete unique marker.
+  const markerTo = sample.from - 2
+  const markerFrom = markerTo - sample.marker.length
+  await app.until(
+    async () => {
+      const p = await app.probe()
+      return (
+        p.cursor === markerTo &&
+        p.selection.length > 0 &&
+        p.selection.every((range) => range.from === markerFrom && range.to === markerTo)
+      )
+    },
+    'complete sample marker selection after native search navigation',
+    30_000,
+  )
+  await positionSample(sample)
+}
+async function sampleSelectionProjection(sample, phase) {
+  const markerTo = sample.from - 2
+  const markerFrom = markerTo - sample.marker.length
+  const fixture = sample.name ? contents.get(sample.name) : source
+  assert.equal(fixture.slice(markerFrom, markerTo), sample.marker)
+  const markerLine = fixture.slice(0, markerFrom).split('\n').length
+  // Read lines and overlays in one task. Windowed rows may be unmounted even
+  // while the logical selection remains unchanged; overscan rows still count.
+  const projection = await app.execute(
+    `
+const editor=document.querySelector('.milkup-editor');
+if(!editor) throw new Error('Selection projection: mounted editor required');
+const rows=[...editor.querySelectorAll('.milkup-editor-content .milkup-line')]
+  .map(e=>({from:Number(e.dataset.from),to:Number(e.dataset.to),line:Number(e.dataset.line)}));
+return {
+  windowed:editor.classList.contains('milkup-source-document-view'),
+  mode:editor.dataset.mode,
+  invalidRows:rows.filter(row=>!Number.isInteger(row.from)||!Number.isInteger(row.to)||!Number.isInteger(row.line)||row.from<0||row.to<row.from||row.line<1),
+  markerLines:rows.filter(line=>line.from<arguments[1]&&line.to>arguments[0]),
+  ranges:[...editor.querySelectorAll('.milkup-selection')].map(e=>({from:Number(e.dataset.from),to:Number(e.dataset.to),line:e.dataset.line===undefined?null:Number(e.dataset.line)})),
+  cursors:[...editor.querySelectorAll('.milkup-cursor')].map(e=>Number(e.dataset.position))
+};
+`,
+    markerFrom,
+    markerTo,
+  )
+  await appendFile(
+    path.join(output, 'selection-projections.jsonl'),
+    JSON.stringify({
+      at: new Date().toISOString(),
+      sample: sample.id,
+      phase,
+      markerFrom,
+      markerTo,
+      markerLine,
+      ...projection,
+    }) + '\n',
+  )
+  assert.deepEqual(projection.invalidRows, [], 'Mounted source rows have valid source metadata')
+  assert(projection.markerLines.length <= 1, 'Unique marker has at most one mounted source row')
+  for (const line of projection.markerLines) {
+    assert.equal(line.from, markerFrom, 'Mounted marker starts at its exact source offset')
+    assert.equal(line.to, markerTo, 'Mounted marker ends at its exact source offset')
+    assert.equal(line.line, markerLine, 'Mounted marker has its exact fixture source line')
+  }
+  if (!projection.windowed)
+    assert.equal(projection.markerLines.length, 1, 'Ordinary fixture keeps its marker row mounted')
+  for (const range of projection.ranges) {
+    assert(
+      Number.isInteger(range.from) && Number.isInteger(range.to) && range.from < range.to,
+      'Every selection projection has valid source endpoints',
+    )
+    if (projection.windowed)
+      assert(Number.isInteger(range.line), 'Every windowed projection has a source line')
+  }
+  const normalized = (ranges) => [...new Set(ranges.map((range) => JSON.stringify(range)))].sort()
+  // Ordinary overlays carry the full range without data-line. SourceDocumentView
+  // overlays carry intersections with mounted rows, including their line number.
+  const expected = projection.windowed
+    ? projection.markerLines.map((line) => ({
+        from: Math.max(markerFrom, line.from),
+        to: Math.min(markerTo, line.to),
+        line: line.line,
+      }))
+    : [{ from: markerFrom, to: markerTo }]
+  const actual = projection.ranges.map(({ from, to, line }) =>
+    projection.windowed ? { from, to, line } : { from, to },
+  )
+  assert.deepEqual(
+    normalized(actual),
+    normalized(expected),
+    'Selection projections must match the exact marker on currently mounted source rows',
+  )
+  assert.deepEqual(
+    projection.cursors,
+    projection.markerLines.length ? [markerTo] : [],
+    'Cursor projection must match the mounted marker endpoint',
+  )
+  return { ...projection, expected }
+}
+async function positionSample(sample) {
+  const before = await app.probe()
+  const projectionBefore = await sampleSelectionProjection(sample, 'before-positioning')
+  const fileBefore = await readFile(activeFile)
+  const started = Date.now()
+  const observations = []
+  const fences = (sample.name ? [sample] : samples).map(({ from, to }) => ({ from, to }))
+  const readPosition = () =>
+    app.execute(
+      `
+const editor = document.querySelector('.milkup-editor');
+const content = document.querySelector('.milkup-editor-content');
+if (!editor || !content) throw new Error('Positioning: mounted editor required');
+const root = editor.getBoundingClientRect(), owners = new Map(), measured = new Map();
+const clientLeft=root.left+editor.clientLeft, clientTop=root.top+editor.clientTop;
+const viewport = {top:Math.max(0,clientTop),bottom:Math.min(innerHeight,clientTop+editor.clientHeight),left:Math.max(0,clientLeft),right:Math.min(innerWidth,clientLeft+editor.clientWidth)};
+const intersects = r => r.height>0 && r.width>0 && r.bottom>viewport.top && r.top<viewport.bottom && r.right>viewport.left && r.left<viewport.right;
+const lines = [...content.querySelectorAll('.milkup-line')];
+const effective = line => {
+  const id = line.dataset.presentationOwner;
+  if (id && !owners.has(id)) owners.set(id, content.querySelector('.milkup-line[data-line="'+CSS.escape(id)+'"]'));
+  const owner = (id ? owners.get(id) : undefined) || line;
+  if (!measured.has(owner)) measured.set(owner,owner.getBoundingClientRect());
+  return measured.get(owner);
+};
+const fences = arguments[0].map(fence => {
+  const matched = lines.filter(line => {
+    const from=Number(line.dataset.from),to=Number(line.dataset.to);
+    const blockFrom=Number(line.dataset.presentationBlockFrom),blockTo=Number(line.dataset.presentationBlockTo);
+    return (blockFrom===fence.from && blockTo===fence.to) || (Number.isFinite(from)&&Number.isFinite(to)&&from<fence.to&&to>=fence.from);
+  });
+  const bounds = matched.map(effective).filter(r=>r.width>0&&r.height>0);
+  return {from:fence.from,to:fence.to,mounted:matched.length>0,visible:bounds.some(intersects),top:bounds.length?Math.min(...bounds.map(r=>r.top)):null,bottom:bounds.length?Math.max(...bounds.map(r=>r.bottom)):null};
+});
+const target = fences.find(f=>f.from===arguments[1]&&f.to===arguments[2]);
+const preceding = fences.filter(f=>f.to<=arguments[1]&&f.visible);
+const contentRight=root.left+editor.clientLeft+editor.clientWidth;
+const py=viewport.top+Math.min(40,(viewport.bottom-viewport.top)/3);
+let gutter;
+for(const px of [Math.max(viewport.left,root.left+editor.clientLeft)+4,Math.min(viewport.right,contentRight)-4]) {
+  const hit=document.elementFromPoint(px,py);
+  if(px>viewport.left&&px<contentRight&&hit&&editor.contains(hit)&&!hit.closest('[data-document-presentation],input,textarea,button,[role="scrollbar"]')) {gutter={x:px,y:py};break;}
+}
+const offsets=lines.map(line=>Number(line.dataset.from)).filter(Number.isFinite);
+return {width:innerWidth,viewport,scrollTop:editor.scrollTop,scrollHeight:editor.scrollHeight,clientHeight:editor.clientHeight,target,preceding:preceding.map(f=>f.from),firstVisible:fences.find(f=>f.visible)?.from,gutter,mountedFrom:offsets.length?Math.min(...offsets):null,mountedTo:offsets.length?Math.max(...offsets):null};
+`,
+      fences,
+      sample.from,
+      sample.to,
+    )
+  let ticks = 0
+  let reversals = 0
+  let previousDirection
+  let completed = false
+  let completionReason
+  let bottomCandidate
+  let failure
+  try {
+    while (Date.now() - started < 10_000) {
+      await app.delay(100)
+      const position = await readPosition()
+      observations.push({ elapsedMs: Date.now() - started, ticks, reversals, ...position })
+      assert(position.target, 'Positioning: exact target fence required')
+      assert(Date.now() - started < 10_000, 'Positioning: ten-second bound reached')
+      if (position.target.visible && position.preceding.length === 0) {
+        completed = true
+        completionReason = 'first-visible-eligible-fence'
+        break
+      }
+      if (
+        position.target.visible &&
+        position.scrollTop + position.clientHeight >= position.scrollHeight - 1
+      ) {
+        const stableBottom =
+          bottomCandidate &&
+          bottomCandidate.scrollHeight === position.scrollHeight &&
+          bottomCandidate.clientHeight === position.clientHeight &&
+          Math.abs(bottomCandidate.scrollTop - position.scrollTop) <= 1 &&
+          bottomCandidate.target.from === position.target.from &&
+          bottomCandidate.target.to === position.target.to &&
+          Math.abs(bottomCandidate.target.top - position.target.top) <= 1 &&
+          Math.abs(bottomCandidate.target.bottom - position.target.bottom) <= 1 &&
+          ['top', 'bottom', 'left', 'right'].every(
+            (key) => Math.abs(bottomCandidate.viewport[key] - position.viewport[key]) <= 1,
+          ) &&
+          JSON.stringify(bottomCandidate.preceding) === JSON.stringify(position.preceding)
+        if (stableBottom) {
+          completed = true
+          completionReason = 'physical-scroll-end'
+          break
+        }
+        bottomCandidate = position
+        continue
+      }
+      bottomCandidate = undefined
+      assert(ticks < 20, 'Positioning: twenty-wheel-tick bound reached')
+      assert(position.gutter, 'Positioning: non-preview editor gutter hit required')
+      let direction
+      if (
+        position.preceding.length ||
+        (position.target.top !== null && position.target.top >= position.viewport.bottom)
+      )
+        direction = '5'
+      else if (position.target.bottom !== null && position.target.bottom <= position.viewport.top)
+        direction = '4'
+      else if (
+        !position.target.mounted &&
+        position.mountedTo !== null &&
+        position.mountedTo < sample.from
+      )
+        direction = '5'
+      else if (
+        !position.target.mounted &&
+        position.mountedFrom !== null &&
+        position.mountedFrom > sample.to
+      )
+        direction = '4'
+      else throw new Error('Positioning: target has no usable mounted owner geometry')
+      if (previousDirection && direction !== previousDirection) reversals++
+      assert(reversals <= 2, 'Positioning: two-direction-reversal bound reached')
+      const scale =
+        Number(/WIDTH=(\d+)/.exec(x('getwindowgeometry', '--shell', nativeWindow))[1]) /
+        position.width
+      assert(Number.isFinite(scale) && scale > 0, 'Positioning: actual native scale required')
+      assert(Date.now() - started < 10_000, 'Positioning: ten-second bound reached')
+      x(
+        'mousemove',
+        '--window',
+        nativeWindow,
+        String(Math.round(position.gutter.x * scale)),
+        String(Math.round(position.gutter.y * scale)),
+        'click',
+        direction,
+      )
+      previousDirection = direction
+      ticks++
+    }
+    assert(
+      completed,
+      'Positioning: target must be first visible or at stable physical scroll end within ten seconds',
+    )
+  } catch (error) {
+    failure = error
+  }
+  const after = await app.probe()
+  const projectionAfter = await sampleSelectionProjection(sample, 'after-positioning').catch(
+    (error) => {
+      if (!failure) throw error
+      // Keep an earlier positioning failure authoritative while retaining this
+      // additional projection failure and its already-written raw snapshot.
+      return { error: String(error) }
+    },
+  )
+  const fileUnchanged = (await readFile(activeFile)).equals(fileBefore)
+  await appendFile(
+    path.join(output, 'positioning.jsonl'),
+    JSON.stringify({
+      sample: sample.id,
+      from: sample.from,
+      to: sample.to,
+      mode: before.mode,
+      path: activeFile,
+      elapsedMs: Date.now() - started,
+      ticks,
+      reversals,
+      completed,
+      completionReason,
+      error: failure ? String(failure) : undefined,
+      before: { version: before.version, selection: before.selection, dirty: before.dirty },
+      after: { version: after.version, selection: after.selection, dirty: after.dirty },
+      selectionProjection: { before: projectionBefore, after: projectionAfter },
+      fileUnchanged,
+      observations,
+    }) + '\n',
+  )
+  assert.equal(after.version, before.version, 'Positioning must preserve source version')
+  assert.equal(after.dirty, before.dirty, 'Positioning must preserve dirty state')
+  assert(fileUnchanged, 'Positioning must preserve exact saved file bytes')
+  if (failure) throw failure
+}
+function visible(rect, dom) {
+  return (
+    rect.bottom > Math.max(0, dom.editor.top) &&
+    rect.top < Math.min(dom.height, dom.editor.bottom) &&
+    rect.right > Math.max(0, dom.editor.left) &&
+    rect.left < Math.min(dom.width, dom.editor.right)
+  )
+}
+async function assertSample(sample, mode) {
+  if (mode === 'source' || sample.expected === 'fallback') {
+    if (mode === 'live')
+      await app.until(
+        async () => (await observe()).notices.length > 0,
+        'explicit full-source fallback',
+        30_000,
+      )
+    const dom = await observe()
+    assert(
+      !dom.previews.some((p) => p.from < sample.to && p.to > sample.from),
+      'Literal/fallback range is never replaced',
+    )
+    const lines = await app.execute(
+      'return [...document.querySelectorAll(".milkup-line")].filter(e=>Number(e.dataset.from)<arguments[1]&&Number(e.dataset.to)>=arguments[0]).map(e=>({from:Number(e.dataset.from),to:Number(e.dataset.to),text:e.textContent,rect:e.getBoundingClientRect().toJSON()}))',
+      sample.from,
+      sample.to,
+    )
+    assert(
+      lines.some((line) => line.text.includes('```mermaid')),
+      'Mapped opening fence remains present',
+    )
+    // Windowed source need not mount the whole long fence at once; exact file
+    // bytes are asserted separately, and the visible source window is recorded.
+    return { expected: sample.expected, sourceLines: lines, pixelReview: 'pending' }
+  }
+  let dom, preview
+  await app.until(
+    async () => {
+      dom = await observe()
+      preview = dom.previews.find(
+        (p) => p.from === sample.from && p.to >= sample.to && p.to <= sample.to + 1,
+      )
+      return (
+        preview?.images.length &&
+        preview.images.every((i) => i.complete && i.naturalWidth > 0 && i.naturalHeight > 0)
+      )
+    },
+    'actual image decode ' + sample.id,
+    30_000,
+  )
+  assert(visible(preview.rect, dom), 'Preview must intersect the actual native viewport')
+  assert.equal(preview.inlineSvg, 0)
+  assert(preview.label)
+  for (const image of preview.images) {
+    assert(image.src.startsWith('blob:'))
+    assert.equal(image.draggable, false)
+    assert(image.tabIndex < 0)
+    assert.equal(image.slotOverflow, 'visible')
+    assert(image.rect.width > 0 && image.rect.height > 0)
+  }
+  return { preview, pixelReview: 'pending' }
+}
+async function saved(expected) {
+  await closeUI()
+  await app.key('ctrl+s')
+  await app.until(
+    async () =>
+      !(await app.probe()).dirty && (await readFile(activeFile)).equals(Buffer.from(expected)),
+    'full byte-exact save',
+    30_000,
+  )
+}
+async function isolatedFallback(sample) {
+  await openDocument(sample.name)
+  await seek(sample, 'source')
+  await app.until(
+    async () => (await observe()).notices.length === 0,
+    'source mode clears any previous document notice',
+  )
+  const before = await app.probe()
+  await seek(sample, 'live')
+  const result = await assertSample(sample, 'live')
+  const dom = await observe()
+  assert.equal(dom.previews.length, 0, 'Single-fence fallback has no replacement anywhere')
+  assert(
+    dom.notices.some((notice) => notice.trim().length > 0),
+    'Explicit fresh fallback notice',
+  )
+  const text = contents.get(sample.name)
+  const lines = result.sourceLines.sort((a, b) => a.from - b.from)
+  assert.equal(lines[0]?.from, sample.from)
+  assert.equal(lines.at(-1)?.to, sample.to)
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index]
+    assert.equal(line.text, text.slice(line.from, line.to), 'Entire fallback source line retained')
+    if (index > 0) assert.equal(line.from, lines[index - 1].to + 1, 'No omitted source lines')
+  }
+  assert.equal((await app.probe()).version, before.version)
+  await saved(text)
+  await shot('isolated-' + sample.name, {
+    sample: sample.id,
+    ...result,
+    isolatedSingleFence: true,
+    completeSourceLines: true,
+    byteExact: true,
+    notices: dom.notices,
+  })
+  await app.focus('.milkup-input-proxy')
+  await app.key('ctrl+Home')
+  await app.until(async () => (await app.probe()).cursor === 0, 'native Home to document start')
+  const home = await observe()
+  const px = Math.min(home.width, home.editor.right) - 30
+  const py = Math.max(0, home.editor.top) + 40
+  assert(
+    await app.execute(
+      'return document.querySelector(".milkup-editor")?.contains(document.elementFromPoint(arguments[0],arguments[1]))',
+      px,
+      py,
+    ),
+    'Native upward wheel targets the document editor',
+  )
+  const scale =
+    Number(/WIDTH=(\d+)/.exec(x('getwindowgeometry', '--shell', nativeWindow))[1]) / home.width
+  x(
+    'mousemove',
+    '--window',
+    nativeWindow,
+    String(Math.round(px * scale)),
+    String(Math.round(py * scale)),
+    'click',
+    '--repeat',
+    '6',
+    '--delay',
+    '70',
+    '4',
+  )
+  const message = dom.notices.find((notice) => notice.trim().length > 0)
+  await app.until(async () => {
+    const current = await observe()
+    return current.noticeBoxes.some(
+      (notice) => notice.text === message && noticeIsVisible(notice, current),
+    )
+  }, 'current single-file fallback notice is fully visible after native navigation')
+  assert.equal((await app.probe()).version, before.version)
+  assert.deepEqual(await readFile(activeFile), Buffer.from(text))
+  await shot('notice-' + sample.name, {
+    sample: sample.id,
+    isolatedSingleFence: true,
+    fallbackNotice: message,
+    navigation: ['native ctrl+Home', 'native wheel button4 six times'],
+    byteExact: true,
+  })
+}
+async function sourceSelection(name, sample) {
+  await seek(sample, 'live')
+  await assertSample(sample, 'live')
+  const before = await app.probe()
+  await app.focus(selectorFor(sample))
+  await app.key('Return')
+  await app.until(
+    async () => !(await observe()).previews.some((p) => p.from === sample.from),
+    'Enter reveals original source',
+  )
+  const after = await app.probe()
+  assert.equal(after.version, before.version)
+  assert(
+    after.selection.some((range) => range.from < sample.to && range.to > sample.from),
+    'Real keyboard selects mapped source',
+  )
+  await saved(contents.get(name))
+  await shot(`selection-${name}-${sample.id}`, { sample: sample.id, byteExact: true })
+}
+async function history(name, mode) {
+  await openDocument(name)
+  await app.focus('.milkup-input-proxy')
+  await app.key(mode === 'source' ? 'ctrl+1' : 'ctrl+2')
+  await app.until(async () => (await app.probe()).mode === mode, 'history mode ' + mode)
+  await app.key('ctrl+Home')
+  await app.until(async () => (await app.probe()).cursor === 0, 'document start')
+  const original = contents.get(name),
+    insert = 'EDIT-中文é🙂-'
+  const release = await ownNativeClipboard(insert)
+  try {
+    await app.key('ctrl+v')
+    await app.until(async () => (await app.probe()).dirty, 'native edit')
+  } finally {
+    release()
+  }
+  await saved(insert + original)
+  await shot(`history-${name}-${mode}-save`, { byteExact: true })
+  await app.focus('.milkup-input-proxy')
+  await app.key('ctrl+z')
+  await saved(original)
+  await shot(`history-${name}-${mode}-undo`, { byteExact: true })
+  await app.key('ctrl+shift+z')
+  await saved(insert + original)
+  await shot(`history-${name}-${mode}-redo`, { byteExact: true })
+  await app.key('ctrl+z')
+  await saved(original)
+}
+async function scrollEdges(sample, key) {
+  const read = async () => (await observe()).previews.find((p) => p.from === sample.from)
+  const before = await read()
+  const dom = await observe(),
+    rect = before.rect
+  const px =
+    (Math.max(rect.left, dom.editor.left) + Math.min(rect.right, dom.editor.right, dom.width)) / 2
+  const py =
+    (Math.max(rect.top, dom.editor.top) + Math.min(rect.bottom, dom.editor.bottom, dom.height)) / 2
+  assert(
+    await app.execute(
+      'return document.querySelector(arguments[0])?.contains(document.elementFromPoint(arguments[1],arguments[2]))',
+      selectorFor(sample),
+      px,
+      py,
+    ),
+    'Real wheel target hit test',
+  )
+  const scale =
+    Number(/WIDTH=(\d+)/.exec(x('getwindowgeometry', '--shell', nativeWindow))[1]) / dom.width
+  x(
+    'mousemove',
+    '--window',
+    nativeWindow,
+    String(Math.round(px * scale)),
+    String(Math.round(py * scale)),
+  )
+  for (const [corner, axes] of [
+    [
+      'bottom-right',
+      [
+        ['5', 'top', before.scrollHeight - before.clientHeight],
+        ['7', 'left', before.scrollWidth - before.clientWidth],
+      ],
+    ],
+    [
+      'top-left',
+      [
+        ['4', 'top', 0],
+        ['6', 'left', 0],
+      ],
+    ],
+  ]) {
+    for (const [button, axis, target] of axes) {
+      for (let step = 0; step < 30 && Math.abs((await read())[axis] - target) > 1; step++) {
+        x('click', '--repeat', '3', '--delay', '70', button)
+        await app.delay(120)
+      }
+      assert(
+        Math.abs((await read())[axis] - target) <= 1,
+        'Wheel reaches diagram ' + axis + ' ' + corner,
+      )
+    }
+    await shot(`edges-${key}-${sample.id}-${corner}`, {
+      sample: sample.id,
+      before,
+      after: await read(),
+    })
+  }
+}
+
+try {
+  activeFile = path.join(output, 'ordinary.md')
+  app = await startProduction(activeFile, output, { diagnostics: false })
+  const runtimeUrl = new URL(await app.execute('return location.href'))
+  assert(
+    (runtimeUrl.protocol === 'tauri:' && runtimeUrl.hostname === 'localhost') ||
+      (['http:', 'https:'].includes(runtimeUrl.protocol) &&
+        runtimeUrl.hostname === 'tauri.localhost'),
+    'Only packaged Tauri assets qualify; no development server or generic browser page',
+  )
+  const owner = await ownedApplication(binary, activeFile)
+  const processEnvironment = (await readFile(`/proc/${owner.identity.pid}/environ`, 'utf8')).split(
+    '\0',
+  )
+  const verifiedProfile = {}
+  for (const key of [
+    'XDG_DATA_HOME',
+    'XDG_CONFIG_HOME',
+    'XDG_CACHE_HOME',
+    'MILKUP_DOM_DIAGNOSTICS',
+  ]) {
+    const actual = processEnvironment
+      .find((value) => value.startsWith(key + '='))
+      ?.slice(key.length + 1)
+    assert.equal(actual, process.env[key], 'Actual application must inherit the isolated ' + key)
+    verifiedProfile[key] = actual
+  }
+  await writeFile(
+    path.join(output, 'native-owned-profile.json'),
+    JSON.stringify({ ...owner.identity, runtimeUrl: runtimeUrl.href, verifiedProfile }, null, 2) +
+      '\n',
+  )
+  await app.execute(
+    `window.__productionDiagnostics={errors:[],cspViolations:[]};addEventListener('error',e=>window.__productionDiagnostics.errors.push(e.message));addEventListener('unhandledrejection',e=>window.__productionDiagnostics.errors.push(String(e.reason)));addEventListener('securitypolicyviolation',e=>window.__productionDiagnostics.cspViolations.push({directive:e.violatedDirective,blocked:e.blockedURI}));`,
+  )
+  nativeWindow = ui.windowId()
+  x('windowsize', nativeWindow, '1100', '760')
+  await install()
+  await openDocument('ordinary')
+  x('windowsize', nativeWindow, '760', '520')
+  await appearance('light', 2)
+  const sample = samples.find((item) => item.id === 'classDiagram-000-first-official-example')
+  assert(sample && sample.from === 440 && sample.to === 969)
+  const observerSource = await readFile(new URL('../observer.js', import.meta.url), 'utf8')
+  const observerInstalledAt = Date.now()
+  const installation = await app.execute('return (' + observerSource + ')()')
+  await writeFile(
+    path.join(output, 'observer-installation.json'),
+    JSON.stringify(installation, null, 2) + '\n',
+  )
+  assert.equal(installation.installed, true, installation.reason)
+  wireObserverInstalled = true
+  const phases = []
+  const phase = async (name, extra = {}) => {
+    const dom = await observe(),
+      document = await app.probe()
+    phases.push({
+      phase: name,
+      wallAt: Date.now(),
+      elapsedMs: Date.now() - observerInstalledAt,
+      document,
+      dom,
+      ...extra,
+    })
+    await writeFile(path.join(output, 'phases.json'), JSON.stringify(phases, null, 2) + '\n')
+    assert.deepEqual(dom.diagnostics.errors, [])
+    assert.deepEqual(dom.diagnostics.cspViolations, [])
+    return dom
+  }
+  await seek(sample, 'live')
+  await phase('seek-complete')
+  const remaining = () => Math.max(1, observerInstalledAt + 9500 - Date.now())
+  await app.until(
+    async () => {
+      const p = (await observe()).previews.find((p) => p.from === 440 && p.to === 969)
+      return (
+        p &&
+        p.images.length &&
+        p.images.every((i) => i.complete && i.naturalWidth > 0 && i.naturalHeight > 0)
+      )
+    },
+    'class decoded within observation window',
+    remaining(),
+  )
+  const read = async () => (await observe()).previews.find((p) => p.from === 440 && p.to === 969)
+  const before = await read()
+  assert(before)
+  const target = {
+    top: before.scrollHeight - before.clientHeight,
+    left: before.scrollWidth - before.clientWidth,
+  }
+  await phase('before-wheel', { before, target, historicalTarget: { top: 125, left: 69 } })
+  const dom = await observe(),
+    rect = before.rect
+  const px =
+    (Math.max(rect.left, dom.editor.left) + Math.min(rect.right, dom.editor.right, dom.width)) / 2
+  const py =
+    (Math.max(rect.top, dom.editor.top) + Math.min(rect.bottom, dom.editor.bottom, dom.height)) / 2
+  assert(
+    await app.execute(
+      'return document.querySelector(arguments[0])?.contains(document.elementFromPoint(arguments[1],arguments[2]))',
+      selectorFor(sample),
+      px,
+      py,
+    ),
+    'Real preview wheel hit test',
+  )
+  const scale =
+    Number(/WIDTH=(\d+)/.exec(x('getwindowgeometry', '--shell', nativeWindow))[1]) / dom.width
+  x(
+    'mousemove',
+    '--window',
+    nativeWindow,
+    String(Math.round(px * scale)),
+    String(Math.round(py * scale)),
+  )
+  for (const [button, axis] of [
+    ['5', 'top'],
+    ['7', 'left'],
+  ]) {
+    let groups = 0
+    while (
+      groups < 6 &&
+      Date.now() < observerInstalledAt + 8500 &&
+      Math.abs((await read())[axis] - target[axis]) > 1
+    ) {
+      x('click', '--repeat', '3', '--delay', '70', button)
+      groups++
+      await app.delay(120)
+    }
+    const current = await read()
+    await phase('wheel-axis-' + axis, { groups, target, current })
+    assert(Math.abs(current[axis] - target[axis]) <= 1, 'Bounded wheel reaches ' + axis + ' edge')
+  }
+  const afterWheel = await read()
+  await shot('DIAGNOSTIC-BOTTOM-RIGHT', { sample: sample.id, before, after: afterWheel })
+  await phase('after-bottom-right-screenshot')
+  await app.delay(Math.max(0, observerInstalledAt + 10300 - Date.now()))
+  const observation = await app.execute('return window.__milkupTransportDiagnostic.state')
+  await writeFile(
+    path.join(output, 'transport-observation.json'),
+    JSON.stringify(observation, null, 2) + '\n',
+  )
+  const snapshotSource = await readFile(new URL('../terminal-snapshot.js', import.meta.url), 'utf8')
+  const terminal = await app.execute('return (' + snapshotSource + ')()')
+  await writeFile(
+    path.join(output, 'terminal-snapshot.json'),
+    JSON.stringify(terminal, null, 2) + '\n',
+  )
+  assert(observation.done && observation.restored, 'Observer automatically restored')
+  assert(observation.restored.fetchSameFunction && observation.restored.descriptorEqual)
+  assert(observation.restored.callbacks.every((c) => c.restoredOriginal || c.removed))
+  await shot('DIAGNOSTIC-END', { sample: sample.id })
+  const finalDom = await phase('final')
+  const final = finalDom.previews.find((p) => p.from === 440 && p.to === 969)
+  assert.equal(sha256(await readFile(binary)), process.env.MILKUP_MERMAID_BINARY_SHA256)
+  assert.equal(sha256(await readFile(archivePath)), process.env.MILKUP_MERMAID_ARCHIVE_SHA256)
+  assert.deepEqual(await readFile(activeFile), Buffer.from(contents.get('ordinary')))
+  await record('DIAGNOSTIC-CAPTURE-COMPLETE', {
+    diagnosticOnly: true,
+    acceptance: false,
+    target,
+    afterWheel,
+    final,
+    observerBudgetMs: 10000,
+    captureComplete: observation.dropped === 0 && observation.observerErrors.length === 0,
+  })
+  assert(final, 'Class preview still present at end')
+  assert(
+    Math.abs(final.top - target.top) <= 1 && Math.abs(final.left - target.left) <= 1,
+    'Class bottom-right scroll must remain at its measured edge through observation',
+  )
+} catch (error) {
+  await writeFile(
+    path.join(output, 'failure.json'),
+    JSON.stringify({ error: String(error), stack: error.stack }, null, 2) + '\n',
+  )
+  if (app) await shot('FAIL', { error: String(error) }).catch(() => {})
+  throw error
+} finally {
+  if (app && wireObserverInstalled) {
+    const observation = await app
+      .execute(
+        "const o=window.__milkupTransportDiagnostic;if(!o)return null;o.stop('runner-finally');const state=o.state;delete window.__milkupTransportDiagnostic;return state",
+      )
+      .catch((error) => ({ retrievalError: String(error) }))
+    await writeFile(
+      path.join(output, 'observer-finally.json'),
+      JSON.stringify(observation, null, 2) + '\n',
+    )
+  }
+  if (app) await app.close()
+}

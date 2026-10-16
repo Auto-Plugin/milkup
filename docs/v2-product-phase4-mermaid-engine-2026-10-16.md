@@ -448,3 +448,17 @@ UI09完整冻结manifest包含522个文件、462张PNG；全部SHA/长度核验�
 完整冻结证据与范围说明见 [checkpoint14](evidence/v2-product-phase4-mermaid-engine/checkpoint14/README.md)。该检查点保存已完成的首败与诊断，不代表任务结束；继续定位类图滚动复位并完成原生验收。
 
 原生 harness 随后仅加强边缘截图约束：250ms 等待后的截图前、截图后已有 DOM 观测分别验证同一范围仍挂载、图像已解码、两轴保持所达边缘及合理钳位后的偏移；原溢出范围突然消失也失败，不要求 Blob URL 相同。新 helper 在 UI09 原始 class 记录上实际离线首败，准确拒绝 69/125→0/0；最终 helper 重放同样失败。既有公开选区投影修改经字节逆向核验完整保留，语法与格式通过。最终 harness SHA `22c07075c87ede32b280f6d1aeffc1d4b4577a9b91c8d3c2a441cde606ad4e68`；这些是测试修正及离线失败证明，尚未在新生产运行中验证。其原件一并归入 checkpoint14，产品代码没有因此改变。
+
+## Class 实际原生 RED、固定 seed 配置及有限回归证据（待主报告整合）
+
+UI09 仍是独立视觉门禁失败后主动 STOP，26/64 组合完成、134 samples，不把其原 258 records 伪造成 overall PASS 或新增断言 FAIL。后续 class 原生单次诊断首次实际 RED：四个完整请求相同，三个相邻结果对各有 160 个 cubic 控制点数值差异；滚轮曾到 left 69/top 125，截图后与最终观察均回到 0/0。完整 wire 请求/结果对与离散 DOM 时序分别留证，未声称私有 request→blob 绑定。四个列明 PID 消失，但一个 guardian 已终止仍为 PID 1 的 Z，不称所有身份消失。
+
+只读机制审阅把差异对应到 14 个 class/note path：官方 Mermaid classic 同样使用 roughjs，roughness 为 0 仍会保留 seed 0 的随机 cubic 控制点。最小配置改动为 `handDrawnSeed: 1` 及将 `handDrawnSeed` 加入 secure，避免文档 frontmatter/directive 恢复随机种子；不修改原文、全局随机函数、数值精度、view 完整语义比较或 2s/10s deadline。此机制不能推导所有图型确定性，也未关闭历史 deadline 根因。
+
+真实 Linux Chromium 独立对照保留初次默认可执行文件缺失的 setup 失败；随后 before-02 基线同一请求三次完整结果不同，首对 152 差值、exit 1，不能与原生 160 混写。同 runner/request/assertion 在配置修改后得到三次完整 typed result 和 canonical 输出相等、exit 0。source/theme/width 三种实际变更均更新图像，frontmatter/directive 两种 seed 0 尝试被 secure 配置约束，五种变体各重复两次。原 SVG/canonical 的微差仍明确记录：基线 5 像素、修后 4 像素，最大通道差均 1；随机旧图与固定 seed 新图 3268 像素不同、最大通道差 11。不能称旧/新像素完全等价、原生滚动已恢复或全图型确定。
+
+随后 diagrams-gate07 仓库外独立验证约 9.573s 首 PASS（89 tests、strict typecheck/build），trusted staging 约 2.829s 首 PASS。新 archive 为 `9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df`，5,726,838 字节，external/local/staged 三处整字节一致。实际 minified entry 新增 seed 值与 secure 项共 32 字节，精确逆去后与旧 entry 全字节相等；local dist 是权威外部输出的复制，不额外计算一次独立构建。其它九个 staged 包未变，不冒称重新执行十包全部外部测试。
+
+checkpoint15 目前仅外部归档，保存三批 metadata 历史、原始 RED、日志、PNG、冻结源码和显式清单；binary/archive/bundle/依赖主体不重复复制，按原清单保留元数据引用。随后全仓 gate07 完成并按显式 11 项清单及独立核验另行归档：typecheck 36.849s、test 61.430s、lint 85.813s、build 28.097s 全部首轮 exit 0；2051 Vitest + 4 Node = 2055，16,356 输入前后相等。独立 diagrams 89 tests 不重复加入该全仓计数。固定 seed 的新生产/原生 GREEN、Journey 视觉问题以及完整 UI 验收仍待后续证据；本批没有新的原生通过结论，也不代表 Windows 验证。
+
+完整原件与范围说明见 [checkpoint15](evidence/v2-product-phase4-mermaid-engine/checkpoint15/README.md)。本次提交后继续以新 Linux 生产包验证，不以受控浏览器及代码门禁替代原生闭环。

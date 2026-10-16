@@ -1,0 +1,33 @@
+--- reviewed-UI05observer
++++ class-scroll-observer
+@@ -114,6 +114,12 @@
+     restored: null,
+   };
+   let sampleTimer, stopTimer;
++  const previewIds = new WeakMap();
++  let nextPreviewId = 0;
++  const previewIdentity = (element) => {
++    if (!previewIds.has(element)) previewIds.set(element, ++nextPreviewId);
++    return previewIds.get(element);
++  };
+   function capture(direction, instanceId, message, raw) {
+     if (state.done || performance.now() >= deadline) return;
+     const start = performance.now();
+@@ -212,9 +218,16 @@
+           ?.textContent,
+         previews: [...document.querySelectorAll("[data-document-presentation]")]
+           .filter((e) =>
+-            [3378, 3738, 4024].includes(Number(e.dataset.presentationFrom)),
++            [440].includes(Number(e.dataset.presentationFrom)),
+           )
+           .map((e) => ({
++            nodeId: previewIdentity(e),
++            scrollTop: e.scrollTop,
++            scrollLeft: e.scrollLeft,
++            scrollWidth: e.scrollWidth,
++            scrollHeight: e.scrollHeight,
++            clientWidth: e.clientWidth,
++            clientHeight: e.clientHeight,
+             from: Number(e.dataset.presentationFrom),
+             to: Number(e.dataset.presentationTo),
+             rect: rect(e),
