@@ -1,0 +1,21 @@
+{
+  "atUtc": "2026-10-16T23:33:12.154181+00:00",
+  "scope": "Read-only correction of prior planned integration order to actual frozen harness; no runtime change",
+  "supersedes": "CPU PLAN-final.md / integration-contract-addendum.json natural-await-versus-App.close ordering only",
+  "actualHarness": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/native-ui10-deadline-diagnostic-01/native/full-workflow-diagnostic.mjs",
+    "sha256": "0b3a42f80c9c73b901a61f0b0659a27ddece9ae147c102858856055f0597aa52"
+  },
+  "actualOrder": [
+    "finishDeadlineDiagnostic sends stdin.end with {finish:harness-final} if sampler still active",
+    "export and stop page observer",
+    "await sampler natural completion for at most 5 seconds; record incomplete if not observed",
+    "persist diagnostic-completion.json",
+    "caller finally invokes original app.close"
+  ],
+  "references": [
+    "native/full-workflow-diagnostic.mjs:293-348",
+    "native/full-workflow-diagnostic.mjs:1628-1637"
+  ],
+  "qualification": "Prior documents placed App.close before natural-await; actual implementation awaits the bounded completion first. Fixed finish field and exclusive output creation unchanged."
+}

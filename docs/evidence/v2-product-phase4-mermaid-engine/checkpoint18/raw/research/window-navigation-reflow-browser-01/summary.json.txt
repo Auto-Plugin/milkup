@@ -1,0 +1,143 @@
+{
+  "status": "FIRST_RUN_STRICT_GEOMETRY_FAIL_NATIVE_DETACH_NOT_REPRODUCED",
+  "commandRecord": "execution.json",
+  "exit": 1,
+  "retries": 0,
+  "testCases": 1,
+  "productModified": false,
+  "newTest": "/workspace/milkup/tests/e2e/desktop-window-navigation-reflow.spec.ts",
+  "sourceUnchangedDuringRun": true,
+  "gate": {
+    "read": {
+      "order": 3,
+      "args": [
+        95,
+        143
+      ],
+      "at": 6567,
+      "selection": {
+        "anchor": 2554,
+        "head": 2583,
+        "affinity": 1
+      },
+      "gated": true,
+      "stack": "Error: public source gate\n    at Object.readLineWindow (eval at evaluate (:303:30), <anonymous>:131:43)\n    at parseMarkdownWindow (http://127.0.0.1:1420/@fs/workspace/milkup/packages/markdown/src/incremental/window.ts:4:30)\n    at SourceDocumentView.parseCompleteTableWindow (http://127.0.0.1:1420/@fs/workspace/milkup/packages/view-dom/src/source-document-view.ts:1026:24)\n    at SourceDocumentView.parseLiveWindow (http://127.0.0.1:1420/@fs/workspace/milkup/packages/view-dom/src/source-document-view.ts:1014:25)\n    at SourceDocumentView.renderSingleLiveLine (http://127.0.0.1:1420/@fs/workspace/milkup/packages/view-dom/src/source-document-view.ts:2522:31)\n    at SourceDocumentView.renderRenderedLine (http://127.0.0.1:1420/@fs/workspace/milkup/packages/view-dom/src/source-document-view.ts:2458:59)\n    at SourceDocumentView.renderLiveSyntaxAroundPositions (http://127.0.0.1:1420/@fs/workspace/milkup/packages/view-dom/src/source-document-view.ts:2447:18)\n    at SourceDocumentView.revealSelection (http://127.0.0.1:1420/@fs/workspace/milkup/packages/view-dom/src/source-document-view.ts:585:18)"
+    },
+    "marker": {
+      "top": 37,
+      "bottom": 58,
+      "left": 26,
+      "right": 1254,
+      "width": 1228,
+      "height": 21
+    },
+    "selection": {
+      "anchor": 2554,
+      "head": 2583,
+      "affinity": 1
+    },
+    "viewport": {
+      "top": 37,
+      "bottom": 690,
+      "left": 0,
+      "right": 1280,
+      "width": 1280,
+      "height": 653
+    }
+  },
+  "actualTransition": {
+    "oldImageNaturalHeight": 600,
+    "newImageNaturalHeight": 80,
+    "scrollAtGate": 2914,
+    "scrollAfterReflow": 2543,
+    "trustedScrollEvents": [
+      {
+        "type": "natural-scroll",
+        "trusted": true,
+        "at": 6538.79999999702,
+        "top": 2355,
+        "left": 0
+      },
+      {
+        "type": "natural-scroll",
+        "trusted": true,
+        "at": 6585.79999999702,
+        "top": 2914,
+        "left": 0
+      },
+      {
+        "type": "natural-scroll",
+        "trusted": true,
+        "at": 6599.9000000059605,
+        "top": 2914,
+        "left": 0
+      },
+      {
+        "type": "natural-scroll",
+        "trusted": true,
+        "at": 6610.79999999702,
+        "top": 2914,
+        "left": 0
+      },
+      {
+        "type": "natural-scroll",
+        "trusted": true,
+        "at": 6644.70000000298,
+        "top": 2543,
+        "left": 0
+      },
+      {
+        "type": "natural-scroll",
+        "trusted": true,
+        "at": 6654.0999999940395,
+        "top": 2543,
+        "left": 0
+      }
+    ],
+    "renderedWindowAtGate": {
+      "virtualized": "true",
+      "fromLine": "107",
+      "toLine": "163",
+      "renderMode": "live"
+    },
+    "renderedWindowAfter": {
+      "virtualized": "true",
+      "fromLine": "108",
+      "toLine": "164",
+      "renderMode": "live"
+    }
+  },
+  "firstFailure": {
+    "assertion": "whole marker row top >= editor top",
+    "actualTop": 36.78125,
+    "expectedMinTop": 37,
+    "offsetCssPx": -0.21875
+  },
+  "separateOfflineEvidence": {
+    "markerRemainedMountedAll24RafSamples": true,
+    "logicalSelectionExact": true,
+    "projectionExact": true,
+    "projectionCount": 1,
+    "cursorCount": 1,
+    "sourceUnchanged": true,
+    "version": 0,
+    "pageErrors": [],
+    "note": "Assertions after the first strict geometry failure did not execute; these statements are independent readings of already saved result JSON."
+  },
+  "pixelReview": {
+    "actuallyViewed": "artifacts/desktop-window-navigation--56a9e--after-selection-assignment-desktop-msedge/result.png",
+    "dimensions": [
+      1280,
+      720
+    ],
+    "observation": "Selected UNIQUE-NAVIGATION-MARKER 中文😀 text and caret visibly remain immediately below titlebar; following source lines legible. No absent projection or blank target observed. Screenshot cannot visually resolve the 0.21875 CSS-pixel box-only offset as a distinct glyph cut."
+  },
+  "limits": [
+    "Controlled valid provider refresh timing with actual public SourceDocumentView and real decoded typed SVG; not the full native/search/Escape history.",
+    "No synthetic scroll or direct scrollTop writes; initial public scrollToLine is separated from reflow trigger.",
+    "Only shrink 600→80 tested; no growth/user-wheel/source-change countercase run.",
+    "Does not prove the native missing-row cause; no product repair authorized or attempted.",
+    "No retry, threshold relaxation, or further probe after first result."
+  ],
+  "cleanup": "cleanup.json: own process group empty; ports1420/5174 no listener; Playwright/browser closed; CPU released."
+}

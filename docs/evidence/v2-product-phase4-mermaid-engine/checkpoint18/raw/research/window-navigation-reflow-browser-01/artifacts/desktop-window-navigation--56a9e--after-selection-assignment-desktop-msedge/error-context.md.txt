@@ -1,0 +1,179 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: desktop-window-navigation-reflow.spec.ts >> windowed navigation retains mounted marker through controlled image shrink after selection assignment
+- Location: tests/e2e/desktop-window-navigation-reflow.spec.ts:5:1
+
+# Error details
+
+```
+Error: expect(received).toBeGreaterThanOrEqual(expected)
+
+Expected: >= 37
+Received:    36.78125
+```
+
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - main [ref=e3]:
+    - generic [ref=e4]:
+      - button "菜单" [ref=e5] [cursor=pointer]:
+        - img [ref=e6]
+      - generic [ref=e7]:
+        - heading "未命名" [level=1] [ref=e8]
+        - paragraph [ref=e9]: 未保存
+      - generic "窗口控制" [ref=e10]:
+        - button "最小化" [ref=e11] [cursor=pointer]
+        - button "最大化" [ref=e13] [cursor=pointer]
+        - button "关闭窗口" [ref=e15] [cursor=pointer]
+    - generic [ref=e19]:
+      - text: 写点什么吧...
+      - generic [ref=e20]:
+        - textbox [ref=e21]
+        - textbox "Markdown 编辑器" [active]
+    - generic [ref=e23]:
+      - generic [ref=e24]:
+        - button "侧栏" [ref=e25] [cursor=pointer]:
+          - img [ref=e26]
+        - button "实时" [ref=e28] [cursor=pointer]:
+          - img [ref=e29]
+      - generic [ref=e32]:
+        - generic [ref=e33]: Markdown
+        - generic [ref=e34]: 0 字符
+        - generic [ref=e37]: 已保存
+  - main [ref=e38]
+```
+
+# Test source
+
+```ts
+  239 |           parent: mount,
+  240 |           source,
+  241 |           mode: 'live',
+  242 |           editable: true,
+  243 |           virtualViewport: { viewportHeight: 693, overscanLines: 12 },
+  244 |           documentPresentation: { provide },
+  245 |         })
+  246 |         view.dom.addEventListener('scroll', (event) =>
+  247 |           events.push({
+  248 |             type: 'natural-scroll',
+  249 |             trusted: event.isTrusted,
+  250 |             at: performance.now(),
+  251 |             top: view.dom.scrollTop,
+  252 |             left: view.dom.scrollLeft,
+  253 |           }),
+  254 |         )
+  255 |         Object.assign(window, { reflowProbe: { view, store, reads, events, phases, snap, text } })
+  256 |         try {
+  257 |           await view.scrollToLine(112)
+  258 |           await wait(
+  259 |             () =>
+  260 |               [...view.contentDOM.querySelectorAll('img')].some(
+  261 |                 (n) => n.complete && n.naturalHeight === 600,
+  262 |               ),
+  263 |             'initial tall image decoded',
+  264 |           )
+  265 |           await new Promise((resolve) =>
+  266 |             requestAnimationFrame(() => requestAnimationFrame(resolve)),
+  267 |           )
+  268 |           snap('initial-decoded-before-navigation')
+  269 |           armed = true
+  270 |           const navigation = view.revealSelection(markerLine, Selection.range(from, to))
+  271 |           await wait(() => gated && !!releaseRead, 'post-selection syntax gate')
+  272 |           const atGate = phases[phases.length - 1] as {
+  273 |             marker: { top: number; bottom: number } | null
+  274 |             viewport: { top: number; bottom: number }
+  275 |           }
+  276 |           if (
+  277 |             !atGate.marker ||
+  278 |             atGate.marker.top < atGate.viewport.top ||
+  279 |             atGate.marker.bottom > atGate.viewport.bottom
+  280 |           )
+  281 |             throw Error('Invalid fixture: marker not fully visible at syntax gate')
+  282 |           nextHeight = 80
+  283 |           view.refreshDocumentPresentation()
+  284 |           await wait(
+  285 |             () => events.some((e: any) => e.type === 'provide-start' && e.height === 80),
+  286 |             'new valid provider pending',
+  287 |           )
+  288 |           snap('provider-release')
+  289 |           releaseProvider!()
+  290 |           await wait(
+  291 |             () =>
+  292 |               [...view.contentDOM.querySelectorAll('img')].some(
+  293 |                 (n) => n.complete && n.naturalHeight === 80,
+  294 |               ),
+  295 |             'short image decoded',
+  296 |           )
+  297 |           for (let i = 0; i < 12; i++) {
+  298 |             await new Promise((resolve) => requestAnimationFrame(resolve))
+  299 |             snap(`reflow-frame-${i}`)
+  300 |           }
+  301 |           snap('before-syntax-release')
+  302 |           releaseRead!()
+  303 |           await navigation
+  304 |           snap('navigation-resolved')
+  305 |           for (let i = 0; i < 12; i++) {
+  306 |             await new Promise((resolve) => requestAnimationFrame(resolve))
+  307 |             snap(`settled-frame-${i}`)
+  308 |           }
+  309 |           return {
+  310 |             from,
+  311 |             to,
+  312 |             markerLine,
+  313 |             reads,
+  314 |             events,
+  315 |             phases,
+  316 |             final: snap('final'),
+  317 |             unchanged: (await store.readLineWindow(1, store.lineCount)).text === text,
+  318 |             version: store.version,
+  319 |           }
+  320 |         } catch (error) {
+  321 |           releaseRead?.()
+  322 |           releaseProvider?.()
+  323 |           snap('fixture-error')
+  324 |           throw error
+  325 |         }
+  326 |       },
+  327 |       {
+  328 |         viewModule: `/@fs${resolve('packages/view-dom/src/index.ts')}`,
+  329 |         coreModule: `/@fs${resolve('packages/core/src/index.ts')}`,
+  330 |       },
+  331 |     )
+  332 |     await writeFile(info.outputPath('result.json'), JSON.stringify({ ...result, errors }, null, 2))
+  333 |     await page.screenshot({ path: info.outputPath('result.png') })
+  334 |     expect(result.unchanged).toBe(true)
+  335 |     expect(result.version).toBe(0)
+  336 |     expect(errors).toEqual([])
+  337 |     expect(result.final.selection).toMatchObject({ anchor: result.from, head: result.to })
+  338 |     expect(result.final.marker).not.toBeNull()
+> 339 |     expect(result.final.marker!.top).toBeGreaterThanOrEqual(result.final.viewport!.top)
+      |                                      ^ Error: expect(received).toBeGreaterThanOrEqual(expected)
+  340 |     expect(result.final.marker!.bottom).toBeLessThanOrEqual(result.final.viewport!.bottom)
+  341 |     expect(result.final.overlays.length).toBeGreaterThan(0)
+  342 |     expect(
+  343 |       result.final.overlays.every(
+  344 |         (n: any) => Number(n.from) === result.from && Number(n.to) === result.to,
+  345 |       ),
+  346 |     ).toBe(true)
+  347 |   } finally {
+  348 |     const trace = await page.evaluate(() => {
+  349 |       const p = (window as any).reflowProbe
+  350 |       return p
+  351 |         ? { reads: p.reads, events: p.events, phases: p.phases, final: p.snap('finally') }
+  352 |         : null
+  353 |     })
+  354 |     await writeFile(info.outputPath('trace.json'), JSON.stringify({ ...trace, errors }, null, 2))
+  355 |     await page.screenshot({ path: info.outputPath('final.png') })
+  356 |     await page.evaluate(() => (window as any).reflowProbe?.view.destroy())
+  357 |   }
+  358 | })
+  359 | 
+```

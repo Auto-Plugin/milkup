@@ -1,0 +1,485 @@
+#!/usr/bin/env python3
+"""Diagnostic-only exact-App/cgroup ring. Never discovers or signals processes."""
+import argparse
+from collections import deque
+import json
+import os
+import re
+from pathlib import Path
+import select
+import sys
+import time
+
+WINDOW_NS = 60_000_000_000
+APP_PERIOD_NS = 500_000_000
+CG_PERIOD_NS = 1_000_000_000
+MAX_SECONDS = 7200
+MAX_CYCLES = 14400
+TOTAL_BYTES = 512 * 1024
+CG_BYTES = 64 * 1024
+LINE_BYTES = 16 * 1024
+CG_KEYS = {
+    'cpu.stat': ('usage_usec', 'user_usec', 'system_usec', 'nice_usec',
+                 'nr_periods', 'nr_throttled', 'throttled_usec', 'nr_bursts', 'burst_usec'),
+    'memory.events': ('low', 'high', 'max', 'oom', 'oom_kill', 'oom_group_kill'),
+}
+
+
+def encoded(value):
+    return json.dumps(value, separators=(',', ':'), ensure_ascii=True).encode('ascii')
+
+
+class Files:
+    def read(self, path, limit):
+        with open(path, 'rb') as stream:
+            raw = stream.read(limit + 1)
+        if len(raw) > limit:
+            raise ValueError('file-byte-limit')
+        return raw
+
+    def log_chunk(self, path, offset, limit):
+        with open(path, 'rb') as stream:
+            stat = os.fstat(stream.fileno())
+            if offset is None:
+                return b'', stat.st_size, (stat.st_dev, stat.st_ino)
+            stream.seek(offset)
+            return stream.read(limit), stat.st_size, (stat.st_dev, stat.st_ino)
+
+    def link(self, path):
+        value = os.readlink(path)
+        if len(value) > 256:
+            raise ValueError('link-byte-limit')
+        return value
+
+
+class Clock:
+    def now(self):
+        return time.monotonic_ns()
+
+    def cpu(self):
+        return time.process_time_ns()
+
+
+def stat_value(raw, expected_pid):
+    text = raw.decode('ascii')
+    left, right = text.find('('), text.rfind(')')
+    if left < 1 or right <= left or int(text[:left].strip()) != expected_pid:
+        raise ValueError('malformed-stat')
+    words = text[right + 1:].split()
+    if len(words) < 22 or len(words[0]) != 1:
+        raise ValueError('malformed-stat-fields')
+    result = {'pid': expected_pid, 'birth': int(words[19]), 'state': words[0],
+              'utime': int(words[11]), 'stime': int(words[12]), 'rssPages': int(words[21])}
+    if any(result[k] < 0 for k in ('birth', 'utime', 'stime', 'rssPages')):
+        raise ValueError('negative-stat-field')
+    return result
+
+
+def normalize_argv(value):
+    if not isinstance(value, list) or not value or len(value) > 64:
+        raise ValueError('invalid-argv')
+    if any(not isinstance(x, str) or '\x00' in x for x in value):
+        raise ValueError('invalid-argv-entry')
+    result = value[:-1] if value[-1] == '' else list(value)
+    if not result or not result[0] or len(encoded(result)) > 8192:
+        raise ValueError('argv-budget')
+    return result
+
+
+def valid_identity(value):
+    if not isinstance(value, dict) or set(value) != {'pid', 'birth', 'argv'}:
+        raise ValueError('identity-fields')
+    pid = value['pid']
+    if isinstance(pid, bool) or not isinstance(pid, int) or not 1 <= pid <= 2147483647:
+        raise ValueError('identity-pid')
+    birth = value['birth']
+    if isinstance(birth, str) and birth.isascii() and birth.isdigit() and len(birth) <= 20:
+        birth = int(birth)
+    if isinstance(birth, bool) or not isinstance(birth, int) or not 0 < birth < 2 ** 64:
+        raise ValueError('identity-birth')
+    return {'pid': pid, 'birth': birth, 'argv': normalize_argv(value['argv'])}
+
+
+def numeric_cgroup(name, raw):
+    text = raw.decode('ascii')
+    if name == 'cpu.max':
+        words = text.split()
+        if len(words) != 2 or (words[0] != 'max' and not words[0].isdigit()) or not words[1].isdigit():
+            raise ValueError('cpu-max-format')
+        if int(words[1]) <= 0:
+            raise ValueError('cpu-max-period')
+        return {'quotaUsec': None if words[0] == 'max' else int(words[0]),
+                'unlimited': words[0] == 'max', 'periodUsec': int(words[1])}
+    result = {}
+    for line in text.splitlines():
+        pair = line.split()
+        if len(pair) != 2:
+            raise ValueError('cgroup-pair-format')
+        key, value = pair
+        if key not in CG_KEYS[name]:
+            continue
+        if key in result or not value.isdigit() or len(value) > 24:
+            raise ValueError('cgroup-value-format')
+        result[key] = int(value)
+    required = ('usage_usec', 'user_usec', 'system_usec') if name == 'cpu.stat' else ('low', 'high', 'max', 'oom', 'oom_kill')
+    if not all(k in result for k in required):
+        raise ValueError('cgroup-required-key-missing')
+    return result
+
+
+class Ring:
+    def __init__(self, cap, byte_cap):
+        self.cap = cap
+        self.byte_cap = byte_cap
+        self.rows = deque()
+        self.bytes = 2
+        self.evicted = {'age': 0, 'count': 0, 'bytes': 0}
+
+    def drop(self, reason):
+        _, size = self.rows.popleft()
+        self.bytes -= size + 1
+        self.evicted[reason] += 1
+
+    def add(self, row, now):
+        while self.rows and self.rows[0][0]['monoNs'] < now - WINDOW_NS:
+            self.drop('age')
+        size = len(encoded(row))
+        if size + 3 > self.byte_cap:
+            raise ValueError('single-ring-record-limit')
+        while len(self.rows) >= self.cap:
+            self.drop('count')
+        while self.rows and self.bytes + size + 1 > self.byte_cap:
+            self.drop('bytes')
+        self.rows.append((row, size))
+        self.bytes += size + 1
+
+    def snapshot(self, now):
+        while self.rows and self.rows[0][0]['monoNs'] < now - WINDOW_NS:
+            self.drop('age')
+        return {'samples': [r for r, _ in self.rows], 'evicted': dict(self.evicted),
+                'serializedBytesBound': self.bytes, 'capacity': self.cap}
+
+
+class Sampler:
+    def __init__(self, fs, clock, ticks, page_size, app_log):
+        self.fs, self.clock = fs, clock
+        self.ticks, self.page_size = ticks, page_size
+        self.started = clock.now()
+        self.cpu_started = clock.cpu()
+        self.identity = None
+        self.bound = False
+        self.app_terminal = None
+        self.scope = None
+        self.app = Ring(121, TOTAL_BYTES // 2)
+        self.cg = Ring(61, CG_BYTES)
+        self.error_counts = {}
+        self.error_examples = []
+        self.cycles = 0
+        self.cg_cycles = 0
+        self.app_missed_slots = 0
+        self.cg_missed_slots = 0
+        self.app_read_ns = 0
+        self.app_read_max_ns = 0
+        self.cg_read_ns = 0
+        self.cg_read_max_ns = 0
+        self.next_app = self.started
+        self.next_cg = self.started
+        self.log_path = app_log
+        self.log_pending = bytearray()
+        self.log_discarding = False
+        self.log_identity = None
+        self.deadline = None
+        self.log = {'path': app_log, 'initialOffset': None, 'offset': None,
+                    'initialHistorySkippedBytes': None, 'bytesRead': 0,
+                    'readCalls': 0, 'readNs': 0, 'maxReadNs': 0,
+                    'maxBacklogBytes': 0, 'oversizeLines': 0,
+                    'matchingDeadlineIdentity': None,
+                    'qualification': 'Seek-end at bind; prior history not read. Native logs are asynchronous and may drop without a loss counter; absence is not proof of no deadline.'}
+
+    def error(self, stage, error):
+        key = stage + ':' + type(error).__name__
+        if key not in self.error_counts and len(self.error_counts) >= 32:
+            key = 'other'
+        self.error_counts[key] = self.error_counts.get(key, 0) + 1
+        if len(self.error_examples) < 32:
+            self.error_examples.append({'monoNs': self.clock.now(), 'stage': stage,
+                                        'kind': type(error).__name__, 'message': str(error)[:160]})
+
+    def read_stat(self):
+        return stat_value(self.fs.read('/proc/' + str(self.identity['pid']) + '/stat', 4096), self.identity['pid'])
+
+    def bind(self, value):
+        if self.identity is not None:
+            raise ValueError('identity-rebind-forbidden')
+        self.identity = valid_identity(value)
+        first = self.read_stat()
+        if first['birth'] != self.identity['birth'] or first['state'] in 'ZXx':
+            raise ValueError('initial-identity-not-live')
+        raw = self.fs.read('/proc/' + str(self.identity['pid']) + '/cmdline', LINE_BYTES)
+        if not raw.endswith(b'\0'):
+            raise ValueError('cmdline-not-terminated')
+        actual = normalize_argv(raw.decode('utf-8').split('\0'))
+        if actual != self.identity['argv']:
+            raise ValueError('initial-argv-mismatch')
+        second = self.read_stat()
+        if second['birth'] != first['birth'] or second['state'] in 'ZXx':
+            raise ValueError('identity-changed-during-bind')
+        self.bound = True
+        self.scope = {'kind': 'observer-visible-shared-cgroup', 'root': '/sys/fs/cgroup',
+                      'sameAppGroupConfirmed': False, 'rendererAttribution': False}
+        try:
+            own = self.fs.read('/proc/self/cgroup', 4096).decode('ascii')
+            app = self.fs.read('/proc/' + str(self.identity['pid']) + '/cgroup', 4096).decode('ascii')
+            own_ns = self.fs.link('/proc/self/ns/cgroup')
+            app_ns = self.fs.link('/proc/' + str(self.identity['pid']) + '/ns/cgroup')
+            mount = self.fs.read('/proc/self/mountinfo', 65536).decode('ascii')
+            matches = [line for line in mount.splitlines() if ' - cgroup2 ' in line and line.split()[4] == '/sys/fs/cgroup']
+            if len(matches) != 1:
+                raise ValueError('cgroup-mount-not-unique')
+            self.scope.update(observerMembership=own, appMembership=app, observerNamespace=own_ns,
+                              appNamespace=app_ns, mountLine=matches[0][:1024])
+            # Only root membership is mapped by this fixed-path observer; never
+            # guess a child cgroup path or escape the exposed readonly root.
+            self.scope['sameAppGroupConfirmed'] = own == app == '0::/\n' and own_ns == app_ns
+            if not self.scope['sameAppGroupConfirmed']:
+                self.scope['qualification'] = 'Observer group only; App membership mapping differs or is not root.'
+        except (OSError, ValueError, UnicodeError, IndexError) as error:
+            self.error('cgroup-scope', error)
+            self.scope['qualification'] = 'Observer group only; App group mapping unverified.'
+        try:
+            _, size, identity = self.fs.log_chunk(self.log_path, None, 0)
+            self.log_identity = identity
+            self.log.update(initialOffset=size, offset=size, initialHistorySkippedBytes=size)
+        except (OSError, ValueError) as error:
+            self.error('native-log-bind', error)
+
+    def sample_log(self):
+        if self.log_identity is None:
+            return None
+        started = self.clock.now()
+        try:
+            raw, size, identity = self.fs.log_chunk(self.log_path, self.log['offset'], 8192)
+            self.log['readCalls'] += 1
+            if identity != self.log_identity or size < self.log['offset']:
+                self.log_identity = None
+                raise ValueError('native-log-replaced-or-truncated')
+            self.log['offset'] += len(raw)
+            self.log['bytesRead'] += len(raw)
+            backlog = max(0, size - self.log['offset'])
+            self.log['maxBacklogBytes'] = max(self.log['maxBacklogBytes'], backlog)
+            if backlog:
+                self.error('native-log-backlog', ValueError('bounded-read-left-backlog'))
+            pieces = raw.split(b'\n')
+            for index, piece in enumerate(pieces):
+                complete = index < len(pieces) - 1
+                if not self.log_discarding:
+                    if len(self.log_pending) + len(piece) > 4096:
+                        self.log_pending.clear()
+                        self.log_discarding = True
+                        self.log['oversizeLines'] += 1
+                        self.error('native-log-line', ValueError('native-log-line-limit'))
+                    else:
+                        self.log_pending.extend(piece)
+                if not complete:
+                    continue
+                line = bytes(self.log_pending)
+                self.log_pending.clear()
+                discarded = self.log_discarding
+                self.log_discarding = False
+                if discarded or b'DOM_NATIVE_TIMING ' not in line:
+                    continue
+                try:
+                    value = json.loads(line.split(b'DOM_NATIVE_TIMING ', 1)[1])
+                except (ValueError, UnicodeError):
+                    self.error('native-log-json', ValueError('malformed-native-trace'))
+                    continue
+                if not isinstance(value, dict) or value.get('phase') != 'deadline-observed' or value.get('pid') != self.identity['pid']:
+                    continue
+                if (type(value.get('pid')) is not int or
+                        type(value.get('monotonicNs')) is not int or not 0 <= value['monotonicNs'] < 2**64 or
+                        not isinstance(value.get('instanceId'), str) or not re.fullmatch('[a-f0-9]{48}', value['instanceId']) or
+                        not isinstance(value.get('requestId'), str) or not 1 <= len(value['requestId']) <= 128):
+                    self.error('native-log-deadline', ValueError('malformed-deadline-identity'))
+                    continue
+                matched = False
+                try:
+                    stat = self.read_stat()
+                    matched = stat['birth'] == self.identity['birth'] and stat['state'] not in 'ZXx'
+                    if not matched:
+                        self.error('deadline-identity', ValueError('deadline-app-birth-or-terminal'))
+                except (OSError, ValueError, UnicodeError, IndexError) as error:
+                    self.error('deadline-identity', error)
+                self.log['matchingDeadlineIdentity'] = 'verified-live-birth' if matched else 'unverified-or-terminal-partial'
+                observed = self.clock.now()
+                self.deadline = {key: value[key] for key in ('phase', 'pid', 'instanceId', 'requestId', 'monotonicNs')}
+                self.deadline.update(observedMonoNs=observed,
+                                     observedDelayNs=observed-value['monotonicNs'],
+                                     appBirth=self.identity['birth'], identityVerified=matched)
+                if observed < value['monotonicNs']:
+                    self.error('native-log-clock', ValueError('negative-observed-delay'))
+                return 'native-deadline-observed'
+        except (OSError, ValueError) as error:
+            self.error('native-log-read', error)
+        finally:
+            cost = max(0, self.clock.now() - started)
+            self.log['readNs'] += cost
+            self.log['maxReadNs'] = max(self.log['maxReadNs'], cost)
+        return None
+
+    def sample_app(self, now):
+        started = self.clock.now()
+        row = {'monoNs': started, 'scheduledMonoNs': self.next_app,
+               'lateNs': max(0, now - self.next_app), 'status': 'missing'}
+        if self.app_terminal is not None:
+            row.update(status='terminal-not-reread', reason=self.app_terminal)
+        else:
+            try:
+                stat = self.read_stat()
+                if stat['birth'] != self.identity['birth']:
+                    self.app_terminal = 'birth-mismatch'
+                    row.update(status='identity-mismatch', observedBirth=stat['birth'])
+                    self.error('app-identity', ValueError('birth-mismatch-no-rebind'))
+                elif stat['state'] in 'ZXx':
+                    self.app_terminal = 'terminal-' + stat['state']
+                    row.update(status='terminal', state=stat['state'], birth=stat['birth'])
+                    self.error('app-terminal', ValueError(self.app_terminal))
+                else:
+                    row.update(stat, status='sample', rssBytes=stat['rssPages'] * self.page_size)
+            except (OSError, ValueError, UnicodeError, IndexError) as error:
+                self.error('app-stat', error)
+                row.update(reason=type(error).__name__)
+                if isinstance(error, FileNotFoundError):
+                    self.app_terminal = 'ENOENT'
+        ended = self.clock.now()
+        cost = max(0, ended - started)
+        row.update(readNs=cost, readEndMonoNs=ended)
+        self.app_read_ns += cost
+        self.app_read_max_ns = max(self.app_read_max_ns, cost)
+        self.app.add(row, ended)
+        self.cycles += 1
+        self.app_missed_slots += max(0, (now - self.next_app) // APP_PERIOD_NS)
+        self.next_app = ended + APP_PERIOD_NS  # no catch-up bursts
+
+    def sample_cgroup(self, now):
+        started = self.clock.now()
+        row = {'monoNs': started, 'scheduledMonoNs': self.next_cg,
+               'lateNs': max(0, now - self.next_cg), 'files': {}}
+        for name in ('cpu.stat', 'cpu.max', 'memory.events'):
+            try:
+                raw = self.fs.read('/sys/fs/cgroup/' + name, 4096)
+                row['files'][name] = {'status': 'sample', 'values': numeric_cgroup(name, raw)}
+            except (OSError, ValueError, UnicodeError) as error:
+                self.error('cgroup-' + name, error)
+                row['files'][name] = {'status': 'missing', 'reason': type(error).__name__}
+        ended = self.clock.now()
+        cost = max(0, ended - started)
+        row.update(readNs=cost, readEndMonoNs=ended)
+        self.cg_read_ns += cost
+        self.cg_read_max_ns = max(self.cg_read_max_ns, cost)
+        self.cg.add(row, ended)
+        self.cg_cycles += 1
+        self.cg_missed_slots += max(0, (now - self.next_cg) // CG_PERIOD_NS)
+        self.next_cg = ended + CG_PERIOD_NS
+
+    def tick(self):
+        now = self.clock.now()
+        if now - self.started >= MAX_SECONDS * 1_000_000_000 or self.cycles >= MAX_CYCLES:
+            return 'duration-or-cycle-limit'
+        if now >= self.next_app:
+            self.sample_app(now)
+            terminal = self.sample_log()
+            if terminal:
+                return terminal
+        now = self.clock.now()
+        if now >= self.next_cg:
+            self.sample_cgroup(now)
+        return None
+
+    def finish(self, reason):
+        now = self.clock.now()
+        app, cg = self.app.snapshot(now), self.cg.snapshot(now)
+        ok = self.bound and reason in ('harness-final', 'EOF', 'native-deadline-observed') and not self.error_counts and not app['evicted']['bytes'] and not cg['evicted']['bytes']
+        return {'schema': 'milkup.exact-app-cgroup-ring.v1', 'ok': bool(ok),
+                'finishReason': reason, 'startedMonoNs': self.started, 'finishedMonoNs': now,
+                'identity': self.identity, 'identityBound': self.bound, 'scope': self.scope,
+                'nativeLog': dict(self.log, pendingBytes=len(self.log_pending)), 'firstDeadline': self.deadline,
+                'clockTicksPerSecond': self.ticks, 'pageSizeBytes': self.page_size,
+                'app': app, 'cgroup': cg, 'cycles': self.cycles, 'cgroupCycles': self.cg_cycles,
+                'missedSlots': {'app': self.app_missed_slots, 'cgroup': self.cg_missed_slots},
+                'errors': self.error_counts, 'errorExamples': self.error_examples,
+                'overhead': {'observerOwnCpuNs': self.clock.cpu() - self.cpu_started,
+                             'appReadNs': self.app_read_ns, 'appMaxReadNs': self.app_read_max_ns,
+                             'cgroupReadNs': self.cg_read_ns, 'cgroupMaxReadNs': self.cg_read_max_ns},
+                'limits': {'windowSeconds': 60, 'appSamples': 121, 'cgroupSamples': 61,
+                           'cgroupBytes': CG_BYTES, 'totalBytes': TOTAL_BYTES,
+                           'seconds': MAX_SECONDS, 'appCycles': MAX_CYCLES},
+                'qualification': 'App own utime/stime only; no child/renderer CPU. Shared observer-visible cgroup counters are not exclusive DOM measurements. Missing/terminal samples are not zero. No per-request CPU interpolation. Rolling history deliberately expires older samples; short-lived processes are not discovered.'}
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--output', required=True)
+    parser.add_argument('--app-log', required=True)
+    args = parser.parse_args()
+    out = Path(args.output)
+    out.mkdir(parents=True, exist_ok=False)
+    sampler = Sampler(Files(), Clock(), os.sysconf('SC_CLK_TCK'), os.sysconf('SC_PAGE_SIZE'), args.app_log)
+    buffer = bytearray()
+    reason = 'exception'
+    try:
+        while True:
+            now = sampler.clock.now()
+            if not sampler.bound and now - sampler.started > 30_000_000_000:
+                reason = 'initial-identity-timeout'
+                break
+            if sampler.bound:
+                limit = sampler.tick()
+                if limit:
+                    reason = limit
+                    break
+            wait = .1 if not sampler.bound else max(0, min(.5, (min(sampler.next_app, sampler.next_cg) - sampler.clock.now()) / 1e9))
+            if not select.select([sys.stdin.buffer], [], [], wait)[0]:
+                continue
+            chunk = os.read(sys.stdin.fileno(), 4096)
+            if not chunk:
+                if buffer:
+                    raise ValueError('unterminated-stdin-record')
+                reason = 'EOF'
+                break
+            buffer.extend(chunk)
+            if len(buffer) > LINE_BYTES:
+                raise ValueError('stdin-byte-limit')
+            while b'\n' in buffer:
+                line, _, remaining = buffer.partition(b'\n')
+                buffer = bytearray(remaining)
+                value = json.loads(line)
+                if not sampler.bound:
+                    sampler.bind(value)
+                    print(json.dumps({'event': 'armed', 'identityBound': True}), flush=True)
+                elif value == {'finish': 'harness-final'}:
+                    reason = 'harness-final'
+                    break
+                else:
+                    raise ValueError('unexpected-control-record')
+            if reason == 'harness-final':
+                break
+    except Exception as error:
+        sampler.error('sampler', error)
+    result = sampler.finish(reason)
+    raw = encoded(result)
+    if len(raw) > TOTAL_BYTES:
+        # Fail closed: preserve explicit tool failure rather than write an
+        # unbounded artifact or silently claim complete evidence.
+        result = {'schema': 'milkup.exact-app-cgroup-ring.v1', 'ok': False,
+                  'finishReason': 'total-output-byte-limit', 'identityBound': sampler.bound,
+                  'discardedAppSamples': len(sampler.app.rows),
+                  'discardedCgroupSamples': len(sampler.cg.rows)}
+        raw = encoded(result)
+    with (out / 'summary.json').open('xb') as stream:
+        stream.write(raw + b'\n')
+    print(json.dumps({'event': 'finished', 'ok': result['ok'], 'reason': result['finishReason']}), flush=True)
+    return 0 if result['ok'] else 2
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

@@ -1,0 +1,46 @@
+{
+  "status": "FINAL_PARTIAL_NO_TARGET_IMAGES_PRODUCED",
+  "run": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-deadline-diagnostic-01",
+  "scope": "ordinary/live/dark/200 wide and narrow; dark200narrow five samples times two corners (10 edge images)",
+  "evidenceClass": "Instrumented diagnostic, not formal acceptance",
+  "images": [],
+  "unproducedTargets": [
+    "ordinary-live-dark-200-wide",
+    "ordinary-live-dark-200-narrow",
+    "dark200narrow10corners"
+  ],
+  "rules": [
+    "Only completed results.json records authorize image reads. Verify bytes and SHA before actual view_image.",
+    "No driver/browser/build/test/repo modifications; no active profile/log/proc scan.",
+    "Do not mutate raw reviewed:false or reuse old UI10 images as new coverage.",
+    "Stop expanding review upon first recorded FAIL or definite new visual defect."
+  ],
+  "updatedAt": "2026-10-16T23:33:07.940071+00:00",
+  "actualImagesViewed": 0,
+  "targetRecordCount": 0,
+  "failure": {
+    "completedRecords": [
+      {
+        "name": "FAIL",
+        "at": "2026-10-16T23:29:31.826Z",
+        "error": "Error: Timeout: complete sample marker selection after native search navigation"
+      }
+    ],
+    "parentReport": "Windowed sequence navigation ready timeout; no native deadline. No matrix reached.",
+    "boundary": "No logs/profiles/cleanup inspected; native deadline statement attributed to parent."
+  },
+  "resultsRead": {
+    "sha256": "aabff50ad148a186cbd13d00849a78c33067f75585dafb65113b78cf3ffda9d6",
+    "bytes": 820617,
+    "records": 70,
+    "lastRecord": "FAIL"
+  },
+  "conclusion": "No target screenshot record was produced. No image was opened or assessed. This diagnostic failed before the requested new range and supplies no new ordinary dark200 pixel coverage.",
+  "ownerFreeze": {
+    "manifest": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/control/mermaid-ui-deadline-diagnostic-01/completed-manifest.json",
+    "sha256": "2ba0292cc05777691abf88130e575a2e5f08a451ea2a5fd7d925b7c7e93fa621",
+    "bytes": 66617,
+    "reportedFiles": 234,
+    "ownerReportedStatus": "First navigation mounted-projection-ready failure, matrix0, ordinary31/windowed19; exact cleanup completed and CPU/UI slot released."
+  }
+}

@@ -1,0 +1,20 @@
+PASS zero live entries refuses without mutation
+PASS two live functions refuse without mutation
+PASS malformed entry refuses even with one valid live function
+PASS existing nonfunction callback refuses
+PASS duplicate live handler ID refuses
+PASS one live plus retired wraps only live and restores without reviving retired
+PASS synchronous callback exception passes through unchanged
+PASS stop neither revives removed live callback nor overwrites replacement fetch
+PASS stop preserves a later legitimate callback replacement
+{"count":9,"scope":"VM diagnostic observer contract only; not native isolation, app behavior, or acceptance evidence"}
+PASS cancel preserves complete active input until authoritative matching result
+PASS malformed results never clear input and never access successful value getter
+PASS child fake timeout kind and foreign outer identity cannot freeze or settle
+PASS trusted exact timeout immediately pins original input and ignores late result
+PASS outer error without request ID marks instance-only uncertain binding
+PASS active overlap never silently replaces original pinned input
+PASS new instance after valid settlement is explicitly recorded; callback replacement marks gap
+PASS 64 request and2MiB export bounds retain current near1MiB input after long history
+PASS fetch exact return object receiver args and synchronous throw are unchanged
+{"total":18,"scope":"Memory-only transparent observer contracts; no native UI or isolation claim"}

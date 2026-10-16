@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "author": "/root/release_sdk",
+  "status": "static-design-only-no-runtime-or-product-change",
+  "scope": {
+    "read": "Current production service/RPC/DOM owner/helper/bootstrap source, historical frozen UI09 observer and stage-v02 diagnostic patch.",
+    "notRead": "UI10 full runtime logs or any not-yet-frozen completed manifest.",
+    "reportedContext": "Parent reports UI10 ordinary/live/dark200wide first failure after30/64, native render_2754 deadline and page class decode timeout. These are not assumed to be the same request."
+  },
+  "findings": [
+    {
+      "source": "packages/plugin/src/document-render-rpc.ts:49-187",
+      "finding": "render_N is allocated per client at enqueue, not globally or per service provide. Queued aborts may consume IDs. Running abort rejects caller but active remains until matched result or authority timeout; cancel does not authorize reuse. Correlation needs native instanceId plus requestId and pluginId, not id alone."
+    },
+    {
+      "source": "apps/desktop/src/plugin-dom.ts:188-202,230-240",
+      "finding": "Outgoing IPC already carries pluginId,instanceId,message including full rendererId/request. Native controls carry instanceId and requestId. Endpoint rejects other instances. Instance is a useful activation-instance boundary; it is not the service revision/view epoch/runtime capabilityGeneration."
+    },
+    {
+      "source": "apps/desktop/src-tauri/src/plugin_dom_process.rs:207-233,313-380,442-463",
+      "finding": "Authoritative 2s starts after native frame serialization/validation and immediately after dispatch trace. It includes pipe readiness/write, helper queue, GTK/JS scheduling, renderer/layout/output serialization, return pipe/parsing/sizing and strict settlement. It excludes prior frontend/service/RPC queue time. Two monotonic checks precede success. Observed deadline and control delivery differ because cleanup occurs between them."
+    },
+    {
+      "source": "apps/desktop/src-tauri/src/plugin_dom.rs:540-566",
+      "finding": "Current diagnostic events have phase/instanceId/requestId/pid/CLOCK_MONOTONIC only. Channel64 try_send may drop without a loss counter. Dispatch pid is editor App. Timestamp interval is observed elapsed monotonic time, not renderer CPU; late watcher scheduling cannot be inferred from exact2s assumptions."
+    },
+    {
+      "source": "apps/desktop/src/document-presentation-service.ts:38-145,215-292",
+      "finding": "Service context prefix preparation precedes renderer invocation; pure-fence providers receive complete host slices ordered by visible priority. Original whole window, visible priority, revision and preparation deadline are not in the wire request. The2s+100ms admission margin is not a Promise completion guarantee. View retains its original10s deadline, cancellation and stale-result guards."
+    },
+    {
+      "source": "packages/plugin/src/runtime.ts:443-480; packages/view-dom/src/document-presentation.ts:833-931",
+      "finding": "Runtime capability generation and view job/epoch guard await results locally. Neither private value is transported. A page img/decode waiting target does not identify the native running fence, and an already cancelled request may still be the one that expires."
+    },
+    {
+      "source": "research/native-ui09-class-scroll-diagnostic-01/observer.js",
+      "finding": "Existing observer accurately captures outgoing full JSON and incoming kind=message, but omits native timeout/error controls, expires after10s and stores full successful ASTs into shared2MiB. It cannot be copied unchanged for a long workflow deadline diagnosis."
+    }
+  ],
+  "recommendedFirstPass": {
+    "workflow": "One explicitly diagnostic execution of the unchanged full workflow and same fixtures/archive/binary; do not call it a formal successful rerun or shorten to class merely because page waits for class. Preserve warm-instance history. Stop at the first original failure; preserve it even if observer extraction/cleanup also fails.",
+    "transport": {
+      "install": "Use the already proven replaceable fetch/event-callback observation points only after descriptor/handler preflight. Forward original arguments, this, return value and errors; do not mutate payload, delay with awaited work, change dispatch or expose privileged tokens. Rebinding after any genuine new instance must be explicit; a startup/listener gap is incomplete coverage.",
+      "retention": "Bounded long-lived rolling history, max64 request records and2MiB total UTF8 payload storage, with a dedicated pinned complete current render input slot up to existing1MiB wire limit. Evict older completed history first. Controls and small scalar metadata have reserved capacity; never retain successful full ASTs by default. A second unmatched active render is recorded as a diagnostic inconsistency, not allowed to silently overwrite the pinned input.",
+      "contents": "Retain exact outgoing IPC body for the current native attempt, including complete request source/context/blocks/protectedRanges/selection/theme/target/width, rendererId/pluginId/instanceId/requestId. Compute SHA offline after freeze. Record enqueue-at-fetch observation, cancel, send Promise success/failure if obtainable without changing semantics, matched incoming result id/ok/error and trusted outer timeout/error/dispose controls. Success metadata is bounded and omits AST. Keep explicit event sequence, eviction/drop counts and install/uninstall lifecycle.",
+      "freeze": "Immediately pin the first trusted terminal timeout/error event and its matching full input; no later result may evict it. Also stop/freeze on the original harness FAIL or normal end. Export observer state in finally before UI cleanup when possible; an application crash before export remains a recorded persistence limitation, not silently complete evidence.",
+      "clock": "Record JS performance.now plus timeOrigin/wall at install and event times. Join native to frontend by instanceId/requestId, not by subtracting uncalibrated JS and native clocks. Record native trace's exact frozen App PID/birth and monotonic times.",
+      "overhead": "One bounded JSON inspection at outgoing IPC adds frontend CPU before native dispatch and may contend with the helper. Incoming instrumentation precedes ordinary delivery and can delay it; avoid full AST stringify/hash and frequent getBoundingClientRect polling. Record capture/filter totals/max, drops and event count. Full-workflow memory is bounded; total observation work is proportional to actual requests, not claimed zero."
+    },
+    "cpu": {
+      "minimal": "Use only a supplied, independently verified set of exact PID+birth identities and their instance/role mapping; sample /proc/PID/stat (utime/stime/starttime/state/RSS) at low fixed frequency such as250ms into a120-sample rolling window, at most8 explicitly qualified roles/identities, at most512KiB total diagnostic storage. Never enumerate all /proc or all tasks during active rendering. Missing bindings stop CPU attribution, not the original UI workflow.",
+      "bindingLimit": "Existing production logs do not reliably expose the live helper WebKit PID before cleanup. App dispatch PID alone cannot measure renderer CPU. If no already verified WebKit PID/birth mapping is available, report App-only or partial known-process measurements. Do not silently introduce global discovery to fill the gap. Any independent native research owner-identity hook needs a separate frozen diff and execution authorization.",
+      "semantics": "Use own utime+stime only, not child cumulative times that double count. Convert using recorded CLK_TCK. Sum only distinct PID/birth identities. Read/state-check each sample; reused PID, unreadable, ENOENT, Z/X/x are missing/terminal, not zero CPU or new live samples. Preserve the last observed cumulative values. A process killed before the next read leaves final request CPU incomplete.",
+      "analysis": "Bracket native dispatch/deadline with sample intervals on CLOCK_MONOTONIC; do not fabricate exact per-request CPU from coarse or late samples. Report CPU seconds over the observed intervals, process scope, read duration and gaps. RSS is a sampled current value, not lifetime peak. Scheduling/waiting requires more than low measured CPU; host load and short-lived/unbound processes remain unobserved.",
+      "notAllowed": "No restoration of production25ms full-/proc sampling; no sending signals or changing guardian ownership/cleanup; no CPU-based change to the2s deadline; no treating shared cgroup counters as exclusive DOM CPU."
+    }
+  },
+  "secondStageOnlyIfNeeded": {
+    "reason": "Unchanged frontend transport cannot reveal precise service preparation start/end, capabilityGeneration, JS provider entry/return or helper drain stages. Do not invent them from timestamps or identical input hashes.",
+    "native": "If first pass locates a repeatable request but timing remains ambiguous, use a newly frozen independent native research build based on current source, adapting prior stage-v02. Preserve original order/2s checks/locks/bootstrap/security. Emit bounded input metadata only after deadline arm and outside control lock, helper frame-dequeued (explicitly after metadata parse), evaluate-submit, input-callback near-entry before to_json, matching output drain/write, owner receive-entry before sizing and successful-settlement after final check. Output drain must use drained result id, not last evaluated input id. Empty polls do not log.",
+    "phaseLimits": "evaluate callback of dispatch commonly means synchronous __milkupDom dispatch returned, not renderer Promise completion. Output drain proves a serialized result exists; receive-entry is not acceptance. Current stage patch lacks provider enter/return; adding it would be a distinct trusted bootstrap diagnostic modification, not production equivalence. No missing phase may be called zero duration because logs are best effort.",
+    "service": "Only if preparation/queue ambiguity remains material, add host-private research trace spans at provide begin/context-ready/per-fence render-call/settle/abort and client enqueue/pump, explicitly carrying a local diagnostic correlation id through instrumentation. Record actual epoch/revision/capabilityGeneration values where owned; no SDK/protocol change. Identical payload matching alone is ambiguous when repeated, so label it as such if direct span propagation is unavailable."
+  },
+  "preservation": {
+    "budgets": "No changes to native2s, initialization10s, view preparation10s,64Ki UTF16 input,256Ki output,shared canonical/node limits or safety guards.",
+    "firstFailure": "Retain original UI10 failure and immutable evidence; any diagnostic failure/setup gap gets separate records. No automatic retry or success claim from absence of recurrence.",
+    "interpretation": "No current evidence assigns render_2754 to class or attributes it to class complexity, ex units, fixed seed, memory growth, CPU saturation or scheduling."
+  },
+  "deliverable": "Static design only. No implementation, test, build, browser/native execution, process sampling or product edits performed.",
+  "sourceIdentity": [
+    {
+      "path": "/workspace/milkup/apps/desktop/src/document-presentation-service.ts",
+      "sha256": "4478b83bc3b64eb6ce0fad94575ec8cf1e5dd8b4f17baf08489b6e1821a98227"
+    },
+    {
+      "path": "/workspace/milkup/apps/desktop/src/plugin-dom.ts",
+      "sha256": "0f46f362aa14ef4c79bd46412ede7dac4d557be2ef12eadb6370e6756771f663"
+    },
+    {
+      "path": "/workspace/milkup/packages/plugin/src/document-render-rpc.ts",
+      "sha256": "21aea3b3339e09649a42c529db690440568c836b9b3a9d980a77de8be9176b2a"
+    },
+    {
+      "path": "/workspace/milkup/packages/plugin/src/runtime.ts",
+      "sha256": "8565d7630e7b23ec4b3d9366be2a4647c32fd67102df4cebaa24bdada8bc9491"
+    },
+    {
+      "path": "/workspace/milkup/packages/view-dom/src/document-presentation.ts",
+      "sha256": "07cbcfb4d576ff148585a397195edb691ab8780fe539c2fad52e246b081462b7"
+    },
+    {
+      "path": "/workspace/milkup/apps/desktop/src-tauri/src/plugin_dom.rs",
+      "sha256": "195cfffdd1a69456b66ea2f860a3b195b9e5bc94152e93aa31a46c022eca097a"
+    },
+    {
+      "path": "/workspace/milkup/apps/desktop/src-tauri/src/plugin_dom_process.rs",
+      "sha256": "c6540ffc4d11e61050379d68bad0342c0cfaf8ec4a6fe60075b18ddecd851702"
+    },
+    {
+      "path": "/workspace/milkup/apps/desktop/src-tauri/src/plugin_dom_helper.rs",
+      "sha256": "336d6b34b3872bf23d359d50a7712de6c7127fc76ba6cc05ff1c885acb76d57c"
+    },
+    {
+      "path": "/workspace/milkup/apps/desktop/src-tauri/src/plugin_dom_bootstrap.js",
+      "sha256": "9442fd1802dd24a358cbbe8636de34851eb5d198b5c97f3a95c13aa5daf6a8b4"
+    },
+    {
+      "path": "/workspace/milkup/apps/desktop/src-tauri/src/plugin_dom_guardian.rs",
+      "sha256": "44fd4cfd661817cddd2cf0b9bdb5090ddeea1f18de91dfb46cb8ac94d2211054"
+    }
+  ],
+  "sharedCgroupCapability": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/ui10-deadline-cgroup-readonly-capability.json",
+    "sha256": "626560e08a4a476f54d62e1465186b18c44bf4fc8550842d3643eaf482ed64cf",
+    "note": "One current capability read, not a failure-window measurement. Proposed1Hz bounded ring of shared counters cannot assign rendererCPU or causality."
+  }
+}

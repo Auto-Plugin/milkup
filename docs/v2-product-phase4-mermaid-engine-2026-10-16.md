@@ -498,3 +498,19 @@ Root 实际查看失败原图：class marker 被选中，原 Markdown 围栏保�
 独立像素审阅与运行记录分开计数：ordinary初始coverage合计实际查看31个case的选定截图；ordinary矩阵实际查看30个已完成组合的图及部分角落／context；windowed实际查看8张coverage与2张history，尚无windowed矩阵截图。已有官方 Sankey 密集标签、block literal `&nbsp;` 和 Journey 缩放差异边界继续保留，不能以“未发现新增缺陷”概括为所有标签可读或完整验收通过。
 
 [checkpoint17](evidence/v2-product-phase4-mermaid-engine/checkpoint17/README.md) 完整保留首败、494张PNG的来源引用、完成审阅和具体范围。后续诊断使用新的独立目录，保持原完整工作流及2s／10s预算，增加有界的实际请求与可信失败控制捕获；本检查点没有产品修改，不把诊断准备当作结果。Linux证据不替代Windows，用户新批准的Runtime条款与上传预算在本执行器尚未使用。
+
+## 首次有界诊断：窗口化导航白屏，未捕获原生截止
+
+独立 `mermaid-ui-deadline-diagnostic-01` 使用同一 production07 程序和官方插件包，在原完整工作流上增加有界 transport 与应用进程 CPU 观测。首次自然失败发生在窗口化 sequence000 的完整 marker 导航就绪等待；70条记录包含 ordinary31项、windowed19项、1项选区及6项历史，矩阵尚未开始。原30秒导航等待及2秒／10秒原生预算不变，没有重试或补造通过。
+
+Root 实际查看 FAIL 原图，标题与底栏可见，正文视口是白区；最后公开 DOM 没有 marker 选区投影或光标，唯一记录的后续 sequence016 预览位于视口下方。Escape 关闭搜索会正常清除结果，因此此时的 `0/0` 不证明搜索没有命中。窗口化与普通最终文件分别为7851914与11914字节，Root 从冻结 catalog 重建并逐字节核对一致；白区不能称作数据丢失。
+
+有界 transport 记录958个 render及958个匹配 result envelope，保留63份完整解析请求；安装前有明确观测缺口，并发生历史淘汰，不称全程无缺口。最后四个请求的逻辑选区均为8103..8160：sequence000 的 `render_1129` 后，三个请求转向后续 sequence016／025范围。这证明四个采样时点的逻辑选区正确，不能推断中间连续状态或 envelope 已绘制。没有捕获 native deadline；历史 UI10 `render_2754` 的输入及截止原因仍未知。
+
+CPU 观测仅绑定应用主进程的精确 PID／birth，不能代表 WebKit 渲染进程；最后59.6267秒中应用自身消耗7.46 CPU秒，共享 cgroup 统计不能归因到某个渲染。原完成顺序实际为 CPU finish、页面导出、最多5秒自然等待、状态采集、调用方 App.close，旧准备文档的不同顺序另以修正文件澄清，保留原件。运行后 App、driver、sampler等记录身份已消失、端口释放；最后 guardian 已终止但仍为 PID1 下的 Z，不能写成全部 absent。
+
+Root 独立核验234份运行证据与136张PNG引用的大小和SHA。独立审阅明确：新 ordinary／windowed 矩阵截图均为0，另实际查看一张 FAIL 图；不把初始 coverage 计入未运行的矩阵。
+
+随后用真实 Linux Chromium、公开 SourceDocumentView 和可控 source/provider 单次验证“选区赋值后预览高度变化”的候选机制。调用栈证明暂停点位于 `renderSingleLiveLine`；合法 SVG 高度600→80触发真实图片解码和自然滚动。首次严格整行边界断言因顶部偏移0.21875 CSS px失败，但24帧中 marker 始终挂载，保存的最终投影和光标范围正确，源文与版本不变，未复现原生白屏。首败后的断言未执行，相关事实来自另行读取已保存结果，不冒称断言通过。Root 实际查看截图并核验23份冻结文件；不改阈值或产品、不重试，该研究用例原字节归档而未提升为常规 e2e 回归。
+
+[checkpoint18](evidence/v2-product-phase4-mermaid-engine/checkpoint18/README.md) 保存这次首败、原始截图、观测边界、离线请求映射和未复现的受控研究。下一步在同一原生前缀中利用既有 probe 记录滚动、占位及挂载范围，尚未认定根因，也未完成P4验收。本执行器未使用新批准的 Windows Runtime 或 artifact 上传预算。

@@ -1,0 +1,721 @@
+--- previous-bounded-observer.js
++++ long-lived-transport-observer.js
+@@ -1,325 +1,465 @@
+ function installTransportObserver() {
+-  "use strict";
+-  const api = window.__TAURI_INTERNALS__;
+-  const entries =
+-    window.__internal_unstable_listeners_object_id__?.[
+-      "milkup-plugin-dom-message"
+-    ];
+-  const callbacks = api?.callbacks;
+-  const descriptor = Object.getOwnPropertyDescriptor(window, "fetch");
++  'use strict'
++  const api = window.__TAURI_INTERNALS__
++  const entries = window.__internal_unstable_listeners_object_id__?.['milkup-plugin-dom-message']
++  const callbacks = api?.callbacks
++  const descriptor = Object.getOwnPropertyDescriptor(window, 'fetch')
+   const describe = (d) =>
+     d && {
+       writable: d.writable,
+       configurable: d.configurable,
+       enumerable: d.enumerable,
+       valueType: typeof d.value,
+-    };
++    }
+   const coreDescriptors = Object.fromEntries(
+-    ["invoke", "runCallback", "ipc", "postMessage"].map((key) => [
++    ['invoke', 'runCallback', 'ipc', 'postMessage'].map((key) => [
+       key,
+       describe(Object.getOwnPropertyDescriptor(api || {}, key)),
+     ]),
+-  );
++  )
+   if (
+     !descriptor ||
+-    typeof descriptor.value !== "function" ||
++    typeof descriptor.value !== 'function' ||
+     !descriptor.writable ||
+     !(callbacks instanceof Map) ||
+     !entries
+   ) {
+     return {
+       installed: false,
+-      reason: "Required existing replaceable fetch/callback entry unavailable",
++      reason: 'Required existing replaceable fetch/callback entry unavailable',
+       fetch: describe(descriptor),
+       coreDescriptors,
+-    };
+-  }
+-  const handlers = [];
+-  const retiredEntries = [];
+-  const allEntries = [];
+-  const liveIds = new Set();
+-  let invalidEntry = false;
+-  for (const key of Object.getOwnPropertyNames(entries)) {
+-    const entryDescriptor = Object.getOwnPropertyDescriptor(entries, key);
+-    const entry = entryDescriptor?.value;
++    }
++  }
++  const handlers = []
++  const retiredEntries = []
++  const allEntries = []
++  const liveIds = new Set()
++  let invalidEntry = false
++  const entryKeys = Object.getOwnPropertyNames(entries)
++  if (entryKeys.length > 64) return { installed: false, reason: 'listener-entry-cap' }
++  for (const key of entryKeys) {
++    const entryDescriptor = Object.getOwnPropertyDescriptor(entries, key)
++    const entry = entryDescriptor?.value
+     const idDescriptor =
+-      entry && typeof entry === "object" && !Array.isArray(entry)
+-        ? Object.getOwnPropertyDescriptor(entry, "handlerId")
+-        : undefined;
+-    const id = idDescriptor?.value;
+-    const validId = Number.isInteger(id) && id >= 0 && id <= 0xffffffff;
+-    const present = validId && callbacks.has(id);
+-    const original = present ? callbacks.get(id) : undefined;
++      entry && typeof entry === 'object' && !Array.isArray(entry)
++        ? Object.getOwnPropertyDescriptor(entry, 'handlerId')
++        : undefined
++    const id = idDescriptor?.value
++    const validId = Number.isInteger(id) && id >= 0 && id <= 0xffffffff
++    const present = validId && callbacks.has(id)
++    const original = present ? callbacks.get(id) : undefined
+     allEntries.push({
+-      key,
++      key: key.slice(0, 128),
+       id: validId ? id : null,
+       validId,
+       callbackPresent: present,
+       callbackType: typeof original,
+       descriptor: describe(entryDescriptor),
+-    });
++    })
+     if (!validId) {
+-      invalidEntry = true;
+-      continue;
++      invalidEntry = true
++      continue
+     }
+     if (!present) {
+-      retiredEntries.push({ key, id });
+-      continue;
+-    }
+-    if (typeof original !== "function" || liveIds.has(id)) {
+-      invalidEntry = true;
+-      continue;
+-    }
+-    liveIds.add(id);
+-    handlers.push({ id, original });
++      retiredEntries.push({ key: key.slice(0, 128), id })
++      continue
++    }
++    if (typeof original !== 'function' || liveIds.has(id)) {
++      invalidEntry = true
++      continue
++    }
++    liveIds.add(id)
++    handlers.push({ id, original })
+   }
+   if (invalidEntry || handlers.length !== 1) {
+     return {
+       installed: false,
+       reason:
+-        "Expected exactly one live function callback and valid unique entries; no mutation performed",
++        'Expected exactly one live function callback and valid unique entries; no mutation performed',
+       handlerCount: handlers.length,
+       retiredEntries,
+       allEntries,
+       coreDescriptors,
+-    };
+-  }
+-  const originalFetch = descriptor.value;
+-  const started = performance.now(),
+-    deadline = started + 10000;
++    }
++  }
++  const originalFetch = descriptor.value
++  const encoder = new TextEncoder()
++  const MAX_BYTES = 2097152,
++    INPUT_LIMIT = 1048576,
++    RESERVE = 131072
++  const HISTORY_LIMIT = MAX_BYTES - INPUT_LIMIT - RESERVE
+   const state = {
+     installed: true,
+-    started,
+-    deadline,
++    started: performance.now(),
++    timeOrigin: performance.timeOrigin,
++    wall: Date.now(),
++    frozen: false,
+     done: false,
++    reason: null,
++    sequence: 0,
++    active: null,
++    currentInstanceId: null,
++    history: [],
+     events: [],
+-    samples: [],
+-    serializedBytes: 0,
++    instances: [],
++    firstFault: null,
++    historyBytes: 0,
++    eventBytes: 0,
++    evicted: 0,
+     dropped: 0,
+-    observerErrors: [],
++    incomplete: [],
++    captureCalls: 0,
+     captureMs: 0,
+     captureMaxMs: 0,
+-    outgoingFilterMs: 0,
+-    sampleMs: 0,
+-    maxEvents: 128,
+-    maxBytes: 2097152,
++    observedRenders: 0,
++    matchedResults: 0,
++    cancels: 0,
++    callbackEntryTypes: handlers.map((x) => ({ id: x.id, type: typeof x.original })),
+     coreDescriptors,
+-    fetchBefore: describe(descriptor),
+     retiredEntries,
+     allEntries,
+-    callbackEntryTypes: handlers.map((x) => ({
+-      id: x.id,
+-      type: typeof x.original,
+-    })),
+     restored: null,
+-  };
+-  let sampleTimer, stopTimer;
+-  const previewIds = new WeakMap();
+-  let nextPreviewId = 0;
+-  const previewIdentity = (element) => {
+-    if (!previewIds.has(element)) previewIds.set(element, ++nextPreviewId);
+-    return previewIds.get(element);
+-  };
+-  function capture(direction, instanceId, message, raw) {
+-    if (state.done || performance.now() >= deadline) return;
+-    const start = performance.now();
+-    let captured;
++    limits: {
++      maxBytes: MAX_BYTES,
++      currentWireBytes: INPUT_LIMIT,
++      requestRecords: 64,
++      historyBytes: HISTORY_LIMIT,
++      events: 256,
++      eventBytes: 65536,
++      metadataReserve: RESERVE,
++    },
++    coverage:
++      'Installed after independent install completes, before coverage. Startup, cold rendering, removal and installation traffic are not covered. No promise-return instrumentation, no DOM polling, no native helper CPU.',
++  }
++  const bytes = (value) => encoder.encode(JSON.stringify(value)).byteLength
++  const scalarId = (value) =>
++    typeof value === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(value) ? value : null
++  const incomplete = (code) => {
++    if (state.incomplete.length < 32 && !state.incomplete.includes(code))
++      state.incomplete.push(code)
++  }
++  const keyOf = (instanceId, requestId) => instanceId + ':' + requestId
++  function event(kind, fields = {}) {
++    if (state.frozen || state.done) return
++    const row = { seq: ++state.sequence, at: performance.now(), kind, ...fields }
++    const size = bytes(row)
++    while (state.events.length && (state.events.length >= 256 || state.eventBytes + size > 65536)) {
++      state.eventBytes -= bytes(state.events.shift())
++      state.dropped++
++    }
++    if (size > 2048) {
++      state.dropped++
++      incomplete('metadata-event-oversize')
++      return
++    }
++    state.events.push(row)
++    state.eventBytes += size
++  }
++  function rememberInstance(instanceId) {
++    if (!state.instances.includes(instanceId)) {
++      if (state.instances.length === 64) {
++        state.instances.shift()
++        incomplete('older-instance-identities-evicted')
++      }
++      state.instances.push(instanceId)
++      event('instance-observed', { instanceId })
++    }
++  }
++  function freeze(reason, control = null) {
++    if (state.frozen || state.done) return
++    state.reason = reason
++    state.firstFault = control && { ...control, at: performance.now(), seq: ++state.sequence }
++    state.frozen = true
++  }
++  function archiveActive() {
++    const row = state.active
++    if (!row) return
++    state.active = null
++    const size = bytes(row)
++    if (size > HISTORY_LIMIT) {
++      state.evicted++
++      return
++    }
++    while (
++      state.history.length &&
++      (state.history.length >= 63 || state.historyBytes + size > HISTORY_LIMIT)
++    ) {
++      state.historyBytes -= bytes(state.history.shift())
++      state.evicted++
++    }
++    state.history.push(row)
++    state.historyBytes += size
++  }
++  function observeOutgoing(command, raw) {
++    if (state.frozen || state.done) return
++    // Read-only parse of the existing Tauri body; never serialize successful ASTs.
++    if (typeof raw !== 'string' || raw.length > INPUT_LIMIT) {
++      incomplete('outgoing-body-over-wire-limit-or-nonstring')
++      return
++    }
++    const payload = JSON.parse(raw)
++    if (payload.pluginId !== 'milkup.diagrams') return
++    const instanceId = scalarId(payload.instanceId)
++    if (!instanceId) {
++      incomplete('missing-instance-id')
++      return
++    }
++    rememberInstance(instanceId)
++    if (command === 'stop_plugin_dom_process') {
++      event('dispose-request', {
++        instanceId,
++        activeMatches: state.active?.instanceId === instanceId,
++      })
++      if (state.active?.instanceId === instanceId) {
++        // Owner stop with an outstanding native attempt is terminal, not proof of timeout.
++        freeze('owner-dispose-with-outstanding-input', {
++          kind: 'dispose',
++          instanceId,
++          requestId: state.active.requestId,
++          binding: 'instance-current-outstanding',
++          requestFailureUnknown: true,
++        })
++      }
++      return
++    }
++    const m = payload.message
++    if (!m || m.protocol !== 'milkup.plugin.document-render.v1') return
++    const requestId = typeof m.id === 'string' && /^[a-zA-Z0-9_-]{1,80}$/.test(m.id) ? m.id : null
++    if (!requestId) {
++      incomplete('invalid-request-id')
++      return
++    }
++    const key = keyOf(instanceId, requestId)
++    if (m.type === 'cancel') {
++      state.cancels++
++      event('cancel', { instanceId, requestId, matched: state.active?.key === key })
++      if (state.active?.key === key) state.active.cancelObservedAt = performance.now()
++      return // Cancel does not authorize settlement or replace the pinned input.
++    }
++    if (m.type !== 'render') return
++    state.observedRenders++
++    if (state.active) {
++      event('overlapping-render', { instanceId, requestId, existingKey: state.active.key })
++      incomplete('second-unmatched-render-input-not-stored')
++      freeze('diagnostic-active-overlap')
++      return
++    }
++    const wireBytes = encoder.encode(raw).byteLength
++    if (wireBytes > INPUT_LIMIT || bytes(payload) > INPUT_LIMIT) {
++      incomplete('render-input-over-existing-wire-limit')
++      freeze('diagnostic-input-cap')
++      return
++    }
++    state.currentInstanceId = instanceId
++    state.active = {
++      key,
++      pluginId: payload.pluginId,
++      instanceId,
++      requestId,
++      observedAt: performance.now(),
++      seq: ++state.sequence,
++      wireBytes,
++      payload,
++    }
++    event('render', { instanceId, requestId, wireBytes })
++  }
++  function observeIncoming(outer) {
++    if (state.frozen || state.done || !outer || outer.pluginId !== 'milkup.diagrams') return
++    const instanceId = scalarId(outer.instanceId)
++    if (!instanceId) return
++    if (!state.instances.includes(instanceId)) {
++      event('unbound-instance-control-or-result', {
++        instanceId,
++        outerKind: ['message', 'error', 'document-render-timeout'].includes(outer.kind)
++          ? outer.kind
++          : 'other',
++      })
++      incomplete('incoming-instance-not-observed-since-install')
++      return
++    }
++    if (instanceId !== state.currentInstanceId) {
++      event('noncurrent-instance-notification-ignored', {
++        instanceId,
++        outerKind: ['message', 'error', 'document-render-timeout'].includes(outer.kind)
++          ? outer.kind
++          : 'other',
++      })
++      return
++    }
++    if (outer.kind === 'document-render-timeout' || outer.kind === 'error') {
++      const requestId =
++        typeof outer.requestId === 'string' && /^[a-zA-Z0-9_-]{1,80}$/.test(outer.requestId)
++          ? outer.requestId
++          : null
++      if (outer.kind === 'document-render-timeout' && !requestId) {
++        event('invalid-timeout-request-id', { instanceId })
++        incomplete('timeout-without-valid-request-id')
++        return
++      }
++      const exact = requestId && state.active?.key === keyOf(instanceId, requestId)
++      const instanceCurrent = !requestId && state.active?.instanceId === instanceId
++      if (!exact && !instanceCurrent && requestId) {
++        const index = state.history.findIndex((x) => x.key === keyOf(instanceId, requestId))
++        if (index >= 0 && !state.active) {
++          const [row] = state.history.splice(index, 1)
++          state.historyBytes -= bytes(row)
++          state.active = row
++        }
++      }
++      const matched = Boolean(
++        state.active &&
++        state.active.instanceId === instanceId &&
++        (!requestId || state.active.requestId === requestId),
++      )
++      if (!matched) incomplete('terminal-control-input-not-retained')
++      freeze('trusted-outer-' + outer.kind, {
++        kind: outer.kind,
++        instanceId,
++        requestId,
++        matched,
++        binding: requestId ? 'exact-three-part-key' : 'instance-only-current-input-uncertain',
++        errorPresent: typeof outer.error === 'string',
++        error: typeof outer.error === 'string' ? outer.error.slice(0, 2048) : null,
++        errorCharacters: typeof outer.error === 'string' ? outer.error.length : null,
++        errorTruncated: typeof outer.error === 'string' && outer.error.length > 2048,
++      })
++      return
++    }
++    if (outer.kind !== 'message') return
++    const m = outer.message
++    if (!m || m.protocol !== 'milkup.plugin.document-render.v1' || m.type !== 'result') return
++    const requestId = typeof m.id === 'string' && /^[a-zA-Z0-9_-]{1,80}$/.test(m.id) ? m.id : null
++    if (!requestId) return
++    const valid =
++      !Array.isArray(m) &&
++      Object.keys(m).every((key) =>
++        ['protocol', 'type', 'id', 'ok', 'value', 'error'].includes(key),
++      ) &&
++      ((m.ok === true && Object.hasOwn(m, 'value') && !Object.hasOwn(m, 'error')) ||
++        (m.ok === false &&
++          !Object.hasOwn(m, 'value') &&
++          typeof m.error === 'string' &&
++          [
++            'invalid-input',
++            'invalid-output',
++            'revoked',
++            'aborted',
++            'busy',
++            'timeout',
++            'unavailable',
++          ].includes(m.error)))
++    const matched = state.active?.key === keyOf(instanceId, requestId)
++    event('result', {
++      instanceId,
++      requestId,
++      ok: typeof m.ok === 'boolean' ? m.ok : null,
++      valid,
++      matched,
++      error: valid && m.ok === false ? m.error : null,
++    })
++    if (valid && matched) {
++      state.matchedResults++
++      state.active.result = {
++        observedAt: performance.now(),
++        ok: m.ok,
++        error: m.ok === false ? m.error : null,
++      }
++      archiveActive()
++    }
++  }
++  function guarded(fn) {
++    const start = performance.now()
+     try {
+-      if (
+-        typeof instanceId !== "string" ||
+-        !message ||
+-        message.protocol !== "milkup.plugin.document-render.v1" ||
+-        !["render", "result", "cancel"].includes(message.type)
+-      )
+-        return;
+-      if (state.events.length >= state.maxEvents) {
+-        state.dropped++;
+-        return;
+-      }
+-      const payload = raw || JSON.stringify({ instanceId, message });
+-      const bytes = new TextEncoder().encode(payload).byteLength;
+-      if (state.serializedBytes + bytes > state.maxBytes) {
+-        state.dropped++;
+-        return;
+-      }
+-      captured = {
+-        at: start,
+-        direction,
+-        instanceId,
+-        type: message.type,
+-        id: message.id,
+-        payload,
+-      };
+-      state.events.push(captured);
+-      state.serializedBytes += bytes;
+-    } catch (error) {
+-      if (state.observerErrors.length < 32)
+-        state.observerErrors.push(String(error));
++      fn()
++    } catch (_) {
++      incomplete('observation-exception')
+     } finally {
+-      const elapsed = performance.now() - start;
+-      if (captured) captured.observationMs = elapsed;
+-      state.captureMs += elapsed;
+-      state.captureMaxMs = Math.max(state.captureMaxMs, elapsed);
++      const elapsed = performance.now() - start
++      state.captureCalls++
++      state.captureMs += elapsed
++      state.captureMaxMs = Math.max(state.captureMaxMs, elapsed)
+     }
+   }
+   function wrappedFetch(...args) {
+-    const filterStart = performance.now();
+-    try {
++    guarded(() => {
+       if (
+         !state.done &&
+-        performance.now() < deadline &&
+-        typeof args[0] === "string" &&
+-        args[0] === "ipc://localhost/send_plugin_dom_message" &&
+-        typeof args[1]?.body === "string"
++        !state.frozen &&
++        handlers.some((entry) => callbacks.get(entry.id) !== entry.wrapped)
+       ) {
+-        const payload = JSON.parse(args[1].body);
+-        if (payload.pluginId === "milkup.diagrams")
+-          capture(
+-            "outgoing",
+-            payload.instanceId,
+-            payload.message,
+-            args[1].body,
+-          );
+-      }
+-    } catch (error) {
+-      if (state.observerErrors.length < 32)
+-        state.observerErrors.push(String(error));
+-    } finally {
+-      state.outgoingFilterMs += performance.now() - filterStart;
+-    }
+-    return Reflect.apply(originalFetch, this, args);
+-  }
+-  function sample() {
+-    if (
+-      state.done ||
+-      performance.now() >= deadline ||
+-      state.samples.length >= 101
+-    )
+-      return;
+-    const start = performance.now();
+-    try {
+-      const rect = (e) => e?.getBoundingClientRect().toJSON();
+-      const editor = document.querySelector(".milkup-editor");
+-      const content = document.querySelector(".milkup-editor-content");
+-      state.samples.push({
+-        at: start,
+-        editor: rect(editor),
+-        content: {
+-          rect: rect(content),
+-          clientWidth: content?.clientWidth,
+-          clientHeight: content?.clientHeight,
+-          scrollTop: content?.scrollTop,
+-          scrollLeft: content?.scrollLeft,
+-        },
+-        scrollTop: editor?.scrollTop,
+-        scrollLeft: editor?.scrollLeft,
+-        mode: editor?.dataset.mode,
+-        sourceVersion: document.querySelector('[data-stat="version"]')
+-          ?.textContent,
+-        previews: [...document.querySelectorAll("[data-document-presentation]")]
+-          .filter((e) =>
+-            [440].includes(Number(e.dataset.presentationFrom)),
+-          )
+-          .map((e) => ({
+-            nodeId: previewIdentity(e),
+-            scrollTop: e.scrollTop,
+-            scrollLeft: e.scrollLeft,
+-            scrollWidth: e.scrollWidth,
+-            scrollHeight: e.scrollHeight,
+-            clientWidth: e.clientWidth,
+-            clientHeight: e.clientHeight,
+-            from: Number(e.dataset.presentationFrom),
+-            to: Number(e.dataset.presentationTo),
+-            rect: rect(e),
+-            images: [...e.querySelectorAll("img")].map((i) => ({
+-              url: i.currentSrc,
+-              complete: i.complete,
+-              width: i.naturalWidth,
+-              height: i.naturalHeight,
+-              rect: rect(i),
+-            })),
+-          })),
+-        selection: [...document.querySelectorAll(".milkup-selection")].map(
+-          (e) => ({ from: Number(e.dataset.from), to: Number(e.dataset.to) }),
+-        ),
+-        notices: [
+-          ...document.querySelectorAll("[data-document-presentation-notice]"),
+-        ].map((e) => e.textContent),
+-      });
+-    } catch (error) {
+-      if (state.observerErrors.length < 32)
+-        state.observerErrors.push(String(error));
+-    } finally {
+-      state.sampleMs += performance.now() - start;
+-    }
+-  }
+-  function stop(reason = "timer") {
+-    if (state.done) return state.restored;
+-    state.done = true;
+-    clearInterval(sampleTimer);
+-    clearTimeout(stopTimer);
+-    const fetchStillOurs = window.fetch === wrappedFetch;
+-    if (fetchStillOurs) Object.defineProperty(window, "fetch", descriptor);
+-    const restoredCallbacks = handlers.map((entry) => {
+-      const stillOurs = callbacks.get(entry.id) === entry.wrapped;
+-      if (stillOurs) callbacks.set(entry.id, entry.original);
+-      return {
+-        id: entry.id,
+-        stillOurs,
+-        restoredOriginal: callbacks.get(entry.id) === entry.original,
+-        removed: !callbacks.has(entry.id),
+-      };
+-    });
+-    const after = Object.getOwnPropertyDescriptor(window, "fetch");
++        incomplete('live-callback-binding-changed')
++        freeze('diagnostic-callback-gap')
++      }
++      if (args[0] === 'ipc://localhost/send_plugin_dom_message')
++        observeOutgoing('send_plugin_dom_message', args[1]?.body)
++      else if (args[0] === 'ipc://localhost/stop_plugin_dom_process')
++        observeOutgoing('stop_plugin_dom_process', args[1]?.body)
++    })
++    return Reflect.apply(originalFetch, this, args)
++  }
++  function stop(reason = 'harness-final') {
++    if (state.done) return state.restored
++    if (!state.frozen) freeze(reason)
++    const fetchStillOurs = window.fetch === wrappedFetch
++    if (!fetchStillOurs) incomplete('fetch-binding-changed-before-export')
++    if (handlers.some((entry) => callbacks.get(entry.id) !== entry.wrapped))
++      incomplete('callback-binding-changed-before-export')
++    if (fetchStillOurs) Object.defineProperty(window, 'fetch', descriptor)
+     state.restored = {
+       reason,
+       at: performance.now(),
+       fetchStillOurs,
+       fetchSameFunction: window.fetch === originalFetch,
+-      descriptorEqual:
+-        after?.value === descriptor.value &&
+-        after?.writable === descriptor.writable &&
+-        after?.configurable === descriptor.configurable &&
+-        after?.enumerable === descriptor.enumerable,
+-      fetchAfter: describe(after),
+-      callbacks: restoredCallbacks,
+-    };
+-    return state.restored;
+-  }
+-  for (const entry of handlers) {
++      descriptorEqual: ['value', 'writable', 'configurable', 'enumerable'].every(
++        (k) => Object.getOwnPropertyDescriptor(window, 'fetch')?.[k] === descriptor[k],
++      ),
++      callbacks: handlers.map((entry) => {
++        const stillOurs = callbacks.get(entry.id) === entry.wrapped
++        if (stillOurs) callbacks.set(entry.id, entry.original)
++        return {
++          id: entry.id,
++          stillOurs,
++          restoredOriginal: callbacks.get(entry.id) === entry.original,
++          removed: !callbacks.has(entry.id),
++        }
++      }),
++    }
++    state.done = true
++    // Dedicated input+history+event limits leave128KiB for fixed metadata/export overhead.
++    if (bytes(state) > MAX_BYTES) {
++      incomplete('final-export-cap-history-discarded')
++      state.history = []
++      state.historyBytes = 0
++      state.events = []
++      state.eventBytes = 0
++      if (bytes(state) > MAX_BYTES) throw new Error('bounded diagnostic export cannot fit')
++    }
++    return state.restored
++  }
++  for (const entry of handlers)
+     entry.wrapped = function (...args) {
+-      try {
+-        const event = args[0];
+-        if (
+-          event?.event === "milkup-plugin-dom-message" &&
+-          event.payload?.pluginId === "milkup.diagrams" &&
+-          event.payload.kind === "message"
+-        )
+-          capture("incoming", event.payload.instanceId, event.payload.message);
+-      } catch (error) {
+-        if (state.observerErrors.length < 32)
+-          state.observerErrors.push(String(error));
+-      }
+-      return Reflect.apply(entry.original, this, args);
+-    };
+-  }
+-  window.fetch = wrappedFetch;
+-  for (const entry of handlers) callbacks.set(entry.id, entry.wrapped);
+-  Object.defineProperty(window, "__milkupTransportDiagnostic", {
++      guarded(() => {
++        if (args[0]?.event === 'milkup-plugin-dom-message') observeIncoming(args[0].payload)
++      })
++      return Reflect.apply(entry.original, this, args)
++    }
++  window.fetch = wrappedFetch
++  for (const entry of handlers) callbacks.set(entry.id, entry.wrapped)
++  Object.defineProperty(window, '__milkupTransportDiagnostic', {
+     value: { state, stop },
+     configurable: true,
+-  });
+-  sampleTimer = setInterval(sample, 100);
+-  stopTimer = setTimeout(() => stop("ten-second-limit"), 10000);
+-  sample();
++  })
+   return {
+     installed: true,
+-    started,
+-    deadline,
+-    fetchBefore: state.fetchBefore,
++    started: state.started,
++    timeOrigin: state.timeOrigin,
++    wall: state.wall,
+     coreDescriptors,
+     callbackEntryTypes: state.callbackEntryTypes,
+-    retiredEntries: state.retiredEntries,
+-    allEntries: state.allEntries,
+-  };
++    retiredEntries,
++    allEntries,
++    limits: state.limits,
++    initialCoverageGap: true,
++  }
+ }

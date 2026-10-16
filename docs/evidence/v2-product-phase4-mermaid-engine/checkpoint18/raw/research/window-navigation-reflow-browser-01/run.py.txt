@@ -1,0 +1,20 @@
+from pathlib import Path
+import subprocess,os,json,hashlib,datetime,signal,time
+root=Path('/workspace/milkup');out=Path('/workspace/milkup-mermaid-engine-evidence/research/window-navigation-reflow-browser-01')
+files=['tests/e2e/desktop-window-navigation-reflow.spec.ts','tests/e2e/desktop-markdown-extensions.spec.ts','packages/view-dom/src/source-document-view.ts','packages/view-dom/src/document-presentation.ts','packages/view-dom/src/document-svg-image.ts','packages/core/src/document-source.ts','playwright.config.ts','apps/desktop/src/main.ts']
+def inputs():
+ return {p:{'sha256':hashlib.sha256((root/p).read_bytes()).hexdigest(),'bytes':(root/p).stat().st_size} for p in files if (root/p).is_file()}
+before=inputs();(out/'inputs-before.json').write_text(json.dumps(before,indent=2)+'\n');(out/'source').mkdir(exist_ok=True)
+for p in files:
+ if (root/p).is_file(): dest=out/'source'/p;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes((root/p).read_bytes())
+env=os.environ.copy();env['MILKUP_BROWSER_EXECUTABLE']='/usr/bin/chromium';env['PLAYWRIGHT_JSON_OUTPUT_NAME']=str(out/'report.json')
+command=['node','node_modules/@playwright/test/cli.js','test','--config='+str(out/'playwright.config.ts'),'--project=desktop-msedge','--workers=1','--retries=0','--reporter=line,json']
+meta={'command':command,'cwd':str(root),'started':datetime.datetime.now(datetime.timezone.utc).isoformat()}
+with (out/'run.log').open('w') as log:
+ p=subprocess.Popen(command,cwd=root,env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True);meta['pid']=p.pid;meta['processGroup']=p.pid
+ (out/'execution.json').write_text(json.dumps(meta,indent=2)+'\n')
+ try:code=p.wait(timeout=180)
+ except subprocess.TimeoutExpired:os.killpg(p.pid,signal.SIGTERM);code=p.wait(timeout=10);meta['runnerTimeout']=True
+meta.update(exit=code,ended=datetime.datetime.now(datetime.timezone.utc).isoformat());after=inputs();meta['sourceUnchanged']=before==after
+(out/'inputs-after.json').write_text(json.dumps(after,indent=2)+'\n');(out/'execution.json').write_text(json.dumps(meta,indent=2)+'\n')
+print(json.dumps(meta,indent=2));raise SystemExit(code)

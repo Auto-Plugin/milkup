@@ -1,0 +1,39 @@
+# Exact-App/cgroup rolling observer — final integration revision03
+
+Status: implementation and finite memory-only tests completed; no actual sampler main loop, live App read, cgroup sampling, native application, browser or process discovery executed. revision01 and its first 34-test log remain immutable; revision02 adds identity-bracketed App cgroup reading and bounded file safety. All 37 finite revision02 contracts pass. Revision03 adds one exact frozen UI10 deadline log-line fixture, for 38 passing finite tests; its process identity reads and clock are simulated, not recovered UI10 CPU measurements. Sampler code is unchanged. These tests do not establish live namespace permissions or CLI integration.
+
+## Interface and output
+
+Run Python with `app_cpu_ring.py --output <new run/cpu-observer> --app-log <exact existing native driver log>`. The output directory must not exist. No environment override, PID discovery, PID rebinding, signals or product IPC are implemented.
+
+Write one newline-terminated JSON identity `{pid,birth,argv}` after the harness has verified its owned Application and environment. birth accepts the existing positive integer or decimal-string field. Only one final empty argv item is removed; interior/trailing real empty arguments remain significant. Input is bounded to 16 KiB, argv to 64 entries/8 KiB serialized. Binding reads exact `/proc/PID/stat`, cmdline, App cgroup (4 KiB), then stat again and rejects birth changes or Z/X/x. Initial identity is required within 30 seconds. stdout emits only an `armed` record and final compact status; the harness must not wait for armed before proceeding with its original UI gates.
+
+Keep stdin open. In catch/finally, before awaiting page-observer extraction, send `{"finish":"harness-final"}` plus newline and end stdin, unless this process already exited naturally. Then export/restore the page observer, close the App through the original cleanup, and await this process's natural exit. This preserves the recent window before a potentially slow WebDriver export. The sampler exclusively creates its output directory; the harness must not pre-create it. EOF also freezes. Maximum lifetime 7200 seconds from observer creation / 14400 App sample cycles; limit expiry is partial and exit 2. First matching native deadline also freezes naturally, so a later UI catch cannot erase the relevant rolling window. Do not restart the sampler after any exit.
+
+The sole artifact is `summary.json`, exclusive-created, compact JSON plus newline. Schema `milkup.exact-app-cgroup-ring.v1`. Main fields:
+- identity, identityBound, binding (before/after birth and cgroup-read timestamps).
+- app.samples (monoNs, scheduledMonoNs, lateNs, status, readEndMonoNs/readNs; successful samples include PID/birth/state/own utime/stime/RSS pages+bytes).
+- cgroup.samples (same timestamp/overhead envelope and per-file status+whitelisted values).
+- scope with explicit `/sys/fs/cgroup` root, observer/App membership, namespace links, cgroup2 mount evidence and sameAppGroupConfirmed. This is an initial comparison, not continuous cgroup-migration monitoring. Different/unmapped App membership is explicitly observer-group-only, never guessed as the App's group.
+- nativeLog offsets, initial bytes skipped, bounded reads/backlog/oversize counters and matching identity status; firstDeadline contains only phase/PID/instance/request/native monotonic timestamp plus observation time/delay and identity qualification.
+- cycles, missedSlots, errors with bounded examples, overhead, clockTicksPerSecond, pageSizeBytes and monotonic clock name.
+
+Exit 0 / ok=true means no recorded sampler error/cap failure for a supported finish condition; it does not mean renderer CPU was sampled, imply full historic coverage, or validate the product. Scope is always App-only plus shared cgroup. Exit 2 records incomplete observation/errors. Missing initial identity or setup failure cannot claim success. Missing/terminal App samples omit CPU/RSS fields, never insert zero. ENOENT, reused birth and Z/X/x permanently retire the App sampling identity; a transient permission/read error may be followed by reads of the same expected identity but never a replacement binding.
+
+## Bounds and clocks
+
+App stat once per 500 ms, own utime/stime only (no cumulative children), 60-second ring with at most 121 entries / 256 KiB. Cgroup once per second: only cpu.stat, cpu.max and memory.events, at most 4096 bytes per file and whitelisted numeric fields. At most 61 entries, with sample byte budget reserving 1024 bytes within the 64 KiB cgroup object cap. Overall summary cap is 512 KiB including final newline; impossible oversize output fails closed with a small explicit discarded-sample record. Error keys max 33, examples max 32 with messages capped to 160 characters. Count/age eviction is intended rolling retention; byte eviction is a recorded incomplete condition.
+
+No catch-up burst is performed. Delayed schedules and skipped slots are counted; no linear per-request interpolation. Sampling uses CLOCK_MONOTONIC via Python monotonic_ns, and records observer own process CPU plus cumulative/max read costs. Costs are inclusive around each read/parse operation and are not subtracted from native timing. RSS is sampled current memory, not a lifetime peak. Short-lived/unbound DOM processes are not observed. Shared cgroup deltas can include unrelated work, and no renderer or scheduling cause follows from App-only low CPU.
+
+The readonly cgroup mount is located through bounded (64 KiB) observer mountinfo and exact fixed mountpoint; no filesystem traversal or general mount probing is used. App/self cgroup membership is capped to 4 KiB each. Only initial matching root membership plus matching cgroup namespace is marked sameAppGroupConfirmed. Mapping errors are explicit partial status. No cgroup writes or configuration changes exist.
+
+## Native-log freeze
+
+At binding open the explicit log as a non-symlink regular file and record dev/inode, size and seek-end offset. Existing history is not read: the skipped prefix and startup gap are explicit. Every App sampling cycle reads at most 8192 new bytes and at most 4096 bytes per buffered line; backlog, malformed native lines, replacement/truncation and dropped oversized lines mark observation incomplete. This is not a full-file rescan and never drives product behavior.
+
+Only `DOM_NATIVE_TIMING` with phase deadline-observed, exact App PID and bounded valid instance/request identity triggers freeze. Re-read App stat/birth/state at that moment. If gone, reused or terminal, retain the matching log event and freeze partial; do not rebind or call it verified. Log observation delay is recorded; native timestamps and observer timestamps share Linux CLOCK_MONOTONIC only within the verified execution environment. The signal is an asynchronous best-effort diagnostic: dropped or not-yet-written lines cannot be recovered, and absence is not proof that no timeout occurred. A deadline may precede the first retained sample or lie outside fully bracketed intervals; only actual sample coverage supports CPU analysis. No diagnostic ring outcome relaxes the original workflow's first-failure rule.
+
+## Integration limits
+
+CPU observer does not enumerate `/proc`, tasks, ancestors, X11 or any WebKit process. It cannot identify the timed-out payload; the separate trusted full-input/control observer must correlate instanceId/requestId. It cannot observe renderer CPU. The parent harness remains responsible for own-App identity, exact native log path, namespace preflight, output/stdin handling, original UI failure preservation, normal App close and awaiting this process's natural exit. No native capability validation has been performed by this component.
