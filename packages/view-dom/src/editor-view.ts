@@ -168,6 +168,7 @@ export class EditorView {
       this.renderSelectionAndCursor()
   }
   private readonly handleKeyDownEvent = (event: KeyboardEvent): void => {
+    if (this.documentPresentation.returnToPreviewWithTab(event)) return
     if (this.handleEditingKey(event)) {
       event.preventDefault()
     }

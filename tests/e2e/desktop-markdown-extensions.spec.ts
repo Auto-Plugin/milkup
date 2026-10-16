@@ -497,3 +497,231 @@ for (const windowed of [false, true])
       })
     }
   })
+
+async function lastReferenceFixture(page: Page, windowed: boolean) {
+  await page.goto('/')
+  await page.evaluate(
+    async ({ windowed, viewModule, coreModule }) => {
+      const { EditorView, SourceDocumentView } = await import(viewModule)
+      const { EditorState, MemoryTextDocument, MemoryDocumentSource, Selection, ChangeSet } =
+        await import(coreModule)
+      let version = 0
+      const text = '  编辑 中文😀\r\n引用[^only]'
+      let state = new EditorState({
+        doc: new MemoryTextDocument(text),
+        selection: Selection.cursor(2),
+      })
+      let memory = new MemoryDocumentSource({ documentId: 'last-reference', document: state.doc })
+      const source = {
+        documentId: 'last-reference',
+        get version() {
+          return version
+        },
+        get lineCount() {
+          return state.doc.lineCount
+        },
+        get length() {
+          return state.doc.length
+        },
+        readLineWindow: (...args: any[]) => memory.readLineWindow(...args),
+        lineAtPosition: (position: number) => memory.lineAtPosition(position),
+        positionAtLineOffset: (line: number, offset: number) =>
+          memory.positionAtLineOffset(line, offset),
+        snapshot: () => memory.snapshot(),
+      }
+      const mount = document.createElement('main')
+      mount.dataset.lastReferenceProbe = ''
+      Object.assign(mount.style, {
+        position: 'fixed',
+        inset: '37px 0 30px',
+        zIndex: '10000',
+        background: 'white',
+      })
+      document.body.append(mount)
+      const edits: unknown[] = []
+      const options = {
+        parent: mount,
+        mode: 'live',
+        editable: true,
+        documentPresentation: {
+          provide: async ({
+            sourceIdentity: _i,
+            sourceVersion: _v,
+            documentVersion: _d,
+            ...window
+          }: any) => {
+            const from = state.doc.text.indexOf('[^only]')
+            return {
+              declarations: [{ id: 'reference-fixture', contexts: ['text'] }],
+              request: {
+                ...window,
+                documentId: source.documentId,
+                version: version,
+                contextKnown: true,
+                protectedRanges: [],
+                blocks: [],
+                theme: 'light',
+                target: 'screen',
+              },
+              result: {
+                complete: true,
+                fragments: [
+                  {
+                    from,
+                    to: from + 7,
+                    layout: 'inline',
+                    accessibleText: 'Only reference',
+                    content: {
+                      type: 'reference',
+                      label: 'Only reference',
+                      target: { documentId: source.documentId, version: version, from: 2, to: 4 },
+                    },
+                  },
+                ],
+              },
+            }
+          },
+        },
+      }
+      const view = windowed
+        ? new SourceDocumentView({
+            ...options,
+            source,
+            onEdit: (edit: any) => {
+              edits.push(edit)
+              version++
+              state = state.applyTransaction({
+                changes: ChangeSet.of([{ from: edit.from, to: edit.to, insert: edit.insert }]),
+                selection: edit.selectionAfter,
+              })
+              memory = new MemoryDocumentSource({
+                documentId: source.documentId,
+                document: state.doc,
+                version: version,
+              })
+            },
+          })
+        : new EditorView({
+            ...options,
+            state,
+            dispatch: (transaction: any, activeView: any) => {
+              if (transaction.changes && !transaction.changes.empty) {
+                edits.push(transaction)
+                version++
+              }
+              state = state.applyTransaction(transaction)
+              activeView.updateState(state, [transaction])
+            },
+          })
+      if (windowed) await view.revealSelection(1, Selection.cursor(2))
+      ;(window as any).lastReferenceProbe = {
+        view,
+        edits,
+        text,
+        read: () => {
+          const current = windowed ? state : view.state
+          return {
+            text: current.doc.text,
+            version,
+            historyText: current.undo().doc.text,
+            undoCount: current.history.undoStack.length,
+            redoCount: current.history.redoStack.length,
+            edits: edits.length,
+            selection: (windowed ? view.selection : current.selection).main,
+          }
+        },
+      }
+    },
+    {
+      windowed,
+      viewModule: `/@fs${resolve('packages/view-dom/src/index.ts')}`,
+      coreModule: `/@fs${resolve('packages/core/src/index.ts')}`,
+    },
+  )
+  await expect(page.locator('[data-last-reference-probe] .milkup-document-reference')).toHaveCount(
+    1,
+  )
+}
+
+for (const windowed of [false, true]) {
+  test(`last preview reference supports native Tab round trip (${windowed})`, async ({ page }) => {
+    await lastReferenceFixture(page, windowed)
+    const reference = page.locator('[data-last-reference-probe] .milkup-document-reference')
+    const input = page.locator('[data-last-reference-probe] .milkup-input-proxy')
+    const before = await page.evaluate(() => (window as any).lastReferenceProbe.read())
+    await reference.focus()
+    await page.keyboard.press('Tab')
+    await expect(input).toBeFocused()
+    await page.keyboard.press('Shift+Tab')
+    const after = await page.evaluate(async () => {
+      const probe = (window as any).lastReferenceProbe
+      if (probe.view.runAfterPendingEdits) await probe.view.runAfterPendingEdits(async () => {})
+      return probe.read()
+    })
+    await writeFile(
+      test.info().outputPath('last-reference-tab-state.json'),
+      JSON.stringify({ before, after }, null, 2),
+    )
+    await test.info().attach('last-reference-tab-state', {
+      body: JSON.stringify({ before, after }),
+      contentType: 'application/json',
+    })
+    await expect(reference).toBeFocused()
+    expect(after).toEqual(before)
+    await page.screenshot({
+      path: test.info().outputPath('last-reference-tab-after.png'),
+      fullPage: true,
+    })
+  })
+
+  test(`ordinary proxy focus retains Tab indentation (${windowed})`, async ({ page }) => {
+    await lastReferenceFixture(page, windowed)
+    const input = page.locator('[data-last-reference-probe] .milkup-input-proxy')
+    await input.focus()
+    await page.keyboard.press('Tab')
+    await expect
+      .poll(() => page.evaluate(() => (window as any).lastReferenceProbe.read().text))
+      .toBe('    编辑 中文😀\r\n引用[^only]')
+    await expect(input).toBeFocused()
+    await page.keyboard.press('Shift+Tab')
+    await expect
+      .poll(() => page.evaluate(() => (window as any).lastReferenceProbe.read().text))
+      .toBe('  编辑 中文😀\r\n引用[^only]')
+    await expect(input).toBeFocused()
+  })
+}
+
+for (const windowed of [false, true])
+  for (const intervention of ['arrow', 'text', 'pointer', 'external-focus', 'replacement'])
+    test(`preview proxy navigation ends after ${intervention} (${windowed})`, async ({ page }) => {
+      await lastReferenceFixture(page, windowed)
+      const reference = page.locator('[data-last-reference-probe] .milkup-document-reference')
+      const input = page.locator('[data-last-reference-probe] .milkup-input-proxy')
+      await reference.focus()
+      await page.keyboard.press('Tab')
+      await expect(input).toBeFocused()
+      if (intervention === 'arrow') await page.keyboard.press('ArrowRight')
+      else if (intervention === 'text') {
+        await page.keyboard.insertText('X')
+        await expect
+          .poll(() => page.evaluate(() => (window as any).lastReferenceProbe.read().text))
+          .toBe('  X编辑 中文😀\r\n引用[^only]')
+      } else if (intervention === 'pointer') await input.click({ force: true })
+      else if (intervention === 'external-focus') {
+        await page.getByRole('button', { name: '菜单', exact: true }).focus()
+        await input.focus()
+      } else {
+        const previous = await reference.elementHandle()
+        await page.evaluate(() =>
+          (window as any).lastReferenceProbe.view.refreshDocumentPresentation(),
+        )
+        await expect.poll(() => previous!.evaluate((element) => element.isConnected)).toBe(false)
+        await expect(reference).toHaveCount(1)
+        await expect(input).toBeFocused()
+      }
+      await page.keyboard.press('Shift+Tab')
+      await expect
+        .poll(() => page.evaluate(() => (window as any).lastReferenceProbe.read().text))
+        .toBe(`${intervention === 'text' ? 'X' : ''}编辑 中文😀\r\n引用[^only]`)
+      await expect(input).toBeFocused()
+    })

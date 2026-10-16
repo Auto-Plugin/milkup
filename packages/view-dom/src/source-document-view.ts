@@ -335,6 +335,7 @@ export class SourceDocumentView {
     }
   }
   private readonly handleKeyDownEvent = (event: KeyboardEvent): void => {
+    if (this.documentPresentation.returnToPreviewWithTab(event)) return
     const task = taskMarkerFromEvent(event, this.contentDOM)
     if (task) {
       if (event.key === ' ' || event.key === 'Enter') {

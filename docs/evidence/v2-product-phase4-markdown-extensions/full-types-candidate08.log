@@ -1,0 +1,43 @@
+$ pnpm -r typecheck
+Scope: 14 of 15 workspace projects
+packages/assets typecheck$ tsc -p tsconfig.json --noEmit
+packages/core typecheck$ tsc -p tsconfig.json --noEmit
+packages/input typecheck$ tsc -p tsconfig.json --noEmit
+packages/markdown typecheck$ tsc -p tsconfig.json --noEmit
+packages/assets typecheck: Done
+packages/input typecheck: Done
+packages/core typecheck: Done
+packages/markdown typecheck: Done
+packages/export typecheck$ tsc -p tsconfig.json --noEmit
+packages/mcp typecheck$ tsc -p tsconfig.json --noEmit
+packages/plugin-sdk typecheck$ tsc -p tsconfig.json --noEmit && tsc -p tsconfig.contract.json
+packages/tauri-bridge typecheck$ tsc -p tsconfig.json --noEmit
+packages/mcp typecheck: Done
+packages/view-dom typecheck$ tsc -p tsconfig.json --noEmit
+packages/export typecheck: Done
+packages/tauri-bridge typecheck: Done
+packages/plugin-sdk typecheck: Done
+packages/view-dom typecheck: Done
+packages/plugin typecheck$ tsc -p tsconfig.json --noEmit
+tests/regressions typecheck$ tsc -p tsconfig.json --noEmit
+tests/regressions typecheck: Done
+packages/plugin typecheck: Done
+apps/desktop typecheck$ tsc -p tsconfig.json --noEmit
+apps/playground typecheck$ tsc -p tsconfig.json --noEmit
+packages/cli typecheck$ tsc -p tsconfig.json --noEmit
+apps/playground typecheck: Done
+packages/cli typecheck: Done
+apps/desktop typecheck: src/document-presentation-service.test.ts(215,8): error TS2339: Property 'catch' does not exist on type 'DocumentPresentationResponse | Promise<DocumentPresentationResponse>'.
+apps/desktop typecheck:   Property 'catch' does not exist on type 'DocumentPresentationResponse'.
+apps/desktop typecheck: src/document-presentation-service.test.ts(215,15): error TS7006: Parameter 'error' implicitly has an 'any' type.
+apps/desktop typecheck: src/document-presentation-service.test.ts(234,8): error TS2339: Property 'catch' does not exist on type 'DocumentPresentationResponse | Promise<DocumentPresentationResponse>'.
+apps/desktop typecheck:   Property 'catch' does not exist on type 'DocumentPresentationResponse'.
+apps/desktop typecheck: src/document-presentation-service.test.ts(234,15): error TS7006: Parameter 'error' implicitly has an 'any' type.
+apps/desktop typecheck: src/document-presentation-service.test.ts(250,8): error TS2339: Property 'catch' does not exist on type 'DocumentPresentationResponse | Promise<DocumentPresentationResponse>'.
+apps/desktop typecheck:   Property 'catch' does not exist on type 'DocumentPresentationResponse'.
+apps/desktop typecheck: src/document-presentation-service.test.ts(250,15): error TS7006: Parameter 'error' implicitly has an 'any' type.
+apps/desktop typecheck: Failed
+/workspace/milkup/apps/desktop:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/desktop@2.0.0-beta.1 typecheck: `tsc -p tsconfig.json --noEmit`
+Exit status 2
+[ELIFECYCLE] Command failed with exit code 2.
