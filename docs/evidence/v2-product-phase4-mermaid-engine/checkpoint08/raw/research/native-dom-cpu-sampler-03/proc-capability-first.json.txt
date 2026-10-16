@@ -1,0 +1,34 @@
+{
+  "scope": "One bounded read-only proc stat capability measurement; no cmdline/env of other processes and no signals/UI/sampler-main",
+  "kernelRelease": "6.18.44",
+  "selfChecks": [
+    {
+      "path": "/proc/self/task/368500",
+      "exists": true,
+      "hasChildrenEntry": false
+    },
+    {
+      "path": "/proc/self/task/368500/children",
+      "exists": false,
+      "errno": 2,
+      "errorClass": "FileNotFoundError"
+    }
+  ],
+  "limits": {
+    "entries": 8192,
+    "numericPids": 4096,
+    "wallNs": 50000000,
+    "perStatBytes": 4096
+  },
+  "measurement": {
+    "startNs": 64229239670340,
+    "endNs": 64229273326087,
+    "durationNs": 33655747,
+    "entriesObserved": 1827,
+    "numericPidsObserved": 1776,
+    "statParsed": 1776,
+    "vanished": 0,
+    "failure": null
+  },
+  "qualification": "Single observed cost, not universal bound or CPU attribution. Per-operation kernel reads are not preempted by Python; wall limit is checked at boundaries."
+}

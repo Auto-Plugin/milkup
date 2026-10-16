@@ -1,0 +1,42 @@
+{
+  "at": "2026-10-16T18:56:38.807658+00:00",
+  "checks": [
+    {
+      "command": [
+        "bash",
+        "-n",
+        "/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-single-03/env.sh"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "bash",
+        "-n",
+        "/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-single-03/driver.sh"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "bash",
+        "-n",
+        "/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-single-03/run-harness.sh"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-single-03/cold-diagnostic.mjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": "Python ast.parse read-only-preflight.py",
+      "exitCode": 0
+    }
+  ],
+  "runtimeStarted": false
+}

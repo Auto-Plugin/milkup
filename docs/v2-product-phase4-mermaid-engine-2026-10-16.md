@@ -320,3 +320,17 @@ driver、App 和 helper 已退出，端口空闲；guardian 358538 已退出但�
 随后用冻结的当前 core 完整 result、aggregate 和 canonical serializer 离线校验，8/8 接受，原限制未变，未占用 native 的两秒窗口。根代理核验后置清单 23 个文件。12 组跨实例同序位及 4 组实例内对照，每对均有 160 处 typed 差异，八个结果及 canonical 哈希各不相同，没有归一化输出。尺寸均为 594.875×433，canonical 输出为 170918–170951 字节；SVG codec 成本 nodes659/text210/expanded572/work450358 一致，该计数不包含外层 accessibleText/message，完整结果另经原共享预算准入。校验接受与尺寸一致不等于像素等价，也不能用来推断超时根因。
 
 以上 cold CPU 工具首败、隐藏页 A/C、预加载 ABBA 及后置校验原件已保存至 [checkpoint07](evidence/v2-product-phase4-mermaid-engine/checkpoint07/README.md)。该检查点保存未验收过程，未修改产品容器、预加载策略或任何执行预算；原正式 UI 截止仍待定位。
+
+## 冷启动观测器的环境限制与后续定位
+
+checkpoint07 已正常推送为 `e684539ff34e719d5b2ba40cf8147a0b8b24dd99`，远端 SHA 一致，GitHub 作者与提交者均为 `LarryZhu-dev`。随后两次独立冷启动均沿用冻结的 stage8041 诊断程序、官方包及原 cold UI 断言，没有修改产品或执行期限。
+
+singlecold02 的 UI gate 通过，观测器仍失败且 CPU 样本为零。新增的有界拒绝记录显示：App 三次 PID/birth 核验成功，但已枚举的 36 个线程，其 `children` 文件全部读取 ENOENT；没有进入 guardian argv/env 匹配。自身进程的只读能力检查也确认当前环境没有该文件。这定位了本次发现接口的限制，不能倒推旧 batch01 的缺失记录或具体内核配置。原生记录为六次 dispatch、五次成功、零 deadline；最长 block 1138.027775 ms，class 869.416152 ms。
+
+sampler03 改用一次有界 PID 状态表，并在同一轮后代发现中共享，保留原身份和唯一实例门槛。它的首版 17 项及尾窗口修正版 19 项有限内存测试分别保留；数量、50 ms 扫描时间、原十秒窗口和 2 MiB 输出预算均有明确失败边界。一次无 UI 的能力测量扫描 1776 个 PID 用时 33.655747 ms，不是负载下的普遍上界。singlecold03 实际 UI gate 通过，但首次扫描读取 1200 个 PID 后以 50.189210 ms 触发原上限，丢弃部分表；尚未绑定 guardian，CPU 样本和 cgroup 数据仍为空。没有自动提高上限或重试。该次原生六次 dispatch、五次成功、零 deadline，最慢 class 为 663.936425 ms。
+
+根代理分别核对两批清单的 45/52 个实际文件、六份请求的 UTF-16 范围和 UTF-8 哈希，并查看原始 X11 图片：完整 block 与 class 上部可见，下部在视口外，文档已保存。两批第六个 ER 请求都跨正常 App 关闭而未完成，不标为超时。driver/App 已退出，trace guardian 为 PID 1 下的 Z；没有独立保留此前 birth 的身份不补写为精确匹配。两批原输入和历史文件分别 376/452 项保持不变。以上是 UI 通过与观测工具失败，均不关闭历史执行截止。
+
+并行只读源码核对确认当前 Mermaid 12.2 的 class 默认选择 ELK，block 使用自己的布局；fastdom 实际调度为微任务，ELK 通信则存在两个零延时定时器位置。native 的输入 evaluate 回调入口不是 renderer 完成点，其至结果 drain 的区间还可包含引擎、转换、序列化及调度，不能由静态边界分摊耗时。
+
+另一项独立审计发现，父 App 在每次全进程表扫描后睡眠 25 ms，持续维护 `owned` 表；生产 `guardian_stop=Some` 清理路径却不读取这张表，而独立依赖 FD4/EOF、subreaper、精确清理与 ECHILD。guardian 清理时自己的扫描仍需保留。该事实支持下一步验证移除父 App 的重复工作，但本检查点尚未修改该行为，也未证明它导致历史 deadline。已完成观测、源码审计及失败原件保存于 [checkpoint08](evidence/v2-product-phase4-mermaid-engine/checkpoint08/README.md)；接下来取得真实修复前回归，再做最小修改和生产复验。

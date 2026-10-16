@@ -1,0 +1,172 @@
+"""Finite in-memory differential cases; never run observer/main or read live proc."""
+import copy
+import hashlib
+import json
+from pathlib import Path
+from types import SimpleNamespace
+
+ROOT = Path(__file__).resolve().parent
+BASE_SHA = '30110c5ae58816d8ae5fb318d3b46094fd19dc77f22f527cde2b222f798424f9'
+NEW_SHA = 'aee036fb54b038aff82c160618618baf933d86530ac408e06269b385c4e9779b'
+NOW = 1_000_000_000
+SECRET = 'DO_NOT_OUTPUT_ENV_SENTINEL'
+
+
+def load(name, expected):
+    raw = (ROOT / name).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == expected
+    ns = {'__name__': 'synthetic_module'}
+    exec(compile(raw, name, 'exec'), ns)
+    ns['mono'] = lambda: NOW
+    ns['resource'] = SimpleNamespace(RUSAGE_SELF=0, getrusage=lambda _: SimpleNamespace(ru_utime=0, ru_stime=0))
+    return ns
+
+
+def stat(pid, parent=100, birth=200, state='S'):
+    fields = ['0'] * 20
+    fields[0], fields[1], fields[2], fields[19] = state, str(parent), str(pid), str(birth)
+    return f'{pid} (synthetic) '.encode() + ' '.join(fields).encode()
+
+
+class Scan:
+    def __init__(self, entries): self.entries = entries
+    def __enter__(self): return iter(self.entries)
+    def __exit__(self, *args): pass
+
+
+def prepare(ns, candidates=None, tasks=1, owner_stats=None):
+    candidates = candidates or []
+    table = {'/proc/100/stat': owner_stats or stat(100, 1, 100)}
+    calls = []
+    counters = {}
+    for i in range(tasks):
+        table[f'/proc/100/task/{i}/children'] = ' '.join(str(c['pid']) for c in candidates).encode() if i == 0 else b''
+    for c in candidates:
+        pid = c['pid']
+        table[f'/proc/{pid}/stat'] = c.get('stat', stat(pid))
+        table[f'/proc/{pid}/cmdline'] = c.get('argv', (str(ns['EXPECTED_BINARY']) + '\0--milkup-internal-dom-helper\0').encode())
+        table[f'/proc/{pid}/environ'] = c.get('env', b'MILKUP_INTERNAL_DOM_INSTANCE_ID=instance\0OTHER=' + SECRET.encode() + b'\0')
+    def read(path, limit):
+        key = str(path)
+        calls.append(('read', key, limit))
+        value = table[key]
+        if isinstance(value, list):
+            index = counters.get(key, 0); counters[key] = index + 1
+            value = value[min(index, len(value)-1)]
+        if isinstance(value, Exception): raise value
+        if len(value) > limit: raise ns['ObservationError']('bounded-read-limit')
+        return value
+    def scan(path):
+        calls.append(('scandir', str(path)))
+        return Scan([SimpleNamespace(path=f'/proc/100/task/{i}') for i in range(tasks)])
+    ns['os'] = SimpleNamespace(scandir=scan, sysconf=lambda _: 100)
+    obj = ns['Sampler'].__new__(ns['Sampler'])
+    obj.args = SimpleNamespace(cgroup_cpu_stat=False)
+    obj.bounded_read = read
+    obj.app = {'pid':100,'birth':100}
+    obj.anchor = {'monotonicNs':NOW,'instanceId':'instance','requestId':'render_1'}
+    obj.known = {}; obj.guardian = None; obj.errors = []; obj.error_count = 0
+    obj.guardian_binding = None; obj.binding_candidates = {}
+    return obj, calls
+
+
+def bind(obj):
+    try:
+        obj.bind_guardian()
+        return ('accepted', obj.guardian['pid'])
+    except Exception as exc:
+        return (type(exc).__name__, str(exc))
+
+
+base = load('base-v03.py', BASE_SHA)
+new = load('cpu_sampler.py', NEW_SHA)
+results = []
+
+
+def case(name, candidates, expected_reason=None, expected_accept=False, **kwargs):
+    old, old_reads = prepare(base, candidates, **kwargs)
+    candidate, new_reads = prepare(new, candidates, **kwargs)
+    before, after = bind(old), bind(candidate)
+    assert before == after, (name, before, after)
+    assert old_reads == new_reads, (name, 'read sequence differs')
+    assert (after[0] == 'accepted') == expected_accept, (name, after)
+    if expected_reason:
+        assert candidate.guardian_binding['candidates'][0]['reason'] == expected_reason, name
+    diagnostic = json.dumps(candidate.guardian_binding)
+    assert SECRET not in diagnostic and 'OTHER=' not in diagnostic
+    assert len(candidate.guardian_binding['candidates']) <= 128
+    results.append({'case':name,'outcome':list(after),'sameReadSequence':True,'reads':len(new_reads)})
+    return candidate
+
+
+class MemoryOutput:
+    def __init__(self): self.files = {}; self.key = None
+    def __truediv__(self, key):
+        parent = self
+        class File:
+            def write_text(self, text): parent.files[key] = text
+        return File()
+
+
+def summary_bound(obj, populate_known):
+    obj.started = NOW; obj.start_usage = SimpleNamespace(ru_utime=0, ru_stime=0)
+    obj.cgroup_before = obj.cgroup_after = obj.cgroup_path = None
+    obj.first_sample = obj.last_sample = obj.app_exit_observed = obj.observed_dispatch = None
+    obj.periodic_count = 201; obj.skipped_slots = 0; obj.discovery_count = 40
+    obj.discovery_times = [99_999_999] * 64
+    obj.live_deltas = {}; obj.previous = {}; obj.truncated = False
+    obj.row_bytes = new['TOTAL_BYTES'] - new['SUMMARY_RESERVE']
+    obj.rows = ['x' * obj.row_bytes]
+    if populate_known:
+        obj.known = {(pid,200):dict(pid=pid,birth=200,parent=100,group=pid,state='S',userTicks=999999999,systemTicks=999999999,name='X'*64,firstSeenNs=NOW,role='other-owned') for pid in range(1000,1128)}
+        obj.live_deltas = {key:999999999 for key in obj.known}
+    obj.errors = [{'monoNs':NOW,'category':'identity-read','pid':200,'detail':'X'*160} for _ in range(32)]
+    obj.error_count = 32
+    obj.out = MemoryOutput(); obj.emit = lambda _: None
+    try:
+        obj.finish('synthetic-incomplete')
+        size = len(obj.out.files['summary.json'].encode())
+        assert size <= new['SUMMARY_RESERVE']
+        assert sum(len(v.encode()) for v in obj.out.files.values()) <= new['TOTAL_BYTES']
+        assert SECRET not in obj.out.files['summary.json']
+        return {'summaryBytes':size,'combinedBytes':sum(len(v.encode()) for v in obj.out.files.values()),'reserveExceeded':False}
+    except new['ObservationError'] as exc:
+        assert str(exc) == 'summary-reserve-exceeded'
+        assert obj.out.files == {}, 'oversized summary must not partially write outputs'
+        return {'reserveExceeded':True,'outputsWritten':False,'qualification':'Bound remains fail-closed, but this shape loses summary output.'}
+
+
+try:
+    empty = case('zero-discovered', [])
+    assert empty.guardian_binding['outcome'] == 'zero-discovered'
+    case('wrong-parent',[{'pid':200,'stat':stat(200,999)}],'parent-rejected')
+    case('older-birth',[{'pid':200,'stat':stat(200,100,99)}],'older-birth-rejected')
+    case('stat-enoent',[{'pid':200,'stat':FileNotFoundError(2,'synthetic')}],'stat-vanished')
+    case('stat-eacces',[{'pid':200,'stat':PermissionError(13,'synthetic')}],'stat-unreadable')
+    for label,argv in [('path',b'/wrong\0--milkup-internal-dom-helper\0'),('flag',str(new['EXPECTED_BINARY']).encode()+b'\0--wrong\0'),('extra',(str(new['EXPECTED_BINARY'])+'\0--milkup-internal-dom-helper\0extra\0').encode())]:
+        case('argv-'+label,[{'pid':200,'argv':argv}],'argv-rejected')
+    for label,env,reason in [('missing',b'OTHER='+SECRET.encode(),'instance-key-missing'),('duplicate',b'MILKUP_INTERNAL_DOM_INSTANCE_ID=instance\0MILKUP_INTERNAL_DOM_INSTANCE_ID=instance\0','instance-key-duplicate'),('wrong',b'MILKUP_INTERNAL_DOM_INSTANCE_ID='+SECRET.encode(),'instance-value-rejected')]:
+        case('env-'+label,[{'pid':200,'env':env}],reason)
+    case('env-read-eacces',[{'pid':200,'env':PermissionError(13,'synthetic')}],'read-error')
+    case('final-birth-change',[{'pid':200,'stat':[stat(200),stat(200,100,201)]}],'final-birth-rejected')
+    case('final-vanished',[{'pid':200,'stat':[stat(200),FileNotFoundError(2,'synthetic')]}],'final-birth-rejected')
+    case('owner-before-change',[],owner_stats=stat(100,1,101))
+    case('owner-after-tasks-change',[{'pid':200}],owner_stats=[stat(100,1,100),stat(100,1,101)])
+    case('owner-after-candidates-change',[{'pid':200}],owner_stats=[stat(100,1,100),stat(100,1,100),stat(100,1,101)])
+    case('unique',[{'pid':200}],'accepted',expected_accept=True)
+    multiple=case('multiple',[{'pid':200},{'pid':201}],'accepted')
+    assert multiple.guardian_binding['outcome']=='multiple-matches'
+    case('task-cap',[],tasks=1025)
+    case('candidate-cap',[{'pid':pid} for pid in range(200,329)])
+    errors=case('read-error-retention',[{'pid':pid,'argv':PermissionError(13,'synthetic')} for pid in range(200,328)],'read-error')
+    assert errors.guardian_binding['readErrorCount']==128
+    assert len(errors.guardian_binding['readErrors'])==32 and errors.guardian_binding['omittedReadErrorCount']==96
+    maximum=case('128-matches',[{'pid':pid} for pid in range(200,328)],'accepted')
+    singleton=case('128-candidates-one-match',[{'pid':200}]+[{'pid':pid,'env':b'MILKUP_INTERNAL_DOM_INSTANCE_ID='+SECRET.encode()} for pid in range(201,328)],'accepted',expected_accept=True)
+    sizes={'128MatchesNoKnown':summary_bound(maximum,False),'oneMatch127Rejected128Known':summary_bound(singleton,True),'128ReadErrorsNoKnown':summary_bound(errors,False)}
+    output={'status':'PASS','scope':'Finite synthetic in-memory binding cases only; no sampler run/main, live proc read, child process or native UI','cases':results,'summaryBounds':sizes,'baseSha256':BASE_SHA,'samplerSha256':NEW_SHA}
+except Exception as exc:
+    output={'status':'FAIL','error':type(exc).__name__,'detail':str(exc),'completedCases':results,'baseSha256':BASE_SHA,'samplerSha256':NEW_SHA}
+(ROOT/'synthetic-first-result.json').write_text(json.dumps(output,indent=2)+'\n')
+print(json.dumps(output,indent=2))
+raise SystemExit(0 if output['status']=='PASS' else 1)

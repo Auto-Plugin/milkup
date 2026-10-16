@@ -1,0 +1,139 @@
+{
+  "status": "incomplete",
+  "failure": "proc-scan-wall-limit",
+  "startedNs": 64725768168321,
+  "finishedNs": 64726726317031,
+  "app": {
+    "pid": 369238,
+    "birth": 6472126,
+    "parent": 369189,
+    "group": 369171,
+    "state": "S",
+    "userTicks": 79,
+    "systemTicks": 109,
+    "name": "milkup-desktop",
+    "argv": [
+      "/workspace/milkup-mermaid-engine-evidence/research/native-dom-stage-candidate-01/install/usr/bin/milkup-desktop",
+      "/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-single-03/run/ordinary.md"
+    ]
+  },
+  "guardian": null,
+  "dispatch": {
+    "instanceId": "93702cb4a669ddca9a2f91ff5bb3f38725a4ecff8d5a041a",
+    "monotonicNs": 64726670154411,
+    "phase": "dispatch",
+    "pid": 369238,
+    "requestId": "render_1"
+  },
+  "logObservation": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-single-03/native-driver-first.log",
+    "device": 27,
+    "inode": 563113,
+    "bytesReadThroughObservation": 4402,
+    "waitStartedNs": 64725801734848,
+    "observedNs": 64726675894040,
+    "readObservationDelayNs": 5739629
+  },
+  "guardianBinding": {
+    "startedNs": 64726675905539,
+    "endedNs": 64726726107770,
+    "ownerBefore": {},
+    "ownerAfterCandidates": {},
+    "procScanIndex": 0,
+    "rawChildCount": 0,
+    "retainedDirectChildCount": 0,
+    "discoveryOutcome": "not-started",
+    "matchingCount": null,
+    "outcome": "not-completed",
+    "candidates": [],
+    "readErrorCount": 0,
+    "readErrors": [],
+    "omittedReadErrorCount": 0
+  },
+  "procScans": [
+    {
+      "startedNs": 64726675913481,
+      "endedNs": 64726726102691,
+      "durationNs": 50189210,
+      "entriesObserved": 1251,
+      "numericPidsObserved": 1200,
+      "statParsed": 1200,
+      "vanished": 0,
+      "outcome": "failed",
+      "ownerBefore": {
+        "pid": 369238,
+        "expectedBirth": 6472126,
+        "birthMatches": true,
+        "birth": 6472126,
+        "parent": 369189,
+        "state": "S"
+      },
+      "ownerAfter": {},
+      "errorClass": "ObservationError",
+      "errno": null,
+      "failure": "proc-scan-wall-limit"
+    }
+  ],
+  "procDiscoveryLimits": {
+    "entries": 8192,
+    "numericPids": 4096,
+    "scanWallNs": 50000000,
+    "scanRecords": 64
+  },
+  "anchorSelection": "first observed retained exact-App dispatch from log beginning; render_1 required; no re-anchor",
+  "anchorUncertainty": {
+    "diagnosticsBestEffort": true,
+    "earlierOtherClientDispatchMayBeUnobserved": true,
+    "requestSequenceScope": "createDocumentRenderRpcClient-local; assigned before queue/cancellation",
+    "requestSequenceOneObserved": true,
+    "completeAppFirstTenSecondsProven": false
+  },
+  "windowEndNs": 64736670154411,
+  "firstSampleNs": null,
+  "lastSampleNs": null,
+  "firstSampleLateGapNs": null,
+  "appExitObservedNs": null,
+  "appExitedBeforeWindowEnd": false,
+  "clockTicks": 100,
+  "periodNs": 50000000,
+  "discoveryPeriodNs": 250000000,
+  "periodicCount": 0,
+  "retainedSampleCount": 0,
+  "skippedSlots": 0,
+  "discoveryCount": 0,
+  "discoveryDurationNs": [],
+  "knownIdentities": [],
+  "observedLiveCpuTicks": [],
+  "errors": [
+    {
+      "monoNs": 64726726121373,
+      "category": "terminal-observation-error",
+      "pid": null,
+      "detail": "proc-scan-wall-limit"
+    }
+  ],
+  "errorCount": 1,
+  "sampleBytes": 0,
+  "truncated": false,
+  "selfCpuSeconds": {
+    "user": 0.062318,
+    "system": 0.008068
+  },
+  "cgroup": {
+    "path": null,
+    "before": null,
+    "after": null,
+    "rawDelta": null,
+    "scope": "Shared cgroup counters, not DOM-exclusive; actual read timestamps retained"
+  },
+  "limits": [
+    "No signal, cleanup, product IPC or page observer.",
+    "Initial/lost/terminal CPU intervals are not reconstructed; zombie ticks are not active CPU.",
+    "250ms discovery can miss short-lived previously unseen descendants.",
+    "Stat tables are not atomic; vanished entries and PID races are not reconstructed.",
+    "Global stat scanning adds measured overhead; non-owned stat rows are never output.",
+    "Scan wall limit is checked between operations, not a preemptive kernel-read deadline.",
+    "High CPU does not identify the request; low CPU does not prove a scheduler defect.",
+    "Sampling overhead is retained, not subtracted; asynchronous traces may be lost."
+  ]
+}

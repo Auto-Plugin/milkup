@@ -1,0 +1,35 @@
+--- sampler03-first-tested.py
++++ sampler03.py
+@@ -148,8 +148,10 @@
+             raise ObservationError('proc-scan-record-limit')
+         self.proc_scans.append(record)
+         deadline = started + MAX_PROC_SCAN_NS
+-        if self.anchor:
+-            deadline = min(deadline, self.anchor['monotonicNs'] + WINDOW_NS)
++        if self.anchor and deadline > self.anchor['monotonicNs'] + WINDOW_NS:
++            record.update({'outcome': 'skipped-insufficient-window', 'endedNs': mono()})
++            record['durationNs'] = record['endedNs'] - started
++            return None
+ 
+         def check_time():
+             if mono() >= deadline:
+@@ -368,6 +370,8 @@
+         matches = []
+         self.guardian_binding['procScanIndex'] = len(self.proc_scans)
+         table = self.proc_table(self.app)
++        if table is None:
++            raise ObservationError('insufficient-window-for-binding-scan')
+         for row in self.children(self.app, table, binding=self.guardian_binding):
+             candidate = self.binding_candidates[row['pid']]
+             stage = 'argv'
+@@ -441,6 +445,10 @@
+         start = mono()
+         # One table per discovery, shared by every already-proven parent.
+         table = self.proc_table(self.guardian)
++        if table is None:
++            self.discovery_count += 1
++            self.discovery_times.append(mono() - start)
++            return
+         work = list(self.known.values())
+         visited = set()
+         while work:

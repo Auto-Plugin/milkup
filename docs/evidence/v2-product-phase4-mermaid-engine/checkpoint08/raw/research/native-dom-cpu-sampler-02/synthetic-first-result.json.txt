@@ -1,0 +1,241 @@
+{
+  "status": "PASS",
+  "scope": "Finite synthetic in-memory binding cases only; no sampler run/main, live proc read, child process or native UI",
+  "cases": [
+    {
+      "case": "zero-discovered",
+      "outcome": [
+        "ObservationError",
+        "guardian-bind-not-unique-or-missing"
+      ],
+      "sameReadSequence": true,
+      "reads": 5
+    },
+    {
+      "case": "wrong-parent",
+      "outcome": [
+        "ObservationError",
+        "guardian-bind-not-unique-or-missing"
+      ],
+      "sameReadSequence": true,
+      "reads": 6
+    },
+    {
+      "case": "older-birth",
+      "outcome": [
+        "ObservationError",
+        "guardian-bind-not-unique-or-missing"
+      ],
+      "sameReadSequence": true,
+      "reads": 6
+    },
+    {
+      "case": "stat-enoent",
+      "outcome": [
+        "ObservationError",
+        "guardian-bind-not-unique-or-missing"
+      ],
+      "sameReadSequence": true,
+      "reads": 6
+    },
+    {
+      "case": "stat-eacces",
+      "outcome": [
+        "ObservationError",
+        "guardian-bind-not-unique-or-missing"
+      ],
+      "sameReadSequence": true,
+      "reads": 6
+    },
+    {
+      "case": "argv-path",
+      "outcome": [
+        "ObservationError",
+        "guardian-bind-not-unique-or-missing"
+      ],
+      "sameReadSequence": true,
+      "reads": 7
+    },
+    {
+      "case": "argv-flag",
+      "outcome": [
+        "ObservationError",
+        "guardian-bind-not-unique-or-missing"
+      ],
+      "sameReadSequence": true,
+      "reads": 7
+    },
+    {
+      "case": "argv-extra",
+      "outcome": [
+        "ObservationError",
+        "guardian-bind-not-unique-or-missing"
+      ],
+      "sameReadSequence": true,
+      "reads": 7
+    },
+    {
+      "case": "env-missing",
+      "outcome": [
+        "ObservationError",
+        "guardian-bind-not-unique-or-missing"
+      ],
+      "sameReadSequence": true,
+      "reads": 8
+    },
+    {
+      "case": "env-duplicate",
+      "outcome": [
+        "ObservationError",
+        "guardian-bind-not-unique-or-missing"
+      ],
+      "sameReadSequence": true,
+      "reads": 8
+    },
+    {
+      "case": "env-wrong",
+      "outcome": [
+        "ObservationError",
+        "guardian-bind-not-unique-or-missing"
+      ],
+      "sameReadSequence": true,
+      "reads": 8
+    },
+    {
+      "case": "env-read-eacces",
+      "outcome": [
+        "ObservationError",
+        "guardian-bind-not-unique-or-missing"
+      ],
+      "sameReadSequence": true,
+      "reads": 8
+    },
+    {
+      "case": "final-birth-change",
+      "outcome": [
+        "ObservationError",
+        "guardian-bind-not-unique-or-missing"
+      ],
+      "sameReadSequence": true,
+      "reads": 9
+    },
+    {
+      "case": "final-vanished",
+      "outcome": [
+        "ObservationError",
+        "guardian-bind-not-unique-or-missing"
+      ],
+      "sameReadSequence": true,
+      "reads": 9
+    },
+    {
+      "case": "owner-before-change",
+      "outcome": [
+        "ObservationError",
+        "guardian-bind-not-unique-or-missing"
+      ],
+      "sameReadSequence": true,
+      "reads": 1
+    },
+    {
+      "case": "owner-after-tasks-change",
+      "outcome": [
+        "ObservationError",
+        "guardian-bind-not-unique-or-missing"
+      ],
+      "sameReadSequence": true,
+      "reads": 4
+    },
+    {
+      "case": "owner-after-candidates-change",
+      "outcome": [
+        "ObservationError",
+        "guardian-bind-not-unique-or-missing"
+      ],
+      "sameReadSequence": true,
+      "reads": 6
+    },
+    {
+      "case": "unique",
+      "outcome": [
+        "accepted",
+        200
+      ],
+      "sameReadSequence": true,
+      "reads": 9
+    },
+    {
+      "case": "multiple",
+      "outcome": [
+        "ObservationError",
+        "guardian-bind-not-unique-or-missing"
+      ],
+      "sameReadSequence": true,
+      "reads": 13
+    },
+    {
+      "case": "task-cap",
+      "outcome": [
+        "ObservationError",
+        "task-discovery-limit"
+      ],
+      "sameReadSequence": true,
+      "reads": 2
+    },
+    {
+      "case": "candidate-cap",
+      "outcome": [
+        "ObservationError",
+        "child-candidate-discovery-limit"
+      ],
+      "sameReadSequence": true,
+      "reads": 3
+    },
+    {
+      "case": "read-error-retention",
+      "outcome": [
+        "ObservationError",
+        "guardian-bind-not-unique-or-missing"
+      ],
+      "sameReadSequence": true,
+      "reads": 261
+    },
+    {
+      "case": "128-matches",
+      "outcome": [
+        "ObservationError",
+        "guardian-bind-not-unique-or-missing"
+      ],
+      "sameReadSequence": true,
+      "reads": 517
+    },
+    {
+      "case": "128-candidates-one-match",
+      "outcome": [
+        "accepted",
+        200
+      ],
+      "sameReadSequence": true,
+      "reads": 390
+    }
+  ],
+  "summaryBounds": {
+    "128MatchesNoKnown": {
+      "summaryBytes": 95987,
+      "combinedBytes": 2062067,
+      "reserveExceeded": false
+    },
+    "oneMatch127Rejected128Known": {
+      "summaryBytes": 120189,
+      "combinedBytes": 2086269,
+      "reserveExceeded": false
+    },
+    "128ReadErrorsNoKnown": {
+      "summaryBytes": 56278,
+      "combinedBytes": 2022358,
+      "reserveExceeded": false
+    }
+  },
+  "baseSha256": "30110c5ae58816d8ae5fb318d3b46094fd19dc77f22f527cde2b222f798424f9",
+  "samplerSha256": "aee036fb54b038aff82c160618618baf933d86530ac408e06269b385c4e9779b"
+}

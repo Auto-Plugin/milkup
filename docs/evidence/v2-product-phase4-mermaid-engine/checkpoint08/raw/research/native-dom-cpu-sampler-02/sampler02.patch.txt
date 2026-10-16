@@ -1,0 +1,234 @@
+--- sampler01-frozen-v03.py
++++ sampler02.py
+@@ -66,6 +66,8 @@
+         self.cgroup_path = None
+         self.cgroup_before = None
+         self.cgroup_after = None
++        self.guardian_binding = None
++        self.binding_candidates = {}
+ 
+     def error(self, category, pid=None, detail=None):
+         self.error_count += 1
+@@ -80,49 +82,82 @@
+             raise ObservationError('bounded-read-limit')
+         return raw
+ 
+-    def identity(self, pid, required=False):
++    def identity(self, pid, required=False, diagnostic=None):
+         try:
+             raw = self.bounded_read(Path('/proc', str(pid), 'stat'), 4096).decode()
+             assert int(raw.split('(', 1)[0]) == pid
+             fields = raw.rsplit(')', 1)[1].split()
+-            return {'pid': pid, 'birth': int(fields[19]), 'parent': int(fields[1]),
++            row = {'pid': pid, 'birth': int(fields[19]), 'parent': int(fields[1]),
+                     'group': int(fields[2]), 'state': fields[0],
+                     'userTicks': int(fields[11]), 'systemTicks': int(fields[12]),
+                     'name': raw[raw.find('(') + 1:raw.rfind(')')][:64]}
+-        except FileNotFoundError:
++            if diagnostic is not None:
++                diagnostic.update({key: row[key] for key in ('pid', 'birth', 'parent', 'state')})
++                diagnostic['readStatus'] = 'ok'
++            return row
++        except FileNotFoundError as exc:
++            if diagnostic is not None:
++                diagnostic.update({'pid': pid, 'readStatus': 'vanished', 'errno': exc.errno})
++                self.binding_read_error('stat', exc)
+             if required:
+                 raise ObservationError('required-process-missing')
+         except (OSError, ValueError, IndexError, AssertionError, ObservationError) as exc:
++            if diagnostic is not None:
++                diagnostic.update({'pid': pid, 'readStatus': 'unreadable',
++                                   'errorClass': type(exc).__name__, 'errno': getattr(exc, 'errno', None)})
++                self.binding_read_error('stat', exc)
+             self.error('identity-read', pid, type(exc).__name__)
+             if required:
+                 raise ObservationError('required-identity-unreadable') from exc
+         return None
+ 
+-    def same(self, expected):
+-        row = self.identity(expected['pid'])
++    def same(self, expected, diagnostic=None):
++        row = self.identity(expected['pid'], diagnostic=diagnostic)
++        if diagnostic is not None:
++            diagnostic['expectedBirth'] = expected['birth']
++            diagnostic['birthMatches'] = bool(row and row['birth'] == expected['birth'])
+         return row if row and row['birth'] == expected['birth'] else None
+ 
+     def argv(self, pid):
+         raw = self.bounded_read(Path('/proc', str(pid), 'cmdline'), 16384)
+         return raw.decode().split('\0')[:-1] if raw.endswith(b'\0') else raw.decode().split('\0')
+ 
+-    def children(self, owner):
++    def binding_read_error(self, stage, exc):
++        # Only the one binding pass is observed; no exception text/path/env value.
++        binding = self.guardian_binding
++        binding['readErrorCount'] += 1
++        if len(binding['readErrors']) < 32:
++            binding['readErrors'].append({'stage': stage, 'errorClass': type(exc).__name__,
++                                          'errno': getattr(exc, 'errno', None)})
++        else:
++            binding['omittedReadErrorCount'] += 1
++
++    def children(self, owner, binding=None):
+         """Discover only children of an already proven PID/birth, across its threads."""
+-        if not self.same(owner):
++        before = binding['ownerBefore'] if binding is not None else None
++        if not self.same(owner, diagnostic=before):
++            if binding is not None:
++                binding['discoveryOutcome'] = 'owner-not-matching-before'
+             return []
+         result = set()
+         try:
+             task_dir = Path('/proc', str(owner['pid']), 'task')
+             with os.scandir(task_dir) as entries:
+                 tasks = [Path(entry.path) for entry in islice(entries, MAX_TASKS + 1)]
++            if binding is not None:
++                binding['taskCountObserved'] = len(tasks)
+             if len(tasks) > MAX_TASKS:
+                 raise ObservationError('task-discovery-limit')
+             for task in tasks:
+                 try:
+                     words = self.bounded_read(task / 'children', 8192).split()
+-                except FileNotFoundError:
++                except FileNotFoundError as exc:
++                    if binding is not None:
++                        self.binding_read_error('task-children', exc)
+                     continue
+                 except OSError as exc:
++                    if binding is not None:
++                        self.binding_read_error('task-children', exc)
+                     self.error('children-read', owner['pid'], type(exc).__name__)
+                     continue
+                 if len(words) > 512:
+@@ -133,20 +168,49 @@
+                         if len(result) >= MAX_CHILD_CANDIDATES:
+                             raise ObservationError('child-candidate-discovery-limit')
+                         result.add(pid)
+-        except FileNotFoundError:
++                        if binding is not None:
++                            binding['rawChildCount'] = len(result)
++        except FileNotFoundError as exc:
++            if binding is not None:
++                self.binding_read_error('task-list', exc)
++                binding['discoveryOutcome'] = 'task-directory-vanished'
+             return []
+         except OSError as exc:
++            if binding is not None:
++                self.binding_read_error('task-list', exc)
++                binding['discoveryOutcome'] = 'task-directory-unreadable'
+             self.error('task-list', owner['pid'], type(exc).__name__)
+             return []
+-        if not self.same(owner):
++        after_tasks = binding['ownerAfterTasks'] if binding is not None else None
++        if not self.same(owner, diagnostic=after_tasks):
++            if binding is not None:
++                binding['discoveryOutcome'] = 'owner-not-matching-after-tasks'
+             self.error('owner-changed-during-discovery', owner['pid'])
+             return []
+         rows = []
+         for pid in sorted(result):
+-            row = self.identity(pid)
++            candidate = None
++            if binding is not None:
++                candidate = {'pid': pid, 'identity': {}, 'reason': 'stat-pending'}
++                # result already has the unchanged MAX_CHILD_CANDIDATES cap.
++                binding['candidates'].append(candidate)
++                self.binding_candidates[pid] = candidate
++            row = self.identity(pid, diagnostic=candidate['identity'] if candidate is not None else None)
+             if row and row['parent'] == owner['pid'] and row['birth'] >= owner['birth']:
+                 rows.append(row)
+-        return rows if self.same(owner) else []
++                if candidate is not None:
++                    candidate['reason'] = 'direct-child'
++            elif candidate is not None:
++                candidate['reason'] = ('stat-' + candidate['identity']['readStatus'] if not row
++                                       else 'parent-rejected' if row['parent'] != owner['pid']
++                                       else 'older-birth-rejected')
++        after_candidates = binding['ownerAfterCandidates'] if binding is not None else None
++        owner_matches = self.same(owner, diagnostic=after_candidates)
++        if binding is not None:
++            binding['retainedDirectChildCount'] = len(rows) if owner_matches else 0
++            binding['discoveryOutcome'] = ('completed' if owner_matches
++                                           else 'owner-not-matching-after-candidates')
++        return rows if owner_matches else []
+ 
+     def read_root(self):
+         deadline = mono() + WAIT_NS
+@@ -247,20 +311,65 @@
+         raise ObservationError('first-observed-dispatch-wait-timeout')
+ 
+     def bind_guardian(self):
++        self.guardian_binding = {
++            'startedNs': mono(), 'endedNs': None,
++            'ownerBefore': {}, 'ownerAfterTasks': {}, 'ownerAfterCandidates': {},
++            'taskCountObserved': None, 'rawChildCount': 0, 'retainedDirectChildCount': 0,
++            'discoveryOutcome': 'not-started', 'matchingCount': None,
++            'outcome': 'not-completed', 'candidates': [],
++            'readErrorCount': 0, 'readErrors': [], 'omittedReadErrorCount': 0,
++        }
++        try:
++            self.bind_guardian_once()
++        finally:
++            self.guardian_binding['endedNs'] = mono()
++
++    def bind_guardian_once(self):
+         if mono() >= self.anchor['monotonicNs'] + WINDOW_NS:
+             raise ObservationError('entire-dispatch-window-already-missed')
+         matches = []
+-        for row in self.children(self.app):
++        for row in self.children(self.app, binding=self.guardian_binding):
++            candidate = self.binding_candidates[row['pid']]
++            stage = 'argv'
+             try:
+-                if self.argv(row['pid']) != [str(EXPECTED_BINARY), '--milkup-internal-dom-helper']:
++                argv = self.argv(row['pid'])
++                exact_argv = argv == [str(EXPECTED_BINARY), '--milkup-internal-dom-helper']
++                candidate.update({'argvCount': len(argv),
++                                  'expectedPathMatches': bool(argv and argv[0] == str(EXPECTED_BINARY)),
++                                  'helperArgumentMatches': bool(len(argv) > 1 and argv[1] == '--milkup-internal-dom-helper'),
++                                  'exactArgvMatches': exact_argv})
++                if not exact_argv:
++                    candidate['reason'] = 'argv-rejected'
+                     continue
++                stage = 'instance-environment'
+                 env = self.bounded_read(Path('/proc', str(row['pid']), 'environ'), 1024 * 1024).split(b'\0')
+                 values = [v.split(b'=', 1)[1].decode() for v in env
+                           if v.startswith(b'MILKUP_INTERNAL_DOM_INSTANCE_ID=')]
+-                if values == [self.anchor['instanceId']] and self.same(row):
+-                    matches.append(row)
++                exact_instance = values == [self.anchor['instanceId']]
++                candidate['instanceKeyCount'] = len(values)
++                candidate['instanceValueMatches'] = exact_instance
++                if exact_instance:
++                    candidate['finalIdentity'] = {}
++                    if self.same(row, diagnostic=candidate['finalIdentity']):
++                        matches.append(row)
++                        candidate['reason'] = 'accepted'
++                    else:
++                        candidate['reason'] = 'final-birth-rejected'
++                else:
++                    candidate['reason'] = ('instance-key-missing' if not values
++                                           else 'instance-key-duplicate' if len(values) > 1
++                                           else 'instance-value-rejected')
+             except (OSError, UnicodeError, ObservationError) as exc:
++                candidate.update({'reason': 'read-error', 'readStage': stage,
++                                  'errorClass': type(exc).__name__, 'errno': getattr(exc, 'errno', None)})
++                self.binding_read_error(stage, exc)
+                 self.error('guardian-bind-read', row['pid'], type(exc).__name__)
++        self.guardian_binding['matchingCount'] = len(matches)
++        self.guardian_binding['outcome'] = (
++            'unique-match' if len(matches) == 1 else 'multiple-matches' if len(matches) > 1
++            else 'zero-discovered' if not self.guardian_binding['rawChildCount']
++            else 'zero-retained-direct-children' if not self.guardian_binding['retainedDirectChildCount']
++            else 'no-exact-match')
+         if len(matches) != 1:
+             raise ObservationError('guardian-bind-not-unique-or-missing')
+         self.guardian = dict(matches[0], instanceId=self.anchor['instanceId'])
+@@ -425,6 +534,7 @@
+                    'failure': failure, 'startedNs': self.started, 'finishedNs': mono(),
+                    'app': self.app, 'guardian': self.guardian, 'dispatch': self.anchor,
+                    'logObservation': getattr(self, 'log_read', None),
++                   'guardianBinding': self.guardian_binding,
+                    'anchorSelection': 'first observed retained exact-App dispatch from log beginning; render_1 required; no re-anchor',
+                    'anchorUncertainty': {
+                        'diagnosticsBestEffort': True,

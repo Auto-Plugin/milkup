@@ -1,0 +1,65 @@
+{
+  "scope": "Static source audit only; no product changes, builds, tests, live process observation or performance measurements",
+  "decision": "No production dependency on the periodic App-side owned sampler found; removal is a valid narrow candidate, subject to lifecycle regressions",
+  "sourceHashes": {
+    "apps/desktop/src-tauri/src/plugin_dom_process.rs": "f5e413dac08345f96069b9a75120687243d87031c91861beb87a856011cd99d8",
+    "apps/desktop/src-tauri/src/plugin_dom_guardian.rs": "44fd4cfd661817cddd2cf0b9bdb5090ddeea1f18de91dfb46cb8ac94d2211054",
+    "apps/desktop/src-tauri/src/plugin_dom_helper.rs": "336d6b34b3872bf23d359d50a7712de6c7127fc76ba6cc05ff1c885acb76d57c",
+    "apps/desktop/src-tauri/src/plugin_dom.rs": "195cfffdd1a69456b66ea2f860a3b195b9e5bc94152e93aa31a46c022eca097a"
+  },
+  "consumers": [
+    {
+      "file": "apps/desktop/src-tauri/src/plugin_dom_process.rs",
+      "lines": "136,149,156-162",
+      "finding": "Every launch sets guardian_stop Some. The periodic thread only updates owned."
+    },
+    {
+      "file": "apps/desktop/src-tauri/src/plugin_dom_process.rs",
+      "lines": "488-516,553-590",
+      "finding": "owned is read by sample_owned and by the standalone None cleanup fallback. The guardian Some branch returns on every outcome and never reads this table."
+    },
+    {
+      "file": "apps/desktop/src-tauri/src/plugin_dom_process.rs",
+      "lines": "819-848,874-875,1025-1026",
+      "finding": "Standalone fixture seeds both leader and escaped descendant. Other consumers are test assertions, including the ignored actual-WebKit fixture."
+    }
+  ],
+  "lifecycle": [
+    {
+      "case": "Normal stop / render or init deadline / malformed output / input write error",
+      "finding": "stop/fail/finish call kill_owned; production sends FD4 stop, waits up to4s for guardian status, and cleans private directory only after successful status. No fallback into owned on error."
+    },
+    {
+      "case": "Renderer unexpected death",
+      "finding": "Guardian watches exact renderer pidfd alongside FD4; either readiness starts its own cleanup. It is a subreaper before fork and kills the renderer group before scanning adopted descendants, then waits until ECHILD (guardian lines25-147). No App sampling is involved."
+    },
+    {
+      "case": "App death",
+      "finding": "Kernel closes App control writer; guardian FD4 HUP/EOF independently triggers cleanup. The renderer closes FD4 before running. The App sampler cannot survive App death and is not part of this guarantee."
+    },
+    {
+      "case": "Guardian unexpected death or stop-channel failure",
+      "finding": "Existing production path reports non-success/error or unconfirmed cleanup; it does not consult owned or attempt sampled rescue. Removing sampling does not remove a recovery path, but does not strengthen guarantees for abnormal guardian death either."
+    },
+    {
+      "case": "Private directory",
+      "finding": "Guardian run performs cleanup after supervise returns; App success path also cleans it and PrivateDirectory Drop is idempotent best-effort. Directory deletion alone is not proof of descendant termination, especially on existing error/drop paths. No owned dependency."
+    }
+  ],
+  "minimalDesign": [
+    "Remove the unconditional sampler thread in production launch. Do not alter the independent watchdog, FD4, guardian pidfd/subreaper/ECHILD path, process::proc_table used by guardian cleanup, startup identity checks or deadline constants.",
+    "Keep standalone owned tracking and sample_owned only in cfg(test) cleanup helpers. A non-test missing-guardian path must fail explicitly, never silently fall back to broad App-side scanning. No need to add periodic scanning to standalone fixtures already seeded with exact identities.",
+    "Do not preserve the current real-WebKit owned-loop assertion as an all-descendant claim: without periodic sampling it sees only the guardian seed. Replace/supplement it with explicit known child identities and guardian successful reaping/private-directory checks; unsampled-escape ownership is independently tested below."
+  ],
+  "meaningfulRegressions": [
+    "guardian_adopts_unsampled_escaped_descendant_on_control_eof: existing isolated guardian test, no App-side preregistration; escaped setsid child absent by exact birth after EOF and successful guardian exit.",
+    "cancelled_and_malformed_result_retains_deadline_and_kills_all_owned_children; blocked_pipe_write_does_not_block_native_watchdog; a_matching_result_after_the_native_deadline_never_settles_successfully: retain standalone fallback coverage and deadline behavior.",
+    "release_old_lease_cannot_stop_replacement_instance: retain exact instance isolation.",
+    "Fresh actual guardian-backed WebKit fixture: activation, normal result, true CPU loop deadline, confirmed guardian exit and private-directory removal; independent exact descendant checks should not depend on removed sampler.",
+    "Use existing production App-kill/FD4 EOF lifecycle probe and child-unexpected-exit coverage when authorizing runtime validation; retain failure semantics for non-success guardian exit and unconfirmed cleanup rather than claiming they are repaired."
+  ],
+  "limitations": [
+    "The25ms loop interval is visible in source, but actual scan frequency includes scan duration. No Rust scan duration/CPU cost was measured.",
+    "Python sampler timing is not evidence of this Rust loop cost. Removing unused work is not evidence that historical renderer deadlines were caused or fixed by it."
+  ]
+}

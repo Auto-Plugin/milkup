@@ -1,0 +1,9 @@
+# Synthetic validation addendum
+
+Root authorized finite in-memory tests after the static preparation was frozen. The original PLAN/preparation remain the pre-test snapshot. `python3 synthetic-tests.py` ran once, exit 0. It loads the two hash-checked files under a non-main module name, constructs Sampler objects without invoking their constructor, replaces all proc reads/scandir/clock and uses memory-only summary output. It never calls run/main, starts no child process, reads no live proc entry and sends no signal.
+
+24 finite binding cases passed. For each, frozen v03 and sampler02 had identical accept/reject outcome and ordered read operations. Cases include owner/candidate identity races, errno, wrong argv/env, unique versus ambiguous matching, 1025-task and 129-candidate caps, 128-error detail retention and 128-candidate shapes. Environment sentinel strings were absent from diagnostics. This is finite branch evidence, not proof for every possible input or live process race.
+
+Three summary serialization shapes used a full 1,966,080-byte sample allowance: 128 ambiguous matches = 95,987 summary bytes; one match + 127 environment rejects + 128 known identities = 120,189 summary bytes; 128 read failures = 56,278 summary bytes. Each fits 131,072-byte summary reserve and 2,097,152-byte combined budget. These measured synthetic values are not a universal maximum: longer numbers and optional cgroup data can differ. The unchanged fail-closed summary-reserve check still prevents oversized writes, potentially leaving no summary if exceeded. No budget was raised or coverage claimed for an omitted record.
+
+Sampler source and static preparation hashes remain unchanged. No real cold run has occurred with sampler02. Runtime remains subject to Root review/GO; prior observer failure cause remains unknown.

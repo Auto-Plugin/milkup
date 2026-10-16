@@ -1,0 +1,261 @@
+--- sampler02-frozen.py
++++ sampler03.py
+@@ -23,6 +23,10 @@
+ MAX_IDENTITIES = 128
+ MAX_TASKS = 1024
+ MAX_CHILD_CANDIDATES = 128
++MAX_PROC_ENTRIES = 8192
++MAX_PROC_PIDS = 4096
++MAX_PROC_SCAN_NS = 50_000_000
++MAX_SCAN_RECORDS = 64
+ TOTAL_BYTES = 2 * 1024 * 1024
+ SUMMARY_RESERVE = 128 * 1024
+ MAX_LOG_BYTES = 32 * 1024 * 1024
+@@ -68,6 +72,7 @@
+         self.cgroup_after = None
+         self.guardian_binding = None
+         self.binding_candidates = {}
++        self.proc_scans = []
+ 
+     def error(self, category, pid=None, detail=None):
+         self.error_count += 1
+@@ -132,80 +137,115 @@
+         else:
+             binding['omittedReadErrorCount'] += 1
+ 
+-    def children(self, owner, binding=None):
+-        """Discover only children of an already proven PID/birth, across its threads."""
++    def proc_table(self, owner):
++        """One bounded stat-only table; unrelated process data never reaches output."""
++        started = mono()
++        record = {'startedNs': started, 'endedNs': None, 'durationNs': None,
++                  'entriesObserved': 0, 'numericPidsObserved': 0,
++                  'statParsed': 0, 'vanished': 0, 'outcome': 'not-completed',
++                  'ownerBefore': {}, 'ownerAfter': {}}
++        if len(self.proc_scans) >= MAX_SCAN_RECORDS:
++            raise ObservationError('proc-scan-record-limit')
++        self.proc_scans.append(record)
++        deadline = started + MAX_PROC_SCAN_NS
++        if self.anchor and deadline > self.anchor['monotonicNs'] + WINDOW_NS:
++            record.update({'outcome': 'skipped-insufficient-window', 'endedNs': mono()})
++            record['durationNs'] = record['endedNs'] - started
++            return None
++
++        def check_time():
++            if mono() >= deadline:
++                raise ObservationError('proc-scan-wall-limit')
++
++        def same_owner(key):
++            row = self.identity(owner['pid'])
++            record[key] = {'pid': owner['pid'], 'expectedBirth': owner['birth'],
++                           'birthMatches': bool(row and row['birth'] == owner['birth'])}
++            if row:
++                record[key].update({field: row[field] for field in ('birth', 'parent', 'state')})
++            return row if row and row['birth'] == owner['birth'] else None
++
++        try:
++            if not same_owner('ownerBefore'):
++                record['outcome'] = 'owner-not-matching-before'
++                return {}
++            table = {}
++            with os.scandir('/proc') as entries:
++                for entry in islice(entries, MAX_PROC_ENTRIES + 1):
++                    check_time()
++                    record['entriesObserved'] += 1
++                    if record['entriesObserved'] > MAX_PROC_ENTRIES:
++                        raise ObservationError('proc-entry-limit')
++                    if not entry.name.isascii() or not entry.name.isdecimal():
++                        continue
++                    record['numericPidsObserved'] += 1
++                    if record['numericPidsObserved'] > MAX_PROC_PIDS:
++                        raise ObservationError('proc-pid-limit')
++                    # Never read unrelated cmdline/environ or retain names/CPU.
++                    try:
++                        raw = self.bounded_read(Path('/proc', entry.name, 'stat'), 4096).decode()
++                    except FileNotFoundError:
++                        record['vanished'] += 1
++                        check_time()
++                        continue
++                    pid = int(entry.name)
++                    if int(raw.split('(', 1)[0]) != pid:
++                        raise ObservationError('proc-stat-pid-mismatch')
++                    fields = raw.rsplit(')', 1)[1].split()
++                    table[pid] = {'pid': pid, 'parent': int(fields[1]), 'birth': int(fields[19])}
++                    record['statParsed'] += 1
++                    check_time()
++            check_time()
++            if not same_owner('ownerAfter'):
++                record['outcome'] = 'owner-not-matching-after'
++                self.error('owner-changed-during-proc-scan', owner['pid'])
++                return {}
++            check_time()
++            record['outcome'] = 'completed'
++            return table
++        except (OSError, UnicodeError, ValueError, IndexError, ObservationError) as exc:
++            record.update({'outcome': 'failed', 'errorClass': type(exc).__name__,
++                           'errno': getattr(exc, 'errno', None),
++                           'failure': str(exc) if isinstance(exc, ObservationError) else 'proc-stat-read-or-parse'})
++            raise ObservationError(record['failure']) from exc
++        finally:
++            record['endedNs'] = mono()
++            record['durationNs'] = record['endedNs'] - started
++
++    def children(self, owner, table, binding=None):
++        """Filter a shared table; recheck each owned candidate before accepting it."""
+         before = binding['ownerBefore'] if binding is not None else None
+         if not self.same(owner, diagnostic=before):
+             if binding is not None:
+                 binding['discoveryOutcome'] = 'owner-not-matching-before'
+             return []
+-        result = set()
+-        try:
+-            task_dir = Path('/proc', str(owner['pid']), 'task')
+-            with os.scandir(task_dir) as entries:
+-                tasks = [Path(entry.path) for entry in islice(entries, MAX_TASKS + 1)]
+-            if binding is not None:
+-                binding['taskCountObserved'] = len(tasks)
+-            if len(tasks) > MAX_TASKS:
+-                raise ObservationError('task-discovery-limit')
+-            for task in tasks:
+-                try:
+-                    words = self.bounded_read(task / 'children', 8192).split()
+-                except FileNotFoundError as exc:
+-                    if binding is not None:
+-                        self.binding_read_error('task-children', exc)
+-                    continue
+-                except OSError as exc:
+-                    if binding is not None:
+-                        self.binding_read_error('task-children', exc)
+-                    self.error('children-read', owner['pid'], type(exc).__name__)
+-                    continue
+-                if len(words) > 512:
+-                    raise ObservationError('children-discovery-limit')
+-                for word in words:
+-                    pid = int(word)
+-                    if pid not in result:
+-                        if len(result) >= MAX_CHILD_CANDIDATES:
+-                            raise ObservationError('child-candidate-discovery-limit')
+-                        result.add(pid)
+-                        if binding is not None:
+-                            binding['rawChildCount'] = len(result)
+-        except FileNotFoundError as exc:
+-            if binding is not None:
+-                self.binding_read_error('task-list', exc)
+-                binding['discoveryOutcome'] = 'task-directory-vanished'
+-            return []
+-        except OSError as exc:
+-            if binding is not None:
+-                self.binding_read_error('task-list', exc)
+-                binding['discoveryOutcome'] = 'task-directory-unreadable'
+-            self.error('task-list', owner['pid'], type(exc).__name__)
+-            return []
+-        after_tasks = binding['ownerAfterTasks'] if binding is not None else None
+-        if not self.same(owner, diagnostic=after_tasks):
+-            if binding is not None:
+-                binding['discoveryOutcome'] = 'owner-not-matching-after-tasks'
+-            self.error('owner-changed-during-discovery', owner['pid'])
+-            return []
++        candidates = []
++        for row in table.values():
++            if row['parent'] == owner['pid']:
++                if len(candidates) >= MAX_CHILD_CANDIDATES:
++                    raise ObservationError('child-candidate-discovery-limit')
++                candidates.append(row)
++        if binding is not None:
++            binding['rawChildCount'] = len(candidates)
+         rows = []
+-        for pid in sorted(result):
++        for observed in sorted(candidates, key=lambda row: row['pid']):
+             candidate = None
+             if binding is not None:
+-                candidate = {'pid': pid, 'identity': {}, 'reason': 'stat-pending'}
+-                # result already has the unchanged MAX_CHILD_CANDIDATES cap.
++                candidate = {'pid': observed['pid'], 'identity': {}, 'reason': 'stat-pending'}
+                 binding['candidates'].append(candidate)
+-                self.binding_candidates[pid] = candidate
+-            row = self.identity(pid, diagnostic=candidate['identity'] if candidate is not None else None)
++                self.binding_candidates[observed['pid']] = candidate
++            diagnostic = candidate['identity'] if candidate is not None else None
++            row = self.same(observed, diagnostic=diagnostic)
+             if row and row['parent'] == owner['pid'] and row['birth'] >= owner['birth']:
+                 rows.append(row)
+                 if candidate is not None:
+                     candidate['reason'] = 'direct-child'
+             elif candidate is not None:
+-                candidate['reason'] = ('stat-' + candidate['identity']['readStatus'] if not row
++                candidate['reason'] = ('identity-rejected' if not row
+                                        else 'parent-rejected' if row['parent'] != owner['pid']
+                                        else 'older-birth-rejected')
+-        after_candidates = binding['ownerAfterCandidates'] if binding is not None else None
+-        owner_matches = self.same(owner, diagnostic=after_candidates)
++        after = binding['ownerAfterCandidates'] if binding is not None else None
++        owner_matches = self.same(owner, diagnostic=after)
+         if binding is not None:
+             binding['retainedDirectChildCount'] = len(rows) if owner_matches else 0
+             binding['discoveryOutcome'] = ('completed' if owner_matches
+@@ -313,8 +353,8 @@
+     def bind_guardian(self):
+         self.guardian_binding = {
+             'startedNs': mono(), 'endedNs': None,
+-            'ownerBefore': {}, 'ownerAfterTasks': {}, 'ownerAfterCandidates': {},
+-            'taskCountObserved': None, 'rawChildCount': 0, 'retainedDirectChildCount': 0,
++            'ownerBefore': {}, 'ownerAfterCandidates': {},
++            'procScanIndex': None, 'rawChildCount': 0, 'retainedDirectChildCount': 0,
+             'discoveryOutcome': 'not-started', 'matchingCount': None,
+             'outcome': 'not-completed', 'candidates': [],
+             'readErrorCount': 0, 'readErrors': [], 'omittedReadErrorCount': 0,
+@@ -328,7 +368,11 @@
+         if mono() >= self.anchor['monotonicNs'] + WINDOW_NS:
+             raise ObservationError('entire-dispatch-window-already-missed')
+         matches = []
+-        for row in self.children(self.app, binding=self.guardian_binding):
++        self.guardian_binding['procScanIndex'] = len(self.proc_scans)
++        table = self.proc_table(self.app)
++        if table is None:
++            raise ObservationError('insufficient-window-for-binding-scan')
++        for row in self.children(self.app, table, binding=self.guardian_binding):
+             candidate = self.binding_candidates[row['pid']]
+             stage = 'argv'
+             try:
+@@ -399,6 +443,12 @@
+ 
+     def discover(self):
+         start = mono()
++        # One table per discovery, shared by every already-proven parent.
++        table = self.proc_table(self.guardian)
++        if table is None:
++            self.discovery_count += 1
++            self.discovery_times.append(mono() - start)
++            return
+         work = list(self.known.values())
+         visited = set()
+         while work:
+@@ -409,7 +459,7 @@
+             if key in visited:
+                 continue
+             visited.add(key)
+-            for row in self.children(parent):
++            for row in self.children(parent, table):
+                 child_key = (row['pid'], row['birth'])
+                 if child_key in self.known:
+                     continue
+@@ -535,6 +585,9 @@
+                    'app': self.app, 'guardian': self.guardian, 'dispatch': self.anchor,
+                    'logObservation': getattr(self, 'log_read', None),
+                    'guardianBinding': self.guardian_binding,
++                   'procScans': self.proc_scans,
++                   'procDiscoveryLimits': {'entries': MAX_PROC_ENTRIES, 'numericPids': MAX_PROC_PIDS,
++                                           'scanWallNs': MAX_PROC_SCAN_NS, 'scanRecords': MAX_SCAN_RECORDS},
+                    'anchorSelection': 'first observed retained exact-App dispatch from log beginning; render_1 required; no re-anchor',
+                    'anchorUncertainty': {
+                        'diagnosticsBestEffort': True,
+@@ -567,6 +620,9 @@
+                    'limits': ['No signal, cleanup, product IPC or page observer.',
+                               'Initial/lost/terminal CPU intervals are not reconstructed; zombie ticks are not active CPU.',
+                               '250ms discovery can miss short-lived previously unseen descendants.',
++                              'Stat tables are not atomic; vanished entries and PID races are not reconstructed.',
++                              'Global stat scanning adds measured overhead; non-owned stat rows are never output.',
++                              'Scan wall limit is checked between operations, not a preemptive kernel-read deadline.',
+                               'High CPU does not identify the request; low CPU does not prove a scheduler defect.',
+                               'Sampling overhead is retained, not subtracted; asynchronous traces may be lost.']}
+         raw = json.dumps(summary, indent=2) + '\n'

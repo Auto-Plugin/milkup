@@ -1,0 +1,211 @@
+{
+  "classification": "DIAGNOSTIC ONLY, not formal UI acceptance",
+  "traceCount": 73,
+  "phaseCounts": {
+    "pipe-write-complete": 8,
+    "helper-frame-dequeued": 8,
+    "helper-evaluate-submitted": 8,
+    "helper-evaluate-callback": 7,
+    "receive-entry": 6,
+    "helper-result-drained": 6,
+    "helper-result-write-complete": 6,
+    "dispatch": 6,
+    "request-meta": 6,
+    "matching-result-received": 5,
+    "result-settled": 5,
+    "kill-start": 1,
+    "cleanup-complete": 1
+  },
+  "requestCount": 6,
+  "completeCount": 5,
+  "unmatchedSourceCount": 0,
+  "deadlineRecords": [],
+  "cancelledRequestCount": 1,
+  "settledOk": 5,
+  "settledFalse": 0,
+  "limits": [
+    "Intervals are observed monotonic wall time, not helper CPU execution time.",
+    "helper-frame-dequeued timestamp includes diagnostic metadata parsing; callback entry is separately recorded before callback metadata.",
+    "Trace performs diagnostic hashing/serialization/queueing and has a bounded nonblocking channel; unobserved records cannot prove absence. No overhead subtraction.",
+    "Source matching uses JavaScript UTF-16 slice, exact UTF-8 bytes and SHA-256 on actual opened ordinary/fallback files. Windowed file was not opened.",
+    "No selection in native metadata; no reconstruction from later UI snapshot.",
+    "No payload attribution to historical formal UI04 render_68."
+  ],
+  "top10": [
+    {
+      "instanceId": "5c61f8f702282a5f9a4b9e1cec0e3772810d4b78edb0e327",
+      "requestId": "render_1",
+      "meta": {
+        "detailType": "request",
+        "from": 108,
+        "source_bytes": 234,
+        "source_sha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "light",
+        "to": 342,
+        "width": 1100
+      },
+      "sources": [
+        {
+          "file": "ordinary.md",
+          "sampleId": "block-000-first-official-example",
+          "family": "block"
+        }
+      ],
+      "intervals": {
+        "dispatchToPipeWriteMs": 0.093922,
+        "pipeWriteToDequeuedMs": 4.862552,
+        "dequeuedToEvaluateSubmittedMs": 0.036094,
+        "evaluateSubmittedToEvaluateCallbackEntryMs": 1105.243093,
+        "evaluateCallbackEntryToEvaluateCallbackLoggedMs": 0.024435,
+        "evaluateCallbackLoggedToResultDrainedMs": 27.034968,
+        "resultDrainedToResultWriteMs": 0.058935,
+        "resultWriteToReceiveEntryMs": 0.528919,
+        "receiveEntryToMatchingResultMs": 0.127926,
+        "matchingResultToSettledMs": 0.016931
+      },
+      "dispatchToSettledMs": 1138.027775,
+      "ok": true,
+      "cancelObserved": true
+    },
+    {
+      "instanceId": "5c61f8f702282a5f9a4b9e1cec0e3772810d4b78edb0e327",
+      "requestId": "render_3",
+      "meta": {
+        "detailType": "request",
+        "from": 440,
+        "source_bytes": 529,
+        "source_sha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14",
+        "theme": "light",
+        "to": 969,
+        "width": 1100
+      },
+      "sources": [
+        {
+          "file": "ordinary.md",
+          "sampleId": "classDiagram-000-first-official-example",
+          "family": "classDiagram"
+        }
+      ],
+      "intervals": {
+        "dispatchToPipeWriteMs": 0.069906,
+        "pipeWriteToDequeuedMs": 4.222102,
+        "dequeuedToEvaluateSubmittedMs": 0.019159,
+        "evaluateSubmittedToEvaluateCallbackEntryMs": 507.391931,
+        "evaluateCallbackEntryToEvaluateCallbackLoggedMs": 0.020246,
+        "evaluateCallbackLoggedToResultDrainedMs": 355.720338,
+        "resultDrainedToResultWriteMs": 0.064582,
+        "resultWriteToReceiveEntryMs": 1.552734,
+        "receiveEntryToMatchingResultMs": 0.269887,
+        "matchingResultToSettledMs": 0.085267
+      },
+      "dispatchToSettledMs": 869.416152,
+      "ok": true,
+      "cancelObserved": false
+    },
+    {
+      "instanceId": "5c61f8f702282a5f9a4b9e1cec0e3772810d4b78edb0e327",
+      "requestId": "render_5",
+      "meta": {
+        "detailType": "request",
+        "from": 440,
+        "source_bytes": 529,
+        "source_sha256": "ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14",
+        "theme": "light",
+        "to": 969,
+        "width": 1100
+      },
+      "sources": [
+        {
+          "file": "ordinary.md",
+          "sampleId": "classDiagram-000-first-official-example",
+          "family": "classDiagram"
+        }
+      ],
+      "intervals": {
+        "dispatchToPipeWriteMs": 0.077356,
+        "pipeWriteToDequeuedMs": 2.435445,
+        "dequeuedToEvaluateSubmittedMs": 0.142276,
+        "evaluateSubmittedToEvaluateCallbackEntryMs": 219.275598,
+        "evaluateCallbackEntryToEvaluateCallbackLoggedMs": 0.020868,
+        "evaluateCallbackLoggedToResultDrainedMs": 596.676746,
+        "resultDrainedToResultWriteMs": 0.058321,
+        "resultWriteToReceiveEntryMs": 0.88096,
+        "receiveEntryToMatchingResultMs": 0.161355,
+        "matchingResultToSettledMs": 0.013669
+      },
+      "dispatchToSettledMs": 819.742594,
+      "ok": true,
+      "cancelObserved": false
+    },
+    {
+      "instanceId": "5c61f8f702282a5f9a4b9e1cec0e3772810d4b78edb0e327",
+      "requestId": "render_4",
+      "meta": {
+        "detailType": "request",
+        "from": 108,
+        "source_bytes": 234,
+        "source_sha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "light",
+        "to": 342,
+        "width": 1100
+      },
+      "sources": [
+        {
+          "file": "ordinary.md",
+          "sampleId": "block-000-first-official-example",
+          "family": "block"
+        }
+      ],
+      "intervals": {
+        "dispatchToPipeWriteMs": 0.111477,
+        "pipeWriteToDequeuedMs": 5.121979,
+        "dequeuedToEvaluateSubmittedMs": 0.415632,
+        "evaluateSubmittedToEvaluateCallbackEntryMs": 462.292405,
+        "evaluateCallbackEntryToEvaluateCallbackLoggedMs": 0.018515,
+        "evaluateCallbackLoggedToResultDrainedMs": 18.091448,
+        "resultDrainedToResultWriteMs": 0.043201,
+        "resultWriteToReceiveEntryMs": 0.690675,
+        "receiveEntryToMatchingResultMs": 0.15166,
+        "matchingResultToSettledMs": 0.024889
+      },
+      "dispatchToSettledMs": 486.961881,
+      "ok": true,
+      "cancelObserved": false
+    },
+    {
+      "instanceId": "5c61f8f702282a5f9a4b9e1cec0e3772810d4b78edb0e327",
+      "requestId": "render_2",
+      "meta": {
+        "detailType": "request",
+        "from": 108,
+        "source_bytes": 234,
+        "source_sha256": "e51cb79094f8db3d5a6afd84b1b3a9dab0a1a8da503e5d39a1e7733985c0244b",
+        "theme": "light",
+        "to": 342,
+        "width": 1100
+      },
+      "sources": [
+        {
+          "file": "ordinary.md",
+          "sampleId": "block-000-first-official-example",
+          "family": "block"
+        }
+      ],
+      "intervals": {
+        "dispatchToPipeWriteMs": 0.066279,
+        "pipeWriteToDequeuedMs": 2.560216,
+        "dequeuedToEvaluateSubmittedMs": 0.149417,
+        "evaluateSubmittedToEvaluateCallbackEntryMs": 174.288611,
+        "evaluateCallbackEntryToEvaluateCallbackLoggedMs": 0.016063,
+        "evaluateCallbackLoggedToResultDrainedMs": 1.632974,
+        "resultDrainedToResultWriteMs": 0.037904,
+        "resultWriteToReceiveEntryMs": 0.479136,
+        "receiveEntryToMatchingResultMs": 0.094408,
+        "matchingResultToSettledMs": 0.016932
+      },
+      "dispatchToSettledMs": 179.34194,
+      "ok": true,
+      "cancelObserved": false
+    }
+  ]
+}

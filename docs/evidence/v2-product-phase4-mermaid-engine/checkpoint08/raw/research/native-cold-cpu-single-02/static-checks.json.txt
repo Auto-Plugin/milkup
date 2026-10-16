@@ -1,0 +1,49 @@
+{
+  "recordedAt": "2026-10-16T18:46:47.095039+00:00",
+  "checks": [
+    {
+      "command": [
+        "bash",
+        "-n",
+        "/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-single-02/env.sh"
+      ],
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "command": [
+        "bash",
+        "-n",
+        "/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-single-02/driver.sh"
+      ],
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "command": [
+        "bash",
+        "-n",
+        "/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-single-02/run-harness.sh"
+      ],
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-single-02/cold-diagnostic.mjs"
+      ],
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "command": "Python ast.parse read-only-preflight.py",
+      "exitCode": 0
+    }
+  ],
+  "originalHarnessByteIdentical": true,
+  "runtimeExecuted": false,
+  "samplerExecuted": false,
+  "readOnlyPreflightExecuted": false
+}
