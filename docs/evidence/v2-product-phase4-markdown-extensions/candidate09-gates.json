@@ -2,7 +2,7 @@
   "candidate": "candidate09",
   "sourceManifest": "candidate09-source-manifest.json",
   "sourceFiles": 678,
-  "status": "prerequisite-gates-pass-native-pending",
+  "status": "prerequisite-gates-pass-native-failed",
   "unit": {
     "passed": 1732,
     "files": 148
@@ -29,5 +29,63 @@
     "candidate08 run03 windowed click failure not reproduced",
     "candidate08 far geometry and preparation failures require candidate09 production validation"
   ],
-  "extractedBinarySha256": "de057fb8899786b612c7fccf829beaf8f247dd96f6e7602edcb9209e7c609408"
+  "extractedBinarySha256": "de057fb8899786b612c7fccf829beaf8f247dd96f6e7602edcb9209e7c609408",
+  "native": {
+    "run": "run-candidate09-run01",
+    "acceptance": false,
+    "exitCode": 1,
+    "stoppedAtFirstFailure": true,
+    "failure": "windowed near footnote return navigation timeout",
+    "passed": [
+      "ordinary source reveal, graph keyboard navigation, footnote definition and return, invalid/opaque literal fallback",
+      "ordinary source/live Unicode edit, byte-identical save, undo and redo",
+      "windowed root and flow source reveal, graph and footnote keyboard focus, near footnote definition"
+    ],
+    "pointer": {
+      "label": "返回 1",
+      "visibleAndHitTestable": true,
+      "nativePointerSent": true,
+      "position": {
+        "x": 80.46875,
+        "y": 76.140625
+      },
+      "cursorAfter": 501,
+      "documentVersionAfter": 0,
+      "causalHandlerDeliveryProven": false
+    },
+    "rendererStatus": {
+      "allThreeEnabled": true,
+      "errors": [],
+      "supervisorControls": []
+    },
+    "notReached": [
+      "windowed near footnote return completion",
+      "far footnote",
+      "windowed source/live history",
+      "64-case display matrix",
+      "all-disabled recovery"
+    ],
+    "summary": "native/candidate09-run01-failure-summary.json",
+    "log": "native/candidate09-run01.log",
+    "trace": "native/run-candidate09-run01/trace-archive.json",
+    "failureScreenshot": "native/run-candidate09-run01/FAIL-x11.png",
+    "causalDiagnosis": "unresolved; visible hit test and native pointer submission do not prove DOM event delivery or handler execution"
+  },
+  "checkpoint": {
+    "localCommit": "065882e4ac8c638c2fe8eb6f7050ff9228e95ecc",
+    "lastConfirmedRemoteCommit": "e396b9f55ce1dfae920cd8b7ecaf29fb640ce350",
+    "pushStatus": "blocked",
+    "pushFailure": "fatal: could not read Username for 'https://github.com': No such device or address",
+    "newCredentialsCreated": false,
+    "subsequentReadOnlyTokenProbe": {
+      "endpoint": "https://api.github.com/user",
+      "httpStatus": 401,
+      "credentialValueRecorded": false
+    },
+    "connectedGitHubProfile": {
+      "login": "LarryZhu-dev",
+      "readSucceeded": true
+    },
+    "evidence": "candidate09-push-blocker.json"
+  }
 }

@@ -2,7 +2,7 @@
 
 本轮基线 `2184526ddfaeef6ae1e80008f0ee90e41be9fdec`，独立分支 `dot/milkup-v2-product-phase4-markdown-extensions`。当前为实现与验收中的报告；未列出实际结果的检查均不代表通过。
 
-最新候选 09 正在验证两项已独立复现的布局修复；整体尚未验收。上一候选 08 的全仓前端门禁及 Linux 生产构建通过，但正式原生验收失败：run01 安装阶段 GTK 崩溃、run02 两个渲染器自然超时、run03 窗口化图表点击未进入源码。三项原因尚未确定，受控诊断通过不能抵消这些失败。run03 已完成普通文档语义与 source/live 字节一致的保存、撤销重做；窗口化语义、远端脚注、64 组显示矩阵、全禁用与恢复仍未完成。后续详情和原始失败均保留在验收记录中。
+最新候选 09 的全仓前端门禁及 Linux 生产构建通过，但正式原生 run01 在窗口化近端脚注“返回 1”导航首次失败，整体仍未验收。普通文档语义及 source/live 保存、撤销重做通过；窗口化 root/flow 源码揭示、键盘导航和近端定义通过。返回按钮可见且命中，发送真实原生点击后 cursor 仍为 501、版本仍为 0，三个渲染插件均启用且没有监督器错误；尚未证明事件投递或处理器的因果路径。远端脚注、窗口化历史、64 组显示矩阵及全禁用恢复未到达。候选 08 的 GTK 崩溃、自然渲染超时和点击失败等旧风险继续保留，后续诊断不能抵消正式失败。
 
 ## 审计与设计
 
@@ -77,7 +77,7 @@ P5 尚无独立完整导出/打印产品链路。当前需要明确保留的输�
 
 ## 验收记录
 
-**当前仍未通过生产验收，最新候选为 09；候选 08 的正式失败继续保留。** 下文按候选保留历史失败和修复，不将早期检查点或后续诊断当作最终通过。因执行器多次断连，曾按要求先保存并推送隔离分支；检查点不代表 P4 完成，也不触发打包上传或发布。候选 04 正式原生 run02 的历史失败如下。
+**当前仍未通过生产验收，最新候选 09 的正式原生 run01 已失败；候选 08 的正式失败继续保留。** 下文按候选保留历史失败和修复，不将早期检查点或后续诊断当作最终通过。因执行器多次断连，曾按要求先保存并推送隔离分支；检查点不代表 P4 完成，也不触发打包上传或发布。候选 04 正式原生 run02 的历史失败如下。
 
 普通文档的源码完整可见、图表 Tab/Shift+Tab、脚注跳转及 source/live 字节一致的保存和撤销重做已实际运行，但 run02 在普通 live 保存阶段记录 math Worker 被停用：render_57 从发出到终止为 2313 ms，同期主线程出现 2289 ms 停顿；其它两个 Worker 的结果也延迟约 2260 ms 才交付。该失败请求没有 Worker 内部完成时标，不能断言插件已完成或确认误杀。随后窗口化请求在 38/18/37 个块之间反复变化，仍需独立定位布局与缓存反馈。保留 2 秒真实执行预算，不以延长期限或移除断言通过门禁。[失败与时序证据](evidence/v2-product-phase4-markdown-extensions/native/deadline-diagnosis-candidate04.json)、[候选状态](evidence/v2-product-phase4-markdown-extensions/candidate04-gates.json)。
 
@@ -145,7 +145,13 @@ P5 尚无独立完整导出/打印产品链路。当前需要明确保留的输�
 
 修复只位于两个视图内部文件：notice 完整插入、文字和布局变化前后保持有效阅读锚点；启用文档呈现的 live 视图在无缓存换窗时也先测量新行和 spacer，再恢复同一源码行。文档/版本/选区/config/epoch/销毁变化或缺失目标行时不恢复旧位置；用户滚离选区时保留阅读锚点，不强制回光标，不扩缓存、不改焦点顺序。内部测量返回值避免 SourceView 重复测量，未公开到 SDK/core API；共享 CSS、插件和 10 秒准备/2 秒执行预算未改。118 的 10 项失败来自新夹具复用可变快照，与真实视图返回新快照不符；仅修正夹具，保留原失败记录，不计产品红回归。最终相关 278 项独立单测、类型、新增 6 项和原有 21 项浏览器交互通过。新 notice 四项末态均为 scrollTop1899/y640，稳定帧全部可见；无缓存换窗修后 y204.78125→205。同步插入 hook 的中间高度变化仍完整保留。修前/修后 PNG 已目视复核。[完整红绿分类与证据](evidence/v2-product-phase4-markdown-extensions/view/125-layout-anchor-summary.json)。
 
-候选 09 冻结 678 项源文件、配置、测试和生成资源。全仓 JavaScript 单测 **1,732 项、148 文件通过**，类型、构建及格式检查通过；完整浏览器 **188 项通过、零失败、零重试，8.6 分钟**，使用 Linux Chromium、单工作进程。[门禁](evidence/v2-product-phase4-markdown-extensions/candidate09-gates.json)、[浏览器日志](evidence/v2-product-phase4-markdown-extensions/browser-full-candidate09.log)。Rust、公开 SDK、插件及预装资源字节未变，按[继承证明](evidence/v2-product-phase4-markdown-extensions/candidate09-gate-inheritance.json)保留原测试结论。Linux 生产 DEB 构建与独立解包通过，构建后 678 项冻结文件无变化。[产物证明](evidence/v2-product-phase4-markdown-extensions/native/candidate09-provenance.json)记录 DEB SHA-256 `88646f68e604a02b64d83c7958cbd600275f5dfc2de0e459fe317bd716738dfb`，实际解包二进制 SHA-256 `de057fb8899786b612c7fccf829beaf8f247dd96f6e7602edcb9209e7c609408`。正式原生验收尚待进行，这仍是尚未验收的检查点。之前的 GTK 崩溃、自然渲染超时及未复现的点击失败仍单独保留为未解释风险。
+候选 09 冻结 678 项源文件、配置、测试和生成资源。全仓 JavaScript 单测 **1,732 项、148 文件通过**，类型、构建及格式检查通过；完整浏览器 **188 项通过、零失败、零重试，8.6 分钟**，使用 Linux Chromium、单工作进程。[门禁](evidence/v2-product-phase4-markdown-extensions/candidate09-gates.json)、[浏览器日志](evidence/v2-product-phase4-markdown-extensions/browser-full-candidate09.log)。Rust、公开 SDK、插件及预装资源字节未变，按[继承证明](evidence/v2-product-phase4-markdown-extensions/candidate09-gate-inheritance.json)保留原测试结论。Linux 生产 DEB 构建与独立解包通过，构建后 678 项冻结文件无变化。[产物证明](evidence/v2-product-phase4-markdown-extensions/native/candidate09-provenance.json)记录 DEB SHA-256 `88646f68e604a02b64d83c7958cbd600275f5dfc2de0e459fe317bd716738dfb`，实际解包二进制 SHA-256 `de057fb8899786b612c7fccf829beaf8f247dd96f6e7602edcb9209e7c609408`。正式原生 run01 已执行并在首次失败停止，这仍是尚未验收的检查点。之前的 GTK 崩溃、自然渲染超时及未复现的点击失败仍单独保留为未解释风险。
+
+候选 09 正式 run01 完成三包安装启用、普通文档全部语义，以及 source/live 的 Unicode 编辑、全字节保存、撤销重做。窗口化 root/flow 源码揭示和恢复、图表与脚注键盘焦点、近端脚注定义也通过。首次失败在定义的“返回 1”：按钮边界 y=65.64–86.64，中心 (80.47,76.14) 位于编辑器内且命中 BUTTON，已发送真实原生 pointer；原期限内 cursor 仍为 501、文档版本仍为 0，未完成返回导航。三个渲染器均启用、无记录错误，也无监督器 timeout/error 控制事件。正式脚本没有 DOM pointer-event 观察器，因此这些证据不能证明点击投递到哪个处理器，更不能声称已经因果定位。[失败摘要](evidence/v2-product-phase4-markdown-extensions/native/candidate09-run01-failure-summary.json)、[完整运行日志](evidence/v2-product-phase4-markdown-extensions/native/candidate09-run01.log)、[失败像素](evidence/v2-product-phase4-markdown-extensions/native/run-candidate09-run01/FAIL-x11.png)、[无损原始 trace 归档](evidence/v2-product-phase4-markdown-extensions/native/run-candidate09-run01/trace-archive.json)。按首次失败停止，没有自动重试；远端脚注、窗口化 source/live 历史、64 组矩阵、全插件禁用及恢复未到达，矩阵仍为 0/64。日志中的 `PASS FAIL` 仅是失败截图记录标签，运行退出码为 1，不代表验收通过。
+
+独立诊断 `candidate09-nearreturn01` 尚未走到窗口化返回点击：普通文档前置阶段，math 与 footnotes 收到真实监督器 timeout 控制事件并转为 failed，diagrams 仍正常启用，随后因脚注预览未出现而在首次失败停止，没有重跑。局部 pointer/focus/DOM observer 尚未注入，记录为 `null`，因此本次没有“返回 1”点击的因果证据；超时控制本身也不能区分子 Worker 计算与调度延迟。此前正式 run01 的返回失败及无 renderer error 结论原样保留，不能与本次不同失败合并归因。[诊断准备脚本与差异](evidence/v2-product-phase4-markdown-extensions/native/near-return-pointer/preparation.json)、[诊断摘要](evidence/v2-product-phase4-markdown-extensions/native/candidate09-nearreturn01-summary.json)、[日志](evidence/v2-product-phase4-markdown-extensions/native/candidate09-nearreturn01.log)、[无损 trace](evidence/v2-product-phase4-markdown-extensions/native/run-candidate09-nearreturn01/trace-archive.json)。[导航路径静态分析](evidence/v2-product-phase4-markdown-extensions/view/126-candidate09-navigation-path-analysis.md)列出待验证的事件投递与异步窗口替换路径，未选定根因。
+
+本地检查点 `065882e4ac8c638c2fe8eb6f7050ff9228e95ecc` 已提交，但 Git 推送报错 `fatal: could not read Username for 'https://github.com': No such device or address`；随后使用现有环境令牌对 `api.github.com/user` 的只读核验返回 HTTP 401。两项结果分别记录，不能把 HTTP 401 写成 Git 推送的直接响应。GitHub connector 的 `get_profile` 仍成功返回 `LarryZhu-dev`，但这不代表执行器 Git 凭据可用。最后确认的远端仍是 `e396b9f55ce1dfae920cd8b7ecaf29fb640ce350`，不能宣称本地新检查点已同步。[凭据阻塞记录](evidence/v2-product-phase4-markdown-extensions/candidate09-push-blocker.json) 不含令牌值，也未创建新凭据。
 
 脚注更新后重新在仓库外安装冻结公开 SDK、构建和运行 22 项测试通过；十插件当前源码/资源及 SDK 字节核验通过，总计 327 项，未变化插件沿用相应冻结结果。新脚注外部包 SHA-256 为 `531481d11059563cffac0e0372c911a857ac903d92e5acbd597596efa2d5bfed`，旧包和候选 04 证明保留。
 
