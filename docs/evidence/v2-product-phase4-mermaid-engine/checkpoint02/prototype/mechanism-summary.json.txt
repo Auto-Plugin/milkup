@@ -1,0 +1,237 @@
+{
+  "status": "PASS-fixed-Linux-mechanism-only",
+  "exitCode": 0,
+  "mermaidTested": false,
+  "preparationSeconds": 0.9546569240010285,
+  "bootstrapMissingObservations": 0,
+  "results": [
+    {
+      "task": "policy",
+      "elapsed": 0.023559174998808885,
+      "value": {
+        "attempted": true,
+        "complete": true,
+        "file": "rejected",
+        "network": "rejected",
+        "tauriAbsent": true,
+        "violations": [
+          {
+            "blocked": "http://127.0.0.1:9/denied",
+            "directive": "connect-src"
+          },
+          {
+            "blocked": "file",
+            "directive": "connect-src"
+          }
+        ]
+      }
+    },
+    {
+      "task": "bbox",
+      "elapsed": 0.05485276300169062,
+      "value": {
+        "bbox": {
+          "height": 29,
+          "width": 227,
+          "x": 20,
+          "y": 37
+        },
+        "fontStatus": "loaded",
+        "hasTauri": false,
+        "kind": "bbox",
+        "namespace": "http://www.w3.org/2000/svg",
+        "ok": true,
+        "rect": {
+          "height": 29,
+          "width": 227
+        },
+        "text": "真实 DOM 中文 é ∫ x²"
+      }
+    },
+    {
+      "task": "bbox",
+      "elapsed": 0.039379678997647716,
+      "value": {
+        "bbox": {
+          "height": 29,
+          "width": 227,
+          "x": 20,
+          "y": 37
+        },
+        "fontStatus": "loaded",
+        "hasTauri": false,
+        "kind": "bbox",
+        "namespace": "http://www.w3.org/2000/svg",
+        "ok": true,
+        "rect": {
+          "height": 29,
+          "width": 227
+        },
+        "text": "真实 DOM 中文 é ∫ x²"
+      }
+    },
+    {
+      "task": "loop",
+      "independentlyTerminated": true
+    }
+  ],
+  "loop": {
+    "deadlineSeconds": 2,
+    "deadlineObservedSeconds": 2.000667151998641,
+    "signalStartSeconds": 2.0009841399987636,
+    "signalCallReturnedSeconds": 2.001848236999649,
+    "cleanupVerifiedSeconds": 2.1358706720020564,
+    "signalOvershootMilliseconds": 0.9841399987635668,
+    "webProcessCpu": {
+      "200467": {
+        "birth": "3225639",
+        "samples": [
+          {
+            "mono": 32257.224067042,
+            "state": "S",
+            "ticks": 20
+          },
+          {
+            "mono": 32257.362674137,
+            "state": "R",
+            "ticks": 36
+          },
+          {
+            "mono": 32257.500618675,
+            "state": "R",
+            "ticks": 50
+          },
+          {
+            "mono": 32257.640564879,
+            "state": "R",
+            "ticks": 64
+          },
+          {
+            "mono": 32257.781046042,
+            "state": "R",
+            "ticks": 78
+          },
+          {
+            "mono": 32257.921004783,
+            "state": "R",
+            "ticks": 92
+          },
+          {
+            "mono": 32258.065742364,
+            "state": "R",
+            "ticks": 106
+          },
+          {
+            "mono": 32258.206064511,
+            "state": "R",
+            "ticks": 120
+          },
+          {
+            "mono": 32258.345924955,
+            "state": "R",
+            "ticks": 134
+          },
+          {
+            "mono": 32258.485418905,
+            "state": "R",
+            "ticks": 148
+          },
+          {
+            "mono": 32258.626338695,
+            "state": "R",
+            "ticks": 162
+          },
+          {
+            "mono": 32258.766449595,
+            "state": "R",
+            "ticks": 176
+          },
+          {
+            "mono": 32258.90511939,
+            "state": "R",
+            "ticks": 190
+          }
+        ],
+        "cpuTicksDelta": 170
+      }
+    },
+    "clockTicksPerSecond": 100,
+    "remainingOwned": [],
+    "startDefinition": "deadlineMono minus 2; native-send event recorded after optional process snapshot, so not the arming timestamp"
+  },
+  "limitations": [
+    "CSP connect-src denial observed; native send-request denial not separately exercised",
+    "SVG getBBox uses installed fonts; no Mermaid/module/font-resource compatibility claim",
+    "Linux native webkit2gtk API; Wry lifecycle approach failed and was removed; Windows/macOS untested",
+    "Bootstrap MIME header and readiness polling changed together; do not attribute prior bootstrap failure to exactly one without isolation",
+    "Not a hard-real-time zero-latency termination promise",
+    "No repo product changes"
+  ],
+  "files": [
+    {
+      "path": "dom-helper/src/main.rs",
+      "sha256": "6b43ebfc9d992aa3ab6e26a680cb7727f6d2716c183753c620bd37076d009c79",
+      "bytes": 8232
+    },
+    {
+      "path": "dom-helper/assets/engine.js",
+      "sha256": "ff4a330fdbd255e93ea0762ba1964aa50d2d69d35c3d6a0619e88998d137c675",
+      "bytes": 1890
+    },
+    {
+      "path": "dom-helper/assets/index.html",
+      "sha256": "b8f2a2dda8f92a1a18bdfa6f67fb2a41d246c868a32211bebcaa1eb7628bf80a",
+      "bytes": 178
+    },
+    {
+      "path": "dom-helper/Cargo.toml",
+      "sha256": "ce22df3641444a8de5cb48b64ed3784e664533c4b86a75b7353358a307b7aebd",
+      "bytes": 244
+    },
+    {
+      "path": "dom-helper/Cargo.lock",
+      "sha256": "01e5243ee4bbf33e75891d80af9d664f7c0fe67efa23fa17f7f97204d2db2ee0",
+      "bytes": 50000
+    },
+    {
+      "path": "target/debug/milkup-dom-render-probe",
+      "sha256": "8b89e3afc0f821eab556519fb1b22e166b8f81825dbb8530d92c029ca75bd73d",
+      "bytes": 82576736
+    },
+    {
+      "path": "extensions/libresource_guard.so",
+      "sha256": "3c4647e15393ae2a11e783ebc7d52bb2c709196ca5184fab0d44950fdcfda16d",
+      "bytes": 15632
+    },
+    {
+      "path": "extensions/resource_guard.c",
+      "sha256": "0cfae4303b1f43052e6ed152bc099404b85d403abb37a038615f3966156462f1",
+      "bytes": 875
+    },
+    {
+      "path": "supervise.py",
+      "sha256": "474e5de03d5e22e4b63d093ff54ef67aa8ff3cd3303ba2680d5b132fa03801db",
+      "bytes": 7710
+    },
+    {
+      "path": "run-mechanism-narrow.sh",
+      "sha256": "ed0bdef53564aa33d2d54803583034a1e0be1868787c41963415133dd9ba7e26",
+      "bytes": 3317
+    },
+    {
+      "path": "narrow-config/loaders.cache",
+      "sha256": "443d7657e630dd68aee14fd189e062561a442e43010e96f4bcaf6265e2cc25d8",
+      "bytes": 2761
+    },
+    {
+      "path": "narrow-config/passwd",
+      "sha256": "ab18939cedbbb99608f08aa1c5ff230a0015bc3b60c05b6e443647b0c727e27c",
+      "bytes": 122
+    }
+  ],
+  "xdgDbusProxy": {
+    "source": "/workspace/.cloud/milkup-v2/sysroot/usr/bin/xdg-dbus-proxy",
+    "sha256": "e7610831aa4572582775420b61ed1deb83d18aacf8cfd62dcf598eefc9be86c0",
+    "bytes": 55456
+  }
+}

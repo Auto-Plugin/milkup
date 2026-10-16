@@ -1,0 +1,35 @@
+# DOM host / manifest 后续红测设计（未实施）
+
+2026-10-16，基于只读审计 `dom-host-contract-audit.md`。本文件是设计清单，没有修改仓库测试，也没有执行 DOM 原型。独立 DOM 可终止、离线及无 IPC 边界原型尚未验收；不得把本清单当作新 host 已获授权实现。
+
+## 先证明正向新合同缺失
+
+- 使用普通中性 ID `example.presentation`，`host:"dom"`、包内 `main:"dist/plugin.js"`、仅 `permissions:["document:read"]`、仅一个完整 `documentRenderers` 声明，提供 UTF-8 自包含 ESM。未来应解析成功；当前 `manifest.ts` 的 KNOWN_HOSTS 必须报 unknown host，形成正向 red。不可改用 diagrams 特判令其通过。
+- 同一合法包在 manifest → package parser → registry → injected dom loader 的集成中，必须保持 host、entry 和 renderer ownership；未来 host 被解析但遗落为默认 Worker 应失败。当前直接拒绝 dom 只能证明功能缺失，不能证明未来剖面收紧正确。
+- 已有默认 worker、显式 worker、sidecar 包及现 renderer declaration 的兼容检查应保持；原SDK仍未知dom时明确报不支持，不按旧host运行。
+
+## DOM 剖面必须拒绝的 manifest 变体
+
+1. 缺少 `document:read`；额外加入任意 file/network/document:write/settings/workspace/app 权限；重复/未知权限行为明确。
+2. 非空 networkOrigins，即使未声明 network:access；不能仅不创建 broker 就声称对实际运行环境断网。
+3. 任何 commands、keymaps、pasteHandlers、ui、renderers、markdownSyntax、importers、documentTypes；settings 持久配置亦不在最小纯 renderer 剖面中。用每一种贡献独立测试，避免一个较早错误掩盖另一个字段被忽略。
+4. 未知贡献键或隐藏 runtime/entry 字段。现通用 parser 会重建已知贡献字段，dom 限制需检查原始字段或明确拒绝未知键；不能在字段已丢弃后断言“只有 documentRenderers”。
+5. 没有 documentRenderers、空集合、重复ID、超16个、非法contexts/fenceLanguages；renderer runtime/entry 方案本轮未批准，应继续拒绝声明额外字段。
+6. manifest.main 缺失/空值/绝对路径/`..`/URL/http/data/blob/file/milkup/盘符/UNC/含NUL/编码绕过；包资源与入口标准化后的重复与越界。dom必须为受约束包内入口，不能继承sidecar绝对executable特例。
+
+## 包、安装与模块执行分层
+
+- 合法dom入口必须存在且UTF-8；base64入口、entry缺失、resources缺失都拒绝。包中额外文本文件不自动成为可执行模块或可读取资源。
+- static ESM包完整性与离线加载分别测试：正确自包含bundle能装载；远端静态/动态import、相对逃逸、运行时生成fetch/WebSocket/image/font/navigation必须由真实后端边界拒绝，不能假装manifest单测已证明。
+- native重新核验installed plugin ID/host/main/内容代次，不信前端任意path或executable；symlink逸出和安装后文件替换失败。此项属于未来native安全测试，不塞进纯manifest parser。
+- 模块额外导出未声明commands或尝试host IPC不能获得权限；activation返回非owned renderer拒绝。零可用owned renderer不能显示正常启用。
+
+## 审批、生命周期与平台兼容
+
+- 从已批准worker升级同ID为dom，不继承worker host审批；从dom换回worker/sidecar也不把dom审批提升为其它执行权限。
+- 缺DOM native backend时元数据可见，但启用明确unsupported/unavailable，不能自动创建Worker或主线程iframe；原文与基础编辑继续可用。
+- 合法dom loader只调用一次独立native准备，不创建Worker；准备阶段超过2秒但在明确startup上限内不误触renderer timer。render派发后仍只有独立native固定2秒，并且取消/伪造消息不撤deadline。
+- disable/remove/re-enable在prepare/activate/render返回间交错，旧epoch/instance不污染新实例；失败可手动重启，但兼容/权限错误不可被清掉。
+- 所有fixture使用中性插件ID和不同renderer IDs，证明未引入Mermaid业务分支。
+
+这些是实施前要落到各owner focused tests的断言方向，不是已经存在的通过结果。当前正向DOM host本身被拒绝，所以恶意dom被拒绝不能算新增安全功能验证；必须在正向实现后逐字段复核。

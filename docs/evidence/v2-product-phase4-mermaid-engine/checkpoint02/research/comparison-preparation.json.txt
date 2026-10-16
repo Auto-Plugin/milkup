@@ -1,0 +1,41 @@
+{
+  "status": "attempted-blocked-before-browser-page",
+  "cases": 9,
+  "profiles": 2,
+  "renderCallsPlanned": 18,
+  "officialOptions": {
+    "look": "classic",
+    "journey": {
+      "textPlacement": "tspan"
+    }
+  },
+  "publicOptionSource": "https://mermaid.js.org/config/schema-docs/config.html",
+  "purpose": "Select a documented standard static appearance at render time; no output node deletion or input rewriting. Compare whole SVG/tags/styles/text content and geometry; retain differences. No claim of pixel equivalence.",
+  "files": [
+    {
+      "path": "run-browser-comparison.mjs",
+      "sha256": "455b4f155f6660fc1ce73bcbd479ae31b8aa0ab7ee00e000559d450cd36143fe"
+    },
+    {
+      "path": "offline/browser-probe-comparison.mjs",
+      "sha256": "0265267b413818f03e312e455d93d8df072618ffb64ea84fc843fa3c60e8da19"
+    },
+    {
+      "path": "comparison-samples.json",
+      "sha256": "1817580755855e2634a14e511b7c93e2fa0d544949e89ac30c716c4cc1954381"
+    },
+    {
+      "path": "browser-comparison-first-run.log",
+      "sha256": "32a933da0c5b437f8351a39884a309ded771219c2038afc8377b66c1cfdb222d"
+    }
+  ],
+  "revision": 2,
+  "chromiumSandbox": true,
+  "casesExecuted": 0,
+  "screenshotsProduced": 0,
+  "failureLog": "browser-comparison-first-run.log",
+  "failure": "Chromium SUID sandbox helper configuration error; process SIGABRT before page initialization",
+  "noBypass": true,
+  "cleanup": "Launch process exited and temporary directories cleaned by Playwright; HTTP server closed in finally; no browser/service remains owned by this runner.",
+  "addedObservation": "Stable element-child treePath; complete relevant computed paint/stroke/filter/font/textbox/transform/animation fields; getAnimations keyframes/timing; host screenshots per completed case"
+}

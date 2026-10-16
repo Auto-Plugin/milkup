@@ -1,0 +1,16 @@
+/* External probe only: native WebProcess subresource allowlist; no JS override. */
+#include <webkit2/webkit-web-extension.h>
+#include <string.h>
+static gboolean on_request(WebKitWebPage *page, WebKitURIRequest *request, WebKitURIResponse *redirect, gpointer data) {
+  const char *uri=webkit_uri_request_get_uri(request);
+  (void)page;(void)redirect;(void)data;
+  return !(uri && (!strcmp(uri,"milkup-render://job/index.html") || !strcmp(uri,"milkup-render://job/engine.js")));
+}
+static void on_page(WebKitWebExtension *extension, WebKitWebPage *page, gpointer data) {
+  (void)extension;(void)data;
+  g_signal_connect(page,"send-request",G_CALLBACK(on_request),NULL);
+}
+G_MODULE_EXPORT void webkit_web_extension_initialize(WebKitWebExtension *extension) {
+  g_signal_connect(extension,"page-created",G_CALLBACK(on_page),NULL);
+  g_printerr("RESOURCE_GUARD_INITIALIZED\n");
+}

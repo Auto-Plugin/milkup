@@ -1,0 +1,93 @@
+# 官方 37 样本后的 profile 修订（只读）
+
+来源：`browser-audit/results.json` 与其34个成功SVG。37次中34成功、3失败；按父端样本定义覆盖16图型，每型至少一个成功。此处分析文件与已有 computedStyles，不重新运行浏览器或测试。逐SVG SHA、标签/属性/本地引用、动画、journey文本见 `official-svg-profile-inventory.json`。**本修订替代此前将 foreignObject/filter/gradient 放到可选未来范围的过窄草案；journey、sankey、neo普通图应成为第一版能力。**
+
+## 真实必要能力
+
+| 原始样本（browser-audit/） | 实际证据 | 必须支持 |
+| --- | --- | --- |
+| userJourney-000-first-official-example.svg | 7 switch、7 foreignObject、14 XHTML div，分别为2个section与5个task文字框 | 通用安全文本XHTML框＋switch的备用SVG文字，不允许整型因foreignObject回退 |
+| sankey-000-first-official-example.svg | 68 linearGradient，136 stop，68 path.stroke本地url引用；共490 computed节点 | typed gradient、stop与paint引用，保留连续渐变 |
+| sequenceDiagram-000-first-official-example.svg | 3 symbol：computer/database/clock；drop-shadow filter；4 rect.filter引用 | symbol定义、path完整语法、fill/clip-rule、真实filter引用 |
+| flowchart-000-first-official-example.svg及多数neo样例 | 2 filter/feDropShadow定义；样式有匹配neo选择器的CSS drop-shadow | 保留静态SVG filter及CSS drop-shadow，不只识别url滤镜 |
+| flowchart-086-animated-edge.svg | path id audit_7-e1，computed animationName=dash、duration20s；class edge-animation-fast | 动画为真实有效输出，不能仅采某时刻stroke-dashoffset伪装静态等价 |
+| flow-link-strict.svg | strict仍有a、xlink:href=https://example.invalid/audit-link，含真实子图 | strict不是宿主URL授权；需明确禁止/降级交互策略，不能宣称strict已无链接 |
+
+最大原始样本sankey48845字节、mindmap44082、state39891，均低于现256KiB输出上限；**不等于转换为typed AST后一定低于配额**。sequence database symbol的path很长且有大量隐式重复参数；必须以完整SVG path语法解析，命令展开后再计总预算。节点数不代表path复杂度。
+
+## journey 的最小安全文本 XHTML profile
+
+实际每个foreignObject仅此结构：
+
+```
+foreignObject(x,y,width,height)
+  XHTML div [display:table; width:100%; height:100%]
+    XHTML div [display:table-cell; text-align:center; vertical-align:middle]
+      Text
+```
+
+7个原文为 Go to work / Make tea / Go upstairs / Do work / Go home / Go downstairs / Sit down。坐标x150..950、y50/110，宽150/350/550，高50。没有img/a/input/script或任意富HTML。原始foreignObject后还有完整SVG text/tspan备用分支。
+
+推荐新增 **通用 typed textBox**，而非开放任意foreignObject.children：
+- rect四元组；plain text（后续如需br，用显式textRuns/lineBreak枚举）；
+- font family受控ID、size、weight/style、color、lineHeight、whiteSpace/wordBreak有限枚举；
+- hAlign start/center/end、vAlign top/middle/bottom；
+- canonical serializer生成固定两层XHTML div、正确XHTML namespace与明确属性；不接收class/style字符串、不允许任意tag；
+- 包括 computed color/background/border/padding/boxSizing 等实际需要值，默认与原始布局一致。不要把SVG fill作为HTML文字color；
+- 可保留typed switch，准确序列化textBox和SVG text备用分支。不要把两个分支当普通g一起渲染而重叠；
+- 图像上下文和宿主校验双重边界；仍禁止host inline XHTML DOM。
+
+不能直接删除foreignObject采用现有备用text来声称无损：本样本主支 computed **16px Arial**，备用text inline **14px Open Sans**，字体与尺寸已经不同。可以未来在隔离DOM测量主支后生成等价SVGtext，但需要保留换行/基线/字体的实测证明，第一版固定文本XHTML更小更忠实。
+
+新增测试应至少包括journey短/长/多行、中文/emoji、两主题四缩放，主支与备用分支各一次真实WebKit img解码；非法namespace、嵌套HTML、标签文字注入须拒绝。不能只用当前七个英文短词证明所有文本布局。
+
+## 静态滤镜：支持两种来源，不把阴影误删
+
+1. SVG `filter`＋`feDropShadow`：
+   - 实样filter width/height130%或150%，默认filterUnits为objectBoundingBox，默认x/y为负10%；必须保留/显式化默认值，而非强改成0..width。
+   - feDropShadow实样dx/dy4或2，stdDeviation0，flood-opacity0.06，flood-color#000000。
+   - typed `filterDef{id,region:{x,y,width,height,units},primitiveUnits,operations:[dropShadow]}`；length区分比例与user-space，阴影参数有限且累计region/blur-pixel成本有界。
+   - 支持引用SourceGraphic/SourceAlpha及有界中间result只有在实际需要时再扩；现阶段单dropShadow足够该批普通例，不开放所有fe*或feImage。
+
+2. CSS `filter:drop-shadow(1px 2px 2px rgba(185,185,185,1))`：
+   - 不能因为原SVG含未引用filter定义就认为所有阴影由这些defs覆盖。neo CSS是独立有效通道。
+   - helper从实际computed filter取得typed dropShadow，宿主可生成受控CSS filter值（只此数值函数）或等价规范filter；后者需确认CSS与SVG色彩空间/blur默认值及region，不能假设数值搬运像素相同。
+   - 禁止任何filter url字符串透传；引用仅typed localId，函数仅typed已支持静态操作。
+
+目前 results.computedStyles **未记录filter/color/opacity/strokeWidth/colorInterpolationFilters**，因此可以证明样式规则和SVG引用存在，不能从该JSON断言每个neo元素最终filter数值。下一次helper审计应采完整必要computed字段，避免“有效规则推断”冒充直接测量。
+
+## 渐变、symbol 与属性规范化
+
+Sankey真实渐变：linearGradient.gradientUnits=userSpaceOnUse；x1/x2数值，y1/y2缺省0；两个stop为0%/100%、不同十六进制color。必须保留units、缺省、stop顺序与alpha；paint引用可在fill或stroke。增 typed linearGradient、stop(offset0..1,color,opacity)、gradientTransform和spreadMethod的明确默认，禁止外部href继承。radialGradient这批没有出现，不必先扩整个SVG百科，但实现不应把遇到它的输出静默同色化。
+
+Sequence symbol定义含 `transform=scale(.5)`、fill-rule/clip-rule=evenodd；computer/clock宽高24，database没有同样宽高。应保留symbol可选尺寸与viewBox默认语义，不强造width24。该批sequence没有use，所以只能证明defs可解析，不能证明symbol实例化正确。建议合同同时支持typed local use(reference,x/y,width/height)并做真实actor图标样本后验；引用图检查无循环、总展开成本受限，不能仅限制DOM节点数。
+
+其他必要细节：
+- text/tspan的x/y/dy实样含em单位与xml:space，需typed length/white-space；不要一律parseFloat丢单位。
+- fill-rule/clip-rule、dominant/alignment-baseline、stroke-opacity、transform-origin都已出现；按真实使用表达，不能靠只复制fill/stroke重画。
+- 未被最终绘制使用的class/data-*与无匹配CSS规则可在完成selector匹配和所有语义提取后消除；这属于有证明的规范化，不是无条件删除未知属性。title/description保留到无障碍文本。
+- defs/style/switch/title有些没有attributes；inventory必须按tag存在计数，不能因空属性集漏掉它们。
+
+## 动画：明确界线，不能静态化后报 ready
+
+通用静态profile只可丢弃 **未匹配任何有效元素** 的keyframes/rules。本批所有SVG都可带通用动画CSS，只有animated-edge一例记录实际animationName=dash；两者必须区分。有效动画要么：
+
+A. 为成熟输出增加极窄、显式typed **strokeDashAnimation**（from/to offset、duration、linear timing、repeat、dash pattern）；宿主生成命名空间内keyframes与唯一匹配元素样式，绝不接受原始CSS/keyframes。20s/50s循环是声明式图像绘制，不执行插件代码，图形生成仍两秒硬终止；另限制动画元素数、动画属性与最大绘制成本，支持reduced-motion的明确暂停状态。
+
+B. 如果本轮仍限定静态图，必须把此例判为明确“动画能力未提供”且保留源码，不能把静态帧归为成功或宣传完整动态图。用户若允许显式静态导出，单独target/options注明时间点；不能默认为屏幕显示也静态等价。
+
+建议A作为有限扩展，保留普通动画edge语义，避免成熟引擎只剩静态快照。图像动画实际WebKit支持与帧变化需要后续两时点像素验收，本次未运行。
+
+## computed style 当前证据缺口与下一次采集字段
+
+已有每元素字段仅 tag/id/class/fill/stroke/fontFamily/fontSize/fontWeight/fontStyle/animationName/animationDuration/display。还需：
+color、fillOpacity、strokeOpacity、opacity、strokeWidth、dasharray/dashoffset/linecap/join/miterlimit；filter、colorInterpolationFilters；font lineHeight/letterSpacing/wordSpacing、textAnchor/dominantBaseline/alignmentBaseline；textBox width/height/padding/margin/border/background/whiteSpace/wordBreak/overflow/textAlign/verticalAlign/boxSizing；transform/transformOrigin；animationTimingFunction/IterationCount/Delay/Direction/FillMode/PlayState与实际keyframes属性。
+
+采集应带稳定tree path而非仅id/class（大量节点id为空），从而按原树顺序准确关联。规范化必须保持继承、SVG group opacity层合成（不能把父opacity简单乘到所有子shape导致重叠区域改变）、百分比单位与裁剪语义。不需要把浏览器数百个computed属性无条件全量抄出。
+
+## 修订后的第一版能力边界
+
+第一版应支持当前16图型普通官方实例所需：现有基础shape + fullpath + group transforms + text/tspan + typed paints + marker + static drop-shadow + linearGradient/stops + symbol/local refs + journey textBox/switch + a11y。安全URL/脚本/未知复杂HTML继续明确拒绝；动画采用上文明确分支，不能混淆。
+
+静态profile改变的是可表达数据，不改变来源窗口/selection/history/2秒执行/撤销合同。任何图像decode都应预设尺寸并沿已有layout/anchor/inner-scroll生命周期处理。完整官方样本转换后以逐图像素对照证明保真，包括journey七标签、sankey彩色连接、neo阴影、sequence图标/箭头，不以“validator接受”代替视觉成功。
+

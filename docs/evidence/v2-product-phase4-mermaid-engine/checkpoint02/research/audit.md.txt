@@ -1,0 +1,93 @@
+# Mermaid 12.2.0 official engine audit
+
+Research date: 2026-10-16. External research only; no repository product/lockfile modification. The first 37-case Chromium output scan completed with Playwright's default Chromium sandbox disabled; it is research only. The later sandbox-enabled comparison was blocked before all 18 calls. Static compilation is not renderer acceptance.
+
+## Pinned provenance and offline bundle
+
+The npm `latest` metadata and [main Mermaid release](https://github.com/mermaid-js/mermaid/releases/tag/mermaid@12.2.0) agree on **12.2.0**, published 2026-10-13. The monorepo GitHub `/releases/latest` endpoint points at `@mermaid-js/tiny@12.2.0`; use `github-main-release.json`, not that endpoint alone, for main-package identity.
+
+- Official tarball: `https://registry.npmjs.org/mermaid/-/mermaid-12.2.0.tgz`; 25,955,888 bytes; SHA256 `071914164d0f6d53e5c26a10a220230d4ae8d37ed0f2263fbf072266f0af3a0a`.
+- Tarball npm integrity: `sha512-w7nr/SFrLO7BaVTs3dQTvYSV6nYSBj0Yy9DjBhsIJtAcHqRzXSq4Pg32ujHZ/AdWsAMNEvvhbm5dt9E2tOiHzw==`.
+- `offline/package-lock.json`: exact graph, SHA256 `8ab4a19e5fd68ca42f6f74eb4e66d4495b47d5ab51418851fc211ce831f7c2df`.
+- Full public default export bundled with esbuild 0.25.12, browser ES2024, no splitting: `offline/dist/mermaid-full-12.2.0.mjs`, 5,254,581 bytes, SHA256 `043c33385b8b41bb628872f4e419c7f20886403152b045736382db36072d8c0c`. Metafile contains 2,112 input modules and **zero output imports**. This is the full engine, not Tiny.
+- The single-file bundle resolves npm `mermaid.core.mjs` and this lock's dependencies. It is not byte-equivalent to upstream precompiled `mermaid.esm.mjs`: e.g. this lock resolves DOMPurify **3.4.17**, while the official precompiled ESM source map contains **3.4.12**. Record this distinction in any eventual production provenance.
+- Official ESM files contain many relative dynamic diagram/layout imports. Copying only their small entry file is not offline packaging. Our bundled output closes that import graph; this does not by itself eliminate data-triggered image/font/CSS requests.
+- First install attempt failed because default npm cache `/home/agent/.npm` is unavailable. Preserved `offline/install.log`; rerun with an external workspace cache succeeded in `offline/install-local-cache.log`. No install scripts were enabled.
+
+## Licenses and reproducibility
+
+Mermaid itself is MIT. `offline/dependency-licenses.json` records 144 lock entries (including platform-specific optional build tools), resolved URLs/integrity and installed notice hashes. `offline/licenses/` preserves 114 installed package license/notice files; the small esbuild `.LEGAL.txt` is **not** a complete replacement for these notices.
+
+The full graph includes ELK `elkjs@0.9.3` **EPL-2.0**, DOMPurify `(MPL-2.0 OR Apache-2.0)`, and MIT/ISC/BSD-3-Clause/Apache-2.0/Unlicense dependencies. `khroma@2.1.0` lacks a manifest license field but its included `license` file is MIT. Do not label the complete bundle “MIT only.” Preserve corresponding ELK source/version provenance and license obligations when distributing; this research is an inventory, not a legal determination. Official [ELK license](https://github.com/kieler/elkjs/blob/0.9.3/LICENSE.md) and [DOMPurify license](https://github.com/cure53/DOMPurify/blob/main/LICENSE) were checked.
+
+## Real API and execution constraints
+
+Public `mermaid.render(id, definition, optionalContainer)` asynchronously returns SVG text, diagram type and optional event-binding function. Calls are serialized through a module-level queue (`source-excerpts/mermaid.ts:308–418`). There is **no AbortSignal parameter**. `parse()` validates syntax; it does not replace layout/rendering.
+
+This render API requires a real DOM and browser measurements. `source-excerpts/mermaidAPI.ts:523–605` accesses `document.body`, creates a container/SVG/style nodes; diagram chunks call SVG `getBBox`, `getComputedTextLength`, `getComputedStyle` and create HTML/SVG nodes. A normal Worker cannot run this public renderer. A fabricated DOM/measurement shim would need separate correctness proof and is not equivalent to official layout.
+
+DOMPurify sanitization at `mermaidAPI.ts:652` explicitly permits `foreignobject`; `strict` is therefore not a “SVG primitives only” contract. Returned `bindFunctions` must not be invoked for the static product profile. A hidden same-thread iframe does not provide a killable execution boundary or prove a true two-second deadline. A separate controlled DOM helper needs its own supervision, lifetime/identity checks and bounded output.
+
+The official [usage contract](https://mermaid.js.org/config/usage.html) targets ES2024/Safari 17.4+ in 12.x; Node package metadata requires >=22.12.0. Current production WebKit must be tested; successful Node/esbuild parsing is insufficient.
+
+## Static profile and network controls to validate
+
+The prepared probe initializes `startOnLoad:false`, `securityLevel:'strict'`, `htmlLabels:false`, `suppressErrorRendering:true`, limits 50,000 input UTF16 units / 500 edges, system `Arial, sans-serif`, and disables both legacy MathML modes. Protected `secure` keys include HTML-label/font/themeCSS/math settings as well as Mermaid's default security/size keys. No external diagrams, icon loaders or `bindFunctions` are registered.
+
+These settings are only the first boundary:
+
+- Input frontmatter/directives can override settings unless locked. Mermaid's default `secure` list does not include `htmlLabels`, font or themeCSS. The recursive sanitizer enforces protected key names, but raw CSS sanitization chiefly balances braces; it is not our CSS allowlist.
+- Flow image nodes execute `new Image(); img.src = node.img` (`chunk-VFTINRM2.mjs:2818–2819`). Block external resource access in the helper before parsing/rendering; rejecting final SVG is too late to prevent that request.
+- [Icon loaders](https://mermaid.js.org/config/icons.html) can fetch remote JSON when explicitly registered. No remote loader belongs in offline initialization. Font family declarations do not inherently download fonts; do not add the documentation's CDN font CSS. Measure with a fixed installed/local font and wait for font readiness if local bundled fonts are added.
+- [Mermaid math](https://mermaid.js.org/config/math.html) defaults to MathML. Legacy HTML math requires separately supplied KaTeX CSS/fonts. Do not enable it accidentally; MathML/foreignObject requires an explicit output policy rather than silently deleting labels.
+- Default emitted CSS includes animation declarations/keyframes even for nonanimated drawings. A static serializer must inspect effective animated elements or reject unsupported active semantics; rejecting every stylesheet containing an unused keyframe would incorrectly reject ordinary graphs.
+- Support internal fragment references (markers/clip paths) only after validating/rebinding IDs. Reject external URLs, event handlers, scripting, image/HTML content, unsupported CSS and unknown nodes as a whole diagram with a visible reason. Do not silently strip unsupported pieces while claiming a faithful rendering.
+
+## Broad sample and support plan
+
+`samples.json` contains 30 unmodified official fenced Mermaid blocks from the pinned release's source docs, with source URLs/line numbers/SHA, spanning **16 families**: flowchart, sequence, class, state, ER, gantt, journey, gitGraph, pie, mindmap, timeline, requirement, XY, block, quadrant and sankey. Flow additions exercise subgraphs, inner directions, style/classDef, labels, animation and images; sequence additions exercise alt/loop/par/critical/box and numbering. Seven locally authored probes add multilingual/multiline Markdown labels, URL images, CSS URL paint, safe styles, click URLs, configuration overrides and math labels. Original tagged documents are in `official-docs/` under Mermaid's MIT project license.
+
+Recommended first acceptance set: the nine common families **flowchart, sequence, class, state, ER, gantt, journey, gitGraph, pie**, with the seven extra families tested and accepted wherever their output satisfies the same generic static profile. Do not advertise universal Mermaid syntax support from the package's detector list, and do not silently reduce this plan to flow/sequence/pie. Each supported feature should have an official source example plus visual/semantic output checks; excluded dynamic/link/image features should clearly retain source with a reason.
+
+Prepared `run-browser-audit.mjs` serves only this external research directory on a temporary localhost port, blocks and records every request outside that origin, uses a fixed system font and runs the actual full bundle. It preserves full returned SVG and per-case tags, attributes, computed styles, foreignObject, animation rules, network attempts and failures. It does not validate product integration, production WebKit, timeouts, or accessible semantic equivalence. The first scan completed as recorded below; its Chromium sandbox was disabled by the Playwright default. The separate sandbox-enabled comparison did not reach any case.
+
+## Actual Chromium scan, completed
+
+Execution was explicitly scheduled after the native helper compiler exited. `browser-first-run.log` preserves the initial launcher failure (missing Playwright-managed browser cache; **zero cases ran**). `run-browser-audit.revision01.mjs` preserves that runner. The only runner correction selected the existing `/usr/bin/chromium`; all 37 inputs were unchanged. `browser-run02.log` and `browser-audit/results.json` contain the successful scan. Browser and temporary HTTP server both closed in `finally`, releasing the slot.
+
+HeadlessChrome 154: **34/37 render calls succeeded**, all 16 families had a successful official example. Largest observed call was approximately 546 ms. This is DOM/output inspection, not visual acceptance, a production-WebKit measurement, or proof of a hard timeout.
+
+Actual exceptions and profile boundaries:
+
+- The official image sample requests `https://mermaid.js.org/favicon.svg`; the local image probe requests `https://example.invalid/audit-image.png`. Both requests were blocked, and both complete renders rejected with `EncodingError`. This confirms why output-only filtering is insufficient.
+- The local unquoted `classDef ... fill:url(https://...)` probe failed Mermaid parsing. It does **not** prove every CSS URL syntax is rejected. No sample was silently rewritten to force a pass.
+- The ordinary official Journey example produces **7 foreignObject nodes** despite global `htmlLabels:false`, including XHTML divs and an SVG text fallback inside switch. Source inspection finds the separate public `journey.textPlacement` branch (`fo` versus `old`/tspan); an explicit SVG-mode configuration is a candidate to test, not yet a verified repair.
+- Official animated edge and classDef-animation samples have a computed animation name on real elements. Other ordinary SVGs also contain unused keyframe CSS, so distinguish effective animation from unused stylesheet text.
+- **Strict does not remove all hyperlinks**: `flow-link-strict.svg` contains an `<a xlink:href="https://example.invalid/audit-link">` even though `bindFunctions` was never called. Independently reject external links in the static profile; the probe did not click it.
+- `flow-markdown-multiline` generates SVG text/tspan with bold/italic and Chinese text, no foreignObject. Safe classDef fill/stroke also rendered. These features need style/transform/text semantics preserved by the typed output contract.
+- `flow-config-override` retained encoded HTML text, did not create foreignObject or request its injected CSS URL under the additional secure keys. This is one bounded override case, not a general proof for arbitrary directives.
+- `flow-math` “succeeded” but output literal `$$x^2 + y^2 = z^2$$` text, no MathML. Do not claim formula-label typesetting under this profile merely because render resolved.
+
+Observed output element vocabulary: a, circle, defs, div, feDropShadow, filter, foreignObject, g, line, linearGradient, marker, path, polygon, rect, stop, style, svg, switch, symbol, text, title, tspan. Common 12.x neo/default output includes filter/gradient structures and transforms. An old line/rect/polygon-only DTO cannot faithfully represent this breadth. Full attribute/computed-style inventory and output hashes are in `browser-audit/results.json` / `summary.json`; original SVGs remain alongside them. No pixel review was performed.
+
+## Configuration comparison preparation (later blocked before cases)
+
+`run-browser-comparison.mjs` / `comparison-preparation.json` prepare nine unchanged sample sources under two profiles: the prior defaults, and explicit official `look:'classic'` plus `journey:{textPlacement:'tspan'}`. The public [config schema](https://mermaid.js.org/config/schema-docs/config.html) documents `tspan | fo | old`; use **tspan**, not an invented `'svg'` value. Both profiles additionally secure the look/textPlacement keys. Eighteen planned render calls record the complete SVG, effective styles, viewBox, SVG/client dimensions and text/bounding boxes. This is choosing a standard engine appearance before render, not stripping diagram primitives. Expected cosmetic/layout differences must be recorded, not described as exact visual equivalence.
+
+The scripts passed static `node --check`; their later authorized launch failed before any case, as recorded below. No configuration output or pixels were collected. Safe gradient/shadow/symbol support remains relevant even if classic reduces their frequency, since explicitly requested ordinary styles must not disappear silently. The strict external-link case remains a real red example for the future static profile; detect it and return complete source with a reason, not a partially sanitized diagram. The first scan's **34 render successes are neither safe-profile passes nor pixel passes**.
+
+## Configuration comparison attempt: sandbox startup blocked
+
+The requested expanded observation was implemented only in the external comparison scripts: stable element-child `treePath`, namespace, effective paint/opacity/stroke geometry, SVG/CSS filters and color interpolation, font spacing/baselines, text-box dimensions/padding/border/background/alignment/overflow, transforms, animation properties plus actual keyframes/timing. Each completed case was to receive a real host-element screenshot. Both scripts passed `node --check`.
+
+After explicit UI-slot authorization, the runner launched existing `/usr/bin/chromium` with **`chromiumSandbox:true`**. Chromium aborted before a page or Mermaid case started, reporting that `/usr/lib/chromium/chrome-sandbox` was not configured as the required root-owned mode-4755 SUID helper. The log also records preceding crashpad directory errors; this audit does not infer their causal relationship. `browser-comparison-first-run.log` preserves the original launch trace. **0/18 calls ran, zero screenshots were produced or reviewed.** No privileges, sandbox settings or system helper permissions were changed; no bypass/retry was attempted. Playwright cleaned its failed process/profile and the runner closed its temporary HTTP server in `finally`; the UI/CPU token was released.
+
+Important provenance correction for the earlier 37-case scan: its runner used Playwright's default Chromium launch behavior, with no `chromiumSandbox:true` option. That default disables the Chromium sandbox. Those saved SVG/DOM observations remain bounded engine research evidence, but they are **not evidence of sandbox-enabled execution** and must not be described as such. This comparison attempt explicitly enabled the sandbox and failed. No browser output or pixel claim can be added for classic+tspan until an authorized, supported sandbox-enabled execution environment is available.
+
+## Native single-case probe prepared (not executed)
+
+`native-probe/entry.mjs` imports the exact full offline bundle from its own directory. `ready()` only waits for module import and existing font readiness, with synchronous `readiness()` observation; it does not initialize Mermaid or parse any document. Each `start({id,source,profile,theme})` starts exactly one graph after readiness, returns a task ID synchronously, and exposes `poll(taskId)` for native collection. The native owner alone enforces its two-second deadline, including polling/serialization; there is no JavaScript watchdog, hidden retry, or 18-case batch.
+
+Results retain full SVG, text geometry, tree paths, deduplicated styleTable, URLs, active animations, counts, theme, elapsed timing and exact serialized-size/over-256KiB flags. Effective styles now include **mix-blend-mode** and **isolation** for Sankey. Oversize research results are reported without truncation or raising any product limit. The module retains only the latest visible host for optional screenshots and at most two task results. This fixed local research module observes raw Mermaid output inside the independently isolated helper; it is not a production safe-SVG validator.
+
+No native probe has run in this audit turn. The new Runtime/upload authorization is not consumed here: no artifact upload, publication, Windows package or new runtime download was performed.

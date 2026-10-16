@@ -1,0 +1,98 @@
+"""Research sizing projection, NOT a production converter or validator.
+Reads already generated SVGs; no browser, renderer, network or tests.
+Missing computed style fields are explicitly reported; no claim of valid SafeSvgImage.
+"""
+import collections, hashlib, json, re, xml.etree.ElementTree as E
+from pathlib import Path
+BASE=Path(__file__).parent
+DIR=BASE/'browser-audit'
+REPORT=json.loads((DIR/'results.json').read_text())
+NUM=r'[+-]?(?:(?:\d+\.\d*|\.\d+|\d+)(?:[eE][+-]?\d+)?)'
+LEX=re.compile(r'[MmLlHhVvCcSsQqTtAaZz]|'+NUM)
+ARITY=dict(M=2,L=2,H=1,V=1,C=6,S=4,Q=4,T=2,A=7,Z=0)
+def num(s):
+    v=float(s)
+    return int(v) if v.is_integer() else v
+def commands(d):
+    tokens=[]; pos=0
+    for m in LEX.finditer(d):
+        if d[pos:m.start()].strip(' ,\t\n\r'): raise ValueError('unparsed path prefix')
+        tokens.append(m.group());pos=m.end()
+    if d[pos:].strip(' ,\t\n\r'):raise ValueError('unparsed path suffix')
+    out=[]; i=0; cmd=None
+    while i<len(tokens):
+        if tokens[i] in 'MmLlHhVvCcSsQqTtAaZz':
+            cmd=tokens[i];i+=1
+            if cmd.upper()=='Z':out.append([cmd]);cmd=None;continue
+        if cmd is None:raise ValueError('missing command')
+        n=ARITY[cmd.upper()]
+        params=tokens[i:i+n]
+        if len(params)!=n or any(v in 'MmLlHhVvCcSsQqTtAaZz' for v in params):raise ValueError('bad arity')
+        vals=[num(v) for v in params]
+        if cmd.upper()=='A' and (vals[3] not in [0,1] or vals[4] not in [0,1]):raise ValueError('arc flags')
+        out.append([cmd,*vals]);i+=n
+        if cmd in ['M','m']:cmd='L' if cmd=='M' else 'l'
+    return out
+def size(v):return len(json.dumps(v,ensure_ascii=False,separators=(',',':')).encode())
+def tag(e):return e.tag.rsplit('}',1)[-1]
+def evaluate(r):
+    path=DIR/r['svgFile'];root=E.fromstring(path.read_text())
+    css=r['computedStyles']; raw=list(root.iter())
+    assert len(raw)==len(css),(r['id'],len(raw),len(css))
+    computed={id(e):c for e,c in zip(raw,css)}
+    styles=[];styleids={}; nodes=collections.Counter();path_count=point_count=transform_count=0
+    inline_styles=set();active=[]
+    def build(e,d=1):
+        nonlocal path_count,point_count,transform_count
+        t=tag(e)
+        if t=='style':return None
+        nodes[t]+=1
+        c=computed[id(e)]
+        assert c['tag']==t
+        style={k:c[k] for k in ['fill','stroke','fontFamily','fontSize','fontWeight','fontStyle','display']}
+        key=json.dumps(style,sort_keys=True)
+        if key not in styleids:styleids[key]=len(styles);styles.append(style)
+        o={'kind':t,'style':styleids[key]}
+        attrs={k:v for k,v in e.attrib.items() if k not in ['class','style'] and not k.startswith('data-')}
+        if t=='path':
+            cmd=commands(attrs.pop('d',''));o['commands']=cmd;path_count+=len(cmd)
+        if 'points' in attrs:
+            points=[num(x) for x in re.findall(NUM,attrs.pop('points'))]
+            assert len(points)%2==0
+            o['points']=[points[i:i+2] for i in range(0,len(points),2)];point_count+=len(points)//2
+        if 'transform' in attrs:transform_count+=len(re.findall(r'[A-Za-z]+\s*\(',attrs['transform']))
+        if attrs:o['pendingTypedAttributes']=attrs
+        if e.get('style'):inline_styles.add(e.get('style'))
+        if e.text and e.text.strip():o['text']=e.text
+        children=[n for x in e if (n:=build(x,d+1)) is not None]
+        if children:o['children']=children
+        if c.get('animationName') not in [None,'none']:active.append({k:c[k] for k in ['tag','id','animationName','animationDuration']})
+        return o
+    tree=build(root)
+    projected={'type':'svg-image','profile':'bounded-svg-v1','styles':styles,'projectedTree':tree}
+    repeated=json.loads(json.dumps(tree))
+    def expand(o):
+        o['style']=styles[o['style']]
+        for x in o.get('children',[]):expand(x)
+    expand(repeated)
+    depth=maxdepth(tree)
+    charged=sum(nodes.values())+path_count+point_count+transform_count+len(styles)
+    # DOM counts already include stops and XHTML divs; arrays/points/commands charged additionally.
+    return dict(id=r['id'],family=r['family'],file=r['svgFile'],sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+        rawSvgBytes=path.stat().st_size,sourceDomNodes=len(raw),projectedElementNodes=sum(nodes.values()),
+        tagDistribution=dict(nodes),pathCommands=path_count,pointTuples=point_count,transformOperations=transform_count,
+        styleEntries=len(styles),styleTableBytes=size(styles),measuredStyleKeys=list(styles[0]),
+        projectedBytesWithStyleTable=size(projected),projectedBytesWithRepeatedStyles=size({'projectedTree':repeated}),
+        observedInlineStyleBaggageBytes=size(sorted(inline_styles)),projectedChargedNodes=charged,
+        projectedDepth=depth,within4096=charged<=4096,within256KiB=size(projected)<=262144,
+        effectiveAnimationRecords=active,requiresUnsafeLinkRejection='a' in nodes,
+        warnings=['Projection retains pendingTypedAttributes strings and only the recorded computed-style subset; not a valid or complete production AST.','Full CSS filter, blend, opacity, textBox layout and textRun/definition canonicalization can change bytes and charged count.'])
+def maxdepth(x):return 1+max([maxdepth(c) for c in x.get('children',[])],default=0)
+samples=[evaluate(r) for r in REPORT['results'] if r['ok']]
+out={'method':'Static research projection over 34 saved SVGs; no UI or tests. Complete path token consumption and implicit command expansion; observed style subset deduplicated per figure.','profileLimits':{'bytes':262144,'nodes':4096,'depth':64},'missingComputedFields':['filter','color','opacity','fillOpacity','strokeOpacity','mixBlendMode','isolation','strokeWidth','strokeDasharray','strokeDashoffset','lineHeight','whiteSpace','textAlign','verticalAlign','transform','transformOrigin','colorInterpolationFilters'],'samples':samples}
+out['summary']={'samples':len(samples),'projectedBytesRange':[min(s['projectedBytesWithStyleTable'] for s in samples),max(s['projectedBytesWithStyleTable'] for s in samples)],'projectedChargedNodesRange':[min(s['projectedChargedNodes'] for s in samples),max(s['projectedChargedNodes'] for s in samples)],'maxDepth':max(s['projectedDepth'] for s in samples),'allProjectedWithinBudgets':all(s['within4096'] and s['within256KiB'] for s in samples),'notAValidatedProductionBudgetProof':True}
+p=BASE/'official-svg-ast-sizing.json';p.write_text(json.dumps(out,ensure_ascii=False,indent=2)+'\n')
+print(json.dumps(out['summary'],indent=2))
+for s in sorted(samples,key=lambda x:x['projectedBytesWithStyleTable'],reverse=True)[:6]:
+ print(s['id'],s['projectedBytesWithStyleTable'],s['projectedBytesWithRepeatedStyles'],s['projectedChargedNodes'],s['pathCommands'],s['styleEntries'])
+

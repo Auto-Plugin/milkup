@@ -1,0 +1,28 @@
+// Research only. Explicit UI slot approval required before execution.
+import fs from 'node:fs';
+import path from 'node:path';
+import http from 'node:http';
+import {fileURLToPath} from 'node:url';
+import {chromium} from '/workspace/milkup/node_modules/.pnpm/playwright@1.61.1/node_modules/playwright/index.mjs';
+const root=path.dirname(fileURLToPath(import.meta.url));
+const server=http.createServer((req,res)=>{
+ const pathname=new URL(req.url,'http://localhost').pathname;
+ if(pathname==='/'){res.setHeader('content-type','text/html');res.end('<!doctype html><meta charset="utf-8"><title>Offline Mermaid audit</title>');return;}
+ const f=path.resolve(root,'.'+pathname);
+ if(!f.startsWith(root+path.sep)||!fs.existsSync(f)||!fs.statSync(f).isFile()){res.statusCode=404;res.end();return;}
+ res.setHeader('content-type',f.endsWith('.mjs')?'text/javascript':f.endsWith('.json')?'application/json':'text/plain');res.end(fs.readFileSync(f));
+});
+await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+const origin=`http://127.0.0.1:${server.address().port}`;let browser;
+try {
+ browser=await chromium.launch({headless:true,executablePath:process.env.MILKUP_BROWSER_EXECUTABLE ?? '/usr/bin/chromium'});const page=await browser.newPage();const requests=[],blocked=[],consoleMessages=[];
+ await page.route('**/*',route=>{const url=route.request().url();requests.push({url,type:route.request().resourceType()});if(url.startsWith(origin+'/'))return route.continue();blocked.push(url);return route.abort('blockedbyclient');});
+ page.on('console',m=>{if(consoleMessages.length<200)consoleMessages.push({type:m.type(),text:m.text().slice(0,2000)})});
+ await page.goto(origin);const samples=JSON.parse(fs.readFileSync(path.join(root,'samples.json'),'utf8'));
+ const result=await page.evaluate(async(samples)=>{const {run}=await import('/offline/browser-probe.mjs');return run(samples)},samples);
+ result.requests=requests;result.blockedExternalRequests=blocked;result.console=consoleMessages;
+ const dir=path.join(root,'browser-audit');fs.mkdirSync(dir,{recursive:true});
+ for(const row of result.results){if(row.svg){fs.writeFileSync(path.join(dir,row.id+'.svg'),row.svg);row.svgFile=row.id+'.svg';delete row.svg;}}
+ fs.writeFileSync(path.join(dir,'results.json'),JSON.stringify(result,null,2)+'\n');
+ console.log(JSON.stringify({samples:result.results.length,ok:result.results.filter(x=>x.ok).length,failed:result.results.filter(x=>!x.ok).map(x=>({id:x.id,error:x.error})),foreignObject:result.results.filter(x=>x.foreignObjects?.length).map(x=>x.id),blockedExternalRequests:blocked},null,2));
+} finally {await browser?.close();await new Promise(resolve=>server.close(resolve));}

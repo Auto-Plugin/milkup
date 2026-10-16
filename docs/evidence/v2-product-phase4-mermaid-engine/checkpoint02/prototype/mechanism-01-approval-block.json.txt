@@ -1,0 +1,16 @@
+{
+  "status": "blocked-before-process-creation",
+  "time": "2026-10-16T09:37:51.368806+00:00",
+  "builds": {
+    "build-01": "failed API imports and PageLoadEvent equality; retained",
+    "build-02": "passed",
+    "build-03": "passed; added fixed CSP rejection probe"
+  },
+  "requestedCommand": "bash /workspace/milkup-mermaid-engine-evidence/prototype/run-mechanism.sh mechanism-01",
+  "permission": "require_escalated",
+  "reviewReason": "This launches an escalated WebKit helper with broad read-only root visibility, process creation, and filesystem/network probe side effects; the user authorized preparation/building but not this UI execution, so exact-run authorization is insufficient.",
+  "noRetry": true,
+  "runtimeAssertionsRun": 0,
+  "mermaidTested": false,
+  "nextStep": "Explicit run authorization / approval clarification through parent; do not bypass rejection."
+}

@@ -1,0 +1,81 @@
+[
+  {
+    "id": "block-000-first-official-example",
+    "family": "block",
+    "source": "block\ncolumns 1\n  db((\"DB\"))\n  blockArrowId6<[\"&nbsp;&nbsp;&nbsp;\"]>(down)\n  block:ID\n    A\n    B[\"A wide one in the middle\"]\n    C\n  end\n  space\n  D\n  ID --> D\n  C --> D\n  style B fill:#969,stroke:#333,stroke-width:4px\n",
+    "sourceSha256": "78e30a8aaf7fb9a0a374414e1984d2882815549cfce0428d71601302ed4998d2",
+    "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/block.md",
+    "line": 10,
+    "unmodifiedOfficialBlock": true
+  },
+  {
+    "id": "classDiagram-000-first-official-example",
+    "family": "classDiagram",
+    "source": "---\ntitle: Animal example\n---\nclassDiagram\n    note \"From Duck till Zebra\"\n    Animal <|-- Duck\n    note for Duck \"can fly<br>can swim<br>can dive<br>can help in debugging\"\n    Animal <|-- Fish\n    Animal <|-- Zebra\n    Animal : +int age\n    Animal : +String gender\n    Animal: +isMammal()\n    Animal: +mate()\n    class Duck{\n        +String beakColor\n        +swim()\n        +quack()\n    }\n    class Fish{\n        -int sizeInFeet\n        -canEat()\n    }\n    class Zebra{\n        +bool is_wild\n        +run()\n    }\n",
+    "sourceSha256": "01f53b9e79db0fe31e23e5b0bd74fde68bf38de3255c838d9effb67403ffb77b",
+    "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/classDiagram.md",
+    "line": 11,
+    "unmodifiedOfficialBlock": true
+  },
+  {
+    "id": "flowchart-006-subgraph",
+    "family": "flowchart",
+    "source": "flowchart LR\n  subgraph Client\n    UI[Web app]\n    Cache[(Local cache)]\n  end\n  subgraph Services\n    API[API gateway]\n    Auth[Auth service]\n    Orders[Order service]\n  end\n  subgraph Storage\n    DB[(Orders DB)]\n  end\n  UI --> API\n  UI --> Cache\n  API --> Auth\n  API --> Orders\n  Orders --> DB\n  Auth -. token .-> UI\n",
+    "sourceSha256": "db4aa3083cae19b2161f65a3286ca21bd0af2272991be4d9b363418ce69e51ed",
+    "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/flowchart.md",
+    "line": 115,
+    "unmodifiedOfficialBlock": true
+  },
+  {
+    "id": "mindmap-001-without-icons",
+    "family": "mindmap",
+    "source": "mindmap\nRoot\n    A\n      B\n      C\n",
+    "sourceSha256": "50120b037f07451727a4c261d4a2f601f5ce26c40c061336c710b49d99f33bf7",
+    "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/mindmap.md",
+    "line": 46,
+    "unmodifiedOfficialBlock": true
+  },
+  {
+    "id": "sankey-000-first-official-example",
+    "family": "sankey",
+    "source": "---\nconfig:\n  sankey:\n    showValues: false\n---\nsankey\n\nAgricultural 'waste',Bio-conversion,124.729\nBio-conversion,Liquid,0.597\nBio-conversion,Losses,26.862\nBio-conversion,Solid,280.322\nBio-conversion,Gas,81.144\nBiofuel imports,Liquid,35\nBiomass imports,Solid,35\nCoal imports,Coal,11.606\nCoal reserves,Coal,63.965\nCoal,Solid,75.571\nDistrict heating,Industry,10.639\nDistrict heating,Heating and cooling - commercial,22.505\nDistrict heating,Heating and cooling - homes,46.184\nElectricity grid,Over generation / exports,104.453\nElectricity grid,Heating and cooling - homes,113.726\nElectricity grid,H2 conversion,27.14\nElectricity grid,Industry,342.165\nElectricity grid,Road transport,37.797\nElectricity grid,Agriculture,4.412\nElectricity grid,Heating and cooling - commercial,40.858\nElectricity grid,Losses,56.691\nElectricity grid,Rail transport,7.863\nElectricity grid,Lighting & appliances - commercial,90.008\nElectricity grid,Lighting & appliances - homes,93.494\nGas imports,Ngas,40.719\nGas reserves,Ngas,82.233\nGas,Heating and cooling - commercial,0.129\nGas,Losses,1.401\nGas,Thermal generation,151.891\nGas,Agriculture,2.096\nGas,Industry,48.58\nGeothermal,Electricity grid,7.013\nH2 conversion,H2,20.897\nH2 conversion,Losses,6.242\nH2,Road transport,20.897\nHydro,Electricity grid,6.995\nLiquid,Industry,121.066\nLiquid,International shipping,128.69\nLiquid,Road transport,135.835\nLiquid,Domestic aviation,14.458\nLiquid,International aviation,206.267\nLiquid,Agriculture,3.64\nLiquid,National navigation,33.218\nLiquid,Rail transport,4.413\nMarine algae,Bio-conversion,4.375\nNgas,Gas,122.952\nNuclear,Thermal generation,839.978\nOil imports,Oil,504.287\nOil reserves,Oil,107.703\nOil,Liquid,611.99\nOther waste,Solid,56.587\nOther waste,Bio-conversion,77.81\nPumped heat,Heating and cooling - homes,193.026\nPumped heat,Heating and cooling - commercial,70.672\nSolar PV,Electricity grid,59.901\nSolar Thermal,Heating and cooling - homes,19.263\nSolar,Solar Thermal,19.263\nSolar,Solar PV,59.901\nSolid,Agriculture,0.882\nSolid,Thermal generation,400.12\nSolid,Industry,46.477\nThermal generation,Electricity grid,525.531\nThermal generation,Losses,787.129\nThermal generation,District heating,79.329\nTidal,Electricity grid,9.452\nUK land based bioenergy,Bio-conversion,182.01\nWave,Electricity grid,19.013\nWind,Electricity grid,289.366\n",
+    "sourceSha256": "c6739c6a83029fbe481d653c74d1e302c8226bc89edcbebec88062125baa78d3",
+    "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/sankey.md",
+    "line": 15,
+    "unmodifiedOfficialBlock": true
+  },
+  {
+    "id": "stateDiagram-000-first-official-example",
+    "family": "stateDiagram",
+    "source": "---\ntitle: Simple sample\n---\nstateDiagram-v2\n    [*] --> Still\n    Still --> [*]\n\n    Still --> Moving\n    Moving --> Still\n    Moving --> Crash\n    Crash --> [*]\n",
+    "sourceSha256": "fc35188de9f919aa10f7bb302574c3bcdc2fc74a54434a5bc4ee33c57cff8d64",
+    "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/stateDiagram.md",
+    "line": 10,
+    "unmodifiedOfficialBlock": true
+  },
+  {
+    "id": "userJourney-000-first-official-example",
+    "family": "userJourney",
+    "source": "journey\n    title My working day\n    section Go to work\n      Make tea: 5: Me\n      Go upstairs: 3: Me\n      Do work: 1: Me, Cat\n    section Go home\n      Go downstairs: 5: Me\n      Sit down: 5: Me\n",
+    "sourceSha256": "e978837ae6de4a8b5c7831489dc68a9f8fe20d5d9b7514016207af832f687bdd",
+    "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/userJourney.md",
+    "line": 7,
+    "unmodifiedOfficialBlock": true
+  },
+  {
+    "id": "flow-markdown-multiline",
+    "family": "flowchart",
+    "source": "flowchart LR\n A[\"`**Bold** and *italic*\n second line`\"] --> B[\"普通中文 label\"]\n",
+    "sourceSha256": "59e1f45cef54b905d38c4b7642f6d66125d8825c82f8d605fe83a03230819f62",
+    "unmodifiedOfficialBlock": false,
+    "purpose": "controlled local feature/security probe; not official sample"
+  },
+  {
+    "id": "flow-style-safe",
+    "family": "flowchart",
+    "source": "flowchart LR\n A[styled]:::safe -->|edge label| B[plain]\n classDef safe fill:#f9f,stroke:#333,stroke-width:4px,color:#123\n",
+    "sourceSha256": "1c1b3567eb2a371b4cef3e8ab091f1640b1a6b6a5b1531a2da34f7153e6b8adf",
+    "unmodifiedOfficialBlock": false,
+    "purpose": "controlled local feature/security probe; not official sample"
+  }
+]

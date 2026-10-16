@@ -2,7 +2,7 @@
 
 更新时间：2026-10-16。此页使用唯一的八阶段编号；旧编号与阶段告示移至[历史快照及审计](v2-product-completion-plan-history-2026-10-15.md)，不再用于当前进度判断。
 
-当前执行 **P4 成熟 Mermaid 引擎接入**。候选 11 的有界能力已完成 Linux 生产验收并推送，最终基线 `d3851430fac0dc85c758187b33b769c5daba7f4a`；新独立分支 `dot/milkup-v2-product-phase4-mermaid-engine`。本阶段正在审计和验证通用独立 DOM 渲染及静态输出合同，尚未完成 Mermaid 产品覆盖；详见[本阶段报告](v2-product-phase4-mermaid-engine-2026-10-16.md)。完成后继续 P4 剩余 Markdown/图片覆盖，再进入 P5 输出/打印。当前执行本地 Linux 构建验证与代码/证据正常提交推送，不执行 Release/部署、main/v2/quality 整合或真实凭据生成。用户随后明确批准 Runtime 再分发条款及新一次上传预算（≤256 MiB、≤1 天、额外费用≤US$0.01，税费另计）；已记录，尚未使用。最新主线程指示明确：当前 P4 验收仍不允许 Windows/Runtime 打包、artifact 上传、Release、部署或整合主工作分支；上述预算未消费，不能据此启动本阶段发行操作。
+当前执行 **P4 成熟 Mermaid 引擎接入**。候选 11 的有界能力已完成 Linux 生产验收并推送，最终基线 `d3851430fac0dc85c758187b33b769c5daba7f4a`；新独立分支 `dot/milkup-v2-product-phase4-mermaid-engine`。本阶段已建立 30 个官方样例的修前失败基线，固定 Linux 独立 DOM 原型通过 sandbox 开启、Unicode 量字及两秒死循环终止；官方 Mermaid 原生、安全输出转换和产品覆盖仍待验收。详见[本阶段报告](v2-product-phase4-mermaid-engine-2026-10-16.md)。完成后继续 P4 剩余 Markdown/图片覆盖，再进入 P5 输出/打印。当前执行本地 Linux 构建验证与代码/证据正常提交推送，不执行 Release/部署、main/v2/quality 整合或真实凭据生成。用户随后明确批准 Runtime 再分发条款及新一次上传预算（≤256 MiB、≤1 天、额外费用≤US$0.01，税费另计）；已记录，尚未使用。最新主线程指示明确：当前 P4 验收仍不允许 Windows/Runtime 打包、artifact 上传、Release、部署或整合主工作分支；上述预算未消费，不能据此启动本阶段发行操作。
 
 ## 当前进度
 

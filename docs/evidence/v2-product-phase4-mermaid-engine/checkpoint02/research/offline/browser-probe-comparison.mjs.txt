@@ -1,0 +1,31 @@
+import mermaid from './dist/mermaid-full-12.2.0.mjs';
+export const config={startOnLoad:false,securityLevel:'strict',htmlLabels:false,suppressErrorRendering:true,maxTextSize:50000,maxEdges:500,deterministicIds:true,deterministicIDSeed:'offline-audit',fontFamily:'Arial, sans-serif',legacyMathML:false,forceLegacyMathML:false,secure:['secure','securityLevel','startOnLoad','maxTextSize','maxEdges','suppressErrorRendering','htmlLabels','fontFamily','themeCSS','legacyMathML','forceLegacyMathML']};
+export async function run(samples, overrides={}, onRendered){
+ const activeConfig={...config,...overrides,secure:[...config.secure,'look','textPlacement']};
+ const results=[];
+ for (let i=0;i<samples.length;i++) {
+  const sample=samples[i],host=document.createElement('div');host.style.width='1000px';host.id='audit-capture-host';document.body.append(host);
+  const started=performance.now();
+  try {
+   mermaid.initialize(activeConfig);
+   const {svg,diagramType}=await mermaid.render(`audit_${i}`,sample.source,host);
+   const doc=new DOMParser().parseFromString(svg,'image/svg+xml');const nodes=Array.from(doc.querySelectorAll('*'));
+   const tags=Object.fromEntries([...new Set(nodes.map(n=>n.localName))].sort().map(t=>[t,nodes.filter(n=>n.localName===t).length]));
+   const attrs=Object.fromEntries([...new Set(nodes.flatMap(n=>Array.from(n.attributes,a=>a.name)))].sort().map(a=>[a,nodes.filter(n=>n.hasAttribute(a)).length]));
+   const urls=nodes.flatMap(n=>Array.from(n.attributes,a=>({tag:n.localName,name:a.name,value:a.value}))).filter(a=>/href|src/i.test(a.name)||/url\(/i.test(a.value));
+   host.innerHTML=svg;
+   const rootSvg=host.querySelector('svg');
+   const geometry={viewBox:rootSvg?.getAttribute('viewBox'),rect:rootSvg?{width:rootSvg.getBoundingClientRect().width,height:rootSvg.getBoundingClientRect().height}:null,text:Array.from(host.querySelectorAll('text')).map(n=>({text:n.textContent,bbox:(()=>{try{const b=n.getBBox();return{x:b.x,y:b.y,width:b.width,height:b.height}}catch{return null}})()}))};
+   const styleFields=['color','fill','fill-opacity','fill-rule','stroke','stroke-opacity','opacity','stroke-width','stroke-dasharray','stroke-dashoffset','stroke-linecap','stroke-linejoin','stroke-miterlimit','filter','color-interpolation-filters','mix-blend-mode','isolation','font-family','font-size','font-weight','font-style','line-height','letter-spacing','word-spacing','text-anchor','dominant-baseline','alignment-baseline','width','height','padding-top','padding-right','padding-bottom','padding-left','margin-top','margin-right','margin-bottom','margin-left','border-top-width','border-right-width','border-bottom-width','border-left-width','border-top-color','border-right-color','border-bottom-color','border-left-color','border-top-style','border-right-style','border-bottom-style','border-left-style','background-color','background-image','white-space','word-break','overflow','overflow-x','overflow-y','text-align','vertical-align','box-sizing','transform','transform-origin','display','visibility','clip-path','animation-name','animation-duration','animation-timing-function','animation-iteration-count','animation-delay','animation-direction','animation-fill-mode','animation-play-state'];
+   const treePath=n=>{const parts=[];let c=n;while(c&&c!==host){const parent=c.parentElement;parts.unshift(parent?Array.from(parent.children).indexOf(c):0);c=parent;}return parts.join('/');};
+   const computedStyles=Array.from(host.querySelectorAll('*')).slice(0,4096).map(n=>{const c=getComputedStyle(n);return {treePath:treePath(n),tag:n.localName,namespace:n.namespaceURI,id:n.getAttribute('id'),class:n.getAttribute('class'),style:Object.fromEntries(styleFields.map(k=>[k,c.getPropertyValue(k)])),animations:n.getAnimations().map(a=>({keyframes:a.effect?.getKeyframes(),timing:a.effect?.getTiming()}))};});
+
+   const styles=nodes.filter(n=>n.localName==='style').map(n=>n.textContent);
+   const foreignObjects=nodes.filter(n=>n.localName.toLowerCase()==='foreignobject').map(n=>n.outerHTML.slice(0,1500));
+   results.push({id:sample.id,family:sample.family,ok:true,diagramType,elapsedMs:performance.now()-started,bytes:new TextEncoder().encode(svg).length,tags,attrs,urls,styles,geometry,computedStyles,foreignObjects,animationRules:styles.some(s=>/@keyframes|animation\s*:/.test(s)),svg});
+   if(onRendered) await onRendered(sample.id);
+  } catch(e) { results.push({id:sample.id,family:sample.family,ok:false,elapsedMs:performance.now()-started,error:String(e)}); }
+  finally {host.remove();}
+ }
+ return {config:activeConfig,userAgent:navigator.userAgent,results};
+}

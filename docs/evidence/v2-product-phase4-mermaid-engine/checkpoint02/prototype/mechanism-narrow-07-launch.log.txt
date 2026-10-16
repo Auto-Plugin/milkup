@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "/workspace/milkup-mermaid-engine-evidence/prototype/supervise.py", line 100, in <module>
+    f=frame_before(deadline)
+  File "/workspace/milkup-mermaid-engine-evidence/prototype/supervise.py", line 74, in frame_before
+    try:value=json.loads(line)
+              ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/usr/lib/python3.13/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/json/decoder.py", line 363, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)

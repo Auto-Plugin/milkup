@@ -1,0 +1,144 @@
+/**
+ * Research proposal only; NOT an SDK export and NOT production validation.
+ * All objects exact-key/plain-data; no getters/prototypes/unknown fields.
+ * Every number finite. Every string/array bounded; budgets shared across result.
+ */
+export const SVG_PROFILE_LIMITS = {
+  outputUtf8Bytes: 262_144, chargedNodes: 4096, depth: 64,
+  fragments: 128, executionMs: 2000,
+} as const
+export type Rgba = readonly [r: number, g: number, b: number, a: number]
+export type Length =
+  | { value: number; unit: 'user' | 'px' | 'em' | 'percent' }
+export type Matrix = readonly [a: number,b: number,c: number,d: number,e: number,f: number]
+export type Box = readonly [x:number,y:number,width:number,height:number]
+/** Local opaque IDs only, never URI strings; reference kind is also checked. */
+export type LocalId = string
+export type StyleId = number
+export type Paint = { kind:'none' } | { kind:'color'; rgba:Rgba }
+  | { kind:'gradient'; ref:LocalId }
+export type Transform =
+  | { kind:'matrix'; values:Matrix }
+  | { kind:'translate'; x:number; y:number }
+  | { kind:'scale'; x:number; y:number }
+  | { kind:'rotate'; degrees:number; cx:number; cy:number }
+  | { kind:'skewX'|'skewY'; degrees:number }
+export type PathCommand =
+  | readonly ['M'|'m'|'L'|'l'|'T'|'t',number,number]
+  | readonly ['H'|'h'|'V'|'v',number]
+  | readonly ['C'|'c',number,number,number,number,number,number]
+  | readonly ['S'|'s'|'Q'|'q',number,number,number,number]
+  | readonly ['A'|'a',number,number,number,0|1,0|1,number,number]
+  | readonly ['Z'|'z']
+export type Shadow = {
+  dx:number; dy:number; /** CSS blurRadius differs from SVG stdDeviation. */
+  blur:number; color:Rgba
+}
+export type FilterValue =
+  | { kind:'none' }
+  | { kind:'definition'; ref:LocalId }
+  | { kind:'cssDropShadow'; shadows:readonly Shadow[] }
+/** No arbitrary styles. A deduplicated entry describes this element, not descendants. */
+export interface SvgStyle {
+  fill?:Paint; stroke?:Paint
+  fillOpacity?:number; strokeOpacity?:number; opacity?:number
+  fillRule?:'nonzero'|'evenodd'; clipRule?:'nonzero'|'evenodd'
+  strokeWidth?:Length; dashArray?:readonly Length[]; dashOffset?:Length
+  lineCap?:'butt'|'round'|'square'; lineJoin?:'miter'|'round'|'bevel'
+  miterLimit?:number
+  display?:'inline'|'none'; visibility?:'visible'|'hidden'|'collapse'
+  overflow?:'visible'|'hidden'
+  mixBlendMode?:'normal'|'multiply'; isolation?:'auto'|'isolate'
+  filter?:FilterValue; clipPath?:LocalId
+  colorInterpolation?:'sRGB'|'linearRGB'
+  colorInterpolationFilters?:'sRGB'|'linearRGB'
+  /** Host-approved offline font mapping; never a CSS or URL string. */
+  fontId?:'sans'|'arial-sans'|'open-sans-sans'|'serif'|'monospace'
+  fontSize?:Length; fontWeight?:100|200|300|400|500|600|700|800|900
+  fontStyle?:'normal'|'italic'|'oblique'
+  letterSpacing?:Length; wordSpacing?:Length
+  textAnchor?:'start'|'middle'|'end'
+  dominantBaseline?:'auto'|'alphabetic'|'central'|'middle'|'hanging'|'text-before-edge'|'text-after-edge'
+  alignmentBaseline?:'auto'|'baseline'|'alphabetic'|'central'|'middle'|'hanging'|'before-edge'|'after-edge'
+  decoration?:'none'|'underline'|'overline'|'line-through'
+  whiteSpace?:'normal'|'pre'|'pre-wrap'|'nowrap'
+}
+export interface Common {
+  style?:StyleId
+  transforms?:readonly Transform[]
+  /** Typed local origin, only if helper cannot safely canonicalize CSS transform. */
+  transformOrigin?:readonly [Length,Length]
+  transformBox?:'fill-box'|'stroke-box'|'view-box'
+  title?:string; description?:string
+}
+export interface Marked extends Common {
+  markerStart?:LocalId; markerMid?:LocalId; markerEnd?:LocalId
+}
+export type TextChild = { kind:'textRun'; text:string } | SvgTspan
+export interface SvgTspan extends Common {
+  kind:'tspan'; x?:readonly Length[]; y?:readonly Length[]
+  dx?:readonly Length[]; dy?:readonly Length[]
+  xmlSpace?:'default'|'preserve'; children:readonly TextChild[]
+}
+export interface SvgText extends Common {
+  kind:'text'; x?:readonly Length[]; y?:readonly Length[]
+  dx?:readonly Length[]; dy?:readonly Length[]
+  children:readonly TextChild[]
+}
+/** Canonical serializer emits exactly div(table)>div(table-cell)>plain text.
+ * No XHTML tree, attributes, class, style-string or HTML escapes are accepted.
+ */
+export interface SvgTextBox extends Common {
+  kind:'textBox'; box:Box; text:string
+  color:Rgba; background?:Rgba
+  fontId:'sans'|'arial-sans'|'open-sans-sans'|'serif'|'monospace'
+  fontSizePx:number; fontWeight:100|200|300|400|500|600|700|800|900
+  fontStyle:'normal'|'italic'|'oblique'
+  lineHeight:'normal'|{px:number}
+  hAlign:'start'|'center'|'end'; vAlign:'top'|'middle'|'bottom'
+  whiteSpace:'normal'|'pre'|'pre-wrap'|'nowrap'
+  overflowWrap:'normal'|'break-word'; wordBreak:'normal'|'break-all'|'keep-all'
+}
+export type SvgNode =
+  | (Common & {kind:'group'; children:readonly SvgNode[]})
+  | (Common & {kind:'rect';x:number;y:number;width:number;height:number;rx?:number;ry?:number})
+  | (Common & {kind:'circle';cx:number;cy:number;r:number})
+  | (Common & {kind:'ellipse';cx:number;cy:number;rx:number;ry:number})
+  | (Marked & {kind:'line';x1:number;y1:number;x2:number;y2:number})
+  | (Marked & {kind:'path';commands:readonly PathCommand[]})
+  | (Marked & {kind:'polyline'|'polygon';points:readonly (readonly [number,number])[]})
+  | SvgText | SvgTextBox
+  /** Bounded local reference; no URL, remote href or nested document. */
+  | (Common & {kind:'use';ref:LocalId;x?:number;y?:number;width?:number;height?:number})
+  /** Only known, equivalent text alternatives; preserve browser branch semantics. */
+  | (Common & {kind:'textAlternative';primary:SvgTextBox;fallback:SvgText})
+export interface DefBase { id:LocalId }
+export type SvgDefinition =
+  | (DefBase & {kind:'clipPath';units:'userSpaceOnUse'|'objectBoundingBox';transforms?:readonly Transform[];children:readonly SvgNode[]})
+  | (DefBase & {kind:'marker';viewBox?:Box;width:number;height:number;refX:Length;refY:Length;units:'strokeWidth'|'userSpaceOnUse';orient:'auto'|'auto-start-reverse'|{degrees:number};style?:StyleId;children:readonly SvgNode[]})
+  | (DefBase & {kind:'linearGradient';units:'userSpaceOnUse'|'objectBoundingBox';x1:Length;y1:Length;x2:Length;y2:Length;spread:'pad'|'reflect'|'repeat';transforms?:readonly Transform[];stops:readonly {offset:number;color:Rgba}[]})
+  | (DefBase & {kind:'dropShadowFilter';units:'userSpaceOnUse'|'objectBoundingBox';primitiveUnits:'userSpaceOnUse'|'objectBoundingBox';region:readonly [Length,Length,Length,Length];colorInterpolation:'sRGB'|'linearRGB';dx:number;dy:number;stdDeviation:readonly [number,number];color:Rgba})
+  | (DefBase & {kind:'symbol';viewBox?:Box;width?:number;height?:number;style?:StyleId;children:readonly SvgNode[]})
+export interface SafeSvgImage {
+  type:'svg-image'
+  profile:'bounded-svg-v1'
+  width:number; height:number; viewBox:Box
+  aspect:{align:'none'|'xMinYMin'|'xMidYMin'|'xMaxYMin'|'xMinYMid'|'xMidYMid'|'xMaxYMid'|'xMinYMax'|'xMidYMax'|'xMaxYMax';fit:'meet'|'slice'}
+  /** Full data included and budgeted; indexes alone never authorize shared resources. */
+  styles:readonly SvgStyle[]
+  definitions:readonly SvgDefinition[]
+  children:readonly SvgNode[]
+  title?:string; description?:string
+  /** Converter rejects effective animation before producing this profile. */
+  motion:'static'
+}
+
+
+/** Converter errors are not accepted ready-image nodes. Host shows original source. */
+export type SvgConversionFailure =
+  | {code:'unsupported-animation'; reason:string}
+  | {code:'unsafe-output'; reason:string}
+  | {code:'unsupported-feature'; reason:string}
+  | {code:'limit-exceeded'; reason:string}
+  | {code:'font-unavailable'; reason:string}
+  | {code:'invalid-output'; reason:string}

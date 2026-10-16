@@ -1,0 +1,29 @@
+'use strict';
+(() => {
+  const ns='http://www.w3.org/2000/svg';
+  function bbox() {
+    const svg=document.createElementNS(ns,'svg');
+    svg.setAttribute('width','600');svg.setAttribute('height','160');
+    const label=document.createElementNS(ns,'text');label.setAttribute('x','20');label.setAttribute('y','60');
+    label.setAttribute('font-size','24');label.textContent='真实 DOM 中文 é ∫ x²';svg.appendChild(label);
+    document.getElementById('output').replaceChildren(svg);
+    const b=label.getBBox(), r=label.getBoundingClientRect();
+    return {ok:true,kind:'bbox',namespace:label.namespaceURI,text:label.textContent,
+      bbox:{x:b.x,y:b.y,width:b.width,height:b.height},rect:{width:r.width,height:r.height},
+      hasTauri:typeof window.__TAURI_INTERNALS__!=='undefined',fontStatus:document.fonts.status};
+  }
+  const policy={attempted:false,violations:[],network:null,file:null,tauriAbsent:typeof window.__TAURI_INTERNALS__==='undefined'};
+  document.addEventListener('securitypolicyviolation',e=>{if(policy.violations.length<8)policy.violations.push({directive:e.effectiveDirective,blocked:e.blockedURI});});
+  function probePolicy(){
+    if(!policy.attempted){policy.attempted=true;
+      for(const [key,url] of [['network','http://127.0.0.1:9/denied'],['file','file:///etc/hostname']]){
+        fetch(url).then(()=>{policy[key]='unexpected-success';},()=>{policy[key]='rejected';});
+      }
+    }
+    return {...policy,complete:policy.network!==null&&policy.file!==null};
+  }
+  Object.defineProperty(window,'__fixedDomProbe' ,{value:Object.freeze({
+    ready:()=>({ready:true,origin:location.origin,hasTauri:typeof window.__TAURI_INTERNALS__!=='undefined'}),
+    run:kind=>{if(kind==='policy')return probePolicy();if(kind==='bbox')return bbox();if(kind==='loop'){while(true){}}throw Error('Unknown fixed fixture');}
+  }),writable:false,configurable:false});
+})();

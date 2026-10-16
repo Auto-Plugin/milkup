@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+source /workspace/.cloud/milkup-v2/env.sh
+export CARGO_BUILD_JOBS=3
+export CARGO_TARGET_DIR=/workspace/milkup-mermaid-engine-evidence/prototype/target
+cd /workspace/milkup-mermaid-engine-evidence/prototype
+cc -shared -fPIC -O2 mermaid-extensions/resource_guard.c -o mermaid-extensions/libresource_guard.so $(pkg-config --cflags --libs webkit2gtk-web-extension-4.1)
+cargo build --offline --manifest-path mermaid-helper/Cargo.toml

@@ -1,0 +1,51 @@
+# Narrow native mechanism execution plan — prepared, not run
+
+The original escalated command was rejected before process creation. It remains recorded in `mechanism-01-approval-block.json`. This is a proposed reduced-exposure command for review, not a retry, approval claim or successful runtime test.
+
+Proposed future command, only after review/authorization:
+
+```sh
+bash /workspace/milkup-mermaid-engine-evidence/prototype/run-mechanism-narrow.sh narrow-mechanism-01
+```
+
+`narrow-preparation.json` records exact hashes. `narrow-runner.diff` contains the complete change from the refused runner. Shell syntax and explicit static checks passed; no bwrap, helper, DBus, WebKit or UI process has been started for this plan.
+
+## Exposure changes
+
+| Surface | Refused runner | Proposed runner |
+|---|---|---|
+| Root filesystem | Host `/` visible read-only | Empty bwrap root, finally remounted read-only |
+| Application/runtime libraries | Inherited root and whole workspace | Read-only `/usr`; exact sysroot library directory mounted `/runtime/lib`, schemas `/runtime/schemas` |
+| Application files | Entire `/workspace` writable | Single helper binary, single extension `.so`, generated loader cache read-only |
+| Home/credentials | Visible through host root/workspace | No host home/workspace/root directories mounted; clean environment |
+| Writable persistent files | Whole workspace and host `/tmp` | One fresh per-run profile directory only |
+| Temporary files | Host `/tmp` | Private tmpfs `/tmp` and `/run` |
+| Host display | Host `/tmp` exposed all sockets | Only `/tmp/.X11-unix/X118` mounted; dedicated existing Xvfb display |
+| Network | Inherited network namespace | `--unshare-net`; no inherited network sockets; no resolver configuration |
+| Process and IPC visibility | Inherited process/IPC namespaces | Separate PID, IPC and UTS namespaces; private `/proc` and `/dev` |
+| Helper environment | Sourced shell environment | `--clearenv` plus explicit runtime/display/profile/locale allowlist |
+| Watchdog | Outside helper | Remains outside namespace, unchanged fixed 2-second task / 10-second prep budgets |
+
+System `/usr` remains read-only and includes libraries, loader, executables, font files, DBus and GTK resources. It is a deliberate OS-runtime exposure, not an arbitrary user-content mount. Symlinks from that tree into unmounted user paths cannot reveal their targets. Reducing it to a transitive per-file runtime inventory would require additional dynamic-load auditing; this plan does not pretend `ldd` captures modules/fonts/resources loaded later.
+
+The runtime sysroot directory contains symlinks back to `/usr` as well as actual libraries. It is mounted at `/runtime/lib` rather than exposing `/workspace/.cloud`. The existing WebKit compiled helper path is supplied by a temporary overlay of the system library directory plus an exact read-only WebKit helper-directory bind; the overlay is remounted read-only. No host directory or system file is modified. The original loader cache is copied with its sysroot prefix rewritten to `/runtime/lib`; its contents and hash are recorded.
+
+`/etc` is assembled from read-only fonts configuration plus generated minimal passwd/group/hosts/nsswitch/machine-id/hostname files. No host password database, machine identity, resolver, proxy settings or credentials are exposed. `/etc/hostname` is a known synthetic non-secret canary, ensuring the fixed file probe refers to an existing file. HOME and all XDG paths point into the new profile. `NO_AT_BRIDGE=1` avoids attaching accessibility services outside the probe; no application sandbox setting is disabled.
+
+Private `/dev` and `/proc` are operating-system interfaces rather than persistent writable user mounts. `/dev` is bwrap's minimal device tree, not a bind of the host device directory; no DRM device is exposed. `/proc` is for the new PID namespace and remains usable for WebKit's own nested sandbox initialization. `/tmp`, `/run`, shared memory and the profile are the only normal writable filesystems. The parent watchdog itself is an already-authorized external diagnostic controller and remains outside all child namespaces so a child cannot delay its timer or hide host PID identities from its cleanup audit.
+
+## Evidence and limits
+
+Static `narrow-ldd.txt` has 167 resolved dependency entries, all reported through the explicit sysroot library prefix. This is dependency preparation only, not proof that the narrowed environment boots. The changed namespace may expose missing runtime resources or prevent a required WebKit sandbox operation; such a failure must be retained without switching back to the rejected broad mount or disabling sandboxing.
+
+The WebKit native sandbox remains explicitly enabled. File-origin/universal access, WebRTC/media, WebGL/storage, user permission requests, file choosers, downloads, new windows and developer extras remain denied by the helper. No product binary, plugin, budget or engine file changes accompany this runner.
+
+The fixed HTTP URL is `http://127.0.0.1:9/denied`. The new network namespace has no external route, while the page's `connect-src 'none'` should reject the fetch before networking. The fixed file URL is `file:///etc/hostname`, containing only the synthetic canary. Passing these checks with a recorded securitypolicyviolation proves the observed CSP rejection, not that the native WebProcess `send-request` allowlist independently rejected a request. `RESOURCE_GUARD_INITIALIZED` proves extension loading only. A separate, explicitly designed native-guard denial probe would be required for that additional claim; it is not silently folded into this run.
+
+The helper has no Tauri app-command bridge. Wry's internal IPC stub is not a granted application capability. Current tests inspect absence of `__TAURI_INTERNALS__`; that observation plus native source audit is narrower than a proof against every possible browser/native exploit. No arbitrary script, path or IPC method is accepted on stdin.
+
+The X11 socket is an explicit remaining communication capability. X11 clients may interact with other clients on the same display; therefore this must use the dedicated `:118` Xvfb only, with no unrelated applications. A read-only socket bind does not make the X11 protocol read-only. The helper is hidden, but this is still native UI execution requiring approval.
+
+The controller records exact PID births, groups and descendants, samples CPU and kills at the fixed deadline. Any escaped process group or inability to verify owned cleanup is reported as a mechanism failure, even if precise generation-checked cleanup succeeds. No broad pkill, host reset, proot fallback or privilege expansion is allowed. Linux namespaces do not establish Windows/macOS process-tree equivalence.
+
+Runtime status remains **NOT RUN**. The prior refusal is retained. This plan is now ready for the parent's authorization review; no automatic re-execution is scheduled.
