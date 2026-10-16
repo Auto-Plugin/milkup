@@ -85,6 +85,14 @@ P5 尚无独立完整导出/打印产品链路。当前需要明确保留的输�
 
 候选 04 已冻结 669 项源码与生成资源，[源码清单](evidence/v2-product-phase4-markdown-extensions/candidate04-source-manifest.json)。本次补齐预览刷新和视图 DOM 替换的焦点连续性：同文档、版本和选区下保留仍有效的预览，替换时仅同步恢复当前仍在预览内的图表或脚注控件；等待期间转到外部控件的焦点不会被抢回，错误、超时、禁用和源码变化会清除失效结果。相关 **229 项单测、类型及 5 项专项浏览器测试通过**，包括普通/窗口化、真实 Tab 往返与外部焦点保护；全仓 **1,657 项单测（144 文件）、类型、格式及构建通过**；完整浏览器 **166 项通过、无重试**（Linux Chromium，4.6 分钟），[日志](evidence/v2-product-phase4-markdown-extensions/browser-full-candidate04.log)。Linux 生产构建及独立解包通过，原生验收失败并继续诊断，详见本节检查点记录。
 
+检查点之后已独立复现窗口请求反复变化的触发链：脚注后台扫描的每次刷新通知都让视图撤掉有效预览，源码布局变短，随后生成大窗口请求，重绘后再发小窗口请求；没有刷新通知时，真实浏览器夹具稳定。普通和窗口化回归各 6 次通知，修前均出现 6 次预览消失空档、12 次请求。现增加独立的后台刷新入口，只在同配置、文档版本和选区下保留已验证预览；配置撤销、主题变化及失效仍硬清除。修后两种视图均为 0 空档、6 次请求，原有 5 项浏览器交互回归通过。没有采用无限扩大的范围缓存。此项尚待新生产候选的原生验证。
+
+脚注索引另增加呈现修订号：只在引用、定义、续行正文、截断或完整/受限状态实际变化时标记更新。扫描无关正文不再每 250 ms 通知；最终脏状态仍会刷新，并遵守原频率上限和取消语义。真实修前回归见 `footnotes/37-revision-refresh-before.txt`；修后 22 项测试通过，包含通知失败保留脏状态重试与末次等待取消。`41-revision-types.txt` 是首次本地 SDK 路径配置错误，`42-revision-types-final.txt` 使用公开 SDK 声明通过，独立包构建验证另行进行。
+
+独立生产 WebKit 机制实验进一步确认误判可能：预热后的真实 Worker 在请求后约 1 ms 完成并发出结果；主线程同步阻塞 2400 ms 后，原始 RPC 客户端先执行超时回调，在结果交付前终止 Worker。实验未使用端点门闩或重排，真实死循环对照仍在约 2001 ms 终止。[实验结果](evidence/v2-product-phase4-markdown-extensions/native/deadline-mechanism/webkit-result.json)。这证明该引擎中的机制缺陷，不是对原 render_57 内部状态的回溯证明。独立监督执行单元的可行性仍在验证，尚未修改预算或宣称修复。
+
+脚注更新后重新在仓库外安装冻结公开 SDK、构建和运行 22 项测试通过；十插件当前源码/资源及 SDK 字节核验通过，总计 327 项，未变化插件沿用相应冻结结果。新脚注外部包 SHA-256 为 `531481d11059563cffac0e0372c911a857ac903d92e5acbd597596efa2d5bfed`，旧包和候选 04 证明保留。
+
 候选 04 `.deb` SHA-256 为 `be903a8533d02177e77e4607ab4ff88bb9a539bac2fa2ec90b913fce36ba4928`，实际运行的解包二进制 SHA-256 为 `1b94f76b6ac09d31483e4c5a7355122a83afe9c86577028a18e4baca3fe0aa55`。[产物证明](evidence/v2-product-phase4-markdown-extensions/native/candidate04-provenance.json)记录与 release 二进制的区别；生产构建后冻结清单无变化。
 
 候选 03 历史冻结 669 项源码/配置/测试及生成预装资源，较候选 02 仅修改视图、相关回归和原生验收脚本。全仓单测 **1,653 项、144 文件通过**，类型、格式与构建通过；完整浏览器 **166 项通过、无重试**（Linux Chromium，5.4 分钟），[日志](evidence/v2-product-phase4-markdown-extensions/browser-full-candidate03.log)；原生失败另见下文。详见 [源码清单](evidence/v2-product-phase4-markdown-extensions/candidate03-source-manifest.json)、[单测](evidence/v2-product-phase4-markdown-extensions/full-unit-candidate03.log)、[类型](evidence/v2-product-phase4-markdown-extensions/full-types-candidate03.log)、[格式](evidence/v2-product-phase4-markdown-extensions/full-format-candidate03.log)、[构建](evidence/v2-product-phase4-markdown-extensions/full-build-candidate03.log)。
@@ -119,3 +127,5 @@ P5 尚无独立完整导出/打印产品链路。当前需要明确保留的输�
 当前不执行 Windows/Runtime 打包、artifact 上传、Release、部署、真实签名或整合主分支。已批准 Runtime 条款和新上传预算未消耗。
 
 检查点提交沿用旧 hooks 自带的单次 `SKIP_SIMPLE_GIT_HOOKS=1`：容器遗留 Electron hooks 引用 v2 不存在的 lint-staged 配置和提交脚本；首次调用因旧 npm 缓存路径失败。以本节记录的实际 v2 检查为准，未修改 hooks 或安全设置。
+
+2026-10-16 原执行器恢复后，首先只读核验原工作区、隔离分支及远端仍为 `c160b90201effd56a064c1436c29f0d5bb67721e`；后台刷新、脚注修订号和全部证据仍在，未发现遗留原生进程。按要求优先建立第二代码检查点，状态仍是尚未验收：监督 Worker 原型尚未运行、新候选生产包未构建、64 组原生显示矩阵未完成。未销毁、重置或替换环境，未改变 2 秒执行预算，也未执行 Windows/Runtime 打包、artifact 上传、Release、部署或主分支整合。

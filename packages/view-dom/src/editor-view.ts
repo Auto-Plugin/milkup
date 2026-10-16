@@ -305,6 +305,9 @@ export class EditorView {
   invalidateDocumentPresentation(): void {
     this.documentPresentation.invalidate()
   }
+  refreshDocumentPresentation(): void {
+    this.documentPresentation.refresh()
+  }
 
   refreshResourceImages(): void {
     this.images.refresh()

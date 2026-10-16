@@ -31,3 +31,5 @@ node scripts/verify-external.mjs /absolute/milkup-plugin-sdk-0.3.3.tgz /absolute
 The build guard rejects private Milkup dependencies and runtime imports. Output: `dist/milkup.footnotes-1.0.0.milkup-plugin`. Manifest renderer id: `footnotes`; contexts: `text`; permission: `document:read`. The parent integration owns bundled-plugin registration.
 
 The renderer returns selection-independent fragments. The host preserves literal source for the active selection and restores cached previews when the caret leaves; definition bodies and continuation lines always retain editor source mapping.
+
+Background indexing invalidates previews only when references, definitions, stored continuation summaries, truncation diagnostics, or completion/partial status change. Scanning ordinary text, blank lines, or excluded code does not produce periodic refreshes. Notifications remain at least 250 ms apart, including the final pending update; cancellation discards a pending final notification. A document without footnotes sends only its completion update.

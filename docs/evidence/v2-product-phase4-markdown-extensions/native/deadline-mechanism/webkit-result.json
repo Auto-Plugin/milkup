@@ -1,0 +1,113 @@
+{
+  "value": {
+    "budgetMs": 2000,
+    "trials": [
+      {
+        "status": "resolved",
+        "stallEnd": null,
+        "completedBeforeDeadline": true,
+        "timeoutAt": null,
+        "artificialDeliveryGate": false,
+        "issued": 1792074304659,
+        "name": "baseline",
+        "mainEvents": [
+          {
+            "event": "receive",
+            "wall": 1792074304662,
+            "type": "result",
+            "id": "render_1"
+          }
+        ],
+        "terminated": false,
+        "workerEvents": [
+          {
+            "event": "start",
+            "wall": 1792074304660,
+            "observerWall": 1792074304665,
+            "id": "render_1",
+            "mono": 32
+          },
+          {
+            "event": "complete",
+            "wall": 1792074304660,
+            "observerWall": 1792074304665,
+            "id": "render_1",
+            "elapsed": 0
+          },
+          {
+            "event": "post-returned",
+            "wall": 1792074304660,
+            "observerWall": 1792074304665,
+            "id": "render_1",
+            "elapsed": 0
+          }
+        ],
+        "falseTimeoutProven": false
+      },
+      {
+        "timeoutAt": 1792074307211,
+        "code": "timeout",
+        "stallEnd": 1792074307208,
+        "workerEvents": [
+          {
+            "event": "start",
+            "wall": 1792074304808,
+            "observerWall": 1792074307216,
+            "id": "render_1",
+            "mono": 35
+          },
+          {
+            "event": "complete",
+            "wall": 1792074304808,
+            "observerWall": 1792074307216,
+            "id": "render_1",
+            "elapsed": 0
+          },
+          {
+            "event": "post-returned",
+            "wall": 1792074304808,
+            "observerWall": 1792074307216,
+            "id": "render_1",
+            "elapsed": 0
+          }
+        ],
+        "falseTimeoutProven": true,
+        "status": "rejected",
+        "completedBeforeDeadline": true,
+        "artificialDeliveryGate": false,
+        "issued": 1792074304807,
+        "name": "natural-main-stall",
+        "mainEvents": [],
+        "terminated": true
+      },
+      {
+        "timeoutAt": 1792074309332,
+        "code": "timeout",
+        "stallEnd": null,
+        "workerEvents": [
+          {
+            "event": "start",
+            "wall": 1792074307332,
+            "observerWall": 1792074307334,
+            "id": "render_1",
+            "mono": 14
+          }
+        ],
+        "falseTimeoutProven": false,
+        "status": "rejected",
+        "completedBeforeDeadline": false,
+        "artificialDeliveryGate": false,
+        "issued": 1792074307331,
+        "name": "actual-cpu-runaway",
+        "mainEvents": [],
+        "terminated": true
+      }
+    ],
+    "controlsPassed": true,
+    "diagnosticOnly": true,
+    "artificialDeliveryGate": false,
+    "originalEndpointUnmodified": true,
+    "conclusion": "Natural browser stall terminated a Worker observed completing before its deadline; engine-specific mechanism reproduced, not proof of original invocation.",
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/60.5 Safari/605.1.15"
+  }
+}

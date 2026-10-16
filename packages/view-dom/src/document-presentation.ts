@@ -253,6 +253,26 @@ export class DocumentPresentation {
       }
     return { fromLine, toLine }
   }
+  /** Refresh provider data without withdrawing an unchanged, validated presentation. */
+  refresh(): void {
+    const current = this.snapshot()
+    if (
+      !this.config ||
+      current.mode !== 'live' ||
+      !this.cache ||
+      this.cache.identity !== current.sourceIdentity ||
+      !this.cache.key.startsWith(`${current.sourceVersion}:`) ||
+      !sameSelection(this.cache.response.request.selection, current.selection)
+    ) {
+      this.invalidate()
+      return
+    }
+    this.epoch++
+    this.job?.controller.abort()
+    this.job = undefined
+    this.failedKey = undefined
+    this.schedule()
+  }
   invalidate(): void {
     this.epoch++
     this.job?.controller.abort()

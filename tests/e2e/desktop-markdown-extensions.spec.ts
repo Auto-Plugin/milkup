@@ -1,3 +1,5 @@
+import { writeFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 import {
   markdownExtensionFixture,
@@ -244,3 +246,204 @@ test('search keeps the selected marker visible while asynchronous block previews
   await page.keyboard.press('Shift+Tab')
   await expect(references.nth(0)).toBeFocused()
 })
+
+for (const windowed of [false, true])
+  test(`background preview refresh preserves layout (${windowed})`, async ({ page }) => {
+    await page.setViewportSize({ width: 1100, height: 760 })
+    await page.goto('/')
+    const source = [
+      'START',
+      '',
+      'SAMPLE-ROOT',
+      'inline source',
+      '',
+      'SAMPLE-FLOW',
+      '```mermaid',
+      'flowchart TD',
+      'A --> B',
+      'B --> C',
+      '```',
+      '',
+      'SAMPLE-SEQUENCE',
+      '```mermaid',
+      'sequenceDiagram',
+      'A->>B: hi',
+      'B-->>A: ok',
+      '```',
+      '',
+      'SAMPLE-PIE',
+      '```mermaid',
+      'pie',
+      'title parts',
+      '"A": 2',
+      '"B": 1',
+      '```',
+      '',
+      'SAMPLE-NOTE',
+      'reference',
+      '',
+      'definition',
+      '',
+      'SAMPLE-ERROR',
+      '```mermaid',
+      'unsupported',
+      '```',
+      '',
+      ...Array(100).fill('retained 中文😀 text'),
+    ].join('\r\n')
+    await page.evaluate(
+      async ({ source, windowed, viewModule, coreModule }) => {
+        const { SourceDocumentView, EditorView } = await import(viewModule)
+        const { MemoryDocumentSource, Selection, EditorState, MemoryTextDocument } = await import(
+          coreModule
+        )
+        const mount = document.createElement('div')
+        mount.dataset.presentationProbe = ''
+        Object.assign(mount.style, {
+          position: 'fixed',
+          inset: '37px 0 30px',
+          zIndex: '10000',
+          background: 'white',
+        })
+        document.body.append(mount)
+        const requests: unknown[] = []
+        const fragments = [...source.matchAll(/```mermaid\r\n([\s\S]*?)```/g)].map(
+          (match, index) => ({
+            from: match.index!,
+            to: match.index! + match[0].length,
+            layout: 'block',
+            accessibleText: `graph ${index}`,
+            ...(index === 3
+              ? { status: 'error', message: 'Unsupported graph; edit original source.' }
+              : {}),
+            content: {
+              type: 'vector',
+              width: 700,
+              height: [300, 245, 420, 100][index],
+              children: [{ type: 'text', x: 10, y: 20, text: `graph ${index}` }],
+            },
+          }),
+        )
+        const store = new MemoryDocumentSource({ documentId: 'window-stability', text: source })
+        let view: InstanceType<typeof SourceDocumentView>
+        const options = {
+          parent: mount,
+          source: store,
+          mode: 'live',
+          editable: true,
+          virtualViewport: { viewportHeight: 693, overscanLines: 20 },
+          documentPresentation: {
+            provide: async ({
+              sourceIdentity: _identity,
+              sourceVersion: _version,
+              documentVersion: _dv,
+              ...window
+            }: any) => {
+              requests.push({
+                ...window,
+                at: performance.now(),
+                scrollTop: view?.dom.scrollTop,
+                previews: view
+                  ? [...view.contentDOM.querySelectorAll('[data-document-presentation]')].map(
+                      (node: any) => ({
+                        from: node.dataset.presentationFrom,
+                        top: node.getBoundingClientRect().top,
+                        height: node.getBoundingClientRect().height,
+                      }),
+                    )
+                  : [],
+              })
+              if (requests.length > 100) await new Promise(() => {})
+              await new Promise((resolve) => setTimeout(resolve, 40))
+              return {
+                declarations: [{ id: 'fixture', contexts: ['text'] }],
+                request: {
+                  ...window,
+                  documentId: store.documentId,
+                  version: store.version,
+                  contextKnown: true,
+                  protectedRanges: [],
+                  blocks: [],
+                  theme: 'light',
+                  target: 'screen',
+                },
+                result: {
+                  complete: true,
+                  fragments: fragments.filter(
+                    (fragment) => fragment.from >= window.from && fragment.to <= window.to,
+                  ),
+                },
+              }
+            },
+          },
+        }
+        const selection = Selection.range(
+          source.indexOf('SAMPLE-ROOT'),
+          source.indexOf('SAMPLE-ROOT') + 11,
+        )
+        view = windowed
+          ? new SourceDocumentView(options)
+          : new EditorView({
+              ...options,
+              state: new EditorState({ doc: new MemoryTextDocument(source), selection }),
+            })
+        if (windowed) await view.revealSelection(3, selection)
+        view.dom.querySelector<HTMLTextAreaElement>('.milkup-input-proxy')!.focus()
+        ;(window as any).presentationProbe = { view, requests, store, source }
+      },
+      {
+        source,
+        windowed,
+        viewModule: `/@fs${resolve('packages/view-dom/src/index.ts')}`,
+        coreModule: `/@fs${resolve('packages/core/src/index.ts')}`,
+      },
+    )
+    await page.waitForTimeout(1000)
+    const first = await page.evaluate(() => (window as any).presentationProbe.requests.length)
+    await page.waitForTimeout(1000)
+    const result = await page.evaluate(async () => {
+      const { view, requests, store, source } = (window as any).presentationProbe
+      const gaps: unknown[] = []
+      const observer = new MutationObserver(() => {
+        if (!view.contentDOM.querySelector('svg'))
+          gaps.push({ at: performance.now(), scrollTop: view.dom.scrollTop })
+      })
+      observer.observe(view.contentDOM, { childList: true, subtree: true })
+      const refreshStart = requests.length
+      for (let i = 0; i < 6; i++) {
+        view.refreshDocumentPresentation()
+        await new Promise((resolve) => setTimeout(resolve, 250))
+      }
+      observer.disconnect()
+      const read = await store.readLineWindow(1, store.lineCount)
+      return {
+        requests,
+        refreshStart,
+        gaps,
+        version: store.version,
+        selection: view.selection?.main ?? view.state.selection.main,
+        unchanged: (view.state ? view.state.doc.text : read.text) === source,
+        historyUnchanged: view.state ? view.state.undo().doc.text === source : true,
+        previewCount: view.contentDOM.querySelectorAll('svg').length,
+      }
+    })
+    await writeFile(
+      test.info().outputPath('window-stability.json'),
+      JSON.stringify(result, null, 2),
+    )
+    await test.info().attach('window-stability-requests', {
+      body: JSON.stringify(result),
+      contentType: 'application/json',
+    })
+    expect(result.refreshStart - first).toBe(0)
+    expect(result.gaps).toHaveLength(0)
+    expect(result.requests.length - result.refreshStart).toBe(6)
+    expect(result.previewCount).toBe(3)
+    expect(result.version).toBe(0)
+    expect(result.unchanged).toBe(true)
+    expect(result.historyUnchanged).toBe(true)
+    expect(result.selection).toMatchObject({
+      anchor: source.indexOf('SAMPLE-ROOT'),
+      head: source.indexOf('SAMPLE-ROOT') + 11,
+    })
+  })

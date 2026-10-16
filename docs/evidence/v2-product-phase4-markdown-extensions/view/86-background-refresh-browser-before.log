@@ -1,0 +1,102 @@
+[WebServer] (node:35621) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:35636) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:35660) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:35678) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:35712) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:250:39 › background preview refresh preserves layout (false) (5.1s)
+(node:35861) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:250:39 › background preview refresh preserves layout (true) (4.5s)
+
+
+  1) [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:250:39 › background preview refresh preserves layout (false) 
+
+    Error: expect(received).toHaveLength(expected)
+
+    Expected length: 0
+    Received length: 6
+    Received array:  [{"at": 3154.300000000745, "scrollTop": 0}, {"at": 3409.9000000003725, "scrollTop": 0}, {"at": 3662.2000000001863, "scrollTop": 0}, {"at": 3915, "scrollTop": 0}, {"at": 4169.9000000003725, "scrollTop": 0}, {"at": 4422.600000000559, "scrollTop": 0}]
+
+      324 |   await test.info().attach('window-stability-requests', { body: JSON.stringify(result), contentType: 'application/json' })
+      325 |   expect(result.refreshStart - first).toBe(0)
+    > 326 |   expect(result.gaps).toHaveLength(0)
+          |                       ^
+      327 |   expect(result.requests.length - result.refreshStart).toBe(6)
+      328 |   expect(result.previewCount).toBe(3)
+      329 |   expect(result.version).toBe(0)
+        at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:326:23
+
+    attachment #2: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - text: 写点什么吧...
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "实时"
+      - text: Markdown 0 字符 已保存
+    - textbox:
+      - group "graph 0":
+        - img: graph 0
+      - grou...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/desktop-markdown-extension-b3b48-esh-preserves-layout-false--desktop-msedge/error-context.md
+
+  2) [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:250:39 › background preview refresh preserves layout (true) 
+
+    Error: expect(received).toHaveLength(expected)
+
+    Expected length: 0
+    Received length: 6
+    Received array:  [{"at": 2664.2000000001863, "scrollTop": 66}, {"at": 2916.300000000745, "scrollTop": 66}, {"at": 3168.9000000003725, "scrollTop": 66}, {"at": 3421.600000000559, "scrollTop": 66}, {"at": 3673.800000000745, "scrollTop": 66}, {"at": 3926.4000000003725, "scrollTop": 66}]
+
+      324 |   await test.info().attach('window-stability-requests', { body: JSON.stringify(result), contentType: 'application/json' })
+      325 |   expect(result.refreshStart - first).toBe(0)
+    > 326 |   expect(result.gaps).toHaveLength(0)
+          |                       ^
+      327 |   expect(result.requests.length - result.refreshStart).toBe(6)
+      328 |   expect(result.previewCount).toBe(3)
+      329 |   expect(result.version).toBe(0)
+        at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:326:23
+
+    attachment #2: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - text: 写点什么吧...
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "实时"
+      - text: Markdown 0 字符 已保存
+    - textbox:
+      - group "graph 0":
+        - img: graph 0
+      - grou...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/desktop-markdown-extension-724a5-resh-preserves-layout-true--desktop-msedge/error-context.md
+
+  2 failed
+    [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:250:39 › background preview refresh preserves layout (false) 
+    [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:250:39 › background preview refresh preserves layout (true) 

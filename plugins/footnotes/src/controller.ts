@@ -24,20 +24,40 @@ export function createFootnoteController(
   async function scan(job: NonNullable<typeof current>, epoch: number) {
     let next = 1,
       chars = 0,
-      lastUpdate = 0
+      lastUpdate = -Infinity,
+      lastNotifiedRevision = job.index.revision
     const maxChars = limits.maxChars ?? 8 * 1024 * 1024,
       maxLines = limits.maxLines ?? 200_000
     const valid = () =>
       active && current === job && generation === epoch && !job.abort.signal.aborted
-    const refresh = async () => {
-      if (valid())
-        await host
-          .invalidatePresentation({
-            documentId: job.documentId,
-            version: job.version,
-            rendererId: 'footnotes',
-          })
-          .catch(() => undefined)
+    const refresh = async (final = false) => {
+      if (!valid() || job.index.revision === lastNotifiedRevision) return
+      const remaining = 250 - (Date.now() - lastUpdate)
+      if (remaining > 0) {
+        if (!final) return
+        await new Promise<void>((resolve) => {
+          const done = () => {
+            clearTimeout(pending)
+            job.abort.signal.removeEventListener('abort', done)
+            resolve()
+          }
+          const pending = setTimeout(done, remaining)
+          job.abort.signal.addEventListener('abort', done, { once: true })
+        })
+      }
+      if (!valid() || job.index.revision === lastNotifiedRevision) return
+      const revision = job.index.revision
+      lastUpdate = Date.now()
+      try {
+        await host.invalidatePresentation({
+          documentId: job.documentId,
+          version: job.version,
+          rendererId: 'footnotes',
+        })
+        if (valid()) lastNotifiedRevision = revision
+      } catch {
+        // Leave this revision dirty: a later page or the final flush may retry.
+      }
     }
     try {
       while (valid()) {
@@ -75,10 +95,7 @@ export function createFootnoteController(
           break
         }
         if (job.index.partialReason) break
-        if (Date.now() - lastUpdate >= 250) {
-          lastUpdate = Date.now()
-          await refresh()
-        }
+        await refresh()
         await new Promise<void>((resolve) => setTimeout(resolve, 0))
       }
     } catch (error) {
@@ -89,7 +106,7 @@ export function createFootnoteController(
           : 'unavailable'
       job.index.limit(code)
     }
-    await refresh()
+    await refresh(true)
   }
   return {
     render(request: Request, options: { signal: AbortSignal }): Result {

@@ -1,0 +1,116 @@
+{
+  "diagnosticOnly": true,
+  "engine": "v24.19.0",
+  "originalClientSha256": "8dac2cd02f64022a5ef5efb6579dd7466ab4fea0342926ad620c0feda7b973db",
+  "budgetMs": 2000,
+  "originalClientUnmodified": true,
+  "trials": [
+    {
+      "name": "baseline",
+      "diagnosticOnly": true,
+      "artificialDeliveryGate": false,
+      "status": "resolved",
+      "issued": 1792073925384,
+      "workerStart": 1792073925385,
+      "workerEnd": 1792073925385,
+      "workerPostReturned": 1792073925385,
+      "received": 1792073925385,
+      "delivered": 1792073925385,
+      "stallEnd": null,
+      "timeoutAt": null,
+      "terminated": false,
+      "workerElapsedMs": 0,
+      "completedBeforeDeadline": true,
+      "falseTimeoutProven": false,
+      "events": [
+        {
+          "event": "send:render",
+          "at": 1792073925385
+        }
+      ]
+    },
+    {
+      "name": "natural-main-stall",
+      "diagnosticOnly": true,
+      "artificialDeliveryGate": false,
+      "status": "resolved",
+      "issued": 1792073925422,
+      "workerStart": 1792073925422,
+      "workerEnd": 1792073925422,
+      "workerPostReturned": 1792073925422,
+      "received": 1792073927833,
+      "delivered": 1792073927833,
+      "stallEnd": 1792073927828,
+      "timeoutAt": null,
+      "terminated": false,
+      "workerElapsedMs": 0,
+      "completedBeforeDeadline": true,
+      "falseTimeoutProven": false,
+      "events": [
+        {
+          "event": "send:render",
+          "at": 1792073925422
+        }
+      ]
+    },
+    {
+      "name": "controlled-delivery-gate",
+      "diagnosticOnly": true,
+      "artificialDeliveryGate": true,
+      "status": "rejected",
+      "code": "timeout",
+      "issued": 1792073927906,
+      "workerStart": 1792073927906,
+      "workerEnd": 1792073927906,
+      "workerPostReturned": 1792073927906,
+      "received": 1792073927906,
+      "delivered": null,
+      "stallEnd": null,
+      "timeoutAt": 1792073929907,
+      "terminated": true,
+      "workerElapsedMs": 0,
+      "completedBeforeDeadline": true,
+      "falseTimeoutProven": true,
+      "events": [
+        {
+          "event": "send:render",
+          "at": 1792073927906
+        },
+        {
+          "event": "send:cancel",
+          "at": 1792073929907
+        }
+      ]
+    },
+    {
+      "name": "actual-cpu-runaway",
+      "diagnosticOnly": true,
+      "artificialDeliveryGate": false,
+      "status": "rejected",
+      "code": "timeout",
+      "issued": 1792073929945,
+      "workerStart": 1792073929945,
+      "workerEnd": null,
+      "workerPostReturned": null,
+      "received": null,
+      "delivered": null,
+      "stallEnd": null,
+      "timeoutAt": 1792073931945,
+      "terminated": true,
+      "workerElapsedMs": null,
+      "completedBeforeDeadline": false,
+      "falseTimeoutProven": false,
+      "events": [
+        {
+          "event": "send:render",
+          "at": 1792073929945
+        },
+        {
+          "event": "send:cancel",
+          "at": 1792073931945
+        }
+      ]
+    }
+  ],
+  "conclusion": "Natural Node scheduling delivered the completed result before the expired timer. Controlled gating proves the deadline includes transport dispatch, but the native failure remains unproven."
+}

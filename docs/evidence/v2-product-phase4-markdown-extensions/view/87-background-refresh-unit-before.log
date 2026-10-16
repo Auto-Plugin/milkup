@@ -1,0 +1,106 @@
+$ vitest run -- src/__tests__/document-presentation.test.ts -t 'retains validated'
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ✓ src/__tests__/source-document-view.test.ts (64 tests) 1400ms
+ ✓ src/__tests__/windowed-table.test.ts (8 tests) 2029ms
+   ✓ recovers the full table across viewport boundaries without rendering every row  529ms
+   ✓ keeps Unicode, escaped pipes, visual breaks and complete-column history atomic  763ms
+ ✓ src/__tests__/presentation.test.ts (19 tests) 1489ms
+   ✓ editor presentation > changes ordinary live layout without a document transaction  859ms
+ ✓ src/__tests__/editor-view.test.ts (123 tests) 3994ms
+   ✓ EditorView > keeps docs/coding-plan.md live interactions bounded to affected lines  2956ms
+ ❯ src/__tests__/document-presentation.test.ts (44 tests | 2 failed) 1411ms
+   ✓ keeps preview keyboard focus when the view refreshes its source DOM (false) 112ms
+   ✓ anchors an asynchronously growing preview above the visible selection (false) 46ms
+   ✓ refreshes selection-dependent third-party output without repaint loops (false) 102ms
+   ✓ cancels the old selection job and discards its late output (false) 44ms
+   ✓ uses real MathML, retains mapped source and reveals on selection (false) 53ms
+   ✓ keeps source literal and disable restores source without a transaction (false) 48ms
+   ✓ excludes preview text from mapped offsets, coalesces and invalidates (false) 30ms
+   ✓ mounts a multiline block once and restores every original line (false) 26ms
+   ✓ renders the native CRLF matrix range without consuming its line ending (false) 58ms
+   ✓ uses accessible references without editing or swallowing keyboard activation (false) 12ms
+   ✓ preserves an ordinary task control alongside inline presentation (false) 13ms
+   ✓ rejects protected and malformed output while preserving editable source (false) 15ms
+   ✓ bounds requests before invoking a provider on a huge line (false) 13ms
+   ✓ discards old-document results while a fresh document remains editable (false) 22ms
+   ✓ discards an asynchronous result after disable (false) 13ms
+   ✓ keeps preview keyboard focus when the view refreshes its source DOM (true) 28ms
+   ✓ anchors an asynchronously growing preview above the visible selection (true) 27ms
+   ✓ refreshes selection-dependent third-party output without repaint loops (true) 72ms
+   ✓ cancels the old selection job and discards its late output (true) 37ms
+   ✓ uses real MathML, retains mapped source and reveals on selection (true) 29ms
+   ✓ keeps source literal and disable restores source without a transaction (true) 29ms
+   ✓ excludes preview text from mapped offsets, coalesces and invalidates (true) 31ms
+   ✓ mounts a multiline block once and restores every original line (true) 35ms
+   ✓ renders the native CRLF matrix range without consuming its line ending (true) 67ms
+   ✓ uses accessible references without editing or swallowing keyboard activation (true) 20ms
+   ✓ preserves an ordinary task control alongside inline presentation (true) 17ms
+   ✓ rejects protected and malformed output while preserving editable source (true) 20ms
+   ✓ bounds requests before invoking a provider on a huge line (true) 18ms
+   ✓ discards old-document results while a fresh document remains editable (true) 43ms
+   ✓ discards an asynchronous result after disable (true) 17ms
+   ✓ constructs inert SVG and maps only validated MathML attribute names 4ms
+   ✓ checks the host navigation lease after asynchronous viewport loading 5ms
+   ✓ checks the host navigation assertion before changing selection 6ms
+   ✓ measures collapsed block continuation lines as zero and restores their heights 32ms
+   ✓ allows bounded host snapshot preparation beyond the renderer worker deadline 13ms
+   ✓ cancels a slow host preparation without waiting for its deadline 4ms
+   ✓ rejects a completed job if selection changed before the next synchronization 13ms
+   ✓ preserves the correct viewport anchor during preview growth (visible) 10ms
+   ✓ preserves the correct viewport anchor during preview growth (scrolled-away) 9ms
+   ✓ preserves the correct viewport anchor during preview growth (source) 8ms
+   ✓ preserves block focus across a viewport job without stealing a later external focus 70ms
+   ✓ preserves reference focus across a viewport job without stealing a later external focus 81ms
+   × retains validated block during background refresh and clears failed or revoked results 38ms
+     → expected false to be true // Object.is equality
+   × retains validated reference during background refresh and clears failed or revoked results 19ms
+     → expected false to be true // Object.is equality
+ ✓ src/__tests__/table-keyboard.test.ts (27 tests) 961ms
+ ✓ src/__tests__/live-controls.test.ts (33 tests) 1586ms
+   ✓ windowed live controls > applies left, center and right alignment to header and body cells  302ms
+ ✓ src/__tests__/source-unicode.test.ts (33 tests) 859ms
+ ✓ src/__tests__/source-scroll-limits.test.ts (13 tests) 708ms
+ ✓ src/__tests__/block-keyboard.test.ts (37 tests) 414ms
+ ✓ src/__tests__/public-table-editing.test.ts (15 tests) 495ms
+ ✓ src/__tests__/image-hooks.test.ts (19 tests) 457ms
+ ✓ src/__tests__/input-boundaries.test.ts (6 tests) 203ms
+ ✓ src/__tests__/table-cursor.test.ts (1 test) 186ms
+ ✓ src/__tests__/controlled-fields.test.ts (3 tests) 29ms
+ ✓ src/__tests__/async-paste-unicode.test.ts (15 tests) 217ms
+ ✓ src/__tests__/plugin-renderer.test.ts (6 tests) 30ms
+ ✓ src/__tests__/measured-line-heights.test.ts (1 test) 3ms
+ ✓ src/__tests__/view-benchmark.test.ts (1 test) 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation.test.ts > retains validated block during background refresh and clears failed or revoked results
+ FAIL  src/__tests__/document-presentation.test.ts > retains validated reference during background refresh and clears failed or revoked results
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/__tests__/document-presentation.test.ts:1005:34
+    1003|     original.focus(); delayed = true; layout.mockClear()
+    1004|     manager.invalidate(); await settle()
+    1005|     expect(original.isConnected).toBe(true)
+       |                                  ^
+    1006|     expect(document.activeElement).toBe(original)
+    1007|     expect(layout).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed | 18 passed (19)
+      Tests  2 failed | 466 passed (468)
+   Start at  14:22:11
+   Duration  12.99s (transform 1.25s, setup 0ms, collect 4.31s, tests 16.47s, environment 12.00s, prepare 1.55s)
+
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/view-dom@2.0.0-beta.1 test: `vitest run -- src/__tests__/document-presentation.test.ts -t 'retains validated'`
+Exit status 1

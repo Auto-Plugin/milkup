@@ -1,0 +1,36 @@
+{
+  "status": "source complete; no external package or bundled resource rebuilt by subagent",
+  "files": [
+    "plugins/footnotes/src/indexer.ts",
+    "plugins/footnotes/src/controller.ts",
+    "plugins/footnotes/src/indexer.test.ts",
+    "plugins/footnotes/src/controller.test.ts",
+    "plugins/footnotes/README.md"
+  ],
+  "before": {
+    "log": "37-revision-refresh-before.txt",
+    "failed": 6,
+    "passed": 14,
+    "plainTextPages": 3,
+    "actualNotifications": 3,
+    "expectedNotifications": 1
+  },
+  "after": {
+    "log": "40-revision-refresh-final.txt",
+    "passed": 22,
+    "failed": 0,
+    "plainTextNotifications": 1
+  },
+  "types": {
+    "log": "42-revision-types-final.txt",
+    "result": "passed",
+    "config": "tsconfig-revision-check.json",
+    "sdk": "existing public SDK 0.3.3 declarations; no private source imports"
+  },
+  "notes": [
+    "41-revision-types.txt is retained setup failure: temporary paths configuration incorrectly used dist/index.d.ts; corrected to public package exports src/index.d.ts.",
+    "Index revision advances only for entries, stored body/truncation changes and terminal status. No presentation fingerprint layer.",
+    "Notification attempts remain at least 250ms apart, including the final dirty flush. Abort cancels its timer. Failed notification retains dirty revision for a later page or final retry.",
+    "Original scan budgets, Unicode offsets, document/version cancellation and conservative contexts are unchanged."
+  ]
+}

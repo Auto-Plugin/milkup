@@ -1311,8 +1311,8 @@ const desktopPluginManager: DesktopPluginManager = new DesktopPluginManager({
   revealLocation: revealPluginLocation,
   invalidatePresentation: () => {
     desktopDocumentPresentation.invalidate()
-    view?.invalidateDocumentPresentation()
-    sourceView?.invalidateDocumentPresentation()
+    view?.refreshDocumentPresentation()
+    sourceView?.refreshDocumentPresentation()
   },
   onDocumentRenderFailure: (pluginId) => {
     importantNotice = true

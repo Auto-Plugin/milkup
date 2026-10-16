@@ -31,6 +31,10 @@ export class FootnoteIndex {
   readonly definitions = new Map<string, Definition>()
   readonly duplicates: Definition[] = []
   complete = false
+  private outputRevision = 0
+  get revision(): number {
+    return this.outputRevision
+  }
   partialReason: string | undefined
   private readonly numbers = new Map<string, number>()
   private readonly maxEntries: number
@@ -46,6 +50,7 @@ export class FootnoteIndex {
     this.maxBody = options.maxBody ?? 8192
   }
   limit(reason: string): void {
+    if (this.partialReason === undefined || this.complete) this.outputRevision++
     this.partialReason ??= reason
     this.complete = false
   }
@@ -62,8 +67,11 @@ export class FootnoteIndex {
     if (!active) return
     const value = active.body + (this.blank ? '\n\n' : '\n') + text
     this.blank = false
-    active.body = value.slice(0, this.maxBody)
-    active.truncated ||= value.length > this.maxBody
+    const body = value.slice(0, this.maxBody)
+    const truncated = active.truncated || value.length > this.maxBody
+    if (body !== active.body || truncated !== active.truncated) this.outputRevision++
+    active.body = body
+    active.truncated = truncated
   }
   consume(line: Line): void {
     if (this.partialReason) return
@@ -139,6 +147,7 @@ export class FootnoteIndex {
         }
         if (this.definitions.has(key)) this.duplicates.push(def)
         else this.definitions.set(key, def)
+        this.outputRevision++
         this.active = def
         return
       }
@@ -194,6 +203,7 @@ export class FootnoteIndex {
               number = this.numbers.size + 1
               this.numbers.set(key, number)
             }
+            this.outputRevision++
             this.references.push({
               key,
               number,
@@ -211,7 +221,9 @@ export class FootnoteIndex {
   }
   finish(): void {
     if (this.ticks) this.limit('incomplete-inline-code')
-    this.complete = !this.partialReason
+    const complete = !this.partialReason
+    if (complete !== this.complete) this.outputRevision++
+    this.complete = complete
     this.active = undefined
   }
 }

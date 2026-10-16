@@ -972,3 +972,129 @@ it.each(['block', 'reference'] as const)(
     }
   },
 )
+
+it.each(['block', 'reference'] as const)(
+  'retains validated %s during background refresh and clears failed or revoked results',
+  async (kind) => {
+    const { DocumentPresentation } = await import('../document-presentation')
+    const root = document.createElement('div'),
+      content = document.createElement('div'),
+      line = document.createElement('div'),
+      external = document.createElement('button')
+    line.className = 'milkup-line'
+    Object.assign(line.dataset, { line: '1', from: '0', to: '10' })
+    line.textContent = '$a/b$ tail'
+    content.append(line)
+    root.append(content)
+    document.body.append(root, external)
+    const identity = {},
+      base = provider(),
+      navigate = vi.fn(),
+      layout = vi.fn()
+    let delayed = false,
+      failed = false,
+      resume!: () => void,
+      version = 0,
+      selection = { anchor: 10, head: 10 }
+    const config: DocumentPresentationConfig = {
+      onNavigate: navigate,
+      provide: async (window, options) => {
+        if (delayed)
+          await new Promise<void>((resolve) => {
+            resume = resolve
+          })
+        if (failed) throw new Error('unavailable')
+        const response = await base.provide(window, options)
+        return {
+          ...response,
+          result: {
+            ...response.result,
+            fragments: response.result.fragments.map((fragment) => ({
+              ...fragment,
+              layout: kind === 'block' ? ('block' as const) : ('inline' as const),
+              ...(kind === 'reference'
+                ? {
+                    content: {
+                      type: 'reference' as const,
+                      label: 'Jump',
+                      target: { documentId: 'test', version: 0, from: 6, to: 10 },
+                    },
+                  }
+                : {}),
+            })),
+          },
+        }
+      },
+    }
+    const manager = new DocumentPresentation(
+      root,
+      content,
+      config,
+      () => ({
+        mode: 'live',
+        sourceIdentity: identity,
+        sourceVersion: version,
+        selection,
+        lineCount: 1,
+        read: (from, to) => '$a/b$ tail'.slice(from, to),
+      }),
+      layout,
+      () => {},
+    )
+    const selector =
+      kind === 'block' ? '[data-document-presentation]' : '.milkup-document-reference'
+    try {
+      manager.schedule()
+      await settle()
+      const original = content.querySelector<HTMLElement>(selector)!
+      original.focus()
+      delayed = true
+      layout.mockClear()
+      manager.refresh()
+      await settle()
+      expect(original.isConnected).toBe(true)
+      expect(document.activeElement).toBe(original)
+      expect(layout).not.toHaveBeenCalled()
+      if (kind === 'reference') {
+        original.click()
+        expect(navigate).toHaveBeenCalledTimes(1)
+      }
+      external.focus()
+      resume()
+      await settle()
+      expect(document.activeElement).toBe(external)
+      failed = true
+      manager.refresh()
+      await settle()
+      expect(content.querySelector(selector)).not.toBeNull()
+      resume()
+      await settle()
+      expect(content.querySelector(selector)).toBeNull()
+      expect(root.querySelector('[role="status"]')?.textContent).toContain('预览不可用')
+      failed = false
+      delayed = false
+      manager.refresh()
+      await settle()
+      expect(content.querySelector(selector)).not.toBeNull()
+      delayed = true
+      manager.refresh()
+      await settle()
+      manager.setConfig(undefined)
+      resume()
+      await settle()
+      expect(content.querySelector(selector)).toBeNull()
+      delayed = false
+      manager.setConfig(config)
+      await settle()
+      version++
+      manager.refresh()
+      expect(content.querySelector(selector)).toBeNull()
+      await settle()
+      selection = { anchor: 2, head: 2 }
+      manager.refresh()
+      expect(content.querySelector(selector)).toBeNull()
+    } finally {
+      manager.destroy()
+    }
+  },
+)
