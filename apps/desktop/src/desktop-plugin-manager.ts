@@ -91,10 +91,21 @@ export interface DesktopInstalledPluginPackage extends DesktopPluginDirectories 
   readonly rootPath: string
 }
 
-export interface DesktopPreparedPluginModule {
+export interface DesktopPreparedEntryPluginModule {
+  readonly kind?: 'module'
   readonly specifier: string
   dispose?(): void
 }
+
+export interface DesktopPreparedDomPluginModule {
+  readonly kind: 'dom'
+  /** Opaque native-issued lease; never a path, source string or URL. */
+  readonly leaseId: string
+  dispose?(): void
+}
+
+export type DesktopPreparedPluginModule =
+  DesktopPreparedEntryPluginModule | DesktopPreparedDomPluginModule
 
 export interface DesktopLoadedPluginModule {
   readonly module: PluginModule
@@ -118,6 +129,17 @@ export type DesktopPluginModuleLoader = (
   manifest: PluginManifest,
   moduleSpecifier: string,
   capabilities?: DesktopPluginModuleCapabilities,
+) => Promise<DesktopLoadedPluginModule>
+
+export interface DesktopDomPluginModuleCapabilities {
+  readonly onDocumentRenderTimeout: () => void
+  readonly onIsolationError: (error: Error) => void
+}
+
+export type DesktopDomPluginModuleLoader = (
+  manifest: PluginManifest,
+  prepared: DesktopPreparedDomPluginModule,
+  capabilities: DesktopDomPluginModuleCapabilities,
 ) => Promise<DesktopLoadedPluginModule>
 
 export type DesktopPluginUiPhase = 'mount' | 'update' | 'focus' | 'blur' | 'dispose'
@@ -176,6 +198,7 @@ export interface DesktopPluginManagerOptions {
   ) => void
   readonly loadModule?: DesktopPluginModuleLoader
   readonly loadSidecarModule?: DesktopPluginModuleLoader
+  readonly loadDomModule?: DesktopDomPluginModuleLoader
   readonly now?: () => number
   /** Distribution-provided packages; never used to upgrade an existing user installation. */
   readonly bundledPackagePaths?: () => Promise<readonly string[]>
@@ -215,7 +238,7 @@ export interface DesktopPluginManagerState {
 const registryStorageKey = 'milkup.desktop.plugins.registry.v1'
 const failuresStorageKey = 'milkup.desktop.plugins.failures.v1'
 const bundledStorageKey = 'milkup.desktop.plugins.bundled.v1'
-const allowedHosts = Object.freeze(['worker', 'sidecar'] as const)
+const allowedHosts = Object.freeze(['worker', 'sidecar', 'dom'] as const)
 const documentRendererTimeoutMessage =
   'Document renderer exceeded its execution deadline; manually enable to retry'
 const executionHostFailureMessage = 'Plugin execution host failed; manually enable to retry'
@@ -246,6 +269,7 @@ export class DesktopPluginManager {
   private readonly onDocumentRenderFailure: DesktopPluginManagerOptions['onDocumentRenderFailure']
   private readonly loadModule: DesktopPluginModuleLoader
   private readonly loadSidecarModule: DesktopPluginModuleLoader
+  private readonly loadDomModule: DesktopDomPluginModuleLoader
   private readonly loadedModules = new Map<string, DesktopLoadedPluginModule>()
   private readonly lifecycleTasks = new Map<string, Promise<void>>()
   private readonly activationEpochs = new Map<string, number>()
@@ -314,6 +338,11 @@ export class DesktopPluginManager {
       (async () => {
         throw new Error('Sidecar plugins are not available in this host')
       })
+    this.loadDomModule =
+      options.loadDomModule ??
+      (async () => {
+        throw new Error('DOM plugins are not available in this host')
+      })
     this.registry = new PluginRegistry({
       allowedHosts,
       compatibility: {
@@ -325,17 +354,27 @@ export class DesktopPluginManager {
       actionRegistry: options.actionRegistry,
       allowedHosts,
       allowedPermissions: options.permissions,
-      fileBroker: (manifest) => this.createFileBroker(manifest),
-      documentBroker: (manifest) => this.getDocumentBroker(manifest),
-      uiBroker: (manifest) => this.createUiBroker(manifest),
-      releasesBroker: (manifest) => this.getReleasesBroker(manifest),
-      workspaceBroker: (manifest) => this.getWorkspaceBroker(manifest),
-      settingsBroker: (manifest) => this.getSettingsBroker(manifest),
-      editingBroker: (manifest) => this.getEditingBroker(manifest),
-      resourcesBroker: (manifest) => this.getResourcesBroker(manifest),
-      keymapBroker: (manifest) => this.getKeymapBroker(manifest),
-      networkBroker: (manifest) => this.createNetworkBroker(manifest),
-      storageBroker: (manifest) => this.createStorageBroker(manifest),
+      fileBroker: (manifest) =>
+        manifest.host === 'dom' ? undefined : this.createFileBroker(manifest),
+      documentBroker: (manifest) =>
+        manifest.host === 'dom' ? undefined : this.getDocumentBroker(manifest),
+      uiBroker: (manifest) => (manifest.host === 'dom' ? undefined : this.createUiBroker(manifest)),
+      releasesBroker: (manifest) =>
+        manifest.host === 'dom' ? undefined : this.getReleasesBroker(manifest),
+      workspaceBroker: (manifest) =>
+        manifest.host === 'dom' ? undefined : this.getWorkspaceBroker(manifest),
+      settingsBroker: (manifest) =>
+        manifest.host === 'dom' ? undefined : this.getSettingsBroker(manifest),
+      editingBroker: (manifest) =>
+        manifest.host === 'dom' ? undefined : this.getEditingBroker(manifest),
+      resourcesBroker: (manifest) =>
+        manifest.host === 'dom' ? undefined : this.getResourcesBroker(manifest),
+      keymapBroker: (manifest) =>
+        manifest.host === 'dom' ? undefined : this.getKeymapBroker(manifest),
+      networkBroker: (manifest) =>
+        manifest.host === 'dom' ? undefined : this.createNetworkBroker(manifest),
+      storageBroker: (manifest) =>
+        manifest.host === 'dom' ? undefined : this.createStorageBroker(manifest),
     })
     this.restore()
     this.restoreFailures()
@@ -375,8 +414,8 @@ export class DesktopPluginManager {
         considered.add(id)
         this.storage.setItem(bundledStorageKey, JSON.stringify([...considered]))
         if (this.registry.list().some((record) => record.manifest.id === id)) continue
-        if (archive.manifest.host !== 'worker') {
-          throw new Error('Bundled installation supports only Worker packages')
+        if (archive.manifest.host !== 'worker' && archive.manifest.host !== 'dom') {
+          throw new Error('Bundled installation supports only Worker or read-only DOM packages')
         }
         const record = await this.installManifestPath(path)
         if (record.errors.length > 0) throw new Error(record.errors.join('; '))
@@ -520,30 +559,42 @@ export class DesktopPluginManager {
 
       const prepared = await this.prepareModule(record.manifest, record.manifestPath, main)
       this.preparedModules.set(pluginId, prepared)
-      const documentBroker = this.getDocumentBroker(record.manifest)
-      const editingBroker = this.getEditingBroker(record.manifest)
-      const resourcesBroker = this.getResourcesBroker(record.manifest)
-      const keymapBroker = this.getKeymapBroker(record.manifest)
-      const settingsBroker = this.getSettingsBroker(record.manifest)
-      const workspaceBroker = this.getWorkspaceBroker(record.manifest)
-      const releasesBroker = this.getReleasesBroker(record.manifest)
-      const uiBroker = this.createUiBroker(record.manifest)
-      const capabilities = Object.freeze({
+      const lifecycle = Object.freeze({
         onDocumentRenderTimeout: () => this.failDocumentRenderer(pluginId, epoch),
         onIsolationError: (_error: Error) =>
           this.failDocumentRenderer(pluginId, epoch, 'execution-host'),
-        ...(settingsBroker ? { settingsBroker } : {}),
-        ...(keymapBroker ? { keymapBroker } : {}),
-        ...(editingBroker ? { editingBroker } : {}),
-        ...(resourcesBroker ? { resourcesBroker } : {}),
-        ...(workspaceBroker ? { workspaceBroker } : {}),
-        ...(releasesBroker ? { releasesBroker } : {}),
-        ...(documentBroker ? { documentBroker } : {}),
-        ...(uiBroker ? { uiBroker } : {}),
       })
-      const loaded = await (record.manifest.host === 'sidecar'
-        ? this.loadSidecarModule(record.manifest, prepared.specifier, capabilities)
-        : this.loadModule(record.manifest, prepared.specifier, capabilities))
+      let loaded: DesktopLoadedPluginModule
+      if (record.manifest.host === 'dom') {
+        if (prepared.kind !== 'dom')
+          throw new Error('DOM plugins require an installed native prepared lease')
+        loaded = await this.loadDomModule(record.manifest, prepared, lifecycle)
+      } else {
+        if (prepared.kind === 'dom')
+          throw new Error('DOM prepared lease cannot be used by another plugin host')
+        const documentBroker = this.getDocumentBroker(record.manifest)
+        const editingBroker = this.getEditingBroker(record.manifest)
+        const resourcesBroker = this.getResourcesBroker(record.manifest)
+        const keymapBroker = this.getKeymapBroker(record.manifest)
+        const settingsBroker = this.getSettingsBroker(record.manifest)
+        const workspaceBroker = this.getWorkspaceBroker(record.manifest)
+        const releasesBroker = this.getReleasesBroker(record.manifest)
+        const uiBroker = this.createUiBroker(record.manifest)
+        const capabilities = Object.freeze({
+          ...lifecycle,
+          ...(settingsBroker ? { settingsBroker } : {}),
+          ...(keymapBroker ? { keymapBroker } : {}),
+          ...(editingBroker ? { editingBroker } : {}),
+          ...(resourcesBroker ? { resourcesBroker } : {}),
+          ...(workspaceBroker ? { workspaceBroker } : {}),
+          ...(releasesBroker ? { releasesBroker } : {}),
+          ...(documentBroker ? { documentBroker } : {}),
+          ...(uiBroker ? { uiBroker } : {}),
+        })
+        loaded = await (record.manifest.host === 'sidecar'
+          ? this.loadSidecarModule(record.manifest, prepared.specifier, capabilities)
+          : this.loadModule(record.manifest, prepared.specifier, capabilities))
+      }
       if (this.activationEpochs.get(pluginId) !== epoch) {
         loaded.dispose()
         throw new Error(
@@ -1336,6 +1387,9 @@ export class DesktopPluginManager {
     if (this.manifestHost.prepareModule) {
       return this.manifestHost.prepareModule(manifest, manifestPath, main)
     }
+
+    if (manifest.host === 'dom')
+      throw new Error('DOM plugins require an installed native prepared lease')
 
     if (manifest.host === 'sidecar' && /^(?:[A-Za-z]:[\\/]|\/)/.test(main)) {
       return Object.freeze({ specifier: main.replace(/\\/g, '/') })

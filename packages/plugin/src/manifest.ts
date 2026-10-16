@@ -3,7 +3,7 @@ import { copyPluginSettingsDescriptor, type PluginSettingsDescriptor } from './s
 import type { ActionInputField, ActionInputSchema, ActionPermission } from '@milkup/core'
 
 export type PluginPermission = ActionPermission
-export type PluginHostKind = 'worker' | 'sidecar'
+export type PluginHostKind = 'worker' | 'sidecar' | 'dom'
 
 export interface PluginManifest {
   readonly id: string
@@ -138,7 +138,7 @@ const KNOWN_PERMISSIONS = new Set<PluginPermission>([
   'images:import',
   'network:access',
 ])
-const KNOWN_HOSTS = new Set<PluginHostKind>(['worker', 'sidecar'])
+const KNOWN_HOSTS = new Set<PluginHostKind>(['worker', 'sidecar', 'dom'])
 const KNOWN_UI_SLOTS = new Set<PluginUiSlot>([
   'menu-page',
   'sidebar-panel',
@@ -204,6 +204,7 @@ export function validatePluginManifest(value: unknown): PluginManifestValidation
     }
   }
   const contributes = readContributions(value.contributes, errors)
+  if (host === 'dom') validateDomProfile(value, main, contributes, errors)
   if (contributes?.documentRenderers?.length && !permissions.includes('document:read'))
     errors.push({ path: '$.permissions', message: 'Document renderers require document:read' })
 
@@ -262,6 +263,47 @@ export function validatePluginManifest(value: unknown): PluginManifestValidation
 /** Strict paths avoid URL loading, traversal, encoding ambiguity and platform separators. */
 export function isPluginIconPath(path: string): boolean {
   return /^(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+\.png$/i.test(path)
+}
+
+function validateDomProfile(
+  value: Record<string, unknown>,
+  main: string | undefined,
+  contributes: PluginContributionSet | undefined,
+  errors: PluginManifestValidationError[],
+): void {
+  const path = main?.replace(/^\.\//, '')
+  if (
+    !path ||
+    path.length > 1024 ||
+    /[\\\u0000-\u001f\u007f:%?#]/u.test(path) ||
+    path.split('/').some((part) => !part || part === '.' || part === '..')
+  )
+    errors.push({ path: '$.main', message: 'DOM plugin main must be a package-relative path' })
+  if (
+    !Array.isArray(value.permissions) ||
+    value.permissions.length !== 1 ||
+    value.permissions[0] !== 'document:read'
+  )
+    errors.push({ path: '$.permissions', message: 'DOM plugins permit only document:read' })
+  if (value.networkOrigins !== undefined)
+    errors.push({ path: '$.networkOrigins', message: 'DOM plugins cannot declare network origins' })
+  if (value.settings !== undefined)
+    errors.push({ path: '$.settings', message: 'DOM plugins cannot declare persistent settings' })
+  if (!contributes?.documentRenderers?.length)
+    errors.push({
+      path: '$.contributes.documentRenderers',
+      message: 'DOM plugins require at least one document renderer',
+    })
+  // Inspect the raw keys before the general parser drops unknown contributions.
+  if (isRecord(value.contributes)) {
+    for (const key of Object.keys(value.contributes)) {
+      if (key !== 'documentRenderers')
+        errors.push({
+          path: `$.contributes.${key}`,
+          message: 'DOM plugins may contribute only documentRenderers',
+        })
+    }
+  }
 }
 
 function validateNetworkOrigins(

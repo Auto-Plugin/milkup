@@ -1,0 +1,49 @@
+{
+  "recordType": "owner-reported metadata for previously completed executions",
+  "owner": "dom_transport",
+  "newExecution": false,
+  "cwd": "/workspace/milkup",
+  "environmentDate": "2026-10-16",
+  "environmentTimezone": "Etc/UTC",
+  "timingLimitations": "No shell wall-clock start/end timestamps were captured. The focused test log contains only Vitest's Start at time and duration; no missing timestamps have been reconstructed.",
+  "scope": "Frontend mocked DOM transport contract and lifecycle tests, existing sidecar unit tests, desktop TypeScript checking, and formatting. These executions do not establish real native DOM process isolation or product integration acceptance.",
+  "executions": [
+    {
+      "name": "format-owned-files",
+      "command": "bash scripts/cloud/pnpm.sh exec prettier --write apps/desktop/src/plugin-dom.ts apps/desktop/src/plugin-dom.test.ts apps/desktop/src/main.ts",
+      "exitCode": 0,
+      "exitCodeSource": "tools.write_stdin completion for exec session 65841, chunk 8b14d3",
+      "logPath": null,
+      "logNote": "Output was returned in tool responses only; no separate raw log file was captured.",
+      "capturedOutput": [
+        "apps/desktop/src/plugin-dom.ts 135ms",
+        "apps/desktop/src/plugin-dom.test.ts 84ms",
+        "apps/desktop/src/main.ts 486ms"
+      ],
+      "wallClockStart": null,
+      "wallClockEnd": null
+    },
+    {
+      "name": "focused-dom-and-sidecar-tests-first-run",
+      "command": "bash scripts/cloud/pnpm.sh --filter @milkup/desktop exec vitest run src/plugin-dom.test.ts src/plugin-sidecar.test.ts --maxWorkers=1 > /tmp/milkup-dom-transport-focused-first.log 2>&1",
+      "exitCode": 0,
+      "exitCodeSource": "tools.write_stdin completion for exec session 94961, chunk 232f6d",
+      "logPath": "/tmp/milkup-dom-transport-focused-first.log",
+      "result": "2 test files passed; 24 tests passed (15 DOM transport, 9 existing sidecar). No first-run failure.",
+      "logReportedStartTime": "10:22:15",
+      "logReportedDuration": "1.40s",
+      "wallClockStart": null,
+      "wallClockEnd": null
+    },
+    {
+      "name": "desktop-typecheck-first-run",
+      "command": "bash scripts/cloud/pnpm.sh --filter @milkup/desktop typecheck > /tmp/milkup-dom-transport-typecheck-first.log 2>&1",
+      "exitCode": 0,
+      "exitCodeSource": "tools.write_stdin completion for exec session 74054, chunk a6a69c",
+      "logPath": "/tmp/milkup-dom-transport-typecheck-first.log",
+      "result": "TypeScript check completed successfully; raw log contains the tsc command only.",
+      "wallClockStart": null,
+      "wallClockEnd": null
+    }
+  ]
+}

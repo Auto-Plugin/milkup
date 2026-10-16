@@ -1,0 +1,77 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ✓ src/desktop-plugin-manager-dom.test.ts (10 tests) 142ms
+ ✓ src/desktop-plugin-manager.test.ts (22 tests) 140ms
+ ❯ src/bundled-plugins.test.ts (18 tests | 3 failed) 47ms
+   × bundled plugin first-run installation > installs and approves an arbitrary strict readonly DOM package through its native loader 11ms
+     → expected "spy" to be called 1 times, but got 0 times
+   × bundled plugin first-run installation > never upgrades or reinstalls a disabled or removed bundled DOM package 9ms
+     → Unknown plugin registry record: generic.sample
+   × bundled plugin first-run installation > contains unavailable DOM backend failure without rejecting application startup 2ms
+     → expected "spy" to be called 1 times, but got 0 times
+   ✓ bundled plugin first-run installation > does not install or approve a DOM distribution package requesting write authority 2ms
+   ✓ bundled plugin first-run installation > serializes user package selection after default installation has settled 1ms
+   ✓ bundled plugin first-run installation > uses the package installer and isolated loader for an arbitrary readonly plugin 3ms
+   ✓ bundled plugin first-run installation > preserves disable and uninstall across restart and newer bundled versions 3ms
+   ✓ bundled plugin first-run installation > preserves an existing user version 0.5.0 and its disabled state 2ms
+   ✓ bundled plugin first-run installation > preserves an existing user version 9.0.0 and its disabled state 2ms
+   ✓ bundled plugin first-run installation > installs file:write packages inactive without approving or executing them 1ms
+   ✓ bundled plugin first-run installation > installs app:updates packages inactive without approving or executing them 1ms
+   ✓ bundled plugin first-run installation > installs workspace:read packages inactive without approving or executing them 1ms
+   ✓ bundled plugin first-run installation > installs settings:write packages inactive without approving or executing them 1ms
+   ✓ bundled plugin first-run installation > installs app:keymap packages inactive without approving or executing them 1ms
+   ✓ bundled plugin first-run installation > fails closed on corrupt receipts without preventing ordinary startup 1ms
+   ✓ bundled plugin first-run installation > does not install if durable receipt storage fails 0ms
+   ✓ bundled plugin first-run installation > keeps the editor ready even when failure reporting storage is full 1ms
+   ✓ bundled plugin first-run installation > restores an enabled installed copy without reinstalling or activating it twice 6ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/bundled-plugins.test.ts > bundled plugin first-run installation > installs and approves an arbitrary strict readonly DOM package through its native loader
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ src/bundled-plugins.test.ts:90:23
+     88|     const f = setup(storage(), archive('1.0.0', ['document:read'], 'do…
+     89|     await f.manager.ready
+     90|     expect(f.install).toHaveBeenCalledTimes(1)
+       |                       ^
+     91|     expect(f.load).not.toHaveBeenCalled()
+     92|     expect(f.loadDom).toHaveBeenCalledTimes(1)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/bundled-plugins.test.ts > bundled plugin first-run installation > never upgrades or reinstalls a disabled or removed bundled DOM package
+Error: Unknown plugin registry record: generic.sample
+ ❯ PluginRegistry.require ../../packages/plugin/src/registry.ts:419:13
+    417| 
+    418|     if (!record) {
+    419|       throw new Error(`Unknown plugin registry record: ${pluginId}`)
+       |             ^
+    420|     }
+    421| 
+ ❯ PluginRegistry.markDisabled ../../packages/plugin/src/registry.ts:294:25
+ ❯ src/desktop-plugin-manager.ts:630:36
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/bundled-plugins.test.ts > bundled plugin first-run installation > contains unavailable DOM backend failure without rejecting application startup
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ src/bundled-plugins.test.ts:119:23
+    117|     const f = setup(storage(), archive('1.0.0', ['document:read'], 'do…
+    118|     await expect(f.manager.ready).resolves.toBeUndefined()
+    119|     expect(f.install).toHaveBeenCalledTimes(1)
+       |                       ^
+    120|     expect(f.load).not.toHaveBeenCalled()
+    121|     expect(f.manager.state().records[0]).toMatchObject({ state: 'faile…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  3 failed | 47 passed (50)
+   Start at  10:20:37
+   Duration  1.80s (transform 837ms, setup 0ms, collect 1.96s, tests 329ms, environment 1ms, prepare 209ms)
+
+undefined
+/workspace/milkup/apps/desktop:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/desktop-plugin-manager-dom.test.ts src/desktop-plugin-manager.test.ts src/bundled-plugins.test.ts '--maxWorkers=2' '--minWorkers=1'

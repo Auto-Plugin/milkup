@@ -153,6 +153,7 @@ import {
   createDesktopPluginActions,
   DesktopPluginManager,
   resolvePluginEntryPath,
+  type DesktopPreparedPluginModule,
 } from './desktop-plugin-manager'
 import { DesktopPluginUiController } from './desktop-plugin-ui'
 import {
@@ -163,6 +164,7 @@ import {
 } from './open-stage-diagnostics'
 import { createDesktopPluginFileBroker } from './plugin-file-broker'
 import { createDesktopPluginSidecarProcess } from './plugin-sidecar'
+import { loadDesktopPluginDomModule, prepareDesktopPluginDomModule } from './plugin-dom'
 import './style.css'
 
 let desktopStorage: Storage | undefined
@@ -1346,6 +1348,7 @@ const desktopPluginManager: DesktopPluginManager = new DesktopPluginManager({
     }),
     dispose: () => undefined,
   }),
+  loadDomModule: loadDesktopPluginDomModule,
 })
 let presentationMemorySource: MemoryDocumentSource | undefined
 let presentationMemoryDocument: object | undefined
@@ -3701,7 +3704,7 @@ function createDesktopPluginManifestHost(): {
     manifest: PluginManifest,
     manifestPath: string,
     main: string,
-  ) => Promise<{ readonly specifier: string; dispose(): void }>
+  ) => Promise<DesktopPreparedPluginModule>
   readonly selectPackageExportPath: (suggestedName: string) => Promise<string | undefined>
   readonly writeText: (path: string, text: string) => Promise<void>
   readonly installPackage: (archive: import('@milkup/plugin').PluginPackageArchive) => Promise<{
@@ -3748,6 +3751,8 @@ function createDesktopPluginManifestHost(): {
       return new Uint8Array(await invoke<number[]>('read_plugin_icon', { pluginId }))
     },
     async prepareModule(manifest: PluginManifest, manifestPath: string, main: string) {
+      if (manifest.host === 'dom') return prepareDesktopPluginDomModule(manifest, isTauriRuntime())
+
       if (manifest.host === 'sidecar') {
         const executable = /^(?:[A-Za-z]:[\\/]|\/)/.test(main)
           ? main.replace(/\\/g, '/')

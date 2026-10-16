@@ -48,8 +48,10 @@ export function parsePluginPackageArchive(value: unknown): PluginPackageArchive 
       throw new Error(`Plugin package entry is missing: ${manifest.main}`)
     }
 
-    if ((manifest.host ?? 'worker') === 'worker' && entry.encoding !== 'utf8') {
-      throw new Error('Worker plugin entry must use utf8 encoding')
+    if ((manifest.host ?? 'worker') !== 'sidecar' && entry.encoding !== 'utf8') {
+      throw new Error(
+        `${manifest.host === 'dom' ? 'DOM' : 'Worker'} plugin entry must use utf8 encoding`,
+      )
     }
   }
 

@@ -2,7 +2,7 @@
 
 本阶段基线为 `d3851430fac0dc85c758187b33b769c5daba7f4a`，独立分支 `dot/milkup-v2-product-phase4-mermaid-engine`。已核验远端/本地 SHA、干净工作区及候选 11 的 4,044 份证据存储哈希；候选 11 的 Linux 有界能力验收继续有效。[基线核验](evidence/v2-product-phase4-mermaid-engine/baseline-verification.json)。
 
-**当前状态：架构审计、官方输出研究和隔离机制原型验证，尚未完成产品实现或验收。** 本阶段以官方成熟 Mermaid 替代自研小子集，不以三个简单图型代替产品覆盖。后续继续 P4 剩余 Markdown/图片覆盖，再进入 P5 导出/打印；P4 总体仍为部分完成。
+**当前状态：已完成本轮官方样例原生扫描与初步像素研究，通用渲染及安全输出的产品实现正在进行，尚未完成产品验收。** 本阶段以官方成熟 Mermaid 替代自研小子集，不以三个简单图型代替产品覆盖。后续继续 P4 剩余 Markdown/图片覆盖，再进入 P5 导出/打印；P4 总体仍为部分完成。
 
 ## 固定版本与覆盖目标
 
@@ -45,11 +45,31 @@
 
 **固定 Linux 机制在 narrow-11 首次通过，尚非 Mermaid 或产品验收。** [冻结的原始结果和摘要](evidence/v2-product-phase4-mermaid-engine/checkpoint02/prototype/frozen-mechanism-11/mechanism-summary.json.txt)记录：准备 0.955 秒；sandbox/ephemeral 为 true，无 Tauri 命令桥；CSP `connect-src` 拒绝固定网络与文件请求；两次真实 Unicode SVG `getBBox` 均为 227×29。同步死循环的 WebProcess 持续消耗 CPU，独立监督器在任务开始后 2.000667 秒观察截止、2.000984 秒发出 SIGKILL，2.135871 秒核验已无所属后代。保留 PID birth、CPU ticks、清理与构建哈希；这不是零调度延迟承诺，也不等于编辑器集成时保持响应已验。原生 `send-request` 拒绝、官方引擎兼容、安全 SVG 转换和像素仍须分别验证。bootstrap MIME header 与 readiness 轮询在成功前同时改变，不能单独归因其中之一。
 
-随后首轮官方引擎原生探针 `mermaid-narrow-01` 完成五次调用：[冻结摘要](evidence/v2-product-phase4-mermaid-engine/checkpoint02/prototype/mermaid-summary.json.txt)。flow 为 1.083 秒/51,109 字节；journey 默认配置为 0.319 秒/49,745 字节、classic+tspan 为 0.079 秒/42,247 字节；sankey 为 0.519 秒/220,228 字节；sequence 为 0.118 秒/48,384 字节。均在单次两秒与 256 KiB 帧限制内，时间包括 native dispatch、渲染、观测、序列化及传输；这些字节是诊断结果，不是已通过安全校验的产品 AST。另有明确 `GUARD_DENY entry.mjs?guard-check`，且 native protocol handler 未收到该 URI，独立证明了原生 WebProcess 资源拦截。后代清理为空。Journey 的标准 tspan 配置确实不再产生 foreignObject，但文字几何不同，仍待像素比较；全官方样例、安全转换、编辑保存和生产集成均未验收。
+随后首轮官方引擎原生探针 `mermaid-narrow-01` 完成五次调用：[冻结摘要](evidence/v2-product-phase4-mermaid-engine/checkpoint02/prototype/mermaid-summary.json.txt)。flow 为 1.083 秒/51,109 字节；journey 默认配置为 0.319 秒/49,745 字节、classic+tspan 为 0.079 秒/42,247 字节；sankey 为 0.519 秒/220,228 字节；sequence 为 0.118 秒/48,384 字节。均在单次两秒与 256 KiB 帧限制内，时间包括 native dispatch、渲染、观测、序列化及传输；这些字节是诊断结果，不是已通过安全校验的产品 AST。另有明确 `GUARD_DENY entry.mjs?guard-check`，且 native protocol handler 未收到该 URI，独立证明了原生 WebProcess 资源拦截。后代清理为空。该阶段 Journey 的 tspan 配置不再产生 foreignObject，但当时尚未进行像素比较；后续完整扫描和像素结果见下文。安全转换、编辑保存和生产集成仍未验收。
+
+### 完整 Linux 原生扫描与配置决定
+
+[第三检查点](evidence/v2-product-phase4-mermaid-engine/checkpoint03/README.md)归档本轮最小原始证据。30 个未经修改的官方样例与 7 个本地探针分别使用 baseline、classic-tspan，共 **74 次独立原生调用：68 次返回结果、6 次明确拒绝，0 次超时，无输入重试，全部后代清理核验通过**。两种配置下，`flowchart-069-image` 和 `flow-url-image` 均报 Loading error，`flow-style-url` 均报解析错误；不是 74 次全部通过。
+
+每次使用新 namespace/helper/profile，准备阶段保持 10 秒上限，实际任务保持独立 2 秒及 256 KiB 帧上限；执行时间包含 dispatch、解析/布局、观测、序列化及传输。最大成功用时 0.990612 秒，最大诊断结果 220,067 字节；诊断结果仍包含原始 SVG，不能冒称产品安全 AST。固定 bundle 与运行时哈希、原件来源/长度/哈希见[索引](evidence/v2-product-phase4-mermaid-engine/checkpoint03/index.json)。432 份原始扫描文件通过外部完整清单引用，未重复塞入仓库。
+
+Journey 两配置另取真实 WebKit 1100×800 原图，均为 light、zoom 1、相同配置字体，未缩放或拼接：[baseline](evidence/v2-product-phase4-mermaid-engine/checkpoint03/journey-light-baseline.png)、[classic-tspan](evidence/v2-product-phase4-mermaid-engine/checkpoint03/journey-light-classic-tspan.png)。两者 viewBox 均为 `0 -25 1300 540`；baseline 有 7 个 foreignObject，实际 HTML 标签深色可读。classic-tspan 虽将 foreignObject 降为 0，却使浅色任务框上的标签变白、分区标签也呈浅色，实际像素明显降低可读性。Make tea 的实际标签从 Arial 16px、rgb(51,51,51) 变为 Open Sans/sans-serif 14px、白色 SVG fill，不能仅归结为测量误差。
+
+**本轮 classic-tspan 配置不可用作标准产品配置，不因去掉 foreignObject 就接受其视觉差异。** 这不证明所有 tspan 配置都不可行；也不意味着允许把 baseline 的 foreignObject 注入编辑器。完整安全转换仍须保留实际布局与样式，否则整图回退源码。两次 Journey 渲染分别为 0.185/0.136 秒，均先在原执行预算内完成，再以独立截图阶段采集像素；截图不延长或补救渲染截止。
+
+本轮研究只覆盖 light，尚不构成 dark、产品 SVG 映射、编辑保存/历史、停用恢复或生产矩阵验收。产品实现正在进行，Linux 原型结果也不外推 Windows/macOS；既有首次失败和平台限制继续保留。
+
+## 通用 DOM 宿主基础实现检查点
+
+已实现严格 `host: "dom"` manifest/profile、UTF-8 包入口、宿主切换审批与启用隔离、opaque native lease 路由和无 broker 的桌面加载路径。随包预装通过普通安装器接受已验证的只读 DOM 包；已有安装不覆盖，卸载后不自动重装，缺少后端时记录单插件失败。没有按 Mermaid 或插件 ID 特判。
+
+[基础实现的原始红绿记录](evidence/v2-product-phase4-mermaid-engine/dom-foundation/README.md)保留最初 plugin 28 失败/10 通过、desktop 9 失败，以及预装 guard 修复前的 3 失败/47 通过。实现后的 plugin 新旧 focused 114 项通过，但类型检查随后发现参数化权限夹具误把数组展开为参数，故这些相关断言不能采用最初的绿结果；修正为对象行后，manifest 32 项重新通过。桌面管理、生命周期与预装 50 项通过，plugin/desktop 类型检查及改动文件格式检查通过。
+
+前端传输层另有 DOM 15 项及既有 sidecar 9 项通过，覆盖精确 lease/instance、启动失败、旧代次消息、native 控制事件和清理。**这些是 mock transport 检查，不证明真实原生隔离或编辑器集成已通过。** 产品原生命令、官方引擎插件替换、安全 SVG 输出及生产矩阵仍在实现和验证；本检查点不更改已有 diagrams Worker 包，也不将其标为成熟 Mermaid 已支持。
 
 ## 原型设计与通过门槛
 
-先验证通用独立 DOM 渲染任务，不立即修改编辑器呈现合同：
+机制和输出研究已取得上述结果，产品正在按以下边界实现，尚未通过完整验收：
 
 - 插件拥有固定版本 Mermaid、配置、语法与离线 bundle；宿主只拥有任务生命周期、边界和输出校验。
 - 独立可信 helper 使用新 WebContext，不加载编辑器、不注入 Tauri 命令桥，不提供文档/文件/网络接口；只接收有界输入并输出有界结果。Linux 原型采用 WebKitGTK 公开 API 与独立结果管道；固定资源映射、严格 CSP、导航/新窗口/下载/权限拒绝分别验证。仅拦导航不能代表子资源被拦。

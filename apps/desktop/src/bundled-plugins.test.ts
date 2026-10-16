@@ -20,21 +20,34 @@ function storage(): Storage {
   }
 }
 
-const archive = (version = '1.0.0', permissions = ['document:read']) => ({
+const archive = (
+  version = '1.0.0',
+  permissions = ['document:read'],
+  host: 'worker' | 'dom' = 'worker',
+) => ({
   format: 'milkup-plugin',
   version: 1,
   manifest: {
     id: 'generic.sample',
     name: 'Sample',
     version,
-    host: 'worker',
+    host,
     main: './plugin.js',
     permissions,
+    ...(host === 'dom'
+      ? {
+          contributes: {
+            documentRenderers: [
+              { id: 'generic.graph', contexts: ['fence'], fenceLanguages: ['example-graph'] },
+            ],
+          },
+        }
+      : {}),
   },
   files: [{ path: 'plugin.js', encoding: 'utf8', content: 'export default {}' }],
 })
 
-function setup(saved = storage(), bundled = archive()) {
+function setup(saved = storage(), bundled = archive(), domBackend = true) {
   const install = vi.fn(async () => ({
     manifestPath: '/installed/plugin.json',
     rootPath: '/installed',
@@ -43,6 +56,15 @@ function setup(saved = storage(), bundled = archive()) {
   }))
   const load = vi.fn(async () => ({
     module: { runtimeHost: 'isolated' as const, activate: () => ({}) },
+    dispose: () => undefined,
+  }))
+  const loadDom = vi.fn(async () => ({
+    module: {
+      runtimeHost: 'isolated' as const,
+      activate: () => ({
+        documentRenderers: { 'generic.graph': () => ({ fragments: [], complete: true }) },
+      }),
+    },
     dispose: () => undefined,
   }))
   const manager = new DesktopPluginManager({
@@ -63,13 +85,73 @@ function setup(saved = storage(), bundled = archive()) {
       selectManifestPath: async () => undefined,
       readManifestText: async () => JSON.stringify(bundled),
       installPackage: install,
+      prepareModule: async (manifest) =>
+        manifest.host === 'dom'
+          ? { kind: 'dom', leaseId: 'native-issued-bundled-test-lease' }
+          : { specifier: '/installed/plugin.js' },
     },
     loadModule: load,
+    ...(domBackend ? { loadDomModule: loadDom } : {}),
   })
-  return { manager, install, load, saved }
+  return { manager, install, load, loadDom, saved }
 }
 
 describe('bundled plugin first-run installation', () => {
+  it('installs and approves an arbitrary strict readonly DOM package through its native loader', async () => {
+    const f = setup(storage(), archive('1.0.0', ['document:read'], 'dom'))
+    await f.manager.ready
+    expect(f.install).toHaveBeenCalledTimes(1)
+    expect(f.load).not.toHaveBeenCalled()
+    expect(f.loadDom).toHaveBeenCalledTimes(1)
+    expect(f.manager.state().records[0]).toMatchObject({
+      enabled: true,
+      manifest: { host: 'dom' },
+      approvals: { hosts: ['dom'], permissions: ['document:read'] },
+    })
+    await f.manager.disable('generic.sample')
+  })
+
+  it('never upgrades or reinstalls a disabled or removed bundled DOM package', async () => {
+    const first = setup(storage(), archive('1.0.0', ['document:read'], 'dom'))
+    await first.manager.ready
+    await first.manager.disable('generic.sample')
+    // Also exercise the first-consideration path with an existing user installation.
+    first.saved.removeItem('milkup.desktop.plugins.bundled.v1')
+    const second = setup(first.saved, archive('2.0.0', ['document:read'], 'dom'))
+    await second.manager.ready
+    expect(second.install).not.toHaveBeenCalled()
+    expect(second.loadDom).not.toHaveBeenCalled()
+    expect(second.manager.state().records[0]).toMatchObject({
+      enabled: false,
+      manifest: { version: '1.0.0' },
+    })
+    await second.manager.remove('generic.sample')
+    const third = setup(first.saved, archive('3.0.0', ['document:read'], 'dom'))
+    await third.manager.ready
+    expect(third.install).not.toHaveBeenCalled()
+    expect(third.loadDom).not.toHaveBeenCalled()
+    expect(third.manager.state().records).toEqual([])
+  })
+
+  it('contains unavailable DOM backend failure without rejecting application startup', async () => {
+    const f = setup(storage(), archive('1.0.0', ['document:read'], 'dom'), false)
+    await expect(f.manager.ready).resolves.toBeUndefined()
+    expect(f.install).toHaveBeenCalledTimes(1)
+    expect(f.load).not.toHaveBeenCalled()
+    expect(f.manager.state().records[0]).toMatchObject({ state: 'failed', enabled: false })
+    expect(f.manager.state().records[0]?.errors.join(' ')).toMatch(/DOM.*not available/)
+    expect(f.manager.state().contributions.documentRenderers).toEqual([])
+  })
+
+  it('does not install or approve a DOM distribution package requesting write authority', async () => {
+    const f = setup(storage(), archive('1.0.0', ['document:read', 'document:write'], 'dom'))
+    await f.manager.ready
+    expect(f.install).not.toHaveBeenCalled()
+    expect(f.loadDom).not.toHaveBeenCalled()
+    expect(f.manager.state().records).toEqual([])
+    expect(f.manager.state().installFailures).toHaveLength(1)
+  })
+
   it('serializes user package selection after default installation has settled', async () => {
     let release!: (paths: readonly string[]) => void
     const paths = new Promise<readonly string[]>((resolve) => {

@@ -188,19 +188,18 @@ export class PluginRegistry {
     const existing = this.records.get(manifest.id)
     const errors = validateCompatibility(manifest, this.compatibility)
     const host = manifest.host ?? 'worker'
+    const remainsEnabled =
+      existing?.enabled === true &&
+      (existing.manifest.host ?? 'worker') === host &&
+      errors.length === 0
 
     const record = freezeRecord({
       manifest,
       manifestPath: descriptor.manifestPath,
       rootPath,
       sourcePath,
-      state:
-        existing?.enabled && errors.length === 0
-          ? 'enabled'
-          : errors.length
-            ? 'failed'
-            : 'disabled',
-      enabled: existing?.enabled === true && errors.length === 0,
+      state: remainsEnabled ? 'enabled' : errors.length ? 'failed' : 'disabled',
+      enabled: remainsEnabled,
       installedAt: existing?.installedAt ?? installedAt,
       updatedAt: this.now(),
       trust: descriptor.trust ?? existing?.trust ?? 'development',
