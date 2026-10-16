@@ -1,0 +1,226 @@
+{
+  "scope": "Candidate 09 view layout fixes; native verification still pending",
+  "implementation": [
+    "Anchor fallback notice insertion and its layout with immutable identity/version/selection/config/epoch guards.",
+    "Anchor uncached live source-window replacement after measuring replacement rows and spacers; source skips duplicate measurement only if manager actually measured.",
+    "No changes to 10s host preparation / 2s renderer budgets, core public APIs, plugins or CSS."
+  ],
+  "evidenceClassification": {
+    "115": "Default Chromium anchoring baseline: 2 PASS, not a red reproduction.",
+    "116": "Two real controlled no-UA-compensation notice reds: ordinary +60px marker drift and windowed +30px. Fixture-only overflow-anchor:none; not a complete reproduction of WebKit native cause.",
+    "117": "Independent real uncached Source replacement reds with auto and none anchoring: marker 204.78125 -> -91px, delta -295.78125, while scroll remained 551.",
+    "118": "Fixture error: getter returned same mutable snapshot. Layout mutation changed before snapshot as well. Ten guard failures are NOT product red evidence; corrected getter copies snapshot and selection without product changes.",
+    "119": "277/277 focused tests PASS after fixture correction.",
+    "120": "View typecheck PASS.",
+    "121": "New six browser cases PASS with PNG and geometry JSON.",
+    "122": "Final 24 guard tests PASS, including Source measurement delegation when paint returns early.",
+    "123": "Final view typecheck PASS.",
+    "124": "Existing 21 browser interaction regressions PASS (50.2s)."
+  },
+  "after": [
+    {
+      "path": "121-layout-anchor-browser/desktop-markdown-extension-40a4d-reading-position-true-auto--desktop-msedge/notice-layout.json",
+      "version": 0,
+      "unchanged": true,
+      "before": {
+        "reason": "baseline",
+        "at": 807.0999999996275,
+        "scrollTop": 1899,
+        "scrollHeight": 2592,
+        "viewportTop": 37,
+        "viewportBottom": 730,
+        "top": 640,
+        "bottom": 661,
+        "noticeHeight": 0,
+        "contentTop": -1862,
+        "fromLine": "107",
+        "toLine": "120"
+      },
+      "after": {
+        "reason": "final",
+        "at": 11964.199999999255,
+        "scrollTop": 1899,
+        "scrollHeight": 2595,
+        "viewportTop": 37,
+        "viewportBottom": 730,
+        "top": 640,
+        "bottom": 661,
+        "noticeHeight": 0,
+        "contentTop": -1862,
+        "fromLine": "79",
+        "toLine": "120"
+      },
+      "intervalCount": 111,
+      "intervalTopRange": [640, 640],
+      "allIntervalsFullyVisible": true,
+      "requestCount": 3
+    },
+    {
+      "path": "121-layout-anchor-browser/desktop-markdown-extension-76b48-reading-position-true-none--desktop-msedge/notice-layout.json",
+      "version": 0,
+      "unchanged": true,
+      "before": {
+        "reason": "baseline",
+        "at": 783.7999999988824,
+        "scrollTop": 1899,
+        "scrollHeight": 2592,
+        "viewportTop": 37,
+        "viewportBottom": 730,
+        "top": 640,
+        "bottom": 661,
+        "noticeHeight": 0,
+        "contentTop": -1862,
+        "fromLine": "107",
+        "toLine": "120"
+      },
+      "after": {
+        "reason": "final",
+        "at": 11939.699999999255,
+        "scrollTop": 1899,
+        "scrollHeight": 2595,
+        "viewportTop": 37,
+        "viewportBottom": 730,
+        "top": 640,
+        "bottom": 661,
+        "noticeHeight": 0,
+        "contentTop": -1862,
+        "fromLine": "79",
+        "toLine": "120"
+      },
+      "intervalCount": 111,
+      "intervalTopRange": [640, 640],
+      "allIntervalsFullyVisible": true,
+      "requestCount": 3
+    },
+    {
+      "path": "121-layout-anchor-browser/desktop-markdown-extension-802ea-isible-reading-anchor-auto--desktop-msedge/uncached-replacement.json",
+      "version": null,
+      "unchanged": null,
+      "before": {
+        "top": 204.78125,
+        "bottom": 225.78125,
+        "scrollTop": 551,
+        "fromLine": "3",
+        "toLine": "59",
+        "spacer": "337.781px",
+        "viewportTop": 37,
+        "viewportBottom": 730
+      },
+      "after": {
+        "top": 205,
+        "bottom": 226,
+        "scrollTop": 255,
+        "fromLine": "1",
+        "toLine": "57",
+        "spacer": "0px",
+        "viewportTop": 37,
+        "viewportBottom": 730,
+        "version": 0,
+        "unchanged": true
+      }
+    },
+    {
+      "path": "121-layout-anchor-browser/desktop-markdown-extension-d4dad-isible-reading-anchor-none--desktop-msedge/uncached-replacement.json",
+      "version": null,
+      "unchanged": null,
+      "before": {
+        "top": 204.78125,
+        "bottom": 225.78125,
+        "scrollTop": 551,
+        "fromLine": "3",
+        "toLine": "59",
+        "spacer": "337.781px",
+        "viewportTop": 37,
+        "viewportBottom": 730
+      },
+      "after": {
+        "top": 205,
+        "bottom": 226,
+        "scrollTop": 255,
+        "fromLine": "1",
+        "toLine": "57",
+        "spacer": "0px",
+        "viewportTop": 37,
+        "viewportBottom": 730,
+        "version": 0,
+        "unchanged": true
+      }
+    },
+    {
+      "path": "121-layout-anchor-browser/desktop-markdown-extension-e446a-eading-position-false-none--desktop-msedge/notice-layout.json",
+      "version": 0,
+      "unchanged": true,
+      "before": {
+        "reason": "baseline",
+        "at": 903.0999999996275,
+        "scrollTop": 1899,
+        "scrollHeight": 2592,
+        "viewportTop": 37,
+        "viewportBottom": 730,
+        "top": 640,
+        "bottom": 661,
+        "noticeHeight": 0,
+        "contentTop": -1862
+      },
+      "after": {
+        "reason": "final",
+        "at": 23159.199999999255,
+        "scrollTop": 1899,
+        "scrollHeight": 2595,
+        "viewportTop": 37,
+        "viewportBottom": 730,
+        "top": 640,
+        "bottom": 661,
+        "noticeHeight": 0,
+        "contentTop": -1862
+      },
+      "intervalCount": 222,
+      "intervalTopRange": [639.578125, 640],
+      "allIntervalsFullyVisible": true,
+      "requestCount": 3
+    },
+    {
+      "path": "121-layout-anchor-browser/desktop-markdown-extension-e971f-eading-position-false-auto--desktop-msedge/notice-layout.json",
+      "version": 0,
+      "unchanged": true,
+      "before": {
+        "reason": "baseline",
+        "at": 917,
+        "scrollTop": 1899,
+        "scrollHeight": 2592,
+        "viewportTop": 37,
+        "viewportBottom": 730,
+        "top": 640,
+        "bottom": 661,
+        "noticeHeight": 0,
+        "contentTop": -1862
+      },
+      "after": {
+        "reason": "final",
+        "at": 23255.599999999627,
+        "scrollTop": 1899,
+        "scrollHeight": 2595,
+        "viewportTop": 37,
+        "viewportBottom": 730,
+        "top": 640,
+        "bottom": 661,
+        "noticeHeight": 0,
+        "contentTop": -1862
+      },
+      "intervalCount": 223,
+      "intervalTopRange": [639.578125, 640],
+      "allIntervalsFullyVisible": true,
+      "requestCount": 3
+    }
+  ],
+  "visualInspection": [
+    "116 ordinary none notice before vs 121 after: SAMPLE-REMOTE near bottom before, returned to baseline y640 after.",
+    "117 source replacement auto before vs 121 after: caret/target absent above viewport before, visible near y205 after."
+  ],
+  "limits": [
+    "Native observed same ~30px timeout steps but did not directly sample synchronous notice insertion/removal; mechanism established by controlled browser regression, native candidate after-verification required.",
+    "Browser focus and source/history guards are covered separately; geometry JSON alone is not a native screenshot or a complete performance measurement."
+  ],
+  "frozen": true,
+  "unitCoverage": "277 tests in 119 plus the one new Source delegation case in 122: 278 distinct focused tests; final guard file has 24 tests."
+}

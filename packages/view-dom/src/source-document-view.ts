@@ -801,7 +801,7 @@ export class SourceDocumentView {
         line.scrollLeft,
       ]),
     )
-    this.documentPresentation.updateContent(() => {
+    const presentationMeasured = this.documentPresentation.updateContent(() => {
       this.contentDOM.replaceChildren(
         renderSpacer(
           this.ownerDocument,
@@ -824,7 +824,7 @@ export class SourceDocumentView {
     this.contentDOM.querySelectorAll<HTMLElement>('.milkup-block-code').forEach((line) => {
       line.scrollLeft = codeScroll.get(line.dataset.line) ?? 0
     })
-    this.measureTableRows()
+    if (!presentationMeasured) this.measureTableRows()
     this.renderSearchHighlights()
     this.renderSelection()
     this.renderCursor()

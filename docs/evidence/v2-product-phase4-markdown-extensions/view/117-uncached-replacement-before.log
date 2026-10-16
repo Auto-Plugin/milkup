@@ -1,0 +1,106 @@
+[WebServer] (node:82761) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:82776) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:82800) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:82818) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:82854) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:912:3 › uncached source replacement retains the visible reading anchor (auto) (1.7s)
+(node:83013) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:912:3 › uncached source replacement retains the visible reading anchor (none) (4.1s)
+
+
+  1) [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:912:3 › uncached source replacement retains the visible reading anchor (auto) 
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 204.78125
+    Received: -91
+
+    Expected precision:    0
+    Expected difference: < 0.5
+    Received difference:   295.78125
+
+      1045 |       fullPage: true,
+      1046 |     })
+    > 1047 |     expect(after.top).toBeCloseTo(before.top, 0)
+           |                       ^
+      1048 |     expect(after.top).toBeGreaterThanOrEqual(after.viewportTop)
+      1049 |     expect(after.bottom).toBeLessThanOrEqual(after.viewportBottom)
+      1050 |     expect(after.unchanged).toBe(true)
+        at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:1047:23
+
+    attachment #1: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - text: 写点什么吧...
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "实时"
+      - text: Markdown 0 字符 已保存
+    - main:
+      - textbox
+      - textbox "Markdown 编辑器"
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/desktop-markdown-extension-802ea-isible-reading-anchor-auto--desktop-msedge/error-context.md
+
+  2) [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:912:3 › uncached source replacement retains the visible reading anchor (none) 
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 204.78125
+    Received: -91
+
+    Expected precision:    0
+    Expected difference: < 0.5
+    Received difference:   295.78125
+
+      1045 |       fullPage: true,
+      1046 |     })
+    > 1047 |     expect(after.top).toBeCloseTo(before.top, 0)
+           |                       ^
+      1048 |     expect(after.top).toBeGreaterThanOrEqual(after.viewportTop)
+      1049 |     expect(after.bottom).toBeLessThanOrEqual(after.viewportBottom)
+      1050 |     expect(after.unchanged).toBe(true)
+        at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:1047:23
+
+    attachment #1: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - text: 写点什么吧...
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "实时"
+      - text: Markdown 0 字符 已保存
+    - main:
+      - textbox
+      - textbox "Markdown 编辑器"
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/desktop-markdown-extension-d4dad-isible-reading-anchor-none--desktop-msedge/error-context.md
+
+  2 failed
+    [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:912:3 › uncached source replacement retains the visible reading anchor (auto) 
+    [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:912:3 › uncached source replacement retains the visible reading anchor (none) 

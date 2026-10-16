@@ -1,0 +1,28 @@
+2026-10-16T04:09:06.531Z NATIVE_STARTUP_WINDOW 2749ms
+PASS 00-installed-distribution
+PASS installed-milkup.math
+PASS enabled-milkup.math
+PASS installed-milkup.diagrams
+PASS enabled-milkup.diagrams
+PASS installed-milkup.footnotes
+PASS enabled-milkup.footnotes
+PASS windowed-far-reference-ready
+PASS windowed-far-reference-definition
+PASS FAIL
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Native pointer target must be visible and hit-testable: [data-document-presentation][data-presentation-from="463"] .milkup-document-reference:nth-of-type(3)
+    at click (file:///workspace/milkup-markdown-extensions-phase4-evidence/native/far-geometry/run-far-geometry.mjs:430:3)
+    at async remoteFootnote (file:///workspace/milkup-markdown-extensions-phase4-evidence/native/far-geometry/run-far-geometry.mjs:1189:3)
+    at async file:///workspace/milkup-markdown-extensions-phase4-evidence/native/far-geometry/run-far-geometry.mjs:1299:3 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.19.0

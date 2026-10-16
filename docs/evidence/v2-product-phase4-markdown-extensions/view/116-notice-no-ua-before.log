@@ -1,0 +1,108 @@
+[WebServer] (node:82230) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:82245) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:82269) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:82287) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:82324) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:731:5 › timed-out preparation preserves the uncached near-end reading position (false, none) (23.2s)
+(node:82461) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:731:5 › timed-out preparation preserves the uncached near-end reading position (true, none) (14.6s)
+
+
+  1) [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:731:5 › timed-out preparation preserves the uncached near-end reading position (false, none) 
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 640
+    Received: 700
+
+    Expected precision:    0
+    Expected difference: < 0.5
+    Received difference:   60
+
+      902 |       const baseline = result.observations[0]
+      903 |       const final = result.observations.at(-1)
+    > 904 |       expect(final.top).toBeCloseTo(baseline.top, 0)
+          |                         ^
+      905 |       expect(final.top).toBeGreaterThanOrEqual(final.viewportTop)
+      906 |       expect(final.bottom).toBeLessThanOrEqual(final.viewportBottom)
+      907 |       expect(result.version).toBe(0)
+        at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:904:25
+
+    attachment #1: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - text: 写点什么吧...
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "实时"
+      - text: Markdown 0 字符 已保存
+    - main:
+      - textbox:
+        - group "Prepared reference"
+      - t...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/desktop-markdown-extension-e446a-eading-position-false-none--desktop-msedge/error-context.md
+
+  2) [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:731:5 › timed-out preparation preserves the uncached near-end reading position (true, none) 
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 640
+    Received: 670
+
+    Expected precision:    0
+    Expected difference: < 0.5
+    Received difference:   30
+
+      902 |       const baseline = result.observations[0]
+      903 |       const final = result.observations.at(-1)
+    > 904 |       expect(final.top).toBeCloseTo(baseline.top, 0)
+          |                         ^
+      905 |       expect(final.top).toBeGreaterThanOrEqual(final.viewportTop)
+      906 |       expect(final.bottom).toBeLessThanOrEqual(final.viewportBottom)
+      907 |       expect(result.version).toBe(0)
+        at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:904:25
+
+    attachment #1: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - text: 写点什么吧...
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "实时"
+      - text: Markdown 0 字符 已保存
+    - main:
+      - textbox:
+        - group "Prepared reference"
+      - t...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/desktop-markdown-extension-76b48-reading-position-true-none--desktop-msedge/error-context.md
+
+  2 failed
+    [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:731:5 › timed-out preparation preserves the uncached near-end reading position (false, none) 
+    [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:731:5 › timed-out preparation preserves the uncached near-end reading position (true, none) 

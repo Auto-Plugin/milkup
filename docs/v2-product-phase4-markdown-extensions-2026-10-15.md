@@ -2,7 +2,7 @@
 
 本轮基线 `2184526ddfaeef6ae1e80008f0ee90e41be9fdec`，独立分支 `dot/milkup-v2-product-phase4-markdown-extensions`。当前为实现与验收中的报告；未列出实际结果的检查均不代表通过。
 
-当前候选 08 的全仓前端门禁及 Linux 生产构建通过，但正式原生验收仍失败：run01 安装阶段 GTK 崩溃、run02 两个渲染器自然超时、run03 窗口化图表点击未进入源码。三项原因尚未确定，受控诊断通过不能抵消这些失败。run03 已完成普通文档语义与 source/live 字节一致的保存、撤销重做；窗口化语义、远端脚注、64 组显示矩阵、全禁用与恢复仍未完成。后续详情和原始失败均保留在验收记录中。
+最新候选 09 正在验证两项已独立复现的布局修复；整体尚未验收。上一候选 08 的全仓前端门禁及 Linux 生产构建通过，但正式原生验收失败：run01 安装阶段 GTK 崩溃、run02 两个渲染器自然超时、run03 窗口化图表点击未进入源码。三项原因尚未确定，受控诊断通过不能抵消这些失败。run03 已完成普通文档语义与 source/live 字节一致的保存、撤销重做；窗口化语义、远端脚注、64 组显示矩阵、全禁用与恢复仍未完成。后续详情和原始失败均保留在验收记录中。
 
 ## 审计与设计
 
@@ -77,7 +77,7 @@ P5 尚无独立完整导出/打印产品链路。当前需要明确保留的输�
 
 ## 验收记录
 
-**当前仍未通过生产验收，最新候选为 08。** 下文按候选保留历史失败和修复，不将早期检查点或后续诊断当作最终通过。因执行器多次断连，曾按要求先保存并推送隔离分支；检查点不代表 P4 完成，也不触发打包上传或发布。候选 04 正式原生 run02 的历史失败如下。
+**当前仍未通过生产验收，最新候选为 09；候选 08 的正式失败继续保留。** 下文按候选保留历史失败和修复，不将早期检查点或后续诊断当作最终通过。因执行器多次断连，曾按要求先保存并推送隔离分支；检查点不代表 P4 完成，也不触发打包上传或发布。候选 04 正式原生 run02 的历史失败如下。
 
 普通文档的源码完整可见、图表 Tab/Shift+Tab、脚注跳转及 source/live 字节一致的保存和撤销重做已实际运行，但 run02 在普通 live 保存阶段记录 math Worker 被停用：render_57 从发出到终止为 2313 ms，同期主线程出现 2289 ms 停顿；其它两个 Worker 的结果也延迟约 2260 ms 才交付。该失败请求没有 Worker 内部完成时标，不能断言插件已完成或确认误杀。随后窗口化请求在 38/18/37 个块之间反复变化，仍需独立定位布局与缓存反馈。保留 2 秒真实执行预算，不以延长期限或移除断言通过门禁。[失败与时序证据](evidence/v2-product-phase4-markdown-extensions/native/deadline-diagnosis-candidate04.json)、[候选状态](evidence/v2-product-phase4-markdown-extensions/candidate04-gates.json)。
 
@@ -138,6 +138,14 @@ P5 尚无独立完整导出/打印产品链路。当前需要明确保留的输�
 针对 run03 的一次点击事件诊断沿用普通语义和两模式历史前置，只在目标点击前记录事件、源码行与目标替换。该轮 trusted pointerdown/up、mousedown/up 和 click 均到达仍连接的 from=175 预览，精确和包含源码行均存在；之后约 623 ms 预览撤除，实际选区变为 175–238。没有复现失败，因此仍不能确定正式 run03 的事件是否投递或在哪个导航检查处返回；没有凭此修改产品。[点击诊断](evidence/v2-product-phase4-markdown-extensions/native/candidate08-flowpointer01-summary.json)。
 
 为获得尚未执行项目的实际结果，另准备独立验收分片，按三包安装→原远端脚注→窗口化 source/live 历史→原 64 组矩阵→原全禁用与恢复执行。外部 runner 只修改主调度，全部原函数逐字节一致，最终记录固定为 `SEGMENTED`、`acceptance=false`；首失败停止，不自动重跑。分片不能替代正式语义失败或使整体验收转绿。[准确差异与来源](evidence/v2-product-phase4-markdown-extensions/native/segmented-coverage/preparation.json)。分片 segmented01 在首项远端脚注准备的原 90 秒期限内失败，未进入键盘往返、窗口化历史、矩阵或恢复。搜索后标记行 160055 在 y=618.5–639.5，失败像素只剩重复正文；逻辑选区仍为 4640719–4640741、版本 0，三插件启用，无监督器超时。远端没有新的 renderer 请求；现有记录不含宿主准备 IPC 或连续视口几何，无法区分准备进展与后续视口变化。该失败不能被简单归因为扫描慢。[分片结果](evidence/v2-product-phase4-markdown-extensions/native/candidate08-segmented01-summary.json)。
+
+一次局部几何诊断随后记录了远端准备期间的实际漂移：选区不变，每约 10 秒 scrollTop 从 3361208 降为 3361178、3361148，标记 y 从 618.5 增为 648.5、678.5，可见窗口起点从 160004 改为 160003、160001。采样时 notice 为 null，不排除同一帧内插入再移除，因此周期相符尚不是 notice 因果证明。该轮约 31 秒后远端预览出现，真实 Tab/Shift+Tab、Enter 到定义通过；不能以这次成功消除 segmented01 的准备失败。之后定义返回按钮离屏，严格 pointer 检查在发送输入前拒绝：按钮 y=-224.14、hit=false。几何显示定义下移键后的窗口替换从 15–95 改为 4–84，scrollTop 保持 1077，光标 y 从 69.875 变成 -200，构成另一处真实换窗失锚线索。共 21 条合并变化记录、零丢弃；两处分别需要红回归，尚未猜测性修改产品。[几何诊断与失败](evidence/v2-product-phase4-markdown-extensions/native/candidate08-fargeometry01-summary.json)、[完整几何](evidence/v2-product-phase4-markdown-extensions/native/run-candidate08-fargeometry01/far-geometry.json)。只读确认 Tauri invoke/ipc 均不可写且不可重新配置，没有绕过或修改这些属性。
+
+针对这两条几何链，候选 09 前新增真实浏览器回归。默认 Chromium 会自动补偿 notice，115 两项通过；仅在夹具中关闭 UA 锚定后，116 两项失败：普通视图两次超时使 scrollTop 1899→1839、目标 y640→700，窗口化一次超时 y640→670。该受控机制与原生步长一致，但不是对原生每帧插删时序的回溯证明。117 则在默认/关闭锚定两种情况下均复现无缓存换窗：同版本、相同 scrollTop=551、无 notice，目标 y204.78125→−91。两组真实失败的 JSON 和像素均保留。
+
+修复只位于两个视图内部文件：notice 完整插入、文字和布局变化前后保持有效阅读锚点；启用文档呈现的 live 视图在无缓存换窗时也先测量新行和 spacer，再恢复同一源码行。文档/版本/选区/config/epoch/销毁变化或缺失目标行时不恢复旧位置；用户滚离选区时保留阅读锚点，不强制回光标，不扩缓存、不改焦点顺序。内部测量返回值避免 SourceView 重复测量，未公开到 SDK/core API；共享 CSS、插件和 10 秒准备/2 秒执行预算未改。118 的 10 项失败来自新夹具复用可变快照，与真实视图返回新快照不符；仅修正夹具，保留原失败记录，不计产品红回归。最终相关 278 项独立单测、类型、新增 6 项和原有 21 项浏览器交互通过。新 notice 四项末态均为 scrollTop1899/y640，稳定帧全部可见；无缓存换窗修后 y204.78125→205。同步插入 hook 的中间高度变化仍完整保留。修前/修后 PNG 已目视复核。[完整红绿分类与证据](evidence/v2-product-phase4-markdown-extensions/view/125-layout-anchor-summary.json)。
+
+候选 09 冻结 678 项源文件、配置、测试和生成资源。全仓 JavaScript 单测 **1,732 项、148 文件通过**，类型、构建及格式检查通过；完整浏览器 **188 项通过、零失败、零重试，8.6 分钟**，使用 Linux Chromium、单工作进程。[门禁](evidence/v2-product-phase4-markdown-extensions/candidate09-gates.json)、[浏览器日志](evidence/v2-product-phase4-markdown-extensions/browser-full-candidate09.log)。Rust、公开 SDK、插件及预装资源字节未变，按[继承证明](evidence/v2-product-phase4-markdown-extensions/candidate09-gate-inheritance.json)保留原测试结论。Linux 生产 DEB 构建与独立解包通过，构建后 678 项冻结文件无变化。[产物证明](evidence/v2-product-phase4-markdown-extensions/native/candidate09-provenance.json)记录 DEB SHA-256 `88646f68e604a02b64d83c7958cbd600275f5dfc2de0e459fe317bd716738dfb`，实际解包二进制 SHA-256 `de057fb8899786b612c7fccf829beaf8f247dd96f6e7602edcb9209e7c609408`。正式原生验收尚待进行，这仍是尚未验收的检查点。之前的 GTK 崩溃、自然渲染超时及未复现的点击失败仍单独保留为未解释风险。
 
 脚注更新后重新在仓库外安装冻结公开 SDK、构建和运行 22 项测试通过；十插件当前源码/资源及 SDK 字节核验通过，总计 327 项，未变化插件沿用相应冻结结果。新脚注外部包 SHA-256 为 `531481d11059563cffac0e0372c911a857ac903d92e5acbd597596efa2d5bfed`，旧包和候选 04 证明保留。
 

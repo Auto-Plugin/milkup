@@ -1,0 +1,102 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ✓ src/__tests__/document-presentation.test.ts (51 tests) 2275ms
+ ✓ src/__tests__/source-document-view.test.ts (64 tests) 2412ms
+   ✓ SourceDocumentView > restores the source caret after a save lock rerenders the window  444ms
+   ✓ SourceDocumentView > maps live-mode clicks through visible source spans before editing  355ms
+ ✓ src/__tests__/document-presentation-preparation.test.ts (16 tests) 100ms
+ ✓ src/__tests__/editor-view.test.ts (123 tests) 4443ms
+   ✓ EditorView > keeps docs/coding-plan.md live interactions bounded to affected lines  3155ms
+ ❯ src/__tests__/document-presentation-anchor-guards.test.ts (23 tests | 10 failed) 558ms
+   ✓ anchors notice layout without pulling an offscreen selection back (false) 37ms
+   ✓ anchors uncached replacement after measuring the new lines (false) 13ms
+   ✓ anchors notice layout without pulling an offscreen selection back (true) 10ms
+   ✓ anchors uncached replacement after measuring the new lines (true) 9ms
+   × does not restore an old notice anchor after source changes during layout 18ms
+     → expected 80 to be 300 // Object.is equality
+   × does not restore an old notice anchor after version changes during layout 31ms
+     → expected 80 to be 300 // Object.is equality
+   × does not restore an old notice anchor after document-version changes during layout 40ms
+     → expected 80 to be 300 // Object.is equality
+   × does not restore an old notice anchor after selection changes during layout 24ms
+     → expected 80 to be 300 // Object.is equality
+   × does not restore an old notice anchor after mode changes during layout 78ms
+     → expected 80 to be 300 // Object.is equality
+   ✓ does not restore an old notice anchor after config changes during layout 38ms
+   ✓ does not restore an old notice anchor after epoch changes during layout 41ms
+   ✓ does not restore an old notice anchor after destroy changes during layout 83ms
+   × does not restore an old replacement anchor after source changes during layout 15ms
+     → expected 50 to be 300 // Object.is equality
+   × does not restore an old replacement anchor after version changes during layout 6ms
+     → expected 50 to be 300 // Object.is equality
+   × does not restore an old replacement anchor after document-version changes during layout 8ms
+     → expected 50 to be 300 // Object.is equality
+   × does not restore an old replacement anchor after selection changes during layout 7ms
+     → expected 50 to be 300 // Object.is equality
+   × does not restore an old replacement anchor after mode changes during layout 7ms
+     → expected 50 to be 300 // Object.is equality
+   ✓ does not restore an old replacement anchor after config changes during layout 5ms
+   ✓ does not restore an old replacement anchor after epoch changes during layout 5ms
+   ✓ does not restore an old replacement anchor after destroy changes during layout 5ms
+   ✓ does not scroll when the old anchor line is absent from an uncached replacement 8ms
+   ✓ leaves measurement to the view when presentation is disabled or in source mode 11ms
+   ✓ reports no measurement when a cached paint is already current 55ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation-anchor-guards.test.ts > does not restore an old notice anchor after source changes during layout
+ FAIL  src/__tests__/document-presentation-anchor-guards.test.ts > does not restore an old notice anchor after version changes during layout
+ FAIL  src/__tests__/document-presentation-anchor-guards.test.ts > does not restore an old notice anchor after document-version changes during layout
+ FAIL  src/__tests__/document-presentation-anchor-guards.test.ts > does not restore an old notice anchor after selection changes during layout
+ FAIL  src/__tests__/document-presentation-anchor-guards.test.ts > does not restore an old notice anchor after mode changes during layout
+AssertionError: expected 80 to be 300 // Object.is equality
+
+- Expected
++ Received
+
+- 300
++ 80
+
+ ❯ src/__tests__/document-presentation-anchor-guards.test.ts:141:32
+    139|       } else f.manager.updateContent(() => f.content.replaceChildren(.…
+    140|       expect(changed).toBe(true)
+    141|       expect(f.root.scrollTop).toBe(300)
+       |                                ^
+    142|     })
+    143| it('does not scroll when the old anchor line is absent from an uncache…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯
+
+ FAIL  src/__tests__/document-presentation-anchor-guards.test.ts > does not restore an old replacement anchor after source changes during layout
+ FAIL  src/__tests__/document-presentation-anchor-guards.test.ts > does not restore an old replacement anchor after version changes during layout
+ FAIL  src/__tests__/document-presentation-anchor-guards.test.ts > does not restore an old replacement anchor after document-version changes during layout
+ FAIL  src/__tests__/document-presentation-anchor-guards.test.ts > does not restore an old replacement anchor after selection changes during layout
+ FAIL  src/__tests__/document-presentation-anchor-guards.test.ts > does not restore an old replacement anchor after mode changes during layout
+AssertionError: expected 50 to be 300 // Object.is equality
+
+- Expected
++ Received
+
+- 300
++ 50
+
+ ❯ src/__tests__/document-presentation-anchor-guards.test.ts:141:32
+    139|       } else f.manager.updateContent(() => f.content.replaceChildren(.…
+    140|       expect(changed).toBe(true)
+    141|       expect(f.root.scrollTop).toBe(300)
+       |                                ^
+    142|     })
+    143| it('does not scroll when the old anchor line is absent from an uncache…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/10]⎯
+
+
+ Test Files  1 failed | 4 passed (5)
+      Tests  10 failed | 267 passed (277)
+   Start at  04:22:56
+   Duration  8.45s (transform 2.34s, setup 0ms, collect 4.98s, tests 9.79s, environment 5.12s, prepare 866ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/document-presentation-anchor-guards.test.ts src/__tests__/document-presentation.test.ts src/__tests__/document-presentation-preparation.test.ts src/__tests__/source-document-view.test.ts src/__tests__/editor-view.test.ts

@@ -725,3 +725,328 @@ for (const windowed of [false, true])
         .toBe(`${intervention === 'text' ? 'X' : ''}编辑 中文😀\r\n引用[^only]`)
       await expect(input).toBeFocused()
     })
+
+for (const anchoring of ['auto', 'none'])
+  for (const windowed of [false, true])
+    test(`timed-out preparation preserves the uncached near-end reading position (${windowed}, ${anchoring})`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 1100, height: 760 })
+      await page.goto('/')
+      await page.evaluate(
+        async ({ viewModule, coreModule, windowed, anchoring }) => {
+          const { EditorView, SourceDocumentView } = await import(viewModule)
+          const { EditorState, MemoryTextDocument, MemoryDocumentSource, Selection } = await import(
+            coreModule
+          )
+          const text = [
+            ...Array(118).fill('retained 中文😀 body'),
+            'SAMPLE-REMOTE',
+            'final [reference]',
+          ].join('\r\n')
+          const from = text.indexOf('SAMPLE-REMOTE')
+          const source = new MemoryDocumentSource({ documentId: 'notice-layout', text })
+          const mount = document.createElement('main')
+          mount.dataset.noticeLayoutProbe = ''
+          Object.assign(mount.style, {
+            position: 'fixed',
+            inset: '37px 0 30px',
+            zIndex: '10000',
+            background: 'white',
+          })
+          document.body.append(mount)
+          const selection = Selection.range(from, from + 'SAMPLE-REMOTE'.length)
+          const view = windowed
+            ? new SourceDocumentView({ parent: mount, source, mode: 'live', editable: true })
+            : new EditorView({
+                parent: mount,
+                mode: 'live',
+                state: new EditorState({ doc: new MemoryTextDocument(text), selection }),
+              })
+          view.dom.style.overflowAnchor = anchoring
+          if (windowed) await view.revealSelection(119, selection)
+          else {
+            view.dom.scrollTop = view.dom.scrollHeight
+            view.ensureCursorVisible()
+          }
+          await new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve)),
+          )
+          const observations: any[] = [],
+            requests: any[] = []
+          const observe = (reason: string) => {
+            const target = view.contentDOM.querySelector('[data-line="119"]')
+            const rect = target?.getBoundingClientRect(),
+              root = view.dom.getBoundingClientRect()
+            const notice = view.dom.querySelector('[data-document-presentation-notice]')
+            observations.push({
+              reason,
+              at: performance.now(),
+              scrollTop: view.dom.scrollTop,
+              scrollHeight: view.dom.scrollHeight,
+              viewportTop: root.top,
+              viewportBottom: root.bottom,
+              top: rect?.top,
+              bottom: rect?.bottom,
+              noticeHeight: notice?.getBoundingClientRect().height ?? 0,
+              contentTop: view.contentDOM.getBoundingClientRect().top,
+              fromLine: view.contentDOM.dataset.fromLine,
+              toLine: view.contentDOM.dataset.toLine,
+            })
+          }
+          observe('baseline')
+          const insertBefore = view.dom.insertBefore.bind(view.dom)
+          view.dom.insertBefore = (node: Node, child: Node | null) => {
+            observe('before-root-insert')
+            const result = insertBefore(node, child)
+            observe('after-root-insert')
+            return result
+          }
+          const replaceChildren = view.contentDOM.replaceChildren.bind(view.contentDOM)
+          view.contentDOM.replaceChildren = (...nodes: (Node | string)[]) => {
+            observe('before-source-replacement')
+            replaceChildren(...nodes)
+            observe('after-source-replacement')
+          }
+          const interval = setInterval(() => observe('interval'), 100)
+          view.setDocumentPresentation({
+            provide: async (
+              { sourceIdentity: _i, sourceVersion: _v, documentVersion: _d, ...window }: any,
+              { signal }: any,
+            ) => {
+              const index = requests.length
+              requests.push({
+                at: performance.now(),
+                fromLine: window.fromLine,
+                toLine: window.toLine,
+              })
+              if (index < 2)
+                await new Promise((_resolve, reject) =>
+                  signal.addEventListener(
+                    'abort',
+                    () => {
+                      observe('deadline-abort')
+                      reject(signal.reason)
+                    },
+                    { once: true },
+                  ),
+                )
+              return {
+                declarations: [{ id: 'fixture', contexts: ['text'] }],
+                request: {
+                  ...window,
+                  documentId: source.documentId,
+                  version: 0,
+                  contextKnown: true,
+                  blocks: [],
+                  protectedRanges: [],
+                  theme: 'light',
+                  target: 'screen',
+                },
+                result: {
+                  complete: true,
+                  fragments: [
+                    {
+                      from: text.indexOf('[reference]'),
+                      to: text.length,
+                      accessibleText: 'Prepared reference',
+                      layout: 'inline',
+                      content: { type: 'text', text: 'Prepared reference' },
+                    },
+                  ],
+                },
+              }
+            },
+          })
+          ;(window as any).noticeLayoutProbe = {
+            view,
+            source,
+            text,
+            from,
+            requests,
+            observations,
+            finish: async () => {
+              clearInterval(interval)
+              observe('final')
+              return {
+                observations,
+                requests,
+                version: source.version,
+                selection: (windowed ? view.selection : view.state.selection).main,
+                unchanged: windowed
+                  ? (await source.readLineWindow(1, source.lineCount)).text === text
+                  : view.state.doc.text === text,
+              }
+            },
+          }
+        },
+        {
+          windowed,
+          anchoring,
+          viewModule: `/@fs${resolve('packages/view-dom/src/index.ts')}`,
+          coreModule: `/@fs${resolve('packages/core/src/index.ts')}`,
+        },
+      )
+      await expect
+        .poll(() => page.evaluate(() => (window as any).noticeLayoutProbe.requests.length), {
+          timeout: 30000,
+        })
+        .toBeGreaterThanOrEqual(3)
+      await expect(
+        page.locator('[data-notice-layout-probe] [data-document-presentation]'),
+      ).toHaveCount(1)
+      await page.waitForTimeout(200)
+      const result = await page.evaluate(() => (window as any).noticeLayoutProbe.finish())
+      await writeFile(test.info().outputPath('notice-layout.json'), JSON.stringify(result, null, 2))
+      await page.screenshot({ path: test.info().outputPath('notice-layout.png'), fullPage: true })
+      const baseline = result.observations[0]
+      const final = result.observations.at(-1)
+      expect(final.top).toBeCloseTo(baseline.top, 0)
+      expect(final.top).toBeGreaterThanOrEqual(final.viewportTop)
+      expect(final.bottom).toBeLessThanOrEqual(final.viewportBottom)
+      expect(result.version).toBe(0)
+      expect(result.unchanged).toBe(true)
+    })
+
+for (const anchoring of ['auto', 'none'])
+  test(`uncached source replacement retains the visible reading anchor (${anchoring})`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1100, height: 760 })
+    await page.goto('/')
+    await page.evaluate(
+      async ({ viewModule, coreModule, anchoring }) => {
+        const { SourceDocumentView } = await import(viewModule)
+        const { MemoryDocumentSource, Selection } = await import(coreModule)
+        const text = ['preview', ...Array(119).fill('retained 中文😀 body')].join('\r\n')
+        const source = new MemoryDocumentSource({ documentId: 'uncached-replacement', text })
+        const mount = document.createElement('main')
+        mount.dataset.uncachedReplacement = ''
+        Object.assign(mount.style, {
+          position: 'fixed',
+          inset: '37px 0 30px',
+          zIndex: '10000',
+          background: 'white',
+        })
+        document.body.append(mount)
+        const view = new SourceDocumentView({ parent: mount, source, mode: 'live', editable: true })
+        view.dom.style.overflowAnchor = anchoring
+        await view.revealSelection(2, Selection.cursor(9))
+        let pending = false
+        const provider = {
+          provide: async (
+            { sourceIdentity: _i, sourceVersion: _v, documentVersion: _d, ...window }: any,
+            { signal }: any,
+          ) => {
+            if (pending)
+              await new Promise((_resolve, reject) =>
+                signal.addEventListener('abort', () => reject(signal.reason), { once: true }),
+              )
+            return {
+              declarations: [{ id: 'fixture', contexts: ['text'] }],
+              request: {
+                ...window,
+                documentId: source.documentId,
+                version: 0,
+                contextKnown: true,
+                blocks: [],
+                protectedRanges: [],
+                theme: 'light',
+                target: 'screen',
+              },
+              result: {
+                complete: true,
+                fragments:
+                  window.from === 0
+                    ? [
+                        {
+                          from: 0,
+                          to: 7,
+                          layout: 'block',
+                          accessibleText: 'Tall preview',
+                          content: { type: 'vector', width: 600, height: 300, children: [] },
+                        },
+                      ]
+                    : [],
+              },
+            }
+          },
+        }
+        view.setDocumentPresentation(provider)
+        const observe = () => {
+          const target = view.contentDOM.querySelector('[data-line="20"]')?.getBoundingClientRect()
+          return {
+            top: target?.top,
+            bottom: target?.bottom,
+            scrollTop: view.dom.scrollTop,
+            fromLine: view.contentDOM.dataset.fromLine,
+            toLine: view.contentDOM.dataset.toLine,
+            spacer: view.contentDOM.querySelector<HTMLElement>('[data-spacer="top"]')?.style.height,
+            viewportTop: view.dom.getBoundingClientRect().top,
+            viewportBottom: view.dom.getBoundingClientRect().bottom,
+          }
+        }
+        ;(window as any).uncachedReplacement = {
+          view,
+          source,
+          provider,
+          observe,
+          text,
+          beginPending: () => {
+            pending = true
+            view.setDocumentPresentation(provider)
+          },
+          select: async () => {
+            const line = await source.readLineWindow(20, 20)
+            await view.revealSelection(20, Selection.cursor(line.from))
+          },
+        }
+      },
+      {
+        anchoring,
+        viewModule: `/@fs${resolve('packages/view-dom/src/index.ts')}`,
+        coreModule: `/@fs${resolve('packages/core/src/index.ts')}`,
+      },
+    )
+    await expect(page.locator('[data-uncached-replacement] svg')).toHaveCount(1)
+    await page.evaluate(() => (window as any).uncachedReplacement.select())
+    await expect(page.locator('[data-uncached-replacement] svg')).toHaveCount(0)
+    await page.waitForTimeout(100)
+    await page.evaluate(() => (window as any).uncachedReplacement.view.scrollToLine(15))
+    await expect(
+      page.locator('[data-uncached-replacement] .milkup-editor-content'),
+    ).toHaveAttribute('data-from-line', '3')
+    await page.evaluate(() => (window as any).uncachedReplacement.beginPending())
+    await page.waitForTimeout(50)
+    const before = await page.evaluate(() => {
+      const probe = (window as any).uncachedReplacement
+      probe.view.dom.scrollTop -= 63
+      return probe.observe()
+    })
+    await expect(
+      page.locator('[data-uncached-replacement] .milkup-editor-content'),
+    ).toHaveAttribute('data-from-line', '1')
+    await page.waitForTimeout(100)
+    const after = await page.evaluate(async () => {
+      const probe = (window as any).uncachedReplacement
+      return {
+        ...probe.observe(),
+        version: probe.source.version,
+        unchanged:
+          (await probe.source.readLineWindow(1, probe.source.lineCount)).text === probe.text,
+      }
+    })
+    await writeFile(
+      test.info().outputPath('uncached-replacement.json'),
+      JSON.stringify({ before, after }, null, 2),
+    )
+    await page.screenshot({
+      path: test.info().outputPath('uncached-replacement.png'),
+      fullPage: true,
+    })
+    expect(after.top).toBeCloseTo(before.top, 0)
+    expect(after.top).toBeGreaterThanOrEqual(after.viewportTop)
+    expect(after.bottom).toBeLessThanOrEqual(after.viewportBottom)
+    expect(after.unchanged).toBe(true)
+    expect(after.version).toBe(0)
+  })

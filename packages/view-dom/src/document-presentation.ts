@@ -655,8 +655,19 @@ export class DocumentPresentation {
     )
   }
   private fallback(message: string): void {
+    const before = this.snapshot(),
+      config = this.config,
+      epoch = this.epoch
+    // A notice participates in normal flow even before any preview is cached.
+    // Preserve reading position around its complete layout change; browsers that
+    // already anchor the insertion need no additional scroll correction.
+    const anchor =
+      !this.painting && !this.stopped && before.mode === 'live'
+        ? this.captureScrollAnchor(before.selection)
+        : undefined
     this.content.dataset.documentPresentationStatus = 'fallback'
     this.content.setAttribute('aria-description', message)
+    const created = !this.notice
     if (!this.notice) {
       this.notice = this.root.ownerDocument.createElement('div')
       this.notice.className = 'milkup-document-presentation-notice'
@@ -668,20 +679,34 @@ export class DocumentPresentation {
     }
     const changed = this.notice.textContent !== message
     if (changed) this.notice.textContent = message
-    if (changed && !this.painting && !this.stopped) {
+    if ((created || changed) && !this.painting && !this.stopped) {
       this.painting = true
       try {
         this.layout()
+        const current = this.snapshot()
+        if (
+          !this.stopped &&
+          this.config === config &&
+          this.epoch === epoch &&
+          current.mode === before.mode &&
+          current.sourceIdentity === before.sourceIdentity &&
+          current.sourceVersion === before.sourceVersion &&
+          current.documentVersion === before.documentVersion &&
+          sameSelection(current.selection, before.selection)
+        )
+          this.restoreScrollAnchor(anchor)
       } finally {
         this.painting = false
       }
     }
   }
   /** The view invokes this around a synchronous source-DOM replacement. */
-  updateContent(update: () => void): void {
+  updateContent(update: () => void): boolean {
     const before = this.snapshot()
     const cache = this.cache
     const config = this.config
+    const epoch = this.epoch
+    const eligible = config !== undefined && before.mode === 'live' && !this.stopped
     const reusable =
       cache !== undefined &&
       config !== undefined &&
@@ -691,7 +716,7 @@ export class DocumentPresentation {
       sameSelection(cache.response.request.selection, before.selection)
     // Source DOM replacement temporarily removes measured preview height. Capture
     // the reading position before that shrink, while the visible line is known.
-    const anchor = reusable ? this.captureScrollAnchor(before.selection) : undefined
+    const anchor = eligible ? this.captureScrollAnchor(before.selection) : undefined
     const anchorSource = anchor && {
       from: anchor.line.dataset.from,
       to: anchor.line.dataset.to,
@@ -699,20 +724,39 @@ export class DocumentPresentation {
     }
     const focus = this.captureFocus()
     update()
-    const current = this.snapshot()
-    if (
-      reusable &&
-      this.cache === cache &&
-      this.config === config &&
-      current.mode === 'live' &&
-      current.sourceIdentity === before.sourceIdentity &&
-      current.sourceVersion === before.sourceVersion &&
-      sameSelection(cache.response.request.selection, current.selection)
-    ) {
-      // Reinstall before the view measures its new lines, even when focus is in
-      // the input proxy or an external control rather than a preview.
-      this.paint(cache.response)
-      if (anchor && anchorSource) {
+    const current = () => {
+      const latest = this.snapshot()
+      return (
+        eligible &&
+        !this.stopped &&
+        this.config === config &&
+        this.epoch === epoch &&
+        latest.mode === before.mode &&
+        latest.sourceIdentity === before.sourceIdentity &&
+        latest.sourceVersion === before.sourceVersion &&
+        latest.documentVersion === before.documentVersion &&
+        sameSelection(latest.selection, before.selection)
+      )
+    }
+    let measured = false
+    if (current()) {
+      if (reusable && this.cache === cache) {
+        // Reinstall before measuring replacement lines, without widening cache scope.
+        const painted = this.painted
+        this.paint(cache.response)
+        measured = this.painted !== painted
+      } else if (anchor && !this.painting) {
+        // Previously measured offscreen previews can become literal rows in a
+        // new window while its provider is pending. Update spacers before anchoring.
+        this.painting = true
+        try {
+          this.layout()
+          measured = true
+        } finally {
+          this.painting = false
+        }
+      }
+      if (current() && anchor && anchorSource) {
         const replacement = Array.from(this.content.children).find(
           (line): line is HTMLElement =>
             line instanceof HTMLElement &&
@@ -723,8 +767,9 @@ export class DocumentPresentation {
         )
         if (replacement) this.restoreScrollAnchor({ line: replacement, top: anchor.top })
       }
-      this.restoreFocus(focus)
+      if (current() && reusable && this.cache === cache) this.restoreFocus(focus)
     }
+    return measured
   }
   private captureFocus():
     | {
