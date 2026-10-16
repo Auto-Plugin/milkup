@@ -1,0 +1,44 @@
+{
+  "atUtc": "2026-10-16T23:00:08.481555+00:00",
+  "status": "FORMAL_UI10_FIRST_FAILURE, partial successful records only",
+  "manifestSha256": "95c18674a7859b9909fef48c34bfaa373e36c2b80bf2057ca52e941d3812ed11",
+  "manifestFilesChecked": 552,
+  "manifestBytesChecked": 44943836,
+  "mismatches": [],
+  "counts": {
+    "ordinaryCoverage": 31,
+    "windowedCoverage": 31,
+    "selection": 2,
+    "history": 12,
+    "completeCombinations": 30,
+    "edges": 10,
+    "matrixSamples": 150
+  },
+  "records": 279,
+  "screenshotsHashChecked": 494,
+  "finalExactFiles": [
+    {
+      "name": "ordinary",
+      "bytes": 11914,
+      "sha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b"
+    },
+    {
+      "name": "windowed",
+      "bytes": 7851914,
+      "sha256": "84e661fa8af75731cbe8ff0c89c8b135303432307d7464f74a22cfceb7d1534d"
+    }
+  ],
+  "failure": {
+    "error": "Error: Timeout: actual image decode classDiagram-000-first-official-example",
+    "stack": "Error: Timeout: actual image decode classDiagram-000-first-official-example\n    at Object.until (file:///workspace/milkup/tests/helpers/native-production.mjs:46:11)\n    at async assertSample (file:///workspace/milkup/tests/native/tauri-mermaid-ui.mjs:924:3)\n    at async file:///workspace/milkup/tests/native/tauri-mermaid-ui.mjs:1450:13"
+  },
+  "actualFailurePixelViewed": "FAIL-webview.png shows selected class marker and original Markdown fence in dark200wide; no decoded class preview; source remains visible, not an empty/lost document.",
+  "nativeDeadlineBoundary": "Retained native render_2754 has deadline, but no payload or CPU metrics; class await/decode failure does not identify that native request.",
+  "uncompleted": [
+    "ordinary live dark200wide (first sample failed before matrix sample record)",
+    "ordinary live dark200narrow",
+    "all32windowed matrix combinations"
+  ],
+  "pixelReviewBoundary": "Four root coverage plus27independent coverage,30ordinary matrix +4light class/Journeycorners,6other lightcorners and10windowed preliminary images separately reviewed. No review claims for missing matrix records.",
+  "fullAuditScript": "audit-ui10-completed.py is prepared but NOT executed; terminalPASS prerequisite unmet."
+}

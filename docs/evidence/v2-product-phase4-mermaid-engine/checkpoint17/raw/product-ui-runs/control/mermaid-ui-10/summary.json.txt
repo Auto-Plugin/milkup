@@ -1,0 +1,144 @@
+{
+  "status": "FIRST-FAIL",
+  "execution": {
+    "command": [
+      "bash",
+      "-c",
+      "source /workspace/milkup-mermaid-engine-evidence/product-ui-runs/control/mermaid-ui-10/12-run-env.sh mermaid-ui-10 /workspace/milkup-mermaid-engine-evidence/linux-production-07/install/usr/bin/milkup-desktop df7b509fefa335df89b004a9992d16cb3a712f062281f418518d3e59d96e5d72 /workspace/milkup-mermaid-engine-evidence/linux-production-07/artifacts/milkup.diagrams-1.1.0.milkup-plugin 9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df\nnode /workspace/milkup/tests/native/tauri-mermaid-ui.mjs"
+    ],
+    "started": "2026-10-16T22:28:48.105196+00:00",
+    "ended": "2026-10-16T22:56:23.942621+00:00",
+    "exit": 1
+  },
+  "counts": {
+    "records": 279,
+    "coverageOrdinary": 31,
+    "coverageWindowed": 31,
+    "selection": 2,
+    "history": 12,
+    "matrixComplete": 30,
+    "matrixSamples": 150,
+    "edges": 10,
+    "pngFiles": 494
+  },
+  "failure": {
+    "error": "Error: Timeout: actual image decode classDiagram-000-first-official-example",
+    "stack": "Error: Timeout: actual image decode classDiagram-000-first-official-example\n    at Object.until (file:///workspace/milkup/tests/helpers/native-production.mjs:46:11)\n    at async assertSample (file:///workspace/milkup/tests/native/tauri-mermaid-ui.mjs:924:3)\n    at async file:///workspace/milkup/tests/native/tauri-mermaid-ui.mjs:1450:13"
+  },
+  "firstNativeDeadline": {
+    "instanceId": "5884dbb2b422896e34c6aae62f3be91fd37f4ccbb8781e80",
+    "monotonicNs": 78951681160688,
+    "phase": "deadline-observed",
+    "pid": 430427,
+    "requestId": "render_2754"
+  },
+  "phaseTimesFromDispatchMs": [
+    {
+      "phase": "dispatch",
+      "fromDispatchMs": 0.0,
+      "pid": 430427,
+      "requestId": "render_2754"
+    },
+    {
+      "phase": "deadline-observed",
+      "fromDispatchMs": 2005.473164,
+      "pid": 430427,
+      "requestId": "render_2754"
+    },
+    {
+      "phase": "kill-start",
+      "fromDispatchMs": 2013.086433,
+      "pid": 430712,
+      "requestId": null
+    },
+    {
+      "phase": "cleanup-complete",
+      "fromDispatchMs": 2391.882621,
+      "pid": 430712,
+      "requestId": null
+    },
+    {
+      "phase": "cleanup-confirmed",
+      "fromDispatchMs": 2435.078937,
+      "pid": 430427,
+      "requestId": null
+    },
+    {
+      "phase": "control-emitted",
+      "fromDispatchMs": 2435.358458,
+      "pid": 430427,
+      "requestId": "render_2754"
+    },
+    {
+      "phase": "cleanup-confirmed",
+      "fromDispatchMs": 4147.459828,
+      "pid": 430427,
+      "requestId": null
+    },
+    {
+      "phase": "cleanup-confirmed",
+      "fromDispatchMs": 4147.633802,
+      "pid": 430427,
+      "requestId": null
+    }
+  ],
+  "requestPayload": "Unknown; no transport observer. UI seeks class440..969 but cannot identify timed-out native payload.",
+  "completedMatrixKeys": [
+    "ordinary-source-light-100-wide",
+    "ordinary-source-light-100-narrow",
+    "ordinary-source-light-125-wide",
+    "ordinary-source-light-125-narrow",
+    "ordinary-source-light-150-wide",
+    "ordinary-source-light-150-narrow",
+    "ordinary-source-light-200-wide",
+    "ordinary-source-light-200-narrow",
+    "ordinary-source-dark-100-wide",
+    "ordinary-source-dark-100-narrow",
+    "ordinary-source-dark-125-wide",
+    "ordinary-source-dark-125-narrow",
+    "ordinary-source-dark-150-wide",
+    "ordinary-source-dark-150-narrow",
+    "ordinary-source-dark-200-wide",
+    "ordinary-source-dark-200-narrow",
+    "ordinary-live-light-100-wide",
+    "ordinary-live-light-100-narrow",
+    "ordinary-live-light-125-wide",
+    "ordinary-live-light-125-narrow",
+    "ordinary-live-light-150-wide",
+    "ordinary-live-light-150-narrow",
+    "ordinary-live-light-200-wide",
+    "ordinary-live-light-200-narrow",
+    "ordinary-live-dark-100-wide",
+    "ordinary-live-dark-100-narrow",
+    "ordinary-live-dark-125-wide",
+    "ordinary-live-dark-125-narrow",
+    "ordinary-live-dark-150-wide",
+    "ordinary-live-dark-150-narrow"
+  ],
+  "uncompletedCombinations": 34,
+  "lastCompleted": "ordinary-live-dark-150-narrow",
+  "failedUiStage": "ordinary-live-dark-200-wide, first class image wait",
+  "diagnostics": {
+    "errors": [],
+    "cspViolations": []
+  },
+  "pluginState": [
+    {
+      "errors": [
+        "Plugin execution host failed; manually enable to retry"
+      ],
+      "enabled": false,
+      "sourcePath": "/workspace/milkup-mermaid-engine-evidence/linux-production-07/artifacts/milkup.diagrams-1.1.0.milkup-plugin",
+      "host": "dom",
+      "id": "milkup.diagrams",
+      "state": "failed"
+    }
+  ],
+  "visualReview": {
+    "viewed": "FAIL-webview.png",
+    "observation": "Class marker selected and full Markdown fence shown as source in darklive200wide. No target image. This is not independent proof of an image decoder fault."
+  },
+  "firstFailurePolicy": "Harness itself failed and closed application. No externalabort, reenable, retry, budgetchange or inputmutation.",
+  "cleanup": "cleanup-audit.json",
+  "source": "source-after-audit.json"
+}

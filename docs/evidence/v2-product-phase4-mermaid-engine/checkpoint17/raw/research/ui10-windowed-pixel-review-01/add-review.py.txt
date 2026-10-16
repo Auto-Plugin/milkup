@@ -1,0 +1,9 @@
+from pathlib import Path
+import json,hashlib,sys,datetime
+root=Path('/workspace/milkup-mermaid-engine-evidence');run=root/'product-ui-runs/runs/mermaid-ui-10';out=Path(__file__).parent
+records=json.loads((run/'results.json').read_text())
+for item in json.loads(sys.stdin.read()):
+ name=item['record'];row=next(r for r in records if r['name']==name);shot=next(s for s in row['screenshots'] if s['file'].endswith('-webview.png'));p=run/shot['file'];data=p.read_bytes();sha=hashlib.sha256(data).hexdigest();assert sha==shot['sha256'];assert len(data)==shot['bytes']
+ entry={'record':name,'path':str(p),'sha256':sha,'bytes':len(data),'viewMethod':'view_image original full PNG','viewedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'combination':row.get('combination'),'sample':row.get('sample'),'reviewScope':item.get('scope','supplemental-windowed-coverage'),'observation':item['observation'],'limitations':item.get('limitations','Static pixels only; no independent interaction or file-integrity verification.'),'finding':item.get('finding','no-new-defect-observed-in-visible-area')}
+ with (out/'viewed-images.jsonl').open('a') as f:f.write(json.dumps(entry,ensure_ascii=False)+'\n')
+ print(name,sha)

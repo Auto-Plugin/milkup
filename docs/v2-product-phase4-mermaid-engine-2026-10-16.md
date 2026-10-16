@@ -2,7 +2,7 @@
 
 本阶段基线为 `d3851430fac0dc85c758187b33b769c5daba7f4a`，独立分支 `dot/milkup-v2-product-phase4-mermaid-engine`。已核验远端/本地 SHA、干净工作区及候选 11 的 4,044 份证据存储哈希；候选 11 的 Linux 有界能力验收继续有效。[基线核验](evidence/v2-product-phase4-mermaid-engine/baseline-verification.json)。
 
-**当前状态：官方完整引擎、通用 Linux DOM 后端和安全图片输出已实现；gate07 全仓 2055 项测试及其余门禁、独立 diagrams 89 项测试通过。production07 的五项生命周期首次通过；类图随机路径导致的重复替换已修复，并通过同请求原生结果及内滚动回归。普通浅色／窗口化深色、200% 窄窗的类图与 Journey 八角专项检查通过，完整官方引擎 64 组合 UI 矩阵尚未完成。Journey 在 100% 下原图／规范图完全一致，200% 下仍有 1106 个文本像素差异，保留为边界。不能宣称产品验收结束。** 后续继续完整 P4 验证，再进入 P5 导出／打印；Linux 证据不替代 Windows 验证。
+**当前状态：官方完整引擎、通用 Linux DOM 后端和安全图片输出已实现；gate07 全仓 2055 项测试及其余门禁、独立 diagrams 89 项测试通过。production07 的五项生命周期首次通过；类图随机路径导致的重复替换已修复，并通过同请求原生结果及内滚动回归。普通浅色／窗口化深色、200% 窄窗的类图与 Journey 八角专项检查通过，完整官方引擎 UI10 在 30/64 组合后首次遇到原生执行截止，剩余 34 组合尚未完成；实际超时输入与原因仍待诊断。Journey 在 100% 下原图／规范图完全一致，200% 下仍有 1106 个文本像素差异，保留为边界。不能宣称产品验收结束。** 后续继续完整 P4 验证，再进入 P5 导出／打印；Linux 证据不替代 Windows 验证。
 
 ## 固定版本与覆盖目标
 
@@ -486,3 +486,15 @@ checkpoint15 已随 `74c72c61a42a0d37fcd882005b44861dc11e588b` 提交推送并�
 后续用同一冻结原 SVG／规范 SVG、同一研究 binary 分别在原生 zoom1 和 zoom2 绘制，没有再调用 Mermaid。zoom1 的完整画布和左上图逐字节相同；zoom2 两组各有1106个差异像素，并逐字复现前一轮图像。Root 独立计算其中1060个在标题区域、46个在图例文字附近，明确更正先前“仅标题”的过度概括，原始记录不改写。原 computed 字号在zoom2报告减半，但标题 bbox 宽度保持、垂直度量变化，不能仅据字号数值认定 `4ex` 是原因。
 
 两轮实际截图支持“当前官方原图也有底部白区”，不支持“全部缩放像素等价”。当前保留200%文本差异边界，没有修改官方样例、裁掉空白、重写字体或放宽像素阈值。完整编辑器 UI 和其它平台仍分别验收。
+
+## UI10：30/64 组合后首次原生执行截止
+
+正式 UI10 使用干净 `79e7ee89329163d8bf3c275c57520297cf2b8670`、完整 `92870c89…0957a` harness、原 production07 binary 和官方插件包。普通及窗口化各31项图例、两项选区、十二项 source/live 保存／撤销／重做通过；完成30/64矩阵组合、150个矩阵样本、10个边缘记录。最后完成 ordinary/live/dark/150%/narrow，随后 dark/200%/wide 的首个 class 图像等待失败，该组合没有完成样本记录。余下34组合包括这个wide、同档narrow和全部32个windowed矩阵，不能计为通过。
+
+原279条记录以 FAIL 结束，harness 自行 exit1，没有外部中止或重试。该时段 native instance `5884dbb2b422896e34c6aae62f3be91fd37f4ccbb8781e80` 的 `render_2754` 在 dispatch 后2005.473164ms观测到原两秒执行截止，随后执行既有 kill、cleanup 与可信控制通知。原生 trace 的 PID 是应用主进程，本轮没有请求正文或渲染进程 CPU 观测，因此不能将这个请求绑定为 class，也不能把页面的图像解码等待错误归因为 decoder、图型复杂度或 CPU 配额。历史未知截止原因仍未关闭。
+
+Root 实际查看失败原图：class marker 被选中，原 Markdown 围栏保留，未出现目标预览；不是空文档。Root 从冻结 catalog 重建两份最终文档，ordinary11914字节和windowed7851914字节均完全相同；494张PNG的记录引用、552份完成证据的大小和SHA全部匹配。五个记录身份已消失，driver端口释放；这个清理范围不是完整后代清单。
+
+独立像素审阅与运行记录分开计数：ordinary初始coverage合计实际查看31个case的选定截图；ordinary矩阵实际查看30个已完成组合的图及部分角落／context；windowed实际查看8张coverage与2张history，尚无windowed矩阵截图。已有官方 Sankey 密集标签、block literal `&nbsp;` 和 Journey 缩放差异边界继续保留，不能以“未发现新增缺陷”概括为所有标签可读或完整验收通过。
+
+[checkpoint17](evidence/v2-product-phase4-mermaid-engine/checkpoint17/README.md) 完整保留首败、494张PNG的来源引用、完成审阅和具体范围。后续诊断使用新的独立目录，保持原完整工作流及2s／10s预算，增加有界的实际请求与可信失败控制捕获；本检查点没有产品修改，不把诊断准备当作结果。Linux证据不替代Windows，用户新批准的Runtime条款与上传预算在本执行器尚未使用。
