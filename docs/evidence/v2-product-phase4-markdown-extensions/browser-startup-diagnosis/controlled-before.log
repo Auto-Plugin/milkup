@@ -1,0 +1,35 @@
+
+Running 1 test using 1 worker
+
+(node:24315) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 ../milkup-markdown-extensions-phase4-evidence/browser-startup-diagnosis/controlled-footnote.spec.ts:5:5 › original initial footnote assertion with passive transport observation (7.9s)
+
+
+  1) ../milkup-markdown-extensions-phase4-evidence/browser-startup-diagnosis/controlled-footnote.spec.ts:5:5 › original initial footnote assertion with passive transport observation 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('.milkup-document-reference').first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('.milkup-document-reference').first()
+
+
+      66 |     await seedMarkdownExtensions(page,fixture)
+      67 |     await page.evaluate(() => (window as any).__presentationDiagnostic.push({kind:'seed-return',time:performance.now()}))
+    > 68 |     await expect(page.locator('.milkup-document-reference').first()).toBeVisible()
+         |                                                                      ^
+      69 |     assertionPassed = true
+      70 |   } finally {
+      71 |     if (!assertionPassed) {
+        at /workspace/milkup-markdown-extensions-phase4-evidence/browser-startup-diagnosis/controlled-footnote.spec.ts:68:70
+
+    Error Context: ../milkup-markdown-extensions-phase4-evidence/browser-startup-diagnosis/controlled-before/controlled-footnote-origin-e3fa6-ssive-transport-observation/error-context.md
+
+  1 failed
+    ../milkup-markdown-extensions-phase4-evidence/browser-startup-diagnosis/controlled-footnote.spec.ts:5:5 › original initial footnote assertion with passive transport observation 

@@ -41,16 +41,31 @@ export async function markdownExtensionFixture(page: Page) {
   )
   await page.goto('/')
   await expect(page.locator('.milkup-input-proxy')).toHaveCount(1)
+  // Restored records already say enabled before their Workers activate. Wait for
+  // this fresh registry's successful activation audit within the host startup budget.
   await expect
-    .poll(() =>
-      page.evaluate(
-        () =>
-          JSON.parse(localStorage.getItem('milkup.desktop.plugins.registry.v1')!).records.filter(
-            (r: { state: string }) => r.state === 'enabled',
-          ).length,
-      ),
+    .poll(
+      () =>
+        page.evaluate(
+          (ids) => {
+            const snapshot = JSON.parse(localStorage.getItem('milkup.desktop.plugins.registry.v1')!)
+            return ids.every(
+              (id) =>
+                snapshot.records.some(
+                  (record: { manifest: { id: string }; state: string; enabled: boolean }) =>
+                    record.manifest.id === id && record.state === 'enabled' && record.enabled,
+                ) &&
+                snapshot.auditRecords.some(
+                  (audit: { pluginId: string; operation: string; denied?: boolean }) =>
+                    audit.pluginId === id && audit.operation === 'enable' && !audit.denied,
+                ),
+            )
+          },
+          records.map((record) => record.manifest.id as string),
+        ),
+      { timeout: 10_000 },
     )
-    .toBe(3)
+    .toBe(true)
 }
 export async function seedMarkdownExtensions(page: Page, text: string) {
   await page.keyboard.press('Control+1')

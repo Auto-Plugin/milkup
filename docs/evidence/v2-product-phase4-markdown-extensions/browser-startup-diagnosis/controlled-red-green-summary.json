@@ -1,0 +1,141 @@
+{
+  "scope": "Test-only setup regression. Artificial one-time 5500ms Worker module load delay; does not establish the cause of either original natural full-suite failure.",
+  "sourceCheckpoint": "a68933a",
+  "renderBudgetMs": 2000,
+  "footnoteRenderExpectationMs": 5000,
+  "startupSetupBudgetMs": 10000,
+  "retries": 0,
+  "runs": {
+    "browser-startup-diagnosis/controlled-before": {
+      "pass": false,
+      "timeline": "/workspace/milkup-markdown-extensions-phase4-evidence/browser-startup-diagnosis/controlled-before/controlled-footnote-origin-e3fa6-ssive-transport-observation/timeline.json",
+      "delayEvents": [
+        {
+          "kind": "delay-start",
+          "wall": 1792114916575,
+          "url": "http://127.0.0.1:1420/src/plugin-supervisor.ts?worker_file&type=module"
+        },
+        {
+          "kind": "post-failure-observation-start",
+          "wall": 1792114921756
+        },
+        {
+          "kind": "delay-end",
+          "wall": 1792114922075
+        },
+        {
+          "kind": "post-failure-observation-end",
+          "wall": 1792114923160
+        }
+      ],
+      "actualActivations": [
+        {
+          "worker": 1,
+          "timeMs": 6572.4000000003725,
+          "wall": 1792114922379
+        },
+        {
+          "worker": 2,
+          "timeMs": 6946.200000000186,
+          "wall": 1792114922753
+        },
+        {
+          "worker": 3,
+          "timeMs": 7315.9000000003725,
+          "wall": 1792114923123
+        }
+      ]
+    },
+    "browser-startup-diagnosis/controlled-after": {
+      "pass": true,
+      "timeline": "/workspace/milkup-markdown-extensions-phase4-evidence/browser-startup-diagnosis/controlled-after/controlled-footnote-origin-e3fa6-ssive-transport-observation/timeline.json",
+      "delayEvents": [
+        {
+          "kind": "delay-start",
+          "wall": 1792114947291,
+          "url": "http://127.0.0.1:1420/src/plugin-supervisor.ts?worker_file&type=module"
+        },
+        {
+          "kind": "delay-end",
+          "wall": 1792114952792
+        }
+      ],
+      "actualActivations": [
+        {
+          "worker": 1,
+          "timeMs": 6636,
+          "wall": 1792114953109
+        },
+        {
+          "worker": 2,
+          "timeMs": 6926,
+          "wall": 1792114953399
+        },
+        {
+          "worker": 3,
+          "timeMs": 7190.899999999907,
+          "wall": 1792114953664
+        }
+      ]
+    },
+    "browser-updates-diagnosis/controlled-before": {
+      "pass": false,
+      "timeline": "/workspace/milkup-markdown-extensions-phase4-evidence/browser-updates-diagnosis/controlled-before/controlled-updates-origina-1b717-passive-startup-observation/timeline.json",
+      "delayEvents": [
+        {
+          "kind": "delay-start",
+          "wall": 1792114980730
+        },
+        {
+          "kind": "post-failure-observation-start",
+          "wall": 1792114985765
+        },
+        {
+          "kind": "delay-end",
+          "wall": 1792114986230
+        },
+        {
+          "kind": "post-failure-observation-end",
+          "wall": 1792114986480
+        }
+      ],
+      "actualActivations": [
+        {
+          "worker": 1,
+          "timeMs": 10229.69999999972,
+          "wall": 1792114986462
+        }
+      ]
+    },
+    "browser-updates-diagnosis/controlled-after": {
+      "pass": true,
+      "timeline": "/workspace/milkup-markdown-extensions-phase4-evidence/browser-updates-diagnosis/controlled-after/controlled-updates-after-o-f993d-passive-startup-observation/timeline.json",
+      "delayEvents": [
+        {
+          "kind": "delay-start",
+          "wall": 1792115011186
+        },
+        {
+          "kind": "delay-end",
+          "wall": 1792115016686
+        }
+      ],
+      "actualActivations": [
+        {
+          "worker": 1,
+          "timeMs": 6962,
+          "wall": 1792115016870
+        }
+      ]
+    }
+  },
+  "changes": [
+    "tests/helpers/markdown-extension-plugins.ts: wait for each expected current enabled record plus non-denied enable audit, within existing host startup 10s.",
+    "tests/e2e/desktop-updates.spec.ts: only initial enabled-state startup assertion gets existing host startup 10s; later rendering/edit/history/save expectations unchanged."
+  ],
+  "ownedVite": {
+    "session": 83660,
+    "pid": 23683,
+    "stop": "SIGTERM sent to exact owned Vite PID after all four sequential diagnostic tests; no global process kill."
+  }
+}

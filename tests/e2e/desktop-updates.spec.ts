@@ -93,7 +93,8 @@ async function open(page: Page) {
   await page.getByRole('button', { name: 'Milkup Updates', exact: true }).click()
   await page.getByRole('button', { name: '批准能力', exact: true }).click()
   await page.getByRole('button', { name: '启用', exact: true }).click()
-  await expect(page.locator('.plugin-state')).toHaveText('已启用')
+  // Activation uses the host's 10-second Worker startup budget.
+  await expect(page.locator('.plugin-state')).toHaveText('已启用', { timeout: 10_000 })
   await page.getByRole('button', { name: '打开 软件更新', exact: true }).click()
   await expect(page.getByRole('dialog', { name: '软件更新', exact: true })).toBeVisible()
 }
