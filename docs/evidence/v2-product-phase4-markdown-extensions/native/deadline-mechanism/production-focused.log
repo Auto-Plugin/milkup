@@ -1,0 +1,19 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/plugin
+
+ ✓ src/registry.test.ts (47 tests) 28ms
+ ✓ src/isolation-worker.test.ts (21 tests) 56ms
+ ✓ src/isolation-rpc.test.ts (5 tests) 46ms
+ ✓ src/worker-supervisor.test.ts (6 tests) 26ms
+ ✓ src/isolation-sidecar.test.ts (3 tests) 23ms
+ ✓ src/document-render-rpc.test.ts (16 tests) 2119ms
+   ✓ bounded document render isolation > terminates an actual CPU-blocked worker, revokes capabilities and marks runtime disabled  2075ms
+ ✓ src/worker-supervisor-real.test.ts (2 tests) 4991ms
+   ✓ actual independently supervised Workers > accepts an already completed render after the main thread stalls beyond 2 seconds  2527ms
+   ✓ actual independently supervised Workers > terminates a real infinite loop while the main thread is still blocked  2463ms
+
+ Test Files  7 passed (7)
+      Tests  100 passed (100)
+   Start at  01:14:41
+   Duration  6.66s (transform 804ms, setup 0ms, collect 1.87s, tests 7.29s, environment 1ms, prepare 548ms)
+

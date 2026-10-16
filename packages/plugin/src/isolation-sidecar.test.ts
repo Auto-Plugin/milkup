@@ -12,8 +12,42 @@ import { createPluginIsolationRpcServer } from './isolation-rpc'
 import { createSidecarPluginModule, type PluginSidecarEndpoint } from './isolation-sidecar'
 import type { PluginManifest } from './manifest'
 import { PluginRuntime } from './runtime'
+import { createTrustedPluginRenderEndpoint, type PluginRenderControl } from './render-arbitration'
 
 describe('sidecar plugin module adapter', () => {
+  it('revokes a native-arbitrated failed instance and stops only that instance', async () => {
+    const endpoints = createEndpointPair(),
+      server = createPluginIsolationRpcServer(endpoints.sidecar, createRemoteHost())
+    const listeners = new Set<(event: PluginRenderControl) => void>()
+    const transport = Object.assign(endpoints.main, { instanceId: 'instance-old' })
+    const endpoint = createTrustedPluginRenderEndpoint(transport, (listener) => {
+      listeners.add(listener)
+      return () => listeners.delete(listener)
+    })
+    const stop = vi.fn(),
+      failure = vi.fn(),
+      timeout = vi.fn()
+    const runtime = new PluginRuntime({
+      allowedHosts: ['sidecar'],
+      allowedPermissions: ['document:write'],
+    })
+    runtime.loadPlugin({
+      manifest: sidecarCommandManifest(),
+      module: createSidecarPluginModule({
+        manifest: sidecarCommandManifest(),
+        process: { start: () => endpoint, stop },
+        onIsolationError: failure,
+        onDocumentRenderTimeout: timeout,
+      }),
+    })
+    await runtime.enablePlugin('sidecar-tools')
+    for (const listener of [...listeners]) listener({ type: 'error' })
+    expect(failure).toHaveBeenCalledOnce()
+    expect(timeout).not.toHaveBeenCalled()
+    expect(stop).toHaveBeenCalledWith({ pluginId: 'sidecar-tools', instanceId: 'instance-old' })
+    await runtime.disablePlugin('sidecar-tools')
+    server.dispose()
+  })
   it('starts a sidecar endpoint and runs commands over the isolation RPC protocol', async () => {
     const endpoints = createEndpointPair()
     const remoteHost = createRemoteHost()

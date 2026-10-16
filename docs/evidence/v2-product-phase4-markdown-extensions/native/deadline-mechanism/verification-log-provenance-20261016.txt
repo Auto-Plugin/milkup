@@ -1,0 +1,5 @@
+Evidence provenance correction (2026-10-16)
+
+plugin-types-final.log was overwritten by the final successful typecheck, rather than retained under a new name. Its preceding run failed with TS2345 in the newly added isolation-sidecar test: spreading a MemoryEndpoint class instance dropped prototype methods required by the endpoint interface. The fixture was changed to Object.assign(endpoints.main, {instanceId: 'instance-old'}) to retain those methods. The original failed typecheck bytes are no longer preserved in that file; this note does not reconstruct or claim to preserve them.
+
+plugin-final-tests.log remains the unmodified prior full plugin result: 441 passed / 1 failed, the same fixture issue. sidecar-focused-after.log records 4/4 passing after that test-only correction. plugin-types-final.log now records the subsequent successful typecheck. Parent-owned full-unit-candidate05.log is the independent final full-suite run.

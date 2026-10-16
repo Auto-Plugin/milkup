@@ -6,16 +6,9 @@ import {
 } from '@milkup/core'
 import type { IsolatedPluginDocumentRenderRequest, PluginIsolationHost } from './isolation'
 import type { PluginIsolationRpcEndpoint } from './isolation-rpc'
+import { getPluginRenderAuthority } from './render-arbitration'
+import { readDocumentRenderResult } from './document-render-wire'
 const protocol = 'milkup.plugin.document-render.v1'
-const errors = [
-  'invalid-input',
-  'invalid-output',
-  'revoked',
-  'aborted',
-  'busy',
-  'timeout',
-  'unavailable',
-] as const
 function failure(error: unknown): DocumentPresentationError {
   return error instanceof DocumentPresentationError
     ? error
@@ -69,6 +62,7 @@ export function createDocumentRenderRpcClient(
   }
   let active: Job | undefined
   const queue: Job[] = []
+  const authority = getPluginRenderAuthority(endpoint)
   function reject(job: Job, error: Error) {
     if (!job.settled) {
       job.settled = true
@@ -81,17 +75,18 @@ export function createDocumentRenderRpcClient(
     const job = queue.shift()
     if (!job) return
     active = job
-    job.timer = setTimeout(() => {
-      if (active !== job || disposed) return
-      reject(job, new DocumentPresentationError('timeout'))
-      try {
-        onTimeout()
-      } catch {
-        // Revocation and owned-process cleanup still complete if the observer fails.
-      } finally {
-        dispose()
-      }
-    }, DOCUMENT_PRESENTATION_LIMITS.timeoutMs)
+    if (!authority)
+      job.timer = setTimeout(() => {
+        if (active !== job || disposed) return
+        reject(job, new DocumentPresentationError('timeout'))
+        try {
+          onTimeout()
+        } catch {
+          // Revocation and owned-process cleanup still complete if the observer fails.
+        } finally {
+          dispose()
+        }
+      }, DOCUMENT_PRESENTATION_LIMITS.timeoutMs)
     try {
       endpoint.postMessage({ protocol, type: 'render', id: job.id, payload: job.request })
     } catch {
@@ -101,38 +96,41 @@ export function createDocumentRenderRpcClient(
       pump()
     }
   }
-  const remove = listen(endpoint, (message) => {
-    if (
-      !record(message, ['protocol', 'type', 'id', 'ok', 'value', 'error']) ||
-      message.protocol !== protocol ||
-      message.type !== 'result' ||
-      !id(message.id) ||
-      typeof message.ok !== 'boolean'
-    )
-      return
-    if (message.ok ? Object.hasOwn(message, 'error') : Object.hasOwn(message, 'value')) return
+  const remove = listen(endpoint, (value) => {
+    const message = readDocumentRenderResult(value)
+    if (!message) return
     const job = active
     if (!job || job.id !== message.id) return
-    if (
-      message.ok === false &&
-      (typeof message.error !== 'string' ||
-        !errors.includes(message.error as (typeof errors)[number]))
-    )
-      return
     clearTimeout(job.timer)
     job.removeAbort()
     active = undefined
     if (!job.settled) {
       job.settled = true
       if (message.ok) job.resolve(message.value as DocumentPresentationResult)
-      else job.reject(new DocumentPresentationError(message.error as (typeof errors)[number]))
+      else job.reject(new DocumentPresentationError(message.error))
     }
     pump()
+  })
+  let removeControl: (() => void) | undefined
+  removeControl = authority?.subscribe((event) => {
+    if (disposed) return
+    if (event.type === 'timeout') {
+      // A cancellation may already have rejected the caller; its running job
+      // still requires the same hard deadline and capability revocation.
+      if (!active || active.id !== event.id) return
+      reject(active, new DocumentPresentationError('timeout'))
+      try {
+        onTimeout()
+      } finally {
+        dispose()
+      }
+    } else dispose()
   })
   function dispose() {
     if (disposed) return
     disposed = true
     remove()
+    removeControl?.()
     if (active) {
       clearTimeout(active.timer)
       try {

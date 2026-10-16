@@ -89,7 +89,15 @@ P5 尚无独立完整导出/打印产品链路。当前需要明确保留的输�
 
 脚注索引另增加呈现修订号：只在引用、定义、续行正文、截断或完整/受限状态实际变化时标记更新。扫描无关正文不再每 250 ms 通知；最终脏状态仍会刷新，并遵守原频率上限和取消语义。真实修前回归见 `footnotes/37-revision-refresh-before.txt`；修后 22 项测试通过，包含通知失败保留脏状态重试与末次等待取消。`41-revision-types.txt` 是首次本地 SDK 路径配置错误，`42-revision-types-final.txt` 使用公开 SDK 声明通过，独立包构建验证另行进行。
 
-独立生产 WebKit 机制实验进一步确认误判可能：预热后的真实 Worker 在请求后约 1 ms 完成并发出结果；主线程同步阻塞 2400 ms 后，原始 RPC 客户端先执行超时回调，在结果交付前终止 Worker。实验未使用端点门闩或重排，真实死循环对照仍在约 2001 ms 终止。[实验结果](evidence/v2-product-phase4-markdown-extensions/native/deadline-mechanism/webkit-result.json)。这证明该引擎中的机制缺陷，不是对原 render_57 内部状态的回溯证明。独立监督执行单元的可行性仍在验证，尚未修改预算或宣称修复。
+独立生产 WebKit 机制实验进一步确认误判可能：预热后的真实 Worker 在请求后约 1 ms 完成并发出结果；主线程同步阻塞 2400 ms 后，原始 RPC 客户端先执行超时回调，在结果交付前终止 Worker。实验未使用端点门闩或重排，真实死循环对照仍在约 2001 ms 终止。[实验结果](evidence/v2-product-phase4-markdown-extensions/native/deadline-mechanism/webkit-result.json)。这证明该引擎中的机制缺陷，不是对原 render_57 内部状态的回溯证明。
+
+2026-10-16 的真实 WebKit 原型验证了独立监督 Worker：主线程阻塞 2400 ms 时，快速子 Worker 的结果在 62 ms 完成仲裁，死循环子 Worker 在 2000 ms 到期、2001 ms 被终止。[原型结果](evidence/v2-product-phase4-markdown-extensions/native/deadline-mechanism/supervisor-webkit-20261016-summary.json)。另以独立观察者和 OS 线程采样核验父 Worker 终止的清理效果：持续消耗 CPU 的子线程在父终止后 15 ms 消失，WebView 与观察者继续响应。[清理证据](evidence/v2-product-phase4-markdown-extensions/native/run-candidate04-busy-child-20261016-01/summary.json)。这些是当前 Linux WebKit 的独立机制实验，不能代替最终生产实现验收或 Windows 验证。
+
+生产实现现将渲染仲裁移至可信监督单元：Worker 由不加载插件代码的父 Worker 持有固定 2000 ms 单调时钟截止时间；侧车由原生 Rust 实例持有同样期限，在向 WebView 交付事件前判定结果是否完成，超时先终止进程。成功响应保留插件实例与状态；取消不撤除或重置期限。控制事件与插件输出分层，结果语法在客户端和监督端一致；缺少成功值、非法错误类型或额外字段均不能解除期限。侧车使用实例 ID 隔离旧事件和停止请求，阻塞 stdin 不持有进程控制锁。Worker 的 1000 ms 退出确认回退仅用于清理父执行单元，不延长渲染期限。第三方自定义端点若未接入可信仲裁仍沿用原有客户端定时器，不据此宣称任意宿主都已迁移。
+
+本次未改变 SDK、core 或共享 CSS；新增能力位于宿主内部。全面 stdout 配额、子孙进程治理和恶意插件沙箱继续属于 P6。最终生产候选尚待下文记录；实现单测或原型通过不等于 P4 已完成。
+
+候选 05 冻结 676 项源码、配置、测试及预装资源。全仓 JavaScript 单测 **1,682 项、146 文件通过**，类型、格式及构建通过；完整 Rust **126 通过、1 忽略**，rustfmt 通过。[门禁记录](evidence/v2-product-phase4-markdown-extensions/candidate05-gates.json)、[单测](evidence/v2-product-phase4-markdown-extensions/full-unit-candidate05.log)、[Rust](evidence/v2-product-phase4-markdown-extensions/rust-tests-candidate05.log)。浏览器、生产构建与新候选原生验收尚未完成。中间一次测试夹具用对象展开丢失原型方法，产生 441/442 失败，修正后本次全仓通过；原单测失败日志保留，类型失败日志曾被覆盖的事实另有[记录](evidence/v2-product-phase4-markdown-extensions/native/deadline-mechanism/verification-log-provenance-20261016.txt)，不将其冒称为保留的原始日志。
 
 脚注更新后重新在仓库外安装冻结公开 SDK、构建和运行 22 项测试通过；十插件当前源码/资源及 SDK 字节核验通过，总计 327 项，未变化插件沿用相应冻结结果。新脚注外部包 SHA-256 为 `531481d11059563cffac0e0372c911a857ac903d92e5acbd597596efa2d5bfed`，旧包和候选 04 证明保留。
 

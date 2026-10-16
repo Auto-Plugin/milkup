@@ -644,6 +644,39 @@ describe('DesktopPluginManager', () => {
     await fixture.manager.disable('renderer-lifecycle')
   })
 
+  it('records a host failure distinctly and permits explicit retry without reviving its old callbacks', async () => {
+    const fixture = rendererLifecycleFixture()
+    await fixture.manager.installManifestPath('/plugins/renderer/plugin.json')
+    await fixture.manager.enable('renderer-lifecycle')
+    const retired = fixture.capabilities[0]!
+    retired.onIsolationError!(new Error('child loading failed'))
+    expect(fixture.manager.state().records[0]).toMatchObject({
+      state: 'failed',
+      runtimeFailure: {
+        kind: 'execution-host',
+        message: 'Plugin execution host failed; manually enable to retry',
+      },
+    })
+    expect((await fixture.manager.enable('renderer-lifecycle')).state).toBe('enabled')
+    expect(fixture.manager.state().records[0]?.runtimeFailure).toBeUndefined()
+    retired.onIsolationError!(new Error('late old child error'))
+    expect(fixture.manager.state().records[0]?.state).toBe('enabled')
+    await fixture.manager.disable('renderer-lifecycle')
+  })
+
+  it('preserves host failure provenance across restart for explicit retry', async () => {
+    const storage = createMemoryStorage(),
+      fixture = rendererLifecycleFixture(undefined, storage)
+    await fixture.manager.installManifestPath('/plugins/renderer/plugin.json')
+    await fixture.manager.enable('renderer-lifecycle')
+    fixture.capabilities[0]!.onIsolationError!(new Error('child failed'))
+    const restored = rendererLifecycleFixture(undefined, storage)
+    await restored.manager.ready
+    expect(restored.manager.state().records[0]?.runtimeFailure?.kind).toBe('execution-host')
+    expect((await restored.manager.enable('renderer-lifecycle')).state).toBe('enabled')
+    await restored.manager.disable('renderer-lifecycle')
+  })
+
   it('waits for timed-out activation cleanup before publishing a replacement', async () => {
     let release!: () => void
     const wait = new Promise<void>((resolve) => {
@@ -680,7 +713,10 @@ describe('DesktopPluginManager', () => {
   })
 })
 
-function rendererLifecycleFixture(deactivate?: (generation: number) => Promise<void>) {
+function rendererLifecycleFixture(
+  deactivate?: (generation: number) => Promise<void>,
+  storage: Storage = createMemoryStorage(),
+) {
   const capabilities: DesktopPluginModuleCapabilities[] = [],
     disposed: number[] = []
   const manifest: PluginManifest = {
@@ -699,7 +735,7 @@ function rendererLifecycleFixture(deactivate?: (generation: number) => Promise<v
     permissions: ['document:read'],
     milkupVersion: '2.0.0',
     pluginSdkVersion: '0.3.3',
-    storage: createMemoryStorage(),
+    storage,
     documentSource: () =>
       new MemoryDocumentSource({ documentId: 'render-doc', version: 1, text: '# Content' }),
     loadModule: async (_manifest, _specifier, instance) => {

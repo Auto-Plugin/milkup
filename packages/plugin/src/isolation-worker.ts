@@ -176,6 +176,11 @@ export function createBrowserWorkerPluginHost(
       cleanup()
       config.onDocumentRenderTimeout?.()
     },
+    onIsolationError: (error) => {
+      fail(error)
+      cleanup()
+      config.onIsolationError?.(error)
+    },
   })
   const fileRpcServer = fileBroker ? createPluginFileRpcServer(worker, fileBroker) : undefined
   const documentRpcServer =

@@ -41,6 +41,7 @@ export interface PluginSidecarProcess {
 }
 
 export interface PluginSidecarEndpoint extends PluginIsolationRpcEndpoint {
+  readonly instanceId?: string
   close?(): void
 }
 
@@ -52,6 +53,7 @@ export interface PluginSidecarStartRequest {
 
 export interface PluginSidecarStopRequest {
   readonly pluginId: string
+  readonly instanceId?: string
 }
 
 export function createSidecarPluginModule(config: PluginSidecarHostConfig): PluginModule {
@@ -94,9 +96,33 @@ export function createSidecarPluginModule(config: PluginSidecarHostConfig): Plug
         active.uiRpcServer?.dispose()
         active.host.dispose()
         active.endpoint.close?.()
-        void Promise.resolve(process.stop?.({ pluginId: manifest.id })).catch(() => undefined)
-        sidecar = undefined
+        void Promise.resolve(
+          process.stop?.({
+            pluginId: manifest.id,
+            ...(active.endpoint.instanceId ? { instanceId: active.endpoint.instanceId } : {}),
+          }),
+        ).catch(() => undefined)
+        if (sidecar === active) sidecar = undefined
         config.onDocumentRenderTimeout?.()
+      },
+      onIsolationError: (error) => {
+        active.keymapRpcServer?.dispose()
+        active.editingRpcServer?.dispose()
+        active.resourcesRpcServer?.dispose()
+        active.settingsRpcServer?.dispose()
+        active.workspaceRpcServer?.dispose()
+        active.documentRpcServer?.dispose()
+        active.uiRpcServer?.dispose()
+        active.host.dispose()
+        active.endpoint.close?.()
+        void Promise.resolve(
+          process.stop?.({
+            pluginId: manifest.id,
+            ...(active.endpoint.instanceId ? { instanceId: active.endpoint.instanceId } : {}),
+          }),
+        ).catch(() => undefined)
+        if (sidecar === active) sidecar = undefined
+        config.onIsolationError?.(error)
       },
     })
     const keymapRpcServer =
@@ -168,8 +194,11 @@ export function createSidecarPluginModule(config: PluginSidecarHostConfig): Plug
         active.uiRpcServer?.dispose()
         active.host.dispose()
         active.endpoint.close?.()
-        await process.stop?.({ pluginId: manifest.id })
-        sidecar = undefined
+        await process.stop?.({
+          pluginId: manifest.id,
+          ...(active.endpoint.instanceId ? { instanceId: active.endpoint.instanceId } : {}),
+        })
+        if (sidecar === active) sidecar = undefined
       }
     },
   })

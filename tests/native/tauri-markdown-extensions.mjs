@@ -523,7 +523,15 @@ window.__renderTrace={events:[],drift:[],geometry:[],observationOnly:true};
 const trace=window.__renderTrace,Base=window.Worker;
 let last=performance.now();setInterval(()=>{const now=performance.now();trace.drift.push({at:now,wall:Date.now(),delta:now-last});last=now;if(trace.drift.length>4000)trace.drift.shift()},50);
 const add=e=>{trace.events.push({at:performance.now(),wall:Date.now(),...e});if(trace.events.length>4000)trace.events.shift()};
-const summary=m=>({protocol:m?.protocol,type:m?.type,id:m?.id,method:m?.method,ok:m?.ok,error:m?.error,sourceLength:m?.payload?.request?.source?.length,blockCount:m?.payload?.request?.blocks?.length,fragments:m?.value?.fragments?.length,selection:m?.payload?.request?.selection});
+const summary=value=>{
+  const supervisor=value&&typeof value==='object'&&!Array.isArray(value)&&value.protocol==='milkup.plugin.worker-supervisor.v1';
+  const forwarded=supervisor&&(value.type==='forward'||value.type==='child')&&Object.hasOwn(value,'message')&&Object.keys(value).every(key=>['protocol','type','message'].includes(key));
+  // Observation only: unwrap exactly one layer. A child-supplied control-shaped
+  // message stays child data and never becomes a supervisor control event.
+  const m=forwarded?value.message:value;
+  const control=supervisor&&value.type==='control'&&!Object.hasOwn(value,'message')&&Object.keys(value).every(key=>['protocol','type','event','id'].includes(key));
+  return {outerProtocol:supervisor?value.protocol:undefined,outerType:supervisor?value.type:undefined,unwrapped:!!forwarded,supervisorControl:control?value.event:undefined,protocol:m?.protocol,type:m?.type,id:m?.id,method:m?.method,ok:m?.ok,error:m?.error,sourceLength:m?.payload?.request?.source?.length,blockCount:m?.payload?.request?.blocks?.length,fragments:m?.value?.fragments?.length,selection:m?.payload?.request?.selection};
+};
 window.Worker=class extends Base{constructor(...args){super(...args);this.traceName=args[1]?.name;add({kind:'new',worker:this.traceName});this.addEventListener('message',e=>add({kind:'receive',worker:this.traceName,...summary(e.data)}))}postMessage(...args){add({kind:'send',worker:this.traceName,...summary(args[0])});return super.postMessage(...args)}terminate(){add({kind:'terminate',worker:this.traceName});return super.terminate()}};
 const rect=e=>e?.getBoundingClientRect().toJSON();window.__seekGeometry=stage=>{if(!window.__seekMarker)return;const editor=document.querySelector('.milkup-editor'),proxy=document.querySelector('.milkup-input-proxy'),lines=[...document.querySelectorAll('.milkup-line')].filter(e=>e.textContent.includes(window.__seekMarker));trace.geometry.push({at:performance.now(),wall:Date.now(),stage,marker:window.__seekMarker,scrollTop:editor?.scrollTop,editor:rect(editor),proxy:rect(proxy),active:document.activeElement?.className,lines:lines.map(e=>({text:e.textContent,rect:rect(e),dataset:{...e.dataset}})),previews:[...document.querySelectorAll('[data-document-presentation]')].map(e=>({from:e.dataset.presentationFrom,rect:rect(e)}))});if(trace.geometry.length>2000)trace.geometry.shift()};if (${diagnosticInstall}) setInterval(()=>window.__seekGeometry('interval'),50);
 `)

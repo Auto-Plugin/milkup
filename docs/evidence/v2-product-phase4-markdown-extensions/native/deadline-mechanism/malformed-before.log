@@ -1,0 +1,38 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/plugin
+
+ ❯ src/worker-supervisor.test.ts (9 tests | 1 failed) 25ms
+   ✓ trusted Worker render supervision > does not re-timeout a supervised result whose main delivery was delayed 7ms
+   ✓ trusted Worker render supervision > does not let a structural property disable the original watchdog 1ms
+   ✓ trusted Worker render supervision > does not promote child control lookalikes into authority 1ms
+   ✓ trusted Worker render supervision > keeps the supervisor deadline after cancellation and kills before notifying 2ms
+   ✓ trusted Worker render supervision > settles one render, keeps the activation alive, then supervises the next 1ms
+   ✓ trusted Worker render supervision > revokes queued and active work, ignores late responses and cannot revive a retired endpoint 3ms
+   × trusted Worker render supervision > never disarms for a malformed error that the main RPC would reject 6ms
+     → expected "spy" to be called once, but got 0 times
+   ✓ trusted Worker render supervision > constructs a revoked isolation host safely from an already closed endpoint 1ms
+   ✓ trusted Worker render supervision > uses monotonic elapsed time despite wall-clock changes 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/worker-supervisor.test.ts > trusted Worker render supervision > never disarms for a malformed error that the main RPC would reject
+AssertionError: expected "spy" to be called once, but got 0 times
+ ❯ src/worker-supervisor.test.ts:109:34
+    107|     child.remote.postMessage({protocol:renderProtocol,type:'result',id…
+    108|     await vi.advanceTimersByTimeAsync(2000)
+    109|     expect(child.main.terminate).toHaveBeenCalledOnce()
+       |                                  ^
+    110|     expect(await pending).toBe('timeout');expect(timeout).toHaveBeenCa…
+    111|     realm.dispose();client.dispose()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 8 passed (9)
+   Start at  01:15:49
+   Duration  559ms (transform 182ms, setup 0ms, collect 269ms, tests 25ms, environment 0ms, prepare 65ms)
+
+undefined
+/workspace/milkup/packages/plugin:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/worker-supervisor.test.ts

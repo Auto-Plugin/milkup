@@ -9,6 +9,7 @@ import type {
 } from '@milkup/core'
 import {
   createBrowserWorkerPluginHost,
+  createSupervisedPluginWorkerEndpoint,
   createPluginDocumentBroker,
   createIsolatedPluginModule,
   createPluginUiBroker,
@@ -102,6 +103,7 @@ export interface DesktopLoadedPluginModule {
 
 export interface DesktopPluginModuleCapabilities {
   readonly onDocumentRenderTimeout?: () => void
+  readonly onIsolationError?: (error: Error) => void
   readonly editingBroker?: RevocablePluginEditingBroker
   readonly resourcesBroker?: RevocablePluginResourcesBroker
   readonly documentBroker?: ManagedPluginDocumentBroker
@@ -168,7 +170,10 @@ export interface DesktopPluginManagerOptions {
     context: PluginUiOperationContext,
   ) => void | Promise<void>
   readonly invalidatePresentation?: () => void
-  readonly onDocumentRenderFailure?: (pluginId: string) => void
+  readonly onDocumentRenderFailure?: (
+    pluginId: string,
+    kind?: 'renderer-timeout' | 'execution-host',
+  ) => void
   readonly loadModule?: DesktopPluginModuleLoader
   readonly loadSidecarModule?: DesktopPluginModuleLoader
   readonly now?: () => number
@@ -213,6 +218,7 @@ const bundledStorageKey = 'milkup.desktop.plugins.bundled.v1'
 const allowedHosts = Object.freeze(['worker', 'sidecar'] as const)
 const documentRendererTimeoutMessage =
   'Document renderer exceeded its execution deadline; manually enable to retry'
+const executionHostFailureMessage = 'Plugin execution host failed; manually enable to retry'
 const sensitivePermissions = new Set([
   'file:read',
   'file:write',
@@ -488,8 +494,14 @@ export class DesktopPluginManager {
     const record = this.require(pluginId)
 
     try {
+      const runtimeFailure = record.runtimeFailure
+      const retryableFailure =
+        runtimeFailure?.kind === 'execution-host' &&
+        runtimeFailure.message === executionHostFailureMessage
+          ? runtimeFailure.message
+          : undefined
       const blockingErrors = record.errors.filter(
-        (error) => error !== documentRendererTimeoutMessage,
+        (error) => error !== documentRendererTimeoutMessage && error !== retryableFailure,
       )
       if (blockingErrors.length > 0) {
         throw new Error(blockingErrors.join('; '))
@@ -518,6 +530,8 @@ export class DesktopPluginManager {
       const uiBroker = this.createUiBroker(record.manifest)
       const capabilities = Object.freeze({
         onDocumentRenderTimeout: () => this.failDocumentRenderer(pluginId, epoch),
+        onIsolationError: (_error: Error) =>
+          this.failDocumentRenderer(pluginId, epoch, 'execution-host'),
         ...(settingsBroker ? { settingsBroker } : {}),
         ...(keymapBroker ? { keymapBroker } : {}),
         ...(editingBroker ? { editingBroker } : {}),
@@ -532,7 +546,9 @@ export class DesktopPluginManager {
         : this.loadModule(record.manifest, prepared.specifier, capabilities))
       if (this.activationEpochs.get(pluginId) !== epoch) {
         loaded.dispose()
-        throw new Error(documentRendererTimeoutMessage)
+        throw new Error(
+          this.registry.get(pluginId)?.runtimeFailure?.message ?? documentRendererTimeoutMessage,
+        )
       }
       this.loadedModules.set(pluginId, loaded)
       if (record.manifest.host === 'sidecar') {
@@ -544,13 +560,22 @@ export class DesktopPluginManager {
       })
       await this.runtime.enablePlugin(pluginId)
       if (this.activationEpochs.get(pluginId) !== epoch)
-        throw new Error(documentRendererTimeoutMessage)
+        throw new Error(
+          this.registry.get(pluginId)?.runtimeFailure?.message ?? documentRendererTimeoutMessage,
+        )
       const next = this.registry.markEnabled(pluginId)
       this.persist()
       return next
     } catch (error) {
       await this.unloadRuntimePlugin(pluginId)
-      const failed = this.registry.markFailed(pluginId, error)
+      const prior = this.registry.get(pluginId)?.runtimeFailure
+      const failed = this.registry.markFailed(
+        pluginId,
+        error,
+        prior?.message === (error instanceof Error ? error.message : String(error))
+          ? prior.kind
+          : undefined,
+      )
       this.persist()
       return failed
     }
@@ -814,10 +839,17 @@ export class DesktopPluginManager {
     moduleSpecifier: string,
     capabilities?: DesktopPluginModuleCapabilities,
   ): Promise<DesktopLoadedPluginModule> {
-    const worker = new Worker(new URL('./plugin-worker.ts', import.meta.url), {
-      type: 'module',
-      name: `milkup-plugin-${manifest.id}`,
-    })
+    const worker = manifest.contributes?.documentRenderers?.length
+      ? createSupervisedPluginWorkerEndpoint(
+          new Worker(new URL('./plugin-supervisor.ts', import.meta.url), {
+            type: 'module',
+            name: `milkup-supervisor-${manifest.id}`,
+          }),
+        )
+      : new Worker(new URL('./plugin-worker.ts', import.meta.url), {
+          type: 'module',
+          name: `milkup-plugin-${manifest.id}`,
+        })
     let workerHost: ReturnType<typeof createBrowserWorkerPluginHost> | undefined
     try {
       const fileBroker = this.createFileBroker(manifest)
@@ -841,6 +873,9 @@ export class DesktopPluginManager {
         ...(capabilities?.onDocumentRenderTimeout
           ? { onDocumentRenderTimeout: capabilities.onDocumentRenderTimeout }
           : {}),
+        ...(capabilities?.onIsolationError
+          ? { onIsolationError: capabilities.onIsolationError }
+          : {}),
         timeoutMs: 10_000,
       })
 
@@ -855,7 +890,7 @@ export class DesktopPluginManager {
       })
     } catch (error) {
       if (workerHost) workerHost.dispose()
-      else worker.terminate()
+      else worker.terminate?.()
       throw error
     }
   }
@@ -1212,7 +1247,11 @@ export class DesktopPluginManager {
     return result
   }
 
-  private failDocumentRenderer(pluginId: string, epoch: number): void {
+  private failDocumentRenderer(
+    pluginId: string,
+    epoch: number,
+    kind: 'renderer-timeout' | 'execution-host' = 'renderer-timeout',
+  ): void {
     if (this.activationEpochs.get(pluginId) !== epoch) return
     this.activationEpochs.set(pluginId, epoch + 1)
     // The isolation host already terminated the runaway realm. Revoke host
@@ -1225,10 +1264,16 @@ export class DesktopPluginManager {
     this.settingsBrokers.get(pluginId)?.dispose()
     this.workspaceBrokers.get(pluginId)?.dispose()
     this.releasesBrokers.get(pluginId)?.dispose()
-    this.registry.markFailed(pluginId, new Error(documentRendererTimeoutMessage))
+    this.registry.markFailed(
+      pluginId,
+      new Error(
+        kind === 'renderer-timeout' ? documentRendererTimeoutMessage : executionHostFailureMessage,
+      ),
+      kind,
+    )
     this.persist()
     this.invalidatePresentation?.()
-    this.onDocumentRenderFailure?.(pluginId)
+    this.onDocumentRenderFailure?.(pluginId, kind)
     void this.runPluginLifecycle(pluginId, () => this.unloadRuntimePlugin(pluginId)).catch(
       () => undefined,
     )

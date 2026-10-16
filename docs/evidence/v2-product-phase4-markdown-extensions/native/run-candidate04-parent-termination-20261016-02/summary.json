@@ -1,0 +1,37 @@
+{
+  "diagnosticOnly": true,
+  "binarySha256": "1b94f76b6ac09d31483e4c5a7355122a83afe9c86577028a18e4baca3fe0aa55",
+  "allTenDisabled": true,
+  "controlAlive": true,
+  "parentTerminationStoppedChild": true,
+  "method": "Child-owned MessagePort sends directly to independent observer; snapshots after parent termination do not rely on parent forwarding",
+  "cases": {
+    "control": {
+      "beforeCount": 6,
+      "afterCount": 16,
+      "newCount": 10,
+      "afterGraceCount": 7,
+      "actionWall": 1792112918821,
+      "lastChildOriginWall": 1792112919723,
+      "observerTicksDuringObservation": 19,
+      "observerStillResponsive": true,
+      "observationMs": 1002
+    },
+    "terminated": {
+      "beforeCount": 6,
+      "afterCount": 7,
+      "newCount": 1,
+      "afterGraceCount": 0,
+      "actionWall": 1792112920485,
+      "lastChildOriginWall": 1792112920484,
+      "observerTicksDuringObservation": 20,
+      "observerStillResponsive": true,
+      "observationMs": 1000
+    }
+  },
+  "limits": [
+    "Heartbeat child only; does not establish busy-loop child OS thread termination",
+    "Linux WebKit runtime only",
+    "Standalone diagnostic; no production lifecycle implementation or formal acceptance claim"
+  ]
+}

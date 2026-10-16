@@ -1314,9 +1314,12 @@ const desktopPluginManager: DesktopPluginManager = new DesktopPluginManager({
     view?.refreshDocumentPresentation()
     sourceView?.refreshDocumentPresentation()
   },
-  onDocumentRenderFailure: (pluginId) => {
+  onDocumentRenderFailure: (pluginId, kind) => {
     importantNotice = true
-    notice = `插件 ${pluginId} 渲染超时，已停用；可在插件管理中手动重新启用。`
+    notice =
+      kind === 'execution-host'
+        ? `插件 ${pluginId} 执行环境失败，已停用；可在插件管理中手动重新启用。`
+        : `插件 ${pluginId} 渲染超时，已停用；可在插件管理中手动重新启用。`
     refreshPluginContributionsInViews()
     renderPluginManager()
     renderSession()
@@ -1335,6 +1338,9 @@ const desktopPluginManager: DesktopPluginManager = new DesktopPluginManager({
       ...(capabilities?.resourcesBroker ? { resourcesBroker: capabilities.resourcesBroker } : {}),
       ...(capabilities?.onDocumentRenderTimeout
         ? { onDocumentRenderTimeout: capabilities.onDocumentRenderTimeout }
+        : {}),
+      ...(capabilities?.onIsolationError
+        ? { onIsolationError: capabilities.onIsolationError }
         : {}),
       timeoutMs: 10_000,
     }),

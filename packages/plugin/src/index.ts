@@ -285,3 +285,8 @@ export type {
   PluginUiOperationOptions,
   PluginUiOperationContext,
 } from './ui-broker'
+export { createTrustedPluginRenderEndpoint, type PluginRenderControl } from './render-arbitration'
+export {
+  createSupervisedPluginWorkerEndpoint,
+  initializePluginWorkerSupervisor,
+} from './worker-supervisor'

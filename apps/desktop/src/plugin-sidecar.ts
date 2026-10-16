@@ -1,3 +1,5 @@
+import { createTrustedPluginRenderEndpoint, type PluginRenderControl } from '@milkup/plugin'
+
 import type {
   PluginIsolationRpcMessageListener,
   PluginSidecarEndpoint,
@@ -24,7 +26,11 @@ export type DesktopPluginSidecarListen = (
 
 export interface DesktopPluginSidecarMessageEvent {
   readonly pluginId: string
-  readonly message: unknown
+  readonly instanceId: string
+  readonly kind: 'message' | 'document-render-timeout' | 'error'
+  readonly message?: unknown
+  readonly requestId?: string
+  readonly error?: string
 }
 
 export function createDesktopPluginSidecarProcess(
@@ -38,20 +44,42 @@ export function createDesktopPluginSidecarProcess(
     start: async (request: PluginSidecarStartRequest): Promise<PluginSidecarEndpoint> => {
       const endpoint = new DesktopPluginSidecarEndpoint(request.pluginId, invoke, listen)
 
-      await endpoint.attach()
-      await invoke<boolean>('start_plugin_sidecar_process', {
-        pluginId: request.pluginId,
-        executable: config.executable,
-        args: config.args ?? [],
-        ...(request.moduleSpecifier ? { moduleSpecifier: request.moduleSpecifier } : {}),
-      })
-      endpoints.set(request.pluginId, endpoint)
-      return endpoint
+      try {
+        await endpoint.attach()
+        const started = await invoke<{ readonly instanceId: string }>(
+          'start_plugin_sidecar_process',
+          {
+            pluginId: request.pluginId,
+            executable: config.executable,
+            args: config.args ?? [],
+            ...(request.moduleSpecifier ? { moduleSpecifier: request.moduleSpecifier } : {}),
+          },
+        )
+        if (!started || typeof started.instanceId !== 'string' || !started.instanceId)
+          throw new Error('Native sidecar did not supply an instance identity')
+        endpoint.bindInstance(started.instanceId)
+        endpoints.get(request.pluginId)?.close()
+        endpoints.set(request.pluginId, endpoint)
+        return createTrustedPluginRenderEndpoint(endpoint, (listener) =>
+          endpoint.subscribe(listener),
+        )
+      } catch (error) {
+        endpoint.close()
+        throw error
+      }
     },
     stop: async (request: PluginSidecarStopRequest): Promise<void> => {
-      endpoints.get(request.pluginId)?.close?.()
-      endpoints.delete(request.pluginId)
-      await invoke<boolean>('stop_plugin_sidecar_process', { pluginId: request.pluginId })
+      const endpoint = endpoints.get(request.pluginId)
+      const instanceId = request.instanceId ?? endpoint?.instanceId
+      if (!instanceId) return
+      if (endpoint?.instanceId === instanceId) {
+        endpoint.close()
+        endpoints.delete(request.pluginId)
+      }
+      await invoke<boolean>('stop_plugin_sidecar_process', {
+        pluginId: request.pluginId,
+        instanceId,
+      })
     },
   })
 }
@@ -60,6 +88,31 @@ class DesktopPluginSidecarEndpoint implements PluginSidecarEndpoint {
   private readonly listeners = new Set<PluginIsolationRpcMessageListener>()
   private unlisten: (() => void) | undefined
   private attached = false
+  private closed = false
+  private nativeInstanceId = ''
+  private readonly controls = new Set<(event: PluginRenderControl) => void>()
+  private terminalControl: PluginRenderControl | undefined
+  private startupError: DesktopPluginSidecarMessageEvent | undefined
+
+  get instanceId(): string {
+    return this.nativeInstanceId
+  }
+
+  bindInstance(instanceId: string): void {
+    this.nativeInstanceId = instanceId
+    if (this.startupError?.instanceId === instanceId) this.finish({ type: 'error' })
+    this.startupError = undefined
+  }
+
+  subscribe(listener: (event: PluginRenderControl) => void): () => void {
+    this.controls.add(listener)
+    const terminal = this.terminalControl
+    if (terminal)
+      queueMicrotask(() => {
+        if (this.controls.has(listener)) listener(terminal)
+      })
+    return () => this.controls.delete(listener)
+  }
 
   constructor(
     private readonly pluginId: string,
@@ -73,22 +126,40 @@ class DesktopPluginSidecarEndpoint implements PluginSidecarEndpoint {
     }
 
     this.unlisten = await this.listen(DESKTOP_PLUGIN_SIDECAR_EVENT, (event) => {
-      if (event.payload.pluginId !== this.pluginId) {
+      const payload = event.payload
+      if (
+        !this.nativeInstanceId &&
+        payload.pluginId === this.pluginId &&
+        payload.kind === 'error'
+      ) {
+        this.startupError = payload
         return
       }
-
-      for (const listener of this.listeners) {
-        listener({ data: event.payload.message })
+      if (
+        this.closed ||
+        !this.nativeInstanceId ||
+        payload.pluginId !== this.pluginId ||
+        payload.instanceId !== this.nativeInstanceId
+      )
+        return
+      if (payload.kind === 'document-render-timeout' && typeof payload.requestId === 'string') {
+        this.finish({ type: 'timeout', id: payload.requestId })
+      } else if (payload.kind === 'error') {
+        this.finish({ type: 'error' })
+      } else if (payload.kind === 'message') {
+        for (const listener of this.listeners) listener({ data: payload.message })
       }
     })
     this.attached = true
   }
 
   postMessage(message: unknown): void {
+    if (this.closed || !this.nativeInstanceId) throw new Error('Sidecar endpoint is closed')
     void this.invoke<boolean>('send_plugin_sidecar_message', {
       pluginId: this.pluginId,
+      instanceId: this.nativeInstanceId,
       message,
-    })
+    }).catch(() => this.finish({ type: 'error' }))
   }
 
   addEventListener(_type: 'message', listener: PluginIsolationRpcMessageListener): void {
@@ -100,10 +171,19 @@ class DesktopPluginSidecarEndpoint implements PluginSidecarEndpoint {
   }
 
   close(): void {
+    this.finish({ type: 'disposed' })
+  }
+
+  private finish(control: PluginRenderControl): void {
+    if (this.closed) return
+    this.closed = true
+    this.terminalControl = control
     this.unlisten?.()
     this.unlisten = undefined
     this.attached = false
     this.listeners.clear()
+    for (const listener of [...this.controls]) listener(control)
+    this.controls.clear()
   }
 }
 

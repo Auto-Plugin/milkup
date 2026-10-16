@@ -1,0 +1,62 @@
+$ vitest run
+
+ RUN  v3.2.6 /workspace/milkup/packages/plugin
+
+ ✓ src/document-broker.test.ts (54 tests) 906ms
+ ✓ src/storage-broker.test.ts (6 tests) 212ms
+ ✓ src/document-navigation-rpc.test.ts (6 tests) 98ms
+ ✓ src/isolation-worker.test.ts (21 tests) 128ms
+ ✓ src/document-render-rpc.test.ts (16 tests) 2243ms
+   ✓ bounded document render isolation > terminates an actual CPU-blocked worker, revokes capabilities and marks runtime disabled  2195ms
+ ✓ src/settings-rpc.test.ts (19 tests) 44ms
+ ✓ src/isolation-rpc.test.ts (5 tests) 24ms
+ ✓ src/releases-rpc.test.ts (20 tests) 49ms
+ ✓ src/workspace-broker.test.ts (34 tests) 59ms
+ ✓ src/worker-supervisor-real.test.ts (2 tests) 5441ms
+   ✓ actual independently supervised Workers > accepts an already completed render after the main thread stalls beyond 2 seconds  2893ms
+   ✓ actual independently supervised Workers > terminates a real infinite loop while the main thread is still blocked  2547ms
+ ✓ src/document-window.test.ts (11 tests) 35ms
+ ✓ src/workspace-rpc.test.ts (19 tests) 51ms
+ ✓ src/editing-resources.test.ts (17 tests) 32ms
+ ✓ src/document-render-contract.test.ts (15 tests) 32ms
+ ✓ src/runtime.test.ts (14 tests) 186ms
+ ✓ src/registry.test.ts (47 tests) 36ms
+ ✓ src/settings-broker.test.ts (21 tests) 34ms
+ ✓ src/keymap-rpc.test.ts (13 tests) 122ms
+ ✓ src/isolation.test.ts (7 tests) 19ms
+ ✓ src/manifest.test.ts (25 tests) 16ms
+ ✓ src/isolation-module-host.test.ts (6 tests) 28ms
+ ✓ src/preferences-isolation.test.ts (3 tests) 39ms
+ ❯ src/isolation-sidecar.test.ts (4 tests | 1 failed) 24ms
+   × sidecar plugin module adapter > revokes a native-arbitrated failed instance and stops only that instance 8ms
+     → Endpoint has no message listener
+   ✓ sidecar plugin module adapter > starts a sidecar endpoint and runs commands over the isolation RPC protocol 11ms
+   ✓ sidecar plugin module adapter > does not start sidecars unless the runtime explicitly allows the sidecar host tier 2ms
+   ✓ sidecar plugin module adapter > stops the sidecar process even when remote deactivate fails 2ms
+ ✓ src/worker-supervisor.test.ts (11 tests) 25ms
+ ✓ src/filesystem-broker.test.ts (11 tests) 22ms
+ ✓ src/releases-broker.test.ts (3 tests) 13ms
+ ✓ src/editing-isolation.test.ts (3 tests) 31ms
+ ✓ src/editing-ui-contract.test.ts (4 tests) 12ms
+ ✓ src/document-rpc.test.ts (1 test) 12ms
+ ✓ src/loader.test.ts (7 tests) 18ms
+ ✓ src/ui-location.test.ts (4 tests) 9ms
+ ✓ src/network-broker.test.ts (5 tests) 16ms
+ ✓ src/editing-legacy-guard.test.ts (4 tests) 8ms
+ ✓ src/package.test.ts (4 tests) 11ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/isolation-sidecar.test.ts > sidecar plugin module adapter > revokes a native-arbitrated failed instance and stops only that instance
+Unknown Error: Endpoint has no message listener
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 33 passed (34)
+      Tests  1 failed | 441 passed (442)
+   Start at  01:20:10
+   Duration  10.09s (transform 2.47s, setup 0ms, collect 7.41s, tests 10.03s, environment 18ms, prepare 3.51s)
+
+/workspace/milkup/packages/plugin:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/plugin@2.0.0-beta.1 test: `vitest run`
+Exit status 1

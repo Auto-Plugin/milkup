@@ -50,6 +50,11 @@ export interface PluginRegistryRecord {
   readonly storageRoot: string
   readonly approvals: PluginApprovalState
   readonly errors: readonly string[]
+  /** Host-recorded execution failure; distinct from manifest/approval validation. */
+  readonly runtimeFailure?: {
+    readonly kind: 'renderer-timeout' | 'execution-host'
+    readonly message: string
+  }
 }
 
 export interface PluginApprovalState {
@@ -268,8 +273,9 @@ export class PluginRegistry {
 
   markEnabled(pluginId: string): PluginRegistryRecord {
     const record = this.require(pluginId)
+    const { runtimeFailure: _failure, ...rest } = record
     const next = freezeRecord({
-      ...record,
+      ...rest,
       enabled: true,
       state: 'enabled',
       updatedAt: this.now(),
@@ -293,11 +299,17 @@ export class PluginRegistry {
     return next
   }
 
-  markFailed(pluginId: string, error: unknown): PluginRegistryRecord {
+  markFailed(
+    pluginId: string,
+    error: unknown,
+    runtimeKind?: 'renderer-timeout' | 'execution-host',
+  ): PluginRegistryRecord {
     const record = this.require(pluginId)
     const message = error instanceof Error ? error.message : String(error)
+    const { runtimeFailure: _failure, ...rest } = record
     const next = freezeRecord({
-      ...record,
+      ...rest,
+      ...(runtimeKind ? { runtimeFailure: Object.freeze({ kind: runtimeKind, message }) } : {}),
       enabled: false,
       state: 'failed',
       updatedAt: this.now(),

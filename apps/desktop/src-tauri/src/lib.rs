@@ -2,7 +2,7 @@ use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::fs;
 use std::hash::{Hash, Hasher};
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{Read, Write};
 #[cfg(test)]
 use std::io::{Seek, SeekFrom};
 #[cfg(unix)]
@@ -10,7 +10,7 @@ use std::os::unix::fs::PermissionsExt;
 #[cfg(windows)]
 use std::os::windows::ffi::OsStrExt;
 use std::path::{Component, Path, PathBuf};
-use std::process::{Child, ChildStdin, Command, Stdio};
+use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -22,6 +22,8 @@ use tauri::{AppHandle, Emitter, Manager, State, Window};
 mod native_search;
 mod piece_tree;
 mod plugin_icon;
+mod plugin_sidecar;
+use plugin_sidecar::{SidecarEvent, SidecarRegistry, SidecarStarted};
 mod recovery;
 mod recovery_storage;
 mod resources;
@@ -48,16 +50,10 @@ extern "system" {
 }
 
 struct WatchRegistry(Mutex<HashMap<String, WatchRegistration>>);
-struct SidecarRegistry(Mutex<HashMap<String, SidecarProcessRegistration>>);
 struct LargeFileRegistry(Mutex<HashMap<String, LargeFileRegistration>>);
 
 struct WatchRegistration {
     stop: Arc<AtomicBool>,
-}
-
-struct SidecarProcessRegistration {
-    child: Child,
-    stdin: ChildStdin,
 }
 
 struct LargeFileRegistration {
@@ -154,13 +150,6 @@ struct FileWatchEvent {
 enum FileWatchEventKind {
     Modified,
     Deleted,
-}
-
-#[derive(Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct PluginSidecarMessageEvent {
-    plugin_id: String,
-    message: serde_json::Value,
 }
 
 #[derive(Serialize)]
@@ -865,67 +854,29 @@ fn start_plugin_sidecar_process(
     executable: String,
     args: Vec<String>,
     module_specifier: Option<String>,
-) -> Result<bool, String> {
-    let executable_path = validate_sidecar_executable(&executable)?;
-    let mut command = Command::new(executable_path);
-
-    command
-        .args(args)
-        .env("MILKUP_PLUGIN_ID", &plugin_id)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null());
-
+) -> Result<SidecarStarted, String> {
+    let mut command = Command::new(validate_sidecar_executable(&executable)?);
+    command.args(args).env("MILKUP_PLUGIN_ID", &plugin_id);
     if let Some(module_specifier) = module_specifier {
         command.env("MILKUP_PLUGIN_MODULE_SPECIFIER", module_specifier);
     }
-
-    let mut child = command.spawn().map_err(|error| error.to_string())?;
-    let stdin = child
-        .stdin
-        .take()
-        .ok_or_else(|| "Plugin sidecar stdin was not available".to_string())?;
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or_else(|| "Plugin sidecar stdout was not available".to_string())?;
-    let previous = {
-        let mut sidecars = registry.0.lock().map_err(|error| error.to_string())?;
-        sidecars.insert(
-            plugin_id.clone(),
-            SidecarProcessRegistration { child, stdin },
-        )
-    };
-
-    if let Some(previous) = previous {
-        stop_sidecar_registration(previous);
-    }
-
-    thread::spawn(move || {
-        forward_sidecar_stdout(app, plugin_id, stdout);
-    });
-
-    Ok(true)
+    registry.start(
+        plugin_id,
+        command,
+        Arc::new(move |event: SidecarEvent| {
+            let _ = app.emit(PLUGIN_SIDECAR_EVENT_NAME, event);
+        }),
+    )
 }
 
 #[tauri::command]
-fn send_plugin_sidecar_message(
-    registry: State<SidecarRegistry>,
+async fn send_plugin_sidecar_message(
+    registry: State<'_, SidecarRegistry>,
     plugin_id: String,
+    instance_id: String,
     message: serde_json::Value,
 ) -> Result<bool, String> {
-    let mut sidecars = registry.0.lock().map_err(|error| error.to_string())?;
-    let sidecar = sidecars
-        .get_mut(&plugin_id)
-        .ok_or_else(|| format!("Unknown plugin sidecar: {plugin_id}"))?;
-
-    serde_json::to_writer(&mut sidecar.stdin, &message).map_err(|error| error.to_string())?;
-    sidecar
-        .stdin
-        .write_all(b"\n")
-        .map_err(|error| error.to_string())?;
-    sidecar.stdin.flush().map_err(|error| error.to_string())?;
-
+    registry.send(&plugin_id, &instance_id, message).await?;
     Ok(true)
 }
 
@@ -933,16 +884,9 @@ fn send_plugin_sidecar_message(
 fn stop_plugin_sidecar_process(
     registry: State<SidecarRegistry>,
     plugin_id: String,
+    instance_id: String,
 ) -> Result<bool, String> {
-    let previous = {
-        let mut sidecars = registry.0.lock().map_err(|error| error.to_string())?;
-        sidecars.remove(&plugin_id)
-    };
-
-    if let Some(previous) = previous {
-        stop_sidecar_registration(previous);
-    }
-
+    registry.stop(&plugin_id, &instance_id)?;
     Ok(true)
 }
 
@@ -1040,7 +984,7 @@ fn unwatch_markdown_file(
 pub fn run() {
     tauri::Builder::default()
         .manage(WatchRegistry(Mutex::new(HashMap::new())))
-        .manage(SidecarRegistry(Mutex::new(HashMap::new())))
+        .manage(SidecarRegistry::default())
         .manage(LargeFileRegistry(Mutex::new(HashMap::new())))
         .manage(native_search::NativeSearchRegistry::default())
         .manage(updates::UpdateService::default())
@@ -1335,38 +1279,6 @@ fn validate_sidecar_executable(path: &str) -> Result<PathBuf, String> {
     }
 
     Ok(executable)
-}
-
-fn forward_sidecar_stdout(app: AppHandle, plugin_id: String, stdout: impl std::io::Read) {
-    let reader = BufReader::new(stdout);
-
-    for line in reader.lines() {
-        let line = match line {
-            Ok(line) => line,
-            Err(_) => break,
-        };
-
-        if line.trim().is_empty() {
-            continue;
-        }
-
-        let Ok(message) = serde_json::from_str::<serde_json::Value>(&line) else {
-            continue;
-        };
-
-        let _ = app.emit(
-            PLUGIN_SIDECAR_EVENT_NAME,
-            PluginSidecarMessageEvent {
-                plugin_id: plugin_id.clone(),
-                message,
-            },
-        );
-    }
-}
-
-fn stop_sidecar_registration(mut registration: SidecarProcessRegistration) {
-    let _ = registration.child.kill();
-    let _ = registration.child.wait();
 }
 
 #[cfg(test)]
@@ -2165,15 +2077,21 @@ mod tests {
 
     #[test]
     fn plugin_sidecar_event_uses_camel_case_payload() {
-        let event = PluginSidecarMessageEvent {
+        let event = SidecarEvent {
             plugin_id: "sidecar-tools".to_string(),
-            message: serde_json::json!({ "type": "ready" }),
+            instance_id: "sidecar_1".to_string(),
+            kind: "message",
+            message: Some(serde_json::json!({ "type": "ready" })),
+            request_id: None,
+            error: None,
         };
 
         assert_eq!(
             serde_json::to_value(event).expect("serialize sidecar event"),
             serde_json::json!({
                 "pluginId": "sidecar-tools",
+                "instanceId": "sidecar_1",
+                "kind": "message",
                 "message": {
                     "type": "ready"
                 }

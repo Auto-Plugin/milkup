@@ -1,4 +1,5 @@
 import { createDocumentRenderRpcClient, createDocumentRenderRpcServer } from './document-render-rpc'
+import { getPluginRenderAuthority } from './render-arbitration'
 import type {
   IsolatedPluginActivateRequest,
   IsolatedPluginActivateResult,
@@ -22,6 +23,8 @@ export type PluginIsolationRpcMessageListener = (event: { readonly data: unknown
 export interface PluginIsolationRpcHostOptions {
   /** Host-owned hard stop and revocation. Required for document render providers. */
   readonly onDocumentRenderTimeout?: () => void
+  /** Trusted transport failure, distinct from a renderer execution deadline. */
+  readonly onIsolationError?: (error: Error) => void
   readonly timeoutMs?: number
 }
 
@@ -102,6 +105,13 @@ export function createRpcPluginIsolationHost(
       request.reject(new Error(response.error?.message ?? 'Plugin isolation RPC failed'))
     }
   })
+  let removeAuthority: (() => void) | undefined
+  removeAuthority = getPluginRenderAuthority(endpoint)?.subscribe((event) => {
+    if (disposed || event.type === 'timeout') return
+    disposeRpcHost()
+    if (event.type === 'error')
+      options.onIsolationError?.(new Error('Plugin execution host failed'))
+  })
 
   function call(method: RpcMethod, payload: unknown): Promise<unknown> {
     if (disposed) {
@@ -132,6 +142,7 @@ export function createRpcPluginIsolationHost(
     disposed = true
     documentClient.dispose()
     removeListener()
+    removeAuthority?.()
 
     for (const [id, request] of pending) {
       pending.delete(id)
