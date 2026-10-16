@@ -1,0 +1,27 @@
+diff --git a/tests/native/tauri-mermaid-ui.mjs b/tests/native/tauri-mermaid-ui.mjs
+index c9f0a1a0..f56d3034 100644
+--- a/tests/native/tauri-mermaid-ui.mjs
++++ b/tests/native/tauri-mermaid-ui.mjs
+@@ -512,6 +512,22 @@ async function seek(sample, mode) {
+   )
+   await app.key('Escape')
+   await app.focus('.milkup-input-proxy')
++  // Search results can arrive before windowed navigation finishes. These are
++  // mounted selection projections, so first require the complete unique marker.
++  const markerTo = sample.from - 2
++  const markerFrom = markerTo - sample.marker.length
++  await app.until(
++    async () => {
++      const p = await app.probe()
++      return (
++        p.cursor === markerTo &&
++        p.selection.length > 0 &&
++        p.selection.every((range) => range.from === markerFrom && range.to === markerTo)
++      )
++    },
++    'complete sample marker selection after native search navigation',
++    30_000,
++  )
+   await positionSample(sample)
+ }
+ async function positionSample(sample) {

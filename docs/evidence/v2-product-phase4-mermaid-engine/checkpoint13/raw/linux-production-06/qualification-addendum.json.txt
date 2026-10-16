@@ -1,0 +1,57 @@
+{
+  "schema": "milkup.production-qualification-addendum.v1",
+  "atUtc": "2026-10-16T20:41:11.916884+00:00",
+  "scope": "Offline qualification of production06 app-sigkill first attempt only; no new runtime or modification of original evidence",
+  "root": "/workspace/milkup-mermaid-engine-evidence/linux-production-06",
+  "originalStatement": "App SIGKILL ancestor only natural wait/reap. Missing asynchronous ECHILD trace means exact time unknown and natural exit an upper bound.",
+  "qualification": "The summary retains a generic conditional limitation for runs with a missing asynchronous ECHILD diagnostic. That missing-diagnostic condition does not apply to this production06 run: its terminal diagnostic was observed and its exactEchildMonotonicNs field is populated. The natural-exit observation remains a later independent upper bound, not the sole available timing evidence. No conclusion is retroactively changed for historical runs lacking that diagnostic.",
+  "run": "lifecycle-p06-app-sigkill-01",
+  "observed": {
+    "guardian": {
+      "pid": 398329,
+      "birth": "7067420",
+      "parent": 397943,
+      "state": "Z",
+      "group": 398329,
+      "name": "milkup-desktop"
+    },
+    "terminalDiagnostic": "observed",
+    "exactEchildMonotonicNs": 70677468765461,
+    "matchingNativeTrace": {
+      "instanceId": "62a97ef0be596e25930c8e9d4277ffbc57aac33d77479c2e",
+      "monotonicNs": 70677468765461,
+      "phase": "cleanup-complete",
+      "pid": 398329,
+      "requestId": null
+    },
+    "naturalExitObservedMonotonicNs": 70677479712933,
+    "waitpidCompletedMonotonicNs": 70677483080006,
+    "exitCode": 0,
+    "noSignalSentByWaitOnlyAncestor": true,
+    "functionalCleanup": "All tracked PID/birth identities and private directory cleared within original 4.5s observer bound"
+  },
+  "timingQualification": "Monotonic timestamps are the recorded native diagnostic and observer timestamps; elapsed differences are not CPU execution times. The ancestor observation is not claimed to be the exact instant of kernel process exit.",
+  "sources": [
+    {
+      "path": "completed-manifest.json",
+      "sha256": "cf0f6f152e7569bbd5b828f75a215b8ac80eac2667ecd0e931c679d852ab2b7a"
+    },
+    {
+      "path": "lifecycle-summary.json",
+      "sha256": "deaa6d37a4d0c74402faa96eed2077cea26203e136823a8bb59095eff917e9e1"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p06-app-sigkill-01/events.json",
+      "sha256": "f9f6aefe0a5e00bffa664da0995c740e57d1e4f39d4f14e40af82105030335f6"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p06-app-sigkill-01/native-traces.json",
+      "sha256": "f43812c9d5aa440d61385888093724c03404f59b25901116a865bffa93d90903"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p06-app-sigkill-01-ancestor-reaps.json",
+      "sha256": "11c33a77052b6cc0f696fbe3692900eb5f4c11673517f7bca9aa0d4590826f41"
+    }
+  ],
+  "originalFilesUnchanged": true
+}

@@ -410,3 +410,25 @@ checkpoint10 已推送为 `a5658985ff3d8fc6d06d49025f9d9babfe2b3ff6`，远端 SH
 全仓 gate06 的类型检查和 2051 项 Vitest + 4 项 Node 测试首次通过；lint 因五份 checkpoint07–11 已发布生成索引的排版而停止，构建未执行。这些原始索引字节已有跨检查点 SHA 引用，因此保留其原件，`.prettierignore` 只增加这类生成 index 的明确规则，产品和测试文件仍按原 lint 检查。根代理分别运行五份 verify-index，内容、对象和引用全部通过、原 SHA 不变。独立 continuation 的 lint 与构建随后通过，15413 项输入在各自执行期间均未变；两个阶段间唯一配置差异就是该规则，原首败原件没有改写，也没有重复已通过的类型和测试检查。
 
 受控回归、完整浏览器结果、首轮格式失败及后续通过分别保存于 [checkpoint12](evidence/v2-product-phase4-mermaid-engine/checkpoint12/README.md)。这完成本次修改的代码与浏览器检查，新的 Linux production06 和完整原生 UI08 仍待实际运行，不将旧生产包或 Linux 浏览器结果冒充新包、Windows 或完整矩阵通过。
+
+## production06：ResizeObserver 修复后的原生生命周期
+
+修复与 checkpoint12 已推送为 `fba47d028f336ceab837be6bc4117bd17663550c`，远端 SHA 及 GitHub 作者、提交者身份均核验一致。production06 在该 clean HEAD 上实际构建 Linux deb，首次通过，耗时 78.42 秒。实际包 SHA 为 `f0f246f8cf3741b2074f76b819e76610e36d6d01e56931b5a17586120796ea9c`，提取程序 SHA 为 `35bf62fbad2dbe1acbd3485f77ccd554ab1ed6a2a842e47ed60bd7d735fb7819`。独立复核确认 target 与包内程序仅有 Tauri 三字节打包标记差异，完整 guard、官方插件包和 SDK 保持原哈希，12 份前端文件与构建输出相同。
+
+2912 项原生产采集输入构建及运行后保持一致，相对 production05 在该采集范围内只有 manager 与 native harness 两项变化；e2e 不在这份采集根目录内，另以 supplemental 明确记录 manager/native harness/e2e/.prettierignore 四项提交差异，不能把两项范围内差异写成全仓只有两项变动。
+
+timeout、disable、remove、WM-close、App-SIGKILL 五项均首次通过。两秒死循环从 dispatch 至 deadline 为 2000.188650 ms，kill 为 2000.619748 ms，guardian ECHILD 清理完成为 2027.720040 ms，App 确认为 2036.814488 ms。App-SIGKILL 本轮实际保留 cleanup-complete 与精确 ECHILD 时点，并由 wait-only ancestor 记录自然退出码 0；摘要顶层沿用的“缺失诊断时无法精确判断”通用限制不适用于这次已有记录的案例，原摘要与单独资格说明均保留。
+
+根代理实读五份原始事件、核验实际产物哈希、495 项完成证据，并重新检查 45 个 DOM、5 个 driver 和 5 个等待祖先进程全部不存在，五个私有目录已清除，端口释放；实际查看超时失败卡、禁用卡和移除后的列表图片。以上为通用 DOM 生命周期闭环，完整 Mermaid UI08 另行执行，不替代图例、历史及缩放矩阵，不扩大为 Windows 验证。
+
+## UI08：窗口化选区投影首败与导航就绪边界
+
+同一 production06 与正式冻结 harness 在新 profile 中首次执行 UI08。冷启动、独立安装、四项回退与通知、普通文档 31/31 图例、一项映射选区及 source/live 六项保存/撤销/重做通过；窗口化图例前 19 项通过，第 20 项 sequence000 在定位后触发原选区守恒断言，随后停止。70 条记录为 69 条局部通过加首败，完整矩阵仍为 0/64。此前 UI07 首次记录 ResizeObserver 错误的 ordinary flowchart086 在本轮通过；所有已保存观测的页面错误及 CSP 列表为空，但不能据此声称本轮完整矩阵已通过。
+
+首败中 probe.selection 从空数组变为 8103..8160、line398，版本 0、dirty false、文件字节未变。定位的首次观测在 136 ms，目标未挂载，mountedFrom 为 8832；两次真实滚轮及一次反向后，714 ms 时目标可见，744 ms 完成定位。原始记录未保存两端独立绝对时间，不补造精确搜索时点。根代理查看 FAIL 原图，目标 marker 选中、短 sequence 与下一段 autonumber 源码可读、文档已保存；像素不能证明定位前的逻辑选区。
+
+独立静态复核确认 probe 读取 `.milkup-selection` 高亮：窗口化视图先移除旧高亮，再遍历已挂载行输出选区交集，因此空数组不代表逻辑选区为空；cursor 同样依赖已挂载行。搜索流程先发布结果状态，再 await 实际导航，而旧 seek 仅等待查询与结果计数。此路径支持导航就绪与选区投影观察不匹配的调查，尚不能直接证明本次运行的完整时序或逻辑选区没有变化。
+
+测试脚本仅在定位前新增完整唯一 marker 投影与 cursor 终点的导航就绪等待。实际 31 个 marker、窗口化尾部、四项独立回退和矩阵路径均已核对；同一源码行产生的多个选区矩形允许重复范围。移除新增 16 行后与本轮冻结脚本逐字一致，原定位、图像、保存历史、矩阵及错误断言未删改。这个独立导航阶段最多增加 30 秒等待；原定位 10 秒/20 次滚轮/两次反向，以及产品执行 2 秒、准备 10 秒保持不变。该修改此时仅完成语法、格式和独立静态复核，运行验证仍待独立原生选区诊断和下一轮完整 UI；不将已挂载投影守恒等同于全局逻辑选区证明。
+
+原始 136 张图片和 197 项冻结证据全部保留，根代理逐项核验哈希与大小；独立审阅实际查看九张图，限定在 light/100%/wide，尚不覆盖高缩放、窄窗或暗色。App、driver 和等待祖先进程消失，端口释放；guardian398900 已终止但仍为 PID1 下的 Z。1026 次 dispatch 未保留执行截止记录，不据此关闭历史未知请求的截止原因。production06、UI08 首败及导航就绪静态资料保存于 [checkpoint13](evidence/v2-product-phase4-mermaid-engine/checkpoint13/README.md)。此检查点完成后继续验证，不作为总体验收结论；未使用用户新批准的 Windows Runtime 下载或 artifact 上传额度。

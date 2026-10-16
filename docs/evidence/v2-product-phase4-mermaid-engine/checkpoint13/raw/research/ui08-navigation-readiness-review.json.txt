@@ -1,0 +1,36 @@
+{
+  "author": "release_sdk",
+  "kind": "independent-static-review",
+  "verdict": "No blocking defect in the added readiness condition for the frozen catalog/fixture paths. No runtime acceptance claimed.",
+  "currentHarnessSha256": "4d3e797a75d0377306fd3a4da5d839ad08bafaafcaa2698c51de608fda82fbc8",
+  "control08HarnessSha256": "d93de072c9618cab38136f96c1acde9707b8f8a303341548df613c0d16e3a7a2",
+  "insertedBlockSha256": "29be50da6586938ae703aa3addb252659051ed6209f535ba4470ca4adfbf9c5e",
+  "byteEquivalence": {
+    "insertionLines": 16,
+    "removingOnlyNewReadinessBlockExactlyRestoresControl08": true,
+    "positionSampleAndAllPriorAssertionsUnchanged": true
+  },
+  "formulaVerification": {
+    "catalogSha256": "8bc8c7ca0dc9f6062b3757e91c8b76d56c2f9c3b76cf468ac1bf43223868bec0",
+    "ordinaryGeneratedTextMatchesRetainedActualFixture": true,
+    "catalogCases": 31,
+    "uniqueMarkerRangesCheckedUsingUtf16": 31,
+    "matrixCases": 5,
+    "isolatedFallbacks": 4,
+    "basis": "Every catalog marker is followed by exactly two LF characters before sample.from. Therefore markerTo=from-2 and markerFrom=markerTo-marker.length are correct UTF16 source offsets. Windowed only appends tail data. Isolated fallbacks override from with marker.length+2, so the same formula yields [0,marker.length]. Matrix reuses the same samples and unchanged file bytes.",
+    "qualification": "This is fixture-format-specific, not a general Markdown marker-location algorithm. A future CRLF or separator change requires updating the formula and its evidence."
+  },
+  "projectionSemantics": {
+    "cursor": "Requires rendered cursor at expected marker end, preventing early search-status completion from satisfying readiness.",
+    "duplicates": "Nonempty every(range exact expected endpoints) accepts multiple wrapped rect projections of the same selected marker, and rejects extra/different ranges. It does not require a single rect or weaken later equality.",
+    "scope": "One-line marker selection in both ordinary and windowed renderers uses the same source endpoints across wrapped rects. This is a mounted projection/navigation-ready check, not an independent logical anchor/head accessor.",
+    "remainingBoundary": "The unchanged positioning comparison can still fail when later wheel movement legitimately unmounts the selected marker or changes rect multiplicity. Such a failure must be preserved and interpreted, not treated as proof of logical selection loss."
+  },
+  "budgets": {
+    "newNavigationReadinessWaitMs": 30000,
+    "existingSearchWaitMs": 30000,
+    "qualification": "This adds a separate bounded readiness phase and can increase total seek duration by up to 30 seconds. It does not change any existing timeout value, the positionSample 10-second/20-tick/2-reversal limits, or production 2-second render/10-second initialization budgets. It is not accurate to claim total harness elapsed-time budget is unchanged.",
+    "noRetryOrBypass": "No sample skip, assertion removal, source padding, synthetic selection mutation or error suppression added."
+  },
+  "execution": "Only source/evidence reads and small text/hash checks; no harness execution, tests/build/browser/native, or source changes."
+}

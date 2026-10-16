@@ -1,0 +1,95 @@
+{
+  "atUtc": "2026-10-16T20:51:12.821051+00:00",
+  "identities": [
+    {
+      "pid": 398512,
+      "expectedBirth": "7076936",
+      "absent": true
+    },
+    {
+      "pid": 398527,
+      "expectedBirth": "7076949",
+      "absent": true
+    },
+    {
+      "pid": 398597,
+      "expectedBirth": null,
+      "absent": true
+    },
+    {
+      "pid": 398730,
+      "expectedBirth": null,
+      "absent": true
+    },
+    {
+      "pid": 398900,
+      "expectedBirth": "7081924",
+      "state": "Z",
+      "ppid": 1,
+      "actualBirth": "7081924",
+      "terminated": true
+    }
+  ],
+  "ports": [
+    {
+      "port": 4626,
+      "connectErrno": 111
+    },
+    {
+      "port": 4627,
+      "connectErrno": 111
+    }
+  ],
+  "traceCleanupEvents": [
+    {
+      "instanceId": "15493ffb5f8dc33cd049b2b88720c32cdb3357e4bc301c0b",
+      "monotonicNs": 70809584088372,
+      "phase": "kill-start",
+      "pid": 398730,
+      "requestId": null
+    },
+    {
+      "instanceId": "15493ffb5f8dc33cd049b2b88720c32cdb3357e4bc301c0b",
+      "monotonicNs": 70809717020773,
+      "phase": "cleanup-complete",
+      "pid": 398730,
+      "requestId": null
+    },
+    {
+      "instanceId": "15493ffb5f8dc33cd049b2b88720c32cdb3357e4bc301c0b",
+      "monotonicNs": 70809730926763,
+      "phase": "cleanup-confirmed",
+      "pid": 398597,
+      "requestId": null
+    },
+    {
+      "instanceId": "15493ffb5f8dc33cd049b2b88720c32cdb3357e4bc301c0b",
+      "monotonicNs": 70809752085794,
+      "phase": "cleanup-confirmed",
+      "pid": 398597,
+      "requestId": null
+    },
+    {
+      "instanceId": "c1042eae4e1ba0906fdd5691ec52861ebab04fadc55c9bd6",
+      "monotonicNs": 71203076800812,
+      "phase": "kill-start",
+      "pid": 398900,
+      "requestId": null
+    },
+    {
+      "instanceId": "c1042eae4e1ba0906fdd5691ec52861ebab04fadc55c9bd6",
+      "monotonicNs": 71203315857589,
+      "phase": "cleanup-complete",
+      "pid": 398900,
+      "requestId": null
+    }
+  ],
+  "driverStop": "driver-stop.json",
+  "driverExit": "driver-exit.json",
+  "limitations": [
+    "No full descendant sampler was added to this formal UI suite.",
+    "Guardian 398900 is terminated zombie under PID1, not absent. No unrelated signals or namespace/profile removal used to substitute cleanup.",
+    "Shared Xvfb retained."
+  ],
+  "cpuUiReleased": true
+}
