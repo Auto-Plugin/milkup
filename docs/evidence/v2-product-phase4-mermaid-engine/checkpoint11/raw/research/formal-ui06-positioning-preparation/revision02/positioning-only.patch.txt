@@ -1,0 +1,157 @@
+--- ui05-original
++++ ui06-v2
+@@ -4,7 +4,7 @@
+ import assert from 'node:assert/strict'
+ import { execFileSync } from 'node:child_process'
+ import { createHash } from 'node:crypto'
+-import { mkdir, readFile, writeFile, realpath } from 'node:fs/promises'
++import { mkdir, readFile, writeFile, realpath, appendFile } from 'node:fs/promises'
+ import path from 'node:path'
+ import { startProduction } from '../helpers/native-production.mjs'
+ import { ownedApplication } from '../helpers/native-owned-process.mjs'
+@@ -512,6 +512,145 @@
+   )
+   await app.key('Escape')
+   await app.focus('.milkup-input-proxy')
++  await positionSample(sample)
++}
++async function positionSample(sample) {
++  const before = await app.probe()
++  const fileBefore = await readFile(activeFile)
++  const started = Date.now()
++  const observations = []
++  const fences = (sample.name ? [sample] : samples).map(({ from, to }) => ({ from, to }))
++  const readPosition = () =>
++    app.execute(
++      `
++const editor = document.querySelector('.milkup-editor');
++const content = document.querySelector('.milkup-editor-content');
++if (!editor || !content) throw new Error('Positioning: mounted editor required');
++const root = editor.getBoundingClientRect(), owners = new Map(), measured = new Map();
++const clientLeft=root.left+editor.clientLeft, clientTop=root.top+editor.clientTop;
++const viewport = {top:Math.max(0,clientTop),bottom:Math.min(innerHeight,clientTop+editor.clientHeight),left:Math.max(0,clientLeft),right:Math.min(innerWidth,clientLeft+editor.clientWidth)};
++const intersects = r => r.height>0 && r.width>0 && r.bottom>viewport.top && r.top<viewport.bottom && r.right>viewport.left && r.left<viewport.right;
++const lines = [...content.querySelectorAll('.milkup-line')];
++const effective = line => {
++  const id = line.dataset.presentationOwner;
++  if (id && !owners.has(id)) owners.set(id, content.querySelector('.milkup-line[data-line="'+CSS.escape(id)+'"]'));
++  const owner = (id ? owners.get(id) : undefined) || line;
++  if (!measured.has(owner)) measured.set(owner,owner.getBoundingClientRect());
++  return measured.get(owner);
++};
++const fences = arguments[0].map(fence => {
++  const matched = lines.filter(line => {
++    const from=Number(line.dataset.from),to=Number(line.dataset.to);
++    const blockFrom=Number(line.dataset.presentationBlockFrom),blockTo=Number(line.dataset.presentationBlockTo);
++    return (blockFrom===fence.from && blockTo===fence.to) || (Number.isFinite(from)&&Number.isFinite(to)&&from<fence.to&&to>=fence.from);
++  });
++  const bounds = matched.map(effective).filter(r=>r.width>0&&r.height>0);
++  return {from:fence.from,to:fence.to,mounted:matched.length>0,visible:bounds.some(intersects),top:bounds.length?Math.min(...bounds.map(r=>r.top)):null,bottom:bounds.length?Math.max(...bounds.map(r=>r.bottom)):null};
++});
++const target = fences.find(f=>f.from===arguments[1]&&f.to===arguments[2]);
++const preceding = fences.filter(f=>f.to<=arguments[1]&&f.visible);
++const contentRight=root.left+editor.clientLeft+editor.clientWidth;
++const py=viewport.top+Math.min(40,(viewport.bottom-viewport.top)/3);
++let gutter;
++for(const px of [Math.max(viewport.left,root.left+editor.clientLeft)+4,Math.min(viewport.right,contentRight)-4]) {
++  const hit=document.elementFromPoint(px,py);
++  if(px>viewport.left&&px<contentRight&&hit&&editor.contains(hit)&&!hit.closest('[data-document-presentation],input,textarea,button,[role="scrollbar"]')) {gutter={x:px,y:py};break;}
++}
++const offsets=lines.map(line=>Number(line.dataset.from)).filter(Number.isFinite);
++return {width:innerWidth,viewport,scrollTop:editor.scrollTop,target,preceding:preceding.map(f=>f.from),firstVisible:fences.find(f=>f.visible)?.from,gutter,mountedFrom:offsets.length?Math.min(...offsets):null,mountedTo:offsets.length?Math.max(...offsets):null};
++`,
++      fences,
++      sample.from,
++      sample.to,
++    )
++  let ticks = 0
++  let reversals = 0
++  let previousDirection
++  let completed = false
++  let failure
++  try {
++    while (Date.now() - started < 10_000) {
++      await app.delay(100)
++      const position = await readPosition()
++      observations.push({ elapsedMs: Date.now() - started, ticks, reversals, ...position })
++      assert(position.target, 'Positioning: exact target fence required')
++      assert(Date.now() - started < 10_000, 'Positioning: ten-second bound reached')
++      if (position.target.visible && position.preceding.length === 0) {
++        completed = true
++        break
++      }
++      assert(ticks < 20, 'Positioning: twenty-wheel-tick bound reached')
++      assert(position.gutter, 'Positioning: non-preview editor gutter hit required')
++      let direction
++      if (
++        position.preceding.length ||
++        (position.target.top !== null && position.target.top >= position.viewport.bottom)
++      )
++        direction = '5'
++      else if (position.target.bottom !== null && position.target.bottom <= position.viewport.top)
++        direction = '4'
++      else if (
++        !position.target.mounted &&
++        position.mountedTo !== null &&
++        position.mountedTo < sample.from
++      )
++        direction = '5'
++      else if (
++        !position.target.mounted &&
++        position.mountedFrom !== null &&
++        position.mountedFrom > sample.to
++      )
++        direction = '4'
++      else throw new Error('Positioning: target has no usable mounted owner geometry')
++      if (previousDirection && direction !== previousDirection) reversals++
++      assert(reversals <= 2, 'Positioning: two-direction-reversal bound reached')
++      const scale =
++        Number(/WIDTH=(\d+)/.exec(x('getwindowgeometry', '--shell', nativeWindow))[1]) /
++        position.width
++      assert(Number.isFinite(scale) && scale > 0, 'Positioning: actual native scale required')
++      assert(Date.now() - started < 10_000, 'Positioning: ten-second bound reached')
++      x(
++        'mousemove',
++        '--window',
++        nativeWindow,
++        String(Math.round(position.gutter.x * scale)),
++        String(Math.round(position.gutter.y * scale)),
++        'click',
++        direction,
++      )
++      previousDirection = direction
++      ticks++
++    }
++    assert(completed, 'Positioning: target must be first visible eligible fence within ten seconds')
++  } catch (error) {
++    failure = error
++  }
++  const after = await app.probe()
++  const fileUnchanged = (await readFile(activeFile)).equals(fileBefore)
++  await appendFile(
++    path.join(output, 'positioning.jsonl'),
++    JSON.stringify({
++      sample: sample.id,
++      from: sample.from,
++      to: sample.to,
++      mode: before.mode,
++      path: activeFile,
++      elapsedMs: Date.now() - started,
++      ticks,
++      reversals,
++      completed,
++      error: failure ? String(failure) : undefined,
++      before: { version: before.version, selection: before.selection, dirty: before.dirty },
++      after: { version: after.version, selection: after.selection, dirty: after.dirty },
++      fileUnchanged,
++      observations,
++    }) + '\n',
++  )
++  assert.equal(after.version, before.version, 'Positioning must preserve source version')
++  assert.deepEqual(after.selection, before.selection, 'Positioning must preserve selection')
++  assert.equal(after.dirty, before.dirty, 'Positioning must preserve dirty state')
++  assert(fileUnchanged, 'Positioning must preserve exact saved file bytes')
++  if (failure) throw failure
+ }
+ function visible(rect, dom) {
+   return (

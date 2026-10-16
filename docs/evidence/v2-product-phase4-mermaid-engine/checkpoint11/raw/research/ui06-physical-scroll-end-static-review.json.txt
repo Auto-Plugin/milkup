@@ -1,0 +1,32 @@
+{
+  "author": "release_sdk",
+  "scope": "Read-only final positioning records and actual FAIL-webview PNG; no UI/tests/product changes",
+  "decision": "A generic physical-scroll-end completion exception is justified for positioning; original render/data assertions must remain",
+  "evidence": {
+    "positioningSha256": "27c6af8508d2bce2afec5d70e3fe6637b156484585b662727f2f509b03b43b24",
+    "pixelViewed": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-06/FAIL-webview.png",
+      "sha256": "6c8350799b736dc23b720537b97f2bf610b704da0434f9afe2c07d566380f168"
+    },
+    "lastTarget": [
+      11754,
+      11839
+    ],
+    "observations": "ticks17..20 scrollTop11900, target top500 bottom598.390625, viewport37..730, preceding11338 remains visible; version/selection/dirty and file unchanged",
+    "pixelFinding": "Target Unicode roundtrip diagram is fully visible below the preceding xy chart, followed by AFTER text and document-end blank space. Previous chart remains partly visible; this image alone does not establish exact scrollHeight."
+  },
+  "recommendedCompletion": {
+    "firstVisible": "Retain existing ordinary first-visible condition unchanged.",
+    "endOfScroll": "Target intersects actual client viewport and measured scrollTop has reached max(0,scrollHeight-clientHeight) within1CSSpx, with valid finite nonnegative dimensions. Record scrollHeight/clientHeight/maxScrollTop/bottomGap in observations.",
+    "stability": "Require two consecutive qualifying observations separated by existing100ms observation delay, with no intervening wheel input. Same exact target range and preceding-range set; scrollHeight/clientHeight unchanged, scrollTop/target bounds/viewport stable within1CSSpx.",
+    "reset": "If height/geometry changes or target/bottom condition fails, clear pending confirmation and resume existing bounded positioning.",
+    "bounds": "At most20wheel ticks,10s total and2direction reversals remain. Confirmation consumes no extra wheel tick; allow the second observation even when20ticks already sent, but never accept after deadline.",
+    "reason": "Record completionReason first-visible or physical-scroll-end, plus the paired confirmation observations."
+  },
+  "limitations": [
+    "Two measurements establish short-term positioning stability, not completion of all future asynchronous layout or image decode. Keep unchanged subsequent image/decode and pre/post-screenshot stability assertions.",
+    "For windowed sources, scrollHeight may be an estimate and can change after data/layout settles; do not call physical-scroll-end proof of document EOF. A changed measurement resets confirmation.",
+    "If target is not visible at physical bottom, this exception does not pass. No padding, selection mutation, special sample ID, synthetic events or larger budgets.",
+    "Preserve original UI06 failure; a revised harness requires separately named run/evidence."
+  ]
+}

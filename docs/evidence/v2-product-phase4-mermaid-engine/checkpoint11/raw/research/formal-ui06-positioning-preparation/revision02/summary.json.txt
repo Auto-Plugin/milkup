@@ -1,0 +1,40 @@
+{
+  "at": "2026-10-16T19:50:05.183776+00:00",
+  "checks": [
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/milkup/tests/native/tauri-mermaid-ui.mjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/milkup/node_modules/prettier/bin/prettier.cjs",
+        "--check",
+        "/workspace/milkup/tests/native/tauri-mermaid-ui.mjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "tests/native/tauri-mermaid-ui.mjs"
+      ],
+      "exitCode": 0
+    }
+  ],
+  "oldHarnessFullyRestoredByRemovingExactlyNewImportCallHelper": true,
+  "newHarnessSha256": "a00f14ca30d468fd33f92c14c9f060fcf658e10cbc046cdbb135fbfb4441fc6b",
+  "corrections": [
+    "editor client rect intersect native viewport; excludes borders/scrollbar",
+    "elapsed rechecked after observation and before successful positioning"
+  ],
+  "noNewSettleLogic": true,
+  "runtimeStarted": false
+}

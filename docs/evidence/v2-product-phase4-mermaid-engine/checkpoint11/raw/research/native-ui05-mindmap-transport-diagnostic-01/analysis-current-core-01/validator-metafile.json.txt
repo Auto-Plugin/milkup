@@ -1,0 +1,80 @@
+{
+  "inputs": {
+    "source/document-svg-image-geometry.ts": {
+      "bytes": 30773,
+      "imports": [],
+      "format": "esm"
+    },
+    "source/document-svg-image-codec.ts": {
+      "bytes": 43394,
+      "imports": [
+        {
+          "path": "source/document-svg-image-geometry.ts",
+          "kind": "import-statement",
+          "original": "./document-svg-image-geometry"
+        }
+      ],
+      "format": "esm"
+    },
+    "source/document-presentation.ts": {
+      "bytes": 25979,
+      "imports": [
+        {
+          "path": "source/document-svg-image-codec.ts",
+          "kind": "import-statement",
+          "original": "./document-svg-image-codec"
+        }
+      ],
+      "format": "esm"
+    },
+    "entry.ts": {
+      "bytes": 175,
+      "imports": [
+        {
+          "path": "source/document-presentation.ts",
+          "kind": "import-statement",
+          "original": "./source/document-presentation"
+        },
+        {
+          "path": "source/document-svg-image-codec.ts",
+          "kind": "import-statement",
+          "original": "./source/document-svg-image-codec"
+        }
+      ],
+      "format": "esm"
+    }
+  },
+  "outputs": {
+    "validator.mjs": {
+      "imports": [],
+      "exports": [
+        "DOCUMENT_PRESENTATION_LIMITS",
+        "DocumentPresentationError",
+        "copyDocumentPresentationAggregate",
+        "copyDocumentPresentationNode",
+        "copyDocumentPresentationRequest",
+        "copyDocumentPresentationResult",
+        "copyDocumentSvgImage",
+        "createDocumentOutputBudget",
+        "serializeDocumentPresentationNode",
+        "serializeDocumentSvgImage"
+      ],
+      "entryPoint": "entry.ts",
+      "inputs": {
+        "source/document-svg-image-geometry.ts": {
+          "bytesInOutput": 22926
+        },
+        "source/document-svg-image-codec.ts": {
+          "bytesInOutput": 37156
+        },
+        "source/document-presentation.ts": {
+          "bytesInOutput": 18178
+        },
+        "entry.ts": {
+          "bytesInOutput": 0
+        }
+      },
+      "bytes": 78706
+    }
+  }
+}

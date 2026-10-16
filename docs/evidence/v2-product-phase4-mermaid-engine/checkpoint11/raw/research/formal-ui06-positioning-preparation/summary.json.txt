@@ -1,0 +1,56 @@
+{
+  "at": "2026-10-16T19:45:21.723473+00:00",
+  "status": "STATIC_ONLY_NO_UI06_RUNTIME",
+  "oldHarness": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/control/mermaid-ui-05/00-tauri-mermaid-ui.mjs",
+    "sha256": "2b0ec01dd0c86e551bb4a43d3bc4d0024f92c218f2cba1da98d91e282c1c313a"
+  },
+  "newHarness": {
+    "path": "/workspace/milkup/tests/native/tauri-mermaid-ui.mjs",
+    "sha256": "8d34bc24e0fc60b4588c008a1402abe3384bf1e3dde6c17045845df8e75bebc0"
+  },
+  "checks": [
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/milkup/tests/native/tauri-mermaid-ui.mjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/milkup/node_modules/prettier/bin/prettier.cjs",
+        "--check",
+        "/workspace/milkup/tests/native/tauri-mermaid-ui.mjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "tests/native/tauri-mermaid-ui.mjs"
+      ],
+      "exitCode": 0
+    }
+  ],
+  "scopeProof": "Removing exactly appendFile import, one positionSample call and the new helper restores the complete prior frozen harness byte-for-byte. Original assertions, cold/fallback/image/history logic and64matrix generation/loop unchanged.",
+  "bounds": {
+    "wheelTicks": 20,
+    "deadlineMs": 10000,
+    "directionReversals": 2,
+    "settleObservationDelayMs": 100
+  },
+  "method": "Read mounted line offsets and frozen fixture ranges, map presentationOwner to current data-line exactly as view does, require target actual effective rect visible and all earlier eligible fixture fences not intersecting. Public XTest wheel only at hit-tested non-preview gutter, physical scale WIDTH/innerWidth plus --window native origin. Selection/version/dirty/saved bytes must remain unchanged.",
+  "limitations": [
+    "No product changes, no diagram IDs special-cased.",
+    "Source and windowed mode use current mounted .milkup-line nodes; not entire document DOM.",
+    "Ten-second budget guards each new wheel command; external WebDriver/tool roundtrip itself cannot be force-bounded here.",
+    "Single100ms settle observation is followed by unchanged image/screenshot assertions; does not prove long-term stability.",
+    "No full UI or runtime test performed yet."
+  ]
+}

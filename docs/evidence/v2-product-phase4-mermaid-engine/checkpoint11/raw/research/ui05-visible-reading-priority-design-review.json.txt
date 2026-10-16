@@ -1,0 +1,42 @@
+{
+  "author": "release_sdk",
+  "status": "Static design only; conditional on actual UI05 request/result evidence",
+  "scope": "No product edits, tests, build, UI or runtime observation",
+  "sourceHashes": {
+    "apps/desktop/src/document-presentation-service.ts": "4478b83bc3b64eb6ce0fad94575ec8cf1e5dd8b4f17baf08489b6e1821a98227",
+    "apps/desktop/src/document-presentation-service.test.ts": "6ab4a3ee37b22daeb70f316269ff0f6cf37fb71c62038a0331bdb7cc302fad01",
+    "packages/view-dom/src/document-presentation.ts": "8dc1f4a2571539cdb32b85bb7f8cecee6c32cf2aa2f1f757b580d1087301d8e3",
+    "packages/markdown/src/extensions/window-context.ts": "5a4d25dc9fde3f9a2b20aa513b879a313e1f83faf1c09f378a26684d99eb9c39"
+  },
+  "observedCode": {
+    "service": "lines208-225: visible intersections all have distance0, then absolute distance to visibleFrom and source order. lines277-286: first shared aggregate admission failure sets complete=false and breaks, preserving earlier admitted units.",
+    "view": "selectionChanged cancels old selection job/restores; baseKey includes anchor/head. Partial cache key includes visible range, complete cache may ignore priority-only changes. paint filters any fragment touched by selection, preserving source.",
+    "trustedContext": "text blocks are trusted individual lines; complete fences and opaque contexts are independently reconstructed by prefix context reader."
+  },
+  "causalityLimit": "Old output canonical sum269361>262144 is only a hypothesis. Need actual same-window request/source/version/selection/visible range, per-fence results, aggregate admission failure and final admitted fragments before assigning UI05 cause.",
+  "conditionalMinimalPolicy": {
+    "name": "visible adjacent reading target",
+    "rule": [
+      "Require current bounded selection wholly on one trusted text line, outside all fence/code/unknown ranges, and within the current actual visible reading area.",
+      "Find the next complete provider-bearing fence after that line only when intervening bounded source is whitespace. Require the fence intersects the visible area; do not jump across arbitrary prose, another block or a long offscreen region.",
+      "Promote that entire scheduling unit before the ordinary visible-distance ordering. Do not recognize fixture markers, renderer IDs or Mermaid syntax. This means a visible heading/text search hit immediately introducing a diagram can give that diagram budget priority.",
+      "If no such adjacent target is proven, retain current viewport ordering. A selection inside a fence continues to expose source and is not a reason to preferentially budget a fragment paint will hide.",
+      "Keep whole provider group/conflict resolution before budget admission, same shared validation limits, same2s/native and10s preparation deadlines, source-sorted final response and original window identity. No new cache or rotating retries."
+    ],
+    "intentLimits": [
+      "Existing selection plus visibleFrom/To can express source-range proximity, not whether selection came from search/navigation/editing or whether the caret glyph is physically visible. Source envelope may include collapsed-owner ranges.",
+      "For a strict scroll-away guarantee, view can derive an optional host-only reading anchor only when the selected trusted text line actually intersects its existing measured viewport; any additional hint must join key/job/retry guards. It must not become plugin-provided priority or a public SDK capability.",
+      "Do not invent arbitrary next-diagram intent when selection is outside the bounded visible area, spans blocks, touches opaque syntax, or has intervening substantive text. General navigation intent would require an explicit host-owned target mechanism, which is outside this minimal conditional fix."
+    ]
+  },
+  "minimalRegressions": [
+    "Three simultaneously visible valid heavy diagrams exceed aggregate budget: a visible text-line target immediately before the third causes that whole unit to be admitted first, final shared validation still passes and response remains partial/source-sorted.",
+    "Same exact window/viewport changing visible selected heading from earlier to later target rerenders through existing selection key, cancels old job, and cannot publish late old selection result.",
+    "Scroll away with cursor left in earlier heading: offscreen selection cannot outrank genuinely visible later units. Cover partial cache reprioritization and collapsed-owner envelope edge.",
+    "Selection inside fence still shows literal source; multi-line cross-block, unknown/code or nonwhitespace-separated selection does not fabricate adjacency. Include reversed anchor/head and boundary offsets.",
+    "Two competing providers for promoted fence remain a conflict group; budget cannot silently pick one winner. Individually invalid/overbudget target remains fallback without raising budgets.",
+    "Three small diagrams still all render; no fixed per-window count and no automatic rotating requests. Deadline reserve and abort-after-await regressions remain.",
+    "Actual UI05 ordinary/windowed search-following-diagram interaction with recorded current outputs must validate behavior; mocked or old AST admission alone is insufficient."
+  ],
+  "alternative": "Viewport-center priority is more neutral without an explicit reading target but cannot guarantee a searched adjacent diagram wins when multiple diagrams are visible. It should not be advertised as fixing this interaction without actual evidence."
+}

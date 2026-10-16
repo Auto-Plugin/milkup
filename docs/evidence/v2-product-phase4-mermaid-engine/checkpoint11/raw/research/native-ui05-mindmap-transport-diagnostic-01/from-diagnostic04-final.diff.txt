@@ -1,0 +1,290 @@
+--- original04/diagnostic.mjs
++++ new05/diagnostic.mjs
+@@ -1,5 +1,5 @@
+-// Diagnostic-only derivative of frozen UI04 harness: exact public prefix, then
+-// reviewed bounded passive wire observer around flow. Not a full acceptance run.
++// Target-only new diagnostic: official installation, full ordinary document,
++// one mindmap seek under the reviewed bounded wire observer. Not acceptance.
+ // No IPC is sent by observer; no safety property, result or deadline is changed.
+ import assert from 'node:assert/strict'
+ import { execFileSync } from 'node:child_process'
+@@ -88,7 +88,12 @@
+     const fence =
+       '```mermaid\n' + sample.source + (sample.source.endsWith('\n') ? '' : '\n') + '```'
+     contents.set(name, prefix + fence + '\n\nAFTER-' + sample.id + '\n')
+-    return { ...sample, name, from: prefix.length, to: prefix.length + fence.length }
++    return {
++      ...sample,
++      name,
++      from: prefix.length,
++      to: prefix.length + fence.length,
++    }
+   })
+ assert.equal(isolatedFallbacks.length, 4, 'The reviewed four fallbacks need isolated UI checks')
+ for (const [name, text] of contents) await writeFile(path.join(output, name + '.md'), text)
+@@ -112,9 +117,13 @@
+   preparedOnly: process.argv.includes('--preflight'),
+   diagnosticOnly: true,
+   executionPrefix:
+-    'Cold bundled, independent installation, four isolated fallbacks and notices, ordinary block/class/ER, observed flow; stop before other cases or matrix.',
++    'Independent official installation; full ordinary document; one observed mindmap seek. No cold, prefix or matrix acceptance claims.',
+   listedMatrixIsNotExecuted: true,
+-  archive: { path: archivePath, sha256: sha256(archiveBytes), manifest: archive.manifest },
++  archive: {
++    path: archivePath,
++    sha256: sha256(archiveBytes),
++    manifest: archive.manifest,
++  },
+   catalog: { path: catalogPath, sha256: sha256(catalogBytes) },
+   samples,
+   isolatedFallbacks,
+@@ -168,7 +177,9 @@
+     {
+       binary,
+       binarySha256: process.env.MILKUP_MERMAID_BINARY_SHA256,
+-      head: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
++      head: execFileSync('git', ['rev-parse', 'HEAD'], {
++        encoding: 'utf8',
++      }).trim(),
+       profile: process.env.XDG_DATA_HOME,
+       display: process.env.DISPLAY,
+       driver: process.env.TAURI_DRIVER_URL,
+@@ -353,7 +364,12 @@
+     ['webview', 'x11'].map(async (kind) => {
+       const file = name + '-' + kind + '.png',
+         bytes = await readFile(path.join(output, file))
+-      return { file, bytes: bytes.length, sha256: sha256(bytes), reviewed: false }
++      return {
++        file,
++        bytes: bytes.length,
++        sha256: sha256(bytes),
++        reviewed: false,
++      }
+     }),
+   )
+   await record(name, { ...extra, screenshots })
+@@ -436,7 +452,9 @@
+     'whole automatic bundled installation before cold rendering check',
+     30_000,
+   )
+-  await record('preinstalled-cold-before-render', { expectedBundled: manifests })
++  await record('preinstalled-cold-before-render', {
++    expectedBundled: manifests,
++  })
+   await app.until(async () => (await app.probe()).mode === 'live', 'initial live document')
+   const sample = samples.find((item) => item.id === 'block-000-first-official-example')
+   assert(sample?.expected === 'ready')
+@@ -554,7 +572,11 @@
+     )
+     // Windowed source need not mount the whole long fence at once; exact file
+     // bytes are asserted separately, and the visible source window is recorded.
+-    return { expected: sample.expected, sourceLines: lines, pixelReview: 'pending' }
++    return {
++      expected: sample.expected,
++      sourceLines: lines,
++      pixelReview: 'pending',
++    }
+   }
+   let dom, preview
+   await app.until(
+@@ -691,7 +713,10 @@
+     'Real keyboard selects mapped source',
+   )
+   await saved(contents.get(name))
+-  await shot(`selection-${name}-${sample.id}`, { sample: sample.id, byteExact: true })
++  await shot(`selection-${name}-${sample.id}`, {
++    sample: sample.id,
++    byteExact: true,
++  })
+ }
+ async function history(name, mode) {
+   await openDocument(name)
+@@ -819,21 +844,12 @@
+   )
+   nativeWindow = ui.windowId()
+   x('windowsize', nativeWindow, '1100', '760')
+-  await coldBundledWindow()
+   await install()
+-  for (const sample of isolatedFallbacks) await isolatedFallback(sample)
+   const name = 'ordinary'
+   await openDocument(name)
+   await appearance('light', 1)
+-  for (const sample of samples.slice(0, 3)) {
+-    await seek(sample, 'live')
+-    await shot(`coverage-${name}-${sample.id}`, {
+-      sample: sample.id,
+-      ...(await assertSample(sample, 'live')),
+-    })
+-  }
+   const observerSource = await readFile(
+-    '/workspace/milkup-mermaid-engine-evidence/research/native-ui04-transport-diagnostic-04/observer.js',
++    '/workspace/milkup-mermaid-engine-evidence/research/native-ui05-mindmap-transport-diagnostic-01/observer.js',
+     'utf8',
+   )
+   const observerInstalledAt = Date.now()
+@@ -844,14 +860,78 @@
+   )
+   assert.equal(installation.installed, true, installation.reason)
+   wireObserverInstalled = true
+-  const sample = samples[3]
+-  assert.equal(sample.id, 'flowchart-000-first-official-example')
++  const sample = samples.find((item) => item.id === 'mindmap-000-first-official-example')
++  assert(sample)
+   await seek(sample, 'live')
+-  await shot(`coverage-${name}-${sample.id}`, {
+-    sample: sample.id,
+-    ...(await assertSample(sample, 'live')),
++  const markerFrom = contents.get('ordinary').lastIndexOf(sample.marker, sample.from)
++  const readMarker = () =>
++    app.execute(
++      `
++    const editor=document.querySelector('.milkup-editor');
++    const marker=document.querySelector('.milkup-line[data-from="'+arguments[0]+'"]');
++    return {at:performance.now(),editor:editor?.getBoundingClientRect().toJSON(),marker:marker?.getBoundingClientRect().toJSON(),scrollTop:editor?.scrollTop};
++  `,
++      markerFrom,
++    )
++  const phases = [{ phase: 'seek-complete', wallAt: Date.now(), ...(await readMarker()) }]
++  await app.delay(Math.max(0, observerInstalledAt + 4000 - Date.now()))
++  const beforeWheel = await readMarker()
++  assert(
++    beforeWheel.marker && beforeWheel.editor,
++    'Observed marker and editor required for wheel phase',
++  )
++  const px = beforeWheel.editor.right - 10
++  const py = beforeWheel.editor.top + 40
++  assert(
++    await app.execute(
++      `
++    const hit=document.elementFromPoint(arguments[0],arguments[1]);
++    return !!hit && document.querySelector('.milkup-editor')?.contains(hit) && !hit.closest('[data-document-presentation]');
++  `,
++      px,
++      py,
++    ),
++    'Wheel gesture must target editor rather than a preview scrollbox',
++  )
++  const domWidth = (await observe()).width
++  const scale =
++    Number(/WIDTH=(\d+)/.exec(x('getwindowgeometry', '--shell', nativeWindow))[1]) / domWidth
++  x(
++    'mousemove',
++    '--window',
++    nativeWindow,
++    String(Math.round(px * scale)),
++    String(Math.round(py * scale)),
++  )
++  const wheelStarted = Date.now()
++  let afterWheel = beforeWheel
++  let ticks = 0
++  const targetTop = beforeWheel.editor.top + beforeWheel.editor.height / 3
++  while (ticks < 6 && Date.now() - wheelStarted < 1500 && afterWheel.marker.top > targetTop) {
++    x('click', '5')
++    ticks++
++    await app.delay(70)
++    afterWheel = await readMarker()
++    assert(afterWheel.marker, 'Marker remains observable during one bounded wheel gesture')
++  }
++  phases.push({
++    phase: 'bounded-wheel',
++    wallStarted: wheelStarted,
++    wallEnded: Date.now(),
++    ticks,
++    targetTop,
++    before: beforeWheel,
++    after: afterWheel,
++    reachedUpperThird: afterWheel.marker.top <= targetTop,
+   })
++  await writeFile(path.join(output, 'phases.json'), JSON.stringify(phases, null, 2) + '\n')
+   await app.delay(Math.max(0, observerInstalledAt + 10300 - Date.now()))
++  const snapshotSource = await readFile(new URL('./terminal-snapshot.js', import.meta.url), 'utf8')
++  const terminal = await app.execute('return (' + snapshotSource + ')()')
++  await writeFile(
++    path.join(output, 'terminal-snapshot.json'),
++    JSON.stringify(terminal, null, 2) + '\n',
++  )
+   const observation = await app.execute('return window.__milkupTransportDiagnostic.state')
+   await writeFile(
+     path.join(output, 'transport-observation.json'),
+@@ -863,10 +943,11 @@
+   )
+   assert.equal(sha256(await readFile(binary)), process.env.MILKUP_MERMAID_BINARY_SHA256)
+   assert.equal(sha256(await readFile(archivePath)), process.env.MILKUP_MERMAID_ARCHIVE_SHA256)
+-  await record('DIAGNOSTIC-PREFIX-COMPLETE', {
++  await shot('DIAGNOSTIC-TARGET-END', { sample: sample.id })
++  await record('DIAGNOSTIC-TARGET-COMPLETE', {
+     diagnosticOnly: true,
+     acceptance: false,
+-    stoppedAfter: 'ordinary flowchart-000-first-official-example',
++    stoppedAfter: 'single ordinary mindmap seek; no target-render success assertion',
+     completeAcceptanceMatrix: false,
+     observerBudgetMs: 10000,
+     captureComplete: observation.dropped === 0 && observation.observerErrors.length === 0,
+--- original04/observer.js
++++ new05/observer.js
+@@ -194,9 +194,17 @@
+     try {
+       const rect = (e) => e?.getBoundingClientRect().toJSON();
+       const editor = document.querySelector(".milkup-editor");
++      const content = document.querySelector(".milkup-editor-content");
+       state.samples.push({
+         at: start,
+         editor: rect(editor),
++        content: {
++          rect: rect(content),
++          clientWidth: content?.clientWidth,
++          clientHeight: content?.clientHeight,
++          scrollTop: content?.scrollTop,
++          scrollLeft: content?.scrollLeft,
++        },
+         scrollTop: editor?.scrollTop,
+         scrollLeft: editor?.scrollLeft,
+         mode: editor?.dataset.mode,
+@@ -204,9 +212,7 @@
+           ?.textContent,
+         previews: [...document.querySelectorAll("[data-document-presentation]")]
+           .filter((e) =>
+-            [108, 440, 1087, 1372, 1517].includes(
+-              Number(e.dataset.presentationFrom),
+-            ),
++            [3378, 3738, 4024].includes(Number(e.dataset.presentationFrom)),
+           )
+           .map((e) => ({
+             from: Number(e.dataset.presentationFrom),
+@@ -223,17 +229,6 @@
+         selection: [...document.querySelectorAll(".milkup-selection")].map(
+           (e) => ({ from: Number(e.dataset.from), to: Number(e.dataset.to) }),
+         ),
+-        lines: [...document.querySelectorAll(".milkup-line")]
+-          .filter((e) => [26, 53].includes(Number(e.dataset.line)))
+-          .map((e) => ({
+-            from: e.dataset.from,
+-            to: e.dataset.to,
+-            line: e.dataset.line,
+-            rect: rect(e),
+-            display: e.style.display,
+-            presentationOwner: e.dataset.presentationOwner,
+-            text: e.textContent.slice(0, 180),
+-          })),
+         notices: [
+           ...document.querySelectorAll("[data-document-presentation-notice]"),
+         ].map((e) => e.textContent),
+--- original04/env.sh
++++ new05/env.sh
+@@ -1,3 +1,3 @@
+-source /workspace/milkup-mermaid-engine-evidence/research/product-ui-preparation/run-env.sh mermaid-ui-04-diagnostic-04 /workspace/milkup-mermaid-engine-evidence/linux-production-04/install/usr/bin/milkup-desktop 323213867fda26d1de66f67c5a428dd26d0a78f0334d40f8d15f1e94b161a172 /workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-build01/standalone/plugin/dist/milkup.diagrams-1.1.0.milkup-plugin 27db9bdefb9b241b03da2f3536f7e50d334117f928f963cfe290543f650b6239
+-export MILKUP_NATIVE_EVIDENCE_DIR=/workspace/milkup-mermaid-engine-evidence/research/native-ui04-transport-diagnostic-04/run
+-export MILKUP_NATIVE_APP_LOG=/workspace/milkup-mermaid-engine-evidence/research/native-ui04-transport-diagnostic-04/native-driver-first.log
++source /workspace/milkup-mermaid-engine-evidence/research/product-ui-preparation/run-env.sh mermaid-ui-05-mindmap-diagnostic-01 /workspace/milkup-mermaid-engine-evidence/linux-production-05/install/usr/bin/milkup-desktop 63205c85b11fbaa7ec0ec0316737eabb8fe9a96115a4a06367dbd8d59322af7a /workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-build01/standalone/plugin/dist/milkup.diagrams-1.1.0.milkup-plugin 27db9bdefb9b241b03da2f3536f7e50d334117f928f963cfe290543f650b6239
++export MILKUP_NATIVE_EVIDENCE_DIR=/workspace/milkup-mermaid-engine-evidence/research/native-ui05-mindmap-transport-diagnostic-01/run
++export MILKUP_NATIVE_APP_LOG=/workspace/milkup-mermaid-engine-evidence/research/native-ui05-mindmap-transport-diagnostic-01/native-driver-first.log
+--- original04/driver.sh
++++ new05/driver.sh
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env bash
+ set -euo pipefail
+-source /workspace/milkup-mermaid-engine-evidence/research/native-ui04-transport-diagnostic-04/env.sh
++source /workspace/milkup-mermaid-engine-evidence/research/native-ui05-mindmap-transport-diagnostic-01/env.sh
+ # A fresh profile, log and evidence directory are mandatory for each attempt.
+ [[ ! -e "$XDG_RUNTIME_DIR" && ! -e "$MILKUP_NATIVE_PROFILE_ROOT" && ! -e "$MILKUP_NATIVE_APP_LOG" && ! -e "$MILKUP_NATIVE_EVIDENCE_DIR" ]]
+ mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME" "$(dirname "$MILKUP_NATIVE_APP_LOG")" "$(dirname "$MILKUP_NATIVE_EVIDENCE_DIR")"

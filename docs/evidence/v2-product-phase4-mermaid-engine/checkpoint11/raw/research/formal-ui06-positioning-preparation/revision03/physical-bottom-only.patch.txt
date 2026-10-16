@@ -1,0 +1,64 @@
+--- v2
++++ v3
+@@ -557,7 +557,7 @@
+   if(px>viewport.left&&px<contentRight&&hit&&editor.contains(hit)&&!hit.closest('[data-document-presentation],input,textarea,button,[role="scrollbar"]')) {gutter={x:px,y:py};break;}
+ }
+ const offsets=lines.map(line=>Number(line.dataset.from)).filter(Number.isFinite);
+-return {width:innerWidth,viewport,scrollTop:editor.scrollTop,target,preceding:preceding.map(f=>f.from),firstVisible:fences.find(f=>f.visible)?.from,gutter,mountedFrom:offsets.length?Math.min(...offsets):null,mountedTo:offsets.length?Math.max(...offsets):null};
++return {width:innerWidth,viewport,scrollTop:editor.scrollTop,scrollHeight:editor.scrollHeight,clientHeight:editor.clientHeight,target,preceding:preceding.map(f=>f.from),firstVisible:fences.find(f=>f.visible)?.from,gutter,mountedFrom:offsets.length?Math.min(...offsets):null,mountedTo:offsets.length?Math.max(...offsets):null};
+ `,
+       fences,
+       sample.from,
+@@ -567,6 +567,8 @@
+   let reversals = 0
+   let previousDirection
+   let completed = false
++  let completionReason
++  let bottomCandidate
+   let failure
+   try {
+     while (Date.now() - started < 10_000) {
+@@ -577,8 +579,35 @@
+       assert(Date.now() - started < 10_000, 'Positioning: ten-second bound reached')
+       if (position.target.visible && position.preceding.length === 0) {
+         completed = true
++        completionReason = 'first-visible-eligible-fence'
+         break
+       }
++      if (
++        position.target.visible &&
++        position.scrollTop + position.clientHeight >= position.scrollHeight - 1
++      ) {
++        const stableBottom =
++          bottomCandidate &&
++          bottomCandidate.scrollHeight === position.scrollHeight &&
++          bottomCandidate.clientHeight === position.clientHeight &&
++          Math.abs(bottomCandidate.scrollTop - position.scrollTop) <= 1 &&
++          bottomCandidate.target.from === position.target.from &&
++          bottomCandidate.target.to === position.target.to &&
++          Math.abs(bottomCandidate.target.top - position.target.top) <= 1 &&
++          Math.abs(bottomCandidate.target.bottom - position.target.bottom) <= 1 &&
++          ['top', 'bottom', 'left', 'right'].every(
++            (key) => Math.abs(bottomCandidate.viewport[key] - position.viewport[key]) <= 1,
++          ) &&
++          JSON.stringify(bottomCandidate.preceding) === JSON.stringify(position.preceding)
++        if (stableBottom) {
++          completed = true
++          completionReason = 'physical-scroll-end'
++          break
++        }
++        bottomCandidate = position
++        continue
++      }
++      bottomCandidate = undefined
+       assert(ticks < 20, 'Positioning: twenty-wheel-tick bound reached')
+       assert(position.gutter, 'Positioning: non-preview editor gutter hit required')
+       let direction
+@@ -639,6 +668,7 @@
+       ticks,
+       reversals,
+       completed,
++      completionReason,
+       error: failure ? String(failure) : undefined,
+       before: { version: before.version, selection: before.selection, dirty: before.dirty },
+       after: { version: after.version, selection: after.selection, dirty: after.dirty },

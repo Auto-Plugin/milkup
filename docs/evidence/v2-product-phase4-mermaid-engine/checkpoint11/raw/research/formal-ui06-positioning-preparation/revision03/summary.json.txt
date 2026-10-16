@@ -1,0 +1,37 @@
+{
+  "at": "2026-10-16T19:57:49.859670+00:00",
+  "status": "STATIC_V3_NO_RUNTIME",
+  "harnessSha256": "0f328ee283b7080c8efc08322ca73450904d1248d16e60b5a3768577a0bc5111",
+  "checks": [
+    {
+      "command": [
+        "node",
+        "--check",
+        "/workspace/milkup/tests/native/tauri-mermaid-ui.mjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "node",
+        "/workspace/milkup/node_modules/prettier/bin/prettier.cjs",
+        "--check",
+        "/workspace/milkup/tests/native/tauri-mermaid-ui.mjs"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "--",
+        "tests/native/tauri-mermaid-ui.mjs"
+      ],
+      "exitCode": 0
+    }
+  ],
+  "oldHarnessRestoredByRemovingOnlyImportCallHelper": true,
+  "changes": "Physical editor scroll end requires target visible, bottom equality within1CSSpx and two consecutive100ms observations stable in extent, scrollTop, target bounds, viewport, range and preceding list. No wheel between confirmations. Original10s/20ticks/2reversals and first-visible success remain. Completion reason logged.",
+  "noProductChange": true
+}

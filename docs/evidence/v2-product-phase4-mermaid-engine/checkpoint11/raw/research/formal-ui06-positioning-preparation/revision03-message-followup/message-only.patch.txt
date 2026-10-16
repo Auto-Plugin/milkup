@@ -1,0 +1,14 @@
+--- v3
++++ v3-message
+@@ -650,7 +650,10 @@
+       previousDirection = direction
+       ticks++
+     }
+-    assert(completed, 'Positioning: target must be first visible eligible fence within ten seconds')
++    assert(
++      completed,
++      'Positioning: target must be first visible or at stable physical scroll end within ten seconds',
++    )
+   } catch (error) {
+     failure = error
+   }

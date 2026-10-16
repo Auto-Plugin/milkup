@@ -1,0 +1,144 @@
+{
+  "status": "FIRST_ATTEMPT_RED_CUMULATIVE_PAGE_ERROR",
+  "exitCode": 1,
+  "run": "mermaid-ui-07",
+  "binary": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-05/install/usr/bin/milkup-desktop",
+    "bytes": 21872816,
+    "sha256": "63205c85b11fbaa7ec0ec0316737eabb8fe9a96115a4a06367dbd8d59322af7a"
+  },
+  "archive": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-build01/standalone/plugin/dist/milkup.diagrams-1.1.0.milkup-plugin",
+    "sha256": "27db9bdefb9b241b03da2f3536f7e50d334117f928f963cfe290543f650b6239",
+    "bytes": 5726804
+  },
+  "harnessSha256": "d93de072c9618cab38136f96c1acde9707b8f8a303341548df613c0d16e3a7a2",
+  "records": 94,
+  "passRecords": 93,
+  "ordinaryCoveragePassed": 31,
+  "windowedCoveragePassed": 31,
+  "selectionRecordsPassed": 2,
+  "historyRecordsPassed": 12,
+  "matrixSampleRecordsPassed": 5,
+  "matrixCombinationsCompleted": 0,
+  "matrixCombinationsPlanned": 64,
+  "pngCount": 184,
+  "firstFailure": {
+    "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ [\n+   'ResizeObserver loop completed with undelivered notifications.'\n+ ]\n- []\n",
+    "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ [\n+   'ResizeObserver loop completed with undelivered notifications.'\n+ ]\n- []\n\n    at file:///workspace/milkup/tests/native/tauri-mermaid-ui.mjs:1022:12\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)"
+  },
+  "firstErrorObservation": {
+    "name": "coverage-ordinary-flowchart-086-animated-edge",
+    "at": "2026-10-16T20:01:26.585Z",
+    "mode": "live",
+    "windowed": false,
+    "documentVersion": 0,
+    "errors": [
+      "ResizeObserver loop completed with undelivered notifications."
+    ],
+    "cspViolations": []
+  },
+  "lastCleanRecordedShot": {
+    "name": "coverage-ordinary-flowchart-069-image",
+    "at": "2026-10-16T20:01:21.410Z",
+    "mode": "live",
+    "windowed": false,
+    "documentVersion": 0,
+    "errors": [],
+    "cspViolations": []
+  },
+  "nativePhaseCounts": {
+    "dispatch": 1145,
+    "kill-start": 2,
+    "cleanup-complete": 2,
+    "cleanup-confirmed": 2
+  },
+  "positioning": {
+    "calls": 77,
+    "completed": 77,
+    "reasons": {
+      "first-visible-eligible-fence": 75,
+      "physical-scroll-end": 2
+    },
+    "maxTicks": 6,
+    "maxMs": 2100,
+    "allFileUnchanged": true
+  },
+  "pluginAtFailure": {
+    "errors": [],
+    "enabled": true,
+    "sourcePath": "/workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-build01/standalone/plugin/dist/milkup.diagrams-1.1.0.milkup-plugin",
+    "host": "dom",
+    "id": "milkup.diagrams",
+    "state": "enabled"
+  },
+  "audit": [
+    {
+      "at": 1792180784560,
+      "operation": "install",
+      "pluginId": "milkup.diagrams"
+    },
+    {
+      "at": 1792180784561,
+      "operation": "approval",
+      "detail": "approved",
+      "pluginId": "milkup.diagrams"
+    },
+    {
+      "at": 1792180786156,
+      "operation": "enable",
+      "pluginId": "milkup.diagrams"
+    },
+    {
+      "at": 1792180793896,
+      "operation": "disable",
+      "pluginId": "milkup.diagrams"
+    },
+    {
+      "at": 1792180794062,
+      "operation": "remove",
+      "pluginId": "milkup.diagrams"
+    },
+    {
+      "at": 1792180802862,
+      "operation": "install",
+      "pluginId": "milkup.diagrams"
+    },
+    {
+      "at": 1792180803763,
+      "operation": "approval",
+      "detail": "approved",
+      "pluginId": "milkup.diagrams"
+    },
+    {
+      "at": 1792180805194,
+      "operation": "enable",
+      "pluginId": "milkup.diagrams"
+    }
+  ],
+  "diagnosticsAtFailure": {
+    "errors": [
+      "ResizeObserver loop completed with undelivered notifications."
+    ],
+    "cspViolations": []
+  },
+  "sourceDifference": [
+    {
+      "path": "tests/native/tauri-mermaid-ui.mjs",
+      "before": "2b0ec01dd0c86e551bb4a43d3bc4d0024f92c218f2cba1da98d91e282c1c313a",
+      "after": "d93de072c9618cab38136f96c1acde9707b8f8a303341548df613c0d16e3a7a2"
+    }
+  ],
+  "finalDocumentsExact": {
+    "ordinary": true,
+    "windowed": true
+  },
+  "cpuUiReleased": true,
+  "limitations": [
+    "Individual coverage/history/screenshot PASS labels do not mean absence of the earlier cumulativeResizeObserver error.",
+    "No full matrix combination passed: first five source/light100wide samples completed, then original errors-empty assertion failed before matrix-complete.",
+    "No observer was installed; no requestpayload or ResizeObserver stack/timestamp captured.",
+    "No automatic retry or error suppression.",
+    "Stablephysicalend uses scrollTop+clientHeight>=scrollHeight-1 and two consecutive stable observations, not a symmetric absolute bottom equality."
+  ]
+}
