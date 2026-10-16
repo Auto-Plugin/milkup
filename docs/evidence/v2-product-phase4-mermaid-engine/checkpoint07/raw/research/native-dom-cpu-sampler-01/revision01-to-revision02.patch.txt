@@ -1,0 +1,111 @@
+--- /workspace/milkup-mermaid-engine-evidence/research/native-dom-cpu-sampler-01/revision01/cpu_sampler.py
++++ /workspace/milkup-mermaid-engine-evidence/research/native-dom-cpu-sampler-01/cpu_sampler.py
+@@ -2,6 +2,7 @@
+ """Bounded external observer. No signals, cleanup, product IPC or page hooks."""
+ import argparse
+ import hashlib
++from itertools import islice
+ import json
+ import math
+ import os
+@@ -21,6 +22,7 @@
+ MAX_PERIODIC = 201
+ MAX_IDENTITIES = 128
+ MAX_TASKS = 1024
++MAX_CHILD_CANDIDATES = 128
+ TOTAL_BYTES = 2 * 1024 * 1024
+ SUMMARY_RESERVE = 128 * 1024
+ MAX_LOG_BYTES = 32 * 1024 * 1024
+@@ -111,20 +113,25 @@
+         result = set()
+         try:
+             task_dir = Path('/proc', str(owner['pid']), 'task')
+-            tasks = list(task_dir.iterdir())
++            tasks = list(islice(task_dir.iterdir(), MAX_TASKS + 1))
+             if len(tasks) > MAX_TASKS:
+-                self.error('task-discovery-limit', owner['pid'])
+-                tasks = tasks[:MAX_TASKS]
++                raise ObservationError('task-discovery-limit')
+             for task in tasks:
+                 try:
+                     words = self.bounded_read(task / 'children', 8192).split()
+-                    if len(words) > 512:
+-                        self.error('children-discovery-limit', owner['pid'])
+-                    result.update(int(word) for word in words[:512])
+                 except FileNotFoundError:
+                     continue
+-                except (OSError, ValueError, ObservationError) as exc:
++                except OSError as exc:
+                     self.error('children-read', owner['pid'], type(exc).__name__)
++                    continue
++                if len(words) > 512:
++                    raise ObservationError('children-discovery-limit')
++                for word in words:
++                    pid = int(word)
++                    if pid not in result:
++                        if len(result) >= MAX_CHILD_CANDIDATES:
++                            raise ObservationError('child-candidate-discovery-limit')
++                        result.add(pid)
+         except FileNotFoundError:
+             return []
+         except OSError as exc:
+@@ -220,7 +227,7 @@
+                         raise ObservationError('invalid-dispatch-instance')
+                     if type(ns) is not int or ns <= 0 or ns > mono():
+                         raise ObservationError('invalid-dispatch-clock')
+-                    # The fresh log may already contain the first dispatch. Never seek to EOF.
++                    # Select only the first retained exact-App dispatch; never skip forward or re-anchor.
+                     self.anchor = row
+                     self.observed_dispatch = mono()
+                     self.log_read = {'path': str(path), 'device': st.st_dev, 'inode': st.st_ino,
+@@ -228,13 +235,15 @@
+                                      'waitStartedNs': wait_started,
+                                      'observedNs': self.observed_dispatch,
+                                      'readObservationDelayNs': self.observed_dispatch - ns}
++                    if row.get('requestId') != 'render_1':
++                        raise ObservationError('first-observed-dispatch-not-render-one')
+                     return
+                 if len(buffer) > MAX_LINE_BYTES:
+                     raise ObservationError('native-log-partial-line-limit')
+             except FileNotFoundError:
+                 pass
+             time.sleep(0.02)
+-        raise ObservationError('first-dispatch-wait-timeout')
++        raise ObservationError('first-observed-dispatch-wait-timeout')
+ 
+     def bind_guardian(self):
+         if mono() >= self.anchor['monotonicNs'] + WINDOW_NS:
+@@ -295,8 +304,7 @@
+                 if child_key in self.known:
+                     continue
+                 if len(self.known) >= MAX_IDENTITIES:
+-                    self.error('identity-cap-reached')
+-                    break
++                    raise ObservationError('identity-cap-reached')
+                 role = self.role(row)
+                 if not self.same(row):
+                     continue
+@@ -323,7 +331,7 @@
+     def sample(self, label):
+         start = mono()
+         app_row = self.same(self.app)
+-        app_live = bool(app_row and app_row['state'] != 'Z')
++        app_live = bool(app_row and app_row['state'] not in ['Z', 'X', 'x'])
+         if not app_live and self.app_exit_observed is None:
+             self.app_exit_observed = start
+         members = []
+@@ -416,6 +424,14 @@
+                    'failure': failure, 'startedNs': self.started, 'finishedNs': mono(),
+                    'app': self.app, 'guardian': self.guardian, 'dispatch': self.anchor,
+                    'logObservation': getattr(self, 'log_read', None),
++                   'anchorSelection': 'first observed retained exact-App dispatch from log beginning; render_1 required; no re-anchor',
++                   'anchorUncertainty': {
++                       'diagnosticsBestEffort': True,
++                       'earlierOtherClientDispatchMayBeUnobserved': True,
++                       'requestSequenceScope': 'createDocumentRenderRpcClient-local; assigned before queue/cancellation',
++                       'requestSequenceOneObserved': bool(self.anchor and self.anchor.get('requestId') == 'render_1'),
++                       'completeAppFirstTenSecondsProven': False,
++                   },
+                    'windowEndNs': end, 'firstSampleNs': self.first_sample,
+                    'lastSampleNs': self.last_sample,
+                    'firstSampleLateGapNs': self.first_sample - self.anchor['monotonicNs'] if self.first_sample and self.anchor else None,

@@ -1,0 +1,90 @@
+{
+  "status": "incomplete",
+  "failure": "guardian-bind-not-unique-or-missing",
+  "startedNs": 60335681226441,
+  "finishedNs": 60336530889842,
+  "app": {
+    "pid": 361362,
+    "birth": 6033111,
+    "parent": 361288,
+    "group": 361270,
+    "state": "R",
+    "userTicks": 87,
+    "systemTicks": 93,
+    "name": "milkup-desktop",
+    "argv": [
+      "/workspace/milkup-mermaid-engine-evidence/research/native-dom-stage-candidate-01/install/usr/bin/milkup-desktop",
+      "/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-batch-01/cases/case-1/run/ordinary.md"
+    ]
+  },
+  "guardian": null,
+  "dispatch": {
+    "instanceId": "a31acce2e04e4d47f721dc1aabe1765455d1c3a1e23bd0bc",
+    "monotonicNs": 60336518115827,
+    "phase": "dispatch",
+    "pid": 361362,
+    "requestId": "render_1"
+  },
+  "logObservation": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-batch-01/cases/case-1/native-driver-first.log",
+    "device": 27,
+    "inode": 562644,
+    "bytesReadThroughObservation": 3824,
+    "waitStartedNs": 60335710571112,
+    "observedNs": 60336529386441,
+    "readObservationDelayNs": 11270614
+  },
+  "anchorSelection": "first observed retained exact-App dispatch from log beginning; render_1 required; no re-anchor",
+  "anchorUncertainty": {
+    "diagnosticsBestEffort": true,
+    "earlierOtherClientDispatchMayBeUnobserved": true,
+    "requestSequenceScope": "createDocumentRenderRpcClient-local; assigned before queue/cancellation",
+    "requestSequenceOneObserved": true,
+    "completeAppFirstTenSecondsProven": false
+  },
+  "windowEndNs": 60346518115827,
+  "firstSampleNs": null,
+  "lastSampleNs": null,
+  "firstSampleLateGapNs": null,
+  "appExitObservedNs": null,
+  "appExitedBeforeWindowEnd": false,
+  "clockTicks": 100,
+  "periodNs": 50000000,
+  "discoveryPeriodNs": 250000000,
+  "periodicCount": 0,
+  "retainedSampleCount": 0,
+  "skippedSlots": 0,
+  "discoveryCount": 0,
+  "discoveryDurationNs": [],
+  "knownIdentities": [],
+  "observedLiveCpuTicks": [],
+  "errors": [
+    {
+      "monoNs": 60336530870561,
+      "category": "terminal-observation-error",
+      "pid": null,
+      "detail": "guardian-bind-not-unique-or-missing"
+    }
+  ],
+  "errorCount": 1,
+  "sampleBytes": 0,
+  "truncated": false,
+  "selfCpuSeconds": {
+    "user": 0.026076000000000002,
+    "system": 0.008154
+  },
+  "cgroup": {
+    "path": null,
+    "before": null,
+    "after": null,
+    "rawDelta": null,
+    "scope": "Shared cgroup counters, not DOM-exclusive; actual read timestamps retained"
+  },
+  "limits": [
+    "No signal, cleanup, product IPC or page observer.",
+    "Initial/lost/terminal CPU intervals are not reconstructed; zombie ticks are not active CPU.",
+    "250ms discovery can miss short-lived previously unseen descendants.",
+    "High CPU does not identify the request; low CPU does not prove a scheduler defect.",
+    "Sampling overhead is retained, not subtracted; asynchronous traces may be lost."
+  ]
+}

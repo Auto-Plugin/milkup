@@ -1,0 +1,9 @@
+# Execution boundaries added after static review
+
+The validator's first build succeeded; `validator-build-01/execution.json` and its before/after manifests record this separately. The original static-inputs manifest remains a historical preparation record, not a claim that the validator is still unbuilt. Neither result validation nor ABBA comparison has run as part of the build.
+
+`compare-abba.mjs` requires genuine outcome.json files for all four cells. If setup stops the batch before later cells start, do not invoke the full comparison or invent not-started outcome files. Preserve completed cells' original artifacts and any separately authorized validation reports, and report the incomplete comparison explicitly. A censored second request within an executed cell is already represented by its genuine native outcome; no event is fabricated.
+
+`verify-event.mjs` may only be used with the frozen real per-request envelope and manifest paths approved for this batch. Root will additionally verify that each request equals the frozen fixture except for its RPC request id. Generic core acceptance under a substituted context would not establish acceptance of this fixture. No guessed source range, replacement declaration, inferred context or remapped dimensions may be supplied.
+
+The first build ran the pinned esbuild bundler only. It did not invoke the generated validator, verify-event, compare-abba, native helper, UI or renderer. Source-before/after manifests include both four frozen core copies and their current repository originals; all hashes matched.

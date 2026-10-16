@@ -1,0 +1,53 @@
+# Hidden-page scheduling: read-only review
+
+Status: static source/API analysis only, 2026-10-16. No helper, application, test, build, feature enumeration or setting mutation was executed. Historical native2s deadline failure remains unresolved. The observed class submit-to-callback660ms plus callback-to-drain577ms is wall time, not CPU evidence.
+
+## Exact versions and sources
+
+Local sysroot pkg-config identifies WebKitGTK2.52.6 and GTK3.24.49. The repository uses webkit2gtk Rust2.0.2 with v2_40; its auto/settings.rs does not wrap the feature APIs introduced in2.42. Installed C headers and shared library contain those APIs and both feature identifier strings. Static presence is not a runtime enumeration/readback.
+
+Official upstream sources were read at explicit tags, not main:
+
+- [WebKit GTK visibility: WebKitWebViewBase.cpp](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebKit/UIProcess/API/gtk/WebKitWebViewBase.cpp#L497): lines497–523 require gtk_widget_get_mapped; without an onscreen toplevel a mapped view is visible. Lines1090–1109 update on map/unmap;2061–2063 attach onscreen toplevel only.
+- [Onscreen predicate](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebKit/UIProcess/gtk/GtkUtilities.cpp#L83): GTK3 explicitly excludes GTK_IS_OFFSCREEN_WINDOW.
+- [Exact default preferences](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WTF/Scripts/Preferences/UnifiedWebPreferences.yaml#L3559): HiddenPageCSSAnimationSuspensionEnabled and HiddenPageDOMTimerThrottlingEnabled default true for GTK; HiddenPageDOMTimerThrottlingAutoIncreases defaults false.
+- [Timer policy](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebCore/page/Page.cpp#L2984): visually idle plus enabled setting permits hidden timer alignment; auto-increasing is a separate setting. Hidden visibility also suspends scripted animations at3506–3528.
+- [Timer interval](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebCore/page/DOMTimer.h#L60): hiddenPageAlignmentInterval is1s. This is alignment policy, not a claim every asynchronous operation takes exactly1s.
+- [Public GTK feature APIs](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebKit/UIProcess/API/glib/WebKitSettings.cpp#L4307): get_all_features returns WebPreferences::features; get/set_feature_enabled operate on a returned feature. API since2.42.
+- [Feature generation](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WTF/Scripts/GeneratePreferences.rb#L120): absence of exposed restriction exposes the preference to the frontend;262–263 selects exposed booleans.
+- [Feature identifier/getter/setter mapping](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebKit/Scripts/PreferencesTemplates/WebPreferencesFeatures.cpp.erb): exact preference names become feature identifiers. Thus identifiers are HiddenPageDOMTimerThrottlingEnabled and HiddenPageDOMTimerThrottlingAutoIncreases. No private API or guessed property name is needed.
+- [Evaluate API implementation](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebKit/UIProcess/API/glib/WebKitWebView.cpp#L4350): evaluate_javascript uses asynchronous run-JavaScript dispatch, RunAsAsyncFunction::No and ForceUserGesture::Yes. It is not a DOM timer.
+- [Evaluate IPC path](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebKit/UIProcess/WebPageProxy.cpp#L6668): async IPC and callback; the explicit foreground activity branch is USE(RUNNINGBOARD), not proof of a Linux guarantee.
+- [GTK3.24.49 offscreen implementation](https://github.com/GNOME/gtk/blob/3.24.49/gtk/gtkoffscreenwindow.c#L157): realization uses GDK_WINDOW_OFFSCREEN;217–228 show sets visible and maps. Documentation warns against GtkWindow-specific APIs; treat as a parentless GtkBin. Use widget sizing/add/show_all rather than copying title/default-size calls.
+
+## Current helper and actual Mermaid path
+
+apps/desktop/src-tauri/src/plugin_dom_helper.rs currently creates a GtkWindow, realizes it, calls view.show(), but never window.show(). This strongly predicts an unmapped child/hidden page; log actual window/view mapped/realized and document.hidden/visibilityState to establish runtime state.
+
+The5ms poll is glib::timeout_add_local on the helper process, not JavaScript setTimeout. A busy flag holds until evaluate_javascript callback. No new drain or cancellation frame evaluation is issued while busy. A nominal5ms interval therefore does not promise5ms result latency. Separate JS entry/result-ready from host callback and drain submission before attributing delays.
+
+The actual installed Mermaid12.2.0 files provide a concrete timer-dependent class path:
+
+- plugins/diagrams/node_modules/mermaid/dist/chunks/mermaid.core/chunk-DSNLSHJZ.mjs:4675 default layout is elk.
+- classDiagram-v2-4MYWR3UA.mjs:2173–2183 reads current layout and invokes the registered layout renderer.
+- chunk-EJLWFMJV.mjs:65–110 resolves ELK and loads elk-QONTBCTQ.mjs.
+- elk-QONTBCTQ.mjs:33 imports elkjs/lib/elk.bundled.js;866 constructs new ELK;1291 awaits elk.layout.
+- Installed elkjs0.9.3 lib/elk.bundled.js:6524 fake Worker.postMessage schedules dispatcher with setTimeout(0).
+- The same bundle:132 (also lib/elk-api.js:132) PromisedWorker.onmessage schedules receive with another setTimeout(0). Layout completion traverses both timers. Initial registration also posts through that machinery; do not infer all timers execute serially.
+- Mermaid fastdom wrapper chunk-AQDTSKZB.mjs:562–574 overrides raf with queueMicrotask when available. Its earlier base fastdom rAF definition is NOT evidence that the actual wrapper waits for a frame.
+- Label image helper chunk-HAGFOTED.mjs:73 has a timer only if actual img labels exist; ordinary short class does not establish that branch.
+- mermaid.core.mjs:1613–1669 queues render through Promises. No timer is introduced by that outer execution queue itself.
+
+No layout override, library patch, dummy render, cache warmup, sandbox change or deadline extension is justified by this read-only review.
+
+## Falsifiable minimal comparison
+
+Keep the exact helper isolation, original2s native execution and10s preparation bounds, identical fixed request and normal cleanup. Use fresh helpers and record censored timeouts rather than raising the deadline.
+
+A: existing hidden GtkWindow and default features. B: same hidden window, change only the returned public HiddenPageDOMTimerThrottlingEnabled feature to false and verify readback; retain AutoIncreases and all unrelated settings. C, only separately if needed: true GtkOffscreenWindow with mapped child, no onscreen window. Do not mix B and C.
+
+For each arm, minimal single timer and two nested timers should return legal bounded text presentation results; separately run the original short official class without changing layout. Record monotonic native dispatch/evaluate-submit/callback/drain times, actual JS timer scheduling/firing intervals if instrumentation is authorized, GTK mapped/realized, document.hidden/visibilityState and feature defaults/readback. Keep observations identical and bounded. Never await a JS timer in the one-time state observation or make the observation block cancellation.
+
+If timer intervals change but native submission/callback delays do not, hidden timer throttling is only one contribution. If timers remain short in A, the proposed mechanism is falsified for that path. If ordinary evaluate round trips remain long independently of timers, investigate event-loop/IPC scheduling and result serialization separately. A faster class alone is insufficient to ascribe all prior2s failures to throttling.
+
+The offscreen arm also needs evidence of no new visible X11 toplevel/focus theft and unchanged allocation, image dimensions, CTM and text layout. Same sandbox/CSP/extension/capability checks remain mandatory. The public feature arm needs explicit missing-API/missing-feature behavior for systems older than2.42; current Rust bindings lack this method. Prefer returned feature handles and public getters/setters, never fabricated pointers or private WebKit symbols.

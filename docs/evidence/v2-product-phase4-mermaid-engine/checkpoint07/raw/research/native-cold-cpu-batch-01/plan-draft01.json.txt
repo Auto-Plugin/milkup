@@ -1,0 +1,66 @@
+{
+  "preparedAt": "2026-10-16T17:28:43.469338+00:00",
+  "status": "STATIC_DRAFT_NO_RUNTIME_GO_PENDING_SAMPLER_HANDOFF",
+  "classification": "DIAGNOSTIC_ONLY_NOT_ACCEPTANCE",
+  "binary": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/native-dom-stage-candidate-01/install/usr/bin/milkup-desktop",
+    "sha256": "8041da503dac6cc0ff5d45d4c11982ca4b6a898930f3e4ecc3442d8cb1e4d140"
+  },
+  "batch": {
+    "maximumRuns": 3,
+    "serial": true,
+    "freshProfiles": true,
+    "stopOnFirstFailure": true,
+    "retry": false,
+    "acceptedScope": "coldBundledWindow only",
+    "otherPrefix": false,
+    "matrix": false
+  },
+  "samplerDraftContract": {
+    "command": [
+      "python3",
+      "<native-owner frozen sampler>",
+      "--output",
+      "<run>/cpu-samples",
+      "--app-log",
+      "<driver native log>"
+    ],
+    "stdin": "One JSON line containing exact owner.identity pid,birth,argv",
+    "start": "Immediately after original ownedApplication, exact environment checks and native-owned-profile write; before existing page diagnostics/window sizing/coldBundledWindow",
+    "waitBeforeCold": false,
+    "firstDispatch": "Earliest actual exact App dispatch in existing log, even if it predates sampler startup",
+    "window": "Original first dispatch + 10s, never extended",
+    "coverage": "Record startup latency/missed head; do not relabel first observed sample as dispatch",
+    "exitWait": "App closes normally immediately in original finally; then wait for sampler natural bounded completion before next fresh run",
+    "caps": {
+      "intervalMs": 50,
+      "discoveryMs": 250,
+      "samples": 201,
+      "bytes": 2097152
+    }
+  },
+  "firstFailure": "Preserve original thrown UI failure, existing FAIL snapshot, sampler completion and driver log; stop batch. Sampler nonzero/identity failure also prevents another run. No deadline change.",
+  "connectionPoints": "Absolute helper imports/provenance retained; no UI observer, callback or fetch wrapper, signals, IPC or CPU load generator.",
+  "pending": [
+    "Exact sampler path/SHA and CLI/exit code contract",
+    "Final per-run env/driver and batch controller after native handoff",
+    "Root review and unique runtime GO"
+  ],
+  "files": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-phase-prefix-diagnostic-01/diagnostic.mjs",
+      "bytes": 33796,
+      "sha256": "a1e3d8115f8427a6ba33202dacfde3f52d3feb07599c888063424d4ff8809bbd"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-batch-01/cold-diagnostic.mjs",
+      "bytes": 35739,
+      "sha256": "4c3c7f49cd9f1f02dc3f241657dfc86c441140dee8883dbaa7c27532e79a1e82"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-batch-01/from-native-phase01.diff",
+      "bytes": 6331,
+      "sha256": "e4e349670780c4d86d702d9311b851fbdc4b7717924b2da8a421c50688bbcd93"
+    }
+  ]
+}

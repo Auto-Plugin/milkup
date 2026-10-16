@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Static preparation: this script does not authorize execution.
+# Exact frozen candidate/test/observer paths and hashes are supplied after build.
+set -euo pipefail
+[[ $# == 6 ]] || { echo 'Expected binary SHA tests SHA observer SHA' >&2; exit 2; }
+research_binary=$1
+research_binary_sha=$2
+research_tests=$3
+research_tests_sha=$4
+research_observer=$5
+research_observer_sha=$6
+base=/workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-control-harness-01
+[[ ${MILKUP_TIMER_RUNTIME_APPROVED:-} == 1 ]] || { echo 'Separate root runtime GO required' >&2; exit 2; }
+[[ ! -e "$base/run" ]] || { echo 'Fresh batch required; no retries' >&2; exit 2; }
+for value in "$research_binary_sha" "$research_tests_sha" "$research_observer_sha"; do
+  [[ "$value" =~ ^[a-f0-9]{64}$ ]] || exit 2
+done
+[[ "$research_binary" == /workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-candidate-01/bin/milkup-desktop ]]
+[[ "$research_tests" == /workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-candidate-01/bin/native-tests ]]
+[[ "$research_observer" == /workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-window-observer-01/observe.py ]]
+[[ $(sha256sum "$research_binary" | cut -d ' ' -f1) == "$research_binary_sha" ]]
+[[ $(sha256sum "$research_tests" | cut -d ' ' -f1) == "$research_tests_sha" ]]
+[[ $(sha256sum "$research_observer" | cut -d ' ' -f1) == "$research_observer_sha" ]]
+[[ -z ${LD_PRELOAD:-} && -z ${WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS:-} && -z ${MILKUP_GTK_THREAD_TRACE:-} ]]
+source /workspace/.cloud/milkup-v2/env.sh
+unset CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER PROOT_NO_SECCOMP
+export DISPLAY=:126
+export GDK_PIXBUF_MODULE_FILE=/workspace/milkup-markdown-extensions-phase4-evidence/native/environment/loaders-sysroot.cache
+export GDK_PIXBUF_MODULEDIR=/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders
+export MILKUP_DOM_NATIVE_TEST_EXECUTABLE="$research_binary"
+export MILKUP_TIMER_BINARY_SHA256="$research_binary_sha"
+export MILKUP_TIMER_WINDOW_OBSERVER="$research_observer"
+export MILKUP_TIMER_WINDOW_OBSERVER_SHA256="$research_observer_sha"
+export MILKUP_TIMER_FIXTURES="$base/fixtures"
+export MILKUP_TIMER_FIXTURE_INDEX_SHA256=e2a6517ac83b105c143ccad10994499704949927257f2ceb6d4602f2964b78ee
+[[ $(sha256sum "$base/fixtures/index.json" | cut -d ' ' -f1) == "$MILKUP_TIMER_FIXTURE_INDEX_SHA256" ]]
+export MILKUP_DOM_DIAGNOSTICS=1
+mkdir "$base/run"
+# Same software drawing environment and narrow namespace in every arm.
+# No WebDriver, cargo runner, proot, page observer, CPU sampler, or network probe.
+for cell in A-control C-control A-single C-single A-double C-double A-class C-class; do
+  export MILKUP_TIMER_CELL="$cell"
+  if [[ "$cell" == A-* ]]; then export MILKUP_DOM_TIMER_CONTROL=hidden
+  else export MILKUP_DOM_TIMER_CONTROL=offscreen; fi
+  profile="$base/run/$cell/profile"
+  export XDG_CONFIG_HOME="$profile/config"
+  export XDG_CACHE_HOME="$profile/cache"
+  export XDG_DATA_HOME="$profile/data"
+  export XDG_RUNTIME_DIR="/tmp/milkup-timer-ac01-$cell"
+  export MILKUP_TIMER_OUTPUT="$base/run/$cell/result"
+  [[ ! -e "$profile" && ! -e "$XDG_RUNTIME_DIR" && ! -e "$MILKUP_TIMER_OUTPUT" ]]
+  mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME"
+  mkdir -m 0700 "$XDG_RUNTIME_DIR"
+  # External preflight must have verified exact Xvfb PID/birth and exclusive UI.
+  set +e
+  bwrap --unshare-user --ro-bind / / --bind /workspace /workspace --bind /tmp /tmp --dev-bind /dev /dev --proc /proc \
+    --overlay-src /usr/bin --tmp-overlay /usr/bin \
+    --ro-bind /workspace/.cloud/milkup-v2/sysroot/usr/bin/xdg-dbus-proxy /usr/bin/xdg-dbus-proxy --remount-ro /usr/bin \
+    --overlay-src /usr/lib/x86_64-linux-gnu --tmp-overlay /usr/lib/x86_64-linux-gnu \
+    --ro-bind /workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1 /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1 \
+    --remount-ro /usr/lib/x86_64-linux-gnu -- \
+    dbus-run-session -- "$research_tests" plugin_dom::process::tests::real_webkit_hidden_timer_cell \
+    --exact --ignored --test-threads=1 --nocapture > "$base/run/$cell/native-test.log" 2>&1
+  result=$?
+  set -e
+  printf '%s\n' "$result" > "$base/run/$cell/exit-code.txt"
+  [[ "$result" == 0 ]] || { echo "STOP first setup/safety/cleanup/test failure: $cell" >&2; exit "$result"; }
+  /usr/bin/python3 "$base/verify-cell.py" "$base/run/$cell" "$cell"
+done

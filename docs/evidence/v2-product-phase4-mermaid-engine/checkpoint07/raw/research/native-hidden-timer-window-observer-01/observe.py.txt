@@ -1,0 +1,219 @@
+#!/usr/bin/env python3
+"""One bounded, read-only X11 snapshot. No input, map, focus, kill or page IPC."""
+import argparse
+import ctypes as C
+import json
+import os
+import re
+import time
+from pathlib import Path
+
+SCHEMA = 'milkup.owned-x11-observation.v1'
+LIMIT = 256
+Window = C.c_ulong
+
+
+class Attributes(C.Structure):
+    _fields_ = [(n, t) for n, t in [
+        ('x', C.c_int), ('y', C.c_int), ('width', C.c_int), ('height', C.c_int),
+        ('border_width', C.c_int), ('depth', C.c_int), ('visual', C.c_void_p),
+        ('root', Window), ('window_class', C.c_int), ('bit_gravity', C.c_int),
+        ('win_gravity', C.c_int), ('backing_store', C.c_int),
+        ('backing_planes', C.c_ulong), ('backing_pixel', C.c_ulong),
+        ('save_under', C.c_int), ('colormap', C.c_ulong), ('map_installed', C.c_int),
+        ('map_state', C.c_int), ('all_event_masks', C.c_long),
+        ('your_event_mask', C.c_long), ('do_not_propagate_mask', C.c_long),
+        ('override_redirect', C.c_int), ('screen', C.c_void_p)]]
+
+
+class XError(C.Structure):
+    _fields_ = [('type', C.c_int), ('display', C.c_void_p), ('resourceid', C.c_ulong),
+                ('serial', C.c_ulong), ('error_code', C.c_ubyte),
+                ('request_code', C.c_ubyte), ('minor_code', C.c_ubyte)]
+
+
+def xid(value):
+    return hex(value) if value else None
+
+
+def process_identity(owner, boot):
+    pid = owner['pid']
+    assert isinstance(pid, int) and not isinstance(pid, bool) and pid > 0
+    expected = owner['birth']
+    expected_boot = expected.get('bootId', boot) if isinstance(expected, dict) else boot
+    ticks = expected['startTicks'] if isinstance(expected, dict) else expected
+    assert isinstance(ticks, int) and not isinstance(ticks, bool) and ticks > 0
+    try:
+        stat = Path(f'/proc/{pid}/stat').read_text().rsplit(')', 1)[1].split()
+        actual = int(stat[19])
+        matched = actual == ticks and expected_boot == boot
+        if 'argv' in owner:
+            argv = Path(f'/proc/{pid}/cmdline').read_bytes().decode().split('\0')[:-1]
+            matched = matched and argv == owner['argv']
+        return {'pid': pid, 'birth': ticks, 'observedBirth': actual, 'matched': matched}
+    except (OSError, ValueError, IndexError, UnicodeError):
+        return {'pid': pid, 'birth': ticks, 'observedBirth': None, 'matched': False}
+
+
+def snapshot(config):
+    started = time.monotonic()
+    display_name = config.get('display', '')
+    assert display_name == ':126', 'This isolated diagnostic requires explicit DISPLAY :126'
+    owners = config.get('owners', [])
+    assert isinstance(owners, list) and len(owners) <= 64
+    boot = Path('/proc/sys/kernel/random/boot_id').read_text().strip()
+    namespace = os.readlink('/proc/self/ns/pid')
+    assert config.get('bootId', boot) == boot, 'Boot identity differs'
+    assert config.get('pidNamespace', namespace) == namespace, 'PID namespace differs'
+    before = [process_identity(o, boot) for o in owners]
+    assert len({o['pid'] for o in before}) == len(before), 'Duplicate owner PID'
+    errors = []
+    lib = C.CDLL('libX11.so.6')
+    def bind(name, result, args):
+        f = getattr(lib, name); f.restype = result; f.argtypes = args; return f
+    open_display = bind('XOpenDisplay', C.c_void_p, [C.c_char_p])
+    close_display = bind('XCloseDisplay', C.c_int, [C.c_void_p])
+    default_root = bind('XDefaultRootWindow', Window, [C.c_void_p])
+    query_tree = bind('XQueryTree', C.c_int, [C.c_void_p, Window, C.POINTER(Window),
+        C.POINTER(Window), C.POINTER(C.POINTER(Window)), C.POINTER(C.c_uint)])
+    get_attributes = bind('XGetWindowAttributes', C.c_int,
+                          [C.c_void_p, Window, C.POINTER(Attributes)])
+    intern = bind('XInternAtom', C.c_ulong, [C.c_void_p, C.c_char_p, C.c_int])
+    get_property = bind('XGetWindowProperty', C.c_int, [C.c_void_p, Window, C.c_ulong,
+        C.c_long, C.c_long, C.c_int, C.c_ulong, C.POINTER(C.c_ulong),
+        C.POINTER(C.c_int), C.POINTER(C.c_ulong), C.POINTER(C.c_ulong),
+        C.POINTER(C.POINTER(C.c_ubyte))])
+    get_focus = bind('XGetInputFocus', C.c_int,
+                     [C.c_void_p, C.POINTER(Window), C.POINTER(C.c_int)])
+    free = bind('XFree', C.c_int, [C.c_void_p])
+    sync = bind('XSync', C.c_int, [C.c_void_p, C.c_int])
+    handler_type = C.CFUNCTYPE(C.c_int, C.c_void_p, C.POINTER(XError))
+    @handler_type
+    def on_error(_display, event):
+        e = event.contents
+        if len(errors) < LIMIT:
+            errors.append({'kind': 'x11-error', 'code': int(e.error_code),
+                           'request': int(e.request_code), 'resource': xid(e.resourceid)})
+        return 0
+    set_handler = bind('XSetErrorHandler', C.c_void_p, [C.c_void_p])
+    previous_handler = set_handler(C.cast(on_error, C.c_void_p))
+    display = open_display(display_name.encode())
+    if not display:
+        set_handler(previous_handler)
+        raise RuntimeError('Cannot open requested display')
+    windows = []
+    try:
+        root = int(default_root(display))
+        def prop(window, name):
+            atom = intern(display, name.encode(), 1)
+            if not atom:
+                return []
+            actual = C.c_ulong(); fmt = C.c_int(); count = C.c_ulong()
+            extra = C.c_ulong(); data = C.POINTER(C.c_ubyte)()
+            status = get_property(display, window, atom, 0, LIMIT, 0, 0,
+                C.byref(actual), C.byref(fmt), C.byref(count), C.byref(extra), C.byref(data))
+            try:
+                if status or extra.value or count.value > LIMIT:
+                    errors.append({'kind': 'property-incomplete', 'window': xid(window), 'property': name})
+                    return []
+                if not actual.value:
+                    return []
+                if fmt.value != 32:
+                    errors.append({'kind': 'unexpected-property-format', 'window': xid(window), 'property': name})
+                    return []
+                return [int(C.cast(data, C.POINTER(C.c_ulong))[i]) for i in range(count.value)]
+            finally:
+                if data: free(data)
+        clients = set(prop(root, '_NET_CLIENT_LIST'))
+        active = prop(root, '_NET_ACTIVE_WINDOW')
+        focus = Window(); revert = C.c_int()
+        get_focus(display, C.byref(focus), C.byref(revert))
+        pending = [(root, None)]; seen = set(); owned_pids = {o['pid'] for o in before if o['matched']}
+        while pending:
+            window, parent = pending.pop(0)
+            if window in seen: continue
+            if len(seen) >= LIMIT or time.monotonic() - started > 2:
+                errors.append({'kind': 'snapshot-bound-exceeded'}); break
+            seen.add(window)
+            if window != root:
+                attrs = Attributes()
+                if not get_attributes(display, window, C.byref(attrs)):
+                    errors.append({'kind': 'window-disappeared', 'window': xid(window)}); continue
+                pid_values = prop(window, '_NET_WM_PID')
+                pid = pid_values[0] if len(pid_values) == 1 and pid_values[0] > 0 else None
+                wm_state = prop(window, 'WM_STATE')
+                kind = ('ewmh-client' if window in clients else 'wm-state' if wm_state
+                        else 'root-child' if parent == root else 'none')
+                windows.append({'id': xid(window), 'parentId': xid(parent), 'pid': pid,
+                    'mapState': {0:'unmapped',1:'unviewable',2:'viewable'}.get(attrs.map_state,'unknown'),
+                    'inputOutput': attrs.window_class == 1,
+                    'overrideRedirect': bool(attrs.override_redirect), 'toplevelKind': kind,
+                    'owned': pid in owned_pids})
+            found_root = Window(); found_parent = Window(); children = C.POINTER(Window)(); count = C.c_uint()
+            if not query_tree(display, window, C.byref(found_root), C.byref(found_parent),
+                              C.byref(children), C.byref(count)):
+                errors.append({'kind':'query-tree-failed','window':xid(window)})
+                continue
+            try:
+                if count.value > LIMIT:
+                    errors.append({'kind':'children-bound-exceeded','window':xid(window)})
+                pending.extend((int(children[i]),window) for i in range(min(count.value,LIMIT)))
+            finally:
+                if children: free(children)
+        sync(display, 0)
+        after = [process_identity(o, boot) for o in owners]
+        matched = all(o['matched'] for o in before + after)
+        if not matched: errors.append({'kind':'owner-identity-mismatch'})
+        visible = [w for w in windows if w['inputOutput'] and w['mapState']=='viewable' and w['toplevelKind']!='none']
+        owned = [w['id'] for w in visible if w['owned']]
+        unknown = [w['id'] for w in visible if w['pid'] is None]
+        return {'schema':SCHEMA,'ok':not errors,'display':display_name,'rootId':xid(root),
+            'bootId':boot,'pidNamespace':namespace,'monotonic':started,'wall':time.time(),
+            'durationMs':(time.monotonic()-started)*1000,'errors':errors,
+            'identity':{'allMatched':matched,'owners':before,'after':after},
+            'focus':{'windowId':xid(focus.value),'activeWindowId':xid(active[0]) if active else None},
+            'windows':windows,'assessment':{'ownedVisibleToplevelsAbsent':not errors and not owned,
+                'ownedVisibleToplevelIds':owned,'unknownVisibleToplevelIds':unknown},
+            'comparison':None,
+            'limitations':['Discrete snapshot cannot exclude transient windows between observations.',
+                'X11 PID properties are attribution hints, verified against supplied process births; not a security boundary.',
+                'Non-toplevel internal children are recorded but not treated as visible OS toplevels.']}
+    finally:
+        close_display(display)
+        set_handler(previous_handler)
+
+
+def main():
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--identity-file',required=True)
+    parser.add_argument('--output',required=True)
+    parser.add_argument('--baseline')
+    args=parser.parse_args()
+    config=json.loads(Path(args.identity_file).read_text())
+    try:
+        result=snapshot(config)
+        if args.baseline:
+            base=json.loads(Path(args.baseline).read_text())
+            assert base['schema']==SCHEMA and base['ok'], 'Baseline is not a conclusive snapshot'
+            def visible(rows):
+                return {w['id'] for w in rows if w['inputOutput'] and w['mapState']=='viewable' and w['toplevelKind']!='none'}
+            new=visible(result['windows'])-visible(base['windows'])
+            same=result['display']==base['display'] and result['rootId']==base['rootId'] and result['bootId']==base['bootId']
+            result['comparison']={'sameDisplay':same,'focusUnchanged':result['focus']['windowId']==base['focus']['windowId'],
+                'activeWindowUnchanged':result['focus']['activeWindowId']==base['focus']['activeWindowId'],
+                'newVisibleToplevelIds':sorted(new),
+                'newUnknownVisibleToplevelIds':sorted(new & set(result['assessment']['unknownVisibleToplevelIds'])),
+                'noNewVisibleToplevels':same and not new}
+    except Exception as error:
+        result={'schema':SCHEMA,'ok':False,'errors':[{'kind':'observer-error','message':str(error)}],
+            'identity':{'allMatched':False,'owners':[]},'focus':{'windowId':None,'activeWindowId':None},
+            'windows':[],'assessment':{'ownedVisibleToplevelsAbsent':False,'ownedVisibleToplevelIds':[],
+            'unknownVisibleToplevelIds':[]},'comparison':None}
+    with Path(args.output).open('x') as stream:
+        json.dump(result,stream,indent=2);stream.write('\n')
+    print(json.dumps({'ok':result['ok'],'output':args.output}),flush=True)
+    return 0 if result['ok'] else 2
+
+
+if __name__=='__main__':
+    raise SystemExit(main())

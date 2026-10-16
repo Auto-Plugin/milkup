@@ -1,0 +1,25 @@
+# Proposed native-only build / identity steps — not executed
+
+New candidate root: /workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-candidate-01
+New source: NEW_ROOT/source, copied from the frozen stagecandidate01/source (the original50-file input tree with exact old frontend).
+Mutable Cargo cache only: /workspace/milkup-mermaid-engine-evidence/research/native-dom-stage-candidate-01/target
+
+After complete fixture/harness/diff review, copy those50 source files without hardlinks, verify all unchanged SHA, then overlay the reviewed two Rust drafts plus the separately reviewed test-only integration harness. Record three-file source differences (two helper/trace files plus test-only process tests or a new test module). Bootstrap JS, guard C, Cargo.toml/lock/build.rs and old frontend hashes must remain exact. Freeze all fixtures and review inputs before compiling. Any extra change needs explicit explanation and new manifest; do not rewrite old manifests.
+
+Environment: source /workspace/.cloud/milkup-v2/env.sh; unset CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER and PROOT_NO_SECCOMP. Preserve sysroot/toolchain/dependency environment. Set CARGO_TARGET_DIR to the mutable cache above. Set TAURI_CONFIG to the exact existing minimal cloud icon overlay (bundle.icon=[/workspace/.cloud/milkup-v2/icon.png], build.beforeBuildCommand empty); record its bytes in the new root. Do not alter production configs. Native Cargo commands do not invoke frontend beforeBuild scripts.
+
+Proposed command1, from NEW_ROOT/source/apps/desktop/src-tauri:
+  cargo build --release --locked --offline --features tauri/custom-protocol --message-format=json-render-diagnostics
+
+Capture stdout JSON and stderr plus actual command/env allowlist, monotonic and UTC begin/end, and exit. Require only the expected milkup-desktop executable from this source manifest, then copy it immediately to NEW_ROOT/bin/milkup-desktop and hash/size/buildID. Never use a live target path during runtime. This unbundled executable retains its native bundle marker; no UNK→DEB rewriting is performed or expected.
+
+Proposed command2, same cwd/env:
+  cargo test --release --locked --offline --features tauri/custom-protocol --lib --no-run --message-format=json-render-diagnostics
+
+This compiles the test binary but does not execute tests. Capture the exact executable from Cargo's compiler-artifact event with profile.test=true, copy to NEW_ROOT/bin/native-tests and hash. No guessing among old cache hashes. Test-only features may rebuild dependencies; do not mistake that for a source/product change. Preserve first compiler errors; no implicit production-tree patching.
+
+Use Cargo build-script-executed metadata to identify the exact current crate OUT_DIR; copy the guard from that directory, hash it and require the previously frozen guard SHA5b1082768123b9ac1923eb8ef3f6f8c0bd05ffd5d66b8b2a023f75b69106c44c unless a recorded build-path/toolchain cause explains a difference. Independently verify its complete bytes are embedded in the frozen helper executable. Record exact frontend/source/archive/SDK identity references, compiler/toolchain/build environment and every draft/harness SHA. Validate source-after equality against source-before. No claim of formal native test or runtime PASS arises from these build steps.
+
+Before runtime, root reviews the actual two binary identities and frozen command/namespace wrapper. Both arms must execute those same binaries with only MILKUP_DOM_TIMER_CONTROL differing. The wrapper must retain prior sandbox/font/software-rendering/runtime settings and an exclusive display with exact ownership checks. No old proot runner or mutable target binary. Each cell uses a new profile and a distinct result directory, and exact product cleanup must precede namespace/driver teardown.
+
+Root has approved cache reuse as a future option, not yet the commands' execution. No build has been run for this proposal.

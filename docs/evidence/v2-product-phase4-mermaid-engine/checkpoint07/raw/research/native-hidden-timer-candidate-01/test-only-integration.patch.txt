@@ -1,0 +1,9 @@
+--- base-v03/plugin_dom_process.rs
++++ final/plugin_dom_process.rs
+@@ -1106,4 +1106,5 @@
+             assert!(!proc_stat(*pid).is_some_and(|p| p.birth == *birth));
+         }
+     }
+-}
++    include!("plugin_dom_timer_control_tests.rs");
++}

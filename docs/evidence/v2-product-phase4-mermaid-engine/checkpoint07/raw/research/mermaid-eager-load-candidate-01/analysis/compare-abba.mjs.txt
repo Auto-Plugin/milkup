@@ -1,0 +1,79 @@
+// Offline-only comparison. No renderer execution, output normalization or pixel claims.
+import assert from 'node:assert/strict'
+import { readFile, writeFile } from 'node:fs/promises'
+import { resolve } from 'node:path'
+import { createHash } from 'node:crypto'
+const sha = b => createHash('sha256').update(b).digest('hex')
+const [runRoot, output] = process.argv.slice(2)
+assert(runRoot && output, 'run-root fresh-output.json')
+async function load(path) {
+  const bytes = await readFile(path)
+  assert(bytes.length <= 1024 * 1024, 'Bounded artifact')
+  return { path, sha256: sha(bytes), value: JSON.parse(bytes) }
+}
+function diff(a, b) {
+  let differences = 0
+  const first = []
+  function walk(x, y, path) {
+    if (Object.is(x, y)) return
+    if (x && y && typeof x === 'object' && typeof y === 'object' && Array.isArray(x) === Array.isArray(y)) {
+      for (const key of new Set([...Object.keys(x), ...Object.keys(y)])) {
+        const p = path + '/' + key.replaceAll('~', '~0').replaceAll('/', '~1')
+        if (!Object.hasOwn(x, key) || !Object.hasOwn(y, key)) {
+          differences++
+          if (first.length < 100) first.push({ path: p, leftPresent: Object.hasOwn(x, key), rightPresent: Object.hasOwn(y, key) })
+        } else walk(x[key], y[key], p)
+      }
+      return
+    }
+    differences++
+    if (first.length < 100) first.push({ path, left: x, right: y })
+  }
+  walk(a, b, '')
+  return { differences, first, omitted: differences - first.length }
+}
+const cells = []
+for (const name of ['01-A', '02-B', '03-B', '04-A']) {
+  const dir = resolve(runRoot, name, 'result')
+  const outcome = await load(resolve(dir, 'outcome.json'))
+  const cell = { name, outcomeFile: outcome.path, outcomeSha256: outcome.sha256, requests: [] }
+  for (let ordinal = 1; ordinal <= 2; ordinal++) {
+    const id = `render_${ordinal}`
+    const native = outcome.value.requests.find(x => x.requestId === id)
+    assert(native, 'Native outcome must explicitly account for each request')
+    const row = { ordinal, nativeStatus: native.status }
+    if (native.status === 'result') {
+      const event = await load(resolve(dir, `event-${ordinal}.json`))
+      const request = await load(resolve(dir, `request-${ordinal}.json`))
+      const validation = await load(resolve(dir, `validation-${ordinal}.json`))
+      assert.equal(validation.value.eventSha256, event.sha256)
+      assert.equal(validation.value.requestFileSha256, request.sha256)
+      assert.equal(validation.value.expectedId, id)
+      assert.equal(event.value.message.id, id)
+      row.eventSha256 = event.sha256
+      row.validation = validation.value
+      row.request = request.value.payload.request
+      row.value = event.value.message.value
+    } else assert(['native-render-deadline', 'not-executed-censored'].includes(native.status), 'Unknown native state')
+    cell.requests.push(row)
+  }
+  cells.push(cell)
+}
+function compare(leftCell, rightCell, leftOrdinal, rightOrdinal) {
+  const left = leftCell.requests[leftOrdinal - 1], right = rightCell.requests[rightOrdinal - 1]
+  const pair = { left: `${leftCell.name}/render_${leftOrdinal}`, right: `${rightCell.name}/render_${rightOrdinal}` }
+  if (left.nativeStatus !== 'result' || right.nativeStatus !== 'result') return { ...pair, status: 'not-comparable-native-deadline-or-censored' }
+  if (left.validation.status !== 'accepted' || right.validation.status !== 'accepted') return { ...pair, status: 'not-comparable-validator-rejected' }
+  const requestDiff = diff(left.request, right.request)
+  return { ...pair, status: requestDiff.differences ? 'different-request-context' : 'same-request-context', requestDiff,
+    exactParsedResultSerializationEqual: left.validation.rawValueSha256 === right.validation.rawValueSha256,
+    validatedResultEqual: left.validation.validatedValueSha256 === right.validation.validatedValueSha256,
+    typedResultDiff: diff(left.value, right.value), canonicalFragmentDiff: diff(left.validation.fragments, right.validation.fragments),
+    budgetDiff: diff(left.validation.svgAggregateBudget, right.validation.svgAggregateBudget) }
+}
+const comparisons = []
+for (let ordinal = 1; ordinal <= 2; ordinal++) for (let a = 0; a < cells.length; a++) for (let b = a + 1; b < cells.length; b++) comparisons.push(compare(cells[a], cells[b], ordinal, ordinal))
+const withinHelper = cells.map(cell => compare(cell, cell, 1, 2))
+const report = { classification: 'OFFLINE_TYPED_OUTPUT_COMPARISON_NOT_PIXEL_EQUIVALENCE_OR_TIMING_CAUSATION',
+  cells: cells.map(cell => ({ ...cell, requests: cell.requests.map(({ value, request, ...row }) => row) })), comparisons, withinHelper }
+await writeFile(output, JSON.stringify(report, null, 2) + '\n', { flag: 'wx' })

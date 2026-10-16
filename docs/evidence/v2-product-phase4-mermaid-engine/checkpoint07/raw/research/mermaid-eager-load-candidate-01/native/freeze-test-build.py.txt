@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+"""Freeze only the Cargo-reported ABBA test executable; no runtime."""
+import datetime
+import hashlib
+import json
+from pathlib import Path
+import shutil
+import subprocess
+root = Path(__file__).resolve().parent
+sha = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
+command = json.loads((root / 'test-build01-command.json').read_text())
+assert command['exitCode'] == 0
+rows = [json.loads(line) for line in (root / 'test-build01.jsonl').read_text().splitlines() if line.strip()]
+artifacts = [row for row in rows if row.get('reason') == 'compiler-artifact' and row.get('executable') and
+             row.get('manifest_path') == str(root / 'source/apps/desktop/src-tauri/Cargo.toml') and
+             row['profile']['test'] is True and row['target']['name'] == 'milkup_desktop_lib' and row['target']['kind'] == ['rlib']]
+assert len(artifacts) == 1, artifacts
+artifact = artifacts[0]
+source = Path(artifact['executable'])
+assert source.resolve().is_relative_to(Path(command['environment']['CARGO_TARGET_DIR']).resolve())
+(root / 'bin').mkdir(exist_ok=True)
+dest = root / 'bin/native-tests'
+assert not dest.exists()
+shutil.copy2(source, dest)
+assert sha(source) == sha(dest)
+assert (source.stat().st_dev, source.stat().st_ino) != (dest.stat().st_dev, dest.stat().st_ino)
+notes = subprocess.run(['/usr/bin/readelf', '-n', str(dest)], check=True, capture_output=True, text=True)
+(root / 'test-build01-elf-notes.txt').write_text(notes.stdout)
+build_ids = [line.strip().split('Build ID: ', 1)[1] for line in notes.stdout.splitlines() if 'Build ID: ' in line]
+scripts = [row for row in rows if row.get('reason') == 'build-script-executed' and str(root / 'source/apps/desktop/src-tauri') in row.get('package_id', '')]
+assert len(scripts) == 1, scripts
+guard = Path(scripts[0]['out_dir']) / 'libmilkup_dom_guard.so'
+expected_guard = '5b1082768123b9ac1923eb8ef3f6f8c0bd05ffd5d66b8b2a023f75b69106c44c'
+assert sha(guard) == expected_guard
+frozen_guard = root / 'bin/libmilkup_dom_guard.so'
+assert not frozen_guard.exists()
+shutil.copy2(guard, frozen_guard)
+raw = frozen_guard.read_bytes()
+test_offset = dest.read_bytes().find(raw)
+assert test_offset >= 0
+config = json.loads((root / 'final-build-environment-and-command.json').read_text())
+helper = Path(config['reusedHelper'])
+assert sha(helper) == config['helperSha256']
+helper_offset = helper.read_bytes().find(raw)
+assert helper_offset >= 0
+manifest = json.loads((root / 'final-source-manifest.json').read_text())
+checks = []
+for row in manifest['files']:
+    path = root / 'source' / row['path']
+    checks.append({'path': row['path'], 'sha256': sha(path), 'bytes': path.stat().st_size,
+                   'matchesFrozen': sha(path) == row['sha256'] and path.stat().st_size == row['bytes']})
+(root / 'test-build01-source-after.json').write_text(json.dumps(checks, indent=2) + '\n')
+base = Path('/workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-candidate-01')
+old = json.loads((base / 'final-source-manifest.json').read_text())
+for row in old['files']:
+    assert sha(base / 'source' / row['path']) == row['sha256']
+record = {'atUtc': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'artifactEvent': artifact,
+          'frozenPath': str(dest), 'sha256': sha(dest), 'bytes': dest.stat().st_size,
+          'elfBuildIds': build_ids, 'identicalCopyDistinctInode': True,
+          'guard': {'buildScriptEvent': scripts[0], 'source': str(guard), 'frozenPath': str(frozen_guard),
+                    'sha256': sha(frozen_guard), 'bytes': len(raw), 'completeEmbeddedOffset': test_offset},
+          'reusedHelper': {'path': str(helper), 'sha256': sha(helper), 'bytes': helper.stat().st_size,
+                           'notRebuilt': True, 'completeGuardEmbeddedOffset': helper_offset},
+          'sourceFilesChecked': len(checks), 'sourceUnchanged': all(row['matchesFrozen'] for row in checks),
+          'oldCandidateSource51Unchanged': True, 'runtimeStarted': False, 'testsExecuted': False}
+(root / 'test-build01-artifact.json').write_text(json.dumps(record, indent=2) + '\n')
+assert record['sourceUnchanged'], 'Preserve drift, do not silently proceed'
+print(json.dumps({key: record[key] for key in ['frozenPath', 'sha256', 'bytes', 'elfBuildIds', 'sourceUnchanged']}))

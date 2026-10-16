@@ -1,0 +1,10 @@
+--- revision01/cold-diagnostic.mjs
++++ revision02/cold-diagnostic.mjs
+@@ -836,6 +836,7 @@
+     samplerPath,
+     '--output', path.join(output, 'cpu-observer'),
+     '--app-log', process.env.MILKUP_NATIVE_APP_LOG,
++    '--cgroup-cpu-stat',
+   ], { stdio: ['pipe', samplerOut.fd, samplerErr.fd] })
+   samplerCompletion = new Promise((resolve) => {
+     sampler.once('error', (error) => resolve({ error: String(error), exitCode: null }))

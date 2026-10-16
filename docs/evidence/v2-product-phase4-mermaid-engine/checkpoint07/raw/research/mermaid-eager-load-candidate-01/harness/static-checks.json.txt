@@ -1,0 +1,46 @@
+{
+  "time": "2026-10-16T18:25:53.178529+00:00",
+  "cwd": "/workspace",
+  "runtimeExecuted": false,
+  "firstEnvironmentFailures": [
+    {
+      "command": "rustfmt --edition 2021 mechanism-test.rs",
+      "toolExitCode": 127,
+      "stderr": "rustfmt: command not found"
+    },
+    {
+      "command": "/workspace/.cargo/bin/rustfmt --edition 2021 mechanism-test.rs",
+      "stderr": "error: could not create home directory: /home/agent/.rustup: Read-only file system (os error 30)",
+      "qualification": "combined shell returned0 due following syntaxcheck; formatter unsuccessful, resolved with explicit workspace toolchain"
+    }
+  ],
+  "checks": [
+    {
+      "command": [
+        "bash",
+        "-n",
+        "/workspace/milkup-mermaid-engine-evidence/research/mermaid-eager-load-candidate-01/harness/run-abba.sh"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/workspace/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/milkup-mermaid-engine-evidence/research/mermaid-eager-load-candidate-01/harness/mechanism-test.rs"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": "ast.parse(verify-cell.py)",
+      "exitCode": 0,
+      "classification": "syntax only; not executed"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "at": "2026-10-16T18:14:01.831439+00:00",
+  "sourceManifestSha256": "227fb90116f4fdcacad1cea05a45f8e0c06a8db14e6b0dd2864ffe876f46144a",
+  "sourceFilesActualChecked": 51,
+  "bothAfterManifestsMatch": true,
+  "artifacts": [
+    {
+      "phase": "release-build01",
+      "artifact": "/workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-candidate-01/bin/milkup-desktop",
+      "sha256": "02b15a8038e694806e4cbc5f8a6b6324160529a0ab3303934a626d7c8e848982",
+      "bytes": 21932608,
+      "command": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "--features",
+        "tauri/custom-protocol",
+        "--message-format=json-render-diagnostics"
+      ],
+      "commandExitCode": 0
+    },
+    {
+      "phase": "test-build01",
+      "artifact": "/workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-candidate-01/bin/native-tests",
+      "sha256": "e28fa09de3dade21d62e7e5dfe93b2047d93358778f2d76716adee881bcea499",
+      "bytes": 17308560,
+      "command": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "--features",
+        "tauri/custom-protocol",
+        "--lib",
+        "--no-run",
+        "--message-format=json-render-diagnostics"
+      ],
+      "commandExitCode": 0
+    }
+  ],
+  "guardSha256": "5b1082768123b9ac1923eb8ef3f6f8c0bd05ffd5d66b8b2a023f75b69106c44c",
+  "completeGuardEmbedded": true,
+  "classification": "Unbundled diagnostic mechanism candidate, not production04/deb",
+  "runtimeStarted": false
+}

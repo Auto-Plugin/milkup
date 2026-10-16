@@ -1,0 +1,38 @@
+# Timer nesting qualification — separate static addendum
+
+2026-10-16. Read-only source inspection; no helper, browser, timer experiment, build, or test was run for this addendum. The earlier `review.md` remains unchanged. This addendum narrows the hidden-page timer hypothesis; it is not evidence that this mechanism caused the production deadline.
+
+## Exact WebKitGTK 2.52.6 implementation
+
+The current official tag places the relevant Document function at lines 4656–4674, not the earlier quoted 4308–4325. Links below point to the exact tag and function.
+
+- [Document.cpp:4656–4674](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebCore/dom/Document.cpp#L4656): obtain the base interval, immediately return it when `hasReachedMaxNestingLevel` is false, then apply the maximally nested minimum, document hidden interval, page interval, and non-interacted cross-origin interval. Thus the page's hidden interval does **not** apply unconditionally to every timer.
+- [ScriptExecutionContext.cpp:614–617](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebCore/dom/ScriptExecutionContext.cpp#L614): the base implementation returns `DOMTimer::defaultAlignmentInterval()`.
+- [DOMTimer.h:55–60](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebCore/page/DOMTimer.h#L55): default alignment is zero; maximally nested minimum alignment is 4 ms; hidden-page alignment is 1 second.
+- [DOMTimer.cpp:53–60](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebCore/page/DOMTimer.cpp#L53): maximum one-shot nesting is 10; repeating-timer threshold is 5.
+- [DOMTimer.cpp:168–186](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebCore/page/DOMTimer.cpp#L168): construction captures the context's nesting level and passes the threshold boolean into the event-loop timer. Merely counting timers created anywhere in a render is not equivalent to this nesting level.
+- [DOMTimer.cpp:64–82](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebCore/page/DOMTimer.cpp#L64) and [326–381](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebCore/page/DOMTimer.cpp#L326): the firing scope sets nesting to the current timer's level plus one (capped at 10); its destructor resets the context to zero. The action runs inside that scope. Repeating timers separately increment their own nesting level. [ScriptExecutionContext.h:447](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebCore/dom/ScriptExecutionContext.h#L447) initializes the context level to zero.
+- [DOMTimer.cpp:435–447](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebCore/page/DOMTimer.cpp#L435) contains `ScriptExecutionContext::alignedFireTime` (it is not in a separate Timers.cpp). A zero interval returns the original fire time. Otherwise it aligns to the next boundary with a process-static randomized phase. Even an eligible 1-second alignment is **not** a statement that every timer receives a fixed additional 1-second delay.
+- [Timer.cpp:526–530](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebCore/platform/Timer.cpp#L526) calls the alignment interface with the timer's threshold flag. Its comment about zero-delay timers should not replace the explicit DOM nesting gate above.
+
+The other minimum-interval clamp also has an early return for nesting below the relevant threshold: [DOMTimer.cpp:417–432](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebCore/page/DOMTimer.cpp#L417). The presence of a 1-second constant elsewhere therefore does not establish an unconditional two-second cost for two one-shot callbacks.
+
+## What the locked ELK path establishes
+
+Local installed dependency: `plugins/diagrams/node_modules/.pnpm/elkjs@0.9.3/node_modules/elkjs/lib/elk.bundled.js`.
+
+- Lines 6523–6524: the fake Worker's `postMessage` schedules `dispatcher.saveDispatch` with `setTimeout(..., 0)`; the dispatch computes layout and calls the supplied `postMessage`, which synchronously calls `onmessage`.
+- Lines 130–134: `PromisedWorker.onmessage` schedules `receive` with a second `setTimeout(..., 0)`.
+- The first timer captures the current context level. If it was created at level 0, the directly scheduled second timer is created while the first callback has set the context to level 1. Both are below 10. This conditional two-hop model cannot explain a mandatory one-second alignment on each hop.
+- Constructor registration and layout are distinct messages, and Mermaid also has Promise and fastdom/microtask continuations. Their existence does not prove that all work forms one uninterrupted chain of ten nested DOM timers. The static audit has not established the actual context nesting level at each ELK timer install in the failing native render. It has not exhaustively traced JS microtask checkpoints inside the timer action or all upstream timers. No exact runtime ELK nesting level is claimed.
+- The locked Mermaid class path/default ELK and timer locations remain those recorded in the original review. This correction does not remove the fact that real timers exist; it removes the unsupported inference from two timers plus hidden state to two fixed one-second delays.
+
+## Consequences for the existing experiment
+
+Keep the authorized single-timer, serial-double-timer, real short-class, and mapped/offscreen comparisons unchanged. Do not add a deep timer chain to manufacture the hypothesized delay. A separate deliberately threshold-reaching probe, if ever authorized, would answer a different question and must be labelled separately.
+
+A single or double timer initiated outside an existing nested timer chain may never enter this hidden-alignment policy. Fast single/double results are therefore compatible with the source and do not by themselves disprove every background scheduling effect. Conversely, a slow result is not evidence of this particular policy without the eligibility and scheduling path being established. Existing 2-second censored failures and unchanged 2-second/10-second bounds remain required.
+
+Offscreen mapping changes WebKit visibility/activity inputs more broadly than this one timer-alignment setting. If Offscreen improves callback delivery or real class completion while low-nesting timer fixtures remain fast in both arms, report that pattern without attributing it to hidden DOM timer alignment. GTK/IPC dispatch, process scheduling, rendering visibility and callback/drain latency remain separate candidates. Wall time is not CPU time.
+
+The most direct next evidence is the already authorized unchanged comparison: mapped/realized state, `document.hidden`, timer wall intervals, real-class submit/callback/drain phases, termination/censoring, and discrete owned-window/focus observations. No prediction in this addendum requires turning off sandboxing, showing a normal screen window, warming Mermaid, changing layout, or increasing deadlines.

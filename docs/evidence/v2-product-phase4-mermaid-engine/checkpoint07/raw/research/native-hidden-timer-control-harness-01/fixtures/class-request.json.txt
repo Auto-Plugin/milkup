@@ -1,0 +1,44 @@
+{
+  "protocol": "milkup.plugin.document-render.v1",
+  "type": "render",
+  "id": "render_1",
+  "payload": {
+    "pluginId": "milkup.diagrams",
+    "rendererId": "diagrams.mermaid",
+    "request": {
+      "documentId": "diagnostic-mechanism-fixture",
+      "version": 0,
+      "source": "```mermaid\n---\ntitle: Animal example\n---\nclassDiagram\n    note \"From Duck till Zebra\"\n    Animal <|-- Duck\n    note for Duck \"can fly<br>can swim<br>can dive<br>can help in debugging\"\n    Animal <|-- Fish\n    Animal <|-- Zebra\n    Animal : +int age\n    Animal : +String gender\n    Animal: +isMammal()\n    Animal: +mate()\n    class Duck{\n        +String beakColor\n        +swim()\n        +quack()\n    }\n    class Fish{\n        -int sizeInFeet\n        -canEat()\n    }\n    class Zebra{\n        +bool is_wild\n        +run()\n    }\n```",
+      "from": 440,
+      "to": 969,
+      "fromLine": 26,
+      "toLine": 53,
+      "completeStart": true,
+      "completeEnd": true,
+      "contextKnown": true,
+      "protectedRanges": [],
+      "blocks": [
+        {
+          "kind": "fence",
+          "complete": true,
+          "info": "mermaid",
+          "from": 440,
+          "to": 969,
+          "contentRanges": [
+            {
+              "from": 451,
+              "to": 966
+            }
+          ]
+        }
+      ],
+      "selection": {
+        "anchor": 0,
+        "head": 0
+      },
+      "theme": "light",
+      "target": "screen",
+      "width": 1100
+    }
+  }
+}

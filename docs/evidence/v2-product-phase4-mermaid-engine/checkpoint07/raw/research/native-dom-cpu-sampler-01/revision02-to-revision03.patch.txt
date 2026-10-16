@@ -1,0 +1,12 @@
+--- revision02/cpu_sampler.py
++++ cpu_sampler.py
+@@ -113,7 +113,8 @@
+         result = set()
+         try:
+             task_dir = Path('/proc', str(owner['pid']), 'task')
+-            tasks = list(islice(task_dir.iterdir(), MAX_TASKS + 1))
++            with os.scandir(task_dir) as entries:
++                tasks = [Path(entry.path) for entry in islice(entries, MAX_TASKS + 1)]
+             if len(tasks) > MAX_TASKS:
+                 raise ObservationError('task-discovery-limit')
+             for task in tasks:

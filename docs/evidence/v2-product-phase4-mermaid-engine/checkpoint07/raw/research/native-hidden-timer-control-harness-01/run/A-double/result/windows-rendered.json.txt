@@ -1,0 +1,97 @@
+{
+  "schema": "milkup.owned-x11-observation.v1",
+  "ok": true,
+  "display": ":126",
+  "rootId": "0x21f",
+  "bootId": "dbd08833-6204-4080-9084-7b5e12bb7f3d",
+  "pidNamespace": "pid:[4026532200]",
+  "monotonic": 62120.715762367,
+  "wall": 1792174508.2794392,
+  "durationMs": 2.7188230014871806,
+  "errors": [],
+  "identity": {
+    "allMatched": true,
+    "owners": [
+      {
+        "pid": 364406,
+        "birth": 6211980,
+        "observedBirth": 6211980,
+        "matched": true
+      },
+      {
+        "pid": 364415,
+        "birth": 6211991,
+        "observedBirth": 6211991,
+        "matched": true
+      }
+    ],
+    "after": [
+      {
+        "pid": 364406,
+        "birth": 6211980,
+        "observedBirth": 6211980,
+        "matched": true
+      },
+      {
+        "pid": 364415,
+        "birth": 6211991,
+        "observedBirth": 6211991,
+        "matched": true
+      }
+    ]
+  },
+  "focus": {
+    "windowId": "0x1",
+    "activeWindowId": null
+  },
+  "windows": [
+    {
+      "id": "0x200001",
+      "parentId": "0x21f",
+      "pid": 364415,
+      "mapState": "unmapped",
+      "inputOutput": false,
+      "overrideRedirect": false,
+      "toplevelKind": "root-child",
+      "owned": true
+    },
+    {
+      "id": "0x20000e",
+      "parentId": "0x21f",
+      "pid": 364415,
+      "mapState": "unmapped",
+      "inputOutput": true,
+      "overrideRedirect": false,
+      "toplevelKind": "root-child",
+      "owned": true
+    },
+    {
+      "id": "0x20000f",
+      "parentId": "0x20000e",
+      "pid": null,
+      "mapState": "unviewable",
+      "inputOutput": false,
+      "overrideRedirect": false,
+      "toplevelKind": "none",
+      "owned": false
+    }
+  ],
+  "assessment": {
+    "ownedVisibleToplevelsAbsent": true,
+    "ownedVisibleToplevelIds": [],
+    "unknownVisibleToplevelIds": []
+  },
+  "comparison": {
+    "sameDisplay": true,
+    "focusUnchanged": true,
+    "activeWindowUnchanged": true,
+    "newVisibleToplevelIds": [],
+    "newUnknownVisibleToplevelIds": [],
+    "noNewVisibleToplevels": true
+  },
+  "limitations": [
+    "Discrete snapshot cannot exclude transient windows between observations.",
+    "X11 PID properties are attribution hints, verified against supplied process births; not a security boundary.",
+    "Non-toplevel internal children are recorded but not treated as visible OS toplevels."
+  ]
+}

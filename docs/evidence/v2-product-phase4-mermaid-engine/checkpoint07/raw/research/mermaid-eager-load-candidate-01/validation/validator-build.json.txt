@@ -1,0 +1,87 @@
+{
+  "esbuild": "0.25.12",
+  "entrySha256": "10e17469cb28d5f644eab4adafdc78e18c5ad04698d311a2270cc97fda4dd648",
+  "bytes": 78677,
+  "sha256": "a470330dcf0a22b877d68f4e241b3c8caf0cde8e36eb8516ec02f0c8a4f04fab",
+  "sourceFreezeSha256": "73781e73455155b4d224716db2dcaca2f69445fe98f896fc40977aff5b17ecb3",
+  "metafile": {
+    "inputs": {
+      "source/document-svg-image-geometry.ts": {
+        "bytes": 30773,
+        "imports": [],
+        "format": "esm"
+      },
+      "source/document-svg-image-codec.ts": {
+        "bytes": 43394,
+        "imports": [
+          {
+            "path": "source/document-svg-image-geometry.ts",
+            "kind": "import-statement",
+            "original": "./document-svg-image-geometry"
+          }
+        ],
+        "format": "esm"
+      },
+      "source/document-presentation.ts": {
+        "bytes": 25979,
+        "imports": [
+          {
+            "path": "source/document-svg-image-codec.ts",
+            "kind": "import-statement",
+            "original": "./document-svg-image-codec"
+          }
+        ],
+        "format": "esm"
+      },
+      "entry.ts": {
+        "bytes": 148,
+        "imports": [
+          {
+            "path": "source/document-presentation.ts",
+            "kind": "import-statement",
+            "original": "./source/document-presentation"
+          },
+          {
+            "path": "source/document-svg-image-codec.ts",
+            "kind": "import-statement",
+            "original": "./source/document-svg-image-codec"
+          }
+        ],
+        "format": "esm"
+      }
+    },
+    "outputs": {
+      "validator.mjs": {
+        "imports": [],
+        "exports": [
+          "DOCUMENT_PRESENTATION_LIMITS",
+          "DocumentPresentationError",
+          "copyDocumentPresentationAggregate",
+          "copyDocumentPresentationNode",
+          "copyDocumentPresentationRequest",
+          "copyDocumentPresentationResult",
+          "copyDocumentSvgImage",
+          "createDocumentOutputBudget",
+          "serializeDocumentPresentationNode"
+        ],
+        "entryPoint": "entry.ts",
+        "inputs": {
+          "source/document-svg-image-geometry.ts": {
+            "bytesInOutput": 22926
+          },
+          "source/document-svg-image-codec.ts": {
+            "bytesInOutput": 37156
+          },
+          "source/document-presentation.ts": {
+            "bytesInOutput": 18178
+          },
+          "entry.ts": {
+            "bytesInOutput": 0
+          }
+        },
+        "bytes": 78677
+      }
+    }
+  },
+  "executed": false
+}

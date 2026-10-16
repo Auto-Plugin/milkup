@@ -1,0 +1,56 @@
+# Hidden-page timer A/C control — revision02, static draft only
+
+Root selected the smallest A/C comparison after reviewing the initial A/B proposal. Revision01 is retained verbatim. No build, runtime, feature toggle or main-tree change has occurred. The completed CPU batch's zero-sample observer failure is separate and supplies no CPU attribution.
+
+## Fixed design
+
+Base: frozen independent stage candidate8041da503dac6cc0ff5d45d4c11982ca4b6a898930f3e4ecc3442d8cb1e4d140, not mutable main source. Make a NEW external source copy before any later build. Reuse its exact frontend, bootstrap, locked dependencies, native deadlines, guardian, guard extension, CSP/resource allowlist and result/control pipes. The current draft consists only of copies of plugin_dom.rs and plugin_dom_helper.rs; candidate-draft.patch compares those against the frozen stage source. Neither frozen candidate nor main source was edited.
+
+One research executable selects exactly two trusted-launcher arms via MILKUP_DOM_TIMER_CONTROL=hidden|offscreen, failing on any other value. This is an external diagnostic configuration, not a new product/plugin API. The same executable/diagnostic work runs in both arms.
+
+- A / hidden: retain current GtkWindow Toplevel, title/default size, realize(), WebView size1024x768 and child show; never show/map the top-level.
+- C / offscreen: GtkOffscreenWindow, upcast as GtkBin, add child, Widget set_size_request1024x768 and show_all. No GtkWindow-specific title/default-size/focus APIs on OffscreenWindow.
+
+The container and its necessary map behavior are the only arm-dependent host changes. All WebKit feature values remain default. No public2.42 FFI, crate upgrade, timer monkeypatch, CSS/SVG engine change, dummy rendering, prewarming, Mermaid layout change or browser security relaxation. Keep the existing exact env allowlist and software rendering configuration; do not add GPU variables, acceleration policy, permissions or a different display to one arm. Both arms use the same viewport/font environment. Actual allocation is observed, not presumed equal merely from a request.
+
+## Predeclared cells and protocol
+
+Propose eight cells, each with a new helper instance and one activation/first-render: A-none, C-none, A-single, C-single, A-double, C-double, A-class, C-class. No retries. Root must approve the full cell list and expected timeout handling before runtime. The timer module emits a normal single text fragment containing bounded JSON; the original activation/render protocol and bootstrap async result slot remain unchanged.
+
+The none/single/double controls share exactly the same small generic fixture. None has no timer. Single uses one setTimeout(0). Double schedules a second setTimeout(0) inside the first callback. Each callback captures elapsed performance.now immediately before any completion work; the fixture also captures total JS elapsed, Date.now delta and entry/end visibility. Its initial metadata records viewport dimensions/dpr. timer-fixture.js is a static draft, not an installed or executed package. Its final manifest/request files and hashes are a remaining pre-build review item.
+
+Class uses an independently fresh instance and the byte-identical official diagrams1.1.0 manifest/module from archive SHA27db9bdefb9b241b03da2f3536f7e50d334117f928f963cfe290543f650b6239. Choose and freeze the exact short class source from the previous diagnostic, plus width/theme/block metadata. No first dummy render or timer control in that class instance. Current draft does not instrument or rebuild that module.
+
+Smallest harness option: extend a test-only copy of the existing ignored native test using the real Instance::launch/send/watch/stop path and executable argument. It reads ONLY two explicit trusted fixtures, passes ordinary snapshots and original messages, and waits for normal activation/result/timeout events. This exercises actual guardian/helper/engine, but bypasses package installation/frontend output validation and is therefore a mechanism test, not editor acceptance. Ordinary result structure is still generated, and class result hashes/bytes/fragment count should be retained without dumping a full SVG into diagnostic logs. If root prefers complete editor installation, reuse the public installer and production transport instead; do not mix paths across arms or silently claim the smaller harness covers installation. Harness construction remains pending plan review.
+
+## Common bounded observations
+
+The draft adds fixed-scalar VisibilityControl metadata to the existing bounded, nonblocking native trace queue. No arbitrary source/token/manifest/error text. Emit only initialization and nonempty input frames, never empty5ms polls. Record container type, GTK container/WebView mapped and realized flags, child visible flag, actual allocation dimensions, and existing CLOCK_MONOTONIC trace time. This means GTK observation is at callback/dequeue time; it is not an OS compositor visibility guarantee.
+
+The same initialization evaluation in both arms synchronously captures document.hidden, document.visibilityState and performance.now BEFORE invoking the existing __milkupDomInit, then returns those fields to the existing native callback. No extra evaluate call or promise is introduced. Successful init handling still sets ready; failure still quits. Parse only booleans, fixed visibility enum and finite number. The diagnostic serialization adds small work before ready and is included in the unchanged total preparation budget. This is disclosed instrumentation, not zero-overhead observation.
+
+At frame dequeue, only native GTK state is read; no extra JavaScript or page event listener. Timer fixtures separately report their entry/end document visibility. Class visibility is only measured at initialization; stable GTK mapped state does not prove document.hidden never changed later. All native per-phase timestamps remain host monotonic; JS performance.now is its own document clock and must not be directly subtracted from host timestamps.
+
+The native render2s deadline remains armed before dispatch/pipe write; total preparation/activation10s remains unchanged. Helper evaluate does not await the timer Promise, and the original cancel/poll behavior is untouched. If double timer misses the deadline, keep the native deadline→kill→cleanup→control record and mark callback2/completion observations censored/unavailable. Do not grant extra time or manufacture an exact2second JS duration. End/clean that instance immediately, no rerun. A deadline is a possible predeclared mechanism outcome; setup/security/ownership failure stops the experiment. Root decides whether the approved full sequence may continue to another independent arm after a timer deadline; that decision must precede execution.
+
+The existing evaluate API's forced-user-gesture implementation is unchanged in all arms. It does not prove page visibility; measure actual hidden state. Native phase durations include diagnostic overhead and WebKit IPC/result conversion. They do not independently separate internal ELK computation, layout, timer waiting or process scheduling.
+
+## Offscreen correctness and evidence
+
+Measure exact owned helper PID/birth and its X11 windows before/after container creation; require no new normal visible/focusable top-level or focus change attributable to C. Keep the existing display/window manager unchanged. GTK mapped flags can be true for offscreen widgets without an ordinary on-screen window; verify rather than equating those concepts. Record actual allocation, timer fixture viewport, and short-class output dimensions/valid fragments. If C has zero/incorrect geometry, unsupported compositing or unexpected focus/window behavior, classify it as a failed candidate rather than changing GPU settings to obtain green.
+
+An eventual product proposal would still require getBBox/CTM and full official visual/lifecycle regression. This small control does not establish all compositing/layout equivalence. No launch is authorized by the existence of this patch.
+
+## Source support and limits
+
+Local pkgconfig identifies WebKitGTK2.52.6. In that exact tag, HiddenPageDOMTimerThrottlingEnabled defaults true and AutoIncreases false for the relevant WebKit configuration; DOMTimer declares a1second hidden-page alignment interval. Alignment is not an unconditional1second delay per callback. [Preferences](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WTF/Scripts/Preferences/UnifiedWebPreferences.yaml#L3572), [DOMTimer](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebCore/page/DOMTimer.h#L60).
+
+view_fixes traced the exact official class route into elkjs0.9.3's fake Worker, with timers on postMessage and the PromisedWorker receive route. The synthetic nested pair is not asserted to reproduce all ELK instructions. Its separate review is research/hidden-page-static-review/review.md SHA b039046c2ba30a3c625186be7af71f9beff73cc84af06cdbb397d324bc3ac212.
+
+GTK documents OffscreenWindow for snapshots without showing a normal window and warns against GtkWindow-specific APIs. [GTK OffscreenWindow](https://docs.gtk.org/gtk3/class.OffscreenWindow.html). WebKit excludes it from tracked on-screen top-levels; its visibility predicate treats mapped widgets without such a top-level as visible. This supports C as a candidate, not an actual runtime observation. [Visibility predicate](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebKit/UIProcess/API/gtk/WebKitWebViewBase.cpp#L497), [classification](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebKit/UIProcess/gtk/GtkUtilities.cpp#L83).
+
+If A hidden plus material timer delays contrast with C visible plus shorter timers and unchanged class, that supports this mechanism in the measured environment. Class speed alone is not sufficient causal evidence. Non-reproduction remains a valid outcome. Nothing here proves all past deadlines shared this cause or licenses changing the public2s budget.
+
+## Review / GO point
+
+Review candidate-draft.patch, two copied Rust files and timer-fixture.js before any build. Current files have not been compiled or executed; no test PASS is claimed. Next approved work would create the independent full source tree, assemble/freeze the exact test harness and workload requests, statically check/format and independently review the final diff, then receive a separate exclusive build/runtime GO. Old evidence remains immutable.

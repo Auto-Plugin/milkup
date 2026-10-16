@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+"""Offline gate after one native test exits; never starts or controls processes."""
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+cell_dir, cell = Path(sys.argv[1]), sys.argv[2]
+result = cell_dir / 'result'
+outcome = json.loads((result / 'outcome.json').read_text())
+identity = json.loads((result / 'instance.json').read_text())
+assert outcome['cell'] == cell
+assert outcome['outcome'] in ('result', 'native-render-deadline')
+assert outcome['ownedCleanupConfirmed'] is True
+traces = []
+for line in (cell_dir / 'native-test.log').read_text().splitlines():
+    if line.startswith('DOM_NATIVE_TIMING '):
+        row = json.loads(line[18:])
+        if row.get('instanceId') == identity['instanceId']:
+            traces.append(row)
+initial = [r for r in traces if r['phase'] == 'helper-initial-visibility']
+assert len(initial) == 1, 'Missing/duplicate initial visibility makes this diagnostic incomplete'
+details = initial[0]['details']
+assert details['container'] == ('hidden' if cell.startswith('A-') else 'offscreen')
+assert isinstance(details['document_hidden'], bool)
+assert details['visibility_state'] in ('hidden', 'visible')
+assert details['allocation_width'] > 0 and details['allocation_height'] > 0
+frames = [r for r in traces if r['phase'] == 'helper-frame-visibility' and r.get('requestId') == 'render_1']
+assert frames, 'No retained render visibility; incomplete, do not infer hidden state'
+dispatch = [r for r in traces if r['phase'] == 'dispatch' and r.get('requestId') == 'render_1']
+assert len(dispatch) == 1
+assert any(r['phase'] == 'cleanup-confirmed' for r in traces), 'Missing owned cleanup confirmation'
+if outcome['outcome'] == 'native-render-deadline':
+    deadline = [r for r in traces if r['phase'] == 'deadline-observed' and r.get('requestId') == 'render_1']
+    assert len(deadline) == 1
+    assert deadline[0]['monotonicNs'] >= dispatch[0]['monotonicNs']
+    assert outcome['elapsedMs'] >= 2000  # harness Instant begins before send/arming
+    # dispatch trace is after original deadline arming; its delta need not be exactly 2s.
+else:
+    assert any(r['phase'] == 'result-settled' and r.get('requestId') == 'render_1' for r in traces)
+with (cell_dir / 'offline-verdict.json').open('x') as stream:
+    json.dump({'cell': cell, 'classification': 'mechanism diagnostic only',
+               'outcome': outcome['outcome'], 'inputSha256': hashlib.sha256((result / 'input.json').read_bytes()).hexdigest(),
+               'initialVisibility': initial[0], 'frameVisibility': frames,
+               'cleanupConfirmed': True, 'traceCountForInstance': len(traces),
+               'limits': ['Retained best-effort traces may drop; missing required phases stop the sequence.',
+                          'Native wall time is not pure CPU time; JS performance clock is separate.',
+                          'Window snapshots cannot exclude transient windows between observations.']}, stream, indent=2)
+    stream.write('\n')

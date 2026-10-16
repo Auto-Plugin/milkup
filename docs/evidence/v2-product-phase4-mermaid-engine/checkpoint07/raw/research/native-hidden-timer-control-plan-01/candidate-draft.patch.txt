@@ -1,0 +1,139 @@
+--- stage-candidate-01/plugin_dom.rs
++++ timer-control-candidate/plugin_dom.rs
+@@ -585,6 +585,19 @@
+ #[derive(Serialize)]
+ #[serde(tag = "detailType", rename_all = "camelCase")]
+ enum NativeTraceDetails<'a> {
++    VisibilityControl {
++        container: &'static str,
++        container_mapped: bool,
++        container_realized: bool,
++        view_mapped: bool,
++        view_realized: bool,
++        view_visible: bool,
++        allocation_width: i32,
++        allocation_height: i32,
++        document_hidden: Option<bool>,
++        visibility_state: &'static str,
++        document_now_ms: Option<f64>,
++    },
+     Frame {
+         message: &'a DiagnosticMessage,
+     },
+--- stage-candidate-01/plugin_dom_helper.rs
++++ timer-control-candidate/plugin_dom_helper.rs
+@@ -104,9 +104,19 @@
+             .ok_or("Missing owned native extension directory")?,
+     );
+     gtk::init().map_err(|e| e.to_string())?;
+-    let window = gtk::Window::new(gtk::WindowType::Toplevel);
+-    window.set_title("Independent plugin document renderer");
+-    window.set_default_size(1024, 768);
++    // External research candidate only: no product or plugin-controlled setting.
++    let control = std::env::var("MILKUP_DOM_TIMER_CONTROL")
++        .map_err(|_| "Missing external timer-control arm")?;
++    let (container_kind, window): (&'static str, gtk::Bin) = match control.as_str() {
++        "hidden" => {
++            let window = gtk::Window::new(gtk::WindowType::Toplevel);
++            window.set_title("Independent plugin document renderer");
++            window.set_default_size(1024, 768);
++            ("hidden", window.upcast())
++        }
++        "offscreen" => ("offscreen", gtk::OffscreenWindow::new().upcast()),
++        _ => return Err("Invalid external timer-control arm".into()),
++    };
+     let context = webkit2gtk::WebContext::new_ephemeral();
+     // Wry's temporary context defaults differ. This must precede WebView creation.
+     context.set_sandbox_enabled(true);
+@@ -225,7 +235,7 @@
+     let load_observed = loaded.clone();
+     let init_started = Rc::new(Cell::new(false));
+     let init_script = format!(
+-        "this.__milkupDomInit({}, {})",
++        "(() => {{ const state = {{hidden:document.hidden, visibility:document.visibilityState, now:performance.now()}}; this.__milkupDomInit({}, {}); return state; }})()",
+         serde_json::to_string(&token).map_err(|e| e.to_string())?,
+         snapshot.manifest
+     );
+@@ -235,9 +245,15 @@
+         }
+     });
+     window.add(&view);
+-    window.realize();
+     view.set_size_request(1024, 768);
+-    view.show();
++    if container_kind == "offscreen" {
++        // OffscreenWindow must be used as a Bin/Widget, not via Window-specific API.
++        window.set_size_request(1024, 768);
++        window.show_all();
++    } else {
++        window.realize();
++        view.show();
++    }
+     let (sender, receiver) = mpsc::sync_channel(2);
+     std::thread::spawn(move || loop {
+         match process::read_frame(&mut input, INPUT_WIRE_LIMIT) {
+@@ -259,6 +275,8 @@
+         if !ready.get() {
+             if loaded.get() && guard_ready.get() && !init_started.replace(true) {
+                 let ready = ready.clone();
++                let observed_view = native.clone();
++                let observed_window = window.clone();
+                 // Inject before plugin import; no token enters a resource or DOM.
+                 native.evaluate_javascript(
+                     &init_script,
+@@ -267,6 +285,13 @@
+                     None::<&gio::Cancellable>,
+                     move |result| {
+                         if result.is_ok() {
++                            if native_diagnostics_enabled() {
++                                let state = result.as_ref().ok()
++                                    .and_then(|value| value.to_json(0))
++                                    .and_then(|value| serde_json::from_str::<Value>(&value).ok());
++                                trace_visibility_control("helper-initial-visibility", container_kind,
++                                    &observed_window, &observed_view, None, state.as_ref());
++                            }
+                             ready.set(true);
+                         } else {
+                             gtk::main_quit();
+@@ -294,6 +319,8 @@
+                             .unwrap_or_else(|_| DiagnosticMessage::from_value(&Value::Null)),
+                     );
+                     if let Some(frame) = &diagnostic_input {
++                        trace_visibility_control("helper-frame-visibility", container_kind,
++                            &window, &native, frame.id.as_deref(), None);
+                         native_trace_details(
+                             "helper-frame-dequeued",
+                             None,
+@@ -403,3 +430,32 @@
+     gtk::main();
+     Ok(())
+ }
++
++// Fixed scalar observations only; absent/lost diagnostics are not proof of state.
++fn trace_visibility_control(
++    phase: &str,
++    container: &'static str,
++    window: &gtk::Bin,
++    view: &webkit2gtk::WebView,
++    request_id: Option<&str>,
++    state: Option<&Value>,
++) {
++    let allocation = view.allocation();
++    native_trace_details(phase, None, request_id, Some(NativeTraceDetails::VisibilityControl {
++        container,
++        container_mapped: window.is_mapped(),
++        container_realized: window.is_realized(),
++        view_mapped: view.is_mapped(),
++        view_realized: view.is_realized(),
++        view_visible: view.is_visible(),
++        allocation_width: allocation.width(),
++        allocation_height: allocation.height(),
++        document_hidden: state.and_then(|value| value["hidden"].as_bool()),
++        visibility_state: match state.and_then(|value| value["visibility"].as_str()) {
++            Some("hidden") => "hidden",
++            Some("visible") => "visible",
++            _ => "unobserved",
++        },
++        document_now_ms: state.and_then(|value| value["now"].as_f64()).filter(|value| value.is_finite()),
++    }));
++}

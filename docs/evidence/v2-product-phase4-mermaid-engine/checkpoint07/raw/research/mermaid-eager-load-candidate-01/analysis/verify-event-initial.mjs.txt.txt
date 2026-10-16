@@ -1,0 +1,58 @@
+// Offline only, after native completion. Never runs inside an active task deadline.
+import assert from 'node:assert/strict'
+import { readFile, writeFile } from 'node:fs/promises'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { createHash } from 'node:crypto'
+const root = dirname(fileURLToPath(import.meta.url))
+const sha = b => createHash('sha256').update(b).digest('hex')
+const [eventFile, requestFile, manifestFile, expectedId, output] = process.argv.slice(2)
+assert(eventFile && requestFile && manifestFile && /^render_[12]$/.test(expectedId) && output, 'event request manifest render_1|render_2 fresh-output.json')
+const bytes = await readFile(eventFile)
+assert(bytes.length <= 1024 * 1024, 'Bounded persisted diagnostic artifact')
+const result = { eventFile, eventSha256: sha(bytes), expectedId, status: 'not-validated' }
+try {
+  const build = JSON.parse(await readFile(resolve(root, 'validator-build.json'), 'utf8'))
+  const validatorFile = resolve(root, 'validator.mjs')
+  assert.equal(sha(await readFile(validatorFile)), build.sha256)
+  result.validatorSha256 = build.sha256
+  const { copyDocumentPresentationRequest, copyDocumentPresentationResult, serializeDocumentPresentationNode } = await import(pathToFileURL(validatorFile).href)
+  const event = JSON.parse(bytes)
+  assert.equal(event.kind, 'message')
+  assert.equal(event.pluginId, 'milkup.diagrams')
+  const message = event.message
+  assert.equal(message.protocol, 'milkup.plugin.document-render.v1')
+  assert.equal(message.type, 'result')
+  assert.equal(message.id, expectedId)
+  assert.equal(message.ok, true)
+  const raw = JSON.stringify(message.value)
+  result.rawValueSha256 = sha(raw)
+  result.rawValueBytes = Buffer.byteLength(raw)
+  assert(result.rawValueBytes <= 262144)
+  const requestBytes = await readFile(requestFile)
+  const envelope = JSON.parse(requestBytes)
+  result.requestFileSha256 = sha(requestBytes)
+  const request = copyDocumentPresentationRequest(envelope.payload.request)
+  const manifest = JSON.parse(await readFile(manifestFile, 'utf8'))
+  const declaration = manifest.contributes.documentRenderers.find(x => x.id === envelope.payload.rendererId)
+  assert(declaration)
+  // Full response admission FIRST: preserves shared nodes/work/canonical bytes.
+  const checked = copyDocumentPresentationResult(message.value, request, declaration)
+  result.validatedValueSha256 = sha(JSON.stringify(checked))
+  result.complete = checked.complete
+  result.fragments = checked.fragments.map((fragment, index) => {
+    const canonical = serializeDocumentPresentationNode(fragment.content, request)
+    return { index, status: fragment.status, type: fragment.content.type, from: fragment.from, to: fragment.to, canonicalBytes: Buffer.byteLength(canonical), canonicalSha256: sha(canonical) }
+  })
+  assert.equal(checked.complete, true)
+  assert.equal(checked.fragments.length, 1, 'Exact single class source must yield one ready image')
+  assert.equal(checked.fragments[0].status, 'ready')
+  assert.equal(checked.fragments[0].content.type, 'svg-image')
+  result.status = 'accepted'
+} catch (error) {
+  result.status = 'rejected'
+  result.error = String(error)
+  process.exitCode = 1
+} finally {
+  await writeFile(output, JSON.stringify(result, null, 2) + '\n', { flag: 'wx' })
+}

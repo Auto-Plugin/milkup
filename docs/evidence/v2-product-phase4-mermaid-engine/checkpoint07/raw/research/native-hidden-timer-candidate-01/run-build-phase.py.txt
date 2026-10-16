@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+"""Run exactly one root-approved native compile phase; never execute artifacts."""
+import datetime
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+root = Path(__file__).resolve().parent
+phase = int(sys.argv[1])
+assert phase in (0, 1)
+config_path = root / 'prepared-build-environment-and-commands.json'
+assert hashlib.sha256(config_path.read_bytes()).hexdigest() == '41f2dc0d0878d22018b480585f9aef4d6588b8ba337330b13b95b8bd2e5adcf7'
+config = json.loads(config_path.read_text())
+name = ('release-build01', 'test-build01')[phase]
+record_path = root / (name + '-command.json')
+assert not record_path.exists(), 'Preserve first attempt; no overwrite'
+if phase:
+    assert json.loads((root / 'release-build01-command.json').read_text())['exitCode'] == 0
+    assert (root / 'bin/milkup-desktop').is_file(), 'Freeze release artifact before test compile'
+env = os.environ.copy()
+env.update(config['environment'])
+for key in config['requiredUnset']:
+    env.pop(key, None)
+command = config['commands'][phase]
+record = {'argv': command['argv'], 'cwd': command['cwd'], 'environment': config['environment'],
+          'requiredUnset': config['requiredUnset'], 'startedUtc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+          'startedMonotonicNs': time.monotonic_ns(), 'exitCode': None,
+          'scope': 'compile only; no runtime/test execution/DEB/Vite'}
+record_path.write_text(json.dumps(record, indent=2) + '\n')
+with (root / (name + '.jsonl')).open('xb') as stdout, (root / (name + '.stderr.log')).open('xb') as stderr:
+    result = subprocess.run(command['argv'], cwd=command['cwd'], env=env, stdout=stdout, stderr=stderr)
+record.update({'endedUtc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+               'endedMonotonicNs': time.monotonic_ns(), 'exitCode': result.returncode})
+record_path.write_text(json.dumps(record, indent=2) + '\n')
+print(json.dumps({'phase': name, 'exitCode': result.returncode,
+                  'elapsedSeconds': (record['endedMonotonicNs'] - record['startedMonotonicNs']) / 1e9}))
+raise SystemExit(result.returncode)

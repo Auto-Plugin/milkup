@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+"""Freeze Cargo-reported native outputs; inspect files without executing them."""
+import datetime
+import hashlib
+import json
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+root = Path(__file__).resolve().parent
+phase = int(sys.argv[1])
+assert phase in (0, 1)
+name = ('release-build01', 'test-build01')[phase]
+command = json.loads((root / (name + '-command.json')).read_text())
+assert command['exitCode'] == 0
+rows = [json.loads(line) for line in (root / (name + '.jsonl')).read_text().splitlines() if line.strip()]
+artifacts = [row for row in rows if row.get('reason') == 'compiler-artifact' and row.get('executable') and
+             row.get('manifest_path') == str(root / 'source/apps/desktop/src-tauri/Cargo.toml') and
+             bool(row['profile']['test']) == bool(phase)]
+if not phase:
+    artifacts = [row for row in artifacts if row['target']['kind'] == ['bin'] and row['target']['name'] == 'milkup-desktop']
+else:
+    artifacts = [row for row in artifacts if row['target']['kind'] == ['rlib'] and row['target']['name'] == 'milkup_desktop_lib']
+assert len(artifacts) == 1, [(row.get('target'), row.get('executable')) for row in artifacts]
+artifact = artifacts[0]
+source = Path(artifact['executable'])
+assert source.resolve().is_relative_to(Path(command['environment']['CARGO_TARGET_DIR']).resolve())
+bin_dir = root / 'bin'; bin_dir.mkdir(exist_ok=True)
+dest = bin_dir / ('native-tests' if phase else 'milkup-desktop')
+assert not dest.exists()
+shutil.copy2(source, dest)
+sha = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
+assert sha(source) == sha(dest)
+assert source.stat().st_ino != dest.stat().st_ino or source.stat().st_dev != dest.stat().st_dev
+elf = subprocess.run(['/usr/bin/readelf', '-n', str(dest)], check=True, capture_output=True, text=True)
+(root / (name + '-elf-notes.txt')).write_text(elf.stdout)
+build_ids = [line.strip().split('Build ID: ', 1)[1] for line in elf.stdout.splitlines() if 'Build ID: ' in line]
+record = {'atUtc': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'artifactEvent': artifact,
+          'source': str(source), 'frozenPath': str(dest), 'sha256': sha(dest), 'bytes': dest.stat().st_size,
+          'elfBuildIds': build_ids, 'identicalCopyDistinctInode': True, 'classification': 'unbundled native mechanism candidate, not a production DEB'}
+if not phase:
+    scripts = [row for row in rows if row.get('reason') == 'build-script-executed' and
+               str(root / 'source/apps/desktop/src-tauri') in row.get('package_id', '')]
+    assert len(scripts) == 1, scripts
+    guard = Path(scripts[0]['out_dir']) / 'libmilkup_dom_guard.so'
+    expected = '5b1082768123b9ac1923eb8ef3f6f8c0bd05ffd5d66b8b2a023f75b69106c44c'
+    assert sha(guard) == expected
+    guard_dest = bin_dir / guard.name
+    assert not guard_dest.exists()
+    shutil.copy2(guard, guard_dest)
+    data = dest.read_bytes(); guard_bytes = guard_dest.read_bytes()
+    offset = data.find(guard_bytes)
+    assert offset >= 0
+    record['guard'] = {'buildScriptEvent': scripts[0], 'source': str(guard), 'frozenPath': str(guard_dest),
+                       'sha256': sha(guard_dest), 'bytes': len(guard_bytes), 'completeEmbeddedOffset': offset}
+manifest = json.loads((root / 'final-source-manifest.json').read_text())
+checks = []
+for item in manifest['files']:
+    current = root / 'source' / item['path']
+    checks.append({'path': item['path'], 'sha256': sha(current), 'bytes': current.stat().st_size,
+                   'matchesFrozen': sha(current) == item['sha256'] and current.stat().st_size == item['bytes']})
+record['sourceFilesChecked'] = len(checks)
+record['sourceUnchanged'] = all(row['matchesFrozen'] for row in checks)
+(root / (name + '-source-after.json')).write_text(json.dumps(checks, indent=2) + '\n')
+(root / (name + '-artifact.json')).write_text(json.dumps(record, indent=2) + '\n')
+assert record['sourceUnchanged'], 'Preserve source-after drift; do not silently continue'
+print(json.dumps({key: record[key] for key in ['frozenPath', 'sha256', 'bytes', 'elfBuildIds', 'sourceUnchanged']}))

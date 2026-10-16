@@ -1,0 +1,63 @@
+# Hidden-page timer control — plan only, no implementation or execution
+
+2026-10-16. Root requested this separate diagnostic after the CPU sampler preparation. The cold CPU batch remains transport's exclusive runtime task. This document neither authorizes runtime nor changes production04, the frozen stage candidate, its source, or any prior evidence.
+
+## Question and evidence limits
+
+Does the helper's hidden-page timer policy impose material latency on serial zero-delay timers, and does the same single configuration change alter an unchanged short official class-diagram request? This is a mechanism experiment. It cannot retrospectively attribute historical render3/render68 failures, and successful class requests cannot establish a general performance guarantee.
+
+The production helper creates a GtkWindow Toplevel, calls realize(), then shows only its WebView child. It does not map/show the top-level window. Current source therefore suggests a hidden page, but neither GTK mapped state nor document.hidden has yet been measured in this configuration. Local sysroot pkgconfig identifies WebKitGTK 2.52.6; the pinned Rust crate webkit2gtk 2.0.2 enables v2_40 and does not wrap the newer feature APIs.
+
+WebKit's exact 2.52.6 preferences source lists HiddenPageDOMTimerThrottlingEnabled as true for the WebKit GTK configuration, while HiddenPageDOMTimerThrottlingAutoIncreases is false. DOMTimer declares a one-second hidden-page alignment interval. Alignment is not a guaranteed one-second delay for every individual callback: phase, page state and scheduling affect each sample. [Preferences](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WTF/Scripts/Preferences/UnifiedWebPreferences.yaml#L3572), [DOMTimer](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebCore/page/DOMTimer.h#L60).
+
+view_fixes statically traced the actual installed Mermaid 12.2 class-v2 route into ELK and elkjs 0.9.3's fake Worker: postMessage schedules setTimeout(0), and the PromisedWorker receive path schedules another setTimeout(0). The generic fixture below tests serial timers, not an asserted instruction-for-instruction ELK reproduction. Keep the exact official bundle unchanged for the class comparison; no fake Worker replacement, timer monkeypatch, pre-render or alternative layout algorithm.
+
+## Smallest independent comparison
+
+Use a new external research source copy based on the already frozen stage candidate. Do not edit that existing frozen candidate in place. Reuse its exact frontend, locked dependencies, sandbox, extension, guardian and Instance implementation. Freeze the new source delta and new executable identities separately before any run.
+
+First stage: two configurations, three independently fresh helper instances in each, six predeclared cells total. Each instance gets one activation and one first render, then exact stop/owned cleanup. No warmup or dummy render. Declare cell order before execution (A-single, B-single, A-double, B-double, A-class, B-class); do not rerun a failing cell to select a favorable timing.
+
+- A: current realized-but-unmapped Toplevel, existing default settings. Read actual timer feature value; do not assume the source default equals runtime.
+- B: identical hidden Toplevel; before navigation set only the public feature HiddenPageDOMTimerThrottlingEnabled=false, then read it back. Do not change AutoIncreases, visibility, rAF, CSS/SVG engines, security features or any other preference.
+- Workloads: a single zero-delay timer; two serial zero-delay timers; unchanged short class source using the frozen official diagrams archive. Fix exact source bytes, width, theme, request metadata and package SHA ahead of execution.
+
+Prefer reusing the existing ignored native integration test's real Instance::launch/send/watch/stop path in a test-only copy. It already sends ordinary activation/render protocol frames and exercises the real guardian/helper executable. Extend only this external test harness to load the two explicit trusted snapshot fixtures: a small generic timer module and the frozen official package's manifest/module bytes. This bypasses public installation/UI, so describe the outcome as native mechanism evidence, not full editor acceptance. The source path is provided by the trusted test harness, never by a plugin command. Both workloads traverse the same Instance and helper configuration and the existing protocol; no new product command, bridge or alternate renderer path is introduced.
+
+If root instead requires the full editor path, use public installation of the timer fixture and the existing official archive, with otherwise identical cells. That is a separately reviewed harness choice; do not silently mix the two paths in one comparison.
+
+## Timing, visibility and output
+
+The generic DOM fixture returns a normal complete document-render result with a single text fragment whose text contains bounded JSON diagnostics: count, document.hidden/visibilityState at entry and completion, performance.now entry, each callback's elapsed milliseconds, Date.now wall delta, and total elapsed. Capture each callback time immediately inside the callback, before resolving its promise. The two-timer form performs the second setTimeout(0) after the first promise resumes. No loops or idle warmups. The module has only document:read and its declared renderer, with no host broker.
+
+The native 2s deadline remains armed before pipe dispatch. Activation retains the existing total 10s preparation deadline. Do not await the fixture's JS promise in the helper evaluate callback; the existing bootstrap async result/drain mechanism must remain intact so cancel messages stay deliverable. The 5ms native polling schedule is unchanged. Native trace stages and dispatch-relative deadline/kill/cleanup/control times remain the authority.
+
+A two-timer request may be terminated before producing a result. Record that cell as deadline/censored with no fabricated second callback or completion time; do not increase the deadline to obtain a measurement. A first timer result plus a double-timer deadline is suggestive, not proof of two exact one-second delays. A completed result's timer numbers are fixture observations, not trusted native timestamps; do not directly subtract performance.now from CLOCK_MONOTONIC.
+
+Add the same small, bounded visibility diagnostic to both candidate configurations only: at guard-ready initialization, wrap the existing init evaluation in a synchronous expression that reads document.hidden, visibilityState and performance.now before invoking __milkupDomInit, then returns only those fixed scalar fields. Parse/log them in the existing callback, preserving its result/error handling and total 10s timer. No additional page listeners, timers, layout reads, promises or bootstrap changes are needed. This measurement adds evaluation/serialization work and must be disclosed; it is not a zero-overhead observation. Do not log the init script, token, manifest or arbitrary exception text.
+
+At that initialization point and each nonempty input dequeue, record helper CLOCK_MONOTONIC, GTK container/WebView mapped/realized/visible flags and widget allocation dimensions in bounded typed diagnostic events. Existing nonblocking try_send/drop semantics remain. Do not add logs on empty polls. Initialization document.hidden is an observation at that time, not proof it remained unchanged throughout the class call. Timer fixtures also report their own entry/end visibility; for class, record mapped-state stability and retain this limitation.
+
+No new IPC frame shape or bootstrap changes. The existing init evaluate return was only checked for success; the external candidate can capture its bounded diagnostic return without changing the dedicated result pipe or exposing trusted token state. Changes require independent diff review before compiling.
+
+## Public API and compatibility
+
+The public Settings feature getter/setter/list APIs exist since WebKitGTK 2.42. Enumerate the feature list once, require the exact identifier, record runtime version, feature status/default/current value, and require the post-set readback to be false for B. Missing symbol/feature or failed readback makes that cell unsupported/incomplete, not an unmodified control labeled B. [Getter](https://webkitgtk.org/reference/webkit2gtk/stable/method.Settings.get_feature_enabled.html), [Setter](https://webkitgtk.org/reference/webkit2gtk/stable/method.Settings.set_feature_enabled.html).
+
+Current local headers include these APIs; current Rust bindings do not. In the research candidate only, a small Linux FFI shim may call the public C API with borrowed Settings pointer and correct feature-list ownership. No crate upgrade, WebKit fork, private API or settings object property guessing. Direct linking would make this candidate require >=2.42 at runtime; it is explicitly a diagnostic build for the verified 2.52.6 environment, not a proposed product compatibility decision. Do not claim API existence guarantees this feature's availability on every 2.42+ release.
+
+## Optional second-stage OffscreenWindow control (not part of six cells)
+
+If first-stage evidence justifies a follow-up, separately review C: replace only the container with GtkOffscreenWindow, use Bin.add plus Widget.set_size_request/show_all, retain default timer settings. Do not combine C with B. GTK documents this object for rendering widgets without an on-screen window and warns against GtkWindow-specific APIs; do not use set_title or set_default_size. [GTK documentation](https://docs.gtk.org/gtk3/class.OffscreenWindow.html).
+
+The exact WebKit source excludes OffscreenWindow from its normal on-screen top-level tracking; for a mapped widget without such a tracked top-level, its visibility predicate returns visible. This makes C plausible, but remains a static inference until measured. [GTK visibility source](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebKit/UIProcess/API/gtk/WebKitWebViewBase.cpp#L497), [top-level classification](https://github.com/WebKit/WebKit/blob/webkitgtk-2.52.6/Source/WebKit/UIProcess/gtk/GtkUtilities.cpp#L83).
+
+C must demonstrate actual child/container mapped flags, document.hidden=false, allocation/getBBox/CTM sanity and no additional ordinary visible X11 window for the exact helper PID; otherwise classify it unsupported. Use only owned-window read-only observation, no window-manager tricks or offscreen coordinates masquerading as hidden ownership. Offscreen rendering may affect compositing/layout, so a later official visual regression and lifecycle pass would still be necessary before considering any product adoption. It is not automatically the preferred product solution.
+
+## Evidence and interpretation gates
+
+Preserve every cell's initial outcome, native trace, feature/GTK/JS observations, source SHA, exact binary/guard/archive identities and cleanup. Distinguish observer/setup failure from a valid timer deadline; never count a missing diagnostic event as proof the phase did not run. Stop on identity/security/cleanup failures. A predeclared native deadline in a timer cell is an observed outcome, not permission to retry or relax the timer; root must explicitly approve continuing the planned contrast after such an outcome if existing experiment policy requires first-failure stop.
+
+Evidence would strengthen the timer hypothesis if A is hidden and throttling enabled, timers show material aligned delay or deadline, while B remains hidden with only that preference false and both timer work and unchanged class become consistently shorter. One successful pair cannot establish a statistical cause for intermittent historical failures. If neither configuration shows delay, record non-reproduction. If class changes without timer changes, or timers change but class does not, preserve the distinction; do not claim the hypothesis proved.
+
+No compiler, native UI, fixture execution or setting change has been performed for this plan. Root must review scope, diff design, exact workload source and cell policy, then separately allocate exclusive build/runtime slots.

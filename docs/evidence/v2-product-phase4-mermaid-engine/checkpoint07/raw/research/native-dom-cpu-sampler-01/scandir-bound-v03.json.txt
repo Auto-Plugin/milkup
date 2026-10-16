@@ -1,0 +1,8 @@
+{
+  "atUtc": "2026-10-16T17:41:36.612664+00:00",
+  "observedPathIterdirSource": "    def iterdir(self):\n        \"\"\"Yield path objects of the directory contents.\n\n        The children are yielded in arbitrary order, and the\n        special entries '.' and '..' are not included.\n        \"\"\"\n        for name in os.listdir(self):\n            yield self._make_child_relpath(name)\n",
+  "reason": "Local pathlib generator internally os.listdir materializes all directory entries; use os.scandir with bounded islice instead",
+  "pythonAst": "PASS; parse only; sampler not imported/executed",
+  "samplerSha256": "30110c5ae58816d8ae5fb318d3b46094fd19dc77f22f527cde2b222f798424f9",
+  "runtimeExecuted": false
+}

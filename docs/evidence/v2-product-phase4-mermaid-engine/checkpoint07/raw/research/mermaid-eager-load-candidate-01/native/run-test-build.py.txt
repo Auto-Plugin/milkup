@@ -1,0 +1,51 @@
+#!/usr/bin/env python3
+"""One approved ABBA test compilation; never executes tests or the helper."""
+import datetime
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import time
+root = Path(__file__).resolve().parent
+sha = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
+config_path = root / 'final-build-environment-and-command.json'
+assert sha(config_path) == 'fd6f6e4d1c1de45ab9b88b9ca33844a9403e13fff6f02c3d843ba0cc2e468fd4'
+config = json.loads(config_path.read_text())
+manifest = json.loads((root / 'final-source-manifest.json').read_text())
+for row in manifest['files']:
+    path = root / 'source' / row['path']
+    assert sha(path) == row['sha256'] and path.stat().st_size == row['bytes']
+assert sha(Path(config['reusedHelper'])) == config['helperSha256']
+active = []
+for proc in Path('/proc').iterdir():
+    if not proc.name.isdigit():
+        continue
+    try:
+        name = (proc / 'comm').read_text().strip()
+        state = (proc / 'stat').read_text().rsplit(')', 1)[1].split()[0]
+        if name in ('cargo', 'rustc') and state not in ('Z', 'X', 'x'):
+            active.append({'pid': proc.name, 'command': name, 'state': state})
+    except (FileNotFoundError, PermissionError):
+        pass
+assert not active, active
+record_path = root / 'test-build01-command.json'
+assert not record_path.exists(), 'Preserve first attempt'
+env = os.environ.copy()
+env.update(config['environment'])
+for key in config['requiredUnset']:
+    env.pop(key, None)
+command = config['commands'][0]
+record = {'argv': command['argv'], 'cwd': command['cwd'], 'environment': config['environment'],
+          'requiredUnset': config['requiredUnset'], 'startedUtc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+          'startedMonotonicNs': time.monotonic_ns(), 'exitCode': None, 'sourceFilesVerified': 51,
+          'scope': 'one test executable compile --no-run only; no helper build/runtime/product edits'}
+record_path.write_text(json.dumps(record, indent=2) + '\n')
+with (root / 'test-build01.jsonl').open('xb') as stdout, (root / 'test-build01.stderr.log').open('xb') as stderr:
+    result = subprocess.run(command['argv'], cwd=command['cwd'], env=env, stdout=stdout, stderr=stderr)
+record.update({'endedUtc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+               'endedMonotonicNs': time.monotonic_ns(), 'exitCode': result.returncode})
+record_path.write_text(json.dumps(record, indent=2) + '\n')
+print(json.dumps({'exitCode': result.returncode,
+                  'elapsedSeconds': (record['endedMonotonicNs'] - record['startedMonotonicNs']) / 1e9}))
+raise SystemExit(result.returncode)

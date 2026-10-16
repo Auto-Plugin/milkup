@@ -1,0 +1,75 @@
+{
+  "reviewedAtUtc": "2026-10-16T17:57:58.026632+00:00",
+  "status": "No blocking static finding in the frozen two-file native A/C v03 draft; harness and actual build/runtime remain separately gated.",
+  "scope": "Read-only source/patch/plan review, hash verification and diff reconstruction. No compilation, tests, UI, sampler, helper launch or main-tree modification.",
+  "inputs": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-control-plan-01/PLAN.md",
+      "sha256": "1cffce254c30a1ab559d5ff115952f375d12136d345ecdbd6021d65e80e1b019",
+      "bytes": 10464,
+      "matches": true
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-control-plan-01/ROOT-DECISIONS-v03.md",
+      "sha256": "bcdb0a6ee0fa7b23ecfe94c950050df6e91456178e7edec05b68d8cafb50a220",
+      "bytes": 2707,
+      "matches": true
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-control-plan-01/BUILD-PLAN.md",
+      "sha256": "c12d284699dc500993924a7ad19e5dd411eaea120d5714d3b2984fa10f8ebd79",
+      "bytes": 3934,
+      "matches": true
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-control-plan-01/candidate-draft-v03.patch",
+      "sha256": "473770497ceb006967888486d1aafa1d4a666c905862538412c3a44e81a6492a",
+      "bytes": 6704,
+      "matches": true
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-control-plan-01/draft/plugin_dom.rs",
+      "sha256": "2b8b58ce91caf49e526310255fe364a43e3ebd731eb3e3bd5ed74bd18dcffc36",
+      "bytes": 30526,
+      "matches": true
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-control-plan-01/draft/plugin_dom_helper.rs",
+      "sha256": "1dc829b8730682636ef867f2fe4fc54acbe6b4705dcc19335776ff9f82b2b99a",
+      "bytes": 20464,
+      "matches": true
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-hidden-timer-control-plan-01/timer-fixture.js",
+      "sha256": "5927a80f9ba50c39432bec3f17cb304da506e6683d66edb865b44b8382f5b53b",
+      "bytes": 1738,
+      "matches": true
+    }
+  ],
+  "preparationSha256": "f9e4958acd50d6bb6c310cc59faa2f32342d8339ba44590be9f7d2c4ba0ee5c5",
+  "exactPatchReconstructed": true,
+  "findings": [],
+  "confirmed": [
+    "Arm A preserves original Toplevel creation/title/default-size and realize -> child size-request -> child show order. No top-level show was added to A.",
+    "Arm C uses existing GtkOffscreenWindow, upcast to Bin, Widget sizing and show_all. No GtkWindow-specific title/default-size/focus operation is applied to C and no new WebKit FFI or feature toggle is present.",
+    "Both arms retain the original ephemeral context, pre-WebView sandbox enablement, CSP, resource allowlist, permission/navigation guards, bootstrap bytes, input/result framing, busy/poll flow and native deadline authority. The process deadline implementation is absent from this two-file patch.",
+    "Common init observation is synchronous before __milkupDomInit and before plugin import. The frozen bootstrap initializer returns no awaited Promise; the wrapper preserves synchronous exception propagation. Native ready still changes only after successful evaluation. It does not prove plugin activation has completed.",
+    "Visibility details are closed booleans, fixed enums, i32 allocations, finite optional f64 and existing bounded request identity. There is no arbitrary plugin JSON/source/token serialization. Per-frame observation requires diagnostics and a nonempty frame; idle polls receive no added visibility event.",
+    "Existing trace uses bounded 64-entry try_send. Added allocation/state reads and JSON conversion have nonzero overhead included in the existing timing; loss or absence of a trace event cannot establish page state.",
+    "Initial document visibility is captured in JavaScript before init but GTK flags are read later in its native callback. Frame observations supply GTK state only. These are different observation times, not a claim of a continuously observed document.hidden state.",
+    "ROOT-DECISIONS-v03 fixes eight fresh-helper cells, permits native deadline outcomes only after successful exact-owned cleanup, and stops on setup/security/identity/cleanup failures. No timed-out cell rerun is authorized.",
+    "Build plan separates new source and frozen binary outputs from the mutable Cargo cache, preserves frontend/bootstrap/guard inputs, identifies artifacts from Cargo events and explicitly creates no production DEB."
+  ],
+  "pendingBeforeExecution": [
+    "Independently review the final test-only Instance harness, exact fixtures/request identities and X11/focus observer; this review does not cover their future contents.",
+    "Freeze the assembled source manifest and confirm only the approved native edits plus reviewed test harness differ; verify actual binary/test executable and embedded guard identities after any separately authorized build.",
+    "Measure mapped/realized/allocation and actual timer document visibility, exact owned process cleanup and no new normal visible/focusable top-level or focus change. OffscreenWindow naming or static control flow is not runtime evidence.",
+    "Class uses fixed 529-byte source SHA ef80eda5ae0f45a95b22a734fbd6c8d4ef9e4187e6209d4c925164b547767c14, light/1100; synthetic remaining request metadata must stay explicitly labeled."
+  ],
+  "interpretationLimits": [
+    "Native 2-second deadline and original 10-second preparation/activation limit are not extended; a missing second timer result at termination is censored, not a measured exact 2-second JavaScript duration.",
+    "Host CLOCK_MONOTONIC and JavaScript performance.now are distinct clocks; subtract durations only within the corresponding clock domain.",
+    "A/C may reveal mapped-container timer/layout scheduling effects; class speed alone cannot identify a cause of previous production deadlines or establish full visual/layout equivalence.",
+    "Prior cold CPU batch stopped with a zero-sample binding failure while its product cold UI passed; it supplies no CPU attribution."
+  ]
+}

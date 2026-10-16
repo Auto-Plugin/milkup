@@ -1,0 +1,62 @@
+// Proposed generic research fixture only. No monkeypatch or renderer prewarm.
+export default {
+  activate() {
+    return {
+      documentRenderers: {
+        timer: async (request) => {
+          const fence = request.blocks.find((block) => block.kind === 'fence' && block.complete)
+          if (!fence) throw new Error('Missing timer control fence')
+          const mode = request.source.includes('DOUBLE_TIMER') ? 'double'
+            : request.source.includes('SINGLE_TIMER') ? 'single' : 'none'
+          const started = performance.now()
+          const wallStarted = Date.now()
+          const initial = { hidden: document.hidden, visibility: document.visibilityState,
+            width: innerWidth, height: innerHeight, dpr: devicePixelRatio }
+          const callbacksMs = []
+          let geometry = null
+          if (mode === 'none') {
+            await document.fonts.ready
+            const ns = 'http://www.w3.org/2000/svg'
+            const svg = document.createElementNS(ns, 'svg')
+            svg.setAttribute('width', '200'); svg.setAttribute('height', '80')
+            svg.setAttribute('viewBox', '0 0 200 80')
+            const text = document.createElementNS(ns, 'text')
+            text.setAttribute('x', '8'); text.setAttribute('y', '30')
+            text.setAttribute('font-family', 'Arial, sans-serif')
+            text.setAttribute('font-size', '20')
+            text.textContent = 'Unicode 文本 😀'
+            svg.append(text); document.body.append(svg)
+            try {
+              const box = text.getBBox()
+              const matrix = (m) => m && ({ a:m.a, b:m.b, c:m.c, d:m.d, e:m.e, f:m.f })
+              geometry = { text:text.textContent, fontFamily:'Arial, sans-serif', fontSize:20,
+                svgWidth:200, svgHeight:80, viewBox:[0,0,200,80],
+                bbox:{x:box.x,y:box.y,width:box.width,height:box.height},
+                ctm:matrix(text.getCTM()), screenCtm:matrix(text.getScreenCTM()),
+                fontsStatus:document.fonts.status }
+            } finally { svg.remove() }
+          }
+          if (mode !== 'none') {
+            await new Promise((resolve) => {
+              setTimeout(() => {
+                callbacksMs.push(performance.now() - started)
+                if (mode === 'double') {
+                  setTimeout(() => {
+                    callbacksMs.push(performance.now() - started)
+                    resolve()
+                  }, 0)
+                } else resolve()
+              }, 0)
+            })
+          }
+          const observation = { mode, initial, callbacksMs, geometry, totalMs: performance.now() - started,
+            wallDeltaMs: Date.now() - wallStarted, finalHidden: document.hidden,
+            finalVisibility: document.visibilityState }
+          return { fragments: [{ from: fence.from, to: fence.to, layout: 'block',
+            content: { type: 'text', text: JSON.stringify(observation) },
+            accessibleText: 'Timer control observation' }], complete: true }
+        },
+      },
+    }
+  },
+}

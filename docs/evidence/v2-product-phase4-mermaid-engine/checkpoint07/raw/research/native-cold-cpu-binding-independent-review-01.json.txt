@@ -1,0 +1,73 @@
+{
+  "atUtc": "2026-10-16T18:19:46.415125+00:00",
+  "scope": "Static review of retained failed CPU observation and frozen sampler/native launch code; no execution, retry, process inspection, product edits or reconstructed missing data.",
+  "inputs": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-dom-cpu-sampler-01/cpu_sampler.py",
+      "sha256": "30110c5ae58816d8ae5fb318d3b46094fd19dc77f22f527cde2b222f798424f9"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-batch-01/cases/case-1/run/cpu-observer/summary.json",
+      "sha256": "af6c2335365cf849a52f7faac5ac9cdd8c8226e91ca1af2ce68ebc3e3e4bc188"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-batch-01/cases/case-1/run/cpu-sampler-handshake.json",
+      "sha256": "f15d15dc0fe62662b9ce2fba58111800f475f2ee91a6f2966281904e9a330b33"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-batch-01/cases/case-1/native-driver-first.log",
+      "sha256": "2c75b7def2f54ae8f0ba04f9407be93695eb452c4e4dd08baeab3bca7d669696"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-cpu-batch-01/cases/case-1/analysis-notes.json",
+      "sha256": "e195fd5da04d99606de7797203b22142f5938516c7d2cdf527358553d59a084e"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-dom-stage-candidate-01/source/apps/desktop/src-tauri/src/plugin_dom_process.rs",
+      "sha256": "4027e1bfb02dd3aaf19fc951115da68663a8c86bde03ca3d948788e3359f3a06"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-dom-stage-candidate-01/source/apps/desktop/src-tauri/src/plugin_dom_guardian.rs",
+      "sha256": "44fd4cfd661817cddd2cf0b9bdb5090ddeea1f18de91dfb46cb8ac94d2211054"
+    }
+  ],
+  "conclusion": "Binding failure cause remains unknown. A definite diagnostic observability defect is present: distinct zero-candidate/rejected-candidate/multiple-match outcomes collapse into one error without bounded branch evidence. No proven native launch/argv/environment contract mismatch was found.",
+  "evidence": {
+    "failure": "guardian-bind-not-unique-or-missing",
+    "guardian": null,
+    "retainedSampleCount": 0,
+    "cgroupBefore": null,
+    "dispatchObservationDelayMs": 11.270614,
+    "observationToFailureMs": 1.503401,
+    "dispatchToFailureMs": 12.774015,
+    "readErrorsRetained": [
+      {
+        "monoNs": 60336530870561,
+        "category": "terminal-observation-error",
+        "pid": null,
+        "detail": "guardian-bind-not-unique-or-missing"
+      }
+    ],
+    "nativeTrace": "Same instance helper PID361491 has render_1 dequeue/evaluate trace before sampler termination and later result phases. This does not provide contemporaneous guardian argv/environment/parent/birth candidates.",
+    "coldUi": "Retained notes distinguish product cold UI PASS from observer incomplete; sampleBytes=0 and shared cgroup counters absent permit no CPU/throttling attribution."
+  },
+  "staticPath": [
+    "children(app) verifies App birth, enumerates up to1024 task dirs via scandir/islice and bounded children lists, filters direct PPID and birth>=App. Vanished tasks, absent identities, parent/birth rejection and some same-owner races can yield fewer/no rows without per-candidate rejection evidence.",
+    "bind_guardian performs exactly one discovery pass; it requires argv exactly [frozen install path,--milkup-internal-dom-helper], exactly one matching MILKUP_INTERNAL_DOM_INSTANCE_ID environment entry, and final same birth. argv/env mismatch silently continues; final birth mismatch silently rejects. len(matches)!=1 merges zero and multiple matches.",
+    "Frozen Instance::start uses current_exe then Command(executable).arg(--milkup-internal-dom-helper).env(instanceId). The spawned guardian remains the direct App child; guardian forks the actual GTK helper and does not exec/overwrite argv in reviewed code. This agrees structurally with sampler guardian matching; the trace helper PID itself is not necessarily the direct App child.",
+    "No guardian-bind-read, identity-read or discovery overflow error was retained, but absence of those errors cannot prove candidate existence or argv/env correctness. The final reparented/zombie process observation cannot reconstruct its earlier parent or matcher result.",
+    "The observed failure occurred about12.75ms after the selected dispatch, far before its fixed10s end. This rules out the explicit entire-window-missed branch as this failure, not identity races or scheduling causes. There was no fallback sampling of an unbound process."
+  ],
+  "minimalDiagnosticEnhancementProposal": [
+    "Before changing acceptance/discovery policy, preserve one bounded binding-attempt record: monotonic begin/end, App birth before/after, task count, distinct raw child count, retained direct-child count and final matching count.",
+    "For at most the existing128 candidate limit retain PID/birth/PPID/state and a closed reason enum: vanished, stat-unreadable, wrong-parent, older-birth, argv-mismatch, env-missing, env-duplicate, env-mismatch, birth-changed or accepted. Record exact-match booleans and environment key occurrence count; never dump the environment, credentials or unrelated values.",
+    "Record bounded read error class and errno plus stage; distinguish discovery-empty, no-exact-match and ambiguous-match while continuing to stop incomplete. Fit records within existing summary/error/file budgets; overflow remains explicit incomplete, not truncation presented as full coverage.",
+    "Keep original render_1 anchor and10s window, same PID/birth/env requirements, no process signals or native changes. This proposal does not authorize a retry, broad proc scan or rebasing the window. Any later retry policy must be separately reviewed and cannot repair missing historical evidence."
+  ],
+  "remainingUnknowns": [
+    "Actual candidate count and each rejection predicate at bind time",
+    "Whether direct guardian argv path differed from expected literal or environment key was unavailable/mismatched",
+    "Whether discovery observed a transient parent/identity/list race",
+    "Any relationship between this tooling failure and prior product render deadlines"
+  ]
+}

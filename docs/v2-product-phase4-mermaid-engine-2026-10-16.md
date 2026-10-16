@@ -283,3 +283,40 @@ diagnostic04 的观察器分类修正取得九项 VM 守卫/恢复合同通过�
 driver、App 和 helper 已退出，端口空闲；guardian 358538 已退出但仍为 PID 1 未回收的 Z 状态，不能声称所有进程身份都已消失。31 项冻结输入及原正式 UI04 的 148 项历史记录未变化。本次成功只缩小诊断范围，**不关闭两次历史执行超时，不计入正式 UI 或完整矩阵通过数**。
 
 本轮已完成实现、真实首败、后续修复与验证分别保存于 [checkpoint05](evidence/v2-product-phase4-mermaid-engine/checkpoint05/) 和 [checkpoint06](evidence/v2-product-phase4-mermaid-engine/checkpoint06/README.md)。后者含 5,352 份来源别名、2,552 个去重对象，其中 297 个 PNG 对象；原始文本和图片按内容哈希保存，索引可独立核验。外置诊断 Rust 补丁只作为证据归档，未进入产品源码。该工作分支检查点明确为**尚未验收完成**：后续继续冷启动阶段与 CPU 观测定位，完整 ordinary/windowed 图例、源码/历史及缩放窗口矩阵仍待完成，Windows 未验。
+
+该检查点已正常提交并推送为 `2c3ff12bf3caa50520c8b6d49601e2f33a5f7da0`；远端 SHA 与本地一致，GitHub 作者、提交者及当前连接身份均核验为 `LarryZhu-dev`。
+
+### 冷启动 CPU 诊断：观测器首错停止
+
+后续 `native-cold-cpu-batch-01` 预先限定最多三个全新 profile、首个 UI 或观测器失败即停止。采样器经过独立静态审阅，记录实际首条保留 dispatch 的时间，不将迟到接入重置为新的十秒窗口；进程身份、目录遍历、采样数量及输出均有上限。静态审阅的三版及修正原件分别保留，不能当作功能运行通过。
+
+实际仅执行第一例：原 cold UI gate 通过，但观测器未能绑定 guardian，exit 2 导致 harness exit 1，随后整批停止，未启动第二、三例，也未重试。**CPU 样本为 0，cgroup 计数为 null**，只有观察器自身开销，不能推断产品 CPU 或系统争用。绑定时的候选 argv/父链/环境匹配明细未保存，具体拒绝点仍未知，不能补写为已定位原因。
+
+同一例原生阶段记录有六次 dispatch、五次成功 settled、无 deadline；第六次 ER 在正常关闭前启动而未 settled，不算超时。最长已完成请求是 class，630.801596 ms，仍只是墙钟时间。根代理独立核验 172 项归档清单并查看实际 X11 图片：完整 block 与 class 上部可见，文档已保存。driver、App、helper 已退出，guardian 361484 为 PID 1 下的 Z；36 项冻结输入及 148 项原正式记录未变。该轮是诊断工具失败，不是产品冷启动 RED，也不关闭历史两次执行截止。
+
+## 隐藏页与 Offscreen 机制对照：不支持作为修复
+
+随后完成独立 `native-hidden-timer-control-harness-01` 的八组预定对照：隐藏 GtkWindow 与映射的 GtkOffscreenWindow，分别执行空操作/Unicode 几何、一次定时回调、两次串行回调和同一真实 class 围栏。每组启动全新真实 native Instance；保留原 10 秒准备、2 秒执行及 256 KiB 限制，不预渲染假文档。独立候选仅作诊断，未替换产品容器；两条原生编译首次通过，51 个源码文件构建及运行后未变。根代理核验实际 binary/test 二进制和完整 guard 嵌入，并逐项核验运行摘要中的 1008 个文件。
+
+八组首次全部完成，无 deadline；32 次离散 X11 观察通过，所有记录的 24 个 trace PID 已消失。A 的 document.hidden 为 true、GTK allocation 为 1×1；C 为 false、1024×768，两臂 JS viewport 都为 1024×768。一次回调分别为 2/0 ms，两次回调为 [0, 0]/[1, 1] ms。真实 class 的 native dispatch→settled 为 A 738.670001 ms、C 1027.423529 ms，**本次不支持 Offscreen 更快，不据此修改产品或宣布历史截止已修复**。控制例的 Unicode bbox/CTM 数值一致且有限、非奇异；class 尺寸相同但 typed content 哈希不同，未宣称 AST 或像素等价。
+
+精确 WebKitGTK 2.52.6 源码补充核对还发现，隐藏页的一秒计时器对齐受嵌套阈值约束，one-shot 阈值为 10，且是对齐到时间边界，并非每个回调固定加一秒。ELK 两次显式 setTimeout 不能证明触及该阈值；原静态假设及收窄说明分别保留。当前结果只说明这八个独立机制例的实际行为，不排除其他背景调度效应，也不证明历史未知请求的根因。X11 记录是离散快照，不能排除间隔中的瞬时窗口或焦点变化；以上耗时均不是纯 CPU 时间。
+
+## 官方模块预加载 ABBA：未见明确收益
+
+`mermaid-eager-load-candidate-01` 使用同一真实 native Instance/helper，固定隐藏容器，执行四个全新实例 A/B/B/A，每个实例两次相同 class 请求。两臂共同在首次 await 前关闭 startOnLoad 并按当前严格 light 配置初始化；只有 B 的 prepare 额外等待官方 `registerExternalDiagrams([], { lazyLoad: false })`。没有假文档预渲染或布局覆盖，每请求 renderer/converter 原字节保持。因此 A 是共同初始化后的研究对照，并非逐字生产基线。
+
+两份离线模块首次构建通过，各 2118 个构建输入受白名单约束，无运行时 imports；独立测试入口首次构建通过。四组均首次完成，8 个结果、无 deadline，20 次离散 X11 观察通过，精确 guardian/helper 全部退出。准备总耗时（launch 前至 activation 收到）及 native dispatch→settled 如下，均是含观测开销的墙钟间隔。
+
+| 实例 |  准备 ms | 首次请求 ms | 第二次请求 ms |
+| ---- | -------: | ----------: | ------------: |
+| 01-A | 1225.597 |     581.371 |       228.747 |
+| 02-B | 1166.762 |     589.093 |       247.295 |
+| 03-B | 1038.938 |     559.613 |       224.495 |
+| 04-A |  864.857 |     594.433 |       233.408 |
+
+本次未显示明确预加载收益，不能由四个实例排除顺序、缓存和运行环境差异，**不据此修改产品或关闭历史截止**。24 项输入与 105 项历史/源码记录前后相同。根代理实际核验 120 份原始运行文件，并确认八个请求除 render ID 外与冻结夹具深度一致。
+
+随后用冻结的当前 core 完整 result、aggregate 和 canonical serializer 离线校验，8/8 接受，原限制未变，未占用 native 的两秒窗口。根代理核验后置清单 23 个文件。12 组跨实例同序位及 4 组实例内对照，每对均有 160 处 typed 差异，八个结果及 canonical 哈希各不相同，没有归一化输出。尺寸均为 594.875×433，canonical 输出为 170918–170951 字节；SVG codec 成本 nodes659/text210/expanded572/work450358 一致，该计数不包含外层 accessibleText/message，完整结果另经原共享预算准入。校验接受与尺寸一致不等于像素等价，也不能用来推断超时根因。
+
+以上 cold CPU 工具首败、隐藏页 A/C、预加载 ABBA 及后置校验原件已保存至 [checkpoint07](evidence/v2-product-phase4-mermaid-engine/checkpoint07/README.md)。该检查点保存未验收过程，未修改产品容器、预加载策略或任何执行预算；原正式 UI 截止仍待定位。
