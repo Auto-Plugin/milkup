@@ -1,0 +1,32 @@
+{
+  "kind": "independent-read-only-incremental-review",
+  "status": "callback-timestamp-finding-resolved; no-additional-blocker-found; ready-for-parent-authorized-build",
+  "patchSha256": "a6b20f031fcd975f8349e550f303459816c9ef597c06f174490eb2a7b1e21688",
+  "manifestSha256": "d06069c11219d370ddd3004e088c27ec57f3efb695794ab36e8f5b4be91a99d5",
+  "comparedAgainst": "diagnostic.patch SHA6a0f3be676f1c139bccf9dabab8275252c4e63ccb78d6a713a5c9b7765872fc6; review.json preserved",
+  "incrementalChange": "Only Evaluation.callback_entry_monotonic_ns and its helper capture/assignment were added, apart from diff labels/line offsets. Capture is gated by diagnostic_input Some, after the original busy.set(false) and before to_json/serde conversion. Empty polls do not sample this clock or log a callback.",
+  "interpretation": [
+    "callback_entry_monotonic_ns measures callback entry before output conversion; event monotonicNs is the later post-conversion log observation.",
+    "helper-frame-dequeued remains logged after diagnostic metadata parsing, explicitly documented; it is not a raw channel-pop timestamp.",
+    "Both are diagnostic observations only; original deadline/active/validation/pipe behavior and metadata whitelists remain as reviewed."
+  ],
+  "sourceHashesVerified": [
+    {
+      "path": "apps/desktop/src-tauri/src/plugin_dom.rs",
+      "sha256": "f011574ca7fefd186bada271c1977d1a0ddd2a85d3b536c82bbb703b62b0a454"
+    },
+    {
+      "path": "apps/desktop/src-tauri/src/plugin_dom_helper.rs",
+      "sha256": "19c7ef2ae644695f012aa4166fd3133044f680e4f3807492369713b85bff9a6d"
+    },
+    {
+      "path": "apps/desktop/src-tauri/src/plugin_dom_process.rs",
+      "sha256": "4027e1bfb02dd3aaf19fc951115da68663a8c86bde03ca3d948788e3359f3a06"
+    }
+  ],
+  "reviewerExecution": "Read-only patch comparison, addendum review and three source/manifest SHA checks; no compile, test, browser or native run.",
+  "remainingGates": [
+    "Parent-authorized independent build and artifact provenance still required.",
+    "No diagnostic runtime outcome asserted."
+  ]
+}

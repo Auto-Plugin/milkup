@@ -1,0 +1,37 @@
+# Test ancestor implements only normal init wait/reap duties. Never signals children.
+import ctypes, datetime, json, os, subprocess, sys, time
+from pathlib import Path
+run,case=sys.argv[1:]
+assert run.startswith('lifecycle-p04-') and case in ['timeout','disable','remove','wm-close','app-sigkill']
+base=Path(__file__).parent
+frozen=json.loads((base/'provenance.json').read_text())
+binary=frozen['binary']['path'];sha=frozen['binary']['sha256']
+import hashlib
+assert hashlib.sha256(Path(binary).read_bytes()).hexdigest()==sha
+assert Path(binary).is_relative_to(base/'install')
+subprocess.run([sys.executable,str(base/'snapshot-run-inputs.py'),run,case],check=True)
+libc=ctypes.CDLL(None,use_errno=True)
+assert libc.prctl(36,1,0,0,0)==0, ('PR_SET_CHILD_SUBREAPER',ctypes.get_errno())
+out=Path('/workspace/milkup-mermaid-engine-evidence/linux-production-04/lifecycle/control');out.mkdir(parents=True,exist_ok=True)
+record=out/(run+'-driver-owner.json');reaps=out/(run+'-ancestor-reaps.json');assert not record.exists() and not reaps.exists()
+p=subprocess.Popen(['bash','/workspace/milkup-mermaid-engine-evidence/linux-production-04/driver.sh',run,case,binary,sha],start_new_session=True)
+words=Path('/proc',str(p.pid),'stat').read_text().rsplit(')',1)[1].split()
+row={'pid':p.pid,'birth':words[19],'group':int(words[2]),'ancestorPid':os.getpid(),'ancestorRole':'subreaper wait-only, no signals or directory deletion','startedUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'command':['bash','driver.sh',run,case,binary,sha]};record.write_text(json.dumps(row,indent=2)+'\n');print(json.dumps(row),flush=True)
+events=[];driver_status=None;driver_exited_at=None
+while True:
+ try: result=os.waitid(os.P_ALL,0,os.WEXITED|os.WNOHANG|os.WNOWAIT)
+ except ChildProcessError: break
+ if result is None:
+  if driver_exited_at is not None and time.monotonic()-driver_exited_at>5: break
+  time.sleep(.01);continue
+ observed=time.monotonic_ns()
+ text=Path('/proc',str(result.si_pid),'stat').read_text();stat=text.rsplit(')',1)[1].split()
+ identity={'pid':result.si_pid,'birth':stat[19],'parent':int(stat[1]),'state':stat[0],'group':int(stat[2]),'name':text[text.find('(')+1:text.rfind(')')]}
+ assert identity['parent']==os.getpid() and identity['state']=='Z'
+ pid,status=os.waitpid(result.si_pid,0)
+ event={'identity':identity,'exitedObservedMonotonicNs':observed,'waitpidCompletedMonotonicNs':time.monotonic_ns(),'exitCode':os.waitstatus_to_exitcode(status),'noSignalSent':True}
+ events.append(event);reaps.write_text(json.dumps(events,indent=2)+'\n');print(json.dumps(event),flush=True)
+ if pid==p.pid:
+  driver_status=event['exitCode'];driver_exited_at=time.monotonic();p.returncode=driver_status
+assert driver_status is not None
+row.update(exitCode=driver_status,endedUtc=datetime.datetime.now(datetime.timezone.utc).isoformat());record.write_text(json.dumps(row,indent=2)+'\n');sys.exit(driver_status)

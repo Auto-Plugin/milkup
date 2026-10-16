@@ -1,0 +1,325 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts (20 tests | 20 failed) 59ms
+   × explicit identity filter bounds paint without claiming text geometry > accepts original group opacity after an explicit identity filter bounds unknown glyph ink 17ms
+     → expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+   × explicit identity filter bounds paint without claiming text geometry > propagates bounded paint through group and symbol/use into ancestor compositing 3ms
+     → expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+   × explicit identity filter bounds paint without claiming text geometry > preserves uncertainty from an unbounded sibling in the ancestor paint union 2ms
+     → expected [Function] to throw error matching /text bbox-dependent compositing/ but got 'Document presentation: invalid-output'
+   × explicit identity filter bounds paint without claiming text geometry > does not infer text geometry for units objectBoundingBox 2ms
+     → expected [Function] to throw error matching /text bbox-dependent filter/ but got 'Document presentation: invalid-output'
+   × explicit identity filter bounds paint without claiming text geometry > does not infer text geometry for primitiveUnits objectBoundingBox 2ms
+     → expected [Function] to throw error matching /text bbox-dependent filter/ but got 'Document presentation: invalid-output'
+   × explicit identity filter bounds paint without claiming text geometry > does not let a bounded child supply an ancestor objectBoundingBox filter geometry 2ms
+     → expected [Function] to throw error matching /text bbox-dependent filter/ but got 'Document presentation: invalid-output'
+   × explicit identity filter bounds paint without claiming text geometry > keeps ancestor fill-box transform origin geometry unknown 2ms
+     → expected [Function] to throw error matching /text bbox-dependent transform origin/ but got 'Document presentation: invalid-output'
+   × explicit identity filter bounds paint without claiming text geometry > keeps ancestor stroke-box transform origin geometry unknown 2ms
+     → expected [Function] to throw error matching /text bbox-dependent transform origin/ but got 'Document presentation: invalid-output'
+   × explicit identity filter bounds paint without claiming text geometry > validates child compositing before the enclosing filter can bound its output 2ms
+     → expected [Function] to throw error matching /text bbox-dependent compositing/ but got 'Document presentation: invalid-output'
+   × explicit identity filter bounds paint without claiming text geometry > does not exempt a tspan effect or a marker text geometry requirement 3ms
+     → expected [Function] to throw error matching /tspan geometry-dependent effects/ but got 'Document presentation: invalid-output'
+   × explicit identity filter bounds paint without claiming text geometry > does not extend the unknown-text exception to a nonidentity filter {"dx":1} 2ms
+     → expected [Function] to throw error matching /text bbox-dependent filter/ but got 'Document presentation: invalid-output'
+   × explicit identity filter bounds paint without claiming text geometry > does not extend the unknown-text exception to a nonidentity filter {"dy":1} 2ms
+     → expected [Function] to throw error matching /text bbox-dependent filter/ but got 'Document presentation: invalid-output'
+   × explicit identity filter bounds paint without claiming text geometry > does not extend the unknown-text exception to a nonidentity filter {"stdDeviation":[1,0]} 1ms
+     → expected [Function] to throw error matching /text bbox-dependent filter/ but got 'Document presentation: invalid-output'
+   × explicit identity filter bounds paint without claiming text geometry > does not extend the unknown-text exception to a nonidentity filter {"color":[0,0,0,1]} 2ms
+     → expected [Function] to throw error matching /text bbox-dependent filter/ but got 'Document presentation: invalid-output'
+   × explicit identity filter bounds paint without claiming text geometry > does not extend the unknown-text exception to a nonidentity filter {"colorInterpolation":"linearRGB"} 6ms
+     → expected [Function] to throw error matching /text bbox-dependent filter/ but got 'Document presentation: invalid-output'
+   × explicit identity filter bounds paint without claiming text geometry > uses the filter definition explicit color space rather than referencing shape inheritance 2ms
+     → expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+   × explicit identity filter bounds paint without claiming text geometry > charges every pixel intersecting a fractional explicit filter region at the surface limit 4ms
+     → expected [Function] to throw error matching /intermediate surface/ but got 'Document presentation: invalid-output'
+   × explicit identity filter bounds paint without claiming text geometry > bounds the transformed region in output pixels, including reflection and shear 1ms
+     → expected [Function] to throw error matching /intermediate surface/ but got 'Document presentation: invalid-output'
+   × explicit identity filter bounds paint without claiming text geometry > shares bounded filter and opacity work across images rather than resetting it 1ms
+     → expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+   × explicit identity filter bounds paint without claiming text geometry > still rejects oversized glyph rasterization inside a small enclosing identity region 1ms
+     → expected [Function] to throw error matching /glyph pixel size/ but got 'Document presentation: invalid-output'
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 20 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > accepts original group opacity after an explicit identity filter bounds unknown glyph ink
+AssertionError: expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+
+- Expected: 
+undefined
+
++ Received: 
+"DocumentPresentationError: Document presentation: invalid-output"
+
+ ❯ packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts:43:61
+     41| describe('explicit identity filter bounds paint without claiming text …
+     42|   it('accepts original group opacity after an explicit identity filter…
+     43|     expect(() => copyDocumentPresentationNode(image())).not.toThrow()
+       |                                                             ^
+     44|   })
+     45| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/20]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > propagates bounded paint through group and symbol/use into ancestor compositing
+AssertionError: expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+
+- Expected: 
+undefined
+
++ Received: 
+"DocumentPresentationError: Document presentation: invalid-output"
+
+ ❯ packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts:53:11
+     51|         definitions: [...input.definitions, { kind: 'symbol', id: 'lab…
+     52|       }),
+     53|     ).not.toThrow()
+       |           ^
+     54|   })
+     55| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/20]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > preserves uncertainty from an unbounded sibling in the ancestor paint union
+AssertionError: expected [Function] to throw error matching /text bbox-dependent compositing/ but got 'Document presentation: invalid-output'
+
+- Expected: 
+/text bbox-dependent compositing/
+
++ Received: 
+"Document presentation: invalid-output"
+
+ ❯ packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts:59:7
+     57|     expect(() =>
+     58|       copyDocumentPresentationNode(image([{ kind: 'group', style: 1, c…
+     59|     ).toThrow(/text bbox-dependent compositing/)
+       |       ^
+     60|   })
+     61| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/20]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > does not infer text geometry for units objectBoundingBox
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > does not infer text geometry for primitiveUnits objectBoundingBox
+AssertionError: expected [Function] to throw error matching /text bbox-dependent filter/ but got 'Document presentation: invalid-output'
+
+- Expected: 
+/text bbox-dependent filter/
+
++ Received: 
+"Document presentation: invalid-output"
+
+ ❯ packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts:65:7
+     63|     expect(() =>
+     64|       copyDocumentPresentationNode({ ...image(), definitions: [{ ...id…
+     65|     ).toThrow(/text bbox-dependent filter/)
+       |       ^
+     66|   })
+     67| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/20]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > does not let a bounded child supply an ancestor objectBoundingBox filter geometry
+AssertionError: expected [Function] to throw error matching /text bbox-dependent filter/ but got 'Document presentation: invalid-output'
+
+- Expected: 
+/text bbox-dependent filter/
+
++ Received: 
+"Document presentation: invalid-output"
+
+ ❯ packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts:76:7
+     74|         definitions: [...input.definitions, { ...identity, id: 'object…
+     75|       }),
+     76|     ).toThrow(/text bbox-dependent filter/)
+       |       ^
+     77|   })
+     78| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/20]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > keeps ancestor fill-box transform origin geometry unknown
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > keeps ancestor stroke-box transform origin geometry unknown
+AssertionError: expected [Function] to throw error matching /text bbox-dependent transform origin/ but got 'Document presentation: invalid-output'
+
+- Expected: 
+/text bbox-dependent transform origin/
+
++ Received: 
+"Document presentation: invalid-output"
+
+ ❯ packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts:88:7
+     86|         children: [layer()],
+     87|       }])),
+     88|     ).toThrow(/text bbox-dependent transform origin/)
+       |       ^
+     89|   })
+     90| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/20]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > validates child compositing before the enclosing filter can bound its output
+AssertionError: expected [Function] to throw error matching /text bbox-dependent compositing/ but got 'Document presentation: invalid-output'
+
+- Expected: 
+/text bbox-dependent compositing/
+
++ Received: 
+"Document presentation: invalid-output"
+
+ ❯ packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts:92:89
+     90| 
+     91|   it('validates child compositing before the enclosing filter can boun…
+     92|     expect(() => copyDocumentPresentationNode(image([layer([{ ...text,…
+       |                                                                                         ^
+     93|       /text bbox-dependent compositing/,
+     94|     )
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/20]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > does not exempt a tspan effect or a marker text geometry requirement
+AssertionError: expected [Function] to throw error matching /tspan geometry-dependent effects/ but got 'Document presentation: invalid-output'
+
+- Expected: 
+/tspan geometry-dependent effects/
+
++ Received: 
+"Document presentation: invalid-output"
+
+ ❯ packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts:100:13
+     98|     expect(() => copyDocumentPresentationNode(image([layer([{
+     99|       kind: 'text', children: [{ kind: 'tspan', style: 1, children: [{…
+    100|     }])]))).toThrow(/tspan geometry-dependent effects/)
+       |             ^
+    101|     const input = image([{ kind: 'line', x1: 0, y1: 0, x2: 10, y2: 0, …
+    102|     expect(() => copyDocumentPresentationNode({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/20]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > does not extend the unknown-text exception to a nonidentity filter {"dx":1}
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > does not extend the unknown-text exception to a nonidentity filter {"dy":1}
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > does not extend the unknown-text exception to a nonidentity filter {"stdDeviation":[1,0]}
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > does not extend the unknown-text exception to a nonidentity filter {"color":[0,0,0,1]}
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > does not extend the unknown-text exception to a nonidentity filter {"colorInterpolation":"linearRGB"}
+AssertionError: expected [Function] to throw error matching /text bbox-dependent filter/ but got 'Document presentation: invalid-output'
+
+- Expected: 
+/text bbox-dependent filter/
+
++ Received: 
+"Document presentation: invalid-output"
+
+ ❯ packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts:117:9
+    115|     expect(() => copyDocumentPresentationNode({
+    116|       ...image(), definitions: [{ ...identity, ...change }],
+    117|     })).toThrow(/text bbox-dependent filter/)
+       |         ^
+    118|   })
+    119| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/20]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > uses the filter definition explicit color space rather than referencing shape inheritance
+AssertionError: expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+
+- Expected: 
+undefined
+
++ Received: 
+"DocumentPresentationError: Document presentation: invalid-output"
+
+ ❯ packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts:125:13
+    123|       ...input,
+    124|       styles: [{ ...input.styles[0], colorInterpolationFilters: 'linea…
+    125|     })).not.toThrow()
+       |             ^
+    126|     expect(() => copyDocumentPresentationNode({
+    127|       ...input,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/20]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > charges every pixel intersecting a fractional explicit filter region at the surface limit
+AssertionError: expected [Function] to throw error matching /intermediate surface/ but got 'Document presentation: invalid-output'
+
+- Expected: 
+/intermediate surface/
+
++ Received: 
+"Document presentation: invalid-output"
+
+ ❯ packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts:140:9
+    138|     expect(() => copyDocumentPresentationNode({
+    139|       ...known, definitions: [{ ...identity, region: [0.25, 0.25, 4096…
+    140|     })).toThrow(/intermediate surface/)
+       |         ^
+    141|   })
+    142| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/20]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > bounds the transformed region in output pixels, including reflection and shear
+AssertionError: expected [Function] to throw error matching /intermediate surface/ but got 'Document presentation: invalid-output'
+
+- Expected: 
+/intermediate surface/
+
++ Received: 
+"Document presentation: invalid-output"
+
+ ❯ packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts:147:9
+    145|       ...image([{ ...layer(), transforms: [{ kind: 'matrix', values: […
+    146|       definitions: [{ ...identity, region: [0, 0, 3000, 3000].map(leng…
+    147|     })).toThrow(/intermediate surface/)
+       |         ^
+    148|   })
+    149| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/20]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > shares bounded filter and opacity work across images rather than resetting it
+AssertionError: expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+
+- Expected: 
+undefined
+
++ Received: 
+"DocumentPresentationError: Document presentation: invalid-output"
+
+ ❯ packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts:155:59
+    153|       definitions: [{ ...identity, region: [0, 0, 3000, 3000].map(leng…
+    154|     }
+    155|     expect(() => copyDocumentPresentationNode(input)).not.toThrow()
+       |                                                           ^
+    156|     expect(() => copyDocumentPresentationNode({ type: 'group', childre…
+    157|       /aggregate render work/,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/20]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > still rejects oversized glyph rasterization inside a small enclosing identity region
+AssertionError: expected [Function] to throw error matching /glyph pixel size/ but got 'Document presentation: invalid-output'
+
+- Expected: 
+/glyph pixel size/
+
++ Received: 
+"Document presentation: invalid-output"
+
+ ❯ packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts:165:9
+    163|     expect(() => copyDocumentPresentationNode({
+    164|       ...input, styles: [...input.styles, { fontSize: length(512) }],
+    165|     })).toThrow(/glyph pixel size/)
+       |         ^
+    166|   })
+    167| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/20]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  20 failed (20)
+   Start at  12:33:10
+   Duration  1.03s (transform 179ms, setup 0ms, collect 203ms, tests 59ms, environment 0ms, prepare 186ms)
+

@@ -1,0 +1,33 @@
+[
+  {
+    "command": [
+      "node",
+      "node_modules/prettier/bin/prettier.cjs",
+      "--check",
+      "tests/native/tauri-dom-plugin-lifecycle.mjs"
+    ],
+    "exitCode": 0,
+    "stdout": "Checking formatting...\nAll matched files use Prettier code style!\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "tests/native/tauri-dom-plugin-lifecycle.mjs"
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "/usr/bin/python3",
+      "-c",
+      "import ast;from pathlib import Path;ast.parse(Path('tests/helpers/native-gtk-picker-observer.py').read_text());ast.parse(Path('/workspace/milkup-mermaid-engine-evidence/linux-production-03/snapshot-run-inputs.py').read_text())"
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  }
+]

@@ -1,0 +1,37 @@
+from pathlib import Path
+import json,hashlib,datetime,math
+b=Path(__file__).parent;repo=Path('/workspace/milkup');runs=b/'lifecycle/runs';control=b/'lifecycle/control'
+def read(p):return json.loads(p.read_text())
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def dump(p,o):p.write_text(json.dumps(o,indent=2)+'\n')
+rows=[]
+for case in ['timeout','disable','remove','wm-close','app-sigkill']:
+ name='lifecycle-p04-'+case+'-01';p=runs/name;events=read(p/'events.json');by={e['name']:e for e in events};assert by['verdict']['status']=='passed',name
+ command=read(control/(name+'-command.json'));assert command['exitCode']==0
+ final=by['observer-final'];clear=by['owned-context-cleared'];assert final['cleanupObserved'] and not clear['observation']['members'] and not clear['observation']['privateDirectoryExists'];assert len(final['knownPidBirth'])==9
+ dispatch=by['actual-webkit-busy']['originalDispatch'];start=dispatch['monotonicNs'];traces=read(p/'native-traces.json')
+ row={'run':name,'case':case,'command':command,'request':dispatch,'phaseTimingReference':'Seconds from original render dispatch, not UI action or fault injection; scheduling observations rather than real-time guarantees','phases':[dict(t,secondsFromDispatch=(t['monotonicNs']-start)/1e9) for t in traces if t['monotonicNs']>=start],'ownedPidBirth':final['knownPidBirth'],'privateDirectory':clear['observation']['privateDirectory'],'strictCleanup':clear,'busyCpuObservation':by['actual-webkit-busy'],'sourceAndHarnessManifest':str(control/(name+'-inputs')/'manifest.json'),'events':str(p/'events.json')}
+ for key in ['editing-response','busy-action-click','fault-action','exact-app-sigkill','guardian-natural-exit-proof','guardian-app-wait-proof','observation-instrumentation-baseline']:
+  if key in by:row[key]=by[key]
+ u=p/'ui-observation-final.json'
+ if u.exists():
+  obs=read(u);lo=by['actual-webkit-busy']['wall']-obs['origin'];hi=clear['wall']-obs['origin'];stats={}
+  for kind in ['frames','timers']:
+   gaps=sorted(x['gap'] for x in obs[kind] if lo<=x['at']<=hi);stats[kind]={'count':len(gaps),'maxGapMs':max(gaps) if gaps else None,'p95GapMs':gaps[max(0,math.ceil(len(gaps)*.95)-1)] if gaps else None}
+  row['instrumentedHeartbeat']={'pageIntervalMs':[lo,hi],'samples':stats,'note':'Observed busy to external cleanup; observation/timer/process-sampler overhead is not subtracted. Input latency is a separate sample; disable/remove typing can be after cleanup.'}
+ rows.append(row)
+proof=read(b/'provenance.json');artifacts=[]
+for key in ['binary','deb','guard','archive','sdkTarball']:
+ item=proof[key];assert sha(Path(item['path']))==item['sha256'];artifacts.append({'kind':key,**item})
+changes=[];source=read(b/'source-before.json')
+for item in source['files']:
+ p=repo/item['path'];actual=sha(p) if p.exists() else None
+ if actual!=item['sha256']:changes.append({'path':item['path'],'expected':item['sha256'],'actual':actual})
+assert not changes, changes
+dump(b/'final-source-check.json',{'atUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'filesChecked':len(source['files']),'changes':changes,'qualification':'Exact final source equality; any later approved test/doc change requires separate evidence and explicit audit qualification.'})
+summary={'atUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'scope':'Production-04 extracted Linux deb; all five generic DOM lifecycle cases rerun after final decoded-fragment atomic replacement fix. Official Mermaid matrix remains separate.','artifacts':artifacts,'cases':rows,'passingCases':len(rows),'caseCount':len(list(control.glob('*-command.json'))),'limitations':['Native phase timing is relative to original render dispatch.','Only measured trusted input-to-two-RAF sample has 200ms assertion; not all frame gaps.','App SIGKILL ancestor only natural wait/reap. Missing asynchronous ECHILD trace means exact time unknown and natural exit an upper bound.','Production-01/02/03 originals preserved separately; no prior binary verifies the new decoded-fragment atomic replacement fix.']}
+summary['allAttempts']=[{'run':p.name.removesuffix('-command.json'),'command':read(p),'verdict':next((e for e in read(runs/p.name.removesuffix('-command.json')/'events.json') if e.get('name')=='verdict'),None)} for p in sorted(control.glob('*-command.json'))]
+summary['setupFailures']={}
+summary['caseCount']=len(summary['allAttempts'])
+dump(b/'lifecycle-summary.json',summary)
+print(json.dumps({'passing':len(rows),'binary':proof['binary'],'sourceFiles':len(source['files'])}))

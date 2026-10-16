@@ -1,0 +1,14 @@
+# Independent native-stage diagnostic candidate01 — build complete
+
+The first build passed (exit0), 2026-10-16T17:13:09.699577+00:00 to 2026-10-16T17:14:58.618036+00:00, total108.918459seconds. The release log shows only the local milkup-desktop crate recompiling (1m45s), followed by successful Linux deb bundling; no JS/frontend build or dependency rebuild was observed. Cargo used --locked --offline and an independent copied target. No UI/runtime was started.
+
+Actual extracted diagnostic executable: `/workspace/milkup-mermaid-engine-evidence/research/native-dom-stage-candidate-01/install/usr/bin/milkup-desktop`
+SHA256 `8041da503dac6cc0ff5d45d4c11982ca4b6a898930f3e4ecc3442d8cb1e4d140`, 21943744 bytes.
+
+Diagnostic deb: SHA256 `0959c7a36920a071c34594195127fb6ffb3c0f0da1256ce10b3925e09066bc6a`, 7544604 bytes. This is a distinct research candidate, never production04. The candidate source manifest records exactly three diagnostic Rust changes against the final04 base; all50 captured candidate inputs stayed unchanged through build. The three main working-tree Rust files remain equal to04.
+
+The original04 frontend was copied and verified byte-for-byte and reused through a candidate-only empty beforeBuildCommand overlay. The full unchanged guard bytes occur in the executable, with SHA256 `5b1082768123b9ac1923eb8ef3f6f8c0bd05ffd5d66b8b2a023f75b69106c44c`. SDK and official diagrams archive hashes remain equal to04. The exact candidate target→deb difference is solely the unique UNK→DEB three-byte Tauri marker; ELF build IDs match. See bundle-marker-attribution.json and provenance.json.
+
+Trace configuration is only `MILKUP_DOM_DIAGNOSTICS=1`. New fields are bounded diagnostic metadata, not control. callback_entry_monotonic_ns captures input callback near-entry before output conversion; the event's timestamp is later. helper-frame-dequeued occurs after diagnostic metadata parsing, so preceding elapsed time cannot all be labeled scheduling. Nonempty result IDs come from output itself. receive-entry is after frame JSON parsing and before size/deadline checks; late entry is observable but cannot authorize settlement. Existing best-effort64-entry try_send can lose records, particularly at process exit. No empty-poll logging, JS promise await, protocol change, security setting change or deadline extension was introduced.
+
+Root/release_sdk reviewed revision02 before build. Both first-revision source/diff and revision02 review artifacts remain preserved. Initial rustfmt-only failure and formatting correction are recorded; the build itself had no failed attempt. No additional unit/clippy/native test claim is made. The next gate is a separately authorized fresh-prefix diagnostic using this exact candidate and a separate profile, owned by transport. CPU was released immediately after freeze; no runtime was launched by this agent.

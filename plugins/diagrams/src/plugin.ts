@@ -1,8 +1,9 @@
 import { definePlugin } from '@milkup/plugin-sdk'
-import { renderDocuments } from './renderer'
+import { prepareRenderer, renderDocuments } from './renderer'
 
 export default definePlugin({
-  activate() {
+  async activate() {
+    await prepareRenderer()
     return { documentRenderers: { 'diagrams.mermaid': renderDocuments } }
   },
 })

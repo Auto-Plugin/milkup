@@ -1,0 +1,57 @@
+2026-10-16T13:14:22.910Z NATIVE_STARTUP_WINDOW 1625ms
+X Error of failed request:  BadMatch (invalid parameter attributes)
+  Major opcode of failed request:  42 (X_SetInputFocus)
+  Serial number of failed request:  18
+  Current serial number in output stream:  19
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+Error: Command failed: xdotool windowfocus --sync 8388622
+X Error of failed request:  BadMatch (invalid parameter attributes)
+  Major opcode of failed request:  42 (X_SetInputFocus)
+  Serial number of failed request:  18
+  Current serial number in output stream:  19
+
+    at genericNodeError (node:internal/errors:985:15)
+    at wrappedFn (node:internal/errors:539:14)
+    at checkExecSyncError (node:child_process:942:11)
+    at execFileSync (node:child_process:978:15)
+    at startProduction (file:///workspace/milkup/tests/helpers/native-production.mjs:112:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async file:///workspace/milkup/tests/native/tauri-dom-plugin-lifecycle.mjs:492:9 {
+  status: 1,
+  signal: null,
+  output: [
+    null,
+    Buffer(0) [Uint8Array] [],
+    Buffer(209) [Uint8Array] [
+       88,  32,  69, 114, 114, 111, 114,  32, 111, 102,  32, 102,
+       97, 105, 108, 101, 100,  32, 114, 101, 113, 117, 101, 115,
+      116,  58,  32,  32,  66,  97, 100,  77,  97, 116,  99, 104,
+       32,  40, 105, 110, 118,  97, 108, 105, 100,  32, 112,  97,
+      114,  97, 109, 101, 116, 101, 114,  32,  97, 116, 116, 114,
+      105,  98, 117, 116, 101, 115,  41,  10,  32,  32,  77,  97,
+      106, 111, 114,  32, 111, 112,  99, 111, 100, 101,  32, 111,
+      102,  32, 102,  97, 105, 108, 101, 100,  32, 114, 101, 113,
+      117, 101, 115, 116,
+      ... 109 more items
+    ]
+  ],
+  pid: 289572,
+  stdout: Buffer(0) [Uint8Array] [],
+  stderr: Buffer(209) [Uint8Array] [
+     88,  32,  69, 114, 114, 111, 114,  32, 111, 102,  32, 102,
+     97, 105, 108, 101, 100,  32, 114, 101, 113, 117, 101, 115,
+    116,  58,  32,  32,  66,  97, 100,  77,  97, 116,  99, 104,
+     32,  40, 105, 110, 118,  97, 108, 105, 100,  32, 112,  97,
+    114,  97, 109, 101, 116, 101, 114,  32,  97, 116, 116, 114,
+    105,  98, 117, 116, 101, 115,  41,  10,  32,  32,  77,  97,
+    106, 111, 114,  32, 111, 112,  99, 111, 100, 101,  32, 111,
+    102,  32, 102,  97, 105, 108, 101, 100,  32, 114, 101, 113,
+    117, 101, 115, 116,
+    ... 109 more items
+  ]
+}
+
+Node.js v24.19.0

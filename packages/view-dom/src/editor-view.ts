@@ -2046,6 +2046,16 @@ function applyBlockDecorations(
 
     if (block.type === 'fencedCode' || block.type === 'indentedCode') {
       lineDOM.classList.add('milkup-block-code')
+      const closing = block.markerRanges?.at(-1)
+      if (
+        block.type === 'fencedCode' &&
+        block.status === 'valid' &&
+        closing &&
+        (block.markerRanges?.length ?? 0) >= 2
+      ) {
+        lineDOM.dataset.presentationBlockFrom = String(block.from)
+        lineDOM.dataset.presentationBlockTo = String(closing.to)
+      }
     }
 
     if (block.type === 'table') {

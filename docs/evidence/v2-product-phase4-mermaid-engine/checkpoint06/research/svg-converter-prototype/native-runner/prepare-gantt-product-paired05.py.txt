@@ -1,0 +1,13 @@
+from pathlib import Path
+import json,shutil
+p=Path(__file__).parent;s=p/'revision-gantt-product-paired05';s.mkdir()
+old=p/'revision-paired-sankey-integer01'
+entry=(old/'paired-helper/assets/entry.mjs').read_text().replace("import {convertSvgElement} from './converter.mjs';","import {convertSvgElement,ConversionError} from './converter.mjs';")
+entry=entry.replace("const result=convertSvgElement(host.querySelector('svg'));", "const image=convertSvgElement(host.querySelector('svg'));const result={ok:true,image};").replace('coverage:packCoverage(result.coverage),','').replace("error:{code:'invalid-output',reason:textError(e)}", "error:{code:e instanceof ConversionError?e.code:'invalid-output',reason:textError(e)}")
+(s/'entry.mjs').write_text(entry)
+shutil.copyfile(old/'paired-helper/src/main.rs',s/'main.rs')
+shutil.copyfile(p/'cases-product-converter05.json',s/'cases.json')
+(p/'cases-gantt-product-paired05.json').write_text((s/'cases.json').read_text())
+for name,target in [('supervise-paired-integer.py','supervise-gantt-product-paired05.py'),('run-paired-integer.sh','run-gantt-product-paired05.sh')]:
+ t=(p/name).read_text().replace('paired-cases.json','cases-gantt-product-paired05.json').replace('supervise-paired-integer.py','supervise-gantt-product-paired05.py');(p/target).write_text(t);(s/target).write_text(t)
+(s/'preparation.json').write_text(json.dumps({'status':'prepared-not-executed','currentProductConverter':True,'currentHostCanonicalRequiredBeforeBuild':True,'changes':'Original integer three-way paired observation reused; only original request becomes Gantt and converter returns current product AST. Native 100%1100x800 snapshot source restored unchanged; no resource or budget change.','budgets':{'renderMs':2000,'observationMs':2000,'frameBytes':262144}},indent=2)+'\n')

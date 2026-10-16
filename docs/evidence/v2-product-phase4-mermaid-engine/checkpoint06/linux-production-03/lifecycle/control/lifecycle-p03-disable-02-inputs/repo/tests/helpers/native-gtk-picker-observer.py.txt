@@ -1,0 +1,70 @@
+#!/usr/bin/python3
+"""Read-only AT-SPI observation of one exact app's native file chooser.
+
+Actions remain real XTest input in the caller. No accessible setters/actions or
+product APIs are used. Do not inspect another app or silently fall back to sleeps.
+"""
+import argparse
+import json
+import os
+from pathlib import Path
+import time
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--pid', type=int, required=True)
+parser.add_argument('--birth', type=int, required=True)
+args = parser.parse_args()
+proc = Path('/proc', str(args.pid))
+words = (proc / 'stat').read_text().rsplit(')', 1)[1].split()
+assert int(words[19]) == args.birth, 'App PID/birth changed'
+environment = dict(entry.split(b'=', 1) for entry in (proc / 'environ').read_bytes().split(b'\0') if b'=' in entry)
+address = environment[b'DBUS_SESSION_BUS_ADDRESS'].decode()
+os.environ['DBUS_SESSION_BUS_ADDRESS'] = address
+os.environ['GI_TYPELIB_PATH'] = '/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/girepository-1.0'
+import gi
+gi.require_version('Atspi', '2.0')
+from gi.repository import Atspi
+
+Atspi.set_timeout(500, 1000)
+assert Atspi.init() == 0
+started = time.monotonic()
+desktop = Atspi.get_desktop(0)
+assert desktop is not None, 'AT-SPI desktop unavailable'
+apps = [desktop.get_child_at_index(i) for i in range(desktop.get_child_count())]
+apps = [app for app in apps if app.get_process_id() == args.pid]
+assert len(apps) == 1, 'Exact App PID not uniquely visible on AT-SPI bus'
+app = apps[0]
+children = [app.get_child_at_index(i) for i in range(app.get_child_count())]
+dialogs = [child for child in children if child.get_name() == 'Open File']
+assert len(dialogs) <= 1, 'Multiple native file choosers for this App'
+rows = []
+if dialogs:
+    stack = [(dialogs[0], [])]
+    while stack:
+        assert len(rows) < 1000 and time.monotonic() - started < 3, 'Native picker observation budget exceeded'
+        node, indices = stack.pop()
+        states = node.get_state_set()
+        flags = {name: states.contains(getattr(Atspi.StateType, name)) for name in ['ENABLED', 'SENSITIVE', 'SHOWING', 'VISIBLE', 'FOCUSED', 'EDITABLE', 'BUSY']}
+        value = None
+        if flags['EDITABLE']:
+            text = node.get_text_iface()
+            assert text is not None
+            count = text.get_character_count()
+            assert count <= 4096, 'Unexpected native entry length'
+            value = text.get_text(0, count)
+        rect = None
+        component = node.get_component_iface()
+        if component is not None and flags['SHOWING']:
+            box = component.get_extents(Atspi.CoordType.SCREEN)
+            rect = {'x': box.x, 'y': box.y, 'width': box.width, 'height': box.height}
+        rows.append({'indices': indices, 'name': node.get_name(), 'role': node.get_role_name(), 'states': flags, 'value': value, 'rect': rect})
+        count = node.get_child_count()
+        assert count <= 1000, 'Unexpected native picker child count'
+        for i in reversed(range(count)):
+            child = node.get_child_at_index(i)
+            if child is not None:
+                stack.append((child, indices + [i]))
+words = (proc / 'stat').read_text().rsplit(')', 1)[1].split()
+assert int(words[19]) == args.birth, 'App identity changed during observation'
+print(json.dumps({'pid': args.pid, 'birth': args.birth, 'dialogPresent': bool(dialogs), 'nodes': rows, 'observationMs': (time.monotonic() - started) * 1000}))
+Atspi.exit()

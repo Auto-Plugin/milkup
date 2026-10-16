@@ -1,0 +1,36 @@
+{
+  "kind": "independent-static-review",
+  "status": "no-blocking-issue-found-in-reviewed-change",
+  "manager": {
+    "path": "/workspace/milkup/packages/view-dom/src/document-presentation.ts",
+    "sha256": "77ca976c31736df2ce84c10c0ef9da887c2f366609e7badf42b3f5a7ad876a8c"
+  },
+  "regression": {
+    "path": "/workspace/milkup/packages/view-dom/src/__tests__/document-presentation-viewport.test.ts",
+    "sha256": "156c07dbf357f5106458cbde5e56e699c931d084e1c6ac995039c578380e83da",
+    "name": "cancels a superseded window job when returning to an already complete cached window",
+    "execution": "Not run by this reviewer; parent reports preserved red then passing regression."
+  },
+  "scope": [
+    "Complete/contextKnown cached result may ignore visible-priority-only changes while base key preserves source/version/window/width/selection/documentVersion/epoch. Partial results retain viewport reprioritization.",
+    "New responses undergo aggregate validation before decoded image ownership transfer; full fragment JSON, range/layout, declarations, request document/version/theme/width/target and paint context must match.",
+    "Ownership callbacks use current owner.fragment/response. New navigation DOM binds current request. Pending image owners are not migrated or given a renewed decode deadline.",
+    "Hard restoration increments image generation and disposes URLs; theme invalidation and plugin config replacement preserve revocation boundaries.",
+    "New cache-hit path aborts the current job, removes its ownership, and cancels preparation retry before repainting cached content."
+  ],
+  "cacheReturnFinding": {
+    "scenario": "A complete cached window -> B pending provider -> return to A -> B resolves late",
+    "resolution": "The cache hit aborts B and sets this.job=undefined. valid(B) fails both aborted-signal and current-job checks. Catch cannot restore or fallback, and finally sees this.job!==B so cannot revive preparation retry. A remains authoritative.",
+    "sourceLines": "document-presentation.ts:780-785; existing valid/catch/finally ownership checks",
+    "testRead": "Public scroll regression asserts B signal aborted, explicitly resolves B late, then returns to A without an extra provider request."
+  },
+  "evidenceReportedByParent": {
+    "browserTrace": "after18/63: 30 samples each retained one identical image; zero empty samples; provide counts1/2; one created URL, revoked once only at destroy.",
+    "qualification": "Reported executed evidence, not a test independently rerun by this static reviewer."
+  },
+  "limits": [
+    "No tests, browser, native runner or build were executed during this review.",
+    "This review does not substitute for native WebKit integration or prove the separate cold bundled render timeout resolved.",
+    "A complete-result cache relies on callers retaining the existing theme/config/source invalidation contract."
+  ]
+}

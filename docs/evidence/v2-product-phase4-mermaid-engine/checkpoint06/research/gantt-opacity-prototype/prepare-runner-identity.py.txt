@@ -1,0 +1,14 @@
+from pathlib import Path
+import json,hashlib,shutil
+p=Path(__file__).parent;n=p.parent/'svg-converter-prototype/native-runner'
+q=p/'revision-identity01';q.mkdir()
+for f in ['entry-identity.mjs','normalize-identity.mjs','prepare-runner-identity.py']:shutil.copyfile(p/f,q/f)
+case=json.loads((n/'cases-product-converter04.json').read_text())[11]
+(n/'cases-gantt-identity01.json').write_text(json.dumps([case],ensure_ascii=False,indent=2)+'\n')
+(n/'supervise-gantt-identity01.py').write_text((n/'supervise-normalization.py').read_text().replace('cases-normalization.json','cases-gantt-identity01.json'))
+(n/'run-gantt-identity01.sh').write_text((n/'run-normalization.sh').read_text().replace('supervise-normalization.py','supervise-gantt-identity01.py'))
+for f in ['cases-gantt-identity01.json','supervise-gantt-identity01.py','run-gantt-identity01.sh']:shutil.copyfile(n/f,q/f)
+# Rust helper bytes and resource policy are preserved. Only the fixed entry changes.
+shutil.copyfile(n/'paired-helper/src/main.rs',q/'paired-main.rs');shutil.copyfile(n/'extensions/paired_resource_guard.c',q/'paired-resource-guard.c')
+rows=[{'path':str(f),'sha256':hashlib.sha256(f.read_bytes()).hexdigest(),'bytes':f.stat().st_size} for f in sorted(q.iterdir()) if f.is_file()]
+(p/'preparation-identity.json').write_text(json.dumps({'status':'prepared-not-executed','diagnosticOnly':True,'zoom':1,'currentOriginalSavedBeforeMutation':True,'mutations':'Only detached clone receives bounded identity zero-alpha/zero-deviation dropShadow filter; original group opacity remains. Root clipping region is inverse-mapped from actual live root; original actual DOM measured read-only. Entire subtree swaps only after original SVG+PNG captured.','nativeBudget':'Original2s render and independent2s observation,256KiB,unchanged native resource guard and exact cleanup','files':rows},indent=2)+'\n')

@@ -792,6 +792,7 @@ export type SdkDocumentVectorPrimitive =
       readonly anchor?: 'start' | 'middle' | 'end'
     }
 export type SdkDocumentPresentationNode =
+  | SdkDocumentSvgImage
   | { readonly type: 'text'; readonly text: string }
   | {
       readonly type: 'group' | 'emphasis' | 'code' | 'sup' | 'sub'
@@ -834,3 +835,333 @@ export type SdkDocumentRenderer = (
   request: SdkDocumentPresentationRequest,
   options: { readonly signal: AbortSignal },
 ) => SdkDocumentPresentationResult | Promise<SdkDocumentPresentationResult>
+
+/** Closed, inert SVG image data. No raw markup, CSS, URLs or host objects. */
+export type SdkDocumentSvgRgba = readonly [r: number, g: number, b: number, a: number]
+export type SdkDocumentSvgLength = {
+  readonly value: number
+  readonly unit: 'user' | 'px' | 'em' | 'percent'
+}
+export type SdkDocumentSvgMatrix = readonly [
+  a: number,
+  b: number,
+  c: number,
+  d: number,
+  e: number,
+  f: number,
+]
+export type SdkDocumentSvgBox = readonly [x: number, y: number, width: number, height: number]
+/** Local opaque IDs only, never URI strings; reference kind is also checked. */
+export type SdkDocumentSvgLocalId = string
+export type SdkDocumentSvgStyleId = number
+export type SdkDocumentSvgPaint =
+  | { readonly kind: 'none' }
+  | { readonly kind: 'color'; readonly rgba: SdkDocumentSvgRgba }
+  | { readonly kind: 'gradient'; readonly ref: SdkDocumentSvgLocalId }
+export type SdkDocumentSvgTransform =
+  | { readonly kind: 'matrix'; readonly values: SdkDocumentSvgMatrix }
+  | { readonly kind: 'translate'; readonly x: number; readonly y: number }
+  | { readonly kind: 'scale'; readonly x: number; readonly y: number }
+  | { readonly kind: 'rotate'; readonly degrees: number; readonly cx: number; readonly cy: number }
+  | { readonly kind: 'skewX' | 'skewY'; readonly degrees: number }
+export type SdkDocumentSvgPathCommand =
+  | readonly ['M' | 'm' | 'L' | 'l' | 'T' | 't', number, number]
+  | readonly ['H' | 'h' | 'V' | 'v', number]
+  | readonly ['C' | 'c', number, number, number, number, number, number]
+  | readonly ['S' | 's' | 'Q' | 'q', number, number, number, number]
+  | readonly ['A' | 'a', number, number, number, 0 | 1, 0 | 1, number, number]
+  | readonly ['Z' | 'z']
+export type SdkDocumentSvgShadow = {
+  readonly dx: number
+  readonly dy: number /** CSS blurRadius differs from SVG stdDeviation. */
+  readonly blur: number
+  readonly color: SdkDocumentSvgRgba
+}
+export type SdkDocumentSvgFilterValue =
+  | { readonly kind: 'none' }
+  | { readonly kind: 'unresolved-local' }
+  | { readonly kind: 'definition'; readonly ref: SdkDocumentSvgLocalId }
+  | { readonly kind: 'cssDropShadow'; readonly shadows: readonly SdkDocumentSvgShadow[] }
+/** No arbitrary styles. A deduplicated entry describes this element, not descendants. */
+export interface SdkDocumentSvgStyle {
+  readonly shapeRendering?: 'auto' | 'optimizeSpeed' | 'crispEdges' | 'geometricPrecision'
+  readonly fill?: SdkDocumentSvgPaint
+  readonly stroke?: SdkDocumentSvgPaint
+  readonly fillOpacity?: number
+  readonly strokeOpacity?: number
+  readonly opacity?: number
+  readonly fillRule?: 'nonzero' | 'evenodd'
+  readonly clipRule?: 'nonzero' | 'evenodd'
+  readonly strokeWidth?: SdkDocumentSvgLength
+  readonly dashArray?: readonly SdkDocumentSvgLength[]
+  readonly dashOffset?: SdkDocumentSvgLength
+  readonly lineCap?: 'butt' | 'round' | 'square'
+  readonly lineJoin?: 'miter' | 'round' | 'bevel'
+  readonly miterLimit?: number
+  readonly display?: 'inline' | 'none'
+  readonly visibility?: 'visible' | 'hidden' | 'collapse'
+  readonly overflow?: 'visible' | 'hidden'
+  readonly mixBlendMode?: 'normal' | 'multiply'
+  readonly isolation?: 'auto' | 'isolate'
+  readonly filter?: SdkDocumentSvgFilterValue
+  readonly clipPath?: SdkDocumentSvgLocalId
+  readonly colorInterpolation?: 'sRGB' | 'linearRGB'
+  readonly colorInterpolationFilters?: 'sRGB' | 'linearRGB'
+  /** Host-approved offline font mapping; never a CSS or URL string. */
+  readonly fontId?:
+    | 'sans'
+    | 'arial-sans'
+    | 'open-sans-sans'
+    | 'trebuchet-verdana-arial-sans'
+    | 'serif'
+    | 'monospace'
+  readonly fontSize?: SdkDocumentSvgLength
+  readonly fontWeight?: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
+  readonly fontStyle?: 'normal' | 'italic' | 'oblique'
+  readonly letterSpacing?: SdkDocumentSvgLength
+  readonly wordSpacing?: SdkDocumentSvgLength
+  readonly textAnchor?: 'start' | 'middle' | 'end'
+  readonly dominantBaseline?:
+    | 'auto'
+    | 'alphabetic'
+    | 'central'
+    | 'middle'
+    | 'hanging'
+    | 'text-before-edge'
+    | 'text-after-edge'
+  readonly alignmentBaseline?:
+    | 'auto'
+    | 'baseline'
+    | 'alphabetic'
+    | 'central'
+    | 'middle'
+    | 'hanging'
+    | 'before-edge'
+    | 'after-edge'
+  readonly decoration?: 'none' | 'underline' | 'overline' | 'line-through'
+  readonly whiteSpace?: 'normal' | 'pre' | 'pre-wrap' | 'nowrap'
+  readonly textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize'
+}
+export interface SdkDocumentSvgCommon {
+  readonly style?: SdkDocumentSvgStyleId
+  readonly transforms?: readonly SdkDocumentSvgTransform[]
+  /** Typed local origin, only if helper cannot safely canonicalize CSS transform. */
+  readonly transformOrigin?: readonly [SdkDocumentSvgLength, SdkDocumentSvgLength]
+  readonly transformBox?: 'fill-box' | 'stroke-box' | 'view-box'
+  readonly title?: string
+  readonly description?: string
+}
+export interface SdkDocumentSvgMarked extends SdkDocumentSvgCommon {
+  readonly markerStart?: SdkDocumentSvgLocalId
+  readonly markerMid?: SdkDocumentSvgLocalId
+  readonly markerEnd?: SdkDocumentSvgLocalId
+}
+export type SdkDocumentSvgTextChild =
+  { readonly kind: 'textRun'; readonly text: string } | SdkDocumentSvgTspan
+export interface SdkDocumentSvgTspan extends SdkDocumentSvgCommon {
+  readonly kind: 'tspan'
+  readonly x?: readonly SdkDocumentSvgLength[]
+  readonly y?: readonly SdkDocumentSvgLength[]
+  readonly dx?: readonly SdkDocumentSvgLength[]
+  readonly dy?: readonly SdkDocumentSvgLength[]
+  readonly xmlSpace?: 'default' | 'preserve'
+  readonly children: readonly SdkDocumentSvgTextChild[]
+}
+export interface SdkDocumentSvgText extends SdkDocumentSvgCommon {
+  readonly kind: 'text'
+  readonly xmlSpace?: 'default' | 'preserve'
+  readonly x?: readonly SdkDocumentSvgLength[]
+  readonly y?: readonly SdkDocumentSvgLength[]
+  readonly dx?: readonly SdkDocumentSvgLength[]
+  readonly dy?: readonly SdkDocumentSvgLength[]
+  readonly children: readonly SdkDocumentSvgTextChild[]
+}
+/** Canonical serializer emits exactly div(table)>div(table-cell)>plain text.
+ * No XHTML tree, attributes, class, style-string or HTML escapes are accepted.
+ */
+export interface SdkDocumentSvgTextBox extends SdkDocumentSvgCommon {
+  readonly kind: 'textBox'
+  readonly box: SdkDocumentSvgBox
+  readonly text: string
+  readonly outerBoxSizing?: 'content-box' | 'border-box'
+  readonly innerBoxSizing?: 'content-box' | 'border-box'
+  readonly textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize'
+  readonly letterSpacing?: SdkDocumentSvgLength
+  readonly wordSpacing?: SdkDocumentSvgLength
+  readonly decoration?: 'none' | 'underline' | 'overline' | 'line-through'
+  readonly color: SdkDocumentSvgRgba
+  readonly background?: SdkDocumentSvgRgba
+  readonly fontId:
+    | 'sans'
+    | 'arial-sans'
+    | 'open-sans-sans'
+    | 'trebuchet-verdana-arial-sans'
+    | 'serif'
+    | 'monospace'
+  readonly fontSizePx: number
+  readonly fontWeight: 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
+  readonly fontStyle: 'normal' | 'italic' | 'oblique'
+  readonly lineHeight: 'normal' | { readonly px: number }
+  readonly hAlign: 'start' | 'center' | 'end'
+  readonly vAlign: 'top' | 'middle' | 'bottom'
+  readonly whiteSpace: 'normal' | 'pre' | 'pre-wrap' | 'nowrap'
+  readonly overflowWrap: 'normal' | 'break-word'
+  readonly wordBreak: 'normal' | 'break-all' | 'keep-all'
+}
+export type SdkDocumentSvgNode =
+  | (SdkDocumentSvgCommon & {
+      readonly kind: 'group'
+      readonly children: readonly SdkDocumentSvgNode[]
+    })
+  | (SdkDocumentSvgCommon & {
+      readonly kind: 'rect'
+      readonly x: number
+      readonly y: number
+      readonly width: number
+      readonly height: number
+      readonly rx?: number
+      readonly ry?: number
+    })
+  | (SdkDocumentSvgCommon & {
+      readonly kind: 'circle'
+      readonly cx: number
+      readonly cy: number
+      readonly r: number
+    })
+  | (SdkDocumentSvgCommon & {
+      readonly kind: 'ellipse'
+      readonly cx: number
+      readonly cy: number
+      readonly rx: number
+      readonly ry: number
+    })
+  | (SdkDocumentSvgMarked & {
+      readonly kind: 'line'
+      readonly x1: number
+      readonly y1: number
+      readonly x2: number
+      readonly y2: number
+    })
+  | (SdkDocumentSvgMarked & {
+      readonly kind: 'path'
+      readonly commands: readonly SdkDocumentSvgPathCommand[]
+    })
+  | (SdkDocumentSvgMarked & {
+      readonly kind: 'polyline' | 'polygon'
+      readonly points: readonly (readonly [number, number])[]
+    })
+  | SdkDocumentSvgText
+  | SdkDocumentSvgTextBox
+  /** Bounded local reference; no URL, remote href or nested document. */
+  | (SdkDocumentSvgCommon & {
+      readonly kind: 'use'
+      readonly ref: SdkDocumentSvgLocalId
+      readonly x?: number
+      readonly y?: number
+      readonly width?: number
+      readonly height?: number
+    })
+  /** Only known, equivalent text alternatives; preserve browser branch semantics. */
+  | (SdkDocumentSvgCommon & {
+      readonly kind: 'textAlternative'
+      readonly primary: SdkDocumentSvgTextBox
+      readonly fallback: SdkDocumentSvgText
+    })
+export interface SdkDocumentSvgDefBase {
+  readonly id: SdkDocumentSvgLocalId
+}
+export type SdkDocumentSvgDefinition =
+  | (SdkDocumentSvgDefBase & {
+      readonly kind: 'clipPath'
+      readonly units: 'userSpaceOnUse' | 'objectBoundingBox'
+      readonly transforms?: readonly SdkDocumentSvgTransform[]
+      readonly children: readonly SdkDocumentSvgNode[]
+    })
+  | (SdkDocumentSvgDefBase & {
+      readonly kind: 'marker'
+      readonly viewBox?: SdkDocumentSvgBox
+      readonly width: number
+      readonly height: number
+      readonly refX: SdkDocumentSvgLength
+      readonly refY: SdkDocumentSvgLength
+      readonly units: 'strokeWidth' | 'userSpaceOnUse'
+      readonly orient: 'auto' | 'auto-start-reverse' | { readonly degrees: number }
+      readonly style?: SdkDocumentSvgStyleId
+      readonly children: readonly SdkDocumentSvgNode[]
+    })
+  | (SdkDocumentSvgDefBase & {
+      readonly kind: 'linearGradient'
+      readonly units: 'userSpaceOnUse' | 'objectBoundingBox'
+      readonly x1: SdkDocumentSvgLength
+      readonly y1: SdkDocumentSvgLength
+      readonly x2: SdkDocumentSvgLength
+      readonly y2: SdkDocumentSvgLength
+      readonly spread: 'pad' | 'reflect' | 'repeat'
+      readonly transforms?: readonly SdkDocumentSvgTransform[]
+      readonly stops: readonly { readonly offset: number; readonly color: SdkDocumentSvgRgba }[]
+    })
+  | (SdkDocumentSvgDefBase & {
+      readonly kind: 'dropShadowFilter'
+      readonly units: 'userSpaceOnUse' | 'objectBoundingBox'
+      readonly primitiveUnits: 'userSpaceOnUse' | 'objectBoundingBox'
+      readonly region: readonly [
+        SdkDocumentSvgLength,
+        SdkDocumentSvgLength,
+        SdkDocumentSvgLength,
+        SdkDocumentSvgLength,
+      ]
+      readonly colorInterpolation: 'sRGB' | 'linearRGB'
+      readonly dx: number
+      readonly dy: number
+      readonly stdDeviation: readonly [number, number]
+      readonly color: SdkDocumentSvgRgba
+    })
+  | (SdkDocumentSvgDefBase & {
+      readonly kind: 'symbol'
+      readonly viewBox?: SdkDocumentSvgBox
+      readonly width?: number
+      readonly height?: number
+      readonly style?: SdkDocumentSvgStyleId
+      readonly children: readonly SdkDocumentSvgNode[]
+    })
+export interface SdkDocumentSvgImage {
+  readonly type: 'svg-image'
+  readonly profile: 'bounded-svg-v1'
+  readonly width: number
+  readonly height: number
+  /** [x, y, width, height] in root CSS pixels; includes the root viewport and all visible ink. */
+  readonly rasterBounds: SdkDocumentSvgBox
+  readonly viewBox: SdkDocumentSvgBox
+  readonly aspect: {
+    readonly align:
+      | 'none'
+      | 'xMinYMin'
+      | 'xMidYMin'
+      | 'xMaxYMin'
+      | 'xMinYMid'
+      | 'xMidYMid'
+      | 'xMaxYMid'
+      | 'xMinYMax'
+      | 'xMidYMax'
+      | 'xMaxYMax'
+    readonly fit: 'meet' | 'slice'
+  }
+  /** Full data included and budgeted; indexes alone never authorize shared resources. */
+  readonly styles: readonly SdkDocumentSvgStyle[]
+  readonly rootStyle?: SdkDocumentSvgStyleId
+  readonly definitions: readonly SdkDocumentSvgDefinition[]
+  readonly children: readonly SdkDocumentSvgNode[]
+  readonly title?: string
+  readonly description?: string
+  /** Converter rejects effective animation before producing this profile. */
+  readonly motion: 'static'
+}
+
+/** Converter errors are not accepted ready-image nodes. Host shows original source. */
+export type SdkDocumentSvgConversionFailure =
+  | { readonly code: 'unsupported-animation'; readonly reason: string }
+  | { readonly code: 'unsafe-output'; readonly reason: string }
+  | { readonly code: 'unsupported-feature'; readonly reason: string }
+  | { readonly code: 'limit-exceeded'; readonly reason: string }
+  | { readonly code: 'font-unavailable'; readonly reason: string }
+  | { readonly code: 'invalid-output'; readonly reason: string }

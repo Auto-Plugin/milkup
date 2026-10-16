@@ -1,0 +1,42 @@
+// Diagnostic only. A live measurement proposes a region; host safety must not trust
+// this measurement. No product schema is implied by this experiment.
+function normalizeTimelineBrightness(n) {
+ const value=getComputedStyle(n).filter;
+ if(value!=='brightness(1.2)')throw Error('expected exact original brightness(1.2)');
+ const groupCTM=n.getCTM();if(!groupCTM)throw Error('missing group CTM');
+ const inverse=groupCTM.inverse();
+ if(![inverse.a,inverse.b,inverse.c,inverse.d,inverse.e,inverse.f].every(Number.isFinite))throw Error('singular group CTM');
+ const measured=[];let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+ for(const leaf of [n,...n.querySelectorAll('*')]) {
+  if(leaf!==n && getComputedStyle(leaf).filter!=='none')throw Error('nested filter needs independent handling');
+  if(leaf.localName==='foreignObject')throw Error('foreignObject not covered by this first candidate');
+  const c=getComputedStyle(leaf);
+  for(const k of ['marker-start','marker-mid','marker-end'])if(c.getPropertyValue(k)!=='none')throw Error('marker extent not covered');
+  if(!['path','line','rect','circle','ellipse','polygon','polyline','text','tspan'].includes(leaf.localName))continue;
+  const b=leaf.getBBox(),ctm=leaf.getCTM();if(!ctm)throw Error('missing measured child CTM');
+  const local=inverse.multiply(ctm);
+  const stroke=c.stroke==='none'?0:parseFloat(c.strokeWidth);
+  const miter=c.strokeLinejoin==='miter'?parseFloat(c.strokeMiterlimit):1;
+  if(!Number.isFinite(stroke)||stroke<0||stroke>64||!Number.isFinite(miter)||miter<1||miter>64)throw Error('invalid stroke extent');
+  const radius=stroke*Math.max(1,miter)/2;
+  const points=[[b.x-radius,b.y-radius],[b.x+b.width+radius,b.y-radius],[b.x-radius,b.y+b.height+radius],[b.x+b.width+radius,b.y+b.height+radius]].map(([x,y])=>({x:local.a*x+local.c*y+local.e,y:local.b*x+local.d*y+local.f}));
+  if(points.some(p=>!Number.isFinite(p.x)||!Number.isFinite(p.y)||Math.abs(p.x)>8192||Math.abs(p.y)>8192))throw Error('measurement bound');
+  for(const p of points){minX=Math.min(minX,p.x);minY=Math.min(minY,p.y);maxX=Math.max(maxX,p.x);maxY=Math.max(maxY,p.y);}
+  measured.push({tag:leaf.localName,bbox:box(b),localCTM:matrix(local),stroke,miter,radius});
+ }
+ if(!measured.length)throw Error('no measured ink');
+ const region={x:Math.floor(minX),y:Math.floor(minY),width:Math.ceil(maxX)-Math.floor(minX),height:Math.ceil(maxY)-Math.floor(minY)};
+ if(!(region.width>0&&region.height>0&&region.width<=8192&&region.height<=8192))throw Error('invalid explicit region');
+ const root=n.ownerSVGElement,ns='http://www.w3.org/2000/svg';
+ const id='milkup-brightness-region-'+probeMutations.length;
+ if(document.getElementById(id))throw Error('candidate ID collision');
+ const defs=document.createElementNS(ns,'defs'),filter=document.createElementNS(ns,'filter'),transfer=document.createElementNS(ns,'feComponentTransfer');
+ filter.id=id;filter.setAttribute('filterUnits','userSpaceOnUse');filter.setAttribute('primitiveUnits','userSpaceOnUse');
+ filter.setAttribute('color-interpolation-filters','sRGB');
+ for(const [key,value]of Object.entries(region)){filter.setAttribute(key,String(value));transfer.setAttribute(key,String(value));}
+ transfer.setAttribute('in','SourceGraphic');transfer.setAttribute('color-interpolation-filters','sRGB');
+ for(const channel of ['R','G','B','A']){const fn=document.createElementNS(ns,'feFunc'+channel);fn.setAttribute('type',channel==='A'?'identity':'linear');if(channel!=='A'){fn.setAttribute('slope','1.2');fn.setAttribute('intercept','0');}transfer.append(fn);}
+ filter.append(transfer);defs.append(filter);root.prepend(defs);
+ probeMutations.push({tag:n.localName,operation:'brightness-explicit-region',computedBefore:value,region,measured,definition:filter.outerHTML,before:geometry(n)});
+ n.style.setProperty('filter',`url(#${id})`,'important');
+}

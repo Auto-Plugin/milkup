@@ -1,0 +1,156 @@
+import assert from "node:assert/strict";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+import { startProduction } from "/workspace/milkup/tests/helpers/native-production.mjs";
+import { ownedApplication } from "/workspace/milkup/tests/helpers/native-owned-process.mjs";
+import {
+  nativeFixture,
+  x,
+} from "/workspace/milkup/tests/helpers/native-updates-fixture.mjs";
+const base = path.dirname(fileURLToPath(import.meta.url));
+const output = path.join(base, "run"),
+  file = path.join(base, "ordinary.md");
+await mkdir(output);
+const save = (name, value) =>
+  writeFile(
+    path.join(output, name + ".json"),
+    JSON.stringify(value, null, 2) + "\n",
+  );
+const samples = JSON.parse(
+  await readFile(
+    "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/plan.json",
+    "utf8",
+  ),
+).samples.slice(0, 2);
+let app,
+  installed = false;
+const ui = nativeFixture(() => app),
+  journal = [];
+async function mark(stage) {
+  journal.push({
+    stage,
+    at: new Date().toISOString(),
+    document: await app.probe(),
+  });
+  await save("journal", journal);
+}
+async function seek(sample) {
+  await app.focus(".milkup-input-proxy");
+  await app.key("ctrl+2");
+  await app.key("ctrl+f");
+  await ui.ready("[data-search-input]");
+  await app.focus("[data-search-input]");
+  await app.key("ctrl+a");
+  await app.text(sample.marker);
+  await app.until(
+    async () => {
+      const p = await app.probe();
+      return (
+        p.query === sample.marker && !p.searching && /1/.test(p.count || "")
+      );
+    },
+    "unique marker search",
+    2500,
+  );
+  await app.key("Escape");
+  await app.focus(".milkup-input-proxy");
+}
+try {
+  app = await startProduction(file, output, { diagnostics: false });
+  const owner = await ownedApplication(process.env.TAURI_APP_PATH, file);
+  const env = (
+    await readFile(`/proc/${owner.identity.pid}/environ`, "utf8")
+  ).split("\0");
+  const checked = {};
+  for (const key of [
+    "XDG_CONFIG_HOME",
+    "XDG_CACHE_HOME",
+    "XDG_DATA_HOME",
+    "XDG_RUNTIME_DIR",
+    "MILKUP_DOM_DIAGNOSTICS",
+  ]) {
+    checked[key] = env
+      .find((s) => s.startsWith(key + "="))
+      ?.slice(key.length + 1);
+    assert.equal(checked[key], process.env[key]);
+  }
+  await save("owner", { identity: owner.identity, environment: checked });
+  x("windowsize", ui.windowId(), "1100", "760");
+  await app.until(
+    () =>
+      app.execute(
+        "return Object.getOwnPropertyNames(window.__internal_unstable_listeners_object_id__?.['milkup-plugin-dom-message'] || {}).length === 1",
+      ),
+    "existing DOM listener",
+    10000,
+  );
+  const registry = await app.execute(
+    "return JSON.parse(localStorage.getItem('milkup.desktop.plugins.registry.v1')).records.filter(r=>r.manifest.id==='milkup.diagrams').map(r=>({id:r.manifest.id,enabled:r.enabled,state:r.state,errors:r.errors,rootPath:r.rootPath}))",
+  );
+  await save("registry-before", registry);
+  assert.equal(registry[0].enabled, true);
+  assert(
+    registry[0].rootPath.startsWith(
+      process.env.MILKUP_NATIVE_PROFILE_ROOT + "/",
+    ),
+  );
+  await mark("before-observer");
+  const observer = await readFile(path.join(base, "observer.js"), "utf8");
+  const installedAt = Date.now();
+  const result = await app.execute("return (" + observer + ")()");
+  await save("installation", result);
+  assert.equal(result.installed, true, result.reason);
+  installed = true;
+  await seek(samples[0]);
+  await mark("block-search-complete");
+  await app.shot("block-during-observation");
+  await seek(samples[1]);
+  await mark("class-search-complete");
+  await app.shot("class-during-observation");
+  await app.delay(Math.max(0, installedAt + 10300 - Date.now()));
+  const state = await app.execute(
+    "return window.__milkupTransportDiagnostic.state",
+  );
+  await save("transport-observation", state);
+  assert(
+    state.done && state.restored,
+    "Observer auto-restored at bounded deadline",
+  );
+  await mark("after-observation");
+  await app.shot("after-observation");
+  await save("outcome", {
+    diagnosticOnly: true,
+    acceptance: false,
+    captureComplete: state.dropped === 0 && state.observerErrors.length === 0,
+    events: state.events.length,
+    samples: state.samples.length,
+    note: "Service-sliced transport, not aggregate renderer request. Observer overhead is included and not deducted. A clone startup differs from historical UI03 sequence.",
+  });
+} catch (error) {
+  await save("failure", {
+    error: String(error),
+    stack: error.stack,
+    document: app ? await app.probe().catch(() => null) : null,
+  });
+  if (app) {
+    const shape = await app
+      .execute(
+        `const c=window.__internal_unstable_listeners_object_id__?.['milkup-plugin-dom-message'];const m=window.__TAURI_INTERNALS__?.callbacks;return {containerType:typeof c,isMap:m instanceof Map,entries:c?Object.getOwnPropertyNames(c).map(key=>{const d=Object.getOwnPropertyDescriptor(c,key);const v=d?.value;return {key,writable:d?.writable,configurable:d?.configurable,enumerable:d?.enumerable,valueType:typeof v,handlerId:v?.handlerId,callbackType:typeof m?.get(v?.handlerId)}}):[]}`,
+      )
+      .catch((error) => ({ error: String(error) }));
+    await save("failure-api-shape", shape);
+    await app.shot("FAIL").catch(() => {});
+  }
+  process.exitCode = 1;
+} finally {
+  if (app && installed) {
+    const final = await app
+      .execute(
+        "const o=window.__milkupTransportDiagnostic;if(!o)return null;o.stop('runner-finally');const state=o.state;delete window.__milkupTransportDiagnostic;return state",
+      )
+      .catch((error) => ({ retrievalError: String(error) }));
+    await save("observer-finally", final);
+  }
+  if (app) await app.close();
+}

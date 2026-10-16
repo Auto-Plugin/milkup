@@ -1,0 +1,327 @@
+{
+  "recordedAt": "2026-10-16T15:25:36.344162+00:00",
+  "status": "first-failure-preserved-no-retry",
+  "run": "mermaid-ui-03",
+  "production": "/workspace/milkup-mermaid-engine-evidence/linux-production-03/provenance.json",
+  "command": {
+    "command": [
+      "node",
+      "tests/native/tauri-mermaid-ui.mjs"
+    ],
+    "cwd": "/workspace/milkup",
+    "startedAt": "2026-10-16T15:21:48.350435+00:00",
+    "execution": "approved outer execution environment; exact proc environment checks retained; native async phase diagnostics enabled",
+    "endedAt": "2026-10-16T15:22:52.046119+00:00",
+    "exitCode": 1
+  },
+  "gates": {
+    "coldBundledStableCapture": "PASS",
+    "coldBundledNoDeadlineThroughRemoval": true,
+    "independentInstallation": "PASS",
+    "isolatedFallbackCases": 4,
+    "visibleNoticeAdditionalCaptures": 4,
+    "stableOrdinaryBaselineCases": 1,
+    "stableOrdinaryBaselineIds": [
+      "block-000-first-official-example"
+    ],
+    "stableWindowedBaselineCases": 0,
+    "completedUi64Combinations": 0
+  },
+  "firstFailure": {
+    "sample": "classDiagram-000-first-official-example",
+    "phase": "after screenshot",
+    "assertion": "same range remains visible",
+    "lookupActual": "undefined (no exact expected from/to match), not viewport boolean false",
+    "selection": [
+      {
+        "from": 384,
+        "to": 438,
+        "line": null
+      }
+    ],
+    "selectionOutsideClassFence": true,
+    "coveragePng": "Class rendered image visible below marker",
+    "laterFailurePng": "Block image remains; class source visible",
+    "laterFailureDom": "Block decoded; class absent; notices empty",
+    "originalFileBytesUnchanged": true,
+    "interpretation": "Real native stability failure of class sample. Do not infer identical root cause to UI02; do not relabel subsequent states as pass."
+  },
+  "progressCorrection": "Initial short message mistakenly named block from the shared stack line; full results prove block PASS then class RED. All final counts use1 ordinary/0 windowed/0 UI64.",
+  "nativeDiagnostics": {
+    "phaseCounts": {
+      "dispatch": 63,
+      "kill-start": 2,
+      "cleanup-complete": 2,
+      "cleanup-confirmed": 2
+    },
+    "deadlineDeniedAudit": [],
+    "currentIndependentRegistry": {
+      "errors": [],
+      "enabled": true,
+      "sourcePath": "/workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-build01/standalone/plugin/dist/milkup.diagrams-1.1.0.milkup-plugin",
+      "host": "dom",
+      "id": "milkup.diagrams",
+      "state": "enabled"
+    },
+    "timingBoundary": "No successful completion timing phase here; no per-render duration inferred from enable audits or consecutive dispatches. Bounded async diagnostic overhead declared."
+  },
+  "cleanup": {
+    "harnessExitCode": 1,
+    "appClosed": "harness finally",
+    "driverStopped": "exact PID333463/run env/argv verified, pidfd SIGTERM, tool session49065 exit0",
+    "ports": "4626/4627 verified no listeners",
+    "display": "existing Xvfb126 PID288383 retained",
+    "cpuUiReleased": true
+  },
+  "rootVisualReview": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/root-visual-review.json",
+  "rootVisualReviewPresentAtSummary": true,
+  "ownerVisualReview": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/control/mermaid-ui-03/owner-visual-review.json",
+  "remaining": "Root assigned view owner exclusive diagnosis. Any future native full gate uses a new run number and approved frozen binary; UI03 remains unchanged.",
+  "files": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/FAIL-webview.png",
+      "bytes": 55120,
+      "sha256": "143a360bf4618f538a3b30e052ee81929536021bedf5d645cc9ad511db9d2717"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/FAIL-x11.png",
+      "bytes": 59221,
+      "sha256": "88fef58ea7749a70087229fa2d2d66f307cf45bcd38d354432352547298d3753"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/coverage-ordinary-block-000-first-official-example-webview.png",
+      "bytes": 53146,
+      "sha256": "348a12969eb1d234f0d9af872b075c3b971088d448782d08e0a0a70c3a746a66"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/coverage-ordinary-block-000-first-official-example-x11.png",
+      "bytes": 57094,
+      "sha256": "4efe7d2de6359f754e2858a5e0ce2d683a5772bb3ea39800dd14cd9b43a616a5"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/coverage-ordinary-classDiagram-000-first-official-example-webview.png",
+      "bytes": 53148,
+      "sha256": "927617bc4611e4a5863a14ef881232081ddadb7d96201f5e38ac5dd95c1bd7aa"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/coverage-ordinary-classDiagram-000-first-official-example-x11.png",
+      "bytes": 57087,
+      "sha256": "a36a9371b51bbba50c8d2e5c25b75379128d38f34ca293dd6b2377d5ae192265"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/failure.json",
+      "bytes": 614,
+      "sha256": "2b7d3eca75befc5f371e09e1d4cbf69aa70c0c9cdf5d211bd9d16ac3af0403d1"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/fallback-flowchart-069-image.md",
+      "bytes": 255,
+      "sha256": "7e5a5d4ad09b011f5bf3996a930e1011bdf4e87861359a957f964a94c338f775"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/fallback-flowchart-086-animated-edge.md",
+      "bytes": 143,
+      "sha256": "8218dda63a5944e3938a3ec617b1a3d28f28e6b37f8db19adab548ad7fd4472b"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/fallback-flowchart-088-classDef.md",
+      "bytes": 230,
+      "sha256": "7fa2b07706261cf7743957a4a7d5a8079cd46c3c57d0f1663c3b8ece6c6e21d4"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/fallback-timeline-000-first-official-example.md",
+      "bytes": 258,
+      "sha256": "c4bac2bb982fad00fc43c6900436974d5ed0fed676cd3745dd97d5ca7502d7c4"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/installed-official-engine-webview.png",
+      "bytes": 59288,
+      "sha256": "335a13f3d8a420a564334eb84882c4d797ed5e2cb8d702aed36da9ef8f59926c"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/installed-official-engine-x11.png",
+      "bytes": 63424,
+      "sha256": "5fd2bc56016d78f33ce1ea7133fb33683b230692063862b9c5de05553878d0ec"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/isolated-fallback-flowchart-069-image-webview.png",
+      "bytes": 36227,
+      "sha256": "9c45a3be90ac65f637020fa759277a489e27179d8b447074334d8a55f7176e24"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/isolated-fallback-flowchart-069-image-x11.png",
+      "bytes": 39501,
+      "sha256": "984e113dd47c7a37f213d74e15f4404469d02b8b29f186865e080b5c44989ce7"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/isolated-fallback-flowchart-086-animated-edge-webview.png",
+      "bytes": 27975,
+      "sha256": "268cce3603280a10b34f42bdb704118ead4b55463b42a87f89c298a7309c65a8"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/isolated-fallback-flowchart-086-animated-edge-x11.png",
+      "bytes": 31692,
+      "sha256": "62035ec0259a92ec5e7180ec43a553f67802e86c084eb5783a951f3a0854e83b"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/isolated-fallback-flowchart-088-classDef-webview.png",
+      "bytes": 32699,
+      "sha256": "802d3fe83cee79e4e3849f21883ebc25b5f4abd9c018f48953fe5154efab721e"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/isolated-fallback-flowchart-088-classDef-x11.png",
+      "bytes": 36404,
+      "sha256": "71b86bbacf6a383824a7ce2e90fdcbf734c7c8b9069c5efe493b17afc48c5a97"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/isolated-fallback-timeline-000-first-official-example-webview.png",
+      "bytes": 34248,
+      "sha256": "94244a7304cf7139546ff4eb0fc500c2edca49da1cfac6f03fefe2ef4c8cbda9"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/isolated-fallback-timeline-000-first-official-example-x11.png",
+      "bytes": 37581,
+      "sha256": "eb52f52cce6af8f12dd52bbab95cbe0c4929070bbadd05fa44f3515996cbb359"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/native-owned-profile.json",
+      "bytes": 697,
+      "sha256": "a48e08f2d9260e01a3fa60d9464abbfb4fa8bf9f59d348b2264ddd4b4853475d"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/notice-fallback-flowchart-069-image-webview.png",
+      "bytes": 41877,
+      "sha256": "0e93882289a79d43c66e3c8e57e68735f28f0c4532666f5f132b0aac021778d2"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/notice-fallback-flowchart-069-image-x11.png",
+      "bytes": 44763,
+      "sha256": "301ccb0af90b06adfeb1e9a11659b6f728608dba977ab5214ef2822caebf7f5d"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/notice-fallback-flowchart-086-animated-edge-webview.png",
+      "bytes": 33413,
+      "sha256": "7495df8ccb6ec12eebf916267270ac025a04eee10bc9da9fb17e9c941fcef611"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/notice-fallback-flowchart-086-animated-edge-x11.png",
+      "bytes": 37102,
+      "sha256": "249b9d75f02382c9641175b153a8b4ac624838281e39888db981378947f57eed"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/notice-fallback-flowchart-088-classDef-webview.png",
+      "bytes": 38278,
+      "sha256": "e38a29ef7585d3fa974b1258d6c534a24c2b096c66d2b3c6f3a317bd823fde5d"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/notice-fallback-flowchart-088-classDef-x11.png",
+      "bytes": 41185,
+      "sha256": "45a4d097b20829bf3e29c55ee06a7d4da15b0060aa5a157ba1db465b11e0f12c"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/notice-fallback-timeline-000-first-official-example-webview.png",
+      "bytes": 40440,
+      "sha256": "05d2f9c3246834e925fd2ff3df81d5f4fc9fa5d23028bc792d7c41a44ed60826"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/notice-fallback-timeline-000-first-official-example-x11.png",
+      "bytes": 43565,
+      "sha256": "cfebf121e8096cb3f8effa099b4a74c36c326148167c7c54ec50298b00982e77"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/ordinary.md",
+      "bytes": 11914,
+      "sha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/plan.json",
+      "bytes": 45849,
+      "sha256": "b343647fff6c80d2194e31d9baa1252038122788ce22d77a91281307ca77d531"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/preinstalled-cold-window-webview.png",
+      "bytes": 53379,
+      "sha256": "3dd79b59be0eecbf2010aef973b2cd849ec24a5c56978a30a190723674f97183"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/preinstalled-cold-window-x11.png",
+      "bytes": 57318,
+      "sha256": "a4a64a3ff3388bc716427e86b32fd140bf30525db801e6fe9cffc51278763c32"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/production-origin.json",
+      "bytes": 253,
+      "sha256": "c283efded8d1ac3ba5de391f5f87de4d9b9a7e9244437daeb4507b0ff959f0bc"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/provenance.json",
+      "bytes": 1706,
+      "sha256": "8c951af7605b31dc0da93e571302392b796b9d6c31fa534f440a0f3c3ee9d87e"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/results.json",
+      "bytes": 100241,
+      "sha256": "40f63635644ecc45735ef35b970a9c4b28c8e2da0b13790a19478f9ebc1862ee"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/root-visual-review.json",
+      "bytes": 1647,
+      "sha256": "34d90f409c3075cea353e3f7a0c16b2bd42730df846dc79bfa2773634289d9bd"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/windowed.md",
+      "bytes": 7851914,
+      "sha256": "84e661fa8af75731cbe8ff0c89c8b135303432307d7464f74a22cfceb7d1534d"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/control/mermaid-ui-03/prepared-inputs.json",
+      "bytes": 11044,
+      "sha256": "940187df8629408221d3dd1b55e05d1cf15b5c8853646f55d2b42e403a643dff"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/control/mermaid-ui-03/prelaunch-verified.json",
+      "bytes": 606,
+      "sha256": "ed0d0611dcd00a272133e8c784a76f7fc615638872e4fd037c8d80d2f1f14a0c"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/control/mermaid-ui-03/driver-ready.json",
+      "bytes": 165,
+      "sha256": "050c75d23a6a53c4c35ee9f686c95583e8b6e660b883a862b6adc313391108fd"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/control/mermaid-ui-03/command.json",
+      "bytes": 357,
+      "sha256": "a9fedc12ca50f7ffe665ec874f21fcaf194b4f0c33b346fef14b8188af38deda"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/control/mermaid-ui-03/harness-first.log",
+      "bytes": 1377,
+      "sha256": "ec3a3a70c0f2e56bbdd66069e02d0663f5225492716a51ba555f006be34bff45"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/control/mermaid-ui-03/driver-stop.json",
+      "bytes": 384,
+      "sha256": "3b78e99562d8c5664367824906108bddfcddf88dd25438af4282195982167fde"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/control/mermaid-ui-03/native-driver-first.log",
+      "bytes": 13390,
+      "sha256": "749e7e782d8a131162794e987f49bf03fcfbc98fac017008a9b4b6b37b90c040"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/control/mermaid-ui-03/native-phases.json",
+      "bytes": 12886,
+      "sha256": "22da31b125c9c25315a6239fe3ea26fbfb2f88abcaca3b59a3f7a268e86d22ee"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/control/mermaid-ui-03/owner-visual-review.json",
+      "bytes": 1337,
+      "sha256": "0755745a7db4dc0efa1b2704d53bd9459438a95bee796beedbfe40d26b5f82cf"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/control/mermaid-ui-03/failure-evidence.json",
+      "bytes": 17916,
+      "sha256": "f7b464aaab25323a41ebd00dafa363717165c7f242d2d1cf9bab2cf9acf5269d"
+    }
+  ]
+}

@@ -115,6 +115,7 @@ interface RenderedSourceWindow {
   readonly lines: readonly HTMLElement[]
   readonly sourceWindow: DocumentLineWindow
   readonly tableStarts?: readonly number[]
+  readonly presentationRange?: { readonly fromLine: number; readonly toLine: number }
 }
 
 interface QueuedEditResolution {
@@ -158,6 +159,12 @@ export class SourceDocumentView {
   private readonly imagePaste: ImagePasteSession
   private readonly images: ImagePresentation
   private readonly documentPresentation: DocumentPresentation
+  private documentPresentationEnabled = false
+  private presentationReadRevision = 0
+  private readonly presentationFenceReads = new Map<
+    string,
+    Promise<MarkdownWindowParseResult | undefined>
+  >()
   private tableStarts: readonly number[] = []
   private mode: ViewMode
   private editable: boolean
@@ -502,6 +509,7 @@ export class SourceDocumentView {
         this.renderCursor()
       }
     })
+    this.documentPresentationEnabled = config.documentPresentation !== undefined
     this.documentPresentation = new DocumentPresentation(
       this.dom,
       this.contentDOM,
@@ -555,7 +563,11 @@ export class SourceDocumentView {
   }
 
   setDocumentPresentation(config: DocumentPresentationConfig | undefined): void {
+    this.presentationReadRevision += 1
+    this.presentationFenceReads.clear()
+    this.documentPresentationEnabled = config !== undefined
     this.documentPresentation.setConfig(config)
+    void this.renderVisibleWindow()
   }
   invalidateDocumentPresentation(): void {
     this.documentPresentation.invalidate()
@@ -631,6 +643,8 @@ export class SourceDocumentView {
   }
 
   updateSource(source: EditorDocumentSource): void {
+    this.presentationReadRevision += 1
+    this.presentationFenceReads.clear()
     this.imagePaste.abort()
     this.navigationRevision += 1
     const documentChanged = source.documentId !== this.currentSource.documentId
@@ -681,6 +695,8 @@ export class SourceDocumentView {
       return
     }
 
+    this.presentationReadRevision += 1
+    this.presentationFenceReads.clear()
     this.mode = mode
     this.measuredHeights.clear()
     this.dom.dataset.mode = mode
@@ -820,6 +836,8 @@ export class SourceDocumentView {
       return
     if (version !== source.version) request = this.createRenderRequest()
     const renderVersion = source.version
+    const renderMode = this.mode
+    const presentationReadRevision = this.presentationReadRevision
     const rendered =
       this.mode === 'live'
         ? await this.renderLiveLineWindow(request)
@@ -829,6 +847,8 @@ export class SourceDocumentView {
       this.destroyed ||
       source !== this.currentSource ||
       renderVersion !== source.version ||
+      renderMode !== this.mode ||
+      presentationReadRevision !== this.presentationReadRevision ||
       request.id < this.latestAppliedRequestId ||
       editRevision !== this.editRevision
     ) {
@@ -858,6 +878,17 @@ export class SourceDocumentView {
         await this.renderVisibleWindow(deferred.request)
       })
       return deferred.promise
+    }
+    if (rendered.presentationRange) {
+      const { fromLine, toLine } = rendered.presentationRange
+      request = {
+        ...request,
+        fromLine,
+        toLine,
+        ...(request.spacers
+          ? { spacers: this.lineSpacers(fromLine, toLine, this.dom.scrollTop) }
+          : {}),
+      }
     }
     this.latestAppliedRequestId = request.id
     this.renderedSourceWindow = rendered.sourceWindow
@@ -948,6 +979,8 @@ export class SourceDocumentView {
   }
 
   destroy(): void {
+    this.presentationReadRevision += 1
+    this.presentationFenceReads.clear()
     this.imagePaste.abort()
     this.images.destroy()
     this.documentPresentation.destroy()
@@ -1170,18 +1203,59 @@ export class SourceDocumentView {
   }
 
   private async renderLiveLineWindow(request: RenderRequest): Promise<RenderedSourceWindow> {
+    const source = this.currentSource,
+      version = source.version
+    const revision = this.presentationReadRevision
     const fromLine = Math.max(1, request.fromLine - this.markdownContextLines)
     const toLine = Math.min(
       this.currentSource.lineCount,
       request.toLine + this.markdownContextLines,
     )
-    const parsed = await this.parseLiveWindow(fromLine, toLine)
+    let parsed = await this.parseLiveWindow(fromLine, toLine)
+    const current = () =>
+      !this.destroyed &&
+      this.mode === 'live' &&
+      source === this.currentSource &&
+      version === source.version &&
+      revision === this.presentationReadRevision
+    if (current() && this.documentPresentationEnabled)
+      parsed = await this.readPresentationFenceWindow(parsed, request, source, version, revision)
     const blocks = parsed.root.children ?? []
+    let renderedFrom = request.fromLine,
+      renderedTo = request.toLine
+    if (current() && this.documentPresentationEnabled) {
+      for (const block of blocks) {
+        if (block.type !== 'fencedCode' || block.status !== 'valid') continue
+        const closing = block.markerRanges?.at(-1)
+        if (!closing || (block.markerRanges?.length ?? 0) < 2) continue
+        const start = parsed.window.lines.find((line) => line.from === block.from)
+        const end = parsed.window.lines.find(
+          (line) => line.from <= closing.to && line.to >= closing.to,
+        )
+        if (!start || !end || start.number > request.toLine || end.number < request.fromLine)
+          continue
+        const first = parsed.window.lines.find(
+          (line) => line.number === Math.min(renderedFrom, start.number),
+        )
+        const last = parsed.window.lines.find(
+          (line) => line.number === Math.max(renderedTo, end.number),
+        )
+        if (
+          !first ||
+          !last ||
+          last.number - first.number + 1 > 256 ||
+          last.to - first.from > 65_536
+        )
+          continue
+        renderedFrom = first.number
+        renderedTo = last.number
+      }
+    }
 
     return Object.freeze({
       lines: Object.freeze(
         parsed.window.lines
-          .filter((line) => line.number >= request.fromLine && line.number <= request.toLine)
+          .filter((line) => line.number >= renderedFrom && line.number <= renderedTo)
           .map((line) =>
             renderLiveLine(this.ownerDocument, line, blocks, {
               cursorPosition: this.cursorPosition,
@@ -1191,7 +1265,75 @@ export class SourceDocumentView {
       ),
       sourceWindow: parsed.window,
       tableStarts: blocks.filter((node) => node.type === 'table').map((node) => node.from),
+      ...(renderedFrom !== request.fromLine || renderedTo !== request.toLine
+        ? { presentationRange: { fromLine: renderedFrom, toLine: renderedTo } }
+        : {}),
     })
+  }
+
+  private async readPresentationFenceWindow(
+    base: MarkdownWindowParseResult,
+    request: RenderRequest,
+    source: EditorDocumentSource,
+    version: number,
+    revision: number,
+  ): Promise<MarkdownWindowParseResult> {
+    const candidate = base.root.children?.find(
+      (block) => block.type === 'fencedCode' && block.status === 'incomplete',
+    )
+    const opening = candidate && base.window.lines.find((line) => line.from === candidate.from)
+    if (!candidate || !opening || opening.number > request.toLine) return base
+    const first = Math.min(request.fromLine, opening.number)
+    const last = Math.min(source.lineCount, first + 255)
+    if (last <= base.window.toLine || base.window.text.length > 65_536) return base
+    const key = `${source.documentId}:${version}:${revision}:${first}:${last}:${candidate.from}`
+    let pending = this.presentationFenceReads.get(key)
+    if (!pending) {
+      // A local incomplete fence is only a bounded read hint. The desktop
+      // context reader must independently prove it before any source replacement.
+      pending = (async () => {
+        try {
+          const parsed = await parseMarkdownWindow(
+            {
+              documentId: source.documentId,
+              version,
+              readLineWindow: (from, to) => source.readLineWindow(from, to, 65_536),
+            },
+            { fromLine: first, toLine: last },
+          )
+          if (parsed.window.text.length > 65_536 || parsed.window.lines.length > 256)
+            return undefined
+          const closed = parsed.root.children?.some(
+            (block) =>
+              block.type === 'fencedCode' &&
+              block.status === 'valid' &&
+              block.from === candidate.from,
+          )
+          return closed ? parsed : undefined
+        } catch {
+          return undefined
+        }
+      })()
+      // Cache even an unclosed/over-budget hint so scroll/layout cannot loop reads.
+      this.presentationFenceReads.set(key, pending)
+      while (this.presentationFenceReads.size > this.markdownCacheSize) {
+        const oldest = this.presentationFenceReads.keys().next().value
+        if (oldest === undefined) break
+        this.presentationFenceReads.delete(oldest)
+      }
+    }
+    const parsed = await pending
+    return parsed &&
+      !this.destroyed &&
+      this.mode === 'live' &&
+      source === this.currentSource &&
+      version === source.version &&
+      revision === this.presentationReadRevision &&
+      this.documentPresentationEnabled &&
+      parsed.window.fromLine <= request.fromLine &&
+      parsed.window.toLine >= request.toLine
+      ? parsed
+      : base
   }
 
   private async parseLiveWindow(
@@ -3544,6 +3686,11 @@ function applyLiveBlockClasses(
 
     if (block.type === 'fencedCode') {
       lineDOM.classList.add('milkup-block-code')
+      const closing = block.markerRanges?.at(-1)
+      if (block.status === 'valid' && closing && (block.markerRanges?.length ?? 0) >= 2) {
+        lineDOM.dataset.presentationBlockFrom = String(block.from)
+        lineDOM.dataset.presentationBlockTo = String(closing.to)
+      }
     }
 
     if (block.type === 'table') {

@@ -1,0 +1,214 @@
+--- approved-ui03-diagnostic02/observer.js
++++ prepared-ui04-diagnostic01/observer.js
+@@ -170,7 +170,9 @@
+           ?.textContent,
+         previews: [...document.querySelectorAll("[data-document-presentation]")]
+           .filter((e) =>
+-            [108, 440].includes(Number(e.dataset.presentationFrom)),
++            [108, 440, 1087, 1372, 1517].includes(
++              Number(e.dataset.presentationFrom),
++            ),
+           )
+           .map((e) => ({
+             from: Number(e.dataset.presentationFrom),
+
+--- approved-ui03-diagnostic02/diagnostic.mjs
++++ prepared-ui04-diagnostic01/diagnostic.mjs
+@@ -2,9 +2,11 @@
+ import { readFile, writeFile, mkdir } from "node:fs/promises";
+ import { fileURLToPath } from "node:url";
+ import path from "node:path";
++import { execFileSync } from "node:child_process";
+ import { startProduction } from "/workspace/milkup/tests/helpers/native-production.mjs";
+ import { ownedApplication } from "/workspace/milkup/tests/helpers/native-owned-process.mjs";
+ import {
++  action,
+   nativeFixture,
+   x,
+ } from "/workspace/milkup/tests/helpers/native-updates-fixture.mjs";
+@@ -19,10 +21,10 @@
+   );
+ const samples = JSON.parse(
+   await readFile(
+-    "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-03/plan.json",
++    "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-04/plan.json",
+     "utf8",
+   ),
+-).samples.slice(0, 2);
++).samples.slice(0, 4);
+ let app,
+   installed = false;
+ const ui = nativeFixture(() => app),
+@@ -35,9 +37,95 @@
+   });
+   await save("journal", journal);
+ }
++const observe = () =>
++  app.execute(`
++const rect=e=>e.getBoundingClientRect().toJSON(),editor=document.querySelector('.milkup-editor');
++return {width:innerWidth,height:innerHeight,theme:document.documentElement.dataset.theme,zoom:Number(document.querySelector('#app')?.dataset.appearanceZoom),windowed:!!document.querySelector('.milkup-source-document-view'),editor:rect(editor),fonts:document.fonts.status,previews:[...document.querySelectorAll('[data-document-presentation]')].map(e=>({from:Number(e.dataset.presentationFrom),to:Number(e.dataset.presentationTo),label:e.getAttribute('aria-label'),rect:rect(e),top:e.scrollTop,left:e.scrollLeft,scrollWidth:e.scrollWidth,clientWidth:e.clientWidth,scrollHeight:e.scrollHeight,clientHeight:e.clientHeight,inlineSvg:e.querySelectorAll('svg,foreignObject,script').length,images:[...e.querySelectorAll('img')].map(i=>({src:i.currentSrc,complete:i.complete,naturalWidth:i.naturalWidth,naturalHeight:i.naturalHeight,width:i.width,height:i.height,draggable:i.draggable,tabIndex:i.tabIndex,rect:rect(i),slot:rect(i.parentElement),ink:rect(i.parentElement.parentElement),offset:{left:i.style.left,top:i.style.top,slotLeft:i.parentElement.style.left,slotTop:i.parentElement.style.top},slotOverflow:getComputedStyle(i.parentElement).overflow}))})),notices:[...document.querySelectorAll('[data-document-presentation-notice]')].map(e=>e.textContent),noticeBoxes:[...document.querySelectorAll('[data-document-presentation-notice]')].map(e=>({text:e.textContent,rect:rect(e),display:getComputedStyle(e).display,visibility:getComputedStyle(e).visibility,opacity:Number(getComputedStyle(e).opacity)})),diagnostics:window.__productionDiagnostics}
++`);
++function assertCapturedPreview(dom, expected, stage) {
++  const actual = dom.previews.find(
++    (item) => item.from === expected.from && item.to === expected.to,
++  );
++  assert(
++    actual && visible(actual.rect, dom),
++    stage + ": same range remains visible",
++  );
++  assert.equal(actual.inlineSvg, 0, stage + ": no injected inline SVG");
++  assert.equal(
++    actual.images.length,
++    expected.images.length,
++    stage + ": all images remain mounted",
++  );
++  assert(
++    actual.images.every(
++      (item) =>
++        item.src.startsWith("blob:") &&
++        item.complete &&
++        item.naturalWidth > 0 &&
++        item.naturalHeight > 0,
++    ),
++    stage + ": same range remains fully decoded",
++  );
++}
++function visible(rect, dom) {
++  return (
++    rect.bottom > Math.max(0, dom.editor.top) &&
++    rect.top < Math.min(dom.height, dom.editor.bottom) &&
++    rect.right > Math.max(0, dom.editor.left) &&
++    rect.left < Math.min(dom.width, dom.editor.right)
++  );
++}
++
++const readRegistry = () =>
++  app.execute(
++    "return JSON.parse(localStorage.getItem('milkup.desktop.plugins.registry.v1')).records.filter(r=>r.manifest.id==='milkup.diagrams').map(r=>({id:r.manifest.id,enabled:r.enabled,state:r.state,errors:r.errors,rootPath:r.rootPath}))",
++  );
++async function warmup(sample) {
++  await seek(sample);
++  let dom, preview;
++  await app.until(
++    async () => {
++      dom = await observe();
++      preview = dom.previews.find(
++        (p) =>
++          p.from === sample.from && p.to >= sample.to && p.to <= sample.to + 1,
++      );
++      return (
++        preview?.images.length &&
++        preview.images.every(
++          (i) => i.complete && i.naturalWidth > 0 && i.naturalHeight > 0,
++        )
++      );
++    },
++    "warmup decoded " + sample.id,
++    30000,
++  );
++  await app.delay(250);
++  const before = await observe();
++  await save("warmup-" + sample.id + "-before", { before, expected: preview });
++  assertCapturedPreview(before, preview, "before screenshot");
++  await app.shot("warmup-" + sample.id + "-webview");
++  execFileSync(
++    "import",
++    ["-window", "root", path.join(output, "warmup-" + sample.id + "-x11.png")],
++    { env: process.env },
++  );
++  const document = await app.probe(),
++    after = await observe();
++  await save("warmup-" + sample.id + "-after", {
++    document,
++    after,
++    expected: preview,
++  });
++  assertCapturedPreview(after, preview, "after screenshot");
++  await mark("warmup-" + sample.id + "-complete");
++}
++
+ async function seek(sample) {
++  await ui.closeMenu();
+   await app.focus(".milkup-input-proxy");
+   await app.key("ctrl+2");
++  await app.until(async () => (await app.probe()).mode === "live", "live mode");
+   await app.key("ctrl+f");
+   await ui.ready("[data-search-input]");
+   await app.focus("[data-search-input]");
+@@ -51,7 +139,7 @@
+       );
+     },
+     "unique marker search",
+-    2500,
++    30000,
+   );
+   await app.key("Escape");
+   await app.focus(".milkup-input-proxy");
+@@ -77,6 +165,25 @@
+   }
+   await save("owner", { identity: owner.identity, environment: checked });
+   x("windowsize", ui.windowId(), "1100", "760");
++  await app.focus(".milkup-input-proxy");
++  await app.key("ctrl+1");
++  await app.until(
++    async () => (await app.probe()).mode === "source",
++    "source mode before enable",
++  );
++  const beforeEnable = await readRegistry();
++  await save("registry-before-enable", beforeEnable);
++  assert.equal(beforeEnable[0].enabled, false);
++  assert(
++    beforeEnable[0].rootPath.startsWith(
++      process.env.MILKUP_NATIVE_PROFILE_ROOT + "/",
++    ),
++  );
++  await ui.details("milkup.diagrams");
++  await ui.click(action("enable", "milkup.diagrams"));
++  await ui.ready(action("disable", "milkup.diagrams"));
++  await ui.closeMenu();
++  assert.equal((await app.probe()).mode, "source");
+   await app.until(
+     () =>
+       app.execute(
+@@ -95,19 +202,17 @@
+       process.env.MILKUP_NATIVE_PROFILE_ROOT + "/",
+     ),
+   );
+-  await mark("before-observer");
++  for (const sample of samples.slice(0, 3)) await warmup(sample);
++  await mark("after-block-class-ER-before-observer");
+   const observer = await readFile(path.join(base, "observer.js"), "utf8");
+   const installedAt = Date.now();
+   const result = await app.execute("return (" + observer + ")()");
+   await save("installation", result);
+   assert.equal(result.installed, true, result.reason);
+   installed = true;
+-  await seek(samples[0]);
+-  await mark("block-search-complete");
+-  await app.shot("block-during-observation");
+-  await seek(samples[1]);
+-  await mark("class-search-complete");
+-  await app.shot("class-during-observation");
++  await seek(samples[3]);
++  await mark("flow-search-complete");
++  await app.shot("flow-during-observation");
+   await app.delay(Math.max(0, installedAt + 10300 - Date.now()));
+   const state = await app.execute(
+     "return window.__milkupTransportDiagnostic.state",
+@@ -117,6 +222,7 @@
+     state.done && state.restored,
+     "Observer auto-restored at bounded deadline",
+   );
++  await save("registry-after-observation", await readRegistry());
+   await mark("after-observation");
+   await app.shot("after-observation");
+   await save("outcome", {
+@@ -125,7 +231,7 @@
+     captureComplete: state.dropped === 0 && state.observerErrors.length === 0,
+     events: state.events.length,
+     samples: state.samples.length,
+-    note: "Service-sliced transport, not aggregate renderer request. Observer overhead is included and not deducted. A clone startup differs from historical UI03 sequence.",
++    note: "Service-sliced transport, not aggregate renderer request. Observer overhead is included and not deducted. A failed historical UI04 profile clone is publicly re-enabled and warms block/class/ER before capture; this is not the original 68-request warm history and cannot identify old render68 without reproducing it.",
+   });
+ } catch (error) {
+   await save("failure", {

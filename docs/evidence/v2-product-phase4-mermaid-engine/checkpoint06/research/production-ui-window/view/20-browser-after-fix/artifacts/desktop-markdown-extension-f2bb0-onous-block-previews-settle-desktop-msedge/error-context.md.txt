@@ -1,0 +1,342 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: desktop-markdown-extensions.spec.ts >> search keeps the selected marker visible while asynchronous block previews settle
+- Location: tests/e2e/desktop-markdown-extensions.spec.ts:173:1
+
+# Error details
+
+```
+Test timeout of 60000ms exceeded.
+```
+
+```
+Error: locator.focus: Test timeout of 60000ms exceeded.
+Call log:
+  - waiting for locator('.milkup-document-presentation[tabindex="0"]').filter({ has: locator('svg') }).first()
+
+```
+
+# Page snapshot
+
+```yaml
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - button "菜单" [ref=e5] [cursor=pointer]:
+      - img [ref=e6]
+    - generic [ref=e7]:
+      - heading "未命名" [level=1] [ref=e8]
+      - paragraph [ref=e9]: 未保存
+    - generic "窗口控制" [ref=e10]:
+      - button "最小化" [ref=e11] [cursor=pointer]
+      - button "最大化" [ref=e13] [cursor=pointer]
+      - button "关闭窗口" [ref=e15] [cursor=pointer]
+  - generic [ref=e20]:
+    - textbox [ref=e21]:
+      - generic [ref=e24]: Unicode 中文 é 👩🏽‍💻
+      - generic [ref=e27]: SAMPLE-ROOT
+      - generic [ref=e28]:
+        - generic [ref=e29]:
+          - generic [ref=e30]: 公式 $
+          - generic [ref=e31]: \f
+          - generic [ref=e32]: "rac{x_1^2}{"
+          - generic [ref=e33]: \s
+          - generic [ref=e34]: qrt
+          - generic [ref=e35]: "[3]{y}}$ 和"
+        - group "$\\int_0^\\infty x\\,dx$" [ref=e36]:
+          - math [ref=e37]:
+            - generic [ref=e38]:
+              - generic [ref=e39]:
+                - generic [ref=e40]: ∫
+                - generic [ref=e41]: "0"
+                - generic [ref=e42]: ∞
+              - generic [ref=e43]: x
+              - generic [ref=e44]: d
+              - generic [ref=e45]: x
+        - generic [ref=e47]: 。
+      - generic [ref=e50]: SAMPLE-MATRIX
+      - 'group "$$ \\begin{pmatrix}a&b\\\\c&d\\end{pmatrix} $$" [ref=e52]':
+        - math [ref=e53]:
+          - generic [ref=e54]:
+            - generic [ref=e55]: (
+            - generic [ref=e56]:
+              - generic [ref=e57]:
+                - generic [ref=e60]: a
+                - generic [ref=e63]: b
+              - generic [ref=e64]:
+                - generic [ref=e67]: c
+                - generic [ref=e70]: d
+            - generic [ref=e71]: )
+      - generic [ref=e74]: SAMPLE-FLOW
+      - group "Controlled document image fixture" [ref=e76]:
+        - img "Controlled document image fixture" [ref=e79]
+      - generic [ref=e82]: SAMPLE-SEQUENCE
+      - group "Controlled document image fixture" [ref=e84]:
+        - img "Controlled document image fixture" [ref=e87]
+      - generic [ref=e90]: SAMPLE-PIE
+      - group "Controlled document image fixture" [ref=e92]:
+        - img "Controlled document image fixture" [ref=e95]
+      - generic [ref=e98]: SAMPLE-FOOTNOTES
+      - generic [ref=e99]:
+        - generic [ref=e101]: 脚注引用
+        - group "脚注 1，note：定义中文与 **强调**，原始 Unicode 保留。" [ref=e102]:
+          - superscript [ref=e103]:
+            - button "1" [ref=e104] [cursor=pointer]
+        - generic [ref=e106]: 与再次引用
+        - group "脚注 1，note：定义中文与 **强调**，原始 Unicode 保留。" [ref=e107]:
+          - superscript [ref=e108]:
+            - button "1" [ref=e109] [cursor=pointer]
+        - generic [ref=e111]: 。
+      - generic [ref=e113]:
+        - group "脚注 1 note。" [ref=e114]:
+          - generic [ref=e115]:
+            - text: "[1]"
+            - button "返回引用 1" [ref=e116] [cursor=pointer]
+            - button "返回引用 2" [ref=e117] [cursor=pointer]
+        - generic [ref=e118]:
+          - generic [ref=e119]: 定义中文与
+          - generic [ref=e120]: 强调
+          - generic [ref=e121]: ，原始 Unicode 保留。
+      - generic [ref=e124]: SAMPLE-ERRORS
+      - generic [ref=e125]:
+        - generic [ref=e126]: 未知 $
+        - generic [ref=e127]: "n"
+        - generic [ref=e128]: "otACommand{x}$。"
+      - generic [ref=e129]: "```mermaid"
+      - generic [ref=e130]: flowchart TD
+      - generic [ref=e131]: TEST_DOCUMENT_IMAGE_ERROR
+      - generic [ref=e132]: click A "https://example.invalid"
+      - generic [ref=e133]: "```"
+      - generic [ref=e136]: SAMPLE-CODE
+      - generic [ref=e137]:
+        - generic [ref=e138]: $notMath$
+        - generic [ref=e139]: 与
+        - generic [ref=e140]: 目标
+      - generic [ref=e141]: "```text"
+      - generic [ref=e142]: $notMath$
+      - generic [ref=e143]: "```"
+      - generic [ref=e146]: END-SAMPLES
+    - textbox "Markdown 编辑器" [active]
+  - generic [ref=e148]:
+    - generic [ref=e149]:
+      - button "侧栏" [ref=e150] [cursor=pointer]:
+        - img [ref=e151]
+      - button "实时" [ref=e153] [cursor=pointer]:
+        - img [ref=e154]
+    - generic [ref=e157]:
+      - generic [ref=e158]: Markdown
+      - generic [ref=e159]: 690 字符
+      - generic [ref=e162]: 未保存
+```
+
+# Test source
+
+```ts
+  147 |   await page.getByRole('button', { name: '菜单', exact: true }).click()
+  148 |   await page.getByRole('button', { name: '插件', exact: true }).click()
+  149 |   for (const name of ['数学公式', 'Controlled Document Image Fixture', 'Milkup Footnotes']) {
+  150 |     await page.getByRole('button', { name, exact: true }).click()
+  151 |     await page.getByRole('button', { name: '禁用', exact: true }).click()
+  152 |     await page.locator('[data-plugin-action=back]').click()
+  153 |   }
+  154 |   await page.locator('[data-menu-close]').click()
+  155 |   await expect(page.locator('[data-document-presentation]')).toHaveCount(0)
+  156 |   await page.keyboard.press('Control+1')
+  157 |   await page.locator('.milkup-input-proxy').focus()
+  158 |   // Use a different position from the seed insertion's end, so this edit has
+  159 |   // its own history entry even when the UI interactions finish within 1 second.
+  160 |   await page.keyboard.press('Control+Home')
+  161 |   await page.keyboard.insertText('停用😀')
+  162 |   expect(await sourceLines(page)).toEqual(`停用😀${fixture}`.split('\n'))
+  163 |   await page.keyboard.press('Control+z')
+  164 |   expect(await sourceLines(page)).toEqual(fixture.split('\n'))
+  165 |   await page.keyboard.press('Control+Shift+z')
+  166 |   expect(await sourceLines(page)).toEqual(`停用😀${fixture}`.split('\n'))
+  167 |   await page.keyboard.press('Control+z')
+  168 |   expect(await sourceLines(page)).toEqual(fixture.split('\n'))
+  169 |   await page.keyboard.press('Control+s')
+  170 |   await expect(page.locator('[data-save-dot]')).not.toHaveClass(/is-dirty/)
+  171 | })
+  172 | 
+  173 | test('search keeps the selected marker visible while asynchronous block previews settle', async ({
+  174 |   page,
+  175 | }) => {
+  176 |   await page.setViewportSize({ width: 1100, height: 760 })
+  177 |   await markdownExtensionFixture(page)
+  178 |   const source =
+  179 |     '# Unicode 中文 é 👩🏽‍💻\r\n\r\nSAMPLE-ROOT\r\n公式 $\\frac{x_1^2}{\\sqrt[3]{y}}$ 和 $\\int_0^\\infty x\\,dx$。\r\n\r\nSAMPLE-MATRIX\r\n$$\r\n\\begin{pmatrix}a&b\\\\c&d\\end{pmatrix}\r\n$$\r\n\r\nSAMPLE-FLOW\r\n```mermaid\r\nflowchart TD\r\nA[开始] --> B{通过?}\r\nB -->|是| C(完成)\r\n```\r\n\r\nSAMPLE-SEQUENCE\r\n```mermaid\r\nsequenceDiagram\r\nactor A as 用户\r\nparticipant B as 服务\r\nA->>B: 请求\r\nB-->>A: 返回\r\n```\r\n\r\nSAMPLE-PIE\r\n```mermaid\r\npie\r\ntitle 分布\r\n"甲": 2\r\n"乙": 1\r\n```\r\n\r\nSAMPLE-FOOTNOTES\r\n脚注引用[^note] 与再次引用[^note]。\r\n\r\n[^note]: 定义中文与 **强调**，原始 Unicode 保留。\r\n\r\nSAMPLE-ERRORS\r\n未知 $\\notACommand{x}$。\r\n```mermaid\r\nflowchart TD\r\nTEST_DOCUMENT_IMAGE_ERROR\r\nclick A "https://example.invalid"\r\n```\r\n\r\nSAMPLE-CODE\r\n`$notMath$` 与 [目标](https://example.invalid/$notMath$)\r\n```text\r\n$notMath$\r\n```\r\n\r\nEND-SAMPLES\r\n'
+  180 |   await seedMarkdownExtensions(page, source)
+  181 |   await expect(page.locator('.milkup-document-presentation img')).toHaveCount(3)
+  182 |   await page.locator('.milkup-input-proxy').focus()
+  183 |   await page.keyboard.press('Control+End')
+  184 |   await page.keyboard.press('Control+f')
+  185 |   await page.locator('[data-search-input]').pressSequentially('SAMPLE-ROOT', { delay: 2 })
+  186 |   await expect(page.locator('[data-search-result-count]')).toHaveText('1/1')
+  187 |   await expect(page.locator('.milkup-selection')).not.toHaveCount(0)
+  188 |   await page.keyboard.press('Escape')
+  189 |   await page.locator('.milkup-input-proxy').focus()
+  190 |   const observations = []
+  191 |   for (let i = 0; i < 60; i++) {
+  192 |     observations.push(
+  193 |       await page.locator('.milkup-editor').evaluate((root) => {
+  194 |         const line = root.querySelector('.milkup-line[data-line="3"]')!
+  195 |         const rect = line.getBoundingClientRect(),
+  196 |           box = root.getBoundingClientRect()
+  197 |         return {
+  198 |           scrollTop: root.scrollTop,
+  199 |           top: rect.top,
+  200 |           bottom: rect.bottom,
+  201 |           viewportTop: box.top,
+  202 |           viewportBottom: box.bottom,
+  203 |         }
+  204 |       }),
+  205 |     )
+  206 |     await page.waitForTimeout(50)
+  207 |   }
+  208 |   await test.info().attach('search-scroll-observations', {
+  209 |     body: JSON.stringify(observations),
+  210 |     contentType: 'application/json',
+  211 |   })
+  212 |   expect(
+  213 |     observations.slice(-3).every((r) => r.top >= r.viewportTop && r.bottom <= r.viewportBottom),
+  214 |   ).toBe(true)
+  215 |   await page
+  216 |     .locator('.milkup-document-presentation')
+  217 |     .filter({ has: page.locator('mroot') })
+  218 |     .click()
+  219 |   await expect(page.locator('.milkup-line[data-line="4"]')).toContainText('\\frac')
+  220 |   await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+  221 |   const revealed = []
+  222 |   for (let i = 0; i < 20; i++) {
+  223 |     revealed.push(
+  224 |       await page.locator('.milkup-editor').evaluate((root) => {
+  225 |         const line = root.querySelector('.milkup-line[data-line="4"]')!.getBoundingClientRect(),
+  226 |           box = root.getBoundingClientRect()
+  227 |         return {
+  228 |           top: line.top,
+  229 |           bottom: line.bottom,
+  230 |           viewportTop: box.top,
+  231 |           viewportBottom: box.bottom,
+  232 |         }
+  233 |       }),
+  234 |     )
+  235 |     await page.waitForTimeout(50)
+  236 |   }
+  237 |   await test.info().attach('source-reveal-geometry', {
+  238 |     body: JSON.stringify(revealed),
+  239 |     contentType: 'application/json',
+  240 |   })
+  241 |   expect(
+  242 |     revealed.slice(-3).every((r) => r.top >= r.viewportTop && r.bottom <= r.viewportBottom),
+  243 |   ).toBe(true)
+  244 |   const graphs = page
+  245 |     .locator('.milkup-document-presentation[tabindex="0"]')
+  246 |     .filter({ has: page.locator('svg') })
+> 247 |   await graphs.nth(0).focus()
+      |                       ^ Error: locator.focus: Test timeout of 60000ms exceeded.
+  248 |   await page.waitForTimeout(300)
+  249 |   await expect(graphs.nth(0)).toBeFocused()
+  250 |   await page.keyboard.press('Tab')
+  251 |   await page.waitForTimeout(300)
+  252 |   await expect(graphs.nth(1)).toBeFocused()
+  253 |   await page.keyboard.press('Shift+Tab')
+  254 |   await page.waitForTimeout(300)
+  255 |   await expect(graphs.nth(0)).toBeFocused()
+  256 |   const references = page.locator('.milkup-document-reference')
+  257 |   await references.nth(0).focus()
+  258 |   await page.waitForTimeout(300)
+  259 |   await expect(references.nth(0)).toBeFocused()
+  260 |   await page.keyboard.press('Tab')
+  261 |   await page.waitForTimeout(300)
+  262 |   await expect(references.nth(1)).toBeFocused()
+  263 |   await page.keyboard.press('Shift+Tab')
+  264 |   await expect(references.nth(0)).toBeFocused()
+  265 | })
+  266 | 
+  267 | for (const windowed of [false, true])
+  268 |   test(`background preview refresh preserves layout (${windowed})`, async ({ page }) => {
+  269 |     await page.setViewportSize({ width: 1100, height: 760 })
+  270 |     await page.goto('/')
+  271 |     const source = [
+  272 |       'START',
+  273 |       '',
+  274 |       'SAMPLE-ROOT',
+  275 |       'inline source',
+  276 |       '',
+  277 |       'SAMPLE-FLOW',
+  278 |       '```mermaid',
+  279 |       'flowchart TD',
+  280 |       'A --> B',
+  281 |       'B --> C',
+  282 |       '```',
+  283 |       '',
+  284 |       'SAMPLE-SEQUENCE',
+  285 |       '```mermaid',
+  286 |       'sequenceDiagram',
+  287 |       'A->>B: hi',
+  288 |       'B-->>A: ok',
+  289 |       '```',
+  290 |       '',
+  291 |       'SAMPLE-PIE',
+  292 |       '```mermaid',
+  293 |       'pie',
+  294 |       'title parts',
+  295 |       '"A": 2',
+  296 |       '"B": 1',
+  297 |       '```',
+  298 |       '',
+  299 |       'SAMPLE-NOTE',
+  300 |       'reference',
+  301 |       '',
+  302 |       'definition',
+  303 |       '',
+  304 |       'SAMPLE-ERROR',
+  305 |       '```mermaid',
+  306 |       'unsupported',
+  307 |       '```',
+  308 |       '',
+  309 |       ...Array(100).fill('retained 中文😀 text'),
+  310 |     ].join('\r\n')
+  311 |     await page.evaluate(
+  312 |       async ({ source, windowed, viewModule, coreModule }) => {
+  313 |         const { SourceDocumentView, EditorView } = await import(viewModule)
+  314 |         const { MemoryDocumentSource, Selection, EditorState, MemoryTextDocument } = await import(
+  315 |           coreModule
+  316 |         )
+  317 |         const mount = document.createElement('div')
+  318 |         mount.dataset.presentationProbe = ''
+  319 |         Object.assign(mount.style, {
+  320 |           position: 'fixed',
+  321 |           inset: '37px 0 30px',
+  322 |           zIndex: '10000',
+  323 |           background: 'white',
+  324 |         })
+  325 |         document.body.append(mount)
+  326 |         const requests: unknown[] = []
+  327 |         const fragments = [...source.matchAll(/```mermaid\r\n([\s\S]*?)```/g)].map(
+  328 |           (match, index) => ({
+  329 |             from: match.index!,
+  330 |             to: match.index! + match[0].length,
+  331 |             layout: 'block',
+  332 |             accessibleText: `graph ${index}`,
+  333 |             ...(index === 3
+  334 |               ? { status: 'error', message: 'Unsupported graph; edit original source.' }
+  335 |               : {}),
+  336 |             content: {
+  337 |               type: 'vector',
+  338 |               width: 700,
+  339 |               height: [300, 245, 420, 100][index],
+  340 |               children: [{ type: 'text', x: 10, y: 20, text: `graph ${index}` }],
+  341 |             },
+  342 |           }),
+  343 |         )
+  344 |         const store = new MemoryDocumentSource({ documentId: 'window-stability', text: source })
+  345 |         let view: InstanceType<typeof SourceDocumentView>
+  346 |         const options = {
+  347 |           parent: mount,
+```

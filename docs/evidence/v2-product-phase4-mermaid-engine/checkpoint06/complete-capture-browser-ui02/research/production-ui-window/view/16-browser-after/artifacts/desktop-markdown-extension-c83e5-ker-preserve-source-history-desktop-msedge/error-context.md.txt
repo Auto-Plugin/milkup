@@ -1,0 +1,257 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: desktop-markdown-extensions.spec.ts >> real math and footnotes plus controlled image Worker preserve source/history
+- Location: tests/e2e/desktop-markdown-extensions.spec.ts:45:1
+
+# Error details
+
+```
+Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: true
+Received: false
+```
+
+# Page snapshot
+
+```yaml
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - button "菜单" [ref=e5] [cursor=pointer]:
+      - img [ref=e6]
+    - generic [ref=e7]:
+      - heading "未命名" [level=1] [ref=e8]
+      - paragraph [ref=e9]: 未保存
+    - generic "窗口控制" [ref=e10]:
+      - button "最小化" [ref=e11] [cursor=pointer]
+      - button "最大化" [ref=e13] [cursor=pointer]
+      - button "关闭窗口" [ref=e15] [cursor=pointer]
+  - generic [ref=e20]:
+    - textbox [ref=e21]:
+      - generic [ref=e23]: 安全起点 中文😀
+      - generic [ref=e25]:
+        - generic [ref=e27]: 行内
+        - 'group "$x^2 + \\frac{1}{2}$" [ref=e28]':
+          - math [ref=e29]:
+            - generic [ref=e30]:
+              - generic [ref=e31]:
+                - generic [ref=e32]: x
+                - generic [ref=e33]: "2"
+              - generic [ref=e34]: +
+              - generic [ref=e35]:
+                - generic [ref=e36]: "1"
+                - generic [ref=e37]: "2"
+        - generic [ref=e39]: 末尾
+      - 'group "$$ \\begin{pmatrix}a&b\\\\c&d\\end{pmatrix} $$" [ref=e42]':
+        - math [ref=e43]:
+          - generic [ref=e44]:
+            - generic [ref=e45]: (
+            - generic [ref=e46]:
+              - generic [ref=e47]:
+                - generic [ref=e50]: a
+                - generic [ref=e53]: b
+              - generic [ref=e54]:
+                - generic [ref=e57]: c
+                - generic [ref=e60]: d
+            - generic [ref=e61]: )
+      - group "Controlled document image fixture" [ref=e64]:
+        - img "Controlled document image fixture" [ref=e67]
+      - generic [ref=e69]:
+        - generic [ref=e71]: 引用
+        - group "脚注 1，n：脚注 **正文**" [ref=e72]:
+          - superscript [ref=e73]:
+            - button "1" [ref=e74] [cursor=pointer]
+        - generic [ref=e76]: 。
+      - generic [ref=e78]:
+        - group "脚注 1 n。" [ref=e79]:
+          - generic [ref=e80]:
+            - text: "[1]"
+            - button "返回引用 1" [ref=e81] [cursor=pointer]
+        - generic [ref=e82]:
+          - generic [ref=e83]: 脚注
+          - generic [ref=e84]: 正文
+      - generic [ref=e87]: 终点
+    - textbox "Markdown 编辑器" [active]
+  - generic [ref=e88]:
+    - generic [ref=e89]:
+      - button "侧栏" [ref=e90] [cursor=pointer]:
+        - img [ref=e91]
+      - button "实时" [ref=e93] [cursor=pointer]:
+        - img [ref=e94]
+    - generic [ref=e97]:
+      - generic [ref=e98]: Markdown
+      - generic [ref=e99]: 155 字符
+      - generic [ref=e102]: 未保存
+```
+
+# Test source
+
+```ts
+  1   | import { writeFile } from 'node:fs/promises'
+  2   | import { resolve } from 'node:path'
+  3   | import { expect, test, type Page } from '@playwright/test'
+  4   | import {
+  5   |   markdownExtensionFixture,
+  6   |   seedMarkdownExtensions,
+  7   | } from '../helpers/markdown-extension-plugins'
+  8   | const sourceLines = (page: Page) =>
+  9   |   page
+  10  |     .locator('.milkup-line')
+  11  |     .evaluateAll((lines) =>
+  12  |       lines.map((line) =>
+  13  |         line.getAttribute('data-from') === line.getAttribute('data-to') ? '' : line.textContent,
+  14  |       ),
+  15  |     )
+  16  | const fixture = [
+  17  |   '安全起点 中文😀',
+  18  |   '',
+  19  |   '行内 $x^2 + \\frac{1}{2}$ 末尾',
+  20  |   '',
+  21  |   '$$',
+  22  |   '\\begin{pmatrix}a&b\\\\c&d\\end{pmatrix}',
+  23  |   '$$',
+  24  |   '',
+  25  |   '```mermaid',
+  26  |   'flowchart LR',
+  27  |   'A[中文] --> B[结束]',
+  28  |   '```',
+  29  |   '',
+  30  |   '引用[^n]。',
+  31  |   '',
+  32  |   '[^n]: 脚注 **正文**',
+  33  |   '',
+  34  |   '终点',
+  35  | ].join('\n')
+  36  | test.afterEach(async ({ page }, info) => {
+  37  |   if (info.status !== info.expectedStatus) {
+  38  |     await info.attach('page-state', {
+  39  |       body: await page.locator('body').ariaSnapshot(),
+  40  |       contentType: 'text/plain',
+  41  |     })
+  42  |     await page.screenshot({ path: info.outputPath('failure.png'), fullPage: true })
+  43  |   }
+  44  | })
+  45  | test('real math and footnotes plus controlled image Worker preserve source/history', async ({
+  46  |   page,
+  47  | }) => {
+  48  |   await markdownExtensionFixture(page)
+  49  |   await seedMarkdownExtensions(page, fixture)
+  50  |   await expect(page.locator('.milkup-document-presentation math')).toHaveCount(2)
+  51  |   await expect(page.locator('.milkup-document-presentation img')).toHaveCount(1)
+  52  |   await expect(page.locator('.milkup-document-presentation svg')).toHaveCount(0)
+  53  |   expect(
+  54  |     await page
+  55  |       .locator('.milkup-document-presentation img')
+  56  |       .evaluate(
+  57  |         (img: HTMLImageElement) =>
+  58  |           img.complete && img.naturalWidth > 0 && img.src.startsWith('blob:'),
+  59  |       ),
+> 60  |   ).toBe(true)
+      |     ^ Error: expect(received).toBe(expected) // Object.is equality
+  61  |   await expect(page.locator('.milkup-document-reference').first()).toBeVisible()
+  62  |   await expect(page.locator('.milkup-document-presentation mtable')).toHaveCount(1)
+  63  |   const metrics = await page.locator('.milkup-document-presentation').evaluateAll((elements) =>
+  64  |     elements.map((e) => ({
+  65  |       width: e.getBoundingClientRect().width,
+  66  |       height: e.getBoundingClientRect().height,
+  67  |     })),
+  68  |   )
+  69  |   expect(metrics.every((m) => m.width > 0 && m.height > 0)).toBe(true)
+  70  |   await page.screenshot({
+  71  |     path: test.info().outputPath('three-extensions-live.png'),
+  72  |     fullPage: true,
+  73  |   })
+  74  |   await page.keyboard.press('Control+1')
+  75  |   await expect(page.locator('[data-document-presentation]')).toHaveCount(0)
+  76  |   expect(await sourceLines(page)).toEqual(fixture.split('\n'))
+  77  |   await page.locator('.milkup-input-proxy').focus()
+  78  |   await page.keyboard.press('Control+Home')
+  79  |   await page.keyboard.press('ArrowRight')
+  80  |   await page.keyboard.insertText('😀')
+  81  |   await page.keyboard.press('Control+z')
+  82  |   expect(await sourceLines(page)).toEqual(fixture.split('\n'))
+  83  |   await page.keyboard.press('Control+Shift+z')
+  84  |   await expect(page.locator('.milkup-line').first()).toHaveText('安😀全起点 中文😀')
+  85  | })
+  86  | test('opaque code and controlled provider errors stay literal without executable content', async ({
+  87  |   page,
+  88  | }) => {
+  89  |   await markdownExtensionFixture(page)
+  90  |   const source = [
+  91  |     '起点',
+  92  |     '',
+  93  |     '`$x$`',
+  94  |     '```js',
+  95  |     '$x$',
+  96  |     '```',
+  97  |     '',
+  98  |     '```mermaid',
+  99  |     'flowchart TD',
+  100 |     'A --> B',
+  101 |     'TEST_DOCUMENT_IMAGE_ERROR',
+  102 |     'click A "https://example.com"',
+  103 |     '```',
+  104 |     '',
+  105 |     '$\\href{javascript:alert(1)}{x}$',
+  106 |     '',
+  107 |     '尾',
+  108 |   ].join('\n')
+  109 |   await seedMarkdownExtensions(page, source)
+  110 |   await expect(page.locator('.milkup-editor-content')).toHaveAttribute(
+  111 |     'data-document-presentation-status',
+  112 |     'fallback',
+  113 |   )
+  114 |   await expect(page.locator('.milkup-document-presentation math')).toHaveCount(0)
+  115 |   await expect(page.locator('.milkup-document-presentation img')).toHaveCount(0)
+  116 |   await page.keyboard.press('Control+1')
+  117 |   expect(await sourceLines(page)).toEqual(source.split('\n'))
+  118 | })
+  119 | test('footnote navigation reveals editable original and remains read only', async ({ page }) => {
+  120 |   await markdownExtensionFixture(page)
+  121 |   await seedMarkdownExtensions(page, fixture)
+  122 |   await expect(page.locator('.milkup-document-reference').first()).toBeVisible()
+  123 |   await page.keyboard.press('Control+s')
+  124 |   await expect(page.locator('[data-save-dot]')).not.toHaveClass(/is-dirty/)
+  125 |   await page.locator('.milkup-document-reference').first().click()
+  126 |   await expect(page.locator('.milkup-line[data-line="16"]')).toContainText('[^n]:')
+  127 |   await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+  128 |   await page.keyboard.press('ArrowRight')
+  129 |   await expect(page.locator('.milkup-selection')).toHaveCount(0)
+  130 |   await page.keyboard.press('ArrowDown')
+  131 |   const back = page
+  132 |     .locator(`[data-presentation-from="${fixture.indexOf('[^n]:')}"] .milkup-document-reference`)
+  133 |     .first()
+  134 |   await expect(back).toBeVisible()
+  135 |   await back.click()
+  136 |   await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+  137 |   await expect(page.locator('[data-save-dot]')).not.toHaveClass(/is-dirty/)
+  138 |   await page.keyboard.press('Control+1')
+  139 |   expect(await sourceLines(page)).toEqual(fixture.split('\n'))
+  140 | })
+  141 | test('disabled renderers disappear and leave Unicode editing and save available', async ({
+  142 |   page,
+  143 | }) => {
+  144 |   await markdownExtensionFixture(page)
+  145 |   await seedMarkdownExtensions(page, fixture)
+  146 |   await expect(page.locator('.milkup-document-presentation math')).toHaveCount(2)
+  147 |   await page.getByRole('button', { name: '菜单', exact: true }).click()
+  148 |   await page.getByRole('button', { name: '插件', exact: true }).click()
+  149 |   for (const name of ['数学公式', 'Controlled Document Image Fixture', 'Milkup Footnotes']) {
+  150 |     await page.getByRole('button', { name, exact: true }).click()
+  151 |     await page.getByRole('button', { name: '禁用', exact: true }).click()
+  152 |     await page.locator('[data-plugin-action=back]').click()
+  153 |   }
+  154 |   await page.locator('[data-menu-close]').click()
+  155 |   await expect(page.locator('[data-document-presentation]')).toHaveCount(0)
+  156 |   await page.keyboard.press('Control+1')
+  157 |   await page.locator('.milkup-input-proxy').focus()
+  158 |   // Use a different position from the seed insertion's end, so this edit has
+  159 |   // its own history entry even when the UI interactions finish within 1 second.
+  160 |   await page.keyboard.press('Control+Home')
+```

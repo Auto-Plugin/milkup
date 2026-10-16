@@ -11,7 +11,34 @@ const presentations: DocumentPresentation[] = []
 afterEach(() => {
   for (const presentation of presentations.splice(0)) presentation.destroy()
   vi.useRealTimers()
+  vi.restoreAllMocks()
   document.body.replaceChildren()
+})
+it('rejects preparation settled after the monotonic deadline before the timer task runs and retries', async () => {
+  let now = 100
+  vi.spyOn(performance, 'now').mockImplementation(() => now)
+  let finish!: () => void
+  const provide = vi.fn<DocumentPresentationConfig['provide']>()
+  provide
+    .mockImplementationOnce(
+      (window) =>
+        new Promise((resolve) => {
+          finish = () => resolve(response(window))
+        }),
+    )
+    .mockImplementation((window) => response(window))
+  make({ provide })
+  await vi.advanceTimersByTimeAsync(0)
+  expect(provide.mock.calls[0]![1].deadline).toBe(10_100)
+  now = 10_101
+  finish()
+  await vi.advanceTimersByTimeAsync(0)
+  expect(provide.mock.calls[0]![1].signal.aborted).toBe(true)
+  expect(document.querySelector('[data-document-presentation-notice]')?.textContent).toContain(
+    '超时',
+  )
+  await vi.advanceTimersByTimeAsync(1001)
+  expect(provide).toHaveBeenCalledTimes(2)
 })
 function response(
   window: DocumentPresentationWindow,

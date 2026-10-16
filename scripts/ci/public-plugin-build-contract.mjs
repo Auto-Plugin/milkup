@@ -212,6 +212,7 @@ export async function readDependencyClosure(pluginRoot, declaration, manifest) {
   assert.equal(profile.version, 1)
   assert.equal(profile.packageManager, 'pnpm@11.7.0')
   assert.ok(profile.target === 'es2022' || profile.target === 'es2024')
+  assert.equal(typeof profile.minify, 'boolean', 'Bundle minification must be explicitly reviewed')
   assert.match(profile.sdkTarballSha256, hashPattern)
   const pkg = JSON.parse((await publicBuildFile(pluginRoot, 'package.json')).bytes.toString('utf8'))
   assert.equal(pkg.packageManager, profile.packageManager, 'Plugin package manager must be pinned')
@@ -329,6 +330,15 @@ export async function verifyPublicPluginBundle(pluginRoot, entry, metafile, opti
     ? await readDependencyClosure(root, entry.dependencyClosure, { resources: entry.resources })
     : undefined
   if (closure) {
+    assert.ok(
+      Object.values(metafile.outputs).every(
+        (output) =>
+          Number.isSafeInteger(output.bytes) &&
+          output.bytes >= 0 &&
+          output.bytes <= 8 * 1024 * 1024,
+      ),
+      'DOM entry exceeds the existing 8 MiB limit',
+    )
     for (const item of closure.packages) {
       const packageRoot = await realpath(path.join(root, item.root))
       assert.ok(

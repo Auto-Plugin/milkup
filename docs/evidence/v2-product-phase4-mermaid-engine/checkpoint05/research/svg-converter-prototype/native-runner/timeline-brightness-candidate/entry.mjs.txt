@@ -1,0 +1,141 @@
+// Unexecuted red/green specifications. All fixtures run only in the isolated DOM helper.
+const svg=body=>`<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120" viewBox="0 0 200 120" style="font-family:Arial,sans-serif;font-size:16px">${body}</svg>`;
+const fixtures=[
+ {id:'group-inapplicable-xy',expected:'ready',svg:svg('<g x="999" y="888" transform="translate(50,20)"><rect x="1" y="2" width="40" height="30"/></g>'),assertion:'g x/y do not move viewport; original CTM50/20, canonical local translation50/20 only'},
+ {id:'path-inapplicable-viewbox',expected:'ready',svg:svg('<path viewBox="0 0 2 2" d="M10 10 L50 10 L50 40 Z"/>'),assertion:'path viewBox creates no viewport; original bbox10,10,40,30, canonical same unscaled coordinates'},
+ {id:'group-opacity-overlap',expected:'ready',svg:svg('<g opacity=".5"><rect x="10" y="10" width="50" height="50" fill="#f00"/><rect x="30" y="30" width="50" height="50" fill="#00f"/></g>'),assertion:'one parent opacity .5; children remain opacity1; original group retained'},
+ {id:'css-rx-over-attribute',expected:'ready',svg:svg('<style>.rounded{rx:8px;ry:10px}</style><rect class="rounded" x="10" y="10" width="40" height="40" rx="0"/>'),assertion:'rect effective rx8/ry10, not attribute0'},
+ {id:'local-transform-once',expected:'ready',svg:svg('<g transform="translate(50)"><rect style="transform:translateX(20px)" transform="translate(10)" width="40" height="40"/></g>'),assertion:'parent local50 + child local20, not30 or70'},
+ {id:'text-transform',expected:'ready',svg:svg('<text x="10" y="30" style="text-transform:uppercase">Mixed case</text>'),assertion:'typed textTransform uppercase; original mixed-case text retained'},
+ {id:'unknown-writing-mode',expected:'unsupported-feature',svg:svg('<text x="10" y="30" style="writing-mode:vertical-rl">Mixed case</text>')},
+ {id:'external-anchor',expected:'unsafe-output',svg:svg('<a href="https://example.invalid/not-clicked"><rect width="30" height="30"/></a>')},
+ {id:'effective-animation',expected:'unsupported-animation',svg:svg('<style>@keyframes move{to{stroke-dashoffset:0}}.moving{animation:move 20s linear infinite;stroke-dashoffset:900}</style><path class="moving" d="M0 0 L80 80" stroke="red"/>')},
+ {id:'unused-animation-rule',expected:'ready',svg:svg('<style>@keyframes move{to{stroke-dashoffset:0}}.unused{animation:move 20s linear infinite}</style><path d="M0 0 L80 80" stroke="red"/>')},
+ {id:'arc-packed-flags',expected:'ready',svg:svg('<path d="M0 0 A10 10 0 0110 20"/>'),assertion:'full arc flags0/1 and endpoint10/20'},
+ {id:'css-shadow',expected:'ready',svg:svg('<rect width="40" height="40" style="filter:drop-shadow(1px 2px 2px rgb(185,185,185))"/>'),assertion:'typed CSS drop-shadow; do not relabel blur as SVG stdDeviation'},
+ {id:'gradient-multiply',expected:'ready',svg:svg('<defs><linearGradient id="grad"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient></defs><g style="mix-blend-mode:multiply"><rect width="60" height="60" fill="url(#grad)"/></g>'),assertion:'typed local gradient; group multiply retained'},
+ {id:'clip-cycle',expected:'invalid-output',svg:svg('<defs><clipPath id="clip"><rect width="40" height="40" clip-path="url(#clip)"/></clipPath></defs><rect width="80" height="80" clip-path="url(#clip)"/>')},
+];
+
+// External one-case research entry. Native owner alone enforces deadline/network/transport limits.
+import mermaid from './mermaid-full-12.2.0.mjs';
+import {convertSvgElement} from './converter.mjs';
+const base={startOnLoad:false,securityLevel:'strict',htmlLabels:false,suppressErrorRendering:true,maxTextSize:50000,maxEdges:500,deterministicIds:true,deterministicIDSeed:'offline-audit',fontFamily:'Arial, sans-serif',legacyMathML:false,forceLegacyMathML:false,secure:['secure','securityLevel','startOnLoad','maxTextSize','maxEdges','suppressErrorRendering','htmlLabels','fontFamily','themeCSS','legacyMathML','forceLegacyMathML','look','textPlacement','theme','darkMode']};
+let preparation={status:'idle'},preparing,busy=false,sequence=0,task,host;
+const encoder=new TextEncoder();
+const textError=e=>String(e instanceof Error?e.message:e).slice(0,4096);
+function ready(){if(preparing)return preparing;preparation={status:'pending'};return preparing=Promise.resolve(document.fonts?.ready).then(()=>{preparation={status:'ready',engine:'mermaid@12.2.0',converter:'external-prototype-only'};return preparation;},e=>{preparation={status:'error',error:textError(e)};throw e;});}
+function readiness(){return preparation;}
+function validate(r){if(!r||typeof r!=='object'||Array.isArray(r)||Object.keys(r).some(k=>!['id','source','profile','theme'].includes(k)))throw Error('invalid request');if(typeof r.id!=='string'||!/^[A-Za-z0-9_-]{1,96}$/.test(r.id)||typeof r.source!=='string'||r.source.length>50000||!['baseline','classic-tspan'].includes(r.profile)||!['light','dark'].includes(r.theme))throw Error('invalid request values');}
+// Compact ledger only changes research encoding; the independent validator never trusts it.
+function packCoverage(c){const strings=[],ids=new Map(),intern=s=>{s=String(s??'');let id=ids.get(s);if(id===undefined){id=strings.length;ids.set(s,id);strings.push(s);}return id;};return {strings,
+ declarationColumns:['path','property','declared','computed','source','disposition','localReferences'],
+ declarations:c.declarations.map(r=>[intern(r.path),intern(r.property),intern(r.declared),intern(r.computed),intern(r.source),intern(r.disposition),(r.localReferences??[]).map(intern)]),
+ attributes:c.attributes.map(r=>[intern(r.path),intern(r.name),intern(r.disposition)]),
+ rules:c.rules.map(r=>intern(JSON.stringify(r))),normalizations:c.normalizations.map(r=>intern(JSON.stringify(r))),errors:c.errors};}
+function attachBytes(value){value.serializedBytes=0;value.over256KiB=false;for(let i=0;i<8;i++){const n=encoder.encode(JSON.stringify(value)).length,over=n>262144;if(n===value.serializedBytes&&over===value.over256KiB)break;value.serializedBytes=n;value.over256KiB=over;}return value;}
+async function run(request){validate(request);if(preparation.status!=='ready')throw Error('prepare first');if(busy)throw Error('busy');busy=true;const started=performance.now();try{
+ host?.remove();host=document.createElement('div');host.id='svg-converter-prototype-host';host.style.width='1000px';document.body.append(host);
+ mermaid.initialize({...base,...(request.theme==='dark'?{theme:'dark',darkMode:true}:{}),...(request.profile==='classic-tspan'?{look:'classic',journey:{textPlacement:'tspan'}}:{})});
+ let svg,diagramType;
+ if(request.id.startsWith('fixture_')){
+   const fixture=fixtures.find(x=>x.id===request.source);
+   if(!fixture)throw Error('Unknown fixed contract fixture');
+   svg=fixture.svg;diagramType='fixed-contract-fixture';
+ }else ({svg,diagramType}=await mermaid.render('convert_'+request.id,request.source,host));
+ const renderMs=performance.now()-started;host.innerHTML=svg;
+ activeProbe=request.id;
+ return attachBytes({ok:true,id:request.id,profile:request.profile,theme:request.theme,diagramType,renderMs,elapsedMs:performance.now()-started,diagnosticOnly:true,converterSkipped:true,reason:'Observe original SVG then one explicit case-specific property/leaf normalization; original converter rejection is retained separately.'});
+ }catch(e){return attachBytes({ok:false,id:request.id,error:{code:'invalid-output',reason:textError(e)},elapsedMs:performance.now()-started});}finally{busy=false;}}
+function start(request){validate(request);if(preparation.status!=='ready')throw Error('prepare first');if(busy||task?.status==='pending')throw Error('busy');const taskId='conversion_'+(++sequence);task={taskId,status:'pending'};Promise.resolve().then(()=>run(request)).then(result=>{task={taskId,status:'complete',result};},e=>{task={taskId,status:'error',error:textError(e)};});return {taskId,status:'pending'};}
+function poll(taskId){return task?.taskId===taskId?task:{status:'unknown'};}
+function clear(){if(busy||task?.status==='pending')throw Error('pending: native termination required');task=undefined;host?.remove();host=undefined;}
+
+// Research-only integer raster viewport/layout observation, separate from conversion.
+let originalGeometry;
+function matrix(m){return m?[m.a,m.b,m.c,m.d,m.e,m.f]:null;}
+function box(b){return [b.x,b.y,b.width,b.height];}
+function geometry(n){const c=getComputedStyle(n);let bbox=null;try{bbox=box(n.getBBox());}catch{}return {kind:n.localName,rect:box(n.getBoundingClientRect()),bbox,ctm:matrix(n.getCTM?.()),screenCTM:matrix(n.getScreenCTM?.()),viewBox:n.getAttribute('viewBox'),width:n.getAttribute('width'),height:n.getAttribute('height'),preserveAspectRatio:n.getAttribute('preserveAspectRatio'),overflow:c.overflow,display:c.display,transform:c.transform};}
+function rememberOriginal(){if(!originalGeometry){const root=host?.querySelector('svg');if(!root)throw Error('no original SVG');originalGeometry=geometry(root);}return originalGeometry;}
+function mountSlot(node){const g=rememberOriginal(),slot=document.createElement('div');slot.dataset.diagnosticSlot='true';slot.style.width=g.rect[2]+'px';slot.style.height=g.rect[3]+'px';slot.style.display='block';slot.style.overflow='visible';node.style.display='block';slot.append(node);const footer=document.createElement('div');footer.dataset.diagnosticFooter='true';footer.style.cssText='display:block;width:80px;height:8px;margin-top:8px;background:rgb(16,80,192)';host.replaceChildren(slot,footer);}
+function completeObservation(taskId,extra={}){requestAnimationFrame(()=>requestAnimationFrame(()=>{task={taskId,status:'complete',result:{ok:true,observationOnly:true,...extra,...inspect(false)}};}));}
+function controlOriginal(){if(busy||task?.status==='pending')throw Error('busy');rememberOriginal();const root=host.querySelector('svg');const taskId='control_'+(++sequence);task={taskId,status:'pending'};mountSlot(root);completeObservation(taskId);return {taskId,status:'pending'};}
+function showCanonical(){
+ if(busy||task?.status==='pending')throw Error('busy');const g=rememberOriginal(),taskId='canonical_'+(++sequence);task={taskId,status:'pending'};
+ const img=new Image();img.alt='Canonical independently validated image';img.style.width=Math.ceil(g.rect[2])+'px';img.style.height=Math.ceil(g.rect[3])+'px';
+ img.onload=()=>completeObservation(taskId);img.onerror=()=>{task={taskId,status:'error',error:'fixed canonical image decode failed'};};
+ mountSlot(img);img.src='milkup-render://job/canonical.svg';return {taskId,status:'pending'};
+}
+function inspect(includeSource=false){
+ const svg=host?.querySelector('svg'),img=host?.querySelector('img'),node=svg??img;if(!node)throw Error('nothing mounted');
+ if(includeSource)rememberOriginal();const b=node.getBoundingClientRect(),c=getComputedStyle(node),slot=host.querySelector('[data-diagnostic-slot]'),footer=host.querySelector('[data-diagnostic-footer]');
+ const state={kind:node.localName,bbox:box(b),css:{width:c.width,height:c.height,display:c.display,objectFit:c.objectFit,objectPosition:c.objectPosition,transform:c.transform},devicePixelRatio:window.devicePixelRatio,originalGeometry,slot:slot?{rect:box(slot.getBoundingClientRect()),overflow:getComputedStyle(slot).overflow}:null,footer:footer?box(footer.getBoundingClientRect()):null};
+ if(svg){const inner=Array.from(svg.children).find(n=>n.localName==='svg')??svg;state.rootGeometry=geometry(svg);state.innerGeometry=geometry(inner);const nodes=Array.from(inner.querySelectorAll('rect,path,text'));state.geometryNodeCount=nodes.length;state.geometrySamples=nodes.slice(0,72).map((n,index)=>({index,...geometry(n)}));if(includeSource)state.svg=svg.outerHTML;}
+ else Object.assign(state,{naturalWidth:img.naturalWidth,naturalHeight:img.naturalHeight,complete:img.complete,currentSrc:img.currentSrc});return state;
+}
+function showCanonicalInline(svg){
+ if(busy||task?.status==='pending')throw Error('busy');rememberOriginal();const taskId='canonical_inline_'+(++sequence);task={taskId,status:'pending'};
+ // Only the fixed compiled independently validated canonical resource enters here.
+ const holder=document.createElement('div');holder.innerHTML=svg;const root=holder.firstElementChild;if(root?.localName!=='svg'||holder.children.length!==1)throw Error('fixed SVG invalid');mountSlot(root);completeObservation(taskId);return {taskId,status:'pending'};
+}
+window.__milkupSvgConverterProbe=Object.freeze({ready,readiness,run,start,poll,clear,showCanonical,showCanonicalInline,inspect,controlOriginal});
+export {ready,readiness,run,start,poll,clear};
+
+let activeProbe,probeMutations=[],probeObservedAncestors;
+const probeProperties=['filter','box-shadow','transform','transform-origin','transform-box','overflow','opacity','mix-blend-mode','isolation','clip-path','mask','marker-start','marker-mid','marker-end','stroke','stroke-width','stroke-linecap','stroke-linejoin','stroke-miterlimit','stroke-dasharray','stroke-dashoffset'];
+function probeTargets(){const root=host.querySelector('svg');if(activeProbe==='scan_054')return Array.from(root.querySelectorAll('*')).filter(n=>getComputedStyle(n).filter==='brightness(1.2)');if(activeProbe==='scan_044')return Array.from(root.querySelectorAll('*')).filter(n=>getComputedStyle(n).filter.includes('#drop-shadow'));
+ if(activeProbe==='scan_000')return Array.from(root.querySelectorAll('rect')).filter(n=>getComputedStyle(n).boxShadow!=='none');
+ if(activeProbe==='scan_022')return Array.from(root.querySelectorAll('line')).filter(n=>Number(n.getAttribute('x1'))>8192&&n.getAttribute('x1')===n.getAttribute('x2'));
+ if(activeProbe==='scan_040')return Array.from(root.querySelectorAll('circle')).filter(n=>n.hasAttribute('width')||n.hasAttribute('height'));
+ throw Error('unknown fixed probe');}
+function probeInspect(includeSource=false){const root=host.querySelector('svg'),all=[root,...root.querySelectorAll('*')],selected=probeTargets();const details=new Set([root]);for(const n of selected){let x=n;while(x&&root.contains(x)){details.add(x);x=x.parentElement;}}for(const x of probeObservedAncestors??[])if(x.isConnected)details.add(x);probeObservedAncestors??=Array.from(details);return {...inspect(includeSource),diagnosticOnly:true,converterSkipped:true,probe:activeProbe,mutations:probeMutations,allElementCount:all.length,referenceAttributes:all.flatMap(n=>Array.from(n.attributes).filter(a=>/(?:url\(|href|marker)/i.test(a.name+' '+a.value)).map(a=>({tag:n.localName,name:a.name,value:a.value}))).slice(0,128),selectedCount:selected.length,targetsAndAncestors:Array.from(details).slice(0,64).map(n=>({geometry:geometry(n),attributes:Array.from(n.attributes).map(a=>[a.name,a.value]),computed:Object.fromEntries(probeProperties.map(k=>[k,getComputedStyle(n).getPropertyValue(k)]))}))};}
+function probeChange(){if(busy||task?.status==='pending')throw Error('busy');const nodes=probeTargets();if(!nodes.length)throw Error('no matching actual target');const taskId='probechange_'+(++sequence);task={taskId,status:'pending'};probeMutations=[];
+ for(const n of nodes){const before=geometry(n);if(activeProbe==='scan_054'){normalizeTimelineBrightness(n);}else if(activeProbe==='scan_044'){const filter=getComputedStyle(n).filter;if(!/^url\(["']?#drop-shadow["']?\)$/.test(filter)||document.getElementById('drop-shadow'))throw Error('missing local target prerequisite failed');const missingId='milkup-diagnostic-guaranteed-absent-filter';if(document.getElementById(missingId))throw Error('replacement target must be absent');probeMutations.push({tag:n.localName,operation:'filter-different-missing-local-fragment',before,computedBefore:filter,replacementId:missingId,replacementExists:false});n.style.setProperty('filter',`url(#${missingId})`,'important');}
+ else if(activeProbe==='scan_000'){probeMutations.push({tag:n.localName,operation:'box-shadow-none',before,computedBefore:getComputedStyle(n).boxShadow});n.style.setProperty('box-shadow','none','important');}
+ else if(activeProbe==='scan_022'){const root=host.querySelector('svg');if(getComputedStyle(root).overflow!=='hidden')throw Error('root clip prerequisite failed');probeMutations.push({tag:n.localName,operation:'remove-wholly-offscreen-leaf-observation',before,attributes:Array.from(n.attributes).map(a=>[a.name,a.value])});n.remove();}
+ else if(activeProbe==='scan_040'){probeMutations.push({tag:n.localName,operation:'remove-circle-width-height',before,attributesBefore:[n.getAttribute('width'),n.getAttribute('height')]});n.removeAttribute('width');n.removeAttribute('height');}}
+ completeObservation(taskId);return {taskId,status:'pending'};}
+window.__milkupSvgConverterProbe=Object.freeze({...window.__milkupSvgConverterProbe,probeChange,probeInspect});
+
+// Diagnostic only. A live measurement proposes a region; host safety must not trust
+// this measurement. No product schema is implied by this experiment.
+function normalizeTimelineBrightness(n) {
+ const value=getComputedStyle(n).filter;
+ if(value!=='brightness(1.2)')throw Error('expected exact original brightness(1.2)');
+ const groupCTM=n.getCTM();if(!groupCTM)throw Error('missing group CTM');
+ const inverse=groupCTM.inverse();
+ if(![inverse.a,inverse.b,inverse.c,inverse.d,inverse.e,inverse.f].every(Number.isFinite))throw Error('singular group CTM');
+ const measured=[];let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+ for(const leaf of [n,...n.querySelectorAll('*')]) {
+  if(leaf!==n && getComputedStyle(leaf).filter!=='none')throw Error('nested filter needs independent handling');
+  if(leaf.localName==='foreignObject')throw Error('foreignObject not covered by this first candidate');
+  const c=getComputedStyle(leaf);
+  for(const k of ['marker-start','marker-mid','marker-end'])if(c.getPropertyValue(k)!=='none')throw Error('marker extent not covered');
+  if(!['path','line','rect','circle','ellipse','polygon','polyline','text','tspan'].includes(leaf.localName))continue;
+  const b=leaf.getBBox(),ctm=leaf.getCTM();if(!ctm)throw Error('missing measured child CTM');
+  const local=inverse.multiply(ctm);
+  const stroke=c.stroke==='none'?0:parseFloat(c.strokeWidth);
+  const miter=c.strokeLinejoin==='miter'?parseFloat(c.strokeMiterlimit):1;
+  if(!Number.isFinite(stroke)||stroke<0||stroke>64||!Number.isFinite(miter)||miter<1||miter>64)throw Error('invalid stroke extent');
+  const radius=stroke*Math.max(1,miter)/2;
+  const points=[[b.x-radius,b.y-radius],[b.x+b.width+radius,b.y-radius],[b.x-radius,b.y+b.height+radius],[b.x+b.width+radius,b.y+b.height+radius]].map(([x,y])=>({x:local.a*x+local.c*y+local.e,y:local.b*x+local.d*y+local.f}));
+  if(points.some(p=>!Number.isFinite(p.x)||!Number.isFinite(p.y)||Math.abs(p.x)>8192||Math.abs(p.y)>8192))throw Error('measurement bound');
+  for(const p of points){minX=Math.min(minX,p.x);minY=Math.min(minY,p.y);maxX=Math.max(maxX,p.x);maxY=Math.max(maxY,p.y);}
+  measured.push({tag:leaf.localName,bbox:box(b),localCTM:matrix(local),stroke,miter,radius});
+ }
+ if(!measured.length)throw Error('no measured ink');
+ const region={x:Math.floor(minX),y:Math.floor(minY),width:Math.ceil(maxX)-Math.floor(minX),height:Math.ceil(maxY)-Math.floor(minY)};
+ if(!(region.width>0&&region.height>0&&region.width<=8192&&region.height<=8192))throw Error('invalid explicit region');
+ const root=n.ownerSVGElement,ns='http://www.w3.org/2000/svg';
+ const id='milkup-brightness-region-'+probeMutations.length;
+ if(document.getElementById(id))throw Error('candidate ID collision');
+ const defs=document.createElementNS(ns,'defs'),filter=document.createElementNS(ns,'filter'),transfer=document.createElementNS(ns,'feComponentTransfer');
+ filter.id=id;filter.setAttribute('filterUnits','userSpaceOnUse');filter.setAttribute('primitiveUnits','userSpaceOnUse');
+ filter.setAttribute('color-interpolation-filters','sRGB');
+ for(const [key,value]of Object.entries(region)){filter.setAttribute(key,String(value));transfer.setAttribute(key,String(value));}
+ transfer.setAttribute('in','SourceGraphic');transfer.setAttribute('color-interpolation-filters','sRGB');
+ for(const channel of ['R','G','B','A']){const fn=document.createElementNS(ns,'feFunc'+channel);fn.setAttribute('type',channel==='A'?'identity':'linear');if(channel!=='A'){fn.setAttribute('slope','1.2');fn.setAttribute('intercept','0');}transfer.append(fn);}
+ filter.append(transfer);defs.append(filter);root.prepend(defs);
+ probeMutations.push({tag:n.localName,operation:'brightness-explicit-region',computedBefore:value,region,measured,definition:filter.outerHTML,before:geometry(n)});
+ n.style.setProperty('filter',`url(#${id})`,'important');
+}

@@ -1,0 +1,35 @@
+11.7.0
+✓ Lockfile passes supply-chain policies (verified 5m ago)
+Lockfile is up to date, resolution step is skipped
+Progress: resolved 1, reused 0, downloaded 0, added 0
+Packages: +173
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Progress: resolved 173, reused 173, downloaded 0, added 173, done
+
+dependencies:
++ mermaid 12.2.0
+
+devDependencies:
++ @milkup/plugin-sdk 0.3.4
++ esbuild 0.25.12
++ typescript 5.9.3
++ vitest 3.2.6
+
+Done in 1s using pnpm v11.7.0
+Built milkup.diagrams-1.1.0.milkup-plugin (5726804 bytes; entry 5313918 bytes)
+$ tsc --noEmit && node scripts/build.mjs
+
+ RUN  v3.2.6 /workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-build01/standalone/plugin
+
+ ✓ src/bounded-opacity.test.ts (11 tests) 6ms
+ ✓ src/paint-envelope.test.ts (25 tests) 21ms
+ ✓ src/renderer.test.ts (15 tests) 31ms
+ ✓ src/svg-text.test.ts (12 tests) 9ms
+ ✓ src/svg-primitives.test.ts (26 tests) 15ms
+
+ Test Files  5 passed (5)
+      Tests  89 passed (89)
+   Start at  12:52:34
+   Duration  794ms (transform 277ms, setup 0ms, collect 491ms, tests 82ms, environment 1ms, prepare 474ms)
+
+$ vitest run --config vitest.config.ts

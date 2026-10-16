@@ -1,0 +1,17 @@
+208: pub(crate) fn unlisten_js_script(
+209:   listeners_object_name: &str,
+210:   event_arg: &str,
+211:   event_id_arg: &str,
+212: ) -> String {
+213:   format!(
+214:     "(function () {{
+215:         const listeners = (window['{listeners_object_name}'] || {{}})[{event_arg}]
+216:         if (listeners) {{
+217:           window.__TAURI_INTERNALS__.unregisterCallback(listeners[{event_id_arg}].handlerId)
+218:         }}
+219:       }})()
+220:     ",
+221:   )
+222: }
+223: 
+224: pub(crate) fn event_initialization_script(function_name: &str, listeners: &str) -> String {

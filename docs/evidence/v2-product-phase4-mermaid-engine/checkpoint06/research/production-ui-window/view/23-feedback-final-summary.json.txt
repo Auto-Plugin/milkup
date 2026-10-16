@@ -1,0 +1,93 @@
+{
+  "at": "2026-10-16T14:52:54.297213+00:00",
+  "status": "Product and tests frozen; CPU/UI released to root. Shared-view feedback fix validated; new native production verification remains required.",
+  "product": "document-presentation.ts only for this feedback repair; source window and service fixes preceding this repair remain unchanged.",
+  "productSHA256": "77ca976c31736df2ce84c10c0ef9da887c2f366609e7badf42b3f5a7ad876a8c",
+  "mechanismEvidence": {
+    "before": "18-image-feedback/before-summary.json",
+    "after": "19-image-feedback-after/summary.json",
+    "independentReview": "20-independent-review.json",
+    "beforeCounts": "Each capped saved trace contains172provide/171create; dropped208(18line)/348(63line), not whole-run totals.",
+    "afterCounts": "18line:1provide/1create;63line:2provide/1create;30/30samples same decoded image, zero empty or dropped, unchanged source/selection. Single revoke only after final sample during finally destroy."
+  },
+  "validation": {
+    "unit": "19-image-feedback-after/focused-final-2.log:168/168,5files",
+    "viewStrict": "19-image-feedback-after/types-final.log:exit0",
+    "fixtureStrict": "19-image-feedback-after/fixture-types.log:exit0",
+    "format": "19-image-feedback-after/format-final.log:PASS;git diff --check PASS",
+    "fullBrowser": "20-browser-after-fix:33PASS1FAIL/34,zero retry; sole failure old svg selector after actual mathclick/source reveal already passed",
+    "targetBrowser": "22-browser-selector-after:1PASS; complete affected case with img selector plus20x50ms stable decoded blob frames",
+    "coverageStatement": "34 distinct cases passed across full run plus one targeted correction; NOT a single full34 green run. Real math/footnotes Worker remain; official Mermaid native-unavailable is explicit, placeholder never loaded. Controlled image fixture is test-only and not Mermaid implementation."
+  },
+  "stableImages": {
+    "file": "22-browser-selector-after/artifacts/desktop-markdown-extension-f2bb0-onous-block-previews-settle-desktop-msedge/decoded-image-stability.json",
+    "frames": 20,
+    "mountedImageCounts": [
+      3
+    ],
+    "uniqueURLLists": 1,
+    "allDecoded": true
+  },
+  "executionErrorsPreserved": [
+    "18 unit-before no tests found (wrongcwd), unit-after executable path error: not test RED",
+    "19 focused-final and focused-final-corrected final guard expected no request after a genuine different overscan (scroll50); corrected same-window scroll40, product cancellation assertion itself already passed. Failed relative-path test edit retained and explained.",
+    "21-browser-selector-after:No tests found because anchored grep did not match full Playwright title;6s,not product failure;22corrected grep"
+  ],
+  "pixelReviews": [
+    {
+      "path": "20-browser-after-fix/artifacts/desktop-markdown-extension-c83e5-ker-preserve-source-history-desktop-msedge/three-extensions-live.png",
+      "sha256": "b2c347179280a70980dda7b8c27ae9c49a0b18ade448f18be3e5fb032aa7293b",
+      "observed": "Actual pixel review: inline math, 2x2 MathML matrix, blue controlled image with Chinese/emoji label, footnote reference and definition visible; this is the test image, not official Mermaid."
+    },
+    {
+      "path": "20-browser-after-fix/artifacts/desktop-markdown-extension-f2bb0-onous-block-previews-settle-desktop-msedge/failure.png",
+      "sha256": "7ee9f908726db1a28bc361765a7e549c7f0a549423570e4077e318aad559f24b",
+      "observed": "Actual pixel review: selected inline formula literal source fully visible; matrix and blue controlled images visible. This failure is the obsolete SVG focus selector, not missing rendered image."
+    },
+    {
+      "path": "22-browser-selector-after/artifacts/desktop-markdown-extension-f2bb0-onous-block-previews-settle-desktop-msedge/stable-controlled-images.png",
+      "sha256": "5c46a3de204fa2e4080120ebd3515d63c795b0995cf3a0e4e40bfadb074e5a8a",
+      "observed": "Actual pixel review: focused controlled image and full green focus border visible; Chinese/emoji label readable; following image continues below viewport. No claim that the following offscreen bottom is visible."
+    }
+  ],
+  "cleanup": {
+    "20": "State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess\n",
+    "22": "State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess\n",
+    "method": "Managed Playwright process exited; exact runner listener checks showed1420/5174 empty. No broad process kills or existing services changed."
+  },
+  "sources": [
+    {
+      "path": "packages/view-dom/src/document-presentation.ts",
+      "sha256": "77ca976c31736df2ce84c10c0ef9da887c2f366609e7badf42b3f5a7ad876a8c"
+    },
+    {
+      "path": "packages/view-dom/src/__tests__/document-svg-image.test.ts",
+      "sha256": "6eba023cd32d517e2165571ab7a3e8f00c6f0eecb0c6e131821286845a5ac4a9"
+    },
+    {
+      "path": "packages/view-dom/src/__tests__/document-presentation-viewport.test.ts",
+      "sha256": "156c07dbf357f5106458cbde5e56e699c931d084e1c6ac995039c578380e83da"
+    },
+    {
+      "path": "tests/e2e/desktop-markdown-extensions.spec.ts",
+      "sha256": "fee636ac83844b13d3e772c5233d811d9b8c48e7007db63dfceab60c32c6125f"
+    },
+    {
+      "path": "tests/helpers/markdown-extension-plugins.ts",
+      "sha256": "7784646965d4899e4b99110317e7e15b0b9c4a71bee6e5723722a5f2c08e8e6a"
+    },
+    {
+      "path": "tests/fixtures/document-presentation-image/plugin.ts",
+      "sha256": "2c4494b00ecc4fa5cc326edf74997995f6a23bdc66f0e3dd804d885022a0f902"
+    },
+    {
+      "path": "tests/fixtures/document-presentation-image/plugin.json",
+      "sha256": "b856d8561f15d131e90a9b026c3b9d85342aa55dc11ff2040ea4a2e68b1cd754"
+    },
+    {
+      "path": "tests/fixtures/document-presentation-image/native-only-placeholder.js",
+      "sha256": "d55b61bae9888f6649b623483200f941abc9aaf850abe3a058bd4c1388107a56"
+    }
+  ],
+  "remaining": "Root full gates/new deb/native official Mermaid UI matrix, including ordinary and windowed mixed diagrams. Native02 failure remains real and is not overwritten by controlled browser proof."
+}

@@ -1,0 +1,7 @@
+import assert from 'node:assert/strict';import{test}from'node:test';import{validateGeometryCost}from'./subpaths-after.mjs';
+const rect={kind:'rect',x:0,y:0,width:1000,height:1000,style:0};
+const common={type:'svg-image',profile:'bounded-svg-v1',motion:'static',width:160,height:96,viewBox:[0,0,160,96],aspect:{align:'none',fit:'meet'},styles:[{opacity:.5}],definitions:[{kind:'marker',id:'layer',width:1000,height:1000,refX:{value:0,unit:'user'},refY:{value:0,unit:'user'},units:'userSpaceOnUse',orient:'auto',children:[rect]}]};
+const commands=Array.from({length:140},(_,i)=>[['M',i,0],['l',1,0]]).flat();
+const validate=(markers)=>validateGeometryCost({...common,children:[{kind:'path',commands,...markers}]},{work:0},{surfacePixels:16777216,filterWork:268435456,blur:32},(reason,code)=>{throw Object.assign(new Error(reason),{code})});
+test('middle markers include internal subpath endpoints',()=>assert.throws(()=>validate({markerMid:'layer'}),/aggregate render work/));
+test('start and end only occur at the whole path endpoints',()=>assert.doesNotThrow(()=>validate({markerStart:'layer',markerEnd:'layer'})));

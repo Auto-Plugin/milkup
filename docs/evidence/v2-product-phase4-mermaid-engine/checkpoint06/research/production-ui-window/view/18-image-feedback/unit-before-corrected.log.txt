@@ -1,0 +1,107 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/document-presentation-viewport.test.ts (5 tests | 1 failed) 406ms
+   ✓ reports actual visible source instead of overscan or a remote editing selection 81ms
+   ✓ refreshes priority when scrolling inside the same overscan source window 149ms
+   ✓ cancels a stale viewport job without changing source or selection 30ms
+   ✓ maps the bottom of a tall preview to its complete collapsed source block 94ms
+   × keeps a complete response when only visible priority changes inside its source window 50ms
+     → expected [ { sourceIdentity: {}, …(12) }, …(1) ] to have a length of 1 but got 2
+ ❯ src/__tests__/document-svg-image.test.ts (40 tests | 2 failed) 1617ms
+   ✓ keeps full mapped source until decode, then mounts an inert owned image (false) 131ms
+   ✓ restores a whole compound fragment when any decoded image later errors (false) 51ms
+   ✓ decode rejection leaves usable original source and an accessible notice (false) 124ms
+   ✓ does not hide any compound source while a sibling image is still decoding (false) 56ms
+   ✓ bounds a stalled decode and preserves source without retrying it (false) 17ms
+   ✓ revokes selection ABA decode and ignores an old image error after replacement (false) 93ms
+   ✓ uses integer image pixels inside the exact fractional layout slot (false) 27ms
+   ✓ reserves actual negative and positive ink inside the mapped scrollable fragment (false) 32ms
+   ✓ distinguishes real fractional overflow from transparent raster rounding (false) 24ms
+   ✓ preserves math and reference siblings around an owned image (false) 39ms
+   ✓ hard invalidation revokes the pending resource even when the response is equivalent (false) 48ms
+   ✓ revokes pending decode on disabled, ignoring its late completion (false) 32ms
+   ✓ revokes pending decode on source, ignoring its late completion (false) 33ms
+   ✓ revokes pending decode on destroy, ignoring its late completion (false) 33ms
+   ✓ releases a successfully mounted URL when the provider is removed (false) 33ms
+   ✓ late old-document decode cannot replace the new source (false) 37ms
+   ✓ source mode stays literal and does not create image resources (false) 11ms
+   ✓ unknown child yields full-source fallback without allocating a URL (false) 17ms
+   ✓ keeps full mapped source until decode, then mounts an inert owned image (true) 37ms
+   ✓ restores a whole compound fragment when any decoded image later errors (true) 43ms
+   ✓ decode rejection leaves usable original source and an accessible notice (true) 29ms
+   ✓ does not hide any compound source while a sibling image is still decoding (true) 52ms
+   ✓ bounds a stalled decode and preserves source without retrying it (true) 16ms
+   ✓ revokes selection ABA decode and ignores an old image error after replacement (true) 72ms
+   ✓ uses integer image pixels inside the exact fractional layout slot (true) 28ms
+   ✓ reserves actual negative and positive ink inside the mapped scrollable fragment (true) 31ms
+   ✓ distinguishes real fractional overflow from transparent raster rounding (true) 28ms
+   ✓ preserves math and reference siblings around an owned image (true) 47ms
+   ✓ hard invalidation revokes the pending resource even when the response is equivalent (true) 48ms
+   ✓ revokes pending decode on disabled, ignoring its late completion (true) 37ms
+   ✓ revokes pending decode on source, ignoring its late completion (true) 38ms
+   ✓ revokes pending decode on destroy, ignoring its late completion (true) 35ms
+   ✓ releases a successfully mounted URL when the provider is removed (true) 39ms
+   ✓ late old-document decode cannot replace the new source (true) 38ms
+   ✓ source mode stays literal and does not create image resources (true) 12ms
+   ✓ unknown child yields full-source fallback without allocating a URL (true) 15ms
+   ✓ transfers a decoded node through a same-context source-window replacement without a new URL 48ms
+   ✓ the existing synchronous factory cannot create an ownerless image URL 2ms
+   × keeps an equivalent decoded image through a validated provider refresh (false) 41ms
+     → expected null to be <img alt="Typed diagram" …(4)></img> // Object.is equality
+   × keeps an equivalent decoded image through a validated provider refresh (true) 40ms
+     → expected null to be <img alt="Typed diagram" …(4)></img> // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation-viewport.test.ts > keeps a complete response when only visible priority changes inside its source window
+AssertionError: expected [ { sourceIdentity: {}, …(12) }, …(1) ] to have a length of 1 but got 2
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ src/__tests__/document-presentation-viewport.test.ts:203:17
+    201|   f.scroll(50)
+    202|   await settle()
+    203|   expect(calls).toHaveLength(1)
+       |                 ^
+    204|   expect(first.from).toBe(0)
+    205|   expect(f.content.textContent).toBe(f.source.replaceAll('\n', ''))
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/__tests__/document-svg-image.test.ts > keeps an equivalent decoded image through a validated provider refresh (false)
+ FAIL  src/__tests__/document-svg-image.test.ts > keeps an equivalent decoded image through a validated provider refresh (true)
+AssertionError: expected null to be <img alt="Typed diagram" …(4)></img> // Object.is equality
+
+- Expected: 
+<img
+  alt="Typed diagram"
+  draggable="false"
+  height="96"
+  style="position: absolute; left: 0px; top: 0px; display: block; width: 160px; height: 96px; max-width: none; max-height: none;"
+  width="160"
+/>
+
++ Received: 
+null
+
+ ❯ src/__tests__/document-svg-image.test.ts:578:50
+    576|     view.refreshDocumentPresentation()
+    577|     await settle()
+    578|     expect(view.contentDOM.querySelector('img')).toBe(image)
+       |                                                  ^
+    579|     expect(created).toHaveLength(1)
+    580|     expect(decodes).toHaveLength(1)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  3 failed | 42 passed (45)
+   Start at  14:39:58
+   Duration  4.61s (transform 1.28s, setup 0ms, collect 1.98s, tests 2.02s, environment 1.88s, prepare 196ms)
+

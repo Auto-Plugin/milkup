@@ -1,0 +1,32 @@
+     def exercise_scroll(label):
+      # Public DOM inspection only; scrolling is real XTest wheel input.
+      env={**os.environ,'DISPLAY':':118'}
+      def x(*arguments):return subprocess.check_output(['xdotool',*map(str,arguments)],env=env,text=True,timeout=2).strip()
+      windows=x('search','--onlyvisible','--name','^Isolated DOM mechanism probe$').splitlines()
+      assert len(windows)==1,windows
+      window=windows[0]
+      def state():
+       started=time.monotonic();proc.stdin.write(b'{"op":"inspect"}\n');proc.stdin.flush();frame=frame_before(started+2)
+       assert frame and frame.get('type')=='result',frame
+       return frame['value']
+      initial=state();viewport=initial['preview'];assert viewport,initial
+      # Snapshot dimensions/rects use CSS units; native zoom is explicitly supplied.
+      scale=__NATIVE_ZOOM__
+      left,top,width,height=viewport['rect']
+      x('windowfocus','--sync',window)
+      x('mousemove','--window',window,round((left+width/2)*scale),round((top+height/2)*scale))
+      operations=[]
+      for corner,axes in [('bottom-right',[('5','top','scrollHeight','clientHeight'),('7','left','scrollWidth','clientWidth')]),('top-left',[('4','top','scrollHeight','clientHeight'),('6','left','scrollWidth','clientWidth')])]:
+       for button,axis,scroll,client in axes:
+        maximum=viewport[scroll]-viewport[client]
+        target=maximum if corner=='bottom-right' else 0
+        for attempt in range(30):
+         current=state()['preview']
+         if abs(current[axis]-target)<=1:break
+         x('click','--repeat','3','--delay','35',button);time.sleep(.08)
+        final=state()['preview']
+        assert abs(final[axis]-target)<=1,{'axis':axis,'target':target,'actual':final[axis],'label':label}
+        operations.append({'button':button,'axis':axis,'target':target,'actual':final[axis]})
+       inspect(label+'-'+corner)
+       snapshot(label+'-'+corner)
+      event('native-wheel-edges',label=label,initial=initial,final=state(),operations=operations)

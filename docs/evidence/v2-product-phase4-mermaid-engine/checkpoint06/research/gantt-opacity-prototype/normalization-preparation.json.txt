@@ -1,0 +1,24 @@
+{
+  "status": "prepared-not-run",
+  "path": "/workspace/milkup-mermaid-engine-evidence/research/gantt-opacity-prototype/normalize.mjs",
+  "bytes": 10727,
+  "sha256": "60d9513ff1bdcc8b804e8b41c0b308e3f9ab97dd82d4bd61d23fd64746fedf13",
+  "originalDOM": "read-only; candidate must begin as clone with identical outerHTML",
+  "criteria": [
+    "Exactly one single-stroked line and one plain ASCII single text chunk",
+    "No child opacity/effects/clips/masks/blending/markers; group opacity only",
+    "Plain text font normal, horizontal LTR, no position arrays/textLength/rotate/spacing",
+    "Text SVG bbox union Canvas actual glyph ink; canvas/SVG advances agree within 0.01 user units",
+    "Positive axis-aligned matrices; stroked line and text have outward device-pixel boxes separated by at least one untouched pixel"
+  ],
+  "operation": "Candidate group opacity=1, line.strokeOpacity*=originalGroupOpacity, text.fillOpacity*=originalGroupOpacity; preserve all other nodes/styles.",
+  "gates": [
+    "Native 100% full PNG comparison first; any pixel difference stops.",
+    "Only after zero-difference 100%, test actual 125% and 200% full visible image."
+  ],
+  "limitations": [
+    "This is external diagnostic code, not a product normalization rule.",
+    "No generic glyph metrics safety exception or host API change.",
+    "No native/syntax/build run performed by this preparation."
+  ]
+}

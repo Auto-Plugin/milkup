@@ -1,0 +1,26 @@
+from pathlib import Path
+import datetime
+import hashlib
+import json
+import subprocess
+
+root = Path('/workspace/milkup')
+out = Path(__file__).resolve().parent
+if (out / 'execution.json').exists():
+    raise SystemExit('Refusing to overwrite an existing execution record')
+records = []
+for name, task in [('typecheck', 'typecheck'), ('test', 'test'), ('format', 'lint'), ('build', 'build')]:
+    command = ['bash', 'scripts/cloud/pnpm.sh', task]
+    record = {'name': name, 'command': command, 'cwd': str(root),
+              'started': datetime.datetime.now(datetime.timezone.utc).isoformat()}
+    log = out / (name + '.log')
+    with log.open('xb') as stream:
+        process = subprocess.run(command, cwd=root, stdout=stream, stderr=subprocess.STDOUT)
+    record.update(finished=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                  exitCode=process.returncode, log=str(log),
+                  sha256=hashlib.sha256(log.read_bytes()).hexdigest())
+    records.append(record)
+    (out / 'execution.json').write_text(json.dumps(records, indent=2) + '\n')
+    print(json.dumps(record), flush=True)
+    if process.returncode:
+        raise SystemExit(process.returncode)

@@ -1,0 +1,133 @@
+{
+  "created": "2026-10-16T17:25:26.649406+00:00",
+  "slowestRequest": {
+    "instanceId": "2dde50696c86d909bbf2b195ae830759c23ffaf8309eeee7",
+    "requestId": "render_2",
+    "dispatchNs": 58747323722626,
+    "cancelPhasesRelativeDispatchMs": [
+      {
+        "phase": "pipe-write-complete",
+        "ms": 761.759816,
+        "callbackEntryMs": null
+      },
+      {
+        "phase": "helper-frame-dequeued",
+        "ms": 971.85283,
+        "callbackEntryMs": null
+      },
+      {
+        "phase": "helper-evaluate-submitted",
+        "ms": 971.975254,
+        "callbackEntryMs": null
+      },
+      {
+        "phase": "helper-evaluate-callback",
+        "ms": 1127.540506,
+        "callbackEntryMs": 1127.48672
+      }
+    ],
+    "sourceStage": "Independent archive initial activation on ordinary.md before first fallback; inferred from exact source-match and ordering, not request selection instrumentation.",
+    "evidence": [
+      "First bundled instance cleanup precedes second instance activation in native trace.",
+      "Second instance render_1=ordinary block, render_2=ordinary class; first isolated fallback source is render_9.",
+      "results.json bundled-removed-before-independent-install and installed-official-engine both retain actual ordinary.md path; installer opens no new document.",
+      "Later explicit ordinary coverage class is distinct from initial installation rendering."
+    ],
+    "noClaim": "Cancel observed with ok=true does not prove cancellation failed; result generation itself is not timestamped."
+  },
+  "perFamily": {
+    "block-000-first-official-example": {
+      "count": 19,
+      "okTrue": 19,
+      "okFalse": 0,
+      "cancelObserved": 5,
+      "maxDispatchToSettledMs": 428.205142
+    },
+    "classDiagram-000-first-official-example": {
+      "count": 21,
+      "okTrue": 20,
+      "okFalse": 1,
+      "cancelObserved": 2,
+      "maxDispatchToSettledMs": 1246.782176
+    },
+    "entityRelationshipDiagram-000-first-official-example": {
+      "count": 13,
+      "okTrue": 10,
+      "okFalse": 3,
+      "cancelObserved": 3,
+      "maxDispatchToSettledMs": 342.73821
+    },
+    "flowchart-069-image": {
+      "count": 4,
+      "okTrue": 4,
+      "okFalse": 0,
+      "cancelObserved": 0,
+      "maxDispatchToSettledMs": 72.763353
+    },
+    "flowchart-086-animated-edge": {
+      "count": 4,
+      "okTrue": 4,
+      "okFalse": 0,
+      "cancelObserved": 1,
+      "maxDispatchToSettledMs": 164.129735
+    },
+    "flowchart-088-classDef": {
+      "count": 4,
+      "okTrue": 4,
+      "okFalse": 0,
+      "cancelObserved": 1,
+      "maxDispatchToSettledMs": 98.768053
+    },
+    "timeline-000-first-official-example": {
+      "count": 4,
+      "okTrue": 4,
+      "okFalse": 0,
+      "cancelObserved": 1,
+      "maxDispatchToSettledMs": 124.074136
+    },
+    "flowchart-000-first-official-example": {
+      "count": 4,
+      "okTrue": 4,
+      "okFalse": 0,
+      "cancelObserved": 0,
+      "maxDispatchToSettledMs": 85.586424
+    },
+    "flowchart-003-markdown-label": {
+      "count": 2,
+      "okTrue": 2,
+      "okFalse": 0,
+      "cancelObserved": 0,
+      "maxDispatchToSettledMs": 72.446157
+    }
+  },
+  "processes": [
+    {
+      "pid": 358185,
+      "exists": false
+    },
+    {
+      "pid": 358243,
+      "exists": false
+    },
+    {
+      "pid": 358372,
+      "exists": false
+    },
+    {
+      "pid": 358379,
+      "exists": false
+    },
+    {
+      "pid": 358538,
+      "exists": true,
+      "state": "Z",
+      "ppid": 1,
+      "birth": "5874530"
+    },
+    {
+      "pid": 358544,
+      "exists": false
+    }
+  ],
+  "cleanupLimit": "Final guardian 358538 exited with logged cleanup-complete but remains Z reparented to container PID1; no live helper/App/driver, ports free. No signals sent to PID1."
+}

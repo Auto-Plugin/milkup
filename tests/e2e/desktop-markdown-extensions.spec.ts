@@ -42,13 +42,22 @@ test.afterEach(async ({ page }, info) => {
     await page.screenshot({ path: info.outputPath('failure.png'), fullPage: true })
   }
 })
-test('three isolated document extensions render safe semantics and preserve source/history', async ({
+test('real math and footnotes plus controlled image Worker preserve source/history', async ({
   page,
 }) => {
   await markdownExtensionFixture(page)
   await seedMarkdownExtensions(page, fixture)
   await expect(page.locator('.milkup-document-presentation math')).toHaveCount(2)
-  await expect(page.locator('.milkup-document-presentation svg')).toHaveCount(1)
+  await expect(page.locator('.milkup-document-presentation img')).toHaveCount(1)
+  await expect(page.locator('.milkup-document-presentation svg')).toHaveCount(0)
+  expect(
+    await page
+      .locator('.milkup-document-presentation img')
+      .evaluate(
+        (img: HTMLImageElement) =>
+          img.complete && img.naturalWidth > 0 && img.src.startsWith('blob:'),
+      ),
+  ).toBe(true)
   await expect(page.locator('.milkup-document-reference').first()).toBeVisible()
   await expect(page.locator('.milkup-document-presentation mtable')).toHaveCount(1)
   const metrics = await page.locator('.milkup-document-presentation').evaluateAll((elements) =>
@@ -74,7 +83,7 @@ test('three isolated document extensions render safe semantics and preserve sour
   await page.keyboard.press('Control+Shift+z')
   await expect(page.locator('.milkup-line').first()).toHaveText('安😀全起点 中文😀')
 })
-test('opaque code and unsupported diagrams stay literal without executable content', async ({
+test('opaque code and controlled provider errors stay literal without executable content', async ({
   page,
 }) => {
   await markdownExtensionFixture(page)
@@ -89,6 +98,7 @@ test('opaque code and unsupported diagrams stay literal without executable conte
     '```mermaid',
     'flowchart TD',
     'A --> B',
+    'TEST_DOCUMENT_IMAGE_ERROR',
     'click A "https://example.com"',
     '```',
     '',
@@ -102,7 +112,7 @@ test('opaque code and unsupported diagrams stay literal without executable conte
     'fallback',
   )
   await expect(page.locator('.milkup-document-presentation math')).toHaveCount(0)
-  await expect(page.locator('.milkup-document-presentation svg')).toHaveCount(0)
+  await expect(page.locator('.milkup-document-presentation img')).toHaveCount(0)
   await page.keyboard.press('Control+1')
   expect(await sourceLines(page)).toEqual(source.split('\n'))
 })
@@ -136,7 +146,7 @@ test('disabled renderers disappear and leave Unicode editing and save available'
   await expect(page.locator('.milkup-document-presentation math')).toHaveCount(2)
   await page.getByRole('button', { name: '菜单', exact: true }).click()
   await page.getByRole('button', { name: '插件', exact: true }).click()
-  for (const name of ['数学公式', 'Milkup Diagrams', 'Milkup Footnotes']) {
+  for (const name of ['数学公式', 'Controlled Document Image Fixture', 'Milkup Footnotes']) {
     await page.getByRole('button', { name, exact: true }).click()
     await page.getByRole('button', { name: '禁用', exact: true }).click()
     await page.locator('[data-plugin-action=back]').click()
@@ -166,9 +176,9 @@ test('search keeps the selected marker visible while asynchronous block previews
   await page.setViewportSize({ width: 1100, height: 760 })
   await markdownExtensionFixture(page)
   const source =
-    '# Unicode 中文 é 👩🏽‍💻\r\n\r\nSAMPLE-ROOT\r\n公式 $\\frac{x_1^2}{\\sqrt[3]{y}}$ 和 $\\int_0^\\infty x\\,dx$。\r\n\r\nSAMPLE-MATRIX\r\n$$\r\n\\begin{pmatrix}a&b\\\\c&d\\end{pmatrix}\r\n$$\r\n\r\nSAMPLE-FLOW\r\n```mermaid\r\nflowchart TD\r\nA[开始] --> B{通过?}\r\nB -->|是| C(完成)\r\n```\r\n\r\nSAMPLE-SEQUENCE\r\n```mermaid\r\nsequenceDiagram\r\nactor A as 用户\r\nparticipant B as 服务\r\nA->>B: 请求\r\nB-->>A: 返回\r\n```\r\n\r\nSAMPLE-PIE\r\n```mermaid\r\npie\r\ntitle 分布\r\n"甲": 2\r\n"乙": 1\r\n```\r\n\r\nSAMPLE-FOOTNOTES\r\n脚注引用[^note] 与再次引用[^note]。\r\n\r\n[^note]: 定义中文与 **强调**，原始 Unicode 保留。\r\n\r\nSAMPLE-ERRORS\r\n未知 $\\notACommand{x}$。\r\n```mermaid\r\nflowchart TD\r\nclick A "https://example.invalid"\r\n```\r\n\r\nSAMPLE-CODE\r\n`$notMath$` 与 [目标](https://example.invalid/$notMath$)\r\n```text\r\n$notMath$\r\n```\r\n\r\nEND-SAMPLES\r\n'
+    '# Unicode 中文 é 👩🏽‍💻\r\n\r\nSAMPLE-ROOT\r\n公式 $\\frac{x_1^2}{\\sqrt[3]{y}}$ 和 $\\int_0^\\infty x\\,dx$。\r\n\r\nSAMPLE-MATRIX\r\n$$\r\n\\begin{pmatrix}a&b\\\\c&d\\end{pmatrix}\r\n$$\r\n\r\nSAMPLE-FLOW\r\n```mermaid\r\nflowchart TD\r\nA[开始] --> B{通过?}\r\nB -->|是| C(完成)\r\n```\r\n\r\nSAMPLE-SEQUENCE\r\n```mermaid\r\nsequenceDiagram\r\nactor A as 用户\r\nparticipant B as 服务\r\nA->>B: 请求\r\nB-->>A: 返回\r\n```\r\n\r\nSAMPLE-PIE\r\n```mermaid\r\npie\r\ntitle 分布\r\n"甲": 2\r\n"乙": 1\r\n```\r\n\r\nSAMPLE-FOOTNOTES\r\n脚注引用[^note] 与再次引用[^note]。\r\n\r\n[^note]: 定义中文与 **强调**，原始 Unicode 保留。\r\n\r\nSAMPLE-ERRORS\r\n未知 $\\notACommand{x}$。\r\n```mermaid\r\nflowchart TD\r\nTEST_DOCUMENT_IMAGE_ERROR\r\nclick A "https://example.invalid"\r\n```\r\n\r\nSAMPLE-CODE\r\n`$notMath$` 与 [目标](https://example.invalid/$notMath$)\r\n```text\r\n$notMath$\r\n```\r\n\r\nEND-SAMPLES\r\n'
   await seedMarkdownExtensions(page, source)
-  await expect(page.locator('.milkup-document-presentation svg')).toHaveCount(3)
+  await expect(page.locator('.milkup-document-presentation img')).toHaveCount(3)
   await page.locator('.milkup-input-proxy').focus()
   await page.keyboard.press('Control+End')
   await page.keyboard.press('Control+f')
@@ -233,10 +243,53 @@ test('search keeps the selected marker visible while asynchronous block previews
   ).toBe(true)
   const graphs = page
     .locator('.milkup-document-presentation[tabindex="0"]')
-    .filter({ has: page.locator('svg') })
+    .filter({ has: page.locator('img') })
   await graphs.nth(0).focus()
   await page.waitForTimeout(300)
   await expect(graphs.nth(0)).toBeFocused()
+  const decodedImages = []
+  for (let i = 0; i < 20; i++) {
+    decodedImages.push(
+      await page.locator('.milkup-document-presentation img').evaluateAll((images) =>
+        images.map((node) => {
+          const image = node as HTMLImageElement
+          return {
+            src: image.src,
+            complete: image.complete,
+            width: image.naturalWidth,
+            height: image.naturalHeight,
+            connected: image.isConnected,
+          }
+        }),
+      ),
+    )
+    await page.waitForTimeout(50)
+  }
+  await writeFile(
+    test.info().outputPath('decoded-image-stability.json'),
+    JSON.stringify(decodedImages, null, 2),
+  )
+  expect(
+    decodedImages.every(
+      (images) =>
+        images.length >= 2 &&
+        images.every(
+          (image) =>
+            image.connected &&
+            image.complete &&
+            image.width > 0 &&
+            image.height > 0 &&
+            image.src.startsWith('blob:'),
+        ),
+    ),
+  ).toBe(true)
+  expect(
+    new Set(decodedImages.map((images) => JSON.stringify(images.map((image) => image.src)))).size,
+  ).toBe(1)
+  await page.screenshot({
+    path: test.info().outputPath('stable-controlled-images.png'),
+    fullPage: true,
+  })
   await page.keyboard.press('Tab')
   await page.waitForTimeout(300)
   await expect(graphs.nth(1)).toBeFocused()
@@ -344,6 +397,8 @@ for (const windowed of [false, true])
               sourceIdentity: _identity,
               sourceVersion: _version,
               documentVersion: _dv,
+              visibleFrom: _visibleFrom,
+              visibleTo: _visibleTo,
               ...window
             }: any) => {
               requests.push({
@@ -555,6 +610,8 @@ async function lastReferenceFixture(page: Page, windowed: boolean) {
             sourceIdentity: _i,
             sourceVersion: _v,
             documentVersion: _d,
+            visibleFrom: _visibleFrom,
+            visibleTo: _visibleTo,
             ...window
           }: any) => {
             const from = state.doc.text.indexOf('[^only]')
@@ -818,7 +875,14 @@ for (const anchoring of ['auto', 'none'])
           const interval = setInterval(() => observe('interval'), 100)
           view.setDocumentPresentation({
             provide: async (
-              { sourceIdentity: _i, sourceVersion: _v, documentVersion: _d, ...window }: any,
+              {
+                sourceIdentity: _i,
+                sourceVersion: _v,
+                documentVersion: _d,
+                visibleFrom: _visibleFrom,
+                visibleTo: _visibleTo,
+                ...window
+              }: any,
               { signal }: any,
             ) => {
               const index = requests.length
@@ -942,7 +1006,14 @@ for (const anchoring of ['auto', 'none'])
         let pending = false
         const provider = {
           provide: async (
-            { sourceIdentity: _i, sourceVersion: _v, documentVersion: _d, ...window }: any,
+            {
+              sourceIdentity: _i,
+              sourceVersion: _v,
+              documentVersion: _d,
+              visibleFrom: _visibleFrom,
+              visibleTo: _visibleTo,
+              ...window
+            }: any,
             { signal }: any,
           ) => {
             if (pending)
@@ -1111,6 +1182,8 @@ for (const route of [
             sourceIdentity: _i,
             sourceVersion: _v,
             documentVersion: _d,
+            visibleFrom: _visibleFrom,
+            visibleTo: _visibleTo,
             ...window
           }: any) => {
             if (hold)
@@ -1383,3 +1456,30 @@ for (const mode of ['source', 'live']) {
     expect(result.after.version).toBe(0)
   })
 }
+
+test('official Mermaid DOM host is explicitly unavailable in the browser and keeps source', async ({
+  page,
+}) => {
+  const loads: string[] = []
+  page.on('request', (request) => {
+    if (request.url().includes('native-only-placeholder')) loads.push(request.url())
+  })
+  await markdownExtensionFixture(page, { nativeDiagramUnavailable: true })
+  const source = '浏览器保留原文😀\n\n```mermaid\nflowchart LR\nA --> B\n```\n'
+  await seedMarkdownExtensions(page, source)
+  await page.getByRole('button', { name: '菜单', exact: true }).click()
+  await page.getByRole('button', { name: '插件', exact: true }).click()
+  await page.getByRole('button', { name: 'Milkup Diagrams', exact: true }).click()
+  await expect(page.locator('.plugin-errors')).toContainText(
+    'DOM plugins require the native desktop runtime',
+  )
+  expect(loads).toEqual([])
+  await page.screenshot({
+    path: test.info().outputPath('native-dom-unavailable.png'),
+    fullPage: true,
+  })
+  await page.locator('[data-menu-close]').click()
+  await expect(page.locator('.milkup-document-presentation img')).toHaveCount(0)
+  await page.keyboard.press('Control+1')
+  expect(await sourceLines(page)).toEqual(source.split('\n'))
+})

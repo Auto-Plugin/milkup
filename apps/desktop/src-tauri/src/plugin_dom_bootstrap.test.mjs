@@ -1,4 +1,5 @@
-// Run: node --experimental-vm-modules --test src/plugin_dom_bootstrap.test.mjs
+// From apps/desktop: node --experimental-vm-modules --test src-tauri/src/plugin_dom_bootstrap.test.mjs
+// Also required by the desktop package test script; Vitest must not collect node:test.
 // Protocol/closure regression only. Real WebKit layout and confinement are separate gates.
 import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'

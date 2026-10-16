@@ -1,0 +1,51 @@
+{
+  "kind": "independent-final-static-review",
+  "status": "no-additional-blocking-issue-found",
+  "manager": {
+    "path": "/workspace/milkup/packages/view-dom/src/document-presentation.ts",
+    "sha256": "5c331f2e8cc6cd14a512b166f548cd6fe56ee3b45cb940bcc57f5a89524d23a2"
+  },
+  "scope": [
+    "Complete/contextKnown cache base-key reuse and partial viewport reprioritization.",
+    "Validated same-context decoded-owner transfer and one retained complete old semantic fragment while the latest replacement decodes.",
+    "Cross-generation old-layer aggregate budget, fixed replacement deadline, invalidation and late callbacks."
+  ],
+  "findings": [
+    {
+      "subject": "Cross-generation old-layer budget",
+      "resolution": "Closed. Before retaining any candidate, all existing old fragments plus the candidate are source-sorted and independently passed to copyDocumentPresentationAggregate against the current request/declarations. Failure disposes that candidate. This prevents separately valid historical heavy fragments from accumulating beyond one original aggregate budget."
+    },
+    {
+      "subject": "Two-layer ownership",
+      "resolution": "Latest owners belong to the latest independently validated aggregate. A separate previous map keeps at most one decoded owner per exact layout/from/to range and collectively satisfies one original aggregate budget. Pending replacements do not move into the old map."
+    },
+    {
+      "subject": "Deadline",
+      "resolution": "The old-layer timer is created when a decoded owner is first retained. Successive distinct pending responses preserve that retained owner/timer; expiry disposes it and marks matching current pending owners failed. No renderer or preparation budget increased."
+    },
+    {
+      "subject": "Semantic and navigation integrity",
+      "resolution": "Until all new images decode, paint selects the complete old fragment tree and accessible text, not a mix of new labels and old bytes. Its new navigation DOM uses the current response request; same document/version/context is required."
+    },
+    {
+      "subject": "Revocation",
+      "resolution": "Omitted/error replacements, source/version/selection/config/theme/width/target/declaration changes, failed decode and hard restoration remove incompatible old owners. Hard restore increments generation; callbacks use current owner bindings and disposed image resources are idempotent."
+    },
+    {
+      "subject": "Cache A/B/A",
+      "resolution": "Cache-hit branch aborts obsolete pending job, clears its ownership and cancels retry before repaint; late result/catch/finally cannot replace the cache or revive its retry."
+    }
+  ],
+  "executedEvidenceByOwner": {
+    "focused": "Owner reports191 focused passed, including preserved old-layer budget red then green.",
+    "browser": "Owner reports full34 browser file passed once in3.4min.",
+    "typesFormat": "Owner reports strict and owned format passed at this manager SHA.",
+    "finalVariantProbe": "Still running at review handoff; not claimed as passed here."
+  },
+  "reviewerExecution": "Read-only source/test review and SHA calculation only; no tests, native process or browser started.",
+  "limits": [
+    "Does not substitute for final actual packaged native WebKit rerun.",
+    "Earlier UI03 native loss and earlier cold bundled timeout evidence remain preserved; this review does not rewrite those failures or infer an unobserved cause.",
+    "Previous20-independent-review.json remains an earlier distinct manager revision."
+  ]
+}

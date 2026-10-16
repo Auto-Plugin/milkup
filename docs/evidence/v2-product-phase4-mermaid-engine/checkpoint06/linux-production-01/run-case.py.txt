@@ -1,0 +1,16 @@
+import subprocess,sys,json,datetime,time,urllib.request
+from pathlib import Path
+run,case=sys.argv[1:];assert run.startswith('lifecycle-') and case in ['timeout','disable','remove','wm-close','app-sigkill']
+out=Path('/workspace/milkup-mermaid-engine-evidence/editor-lifecycle-runs/control');out.mkdir(parents=True,exist_ok=True)
+record=out/(run+'-command.json');log=out/(run+'-harness.log');assert not record.exists() and not log.exists()
+for attempt in range(50):
+ try:
+  with urllib.request.urlopen('http://127.0.0.1:4626/status',timeout=1) as r: assert r.status==200
+  break
+ except Exception:
+  if attempt==49:raise
+  time.sleep(.1)
+command=['bash','-lc','source /workspace/milkup-mermaid-engine-evidence/editor-lifecycle-preparation-04/run-env.sh "$@"\nexec node tests/native/tauri-dom-plugin-lifecycle.mjs','bash',run,case,'/workspace/milkup-mermaid-engine-evidence/linux-production-01/install/usr/bin/milkup-desktop','46cc0e09b39966bc958fb2887c97caece3debf6ad132b098447406975969ebeb']
+row={'command':command,'cwd':'/workspace/milkup','startedUtc':datetime.datetime.now(datetime.timezone.utc).isoformat()};record.write_text(json.dumps(row,indent=2)+'\n')
+with log.open('w') as stream:p=subprocess.run(command,cwd=row['cwd'],stdout=stream,stderr=subprocess.STDOUT)
+row.update(exitCode=p.returncode,endedUtc=datetime.datetime.now(datetime.timezone.utc).isoformat());record.write_text(json.dumps(row,indent=2)+'\n');print(json.dumps(row));print(log.read_text()[-10000:]);sys.exit(p.returncode)

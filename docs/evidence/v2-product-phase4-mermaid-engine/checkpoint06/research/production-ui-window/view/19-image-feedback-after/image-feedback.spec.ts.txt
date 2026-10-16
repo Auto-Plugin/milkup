@@ -1,0 +1,39 @@
+import { test } from '/workspace/milkup/node_modules/@playwright/test/index.mjs'
+import {writeFile} from 'node:fs/promises'
+const output='/workspace/milkup-mermaid-engine-evidence/research/production-ui-window/view/19-image-feedback-after'
+for(const lineCount of [18,63])test(`observe ${lineCount}-line ordinary image feedback`,async({page})=>{
+ await page.goto('http://127.0.0.1:1420/')
+ await page.locator('.milkup-input-proxy').waitFor()
+ const result=await page.evaluate(async(lineCount)=>{
+  const {EditorView}=await import('/@fs/workspace/milkup/packages/view-dom/src/index.ts')
+  const {EditorState,MemoryTextDocument,Selection}=await import('/@fs/workspace/milkup/packages/core/src/index.ts')
+  const root=document.createElement('main');Object.assign(root.style,{position:'fixed',inset:'37px 0 30px',background:'white',zIndex:'10000'});document.body.append(root)
+  const text=Array.from({length:lineCount},(_,i)=>`line ${i+1} 中文`).join('\n')
+  const doc=new MemoryTextDocument(text), selection=Selection.cursor(0)
+  const events:unknown[]=[], ids=new WeakMap<Node,number>();let next=1,dropped=0,observerCost=0,maxObserverCost=0
+  const id=(node:Node)=>{if(!ids.has(node))ids.set(node,next++);return ids.get(node)!}
+  const start=performance.now()
+  const record=(event:unknown)=>{if(events.length<1200)events.push({at:performance.now()-start,event});else dropped++}
+  const rect=(node:Element)=>{const r=node.getBoundingClientRect();return{top:r.top,bottom:r.bottom,height:r.height}}
+  const imageState=(image:HTMLImageElement)=>({id:id(image),connected:image.isConnected,src:image.getAttribute('src'),complete:image.complete,naturalWidth:image.naturalWidth,naturalHeight:image.naturalHeight,rect:rect(image)})
+  const current=()=>({images:Array.from(root.querySelectorAll<HTMLImageElement>('.milkup-document-presentation img')).map(imageState),scrollTop:root.querySelector('.milkup-editor')?.scrollTop,lines:Array.from(root.querySelectorAll<HTMLElement>('.milkup-line')).filter(line=>line.style.display!=='none').slice(0,7).map(line=>({line:line.dataset.line,...rect(line)}))})
+  const originalCreate=URL.createObjectURL,originalRevoke=URL.revokeObjectURL,originalDecode=HTMLImageElement.prototype.decode
+  URL.createObjectURL=function(blob){const url=originalCreate.call(URL,blob);record({type:'create',url});return url}
+  URL.revokeObjectURL=function(url){record({type:'revoke',url});return originalRevoke.call(URL,url)}
+  HTMLImageElement.prototype.decode=function(){record({type:'decode-start',image:imageState(this)});const promise=originalDecode.call(this);void promise.then(()=>record({type:'decode-resolved',image:imageState(this)}),error=>record({type:'decode-rejected',image:imageState(this),error:String(error)}));return promise}
+  const observer=new MutationObserver(()=>{const before=performance.now();record({type:'mutation',...current()});const cost=performance.now()-before;observerCost+=cost;maxObserverCost=Math.max(maxObserverCost,cost)})
+  observer.observe(root,{subtree:true,childList:true,attributes:true,attributeFilter:['src']})
+  const content={type:'svg-image',profile:'bounded-svg-v1',motion:'static',width:600,height:260,rasterBounds:[0,0,600,260],viewBox:[0,0,600,260],aspect:{align:'xMidYMid',fit:'meet'},title:'Observed image fixture',styles:[],definitions:[],children:[{kind:'rect',x:8,y:8,width:584,height:244}]}
+  const view=new EditorView({parent:root,state:new EditorState({doc,selection}),mode:'live',documentPresentation:{provide(window,options){
+   const {sourceIdentity,sourceVersion,documentVersion,visibleFrom,visibleTo,...rest}=window
+   record({type:'provide',from:rest.from,to:rest.to,fromLine:rest.fromLine,toLine:rest.toLine,visibleFrom,visibleTo,width:rest.width,selection:rest.selection,complete:true,remaining:options.deadline-performance.now()})
+   return{declarations:[{id:'test.feedback',contexts:['text']}],request:{...rest,documentId:'feedback',version:0,contextKnown:true,blocks:[],protectedRanges:[],theme:'light',target:'screen'},result:{complete:true,fragments:rest.from<=doc.line(2).from&&rest.to>=doc.line(5).to?[{from:doc.line(2).from,to:doc.line(5).to,layout:'block',accessibleText:'Observed image fixture',content}]:[]}}
+  }}})
+  Object.assign(view.dom.style,{height:'280px',overflow:'auto'})
+  const samples=[]
+  try{for(let i=0;i<30;i++){await new Promise(resolve=>setTimeout(resolve,50));samples.push({at:performance.now()-start,...current()})}
+   return{lineCount,events,samples,dropped,observerCost,maxObserverCost,unchanged:view.state.doc.text===text,selection:view.state.selection.main,version:view.state.version}
+  }finally{observer.disconnect();view.destroy();root.remove();URL.createObjectURL=originalCreate;URL.revokeObjectURL=originalRevoke;HTMLImageElement.prototype.decode=originalDecode}
+ },lineCount)
+ await writeFile(`${output}/${lineCount}-trace.json`,JSON.stringify(result,null,2))
+})

@@ -1,0 +1,14 @@
+from pathlib import Path
+import json,shutil,hashlib
+p=Path(__file__).parent;repo=Path('/workspace/milkup/plugins/diagrams');s=p/'revision-product-converter05';s.mkdir()
+for name in ['svg-converter.ts','svg-primitives.ts','paint-envelope.ts','bounded-opacity.ts']:
+ d=s/'src'/name;d.parent.mkdir(exist_ok=True);shutil.copyfile(repo/'src'/name,d)
+for name in ['entry.mjs','fixtures.mjs']:
+ shutil.copyfile(p/'revision-product-converter04'/name,s/name)
+shutil.copyfile(s/'entry.mjs',p/'helper/assets/entry.mjs')
+cases=json.loads((p/'cases-product-converter04.json').read_text())
+(p/'cases-product-converter05.json').write_text(json.dumps([cases[11]],ensure_ascii=False,indent=2)+'\n')
+for name in ['supervise-product-converter04.py','run-product-converter04.sh']:
+ target=name.replace('04','05');(p/target).write_text((p/name).read_text().replace('product-converter04','product-converter05'));shutil.copyfile(p/target,s/target)
+shutil.copyfile(p/'cases-product-converter05.json',s/'cases.json')
+(s/'source-hashes.json').write_text(json.dumps([{ 'path':str(f.relative_to(s)), 'sha256':hashlib.sha256(f.read_bytes()).hexdigest()} for f in sorted(s.rglob('*')) if f.is_file()],indent=2)+'\n')

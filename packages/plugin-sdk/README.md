@@ -480,3 +480,48 @@ rendererId})` when ready. The host checks ownership/version and coalesces reques
 at four per second. `host.ui.revealLocation({documentId, version, from, to?},
 {signal})` rechecks the target before navigation; no file path or arbitrary command
 is exposed. Old `scan` and `revealLine` remain available.
+
+### Closed SVG image data (0.3.4)
+
+Document renderers can additionally return `SdkDocumentSvgImage`, a
+`{type: 'svg-image', profile: 'bounded-svg-v1', motion: 'static', ...}` node.
+This is structured geometry, not an SVG string or an image URL. The closed schema
+admits paths, groups, transforms, local definitions and references, gradients,
+markers, bounded shadows, typed text, and a fixed text-box layout. Styles use a
+shared table of allowlisted properties and fixed offline font tokens. Unknown
+nodes/properties, external references, active URLs and effective animation must
+fail explicitly; converters must not silently omit their visual content.
+
+Every image requires `rasterBounds: [x, y, width, height]` in the original root
+viewport's CSS pixels, including all visible ink and the complete root viewport.
+These are not SVG viewBox coordinates or right/bottom edges. Intentionally
+clipped roots still declare `[0, 0, width, height]`. Missing bounds are rejected;
+there is no implicit cropping default. The host rounds the bounds outward to
+integer pixel edges, validates their dimensions and area, and charges that actual
+surface to the shared render-work budget. The inner root's dimensions and clip
+semantics remain unchanged. Converters must establish visual completeness;
+finite bounds alone do not prove that text, markers or shadows were measured.
+
+All image trees share the existing result limits with text, MathML and vector
+nodes: 256 KiB UTF-8 output, 4096 charged nodes/expanded local references, and
+depth 64. Canonical escaped SVG bytes are also counted across the result. Local
+references must form a bounded DAG of the correct definition kinds. The host
+independently checks finite coordinates, transform composition, raster surfaces,
+filter work and compositing costs; an accepted producer object is not a waiver.
+Text effects requiring unproved font bounding boxes are rejected. Fonts remain a
+host environment prerequisite, not a network capability.
+
+The host constructs canonical markup and owns its Blob URL. A precise floating
+point layout slot contains an integer-sized SVG image; the host adds and budgets
+the outer image viewport exactly once. Decode must succeed before source is
+replaced. Failed, stale, disabled or disposed presentations release owned URLs
+and retain or restore the complete editable source without changing its version
+or history. The synchronous unowned DOM factory cannot create this resource.
+The two-second renderer execution limit is unchanged. Static image support does
+not imply animation support or identical pixels on every font/rendering engine.
+
+The `unresolved-local` filter token has no reference or URL field. It preserves an
+observed missing local-filter reference using a host-generated, deliberately
+unbound fragment ID, distinct from every rebound definition. It is not equivalent
+to `none` on every engine. Unknown text bounds remain unsupported for this token;
+known-ink compositing surfaces still consume the shared work budget.

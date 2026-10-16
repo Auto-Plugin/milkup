@@ -1,0 +1,109 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/document-presentation-viewport.test.ts (4 tests | 4 failed) 113ms
+   × reports actual visible source instead of overscan or a remote editing selection 43ms
+     → expected { from: undefined, to: undefined } to deeply equal { from: 28, to: 41 }
+   × refreshes priority when scrolling inside the same overscan source window 21ms
+     → expected { from: undefined, to: undefined } to deeply equal { from: 35, to: 48 }
+   × cancels a stale viewport job without changing source or selection 21ms
+     → expected [ { window: { …(11) }, …(2) } ] to have a length of 2 but got 1
+   × maps the bottom of a tall preview to its complete collapsed source block 27ms
+     → expected { from: undefined, to: undefined } to deeply equal { from: 56, to: 139 }
+
+ Test Files  1 failed (1)
+      Tests  4 failed (4)
+   Start at  13:48:21
+   Duration  2.16s (transform 527ms, setup 0ms, collect 609ms, tests 113ms, environment 912ms, prepare 145ms)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation-viewport.test.ts > reports actual visible source instead of overscan or a remote editing selection
+AssertionError: expected { from: undefined, to: undefined } to deeply equal { from: 28, to: 41 }
+
+- Expected
++ Received
+
+  {
+-   "from": 28,
+-   "to": 41,
++   "from": undefined,
++   "to": undefined,
+  }
+
+ ❯ src/__tests__/document-presentation-viewport.test.ts:55:29
+     53|   const request=calls.at(-1)!
+     54|   expect(request.from).toBe(0)
+     55|   expect(viewport(request)).toEqual({from:28,to:41})
+       |                             ^
+     56|   expect(request.selection.head).toBe(f.source.length)
+     57| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/__tests__/document-presentation-viewport.test.ts > refreshes priority when scrolling inside the same overscan source window
+AssertionError: expected { from: undefined, to: undefined } to deeply equal { from: 35, to: 48 }
+
+- Expected
++ Received
+
+  {
+-   "from": 35,
+-   "to": 48,
++   "from": undefined,
++   "to": undefined,
+  }
+
+ ❯ src/__tests__/document-presentation-viewport.test.ts:65:28
+     63|   f.scroll(50);await settle();const second=calls.at(-1)!
+     64|   expect(second.from).toBe(first.from);expect(second.to).toBe(first.to)
+     65|   expect(viewport(second)).toEqual({from:35,to:48})
+       |                            ^
+     66|   expect(calls).toHaveLength(2)
+     67|   f.scroll(50);await settle();expect(calls).toHaveLength(2)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/__tests__/document-presentation-viewport.test.ts > cancels a stale viewport job without changing source or selection
+AssertionError: expected [ { window: { …(11) }, …(2) } ] to have a length of 2 but got 1
+
+- Expected
++ Received
+
+- 2
++ 1
+
+ ❯ src/__tests__/document-presentation-viewport.test.ts:74:16
+     72|   const f=fixture({provide:(window,{signal})=>new Promise(resolve=>job…
+     73|   f.scroll(40);await settle();f.scroll(50);await settle()
+     74|   expect(jobs).toHaveLength(2);expect(jobs[0]!.signal.aborted).toBe(tr…
+       |                ^
+     75|   jobs[1]!.finish();jobs[0]!.finish();await settle()
+     76|   expect(viewport(jobs[1]!.window)).toEqual({from:35,to:48})
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/__tests__/document-presentation-viewport.test.ts > maps the bottom of a tall preview to its complete collapsed source block
+AssertionError: expected { from: undefined, to: undefined } to deeply equal { from: 56, to: 139 }
+
+- Expected
++ Received
+
+  {
+-   "from": 56,
+-   "to": 139,
++   "from": undefined,
++   "to": undefined,
+  }
+
+ ❯ src/__tests__/document-presentation-viewport.test.ts:85:35
+     83|   const f=fixture({provide:window=>{calls.push(window);return response…
+     84|   f.scroll(250);await settle()
+     85|   expect(viewport(calls.at(-1)!)).toEqual({from:56,to:139})
+       |                                   ^
+     86|   for(let i=0;i<8;i++){f.manager.schedule();await settle()}
+     87|   expect(calls).toHaveLength(1)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+

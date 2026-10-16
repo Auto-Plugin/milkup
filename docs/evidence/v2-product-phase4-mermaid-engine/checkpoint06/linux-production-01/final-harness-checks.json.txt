@@ -1,0 +1,50 @@
+[
+  {
+    "command": [
+      "node",
+      "node_modules/prettier/bin/prettier.cjs",
+      "--check",
+      "tests/helpers/native-production.mjs",
+      "tests/native/tauri-dom-plugin-lifecycle.mjs",
+      "tests/fixtures/dom-plugin-lifecycle/main.js",
+      "tests/fixtures/dom-plugin-lifecycle/README.md"
+    ],
+    "startedUtc": "2026-10-16T13:40:20.663762+00:00",
+    "exitCode": 0,
+    "stdout": "Checking formatting...\nAll matched files use Prettier code style!\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "tests/native/tauri-dom-plugin-lifecycle.mjs"
+    ],
+    "startedUtc": "2026-10-16T13:40:21.070653+00:00",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "node",
+      "--check",
+      "tests/helpers/native-production.mjs"
+    ],
+    "startedUtc": "2026-10-16T13:40:21.108204+00:00",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "python3",
+      "-c",
+      "import ast;from pathlib import Path;ast.parse(Path('tests/helpers/native-dom-process-observer.py').read_text())"
+    ],
+    "startedUtc": "2026-10-16T13:40:21.142093+00:00",
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  }
+]

@@ -1,3 +1,11 @@
+import type { DocumentSvgImage } from './document-svg-image'
+import {
+  copyDocumentSvgImage,
+  createDocumentOutputBudget,
+  serializeDocumentSvgImage,
+  type DocumentOutputBudget,
+} from './document-svg-image-codec'
+
 /** Shared, inert document presentation data. All source offsets are absolute UTF-16. */
 export interface DocumentPresentationRange {
   readonly from: number
@@ -118,6 +126,7 @@ export type DocumentVectorPrimitive =
       readonly anchor?: 'start' | 'middle' | 'end'
     }
 export type DocumentPresentationNode =
+  | DocumentSvgImage
   | { readonly type: 'text'; readonly text: string }
   | {
       readonly type: 'group' | 'emphasis' | 'code' | 'sup' | 'sub'
@@ -343,10 +352,7 @@ const mathTags = [
   'mtd',
   'mstyle',
 ] as const
-interface Budget {
-  nodes: number
-  text: number
-}
+type Budget = DocumentOutputBudget
 function count(budget: Budget, depth: number, fail: () => never): void {
   if (
     ++budget.nodes > DOCUMENT_PRESENTATION_LIMITS.nodes ||
@@ -535,6 +541,19 @@ function node(
   fail: () => never,
   request?: DocumentPresentationRequest,
 ): DocumentPresentationNode {
+  // Inspect the discriminator without invoking producer getters. The SVG codec
+  // independently checks the complete closed object and shares this result budget.
+  if (
+    value &&
+    typeof value === 'object' &&
+    Object.getOwnPropertyDescriptor(value, 'type')?.value === 'svg-image'
+  ) {
+    try {
+      return copyDocumentSvgImage(value, budget, depth)
+    } catch {
+      return fail()
+    }
+  }
   count(budget, depth, fail)
   const v = record(
     value,
@@ -599,8 +618,9 @@ export function copyDocumentPresentationNode(
   const fail = (): never => {
     throw new DocumentPresentationError('invalid-output')
   }
-  const result = node(value, { nodes: 0, text: 0 }, 1, fail, request)
+  const result = node(value, createDocumentOutputBudget(), 1, fail, request)
   outputSize(result, fail)
+  canonicalSize([result], fail)
   return result
 }
 export function copyDocumentPresentationResult(
@@ -614,7 +634,7 @@ export function copyDocumentPresentationResult(
   const declarations =
     declaration === undefined ? undefined : 'contexts' in declaration ? [declaration] : declaration
   const v = record(value, ['fragments', 'complete'], fail),
-    budget = { nodes: 0, text: 0 }
+    budget = createDocumentOutputBudget()
   let end = request.from
   const fragments = array(
     v.fragments,
@@ -664,7 +684,20 @@ export function copyDocumentPresentationResult(
   )
   const result = Object.freeze({ fragments, complete: boolean(v.complete, fail) })
   outputSize(result, fail)
+  canonicalSize(
+    fragments.map((fragment) => fragment.content),
+    fail,
+  )
   return result
+}
+
+function canonicalSize(nodes: readonly DocumentPresentationNode[], fail: () => never): void {
+  let bytes = 0
+  const context = { image: 0 }
+  for (const node of nodes) {
+    bytes += new TextEncoder().encode(serializeValidatedNode(node, context)).byteLength
+    if (bytes > DOCUMENT_PRESENTATION_LIMITS.outputBytes) fail()
+  }
 }
 
 /** P5-safe pure serializer: no plugin HTML, CSS, URLs, script or event handlers. */
@@ -672,7 +705,12 @@ export function serializeDocumentPresentationNode(
   value: unknown,
   request?: DocumentPresentationRequest,
 ): string {
-  const validated = copyDocumentPresentationNode(value, request)
+  return serializeValidatedNode(copyDocumentPresentationNode(value, request), { image: 0 })
+}
+function serializeValidatedNode(
+  validated: DocumentPresentationNode,
+  context: { image: number },
+): string {
   const escape = (text: string) =>
     text.replace(
       /[&<>"']/g,
@@ -740,6 +778,8 @@ export function serializeDocumentPresentationNode(
     return `<${p.type} ${attrs.join(' ')}>${text}</${p.type}>`
   }
   const render = (n: DocumentPresentationNode): string => {
+    if (n.type === 'svg-image')
+      return serializeDocumentSvgImage(n, { idPrefix: `document-svg-${context.image++}` })
     if (n.type === 'text') return escape(n.text)
     if (n.type === 'math') return math(n.tree)
     if (n.type === 'vector')

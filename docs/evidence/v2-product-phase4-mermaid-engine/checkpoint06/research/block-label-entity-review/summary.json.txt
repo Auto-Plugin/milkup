@@ -1,0 +1,156 @@
+{
+  "status": "read-only-existing-evidence-review-complete",
+  "conclusion": "Literal &nbsp;&nbsp;&nbsp; already occurs in the official engine baseline raw SVG and measured DOM text before the product converter. The inspected typed AST and canonical SVG preserve the same literal text; no additional entity-decoding layer or double escaping was found.",
+  "artifacts": {
+    "officialDocument": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/official-docs/block.md",
+      "bytes": 21709,
+      "sha256": "3779f5db8f6da14abfa77bb7389854c3f6c9fe472c5ade0635dee9028449f630"
+    },
+    "samples": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/samples.json",
+      "bytes": 22964,
+      "sha256": "fef63220c07200b92054006ef60645b09db76f58da21b065abc98bfb4bd0dc87"
+    },
+    "nativeProbeEntry": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-probe/entry.mjs",
+      "bytes": 8988,
+      "sha256": "2bb8709cae57379645fa5cbcc596310abaea07cb72ee26f3795b11582d2b70aa"
+    },
+    "nativeRequest": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/prototype/mermaid-runs/scan-light-01-000/scan_000-request.json",
+      "bytes": 963,
+      "sha256": "ddad01161e09eceaf82017e502f4dab6609be549e915ec9a07da726b52fd2a89"
+    },
+    "nativeRawSvg": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/prototype/mermaid-runs/scan-light-01-000/scan_000.svg",
+      "bytes": 14087,
+      "sha256": "ba28f725e3a326b15ef61f661e3c4398187d2edea2e99fd7a1ca7a556c8c9cd9"
+    },
+    "nativeResult": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/prototype/mermaid-runs/scan-light-01-000/scan_000-result.json",
+      "bytes": 63300,
+      "sha256": "a3f14026731025cab3ab28540bf65d188a24cf534703d3fdd1fefc4c05745f6a"
+    },
+    "convertedResult": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/runs/product-converter-fourth-00/scan_000-result.json",
+      "bytes": 63269,
+      "sha256": "292a4cf04d628a0c757cb8a069e05144dd0cbf82fa951d6da8c2933a1be307de"
+    },
+    "canonicalSvg": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/product-converter04-host-validation/case-0.svg",
+      "bytes": 69720,
+      "sha256": "7a5f34da53231e4a19f75643ff8253bdcc2be291ce5a887f0d479884dba5bd02"
+    },
+    "hostValidation": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/product-converter04-host-validation/results.json",
+      "bytes": 36261,
+      "sha256": "3033679ffe88db2560a716cf9c95b0ce5a6914c7b64b2bfd45b784b6538b4dde"
+    },
+    "productionScreenshot": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-02/preinstalled-cold-window-webview.png",
+      "bytes": 53373,
+      "sha256": "a2863585e3fd49cfafb0e4c83ae89eb6e4a87d4bdf4a32d877954cde691471dc"
+    },
+    "currentRendererSource": {
+      "path": "/workspace/milkup/plugins/diagrams/src/renderer.ts",
+      "bytes": 7154,
+      "sha256": "d50faff2f803ac2f0a174f8d5b24933d22fd0527e314935e1feebbd6bac9774c"
+    }
+  },
+  "officialInput": {
+    "sampleId": "block-000-first-official-example",
+    "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/block.md",
+    "officialLocalLine": 14,
+    "sampleFenceStartLine": 10,
+    "sourceSha256": "78e30a8aaf7fb9a0a374414e1984d2882815549cfce0428d71601302ed4998d2",
+    "exactLabelSourceLine": "  blockArrowId6<[\"&nbsp;&nbsp;&nbsp;\"]>(down)",
+    "unmodifiedOfficialBlock": true
+  },
+  "nativeBaseline": {
+    "run": "/workspace/milkup-mermaid-engine-evidence/prototype/mermaid-runs/scan-light-01-000",
+    "id": "scan_000",
+    "profile": "baseline",
+    "theme": "light",
+    "ok": true,
+    "diagramType": "block",
+    "configurationFromEntry": {
+      "securityLevel": "strict",
+      "htmlLabels": false,
+      "fontFamily": "Arial, sans-serif",
+      "startOnLoad": false,
+      "suppressErrorRendering": true
+    },
+    "dataPath": "entry.mjs directly retains mermaid.render(...).svg; host.innerHTML=svg is used for measured DOM, without calling the product SVG converter.",
+    "raw": {
+      "exactXmlElement": "<tspan font-style=\"normal\" class=\"text-inner-tspan\" font-weight=\"normal\">&amp;nbsp;&amp;nbsp;&amp;nbsp;</tspan>",
+      "parsedTexts": [
+        "&nbsp;&nbsp;&nbsp;"
+      ],
+      "escapedAmpNbspCount": 3,
+      "doubleEscapedAmpNbspCount": 0
+    },
+    "measuredDomText": {
+      "jsonPointer": "/geometry/text/1/text",
+      "text": "&nbsp;&nbsp;&nbsp;"
+    }
+  },
+  "convertedAst": {
+    "run": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/runs/product-converter-fourth-00",
+    "exactTextLeaves": [
+      {
+        "jsonPointer": "/image/children/1/children/1/children/1/children/1/children/1/children/0/children/0/children/0/text",
+        "text": "&nbsp;&nbsp;&nbsp;"
+      }
+    ]
+  },
+  "canonical": {
+    "run": "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/product-converter04-host-validation",
+    "xml": {
+      "exactXmlElement": "<tspan style=\"shape-rendering:auto;fill:rgba(51,51,51,1);stroke:none;fill-opacity:1;stroke-opacity:1;opacity:1;fill-rule:nonzero;clip-rule:nonzero;stroke-width:1px;stroke-dasharray:none;stroke-dashoffset:0px;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;display:inline;visibility:visible;overflow:visible;mix-blend-mode:normal;isolation:auto;filter:none;color-interpolation:sRGB;color-interpolation-filters:linearRGB;font-family:Arial, sans-serif;font-size:16px;font-weight:400;font-style:normal;word-spacing:0px;text-anchor:middle;dominant-baseline:auto;alignment-baseline:baseline;text-decoration:none;white-space:nowrap;text-transform:none\">&amp;nbsp;&amp;nbsp;&amp;nbsp;</tspan>",
+      "parsedTexts": [
+        "&nbsp;&nbsp;&nbsp;"
+      ],
+      "escapedAmpNbspCount": 3,
+      "doubleEscapedAmpNbspCount": 0
+    },
+    "hostValidationIndex": 0,
+    "hostValidationStatus": "accepted"
+  },
+  "comparison": {
+    "rawParsedTextEqualsNativeMeasuredText": true,
+    "rawEqualsConvertedText": true,
+    "rawEqualsCanonicalParsedText": true,
+    "notU00A0": [
+      38,
+      110,
+      98,
+      115,
+      112,
+      59,
+      38,
+      110,
+      98,
+      115,
+      112,
+      59,
+      38,
+      110,
+      98,
+      115,
+      112,
+      59
+    ]
+  },
+  "pixelReview": {
+    "screenshot": "productionScreenshot",
+    "observation": "Existing production screenshot visually shows literal &nbsp;&nbsp;&nbsp; inside the block arrow label. Both reviewer and root independently viewed this same saved image.",
+    "newRuntimeExecuted": false
+  },
+  "limitations": [
+    "This chain compares separate retained runs: original native baseline scan, later product-converter-fourth AST/host canonical validation, and mermaid-ui-02 production screenshot. It is not a capture of all intermediate values from the same production UI invocation.",
+    "No configuration A/B run was performed. The evidence establishes behavior under the inspected strict/htmlLabels:false baseline; it does not isolate which individual Mermaid option or internal implementation causes it.",
+    "Current renderer source is a read-time reference only, not asserted to be the exact build input of every historical artifact. Its strict/htmlLabels:false settings match the reviewed baseline.",
+    "No new native/browser/build/test execution, product configuration change, source normalization, or double decoding was performed. This records an upstream-output boundary under the current configuration, not a new product acceptance result."
+  ]
+}

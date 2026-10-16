@@ -42,6 +42,7 @@ for (const item of plugins) {
     format: 'esm',
     platform: 'browser',
     target: item.closure?.target ?? 'es2022',
+    minify: item.closure?.minify ?? false,
     outfile: 'dist/plugin.js',
     legalComments: 'eof',
     write: false,

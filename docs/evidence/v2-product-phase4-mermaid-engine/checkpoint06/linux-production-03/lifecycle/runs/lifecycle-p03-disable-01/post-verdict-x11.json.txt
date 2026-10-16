@@ -1,0 +1,40 @@
+{
+  "atUtc": "2026-10-16T15:01:16.810541+00:00",
+  "note": "Read-only observation after failing harness finally cleanup; not original failure-time native dialog state",
+  "commands": [
+    {
+      "argv": [
+        "xdotool",
+        "search",
+        "--onlyvisible",
+        "--name",
+        "^Open File$"
+      ],
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "xdotool",
+        "getwindowfocus"
+      ],
+      "exitCode": 0,
+      "stdout": "543\n",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "xdotool",
+        "search",
+        "--onlyvisible",
+        "--class",
+        "milkup-desktop"
+      ],
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "originalAppProcExists": false
+}

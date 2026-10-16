@@ -1,0 +1,21 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import {copyDocumentSvgImage,createDocumentOutputBudget,serializeDocumentSvgImage} from './product-host-validator04.mjs';
+const base=path.dirname(new URL(import.meta.url).pathname);
+const summary=JSON.parse(fs.readFileSync(path.join(base,'product-converter-fourth-summary.json'),'utf8'));
+const out=path.join(base,'product-converter04-host-validation');fs.mkdirSync(out);
+const sha=x=>crypto.createHash('sha256').update(x).digest('hex');
+const rows=[];
+for(const row of summary.rows){
+ if(!row.converterOk)continue;
+ const input=fs.readFileSync(row.resultFile);const result=JSON.parse(input);const budget=createDocumentOutputBudget();
+ try{
+  const image=copyDocumentSvgImage(result.image,budget,0);
+  const canonical=serializeDocumentSvgImage(image,{idPrefix:'case'+row.index});
+  fs.writeFileSync(path.join(out,`case-${row.index}.svg`),canonical);
+  rows.push({index:row.index,id:row.sample.id,status:'accepted',resultFile:row.resultFile,resultSha256:sha(input),rasterBounds:image.rasterBounds,budget,canonicalSha256:sha(canonical),canonicalBytes:Buffer.byteLength(canonical)});
+ }catch(e){rows.push({index:row.index,id:row.sample.id,status:'rejected',resultFile:row.resultFile,resultSha256:sha(input),error:String(e),stack:e.stack,budget});}
+}
+fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({source:'current product codec and geometry frozen alongside this executable; no patched ASTs',conversionOnly:true,pixelAcceptance:false,rows},null,2)+'\n');
+console.log(JSON.stringify({ready:rows.length,accepted:rows.filter(x=>x.status==='accepted').length,rejected:rows.filter(x=>x.status==='rejected')},null,2));

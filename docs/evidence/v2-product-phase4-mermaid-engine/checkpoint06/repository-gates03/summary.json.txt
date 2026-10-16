@@ -1,0 +1,96 @@
+{
+  "status": "verified-composite-after-runner-correction",
+  "at": "2026-10-16T14:14:11.839367+00:00",
+  "workspaceVitest": {
+    "passed": 2004,
+    "byPackage": [
+      {
+        "package": "packages/assets",
+        "passed": 6
+      },
+      {
+        "package": "packages/input",
+        "passed": 8
+      },
+      {
+        "package": "packages/markdown",
+        "passed": 121
+      },
+      {
+        "package": "packages/core",
+        "passed": 175
+      },
+      {
+        "package": "packages/export",
+        "passed": 18
+      },
+      {
+        "package": "packages/plugin-sdk",
+        "passed": 6
+      },
+      {
+        "package": "packages/mcp",
+        "passed": 11
+      },
+      {
+        "package": "packages/tauri-bridge",
+        "passed": 55
+      },
+      {
+        "package": "packages/view-dom",
+        "passed": 616
+      },
+      {
+        "package": "tests/regressions",
+        "passed": 12
+      },
+      {
+        "package": "packages/plugin",
+        "passed": 480
+      },
+      {
+        "package": "packages/cli",
+        "passed": 21
+      },
+      {
+        "package": "apps/desktop",
+        "passed": 475
+      }
+    ],
+    "commands": "execution.json"
+  },
+  "qualification": "Original pnpm test exit0 included four node:test failures incorrectly collected as a Vitest zero-test file. Historical logs remain; original command alone is not the complete gate.",
+  "correctedDesktopCommand": {
+    "command": [
+      "bash",
+      "scripts/cloud/pnpm.sh",
+      "--filter",
+      "@milkup/desktop",
+      "test"
+    ],
+    "cwd": "/workspace/milkup",
+    "started": "2026-10-16T14:12:40.125292+00:00",
+    "finished": "2026-10-16T14:12:57.541734+00:00",
+    "exitCode": 0,
+    "log": "desktop-formal-runner.log",
+    "sha256": "b79c96b30e98d97bbab959360d810a7278064fd54f11c4ddc24ad024290b9950"
+  },
+  "correctedDesktopVitestPassed": 475,
+  "separateNodeProtocolPassed": 4,
+  "totalDistinctCurrentTests": 2008,
+  "notIncludedInTotal": "Standalone diagrams89, genericbuild16, Rust/native lifecycle and UI checks are separate evidence.",
+  "typecheckFormatBuild": "All exit0 in repository-gates03 execution.json; subsequent change only routes Node protocol tests correctly and corrects their Run comment.",
+  "targetedFormat": {
+    "command": [
+      "node",
+      "node_modules/prettier/bin/prettier.cjs",
+      "--check",
+      "apps/desktop/package.json",
+      "apps/desktop/src-tauri/src/plugin_dom_bootstrap.test.mjs"
+    ],
+    "exitCode": 0,
+    "log": "/workspace/milkup-mermaid-engine-evidence/repository-runner-fix01/final-runner-format.log",
+    "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+  },
+  "productChangesAfterGates": "None; test script/comment only. Linux production02 source freeze follows this correction."
+}

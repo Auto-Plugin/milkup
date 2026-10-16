@@ -1,0 +1,9 @@
+{
+  "scope": "Initial typecheck invocation; raw logs preserved",
+  "initialInvocation": "pnpm --filter @milkup/core typecheck; pnpm --filter @milkup/plugin-sdk typecheck",
+  "observed": "The invocation used /opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules/pnpm rather than the configured /workspace/.local/bin/pnpm/corepack toolchain. It failed during dependency checking/install before TypeScript ran, attempting to create /home/agent/.local/share/pnpm.",
+  "environment": "The initial command did not source /workspace/.cloud/milkup-v2/env.sh; XDG_DATA_HOME was not configured as in that environment.",
+  "notEstablished": "The evidence does not establish that changing the SDK version caused the dependency check or failure.",
+  "subsequentChecks": "The directly installed node_modules/typescript/bin/tsc ran successfully for core, SDK, and SDK contract after the documented nullable geometry fix.",
+  "futureCommands": "Use the configured environment or explicit pinned pnpm.cjs for normal workspace checks."
+}

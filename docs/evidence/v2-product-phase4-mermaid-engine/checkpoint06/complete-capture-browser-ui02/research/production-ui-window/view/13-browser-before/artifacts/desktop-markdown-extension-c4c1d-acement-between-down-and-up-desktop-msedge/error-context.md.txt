@@ -1,0 +1,52 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: desktop-markdown-extensions.spec.ts >> reference pointer activation survives windowed-provider replacement between down and up
+- Location: tests/e2e/desktop-markdown-extensions.spec.ts:1085:3
+
+# Error details
+
+```
+Error: page.evaluate: TypeError: Cannot read properties of null (reading 'records')
+    at eval (eval at evaluate (:303:30), <anonymous>:3:37)
+    at Array.every (<anonymous>)
+    at eval (eval at evaluate (:303:30), <anonymous>:3:16)
+    at UtilityScript.evaluate (<anonymous>:305:16)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+```
+
+# Page snapshot
+
+```yaml
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - button "菜单" [ref=e5] [cursor=pointer]:
+      - img [ref=e6]
+    - generic [ref=e7]:
+      - heading "未命名" [level=1] [ref=e8]
+      - paragraph [ref=e9]: 未保存
+    - generic "窗口控制" [ref=e10]:
+      - button "最小化" [ref=e11] [cursor=pointer]
+      - button "最大化" [ref=e13] [cursor=pointer]
+      - button "关闭窗口" [ref=e15] [cursor=pointer]
+  - generic [ref=e19]:
+    - text: 写点什么吧...
+    - generic [ref=e20]:
+      - textbox [ref=e21]
+      - textbox "Markdown 编辑器" [active]
+  - generic [ref=e23]:
+    - generic [ref=e24]:
+      - button "侧栏" [ref=e25] [cursor=pointer]:
+        - img [ref=e26]
+      - button "实时" [ref=e28] [cursor=pointer]:
+        - img [ref=e29]
+    - generic [ref=e32]:
+      - generic [ref=e33]: Markdown
+      - generic [ref=e34]: 0 字符
+      - generic [ref=e37]: 已保存
+```

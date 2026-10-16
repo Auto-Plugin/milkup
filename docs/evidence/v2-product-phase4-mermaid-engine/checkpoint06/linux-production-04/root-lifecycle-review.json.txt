@@ -1,0 +1,56 @@
+{
+  "atUtc": "2026-10-16T16:30:10.708334+00:00",
+  "result": "PASS",
+  "actualBinarySha256": "323213867fda26d1de66f67c5a428dd26d0a78f0334d40f8d15f1e94b161a172",
+  "artifactHashesAndLengths": [
+    "binary",
+    "deb",
+    "guard",
+    "archive",
+    "sdkTarball"
+  ],
+  "cases": [
+    {
+      "case": "timeout",
+      "eventsSha256": "7efb75f9752d2058ef409693c775dd9883f6a066bf603e0a1e8fd758bc4ca2a2",
+      "cleanupBeforeVerdictBeforeTestTeardown": true,
+      "ownedIdentities": 9,
+      "commandExitCode": 0
+    },
+    {
+      "case": "disable",
+      "eventsSha256": "1636b4dc939dcd0d417d27663f16b485ce172068513a64d1902baf630883b83a",
+      "cleanupBeforeVerdictBeforeTestTeardown": true,
+      "ownedIdentities": 9,
+      "commandExitCode": 0
+    },
+    {
+      "case": "remove",
+      "eventsSha256": "ee90220143b9eeae45ca7ce861b5228207b1fab310eb626625703f56052a8a39",
+      "cleanupBeforeVerdictBeforeTestTeardown": true,
+      "ownedIdentities": 9,
+      "commandExitCode": 0
+    },
+    {
+      "case": "wm-close",
+      "eventsSha256": "d9ce718978c8479a15f3eef673f939ee92169f995a5be08f6ecad6b5b43ecd0a",
+      "cleanupBeforeVerdictBeforeTestTeardown": true,
+      "ownedIdentities": 9,
+      "commandExitCode": 0
+    },
+    {
+      "case": "app-sigkill",
+      "eventsSha256": "18bcf1cf278f4c49dd4fa68cae4e29f2a98f4b49748dd5f546146a1fb8fb2ac5",
+      "cleanupBeforeVerdictBeforeTestTeardown": true,
+      "ownedIdentities": 9,
+      "commandExitCode": 0
+    }
+  ],
+  "qualifications": [
+    "Independent root reads of exact completion events establish cleanup before product verdict and before test teardown; source-after build manifest2912unchanged was read, not independently re-executed here.",
+    "WMclose has actual terminal cleanup-complete trace. SIGKILL exact ECHILD time is unknown; exact guardian natural exit0 gives completed upper bound55721806605936ns.",
+    "Trusted input twoRAF34/58/29ms are individual samples; disable observed frame max369ms prevents an all-frames-under200ms claim.",
+    "Generic lifecycle validation only; official Mermaid UI04 in progress."
+  ],
+  "visualReview": "root-visual-review.json"
+}

@@ -1,0 +1,40 @@
+from pathlib import Path
+import json,shutil,hashlib
+p=Path(__file__).parent/'native-runner';snap=p/'normalization-probes-before';snap.mkdir(exist_ok=True)
+for rel in ['paired-helper/assets/entry.mjs','paired-helper/src/main.rs']:
+ f=p/rel;d=snap/rel;d.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(f,d)
+f=p/'paired-helper/assets/entry.mjs';s=f.read_text();a=s.index(' const result=convertSvgElement(');b=s.index('\n }catch(e)',a)
+s=s[:a]+''' activeProbe=request.id;
+ return attachBytes({ok:true,id:request.id,profile:request.profile,theme:request.theme,diagramType,renderMs,elapsedMs:performance.now()-started,diagnosticOnly:true,converterSkipped:true,reason:'Observe original SVG then one explicit case-specific property/leaf normalization; original converter rejection is retained separately.'});'''+s[b:]
+s+=r'''
+let activeProbe,probeMutations=[];
+const probeProperties=['filter','box-shadow','transform','transform-origin','transform-box','overflow','opacity','mix-blend-mode','isolation','clip-path','mask','marker-start','marker-mid','marker-end','stroke','stroke-width','stroke-linecap','stroke-linejoin','stroke-miterlimit','stroke-dasharray','stroke-dashoffset'];
+function probeTargets(){const root=host.querySelector('svg');if(activeProbe==='scan_044')return Array.from(root.querySelectorAll('*')).filter(n=>getComputedStyle(n).filter.includes('#drop-shadow'));
+ if(activeProbe==='scan_000')return Array.from(root.querySelectorAll('rect')).filter(n=>getComputedStyle(n).boxShadow!=='none');
+ if(activeProbe==='scan_022')return Array.from(root.querySelectorAll('line')).filter(n=>Number(n.getAttribute('x1'))>8192&&n.getAttribute('x1')===n.getAttribute('x2'));
+ if(activeProbe==='scan_040')return Array.from(root.querySelectorAll('circle')).filter(n=>n.hasAttribute('width')||n.hasAttribute('height'));
+ throw Error('unknown fixed probe');}
+function probeInspect(includeSource=false){const root=host.querySelector('svg'),all=[root,...root.querySelectorAll('*')],selected=probeTargets();const details=new Set([root]);for(const n of selected){let x=n;while(x&&root.contains(x)){details.add(x);x=x.parentElement;}}return {...inspect(includeSource),diagnosticOnly:true,converterSkipped:true,probe:activeProbe,mutations:probeMutations,allElementCount:all.length,referenceAttributes:all.flatMap(n=>Array.from(n.attributes).filter(a=>/(?:url\(|href|marker)/i.test(a.name+' '+a.value)).map(a=>({tag:n.localName,name:a.name,value:a.value}))).slice(0,128),selectedCount:selected.length,targetsAndAncestors:Array.from(details).slice(0,64).map(n=>({geometry:geometry(n),attributes:Array.from(n.attributes).map(a=>[a.name,a.value]),computed:Object.fromEntries(probeProperties.map(k=>[k,getComputedStyle(n).getPropertyValue(k)]))}))};}
+function probeChange(){if(busy||task?.status==='pending')throw Error('busy');const nodes=probeTargets();if(!nodes.length)throw Error('no matching actual target');const taskId='probechange_'+(++sequence);task={taskId,status:'pending'};probeMutations=[];
+ for(const n of nodes){const before=geometry(n);if(activeProbe==='scan_044'){const filter=getComputedStyle(n).filter;if(!/^url\(["']?#drop-shadow["']?\)$/.test(filter)||document.getElementById('drop-shadow'))throw Error('missing local target prerequisite failed');probeMutations.push({tag:n.localName,operation:'filter-none',before,computedBefore:filter});n.style.setProperty('filter','none','important');}
+ else if(activeProbe==='scan_000'){probeMutations.push({tag:n.localName,operation:'box-shadow-none',before,computedBefore:getComputedStyle(n).boxShadow});n.style.setProperty('box-shadow','none','important');}
+ else if(activeProbe==='scan_022'){const root=host.querySelector('svg');if(getComputedStyle(root).overflow!=='hidden')throw Error('root clip prerequisite failed');probeMutations.push({tag:n.localName,operation:'remove-wholly-offscreen-leaf-observation',before,attributes:Array.from(n.attributes).map(a=>[a.name,a.value])});n.remove();}
+ else if(activeProbe==='scan_040'){probeMutations.push({tag:n.localName,operation:'remove-circle-width-height',before,attributesBefore:[n.getAttribute('width'),n.getAttribute('height')]});n.removeAttribute('width');n.removeAttribute('height');}}
+ completeObservation(taskId);return {taskId,status:'pending'};}
+window.__milkupSvgConverterProbe=Object.freeze({...window.__milkupSvgConverterProbe,probeChange,probeInspect});
+''';f.write_text(s)
+f=p/'paired-helper/src/main.rs';s=f.read_text();s=s.replace('window.__milkupSvgConverterProbe.inspect(true)','window.__milkupSvgConverterProbe.probeInspect(true)').replace('window.__milkupSvgConverterProbe.inspect(false)','window.__milkupSvgConverterProbe.probeInspect(false)');needle='    Some("inspect")=>';s=s.replace(needle,'    Some("probe-change")=>"window.__milkupSvgConverterProbe.probeChange()".into(),\n'+needle);f.write_text(s)
+s=(p/'supervise-paired-diagnostic.py').read_text().replace("'paired-cases.json'","'cases-normalization.json'");a=s.index("     started=time.monotonic();deadline=started+2;proc.stdin.write(b'{\"op\":\"canonical-inline\"}");b=s.index('\n     break\n    assert status',a)
+s=s[:a]+'''     started=time.monotonic();deadline=started+2;proc.stdin.write(b'{"op":"probe-change"}\\n');proc.stdin.flush();f=frame_before(deadline);assert f and f['value'].get('taskId'),f
+     changed_id=f['value']['taskId']
+     while True:
+      proc.stdin.write((json.dumps({'op':'poll','taskId':changed_id})+'\\n').encode());proc.stdin.flush();f=frame_before(deadline);assert f and f.get('type')=='result',f
+      state=f['value'];assert state['status'] in ['pending','complete'],state
+      if state['status']=='complete':assert state['result'].get('ok');break
+      time.sleep(.01)
+     inspect('normalized-inline',True)
+     snapshot('normalized-inline')'''+s[b:]
+s=s.replace("'converterPrototypeTested':True","'converterPrototypeTested':False,'originalDomNormalizationDiagnostic':True")
+(p/'supervise-normalization.py').write_text(s);(p/'run-normalization.sh').write_text((p/'run-paired-diagnostic.sh').read_text().replace('supervise-paired-diagnostic.py','supervise-normalization.py'))
+cat=json.loads(Path('/workspace/milkup-mermaid-engine-evidence/prototype/mermaid-scan-cases-light.json').read_text());(p/'cases-normalization.json').write_text(json.dumps([cat[i] for i in [44,0,22,40]],indent=2)+'\n')
+(p/'normalization-preparation.json').write_text(json.dumps({'status':'prepared-not-built-not-run','scope':'Original unchanged official input renders; converter intentionally not called, retained37first rejects remain. One explicit property/leaf change per case, compare raw native pixels/CTM/ancestors. Not converter acceptance.','nativeSeconds':2,'observationSeconds':2,'maxFrameBytes':262144,'cases':[44,0,22,40],'files':[{'path':str(p/n),'sha256':hashlib.sha256((p/n).read_bytes()).hexdigest()} for n in ['paired-helper/src/main.rs','paired-helper/assets/entry.mjs','supervise-normalization.py','run-normalization.sh','cases-normalization.json']]},indent=2)+'\n')

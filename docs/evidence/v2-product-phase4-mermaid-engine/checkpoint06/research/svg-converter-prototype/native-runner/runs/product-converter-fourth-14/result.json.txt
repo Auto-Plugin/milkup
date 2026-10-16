@@ -1,0 +1,4424 @@
+{
+  "diagnosticOnly": true,
+  "mermaidTested": true,
+  "converterPrototypeTested": true,
+  "results": [
+    {
+      "task": "native-resource-guard",
+      "elapsed": 0.01236937299836427,
+      "value": {
+        "status": "blocked"
+      }
+    },
+    {
+      "task": "scan_028",
+      "sampleId": "mindmap-001-without-icons",
+      "sourceSha256": "50120b037f07451727a4c261d4a2f601f5ce26c40c061336c710b49d99f33bf7",
+      "profile": "baseline",
+      "elapsed": 0.5683378029934829,
+      "serializedBytes": 19929,
+      "diagramType": "mindmap"
+    }
+  ],
+  "events": [
+    {
+      "kind": "spawn",
+      "mono": 40249.519518798,
+      "wall": 1792152637.0804794,
+      "pid": 262359,
+      "birth": "4024951",
+      "command": [
+        "/usr/bin/bwrap",
+        "--die-with-parent",
+        "--unshare-user",
+        "--unshare-pid",
+        "--unshare-ipc",
+        "--unshare-uts",
+        "--unshare-net",
+        "--clearenv",
+        "--ro-bind",
+        "/usr",
+        "/usr",
+        "--overlay-src",
+        "/usr/bin",
+        "--tmp-overlay",
+        "/usr/bin",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/bin/xdg-dbus-proxy",
+        "/usr/bin/xdg-dbus-proxy",
+        "--remount-ro",
+        "/usr/bin",
+        "--symlink",
+        "usr/bin",
+        "/bin",
+        "--symlink",
+        "usr/lib",
+        "/lib",
+        "--symlink",
+        "usr/lib64",
+        "/lib64",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu",
+        "/runtime/lib",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/share/glib-2.0/schemas",
+        "/runtime/schemas",
+        "--overlay-src",
+        "/usr/lib/x86_64-linux-gnu",
+        "--tmp-overlay",
+        "/usr/lib/x86_64-linux-gnu",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1",
+        "/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1",
+        "--remount-ro",
+        "/usr/lib/x86_64-linux-gnu",
+        "--ro-bind",
+        "/etc/fonts",
+        "/etc/fonts",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/passwd",
+        "/etc/passwd",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/group",
+        "/etc/group",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/hostname",
+        "/etc/hostname",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/hosts",
+        "/etc/hosts",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/nsswitch.conf",
+        "/etc/nsswitch.conf",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/machine-id",
+        "/etc/machine-id",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/loaders.cache",
+        "/probe/loaders.cache",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/target/debug/milkup-mermaid-render-probe",
+        "/probe/bin/helper",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/extensions/libresource_guard.so",
+        "/probe/extensions/libresource_guard.so",
+        "--bind",
+        "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/profiles/product-converter-fourth-14",
+        "/profile",
+        "--tmpfs",
+        "/tmp",
+        "--dir",
+        "/tmp/.X11-unix",
+        "--ro-bind",
+        "/tmp/.X11-unix/X118",
+        "/tmp/.X11-unix/X118",
+        "--tmpfs",
+        "/run",
+        "--perms",
+        "0700",
+        "--dir",
+        "/run/user/1000",
+        "--dir",
+        "/sys/block",
+        "--dir",
+        "/sys/bus",
+        "--dir",
+        "/sys/class",
+        "--dir",
+        "/sys/dev",
+        "--dir",
+        "/sys/devices",
+        "--dev",
+        "/dev",
+        "--proc",
+        "/proc",
+        "--setenv",
+        "PATH",
+        "/usr/bin:/bin",
+        "--setenv",
+        "HOME",
+        "/profile/home",
+        "--setenv",
+        "XDG_CONFIG_HOME",
+        "/profile/config",
+        "--setenv",
+        "XDG_DATA_HOME",
+        "/profile/data",
+        "--setenv",
+        "XDG_CACHE_HOME",
+        "/profile/cache",
+        "--setenv",
+        "XDG_RUNTIME_DIR",
+        "/run/user/1000",
+        "--setenv",
+        "LD_LIBRARY_PATH",
+        "/runtime/lib",
+        "--setenv",
+        "WEBKIT_INJECTED_BUNDLE_PATH",
+        "/runtime/lib/webkit2gtk-4.1/injected-bundle",
+        "--setenv",
+        "GSETTINGS_SCHEMA_DIR",
+        "/runtime/schemas",
+        "--setenv",
+        "GDK_PIXBUF_MODULE_FILE",
+        "/probe/loaders.cache",
+        "--setenv",
+        "MILKUP_PROBE_EXTENSIONS",
+        "/probe/extensions",
+        "--setenv",
+        "DISPLAY",
+        ":118",
+        "--setenv",
+        "GDK_BACKEND",
+        "x11",
+        "--setenv",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "1",
+        "--setenv",
+        "LANG",
+        "C.UTF-8",
+        "--setenv",
+        "LC_ALL",
+        "C.UTF-8",
+        "--setenv",
+        "TZ",
+        "UTC",
+        "--setenv",
+        "NO_AT_BRIDGE",
+        "1",
+        "--remount-ro",
+        "/",
+        "--chdir",
+        "/profile",
+        "--",
+        "/usr/bin/dbus-run-session",
+        "--",
+        "/probe/bin/helper"
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40249.684392868,
+      "wall": 1792152637.2453523,
+      "members": [
+        {
+          "pid": 262359,
+          "state": "S",
+          "ppid": 262356,
+          "pgrp": 262359,
+          "birth": "4024951",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262360,
+          "state": "S",
+          "ppid": 262359,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262361,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 262362,
+          "state": "S",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024953",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 262363,
+          "state": "R",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024954",
+          "utime": 9,
+          "stime": 3,
+          "name": "helper"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40249.850073149,
+      "wall": 1792152637.411033,
+      "members": [
+        {
+          "pid": 262359,
+          "state": "S",
+          "ppid": 262356,
+          "pgrp": 262359,
+          "birth": "4024951",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262360,
+          "state": "S",
+          "ppid": 262359,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262361,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 262362,
+          "state": "S",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024953",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 262363,
+          "state": "R",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024954",
+          "utime": 16,
+          "stime": 8,
+          "name": "helper"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40250.025694455,
+      "wall": 1792152637.5866542,
+      "members": [
+        {
+          "pid": 262359,
+          "state": "S",
+          "ppid": 262356,
+          "pgrp": 262359,
+          "birth": "4024951",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262360,
+          "state": "S",
+          "ppid": 262359,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262361,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 262362,
+          "state": "S",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024953",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 262363,
+          "state": "R",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024954",
+          "utime": 29,
+          "stime": 10,
+          "name": "helper"
+        },
+        {
+          "pid": 262372,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4024980",
+          "utime": 16,
+          "stime": 4,
+          "name": "WebKitNetworkPr"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40250.025800898,
+      "wall": 1792152637.5867593,
+      "frame": {
+        "allowedResources": 3,
+        "ephemeral": true,
+        "javascript": true,
+        "javascriptMarkup": true,
+        "sandbox": true,
+        "settings": "file/universal/webrtc/media/webgl/storage/dns/windows/devtools denied",
+        "tauriBridge": false,
+        "type": "native-policy",
+        "wryIpcStub": false
+      }
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40250.351223466,
+      "wall": 1792152637.9121833,
+      "members": [
+        {
+          "pid": 262359,
+          "state": "S",
+          "ppid": 262356,
+          "pgrp": 262359,
+          "birth": "4024951",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262360,
+          "state": "S",
+          "ppid": 262359,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262361,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 262362,
+          "state": "S",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024953",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 262363,
+          "state": "S",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024954",
+          "utime": 60,
+          "stime": 12,
+          "name": "helper"
+        },
+        {
+          "pid": 262372,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4024980",
+          "utime": 16,
+          "stime": 5,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 262399,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4024999",
+          "utime": 2,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 262409,
+          "state": "S",
+          "ppid": 262399,
+          "pgrp": 262359,
+          "birth": "4025001",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 262410,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4025002",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262411,
+          "state": "S",
+          "ppid": 262410,
+          "pgrp": 262359,
+          "birth": "4025002",
+          "utime": 2,
+          "stime": 2,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262412,
+          "state": "S",
+          "ppid": 262411,
+          "pgrp": 262359,
+          "birth": "4025007",
+          "utime": 0,
+          "stime": 1,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 262415,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4025009",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262418,
+          "state": "S",
+          "ppid": 262415,
+          "pgrp": 262359,
+          "birth": "4025010",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262420,
+          "state": "S",
+          "ppid": 262418,
+          "pgrp": 262359,
+          "birth": "4025011",
+          "utime": 13,
+          "stime": 4,
+          "name": "WebKitWebProces"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40250.523798975,
+      "wall": 1792152638.0847588,
+      "members": [
+        {
+          "pid": 262359,
+          "state": "S",
+          "ppid": 262356,
+          "pgrp": 262359,
+          "birth": "4024951",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262360,
+          "state": "S",
+          "ppid": 262359,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262361,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 262362,
+          "state": "S",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024953",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 262363,
+          "state": "S",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024954",
+          "utime": 73,
+          "stime": 16,
+          "name": "helper"
+        },
+        {
+          "pid": 262372,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4024980",
+          "utime": 16,
+          "stime": 5,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 262399,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4024999",
+          "utime": 2,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 262409,
+          "state": "S",
+          "ppid": 262399,
+          "pgrp": 262359,
+          "birth": "4025001",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 262410,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4025002",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262411,
+          "state": "S",
+          "ppid": 262410,
+          "pgrp": 262359,
+          "birth": "4025002",
+          "utime": 2,
+          "stime": 2,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262412,
+          "state": "S",
+          "ppid": 262411,
+          "pgrp": 262359,
+          "birth": "4025007",
+          "utime": 0,
+          "stime": 1,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 262415,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4025009",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262418,
+          "state": "S",
+          "ppid": 262415,
+          "pgrp": 262359,
+          "birth": "4025010",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262420,
+          "state": "S",
+          "ppid": 262418,
+          "pgrp": 262359,
+          "birth": "4025011",
+          "utime": 13,
+          "stime": 4,
+          "name": "WebKitWebProces"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40250.719642566,
+      "wall": 1792152638.2806022,
+      "members": [
+        {
+          "pid": 262359,
+          "state": "S",
+          "ppid": 262356,
+          "pgrp": 262359,
+          "birth": "4024951",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262360,
+          "state": "S",
+          "ppid": 262359,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262361,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 262362,
+          "state": "S",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024953",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 262363,
+          "state": "S",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024954",
+          "utime": 81,
+          "stime": 21,
+          "name": "helper"
+        },
+        {
+          "pid": 262372,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4024980",
+          "utime": 16,
+          "stime": 5,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 262399,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4024999",
+          "utime": 2,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 262409,
+          "state": "S",
+          "ppid": 262399,
+          "pgrp": 262359,
+          "birth": "4025001",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 262410,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4025002",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262411,
+          "state": "S",
+          "ppid": 262410,
+          "pgrp": 262359,
+          "birth": "4025002",
+          "utime": 2,
+          "stime": 2,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262412,
+          "state": "S",
+          "ppid": 262411,
+          "pgrp": 262359,
+          "birth": "4025007",
+          "utime": 0,
+          "stime": 1,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 262415,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4025009",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262418,
+          "state": "S",
+          "ppid": 262415,
+          "pgrp": 262359,
+          "birth": "4025010",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262420,
+          "state": "R",
+          "ppid": 262418,
+          "pgrp": 262359,
+          "birth": "4025011",
+          "utime": 17,
+          "stime": 7,
+          "name": "WebKitWebProces"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40250.907039518,
+      "wall": 1792152638.4679992,
+      "members": [
+        {
+          "pid": 262359,
+          "state": "S",
+          "ppid": 262356,
+          "pgrp": 262359,
+          "birth": "4024951",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262360,
+          "state": "S",
+          "ppid": 262359,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262361,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 262362,
+          "state": "S",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024953",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 262363,
+          "state": "R",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024954",
+          "utime": 85,
+          "stime": 24,
+          "name": "helper"
+        },
+        {
+          "pid": 262372,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4024980",
+          "utime": 17,
+          "stime": 5,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 262399,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4024999",
+          "utime": 2,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 262409,
+          "state": "S",
+          "ppid": 262399,
+          "pgrp": 262359,
+          "birth": "4025001",
+          "utime": 1,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 262410,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4025002",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262411,
+          "state": "S",
+          "ppid": 262410,
+          "pgrp": 262359,
+          "birth": "4025002",
+          "utime": 2,
+          "stime": 2,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262412,
+          "state": "S",
+          "ppid": 262411,
+          "pgrp": 262359,
+          "birth": "4025007",
+          "utime": 0,
+          "stime": 1,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 262415,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4025009",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262418,
+          "state": "S",
+          "ppid": 262415,
+          "pgrp": 262359,
+          "birth": "4025010",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262420,
+          "state": "R",
+          "ppid": 262418,
+          "pgrp": 262359,
+          "birth": "4025011",
+          "utime": 27,
+          "stime": 15,
+          "name": "WebKitWebProces"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40250.907116401,
+      "wall": 1792152638.4680748,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "bootstrapMissing": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40251.001005572,
+      "wall": 1792152638.561965,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "bootstrapMissing": true
+        }
+      }
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40251.166475229,
+      "wall": 1792152638.7274346,
+      "members": [
+        {
+          "pid": 262359,
+          "state": "S",
+          "ppid": 262356,
+          "pgrp": 262359,
+          "birth": "4024951",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262360,
+          "state": "S",
+          "ppid": 262359,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262361,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 262362,
+          "state": "S",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024953",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 262363,
+          "state": "S",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024954",
+          "utime": 86,
+          "stime": 27,
+          "name": "helper"
+        },
+        {
+          "pid": 262372,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4024980",
+          "utime": 17,
+          "stime": 5,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 262399,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4024999",
+          "utime": 2,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 262409,
+          "state": "S",
+          "ppid": 262399,
+          "pgrp": 262359,
+          "birth": "4025001",
+          "utime": 1,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 262410,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4025002",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262411,
+          "state": "S",
+          "ppid": 262410,
+          "pgrp": 262359,
+          "birth": "4025002",
+          "utime": 2,
+          "stime": 2,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262412,
+          "state": "S",
+          "ppid": 262411,
+          "pgrp": 262359,
+          "birth": "4025007",
+          "utime": 0,
+          "stime": 1,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 262415,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4025009",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262418,
+          "state": "S",
+          "ppid": 262415,
+          "pgrp": 262359,
+          "birth": "4025010",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262420,
+          "state": "R",
+          "ppid": 262418,
+          "pgrp": 262359,
+          "birth": "4025011",
+          "utime": 49,
+          "stime": 23,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 262448,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4025084",
+          "utime": 0,
+          "stime": 1,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40251.318025993,
+      "wall": 1792152638.8789854,
+      "members": [
+        {
+          "pid": 262359,
+          "state": "S",
+          "ppid": 262356,
+          "pgrp": 262359,
+          "birth": "4024951",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262360,
+          "state": "S",
+          "ppid": 262359,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262361,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 262362,
+          "state": "S",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024953",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 262363,
+          "state": "S",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024954",
+          "utime": 86,
+          "stime": 27,
+          "name": "helper"
+        },
+        {
+          "pid": 262372,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4024980",
+          "utime": 17,
+          "stime": 5,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 262399,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4024999",
+          "utime": 2,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 262409,
+          "state": "S",
+          "ppid": 262399,
+          "pgrp": 262359,
+          "birth": "4025001",
+          "utime": 1,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 262410,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4025002",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262411,
+          "state": "S",
+          "ppid": 262410,
+          "pgrp": 262359,
+          "birth": "4025002",
+          "utime": 2,
+          "stime": 2,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262412,
+          "state": "S",
+          "ppid": 262411,
+          "pgrp": 262359,
+          "birth": "4025007",
+          "utime": 0,
+          "stime": 1,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 262415,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4025009",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262418,
+          "state": "S",
+          "ppid": 262415,
+          "pgrp": 262359,
+          "birth": "4025010",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262420,
+          "state": "R",
+          "ppid": 262418,
+          "pgrp": 262359,
+          "birth": "4025011",
+          "utime": 62,
+          "stime": 26,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 262448,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4025084",
+          "utime": 0,
+          "stime": 1,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40251.339767376,
+      "wall": 1792152638.9007266,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "bootstrapMissing": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40251.459111088,
+      "wall": 1792152639.0200703,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "bootstrapMissing": true,
+          "fontPending": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40251.480339646,
+      "wall": 1792152639.0412984,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "hasTauri": false,
+          "ready": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40251.481596739,
+      "wall": 1792152639.042555,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40251.492531424,
+      "wall": 1792152639.05349,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "blocked"
+        }
+      }
+    },
+    {
+      "kind": "native-send",
+      "mono": 40251.548858787,
+      "wall": 1792152639.1098182,
+      "task": "scan_028",
+      "armedMono": 40251.548853204,
+      "deadlineMono": 40253.548853204,
+      "members": [
+        {
+          "pid": 262359,
+          "state": "S",
+          "ppid": 262356,
+          "pgrp": 262359,
+          "birth": "4024951",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262360,
+          "state": "S",
+          "ppid": 262359,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262361,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 262362,
+          "state": "S",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024953",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 262363,
+          "state": "S",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024954",
+          "utime": 86,
+          "stime": 27,
+          "name": "helper"
+        },
+        {
+          "pid": 262372,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4024980",
+          "utime": 17,
+          "stime": 5,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 262399,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4024999",
+          "utime": 2,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 262409,
+          "state": "S",
+          "ppid": 262399,
+          "pgrp": 262359,
+          "birth": "4025001",
+          "utime": 1,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 262410,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4025002",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262411,
+          "state": "S",
+          "ppid": 262410,
+          "pgrp": 262359,
+          "birth": "4025002",
+          "utime": 2,
+          "stime": 2,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262412,
+          "state": "S",
+          "ppid": 262411,
+          "pgrp": 262359,
+          "birth": "4025007",
+          "utime": 0,
+          "stime": 1,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 262415,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4025009",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262418,
+          "state": "S",
+          "ppid": 262415,
+          "pgrp": 262359,
+          "birth": "4025010",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262420,
+          "state": "S",
+          "ppid": 262418,
+          "pgrp": 262359,
+          "birth": "4025011",
+          "utime": 75,
+          "stime": 29,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 262448,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4025084",
+          "utime": 0,
+          "stime": 1,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40251.701623565,
+      "wall": 1792152639.262583,
+      "members": [
+        {
+          "pid": 262359,
+          "state": "S",
+          "ppid": 262356,
+          "pgrp": 262359,
+          "birth": "4024951",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262360,
+          "state": "S",
+          "ppid": 262359,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262361,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 262362,
+          "state": "S",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024953",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 262363,
+          "state": "S",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024954",
+          "utime": 86,
+          "stime": 27,
+          "name": "helper"
+        },
+        {
+          "pid": 262372,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4024980",
+          "utime": 17,
+          "stime": 5,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 262399,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4024999",
+          "utime": 2,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 262409,
+          "state": "S",
+          "ppid": 262399,
+          "pgrp": 262359,
+          "birth": "4025001",
+          "utime": 1,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 262410,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4025002",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262411,
+          "state": "S",
+          "ppid": 262410,
+          "pgrp": 262359,
+          "birth": "4025002",
+          "utime": 2,
+          "stime": 2,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262412,
+          "state": "S",
+          "ppid": 262411,
+          "pgrp": 262359,
+          "birth": "4025007",
+          "utime": 0,
+          "stime": 1,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 262415,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4025009",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262418,
+          "state": "S",
+          "ppid": 262415,
+          "pgrp": 262359,
+          "birth": "4025010",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262420,
+          "state": "R",
+          "ppid": 262418,
+          "pgrp": 262359,
+          "birth": "4025011",
+          "utime": 97,
+          "stime": 29,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 262448,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4025084",
+          "utime": 0,
+          "stime": 1,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40251.853872022,
+      "wall": 1792152639.4148314,
+      "members": [
+        {
+          "pid": 262359,
+          "state": "S",
+          "ppid": 262356,
+          "pgrp": 262359,
+          "birth": "4024951",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262360,
+          "state": "S",
+          "ppid": 262359,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262361,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 262362,
+          "state": "S",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024953",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 262363,
+          "state": "S",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024954",
+          "utime": 86,
+          "stime": 27,
+          "name": "helper"
+        },
+        {
+          "pid": 262372,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4024980",
+          "utime": 17,
+          "stime": 5,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 262399,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4024999",
+          "utime": 2,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 262409,
+          "state": "S",
+          "ppid": 262399,
+          "pgrp": 262359,
+          "birth": "4025001",
+          "utime": 1,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 262410,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4025002",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262411,
+          "state": "S",
+          "ppid": 262410,
+          "pgrp": 262359,
+          "birth": "4025002",
+          "utime": 2,
+          "stime": 2,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262412,
+          "state": "S",
+          "ppid": 262411,
+          "pgrp": 262359,
+          "birth": "4025007",
+          "utime": 0,
+          "stime": 1,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 262415,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4025009",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262418,
+          "state": "S",
+          "ppid": 262415,
+          "pgrp": 262359,
+          "birth": "4025010",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262420,
+          "state": "R",
+          "ppid": 262418,
+          "pgrp": 262359,
+          "birth": "4025011",
+          "utime": 111,
+          "stime": 32,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 262448,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4025084",
+          "utime": 0,
+          "stime": 1,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40252.008682904,
+      "wall": 1792152639.5696425,
+      "members": [
+        {
+          "pid": 262359,
+          "state": "S",
+          "ppid": 262356,
+          "pgrp": 262359,
+          "birth": "4024951",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262360,
+          "state": "S",
+          "ppid": 262359,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262361,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4024952",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 262362,
+          "state": "S",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024953",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 262363,
+          "state": "S",
+          "ppid": 262361,
+          "pgrp": 262359,
+          "birth": "4024954",
+          "utime": 87,
+          "stime": 27,
+          "name": "helper"
+        },
+        {
+          "pid": 262372,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4024980",
+          "utime": 17,
+          "stime": 5,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 262399,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4024999",
+          "utime": 2,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 262409,
+          "state": "S",
+          "ppid": 262399,
+          "pgrp": 262359,
+          "birth": "4025001",
+          "utime": 1,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 262410,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4025002",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262411,
+          "state": "S",
+          "ppid": 262410,
+          "pgrp": 262359,
+          "birth": "4025002",
+          "utime": 2,
+          "stime": 2,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262412,
+          "state": "S",
+          "ppid": 262411,
+          "pgrp": 262359,
+          "birth": "4025007",
+          "utime": 0,
+          "stime": 1,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 262415,
+          "state": "S",
+          "ppid": 262363,
+          "pgrp": 262359,
+          "birth": "4025009",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262418,
+          "state": "S",
+          "ppid": 262415,
+          "pgrp": 262359,
+          "birth": "4025010",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 262420,
+          "state": "S",
+          "ppid": 262418,
+          "pgrp": 262359,
+          "birth": "4025011",
+          "utime": 128,
+          "stime": 37,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 262448,
+          "state": "S",
+          "ppid": 262360,
+          "pgrp": 262359,
+          "birth": "4025084",
+          "utime": 0,
+          "stime": 1,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40252.008757237,
+      "wall": 1792152639.5697157,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "conversion_1"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40252.116524582,
+      "wall": 1792152639.6774838,
+      "frame": {
+        "type": "result",
+        "value": {
+          "result": {
+            "diagramType": "mindmap",
+            "elapsedMs": 420.0000000000002,
+            "evidenceBoundary": "No independent validator or round-trip pixels run by this entry. Original live SVG remains in helper for separately authorized observation.",
+            "id": "scan_028",
+            "image": {
+              "aspect": {
+                "align": "xMidYMid",
+                "fit": "meet"
+              },
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [],
+                      "kind": "group",
+                      "style": 4
+                    },
+                    {
+                      "children": [
+                        {
+                          "commands": [
+                            [
+                              "M",
+                              194.92,
+                              155.879
+                            ],
+                            [
+                              "L",
+                              191.588,
+                              152.144
+                            ],
+                            [
+                              "C",
+                              188.257,
+                              148.409,
+                              181.593,
+                              140.939,
+                              174.93,
+                              133.469
+                            ],
+                            [
+                              "C",
+                              168.267,
+                              125.999,
+                              161.604,
+                              118.529,
+                              158.272,
+                              114.794
+                            ],
+                            [
+                              "L",
+                              154.941,
+                              111.059
+                            ]
+                          ],
+                          "kind": "path",
+                          "style": 5
+                        },
+                        {
+                          "commands": [
+                            [
+                              "M",
+                              130.089,
+                              97.872
+                            ],
+                            [
+                              "L",
+                              123.862,
+                              97.037
+                            ],
+                            [
+                              "C",
+                              117.635,
+                              96.203,
+                              105.182,
+                              94.533,
+                              92.728,
+                              92.864
+                            ],
+                            [
+                              "C",
+                              80.274,
+                              91.195,
+                              67.821,
+                              89.526,
+                              61.594,
+                              88.691
+                            ],
+                            [
+                              "L",
+                              55.367,
+                              87.857
+                            ]
+                          ],
+                          "kind": "path",
+                          "style": 6
+                        },
+                        {
+                          "commands": [
+                            [
+                              "M",
+                              153.386,
+                              87.458
+                            ],
+                            [
+                              "L",
+                              156.022,
+                              83.579
+                            ],
+                            [
+                              "C",
+                              158.658,
+                              79.699,
+                              163.93,
+                              71.941,
+                              169.202,
+                              64.182
+                            ],
+                            [
+                              "C",
+                              174.474,
+                              56.424,
+                              179.746,
+                              48.665,
+                              182.382,
+                              44.786
+                            ],
+                            [
+                              "L",
+                              185.018,
+                              40.907
+                            ]
+                          ],
+                          "kind": "path",
+                          "style": 6
+                        }
+                      ],
+                      "kind": "group",
+                      "style": 4
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "dy": [
+                                        {
+                                          "unit": "em",
+                                          "value": 1.1
+                                        }
+                                      ],
+                                      "kind": "tspan",
+                                      "style": 7,
+                                      "x": [
+                                        {
+                                          "unit": "user",
+                                          "value": 0
+                                        }
+                                      ],
+                                      "y": [
+                                        {
+                                          "unit": "em",
+                                          "value": -0.1
+                                        }
+                                      ]
+                                    }
+                                  ],
+                                  "kind": "text",
+                                  "style": 7,
+                                  "y": [
+                                    {
+                                      "unit": "user",
+                                      "value": -10.1
+                                    }
+                                  ]
+                                }
+                              ],
+                              "kind": "group",
+                              "style": 4,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    0,
+                                    -8.881784197001252e-16
+                                  ]
+                                }
+                              ]
+                            }
+                          ],
+                          "kind": "group",
+                          "style": 4
+                        },
+                        {
+                          "children": [
+                            {
+                              "height": 0,
+                              "kind": "rect",
+                              "rx": 0,
+                              "ry": 0,
+                              "style": 4,
+                              "width": 0,
+                              "x": 0,
+                              "y": 0
+                            }
+                          ],
+                          "kind": "group",
+                          "style": 4
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "dy": [
+                                        {
+                                          "unit": "em",
+                                          "value": 1.1
+                                        }
+                                      ],
+                                      "kind": "tspan",
+                                      "style": 7,
+                                      "x": [
+                                        {
+                                          "unit": "user",
+                                          "value": 0
+                                        }
+                                      ],
+                                      "y": [
+                                        {
+                                          "unit": "em",
+                                          "value": -0.1
+                                        }
+                                      ]
+                                    }
+                                  ],
+                                  "kind": "text",
+                                  "style": 7,
+                                  "y": [
+                                    {
+                                      "unit": "user",
+                                      "value": -10.1
+                                    }
+                                  ]
+                                }
+                              ],
+                              "kind": "group",
+                              "style": 4,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    0,
+                                    -8.881784197001252e-16
+                                  ]
+                                }
+                              ]
+                            }
+                          ],
+                          "kind": "group",
+                          "style": 4
+                        },
+                        {
+                          "children": [
+                            {
+                              "height": 0,
+                              "kind": "rect",
+                              "rx": 0,
+                              "ry": 0,
+                              "style": 4,
+                              "width": 0,
+                              "x": 0,
+                              "y": 0
+                            }
+                          ],
+                          "kind": "group",
+                          "style": 4
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "children": [],
+                                      "dy": [
+                                        {
+                                          "unit": "em",
+                                          "value": 1.1
+                                        }
+                                      ],
+                                      "kind": "tspan",
+                                      "style": 7,
+                                      "x": [
+                                        {
+                                          "unit": "user",
+                                          "value": 0
+                                        }
+                                      ],
+                                      "y": [
+                                        {
+                                          "unit": "em",
+                                          "value": -0.1
+                                        }
+                                      ]
+                                    }
+                                  ],
+                                  "kind": "text",
+                                  "style": 7,
+                                  "y": [
+                                    {
+                                      "unit": "user",
+                                      "value": -10.1
+                                    }
+                                  ]
+                                }
+                              ],
+                              "kind": "group",
+                              "style": 4,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    0,
+                                    -8.881784197001252e-16
+                                  ]
+                                }
+                              ]
+                            }
+                          ],
+                          "kind": "group",
+                          "style": 4
+                        },
+                        {
+                          "children": [
+                            {
+                              "height": 0,
+                              "kind": "rect",
+                              "rx": 0,
+                              "ry": 0,
+                              "style": 4,
+                              "width": 0,
+                              "x": 0,
+                              "y": 0
+                            }
+                          ],
+                          "kind": "group",
+                          "style": 4
+                        }
+                      ],
+                      "kind": "group",
+                      "style": 4
+                    },
+                    {
+                      "children": [
+                        {
+                          "children": [
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  -37,
+                                  8.5
+                                ],
+                                [
+                                  "v",
+                                  -17
+                                ],
+                                [
+                                  "q",
+                                  0,
+                                  -5,
+                                  5,
+                                  -5
+                                ],
+                                [
+                                  "h",
+                                  64
+                                ],
+                                [
+                                  "q",
+                                  5,
+                                  0,
+                                  5,
+                                  5
+                                ],
+                                [
+                                  "v",
+                                  17
+                                ],
+                                [
+                                  "q",
+                                  0,
+                                  5,
+                                  -5,
+                                  5
+                                ],
+                                [
+                                  "h",
+                                  -64
+                                ],
+                                [
+                                  "q",
+                                  -5,
+                                  0,
+                                  -5,
+                                  -5
+                                ],
+                                [
+                                  "Z"
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 8
+                            },
+                            {
+                              "kind": "line",
+                              "style": 9,
+                              "x1": -37,
+                              "x2": 37,
+                              "y1": 13.5,
+                              "y2": 13.5
+                            },
+                            {
+                              "children": [
+                                {
+                                  "height": 0,
+                                  "kind": "rect",
+                                  "rx": 0,
+                                  "ry": 0,
+                                  "style": 8,
+                                  "width": 0,
+                                  "x": 0,
+                                  "y": 0
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "height": 0,
+                                      "kind": "rect",
+                                      "rx": 0,
+                                      "ry": 0,
+                                      "style": 8,
+                                      "width": 0,
+                                      "x": 0,
+                                      "y": 0
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "kind": "textRun",
+                                                  "text": "Root"
+                                                }
+                                              ],
+                                              "kind": "tspan",
+                                              "style": 10
+                                            }
+                                          ],
+                                          "dy": [
+                                            {
+                                              "unit": "em",
+                                              "value": 1.1
+                                            }
+                                          ],
+                                          "kind": "tspan",
+                                          "style": 10,
+                                          "x": [
+                                            {
+                                              "unit": "user",
+                                              "value": 0
+                                            }
+                                          ],
+                                          "y": [
+                                            {
+                                              "unit": "em",
+                                              "value": -0.1
+                                            }
+                                          ]
+                                        }
+                                      ],
+                                      "kind": "text",
+                                      "style": 10,
+                                      "y": [
+                                        {
+                                          "unit": "user",
+                                          "value": -10.1
+                                        }
+                                      ]
+                                    }
+                                  ],
+                                  "kind": "group",
+                                  "style": 4
+                                }
+                              ],
+                              "kind": "group",
+                              "style": 4,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    -17,
+                                    -8.499999999999972
+                                  ]
+                                }
+                              ]
+                            }
+                          ],
+                          "kind": "group",
+                          "style": 4,
+                          "transforms": [
+                            {
+                              "kind": "matrix",
+                              "values": [
+                                1,
+                                0,
+                                0,
+                                1,
+                                204.90460205078125,
+                                167.07257080078122
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "children": [
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  -25.5,
+                                  8.5
+                                ],
+                                [
+                                  "v",
+                                  -17
+                                ],
+                                [
+                                  "q",
+                                  0,
+                                  -5,
+                                  5,
+                                  -5
+                                ],
+                                [
+                                  "h",
+                                  41
+                                ],
+                                [
+                                  "q",
+                                  5,
+                                  0,
+                                  5,
+                                  5
+                                ],
+                                [
+                                  "v",
+                                  17
+                                ],
+                                [
+                                  "q",
+                                  0,
+                                  5,
+                                  -5,
+                                  5
+                                ],
+                                [
+                                  "h",
+                                  -41
+                                ],
+                                [
+                                  "q",
+                                  -5,
+                                  0,
+                                  -5,
+                                  -5
+                                ],
+                                [
+                                  "Z"
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 11
+                            },
+                            {
+                              "kind": "line",
+                              "style": 12,
+                              "x1": -25.5,
+                              "x2": 25.5,
+                              "y1": 13.5,
+                              "y2": 13.5
+                            },
+                            {
+                              "children": [
+                                {
+                                  "height": 0,
+                                  "kind": "rect",
+                                  "rx": 0,
+                                  "ry": 0,
+                                  "style": 11,
+                                  "width": 0,
+                                  "x": 0,
+                                  "y": 0
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "height": 0,
+                                      "kind": "rect",
+                                      "rx": 0,
+                                      "ry": 0,
+                                      "style": 11,
+                                      "width": 0,
+                                      "x": 0,
+                                      "y": 0
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "kind": "textRun",
+                                                  "text": "A"
+                                                }
+                                              ],
+                                              "kind": "tspan",
+                                              "style": 13
+                                            }
+                                          ],
+                                          "dy": [
+                                            {
+                                              "unit": "em",
+                                              "value": 1.1
+                                            }
+                                          ],
+                                          "kind": "tspan",
+                                          "style": 13,
+                                          "x": [
+                                            {
+                                              "unit": "user",
+                                              "value": 0
+                                            }
+                                          ],
+                                          "y": [
+                                            {
+                                              "unit": "em",
+                                              "value": -0.1
+                                            }
+                                          ]
+                                        }
+                                      ],
+                                      "kind": "text",
+                                      "style": 13,
+                                      "y": [
+                                        {
+                                          "unit": "user",
+                                          "value": -10.1
+                                        }
+                                      ]
+                                    }
+                                  ],
+                                  "kind": "group",
+                                  "style": 4
+                                }
+                              ],
+                              "kind": "group",
+                              "style": 4,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    -5.499999999999972,
+                                    -8.5
+                                  ]
+                                }
+                              ]
+                            }
+                          ],
+                          "kind": "group",
+                          "style": 4,
+                          "transforms": [
+                            {
+                              "kind": "matrix",
+                              "values": [
+                                1,
+                                0,
+                                0,
+                                1,
+                                144.95596313476562,
+                                99.8646011352539
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "children": [
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  -25.5,
+                                  8.5
+                                ],
+                                [
+                                  "v",
+                                  -17
+                                ],
+                                [
+                                  "q",
+                                  0,
+                                  -5,
+                                  5,
+                                  -5
+                                ],
+                                [
+                                  "h",
+                                  41
+                                ],
+                                [
+                                  "q",
+                                  5,
+                                  0,
+                                  5,
+                                  5
+                                ],
+                                [
+                                  "v",
+                                  17
+                                ],
+                                [
+                                  "q",
+                                  0,
+                                  5,
+                                  -5,
+                                  5
+                                ],
+                                [
+                                  "h",
+                                  -41
+                                ],
+                                [
+                                  "q",
+                                  -5,
+                                  0,
+                                  -5,
+                                  -5
+                                ],
+                                [
+                                  "Z"
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 11
+                            },
+                            {
+                              "kind": "line",
+                              "style": 12,
+                              "x1": -25.5,
+                              "x2": 25.5,
+                              "y1": 13.5,
+                              "y2": 13.5
+                            },
+                            {
+                              "children": [
+                                {
+                                  "height": 0,
+                                  "kind": "rect",
+                                  "rx": 0,
+                                  "ry": 0,
+                                  "style": 11,
+                                  "width": 0,
+                                  "x": 0,
+                                  "y": 0
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "height": 0,
+                                      "kind": "rect",
+                                      "rx": 0,
+                                      "ry": 0,
+                                      "style": 11,
+                                      "width": 0,
+                                      "x": 0,
+                                      "y": 0
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "kind": "textRun",
+                                                  "text": "B"
+                                                }
+                                              ],
+                                              "kind": "tspan",
+                                              "style": 13
+                                            }
+                                          ],
+                                          "dy": [
+                                            {
+                                              "unit": "em",
+                                              "value": 1.1
+                                            }
+                                          ],
+                                          "kind": "tspan",
+                                          "style": 13,
+                                          "x": [
+                                            {
+                                              "unit": "user",
+                                              "value": 0
+                                            }
+                                          ],
+                                          "y": [
+                                            {
+                                              "unit": "em",
+                                              "value": -0.1
+                                            }
+                                          ]
+                                        }
+                                      ],
+                                      "kind": "text",
+                                      "style": 13,
+                                      "y": [
+                                        {
+                                          "unit": "user",
+                                          "value": -10.1
+                                        }
+                                      ]
+                                    }
+                                  ],
+                                  "kind": "group",
+                                  "style": 4
+                                }
+                              ],
+                              "kind": "group",
+                              "style": 4,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    -5.5,
+                                    -8.499999999999986
+                                  ]
+                                }
+                              ]
+                            }
+                          ],
+                          "kind": "group",
+                          "style": 4,
+                          "transforms": [
+                            {
+                              "kind": "matrix",
+                              "values": [
+                                1,
+                                0,
+                                0,
+                                1,
+                                40.5,
+                                85.86381530761719
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "children": [
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  -26,
+                                  8.5
+                                ],
+                                [
+                                  "v",
+                                  -17
+                                ],
+                                [
+                                  "q",
+                                  0,
+                                  -5,
+                                  5,
+                                  -5
+                                ],
+                                [
+                                  "h",
+                                  42
+                                ],
+                                [
+                                  "q",
+                                  5,
+                                  0,
+                                  5,
+                                  5
+                                ],
+                                [
+                                  "v",
+                                  17
+                                ],
+                                [
+                                  "q",
+                                  0,
+                                  5,
+                                  -5,
+                                  5
+                                ],
+                                [
+                                  "h",
+                                  -42
+                                ],
+                                [
+                                  "q",
+                                  -5,
+                                  0,
+                                  -5,
+                                  -5
+                                ],
+                                [
+                                  "Z"
+                                ]
+                              ],
+                              "kind": "path",
+                              "style": 11
+                            },
+                            {
+                              "kind": "line",
+                              "style": 12,
+                              "x1": -26,
+                              "x2": 26,
+                              "y1": 13.5,
+                              "y2": 13.5
+                            },
+                            {
+                              "children": [
+                                {
+                                  "height": 0,
+                                  "kind": "rect",
+                                  "rx": 0,
+                                  "ry": 0,
+                                  "style": 11,
+                                  "width": 0,
+                                  "x": 0,
+                                  "y": 0
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "height": 0,
+                                      "kind": "rect",
+                                      "rx": 0,
+                                      "ry": 0,
+                                      "style": 11,
+                                      "width": 0,
+                                      "x": 0,
+                                      "y": 0
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "kind": "textRun",
+                                                  "text": "C"
+                                                }
+                                              ],
+                                              "kind": "tspan",
+                                              "style": 13
+                                            }
+                                          ],
+                                          "dy": [
+                                            {
+                                              "unit": "em",
+                                              "value": 1.1
+                                            }
+                                          ],
+                                          "kind": "tspan",
+                                          "style": 13,
+                                          "x": [
+                                            {
+                                              "unit": "user",
+                                              "value": 0
+                                            }
+                                          ],
+                                          "y": [
+                                            {
+                                              "unit": "em",
+                                              "value": -0.1
+                                            }
+                                          ]
+                                        }
+                                      ],
+                                      "kind": "text",
+                                      "style": 13,
+                                      "y": [
+                                        {
+                                          "unit": "user",
+                                          "value": -10.1
+                                        }
+                                      ]
+                                    }
+                                  ],
+                                  "kind": "group",
+                                  "style": 4
+                                }
+                              ],
+                              "kind": "group",
+                              "style": 4,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    -6,
+                                    -8.499999999999996
+                                  ]
+                                }
+                              ]
+                            }
+                          ],
+                          "kind": "group",
+                          "style": 4,
+                          "transforms": [
+                            {
+                              "kind": "matrix",
+                              "values": [
+                                1,
+                                0,
+                                0,
+                                1,
+                                193.44827270507812,
+                                28.5
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "kind": "group",
+                      "style": 4
+                    }
+                  ],
+                  "kind": "group",
+                  "style": 4
+                }
+              ],
+              "definitions": [
+                {
+                  "children": [
+                    {
+                      "commands": [
+                        [
+                          "M",
+                          0,
+                          0
+                        ],
+                        [
+                          "L",
+                          10,
+                          5
+                        ],
+                        [
+                          "L",
+                          0,
+                          10
+                        ],
+                        [
+                          "z"
+                        ]
+                      ],
+                      "kind": "path",
+                      "style": 1
+                    }
+                  ],
+                  "height": 8,
+                  "id": "d0",
+                  "kind": "marker",
+                  "orient": "auto",
+                  "refX": {
+                    "unit": "user",
+                    "value": 5
+                  },
+                  "refY": {
+                    "unit": "user",
+                    "value": 5
+                  },
+                  "style": 0,
+                  "units": "userSpaceOnUse",
+                  "viewBox": [
+                    0,
+                    0,
+                    10,
+                    10
+                  ],
+                  "width": 8
+                },
+                {
+                  "children": [
+                    {
+                      "commands": [
+                        [
+                          "M",
+                          0,
+                          5
+                        ],
+                        [
+                          "L",
+                          10,
+                          10
+                        ],
+                        [
+                          "L",
+                          10,
+                          0
+                        ],
+                        [
+                          "z"
+                        ]
+                      ],
+                      "kind": "path",
+                      "style": 1
+                    }
+                  ],
+                  "height": 8,
+                  "id": "d1",
+                  "kind": "marker",
+                  "orient": "auto",
+                  "refX": {
+                    "unit": "user",
+                    "value": 4.5
+                  },
+                  "refY": {
+                    "unit": "user",
+                    "value": 5
+                  },
+                  "style": 0,
+                  "units": "userSpaceOnUse",
+                  "viewBox": [
+                    0,
+                    0,
+                    10,
+                    10
+                  ],
+                  "width": 8
+                },
+                {
+                  "children": [
+                    {
+                      "commands": [
+                        [
+                          "M",
+                          0,
+                          0
+                        ],
+                        [
+                          "L",
+                          11.5,
+                          7
+                        ],
+                        [
+                          "L",
+                          0,
+                          14
+                        ],
+                        [
+                          "z"
+                        ]
+                      ],
+                      "kind": "path",
+                      "style": 2
+                    }
+                  ],
+                  "height": 14,
+                  "id": "d2",
+                  "kind": "marker",
+                  "orient": "auto",
+                  "refX": {
+                    "unit": "user",
+                    "value": 11.5
+                  },
+                  "refY": {
+                    "unit": "user",
+                    "value": 7
+                  },
+                  "style": 0,
+                  "units": "userSpaceOnUse",
+                  "viewBox": [
+                    0,
+                    0,
+                    11.5,
+                    14
+                  ],
+                  "width": 10.5
+                },
+                {
+                  "children": [
+                    {
+                      "kind": "polygon",
+                      "points": [
+                        [
+                          0,
+                          7
+                        ],
+                        [
+                          11.5,
+                          14
+                        ],
+                        [
+                          11.5,
+                          0
+                        ]
+                      ],
+                      "style": 2
+                    }
+                  ],
+                  "height": 14,
+                  "id": "d3",
+                  "kind": "marker",
+                  "orient": "auto",
+                  "refX": {
+                    "unit": "user",
+                    "value": 1
+                  },
+                  "refY": {
+                    "unit": "user",
+                    "value": 7
+                  },
+                  "style": 0,
+                  "units": "userSpaceOnUse",
+                  "viewBox": [
+                    0,
+                    0,
+                    11.5,
+                    14
+                  ],
+                  "width": 11.5
+                },
+                {
+                  "color": [
+                    0,
+                    0,
+                    0,
+                    0.06
+                  ],
+                  "colorInterpolation": "linearRGB",
+                  "dx": 4,
+                  "dy": 4,
+                  "id": "d4",
+                  "kind": "dropShadowFilter",
+                  "primitiveUnits": "userSpaceOnUse",
+                  "region": [
+                    {
+                      "unit": "percent",
+                      "value": -10
+                    },
+                    {
+                      "unit": "percent",
+                      "value": -10
+                    },
+                    {
+                      "unit": "percent",
+                      "value": 130
+                    },
+                    {
+                      "unit": "percent",
+                      "value": 130
+                    }
+                  ],
+                  "stdDeviation": [
+                    0,
+                    0
+                  ],
+                  "units": "objectBoundingBox"
+                },
+                {
+                  "color": [
+                    0,
+                    0,
+                    0,
+                    0.06
+                  ],
+                  "colorInterpolation": "linearRGB",
+                  "dx": 2,
+                  "dy": 2,
+                  "id": "d5",
+                  "kind": "dropShadowFilter",
+                  "primitiveUnits": "userSpaceOnUse",
+                  "region": [
+                    {
+                      "unit": "percent",
+                      "value": -10
+                    },
+                    {
+                      "unit": "percent",
+                      "value": -10
+                    },
+                    {
+                      "unit": "percent",
+                      "value": 150
+                    },
+                    {
+                      "unit": "percent",
+                      "value": 150
+                    }
+                  ],
+                  "stdDeviation": [
+                    0,
+                    0
+                  ],
+                  "units": "objectBoundingBox"
+                }
+              ],
+              "height": 185.546875,
+              "motion": "static",
+              "profile": "bounded-svg-v1",
+              "rasterBounds": [
+                0,
+                0,
+                246.890625,
+                185.546875
+              ],
+              "rootStyle": 3,
+              "styles": [
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      51,
+                      51,
+                      51,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "hidden",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      51,
+                      51,
+                      51,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [
+                    {
+                      "unit": "px",
+                      "value": 1
+                    },
+                    {
+                      "unit": "px",
+                      "value": 0
+                    }
+                  ],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      51,
+                      51,
+                      51,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      51,
+                      51,
+                      51,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [
+                    {
+                      "unit": "px",
+                      "value": 1
+                    },
+                    {
+                      "unit": "px",
+                      "value": 0
+                    }
+                  ],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      51,
+                      51,
+                      51,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      51,
+                      51,
+                      51,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      51,
+                      51,
+                      51,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "hidden",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      51,
+                      51,
+                      51,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [
+                    {
+                      "unit": "px",
+                      "value": 0
+                    }
+                  ],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "none"
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      255,
+                      255,
+                      120,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 11
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [
+                    {
+                      "unit": "px",
+                      "value": 0
+                    }
+                  ],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "none"
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      255,
+                      255,
+                      120,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 3
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      51,
+                      51,
+                      51,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "middle",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "nowrap",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      0,
+                      0,
+                      236,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      51,
+                      51,
+                      51,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      255,
+                      255,
+                      185,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 3
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      255,
+                      255,
+                      255,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "nowrap",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      255,
+                      255,
+                      120,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      51,
+                      51,
+                      51,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      171,
+                      171,
+                      255,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 3
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "nowrap",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                }
+              ],
+              "type": "svg-image",
+              "viewBox": [
+                5,
+                5,
+                246.90460205078125,
+                185.57257080078125
+              ],
+              "width": 246.890625
+            },
+            "ok": true,
+            "originalSvgBytes": 27007,
+            "over256KiB": false,
+            "profile": "baseline",
+            "renderMs": 238.0000000000001,
+            "serializedBytes": 19929,
+            "theme": "light"
+          },
+          "status": "complete",
+          "taskId": "conversion_1"
+        }
+      }
+    },
+    {
+      "kind": "terminate-group",
+      "mono": 40252.11805272,
+      "wall": 1792152639.6790116,
+      "reason": "completed-research-cleanup",
+      "pgid": 262359,
+      "members": [
+        {
+          "pid": 262359,
+          "birth": "4024951"
+        },
+        {
+          "pid": 262360,
+          "birth": "4024952"
+        },
+        {
+          "pid": 262361,
+          "birth": "4024952"
+        },
+        {
+          "pid": 262362,
+          "birth": "4024953"
+        },
+        {
+          "pid": 262363,
+          "birth": "4024954"
+        },
+        {
+          "pid": 262372,
+          "birth": "4024980"
+        },
+        {
+          "pid": 262409,
+          "birth": "4025001"
+        },
+        {
+          "pid": 262410,
+          "birth": "4025002"
+        },
+        {
+          "pid": 262411,
+          "birth": "4025002"
+        },
+        {
+          "pid": 262412,
+          "birth": "4025007"
+        },
+        {
+          "pid": 262415,
+          "birth": "4025009"
+        },
+        {
+          "pid": 262418,
+          "birth": "4025010"
+        },
+        {
+          "pid": 262420,
+          "birth": "4025011"
+        },
+        {
+          "pid": 262399,
+          "birth": "4024999"
+        },
+        {
+          "pid": 262448,
+          "birth": "4025084"
+        }
+      ]
+    },
+    {
+      "kind": "signal-start",
+      "mono": 40252.118055907,
+      "wall": 1792152639.6790144,
+      "pgid": 262359
+    },
+    {
+      "kind": "signal-return",
+      "mono": 40252.118714633,
+      "wall": 1792152639.679674,
+      "pgid": 262359
+    },
+    {
+      "kind": "escaped-descendants",
+      "mono": 40252.173726899,
+      "wall": 1792152639.734686,
+      "processes": []
+    },
+    {
+      "kind": "cleanup",
+      "mono": 40252.266879435,
+      "wall": 1792152639.8278387,
+      "reaped": [
+        {
+          "pid": 262360,
+          "status": 9
+        }
+      ],
+      "remainingGroupMembers": []
+    },
+    {
+      "kind": "completed",
+      "mono": 40252.308928414,
+      "wall": 1792152639.8698878,
+      "results": [
+        {
+          "task": "native-resource-guard",
+          "elapsed": 0.01236937299836427,
+          "value": {
+            "status": "blocked"
+          }
+        },
+        {
+          "task": "scan_028",
+          "sampleId": "mindmap-001-without-icons",
+          "sourceSha256": "50120b037f07451727a4c261d4a2f601f5ce26c40c061336c710b49d99f33bf7",
+          "profile": "baseline",
+          "elapsed": 0.5683378029934829,
+          "serializedBytes": 19929,
+          "diagramType": "mindmap"
+        }
+      ]
+    }
+  ]
+}

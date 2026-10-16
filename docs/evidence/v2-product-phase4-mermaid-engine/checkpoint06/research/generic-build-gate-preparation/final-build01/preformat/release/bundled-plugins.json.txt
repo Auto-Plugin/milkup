@@ -1,0 +1,59 @@
+[
+  {
+    "directory": "plugins/outline",
+    "permissions": ["document:read"],
+    "host": "worker"
+  },
+  {
+    "directory": "plugins/updates",
+    "permissions": ["app:updates"],
+    "host": "worker"
+  },
+  {
+    "directory": "plugins/workspace",
+    "permissions": ["workspace:read"],
+    "host": "worker"
+  },
+  {
+    "directory": "plugins/preferences",
+    "permissions": ["settings:write"],
+    "host": "worker"
+  },
+  {
+    "directory": "plugins/shortcuts",
+    "permissions": ["app:keymap"],
+    "host": "worker"
+  },
+  {
+    "directory": "plugins/formatting",
+    "permissions": ["document:read", "document:write"],
+    "host": "worker"
+  },
+  {
+    "directory": "plugins/images",
+    "permissions": ["document:read", "document:write", "images:import"],
+    "host": "worker"
+  },
+  {
+    "directory": "plugins/math",
+    "permissions": ["document:read"],
+    "bundledDependencies": [
+      {
+        "name": "katex",
+        "version": "0.19.0",
+        "entries": ["dist/katex.mjs"]
+      }
+    ],
+    "host": "worker"
+  },
+  {
+    "directory": "plugins/diagrams",
+    "permissions": ["document:read"],
+    "host": "worker"
+  },
+  {
+    "directory": "plugins/footnotes",
+    "permissions": ["document:read"],
+    "host": "worker"
+  }
+]

@@ -1,0 +1,126 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+stdout | src/__tests__/document-presentation-boundaries.test.ts > includes an initially visible complete long fence within the input budget (ordinary)
+boundary-before-assert {
+  windowed: false,
+  fromLine: 1,
+  toLine: 34,
+  first: [
+    { line: '1', from: '0', to: '6' },
+    {
+      line: '2',
+      from: '7',
+      to: '17',
+      presentationBlockFrom: '7',
+      presentationBlockTo: '492'
+    },
+    {
+      line: '3',
+      from: '18',
+      to: '24',
+      presentationBlockFrom: '7',
+      presentationBlockTo: '492'
+    }
+  ],
+  last: [
+    {
+      line: '62',
+      from: '480',
+      to: '487',
+      presentationBlockFrom: '7',
+      presentationBlockTo: '492'
+    },
+    {
+      line: '63',
+      from: '488',
+      to: '491',
+      presentationBlockFrom: '7',
+      presentationBlockTo: '492'
+    },
+    { line: '64', from: '492', to: '497' }
+  ]
+}
+
+stdout | src/__tests__/document-presentation-boundaries.test.ts > includes an initially visible complete long fence within the input budget (windowed)
+boundary-before-assert {
+  windowed: true,
+  fromLine: 1,
+  toLine: 34,
+  first: [
+    { line: '1', from: '0', to: '6' },
+    { line: '2', from: '7', to: '17' },
+    { line: '3', from: '18', to: '24' }
+  ],
+  last: [
+    { line: '34', from: '256', to: '263' },
+    { line: '35', from: '264', to: '271' },
+    { line: '36', from: '272', to: '279' }
+  ]
+}
+
+ ❯ src/__tests__/document-presentation-boundaries.test.ts (4 tests | 2 failed | 2 skipped) 211ms
+   × includes an initially visible complete long fence within the input budget (ordinary) 165ms
+     → expected 'MARKER\n```generic\nnode 0\nnode 1\nn…' to contain 'node 59\n```'
+   × includes an initially visible complete long fence within the input budget (windowed) 43ms
+     → expected 'MARKER\n```generic\nnode 0\nnode 1\nn…' to contain 'node 59\n```'
+   ↓ keeps an oversized complete fence literal at the lines budget
+   ↓ keeps an oversized complete fence literal at the characters budget
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation-boundaries.test.ts > includes an initially visible complete long fence within the input budget (ordinary)
+ FAIL  src/__tests__/document-presentation-boundaries.test.ts > includes an initially visible complete long fence within the input budget (windowed)
+AssertionError: expected 'MARKER\n```generic\nnode 0\nnode 1\nn…' to contain 'node 59\n```'
+
+- Expected
++ Received
+
+- node 59
+- ```
++ MARKER
++ ```generic
++ node 0
++ node 1
++ node 2
++ node 3
++ node 4
++ node 5
++ node 6
++ node 7
++ node 8
++ node 9
++ node 10
++ node 11
++ node 12
++ node 13
++ node 14
++ node 15
++ node 16
++ node 17
++ node 18
++ node 19
++ node 20
++ node 21
++ node 22
++ node 23
++ node 24
++ node 25
++ node 26
++ node 27
++ node 28
++ node 29
++ node 30
++ node 31
+
+ ❯ src/__tests__/document-presentation-boundaries.test.ts:29:28
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 skipped (4)
+   Start at  13:55:00
+   Duration  2.41s (transform 897ms, setup 0ms, collect 1.20s, tests 211ms, environment 556ms, prepare 79ms)
+

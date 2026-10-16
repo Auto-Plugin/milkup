@@ -1,0 +1,2566 @@
+{
+  "frozenAtUtc": "2026-10-16T16:30:55.702808+00:00",
+  "root": "/workspace/milkup-mermaid-engine-evidence/linux-production-04",
+  "scope": "Completed production04 Linux deb and five first-attempt generic DOM lifecycle cases; no active official Mermaid UI04 evidence captured",
+  "outcome": {
+    "attemptCount": 5,
+    "passCount": 5,
+    "redCount": 0,
+    "passingRuns": [
+      "lifecycle-p04-timeout-01",
+      "lifecycle-p04-disable-01",
+      "lifecycle-p04-remove-01",
+      "lifecycle-p04-wm-close-01",
+      "lifecycle-p04-app-sigkill-01"
+    ]
+  },
+  "allowlist": {
+    "rootFiles": [
+      "PREPARATION.md",
+      "RESULTS.md",
+      "binary-dependencies.d",
+      "build-command.json",
+      "build.log",
+      "build.py",
+      "bundle-marker-attribution.json",
+      "capture.py",
+      "deb-contents.txt",
+      "driver.sh",
+      "final-source-check.json",
+      "finalize.py",
+      "freeze-build.py",
+      "git-head.txt",
+      "git-status-before.txt",
+      "guard-build-output.txt",
+      "guard-build-root-output.txt",
+      "guard-build-stderr.txt",
+      "launch-driver-reaping.py",
+      "lifecycle-summary.json",
+      "owned-process-final-audit.json",
+      "preparation.json",
+      "provenance.json",
+      "root-lifecycle-review.json",
+      "root-visual-review.json",
+      "run-case.py",
+      "run-env.sh",
+      "runtime-preflight.json",
+      "snapshot-run-inputs.py",
+      "source-after.json",
+      "source-before.json",
+      "stop-driver.py"
+    ],
+    "recursiveDirectories": [
+      "lifecycle/control",
+      "lifecycle/logs",
+      "lifecycle/runs"
+    ],
+    "exactSelectedFiles": "files[].path only; do not expand directories after this freeze",
+    "fixtureArchiveException": "Small generated generic lifecycle fixture archives included; official diagrams archive body excluded"
+  },
+  "excluded": [
+    "source/",
+    "install/",
+    "artifacts/",
+    "frontend/",
+    "lifecycle/profiles/",
+    "SQLite/database/cache bodies",
+    "completed-manifest.json itself (hash delivered separately)",
+    "all outside evidence including active UI04"
+  ],
+  "retainedExternalArtifacts": {
+    "binary": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-04/install/usr/bin/milkup-desktop",
+      "bytes": 21859680,
+      "sha256": "323213867fda26d1de66f67c5a428dd26d0a78f0334d40f8d15f1e94b161a172"
+    },
+    "deb": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-04/artifacts/milkup_2.0.0-beta.1_amd64.deb",
+      "bytes": 7504086,
+      "sha256": "3e9574e28cbb2cd00cdfe7a1814f022fcd6e7da26c65c6cdc5da9e27cf0d2200"
+    },
+    "guard": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-04/artifacts/libmilkup_dom_guard.so",
+      "bytes": 15656,
+      "sha256": "5b1082768123b9ac1923eb8ef3f6f8c0bd05ffd5d66b8b2a023f75b69106c44c",
+      "exactBuildPath": "/workspace/milkup/apps/desktop/src-tauri/target/release/build/milkup-desktop-2c39bf60742e8c2c/out/libmilkup_dom_guard.so",
+      "attribution": "single guard in Cargo binary dependency file; complete guard bytes occur in actual extracted executable"
+    },
+    "archive": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-04/artifacts/milkup.diagrams-1.1.0.milkup-plugin",
+      "bytes": 5726804,
+      "sha256": "27db9bdefb9b241b03da2f3536f7e50d334117f928f963cfe290543f650b6239"
+    },
+    "sdkTarball": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-04/artifacts/plugin-sdk-0.3.4.tgz",
+      "bytes": 22524,
+      "sha256": "1717c0114aa165fa3e48a1bfa7687ffd0d9b2e5392d33e99d8b2dc59a1f3ad4f"
+    }
+  },
+  "sourceQualification": "2912 captured source files unchanged at final audit; no post-freeze harness or README edits in production04. docs/ intentionally excluded. Root reports are external evidence.",
+  "measurementQualification": "Phase times start at original dispatch. WM exact ECHILD present; SIGKILL exact ECHILD null, exact guardian natural exit0 observation provides upper bound. Specific input twoRAF34/58/29ms; disable maximum frame gap369ms retained. Page/process measurement overhead not subtracted.",
+  "ownership": "45 observed exact PID/birth identities plus five drivers absent in completed audit. Xvfb126 retained for root next suite; no blanket cleanup or claim about later UI04.",
+  "fileCount": 492,
+  "totalBytes": 7232413,
+  "files": [
+    {
+      "path": "PREPARATION.md",
+      "bytes": 5143,
+      "sha256": "60d337c40b4cd574894c18b7c58cede7ca80d56b0b92f673b168ffefd45b89fc"
+    },
+    {
+      "path": "RESULTS.md",
+      "bytes": 7746,
+      "sha256": "47de0299ac3994bc837191e3a6e2935655be21440ccd24dc249388cb7b2341e3"
+    },
+    {
+      "path": "binary-dependencies.d",
+      "bytes": 5047,
+      "sha256": "ed61b7c98d4ebf65fc461d6c585dbb721f4bcf6f248d5621a54baf4880507fbb"
+    },
+    {
+      "path": "build-command.json",
+      "bytes": 391,
+      "sha256": "a0b0cdf7a34421db9df27f9e2ffda7a80c4e86a1addba182f6fd08752366bc4e"
+    },
+    {
+      "path": "build.log",
+      "bytes": 2174,
+      "sha256": "890f61d2ef8b91d8be9fadaa8453380d61ba5e2c35bb32046bae4fd3728ebb8e"
+    },
+    {
+      "path": "build.py",
+      "bytes": 1052,
+      "sha256": "e5e1808a358491b68faa43beb2f72aefd0ae298c5c210abf46db5bd37a4d2c37"
+    },
+    {
+      "path": "bundle-marker-attribution.json",
+      "bytes": 1731,
+      "sha256": "38010d31c680983edeef95be08e7beebb4464fefe52180f448f165851cf2dc35"
+    },
+    {
+      "path": "capture.py",
+      "bytes": 3072,
+      "sha256": "71b0fc68b9298594e7870a6f6fa07cc6314581d54c648c7b4413d627c44c0868"
+    },
+    {
+      "path": "deb-contents.txt",
+      "bytes": 585,
+      "sha256": "7112d2a7b46c80d73cc1971081a83f296d60c949ae502d51f72e9a9ae445c333"
+    },
+    {
+      "path": "driver.sh",
+      "bytes": 1311,
+      "sha256": "224ff000c74b080f83ff6857eb107bd584d8da965ca20347c51a0b755f58d160"
+    },
+    {
+      "path": "final-source-check.json",
+      "bytes": 238,
+      "sha256": "74b978acd44c5e61f95036f48b5f50db609d1d169b8d9b8d565989feab3a08df"
+    },
+    {
+      "path": "finalize.py",
+      "bytes": 4534,
+      "sha256": "e0a5fc6f9dfc4be4523d86ebac8dc1ee2b6107d61636e76227793933bb68a1c2"
+    },
+    {
+      "path": "freeze-build.py",
+      "bytes": 5296,
+      "sha256": "aaf1d7d7cd453b0c34cf28c565bb45e999bdd96d5a3fbedd4e3b302ec3dee9fa"
+    },
+    {
+      "path": "git-head.txt",
+      "bytes": 41,
+      "sha256": "d5d8f27dff22ea4fde360b081020b8bddd3ef4175ac3772205aa26f7a11a8bb2"
+    },
+    {
+      "path": "git-status-before.txt",
+      "bytes": 3772,
+      "sha256": "cf6675281a5a2cc5a38ea24aabc57143a7a46229f111eed5049266557f703f90"
+    },
+    {
+      "path": "guard-build-output.txt",
+      "bytes": 943,
+      "sha256": "394d9dc6e94682935bbe01b97a3efeef0aed8aef7dd2068ba604603a1db4ea27"
+    },
+    {
+      "path": "guard-build-root-output.txt",
+      "bytes": 97,
+      "sha256": "88fc82041944230d0f09109925fd5c4a2377e510555565f9e6ba12829419c731"
+    },
+    {
+      "path": "guard-build-stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "launch-driver-reaping.py",
+      "bytes": 2903,
+      "sha256": "5a9a0f7179e8d8f6710a8b96960b5c8bdce3fc4d314425527fa9a1b032a09699"
+    },
+    {
+      "path": "lifecycle-summary.json",
+      "bytes": 43224,
+      "sha256": "f352c543acc937592b1ec35bb165df29d5f9be44ee5a3d17d620bd91ba8b5b16"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-ancestor-reaps.json",
+      "bytes": 3875,
+      "sha256": "91d7b90fe1e248bd5f5a36b2d934b1b188d754ca49aa09a1c19ef5f946f6b379"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-command.json",
+      "bytes": 582,
+      "sha256": "7846d50d02296e547643ab7cacd0594a78e1c849498a07386b084d9f887a0544"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-driver-owner.json",
+      "bytes": 557,
+      "sha256": "1aac742ee403124575d5f7817c7967ca40790fcd76ec507d424354885e98ba06"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-harness.log",
+      "bytes": 54,
+      "sha256": "b36df96db42673dd87bb5b05bb85480cc0d7d957a4e17d0490f8dbaee8a85492"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/driver.sh",
+      "bytes": 1311,
+      "sha256": "224ff000c74b080f83ff6857eb107bd584d8da965ca20347c51a0b755f58d160"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/launch-driver-reaping.py",
+      "bytes": 2903,
+      "sha256": "5a9a0f7179e8d8f6710a8b96960b5c8bdce3fc4d314425527fa9a1b032a09699"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/manifest.json",
+      "bytes": 18236,
+      "sha256": "22a070ac2ed6b9feb7d87ed1b3d62d6f61852a2ed1632ee7a1b9d85e7d2b35c0"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/fixtures/dom-plugin-lifecycle/README.md",
+      "bytes": 8440,
+      "sha256": "b6675639be75f2c3804164be6d91ad6e597c794e811067c89faa5ee3eb3ca3cb"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/fixtures/dom-plugin-lifecycle/main.js",
+      "bytes": 1636,
+      "sha256": "2dc6535a52529fe43a47f994561f0cea96749be028fb857ca43898a074eedf13"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/helpers/formatting-plugin.ts",
+      "bytes": 2195,
+      "sha256": "4a046cefbd4c71607126691acb4d086463bcdd0aa860ed310331085d2b7c806e"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/helpers/markdown-extension-plugins.ts",
+      "bytes": 3999,
+      "sha256": "7784646965d4899e4b99110317e7e15b0b9c4a71bee6e5723722a5f2c08e8e6a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/helpers/native-clipboard.mjs",
+      "bytes": 1740,
+      "sha256": "82a7ce9bae5f9782728f71f14695b85049c7dead10e57bfe957ea8e2c66a7180"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/helpers/native-dom-process-observer.py",
+      "bytes": 6740,
+      "sha256": "76bdb8661ab6f393ed1e999c5772e63e17c8b00e4ca343dc907a6bd81ec0172e"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/helpers/native-gtk-picker-observer.py",
+      "bytes": 3994,
+      "sha256": "fc5416d601019eaea2636d3df8f856de80912e378eee21ea3044bf04ebb98818"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/helpers/native-observer-server.mjs",
+      "bytes": 5481,
+      "sha256": "4909b16817cf14318cab83d670caae93ff6fa8d5847e8f6a008cea3a1ff258ce"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/helpers/native-owned-process.mjs",
+      "bytes": 1733,
+      "sha256": "63dc05ca826ea7e912f10df989c69d51ca8445d06f981ff757019f3095ef051b"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/helpers/native-plugin-visual-combination.mjs",
+      "bytes": 9663,
+      "sha256": "f70d010fe532560d72e792cbff56731f70757dac8015c4e081e891041ad6fac6"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/helpers/native-process-memory.mjs",
+      "bytes": 1791,
+      "sha256": "5a686a8727933f0a03a31c264f43f1005a6f67733bf4ebba8dc8a17e340d5d80"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/helpers/native-production.mjs",
+      "bytes": 7417,
+      "sha256": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/helpers/native-search-profile-server.mjs",
+      "bytes": 3517,
+      "sha256": "a01e6f586acffa6208898487b762a84182fb65bcec5fd97a9a781288308ddc73"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/helpers/native-startup.mjs",
+      "bytes": 3808,
+      "sha256": "d698104c7838e7d51a1ff64709c29f1660da8e3b9d1ca72fbf28c8370cc4d1f1"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/helpers/native-startup.test.ts",
+      "bytes": 3752,
+      "sha256": "fb4f0ebe7ddf895e799766d9bf19ff7fcc23cd48144dc4d55535044d9f858000"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/helpers/native-updates-fixture.mjs",
+      "bytes": 8353,
+      "sha256": "eae310d5f13a8623d0f5c8a386e5929405f588ba67a120cc927cb51cd48a5ae4"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/helpers/native_x11.py",
+      "bytes": 3645,
+      "sha256": "3c4b388cdf274e847ea07c30cadd2161df52124f6c16e6fda1d9718fa6df9a71"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/helpers/outline-fixture.mjs",
+      "bytes": 1664,
+      "sha256": "0109b43a8a9ccb17177d771093a25f89c2a0a31d9fdac34c1201846ff14f28a4"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-all-plugins-disabled.mjs",
+      "bytes": 12826,
+      "sha256": "42a8587e0d9d9aa76aacb88297361389912f8987b9a018caa62262292600c051"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-appearance.mjs",
+      "bytes": 16961,
+      "sha256": "cbdb9dd4f432f18a5b6a49f1035e4be48497ac949d491743df25203f71d79432"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-application-update.mjs",
+      "bytes": 17022,
+      "sha256": "da6dd83d3a56836d893d2804ddc4668035e456a4fb737c7d1145191427b9cbb4"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-block-keyboard.mjs",
+      "bytes": 12443,
+      "sha256": "9c74c38ae185b452b2e169cf97c3fa8588efc0a76d03349368e3800ffbfc5288"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-crash-recovery.mjs",
+      "bytes": 5977,
+      "sha256": "0b135860747999ee31fc5cc43ddd720d23b81138f59d9611838afcfc95308632"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-desktop-editor-interaction-benchmark.mjs",
+      "bytes": 18341,
+      "sha256": "03d793603d1a6213cbab0fa2e6f299562173c507b506ee552a134cec1e5a00c6"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-dom-plugin-lifecycle.mjs",
+      "bytes": 31720,
+      "sha256": "418c7caa3a61b7c3b9c09c3656ec81fa78fcf19d63ef6bba186178a6f8a10b81"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-editing-resources.mjs",
+      "bytes": 51386,
+      "sha256": "d32daa4feadbfd0185ba68a530d4bb937e293874930023a13f20872214f5e76f"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-jump-render-count.mjs",
+      "bytes": 2242,
+      "sha256": "e435d3f66c7912ed3e194fcfd3a54e8d13be4144b30bc85b8fb952f22ed7aacd"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-large-file-benchmark.mjs",
+      "bytes": 13001,
+      "sha256": "190f44beeb6fd5d50c4e13bc5280813c1509e627f7ec80c2747ac4820dd4dac8"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-large-search-quality.mjs",
+      "bytes": 12278,
+      "sha256": "01ce59f69048bfd2fda082a601bc1e5a1354b66bc7e2f173e6d499298a797c44"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-markdown-extensions.mjs",
+      "bytes": 51256,
+      "sha256": "70273f11203199467ce56a987d8e9e18acbf3e8c814afb6725fe81993028152c"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-mermaid-ui.mjs",
+      "bytes": 34544,
+      "sha256": "2b0ec01dd0c86e551bb4a43d3bc4d0024f92c218f2cba1da98d91e282c1c313a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-navigation.mjs",
+      "bytes": 20773,
+      "sha256": "750a65b0ed6fd3eefb46e9487ad2454f74a33efdf6d865d3bfa86e76758071f2"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-outline-performance.mjs",
+      "bytes": 15401,
+      "sha256": "59efe7c0ee5a1b75c1f7eee936c48e89e4ad56454bd7d92577897306e95daa55"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-plugin-architecture.mjs",
+      "bytes": 5221,
+      "sha256": "38a293022566cd2f592fd2d150b43565bfd87f46fd2842447a86f094385b0d85"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-plugin-index-profile.mjs",
+      "bytes": 6295,
+      "sha256": "825e283671f6cb825e95530dced6132f7ac35ac68add9331eeda6c5c73bcf67c"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-plugin-system.mjs",
+      "bytes": 24923,
+      "sha256": "ed0601198232113495dc066f5a96bfde27478220d0c5994b9dbd50d823870252"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-preferences.mjs",
+      "bytes": 28588,
+      "sha256": "b5b80ce88bc9a35884e3f872b5d254773feed648a0c1135dbc1499b15c075b0e"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-presentation-spot.mjs",
+      "bytes": 3609,
+      "sha256": "a7d9ba2420c64d9b1d34728f598e8f8de686f1f09cc933af7387c52d0f4fd4b6"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-production-latency.mjs",
+      "bytes": 11361,
+      "sha256": "2768d06d3227e5dc8f953eb4cda739e8b2252301bc64559aaf7a000a9c600621"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-production-search.mjs",
+      "bytes": 10621,
+      "sha256": "f4d3748e1bec8e29f7db64b56f67072bfdb4a833eceaa01739fe61548a0b122b"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-production-tables.mjs",
+      "bytes": 10712,
+      "sha256": "8491a90a45a1bca9a1b358414111663fc3fb0c22b1333a6f67cfbfa954e0badc"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-quality.mjs",
+      "bytes": 16595,
+      "sha256": "86735a0003b99245afdfeec7e8846b114d8bd729807609f03e75e845984415ed"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-recovery-lifecycle.mjs",
+      "bytes": 13958,
+      "sha256": "e7ef13a91b194cbc3b173fe8fff3dde106365028d025ebc894ecdb024f52a6cb"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-recovery-publication.mjs",
+      "bytes": 4996,
+      "sha256": "39e21ceab614d002f94ae7e879f48dd7023602e66d42da420e70a087a872facb"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-recovery-retention.mjs",
+      "bytes": 5284,
+      "sha256": "0caa2fc898f835a039d2ab8f63a9253aa6dd827a597a10ab6a4b39a287022bc1"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-recovery-storage.mjs",
+      "bytes": 12146,
+      "sha256": "19492d80f95fb82c0cd54bb11a1dd0d86bfecc467de7bb188be03efa2df30b90"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-recovery-write-interrupt.mjs",
+      "bytes": 5124,
+      "sha256": "8182fcd3f50dfbb5f97066ba3bbac9ac000e1cd1f5219123723209e3741a592a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-search-profile.mjs",
+      "bytes": 5144,
+      "sha256": "8253cf076e83a1ca91b4e5c414f3a760130b736a7df68dbf49188331b3982f32"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-table-editing.mjs",
+      "bytes": 19847,
+      "sha256": "7797106feb139060a88738d09d91ac571cf0a5dc71c26723365970afea6032a2"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-unicode-search-quality.mjs",
+      "bytes": 12059,
+      "sha256": "7aa441a189adf300db1e9f1f0997189681365419a4ebc6334b94c064a9353c0a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-version-migration.mjs",
+      "bytes": 4963,
+      "sha256": "45e776d992234c30836d801c7f7231e40b3d040753943be879c836a050b3f4b8"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-visual-accessibility.mjs",
+      "bytes": 8630,
+      "sha256": "eab17618743ce87286578b81ab99675e7a681115d77d74241413b7f87a486690"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-visual-fixes.mjs",
+      "bytes": 14349,
+      "sha256": "4075b89db16a7362debf318e79f0d0f5614837539cbc1d5c57d1492e47471c0d"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-visual-states.mjs",
+      "bytes": 6377,
+      "sha256": "6c74d94fe3be38e70f66314b037e77123296f291179ac2d14e6fe4946626fdd8"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-webdriver-smoke.mjs",
+      "bytes": 28323,
+      "sha256": "588b027e6ac5b0be4e769ca5c881329a1f14ea1fb8878979db4c6b4a7af41469"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-window-performance.mjs",
+      "bytes": 19228,
+      "sha256": "1654d95651f1f55ae6af89a6bf7ee26cc86395c2060533a0ad61e18931cd777a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-windowed-blocks.mjs",
+      "bytes": 14460,
+      "sha256": "9c3ed7c6d558e26162a154135af44be20ed062c5ed67f931a79eb182669d7673"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-windowed-unicode.mjs",
+      "bytes": 12549,
+      "sha256": "a4315020f5ab9491747f77e6f0c196252e904521ae934e774e156d5512d7a5f4"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/tauri-workspace.mjs",
+      "bytes": 24272,
+      "sha256": "4416247e0f56637b7d84b0d95b65d049977304087f0e3a5af2c8e9e2509fc187"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/x11-save-history.py",
+      "bytes": 6929,
+      "sha256": "515670edf46e69b4ab32544755b12a0fd28e58ff9fe8ba735632dc879cf331dc"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/x11-scroll-limits.py",
+      "bytes": 10862,
+      "sha256": "5a5353580bd986f9624a1888116783dd8cf2b6506f72138ef432909470700e24"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/repo/tests/native/x11-windowed-blocks.py",
+      "bytes": 6810,
+      "sha256": "35f9efcc76ee1d10d46e0193aae4285959c76cbf63ff2cffbcc988a507a0ab94"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/run-case.py",
+      "bytes": 1724,
+      "sha256": "ccd8d09d7333fe346974712c88dd6646cada2e2ede782031d02765959b6022c9"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/run-env.sh",
+      "bytes": 2262,
+      "sha256": "0268ce2293a7e9e9ac3b7fbd669e07170590a778274d178117c20746babd7b73"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/snapshot-run-inputs.py",
+      "bytes": 1833,
+      "sha256": "0898214aa755c7ce007cfc11495ca15eb79cbbb94af72416761998538a3415e7"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-app-sigkill-01-inputs/stop-driver.py",
+      "bytes": 577,
+      "sha256": "08a12affc0e8769e0ba19967042ec52752f7b5b3bcb40db2cab8e2978c10d716"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-ancestor-reaps.json",
+      "bytes": 3231,
+      "sha256": "f757ce28d249689cb5978ae355735b46708996d0cb7e44334761d84f2af94ce4"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-command.json",
+      "bytes": 574,
+      "sha256": "4cae1b4aa9105bdf45480634f087163b5555d0a10079e60efd4d7a5394c16990"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-driver-owner.json",
+      "bytes": 549,
+      "sha256": "ea270819407ffe5495b7a33e8051bef5819dfb5c0dec383c5becfed0389767bb"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-harness.log",
+      "bytes": 54,
+      "sha256": "67c8fe1ebc8a89b651bcfdc04fbe5f1fad94dd3f45eb155a169fad439d414153"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/driver.sh",
+      "bytes": 1311,
+      "sha256": "224ff000c74b080f83ff6857eb107bd584d8da965ca20347c51a0b755f58d160"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/launch-driver-reaping.py",
+      "bytes": 2903,
+      "sha256": "5a9a0f7179e8d8f6710a8b96960b5c8bdce3fc4d314425527fa9a1b032a09699"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/manifest.json",
+      "bytes": 18228,
+      "sha256": "db77a7e690f391657a4bc4d7f9ea0a51cc48cc4851800ce53bff0af5b8aa2d56"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/fixtures/dom-plugin-lifecycle/README.md",
+      "bytes": 8440,
+      "sha256": "b6675639be75f2c3804164be6d91ad6e597c794e811067c89faa5ee3eb3ca3cb"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/fixtures/dom-plugin-lifecycle/main.js",
+      "bytes": 1636,
+      "sha256": "2dc6535a52529fe43a47f994561f0cea96749be028fb857ca43898a074eedf13"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/helpers/formatting-plugin.ts",
+      "bytes": 2195,
+      "sha256": "4a046cefbd4c71607126691acb4d086463bcdd0aa860ed310331085d2b7c806e"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/helpers/markdown-extension-plugins.ts",
+      "bytes": 3999,
+      "sha256": "7784646965d4899e4b99110317e7e15b0b9c4a71bee6e5723722a5f2c08e8e6a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/helpers/native-clipboard.mjs",
+      "bytes": 1740,
+      "sha256": "82a7ce9bae5f9782728f71f14695b85049c7dead10e57bfe957ea8e2c66a7180"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/helpers/native-dom-process-observer.py",
+      "bytes": 6740,
+      "sha256": "76bdb8661ab6f393ed1e999c5772e63e17c8b00e4ca343dc907a6bd81ec0172e"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/helpers/native-gtk-picker-observer.py",
+      "bytes": 3994,
+      "sha256": "fc5416d601019eaea2636d3df8f856de80912e378eee21ea3044bf04ebb98818"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/helpers/native-observer-server.mjs",
+      "bytes": 5481,
+      "sha256": "4909b16817cf14318cab83d670caae93ff6fa8d5847e8f6a008cea3a1ff258ce"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/helpers/native-owned-process.mjs",
+      "bytes": 1733,
+      "sha256": "63dc05ca826ea7e912f10df989c69d51ca8445d06f981ff757019f3095ef051b"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/helpers/native-plugin-visual-combination.mjs",
+      "bytes": 9663,
+      "sha256": "f70d010fe532560d72e792cbff56731f70757dac8015c4e081e891041ad6fac6"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/helpers/native-process-memory.mjs",
+      "bytes": 1791,
+      "sha256": "5a686a8727933f0a03a31c264f43f1005a6f67733bf4ebba8dc8a17e340d5d80"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/helpers/native-production.mjs",
+      "bytes": 7417,
+      "sha256": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/helpers/native-search-profile-server.mjs",
+      "bytes": 3517,
+      "sha256": "a01e6f586acffa6208898487b762a84182fb65bcec5fd97a9a781288308ddc73"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/helpers/native-startup.mjs",
+      "bytes": 3808,
+      "sha256": "d698104c7838e7d51a1ff64709c29f1660da8e3b9d1ca72fbf28c8370cc4d1f1"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/helpers/native-startup.test.ts",
+      "bytes": 3752,
+      "sha256": "fb4f0ebe7ddf895e799766d9bf19ff7fcc23cd48144dc4d55535044d9f858000"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/helpers/native-updates-fixture.mjs",
+      "bytes": 8353,
+      "sha256": "eae310d5f13a8623d0f5c8a386e5929405f588ba67a120cc927cb51cd48a5ae4"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/helpers/native_x11.py",
+      "bytes": 3645,
+      "sha256": "3c4b388cdf274e847ea07c30cadd2161df52124f6c16e6fda1d9718fa6df9a71"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/helpers/outline-fixture.mjs",
+      "bytes": 1664,
+      "sha256": "0109b43a8a9ccb17177d771093a25f89c2a0a31d9fdac34c1201846ff14f28a4"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-all-plugins-disabled.mjs",
+      "bytes": 12826,
+      "sha256": "42a8587e0d9d9aa76aacb88297361389912f8987b9a018caa62262292600c051"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-appearance.mjs",
+      "bytes": 16961,
+      "sha256": "cbdb9dd4f432f18a5b6a49f1035e4be48497ac949d491743df25203f71d79432"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-application-update.mjs",
+      "bytes": 17022,
+      "sha256": "da6dd83d3a56836d893d2804ddc4668035e456a4fb737c7d1145191427b9cbb4"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-block-keyboard.mjs",
+      "bytes": 12443,
+      "sha256": "9c74c38ae185b452b2e169cf97c3fa8588efc0a76d03349368e3800ffbfc5288"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-crash-recovery.mjs",
+      "bytes": 5977,
+      "sha256": "0b135860747999ee31fc5cc43ddd720d23b81138f59d9611838afcfc95308632"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-desktop-editor-interaction-benchmark.mjs",
+      "bytes": 18341,
+      "sha256": "03d793603d1a6213cbab0fa2e6f299562173c507b506ee552a134cec1e5a00c6"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-dom-plugin-lifecycle.mjs",
+      "bytes": 31720,
+      "sha256": "418c7caa3a61b7c3b9c09c3656ec81fa78fcf19d63ef6bba186178a6f8a10b81"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-editing-resources.mjs",
+      "bytes": 51386,
+      "sha256": "d32daa4feadbfd0185ba68a530d4bb937e293874930023a13f20872214f5e76f"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-jump-render-count.mjs",
+      "bytes": 2242,
+      "sha256": "e435d3f66c7912ed3e194fcfd3a54e8d13be4144b30bc85b8fb952f22ed7aacd"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-large-file-benchmark.mjs",
+      "bytes": 13001,
+      "sha256": "190f44beeb6fd5d50c4e13bc5280813c1509e627f7ec80c2747ac4820dd4dac8"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-large-search-quality.mjs",
+      "bytes": 12278,
+      "sha256": "01ce59f69048bfd2fda082a601bc1e5a1354b66bc7e2f173e6d499298a797c44"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-markdown-extensions.mjs",
+      "bytes": 51256,
+      "sha256": "70273f11203199467ce56a987d8e9e18acbf3e8c814afb6725fe81993028152c"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-mermaid-ui.mjs",
+      "bytes": 34544,
+      "sha256": "2b0ec01dd0c86e551bb4a43d3bc4d0024f92c218f2cba1da98d91e282c1c313a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-navigation.mjs",
+      "bytes": 20773,
+      "sha256": "750a65b0ed6fd3eefb46e9487ad2454f74a33efdf6d865d3bfa86e76758071f2"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-outline-performance.mjs",
+      "bytes": 15401,
+      "sha256": "59efe7c0ee5a1b75c1f7eee936c48e89e4ad56454bd7d92577897306e95daa55"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-plugin-architecture.mjs",
+      "bytes": 5221,
+      "sha256": "38a293022566cd2f592fd2d150b43565bfd87f46fd2842447a86f094385b0d85"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-plugin-index-profile.mjs",
+      "bytes": 6295,
+      "sha256": "825e283671f6cb825e95530dced6132f7ac35ac68add9331eeda6c5c73bcf67c"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-plugin-system.mjs",
+      "bytes": 24923,
+      "sha256": "ed0601198232113495dc066f5a96bfde27478220d0c5994b9dbd50d823870252"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-preferences.mjs",
+      "bytes": 28588,
+      "sha256": "b5b80ce88bc9a35884e3f872b5d254773feed648a0c1135dbc1499b15c075b0e"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-presentation-spot.mjs",
+      "bytes": 3609,
+      "sha256": "a7d9ba2420c64d9b1d34728f598e8f8de686f1f09cc933af7387c52d0f4fd4b6"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-production-latency.mjs",
+      "bytes": 11361,
+      "sha256": "2768d06d3227e5dc8f953eb4cda739e8b2252301bc64559aaf7a000a9c600621"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-production-search.mjs",
+      "bytes": 10621,
+      "sha256": "f4d3748e1bec8e29f7db64b56f67072bfdb4a833eceaa01739fe61548a0b122b"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-production-tables.mjs",
+      "bytes": 10712,
+      "sha256": "8491a90a45a1bca9a1b358414111663fc3fb0c22b1333a6f67cfbfa954e0badc"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-quality.mjs",
+      "bytes": 16595,
+      "sha256": "86735a0003b99245afdfeec7e8846b114d8bd729807609f03e75e845984415ed"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-recovery-lifecycle.mjs",
+      "bytes": 13958,
+      "sha256": "e7ef13a91b194cbc3b173fe8fff3dde106365028d025ebc894ecdb024f52a6cb"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-recovery-publication.mjs",
+      "bytes": 4996,
+      "sha256": "39e21ceab614d002f94ae7e879f48dd7023602e66d42da420e70a087a872facb"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-recovery-retention.mjs",
+      "bytes": 5284,
+      "sha256": "0caa2fc898f835a039d2ab8f63a9253aa6dd827a597a10ab6a4b39a287022bc1"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-recovery-storage.mjs",
+      "bytes": 12146,
+      "sha256": "19492d80f95fb82c0cd54bb11a1dd0d86bfecc467de7bb188be03efa2df30b90"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-recovery-write-interrupt.mjs",
+      "bytes": 5124,
+      "sha256": "8182fcd3f50dfbb5f97066ba3bbac9ac000e1cd1f5219123723209e3741a592a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-search-profile.mjs",
+      "bytes": 5144,
+      "sha256": "8253cf076e83a1ca91b4e5c414f3a760130b736a7df68dbf49188331b3982f32"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-table-editing.mjs",
+      "bytes": 19847,
+      "sha256": "7797106feb139060a88738d09d91ac571cf0a5dc71c26723365970afea6032a2"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-unicode-search-quality.mjs",
+      "bytes": 12059,
+      "sha256": "7aa441a189adf300db1e9f1f0997189681365419a4ebc6334b94c064a9353c0a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-version-migration.mjs",
+      "bytes": 4963,
+      "sha256": "45e776d992234c30836d801c7f7231e40b3d040753943be879c836a050b3f4b8"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-visual-accessibility.mjs",
+      "bytes": 8630,
+      "sha256": "eab17618743ce87286578b81ab99675e7a681115d77d74241413b7f87a486690"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-visual-fixes.mjs",
+      "bytes": 14349,
+      "sha256": "4075b89db16a7362debf318e79f0d0f5614837539cbc1d5c57d1492e47471c0d"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-visual-states.mjs",
+      "bytes": 6377,
+      "sha256": "6c74d94fe3be38e70f66314b037e77123296f291179ac2d14e6fe4946626fdd8"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-webdriver-smoke.mjs",
+      "bytes": 28323,
+      "sha256": "588b027e6ac5b0be4e769ca5c881329a1f14ea1fb8878979db4c6b4a7af41469"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-window-performance.mjs",
+      "bytes": 19228,
+      "sha256": "1654d95651f1f55ae6af89a6bf7ee26cc86395c2060533a0ad61e18931cd777a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-windowed-blocks.mjs",
+      "bytes": 14460,
+      "sha256": "9c3ed7c6d558e26162a154135af44be20ed062c5ed67f931a79eb182669d7673"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-windowed-unicode.mjs",
+      "bytes": 12549,
+      "sha256": "a4315020f5ab9491747f77e6f0c196252e904521ae934e774e156d5512d7a5f4"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/tauri-workspace.mjs",
+      "bytes": 24272,
+      "sha256": "4416247e0f56637b7d84b0d95b65d049977304087f0e3a5af2c8e9e2509fc187"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/x11-save-history.py",
+      "bytes": 6929,
+      "sha256": "515670edf46e69b4ab32544755b12a0fd28e58ff9fe8ba735632dc879cf331dc"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/x11-scroll-limits.py",
+      "bytes": 10862,
+      "sha256": "5a5353580bd986f9624a1888116783dd8cf2b6506f72138ef432909470700e24"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/repo/tests/native/x11-windowed-blocks.py",
+      "bytes": 6810,
+      "sha256": "35f9efcc76ee1d10d46e0193aae4285959c76cbf63ff2cffbcc988a507a0ab94"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/run-case.py",
+      "bytes": 1724,
+      "sha256": "ccd8d09d7333fe346974712c88dd6646cada2e2ede782031d02765959b6022c9"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/run-env.sh",
+      "bytes": 2262,
+      "sha256": "0268ce2293a7e9e9ac3b7fbd669e07170590a778274d178117c20746babd7b73"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/snapshot-run-inputs.py",
+      "bytes": 1833,
+      "sha256": "0898214aa755c7ce007cfc11495ca15eb79cbbb94af72416761998538a3415e7"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-disable-01-inputs/stop-driver.py",
+      "bytes": 577,
+      "sha256": "08a12affc0e8769e0ba19967042ec52752f7b5b3bcb40db2cab8e2978c10d716"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-ancestor-reaps.json",
+      "bytes": 3231,
+      "sha256": "63f382ccb187c8433e8a7ddbd26ffe9702684483639caacbbc8c8d88ff552101"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-command.json",
+      "bytes": 572,
+      "sha256": "5c5abb0f1cae57cf84781bf7a14f8ac70a83495397732fe9b825dfff120cba8d"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-driver-owner.json",
+      "bytes": 547,
+      "sha256": "90c9284bab6df5b7ea384b3c455bfaa2e59b60bd0d4cf156c98c15acb5fde2cb"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-harness.log",
+      "bytes": 54,
+      "sha256": "ba9d60bfce1b4a208bcfc5a2eade798f2b43b095f475ec664ec61c13cf1bb445"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/driver.sh",
+      "bytes": 1311,
+      "sha256": "224ff000c74b080f83ff6857eb107bd584d8da965ca20347c51a0b755f58d160"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/launch-driver-reaping.py",
+      "bytes": 2903,
+      "sha256": "5a9a0f7179e8d8f6710a8b96960b5c8bdce3fc4d314425527fa9a1b032a09699"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/manifest.json",
+      "bytes": 18226,
+      "sha256": "b4a21909e39b83bacd7a0a4f8b6a3cb426d6b2fe88db73f88e25444a94bf5a08"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/fixtures/dom-plugin-lifecycle/README.md",
+      "bytes": 8440,
+      "sha256": "b6675639be75f2c3804164be6d91ad6e597c794e811067c89faa5ee3eb3ca3cb"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/fixtures/dom-plugin-lifecycle/main.js",
+      "bytes": 1636,
+      "sha256": "2dc6535a52529fe43a47f994561f0cea96749be028fb857ca43898a074eedf13"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/helpers/formatting-plugin.ts",
+      "bytes": 2195,
+      "sha256": "4a046cefbd4c71607126691acb4d086463bcdd0aa860ed310331085d2b7c806e"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/helpers/markdown-extension-plugins.ts",
+      "bytes": 3999,
+      "sha256": "7784646965d4899e4b99110317e7e15b0b9c4a71bee6e5723722a5f2c08e8e6a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/helpers/native-clipboard.mjs",
+      "bytes": 1740,
+      "sha256": "82a7ce9bae5f9782728f71f14695b85049c7dead10e57bfe957ea8e2c66a7180"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/helpers/native-dom-process-observer.py",
+      "bytes": 6740,
+      "sha256": "76bdb8661ab6f393ed1e999c5772e63e17c8b00e4ca343dc907a6bd81ec0172e"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/helpers/native-gtk-picker-observer.py",
+      "bytes": 3994,
+      "sha256": "fc5416d601019eaea2636d3df8f856de80912e378eee21ea3044bf04ebb98818"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/helpers/native-observer-server.mjs",
+      "bytes": 5481,
+      "sha256": "4909b16817cf14318cab83d670caae93ff6fa8d5847e8f6a008cea3a1ff258ce"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/helpers/native-owned-process.mjs",
+      "bytes": 1733,
+      "sha256": "63dc05ca826ea7e912f10df989c69d51ca8445d06f981ff757019f3095ef051b"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/helpers/native-plugin-visual-combination.mjs",
+      "bytes": 9663,
+      "sha256": "f70d010fe532560d72e792cbff56731f70757dac8015c4e081e891041ad6fac6"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/helpers/native-process-memory.mjs",
+      "bytes": 1791,
+      "sha256": "5a686a8727933f0a03a31c264f43f1005a6f67733bf4ebba8dc8a17e340d5d80"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/helpers/native-production.mjs",
+      "bytes": 7417,
+      "sha256": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/helpers/native-search-profile-server.mjs",
+      "bytes": 3517,
+      "sha256": "a01e6f586acffa6208898487b762a84182fb65bcec5fd97a9a781288308ddc73"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/helpers/native-startup.mjs",
+      "bytes": 3808,
+      "sha256": "d698104c7838e7d51a1ff64709c29f1660da8e3b9d1ca72fbf28c8370cc4d1f1"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/helpers/native-startup.test.ts",
+      "bytes": 3752,
+      "sha256": "fb4f0ebe7ddf895e799766d9bf19ff7fcc23cd48144dc4d55535044d9f858000"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/helpers/native-updates-fixture.mjs",
+      "bytes": 8353,
+      "sha256": "eae310d5f13a8623d0f5c8a386e5929405f588ba67a120cc927cb51cd48a5ae4"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/helpers/native_x11.py",
+      "bytes": 3645,
+      "sha256": "3c4b388cdf274e847ea07c30cadd2161df52124f6c16e6fda1d9718fa6df9a71"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/helpers/outline-fixture.mjs",
+      "bytes": 1664,
+      "sha256": "0109b43a8a9ccb17177d771093a25f89c2a0a31d9fdac34c1201846ff14f28a4"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-all-plugins-disabled.mjs",
+      "bytes": 12826,
+      "sha256": "42a8587e0d9d9aa76aacb88297361389912f8987b9a018caa62262292600c051"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-appearance.mjs",
+      "bytes": 16961,
+      "sha256": "cbdb9dd4f432f18a5b6a49f1035e4be48497ac949d491743df25203f71d79432"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-application-update.mjs",
+      "bytes": 17022,
+      "sha256": "da6dd83d3a56836d893d2804ddc4668035e456a4fb737c7d1145191427b9cbb4"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-block-keyboard.mjs",
+      "bytes": 12443,
+      "sha256": "9c74c38ae185b452b2e169cf97c3fa8588efc0a76d03349368e3800ffbfc5288"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-crash-recovery.mjs",
+      "bytes": 5977,
+      "sha256": "0b135860747999ee31fc5cc43ddd720d23b81138f59d9611838afcfc95308632"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-desktop-editor-interaction-benchmark.mjs",
+      "bytes": 18341,
+      "sha256": "03d793603d1a6213cbab0fa2e6f299562173c507b506ee552a134cec1e5a00c6"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-dom-plugin-lifecycle.mjs",
+      "bytes": 31720,
+      "sha256": "418c7caa3a61b7c3b9c09c3656ec81fa78fcf19d63ef6bba186178a6f8a10b81"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-editing-resources.mjs",
+      "bytes": 51386,
+      "sha256": "d32daa4feadbfd0185ba68a530d4bb937e293874930023a13f20872214f5e76f"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-jump-render-count.mjs",
+      "bytes": 2242,
+      "sha256": "e435d3f66c7912ed3e194fcfd3a54e8d13be4144b30bc85b8fb952f22ed7aacd"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-large-file-benchmark.mjs",
+      "bytes": 13001,
+      "sha256": "190f44beeb6fd5d50c4e13bc5280813c1509e627f7ec80c2747ac4820dd4dac8"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-large-search-quality.mjs",
+      "bytes": 12278,
+      "sha256": "01ce59f69048bfd2fda082a601bc1e5a1354b66bc7e2f173e6d499298a797c44"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-markdown-extensions.mjs",
+      "bytes": 51256,
+      "sha256": "70273f11203199467ce56a987d8e9e18acbf3e8c814afb6725fe81993028152c"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-mermaid-ui.mjs",
+      "bytes": 34544,
+      "sha256": "2b0ec01dd0c86e551bb4a43d3bc4d0024f92c218f2cba1da98d91e282c1c313a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-navigation.mjs",
+      "bytes": 20773,
+      "sha256": "750a65b0ed6fd3eefb46e9487ad2454f74a33efdf6d865d3bfa86e76758071f2"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-outline-performance.mjs",
+      "bytes": 15401,
+      "sha256": "59efe7c0ee5a1b75c1f7eee936c48e89e4ad56454bd7d92577897306e95daa55"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-plugin-architecture.mjs",
+      "bytes": 5221,
+      "sha256": "38a293022566cd2f592fd2d150b43565bfd87f46fd2842447a86f094385b0d85"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-plugin-index-profile.mjs",
+      "bytes": 6295,
+      "sha256": "825e283671f6cb825e95530dced6132f7ac35ac68add9331eeda6c5c73bcf67c"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-plugin-system.mjs",
+      "bytes": 24923,
+      "sha256": "ed0601198232113495dc066f5a96bfde27478220d0c5994b9dbd50d823870252"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-preferences.mjs",
+      "bytes": 28588,
+      "sha256": "b5b80ce88bc9a35884e3f872b5d254773feed648a0c1135dbc1499b15c075b0e"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-presentation-spot.mjs",
+      "bytes": 3609,
+      "sha256": "a7d9ba2420c64d9b1d34728f598e8f8de686f1f09cc933af7387c52d0f4fd4b6"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-production-latency.mjs",
+      "bytes": 11361,
+      "sha256": "2768d06d3227e5dc8f953eb4cda739e8b2252301bc64559aaf7a000a9c600621"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-production-search.mjs",
+      "bytes": 10621,
+      "sha256": "f4d3748e1bec8e29f7db64b56f67072bfdb4a833eceaa01739fe61548a0b122b"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-production-tables.mjs",
+      "bytes": 10712,
+      "sha256": "8491a90a45a1bca9a1b358414111663fc3fb0c22b1333a6f67cfbfa954e0badc"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-quality.mjs",
+      "bytes": 16595,
+      "sha256": "86735a0003b99245afdfeec7e8846b114d8bd729807609f03e75e845984415ed"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-recovery-lifecycle.mjs",
+      "bytes": 13958,
+      "sha256": "e7ef13a91b194cbc3b173fe8fff3dde106365028d025ebc894ecdb024f52a6cb"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-recovery-publication.mjs",
+      "bytes": 4996,
+      "sha256": "39e21ceab614d002f94ae7e879f48dd7023602e66d42da420e70a087a872facb"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-recovery-retention.mjs",
+      "bytes": 5284,
+      "sha256": "0caa2fc898f835a039d2ab8f63a9253aa6dd827a597a10ab6a4b39a287022bc1"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-recovery-storage.mjs",
+      "bytes": 12146,
+      "sha256": "19492d80f95fb82c0cd54bb11a1dd0d86bfecc467de7bb188be03efa2df30b90"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-recovery-write-interrupt.mjs",
+      "bytes": 5124,
+      "sha256": "8182fcd3f50dfbb5f97066ba3bbac9ac000e1cd1f5219123723209e3741a592a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-search-profile.mjs",
+      "bytes": 5144,
+      "sha256": "8253cf076e83a1ca91b4e5c414f3a760130b736a7df68dbf49188331b3982f32"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-table-editing.mjs",
+      "bytes": 19847,
+      "sha256": "7797106feb139060a88738d09d91ac571cf0a5dc71c26723365970afea6032a2"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-unicode-search-quality.mjs",
+      "bytes": 12059,
+      "sha256": "7aa441a189adf300db1e9f1f0997189681365419a4ebc6334b94c064a9353c0a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-version-migration.mjs",
+      "bytes": 4963,
+      "sha256": "45e776d992234c30836d801c7f7231e40b3d040753943be879c836a050b3f4b8"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-visual-accessibility.mjs",
+      "bytes": 8630,
+      "sha256": "eab17618743ce87286578b81ab99675e7a681115d77d74241413b7f87a486690"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-visual-fixes.mjs",
+      "bytes": 14349,
+      "sha256": "4075b89db16a7362debf318e79f0d0f5614837539cbc1d5c57d1492e47471c0d"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-visual-states.mjs",
+      "bytes": 6377,
+      "sha256": "6c74d94fe3be38e70f66314b037e77123296f291179ac2d14e6fe4946626fdd8"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-webdriver-smoke.mjs",
+      "bytes": 28323,
+      "sha256": "588b027e6ac5b0be4e769ca5c881329a1f14ea1fb8878979db4c6b4a7af41469"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-window-performance.mjs",
+      "bytes": 19228,
+      "sha256": "1654d95651f1f55ae6af89a6bf7ee26cc86395c2060533a0ad61e18931cd777a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-windowed-blocks.mjs",
+      "bytes": 14460,
+      "sha256": "9c3ed7c6d558e26162a154135af44be20ed062c5ed67f931a79eb182669d7673"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-windowed-unicode.mjs",
+      "bytes": 12549,
+      "sha256": "a4315020f5ab9491747f77e6f0c196252e904521ae934e774e156d5512d7a5f4"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/tauri-workspace.mjs",
+      "bytes": 24272,
+      "sha256": "4416247e0f56637b7d84b0d95b65d049977304087f0e3a5af2c8e9e2509fc187"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/x11-save-history.py",
+      "bytes": 6929,
+      "sha256": "515670edf46e69b4ab32544755b12a0fd28e58ff9fe8ba735632dc879cf331dc"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/x11-scroll-limits.py",
+      "bytes": 10862,
+      "sha256": "5a5353580bd986f9624a1888116783dd8cf2b6506f72138ef432909470700e24"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/repo/tests/native/x11-windowed-blocks.py",
+      "bytes": 6810,
+      "sha256": "35f9efcc76ee1d10d46e0193aae4285959c76cbf63ff2cffbcc988a507a0ab94"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/run-case.py",
+      "bytes": 1724,
+      "sha256": "ccd8d09d7333fe346974712c88dd6646cada2e2ede782031d02765959b6022c9"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/run-env.sh",
+      "bytes": 2262,
+      "sha256": "0268ce2293a7e9e9ac3b7fbd669e07170590a778274d178117c20746babd7b73"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/snapshot-run-inputs.py",
+      "bytes": 1833,
+      "sha256": "0898214aa755c7ce007cfc11495ca15eb79cbbb94af72416761998538a3415e7"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-remove-01-inputs/stop-driver.py",
+      "bytes": 577,
+      "sha256": "08a12affc0e8769e0ba19967042ec52752f7b5b3bcb40db2cab8e2978c10d716"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-ancestor-reaps.json",
+      "bytes": 3233,
+      "sha256": "dbcfb6d00200c8bfddaad0511955e2a3aa3d8016724da54bc1aac4c75f9817de"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-command.json",
+      "bytes": 574,
+      "sha256": "ed15b26faf0aaaf10280f9f377f8ca09be6815e248e9b01e9ab107283f3062ce"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-driver-owner.json",
+      "bytes": 549,
+      "sha256": "b0e6b5536aef9cdca91b872dd82749c2a506f727dd154109773acc5653870cbe"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-harness.log",
+      "bytes": 54,
+      "sha256": "231c2c85e2f8d4fc1f377d6792b112ab3288c8471cdee8253a1089e0224610af"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/driver.sh",
+      "bytes": 1311,
+      "sha256": "224ff000c74b080f83ff6857eb107bd584d8da965ca20347c51a0b755f58d160"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/launch-driver-reaping.py",
+      "bytes": 2903,
+      "sha256": "5a9a0f7179e8d8f6710a8b96960b5c8bdce3fc4d314425527fa9a1b032a09699"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/manifest.json",
+      "bytes": 18228,
+      "sha256": "72f6dd137394c90d7d26db36f5e3f7fc64c6ef86a9857d17b7ddfe5a16e89c42"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/fixtures/dom-plugin-lifecycle/README.md",
+      "bytes": 8440,
+      "sha256": "b6675639be75f2c3804164be6d91ad6e597c794e811067c89faa5ee3eb3ca3cb"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/fixtures/dom-plugin-lifecycle/main.js",
+      "bytes": 1636,
+      "sha256": "2dc6535a52529fe43a47f994561f0cea96749be028fb857ca43898a074eedf13"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/helpers/formatting-plugin.ts",
+      "bytes": 2195,
+      "sha256": "4a046cefbd4c71607126691acb4d086463bcdd0aa860ed310331085d2b7c806e"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/helpers/markdown-extension-plugins.ts",
+      "bytes": 3999,
+      "sha256": "7784646965d4899e4b99110317e7e15b0b9c4a71bee6e5723722a5f2c08e8e6a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/helpers/native-clipboard.mjs",
+      "bytes": 1740,
+      "sha256": "82a7ce9bae5f9782728f71f14695b85049c7dead10e57bfe957ea8e2c66a7180"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/helpers/native-dom-process-observer.py",
+      "bytes": 6740,
+      "sha256": "76bdb8661ab6f393ed1e999c5772e63e17c8b00e4ca343dc907a6bd81ec0172e"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/helpers/native-gtk-picker-observer.py",
+      "bytes": 3994,
+      "sha256": "fc5416d601019eaea2636d3df8f856de80912e378eee21ea3044bf04ebb98818"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/helpers/native-observer-server.mjs",
+      "bytes": 5481,
+      "sha256": "4909b16817cf14318cab83d670caae93ff6fa8d5847e8f6a008cea3a1ff258ce"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/helpers/native-owned-process.mjs",
+      "bytes": 1733,
+      "sha256": "63dc05ca826ea7e912f10df989c69d51ca8445d06f981ff757019f3095ef051b"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/helpers/native-plugin-visual-combination.mjs",
+      "bytes": 9663,
+      "sha256": "f70d010fe532560d72e792cbff56731f70757dac8015c4e081e891041ad6fac6"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/helpers/native-process-memory.mjs",
+      "bytes": 1791,
+      "sha256": "5a686a8727933f0a03a31c264f43f1005a6f67733bf4ebba8dc8a17e340d5d80"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/helpers/native-production.mjs",
+      "bytes": 7417,
+      "sha256": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/helpers/native-search-profile-server.mjs",
+      "bytes": 3517,
+      "sha256": "a01e6f586acffa6208898487b762a84182fb65bcec5fd97a9a781288308ddc73"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/helpers/native-startup.mjs",
+      "bytes": 3808,
+      "sha256": "d698104c7838e7d51a1ff64709c29f1660da8e3b9d1ca72fbf28c8370cc4d1f1"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/helpers/native-startup.test.ts",
+      "bytes": 3752,
+      "sha256": "fb4f0ebe7ddf895e799766d9bf19ff7fcc23cd48144dc4d55535044d9f858000"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/helpers/native-updates-fixture.mjs",
+      "bytes": 8353,
+      "sha256": "eae310d5f13a8623d0f5c8a386e5929405f588ba67a120cc927cb51cd48a5ae4"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/helpers/native_x11.py",
+      "bytes": 3645,
+      "sha256": "3c4b388cdf274e847ea07c30cadd2161df52124f6c16e6fda1d9718fa6df9a71"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/helpers/outline-fixture.mjs",
+      "bytes": 1664,
+      "sha256": "0109b43a8a9ccb17177d771093a25f89c2a0a31d9fdac34c1201846ff14f28a4"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-all-plugins-disabled.mjs",
+      "bytes": 12826,
+      "sha256": "42a8587e0d9d9aa76aacb88297361389912f8987b9a018caa62262292600c051"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-appearance.mjs",
+      "bytes": 16961,
+      "sha256": "cbdb9dd4f432f18a5b6a49f1035e4be48497ac949d491743df25203f71d79432"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-application-update.mjs",
+      "bytes": 17022,
+      "sha256": "da6dd83d3a56836d893d2804ddc4668035e456a4fb737c7d1145191427b9cbb4"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-block-keyboard.mjs",
+      "bytes": 12443,
+      "sha256": "9c74c38ae185b452b2e169cf97c3fa8588efc0a76d03349368e3800ffbfc5288"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-crash-recovery.mjs",
+      "bytes": 5977,
+      "sha256": "0b135860747999ee31fc5cc43ddd720d23b81138f59d9611838afcfc95308632"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-desktop-editor-interaction-benchmark.mjs",
+      "bytes": 18341,
+      "sha256": "03d793603d1a6213cbab0fa2e6f299562173c507b506ee552a134cec1e5a00c6"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-dom-plugin-lifecycle.mjs",
+      "bytes": 31720,
+      "sha256": "418c7caa3a61b7c3b9c09c3656ec81fa78fcf19d63ef6bba186178a6f8a10b81"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-editing-resources.mjs",
+      "bytes": 51386,
+      "sha256": "d32daa4feadbfd0185ba68a530d4bb937e293874930023a13f20872214f5e76f"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-jump-render-count.mjs",
+      "bytes": 2242,
+      "sha256": "e435d3f66c7912ed3e194fcfd3a54e8d13be4144b30bc85b8fb952f22ed7aacd"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-large-file-benchmark.mjs",
+      "bytes": 13001,
+      "sha256": "190f44beeb6fd5d50c4e13bc5280813c1509e627f7ec80c2747ac4820dd4dac8"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-large-search-quality.mjs",
+      "bytes": 12278,
+      "sha256": "01ce59f69048bfd2fda082a601bc1e5a1354b66bc7e2f173e6d499298a797c44"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-markdown-extensions.mjs",
+      "bytes": 51256,
+      "sha256": "70273f11203199467ce56a987d8e9e18acbf3e8c814afb6725fe81993028152c"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-mermaid-ui.mjs",
+      "bytes": 34544,
+      "sha256": "2b0ec01dd0c86e551bb4a43d3bc4d0024f92c218f2cba1da98d91e282c1c313a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-navigation.mjs",
+      "bytes": 20773,
+      "sha256": "750a65b0ed6fd3eefb46e9487ad2454f74a33efdf6d865d3bfa86e76758071f2"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-outline-performance.mjs",
+      "bytes": 15401,
+      "sha256": "59efe7c0ee5a1b75c1f7eee936c48e89e4ad56454bd7d92577897306e95daa55"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-plugin-architecture.mjs",
+      "bytes": 5221,
+      "sha256": "38a293022566cd2f592fd2d150b43565bfd87f46fd2842447a86f094385b0d85"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-plugin-index-profile.mjs",
+      "bytes": 6295,
+      "sha256": "825e283671f6cb825e95530dced6132f7ac35ac68add9331eeda6c5c73bcf67c"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-plugin-system.mjs",
+      "bytes": 24923,
+      "sha256": "ed0601198232113495dc066f5a96bfde27478220d0c5994b9dbd50d823870252"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-preferences.mjs",
+      "bytes": 28588,
+      "sha256": "b5b80ce88bc9a35884e3f872b5d254773feed648a0c1135dbc1499b15c075b0e"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-presentation-spot.mjs",
+      "bytes": 3609,
+      "sha256": "a7d9ba2420c64d9b1d34728f598e8f8de686f1f09cc933af7387c52d0f4fd4b6"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-production-latency.mjs",
+      "bytes": 11361,
+      "sha256": "2768d06d3227e5dc8f953eb4cda739e8b2252301bc64559aaf7a000a9c600621"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-production-search.mjs",
+      "bytes": 10621,
+      "sha256": "f4d3748e1bec8e29f7db64b56f67072bfdb4a833eceaa01739fe61548a0b122b"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-production-tables.mjs",
+      "bytes": 10712,
+      "sha256": "8491a90a45a1bca9a1b358414111663fc3fb0c22b1333a6f67cfbfa954e0badc"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-quality.mjs",
+      "bytes": 16595,
+      "sha256": "86735a0003b99245afdfeec7e8846b114d8bd729807609f03e75e845984415ed"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-recovery-lifecycle.mjs",
+      "bytes": 13958,
+      "sha256": "e7ef13a91b194cbc3b173fe8fff3dde106365028d025ebc894ecdb024f52a6cb"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-recovery-publication.mjs",
+      "bytes": 4996,
+      "sha256": "39e21ceab614d002f94ae7e879f48dd7023602e66d42da420e70a087a872facb"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-recovery-retention.mjs",
+      "bytes": 5284,
+      "sha256": "0caa2fc898f835a039d2ab8f63a9253aa6dd827a597a10ab6a4b39a287022bc1"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-recovery-storage.mjs",
+      "bytes": 12146,
+      "sha256": "19492d80f95fb82c0cd54bb11a1dd0d86bfecc467de7bb188be03efa2df30b90"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-recovery-write-interrupt.mjs",
+      "bytes": 5124,
+      "sha256": "8182fcd3f50dfbb5f97066ba3bbac9ac000e1cd1f5219123723209e3741a592a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-search-profile.mjs",
+      "bytes": 5144,
+      "sha256": "8253cf076e83a1ca91b4e5c414f3a760130b736a7df68dbf49188331b3982f32"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-table-editing.mjs",
+      "bytes": 19847,
+      "sha256": "7797106feb139060a88738d09d91ac571cf0a5dc71c26723365970afea6032a2"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-unicode-search-quality.mjs",
+      "bytes": 12059,
+      "sha256": "7aa441a189adf300db1e9f1f0997189681365419a4ebc6334b94c064a9353c0a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-version-migration.mjs",
+      "bytes": 4963,
+      "sha256": "45e776d992234c30836d801c7f7231e40b3d040753943be879c836a050b3f4b8"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-visual-accessibility.mjs",
+      "bytes": 8630,
+      "sha256": "eab17618743ce87286578b81ab99675e7a681115d77d74241413b7f87a486690"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-visual-fixes.mjs",
+      "bytes": 14349,
+      "sha256": "4075b89db16a7362debf318e79f0d0f5614837539cbc1d5c57d1492e47471c0d"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-visual-states.mjs",
+      "bytes": 6377,
+      "sha256": "6c74d94fe3be38e70f66314b037e77123296f291179ac2d14e6fe4946626fdd8"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-webdriver-smoke.mjs",
+      "bytes": 28323,
+      "sha256": "588b027e6ac5b0be4e769ca5c881329a1f14ea1fb8878979db4c6b4a7af41469"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-window-performance.mjs",
+      "bytes": 19228,
+      "sha256": "1654d95651f1f55ae6af89a6bf7ee26cc86395c2060533a0ad61e18931cd777a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-windowed-blocks.mjs",
+      "bytes": 14460,
+      "sha256": "9c3ed7c6d558e26162a154135af44be20ed062c5ed67f931a79eb182669d7673"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-windowed-unicode.mjs",
+      "bytes": 12549,
+      "sha256": "a4315020f5ab9491747f77e6f0c196252e904521ae934e774e156d5512d7a5f4"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/tauri-workspace.mjs",
+      "bytes": 24272,
+      "sha256": "4416247e0f56637b7d84b0d95b65d049977304087f0e3a5af2c8e9e2509fc187"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/x11-save-history.py",
+      "bytes": 6929,
+      "sha256": "515670edf46e69b4ab32544755b12a0fd28e58ff9fe8ba735632dc879cf331dc"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/x11-scroll-limits.py",
+      "bytes": 10862,
+      "sha256": "5a5353580bd986f9624a1888116783dd8cf2b6506f72138ef432909470700e24"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/repo/tests/native/x11-windowed-blocks.py",
+      "bytes": 6810,
+      "sha256": "35f9efcc76ee1d10d46e0193aae4285959c76cbf63ff2cffbcc988a507a0ab94"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/run-case.py",
+      "bytes": 1724,
+      "sha256": "ccd8d09d7333fe346974712c88dd6646cada2e2ede782031d02765959b6022c9"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/run-env.sh",
+      "bytes": 2262,
+      "sha256": "0268ce2293a7e9e9ac3b7fbd669e07170590a778274d178117c20746babd7b73"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/snapshot-run-inputs.py",
+      "bytes": 1833,
+      "sha256": "0898214aa755c7ce007cfc11495ca15eb79cbbb94af72416761998538a3415e7"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-timeout-01-inputs/stop-driver.py",
+      "bytes": 577,
+      "sha256": "08a12affc0e8769e0ba19967042ec52752f7b5b3bcb40db2cab8e2978c10d716"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-ancestor-reaps.json",
+      "bytes": 3554,
+      "sha256": "751eb037227685aa64b151086bbbec471fbdbdf171a1f13f395d10231e5c229f"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-command.json",
+      "bytes": 576,
+      "sha256": "62ec97fd636fb739838fa5e3698a03eaab2174f6c397be52e4a642936fa27c09"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-driver-owner.json",
+      "bytes": 551,
+      "sha256": "873ba5717ed1b1565fca403f1064599f61638f11ec0a751d8cf88ab40003eadf"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-harness.log",
+      "bytes": 54,
+      "sha256": "5a84336c379c48a508e190636afc3b73f4b1a89edbb96b1b4493eb5c60d6e4a5"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/driver.sh",
+      "bytes": 1311,
+      "sha256": "224ff000c74b080f83ff6857eb107bd584d8da965ca20347c51a0b755f58d160"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/launch-driver-reaping.py",
+      "bytes": 2903,
+      "sha256": "5a9a0f7179e8d8f6710a8b96960b5c8bdce3fc4d314425527fa9a1b032a09699"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/manifest.json",
+      "bytes": 18230,
+      "sha256": "bdf74ec0d9bf9d4a14ce65baef0b21b2c1be1f1057aaef3e5e4f7c1039f7f41b"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/fixtures/dom-plugin-lifecycle/README.md",
+      "bytes": 8440,
+      "sha256": "b6675639be75f2c3804164be6d91ad6e597c794e811067c89faa5ee3eb3ca3cb"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/fixtures/dom-plugin-lifecycle/main.js",
+      "bytes": 1636,
+      "sha256": "2dc6535a52529fe43a47f994561f0cea96749be028fb857ca43898a074eedf13"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/helpers/formatting-plugin.ts",
+      "bytes": 2195,
+      "sha256": "4a046cefbd4c71607126691acb4d086463bcdd0aa860ed310331085d2b7c806e"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/helpers/markdown-extension-plugins.ts",
+      "bytes": 3999,
+      "sha256": "7784646965d4899e4b99110317e7e15b0b9c4a71bee6e5723722a5f2c08e8e6a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/helpers/native-clipboard.mjs",
+      "bytes": 1740,
+      "sha256": "82a7ce9bae5f9782728f71f14695b85049c7dead10e57bfe957ea8e2c66a7180"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/helpers/native-dom-process-observer.py",
+      "bytes": 6740,
+      "sha256": "76bdb8661ab6f393ed1e999c5772e63e17c8b00e4ca343dc907a6bd81ec0172e"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/helpers/native-gtk-picker-observer.py",
+      "bytes": 3994,
+      "sha256": "fc5416d601019eaea2636d3df8f856de80912e378eee21ea3044bf04ebb98818"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/helpers/native-observer-server.mjs",
+      "bytes": 5481,
+      "sha256": "4909b16817cf14318cab83d670caae93ff6fa8d5847e8f6a008cea3a1ff258ce"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/helpers/native-owned-process.mjs",
+      "bytes": 1733,
+      "sha256": "63dc05ca826ea7e912f10df989c69d51ca8445d06f981ff757019f3095ef051b"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/helpers/native-plugin-visual-combination.mjs",
+      "bytes": 9663,
+      "sha256": "f70d010fe532560d72e792cbff56731f70757dac8015c4e081e891041ad6fac6"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/helpers/native-process-memory.mjs",
+      "bytes": 1791,
+      "sha256": "5a686a8727933f0a03a31c264f43f1005a6f67733bf4ebba8dc8a17e340d5d80"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/helpers/native-production.mjs",
+      "bytes": 7417,
+      "sha256": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/helpers/native-search-profile-server.mjs",
+      "bytes": 3517,
+      "sha256": "a01e6f586acffa6208898487b762a84182fb65bcec5fd97a9a781288308ddc73"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/helpers/native-startup.mjs",
+      "bytes": 3808,
+      "sha256": "d698104c7838e7d51a1ff64709c29f1660da8e3b9d1ca72fbf28c8370cc4d1f1"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/helpers/native-startup.test.ts",
+      "bytes": 3752,
+      "sha256": "fb4f0ebe7ddf895e799766d9bf19ff7fcc23cd48144dc4d55535044d9f858000"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/helpers/native-updates-fixture.mjs",
+      "bytes": 8353,
+      "sha256": "eae310d5f13a8623d0f5c8a386e5929405f588ba67a120cc927cb51cd48a5ae4"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/helpers/native_x11.py",
+      "bytes": 3645,
+      "sha256": "3c4b388cdf274e847ea07c30cadd2161df52124f6c16e6fda1d9718fa6df9a71"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/helpers/outline-fixture.mjs",
+      "bytes": 1664,
+      "sha256": "0109b43a8a9ccb17177d771093a25f89c2a0a31d9fdac34c1201846ff14f28a4"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-all-plugins-disabled.mjs",
+      "bytes": 12826,
+      "sha256": "42a8587e0d9d9aa76aacb88297361389912f8987b9a018caa62262292600c051"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-appearance.mjs",
+      "bytes": 16961,
+      "sha256": "cbdb9dd4f432f18a5b6a49f1035e4be48497ac949d491743df25203f71d79432"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-application-update.mjs",
+      "bytes": 17022,
+      "sha256": "da6dd83d3a56836d893d2804ddc4668035e456a4fb737c7d1145191427b9cbb4"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-block-keyboard.mjs",
+      "bytes": 12443,
+      "sha256": "9c74c38ae185b452b2e169cf97c3fa8588efc0a76d03349368e3800ffbfc5288"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-crash-recovery.mjs",
+      "bytes": 5977,
+      "sha256": "0b135860747999ee31fc5cc43ddd720d23b81138f59d9611838afcfc95308632"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-desktop-editor-interaction-benchmark.mjs",
+      "bytes": 18341,
+      "sha256": "03d793603d1a6213cbab0fa2e6f299562173c507b506ee552a134cec1e5a00c6"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-dom-plugin-lifecycle.mjs",
+      "bytes": 31720,
+      "sha256": "418c7caa3a61b7c3b9c09c3656ec81fa78fcf19d63ef6bba186178a6f8a10b81"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-editing-resources.mjs",
+      "bytes": 51386,
+      "sha256": "d32daa4feadbfd0185ba68a530d4bb937e293874930023a13f20872214f5e76f"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-jump-render-count.mjs",
+      "bytes": 2242,
+      "sha256": "e435d3f66c7912ed3e194fcfd3a54e8d13be4144b30bc85b8fb952f22ed7aacd"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-large-file-benchmark.mjs",
+      "bytes": 13001,
+      "sha256": "190f44beeb6fd5d50c4e13bc5280813c1509e627f7ec80c2747ac4820dd4dac8"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-large-search-quality.mjs",
+      "bytes": 12278,
+      "sha256": "01ce59f69048bfd2fda082a601bc1e5a1354b66bc7e2f173e6d499298a797c44"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-markdown-extensions.mjs",
+      "bytes": 51256,
+      "sha256": "70273f11203199467ce56a987d8e9e18acbf3e8c814afb6725fe81993028152c"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-mermaid-ui.mjs",
+      "bytes": 34544,
+      "sha256": "2b0ec01dd0c86e551bb4a43d3bc4d0024f92c218f2cba1da98d91e282c1c313a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-navigation.mjs",
+      "bytes": 20773,
+      "sha256": "750a65b0ed6fd3eefb46e9487ad2454f74a33efdf6d865d3bfa86e76758071f2"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-outline-performance.mjs",
+      "bytes": 15401,
+      "sha256": "59efe7c0ee5a1b75c1f7eee936c48e89e4ad56454bd7d92577897306e95daa55"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-plugin-architecture.mjs",
+      "bytes": 5221,
+      "sha256": "38a293022566cd2f592fd2d150b43565bfd87f46fd2842447a86f094385b0d85"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-plugin-index-profile.mjs",
+      "bytes": 6295,
+      "sha256": "825e283671f6cb825e95530dced6132f7ac35ac68add9331eeda6c5c73bcf67c"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-plugin-system.mjs",
+      "bytes": 24923,
+      "sha256": "ed0601198232113495dc066f5a96bfde27478220d0c5994b9dbd50d823870252"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-preferences.mjs",
+      "bytes": 28588,
+      "sha256": "b5b80ce88bc9a35884e3f872b5d254773feed648a0c1135dbc1499b15c075b0e"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-presentation-spot.mjs",
+      "bytes": 3609,
+      "sha256": "a7d9ba2420c64d9b1d34728f598e8f8de686f1f09cc933af7387c52d0f4fd4b6"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-production-latency.mjs",
+      "bytes": 11361,
+      "sha256": "2768d06d3227e5dc8f953eb4cda739e8b2252301bc64559aaf7a000a9c600621"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-production-search.mjs",
+      "bytes": 10621,
+      "sha256": "f4d3748e1bec8e29f7db64b56f67072bfdb4a833eceaa01739fe61548a0b122b"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-production-tables.mjs",
+      "bytes": 10712,
+      "sha256": "8491a90a45a1bca9a1b358414111663fc3fb0c22b1333a6f67cfbfa954e0badc"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-quality.mjs",
+      "bytes": 16595,
+      "sha256": "86735a0003b99245afdfeec7e8846b114d8bd729807609f03e75e845984415ed"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-recovery-lifecycle.mjs",
+      "bytes": 13958,
+      "sha256": "e7ef13a91b194cbc3b173fe8fff3dde106365028d025ebc894ecdb024f52a6cb"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-recovery-publication.mjs",
+      "bytes": 4996,
+      "sha256": "39e21ceab614d002f94ae7e879f48dd7023602e66d42da420e70a087a872facb"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-recovery-retention.mjs",
+      "bytes": 5284,
+      "sha256": "0caa2fc898f835a039d2ab8f63a9253aa6dd827a597a10ab6a4b39a287022bc1"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-recovery-storage.mjs",
+      "bytes": 12146,
+      "sha256": "19492d80f95fb82c0cd54bb11a1dd0d86bfecc467de7bb188be03efa2df30b90"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-recovery-write-interrupt.mjs",
+      "bytes": 5124,
+      "sha256": "8182fcd3f50dfbb5f97066ba3bbac9ac000e1cd1f5219123723209e3741a592a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-search-profile.mjs",
+      "bytes": 5144,
+      "sha256": "8253cf076e83a1ca91b4e5c414f3a760130b736a7df68dbf49188331b3982f32"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-table-editing.mjs",
+      "bytes": 19847,
+      "sha256": "7797106feb139060a88738d09d91ac571cf0a5dc71c26723365970afea6032a2"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-unicode-search-quality.mjs",
+      "bytes": 12059,
+      "sha256": "7aa441a189adf300db1e9f1f0997189681365419a4ebc6334b94c064a9353c0a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-version-migration.mjs",
+      "bytes": 4963,
+      "sha256": "45e776d992234c30836d801c7f7231e40b3d040753943be879c836a050b3f4b8"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-visual-accessibility.mjs",
+      "bytes": 8630,
+      "sha256": "eab17618743ce87286578b81ab99675e7a681115d77d74241413b7f87a486690"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-visual-fixes.mjs",
+      "bytes": 14349,
+      "sha256": "4075b89db16a7362debf318e79f0d0f5614837539cbc1d5c57d1492e47471c0d"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-visual-states.mjs",
+      "bytes": 6377,
+      "sha256": "6c74d94fe3be38e70f66314b037e77123296f291179ac2d14e6fe4946626fdd8"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-webdriver-smoke.mjs",
+      "bytes": 28323,
+      "sha256": "588b027e6ac5b0be4e769ca5c881329a1f14ea1fb8878979db4c6b4a7af41469"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-window-performance.mjs",
+      "bytes": 19228,
+      "sha256": "1654d95651f1f55ae6af89a6bf7ee26cc86395c2060533a0ad61e18931cd777a"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-windowed-blocks.mjs",
+      "bytes": 14460,
+      "sha256": "9c3ed7c6d558e26162a154135af44be20ed062c5ed67f931a79eb182669d7673"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-windowed-unicode.mjs",
+      "bytes": 12549,
+      "sha256": "a4315020f5ab9491747f77e6f0c196252e904521ae934e774e156d5512d7a5f4"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/tauri-workspace.mjs",
+      "bytes": 24272,
+      "sha256": "4416247e0f56637b7d84b0d95b65d049977304087f0e3a5af2c8e9e2509fc187"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/x11-save-history.py",
+      "bytes": 6929,
+      "sha256": "515670edf46e69b4ab32544755b12a0fd28e58ff9fe8ba735632dc879cf331dc"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/x11-scroll-limits.py",
+      "bytes": 10862,
+      "sha256": "5a5353580bd986f9624a1888116783dd8cf2b6506f72138ef432909470700e24"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/repo/tests/native/x11-windowed-blocks.py",
+      "bytes": 6810,
+      "sha256": "35f9efcc76ee1d10d46e0193aae4285959c76cbf63ff2cffbcc988a507a0ab94"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/run-case.py",
+      "bytes": 1724,
+      "sha256": "ccd8d09d7333fe346974712c88dd6646cada2e2ede782031d02765959b6022c9"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/run-env.sh",
+      "bytes": 2262,
+      "sha256": "0268ce2293a7e9e9ac3b7fbd669e07170590a778274d178117c20746babd7b73"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/snapshot-run-inputs.py",
+      "bytes": 1833,
+      "sha256": "0898214aa755c7ce007cfc11495ca15eb79cbbb94af72416761998538a3415e7"
+    },
+    {
+      "path": "lifecycle/control/lifecycle-p04-wm-close-01-inputs/stop-driver.py",
+      "bytes": 577,
+      "sha256": "08a12affc0e8769e0ba19967042ec52752f7b5b3bcb40db2cab8e2978c10d716"
+    },
+    {
+      "path": "lifecycle/logs/lifecycle-p04-app-sigkill-01-driver.log",
+      "bytes": 2483,
+      "sha256": "638443c74b179c8ece5bf4d2e6d5f89e8087e70f4243ca2431610786740f53a4"
+    },
+    {
+      "path": "lifecycle/logs/lifecycle-p04-disable-01-driver.log",
+      "bytes": 3029,
+      "sha256": "e6c06536f8086a2e92f3f033d9f2391f44ef341dba3e5aacb9ed7e04e42a729e"
+    },
+    {
+      "path": "lifecycle/logs/lifecycle-p04-remove-01-driver.log",
+      "bytes": 2959,
+      "sha256": "0ad8f167860efc038a7ab8284306a0831ab804ebab6eb901b28dfae08bc09dde"
+    },
+    {
+      "path": "lifecycle/logs/lifecycle-p04-timeout-01-driver.log",
+      "bytes": 3552,
+      "sha256": "baa364f22c813887e02996b9afd774bc475f3f1a761d4dcb558c062f1c1a3a0d"
+    },
+    {
+      "path": "lifecycle/logs/lifecycle-p04-wm-close-01-driver.log",
+      "bytes": 2994,
+      "sha256": "20a34d5d5b7a0f3434d05d573ada2649ec74e6e444318546b40c93d2cb378a8f"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-app-sigkill-01/01-safe-preview.png",
+      "bytes": 17150,
+      "sha256": "0021318ac35ac3a0d48c0954b35d9ffe93decb92798dcdd7f0b28ec22fd91345"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-app-sigkill-01/document.md",
+      "bytes": 56,
+      "sha256": "0a822f8c7cbc3c5fa447b063e0933d3d84944815312789a29fe7c51d7fd8b47a"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-app-sigkill-01/events.json",
+      "bytes": 179286,
+      "sha256": "18bcf1cf278f4c49dd4fa68cae4e29f2a98f4b49748dd5f546146a1fb8fb2ac5"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-app-sigkill-01/fixture.milkup-plugin",
+      "bytes": 2378,
+      "sha256": "98c3e3a748d062c3bb9c0d18bdec977b85f223ae81bfe28ba8e572ad087a8b2d"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-app-sigkill-01/native-app.log",
+      "bytes": 2483,
+      "sha256": "638443c74b179c8ece5bf4d2e6d5f89e8087e70f4243ca2431610786740f53a4"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-app-sigkill-01/native-traces.json",
+      "bytes": 557,
+      "sha256": "d7cd6de248f1b5edf374e538657ae64f5fd937a009e4df9584fd72a7ec4487b8"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-app-sigkill-01/observer-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-app-sigkill-01/picker-after-input.png",
+      "bytes": 25687,
+      "sha256": "cb9868670f91510baaf25b690395c689ab82b82fe1086156e4835ca8be906871"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-app-sigkill-01/picker-atspi-first.json",
+      "bytes": 62893,
+      "sha256": "f07c868e325068f5d7ea4b1a069b3d8c73d17f757c05e0572db6c75454cce859"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-app-sigkill-01/picker-atspi-last.json",
+      "bytes": 61310,
+      "sha256": "ef6d2bd626d805eb7a26d4d6aade639af5122ef580c00a2626d4d2ee45594ab1"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-app-sigkill-01/picker-before-input.png",
+      "bytes": 20406,
+      "sha256": "2b78453e0c712c23d11ded8e838997631efe20744a5fdcae4659c300fc35d8d3"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-app-sigkill-01/picker-focused-before-readiness.png",
+      "bytes": 20406,
+      "sha256": "2b78453e0c712c23d11ded8e838997631efe20744a5fdcae4659c300fc35d8d3"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-app-sigkill-01/process-observer/events.json",
+      "bytes": 551,
+      "sha256": "3a2abeb37954cb7262e013493481e2523c73c2e5930ba66f324e0dfbbde1410a"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-app-sigkill-01/process-observer/samples.ndjson",
+      "bytes": 37625,
+      "sha256": "44afc87a853a026ec43cb863b77ae69611019d273244e068273eec3b5a85ccfe"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-app-sigkill-01/process-observer/summary.json",
+      "bytes": 1816,
+      "sha256": "8bce014ba91a8588f4db34ef6a32dbb0ed80a137c52385e4216214cab35d5ebe"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-app-sigkill-01/production-origin.json",
+      "bytes": 253,
+      "sha256": "70fca1f334270776f547e3726811b13bb8f9b98e27728d0148c7ed69b8db4ded"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-app-sigkill-01/provenance.json",
+      "bytes": 1027,
+      "sha256": "171ca361fd0b4676d69e8b78b4d49e6d6062c5bd4cb772cf81ffd9b29d394594"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-disable-01/01-safe-preview.png",
+      "bytes": 17011,
+      "sha256": "f044cba5a116da3fbe6b9e69beaca3b3321e34ff0894f7c487417e996f0cace3"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-disable-01/02-lifecycle-complete.png",
+      "bytes": 68493,
+      "sha256": "f8b0dd5a684cde0f1ac7f0a511b65d68c7d3b167665d958d2c94a722e40b0b40"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-disable-01/document.md",
+      "bytes": 53,
+      "sha256": "c10d79a86d0f4df0a60ef52e7617c5d032aa606d967d8197d6e99804dee38660"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-disable-01/events.json",
+      "bytes": 179174,
+      "sha256": "1636b4dc939dcd0d417d27663f16b485ce172068513a64d1902baf630883b83a"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-disable-01/fixture.milkup-plugin",
+      "bytes": 2370,
+      "sha256": "e837a0d1fe2711d33227610171807f01b0669c63ec0c4a969f5b5402a28ac323"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-disable-01/native-app.log",
+      "bytes": 3029,
+      "sha256": "e6c06536f8086a2e92f3f033d9f2391f44ef341dba3e5aacb9ed7e04e42a729e"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-disable-01/native-traces.json",
+      "bytes": 1123,
+      "sha256": "012a3338a1e5c154ce0867763b043de446935ac3cd35634040169dce080dffda"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-disable-01/observer-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-disable-01/picker-after-input.png",
+      "bytes": 25744,
+      "sha256": "7a91ba72184eedebc96bc7530271792a283eef696bb330ee966a355c74594bdc"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-disable-01/picker-atspi-first.json",
+      "bytes": 62892,
+      "sha256": "bbdffdaba8e7699d636c7d885d131a60e6dab1bea9720929214e91243895f5ee"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-disable-01/picker-atspi-last.json",
+      "bytes": 61307,
+      "sha256": "37a5790d4e1ef3d8df087ac072e67ca748869656bcb36e316642749c903e5910"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-disable-01/picker-before-input.png",
+      "bytes": 20406,
+      "sha256": "2b78453e0c712c23d11ded8e838997631efe20744a5fdcae4659c300fc35d8d3"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-disable-01/picker-focused-before-readiness.png",
+      "bytes": 20516,
+      "sha256": "7c892d12477144457579ad04ddcd2b5a4ad5932d7ca144135e6a0df792eb1bb6"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-disable-01/process-observer/samples.ndjson",
+      "bytes": 46818,
+      "sha256": "d3e83554e66935f06911c88651914268e572ea49da9a89010a5e65d9874c3b56"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-disable-01/process-observer/summary.json",
+      "bytes": 1225,
+      "sha256": "0a9461cb05f8fd5e611519d8ca1aeca7f8e617fa87d4b3f9a1ebf0b7433759ed"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-disable-01/production-origin.json",
+      "bytes": 253,
+      "sha256": "70fca1f334270776f547e3726811b13bb8f9b98e27728d0148c7ed69b8db4ded"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-disable-01/provenance.json",
+      "bytes": 1015,
+      "sha256": "acc708d0f2c077a7604dbb6203200e19c3b6ba24251be06b93b23890bc535705"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-disable-01/ui-observation-final.json",
+      "bytes": 10932,
+      "sha256": "2d5fa36a176b93eb4d5035fa0f2ad086c56abd78485729d1404b9cc061125623"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-disable-01/ui-observation.json",
+      "bytes": 6976,
+      "sha256": "2947720c499e26fd58fa642677a004fa1afc6c5fb9cf4257458a1323fbcaa280"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-remove-01/01-safe-preview.png",
+      "bytes": 16984,
+      "sha256": "e4ff3e516c7c1bbae00308f26729390154a0c6aaa6d3a96e229437d9bfc53084"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-remove-01/02-lifecycle-complete.png",
+      "bytes": 98094,
+      "sha256": "39d18f1ecde1412ae518c2a03a3f96aee308d26a4c633c91170edcfe710a467d"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-remove-01/document.md",
+      "bytes": 52,
+      "sha256": "f1da2290848f9c374563ca00699da3f3bd3514fbfb4d123be1662fb3bd59e591"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-remove-01/events.json",
+      "bytes": 179521,
+      "sha256": "ee90220143b9eeae45ca7ce861b5228207b1fab310eb626625703f56052a8a39"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-remove-01/fixture.milkup-plugin",
+      "bytes": 2368,
+      "sha256": "4d71786414d7a0013febdd251faea54f5ff3a80e4359ab0beb32db429c2526c3"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-remove-01/native-app.log",
+      "bytes": 2959,
+      "sha256": "0ad8f167860efc038a7ab8284306a0831ab804ebab6eb901b28dfae08bc09dde"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-remove-01/native-traces.json",
+      "bytes": 934,
+      "sha256": "21715f9ab2b07f768fb35cd549a6d6acf6eec1374499314c015a181b18a3828a"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-remove-01/observer-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-remove-01/picker-after-input.png",
+      "bytes": 25616,
+      "sha256": "29cb97cc9e0fc4342e4257e4a99388f63c5a40e9bc22b1cdd2a635157594c9dd"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-remove-01/picker-atspi-first.json",
+      "bytes": 62893,
+      "sha256": "3d77d88fd68ef22e08c172540bd9077b20ff71855017b00fd865f4710202b81f"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-remove-01/picker-atspi-last.json",
+      "bytes": 61305,
+      "sha256": "22ec3fa502c9271c81b3bc64b35926756e3c9a12b04a209e37567979dda1bd40"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-remove-01/picker-before-input.png",
+      "bytes": 20406,
+      "sha256": "2b78453e0c712c23d11ded8e838997631efe20744a5fdcae4659c300fc35d8d3"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-remove-01/picker-focused-before-readiness.png",
+      "bytes": 20464,
+      "sha256": "8846fb876b1508427131f09ebf57bfdb8276bdd2b5f021370f44fd4a200db64e"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-remove-01/process-observer/samples.ndjson",
+      "bytes": 58780,
+      "sha256": "9d9a74e024aa2e2babee17757146e565649a443b8eef523524e361d518606b43"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-remove-01/process-observer/summary.json",
+      "bytes": 1225,
+      "sha256": "5373a43e42944eddc661f2b4ec4f79787aa796c552cbf5e35f4e6fe5284b68ef"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-remove-01/production-origin.json",
+      "bytes": 253,
+      "sha256": "70fca1f334270776f547e3726811b13bb8f9b98e27728d0148c7ed69b8db4ded"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-remove-01/provenance.json",
+      "bytes": 1012,
+      "sha256": "979cfb51b1e4235750013f2650fe977a11c43ae1d2852408bdd05003cd5959b5"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-remove-01/ui-observation-final.json",
+      "bytes": 9002,
+      "sha256": "80d894609d4a7593ca2721e9697ba7654ad4eb20812d45aca7381c8bce77fee3"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-remove-01/ui-observation.json",
+      "bytes": 6443,
+      "sha256": "20ffcc584f23e291264a0c4d34c3efd80fa24192819b086dc39bf8e0b58bd02a"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-timeout-01/01-safe-preview.png",
+      "bytes": 17026,
+      "sha256": "39acf57ab5a542ee8de9ca71e5c29c7bdb8836b5165507b2d46e870bad061422"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-timeout-01/02-timeout-failed-card.png",
+      "bytes": 72371,
+      "sha256": "fe56626bf9181594179c2ae1237f90bd29ee3c47d43110f1c8c9c839e25b2337"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-timeout-01/document.md",
+      "bytes": 53,
+      "sha256": "fcf944133f1e80085b9a983b55dc66557a770c4b3a63096957e7865416ed84d5"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-timeout-01/events.json",
+      "bytes": 177543,
+      "sha256": "7efb75f9752d2058ef409693c775dd9883f6a066bf603e0a1e8fd758bc4ca2a2"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-timeout-01/fixture.milkup-plugin",
+      "bytes": 2370,
+      "sha256": "db1c0e99ea3325473689c8ef970339a0114754505d694c0b5906bac6be0a2fd6"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-timeout-01/native-app.log",
+      "bytes": 3552,
+      "sha256": "baa364f22c813887e02996b9afd774bc475f3f1a761d4dcb558c062f1c1a3a0d"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-timeout-01/native-traces.json",
+      "bytes": 1700,
+      "sha256": "07357a8f69ea17b8a9e1bc18bd174736aff9d141691f13a11962bbc9560d3a73"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-timeout-01/observer-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-timeout-01/picker-after-input.png",
+      "bytes": 25586,
+      "sha256": "d738edb0f715a570b8e65d2cc5b80a6f439da83343965724768ab59653bd7d04"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-timeout-01/picker-atspi-first.json",
+      "bytes": 62893,
+      "sha256": "004b6f4ee2cdd1d9199c66fdab11438298066960c11ecd8827490db48c43dbca"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-timeout-01/picker-atspi-last.json",
+      "bytes": 61306,
+      "sha256": "36bcf543774b13bafe50bca4da681b22400f1b77759884cf61bb73ec906ba31d"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-timeout-01/picker-before-input.png",
+      "bytes": 20406,
+      "sha256": "2b78453e0c712c23d11ded8e838997631efe20744a5fdcae4659c300fc35d8d3"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-timeout-01/picker-focused-before-readiness.png",
+      "bytes": 20406,
+      "sha256": "2b78453e0c712c23d11ded8e838997631efe20744a5fdcae4659c300fc35d8d3"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-timeout-01/process-observer/samples.ndjson",
+      "bytes": 96436,
+      "sha256": "996f7d36ecaf8f4863e74fc4fcea6e8fe6be909b5d32a002fe5ebdc68559877d"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-timeout-01/process-observer/summary.json",
+      "bytes": 1226,
+      "sha256": "3e2c2fcfd45f2c00aa91edc2496fd9d43846a5e14dd5394ceb402668a8d1edcc"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-timeout-01/production-origin.json",
+      "bytes": 253,
+      "sha256": "70fca1f334270776f547e3726811b13bb8f9b98e27728d0148c7ed69b8db4ded"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-timeout-01/provenance.json",
+      "bytes": 1015,
+      "sha256": "97dadcd1c4e33808bf141928fa881b5ac2e01cc2e3be4a7633658ed994e2f416"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-timeout-01/ui-observation-final.json",
+      "bytes": 15936,
+      "sha256": "d7cf03ba6e7bf3c6c79c133a31c426d789aca2b11a327217760f111025dbe6c0"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-timeout-01/ui-observation.json",
+      "bytes": 4064,
+      "sha256": "22e2e6df842d70f3eb915d522ba1639f989b9d36b8d0dc0e7ec823da74497755"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-wm-close-01/01-safe-preview.png",
+      "bytes": 17213,
+      "sha256": "1064342f35492fea74f04e4729d7e95aa8de745faaf2a01932bd57de2a6f7e92"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-wm-close-01/document.md",
+      "bytes": 53,
+      "sha256": "cc437e848e4b1845fa10c944a5c3f950a4f506497ac1229fec8e928726f112ef"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-wm-close-01/events.json",
+      "bytes": 178603,
+      "sha256": "d9ce718978c8479a15f3eef673f939ee92169f995a5be08f6ecad6b5b43ecd0a"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-wm-close-01/fixture.milkup-plugin",
+      "bytes": 2372,
+      "sha256": "ca2e9902092f8a8029f322a2853ac8d02cd1c177122049f2c543b17fd66a4ecd"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-wm-close-01/native-app.log",
+      "bytes": 2994,
+      "sha256": "20a34d5d5b7a0f3434d05d573ada2649ec74e6e444318546b40c93d2cb378a8f"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-wm-close-01/native-traces.json",
+      "bytes": 934,
+      "sha256": "2c5702e14883fbed13de1261b67bae8ed6145330690950de4c84577c6472538a"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-wm-close-01/observer-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-wm-close-01/picker-after-input.png",
+      "bytes": 25655,
+      "sha256": "f8f786cf23c85588d9ef7dc7271ca525a883b42f78b9a4f6d382b852d8241cd7"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-wm-close-01/picker-atspi-first.json",
+      "bytes": 62893,
+      "sha256": "231595aa5d19d2c70f4c3f2c255e96d41c98b92720ba6e222923df83bc85f499"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-wm-close-01/picker-atspi-last.json",
+      "bytes": 61307,
+      "sha256": "ba9102d3a56e4a284154974f58e1c196635005a93aa351d31fc5bea2149198dc"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-wm-close-01/picker-before-input.png",
+      "bytes": 20406,
+      "sha256": "2b78453e0c712c23d11ded8e838997631efe20744a5fdcae4659c300fc35d8d3"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-wm-close-01/picker-focused-before-readiness.png",
+      "bytes": 20443,
+      "sha256": "9d33ca7b226f3463f55931cbb69bb06e1d47b57806633ee1294097dff88c0c9e"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-wm-close-01/process-observer/samples.ndjson",
+      "bytes": 39508,
+      "sha256": "a7a9d35911fdeecb07d72d78e51924b99a2bef894492f402ba7c1bb45050c552"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-wm-close-01/process-observer/summary.json",
+      "bytes": 1227,
+      "sha256": "1bad1531745ebe0bf6ef1b31b875c8a6b9a4e81271759fdb912ccbc562371ef9"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-wm-close-01/production-origin.json",
+      "bytes": 253,
+      "sha256": "70fca1f334270776f547e3726811b13bb8f9b98e27728d0148c7ed69b8db4ded"
+    },
+    {
+      "path": "lifecycle/runs/lifecycle-p04-wm-close-01/provenance.json",
+      "bytes": 1018,
+      "sha256": "8f479a349c12a3409350249176b1b720bd121b52812c92a89fab83b7d06207c6"
+    },
+    {
+      "path": "owned-process-final-audit.json",
+      "bytes": 1460,
+      "sha256": "7e181ec87dead210ece3e44711db701984a0d5fdee6f58b0d0b2f5d0ab43ce93"
+    },
+    {
+      "path": "preparation.json",
+      "bytes": 3284,
+      "sha256": "d1f94e3f5c9d3f9719c3a95a5f0f85f3a72d54f46df1cf36cebdbc5149af9075"
+    },
+    {
+      "path": "provenance.json",
+      "bytes": 8278,
+      "sha256": "be47ea8a2b3d4763457545026557a45b690a1babff33c2d7da9a5ccb57b74d03"
+    },
+    {
+      "path": "root-lifecycle-review.json",
+      "bytes": 2140,
+      "sha256": "0e6a66686510bb0a5efb70271c84e38358e56403fa80627dd7526c2b806c02b7"
+    },
+    {
+      "path": "root-visual-review.json",
+      "bytes": 1567,
+      "sha256": "0e6b5a284cb1173921dd206cbcc4c6091b2dc40c4ccfd4216e2fee84e02f2965"
+    },
+    {
+      "path": "run-case.py",
+      "bytes": 1724,
+      "sha256": "ccd8d09d7333fe346974712c88dd6646cada2e2ede782031d02765959b6022c9"
+    },
+    {
+      "path": "run-env.sh",
+      "bytes": 2262,
+      "sha256": "0268ce2293a7e9e9ac3b7fbd669e07170590a778274d178117c20746babd7b73"
+    },
+    {
+      "path": "runtime-preflight.json",
+      "bytes": 363,
+      "sha256": "25137dc08759a0a1dd0f15d1ac5eb37be54c61ea2485d8c31654a0288e649e63"
+    },
+    {
+      "path": "snapshot-run-inputs.py",
+      "bytes": 1833,
+      "sha256": "0898214aa755c7ce007cfc11495ca15eb79cbbb94af72416761998538a3415e7"
+    },
+    {
+      "path": "source-after.json",
+      "bytes": 91,
+      "sha256": "1db0a4beff6bafa7eb7e9a822c9284f63e2b6f53545bc5f39d88a90c9179283b"
+    },
+    {
+      "path": "source-before.json",
+      "bytes": 636871,
+      "sha256": "f1ed6c928b22249e94a422a23d49c0f8cc0cc892c5547479860e23b8b32a98ab"
+    },
+    {
+      "path": "stop-driver.py",
+      "bytes": 577,
+      "sha256": "08a12affc0e8769e0ba19967042ec52752f7b5b3bcb40db2cab8e2978c10d716"
+    }
+  ]
+}

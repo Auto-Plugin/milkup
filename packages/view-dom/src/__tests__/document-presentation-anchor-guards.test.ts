@@ -160,7 +160,14 @@ it('leaves measurement to the view when presentation is disabled or in source mo
 it('reports no measurement when a cached paint is already current', async () => {
   const f = fixture()
   f.manager.setConfig({
-    provide: async ({ sourceIdentity: _i, sourceVersion: _v, documentVersion: _d, ...window }) => ({
+    provide: async ({
+      sourceIdentity: _i,
+      sourceVersion: _v,
+      documentVersion: _d,
+      visibleFrom: _visibleFrom,
+      visibleTo: _visibleTo,
+      ...window
+    }) => ({
       declarations: [],
       request: {
         ...window,

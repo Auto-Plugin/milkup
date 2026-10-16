@@ -1,0 +1,21 @@
+# Diagnostic candidate01 — source prepared, not compiled
+
+Root-approved scope is implemented in an independent source hierarchy derived from frozen production04. Exactly three Rust files differ; candidate-source-manifest.json identifies all50 source/frontend files and the three before/after hashes. The main working tree counterparts remain identical to production04. diagnostic.patch is the readable delta; bootstrap, guard, Cargo dependencies, frontend, SDK and plugin archive inputs are unchanged. Build overlay only skips frontend rebuild and retains the reviewed cloud icon. This is a diagnostic candidate, never the production04 artifact.
+
+## Independent build cache
+
+cache-reclamation.json records the approved exact debug/incremental directory (non-symlink/realpath verified), no running Cargo/rustc, size4,018,135,839 bytes and before/after free space. Only that rebuildable cache was removed. Debug binaries/build/deps and all research/production evidence remain untouched. release cache was copied into this candidate target using regular copy2 files, with4698 distinct source/target inodes checked; no hardlinks or shared writable target. The unsupported CoW trial remains separately recorded under native-stage-build-cache-preflight. About3.75GB remained after the ordinary copy.
+
+## Review addendum incorporated
+
+The root/release_sdk late-result observation issue is addressed by receive-entry after the stdout JSON frame parse but before payload-size checks and existing deadline branches. Its fixed protocol/type/id and captured entry_monotonic_ns remain observable even if later matching/settlement phases are skipped for lateness. It is not a first-byte arrival timestamp. No original deadline/is_result/active ordering was changed. matching-result-received is observation only and the original final monotonic comparison still decides settlement.
+
+Helper-result-drained and helper-result-write-complete obtain their ID from the returned result body, never the input or poll that triggered the evaluation. Unknown/malformed diagnostic metadata is a bounded unknown label; it does not accept/reject/change the actual functional frame. No source/module/token/raw error text is logged.
+
+Only input-frame evaluate submissions/callbacks and nonempty results are logged. Empty idle polls are not logged. The callback observation occurs after the original result.to_json/JSON decode, not at callback entry; it does not mean the asynchronous renderer promise completed. Frame-dequeued is observed after UTF8 validation and diagnostic metadata parse, so that bounded parse time precedes the logged phase. Actual native dispatch/deadline values remain unchanged, and all diagnostic work after arming (including source hash) consumes the same budget. These overheads are not subtracted. Missing records remain unknown because the existing64-entry try_send channel is best effort, including terminal loss at process exit.
+
+NativeTraceDetails and DiagnosticMessage fix the metadata shape: whitelisted protocol/type/theme, bounded80-byte alphanumeric/_/- IDs, finite numeric width and unsigned offsets, source length/hash, booleans and fixed result-kind labels. Unknown values are never serialized as arbitrary text. Existing native trace envelopes/phase strings are retained; no bootstrap/private-token/IPC/sandbox/CSP/lifecycle behavior changed.
+
+## Validation status and next gate
+
+rustfmt-checks.json preserves the initial format-only failure, formatting action and successful final exact-three-file rustfmt check. No Cargo check/build/unit/native/runtime has run. Root and independent review of diagnostic.patch are required before compilation. Then build via the existing desktop absolute Tauri CLI with this candidate source cwd, candidate-only config overlay and independent CARGO_TARGET_DIR, using the frozen04 frontend and original cloud env with legacy proot runner unset. Preserve build failures and freeze the distinct actual extracted diagnostic binary before any prefix execution.

@@ -1,0 +1,4155 @@
+{
+  "diagnosticOnly": true,
+  "mermaidTested": true,
+  "converterPrototypeTested": false,
+  "originalDomNormalizationDiagnostic": true,
+  "results": [
+    {
+      "task": "native-resource-guard",
+      "elapsed": 0.015223591995891184,
+      "value": {
+        "status": "blocked"
+      }
+    },
+    {
+      "task": "scan_022",
+      "sampleId": "gantt-000-first-official-example",
+      "sourceSha256": "9994b276372df6ec8dece5afd5a93326bf86e01f4e6574ed3e6c1fb052805144",
+      "profile": "baseline",
+      "elapsed": 0.1087924409948755,
+      "serializedBytes": 188,
+      "diagramType": "gantt"
+    }
+  ],
+  "events": [
+    {
+      "kind": "spawn",
+      "mono": 41437.508901303,
+      "wall": 1792153825.0698621,
+      "pid": 274951,
+      "birth": "4143750",
+      "command": [
+        "/usr/bin/bwrap",
+        "--die-with-parent",
+        "--unshare-user",
+        "--unshare-pid",
+        "--unshare-ipc",
+        "--unshare-uts",
+        "--unshare-net",
+        "--clearenv",
+        "--ro-bind",
+        "/usr",
+        "/usr",
+        "--overlay-src",
+        "/usr/bin",
+        "--tmp-overlay",
+        "/usr/bin",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/bin/xdg-dbus-proxy",
+        "/usr/bin/xdg-dbus-proxy",
+        "--remount-ro",
+        "/usr/bin",
+        "--symlink",
+        "usr/bin",
+        "/bin",
+        "--symlink",
+        "usr/lib",
+        "/lib",
+        "--symlink",
+        "usr/lib64",
+        "/lib64",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu",
+        "/runtime/lib",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/share/glib-2.0/schemas",
+        "/runtime/schemas",
+        "--overlay-src",
+        "/usr/lib/x86_64-linux-gnu",
+        "--tmp-overlay",
+        "/usr/lib/x86_64-linux-gnu",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1",
+        "/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1",
+        "--remount-ro",
+        "/usr/lib/x86_64-linux-gnu",
+        "--ro-bind",
+        "/etc/fonts",
+        "/etc/fonts",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/passwd",
+        "/etc/passwd",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/group",
+        "/etc/group",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/hostname",
+        "/etc/hostname",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/hosts",
+        "/etc/hosts",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/nsswitch.conf",
+        "/etc/nsswitch.conf",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/machine-id",
+        "/etc/machine-id",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/loaders.cache",
+        "/probe/loaders.cache",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/target/debug/milkup-mermaid-snapshot-probe",
+        "/probe/bin/helper",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/extensions/libpaired_resource_guard.so",
+        "/probe/extensions/libpaired_resource_guard.so",
+        "--bind",
+        "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/profiles/gantt-identity-125-first01",
+        "/profile",
+        "--tmpfs",
+        "/tmp",
+        "--dir",
+        "/tmp/.X11-unix",
+        "--ro-bind",
+        "/tmp/.X11-unix/X118",
+        "/tmp/.X11-unix/X118",
+        "--tmpfs",
+        "/run",
+        "--perms",
+        "0700",
+        "--dir",
+        "/run/user/1000",
+        "--dir",
+        "/sys/block",
+        "--dir",
+        "/sys/bus",
+        "--dir",
+        "/sys/class",
+        "--dir",
+        "/sys/dev",
+        "--dir",
+        "/sys/devices",
+        "--dev",
+        "/dev",
+        "--proc",
+        "/proc",
+        "--setenv",
+        "PATH",
+        "/usr/bin:/bin",
+        "--setenv",
+        "HOME",
+        "/profile/home",
+        "--setenv",
+        "XDG_CONFIG_HOME",
+        "/profile/config",
+        "--setenv",
+        "XDG_DATA_HOME",
+        "/profile/data",
+        "--setenv",
+        "XDG_CACHE_HOME",
+        "/profile/cache",
+        "--setenv",
+        "XDG_RUNTIME_DIR",
+        "/run/user/1000",
+        "--setenv",
+        "LD_LIBRARY_PATH",
+        "/runtime/lib",
+        "--setenv",
+        "WEBKIT_INJECTED_BUNDLE_PATH",
+        "/runtime/lib/webkit2gtk-4.1/injected-bundle",
+        "--setenv",
+        "GSETTINGS_SCHEMA_DIR",
+        "/runtime/schemas",
+        "--setenv",
+        "GDK_PIXBUF_MODULE_FILE",
+        "/probe/loaders.cache",
+        "--setenv",
+        "MILKUP_PROBE_EXTENSIONS",
+        "/probe/extensions",
+        "--setenv",
+        "DISPLAY",
+        ":118",
+        "--setenv",
+        "GDK_BACKEND",
+        "x11",
+        "--setenv",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "1",
+        "--setenv",
+        "LANG",
+        "C.UTF-8",
+        "--setenv",
+        "LC_ALL",
+        "C.UTF-8",
+        "--setenv",
+        "TZ",
+        "UTC",
+        "--setenv",
+        "NO_AT_BRIDGE",
+        "1",
+        "--remount-ro",
+        "/",
+        "--chdir",
+        "/profile",
+        "--",
+        "/usr/bin/dbus-run-session",
+        "--",
+        "/probe/bin/helper"
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 41437.662193124,
+      "wall": 1792153825.2231529,
+      "members": [
+        {
+          "pid": 274951,
+          "state": "S",
+          "ppid": 274948,
+          "pgrp": 274951,
+          "birth": "4143750",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 274952,
+          "state": "S",
+          "ppid": 274951,
+          "pgrp": 274951,
+          "birth": "4143751",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 274953,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 274954,
+          "state": "S",
+          "ppid": 274953,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 274955,
+          "state": "R",
+          "ppid": 274953,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 8,
+          "stime": 4,
+          "name": "helper"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 41437.828553513,
+      "wall": 1792153825.389513,
+      "members": [
+        {
+          "pid": 274951,
+          "state": "S",
+          "ppid": 274948,
+          "pgrp": 274951,
+          "birth": "4143750",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 274952,
+          "state": "S",
+          "ppid": 274951,
+          "pgrp": 274951,
+          "birth": "4143751",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 274953,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 274954,
+          "state": "S",
+          "ppid": 274953,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 274955,
+          "state": "D",
+          "ppid": 274953,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 17,
+          "stime": 11,
+          "name": "helper"
+        },
+        {
+          "pid": 274964,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143771",
+          "utime": 6,
+          "stime": 2,
+          "name": "WebKitNetworkPr"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41437.828782929,
+      "wall": 1792153825.3897417,
+      "frame": {
+        "allowedResources": 3,
+        "ephemeral": true,
+        "javascript": true,
+        "javascriptMarkup": true,
+        "sandbox": true,
+        "settings": "file/universal/webrtc/media/webgl/storage/dns/windows/devtools denied",
+        "tauriBridge": false,
+        "type": "native-policy",
+        "wryIpcStub": false
+      }
+    },
+    {
+      "kind": "process-sample",
+      "mono": 41437.976349465,
+      "wall": 1792153825.537309,
+      "members": [
+        {
+          "pid": 274951,
+          "state": "S",
+          "ppid": 274948,
+          "pgrp": 274951,
+          "birth": "4143750",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 274952,
+          "state": "S",
+          "ppid": 274951,
+          "pgrp": 274951,
+          "birth": "4143751",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 274953,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 274954,
+          "state": "S",
+          "ppid": 274953,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 274955,
+          "state": "S",
+          "ppid": 274953,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 31,
+          "stime": 11,
+          "name": "helper"
+        },
+        {
+          "pid": 274964,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143771",
+          "utime": 6,
+          "stime": 2,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 274996,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143781",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 275002,
+          "state": "S",
+          "ppid": 274996,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 275003,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275004,
+          "state": "S",
+          "ppid": 275003,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 1,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275005,
+          "state": "S",
+          "ppid": 275004,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 275008,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275009,
+          "state": "S",
+          "ppid": 275008,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275012,
+          "state": "S",
+          "ppid": 275009,
+          "pgrp": 274951,
+          "birth": "4143785",
+          "utime": 7,
+          "stime": 2,
+          "name": "WebKitWebProces"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 41438.122075769,
+      "wall": 1792153825.6830351,
+      "members": [
+        {
+          "pid": 274951,
+          "state": "S",
+          "ppid": 274948,
+          "pgrp": 274951,
+          "birth": "4143750",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 274952,
+          "state": "S",
+          "ppid": 274951,
+          "pgrp": 274951,
+          "birth": "4143751",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 274953,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 274954,
+          "state": "S",
+          "ppid": 274953,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 274955,
+          "state": "S",
+          "ppid": 274953,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 45,
+          "stime": 12,
+          "name": "helper"
+        },
+        {
+          "pid": 274964,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143771",
+          "utime": 6,
+          "stime": 2,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 274996,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143781",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 275002,
+          "state": "S",
+          "ppid": 274996,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 275003,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275004,
+          "state": "S",
+          "ppid": 275003,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 1,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275005,
+          "state": "S",
+          "ppid": 275004,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 275008,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275009,
+          "state": "S",
+          "ppid": 275008,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275012,
+          "state": "S",
+          "ppid": 275009,
+          "pgrp": 274951,
+          "birth": "4143785",
+          "utime": 7,
+          "stime": 2,
+          "name": "WebKitWebProces"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 41438.268860633,
+      "wall": 1792153825.82982,
+      "members": [
+        {
+          "pid": 274951,
+          "state": "S",
+          "ppid": 274948,
+          "pgrp": 274951,
+          "birth": "4143750",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 274952,
+          "state": "S",
+          "ppid": 274951,
+          "pgrp": 274951,
+          "birth": "4143751",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 274953,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 274954,
+          "state": "S",
+          "ppid": 274953,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 274955,
+          "state": "S",
+          "ppid": 274953,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 57,
+          "stime": 14,
+          "name": "helper"
+        },
+        {
+          "pid": 274964,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143771",
+          "utime": 6,
+          "stime": 2,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 274996,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143781",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 275002,
+          "state": "S",
+          "ppid": 274996,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 275003,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275004,
+          "state": "S",
+          "ppid": 275003,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 1,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275005,
+          "state": "S",
+          "ppid": 275004,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 275008,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275009,
+          "state": "S",
+          "ppid": 275008,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275012,
+          "state": "S",
+          "ppid": 275009,
+          "pgrp": 274951,
+          "birth": "4143785",
+          "utime": 7,
+          "stime": 2,
+          "name": "WebKitWebProces"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 41438.414326268,
+      "wall": 1792153825.975286,
+      "members": [
+        {
+          "pid": 274951,
+          "state": "S",
+          "ppid": 274948,
+          "pgrp": 274951,
+          "birth": "4143750",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 274952,
+          "state": "S",
+          "ppid": 274951,
+          "pgrp": 274951,
+          "birth": "4143751",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 274953,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 274954,
+          "state": "S",
+          "ppid": 274953,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 274955,
+          "state": "S",
+          "ppid": 274953,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 57,
+          "stime": 14,
+          "name": "helper"
+        },
+        {
+          "pid": 274964,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143771",
+          "utime": 6,
+          "stime": 2,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 274996,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143781",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 275002,
+          "state": "S",
+          "ppid": 274996,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 275003,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275004,
+          "state": "S",
+          "ppid": 275003,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 1,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275005,
+          "state": "S",
+          "ppid": 275004,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 275008,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275009,
+          "state": "S",
+          "ppid": 275008,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275012,
+          "state": "S",
+          "ppid": 275009,
+          "pgrp": 274951,
+          "birth": "4143785",
+          "utime": 7,
+          "stime": 2,
+          "name": "WebKitWebProces"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 41438.568157608,
+      "wall": 1792153826.129117,
+      "members": [
+        {
+          "pid": 274951,
+          "state": "S",
+          "ppid": 274948,
+          "pgrp": 274951,
+          "birth": "4143750",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 274952,
+          "state": "S",
+          "ppid": 274951,
+          "pgrp": 274951,
+          "birth": "4143751",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 274953,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 274954,
+          "state": "S",
+          "ppid": 274953,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 274955,
+          "state": "S",
+          "ppid": 274953,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 57,
+          "stime": 14,
+          "name": "helper"
+        },
+        {
+          "pid": 274964,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143771",
+          "utime": 6,
+          "stime": 2,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 274996,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143781",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 275002,
+          "state": "S",
+          "ppid": 274996,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 275003,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275004,
+          "state": "S",
+          "ppid": 275003,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 1,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275005,
+          "state": "S",
+          "ppid": 275004,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 275008,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275009,
+          "state": "S",
+          "ppid": 275008,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275012,
+          "state": "S",
+          "ppid": 275009,
+          "pgrp": 274951,
+          "birth": "4143785",
+          "utime": 7,
+          "stime": 2,
+          "name": "WebKitWebProces"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 41438.71335209,
+      "wall": 1792153826.2743118,
+      "members": [
+        {
+          "pid": 274951,
+          "state": "S",
+          "ppid": 274948,
+          "pgrp": 274951,
+          "birth": "4143750",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 274952,
+          "state": "S",
+          "ppid": 274951,
+          "pgrp": 274951,
+          "birth": "4143751",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 274953,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 274954,
+          "state": "S",
+          "ppid": 274953,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 274955,
+          "state": "S",
+          "ppid": 274953,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 57,
+          "stime": 14,
+          "name": "helper"
+        },
+        {
+          "pid": 274964,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143771",
+          "utime": 6,
+          "stime": 2,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 274996,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143781",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 275002,
+          "state": "S",
+          "ppid": 274996,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 275003,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275004,
+          "state": "S",
+          "ppid": 275003,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 1,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275005,
+          "state": "S",
+          "ppid": 275004,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 275008,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275009,
+          "state": "S",
+          "ppid": 275008,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275012,
+          "state": "S",
+          "ppid": 275009,
+          "pgrp": 274951,
+          "birth": "4143785",
+          "utime": 7,
+          "stime": 2,
+          "name": "WebKitWebProces"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 41438.858959986,
+      "wall": 1792153826.41992,
+      "members": [
+        {
+          "pid": 274951,
+          "state": "S",
+          "ppid": 274948,
+          "pgrp": 274951,
+          "birth": "4143750",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 274952,
+          "state": "S",
+          "ppid": 274951,
+          "pgrp": 274951,
+          "birth": "4143751",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 274953,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 274954,
+          "state": "S",
+          "ppid": 274953,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 274955,
+          "state": "S",
+          "ppid": 274953,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 57,
+          "stime": 14,
+          "name": "helper"
+        },
+        {
+          "pid": 274964,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143771",
+          "utime": 6,
+          "stime": 2,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 274996,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143781",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 275002,
+          "state": "S",
+          "ppid": 274996,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 275003,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275004,
+          "state": "S",
+          "ppid": 275003,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 1,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275005,
+          "state": "S",
+          "ppid": 275004,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 275008,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275009,
+          "state": "S",
+          "ppid": 275008,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275012,
+          "state": "R",
+          "ppid": 275009,
+          "pgrp": 274951,
+          "birth": "4143785",
+          "utime": 12,
+          "stime": 3,
+          "name": "WebKitWebProces"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 41439.014383453,
+      "wall": 1792153826.5753431,
+      "members": [
+        {
+          "pid": 274951,
+          "state": "S",
+          "ppid": 274948,
+          "pgrp": 274951,
+          "birth": "4143750",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 274952,
+          "state": "S",
+          "ppid": 274951,
+          "pgrp": 274951,
+          "birth": "4143751",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 274953,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 274954,
+          "state": "S",
+          "ppid": 274953,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 0,
+          "stime": 1,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 274955,
+          "state": "S",
+          "ppid": 274953,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 59,
+          "stime": 17,
+          "name": "helper"
+        },
+        {
+          "pid": 274964,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143771",
+          "utime": 7,
+          "stime": 2,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 274996,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143781",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 275002,
+          "state": "S",
+          "ppid": 274996,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 275003,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275004,
+          "state": "S",
+          "ppid": 275003,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 1,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275005,
+          "state": "S",
+          "ppid": 275004,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 275008,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275009,
+          "state": "S",
+          "ppid": 275008,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275012,
+          "state": "R",
+          "ppid": 275009,
+          "pgrp": 274951,
+          "birth": "4143785",
+          "utime": 25,
+          "stime": 14,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 275043,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143893",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.014451491,
+      "wall": 1792153826.57541,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "bootstrapMissing": true
+        }
+      }
+    },
+    {
+      "kind": "process-sample",
+      "mono": 41439.178903333,
+      "wall": 1792153826.7398632,
+      "members": [
+        {
+          "pid": 274951,
+          "state": "S",
+          "ppid": 274948,
+          "pgrp": 274951,
+          "birth": "4143750",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 274952,
+          "state": "S",
+          "ppid": 274951,
+          "pgrp": 274951,
+          "birth": "4143751",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 274953,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 274954,
+          "state": "S",
+          "ppid": 274953,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 0,
+          "stime": 1,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 274955,
+          "state": "S",
+          "ppid": 274953,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 60,
+          "stime": 17,
+          "name": "helper"
+        },
+        {
+          "pid": 274964,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143771",
+          "utime": 7,
+          "stime": 2,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 274996,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143781",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 275002,
+          "state": "S",
+          "ppid": 274996,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 275003,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275004,
+          "state": "S",
+          "ppid": 275003,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 1,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275005,
+          "state": "S",
+          "ppid": 275004,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 275008,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275009,
+          "state": "S",
+          "ppid": 275008,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275012,
+          "state": "R",
+          "ppid": 275009,
+          "pgrp": 274951,
+          "birth": "4143785",
+          "utime": 41,
+          "stime": 14,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 275043,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143893",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.184245922,
+      "wall": 1792153826.7452052,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "bootstrapMissing": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.283066948,
+      "wall": 1792153826.8440268,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "bootstrapMissing": true,
+          "fontPending": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.304440506,
+      "wall": 1792153826.8653996,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "diagnosticOnly": true,
+          "engine": "mermaid@12.2.0",
+          "hasTauri": false,
+          "ready": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.308242858,
+      "wall": 1792153826.8692021,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.319102972,
+      "wall": 1792153826.8800616,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "blocked"
+        }
+      }
+    },
+    {
+      "kind": "native-send",
+      "mono": 41439.381289066,
+      "wall": 1792153826.9422479,
+      "task": "scan_022",
+      "armedMono": 41439.381284877,
+      "deadlineMono": 41441.381284877,
+      "members": [
+        {
+          "pid": 274951,
+          "state": "S",
+          "ppid": 274948,
+          "pgrp": 274951,
+          "birth": "4143750",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 274952,
+          "state": "S",
+          "ppid": 274951,
+          "pgrp": 274951,
+          "birth": "4143751",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 274953,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 274954,
+          "state": "S",
+          "ppid": 274953,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 0,
+          "stime": 1,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 274955,
+          "state": "S",
+          "ppid": 274953,
+          "pgrp": 274951,
+          "birth": "4143752",
+          "utime": 60,
+          "stime": 17,
+          "name": "helper"
+        },
+        {
+          "pid": 274964,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143771",
+          "utime": 7,
+          "stime": 2,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 274996,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143781",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 275002,
+          "state": "S",
+          "ppid": 274996,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 275003,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275004,
+          "state": "S",
+          "ppid": 275003,
+          "pgrp": 274951,
+          "birth": "4143782",
+          "utime": 0,
+          "stime": 1,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275005,
+          "state": "S",
+          "ppid": 275004,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 275008,
+          "state": "S",
+          "ppid": 274955,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275009,
+          "state": "S",
+          "ppid": 275008,
+          "pgrp": 274951,
+          "birth": "4143784",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 275012,
+          "state": "S",
+          "ppid": 275009,
+          "pgrp": 274951,
+          "birth": "4143785",
+          "utime": 69,
+          "stime": 23,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 275043,
+          "state": "S",
+          "ppid": 274952,
+          "pgrp": 274951,
+          "birth": "4143893",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.477715,
+      "wall": 1792153827.0386739,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "gantt_1"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.489688667,
+      "wall": 1792153827.0506475,
+      "frame": {
+        "type": "result",
+        "value": {
+          "result": {
+            "converterSkipped": true,
+            "diagnosticOnly": true,
+            "diagramType": "gantt",
+            "elapsedMs": 93,
+            "id": "scan_022",
+            "ok": true,
+            "over256KiB": false,
+            "profile": "baseline",
+            "serializedBytes": 188,
+            "theme": "light"
+          },
+          "status": "complete",
+          "taskId": "gantt_1"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.500549488,
+      "wall": 1792153827.0615082,
+      "frame": {
+        "type": "result",
+        "value": {
+          "diagnosticOnly": true,
+          "evidence": null,
+          "geometry": {
+            "bbox": [
+              0,
+              9,
+              79491,
+              162
+            ],
+            "ctm": [
+              1,
+              0,
+              0,
+              1,
+              0,
+              0
+            ],
+            "height": null,
+            "overflow": "hidden",
+            "rect": [
+              8,
+              8,
+              1000,
+              196
+            ],
+            "viewBox": "0 0 1000 196",
+            "width": "100%"
+          },
+          "requestId": "scan_022",
+          "sourceKind": "current-run-unmodified-original",
+          "viewport": {
+            "dpr": 1.25,
+            "height": 800,
+            "width": 1100
+          }
+        }
+      }
+    },
+    {
+      "kind": "paired-inspect",
+      "mono": 41439.500936231,
+      "wall": 1792153827.0618947,
+      "label": "original-inline",
+      "state": {
+        "diagnosticOnly": true,
+        "evidence": null,
+        "geometry": {
+          "bbox": [
+            0,
+            9,
+            79491,
+            162
+          ],
+          "ctm": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "height": null,
+          "overflow": "hidden",
+          "rect": [
+            8,
+            8,
+            1000,
+            196
+          ],
+          "viewBox": "0 0 1000 196",
+          "width": "100%"
+        },
+        "requestId": "scan_022",
+        "sourceKind": "current-run-unmodified-original",
+        "viewport": {
+          "dpr": 1.25,
+          "height": 800,
+          "width": 1100
+        }
+      },
+      "sourceBytes": 10530
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.552727154,
+      "wall": 1792153827.1136866,
+      "frame": {
+        "type": "result",
+        "value": {
+          "height": 1000,
+          "snapshot": true,
+          "width": 1375,
+          "zoom": 1.25
+        }
+      }
+    },
+    {
+      "kind": "paired-snapshot",
+      "mono": 41439.553384233,
+      "wall": 1792153827.114343,
+      "label": "original-inline",
+      "elapsed": 0.052219655000953935,
+      "sha256": "e67419795b6735e42d75fb7eb7b83ab2e3282e2a03539e541e9f62224cfab130",
+      "geometry": {
+        "height": 1000,
+        "snapshot": true,
+        "width": 1375,
+        "zoom": 1.25
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.560610678,
+      "wall": 1792153827.1215694,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "normalize_2"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.562855926,
+      "wall": 1792153827.1238146,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "normalize_2"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.573558152,
+      "wall": 1792153827.134517,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "normalize_2"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.584435752,
+      "wall": 1792153827.1453943,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "normalize_2"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.595205922,
+      "wall": 1792153827.1561646,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "normalize_2"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.605954577,
+      "wall": 1792153827.1669133,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "normalize_2"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.616851242,
+      "wall": 1792153827.17781,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "normalize_2"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.627622874,
+      "wall": 1792153827.1885817,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "normalize_2"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.63835701,
+      "wall": 1792153827.1993158,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "normalize_2"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.649099586,
+      "wall": 1792153827.2100582,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "normalize_2"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.659844902,
+      "wall": 1792153827.2208035,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "normalize_2"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.670597405,
+      "wall": 1792153827.2315562,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "normalize_2"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.681343984,
+      "wall": 1792153827.2423027,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "normalize_2"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.692315851,
+      "wall": 1792153827.2532747,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "normalize_2"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.703129053,
+      "wall": 1792153827.264088,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "normalize_2"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.716421028,
+      "wall": 1792153827.2773798,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "normalize_2"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.735263756,
+      "wall": 1792153827.2962224,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "normalize_2"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.746123797,
+      "wall": 1792153827.3070824,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "normalize_2"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.756778395,
+      "wall": 1792153827.317737,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "normalize_2"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.774636003,
+      "wall": 1792153827.3355947,
+      "frame": {
+        "type": "result",
+        "value": {
+          "result": {
+            "diagnosticOnly": true,
+            "evidence": {
+              "boundary": "Preserved original opacity and child paint alpha; added an explicit-root-viewport bounded zero-alpha zero-kernel identity filter. No host guard change.",
+              "diagnosticOnly": true,
+              "groups": [
+                {
+                  "filterId": "milkup-opacity-identity-probe-0",
+                  "filterUnits": "userSpaceOnUse",
+                  "opacityAfter": 0.8,
+                  "opacityBefore": 0.8,
+                  "operation": {
+                    "colorInterpolation": "sRGB",
+                    "dx": 0,
+                    "dy": 0,
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "stdDeviation": [
+                      0,
+                      0
+                    ]
+                  },
+                  "path": [
+                    2,
+                    1
+                  ],
+                  "primitiveSubregion": "SourceGraphic default equals explicit filter region",
+                  "primitiveUnits": "userSpaceOnUse",
+                  "proof": {
+                    "inverse": [
+                      1,
+                      0,
+                      0,
+                      1,
+                      -151,
+                      -154
+                    ],
+                    "inverseViewportCorners": [
+                      [
+                        -143,
+                        -146
+                      ],
+                      [
+                        -143,
+                        50
+                      ],
+                      [
+                        857,
+                        -146
+                      ],
+                      [
+                        857,
+                        50
+                      ]
+                    ],
+                    "matrix": [
+                      1,
+                      0,
+                      0,
+                      1,
+                      151,
+                      154
+                    ],
+                    "region": [
+                      -143,
+                      -146,
+                      1000,
+                      196
+                    ],
+                    "rootScreenRect": [
+                      8,
+                      8,
+                      1000,
+                      196
+                    ]
+                  }
+                },
+                {
+                  "filterId": "milkup-opacity-identity-probe-1",
+                  "filterUnits": "userSpaceOnUse",
+                  "opacityAfter": 0.8,
+                  "opacityBefore": 0.8,
+                  "operation": {
+                    "colorInterpolation": "sRGB",
+                    "dx": 0,
+                    "dy": 0,
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "stdDeviation": [
+                      0,
+                      0
+                    ]
+                  },
+                  "path": [
+                    2,
+                    2
+                  ],
+                  "primitiveSubregion": "SourceGraphic default equals explicit filter region",
+                  "primitiveUnits": "userSpaceOnUse",
+                  "proof": {
+                    "inverse": [
+                      1,
+                      0,
+                      0,
+                      1,
+                      -270,
+                      -154
+                    ],
+                    "inverseViewportCorners": [
+                      [
+                        -262,
+                        -146
+                      ],
+                      [
+                        -262,
+                        50
+                      ],
+                      [
+                        738,
+                        -146
+                      ],
+                      [
+                        738,
+                        50
+                      ]
+                    ],
+                    "matrix": [
+                      1,
+                      0,
+                      0,
+                      1,
+                      270,
+                      154
+                    ],
+                    "region": [
+                      -262,
+                      -146,
+                      1000,
+                      196
+                    ],
+                    "rootScreenRect": [
+                      8,
+                      8,
+                      1000,
+                      196
+                    ]
+                  }
+                },
+                {
+                  "filterId": "milkup-opacity-identity-probe-2",
+                  "filterUnits": "userSpaceOnUse",
+                  "opacityAfter": 0.8,
+                  "opacityBefore": 0.8,
+                  "operation": {
+                    "colorInterpolation": "sRGB",
+                    "dx": 0,
+                    "dy": 0,
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "stdDeviation": [
+                      0,
+                      0
+                    ]
+                  },
+                  "path": [
+                    2,
+                    3
+                  ],
+                  "primitiveSubregion": "SourceGraphic default equals explicit filter region",
+                  "primitiveUnits": "userSpaceOnUse",
+                  "proof": {
+                    "inverse": [
+                      1,
+                      0,
+                      0,
+                      1,
+                      -389,
+                      -154
+                    ],
+                    "inverseViewportCorners": [
+                      [
+                        -381,
+                        -146
+                      ],
+                      [
+                        -381,
+                        50
+                      ],
+                      [
+                        619,
+                        -146
+                      ],
+                      [
+                        619,
+                        50
+                      ]
+                    ],
+                    "matrix": [
+                      1,
+                      0,
+                      0,
+                      1,
+                      389,
+                      154
+                    ],
+                    "region": [
+                      -381,
+                      -146,
+                      1000,
+                      196
+                    ],
+                    "rootScreenRect": [
+                      8,
+                      8,
+                      1000,
+                      196
+                    ]
+                  }
+                },
+                {
+                  "filterId": "milkup-opacity-identity-probe-3",
+                  "filterUnits": "userSpaceOnUse",
+                  "opacityAfter": 0.8,
+                  "opacityBefore": 0.8,
+                  "operation": {
+                    "colorInterpolation": "sRGB",
+                    "dx": 0,
+                    "dy": 0,
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "stdDeviation": [
+                      0,
+                      0
+                    ]
+                  },
+                  "path": [
+                    2,
+                    4
+                  ],
+                  "primitiveSubregion": "SourceGraphic default equals explicit filter region",
+                  "primitiveUnits": "userSpaceOnUse",
+                  "proof": {
+                    "inverse": [
+                      1,
+                      0,
+                      0,
+                      1,
+                      -508,
+                      -154
+                    ],
+                    "inverseViewportCorners": [
+                      [
+                        -500,
+                        -146
+                      ],
+                      [
+                        -500,
+                        50
+                      ],
+                      [
+                        500,
+                        -146
+                      ],
+                      [
+                        500,
+                        50
+                      ]
+                    ],
+                    "matrix": [
+                      1,
+                      0,
+                      0,
+                      1,
+                      508,
+                      154
+                    ],
+                    "region": [
+                      -500,
+                      -146,
+                      1000,
+                      196
+                    ],
+                    "rootScreenRect": [
+                      8,
+                      8,
+                      1000,
+                      196
+                    ]
+                  }
+                },
+                {
+                  "filterId": "milkup-opacity-identity-probe-4",
+                  "filterUnits": "userSpaceOnUse",
+                  "opacityAfter": 0.8,
+                  "opacityBefore": 0.8,
+                  "operation": {
+                    "colorInterpolation": "sRGB",
+                    "dx": 0,
+                    "dy": 0,
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "stdDeviation": [
+                      0,
+                      0
+                    ]
+                  },
+                  "path": [
+                    2,
+                    5
+                  ],
+                  "primitiveSubregion": "SourceGraphic default equals explicit filter region",
+                  "primitiveUnits": "userSpaceOnUse",
+                  "proof": {
+                    "inverse": [
+                      1,
+                      0,
+                      0,
+                      1,
+                      -627,
+                      -154
+                    ],
+                    "inverseViewportCorners": [
+                      [
+                        -619,
+                        -146
+                      ],
+                      [
+                        -619,
+                        50
+                      ],
+                      [
+                        381,
+                        -146
+                      ],
+                      [
+                        381,
+                        50
+                      ]
+                    ],
+                    "matrix": [
+                      1,
+                      0,
+                      0,
+                      1,
+                      627,
+                      154
+                    ],
+                    "region": [
+                      -619,
+                      -146,
+                      1000,
+                      196
+                    ],
+                    "rootScreenRect": [
+                      8,
+                      8,
+                      1000,
+                      196
+                    ]
+                  }
+                },
+                {
+                  "filterId": "milkup-opacity-identity-probe-5",
+                  "filterUnits": "userSpaceOnUse",
+                  "opacityAfter": 0.8,
+                  "opacityBefore": 0.8,
+                  "operation": {
+                    "colorInterpolation": "sRGB",
+                    "dx": 0,
+                    "dy": 0,
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "stdDeviation": [
+                      0,
+                      0
+                    ]
+                  },
+                  "path": [
+                    2,
+                    6
+                  ],
+                  "primitiveSubregion": "SourceGraphic default equals explicit filter region",
+                  "primitiveUnits": "userSpaceOnUse",
+                  "proof": {
+                    "inverse": [
+                      1,
+                      0,
+                      0,
+                      1,
+                      -746,
+                      -154
+                    ],
+                    "inverseViewportCorners": [
+                      [
+                        -738,
+                        -146
+                      ],
+                      [
+                        -738,
+                        50
+                      ],
+                      [
+                        262,
+                        -146
+                      ],
+                      [
+                        262,
+                        50
+                      ]
+                    ],
+                    "matrix": [
+                      1,
+                      0,
+                      0,
+                      1,
+                      746,
+                      154
+                    ],
+                    "region": [
+                      -738,
+                      -146,
+                      1000,
+                      196
+                    ],
+                    "rootScreenRect": [
+                      8,
+                      8,
+                      1000,
+                      196
+                    ]
+                  }
+                },
+                {
+                  "filterId": "milkup-opacity-identity-probe-6",
+                  "filterUnits": "userSpaceOnUse",
+                  "opacityAfter": 0.8,
+                  "opacityBefore": 0.8,
+                  "operation": {
+                    "colorInterpolation": "sRGB",
+                    "dx": 0,
+                    "dy": 0,
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      0
+                    ],
+                    "stdDeviation": [
+                      0,
+                      0
+                    ]
+                  },
+                  "path": [
+                    2,
+                    7
+                  ],
+                  "primitiveSubregion": "SourceGraphic default equals explicit filter region",
+                  "primitiveUnits": "userSpaceOnUse",
+                  "proof": {
+                    "inverse": [
+                      1,
+                      0,
+                      0,
+                      1,
+                      -865,
+                      -154
+                    ],
+                    "inverseViewportCorners": [
+                      [
+                        -857,
+                        -146
+                      ],
+                      [
+                        -857,
+                        50
+                      ],
+                      [
+                        143,
+                        -146
+                      ],
+                      [
+                        143,
+                        50
+                      ]
+                    ],
+                    "matrix": [
+                      1,
+                      0,
+                      0,
+                      1,
+                      865,
+                      154
+                    ],
+                    "region": [
+                      -857,
+                      -146,
+                      1000,
+                      196
+                    ],
+                    "rootScreenRect": [
+                      8,
+                      8,
+                      1000,
+                      196
+                    ]
+                  }
+                }
+              ],
+              "originalUnchanged": true,
+              "productNormalizationApproved": false,
+              "rejected": [],
+              "requiresActualPixelComparison": true
+            },
+            "ok": true,
+            "over256KiB": false,
+            "serializedBytes": 4116
+          },
+          "status": "complete",
+          "taskId": "normalize_2"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.780460391,
+      "wall": 1792153827.341419,
+      "frame": {
+        "type": "result",
+        "value": {
+          "diagnosticOnly": true,
+          "evidence": {
+            "boundary": "Preserved original opacity and child paint alpha; added an explicit-root-viewport bounded zero-alpha zero-kernel identity filter. No host guard change.",
+            "diagnosticOnly": true,
+            "groups": [
+              {
+                "filterId": "milkup-opacity-identity-probe-0",
+                "filterUnits": "userSpaceOnUse",
+                "opacityAfter": 0.8,
+                "opacityBefore": 0.8,
+                "operation": {
+                  "colorInterpolation": "sRGB",
+                  "dx": 0,
+                  "dy": 0,
+                  "rgba": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "stdDeviation": [
+                    0,
+                    0
+                  ]
+                },
+                "path": [
+                  2,
+                  1
+                ],
+                "primitiveSubregion": "SourceGraphic default equals explicit filter region",
+                "primitiveUnits": "userSpaceOnUse",
+                "proof": {
+                  "inverse": [
+                    1,
+                    0,
+                    0,
+                    1,
+                    -151,
+                    -154
+                  ],
+                  "inverseViewportCorners": [
+                    [
+                      -143,
+                      -146
+                    ],
+                    [
+                      -143,
+                      50
+                    ],
+                    [
+                      857,
+                      -146
+                    ],
+                    [
+                      857,
+                      50
+                    ]
+                  ],
+                  "matrix": [
+                    1,
+                    0,
+                    0,
+                    1,
+                    151,
+                    154
+                  ],
+                  "region": [
+                    -143,
+                    -146,
+                    1000,
+                    196
+                  ],
+                  "rootScreenRect": [
+                    8,
+                    8,
+                    1000,
+                    196
+                  ]
+                }
+              },
+              {
+                "filterId": "milkup-opacity-identity-probe-1",
+                "filterUnits": "userSpaceOnUse",
+                "opacityAfter": 0.8,
+                "opacityBefore": 0.8,
+                "operation": {
+                  "colorInterpolation": "sRGB",
+                  "dx": 0,
+                  "dy": 0,
+                  "rgba": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "stdDeviation": [
+                    0,
+                    0
+                  ]
+                },
+                "path": [
+                  2,
+                  2
+                ],
+                "primitiveSubregion": "SourceGraphic default equals explicit filter region",
+                "primitiveUnits": "userSpaceOnUse",
+                "proof": {
+                  "inverse": [
+                    1,
+                    0,
+                    0,
+                    1,
+                    -270,
+                    -154
+                  ],
+                  "inverseViewportCorners": [
+                    [
+                      -262,
+                      -146
+                    ],
+                    [
+                      -262,
+                      50
+                    ],
+                    [
+                      738,
+                      -146
+                    ],
+                    [
+                      738,
+                      50
+                    ]
+                  ],
+                  "matrix": [
+                    1,
+                    0,
+                    0,
+                    1,
+                    270,
+                    154
+                  ],
+                  "region": [
+                    -262,
+                    -146,
+                    1000,
+                    196
+                  ],
+                  "rootScreenRect": [
+                    8,
+                    8,
+                    1000,
+                    196
+                  ]
+                }
+              },
+              {
+                "filterId": "milkup-opacity-identity-probe-2",
+                "filterUnits": "userSpaceOnUse",
+                "opacityAfter": 0.8,
+                "opacityBefore": 0.8,
+                "operation": {
+                  "colorInterpolation": "sRGB",
+                  "dx": 0,
+                  "dy": 0,
+                  "rgba": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "stdDeviation": [
+                    0,
+                    0
+                  ]
+                },
+                "path": [
+                  2,
+                  3
+                ],
+                "primitiveSubregion": "SourceGraphic default equals explicit filter region",
+                "primitiveUnits": "userSpaceOnUse",
+                "proof": {
+                  "inverse": [
+                    1,
+                    0,
+                    0,
+                    1,
+                    -389,
+                    -154
+                  ],
+                  "inverseViewportCorners": [
+                    [
+                      -381,
+                      -146
+                    ],
+                    [
+                      -381,
+                      50
+                    ],
+                    [
+                      619,
+                      -146
+                    ],
+                    [
+                      619,
+                      50
+                    ]
+                  ],
+                  "matrix": [
+                    1,
+                    0,
+                    0,
+                    1,
+                    389,
+                    154
+                  ],
+                  "region": [
+                    -381,
+                    -146,
+                    1000,
+                    196
+                  ],
+                  "rootScreenRect": [
+                    8,
+                    8,
+                    1000,
+                    196
+                  ]
+                }
+              },
+              {
+                "filterId": "milkup-opacity-identity-probe-3",
+                "filterUnits": "userSpaceOnUse",
+                "opacityAfter": 0.8,
+                "opacityBefore": 0.8,
+                "operation": {
+                  "colorInterpolation": "sRGB",
+                  "dx": 0,
+                  "dy": 0,
+                  "rgba": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "stdDeviation": [
+                    0,
+                    0
+                  ]
+                },
+                "path": [
+                  2,
+                  4
+                ],
+                "primitiveSubregion": "SourceGraphic default equals explicit filter region",
+                "primitiveUnits": "userSpaceOnUse",
+                "proof": {
+                  "inverse": [
+                    1,
+                    0,
+                    0,
+                    1,
+                    -508,
+                    -154
+                  ],
+                  "inverseViewportCorners": [
+                    [
+                      -500,
+                      -146
+                    ],
+                    [
+                      -500,
+                      50
+                    ],
+                    [
+                      500,
+                      -146
+                    ],
+                    [
+                      500,
+                      50
+                    ]
+                  ],
+                  "matrix": [
+                    1,
+                    0,
+                    0,
+                    1,
+                    508,
+                    154
+                  ],
+                  "region": [
+                    -500,
+                    -146,
+                    1000,
+                    196
+                  ],
+                  "rootScreenRect": [
+                    8,
+                    8,
+                    1000,
+                    196
+                  ]
+                }
+              },
+              {
+                "filterId": "milkup-opacity-identity-probe-4",
+                "filterUnits": "userSpaceOnUse",
+                "opacityAfter": 0.8,
+                "opacityBefore": 0.8,
+                "operation": {
+                  "colorInterpolation": "sRGB",
+                  "dx": 0,
+                  "dy": 0,
+                  "rgba": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "stdDeviation": [
+                    0,
+                    0
+                  ]
+                },
+                "path": [
+                  2,
+                  5
+                ],
+                "primitiveSubregion": "SourceGraphic default equals explicit filter region",
+                "primitiveUnits": "userSpaceOnUse",
+                "proof": {
+                  "inverse": [
+                    1,
+                    0,
+                    0,
+                    1,
+                    -627,
+                    -154
+                  ],
+                  "inverseViewportCorners": [
+                    [
+                      -619,
+                      -146
+                    ],
+                    [
+                      -619,
+                      50
+                    ],
+                    [
+                      381,
+                      -146
+                    ],
+                    [
+                      381,
+                      50
+                    ]
+                  ],
+                  "matrix": [
+                    1,
+                    0,
+                    0,
+                    1,
+                    627,
+                    154
+                  ],
+                  "region": [
+                    -619,
+                    -146,
+                    1000,
+                    196
+                  ],
+                  "rootScreenRect": [
+                    8,
+                    8,
+                    1000,
+                    196
+                  ]
+                }
+              },
+              {
+                "filterId": "milkup-opacity-identity-probe-5",
+                "filterUnits": "userSpaceOnUse",
+                "opacityAfter": 0.8,
+                "opacityBefore": 0.8,
+                "operation": {
+                  "colorInterpolation": "sRGB",
+                  "dx": 0,
+                  "dy": 0,
+                  "rgba": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "stdDeviation": [
+                    0,
+                    0
+                  ]
+                },
+                "path": [
+                  2,
+                  6
+                ],
+                "primitiveSubregion": "SourceGraphic default equals explicit filter region",
+                "primitiveUnits": "userSpaceOnUse",
+                "proof": {
+                  "inverse": [
+                    1,
+                    0,
+                    0,
+                    1,
+                    -746,
+                    -154
+                  ],
+                  "inverseViewportCorners": [
+                    [
+                      -738,
+                      -146
+                    ],
+                    [
+                      -738,
+                      50
+                    ],
+                    [
+                      262,
+                      -146
+                    ],
+                    [
+                      262,
+                      50
+                    ]
+                  ],
+                  "matrix": [
+                    1,
+                    0,
+                    0,
+                    1,
+                    746,
+                    154
+                  ],
+                  "region": [
+                    -738,
+                    -146,
+                    1000,
+                    196
+                  ],
+                  "rootScreenRect": [
+                    8,
+                    8,
+                    1000,
+                    196
+                  ]
+                }
+              },
+              {
+                "filterId": "milkup-opacity-identity-probe-6",
+                "filterUnits": "userSpaceOnUse",
+                "opacityAfter": 0.8,
+                "opacityBefore": 0.8,
+                "operation": {
+                  "colorInterpolation": "sRGB",
+                  "dx": 0,
+                  "dy": 0,
+                  "rgba": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ],
+                  "stdDeviation": [
+                    0,
+                    0
+                  ]
+                },
+                "path": [
+                  2,
+                  7
+                ],
+                "primitiveSubregion": "SourceGraphic default equals explicit filter region",
+                "primitiveUnits": "userSpaceOnUse",
+                "proof": {
+                  "inverse": [
+                    1,
+                    0,
+                    0,
+                    1,
+                    -865,
+                    -154
+                  ],
+                  "inverseViewportCorners": [
+                    [
+                      -857,
+                      -146
+                    ],
+                    [
+                      -857,
+                      50
+                    ],
+                    [
+                      143,
+                      -146
+                    ],
+                    [
+                      143,
+                      50
+                    ]
+                  ],
+                  "matrix": [
+                    1,
+                    0,
+                    0,
+                    1,
+                    865,
+                    154
+                  ],
+                  "region": [
+                    -857,
+                    -146,
+                    1000,
+                    196
+                  ],
+                  "rootScreenRect": [
+                    8,
+                    8,
+                    1000,
+                    196
+                  ]
+                }
+              }
+            ],
+            "originalUnchanged": true,
+            "productNormalizationApproved": false,
+            "rejected": [],
+            "requiresActualPixelComparison": true
+          },
+          "geometry": {
+            "bbox": [
+              0,
+              9,
+              79491,
+              162
+            ],
+            "ctm": [
+              1,
+              0,
+              0,
+              1,
+              0,
+              0
+            ],
+            "height": null,
+            "overflow": "hidden",
+            "rect": [
+              8,
+              8,
+              1000,
+              196
+            ],
+            "viewBox": "0 0 1000 196",
+            "width": "100%"
+          },
+          "requestId": "scan_022",
+          "sourceKind": "candidate-clone",
+          "viewport": {
+            "dpr": 1.25,
+            "height": 800,
+            "width": 1100
+          }
+        }
+      }
+    },
+    {
+      "kind": "paired-inspect",
+      "mono": 41439.78089549,
+      "wall": 1792153827.341854,
+      "label": "normalized-inline",
+      "state": {
+        "diagnosticOnly": true,
+        "evidence": {
+          "boundary": "Preserved original opacity and child paint alpha; added an explicit-root-viewport bounded zero-alpha zero-kernel identity filter. No host guard change.",
+          "diagnosticOnly": true,
+          "groups": [
+            {
+              "filterId": "milkup-opacity-identity-probe-0",
+              "filterUnits": "userSpaceOnUse",
+              "opacityAfter": 0.8,
+              "opacityBefore": 0.8,
+              "operation": {
+                "colorInterpolation": "sRGB",
+                "dx": 0,
+                "dy": 0,
+                "rgba": [
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "stdDeviation": [
+                  0,
+                  0
+                ]
+              },
+              "path": [
+                2,
+                1
+              ],
+              "primitiveSubregion": "SourceGraphic default equals explicit filter region",
+              "primitiveUnits": "userSpaceOnUse",
+              "proof": {
+                "inverse": [
+                  1,
+                  0,
+                  0,
+                  1,
+                  -151,
+                  -154
+                ],
+                "inverseViewportCorners": [
+                  [
+                    -143,
+                    -146
+                  ],
+                  [
+                    -143,
+                    50
+                  ],
+                  [
+                    857,
+                    -146
+                  ],
+                  [
+                    857,
+                    50
+                  ]
+                ],
+                "matrix": [
+                  1,
+                  0,
+                  0,
+                  1,
+                  151,
+                  154
+                ],
+                "region": [
+                  -143,
+                  -146,
+                  1000,
+                  196
+                ],
+                "rootScreenRect": [
+                  8,
+                  8,
+                  1000,
+                  196
+                ]
+              }
+            },
+            {
+              "filterId": "milkup-opacity-identity-probe-1",
+              "filterUnits": "userSpaceOnUse",
+              "opacityAfter": 0.8,
+              "opacityBefore": 0.8,
+              "operation": {
+                "colorInterpolation": "sRGB",
+                "dx": 0,
+                "dy": 0,
+                "rgba": [
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "stdDeviation": [
+                  0,
+                  0
+                ]
+              },
+              "path": [
+                2,
+                2
+              ],
+              "primitiveSubregion": "SourceGraphic default equals explicit filter region",
+              "primitiveUnits": "userSpaceOnUse",
+              "proof": {
+                "inverse": [
+                  1,
+                  0,
+                  0,
+                  1,
+                  -270,
+                  -154
+                ],
+                "inverseViewportCorners": [
+                  [
+                    -262,
+                    -146
+                  ],
+                  [
+                    -262,
+                    50
+                  ],
+                  [
+                    738,
+                    -146
+                  ],
+                  [
+                    738,
+                    50
+                  ]
+                ],
+                "matrix": [
+                  1,
+                  0,
+                  0,
+                  1,
+                  270,
+                  154
+                ],
+                "region": [
+                  -262,
+                  -146,
+                  1000,
+                  196
+                ],
+                "rootScreenRect": [
+                  8,
+                  8,
+                  1000,
+                  196
+                ]
+              }
+            },
+            {
+              "filterId": "milkup-opacity-identity-probe-2",
+              "filterUnits": "userSpaceOnUse",
+              "opacityAfter": 0.8,
+              "opacityBefore": 0.8,
+              "operation": {
+                "colorInterpolation": "sRGB",
+                "dx": 0,
+                "dy": 0,
+                "rgba": [
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "stdDeviation": [
+                  0,
+                  0
+                ]
+              },
+              "path": [
+                2,
+                3
+              ],
+              "primitiveSubregion": "SourceGraphic default equals explicit filter region",
+              "primitiveUnits": "userSpaceOnUse",
+              "proof": {
+                "inverse": [
+                  1,
+                  0,
+                  0,
+                  1,
+                  -389,
+                  -154
+                ],
+                "inverseViewportCorners": [
+                  [
+                    -381,
+                    -146
+                  ],
+                  [
+                    -381,
+                    50
+                  ],
+                  [
+                    619,
+                    -146
+                  ],
+                  [
+                    619,
+                    50
+                  ]
+                ],
+                "matrix": [
+                  1,
+                  0,
+                  0,
+                  1,
+                  389,
+                  154
+                ],
+                "region": [
+                  -381,
+                  -146,
+                  1000,
+                  196
+                ],
+                "rootScreenRect": [
+                  8,
+                  8,
+                  1000,
+                  196
+                ]
+              }
+            },
+            {
+              "filterId": "milkup-opacity-identity-probe-3",
+              "filterUnits": "userSpaceOnUse",
+              "opacityAfter": 0.8,
+              "opacityBefore": 0.8,
+              "operation": {
+                "colorInterpolation": "sRGB",
+                "dx": 0,
+                "dy": 0,
+                "rgba": [
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "stdDeviation": [
+                  0,
+                  0
+                ]
+              },
+              "path": [
+                2,
+                4
+              ],
+              "primitiveSubregion": "SourceGraphic default equals explicit filter region",
+              "primitiveUnits": "userSpaceOnUse",
+              "proof": {
+                "inverse": [
+                  1,
+                  0,
+                  0,
+                  1,
+                  -508,
+                  -154
+                ],
+                "inverseViewportCorners": [
+                  [
+                    -500,
+                    -146
+                  ],
+                  [
+                    -500,
+                    50
+                  ],
+                  [
+                    500,
+                    -146
+                  ],
+                  [
+                    500,
+                    50
+                  ]
+                ],
+                "matrix": [
+                  1,
+                  0,
+                  0,
+                  1,
+                  508,
+                  154
+                ],
+                "region": [
+                  -500,
+                  -146,
+                  1000,
+                  196
+                ],
+                "rootScreenRect": [
+                  8,
+                  8,
+                  1000,
+                  196
+                ]
+              }
+            },
+            {
+              "filterId": "milkup-opacity-identity-probe-4",
+              "filterUnits": "userSpaceOnUse",
+              "opacityAfter": 0.8,
+              "opacityBefore": 0.8,
+              "operation": {
+                "colorInterpolation": "sRGB",
+                "dx": 0,
+                "dy": 0,
+                "rgba": [
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "stdDeviation": [
+                  0,
+                  0
+                ]
+              },
+              "path": [
+                2,
+                5
+              ],
+              "primitiveSubregion": "SourceGraphic default equals explicit filter region",
+              "primitiveUnits": "userSpaceOnUse",
+              "proof": {
+                "inverse": [
+                  1,
+                  0,
+                  0,
+                  1,
+                  -627,
+                  -154
+                ],
+                "inverseViewportCorners": [
+                  [
+                    -619,
+                    -146
+                  ],
+                  [
+                    -619,
+                    50
+                  ],
+                  [
+                    381,
+                    -146
+                  ],
+                  [
+                    381,
+                    50
+                  ]
+                ],
+                "matrix": [
+                  1,
+                  0,
+                  0,
+                  1,
+                  627,
+                  154
+                ],
+                "region": [
+                  -619,
+                  -146,
+                  1000,
+                  196
+                ],
+                "rootScreenRect": [
+                  8,
+                  8,
+                  1000,
+                  196
+                ]
+              }
+            },
+            {
+              "filterId": "milkup-opacity-identity-probe-5",
+              "filterUnits": "userSpaceOnUse",
+              "opacityAfter": 0.8,
+              "opacityBefore": 0.8,
+              "operation": {
+                "colorInterpolation": "sRGB",
+                "dx": 0,
+                "dy": 0,
+                "rgba": [
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "stdDeviation": [
+                  0,
+                  0
+                ]
+              },
+              "path": [
+                2,
+                6
+              ],
+              "primitiveSubregion": "SourceGraphic default equals explicit filter region",
+              "primitiveUnits": "userSpaceOnUse",
+              "proof": {
+                "inverse": [
+                  1,
+                  0,
+                  0,
+                  1,
+                  -746,
+                  -154
+                ],
+                "inverseViewportCorners": [
+                  [
+                    -738,
+                    -146
+                  ],
+                  [
+                    -738,
+                    50
+                  ],
+                  [
+                    262,
+                    -146
+                  ],
+                  [
+                    262,
+                    50
+                  ]
+                ],
+                "matrix": [
+                  1,
+                  0,
+                  0,
+                  1,
+                  746,
+                  154
+                ],
+                "region": [
+                  -738,
+                  -146,
+                  1000,
+                  196
+                ],
+                "rootScreenRect": [
+                  8,
+                  8,
+                  1000,
+                  196
+                ]
+              }
+            },
+            {
+              "filterId": "milkup-opacity-identity-probe-6",
+              "filterUnits": "userSpaceOnUse",
+              "opacityAfter": 0.8,
+              "opacityBefore": 0.8,
+              "operation": {
+                "colorInterpolation": "sRGB",
+                "dx": 0,
+                "dy": 0,
+                "rgba": [
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "stdDeviation": [
+                  0,
+                  0
+                ]
+              },
+              "path": [
+                2,
+                7
+              ],
+              "primitiveSubregion": "SourceGraphic default equals explicit filter region",
+              "primitiveUnits": "userSpaceOnUse",
+              "proof": {
+                "inverse": [
+                  1,
+                  0,
+                  0,
+                  1,
+                  -865,
+                  -154
+                ],
+                "inverseViewportCorners": [
+                  [
+                    -857,
+                    -146
+                  ],
+                  [
+                    -857,
+                    50
+                  ],
+                  [
+                    143,
+                    -146
+                  ],
+                  [
+                    143,
+                    50
+                  ]
+                ],
+                "matrix": [
+                  1,
+                  0,
+                  0,
+                  1,
+                  865,
+                  154
+                ],
+                "region": [
+                  -857,
+                  -146,
+                  1000,
+                  196
+                ],
+                "rootScreenRect": [
+                  8,
+                  8,
+                  1000,
+                  196
+                ]
+              }
+            }
+          ],
+          "originalUnchanged": true,
+          "productNormalizationApproved": false,
+          "rejected": [],
+          "requiresActualPixelComparison": true
+        },
+        "geometry": {
+          "bbox": [
+            0,
+            9,
+            79491,
+            162
+          ],
+          "ctm": [
+            1,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "height": null,
+          "overflow": "hidden",
+          "rect": [
+            8,
+            8,
+            1000,
+            196
+          ],
+          "viewBox": "0 0 1000 196",
+          "width": "100%"
+        },
+        "requestId": "scan_022",
+        "sourceKind": "candidate-clone",
+        "viewport": {
+          "dpr": 1.25,
+          "height": 800,
+          "width": 1100
+        }
+      },
+      "sourceBytes": 13133
+    },
+    {
+      "kind": "received-frame",
+      "mono": 41439.829113798,
+      "wall": 1792153827.3900726,
+      "frame": {
+        "type": "result",
+        "value": {
+          "height": 1000,
+          "snapshot": true,
+          "width": 1375,
+          "zoom": 1.25
+        }
+      }
+    },
+    {
+      "kind": "paired-snapshot",
+      "mono": 41439.829510378,
+      "wall": 1792153827.3904688,
+      "label": "normalized-inline",
+      "elapsed": 0.04854588399757631,
+      "sha256": "e67419795b6735e42d75fb7eb7b83ab2e3282e2a03539e541e9f62224cfab130",
+      "geometry": {
+        "height": 1000,
+        "snapshot": true,
+        "width": 1375,
+        "zoom": 1.25
+      }
+    },
+    {
+      "kind": "terminate-group",
+      "mono": 41439.829641066,
+      "wall": 1792153827.3905995,
+      "reason": "completed-research-cleanup",
+      "pgid": 274951,
+      "members": [
+        {
+          "pid": 274951,
+          "birth": "4143750"
+        },
+        {
+          "pid": 274952,
+          "birth": "4143751"
+        },
+        {
+          "pid": 274953,
+          "birth": "4143752"
+        },
+        {
+          "pid": 274954,
+          "birth": "4143752"
+        },
+        {
+          "pid": 274955,
+          "birth": "4143752"
+        },
+        {
+          "pid": 274964,
+          "birth": "4143771"
+        },
+        {
+          "pid": 275008,
+          "birth": "4143784"
+        },
+        {
+          "pid": 275009,
+          "birth": "4143784"
+        },
+        {
+          "pid": 275012,
+          "birth": "4143785"
+        },
+        {
+          "pid": 274996,
+          "birth": "4143781"
+        },
+        {
+          "pid": 275002,
+          "birth": "4143782"
+        },
+        {
+          "pid": 275003,
+          "birth": "4143782"
+        },
+        {
+          "pid": 275004,
+          "birth": "4143782"
+        },
+        {
+          "pid": 275005,
+          "birth": "4143784"
+        },
+        {
+          "pid": 275043,
+          "birth": "4143893"
+        }
+      ]
+    },
+    {
+      "kind": "signal-start",
+      "mono": 41439.829642667,
+      "wall": 1792153827.390601,
+      "pgid": 274951
+    },
+    {
+      "kind": "signal-return",
+      "mono": 41439.830445032,
+      "wall": 1792153827.391404,
+      "pgid": 274951
+    },
+    {
+      "kind": "escaped-descendants",
+      "mono": 41439.891833597,
+      "wall": 1792153827.4527926,
+      "processes": []
+    },
+    {
+      "kind": "cleanup",
+      "mono": 41439.980799404,
+      "wall": 1792153827.5417588,
+      "reaped": [
+        {
+          "pid": 274952,
+          "status": 9
+        }
+      ],
+      "remainingGroupMembers": []
+    },
+    {
+      "kind": "completed",
+      "mono": 41440.024520736,
+      "wall": 1792153827.5854805,
+      "results": [
+        {
+          "task": "native-resource-guard",
+          "elapsed": 0.015223591995891184,
+          "value": {
+            "status": "blocked"
+          }
+        },
+        {
+          "task": "scan_022",
+          "sampleId": "gantt-000-first-official-example",
+          "sourceSha256": "9994b276372df6ec8dece5afd5a93326bf86e01f4e6574ed3e6c1fb052805144",
+          "profile": "baseline",
+          "elapsed": 0.1087924409948755,
+          "serializedBytes": 188,
+          "diagramType": "gantt"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,314 @@
+$ pnpm -r test
+Scope: 14 of 15 workspace projects
+packages/assets test$ vitest run
+packages/core test$ vitest run
+packages/input test$ vitest run
+packages/markdown test$ vitest run
+packages/core test:  RUN  v3.2.6 /workspace/milkup/packages/core
+packages/markdown test:  RUN  v3.2.6 /workspace/milkup/packages/markdown
+packages/input test:  RUN  v3.2.6 /workspace/milkup/packages/input
+packages/assets test:  RUN  v3.2.6 /workspace/milkup/packages/assets
+packages/markdown test:  ✓ src/__tests__/window-context.test.ts (8 tests) 106ms
+packages/markdown test:  ✓ src/__tests__/ast-stringify.test.ts (3 tests) 12ms
+packages/markdown test:  ✓ src/__tests__/inline-parser.test.ts (39 tests) 214ms
+packages/core test:  ✓ src/__tests__/document-svg-image-elements.test.ts (3 tests) 916ms
+packages/core test:    ✓ charges present title and description elements even when their text is empty  533ms
+packages/core test:    ✓ charges the fixed shadow primitive for every applied filter instance  304ms
+packages/assets test:  ✓ src/provider.test.ts (6 tests) 66ms
+packages/assets test:  Test Files  1 passed (1)
+packages/assets test:       Tests  6 passed (6)
+packages/assets test:    Start at  16:17:27
+packages/assets test:    Duration  1.96s (transform 387ms, setup 0ms, collect 413ms, tests 66ms, environment 0ms, prepare 416ms)
+packages/markdown test:  ✓ src/__tests__/incremental-parser.test.ts (4 tests) 24ms
+packages/assets test: Done
+packages/markdown test:  ✓ src/__tests__/block-parser.test.ts (55 tests) 109ms
+packages/markdown test:  ✓ src/__tests__/window-parser.test.ts (3 tests) 65ms
+packages/core test:  ✓ src/__tests__/document-svg-image.test.ts (12 tests) 2650ms
+packages/core test:    ✓ closed SVG image document presentation contract > does not reset the charged-node budget for each SVG image  1261ms
+packages/core test:    ✓ closed SVG image document presentation contract > shares the node budget with existing MathML and ordinary presentation nodes  635ms
+packages/core test:    ✓ closed SVG image document presentation contract > charges dash elements across styles and images against the shared node limit  413ms
+packages/input test:  ✓ src/paste.test.ts (8 tests) 148ms
+packages/input test:  Test Files  1 passed (1)
+packages/input test:       Tests  8 passed (8)
+packages/input test:    Start at  16:17:27
+packages/input test:    Duration  4.34s (transform 293ms, setup 0ms, collect 301ms, tests 148ms, environment 2.51s, prepare 459ms)
+packages/core test:  ✓ src/__tests__/large-document.test.ts (4 tests) 2630ms
+packages/core test:    ✓ large document contracts > reads windows from a 10 MiB synthetic Markdown document  403ms
+packages/core test:    ✓ large document contracts > flushes a large edited document snapshot  509ms
+packages/core test:    ✓ large document contracts > searches a virtual 100 MiB synthetic Markdown document through line windows  1416ms
+packages/core test:  ✓ src/__tests__/document-svg-image-security.test.ts (26 tests) 1078ms
+packages/core test:    ✓ independent closed image safety through public presentation APIs > counts local expansion in addition to independently charged style data  561ms
+packages/core test:  ✓ src/__tests__/document-svg-image-cost.test.ts (8 tests) 173ms
+packages/markdown test:  ✓ src/__tests__/extension-safety.test.ts (3 tests) 14ms
+packages/input test: Done
+packages/markdown test:  ✓ src/__tests__/table-boundaries.test.ts (4 tests) 38ms
+packages/markdown test:  ✓ src/__tests__/plugin-syntax.test.ts (2 tests) 20ms
+packages/markdown test:  Test Files  9 passed (9)
+packages/markdown test:       Tests  121 passed (121)
+packages/markdown test:    Start at  16:17:25
+packages/markdown test:    Duration  6.34s (transform 2.54s, setup 0ms, collect 4.99s, tests 602ms, environment 2ms, prepare 3.84s)
+packages/markdown test: Done
+packages/core test:  ✓ src/__tests__/document-svg-image-marker-paint.test.ts (4 tests) 62ms
+packages/core test:  ✓ src/__tests__/document-svg-image-bounded-identity.test.ts (23 tests) 73ms
+packages/core test:  ✓ src/__tests__/action-registry.test.ts (8 tests) 20ms
+packages/core test:  ✓ src/__tests__/document-svg-image-raster.test.ts (7 tests) 355ms
+packages/core test:  ✓ src/__tests__/document-svg-image-unresolved.test.ts (4 tests) 23ms
+packages/core test:  ✓ src/__tests__/document-svg-image-marker-reference.test.ts (6 tests) 24ms
+packages/core test:  ✓ src/__tests__/store-search.test.ts (10 tests) 20ms
+packages/core test:  ✓ src/__tests__/large-edit-session.test.ts (13 tests) 14ms
+packages/core test:  ✓ src/__tests__/editor-history.test.ts (12 tests) 9ms
+packages/core test:  ✓ src/__tests__/document-store.test.ts (9 tests) 15ms
+packages/core test:  ✓ src/__tests__/memory-text-document.test.ts (16 tests) 10ms
+packages/core test:  ✓ src/__tests__/literal-search.test.ts (3 tests) 10ms
+packages/core test:  ✓ src/__tests__/editor-document-source.test.ts (2 tests) 6ms
+packages/core test:  ✓ src/__tests__/large-file-policy.test.ts (5 tests) 9ms
+packages/core test:  Test Files  19 passed (19)
+packages/core test:       Tests  175 passed (175)
+packages/core test:    Start at  16:17:25
+packages/core test:    Duration  9.20s (transform 3.24s, setup 0ms, collect 6.31s, tests 8.10s, environment 4ms, prepare 4.41s)
+packages/core test: Done
+packages/export test$ vitest run
+packages/mcp test$ vitest run
+packages/tauri-bridge test$ vitest run
+packages/plugin-sdk test$ vitest run
+packages/mcp test:  RUN  v3.2.6 /workspace/milkup/packages/mcp
+packages/tauri-bridge test:  RUN  v3.2.6 /workspace/milkup/packages/tauri-bridge
+packages/export test:  RUN  v3.2.6 /workspace/milkup/packages/export
+packages/plugin-sdk test:  RUN  v3.2.6 /workspace/milkup/packages/plugin-sdk
+packages/mcp test:  ✓ src/projection.test.ts (5 tests) 24ms
+packages/mcp test:  ✓ src/server.test.ts (6 tests) 85ms
+packages/export test:  ✓ src/browser-print-pdf.test.ts (2 tests) 84ms
+packages/export test:  ✓ src/scoped-export.test.ts (12 tests) 95ms
+packages/export test:  ✓ src/clipboard.test.ts (4 tests) 42ms
+packages/mcp test:  Test Files  2 passed (2)
+packages/mcp test:       Tests  11 passed (11)
+packages/mcp test:    Start at  16:17:35
+packages/mcp test:    Duration  2.25s (transform 1.03s, setup 0ms, collect 1.98s, tests 108ms, environment 0ms, prepare 698ms)
+packages/export test:  Test Files  3 passed (3)
+packages/export test:       Tests  18 passed (18)
+packages/export test:    Start at  16:17:35
+packages/export test:    Duration  2.21s (transform 1.21s, setup 0ms, collect 2.46s, tests 221ms, environment 2ms, prepare 969ms)
+packages/tauri-bridge test:  ✓ src/session/close-protection.test.ts (6 tests) 21ms
+packages/tauri-bridge test:  ✓ src/session/document-session.test.ts (22 tests) 63ms
+packages/tauri-bridge test:  ✓ src/file/file-watcher.test.ts (7 tests) 59ms
+packages/mcp test: Done
+packages/view-dom test$ vitest run
+packages/export test: Done
+packages/tauri-bridge test:  ✓ src/file/recent-files.test.ts (4 tests) 28ms
+packages/plugin-sdk test:  ✓ src/index.test.js (6 tests) 12ms
+packages/plugin-sdk test:  Test Files  1 passed (1)
+packages/plugin-sdk test:       Tests  6 passed (6)
+packages/plugin-sdk test:    Start at  16:17:35
+packages/plugin-sdk test:    Duration  3.77s (transform 1.96s, setup 0ms, collect 2.53s, tests 12ms, environment 0ms, prepare 439ms)
+packages/tauri-bridge test:  ✓ src/session/v1-file-workflow-regressions.test.ts (4 tests) 23ms
+packages/tauri-bridge test:  ✓ src/file/file-actions.test.ts (2 tests) 6ms
+packages/plugin-sdk test: Done
+packages/view-dom test:  RUN  v3.2.6 /workspace/milkup/packages/view-dom
+packages/tauri-bridge test:  ✓ src/file/line-ending.test.ts (4 tests) 23ms
+packages/tauri-bridge test:  ✓ src/file/reveal-target.test.ts (3 tests) 8ms
+packages/tauri-bridge test:  ✓ src/session/save-safety.test.ts (3 tests) 5ms
+packages/tauri-bridge test:  Test Files  9 passed (9)
+packages/tauri-bridge test:       Tests  55 passed (55)
+packages/tauri-bridge test:    Start at  16:17:35
+packages/tauri-bridge test:    Duration  5.09s (transform 1.72s, setup 0ms, collect 5.63s, tests 234ms, environment 4ms, prepare 1.95s)
+packages/tauri-bridge test: Done
+packages/view-dom test:  ✓ src/__tests__/presentation.test.ts (19 tests) 2823ms
+packages/view-dom test:    ✓ editor presentation > changes ordinary live layout without a document transaction  1891ms
+packages/view-dom test:  ✓ src/__tests__/editor-view.test.ts (123 tests) 4795ms
+packages/view-dom test:    ✓ EditorView > keeps docs/coding-plan.md live interactions bounded to affected lines  3095ms
+packages/view-dom test:  ✓ src/__tests__/document-svg-image.test.ts (83 tests) 5551ms
+packages/view-dom test:  ✓ src/__tests__/windowed-table.test.ts (8 tests) 2344ms
+packages/view-dom test:    ✓ recovers the full table across viewport boundaries without rendering every row  500ms
+packages/view-dom test:    ✓ keeps Unicode, escaped pipes, visual breaks and complete-column history atomic  764ms
+packages/view-dom test:    ✓ keeps typing queued during an asynchronous column command without dropping characters  323ms
+packages/view-dom test:    ✓ keeps visual cell breaks during optimistic input while native reads are delayed  379ms
+packages/view-dom test:  ✓ src/__tests__/document-presentation-boundaries.test.ts (16 tests) 3246ms
+packages/view-dom test:    ✓ includes an initially visible complete long fence within the input budget (ordinary, lf)  682ms
+packages/view-dom test:    ✓ includes an initially visible complete long fence within the input budget (ordinary, eof)  318ms
+packages/view-dom test:    ✓ keeps an oversized complete fence literal at the lines budget  393ms
+packages/view-dom test:  ✓ src/__tests__/source-document-view.test.ts (64 tests) 2207ms
+packages/view-dom test:  ✓ src/__tests__/document-presentation.test.ts (70 tests) 3851ms
+packages/view-dom test:    ✓ keeps the reader's inner diagram position through provider refresh (false)  370ms
+packages/view-dom test:    ✓ loads a genuinely moved editor viewport after duplicate scroll notifications  314ms
+packages/view-dom test:  ✓ src/__tests__/live-controls.test.ts (33 tests) 2542ms
+packages/view-dom test:    ✓ windowed rejects a queued checkbox click after a document switch  343ms
+packages/view-dom test:    ✓ windowed clips code selection/search to the inner viewport and preserves scroll on rerender  347ms
+packages/view-dom test:  ✓ src/__tests__/source-scroll-limits.test.ts (13 tests) 1611ms
+packages/view-dom test:    ✓ bounded document scroll coordinates > renders an explicit jump once but still renders a subsequent user scroll  771ms
+packages/view-dom test:  ✓ src/__tests__/table-keyboard.test.ts (27 tests) 1087ms
+packages/view-dom test:  ✓ src/__tests__/source-unicode.test.ts (33 tests) 1145ms
+packages/view-dom test:    ✓ windowed source Unicode keys > moves and extends selection over the whole 😀  308ms
+packages/view-dom test:  ✓ src/__tests__/block-keyboard.test.ts (37 tests) 568ms
+packages/view-dom test:  ✓ src/__tests__/public-table-editing.test.ts (15 tests) 503ms
+packages/view-dom test:  ✓ src/__tests__/image-hooks.test.ts (19 tests) 636ms
+packages/view-dom test:  ✓ src/__tests__/async-paste-unicode.test.ts (15 tests) 251ms
+packages/view-dom test:  ✓ src/__tests__/document-presentation-anchor-guards.test.ts (24 tests) 1016ms
+packages/view-dom test: stdout | src/__tests__/document-presentation-pointer.test.ts > keeps a settled response waiting when a new primary gesture replaces the released lease
+packages/view-dom test: pointer-handoff {"originalConnected":true,"sameButton":true,"activeLease":true,"provided":2,"navigationCalls":0}
+packages/view-dom test:  ✓ src/__tests__/document-presentation-pointer.test.ts (23 tests) 545ms
+packages/view-dom test:  ✓ src/__tests__/document-presentation-viewport.test.ts (6 tests) 407ms
+packages/view-dom test:  ✓ src/__tests__/input-boundaries.test.ts (6 tests) 330ms
+packages/view-dom test:  ✓ src/__tests__/table-cursor.test.ts (1 test) 557ms
+packages/view-dom test:    ✓ uses the empty cell bounds and padding instead of a following text cell  555ms
+packages/view-dom test:  ✓ src/__tests__/controlled-fields.test.ts (3 tests) 49ms
+packages/view-dom test:  ✓ src/__tests__/plugin-renderer.test.ts (6 tests) 32ms
+packages/view-dom test:  ✓ src/__tests__/document-presentation-preparation.test.ts (17 tests) 96ms
+packages/view-dom test:  ✓ src/__tests__/measured-line-heights.test.ts (1 test) 3ms
+packages/view-dom test:  ✓ src/__tests__/view-benchmark.test.ts (1 test) 3ms
+packages/view-dom test:  Test Files  25 passed (25)
+packages/view-dom test:       Tests  663 passed (663)
+packages/view-dom test:    Start at  16:17:40
+packages/view-dom test:    Duration  27.77s (transform 2.60s, setup 0ms, collect 9.34s, tests 36.20s, environment 23.59s, prepare 3.30s)
+packages/view-dom test: Done
+packages/plugin test$ vitest run
+tests/regressions test$ vitest run
+tests/regressions test:  RUN  v3.2.6 /workspace/milkup/tests/regressions
+packages/plugin test:  RUN  v3.2.6 /workspace/milkup/packages/plugin
+packages/plugin test:  ✓ src/document-broker.test.ts (54 tests) 579ms
+packages/plugin test:  ✓ src/storage-broker.test.ts (6 tests) 121ms
+tests/regressions test:  ✓ v1/history-mode-switch.test.ts (1 test) 173ms
+tests/regressions test:  ✓ v1/paste-ai-output.test.ts (1 test) 188ms
+tests/regressions test:  ✓ v1/cursor-scroll-code-block.test.ts (1 test) 203ms
+packages/plugin test:  ✓ src/settings-rpc.test.ts (19 tests) 137ms
+packages/plugin test:  ✓ src/document-render-rpc.test.ts (16 tests) 2242ms
+packages/plugin test:    ✓ bounded document render isolation > terminates an actual CPU-blocked worker, revokes capabilities and marks runtime disabled  2122ms
+packages/plugin test:  ✓ src/isolation-worker.test.ts (21 tests) 75ms
+tests/regressions test:  ✓ v1/ime-windows-chinese.test.ts (1 test) 168ms
+packages/plugin test:  ✓ src/document-navigation-rpc.test.ts (6 tests) 122ms
+tests/regressions test:  ✓ v1/history-code-block.test.ts (1 test) 397ms
+tests/regressions test:    ✓ v1 regression: code block edits use global history > undoes a fenced code edit after leaving and re-entering live mode  392ms
+tests/regressions test:  ✓ v1/table-mode-switch-data-loss.test.ts (1 test) 240ms
+packages/plugin test:  ✓ src/editing-resources.test.ts (17 tests) 96ms
+packages/plugin test:  ✓ src/worker-supervisor-real.test.ts (2 tests) 5491ms
+packages/plugin test:    ✓ actual independently supervised Workers > accepts an already completed render after the main thread stalls beyond 2 seconds  2752ms
+packages/plugin test:    ✓ actual independently supervised Workers > terminates a real infinite loop while the main thread is still blocked  2738ms
+packages/plugin test:  ✓ src/settings-broker.test.ts (21 tests) 57ms
+packages/plugin test:  ✓ src/registry.test.ts (47 tests) 40ms
+packages/plugin test:  ✓ src/editing-isolation.test.ts (3 tests) 89ms
+packages/plugin test:  ✓ src/workspace-broker.test.ts (34 tests) 277ms
+packages/plugin test:  ✓ src/workspace-rpc.test.ts (19 tests) 79ms
+tests/regressions test:  ✓ v1/active-document-export.test.ts (1 test) 9ms
+tests/regressions test:  ✓ v1/paste-code-block-blank-lines.test.ts (1 test) 102ms
+packages/plugin test:  ✓ src/runtime.test.ts (14 tests) 57ms
+tests/regressions test:  ✓ v1/renderer-error-boundary.test.ts (1 test) 17ms
+packages/plugin test:  ✓ src/document-render-contract.test.ts (15 tests) 58ms
+packages/plugin test:  ✓ src/isolation-module-host.test.ts (6 tests) 254ms
+packages/plugin test:  ✓ src/worker-supervisor.test.ts (11 tests) 190ms
+packages/plugin test:  ✓ src/releases-rpc.test.ts (20 tests) 64ms
+packages/plugin test:  ✓ src/keymap-rpc.test.ts (13 tests) 225ms
+tests/regressions test:  ✓ v1/dirty-state-open-save.test.ts (1 test) 15ms
+packages/plugin test:  ✓ src/document-window.test.ts (11 tests) 30ms
+tests/regressions test:  ✓ policy/regression-policy.test.ts (1 test) 18ms
+tests/regressions test:  ✓ v1/file-watcher-conflict.test.ts (1 test) 13ms
+tests/regressions test:  Test Files  12 passed (12)
+tests/regressions test:       Tests  12 passed (12)
+tests/regressions test:    Start at  16:18:08
+tests/regressions test:    Duration  12.36s (transform 2.35s, setup 0ms, collect 8.52s, tests 1.54s, environment 16.72s, prepare 2.14s)
+packages/plugin test:  ✓ src/filesystem-broker.test.ts (11 tests) 34ms
+tests/regressions test: Done
+packages/plugin test:  ✓ src/isolation-sidecar.test.ts (4 tests) 20ms
+packages/plugin test:  ✓ src/isolation-rpc.test.ts (5 tests) 88ms
+packages/plugin test:  ✓ src/manifest-dom.test.ts (32 tests) 20ms
+packages/plugin test:  ✓ src/preferences-isolation.test.ts (3 tests) 32ms
+packages/plugin test:  ✓ src/manifest.test.ts (25 tests) 15ms
+packages/plugin test:  ✓ src/ui-location.test.ts (4 tests) 10ms
+packages/plugin test:  ✓ src/isolation.test.ts (7 tests) 28ms
+packages/plugin test:  ✓ src/editing-ui-contract.test.ts (4 tests) 13ms
+packages/plugin test:  ✓ src/registry-dom.test.ts (2 tests) 16ms
+packages/plugin test:  ✓ src/releases-broker.test.ts (3 tests) 13ms
+packages/plugin test:  ✓ src/document-rpc.test.ts (1 test) 14ms
+packages/plugin test:  ✓ src/network-broker.test.ts (5 tests) 12ms
+packages/plugin test:  ✓ src/package.test.ts (4 tests) 13ms
+packages/plugin test:  ✓ src/loader.test.ts (7 tests) 18ms
+packages/plugin test:  ✓ src/editing-legacy-guard.test.ts (4 tests) 17ms
+packages/plugin test:  ✓ src/package-dom.test.ts (4 tests) 12ms
+packages/plugin test:  Test Files  37 passed (37)
+packages/plugin test:       Tests  480 passed (480)
+packages/plugin test:    Start at  16:18:08
+packages/plugin test:    Duration  14.51s (transform 2.77s, setup 0ms, collect 10.49s, tests 10.66s, environment 8ms, prepare 5.75s)
+packages/plugin test: Done
+apps/desktop test$ vitest run --passWithNoTests --exclude src-tauri/src/plugin_dom_bootstrap.test.mjs && node --experimental-vm-modules --test src-tauri/src/plugin_dom_bootstrap.test.mjs
+apps/playground test$ vitest run --passWithNoTests
+packages/cli test$ vitest run
+apps/playground test:  RUN  v3.2.6 /workspace/milkup/apps/playground
+apps/playground test: No test files found, exiting with code 0
+apps/playground test: include: **/*.{test,spec}.?(c|m)[jt]s?(x)
+apps/playground test: exclude:  **/node_modules/**, **/dist/**, **/cypress/**, **/.{idea,git,cache,output,temp}/**, **/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build,eslint,prettier}.config.*
+apps/playground test: Done
+packages/cli test:  RUN  v3.2.6 /workspace/milkup/packages/cli
+apps/desktop test:  RUN  v3.2.6 /workspace/milkup/apps/desktop
+apps/desktop test:  ✓ src/controlled-tree-ui.test.ts (4 tests) 136ms
+packages/cli test:  ✓ src/milkup.test.ts (21 tests) 175ms
+packages/cli test:  Test Files  1 passed (1)
+packages/cli test:       Tests  21 passed (21)
+packages/cli test:    Start at  16:18:24
+packages/cli test:    Duration  3.66s (transform 2.24s, setup 0ms, collect 3.07s, tests 175ms, environment 0ms, prepare 129ms)
+packages/cli test: Done
+apps/desktop test:  ✓ src/controlled-form-ui.test.ts (4 tests) 71ms
+apps/desktop test:  ✓ src/editor-context-menu.test.ts (4 tests) 78ms
+apps/desktop test:  ✓ src/document-presentation-service.test.ts (20 tests) 209ms
+apps/desktop test:  ✓ src/resource-save.test.ts (7 tests) 1379ms
+apps/desktop test:    ✓ resource service and save coordination > an acknowledgement failure retains copied files across plugin disposal and document release  1353ms
+apps/desktop test:  ✓ src/desktop-plugin-manager.test.ts (22 tests) 131ms
+apps/desktop test:  ✓ src/desktop-plugin-manager-dom.test.ts (10 tests) 140ms
+apps/desktop test:  ✓ src/desktop-plugin-ui.test.ts (32 tests) 3179ms
+apps/desktop test:    ✓ DesktopPluginUiController > requests a new buffered range when the outline is scrolled outside its rendered slice  696ms
+apps/desktop test:    ✓ DesktopPluginUiController > requests one adjacent buffer only after a real user wheel gesture reaches an edge  666ms
+apps/desktop test:    ✓ DesktopPluginUiController > requests the previous buffer only when the list reaches the exact top edge  430ms
+apps/desktop test:  ✓ src/resource-service.test.ts (14 tests) 79ms
+apps/desktop test:  ✓ src/clipboard-image-read.test.ts (16 tests) 203ms
+apps/desktop test:  ✓ src/editing-service.test.ts (26 tests) 76ms
+apps/desktop test:  ✓ src/settings-service.test.ts (39 tests) 220ms
+apps/desktop test:  ✓ src/bundled-plugins.test.ts (18 tests) 43ms
+apps/desktop test:  ✓ src/resource-reference-scan.test.ts (30 tests) 138ms
+apps/desktop test:  ✓ src/plugin-release-service.test.ts (15 tests) 50ms
+apps/desktop test:  ✓ src/document-transition.test.ts (39 tests) 61ms
+apps/desktop test:  ✓ src/plugin-temporary-storage.test.ts (5 tests) 41ms
+apps/desktop test:  ✓ src/plugin-dom.test.ts (15 tests) 47ms
+apps/desktop test:  ✓ src/protected-install.test.ts (9 tests) 33ms
+apps/desktop test:  ✓ src/plugin-workspace-service.test.ts (21 tests) 41ms
+apps/desktop test:  ✓ src/plugin-sidecar.test.ts (9 tests) 23ms
+apps/desktop test:  ✓ src/keymap-service.test.ts (28 tests) 36ms
+apps/desktop test:  ✓ src/desktop-document-search.test.ts (6 tests) 14ms
+apps/desktop test:  ✓ src/recovery.test.ts (7 tests) 29ms
+apps/desktop test:  ✓ src/desktop-editing-capabilities.test.ts (2 tests) 22ms
+apps/desktop test:  ✓ src/desktop-settings-integration.test.ts (1 test) 28ms
+apps/desktop test:  ✓ src/file-service.test.ts (4 tests) 18ms
+apps/desktop test:  ✓ src/plugin-file-broker.test.ts (5 tests) 22ms
+apps/desktop test:  ✓ src/document-loading-visibility.test.ts (4 tests) 9ms
+apps/desktop test:  ✓ src/document-navigation.test.ts (4 tests) 14ms
+apps/desktop test:  ✓ src/large-document-search.test.ts (5 tests) 16ms
+apps/desktop test:  ✓ src/large-document-source.test.ts (5 tests) 19ms
+apps/desktop test:  ✓ src/large-file-service.test.ts (1 test) 17ms
+apps/desktop test:  ✓ src/appearance.test.ts (5 tests) 19ms
+apps/desktop test:  ✓ src/desktop-open-policy.test.ts (6 tests) 7ms
+apps/desktop test:  ✓ src/large-document-editing.test.ts (4 tests) 23ms
+apps/desktop test:  ✓ src/save-watch-reconciliation.test.ts (6 tests) 5ms
+apps/desktop test:  ✓ src/document-open-flow.test.ts (3 tests) 145ms
+apps/desktop test:  ✓ src/apply-editor-settings.test.ts (2 tests) 10ms
+apps/desktop test:  ✓ src/large-document-conflict.test.ts (3 tests) 4ms
+apps/desktop test:  ✓ src/desktop-large-open-flow.test.ts (2 tests) 13ms
+apps/desktop test:  ✓ src/desktop-search-navigation.test.ts (4 tests) 9ms
+apps/desktop test:  ✓ src/asset-service.test.ts (3 tests) 6ms
+apps/desktop test:  ✓ src/editor-view-refresh.test.ts (3 tests) 7ms
+apps/desktop test:  ✓ src/open-stage-diagnostics.test.ts (2 tests) 4ms
+apps/desktop test:  ✓ src/plugin-icon.test.ts (1 test) 3ms
+apps/desktop test:  Test Files  46 passed (46)
+apps/desktop test:       Tests  475 passed (475)
+apps/desktop test:    Start at  16:18:24
+apps/desktop test:    Duration  19.79s (transform 6.88s, setup 0ms, collect 17.16s, tests 6.88s, environment 5.22s, prepare 7.79s)
+apps/desktop test: (node:349745) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+apps/desktop test: (Use `node --trace-warnings ...` to show where the warning was created)
+apps/desktop test: ✔ actual SDK default definePlugin activation exposes only declared document renderers (7.90229ms)
+apps/desktop test: ✔ named module exports and asynchronous render results obey the same wire contract (4.017079ms)
+apps/desktop test: ✔ invalid default namespace is a lifecycle failure (3.040458ms)
+apps/desktop test: ✔ oversize result fails as one whole result and cancellation waits for handler settlement (5.825749ms)
+apps/desktop test: ℹ tests 4
+apps/desktop test: ℹ suites 0
+apps/desktop test: ℹ pass 4
+apps/desktop test: ℹ fail 0
+apps/desktop test: ℹ cancelled 0
+apps/desktop test: ℹ skipped 0
+apps/desktop test: ℹ todo 0
+apps/desktop test: ℹ duration_ms 107.076279
+apps/desktop test: Done

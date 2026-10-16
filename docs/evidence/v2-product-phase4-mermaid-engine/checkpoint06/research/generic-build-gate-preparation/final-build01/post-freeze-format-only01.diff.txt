@@ -1,0 +1,19 @@
+--- frozen/authoring-script
++++ root-formatted/authoring-script
+@@ -54,12 +54,10 @@
+       inputs: [],
+       notices: [],
+     })
+-  groups
+-    .get(packageRoot)
+-    .inputs.push({
+-      path: relative(packageRoot, file).replaceAll('\\', '/'),
+-      sha256: sha256(await readFile(file)),
+-    })
++  groups.get(packageRoot).inputs.push({
++    path: relative(packageRoot, file).replaceAll('\\', '/'),
++    sha256: sha256(await readFile(file)),
++  })
+ }
+ const packages = [...groups.values()].sort((a, b) => a.locator.localeCompare(b.locator))
+ assert.equal(

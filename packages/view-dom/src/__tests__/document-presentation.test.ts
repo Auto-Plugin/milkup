@@ -27,6 +27,8 @@ function provider(from = 0, to = 5): DocumentPresentationConfig {
       sourceIdentity: _identity,
       sourceVersion: _version,
       documentVersion: _documentVersion,
+      visibleFrom: _visibleFrom,
+      visibleTo: _visibleTo,
       ...window
     }) => ({
       declarations: [{ id: 'test', contexts: ['text'] }],

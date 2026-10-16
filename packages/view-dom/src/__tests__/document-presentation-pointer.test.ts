@@ -53,6 +53,8 @@ async function fixture() {
       sourceIdentity: _i,
       sourceVersion: _v,
       documentVersion: _d,
+      visibleFrom: _visibleFrom,
+      visibleTo: _visibleTo,
       ...window
     }: any) => {
       provided++

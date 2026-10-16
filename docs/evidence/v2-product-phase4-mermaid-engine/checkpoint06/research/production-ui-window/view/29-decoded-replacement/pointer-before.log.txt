@@ -1,0 +1,112 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/document-svg-image.test.ts (77 tests | 2 failed | 75 skipped) 411ms
+   ↓ keeps full mapped source until decode, then mounts an inert owned image (false)
+   ↓ restores a whole compound fragment when any decoded image later errors (false)
+   ↓ decode rejection leaves usable original source and an accessible notice (false)
+   ↓ does not hide any compound source while a sibling image is still decoding (false)
+   ↓ bounds a stalled decode and preserves source without retrying it (false)
+   ↓ revokes selection ABA decode and ignores an old image error after replacement (false)
+   ↓ uses integer image pixels inside the exact fractional layout slot (false)
+   ↓ reserves actual negative and positive ink inside the mapped scrollable fragment (false)
+   ↓ distinguishes real fractional overflow from transparent raster rounding (false)
+   ↓ preserves math and reference siblings around an owned image (false)
+   ↓ hard invalidation revokes the pending resource even when the response is equivalent (false)
+   ↓ revokes pending decode on disabled, ignoring its late completion (false)
+   ↓ revokes pending decode on source, ignoring its late completion (false)
+   ↓ revokes pending decode on destroy, ignoring its late completion (false)
+   ↓ releases a successfully mounted URL when the provider is removed (false)
+   ↓ late old-document decode cannot replace the new source (false)
+   ↓ source mode stays literal and does not create image resources (false)
+   ↓ unknown child yields full-source fallback without allocating a URL (false)
+   ↓ keeps full mapped source until decode, then mounts an inert owned image (true)
+   ↓ restores a whole compound fragment when any decoded image later errors (true)
+   ↓ decode rejection leaves usable original source and an accessible notice (true)
+   ↓ does not hide any compound source while a sibling image is still decoding (true)
+   ↓ bounds a stalled decode and preserves source without retrying it (true)
+   ↓ revokes selection ABA decode and ignores an old image error after replacement (true)
+   ↓ uses integer image pixels inside the exact fractional layout slot (true)
+   ↓ reserves actual negative and positive ink inside the mapped scrollable fragment (true)
+   ↓ distinguishes real fractional overflow from transparent raster rounding (true)
+   ↓ preserves math and reference siblings around an owned image (true)
+   ↓ hard invalidation revokes the pending resource even when the response is equivalent (true)
+   ↓ revokes pending decode on disabled, ignoring its late completion (true)
+   ↓ revokes pending decode on source, ignoring its late completion (true)
+   ↓ revokes pending decode on destroy, ignoring its late completion (true)
+   ↓ releases a successfully mounted URL when the provider is removed (true)
+   ↓ late old-document decode cannot replace the new source (true)
+   ↓ source mode stays literal and does not create image resources (true)
+   ↓ unknown child yields full-source fallback without allocating a URL (true)
+   ↓ transfers a decoded node through a same-context source-window replacement without a new URL
+   ↓ the existing synchronous factory cannot create an ownerless image URL
+   ↓ keeps an equivalent decoded image through a validated provider refresh (false)
+   ↓ keeps an equivalent decoded image through a validated provider refresh (true)
+   ↓ does not reuse a decoded owner after theme changes (false)
+   ↓ does not reuse a decoded owner after width changes (false)
+   ↓ does not reuse a decoded owner after declaration changes (false)
+   ↓ does not migrate a pending decode or accept its late completion (false)
+   ↓ does not reuse a decoded owner after theme changes (true)
+   ↓ does not reuse a decoded owner after width changes (true)
+   ↓ does not reuse a decoded owner after declaration changes (true)
+   ↓ does not migrate a pending decode or accept its late completion (true)
+   ↓ keeps the complete previous presentation until a changed image replacement decodes (false)
+   ↓ keeps the complete previous presentation until a changed image replacement decodes (true)
+   ↓ withdraws the previous decoded fragment on omitted during replacement (false)
+   ↓ withdraws the previous decoded fragment on error during replacement (false)
+   ↓ withdraws the previous decoded fragment on decode-error during replacement (false)
+   ↓ withdraws the previous decoded fragment on disabled during replacement (false)
+   ↓ withdraws the previous decoded fragment on source during replacement (false)
+   ↓ withdraws the previous decoded fragment on selection during replacement (false)
+   ↓ withdraws the previous decoded fragment on destroy during replacement (false)
+   ↓ does not renew the replacement deadline for successive distinct pending images (false)
+   ↓ withdraws the previous decoded fragment on omitted during replacement (true)
+   ↓ withdraws the previous decoded fragment on error during replacement (true)
+   ↓ withdraws the previous decoded fragment on decode-error during replacement (true)
+   ↓ withdraws the previous decoded fragment on disabled during replacement (true)
+   ↓ withdraws the previous decoded fragment on source during replacement (true)
+   ↓ withdraws the previous decoded fragment on selection during replacement (true)
+   ↓ withdraws the previous decoded fragment on destroy during replacement (true)
+   ↓ does not renew the replacement deadline for successive distinct pending images (true)
+   ↓ keeps old semantics and inner scroll until every replacement image decodes (false)
+   ↓ does not keep an obsolete decoded layer after old-error (false)
+   ↓ does not keep an obsolete decoded layer after provider-rejection (false)
+   ↓ does not keep an obsolete decoded layer after version (false)
+   ↓ keeps old semantics and inner scroll until every replacement image decodes (true)
+   ↓ does not keep an obsolete decoded layer after old-error (true)
+   ↓ does not keep an obsolete decoded layer after provider-rejection (true)
+   ↓ does not keep an obsolete decoded layer after version (true)
+   ↓ does not accumulate heavy decoded fragments from separate validated generations beyond one shared old-layer budget
+   × keeps a pressed old reference connected until native click when replacement decode completes (false) 301ms
+     → expected false to be true // Object.is equality
+   × keeps a pressed old reference connected until native click when replacement decode completes (true) 107ms
+     → expected false to be true // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-svg-image.test.ts > keeps a pressed old reference connected until native click when replacement decode completes (false)
+ FAIL  src/__tests__/document-svg-image.test.ts > keeps a pressed old reference connected until native click when replacement decode completes (true)
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/__tests__/document-svg-image.test.ts:956:32
+    954|     decodes[1]!.resolve()
+    955|     await settle()
+    956|     expect(button.isConnected).toBe(true)
+       |                                ^
+    957|     expect(view.contentDOM.querySelector('button')).toBe(button)
+    958|     pointer(button, 'pointerup')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 75 skipped (77)
+   Start at  16:03:25
+   Duration  3.17s (transform 871ms, setup 0ms, collect 1.13s, tests 411ms, environment 882ms, prepare 148ms)
+

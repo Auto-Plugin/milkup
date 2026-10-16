@@ -1,0 +1,654 @@
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import {
+  EditorState,
+  MemoryDocumentSource,
+  MemoryTextDocument,
+  Selection,
+  type DocumentPresentationNode,
+  type DocumentSvgImage,
+  type EditorDocumentSource,
+} from '@milkup/core'
+import {
+  EditorView,
+  SourceDocumentView,
+  createDocumentPresentationNode,
+  type DocumentPresentationConfig,
+} from '../index'
+
+const firstLine = 'diagram 原文😀'
+const sourceText = `${firstLine}\r\nuntouched tail`
+const views: Array<EditorView | SourceDocumentView> = []
+interface DecodeCall {
+  readonly image: HTMLImageElement
+  readonly resolve: () => void
+  readonly reject: (error: Error) => void
+}
+let decodes: DecodeCall[]
+let created: string[]
+let revoked: string[]
+let blobs: Blob[]
+let savedDecode: PropertyDescriptor | undefined
+let savedCreate: PropertyDescriptor | undefined
+let savedRevoke: PropertyDescriptor | undefined
+
+beforeEach(() => {
+  decodes = []
+  created = []
+  revoked = []
+  blobs = []
+  savedDecode = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'decode')
+  savedCreate = Object.getOwnPropertyDescriptor(URL, 'createObjectURL')
+  savedRevoke = Object.getOwnPropertyDescriptor(URL, 'revokeObjectURL')
+  Object.defineProperty(HTMLImageElement.prototype, 'decode', {
+    configurable: true,
+    value: function (this: HTMLImageElement): Promise<void> {
+      return new Promise<void>((resolve, reject) => decodes.push({ image: this, resolve, reject }))
+    },
+  })
+  Object.defineProperty(URL, 'createObjectURL', {
+    configurable: true,
+    value: vi.fn((blob: Blob) => {
+      blobs.push(blob)
+      const url = `blob:closed-image-${created.length}`
+      created.push(url)
+      return url
+    }),
+  })
+  Object.defineProperty(URL, 'revokeObjectURL', {
+    configurable: true,
+    value: vi.fn((url: string) => revoked.push(url)),
+  })
+})
+afterEach(() => {
+  for (const view of views.splice(0)) view.destroy()
+  document.body.replaceChildren()
+  for (const [owner, key, descriptor] of [
+    [HTMLImageElement.prototype, 'decode', savedDecode],
+    [URL, 'createObjectURL', savedCreate],
+    [URL, 'revokeObjectURL', savedRevoke],
+  ] as const) {
+    if (descriptor) Object.defineProperty(owner, key, descriptor)
+    else Reflect.deleteProperty(owner, key)
+  }
+  vi.restoreAllMocks()
+})
+async function settle() {
+  for (let i = 0; i < 8; i++) {
+    if (vi.isFakeTimers()) await vi.advanceTimersByTimeAsync(0)
+    else await new Promise<void>((resolve) => setTimeout(resolve, 0))
+  }
+}
+function imageFixture(width = 160, height = 96): DocumentSvgImage {
+  return {
+    type: 'svg-image',
+    profile: 'bounded-svg-v1',
+    motion: 'static',
+    width,
+    height,
+    rasterBounds: [0, 0, width, height],
+    viewBox: [0, 0, width, height],
+    aspect: { align: 'xMidYMid', fit: 'meet' },
+    styles: [],
+    definitions: [],
+    title: 'Typed diagram',
+    children: [{ kind: 'rect', x: 4, y: 8, width: 80, height: 40 }],
+  }
+}
+function provider(content: unknown = imageFixture()): DocumentPresentationConfig {
+  return {
+    provide: ({
+      sourceIdentity: _identity,
+      sourceVersion: _sourceVersion,
+      documentVersion,
+      visibleFrom: _visibleFrom,
+      visibleTo: _visibleTo,
+      ...window
+    }) => ({
+      declarations: [{ id: 'generic-image-test', contexts: ['text'] }],
+      request: {
+        ...window,
+        documentId: 'image-test',
+        version: documentVersion ?? 0,
+        contextKnown: true,
+        protectedRanges: [],
+        blocks: [],
+        theme: 'light',
+        target: 'screen',
+      },
+      result: {
+        complete: true,
+        fragments: [
+          {
+            from: 0,
+            to: firstLine.length,
+            layout: 'block',
+            accessibleText: 'Typed diagram',
+            // Unknown transport fixtures also exercise hostile runtime inputs.
+            content: content as DocumentPresentationNode,
+          },
+        ],
+      },
+    }),
+  }
+}
+async function make(windowed: boolean, config = provider(), mode: 'source' | 'live' = 'live') {
+  const parent = document.createElement('main')
+  document.body.append(parent)
+  const doc = new MemoryTextDocument(sourceText)
+  const view = windowed
+    ? new SourceDocumentView({
+        parent,
+        mode,
+        source: new MemoryDocumentSource({ documentId: 'image-test', document: doc }),
+        documentPresentation: config,
+      })
+    : new EditorView({
+        parent,
+        mode,
+        state: new EditorState({ doc, selection: Selection.cursor(doc.length) }),
+        documentPresentation: config,
+      })
+  views.push(view)
+  if (view instanceof SourceDocumentView) {
+    const revealed = view.revealSelection(2, Selection.cursor(doc.length))
+    if (vi.isFakeTimers()) await vi.advanceTimersByTimeAsync(100)
+    await revealed
+  }
+  await settle()
+  return view
+}
+const visibleSource = (view: EditorView | SourceDocumentView) => {
+  const line = view.contentDOM.querySelector<HTMLElement>('.milkup-line[data-line="1"]')
+  expect(line?.textContent).toContain(firstLine)
+  expect(line?.style.display).not.toBe('none')
+  expect(line?.dataset.presentationCollapsed).not.toBe('true')
+}
+async function assertUnchanged(
+  view: EditorView | SourceDocumentView,
+  previous: EditorState | EditorDocumentSource,
+) {
+  if (view instanceof EditorView) {
+    expect(view.state).toBe(previous)
+    expect(view.state.doc.text).toBe(sourceText)
+  } else {
+    expect(view.source).toBe(previous)
+    expect(view.source.version).toBe(0)
+    expect((await view.source.readLineWindow(1, 2)).text).toBe(sourceText)
+  }
+  const selection = view instanceof EditorView ? view.state.selection : view.selection
+  expect(selection.main).toEqual(Selection.cursor(sourceText.length).main)
+}
+
+for (const windowed of [false, true]) {
+  it(`keeps full mapped source until decode, then mounts an inert owned image (${windowed})`, async () => {
+    const view = await make(windowed)
+    const previous = view instanceof EditorView ? view.state : view.source
+    visibleSource(view)
+    expect(view.contentDOM.querySelector('img')).toBeNull()
+    expect(decodes).toHaveLength(1)
+    decodes[0]!.resolve()
+    await settle()
+    const image = view.contentDOM.querySelector<HTMLImageElement>(
+      '[data-document-presentation] img',
+    )
+    expect(image).not.toBeNull()
+    expect(image?.src).toBe(created[0])
+    expect(image?.draggable).toBe(false)
+    expect(image?.width).toBe(160)
+    expect(image?.height).toBe(96)
+    expect(view.contentDOM.querySelector('script, foreignObject, svg')).toBeNull()
+    await assertUnchanged(view, previous)
+  })
+
+  it(`restores a whole compound fragment when any decoded image later errors (${windowed})`, async () => {
+    const view = await make(
+      windowed,
+      provider({ type: 'group', children: [imageFixture(), imageFixture(200)] }),
+    )
+    const previous = view instanceof EditorView ? view.state : view.source
+    expect(decodes).toHaveLength(2)
+    for (const call of decodes) call.resolve()
+    await settle()
+    const image = view.contentDOM.querySelector<HTMLImageElement>('img')
+    expect(image).not.toBeNull()
+    image!.dispatchEvent(new Event('error'))
+    await settle()
+    visibleSource(view)
+    expect(view.contentDOM.querySelector('img')).toBeNull()
+    expect(view.dom.querySelector('[data-document-presentation-notice]')?.textContent).toBeTruthy()
+    expect(new Set(revoked)).toEqual(new Set(created))
+    expect(revoked).toHaveLength(created.length)
+    await assertUnchanged(view, previous)
+  })
+
+  it(`decode rejection leaves usable original source and an accessible notice (${windowed})`, async () => {
+    const view = await make(windowed)
+    const previous = view instanceof EditorView ? view.state : view.source
+    expect(decodes).toHaveLength(1)
+    decodes[0]!.reject(new Error('controlled image decode failure'))
+    await settle()
+    visibleSource(view)
+    expect(view.contentDOM.querySelector('img')).toBeNull()
+    expect(view.dom.querySelector('[data-document-presentation-notice]')?.textContent).toBeTruthy()
+    expect(revoked).toEqual(created)
+    await assertUnchanged(view, previous)
+  })
+
+  it(`does not hide any compound source while a sibling image is still decoding (${windowed})`, async () => {
+    const view = await make(
+      windowed,
+      provider({
+        type: 'group',
+        children: [{ type: 'text', text: 'Caption' }, imageFixture(), imageFixture(200)],
+      }),
+    )
+    expect(decodes).toHaveLength(2)
+    decodes[0]!.resolve()
+    await settle()
+    visibleSource(view)
+    expect(view.contentDOM.querySelector('[data-document-presentation]')).toBeNull()
+    decodes[1]!.reject(new Error('second image failed'))
+    await settle()
+    visibleSource(view)
+    expect(view.contentDOM.querySelector('img')).toBeNull()
+    expect(revoked).toHaveLength(2)
+    expect(new Set(revoked)).toEqual(new Set(created))
+    await settle()
+    expect(decodes).toHaveLength(2)
+  })
+
+  it(`bounds a stalled decode and preserves source without retrying it (${windowed})`, async () => {
+    vi.useFakeTimers()
+    try {
+      const view = await make(windowed)
+      expect(decodes).toHaveLength(1)
+      await vi.advanceTimersByTimeAsync(10_000)
+      await settle()
+      visibleSource(view)
+      expect(
+        view.dom.querySelector('[data-document-presentation-notice]')?.textContent,
+      ).toBeTruthy()
+      expect(revoked).toEqual(created)
+      decodes[0]!.resolve()
+      await settle()
+      expect(view.contentDOM.querySelector('img')).toBeNull()
+      expect(created).toHaveLength(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it(`revokes selection ABA decode and ignores an old image error after replacement (${windowed})`, async () => {
+    const view = await make(windowed)
+    const old = decodes[0]!,
+      oldUrl = created[0]!
+    if (view instanceof SourceDocumentView) await view.revealSelection(1, Selection.cursor(2))
+    else view.updateState(view.state.applyTransaction({ selection: Selection.cursor(2) }))
+    await settle()
+    visibleSource(view)
+    expect(revoked.filter((url) => url === oldUrl)).toHaveLength(1)
+    if (view instanceof SourceDocumentView)
+      await view.revealSelection(2, Selection.cursor(sourceText.length))
+    else
+      view.updateState(
+        view.state.applyTransaction({ selection: Selection.cursor(sourceText.length) }),
+      )
+    await settle()
+    expect(decodes.length).toBeGreaterThan(1)
+    const current = decodes.at(-1)!
+    current.resolve()
+    await settle()
+    const mounted = view.contentDOM.querySelector('img')
+    expect(mounted).toBe(current.image)
+    old.resolve()
+    old.image.dispatchEvent(new Event('error'))
+    await settle()
+    expect(view.contentDOM.querySelector('img')).toBe(mounted)
+    expect(revoked.filter((url) => url === oldUrl)).toHaveLength(1)
+  })
+
+  it(`uses integer image pixels inside the exact fractional layout slot (${windowed})`, async () => {
+    const view = await make(windowed, provider(imageFixture(600, 406.90625)))
+    decodes[0]!.resolve()
+    await settle()
+    const image = view.contentDOM.querySelector<HTMLImageElement>('img')!
+    expect({ width: image.width, height: image.height }).toEqual({ width: 600, height: 407 })
+    expect(image.style.width).toBe('600px')
+    expect(image.style.height).toBe('407px')
+    expect(image.style.position).toBe('absolute')
+    expect(image.parentElement?.style.width).toBe('600px')
+    expect(image.parentElement?.style.height).toBe('406.90625px')
+    expect(image.parentElement?.style.overflow).toBe('visible')
+    expect(image.parentElement?.style.left).toBe('0px')
+    expect(image.parentElement?.style.top).toBe('0px')
+    expect(image.parentElement?.parentElement?.style.width).toBe('600px')
+    expect(image.parentElement?.parentElement?.style.height).toBe('406.90625px')
+    expect(blobs[0]?.type).toBe('image/svg+xml')
+    // jsdom checks ownership and layout declarations, not real raster equivalence.
+  })
+
+  it(`reserves actual negative and positive ink inside the mapped scrollable fragment (${windowed})`, async () => {
+    const content: DocumentSvgImage = {
+      ...imageFixture(200.25, 120.5),
+      rasterBounds: [-7.25, -9.125, 221.5, 139.625],
+      rootStyle: 0,
+      styles: [
+        { overflow: 'visible' },
+        {
+          fill: { kind: 'none' },
+          stroke: { kind: 'color', rgba: [220, 32, 48, 1] },
+          strokeWidth: { value: 8, unit: 'px' },
+        },
+      ],
+      children: [{ kind: 'rect', x: -3.25, y: -5.125, width: 40, height: 40, style: 1 }],
+    }
+    const view = await make(windowed, provider(content))
+    const previous = view instanceof EditorView ? view.state : view.source
+    decodes[0]!.resolve()
+    await settle()
+    const image = view.contentDOM.querySelector<HTMLImageElement>('img')!
+    const slot = image.parentElement!
+    const ink = slot.parentElement!
+    expect([image.width, image.height, image.style.left, image.style.top]).toEqual([
+      223,
+      141,
+      '-8px',
+      '-10px',
+    ])
+    expect([slot.style.width, slot.style.height, slot.style.left, slot.style.top]).toEqual([
+      '200.25px',
+      '120.5px',
+      '8px',
+      '10px',
+    ])
+    expect([ink.style.width, ink.style.height]).toEqual(['223px', '141px'])
+    // Both negative edges now begin at the scroller's nonnegative origin.
+    expect(parseFloat(slot.style.left) + parseFloat(image.style.left)).toBe(0)
+    expect(parseFloat(slot.style.top) + parseFloat(image.style.top)).toBe(0)
+    const fragment = ink.closest<HTMLElement>('[data-document-presentation]')!
+    expect(fragment.style.overflow).toBe('auto')
+    expect([fragment.dataset.presentationFrom, fragment.dataset.presentationTo]).toEqual([
+      '0',
+      String(firstLine.length),
+    ])
+    await assertUnchanged(view, previous)
+    // Actual native wheel reachability and adjacent footer geometry are separate gates.
+  })
+
+  it(`distinguishes real fractional overflow from transparent raster rounding (${windowed})`, async () => {
+    const view = await make(
+      windowed,
+      provider({
+        ...imageFixture(200.25, 120.5),
+        rasterBounds: [0, 0, 200.5, 120.75],
+      }),
+    )
+    decodes[0]!.resolve()
+    await settle()
+    const image = view.contentDOM.querySelector<HTMLImageElement>('img')!
+    expect([image.width, image.height]).toEqual([201, 121])
+    expect([image.parentElement?.style.width, image.parentElement?.style.height]).toEqual([
+      '200.25px',
+      '120.5px',
+    ])
+    expect([
+      image.parentElement?.parentElement?.style.width,
+      image.parentElement?.parentElement?.style.height,
+    ]).toEqual(['201px', '121px'])
+  })
+
+  it(`preserves math and reference siblings around an owned image (${windowed})`, async () => {
+    const target = { documentId: 'image-test', version: 0, from: 0, to: 5 }
+    const navigate = vi.fn()
+    const view = await make(windowed, {
+      ...provider({
+        type: 'group',
+        children: [
+          { type: 'math', tree: { tag: 'math', children: [{ tag: 'mi', text: 'x' }] } },
+          imageFixture(),
+          { type: 'reference', label: 'Source', target },
+        ],
+      }),
+      onNavigate: navigate,
+    })
+    const previous = view instanceof EditorView ? view.state : view.source
+    decodes[0]!.resolve()
+    await settle()
+    const preview = view.contentDOM.querySelector('[data-document-presentation]')!
+    expect(preview.querySelector('math')?.textContent).toBe('x')
+    expect(preview.querySelectorAll('img')).toHaveLength(1)
+    const reference = preview.querySelector<HTMLButtonElement>('button')!
+    expect(reference.textContent).toBe('Source')
+    reference.click()
+    await settle()
+    expect(navigate).toHaveBeenCalledExactlyOnceWith(target)
+    await assertUnchanged(view, previous)
+  })
+
+  it(`hard invalidation revokes the pending resource even when the response is equivalent (${windowed})`, async () => {
+    const view = await make(windowed)
+    const first = decodes[0]!,
+      url = created[0]!
+    view.invalidateDocumentPresentation()
+    await settle()
+    expect(revoked.filter((candidate) => candidate === url)).toHaveLength(1)
+    expect(decodes).toHaveLength(2)
+    first.resolve()
+    await settle()
+    visibleSource(view)
+    expect(view.contentDOM.querySelector('img')).toBeNull()
+    decodes[1]!.resolve()
+    await settle()
+    expect(view.contentDOM.querySelector('img')).toBe(decodes[1]!.image)
+    expect(created).toHaveLength(2)
+  })
+
+  for (const revoke of ['disabled', 'source', 'destroy'] as const) {
+    it(`revokes pending decode on ${revoke}, ignoring its late completion (${windowed})`, async () => {
+      const view = await make(windowed)
+      expect(decodes).toHaveLength(1)
+      const pending = decodes[0]!
+      if (revoke === 'disabled') view.setDocumentPresentation(undefined)
+      else if (revoke === 'source') view.setMode('source')
+      else {
+        view.destroy()
+        views.splice(views.indexOf(view), 1)
+      }
+      await settle()
+      expect(revoked).toEqual(created)
+      pending.resolve()
+      await settle()
+      expect(view.contentDOM.querySelector('img')).toBeNull()
+      expect(created).toHaveLength(1)
+      expect(revoked).toHaveLength(1)
+      if (revoke !== 'destroy') visibleSource(view)
+    })
+  }
+
+  it(`releases a successfully mounted URL when the provider is removed (${windowed})`, async () => {
+    const view = await make(windowed)
+    expect(decodes).toHaveLength(1)
+    decodes[0]!.resolve()
+    await settle()
+    expect(view.contentDOM.querySelector('img')).not.toBeNull()
+    view.setDocumentPresentation(undefined)
+    await settle()
+    visibleSource(view)
+    expect(view.contentDOM.querySelector('img')).toBeNull()
+    expect(revoked).toEqual(created)
+  })
+
+  it(`late old-document decode cannot replace the new source (${windowed})`, async () => {
+    const view = await make(windowed)
+    expect(decodes).toHaveLength(1)
+    const old = decodes[0]!,
+      oldUrl = created[0]
+    const changedText = `${sourceText} changed`
+    if (view instanceof SourceDocumentView) {
+      view.updateSource(
+        new MemoryDocumentSource({ documentId: 'image-test', version: 1, text: changedText }),
+      )
+      await view.revealSelection(2, Selection.cursor(changedText.length))
+    } else
+      view.updateState(
+        new EditorState({
+          doc: new MemoryTextDocument(changedText),
+          selection: Selection.cursor(changedText.length),
+        }),
+      )
+    await settle()
+    old.resolve()
+    await settle()
+    expect(revoked).toContain(oldUrl)
+    expect(
+      Array.from(view.contentDOM.querySelectorAll('img')).some((image) => image.src === oldUrl),
+    ).toBe(false)
+    expect(view.contentDOM.textContent).toContain('changed')
+    if (view instanceof SourceDocumentView) expect(view.source.version).toBe(1)
+    else expect(view.state.doc.text).toBe(changedText)
+  })
+
+  it(`source mode stays literal and does not create image resources (${windowed})`, async () => {
+    const view = await make(windowed, provider(), 'source')
+    visibleSource(view)
+    expect(created).toEqual([])
+    expect(decodes).toEqual([])
+  })
+
+  it(`unknown child yields full-source fallback without allocating a URL (${windowed})`, async () => {
+    const view = await make(
+      windowed,
+      provider({
+        type: 'group',
+        children: [imageFixture(), { type: 'raw-svg', source: '<svg/>' }],
+      }),
+    )
+    visibleSource(view)
+    expect(view.contentDOM.querySelector('[data-document-presentation]')).toBeNull()
+    expect(created).toEqual([])
+    expect(view.dom.querySelector('[data-document-presentation-notice]')?.textContent).toBeTruthy()
+  })
+}
+
+it('transfers a decoded node through a same-context source-window replacement without a new URL', async () => {
+  const view = await make(true)
+  expect(view).toBeInstanceOf(SourceDocumentView)
+  decodes[0]!.resolve()
+  await settle()
+  const image = view.contentDOM.querySelector('img')
+  const preview = view.contentDOM.querySelector<HTMLElement>('[data-document-presentation]')!
+  preview.scrollTop = 41
+  preview.scrollLeft = 25
+  preview.focus()
+  await (view as SourceDocumentView).renderVisibleWindow()
+  await settle()
+  const replacement = view.contentDOM.querySelector<HTMLElement>('[data-document-presentation]')!
+  expect(view.contentDOM.querySelector('img')).toBe(image)
+  expect(created).toHaveLength(1)
+  expect(revoked).toEqual([])
+  expect(decodes).toHaveLength(1)
+  expect({ top: replacement.scrollTop, left: replacement.scrollLeft }).toEqual({
+    top: 41,
+    left: 25,
+  })
+  expect(document.activeElement).toBe(replacement)
+  await settle()
+  expect(created).toHaveLength(1)
+})
+
+it('the existing synchronous factory cannot create an ownerless image URL', () => {
+  const math = createDocumentPresentationNode(document, {
+    type: 'math',
+    tree: { tag: 'math', children: [{ tag: 'mi', text: 'x' }] },
+  })
+  expect(math.textContent).toBe('x')
+  expect(() => createDocumentPresentationNode(document, imageFixture())).toThrow()
+  expect(created).toEqual([])
+})
+
+for (const windowed of [false, true]) {
+  it(`keeps an equivalent decoded image through a validated provider refresh (${windowed})`, async () => {
+    const view = await make(windowed)
+    decodes[0]!.resolve()
+    await settle()
+    const image = view.contentDOM.querySelector('img')
+    expect(image).not.toBeNull()
+    view.refreshDocumentPresentation()
+    await settle()
+    expect(view.contentDOM.querySelector('img')).toBe(image)
+    expect(created).toHaveLength(1)
+    expect(decodes).toHaveLength(1)
+    expect(revoked).toEqual([])
+    image!.dispatchEvent(new Event('error'))
+    await settle()
+    visibleSource(view)
+    expect(revoked).toEqual(created)
+  })
+}
+
+for (const windowed of [false, true]) {
+  for (const change of ['theme', 'width', 'content', 'accessibleText', 'declaration'] as const) {
+    it(`does not reuse a decoded owner after ${change} changes (${windowed})`, async () => {
+      let changed = false
+      const base = provider()
+      const config: DocumentPresentationConfig = {
+        provide: async (window, options) => {
+          const result = await base.provide(window, options)
+          if (!changed) return result
+          return {
+            ...result,
+            declarations:
+              change === 'declaration'
+                ? [{ id: 'replacement-image-test', contexts: ['text'] }]
+                : result.declarations,
+            request: {
+              ...result.request,
+              theme: change === 'theme' ? 'dark' : result.request.theme,
+            },
+            result: {
+              ...result.result,
+              fragments: result.result.fragments.map((fragment) => ({
+                ...fragment,
+                accessibleText:
+                  change === 'accessibleText' ? 'Changed description' : fragment.accessibleText,
+                content: change === 'content' ? imageFixture(180) : fragment.content,
+              })),
+            },
+          }
+        },
+      }
+      const view = await make(windowed, config)
+      decodes[0]!.resolve()
+      await settle()
+      const image = view.contentDOM.querySelector('img')
+      changed = true
+      if (change === 'width')
+        Object.defineProperty(view.contentDOM, 'clientWidth', { value: 640, configurable: true })
+      view.refreshDocumentPresentation()
+      await settle()
+      expect(revoked).toEqual([created[0]])
+      expect(view.contentDOM.querySelector('img')).toBeNull()
+      visibleSource(view)
+      expect(decodes).toHaveLength(2)
+      decodes[1]!.resolve()
+      await settle()
+      expect(view.contentDOM.querySelector('img')).not.toBe(image)
+      expect(view.contentDOM.querySelector('img')).not.toBeNull()
+    })
+  }
+
+  it(`does not migrate a pending decode or accept its late completion (${windowed})`, async () => {
+    const view = await make(windowed)
+    view.refreshDocumentPresentation()
+    await settle()
+    expect(decodes).toHaveLength(2)
+    expect(revoked).toEqual([created[0]])
+    decodes[0]!.resolve()
+    await settle()
+    expect(view.contentDOM.querySelector('img')).toBeNull()
+    visibleSource(view)
+    decodes[1]!.resolve()
+    await settle()
+    expect(view.contentDOM.querySelector('img')).toBe(decodes[1]!.image)
+  })
+}

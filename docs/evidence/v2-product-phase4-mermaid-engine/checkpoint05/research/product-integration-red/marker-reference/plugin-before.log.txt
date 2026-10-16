@@ -1,0 +1,66 @@
+
+ RUN  v3.2.6 /workspace/milkup/plugins/diagrams
+
+ ❯ src/paint-envelope.test.ts (25 tests | 2 failed) 29ms
+   ✓ plugin-private SVG paint envelope > retains the original fractional viewport for hidden overflow without asking for text metrics 2ms
+   ✓ plugin-private SVG paint envelope > includes negative stroke ink rather than clipping it to the root viewport 2ms
+   ✓ plugin-private SVG paint envelope > covers diagonal square cap corners with round joins 1ms
+   ✓ plugin-private SVG paint envelope > transforms all four corners of an anisotropic rotated shape 3ms
+   ✓ plugin-private SVG paint envelope > maps user-space ink through the root viewBox and nonuniform CSS viewport 0ms
+   ✓ plugin-private SVG paint envelope > preserves root meet letterboxing instead of assuming independent axis scales 0ms
+   ✓ plugin-private SVG paint envelope > corrects undersized arc radii before enclosing the painted arc 0ms
+   ✓ plugin-private SVG paint envelope > includes reflected quadratic and cubic control extents 1ms
+   ✓ plugin-private SVG paint envelope > includes long end markers outside the original right edge 3ms
+   ✓ plugin-private SVG paint envelope > maps marker reference and content together for viewBox [ +0, +0, 5, 5 ] 1ms
+   ✓ plugin-private SVG paint envelope > maps marker reference and content together for viewBox [ 1, 2, 5, 5 ] 0ms
+   ✓ plugin-private SVG paint envelope > preserves the mapped reference after reflecting the referencing shape 1ms
+   ✓ plugin-private SVG paint envelope > includes marker-mid on the intervening endpoints of disconnected subpaths 0ms
+   ✓ plugin-private SVG paint envelope > maps symbol content before applying its translated use position 0ms
+   ✓ plugin-private SVG paint envelope > uses explicit SVG filter clipping region, including shadow spill beyond the shape 0ms
+   ✓ plugin-private SVG paint envelope > bounds zero-blur CSS shadows in order and rejects a guessed nonzero blur radius 1ms
+   ✓ plugin-private SVG paint envelope > does not invent bounds for unresolved local filters 0ms
+   ✓ plugin-private SVG paint envelope > uses exact typed-node text identity and includes descendant stroke 1ms
+   ✓ plugin-private SVG paint envelope > rejects visible text without a private measurement rather than guessing from font size 0ms
+   ✓ plugin-private SVG paint envelope > does not use a conservative path hull as an exact fill-box transform origin 0ms
+   ✓ plugin-private SVG paint envelope > keeps clipping conservative without pretending its object bbox is exact 0ms
+   ✓ plugin-private SVG paint envelope > rejects cyclic local references within a bounded traversal 1ms
+   ✓ plugin-private SVG paint envelope > rejects nonfinite private metrics 0ms
+   × plugin-private SVG paint envelope > does not inherit the referencing shape stroke:none into marker contents 7ms
+     → expected -2 to be less than or equal to -5
+   × plugin-private SVG paint envelope > resolves marker em reference using its own font and root inheritance 1ms
+     → expected -3 to be less than or equal to -32
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/paint-envelope.test.ts > plugin-private SVG paint envelope > does not inherit the referencing shape stroke:none into marker contents
+AssertionError: expected -2 to be less than or equal to -5
+ ❯ contains src/paint-envelope.test.ts:34:18
+     32| const rect: SdkDocumentSvgNode = { kind: 'rect', x: 0, y: 0, width: 10…
+     33| function contains(box: SdkDocumentSvgBox, x: number, y: number): void {
+     34|   expect(box[0]).toBeLessThanOrEqual(x)
+       |                  ^
+     35|   expect(box[1]).toBeLessThanOrEqual(y)
+     36|   expect(box[0] + box[2]).toBeGreaterThanOrEqual(x)
+ ❯ src/paint-envelope.test.ts:428:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/paint-envelope.test.ts > plugin-private SVG paint envelope > resolves marker em reference using its own font and root inheritance
+AssertionError: expected -3 to be less than or equal to -32
+ ❯ contains src/paint-envelope.test.ts:34:18
+     32| const rect: SdkDocumentSvgNode = { kind: 'rect', x: 0, y: 0, width: 10…
+     33| function contains(box: SdkDocumentSvgBox, x: number, y: number): void {
+     34|   expect(box[0]).toBeLessThanOrEqual(x)
+       |                  ^
+     35|   expect(box[1]).toBeLessThanOrEqual(y)
+     36|   expect(box[0] + box[2]).toBeGreaterThanOrEqual(x)
+ ❯ src/paint-envelope.test.ts:454:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 23 passed (25)
+   Start at  12:03:31
+   Duration  481ms (transform 127ms, setup 0ms, collect 140ms, tests 29ms, environment 0ms, prepare 84ms)
+

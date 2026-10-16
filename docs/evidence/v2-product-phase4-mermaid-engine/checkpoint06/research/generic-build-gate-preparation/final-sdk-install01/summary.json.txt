@@ -1,0 +1,177 @@
+{
+  "status": "final-sdk-lock-install-types-tests-pass",
+  "cpuReleased": true,
+  "scope": "Only authorized first final-build segment; no profile generation, bundle build, standalone/trusted proof, staging, native production or release claim.",
+  "sdk": {
+    "status": "final-sdk-pack-verified",
+    "bytes": 22524,
+    "sha256": "1717c0114aa165fa3e48a1bfa7687ffd0d9b2e5392d33e99d8b2dc59a1f3ad4f",
+    "sourceChangesExceptAuthoringLockAndExactReleaseAgeException": [],
+    "packedPublicFilesByteEqual": [
+      "src/index.js",
+      "src/index.d.ts",
+      "README.md"
+    ],
+    "packageJsonTransformation": "pnpm pack replaces workspace:* devDependency with current core version; all other parsed fields equal",
+    "authoringWorkspaceChange": "pnpm added exact minimumReleaseAgeExclude cytoscape@3.34.4 while resolving explicitly approved override; raw output preserved"
+  },
+  "installed": {
+    "status": "frozen-install-verified",
+    "lockSha256": "eece5b86a0955df5204de2dc0cd69b1907a31a83de7d6fad39fa442c11ca7f01",
+    "authoredLockBytesUnchangedByFrozenInstall": true,
+    "vendorIntegrityMatches": true,
+    "installedSdkPublicFiles": [
+      {
+        "path": "src/index.js",
+        "installedRealPath": "/workspace/milkup/plugins/diagrams/node_modules/.pnpm/@milkup+plugin-sdk@file+vendor+plugin-sdk.tgz/node_modules/@milkup/plugin-sdk/src/index.js",
+        "sha256": "08c69a21ee6cf0de394bef80f52d01a906ceeb9ba09ab09cf46c01f4b3a0d7cb"
+      },
+      {
+        "path": "src/index.d.ts",
+        "installedRealPath": "/workspace/milkup/plugins/diagrams/node_modules/.pnpm/@milkup+plugin-sdk@file+vendor+plugin-sdk.tgz/node_modules/@milkup/plugin-sdk/src/index.d.ts",
+        "sha256": "f5ad0a499ed19aa10d27acef222a465f8e3df9e8b399d358213fc48f558315ac"
+      },
+      {
+        "path": "README.md",
+        "installedRealPath": "/workspace/milkup/plugins/diagrams/node_modules/.pnpm/@milkup+plugin-sdk@file+vendor+plugin-sdk.tgz/node_modules/@milkup/plugin-sdk/README.md",
+        "sha256": "8062ff5ca9c0d87bf408d3bc66c6ccb7ab1473047e21468ef647354718d6d929"
+      }
+    ],
+    "requiredRasterBounds": true,
+    "cytoscape": "3.34.4"
+  },
+  "commands": [
+    {
+      "argv": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "--dir",
+        "packages/plugin-sdk",
+        "pack",
+        "--pack-destination",
+        "/workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-sdk-install01/sdk"
+      ],
+      "startedAt": "2026-10-16T12:46:06.047866+00:00",
+      "endedAt": "2026-10-16T12:46:06.982722+00:00",
+      "exitCode": 0,
+      "log": "/workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-sdk-install01/01-final-sdk-pack.log",
+      "logSha256": "94a7abf662db50f6a2936681de86f38a2f3b1c8faa811d9de60ecc7580f9d5a8"
+    },
+    {
+      "argv": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "--dir",
+        "plugins/diagrams",
+        "install",
+        "--lockfile-only",
+        "--no-frozen-lockfile",
+        "--ignore-scripts",
+        "--config.manage-package-manager-versions=false"
+      ],
+      "startedAt": "2026-10-16T12:46:20.349892+00:00",
+      "endedAt": "2026-10-16T12:46:22.020507+00:00",
+      "exitCode": 0,
+      "log": "/workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-sdk-install01/02-lock-authoring.log",
+      "logSha256": "53b82691b563baac510db6b0302774029def3c0269beee17de0791be7cdb6463"
+    },
+    {
+      "argv": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "--dir",
+        "plugins/diagrams",
+        "install",
+        "--lockfile-only",
+        "--no-frozen-lockfile",
+        "--ignore-scripts",
+        "--config.manage-package-manager-versions=false"
+      ],
+      "startedAt": "2026-10-16T12:47:22.881857+00:00",
+      "endedAt": "2026-10-16T12:47:29.715682+00:00",
+      "exitCode": 0,
+      "log": "/workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-sdk-install01/03-final-vendor-lock-authoring.log",
+      "logSha256": "ab330885f45986a5abfe4bcd1aebf841c633748b3f0f0943b811bbdea51e01d3"
+    },
+    {
+      "argv": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "--dir",
+        "plugins/diagrams",
+        "install",
+        "--frozen-lockfile",
+        "--ignore-scripts",
+        "--config.manage-package-manager-versions=false",
+        "--config.verify-store-integrity=true"
+      ],
+      "startedAt": "2026-10-16T12:47:46.065528+00:00",
+      "endedAt": "2026-10-16T12:47:48.051657+00:00",
+      "exitCode": 0,
+      "log": "/workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-sdk-install01/04-frozen-install.log",
+      "logSha256": "1a817bb2391c2c08ef0373e5b30d999ce28a329845e94a7ab0ffb9672f281854"
+    },
+    {
+      "argv": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "--dir",
+        "plugins/diagrams",
+        "check"
+      ],
+      "startedAt": "2026-10-16T12:48:16.080812+00:00",
+      "endedAt": "2026-10-16T12:48:18.992279+00:00",
+      "exitCode": 0,
+      "log": "/workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-sdk-install01/05-diagrams-types.log",
+      "logSha256": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92"
+    },
+    {
+      "argv": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "--dir",
+        "plugins/diagrams",
+        "test",
+        "--maxWorkers=1"
+      ],
+      "startedAt": "2026-10-16T12:48:31.291217+00:00",
+      "endedAt": "2026-10-16T12:48:33.817555+00:00",
+      "exitCode": 0,
+      "log": "/workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-sdk-install01/06-diagrams-tests.log",
+      "logSha256": "47414e68bb9c090315c5ab073898c60c9dfb068031b87a3db285f7c5f254f588"
+    }
+  ],
+  "tests": {
+    "files": 5,
+    "passed": 89,
+    "failed": 0
+  },
+  "sourceChanges": [
+    {
+      "path": "plugins/diagrams/pnpm-lock.yaml",
+      "beforeSha256": "6230d5d2a8bad6fe50bb2e42f65301ef26c315a154a7059b8d9433a717cda488",
+      "afterSha256": "eece5b86a0955df5204de2dc0cd69b1907a31a83de7d6fad39fa442c11ca7f01"
+    },
+    {
+      "path": "plugins/diagrams/pnpm-workspace.yaml",
+      "beforeSha256": "dc04a2a6f7316ce543f0371cc3172561d042791060555c8f3ea639e8db84bc78",
+      "afterSha256": "2019a4dd5493fdd155e040b2a6d40e1a73c43f9877f80be1138b3f170e3f0804"
+    }
+  ],
+  "runtimeGraph": {
+    "research": 117,
+    "finalLock": 117,
+    "versionDifferences": [],
+    "missing": [],
+    "additional": []
+  },
+  "firstFailureRetained": "Packed package.json raw equality was an invalid check because pnpm converts workspace devDependencies. Public JS/types/README were equal; later exact semantic metadata check passed. The following intermediate authoring command ran before vendor replacement due missing shell errexit; it is not accepted as final proof. Raw stdout and note retained; final vendor refresh explicitly reran and matched sha512 before frozen install.",
+  "policyException": "Explicit pinned cytoscape@3.34.4 only. pnpm policy handler records this only after current minimum-release-age violation; installed source excerpt and raw output retained. No global policy disable.",
+  "pending": [
+    "profile and notices authoring",
+    "final standalone frozen proof",
+    "generic trusted full-plugin parity",
+    "exact legacy archive backup/removal and staging",
+    "native/full-root validation"
+  ]
+}

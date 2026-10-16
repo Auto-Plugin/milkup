@@ -1,0 +1,86 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/document-presentation-service.test.ts (13 tests | 3 failed | 9 skipped) 88ms
+   ↓ desktop document presentation service > uses trusted context and validates inert results
+   ↓ desktop document presentation service > rejects results after document replacement even when IDs and versions match
+   ↓ desktop document presentation service > rejects a mutable native source version changed while its renderer is pending
+   ↓ desktop document presentation service > rejects source replacement with unchanged view identity, document ID and version
+   ↓ desktop document presentation service > drops code-overlap and stale contributions while preserving source
+   ↓ desktop document presentation service > invalidates in-flight work and does not cache a rejected provider
+   ↓ bounded slow-source presentation preparation > retains completed prefix checkpoints across a settled ten-second preparation abort
+   ↓ bounded slow-source presentation preparation > does not publish a prefix checkpoint from an uncancellable read resolved after abort
+   ↓ bounded slow-source presentation preparation > discards prefix checkpoints when the same source moves to another document version
+   × viewport-prioritized bounded fence presentation > keeps an independently valid fence when the shared canonical budget is full 39ms
+     → expected [] to have a length of 1 but got +0
+   × viewport-prioritized bounded fence presentation > promotes a later visible fence without relying on selection or overscan changes 17ms
+     → expected [] to have a length of 1 but got +0
+   ✓ viewport-prioritized bounded fence presentation > keeps all competing providers in a fence conflict before budget admission 28ms
+   × viewport-prioritized bounded fence presentation > retains source ordering when later viewport fragments are admitted first 2ms
+     → expected +0 to be 40 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/document-presentation-service.test.ts > viewport-prioritized bounded fence presentation > keeps an independently valid fence when the shared canonical budget is full
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ apps/desktop/src/document-presentation-service.test.ts:301:39
+    299|     })
+    300|     const response = await service.provide({ ...f.window, visibleFrom:…
+    301|     expect(response.result.fragments).toHaveLength(1)
+       |                                       ^
+    302|     expect(response.result.fragments[0]!.from).toBe(0)
+    303|     expect(response.result.complete).toBe(false)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  apps/desktop/src/document-presentation-service.test.ts > viewport-prioritized bounded fence presentation > promotes a later visible fence without relying on selection or overscan changes
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ apps/desktop/src/document-presentation-service.test.ts:316:39
+    314|     })
+    315|     const response = await service.provide({ ...f.window, visibleFrom:…
+    316|     expect(response.result.fragments).toHaveLength(1)
+       |                                       ^
+    317|     expect(response.result.fragments[0]!.from).toBe(third)
+    318|     expect(render.mock.calls[0]![2].from).toBe(third)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  apps/desktop/src/document-presentation-service.test.ts > viewport-prioritized bounded fence presentation > retains source ordering when later viewport fragments are admitted first
+AssertionError: expected +0 to be 40 // Object.is equality
+
+- Expected
++ Received
+
+- 40
++ 0
+
+ ❯ apps/desktop/src/document-presentation-service.test.ts:343:43
+    341|     })
+    342|     const response = await service.provide({ ...f.window, visibleFrom:…
+    343|     expect(render.mock.calls[0]![2].from).toBe(third)
+       |                                           ^
+    344|     const offsets = response.result.fragments.map((f) => f.from)
+    345|     expect(offsets).toEqual([...offsets].sort((a, b) => a - b))
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 1 passed | 9 skipped (13)
+   Start at  13:48:51
+   Duration  1.49s (transform 578ms, setup 0ms, collect 705ms, tests 88ms, environment 0ms, prepare 89ms)
+

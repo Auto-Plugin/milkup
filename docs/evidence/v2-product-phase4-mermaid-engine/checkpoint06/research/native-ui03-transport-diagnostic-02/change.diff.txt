@@ -1,0 +1,48 @@
+--- 01/observer.js
++++ 02/observer.js
+@@ -34,10 +34,12 @@
+       coreDescriptors,
+     };
+   }
+-  const handlers = Object.values(entries).map((entry) => ({
+-    id: entry.handlerId,
+-    original: callbacks.get(entry.handlerId),
+-  }));
++  const handlers = Object.getOwnPropertyNames(entries)
++    .map((key) => Object.getOwnPropertyDescriptor(entries, key)?.value)
++    .map((entry) => ({
++      id: entry.handlerId,
++      original: callbacks.get(entry.handlerId),
++    }));
+   if (
+     handlers.length !== 1 ||
+     handlers.some((entry) => typeof entry.original !== "function")
+
+--- 01/diagnostic.mjs
++++ 02/diagnostic.mjs
+@@ -80,7 +80,7 @@
+   await app.until(
+     () =>
+       app.execute(
+-        "return Object.keys(window.__internal_unstable_listeners_object_id__?.['milkup-plugin-dom-message'] || {}).length === 1",
++        "return Object.getOwnPropertyNames(window.__internal_unstable_listeners_object_id__?.['milkup-plugin-dom-message'] || {}).length === 1",
+       ),
+     "existing DOM listener",
+     10000,
+@@ -133,7 +133,15 @@
+     stack: error.stack,
+     document: app ? await app.probe().catch(() => null) : null,
+   });
+-  if (app) await app.shot("FAIL").catch(() => {});
++  if (app) {
++    const shape = await app
++      .execute(
++        `const c=window.__internal_unstable_listeners_object_id__?.['milkup-plugin-dom-message'];const m=window.__TAURI_INTERNALS__?.callbacks;return {containerType:typeof c,isMap:m instanceof Map,entries:c?Object.getOwnPropertyNames(c).map(key=>{const d=Object.getOwnPropertyDescriptor(c,key);const v=d?.value;return {key,writable:d?.writable,configurable:d?.configurable,enumerable:d?.enumerable,valueType:typeof v,handlerId:v?.handlerId,callbackType:typeof m?.get(v?.handlerId)}}):[]}`,
++      )
++      .catch((error) => ({ error: String(error) }));
++    await save("failure-api-shape", shape);
++    await app.shot("FAIL").catch(() => {});
++  }
+   process.exitCode = 1;
+ } finally {
+   if (app && installed) {

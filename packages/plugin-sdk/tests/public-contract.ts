@@ -239,3 +239,72 @@ definePlugin({
 // @ts-expect-error Raw HTML is deliberately not a document semantic node.
 const unsafePresentation: SdkDocumentPresentationNode = { type: 'html', html: '<script/>' }
 void unsafePresentation
+
+// SDK 0.3.4 closed image contract.
+import type {
+  SdkDocumentPresentationNode as ImagePresentationNode,
+  SdkDocumentRenderer as ImageRenderer,
+} from '../src/index.js'
+
+const svgImage: ImagePresentationNode = {
+  type: 'svg-image',
+  profile: 'bounded-svg-v1',
+  motion: 'static',
+  width: 160,
+  height: 96,
+  rasterBounds: [0, 0, 160, 96],
+  viewBox: [0, 0, 160, 96],
+  aspect: { align: 'xMidYMid', fit: 'meet' },
+  styles: [{ shapeRendering: 'crispEdges', fill: { kind: 'color', rgba: [40, 60, 80, 1] } }],
+  definitions: [],
+  children: [{ kind: 'rect', style: 0, x: 4, y: 8, width: 80, height: 40 }],
+}
+const svgImageRenderer: ImageRenderer = (request) => ({
+  complete: true,
+  fragments: [
+    {
+      from: request.from,
+      to: request.to,
+      layout: 'block',
+      content: svgImage,
+      accessibleText: 'Example diagram',
+    },
+  ],
+})
+void svgImageRenderer
+
+type ImageNode = Extract<ImagePresentationNode, { readonly type: 'svg-image' }>
+declare const readonlyImage: ImageNode
+const { rasterBounds: explicitRasterBounds, ...withoutRasterBounds } = readonlyImage
+// @ts-expect-error Every closed image explicitly declares its raster region.
+const implicitRasterImage: ImageNode = withoutRasterBounds
+// @ts-expect-error Region coordinates are immutable presentation data.
+readonlyImage.rasterBounds[0] = 1
+void [explicitRasterBounds, implicitRasterImage]
+// @ts-expect-error Image profile is immutable data, not an edit handle.
+readonlyImage.width = 2
+// @ts-expect-error Plugins cannot provide an image URL or live object URL.
+const withURL: ImageNode = { ...readonlyImage, url: 'https://example.invalid/image.svg' }
+// @ts-expect-error Raw markup is not a renderer capability.
+const withMarkup: ImageNode = { ...readonlyImage, rawSvg: '<svg/>' }
+const withCSS: ImageNode = {
+  ...readonlyImage,
+  // @ts-expect-error Free-form CSS is not a style-table member.
+  styles: [{ cssText: 'fill:url(https://example.invalid)' }],
+}
+const withEvent: ImageNode = {
+  ...readonlyImage,
+  // @ts-expect-error No event attributes or handlers in typed geometry.
+  children: [{ kind: 'rect', x: 0, y: 0, width: 20, height: 20, onload: 'x' }],
+}
+void [withURL, withMarkup, withCSS, withEvent]
+
+const unresolvedFilter: import('../src/index.js').SdkDocumentSvgFilterValue = {
+  kind: 'unresolved-local',
+}
+const arbitraryFilter: import('../src/index.js').SdkDocumentSvgFilterValue = {
+  kind: 'unresolved-local',
+  // @ts-expect-error Unresolved local filter carries no producer-controlled reference.
+  ref: 'https://example.invalid',
+}
+void [unresolvedFilter, arbitraryFilter]

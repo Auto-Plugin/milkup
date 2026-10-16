@@ -1,0 +1,99 @@
+# Production-02 build and generic DOM lifecycle results
+
+The production Linux deb build and artifact freeze passed on their first attempts.
+All five fresh lifecycle cases also passed on their first attempts, without runtime
+harness edits or whole-case retries. The host fence scheduling change was exercised
+through the normal installed generic fence renderer in the full production editor.
+Official Mermaid multi-diagram/UI/pixel acceptance is a separate next gate.
+
+## Frozen executable and inputs
+
+- Extracted executable: `install/usr/bin/milkup-desktop`, 21,859,568 bytes, SHA256 `6e51db6e642207602de326549ab611486fe776484a88cc5fd28ed432a969797a`.
+- Deb: `artifacts/milkup_2.0.0-beta.1_amd64.deb`, SHA256 `e1d5025ffc31b37b3ace35ba13eb06a22c93cbcb70fddeb02c97ff05fdbd164b`.
+- Guard SHA256: `5b1082768123b9ac1923eb8ef3f6f8c0bd05ffd5d66b8b2a023f75b69106c44c`; exact Cargo dependency path resolved and full guard bytes found embedded in this executable.
+- diagrams 1.1.0 archive SHA256: `27db9bdefb9b241b03da2f3536f7e50d334117f928f963cfe290543f650b6239`.
+- SDK 0.3.4 tarball SHA256: `1717c0114aa165fa3e48a1bfa7687ffd0d9b2e5392d33e99d8b2dc59a1f3ad4f`.
+
+`provenance.json` contains complete paths/hashes, frontend files and build command.
+The first build ran 2026-10-16 14:13:55.397202–14:15:18.358140 UTC (82.960938 s).
+`bundle-marker-attribution.json` proves the only target/deb executable difference
+is the unique three-byte Tauri `UNK`→`DEB` marker and records full hashes, sizes,
+offset, whole-byte equality after replacement, and equal ELF build IDs.
+
+All 2,911 captured source/dependency files (37,282,411 bytes) matched both after the
+build and after all five lifecycle cases. This includes the formal desktop runner
+fix that separates Vitest from the four Node bootstrap tests. Native product
+Rust/bootstrap, guard, SDK and official plugin archive remained unchanged; the
+new executable embeds the changed trusted frontend fence scheduling implementation.
+The immutable source bodies are in `source/`; before/after/final records are retained.
+
+## Five fresh runs
+
+Raw command, timestamps, exit status, source snapshot and logs are under
+`lifecycle/control`. Each run has independent profiles and evidence under
+`lifecycle/profiles` and `lifecycle/runs`. `lifecycle-summary.json` retains all
+observed identities, phase timings, input samples, instrumentation baseline and
+heartbeat statistics. Each run recorded nine owned PID/birth identities and required
+the entire observed context plus exact private directory to disappear before outer
+cleanup. All five commands exited zero.
+
+| Case | Run | Duration | Input→DOM / two RAF |
+| --- | --- | ---: | ---: |
+| Timeout | lifecycle-p02-timeout-01 | 19.805248 s | 9 / 32 ms |
+| Disable busy renderer | lifecycle-p02-disable-01 | 15.622861 s | 10 / 74 ms |
+| Remove busy renderer | lifecycle-p02-remove-01 | 30.402300 s | 9 / 26 ms |
+| Normal window close | lifecycle-p02-wm-close-01 | 26.157244 s | — |
+| Exact app SIGKILL | lifecycle-p02-app-sigkill-01 | 23.962666 s | — |
+
+The timeout case retained the original `render_2` native deadline while trusted
+editing changed the source version; no replacement dispatch hid/reset it. Exact
+edited source bytes were saved. Disable preserved the package; remove removed its
+package/card. WM close and SIGKILL separately required the editor itself to exit.
+Real CPU growth in the running WebKit renderer was observed before each action.
+
+Every phase below is seconds from the **original native render dispatch**, not
+from the later click, close or SIGKILL action. These are observed monotonic scheduling
+points, not hard real-time guarantees.
+
+| Case | Deadline observed | Kill started | ECHILD exact diagnostic | Timeout control emitted |
+| --- | ---: | ---: | ---: | ---: |
+| Timeout | 2.000290860 | 2.001983235 | 2.024397060 | 2.037323078 |
+| Disable | — | 0.673707842 | 0.718473252 | — |
+| Remove | — | 1.883449886 | 1.949509780 | — |
+| WM close | — | 0.353043717 | 0.402799077 | — |
+| App SIGKILL | — | 0.205171952 | Unobservable | — |
+
+The SIGKILL terminal trace was absent, as permitted by the already-reviewed
+best-effort asynchronous diagnostic contract. The exact guardian PID 310131/birth
+4797320 naturally exited with status0 and was reaped by ancestor309749. Its successful
+return requires ECHILD in product code. The ancestor observed natural exit at
+monotonic47979396084654 ns and completed waitpid at47979396459212 ns. The exact ECHILD
+time remains null; natural exit provides only an upper bound. All nine identities
+and the private directory disappeared within the original 4.5 s observation bound.
+The ancestor sent no descendant signals, removed no directories, and remained alive
+until the verdict, supplying ordinary init reaping duties for the cloud container.
+
+## UI measurement limits
+
+Page event listeners, MutationObserver, 20 ms timers, rAF and external process
+sampling add observational overhead; no timing was subtracted. The 200 ms target
+passed for the specific trusted input→two-rAF samples. It does not mean every frame
+or timer callback completed under 200 ms. Maximum rAF gaps in the observed
+busy→cleanup window were 41 ms (timeout), 213 ms (disable), and 253 ms (remove).
+Maximum timer gaps were 38, 103 and 253 ms. Disable/remove typing occurred after
+cleanup; their input samples do not establish overlapping input latency during
+cleanup. The timeout input does occur during the busy renderer.
+
+## Ownership and handoff
+
+The final audit found all45 observed product PID/birth identities absent, every
+one of the five driver identities absent, and ports4626/4627 free. Xvfb :126,
+PID288383/birth4366483, was deliberately retained for the next root-authorized UI
+suite. The CPU/UI slot was released immediately after the final driver stopped.
+Historical production-01 failed-run zombies remain recorded in that separate
+original audit; they are not silently treated as successes or part of these runs.
+
+Production-01's original build, fourteen runs and failure evidence were untouched.
+No Windows build, upload, release, merge or commit was performed. `PREPARATION.md`
+and `preparation.json` are the preserved pre-execution plan/status, not the final
+result; this report and `lifecycle-summary.json` provide the completed outcome.

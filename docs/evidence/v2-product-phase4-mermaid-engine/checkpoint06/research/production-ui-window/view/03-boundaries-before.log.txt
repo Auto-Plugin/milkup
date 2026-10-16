@@ -1,0 +1,71 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/document-presentation-boundaries.test.ts (2 tests | 2 failed) 135ms
+   × includes an initially visible complete long fence within the input budget (ordinary) 102ms
+     → expected 'MARKER\n```generic\nnode 0\nnode 1\nn…' to contain 'node 59\n```'
+   × includes an initially visible complete long fence within the input budget (windowed) 32ms
+     → expected 'MARKER\n```generic\nnode 0\nnode 1\nn…' to contain 'node 59\n```'
+
+ Test Files  1 failed (1)
+      Tests  2 failed (2)
+   Start at  13:50:18
+   Duration  2.46s (transform 926ms, setup 0ms, collect 1.19s, tests 135ms, environment 536ms, prepare 215ms)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation-boundaries.test.ts > includes an initially visible complete long fence within the input budget (ordinary)
+ FAIL  src/__tests__/document-presentation-boundaries.test.ts > includes an initially visible complete long fence within the input budget (windowed)
+AssertionError: expected 'MARKER\n```generic\nnode 0\nnode 1\nn…' to contain 'node 59\n```'
+
+- Expected
++ Received
+
+- node 59
+- ```
++ MARKER
++ ```generic
++ node 0
++ node 1
++ node 2
++ node 3
++ node 4
++ node 5
++ node 6
++ node 7
++ node 8
++ node 9
++ node 10
++ node 11
++ node 12
++ node 13
++ node 14
++ node 15
++ node 16
++ node 17
++ node 18
++ node 19
++ node 20
++ node 21
++ node 22
++ node 23
++ node 24
++ node 25
++ node 26
++ node 27
++ node 28
++ node 29
++ node 30
++ node 31
+
+ ❯ src/__tests__/document-presentation-boundaries.test.ts:28:28
+     26|     const request=calls.at(-1)!
+     27|     expect(request).toBeDefined()
+     28|     expect(request.source).toContain('node 59\n```')
+       |                            ^
+     29|     expect(request.toLine).toBeGreaterThanOrEqual(63)
+     30|     expect(request.toLine-request.fromLine+1).toBeLessThanOrEqual(256)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+

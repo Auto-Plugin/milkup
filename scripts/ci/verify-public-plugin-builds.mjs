@@ -204,6 +204,7 @@ for (const entry of plugins) {
       format: 'esm',
       platform: 'browser',
       target: entry.closure.target,
+      minify: entry.closure.minify,
       outfile: 'dist/plugin.js',
       legalComments: 'eof',
       write: false,

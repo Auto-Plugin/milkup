@@ -1,0 +1,3822 @@
+{
+  "diagnosticOnly": true,
+  "mermaidTested": true,
+  "converterPrototypeTested": true,
+  "results": [
+    {
+      "task": "native-resource-guard",
+      "elapsed": 0.0156499669974437,
+      "value": {
+        "status": "blocked"
+      }
+    },
+    {
+      "task": "scan_030",
+      "sampleId": "pie-000-first-official-example",
+      "sourceSha256": "f41484cd94dd84837056db4c681ce6119f533b643bed745c58116553acdebf27",
+      "profile": "baseline",
+      "elapsed": 0.29895027699967613,
+      "serializedBytes": 22432,
+      "diagramType": "pie"
+    }
+  ],
+  "events": [
+    {
+      "kind": "spawn",
+      "mono": 36649.398384358,
+      "wall": 1792149036.9593456,
+      "pid": 233110,
+      "birth": "3664939",
+      "command": [
+        "/usr/bin/bwrap",
+        "--die-with-parent",
+        "--unshare-user",
+        "--unshare-pid",
+        "--unshare-ipc",
+        "--unshare-uts",
+        "--unshare-net",
+        "--clearenv",
+        "--ro-bind",
+        "/usr",
+        "/usr",
+        "--overlay-src",
+        "/usr/bin",
+        "--tmp-overlay",
+        "/usr/bin",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/bin/xdg-dbus-proxy",
+        "/usr/bin/xdg-dbus-proxy",
+        "--remount-ro",
+        "/usr/bin",
+        "--symlink",
+        "usr/bin",
+        "/bin",
+        "--symlink",
+        "usr/lib",
+        "/lib",
+        "--symlink",
+        "usr/lib64",
+        "/lib64",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu",
+        "/runtime/lib",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/share/glib-2.0/schemas",
+        "/runtime/schemas",
+        "--overlay-src",
+        "/usr/lib/x86_64-linux-gnu",
+        "--tmp-overlay",
+        "/usr/lib/x86_64-linux-gnu",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1",
+        "/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1",
+        "--remount-ro",
+        "/usr/lib/x86_64-linux-gnu",
+        "--ro-bind",
+        "/etc/fonts",
+        "/etc/fonts",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/passwd",
+        "/etc/passwd",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/group",
+        "/etc/group",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/hostname",
+        "/etc/hostname",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/hosts",
+        "/etc/hosts",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/nsswitch.conf",
+        "/etc/nsswitch.conf",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/machine-id",
+        "/etc/machine-id",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/loaders.cache",
+        "/probe/loaders.cache",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/target/debug/milkup-mermaid-render-probe",
+        "/probe/bin/helper",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/extensions/libresource_guard.so",
+        "/probe/extensions/libresource_guard.so",
+        "--bind",
+        "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/profiles/converter-baseline37-first-15",
+        "/profile",
+        "--tmpfs",
+        "/tmp",
+        "--dir",
+        "/tmp/.X11-unix",
+        "--ro-bind",
+        "/tmp/.X11-unix/X118",
+        "/tmp/.X11-unix/X118",
+        "--tmpfs",
+        "/run",
+        "--perms",
+        "0700",
+        "--dir",
+        "/run/user/1000",
+        "--dir",
+        "/sys/block",
+        "--dir",
+        "/sys/bus",
+        "--dir",
+        "/sys/class",
+        "--dir",
+        "/sys/dev",
+        "--dir",
+        "/sys/devices",
+        "--dev",
+        "/dev",
+        "--proc",
+        "/proc",
+        "--setenv",
+        "PATH",
+        "/usr/bin:/bin",
+        "--setenv",
+        "HOME",
+        "/profile/home",
+        "--setenv",
+        "XDG_CONFIG_HOME",
+        "/profile/config",
+        "--setenv",
+        "XDG_DATA_HOME",
+        "/profile/data",
+        "--setenv",
+        "XDG_CACHE_HOME",
+        "/profile/cache",
+        "--setenv",
+        "XDG_RUNTIME_DIR",
+        "/run/user/1000",
+        "--setenv",
+        "LD_LIBRARY_PATH",
+        "/runtime/lib",
+        "--setenv",
+        "WEBKIT_INJECTED_BUNDLE_PATH",
+        "/runtime/lib/webkit2gtk-4.1/injected-bundle",
+        "--setenv",
+        "GSETTINGS_SCHEMA_DIR",
+        "/runtime/schemas",
+        "--setenv",
+        "GDK_PIXBUF_MODULE_FILE",
+        "/probe/loaders.cache",
+        "--setenv",
+        "MILKUP_PROBE_EXTENSIONS",
+        "/probe/extensions",
+        "--setenv",
+        "DISPLAY",
+        ":118",
+        "--setenv",
+        "GDK_BACKEND",
+        "x11",
+        "--setenv",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "1",
+        "--setenv",
+        "LANG",
+        "C.UTF-8",
+        "--setenv",
+        "LC_ALL",
+        "C.UTF-8",
+        "--setenv",
+        "TZ",
+        "UTC",
+        "--setenv",
+        "NO_AT_BRIDGE",
+        "1",
+        "--remount-ro",
+        "/",
+        "--chdir",
+        "/profile",
+        "--",
+        "/usr/bin/dbus-run-session",
+        "--",
+        "/probe/bin/helper"
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 36649.573503018,
+      "wall": 1792149037.1344628,
+      "members": [
+        {
+          "pid": 233110,
+          "state": "S",
+          "ppid": 233107,
+          "pgrp": 233110,
+          "birth": "3664939",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233111,
+          "state": "S",
+          "ppid": 233110,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233112,
+          "state": "S",
+          "ppid": 233111,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 233113,
+          "state": "S",
+          "ppid": 233112,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 233114,
+          "state": "R",
+          "ppid": 233112,
+          "pgrp": 233110,
+          "birth": "3664941",
+          "utime": 9,
+          "stime": 5,
+          "name": "helper"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 36649.738775077,
+      "wall": 1792149037.2997348,
+      "members": [
+        {
+          "pid": 233110,
+          "state": "S",
+          "ppid": 233107,
+          "pgrp": 233110,
+          "birth": "3664939",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233111,
+          "state": "S",
+          "ppid": 233110,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233112,
+          "state": "S",
+          "ppid": 233111,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 233113,
+          "state": "S",
+          "ppid": 233112,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 233114,
+          "state": "S",
+          "ppid": 233112,
+          "pgrp": 233110,
+          "birth": "3664941",
+          "utime": 23,
+          "stime": 9,
+          "name": "helper"
+        },
+        {
+          "pid": 233123,
+          "state": "S",
+          "ppid": 233114,
+          "pgrp": 233110,
+          "birth": "3664959",
+          "utime": 4,
+          "stime": 3,
+          "name": "WebKitNetworkPr"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 36649.738891085,
+      "wall": 1792149037.2998495,
+      "frame": {
+        "allowedResources": 3,
+        "ephemeral": true,
+        "javascript": true,
+        "javascriptMarkup": true,
+        "sandbox": true,
+        "settings": "file/universal/webrtc/media/webgl/storage/dns/windows/devtools denied",
+        "tauriBridge": false,
+        "type": "native-policy",
+        "wryIpcStub": false
+      }
+    },
+    {
+      "kind": "process-sample",
+      "mono": 36649.887635101,
+      "wall": 1792149037.4485946,
+      "members": [
+        {
+          "pid": 233110,
+          "state": "S",
+          "ppid": 233107,
+          "pgrp": 233110,
+          "birth": "3664939",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233111,
+          "state": "S",
+          "ppid": 233110,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233112,
+          "state": "S",
+          "ppid": 233111,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 233113,
+          "state": "S",
+          "ppid": 233112,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 233114,
+          "state": "S",
+          "ppid": 233112,
+          "pgrp": 233110,
+          "birth": "3664941",
+          "utime": 37,
+          "stime": 10,
+          "name": "helper"
+        },
+        {
+          "pid": 233123,
+          "state": "S",
+          "ppid": 233114,
+          "pgrp": 233110,
+          "birth": "3664959",
+          "utime": 4,
+          "stime": 3,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 233151,
+          "state": "S",
+          "ppid": 233111,
+          "pgrp": 233110,
+          "birth": "3664968",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 233160,
+          "state": "S",
+          "ppid": 233151,
+          "pgrp": 233110,
+          "birth": "3664968",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 233161,
+          "state": "S",
+          "ppid": 233114,
+          "pgrp": 233110,
+          "birth": "3664969",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233162,
+          "state": "S",
+          "ppid": 233161,
+          "pgrp": 233110,
+          "birth": "3664969",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233163,
+          "state": "S",
+          "ppid": 233162,
+          "pgrp": 233110,
+          "birth": "3664970",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 233166,
+          "state": "S",
+          "ppid": 233114,
+          "pgrp": 233110,
+          "birth": "3664971",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233167,
+          "state": "S",
+          "ppid": 233166,
+          "pgrp": 233110,
+          "birth": "3664971",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233170,
+          "state": "S",
+          "ppid": 233167,
+          "pgrp": 233110,
+          "birth": "3664972",
+          "utime": 7,
+          "stime": 1,
+          "name": "WebKitWebProces"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 36650.039146552,
+      "wall": 1792149037.6001062,
+      "members": [
+        {
+          "pid": 233110,
+          "state": "S",
+          "ppid": 233107,
+          "pgrp": 233110,
+          "birth": "3664939",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233111,
+          "state": "S",
+          "ppid": 233110,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233112,
+          "state": "S",
+          "ppid": 233111,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 233113,
+          "state": "S",
+          "ppid": 233112,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 233114,
+          "state": "S",
+          "ppid": 233112,
+          "pgrp": 233110,
+          "birth": "3664941",
+          "utime": 49,
+          "stime": 13,
+          "name": "helper"
+        },
+        {
+          "pid": 233123,
+          "state": "S",
+          "ppid": 233114,
+          "pgrp": 233110,
+          "birth": "3664959",
+          "utime": 4,
+          "stime": 3,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 233151,
+          "state": "S",
+          "ppid": 233111,
+          "pgrp": 233110,
+          "birth": "3664968",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 233160,
+          "state": "S",
+          "ppid": 233151,
+          "pgrp": 233110,
+          "birth": "3664968",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 233161,
+          "state": "S",
+          "ppid": 233114,
+          "pgrp": 233110,
+          "birth": "3664969",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233162,
+          "state": "S",
+          "ppid": 233161,
+          "pgrp": 233110,
+          "birth": "3664969",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233163,
+          "state": "S",
+          "ppid": 233162,
+          "pgrp": 233110,
+          "birth": "3664970",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 233166,
+          "state": "S",
+          "ppid": 233114,
+          "pgrp": 233110,
+          "birth": "3664971",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233167,
+          "state": "S",
+          "ppid": 233166,
+          "pgrp": 233110,
+          "birth": "3664971",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233170,
+          "state": "S",
+          "ppid": 233167,
+          "pgrp": 233110,
+          "birth": "3664972",
+          "utime": 7,
+          "stime": 1,
+          "name": "WebKitWebProces"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 36650.283102608,
+      "wall": 1792149037.8440626,
+      "members": [
+        {
+          "pid": 233110,
+          "state": "S",
+          "ppid": 233107,
+          "pgrp": 233110,
+          "birth": "3664939",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233111,
+          "state": "S",
+          "ppid": 233110,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233112,
+          "state": "S",
+          "ppid": 233111,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 233113,
+          "state": "S",
+          "ppid": 233112,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 233114,
+          "state": "S",
+          "ppid": 233112,
+          "pgrp": 233110,
+          "birth": "3664941",
+          "utime": 56,
+          "stime": 13,
+          "name": "helper"
+        },
+        {
+          "pid": 233123,
+          "state": "S",
+          "ppid": 233114,
+          "pgrp": 233110,
+          "birth": "3664959",
+          "utime": 4,
+          "stime": 3,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 233151,
+          "state": "S",
+          "ppid": 233111,
+          "pgrp": 233110,
+          "birth": "3664968",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 233160,
+          "state": "S",
+          "ppid": 233151,
+          "pgrp": 233110,
+          "birth": "3664968",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 233161,
+          "state": "S",
+          "ppid": 233114,
+          "pgrp": 233110,
+          "birth": "3664969",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233162,
+          "state": "S",
+          "ppid": 233161,
+          "pgrp": 233110,
+          "birth": "3664969",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233163,
+          "state": "S",
+          "ppid": 233162,
+          "pgrp": 233110,
+          "birth": "3664970",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 233166,
+          "state": "S",
+          "ppid": 233114,
+          "pgrp": 233110,
+          "birth": "3664971",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233167,
+          "state": "S",
+          "ppid": 233166,
+          "pgrp": 233110,
+          "birth": "3664971",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233170,
+          "state": "R",
+          "ppid": 233167,
+          "pgrp": 233110,
+          "birth": "3664972",
+          "utime": 20,
+          "stime": 6,
+          "name": "WebKitWebProces"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 36650.440946993,
+      "wall": 1792149038.0019069,
+      "members": [
+        {
+          "pid": 233110,
+          "state": "S",
+          "ppid": 233107,
+          "pgrp": 233110,
+          "birth": "3664939",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233111,
+          "state": "S",
+          "ppid": 233110,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233112,
+          "state": "S",
+          "ppid": 233111,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 233113,
+          "state": "S",
+          "ppid": 233112,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 233114,
+          "state": "R",
+          "ppid": 233112,
+          "pgrp": 233110,
+          "birth": "3664941",
+          "utime": 62,
+          "stime": 17,
+          "name": "helper"
+        },
+        {
+          "pid": 233123,
+          "state": "S",
+          "ppid": 233114,
+          "pgrp": 233110,
+          "birth": "3664959",
+          "utime": 5,
+          "stime": 4,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 233151,
+          "state": "S",
+          "ppid": 233111,
+          "pgrp": 233110,
+          "birth": "3664968",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 233160,
+          "state": "S",
+          "ppid": 233151,
+          "pgrp": 233110,
+          "birth": "3664968",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 233161,
+          "state": "S",
+          "ppid": 233114,
+          "pgrp": 233110,
+          "birth": "3664969",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233162,
+          "state": "S",
+          "ppid": 233161,
+          "pgrp": 233110,
+          "birth": "3664969",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233163,
+          "state": "S",
+          "ppid": 233162,
+          "pgrp": 233110,
+          "birth": "3664970",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 233166,
+          "state": "S",
+          "ppid": 233114,
+          "pgrp": 233110,
+          "birth": "3664971",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233167,
+          "state": "S",
+          "ppid": 233166,
+          "pgrp": 233110,
+          "birth": "3664971",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233170,
+          "state": "R",
+          "ppid": 233167,
+          "pgrp": 233110,
+          "birth": "3664972",
+          "utime": 29,
+          "stime": 9,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 233199,
+          "state": "S",
+          "ppid": 233111,
+          "pgrp": 233110,
+          "birth": "3665035",
+          "utime": 0,
+          "stime": 1,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 36650.441058704,
+      "wall": 1792149038.0020173,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "bootstrapMissing": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 36650.50611888,
+      "wall": 1792149038.0670784,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "bootstrapMissing": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 36650.5939186,
+      "wall": 1792149038.154878,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "bootstrapMissing": true
+        }
+      }
+    },
+    {
+      "kind": "process-sample",
+      "mono": 36651.079937901,
+      "wall": 1792149038.6408978,
+      "members": [
+        {
+          "pid": 233110,
+          "state": "S",
+          "ppid": 233107,
+          "pgrp": 233110,
+          "birth": "3664939",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233111,
+          "state": "S",
+          "ppid": 233110,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233112,
+          "state": "S",
+          "ppid": 233111,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 233113,
+          "state": "S",
+          "ppid": 233112,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 233114,
+          "state": "S",
+          "ppid": 233112,
+          "pgrp": 233110,
+          "birth": "3664941",
+          "utime": 69,
+          "stime": 20,
+          "name": "helper"
+        },
+        {
+          "pid": 233123,
+          "state": "S",
+          "ppid": 233114,
+          "pgrp": 233110,
+          "birth": "3664959",
+          "utime": 5,
+          "stime": 4,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 233151,
+          "state": "S",
+          "ppid": 233111,
+          "pgrp": 233110,
+          "birth": "3664968",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 233160,
+          "state": "S",
+          "ppid": 233151,
+          "pgrp": 233110,
+          "birth": "3664968",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 233161,
+          "state": "S",
+          "ppid": 233114,
+          "pgrp": 233110,
+          "birth": "3664969",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233162,
+          "state": "S",
+          "ppid": 233161,
+          "pgrp": 233110,
+          "birth": "3664969",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233163,
+          "state": "S",
+          "ppid": 233162,
+          "pgrp": 233110,
+          "birth": "3664970",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 233166,
+          "state": "S",
+          "ppid": 233114,
+          "pgrp": 233110,
+          "birth": "3664971",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233167,
+          "state": "S",
+          "ppid": 233166,
+          "pgrp": 233110,
+          "birth": "3664971",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233170,
+          "state": "R",
+          "ppid": 233167,
+          "pgrp": 233110,
+          "birth": "3664972",
+          "utime": 76,
+          "stime": 26,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 233199,
+          "state": "S",
+          "ppid": 233111,
+          "pgrp": 233110,
+          "birth": "3665035",
+          "utime": 0,
+          "stime": 1,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 36651.147924518,
+      "wall": 1792149038.708884,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "bootstrapMissing": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 36651.237364602,
+      "wall": 1792149038.798324,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "bootstrapMissing": true,
+          "fontPending": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 36651.258953523,
+      "wall": 1792149038.819913,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "hasTauri": false,
+          "ready": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 36651.263471331,
+      "wall": 1792149038.8244302,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 36651.27443525,
+      "wall": 1792149038.8353941,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "blocked"
+        }
+      }
+    },
+    {
+      "kind": "native-send",
+      "mono": 36651.33114329,
+      "wall": 1792149038.8921027,
+      "task": "scan_030",
+      "armedMono": 36651.331138742,
+      "deadlineMono": 36653.331138742,
+      "members": [
+        {
+          "pid": 233110,
+          "state": "S",
+          "ppid": 233107,
+          "pgrp": 233110,
+          "birth": "3664939",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233111,
+          "state": "S",
+          "ppid": 233110,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233112,
+          "state": "S",
+          "ppid": 233111,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 233113,
+          "state": "S",
+          "ppid": 233112,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 233114,
+          "state": "S",
+          "ppid": 233112,
+          "pgrp": 233110,
+          "birth": "3664941",
+          "utime": 69,
+          "stime": 20,
+          "name": "helper"
+        },
+        {
+          "pid": 233123,
+          "state": "S",
+          "ppid": 233114,
+          "pgrp": 233110,
+          "birth": "3664959",
+          "utime": 5,
+          "stime": 4,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 233151,
+          "state": "S",
+          "ppid": 233111,
+          "pgrp": 233110,
+          "birth": "3664968",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 233160,
+          "state": "S",
+          "ppid": 233151,
+          "pgrp": 233110,
+          "birth": "3664968",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 233161,
+          "state": "S",
+          "ppid": 233114,
+          "pgrp": 233110,
+          "birth": "3664969",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233162,
+          "state": "S",
+          "ppid": 233161,
+          "pgrp": 233110,
+          "birth": "3664969",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233163,
+          "state": "S",
+          "ppid": 233162,
+          "pgrp": 233110,
+          "birth": "3664970",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 233166,
+          "state": "S",
+          "ppid": 233114,
+          "pgrp": 233110,
+          "birth": "3664971",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233167,
+          "state": "S",
+          "ppid": 233166,
+          "pgrp": 233110,
+          "birth": "3664971",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233170,
+          "state": "S",
+          "ppid": 233167,
+          "pgrp": 233110,
+          "birth": "3664972",
+          "utime": 97,
+          "stime": 31,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 233199,
+          "state": "S",
+          "ppid": 233111,
+          "pgrp": 233110,
+          "birth": "3665035",
+          "utime": 0,
+          "stime": 1,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 36651.572520148,
+      "wall": 1792149039.1334803,
+      "members": [
+        {
+          "pid": 233110,
+          "state": "S",
+          "ppid": 233107,
+          "pgrp": 233110,
+          "birth": "3664939",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233111,
+          "state": "S",
+          "ppid": 233110,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233112,
+          "state": "S",
+          "ppid": 233111,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 233113,
+          "state": "S",
+          "ppid": 233112,
+          "pgrp": 233110,
+          "birth": "3664940",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 233114,
+          "state": "S",
+          "ppid": 233112,
+          "pgrp": 233110,
+          "birth": "3664941",
+          "utime": 69,
+          "stime": 20,
+          "name": "helper"
+        },
+        {
+          "pid": 233123,
+          "state": "S",
+          "ppid": 233114,
+          "pgrp": 233110,
+          "birth": "3664959",
+          "utime": 5,
+          "stime": 4,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 233151,
+          "state": "S",
+          "ppid": 233111,
+          "pgrp": 233110,
+          "birth": "3664968",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 233160,
+          "state": "S",
+          "ppid": 233151,
+          "pgrp": 233110,
+          "birth": "3664968",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 233161,
+          "state": "S",
+          "ppid": 233114,
+          "pgrp": 233110,
+          "birth": "3664969",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233162,
+          "state": "S",
+          "ppid": 233161,
+          "pgrp": 233110,
+          "birth": "3664969",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233163,
+          "state": "S",
+          "ppid": 233162,
+          "pgrp": 233110,
+          "birth": "3664970",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 233166,
+          "state": "S",
+          "ppid": 233114,
+          "pgrp": 233110,
+          "birth": "3664971",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233167,
+          "state": "S",
+          "ppid": 233166,
+          "pgrp": 233110,
+          "birth": "3664971",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 233170,
+          "state": "R",
+          "ppid": 233167,
+          "pgrp": 233110,
+          "birth": "3664972",
+          "utime": 130,
+          "stime": 31,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 233199,
+          "state": "S",
+          "ppid": 233111,
+          "pgrp": 233110,
+          "birth": "3665035",
+          "utime": 0,
+          "stime": 1,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 36651.603690691,
+      "wall": 1792149039.16465,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "conversion_1"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 36651.629446604,
+      "wall": 1792149039.1904056,
+      "frame": {
+        "type": "result",
+        "value": {
+          "result": {
+            "coverage": {
+              "attributes": [
+                [
+                  0,
+                  63,
+                  64
+                ],
+                [
+                  0,
+                  65,
+                  66
+                ],
+                [
+                  0,
+                  67,
+                  64
+                ],
+                [
+                  0,
+                  68,
+                  64
+                ],
+                [
+                  0,
+                  69,
+                  66
+                ],
+                [
+                  0,
+                  70,
+                  64
+                ],
+                [
+                  0,
+                  71,
+                  64
+                ],
+                [
+                  0,
+                  72,
+                  64
+                ],
+                [
+                  41,
+                  42,
+                  4
+                ],
+                [
+                  20,
+                  73,
+                  66
+                ],
+                [
+                  20,
+                  74,
+                  66
+                ],
+                [
+                  20,
+                  75,
+                  66
+                ],
+                [
+                  20,
+                  76,
+                  64
+                ],
+                [
+                  9,
+                  77,
+                  66
+                ],
+                [
+                  9,
+                  7,
+                  4
+                ],
+                [
+                  9,
+                  76,
+                  64
+                ],
+                [
+                  18,
+                  77,
+                  66
+                ],
+                [
+                  18,
+                  7,
+                  4
+                ],
+                [
+                  18,
+                  76,
+                  64
+                ],
+                [
+                  19,
+                  77,
+                  66
+                ],
+                [
+                  19,
+                  7,
+                  4
+                ],
+                [
+                  19,
+                  76,
+                  64
+                ],
+                [
+                  28,
+                  42,
+                  4
+                ],
+                [
+                  28,
+                  76,
+                  64
+                ],
+                [
+                  28,
+                  70,
+                  64
+                ],
+                [
+                  31,
+                  42,
+                  4
+                ],
+                [
+                  31,
+                  76,
+                  64
+                ],
+                [
+                  31,
+                  70,
+                  64
+                ],
+                [
+                  32,
+                  42,
+                  4
+                ],
+                [
+                  32,
+                  76,
+                  64
+                ],
+                [
+                  32,
+                  70,
+                  64
+                ],
+                [
+                  23,
+                  78,
+                  66
+                ],
+                [
+                  23,
+                  79,
+                  66
+                ],
+                [
+                  23,
+                  76,
+                  64
+                ],
+                [
+                  54,
+                  76,
+                  64
+                ],
+                [
+                  54,
+                  42,
+                  4
+                ],
+                [
+                  56,
+                  65,
+                  66
+                ],
+                [
+                  56,
+                  80,
+                  66
+                ],
+                [
+                  56,
+                  70,
+                  64
+                ],
+                [
+                  33,
+                  78,
+                  66
+                ],
+                [
+                  33,
+                  79,
+                  66
+                ],
+                [
+                  57,
+                  76,
+                  64
+                ],
+                [
+                  57,
+                  42,
+                  4
+                ],
+                [
+                  59,
+                  65,
+                  66
+                ],
+                [
+                  59,
+                  80,
+                  66
+                ],
+                [
+                  59,
+                  70,
+                  64
+                ],
+                [
+                  35,
+                  78,
+                  66
+                ],
+                [
+                  35,
+                  79,
+                  66
+                ],
+                [
+                  60,
+                  76,
+                  64
+                ],
+                [
+                  60,
+                  42,
+                  4
+                ],
+                [
+                  62,
+                  65,
+                  66
+                ],
+                [
+                  62,
+                  80,
+                  66
+                ],
+                [
+                  62,
+                  70,
+                  64
+                ],
+                [
+                  36,
+                  78,
+                  66
+                ],
+                [
+                  36,
+                  79,
+                  66
+                ]
+              ],
+              "declarationColumns": [
+                "path",
+                "property",
+                "declared",
+                "computed",
+                "source",
+                "disposition",
+                "localReferences"
+              ],
+              "declarations": [
+                [
+                  0,
+                  1,
+                  2,
+                  2,
+                  3,
+                  4,
+                  []
+                ],
+                [
+                  0,
+                  5,
+                  6,
+                  6,
+                  3,
+                  4,
+                  []
+                ],
+                [
+                  0,
+                  7,
+                  8,
+                  8,
+                  3,
+                  4,
+                  []
+                ],
+                [
+                  9,
+                  10,
+                  11,
+                  12,
+                  13,
+                  4,
+                  []
+                ],
+                [
+                  9,
+                  14,
+                  15,
+                  15,
+                  13,
+                  4,
+                  []
+                ],
+                [
+                  9,
+                  16,
+                  17,
+                  17,
+                  13,
+                  4,
+                  []
+                ],
+                [
+                  18,
+                  10,
+                  11,
+                  12,
+                  13,
+                  4,
+                  []
+                ],
+                [
+                  18,
+                  14,
+                  15,
+                  15,
+                  13,
+                  4,
+                  []
+                ],
+                [
+                  18,
+                  16,
+                  17,
+                  17,
+                  13,
+                  4,
+                  []
+                ],
+                [
+                  19,
+                  10,
+                  11,
+                  12,
+                  13,
+                  4,
+                  []
+                ],
+                [
+                  19,
+                  14,
+                  15,
+                  15,
+                  13,
+                  4,
+                  []
+                ],
+                [
+                  19,
+                  16,
+                  17,
+                  17,
+                  13,
+                  4,
+                  []
+                ],
+                [
+                  20,
+                  10,
+                  11,
+                  12,
+                  21,
+                  4,
+                  []
+                ],
+                [
+                  20,
+                  14,
+                  15,
+                  15,
+                  21,
+                  4,
+                  []
+                ],
+                [
+                  20,
+                  7,
+                  22,
+                  22,
+                  21,
+                  4,
+                  []
+                ],
+                [
+                  23,
+                  24,
+                  25,
+                  25,
+                  26,
+                  4,
+                  []
+                ],
+                [
+                  23,
+                  5,
+                  27,
+                  27,
+                  26,
+                  4,
+                  []
+                ],
+                [
+                  23,
+                  7,
+                  11,
+                  12,
+                  26,
+                  4,
+                  []
+                ],
+                [
+                  23,
+                  1,
+                  2,
+                  2,
+                  26,
+                  4,
+                  []
+                ],
+                [
+                  28,
+                  1,
+                  2,
+                  2,
+                  29,
+                  4,
+                  []
+                ],
+                [
+                  28,
+                  7,
+                  8,
+                  8,
+                  29,
+                  4,
+                  []
+                ],
+                [
+                  28,
+                  5,
+                  30,
+                  30,
+                  29,
+                  4,
+                  []
+                ],
+                [
+                  31,
+                  1,
+                  2,
+                  2,
+                  29,
+                  4,
+                  []
+                ],
+                [
+                  31,
+                  7,
+                  8,
+                  8,
+                  29,
+                  4,
+                  []
+                ],
+                [
+                  31,
+                  5,
+                  30,
+                  30,
+                  29,
+                  4,
+                  []
+                ],
+                [
+                  32,
+                  1,
+                  2,
+                  2,
+                  29,
+                  4,
+                  []
+                ],
+                [
+                  32,
+                  7,
+                  8,
+                  8,
+                  29,
+                  4,
+                  []
+                ],
+                [
+                  32,
+                  5,
+                  30,
+                  30,
+                  29,
+                  4,
+                  []
+                ],
+                [
+                  33,
+                  7,
+                  11,
+                  12,
+                  34,
+                  4,
+                  []
+                ],
+                [
+                  33,
+                  1,
+                  2,
+                  2,
+                  34,
+                  4,
+                  []
+                ],
+                [
+                  33,
+                  5,
+                  30,
+                  30,
+                  34,
+                  4,
+                  []
+                ],
+                [
+                  35,
+                  7,
+                  11,
+                  12,
+                  34,
+                  4,
+                  []
+                ],
+                [
+                  35,
+                  1,
+                  2,
+                  2,
+                  34,
+                  4,
+                  []
+                ],
+                [
+                  35,
+                  5,
+                  30,
+                  30,
+                  34,
+                  4,
+                  []
+                ],
+                [
+                  36,
+                  7,
+                  11,
+                  12,
+                  34,
+                  4,
+                  []
+                ],
+                [
+                  36,
+                  1,
+                  2,
+                  2,
+                  34,
+                  4,
+                  []
+                ],
+                [
+                  36,
+                  5,
+                  30,
+                  30,
+                  34,
+                  4,
+                  []
+                ],
+                [
+                  0,
+                  37,
+                  38,
+                  38,
+                  39,
+                  40,
+                  []
+                ],
+                [
+                  41,
+                  42,
+                  43,
+                  22,
+                  44,
+                  4,
+                  []
+                ],
+                [
+                  9,
+                  7,
+                  45,
+                  46,
+                  44,
+                  4,
+                  []
+                ],
+                [
+                  18,
+                  7,
+                  47,
+                  48,
+                  44,
+                  4,
+                  []
+                ],
+                [
+                  19,
+                  7,
+                  49,
+                  50,
+                  44,
+                  4,
+                  []
+                ],
+                [
+                  28,
+                  24,
+                  25,
+                  25,
+                  39,
+                  4,
+                  []
+                ],
+                [
+                  28,
+                  42,
+                  51,
+                  22,
+                  44,
+                  4,
+                  []
+                ],
+                [
+                  31,
+                  24,
+                  25,
+                  25,
+                  39,
+                  4,
+                  []
+                ],
+                [
+                  31,
+                  42,
+                  52,
+                  22,
+                  44,
+                  4,
+                  []
+                ],
+                [
+                  32,
+                  24,
+                  25,
+                  25,
+                  39,
+                  4,
+                  []
+                ],
+                [
+                  32,
+                  42,
+                  53,
+                  22,
+                  44,
+                  4,
+                  []
+                ],
+                [
+                  54,
+                  42,
+                  55,
+                  22,
+                  44,
+                  4,
+                  []
+                ],
+                [
+                  56,
+                  7,
+                  46,
+                  46,
+                  39,
+                  4,
+                  []
+                ],
+                [
+                  56,
+                  10,
+                  46,
+                  46,
+                  39,
+                  4,
+                  []
+                ],
+                [
+                  57,
+                  42,
+                  58,
+                  22,
+                  44,
+                  4,
+                  []
+                ],
+                [
+                  59,
+                  7,
+                  48,
+                  48,
+                  39,
+                  4,
+                  []
+                ],
+                [
+                  59,
+                  10,
+                  48,
+                  48,
+                  39,
+                  4,
+                  []
+                ],
+                [
+                  60,
+                  42,
+                  61,
+                  22,
+                  44,
+                  4,
+                  []
+                ],
+                [
+                  62,
+                  7,
+                  50,
+                  50,
+                  39,
+                  4,
+                  []
+                ],
+                [
+                  62,
+                  10,
+                  50,
+                  50,
+                  39,
+                  4,
+                  []
+                ]
+              ],
+              "errors": [],
+              "normalizations": [
+                116,
+                117,
+                118,
+                119,
+                120,
+                121,
+                122,
+                123,
+                124,
+                125,
+                126,
+                127,
+                128,
+                129,
+                130,
+                131,
+                132,
+                133,
+                134,
+                135,
+                136,
+                137,
+                138,
+                139,
+                140,
+                141,
+                142,
+                143,
+                144
+              ],
+              "rules": [
+                81,
+                82,
+                83,
+                84,
+                85,
+                86,
+                87,
+                88,
+                89,
+                90,
+                91,
+                92,
+                93,
+                94,
+                95,
+                96,
+                97,
+                98,
+                99,
+                100,
+                101,
+                102,
+                103,
+                104,
+                105,
+                106,
+                107,
+                108,
+                109,
+                110,
+                111,
+                112,
+                113,
+                114,
+                115
+              ],
+              "strings": [
+                "0",
+                "font-family",
+                "Arial, sans-serif",
+                "stylesheet:#convert_scan_030",
+                "typed-effective-value",
+                "font-size",
+                "16px",
+                "fill",
+                "rgb(51, 51, 51)",
+                "0/2/0/1",
+                "stroke",
+                "black",
+                "rgb(0, 0, 0)",
+                "stylesheet:#convert_scan_030 .pieCircle",
+                "stroke-width",
+                "2px",
+                "opacity",
+                "0.7",
+                "0/2/0/2",
+                "0/2/0/3",
+                "0/2/0/0",
+                "stylesheet:#convert_scan_030 .pieOuterCircle",
+                "none",
+                "0/2/1",
+                "text-anchor",
+                "middle",
+                "stylesheet:#convert_scan_030 .pieTitleText",
+                "25px",
+                "0/2/0/4",
+                "stylesheet:#convert_scan_030 .slice",
+                "17px",
+                "0/2/0/5",
+                "0/2/0/6",
+                "0/2/2/1",
+                "stylesheet:#convert_scan_030 .legend text",
+                "0/2/3/1",
+                "0/2/4/1",
+                "max-width",
+                "551px",
+                "inline",
+                "checked-box-or-inapplicable-SVG-layout",
+                "0/2",
+                "transform",
+                "translate(225,225)",
+                "presentation-attribute",
+                "#ECECFF",
+                "rgb(236, 236, 255)",
+                "#ffffde",
+                "rgb(255, 255, 222)",
+                "hsl(80, 100%, 56.2745098039%)",
+                "rgb(181, 255, 32)",
+                "translate(83.57344705444068,110.75667676234512)",
+                "translate(-93.90333582091016,-102.14561185731559)",
+                "translate(-13.432508310066218,-138.09826291630174)",
+                "0/2/2",
+                "translate(216,-33)",
+                "0/2/2/0",
+                "0/2/3",
+                "translate(216,-11)",
+                "0/2/3/0",
+                "0/2/4",
+                "translate(216,11)",
+                "0/2/4/0",
+                "id",
+                "consumed-selector-or-metadata",
+                "width",
+                "typed-geometry-definition",
+                "xmlns",
+                "xmlns:xlink",
+                "viewBox",
+                "style",
+                "role",
+                "aria-roledescription",
+                "cx",
+                "cy",
+                "r",
+                "class",
+                "d",
+                "x",
+                "y",
+                "height",
+                "{\"selector\":\"#convert_scan_030\",\"matched\":1}",
+                "{\"keyframes\":\"edge-animation-frame\",\"disposition\":\"only-discard-if-no-effective-animation\"}",
+                "{\"keyframes\":\"dash\",\"disposition\":\"only-discard-if-no-effective-animation\"}",
+                "{\"selector\":\"#convert_scan_030 .edge-animation-slow\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 .edge-animation-fast\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 .error-icon\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 .error-text\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 .edge-thickness-normal\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 .edge-thickness-thick\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 .edge-pattern-solid\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 .edge-thickness-invisible\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 .edge-pattern-dashed\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 .edge-pattern-dotted\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 .marker\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 .marker.cross\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 svg\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 p\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 .pieCircle\",\"matched\":3}",
+                "{\"selector\":\"#convert_scan_030 .pieCircle.highlighted\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 .pieCircle.highlightedOnHover:hover\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 .pieOuterCircle\",\"matched\":1}",
+                "{\"selector\":\"#convert_scan_030 .pieTitleText\",\"matched\":1}",
+                "{\"selector\":\"#convert_scan_030 .slice\",\"matched\":3}",
+                "{\"selector\":\"#convert_scan_030 .legend text\",\"matched\":3}",
+                "{\"selector\":\"#convert_scan_030 .node .neo-node\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 [data-look=\\\"neo\\\"].node rect, #convert_scan_030 [data-look=\\\"neo\\\"].cluster rect, #convert_scan_030 [data-look=\\\"neo\\\"].node polygon\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 [data-look=\\\"neo\\\"].swimlane.cluster rect\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 [data-look=\\\"neo\\\"].node path\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 [data-look=\\\"neo\\\"].node .outer-path\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 [data-look=\\\"neo\\\"].node .neo-line path\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 [data-look=\\\"neo\\\"].node circle\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 [data-look=\\\"neo\\\"].node circle .state-start\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 [data-look=\\\"neo\\\"].icon-shape .icon\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 [data-look=\\\"neo\\\"].icon-shape .icon-neo path\",\"matched\":0}",
+                "{\"selector\":\"#convert_scan_030 :root\",\"matched\":0}",
+                "{\"path\":\"0\",\"kind\":\"inactive-outline-width\",\"value\":\"3px\"}",
+                "{\"path\":\"0/0\",\"kind\":\"inactive-outline-width\",\"value\":\"3px\"}",
+                "{\"path\":\"0/1\",\"kind\":\"inactive-outline-width\",\"value\":\"3px\"}",
+                "{\"path\":\"0/2\",\"kind\":\"inactive-outline-width\",\"value\":\"3px\"}",
+                "{\"path\":\"0/2/0\",\"kind\":\"inactive-outline-width\",\"value\":\"3px\"}",
+                "{\"path\":\"0/2/0/0\",\"kind\":\"inactive-outline-width\",\"value\":\"3px\"}",
+                "{\"path\":\"0/2/0/1\",\"kind\":\"inactive-outline-width\",\"value\":\"3px\"}",
+                "{\"path\":\"0/2/0/2\",\"kind\":\"inactive-outline-width\",\"value\":\"3px\"}",
+                "{\"path\":\"0/2/0/3\",\"kind\":\"inactive-outline-width\",\"value\":\"3px\"}",
+                "{\"path\":\"0/2/0/4\",\"kind\":\"inactive-outline-width\",\"value\":\"3px\"}",
+                "{\"path\":\"0/2/0/5\",\"kind\":\"inactive-outline-width\",\"value\":\"3px\"}",
+                "{\"path\":\"0/2/0/6\",\"kind\":\"inactive-outline-width\",\"value\":\"3px\"}",
+                "{\"path\":\"0/2/1\",\"kind\":\"inactive-outline-width\",\"value\":\"3px\"}",
+                "{\"path\":\"0/2/2\",\"kind\":\"inactive-outline-width\",\"value\":\"3px\"}",
+                "{\"path\":\"0/2/2/0\",\"kind\":\"inactive-outline-width\",\"value\":\"3px\"}",
+                "{\"path\":\"0/2/2/1\",\"kind\":\"inactive-outline-width\",\"value\":\"3px\"}",
+                "{\"path\":\"0/2/3\",\"kind\":\"inactive-outline-width\",\"value\":\"3px\"}",
+                "{\"path\":\"0/2/3/0\",\"kind\":\"inactive-outline-width\",\"value\":\"3px\"}",
+                "{\"path\":\"0/2/3/1\",\"kind\":\"inactive-outline-width\",\"value\":\"3px\"}",
+                "{\"path\":\"0/2/4\",\"kind\":\"inactive-outline-width\",\"value\":\"3px\"}",
+                "{\"path\":\"0/2/4/0\",\"kind\":\"inactive-outline-width\",\"value\":\"3px\"}",
+                "{\"path\":\"0/2/4/1\",\"kind\":\"inactive-outline-width\",\"value\":\"3px\"}",
+                "{\"path\":\"0/2\",\"kind\":\"same-viewport-relative-CTM-origin-baked-once\",\"attribute\":\"translate(225,225)\",\"computed\":\"none\",\"parent\":[1,0,0,1,0,0],\"own\":[1,0,0,1,225,225],\"local\":[1,0,0,1,225,225]}",
+                "{\"path\":\"0/2/0/4\",\"kind\":\"same-viewport-relative-CTM-origin-baked-once\",\"attribute\":\"translate(83.57344705444068,110.75667676234512)\",\"computed\":\"none\",\"parent\":[1,0,0,1,225,225],\"own\":[1,0,0,1,308.57344818115234,335.75667572021484],\"local\":[1,0,0,1,83.57344818115234,110.75667572021484]}",
+                "{\"path\":\"0/2/0/5\",\"kind\":\"same-viewport-relative-CTM-origin-baked-once\",\"attribute\":\"translate(-93.90333582091016,-102.14561185731559)\",\"computed\":\"none\",\"parent\":[1,0,0,1,225,225],\"own\":[1,0,0,1,131.09666442871094,122.85438537597656],\"local\":[1,0,0,1,-93.90333557128906,-102.14561462402344]}",
+                "{\"path\":\"0/2/0/6\",\"kind\":\"same-viewport-relative-CTM-origin-baked-once\",\"attribute\":\"translate(-13.432508310066218,-138.09826291630174)\",\"computed\":\"none\",\"parent\":[1,0,0,1,225,225],\"own\":[1,0,0,1,211.56749153137207,86.9017333984375],\"local\":[1,0,0,1,-13.43250846862793,-138.0982666015625]}",
+                "{\"path\":\"0/2/2\",\"kind\":\"same-viewport-relative-CTM-origin-baked-once\",\"attribute\":\"translate(216,-33)\",\"computed\":\"none\",\"parent\":[1,0,0,1,225,225],\"own\":[1,0,0,1,441,192],\"local\":[1,0,0,1,216,-33]}",
+                "{\"path\":\"0/2/3\",\"kind\":\"same-viewport-relative-CTM-origin-baked-once\",\"attribute\":\"translate(216,-11)\",\"computed\":\"none\",\"parent\":[1,0,0,1,225,225],\"own\":[1,0,0,1,441,214],\"local\":[1,0,0,1,216,-11]}",
+                "{\"path\":\"0/2/4\",\"kind\":\"same-viewport-relative-CTM-origin-baked-once\",\"attribute\":\"translate(216,11)\",\"computed\":\"none\",\"parent\":[1,0,0,1,225,225],\"own\":[1,0,0,1,441,236],\"local\":[1,0,0,1,216,11]}"
+              ]
+            },
+            "diagramType": "pie",
+            "elapsedMs": 265,
+            "evidenceBoundary": "No independent validator or round-trip pixels run by this entry. Original live SVG remains in helper for separately authorized observation.",
+            "id": "scan_030",
+            "image": {
+              "aspect": {
+                "align": "xMidYMid",
+                "fit": "meet"
+              },
+              "children": [
+                {
+                  "children": [],
+                  "kind": "group",
+                  "style": 1
+                },
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "cx": 0,
+                          "cy": 0,
+                          "kind": "circle",
+                          "r": 186,
+                          "style": 2
+                        },
+                        {
+                          "commands": [
+                            [
+                              "M",
+                              0,
+                              -185
+                            ],
+                            [
+                              "A",
+                              185,
+                              185,
+                              0,
+                              1,
+                              1,
+                              -177.899,
+                              -50.763
+                            ],
+                            [
+                              "L",
+                              0,
+                              0
+                            ],
+                            [
+                              "Z"
+                            ]
+                          ],
+                          "kind": "path",
+                          "style": 3
+                        },
+                        {
+                          "commands": [
+                            [
+                              "M",
+                              -177.899,
+                              -50.763
+                            ],
+                            [
+                              "A",
+                              185,
+                              185,
+                              0,
+                              0,
+                              1,
+                              -35.652,
+                              -181.532
+                            ],
+                            [
+                              "L",
+                              0,
+                              0
+                            ],
+                            [
+                              "Z"
+                            ]
+                          ],
+                          "kind": "path",
+                          "style": 4
+                        },
+                        {
+                          "commands": [
+                            [
+                              "M",
+                              -35.652,
+                              -181.532
+                            ],
+                            [
+                              "A",
+                              185,
+                              185,
+                              0,
+                              0,
+                              1,
+                              0,
+                              -185
+                            ],
+                            [
+                              "L",
+                              0,
+                              0
+                            ],
+                            [
+                              "Z"
+                            ]
+                          ],
+                          "kind": "path",
+                          "style": 5
+                        },
+                        {
+                          "children": [
+                            {
+                              "kind": "textRun",
+                              "text": "79%"
+                            }
+                          ],
+                          "kind": "text",
+                          "style": 6,
+                          "transforms": [
+                            {
+                              "kind": "matrix",
+                              "values": [
+                                1,
+                                0,
+                                0,
+                                1,
+                                83.57344818115234,
+                                110.75667572021484
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "children": [
+                            {
+                              "kind": "textRun",
+                              "text": "17%"
+                            }
+                          ],
+                          "kind": "text",
+                          "style": 6,
+                          "transforms": [
+                            {
+                              "kind": "matrix",
+                              "values": [
+                                1,
+                                0,
+                                0,
+                                1,
+                                -93.90333557128906,
+                                -102.14561462402344
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "children": [
+                            {
+                              "kind": "textRun",
+                              "text": "3%"
+                            }
+                          ],
+                          "kind": "text",
+                          "style": 6,
+                          "transforms": [
+                            {
+                              "kind": "matrix",
+                              "values": [
+                                1,
+                                0,
+                                0,
+                                1,
+                                -13.43250846862793,
+                                -138.0982666015625
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "kind": "group",
+                      "style": 1
+                    },
+                    {
+                      "children": [
+                        {
+                          "kind": "textRun",
+                          "text": "Pets adopted by volunteers"
+                        }
+                      ],
+                      "kind": "text",
+                      "style": 7,
+                      "x": [
+                        {
+                          "unit": "user",
+                          "value": 0
+                        }
+                      ],
+                      "y": [
+                        {
+                          "unit": "user",
+                          "value": -200
+                        }
+                      ]
+                    },
+                    {
+                      "children": [
+                        {
+                          "height": 18,
+                          "kind": "rect",
+                          "rx": 0,
+                          "ry": 0,
+                          "style": 8,
+                          "width": 18,
+                          "x": 0,
+                          "y": 0
+                        },
+                        {
+                          "children": [
+                            {
+                              "kind": "textRun",
+                              "text": "Dogs"
+                            }
+                          ],
+                          "kind": "text",
+                          "style": 9,
+                          "x": [
+                            {
+                              "unit": "user",
+                              "value": 22
+                            }
+                          ],
+                          "y": [
+                            {
+                              "unit": "user",
+                              "value": 14
+                            }
+                          ]
+                        }
+                      ],
+                      "kind": "group",
+                      "style": 1,
+                      "transforms": [
+                        {
+                          "kind": "matrix",
+                          "values": [
+                            1,
+                            0,
+                            0,
+                            1,
+                            216,
+                            -33
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "children": [
+                        {
+                          "height": 18,
+                          "kind": "rect",
+                          "rx": 0,
+                          "ry": 0,
+                          "style": 10,
+                          "width": 18,
+                          "x": 0,
+                          "y": 0
+                        },
+                        {
+                          "children": [
+                            {
+                              "kind": "textRun",
+                              "text": "Cats"
+                            }
+                          ],
+                          "kind": "text",
+                          "style": 9,
+                          "x": [
+                            {
+                              "unit": "user",
+                              "value": 22
+                            }
+                          ],
+                          "y": [
+                            {
+                              "unit": "user",
+                              "value": 14
+                            }
+                          ]
+                        }
+                      ],
+                      "kind": "group",
+                      "style": 1,
+                      "transforms": [
+                        {
+                          "kind": "matrix",
+                          "values": [
+                            1,
+                            0,
+                            0,
+                            1,
+                            216,
+                            -11
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "children": [
+                        {
+                          "height": 18,
+                          "kind": "rect",
+                          "rx": 0,
+                          "ry": 0,
+                          "style": 11,
+                          "width": 18,
+                          "x": 0,
+                          "y": 0
+                        },
+                        {
+                          "children": [
+                            {
+                              "kind": "textRun",
+                              "text": "Rats"
+                            }
+                          ],
+                          "kind": "text",
+                          "style": 9,
+                          "x": [
+                            {
+                              "unit": "user",
+                              "value": 22
+                            }
+                          ],
+                          "y": [
+                            {
+                              "unit": "user",
+                              "value": 14
+                            }
+                          ]
+                        }
+                      ],
+                      "kind": "group",
+                      "style": 1,
+                      "transforms": [
+                        {
+                          "kind": "matrix",
+                          "values": [
+                            1,
+                            0,
+                            0,
+                            1,
+                            216,
+                            11
+                          ]
+                        }
+                      ]
+                    }
+                  ],
+                  "kind": "group",
+                  "style": 1,
+                  "transforms": [
+                    {
+                      "kind": "matrix",
+                      "values": [
+                        1,
+                        0,
+                        0,
+                        1,
+                        225,
+                        225
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "definitions": [],
+              "height": 450,
+              "motion": "static",
+              "profile": "bounded-svg-v1",
+              "rootStyle": 0,
+              "styles": [
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      51,
+                      51,
+                      51,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "hidden",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      51,
+                      51,
+                      51,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "none"
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 2
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      236,
+                      236,
+                      255,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 0.7,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 2
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      255,
+                      255,
+                      222,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 0.7,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 2
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      181,
+                      255,
+                      32,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 0.7,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 2
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      51,
+                      51,
+                      51,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 17
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "middle",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "nowrap",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 25
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "middle",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "nowrap",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      236,
+                      236,
+                      255,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      236,
+                      236,
+                      255,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 17
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "nowrap",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      255,
+                      255,
+                      222,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      255,
+                      255,
+                      222,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      181,
+                      255,
+                      32,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 16
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      181,
+                      255,
+                      32,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                }
+              ],
+              "type": "svg-image",
+              "viewBox": [
+                0,
+                0,
+                551,
+                450
+              ],
+              "width": 551
+            },
+            "ok": true,
+            "originalSvgBytes": 4501,
+            "over256KiB": false,
+            "profile": "baseline",
+            "renderMs": 235,
+            "serializedBytes": 22432,
+            "statistics": {
+              "bytes": 12090,
+              "chargedNodes": 59,
+              "expandedNodes": 46,
+              "inputElements": 22
+            },
+            "theme": "light",
+            "verification": "prototype-only; independent host validation and pixels still required"
+          },
+          "status": "complete",
+          "taskId": "conversion_1"
+        }
+      }
+    },
+    {
+      "kind": "terminate-group",
+      "mono": 36651.630725139,
+      "wall": 1792149039.191684,
+      "reason": "completed-research-cleanup",
+      "pgid": 233110,
+      "members": [
+        {
+          "pid": 233110,
+          "birth": "3664939"
+        },
+        {
+          "pid": 233111,
+          "birth": "3664940"
+        },
+        {
+          "pid": 233112,
+          "birth": "3664940"
+        },
+        {
+          "pid": 233113,
+          "birth": "3664940"
+        },
+        {
+          "pid": 233114,
+          "birth": "3664941"
+        },
+        {
+          "pid": 233123,
+          "birth": "3664959"
+        },
+        {
+          "pid": 233160,
+          "birth": "3664968"
+        },
+        {
+          "pid": 233161,
+          "birth": "3664969"
+        },
+        {
+          "pid": 233162,
+          "birth": "3664969"
+        },
+        {
+          "pid": 233163,
+          "birth": "3664970"
+        },
+        {
+          "pid": 233166,
+          "birth": "3664971"
+        },
+        {
+          "pid": 233167,
+          "birth": "3664971"
+        },
+        {
+          "pid": 233170,
+          "birth": "3664972"
+        },
+        {
+          "pid": 233151,
+          "birth": "3664968"
+        },
+        {
+          "pid": 233199,
+          "birth": "3665035"
+        }
+      ]
+    },
+    {
+      "kind": "signal-start",
+      "mono": 36651.630728022,
+      "wall": 1792149039.1916864,
+      "pgid": 233110
+    },
+    {
+      "kind": "signal-return",
+      "mono": 36651.632104687,
+      "wall": 1792149039.1930642,
+      "pgid": 233110
+    },
+    {
+      "kind": "escaped-descendants",
+      "mono": 36651.710892919,
+      "wall": 1792149039.2718527,
+      "processes": []
+    },
+    {
+      "kind": "cleanup",
+      "mono": 36651.811528301,
+      "wall": 1792149039.3724883,
+      "reaped": [
+        {
+          "pid": 233111,
+          "status": 9
+        }
+      ],
+      "remainingGroupMembers": []
+    },
+    {
+      "kind": "completed",
+      "mono": 36651.868813243,
+      "wall": 1792149039.429773,
+      "results": [
+        {
+          "task": "native-resource-guard",
+          "elapsed": 0.0156499669974437,
+          "value": {
+            "status": "blocked"
+          }
+        },
+        {
+          "task": "scan_030",
+          "sampleId": "pie-000-first-official-example",
+          "sourceSha256": "f41484cd94dd84837056db4c681ce6119f533b643bed745c58116553acdebf27",
+          "profile": "baseline",
+          "elapsed": 0.29895027699967613,
+          "serializedBytes": 22432,
+          "diagramType": "pie"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+from pathlib import Path
+import json, hashlib, datetime, shutil, math
+root=Path('/workspace/milkup-mermaid-engine-evidence'); build=root/'linux-production-01'; runs=root/'editor-lifecycle-runs/runs'; control=runs.parent/'control'; repo=Path('/workspace/milkup')
+def utc():return datetime.datetime.now(datetime.timezone.utc).isoformat()
+def read(p):return json.loads(p.read_text())
+def write(p,x):p.write_text(json.dumps(x,indent=2)+'\n')
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+# New run snapshots refer to preserved pre-run inputs, not a reconstructed source revision.
+for suffix,prep in [('02','06'),('03','08'),('04','09')]:
+ name='lifecycle-app-sigkill-'+suffix; dest=control/(name+'-inputs');dest.mkdir(exist_ok=False)
+ sources=[(root/f'editor-lifecycle-preparation-{prep}/tauri-dom-plugin-lifecycle.mjs','tauri-dom-plugin-lifecycle.mjs'),(root/'editor-lifecycle-preparation-04/native-production.mjs','native-production.mjs'),(build/'source/tests/helpers/native-dom-process-observer.py','native-dom-process-observer.py'),(build/'source/tests/helpers/native-owned-process.mjs','native-owned-process.mjs'),(build/'source/tests/helpers/native-startup.mjs','native-startup.mjs'),(build/'source/tests/fixtures/dom-plugin-lifecycle/main.js','fixture-main.js'),(root/'editor-lifecycle-preparation-04/driver.sh','driver.sh'),(root/'editor-lifecycle-preparation-04/run-env.sh','run-env.sh'),(root/'editor-lifecycle-preparation-07/launch-driver-reaping.py','launch-driver-reaping.py')]
+ rows=[]
+ for p,label in sources:
+  shutil.copy2(p,dest/label);rows.append({'source':str(p),'snapshot':label,'bytes':p.stat().st_size,'sha256':sha(p)})
+ write(dest/'manifest.json',{'recordedUtc':utc(),'note':'Mapped from preserved pre-run snapshots; original source freeze untouched','files':rows,'nativeBinarySha256':'46cc0e09b39966bc958fb2887c97caece3debf6ad132b098447406975969ebeb','executionRelation':'Driver reviewed user/mount namespace; outer approved observer/harness share PID namespace; ancestor only natural wait/reap'})
+failures={
+ 'lifecycle-timeout-01':('preparation','Missing readonly xdg-dbus-proxy mapping; asynchronous bundled-install UI not settled.'),
+ 'lifecycle-timeout-02':('preparation','Long runtime socket path/proxy failure retained; pointer activation lacked viewport and exact details wait.'),
+ 'lifecycle-timeout-03':('startup','XSetInputFocus BadMatch: test selected hidden DOM helper GTK window. Short runtime path removed prior proxy failure.'),
+ 'lifecycle-timeout-04':('observation-setup','Sibling user namespace denied /proc guardian environ. Fixture safe DOM layout passed; deadline phase not reached.'),
+ 'lifecycle-disable-01':('preparation','Pointer target center at bottom edge was not reliably activated; exact details wait failed.'),
+ 'lifecycle-wm-close-01':('preparation','Menu pointer action returned before expanded UI; hidden plugin section. Replaced setup with public focus + native Return and state waits.'),
+ 'lifecycle-app-sigkill-01':('actual-fault-environment-reaping','Renderer descendants and private directory cleared; guardian reached ECHILD/exited but remained zombie under non-reaping container PID1. Strict PID assertion failed; original RED retained.'),
+ 'lifecycle-app-sigkill-02':('startup','X11 readonly search BadWindow race; no SIGKILL injection. Only BadWindow/BadDrawable search observation retried at most 3 in next harness.'),
+ 'lifecycle-app-sigkill-03':('diagnostic-contract','Actual fault: all 9 PID/birth identities/private directory gone; exact guardian naturally reaped exit0. Best-effort async terminal trace missing, old trace assertion failed. Original RED retained. Root reviewed product ECHILD return path and authorized reliable natural-exit contract for run04, without product change.')}
+allrows=[]
+for p in sorted(control.glob('lifecycle-*-command.json')):
+ name=p.name.removesuffix('-command.json'); command=read(p); ep=runs/name/'events.json'; events=read(ep) if ep.exists() else []; verdict=next((e for e in events if e['name']=='verdict'),None)
+ row={'run':name,'commandRecord':str(p),'startedUtc':command['startedUtc'],'endedUtc':command.get('endedUtc'),'exitCode':command.get('exitCode'),'verdict':verdict,'inputsManifest':str(control/(name+'-inputs')/'manifest.json')}
+ if name in failures:row.update(failureClass=failures[name][0],explanation=failures[name][1])
+ allrows.append(row)
+success=[]
+for name in ['lifecycle-timeout-05','lifecycle-disable-02','lifecycle-remove-01','lifecycle-wm-close-02','lifecycle-app-sigkill-04']:
+ p=runs/name; events=read(p/'events.json');by={e['name']:e for e in events};assert by['verdict']['status']=='passed';busy=by['actual-webkit-busy']; dispatch=busy['originalDispatch']; start=dispatch['monotonicNs']; traces=read(p/'native-traces.json'); final=by['observer-final'];clear=by['owned-context-cleared'];assert final['cleanupObserved'] and not clear['observation']['members'] and not clear['observation']['privateDirectoryExists']; assert len(final['knownPidBirth'])==9
+ row={'run':name,'request':dispatch,'timingReference':'All phase seconds below are relative to original native render dispatch, not UI action. Monotonic diagnostic samples are scheduling observations, not exact real-time kill guarantees.','secondsFromDispatch':[{**t,'seconds':(t['monotonicNs']-start)/1e9} for t in traces if t['monotonicNs']>=start], 'actualCpuBusyObservation':busy['busy'],'cleanupObserverWaitMs':clear['elapsedMs'],'strictOwnedPidBirthCount':len(final['knownPidBirth']),'ownedPidBirth':final['knownPidBirth'],'privateDirectory':clear['observation']['privateDirectory'],'cleanupObservationMonotonicNs':clear['monotonicNs'],'cleanupObservedSecondsFromDispatch':(clear['monotonicNs']-start)/1e9,'appAliveAtCleanup':clear['observation']['appAlive'],'rawEvidence':str(p),'harnessInputs':read(control/(name+'-inputs')/'manifest.json')}
+ for key in ['fault-action','exact-app-sigkill','busy-action-click','guardian-natural-exit-proof']:
+  if key in by:row[key]=by[key]
+ if 'editing-response' in by:row['inputToDomAndTwoRaf']=by['editing-response']['latency'];row['inputLatencyNote']='Real trusted XTest typing. Timeout input occurred during busy render; disable/remove typing occurred after cleanup and does not establish overlapping input latency during cleanup.'
+ u=p/'ui-observation-final.json'
+ if u.exists():
+  observation=read(u);window=(by['actual-webkit-busy']['wall']-observation['origin'],clear['wall']-observation['origin']);stats={}
+  for kind in ['frames','timers']:
+   points=[q for q in observation[kind] if window[0]<=q['at']<=window[1]];gaps=sorted(q['gap'] for q in points);stats[kind]={'count':len(gaps),'maxGapMs':max(gaps) if gaps else None,'p95GapMs':gaps[max(0,math.ceil(len(gaps)*.95)-1)] if gaps else None}
+  row['uiHeartbeatDuringObservedBusyToCleanup']={'pageTimeWindowMs':window,'samples':stats,'note':'20ms timer + rAF observations, window ends at external cleanup observation; not an uninstrumented performance benchmark. No timing subtraction; page observation listeners/MutationObserver and process sampling add overhead.'}
+  row['instrumentedBaseline']=by['observation-instrumentation-baseline']['observation']
+ success.append(row)
+proof=read(build/'provenance.json'); artifacts=[]
+for key in ['binary','deb','guard','archive','sdkTarball']:
+ p=Path(proof[key]['path']);assert sha(p)==proof[key]['sha256'];artifacts.append({'kind':key,**proof[key]})
+changes=[];inputs=read(build/'source-before.json')['files']
+for x in inputs:
+ p=repo/x['path'];actual=sha(p) if p.exists() else None
+ if actual!=x['sha256']:changes.append({'path':x['path'],'buildSha256':x['sha256'],'currentSha256':actual,'classification':'post-build test harness only'})
+assert {x['path'] for x in changes}=={'tests/helpers/native-production.mjs','tests/native/tauri-dom-plugin-lifecycle.mjs','tests/native/tauri-mermaid-ui.mjs'}
+write(build/'final-source-check.json',{'atUtc':utc(),'filesChecked':len(inputs),'changes':changes,'productInputsUnchanged':True,'note':'Original source-before/source-after retained; test-only changes attributed per run. Report docs are excluded from original freeze.'})
+summary={'atUtc':utc(),'scope':'Production extracted Linux deb binary, generic DOM lifecycle fixture via public editor UI. No official Mermaid layout/pixel matrix claim. No Windows/upload/release.','artifacts':artifacts,'runCount':len(allrows),'passingRunCount':len(success),'allRuns':allrows,'passingCases':success,'firstFailurePolicy':'All original failures retained. New runs follow explicit configuration or test diagnostic fixes; no automatic whole-case retries.','namespace':'Driver in reviewed user/mount namespace with system readonly and workspace/tmp writable. Harness/observer in approved outer namespace sharing PID namespace. Native WebKit sandbox enabled; no proot/security disable. Exact proxy/WebKit helpers mapped readonly.','appSigkillEnvironment':'Container PID1 did not reap guardian in first actual fault. Dedicated trusted ancestor in runs02-04 supplies only normal init waitid/waitpid; no descendant signal, no private directory deletion, no namespace teardown until verdict. Root review in preparation07/root-launcher-review.json.','terminalTrace':'Best-effort asynchronous native diagnostics may drop final trace on process exit. App SIGKILL requires exact guardian PID/birth naturally reaped exit0 plus all owned identities/private directory absent in original 4.5s bound. Exact ECHILD time is null when trace missing; natural exit observation is upper bound, never invented timestamp.','slot':'Released after app-sigkill04 exact driver stop; Xvfb126 kept for subsequent root-authorized UI64.','pending':'Official diagrams UI64/cross-mode pixel acceptance is a separate agent gate.'}
+write(build/'lifecycle-summary.json',summary)
+print(json.dumps({'runs':len(allrows),'passing':len(success),'changes':changes,'summary':str(build/'lifecycle-summary.json')}))

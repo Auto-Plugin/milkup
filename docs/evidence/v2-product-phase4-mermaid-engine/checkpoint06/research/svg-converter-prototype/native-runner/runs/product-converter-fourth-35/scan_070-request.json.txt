@@ -1,0 +1,21 @@
+{
+  "sample": {
+    "id": "flow-config-override",
+    "family": "flowchart",
+    "source": "---\nconfig:\n  securityLevel: loose\n  htmlLabels: true\n  themeCSS: \"@import url(https://example.invalid/audit.css);\"\n---\nflowchart LR\n A[\"<b>HTML</b>\"] --> B[plain]\n",
+    "sourceSha256": "9b52e8e0b5ac39a9e61139f5340b6e49b5cfe2c8c7a4e8fe9ef91d003d8e5a5f",
+    "unmodifiedOfficialBlock": false,
+    "purpose": "controlled local feature/security probe; not official sample"
+  },
+  "request": {
+    "id": "scan_070",
+    "source": "---\nconfig:\n  securityLevel: loose\n  htmlLabels: true\n  themeCSS: \"@import url(https://example.invalid/audit.css);\"\n---\nflowchart LR\n A[\"<b>HTML</b>\"] --> B[plain]\n",
+    "profile": "baseline",
+    "theme": "light"
+  },
+  "converterResearch": {
+    "originalCatalogIndex": 70,
+    "sourceUnchanged": true
+  },
+  "expected": "observed"
+}

@@ -1,0 +1,25 @@
+{
+  "recordedAt": "2026-10-16T15:28:22.826742+00:00",
+  "status": "static-only-no-runtime",
+  "beforeSha256": "3504017324bb5ad71f3f26274f3271cecbc79f40740f210f9c67efd3e8ab0125",
+  "afterSha256": "2b0ec01dd0c86e551bb4a43d3bc4d0024f92c218f2cba1da98d91e282c1c313a",
+  "diff": "/workspace/milkup-mermaid-engine-evidence/research/product-ui-preparation/failure-snapshot-followup/change.diff",
+  "scope": "Persist already-read DOM/expected/stage/error on preview or notice assertion failure, then throw the identical original error; no added browser observations/retries/deadline changes.",
+  "documentBoundary": "After screenshot stores existing record document probe; before screenshot stores document:null plus explicit not-read note. Adding a new probe before capture would change observation timing and is intentionally avoided.",
+  "failurePersistence": "Unique wx assertion-failure JSON; a disk write failure is logged and original assertion still rethrown.",
+  "checks": [
+    {
+      "command": "node node_modules/prettier/bin/prettier.cjs --write tests/native/tauri-mermaid-ui.mjs",
+      "cwd": "/workspace/milkup",
+      "log": "format-first.log",
+      "exitCode": 0
+    },
+    {
+      "command": "node --check tests/native/tauri-mermaid-ui.mjs",
+      "cwd": "/workspace/milkup",
+      "log": "syntax-first.log",
+      "exitCode": 0
+    }
+  ],
+  "nextRun": "Use new frozen input set for UI04; UI03 keeps its exact old350401 snapshot. Native picker unchanged."
+}

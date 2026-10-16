@@ -1,0 +1,163 @@
+// External diagnostic only. No product guard, schema, deadline or original DOM mutation.
+// SVG 2 text 11.9: one text chunk is filled as one path; multiple chunks are excluded.
+const NS = 'http://www.w3.org/2000/svg'
+const finite = (n) => Number.isFinite(n) && Math.abs(n) <= 65536
+const number = (value, name) => {
+  const n = Number(value)
+  if (!finite(n)) throw new Error('unbounded ' + name)
+  return n
+}
+const unitInterval = (value, name) => {
+  const n = number(value, name)
+  if (n < 0 || n > 1) throw new Error('invalid ' + name)
+  return n
+}
+const css = (node) => node.ownerDocument.defaultView.getComputedStyle(node)
+const get = (style, key) => style.getPropertyValue(key).trim()
+const none = (value) => !value || value === 'none'
+function arrayBox(box) {
+  const out = [box.x, box.y, box.x + box.width, box.y + box.height]
+  if (!out.every(finite) || box.width < 0 || box.height < 0) throw new Error('unbounded bbox')
+  return out
+}
+function matrix(node) {
+  const m = node.getScreenCTM()
+  if (!m || ![m.a, m.b, m.c, m.d, m.e, m.f].every(finite)) throw new Error('missing/nonfinite CTM')
+  // Narrow experiment: no rotated/skewed glyphs or uncertain baseline metrics.
+  if (m.a <= 0 || m.d <= 0 || m.b !== 0 || m.c !== 0) throw new Error('non-axis-aligned CTM')
+  return [m.a, m.b, m.c, m.d, m.e, m.f]
+}
+function transform(box, m) {
+  const points = []
+  for (const x of [box[0], box[2]]) for (const y of [box[1], box[3]])
+    points.push([m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]])
+  const out = [Math.min(...points.map(p => p[0])), Math.min(...points.map(p => p[1])),
+    Math.max(...points.map(p => p[0])), Math.max(...points.map(p => p[1]))]
+  if (!out.every(finite)) throw new Error('unbounded transformed bbox')
+  return out
+}
+function union(a, b) { return [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[2], b[2]), Math.max(a[3], b[3])] }
+function noOtherEffect(node, style, allowOpacity) {
+  if (node.namespaceURI !== NS || get(style, 'display') === 'none' || get(style, 'visibility') !== 'visible') throw new Error('not visible SVG')
+  if (!allowOpacity && unitInterval(get(style, 'opacity'), 'opacity') !== 1) throw new Error('child opacity')
+  for (const p of ['filter', 'clip-path', 'mask-image', '-webkit-mask-image', 'text-shadow'])
+    if (!none(get(style, p))) throw new Error('unsupported effect ' + p)
+  if ((get(style, 'mix-blend-mode') || 'normal') !== 'normal' || (get(style, 'isolation') || 'auto') !== 'auto') throw new Error('blend/isolation')
+  if ((get(style, 'vector-effect') || 'none') !== 'none') throw new Error('vector effect')
+  for (const p of ['marker-start', 'marker-mid', 'marker-end']) if (!none(get(style, p))) throw new Error('marker')
+  if (!none(get(style, 'text-decoration-line'))) throw new Error('decoration')
+  if (get(style, 'animation-name') && get(style, 'animation-name') !== 'none') throw new Error('animation')
+  if (node.querySelector('animate,animateTransform,animateMotion,set')) throw new Error('declarative animation')
+}
+function solid(value) { return /^rgba?\([^)]*\)$/.test(value) && !/NaN|Infinity/.test(value) }
+function pathFrom(root, node) {
+  const indices = []
+  while (node !== root) {
+    const parent = node.parentElement
+    if (!parent) throw new Error('node outside original root')
+    indices.unshift(Array.prototype.indexOf.call(parent.children, node))
+    node = parent
+  }
+  return indices
+}
+function atPath(root, path) {
+  let node = root
+  for (const index of path) {
+    node = node.children[index]
+    if (!node) throw new Error('candidate topology mismatch')
+  }
+  return node
+}
+function textBounds(text, style) {
+  if (text.childNodes.length !== 1 || text.firstChild.nodeType !== 3) throw new Error('not one plain text run')
+  const value = text.textContent
+  // Narrow first proof to ordinary, unambiguous horizontal Latin glyph shaping.
+  if (!value || value.length > 256 || !/^[\x21-\x7e]+$/.test(value)) throw new Error('outside single-line ASCII probe')
+  if (get(style, 'font-style') !== 'normal' || (get(style, 'direction') || 'ltr') !== 'ltr') throw new Error('font/direction outside probe')
+  if (!['horizontal-tb', 'lr-tb', ''].includes(get(style, 'writing-mode'))) throw new Error('vertical text')
+  if ((get(style, 'text-transform') || 'none') !== 'none') throw new Error('text transform')
+  for (const p of ['letter-spacing', 'word-spacing']) if (!['normal', '0px', ''].includes(get(style, p))) throw new Error('text spacing')
+  for (const p of ['x', 'y', 'dx', 'dy']) if (text[p]?.baseVal?.numberOfItems > 1) throw new Error('multiple text chunks')
+  if (text.hasAttribute('textLength') || text.hasAttribute('lengthAdjust') || text.hasAttribute('rotate')) throw new Error('text length/rotation')
+  const bbox = arrayBox(text.getBBox())
+  const start = text.getStartPositionOfChar(0)
+  if (![start.x, start.y].every(finite) || text.getRotationOfChar(0) !== 0) throw new Error('text baseline')
+  const canvas = text.ownerDocument.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('no font measurement context')
+  ctx.font = [get(style, 'font-style'), get(style, 'font-weight'), get(style, 'font-size'), get(style, 'font-family')].join(' ')
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.direction = 'ltr'
+  if ('fontKerning' in ctx) ctx.fontKerning = get(style, 'font-kerning') || 'auto'
+  const metrics = ctx.measureText(value)
+  const measured = [metrics.actualBoundingBoxLeft, metrics.actualBoundingBoxRight, metrics.actualBoundingBoxAscent, metrics.actualBoundingBoxDescent, metrics.width]
+  if (!measured.every(finite)) throw new Error('actual ink metrics unavailable')
+  const advance = text.getComputedTextLength()
+  if (!finite(advance) || Math.abs(advance - metrics.width) > 0.01) throw new Error('canvas/SVG shaping advance mismatch')
+  const ink = [start.x - metrics.actualBoundingBoxLeft, start.y - metrics.actualBoundingBoxAscent,
+    start.x + metrics.actualBoundingBoxRight, start.y + metrics.actualBoundingBoxDescent]
+  return { box: union(bbox, ink), svgBBox: bbox, canvasInk: ink, canvasAdvance: metrics.width, svgAdvance: advance,
+    font: ctx.font, text: value, textChunk: 'one-positioned-plain-run' }
+}
+
+export function normalizeDisjointOpacityGroups(originalRoot, candidateRoot) {
+  if (!originalRoot.isConnected || originalRoot === candidateRoot) throw new Error('requires live original and independent clone')
+  const originalBytes = originalRoot.outerHTML
+  if (originalBytes !== candidateRoot.outerHTML) throw new Error('candidate must begin as byte-equivalent clone')
+  const dpr = originalRoot.ownerDocument.defaultView.devicePixelRatio || 1
+  if (!finite(dpr) || dpr <= 0) throw new Error('invalid device pixel scale')
+  const groups = [], rejected = []
+  const all = [...originalRoot.querySelectorAll('g')]
+  if (all.length > 4096) throw new Error('probe group limit')
+  for (const group of all) {
+    const gs = css(group), opacity = unitInterval(get(gs, 'opacity'), 'group opacity')
+    if (opacity === 0 || opacity === 1) continue
+    const path = pathFrom(originalRoot, group)
+    try {
+      noOtherEffect(group, gs, true)
+      if (group.children.length !== 2) throw new Error('not exactly two paint leaves')
+      const children = [...group.children]
+      const line = children.find(n => n.localName === 'line')
+      const text = children.find(n => n.localName === 'text')
+      if (!line || !text || line.children.length) throw new Error('not line + plain text')
+      const ls = css(line), ts = css(text)
+      noOtherEffect(line, ls, false); noOtherEffect(text, ts, false)
+      if (get(ls, 'fill') !== 'none' || !solid(get(ls, 'stroke')) || get(ts, 'stroke') !== 'none' || !solid(get(ts, 'fill'))) throw new Error('not single solid paint per leaf')
+      const strokeOpacity = unitInterval(get(ls, 'stroke-opacity'), 'stroke opacity')
+      const fillOpacity = unitInterval(get(ts, 'fill-opacity'), 'fill opacity')
+      const widthText = get(ls, 'stroke-width')
+      if (!/^\d+(?:\.\d+)?px$/.test(widthText)) throw new Error('non-px line stroke width')
+      const half = number(parseFloat(widthText), 'stroke width') / 2
+      const cap = get(ls, 'stroke-linecap')
+      if (!['butt', 'round', 'square'].includes(cap)) throw new Error('line cap')
+      const extra = half * (cap === 'square' ? Math.SQRT2 : 1)
+      const lineLocal = arrayBox(line.getBBox())
+      const lineStroke = [lineLocal[0] - extra, lineLocal[1] - extra, lineLocal[2] + extra, lineLocal[3] + extra]
+      const textMeasurement = textBounds(text, ts)
+      const lineMatrix = matrix(line), textMatrix = matrix(text)
+      const lineScreen = transform(lineStroke, lineMatrix), textScreen = transform(textMeasurement.box, textMatrix)
+      // Outward device-pixel boxes include every partially covered edge pixel.
+      const pixels = b => [Math.floor(b[0] * dpr), Math.floor(b[1] * dpr), Math.ceil(b[2] * dpr), Math.ceil(b[3] * dpr)]
+      const lp = pixels(lineScreen), tp = pixels(textScreen)
+      const gapX = Math.max(tp[0] - lp[2], lp[0] - tp[2])
+      const gapY = Math.max(tp[1] - lp[3], lp[1] - tp[3])
+      if (gapX < 1 && gapY < 1) throw new Error('paint supports not separated by an untouched pixel')
+      const outGroup = atPath(candidateRoot, path)
+      const outLine = atPath(candidateRoot, pathFrom(originalRoot, line))
+      const outText = atPath(candidateRoot, pathFrom(originalRoot, text))
+      if (outGroup.localName !== 'g' || outLine.localName !== 'line' || outText.localName !== 'text') throw new Error('clone kind mismatch')
+      outGroup.style.setProperty('opacity', '1', 'important')
+      outLine.style.setProperty('stroke-opacity', String(strokeOpacity * opacity), 'important')
+      outText.style.setProperty('fill-opacity', String(fillOpacity * opacity), 'important')
+      groups.push({ path, opacity, lineLocal, lineStroke, textMeasurement, lineMatrix, textMatrix,
+        lineScreen, textScreen, linePixels: lp, textPixels: tp, gapX, gapY,
+        original: { strokeOpacity, fillOpacity, lineColor: get(ls, 'stroke'), textColor: get(ts, 'fill') },
+        candidate: { groupOpacity: 1, strokeOpacity: strokeOpacity * opacity, fillOpacity: fillOpacity * opacity } })
+    } catch (error) {
+      rejected.push({ path, reason: String(error?.message || error) })
+    }
+  }
+  if (originalRoot.outerHTML !== originalBytes) throw new Error('original input was mutated')
+  return { diagnosticOnly: true, productNormalizationApproved: false, groups, rejected, dpr,
+    originalUnchanged: true, requiresActualPixelComparison: true,
+    boundary: 'One plain text chunk plus a separate single-stroked line; no effects or overlaps. Native equality remains unproven until paired PNG comparison.' }
+}

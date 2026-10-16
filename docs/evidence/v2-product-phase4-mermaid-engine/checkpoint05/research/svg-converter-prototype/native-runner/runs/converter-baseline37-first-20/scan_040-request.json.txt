@@ -1,0 +1,21 @@
+{
+  "sample": {
+    "id": "sequenceDiagram-001-autonumber",
+    "family": "sequenceDiagram",
+    "source": "sequenceDiagram\n  autonumber\n  actor Customer\n  participant Web as Web app\n  participant API as API gateway\n  participant Bank\n  Customer->>Web: Place order\n  Web->>API: POST /orders\n  activate API\n  API->>Bank: Authorise payment\n  Bank-->>API: Approved\n  API-->>Web: 201 Created\n  deactivate API\n  Web-->>Customer: Order confirmed\n  Note over Customer,Bank: One order, one transaction\n",
+    "sourceSha256": "b46ca8f030ae22c724720f00d238e528d416593c51d52a6e4f22d99b99f93b2d",
+    "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/sequenceDiagram.md",
+    "line": 30,
+    "unmodifiedOfficialBlock": true
+  },
+  "request": {
+    "id": "scan_040",
+    "source": "sequenceDiagram\n  autonumber\n  actor Customer\n  participant Web as Web app\n  participant API as API gateway\n  participant Bank\n  Customer->>Web: Place order\n  Web->>API: POST /orders\n  activate API\n  API->>Bank: Authorise payment\n  Bank-->>API: Approved\n  API-->>Web: 201 Created\n  deactivate API\n  Web-->>Customer: Order confirmed\n  Note over Customer,Bank: One order, one transaction\n",
+    "profile": "baseline",
+    "theme": "light"
+  },
+  "converterResearch": {
+    "originalCatalogIndex": 40,
+    "sourceUnchanged": true
+  }
+}

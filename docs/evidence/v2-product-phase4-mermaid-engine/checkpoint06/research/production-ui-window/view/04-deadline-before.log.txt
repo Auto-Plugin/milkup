@@ -1,0 +1,50 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/document-presentation-preparation.test.ts (17 tests | 1 failed | 16 skipped) 31ms
+   × rejects preparation settled after the monotonic deadline before the timer task runs and retries 30ms
+     → expected false to be true // Object.is equality
+   ↓ resumes settled host preparation after its deadline without viewport or selection events
+   ↓ never overlaps a timed-out native read that has not settled, then resumes after settlement
+   ↓ does not resume timed-out preparation after destruction
+   ↓ does not automatically retry ordinary rejection
+   ↓ does not automatically retry ordinary unknown-context
+   ↓ cancels the settled retry when its source no longer matches
+   ↓ cancels the settled retry when its version no longer matches
+   ↓ cancels the settled retry when its store-version no longer matches
+   ↓ cancels the settled retry when its selection no longer matches
+   ↓ cancels the settled retry when its mode no longer matches
+   ↓ cancels the settled retry when its window no longer matches
+   ↓ cancels the settled retry when its width no longer matches
+   ↓ does not let an old retry interfere with a replacement config
+   ↓ retires the old timer when a new epoch starts another job
+   ↓ cannot revive a retired job when its uncancellable read settles after config replacement
+   ↓ continues settled preparation in separate bounded attempts rather than only once
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 16 skipped (17)
+   Start at  13:52:40
+   Duration  1.19s (transform 322ms, setup 0ms, collect 386ms, tests 31ms, environment 478ms, prepare 85ms)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation-preparation.test.ts > rejects preparation settled after the monotonic deadline before the timer task runs and retries
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/__tests__/document-presentation-preparation.test.ts:30:52
+     28|   finish()
+     29|   await vi.advanceTimersByTimeAsync(0)
+     30|   expect(provide.mock.calls[0]![1].signal.aborted).toBe(true)
+       |                                                    ^
+     31|   expect(document.querySelector('[data-document-presentation-notice]')…
+     32|   await vi.advanceTimersByTimeAsync(1001)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+

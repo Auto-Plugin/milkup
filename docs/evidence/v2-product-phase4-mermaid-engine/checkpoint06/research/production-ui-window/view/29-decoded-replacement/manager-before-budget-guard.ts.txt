@@ -1,0 +1,1736 @@
+import {
+  copyDocumentPresentationRequest,
+  copyDocumentPresentationAggregate,
+  type DocumentRendererDeclaration,
+  copyDocumentPresentationNode,
+  DOCUMENT_PRESENTATION_LIMITS,
+  type DocumentPresentationRequest,
+  type DocumentPresentationResult,
+  type DocumentPresentationNode,
+  type DocumentPresentationFragment,
+  type DocumentMathNode,
+  type DocumentSvgImage,
+} from '@milkup/core'
+import { createOwnedDocumentSvgImage, imageDecodeDeadlineMs, type OwnedDocumentSvgImage } from './document-svg-image'
+
+export interface DocumentPresentationWindow {
+  readonly sourceIdentity: object
+  readonly sourceVersion: number
+  /** Actual store revision, separate from the view's optimistic render generation. */
+  readonly documentVersion?: number
+  readonly source: string
+  readonly from: number
+  readonly to: number
+  readonly fromLine: number
+  readonly toLine: number
+  readonly completeStart: boolean
+  readonly completeEnd: boolean
+  readonly selection: { readonly anchor: number; readonly head: number }
+  readonly width: number
+  /** Host-only priority range measured from the visible DOM, excluding overscan. */
+  readonly visibleFrom?: number
+  readonly visibleTo?: number
+}
+export interface DocumentPresentationResponse {
+  readonly request: DocumentPresentationRequest
+  readonly declarations: readonly DocumentRendererDeclaration[]
+  readonly result: DocumentPresentationResult
+}
+export type DocumentPresentationTarget = Extract<
+  DocumentPresentationNode,
+  { type: 'reference' }
+>['target']
+export interface DocumentPresentationConfig {
+  readonly provide: (
+    window: DocumentPresentationWindow,
+    options: {
+      readonly signal: AbortSignal
+      /** Host preparation deadline on the current realm's performance.now() clock. */
+      readonly deadline?: number
+    },
+  ) => Promise<DocumentPresentationResponse> | DocumentPresentationResponse
+  readonly onNavigate?: (target: DocumentPresentationTarget) => void | Promise<void>
+}
+export interface PresentationSnapshot {
+  readonly mode: 'live' | 'source'
+  readonly sourceIdentity: object
+  readonly sourceVersion: number
+  readonly documentVersion?: number
+  readonly selection: { readonly anchor: number; readonly head: number }
+  readonly lineCount: number
+  readonly read: (from: number, to: number) => string | undefined
+}
+
+const mathNS = 'http://www.w3.org/1998/Math/MathML'
+const svgNS = 'http://www.w3.org/2000/svg'
+const referenceTargets = new WeakMap<HTMLElement, DocumentPresentationTarget>()
+// Includes trusted window/context I/O. Plugin execution has its own 2s worker watchdog.
+const hostPreparationDeadlineMs = 10_000
+const tones = {
+  foreground: 'currentColor',
+  muted: 'var(--milkup-presentation-muted, currentColor)',
+  accent: 'var(--milkup-presentation-accent, currentColor)',
+  background: 'var(--milkup-presentation-background, transparent)',
+  border: 'var(--milkup-presentation-border, currentColor)',
+  none: 'none',
+}
+
+/** Validate first; never parse plugin HTML, SVG strings, CSS, URLs or DOM. */
+export function createDocumentPresentationNode(
+  document: Document,
+  value: DocumentPresentationNode,
+  navigate?: (target: DocumentPresentationTarget) => void,
+): Node {
+  return createOwnedPresentationNode(document, value, navigate)
+}
+
+function createOwnedPresentationNode(
+  document: Document,
+  value: DocumentPresentationNode,
+  navigate?: (target: DocumentPresentationTarget) => void,
+  image?: (value: DocumentSvgImage) => Node,
+): Node {
+  const root = copyDocumentPresentationNode(value)
+  function math(node: DocumentMathNode): Element {
+    const element = document.createElementNS(mathNS, node.tag)
+    if (node.text !== undefined) element.textContent = node.text
+    const names: Record<string, string> = {
+      display: 'display',
+      mathvariant: 'mathvariant',
+      stretchy: 'stretchy',
+      fence: 'fence',
+      separator: 'separator',
+      accent: 'accent',
+      scriptLevel: 'scriptlevel',
+      displayStyle: 'displaystyle',
+      rowSpacingEm: 'rowspacing',
+      columnSpacingEm: 'columnspacing',
+      columnAlign: 'columnalign',
+      widthEm: 'width',
+      lspaceEm: 'lspace',
+      rspaceEm: 'rspace',
+    }
+    for (const [key, value] of Object.entries(node.attributes ?? {})) {
+      const name = names[key]
+      if (!name) throw new Error('Unsupported MathML attribute')
+      element.setAttribute(
+        name,
+        Array.isArray(value)
+          ? value.map((item) => `${item}${key.endsWith('Em') ? 'em' : ''}`).join(' ')
+          : `${value}${key.endsWith('Em') ? 'em' : ''}`,
+      )
+    }
+    for (const child of node.children ?? []) element.append(math(child))
+    return element
+  }
+  function build(node: DocumentPresentationNode): Node {
+    if (node.type === 'svg-image') {
+      if (!image) throw new Error('SVG image presentation requires a lifetime owner')
+      return image(node)
+    }
+    if (node.type === 'text') return document.createTextNode(node.text)
+    if (node.type === 'math') return math(node.tree)
+    if (node.type === 'reference') {
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.className = 'milkup-document-reference'
+      button.textContent = node.label
+      referenceTargets.set(button, node.target)
+      button.addEventListener('click', (event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        navigate?.(node.target)
+      })
+      return button
+    }
+    if (node.type === 'vector') {
+      const svg = document.createElementNS(svgNS, 'svg')
+      svg.setAttribute('viewBox', `0 0 ${node.width} ${node.height}`)
+      svg.setAttribute('width', String(node.width))
+      svg.setAttribute('height', String(node.height))
+      svg.style.maxWidth = 'none'
+      svg.style.display = 'block'
+      for (const primitive of node.children) {
+        const element = document.createElementNS(svgNS, primitive.type)
+        for (const [key, value] of Object.entries(primitive)) {
+          if (key === 'type') continue
+          if (key === 'text') element.textContent = String(value)
+          else if (key === 'points')
+            element.setAttribute(
+              'points',
+              (value as readonly { x: number; y: number }[])
+                .map((point) => `${point.x},${point.y}`)
+                .join(' '),
+            )
+          else if (key === 'stroke' || key === 'fill' || key === 'tone')
+            element.setAttribute(key === 'tone' ? 'fill' : key, tones[value as keyof typeof tones])
+          else
+            element.setAttribute(
+              (
+                {
+                  radius: 'rx',
+                  strokeWidth: 'stroke-width',
+                  fontSize: 'font-size',
+                  anchor: 'text-anchor',
+                } as Record<string, string>
+              )[key] ?? key,
+              String(value),
+            )
+        }
+        if (primitive.type !== 'text' && !('fill' in primitive))
+          element.setAttribute('fill', 'none')
+        svg.append(element)
+      }
+      return svg
+    }
+    const element = document.createElement(
+      ({ group: 'span', emphasis: 'em', code: 'code', sup: 'sup', sub: 'sub' } as const)[node.type],
+    )
+    for (const child of node.children) element.append(build(child))
+    return element
+  }
+  return build(root)
+}
+
+interface SavedLine {
+  readonly nodes: readonly Node[]
+  readonly display: string
+  readonly minHeight: string
+}
+interface PaintContext {
+  readonly mode: PresentationSnapshot['mode']
+  readonly sourceIdentity: object
+  readonly sourceVersion: number
+  readonly documentVersion: number | undefined
+  readonly config: DocumentPresentationConfig | undefined
+  readonly selection: { readonly anchor: number; readonly head: number }
+}
+interface PreviewScroll {
+  readonly context: PaintContext
+  readonly positions: ReadonlyMap<
+    string,
+    { readonly fragment: DocumentPresentationFragment; readonly top: number; readonly left: number }
+  >
+}
+function fragmentKey(fragment: DocumentPresentationFragment): string {
+  return `${fragment.layout}:${fragment.from}:${fragment.to}`
+}
+interface Job {
+  readonly key: string
+  readonly identity: object
+  readonly controller: AbortController
+  readonly epoch: number
+  readonly selection: { readonly anchor: number; readonly head: number }
+  readonly documentVersion: number | undefined
+  preparationTimedOut?: boolean
+}
+
+interface FragmentImages {
+  fragment: DocumentPresentationFragment
+  response: DocumentPresentationResponse
+  readonly signature: string
+  readonly context: PaintContext
+  readonly generation: number
+  readonly images: OwnedDocumentSvgImage[]
+  failed: boolean
+}
+
+/** One manager for both views. Source DOM is retained, never edited as document data. */
+export class DocumentPresentation {
+  private config: DocumentPresentationConfig | undefined
+  private epoch = 0
+  private stopped = false
+  private painting = false
+  private scheduled = false
+  private job: Job | undefined
+  private cache:
+    | {
+        key: string
+        baseKey: string
+        identity: object
+        documentVersion: number | undefined
+        response: DocumentPresentationResponse
+      }
+    | undefined
+  private painted:
+    | {
+        response: DocumentPresentationResponse
+        context: PaintContext
+        selection: string
+        imageRevision: number
+        lines: readonly Element[]
+      }
+    | undefined
+  private failedKey: string | undefined
+  private retryAfter = 0
+  private preparationRetry:
+    { timer: ReturnType<typeof setTimeout>; matches: () => boolean } | undefined
+  private observedIdentity: object | undefined
+  private observedVersion: number | undefined
+  private notice: HTMLDivElement | undefined
+  private blocks: readonly { fromLine: number; toLine: number }[] = []
+  private blocksIdentity: object | undefined
+  private blocksVersion: number | undefined
+  private readonly saved = new Map<HTMLElement, SavedLine>()
+  // Only the current response is retained, bounded by its validated fragment/node budgets.
+  private readonly fragmentImages = new Map<DocumentPresentationFragment, FragmentImages>()
+  // One previously decoded fragment per range, never a substitute for validating
+  // the latest response. Its deadline survives successive pending replacements.
+  private readonly previousFragmentImages = new Map<string, {
+    owner: FragmentImages
+    timer: ReturnType<typeof setTimeout>
+  }>()
+  private imageGeneration = 0
+  private imageRevision = 0
+  private readonly observer: MutationObserver
+  private readonly resize: ResizeObserver | undefined
+  private readonly scroll = () => this.schedule()
+  private tabOrigin: { event: KeyboardEvent; element: HTMLElement } | undefined
+  private tabOriginTimer: ReturnType<typeof setTimeout> | undefined
+  private proxyNavigation: { element: HTMLElement; snapshot: PresentationSnapshot } | undefined
+  private referencePointer:
+    | {
+        id: number
+        element: HTMLElement
+        snapshot: PresentationSnapshot
+        config: DocumentPresentationConfig
+        waiters: Set<() => void>
+      }
+    | undefined
+  private referencePointerTimer: ReturnType<typeof setTimeout> | undefined
+  private readonly releaseReferencePointer = () => {
+    clearTimeout(this.referencePointerTimer)
+    this.referencePointerTimer = undefined
+    const pointer = this.referencePointer
+    this.referencePointer = undefined
+    for (const resume of pointer?.waiters ?? []) resume()
+  }
+  private readonly referencePointerDown = (event: PointerEvent) => {
+    if (
+      event.button !== 0 ||
+      event.isPrimary === false ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      !this.config ||
+      this.stopped ||
+      !(event.target instanceof Element)
+    )
+      return
+    this.releaseReferencePointer()
+    const element = event.target.closest<HTMLElement>('.milkup-document-reference')
+    const snapshot = this.snapshot()
+    if (
+      !element ||
+      !this.content.contains(element) ||
+      !referenceTargets.has(element) ||
+      snapshot.mode !== 'live'
+    )
+      return
+    this.referencePointer = {
+      id: event.pointerId,
+      element,
+      snapshot,
+      config: this.config,
+      waiters: new Set(),
+    }
+  }
+  private readonly referencePointerUp = (event: PointerEvent) => {
+    if (event.pointerId !== this.referencePointer?.id) return
+    // Native click follows pointerup/mouseup. A microtask would replace its target too early.
+    clearTimeout(this.referencePointerTimer)
+    this.referencePointerTimer = setTimeout(this.releaseReferencePointer, 0)
+  }
+  private readonly referencePointerCancel = (event: PointerEvent) => {
+    if (event.pointerId === this.referencePointer?.id) this.releaseReferencePointer()
+  }
+  private readonly referencePointerMove = (event: PointerEvent) => {
+    if (event.pointerId === this.referencePointer?.id && event.buttons === 0)
+      this.releaseReferencePointer()
+  }
+  private readonly referenceVisibility = () => {
+    if (this.root.ownerDocument.visibilityState === 'hidden') this.releaseReferencePointer()
+  }
+  /** Internal background-layout gate; never changes focus or synthesizes activation. */
+  hasReferencePointer(): boolean {
+    const pointer = this.referencePointer
+    if (!pointer) return false
+    const current = this.snapshot(),
+      before = pointer.snapshot
+    if (
+      this.stopped ||
+      this.config !== pointer.config ||
+      !this.content.contains(pointer.element) ||
+      current.mode !== 'live' ||
+      current.sourceIdentity !== before.sourceIdentity ||
+      current.sourceVersion !== before.sourceVersion ||
+      current.documentVersion !== before.documentVersion ||
+      !sameSelection(current.selection, before.selection)
+    ) {
+      this.releaseReferencePointer()
+      return false
+    }
+    return true
+  }
+  waitForReferencePointer(signal?: AbortSignal): Promise<void> | undefined {
+    if (!this.hasReferencePointer() || signal?.aborted) return undefined
+    const pointer = this.referencePointer!
+    return new Promise<void>((resolve) => {
+      const resume = () => {
+        pointer.waiters.delete(resume)
+        signal?.removeEventListener('abort', resume)
+        resolve()
+      }
+      pointer.waiters.add(resume)
+      signal?.addEventListener('abort', resume, { once: true })
+    })
+  }
+  private readonly clearProxyNavigation = () => {
+    this.tabOrigin = undefined
+    this.proxyNavigation = undefined
+    clearTimeout(this.tabOriginTimer)
+    this.tabOriginTimer = undefined
+  }
+  private readonly navigationKeyDown = (event: KeyboardEvent) => {
+    const tab = event.key === 'Tab' || (event.key === 'Unidentified' && event.code === 'Tab')
+    // Shift itself precedes native Shift+Tab; it does not end keyboard navigation.
+    if (event.key === 'Shift' && !event.altKey && !event.ctrlKey && !event.metaKey) return
+    if (
+      tab &&
+      event.shiftKey &&
+      !event.altKey &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      event.target === this.root.querySelector('.milkup-input-proxy')
+    )
+      return
+    this.clearProxyNavigation()
+    if (
+      tab &&
+      !event.shiftKey &&
+      !event.altKey &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      event.target instanceof HTMLElement &&
+      event.target.closest('[data-document-presentation]') &&
+      this.content.contains(event.target)
+    ) {
+      this.tabOrigin = { event, element: event.target }
+      // Only the native focus move belonging to this key event may establish it.
+      this.tabOriginTimer = setTimeout(() => {
+        this.tabOrigin = undefined
+      }, 0)
+    }
+  }
+  private readonly navigationFocusIn = (event: FocusEvent) => {
+    const origin = this.tabOrigin
+    this.clearProxyNavigation()
+    if (
+      origin &&
+      !origin.event.defaultPrevented &&
+      origin.element.isConnected &&
+      event.relatedTarget === origin.element &&
+      event.target === this.root.querySelector('.milkup-input-proxy')
+    )
+      this.proxyNavigation = { element: origin.element, snapshot: this.snapshot() }
+  }
+  private readonly navigationFocusOut = (event: FocusEvent) => {
+    if (event.target === this.root.querySelector('.milkup-input-proxy')) this.clearProxyNavigation()
+  }
+
+  constructor(
+    private readonly root: HTMLElement,
+    private readonly content: HTMLElement,
+    config: DocumentPresentationConfig | undefined,
+    private readonly snapshot: () => PresentationSnapshot,
+    private readonly layout: () => void,
+    private readonly reveal: (from: number, to: number) => void,
+  ) {
+    this.config = config
+    this.observer = new MutationObserver(() => this.schedule())
+    this.observe()
+    this.resize =
+      typeof ResizeObserver === 'undefined'
+        ? undefined
+        : new ResizeObserver(() => {
+            if (!this.stopped) {
+              this.layout()
+              this.schedule()
+            }
+          })
+    this.resize?.observe(root)
+    this.root.addEventListener('pointerdown', this.referencePointerDown, true)
+    this.root.addEventListener('keydown', this.releaseReferencePointer, true)
+    this.root.addEventListener('beforeinput', this.releaseReferencePointer, true)
+    this.root.ownerDocument.addEventListener('pointerup', this.referencePointerUp, true)
+    this.root.ownerDocument.addEventListener('pointercancel', this.referencePointerCancel, true)
+    this.root.ownerDocument.addEventListener('pointermove', this.referencePointerMove, true)
+    this.root.ownerDocument.addEventListener('visibilitychange', this.referenceVisibility)
+    this.root.ownerDocument.defaultView?.addEventListener('blur', this.releaseReferencePointer)
+    this.root.addEventListener('scroll', this.scroll)
+    this.root.addEventListener('keydown', this.navigationKeyDown, true)
+    this.root.addEventListener('focusin', this.navigationFocusIn)
+    this.root.addEventListener('focusout', this.navigationFocusOut)
+    for (const name of ['pointerdown', 'beforeinput', 'input', 'compositionstart'])
+      this.root.addEventListener(name, this.clearProxyNavigation, true)
+  }
+  /** Let the browser reverse the immediately preceding preview-to-proxy Tab. */
+  returnToPreviewWithTab(event: KeyboardEvent): boolean {
+    if (event.key !== 'Tab' && !(event.key === 'Unidentified' && event.code === 'Tab')) return false
+    const navigation = this.proxyNavigation
+    if (!navigation) return false
+    this.clearProxyNavigation()
+    const current = this.snapshot(),
+      before = navigation.snapshot
+    return (
+      (event.key === 'Tab' || (event.key === 'Unidentified' && event.code === 'Tab')) &&
+      event.shiftKey &&
+      !event.altKey &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.isComposing &&
+      event.target === this.root.querySelector('.milkup-input-proxy') &&
+      this.content.contains(navigation.element) &&
+      current.mode === 'live' &&
+      current.sourceIdentity === before.sourceIdentity &&
+      current.sourceVersion === before.sourceVersion &&
+      sameSelection(current.selection, before.selection)
+    )
+  }
+  private observe(): void {
+    this.observer.observe(this.content, { childList: true, subtree: true })
+  }
+  setConfig(config: DocumentPresentationConfig | undefined): void {
+    this.config = config
+    this.invalidate()
+  }
+  expandLineWindow(fromLine: number, toLine: number): { fromLine: number; toLine: number } {
+    const snapshot = this.snapshot()
+    if (
+      snapshot.sourceIdentity !== this.blocksIdentity ||
+      snapshot.sourceVersion !== this.blocksVersion
+    )
+      return { fromLine, toLine }
+    for (const block of this.blocks)
+      if (fromLine <= block.toLine && toLine >= block.fromLine) {
+        fromLine = Math.min(fromLine, block.fromLine)
+        toLine = Math.max(toLine, block.toLine)
+      }
+    return { fromLine, toLine }
+  }
+  /** Refresh provider data without withdrawing an unchanged, validated presentation. */
+  refresh(): void {
+    this.cancelPreparationRetry()
+    const current = this.snapshot()
+    if (
+      !this.config ||
+      current.mode !== 'live' ||
+      !this.cache ||
+      this.cache.identity !== current.sourceIdentity ||
+      this.cache.documentVersion !== current.documentVersion ||
+      !this.cache.key.startsWith(`${current.sourceVersion}:`) ||
+      !sameSelection(this.cache.response.request.selection, current.selection)
+    ) {
+      this.invalidate()
+      return
+    }
+    this.epoch++
+    this.job?.controller.abort()
+    this.job = undefined
+    this.failedKey = undefined
+    this.schedule()
+  }
+  invalidate(): void {
+    this.releaseReferencePointer()
+    this.cancelPreparationRetry()
+    this.epoch++
+    this.job?.controller.abort()
+    this.job = undefined
+    this.cache = undefined
+    this.failedKey = undefined
+    this.blocks = []
+    this.restore()
+    this.layout()
+    this.schedule()
+  }
+  destroy(): void {
+    this.releaseReferencePointer()
+    this.cancelPreparationRetry()
+    this.clearProxyNavigation()
+    this.stopped = true
+    this.job?.controller.abort()
+    this.observer.disconnect()
+    this.resize?.disconnect()
+    this.root.removeEventListener('pointerdown', this.referencePointerDown, true)
+    this.root.removeEventListener('keydown', this.releaseReferencePointer, true)
+    this.root.removeEventListener('beforeinput', this.releaseReferencePointer, true)
+    this.root.ownerDocument.removeEventListener('pointerup', this.referencePointerUp, true)
+    this.root.ownerDocument.removeEventListener('pointercancel', this.referencePointerCancel, true)
+    this.root.ownerDocument.removeEventListener('pointermove', this.referencePointerMove, true)
+    this.root.ownerDocument.removeEventListener('visibilitychange', this.referenceVisibility)
+    this.root.ownerDocument.defaultView?.removeEventListener('blur', this.releaseReferencePointer)
+    this.root.removeEventListener('scroll', this.scroll)
+    this.root.removeEventListener('keydown', this.navigationKeyDown, true)
+    this.root.removeEventListener('focusin', this.navigationFocusIn)
+    this.root.removeEventListener('focusout', this.navigationFocusOut)
+    for (const name of ['pointerdown', 'beforeinput', 'input', 'compositionstart'])
+      this.root.removeEventListener(name, this.clearProxyNavigation, true)
+    this.restore()
+    this.cache = undefined
+  }
+  schedule(): void {
+    if (this.stopped || this.scheduled) return
+    this.scheduled = true
+    queueMicrotask(() => {
+      this.scheduled = false
+      if (!this.stopped) this.sync()
+    })
+  }
+  /** Called before cursor/selection geometry, including optimistic edits. */
+  selectionChanged(): void {
+    this.hasReferencePointer()
+    if (this.painting || this.stopped) return
+    if (!this.config && !this.saved.size && !this.job) return
+    const current = this.snapshot()
+    if (this.preparationRetry && !this.preparationRetry.matches()) this.cancelPreparationRetry()
+    if (this.job && !sameSelection(this.job.selection, current.selection)) {
+      this.job.controller.abort()
+      this.job = undefined
+    }
+    if (
+      current.mode !== 'live' ||
+      !this.config ||
+      (this.cache &&
+        (this.cache.identity !== current.sourceIdentity ||
+          this.cache.documentVersion !== current.documentVersion ||
+          !this.cache.key.startsWith(`${current.sourceVersion}:`) ||
+          !sameSelection(this.cache.response.request.selection, current.selection)))
+    ) {
+      this.restore()
+      this.schedule()
+      return
+    }
+    if (this.cache) this.paint(this.cache.response)
+    this.schedule()
+  }
+  private window(current: PresentationSnapshot): DocumentPresentationWindow | undefined {
+    const children = this.content.children
+    if (!children.length) return undefined
+    const rect = this.root.getBoundingClientRect()
+    const measured = new Map<HTMLElement, DOMRect>()
+    const owners = new Map<string, HTMLElement | null>()
+    const lineRect = (line: HTMLElement): DOMRect => {
+      const ownerId = line.dataset.presentationOwner
+      if (ownerId && !owners.has(ownerId))
+        owners.set(
+          ownerId,
+          this.content.querySelector<HTMLElement>(`.milkup-line[data-line="${ownerId}"]`),
+        )
+      const owner = (ownerId ? owners.get(ownerId) : undefined) ?? line
+      let bounds = measured.get(owner)
+      if (!bounds) {
+        bounds = owner.getBoundingClientRect()
+        measured.set(owner, bounds)
+      }
+      return bounds
+    }
+    let low = 0,
+      high = children.length - 1
+    while (low < high) {
+      const mid = Math.floor((low + high) / 2)
+      const candidate = children[mid] as HTMLElement
+      if (lineRect(candidate).bottom <= rect.top) low = mid + 1
+      else high = mid
+    }
+    let lines: HTMLElement[] = []
+    for (
+      let index = Math.max(0, low - 12);
+      index < children.length && lines.length < DOCUMENT_PRESENTATION_LIMITS.inputLines;
+      index++
+    ) {
+      const line = children[index] as HTMLElement
+      if (!line.classList.contains('milkup-line')) continue
+      if (lines.length > 24 && lineRect(line).top > rect.bottom + 600) break
+      if (
+        Number(line.dataset.to) - Number(lines[0]?.dataset.from ?? line.dataset.from) >
+        DOCUMENT_PRESENTATION_LIMITS.inputUtf16
+      )
+        break
+      lines.push(line)
+    }
+    // Locally parsed complete, loaded blocks are bounded window hints only.
+    // The provider must independently verify context before replacing source.
+    const checkedBlocks = new Set<string>()
+    for (const line of lines) {
+      const bounds = lineRect(line)
+      if (bounds.height <= 0 || bounds.bottom <= rect.top || bounds.top >= rect.bottom) continue
+      const blockFrom = Number(line.dataset.presentationBlockFrom)
+      const blockTo = Number(line.dataset.presentationBlockTo)
+      if (
+        !Number.isSafeInteger(blockFrom) ||
+        !Number.isSafeInteger(blockTo) ||
+        blockTo <= blockFrom
+      )
+        continue
+      const blockKey = `${blockFrom}:${blockTo}`
+      if (checkedBlocks.has(blockKey)) continue
+      checkedBlocks.add(blockKey)
+      const start = this.content.querySelector<HTMLElement>(
+        `.milkup-line[data-from="${blockFrom}"]`,
+      )
+      let end: HTMLElement | undefined
+      let cursor: Element | null = start
+      for (let count = 0; cursor && count < DOCUMENT_PRESENTATION_LIMITS.inputLines; count++) {
+        if (!(cursor instanceof HTMLElement) || !cursor.classList.contains('milkup-line')) break
+        if (Number(cursor.dataset.from) <= blockTo && Number(cursor.dataset.to) >= blockTo) {
+          end = cursor
+          break
+        }
+        cursor = cursor.nextElementSibling
+      }
+      if (!start || !end) continue
+      const first = Number(start.dataset.from) < Number(lines[0]!.dataset.from) ? start : lines[0]!
+      const last = Number(end.dataset.to) > Number(lines.at(-1)!.dataset.to) ? end : lines.at(-1)!
+      if (
+        Number(last.dataset.line) - Number(first.dataset.line) + 1 >
+          DOCUMENT_PRESENTATION_LIMITS.inputLines ||
+        Number(last.dataset.to) - Number(first.dataset.from) >
+          DOCUMENT_PRESENTATION_LIMITS.inputUtf16
+      )
+        continue
+      const expanded: HTMLElement[] = []
+      let candidate: Element | null = first
+      while (candidate && expanded.length < DOCUMENT_PRESENTATION_LIMITS.inputLines) {
+        if (!(candidate instanceof HTMLElement) || !candidate.classList.contains('milkup-line'))
+          break
+        if (Number(candidate.dataset.line) !== Number(first.dataset.line) + expanded.length) break
+        expanded.push(candidate)
+        if (candidate === last) break
+        candidate = candidate.nextElementSibling
+      }
+      if (expanded.at(-1) === last) lines = expanded
+    }
+    const first = lines[0],
+      last = lines.at(-1)
+    if (!first || !last) return undefined
+    const from = Number(first.dataset.from),
+      to = Number(last.dataset.to)
+    const visible = lines.filter((line) => {
+      const bounds = lineRect(line)
+      return bounds.height > 0 && bounds.bottom > rect.top && bounds.top < rect.bottom
+    })
+    const visibleFrom = Number((visible[0] ?? first).dataset.from)
+    const visibleTo = Number((visible.at(-1) ?? last).dataset.to)
+    const source = current.read(from, to)
+    if (
+      source === undefined ||
+      source.length !== to - from ||
+      source.length > DOCUMENT_PRESENTATION_LIMITS.inputUtf16
+    )
+      return undefined
+    return {
+      sourceIdentity: current.sourceIdentity,
+      sourceVersion: current.sourceVersion,
+      ...(current.documentVersion === undefined
+        ? {}
+        : { documentVersion: current.documentVersion }),
+      source,
+      from,
+      to,
+      fromLine: Number(first.dataset.line),
+      toLine: Number(last.dataset.line),
+      completeStart: from === 0,
+      completeEnd: Number(last.dataset.line) === current.lineCount,
+      selection: { anchor: current.selection.anchor, head: current.selection.head },
+      width: Math.min(8192, Math.max(1, this.content.clientWidth || this.root.clientWidth || 800)),
+      visibleFrom,
+      visibleTo,
+    }
+  }
+  private sync(): void {
+    this.hasReferencePointer()
+    const current = this.snapshot()
+    if (this.preparationRetry && !this.preparationRetry.matches()) this.cancelPreparationRetry()
+    if (
+      this.observedIdentity !== current.sourceIdentity ||
+      this.observedVersion !== current.sourceVersion
+    ) {
+      this.observedIdentity = current.sourceIdentity
+      this.observedVersion = current.sourceVersion
+      this.failedKey = undefined
+      this.cache = undefined
+    }
+    if (!this.config || current.mode !== 'live') {
+      this.job?.controller.abort()
+      this.job = undefined
+      if (this.saved.size || this.painted || this.notice || this.fragmentImages.size) this.restore()
+      return
+    }
+    const window = this.window(current)
+    if (!window) {
+      if (this.saved.size || this.painted || this.fragmentImages.size) this.restore()
+      this.fallback('当前源码范围超出预览预算，保留 Markdown 源码。')
+      return
+    }
+    const baseKey = `${current.sourceVersion}:${window.from}:${window.to}:${window.width}:${this.epoch}:${window.selection.anchor}:${window.selection.head}:${current.documentVersion ?? ''}`
+    const key = `${baseKey}:${window.visibleFrom}:${window.visibleTo}`
+    if (
+      this.cache?.identity === current.sourceIdentity &&
+      (this.cache.key === key ||
+        (this.cache.baseKey === baseKey &&
+          this.cache.response.request.contextKnown &&
+          this.cache.response.result.complete))
+    ) {
+      // Returning to a complete cached window supersedes an in-flight window.
+      // Its late response must not replace the presentation now being viewed.
+      this.job?.controller.abort()
+      this.job = undefined
+      this.cancelPreparationRetry()
+      this.paint(this.cache.response)
+      return
+    }
+    if (this.failedKey === key && Date.now() < this.retryAfter) return
+    if (
+      this.job?.key === key &&
+      this.job.identity === current.sourceIdentity &&
+      (!this.job.controller.signal.aborted || this.job.preparationTimedOut)
+    )
+      return
+    this.cancelPreparationRetry()
+    this.job?.controller.abort()
+    // A viewport refresh does not invalidate already validated source or navigation.
+    // Keep those nodes usable while the replacement window is prepared.
+    if (
+      !this.cache ||
+      this.cache.identity !== current.sourceIdentity ||
+      this.cache.documentVersion !== current.documentVersion ||
+      !this.cache.key.startsWith(`${current.sourceVersion}:`) ||
+      !sameSelection(this.cache.response.request.selection, current.selection)
+    ) {
+      this.restore()
+      this.cache = undefined
+    }
+    const job: Job = {
+      key,
+      identity: current.sourceIdentity,
+      controller: new AbortController(),
+      epoch: this.epoch,
+      selection: window.selection,
+      documentVersion: current.documentVersion,
+    }
+    this.job = job
+    const deadline = performance.now() + hostPreparationDeadlineMs
+    const expirePreparation = () => {
+      if (this.valid(job)) {
+        this.releaseReferencePointer()
+        job.preparationTimedOut = true
+        this.failedKey = key
+        this.retryAfter = Date.now() + 1000
+        job.controller.abort()
+        this.cache = undefined
+        this.restore()
+        this.layout()
+        this.fallback('预览超时，保留 Markdown 源码。')
+      }
+    }
+    const timeout = setTimeout(expirePreparation, hostPreparationDeadlineMs)
+    job.controller.signal.addEventListener('abort', () => clearTimeout(timeout), { once: true })
+    const config = this.config
+    void Promise.resolve()
+      .then(() => config.provide(window, { signal: job.controller.signal, deadline }))
+      .then(async (response) => {
+        // Provider preparation has settled; a held pointer is not preparation time.
+        clearTimeout(timeout)
+        if (!this.valid(job)) return
+        if (performance.now() >= deadline) {
+          expirePreparation()
+          return
+        }
+        const request = copyDocumentPresentationRequest(response.request)
+        if (
+          request.from !== window.from ||
+          request.to !== window.to ||
+          request.source !== window.source ||
+          !sameSelection(request.selection, window.selection)
+        )
+          throw new Error('Presentation source changed')
+        const result = copyDocumentPresentationAggregate(
+          response.result,
+          request,
+          response.declarations,
+        )
+        if (performance.now() >= deadline) {
+          expirePreparation()
+          return
+        }
+        // A new input task can replace a released lease before this continuation.
+        // Keep the same result pending until there is no current valid gesture.
+        while (this.valid(job)) {
+          const pointer = this.waitForReferencePointer(job.controller.signal)
+          if (!pointer) break
+          await pointer
+        }
+        if (!this.valid(job)) return
+        this.cache = {
+          key,
+          baseKey,
+          identity: current.sourceIdentity,
+          documentVersion: current.documentVersion,
+          response: { request, result, declarations: response.declarations },
+        }
+        this.paint(this.cache.response)
+      })
+      .catch(() => {
+        clearTimeout(timeout)
+        if (this.valid(job)) {
+          this.releaseReferencePointer()
+          this.failedKey = key
+          this.retryAfter = Date.now() + 1000
+          this.cache = undefined
+          this.restore()
+          this.layout()
+          this.fallback('预览不可用，保留 Markdown 源码。')
+        }
+      })
+      .finally(() => {
+        clearTimeout(timeout)
+        if (this.job !== job) return
+        this.job = undefined
+        if (!job.preparationTimedOut) return
+        const matches = () => {
+          const latest = this.snapshot()
+          if (
+            this.stopped ||
+            this.job ||
+            this.config !== config ||
+            this.epoch !== job.epoch ||
+            latest.mode !== 'live' ||
+            latest.sourceIdentity !== job.identity ||
+            latest.sourceVersion !== current.sourceVersion ||
+            latest.documentVersion !== current.documentVersion ||
+            !sameSelection(latest.selection, job.selection)
+          )
+            return false
+          const candidate = this.window(latest)
+          return (
+            candidate !== undefined &&
+            candidate.from === window.from &&
+            candidate.to === window.to &&
+            candidate.fromLine === window.fromLine &&
+            candidate.toLine === window.toLine &&
+            candidate.width === window.width &&
+            candidate.visibleFrom === window.visibleFrom &&
+            candidate.visibleTo === window.visibleTo &&
+            candidate.source === window.source
+          )
+        }
+        if (!matches()) return
+        // Native reads have no abort parameter. Resume only after provide has
+        // really settled, preserving its checkpoints and the existing backoff.
+        this.cancelPreparationRetry()
+        const retry = {
+          matches,
+          timer: setTimeout(
+            () => {
+              if (this.preparationRetry !== retry) return
+              this.preparationRetry = undefined
+              if (matches()) this.schedule()
+            },
+            Math.max(0, this.retryAfter - Date.now()),
+          ),
+        }
+        this.preparationRetry = retry
+      })
+  }
+  private cancelPreparationRetry(): void {
+    clearTimeout(this.preparationRetry?.timer)
+    this.preparationRetry = undefined
+  }
+  private valid(job: Job): boolean {
+    const current = this.snapshot()
+    return (
+      !this.stopped &&
+      !job.controller.signal.aborted &&
+      this.job === job &&
+      job.epoch === this.epoch &&
+      current.sourceIdentity === job.identity &&
+      current.documentVersion === job.documentVersion &&
+      current.mode === 'live' &&
+      this.config !== undefined &&
+      sameSelection(job.selection, current.selection) &&
+      String(current.sourceVersion) === job.key.split(':')[0]
+    )
+  }
+  private fallback(message: string): void {
+    const before = this.snapshot(),
+      config = this.config,
+      epoch = this.epoch
+    // A notice participates in normal flow even before any preview is cached.
+    // Preserve reading position around its complete layout change; browsers that
+    // already anchor the insertion need no additional scroll correction.
+    const anchor =
+      !this.painting && !this.stopped && before.mode === 'live'
+        ? this.captureScrollAnchor(before.selection)
+        : undefined
+    this.content.dataset.documentPresentationStatus = 'fallback'
+    this.content.setAttribute('aria-description', message)
+    const created = !this.notice
+    if (!this.notice) {
+      this.notice = this.root.ownerDocument.createElement('div')
+      this.notice.className = 'milkup-document-presentation-notice'
+      this.notice.dataset.documentPresentationNotice = ''
+      this.notice.setAttribute('role', 'status')
+      for (const name of ['mousedown', 'pointerdown', 'click'])
+        this.notice.addEventListener(name, (event) => event.stopPropagation())
+      this.root.insertBefore(this.notice, this.content)
+    }
+    const changed = this.notice.textContent !== message
+    if (changed) this.notice.textContent = message
+    if ((created || changed) && !this.painting && !this.stopped) {
+      this.painting = true
+      try {
+        this.layout()
+        const current = this.snapshot()
+        if (
+          !this.stopped &&
+          this.config === config &&
+          this.epoch === epoch &&
+          current.mode === before.mode &&
+          current.sourceIdentity === before.sourceIdentity &&
+          current.sourceVersion === before.sourceVersion &&
+          current.documentVersion === before.documentVersion &&
+          sameSelection(current.selection, before.selection)
+        )
+          this.restoreScrollAnchor(anchor)
+      } finally {
+        this.painting = false
+      }
+    }
+  }
+  /** The view invokes this around a synchronous source-DOM replacement. */
+  updateContent(update: () => void): boolean {
+    const before = this.snapshot()
+    const cache = this.cache
+    const config = this.config
+    const epoch = this.epoch
+    const eligible = config !== undefined && before.mode === 'live' && !this.stopped
+    const reusable =
+      cache !== undefined &&
+      config !== undefined &&
+      before.mode === 'live' &&
+      cache.identity === before.sourceIdentity &&
+      cache.documentVersion === before.documentVersion &&
+      cache.key.startsWith(`${before.sourceVersion}:`) &&
+      sameSelection(cache.response.request.selection, before.selection)
+    // Source DOM replacement temporarily removes measured preview height. Capture
+    // the reading position before that shrink, while the visible line is known.
+    const anchor = eligible ? this.captureScrollAnchor(before.selection) : undefined
+    const anchorSource = anchor && {
+      from: anchor.line.dataset.from,
+      to: anchor.line.dataset.to,
+      line: anchor.line.dataset.line,
+    }
+    const focus = this.captureFocus()
+    const previewScroll = this.capturePreviewScroll()
+    update()
+    const current = () => {
+      const latest = this.snapshot()
+      return (
+        eligible &&
+        !this.stopped &&
+        this.config === config &&
+        this.epoch === epoch &&
+        latest.mode === before.mode &&
+        latest.sourceIdentity === before.sourceIdentity &&
+        latest.sourceVersion === before.sourceVersion &&
+        latest.documentVersion === before.documentVersion &&
+        sameSelection(latest.selection, before.selection)
+      )
+    }
+    let measured = false
+    if (current()) {
+      if (reusable && this.cache === cache) {
+        // Reinstall before measuring replacement lines, without widening cache scope.
+        const painted = this.painted
+        this.paint(cache.response)
+        measured = this.painted !== painted
+      } else if (anchor && !this.painting) {
+        // Previously measured offscreen previews can become literal rows in a
+        // new window while its provider is pending. Update spacers before anchoring.
+        this.painting = true
+        try {
+          this.layout()
+          measured = true
+        } finally {
+          this.painting = false
+        }
+      }
+      if (current() && anchor && anchorSource) {
+        const replacement = Array.from(this.content.children).find(
+          (line): line is HTMLElement =>
+            line instanceof HTMLElement &&
+            line.classList.contains('milkup-line') &&
+            line.dataset.from === anchorSource.from &&
+            line.dataset.to === anchorSource.to &&
+            line.dataset.line === anchorSource.line,
+        )
+        if (replacement) this.restoreScrollAnchor({ line: replacement, top: anchor.top })
+      }
+      if (current() && reusable && this.cache === cache) {
+        this.restoreFocus(focus)
+        this.restorePreviewScroll(previewScroll, cache.response)
+      }
+    }
+    return measured
+  }
+  private captureFocus():
+    | {
+        focused: HTMLElement
+        focusedPreview: HTMLElement
+        focusedReference: DocumentPresentationTarget | undefined
+      }
+    | undefined {
+    const focused = this.content.ownerDocument.activeElement
+    const focusedPreview =
+      focused instanceof HTMLElement && this.content.contains(focused)
+        ? focused.closest<HTMLElement>('[data-document-presentation]')
+        : null
+    const focusedReference =
+      focused instanceof HTMLElement ? referenceTargets.get(focused) : undefined
+    return focused instanceof HTMLElement && focusedPreview
+      ? { focused, focusedPreview, focusedReference }
+      : undefined
+  }
+  private restoreFocus(focus: ReturnType<DocumentPresentation['captureFocus']>): void {
+    if (!focus) return
+    const { focused, focusedPreview, focusedReference } = focus
+    // Replacement is synchronous. Restore only the still-current semantic control,
+    // never an earlier focus captured before awaiting the provider.
+    if (
+      focusedPreview &&
+      (this.content.ownerDocument.activeElement === this.content.ownerDocument.body ||
+        this.content.ownerDocument.activeElement === focused)
+    ) {
+      const replacement = Array.from(
+        this.content.querySelectorAll<HTMLElement>('[data-document-presentation]'),
+      ).find(
+        (element) =>
+          element.dataset.presentationFrom === focusedPreview.dataset.presentationFrom &&
+          element.dataset.presentationTo === focusedPreview.dataset.presentationTo,
+      )
+      if (focused === focusedPreview && replacement && replacement.tabIndex >= 0)
+        replacement.focus({ preventScroll: true })
+      else if (focusedReference && replacement) {
+        const reference = Array.from(
+          replacement.querySelectorAll<HTMLElement>('.milkup-document-reference'),
+        ).find((element) => {
+          const target = referenceTargets.get(element)
+          return (
+            target &&
+            target.documentId === focusedReference.documentId &&
+            target.version === focusedReference.version &&
+            target.from === focusedReference.from &&
+            target.to === focusedReference.to &&
+            element.textContent === focused?.textContent
+          )
+        })
+        reference?.focus({ preventScroll: true })
+      }
+    }
+  }
+  private captureScrollAnchor(
+    selection = this.snapshot().selection,
+  ): { line: HTMLElement; top: number } | undefined {
+    const viewport = this.root.getBoundingClientRect()
+    // A search/navigation target can be below several asynchronously growing blocks.
+    // Keep its visible endpoint in place; otherwise preserve the reader's viewport.
+    const sourceLines = Array.from(this.content.children).filter(
+      (child): child is HTMLElement =>
+        child instanceof HTMLElement && child.classList.contains('milkup-line'),
+    )
+    const selectedAnchor = [selection.head, selection.anchor]
+      .map((position) =>
+        sourceLines.find((line) => {
+          if (Number(line.dataset.from) > position || Number(line.dataset.to) < position)
+            return false
+          const rect = line.getBoundingClientRect()
+          return rect.height > 0 && rect.bottom > viewport.top && rect.top < viewport.bottom
+        }),
+      )
+      .find((line) => line !== undefined)
+    const anchor =
+      selectedAnchor ??
+      sourceLines.find((child) => child.getBoundingClientRect().bottom >= viewport.top)
+    return anchor ? { line: anchor, top: anchor.getBoundingClientRect().top } : undefined
+  }
+  private restoreScrollAnchor(anchor: { line: HTMLElement; top: number } | undefined): void {
+    if (
+      anchor &&
+      this.content.contains(anchor.line) &&
+      anchor.line.dataset.presentationCollapsed !== 'true'
+    )
+      this.root.scrollTop += anchor.line.getBoundingClientRect().top - anchor.top
+  }
+  private restore(preserveImages = false): void {
+    if (!preserveImages) {
+      this.imageGeneration++
+      this.disposeFragmentImages()
+    }
+    // A new window job first restores source, before its eventual replacement paint.
+    // Preserve the same visible anchor across that intermediate shrinking layout too.
+    const anchor =
+      !this.painting && !this.stopped && (this.saved.size || this.notice)
+        ? this.captureScrollAnchor()
+        : undefined
+    this.notice?.remove()
+    this.notice = undefined
+    if (!this.saved.size && !this.painted) {
+      if (this.content.dataset.documentPresentationStatus) {
+        delete this.content.dataset.documentPresentationStatus
+        this.content.removeAttribute('aria-description')
+      }
+      this.restoreScrollAnchor(anchor)
+      return
+    }
+    this.observer.disconnect()
+    this.painted = undefined
+    for (const element of Array.from(this.content.querySelectorAll('[data-document-presentation]')))
+      this.resize?.unobserve(element)
+    for (const [line, saved] of this.saved) {
+      if (this.content.contains(line)) {
+        line.replaceChildren(...saved.nodes)
+        line.style.display = saved.display
+        line.style.minHeight = saved.minHeight
+        delete line.dataset.presentationCollapsed
+        delete line.dataset.presentationOwner
+      }
+    }
+    this.saved.clear()
+    delete this.content.dataset.documentPresentationStatus
+    this.content.removeAttribute('aria-description')
+    this.restoreScrollAnchor(anchor)
+    if (!this.stopped) this.observe()
+  }
+  private paint(response: DocumentPresentationResponse): void {
+    if (this.painting) return
+    const context = this.paintContext()
+    const currentSelection = context.selection
+    const selectionKey = `${currentSelection.anchor}:${currentSelection.head}`
+    const childLines = Array.from(this.content.children)
+    if (
+      this.painted?.response === response &&
+      this.samePaintContext(this.painted.context, context) &&
+      this.painted.selection === selectionKey &&
+      this.painted.imageRevision === this.imageRevision &&
+      childLines.length === this.painted.lines.length &&
+      childLines.every((line, index) => line === this.painted!.lines[index])
+    )
+      return
+    this.painting = true
+    this.observer.disconnect()
+    const anchor = this.captureScrollAnchor(currentSelection)
+    const focus = this.captureFocus()
+    const previewScroll = this.capturePreviewScroll()
+    const retainedImages = new Set<DocumentPresentationFragment>()
+    // Responses have already passed the independent aggregate validator. Match
+    // each range once; only fully decoded, semantically identical images can
+    // survive a new source window. Pending owners keep no renewed deadline.
+    const replacements = new Map(
+      response.result.fragments.map((fragment) => [fragmentKey(fragment), fragment]),
+    )
+    for (const [key, previous] of this.previousFragmentImages) {
+      const replacement = replacements.get(key)
+      if (!replacement || replacement.status === 'error' ||
+          !this.sameImageContext(previous.owner, response, context))
+        this.disposePreviousFragmentImages(key)
+    }
+    for (const [fragment, owner] of Array.from(this.fragmentImages)) {
+      if (owner.response === response && this.sameImageContext(owner, response, context)) continue
+      const replacement = replacements.get(fragmentKey(fragment))
+      const decoded = !owner.failed && owner.images.every((image) => image.state === 'decoded')
+      if (replacement && decoded && this.sameImageContext(owner, response, context)) {
+        if (owner.signature === JSON.stringify(replacement)) {
+          this.fragmentImages.delete(fragment)
+          owner.fragment = replacement
+          owner.response = response
+          this.fragmentImages.set(replacement, owner)
+          this.disposePreviousFragmentImages(fragmentKey(fragment))
+          continue
+        }
+        if (replacement.status !== 'error' && this.hasFragmentImages(replacement)) {
+          this.fragmentImages.delete(fragment)
+          this.retainPreviousFragmentImages(owner)
+          continue
+        }
+      }
+      this.disposeFragmentImages(fragment)
+    }
+    // Same-context synchronous replacement transfers the already decoded DOM.
+    // Hard restore never takes this path and always revokes staged/mounted URLs.
+    this.restore(true)
+    this.observer.disconnect()
+    try {
+      const { anchor: selectionAnchor, head } = this.snapshot().selection
+      const start = Math.min(selectionAnchor, head),
+        end = Math.max(selectionAnchor, head)
+      const candidates = response.result.fragments.filter(
+        (fragment) => !(start <= fragment.to && end >= fragment.from),
+      )
+      const fragments: DocumentPresentationFragment[] = []
+      const blocks: { fromLine: number; toLine: number }[] = []
+      const allLines = this.content.querySelectorAll<HTMLElement>('.milkup-line')
+      for (const fragment of candidates) {
+        if (fragment.status === 'error') {
+          this.fallback(fragment.message ?? '预览不可用，保留 Markdown 源码。')
+          continue
+        }
+        const lines = Array.from(allLines).filter(
+          (line) =>
+            Number(line.dataset.from) < fragment.to && Number(line.dataset.to) >= fragment.from,
+        )
+        if (
+          !lines.length ||
+          Number(lines[0]!.dataset.from) > fragment.from ||
+          Number(lines.at(-1)!.dataset.to) < fragment.to
+        ) {
+          this.fallback('预览范围尚未完整加载，保留 Markdown 源码。')
+          continue
+        }
+        if (fragment.layout === 'inline' && lines.length !== 1) continue
+        const images = this.prepareFragmentImages(fragment, response, context)
+        if (images) {
+          retainedImages.add(fragment)
+          if (images.failed) {
+            this.disposePreviousFragmentImages(fragmentKey(fragment))
+            this.fallback('预览不可用，保留 Markdown 源码。')
+            continue
+          }
+          if (images.images.some((image) => image.state !== 'decoded')) {
+            const previous = this.previousFragmentImages.get(fragmentKey(fragment))?.owner
+            if (!previous || previous.images.some((image) => image.state !== 'decoded')) continue
+            // Keep the entire old validated semantic tree while the independent
+            // new tree decodes. Do not combine new labels with old image bytes.
+            fragments.push(previous.fragment)
+          } else {
+            this.disposePreviousFragmentImages(fragmentKey(fragment))
+            fragments.push(fragment)
+          }
+        } else {
+          this.disposePreviousFragmentImages(fragmentKey(fragment))
+          fragments.push(fragment)
+        }
+        if (fragment.layout === 'block')
+          blocks.push({
+            fromLine: Number(lines[0]!.dataset.line),
+            toLine: Number(lines.at(-1)!.dataset.line),
+          })
+        for (const line of lines)
+          if (!this.saved.has(line))
+            this.saved.set(line, {
+              nodes: Array.from(line.childNodes),
+              display: line.style.display,
+              minHeight: line.style.minHeight,
+            })
+      }
+      // Compose all fragments on a line together, preserving unrelated Markdown DOM.
+      for (const [line, saved] of this.saved) {
+        const from = Number(line.dataset.from),
+          to = Number(line.dataset.to)
+        const relevant = fragments.filter(
+          (fragment) =>
+            fragment.status !== 'error' &&
+            fragment.from < to &&
+            fragment.to > from &&
+            (fragment.layout === 'block' || (fragment.from >= from && fragment.to <= to)),
+        )
+        const original = line.cloneNode(false) as HTMLElement
+        original.append(...saved.nodes.map((node) => node.cloneNode(true)))
+        const nodes: Node[] = []
+        let cursor = from
+        for (const fragment of relevant) {
+          if (cursor < fragment.from)
+            nodes.push(cloneMappedSlice(original, cursor, Math.min(fragment.from, to)))
+          if (fragment.from >= from) nodes.push(this.preview(fragment, response.request))
+          cursor = Math.max(cursor, Math.min(fragment.to, to))
+        }
+        if (cursor < to) nodes.push(cloneMappedSlice(original, cursor, to))
+        line.replaceChildren(...nodes)
+        if (!nodes.length) {
+          line.style.display = 'none'
+          line.dataset.presentationCollapsed = 'true'
+          const owner = blocks.find(
+            (block) =>
+              Number(line.dataset.line) >= block.fromLine &&
+              Number(line.dataset.line) <= block.toLine,
+          )
+          if (owner) line.dataset.presentationOwner = String(owner.fromLine)
+        } else line.style.minHeight = '1em'
+      }
+      if (!response.result.complete)
+        this.fallback('部分内容暂未生成预览，已保留对应 Markdown 源码。')
+      const snapshot = this.snapshot()
+      const previousBlocks =
+        this.blocksIdentity === snapshot.sourceIdentity &&
+        this.blocksVersion === snapshot.sourceVersion
+          ? this.blocks
+          : []
+      this.blocks = [
+        ...previousBlocks.filter(
+          (previous) => !blocks.some((block) => block.fromLine === previous.fromLine),
+        ),
+        ...blocks,
+      ].slice(-128)
+      this.blocksIdentity = snapshot.sourceIdentity
+      this.blocksVersion = snapshot.sourceVersion
+      for (const node of Array.from(this.content.querySelectorAll('[data-document-presentation]')))
+        this.resize?.observe(node)
+      this.layout()
+      this.restoreScrollAnchor(anchor)
+      this.restoreFocus(focus)
+      this.restorePreviewScroll(previewScroll, response)
+      this.painted = {
+        response,
+        context,
+        selection: selectionKey,
+        imageRevision: this.imageRevision,
+        lines: childLines,
+      }
+    } finally {
+      for (const fragment of this.fragmentImages.keys())
+        if (!retainedImages.has(fragment)) this.disposeFragmentImages(fragment)
+      const retainedKeys = new Set(Array.from(retainedImages, fragmentKey))
+      for (const key of this.previousFragmentImages.keys())
+        if (!retainedKeys.has(key)) this.disposePreviousFragmentImages(key)
+      this.painting = false
+      this.observe()
+    }
+  }
+
+  private sameImageContext(owner: FragmentImages, response: DocumentPresentationResponse, context: PaintContext): boolean {
+    const previous = owner.response.request, next = response.request
+    return owner.generation === this.imageGeneration && this.samePaintContext(owner.context, context) &&
+      previous.documentId === next.documentId && previous.version === next.version &&
+      previous.theme === next.theme && previous.width === next.width && previous.target === next.target &&
+      JSON.stringify(owner.response.declarations) === JSON.stringify(response.declarations)
+  }
+
+  private hasFragmentImages(fragment: DocumentPresentationFragment): boolean {
+    const visit = (node: DocumentPresentationNode): boolean => node.type === 'svg-image' ||
+      ((node.type === 'group' || node.type === 'emphasis' || node.type === 'code' ||
+        node.type === 'sup' || node.type === 'sub') && node.children.some(visit))
+    return visit(fragment.content)
+  }
+
+  private retainPreviousFragmentImages(owner: FragmentImages): void {
+    const key = fragmentKey(owner.fragment)
+    this.disposePreviousFragmentImages(key)
+    const timer = setTimeout(() => {
+      if (this.previousFragmentImages.get(key)?.owner !== owner) return
+      this.disposePreviousFragmentImages(key)
+      // A succession of distinct pending results must not renew the original
+      // replacement deadline or keep an older presentation visible forever.
+      for (const current of this.fragmentImages.values()) {
+        if (fragmentKey(current.fragment) !== key) continue
+        current.failed = true
+        for (const image of current.images) image.dispose()
+      }
+      this.imageRevision++
+      this.schedule()
+    }, imageDecodeDeadlineMs)
+    this.previousFragmentImages.set(key, { owner, timer })
+  }
+
+  private disposePreviousFragmentImages(key: string): void {
+    const previous = this.previousFragmentImages.get(key)
+    if (!previous) return
+    this.previousFragmentImages.delete(key)
+    clearTimeout(previous.timer)
+    for (const image of previous.owner.images) image.dispose()
+  }
+
+  private disposeFragmentImages(fragment?: DocumentPresentationFragment): void {
+    if (fragment) {
+      const owner = this.fragmentImages.get(fragment)
+      this.fragmentImages.delete(fragment)
+      for (const image of owner?.images ?? []) image.dispose()
+    } else {
+      for (const owner of this.fragmentImages.values())
+        for (const image of owner.images) image.dispose()
+      this.fragmentImages.clear()
+      for (const key of this.previousFragmentImages.keys()) this.disposePreviousFragmentImages(key)
+    }
+  }
+
+  private prepareFragmentImages(
+    fragment: DocumentPresentationFragment,
+    response: DocumentPresentationResponse,
+    context: PaintContext,
+  ): FragmentImages | undefined {
+    const existing = this.fragmentImages.get(fragment)
+    if (existing) return existing
+    const nodes: DocumentSvgImage[] = []
+    const collect = (node: DocumentPresentationNode): void => {
+      if (node.type === 'svg-image') nodes.push(node)
+      else if (
+        node.type === 'group' ||
+        node.type === 'emphasis' ||
+        node.type === 'code' ||
+        node.type === 'sup' ||
+        node.type === 'sub'
+      )
+        for (const child of node.children) collect(child)
+    }
+    collect(fragment.content)
+    if (!nodes.length) return
+    const owner: FragmentImages = {
+      fragment,
+      response,
+      signature: JSON.stringify(fragment),
+      context,
+      generation: this.imageGeneration,
+      images: [],
+      failed: false,
+    }
+    this.fragmentImages.set(fragment, owner)
+    const changed = () => {
+      const currentFragment = owner.fragment
+      const key = fragmentKey(currentFragment)
+      if (this.previousFragmentImages.get(key)?.owner === owner) {
+        if (owner.images.some((image) => image.state !== 'decoded')) {
+          this.disposePreviousFragmentImages(key)
+          this.imageRevision++
+          this.schedule()
+        }
+        return
+      }
+      if (this.fragmentImages.get(currentFragment) !== owner) return
+      if (
+        this.stopped ||
+        this.cache?.response !== owner.response ||
+        owner.generation !== this.imageGeneration ||
+        !this.root.isConnected ||
+        !this.content.isConnected ||
+        !this.samePaintContext(owner.context, this.paintContext())
+      ) {
+        this.disposeFragmentImages(currentFragment)
+        return
+      }
+      if (owner.images.some((image) => image.state === 'failed')) {
+        owner.failed = true
+        for (const image of owner.images) image.dispose()
+      }
+      // One failed image invalidates the entire fragment. Pending siblings do
+      // not hide any source; a retained failure cannot restart via observation.
+      if (owner.failed || owner.images.every((image) => image.state === 'decoded')) {
+        this.imageRevision++
+        this.schedule()
+      }
+    }
+    try {
+      for (const node of nodes)
+        owner.images.push(createOwnedDocumentSvgImage(this.content.ownerDocument, node, changed))
+    } catch {
+      owner.failed = true
+      for (const image of owner.images) image.dispose()
+    }
+    return owner
+  }
+  private paintContext(): PaintContext {
+    const snapshot = this.snapshot()
+    return {
+      mode: snapshot.mode,
+      sourceIdentity: snapshot.sourceIdentity,
+      sourceVersion: snapshot.sourceVersion,
+      documentVersion: snapshot.documentVersion,
+      config: this.config,
+      selection: { ...snapshot.selection },
+    }
+  }
+  private samePaintContext(a: PaintContext, b: PaintContext): boolean {
+    return (
+      a.mode === b.mode &&
+      a.sourceIdentity === b.sourceIdentity &&
+      a.sourceVersion === b.sourceVersion &&
+      a.documentVersion === b.documentVersion &&
+      a.config === b.config &&
+      sameSelection(a.selection, b.selection)
+    )
+  }
+  private displayedFragment(fragment: DocumentPresentationFragment): DocumentPresentationFragment {
+    const owner = this.fragmentImages.get(fragment)
+    return owner && !owner.failed && owner.images.some(image => image.state !== 'decoded')
+      ? this.previousFragmentImages.get(fragmentKey(fragment))?.owner.fragment ?? fragment
+      : fragment
+  }
+  /** Keep offsets only within this synchronous replacement, never across documents or edits. */
+  private capturePreviewScroll(): PreviewScroll | undefined {
+    const painted = this.painted
+    if (!painted || !this.samePaintContext(painted.context, this.paintContext())) return
+    const fragments = new Map(
+      painted.response.result.fragments.map((fragment) => [fragmentKey(fragment), this.displayedFragment(fragment)]),
+    )
+    const positions = new Map<
+      string,
+      { fragment: DocumentPresentationFragment; top: number; left: number }
+    >()
+    for (const node of Array.from(
+      this.content.querySelectorAll<HTMLElement>('[data-document-presentation]'),
+    )) {
+      if (positions.size >= DOCUMENT_PRESENTATION_LIMITS.fragments) break
+      if (node.scrollTop === 0 && node.scrollLeft === 0) continue
+      const key = `${node.dataset.documentPresentation}:${node.dataset.presentationFrom}:${node.dataset.presentationTo}`
+      const fragment = fragments.get(key)
+      if (fragment && fragment.status !== 'error')
+        positions.set(key, { fragment, top: node.scrollTop, left: node.scrollLeft })
+    }
+    return positions.size ? { context: painted.context, positions } : undefined
+  }
+  private restorePreviewScroll(
+    saved: PreviewScroll | undefined,
+    response: DocumentPresentationResponse,
+  ): void {
+    if (!saved || !this.samePaintContext(saved.context, this.paintContext())) return
+    const fragments = new Map(
+      response.result.fragments.map((fragment) => [fragmentKey(fragment), this.displayedFragment(fragment)]),
+    )
+    for (const node of Array.from(
+      this.content.querySelectorAll<HTMLElement>('[data-document-presentation]'),
+    )) {
+      const key = `${node.dataset.documentPresentation}:${node.dataset.presentationFrom}:${node.dataset.presentationTo}`
+      const position = saved.positions.get(key)
+      const fragment = fragments.get(key)
+      if (
+        !position ||
+        !fragment ||
+        fragment.status === 'error' ||
+        (fragment !== position.fragment &&
+          JSON.stringify(fragment) !== JSON.stringify(position.fragment))
+      )
+        continue
+      // Native scrolling clamps to the current viewport if its dimensions changed.
+      node.scrollTop = position.top
+      node.scrollLeft = position.left
+    }
+  }
+  private preview(
+    fragment: DocumentPresentationFragment,
+    request: DocumentPresentationRequest,
+  ): HTMLElement {
+    const element = this.content.ownerDocument.createElement('span')
+    element.dataset.documentPresentation = fragment.layout
+    element.dataset.presentationFrom = String(fragment.from)
+    element.dataset.presentationTo = String(fragment.to)
+    element.className = 'milkup-document-presentation'
+    element.setAttribute('aria-label', fragment.accessibleText)
+    element.style.display = fragment.layout === 'block' ? 'block' : 'inline-block'
+    element.style.maxWidth = '100%'
+    element.style.overflow = 'auto'
+    element.style.verticalAlign = 'middle'
+    element.style.maxHeight = 'min(480px, 65vh)'
+    element.setAttribute('role', 'group')
+    if (fragment.layout === 'block') element.tabIndex = 0
+    let imageIndex = 0
+    element.append(
+      createOwnedPresentationNode(
+        this.content.ownerDocument,
+        fragment.content,
+        (target) => {
+          if (this.cache?.response.request !== request || !this.content.contains(element)) return
+          const failed = () => {
+            if (!this.stopped && this.cache?.response.request === request)
+              this.fallback('导航目标已失效。')
+          }
+          try {
+            void Promise.resolve(this.config?.onNavigate?.(target)).catch(failed)
+          } catch {
+            failed()
+          }
+        },
+        () => {
+          const owner = this.fragmentImages.get(fragment) ?? this.previousFragmentImages.get(fragmentKey(fragment))?.owner
+          const image = owner?.images[imageIndex++]
+          if (!image || image.state !== 'decoded') throw new Error('SVG image is not decoded')
+          return image.element
+        },
+      ),
+    )
+    element.addEventListener('mousedown', (event) => {
+      event.stopPropagation()
+      if (!(event.target instanceof Element && event.target.closest('button')))
+        event.preventDefault()
+    })
+    element.addEventListener('pointerdown', (event) => event.stopPropagation())
+    element.addEventListener('keydown', (event) => {
+      event.stopPropagation()
+      if (event.target === element && event.key === 'Enter') {
+        event.preventDefault()
+        this.reveal(fragment.from, fragment.to)
+      }
+    })
+    element.addEventListener('click', (event) => {
+      event.stopPropagation()
+      if (!(event.target instanceof Element && event.target.closest('button')))
+        this.reveal(fragment.from, fragment.to)
+    })
+    return element
+  }
+}
+
+function sameSelection(
+  left: { readonly anchor: number; readonly head: number },
+  right: { readonly anchor: number; readonly head: number },
+): boolean {
+  return left.anchor === right.anchor && left.head === right.head
+}
+
+/** Slice mapped DOM, retaining formatting outside previews and absolute UTF-16 offsets. */
+function cloneMappedSlice(line: HTMLElement, from: number, to: number): HTMLElement {
+  const wrapper = line.ownerDocument.createElement('span')
+  wrapper.dataset.from = String(from)
+  wrapper.dataset.to = String(to)
+  function copy(node: Node, position: number): { node?: Node; end: number } {
+    if (node instanceof Text) {
+      const end = position + node.length
+      const text = node.data.slice(
+        Math.max(0, from - position),
+        Math.max(0, Math.min(node.length, to - position)),
+      )
+      return {
+        ...(end > from && position < to && text
+          ? { node: node.ownerDocument.createTextNode(text) }
+          : {}),
+        end,
+      }
+    }
+    if (!(node instanceof HTMLElement)) return { end: position }
+    if (node.dataset.documentPresentation !== undefined) return { end: position }
+    const start = node.dataset.from !== undefined ? Number(node.dataset.from) : position
+    let cursor = start
+    const clone = node.cloneNode(false) as HTMLElement
+    for (const child of Array.from(node.childNodes)) {
+      const result = copy(child, cursor)
+      cursor = result.end
+      if (result.node) clone.append(result.node)
+    }
+    const end = node.dataset.to !== undefined ? Number(node.dataset.to) : cursor
+    if (node.dataset.from !== undefined) {
+      clone.dataset.from = String(Math.max(from, start))
+      clone.dataset.to = String(Math.min(to, end))
+    }
+    return {
+      ...((clone.childNodes.length || node.matches('button, input, br, [data-from][data-to]')) &&
+      end > from &&
+      start < to
+        ? { node: clone }
+        : {}),
+      end,
+    }
+  }
+  let cursor = Number(line.dataset.from)
+  for (const child of Array.from(line.childNodes)) {
+    const result = copy(child, cursor)
+    cursor = result.end
+    if (result.node) wrapper.append(result.node)
+  }
+  return wrapper
+}

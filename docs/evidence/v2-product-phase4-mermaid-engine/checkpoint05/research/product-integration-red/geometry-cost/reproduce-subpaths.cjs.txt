@@ -1,0 +1,17 @@
+const fs=require('node:fs'),path=require('node:path'),ts=require('/workspace/milkup/node_modules/typescript/lib/typescript.js'),crypto=require('node:crypto'),cp=require('node:child_process')
+const dir=__dirname
+const sources={before:path.join(dir,'geometry-subpaths-before.ts'),after:'/workspace/milkup/packages/core/src/document-svg-image-geometry.ts'}
+const fixture=`import assert from 'node:assert/strict';import{test}from'node:test';import{validateGeometryCost}from'./MODULE.mjs';
+const rect={kind:'rect',x:0,y:0,width:1000,height:1000,style:0};
+const common={type:'svg-image',profile:'bounded-svg-v1',motion:'static',width:160,height:96,viewBox:[0,0,160,96],aspect:{align:'none',fit:'meet'},styles:[{opacity:.5}],definitions:[{kind:'marker',id:'layer',width:1000,height:1000,refX:{value:0,unit:'user'},refY:{value:0,unit:'user'},units:'userSpaceOnUse',orient:'auto',children:[rect]}]};
+const commands=Array.from({length:140},(_,i)=>[['M',i,0],['l',1,0]]).flat();
+const validate=(markers)=>validateGeometryCost({...common,children:[{kind:'path',commands,...markers}]},{work:0},{surfacePixels:16777216,filterWork:268435456,blur:32},(reason,code)=>{throw Object.assign(new Error(reason),{code})});
+test('middle markers include internal subpath endpoints',()=>assert.throws(()=>validate({markerMid:'layer'}),/aggregate render work/));
+test('start and end only occur at the whole path endpoints',()=>assert.doesNotThrow(()=>validate({markerStart:'layer',markerEnd:'layer'})));
+`
+const rows=[]
+for(const [name,file]of Object.entries(sources)){
+ const source=fs.readFileSync(file,'utf8');fs.writeFileSync(path.join(dir,`subpaths-${name}.mjs`),ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext}}).outputText)
+ const testfile=path.join(dir,`subpaths-${name}.test.mjs`);fs.writeFileSync(testfile,fixture.replace('MODULE',`subpaths-${name}`));const start=new Date().toISOString(),r=cp.spawnSync(process.execPath,['--test',testfile],{encoding:'utf8'});fs.writeFileSync(path.join(dir,`subpaths-${name}.log`),r.stdout+r.stderr);rows.push({name,source:file,sourceSHA256:crypto.createHash('sha256').update(source).digest('hex'),start,exit:r.status});
+}
+fs.writeFileSync(path.join(dir,'subpaths-later-reproduction.json'),JSON.stringify({boundary:'Later reproduction against saved before geometry module; not execution before the product edit. Repository source never replaced. Fixtures match valid public transport shapes, but this isolates the independent geometry stage, not the entire public validator.',rows},null,2)+'\n');console.log(JSON.stringify(rows));

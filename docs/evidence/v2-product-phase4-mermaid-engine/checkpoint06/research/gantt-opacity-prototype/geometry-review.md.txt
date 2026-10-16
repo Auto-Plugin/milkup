@@ -1,0 +1,21 @@
+# Gantt opacity: narrow experiment and bounded alternative
+
+Actual AST: `native-runner/runs/product-converter-fourth-11/scan_022-result.json`, image root 1000×196, overflow hidden. Seven axis tick groups have opacity 0.8. Each contains one black stroked line (y −111 through 0, width 1) and one plain date text chunk (Arial 10, fill #333, no stroke). No filter, clip or blending is present on these groups. The current host rejection is correct: unbounded text paint cannot authorize an offscreen layer.
+
+## First experiment
+
+Source-over alpha algebra permits distributing a group's opacity to disjoint child paint operations. For overlap, the formulas differ: the grouped alpha is `p(a+b-ab)`, but independently scaled operations produce `pa+pb-p²ab`. Therefore pixel support separation is a required condition, not an optimization hint. The external module accepts only a single solid-stroked line plus one solid-filled text chunk, measures live bounds without modifying the original, and mutates only the detached clone. SVG 2 text §11.9 treats one text chunk as one filled path; multiple position arrays/tspans/chunks and mixed fill/stroke are excluded. SVG glyph-cell bbox is supplemented with Canvas actual ink metrics under the same normal font and compatible advances. Outward screen/device-pixel boxes must leave an untouched pixel.
+
+This does not prove native raster equality. The first pair must compare full original and candidate PNGs at 100%; only exact equality permits the 125% and 200% comparisons. Quantization, antialiasing and backend layer choices can still produce a red result. Every unchanged candidate/no-op must be reported rather than called successful.
+
+## Existing-filter alternative, not implemented
+
+An explicit userSpaceOnUse dropShadowFilter with zero alpha, zero deviation and zero offset is a clipped identity operation on SourceGraphic. Filter Effects §9.4 defines hard input/output clipping and bounds intermediate offscreen surfaces. A candidate could add it to the original opacity group while preserving opacity 0.8, without a new public node kind. For this actual hidden-root Gantt, with no ancestor expanding/moving filter, the root viewport inverse-mapped into group coordinates encloses every potentially visible original pixel; outward rounding avoids introducing a clipping edge inside the visible domain. This is stronger than trusting producer text bbox.
+
+However, accepting it safely requires distinct host concepts: **unknown geometric bbox** versus **known paint extent after a real hard-clipping filter**. Only the latter becomes bounded. Glyph size, descendant effects, reference expansion, shared raster cost, and ancestor objectBoundingBox/transform-origin uncertainty checks must remain. The filter pass and original opacity layer both need charged surfaces. Clearing the current `uncertain` flag globally would be unsafe. Native paired pixels must also prove that the added identity pass preserves rendering; the prior brightness experiment demonstrated that normative intentions alone are insufficient. No such guard change or schema change has been made.
+
+Primary sources:
+- https://www.w3.org/TR/SVG2/text.html#TextRenderingOrder
+- https://www.w3.org/TR/SVG2/coords.html#BoundingBoxes
+- https://www.w3.org/TR/compositing-1/#groupcompositing
+- https://www.w3.org/TR/filter-effects-1/#FilterPrimitiveSubRegion

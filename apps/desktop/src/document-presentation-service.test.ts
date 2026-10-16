@@ -5,8 +5,12 @@ import {
   type DocumentPresentationRequest,
 } from '@milkup/core'
 import { createDesktopDocumentPresentationService } from './document-presentation-service'
+import { parseMarkdownWindow } from '@milkup/markdown'
 
-afterEach(() => vi.useRealTimers())
+afterEach(() => {
+  vi.useRealTimers()
+  vi.restoreAllMocks()
+})
 
 function fixture(text = 'Hello $x$\n') {
   const doc = new MemoryTextDocument(text)
@@ -259,5 +263,295 @@ describe('bounded slow-source presentation preparation', () => {
     await vi.advanceTimersByTimeAsync(13_000)
     expect((await resumed).request.version).toBe(2)
     expect(f.render).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('viewport-prioritized bounded fence presentation', () => {
+  const fenceDeclaration = {
+    id: 'diagram',
+    pluginId: 'generic-diagram',
+    contexts: ['fence'] as const,
+    fenceLanguages: ['diagram'],
+  }
+  const content = () => ({
+    type: 'group' as const,
+    // Each fragment fits, and two fit the wire JSON/node limits, but XML escaping
+    // makes their shared canonical representation exceed256KiB.
+    children: Array.from({ length: 1200 }, () => ({ type: 'text' as const, text: '&'.repeat(30) })),
+  })
+  function fenceResult(request: DocumentPresentationRequest, large = true) {
+    return {
+      complete: true,
+      fragments: request.blocks
+        .filter((b) => b.kind === 'fence')
+        .map((b) => ({
+          from: b.from,
+          to: b.to,
+          layout: 'block' as const,
+          accessibleText: 'diagram',
+          content: large ? content() : { type: 'text' as const, text: 'small' },
+        })),
+    }
+  }
+  function threeFences() {
+    return fixture('```diagram\none\n```\n\n```diagram\ntwo\n```\n\n```diagram\nthree\n```\n')
+  }
+  it('keeps an independently valid fence when the shared canonical budget is full', async () => {
+    const f = threeFences()
+    const render = vi.fn(async (_p: string, _r: string, request: DocumentPresentationRequest) =>
+      fenceResult(request),
+    )
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source: f.source, identity: f.doc }),
+      theme: () => 'light',
+      renderers: () => [fenceDeclaration],
+      render,
+    })
+    const response = await service.provide(
+      { ...f.window, visibleFrom: 0, visibleTo: 10 },
+      { signal: new AbortController().signal },
+    )
+    expect(response.result.fragments).toHaveLength(1)
+    expect(response.result.fragments[0]!.from).toBe(0)
+    expect(response.result.complete).toBe(false)
+    expect(render).toHaveBeenCalledTimes(2)
+    expect(render.mock.calls.every((call) => call[2].blocks.length === 1)).toBe(true)
+    expect(response.request.from).toBe(f.window.from)
+    expect(response.request.to).toBe(f.window.to)
+  })
+  it('promotes a later visible fence without relying on selection or overscan changes', async () => {
+    const f = threeFences(),
+      third = f.window.source.lastIndexOf('```diagram')
+    const render = vi.fn(async (_p: string, _r: string, request: DocumentPresentationRequest) =>
+      fenceResult(request),
+    )
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source: f.source, identity: f.doc }),
+      theme: () => 'light',
+      renderers: () => [fenceDeclaration],
+      render,
+    })
+    const response = await service.provide(
+      { ...f.window, visibleFrom: third, visibleTo: f.window.to },
+      { signal: new AbortController().signal },
+    )
+    expect(response.result.fragments).toHaveLength(1)
+    expect(response.result.fragments[0]!.from).toBe(third)
+    expect(render.mock.calls[0]![2].from).toBe(third)
+    expect(render.mock.calls[0]![2].selection).toEqual({ anchor: 0, head: 0 })
+    expect(render.mock.calls[0]![2].completeStart).toBe(false)
+    expect(render.mock.calls[0]![2].fromLine).toBe(9)
+    expect(response.request.source).toBe(f.window.source)
+  })
+  it('keeps all competing providers in a fence conflict before budget admission', async () => {
+    const f = threeFences()
+    const render = vi.fn(async (_p: string, _r: string, request: DocumentPresentationRequest) =>
+      fenceResult(request),
+    )
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source: f.source, identity: f.doc }),
+      theme: () => 'light',
+      renderers: () => [fenceDeclaration, { ...fenceDeclaration, pluginId: 'competing' }],
+      render,
+    })
+    const response = await service.provide(
+      { ...f.window, visibleFrom: 0, visibleTo: 10 },
+      { signal: new AbortController().signal },
+    )
+    expect(response.result.fragments).toEqual([])
+    expect(response.result.complete).toBe(false)
+    expect(render.mock.calls.some((call) => call[0] === 'competing')).toBe(true)
+  })
+  it('retains source ordering when later viewport fragments are admitted first', async () => {
+    const f = threeFences(),
+      third = f.window.source.lastIndexOf('```diagram')
+    const render = vi.fn(async (_p: string, _r: string, request: DocumentPresentationRequest) =>
+      fenceResult(request, false),
+    )
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source: f.source, identity: f.doc }),
+      theme: () => 'light',
+      renderers: () => [fenceDeclaration],
+      render,
+    })
+    const response = await service.provide(
+      { ...f.window, visibleFrom: third, visibleTo: f.window.to },
+      { signal: new AbortController().signal },
+    )
+    expect(render.mock.calls[0]![2].from).toBe(third)
+    const offsets = response.result.fragments.map((f) => f.from)
+    expect(offsets).toEqual([...offsets].sort((a, b) => a - b))
+    expect(offsets).toContain(third)
+  })
+  it('settles a valid partial without starting another task inside the deadline reserve', async () => {
+    const f = threeFences()
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+    const render = vi.fn(async (_p: string, _r: string, request: DocumentPresentationRequest) => {
+      clock.mockReturnValue(7901)
+      return fenceResult(request, false)
+    })
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source: f.source, identity: f.doc }),
+      theme: () => 'light',
+      renderers: () => [fenceDeclaration],
+      render,
+    })
+    const response = await service.provide(f.window, {
+      signal: new AbortController().signal,
+      deadline: 10_000,
+    })
+    expect(render).toHaveBeenCalledTimes(1)
+    expect(response.result.fragments).toHaveLength(1)
+    expect(response.result.complete).toBe(false)
+  })
+  it('does not impose a fixed two-fence limit on fast small results', async () => {
+    const f = threeFences()
+    const render = vi.fn(async (_p: string, _r: string, request: DocumentPresentationRequest) =>
+      fenceResult(request, false),
+    )
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source: f.source, identity: f.doc }),
+      theme: () => 'light',
+      renderers: () => [fenceDeclaration],
+      render,
+    })
+    const response = await service.provide(f.window, { signal: new AbortController().signal })
+    expect(render).toHaveBeenCalledTimes(3)
+    expect(response.result.fragments).toHaveLength(3)
+    expect(response.result.complete).toBe(true)
+  })
+  it('rejects a malformed individual response without losing later valid fences', async () => {
+    const f = threeFences()
+    const render = vi.fn(async (_p: string, _r: string, request: DocumentPresentationRequest) => {
+      const value = fenceResult(request, false)
+      return request.from === 0 ? { ...value, unexpected: true } : value
+    })
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source: f.source, identity: f.doc }),
+      theme: () => 'light',
+      renderers: () => [fenceDeclaration],
+      render,
+    })
+    const response = await service.provide(f.window, { signal: new AbortController().signal })
+    expect(response.result.fragments).toHaveLength(2)
+    expect(response.result.fragments.every((fragment) => fragment.from > 0)).toBe(true)
+    expect(response.result.complete).toBe(false)
+  })
+  it('does not let a mixed-context provider win a fence by hiding its competitor', async () => {
+    const f = threeFences()
+    const render = vi.fn(async (_p: string, _r: string, request: DocumentPresentationRequest) =>
+      fenceResult(request, false),
+    )
+    const mixed = { ...fenceDeclaration, pluginId: 'mixed', contexts: ['text', 'fence'] as const }
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source: f.source, identity: f.doc }),
+      theme: () => 'light',
+      renderers: () => [mixed, fenceDeclaration],
+      render,
+    })
+    const response = await service.provide(f.window, { signal: new AbortController().signal })
+    expect(response.result.fragments).toEqual([])
+    expect(response.result.complete).toBe(false)
+    expect(render.mock.calls.filter((call) => call[0] === fenceDeclaration.pluginId)).toHaveLength(
+      3,
+    )
+  })
+  it('discards an aborted first fence and never starts a later task', async () => {
+    const f = threeFences(),
+      controller = new AbortController()
+    const render = vi.fn(async (_p: string, _r: string, request: DocumentPresentationRequest) => {
+      controller.abort()
+      return fenceResult(request, false)
+    })
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source: f.source, identity: f.doc }),
+      theme: () => 'light',
+      renderers: () => [fenceDeclaration],
+      render,
+    })
+    await expect(service.provide(f.window, { signal: controller.signal })).rejects.toThrow()
+    expect(render).toHaveBeenCalledTimes(1)
+  })
+  it('discards late output after renderer withdrawal and makes no subsequent renderer call', async () => {
+    const f = threeFences()
+    let enabled = true
+    const render = vi.fn(async (_p: string, _r: string, request: DocumentPresentationRequest) => {
+      enabled = false
+      return fenceResult(request, false)
+    })
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source: f.source, identity: f.doc }),
+      theme: () => 'light',
+      renderers: () => (enabled ? [fenceDeclaration] : []),
+      render,
+    })
+    const response = await service.provide(f.window, { signal: new AbortController().signal })
+    expect(response.result.fragments).toEqual([])
+    expect(response.result.complete).toBe(false)
+    expect(render).toHaveBeenCalledTimes(1)
+  })
+  it('uses trusted prefix context when a mid-fence window locally invents opening markers', async () => {
+    const text = '````outer\nbody\n```diagram\nfake\n```\n````\nplain\n```diagram\nreal\n```'
+    const f = fixture(text)
+    const local = await parseMarkdownWindow(f.source, { fromLine: 2, toLine: 10 })
+    const fakeFrom = text.indexOf('```diagram')
+    const closingFrom = text.indexOf('````', 1)
+    const realFrom = text.lastIndexOf('```diagram')
+    expect(local.window.from).toBeGreaterThan(0)
+    expect(local.root.children).toContainEqual(
+      expect.objectContaining({
+        type: 'fencedCode',
+        status: 'valid',
+        from: fakeFrom,
+      }),
+    )
+    expect(local.root.children).toContainEqual(
+      expect.objectContaining({
+        type: 'fencedCode',
+        status: 'incomplete',
+        from: closingFrom,
+      }),
+    )
+    const render = vi.fn(async (_p: string, _r: string, request: DocumentPresentationRequest) =>
+      fenceResult(request, false),
+    )
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source: f.source, identity: f.doc }),
+      theme: () => 'light',
+      renderers: () => [fenceDeclaration],
+      render,
+    })
+    const response = await service.provide(
+      {
+        ...f.window,
+        source: local.window.text,
+        from: local.window.from,
+        to: local.window.to,
+        fromLine: 2,
+        toLine: 10,
+        completeStart: false,
+        visibleFrom: fakeFrom,
+        visibleTo: local.window.to,
+      },
+      { signal: new AbortController().signal },
+    )
+    expect(response.request.contextKnown).toBe(true)
+    expect(response.request.blocks).toContainEqual(
+      expect.objectContaining({
+        kind: 'fence',
+        complete: false,
+        from: local.window.from,
+        to: closingFrom + 4,
+      }),
+    )
+    expect(render).toHaveBeenCalledTimes(1)
+    expect(render.mock.calls[0]![2].from).toBe(realFrom)
+    expect(response.result.fragments).toHaveLength(1)
+    expect(response.result.fragments[0]!.from).toBe(realFrom)
+    expect(
+      response.result.fragments.some(
+        (fragment) => fragment.from === fakeFrom || fragment.from === closingFrom,
+      ),
+    ).toBe(false)
   })
 })

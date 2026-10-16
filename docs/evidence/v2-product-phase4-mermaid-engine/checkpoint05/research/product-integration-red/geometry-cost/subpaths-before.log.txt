@@ -1,0 +1,57 @@
+✖ middle markers include internal subpath endpoints (7.493604ms)
+✖ start and end only occur at the whole path endpoints (1.255141ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 88.997268
+
+✖ failing tests:
+
+test at ../milkup-mermaid-engine-evidence/research/product-integration-red/geometry-cost/subpaths-before.test.mjs:6:1
+✖ middle markers include internal subpath endpoints (7.493604ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (file:///workspace/milkup-mermaid-engine-evidence/research/product-integration-red/geometry-cost/subpaths-before.test.mjs:6:69)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /aggregate render work/,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at ../milkup-mermaid-engine-evidence/research/product-integration-red/geometry-cost/subpaths-before.test.mjs:7:1
+✖ start and end only occur at the whole path endpoints (1.255141ms)
+  AssertionError [ERR_ASSERTION]: Got unwanted exception.
+  Actual message: "aggregate render work"
+      at TestContext.<anonymous> (file:///workspace/milkup-mermaid-engine-evidence/research/product-integration-red/geometry-cost/subpaths-before.test.mjs:7:72)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: Error: aggregate render work
+        at file:///workspace/milkup-mermaid-engine-evidence/research/product-integration-red/geometry-cost/subpaths-before.test.mjs:5:204
+        at invalid (file:///workspace/milkup-mermaid-engine-evidence/research/product-integration-red/geometry-cost/subpaths-before.mjs:284:33)
+        at work (file:///workspace/milkup-mermaid-engine-evidence/research/product-integration-red/geometry-cost/subpaths-before.mjs:306:13)
+        at visit (file:///workspace/milkup-mermaid-engine-evidence/research/product-integration-red/geometry-cost/subpaths-before.mjs:518:13)
+        at visit (file:///workspace/milkup-mermaid-engine-evidence/research/product-integration-red/geometry-cost/subpaths-before.mjs:414:21)
+        at visit (file:///workspace/milkup-mermaid-engine-evidence/research/product-integration-red/geometry-cost/subpaths-before.mjs:434:32)
+        at visit (file:///workspace/milkup-mermaid-engine-evidence/research/product-integration-red/geometry-cost/subpaths-before.mjs:414:21)
+        at validateGeometryCost (file:///workspace/milkup-mermaid-engine-evidence/research/product-integration-red/geometry-cost/subpaths-before.mjs:540:5)
+        at validate (file:///workspace/milkup-mermaid-engine-evidence/research/product-integration-red/geometry-cost/subpaths-before.test.mjs:5:27)
+        at file:///workspace/milkup-mermaid-engine-evidence/research/product-integration-red/geometry-cost/subpaths-before.test.mjs:7:89,
+    expected: undefined,
+    operator: 'doesNotThrow',
+    diff: 'simple'
+  }

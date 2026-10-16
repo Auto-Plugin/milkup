@@ -1,0 +1,22 @@
+{
+  "atUtc": "2026-10-16T15:11:42.360366+00:00",
+  "files": [
+    {
+      "path": "tests/native/tauri-dom-plugin-lifecycle.mjs",
+      "sha256": "c3c9013ba375755c13ae1b6f2b703c05351687f839405b098480140cd7ae63ca",
+      "buildSha256": "e423a222e0d65ce81801666c4d3cd12a8fb3e8b5f840455f8ad709a742ec2ef8",
+      "reason": "Root-authorized test-only native picker observation/condition synchronization after disable01 setup failure"
+    },
+    {
+      "path": "tests/helpers/native-gtk-picker-observer.py",
+      "sha256": "5a22a0b525975b0941fc437562d691e8392392a681485b6c344cd5b75b9031b3",
+      "buildSha256": null,
+      "reason": "Root-authorized test-only native picker observation/condition synchronization after disable01 setup failure"
+    }
+  ],
+  "productChanges": false,
+  "firstFailure": "lifecycle-p03-disable-01: preparation only; original native picker state not captured; GTK realized warning correlates but root cause remains not fully localized",
+  "observerCorrection": "Explicit Atspi.Text/Component interface methods avoid Accessible.get_text getter name collision; disable02 first failure retained",
+  "rootReview": "Before disable03 harness invocation: propagate non-no-match X11 errors/multiple-ID assertion; match push button role plus label and ready state",
+  "diagnosticCorrection": "Exact windowfocus before readiness; preserve first/last native accessibility tree even when readiness fails. No weakened role/state/value checks."
+}

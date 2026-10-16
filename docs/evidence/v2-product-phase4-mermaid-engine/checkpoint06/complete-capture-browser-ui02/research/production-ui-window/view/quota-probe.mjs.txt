@@ -1,0 +1,32 @@
+import {createRequire} from 'node:module'
+import {readFile,writeFile} from 'node:fs/promises'
+import {resolve} from 'node:path'
+import {createHash} from 'node:crypto'
+const require=createRequire('/workspace/milkup/package.json')
+const {build}=require('esbuild'),{chromium}=require('playwright')
+process.chdir('/workspace/milkup')
+const records=[],bundles=[]
+for(const directory of ['math','diagrams','footnotes']){
+ const manifest=JSON.parse(await readFile(`plugins/${directory}/plugin.json`,'utf8'))
+ const bundle=await build({entryPoints:[`plugins/${directory}/src/plugin.ts`],bundle:true,write:false,format:'esm',platform:'browser',alias:{'@milkup/plugin-sdk':resolve('packages/plugin-sdk/src/index.js')}})
+ const js=bundle.outputFiles[0].text
+ manifest.main='data:text/javascript,'+encodeURIComponent(js)
+ bundles.push({directory,rawUtf16:js.length,mainUtf16:manifest.main.length,sha256:createHash('sha256').update(js).digest('hex')})
+ records.push({manifest,manifestPath:`/plugins/${directory}/plugin.json`,rootPath:`/plugins/${directory}`,sourcePath:`/plugins/${directory}/plugin.json`,state:'enabled',enabled:true,installedAt:1,updatedAt:1,trust:'development',approvals:{permissions:['document:read'],hosts:['worker']},errors:[]})
+}
+const serialized=JSON.stringify({version:1,records,auditRecords:[]})
+const browser=await chromium.launch({executablePath:'/usr/bin/chromium'})
+let result
+try{
+ const page=await browser.newPage()
+ await page.route('http://storage-fixture.invalid/**',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><title>Isolated storage diagnostic</title>'}))
+ await page.goto('http://storage-fixture.invalid/')
+ result=await page.evaluate(serialized=>{
+  localStorage.setItem('small-control','test')
+  let failure
+  try{localStorage.setItem('milkup.desktop.plugins.registry.v1',serialized)}catch(error){failure={name:error.name,message:error.message}}
+  return {failure,smallControl:localStorage.getItem('small-control'),registry:localStorage.getItem('milkup.desktop.plugins.registry.v1')===null?'null':'present'}
+ },serialized)
+}finally{await browser.close()}
+await writeFile(process.argv[2],JSON.stringify({at:new Date().toISOString(),bundles,serializedUtf16:serialized.length,serializedSha256:createHash('sha256').update(serialized).digest('hex'),result,note:'Exact original helper registry construction, separate origin; no product app or native engine loaded.'},null,2)+'\n')
+console.log(result)

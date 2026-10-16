@@ -1,0 +1,110 @@
+# Static design review: bounded brightness and missing local filters
+
+Status: design only; no schema/product changes, tests, build or UI were run.
+
+## Observed timeline
+
+`prototype/mermaid-runs/scan-light-01-054/scan_054.svg` applies `brightness(120%)`
+to five `g.eventWrapper` groups. Each contains path/line geometry and nested SVG
+text/tspan. First example is the LinkedIn label. Root viewBox is
+`100 -61 1190 528.3999633789062`. Treating only the background path as the group
+paint bounds would omit potentially larger text. Existing raw getBBox evidence
+is useful for fidelity, not an authorization to trust arbitrary producer bounds.
+
+## Official basis (paraphrased)
+
+Filter Effects Level 1 section 9.4 defines filter-region clipping on inputs,
+primitive-subregion clipping on results, and bounds all intermediate offscreens
+by their intersection, with pixel coverage rounded outwards. This provides the
+needed finite intermediate-image contract even when glyph metrics are unknown.
+
+https://www.w3.org/TR/filter-effects-1/#FilterPrimitiveSubRegion
+
+Sections 5 and 13.1.7 establish group filtering and the RGB component-transfer
+representation of brightness. Filter functions use sRGB. Brightness changes RGB
+but not alpha or spatial support; it must remain after group compositing rather
+than being distributed over descendant paints.
+
+https://www.w3.org/TR/filter-effects-1/#FilterProperty
+https://www.w3.org/TR/filter-effects-1/#brightnessEquivalent
+
+A missing/wrong-kind filter target invalidates the filter chain. Its non-none
+computed style still has grouping semantics; it supplies no finite filter region.
+
+## Proposed closed representation (not implemented)
+
+A local brightness definition can contain only an opaque ID, finite nonnegative
+amount and a finite positive user-space rectangle. The host emits exactly a
+`filter` with fixed userSpaceOnUse units, explicit x/y/width/height and sRGB;
+its sole `feComponentTransfer` also explicitly uses the same rectangle and
+`in=SourceGraphic`, with R/G/B linear slope=amount, intercept=0 and identity alpha.
+No producer CSS, arbitrary primitive graph, URLs, inheritance or animation enters
+this representation. Fixed primitive and component nodes count against the existing
+expanded node/byte budget. An inert amount=1 still preserves grouping semantics.
+
+The native converter measures the original group's actual ink, including strokes,
+markers, text and descendants, in that group's local coordinate system and chooses
+an outward-covering rectangle. This is a fidelity obligation: ordinary getBBox()
+may exclude strokes/markers and cannot alone establish complete ink coverage.
+The host need not trust that coverage assertion for resource safety because the
+serialized filter itself enforces the rectangle. An undersized rectangle remains
+a fidelity failure rather than a way to escape the surface budget. Amount and
+region must remain unchanged through validation/serialization; no silent clamping.
+
+## Geometry/work proof and limits
+
+1. Map all four region corners through the full root/symbol/ancestor/local world
+   matrix. Check finite coordinate bounds. Charge the integer envelope
+   `(ceil(maxX)-floor(minX)) * (ceil(maxY)-floor(minY))`, with zero dimensions
+   handled explicitly. Continuous area alone can miss fractional boundary pixels.
+2. Use existing per-surface and aggregate work caps. Brightness needs no blur-kernel
+   multiplier. Charge its bounded input/output pass and group compositing as the
+   chosen documented work model; do not call it free because geometry is unchanged.
+   The existing work quota must not be enlarged. Reused symbols/markers multiply
+   these charges by their existing instance count.
+3. Continue validating every descendant's own blur/compositing/clip work before
+   this outer filter. An outer clipping region does not establish a bound for
+   unrelated descendant offscreens. Unknown descendant effects still reject.
+4. The post-filter painted ink is bounded by the explicit region. However its
+   geometric fill/stroke bounding box remains unknown if it contains text. Do not
+   simply clear the current single `uncertain` flag: that would incorrectly enable
+   ancestor objectBoundingBox filters or fill-/stroke-box origins using an ink
+   rectangle as a geometric bbox. Minimal implementation can keep that flag and
+   allow only this filter's explicit-region cost; a later split between geometric
+   bbox uncertainty and painted-ink bounds would support more combinations safely.
+5. Region coverage, antialiasing, sRGB/clamping, alpha, overlapping descendants,
+   nested group opacity, transforms and original-vs-canonical pixels need actual
+   native evidence. Standards constrain rendering semantics; they are not a proof
+   of a browser's total memory use or absence of implementation bugs. Existing
+   isolated-helper deadlines/process cleanup remain independent protection.
+
+## Missing local filter (`unresolved-local`)
+
+For known unfiltered ink bounds, charging unchanged geometry plus a conservative
+compositing surface is sound: there is no blur kernel or spatial expansion from
+an invalid reference. Keep children/ancestor effects and marker multiplicity costs.
+The serializer must preserve a local URL and guarantee its target stays missing
+(using a reserved, noncolliding host-generated ID distinct from emitted definition
+IDs); do not normalize it to `none`, resolve it to a real filter, or create a
+network-capable URL.
+
+For unknown text/group ink bounds, that accounting still lacks a surface bound.
+Unlike bounded brightness, a truly unresolved URL supplies no hard filter region.
+The current evidence therefore does not justify accepting arbitrary unknown-text
+compositing by substituting background bounds or root viewport area. Native
+missing-reference behavior is pending; preserve this limitation explicitly.
+
+## Suggested regressions before accepting the addition
+
+- Huge or long text under a tiny explicit brightness region cannot exceed that
+  filter surface budget; the same text's unrelated nested expensive filter still
+  rejects. The former is a safety test, not proof the clipped result is faithful.
+- Fractional/rotated/sheared filter regions and repeated instances share the
+  response budget with other images; no per-image reset.
+- A bounded brightness group does not make its unknown geometric bbox eligible
+  for ancestor objectBoundingBox effects or fill-/stroke-box transform origins.
+- Original-vs-canonical timeline pixels with nested alpha and overlapping colors,
+  including amounts 0, 1, 1.2; source node identities and filter isolation retained.
+- Missing IDs cannot collide with a real definition; unresolved URL remains local
+  and distinct from `none`; known bounds cost a group layer, unknown bounds do not
+  silently gain an arbitrary geometry estimate.

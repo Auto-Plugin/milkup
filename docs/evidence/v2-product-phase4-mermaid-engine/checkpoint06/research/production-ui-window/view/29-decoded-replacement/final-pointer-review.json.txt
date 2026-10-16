@@ -1,0 +1,28 @@
+{
+  "kind": "independent-final-static-pointer-review",
+  "status": "no-blocking-issue-found",
+  "manager": {
+    "path": "/workspace/milkup/packages/view-dom/src/document-presentation.ts",
+    "sha256": "8a432ce365e4748bb41697f4928882c21baa7b53ada5f7f5ae311c0e819aad3b"
+  },
+  "verifiedDesign": [
+    "Successful image decode may change imageRevision after provider settlement. Before rebuilding the same response, the new gate requires identical paint context, successful current revision, no failed current owners, and a valid existing reference pointer lease.",
+    "A single pending lease continuation only calls schedule() after release; it does not retain or paint a captured response. A subsequent valid lease is checked again by the current paint path.",
+    "Old-image error, current-image error and previous-layer deadline synchronously release the pointer and withdraw resources. The gate does not renew their deadlines or prevent hard source/config/selection invalidation.",
+    "Provider validation, shared old-layer aggregate budget, whole-fragment semantics and current-request navigation remain unchanged from the preceding review."
+  ],
+  "earlierHypothesisCorrection": {
+    "hypothesis": "An old-owner error could be followed by another successful decode and a new real pointer gesture before the scheduled failure repaint, masking the error revision.",
+    "assessment": "Not established as a reachable real-input interleaving. Error/deadline synchronously releases the lease and schedules sync via queueMicrotask. The browser drains microtasks before dispatching the next real input task. A hypothetical synchronously synthesized pointerdown is not evidence of the native user-input failure.",
+    "conclusion": "Withdrawn as a blocking finding. No additional last-invalidating-revision state required by this review."
+  },
+  "evidenceReportedByOwner": {
+    "focused": "199 passed, including pointer-held old/new error and deadline immediate-source guards; pointer regression preserved red then green.",
+    "browser": "Final complete34 suite still in progress at this review; not claimed passed."
+  },
+  "reviewerExecution": "Only source reads and SHA calculation; no tests, UI, native run or product changes.",
+  "remainingValidation": [
+    "Final browser result and actual packaged native rerun remain separate gates.",
+    "Earlier5c independent-review.json and20-independent-review.json remain preserved; this is a new exact-revision review."
+  ]
+}

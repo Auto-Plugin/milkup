@@ -1,0 +1,35 @@
+from pathlib import Path
+import json,hashlib,shutil,sys
+p=Path(__file__).parent;src=p.parent;repo=Path('/workspace/milkup/plugins/diagrams');revision=sys.argv[1]
+assert revision in ['03-before','03-after']
+snap=p/('revision-product-converter'+revision);snap.mkdir()
+for rel in ['src/svg-converter.ts','src/svg-primitives.ts','src/paint-envelope.ts','tsconfig.json']:
+ d=snap/rel;d.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(repo/rel,d)
+fixtures=(src/'fixtures.mjs').read_text().replace('export const fixtures','const fixtures')
+fixtures+='''\nfixtures.push(
+ {id:'metadata-root-title-over4096',expected:'limit-exceeded',svg:svg('<title>'+ 'a'.repeat(4097)+'</title><rect width="10" height="10"/>')},
+ {id:'metadata-common-description-over4096',expected:'limit-exceeded',svg:svg('<g><desc>'+ 'b'.repeat(4097)+'</desc><rect width="10" height="10"/></g>')},
+ {id:'text-run-over4096',expected:'limit-exceeded',svg:svg('<text x="0" y="20" style="font-size:1px">'+ 'a'.repeat(4097)+'</text>')},
+ {id:'metadata-title-boundary4096',expected:'ready',svg:svg('<title>'+ '中'.repeat(4096)+'</title><rect width="10" height="10"/>')}
+);\n'''
+entry=(src/'native-entry.mjs').read_text().replace("../native-probe/mermaid-full-12.2.0.mjs","./mermaid-full-12.2.0.mjs")
+old="const {svg,diagramType}=await mermaid.render('convert_'+request.id,request.source,host);const renderMs=performance.now()-started;host.innerHTML=svg;"
+new="let svg,diagramType;if(request.id.startsWith('fixture_')){const fixture=fixtures.find(x=>x.id===request.source);if(!fixture)throw Error('unknown fixed fixture');svg=fixture.svg;diagramType='fixed-contract-fixture';}else({svg,diagramType}=await mermaid.render('convert_'+request.id,request.source,host));const renderMs=performance.now()-started;host.innerHTML=svg;"
+assert old in entry;entry=entry.replace(old,new)
+entry=entry.replace("import {convertSvgElement} from './converter.mjs';","import {convertSvgElement,ConversionError} from './converter.mjs';")
+entry=entry.replace("const result=convertSvgElement(host.querySelector('svg'));", "const image=convertSvgElement(host.querySelector('svg'));const result={ok:true,image};")
+entry=entry.replace('coverage:packCoverage(result.coverage),','')
+entry=entry.replace("error:{code:'invalid-output',reason:textError(e)}", "error:{code:e instanceof ConversionError?e.code:'invalid-output',reason:textError(e),path:e instanceof ConversionError?e.path:''}")
+entry=fixtures+'\n'+entry
+(p/'helper/assets/entry.mjs').write_text(entry);(snap/'entry.mjs').write_text(entry);(snap/'fixtures.mjs').write_text(fixtures+'\nexport {fixtures};\n')
+cases=json.loads((p/'cases-baseline37.json').read_text())
+for c in cases:c['expected']='observed'
+# Case inventory generation is data-only, not a browser execution.
+import subprocess
+fixed=json.loads(subprocess.check_output(['node','--input-type=module','-e',f"import {{fixtures}} from {json.dumps((snap/'fixtures.mjs').as_uri())};process.stdout.write(JSON.stringify(fixtures.map(f=>({{id:f.id,expected:f.expected}}))));"],text=True))
+for f in fixed:cases.append({'sample':{'id':f['id'],'kind':'fixed-contract'},'expected':f['expected'],'request':{'id':'fixture_'+f['id'],'source':f['id'],'profile':'baseline','theme':'light'}})
+(p/'cases-product-converter03.json').write_text(json.dumps(cases,ensure_ascii=False,indent=2)+'\n');shutil.copyfile(p/'cases-product-converter03.json',snap/'cases.json')
+s=(p/'supervise-product-converter01.py').read_text().replace('cases-product-converter01.json','cases-product-converter03.json').replace("expected=case['expected'];assert", "expected=case['expected'];assert").replace("(result.get('ok') if expected=='ready'", "(True if expected=='observed' else result.get('ok') if expected=='ready'")
+(p/'supervise-product-converter03.py').write_text(s)
+(p/'run-product-converter03.sh').write_text((p/'run-product-converter01.sh').read_text().replace('supervise-product-converter01.py','supervise-product-converter03.py'))
+print(json.dumps({'snapshot':str(snap),'cases':len(cases),'metadataBeforeIndex':next(i for i,c in enumerate(cases) if c['sample']['id']=='metadata-root-title-over4096')},indent=2))

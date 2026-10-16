@@ -1,0 +1,49 @@
+// Handwritten independent positives, not generated from the host serializer.
+// Every original intentionally uses the same closed semantics as its typed pair.
+const color = rgba => ({ kind: 'color', rgba })
+const px = value => ({ value, unit: 'px' })
+const red = color([220, 32, 48, 1]), blue = color([16, 80, 192, 1])
+const root = (body, overflow = 'visible') => `<svg xmlns="http://www.w3.org/2000/svg" width="200.25" height="120.5" viewBox="0 0 200.25 120.5" preserveAspectRatio="xMidYMid meet" style="overflow:${overflow}">${body}</svg>`
+const typed = (styles, children, definitions = [], overflow = 'visible') => ({
+  type: 'svg-image', profile: 'bounded-svg-v1', motion: 'static',
+  width: 200.25, height: 120.5, viewBox: [0, 0, 200.25, 120.5],
+  aspect: { align: 'xMidYMid', fit: 'meet' },
+  rootStyle: 0, styles: [{ overflow }, ...styles], definitions, children,
+})
+const outline = { fill: { kind: 'none' }, stroke: red, strokeWidth: px(8) }
+const edgeRect = { kind: 'rect', x: -3, y: 20, width: 40, height: 40, style: 1 }
+export const fixtures = [
+  {
+    id: 'root-visible-negative-stroke',
+    assertion: 'Visible root permits 7px red ink left of its viewport; image must not silently remove it.',
+    svg: root('<rect x="-3" y="20" width="40" height="40" fill="none" stroke="rgb(220,32,48)" stroke-width="8"/>'),
+    image: typed([outline], [edgeRect]),
+  },
+  {
+    id: 'root-hidden-negative-stroke-control',
+    assertion: 'Explicit hidden root clips negative stroke; this is the paired clipping control.',
+    svg: root('<rect x="-3" y="20" width="40" height="40" fill="none" stroke="rgb(220,32,48)" stroke-width="8"/>', 'hidden'),
+    image: typed([outline], [edgeRect], [], 'hidden'),
+  },
+  {
+    id: 'visible-right-marker',
+    assertion: 'The marker extends beyond x=200.25; preserve its original visible tip.',
+    svg: root('<defs><marker id="arrow" markerWidth="16" markerHeight="16" refX="0" refY="8" markerUnits="userSpaceOnUse" orient="auto" viewBox="0 0 16 16" style="overflow:visible"><path d="M0 0 L16 8 L0 16 Z" fill="rgb(16,80,192)"/></marker></defs><line x1="140" y1="60" x2="198" y2="60" stroke="rgb(16,80,192)" stroke-width="3" marker-end="url(#arrow)"/>'),
+    image: typed([{ stroke: blue, strokeWidth: px(3) }, { fill: blue }, { overflow: 'visible' }],
+      [{ kind: 'line', x1: 140, y1: 60, x2: 198, y2: 60, style: 1, markerEnd: 'arrow' }],
+      [{ kind: 'marker', id: 'arrow', width: 16, height: 16, refX: { value: 0, unit: 'user' }, refY: { value: 8, unit: 'user' }, units: 'userSpaceOnUse', orient: 'auto', viewBox: [0, 0, 16, 16], style: 3, children: [{ kind: 'path', style: 2, commands: [['M', 0, 0], ['L', 16, 8], ['L', 0, 16], ['Z']] }] }]),
+  },
+  {
+    id: 'visible-bottom-right-shadow',
+    assertion: 'CSS drop-shadow blur radius and visible lower/right ink remain intact.',
+    svg: root('<rect x="165" y="85" width="30" height="30" fill="rgb(16,80,192)" style="filter:drop-shadow(8px 8px 4px rgba(0,0,0,.75))"/>'),
+    image: typed([{ fill: blue, filter: { kind: 'cssDropShadow', shadows: [{ dx: 8, dy: 8, blur: 4, color: [0, 0, 0, .75] }] } }],
+      [{ kind: 'rect', x: 165, y: 85, width: 30, height: 30, style: 1 }]),
+  },
+  {
+    id: 'fractional-contained-control',
+    assertion: 'Fractional exact layout and wholly contained strokes retain raster placement and footer position.',
+    svg: root('<rect x="8.25" y="8.5" width="180" height="100" fill="none" stroke="rgb(220,32,48)" stroke-width="1"/>'),
+    image: typed([{ ...outline, strokeWidth: px(1) }], [{ kind: 'rect', x: 8.25, y: 8.5, width: 180, height: 100, style: 1 }]),
+  },
+]

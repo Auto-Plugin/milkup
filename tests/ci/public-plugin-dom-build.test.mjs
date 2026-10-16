@@ -38,6 +38,7 @@ async function fixture(t) {
     version: 1,
     packageManager: 'pnpm@11.7.0',
     target: 'es2022',
+    minify: false,
     sdkTarballSha256: sha('sdk tarball'),
     buildFiles: ['scripts/build.mjs'],
     packages: [
@@ -87,7 +88,7 @@ async function fixture(t) {
   await write('release/bundled-plugins.json', [distribution])
   const meta = {
     inputs: { 'src/plugin.ts': {}, [`${packageRoot}/index.js`]: {} },
-    outputs: { 'dist/plugin.js': { imports: [] } },
+    outputs: { 'dist/plugin.js': { imports: [], bytes: 32 } },
   }
   return {
     root,
@@ -327,4 +328,44 @@ test('copied-source proof excludes only explicit generated locations, not arbitr
   assert.deepEqual(await contract.capturePublicBuildInputs(target), snapshot)
   await f.write('copied/vendor/hidden.js', 'not an allowed injection')
   assert.notDeepEqual(await contract.capturePublicBuildInputs(target), snapshot)
+})
+
+test('minification is an explicit profile choice and the existing DOM entry limit stays fixed', async (t) => {
+  const f = await fixture(t)
+  for (const minify of [false, true]) {
+    const profile = { ...f.profile, target: 'es2024', minify }
+    await f.write('plugins/example/build-dependencies.json', profile)
+    await f.write('release/bundled-plugins.json', [
+      {
+        ...f.distribution,
+        dependencyClosure: {
+          ...f.distribution.dependencyClosure,
+          profileSha256: sha(JSON.stringify(profile)),
+        },
+      },
+    ])
+    const entry = (await contract.readPublicPluginBuildInputs(f.root)).plugins[0]
+    assert.equal(entry.closure.minify, minify)
+    await contract.verifyPublicPluginBundle(f.pluginRoot, entry, f.meta)
+    await assert.rejects(
+      contract.verifyPublicPluginBundle(f.pluginRoot, entry, {
+        ...f.meta,
+        outputs: { 'dist/plugin.js': { imports: [], bytes: 8 * 1024 * 1024 + 1 } },
+      }),
+      /8 MiB/,
+    )
+  }
+  const profile = { ...f.profile }
+  delete profile.minify
+  await f.write('plugins/example/build-dependencies.json', profile)
+  await f.write('release/bundled-plugins.json', [
+    {
+      ...f.distribution,
+      dependencyClosure: {
+        ...f.distribution.dependencyClosure,
+        profileSha256: sha(JSON.stringify(profile)),
+      },
+    },
+  ])
+  await assert.rejects(contract.readPublicPluginBuildInputs(f.root), /minification/)
 })

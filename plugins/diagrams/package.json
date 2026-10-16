@@ -1,18 +1,23 @@
 {
   "name": "milkup-diagrams",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "tsc --noEmit && node scripts/build.mjs",
     "check": "tsc --noEmit",
     "test": "vitest run --config vitest.config.ts",
-    "verify:external": "node scripts/verify-external.mjs"
+    "verify:external": "node scripts/verify-external.mjs",
+    "review:dependencies": "node scripts/review-dependencies.mjs"
   },
   "devDependencies": {
-    "@milkup/plugin-sdk": "0.3.3",
-    "esbuild": "^0.25.0",
-    "typescript": "^5.8.0",
-    "vitest": "^3.2.4"
+    "@milkup/plugin-sdk": "file:vendor/plugin-sdk.tgz",
+    "esbuild": "0.25.12",
+    "typescript": "5.9.3",
+    "vitest": "3.2.6"
+  },
+  "packageManager": "pnpm@11.7.0",
+  "dependencies": {
+    "mermaid": "12.2.0"
   }
 }

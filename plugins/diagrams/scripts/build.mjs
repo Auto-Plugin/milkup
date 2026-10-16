@@ -1,49 +1,54 @@
-import { build } from 'esbuild'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import assert from 'node:assert/strict'
+import { mkdir, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
+import { compileEntry, localFile, validateProfile, sha256 } from './build-support.mjs'
 
-// This script deliberately needs only this plugin directory and its installed public SDK.
+// Standalone: only this plugin and its installed public SDK/dependencies are needed.
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const manifest = JSON.parse(await readFile(resolve(root, 'plugin.json'), 'utf8'))
-if (manifest.host !== 'worker' || manifest.main !== './dist/plugin.js') {
-  throw new Error('The standalone diagrams package requires its Worker dist/plugin.js entry')
+const manifest = JSON.parse((await localFile(root, 'plugin.json')).bytes.toString('utf8'))
+assert.equal(manifest.host, 'dom')
+assert.equal(manifest.main, './dist/plugin.js')
+assert.deepEqual(manifest.permissions, ['document:read'])
+assert.deepEqual(Object.keys(manifest.contributes), ['documentRenderers'])
+const profile = JSON.parse(
+  (await localFile(root, 'build-dependencies.json')).bytes.toString('utf8'),
+)
+const { result, sdkEntry } = await compileEntry(root, profile)
+await validateProfile(root, profile, result, sdkEntry)
+const files = [{ path: 'dist/plugin.js', encoding: 'utf8', content: result.outputFiles[0].text }]
+for (const resource of manifest.resources ?? []) {
+  const { bytes } = await localFile(root, resource)
+  files.push({ path: resource, encoding: 'base64', content: bytes.toString('base64') })
 }
-const result = await build({
-  absWorkingDir: root,
-  entryPoints: ['src/plugin.ts'],
-  bundle: true,
-  format: 'esm',
-  platform: 'browser',
-  target: 'es2022',
-  outfile: 'dist/plugin.js',
-  write: false,
-  metafile: true,
-})
-const inputs = Object.keys(result.metafile.inputs)
-for (const input of inputs) {
-  const normalized = input.replaceAll('\\', '/')
-  if (!normalized.startsWith('src/') && !normalized.includes('/@milkup/plugin-sdk/')) {
-    throw new Error(`Plugin bundle imported a non-public dependency: ${input}`)
-  }
-}
-if (Object.values(result.metafile.outputs).some((output) => output.imports.length !== 0)) {
-  throw new Error('Plugin entry must be self-contained, without runtime imports')
-}
-if (result.outputFiles.length !== 1) throw new Error('Expected exactly one ESM entry')
-const entry = result.outputFiles[0].text
+assert.equal(new Set(files.map((file) => file.path)).size, files.length)
+const archive =
+  JSON.stringify({ format: 'milkup-plugin', version: 1, manifest, files }, null, 2) + '\n'
+const archiveName = `${manifest.id}-${manifest.version}.milkup-plugin`
 await mkdir(resolve(root, 'dist'), { recursive: true })
-await writeFile(resolve(root, 'dist/plugin.js'), entry)
+await writeFile(resolve(root, 'dist/plugin.js'), result.outputFiles[0].contents)
 await writeFile(
   resolve(root, 'dist/build-meta.json'),
-  `${JSON.stringify(result.metafile, null, 2)}\n`,
+  JSON.stringify(result.metafile, null, 2) + '\n',
 )
-const archive = {
-  format: 'milkup-plugin',
-  version: 1,
-  manifest,
-  files: [{ path: 'dist/plugin.js', encoding: 'utf8', content: entry }],
-}
-const archiveName = `${manifest.id}-${manifest.version}.milkup-plugin`
-await writeFile(resolve(root, 'dist', archiveName), `${JSON.stringify(archive, null, 2)}\n`)
-console.log(`Built dist/plugin.js and dist/${archiveName}`)
+await writeFile(resolve(root, 'dist', archiveName), archive)
+await writeFile(
+  resolve(root, 'dist/proof.json'),
+  JSON.stringify(
+    {
+      archive: archiveName,
+      bytes: Buffer.byteLength(archive),
+      entryBytes: result.outputFiles[0].contents.length,
+      sha256: sha256(archive),
+      sdkTarballSha256: profile.sdkTarballSha256,
+      target: profile.target,
+      minify: profile.minify,
+      runtimeImports: [],
+    },
+    null,
+    2,
+  ) + '\n',
+)
+console.log(
+  `Built ${archiveName} (${Buffer.byteLength(archive)} bytes; entry ${result.outputFiles[0].contents.length} bytes)`,
+)

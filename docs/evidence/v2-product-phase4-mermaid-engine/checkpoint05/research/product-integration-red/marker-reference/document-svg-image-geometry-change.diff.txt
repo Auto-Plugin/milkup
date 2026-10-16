@@ -1,0 +1,52 @@
+--- /workspace/milkup-mermaid-engine-evidence/research/product-integration-red/marker-reference/document-svg-image-geometry-before.ts.txt
++++ packages/core/src/document-svg-image-geometry.ts
+@@ -602,6 +602,8 @@
+         const id = node[key]
+         if (!id || multiplicity[key] === 0) continue
+         const marker = definition(id, 'marker')
++        const markerViewport: DocumentSvgBox = marker.viewBox ?? [0, 0, marker.width, marker.height]
++        const markerContext = styleFor(marker, rootContext, markerViewport)
+         const unit = marker.units === 'strokeWidth' ? context.stroke : 1
+         const mapping = marker.viewBox
+           ? viewportMatrix(marker.viewBox, marker.width, marker.height)
+@@ -611,21 +613,25 @@
+         checkMatrix(markerWorld)
+         const result = visit(
+           marker,
+-          context,
+-          marker.viewBox ?? [0, 0, marker.width, marker.height],
++          rootContext,
++          markerViewport,
+           markerWorld,
+           depth + 1,
+           instances * multiplicity[key],
+         )
+         if (result.uncertain) unsupported('marker text bounds unavailable')
+         const mapped = transformBounds(result.ink, mapping)
+-        const refX = cssLength(marker.refX, context.font, marker.width)
+-        const refY = cssLength(marker.refY, context.font, marker.height)
++        // SVG 2 13.7.1: references use marker-content coordinates; percentages
++        // use viewBox dimensions. Map the reference and ink into the same space.
++        const refX = cssLength(marker.refX, markerContext.font, markerViewport[2])
++        const refY = cssLength(marker.refY, markerContext.font, markerViewport[3])
++        const reference = transformBounds(pointBounds(refX, refY), mapping)
++        if (!reference) return unsupported('empty marker reference')
+         let radius = 0
+         if (mapped) {
+           for (const x of [mapped[0], mapped[2]]) {
+             for (const y of [mapped[1], mapped[3]])
+-              radius = Math.max(radius, Math.hypot(x - refX, y - refY) * unit)
++              radius = Math.max(radius, Math.hypot(x - reference[0], y - reference[1]) * unit)
+           }
+         }
+         ink = union(ink, inflate(fill, radius))
+@@ -759,6 +765,9 @@
+     ...(image.rootStyle === undefined ? {} : { style: image.rootStyle }),
+     children: image.children,
+   }
++  // Definitions are serialized below the root SVG's <defs>. Marker contents
++  // inherit there, never from the shape that references the marker (SVG 2 13.7.4).
++  const rootContext = styleFor(root, defaults, image.viewBox)
+   visit(root, defaults, image.viewBox, rootMap)
+   // Unreached definitions allocate no surface. Codec syntax/reference checks
+   // independently cover their structure, cycles and expansion budgets.

@@ -1,0 +1,44 @@
+# Read-only diagnosis plan after browser run 16
+
+Status: static plan only; no new test, browser or product execution. The native owner currently owns UI/CPU. Product code is unchanged after the frozen view implementation.
+
+## Existing facts
+
+- Run 13: 22 passed / 11 failed, all eleven shared-helper consumers failed before seeding because the registry was null. The separate exact-construction storage probe raised QuotaExceededError for a 23,322,473 UTF-16-character registry; its small control succeeded.
+- Run 16: 32 passed / 2 failed. The native-only unavailable-host case passed without requesting the placeholder entry.
+- Run 16 first failure saved only a boolean combining `complete`, `naturalWidth > 0`, and `src.startsWith('blob:')`. The individual values and `isConnected` are unknown. The later failure PNG visibly contains the canonical fixture image; this does not establish the state of the previously resolved Locator element.
+- Run 16 search failure passed the three-image count and initial marker observations. Playwright then repeatedly observed mroot preview detach/instability and never completed its real click before the unchanged 60-second case limit. No forced click or timeout extension is proposed.
+
+## Controlled public-view reproduction
+
+Use each public EditorView / SourceDocumentView in a separately mounted scrollport with a short 20-line document, constant source/version/selection, and an initially visible middle block. Supply a public DocumentPresentationConfig that returns one deterministic closed svg-image (260px tall) for that block. The original block is only a few literal lines. Keep the whole 20-line request inside the existing input budget, so the first variant distinguishes priority-only changes from base-window changes.
+
+Record each provide call's `from/to/fromLine/toLine`, `visibleFrom/visibleTo`, selection, width, source identity/version, response complete flag and timing. Provider returns only the standard trusted test response shape; strip host-only fields from its core request. Do not touch private manager methods or plugin state.
+
+Compare these variants independently:
+1. complete=true with an unchanged full base window;
+2. complete=false with the same source window and actual scroll to a later target;
+3. a longer document in which real window boundaries change, with overlapping identical images.
+
+A stable result must retain editable source and selection/history, show a decoded image, allow an ordinary stable pointer click, and stop repeated work once geometry settles. Partial responses must still reprioritize a later visible block. Do not infer these results from one terminal screenshot.
+
+## Bounded observation
+
+For at most 2 seconds / 120 samples / 500 events, record:
+- Current DOM image node identity, `isConnected`, src presence/protocol, complete, naturalWidth/Height, rect; use a single evaluateAll task so a separately resolved stale element handle cannot be confused with the current DOM.
+- Current preview and source-owner line rects; editor scrollTop/Left, viewport; document source/version/selection.
+- MutationObserver childList and img src changes, including removed-node identity and connectivity.
+- Test-owned wrappers for URL.createObjectURL/revokeObjectURL that delegate immediately and only record URL identity/time. For Image.decode, return the original Promise unchanged and attach observation callbacks without delaying or changing settlement.
+- A separate Locator.evaluate snapshot including `isConnected` for comparison with the original first assertion. If false only on a detached old handle, classify that observation narrowly; still require continuously usable current DOM.
+
+Use a direct public provider fixture for request metadata; do not intercept native IPC, inject grants, or patch private product state. Keep the real Worker math/footnotes integration failure as a separate reproduction, not evidence that the controlled provider is the official Mermaid engine.
+
+## Candidate changes, not yet authorized or implemented here
+
+A. A complete same-base-window response may not need a new provider call solely for a changed visible priority. All source/version/config/epoch/width/selection/target guards remain; incomplete responses must still include priority in their identity. This cannot by itself cover genuine base-window changes.
+
+B. After independently validating a replacement response, preserve a decoded image owner only if the full fragment and image payload are exactly equal, including range/layout/status/message/accessibility, and owner context/generation plus request documentId/version/theme/width/target remain valid. This prevents equivalent images from repeatedly returning to literal layout. Never use a weak hash or bypass aggregate validation. The owner callback currently captures old fragment/response; merely changing one property is unsafe. Any transfer must update the callback's binding and preserve revoke/error handling. Never reuse reference navigation closures from an old request.
+
+If diagnosis shows pending images are repeatedly revoked before decode, decoded-only reuse is insufficient. Any pending reuse would need to preserve its original decode deadline and cancellation guards, not restart the timeout. That is a separate design decision, not assumed necessary now.
+
+Guard regressions if a fix is authorized: changed content/alt/status, source identity/version, selection, source mode, config/epoch/disable/destroy revoke old owners; partial priority change reaches the later block; no source/history edits; source-window replacement preserves current valid content; every new response still passes shared budgets and validation.

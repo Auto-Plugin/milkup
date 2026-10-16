@@ -1,0 +1,4984 @@
+{
+  "diagnosticOnly": true,
+  "mermaidTested": true,
+  "converterPrototypeTested": true,
+  "results": [
+    {
+      "task": "native-resource-guard",
+      "elapsed": 0.01266129600116983,
+      "value": {
+        "status": "blocked"
+      }
+    },
+    {
+      "task": "scan_052",
+      "sampleId": "stateDiagram-000-first-official-example",
+      "sourceSha256": "fc35188de9f919aa10f7bb302574c3bcdc2fc74a54434a5bc4ee33c57cff8d64",
+      "profile": "baseline",
+      "elapsed": 0.5017973559952225,
+      "serializedBytes": 39619,
+      "diagramType": "stateDiagram"
+    }
+  ],
+  "events": [
+    {
+      "kind": "spawn",
+      "mono": 40276.39893508,
+      "wall": 1792152663.9598963,
+      "pid": 263652,
+      "birth": "4027639",
+      "command": [
+        "/usr/bin/bwrap",
+        "--die-with-parent",
+        "--unshare-user",
+        "--unshare-pid",
+        "--unshare-ipc",
+        "--unshare-uts",
+        "--unshare-net",
+        "--clearenv",
+        "--ro-bind",
+        "/usr",
+        "/usr",
+        "--overlay-src",
+        "/usr/bin",
+        "--tmp-overlay",
+        "/usr/bin",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/bin/xdg-dbus-proxy",
+        "/usr/bin/xdg-dbus-proxy",
+        "--remount-ro",
+        "/usr/bin",
+        "--symlink",
+        "usr/bin",
+        "/bin",
+        "--symlink",
+        "usr/lib",
+        "/lib",
+        "--symlink",
+        "usr/lib64",
+        "/lib64",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu",
+        "/runtime/lib",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/share/glib-2.0/schemas",
+        "/runtime/schemas",
+        "--overlay-src",
+        "/usr/lib/x86_64-linux-gnu",
+        "--tmp-overlay",
+        "/usr/lib/x86_64-linux-gnu",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1",
+        "/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1",
+        "--remount-ro",
+        "/usr/lib/x86_64-linux-gnu",
+        "--ro-bind",
+        "/etc/fonts",
+        "/etc/fonts",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/passwd",
+        "/etc/passwd",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/group",
+        "/etc/group",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/hostname",
+        "/etc/hostname",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/hosts",
+        "/etc/hosts",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/nsswitch.conf",
+        "/etc/nsswitch.conf",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/machine-id",
+        "/etc/machine-id",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/loaders.cache",
+        "/probe/loaders.cache",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/target/debug/milkup-mermaid-render-probe",
+        "/probe/bin/helper",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/extensions/libresource_guard.so",
+        "/probe/extensions/libresource_guard.so",
+        "--bind",
+        "/workspace/milkup-mermaid-engine-evidence/research/svg-converter-prototype/native-runner/profiles/product-converter-fourth-26",
+        "/profile",
+        "--tmpfs",
+        "/tmp",
+        "--dir",
+        "/tmp/.X11-unix",
+        "--ro-bind",
+        "/tmp/.X11-unix/X118",
+        "/tmp/.X11-unix/X118",
+        "--tmpfs",
+        "/run",
+        "--perms",
+        "0700",
+        "--dir",
+        "/run/user/1000",
+        "--dir",
+        "/sys/block",
+        "--dir",
+        "/sys/bus",
+        "--dir",
+        "/sys/class",
+        "--dir",
+        "/sys/dev",
+        "--dir",
+        "/sys/devices",
+        "--dev",
+        "/dev",
+        "--proc",
+        "/proc",
+        "--setenv",
+        "PATH",
+        "/usr/bin:/bin",
+        "--setenv",
+        "HOME",
+        "/profile/home",
+        "--setenv",
+        "XDG_CONFIG_HOME",
+        "/profile/config",
+        "--setenv",
+        "XDG_DATA_HOME",
+        "/profile/data",
+        "--setenv",
+        "XDG_CACHE_HOME",
+        "/profile/cache",
+        "--setenv",
+        "XDG_RUNTIME_DIR",
+        "/run/user/1000",
+        "--setenv",
+        "LD_LIBRARY_PATH",
+        "/runtime/lib",
+        "--setenv",
+        "WEBKIT_INJECTED_BUNDLE_PATH",
+        "/runtime/lib/webkit2gtk-4.1/injected-bundle",
+        "--setenv",
+        "GSETTINGS_SCHEMA_DIR",
+        "/runtime/schemas",
+        "--setenv",
+        "GDK_PIXBUF_MODULE_FILE",
+        "/probe/loaders.cache",
+        "--setenv",
+        "MILKUP_PROBE_EXTENSIONS",
+        "/probe/extensions",
+        "--setenv",
+        "DISPLAY",
+        ":118",
+        "--setenv",
+        "GDK_BACKEND",
+        "x11",
+        "--setenv",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "1",
+        "--setenv",
+        "LANG",
+        "C.UTF-8",
+        "--setenv",
+        "LC_ALL",
+        "C.UTF-8",
+        "--setenv",
+        "TZ",
+        "UTC",
+        "--setenv",
+        "NO_AT_BRIDGE",
+        "1",
+        "--remount-ro",
+        "/",
+        "--chdir",
+        "/profile",
+        "--",
+        "/usr/bin/dbus-run-session",
+        "--",
+        "/probe/bin/helper"
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40276.74046259,
+      "wall": 1792152664.3014224,
+      "members": [
+        {
+          "pid": 263652,
+          "state": "S",
+          "ppid": 263649,
+          "pgrp": 263652,
+          "birth": "4027639",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263653,
+          "state": "S",
+          "ppid": 263652,
+          "pgrp": 263652,
+          "birth": "4027640",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263654,
+          "state": "S",
+          "ppid": 263653,
+          "pgrp": 263652,
+          "birth": "4027640",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 263655,
+          "state": "S",
+          "ppid": 263654,
+          "pgrp": 263652,
+          "birth": "4027640",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 263656,
+          "state": "R",
+          "ppid": 263654,
+          "pgrp": 263652,
+          "birth": "4027641",
+          "utime": 18,
+          "stime": 9,
+          "name": "helper"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40276.74056675,
+      "wall": 1792152664.3015254,
+      "frame": {
+        "allowedResources": 3,
+        "ephemeral": true,
+        "javascript": true,
+        "javascriptMarkup": true,
+        "sandbox": true,
+        "settings": "file/universal/webrtc/media/webgl/storage/dns/windows/devtools denied",
+        "tauriBridge": false,
+        "type": "native-policy",
+        "wryIpcStub": false
+      }
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40276.963801511,
+      "wall": 1792152664.5247614,
+      "members": [
+        {
+          "pid": 263652,
+          "state": "S",
+          "ppid": 263649,
+          "pgrp": 263652,
+          "birth": "4027639",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263653,
+          "state": "S",
+          "ppid": 263652,
+          "pgrp": 263652,
+          "birth": "4027640",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263654,
+          "state": "S",
+          "ppid": 263653,
+          "pgrp": 263652,
+          "birth": "4027640",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 263655,
+          "state": "S",
+          "ppid": 263654,
+          "pgrp": 263652,
+          "birth": "4027640",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 263656,
+          "state": "S",
+          "ppid": 263654,
+          "pgrp": 263652,
+          "birth": "4027641",
+          "utime": 39,
+          "stime": 11,
+          "name": "helper"
+        },
+        {
+          "pid": 263665,
+          "state": "S",
+          "ppid": 263656,
+          "pgrp": 263652,
+          "birth": "4027657",
+          "utime": 14,
+          "stime": 6,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 263692,
+          "state": "S",
+          "ppid": 263653,
+          "pgrp": 263652,
+          "birth": "4027669",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 263698,
+          "state": "S",
+          "ppid": 263692,
+          "pgrp": 263652,
+          "birth": "4027670",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 263699,
+          "state": "S",
+          "ppid": 263656,
+          "pgrp": 263652,
+          "birth": "4027671",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263700,
+          "state": "S",
+          "ppid": 263699,
+          "pgrp": 263652,
+          "birth": "4027672",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263701,
+          "state": "S",
+          "ppid": 263700,
+          "pgrp": 263652,
+          "birth": "4027672",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 263704,
+          "state": "S",
+          "ppid": 263656,
+          "pgrp": 263652,
+          "birth": "4027673",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263705,
+          "state": "S",
+          "ppid": 263704,
+          "pgrp": 263652,
+          "birth": "4027673",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263708,
+          "state": "S",
+          "ppid": 263705,
+          "pgrp": 263652,
+          "birth": "4027674",
+          "utime": 5,
+          "stime": 1,
+          "name": "WebKitWebProces"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40277.209263173,
+      "wall": 1792152664.7702227,
+      "members": [
+        {
+          "pid": 263652,
+          "state": "S",
+          "ppid": 263649,
+          "pgrp": 263652,
+          "birth": "4027639",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263653,
+          "state": "S",
+          "ppid": 263652,
+          "pgrp": 263652,
+          "birth": "4027640",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263654,
+          "state": "S",
+          "ppid": 263653,
+          "pgrp": 263652,
+          "birth": "4027640",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 263655,
+          "state": "S",
+          "ppid": 263654,
+          "pgrp": 263652,
+          "birth": "4027640",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 263656,
+          "state": "S",
+          "ppid": 263654,
+          "pgrp": 263652,
+          "birth": "4027641",
+          "utime": 53,
+          "stime": 13,
+          "name": "helper"
+        },
+        {
+          "pid": 263665,
+          "state": "S",
+          "ppid": 263656,
+          "pgrp": 263652,
+          "birth": "4027657",
+          "utime": 14,
+          "stime": 6,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 263692,
+          "state": "S",
+          "ppid": 263653,
+          "pgrp": 263652,
+          "birth": "4027669",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 263698,
+          "state": "S",
+          "ppid": 263692,
+          "pgrp": 263652,
+          "birth": "4027670",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 263699,
+          "state": "S",
+          "ppid": 263656,
+          "pgrp": 263652,
+          "birth": "4027671",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263700,
+          "state": "S",
+          "ppid": 263699,
+          "pgrp": 263652,
+          "birth": "4027672",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263701,
+          "state": "S",
+          "ppid": 263700,
+          "pgrp": 263652,
+          "birth": "4027672",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 263704,
+          "state": "S",
+          "ppid": 263656,
+          "pgrp": 263652,
+          "birth": "4027673",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263705,
+          "state": "S",
+          "ppid": 263704,
+          "pgrp": 263652,
+          "birth": "4027673",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263708,
+          "state": "R",
+          "ppid": 263705,
+          "pgrp": 263652,
+          "birth": "4027674",
+          "utime": 8,
+          "stime": 5,
+          "name": "WebKitWebProces"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40277.294814746,
+      "wall": 1792152664.855774,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "bootstrapMissing": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40277.330076776,
+      "wall": 1792152664.8910358,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "bootstrapMissing": true
+        }
+      }
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40277.603940797,
+      "wall": 1792152665.1649003,
+      "members": [
+        {
+          "pid": 263652,
+          "state": "S",
+          "ppid": 263649,
+          "pgrp": 263652,
+          "birth": "4027639",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263653,
+          "state": "S",
+          "ppid": 263652,
+          "pgrp": 263652,
+          "birth": "4027640",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263654,
+          "state": "S",
+          "ppid": 263653,
+          "pgrp": 263652,
+          "birth": "4027640",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 263655,
+          "state": "S",
+          "ppid": 263654,
+          "pgrp": 263652,
+          "birth": "4027640",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 263656,
+          "state": "S",
+          "ppid": 263654,
+          "pgrp": 263652,
+          "birth": "4027641",
+          "utime": 55,
+          "stime": 16,
+          "name": "helper"
+        },
+        {
+          "pid": 263665,
+          "state": "S",
+          "ppid": 263656,
+          "pgrp": 263652,
+          "birth": "4027657",
+          "utime": 14,
+          "stime": 6,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 263692,
+          "state": "S",
+          "ppid": 263653,
+          "pgrp": 263652,
+          "birth": "4027669",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 263698,
+          "state": "S",
+          "ppid": 263692,
+          "pgrp": 263652,
+          "birth": "4027670",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 263699,
+          "state": "S",
+          "ppid": 263656,
+          "pgrp": 263652,
+          "birth": "4027671",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263700,
+          "state": "S",
+          "ppid": 263699,
+          "pgrp": 263652,
+          "birth": "4027672",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263701,
+          "state": "S",
+          "ppid": 263700,
+          "pgrp": 263652,
+          "birth": "4027672",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 263704,
+          "state": "S",
+          "ppid": 263656,
+          "pgrp": 263652,
+          "birth": "4027673",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263705,
+          "state": "S",
+          "ppid": 263704,
+          "pgrp": 263652,
+          "birth": "4027673",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263708,
+          "state": "S",
+          "ppid": 263705,
+          "pgrp": 263652,
+          "birth": "4027674",
+          "utime": 39,
+          "stime": 15,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 263742,
+          "state": "S",
+          "ppid": 263653,
+          "pgrp": 263652,
+          "birth": "4027725",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40277.61014296,
+      "wall": 1792152665.171102,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "bootstrapMissing": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40277.631619574,
+      "wall": 1792152665.1925786,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "bootstrapMissing": true,
+          "fontPending": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40277.652695211,
+      "wall": 1792152665.2136543,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "hasTauri": false,
+          "ready": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40277.654114989,
+      "wall": 1792152665.2150738,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40277.665207688,
+      "wall": 1792152665.2261662,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "blocked"
+        }
+      }
+    },
+    {
+      "kind": "native-send",
+      "mono": 40277.714286788,
+      "wall": 1792152665.275246,
+      "task": "scan_052",
+      "armedMono": 40277.714281767,
+      "deadlineMono": 40279.714281767,
+      "members": [
+        {
+          "pid": 263652,
+          "state": "S",
+          "ppid": 263649,
+          "pgrp": 263652,
+          "birth": "4027639",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263653,
+          "state": "S",
+          "ppid": 263652,
+          "pgrp": 263652,
+          "birth": "4027640",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263654,
+          "state": "S",
+          "ppid": 263653,
+          "pgrp": 263652,
+          "birth": "4027640",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 263655,
+          "state": "S",
+          "ppid": 263654,
+          "pgrp": 263652,
+          "birth": "4027640",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 263656,
+          "state": "S",
+          "ppid": 263654,
+          "pgrp": 263652,
+          "birth": "4027641",
+          "utime": 56,
+          "stime": 16,
+          "name": "helper"
+        },
+        {
+          "pid": 263665,
+          "state": "S",
+          "ppid": 263656,
+          "pgrp": 263652,
+          "birth": "4027657",
+          "utime": 14,
+          "stime": 6,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 263692,
+          "state": "S",
+          "ppid": 263653,
+          "pgrp": 263652,
+          "birth": "4027669",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 263698,
+          "state": "S",
+          "ppid": 263692,
+          "pgrp": 263652,
+          "birth": "4027670",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 263699,
+          "state": "S",
+          "ppid": 263656,
+          "pgrp": 263652,
+          "birth": "4027671",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263700,
+          "state": "S",
+          "ppid": 263699,
+          "pgrp": 263652,
+          "birth": "4027672",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263701,
+          "state": "S",
+          "ppid": 263700,
+          "pgrp": 263652,
+          "birth": "4027672",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 263704,
+          "state": "S",
+          "ppid": 263656,
+          "pgrp": 263652,
+          "birth": "4027673",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263705,
+          "state": "S",
+          "ppid": 263704,
+          "pgrp": 263652,
+          "birth": "4027673",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263708,
+          "state": "S",
+          "ppid": 263705,
+          "pgrp": 263652,
+          "birth": "4027674",
+          "utime": 39,
+          "stime": 16,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 263742,
+          "state": "S",
+          "ppid": 263653,
+          "pgrp": 263652,
+          "birth": "4027725",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40277.9810776,
+      "wall": 1792152665.5420375,
+      "members": [
+        {
+          "pid": 263652,
+          "state": "S",
+          "ppid": 263649,
+          "pgrp": 263652,
+          "birth": "4027639",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263653,
+          "state": "S",
+          "ppid": 263652,
+          "pgrp": 263652,
+          "birth": "4027640",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263654,
+          "state": "S",
+          "ppid": 263653,
+          "pgrp": 263652,
+          "birth": "4027640",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 263655,
+          "state": "S",
+          "ppid": 263654,
+          "pgrp": 263652,
+          "birth": "4027640",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 263656,
+          "state": "S",
+          "ppid": 263654,
+          "pgrp": 263652,
+          "birth": "4027641",
+          "utime": 56,
+          "stime": 16,
+          "name": "helper"
+        },
+        {
+          "pid": 263665,
+          "state": "S",
+          "ppid": 263656,
+          "pgrp": 263652,
+          "birth": "4027657",
+          "utime": 14,
+          "stime": 6,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 263692,
+          "state": "S",
+          "ppid": 263653,
+          "pgrp": 263652,
+          "birth": "4027669",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 263698,
+          "state": "S",
+          "ppid": 263692,
+          "pgrp": 263652,
+          "birth": "4027670",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 263699,
+          "state": "S",
+          "ppid": 263656,
+          "pgrp": 263652,
+          "birth": "4027671",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263700,
+          "state": "S",
+          "ppid": 263699,
+          "pgrp": 263652,
+          "birth": "4027672",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263701,
+          "state": "S",
+          "ppid": 263700,
+          "pgrp": 263652,
+          "birth": "4027672",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 263704,
+          "state": "S",
+          "ppid": 263656,
+          "pgrp": 263652,
+          "birth": "4027673",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263705,
+          "state": "S",
+          "ppid": 263704,
+          "pgrp": 263652,
+          "birth": "4027673",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263708,
+          "state": "R",
+          "ppid": 263705,
+          "pgrp": 263652,
+          "birth": "4027674",
+          "utime": 76,
+          "stime": 19,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 263742,
+          "state": "S",
+          "ppid": 263653,
+          "pgrp": 263652,
+          "birth": "4027725",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40277.981150798,
+      "wall": 1792152665.5421093,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "conversion_1"
+        }
+      }
+    },
+    {
+      "kind": "process-sample",
+      "mono": 40278.152378031,
+      "wall": 1792152665.713338,
+      "members": [
+        {
+          "pid": 263652,
+          "state": "S",
+          "ppid": 263649,
+          "pgrp": 263652,
+          "birth": "4027639",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263653,
+          "state": "S",
+          "ppid": 263652,
+          "pgrp": 263652,
+          "birth": "4027640",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263654,
+          "state": "S",
+          "ppid": 263653,
+          "pgrp": 263652,
+          "birth": "4027640",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 263655,
+          "state": "S",
+          "ppid": 263654,
+          "pgrp": 263652,
+          "birth": "4027640",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 263656,
+          "state": "S",
+          "ppid": 263654,
+          "pgrp": 263652,
+          "birth": "4027641",
+          "utime": 56,
+          "stime": 16,
+          "name": "helper"
+        },
+        {
+          "pid": 263665,
+          "state": "S",
+          "ppid": 263656,
+          "pgrp": 263652,
+          "birth": "4027657",
+          "utime": 14,
+          "stime": 6,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 263692,
+          "state": "S",
+          "ppid": 263653,
+          "pgrp": 263652,
+          "birth": "4027669",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 263698,
+          "state": "S",
+          "ppid": 263692,
+          "pgrp": 263652,
+          "birth": "4027670",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 263699,
+          "state": "S",
+          "ppid": 263656,
+          "pgrp": 263652,
+          "birth": "4027671",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263700,
+          "state": "S",
+          "ppid": 263699,
+          "pgrp": 263652,
+          "birth": "4027672",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263701,
+          "state": "S",
+          "ppid": 263700,
+          "pgrp": 263652,
+          "birth": "4027672",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 263704,
+          "state": "S",
+          "ppid": 263656,
+          "pgrp": 263652,
+          "birth": "4027673",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263705,
+          "state": "S",
+          "ppid": 263704,
+          "pgrp": 263652,
+          "birth": "4027673",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 263708,
+          "state": "R",
+          "ppid": 263705,
+          "pgrp": 263652,
+          "birth": "4027674",
+          "utime": 124,
+          "stime": 26,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 263742,
+          "state": "S",
+          "ppid": 263653,
+          "pgrp": 263652,
+          "birth": "4027725",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40278.152454586,
+      "wall": 1792152665.7134132,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "conversion_1"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 40278.214699858,
+      "wall": 1792152665.7756588,
+      "frame": {
+        "type": "result",
+        "value": {
+          "result": {
+            "diagramType": "stateDiagram",
+            "elapsedMs": 471,
+            "evidenceBoundary": "No independent validator or round-trip pixels run by this entry. Original live SVG remains in helper for separately authorized observation.",
+            "id": "scan_052",
+            "image": {
+              "aspect": {
+                "align": "xMidYMid",
+                "fit": "meet"
+              },
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "children": [],
+                          "kind": "group",
+                          "style": 4
+                        },
+                        {
+                          "children": [
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  82.49778445561726,
+                                  26
+                                ],
+                                [
+                                  "L",
+                                  82.49778445561726,
+                                  60.5
+                                ]
+                              ],
+                              "kind": "path",
+                              "markerEnd": "d1",
+                              "style": 5
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  53.49778445561727,
+                                  98
+                                ],
+                                [
+                                  "L",
+                                  53.49778445561727,
+                                  110.92893218813452
+                                ],
+                                [
+                                  "Q",
+                                  53.49778445561727,
+                                  118,
+                                  46.42671664375179,
+                                  118
+                                ],
+                                [
+                                  "L",
+                                  19.071067811865476,
+                                  118
+                                ],
+                                [
+                                  "Q",
+                                  12,
+                                  118,
+                                  12,
+                                  125.07106781186548
+                                ],
+                                [
+                                  "L",
+                                  12,
+                                  154
+                                ],
+                                [
+                                  "L",
+                                  12,
+                                  226
+                                ],
+                                [
+                                  "L",
+                                  12,
+                                  274.9289321881345
+                                ],
+                                [
+                                  "Q",
+                                  12,
+                                  282,
+                                  19.071067811865476,
+                                  282
+                                ],
+                                [
+                                  "L",
+                                  65.92450109936905,
+                                  282
+                                ],
+                                [
+                                  "Q",
+                                  72.99556891123453,
+                                  282,
+                                  72.99556891123453,
+                                  289.0710678118655
+                                ],
+                                [
+                                  "L",
+                                  72.99556891123453,
+                                  296.5
+                                ]
+                              ],
+                              "kind": "path",
+                              "markerEnd": "d1",
+                              "style": 6
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  82.49778445561726,
+                                  98
+                                ],
+                                [
+                                  "L",
+                                  82.49778445561726,
+                                  117.58444110552468
+                                ],
+                                [
+                                  "Q",
+                                  82.49778445561726,
+                                  118,
+                                  82.08222556114197,
+                                  118
+                                ],
+                                [
+                                  "L",
+                                  82.08222556114197,
+                                  118
+                                ],
+                                [
+                                  "Q",
+                                  81.66666666666666,
+                                  118,
+                                  81.66666666666666,
+                                  118.41555889447532
+                                ],
+                                [
+                                  "L",
+                                  81.66666666666666,
+                                  132.5
+                                ]
+                              ],
+                              "kind": "path",
+                              "markerEnd": "d1",
+                              "style": 7
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  120.33333333333334,
+                                  138
+                                ],
+                                [
+                                  "L",
+                                  120.33333333333334,
+                                  122.41777443885805
+                                ],
+                                [
+                                  "Q",
+                                  120.33333333333334,
+                                  118,
+                                  115.91555889447532,
+                                  118
+                                ],
+                                [
+                                  "L",
+                                  115.91555889447532,
+                                  118
+                                ],
+                                [
+                                  "Q",
+                                  111.49778445561726,
+                                  118,
+                                  111.49778445561726,
+                                  113.58222556114195
+                                ],
+                                [
+                                  "L",
+                                  111.49778445561726,
+                                  103.5
+                                ]
+                              ],
+                              "kind": "path",
+                              "markerEnd": "d1",
+                              "style": 8
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  101,
+                                  170
+                                ],
+                                [
+                                  "L",
+                                  101,
+                                  204.5
+                                ]
+                              ],
+                              "kind": "path",
+                              "markerEnd": "d1",
+                              "style": 5
+                            },
+                            {
+                              "commands": [
+                                [
+                                  "M",
+                                  101,
+                                  242
+                                ],
+                                [
+                                  "L",
+                                  101,
+                                  254.92893218813452
+                                ],
+                                [
+                                  "Q",
+                                  101,
+                                  262,
+                                  93.92893218813452,
+                                  262
+                                ],
+                                [
+                                  "L",
+                                  78.07106781186548,
+                                  262
+                                ],
+                                [
+                                  "Q",
+                                  71,
+                                  262,
+                                  71,
+                                  269.0710678118655
+                                ],
+                                [
+                                  "L",
+                                  71,
+                                  296.5
+                                ]
+                              ],
+                              "kind": "path",
+                              "markerEnd": "d1",
+                              "style": 9
+                            }
+                          ],
+                          "kind": "group",
+                          "style": 4
+                        },
+                        {
+                          "children": [],
+                          "kind": "group",
+                          "style": 4
+                        },
+                        {
+                          "children": [
+                            {
+                              "children": [
+                                {
+                                  "cx": 0,
+                                  "cy": 0,
+                                  "kind": "circle",
+                                  "r": 7,
+                                  "style": 10
+                                }
+                              ],
+                              "kind": "group",
+                              "style": 4,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    82.49778747558594,
+                                    19
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "height": 32,
+                                  "kind": "rect",
+                                  "rx": 5,
+                                  "ry": 5,
+                                  "style": 11,
+                                  "width": 136,
+                                  "x": -68,
+                                  "y": -16
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "height": 0,
+                                      "kind": "rect",
+                                      "rx": 0,
+                                      "ry": 0,
+                                      "style": 11,
+                                      "width": 0,
+                                      "x": 0,
+                                      "y": 0
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "height": 0,
+                                          "kind": "rect",
+                                          "rx": 0,
+                                          "ry": 0,
+                                          "style": 12,
+                                          "width": 0,
+                                          "x": 0,
+                                          "y": 0
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "kind": "textRun",
+                                                      "text": "Still"
+                                                    }
+                                                  ],
+                                                  "kind": "tspan",
+                                                  "style": 13
+                                                }
+                                              ],
+                                              "dy": [
+                                                {
+                                                  "unit": "em",
+                                                  "value": 1.1
+                                                }
+                                              ],
+                                              "kind": "tspan",
+                                              "style": 13,
+                                              "x": [
+                                                {
+                                                  "unit": "user",
+                                                  "value": 0
+                                                }
+                                              ],
+                                              "y": [
+                                                {
+                                                  "unit": "em",
+                                                  "value": -0.1
+                                                }
+                                              ]
+                                            }
+                                          ],
+                                          "kind": "text",
+                                          "style": 13,
+                                          "y": [
+                                            {
+                                              "unit": "user",
+                                              "value": -10.1
+                                            }
+                                          ]
+                                        }
+                                      ],
+                                      "kind": "group",
+                                      "style": 4
+                                    }
+                                  ],
+                                  "kind": "group",
+                                  "style": 4,
+                                  "transforms": [
+                                    {
+                                      "kind": "matrix",
+                                      "values": [
+                                        1,
+                                        0,
+                                        0,
+                                        1,
+                                        -60,
+                                        -8
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ],
+                              "kind": "group",
+                              "style": 4,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    82.49778747558594,
+                                    82
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "commands": [
+                                        [
+                                          "M",
+                                          7,
+                                          0
+                                        ],
+                                        [
+                                          "C",
+                                          7,
+                                          0.40517908122283747,
+                                          6.964012880168563,
+                                          0.816513743121899,
+                                          6.893654271085456,
+                                          1.2155372436685123
+                                        ],
+                                        [
+                                          "C",
+                                          6.823295662002349,
+                                          1.6145607442151255,
+                                          6.716427752933756,
+                                          2.013397210557766,
+                                          6.5778483455013586,
+                                          2.394141003279681
+                                        ],
+                                        [
+                                          "C",
+                                          6.439268938068961,
+                                          2.774884796001595,
+                                          6.26476736710249,
+                                          3.149104622578984,
+                                          6.062177826491071,
+                                          3.4999999999999996
+                                        ],
+                                        [
+                                          "C",
+                                          5.859588285879653,
+                                          3.8508953774210153,
+                                          5.622755194947063,
+                                          4.189128084166967,
+                                          5.362311101832846,
+                                          4.499513267805774
+                                        ],
+                                        [
+                                          "C",
+                                          5.10186700871863,
+                                          4.809898451444582,
+                                          4.809898451444583,
+                                          5.10186700871863,
+                                          4.499513267805775,
+                                          5.362311101832846
+                                        ],
+                                        [
+                                          "C",
+                                          4.189128084166968,
+                                          5.622755194947063,
+                                          3.8508953774210166,
+                                          5.859588285879652,
+                                          3.500000000000001,
+                                          6.06217782649107
+                                        ],
+                                        [
+                                          "C",
+                                          3.149104622578985,
+                                          6.264767367102489,
+                                          2.7748847960015963,
+                                          6.439268938068961,
+                                          2.3941410032796817,
+                                          6.5778483455013586
+                                        ],
+                                        [
+                                          "C",
+                                          2.013397210557767,
+                                          6.716427752933756,
+                                          1.6145607442151264,
+                                          6.823295662002349,
+                                          1.2155372436685128,
+                                          6.893654271085456
+                                        ],
+                                        [
+                                          "C",
+                                          0.8165137431218992,
+                                          6.964012880168563,
+                                          0.4051790812228379,
+                                          7,
+                                          4.286263797015736e-16,
+                                          7
+                                        ],
+                                        [
+                                          "C",
+                                          -0.405179081222837,
+                                          7,
+                                          -0.8165137431218985,
+                                          6.964012880168563,
+                                          -1.215537243668512,
+                                          6.893654271085456
+                                        ],
+                                        [
+                                          "C",
+                                          -1.6145607442151255,
+                                          6.823295662002349,
+                                          -2.0133972105577667,
+                                          6.716427752933756,
+                                          -2.394141003279681,
+                                          6.5778483455013586
+                                        ],
+                                        [
+                                          "C",
+                                          -2.774884796001595,
+                                          6.439268938068961,
+                                          -3.149104622578983,
+                                          6.26476736710249,
+                                          -3.4999999999999982,
+                                          6.062177826491071
+                                        ],
+                                        [
+                                          "C",
+                                          -3.8508953774210135,
+                                          5.859588285879653,
+                                          -4.189128084166966,
+                                          5.622755194947064,
+                                          -4.499513267805773,
+                                          5.362311101832848
+                                        ],
+                                        [
+                                          "C",
+                                          -4.809898451444581,
+                                          5.101867008718632,
+                                          -5.101867008718628,
+                                          4.809898451444586,
+                                          -5.3623111018328435,
+                                          4.499513267805779
+                                        ],
+                                        [
+                                          "C",
+                                          -5.622755194947059,
+                                          4.189128084166971,
+                                          -5.859588285879649,
+                                          3.8508953774210206,
+                                          -6.062177826491068,
+                                          3.5000000000000053
+                                        ],
+                                        [
+                                          "C",
+                                          -6.264767367102486,
+                                          3.14910462257899,
+                                          -6.439268938068958,
+                                          2.774884796001602,
+                                          -6.577848345501356,
+                                          2.394141003279688
+                                        ],
+                                        [
+                                          "C",
+                                          -6.716427752933754,
+                                          2.0133972105577738,
+                                          -6.823295662002347,
+                                          1.614560744215134,
+                                          -6.893654271085454,
+                                          1.215537243668521
+                                        ],
+                                        [
+                                          "C",
+                                          -6.9640128801685615,
+                                          0.816513743121908,
+                                          -6.999999999999999,
+                                          0.4051790812228472,
+                                          -7,
+                                          1.0183126166254464e-14
+                                        ],
+                                        [
+                                          "C",
+                                          -7.000000000000001,
+                                          -0.40517908122282686,
+                                          -6.964012880168565,
+                                          -0.8165137431218878,
+                                          -6.893654271085459,
+                                          -1.215537243668501
+                                        ],
+                                        [
+                                          "C",
+                                          -6.823295662002352,
+                                          -1.6145607442151142,
+                                          -6.716427752933759,
+                                          -2.0133972105577542,
+                                          -6.577848345501363,
+                                          -2.394141003279669
+                                        ],
+                                        [
+                                          "C",
+                                          -6.439268938068967,
+                                          -2.774884796001583,
+                                          -6.264767367102496,
+                                          -3.149104622578972,
+                                          -6.062177826491078,
+                                          -3.4999999999999876
+                                        ],
+                                        [
+                                          "C",
+                                          -5.859588285879661,
+                                          -3.8508953774210033,
+                                          -5.6227551949470715,
+                                          -4.1891280841669545,
+                                          -5.362311101832856,
+                                          -4.499513267805763
+                                        ],
+                                        [
+                                          "C",
+                                          -5.10186700871864,
+                                          -4.809898451444571,
+                                          -4.809898451444594,
+                                          -5.10186700871862,
+                                          -4.499513267805787,
+                                          -5.362311101832836
+                                        ],
+                                        [
+                                          "C",
+                                          -4.189128084166979,
+                                          -5.622755194947053,
+                                          -3.850895377421028,
+                                          -5.859588285879643,
+                                          -3.5000000000000133,
+                                          -6.062177826491062
+                                        ],
+                                        [
+                                          "C",
+                                          -3.1491046225789985,
+                                          -6.264767367102482,
+                                          -2.774884796001611,
+                                          -6.439268938068954,
+                                          -2.3941410032796973,
+                                          -6.577848345501353
+                                        ],
+                                        [
+                                          "C",
+                                          -2.0133972105577835,
+                                          -6.716427752933752,
+                                          -1.6145607442151435,
+                                          -6.823295662002345,
+                                          -1.2155372436685306,
+                                          -6.893654271085453
+                                        ],
+                                        [
+                                          "C",
+                                          -0.8165137431219176,
+                                          -6.9640128801685615,
+                                          -0.40517908122285695,
+                                          -6.999999999999999,
+                                          -1.9937625952807352e-14,
+                                          -7
+                                        ],
+                                        [
+                                          "C",
+                                          0.4051790812228171,
+                                          -7.000000000000001,
+                                          0.8165137431218781,
+                                          -6.964012880168565,
+                                          1.2155372436684913,
+                                          -6.89365427108546
+                                        ],
+                                        [
+                                          "C",
+                                          1.6145607442151044,
+                                          -6.823295662002354,
+                                          2.013397210557745,
+                                          -6.716427752933763,
+                                          2.3941410032796595,
+                                          -6.5778483455013665
+                                        ],
+                                        [
+                                          "C",
+                                          2.774884796001574,
+                                          -6.43926893806897,
+                                          3.149104622578963,
+                                          -6.2647673671025,
+                                          3.499999999999979,
+                                          -6.062177826491083
+                                        ],
+                                        [
+                                          "C",
+                                          3.8508953774209953,
+                                          -5.859588285879665,
+                                          4.189128084166947,
+                                          -5.622755194947077,
+                                          4.499513267805756,
+                                          -5.362311101832862
+                                        ],
+                                        [
+                                          "C",
+                                          4.809898451444564,
+                                          -5.1018670087186475,
+                                          5.101867008718613,
+                                          -4.809898451444602,
+                                          5.362311101832829,
+                                          -4.499513267805796
+                                        ],
+                                        [
+                                          "C",
+                                          5.622755194947046,
+                                          -4.189128084166989,
+                                          5.859588285879637,
+                                          -3.8508953774210393,
+                                          6.062177826491056,
+                                          -3.500000000000025
+                                        ],
+                                        [
+                                          "C",
+                                          6.2647673671024755,
+                                          -3.1491046225790105,
+                                          6.439268938068949,
+                                          -2.774884796001623,
+                                          6.577848345501348,
+                                          -2.3941410032797092
+                                        ],
+                                        [
+                                          "C",
+                                          6.716427752933747,
+                                          -2.0133972105577955,
+                                          6.823295662002342,
+                                          -1.6145607442151562,
+                                          6.893654271085451,
+                                          -1.2155372436685434
+                                        ],
+                                        [
+                                          "C",
+                                          6.96401288016856,
+                                          -0.8165137431219307,
+                                          6.982275711847575,
+                                          -0.2025895406114567,
+                                          7,
+                                          -3.2800750208310675e-14
+                                        ],
+                                        [
+                                          "C",
+                                          7.017724288152425,
+                                          0.2025895406113911,
+                                          7.017724288152424,
+                                          -0.2025895406114242,
+                                          7,
+                                          0
+                                        ]
+                                      ],
+                                      "kind": "path",
+                                      "style": 15
+                                    },
+                                    {
+                                      "commands": [
+                                        [
+                                          "M",
+                                          7,
+                                          0
+                                        ],
+                                        [
+                                          "C",
+                                          7,
+                                          0.40517908122283747,
+                                          6.964012880168563,
+                                          0.816513743121899,
+                                          6.893654271085456,
+                                          1.2155372436685123
+                                        ],
+                                        [
+                                          "C",
+                                          6.823295662002349,
+                                          1.6145607442151255,
+                                          6.716427752933756,
+                                          2.013397210557766,
+                                          6.5778483455013586,
+                                          2.394141003279681
+                                        ],
+                                        [
+                                          "C",
+                                          6.439268938068961,
+                                          2.774884796001595,
+                                          6.26476736710249,
+                                          3.149104622578984,
+                                          6.062177826491071,
+                                          3.4999999999999996
+                                        ],
+                                        [
+                                          "C",
+                                          5.859588285879653,
+                                          3.8508953774210153,
+                                          5.622755194947063,
+                                          4.189128084166967,
+                                          5.362311101832846,
+                                          4.499513267805774
+                                        ],
+                                        [
+                                          "C",
+                                          5.10186700871863,
+                                          4.809898451444582,
+                                          4.809898451444583,
+                                          5.10186700871863,
+                                          4.499513267805775,
+                                          5.362311101832846
+                                        ],
+                                        [
+                                          "C",
+                                          4.189128084166968,
+                                          5.622755194947063,
+                                          3.8508953774210166,
+                                          5.859588285879652,
+                                          3.500000000000001,
+                                          6.06217782649107
+                                        ],
+                                        [
+                                          "C",
+                                          3.149104622578985,
+                                          6.264767367102489,
+                                          2.7748847960015963,
+                                          6.439268938068961,
+                                          2.3941410032796817,
+                                          6.5778483455013586
+                                        ],
+                                        [
+                                          "C",
+                                          2.013397210557767,
+                                          6.716427752933756,
+                                          1.6145607442151264,
+                                          6.823295662002349,
+                                          1.2155372436685128,
+                                          6.893654271085456
+                                        ],
+                                        [
+                                          "C",
+                                          0.8165137431218992,
+                                          6.964012880168563,
+                                          0.4051790812228379,
+                                          7,
+                                          4.286263797015736e-16,
+                                          7
+                                        ],
+                                        [
+                                          "C",
+                                          -0.405179081222837,
+                                          7,
+                                          -0.8165137431218985,
+                                          6.964012880168563,
+                                          -1.215537243668512,
+                                          6.893654271085456
+                                        ],
+                                        [
+                                          "C",
+                                          -1.6145607442151255,
+                                          6.823295662002349,
+                                          -2.0133972105577667,
+                                          6.716427752933756,
+                                          -2.394141003279681,
+                                          6.5778483455013586
+                                        ],
+                                        [
+                                          "C",
+                                          -2.774884796001595,
+                                          6.439268938068961,
+                                          -3.149104622578983,
+                                          6.26476736710249,
+                                          -3.4999999999999982,
+                                          6.062177826491071
+                                        ],
+                                        [
+                                          "C",
+                                          -3.8508953774210135,
+                                          5.859588285879653,
+                                          -4.189128084166966,
+                                          5.622755194947064,
+                                          -4.499513267805773,
+                                          5.362311101832848
+                                        ],
+                                        [
+                                          "C",
+                                          -4.809898451444581,
+                                          5.101867008718632,
+                                          -5.101867008718628,
+                                          4.809898451444586,
+                                          -5.3623111018328435,
+                                          4.499513267805779
+                                        ],
+                                        [
+                                          "C",
+                                          -5.622755194947059,
+                                          4.189128084166971,
+                                          -5.859588285879649,
+                                          3.8508953774210206,
+                                          -6.062177826491068,
+                                          3.5000000000000053
+                                        ],
+                                        [
+                                          "C",
+                                          -6.264767367102486,
+                                          3.14910462257899,
+                                          -6.439268938068958,
+                                          2.774884796001602,
+                                          -6.577848345501356,
+                                          2.394141003279688
+                                        ],
+                                        [
+                                          "C",
+                                          -6.716427752933754,
+                                          2.0133972105577738,
+                                          -6.823295662002347,
+                                          1.614560744215134,
+                                          -6.893654271085454,
+                                          1.215537243668521
+                                        ],
+                                        [
+                                          "C",
+                                          -6.9640128801685615,
+                                          0.816513743121908,
+                                          -6.999999999999999,
+                                          0.4051790812228472,
+                                          -7,
+                                          1.0183126166254464e-14
+                                        ],
+                                        [
+                                          "C",
+                                          -7.000000000000001,
+                                          -0.40517908122282686,
+                                          -6.964012880168565,
+                                          -0.8165137431218878,
+                                          -6.893654271085459,
+                                          -1.215537243668501
+                                        ],
+                                        [
+                                          "C",
+                                          -6.823295662002352,
+                                          -1.6145607442151142,
+                                          -6.716427752933759,
+                                          -2.0133972105577542,
+                                          -6.577848345501363,
+                                          -2.394141003279669
+                                        ],
+                                        [
+                                          "C",
+                                          -6.439268938068967,
+                                          -2.774884796001583,
+                                          -6.264767367102496,
+                                          -3.149104622578972,
+                                          -6.062177826491078,
+                                          -3.4999999999999876
+                                        ],
+                                        [
+                                          "C",
+                                          -5.859588285879661,
+                                          -3.8508953774210033,
+                                          -5.6227551949470715,
+                                          -4.1891280841669545,
+                                          -5.362311101832856,
+                                          -4.499513267805763
+                                        ],
+                                        [
+                                          "C",
+                                          -5.10186700871864,
+                                          -4.809898451444571,
+                                          -4.809898451444594,
+                                          -5.10186700871862,
+                                          -4.499513267805787,
+                                          -5.362311101832836
+                                        ],
+                                        [
+                                          "C",
+                                          -4.189128084166979,
+                                          -5.622755194947053,
+                                          -3.850895377421028,
+                                          -5.859588285879643,
+                                          -3.5000000000000133,
+                                          -6.062177826491062
+                                        ],
+                                        [
+                                          "C",
+                                          -3.1491046225789985,
+                                          -6.264767367102482,
+                                          -2.774884796001611,
+                                          -6.439268938068954,
+                                          -2.3941410032796973,
+                                          -6.577848345501353
+                                        ],
+                                        [
+                                          "C",
+                                          -2.0133972105577835,
+                                          -6.716427752933752,
+                                          -1.6145607442151435,
+                                          -6.823295662002345,
+                                          -1.2155372436685306,
+                                          -6.893654271085453
+                                        ],
+                                        [
+                                          "C",
+                                          -0.8165137431219176,
+                                          -6.9640128801685615,
+                                          -0.40517908122285695,
+                                          -6.999999999999999,
+                                          -1.9937625952807352e-14,
+                                          -7
+                                        ],
+                                        [
+                                          "C",
+                                          0.4051790812228171,
+                                          -7.000000000000001,
+                                          0.8165137431218781,
+                                          -6.964012880168565,
+                                          1.2155372436684913,
+                                          -6.89365427108546
+                                        ],
+                                        [
+                                          "C",
+                                          1.6145607442151044,
+                                          -6.823295662002354,
+                                          2.013397210557745,
+                                          -6.716427752933763,
+                                          2.3941410032796595,
+                                          -6.5778483455013665
+                                        ],
+                                        [
+                                          "C",
+                                          2.774884796001574,
+                                          -6.43926893806897,
+                                          3.149104622578963,
+                                          -6.2647673671025,
+                                          3.499999999999979,
+                                          -6.062177826491083
+                                        ],
+                                        [
+                                          "C",
+                                          3.8508953774209953,
+                                          -5.859588285879665,
+                                          4.189128084166947,
+                                          -5.622755194947077,
+                                          4.499513267805756,
+                                          -5.362311101832862
+                                        ],
+                                        [
+                                          "C",
+                                          4.809898451444564,
+                                          -5.1018670087186475,
+                                          5.101867008718613,
+                                          -4.809898451444602,
+                                          5.362311101832829,
+                                          -4.499513267805796
+                                        ],
+                                        [
+                                          "C",
+                                          5.622755194947046,
+                                          -4.189128084166989,
+                                          5.859588285879637,
+                                          -3.8508953774210393,
+                                          6.062177826491056,
+                                          -3.500000000000025
+                                        ],
+                                        [
+                                          "C",
+                                          6.2647673671024755,
+                                          -3.1491046225790105,
+                                          6.439268938068949,
+                                          -2.774884796001623,
+                                          6.577848345501348,
+                                          -2.3941410032797092
+                                        ],
+                                        [
+                                          "C",
+                                          6.716427752933747,
+                                          -2.0133972105577955,
+                                          6.823295662002342,
+                                          -1.6145607442151562,
+                                          6.893654271085451,
+                                          -1.2155372436685434
+                                        ],
+                                        [
+                                          "C",
+                                          6.96401288016856,
+                                          -0.8165137431219307,
+                                          6.982275711847575,
+                                          -0.2025895406114567,
+                                          7,
+                                          -3.2800750208310675e-14
+                                        ],
+                                        [
+                                          "C",
+                                          7.017724288152425,
+                                          0.2025895406113911,
+                                          7.017724288152424,
+                                          -0.2025895406114242,
+                                          7,
+                                          0
+                                        ]
+                                      ],
+                                      "kind": "path",
+                                      "style": 16
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "commands": [
+                                            [
+                                              "M",
+                                              2.5,
+                                              0
+                                            ],
+                                            [
+                                              "C",
+                                              2.5,
+                                              0.14470681472244193,
+                                              2.487147457203058,
+                                              0.29161205111496386,
+                                              2.46201938253052,
+                                              0.4341204441673258
+                                            ],
+                                            [
+                                              "C",
+                                              2.436891307857982,
+                                              0.5766288372196877,
+                                              2.3987241974763416,
+                                              0.7190704323420595,
+                                              2.3492315519647713,
+                                              0.8550503583141718
+                                            ],
+                                            [
+                                              "C",
+                                              2.299738906453201,
+                                              0.991030284286284,
+                                              2.2374169168223177,
+                                              1.124680222349637,
+                                              2.165063509461097,
+                                              1.2499999999999998
+                                            ],
+                                            [
+                                              "C",
+                                              2.092710102099876,
+                                              1.3753197776503625,
+                                              2.0081268553382365,
+                                              1.496117172916774,
+                                              1.915111107797445,
+                                              1.606969024216348
+                                            ],
+                                            [
+                                              "C",
+                                              1.8220953602566536,
+                                              1.7178208755159223,
+                                              1.7178208755159226,
+                                              1.8220953602566536,
+                                              1.6069690242163484,
+                                              1.915111107797445
+                                            ],
+                                            [
+                                              "C",
+                                              1.4961171729167742,
+                                              2.0081268553382365,
+                                              1.375319777650363,
+                                              2.0927101020998755,
+                                              1.2500000000000002,
+                                              2.1650635094610964
+                                            ],
+                                            [
+                                              "C",
+                                              1.1246802223496375,
+                                              2.2374169168223172,
+                                              0.9910302842862844,
+                                              2.2997389064532,
+                                              0.8550503583141721,
+                                              2.349231551964771
+                                            ],
+                                            [
+                                              "C",
+                                              0.7190704323420597,
+                                              2.3987241974763416,
+                                              0.576628837219688,
+                                              2.436891307857982,
+                                              0.4341204441673261,
+                                              2.46201938253052
+                                            ],
+                                            [
+                                              "C",
+                                              0.291612051114964,
+                                              2.487147457203058,
+                                              0.14470681472244212,
+                                              2.5,
+                                              1.5308084989341916e-16,
+                                              2.5
+                                            ],
+                                            [
+                                              "C",
+                                              -0.1447068147224418,
+                                              2.5,
+                                              -0.2916120511149638,
+                                              2.487147457203058,
+                                              -0.43412044416732576,
+                                              2.46201938253052
+                                            ],
+                                            [
+                                              "C",
+                                              -0.5766288372196877,
+                                              2.436891307857982,
+                                              -0.7190704323420595,
+                                              2.3987241974763416,
+                                              -0.8550503583141718,
+                                              2.3492315519647713
+                                            ],
+                                            [
+                                              "C",
+                                              -0.991030284286284,
+                                              2.299738906453201,
+                                              -1.124680222349637,
+                                              2.2374169168223177,
+                                              -1.2499999999999996,
+                                              2.165063509461097
+                                            ],
+                                            [
+                                              "C",
+                                              -1.375319777650362,
+                                              2.092710102099876,
+                                              -1.4961171729167733,
+                                              2.008126855338237,
+                                              -1.6069690242163477,
+                                              1.915111107797446
+                                            ],
+                                            [
+                                              "C",
+                                              -1.7178208755159217,
+                                              1.8220953602566548,
+                                              -1.822095360256653,
+                                              1.7178208755159234,
+                                              -1.9151111077974443,
+                                              1.6069690242163497
+                                            ],
+                                            [
+                                              "C",
+                                              -2.0081268553382357,
+                                              1.4961171729167757,
+                                              -2.092710102099874,
+                                              1.3753197776503645,
+                                              -2.1650635094610955,
+                                              1.250000000000002
+                                            ],
+                                            [
+                                              "C",
+                                              -2.2374169168223164,
+                                              1.1246802223496395,
+                                              -2.2997389064531992,
+                                              0.9910302842862864,
+                                              -2.34923155196477,
+                                              0.8550503583141743
+                                            ],
+                                            [
+                                              "C",
+                                              -2.3987241974763407,
+                                              0.7190704323420621,
+                                              -2.436891307857981,
+                                              0.5766288372196907,
+                                              -2.462019382530519,
+                                              0.434120444167329
+                                            ],
+                                            [
+                                              "C",
+                                              -2.487147457203058,
+                                              0.29161205111496724,
+                                              -2.5,
+                                              0.14470681472244545,
+                                              -2.5,
+                                              3.636830773662308e-15
+                                            ],
+                                            [
+                                              "C",
+                                              -2.5,
+                                              -0.14470681472243818,
+                                              -2.4871474572030587,
+                                              -0.2916120511149599,
+                                              -2.4620193825305208,
+                                              -0.4341204441673218
+                                            ],
+                                            [
+                                              "C",
+                                              -2.436891307857983,
+                                              -0.5766288372196837,
+                                              -2.398724197476343,
+                                              -0.7190704323420553,
+                                              -2.3492315519647726,
+                                              -0.8550503583141675
+                                            ],
+                                            [
+                                              "C",
+                                              -2.2997389064532023,
+                                              -0.9910302842862798,
+                                              -2.23741691682232,
+                                              -1.1246802223496328,
+                                              -2.165063509461099,
+                                              -1.2499999999999956
+                                            ],
+                                            [
+                                              "C",
+                                              -2.092710102099878,
+                                              -1.3753197776503585,
+                                              -2.00812685533824,
+                                              -1.4961171729167697,
+                                              -1.9151111077974488,
+                                              -1.606969024216344
+                                            ],
+                                            [
+                                              "C",
+                                              -1.8220953602566576,
+                                              -1.7178208755159183,
+                                              -1.7178208755159263,
+                                              -1.82209536025665,
+                                              -1.6069690242163523,
+                                              -1.9151111077974416
+                                            ],
+                                            [
+                                              "C",
+                                              -1.4961171729167784,
+                                              -2.0081268553382334,
+                                              -1.3753197776503672,
+                                              -2.0927101020998724,
+                                              -1.2500000000000049,
+                                              -2.1650635094610937
+                                            ],
+                                            [
+                                              "C",
+                                              -1.1246802223496422,
+                                              -2.237416916822315,
+                                              -0.9910302842862896,
+                                              -2.299738906453198,
+                                              -0.8550503583141776,
+                                              -2.3492315519647686
+                                            ],
+                                            [
+                                              "C",
+                                              -0.7190704323420656,
+                                              -2.3987241974763394,
+                                              -0.5766288372196942,
+                                              -2.4368913078579806,
+                                              -0.4341204441673323,
+                                              -2.462019382530519
+                                            ],
+                                            [
+                                              "C",
+                                              -0.29161205111497057,
+                                              -2.4871474572030574,
+                                              -0.1447068147224489,
+                                              -2.4999999999999996,
+                                              -7.120580697431198e-15,
+                                              -2.5
+                                            ],
+                                            [
+                                              "C",
+                                              0.14470681472243463,
+                                              -2.5000000000000004,
+                                              0.29161205111495647,
+                                              -2.487147457203059,
+                                              0.4341204441673183,
+                                              -2.4620193825305217
+                                            ],
+                                            [
+                                              "C",
+                                              0.5766288372196802,
+                                              -2.436891307857984,
+                                              0.7190704323420518,
+                                              -2.398724197476344,
+                                              0.8550503583141642,
+                                              -2.349231551964774
+                                            ],
+                                            [
+                                              "C",
+                                              0.9910302842862766,
+                                              -2.2997389064532037,
+                                              1.1246802223496295,
+                                              -2.2374169168223212,
+                                              1.2499999999999925,
+                                              -2.165063509461101
+                                            ],
+                                            [
+                                              "C",
+                                              1.3753197776503554,
+                                              -2.0927101020998804,
+                                              1.4961171729167668,
+                                              -2.008126855338242,
+                                              1.6069690242163412,
+                                              -1.915111107797451
+                                            ],
+                                            [
+                                              "C",
+                                              1.7178208755159157,
+                                              -1.82209536025666,
+                                              1.8220953602566472,
+                                              -1.7178208755159294,
+                                              1.915111107797439,
+                                              -1.6069690242163557
+                                            ],
+                                            [
+                                              "C",
+                                              2.0081268553382308,
+                                              -1.496117172916782,
+                                              2.09271010209987,
+                                              -1.3753197776503712,
+                                              2.1650635094610915,
+                                              -1.2500000000000089
+                                            ],
+                                            [
+                                              "C",
+                                              2.237416916822313,
+                                              -1.1246802223496466,
+                                              2.299738906453196,
+                                              -0.991030284286294,
+                                              2.3492315519647673,
+                                              -0.855050358314182
+                                            ],
+                                            [
+                                              "C",
+                                              2.3987241974763385,
+                                              -0.71907043234207,
+                                              2.4368913078579792,
+                                              -0.5766288372196986,
+                                              2.462019382530518,
+                                              -0.4341204441673369
+                                            ],
+                                            [
+                                              "C",
+                                              2.487147457203057,
+                                              -0.29161205111497523,
+                                              2.4936698970884197,
+                                              -0.07235340736123454,
+                                              2.5,
+                                              -1.171455364582524e-14
+                                            ],
+                                            [
+                                              "C",
+                                              2.5063301029115803,
+                                              0.07235340736121111,
+                                              2.50633010291158,
+                                              -0.07235340736122292,
+                                              2.5,
+                                              0
+                                            ]
+                                          ],
+                                          "kind": "path",
+                                          "style": 17
+                                        },
+                                        {
+                                          "commands": [
+                                            [
+                                              "M",
+                                              2.5,
+                                              0
+                                            ],
+                                            [
+                                              "C",
+                                              2.5,
+                                              0.14470681472244193,
+                                              2.487147457203058,
+                                              0.29161205111496386,
+                                              2.46201938253052,
+                                              0.4341204441673258
+                                            ],
+                                            [
+                                              "C",
+                                              2.436891307857982,
+                                              0.5766288372196877,
+                                              2.3987241974763416,
+                                              0.7190704323420595,
+                                              2.3492315519647713,
+                                              0.8550503583141718
+                                            ],
+                                            [
+                                              "C",
+                                              2.299738906453201,
+                                              0.991030284286284,
+                                              2.2374169168223177,
+                                              1.124680222349637,
+                                              2.165063509461097,
+                                              1.2499999999999998
+                                            ],
+                                            [
+                                              "C",
+                                              2.092710102099876,
+                                              1.3753197776503625,
+                                              2.0081268553382365,
+                                              1.496117172916774,
+                                              1.915111107797445,
+                                              1.606969024216348
+                                            ],
+                                            [
+                                              "C",
+                                              1.8220953602566536,
+                                              1.7178208755159223,
+                                              1.7178208755159226,
+                                              1.8220953602566536,
+                                              1.6069690242163484,
+                                              1.915111107797445
+                                            ],
+                                            [
+                                              "C",
+                                              1.4961171729167742,
+                                              2.0081268553382365,
+                                              1.375319777650363,
+                                              2.0927101020998755,
+                                              1.2500000000000002,
+                                              2.1650635094610964
+                                            ],
+                                            [
+                                              "C",
+                                              1.1246802223496375,
+                                              2.2374169168223172,
+                                              0.9910302842862844,
+                                              2.2997389064532,
+                                              0.8550503583141721,
+                                              2.349231551964771
+                                            ],
+                                            [
+                                              "C",
+                                              0.7190704323420597,
+                                              2.3987241974763416,
+                                              0.576628837219688,
+                                              2.436891307857982,
+                                              0.4341204441673261,
+                                              2.46201938253052
+                                            ],
+                                            [
+                                              "C",
+                                              0.291612051114964,
+                                              2.487147457203058,
+                                              0.14470681472244212,
+                                              2.5,
+                                              1.5308084989341916e-16,
+                                              2.5
+                                            ],
+                                            [
+                                              "C",
+                                              -0.1447068147224418,
+                                              2.5,
+                                              -0.2916120511149638,
+                                              2.487147457203058,
+                                              -0.43412044416732576,
+                                              2.46201938253052
+                                            ],
+                                            [
+                                              "C",
+                                              -0.5766288372196877,
+                                              2.436891307857982,
+                                              -0.7190704323420595,
+                                              2.3987241974763416,
+                                              -0.8550503583141718,
+                                              2.3492315519647713
+                                            ],
+                                            [
+                                              "C",
+                                              -0.991030284286284,
+                                              2.299738906453201,
+                                              -1.124680222349637,
+                                              2.2374169168223177,
+                                              -1.2499999999999996,
+                                              2.165063509461097
+                                            ],
+                                            [
+                                              "C",
+                                              -1.375319777650362,
+                                              2.092710102099876,
+                                              -1.4961171729167733,
+                                              2.008126855338237,
+                                              -1.6069690242163477,
+                                              1.915111107797446
+                                            ],
+                                            [
+                                              "C",
+                                              -1.7178208755159217,
+                                              1.8220953602566548,
+                                              -1.822095360256653,
+                                              1.7178208755159234,
+                                              -1.9151111077974443,
+                                              1.6069690242163497
+                                            ],
+                                            [
+                                              "C",
+                                              -2.0081268553382357,
+                                              1.4961171729167757,
+                                              -2.092710102099874,
+                                              1.3753197776503645,
+                                              -2.1650635094610955,
+                                              1.250000000000002
+                                            ],
+                                            [
+                                              "C",
+                                              -2.2374169168223164,
+                                              1.1246802223496395,
+                                              -2.2997389064531992,
+                                              0.9910302842862864,
+                                              -2.34923155196477,
+                                              0.8550503583141743
+                                            ],
+                                            [
+                                              "C",
+                                              -2.3987241974763407,
+                                              0.7190704323420621,
+                                              -2.436891307857981,
+                                              0.5766288372196907,
+                                              -2.462019382530519,
+                                              0.434120444167329
+                                            ],
+                                            [
+                                              "C",
+                                              -2.487147457203058,
+                                              0.29161205111496724,
+                                              -2.5,
+                                              0.14470681472244545,
+                                              -2.5,
+                                              3.636830773662308e-15
+                                            ],
+                                            [
+                                              "C",
+                                              -2.5,
+                                              -0.14470681472243818,
+                                              -2.4871474572030587,
+                                              -0.2916120511149599,
+                                              -2.4620193825305208,
+                                              -0.4341204441673218
+                                            ],
+                                            [
+                                              "C",
+                                              -2.436891307857983,
+                                              -0.5766288372196837,
+                                              -2.398724197476343,
+                                              -0.7190704323420553,
+                                              -2.3492315519647726,
+                                              -0.8550503583141675
+                                            ],
+                                            [
+                                              "C",
+                                              -2.2997389064532023,
+                                              -0.9910302842862798,
+                                              -2.23741691682232,
+                                              -1.1246802223496328,
+                                              -2.165063509461099,
+                                              -1.2499999999999956
+                                            ],
+                                            [
+                                              "C",
+                                              -2.092710102099878,
+                                              -1.3753197776503585,
+                                              -2.00812685533824,
+                                              -1.4961171729167697,
+                                              -1.9151111077974488,
+                                              -1.606969024216344
+                                            ],
+                                            [
+                                              "C",
+                                              -1.8220953602566576,
+                                              -1.7178208755159183,
+                                              -1.7178208755159263,
+                                              -1.82209536025665,
+                                              -1.6069690242163523,
+                                              -1.9151111077974416
+                                            ],
+                                            [
+                                              "C",
+                                              -1.4961171729167784,
+                                              -2.0081268553382334,
+                                              -1.3753197776503672,
+                                              -2.0927101020998724,
+                                              -1.2500000000000049,
+                                              -2.1650635094610937
+                                            ],
+                                            [
+                                              "C",
+                                              -1.1246802223496422,
+                                              -2.237416916822315,
+                                              -0.9910302842862896,
+                                              -2.299738906453198,
+                                              -0.8550503583141776,
+                                              -2.3492315519647686
+                                            ],
+                                            [
+                                              "C",
+                                              -0.7190704323420656,
+                                              -2.3987241974763394,
+                                              -0.5766288372196942,
+                                              -2.4368913078579806,
+                                              -0.4341204441673323,
+                                              -2.462019382530519
+                                            ],
+                                            [
+                                              "C",
+                                              -0.29161205111497057,
+                                              -2.4871474572030574,
+                                              -0.1447068147224489,
+                                              -2.4999999999999996,
+                                              -7.120580697431198e-15,
+                                              -2.5
+                                            ],
+                                            [
+                                              "C",
+                                              0.14470681472243463,
+                                              -2.5000000000000004,
+                                              0.29161205111495647,
+                                              -2.487147457203059,
+                                              0.4341204441673183,
+                                              -2.4620193825305217
+                                            ],
+                                            [
+                                              "C",
+                                              0.5766288372196802,
+                                              -2.436891307857984,
+                                              0.7190704323420518,
+                                              -2.398724197476344,
+                                              0.8550503583141642,
+                                              -2.349231551964774
+                                            ],
+                                            [
+                                              "C",
+                                              0.9910302842862766,
+                                              -2.2997389064532037,
+                                              1.1246802223496295,
+                                              -2.2374169168223212,
+                                              1.2499999999999925,
+                                              -2.165063509461101
+                                            ],
+                                            [
+                                              "C",
+                                              1.3753197776503554,
+                                              -2.0927101020998804,
+                                              1.4961171729167668,
+                                              -2.008126855338242,
+                                              1.6069690242163412,
+                                              -1.915111107797451
+                                            ],
+                                            [
+                                              "C",
+                                              1.7178208755159157,
+                                              -1.82209536025666,
+                                              1.8220953602566472,
+                                              -1.7178208755159294,
+                                              1.915111107797439,
+                                              -1.6069690242163557
+                                            ],
+                                            [
+                                              "C",
+                                              2.0081268553382308,
+                                              -1.496117172916782,
+                                              2.09271010209987,
+                                              -1.3753197776503712,
+                                              2.1650635094610915,
+                                              -1.2500000000000089
+                                            ],
+                                            [
+                                              "C",
+                                              2.237416916822313,
+                                              -1.1246802223496466,
+                                              2.299738906453196,
+                                              -0.991030284286294,
+                                              2.3492315519647673,
+                                              -0.855050358314182
+                                            ],
+                                            [
+                                              "C",
+                                              2.3987241974763385,
+                                              -0.71907043234207,
+                                              2.4368913078579792,
+                                              -0.5766288372196986,
+                                              2.462019382530518,
+                                              -0.4341204441673369
+                                            ],
+                                            [
+                                              "C",
+                                              2.487147457203057,
+                                              -0.29161205111497523,
+                                              2.4936698970884197,
+                                              -0.07235340736123454,
+                                              2.5,
+                                              -1.171455364582524e-14
+                                            ],
+                                            [
+                                              "C",
+                                              2.5063301029115803,
+                                              0.07235340736121111,
+                                              2.50633010291158,
+                                              -0.07235340736122292,
+                                              2.5,
+                                              0
+                                            ]
+                                          ],
+                                          "kind": "path",
+                                          "style": 16
+                                        }
+                                      ],
+                                      "kind": "group",
+                                      "style": 4
+                                    }
+                                  ],
+                                  "kind": "group",
+                                  "style": 14
+                                }
+                              ],
+                              "kind": "group",
+                              "style": 4,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    72.99556732177734,
+                                    309
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "height": 32,
+                                  "kind": "rect",
+                                  "rx": 5,
+                                  "ry": 5,
+                                  "style": 11,
+                                  "width": 136,
+                                  "x": -68,
+                                  "y": -16
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "height": 0,
+                                      "kind": "rect",
+                                      "rx": 0,
+                                      "ry": 0,
+                                      "style": 11,
+                                      "width": 0,
+                                      "x": 0,
+                                      "y": 0
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "height": 0,
+                                          "kind": "rect",
+                                          "rx": 0,
+                                          "ry": 0,
+                                          "style": 12,
+                                          "width": 0,
+                                          "x": 0,
+                                          "y": 0
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "kind": "textRun",
+                                                      "text": "Moving"
+                                                    }
+                                                  ],
+                                                  "kind": "tspan",
+                                                  "style": 13
+                                                }
+                                              ],
+                                              "dy": [
+                                                {
+                                                  "unit": "em",
+                                                  "value": 1.1
+                                                }
+                                              ],
+                                              "kind": "tspan",
+                                              "style": 13,
+                                              "x": [
+                                                {
+                                                  "unit": "user",
+                                                  "value": 0
+                                                }
+                                              ],
+                                              "y": [
+                                                {
+                                                  "unit": "em",
+                                                  "value": -0.1
+                                                }
+                                              ]
+                                            }
+                                          ],
+                                          "kind": "text",
+                                          "style": 13,
+                                          "y": [
+                                            {
+                                              "unit": "user",
+                                              "value": -10.1
+                                            }
+                                          ]
+                                        }
+                                      ],
+                                      "kind": "group",
+                                      "style": 4
+                                    }
+                                  ],
+                                  "kind": "group",
+                                  "style": 4,
+                                  "transforms": [
+                                    {
+                                      "kind": "matrix",
+                                      "values": [
+                                        1,
+                                        0,
+                                        0,
+                                        1,
+                                        -60,
+                                        -8
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ],
+                              "kind": "group",
+                              "style": 4,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    101,
+                                    154
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "children": [
+                                {
+                                  "height": 32,
+                                  "kind": "rect",
+                                  "rx": 5,
+                                  "ry": 5,
+                                  "style": 11,
+                                  "width": 136,
+                                  "x": -68,
+                                  "y": -16
+                                },
+                                {
+                                  "children": [
+                                    {
+                                      "height": 0,
+                                      "kind": "rect",
+                                      "rx": 0,
+                                      "ry": 0,
+                                      "style": 11,
+                                      "width": 0,
+                                      "x": 0,
+                                      "y": 0
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "height": 0,
+                                          "kind": "rect",
+                                          "rx": 0,
+                                          "ry": 0,
+                                          "style": 12,
+                                          "width": 0,
+                                          "x": 0,
+                                          "y": 0
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "kind": "textRun",
+                                                      "text": "Crash"
+                                                    }
+                                                  ],
+                                                  "kind": "tspan",
+                                                  "style": 13
+                                                }
+                                              ],
+                                              "dy": [
+                                                {
+                                                  "unit": "em",
+                                                  "value": 1.1
+                                                }
+                                              ],
+                                              "kind": "tspan",
+                                              "style": 13,
+                                              "x": [
+                                                {
+                                                  "unit": "user",
+                                                  "value": 0
+                                                }
+                                              ],
+                                              "y": [
+                                                {
+                                                  "unit": "em",
+                                                  "value": -0.1
+                                                }
+                                              ]
+                                            }
+                                          ],
+                                          "kind": "text",
+                                          "style": 13,
+                                          "y": [
+                                            {
+                                              "unit": "user",
+                                              "value": -10.1
+                                            }
+                                          ]
+                                        }
+                                      ],
+                                      "kind": "group",
+                                      "style": 4
+                                    }
+                                  ],
+                                  "kind": "group",
+                                  "style": 4,
+                                  "transforms": [
+                                    {
+                                      "kind": "matrix",
+                                      "values": [
+                                        1,
+                                        0,
+                                        0,
+                                        1,
+                                        -60,
+                                        -8
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ],
+                              "kind": "group",
+                              "style": 4,
+                              "transforms": [
+                                {
+                                  "kind": "matrix",
+                                  "values": [
+                                    1,
+                                    0,
+                                    0,
+                                    1,
+                                    101,
+                                    226
+                                  ]
+                                }
+                              ]
+                            }
+                          ],
+                          "kind": "group",
+                          "style": 4
+                        }
+                      ],
+                      "kind": "group",
+                      "style": 4
+                    }
+                  ],
+                  "kind": "group",
+                  "style": 4
+                },
+                {
+                  "children": [
+                    {
+                      "kind": "textRun",
+                      "text": "Simple sample"
+                    }
+                  ],
+                  "kind": "text",
+                  "style": 18,
+                  "x": [
+                    {
+                      "unit": "user",
+                      "value": 90.5
+                    }
+                  ],
+                  "y": [
+                    {
+                      "unit": "user",
+                      "value": -25
+                    }
+                  ]
+                }
+              ],
+              "definitions": [
+                {
+                  "children": [
+                    {
+                      "commands": [
+                        [
+                          "M",
+                          19,
+                          7
+                        ],
+                        [
+                          "L",
+                          11,
+                          14
+                        ],
+                        [
+                          "L",
+                          13,
+                          7
+                        ],
+                        [
+                          "L",
+                          11,
+                          0
+                        ],
+                        [
+                          "Z"
+                        ]
+                      ],
+                      "kind": "path",
+                      "style": 1
+                    }
+                  ],
+                  "height": 14,
+                  "id": "d0",
+                  "kind": "marker",
+                  "orient": "auto",
+                  "refX": {
+                    "unit": "user",
+                    "value": 19
+                  },
+                  "refY": {
+                    "unit": "user",
+                    "value": 7
+                  },
+                  "style": 0,
+                  "units": "strokeWidth",
+                  "width": 20
+                },
+                {
+                  "children": [
+                    {
+                      "commands": [
+                        [
+                          "M",
+                          19,
+                          7
+                        ],
+                        [
+                          "L",
+                          11,
+                          14
+                        ],
+                        [
+                          "L",
+                          13,
+                          7
+                        ],
+                        [
+                          "L",
+                          11,
+                          0
+                        ],
+                        [
+                          "Z"
+                        ]
+                      ],
+                      "kind": "path",
+                      "style": 3
+                    }
+                  ],
+                  "height": 14,
+                  "id": "d1",
+                  "kind": "marker",
+                  "orient": "auto",
+                  "refX": {
+                    "unit": "user",
+                    "value": 17
+                  },
+                  "refY": {
+                    "unit": "user",
+                    "value": 7
+                  },
+                  "style": 2,
+                  "units": "userSpaceOnUse",
+                  "width": 20
+                },
+                {
+                  "color": [
+                    0,
+                    0,
+                    0,
+                    0.06
+                  ],
+                  "colorInterpolation": "linearRGB",
+                  "dx": 4,
+                  "dy": 4,
+                  "id": "d2",
+                  "kind": "dropShadowFilter",
+                  "primitiveUnits": "userSpaceOnUse",
+                  "region": [
+                    {
+                      "unit": "percent",
+                      "value": -10
+                    },
+                    {
+                      "unit": "percent",
+                      "value": -10
+                    },
+                    {
+                      "unit": "percent",
+                      "value": 130
+                    },
+                    {
+                      "unit": "percent",
+                      "value": 130
+                    }
+                  ],
+                  "stdDeviation": [
+                    0,
+                    0
+                  ],
+                  "units": "objectBoundingBox"
+                },
+                {
+                  "color": [
+                    0,
+                    0,
+                    0,
+                    0.06
+                  ],
+                  "colorInterpolation": "linearRGB",
+                  "dx": 2,
+                  "dy": 2,
+                  "id": "d3",
+                  "kind": "dropShadowFilter",
+                  "primitiveUnits": "userSpaceOnUse",
+                  "region": [
+                    {
+                      "unit": "percent",
+                      "value": -10
+                    },
+                    {
+                      "unit": "percent",
+                      "value": -10
+                    },
+                    {
+                      "unit": "percent",
+                      "value": 150
+                    },
+                    {
+                      "unit": "percent",
+                      "value": 150
+                    }
+                  ],
+                  "stdDeviation": [
+                    0,
+                    0
+                  ],
+                  "units": "objectBoundingBox"
+                }
+              ],
+              "height": 373,
+              "motion": "static",
+              "profile": "bounded-svg-v1",
+              "rasterBounds": [
+                0,
+                0,
+                173,
+                373
+              ],
+              "rootStyle": 2,
+              "styles": [
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 14
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "hidden",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 14
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      40,
+                      37,
+                      61,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 14
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "hidden",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 14
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      40,
+                      37,
+                      61,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 14
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [
+                    {
+                      "unit": "px",
+                      "value": 0
+                    },
+                    {
+                      "unit": "px",
+                      "value": 0
+                    },
+                    {
+                      "unit": "px",
+                      "value": 34.5
+                    },
+                    {
+                      "unit": "px",
+                      "value": 0
+                    }
+                  ],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "none"
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 14
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 2
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [
+                    {
+                      "unit": "px",
+                      "value": 0
+                    },
+                    {
+                      "unit": "px",
+                      "value": 0
+                    },
+                    {
+                      "unit": "px",
+                      "value": 290.337189
+                    },
+                    {
+                      "unit": "px",
+                      "value": 0
+                    }
+                  ],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "none"
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 14
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 2
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [
+                    {
+                      "unit": "px",
+                      "value": 0
+                    },
+                    {
+                      "unit": "px",
+                      "value": 0
+                    },
+                    {
+                      "unit": "px",
+                      "value": 35.018101
+                    },
+                    {
+                      "unit": "px",
+                      "value": 0
+                    }
+                  ],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "none"
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 14
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 2
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [
+                    {
+                      "unit": "px",
+                      "value": 0
+                    },
+                    {
+                      "unit": "px",
+                      "value": 0
+                    },
+                    {
+                      "unit": "px",
+                      "value": 40.006889
+                    },
+                    {
+                      "unit": "px",
+                      "value": 0
+                    }
+                  ],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "none"
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 14
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 2
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [
+                    {
+                      "unit": "px",
+                      "value": 0
+                    },
+                    {
+                      "unit": "px",
+                      "value": 0
+                    },
+                    {
+                      "unit": "px",
+                      "value": 79.171906
+                    },
+                    {
+                      "unit": "px",
+                      "value": 0
+                    }
+                  ],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "none"
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 14
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 2
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      0,
+                      0,
+                      0,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "definition",
+                    "ref": "d3"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 14
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      40,
+                      37,
+                      61,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      255,
+                      255,
+                      255,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "definition",
+                    "ref": "d2"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 14
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      40,
+                      37,
+                      61,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 2
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      255,
+                      255,
+                      255,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "definition",
+                    "ref": "d2"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 14
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 2
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      40,
+                      37,
+                      61,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 14
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "nowrap",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      40,
+                      37,
+                      61,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "definition",
+                    "ref": "d3"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 14
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      255,
+                      255,
+                      255,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 14
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      40,
+                      37,
+                      61,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 2
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [
+                    {
+                      "unit": "px",
+                      "value": 0
+                    },
+                    {
+                      "unit": "px",
+                      "value": 0
+                    }
+                  ],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "none"
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 14
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      40,
+                      37,
+                      61,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 2
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      40,
+                      37,
+                      61,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 14
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "color",
+                    "rgba": [
+                      40,
+                      37,
+                      61,
+                      1
+                    ]
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 2
+                  },
+                  "textAnchor": "start",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "normal",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                },
+                {
+                  "alignmentBaseline": "baseline",
+                  "clipRule": "nonzero",
+                  "colorInterpolation": "sRGB",
+                  "colorInterpolationFilters": "linearRGB",
+                  "dashArray": [],
+                  "dashOffset": {
+                    "unit": "px",
+                    "value": 0
+                  },
+                  "decoration": "none",
+                  "display": "inline",
+                  "dominantBaseline": "auto",
+                  "fill": {
+                    "kind": "color",
+                    "rgba": [
+                      40,
+                      37,
+                      61,
+                      1
+                    ]
+                  },
+                  "fillOpacity": 1,
+                  "fillRule": "nonzero",
+                  "filter": {
+                    "kind": "none"
+                  },
+                  "fontId": "arial-sans",
+                  "fontSize": {
+                    "unit": "px",
+                    "value": 18
+                  },
+                  "fontStyle": "normal",
+                  "fontWeight": 400,
+                  "isolation": "auto",
+                  "lineCap": "butt",
+                  "lineJoin": "miter",
+                  "miterLimit": 4,
+                  "mixBlendMode": "normal",
+                  "opacity": 1,
+                  "overflow": "visible",
+                  "shapeRendering": "auto",
+                  "stroke": {
+                    "kind": "none"
+                  },
+                  "strokeOpacity": 1,
+                  "strokeWidth": {
+                    "unit": "px",
+                    "value": 1
+                  },
+                  "textAnchor": "middle",
+                  "textTransform": "none",
+                  "visibility": "visible",
+                  "whiteSpace": "nowrap",
+                  "wordSpacing": {
+                    "unit": "px",
+                    "value": 0
+                  }
+                }
+              ],
+              "type": "svg-image",
+              "viewBox": [
+                4,
+                -49,
+                173,
+                373
+              ],
+              "width": 173
+            },
+            "ok": true,
+            "originalSvgBytes": 40335,
+            "over256KiB": false,
+            "profile": "baseline",
+            "renderMs": 436,
+            "serializedBytes": 39619,
+            "theme": "light"
+          },
+          "status": "complete",
+          "taskId": "conversion_1"
+        }
+      }
+    },
+    {
+      "kind": "terminate-group",
+      "mono": 40278.21721564,
+      "wall": 1792152665.7781744,
+      "reason": "completed-research-cleanup",
+      "pgid": 263652,
+      "members": [
+        {
+          "pid": 263652,
+          "birth": "4027639"
+        },
+        {
+          "pid": 263653,
+          "birth": "4027640"
+        },
+        {
+          "pid": 263654,
+          "birth": "4027640"
+        },
+        {
+          "pid": 263655,
+          "birth": "4027640"
+        },
+        {
+          "pid": 263656,
+          "birth": "4027641"
+        },
+        {
+          "pid": 263692,
+          "birth": "4027669"
+        },
+        {
+          "pid": 263698,
+          "birth": "4027670"
+        },
+        {
+          "pid": 263699,
+          "birth": "4027671"
+        },
+        {
+          "pid": 263700,
+          "birth": "4027672"
+        },
+        {
+          "pid": 263701,
+          "birth": "4027672"
+        },
+        {
+          "pid": 263704,
+          "birth": "4027673"
+        },
+        {
+          "pid": 263705,
+          "birth": "4027673"
+        },
+        {
+          "pid": 263708,
+          "birth": "4027674"
+        },
+        {
+          "pid": 263665,
+          "birth": "4027657"
+        },
+        {
+          "pid": 263742,
+          "birth": "4027725"
+        }
+      ]
+    },
+    {
+      "kind": "signal-start",
+      "mono": 40278.217218129,
+      "wall": 1792152665.7781765,
+      "pgid": 263652
+    },
+    {
+      "kind": "signal-return",
+      "mono": 40278.217696568,
+      "wall": 1792152665.7786558,
+      "pgid": 263652
+    },
+    {
+      "kind": "escaped-descendants",
+      "mono": 40278.346701267,
+      "wall": 1792152665.907661,
+      "processes": []
+    },
+    {
+      "kind": "cleanup",
+      "mono": 40278.436326459,
+      "wall": 1792152665.9972858,
+      "reaped": [
+        {
+          "pid": 263653,
+          "status": 9
+        }
+      ],
+      "remainingGroupMembers": []
+    },
+    {
+      "kind": "completed",
+      "mono": 40278.477818176,
+      "wall": 1792152666.0387776,
+      "results": [
+        {
+          "task": "native-resource-guard",
+          "elapsed": 0.01266129600116983,
+          "value": {
+            "status": "blocked"
+          }
+        },
+        {
+          "task": "scan_052",
+          "sampleId": "stateDiagram-000-first-official-example",
+          "sourceSha256": "fc35188de9f919aa10f7bb302574c3bcdc2fc74a54434a5bc4ee33c57cff8d64",
+          "profile": "baseline",
+          "elapsed": 0.5017973559952225,
+          "serializedBytes": 39619,
+          "diagramType": "stateDiagram"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,147 @@
+# Production-03: Linux build and generic DOM lifecycle
+
+The Linux production deb build and freeze passed on their first attempts. All five
+lifecycle cases have passing runs on the same extracted executable. Ten executions
+are retained: five PASS, four picker/setup RED, and one WM-close diagnostic RED.
+No product code changed during these runs. The results validate generic installed
+DOM renderer lifecycle after the final viewport/image-owner fix; the separate
+Mermaid UI matrix is not implied by this report.
+
+## Frozen product
+
+- Executable: `install/usr/bin/milkup-desktop`, 21,859,680 bytes, SHA256 `dbf6239f8fadd9026afa6fda7ede65736e93a9672b3f4227aa285575dc4a16a1`.
+- Deb: `artifacts/milkup_2.0.0-beta.1_amd64.deb`, 7,503,584 bytes, SHA256 `f97a942665e617ccf038200f71e14eb04bf3ff6a07f3eeb75cd4c9a788d15f0a`.
+- Native guard SHA256 `5b1082768123b9ac1923eb8ef3f6f8c0bd05ffd5d66b8b2a023f75b69106c44c`.
+- diagrams 1.1.0 archive SHA256 `27db9bdefb9b241b03da2f3536f7e50d334117f928f963cfe290543f650b6239`.
+- SDK0.3.4 tarball SHA256 `1717c0114aa165fa3e48a1bfa7687ffd0d9b2e5392d33e99d8b2dc59a1f3ad4f`.
+- Final viewport manager `packages/view-dom/src/document-presentation.ts` SHA256 `77ca976c31736df2ce84c10c0ef9da887c2f366609e7badf42b3f5a7ad876a8c`.
+
+Build ran 2026-10-16 14:56:50.495971–14:58:14.066380 UTC, exit0, 83.570409 s.
+`provenance.json` records the exact command, artifacts, frontend and runtime inputs.
+`bundle-marker-attribution.json` proves whole-byte equality after the sole unique
+three-byte `UNK`→`DEB` packaging marker replacement and equal ELF build IDs.
+The guard was resolved from Cargo's exact dependency path and its complete bytes
+verified in this actual extracted executable.
+
+The immutable before/after-build snapshots contain 2,911 files, 37,290,414 bytes,
+and match exactly. `source-delta-from-production02.json` compares immutable snapshots:
+only the viewport manager, two related tests, fixture README and test helper differ.
+Compiled native sources, SDK and official archive remain unchanged.
+
+After freeze, the lifecycle harness changed and a read-only GTK observer was added.
+Their exact versions are independently copied and hashed in each run's input
+manifest, not merely referenced through a mutable override file. After all runtime
+cases, the fixture README was updated to document the actual results/contracts.
+`final-source-check.json` therefore records **three qualified changes**: one edited
+test harness, one added test observer, and one later documentation-only README.
+All compiled product inputs remain identical. Original source-before/source-after
+and the pre-README final audit are retained; none were rewritten to hide changes.
+
+## Passing runs
+
+| Case | Passing run | Command duration | Trusted input→DOM / two RAF |
+| --- | --- | ---: | ---: |
+| Timeout | lifecycle-p03-timeout-01 | 26.618277 s | 14 / 34 ms |
+| Disable | lifecycle-p03-disable-05 | 17.079398 s | approximately 6 / 31 ms |
+| Remove | lifecycle-p03-remove-01 | 26.563438 s | 25 / 107 ms |
+| WM close | lifecycle-p03-wm-close-02 | 26.929030 s | — |
+| App SIGKILL | lifecycle-p03-app-sigkill-01 | 16.543949 s | — |
+
+Each passing run observes real WebKit CPU growth before the action, nine exact
+owned PID/birth identities, and disappearance of those identities and the exact
+private directory before test teardown. Timeout retains the original `render_2`
+deadline through source-version cancellation; no replacement dispatch hides it.
+Disable preserves the package; remove removes the package/card. Trusted edits are
+saved and exact bytes checked. Both close cases require the editor itself to exit.
+
+All native phases below are seconds from the **original render dispatch**, not
+elapsed time after a later click/close/SIGKILL. They are measured scheduling points,
+not zero-latency or hard real-time guarantees.
+
+| Case | Deadline observed | Kill started | Exact ECHILD trace | Trusted confirmation/control |
+| --- | ---: | ---: | ---: | ---: |
+| Timeout | 2.003178615 | 2.004319134 | 2.032581612 | timeout control 2.046655527 |
+| Disable | — | 0.635068625 | 0.708970878 | cleanup-confirmed 0.716718311 |
+| Remove | — | 1.559189973 | 1.587753150 | first cleanup-confirmed 1.619385319 |
+| WM close | — | 0.485033318 | null / unobservable | App successful wait upper bound 0.638218327 |
+| App SIGKILL | — | 0.097483223 | 0.136152412 | exact ancestor natural exit0 / waitpid retained |
+
+The timeout control follows cleanup. WM-close02 binds guardian332727/birth5157512
+and instance `db06f400d8b39f6383936bd066a98779cada03f0cc925650` to App332373/birth5155406.
+Its kill trace matches the guardian PID, and `cleanup-confirmed` matches that exact
+App PID and instance at monotonic51580334451414 ns. Product `kill_owned` emits this
+only after its owned Child wait returns success; guardian successful return requires
+ECHILD. This is a complete cleanup **upper bound**, not an invented exact ECHILD
+instant. All original 4.5 s/owned identities/private directory/source/App exit
+requirements remain. The guardian had already been reaped by the live editor, so
+no nonexistent ancestor wait record is claimed.
+
+For App SIGKILL, the reviewed ancestor still must naturally reap the exact guardian
+with exit0. In this run guardian333266/birth5162592 was observed exited at
+51628525314087 ns and reaped at51628525727940 ns, exit0, no signal sent by the ancestor.
+The terminal ECHILD trace was present at51628514613230 ns. These are separate facts;
+an absent trace would remain null and natural exit would provide only an upper bound.
+
+## Original failures, retained independently
+
+- disable01: picker did not close during setup. The original WebView screenshot did
+  not capture the native dialog contents; the app had closed by later inspection.
+  A GTK realized-widget warning correlates with setup, but its cause remains **not
+  fully localized**. No fixture activation/loop/disable action occurred.
+- disable02: the new test observer used a Python GI `get_text` call that collided
+  with an Accessible getter. This observer implementation error occurred before
+  input. Actual native screenshot is retained. It is not a product failure.
+- disable03: the test's `push button` role-name readiness condition failed before
+  input. Its original failed run is retained; its last tree was not captured.
+- disable04: new first/last native trees proved actual AT-SPI role display name
+  `button`, with Cancel enabled/sensitive/showing. The test string assumption was
+  wrong. The final helper compares the actual `Atspi.Role.PUSH_BUTTON` enum43,
+  preserving the semantic button requirement. These are harness failures, not
+  evidence of a product lifecycle defect or proof of disable01's exact cause.
+- wm-close01: real normal close cleared all owned identities/private directory and
+  exited the app, but the old test required a best-effort asynchronous terminal
+  trace that was dropped. Exact App successful Child-wait confirmation was present.
+  Root independently reviewed the identity chain/source guarantee; wm-close02 uses
+  that upper-bound contract. The original wm-close01 assertion remains RED.
+
+No whole-case automatic retry occurred. Each subsequent attempt followed an explicit
+observability/synchronization or diagnostic-contract change, with source hashes,
+checks, command timestamps and raw logs preserved. No deadline, lifecycle cleanup
+bound or product source was relaxed to obtain PASS.
+
+## Native picker and measurement boundaries
+
+The final picker observer reads only the exact App PID/birth's native accessibility
+roles, states, entry value and geometry through its own session bus. It invokes no
+accessible actions or product APIs. The actual focused editable location field
+must equal the fixture path; Open must have the semantic button enum and be enabled,
+sensitive, showing and nonzero-sized. Real XTest performs input and the click at
+that observed rectangle. Native screenshots and first/last accessibility trees
+remain in each relevant run. Each bounded observer process exits before fixture
+activation/busy measurement; ordinary bus services are not killed to alter results.
+The previously frozen shared Mermaid UI picker helper was not modified.
+
+Page listeners, MutationObserver, a 20 ms timer, rAF and external process sampling
+add overhead; no overhead is subtracted. The 200 ms assertion applies only to the
+specific trusted input→two-rAF samples. It is not a claim about every frame or timer.
+Maximum observed busy→cleanup rAF gaps were 177 ms (timeout), 91 ms (disable), and
+393 ms (remove); timer maxima were158,63,102 ms. Disable/remove typing occurred after
+cleanup, so those input samples do not prove overlap with cleanup. All raw samples,
+including gaps above200 ms, remain in `lifecycle-summary.json` and the run evidence.
+
+## Final ownership and archive handoff
+
+`owned-process-final-audit.json` checked all54 observed exact identities from the
+five passing contexts plus wm-close01; none remained. All ten driver identities
+were gone. Setup failures had no bound fixture guardian. Xvfb :126
+PID288383/birth4366483 was intentionally retained for root's next UI suite; CPU/UI
+was released immediately after the final exact driver stop. Historical production01
+failed-environment zombies remain recorded there and are not part of this audit.
+
+`lifecycle-summary.json` indexes all ten commands/verdicts and exact per-run inputs.
+`root-visual-review.json` records root's four actual-image reviews and image hashes.
+`completed-manifest.json` is the final allowlist/hash index for static archival;
+source bodies, binary/deb, official archive, SDK and profiles stay in their external
+locations and are excluded from that lightweight review archive. Their provenance
+hashes do not replace the retained original bodies. Production01/02 originals remain
+unchanged. No Windows build, upload, release, merge or commit was performed.

@@ -85,3 +85,5 @@ export {
 export { createLiteralLineMatcher, type LiteralLineMatch } from './store/literal-search'
 
 export * from './document-presentation'
+
+export type * from './document-svg-image'

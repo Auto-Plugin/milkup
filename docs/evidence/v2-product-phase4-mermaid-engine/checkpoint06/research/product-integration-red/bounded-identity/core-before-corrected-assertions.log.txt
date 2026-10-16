@@ -1,0 +1,126 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts (20 tests | 5 failed) 46ms
+   × explicit identity filter bounds paint without claiming text geometry > accepts original group opacity after an explicit identity filter bounds unknown glyph ink 13ms
+     → expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+   × explicit identity filter bounds paint without claiming text geometry > propagates bounded paint through group and symbol/use into ancestor compositing 2ms
+     → expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+   ✓ explicit identity filter bounds paint without claiming text geometry > preserves uncertainty from an unbounded sibling in the ancestor paint union 1ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > does not infer text geometry for units objectBoundingBox 1ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > does not infer text geometry for primitiveUnits objectBoundingBox 1ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > does not let a bounded child supply an ancestor objectBoundingBox filter geometry 1ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > keeps ancestor fill-box transform origin geometry unknown 1ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > keeps ancestor stroke-box transform origin geometry unknown 1ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > validates child compositing before the enclosing filter can bound its output 1ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > does not exempt a tspan effect or a marker text geometry requirement 3ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > does not extend the unknown-text exception to a nonidentity filter {"dx":1} 1ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > does not extend the unknown-text exception to a nonidentity filter {"dy":1} 1ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > does not extend the unknown-text exception to a nonidentity filter {"stdDeviation":[1,0]} 1ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > does not extend the unknown-text exception to a nonidentity filter {"color":[0,0,0,1]} 1ms
+   ✓ explicit identity filter bounds paint without claiming text geometry > does not extend the unknown-text exception to a nonidentity filter {"colorInterpolation":"linearRGB"} 1ms
+   × explicit identity filter bounds paint without claiming text geometry > uses the filter definition explicit color space rather than referencing shape inheritance 2ms
+     → expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+   × explicit identity filter bounds paint without claiming text geometry > charges every pixel intersecting a fractional explicit filter region at the surface limit 5ms
+     → expected [Function] to throw an error
+   ✓ explicit identity filter bounds paint without claiming text geometry > bounds the transformed region in output pixels, including reflection and shear 1ms
+   × explicit identity filter bounds paint without claiming text geometry > shares bounded filter and opacity work across images rather than resetting it 3ms
+     → expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+   ✓ explicit identity filter bounds paint without claiming text geometry > still rejects oversized glyph rasterization inside a small enclosing identity region 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > accepts original group opacity after an explicit identity filter bounds unknown glyph ink
+AssertionError: expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+
+- Expected: 
+undefined
+
++ Received: 
+"DocumentPresentationError: Document presentation: invalid-output"
+
+ ❯ packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts:43:61
+     41| describe('explicit identity filter bounds paint without claiming text …
+     42|   it('accepts original group opacity after an explicit identity filter…
+     43|     expect(() => copyDocumentPresentationNode(image())).not.toThrow()
+       |                                                             ^
+     44|   })
+     45| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > propagates bounded paint through group and symbol/use into ancestor compositing
+AssertionError: expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+
+- Expected: 
+undefined
+
++ Received: 
+"DocumentPresentationError: Document presentation: invalid-output"
+
+ ❯ packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts:53:11
+     51|         definitions: [...input.definitions, { kind: 'symbol', id: 'lab…
+     52|       }),
+     53|     ).not.toThrow()
+       |           ^
+     54|   })
+     55| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > uses the filter definition explicit color space rather than referencing shape inheritance
+AssertionError: expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+
+- Expected: 
+undefined
+
++ Received: 
+"DocumentPresentationError: Document presentation: invalid-output"
+
+ ❯ packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts:123:13
+    121|       ...input,
+    122|       styles: [{ ...input.styles[0], colorInterpolationFilters: 'linea…
+    123|     })).not.toThrow()
+       |             ^
+    124|     expect(() => copyDocumentPresentationNode({
+    125|       ...input,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > charges every pixel intersecting a fractional explicit filter region at the surface limit
+AssertionError: expected [Function] to throw an error
+ ❯ packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts:138:9
+    136|     expect(() => copyDocumentPresentationNode({
+    137|       ...known, definitions: [{ ...identity, region: [0.25, 0.25, 4096…
+    138|     })).toThrow()
+       |         ^
+    139|   })
+    140| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts > explicit identity filter bounds paint without claiming text geometry > shares bounded filter and opacity work across images rather than resetting it
+AssertionError: expected [Function] to not throw an error but 'DocumentPresentationError: Document p…' was thrown
+
+- Expected: 
+undefined
+
++ Received: 
+"DocumentPresentationError: Document presentation: invalid-output"
+
+ ❯ packages/core/src/__tests__/document-svg-image-bounded-identity.test.ts:153:59
+    151|       definitions: [{ ...identity, region: [0, 0, 3000, 3000].map(leng…
+    152|     }
+    153|     expect(() => copyDocumentPresentationNode(input)).not.toThrow()
+       |                                                           ^
+    154|     expect(() => copyDocumentPresentationNode({ type: 'group', childre…
+    155|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 15 passed (20)
+   Start at  12:33:41
+   Duration  637ms (transform 152ms, setup 0ms, collect 180ms, tests 46ms, environment 0ms, prepare 75ms)
+

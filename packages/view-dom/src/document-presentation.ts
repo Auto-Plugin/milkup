@@ -9,7 +9,13 @@ import {
   type DocumentPresentationNode,
   type DocumentPresentationFragment,
   type DocumentMathNode,
+  type DocumentSvgImage,
 } from '@milkup/core'
+import {
+  createOwnedDocumentSvgImage,
+  imageDecodeDeadlineMs,
+  type OwnedDocumentSvgImage,
+} from './document-svg-image'
 
 export interface DocumentPresentationWindow {
   readonly sourceIdentity: object
@@ -25,6 +31,9 @@ export interface DocumentPresentationWindow {
   readonly completeEnd: boolean
   readonly selection: { readonly anchor: number; readonly head: number }
   readonly width: number
+  /** Host-only priority range measured from the visible DOM, excluding overscan. */
+  readonly visibleFrom?: number
+  readonly visibleTo?: number
 }
 export interface DocumentPresentationResponse {
   readonly request: DocumentPresentationRequest
@@ -38,7 +47,11 @@ export type DocumentPresentationTarget = Extract<
 export interface DocumentPresentationConfig {
   readonly provide: (
     window: DocumentPresentationWindow,
-    options: { readonly signal: AbortSignal },
+    options: {
+      readonly signal: AbortSignal
+      /** Host preparation deadline on the current realm's performance.now() clock. */
+      readonly deadline?: number
+    },
   ) => Promise<DocumentPresentationResponse> | DocumentPresentationResponse
   readonly onNavigate?: (target: DocumentPresentationTarget) => void | Promise<void>
 }
@@ -71,6 +84,15 @@ export function createDocumentPresentationNode(
   document: Document,
   value: DocumentPresentationNode,
   navigate?: (target: DocumentPresentationTarget) => void,
+): Node {
+  return createOwnedPresentationNode(document, value, navigate)
+}
+
+function createOwnedPresentationNode(
+  document: Document,
+  value: DocumentPresentationNode,
+  navigate?: (target: DocumentPresentationTarget) => void,
+  image?: (value: DocumentSvgImage) => Node,
 ): Node {
   const root = copyDocumentPresentationNode(value)
   function math(node: DocumentMathNode): Element {
@@ -106,6 +128,10 @@ export function createDocumentPresentationNode(
     return element
   }
   function build(node: DocumentPresentationNode): Node {
+    if (node.type === 'svg-image') {
+      if (!image) throw new Error('SVG image presentation requires a lifetime owner')
+      return image(node)
+    }
     if (node.type === 'text') return document.createTextNode(node.text)
     if (node.type === 'math') return math(node.tree)
     if (node.type === 'reference') {
@@ -199,7 +225,18 @@ interface Job {
   readonly controller: AbortController
   readonly epoch: number
   readonly selection: { readonly anchor: number; readonly head: number }
+  readonly documentVersion: number | undefined
   preparationTimedOut?: boolean
+}
+
+interface FragmentImages {
+  fragment: DocumentPresentationFragment
+  response: DocumentPresentationResponse
+  readonly signature: string
+  readonly context: PaintContext
+  readonly generation: number
+  readonly images: OwnedDocumentSvgImage[]
+  failed: boolean
 }
 
 /** One manager for both views. Source DOM is retained, never edited as document data. */
@@ -208,15 +245,25 @@ export class DocumentPresentation {
   private epoch = 0
   private stopped = false
   private painting = false
+  private successfulImageRevision = -1
+  private referenceImagePaintPending = false
   private scheduled = false
   private job: Job | undefined
   private cache:
-    { key: string; identity: object; response: DocumentPresentationResponse } | undefined
+    | {
+        key: string
+        baseKey: string
+        identity: object
+        documentVersion: number | undefined
+        response: DocumentPresentationResponse
+      }
+    | undefined
   private painted:
     | {
         response: DocumentPresentationResponse
         context: PaintContext
         selection: string
+        imageRevision: number
         lines: readonly Element[]
       }
     | undefined
@@ -231,6 +278,19 @@ export class DocumentPresentation {
   private blocksIdentity: object | undefined
   private blocksVersion: number | undefined
   private readonly saved = new Map<HTMLElement, SavedLine>()
+  // Only the current response is retained, bounded by its validated fragment/node budgets.
+  private readonly fragmentImages = new Map<DocumentPresentationFragment, FragmentImages>()
+  // One previously decoded fragment per range, never a substitute for validating
+  // the latest response. Its deadline survives successive pending replacements.
+  private readonly previousFragmentImages = new Map<
+    string,
+    {
+      owner: FragmentImages
+      timer: ReturnType<typeof setTimeout>
+    }
+  >()
+  private imageGeneration = 0
+  private imageRevision = 0
   private readonly observer: MutationObserver
   private readonly resize: ResizeObserver | undefined
   private readonly scroll = () => this.schedule()
@@ -476,6 +536,7 @@ export class DocumentPresentation {
       current.mode !== 'live' ||
       !this.cache ||
       this.cache.identity !== current.sourceIdentity ||
+      this.cache.documentVersion !== current.documentVersion ||
       !this.cache.key.startsWith(`${current.sourceVersion}:`) ||
       !sameSelection(this.cache.response.request.selection, current.selection)
     ) {
@@ -550,6 +611,7 @@ export class DocumentPresentation {
       !this.config ||
       (this.cache &&
         (this.cache.identity !== current.sourceIdentity ||
+          this.cache.documentVersion !== current.documentVersion ||
           !this.cache.key.startsWith(`${current.sourceVersion}:`) ||
           !sameSelection(this.cache.response.request.selection, current.selection)))
     ) {
@@ -564,20 +626,32 @@ export class DocumentPresentation {
     const children = this.content.children
     if (!children.length) return undefined
     const rect = this.root.getBoundingClientRect()
+    const measured = new Map<HTMLElement, DOMRect>()
+    const owners = new Map<string, HTMLElement | null>()
+    const lineRect = (line: HTMLElement): DOMRect => {
+      const ownerId = line.dataset.presentationOwner
+      if (ownerId && !owners.has(ownerId))
+        owners.set(
+          ownerId,
+          this.content.querySelector<HTMLElement>(`.milkup-line[data-line="${ownerId}"]`),
+        )
+      const owner = (ownerId ? owners.get(ownerId) : undefined) ?? line
+      let bounds = measured.get(owner)
+      if (!bounds) {
+        bounds = owner.getBoundingClientRect()
+        measured.set(owner, bounds)
+      }
+      return bounds
+    }
     let low = 0,
       high = children.length - 1
     while (low < high) {
       const mid = Math.floor((low + high) / 2)
       const candidate = children[mid] as HTMLElement
-      const measured = candidate.dataset.presentationOwner
-        ? (this.content.querySelector<HTMLElement>(
-            `.milkup-line[data-line="${candidate.dataset.presentationOwner}"]`,
-          ) ?? candidate)
-        : candidate
-      if (measured.getBoundingClientRect().bottom < rect.top) low = mid + 1
+      if (lineRect(candidate).bottom <= rect.top) low = mid + 1
       else high = mid
     }
-    const lines: HTMLElement[] = []
+    let lines: HTMLElement[] = []
     for (
       let index = Math.max(0, low - 12);
       index < children.length && lines.length < DOCUMENT_PRESENTATION_LIMITS.inputLines;
@@ -585,7 +659,7 @@ export class DocumentPresentation {
     ) {
       const line = children[index] as HTMLElement
       if (!line.classList.contains('milkup-line')) continue
-      if (lines.length > 24 && line.getBoundingClientRect().top > rect.bottom + 600) break
+      if (lines.length > 24 && lineRect(line).top > rect.bottom + 600) break
       if (
         Number(line.dataset.to) - Number(lines[0]?.dataset.from ?? line.dataset.from) >
         DOCUMENT_PRESENTATION_LIMITS.inputUtf16
@@ -593,11 +667,69 @@ export class DocumentPresentation {
         break
       lines.push(line)
     }
+    // Locally parsed complete, loaded blocks are bounded window hints only.
+    // The provider must independently verify context before replacing source.
+    const checkedBlocks = new Set<string>()
+    for (const line of lines) {
+      const bounds = lineRect(line)
+      if (bounds.height <= 0 || bounds.bottom <= rect.top || bounds.top >= rect.bottom) continue
+      const blockFrom = Number(line.dataset.presentationBlockFrom)
+      const blockTo = Number(line.dataset.presentationBlockTo)
+      if (
+        !Number.isSafeInteger(blockFrom) ||
+        !Number.isSafeInteger(blockTo) ||
+        blockTo <= blockFrom
+      )
+        continue
+      const blockKey = `${blockFrom}:${blockTo}`
+      if (checkedBlocks.has(blockKey)) continue
+      checkedBlocks.add(blockKey)
+      const start = this.content.querySelector<HTMLElement>(
+        `.milkup-line[data-from="${blockFrom}"]`,
+      )
+      let end: HTMLElement | undefined
+      let cursor: Element | null = start
+      for (let count = 0; cursor && count < DOCUMENT_PRESENTATION_LIMITS.inputLines; count++) {
+        if (!(cursor instanceof HTMLElement) || !cursor.classList.contains('milkup-line')) break
+        if (Number(cursor.dataset.from) <= blockTo && Number(cursor.dataset.to) >= blockTo) {
+          end = cursor
+          break
+        }
+        cursor = cursor.nextElementSibling
+      }
+      if (!start || !end) continue
+      const first = Number(start.dataset.from) < Number(lines[0]!.dataset.from) ? start : lines[0]!
+      const last = Number(end.dataset.to) > Number(lines.at(-1)!.dataset.to) ? end : lines.at(-1)!
+      if (
+        Number(last.dataset.line) - Number(first.dataset.line) + 1 >
+          DOCUMENT_PRESENTATION_LIMITS.inputLines ||
+        Number(last.dataset.to) - Number(first.dataset.from) >
+          DOCUMENT_PRESENTATION_LIMITS.inputUtf16
+      )
+        continue
+      const expanded: HTMLElement[] = []
+      let candidate: Element | null = first
+      while (candidate && expanded.length < DOCUMENT_PRESENTATION_LIMITS.inputLines) {
+        if (!(candidate instanceof HTMLElement) || !candidate.classList.contains('milkup-line'))
+          break
+        if (Number(candidate.dataset.line) !== Number(first.dataset.line) + expanded.length) break
+        expanded.push(candidate)
+        if (candidate === last) break
+        candidate = candidate.nextElementSibling
+      }
+      if (expanded.at(-1) === last) lines = expanded
+    }
     const first = lines[0],
       last = lines.at(-1)
     if (!first || !last) return undefined
     const from = Number(first.dataset.from),
       to = Number(last.dataset.to)
+    const visible = lines.filter((line) => {
+      const bounds = lineRect(line)
+      return bounds.height > 0 && bounds.bottom > rect.top && bounds.top < rect.bottom
+    })
+    const visibleFrom = Number((visible[0] ?? first).dataset.from)
+    const visibleTo = Number((visible.at(-1) ?? last).dataset.to)
     const source = current.read(from, to)
     if (
       source === undefined ||
@@ -620,6 +752,8 @@ export class DocumentPresentation {
       completeEnd: Number(last.dataset.line) === current.lineCount,
       selection: { anchor: current.selection.anchor, head: current.selection.head },
       width: Math.min(8192, Math.max(1, this.content.clientWidth || this.root.clientWidth || 800)),
+      visibleFrom,
+      visibleTo,
     }
   }
   private sync(): void {
@@ -638,17 +772,29 @@ export class DocumentPresentation {
     if (!this.config || current.mode !== 'live') {
       this.job?.controller.abort()
       this.job = undefined
-      if (this.saved.size || this.painted || this.notice) this.restore()
+      if (this.saved.size || this.painted || this.notice || this.fragmentImages.size) this.restore()
       return
     }
     const window = this.window(current)
     if (!window) {
-      if (this.saved.size || this.painted) this.restore()
+      if (this.saved.size || this.painted || this.fragmentImages.size) this.restore()
       this.fallback('当前源码范围超出预览预算，保留 Markdown 源码。')
       return
     }
-    const key = `${current.sourceVersion}:${window.from}:${window.to}:${window.width}:${this.epoch}:${window.selection.anchor}:${window.selection.head}`
-    if (this.cache?.key === key && this.cache.identity === current.sourceIdentity) {
+    const baseKey = `${current.sourceVersion}:${window.from}:${window.to}:${window.width}:${this.epoch}:${window.selection.anchor}:${window.selection.head}:${current.documentVersion ?? ''}`
+    const key = `${baseKey}:${window.visibleFrom}:${window.visibleTo}`
+    if (
+      this.cache?.identity === current.sourceIdentity &&
+      (this.cache.key === key ||
+        (this.cache.baseKey === baseKey &&
+          this.cache.response.request.contextKnown &&
+          this.cache.response.result.complete))
+    ) {
+      // Returning to a complete cached window supersedes an in-flight window.
+      // Its late response must not replace the presentation now being viewed.
+      this.job?.controller.abort()
+      this.job = undefined
+      this.cancelPreparationRetry()
       this.paint(this.cache.response)
       return
     }
@@ -666,6 +812,7 @@ export class DocumentPresentation {
     if (
       !this.cache ||
       this.cache.identity !== current.sourceIdentity ||
+      this.cache.documentVersion !== current.documentVersion ||
       !this.cache.key.startsWith(`${current.sourceVersion}:`) ||
       !sameSelection(this.cache.response.request.selection, current.selection)
     ) {
@@ -678,9 +825,11 @@ export class DocumentPresentation {
       controller: new AbortController(),
       epoch: this.epoch,
       selection: window.selection,
+      documentVersion: current.documentVersion,
     }
     this.job = job
-    const timeout = setTimeout(() => {
+    const deadline = performance.now() + hostPreparationDeadlineMs
+    const expirePreparation = () => {
       if (this.valid(job)) {
         this.releaseReferencePointer()
         job.preparationTimedOut = true
@@ -692,15 +841,20 @@ export class DocumentPresentation {
         this.layout()
         this.fallback('预览超时，保留 Markdown 源码。')
       }
-    }, hostPreparationDeadlineMs)
+    }
+    const timeout = setTimeout(expirePreparation, hostPreparationDeadlineMs)
     job.controller.signal.addEventListener('abort', () => clearTimeout(timeout), { once: true })
     const config = this.config
     void Promise.resolve()
-      .then(() => config.provide(window, { signal: job.controller.signal }))
+      .then(() => config.provide(window, { signal: job.controller.signal, deadline }))
       .then(async (response) => {
         // Provider preparation has settled; a held pointer is not preparation time.
         clearTimeout(timeout)
         if (!this.valid(job)) return
+        if (performance.now() >= deadline) {
+          expirePreparation()
+          return
+        }
         const request = copyDocumentPresentationRequest(response.request)
         if (
           request.from !== window.from ||
@@ -714,6 +868,10 @@ export class DocumentPresentation {
           request,
           response.declarations,
         )
+        if (performance.now() >= deadline) {
+          expirePreparation()
+          return
+        }
         // A new input task can replace a released lease before this continuation.
         // Keep the same result pending until there is no current valid gesture.
         while (this.valid(job)) {
@@ -724,7 +882,9 @@ export class DocumentPresentation {
         if (!this.valid(job)) return
         this.cache = {
           key,
+          baseKey,
           identity: current.sourceIdentity,
+          documentVersion: current.documentVersion,
           response: { request, result, declarations: response.declarations },
         }
         this.paint(this.cache.response)
@@ -768,6 +928,8 @@ export class DocumentPresentation {
             candidate.fromLine === window.fromLine &&
             candidate.toLine === window.toLine &&
             candidate.width === window.width &&
+            candidate.visibleFrom === window.visibleFrom &&
+            candidate.visibleTo === window.visibleTo &&
             candidate.source === window.source
           )
         }
@@ -801,6 +963,7 @@ export class DocumentPresentation {
       this.job === job &&
       job.epoch === this.epoch &&
       current.sourceIdentity === job.identity &&
+      current.documentVersion === job.documentVersion &&
       current.mode === 'live' &&
       this.config !== undefined &&
       sameSelection(job.selection, current.selection) &&
@@ -865,6 +1028,7 @@ export class DocumentPresentation {
       config !== undefined &&
       before.mode === 'live' &&
       cache.identity === before.sourceIdentity &&
+      cache.documentVersion === before.documentVersion &&
       cache.key.startsWith(`${before.sourceVersion}:`) &&
       sameSelection(cache.response.request.selection, before.selection)
     // Source DOM replacement temporarily removes measured preview height. Capture
@@ -1016,7 +1180,11 @@ export class DocumentPresentation {
     )
       this.root.scrollTop += anchor.line.getBoundingClientRect().top - anchor.top
   }
-  private restore(): void {
+  private restore(preserveImages = false): void {
+    if (!preserveImages) {
+      this.imageGeneration++
+      this.disposeFragmentImages()
+    }
     // A new window job first restores source, before its eventual replacement paint.
     // Preserve the same visible anchor across that intermediate shrinking layout too.
     const anchor =
@@ -1062,16 +1230,80 @@ export class DocumentPresentation {
       this.painted?.response === response &&
       this.samePaintContext(this.painted.context, context) &&
       this.painted.selection === selectionKey &&
+      this.painted.imageRevision === this.imageRevision &&
       childLines.length === this.painted.lines.length &&
       childLines.every((line, index) => line === this.painted!.lines[index])
     )
       return
+    // A successful decode can arrive after provider settlement, while the user
+    // is pressing a reference in the previous complete fragment. Reuse the
+    // native-click lease; failures and deadline expiry never take this gate.
+    if (
+      this.painted?.response === response &&
+      this.samePaintContext(this.painted.context, context) &&
+      this.painted.imageRevision !== this.imageRevision &&
+      this.successfulImageRevision === this.imageRevision &&
+      !Array.from(this.fragmentImages.values()).some((owner) => owner.failed) &&
+      this.hasReferencePointer()
+    ) {
+      if (!this.referenceImagePaintPending) {
+        const waiting = this.waitForReferencePointer()
+        if (waiting) {
+          this.referenceImagePaintPending = true
+          void waiting.then(() => {
+            this.referenceImagePaintPending = false
+            this.schedule()
+          })
+        }
+      }
+      return
+    }
     this.painting = true
     this.observer.disconnect()
     const anchor = this.captureScrollAnchor(currentSelection)
     const focus = this.captureFocus()
     const previewScroll = this.capturePreviewScroll()
-    this.restore()
+    const retainedImages = new Set<DocumentPresentationFragment>()
+    // Responses have already passed the independent aggregate validator. Match
+    // each range once: identical decoded owners transfer directly; different
+    // complete old fragments may remain visible within one shared-budget layer
+    // until the new images decode. Pending replacements never renew its deadline.
+    const replacements = new Map(
+      response.result.fragments.map((fragment) => [fragmentKey(fragment), fragment]),
+    )
+    for (const [key, previous] of this.previousFragmentImages) {
+      const replacement = replacements.get(key)
+      if (
+        !replacement ||
+        replacement.status === 'error' ||
+        !this.sameImageContext(previous.owner, response, context)
+      )
+        this.disposePreviousFragmentImages(key)
+    }
+    for (const [fragment, owner] of Array.from(this.fragmentImages)) {
+      if (owner.response === response && this.sameImageContext(owner, response, context)) continue
+      const replacement = replacements.get(fragmentKey(fragment))
+      const decoded = !owner.failed && owner.images.every((image) => image.state === 'decoded')
+      if (replacement && decoded && this.sameImageContext(owner, response, context)) {
+        if (owner.signature === JSON.stringify(replacement)) {
+          this.fragmentImages.delete(fragment)
+          owner.fragment = replacement
+          owner.response = response
+          this.fragmentImages.set(replacement, owner)
+          this.disposePreviousFragmentImages(fragmentKey(fragment))
+          continue
+        }
+        if (replacement.status !== 'error' && this.hasFragmentImages(replacement)) {
+          this.fragmentImages.delete(fragment)
+          this.retainPreviousFragmentImages(owner, response)
+          continue
+        }
+      }
+      this.disposeFragmentImages(fragment)
+    }
+    // Same-context synchronous replacement transfers the already decoded DOM.
+    // Hard restore never takes this path and always revokes staged/mounted URLs.
+    this.restore(true)
     this.observer.disconnect()
     try {
       const { anchor: selectionAnchor, head } = this.snapshot().selection
@@ -1101,7 +1333,28 @@ export class DocumentPresentation {
           continue
         }
         if (fragment.layout === 'inline' && lines.length !== 1) continue
-        fragments.push(fragment)
+        const images = this.prepareFragmentImages(fragment, response, context)
+        if (images) {
+          retainedImages.add(fragment)
+          if (images.failed) {
+            this.disposePreviousFragmentImages(fragmentKey(fragment))
+            this.fallback('预览不可用，保留 Markdown 源码。')
+            continue
+          }
+          if (images.images.some((image) => image.state !== 'decoded')) {
+            const previous = this.previousFragmentImages.get(fragmentKey(fragment))?.owner
+            if (!previous || previous.images.some((image) => image.state !== 'decoded')) continue
+            // Keep the entire old validated semantic tree while the independent
+            // new tree decodes. Do not combine new labels with old image bytes.
+            fragments.push(previous.fragment)
+          } else {
+            this.disposePreviousFragmentImages(fragmentKey(fragment))
+            fragments.push(fragment)
+          }
+        } else {
+          this.disposePreviousFragmentImages(fragmentKey(fragment))
+          fragments.push(fragment)
+        }
         if (fragment.layout === 'block')
           blocks.push({
             fromLine: Number(lines[0]!.dataset.line),
@@ -1150,7 +1403,7 @@ export class DocumentPresentation {
         } else line.style.minHeight = '1em'
       }
       if (!response.result.complete)
-        this.fallback('部分预览上下文尚未加载，保留对应 Markdown 源码。')
+        this.fallback('部分内容暂未生成预览，已保留对应 Markdown 源码。')
       const snapshot = this.snapshot()
       const previousBlocks =
         this.blocksIdentity === snapshot.sourceIdentity &&
@@ -1171,11 +1424,191 @@ export class DocumentPresentation {
       this.restoreScrollAnchor(anchor)
       this.restoreFocus(focus)
       this.restorePreviewScroll(previewScroll, response)
-      this.painted = { response, context, selection: selectionKey, lines: childLines }
+      this.painted = {
+        response,
+        context,
+        selection: selectionKey,
+        imageRevision: this.imageRevision,
+        lines: childLines,
+      }
     } finally {
+      for (const fragment of this.fragmentImages.keys())
+        if (!retainedImages.has(fragment)) this.disposeFragmentImages(fragment)
+      const retainedKeys = new Set(Array.from(retainedImages, fragmentKey))
+      for (const key of this.previousFragmentImages.keys())
+        if (!retainedKeys.has(key)) this.disposePreviousFragmentImages(key)
       this.painting = false
       this.observe()
     }
+  }
+
+  private sameImageContext(
+    owner: FragmentImages,
+    response: DocumentPresentationResponse,
+    context: PaintContext,
+  ): boolean {
+    const previous = owner.response.request,
+      next = response.request
+    return (
+      owner.generation === this.imageGeneration &&
+      this.samePaintContext(owner.context, context) &&
+      previous.documentId === next.documentId &&
+      previous.version === next.version &&
+      previous.theme === next.theme &&
+      previous.width === next.width &&
+      previous.target === next.target &&
+      JSON.stringify(owner.response.declarations) === JSON.stringify(response.declarations)
+    )
+  }
+
+  private hasFragmentImages(fragment: DocumentPresentationFragment): boolean {
+    const visit = (node: DocumentPresentationNode): boolean =>
+      node.type === 'svg-image' ||
+      ((node.type === 'group' ||
+        node.type === 'emphasis' ||
+        node.type === 'code' ||
+        node.type === 'sup' ||
+        node.type === 'sub') &&
+        node.children.some(visit))
+    return visit(fragment.content)
+  }
+
+  private retainPreviousFragmentImages(
+    owner: FragmentImages,
+    response: DocumentPresentationResponse,
+  ): void {
+    const key = fragmentKey(owner.fragment)
+    this.disposePreviousFragmentImages(key)
+    try {
+      // Individually valid past responses do not authorize accumulating their
+      // heaviest fragments. The complete old layer shares the original budget.
+      const fragments = [
+        ...Array.from(this.previousFragmentImages.values(), (entry) => entry.owner.fragment),
+        owner.fragment,
+      ].sort((a, b) => a.from - b.from || a.to - b.to)
+      copyDocumentPresentationAggregate(
+        { fragments, complete: false },
+        response.request,
+        response.declarations,
+      )
+    } catch {
+      for (const image of owner.images) image.dispose()
+      return
+    }
+    const timer = setTimeout(() => {
+      if (this.previousFragmentImages.get(key)?.owner !== owner) return
+      this.releaseReferencePointer()
+      this.disposePreviousFragmentImages(key)
+      // A succession of distinct pending results must not renew the original
+      // replacement deadline or keep an older presentation visible forever.
+      for (const current of this.fragmentImages.values()) {
+        if (fragmentKey(current.fragment) !== key) continue
+        current.failed = true
+        for (const image of current.images) image.dispose()
+      }
+      this.imageRevision++
+      this.schedule()
+    }, imageDecodeDeadlineMs)
+    this.previousFragmentImages.set(key, { owner, timer })
+  }
+
+  private disposePreviousFragmentImages(key: string): void {
+    const previous = this.previousFragmentImages.get(key)
+    if (!previous) return
+    this.previousFragmentImages.delete(key)
+    clearTimeout(previous.timer)
+    for (const image of previous.owner.images) image.dispose()
+  }
+
+  private disposeFragmentImages(fragment?: DocumentPresentationFragment): void {
+    if (fragment) {
+      const owner = this.fragmentImages.get(fragment)
+      this.fragmentImages.delete(fragment)
+      for (const image of owner?.images ?? []) image.dispose()
+    } else {
+      for (const owner of this.fragmentImages.values())
+        for (const image of owner.images) image.dispose()
+      this.fragmentImages.clear()
+      for (const key of this.previousFragmentImages.keys()) this.disposePreviousFragmentImages(key)
+    }
+  }
+
+  private prepareFragmentImages(
+    fragment: DocumentPresentationFragment,
+    response: DocumentPresentationResponse,
+    context: PaintContext,
+  ): FragmentImages | undefined {
+    const existing = this.fragmentImages.get(fragment)
+    if (existing) return existing
+    const nodes: DocumentSvgImage[] = []
+    const collect = (node: DocumentPresentationNode): void => {
+      if (node.type === 'svg-image') nodes.push(node)
+      else if (
+        node.type === 'group' ||
+        node.type === 'emphasis' ||
+        node.type === 'code' ||
+        node.type === 'sup' ||
+        node.type === 'sub'
+      )
+        for (const child of node.children) collect(child)
+    }
+    collect(fragment.content)
+    if (!nodes.length) return
+    const owner: FragmentImages = {
+      fragment,
+      response,
+      signature: JSON.stringify(fragment),
+      context,
+      generation: this.imageGeneration,
+      images: [],
+      failed: false,
+    }
+    this.fragmentImages.set(fragment, owner)
+    const changed = () => {
+      const currentFragment = owner.fragment
+      const key = fragmentKey(currentFragment)
+      if (this.previousFragmentImages.get(key)?.owner === owner) {
+        if (owner.images.some((image) => image.state !== 'decoded')) {
+          this.releaseReferencePointer()
+          this.disposePreviousFragmentImages(key)
+          this.imageRevision++
+          this.schedule()
+        }
+        return
+      }
+      if (this.fragmentImages.get(currentFragment) !== owner) return
+      if (
+        this.stopped ||
+        this.cache?.response !== owner.response ||
+        owner.generation !== this.imageGeneration ||
+        !this.root.isConnected ||
+        !this.content.isConnected ||
+        !this.samePaintContext(owner.context, this.paintContext())
+      ) {
+        this.disposeFragmentImages(currentFragment)
+        return
+      }
+      if (owner.images.some((image) => image.state === 'failed')) {
+        this.releaseReferencePointer()
+        owner.failed = true
+        for (const image of owner.images) image.dispose()
+      }
+      // One failed image invalidates the entire fragment. Pending siblings do
+      // not hide any source; a retained failure cannot restart via observation.
+      if (owner.failed || owner.images.every((image) => image.state === 'decoded')) {
+        this.imageRevision++
+        if (!owner.failed) this.successfulImageRevision = this.imageRevision
+        this.schedule()
+      }
+    }
+    try {
+      for (const node of nodes)
+        owner.images.push(createOwnedDocumentSvgImage(this.content.ownerDocument, node, changed))
+    } catch {
+      owner.failed = true
+      for (const image of owner.images) image.dispose()
+    }
+    return owner
   }
   private paintContext(): PaintContext {
     const snapshot = this.snapshot()
@@ -1198,12 +1631,18 @@ export class DocumentPresentation {
       sameSelection(a.selection, b.selection)
     )
   }
+  private displayedFragment(fragment: DocumentPresentationFragment): DocumentPresentationFragment {
+    return this.previousFragmentImages.get(fragmentKey(fragment))?.owner.fragment ?? fragment
+  }
   /** Keep offsets only within this synchronous replacement, never across documents or edits. */
   private capturePreviewScroll(): PreviewScroll | undefined {
     const painted = this.painted
     if (!painted || !this.samePaintContext(painted.context, this.paintContext())) return
     const fragments = new Map(
-      painted.response.result.fragments.map((fragment) => [fragmentKey(fragment), fragment]),
+      painted.response.result.fragments.map((fragment) => [
+        fragmentKey(fragment),
+        this.displayedFragment(fragment),
+      ]),
     )
     const positions = new Map<
       string,
@@ -1227,7 +1666,10 @@ export class DocumentPresentation {
   ): void {
     if (!saved || !this.samePaintContext(saved.context, this.paintContext())) return
     const fragments = new Map(
-      response.result.fragments.map((fragment) => [fragmentKey(fragment), fragment]),
+      response.result.fragments.map((fragment) => [
+        fragmentKey(fragment),
+        this.displayedFragment(fragment),
+      ]),
     )
     for (const node of Array.from(
       this.content.querySelectorAll<HTMLElement>('[data-document-presentation]'),
@@ -1265,19 +1707,32 @@ export class DocumentPresentation {
     element.style.maxHeight = 'min(480px, 65vh)'
     element.setAttribute('role', 'group')
     if (fragment.layout === 'block') element.tabIndex = 0
+    let imageIndex = 0
     element.append(
-      createDocumentPresentationNode(this.content.ownerDocument, fragment.content, (target) => {
-        if (this.cache?.response.request !== request || !this.content.contains(element)) return
-        const failed = () => {
-          if (!this.stopped && this.cache?.response.request === request)
-            this.fallback('导航目标已失效。')
-        }
-        try {
-          void Promise.resolve(this.config?.onNavigate?.(target)).catch(failed)
-        } catch {
-          failed()
-        }
-      }),
+      createOwnedPresentationNode(
+        this.content.ownerDocument,
+        fragment.content,
+        (target) => {
+          if (this.cache?.response.request !== request || !this.content.contains(element)) return
+          const failed = () => {
+            if (!this.stopped && this.cache?.response.request === request)
+              this.fallback('导航目标已失效。')
+          }
+          try {
+            void Promise.resolve(this.config?.onNavigate?.(target)).catch(failed)
+          } catch {
+            failed()
+          }
+        },
+        () => {
+          const owner =
+            this.fragmentImages.get(fragment) ??
+            this.previousFragmentImages.get(fragmentKey(fragment))?.owner
+          const image = owner?.images[imageIndex++]
+          if (!image || image.state !== 'decoded') throw new Error('SVG image is not decoded')
+          return image.element
+        },
+      ),
     )
     element.addEventListener('mousedown', (event) => {
       event.stopPropagation()

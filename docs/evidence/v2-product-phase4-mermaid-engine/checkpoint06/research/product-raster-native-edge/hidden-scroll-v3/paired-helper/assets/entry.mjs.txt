@@ -1,0 +1,73 @@
+// Unexecuted red/green specifications. All fixtures run only in the isolated DOM helper.
+const svg=body=>`<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120" viewBox="0 0 200 120" style="font-family:Arial,sans-serif;font-size:16px">${body}</svg>`;
+const fixtures=[{"id":"root-hidden-negative-stroke-control","assertion":"Explicit hidden root clips negative stroke; this is the paired clipping control.","svg":"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200.25\" height=\"120.5\" viewBox=\"0 0 200.25 120.5\" preserveAspectRatio=\"xMidYMid meet\" style=\"overflow:hidden\"><rect x=\"-3\" y=\"20\" width=\"40\" height=\"40\" fill=\"none\" stroke=\"rgb(220,32,48)\" stroke-width=\"8\"/></svg>","image":{"type":"svg-image","profile":"bounded-svg-v1","motion":"static","width":200.25,"height":120.5,"viewBox":[0,0,200.25,120.5],"rasterBounds":[0,0,200.25,120.5],"aspect":{"align":"xMidYMid","fit":"meet"},"rootStyle":0,"styles":[{"overflow":"hidden"},{"fill":{"kind":"none"},"stroke":{"kind":"color","rgba":[220,32,48,1]},"strokeWidth":{"value":8,"unit":"px"}}],"definitions":[],"children":[{"kind":"rect","x":-3,"y":20,"width":40,"height":40,"style":1}]}}];
+
+// External one-case research entry. Native owner alone enforces deadline/network/transport limits.
+import mermaid from './mermaid-full-12.2.0.mjs';
+import {convertSvgElement} from './converter.mjs';
+const base={startOnLoad:false,securityLevel:'strict',htmlLabels:false,suppressErrorRendering:true,maxTextSize:50000,maxEdges:500,deterministicIds:true,deterministicIDSeed:'offline-audit',fontFamily:'Arial, sans-serif',legacyMathML:false,forceLegacyMathML:false,secure:['secure','securityLevel','startOnLoad','maxTextSize','maxEdges','suppressErrorRendering','htmlLabels','fontFamily','themeCSS','legacyMathML','forceLegacyMathML','look','textPlacement','theme','darkMode']};
+let preparation={status:'idle'},preparing,busy=false,sequence=0,task,host;
+const encoder=new TextEncoder();
+const textError=e=>String(e instanceof Error?e.message:e).slice(0,4096);
+function ready(){if(preparing)return preparing;preparation={status:'pending'};return preparing=Promise.resolve(document.fonts?.ready).then(()=>{preparation={status:'ready',engine:'mermaid@12.2.0',converter:'not-run-current-core-validated-fixed-AST'};return preparation;},e=>{preparation={status:'error',error:textError(e)};throw e;});}
+function readiness(){return preparation;}
+function validate(r){if(!r||typeof r!=='object'||Array.isArray(r)||Object.keys(r).some(k=>!['id','source','profile','theme'].includes(k)))throw Error('invalid request');if(typeof r.id!=='string'||!/^[A-Za-z0-9_-]{1,96}$/.test(r.id)||typeof r.source!=='string'||r.source.length>50000||!['baseline','classic-tspan'].includes(r.profile)||!['light','dark'].includes(r.theme))throw Error('invalid request values');}
+// Compact ledger only changes research encoding; the independent validator never trusts it.
+function packCoverage(c){const strings=[],ids=new Map(),intern=s=>{s=String(s??'');let id=ids.get(s);if(id===undefined){id=strings.length;ids.set(s,id);strings.push(s);}return id;};return {strings,
+ declarationColumns:['path','property','declared','computed','source','disposition','localReferences'],
+ declarations:c.declarations.map(r=>[intern(r.path),intern(r.property),intern(r.declared),intern(r.computed),intern(r.source),intern(r.disposition),(r.localReferences??[]).map(intern)]),
+ attributes:c.attributes.map(r=>[intern(r.path),intern(r.name),intern(r.disposition)]),
+ rules:c.rules.map(r=>intern(JSON.stringify(r))),normalizations:c.normalizations.map(r=>intern(JSON.stringify(r))),errors:c.errors};}
+function attachBytes(value){value.serializedBytes=0;value.over256KiB=false;for(let i=0;i<8;i++){const n=encoder.encode(JSON.stringify(value)).length,over=n>262144;if(n===value.serializedBytes&&over===value.over256KiB)break;value.serializedBytes=n;value.over256KiB=over;}return value;}
+async function run(request){validate(request);if(preparation.status!=='ready')throw Error('prepare first');if(busy)throw Error('busy');busy=true;const started=performance.now();try{
+ host?.remove();host=document.createElement('div');host.id='svg-converter-prototype-host';host.style.width='1000px';host.style.margin='48px';document.body.append(host);
+ mermaid.initialize({...base,...(request.theme==='dark'?{theme:'dark',darkMode:true}:{}),...(request.profile==='classic-tspan'?{look:'classic',journey:{textPlacement:'tspan'}}:{})});
+ let svg,diagramType;
+ if(request.id.startsWith('fixture_')){
+   const fixture=fixtures.find(x=>x.id===request.source);
+   if(!fixture)throw Error('Unknown fixed contract fixture');
+   svg=fixture.svg;diagramType='fixed-contract-fixture';
+ }else ({svg,diagramType}=await mermaid.render('convert_'+request.id,request.source,host));
+ const renderMs=performance.now()-started;host.innerHTML=svg;
+ const result={ok:true,image:{"type":"svg-image","profile":"bounded-svg-v1","width":200.25,"height":120.5,"rasterBounds":[0,0,200.25,120.5],"viewBox":[0,0,200.25,120.5],"aspect":{"align":"xMidYMid","fit":"meet"},"styles":[{"overflow":"hidden"},{"fill":{"kind":"none"},"stroke":{"kind":"color","rgba":[220,32,48,1]},"strokeWidth":{"value":8,"unit":"px"}}],"definitions":[],"children":[{"kind":"rect","x":-3,"y":20,"width":40,"height":40,"style":1}],"motion":"static","rootStyle":0},coverage:{declarations:[],attributes:[],rules:[],normalizations:[],errors:[]}};
+ return attachBytes({...result,coverage:packCoverage(result.coverage),id:request.id,profile:request.profile,theme:request.theme,diagramType,originalSvgBytes:encoder.encode(svg).length,renderMs,elapsedMs:performance.now()-started,
+ originalFixtureGeometry:request.id.startsWith('fixture_')?Array.from(host.querySelectorAll('svg,svg *')).slice(0,64).filter(n=>typeof n.getCTM==='function').map(n=>{const m=n.getCTM(),b=n.getBBox();return {tag:n.localName,ctm:m?[m.a,m.b,m.c,m.d,m.e,m.f]:null,bbox:[b.x,b.y,b.width,b.height]};}):undefined,evidenceBoundary:'No independent validator or round-trip pixels run by this entry. Original live SVG remains in helper for separately authorized observation.'});
+ }catch(e){return attachBytes({ok:false,id:request.id,error:{code:'invalid-output',reason:textError(e)},elapsedMs:performance.now()-started});}finally{busy=false;}}
+function start(request){validate(request);if(preparation.status!=='ready')throw Error('prepare first');if(busy||task?.status==='pending')throw Error('busy');const taskId='conversion_'+(++sequence);task={taskId,status:'pending'};Promise.resolve().then(()=>run(request)).then(result=>{task={taskId,status:'complete',result};},e=>{task={taskId,status:'error',error:textError(e)};});return {taskId,status:'pending'};}
+function poll(taskId){return task?.taskId===taskId?task:{status:'unknown'};}
+function clear(){if(busy||task?.status==='pending')throw Error('pending: native termination required');task=undefined;host?.remove();host=undefined;}
+
+// Research-only integer raster viewport/layout observation, separate from conversion.
+let originalGeometry;
+function matrix(m){return m?[m.a,m.b,m.c,m.d,m.e,m.f]:null;}
+function box(b){return [b.x,b.y,b.width,b.height];}
+function geometry(n){const c=getComputedStyle(n);let bbox=null;try{bbox=box(n.getBBox());}catch{}return {kind:n.localName,rect:box(n.getBoundingClientRect()),bbox,ctm:matrix(n.getCTM?.()),screenCTM:matrix(n.getScreenCTM?.()),viewBox:n.getAttribute('viewBox'),width:n.getAttribute('width'),height:n.getAttribute('height'),preserveAspectRatio:n.getAttribute('preserveAspectRatio'),overflow:c.overflow,display:c.display,transform:c.transform};}
+function rememberOriginal(){if(!originalGeometry){const root=host?.querySelector('svg');if(!root)throw Error('no original SVG');originalGeometry=geometry(root);}return originalGeometry;}
+function mountSlot(node,canonical=false){
+ const g=rememberOriginal(),slot=document.createElement('div');slot.dataset.diagnosticSlot='true';slot.style.cssText='display:block;position:relative;overflow:visible';slot.style.width=g.rect[2]+'px';slot.style.height=g.rect[3]+'px';
+ node.style.display='block';node.style.position='absolute';node.style.left=(canonical?0:0)+'px';node.style.top=(canonical?0:0)+'px';slot.append(node);
+ const footer=document.createElement('div');footer.dataset.diagnosticFooter='true';footer.style.cssText='display:block;width:80px;height:8px;margin-top:8px;background:rgb(16,80,192)';
+ const ink=document.createElement('div');ink.dataset.diagnosticInk='true';ink.style.cssText='display:block;position:relative;overflow:visible';ink.style.width=(g.rect[2]+0)+'px';ink.style.height=(g.rect[3]+0)+'px';slot.style.position='absolute';slot.style.left='0px';slot.style.top='0px';ink.append(slot);const preview=document.createElement('div');preview.dataset.diagnosticPreview='true';preview.style.cssText='display:block;max-width:180px;max-height:100px;overflow:auto';preview.append(ink);host.replaceChildren(preview,footer);
+}
+function completeObservation(taskId,extra={}){requestAnimationFrame(()=>requestAnimationFrame(()=>{task={taskId,status:'complete',result:{ok:true,observationOnly:true,...extra,...inspect(false)}};}));}
+function controlOriginal(){if(busy||task?.status==='pending')throw Error('busy');rememberOriginal();const root=host.querySelector('svg');const taskId='control_'+(++sequence);task={taskId,status:'pending'};mountSlot(root);completeObservation(taskId);return {taskId,status:'pending'};}
+function showCanonical(){
+ if(busy||task?.status==='pending')throw Error('busy');const g=rememberOriginal(),taskId='canonical_'+(++sequence);task={taskId,status:'pending'};
+ const img=new Image();img.alt='Canonical independently validated image';img.style.width='201px';img.style.height='121px';
+ img.onload=()=>completeObservation(taskId);img.onerror=()=>{task={taskId,status:'error',error:'fixed canonical image decode failed'};};
+ mountSlot(img,true);img.src='milkup-render://job/canonical.svg';return {taskId,status:'pending'};
+}
+function inspect(includeSource=false){
+ const svg=host?.querySelector('svg'),img=host?.querySelector('img'),node=svg??img;if(!node)throw Error('nothing mounted');
+ if(includeSource)rememberOriginal();const b=node.getBoundingClientRect(),c=getComputedStyle(node),slot=host.querySelector('[data-diagnostic-slot]'),footer=host.querySelector('[data-diagnostic-footer]');
+ const state={kind:node.localName,bbox:box(b),css:{width:c.width,height:c.height,display:c.display,objectFit:c.objectFit,objectPosition:c.objectPosition,transform:c.transform},devicePixelRatio:window.devicePixelRatio,originalGeometry,slot:slot?{rect:box(slot.getBoundingClientRect()),overflow:getComputedStyle(slot).overflow}:null,footer:footer?box(footer.getBoundingClientRect()):null};
+ if(svg){const inner=Array.from(svg.children).find(n=>n.localName==='svg')??svg;state.rootGeometry=geometry(svg);state.innerGeometry=geometry(inner);const nodes=Array.from(inner.querySelectorAll('rect,path,text'));state.geometryNodeCount=nodes.length;state.geometrySamples=nodes.slice(0,72).map((n,index)=>({index,...geometry(n)}));if(includeSource)state.svg=svg.outerHTML;}
+ const preview=host.querySelector('[data-diagnostic-preview]'),ink=host.querySelector('[data-diagnostic-ink]');Object.assign(state,{preview:preview?{rect:box(preview.getBoundingClientRect()),top:preview.scrollTop,left:preview.scrollLeft,scrollWidth:preview.scrollWidth,scrollHeight:preview.scrollHeight,clientWidth:preview.clientWidth,clientHeight:preview.clientHeight}:null,ink:ink?box(ink.getBoundingClientRect()):null});if(img) Object.assign(state,{naturalWidth:img.naturalWidth,naturalHeight:img.naturalHeight,complete:img.complete,currentSrc:img.currentSrc});return state;
+}
+function showCanonicalInline(svg){
+ if(busy||task?.status==='pending')throw Error('busy');rememberOriginal();const taskId='canonical_inline_'+(++sequence);task={taskId,status:'pending'};
+ // Only the fixed compiled independently validated canonical resource enters here.
+ const holder=document.createElement('div');holder.innerHTML=svg;const root=holder.firstElementChild;if(root?.localName!=='svg'||holder.children.length!==1)throw Error('fixed SVG invalid');mountSlot(root,true);completeObservation(taskId);return {taskId,status:'pending'};
+}
+window.__milkupSvgConverterProbe=Object.freeze({ready,readiness,run,start,poll,clear,showCanonical,showCanonicalInline,inspect,controlOriginal});
+export {ready,readiness,run,start,poll,clear};

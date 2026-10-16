@@ -13,7 +13,7 @@ import {
 export function unwrapWebDriverValue(data) {
   return Object.prototype.hasOwnProperty.call(data, 'value') ? data.value : data
 }
-export async function startProduction(file, output) {
+export async function startProduction(file, output, { diagnostics = true } = {}) {
   const application = path.resolve(
     process.env.TAURI_APP_PATH ?? 'apps/desktop/src-tauri/target/release/milkup-desktop',
   )
@@ -103,10 +103,14 @@ export async function startProduction(file, output) {
       'production CLI open',
       20000,
     )
-    const windows = execFileSync('xdotool', ['search', '--class', 'milkup-desktop'], {
-      encoding: 'utf8',
-      env,
-    })
+    const windows = execFileSync(
+      'xdotool',
+      ['search', '--onlyvisible', '--class', 'milkup-desktop'],
+      {
+        encoding: 'utf8',
+        env,
+      },
+    )
       .trim()
       .split('\n')
     execFileSync('xdotool', ['windowfocus', '--sync', windows.at(-1)], { env })
@@ -123,9 +127,10 @@ export async function startProduction(file, output) {
       ),
     )
     await writeFile(path.join(output, 'production-origin.json'), JSON.stringify(initial, null, 2))
-    await execute(
-      `window.__productionDiagnostics={workers:[],errors:[],cspViolations:[]};const NativeWorker=window.Worker;window.Worker=class extends NativeWorker{constructor(...args){super(...args);const item={url:String(args[0]),options:args[1],messages:0,errors:[]};window.__productionDiagnostics.workers.push(item);this.addEventListener('message',()=>item.messages++);this.addEventListener('error',e=>item.errors.push(e.message));}};addEventListener('error',e=>window.__productionDiagnostics.errors.push(e.message));addEventListener('unhandledrejection',e=>window.__productionDiagnostics.errors.push(String(e.reason)));addEventListener('securitypolicyviolation',e=>window.__productionDiagnostics.cspViolations.push({directive:e.violatedDirective,blocked:e.blockedURI}));`,
-    )
+    if (diagnostics)
+      await execute(
+        `window.__productionDiagnostics={workers:[],errors:[],cspViolations:[]};const NativeWorker=window.Worker;window.Worker=class extends NativeWorker{constructor(...args){super(...args);const item={url:String(args[0]),options:args[1],messages:0,errors:[]};window.__productionDiagnostics.workers.push(item);this.addEventListener('message',()=>item.messages++);this.addEventListener('error',e=>item.errors.push(e.message));}};addEventListener('error',e=>window.__productionDiagnostics.errors.push(e.message));addEventListener('unhandledrejection',e=>window.__productionDiagnostics.errors.push(String(e.reason)));addEventListener('securitypolicyviolation',e=>window.__productionDiagnostics.cspViolations.push({directive:e.violatedDirective,blocked:e.blockedURI}));`,
+      )
     return {
       application,
       request,
