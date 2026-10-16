@@ -1,0 +1,26 @@
+# Repository gates06 preparation
+
+Status: prepared only; no gate command has run. Await explicit parent CPU GO after the independent browser35 process and its owned servers are stopped.
+
+## Commands
+
+Use the configured environment (`source /workspace/.cloud/milkup-v2/env.sh`) before launching this runner. From `/workspace/milkup`, execute sequentially:
+
+1. `bash scripts/cloud/pnpm.sh typecheck`
+2. `bash scripts/cloud/pnpm.sh test`
+3. `bash scripts/cloud/pnpm.sh lint`
+4. `bash scripts/cloud/pnpm.sh build`
+
+`run.py` is an exact copy of gates05's fail-fast runner, located here so its logs and execution record are new. It refuses to overwrite an execution record or log. The format log corresponds to lint (`prettier --check .`), not a formatter write. Build includes version:check and recursive package builds. This runner does not start native, Playwright, UI, or servers.
+
+## Evidence and checks at GO
+
+Freeze actual current tracked/untracked source inputs and git diff before running, independently of preparation-inputs.json. Record configured executable/environment provenance without secrets. Record each command, UTC start/end, exit code, raw log SHA. Preserve first failure and stop; do not overwrite or rerun under the same evidence path. Compare source inputs afterwards, distinguishing generated build artifacts from source changes. Parse actual package Vitest and Node totals; prior gates05 had 2051 Vitest plus 4 Node tests, but these are a comparison baseline, not a current result. Browser35 remains separately counted and is never added to repository unit totals.
+
+## Static review of the changed files
+
+Manager adds a single optional owner-Window/RAF-id pair, coalesces ResizeObserver notifications, defers layout until RAF, checks stopped before and after layout, and cancels the pending frame via the same Window during destroy. No public interface change, new dependency, budget change or deadline change appears in the current diff. Static reading does not establish runtime success.
+
+The new browser case exercises a finite 40px-to-80px responsive transition and destroy during a real ResizeObserver notification; it asserts source/selection unchanged, new width reached provider, no later layout/request after destroy, and no window errors. It uses dynamic import, so its provider callback does not receive static contextual typing from the manager constructor. The e2e file is outside view-dom tsconfig's src include; full typecheck must not be described as strict checking this e2e callback. Playwright execution is owned by update_plugin. Existing formatting is visually consistent; actual prettier remains an unrun gate here.
+
+No product or test files were edited for this preparation. The preparation hash list is not a substitute for final source freeze after browser ownership handoff.

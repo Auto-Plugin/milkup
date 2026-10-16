@@ -1,0 +1,58 @@
+[WebServer] (node:385999) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:386012) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:386058) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/e2e/desktop-markdown-extensions.spec.ts:1488:1 › presentation resize delivers finite responsive layout outside ResizeObserver delivery (5.7s)
+
+
+  1) tests/e2e/desktop-markdown-extensions.spec.ts:1488:1 › presentation resize delivers finite responsive layout outside ResizeObserver delivery 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "ResizeObserver loop completed with undelivered notifications.",
+    + ]
+
+      1588 |   expect(result.destroyCount).toBe(1)
+      1589 |   expect(result.final).toEqual(result.afterDestroy)
+    > 1590 |   expect(result.errors).toEqual([])
+           |                         ^
+      1591 | })
+      1592 |
+        at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:1590:25
+
+    attachment #2: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - text: 写点什么吧...
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "实时"
+      - text: Markdown 0 字符 已保存
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-mermaid-engine-evidence/research/resize-observer-loop-01/baseline-artifacts/desktop-markdown-extension-1ade3-ide-ResizeObserver-delivery/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../milkup-mermaid-engine-evidence/research/resize-observer-loop-01/baseline-artifacts/desktop-markdown-extension-1ade3-ide-ResizeObserver-delivery/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace ../milkup-mermaid-engine-evidence/research/resize-observer-loop-01/baseline-artifacts/desktop-markdown-extension-1ade3-ide-ResizeObserver-delivery/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests/e2e/desktop-markdown-extensions.spec.ts:1488:1 › presentation resize delivers finite responsive layout outside ResizeObserver delivery 

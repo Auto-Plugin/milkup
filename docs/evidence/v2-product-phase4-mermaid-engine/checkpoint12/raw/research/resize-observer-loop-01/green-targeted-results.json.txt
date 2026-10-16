@@ -1,0 +1,139 @@
+{
+  "config": {
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "/workspace/milkup/node_modules/@playwright/test/cli.js",
+      "test",
+      "--config",
+      "/workspace/milkup-mermaid-engine-evidence/research/resize-observer-loop-01/playwright-green-targeted.config.mjs",
+      "--grep",
+      "presentation resize delivers finite responsive layout"
+    ],
+    "configFile": "/workspace/milkup-mermaid-engine-evidence/research/resize-observer-loop-01/playwright-green-targeted.config.mjs",
+    "rootDir": "/workspace/milkup/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/workspace/milkup-mermaid-engine-evidence/research/resize-observer-loop-01/green-targeted-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/workspace/milkup/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "desktop-markdown-extensions.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/workspace/milkup-mermaid-engine-evidence/research/resize-observer-loop-01/green-targeted-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.1",
+    "workers": 1,
+    "webServer": {
+      "command": "pnpm --filter @milkup/desktop dev",
+      "cwd": "/workspace/milkup",
+      "url": "http://127.0.0.1:1420",
+      "reuseExistingServer": false
+    }
+  },
+  "suites": [
+    {
+      "title": "desktop-markdown-extensions.spec.ts",
+      "file": "desktop-markdown-extensions.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "presentation resize delivers finite responsive layout outside ResizeObserver delivery",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6329,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-16T20:13:27.983Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "resize-evidence",
+                      "contentType": "application/json",
+                      "body": "ewogICJzZXR0bGVkIjogewogICAgImluaXRpYWxIZWlnaHQiOiA0MCwKICAgICJoZWlnaHQiOiA4MCwKICAgICJ3aWR0aCI6IDM2MCwKICAgICJ3aWR0aHMiOiBbCiAgICAgIDMwMCwKICAgICAgMzYwCiAgICBdLAogICAgInRleHQiOiAi5Lit5paH8J+YgCBlzIEgc291cmNlIiwKICAgICJzZWxlY3Rpb24iOiB7CiAgICAgICJhbmNob3IiOiAwLAogICAgICAiaGVhZCI6IDIKICAgIH0sCiAgICAiZXJyb3JzIjogW10KICB9LAogICJkZXN0cm95Q291bnQiOiAxLAogICJhZnRlckRlc3Ryb3kiOiB7CiAgICAibGF5b3V0cyI6IDUsCiAgICAicmVxdWVzdHMiOiAyLAogICAgInRleHQiOiAi5Lit5paH8J+YgCBlzIEgc291cmNlIgogIH0sCiAgImZpbmFsIjogewogICAgImxheW91dHMiOiA1LAogICAgInJlcXVlc3RzIjogMiwKICAgICJ0ZXh0IjogIuS4reaWh/CfmIAgZcyBIHNvdXJjZSIKICB9LAogICJlcnJvcnMiOiBbXQp9"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/workspace/milkup-mermaid-engine-evidence/research/resize-observer-loop-01/green-targeted-artifacts/desktop-markdown-extension-1ade3-ide-ResizeObserver-delivery/trace.zip"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "941916a62ecab6c0156d-92e832c23f7726b54494",
+          "file": "desktop-markdown-extensions.spec.ts",
+          "line": 1487,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-16T20:13:23.220Z",
+    "duration": 11882.628,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

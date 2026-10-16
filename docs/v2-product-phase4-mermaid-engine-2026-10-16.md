@@ -396,3 +396,17 @@ checkpoint10 已推送为 `a5658985ff3d8fc6d06d49025f9d9babfe2b3ff6`，远端 SH
 本轮 94 条记录为 93 条局部通过记录加首败，184 张原图和 240 项明确完成文件均保留并核验。App、driver 与等待祖先进程已消失，最后 guardian 为已终止 Z；1145 次 dispatch 未记录到执行截止，但不关闭旧历史未知请求的截止因果。实际产品、官方插件包与产品源码未改，两份文档经历史测试后均恢复原始字节。独立像素审阅实际查看十张图片，高缩放、窄窗和暗色矩阵仍未执行。
 
 当前唯一产品 ResizeObserver 在共享视图的文档展示管理器中，其回调同步调用选区布局并安排微任务同步；布局可回到缓存展示重绘，存在再次改变被观察尺寸的反馈路径。该机制仍需独立真实浏览器回归与新生产验证，不能仅凭静态路径宣称已修复。后续保留所有错误断言，先验证有限布局变化的修复前回归，再进行最小刷新调度修正。上述诊断、定位脚本各版和两轮首败保存于 [checkpoint11](evidence/v2-product-phase4-mermaid-engine/checkpoint11/README.md)，本检查点仍未完成正式矩阵验收。
+
+## ResizeObserver：真实有限布局回归与最小刷新修复
+
+定位脚本及 checkpoint11 已正常推送为 `5c8e01c90fbc0c7b66655c1073627b3a741c3ab8`，远端 SHA、GitHub 作者和提交者均核验为 LarryZhu-dev。随后增加一个使用实际生产 DocumentPresentation、真实浏览器 ResizeObserver 的有限响应式布局回归：宽度从 300px 变到 360px，布局只将高度从 40px 变到 80px，不做无限振荡，也不伪造错误。修复前首次运行中，最终几何、新宽度请求及 Unicode 文本均正确，但实际 window.error 收到与 UI07 同名的未完成通知错误，唯一错误断言失败。它证明受控同步反馈机制确有问题，并不等于直接捕获了 UI07 的完整触发栈。
+
+产品修改仅涉及共享视图管理器内部：ResizeObserver 回调将布局刷新合并到所属 Window 的下一次 requestAnimationFrame；每个实例最多保留一个待执行刷新，执行时清除句柄并检查 stopped，布局后再次检查再安排原同步流程。销毁时取消待执行帧。原普通微任务调度、立即选区与失效处理、公开 API、共享 CSS、插件预算与原生期限均不变。
+
+修复后相同有限布局回归首次通过。销毁断言另收紧为在真实通知内调用 destroy 后立即捕获计数，再经过四帧及另一次宽度变化，布局/请求仍为 5/2，错误列表为空。原 RED 的较弱销毁观察时点及 GREEN 的测试增量均保留；不能把传入闭包的固定 selection 当作真实编辑器选区覆盖，完整编辑器历史另由原生测试负责。
+
+随后完整 desktop-markdown-extensions 文件首次 **35/35 通过**，耗时 449.5 秒，零跳过、零 flaky、每项只有一次 passed 结果；根代理直接解析原 JSON 并核验完整 110 项证据清单。实际平台是 Linux Chromium，虽使用 desktop-msedge 项目名，也不称 Windows/Edge 或原生 Mermaid 验收。产品和测试输入前后哈希一致；1420/5174 无监听，活动 browser/runner/server 已结束，四个已退出但被 PID 1 保留的 Z 状态如实列出。37 份 Playwright trace ZIP 原件外部保留并记录 SHA，仓库证据不声称自包含这些 ZIP。
+
+全仓 gate06 的类型检查和 2051 项 Vitest + 4 项 Node 测试首次通过；lint 因五份 checkpoint07–11 已发布生成索引的排版而停止，构建未执行。这些原始索引字节已有跨检查点 SHA 引用，因此保留其原件，`.prettierignore` 只增加这类生成 index 的明确规则，产品和测试文件仍按原 lint 检查。根代理分别运行五份 verify-index，内容、对象和引用全部通过、原 SHA 不变。独立 continuation 的 lint 与构建随后通过，15413 项输入在各自执行期间均未变；两个阶段间唯一配置差异就是该规则，原首败原件没有改写，也没有重复已通过的类型和测试检查。
+
+受控回归、完整浏览器结果、首轮格式失败及后续通过分别保存于 [checkpoint12](evidence/v2-product-phase4-mermaid-engine/checkpoint12/README.md)。这完成本次修改的代码与浏览器检查，新的 Linux production06 和完整原生 UI08 仍待实际运行，不将旧生产包或 Linux 浏览器结果冒充新包、Windows 或完整矩阵通过。

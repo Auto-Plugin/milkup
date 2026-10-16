@@ -1,0 +1,79 @@
+{
+  "author": "release_sdk",
+  "kind": "independent-read-only-static-review",
+  "managerSha256": "8dc1f4a2571539cdb32b85bb7f8cecee6c32cf2aa2f1f757b580d1087301d8e3",
+  "results": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-07/results.json",
+    "sha256": "0f5b49cb41ec695fa57ddf00c6a90f08e5748b381c10333d4901d647af98b0f7",
+    "firstErrorBracket": [
+      {
+        "index": 18,
+        "name": "coverage-ordinary-flowchart-069-image",
+        "at": "2026-10-16T20:01:21.410Z",
+        "errors": []
+      },
+      {
+        "index": 19,
+        "name": "coverage-ordinary-flowchart-086-animated-edge",
+        "at": "2026-10-16T20:01:26.585Z",
+        "errors": [
+          "ResizeObserver loop completed with undelivered notifications."
+        ]
+      }
+    ],
+    "qualification": "Capture timestamps bracket the first recorded error; they are not the error event timestamp. The animated-edge sample name does not establish a business-renderer cause."
+  },
+  "sourceFindings": [
+    {
+      "path": "packages/view-dom/src/document-presentation.ts",
+      "lines": [
+        462,
+        470,
+        590,
+        599,
+        1222,
+        1421
+      ],
+      "finding": "The only product ResizeObserver directly calls layout then schedules a microtask sync. It observes the editor root and mounted preview elements. restore unobserves previews."
+    },
+    {
+      "path": "packages/view-dom/src/editor-view.ts",
+      "lines": [
+        272,
+        612,
+        890
+      ],
+      "finding": "layout runs renderSelectionAndCursor, which calls presentation.selectionChanged and writes selection/cursor/input-proxy DOM; selectionChanged can paint the current cached response."
+    },
+    {
+      "path": "packages/view-dom/src/source-document-view.ts",
+      "lines": [
+        513,
+        1042,
+        2981
+      ],
+      "finding": "layout measures rows and writes spacer heights, then updates selection/cursor/search DOM. This is a real synchronous layout-write path from the observer."
+    }
+  ],
+  "assessment": "A ResizeObserver delivery can synchronously cause further observed geometry changes, directly or through selectionChanged/paint. This supports a feedback mechanism, but does not prove the exact native UI07 triggering write. No exception or diagnostics filtering is appropriate.",
+  "minimalCandidate": {
+    "scope": "Only the ResizeObserver notification path",
+    "steps": [
+      "Coalesce notifications into one requestAnimationFrame on root.ownerDocument.defaultView. The observer itself performs no layout writes or microtask sync.",
+      "At frame entry clear the pending handle; check stopped; call layout against current state; check stopped again before calling the existing schedule.",
+      "Cancel a pending animation frame on destroy and retain stopped checks for late callbacks.",
+      "Keep the general queueMicrotask schedule and immediate selection/error/navigation invalidation unchanged."
+    ],
+    "limits": [
+      "Deferral must be verified to settle rather than merely turn a same-frame loop into a repeating cross-frame loop.",
+      "No new public API, CSS, timing budget, error suppression, or removed assertions."
+    ]
+  },
+  "regressions": [
+    "Real browser finite/idempotent 40-to-80 content geometry change through the production DocumentPresentation layout callback: capture window error exact ResizeObserver message; baseline must actually fail and fixed candidate must settle without this error.",
+    "Notification bursts coalesce; destroy prevents late layout/schedule; synchronous layout-triggered destroy is guarded.",
+    "Current width/context is read at execution; stale response and existing pointer/error microtask regressions remain covered.",
+    "Replay the original UI07 sequence with its unmodified global diagnostics assertion; controlled Chromium success is not native WebKit proof."
+  ],
+  "execution": "Read/search/hash only. No product edits, tests, builds, or UI/runtime launched. update_plugin owns the separate real-browser baseline."
+}

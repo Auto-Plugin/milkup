@@ -1,0 +1,43 @@
+diff --git a/packages/view-dom/src/document-presentation.ts b/packages/view-dom/src/document-presentation.ts
+index 43a8472e..056b3294 100644
+--- a/packages/view-dom/src/document-presentation.ts
++++ b/packages/view-dom/src/document-presentation.ts
+@@ -293,6 +293,7 @@ export class DocumentPresentation {
+   private imageRevision = 0
+   private readonly observer: MutationObserver
+   private readonly resize: ResizeObserver | undefined
++  private resizeFrame: { view: Window; id: number } | undefined
+   private readonly scroll = () => this.schedule()
+   private tabOrigin: { event: KeyboardEvent; element: HTMLElement } | undefined
+   private tabOriginTimer: ReturnType<typeof setTimeout> | undefined
+@@ -462,10 +463,16 @@ export class DocumentPresentation {
+       typeof ResizeObserver === 'undefined'
+         ? undefined
+         : new ResizeObserver(() => {
+-            if (!this.stopped) {
++            const view = this.root.ownerDocument.defaultView
++            if (this.stopped || this.resizeFrame || !view) return
++            // Layout may resize an observed preview; defer writes beyond this delivery cycle.
++            const id = view.requestAnimationFrame(() => {
++              this.resizeFrame = undefined
++              if (this.stopped) return
+               this.layout()
+-              this.schedule()
+-            }
++              if (!this.stopped) this.schedule()
++            })
++            this.resizeFrame = { view, id }
+           })
+     this.resize?.observe(root)
+     this.root.addEventListener('pointerdown', this.referencePointerDown, true)
+@@ -570,6 +577,10 @@ export class DocumentPresentation {
+     this.job?.controller.abort()
+     this.observer.disconnect()
+     this.resize?.disconnect()
++    if (this.resizeFrame) {
++      this.resizeFrame.view.cancelAnimationFrame(this.resizeFrame.id)
++      this.resizeFrame = undefined
++    }
+     this.root.removeEventListener('pointerdown', this.referencePointerDown, true)
+     this.root.removeEventListener('keydown', this.releaseReferencePointer, true)
+     this.root.removeEventListener('beforeinput', this.releaseReferencePointer, true)
