@@ -1,0 +1,132 @@
+--- formal
++++ supplemental
+@@ -8,10 +8,10 @@
+ import { createHash } from 'node:crypto'
+ import { mkdir, readFile, writeFile, readdir, access } from 'node:fs/promises'
+ import path from 'node:path'
+-import { startProduction } from '../helpers/native-production.mjs'
+-import { ownedApplication } from '../helpers/native-owned-process.mjs'
+-import { ownNativeClipboard } from '../helpers/native-clipboard.mjs'
+-import { action, nativeFixture, x } from '../helpers/native-updates-fixture.mjs'
++import { startProduction } from '/workspace/milkup/tests/helpers/native-production.mjs'
++import { ownedApplication } from '/workspace/milkup/tests/helpers/native-owned-process.mjs'
++import { ownNativeClipboard } from '/workspace/milkup/tests/helpers/native-clipboard.mjs'
++import { action, nativeFixture, x } from '/workspace/milkup/tests/helpers/native-updates-fixture.mjs'
+ 
+ const evidence = '/workspace/milkup-markdown-extensions-phase4-evidence'
+ const output = path.resolve(process.env.MILKUP_NATIVE_EVIDENCE_DIR || path.join(evidence, 'native'))
+@@ -1294,34 +1294,90 @@
+     recoveredSha256: hash(await readFile(recovered)),
+   })
+ }
++// Supplemental public-input checks prompted by actual partial-view screenshots.
++// These do not replace the unchanged formal matrix or count as its acceptance.
++async function caretGeometry() {
++  return app.execute(`const e=document.querySelector('.milkup-editor'), c=document.querySelector('.milkup-cursor');return {editor:e.getBoundingClientRect().toJSON(),caret:c?.getBoundingClientRect().toJSON(),position:Number(c?.dataset.position),scrollLeft:e.scrollLeft,scrollTop:e.scrollTop}`)
++}
++async function vectorGeometry(sample, text) {
++  const from = text.indexOf(sample.needle)
++  return app.execute(`const e=document.querySelector('.milkup-editor');const p=[...document.querySelectorAll('[data-document-presentation]')].find(p=>Number(p.dataset.presentationFrom)<=arguments[0]&&Number(p.dataset.presentationTo)>arguments[0]);const s=p?.querySelector('svg');return s?{editor:e.getBoundingClientRect().toJSON(),svg:s.getBoundingClientRect().toJSON(),scrollTop:e.scrollTop,texts:[...s.querySelectorAll('text')].map(t=>({text:t.textContent,rect:t.getBoundingClientRect().toJSON()}))}:null`, from)
++}
++async function realWheel(direction) {
++  const e = (await observe()).editorRect
++  const physical = Number(/WIDTH=(\d+)/.exec(x('getwindowgeometry', '--shell', nativeWindow))[1])
++  const width = await app.execute('return innerWidth')
++  x('mousemove', '--window', nativeWindow, String(Math.round((e.left + e.width * .8) * physical / width)), String(Math.round((e.top + e.height * .5) * physical / width)), 'click', String(direction))
++  await app.delay(160)
++}
++async function revealVectorEdge(sample, text, edge) {
++  const steps = []
++  for (let i = 0; i <= 30; i++) {
++    const g = await vectorGeometry(sample, text)
++    assert(g, 'Previously displayed vector must remain queryable during bounded wheel reveal')
++    steps.push(g)
++    const value = g.svg[edge]
++    if (value >= g.editor.top + 3 && value <= g.editor.bottom - 3) return steps
++    assert(i < 30, 'Vector edge must be reachable with at most 30 real wheel notches')
++    await realWheel(value > g.editor.bottom - 3 ? 5 : 4)
++  }
++}
+ try {
+   await start()
+-  if (!diagnosticInstall || process.env.MILKUP_NATIVE_DIAGNOSTIC_REUSE !== '1')
+-    await installExternal()
+-  if (diagnosticInstall) {
+-    await semantics('ordinary')
+-    await record('DIAGNOSTIC-install-semantics-complete', { acceptance: false })
+-  } else {
+-    for (const name of ['ordinary', 'windowed']) {
+-      await semantics(name)
+-      if (name === 'windowed') await remoteFootnote()
+-      for (const mode of ['source', 'live']) await editHistory(name, mode)
++  await details('milkup.preferences')
++  if (await ui.exists(action('approve', 'milkup.preferences'))) await click(action('approve', 'milkup.preferences'))
++  if (await ui.exists(action('enable', 'milkup.preferences'))) await click(action('enable', 'milkup.preferences'))
++  await closeUI()
++  for (const name of ['ordinary', 'windowed']) {
++    const text = contents.get(name)
++    await openDocument(name)
++    for (const theme of ['light', 'dark']) {
++      x('windowsize', nativeWindow, '1100', '760')
++      await appearance(theme, 2)
++      x('windowsize', nativeWindow, '760', '520')
++      await app.until(async () => {const d=await observe();return Math.abs(d.width-380)<2 && Math.abs(d.height-260)<2}, 'native 200 percent narrow window')
++      await seek('SAMPLE-ROOT', 'source')
++      const initial = await app.probe()
++      const lineFrom = text.indexOf('\r\n', text.indexOf('SAMPLE-ROOT')) + 2
++      const lineTo = text.indexOf('\r\n', lineFrom)
++      await app.key('Right')
++      await app.key('Down')
++      await app.until(async () => {const p=await app.probe();return p.cursor>=lineFrom&&p.cursor<=lineTo}, 'next source line selected')
++      await app.key('End')
++      await app.until(async () => (await app.probe()).cursor === lineTo, 'native End reaches complete long source line')
++      const end = await caretGeometry()
++      assert(end.caret.left >= end.editor.left-1 && end.caret.right <= end.editor.right+1, 'End caret horizontally visible')
++      assert(end.caret.top >= end.editor.top-1 && end.caret.bottom <= end.editor.bottom+1, 'End caret vertically visible')
++      assert(end.scrollLeft > 0, 'This exact long source line actually uses horizontal scrolling')
++      await shot(`reach-${name}-${theme}-source-End`, {initial, end, lineFrom, lineTo})
++      await app.key('Home')
++      await app.until(async () => (await app.probe()).cursor === lineFrom, 'native Home returns to source line start')
++      const home = await caretGeometry()
++      assert(home.caret.left >= home.editor.left-1 && home.caret.right <= home.editor.right+1, 'Home caret horizontally visible')
++      assert(home.scrollLeft <= 26, 'Home returns horizontal reading origin')
++      const after = await app.probe()
++      assert.equal(after.version, initial.version)
++      assert.equal(after.dirty, false)
++      assert.deepEqual(await readFile(activeFile), Buffer.from(text))
++      await shot(`reach-${name}-${theme}-source-Home`, {home, after})
++      for (const sample of samples.filter(s => s.kind === 'vector')) {
++        await seek(sample.marker, 'live')
++        await assertSample(sample, 'live', text)
++        const before = await vectorGeometry(sample, text)
++        const bottom = await revealVectorEdge(sample, text, 'bottom')
++        await shot(`reach-${name}-${theme}-${sample.id}-bottom`, {before, wheelSteps:bottom})
++        const top = await revealVectorEdge(sample, text, 'top')
++        await shot(`reach-${name}-${theme}-${sample.id}-top`, {wheelSteps:top})
++        assert.equal((await app.probe()).version, initial.version)
++        assert.equal((await app.probe()).dirty, false)
++        assert.deepEqual(await readFile(activeFile), Buffer.from(text))
++      }
+     }
+-    await visualMatrix()
+-    await disableAndRecover()
+-    await record('PASS', {
+-      matrixCases: 64,
+-      matrixSampleCaptures: 384,
+-      allTenDisabled: true,
+-      windowsFonts: 'not-tested',
+-    })
+-  }
++  }
++  await record('SUPPLEMENTAL-REACHABILITY-COMPLETE', {formalAcceptance:false, sourceCaretCases:4, vectorEdgeCases:12, nativeInput:'XTest End/Home and wheel', windowsTested:false})
+ } catch (error) {
+-  await writeFile(
+-    path.join(output, 'failure.json'),
+-    JSON.stringify({ error: String(error), stack: error.stack }, null, 2),
+-  )
+-  if (app) await shot('FAIL', { error: String(error) }).catch(() => {})
++  await writeFile(path.join(output, 'failure.json'), JSON.stringify({error:String(error), stack:error.stack}, null, 2))
++  if (app) await shot('FAIL', {error:String(error)}).catch(()=>{})
+   throw error
+ } finally {
+   if (app) await app.close()

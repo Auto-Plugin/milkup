@@ -1,0 +1,16 @@
+{
+  "recorded": "2026-10-16T07:49:58.465731+00:00",
+  "scope": "Private view DOM continuity and redundant root scroll event handling only; no core public API, CSS, plugin or deadline change.",
+  "red": "150: 4 failed / 61 passed before product changes. 149 also includes one identity fixture omission corrected via public refresh.",
+  "implementation": [
+    "Paint metadata copies source identity/version/document revision/config/mode/selection at paint start. Nonzero inner offsets survive only the synchronous replacement when full fragment semantics match.",
+    "Root scroll notifications deduplicate exact positions/dimensions/source/version/mode/edit revision; real motion still renders. Handler failures clear only their own token and preserve existing rejection behavior.",
+    "Navigation-anchor branch clears rather than retaining handled token because its owner can still fail; the next scroll can retry."
+  ],
+  "review": "Two independent view reviewers found the anchor-owned read failure risk; corrected and covered through public scrollToLine rejection + same-position scroll retry.",
+  "154": "69 passed / 1 failed. Duplicate-event fixture used scrollTop=1, inside existing navigation anchor tolerance <=1, so it had not established an ordinary handled scroll.",
+  "fixtureCorrection": "Set initial genuine movement to 2 in two duplicate-event/real-movement fixtures, beyond unchanged one-pixel anchor tolerance. Identity/read-count/offset/data assertions retained.",
+  "155": "70 / 70 passed, including five added mode/selection/retry guards.",
+  "types": "152 failed due project DOM library lacking iterable NodeList; Array.from added. 153 passed.",
+  "native": "Pending fresh candidate11 Linux production package and real wheel acceptance; jsdom state assignments do not establish native reachability."
+}

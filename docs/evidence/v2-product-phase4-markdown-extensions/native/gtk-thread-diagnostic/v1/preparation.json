@@ -1,0 +1,32 @@
+{
+  "preparedNotRun": true,
+  "scope": "Disabled unless MILKUP_GTK_THREAD_TRACE path and MILKUP_GTK_TRACE_APP exact /proc/self/exe match; only specified actual app emits logs. Other inheriting processes transparently forward but do not log.",
+  "symbols": [
+    "gtk_init_check",
+    "gtk_main_iteration",
+    "gtk_main_iteration_do",
+    "g_main_loop_run",
+    "gtk_file_chooser_native_new"
+  ],
+  "bounds": "2 entry observations per symbol/TID;64slots;128lines/process; contention skips rather than blocks on trace lock; no every-iteration logging",
+  "fields": [
+    "PID",
+    "TID",
+    "CLOCK_MONOTONIC",
+    "symbol",
+    "occurrence",
+    "immediate return address",
+    "dladdr module+offset+symbol"
+  ],
+  "forwarding": "Cached RTLD_NEXT original function with unchanged arguments/return. Missing resolution exits diagnostic126 rather than inventing behavior. Trace disabled absent MILKUP_GTK_THREAD_TRACE.",
+  "limitations": [
+    "Interposition may perturb timing; cannot infer crash causality merely from additional GTK thread.",
+    "Internal/bound-symbol calls may not be interposable; absence is not proof of no invocation.",
+    "No actual process maps yet; collect from owned app live during separate approved run."
+  ],
+  "artifacts": {
+    "gtk-thread-trace.c": "ac904d085f5e763ec9d362994433fca3e95f09b89275f970c238d30340c9336a",
+    "libgtk-thread-trace.so": "95058f56d3d0176585c2020268b28a66e5db3638230fa945f1d714e724b68747",
+    "sample-owned-maps.py": "4843f003c268b5ea52c4ab93f3ddf99a0525d80a29741c9de1a773c89741fe01"
+  }
+}

@@ -1,0 +1,178 @@
+// Supplemental public-input checks prompted by actual partial-view screenshots.
+// These do not replace the unchanged formal matrix or count as its acceptance.
+// Geometry is in WebView CSS pixels; native coordinates are derived only at input.
+const reachabilityClientGeometry = `
+const clientRect = element => {
+  const r = element.getBoundingClientRect();
+  const left = r.left + element.clientLeft, top = r.top + element.clientTop;
+  return {left: Math.max(0, left), top: Math.max(0, top),
+    right: Math.min(innerWidth, left + element.clientWidth),
+    bottom: Math.min(innerHeight, top + element.clientHeight)};
+};
+`
+function assertPositiveRect(rect, message) {
+  assert(rect && ['left','right','top','bottom'].every(k => Number.isFinite(rect[k])) &&
+    rect.right > rect.left && rect.bottom > rect.top, message)
+}
+function assertCaretVisible(geometry, position, label) {
+  assertPositiveRect(geometry.editor, label + ' editor client viewport has positive area')
+  assertPositiveRect(geometry.caret, label + ' caret has positive area')
+  assert.equal(geometry.position, position, label + ' rendered caret matches source offset')
+  assert(geometry.caret.left >= geometry.editor.left-1 && geometry.caret.right <= geometry.editor.right+1, label + ' caret horizontally visible')
+  assert(geometry.caret.top >= geometry.editor.top-1 && geometry.caret.bottom <= geometry.editor.bottom+1, label + ' caret vertically visible')
+}
+async function caretGeometry() {
+  return app.execute(reachabilityClientGeometry + `
+const e=document.querySelector('.milkup-editor'), c=document.querySelector('.milkup-cursor');
+return {editor:clientRect(e),editorBorder:e.getBoundingClientRect().toJSON(),
+  caret:c?.getBoundingClientRect().toJSON(),position:Number(c?.dataset.position),
+  scrollLeft:e.scrollLeft,scrollTop:e.scrollTop};`)
+}
+async function vectorGeometry(sample, text, hitTest = false) {
+  const from = text.indexOf(sample.needle)
+  assert(from >= 0, 'Vector needle exists in the unchanged fixture')
+  return app.execute(reachabilityClientGeometry + `
+const e=document.querySelector('.milkup-editor');
+const p=[...document.querySelectorAll('[data-document-presentation]')].find(p=>
+  Number(p.dataset.presentationFrom)<=arguments[0]&&Number(p.dataset.presentationTo)>arguments[0]);
+const s=p?.querySelector('svg');
+if(!s) return null;
+const er=clientRect(e),pr=clientRect(p);
+const clip={left:Math.max(er.left,pr.left),right:Math.min(er.right,pr.right),
+  top:Math.max(er.top,pr.top),bottom:Math.min(er.bottom,pr.bottom)};
+const point={x:(clip.left+clip.right)/2,y:(clip.top+clip.bottom)/2};
+const hit=arguments[1]?document.elementFromPoint(point.x,point.y):null;
+return {editor:er,preview:pr,clip,previewFrom:Number(p.dataset.presentationFrom),
+  previewTo:Number(p.dataset.presentationTo),previewScrollLeft:p.scrollLeft,
+  previewScrollTop:p.scrollTop,svg:s.getBoundingClientRect().toJSON(),scrollTop:e.scrollTop,
+  texts:[...s.querySelectorAll('text')].map(t=>({text:t.textContent,rect:t.getBoundingClientRect().toJSON()})),
+  wheelTarget:arguments[1]?{point,innerWidth,hitTag:hit?.tagName??null,
+    withinPreview:!!hit&&p.contains(hit),withinEditor:!!hit&&e.contains(hit)}:null};`, from, hitTest)
+}
+async function realWheel(direction, sample, text) {
+  const physical = Number(/WIDTH=(\d+)/.exec(x('getwindowgeometry', '--shell', nativeWindow))[1])
+  // Re-read layout and hit-test immediately before XTest; never trust the previous step's rectangle.
+  const geometry = await vectorGeometry(sample, text, true)
+  assert(geometry, 'Target vector still exists before native wheel input')
+  assertPositiveRect(geometry.clip, 'Native wheel target intersects both client viewports')
+  const target = geometry.wheelTarget
+  assert(target.withinPreview && target.withinEditor, 'Native wheel center actually hits this preview inside the editor')
+  assert(Number.isFinite(physical) && physical > 0 && target.innerWidth > 0, 'Native wheel coordinate scale is valid')
+  const point = {x:Math.round(target.point.x * physical / target.innerWidth),
+    y:Math.round(target.point.y * physical / target.innerWidth)}
+  x('mousemove', '--window', nativeWindow, String(point.x), String(point.y), 'click', String(direction))
+  await app.delay(160)
+  return {direction,geometry,nativePoint:point}
+}
+async function revealVectorEdge(sample, text, edge) {
+  const steps = []
+  for (let i = 0; i <= 30; i++) {
+    const g = await vectorGeometry(sample, text)
+    assert(g, 'Previously displayed vector must remain queryable during bounded wheel reveal')
+    assertPositiveRect(g.clip, 'Vector edge has a positive visible client intersection')
+    assertPositiveRect(g.svg, 'Vector has positive geometry')
+    assert(Math.min(g.svg.right,g.clip.right)>Math.max(g.svg.left,g.clip.left), 'Vector edge intersects the client viewport horizontally')
+    steps.push(g)
+    const value = g.svg[edge]
+    if (value >= g.clip.top - 1 && value <= g.clip.bottom + 1) return steps
+    assert(i < 30, 'Vector edge must be reachable with at most 30 real wheel notches')
+    g.wheel = await realWheel(value > g.clip.bottom + 1 ? 5 : 4, sample, text)
+  }
+}
+async function revealLegend(sample, text, label) {
+  const steps=[]
+  for(let i=0;i<=40;i++) {
+    const g=await vectorGeometry(sample,text)
+    assert(g, 'Pie remains available during native legend navigation')
+    const expectedLegend = {甲:'1. 甲：2 (66.7%)',乙:'2. 乙：1 (33.3%)'}[label]
+    assert(expectedLegend, 'Only the two fixed fixture legend labels are supported')
+    const matches=g.texts.filter(t=>t.text===expectedLegend)
+    assert.equal(matches.length, 1, 'Exactly one complete literal pie legend '+expectedLegend)
+    const target=matches[0]
+    const r=target.rect,c=g.clip
+    assertPositiveRect(c, 'Pie legend has a positive visible client intersection')
+    assertPositiveRect(r, 'Pie legend text has positive geometry')
+    steps.push({geometry:g,target})
+    if(r.left>=c.left-1 && r.right<=c.right+1 && r.top>=c.top-1 && r.bottom<=c.bottom+1) return steps
+    assert(i<40, 'Pie legend must be fully reachable by bounded real horizontal/vertical wheel input')
+    steps[steps.length-1].wheel = await realWheel(r.right>c.right+1?7:r.left<c.left-1?6:r.bottom>c.bottom+1?5:4,sample,text)
+  }
+}
+try {
+  await start()
+  await app.until(async () => (await registry()).length === expectedIds.length, 'bundled distribution registry ready', 30000)
+  await details('milkup.preferences')
+  if (await ui.exists(action('approve', 'milkup.preferences'))) await click(action('approve', 'milkup.preferences'))
+  if (await ui.exists(action('enable', 'milkup.preferences'))) await click(action('enable', 'milkup.preferences'))
+  const requiredActive = ['milkup.preferences','milkup.math','milkup.diagrams','milkup.footnotes']
+  await app.until(async () => {
+    return app.execute(`
+const snapshot=JSON.parse(localStorage.getItem('milkup.desktop.plugins.registry.v1')||'{"records":[],"auditRecords":[]}');
+return arguments[0].every(id => snapshot.records.some(r => r.manifest.id === id &&
+  r.enabled === true && r.state === 'enabled' && r.errors.length === 0) &&
+  (snapshot.auditRecords||[]).some(a => a.pluginId === id && a.operation === 'enable' && !a.denied));`, requiredActive)
+  }, 'preferences and bundled renderers completed actual activation', 10000)
+  await record('SUPPLEMENTAL-ACTIVATION-READY', {requiredActive,registry:await registry(),startupWaitMs:10000,renderBudgetUnchanged:true})
+  await closeUI()
+  for (const name of ['ordinary', 'windowed']) {
+    const text = contents.get(name)
+    await openDocument(name)
+    for (const theme of ['light', 'dark']) {
+      x('windowsize', nativeWindow, '1100', '760')
+      await appearance(theme, 2)
+      x('windowsize', nativeWindow, '760', '520')
+      await app.until(async () => {const d=await observe();return Math.abs(d.width-380)<2 && Math.abs(d.height-260)<2}, 'native 200 percent narrow window')
+      await seek('SAMPLE-ROOT', 'source')
+      const initial = await app.probe()
+      const markerFrom = text.indexOf('SAMPLE-ROOT')
+      assert(markerFrom >= 0, 'Source marker exists')
+      const markerEnd = text.indexOf('\r\n', markerFrom)
+      assert(markerEnd > markerFrom, 'Source marker has its real CRLF boundary')
+      const lineFrom = markerEnd + 2
+      const lineTo = text.indexOf('\r\n', lineFrom)
+      assert(lineTo > lineFrom && text.slice(lineFrom,lineTo).includes('\\frac'), 'Complete expected formula line follows source marker')
+      await app.key('Right')
+      await app.key('Down')
+      await app.until(async () => {const p=await app.probe();return p.cursor>=lineFrom&&p.cursor<=lineTo}, 'next source line selected')
+      await app.key('End')
+      await app.until(async () => (await app.probe()).cursor === lineTo, 'native End reaches complete long source line')
+      const end = await caretGeometry()
+      assertCaretVisible(end, lineTo, 'End')
+      assert(end.scrollLeft > 0, 'This exact long source line actually uses horizontal scrolling')
+      await shot(`reach-${name}-${theme}-source-End`, {initial, end, lineFrom, lineTo})
+      await app.key('Home')
+      await app.until(async () => (await app.probe()).cursor === lineFrom, 'native Home returns to source line start')
+      const home = await caretGeometry()
+      assertCaretVisible(home, lineFrom, 'Home')
+      assert(home.scrollLeft <= 26, 'Home returns horizontal reading origin')
+      const after = await app.probe()
+      assert.equal(after.version, initial.version)
+      assert.equal(after.dirty, false)
+      assert.deepEqual(await readFile(activeFile), Buffer.from(text))
+      await shot(`reach-${name}-${theme}-source-Home`, {home, after})
+      for (const sample of samples.filter(s => s.kind === 'vector')) {
+        await seek(sample.marker, 'live')
+        await assertSample(sample, 'live', text)
+        const before = await vectorGeometry(sample, text)
+        const bottom = await revealVectorEdge(sample, text, 'bottom')
+        await shot(`reach-${name}-${theme}-${sample.id}-bottom`, {before, wheelSteps:bottom})
+        const top = await revealVectorEdge(sample, text, 'top')
+        await shot(`reach-${name}-${theme}-${sample.id}-top`, {wheelSteps:top})
+        if(sample.id==='pie') for(const label of ['甲','乙']) {
+          const legend=await revealLegend(sample,text,label)
+          await shot(`reach-${name}-${theme}-pie-legend-${label}`, {wheelSteps:legend})
+        }
+        assert.equal((await app.probe()).version, initial.version)
+        assert.equal((await app.probe()).dirty, false)
+        assert.deepEqual(await readFile(activeFile), Buffer.from(text))
+      }
+    }
+  }
+  await record('SUPPLEMENTAL-REACHABILITY-COMPLETE', {formalAcceptance:false, sourceCaretCases:4, sourceCaretChecks:8, vectorCases:12, vectorEdgeChecks:24, pieLegendCases:8, nativeInput:'XTest End/Home and vertical/horizontal wheel', windowsTested:false})
+} catch (error) {
+  await writeFile(path.join(output, 'failure.json'), JSON.stringify({error:String(error), stack:error.stack}, null, 2))
+  if (app) await shot('FAIL', {error:String(error)}).catch(()=>{})
+  throw error
+} finally {
+  if (app) await app.close()
+}

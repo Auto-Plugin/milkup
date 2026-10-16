@@ -460,6 +460,7 @@ async function details(id) {
   // The plugin list retains its own scroll position. Focus this public card
   // control to reveal it before the explicit pointer hit test; this is confined
   // to manager navigation and must never scroll document previews into view.
+  await ui.ready(action('details', id))
   await app.focus(action('details', id))
   await click(action('details', id))
   await ui.ready('#plugin-detail-title')
@@ -638,6 +639,8 @@ async function appearance(theme, zoom) {
         ),
       'preferences applied to native geometry',
     )
+    await ui.ready(`${preferences} button[aria-label="保存"]`)
+    await app.focus(`${preferences} button[aria-label="保存"]`)
     await click(`${preferences} button[aria-label="保存"]`)
     await app.until(
       () =>

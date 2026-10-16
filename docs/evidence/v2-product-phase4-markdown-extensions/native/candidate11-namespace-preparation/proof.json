@@ -1,0 +1,63 @@
+{
+  "status": "prepared-not-run",
+  "binarySha256": null,
+  "debSha256": null,
+  "candidate10Preserved": true,
+  "files": {
+    "/workspace/milkup-markdown-extensions-phase4-evidence/native/environment/run-env-candidate10-namespace.sh": "751d6ca162811d4c7716e84a208a3f082755a0b8b5ec002a25dc097577be4f2e",
+    "/workspace/milkup-markdown-extensions-phase4-evidence/native/environment/driver-candidate10-namespace.sh": "a3099e062151d9158acd6d403386fea801cdee8a66548e24a2056dc658a0871a",
+    "/workspace/milkup-markdown-extensions-phase4-evidence/native/environment/run-env-candidate11-namespace.sh": "23f745856c4f2a287f0449f91c85da13c1ce0dc88f762cfb087336087fc4887e",
+    "/workspace/milkup-markdown-extensions-phase4-evidence/native/environment/driver-candidate11-namespace.sh": "6c406afac94d80cc245294452c97885dc18f64cdb89f4a149094c9b3b0827e15",
+    "/workspace/milkup/tests/native/tauri-markdown-extensions.mjs": "70273f11203199467ce56a987d8e9e18acbf3e8c814afb6725fe81993028152c",
+    "/workspace/milkup-markdown-extensions-phase4-evidence/native/visual-reachability/run-reachability.mjs": "9c850d057ac01e2e13c86be876c33e3c3cef85e6edbb4c2c82007768f56371bc",
+    "/workspace/milkup-markdown-extensions-phase4-evidence/native/environment/loaders-sysroot.cache": "494443c7c0baaf901b95d76bad96a140f3364688ad46d7e2d5230ca6dc7fffae",
+    "/workspace/milkup-markdown-extensions-phase4-evidence/math/external-crlf-final/dist/milkup.math-1.0.0.milkup-plugin": "93c62f43c20c1efd3c20e6038d2c50cf5bc2082fe571c531d5f17a742940c226",
+    "/workspace/milkup-markdown-extensions-phase4-evidence/diagrams/external/dist/milkup.diagrams-1.0.0.milkup-plugin": "d92d19db21a9c7e63949201db6b065a8aab4c6077fb928a94e6c3275474f89a9",
+    "/workspace/milkup-markdown-extensions-phase4-evidence/footnotes/external-revision-final/dist/milkup.footnotes-1.0.0.milkup-plugin": "531481d11059563cffac0e0372c911a857ac903d92e5acbd597596efa2d5bfed"
+  },
+  "orderedRuns": [
+    {
+      "run": "candidate11-reachability01",
+      "runner": "/workspace/milkup-markdown-extensions-phase4-evidence/native/visual-reachability/run-reachability.mjs",
+      "requiredCounts": {
+        "sourceCases": 4,
+        "sourceChecks": 8,
+        "vectorCases": 12,
+        "vectorEdges": 24,
+        "pieLegends": 8
+      }
+    },
+    {
+      "run": "candidate11-namespace-run01",
+      "runner": "/workspace/milkup/tests/native/tauri-markdown-extensions.mjs",
+      "requiredCounts": {
+        "matrixCombinations": 64,
+        "samples": 384
+      },
+      "closure": "all ten disabled, save/history/reopen/SIGKILL recovery"
+    }
+  ],
+  "gates": [
+    "Actual DEB independently extracted by root to install-candidate11; publish DEB and actual binary hashes",
+    "Explicit UI/CPU GO before any driver or app launch",
+    "Fresh profile/output must not exist; no candidate10 path overwritten",
+    "Verify supplied binary hash and runner hashes before each run",
+    "First failure stops; no automatic retry or altered budgets"
+  ],
+  "invariants": {
+    "display": ":118",
+    "driverPort": 4618,
+    "nativePort": 4619,
+    "rendererBudgetMs": 2000,
+    "hostPreparationMs": 10000,
+    "farFootnoteMs": 90000,
+    "wheelNotches": 30,
+    "wheelDelayMs": 160,
+    "namespace": "same bwrap mapping; no proot, no LD_PRELOAD, no sandbox disabling"
+  },
+  "commandTemplates": {
+    "driver": "set -e; export MILKUP_CANDIDATE11_BINARY_SHA256=<actual captured SHA>; bash /workspace/milkup-markdown-extensions-phase4-evidence/native/environment/driver-candidate11-namespace.sh <run>",
+    "runner": "set -e; export MILKUP_CANDIDATE11_BINARY_SHA256=<actual captured SHA>; export MILKUP_RUN=<run>; source /workspace/milkup-markdown-extensions-phase4-evidence/native/environment/run-env-candidate11-namespace.sh; export MILKUP_NATIVE_RENDER_TRACE=1; node <runner> > /workspace/milkup-markdown-extensions-phase4-evidence/native/<run>.log 2>&1"
+  },
+  "driverPermission": "require_escalated auto_review for the authorized temporary user/mount namespace only"
+}

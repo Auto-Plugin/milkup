@@ -1,5 +1,7 @@
 # v2 云环境适配（2026-10-13）
 
+> 2026-10-16 P4 原生验证使用同一执行器的私有 bwrap user/mount namespace：临时库目录 overlay 只读映射用户级 WebKit helper，根与库目录保持只读，workspace/tmp 沿用原写权限；不持久修改系统、不关闭 WebKit sandbox。默认工具沙箱的 uid_map 写入检查失败，获自动审阅批准的能力检查及 driver 启动成功。精确 wrapper、能力失败记录和正式运行结果见 [P4 扩展报告](./v2-product-phase4-markdown-extensions-2026-10-15.md)及[准备证明](./evidence/v2-product-phase4-markdown-extensions/native/candidate10-namespace-preparation/proof.json)。旧 proot 路径出现 GTK 选择器 fatal、文件系统 Bad address 和线程警告，诊断尚未证实 fatal 根因；不能把换 wrapper 后的结果回写为旧路径通过。Linux 原生全 UI 缩放不代表 Windows 或系统 DPI 验证。
+
 > 2026-10-14 第二十一阶段在新容器 fetch 并精确核验 `bba85ef6dd78a4a826e2300c1f56968371807f6f` 后接续，使用有界分片快照与工作文件租约，将完整恢复正文写出移出文档锁。同容器生产对照、并发／中断证据及仍未达标项目见[第二十一阶段报告](./v2-phase21-snapshot-streaming-verification-2026-10-14.md)；下一里程碑 Windows 测试安装包的现有 CI 副作用和交付缺口见[安装包准备](./v2-phase21-windows-package-readiness-2026-10-14.md)。
 
 > 2026-10-14 第十八阶段新增恢复目录准入配额、可见写入失败及外部副本导出，并完成暗色、原生整 UI 125/150/200% 缩放与窄窗改进。真实支持范围、故障证据及剩余门槛见[第十八阶段报告](./v2-phase18-storage-appearance-verification-2026-10-14.md)。

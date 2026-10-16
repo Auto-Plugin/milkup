@@ -1,0 +1,57 @@
+{
+  "manifest": "candidate11-final-source-manifest.json",
+  "manifestSHA256": "b0b280ef926f70eebac528289c57ea7f94263daba4f2dec6015b99546fda39e6",
+  "sourceFiles": 679,
+  "steps": [
+    {
+      "gate": "unit",
+      "command": ["pnpm", "test"],
+      "log": "full-unit-candidate11-final.log",
+      "started": "2026-10-16T07:50:21.483295+00:00",
+      "finished": "2026-10-16T07:51:08.102919+00:00",
+      "exitCode": 0
+    },
+    {
+      "gate": "types",
+      "command": ["pnpm", "typecheck"],
+      "log": "full-types-candidate11-final.log",
+      "started": "2026-10-16T07:51:08.123665+00:00",
+      "finished": "2026-10-16T07:51:31.507271+00:00",
+      "exitCode": 0
+    },
+    {
+      "gate": "build",
+      "command": ["pnpm", "build"],
+      "log": "full-build-candidate11-final.log",
+      "started": "2026-10-16T07:51:31.531153+00:00",
+      "finished": "2026-10-16T07:51:58.919663+00:00",
+      "exitCode": 0
+    },
+    {
+      "gate": "format",
+      "command": ["pnpm", "lint"],
+      "log": "full-format-candidate11-final.log",
+      "started": "2026-10-16T07:51:58.939892+00:00",
+      "finished": "2026-10-16T07:52:57.486742+00:00",
+      "exitCode": 0
+    },
+    {
+      "gate": "browser",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--workers=1",
+        "--retries=0",
+        "--output=/workspace/milkup-markdown-extensions-phase4-evidence/browser-candidate11-final"
+      ],
+      "log": "browser-full-candidate11-final.log",
+      "started": "2026-10-16T07:52:57.509633+00:00",
+      "finished": "2026-10-16T08:03:10.405459+00:00",
+      "exitCode": 0
+    }
+  ],
+  "sourceChanges": [],
+  "manifestChanged": false
+}

@@ -1,0 +1,37 @@
+{
+  "at": "2026-10-16T06:09:19.955501+00:00",
+  "context": "Local Linux native test environment capability checks; no app run in these checks.",
+  "checks": [
+    {
+      "command": "unshare --user --map-root-user true",
+      "sandbox": "default managed tool",
+      "exitCode": 1,
+      "output": "cannot open /proc/self/uid_map: Read-only file system"
+    },
+    {
+      "command": "unshare --user --map-root-user true",
+      "sandbox": "require_escalated approved by automatic review",
+      "exitCode": 0
+    },
+    {
+      "command": "bwrap --unshare-user --ro-bind / / --bind /workspace /workspace --bind /tmp /tmp --dev-bind /dev /dev --proc /proc --ro-bind SYSROOT_WEBKIT /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1 -- /usr/bin/stat /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitWebProcess",
+      "sandbox": "require_escalated approved by automatic review",
+      "exitCode": 1,
+      "output": "Cannot create target path on read-only root mount"
+    },
+    {
+      "command": "bwrap --unshare-user --ro-bind / / --bind /workspace /workspace --bind /tmp /tmp --dev-bind /dev /dev --proc /proc --overlay-src /usr/lib/x86_64-linux-gnu --tmp-overlay /usr/lib/x86_64-linux-gnu --ro-bind SYSROOT_WEBKIT /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1 --remount-ro /usr/lib/x86_64-linux-gnu -- /usr/bin/stat /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitWebProcess",
+      "sandbox": "require_escalated approved by automatic review",
+      "exitCode": 0,
+      "output": "Regular executable,14408bytes,mode0755,uid1000/gid1000"
+    }
+  ],
+  "SYSROOT_WEBKIT": "/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1",
+  "invariants": [
+    "Private temporary namespace, no executor reset or host system write",
+    "Root and lib directory read-only; workspace/tmp writable as before",
+    "No WebKit sandbox disabling, no product or dependency changes, no timeout changes",
+    "New mapping removes syscall ptrace translation; not proof proot caused GTK fatal",
+    "Previous formal failure retained; future new environment run must stand on own evidence"
+  ]
+}

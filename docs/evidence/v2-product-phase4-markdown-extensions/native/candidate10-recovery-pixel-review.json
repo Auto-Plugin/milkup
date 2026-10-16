@@ -1,0 +1,22 @@
+{
+  "scope": "Actual pixel inspection of recovery prompt and opened recovery copy; byte preservation is separately asserted by native runner, not inferred from pixels.",
+  "viewed": [
+    {
+      "file": "all-ten-disabled-recovery-offered-x11.png",
+      "sha256": "b33330244e36bbf1de286041862947682a7b6a99504916fd7d4ee3f69afdbcbf"
+    },
+    {
+      "file": "all-ten-disabled-recovered-x11.png",
+      "sha256": "27eb1d5ef6e59e59fd536384945a3caa8ddc0525ef2ee81cd38a6b062e5f21f4"
+    }
+  ],
+  "findings": [
+    "Recovery dialog is readable and offers opening an independent copy; native keyboard-visible focus remains visible on the defer button.",
+    "Recovered document title identifies a recovered copy; RECOVER- prefix and Unicode remain visible. Status says original unchanged and advises save-as.",
+    "Black area beyond 1100x760 is unused Xvfb desktop."
+  ],
+  "limits": [
+    "Linux native only. No Windows/IME/OS-DPI claim.",
+    "This segmented result does not retroactively pass the preceding full formal run."
+  ]
+}

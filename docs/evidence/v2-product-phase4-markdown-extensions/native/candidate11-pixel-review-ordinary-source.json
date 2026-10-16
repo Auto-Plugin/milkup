@@ -1,0 +1,1260 @@
+{
+  "reviewer": "/root/release_sdk",
+  "reviewedAt": "2026-10-16T08:28:02.761906+00:00",
+  "runDirectory": "/workspace/milkup-markdown-extensions-phase4-evidence/native/run-candidate11-namespace-run01",
+  "scope": "Candidate11 formal native ordinary/source only: all 16 completed theme/zoom/width combinations, six targets each.",
+  "method": "Individually opened all 96 original X11 PNGs and 8 original paired WebView PNGs with view_image. Completion JSON selected eligible combinations only; visual findings came from the displayed pixels. SHA-256 was calculated after viewing. No UI, tests, builds, image transforms or screenshot changes were performed.",
+  "combinationCount": 16,
+  "x11ImagesViewed": 96,
+  "webviewImagesViewed": 8,
+  "coverage": {
+    "themes": ["light", "dark"],
+    "zoomsPercent": [100, 125, 150, 200],
+    "widths": ["wide", "narrow"],
+    "targets": ["root", "matrix", "flow", "sequence", "pie", "footnotes"],
+    "webviewSampling": [
+      "matrix-ordinary-source-light-100-narrow-footnotes-webview.png",
+      "matrix-ordinary-source-light-125-wide-footnotes-webview.png",
+      "matrix-ordinary-source-light-150-narrow-footnotes-webview.png",
+      "matrix-ordinary-source-light-200-narrow-root-webview.png",
+      "matrix-ordinary-source-dark-100-narrow-footnotes-webview.png",
+      "matrix-ordinary-source-dark-125-wide-footnotes-webview.png",
+      "matrix-ordinary-source-dark-150-narrow-footnotes-webview.png",
+      "matrix-ordinary-source-dark-200-narrow-root-webview.png"
+    ]
+  },
+  "findings": [
+    "All 96 selected source markers are visible. The reviewed literal syntax and Chinese target text are readable in both themes, with no observed missing-glyph boxes or target-marker occlusion.",
+    "At 200% narrow in both themes, the long root formula source extends beyond the right edge. The horizontal scrollbar is visible. The formula tail is outside this capture; accessibility of that tail was not exercised by this review.",
+    "Header/menu/status elements visibly scale together with the editor. Narrow high-zoom path labels are ellipsized. Neighboring content may meet or cross the vertical viewport boundary while the selected target remains visible.",
+    "The 8 sampled WebView captures visually agree with their X11 application regions. Black area outside the app in X11 screenshots is desktop background.",
+    "These are source-mode images of literal TeX, Mermaid and footnote markup. They do not demonstrate rendered MathML/vector/footnote preview correctness."
+  ],
+  "uncovered": [
+    "ordinary/live and all windowed combinations",
+    "88 unsampled WebView counterpart images",
+    "Dynamic focus, keyboard or pointer behavior and horizontal-tail reachability",
+    "Saved bytes, undo/redo integrity, renderer lifecycle, disabled-plugin recovery and the full native run outcome",
+    "Content outside each captured viewport"
+  ],
+  "overallNativePassClaimed": false,
+  "reviewStatus": "Completed requested source-mode pixel review; horizontal-overflow boundary retained, no additional target readability issue observed.",
+  "combinations": [
+    {
+      "key": "ordinary-source-light-100-wide",
+      "completionRecord": {
+        "name": "matrix-complete-ordinary-source-light-100-wide",
+        "at": "2026-10-16T08:12:04.065Z"
+      },
+      "x11ImagesViewed": 6,
+      "images": [
+        {
+          "file": "matrix-ordinary-source-light-100-wide-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "bytes": 56443,
+          "sha256": "d09cd375d484f5ebaa5dde034630715162676effa45a7e4a5db1f248b5e01e1c",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-ROOT marker and literal TeX source are readable; formula line fits in the visible editor width. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-100-wide-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "bytes": 56503,
+          "sha256": "1ec50782ed684f46cecee85e3d2e6c9301dae083a1a291e5748b277cd111a9b9",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-MATRIX marker, dollar delimiters and literal pmatrix source are readable, including the end marker. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-100-wide-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "bytes": 56457,
+          "sha256": "5b50e23448a2c7e85563530ef257ad373a9153850d3189ac296c25264319f06f",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FLOW marker and literal Mermaid block are readable, including the Chinese 开始/通过/是/完成 labels. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-100-wide-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "bytes": 56469,
+          "sha256": "97d7ee8ad45ccf3829e04f5e64fa2e5a70f686ad694f1bc501af84e8bca9937e",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-SEQUENCE marker and literal sequenceDiagram block are readable, including 用户/服务/请求/返回. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-100-wide-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "bytes": 55943,
+          "sha256": "fbbb994d195f6930429b83190c34e0ed5ce8b4cd33659e2266c83bf19ad70b47",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-PIE marker and literal pie block are readable, including 分布 and the 甲:2 / 乙:1 values. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-100-wide-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "bytes": 59299,
+          "sha256": "416c68fd5a653f1aae64635ac73953b9925d6964c6511d8a04a51d61b8a2131b",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FOOTNOTES marker, both literal reference markers and the definition with 中文/强调/Unicode 保留 are readable. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        }
+      ],
+      "observation": "Light background, dark readable source text, green selection. Header, menu and status bar scale with the editor. Status text 717 字符 / 已保存 is visible. No missing-glyph boxes or target-marker obstruction observed."
+    },
+    {
+      "key": "ordinary-source-light-100-narrow",
+      "completionRecord": {
+        "name": "matrix-complete-ordinary-source-light-100-narrow",
+        "at": "2026-10-16T08:12:20.396Z"
+      },
+      "x11ImagesViewed": 6,
+      "images": [
+        {
+          "file": "matrix-ordinary-source-light-100-narrow-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "bytes": 44483,
+          "sha256": "61931526cc6245bda17ea2c0688556e32ad1ec8760809ef9e1020bd24f78c965",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-ROOT marker and literal TeX source are readable; formula line fits in the visible editor width. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-100-narrow-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "bytes": 44539,
+          "sha256": "82f0b191e90603edbad0e838d144702fd0d7c728de09d19cfdcebcc7465c8965",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-MATRIX marker, dollar delimiters and literal pmatrix source are readable, including the end marker. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-100-narrow-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "bytes": 44487,
+          "sha256": "4a197073f84411fa6cbca9e37a0b7b22721e0c84381bb2472aa083e202b4ad14",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FLOW marker and literal Mermaid block are readable, including the Chinese 开始/通过/是/完成 labels. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-100-narrow-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "bytes": 40317,
+          "sha256": "2f37febb658643bc53449f74ccf97a846d42bc24799374457d69c0cca85fd43d",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-SEQUENCE marker and literal sequenceDiagram block are readable, including 用户/服务/请求/返回. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-100-narrow-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "bytes": 38265,
+          "sha256": "cadb649943f7c9d4db30d5a15cb0fe512ef402d64dcdda989a9ac513f1ef534a",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-PIE marker and literal pie block are readable, including 分布 and the 甲:2 / 乙:1 values. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-100-narrow-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "bytes": 43597,
+          "sha256": "4e8a6d34bbabb6daaace50b03ab12078e7f0b2abe4e16f3c08bfc102926fe04c",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FOOTNOTES marker, both literal reference markers and the definition with 中文/强调/Unicode 保留 are readable. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-100-narrow-footnotes-webview.png",
+          "kind": "webview",
+          "sample": "footnotes",
+          "bytes": 38317,
+          "sha256": "e3d2ca3bd2db04434d42fb9fee5dfd0c4af65c16f5711155bda2ca8522229faa",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FOOTNOTES marker, both literal reference markers and the definition with 中文/强调/Unicode 保留 are readable. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture. Visually matches the app region in its paired X11 image."
+        }
+      ],
+      "observation": "Light background, dark readable source text, green selection. Header, menu and status bar scale with the editor. Status text 717 字符 / 已保存 is visible. No missing-glyph boxes or target-marker obstruction observed."
+    },
+    {
+      "key": "ordinary-source-light-125-wide",
+      "completionRecord": {
+        "name": "matrix-complete-ordinary-source-light-125-wide",
+        "at": "2026-10-16T08:12:51.577Z"
+      },
+      "x11ImagesViewed": 6,
+      "images": [
+        {
+          "file": "matrix-ordinary-source-light-125-wide-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "bytes": 69282,
+          "sha256": "da1bda3ea1b2c74c6b7bdbf198f52de94d2bc676ebb5be4e4c962149161ce6a3",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-ROOT marker and literal TeX source are readable; formula line fits in the visible editor width. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-125-wide-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "bytes": 69328,
+          "sha256": "e9df398bbd84d4e00cd0718f3c4a03289cc89f7f674120b4b5de14bff53553de",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-MATRIX marker, dollar delimiters and literal pmatrix source are readable, including the end marker. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-125-wide-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "bytes": 69296,
+          "sha256": "6ff723880696d80adb4141f9cfb998509ad10412260d33e9c0acf12fc0931fc1",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FLOW marker and literal Mermaid block are readable, including the Chinese 开始/通过/是/完成 labels. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-125-wide-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "bytes": 69270,
+          "sha256": "4bc8c6bd45c325c71bb84d3f4c09e3ccc9e62c708c83d380e837696de84479d8",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-SEQUENCE marker and literal sequenceDiagram block are readable, including 用户/服务/请求/返回. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-125-wide-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "bytes": 56626,
+          "sha256": "d318a362bbbcf8efe0ca7439c5594cbea83a94b8a3dcb69ea88993d8a4b8c1ba",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-PIE marker and literal pie block are readable, including 分布 and the 甲:2 / 乙:1 values. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-125-wide-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "bytes": 66627,
+          "sha256": "0078b8c3b7153eaedab4dbbfb1796dcd04eeaac11649ce11cc20bfa96bb43409",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FOOTNOTES marker, both literal reference markers and the definition with 中文/强调/Unicode 保留 are readable. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-125-wide-footnotes-webview.png",
+          "kind": "webview",
+          "sample": "footnotes",
+          "bytes": 62498,
+          "sha256": "0a49d299bdfe57099cb58b7381e7e05540aa84b649b1b1545bfa8f39291800d4",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FOOTNOTES marker, both literal reference markers and the definition with 中文/强调/Unicode 保留 are readable. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture. Visually matches the app region in its paired X11 image."
+        }
+      ],
+      "observation": "Light background, dark readable source text, green selection. Header, menu and status bar scale with the editor. Status text 717 字符 / 已保存 is visible. No missing-glyph boxes or target-marker obstruction observed."
+    },
+    {
+      "key": "ordinary-source-light-125-narrow",
+      "completionRecord": {
+        "name": "matrix-complete-ordinary-source-light-125-narrow",
+        "at": "2026-10-16T08:13:08.248Z"
+      },
+      "x11ImagesViewed": 6,
+      "images": [
+        {
+          "file": "matrix-ordinary-source-light-125-narrow-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "bytes": 50937,
+          "sha256": "2fce2a60823e702badd2ffde48171ff03c96b8761bc5a9a324f75628d91b0d9c",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-ROOT marker and literal TeX source are readable; formula line fits in the visible editor width. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-125-narrow-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "bytes": 50895,
+          "sha256": "69fa6916443dba8b1484ef688d8728e95f55233300370daf19f587fc0f7298fb",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-MATRIX marker, dollar delimiters and literal pmatrix source are readable, including the end marker. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-125-narrow-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "bytes": 49802,
+          "sha256": "2e36fea349b8f08af92f02d0c5b37ba599005614acca9567bb69a828a0b00961",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FLOW marker and literal Mermaid block are readable, including the Chinese 开始/通过/是/完成 labels. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-125-narrow-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "bytes": 46700,
+          "sha256": "47cfed94fd4d471ca5ee983834f9f0d1a38e6d312dfe0764577c9ccc60332789",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-SEQUENCE marker and literal sequenceDiagram block are readable, including 用户/服务/请求/返回. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-125-narrow-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "bytes": 43936,
+          "sha256": "e28d3cb01bb97c3c63752db4fc84b739df7e9fa061cbe2e1e4e2dd72ee0b82e2",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-PIE marker and literal pie block are readable, including 分布 and the 甲:2 / 乙:1 values. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-125-narrow-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "bytes": 53183,
+          "sha256": "c867bb7fab88c9550465b48ebb97e05e10e99eb0706b8a668f9b29a3abc632eb",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FOOTNOTES marker, both literal reference markers and the definition with 中文/强调/Unicode 保留 are readable. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        }
+      ],
+      "observation": "Light background, dark readable source text, green selection. Header, menu and status bar scale with the editor. Status text 717 字符 / 已保存 is visible. No missing-glyph boxes or target-marker obstruction observed."
+    },
+    {
+      "key": "ordinary-source-light-150-wide",
+      "completionRecord": {
+        "name": "matrix-complete-ordinary-source-light-150-wide",
+        "at": "2026-10-16T08:13:29.334Z"
+      },
+      "x11ImagesViewed": 6,
+      "images": [
+        {
+          "file": "matrix-ordinary-source-light-150-wide-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "bytes": 70177,
+          "sha256": "a32a06cb76fdbc7649d92904cd897f28cc12f320244950bbde2499bb20299340",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-ROOT marker and literal TeX source are readable; formula line fits in the visible editor width. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-150-wide-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "bytes": 70186,
+          "sha256": "b191ab0644ddda1381bc9a098ff0c17c32c0426c27d6328a3e620220d75c8a8a",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-MATRIX marker, dollar delimiters and literal pmatrix source are readable, including the end marker. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-150-wide-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "bytes": 70154,
+          "sha256": "a7f89893c19554bd2f1fa18c194ac9c95b3a150d3aad76537fd5ccd9757db32d",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FLOW marker and literal Mermaid block are readable, including the Chinese 开始/通过/是/完成 labels. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-150-wide-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "bytes": 65920,
+          "sha256": "5b868dfbf85d6197f10db66e9ca3ad456b22ae39a96946df17f78473a47ef4b3",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-SEQUENCE marker and literal sequenceDiagram block are readable, including 用户/服务/请求/返回. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-150-wide-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "bytes": 60066,
+          "sha256": "cfcd84813a3772112b8fd7967412ba06080f25b8274028fe3075b72f595774c7",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-PIE marker and literal pie block are readable, including 分布 and the 甲:2 / 乙:1 values. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-150-wide-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "bytes": 69184,
+          "sha256": "bfc800e1196f0caac1a3ec8fe1d21927ac53f5c8c406aa295256bc77d19864a7",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FOOTNOTES marker, both literal reference markers and the definition with 中文/强调/Unicode 保留 are readable. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        }
+      ],
+      "observation": "Light background, dark readable source text, green selection. Header, menu and status bar scale with the editor. Status text 717 字符 / 已保存 is visible. No missing-glyph boxes or target-marker obstruction observed."
+    },
+    {
+      "key": "ordinary-source-light-150-narrow",
+      "completionRecord": {
+        "name": "matrix-complete-ordinary-source-light-150-narrow",
+        "at": "2026-10-16T08:13:46.079Z"
+      },
+      "x11ImagesViewed": 6,
+      "images": [
+        {
+          "file": "matrix-ordinary-source-light-150-narrow-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "bytes": 50469,
+          "sha256": "52032367f600d51d53f6127dd8979fad6c7fcbc6013cd1c04f265cedc89defce",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-ROOT marker and literal TeX source are readable; formula line fits in the visible editor width. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-150-narrow-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "bytes": 56810,
+          "sha256": "d83e7b4db5cd788f46c40c9787eacad8fa9d53e1c70d87d7e5bacb6ce26ff771",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-MATRIX marker, dollar delimiters and literal pmatrix source are readable, including the end marker. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-150-narrow-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "bytes": 49311,
+          "sha256": "5f3e711e61442011a489f86d6b5ed1249f5d9844c4b7faf9eac6b7ab598a8ad5",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FLOW marker and literal Mermaid block are readable, including the Chinese 开始/通过/是/完成 labels. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-150-narrow-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "bytes": 46340,
+          "sha256": "a1aab41104c4c6e2b3f1410b86759bf58fd22a359b1fa34eb7a96812f877089c",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-SEQUENCE marker and literal sequenceDiagram block are readable, including 用户/服务/请求/返回. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-150-narrow-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "bytes": 40840,
+          "sha256": "6c84bdad3b3423264802ba428850390fe5479ecdfe652160dc8ee3cc0f3c8e3f",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-PIE marker and literal pie block are readable, including 分布 and the 甲:2 / 乙:1 values. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-150-narrow-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "bytes": 58937,
+          "sha256": "78f17d10c3a39f853b4b29b365699a0f3c214d1044afb8141db4940f6adbb7f8",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FOOTNOTES marker, both literal reference markers and the definition with 中文/强调/Unicode 保留 are readable. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-150-narrow-footnotes-webview.png",
+          "kind": "webview",
+          "sample": "footnotes",
+          "bytes": 52617,
+          "sha256": "eaf93fb073872109dbda916c3101d7fbc43a15be77848ced505ac1d1dc0485b5",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FOOTNOTES marker, both literal reference markers and the definition with 中文/强调/Unicode 保留 are readable. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture. Visually matches the app region in its paired X11 image."
+        }
+      ],
+      "observation": "Light background, dark readable source text, green selection. Header, menu and status bar scale with the editor. Status text 717 字符 / 已保存 is visible. No missing-glyph boxes or target-marker obstruction observed. The long header path is ellipsized."
+    },
+    {
+      "key": "ordinary-source-light-200-wide",
+      "completionRecord": {
+        "name": "matrix-complete-ordinary-source-light-200-wide",
+        "at": "2026-10-16T08:14:09.341Z"
+      },
+      "x11ImagesViewed": 6,
+      "images": [
+        {
+          "file": "matrix-ordinary-source-light-200-wide-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "bytes": 77349,
+          "sha256": "7b7d834c8385ba8a3a56819e4e906f37dea46ceea0680344305693fc0c83ecb3",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-ROOT marker and literal TeX source are readable; formula line fits in the visible editor width. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-200-wide-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "bytes": 81858,
+          "sha256": "443ff4859c2e1705de167fb1f7a2170a3ab3e951035ea9db205cd784b51963cd",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-MATRIX marker, dollar delimiters and literal pmatrix source are readable, including the end marker. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-200-wide-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "bytes": 71739,
+          "sha256": "619012c2421a0ed24a6274acb65990196925e45f568273678b1f14fcd3df74d1",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FLOW marker and literal Mermaid block are readable, including the Chinese 开始/通过/是/完成 labels. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-200-wide-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "bytes": 69971,
+          "sha256": "ce673a3bf5400976bc9be2158c7df97f5b7afde4518f68eea691991f3403c820",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-SEQUENCE marker and literal sequenceDiagram block are readable, including 用户/服务/请求/返回. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-200-wide-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "bytes": 62633,
+          "sha256": "7eb295cc12c8993a2d83afce6c711b58e6f99139ea8dd39b756fedd4d89eefa3",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-PIE marker and literal pie block are readable, including 分布 and the 甲:2 / 乙:1 values. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-200-wide-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "bytes": 81166,
+          "sha256": "a13da52df69ac3cf4c22e7486a17c66c868275526ee1ab45c339e2a0fdc095e9",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FOOTNOTES marker, both literal reference markers and the definition with 中文/强调/Unicode 保留 are readable. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        }
+      ],
+      "observation": "Light background, dark readable source text, green selection. Header, menu and status bar scale with the editor. Status text 717 字符 / 已保存 is visible. No missing-glyph boxes or target-marker obstruction observed."
+    },
+    {
+      "key": "ordinary-source-light-200-narrow",
+      "completionRecord": {
+        "name": "matrix-complete-ordinary-source-light-200-narrow",
+        "at": "2026-10-16T08:14:26.367Z"
+      },
+      "x11ImagesViewed": 6,
+      "images": [
+        {
+          "file": "matrix-ordinary-source-light-200-narrow-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "bytes": 53893,
+          "sha256": "13a41f021d71a6f859c04a2482e63e91979c943c037ad0eb496d5a604862ec72",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-ROOT marker is fully visible. The long literal formula line extends past the right editor edge; its far-right end is not visible. A horizontal scrollbar is visible above the status bar. This image does not establish tail reachability and is not evidence of math-render failure or data loss. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-200-narrow-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "bytes": 46612,
+          "sha256": "9e5c1faad2b948300122e5c90a0a0307efa972d623bcdf8ec8386d5cb876a7b5",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-MATRIX marker, dollar delimiters and literal pmatrix source are readable, including the end marker. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-200-narrow-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "bytes": 46662,
+          "sha256": "c244f0d5f00d08c50d95b1e8dc49cb35ebbba829f356f9a79caae4644e6433f9",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FLOW marker and literal Mermaid block are readable, including the Chinese 开始/通过/是/完成 labels. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-200-narrow-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "bytes": 49546,
+          "sha256": "75105cefac020aa32d16a98485ec3efaa911832092ee408fdc14565e8860fba5",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-SEQUENCE marker and literal sequenceDiagram block are readable, including 用户/服务/请求/返回. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-200-narrow-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "bytes": 32372,
+          "sha256": "95f5dc904809779d22eef4469b1d13db326c17caf63468ceedeaf80278da5ce1",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-PIE marker and literal pie block are readable, including 分布 and the 甲:2 / 乙:1 values. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-200-narrow-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "bytes": 62833,
+          "sha256": "aa912761d63359be68340b80ab9fccdad68d96c61e17e2f7dc71aa8c31c03523",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FOOTNOTES marker, both literal reference markers and the definition with 中文/强调/Unicode 保留 are readable. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-light-200-narrow-root-webview.png",
+          "kind": "webview",
+          "sample": "root",
+          "bytes": 47817,
+          "sha256": "c34c0320672b39ac1ac25a41a96785f96e7d080dc6a641741f07c07f91ebbeba",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-ROOT marker is fully visible. The long literal formula line extends past the right editor edge; its far-right end is not visible. A horizontal scrollbar is visible above the status bar. This image does not establish tail reachability and is not evidence of math-render failure or data loss. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture. Visually matches the app region in its paired X11 image."
+        }
+      ],
+      "observation": "Light background, dark readable source text, green selection. Header, menu and status bar scale with the editor. Status text 717 字符 / 已保存 is visible. No missing-glyph boxes or target-marker obstruction observed. The long header path is ellipsized. Root formula source overflows horizontally with a visible scrollbar; the other five selected targets remain readable within this viewport."
+    },
+    {
+      "key": "ordinary-source-dark-100-wide",
+      "completionRecord": {
+        "name": "matrix-complete-ordinary-source-dark-100-wide",
+        "at": "2026-10-16T08:14:48.468Z"
+      },
+      "x11ImagesViewed": 6,
+      "images": [
+        {
+          "file": "matrix-ordinary-source-dark-100-wide-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "bytes": 57180,
+          "sha256": "6bec545d41c18a46aba4c0a178d1335439b342cd6052aa052d1f05d51e6c8f0c",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-ROOT marker and literal TeX source are readable; formula line fits in the visible editor width. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-100-wide-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "bytes": 57207,
+          "sha256": "e1fd0ab0636c03c0a80c5938a4a493f106e0948186c71b65325e72c4f489a075",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-MATRIX marker, dollar delimiters and literal pmatrix source are readable, including the end marker. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-100-wide-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "bytes": 57223,
+          "sha256": "232b3bd4cf1109c1e828038b9c9a26a57dc0256604967300c809ae66c7376753",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FLOW marker and literal Mermaid block are readable, including the Chinese 开始/通过/是/完成 labels. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-100-wide-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "bytes": 57187,
+          "sha256": "9f21314661597d9d79210e634ab6d0eda541a9316941edba8a521f037509d4ca",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-SEQUENCE marker and literal sequenceDiagram block are readable, including 用户/服务/请求/返回. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-100-wide-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "bytes": 56721,
+          "sha256": "ff0d822bfa398ea73c6ffdb3483237b43fcf60eb3c7813a48572179c58a9c72e",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-PIE marker and literal pie block are readable, including 分布 and the 甲:2 / 乙:1 values. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-100-wide-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "bytes": 59894,
+          "sha256": "e7dc1832b1ac75762c11674ea70f204f2c0d16f9b79a1440ea839db7983de875",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FOOTNOTES marker, both literal reference markers and the definition with 中文/强调/Unicode 保留 are readable. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        }
+      ],
+      "observation": "Dark background, light readable source text, green selection. Header, menu and status bar scale with the editor. Status text 717 字符 / 已保存 is visible. No missing-glyph boxes or target-marker obstruction observed."
+    },
+    {
+      "key": "ordinary-source-dark-100-narrow",
+      "completionRecord": {
+        "name": "matrix-complete-ordinary-source-dark-100-narrow",
+        "at": "2026-10-16T08:15:06.314Z"
+      },
+      "x11ImagesViewed": 6,
+      "images": [
+        {
+          "file": "matrix-ordinary-source-dark-100-narrow-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "bytes": 45111,
+          "sha256": "94e7c2db46f66a1f2d4950f8c0142d40a5379c17d8e62299ae48e22529a94e3b",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-ROOT marker and literal TeX source are readable; formula line fits in the visible editor width. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-100-narrow-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "bytes": 45106,
+          "sha256": "7c06dde633aa214df35efce6c4d7c1684a0b92bdcf0a8dbd58e84b1fec8f89eb",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-MATRIX marker, dollar delimiters and literal pmatrix source are readable, including the end marker. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-100-narrow-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "bytes": 44941,
+          "sha256": "635b485ca71aa6d31a1c1a765991580161282977335811ea0dada243f4ebbdde",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FLOW marker and literal Mermaid block are readable, including the Chinese 开始/通过/是/完成 labels. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-100-narrow-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "bytes": 40740,
+          "sha256": "0ad095dd6563f5bf229813de40c8bd2845beb968585f457757e371f13271e787",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-SEQUENCE marker and literal sequenceDiagram block are readable, including 用户/服务/请求/返回. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-100-narrow-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "bytes": 38657,
+          "sha256": "af7130dcce292eb0b2a67e4215ae673ca7b910f93e5cff1e94089a758c53a304",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-PIE marker and literal pie block are readable, including 分布 and the 甲:2 / 乙:1 values. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-100-narrow-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "bytes": 43955,
+          "sha256": "c2d7fd9a74dfdb1286e7682ff2e08713d4b7e30329c1627162363a8db7a850c8",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FOOTNOTES marker, both literal reference markers and the definition with 中文/强调/Unicode 保留 are readable. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-100-narrow-footnotes-webview.png",
+          "kind": "webview",
+          "sample": "footnotes",
+          "bytes": 38703,
+          "sha256": "154633c7385dc7c0c7c419c57aac2c240a99fd48c36f62b2ec8f46a9e414ec06",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FOOTNOTES marker, both literal reference markers and the definition with 中文/强调/Unicode 保留 are readable. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture. Visually matches the app region in its paired X11 image."
+        }
+      ],
+      "observation": "Dark background, light readable source text, green selection. Header, menu and status bar scale with the editor. Status text 717 字符 / 已保存 is visible. No missing-glyph boxes or target-marker obstruction observed."
+    },
+    {
+      "key": "ordinary-source-dark-125-wide",
+      "completionRecord": {
+        "name": "matrix-complete-ordinary-source-dark-125-wide",
+        "at": "2026-10-16T08:15:28.027Z"
+      },
+      "x11ImagesViewed": 6,
+      "images": [
+        {
+          "file": "matrix-ordinary-source-dark-125-wide-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "bytes": 69972,
+          "sha256": "3beee8b9e01d3fe974acfaa0db85f8da4195a7c732b7df3a8c152ff92481282f",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-ROOT marker and literal TeX source are readable; formula line fits in the visible editor width. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-125-wide-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "bytes": 69974,
+          "sha256": "e52af2c811cb018384a98afbe0c668025bf924f083018211fee2d4fba8311827",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-MATRIX marker, dollar delimiters and literal pmatrix source are readable, including the end marker. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-125-wide-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "bytes": 69964,
+          "sha256": "18feb528ad419992239ebecbcda37037d8279b06f569e2c0957e82960f7aed4b",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FLOW marker and literal Mermaid block are readable, including the Chinese 开始/通过/是/完成 labels. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-125-wide-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "bytes": 69938,
+          "sha256": "29d2887af5d22d95d158aa1f45958446dccc031d89079f4eef65996f63b3ba21",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-SEQUENCE marker and literal sequenceDiagram block are readable, including 用户/服务/请求/返回. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-125-wide-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "bytes": 57242,
+          "sha256": "082be31e7ffd27c9bb6ec554ebe5c38b04e85967226e7399a7dd6da6b2fc7ede",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-PIE marker and literal pie block are readable, including 分布 and the 甲:2 / 乙:1 values. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-125-wide-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "bytes": 67130,
+          "sha256": "5b13e97a7e4bfaa5f1472d458a876b56ead71a60fb51a6b43df9d88ef2f1c6b4",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FOOTNOTES marker, both literal reference markers and the definition with 中文/强调/Unicode 保留 are readable. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-125-wide-footnotes-webview.png",
+          "kind": "webview",
+          "sample": "footnotes",
+          "bytes": 63098,
+          "sha256": "16565850c21d2ddf94efd902eaa4bb0414b7fb1596bc02f3d2ecd0050da90194",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FOOTNOTES marker, both literal reference markers and the definition with 中文/强调/Unicode 保留 are readable. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture. Visually matches the app region in its paired X11 image."
+        }
+      ],
+      "observation": "Dark background, light readable source text, green selection. Header, menu and status bar scale with the editor. Status text 717 字符 / 已保存 is visible. No missing-glyph boxes or target-marker obstruction observed."
+    },
+    {
+      "key": "ordinary-source-dark-125-narrow",
+      "completionRecord": {
+        "name": "matrix-complete-ordinary-source-dark-125-narrow",
+        "at": "2026-10-16T08:15:46.855Z"
+      },
+      "x11ImagesViewed": 6,
+      "images": [
+        {
+          "file": "matrix-ordinary-source-dark-125-narrow-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "bytes": 51702,
+          "sha256": "9bd1f84c4247998d72b4c0f1f579e56a1f1f7bce50995b777d6ebc2201c52c0c",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-ROOT marker and literal TeX source are readable; formula line fits in the visible editor width. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-125-narrow-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "bytes": 51642,
+          "sha256": "0fff678e5deab3ed4492ab6154871e2652a05995e5cbec98e30ae17a935e06d1",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-MATRIX marker, dollar delimiters and literal pmatrix source are readable, including the end marker. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-125-narrow-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "bytes": 50871,
+          "sha256": "112e379bdf8c0b4f9fefb47b295c95436bb1668d98fc73b984c2927952920101",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FLOW marker and literal Mermaid block are readable, including the Chinese 开始/通过/是/完成 labels. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-125-narrow-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "bytes": 47164,
+          "sha256": "5a8c4e22552a7fecd1ddf17e00a28dfc963696a9ed57a741ce4bf9580c55e6dd",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-SEQUENCE marker and literal sequenceDiagram block are readable, including 用户/服务/请求/返回. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-125-narrow-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "bytes": 44414,
+          "sha256": "918afbc67529d9bfd966916bf16ace100e150486eba88a142261d72198e4dde0",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-PIE marker and literal pie block are readable, including 分布 and the 甲:2 / 乙:1 values. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-125-narrow-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "bytes": 53763,
+          "sha256": "0e5abff5c977aaf7f756667b2267819195c42f2c889ec6b3df5014eb7ea9d91e",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FOOTNOTES marker, both literal reference markers and the definition with 中文/强调/Unicode 保留 are readable. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        }
+      ],
+      "observation": "Dark background, light readable source text, green selection. Header, menu and status bar scale with the editor. Status text 717 字符 / 已保存 is visible. No missing-glyph boxes or target-marker obstruction observed."
+    },
+    {
+      "key": "ordinary-source-dark-150-wide",
+      "completionRecord": {
+        "name": "matrix-complete-ordinary-source-dark-150-wide",
+        "at": "2026-10-16T08:16:11.605Z"
+      },
+      "x11ImagesViewed": 6,
+      "images": [
+        {
+          "file": "matrix-ordinary-source-dark-150-wide-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "bytes": 70783,
+          "sha256": "69fe0fc43263423c8295c74e9edc3c0645c62f84b805db973ba36f13acc73e23",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-ROOT marker and literal TeX source are readable; formula line fits in the visible editor width. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-150-wide-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "bytes": 70771,
+          "sha256": "4906911ce95bf28350fca97553fb504c460d49dc8aa488d31940e29125edad30",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-MATRIX marker, dollar delimiters and literal pmatrix source are readable, including the end marker. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-150-wide-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "bytes": 70769,
+          "sha256": "b8eb02f3781928e96f152282dd407d3df43571282707e45d878bfd66b256bf11",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FLOW marker and literal Mermaid block are readable, including the Chinese 开始/通过/是/完成 labels. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-150-wide-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "bytes": 66345,
+          "sha256": "38f03321a9c59c7f604375a9cc171607ee235e7f2e4fc898800b4e427e70cd83",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-SEQUENCE marker and literal sequenceDiagram block are readable, including 用户/服务/请求/返回. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-150-wide-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "bytes": 60393,
+          "sha256": "fa0869971e58a0d857188cac2f35890e21aef48456e255815bc919c225d0adf4",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-PIE marker and literal pie block are readable, including 分布 and the 甲:2 / 乙:1 values. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-150-wide-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "bytes": 69631,
+          "sha256": "ab2e3174929a7a7a98ea01bb8277367abbde9955e11eb670c62860d5ab7f241f",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FOOTNOTES marker, both literal reference markers and the definition with 中文/强调/Unicode 保留 are readable. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        }
+      ],
+      "observation": "Dark background, light readable source text, green selection. Header, menu and status bar scale with the editor. Status text 717 字符 / 已保存 is visible. No missing-glyph boxes or target-marker obstruction observed."
+    },
+    {
+      "key": "ordinary-source-dark-150-narrow",
+      "completionRecord": {
+        "name": "matrix-complete-ordinary-source-dark-150-narrow",
+        "at": "2026-10-16T08:16:31.410Z"
+      },
+      "x11ImagesViewed": 6,
+      "images": [
+        {
+          "file": "matrix-ordinary-source-dark-150-narrow-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "bytes": 51183,
+          "sha256": "1de1bca075368d06ff75e9d5c2dc70bcf27c72c4feb9588a0c48b464464a3103",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-ROOT marker and literal TeX source are readable; formula line fits in the visible editor width. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-150-narrow-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "bytes": 57523,
+          "sha256": "c3a0256f7f01c0a7f40a145bd7d9e473593fdb34539b41691d3b55a17be329b7",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-MATRIX marker, dollar delimiters and literal pmatrix source are readable, including the end marker. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-150-narrow-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "bytes": 49947,
+          "sha256": "4caaa93929e138d08381cdc6c7df4c1464cc664681866538c7e940453ee02e35",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FLOW marker and literal Mermaid block are readable, including the Chinese 开始/通过/是/完成 labels. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-150-narrow-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "bytes": 46823,
+          "sha256": "212e17af5ac269930192c996d329cc758f307073c08d89eac99e5f8b937c0e8d",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-SEQUENCE marker and literal sequenceDiagram block are readable, including 用户/服务/请求/返回. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-150-narrow-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "bytes": 41110,
+          "sha256": "7c5ee47ccc8f980f420c843a729b2f93f16a1233bd22366908a81d36a737cf30",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-PIE marker and literal pie block are readable, including 分布 and the 甲:2 / 乙:1 values. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-150-narrow-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "bytes": 59573,
+          "sha256": "11614dfceac25e5948d861246f5392c5fa7d29b0e62a43f68c06d8f5db6bc946",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FOOTNOTES marker, both literal reference markers and the definition with 中文/强调/Unicode 保留 are readable. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-150-narrow-footnotes-webview.png",
+          "kind": "webview",
+          "sample": "footnotes",
+          "bytes": 53192,
+          "sha256": "77e42f4c9e9051ae7695d053947d1c824a7ac8d9fb72724642347529f09b7d8f",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FOOTNOTES marker, both literal reference markers and the definition with 中文/强调/Unicode 保留 are readable. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture. Visually matches the app region in its paired X11 image."
+        }
+      ],
+      "observation": "Dark background, light readable source text, green selection. Header, menu and status bar scale with the editor. Status text 717 字符 / 已保存 is visible. No missing-glyph boxes or target-marker obstruction observed. The long header path is ellipsized."
+    },
+    {
+      "key": "ordinary-source-dark-200-wide",
+      "completionRecord": {
+        "name": "matrix-complete-ordinary-source-dark-200-wide",
+        "at": "2026-10-16T08:16:53.985Z"
+      },
+      "x11ImagesViewed": 6,
+      "images": [
+        {
+          "file": "matrix-ordinary-source-dark-200-wide-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "bytes": 79248,
+          "sha256": "bd46570d54831d365b6afd7d5f737e939652c0ccc12dd54a02e641e3242dee07",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-ROOT marker and literal TeX source are readable; formula line fits in the visible editor width. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-200-wide-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "bytes": 83918,
+          "sha256": "2ec5ac14e723dad145553e7e6de7ee63d522a5a72100e047d762cdf2f2f5c0ef",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-MATRIX marker, dollar delimiters and literal pmatrix source are readable, including the end marker. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-200-wide-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "bytes": 73240,
+          "sha256": "22bb9ba0e84082257d6c1d518218486ba605dc38fb166736efc6946b9d7c5497",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FLOW marker and literal Mermaid block are readable, including the Chinese 开始/通过/是/完成 labels. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-200-wide-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "bytes": 70581,
+          "sha256": "e092e8f70bbd66bedf947ed99a68cfdeee6bad4b29dd5032a63d97a149a0eb99",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-SEQUENCE marker and literal sequenceDiagram block are readable, including 用户/服务/请求/返回. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-200-wide-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "bytes": 63224,
+          "sha256": "a44c7ae9a12db4d8684897fd6a3e70597152288c35cb633f8ebab81af0713d3b",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-PIE marker and literal pie block are readable, including 分布 and the 甲:2 / 乙:1 values. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-200-wide-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "bytes": 82237,
+          "sha256": "800b92531206ec299bb50deca6db099ef357ee829bab75dac308911ecbe431a6",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FOOTNOTES marker, both literal reference markers and the definition with 中文/强调/Unicode 保留 are readable. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        }
+      ],
+      "observation": "Dark background, light readable source text, green selection. Header, menu and status bar scale with the editor. Status text 717 字符 / 已保存 is visible. No missing-glyph boxes or target-marker obstruction observed."
+    },
+    {
+      "key": "ordinary-source-dark-200-narrow",
+      "completionRecord": {
+        "name": "matrix-complete-ordinary-source-dark-200-narrow",
+        "at": "2026-10-16T08:17:11.408Z"
+      },
+      "x11ImagesViewed": 6,
+      "images": [
+        {
+          "file": "matrix-ordinary-source-dark-200-narrow-root-x11.png",
+          "kind": "x11",
+          "sample": "root",
+          "bytes": 55493,
+          "sha256": "e5355c490ad2cf6c50ae89b8dfabb98e645d61daf3b9a81c74bec720cd308a50",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-ROOT marker is fully visible. The long literal formula line extends past the right editor edge; its far-right end is not visible. A horizontal scrollbar is visible above the status bar. This image does not establish tail reachability and is not evidence of math-render failure or data loss. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-200-narrow-matrix-x11.png",
+          "kind": "x11",
+          "sample": "matrix",
+          "bytes": 47758,
+          "sha256": "a40b5866c95271f7719ad1fa92556ea3a859780e8338a439d465a808849b9464",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-MATRIX marker, dollar delimiters and literal pmatrix source are readable, including the end marker. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-200-narrow-flow-x11.png",
+          "kind": "x11",
+          "sample": "flow",
+          "bytes": 47144,
+          "sha256": "bd4bad6aa5b33d3ddf59b59fc532c8d6633e98cc355a1d9612a02aaa2b1e4706",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FLOW marker and literal Mermaid block are readable, including the Chinese 开始/通过/是/完成 labels. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-200-narrow-sequence-x11.png",
+          "kind": "x11",
+          "sample": "sequence",
+          "bytes": 50131,
+          "sha256": "091b0f2082616f687ce2674fbb83be26f94ed5d489eac3fd95730d18859e7ef4",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-SEQUENCE marker and literal sequenceDiagram block are readable, including 用户/服务/请求/返回. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-200-narrow-pie-x11.png",
+          "kind": "x11",
+          "sample": "pie",
+          "bytes": 32717,
+          "sha256": "0abcbfca1ae8b831e1f032d0808ef422799148e46f32a3450d2ec207b76156ad",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-PIE marker and literal pie block are readable, including 分布 and the 甲:2 / 乙:1 values. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-200-narrow-footnotes-x11.png",
+          "kind": "x11",
+          "sample": "footnotes",
+          "bytes": 63651,
+          "sha256": "e4ad86b789d645b089bde0d2836160f260ce7b016c4e2ff3cb425a6254eadb4b",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-FOOTNOTES marker, both literal reference markers and the definition with 中文/强调/Unicode 保留 are readable. No horizontal clipping of this target was observed. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture."
+        },
+        {
+          "file": "matrix-ordinary-source-dark-200-narrow-root-webview.png",
+          "kind": "webview",
+          "sample": "root",
+          "bytes": 49344,
+          "sha256": "faf104b0c3800e160971b1a4b73182b719d23454695a1a132f3cc6c75eec3583",
+          "actuallyViewed": true,
+          "method": "view_image of original PNG; direct pixel inspection, not inferred from DOM, geometry or JSON",
+          "finding": "Selected SAMPLE-ROOT marker is fully visible. The long literal formula line extends past the right editor edge; its far-right end is not visible. A horizontal scrollbar is visible above the status bar. This image does not establish tail reachability and is not evidence of math-render failure or data loss. Adjacent off-target lines may be cut at the vertical editor boundary; this is a local viewport capture. Visually matches the app region in its paired X11 image."
+        }
+      ],
+      "observation": "Dark background, light readable source text, green selection. Header, menu and status bar scale with the editor. Status text 717 字符 / 已保存 is visible. No missing-glyph boxes or target-marker obstruction observed. The long header path is ellipsized. Root formula source overflows horizontally with a visible scrollbar; the other five selected targets remain readable within this viewport."
+    }
+  ]
+}

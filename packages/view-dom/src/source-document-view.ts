@@ -217,11 +217,36 @@ export class SourceDocumentView {
   private searchHighlights: readonly SearchHighlight[] = Object.freeze([])
   private activeSearchHighlightIndex = -1
   private scrollAnchor: { readonly scrollTop: number } | undefined
+  private handledScroll:
+    | {
+        top: number
+        left: number
+        width: number
+        height: number
+        source: EditorDocumentSource
+        version: number
+        mode: ViewMode
+        editRevision: number
+      }
+    | undefined
   private readonly handleScrollEvent = (): void => {
     const anchor = this.scrollAnchor
+    const position = {
+      top: this.dom.scrollTop,
+      left: this.dom.scrollLeft,
+      width: this.dom.clientWidth,
+      height: this.dom.clientHeight,
+      source: this.currentSource,
+      version: this.currentSource.version,
+      mode: this.mode,
+      editRevision: this.editRevision,
+    }
 
     if (anchor && Math.abs(this.dom.scrollTop - anchor.scrollTop) <= 1) {
       this.scrollAnchor = undefined
+      // The navigation owner can still fail its read. Do not mark its pending
+      // position as handled: a later scroll must remain able to retry it.
+      this.handledScroll = undefined
       // scrollToLine already owns the target render, even if its read is still
       // pending. Rebuilding it here duplicates DOM/layout work. A changed
       // scroll position below still renders a real user scroll normally.
@@ -229,7 +254,26 @@ export class SourceDocumentView {
     }
 
     this.scrollAnchor = undefined
-    void this.renderVisibleWindow()
+    const previous = this.handledScroll
+    if (
+      previous &&
+      previous.top === position.top &&
+      previous.left === position.left &&
+      previous.width === position.width &&
+      previous.height === position.height &&
+      previous.source === position.source &&
+      previous.version === position.version &&
+      previous.mode === position.mode &&
+      previous.editRevision === position.editRevision
+    )
+      return
+    // Layout can emit another outer scroll at the same position while restoring
+    // preview height. Suppress it before the asynchronous window read begins.
+    this.handledScroll = position
+    void this.renderVisibleWindow().catch((error: unknown) => {
+      if (this.handledScroll === position) this.handledScroll = undefined
+      throw error
+    })
   }
   private readonly handleInputEvent = (): void => {
     void this.trackVisibleEditTask(() => this.readInputProxy())

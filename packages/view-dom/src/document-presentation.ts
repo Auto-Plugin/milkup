@@ -175,6 +175,24 @@ interface SavedLine {
   readonly display: string
   readonly minHeight: string
 }
+interface PaintContext {
+  readonly mode: PresentationSnapshot['mode']
+  readonly sourceIdentity: object
+  readonly sourceVersion: number
+  readonly documentVersion: number | undefined
+  readonly config: DocumentPresentationConfig | undefined
+  readonly selection: { readonly anchor: number; readonly head: number }
+}
+interface PreviewScroll {
+  readonly context: PaintContext
+  readonly positions: ReadonlyMap<
+    string,
+    { readonly fragment: DocumentPresentationFragment; readonly top: number; readonly left: number }
+  >
+}
+function fragmentKey(fragment: DocumentPresentationFragment): string {
+  return `${fragment.layout}:${fragment.from}:${fragment.to}`
+}
 interface Job {
   readonly key: string
   readonly identity: object
@@ -195,7 +213,12 @@ export class DocumentPresentation {
   private cache:
     { key: string; identity: object; response: DocumentPresentationResponse } | undefined
   private painted:
-    | { response: DocumentPresentationResponse; selection: string; lines: readonly Element[] }
+    | {
+        response: DocumentPresentationResponse
+        context: PaintContext
+        selection: string
+        lines: readonly Element[]
+      }
     | undefined
   private failedKey: string | undefined
   private retryAfter = 0
@@ -853,6 +876,7 @@ export class DocumentPresentation {
       line: anchor.line.dataset.line,
     }
     const focus = this.captureFocus()
+    const previewScroll = this.capturePreviewScroll()
     update()
     const current = () => {
       const latest = this.snapshot()
@@ -897,7 +921,10 @@ export class DocumentPresentation {
         )
         if (replacement) this.restoreScrollAnchor({ line: replacement, top: anchor.top })
       }
-      if (current() && reusable && this.cache === cache) this.restoreFocus(focus)
+      if (current() && reusable && this.cache === cache) {
+        this.restoreFocus(focus)
+        this.restorePreviewScroll(previewScroll, cache.response)
+      }
     }
     return measured
   }
@@ -1027,11 +1054,13 @@ export class DocumentPresentation {
   }
   private paint(response: DocumentPresentationResponse): void {
     if (this.painting) return
-    const currentSelection = this.snapshot().selection
+    const context = this.paintContext()
+    const currentSelection = context.selection
     const selectionKey = `${currentSelection.anchor}:${currentSelection.head}`
     const childLines = Array.from(this.content.children)
     if (
       this.painted?.response === response &&
+      this.samePaintContext(this.painted.context, context) &&
       this.painted.selection === selectionKey &&
       childLines.length === this.painted.lines.length &&
       childLines.every((line, index) => line === this.painted!.lines[index])
@@ -1041,6 +1070,7 @@ export class DocumentPresentation {
     this.observer.disconnect()
     const anchor = this.captureScrollAnchor(currentSelection)
     const focus = this.captureFocus()
+    const previewScroll = this.capturePreviewScroll()
     this.restore()
     this.observer.disconnect()
     try {
@@ -1140,10 +1170,82 @@ export class DocumentPresentation {
       this.layout()
       this.restoreScrollAnchor(anchor)
       this.restoreFocus(focus)
-      this.painted = { response, selection: selectionKey, lines: childLines }
+      this.restorePreviewScroll(previewScroll, response)
+      this.painted = { response, context, selection: selectionKey, lines: childLines }
     } finally {
       this.painting = false
       this.observe()
+    }
+  }
+  private paintContext(): PaintContext {
+    const snapshot = this.snapshot()
+    return {
+      mode: snapshot.mode,
+      sourceIdentity: snapshot.sourceIdentity,
+      sourceVersion: snapshot.sourceVersion,
+      documentVersion: snapshot.documentVersion,
+      config: this.config,
+      selection: { ...snapshot.selection },
+    }
+  }
+  private samePaintContext(a: PaintContext, b: PaintContext): boolean {
+    return (
+      a.mode === b.mode &&
+      a.sourceIdentity === b.sourceIdentity &&
+      a.sourceVersion === b.sourceVersion &&
+      a.documentVersion === b.documentVersion &&
+      a.config === b.config &&
+      sameSelection(a.selection, b.selection)
+    )
+  }
+  /** Keep offsets only within this synchronous replacement, never across documents or edits. */
+  private capturePreviewScroll(): PreviewScroll | undefined {
+    const painted = this.painted
+    if (!painted || !this.samePaintContext(painted.context, this.paintContext())) return
+    const fragments = new Map(
+      painted.response.result.fragments.map((fragment) => [fragmentKey(fragment), fragment]),
+    )
+    const positions = new Map<
+      string,
+      { fragment: DocumentPresentationFragment; top: number; left: number }
+    >()
+    for (const node of Array.from(
+      this.content.querySelectorAll<HTMLElement>('[data-document-presentation]'),
+    )) {
+      if (positions.size >= DOCUMENT_PRESENTATION_LIMITS.fragments) break
+      if (node.scrollTop === 0 && node.scrollLeft === 0) continue
+      const key = `${node.dataset.documentPresentation}:${node.dataset.presentationFrom}:${node.dataset.presentationTo}`
+      const fragment = fragments.get(key)
+      if (fragment && fragment.status !== 'error')
+        positions.set(key, { fragment, top: node.scrollTop, left: node.scrollLeft })
+    }
+    return positions.size ? { context: painted.context, positions } : undefined
+  }
+  private restorePreviewScroll(
+    saved: PreviewScroll | undefined,
+    response: DocumentPresentationResponse,
+  ): void {
+    if (!saved || !this.samePaintContext(saved.context, this.paintContext())) return
+    const fragments = new Map(
+      response.result.fragments.map((fragment) => [fragmentKey(fragment), fragment]),
+    )
+    for (const node of Array.from(
+      this.content.querySelectorAll<HTMLElement>('[data-document-presentation]'),
+    )) {
+      const key = `${node.dataset.documentPresentation}:${node.dataset.presentationFrom}:${node.dataset.presentationTo}`
+      const position = saved.positions.get(key)
+      const fragment = fragments.get(key)
+      if (
+        !position ||
+        !fragment ||
+        fragment.status === 'error' ||
+        (fragment !== position.fragment &&
+          JSON.stringify(fragment) !== JSON.stringify(position.fragment))
+      )
+        continue
+      // Native scrolling clamps to the current viewport if its dimensions changed.
+      node.scrollTop = position.top
+      node.scrollLeft = position.left
     }
   }
   private preview(
