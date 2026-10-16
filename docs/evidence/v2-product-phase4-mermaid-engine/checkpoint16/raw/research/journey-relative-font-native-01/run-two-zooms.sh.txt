@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Only after separate ROOT runtime GO and artifact freeze. No implicit build/retry.
+set -euo pipefail
+root=/workspace/milkup-mermaid-engine-evidence/research/journey-relative-font-native-01
+python3 "$root/run-display.py" 1
+python3 "$root/run-display.py" 2

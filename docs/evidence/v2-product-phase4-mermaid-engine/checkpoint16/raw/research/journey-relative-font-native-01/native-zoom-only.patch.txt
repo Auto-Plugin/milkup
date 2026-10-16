@@ -1,0 +1,30 @@
+--- baseline/paint-main.rs
++++ paint-helper/src/main.rs
+@@ -18,6 +18,7 @@
+  match result {Ok(value)=>value.to_json(0).map(|v|v.to_string()).unwrap_or("null".into()),Err(error)=>json!({"nativeEvaluationError":error.to_string()}).to_string()}
+ }
+ fn main(){
++ let diagnostic_zoom = match std::env::var("MILKUP_PROBE_ZOOM").as_deref() { Ok("1") => 1.0_f64, Ok("2") => 2.0_f64, _ => panic!("explicit research zoom must be 1 or 2") };
+  // Dedicated result FD; forbid inheritance into any subsequently spawned child.
+  let flags=unsafe{libc::fcntl(3,libc::F_GETFD)};assert!(flags>=0,"dedicated fd3 missing");
+  assert_eq!(unsafe{libc::fcntl(3,libc::F_SETFD,flags|libc::FD_CLOEXEC)},0);
+@@ -73,8 +74,8 @@
+   }
+  });
+  let loaded=events.create_proxy();native.connect_load_changed(move|view,event|{if matches!(event,webkit2gtk::LoadEvent::Finished)&&view.uri().as_deref()==Some(URL){let _=loaded.send_event(User::Loaded);}});
+- window.default_vbox().unwrap().add(&native);native.set_size_request(1520,1280);native.set_zoom_level(2.0);native.show();
+- emit(json!({"type":"native-policy","sandbox":context.is_sandbox_enabled(),"ephemeral":native.is_ephemeral(),"tauriBridge":false,"wryIpcStub":false,"javascript":settings.enables_javascript(),"javascriptMarkup":settings.enables_javascript_markup(),"allowedResources":6,"settings":"file/universal/webrtc/media/webgl/storage/dns/windows/devtools denied"}));
++ window.default_vbox().unwrap().add(&native);native.set_size_request(1520,1280);native.set_zoom_level(diagnostic_zoom);native.show();
++ emit(json!({"type":"native-policy","sandbox":context.is_sandbox_enabled(),"ephemeral":native.is_ephemeral(),"tauriBridge":false,"wryIpcStub":false,"javascript":settings.enables_javascript(),"javascriptMarkup":settings.enables_javascript_markup(),"allowedResources":6,"diagnosticZoom":diagnostic_zoom,"settings":"file/universal/webrtc/media/webgl/storage/dns/windows/devtools denied"}));
+  let input=events.create_proxy();std::thread::spawn(move||{
+   let mut reader=io::stdin().lock();
+   loop{let mut bytes=Vec::new();match reader.by_ref().take(131074).read_until(b'\n',&mut bytes){
+@@ -95,7 +96,7 @@
+      let result=match r {Ok(surface)=>{
+       match cairo::ImageSurface::try_from(surface){Ok(image)=>{
+        let mut file=File::create("/profile/journey.png").expect("fixed snapshot path");
+-       match image.write_to_png(&mut file){Ok(())=>json!({"snapshot":true,"width":image.width(),"height":image.height(),"zoom":2.0}),Err(e)=>json!({"snapshotError":e.to_string()})}
++       match image.write_to_png(&mut file){Ok(())=>json!({"snapshot":true,"width":image.width(),"height":image.height(),"zoom":diagnostic_zoom}),Err(e)=>json!({"snapshotError":e.to_string()})}
+       },Err(e)=>json!({"snapshotError":e.to_string()})}
+      },Err(e)=>json!({"snapshotError":e.to_string()})};let _=cb.send_event(User::Result(result.to_string()));
+     });return

@@ -1,0 +1,214 @@
+--- /workspace/milkup-mermaid-engine-evidence/research/product-raster-native-edge/sankey-scroll-v2/supervise-paired-integer.py
++++ supervise.py
+@@ -5,7 +5,7 @@
+ """
+ import shutil
+ import argparse,ctypes,hashlib,json,os,pathlib,selectors,signal,subprocess,time,fcntl
+-ap=argparse.ArgumentParser();ap.add_argument('--output',required=True);ap.add_argument('--case-index',type=int,required=True);ap.add_argument('command',nargs=argparse.REMAINDER);args=ap.parse_args()
++ap=argparse.ArgumentParser();ap.add_argument('--output',required=True);ap.add_argument('--phase',choices=['capture','paint'],required=True);ap.add_argument('command',nargs=argparse.REMAINDER);args=ap.parse_args()
+ cmd=args.command[1:] if args.command and args.command[0]=='--' else args.command
+ if not cmd:raise SystemExit('Command required')
+ out=pathlib.Path(args.output);out.mkdir(parents=True,exist_ok=False)
+@@ -93,8 +93,7 @@
+   if not sel.select(min(left,.1)):
+    remaining=deadline-time.monotonic()
+    if remaining<=0:return None
+-   # Avoid starting optional /proc sampling immediately before the deadline.
+-   if remaining>.2:event('process-sample',members=members())
++   # No optional whole-proc scans while the fixed execution deadline is armed.
+    continue
+   chunk=os.read(result_read,8192)
+   if not chunk:raise RuntimeError('Helper stdout closed')
+@@ -127,114 +126,80 @@
+     assert 'GUARD_DENY milkup-render://job/entry.mjs?guard-check' in (out/'stderr.log').read_text(), 'Native guard denial not observed'
+     results.append({'task':'native-resource-guard','elapsed':time.monotonic()-guard_start,'value':value});break
+    time.sleep(.01)
+-  catalog=json.loads((pathlib.Path(__file__).parent/'paired-cases.json').read_text())
+-  assert 0<=args.case_index<len(catalog)
+-  cases=[catalog[args.case_index]]
+-  for case in cases:
+-   request=case['request'];(out/(request['id']+'-request.json')).write_text(json.dumps(case,ensure_ascii=False,indent=2))
+-   prior_members=members();start=time.monotonic();deadline=start+2
+-   event('native-send',task=request['id'],armedMono=start,deadlineMono=deadline,members=prior_members)
+-   proc.stdin.write((json.dumps({'op':'start','request':request},ensure_ascii=False)+'\n').encode());proc.stdin.flush()
+-   f=frame_before(deadline)
+-   assert f is not None and f.get('type')=='result',f
+-   task_id=f['value']['taskId']
++  event('pre-dispatch-ownership',members=members())
++  root=pathlib.Path(__file__).resolve().parent
++  def command(value,deadline):
++   proc.stdin.write((json.dumps(value,separators=(',',':'))+'\n').encode());proc.stdin.flush()
++   frame=frame_before(deadline)
++   assert frame is not None and frame.get('type')=='result',frame
++   return frame['value']
++  def task(request,label):
++   started=time.monotonic();deadline=started+2
++   event('native-send',task=label,armedMono=started,deadlineMono=deadline)
++   result=command({'op':'start','request':request},deadline);task_id=result['taskId']
+    while True:
+-    proc.stdin.write((json.dumps({'op':'poll','taskId':task_id})+'\n').encode());proc.stdin.flush()
+-    f=frame_before(deadline)
+-    if f is None:
+-     event('native-deadline',task=request['id'],elapsed=time.monotonic()-start)
+-     raise TimeoutError('Actual Mermaid render/conversion/transfer exceeded fixed 2s')
+-    assert f.get('type')=='result',f
+-    value=f['value'];status=value.get('status')
+-    if status=='complete':
+-     result=value['result']
+-     (out/(request['id']+'-result.json')).write_text(json.dumps(result,ensure_ascii=False,indent=2))
+-     assert result.get('ok'),result
+-     assert not result.get('over256KiB'), 'Result exceeds 256KiB'
+-     elapsed=time.monotonic()-start
+-     assert elapsed<2,'Post-parse deadline exceeded'
+-     (out/(request['id']+'-result.json')).write_text(json.dumps(result,ensure_ascii=False,indent=2))
+-     # Converter returns typed AST; original SVG stays in the live helper DOM.
+-     results.append({'task':request['id'],'sampleId':case['sample']['id'],'sourceSha256':case['sample']['sourceSha256'],'profile':request['profile'],'elapsed':elapsed,'serializedBytes':result['serializedBytes'],'diagramType':result.get('diagramType')});
+-     # Observation is a separate bounded operation, never extra render time.
+-     def snapshot(label):
+-      started=time.monotonic();proc.stdin.write(b'{"op":"snapshot"}\n');proc.stdin.flush();f=frame_before(started+2)
+-      assert f and f.get('type')=='result' and f['value'].get('snapshot'),f
+-      source=pathlib.Path(__file__).parent/'profiles'/out.name/'journey.png';target=out/(label+'.png');shutil.copyfile(source,target)
+-      event('paired-snapshot',label=label,elapsed=time.monotonic()-started,sha256=hashlib.sha256(target.read_bytes()).hexdigest(),geometry=f['value'])
+-     def inspect(label,source=False):
+-      started=time.monotonic();proc.stdin.write((json.dumps({'op':'original-source' if source else 'inspect'})+'\n').encode());proc.stdin.flush();f=frame_before(started+2);assert f and f.get('type')=='result',f
+-      value=f['value'];raw=value.pop('svg',None)
+-      if raw is not None:(out/(label+'.svg')).write_text(raw)
+-      (out/(label+'-state.json')).write_text(json.dumps(value,indent=2));event('paired-inspect',label=label,state=value,sourceBytes=len(raw.encode()) if raw else None)
+-     def exercise_scroll(label):
+-      # Public DOM inspection only; scrolling is real XTest wheel input.
+-      env={**os.environ,'DISPLAY':':118'}
+-      def x(*arguments):return subprocess.check_output(['xdotool',*map(str,arguments)],env=env,text=True,timeout=2).strip()
+-      windows=x('search','--onlyvisible','--name','^Isolated DOM mechanism probe$').splitlines()
+-      assert len(windows)==1,windows
+-      window=windows[0]
+-      def state():
+-       started=time.monotonic();proc.stdin.write(b'{"op":"inspect"}\n');proc.stdin.flush();frame=frame_before(started+2)
+-       assert frame and frame.get('type')=='result',frame
+-       return frame['value']
+-      initial=state();viewport=initial['preview'];assert viewport,initial
+-      # Snapshot dimensions/rects use CSS units; native zoom is explicitly supplied.
+-      scale=1
+-      left,top,width,height=viewport['rect']
+-      x('windowfocus','--sync',window)
+-      x('mousemove','--window',window,round((left+width/2)*scale),round((top+height/2)*scale))
+-      operations=[]
+-      for corner,axes in [('bottom-right',[('5','top','scrollHeight','clientHeight'),('7','left','scrollWidth','clientWidth')]),('top-left',[('4','top','scrollHeight','clientHeight'),('6','left','scrollWidth','clientWidth')])]:
+-       for button,axis,scroll,client in axes:
+-        maximum=viewport[scroll]-viewport[client]
+-        target=maximum if corner=='bottom-right' else 0
+-        for attempt in range(30):
+-         current=state()['preview']
+-         if abs(current[axis]-target)<=1:break
+-         x('click','--repeat','3','--delay','35',button);time.sleep(.08)
+-        final=state()['preview']
+-        assert abs(final[axis]-target)<=1,{'axis':axis,'target':target,'actual':final[axis],'label':label}
+-        operations.append({'button':button,'axis':axis,'target':target,'actual':final[axis]})
+-       inspect(label+'-'+corner)
+-       snapshot(label+'-'+corner)
+-      event('native-wheel-edges',label=label,initial=initial,final=state(),operations=operations)
+-
+-     inspect('original-inline',True)
+-     snapshot('original-inline')
+-     started=time.monotonic();deadline=started+2;proc.stdin.write(b'{"op":"control-original"}\n');proc.stdin.flush();f=frame_before(deadline);assert f and f['value'].get('taskId'),f
+-     controlled_id=f['value']['taskId']
+-     while True:
+-      proc.stdin.write((json.dumps({'op':'poll','taskId':controlled_id})+'\n').encode());proc.stdin.flush();f=frame_before(deadline);assert f and f.get('type')=='result',f
+-      state=f['value'];assert state['status'] in ['pending','complete'],state
+-      if state['status']=='complete':assert state['result'].get('ok');break
+-      time.sleep(.01)
+-     inspect('controlled-original')
+-     snapshot('controlled-original')
+-     exercise_scroll('controlled-original')
+-     started=time.monotonic();deadline=started+2;proc.stdin.write(b'{"op":"canonical-inline"}\n');proc.stdin.flush();f=frame_before(deadline);assert f and f['value'].get('taskId'),f
+-     inline_id=f['value']['taskId']
+-     while True:
+-      proc.stdin.write((json.dumps({'op':'poll','taskId':inline_id})+'\n').encode());proc.stdin.flush();f=frame_before(deadline);assert f and f.get('type')=='result',f
+-      state=f['value'];assert state['status'] in ['pending','complete'],state
+-      if state['status']=='complete':assert state['result'].get('ok');break
+-      time.sleep(.01)
+-     inspect('canonical-inline')
+-     snapshot('canonical-inline')
+-     exercise_scroll('canonical-inline')
+-     started=time.monotonic();deadline=started+2;proc.stdin.write(b'{"op":"canonical"}\n');proc.stdin.flush();f=frame_before(deadline);assert f and f['value'].get('taskId'),f
+-     canonical_id=f['value']['taskId']
+-     while True:
+-      proc.stdin.write((json.dumps({'op':'poll','taskId':canonical_id})+'\n').encode());proc.stdin.flush();f=frame_before(deadline);assert f and f.get('type')=='result',f
+-      state=f['value'];assert state['status'] in ['pending','complete'],state
+-      if state['status']=='complete':assert state['result'].get('ok');event('canonical-image-loaded',elapsed=time.monotonic()-started,result=state['result']);break
+-      time.sleep(.01)
+-     inspect('canonical-img')
+-     snapshot('canonical-img')
+-     exercise_scroll('canonical-img')
+-     break
+-    assert status=='pending',value
++    state=command({'op':'poll','taskId':task_id},deadline)
++    assert state['status'] in ['pending','complete'],state
++    if state['status']=='complete':
++     result=state['result'];assert result.get('ok'),result
++     assert time.monotonic()<deadline,'Post-parse deadline exceeded'
++     event('settled',task=label,elapsed=time.monotonic()-started)
++     return result
+     time.sleep(.01)
++  def inspect(label):
++   value=command({'op':'inspect'},time.monotonic()+2)
++   (out/(label+'-state.json')).write_text(json.dumps(value,indent=2)+'\n')
++   return value
++  def snapshot(label):
++   before=inspect(label+'-before-snapshot')
++   value=command({'op':'snapshot'},time.monotonic()+2)
++   assert value.get('snapshot'),value
++   source=root/'profiles'/out.name/'journey.png';target=out/(label+'.png');shutil.copyfile(source,target)
++   after=inspect(label+'-after-snapshot')
++   for field in ['arm','mode','nodeId','rect','currentSrc','complete','naturalWidth','naturalHeight']:
++    assert before.get(field)==after.get(field),('Snapshot identity/geometry changed',field,before,after)
++   if before.get('preview'):
++    for field in ['top','left','scrollWidth','scrollHeight','clientWidth','clientHeight']:
++     assert before['preview'][field]==after['preview'][field],('Snapshot scroll changed',field)
++   event('paired-snapshot',label=label,sha256=hashlib.sha256(target.read_bytes()).hexdigest(),geometry=value,before=before,after=after)
++  def edges(label):
++   env={**os.environ,'DISPLAY':':128'}
++   def x(*arguments):return subprocess.check_output(['xdotool',*map(str,arguments)],env=env,text=True,timeout=2).strip()
++   windows=x('search','--onlyvisible','--name','^Isolated DOM mechanism probe$').splitlines();assert len(windows)==1,windows
++   window=windows[0]
++   initial=inspect(label+'-initial');viewport=initial['preview'];assert viewport
++   # Sole exact-owned display contains only this helper; window origin is handled by --window.
++   x('windowfocus','--sync',window)
++   left,top,width,height=viewport['rect']
++   x('mousemove','--window',window,round((left+width/2)*2),round((top+height/2)*2))
++   snapshot(label+'-top-left')
++   operations=[]
++   for axis,button,scroll,client in [('top','5','scrollHeight','clientHeight'),('left','7','scrollWidth','clientWidth')]:
++    deadline=time.monotonic()+10;ticks=0
++    while True:
++     current=inspect(label+'-'+axis+'-'+str(ticks))['preview']
++     target=current[scroll]-current[client]
++     if abs(current[axis]-target)<=1:break
++     assert time.monotonic()<deadline and ticks<20,('Bounded wheel edge not reached',axis,current)
++     x('click',button);ticks+=1;time.sleep(.08)
++    operations.append({'axis':axis,'target':target,'actual':current[axis],'ticks':ticks})
++   snapshot(label+'-bottom-right')
++   event('native-wheel-edges',label=label,operations=operations)
++  if args.phase=='capture':
++   request=json.loads((root/'request.json').read_text())
++   value=task(request,'actual-current-renderer')
++   (out/'typed-result.json').write_text(json.dumps(value['typedResult'],ensure_ascii=False,indent=2)+'\n')
++   captured=command({'op':'original-source'},time.monotonic()+2)
++   assert isinstance(captured.get('rawReturnedSvg'),str) and isinstance(captured.get('installedRootSvg'),str)
++   (out/'raw-capture.json').write_text(json.dumps(captured,ensure_ascii=False,indent=2)+'\n')
++   results.append({'status':'capture-complete','scope':'actual current source renderer plus synchronous observation tap'})
++  else:
++   for arm in ['original','canonical']:
++    task({'arm':arm,'mode':'full'},arm+'-full')
++    snapshot(arm+'-full-canvas')
++    task({'arm':arm,'mode':'scroll'},arm+'-scroll')
++    edges(arm)
++   results.append({'status':'paired-complete','scope':'same-capture original and independently canonicalized artifact; no rerender'})
+   terminate('completed-research-cleanup');proc=None
+  event('completed',results=results)
+ except BaseException as e:
+@@ -246,4 +211,4 @@
+ finally:
+  os.close(result_read)
+  if result_write is not None:os.close(result_write)
+- (out/'result.json').write_text(json.dumps({'diagnosticOnly':True,'mermaidTested':True,'converterPrototypeTested':False,'productPluginTested':False,'currentCoreValidatedFixedAST':True,'results':results,'events':trace},ensure_ascii=False,indent=2))
++ (out/'result.json').write_text(json.dumps({'diagnosticOnly':True,'phase':args.phase,'actualCurrentSourceRenderer':args.phase=='capture','productPluginTested':False,'currentCoreValidatedFixedAST':args.phase=='paint','results':results,'events':trace},ensure_ascii=False,indent=2))

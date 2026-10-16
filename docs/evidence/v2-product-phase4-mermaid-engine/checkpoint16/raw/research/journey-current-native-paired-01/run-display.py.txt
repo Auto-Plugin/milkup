@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+"""One fresh exact-owned display per authorized phase. Never touches display126."""
+from pathlib import Path
+import argparse,hashlib,json,os,signal,subprocess,time
+R=Path(__file__).resolve().parent
+p=argparse.ArgumentParser();p.add_argument('phase',choices=['capture','paint']);a=p.parse_args()
+out=R/'display-logs'/a.phase;out.mkdir(parents=True,exist_ok=False)
+assert not Path('/tmp/.X11-unix/X128').exists() and not Path('/tmp/.X128-lock').exists(),'Refuse existing display128'
+art=json.loads((R/'build-logs'/f'{a.phase}-artifacts.json').read_text())
+for row in art['files']:
+ b=Path(row['path']).read_bytes();assert len(b)==row['bytes'] and hashlib.sha256(b).hexdigest()==row['sha256']
+assert not (R/'runs'/f'{a.phase}-first01').exists()
+command=['/workspace/.cloud/milkup-v2/sysroot/usr/bin/Xvfb',':128','-screen','0','1600x1400x24','-dpi','96','-nolisten','tcp','-ac']
+env={**os.environ,'LD_LIBRARY_PATH':'/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu'}
+proc=None;fd=None;record={'phase':a.phase,'command':command,'existingDisplay126':'untouched','started':time.time(),'comparison':'Same WebKit/font/software environment, separate larger display; native zoom and actual geometry recorded independently'}
+try:
+ with (out/'xvfb.stderr').open('wb') as err,(out/'xvfb.stdout').open('wb') as std:
+  proc=subprocess.Popen(command,env=env,stdout=std,stderr=err)
+  fd=os.pidfd_open(proc.pid)
+  stat=Path(f'/proc/{proc.pid}/stat').read_text().rsplit(')',1)[1].split();record.update(pid=proc.pid,birth=stat[19])
+  deadline=time.monotonic()+5
+  while not Path('/tmp/.X11-unix/X128').exists():
+   assert proc.poll() is None and time.monotonic()<deadline,'Xvfb setup failed'
+   time.sleep(.025)
+  with (out/'namespace.stdout').open('wb') as std,(out/'namespace.stderr').open('wb') as err:
+   child=subprocess.run(['/usr/bin/bash',str(R/'run-namespace.sh'),a.phase],env=env,stdout=std,stderr=err)
+  record['namespaceExitCode']=child.returncode
+  assert child.returncode==0,'First phase failure; do not retry'
+finally:
+ if proc is not None:
+  if proc.poll() is None:signal.pidfd_send_signal(fd,signal.SIGTERM)
+  record['xvfbExitCode']=proc.wait(timeout=5)
+ if fd is not None:os.close(fd)
+ record['ended']=time.time();record['displaySocketRemaining']=Path('/tmp/.X11-unix/X128').exists()
+ (out/'execution.json').write_text(json.dumps(record,indent=2)+'\n')

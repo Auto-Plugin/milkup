@@ -1,0 +1,59 @@
+{
+  "status": "test-only implementation prepared; no native/browser run; root review pending",
+  "source": "/workspace/milkup/tests/native/tauri-mermaid-ui.mjs",
+  "beforeSha256": "d150a401ee07227f9bd0bbb74ef13e28834f234b5150580d95ab77cffa5848a1",
+  "afterSha256": "92870c895fceef1e1761e1e6285a68b3608d1cd45b53d4ab1ba354f59d10957a",
+  "unrelatedHelpersByteIdentical": true,
+  "preAlignmentAfterSnapshotAndShotSuffixByteIdentical": true,
+  "wheelBudgetExactTextUnchanged": [
+    "step < 30",
+    "x('click', '--repeat', '3', '--delay', '70', button)",
+    "await app.delay(120)",
+    "['5', 'top', before.scrollHeight - before.clientHeight]",
+    "['7', 'left', before.scrollWidth - before.clientWidth]",
+    "['4', 'top', 0]",
+    "['6', 'left', 0]",
+    "Math.abs((await read())[axis] - target) <= 1"
+  ],
+  "checks": [
+    {
+      "argv": [
+        "node",
+        "--check",
+        "tests/native/tauri-mermaid-ui.mjs"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "pnpm",
+        "exec",
+        "prettier",
+        "--check",
+        "tests/native/tauri-mermaid-ui.mjs"
+      ],
+      "exitCode": 0,
+      "stdout": "Checking formatting...\nAll matched files use Prettier code style!\n",
+      "stderr": ""
+    }
+  ],
+  "offlineCoordinateCheckExit": 0,
+  "originalFirstFailure": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-corner-smoke-01/failure.json",
+  "changes": [
+    "Each axis start and each original three-event batch reacquires a positive client intersection and real target hit.",
+    "Real mousemove is followed by actual X11 root pointer read; native origin/width scale maps it back to CSS and a second real DOM hit verifies current preview.",
+    "Bounded inner-wheel.jsonl retains requested/previous/actual point, native origin and geometry, before/after preview/viewport plus first error from finally. Maximum31 aims and30 post-batch samples per axis.",
+    "Original30 steps,3 events/batch,70ms interval,120ms delay, fixed endpoint targets and1px endpoint tolerance remain. No outer scrolling/focus/reseek rescues an inner failure.",
+    "A batch still contains3 events; no claim each event is individually observed or that an event cannot move the target during the batch."
+  ],
+  "limitations": [
+    "Additional finite DOM/X11 observation overhead changes test timing but no input or renderer/host budget is enlarged.",
+    "Old point in offline evidence is derived from recorded prior geometry, not a historical physical pointer log.",
+    "No causal attribution of smoke01 failure to product overscroll or scroll chaining."
+  ],
+  "noProductChange": true,
+  "noRuntime": true,
+  "noCommit": true
+}

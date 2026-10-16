@@ -1,0 +1,63 @@
+"""Static byte-copy preparation only; never compiles, launches, or reads live /proc."""
+from pathlib import Path
+import json,hashlib,shutil,difflib
+R=Path(__file__).resolve().parent
+repo=Path('/workspace/milkup')
+base=R.parent/'product-raster-native-edge/sankey-scroll-v2'
+gate=Path('/workspace/milkup-mermaid-engine-evidence/diagrams-gate07')
+plugin=gate/'standalone/plugin'
+sha=lambda b:hashlib.sha256(b).hexdigest()
+archive=plugin/'dist/milkup.diagrams-1.1.0.milkup-plugin'
+assert sha(archive.read_bytes())=='9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df'
+a=json.loads(archive.read_text());module=next(x for x in a['files'] if x['path']=='dist/plugin.js')
+assert module['encoding']=='utf8' and module['content'].encode()==(plugin/'dist/plugin.js').read_bytes()
+assert a['manifest']['host']=='dom'
+rows=[]
+def copy(src,dst):
+ assert not dst.exists(),str(dst)
+ dst.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(src,dst)
+ b=src.read_bytes();rows.append({'source':str(src),'path':str(dst.relative_to(R)),'bytes':len(b),'sha256':sha(b)})
+for n in ['renderer.ts','svg-converter.ts','svg-primitives.ts','bounded-opacity.ts','paint-envelope.ts','plugin.ts']:
+ src=plugin/'src'/n;assert src.read_bytes()==(repo/'plugins/diagrams/src'/n).read_bytes()
+ copy(src,R/'source/diagrams'/n)
+for n in ['document-presentation.ts','document-svg-image.ts','document-svg-image-codec.ts','document-svg-image-geometry.ts']:
+ copy(repo/'packages/core/src'/n,R/'source/core'/n)
+copy(repo/'packages/view-dom/src/document-svg-image.ts',R/'source/view-document-svg-image.ts')
+for n in ['package.json','pnpm-lock.yaml','build-dependencies.json']:
+ copy(plugin/n,R/'source/plugin-inputs'/n)
+copy(plugin/'dist/proof.json',R/'source/plugin-inputs/proof.json')
+copy(plugin/'dist/build-meta.json',R/'source/plugin-inputs/build-meta.json')
+copy(gate/'completed-manifest.json',R/'source/gate07-completed-manifest.json')
+for phase,zoom,width,height in [('capture',1,1100,800),('paint',2,1520,1280)]:
+ root=R/(phase+'-helper')
+ for n in ['Cargo.toml','Cargo.lock']:
+  copy(base/'paired-helper'/n,root/n)
+ for n in ['index.html']:
+  copy(base/'paired-helper/assets'/n,root/'assets'/n)
+ for n in ['converter.mjs','primitives.mjs','mermaid-full-12.2.0.mjs']:
+  (root/'assets'/n).write_text('// Unused compatibility resource; current entry is a closed bundle.\n')
+ (root/'assets/canonical.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>\n')
+ old=(base/'paired-helper/src/main.rs').read_text()
+ new=old.replace('"allowedResources":3','"allowedResources":6').replace('native.set_zoom_level(1.0)',f'native.set_zoom_level({zoom}.0)').replace('"zoom":1.0',f'"zoom":{zoom}.0')
+ if phase=='paint':new=new.replace('1100.,800.',f'{width}.,{height}.').replace('native.set_size_request(1100,800)',f'native.set_size_request({width},{height})')
+ # The unused canonical-inline command remains exactly bound to the compiled resource.
+ (root/'src').mkdir();(root/'src/main.rs').write_text(new)
+ (R/(phase+'-native.diff')).write_text(''.join(difflib.unified_diff(old.splitlines(True),new.splitlines(True),fromfile='reviewed-paired-main.rs',tofile=phase+'-main.rs')))
+copy(base/'extensions/paired_resource_guard.c',R/'extensions/paired_resource_guard.c')
+old=(R/'source/diagrams/renderer.ts').read_text();needle='          const content = convertSvgElement(root)';assert old.count(needle)==1
+new="import { captureRoot } from '../../capture-tap'\n"+old.replace(needle,'          captureRoot(rendered.svg, root)\n'+needle)
+(R/'source/diagrams/renderer.ts').write_text(new)
+(R/'renderer-tap.diff').write_text(''.join(difflib.unified_diff(old.splitlines(True),new.splitlines(True),fromfile='gate07/renderer.ts',tofile='research/renderer.ts')))
+# Preserve source before the two explicitly diagnostic additions.
+(R/'source/diagrams/renderer-original.ts').write_text(old)
+catalog=R.parent/'product-ui-preparation/official-cases.json'
+sample=next(x for x in json.loads(catalog.read_text()) if x['id']=='userJourney-000-first-official-example')
+body=sample['source'];assert len(body.encode())==198 and sha(body.encode())=='e978837ae6de4a8b5c7831489dc68a9f8fe20d5d9b7514016207af832f687bdd'
+source='```mermaid\n'+body+'```\n'
+request={'documentId':'research-journey-current','version':0,'source':source,'from':0,'to':len(source),'fromLine':0,'toLine':len(source.splitlines()),'completeStart':True,'completeEnd':True,'contextKnown':True,'protectedRanges':[],'blocks':[{'kind':'fence','complete':True,'info':'mermaid','from':0,'to':len(source),'contentRanges':[{'from':11,'to':11+len(body)}]}],'selection':{'anchor':0,'head':0},'theme':'light','target':'screen','width':380}
+# Opening fence is 11 UTF-16 units, source is ASCII for this official example.
+assert source[11:11+len(body)]==body
+(R/'request.json').write_text(json.dumps(request,indent=2)+'\n')
+(R/'official-sample.json').write_text(json.dumps(sample,indent=2)+'\n')
+(R/'source-copy-provenance.json').write_text(json.dumps({'status':'prepared-only','archive':{'path':str(archive),'sha256':sha(archive.read_bytes()),'bytes':archive.stat().st_size},'archiveEntrySha256':sha(module['content'].encode()),'packageVersion':a['manifest']['version'],'sourceCopiesBeforeDiagnosticTap':rows,'syntheticRequestMetadata':'All request metadata except official body/theme/width is research-supplied, not UI09 captured wire','researchNotOfficialModule':True,'display':{'number':128,'pixels':[1600,1400],'depth':24,'dpi':96,'existingDisplay126Untouched':True}},indent=2)+'\n')
+print('Static copy prepared; no bundles, builds, or native execution.')

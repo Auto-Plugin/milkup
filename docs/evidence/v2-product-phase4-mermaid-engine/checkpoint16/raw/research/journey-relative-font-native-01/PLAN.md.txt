@@ -1,0 +1,37 @@
+# Journey relative-font native diagnostic — prepared, not executed
+
+This is a separate research helper, not a production plugin change or official Instance/lifecycle gate. It reuses the one completed fixed-seed renderer capture from `journey-current-native-paired-01`; there is no Mermaid import, parse, layout, conversion or second render in this run. The captured original SVG, canonical SVG and paint evidence are byte-for-byte copied. Old files are not modified.
+
+## Question and limits
+
+Original title `My working day` has `font-size="4ex"`; canonical title declares `33.8125px` from capture-time computed style. Existing 200% comparison differed by1106 pixels in the title region; this does not yet prove a converter defect. This diagnostic distinguishes capture-time fidelity from re-evaluation of original relative font units at a different native zoom. It separately records inline SVG linebox geometry responsible for a possible4px overflow; title and linebox causes must not be conflated.
+
+The canonical image's internal computed styles are inaccessible through `img`; we explicitly record that fact and retain its declared style in canonical XML. No third inline-canonical arm is added. The original is never modified to freeze its font or change display. No clipping, cropping, padding, font override, empty-space removal or accepted pixel threshold is introduced.
+
+## Minimal native and permission delta
+
+`native-zoom-only.patch` compares the copied exact old main with the new main. One strict native environment value `MILKUP_PROBE_ZOOM` must equal `1` or `2`; it selects `set_zoom_level` and is recorded in policy/snapshot metadata. Missing/other values abort. The same newly frozen binary is used twice. Window and WebView requests remain1520×1280. The ephemeral context, native sandbox enabled before WebView creation, exact resource guard, CSP,6 fixed resources, no file/network permissions, original FD3 result channel,262144-byte frame cap and input cap remain unchanged. No IPC command is added. Three compatibility JS resources remain unused placeholders; they are unchanged, not an engine.
+
+## JavaScript observer delta
+
+Two existing arms remain `original` and `canonical`. Each runs existing `full` then existing `scroll` at its initial top-left, without wheels or pointer operations. Host origin is16 CSSpx and width380 CSSpx in both arms; same native zoom comparisons share that origin. Nativezoom changes CSS viewport size, so do not compare whole frames across different zoom levels as an equality gate.
+
+Title matching uses exact `textContent === 'My working day'` among SVG text nodes and requires exactly1 match. Read-only title measurements include rawfont attributes, computedfont family/size/weight/style and spacing, bbox, textlength, clientrect and CTM/screenCTM. Up to6 ancestors and the root/host/ink/slot/preview/body/documentElement capture computed display/vertical-align/line-height and dimensions. Only a fixed list of properties is read; each string is capped512 characters, metadata must fit60000 UTF8 bytes or fails. Original attributes/styles/content are never mutated. `node.decode()` remains required for canonical images. Existing2RAF settle and before/after-snapshot identity checks remain; font/layout snapshots must also be exactly stable while taking a screenshot.
+
+## Serial execution plan, requires separate GO
+
+1. Parent and dom_native statically review this preparation, especially native diff and namespace/supervisor differences.
+2. Build owner only: `bash build-phase.sh`. It checks frozen input hashes, compiles the unchanged guard and one helper with existing offline locked Cargo dependencies, captures binary/buildID and hashes, rechecks inputs. Shared historical target is only a mutable build cache. No plugin rebuild or package install occurs.
+3. After artifact review and exclusive UI/CPU GO, dom_native executes `bash run-two-zooms.sh`. It launches `run-display.py 1` and only after successful cleanup `run-display.py 2`. Each uses fresh namespace/profile/run/display-log directories and an exact-owned dedicated X128. An existing X128 socket/lock refuses startup; no existing X126 is touched. `pidfd` cleanup applies only to the newly launched Xvfb. Native process-group/subreaper/birth-check cleanup is inherited unchanged.
+4. Each native phase keeps original preparation10s, exact guard denial2s, each start/poll task2s total including result parse, and inspect/snapshot operations2s. Each phase records4whole PNGs: original/full, original/top-left, canonical/full, canonical/top-left. This is8 total across two zooms. No render deadline or output limit is increased. Task/setup/safety/metadata/snapshot/cleanup failure stops the serial script, retaining raw logs and no retry. Pixel differences themselves are measurements, not swallowed exceptions or a success claim.
+5. Only after both completed phases: run offline `compare-pixels.py` when authorized. It compares same-zoom same-mode fullframes, keeps firstdiffs, and requires recorded cleanup. View actual PNGs. No crosszoom fullframe difference count is used as a bug claim.
+
+## Interpretation
+
+Ifzoom1 already differs, investigate capture/serialization/image rendering rather than attributing to zoom. Ifzoom1 matches butzoom2 differs, inspect original title computedfontsize, font availability, bbox/CTM and canonical declaration before attributing relative-unit resolution. Rootfont alone is insufficient. A changed original `4ex` resolution can represent re-layout in a new zoom rather than failure to preserve the captured diagram. A claim of a product fix still needs a separately reviewed requirement and regression; this diagnostic changes no product behavior.
+
+The4px linebox observation is separately assessed using original inline root dimensions and ancestor metrics versus canonical absolute block image. A future labeled layout control may isolate baseline behavior; it must never replace the untouched original comparison or claim original bytes were changed innocuously.
+
+## Preparation status
+
+Only source copying, deterministic text generation, hashes and Python `ast.parse` syntax checks were performed. No Cargo/CC/Node build, helper startup, X11/browser/native session or pixel processing has run. Runtime results and binary identities do not yet exist in this directory. Old helper binaries and run profiles were not copied.

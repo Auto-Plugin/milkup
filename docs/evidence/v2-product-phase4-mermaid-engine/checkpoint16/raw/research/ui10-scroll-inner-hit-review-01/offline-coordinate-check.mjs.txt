@@ -1,0 +1,19 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+const path='/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-corner-smoke-01/results.json'
+const results=JSON.parse(readFileSync(path,'utf8')),before=results.at(-2).dom,after=results.at(-1).dom
+const preview=dom=>dom.previews.find(p=>p.from===440&&p.to===969)
+const intersection=dom=>{const r=preview(dom).clientRect,v=dom.editorViewport;return {left:Math.max(r.left,v.left),right:Math.min(r.right,v.right),top:Math.max(r.top,v.top),bottom:Math.min(r.bottom,v.bottom)}}
+const center=r=>({x:(r.left+r.right)/2,y:(r.top+r.bottom)/2})
+const inside=(p,r)=>p.x>r.left&&p.x<r.right&&p.y>r.top&&p.y<r.bottom
+const old=center(intersection(before)),fresh=center(intersection(after))
+assert.equal(inside(old,intersection(after)),false,'Earlier recorded-geometry center is outside final visible preview')
+assert(inside(fresh,intersection(after)),'Fresh intersection center is strictly inside final visible preview')
+// Parse the exact harness coordinate helper, not a mirrored regular expression.
+const source=readFileSync('/workspace/milkup/tests/native/tauri-mermaid-ui.mjs','utf8')
+const line=source.split('\n').find(l=>l.trim().startsWith('const number = (text, key) =>'))
+const number=Function(line.trim()+'; return number')()
+assert.equal(number('X=-20\nY=14\nWIDTH=760','X'),-20)
+assert.equal(number('X=-20\nY=14\nWIDTH=760','WIDTH'),760)
+assert(Number.isNaN(number('X=0','Y')))
+console.log(JSON.stringify({source:path,oldDerivedPoint:old,freshDerivedPoint:fresh,finalIntersection:intersection(after),oldOutside:true,freshInside:true,coordinateParser:true,limitation:'Old point is derived from the recorded pre-step geometry, not a recorded physical pointer. This checks geometry feasibility, not actual event delivery.'},null,2))

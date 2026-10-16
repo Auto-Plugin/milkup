@@ -1,0 +1,29 @@
+import { prepareRenderer, renderDocuments } from './source/diagrams/renderer'
+import { getCapture } from './capture-tap'
+let preparation: {status:string,error?:string} = {status:'idle'}
+let preparing: Promise<void> | undefined
+let task: Record<string,unknown> | undefined
+let started = false
+function ready() {
+  if (!preparing) {
+    preparation = {status:'pending'}
+    preparing = prepareRenderer().then(() => {preparation={status:'ready'}}, error => {
+      preparation={status:'error',error:String(error).slice(0,1024)}
+      throw error
+    })
+  }
+  return preparing
+}
+function start(request: Parameters<typeof renderDocuments>[0]) {
+  if (preparation.status !== 'ready' || started) throw new Error('One prepared request required')
+  started = true
+  task = {taskId:'journey-capture',status:'pending'}
+  void Promise.resolve().then(() => renderDocuments(request,{signal:new AbortController().signal})).then(result => {
+    task={taskId:'journey-capture',status:'complete',result:{ok:true,typedResult:result}}
+  }, error => {task={taskId:'journey-capture',status:'error',error:String(error).slice(0,1024)}})
+  return {taskId:'journey-capture',status:'pending'}
+}
+Object.defineProperty(window,'__milkupSvgConverterProbe',{value:Object.freeze({
+  ready,readiness:()=>preparation,start,poll:(id:string)=>id==='journey-capture'?task:{status:'unknown'},
+  inspect:()=>getCapture(),
+}),writable:false,configurable:false})

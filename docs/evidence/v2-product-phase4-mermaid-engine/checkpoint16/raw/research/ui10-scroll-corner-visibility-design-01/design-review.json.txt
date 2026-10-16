@@ -1,0 +1,126 @@
+{
+  "status": "design-only; awaiting parent confirmation before test edits",
+  "sources": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-class-scroll-diagnostic-02/results.json",
+      "bytes": 46329,
+      "sha256": "0a8c05c90c7842684bb17e5d9fd9d46f89dadab8df834147a3a0fba5cd91f2a1"
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/ui09-scroll-edge-stability-01/ui09-fixed-record.json",
+      "bytes": 12907,
+      "sha256": "269fde0b83cfa93557f4b92aa564b4e73c8ab769a5ba1850d8bb4d1494c64229"
+    },
+    {
+      "path": "/workspace/milkup/tests/native/tauri-mermaid-ui.mjs",
+      "bytes": 49627,
+      "sha256": "22c07075c87ede32b280f6d1aeffc1d4b4577a9b91c8d3c2a441cde606ad4e68"
+    }
+  ],
+  "records": [
+    {
+      "name": "DIAGNOSTIC-BOTTOM-RIGHT",
+      "source": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-class-scroll-diagnostic-02/results.json",
+      "viewport": {
+        "top": 37,
+        "bottom": 229,
+        "left": 0,
+        "right": 380
+      },
+      "previewRect": {
+        "x": 26,
+        "width": 328,
+        "left": 26,
+        "right": 354,
+        "top": 91.5,
+        "height": 169,
+        "y": 91.5,
+        "bottom": 260.5
+      },
+      "reachedScroll": {
+        "left": 69,
+        "top": 125
+      },
+      "recordScroll": {
+        "left": 69,
+        "top": 125
+      },
+      "bottomBoundaryVisible": false,
+      "rightBoundaryVisible": true,
+      "previewBottomOutsideCssPx": 31.5,
+      "imageBottomOutsideCssPx": 23.3984375,
+      "note": "Old observations contain bounding boxes, not separate client rectangles; future implementation must capture the client clip explicitly."
+    },
+    {
+      "name": "edges-ordinary-live-light-200-narrow-classDiagram-000-first-official-example-bottom-right",
+      "source": "/workspace/milkup-mermaid-engine-evidence/research/ui09-scroll-edge-stability-01/ui09-fixed-record.json",
+      "viewport": {
+        "top": 37,
+        "bottom": 229,
+        "left": 0,
+        "right": 380
+      },
+      "previewRect": {
+        "x": 26,
+        "width": 328,
+        "left": 26,
+        "right": 354,
+        "top": 36.6875,
+        "height": 169,
+        "y": 36.6875,
+        "bottom": 205.6875
+      },
+      "reachedScroll": {
+        "left": 69,
+        "top": 125
+      },
+      "recordScroll": {
+        "left": 0,
+        "top": 0
+      },
+      "bottomBoundaryVisible": true,
+      "rightBoundaryVisible": true,
+      "previewBottomOutsideCssPx": 0,
+      "imageBottomOutsideCssPx": 93.0859375,
+      "note": "Old observations contain bounding boxes, not separate client rectangles; future implementation must capture the client clip explicitly."
+    }
+  ],
+  "offlineRed": {
+    "exitCode": 1,
+    "file": "offline-first-red.log",
+    "assertion": "bottom-right vertical boundary visible",
+    "scope": "Existing frozen JSON geometry; no native or browser execution."
+  },
+  "proposedChange": {
+    "scope": "Only tests/native/tauri-mermaid-ui.mjs after approval; product and positionSample remain byte-identical.",
+    "observation": "Add exact editor client viewport clipped to innerWidth/innerHeight and preview client rectangle to the existing atomic observe() snapshot. Client rect uses rect.left/top + clientLeft/clientTop and clientWidth/clientHeight. No full DOM scan or periodic observer.",
+    "order": [
+      "Original inner wheel loop and budgets unchanged.",
+      "Freeze reached after snapshot before any outer alignment.",
+      "Perform independent bounded vertical corner alignment through a genuinely hit-tested non-preview editor gutter. Do not wheel inside preview.",
+      "After each outer wheel, preserve the frozen range/image/inner-scroll offset invariants; temporary missing preview fails, not automatic refocus/reseek.",
+      "Before screenshot and after screenshot using record already-read DOM, verify both original scroll-edge invariant and corresponding client corner visibility. Retain original reached snapshot; do not replace it with final state to conceal reset."
+    ],
+    "bounds": {
+      "maxSingleWheelTicksPerCorner": 10,
+      "maxElapsedMsPerCorner": 5000,
+      "maxDirectionReversals": 2,
+      "existingPositionSampleUnchanged": "20 ticks / 10 seconds / 2 reversals",
+      "existingInnerWheelUnchanged": true
+    },
+    "directions": "Bottom-right: wheel5 if bottom exceeds viewport.bottom, wheel4 if bottom<=viewport.top. Top-left: wheel4 if top<viewport.top, wheel5 if top>=viewport.bottom. If vertical boundary is already visible, no wheel. Horizontal corresponding boundary must already be visible or fail; no new horizontal editor scrolling.",
+    "gutter": "Reuse positionSample client viewport and left/right gutter candidates, actual elementFromPoint must be a descendant of editor and not within preview/input/textarea/button/scrollbar. Convert coordinates through current native window width / innerWidth; issue real xdotool mousemove click one notch.",
+    "cornerConditions": {
+      "bottom-right": "viewport.left < client.right <= viewport.right AND viewport.top < client.bottom <= viewport.bottom",
+      "top-left": "viewport.left <= client.left < viewport.right AND viewport.top <= client.top < viewport.bottom"
+    },
+    "guardrails": [
+      "Opposite edges may remain clipped; entire preview or image need not fit.",
+      "No private scroll setter, focus recovery, source/selection edit, plugin restart, timeout relaxation or blob identity requirement.",
+      "Compare source version / dirty and exact saved file bytes before/after alignment; use existing mounted selection projection assertions rather than overlay-array equality.",
+      "Write bounded alignment observations and original expected after on failure; preserve the first failure.",
+      "Corner geometry proves the viewport endpoint is inside editor clip, not that the endpoint contains nonblank diagram ink. Pixel review remains separate."
+    ]
+  },
+  "conclusion": "Diagnostic02 stable scroll does not prove bottom corner visibility (31.5 CSSpx outside); UI09 earlier record shows a distinct internal reset despite preview bottom inside. Neither observation alone assigns a product bug."
+}

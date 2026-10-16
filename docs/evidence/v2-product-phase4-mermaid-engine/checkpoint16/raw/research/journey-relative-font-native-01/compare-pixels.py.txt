@@ -1,0 +1,20 @@
+"""Offline whole-frame comparison; run only after both native phases complete."""
+from pathlib import Path
+from PIL import Image,ImageChops
+import json,hashlib
+r=Path(__file__).resolve().parent;out=r/'pixel-comparison.json'
+assert not out.exists()
+rows=[]
+for zoom in [1,2]:
+ run=r/'runs'/f'zoom{zoom}-first01'
+ result=json.loads((run/'result.json').read_text())
+ assert result['results'][-1]['status']=='paired-measurement-complete'
+ assert any(x['kind']=='cleanup' and not x['remainingGroupMembers'] for x in result['events'])
+ assert not any(x['kind'] in ['failed','cleanup-failed'] for x in result['events'])
+ for left,right in [('original-full-canvas','canonical-full-canvas'),('original-top-left','canonical-top-left')]:
+  ap=run/(left+'.png');bp=run/(right+'.png')
+  a=Image.open(ap).convert('RGBA');b=Image.open(bp).convert('RGBA');assert a.size==b.size
+  diff=ImageChops.difference(a,b);count=sum(any(v) for v in diff.getdata());visible=diff.convert('RGB');bbox=visible.getbbox()
+  visible.save(run/(left+'-versus-'+right+'-diff.png'))
+  rows.append({'nativeZoom':zoom,'original':left,'canonical':right,'size':a.size,'differentPixels':count,'rgbDifferenceBounds':bbox,'originalSha256':hashlib.sha256(ap.read_bytes()).hexdigest(),'canonicalSha256':hashlib.sha256(bp.read_bytes()).hexdigest()})
+out.write_text(json.dumps({'scope':'Whole native frame within SAME native zoom only; no crop/threshold/mask. No crosszoom pixel equality claim. Actual PNG viewing still required.','comparisons':rows},indent=2)+'\n')

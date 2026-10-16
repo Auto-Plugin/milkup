@@ -1,0 +1,56 @@
+// Research paint only: artifacts come from the sole actual current-renderer capture.
+const evidence=/*__CAPTURE__*/null;
+let preparation={status:'idle'},preparing,task,sequence=0,node,preview,host,ink,slot,arm,mode;
+const box=b=>[b.x,b.y,b.width,b.height];
+const matrix=m=>m?[m.a,m.b,m.c,m.d,m.e,m.f]:null;
+function ready(){if(!preparing){preparation={status:'pending'};preparing=document.fonts.ready.then(()=>{preparation={status:'ready'};});}return preparing;}
+
+// Research-only measurements. No writes to original SVG, inherited CSS or text.
+const expectedTitle='My working day';
+const styleKeys=['font-size','font-family','font-weight','font-style','font-stretch','font-variant','letter-spacing','word-spacing','line-height','display','vertical-align','overflow','overflow-x','overflow-y','width','height','text-anchor','dominant-baseline','alignment-baseline','white-space','transform','transform-origin'];
+function styles(element){const c=getComputedStyle(element);return Object.fromEntries(styleKeys.map(k=>[k,c.getPropertyValue(k).slice(0,512)]));}
+function elementMetric(element){return {tag:element.localName,rect:box(element.getBoundingClientRect()),clientWidth:element.clientWidth,clientHeight:element.clientHeight,scrollWidth:element.scrollWidth,scrollHeight:element.scrollHeight,computed:styles(element)};}
+function textMetric(element){const value={...elementMetric(element),text:element.textContent,attributes:Object.fromEntries(['font-size','font-family','font-weight','font-style','x','y','dx','dy','transform'].map(k=>[k,element.getAttribute(k)])),bbox:box(element.getBBox()),textLength:element.getComputedTextLength(),ctm:matrix(element.getCTM()),screenCTM:matrix(element.getScreenCTM())};let ancestor=element.parentElement;value.ancestors=[];for(let i=0;ancestor&&i<6;i++,ancestor=ancestor.parentElement)value.ancestors.push(elementMetric(ancestor));return value;}
+function fontAndLayout(){
+ const result={expectedTitle,title:null,titleUnavailableReason:null,root:elementMetric(node),layout:{host:elementMetric(host),ink:elementMetric(ink),slot:elementMetric(slot),preview:preview?elementMetric(preview):null,body:elementMetric(document.body),documentElement:elementMetric(document.documentElement)}};
+ if(node instanceof SVGSVGElement){const matches=Array.from(node.querySelectorAll('text')).filter(n=>n.textContent===expectedTitle);if(matches.length!==1)throw Error('Original title exact match must be unique: '+matches.length);result.title=textMetric(matches[0]);}
+ else result.titleUnavailableReason='External SVG image internal computed style is not accessible; frozen canonical XML provides declared style only.';
+ return result;
+}
+
+function inspect(){
+ if(!node)throw Error('No mounted comparison arm');
+ const r=node.getBoundingClientRect(),css=getComputedStyle(node);
+ const value={arm,mode,nodeId:sequence,rect:box(r),viewport:[innerWidth,innerHeight],devicePixelRatio,fontsStatus:document.fonts.status,css:{width:css.width,height:css.height,overflow:css.overflow},hostRect:box(host.getBoundingClientRect()),preview:preview?{rect:box(preview.getBoundingClientRect()),top:preview.scrollTop,left:preview.scrollLeft,scrollWidth:preview.scrollWidth,scrollHeight:preview.scrollHeight,clientWidth:preview.clientWidth,clientHeight:preview.clientHeight}:null};
+ if(node instanceof SVGSVGElement)Object.assign(value,{width:node.getAttribute('width'),height:node.getAttribute('height'),viewBox:node.getAttribute('viewBox'),aspect:node.getAttribute('preserveAspectRatio'),style:node.getAttribute('style'),bbox:box(node.getBBox()),ctm:matrix(node.getCTM()),screenCTM:matrix(node.getScreenCTM())});
+ else Object.assign(value,{complete:node.complete,naturalWidth:node.naturalWidth,naturalHeight:node.naturalHeight,currentSrc:node.currentSrc});
+ value.fontAndLayout=fontAndLayout();
+ if(new TextEncoder().encode(JSON.stringify(value)).length>60_000)throw Error('Bounded diagnostic metadata exceeded60000bytes');
+ return value;
+}
+async function mount(request){
+ if(preparation.status!=='ready'||!['original','canonical'].includes(request.arm)||!['full','scroll'].includes(request.mode)||Object.keys(request).some(k=>!['arm','mode'].includes(k)))throw Error('Fixed arm/mode only');
+ arm=request.arm;mode=request.mode;document.body.replaceChildren();document.documentElement.style.background='white';document.body.style.cssText='margin:0;background:white';
+ const {image,raster,inset}=evidence;
+ host=document.createElement('div');host.style.cssText='margin:16px;position:relative;display:block;overflow:visible';host.style.width='380px';document.body.append(host);
+ ink=document.createElement('div');ink.style.cssText='position:relative;display:block;overflow:visible';ink.style.width=(image.width+inset.left+inset.right)+'px';ink.style.height=(image.height+inset.top+inset.bottom)+'px';
+ slot=document.createElement('div');slot.style.cssText='position:absolute;display:block;overflow:visible';slot.style.left=inset.left+'px';slot.style.top=inset.top+'px';slot.style.width=image.width+'px';slot.style.height=image.height+'px';ink.append(slot);
+ preview=null;
+ if(mode==='scroll'){preview=document.createElement('div');preview.style.cssText='box-sizing:border-box;width:328px;height:169px;border:1px solid #888;overflow:auto;position:relative;display:block;background:white';preview.append(ink);host.append(preview);}else host.append(ink);
+ if(arm==='original'){
+  const holder=document.createElement('div');holder.innerHTML=evidence.capture.installedRootSvg;node=holder.firstElementChild;
+  if(!(node instanceof SVGSVGElement)||holder.children.length!==1)throw Error('Captured root invalid');
+  // Do not change original root attributes or style. Width100% resolves in its original-width slot.
+  slot.append(node);
+ }else{
+  node=new Image();node.alt='Current core canonical Journey';node.style.cssText='position:absolute;display:block;max-width:none;max-height:none';node.style.left=raster.left+'px';node.style.top=raster.top+'px';node.width=raster.right-raster.left;node.height=raster.bottom-raster.top;node.style.width=node.width+'px';node.style.height=node.height+'px';slot.append(node);node.src='milkup-render://job/canonical.svg';await node.decode();
+ }
+ await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+ const state=inspect();
+ if(mode==='full'){
+  const r=ink.getBoundingClientRect();if(r.left<0||r.top<0||r.right>innerWidth||r.bottom>innerHeight)throw Error('Full canvas does not fit; never clip or resize');
+ }
+ return {ok:true,observationOnly:true,state};
+}
+function start(request){if(task?.status==='pending')throw Error('busy');const taskId='paint_'+(++sequence);task={taskId,status:'pending'};Promise.resolve().then(()=>mount(request)).then(result=>{task={taskId,status:'complete',result}},error=>{task={taskId,status:'error',error:String(error).slice(0,1024)}});return {taskId,status:'pending'};}
+Object.defineProperty(window,'__milkupSvgConverterProbe',{value:Object.freeze({ready,readiness:()=>preparation,start,poll:id=>task?.taskId===id?task:{status:'unknown'},inspect}),writable:false,configurable:false});

@@ -1,0 +1,11 @@
+--- supervise.py
++++ supervise-capture02.py
+@@ -186,7 +186,7 @@
+    snapshot(label+'-bottom-right')
+    event('native-wheel-edges',label=label,operations=operations)
+   if args.phase=='capture':
+-   request=json.loads((root/'request.json').read_text())
++   request=json.loads((root/'request-capture02.json').read_text())
+    value=task(request,'actual-current-renderer')
+    (out/'typed-result.json').write_text(json.dumps(value['typedResult'],ensure_ascii=False,indent=2)+'\n')
+    captured=command({'op':'original-source'},time.monotonic()+2)

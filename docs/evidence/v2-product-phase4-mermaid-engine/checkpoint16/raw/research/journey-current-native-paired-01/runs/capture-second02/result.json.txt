@@ -1,0 +1,3137 @@
+{
+  "diagnosticOnly": true,
+  "phase": "capture",
+  "actualCurrentSourceRenderer": true,
+  "productPluginTested": false,
+  "currentCoreValidatedFixedAST": false,
+  "results": [
+    {
+      "task": "native-resource-guard",
+      "elapsed": 0.012476455012802035,
+      "value": {
+        "status": "blocked"
+      }
+    },
+    {
+      "status": "capture-complete",
+      "scope": "actual current source renderer plus synchronous observation tap"
+    }
+  ],
+  "events": [
+    {
+      "kind": "spawn",
+      "mono": 75770.813017157,
+      "wall": 1792188158.3739781,
+      "pid": 425601,
+      "birth": "7577081",
+      "command": [
+        "/usr/bin/bwrap",
+        "--die-with-parent",
+        "--unshare-user",
+        "--unshare-pid",
+        "--unshare-ipc",
+        "--unshare-uts",
+        "--unshare-net",
+        "--clearenv",
+        "--ro-bind",
+        "/usr",
+        "/usr",
+        "--overlay-src",
+        "/usr/bin",
+        "--tmp-overlay",
+        "/usr/bin",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/bin/xdg-dbus-proxy",
+        "/usr/bin/xdg-dbus-proxy",
+        "--remount-ro",
+        "/usr/bin",
+        "--symlink",
+        "usr/bin",
+        "/bin",
+        "--symlink",
+        "usr/lib",
+        "/lib",
+        "--symlink",
+        "usr/lib64",
+        "/lib64",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu",
+        "/runtime/lib",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/share/glib-2.0/schemas",
+        "/runtime/schemas",
+        "--overlay-src",
+        "/usr/lib/x86_64-linux-gnu",
+        "--tmp-overlay",
+        "/usr/lib/x86_64-linux-gnu",
+        "--ro-bind",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1",
+        "/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1",
+        "--remount-ro",
+        "/usr/lib/x86_64-linux-gnu",
+        "--ro-bind",
+        "/etc/fonts",
+        "/etc/fonts",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/passwd",
+        "/etc/passwd",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/group",
+        "/etc/group",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/hostname",
+        "/etc/hostname",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/hosts",
+        "/etc/hosts",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/nsswitch.conf",
+        "/etc/nsswitch.conf",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/machine-id",
+        "/etc/machine-id",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/prototype/narrow-config/loaders.cache",
+        "/probe/loaders.cache",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/research/journey-current-native-paired-01/bin/capture",
+        "/probe/bin/helper",
+        "--ro-bind",
+        "/workspace/milkup-mermaid-engine-evidence/research/journey-current-native-paired-01/extensions/libpaired_resource_guard.so",
+        "/probe/extensions/libpaired_resource_guard.so",
+        "--bind",
+        "/workspace/milkup-mermaid-engine-evidence/research/journey-current-native-paired-01/profiles/capture-second02",
+        "/profile",
+        "--tmpfs",
+        "/tmp",
+        "--dir",
+        "/tmp/.X11-unix",
+        "--ro-bind",
+        "/tmp/.X11-unix/X128",
+        "/tmp/.X11-unix/X128",
+        "--tmpfs",
+        "/run",
+        "--perms",
+        "0700",
+        "--dir",
+        "/run/user/1000",
+        "--dir",
+        "/sys/block",
+        "--dir",
+        "/sys/bus",
+        "--dir",
+        "/sys/class",
+        "--dir",
+        "/sys/dev",
+        "--dir",
+        "/sys/devices",
+        "--dev",
+        "/dev",
+        "--proc",
+        "/proc",
+        "--setenv",
+        "PATH",
+        "/usr/bin:/bin",
+        "--setenv",
+        "HOME",
+        "/profile/home",
+        "--setenv",
+        "XDG_CONFIG_HOME",
+        "/profile/config",
+        "--setenv",
+        "XDG_DATA_HOME",
+        "/profile/data",
+        "--setenv",
+        "XDG_CACHE_HOME",
+        "/profile/cache",
+        "--setenv",
+        "XDG_RUNTIME_DIR",
+        "/run/user/1000",
+        "--setenv",
+        "LD_LIBRARY_PATH",
+        "/runtime/lib",
+        "--setenv",
+        "WEBKIT_INJECTED_BUNDLE_PATH",
+        "/runtime/lib/webkit2gtk-4.1/injected-bundle",
+        "--setenv",
+        "GSETTINGS_SCHEMA_DIR",
+        "/runtime/schemas",
+        "--setenv",
+        "GDK_PIXBUF_MODULE_FILE",
+        "/probe/loaders.cache",
+        "--setenv",
+        "MILKUP_PROBE_EXTENSIONS",
+        "/probe/extensions",
+        "--setenv",
+        "DISPLAY",
+        ":128",
+        "--setenv",
+        "GDK_BACKEND",
+        "x11",
+        "--setenv",
+        "LIBGL_ALWAYS_SOFTWARE",
+        "1",
+        "--setenv",
+        "LANG",
+        "C.UTF-8",
+        "--setenv",
+        "LC_ALL",
+        "C.UTF-8",
+        "--setenv",
+        "TZ",
+        "UTC",
+        "--setenv",
+        "NO_AT_BRIDGE",
+        "1",
+        "--remount-ro",
+        "/",
+        "--chdir",
+        "/profile",
+        "--",
+        "/usr/bin/dbus-run-session",
+        "--",
+        "/probe/bin/helper"
+      ]
+    },
+    {
+      "kind": "received-frame",
+      "mono": 75771.051320852,
+      "wall": 1792188158.6122806,
+      "frame": {
+        "allowedResources": 6,
+        "ephemeral": true,
+        "javascript": true,
+        "javascriptMarkup": true,
+        "sandbox": true,
+        "settings": "file/universal/webrtc/media/webgl/storage/dns/windows/devtools denied",
+        "tauriBridge": false,
+        "type": "native-policy",
+        "wryIpcStub": false
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 75772.332129868,
+      "wall": 1792188159.8930895,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "bootstrapMissing": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 75772.396919314,
+      "wall": 1792188159.957879,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "bootstrapMissing": true,
+          "fontPending": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 75772.417942209,
+      "wall": 1792188159.9789011,
+      "frame": {
+        "type": "ready",
+        "value": {
+          "hasTauri": false,
+          "ready": true
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 75772.419281368,
+      "wall": 1792188159.98024,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 75772.430204682,
+      "wall": 1792188159.9911637,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "blocked"
+        }
+      }
+    },
+    {
+      "kind": "pre-dispatch-ownership",
+      "mono": 75772.542750258,
+      "wall": 1792188160.1037102,
+      "members": [
+        {
+          "pid": 425601,
+          "state": "S",
+          "ppid": 425596,
+          "pgrp": 425601,
+          "birth": "7577081",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 425602,
+          "state": "S",
+          "ppid": 425601,
+          "pgrp": 425601,
+          "birth": "7577081",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 425603,
+          "state": "S",
+          "ppid": 425602,
+          "pgrp": 425601,
+          "birth": "7577082",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-run-sessio"
+        },
+        {
+          "pid": 425604,
+          "state": "S",
+          "ppid": 425603,
+          "pgrp": 425601,
+          "birth": "7577082",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 425605,
+          "state": "S",
+          "ppid": 425603,
+          "pgrp": 425601,
+          "birth": "7577082",
+          "utime": 47,
+          "stime": 23,
+          "name": "helper"
+        },
+        {
+          "pid": 425614,
+          "state": "S",
+          "ppid": 425605,
+          "pgrp": 425601,
+          "birth": "7577098",
+          "utime": 5,
+          "stime": 2,
+          "name": "WebKitNetworkPr"
+        },
+        {
+          "pid": 425642,
+          "state": "S",
+          "ppid": 425602,
+          "pgrp": 425601,
+          "birth": "7577105",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi-bus-laun"
+        },
+        {
+          "pid": 425648,
+          "state": "S",
+          "ppid": 425642,
+          "pgrp": 425601,
+          "birth": "7577105",
+          "utime": 0,
+          "stime": 0,
+          "name": "dbus-daemon"
+        },
+        {
+          "pid": 425653,
+          "state": "S",
+          "ppid": 425605,
+          "pgrp": 425601,
+          "birth": "7577106",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 425654,
+          "state": "S",
+          "ppid": 425653,
+          "pgrp": 425601,
+          "birth": "7577106",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 425655,
+          "state": "S",
+          "ppid": 425654,
+          "pgrp": 425601,
+          "birth": "7577107",
+          "utime": 0,
+          "stime": 0,
+          "name": "xdg-dbus-proxy"
+        },
+        {
+          "pid": 425658,
+          "state": "S",
+          "ppid": 425605,
+          "pgrp": 425601,
+          "birth": "7577108",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 425659,
+          "state": "S",
+          "ppid": 425658,
+          "pgrp": 425601,
+          "birth": "7577108",
+          "utime": 0,
+          "stime": 0,
+          "name": "bwrap"
+        },
+        {
+          "pid": 425662,
+          "state": "S",
+          "ppid": 425659,
+          "pgrp": 425601,
+          "birth": "7577109",
+          "utime": 49,
+          "stime": 26,
+          "name": "WebKitWebProces"
+        },
+        {
+          "pid": 425693,
+          "state": "S",
+          "ppid": 425602,
+          "pgrp": 425601,
+          "birth": "7577208",
+          "utime": 0,
+          "stime": 0,
+          "name": "at-spi2-registr"
+        }
+      ]
+    },
+    {
+      "kind": "native-send",
+      "mono": 75772.542950994,
+      "wall": 1792188160.1039095,
+      "task": "actual-current-renderer",
+      "armedMono": 75772.542948749,
+      "deadlineMono": 75774.542948749
+    },
+    {
+      "kind": "received-frame",
+      "mono": 75772.715408085,
+      "wall": 1792188160.2763677,
+      "frame": {
+        "type": "result",
+        "value": {
+          "status": "pending",
+          "taskId": "journey-capture"
+        }
+      }
+    },
+    {
+      "kind": "received-frame",
+      "mono": 75772.765887741,
+      "wall": 1792188160.3268473,
+      "frame": {
+        "type": "result",
+        "value": {
+          "result": {
+            "ok": true,
+            "typedResult": {
+              "complete": true,
+              "fragments": [
+                {
+                  "accessibleText": "Mermaid 图表；进入围栏可编辑完整 Markdown 源码。",
+                  "content": {
+                    "aspect": {
+                      "align": "xMinYMin",
+                      "fit": "meet"
+                    },
+                    "children": [
+                      {
+                        "children": [],
+                        "kind": "group",
+                        "style": 1
+                      },
+                      {
+                        "cx": 20,
+                        "cy": 60,
+                        "kind": "circle",
+                        "r": 7,
+                        "style": 2
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "kind": "textRun",
+                                "text": "Cat"
+                              }
+                            ],
+                            "kind": "tspan",
+                            "style": 3,
+                            "x": [
+                              {
+                                "unit": "user",
+                                "value": 50
+                              }
+                            ]
+                          }
+                        ],
+                        "kind": "text",
+                        "style": 3,
+                        "x": [
+                          {
+                            "unit": "user",
+                            "value": 40
+                          }
+                        ],
+                        "y": [
+                          {
+                            "unit": "user",
+                            "value": 67
+                          }
+                        ]
+                      },
+                      {
+                        "cx": 20,
+                        "cy": 80,
+                        "kind": "circle",
+                        "r": 7,
+                        "style": 4
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "kind": "textRun",
+                                "text": "Me"
+                              }
+                            ],
+                            "kind": "tspan",
+                            "style": 3,
+                            "x": [
+                              {
+                                "unit": "user",
+                                "value": 50
+                              }
+                            ]
+                          }
+                        ],
+                        "kind": "text",
+                        "style": 3,
+                        "x": [
+                          {
+                            "unit": "user",
+                            "value": 40
+                          }
+                        ],
+                        "y": [
+                          {
+                            "unit": "user",
+                            "value": 87
+                          }
+                        ]
+                      },
+                      {
+                        "children": [
+                          {
+                            "height": 50,
+                            "kind": "rect",
+                            "rx": 3,
+                            "ry": 3,
+                            "style": 5,
+                            "width": 550,
+                            "x": 150,
+                            "y": 50
+                          },
+                          {
+                            "fallback": {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "kind": "textRun",
+                                      "text": "Go to work"
+                                    }
+                                  ],
+                                  "dy": [
+                                    {
+                                      "unit": "user",
+                                      "value": 0
+                                    }
+                                  ],
+                                  "kind": "tspan",
+                                  "style": 7,
+                                  "x": [
+                                    {
+                                      "unit": "user",
+                                      "value": 425
+                                    }
+                                  ]
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 6,
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 425
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 75
+                                }
+                              ]
+                            },
+                            "kind": "textAlternative",
+                            "primary": {
+                              "box": [
+                                150,
+                                50,
+                                550,
+                                50
+                              ],
+                              "color": [
+                                51,
+                                51,
+                                51,
+                                1
+                              ],
+                              "decoration": "none",
+                              "fontId": "arial-sans",
+                              "fontSizePx": 16,
+                              "fontStyle": "normal",
+                              "fontWeight": 400,
+                              "hAlign": "center",
+                              "innerBoxSizing": "content-box",
+                              "kind": "textBox",
+                              "lineHeight": "normal",
+                              "outerBoxSizing": "content-box",
+                              "overflowWrap": "normal",
+                              "style": 0,
+                              "text": "Go to work",
+                              "textTransform": "none",
+                              "vAlign": "middle",
+                              "whiteSpace": "normal",
+                              "wordBreak": "normal",
+                              "wordSpacing": {
+                                "unit": "px",
+                                "value": 0
+                              }
+                            },
+                            "style": 1
+                          }
+                        ],
+                        "kind": "group",
+                        "style": 1
+                      },
+                      {
+                        "children": [
+                          {
+                            "kind": "line",
+                            "style": 8,
+                            "x1": 225,
+                            "x2": 225,
+                            "y1": 110,
+                            "y2": 450
+                          },
+                          {
+                            "cx": 225,
+                            "cy": 300,
+                            "kind": "circle",
+                            "r": 15,
+                            "style": 9
+                          },
+                          {
+                            "children": [
+                              {
+                                "cx": 220,
+                                "cy": 295,
+                                "kind": "circle",
+                                "r": 1.5,
+                                "style": 10
+                              },
+                              {
+                                "cx": 230,
+                                "cy": 295,
+                                "kind": "circle",
+                                "r": 1.5,
+                                "style": 10
+                              },
+                              {
+                                "commands": [
+                                  [
+                                    "M",
+                                    7.5,
+                                    0
+                                  ],
+                                  [
+                                    "A",
+                                    7.5,
+                                    7.5,
+                                    0,
+                                    1,
+                                    1,
+                                    -7.5,
+                                    0
+                                  ],
+                                  [
+                                    "L",
+                                    -6.818,
+                                    0
+                                  ],
+                                  [
+                                    "A",
+                                    6.818,
+                                    6.818,
+                                    0,
+                                    1,
+                                    0,
+                                    6.818,
+                                    0
+                                  ],
+                                  [
+                                    "Z"
+                                  ]
+                                ],
+                                "kind": "path",
+                                "style": 11,
+                                "transforms": [
+                                  {
+                                    "kind": "matrix",
+                                    "values": [
+                                      1,
+                                      0,
+                                      0,
+                                      1,
+                                      225,
+                                      302
+                                    ]
+                                  }
+                                ]
+                              }
+                            ],
+                            "kind": "group",
+                            "style": 1
+                          },
+                          {
+                            "height": 50,
+                            "kind": "rect",
+                            "rx": 3,
+                            "ry": 3,
+                            "style": 5,
+                            "width": 150,
+                            "x": 150,
+                            "y": 110
+                          },
+                          {
+                            "cx": 164,
+                            "cy": 110,
+                            "kind": "circle",
+                            "r": 7,
+                            "style": 4,
+                            "title": "Me"
+                          },
+                          {
+                            "fallback": {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "kind": "textRun",
+                                      "text": "Make tea"
+                                    }
+                                  ],
+                                  "dy": [
+                                    {
+                                      "unit": "user",
+                                      "value": 0
+                                    }
+                                  ],
+                                  "kind": "tspan",
+                                  "style": 13,
+                                  "x": [
+                                    {
+                                      "unit": "user",
+                                      "value": 225
+                                    }
+                                  ]
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 12,
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 225
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 135
+                                }
+                              ]
+                            },
+                            "kind": "textAlternative",
+                            "primary": {
+                              "box": [
+                                150,
+                                110,
+                                150,
+                                50
+                              ],
+                              "color": [
+                                51,
+                                51,
+                                51,
+                                1
+                              ],
+                              "decoration": "none",
+                              "fontId": "arial-sans",
+                              "fontSizePx": 16,
+                              "fontStyle": "normal",
+                              "fontWeight": 400,
+                              "hAlign": "center",
+                              "innerBoxSizing": "content-box",
+                              "kind": "textBox",
+                              "lineHeight": "normal",
+                              "outerBoxSizing": "content-box",
+                              "overflowWrap": "normal",
+                              "style": 0,
+                              "text": "Make tea",
+                              "textTransform": "none",
+                              "vAlign": "middle",
+                              "whiteSpace": "normal",
+                              "wordBreak": "normal",
+                              "wordSpacing": {
+                                "unit": "px",
+                                "value": 0
+                              }
+                            },
+                            "style": 1
+                          }
+                        ],
+                        "kind": "group",
+                        "style": 1
+                      },
+                      {
+                        "children": [
+                          {
+                            "kind": "line",
+                            "style": 8,
+                            "x1": 425,
+                            "x2": 425,
+                            "y1": 110,
+                            "y2": 450
+                          },
+                          {
+                            "cx": 425,
+                            "cy": 360,
+                            "kind": "circle",
+                            "r": 15,
+                            "style": 9
+                          },
+                          {
+                            "children": [
+                              {
+                                "cx": 420,
+                                "cy": 355,
+                                "kind": "circle",
+                                "r": 1.5,
+                                "style": 10
+                              },
+                              {
+                                "cx": 430,
+                                "cy": 355,
+                                "kind": "circle",
+                                "r": 1.5,
+                                "style": 10
+                              },
+                              {
+                                "kind": "line",
+                                "style": 11,
+                                "x1": 420,
+                                "x2": 430,
+                                "y1": 367,
+                                "y2": 367
+                              }
+                            ],
+                            "kind": "group",
+                            "style": 1
+                          },
+                          {
+                            "height": 50,
+                            "kind": "rect",
+                            "rx": 3,
+                            "ry": 3,
+                            "style": 5,
+                            "width": 150,
+                            "x": 350,
+                            "y": 110
+                          },
+                          {
+                            "cx": 364,
+                            "cy": 110,
+                            "kind": "circle",
+                            "r": 7,
+                            "style": 4,
+                            "title": "Me"
+                          },
+                          {
+                            "fallback": {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "kind": "textRun",
+                                      "text": "Go upstairs"
+                                    }
+                                  ],
+                                  "dy": [
+                                    {
+                                      "unit": "user",
+                                      "value": 0
+                                    }
+                                  ],
+                                  "kind": "tspan",
+                                  "style": 13,
+                                  "x": [
+                                    {
+                                      "unit": "user",
+                                      "value": 425
+                                    }
+                                  ]
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 12,
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 425
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 135
+                                }
+                              ]
+                            },
+                            "kind": "textAlternative",
+                            "primary": {
+                              "box": [
+                                350,
+                                110,
+                                150,
+                                50
+                              ],
+                              "color": [
+                                51,
+                                51,
+                                51,
+                                1
+                              ],
+                              "decoration": "none",
+                              "fontId": "arial-sans",
+                              "fontSizePx": 16,
+                              "fontStyle": "normal",
+                              "fontWeight": 400,
+                              "hAlign": "center",
+                              "innerBoxSizing": "content-box",
+                              "kind": "textBox",
+                              "lineHeight": "normal",
+                              "outerBoxSizing": "content-box",
+                              "overflowWrap": "normal",
+                              "style": 0,
+                              "text": "Go upstairs",
+                              "textTransform": "none",
+                              "vAlign": "middle",
+                              "whiteSpace": "normal",
+                              "wordBreak": "normal",
+                              "wordSpacing": {
+                                "unit": "px",
+                                "value": 0
+                              }
+                            },
+                            "style": 1
+                          }
+                        ],
+                        "kind": "group",
+                        "style": 1
+                      },
+                      {
+                        "children": [
+                          {
+                            "kind": "line",
+                            "style": 8,
+                            "x1": 625,
+                            "x2": 625,
+                            "y1": 110,
+                            "y2": 450
+                          },
+                          {
+                            "cx": 625,
+                            "cy": 420,
+                            "kind": "circle",
+                            "r": 15,
+                            "style": 9
+                          },
+                          {
+                            "children": [
+                              {
+                                "cx": 620,
+                                "cy": 415,
+                                "kind": "circle",
+                                "r": 1.5,
+                                "style": 10
+                              },
+                              {
+                                "cx": 630,
+                                "cy": 415,
+                                "kind": "circle",
+                                "r": 1.5,
+                                "style": 10
+                              },
+                              {
+                                "commands": [
+                                  [
+                                    "M",
+                                    -7.5,
+                                    0
+                                  ],
+                                  [
+                                    "A",
+                                    7.5,
+                                    7.5,
+                                    0,
+                                    1,
+                                    1,
+                                    7.5,
+                                    0
+                                  ],
+                                  [
+                                    "L",
+                                    6.818,
+                                    0
+                                  ],
+                                  [
+                                    "A",
+                                    6.818,
+                                    6.818,
+                                    0,
+                                    1,
+                                    0,
+                                    -6.818,
+                                    0
+                                  ],
+                                  [
+                                    "Z"
+                                  ]
+                                ],
+                                "kind": "path",
+                                "style": 11,
+                                "transforms": [
+                                  {
+                                    "kind": "matrix",
+                                    "values": [
+                                      1,
+                                      0,
+                                      0,
+                                      1,
+                                      625,
+                                      427
+                                    ]
+                                  }
+                                ]
+                              }
+                            ],
+                            "kind": "group",
+                            "style": 1
+                          },
+                          {
+                            "height": 50,
+                            "kind": "rect",
+                            "rx": 3,
+                            "ry": 3,
+                            "style": 5,
+                            "width": 150,
+                            "x": 550,
+                            "y": 110
+                          },
+                          {
+                            "cx": 564,
+                            "cy": 110,
+                            "kind": "circle",
+                            "r": 7,
+                            "style": 4,
+                            "title": "Me"
+                          },
+                          {
+                            "cx": 574,
+                            "cy": 110,
+                            "kind": "circle",
+                            "r": 7,
+                            "style": 2,
+                            "title": "Cat"
+                          },
+                          {
+                            "fallback": {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "kind": "textRun",
+                                      "text": "Do work"
+                                    }
+                                  ],
+                                  "dy": [
+                                    {
+                                      "unit": "user",
+                                      "value": 0
+                                    }
+                                  ],
+                                  "kind": "tspan",
+                                  "style": 13,
+                                  "x": [
+                                    {
+                                      "unit": "user",
+                                      "value": 625
+                                    }
+                                  ]
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 12,
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 625
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 135
+                                }
+                              ]
+                            },
+                            "kind": "textAlternative",
+                            "primary": {
+                              "box": [
+                                550,
+                                110,
+                                150,
+                                50
+                              ],
+                              "color": [
+                                51,
+                                51,
+                                51,
+                                1
+                              ],
+                              "decoration": "none",
+                              "fontId": "arial-sans",
+                              "fontSizePx": 16,
+                              "fontStyle": "normal",
+                              "fontWeight": 400,
+                              "hAlign": "center",
+                              "innerBoxSizing": "content-box",
+                              "kind": "textBox",
+                              "lineHeight": "normal",
+                              "outerBoxSizing": "content-box",
+                              "overflowWrap": "normal",
+                              "style": 0,
+                              "text": "Do work",
+                              "textTransform": "none",
+                              "vAlign": "middle",
+                              "whiteSpace": "normal",
+                              "wordBreak": "normal",
+                              "wordSpacing": {
+                                "unit": "px",
+                                "value": 0
+                              }
+                            },
+                            "style": 1
+                          }
+                        ],
+                        "kind": "group",
+                        "style": 1
+                      },
+                      {
+                        "children": [
+                          {
+                            "height": 50,
+                            "kind": "rect",
+                            "rx": 3,
+                            "ry": 3,
+                            "style": 14,
+                            "width": 350,
+                            "x": 750,
+                            "y": 50
+                          },
+                          {
+                            "fallback": {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "kind": "textRun",
+                                      "text": "Go home"
+                                    }
+                                  ],
+                                  "dy": [
+                                    {
+                                      "unit": "user",
+                                      "value": 0
+                                    }
+                                  ],
+                                  "kind": "tspan",
+                                  "style": 16,
+                                  "x": [
+                                    {
+                                      "unit": "user",
+                                      "value": 925
+                                    }
+                                  ]
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 15,
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 925
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 75
+                                }
+                              ]
+                            },
+                            "kind": "textAlternative",
+                            "primary": {
+                              "box": [
+                                750,
+                                50,
+                                350,
+                                50
+                              ],
+                              "color": [
+                                51,
+                                51,
+                                51,
+                                1
+                              ],
+                              "decoration": "none",
+                              "fontId": "arial-sans",
+                              "fontSizePx": 16,
+                              "fontStyle": "normal",
+                              "fontWeight": 400,
+                              "hAlign": "center",
+                              "innerBoxSizing": "content-box",
+                              "kind": "textBox",
+                              "lineHeight": "normal",
+                              "outerBoxSizing": "content-box",
+                              "overflowWrap": "normal",
+                              "style": 0,
+                              "text": "Go home",
+                              "textTransform": "none",
+                              "vAlign": "middle",
+                              "whiteSpace": "normal",
+                              "wordBreak": "normal",
+                              "wordSpacing": {
+                                "unit": "px",
+                                "value": 0
+                              }
+                            },
+                            "style": 1
+                          }
+                        ],
+                        "kind": "group",
+                        "style": 1
+                      },
+                      {
+                        "children": [
+                          {
+                            "kind": "line",
+                            "style": 8,
+                            "x1": 825,
+                            "x2": 825,
+                            "y1": 110,
+                            "y2": 450
+                          },
+                          {
+                            "cx": 825,
+                            "cy": 300,
+                            "kind": "circle",
+                            "r": 15,
+                            "style": 9
+                          },
+                          {
+                            "children": [
+                              {
+                                "cx": 820,
+                                "cy": 295,
+                                "kind": "circle",
+                                "r": 1.5,
+                                "style": 10
+                              },
+                              {
+                                "cx": 830,
+                                "cy": 295,
+                                "kind": "circle",
+                                "r": 1.5,
+                                "style": 10
+                              },
+                              {
+                                "commands": [
+                                  [
+                                    "M",
+                                    7.5,
+                                    0
+                                  ],
+                                  [
+                                    "A",
+                                    7.5,
+                                    7.5,
+                                    0,
+                                    1,
+                                    1,
+                                    -7.5,
+                                    0
+                                  ],
+                                  [
+                                    "L",
+                                    -6.818,
+                                    0
+                                  ],
+                                  [
+                                    "A",
+                                    6.818,
+                                    6.818,
+                                    0,
+                                    1,
+                                    0,
+                                    6.818,
+                                    0
+                                  ],
+                                  [
+                                    "Z"
+                                  ]
+                                ],
+                                "kind": "path",
+                                "style": 11,
+                                "transforms": [
+                                  {
+                                    "kind": "matrix",
+                                    "values": [
+                                      1,
+                                      0,
+                                      0,
+                                      1,
+                                      825,
+                                      302
+                                    ]
+                                  }
+                                ]
+                              }
+                            ],
+                            "kind": "group",
+                            "style": 1
+                          },
+                          {
+                            "height": 50,
+                            "kind": "rect",
+                            "rx": 3,
+                            "ry": 3,
+                            "style": 14,
+                            "width": 150,
+                            "x": 750,
+                            "y": 110
+                          },
+                          {
+                            "cx": 764,
+                            "cy": 110,
+                            "kind": "circle",
+                            "r": 7,
+                            "style": 4,
+                            "title": "Me"
+                          },
+                          {
+                            "fallback": {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "kind": "textRun",
+                                      "text": "Go downstairs"
+                                    }
+                                  ],
+                                  "dy": [
+                                    {
+                                      "unit": "user",
+                                      "value": 0
+                                    }
+                                  ],
+                                  "kind": "tspan",
+                                  "style": 13,
+                                  "x": [
+                                    {
+                                      "unit": "user",
+                                      "value": 825
+                                    }
+                                  ]
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 12,
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 825
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 135
+                                }
+                              ]
+                            },
+                            "kind": "textAlternative",
+                            "primary": {
+                              "box": [
+                                750,
+                                110,
+                                150,
+                                50
+                              ],
+                              "color": [
+                                51,
+                                51,
+                                51,
+                                1
+                              ],
+                              "decoration": "none",
+                              "fontId": "arial-sans",
+                              "fontSizePx": 16,
+                              "fontStyle": "normal",
+                              "fontWeight": 400,
+                              "hAlign": "center",
+                              "innerBoxSizing": "content-box",
+                              "kind": "textBox",
+                              "lineHeight": "normal",
+                              "outerBoxSizing": "content-box",
+                              "overflowWrap": "normal",
+                              "style": 0,
+                              "text": "Go downstairs",
+                              "textTransform": "none",
+                              "vAlign": "middle",
+                              "whiteSpace": "normal",
+                              "wordBreak": "normal",
+                              "wordSpacing": {
+                                "unit": "px",
+                                "value": 0
+                              }
+                            },
+                            "style": 1
+                          }
+                        ],
+                        "kind": "group",
+                        "style": 1
+                      },
+                      {
+                        "children": [
+                          {
+                            "kind": "line",
+                            "style": 8,
+                            "x1": 1025,
+                            "x2": 1025,
+                            "y1": 110,
+                            "y2": 450
+                          },
+                          {
+                            "cx": 1025,
+                            "cy": 300,
+                            "kind": "circle",
+                            "r": 15,
+                            "style": 9
+                          },
+                          {
+                            "children": [
+                              {
+                                "cx": 1020,
+                                "cy": 295,
+                                "kind": "circle",
+                                "r": 1.5,
+                                "style": 10
+                              },
+                              {
+                                "cx": 1030,
+                                "cy": 295,
+                                "kind": "circle",
+                                "r": 1.5,
+                                "style": 10
+                              },
+                              {
+                                "commands": [
+                                  [
+                                    "M",
+                                    7.5,
+                                    0
+                                  ],
+                                  [
+                                    "A",
+                                    7.5,
+                                    7.5,
+                                    0,
+                                    1,
+                                    1,
+                                    -7.5,
+                                    0
+                                  ],
+                                  [
+                                    "L",
+                                    -6.818,
+                                    0
+                                  ],
+                                  [
+                                    "A",
+                                    6.818,
+                                    6.818,
+                                    0,
+                                    1,
+                                    0,
+                                    6.818,
+                                    0
+                                  ],
+                                  [
+                                    "Z"
+                                  ]
+                                ],
+                                "kind": "path",
+                                "style": 11,
+                                "transforms": [
+                                  {
+                                    "kind": "matrix",
+                                    "values": [
+                                      1,
+                                      0,
+                                      0,
+                                      1,
+                                      1025,
+                                      302
+                                    ]
+                                  }
+                                ]
+                              }
+                            ],
+                            "kind": "group",
+                            "style": 1
+                          },
+                          {
+                            "height": 50,
+                            "kind": "rect",
+                            "rx": 3,
+                            "ry": 3,
+                            "style": 14,
+                            "width": 150,
+                            "x": 950,
+                            "y": 110
+                          },
+                          {
+                            "cx": 964,
+                            "cy": 110,
+                            "kind": "circle",
+                            "r": 7,
+                            "style": 4,
+                            "title": "Me"
+                          },
+                          {
+                            "fallback": {
+                              "children": [
+                                {
+                                  "children": [
+                                    {
+                                      "kind": "textRun",
+                                      "text": "Sit down"
+                                    }
+                                  ],
+                                  "dy": [
+                                    {
+                                      "unit": "user",
+                                      "value": 0
+                                    }
+                                  ],
+                                  "kind": "tspan",
+                                  "style": 13,
+                                  "x": [
+                                    {
+                                      "unit": "user",
+                                      "value": 1025
+                                    }
+                                  ]
+                                }
+                              ],
+                              "kind": "text",
+                              "style": 12,
+                              "x": [
+                                {
+                                  "unit": "user",
+                                  "value": 1025
+                                }
+                              ],
+                              "y": [
+                                {
+                                  "unit": "user",
+                                  "value": 135
+                                }
+                              ]
+                            },
+                            "kind": "textAlternative",
+                            "primary": {
+                              "box": [
+                                950,
+                                110,
+                                150,
+                                50
+                              ],
+                              "color": [
+                                51,
+                                51,
+                                51,
+                                1
+                              ],
+                              "decoration": "none",
+                              "fontId": "arial-sans",
+                              "fontSizePx": 16,
+                              "fontStyle": "normal",
+                              "fontWeight": 400,
+                              "hAlign": "center",
+                              "innerBoxSizing": "content-box",
+                              "kind": "textBox",
+                              "lineHeight": "normal",
+                              "outerBoxSizing": "content-box",
+                              "overflowWrap": "normal",
+                              "style": 0,
+                              "text": "Sit down",
+                              "textTransform": "none",
+                              "vAlign": "middle",
+                              "whiteSpace": "normal",
+                              "wordBreak": "normal",
+                              "wordSpacing": {
+                                "unit": "px",
+                                "value": 0
+                              }
+                            },
+                            "style": 1
+                          }
+                        ],
+                        "kind": "group",
+                        "style": 1
+                      },
+                      {
+                        "children": [
+                          {
+                            "kind": "textRun",
+                            "text": "My working day"
+                          }
+                        ],
+                        "kind": "text",
+                        "style": 17,
+                        "x": [
+                          {
+                            "unit": "user",
+                            "value": 150
+                          }
+                        ],
+                        "y": [
+                          {
+                            "unit": "user",
+                            "value": 25
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "line",
+                        "markerEnd": "d0",
+                        "style": 18,
+                        "x1": 150,
+                        "x2": 1146,
+                        "y1": 200,
+                        "y2": 200
+                      }
+                    ],
+                    "definitions": [
+                      {
+                        "children": [
+                          {
+                            "commands": [
+                              [
+                                "M",
+                                0,
+                                0
+                              ],
+                              [
+                                "V",
+                                4
+                              ],
+                              [
+                                "L",
+                                6,
+                                2
+                              ],
+                              [
+                                "Z"
+                              ]
+                            ],
+                            "kind": "path",
+                            "style": 1
+                          }
+                        ],
+                        "height": 4,
+                        "id": "d0",
+                        "kind": "marker",
+                        "orient": "auto",
+                        "refX": {
+                          "unit": "user",
+                          "value": 5
+                        },
+                        "refY": {
+                          "unit": "user",
+                          "value": 2
+                        },
+                        "style": 0,
+                        "units": "strokeWidth",
+                        "width": 6
+                      }
+                    ],
+                    "height": 565,
+                    "motion": "static",
+                    "profile": "bounded-svg-v1",
+                    "rasterBounds": [
+                      0,
+                      0,
+                      380,
+                      565
+                    ],
+                    "rootStyle": 0,
+                    "styles": [
+                      {
+                        "alignmentBaseline": "baseline",
+                        "clipRule": "nonzero",
+                        "colorInterpolation": "sRGB",
+                        "colorInterpolationFilters": "linearRGB",
+                        "dashArray": [],
+                        "dashOffset": {
+                          "unit": "px",
+                          "value": 0
+                        },
+                        "decoration": "none",
+                        "display": "inline",
+                        "dominantBaseline": "auto",
+                        "fill": {
+                          "kind": "color",
+                          "rgba": [
+                            51,
+                            51,
+                            51,
+                            1
+                          ]
+                        },
+                        "fillOpacity": 1,
+                        "fillRule": "nonzero",
+                        "filter": {
+                          "kind": "none"
+                        },
+                        "fontId": "arial-sans",
+                        "fontSize": {
+                          "unit": "px",
+                          "value": 16
+                        },
+                        "fontStyle": "normal",
+                        "fontWeight": 400,
+                        "isolation": "auto",
+                        "lineCap": "butt",
+                        "lineJoin": "miter",
+                        "miterLimit": 4,
+                        "mixBlendMode": "normal",
+                        "opacity": 1,
+                        "overflow": "hidden",
+                        "shapeRendering": "auto",
+                        "stroke": {
+                          "kind": "none"
+                        },
+                        "strokeOpacity": 1,
+                        "strokeWidth": {
+                          "unit": "px",
+                          "value": 1
+                        },
+                        "textAnchor": "start",
+                        "textTransform": "none",
+                        "visibility": "visible",
+                        "whiteSpace": "normal",
+                        "wordSpacing": {
+                          "unit": "px",
+                          "value": 0
+                        }
+                      },
+                      {
+                        "alignmentBaseline": "baseline",
+                        "clipRule": "nonzero",
+                        "colorInterpolation": "sRGB",
+                        "colorInterpolationFilters": "linearRGB",
+                        "dashArray": [],
+                        "dashOffset": {
+                          "unit": "px",
+                          "value": 0
+                        },
+                        "decoration": "none",
+                        "display": "inline",
+                        "dominantBaseline": "auto",
+                        "fill": {
+                          "kind": "color",
+                          "rgba": [
+                            51,
+                            51,
+                            51,
+                            1
+                          ]
+                        },
+                        "fillOpacity": 1,
+                        "fillRule": "nonzero",
+                        "filter": {
+                          "kind": "none"
+                        },
+                        "fontId": "arial-sans",
+                        "fontSize": {
+                          "unit": "px",
+                          "value": 16
+                        },
+                        "fontStyle": "normal",
+                        "fontWeight": 400,
+                        "isolation": "auto",
+                        "lineCap": "butt",
+                        "lineJoin": "miter",
+                        "miterLimit": 4,
+                        "mixBlendMode": "normal",
+                        "opacity": 1,
+                        "overflow": "visible",
+                        "shapeRendering": "auto",
+                        "stroke": {
+                          "kind": "none"
+                        },
+                        "strokeOpacity": 1,
+                        "strokeWidth": {
+                          "unit": "px",
+                          "value": 1
+                        },
+                        "textAnchor": "start",
+                        "textTransform": "none",
+                        "visibility": "visible",
+                        "whiteSpace": "normal",
+                        "wordSpacing": {
+                          "unit": "px",
+                          "value": 0
+                        }
+                      },
+                      {
+                        "alignmentBaseline": "baseline",
+                        "clipRule": "nonzero",
+                        "colorInterpolation": "sRGB",
+                        "colorInterpolationFilters": "linearRGB",
+                        "dashArray": [],
+                        "dashOffset": {
+                          "unit": "px",
+                          "value": 0
+                        },
+                        "decoration": "none",
+                        "display": "inline",
+                        "dominantBaseline": "auto",
+                        "fill": {
+                          "kind": "color",
+                          "rgba": [
+                            143,
+                            188,
+                            143,
+                            1
+                          ]
+                        },
+                        "fillOpacity": 1,
+                        "fillRule": "nonzero",
+                        "filter": {
+                          "kind": "none"
+                        },
+                        "fontId": "arial-sans",
+                        "fontSize": {
+                          "unit": "px",
+                          "value": 16
+                        },
+                        "fontStyle": "normal",
+                        "fontWeight": 400,
+                        "isolation": "auto",
+                        "lineCap": "butt",
+                        "lineJoin": "miter",
+                        "miterLimit": 4,
+                        "mixBlendMode": "normal",
+                        "opacity": 1,
+                        "overflow": "visible",
+                        "shapeRendering": "auto",
+                        "stroke": {
+                          "kind": "color",
+                          "rgba": [
+                            0,
+                            0,
+                            0,
+                            1
+                          ]
+                        },
+                        "strokeOpacity": 1,
+                        "strokeWidth": {
+                          "unit": "px",
+                          "value": 1
+                        },
+                        "textAnchor": "start",
+                        "textTransform": "none",
+                        "visibility": "visible",
+                        "whiteSpace": "normal",
+                        "wordSpacing": {
+                          "unit": "px",
+                          "value": 0
+                        }
+                      },
+                      {
+                        "alignmentBaseline": "baseline",
+                        "clipRule": "nonzero",
+                        "colorInterpolation": "sRGB",
+                        "colorInterpolationFilters": "linearRGB",
+                        "dashArray": [],
+                        "dashOffset": {
+                          "unit": "px",
+                          "value": 0
+                        },
+                        "decoration": "none",
+                        "display": "inline",
+                        "dominantBaseline": "auto",
+                        "fill": {
+                          "kind": "color",
+                          "rgba": [
+                            51,
+                            51,
+                            51,
+                            1
+                          ]
+                        },
+                        "fillOpacity": 1,
+                        "fillRule": "nonzero",
+                        "filter": {
+                          "kind": "none"
+                        },
+                        "fontId": "arial-sans",
+                        "fontSize": {
+                          "unit": "px",
+                          "value": 16
+                        },
+                        "fontStyle": "normal",
+                        "fontWeight": 400,
+                        "isolation": "auto",
+                        "lineCap": "butt",
+                        "lineJoin": "miter",
+                        "miterLimit": 4,
+                        "mixBlendMode": "normal",
+                        "opacity": 1,
+                        "overflow": "visible",
+                        "shapeRendering": "auto",
+                        "stroke": {
+                          "kind": "none"
+                        },
+                        "strokeOpacity": 1,
+                        "strokeWidth": {
+                          "unit": "px",
+                          "value": 1
+                        },
+                        "textAnchor": "start",
+                        "textTransform": "none",
+                        "visibility": "visible",
+                        "whiteSpace": "nowrap",
+                        "wordSpacing": {
+                          "unit": "px",
+                          "value": 0
+                        }
+                      },
+                      {
+                        "alignmentBaseline": "baseline",
+                        "clipRule": "nonzero",
+                        "colorInterpolation": "sRGB",
+                        "colorInterpolationFilters": "linearRGB",
+                        "dashArray": [],
+                        "dashOffset": {
+                          "unit": "px",
+                          "value": 0
+                        },
+                        "decoration": "none",
+                        "display": "inline",
+                        "dominantBaseline": "auto",
+                        "fill": {
+                          "kind": "color",
+                          "rgba": [
+                            124,
+                            252,
+                            0,
+                            1
+                          ]
+                        },
+                        "fillOpacity": 1,
+                        "fillRule": "nonzero",
+                        "filter": {
+                          "kind": "none"
+                        },
+                        "fontId": "arial-sans",
+                        "fontSize": {
+                          "unit": "px",
+                          "value": 16
+                        },
+                        "fontStyle": "normal",
+                        "fontWeight": 400,
+                        "isolation": "auto",
+                        "lineCap": "butt",
+                        "lineJoin": "miter",
+                        "miterLimit": 4,
+                        "mixBlendMode": "normal",
+                        "opacity": 1,
+                        "overflow": "visible",
+                        "shapeRendering": "auto",
+                        "stroke": {
+                          "kind": "color",
+                          "rgba": [
+                            0,
+                            0,
+                            0,
+                            1
+                          ]
+                        },
+                        "strokeOpacity": 1,
+                        "strokeWidth": {
+                          "unit": "px",
+                          "value": 1
+                        },
+                        "textAnchor": "start",
+                        "textTransform": "none",
+                        "visibility": "visible",
+                        "whiteSpace": "normal",
+                        "wordSpacing": {
+                          "unit": "px",
+                          "value": 0
+                        }
+                      },
+                      {
+                        "alignmentBaseline": "baseline",
+                        "clipRule": "nonzero",
+                        "colorInterpolation": "sRGB",
+                        "colorInterpolationFilters": "linearRGB",
+                        "dashArray": [],
+                        "dashOffset": {
+                          "unit": "px",
+                          "value": 0
+                        },
+                        "decoration": "none",
+                        "display": "inline",
+                        "dominantBaseline": "auto",
+                        "fill": {
+                          "kind": "color",
+                          "rgba": [
+                            236,
+                            236,
+                            255,
+                            1
+                          ]
+                        },
+                        "fillOpacity": 1,
+                        "fillRule": "nonzero",
+                        "filter": {
+                          "kind": "none"
+                        },
+                        "fontId": "arial-sans",
+                        "fontSize": {
+                          "unit": "px",
+                          "value": 16
+                        },
+                        "fontStyle": "normal",
+                        "fontWeight": 400,
+                        "isolation": "auto",
+                        "lineCap": "butt",
+                        "lineJoin": "miter",
+                        "miterLimit": 4,
+                        "mixBlendMode": "normal",
+                        "opacity": 1,
+                        "overflow": "visible",
+                        "shapeRendering": "auto",
+                        "stroke": {
+                          "kind": "color",
+                          "rgba": [
+                            102,
+                            102,
+                            102,
+                            1
+                          ]
+                        },
+                        "strokeOpacity": 1,
+                        "strokeWidth": {
+                          "unit": "px",
+                          "value": 1
+                        },
+                        "textAnchor": "start",
+                        "textTransform": "none",
+                        "visibility": "visible",
+                        "whiteSpace": "normal",
+                        "wordSpacing": {
+                          "unit": "px",
+                          "value": 0
+                        }
+                      },
+                      {
+                        "alignmentBaseline": "central",
+                        "clipRule": "nonzero",
+                        "colorInterpolation": "sRGB",
+                        "colorInterpolationFilters": "linearRGB",
+                        "dashArray": [],
+                        "dashOffset": {
+                          "unit": "px",
+                          "value": 0
+                        },
+                        "decoration": "none",
+                        "display": "inline",
+                        "dominantBaseline": "central",
+                        "fill": {
+                          "kind": "color",
+                          "rgba": [
+                            236,
+                            236,
+                            255,
+                            1
+                          ]
+                        },
+                        "fillOpacity": 1,
+                        "fillRule": "nonzero",
+                        "filter": {
+                          "kind": "none"
+                        },
+                        "fontId": "open-sans-sans",
+                        "fontSize": {
+                          "unit": "px",
+                          "value": 14
+                        },
+                        "fontStyle": "normal",
+                        "fontWeight": 400,
+                        "isolation": "auto",
+                        "lineCap": "butt",
+                        "lineJoin": "miter",
+                        "miterLimit": 4,
+                        "mixBlendMode": "normal",
+                        "opacity": 1,
+                        "overflow": "visible",
+                        "shapeRendering": "auto",
+                        "stroke": {
+                          "kind": "none"
+                        },
+                        "strokeOpacity": 1,
+                        "strokeWidth": {
+                          "unit": "px",
+                          "value": 1
+                        },
+                        "textAnchor": "middle",
+                        "textTransform": "none",
+                        "visibility": "visible",
+                        "whiteSpace": "nowrap",
+                        "wordSpacing": {
+                          "unit": "px",
+                          "value": 0
+                        }
+                      },
+                      {
+                        "alignmentBaseline": "baseline",
+                        "clipRule": "nonzero",
+                        "colorInterpolation": "sRGB",
+                        "colorInterpolationFilters": "linearRGB",
+                        "dashArray": [],
+                        "dashOffset": {
+                          "unit": "px",
+                          "value": 0
+                        },
+                        "decoration": "none",
+                        "display": "inline",
+                        "dominantBaseline": "auto",
+                        "fill": {
+                          "kind": "color",
+                          "rgba": [
+                            236,
+                            236,
+                            255,
+                            1
+                          ]
+                        },
+                        "fillOpacity": 1,
+                        "fillRule": "nonzero",
+                        "filter": {
+                          "kind": "none"
+                        },
+                        "fontId": "open-sans-sans",
+                        "fontSize": {
+                          "unit": "px",
+                          "value": 14
+                        },
+                        "fontStyle": "normal",
+                        "fontWeight": 400,
+                        "isolation": "auto",
+                        "lineCap": "butt",
+                        "lineJoin": "miter",
+                        "miterLimit": 4,
+                        "mixBlendMode": "normal",
+                        "opacity": 1,
+                        "overflow": "visible",
+                        "shapeRendering": "auto",
+                        "stroke": {
+                          "kind": "none"
+                        },
+                        "strokeOpacity": 1,
+                        "strokeWidth": {
+                          "unit": "px",
+                          "value": 1
+                        },
+                        "textAnchor": "middle",
+                        "textTransform": "none",
+                        "visibility": "visible",
+                        "whiteSpace": "nowrap",
+                        "wordSpacing": {
+                          "unit": "px",
+                          "value": 0
+                        }
+                      },
+                      {
+                        "alignmentBaseline": "baseline",
+                        "clipRule": "nonzero",
+                        "colorInterpolation": "sRGB",
+                        "colorInterpolationFilters": "linearRGB",
+                        "dashArray": [
+                          {
+                            "unit": "px",
+                            "value": 4
+                          },
+                          {
+                            "unit": "px",
+                            "value": 2
+                          }
+                        ],
+                        "dashOffset": {
+                          "unit": "px",
+                          "value": 0
+                        },
+                        "decoration": "none",
+                        "display": "inline",
+                        "dominantBaseline": "auto",
+                        "fill": {
+                          "kind": "color",
+                          "rgba": [
+                            51,
+                            51,
+                            51,
+                            1
+                          ]
+                        },
+                        "fillOpacity": 1,
+                        "fillRule": "nonzero",
+                        "filter": {
+                          "kind": "none"
+                        },
+                        "fontId": "arial-sans",
+                        "fontSize": {
+                          "unit": "px",
+                          "value": 16
+                        },
+                        "fontStyle": "normal",
+                        "fontWeight": 400,
+                        "isolation": "auto",
+                        "lineCap": "butt",
+                        "lineJoin": "miter",
+                        "miterLimit": 4,
+                        "mixBlendMode": "normal",
+                        "opacity": 1,
+                        "overflow": "visible",
+                        "shapeRendering": "auto",
+                        "stroke": {
+                          "kind": "color",
+                          "rgba": [
+                            51,
+                            51,
+                            51,
+                            1
+                          ]
+                        },
+                        "strokeOpacity": 1,
+                        "strokeWidth": {
+                          "unit": "px",
+                          "value": 1
+                        },
+                        "textAnchor": "start",
+                        "textTransform": "none",
+                        "visibility": "visible",
+                        "whiteSpace": "normal",
+                        "wordSpacing": {
+                          "unit": "px",
+                          "value": 0
+                        }
+                      },
+                      {
+                        "alignmentBaseline": "baseline",
+                        "clipRule": "nonzero",
+                        "colorInterpolation": "sRGB",
+                        "colorInterpolationFilters": "linearRGB",
+                        "dashArray": [],
+                        "dashOffset": {
+                          "unit": "px",
+                          "value": 0
+                        },
+                        "decoration": "none",
+                        "display": "inline",
+                        "dominantBaseline": "auto",
+                        "fill": {
+                          "kind": "color",
+                          "rgba": [
+                            255,
+                            248,
+                            220,
+                            1
+                          ]
+                        },
+                        "fillOpacity": 1,
+                        "fillRule": "nonzero",
+                        "filter": {
+                          "kind": "none"
+                        },
+                        "fontId": "arial-sans",
+                        "fontSize": {
+                          "unit": "px",
+                          "value": 16
+                        },
+                        "fontStyle": "normal",
+                        "fontWeight": 400,
+                        "isolation": "auto",
+                        "lineCap": "butt",
+                        "lineJoin": "miter",
+                        "miterLimit": 4,
+                        "mixBlendMode": "normal",
+                        "opacity": 1,
+                        "overflow": "visible",
+                        "shapeRendering": "auto",
+                        "stroke": {
+                          "kind": "color",
+                          "rgba": [
+                            153,
+                            153,
+                            153,
+                            1
+                          ]
+                        },
+                        "strokeOpacity": 1,
+                        "strokeWidth": {
+                          "unit": "px",
+                          "value": 2
+                        },
+                        "textAnchor": "start",
+                        "textTransform": "none",
+                        "visibility": "visible",
+                        "whiteSpace": "normal",
+                        "wordSpacing": {
+                          "unit": "px",
+                          "value": 0
+                        }
+                      },
+                      {
+                        "alignmentBaseline": "baseline",
+                        "clipRule": "nonzero",
+                        "colorInterpolation": "sRGB",
+                        "colorInterpolationFilters": "linearRGB",
+                        "dashArray": [],
+                        "dashOffset": {
+                          "unit": "px",
+                          "value": 0
+                        },
+                        "decoration": "none",
+                        "display": "inline",
+                        "dominantBaseline": "auto",
+                        "fill": {
+                          "kind": "color",
+                          "rgba": [
+                            102,
+                            102,
+                            102,
+                            1
+                          ]
+                        },
+                        "fillOpacity": 1,
+                        "fillRule": "nonzero",
+                        "filter": {
+                          "kind": "none"
+                        },
+                        "fontId": "arial-sans",
+                        "fontSize": {
+                          "unit": "px",
+                          "value": 16
+                        },
+                        "fontStyle": "normal",
+                        "fontWeight": 400,
+                        "isolation": "auto",
+                        "lineCap": "butt",
+                        "lineJoin": "miter",
+                        "miterLimit": 4,
+                        "mixBlendMode": "normal",
+                        "opacity": 1,
+                        "overflow": "visible",
+                        "shapeRendering": "auto",
+                        "stroke": {
+                          "kind": "color",
+                          "rgba": [
+                            102,
+                            102,
+                            102,
+                            1
+                          ]
+                        },
+                        "strokeOpacity": 1,
+                        "strokeWidth": {
+                          "unit": "px",
+                          "value": 2
+                        },
+                        "textAnchor": "start",
+                        "textTransform": "none",
+                        "visibility": "visible",
+                        "whiteSpace": "normal",
+                        "wordSpacing": {
+                          "unit": "px",
+                          "value": 0
+                        }
+                      },
+                      {
+                        "alignmentBaseline": "baseline",
+                        "clipRule": "nonzero",
+                        "colorInterpolation": "sRGB",
+                        "colorInterpolationFilters": "linearRGB",
+                        "dashArray": [],
+                        "dashOffset": {
+                          "unit": "px",
+                          "value": 0
+                        },
+                        "decoration": "none",
+                        "display": "inline",
+                        "dominantBaseline": "auto",
+                        "fill": {
+                          "kind": "color",
+                          "rgba": [
+                            51,
+                            51,
+                            51,
+                            1
+                          ]
+                        },
+                        "fillOpacity": 1,
+                        "fillRule": "nonzero",
+                        "filter": {
+                          "kind": "none"
+                        },
+                        "fontId": "arial-sans",
+                        "fontSize": {
+                          "unit": "px",
+                          "value": 16
+                        },
+                        "fontStyle": "normal",
+                        "fontWeight": 400,
+                        "isolation": "auto",
+                        "lineCap": "butt",
+                        "lineJoin": "miter",
+                        "miterLimit": 4,
+                        "mixBlendMode": "normal",
+                        "opacity": 1,
+                        "overflow": "visible",
+                        "shapeRendering": "auto",
+                        "stroke": {
+                          "kind": "color",
+                          "rgba": [
+                            102,
+                            102,
+                            102,
+                            1
+                          ]
+                        },
+                        "strokeOpacity": 1,
+                        "strokeWidth": {
+                          "unit": "px",
+                          "value": 1
+                        },
+                        "textAnchor": "start",
+                        "textTransform": "none",
+                        "visibility": "visible",
+                        "whiteSpace": "normal",
+                        "wordSpacing": {
+                          "unit": "px",
+                          "value": 0
+                        }
+                      },
+                      {
+                        "alignmentBaseline": "central",
+                        "clipRule": "nonzero",
+                        "colorInterpolation": "sRGB",
+                        "colorInterpolationFilters": "linearRGB",
+                        "dashArray": [],
+                        "dashOffset": {
+                          "unit": "px",
+                          "value": 0
+                        },
+                        "decoration": "none",
+                        "display": "inline",
+                        "dominantBaseline": "central",
+                        "fill": {
+                          "kind": "color",
+                          "rgba": [
+                            51,
+                            51,
+                            51,
+                            1
+                          ]
+                        },
+                        "fillOpacity": 1,
+                        "fillRule": "nonzero",
+                        "filter": {
+                          "kind": "none"
+                        },
+                        "fontId": "open-sans-sans",
+                        "fontSize": {
+                          "unit": "px",
+                          "value": 14
+                        },
+                        "fontStyle": "normal",
+                        "fontWeight": 400,
+                        "isolation": "auto",
+                        "lineCap": "butt",
+                        "lineJoin": "miter",
+                        "miterLimit": 4,
+                        "mixBlendMode": "normal",
+                        "opacity": 1,
+                        "overflow": "visible",
+                        "shapeRendering": "auto",
+                        "stroke": {
+                          "kind": "none"
+                        },
+                        "strokeOpacity": 1,
+                        "strokeWidth": {
+                          "unit": "px",
+                          "value": 1
+                        },
+                        "textAnchor": "middle",
+                        "textTransform": "none",
+                        "visibility": "visible",
+                        "whiteSpace": "nowrap",
+                        "wordSpacing": {
+                          "unit": "px",
+                          "value": 0
+                        }
+                      },
+                      {
+                        "alignmentBaseline": "baseline",
+                        "clipRule": "nonzero",
+                        "colorInterpolation": "sRGB",
+                        "colorInterpolationFilters": "linearRGB",
+                        "dashArray": [],
+                        "dashOffset": {
+                          "unit": "px",
+                          "value": 0
+                        },
+                        "decoration": "none",
+                        "display": "inline",
+                        "dominantBaseline": "auto",
+                        "fill": {
+                          "kind": "color",
+                          "rgba": [
+                            51,
+                            51,
+                            51,
+                            1
+                          ]
+                        },
+                        "fillOpacity": 1,
+                        "fillRule": "nonzero",
+                        "filter": {
+                          "kind": "none"
+                        },
+                        "fontId": "open-sans-sans",
+                        "fontSize": {
+                          "unit": "px",
+                          "value": 14
+                        },
+                        "fontStyle": "normal",
+                        "fontWeight": 400,
+                        "isolation": "auto",
+                        "lineCap": "butt",
+                        "lineJoin": "miter",
+                        "miterLimit": 4,
+                        "mixBlendMode": "normal",
+                        "opacity": 1,
+                        "overflow": "visible",
+                        "shapeRendering": "auto",
+                        "stroke": {
+                          "kind": "none"
+                        },
+                        "strokeOpacity": 1,
+                        "strokeWidth": {
+                          "unit": "px",
+                          "value": 1
+                        },
+                        "textAnchor": "middle",
+                        "textTransform": "none",
+                        "visibility": "visible",
+                        "whiteSpace": "nowrap",
+                        "wordSpacing": {
+                          "unit": "px",
+                          "value": 0
+                        }
+                      },
+                      {
+                        "alignmentBaseline": "baseline",
+                        "clipRule": "nonzero",
+                        "colorInterpolation": "sRGB",
+                        "colorInterpolationFilters": "linearRGB",
+                        "dashArray": [],
+                        "dashOffset": {
+                          "unit": "px",
+                          "value": 0
+                        },
+                        "decoration": "none",
+                        "display": "inline",
+                        "dominantBaseline": "auto",
+                        "fill": {
+                          "kind": "color",
+                          "rgba": [
+                            255,
+                            255,
+                            222,
+                            1
+                          ]
+                        },
+                        "fillOpacity": 1,
+                        "fillRule": "nonzero",
+                        "filter": {
+                          "kind": "none"
+                        },
+                        "fontId": "arial-sans",
+                        "fontSize": {
+                          "unit": "px",
+                          "value": 16
+                        },
+                        "fontStyle": "normal",
+                        "fontWeight": 400,
+                        "isolation": "auto",
+                        "lineCap": "butt",
+                        "lineJoin": "miter",
+                        "miterLimit": 4,
+                        "mixBlendMode": "normal",
+                        "opacity": 1,
+                        "overflow": "visible",
+                        "shapeRendering": "auto",
+                        "stroke": {
+                          "kind": "color",
+                          "rgba": [
+                            102,
+                            102,
+                            102,
+                            1
+                          ]
+                        },
+                        "strokeOpacity": 1,
+                        "strokeWidth": {
+                          "unit": "px",
+                          "value": 1
+                        },
+                        "textAnchor": "start",
+                        "textTransform": "none",
+                        "visibility": "visible",
+                        "whiteSpace": "normal",
+                        "wordSpacing": {
+                          "unit": "px",
+                          "value": 0
+                        }
+                      },
+                      {
+                        "alignmentBaseline": "central",
+                        "clipRule": "nonzero",
+                        "colorInterpolation": "sRGB",
+                        "colorInterpolationFilters": "linearRGB",
+                        "dashArray": [],
+                        "dashOffset": {
+                          "unit": "px",
+                          "value": 0
+                        },
+                        "decoration": "none",
+                        "display": "inline",
+                        "dominantBaseline": "central",
+                        "fill": {
+                          "kind": "color",
+                          "rgba": [
+                            255,
+                            255,
+                            222,
+                            1
+                          ]
+                        },
+                        "fillOpacity": 1,
+                        "fillRule": "nonzero",
+                        "filter": {
+                          "kind": "none"
+                        },
+                        "fontId": "open-sans-sans",
+                        "fontSize": {
+                          "unit": "px",
+                          "value": 14
+                        },
+                        "fontStyle": "normal",
+                        "fontWeight": 400,
+                        "isolation": "auto",
+                        "lineCap": "butt",
+                        "lineJoin": "miter",
+                        "miterLimit": 4,
+                        "mixBlendMode": "normal",
+                        "opacity": 1,
+                        "overflow": "visible",
+                        "shapeRendering": "auto",
+                        "stroke": {
+                          "kind": "none"
+                        },
+                        "strokeOpacity": 1,
+                        "strokeWidth": {
+                          "unit": "px",
+                          "value": 1
+                        },
+                        "textAnchor": "middle",
+                        "textTransform": "none",
+                        "visibility": "visible",
+                        "whiteSpace": "nowrap",
+                        "wordSpacing": {
+                          "unit": "px",
+                          "value": 0
+                        }
+                      },
+                      {
+                        "alignmentBaseline": "baseline",
+                        "clipRule": "nonzero",
+                        "colorInterpolation": "sRGB",
+                        "colorInterpolationFilters": "linearRGB",
+                        "dashArray": [],
+                        "dashOffset": {
+                          "unit": "px",
+                          "value": 0
+                        },
+                        "decoration": "none",
+                        "display": "inline",
+                        "dominantBaseline": "auto",
+                        "fill": {
+                          "kind": "color",
+                          "rgba": [
+                            255,
+                            255,
+                            222,
+                            1
+                          ]
+                        },
+                        "fillOpacity": 1,
+                        "fillRule": "nonzero",
+                        "filter": {
+                          "kind": "none"
+                        },
+                        "fontId": "open-sans-sans",
+                        "fontSize": {
+                          "unit": "px",
+                          "value": 14
+                        },
+                        "fontStyle": "normal",
+                        "fontWeight": 400,
+                        "isolation": "auto",
+                        "lineCap": "butt",
+                        "lineJoin": "miter",
+                        "miterLimit": 4,
+                        "mixBlendMode": "normal",
+                        "opacity": 1,
+                        "overflow": "visible",
+                        "shapeRendering": "auto",
+                        "stroke": {
+                          "kind": "none"
+                        },
+                        "strokeOpacity": 1,
+                        "strokeWidth": {
+                          "unit": "px",
+                          "value": 1
+                        },
+                        "textAnchor": "middle",
+                        "textTransform": "none",
+                        "visibility": "visible",
+                        "whiteSpace": "nowrap",
+                        "wordSpacing": {
+                          "unit": "px",
+                          "value": 0
+                        }
+                      },
+                      {
+                        "alignmentBaseline": "baseline",
+                        "clipRule": "nonzero",
+                        "colorInterpolation": "sRGB",
+                        "colorInterpolationFilters": "linearRGB",
+                        "dashArray": [],
+                        "dashOffset": {
+                          "unit": "px",
+                          "value": 0
+                        },
+                        "decoration": "none",
+                        "display": "inline",
+                        "dominantBaseline": "auto",
+                        "fill": {
+                          "kind": "color",
+                          "rgba": [
+                            51,
+                            51,
+                            51,
+                            1
+                          ]
+                        },
+                        "fillOpacity": 1,
+                        "fillRule": "nonzero",
+                        "filter": {
+                          "kind": "none"
+                        },
+                        "fontId": "trebuchet-verdana-arial-sans",
+                        "fontSize": {
+                          "unit": "px",
+                          "value": 33.8125
+                        },
+                        "fontStyle": "normal",
+                        "fontWeight": 700,
+                        "isolation": "auto",
+                        "lineCap": "butt",
+                        "lineJoin": "miter",
+                        "miterLimit": 4,
+                        "mixBlendMode": "normal",
+                        "opacity": 1,
+                        "overflow": "visible",
+                        "shapeRendering": "auto",
+                        "stroke": {
+                          "kind": "none"
+                        },
+                        "strokeOpacity": 1,
+                        "strokeWidth": {
+                          "unit": "px",
+                          "value": 1
+                        },
+                        "textAnchor": "start",
+                        "textTransform": "none",
+                        "visibility": "visible",
+                        "whiteSpace": "nowrap",
+                        "wordSpacing": {
+                          "unit": "px",
+                          "value": 0
+                        }
+                      },
+                      {
+                        "alignmentBaseline": "baseline",
+                        "clipRule": "nonzero",
+                        "colorInterpolation": "sRGB",
+                        "colorInterpolationFilters": "linearRGB",
+                        "dashArray": [],
+                        "dashOffset": {
+                          "unit": "px",
+                          "value": 0
+                        },
+                        "decoration": "none",
+                        "display": "inline",
+                        "dominantBaseline": "auto",
+                        "fill": {
+                          "kind": "color",
+                          "rgba": [
+                            51,
+                            51,
+                            51,
+                            1
+                          ]
+                        },
+                        "fillOpacity": 1,
+                        "fillRule": "nonzero",
+                        "filter": {
+                          "kind": "none"
+                        },
+                        "fontId": "arial-sans",
+                        "fontSize": {
+                          "unit": "px",
+                          "value": 16
+                        },
+                        "fontStyle": "normal",
+                        "fontWeight": 400,
+                        "isolation": "auto",
+                        "lineCap": "butt",
+                        "lineJoin": "miter",
+                        "miterLimit": 4,
+                        "mixBlendMode": "normal",
+                        "opacity": 1,
+                        "overflow": "visible",
+                        "shapeRendering": "auto",
+                        "stroke": {
+                          "kind": "color",
+                          "rgba": [
+                            51,
+                            51,
+                            51,
+                            1
+                          ]
+                        },
+                        "strokeOpacity": 1,
+                        "strokeWidth": {
+                          "unit": "px",
+                          "value": 4
+                        },
+                        "textAnchor": "start",
+                        "textTransform": "none",
+                        "visibility": "visible",
+                        "whiteSpace": "normal",
+                        "wordSpacing": {
+                          "unit": "px",
+                          "value": 0
+                        }
+                      }
+                    ],
+                    "type": "svg-image",
+                    "viewBox": [
+                      0,
+                      -25,
+                      1300,
+                      540
+                    ],
+                    "width": 380
+                  },
+                  "from": 0,
+                  "layout": "block",
+                  "status": "ready",
+                  "to": 213
+                }
+              ]
+            }
+          },
+          "status": "complete",
+          "taskId": "journey-capture"
+        }
+      }
+    },
+    {
+      "kind": "settled",
+      "mono": 75772.765902032,
+      "wall": 1792188160.3268604,
+      "task": "actual-current-renderer",
+      "elapsed": 0.22295114799635485
+    },
+    {
+      "kind": "received-frame",
+      "mono": 75772.774744189,
+      "wall": 1792188160.3357036,
+      "frame": {
+        "type": "result",
+        "value": {
+          "geometry": {
+            "aspect": "xMinYMin meet",
+            "bbox": [
+              13,
+              -5.796875,
+              1133,
+              455.796875
+            ],
+            "computed": {
+              "font": "16px Arial, sans-serif",
+              "height": "565px",
+              "overflow": "hidden",
+              "width": "380px"
+            },
+            "ctm": [
+              0.2923076923076923,
+              0,
+              0,
+              0.2923076923076923,
+              0,
+              7.307692307692308
+            ],
+            "devicePixelRatio": 1,
+            "fontsStatus": "loaded",
+            "height": "565",
+            "parentRect": [
+              8,
+              8,
+              380,
+              569
+            ],
+            "rect": [
+              8,
+              8,
+              380,
+              565
+            ],
+            "screenCTM": [
+              0.2923076923076923,
+              0,
+              0,
+              0.2923076923076923,
+              8,
+              15.307692527770996
+            ],
+            "style": "max-width: 1300px;",
+            "viewBox": "0 -25 1300 540",
+            "width": "100%"
+          },
+          "installedRootSvg": "<svg id=\"milkup_graph_1\" width=\"100%\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" style=\"max-width: 1300px;\" viewBox=\"0 -25 1300 540\" preserveAspectRatio=\"xMinYMin meet\" height=\"565\" role=\"graphics-document document\" aria-roledescription=\"journey\"><style>#milkup_graph_1{font-family:Arial,sans-serif;font-size:16px;fill:#333;}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#milkup_graph_1 .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#milkup_graph_1 .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#milkup_graph_1 .error-icon{fill:#552222;}#milkup_graph_1 .error-text{fill:#552222;stroke:#552222;}#milkup_graph_1 .edge-thickness-normal{stroke-width:1px;}#milkup_graph_1 .edge-thickness-thick{stroke-width:3.5px;}#milkup_graph_1 .edge-pattern-solid{stroke-dasharray:0;}#milkup_graph_1 .edge-thickness-invisible{stroke-width:0;fill:none;}#milkup_graph_1 .edge-pattern-dashed{stroke-dasharray:3;}#milkup_graph_1 .edge-pattern-dotted{stroke-dasharray:2;}#milkup_graph_1 .marker{fill:#333333;stroke:#333333;}#milkup_graph_1 .marker.cross{stroke:#333333;}#milkup_graph_1 svg{font-family:Arial,sans-serif;font-size:16px;}#milkup_graph_1 p{margin:0;}#milkup_graph_1 .label{font-family:Arial,sans-serif;color:#333;}#milkup_graph_1 .mouth{stroke:#666;}#milkup_graph_1 line{stroke:#333;}#milkup_graph_1 .legend{fill:#333;font-family:Arial,sans-serif;}#milkup_graph_1 .label text{fill:#333;}#milkup_graph_1 .label{color:#333;}#milkup_graph_1 .face{fill:#FFF8DC;stroke:#999;}#milkup_graph_1 .node rect,#milkup_graph_1 .node circle,#milkup_graph_1 .node ellipse,#milkup_graph_1 .node polygon,#milkup_graph_1 .node path{fill:#ECECFF;stroke:#9370DB;stroke-width:1px;}#milkup_graph_1 .node .label{text-align:center;}#milkup_graph_1 .node.clickable{cursor:pointer;}#milkup_graph_1 .arrowheadPath{fill:#333333;}#milkup_graph_1 .edgePaths .path{stroke:#333333;stroke-width:1.5px;}#milkup_graph_1 .flowchart-link{stroke:#333333;fill:none;}#milkup_graph_1 .edgeLabel{background-color:rgba(232,232,232, 0.8);text-align:center;}#milkup_graph_1 .edgeLabel rect{opacity:0.5;}#milkup_graph_1 .cluster text{fill:#333;}#milkup_graph_1 div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:Arial,sans-serif;font-size:12px;background:hsl(80, 100%, 96.2745098039%);border:1px solid #aaaa33;border-radius:2px;pointer-events:none;z-index:100;}#milkup_graph_1 .task-type-0,#milkup_graph_1 .section-type-0{fill:#ECECFF;}#milkup_graph_1 .task-type-1,#milkup_graph_1 .section-type-1{fill:#ffffde;}#milkup_graph_1 .task-type-2,#milkup_graph_1 .section-type-2{fill:hsl(304, 100%, 96.2745098039%);}#milkup_graph_1 .task-type-3,#milkup_graph_1 .section-type-3{fill:hsl(124, 100%, 93.5294117647%);}#milkup_graph_1 .task-type-4,#milkup_graph_1 .section-type-4{fill:hsl(176, 100%, 96.2745098039%);}#milkup_graph_1 .task-type-5,#milkup_graph_1 .section-type-5{fill:hsl(-4, 100%, 93.5294117647%);}#milkup_graph_1 .task-type-6,#milkup_graph_1 .section-type-6{fill:hsl(8, 100%, 96.2745098039%);}#milkup_graph_1 .task-type-7,#milkup_graph_1 .section-type-7{fill:hsl(188, 100%, 93.5294117647%);}#milkup_graph_1 .label-icon{display:inline-block;height:1em;overflow:visible;vertical-align:-0.125em;}#milkup_graph_1 .node .label-icon path{fill:currentColor;stroke:revert;stroke-width:revert;}#milkup_graph_1 .node .neo-node{stroke:#9370DB;}#milkup_graph_1 [data-look=\"neo\"].node rect,#milkup_graph_1 [data-look=\"neo\"].cluster rect,#milkup_graph_1 [data-look=\"neo\"].node polygon{stroke:#9370DB;filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#milkup_graph_1 [data-look=\"neo\"].swimlane.cluster rect{filter:none;}#milkup_graph_1 [data-look=\"neo\"].node path{stroke:#9370DB;stroke-width:1px;}#milkup_graph_1 [data-look=\"neo\"].node .outer-path{filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#milkup_graph_1 [data-look=\"neo\"].node .neo-line path{stroke:#9370DB;filter:none;}#milkup_graph_1 [data-look=\"neo\"].node circle{stroke:#9370DB;filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#milkup_graph_1 [data-look=\"neo\"].node circle .state-start{fill:#000000;}#milkup_graph_1 [data-look=\"neo\"].icon-shape .icon{fill:#9370DB;filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#milkup_graph_1 [data-look=\"neo\"].icon-shape .icon-neo path{stroke:#9370DB;filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#milkup_graph_1 :root{--mermaid-font-family:Arial,sans-serif;}</style><g></g><defs><marker id=\"milkup_graph_1-arrowhead\" refX=\"5\" refY=\"2\" markerWidth=\"6\" markerHeight=\"4\" orient=\"auto\"><path d=\"M 0,0 V 4 L6,2 Z\"></path></marker></defs><circle cx=\"20\" cy=\"60\" class=\"actor-0\" fill=\"#8FBC8F\" stroke=\"#000\" r=\"7\"></circle><text x=\"40\" y=\"67\" class=\"legend\"><tspan x=\"50\">Cat</tspan></text><circle cx=\"20\" cy=\"80\" class=\"actor-1\" fill=\"#7CFC00\" stroke=\"#000\" r=\"7\"></circle><text x=\"40\" y=\"87\" class=\"legend\"><tspan x=\"50\">Me</tspan></text><g><rect x=\"150\" y=\"50\" fill=\"#191970\" stroke=\"#666\" width=\"550\" height=\"50\" rx=\"3\" ry=\"3\" class=\"journey-section section-type-0\"></rect><switch><foreignObject x=\"150\" y=\"50\" width=\"550\" height=\"50\"><div class=\"journey-section section-type-0\" style=\"display: table; height: 100%; width: 100%;\"><div class=\"label\" style=\"display: table-cell; text-align: center; vertical-align: middle;\">Go to work</div></div></foreignObject><text x=\"425\" y=\"75\" dominant-baseline=\"central\" alignment-baseline=\"central\" class=\"journey-section section-type-0\" style=\"text-anchor: middle; font-size: 14px; font-family: &quot;Open Sans&quot;, sans-serif;\"><tspan x=\"425\" dy=\"0\">Go to work</tspan></text></switch></g><g><line id=\"milkup_graph_1-task0\" x1=\"225\" y1=\"110\" x2=\"225\" y2=\"450\" class=\"task-line\" stroke-width=\"1px\" stroke-dasharray=\"4 2\" stroke=\"#666\"></line><circle cx=\"225\" cy=\"300\" class=\"face\" r=\"15\" stroke-width=\"2\" overflow=\"visible\"></circle><g><circle cx=\"220\" cy=\"295\" r=\"1.5\" stroke-width=\"2\" fill=\"#666\" stroke=\"#666\"></circle><circle cx=\"230\" cy=\"295\" r=\"1.5\" stroke-width=\"2\" fill=\"#666\" stroke=\"#666\"></circle><path class=\"mouth\" d=\"M7.5,0A7.5,7.5,0,1,1,-7.5,0L-6.818,0A6.818,6.818,0,1,0,6.818,0Z\" transform=\"translate(225,302)\"></path></g><rect x=\"150\" y=\"110\" fill=\"#191970\" stroke=\"#666\" width=\"150\" height=\"50\" rx=\"3\" ry=\"3\" class=\"task task-type-0\"></rect><circle cx=\"164\" cy=\"110\" class=\"actor-1\" fill=\"#7CFC00\" stroke=\"#000\" r=\"7\"><title>Me</title></circle><switch><foreignObject x=\"150\" y=\"110\" width=\"150\" height=\"50\"><div class=\"task\" style=\"display: table; height: 100%; width: 100%;\"><div class=\"label\" style=\"display: table-cell; text-align: center; vertical-align: middle;\">Make tea</div></div></foreignObject><text x=\"225\" y=\"135\" dominant-baseline=\"central\" alignment-baseline=\"central\" class=\"task\" style=\"text-anchor: middle; font-size: 14px; font-family: &quot;Open Sans&quot;, sans-serif;\"><tspan x=\"225\" dy=\"0\">Make tea</tspan></text></switch></g><g><line id=\"milkup_graph_1-task1\" x1=\"425\" y1=\"110\" x2=\"425\" y2=\"450\" class=\"task-line\" stroke-width=\"1px\" stroke-dasharray=\"4 2\" stroke=\"#666\"></line><circle cx=\"425\" cy=\"360\" class=\"face\" r=\"15\" stroke-width=\"2\" overflow=\"visible\"></circle><g><circle cx=\"420\" cy=\"355\" r=\"1.5\" stroke-width=\"2\" fill=\"#666\" stroke=\"#666\"></circle><circle cx=\"430\" cy=\"355\" r=\"1.5\" stroke-width=\"2\" fill=\"#666\" stroke=\"#666\"></circle><line class=\"mouth\" stroke=\"#666\" x1=\"420\" y1=\"367\" x2=\"430\" y2=\"367\" stroke-width=\"1px\"></line></g><rect x=\"350\" y=\"110\" fill=\"#191970\" stroke=\"#666\" width=\"150\" height=\"50\" rx=\"3\" ry=\"3\" class=\"task task-type-0\"></rect><circle cx=\"364\" cy=\"110\" class=\"actor-1\" fill=\"#7CFC00\" stroke=\"#000\" r=\"7\"><title>Me</title></circle><switch><foreignObject x=\"350\" y=\"110\" width=\"150\" height=\"50\"><div class=\"task\" style=\"display: table; height: 100%; width: 100%;\"><div class=\"label\" style=\"display: table-cell; text-align: center; vertical-align: middle;\">Go upstairs</div></div></foreignObject><text x=\"425\" y=\"135\" dominant-baseline=\"central\" alignment-baseline=\"central\" class=\"task\" style=\"text-anchor: middle; font-size: 14px; font-family: &quot;Open Sans&quot;, sans-serif;\"><tspan x=\"425\" dy=\"0\">Go upstairs</tspan></text></switch></g><g><line id=\"milkup_graph_1-task2\" x1=\"625\" y1=\"110\" x2=\"625\" y2=\"450\" class=\"task-line\" stroke-width=\"1px\" stroke-dasharray=\"4 2\" stroke=\"#666\"></line><circle cx=\"625\" cy=\"420\" class=\"face\" r=\"15\" stroke-width=\"2\" overflow=\"visible\"></circle><g><circle cx=\"620\" cy=\"415\" r=\"1.5\" stroke-width=\"2\" fill=\"#666\" stroke=\"#666\"></circle><circle cx=\"630\" cy=\"415\" r=\"1.5\" stroke-width=\"2\" fill=\"#666\" stroke=\"#666\"></circle><path class=\"mouth\" d=\"M-7.5,0A7.5,7.5,0,1,1,7.5,0L6.818,0A6.818,6.818,0,1,0,-6.818,0Z\" transform=\"translate(625,427)\"></path></g><rect x=\"550\" y=\"110\" fill=\"#191970\" stroke=\"#666\" width=\"150\" height=\"50\" rx=\"3\" ry=\"3\" class=\"task task-type-0\"></rect><circle cx=\"564\" cy=\"110\" class=\"actor-1\" fill=\"#7CFC00\" stroke=\"#000\" r=\"7\"><title>Me</title></circle><circle cx=\"574\" cy=\"110\" class=\"actor-0\" fill=\"#8FBC8F\" stroke=\"#000\" r=\"7\"><title>Cat</title></circle><switch><foreignObject x=\"550\" y=\"110\" width=\"150\" height=\"50\"><div class=\"task\" style=\"display: table; height: 100%; width: 100%;\"><div class=\"label\" style=\"display: table-cell; text-align: center; vertical-align: middle;\">Do work</div></div></foreignObject><text x=\"625\" y=\"135\" dominant-baseline=\"central\" alignment-baseline=\"central\" class=\"task\" style=\"text-anchor: middle; font-size: 14px; font-family: &quot;Open Sans&quot;, sans-serif;\"><tspan x=\"625\" dy=\"0\">Do work</tspan></text></switch></g><g><rect x=\"750\" y=\"50\" fill=\"#8B008B\" stroke=\"#666\" width=\"350\" height=\"50\" rx=\"3\" ry=\"3\" class=\"journey-section section-type-1\"></rect><switch><foreignObject x=\"750\" y=\"50\" width=\"350\" height=\"50\"><div class=\"journey-section section-type-1\" style=\"display: table; height: 100%; width: 100%;\"><div class=\"label\" style=\"display: table-cell; text-align: center; vertical-align: middle;\">Go home</div></div></foreignObject><text x=\"925\" y=\"75\" dominant-baseline=\"central\" alignment-baseline=\"central\" class=\"journey-section section-type-1\" style=\"text-anchor: middle; font-size: 14px; font-family: &quot;Open Sans&quot;, sans-serif;\"><tspan x=\"925\" dy=\"0\">Go home</tspan></text></switch></g><g><line id=\"milkup_graph_1-task3\" x1=\"825\" y1=\"110\" x2=\"825\" y2=\"450\" class=\"task-line\" stroke-width=\"1px\" stroke-dasharray=\"4 2\" stroke=\"#666\"></line><circle cx=\"825\" cy=\"300\" class=\"face\" r=\"15\" stroke-width=\"2\" overflow=\"visible\"></circle><g><circle cx=\"820\" cy=\"295\" r=\"1.5\" stroke-width=\"2\" fill=\"#666\" stroke=\"#666\"></circle><circle cx=\"830\" cy=\"295\" r=\"1.5\" stroke-width=\"2\" fill=\"#666\" stroke=\"#666\"></circle><path class=\"mouth\" d=\"M7.5,0A7.5,7.5,0,1,1,-7.5,0L-6.818,0A6.818,6.818,0,1,0,6.818,0Z\" transform=\"translate(825,302)\"></path></g><rect x=\"750\" y=\"110\" fill=\"#8B008B\" stroke=\"#666\" width=\"150\" height=\"50\" rx=\"3\" ry=\"3\" class=\"task task-type-1\"></rect><circle cx=\"764\" cy=\"110\" class=\"actor-1\" fill=\"#7CFC00\" stroke=\"#000\" r=\"7\"><title>Me</title></circle><switch><foreignObject x=\"750\" y=\"110\" width=\"150\" height=\"50\"><div class=\"task\" style=\"display: table; height: 100%; width: 100%;\"><div class=\"label\" style=\"display: table-cell; text-align: center; vertical-align: middle;\">Go downstairs</div></div></foreignObject><text x=\"825\" y=\"135\" dominant-baseline=\"central\" alignment-baseline=\"central\" class=\"task\" style=\"text-anchor: middle; font-size: 14px; font-family: &quot;Open Sans&quot;, sans-serif;\"><tspan x=\"825\" dy=\"0\">Go downstairs</tspan></text></switch></g><g><line id=\"milkup_graph_1-task4\" x1=\"1025\" y1=\"110\" x2=\"1025\" y2=\"450\" class=\"task-line\" stroke-width=\"1px\" stroke-dasharray=\"4 2\" stroke=\"#666\"></line><circle cx=\"1025\" cy=\"300\" class=\"face\" r=\"15\" stroke-width=\"2\" overflow=\"visible\"></circle><g><circle cx=\"1020\" cy=\"295\" r=\"1.5\" stroke-width=\"2\" fill=\"#666\" stroke=\"#666\"></circle><circle cx=\"1030\" cy=\"295\" r=\"1.5\" stroke-width=\"2\" fill=\"#666\" stroke=\"#666\"></circle><path class=\"mouth\" d=\"M7.5,0A7.5,7.5,0,1,1,-7.5,0L-6.818,0A6.818,6.818,0,1,0,6.818,0Z\" transform=\"translate(1025,302)\"></path></g><rect x=\"950\" y=\"110\" fill=\"#8B008B\" stroke=\"#666\" width=\"150\" height=\"50\" rx=\"3\" ry=\"3\" class=\"task task-type-1\"></rect><circle cx=\"964\" cy=\"110\" class=\"actor-1\" fill=\"#7CFC00\" stroke=\"#000\" r=\"7\"><title>Me</title></circle><switch><foreignObject x=\"950\" y=\"110\" width=\"150\" height=\"50\"><div class=\"task\" style=\"display: table; height: 100%; width: 100%;\"><div class=\"label\" style=\"display: table-cell; text-align: center; vertical-align: middle;\">Sit down</div></div></foreignObject><text x=\"1025\" y=\"135\" dominant-baseline=\"central\" alignment-baseline=\"central\" class=\"task\" style=\"text-anchor: middle; font-size: 14px; font-family: &quot;Open Sans&quot;, sans-serif;\"><tspan x=\"1025\" dy=\"0\">Sit down</tspan></text></switch></g><text x=\"150\" font-size=\"4ex\" font-weight=\"bold\" y=\"25\" fill=\"\" font-family=\"&quot;trebuchet ms&quot;, verdana, arial, sans-serif\">My working day</text><line x1=\"150\" y1=\"200\" x2=\"1146\" y2=\"200\" stroke-width=\"4\" stroke=\"black\" marker-end=\"url(#milkup_graph_1-arrowhead)\"></line></svg>",
+          "rawReturnedSvg": "<svg id=\"milkup_graph_1\" width=\"100%\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" style=\"max-width: 1300px;\" viewBox=\"0 -25 1300 540\" preserveAspectRatio=\"xMinYMin meet\" height=\"565\" role=\"graphics-document document\" aria-roledescription=\"journey\"><style>#milkup_graph_1{font-family:Arial,sans-serif;font-size:16px;fill:#333;}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#milkup_graph_1 .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#milkup_graph_1 .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#milkup_graph_1 .error-icon{fill:#552222;}#milkup_graph_1 .error-text{fill:#552222;stroke:#552222;}#milkup_graph_1 .edge-thickness-normal{stroke-width:1px;}#milkup_graph_1 .edge-thickness-thick{stroke-width:3.5px;}#milkup_graph_1 .edge-pattern-solid{stroke-dasharray:0;}#milkup_graph_1 .edge-thickness-invisible{stroke-width:0;fill:none;}#milkup_graph_1 .edge-pattern-dashed{stroke-dasharray:3;}#milkup_graph_1 .edge-pattern-dotted{stroke-dasharray:2;}#milkup_graph_1 .marker{fill:#333333;stroke:#333333;}#milkup_graph_1 .marker.cross{stroke:#333333;}#milkup_graph_1 svg{font-family:Arial,sans-serif;font-size:16px;}#milkup_graph_1 p{margin:0;}#milkup_graph_1 .label{font-family:Arial,sans-serif;color:#333;}#milkup_graph_1 .mouth{stroke:#666;}#milkup_graph_1 line{stroke:#333;}#milkup_graph_1 .legend{fill:#333;font-family:Arial,sans-serif;}#milkup_graph_1 .label text{fill:#333;}#milkup_graph_1 .label{color:#333;}#milkup_graph_1 .face{fill:#FFF8DC;stroke:#999;}#milkup_graph_1 .node rect,#milkup_graph_1 .node circle,#milkup_graph_1 .node ellipse,#milkup_graph_1 .node polygon,#milkup_graph_1 .node path{fill:#ECECFF;stroke:#9370DB;stroke-width:1px;}#milkup_graph_1 .node .label{text-align:center;}#milkup_graph_1 .node.clickable{cursor:pointer;}#milkup_graph_1 .arrowheadPath{fill:#333333;}#milkup_graph_1 .edgePaths .path{stroke:#333333;stroke-width:1.5px;}#milkup_graph_1 .flowchart-link{stroke:#333333;fill:none;}#milkup_graph_1 .edgeLabel{background-color:rgba(232,232,232, 0.8);text-align:center;}#milkup_graph_1 .edgeLabel rect{opacity:0.5;}#milkup_graph_1 .cluster text{fill:#333;}#milkup_graph_1 div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:Arial,sans-serif;font-size:12px;background:hsl(80, 100%, 96.2745098039%);border:1px solid #aaaa33;border-radius:2px;pointer-events:none;z-index:100;}#milkup_graph_1 .task-type-0,#milkup_graph_1 .section-type-0{fill:#ECECFF;}#milkup_graph_1 .task-type-1,#milkup_graph_1 .section-type-1{fill:#ffffde;}#milkup_graph_1 .task-type-2,#milkup_graph_1 .section-type-2{fill:hsl(304, 100%, 96.2745098039%);}#milkup_graph_1 .task-type-3,#milkup_graph_1 .section-type-3{fill:hsl(124, 100%, 93.5294117647%);}#milkup_graph_1 .task-type-4,#milkup_graph_1 .section-type-4{fill:hsl(176, 100%, 96.2745098039%);}#milkup_graph_1 .task-type-5,#milkup_graph_1 .section-type-5{fill:hsl(-4, 100%, 93.5294117647%);}#milkup_graph_1 .task-type-6,#milkup_graph_1 .section-type-6{fill:hsl(8, 100%, 96.2745098039%);}#milkup_graph_1 .task-type-7,#milkup_graph_1 .section-type-7{fill:hsl(188, 100%, 93.5294117647%);}#milkup_graph_1 .label-icon{display:inline-block;height:1em;overflow:visible;vertical-align:-0.125em;}#milkup_graph_1 .node .label-icon path{fill:currentColor;stroke:revert;stroke-width:revert;}#milkup_graph_1 .node .neo-node{stroke:#9370DB;}#milkup_graph_1 [data-look=\"neo\"].node rect,#milkup_graph_1 [data-look=\"neo\"].cluster rect,#milkup_graph_1 [data-look=\"neo\"].node polygon{stroke:#9370DB;filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#milkup_graph_1 [data-look=\"neo\"].swimlane.cluster rect{filter:none;}#milkup_graph_1 [data-look=\"neo\"].node path{stroke:#9370DB;stroke-width:1px;}#milkup_graph_1 [data-look=\"neo\"].node .outer-path{filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#milkup_graph_1 [data-look=\"neo\"].node .neo-line path{stroke:#9370DB;filter:none;}#milkup_graph_1 [data-look=\"neo\"].node circle{stroke:#9370DB;filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#milkup_graph_1 [data-look=\"neo\"].node circle .state-start{fill:#000000;}#milkup_graph_1 [data-look=\"neo\"].icon-shape .icon{fill:#9370DB;filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#milkup_graph_1 [data-look=\"neo\"].icon-shape .icon-neo path{stroke:#9370DB;filter:drop-shadow(1px 2px 2px rgba(185, 185, 185, 1));}#milkup_graph_1 :root{--mermaid-font-family:Arial,sans-serif;}</style><g></g><defs><marker id=\"milkup_graph_1-arrowhead\" refX=\"5\" refY=\"2\" markerWidth=\"6\" markerHeight=\"4\" orient=\"auto\"><path d=\"M 0,0 V 4 L6,2 Z\"></path></marker></defs><circle cx=\"20\" cy=\"60\" class=\"actor-0\" fill=\"#8FBC8F\" stroke=\"#000\" r=\"7\"></circle><text x=\"40\" y=\"67\" class=\"legend\"><tspan x=\"50\">Cat</tspan></text><circle cx=\"20\" cy=\"80\" class=\"actor-1\" fill=\"#7CFC00\" stroke=\"#000\" r=\"7\"></circle><text x=\"40\" y=\"87\" class=\"legend\"><tspan x=\"50\">Me</tspan></text><g><rect x=\"150\" y=\"50\" fill=\"#191970\" stroke=\"#666\" width=\"550\" height=\"50\" rx=\"3\" ry=\"3\" class=\"journey-section section-type-0\"></rect><switch><foreignObject x=\"150\" y=\"50\" width=\"550\" height=\"50\"><div class=\"journey-section section-type-0\" style=\"display: table; height: 100%; width: 100%;\"><div class=\"label\" style=\"display: table-cell; text-align: center; vertical-align: middle;\">Go to work</div></div></foreignObject><text x=\"425\" y=\"75\" dominant-baseline=\"central\" alignment-baseline=\"central\" class=\"journey-section section-type-0\" style=\"text-anchor: middle; font-size: 14px; font-family: &quot;Open Sans&quot;, sans-serif;\"><tspan x=\"425\" dy=\"0\">Go to work</tspan></text></switch></g><g><line id=\"milkup_graph_1-task0\" x1=\"225\" y1=\"110\" x2=\"225\" y2=\"450\" class=\"task-line\" stroke-width=\"1px\" stroke-dasharray=\"4 2\" stroke=\"#666\"></line><circle cx=\"225\" cy=\"300\" class=\"face\" r=\"15\" stroke-width=\"2\" overflow=\"visible\"></circle><g><circle cx=\"220\" cy=\"295\" r=\"1.5\" stroke-width=\"2\" fill=\"#666\" stroke=\"#666\"></circle><circle cx=\"230\" cy=\"295\" r=\"1.5\" stroke-width=\"2\" fill=\"#666\" stroke=\"#666\"></circle><path class=\"mouth\" d=\"M7.5,0A7.5,7.5,0,1,1,-7.5,0L-6.818,0A6.818,6.818,0,1,0,6.818,0Z\" transform=\"translate(225,302)\"></path></g><rect x=\"150\" y=\"110\" fill=\"#191970\" stroke=\"#666\" width=\"150\" height=\"50\" rx=\"3\" ry=\"3\" class=\"task task-type-0\"></rect><circle cx=\"164\" cy=\"110\" class=\"actor-1\" fill=\"#7CFC00\" stroke=\"#000\" r=\"7\"><title>Me</title></circle><switch><foreignObject x=\"150\" y=\"110\" width=\"150\" height=\"50\"><div class=\"task\" style=\"display: table; height: 100%; width: 100%;\"><div class=\"label\" style=\"display: table-cell; text-align: center; vertical-align: middle;\">Make tea</div></div></foreignObject><text x=\"225\" y=\"135\" dominant-baseline=\"central\" alignment-baseline=\"central\" class=\"task\" style=\"text-anchor: middle; font-size: 14px; font-family: &quot;Open Sans&quot;, sans-serif;\"><tspan x=\"225\" dy=\"0\">Make tea</tspan></text></switch></g><g><line id=\"milkup_graph_1-task1\" x1=\"425\" y1=\"110\" x2=\"425\" y2=\"450\" class=\"task-line\" stroke-width=\"1px\" stroke-dasharray=\"4 2\" stroke=\"#666\"></line><circle cx=\"425\" cy=\"360\" class=\"face\" r=\"15\" stroke-width=\"2\" overflow=\"visible\"></circle><g><circle cx=\"420\" cy=\"355\" r=\"1.5\" stroke-width=\"2\" fill=\"#666\" stroke=\"#666\"></circle><circle cx=\"430\" cy=\"355\" r=\"1.5\" stroke-width=\"2\" fill=\"#666\" stroke=\"#666\"></circle><line class=\"mouth\" stroke=\"#666\" x1=\"420\" y1=\"367\" x2=\"430\" y2=\"367\" stroke-width=\"1px\"></line></g><rect x=\"350\" y=\"110\" fill=\"#191970\" stroke=\"#666\" width=\"150\" height=\"50\" rx=\"3\" ry=\"3\" class=\"task task-type-0\"></rect><circle cx=\"364\" cy=\"110\" class=\"actor-1\" fill=\"#7CFC00\" stroke=\"#000\" r=\"7\"><title>Me</title></circle><switch><foreignObject x=\"350\" y=\"110\" width=\"150\" height=\"50\"><div class=\"task\" style=\"display: table; height: 100%; width: 100%;\"><div class=\"label\" style=\"display: table-cell; text-align: center; vertical-align: middle;\">Go upstairs</div></div></foreignObject><text x=\"425\" y=\"135\" dominant-baseline=\"central\" alignment-baseline=\"central\" class=\"task\" style=\"text-anchor: middle; font-size: 14px; font-family: &quot;Open Sans&quot;, sans-serif;\"><tspan x=\"425\" dy=\"0\">Go upstairs</tspan></text></switch></g><g><line id=\"milkup_graph_1-task2\" x1=\"625\" y1=\"110\" x2=\"625\" y2=\"450\" class=\"task-line\" stroke-width=\"1px\" stroke-dasharray=\"4 2\" stroke=\"#666\"></line><circle cx=\"625\" cy=\"420\" class=\"face\" r=\"15\" stroke-width=\"2\" overflow=\"visible\"></circle><g><circle cx=\"620\" cy=\"415\" r=\"1.5\" stroke-width=\"2\" fill=\"#666\" stroke=\"#666\"></circle><circle cx=\"630\" cy=\"415\" r=\"1.5\" stroke-width=\"2\" fill=\"#666\" stroke=\"#666\"></circle><path class=\"mouth\" d=\"M-7.5,0A7.5,7.5,0,1,1,7.5,0L6.818,0A6.818,6.818,0,1,0,-6.818,0Z\" transform=\"translate(625,427)\"></path></g><rect x=\"550\" y=\"110\" fill=\"#191970\" stroke=\"#666\" width=\"150\" height=\"50\" rx=\"3\" ry=\"3\" class=\"task task-type-0\"></rect><circle cx=\"564\" cy=\"110\" class=\"actor-1\" fill=\"#7CFC00\" stroke=\"#000\" r=\"7\"><title>Me</title></circle><circle cx=\"574\" cy=\"110\" class=\"actor-0\" fill=\"#8FBC8F\" stroke=\"#000\" r=\"7\"><title>Cat</title></circle><switch><foreignObject x=\"550\" y=\"110\" width=\"150\" height=\"50\"><div class=\"task\" style=\"display: table; height: 100%; width: 100%;\"><div class=\"label\" style=\"display: table-cell; text-align: center; vertical-align: middle;\">Do work</div></div></foreignObject><text x=\"625\" y=\"135\" dominant-baseline=\"central\" alignment-baseline=\"central\" class=\"task\" style=\"text-anchor: middle; font-size: 14px; font-family: &quot;Open Sans&quot;, sans-serif;\"><tspan x=\"625\" dy=\"0\">Do work</tspan></text></switch></g><g><rect x=\"750\" y=\"50\" fill=\"#8B008B\" stroke=\"#666\" width=\"350\" height=\"50\" rx=\"3\" ry=\"3\" class=\"journey-section section-type-1\"></rect><switch><foreignObject x=\"750\" y=\"50\" width=\"350\" height=\"50\"><div class=\"journey-section section-type-1\" style=\"display: table; height: 100%; width: 100%;\"><div class=\"label\" style=\"display: table-cell; text-align: center; vertical-align: middle;\">Go home</div></div></foreignObject><text x=\"925\" y=\"75\" dominant-baseline=\"central\" alignment-baseline=\"central\" class=\"journey-section section-type-1\" style=\"text-anchor: middle; font-size: 14px; font-family: &quot;Open Sans&quot;, sans-serif;\"><tspan x=\"925\" dy=\"0\">Go home</tspan></text></switch></g><g><line id=\"milkup_graph_1-task3\" x1=\"825\" y1=\"110\" x2=\"825\" y2=\"450\" class=\"task-line\" stroke-width=\"1px\" stroke-dasharray=\"4 2\" stroke=\"#666\"></line><circle cx=\"825\" cy=\"300\" class=\"face\" r=\"15\" stroke-width=\"2\" overflow=\"visible\"></circle><g><circle cx=\"820\" cy=\"295\" r=\"1.5\" stroke-width=\"2\" fill=\"#666\" stroke=\"#666\"></circle><circle cx=\"830\" cy=\"295\" r=\"1.5\" stroke-width=\"2\" fill=\"#666\" stroke=\"#666\"></circle><path class=\"mouth\" d=\"M7.5,0A7.5,7.5,0,1,1,-7.5,0L-6.818,0A6.818,6.818,0,1,0,6.818,0Z\" transform=\"translate(825,302)\"></path></g><rect x=\"750\" y=\"110\" fill=\"#8B008B\" stroke=\"#666\" width=\"150\" height=\"50\" rx=\"3\" ry=\"3\" class=\"task task-type-1\"></rect><circle cx=\"764\" cy=\"110\" class=\"actor-1\" fill=\"#7CFC00\" stroke=\"#000\" r=\"7\"><title>Me</title></circle><switch><foreignObject x=\"750\" y=\"110\" width=\"150\" height=\"50\"><div class=\"task\" style=\"display: table; height: 100%; width: 100%;\"><div class=\"label\" style=\"display: table-cell; text-align: center; vertical-align: middle;\">Go downstairs</div></div></foreignObject><text x=\"825\" y=\"135\" dominant-baseline=\"central\" alignment-baseline=\"central\" class=\"task\" style=\"text-anchor: middle; font-size: 14px; font-family: &quot;Open Sans&quot;, sans-serif;\"><tspan x=\"825\" dy=\"0\">Go downstairs</tspan></text></switch></g><g><line id=\"milkup_graph_1-task4\" x1=\"1025\" y1=\"110\" x2=\"1025\" y2=\"450\" class=\"task-line\" stroke-width=\"1px\" stroke-dasharray=\"4 2\" stroke=\"#666\"></line><circle cx=\"1025\" cy=\"300\" class=\"face\" r=\"15\" stroke-width=\"2\" overflow=\"visible\"></circle><g><circle cx=\"1020\" cy=\"295\" r=\"1.5\" stroke-width=\"2\" fill=\"#666\" stroke=\"#666\"></circle><circle cx=\"1030\" cy=\"295\" r=\"1.5\" stroke-width=\"2\" fill=\"#666\" stroke=\"#666\"></circle><path class=\"mouth\" d=\"M7.5,0A7.5,7.5,0,1,1,-7.5,0L-6.818,0A6.818,6.818,0,1,0,6.818,0Z\" transform=\"translate(1025,302)\"></path></g><rect x=\"950\" y=\"110\" fill=\"#8B008B\" stroke=\"#666\" width=\"150\" height=\"50\" rx=\"3\" ry=\"3\" class=\"task task-type-1\"></rect><circle cx=\"964\" cy=\"110\" class=\"actor-1\" fill=\"#7CFC00\" stroke=\"#000\" r=\"7\"><title>Me</title></circle><switch><foreignObject x=\"950\" y=\"110\" width=\"150\" height=\"50\"><div class=\"task\" style=\"display: table; height: 100%; width: 100%;\"><div class=\"label\" style=\"display: table-cell; text-align: center; vertical-align: middle;\">Sit down</div></div></foreignObject><text x=\"1025\" y=\"135\" dominant-baseline=\"central\" alignment-baseline=\"central\" class=\"task\" style=\"text-anchor: middle; font-size: 14px; font-family: &quot;Open Sans&quot;, sans-serif;\"><tspan x=\"1025\" dy=\"0\">Sit down</tspan></text></switch></g><text x=\"150\" font-size=\"4ex\" font-weight=\"bold\" y=\"25\" fill=\"\" font-family=\"&quot;trebuchet ms&quot;, verdana, arial, sans-serif\">My working day</text><line x1=\"150\" y1=\"200\" x2=\"1146\" y2=\"200\" stroke-width=\"4\" stroke=\"black\" marker-end=\"url(#milkup_graph_1-arrowhead)\"></line></svg>"
+        }
+      }
+    },
+    {
+      "kind": "terminate-group",
+      "mono": 75772.775497443,
+      "wall": 1792188160.3364558,
+      "reason": "completed-research-cleanup",
+      "pgid": 425601,
+      "members": [
+        {
+          "pid": 425601,
+          "birth": "7577081"
+        },
+        {
+          "pid": 425602,
+          "birth": "7577081"
+        },
+        {
+          "pid": 425603,
+          "birth": "7577082"
+        },
+        {
+          "pid": 425604,
+          "birth": "7577082"
+        },
+        {
+          "pid": 425605,
+          "birth": "7577082"
+        },
+        {
+          "pid": 425614,
+          "birth": "7577098"
+        },
+        {
+          "pid": 425693,
+          "birth": "7577208"
+        },
+        {
+          "pid": 425642,
+          "birth": "7577105"
+        },
+        {
+          "pid": 425648,
+          "birth": "7577105"
+        },
+        {
+          "pid": 425653,
+          "birth": "7577106"
+        },
+        {
+          "pid": 425654,
+          "birth": "7577106"
+        },
+        {
+          "pid": 425655,
+          "birth": "7577107"
+        },
+        {
+          "pid": 425658,
+          "birth": "7577108"
+        },
+        {
+          "pid": 425659,
+          "birth": "7577108"
+        },
+        {
+          "pid": 425662,
+          "birth": "7577109"
+        }
+      ]
+    },
+    {
+      "kind": "signal-start",
+      "mono": 75772.775499354,
+      "wall": 1792188160.3364577,
+      "pgid": 425601
+    },
+    {
+      "kind": "signal-return",
+      "mono": 75772.777055804,
+      "wall": 1792188160.3380144,
+      "pgid": 425601
+    },
+    {
+      "kind": "escaped-descendants",
+      "mono": 75772.863493445,
+      "wall": 1792188160.424453,
+      "processes": []
+    },
+    {
+      "kind": "cleanup",
+      "mono": 75773.01607433,
+      "wall": 1792188160.5770338,
+      "reaped": [
+        {
+          "pid": 425602,
+          "status": 9
+        }
+      ],
+      "remainingGroupMembers": []
+    },
+    {
+      "kind": "completed",
+      "mono": 75773.093412183,
+      "wall": 1792188160.6543715,
+      "results": [
+        {
+          "task": "native-resource-guard",
+          "elapsed": 0.012476455012802035,
+          "value": {
+            "status": "blocked"
+          }
+        },
+        {
+          "status": "capture-complete",
+          "scope": "actual current source renderer plus synchronous observation tap"
+        }
+      ]
+    }
+  ]
+}

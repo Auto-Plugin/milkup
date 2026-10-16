@@ -1,0 +1,89 @@
+"""Static minimal adaptation of frozen native supervisor; does not execute it."""
+from pathlib import Path
+import difflib
+R=Path(__file__).resolve().parent
+base=R.parent/'product-raster-native-edge/sankey-scroll-v2/supervise-paired-integer.py'
+s=base.read_text()
+s=s.replace("ap.add_argument('--case-index',type=int,required=True)","ap.add_argument('--phase',choices=['capture','paint'],required=True)")
+start=s.index("  catalog=json.loads(")
+end=s.index("  terminate('completed-research-cleanup');proc=None",start)
+body='''  root=pathlib.Path(__file__).resolve().parent
+  def command(value,deadline):
+   proc.stdin.write((json.dumps(value,separators=(',',':'))+'\\n').encode());proc.stdin.flush()
+   frame=frame_before(deadline)
+   assert frame is not None and frame.get('type')=='result',frame
+   return frame['value']
+  def task(request,label):
+   started=time.monotonic();deadline=started+2
+   event('native-send',task=label,armedMono=started,deadlineMono=deadline)
+   result=command({'op':'start','request':request},deadline);task_id=result['taskId']
+   while True:
+    state=command({'op':'poll','taskId':task_id},deadline)
+    assert state['status'] in ['pending','complete'],state
+    if state['status']=='complete':
+     result=state['result'];assert result.get('ok'),result
+     assert time.monotonic()<deadline,'Post-parse deadline exceeded'
+     event('settled',task=label,elapsed=time.monotonic()-started)
+     return result
+    time.sleep(.01)
+  def inspect(label):
+   value=command({'op':'inspect'},time.monotonic()+2)
+   (out/(label+'-state.json')).write_text(json.dumps(value,indent=2)+'\\n')
+   return value
+  def snapshot(label):
+   before=inspect(label+'-before-snapshot')
+   value=command({'op':'snapshot'},time.monotonic()+2)
+   assert value.get('snapshot'),value
+   source=root/'profiles'/out.name/'journey.png';target=out/(label+'.png');shutil.copyfile(source,target)
+   after=inspect(label+'-after-snapshot')
+   for field in ['arm','mode','nodeId','rect','currentSrc','complete','naturalWidth','naturalHeight']:
+    assert before.get(field)==after.get(field),('Snapshot identity/geometry changed',field,before,after)
+   if before.get('preview'):
+    for field in ['top','left','scrollWidth','scrollHeight','clientWidth','clientHeight']:
+     assert before['preview'][field]==after['preview'][field],('Snapshot scroll changed',field)
+   event('paired-snapshot',label=label,sha256=hashlib.sha256(target.read_bytes()).hexdigest(),geometry=value,before=before,after=after)
+  def edges(label):
+   env={**os.environ,'DISPLAY':':128'}
+   def x(*arguments):return subprocess.check_output(['xdotool',*map(str,arguments)],env=env,text=True,timeout=2).strip()
+   windows=x('search','--onlyvisible','--name','^Isolated DOM mechanism probe$').splitlines();assert len(windows)==1,windows
+   window=windows[0]
+   initial=inspect(label+'-initial');viewport=initial['preview'];assert viewport
+   # Sole exact-owned display contains only this helper; window origin is handled by --window.
+   x('windowfocus','--sync',window)
+   left,top,width,height=viewport['rect']
+   x('mousemove','--window',window,round((left+width/2)*2),round((top+height/2)*2))
+   snapshot(label+'-top-left')
+   operations=[]
+   for axis,button,scroll,client in [('top','5','scrollHeight','clientHeight'),('left','7','scrollWidth','clientWidth')]:
+    deadline=time.monotonic()+10;ticks=0
+    while True:
+     current=inspect(label+'-'+axis+'-'+str(ticks))['preview']
+     target=current[scroll]-current[client]
+     if abs(current[axis]-target)<=1:break
+     assert time.monotonic()<deadline and ticks<20,('Bounded wheel edge not reached',axis,current)
+     x('click',button);ticks+=1;time.sleep(.08)
+    operations.append({'axis':axis,'target':target,'actual':current[axis],'ticks':ticks})
+   snapshot(label+'-bottom-right')
+   event('native-wheel-edges',label=label,operations=operations)
+  if args.phase=='capture':
+   request=json.loads((root/'request.json').read_text())
+   value=task(request,'actual-current-renderer')
+   (out/'typed-result.json').write_text(json.dumps(value['typedResult'],ensure_ascii=False,indent=2)+'\\n')
+   captured=command({'op':'original-source'},time.monotonic()+2)
+   assert isinstance(captured.get('rawReturnedSvg'),str) and isinstance(captured.get('installedRootSvg'),str)
+   (out/'raw-capture.json').write_text(json.dumps(captured,ensure_ascii=False,indent=2)+'\\n')
+   results.append({'status':'capture-complete','scope':'actual current source renderer plus synchronous observation tap'})
+  else:
+   for arm in ['original','canonical']:
+    task({'arm':arm,'mode':'full'},arm+'-full')
+    snapshot(arm+'-full-canvas')
+    task({'arm':arm,'mode':'scroll'},arm+'-scroll')
+    edges(arm)
+   results.append({'status':'paired-complete','scope':'same-capture original and independently canonicalized artifact; no rerender'})
+'''
+s=s[:start]+body+s[end:]
+s=s.replace("'mermaidTested':True,'converterPrototypeTested':False,'productPluginTested':False,'currentCoreValidatedFixedAST':True", "'phase':args.phase,'actualCurrentSourceRenderer':args.phase=='capture','productPluginTested':False,'currentCoreValidatedFixedAST':args.phase=='paint'")
+s=s.replace("   # Avoid starting optional /proc sampling immediately before the deadline.\n   if remaining>.2:event('process-sample',members=members())\n", "   # No optional whole-proc scans while the fixed execution deadline is armed.\n")
+s=s.replace("  root=pathlib.Path(__file__).resolve().parent", "  event('pre-dispatch-ownership',members=members())\n  root=pathlib.Path(__file__).resolve().parent")
+(R/'supervise.py').write_text(s)
+(R/'supervisor.diff').write_text(''.join(difflib.unified_diff(base.read_text().splitlines(True),s.splitlines(True),fromfile=str(base),tofile='supervise.py')))

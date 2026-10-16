@@ -1,0 +1,56 @@
+{
+  "status": "implemented test-only; native not run; awaiting root static review",
+  "head": "74c72c61a42a0d37fcd882005b44861dc11e588b",
+  "path": "/workspace/milkup/tests/native/tauri-mermaid-ui.mjs",
+  "beforeSha256": "22c07075c87ede32b280f6d1aeffc1d4b4577a9b91c8d3c2a441cde606ad4e68",
+  "afterSha256": "d150a401ee07227f9bd0bbb74ef13e28834f234b5150580d95ab77cffa5848a1",
+  "onlyAllowedBlocksChanged": true,
+  "existingInnerWheelLoopByteIdentical": true,
+  "unchanged": "positionSample, selection projection, existing offset/decoded checks, shot+record timing and existing budgets remain byte-identical. preserveAssertion dispatcher adds visible-corner checks only for scroll-edge and retains offset-only checks during alignment.",
+  "newBudget": "Each corner adds an independent at-most 5-second alignment loop, maximum 10 single wheel ticks and 2 direction reversals; before/after document evidence collection follows existing positioning pattern and is outside wheel-loop timing. Worst-case two corners add 10 seconds of bounded alignment-loop work per edge sample; no renderer/host/positioning budget increases.",
+  "implementationNotes": [
+    "Atomic observe includes preview client rect, editor client viewport intersect window, and actual non-preview gutter hit.",
+    "Original inner-wheel body unchanged. Real hit-test and mousemove now occur before each corner to return from outer gutter to current preview.",
+    "Reached after snapshot is frozen before outer alignment and retained through shot+record.",
+    "During alignment, offset/image guards run without premature corner-visibility assertion; corresponding horizontal edge must already be visible.",
+    "Alignment raw observations and before/after source/selection projection are written to corner-alignment.jsonl, including a first failure.",
+    "Screenshot pre/post checks require corresponding client corner inside editor viewport; opposite edges may be clipped. No requirement for nonblank corner ink or identical blob."
+  ],
+  "checks": [
+    {
+      "argv": [
+        "node",
+        "--check",
+        "/workspace/milkup/tests/native/tauri-mermaid-ui.mjs"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "pnpm",
+        "exec",
+        "prettier",
+        "--check",
+        "/workspace/milkup/tests/native/tauri-mermaid-ui.mjs"
+      ],
+      "exitCode": 0,
+      "stdout": "Checking formatting...\nAll matched files use Prettier code style!\n",
+      "stderr": ""
+    }
+  ],
+  "offlineRecordRed": {
+    "exitCode": 1,
+    "record": "DIAGNOSTIC-BOTTOM-RIGHT",
+    "bottomOutsideCssPx": 31.5,
+    "scrollStable": [
+      69,
+      125
+    ],
+    "legacyBoundary": "Uses original dom.editor bounding rect intersect window as a generous upper bound on visible editor area, not newly invented client fields. Actual preview bottom260.5 exceeds even this upper bound229. New runtime implementation requires measured client geometry, with no legacy fallback."
+  },
+  "noNativeOrBrowserRun": true,
+  "noProductChange": true,
+  "noCommit": true
+}

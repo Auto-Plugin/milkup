@@ -2,7 +2,7 @@
 
 本阶段基线为 `d3851430fac0dc85c758187b33b769c5daba7f4a`，独立分支 `dot/milkup-v2-product-phase4-mermaid-engine`。已核验远端/本地 SHA、干净工作区及候选 11 的 4,044 份证据存储哈希；候选 11 的 Linux 有界能力验收继续有效。[基线核验](evidence/v2-product-phase4-mermaid-engine/baseline-verification.json)。
 
-**当前状态：官方完整引擎、通用 Linux DOM 后端和安全图片输出已实现；最终独立包、全仓 2,055 项测试及其余门禁通过，第四个 Linux 生产包五项生命周期首轮通过。正式 UI04 完成普通文档前三项后触发原生执行截止，后续冷启动诊断也复现截止，原因仍在定位。完整官方引擎 UI 矩阵尚未完成，不能宣称产品验收结束。** 浏览器修复的分版本验证边界见下文。本阶段以官方成熟 Mermaid 替代自研小子集，不以三个简单图型代替产品覆盖。后续继续 P4 剩余 Markdown/图片覆盖，再进入 P5 导出/打印；P4 总体仍为部分完成。
+**当前状态：官方完整引擎、通用 Linux DOM 后端和安全图片输出已实现；gate07 全仓 2055 项测试及其余门禁、独立 diagrams 89 项测试通过。production07 的五项生命周期首次通过；类图随机路径导致的重复替换已修复，并通过同请求原生结果及内滚动回归。普通浅色／窗口化深色、200% 窄窗的类图与 Journey 八角专项检查通过，完整官方引擎 64 组合 UI 矩阵尚未完成。Journey 在 100% 下原图／规范图完全一致，200% 下仍有 1106 个文本像素差异，保留为边界。不能宣称产品验收结束。** 后续继续完整 P4 验证，再进入 P5 导出／打印；Linux 证据不替代 Windows 验证。
 
 ## 固定版本与覆盖目标
 
@@ -449,7 +449,7 @@ UI09完整冻结manifest包含522个文件、462张PNG；全部SHA/长度核验�
 
 原生 harness 随后仅加强边缘截图约束：250ms 等待后的截图前、截图后已有 DOM 观测分别验证同一范围仍挂载、图像已解码、两轴保持所达边缘及合理钳位后的偏移；原溢出范围突然消失也失败，不要求 Blob URL 相同。新 helper 在 UI09 原始 class 记录上实际离线首败，准确拒绝 69/125→0/0；最终 helper 重放同样失败。既有公开选区投影修改经字节逆向核验完整保留，语法与格式通过。最终 harness SHA `22c07075c87ede32b280f6d1aeffc1d4b4577a9b91c8d3c2a441cde606ad4e68`；这些是测试修正及离线失败证明，尚未在新生产运行中验证。其原件一并归入 checkpoint14，产品代码没有因此改变。
 
-## Class 实际原生 RED、固定 seed 配置及有限回归证据（待主报告整合）
+## Class 实际原生 RED、固定 seed 配置及有限回归证据
 
 UI09 仍是独立视觉门禁失败后主动 STOP，26/64 组合完成、134 samples，不把其原 258 records 伪造成 overall PASS 或新增断言 FAIL。后续 class 原生单次诊断首次实际 RED：四个完整请求相同，三个相邻结果对各有 160 个 cubic 控制点数值差异；滚轮曾到 left 69/top 125，截图后与最终观察均回到 0/0。完整 wire 请求/结果对与离散 DOM 时序分别留证，未声称私有 request→blob 绑定。四个列明 PID 消失，但一个 guardian 已终止仍为 PID 1 的 Z，不称所有身份消失。
 
@@ -459,6 +459,30 @@ UI09 仍是独立视觉门禁失败后主动 STOP，26/64 组合完成、134 sam
 
 随后 diagrams-gate07 仓库外独立验证约 9.573s 首 PASS（89 tests、strict typecheck/build），trusted staging 约 2.829s 首 PASS。新 archive 为 `9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df`，5,726,838 字节，external/local/staged 三处整字节一致。实际 minified entry 新增 seed 值与 secure 项共 32 字节，精确逆去后与旧 entry 全字节相等；local dist 是权威外部输出的复制，不额外计算一次独立构建。其它九个 staged 包未变，不冒称重新执行十包全部外部测试。
 
-checkpoint15 目前仅外部归档，保存三批 metadata 历史、原始 RED、日志、PNG、冻结源码和显式清单；binary/archive/bundle/依赖主体不重复复制，按原清单保留元数据引用。随后全仓 gate07 完成并按显式 11 项清单及独立核验另行归档：typecheck 36.849s、test 61.430s、lint 85.813s、build 28.097s 全部首轮 exit 0；2051 Vitest + 4 Node = 2055，16,356 输入前后相等。独立 diagrams 89 tests 不重复加入该全仓计数。固定 seed 的新生产/原生 GREEN、Journey 视觉问题以及完整 UI 验收仍待后续证据；本批没有新的原生通过结论，也不代表 Windows 验证。
+checkpoint15 已随 `74c72c61a42a0d37fcd882005b44861dc11e588b` 提交推送并核验身份，保存三批 metadata 历史、原始 RED、日志、PNG、冻结源码和显式清单；binary/archive/bundle/依赖主体不重复复制，按原清单保留元数据引用。随后全仓 gate07 完成并按显式 11 项清单及独立核验另行归档：typecheck 36.849s、test 61.430s、lint 85.813s、build 28.097s 全部首轮 exit 0；2051 Vitest + 4 Node = 2055，16,356 输入前后相等。独立 diagrams 89 tests 不重复加入该全仓计数。固定 seed 的新生产/原生 GREEN、Journey 视觉问题以及完整 UI 验收仍待后续证据；本批没有新的原生通过结论，也不代表 Windows 验证。
 
 完整原件与范围说明见 [checkpoint15](evidence/v2-product-phase4-mermaid-engine/checkpoint15/README.md)。本次提交后继续以新 Linux 生产包验证，不以受控浏览器及代码门禁替代原生闭环。
+
+## Production07、原生 class 回归及八角专项检查
+
+[checkpoint16](evidence/v2-product-phase4-mermaid-engine/checkpoint16/README.md) 保存六批完成证据，历史首败和各版 metadata 保留。production07 从干净 `74c72c6` 构建，实际 DEB 提取 binary SHA 为 `df7b509fefa335df89b004a9992d16cb3a712f062281f418518d3e59d96e5d72`，使用上述 archive `9889f179…a327df`；2912 项捕获源码在构建和生命周期之后相同。timeout、disable、remove、wm-close、app-sigkill 五例首次通过。55 个记录 PID 均消失，私有目录清理；本次 SIGKILL 的精确 ECHILD 异步记录缺失，guardian 自然 exit 0 的观测仅提供清理完成上界，不套用 production06 的精确值。
+
+同一 class diagnostic harness 配合新 binary/archive 首次通过：三个完整请求和三个完整 typed result 分别完全相等，同一图像的 top125/left69 保持到截图后与最终观察。旧随机版本的实际 RED 仍在 checkpoint15。此诊断没有触发不同语义图像替换分支，不能称该分支已经覆盖；实际截图另发现 preview bottom260.5 超出 editor bottom229，因此当时只证明内滚动稳定，不证明整个右下角可见。
+
+测试据此增加了每角独立的真实 gutter 滚轮对齐，最多5秒／10 tick／2次反向，并在截图前后检查对应角落落在编辑器 client viewport 内。对齐前的滚动快照保持不变，不能通过重采样掩盖 reset；正文、路径、版本、dirty 和选区投影继续验证。另一侧边缘可以正常裁切，不要求整张大图在窄窗一次显示。原记录的离线检查因底边超出31.5 CSS px 首次失败。
+
+首轮八角 smoke 在原 inner-wheel 阶段失败，0/8 完成，新的外层对齐尚未执行：class 已到 top125，但 left0 未到69，preview 从 y100.5 移至−120.3125；图像 blob 未变。旧测试每角只定位一次鼠标，后续两轴复用坐标，存在图移动后指针不再命中的窗口。由于首轮没有逐批鼠标记录，不把滚动传播写成已证因果。失败现场、`PASS FAIL` 这个仅代表截图记录成功的日志及清理状态原样保留。
+
+最终 harness `92870c895fceef1e1761e1e6285a68b3608d1cd45b53d4ab1ba354f59d10957a` 在每轴、每批滚轮前重新检查当前可见交集并真实移动鼠标，再读取 X11 指针和窗口原点映射回 CSS 坐标确认命中。原30步、每批3 tick、70ms间隔、120ms等待及端点容差不变；增加的有限观测会改变测试时序，不声称只改变一个运行变量。失败时保留每轴证据，不靠外层滚动补救未完成的内层断言。
+
+第二轮独立 smoke 首次通过8/8角，19条记录：仅普通/live/light/200%/窄窗与窗口化/live/dark/200%/窄窗，两种图各左上／右下。Root 实际查看全部8张 WebView PNG，独立核对16轴记录、56次真实命中、8次角落对齐及正文文件一致。类图右下 Duck 最后方法和边缘可见；Journey 最远端白区与官方原图研究一致。App/driver/launcher 退出、端口释放；最后 guardian 已终止但仍为 PID1 下 Z，未写成 absent。完整普通／窗口化31样例、选区／历史和64组合矩阵仍须另跑，不能用这个子集替代。
+
+## Journey 当前原图配对与原生缩放边界
+
+独立 Linux WebKit 研究使用当前 renderer 源码与官方锁定依赖，在转换前同步捕获完整原 SVG，再经当前 core 校验并序列化同一次 typed result。研究模块有观测 tap，不等于官方 archive Instance 的字节级执行。两次研究 API 错误分别是0起始行号、缺少实际 renderer 声明，均保留首败；前者另作合法请求新捕获，后者使用同一捕获并补足原样声明。没有绕过验证或提高2s／10s预算。
+
+当前原根仍为 width100%、height565、viewBox `0 -25 1300 540`、`xMinYMin meet`；380 CSS px宽度下，原图本身留下大片下方空白。完整画布和真实最远角落均保留。原 inline SVG 的 scrollHeight569 与规范图片565不同，该4px行框现象与文字像素差异分开记录；研究 scrollport client326×167，最大偏移为原402/54与规范398/54，不冒称历史 UI09 的413/69精确重放。
+
+后续用同一冻结原 SVG／规范 SVG、同一研究 binary 分别在原生 zoom1 和 zoom2 绘制，没有再调用 Mermaid。zoom1 的完整画布和左上图逐字节相同；zoom2 两组各有1106个差异像素，并逐字复现前一轮图像。Root 独立计算其中1060个在标题区域、46个在图例文字附近，明确更正先前“仅标题”的过度概括，原始记录不改写。原 computed 字号在zoom2报告减半，但标题 bbox 宽度保持、垂直度量变化，不能仅据字号数值认定 `4ex` 是原因。
+
+两轮实际截图支持“当前官方原图也有底部白区”，不支持“全部缩放像素等价”。当前保留200%文本差异边界，没有修改官方样例、裁掉空白、重写字体或放宽像素阈值。完整编辑器 UI 和其它平台仍分别验收。

@@ -1,0 +1,208 @@
+--- before-d150-tauri-mermaid-ui.mjs
++++ after-tauri-mermaid-ui.mjs
+@@ -1191,6 +1191,100 @@
+ async function scrollEdges(sample, key) {
+   const read = async () => (await observe()).previews.find((p) => p.from === sample.from)
+   const before = await read()
++  let previousAim = null
++  const aim = async (observations, phase, step) => {
++    const dom = await observe()
++    const preview = dom.previews.find((item) => item.from === before.from && item.to === before.to)
++    const observation = {
++      at: Date.now(),
++      phase,
++      step,
++      previousAim,
++      preview,
++      viewport: dom.editorViewport,
++    }
++    observations.push(observation)
++    assert(preview, 'Inner wheel target must remain mounted')
++    assertCapturedPreview(dom, before, 'before inner wheel input')
++    const rect = preview.clientRect,
++      viewport = dom.editorViewport
++    const intersection = {
++      left: Math.max(rect.left, viewport.left),
++      right: Math.min(rect.right, viewport.right),
++      top: Math.max(rect.top, viewport.top),
++      bottom: Math.min(rect.bottom, viewport.bottom),
++    }
++    observation.intersection = intersection
++    assert(
++      intersection.right > intersection.left && intersection.bottom > intersection.top,
++      'Inner wheel requires a nonempty current client intersection',
++    )
++    const point = {
++      x: (intersection.left + intersection.right) / 2,
++      y: (intersection.top + intersection.bottom) / 2,
++    }
++    observation.requestedCssPoint = point
++    const hit = (point) =>
++      app.execute(
++        `
++const preview=[...document.querySelectorAll('[data-document-presentation]')].find(e=>Number(e.dataset.presentationFrom)===arguments[0]&&Number(e.dataset.presentationTo)===arguments[1]);
++const target=document.elementFromPoint(arguments[2],arguments[3]);
++return {inside:!!(preview&&target&&preview.contains(target)),targetTag:target?.tagName||null,targetRange:target?.closest('[data-document-presentation]')?.dataset.presentationFrom||null};
++`,
++        before.from,
++        before.to,
++        point.x,
++        point.y,
++      )
++    observation.requestedHit = await hit(point)
++    assert(observation.requestedHit.inside, 'Real wheel target hit test')
++    const geometry = x('getwindowgeometry', '--shell', nativeWindow)
++    const number = (text, key) => Number(new RegExp('^' + key + '=(-?\\d+)$', 'm').exec(text)?.[1])
++    const windowGeometry = {
++      raw: geometry,
++      x: number(geometry, 'X'),
++      y: number(geometry, 'Y'),
++      width: number(geometry, 'WIDTH'),
++      height: number(geometry, 'HEIGHT'),
++    }
++    const scale = windowGeometry.width / dom.width
++    observation.windowGeometry = windowGeometry
++    observation.scale = scale
++    assert(
++      Number.isFinite(scale) &&
++        scale > 0 &&
++        Number.isFinite(windowGeometry.x) &&
++        Number.isFinite(windowGeometry.y),
++      'Inner wheel requires actual native origin and scale',
++    )
++    const relativeNative = { x: Math.round(point.x * scale), y: Math.round(point.y * scale) }
++    observation.requestedRelativeNativePoint = relativeNative
++    x('mousemove', '--window', nativeWindow, String(relativeNative.x), String(relativeNative.y))
++    const pointer = x('getmouselocation', '--shell')
++    observation.actualRootPointer = {
++      raw: pointer,
++      x: number(pointer, 'X'),
++      y: number(pointer, 'Y'),
++    }
++    const actualCssPoint = {
++      x: (observation.actualRootPointer.x - windowGeometry.x) / scale,
++      y: (observation.actualRootPointer.y - windowGeometry.y) / scale,
++    }
++    observation.actualCssPoint = actualCssPoint
++    assert(
++      Number.isFinite(actualCssPoint.x) && Number.isFinite(actualCssPoint.y),
++      'Inner wheel actual pointer must be finite',
++    )
++    observation.actualHit = await hit(actualCssPoint)
++    assert(observation.actualHit.inside, 'Actual X11 pointer must hit current target preview')
++    previousAim = {
++      requestedCssPoint: point,
++      actualCssPoint,
++      rootPointer: observation.actualRootPointer,
++      windowGeometry,
++      scale,
++    }
++  }
+   for (const [corner, axes] of [
+     [
+       'bottom-right',
+@@ -1207,40 +1301,72 @@
+       ],
+     ],
+   ]) {
+-    const dom = await observe()
+-    const preview = dom.previews.find((item) => item.from === before.from && item.to === before.to)
+-    assert(preview, 'Inner wheel target must remain mounted')
+-    const rect = preview.clientRect,
+-      viewport = dom.editorViewport
+-    const px = (Math.max(rect.left, viewport.left) + Math.min(rect.right, viewport.right)) / 2
+-    const py = (Math.max(rect.top, viewport.top) + Math.min(rect.bottom, viewport.bottom)) / 2
+-    assert(
+-      await app.execute(
+-        'return document.querySelector(arguments[0])?.contains(document.elementFromPoint(arguments[1],arguments[2]))',
+-        selectorFor(sample),
+-        px,
+-        py,
+-      ),
+-      'Real wheel target hit test',
+-    )
+-    const scale =
+-      Number(/WIDTH=(\d+)/.exec(x('getwindowgeometry', '--shell', nativeWindow))[1]) / dom.width
+-    x(
+-      'mousemove',
+-      '--window',
+-      nativeWindow,
+-      String(Math.round(px * scale)),
+-      String(Math.round(py * scale)),
+-    )
+     for (const [button, axis, target] of axes) {
+-      for (let step = 0; step < 30 && Math.abs((await read())[axis] - target) > 1; step++) {
+-        x('click', '--repeat', '3', '--delay', '70', button)
+-        await app.delay(120)
++      const observations = []
++      let failure,
++        afterAxis,
++        steps = 0
++      try {
++        await aim(observations, 'axis-start', null)
++        for (let step = 0; step < 30 && Math.abs((await read())[axis] - target) > 1; step++) {
++          await aim(observations, 'before-batch', step)
++          x('click', '--repeat', '3', '--delay', '70', button)
++          steps++
++          await app.delay(120)
++          const dom = await observe()
++          observations.push({
++            phase: 'after-batch',
++            at: Date.now(),
++            step,
++            viewport: dom.editorViewport,
++            preview: dom.previews.find(
++              (item) => item.from === before.from && item.to === before.to,
++            ),
++          })
++        }
++        assert(
++          Math.abs((await read())[axis] - target) <= 1,
++          'Wheel reaches diagram ' + axis + ' ' + corner,
++        )
++      } catch (error) {
++        failure = error
++      } finally {
++        try {
++          const dom = await observe()
++          afterAxis = {
++            at: Date.now(),
++            viewport: dom.editorViewport,
++            diagnostics: dom.diagnostics,
++            preview: dom.previews.find(
++              (item) => item.from === before.from && item.to === before.to,
++            ),
++            rootPointer: x('getmouselocation', '--shell'),
++          }
++        } catch (error) {
++          afterAxis = { error: String(error) }
++          if (!failure) failure = error
++        }
++        await appendFile(
++          path.join(output, 'inner-wheel.jsonl'),
++          JSON.stringify({
++            sample: sample.id,
++            from: before.from,
++            to: before.to,
++            corner,
++            axis,
++            button,
++            target,
++            steps,
++            observations,
++            after: afterAxis,
++            error: failure ? String(failure) : undefined,
++          }) + '\n',
++        ).catch((error) => {
++          if (!failure) throw error
++          console.error('Failed to retain inner wheel evidence: ' + String(error))
++        })
+       }
+-      assert(
+-        Math.abs((await read())[axis] - target) <= 1,
+-        'Wheel reaches diagram ' + axis + ' ' + corner,
+-      )
++      if (failure) throw failure
+     }
+     const after = await read()
+     const scrollEdge = { from: before.from, to: before.to, corner, after }

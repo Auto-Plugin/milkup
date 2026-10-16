@@ -1,0 +1,27 @@
+# Production07 completed results
+
+Real Linux deb build and five first-attempt generic DOM lifecycle cases passed. This does not establish the separate official Mermaid class/journey/full UI matrix.
+
+Build: 2026-10-16T21:49:23.819701+00:00 to 2026-10-16T21:50:37.226074+00:00, exit 0. HEAD 74c72c61a42a0d37fcd882005b44861dc11e588b. All 2912 captured files match after build and lifecycle runs.
+
+| Case | Harness seconds | Input DOM / two RAF ms |
+|---|---:|---|
+| timeout | 18.978344 | 8 / 25 |
+| disable | 16.280268 | 8 / 25 |
+| remove | 15.743260 | 23.0 / 35 |
+| wm-close | 22.442421 | not sampled |
+| app-sigkill | 20.994193 | not sampled |
+
+Actual extracted binary SHA256: `df7b509fefa335df89b004a9992d16cb3a712f062281f418518d3e59d96e5d72` (21872616 bytes).
+Deb SHA256: `256c8a872b55636b8981c09dbf58a7821d9b8e52b49cde40dd31e7fa6f054451`.
+Fresh official diagrams archive SHA256: `9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df`.
+
+Target and extracted executable differ only in the unique three-byte UNK→DEB bundle marker; ELF build ID matches. Full native guard bytes are embedded; guard and SDK hashes are unchanged. Fresh archive matches diagrams-gate07 external and trusted staged whole bytes. Non-test Rust release emitted no warnings; Vite retained its chunk-size warning.
+
+All 45 DOM process identities, five exact drivers and five wait-only ancestors are absent at final audit; ports 4626/4627 are free. Drivers were intentionally stopped by exact verified process group after each case passed. Ancestor tool exit 241 corresponds to recorded child exit -15 from teardown, not a lifecycle failure. Ancestor PID is recorded without an independently retained prior birth; its absence is verified.
+
+App-SIGKILL: terminalDiagnostic is `unobservable: best-effort asynchronous trace` and exactEchildMonotonicNs is null. Guardian PID 423741 / birth 7526016 naturally exited with code 0 and no signal from the wait-only ancestor. Exit observed at 75264430401382 ns is an upper bound for cleanup completion; waitpid completed at 75264431143063 ns. Do not infer an exact ECHILD time. Original 4.5s owned cleanup gate passed.
+
+Actual capture delta from production06 has eight entries: renderer.ts, renderer.test.ts, native UI harness, staged official archive, and four local dist outputs. This is the configured capture scope, not the entire repository delta. Local dist provenance is an explicit copy of the successful fresh external build, not a second local build claim. No cache was removed. No Windows build, upload or release occurred.
+
+Visual inspection: timeout 02-timeout-failed-card.png shows the generic DOM fixture failed with the native execution-deadline message and manual-enable action. Independent artifact review is retained separately; other lifecycle assertions derive from the unchanged harness and raw evidence.
