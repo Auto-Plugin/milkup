@@ -334,3 +334,13 @@ sampler03 改用一次有界 PID 状态表，并在同一轮后代发现中共�
 并行只读源码核对确认当前 Mermaid 12.2 的 class 默认选择 ELK，block 使用自己的布局；fastdom 实际调度为微任务，ELK 通信则存在两个零延时定时器位置。native 的输入 evaluate 回调入口不是 renderer 完成点，其至结果 drain 的区间还可包含引擎、转换、序列化及调度，不能由静态边界分摊耗时。
 
 另一项独立审计发现，父 App 在每次全进程表扫描后睡眠 25 ms，持续维护 `owned` 表；生产 `guardian_stop=Some` 清理路径却不读取这张表，而独立依赖 FD4/EOF、subreaper、精确清理与 ECHILD。guardian 清理时自己的扫描仍需保留。该事实支持下一步验证移除父 App 的重复工作，但本检查点尚未修改该行为，也未证明它导致历史 deadline。已完成观测、源码审计及失败原件保存于 [checkpoint08](evidence/v2-product-phase4-mermaid-engine/checkpoint08/README.md)；接下来取得真实修复前回归，再做最小修改和生产复验。
+
+## 删除父 App 重复扫描：真实 RED → GREEN
+
+checkpoint08 已正常推送为 `e370c668666b17abe861a5d3176dc83d57b8d515`，远端 SHA、GitHub 作者和提交者均已核验。随后保留旧周期线程，在真实 WebKit 回归中加入仅测试构建存在的调用计数；进程清理断言改用独立读取的 guardian 后代树，并实际核对直接 helper 和 WebKit 角色、PID/birth。该测试先完成 bbox、资源限制、网络拒绝、重新绑定、两秒死循环终止及九个进程身份消失，再在唯一新增机制断言失败：父 App 实际调用 `sample_owned` **125 次，预期为 0**。首次失败原件完整保留。
+
+产品修改只删除父 App 每次全进程扫描后睡眠 25 ms 的后台线程，并更新说明。guardian 在清理时自己的发现流程、FD4/EOF、subreaper、精确终止和 ECHILD 均保留；watchdog、准备十秒、执行两秒及取消规则未改，没有公开 API 或前端修改。独立审阅确认生产 `guardian_stop=Some` 的所有清理分支都不消费该重复缓存。此修改消除已证实的无用工作，但未测量全 App CPU 收益，也没有证明它导致历史 Mermaid 超时。
+
+同一真实回归在新冻结测试二进制中首次通过，实际扫描 **0 次**，九个独立观察的进程身份全部消失且 `stop` 成功。死循环从 dispatch 至 deadline 为 2000.110707 ms，guardian kill 为 2000.441497 ms，ECHILD 清理完成为 2019.471281 ms，App 确认清理为 2030.838600 ms。随后同二进制的 `plugin_dom::` 非 ignored 安全回归 **14 通过、0 失败、2 ignored**；两项 ignored 分别是由父测试调用的私有子进程入口和已单独运行的真实 WebKit 测试。逃逸未采样后代的 EOF 回收、迟到/取消/畸形结果、阻塞管道、租约、路径和资源限制均保留原断言。
+
+根代理实读校验 38 份冻结文件、两份实际二进制 SHA 和完整 guard 嵌入，并核对 GREEN 与安全测试原始日志。50 份测试构建输入未发生漂移。相关修复前失败、修复后通过、独立审阅和源码快照保存于 [checkpoint09](evidence/v2-product-phase4-mermaid-engine/checkpoint09/README.md)。这完成机制与安全回归，尚不代表新的生产包或完整编辑器矩阵验收；后续生产05及正式 UI05分别记录。

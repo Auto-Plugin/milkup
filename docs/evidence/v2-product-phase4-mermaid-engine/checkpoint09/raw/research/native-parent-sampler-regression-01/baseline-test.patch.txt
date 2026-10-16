@@ -1,0 +1,103 @@
+diff --git a/apps/desktop/src-tauri/src/plugin_dom_process.rs b/apps/desktop/src-tauri/src/plugin_dom_process.rs
+index 43a1f1da..dbd7d244 100644
+--- a/apps/desktop/src-tauri/src/plugin_dom_process.rs
++++ b/apps/desktop/src-tauri/src/plugin_dom_process.rs
+@@ -29,6 +29,8 @@ pub(super) struct Instance {
+     control: Mutex<Control>,
+     wake: Condvar,
+     owned: Mutex<HashMap<i32, u64>>,
++    #[cfg(test)]
++    sample_owned_calls: std::sync::atomic::AtomicUsize,
+     emit: Emit,
+     extension: helper::PrivateDirectory,
+ }
+@@ -147,6 +149,8 @@ impl Instance {
+             }),
+             wake: Condvar::new(),
+             owned: Mutex::new(HashMap::from([(pid, birth)])),
++            #[cfg(test)]
++            sample_owned_calls: std::sync::atomic::AtomicUsize::new(0),
+             emit,
+             extension,
+         });
+@@ -486,6 +490,9 @@ impl Instance {
+         self.kill_owned()
+     }
+     fn sample_owned(&self) {
++        #[cfg(test)]
++        self.sample_owned_calls
++            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+         let table = proc_table();
+         let Ok(mut owned) = self.owned.lock() else {
+             return;
+@@ -841,6 +848,7 @@ mod tests {
+                 (pid, birth),
+                 (descendant, proc_stat(descendant).unwrap().birth),
+             ])),
++            sample_owned_calls: std::sync::atomic::AtomicUsize::new(0),
+             emit: Arc::new(move |e| {
+                 let _ = tx.send(e);
+             }),
+@@ -989,6 +997,7 @@ export default { activate(context) {
+             activation.message.unwrap()["value"]["documentRenderers"],
+             json!(["test.renderer"])
+         );
++        let mut observed_descendants = Vec::new();
+         for (id, source) in [
+             ("r1", "bbox"),
+             ("r2", "guard"),
+@@ -996,6 +1005,38 @@ export default { activate(context) {
+             ("r4", "rebind"),
+             ("r5", "loop"),
+         ] {
++            if source == "loop" {
++                // Observe the real tree independently of the parent's optional
++                // sampling cache. This remains meaningful without that cache.
++                let table = proc_table();
++                assert!(table
++                    .get(&instance.pid)
++                    .is_some_and(|p| p.birth == instance.birth));
++                let mut selected = HashSet::from([instance.pid]);
++                loop {
++                    let children: Vec<_> = table
++                        .iter()
++                        .filter(|(pid, p)| !selected.contains(pid) && selected.contains(&p.parent))
++                        .map(|(pid, _)| *pid)
++                        .collect();
++                    if children.is_empty() {
++                        break;
++                    }
++                    selected.extend(children);
++                }
++                for pid in selected {
++                    let observed = &table[&pid];
++                    let current = proc_stat(pid).expect("observed native process remains alive");
++                    assert_eq!(current.birth, observed.birth);
++                    assert_eq!(current.parent, observed.parent);
++                    observed_descendants.push((pid, observed.birth));
++                }
++                assert!(
++                    observed_descendants.len() >= 3,
++                    "expected guardian and real renderer descendants: {observed_descendants:?}"
++                );
++                eprintln!("DOM_NATIVE_PROBE independently_observed={observed_descendants:?}");
++            }
+             let before = Instant::now();
+             instance.send(json!({"protocol":RENDER_PROTOCOL,"type":"render","id":id,"payload":{"pluginId":"test.dom","rendererId":"test.renderer","request":{"source":source}}})).unwrap();
+             let event = rx.recv_timeout(Duration::from_secs(6)).unwrap();
+@@ -1022,8 +1063,14 @@ export default { activate(context) {
+                 }
+             }
+         }
+-        for (pid, birth) in instance.owned.lock().unwrap().iter() {
++        for (pid, birth) in &observed_descendants {
+             assert!(!proc_stat(*pid).is_some_and(|p| p.birth == *birth));
+         }
++        instance.stop().unwrap();
++        let scans = instance
++            .sample_owned_calls
++            .load(std::sync::atomic::Ordering::Relaxed);
++        eprintln!("DOM_NATIVE_PROBE production_parent_sample_owned_calls={scans}");
++        assert_eq!(scans, 0, "guardian-backed production instances must not scan all processes in a background worker");
+     }
+ }

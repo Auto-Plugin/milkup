@@ -1,0 +1,56 @@
+{
+  "phase": "GREEN: remove only redundant parent sampling worker; original native budgets and guardian cleanup retained",
+  "build": {
+    "cwd": "/workspace/milkup/apps/desktop/src-tauri",
+    "argv": [
+      "cargo",
+      "test",
+      "--release",
+      "--locked",
+      "--offline",
+      "--features",
+      "tauri/custom-protocol",
+      "--lib",
+      "--no-run",
+      "--message-format=json-render-diagnostics"
+    ],
+    "sourceEnv": "/workspace/.cloud/milkup-v2/env.sh",
+    "unset": [
+      "CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER",
+      "PROOT_NO_SECCOMP"
+    ],
+    "environmentOverrides": {
+      "CARGO_TARGET_DIR": "/workspace/milkup-mermaid-engine-evidence/research/native-dom-stage-candidate-01/target",
+      "TAURI_CONFIG": "{\"build\":{\"beforeBuildCommand\":\"\"},\"bundle\":{\"icon\":[\"/workspace/.cloud/milkup-v2/icon.png\"]}}"
+    }
+  },
+  "nativeRun": {
+    "test": "plugin_dom::process::tests::real_webkit_default_module_bbox_resources_and_native_loop_deadline",
+    "arguments": [
+      "--exact",
+      "--ignored",
+      "--test-threads=1",
+      "--nocapture"
+    ],
+    "helper": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-04/install/usr/bin/milkup-desktop",
+      "sha256": "323213867fda26d1de66f67c5a428dd26d0a78f0334d40f8d15f1e94b161a172"
+    },
+    "testsOutput": "/workspace/milkup-mermaid-engine-evidence/research/native-parent-sampler-regression-01/green/bin/native-tests",
+    "wrapper": "run-native-green.sh",
+    "display": ":126",
+    "expectedFailure": null,
+    "failurePolicy": "Preserve first build/run failure. If any prior setup/original assertion fails, stop; do not remove worker or retry under a changed test.",
+    "expectedResult": "all prior assertions plus zero actual parent sample_owned calls pass"
+  },
+  "qualification": "Only cfg(test) fields/increments and ignored-test assertions added. Test binary is the App owner using real launch; frozen production04 executable supplies guardian/GTK helper. Neither binary is a new packaged product.",
+  "sourceManifest": "source-before.json",
+  "roleProof": "Owned PPID tree; direct helper exact frozen executable+flag and WebKitWebProcess basename, both stat identity rechecked after argv reads; no full argv printed.",
+  "panicCleanup": "Existing Cleanup Drop installed before activation stops instance on every assertion panic; final counter assertion is after successful cleanup.",
+  "safetyRun": {
+    "wrapper": "run-native-safety.sh",
+    "filter": "plugin_dom::",
+    "ignored": false,
+    "testThreads": 1
+  }
+}
