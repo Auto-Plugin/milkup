@@ -1,0 +1,113 @@
+const diagnosticStarted = Date.now()
+const diagnosticObservations = []
+function remainingDiagnostic() {
+  const remaining = 120_000 - (Date.now() - diagnosticStarted)
+  assert(remaining > 0, 'Selection diagnostic total 120-second bound')
+  return remaining
+}
+async function runSelectionDiagnostic() {
+  remainingDiagnostic()
+  const sample = samples.find((s) => s.id === 'sequenceDiagram-000-first-official-example')
+  assert(sample)
+  const text = contents.get('windowed')
+  const markerFrom = text.indexOf(sample.marker), markerTo = markerFrom + sample.marker.length
+  assert(markerFrom >= 0 && text.indexOf(sample.marker, markerFrom + 1) === -1)
+  const fileBefore = await readFile(activeFile)
+  const readState = async (stage) => {
+    remainingDiagnostic()
+    const document = await app.probe()
+    const dom = await observe()
+    assert.deepEqual(dom.diagnostics.errors, [], 'No page errors at ' + stage)
+    assert.deepEqual(dom.diagnostics.cspViolations, [], 'No CSP violations at ' + stage)
+    const geometry = await app.execute(`
+const editor=document.querySelector('.milkup-editor'), content=document.querySelector('.milkup-editor-content');
+if(!editor || !content) throw new Error('Mounted editor required');
+const rect=editor.getBoundingClientRect();
+const viewport={left:Math.max(0,rect.left+editor.clientLeft),top:Math.max(0,rect.top+editor.clientTop),right:Math.min(innerWidth,rect.left+editor.clientLeft+editor.clientWidth),bottom:Math.min(innerHeight,rect.top+editor.clientTop+editor.clientHeight)};
+const rows=[...content.querySelectorAll('.milkup-line')];
+const marker=rows.find(e=>Number(e.dataset.from)<=arguments[0] && Number(e.dataset.to)>=arguments[1]);
+let gutter=null;
+for(const x of [viewport.left+4,viewport.left+8]) for(const y of [viewport.top+40,viewport.top+80]){
+ if(x>=viewport.right || y>=viewport.bottom) continue;
+ const hit=document.elementFromPoint(x,y);
+ if(hit && editor.contains(hit) && !hit.closest('[data-document-presentation],input,textarea,button,[role="scrollbar"]')) gutter??={x,y};
+}
+return {width:innerWidth,viewport,scrollTop:editor.scrollTop,scrollHeight:editor.scrollHeight,clientHeight:editor.clientHeight,gutter,markerMounted:!!marker,markerRect:marker?{top:marker.getBoundingClientRect().top,bottom:marker.getBoundingClientRect().bottom}:null,mountedFrom:rows.length?Number(rows[0].dataset.from):null,mountedTo:rows.length?Number(rows.at(-1).dataset.to):null};`,markerFrom,markerTo)
+    const state={stage,at:new Date().toISOString(),elapsedMs:Date.now()-diagnosticStarted,document,geometry,errors:dom.diagnostics}
+    diagnosticObservations.push(state)
+    await writeFile(path.join(output,'selection-observations.json'),JSON.stringify(diagnosticObservations,null,2)+'\n')
+    return state
+  }
+  const projected = (state) => {
+    const ranges=state.document.selection.slice().sort((a,b)=>a.from-b.from)
+    return ranges.length>0 && ranges.every(range=>range.from===markerFrom && range.to===markerTo) && state.document.cursor===markerTo
+  }
+  await app.focus('.milkup-input-proxy')
+  await app.key('ctrl+2')
+  await app.key('ctrl+f')
+  await ui.ready('[data-search-input]')
+  await app.focus('[data-search-input]')
+  await app.key('ctrl+a')
+  await app.text(sample.marker)
+  await app.until(async()=>{const p=await app.probe();return p.query===sample.marker && !p.searching && /1/.test(p.count||'')},'unique marker search',Math.min(30_000,remainingDiagnostic()))
+  await readState('count-ready-before-navigation-check')
+  await app.key('Escape')
+  await app.focus('.milkup-input-proxy')
+  let baseline
+  await app.until(async()=>{baseline=await readState('wait-navigation');return projected(baseline) && baseline.geometry.markerMounted},'complete marker projection and cursor end',Math.min(10_000,remainingDiagnostic()))
+  const copyProof = async (stage) => {
+    remainingDiagnostic()
+    const sentinel='MILKUP-SELECTION-SENTINEL-'+randomBytes(16).toString('hex')
+    const release=await ownNativeClipboard(sentinel)
+    try {
+      await app.key('ctrl+c')
+      await app.delay(100)
+      const actual=execFileSync('python3',['-c',`import ctypes as c,sys
+G=c.CDLL('libgtk-3.so.0');D=c.CDLL('libgdk-3.so.0');G.gtk_init(None,None)
+D.gdk_atom_intern_static_string.argtypes=[c.c_char_p];D.gdk_atom_intern_static_string.restype=c.c_void_p
+G.gtk_clipboard_get.argtypes=[c.c_void_p];G.gtk_clipboard_get.restype=c.c_void_p
+G.gtk_clipboard_wait_for_text.argtypes=[c.c_void_p];G.gtk_clipboard_wait_for_text.restype=c.c_void_p
+p=G.gtk_clipboard_wait_for_text(G.gtk_clipboard_get(D.gdk_atom_intern_static_string(b'CLIPBOARD')))
+if not p: sys.exit(2)
+s=c.string_at(p)
+if len(s)>4096: sys.exit(3)
+sys.stdout.buffer.write(s)
+`],{env:process.env,encoding:'utf8',timeout:Math.min(3000,remainingDiagnostic()),maxBuffer:8192})
+      await writeFile(path.join(output,stage+'-clipboard.json'),JSON.stringify({stage,at:new Date().toISOString(),sentinel,expected:sample.marker,actual,matched:actual===sample.marker},null,2)+'\n')
+      assert.equal(actual,sample.marker,'Real Ctrl+C must copy exact marker at '+stage)
+    } finally {release()}
+  }
+  await copyProof('loaded')
+  await shot('DIAGNOSTIC-LOADED')
+  const wheelPhase=async(direction,label,predicate)=>{
+    const started=Date.now();let ticks=0
+    for(;;){
+      const state=await readState(label)
+      assert(Date.now()-started<10_000,'Wheel phase ten-second bound '+label)
+      if(predicate(state)) return {ticks,state}
+      assert(ticks<20,'Wheel phase twenty-tick bound '+label)
+      assert(state.geometry.gutter,'Safe non-preview editor gutter required')
+      const scale=Number(/WIDTH=(\d+)/.exec(x('getwindowgeometry','--shell',nativeWindow))[1])/state.geometry.width
+      assert(Number.isFinite(scale)&&scale>0)
+      x('mousemove','--window',nativeWindow,String(Math.round(state.geometry.gutter.x*scale)),String(Math.round(state.geometry.gutter.y*scale)),'click',direction)
+      ticks++
+      await app.delay(100)
+    }
+  }
+  const absent=await wheelPhase('5','wheel-unmount',s=>!s.geometry.markerMounted && s.document.selection.length===0)
+  assert.deepEqual(absent.state.document.selection,[])
+  await shot('DIAGNOSTIC-ABSENT',{oldProjectionAssertionWouldFail:true})
+  const remounted=await wheelPhase('4','wheel-remount',s=>s.geometry.markerMounted && projected(s))
+  await copyProof('remounted')
+  await shot('DIAGNOSTIC-REMOUNTED')
+  const after=await readState('final')
+  assert(projected(after),'Final complete marker selection projection')
+  for(const state of diagnosticObservations){
+    if(state.stage==='wait-navigation')continue
+    assert.equal(state.document.version,baseline.document.version)
+    assert.equal(state.document.dirty,baseline.document.dirty)
+  }
+  assert.deepEqual(await readFile(activeFile),fileBefore)
+  remainingDiagnostic()
+  await record('DIAGNOSTIC-PASS',{markerFrom,markerTo,unmountTicks:absent.ticks,remountTicks:remounted.ticks,elapsedMs:Date.now()-diagnosticStarted,fileUnchanged:true,scope:'Real clipboard exact selected text before/after public wheel. Does not expose logical anchor/head direction or reproduce historical UI08 timing.'})
+}

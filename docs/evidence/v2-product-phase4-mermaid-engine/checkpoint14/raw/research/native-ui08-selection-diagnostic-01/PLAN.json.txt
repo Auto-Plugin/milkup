@@ -1,0 +1,52 @@
+{
+  "purpose": "Independent bounded real clipboard selection persistence check. Not a replay of historical UI08 timing or formal full acceptance.",
+  "run": "mermaid-ui-selection-diagnostic-01",
+  "sourceHarnessSha256": "d93de072c9618cab38136f96c1acde9707b8f8a303341548df613c0d16e3a7a2",
+  "binary": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-06/install/usr/bin/milkup-desktop",
+    "bytes": 21872632,
+    "sha256": "35bf62fbad2dbe1acbd3485f77ccd554ab1ed6a2a842e47ed60bd7d735fb7819"
+  },
+  "archive": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/final-build01/standalone/plugin/dist/milkup.diagrams-1.1.0.milkup-plugin",
+    "sha256": "27db9bdefb9b241b03da2f3536f7e50d334117f928f963cfe290543f650b6239",
+    "bytes": 5726804
+  },
+  "workflow": [
+    "Fresh production06 profile, complete original windowed fixture, normal installed archive UI",
+    "One public search for sequence000 unique marker; record count-ready state separately; await complete marker projection and cursorend",
+    "Fresh random clipboard sentinel, real Ctrl+C, native GTK clipboard exact marker; loaded screenshot",
+    "Pure public wheel down max20 ticks/10s to marker absent and DOM selection empty; screenshot",
+    "Pure public wheel up max20 ticks/10s to complete original marker projection; different random sentinel, real Ctrl+C exact marker; screenshot",
+    "Check version/dirty/file unchanged and all existing page-error/CSP observations empty; normal app/driver cleanup"
+  ],
+  "bounds": {
+    "totalMs": 120000,
+    "totalCheck": "Elapsed checks at phase/read/input boundaries; existing native host deadlines unchanged.",
+    "wheelPerDirection": 20,
+    "wheelPhaseMs": 10000,
+    "clipboardReadMs": 3000
+  },
+  "prohibited": [
+    "No re-search or cursor/selection keyboard navigation after initial navigation",
+    "No private view API/IPC mutation or DOM scrolling",
+    "No new wire observer/CPU sampler",
+    "No retry, full suite, build, or product change"
+  ],
+  "qualification": "Exact clipboard text does not expose logical anchor/head direction. Offscreen cursor null is not treated as logical position zero.",
+  "checks": {
+    "nodeSyntax": true,
+    "prettierConfig": "/workspace/milkup/.prettierrc.json",
+    "bashSyntax": true
+  },
+  "ports": [
+    {
+      "port": 4626,
+      "connectErrno": 111
+    },
+    {
+      "port": 4627,
+      "connectErrno": 111
+    }
+  ]
+}

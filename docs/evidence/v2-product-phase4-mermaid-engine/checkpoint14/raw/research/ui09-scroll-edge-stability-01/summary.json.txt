@@ -1,0 +1,53 @@
+{
+  "task": "test-only screenshot scroll-edge invariants",
+  "head": "83d5593bddb6bb25bd6342df06b57c5c7c27d2ea",
+  "source": "/workspace/milkup/tests/native/tauri-mermaid-ui.mjs",
+  "beforeSha256": "439232d486fa4a29858924412f23cc09a87023236739cf5bcd3892b7d51f280b",
+  "afterSha256": "22c07075c87ede32b280f6d1aeffc1d4b4577a9b91c8d3c2a441cde606ad4e68",
+  "unrelatedContentIncludingExistingProjectionByteIdentical": true,
+  "proof": "Removing only the added helper, dispatcher/shot/record branches and replacing the single scrollEdges snapshot block exactly reconstructs the frozen before file.",
+  "firstOfflineRedExitCode": 1,
+  "exactFinalHelperOfflineRedExitCode": 1,
+  "realRecordExpected": {
+    "left": 69,
+    "top": 125
+  },
+  "realRecordObserved": {
+    "left": 0,
+    "top": 0
+  },
+  "checks": [
+    {
+      "argv": [
+        "node",
+        "--check",
+        "tests/native/tauri-mermaid-ui.mjs"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "pnpm",
+        "exec",
+        "prettier",
+        "--check",
+        "tests/native/tauri-mermaid-ui.mjs"
+      ],
+      "exitCode": 0,
+      "stdout": "Checking formatting...\nAll matched files use Prettier code style!\n",
+      "stderr": ""
+    }
+  ],
+  "scope": {
+    "productChanged": false,
+    "nativeRun": false,
+    "browserRun": false,
+    "committed": false
+  },
+  "limitations": [
+    "Offline real-record rejection and syntax/format checks only; strengthened checks have not yet run against native UI."
+  ],
+  "environmentNote": "Initial optional source .cloud/milkup-v2/env.sh path was absent; pnpm was already available, and all recorded final checks ran directly successfully."
+}

@@ -432,3 +432,19 @@ timeout、disable、remove、WM-close、App-SIGKILL 五项均首次通过。两�
 测试脚本仅在定位前新增完整唯一 marker 投影与 cursor 终点的导航就绪等待。实际 31 个 marker、窗口化尾部、四项独立回退和矩阵路径均已核对；同一源码行产生的多个选区矩形允许重复范围。移除新增 16 行后与本轮冻结脚本逐字一致，原定位、图像、保存历史、矩阵及错误断言未删改。这个独立导航阶段最多增加 30 秒等待；原定位 10 秒/20 次滚轮/两次反向，以及产品执行 2 秒、准备 10 秒保持不变。该修改此时仅完成语法、格式和独立静态复核，运行验证仍待独立原生选区诊断和下一轮完整 UI；不将已挂载投影守恒等同于全局逻辑选区证明。
 
 原始 136 张图片和 197 项冻结证据全部保留，根代理逐项核验哈希与大小；独立审阅实际查看九张图，限定在 light/100%/wide，尚不覆盖高缩放、窄窗或暗色。App、driver 和等待祖先进程消失，端口释放；guardian398900 已终止但仍为 PID1 下的 Z。1026 次 dispatch 未保留执行截止记录，不据此关闭历史未知请求的截止原因。production06、UI08 首败及导航就绪静态资料保存于 [checkpoint13](evidence/v2-product-phase4-mermaid-engine/checkpoint13/README.md)。此检查点完成后继续验证，不作为总体验收结论；未使用用户新批准的 Windows Runtime 下载或 artifact 上传额度。
+
+## UI09 因独立视觉门槛失败停止，尚未完成验收
+
+在相同 production06 实际 binary `35bf62…7819` 与官方插件包上，UI09 使用仅修改测试观测的 `439232d…f280b` harness。ordinary/windowed各31项coverage、2项selection、12项history已记录；累计26/64个matrix组合完成、134个样本及10个edge记录。原results共258条，既没有正式assertion FAIL，也没有overall PASS。Root发现独立视觉失败后要求精确停止；剩余38个组合包含部分执行的第27个，均不能计通过。
+
+确认的视觉失败位于普通live/light/200%/narrow的classDiagram底右边缘：wheel后同一范围440..969达到top125/left69，截图后DOM回到0/0且blob URL已换，实际WebView原图显示上部Animal。原先瞬时滚到边缘不足以证明截图时保留阅读位置。Root与独立审阅均保留原图和完整几何；尺寸相同不等于内容/语义相同，具体触发机制尚待受控诊断，不能把记录中的matrix-complete等同于独立视觉通过。
+
+Journey滚到最大范围显示留白与Sankey标签拥挤分开处理。旧官方Sankey基线已有对应拥挤，旧研究对照不等于当前不同zoom逐像素验证。Journey旧SVG固定高度与xMinYMin meet提供有条件留白解释，但当前canonical payload未在该审阅捕获，不能据此关闭当前native问题；不得为验收擅改官方语法样例、裁掉留白或删除标签。
+
+UI09完整冻结manifest包含522个文件、462张PNG；全部SHA/长度核验匹配，PNG按内容去重保留458个新增原件，未裁切/重编码。停止原因由独立visual-gate-abort记录，原258条结果未补造FAIL。清理审计列明6个PID absent、端口空闲，但未新增完整后代census，且App退出后driver仍报告session，不能称WebDriver DELETE成功。首次cleanup因PATH缺失在X11动作前失败，只重复清理，未重跑测试。
+
+独立选区诊断的首次RED仍保留：两个独立sentinel后的真实Ctrl+C均返回精确marker，但不能证明卸载期间隐藏anchor/head持续不变；最终projection断言失败后后置inline数据断言没有执行，完整文件相同来自独立离线核验。新公开DOM投影一致性测试为观测语义修正，不是产品修复。此阶段不宣布完整P4/Mermaid验收，活动controlled诊断不属于本检查点。
+
+完整冻结证据与范围说明见 [checkpoint14](evidence/v2-product-phase4-mermaid-engine/checkpoint14/README.md)。该检查点保存已完成的首败与诊断，不代表任务结束；继续定位类图滚动复位并完成原生验收。
+
+原生 harness 随后仅加强边缘截图约束：250ms 等待后的截图前、截图后已有 DOM 观测分别验证同一范围仍挂载、图像已解码、两轴保持所达边缘及合理钳位后的偏移；原溢出范围突然消失也失败，不要求 Blob URL 相同。新 helper 在 UI09 原始 class 记录上实际离线首败，准确拒绝 69/125→0/0；最终 helper 重放同样失败。既有公开选区投影修改经字节逆向核验完整保留，语法与格式通过。最终 harness SHA `22c07075c87ede32b280f6d1aeffc1d4b4577a9b91c8d3c2a441cde606ad4e68`；这些是测试修正及离线失败证明，尚未在新生产运行中验证。其原件一并归入 checkpoint14，产品代码没有因此改变。

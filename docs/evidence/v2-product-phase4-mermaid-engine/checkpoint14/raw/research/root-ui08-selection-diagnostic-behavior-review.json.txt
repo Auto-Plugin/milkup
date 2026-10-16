@@ -1,0 +1,57 @@
+{
+  "reviewedAt": "2026-10-16T21:00:23.148336+00:00",
+  "status": "ORIGINAL_FIRST_RED_PRESERVED_PARTIAL_BEHAVIORAL_PROOFS",
+  "manifestVerifiedFiles": 58,
+  "nativeCopies": [
+    {
+      "stage": "loaded",
+      "at": "2026-10-16T20:55:15.701Z",
+      "sentinel": "MILKUP-SELECTION-SENTINEL-ab1677914f7512b963842a1eb418d51e",
+      "expected": "MERMAID-SAMPLE-sequenceDiagram-000-first-official-example",
+      "actual": "MERMAID-SAMPLE-sequenceDiagram-000-first-official-example",
+      "matched": true
+    },
+    {
+      "stage": "remounted",
+      "at": "2026-10-16T20:55:24.361Z",
+      "sentinel": "MILKUP-SELECTION-SENTINEL-6c6fd660b95c43c5a7b6f28ac3c45090",
+      "expected": "MERMAID-SAMPLE-sequenceDiagram-000-first-official-example",
+      "actual": "MERMAID-SAMPLE-sequenceDiagram-000-first-official-example",
+      "matched": true
+    }
+  ],
+  "observations": 23,
+  "recordedVersionsZeroAndDirtyFalse": true,
+  "recordedErrorsAndCspEmpty": true,
+  "offlineFileEquality": {
+    "left": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-selection-diagnostic-01/windowed.md",
+    "right": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-08/windowed.md",
+    "sha256": "84e661fa8af75731cbe8ff0c89c8b135303432307d7464f74a22cfceb7d1534d",
+    "bytes": 7851914
+  },
+  "actualPixelReviews": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-selection-diagnostic-01/DIAGNOSTIC-LOADED-x11.png",
+      "method": "view_image actual pixels",
+      "bytes": 80469,
+      "sha256": "502fa33744ecb06c8ee4f5085b11251675b03d13faaa823ca7503fb18b9a93ce",
+      "visible": "Marker selected, sequence source and autonumber source readable."
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-selection-diagnostic-01/DIAGNOSTIC-ABSENT-x11.png",
+      "method": "view_image actual pixels",
+      "bytes": 68956,
+      "sha256": "6835610fae8d46cf0d46ff7efeebdd6ac300598e5e9c12e123424638e58e0066",
+      "visible": "Later sequence source visible; original marker outside screenshot."
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-selection-diagnostic-01/DIAGNOSTIC-REMOUNTED-x11.png",
+      "method": "view_image actual pixels",
+      "bytes": 51240,
+      "sha256": "081f70c0f13ca0a182837b2500a6a91f959675a21af78ae6204719fb1221e99e",
+      "visible": "Later sequence box-group diagram visible; original marker not in viewport. Filename denotes capture stage, not visual proof of visible marker or retained mount."
+    }
+  ],
+  "interpretation": "A mounted marker copy, pure native wheel unmount/remount, and second exact marker copy are directly recorded. This supports correcting DOM-overlay equality as a selection test premise. It does not establish continuous logical selection or the historical UI08 exact cause. Final projection assertion actually failed and remains RED; later inline version/file assertions did not execute. Offline checks above independently cover the saved observations/file only.",
+  "implementationReview": "Root read the exact frozen diagnostic. Native GTK clipboard ownership was set to a distinct random sentinel at each copy; real XTest Ctrl+C followed by GTK wait_for_text returned marker. No separate pre-copy clipboard readback is recorded. Geometry and document probes were sequential, not atomic; cannot replay the proposed atomic projection invariant from them."
+}

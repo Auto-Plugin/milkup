@@ -1,0 +1,30 @@
+function assertCapturedScrollEdge(dom, expected, stage) {
+  assert(expected.after, stage + ': reached corner snapshot exists')
+  assert.equal(expected.after.from, expected.from, stage + ': expected range start')
+  assert.equal(expected.after.to, expected.to, stage + ': expected range end')
+  assertCapturedPreview(dom, expected.after, stage)
+  const actual = dom.previews.find((item) => item.from === expected.from && item.to === expected.to)
+  assert(['bottom-right', 'top-left'].includes(expected.corner), stage + ': known corner')
+  for (const [axis, extent, client] of [
+    ['left', 'scrollWidth', 'clientWidth'],
+    ['top', 'scrollHeight', 'clientHeight'],
+  ]) {
+    for (const snapshot of [expected.after, actual]) {
+      assert(
+        [snapshot[axis], snapshot[extent], snapshot[client]].every(Number.isFinite) &&
+          snapshot[client] > 0 && snapshot[extent] > 0,
+        stage + ': finite positive scroll geometry ' + axis,
+      )
+    }
+    const previousMax = Math.max(0, expected.after[extent] - expected.after[client])
+    const currentMax = Math.max(0, actual[extent] - actual[client])
+    assert(
+      previousMax <= 1 || currentMax > 1,
+      stage + ': previously overflowing axis remains scrollable ' + axis,
+    )
+    const corner = expected.corner === 'bottom-right' ? currentMax : 0
+    const clamped = Math.min(currentMax, Math.max(0, expected.after[axis]))
+    assert(Math.abs(actual[axis] - corner) <= 1, stage + ': remains at ' + expected.corner + ' ' + axis)
+    assert(Math.abs(actual[axis] - clamped) <= 1, stage + ': preserves reached offset ' + axis)
+  }
+}

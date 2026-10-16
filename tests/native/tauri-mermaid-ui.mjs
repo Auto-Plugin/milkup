@@ -226,6 +226,44 @@ function assertCapturedPreview(dom, expected, stage) {
     stage + ': same range remains fully decoded',
   )
 }
+function assertCapturedScrollEdge(dom, expected, stage) {
+  assert(expected.after, stage + ': reached corner snapshot exists')
+  assert.equal(expected.after.from, expected.from, stage + ': expected range start')
+  assert.equal(expected.after.to, expected.to, stage + ': expected range end')
+  assertCapturedPreview(dom, expected.after, stage)
+  const actual = dom.previews.find((item) => item.from === expected.from && item.to === expected.to)
+  assert(
+    actual.images.length > 0 && actual.images.every((item) => item.width > 0 && item.height > 0),
+    stage + ': mounted image dimensions remain positive',
+  )
+  assert(['bottom-right', 'top-left'].includes(expected.corner), stage + ': known corner')
+  for (const [axis, extent, client] of [
+    ['left', 'scrollWidth', 'clientWidth'],
+    ['top', 'scrollHeight', 'clientHeight'],
+  ]) {
+    for (const snapshot of [expected.after, actual]) {
+      assert(
+        [snapshot[axis], snapshot[extent], snapshot[client]].every(Number.isFinite) &&
+          snapshot[client] > 0 &&
+          snapshot[extent] > 0,
+        stage + ': finite positive scroll geometry ' + axis,
+      )
+    }
+    const previousMax = Math.max(0, expected.after[extent] - expected.after[client])
+    const currentMax = Math.max(0, actual[extent] - actual[client])
+    assert(
+      previousMax <= 1 || currentMax > 1,
+      stage + ': previously overflowing axis remains scrollable ' + axis,
+    )
+    const corner = expected.corner === 'bottom-right' ? currentMax : 0
+    const clamped = Math.min(currentMax, Math.max(0, expected.after[axis]))
+    assert(
+      Math.abs(actual[axis] - corner) <= 1,
+      stage + ': remains at ' + expected.corner + ' ' + axis,
+    )
+    assert(Math.abs(actual[axis] - clamped) <= 1, stage + ': preserves reached offset ' + axis)
+  }
+}
 function noticeIsVisible(notice, dom) {
   const rect = notice.rect
   return (
@@ -251,6 +289,7 @@ let assertionFailureSequence = 0
 async function preserveAssertion(kind, dom, expected, stage, document = null) {
   try {
     if (kind === 'preview') assertCapturedPreview(dom, expected, stage)
+    else if (kind === 'scroll-edge') assertCapturedScrollEdge(dom, expected, stage)
     else assertCapturedNotice(dom, expected, stage)
   } catch (error) {
     const file =
@@ -301,6 +340,8 @@ async function record(name, extra = {}) {
   const dom = await observe()
   if (extra.preview)
     await preserveAssertion('preview', dom, extra.preview, 'after screenshot', document)
+  if (extra.scrollEdge)
+    await preserveAssertion('scroll-edge', dom, extra.scrollEdge, 'after screenshot', document)
   if (extra.fallbackNotice) {
     assert.equal(document.path, activeFile)
     await preserveAssertion('notice', dom, extra.fallbackNotice, 'after screenshot', document)
@@ -334,6 +375,8 @@ async function shot(name, extra = {}) {
   await app.delay(250)
   if (extra.preview)
     await preserveAssertion('preview', await observe(), extra.preview, 'before screenshot')
+  if (extra.scrollEdge)
+    await preserveAssertion('scroll-edge', await observe(), extra.scrollEdge, 'before screenshot')
   if (extra.fallbackNotice)
     await preserveAssertion('notice', await observe(), extra.fallbackNotice, 'before screenshot')
   await app.shot(name + '-webview')
@@ -530,8 +573,89 @@ async function seek(sample, mode) {
   )
   await positionSample(sample)
 }
+async function sampleSelectionProjection(sample, phase) {
+  const markerTo = sample.from - 2
+  const markerFrom = markerTo - sample.marker.length
+  const fixture = sample.name ? contents.get(sample.name) : source
+  assert.equal(fixture.slice(markerFrom, markerTo), sample.marker)
+  const markerLine = fixture.slice(0, markerFrom).split('\n').length
+  // Read lines and overlays in one task. Windowed rows may be unmounted even
+  // while the logical selection remains unchanged; overscan rows still count.
+  const projection = await app.execute(
+    `
+const editor=document.querySelector('.milkup-editor');
+if(!editor) throw new Error('Selection projection: mounted editor required');
+const rows=[...editor.querySelectorAll('.milkup-editor-content .milkup-line')]
+  .map(e=>({from:Number(e.dataset.from),to:Number(e.dataset.to),line:Number(e.dataset.line)}));
+return {
+  windowed:editor.classList.contains('milkup-source-document-view'),
+  mode:editor.dataset.mode,
+  invalidRows:rows.filter(row=>!Number.isInteger(row.from)||!Number.isInteger(row.to)||!Number.isInteger(row.line)||row.from<0||row.to<row.from||row.line<1),
+  markerLines:rows.filter(line=>line.from<arguments[1]&&line.to>arguments[0]),
+  ranges:[...editor.querySelectorAll('.milkup-selection')].map(e=>({from:Number(e.dataset.from),to:Number(e.dataset.to),line:e.dataset.line===undefined?null:Number(e.dataset.line)})),
+  cursors:[...editor.querySelectorAll('.milkup-cursor')].map(e=>Number(e.dataset.position))
+};
+`,
+    markerFrom,
+    markerTo,
+  )
+  await appendFile(
+    path.join(output, 'selection-projections.jsonl'),
+    JSON.stringify({
+      at: new Date().toISOString(),
+      sample: sample.id,
+      phase,
+      markerFrom,
+      markerTo,
+      markerLine,
+      ...projection,
+    }) + '\n',
+  )
+  assert.deepEqual(projection.invalidRows, [], 'Mounted source rows have valid source metadata')
+  assert(projection.markerLines.length <= 1, 'Unique marker has at most one mounted source row')
+  for (const line of projection.markerLines) {
+    assert.equal(line.from, markerFrom, 'Mounted marker starts at its exact source offset')
+    assert.equal(line.to, markerTo, 'Mounted marker ends at its exact source offset')
+    assert.equal(line.line, markerLine, 'Mounted marker has its exact fixture source line')
+  }
+  if (!projection.windowed)
+    assert.equal(projection.markerLines.length, 1, 'Ordinary fixture keeps its marker row mounted')
+  for (const range of projection.ranges) {
+    assert(
+      Number.isInteger(range.from) && Number.isInteger(range.to) && range.from < range.to,
+      'Every selection projection has valid source endpoints',
+    )
+    if (projection.windowed)
+      assert(Number.isInteger(range.line), 'Every windowed projection has a source line')
+  }
+  const normalized = (ranges) => [...new Set(ranges.map((range) => JSON.stringify(range)))].sort()
+  // Ordinary overlays carry the full range without data-line. SourceDocumentView
+  // overlays carry intersections with mounted rows, including their line number.
+  const expected = projection.windowed
+    ? projection.markerLines.map((line) => ({
+        from: Math.max(markerFrom, line.from),
+        to: Math.min(markerTo, line.to),
+        line: line.line,
+      }))
+    : [{ from: markerFrom, to: markerTo }]
+  const actual = projection.ranges.map(({ from, to, line }) =>
+    projection.windowed ? { from, to, line } : { from, to },
+  )
+  assert.deepEqual(
+    normalized(actual),
+    normalized(expected),
+    'Selection projections must match the exact marker on currently mounted source rows',
+  )
+  assert.deepEqual(
+    projection.cursors,
+    projection.markerLines.length ? [markerTo] : [],
+    'Cursor projection must match the mounted marker endpoint',
+  )
+  return { ...projection, expected }
+}
 async function positionSample(sample) {
   const before = await app.probe()
+  const projectionBefore = await sampleSelectionProjection(sample, 'before-positioning')
   const fileBefore = await readFile(activeFile)
   const started = Date.now()
   const observations = []
@@ -674,6 +798,14 @@ return {width:innerWidth,viewport,scrollTop:editor.scrollTop,scrollHeight:editor
     failure = error
   }
   const after = await app.probe()
+  const projectionAfter = await sampleSelectionProjection(sample, 'after-positioning').catch(
+    (error) => {
+      if (!failure) throw error
+      // Keep an earlier positioning failure authoritative while retaining this
+      // additional projection failure and its already-written raw snapshot.
+      return { error: String(error) }
+    },
+  )
   const fileUnchanged = (await readFile(activeFile)).equals(fileBefore)
   await appendFile(
     path.join(output, 'positioning.jsonl'),
@@ -691,12 +823,12 @@ return {width:innerWidth,viewport,scrollTop:editor.scrollTop,scrollHeight:editor
       error: failure ? String(failure) : undefined,
       before: { version: before.version, selection: before.selection, dirty: before.dirty },
       after: { version: after.version, selection: after.selection, dirty: after.dirty },
+      selectionProjection: { before: projectionBefore, after: projectionAfter },
       fileUnchanged,
       observations,
     }) + '\n',
   )
   assert.equal(after.version, before.version, 'Positioning must preserve source version')
-  assert.deepEqual(after.selection, before.selection, 'Positioning must preserve selection')
   assert.equal(after.dirty, before.dirty, 'Positioning must preserve dirty state')
   assert(fileUnchanged, 'Positioning must preserve exact saved file bytes')
   if (failure) throw failure
@@ -953,10 +1085,12 @@ async function scrollEdges(sample, key) {
         'Wheel reaches diagram ' + axis + ' ' + corner,
       )
     }
+    const after = await read()
     await shot(`edges-${key}-${sample.id}-${corner}`, {
       sample: sample.id,
       before,
-      after: await read(),
+      after,
+      scrollEdge: { from: before.from, to: before.to, corner, after },
     })
   }
 }

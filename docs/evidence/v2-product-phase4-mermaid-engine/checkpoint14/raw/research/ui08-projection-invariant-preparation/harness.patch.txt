@@ -1,0 +1,123 @@
+diff --git a/tests/native/tauri-mermaid-ui.mjs b/tests/native/tauri-mermaid-ui.mjs
+index f56d3034..dfbc86fc 100644
+--- a/tests/native/tauri-mermaid-ui.mjs
++++ b/tests/native/tauri-mermaid-ui.mjs
+@@ -530,8 +530,89 @@ async function seek(sample, mode) {
+   )
+   await positionSample(sample)
+ }
++async function sampleSelectionProjection(sample, phase) {
++  const markerTo = sample.from - 2
++  const markerFrom = markerTo - sample.marker.length
++  const fixture = sample.name ? contents.get(sample.name) : source
++  assert.equal(fixture.slice(markerFrom, markerTo), sample.marker)
++  const markerLine = fixture.slice(0, markerFrom).split('\n').length
++  // Read lines and overlays in one task. Windowed rows may be unmounted even
++  // while the logical selection remains unchanged; overscan rows still count.
++  const projection = await app.execute(
++    `
++const editor=document.querySelector('.milkup-editor');
++if(!editor) throw new Error('Selection projection: mounted editor required');
++const rows=[...editor.querySelectorAll('.milkup-editor-content .milkup-line')]
++  .map(e=>({from:Number(e.dataset.from),to:Number(e.dataset.to),line:Number(e.dataset.line)}));
++return {
++  windowed:editor.classList.contains('milkup-source-document-view'),
++  mode:editor.dataset.mode,
++  invalidRows:rows.filter(row=>!Number.isInteger(row.from)||!Number.isInteger(row.to)||!Number.isInteger(row.line)||row.from<0||row.to<row.from||row.line<1),
++  markerLines:rows.filter(line=>line.from<arguments[1]&&line.to>arguments[0]),
++  ranges:[...editor.querySelectorAll('.milkup-selection')].map(e=>({from:Number(e.dataset.from),to:Number(e.dataset.to),line:e.dataset.line===undefined?null:Number(e.dataset.line)})),
++  cursors:[...editor.querySelectorAll('.milkup-cursor')].map(e=>Number(e.dataset.position))
++};
++`,
++    markerFrom,
++    markerTo,
++  )
++  await appendFile(
++    path.join(output, 'selection-projections.jsonl'),
++    JSON.stringify({
++      at: new Date().toISOString(),
++      sample: sample.id,
++      phase,
++      markerFrom,
++      markerTo,
++      markerLine,
++      ...projection,
++    }) + '\n',
++  )
++  assert.deepEqual(projection.invalidRows, [], 'Mounted source rows have valid source metadata')
++  assert(projection.markerLines.length <= 1, 'Unique marker has at most one mounted source row')
++  for (const line of projection.markerLines) {
++    assert.equal(line.from, markerFrom, 'Mounted marker starts at its exact source offset')
++    assert.equal(line.to, markerTo, 'Mounted marker ends at its exact source offset')
++    assert.equal(line.line, markerLine, 'Mounted marker has its exact fixture source line')
++  }
++  if (!projection.windowed)
++    assert.equal(projection.markerLines.length, 1, 'Ordinary fixture keeps its marker row mounted')
++  for (const range of projection.ranges) {
++    assert(
++      Number.isInteger(range.from) && Number.isInteger(range.to) && range.from < range.to,
++      'Every selection projection has valid source endpoints',
++    )
++    if (projection.windowed)
++      assert(Number.isInteger(range.line), 'Every windowed projection has a source line')
++  }
++  const normalized = (ranges) => [...new Set(ranges.map((range) => JSON.stringify(range)))].sort()
++  // Ordinary overlays carry the full range without data-line. SourceDocumentView
++  // overlays carry intersections with mounted rows, including their line number.
++  const expected = projection.windowed
++    ? projection.markerLines.map((line) => ({
++        from: Math.max(markerFrom, line.from),
++        to: Math.min(markerTo, line.to),
++        line: line.line,
++      }))
++    : [{ from: markerFrom, to: markerTo }]
++  const actual = projection.ranges.map(({ from, to, line }) =>
++    projection.windowed ? { from, to, line } : { from, to },
++  )
++  assert.deepEqual(
++    normalized(actual),
++    normalized(expected),
++    'Selection projections must match the exact marker on currently mounted source rows',
++  )
++  assert.deepEqual(
++    projection.cursors,
++    projection.markerLines.length ? [markerTo] : [],
++    'Cursor projection must match the mounted marker endpoint',
++  )
++  return { ...projection, expected }
++}
+ async function positionSample(sample) {
+   const before = await app.probe()
++  const projectionBefore = await sampleSelectionProjection(sample, 'before-positioning')
+   const fileBefore = await readFile(activeFile)
+   const started = Date.now()
+   const observations = []
+@@ -674,6 +755,14 @@ return {width:innerWidth,viewport,scrollTop:editor.scrollTop,scrollHeight:editor
+     failure = error
+   }
+   const after = await app.probe()
++  const projectionAfter = await sampleSelectionProjection(sample, 'after-positioning').catch(
++    (error) => {
++      if (!failure) throw error
++      // Keep an earlier positioning failure authoritative while retaining this
++      // additional projection failure and its already-written raw snapshot.
++      return { error: String(error) }
++    },
++  )
+   const fileUnchanged = (await readFile(activeFile)).equals(fileBefore)
+   await appendFile(
+     path.join(output, 'positioning.jsonl'),
+@@ -691,12 +780,12 @@ return {width:innerWidth,viewport,scrollTop:editor.scrollTop,scrollHeight:editor
+       error: failure ? String(failure) : undefined,
+       before: { version: before.version, selection: before.selection, dirty: before.dirty },
+       after: { version: after.version, selection: after.selection, dirty: after.dirty },
++      selectionProjection: { before: projectionBefore, after: projectionAfter },
+       fileUnchanged,
+       observations,
+     }) + '\n',
+   )
+   assert.equal(after.version, before.version, 'Positioning must preserve source version')
+-  assert.deepEqual(after.selection, before.selection, 'Positioning must preserve selection')
+   assert.equal(after.dirty, before.dirty, 'Positioning must preserve dirty state')
+   assert(fileUnchanged, 'Positioning must preserve exact saved file bytes')
+   if (failure) throw failure

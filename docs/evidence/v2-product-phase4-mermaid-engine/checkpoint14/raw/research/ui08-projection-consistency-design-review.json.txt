@@ -1,0 +1,79 @@
+{
+  "author": "release_sdk",
+  "kind": "independent-read-only-design-review",
+  "verdict": "Appropriate replacement invariant for mounted projection consistency, provided the ordinary/SourceDocumentView attribute difference is handled explicitly. It is not a complete logical-selection conservation proof.",
+  "sourceIdentities": [
+    {
+      "path": "packages/view-dom/src/editor-view.ts",
+      "sha256": "4084272d196b6f9f70cf85a3c355e9b1a9773deea06e53e1705572b59208367e"
+    },
+    {
+      "path": "packages/view-dom/src/source-document-view.ts",
+      "sha256": "ad1a9a7a746c8eaf641e132ee5a91cb4779c4d860c9f9f445231c8d2b8923206"
+    },
+    {
+      "path": "tests/helpers/native-production.mjs",
+      "sha256": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0"
+    }
+  ],
+  "diagnosticEvidence": {
+    "summaryPath": "/workspace/milkup-mermaid-engine-evidence/research/native-ui08-selection-diagnostic-01/summary.json",
+    "sha256": "1eeeec93780d63c3877c6d8d0c3a496fc99456ab683d81bb1853215ab7fbe086",
+    "status": "FIRST_ATTEMPT_RED_FINAL_DOM_PROJECTION",
+    "clipboardProofs": [
+      {
+        "stage": "loaded",
+        "matched": true,
+        "expectedLength": 57,
+        "differentSentinels": true
+      },
+      {
+        "stage": "remounted",
+        "matched": true,
+        "expectedLength": 57,
+        "differentSentinels": true
+      }
+    ],
+    "qualification": "The diagnostic remains RED at its final full-projection assertion. Two real native copies after distinct sentinels matched the marker, with pure-wheel unmount/remount in between; this supports selected-text behavior but not anchor/head direction. Final unchanged document/file values were post-run checks after the online assertion stopped."
+  },
+  "requiredDetails": [
+    {
+      "topic": "Atomic public DOM snapshot",
+      "rule": "Read the intended editor/content, mode, mounted source-line metadata, its selection-layer overlays and cursor in one synchronous execute invocation with no awaits or DOM writes. Do not combine lines from one probe with overlays from another."
+    },
+    {
+      "topic": "Mounted is not visible",
+      "rule": "Include connected source lines in overscan even when their rect is above or below the viewport or a line has presentation-collapsed metadata. Do not derive mounting from viewport intersection or positive visible area. The actual remounted diagnostic marker at negative y still copied successfully."
+    },
+    {
+      "topic": "Strict expected intersection",
+      "rule": "For SourceDocumentView, expected entries are each valid mounted line intersected with [markerFrom,markerTo], retaining only positive-length intersections; preserve line identity. Parse/validate integers and ranges before computing. Deduplicate/sort exact from,to,line tuples for both expected and actual. Reject malformed or additional actual overlays; do not silently filter mismatches away."
+    },
+    {
+      "topic": "Empty projection",
+      "rule": "Accept empty actual only when the known marker has no positive intersection with mounted source lines. Require nonempty expected to match exactly. This does not assert the logical selection while it is unmounted."
+    },
+    {
+      "topic": "Ordinary adapter difference",
+      "rule": "EditorView renderSelectionOverlay3495 and alignSelectionOverlayToDOM838 emit full-range from/to and omit data-line on aligned rectangles. SourceDocumentView2980 emits mounted per-line intersections and data-line. Do not coerce a missing ordinary data-line into zero/null and compare it to Source line numbers. For this single-line known marker, derive the ordinary line only from the unique valid mounted source line containing that range, while preserving and validating raw from/to. Current small ordinary fixture should explicitly require that marker source line to be present. Generic ordinary virtual-source behavior can retain full-range overlays when source lines are absent, so do not claim the Source empty rule universally applies to EditorView."
+    },
+    {
+      "topic": "Cursor",
+      "rule": "Require the expected marker-end cursor only when its exact source line is mounted; validate expected unique cursor rather than relying on Number(undefined). Missing cursor while that line is absent is not evidence of logical movement. Scope to the intended editor cursor layer."
+    },
+    {
+      "topic": "Unchanged invariants",
+      "rule": "Keep seek full-marker navigation readiness, version/dirty/full saved bytes, bounded20ticks/10seconds/2reversals, and all image/decoding/history/error assertions. Correct the name to projection consistency; do not compare pre/post raw overlay arrays as a logical model invariant."
+    }
+  ],
+  "asyncBoundary": "Source render-window commit replaces content and then renders selection/cursor synchronously at source-document-view.ts910-936. A single synchronous DOM snapshot observes one JS state rather than two different rendering tasks; this does not guarantee all pending navigation has completed, hence the separate seek readiness gate remains useful.",
+  "meaningfulChecks": [
+    "Known marker mounted with missing/shifted/extra overlay must fail.",
+    "Marker genuinely outside mounted ranges with no overlay may pass; stale nonempty overlay must fail.",
+    "Multiple wrapped rects of the same range are legitimate and deduplicate.",
+    "Overscan-mounted marker outside visible viewport still requires its projection.",
+    "Ordinary missing data-line is handled through the verified unique source-line mapping; malformed actual ranges are rejected.",
+    "Two native Ctrl+C checks across pure-wheel unmount/remount remain separately reported behavioral evidence, not converted into a passed final diagnostic."
+  ],
+  "execution": "Only source and retained summary reads; no code changes, tests, build, browser, native runtime or new instrumentation."
+}
