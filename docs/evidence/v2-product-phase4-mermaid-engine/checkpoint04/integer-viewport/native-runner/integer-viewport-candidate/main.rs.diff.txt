@@ -1,0 +1,10 @@
+--- before/paired-helper/src/main.rs
++++ integer/paired-helper/src/main.rs
+@@ -103,6 +103,7 @@
+    let script=match input.get("op").and_then(Value::as_str){
+     Some("start")=>format!("window.__milkupSvgConverterProbe.start({})",input.get("request").unwrap_or(&Value::Null)),
+     Some("original-source")=>"window.__milkupSvgConverterProbe.inspect(true)".into(),
++    Some("control-original")=>"window.__milkupSvgConverterProbe.controlOriginal()".into(),
+     Some("inspect")=>"window.__milkupSvgConverterProbe.inspect(false)".into(),
+     Some("canonical-inline")=>format!("window.__milkupSvgConverterProbe.showCanonicalInline({})",serde_json::to_string(std::str::from_utf8(include_bytes!("../assets/canonical.svg")).unwrap()).unwrap()),
+     Some("canonical")=>"window.__milkupSvgConverterProbe.showCanonical()".into(),

@@ -1,0 +1,72 @@
+[
+  {
+    "label": "01-format",
+    "command": [
+      "bash",
+      "scripts/cloud/pnpm.sh",
+      "exec",
+      "prettier",
+      "--write",
+      "packages/core/src/__tests__/document-svg-image.test.ts",
+      "packages/view-dom/src/__tests__/document-svg-image.test.ts"
+    ],
+    "cwd": "/workspace/milkup",
+    "started": "2026-10-16T11:01:57.133888+00:00",
+    "exit": 0,
+    "durationSeconds": 1.1735888679977506,
+    "log": "/workspace/milkup-mermaid-engine-evidence/research/product-integration-red/01-format.log"
+  },
+  {
+    "label": "02-format-check",
+    "command": [
+      "bash",
+      "scripts/cloud/pnpm.sh",
+      "exec",
+      "prettier",
+      "--check",
+      "packages/core/src/__tests__/document-svg-image.test.ts",
+      "packages/view-dom/src/__tests__/document-svg-image.test.ts"
+    ],
+    "cwd": "/workspace/milkup",
+    "started": "2026-10-16T11:01:58.309005+00:00",
+    "exit": 0,
+    "durationSeconds": 1.0747001260024263,
+    "log": "/workspace/milkup-mermaid-engine-evidence/research/product-integration-red/02-format-check.log"
+  },
+  {
+    "label": "03-core-before",
+    "command": [
+      "bash",
+      "scripts/cloud/pnpm.sh",
+      "--filter",
+      "@milkup/core",
+      "exec",
+      "vitest",
+      "run",
+      "src/__tests__/document-svg-image.test.ts"
+    ],
+    "cwd": "/workspace/milkup",
+    "started": "2026-10-16T11:01:59.387082+00:00",
+    "exit": 1,
+    "durationSeconds": 1.7715584230027162,
+    "log": "/workspace/milkup-mermaid-engine-evidence/research/product-integration-red/03-core-before.log"
+  },
+  {
+    "label": "04-view-before",
+    "command": [
+      "bash",
+      "scripts/cloud/pnpm.sh",
+      "--filter",
+      "@milkup/view-dom",
+      "exec",
+      "vitest",
+      "run",
+      "src/__tests__/document-svg-image.test.ts"
+    ],
+    "cwd": "/workspace/milkup",
+    "started": "2026-10-16T11:02:01.159563+00:00",
+    "exit": 1,
+    "durationSeconds": 3.1402036490035243,
+    "log": "/workspace/milkup-mermaid-engine-evidence/research/product-integration-red/04-view-before.log"
+  }
+]

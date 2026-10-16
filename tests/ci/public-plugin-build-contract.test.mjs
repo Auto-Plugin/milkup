@@ -13,8 +13,8 @@ async function fixture(t, version = '0.3.1') {
   }
   await write('packages/plugin-sdk/package.json', { name: '@milkup/plugin-sdk', version })
   const inventory = [
-    { directory: 'plugins/workspace', permissions: ['workspace:read'] },
-    { directory: 'plugins/preferences', permissions: ['settings:write'] },
+    { directory: 'plugins/workspace', host: 'worker', permissions: ['workspace:read'] },
+    { directory: 'plugins/preferences', host: 'worker', permissions: ['settings:write'] },
   ]
   await write('release/bundled-plugins.json', inventory)
   for (const item of inventory)
@@ -32,6 +32,7 @@ test('derives the current public SDK version and current local inventory without
   const f = await fixture(t)
   const input = await readPublicPluginBuildInputs(f.root)
   assert.equal(input.sdkVersion, '0.3.1')
+  assert.ok(input.plugins.every((plugin) => plugin.buildMode === 'legacy-non-frozen'))
   assert.equal(input.sdkTarballName, 'milkup-plugin-sdk-0.3.1.tgz')
   assert.deepEqual(
     input.plugins.map((plugin) => plugin.id),

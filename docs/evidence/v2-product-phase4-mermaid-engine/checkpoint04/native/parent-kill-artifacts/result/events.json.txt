@@ -1,0 +1,123 @@
+[
+  {
+    "event": "guardian-spawned",
+    "mono": 35866.442216739,
+    "wall": 1792148254.0032008,
+    "guardian": {
+      "pid": 6,
+      "birth": 3586644,
+      "parent": 5,
+      "group": 6,
+      "session": 6,
+      "state": "R",
+      "ticks": 0,
+      "comm": "python3",
+      "cmdline": "/usr/bin/python3 /probe/parent-kill.py --output /evidence/result --expected-binary-sha a9accf7f1b466e061e03a620b46cbeeef438fa3261caacd074a22473f29f76cb "
+    },
+    "preparationStart": 35866.440516566,
+    "owner": {
+      "pid": 5,
+      "birth": 3586643,
+      "parent": 4,
+      "group": 0,
+      "session": 0,
+      "state": "R",
+      "ticks": 0,
+      "comm": "python3",
+      "cmdline": "/usr/bin/python3 /probe/parent-kill.py --output /evidence/result --expected-binary-sha a9accf7f1b466e061e03a620b46cbeeef438fa3261caacd074a22473f29f76cb "
+    },
+    "stopWriterFd": 25
+  },
+  {
+    "event": "activated",
+    "mono": 35867.313117695,
+    "wall": 1792148254.8740768,
+    "elapsed": 0.8726039289977052,
+    "result": {
+      "protocol": "milkup.plugin.isolation.rpc.v1",
+      "type": "response",
+      "id": "activate1",
+      "ok": true,
+      "value": {
+        "commands": [],
+        "renderers": [],
+        "documentRenderers": [
+          "test.renderer"
+        ]
+      }
+    }
+  },
+  {
+    "event": "bbox-ready",
+    "mono": 35867.33950595,
+    "wall": 1792148254.9004645,
+    "elapsed": 0.026306721003493294,
+    "result": {
+      "protocol": "milkup.plugin.document-render.v1",
+      "type": "result",
+      "id": "bbox1",
+      "ok": true,
+      "value": {
+        "width": 166.953125,
+        "height": 24,
+        "viewport": 1024
+      }
+    }
+  },
+  {
+    "event": "loop-dispatched",
+    "mono": 35867.342785011,
+    "wall": 1792148254.9037437,
+    "dispatchMono": 35867.34273172,
+    "fixedExecutionDeadline": 35869.34273172
+  },
+  {
+    "event": "actual-webkit-cpu-observed",
+    "mono": 35867.445879898,
+    "wall": 1792148255.0068383,
+    "identity": {
+      "pid": 62,
+      "birth": 3586676,
+      "parent": 61,
+      "group": 8,
+      "session": 6,
+      "state": "R",
+      "ticks": 35,
+      "comm": "WebKitWebProces",
+      "cmdline": "/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitWebProcess 4 17 "
+    },
+    "cpuTickDelta": 10,
+    "sample": {
+      "mono": 35867.445810717,
+      "wall": 1792148255.0067692
+    }
+  },
+  {
+    "event": "sigkill-simulated-app",
+    "mono": 35867.446298776,
+    "wall": 1792148255.0072575,
+    "owner": {
+      "pid": 5,
+      "birth": 3586643,
+      "parent": 4,
+      "group": 0,
+      "session": 0,
+      "state": "R",
+      "ticks": 0,
+      "comm": "python3",
+      "cmdline": "/usr/bin/python3 /probe/parent-kill.py --output /evidence/result --expected-binary-sha a9accf7f1b466e061e03a620b46cbeeef438fa3261caacd074a22473f29f76cb "
+    },
+    "guardianBeforeKill": {
+      "pid": 6,
+      "birth": 3586644,
+      "parent": 5,
+      "group": 6,
+      "session": 6,
+      "state": "S",
+      "ticks": 9,
+      "comm": "milkup-desktop",
+      "cmdline": "/probe/bin/milkup-desktop --milkup-internal-dom-helper "
+    },
+    "elapsedFromLoopDispatch": 0.10356705600133864
+  }
+]

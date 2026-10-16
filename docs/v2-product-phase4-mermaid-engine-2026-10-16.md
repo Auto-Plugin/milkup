@@ -69,6 +69,22 @@ Journey 两配置另取真实 WebKit 1100×800 原图，均为 light、zoom 1、
 
 ## 原型设计与通过门槛
 
+### 产品原生后端与输出转换的进行中验证
+
+通用 Linux 原生后端已实现安装目录快照、一次性租约、独立 WebKit helper、原生资源 guard 与独立清理 guardian。租约的启动资格在 60 秒后到期，未使用快照在后续 prepare/release 时回收；这是最多 16 个租约、32 MiB 快照的有界保留，不是定时自动释放内存。平台命令采用异步阻塞任务执行，尚须在实际编辑器内核验响应和停用/卸载行为。
+
+原生后端首次真实探针已验证公开 SDK 的 default export 激活、Unicode getBBox、网络/文件拒绝、固定资源 guard、全局别名重绑定及同步死循环终止。该次可信超时通知和后代清理合计用时 2.020800045 秒，不能将此数写为精确发出 SIGKILL 的时刻。首轮保留日志和哈希，但没有完整保存随后被重建覆盖的二进制及两份源码快照；这项证据缺口明确保留，随后冻结 build02 并重新实际执行，不倒填旧快照。直接 Rust 单元测试 14 项通过、2 个特殊入口显式忽略；其中真实 WebKit 入口随后在 native02 单独执行，不能由单元测试数推断通过。
+
+冻结 build02 的 native02 与父进程 SIGKILL 探针均首次 exit 0、无重试。native02 自 dispatch 起 2.000161617 秒观察截止、2.000396263 秒开始终止、2.018833747 秒 guardian 达到 ECHILD，App 在确认清理后于 2.026041550 秒发送超时事件。另一独立观察器先确认真实 WebKit CPU ticks 增加 10，然后只对模拟 App 发送 SIGKILL；guardian 在 0.028723361 秒后以 0 退出，所有已观察 PID/birth 消失，精确私有目录删除，均在 namespace/观察器退出前完成。两探针分别证明 Rust 原生截止与父进程异常退出清理，不能混用其时序或宣称 guardian 自身被杀后仍能清理。13 份源码与精确二进制/guard 哈希冻结，运行后再次匹配；[原始记录](evidence/v2-product-phase4-mermaid-engine/checkpoint04/native/validation-summary.json.txt)。完整编辑器响应、启停卸载和生产包仍待验证。
+
+提交前 Rust 格式首次通过；两份 bootstrap JS 格式首次失败后仅做格式化，最终格式与 Node 4 项测试通过。冻结重建 build03 并运行 native03，首次通过同一真实机制探针：2.000178438 秒观察截止、2.000545009 秒开始终止、2.016063793 秒 guardian 清理完成，2.020903628 秒发送可信超时。13 份源码及三份二进制运行后再次匹配；[格式首败与重验记录](evidence/v2-product-phase4-mermaid-engine/checkpoint04/native03/README.md.txt)。未变 Rust 的父进程异常退出证据继续准确引用 build02。
+
+安全输出原型已用实际 DOM/CSSOM 转换五个官方样例，并经独立宿主验证与规范序列化通过。早期真实失败包括错误判定无效 outline、漏计组变换，以及普通 g/path 上不适用的属性；这些问题均保留修前输入与失败记录，不靠宽泛忽略未知属性处理。当前五个样例覆盖 flow、sequence、journey、sankey 和 class，不能代表官方全图型已通过。
+
+原始 inline SVG 与规范 SVG 图片的首轮原生像素对照中，Journey 和默认 flow 各自两张 PNG 逐字节一致，根代理已实际查看原图。Sankey 两图有 59,691/880,000 像素不同，并存在可见的窄色条和路径边界差异，因此仍记为失败。三路定位随后确认 original-inline/canonical-inline 逐字节一致，仅 canonical-img 有同样差异；三者 CSS 尺寸均为 600×406.90625，而图片 naturalHeight 为 406。这把本例问题缩小到 inline→image 边界，尚未证明小数尺寸量化是唯一原因。原始证据见[第四检查点](evidence/v2-product-phase4-mermaid-engine/checkpoint04/README.md)。这些对照均仅为 Linux WebKit、1100×800、浅色、100% 缩放，不代表产品编辑器或完整缩放矩阵验收。
+
+首个外包视口候选仍有 21,068 像素差异，继续保留失败记录。随后整数视口候选将图片栅格尺寸取为 ceil(width)×ceil(height)，保留原规范内层 SVG 字节及外部精确布局足迹；当前 Sankey 的 controlled-original/canonical-inline/canonical-img 三张完整 PNG 逐字节一致。原图增加布局槽后图形区域未变，后续 footer top 仍为 422.90625，72 个节点样本的变换和屏幕矩形一致；根代理实际查看了原图和图片。此候选通过本例保真检查，进入通用产品合同实现，但不能外推全部图型或缩放。core/view 修前回归已实际得到 24 项失败、5 项守护通过，当前正在实现共享预算、宿主规范输出与可撤销的图片生命周期。
+
 机制和输出研究已取得上述结果，产品正在按以下边界实现，尚未通过完整验收：
 
 - 插件拥有固定版本 Mermaid、配置、语法与离线 bundle；宿主只拥有任务生命周期、边界和输出校验。
@@ -78,7 +94,7 @@ Journey 两配置另取真实 WebKit 1100×800 原图，均为 light、zoom 1、
 - 每次任务绑定插件生命周期、文档身份/版本与请求代次；取消、停用、卸载、文档切换、超时和异常均丢弃失效输出并回退完整源码，不改变正文、历史或保存状态。
 - 候选输出为封闭静态 SVG AST：有限节点/属性、数值/路径语法、局部引用和受控样式，经宿主重新校验和规范序列化后放入图片上下文；不向编辑器 DOM 注入原始 SVG/HTML/CSS。样式必须完整保留或整图拒绝，不能静默清洗后漏画。
 - `foreignObject`、不支持的样式/图元及字体布局必须用真实样例决定完整实现方式。隔离栅格化可作为待比较方案，但须明示缩放、文本选择、无障碍和导出损失，不能当作矢量保真已完成。
-- Linux process group、Windows Job Object、macOS WebKit 后代生命周期各有平台边界；只宣称实际验证的平台。Linux 已通过上述固定机制原型；新通用产品后端尚未通过任何平台验收。
+- Linux process group、Windows Job Object、macOS WebKit 后代生命周期各有平台边界；只宣称实际验证的平台。Linux 已通过上述固定机制原型及首个产品后端探针，完整产品验收仍未完成；Windows/macOS 后端未实现，不外推 Linux 结果。
 
 机制原型至少包含真实 SVG 量字、同步死循环、外部资源与文件/IPC尝试、错误/超限、取消/清理，然后运行官方引擎的完整图型样例。原型结果及第一次失败必须保留；证明机制可行后才扩展公共 SDK/核心合同并添加修前回归。
 

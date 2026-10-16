@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict'
-import { readFile, realpath } from 'node:fs/promises'
+import { readFile, realpath, stat, readdir, lstat } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
 import path from 'node:path'
 
 const json = async (file) => JSON.parse(await readFile(file, 'utf8'))
+// Same kebab/dot segment grammar as the public manifest parser (not action IDs).
+const pluginIdPattern = /^[a-z][a-z0-9]*(?:[.-][a-z][a-z0-9]*)*$/
 const versionPattern =
   /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*)?$/
 
@@ -30,11 +33,12 @@ export async function readPublicPluginBuildInputs(root) {
     assert.ok(entry.permissions.every((permission) => typeof permission === 'string'))
     assert.equal(new Set(entry.permissions).size, entry.permissions.length)
     const manifest = await json(path.join(directory, 'plugin.json'))
-    assert.match(manifest.id, /^[a-z][a-z0-9.-]{0,127}$/, 'Unsafe plugin identity')
+    assert.match(manifest.id, pluginIdPattern, 'Unsafe plugin identity')
+    assert.ok(manifest.id.length <= 128, 'Plugin identity exceeds distribution filename bound')
     assert.ok(!ids.has(manifest.id), 'Duplicate plugin identity')
     ids.add(manifest.id)
     assert.match(manifest.version, versionPattern, 'Unsafe plugin version')
-    assert.equal(manifest.host, 'worker', 'Bundled plugins must use the Worker host')
+    assertDistributionHost(manifest, entry)
     assert.equal(manifest.main, './dist/plugin.js')
     assert.deepEqual(manifest.permissions, entry.permissions, 'Distribution permission mismatch')
     assert.equal(
@@ -58,11 +62,30 @@ export async function readPublicPluginBuildInputs(root) {
         'Plugin resource escapes its package',
       )
     }
+    const closure = entry.dependencyClosure
+      ? await readDependencyClosure(directory, entry.dependencyClosure, manifest)
+      : undefined
     plugins.push({
       directory: entry.directory,
       name: `${manifest.id}-${manifest.version}.milkup-plugin`,
       id: manifest.id,
       version: manifest.version,
+      host: manifest.host,
+      buildMode: closure ? 'frozen-closure' : 'legacy-non-frozen',
+      ...(closure
+        ? {
+            dependencyClosure: entry.dependencyClosure,
+            closure,
+            buildFiles: [
+              ...new Set([
+                'pnpm-lock.yaml',
+                entry.dependencyClosure.profile,
+                ...closure.buildFiles,
+              ]),
+            ],
+          }
+        : {}),
+      ...(entry.bundledDependencies ? { bundledDependencies: entry.bundledDependencies } : {}),
       permissions: [...entry.permissions],
       resources: [...resources],
     })
@@ -72,4 +95,375 @@ export async function readPublicPluginBuildInputs(root) {
     sdkTarballName: `milkup-plugin-sdk-${sdk.version}.tgz`,
     plugins: plugins.sort((a, b) => a.name.localeCompare(b.name)),
   }
+}
+
+const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex')
+const hashPattern = /^[a-f0-9]{64}$/
+const packagePattern = /^(?:@[a-z0-9-]+\/)?[a-z0-9][a-z0-9._-]*$/
+const within = (root, file) => {
+  const relative = path.relative(root, file)
+  return (
+    relative !== '' &&
+    !relative.startsWith(`..${path.sep}`) &&
+    relative !== '..' &&
+    !path.isAbsolute(relative)
+  )
+}
+function safeRelative(name) {
+  assert.equal(typeof name, 'string')
+  assert.ok(
+    name.length > 0 && name.length <= 1024 && !/[\\\u0000-\u001f\u007f:%?#]/u.test(name),
+    'Unsafe build path',
+  )
+  assert.ok(
+    !path.isAbsolute(name) &&
+      name.split('/').every((part) => part && part !== '.' && part !== '..'),
+    'Unsafe build path',
+  )
+  return name
+}
+export async function publicBuildFile(root, name) {
+  const resolvedRoot = await realpath(root)
+  const file = await realpath(path.join(resolvedRoot, safeRelative(name)))
+  assert.ok(within(resolvedRoot, file), `Build file escapes package: ${name}`)
+  const metadata = await stat(file)
+  assert.ok(
+    metadata.isFile() && metadata.size <= 32 * 1024 * 1024,
+    `Invalid or oversized build file: ${name}`,
+  )
+  return { path: file, bytes: await readFile(file) }
+}
+function checkHash(bytes, expected, label) {
+  assert.match(expected, hashPattern, `Invalid hash: ${label}`)
+  assert.equal(sha256(bytes), expected, `Hash mismatch: ${label}`)
+}
+
+/** This distribution check deliberately duplicates only the narrow DOM profile.
+ * Runtime/package manifest validation remains authoritative at installation. */
+export function assertDistributionHost(manifest, entry) {
+  assert.ok(entry.host === 'worker' || entry.host === 'dom', 'Distribution host must be explicit')
+  assert.equal(manifest.host, entry.host, 'Distribution host mismatch')
+  if (manifest.host !== 'dom') {
+    assert.equal(
+      entry.dependencyClosure,
+      undefined,
+      'Frozen closure currently requires the DOM profile',
+    )
+    return
+  }
+  assert.ok(entry.dependencyClosure, 'DOM distribution requires a pinned dependency closure')
+  assert.deepEqual(manifest.permissions, ['document:read'], 'DOM permits only document:read')
+  assert.equal(manifest.networkOrigins, undefined, 'DOM cannot declare network origins')
+  assert.equal(manifest.settings, undefined, 'DOM cannot declare settings')
+  assert.deepEqual(
+    Object.keys(manifest.contributes ?? {}),
+    ['documentRenderers'],
+    'DOM permits only documentRenderers',
+  )
+  const renderers = manifest.contributes.documentRenderers
+  assert.ok(
+    Array.isArray(renderers) && renderers.length > 0 && renderers.length <= 16,
+    'Invalid DOM renderer count',
+  )
+  const ids = new Set()
+  for (const renderer of renderers) {
+    assert.ok(
+      renderer &&
+        Object.keys(renderer).every((key) => ['id', 'contexts', 'fenceLanguages'].includes(key)),
+      'Invalid DOM renderer',
+    )
+    assert.match(renderer.id, pluginIdPattern, 'Invalid document renderer ID')
+    assert.ok(renderer.id.length <= 128, 'Document renderer ID is too long')
+    assert.ok(!ids.has(renderer.id), 'Duplicate DOM renderer')
+    ids.add(renderer.id)
+    assert.ok(
+      Array.isArray(renderer.contexts) &&
+        renderer.contexts.length > 0 &&
+        renderer.contexts.length <= 2 &&
+        new Set(renderer.contexts).size === renderer.contexts.length &&
+        renderer.contexts.every((context) => context === 'text' || context === 'fence'),
+      'Invalid DOM renderer contexts',
+    )
+    if (renderer.contexts.includes('fence')) {
+      assert.ok(
+        Array.isArray(renderer.fenceLanguages) &&
+          renderer.fenceLanguages.length > 0 &&
+          renderer.fenceLanguages.length <= 16,
+        'Invalid DOM fence languages',
+      )
+      for (const language of renderer.fenceLanguages)
+        assert.match(language, /^[a-zA-Z0-9][a-zA-Z0-9_+-]{0,31}$/)
+    } else
+      assert.equal(
+        renderer.fenceLanguages,
+        undefined,
+        'Text renderer cannot declare fence languages',
+      )
+  }
+}
+
+export async function readDependencyClosure(pluginRoot, declaration, manifest) {
+  assert.equal(declaration.lockfile, 'pnpm-lock.yaml', 'Only the standalone pnpm lock is supported')
+  const lock = await publicBuildFile(pluginRoot, declaration.lockfile)
+  checkHash(lock.bytes, declaration.lockSha256, 'pnpm lock')
+  const profileFile = await publicBuildFile(pluginRoot, declaration.profile)
+  checkHash(profileFile.bytes, declaration.profileSha256, 'dependency profile')
+  const profile = JSON.parse(profileFile.bytes.toString('utf8'))
+  assert.equal(profile.version, 1)
+  assert.equal(profile.packageManager, 'pnpm@11.7.0')
+  assert.ok(profile.target === 'es2022' || profile.target === 'es2024')
+  assert.match(profile.sdkTarballSha256, hashPattern)
+  const pkg = JSON.parse((await publicBuildFile(pluginRoot, 'package.json')).bytes.toString('utf8'))
+  assert.equal(pkg.packageManager, profile.packageManager, 'Plugin package manager must be pinned')
+  const dependencySections = [
+    pkg.dependencies,
+    pkg.devDependencies,
+    pkg.optionalDependencies,
+    pkg.peerDependencies,
+  ].filter(Boolean)
+  assert.equal(
+    dependencySections.filter((section) => '@milkup/plugin-sdk' in section).length,
+    1,
+    'SDK must have one explicit dependency declaration',
+  )
+  const declarations = {
+    ...pkg.dependencies,
+    ...pkg.devDependencies,
+    ...pkg.optionalDependencies,
+    ...pkg.peerDependencies,
+  }
+  assert.equal(
+    declarations['@milkup/plugin-sdk'],
+    'file:vendor/plugin-sdk.tgz',
+    'SDK must use the fixed relative tarball',
+  )
+  for (const [name, version] of Object.entries(declarations)) {
+    if (name === '@milkup/plugin-sdk') continue
+    assert.match(name, packagePattern)
+    assert.ok(!name.startsWith('@milkup/'), 'Private host package is forbidden')
+    assert.match(version, versionPattern, 'Standalone root dependency version must be exact')
+  }
+  assert.ok(Array.isArray(profile.buildFiles) && profile.buildFiles.length <= 64)
+  for (const file of profile.buildFiles) {
+    safeRelative(file)
+    assert.ok(
+      /^scripts\/[a-zA-Z0-9_./-]+\.(?:mjs|js|json)$/.test(file) ||
+        ['vitest.config.ts', 'pnpm-workspace.yaml'].includes(file),
+      'Unapproved build helper path',
+    )
+    await publicBuildFile(pluginRoot, file)
+  }
+  assert.ok(Array.isArray(profile.packages) && profile.packages.length <= 2048)
+  const locators = new Set()
+  const roots = new Set()
+  let inputCount = 0
+  for (const item of profile.packages) {
+    assert.match(item.name, packagePattern)
+    assert.ok(
+      !item.name.startsWith('@milkup/'),
+      'SDK and private host packages cannot enter dependency closure',
+    )
+    assert.match(item.version, versionPattern)
+    assert.equal(typeof item.locator, 'string')
+    assert.ok(
+      (item.locator === `${item.name}@${item.version}` ||
+        item.locator.startsWith(`${item.name}@${item.version}(`)) &&
+        item.locator.length <= 2048 &&
+        !locators.has(item.locator),
+      'Invalid or duplicate package locator',
+    )
+    locators.add(item.locator)
+    safeRelative(item.root)
+    assert.ok(
+      item.root.startsWith('node_modules/') && !roots.has(item.root),
+      'Invalid or duplicate package root',
+    )
+    roots.add(item.root)
+    assert.ok(Array.isArray(item.inputs) && item.inputs.length > 0 && item.inputs.length <= 20000)
+    inputCount += item.inputs.length
+    assert.ok(inputCount <= 50000, 'Dependency input budget exceeded')
+    const files = new Set()
+    for (const input of item.inputs) {
+      safeRelative(input.path)
+      assert.ok(!files.has(input.path), 'Duplicate dependency input')
+      files.add(input.path)
+      assert.match(input.sha256, hashPattern)
+    }
+    assert.ok(
+      Array.isArray(item.notices) && item.notices.length > 0 && item.notices.length <= 64,
+      'Package notices are required',
+    )
+    for (const notice of item.notices) {
+      safeRelative(notice.path)
+      assert.match(notice.sha256, hashPattern)
+      assert.ok(manifest.resources?.includes(notice.resource), 'Notice must be a declared resource')
+      const resource = await publicBuildFile(pluginRoot, notice.resource)
+      checkHash(resource.bytes, notice.resourceSha256, 'notice resource')
+    }
+  }
+  return profile
+}
+
+export function verifyPublicSdkTarball(entry, bytes) {
+  assert.equal(entry.buildMode, 'frozen-closure')
+  checkHash(bytes, entry.closure.sdkTarballSha256, 'SDK tarball')
+  return true
+}
+
+/** Validate the actual bundler metafile, never an unverified package name prefix.
+ * Lock parsing/resolution is deliberately delegated to frozen pnpm installation. */
+export async function verifyPublicPluginBundle(pluginRoot, entry, metafile, options = {}) {
+  const root = await realpath(pluginRoot)
+  const sourceRoot = await realpath(path.join(root, 'src'))
+  assert.equal(sourceRoot, path.join(root, 'src'), 'Plugin source root must not be a symlink')
+  assert.ok(
+    Object.keys(metafile.outputs).length === 1 &&
+      Object.values(metafile.outputs).every(
+        (output) => Array.isArray(output.imports) && output.imports.length === 0,
+      ),
+    'Plugin entry must be a single self-contained module',
+  )
+  const approved = new Map()
+  if (options.sdkEntry) approved.set(await realpath(options.sdkEntry), 'sdk')
+  const closure = entry.dependencyClosure
+    ? await readDependencyClosure(root, entry.dependencyClosure, { resources: entry.resources })
+    : undefined
+  if (closure) {
+    for (const item of closure.packages) {
+      const packageRoot = await realpath(path.join(root, item.root))
+      assert.ok(
+        within(path.join(root, 'node_modules'), packageRoot),
+        'Dependency package escapes local installation',
+      )
+      const metadata = JSON.parse(
+        (await publicBuildFile(packageRoot, 'package.json')).bytes.toString('utf8'),
+      )
+      assert.equal(metadata.name, item.name, 'Dependency name mismatch')
+      assert.equal(metadata.version, item.version, 'Dependency version mismatch')
+      for (const input of item.inputs) {
+        const file = await publicBuildFile(packageRoot, input.path)
+        checkHash(file.bytes, input.sha256, `dependency ${item.locator}/${input.path}`)
+        assert.ok(!approved.has(file.path), 'Duplicate resolved dependency input')
+        approved.set(file.path, item.locator)
+      }
+      for (const notice of item.notices) {
+        const original = await publicBuildFile(packageRoot, notice.path)
+        checkHash(original.bytes, notice.sha256, `notice ${item.locator}`)
+        const resource = await publicBuildFile(root, notice.resource)
+        checkHash(resource.bytes, notice.resourceSha256, 'notice resource')
+        assert.ok(
+          resource.bytes.includes(original.bytes),
+          'Notice resource must preserve complete original text',
+        )
+      }
+    }
+  } else {
+    const pkg = JSON.parse((await publicBuildFile(root, 'package.json')).bytes.toString('utf8'))
+    for (const dependency of entry.bundledDependencies ?? []) {
+      assert.match(dependency.name, packagePattern)
+      assert.ok(!dependency.name.startsWith('@milkup/'), 'Private bundled dependency')
+      assert.equal(pkg.dependencies?.[dependency.name], dependency.version)
+      const directory = await realpath(path.join(root, 'node_modules', dependency.name))
+      const metadata = JSON.parse(
+        (await publicBuildFile(directory, 'package.json')).bytes.toString('utf8'),
+      )
+      assert.equal(metadata.name, dependency.name)
+      assert.equal(metadata.version, dependency.version)
+      for (const input of dependency.entries)
+        approved.set((await publicBuildFile(directory, input)).path, dependency.name)
+    }
+  }
+  const consumed = new Set()
+  for (const input of Object.keys(metafile.inputs)) {
+    const file = await realpath(path.resolve(root, input))
+    if (within(sourceRoot, file)) continue
+    assert.ok(approved.has(file), `Non-public plugin dependency: ${input}`)
+    consumed.add(file)
+  }
+  if (closure) {
+    for (const [file, owner] of approved) {
+      if (owner !== 'sdk')
+        assert.ok(consumed.has(file), `Reviewed dependency input set mismatch: ${file}`)
+    }
+  }
+  return {
+    mode: entry.buildMode,
+    dependencyInputs: [...consumed].filter((file) => approved.get(file) !== 'sdk').length,
+    metafileSha256: sha256(JSON.stringify(metafile)),
+    outputImports: [],
+  }
+}
+
+export async function resolvePublicPluginSdkEntry(pluginRoot, checkout, version) {
+  const root = await realpath(pluginRoot)
+  const sdkRoot = await realpath(path.join(root, 'node_modules/@milkup/plugin-sdk'))
+  assert.ok(
+    within(path.join(root, 'node_modules'), sdkRoot),
+    'Public SDK must be installed locally, not linked to the checkout',
+  )
+  const metadata = JSON.parse(
+    (await publicBuildFile(sdkRoot, 'package.json')).bytes.toString('utf8'),
+  )
+  assert.equal(metadata.name, '@milkup/plugin-sdk')
+  assert.equal(metadata.version, version, 'SDK package version mismatch')
+  const entry = await publicBuildFile(sdkRoot, 'src/index.js')
+  assert.equal(metadata.exports?.['.']?.import, './src/index.js', 'Unexpected public SDK entry')
+  const expected = await readFile(path.join(checkout, 'packages/plugin-sdk/src/index.js'))
+  assert.ok(entry.bytes.equals(expected), 'Installed public SDK does not match the packed source')
+  return entry.path
+}
+
+// Only verifier-created output/install locations are outside the copied-input proof.
+// Do not exclude all of vendor: only the separately hash-checked public SDK tarball.
+const generatedBuildPaths = new Set([
+  'dist',
+  'node_modules',
+  'vitest.public.config.mjs',
+  'vendor/plugin-sdk.tgz',
+])
+export async function capturePublicBuildInputs(directory, inputs) {
+  const root = await realpath(directory)
+  const files = new Map()
+  let totalBytes = 0
+  async function visit(name) {
+    const relative = name.replaceAll('\\', '/')
+    if (!inputs && generatedBuildPaths.has(relative)) return
+    safeRelative(relative)
+    const lexical = path.join(root, relative)
+    assert.ok(
+      !(await lstat(lexical)).isSymbolicLink(),
+      `Copied build input became a symlink: ${relative}`,
+    )
+    const real = await realpath(lexical)
+    assert.ok(within(root, real), `Copied build input escapes package: ${relative}`)
+    const metadata = await stat(real)
+    if (metadata.isDirectory()) {
+      for (const child of (await readdir(real)).sort()) await visit(`${relative}/${child}`)
+      return
+    }
+    if (files.has(relative)) return
+    const file = await publicBuildFile(root, relative)
+    totalBytes += file.bytes.length
+    assert.ok(
+      files.size < 50000 && totalBytes <= 512 * 1024 * 1024,
+      'Copied build input budget exceeded',
+    )
+    files.set(relative, { path: relative, bytes: file.bytes.length, sha256: sha256(file.bytes) })
+  }
+  for (const name of inputs ?? (await readdir(root)).sort()) await visit(name)
+  return [...files.values()].sort((a, b) => a.path.localeCompare(b.path))
+}
+
+export async function verifyPublicBuildInputs(target, sourceRoot, inputs, snapshot) {
+  assert.deepEqual(
+    await capturePublicBuildInputs(target),
+    snapshot,
+    'Copied build inputs were added, removed or changed',
+  )
+  assert.deepEqual(
+    await capturePublicBuildInputs(sourceRoot, inputs),
+    snapshot,
+    'Checkout build inputs changed since copying',
+  )
+  return { files: snapshot.length, sha256: sha256(JSON.stringify(snapshot)) }
 }

@@ -1,97 +1,67 @@
 import { build } from 'esbuild'
 import { createHash } from 'node:crypto'
-import { mkdir, readFile, readdir, writeFile, realpath } from 'node:fs/promises'
-import { dirname, resolve, relative, isAbsolute } from 'node:path'
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
+import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import {
+  readPublicPluginBuildInputs,
+  publicBuildFile,
+  verifyPublicPluginBundle,
+  verifyPublicSdkTarball,
+  resolvePublicPluginSdkEntry,
+} from './public-plugin-build-contract.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
-const distribution = JSON.parse(
-  await readFile(resolve(root, 'release/bundled-plugins.json'), 'utf8'),
-)
-const expectedNames = []
-for (const item of distribution) {
+const { sdkVersion, plugins } = await readPublicPluginBuildInputs(root)
+const destination = resolve(root, 'apps/desktop/src/bundled-plugins')
+const prepared = []
+for (const item of plugins) {
   const pluginRoot = resolve(root, item.directory)
-  const destination = resolve(root, 'apps/desktop/src/bundled-plugins')
-  const manifest = JSON.parse(await readFile(resolve(pluginRoot, 'plugin.json'), 'utf8'))
-  if (
-    manifest.host !== 'worker' ||
-    manifest.main !== './dist/plugin.js' ||
-    JSON.stringify([...manifest.permissions].sort()) !==
-      JSON.stringify([...item.permissions].sort())
-  ) {
-    throw Error('Review distribution default before bundling a different capability set')
-  }
-  const approvedInputs = new Set()
-  const packageJson = JSON.parse(await readFile(resolve(pluginRoot, 'package.json'), 'utf8'))
-  for (const dependency of item.bundledDependencies ?? []) {
-    if (
-      !/^(?:@[a-z0-9-]+\/)?[a-z0-9-]+$/.test(dependency.name) ||
-      dependency.name.startsWith('@milkup/') ||
-      packageJson.dependencies?.[dependency.name] !== dependency.version
+  const manifest = JSON.parse(
+    (await publicBuildFile(pluginRoot, 'plugin.json')).bytes.toString('utf8'),
+  )
+  const sdkEntry =
+    item.buildMode === 'frozen-closure'
+      ? await resolvePublicPluginSdkEntry(pluginRoot, root, sdkVersion)
+      : resolve(root, 'packages/plugin-sdk/src/index.js')
+  if (item.buildMode === 'frozen-closure') {
+    verifyPublicSdkTarball(item, (await publicBuildFile(pluginRoot, 'vendor/plugin-sdk.tgz')).bytes)
+    const pluginPackage = JSON.parse(
+      (await publicBuildFile(pluginRoot, 'package.json')).bytes.toString('utf8'),
     )
-      throw Error('Unreviewed bundled dependency declaration')
-    const directory = await realpath(resolve(pluginRoot, 'node_modules', dependency.name))
-    const metadata = JSON.parse(await readFile(resolve(directory, 'package.json'), 'utf8'))
-    if (metadata.name !== dependency.name || metadata.version !== dependency.version)
-      throw Error('Bundled dependency version mismatch')
-    for (const entry of dependency.entries) {
-      const path = await realpath(resolve(directory, entry))
-      const within = relative(directory, path)
-      if (!within || within.startsWith('..') || isAbsolute(within))
-        throw Error('Dependency entry escapes its package')
-      approvedInputs.add(path)
-    }
+    const buildPackage = JSON.parse(
+      await readFile(resolve(root, 'node_modules/esbuild/package.json'), 'utf8'),
+    )
+    if (pluginPackage.devDependencies?.esbuild !== buildPackage.version)
+      throw Error('Reviewed plugin bundler version must match the distribution bundler')
   }
-  // Use only the SDK package's public export, with the repository's locked build tool.
-  // This does not add a runtime host dependency on the plugin implementation.
   const result = await build({
     absWorkingDir: pluginRoot,
     entryPoints: ['src/plugin.ts'],
     bundle: true,
     format: 'esm',
     platform: 'browser',
-    target: 'es2022',
+    target: item.closure?.target ?? 'es2022',
     outfile: 'dist/plugin.js',
+    legalComments: 'eof',
     write: false,
     metafile: true,
-    alias: { '@milkup/plugin-sdk': resolve(root, 'packages/plugin-sdk/src/index.js') },
+    alias: { '@milkup/plugin-sdk': sdkEntry },
   })
-  for (const input of Object.keys(result.metafile.inputs)) {
-    const normalized = input.replaceAll('\\', '/')
-    if (
-      !normalized.startsWith('src/') &&
-      normalized !== '../../packages/plugin-sdk/src/index.js' &&
-      !approvedInputs.has(await realpath(resolve(pluginRoot, input)))
-    ) {
-      throw Error(`Non-public plugin dependency: ${input}`)
-    }
-  }
-  if (
-    result.outputFiles.length !== 1 ||
-    Object.values(result.metafile.outputs).some((output) => output.imports.length)
-  ) {
+  if (result.outputFiles.length !== 1)
     throw Error('Plugin entry must be a single self-contained module')
-  }
+  const verification = await verifyPublicPluginBundle(pluginRoot, item, result.metafile, {
+    sdkEntry,
+  })
   const resources = []
-  for (const resource of manifest.resources || []) {
-    const source = resolve(pluginRoot, resource)
-    const relativePath = relative(pluginRoot, source)
-    if (
-      !relativePath ||
-      relativePath.startsWith('..') ||
-      isAbsolute(relativePath) ||
-      resource.includes('\\')
-    ) {
-      throw Error(`Resource must stay within plugin directory: ${resource}`)
-    }
-    const bytes = await readFile(source)
+  for (const resource of manifest.resources ?? []) {
+    const { bytes } = await publicBuildFile(pluginRoot, resource)
     if (
       resource === manifest.icon &&
       (!resource.endsWith('.png') ||
         !bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])))
-    ) {
+    )
       throw Error('Declared plugin icon must be a PNG resource')
-    }
     resources.push({ path: resource, encoding: 'base64', content: bytes.toString('base64') })
   }
   if (manifest.icon && !resources.some((resource) => resource.path === manifest.icon))
@@ -110,20 +80,32 @@ for (const item of distribution) {
       null,
       2,
     ) + '\n'
-  await mkdir(destination, { recursive: true })
-  const name = `${manifest.id}-${manifest.version}.milkup-plugin`
-  expectedNames.push(name)
-  await writeFile(resolve(destination, name), archive)
-  const record = {
-    name,
-    bytes: Buffer.byteLength(archive),
-    sha256: createHash('sha256').update(archive).digest('hex'),
-    sdkVersion: JSON.parse(await readFile(resolve(root, 'packages/plugin-sdk/package.json')))
-      .version,
-  }
-  console.log(JSON.stringify(record))
+  prepared.push({
+    name: item.name,
+    archive,
+    record: {
+      name: item.name,
+      host: item.host,
+      buildMode: item.buildMode,
+      bytes: Buffer.byteLength(archive),
+      sha256: createHash('sha256').update(archive).digest('hex'),
+      sdkVersion,
+      ...verification,
+      installationProof:
+        item.buildMode === 'frozen-closure'
+          ? 'installed-input-hashes-only; no install executed by staging'
+          : 'legacy-non-frozen',
+      ...(item.dependencyClosure ? { dependencyClosure: item.dependencyClosure } : {}),
+    },
+  })
 }
-const existing = await readdir(resolve(root, 'apps/desktop/src/bundled-plugins'))
-if (existing.some((file) => !expectedNames.includes(file))) {
+// Validate the entire distribution before writing any staged plugin.
+await mkdir(destination, { recursive: true })
+const expectedNames = new Set(prepared.map((item) => item.name))
+const existing = await readdir(destination)
+if (existing.some((file) => !expectedNames.has(file)))
   throw Error('Unexpected staged plugin; refusing to silently change the distribution')
+for (const item of prepared) {
+  await writeFile(resolve(destination, item.name), item.archive)
+  console.log(JSON.stringify(item.record))
 }

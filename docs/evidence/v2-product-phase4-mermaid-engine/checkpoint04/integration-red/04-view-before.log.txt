@@ -1,0 +1,180 @@
+{"command": ["bash", "scripts/cloud/pnpm.sh", "--filter", "@milkup/view-dom", "exec", "vitest", "run", "src/__tests__/document-svg-image.test.ts"], "cwd": "/workspace/milkup", "started": "2026-10-16T11:02:01.159563+00:00"}
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/document-svg-image.test.ts (21 tests | 16 failed) 443ms
+   × keeps full mapped source until decode, then mounts an inert owned image (false) 72ms
+     → expected [] to have a length of 1 but got +0
+   × restores a whole compound fragment when any decoded image later errors (false) 20ms
+     → expected [] to have a length of 2 but got +0
+   × decode rejection leaves usable original source and an accessible notice (false) 18ms
+     → expected [] to have a length of 1 but got +0
+   × revokes pending decode on disabled, ignoring its late completion (false) 19ms
+     → expected [] to have a length of 1 but got +0
+   × revokes pending decode on source, ignoring its late completion (false) 19ms
+     → expected [] to have a length of 1 but got +0
+   × revokes pending decode on destroy, ignoring its late completion (false) 15ms
+     → expected [] to have a length of 1 but got +0
+   × releases a successfully mounted URL when the provider is removed (false) 16ms
+     → expected [] to have a length of 1 but got +0
+   × late old-document decode cannot replace the new source (false) 14ms
+     → expected [] to have a length of 1 but got +0
+   ✓ source mode stays literal and does not create image resources (false) 13ms
+   ✓ unknown child yields full-source fallback without allocating a URL (false) 16ms
+   × keeps full mapped source until decode, then mounts an inert owned image (true) 43ms
+     → expected [] to have a length of 1 but got +0
+   × restores a whole compound fragment when any decoded image later errors (true) 31ms
+     → expected [] to have a length of 2 but got +0
+   × decode rejection leaves usable original source and an accessible notice (true) 20ms
+     → expected [] to have a length of 1 but got +0
+   × revokes pending decode on disabled, ignoring its late completion (true) 18ms
+     → expected [] to have a length of 1 but got +0
+   × revokes pending decode on source, ignoring its late completion (true) 19ms
+     → expected [] to have a length of 1 but got +0
+   × revokes pending decode on destroy, ignoring its late completion (true) 19ms
+     → expected [] to have a length of 1 but got +0
+   × releases a successfully mounted URL when the provider is removed (true) 17ms
+     → expected [] to have a length of 1 but got +0
+   × late old-document decode cannot replace the new source (true) 17ms
+     → expected [] to have a length of 1 but got +0
+   ✓ source mode stays literal and does not create image resources (true) 14ms
+   ✓ unknown child yields full-source fallback without allocating a URL (true) 18ms
+   ✓ the existing synchronous factory cannot create an ownerless image URL 3ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 16 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-svg-image.test.ts > keeps full mapped source until decode, then mounts an inert owned image (false)
+ FAIL  src/__tests__/document-svg-image.test.ts > keeps full mapped source until decode, then mounts an inert owned image (true)
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/__tests__/document-svg-image.test.ts:176:21
+    174|     visibleSource(view)
+    175|     expect(view.contentDOM.querySelector('img')).toBeNull()
+    176|     expect(decodes).toHaveLength(1)
+       |                     ^
+    177|     decodes[0]!.resolve()
+    178|     await settle()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/16]⎯
+
+ FAIL  src/__tests__/document-svg-image.test.ts > restores a whole compound fragment when any decoded image later errors (false)
+ FAIL  src/__tests__/document-svg-image.test.ts > restores a whole compound fragment when any decoded image later errors (true)
+AssertionError: expected [] to have a length of 2 but got +0
+
+- Expected
++ Received
+
+- 2
++ 0
+
+ ❯ src/__tests__/document-svg-image.test.ts:197:21
+    195|     )
+    196|     const previous = view instanceof EditorView ? view.state : view.so…
+    197|     expect(decodes).toHaveLength(2)
+       |                     ^
+    198|     for (const call of decodes) call.resolve()
+    199|     await settle()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/16]⎯
+
+ FAIL  src/__tests__/document-svg-image.test.ts > decode rejection leaves usable original source and an accessible notice (false)
+ FAIL  src/__tests__/document-svg-image.test.ts > decode rejection leaves usable original source and an accessible notice (true)
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/__tests__/document-svg-image.test.ts:215:21
+    213|     const view = await make(windowed)
+    214|     const previous = view instanceof EditorView ? view.state : view.so…
+    215|     expect(decodes).toHaveLength(1)
+       |                     ^
+    216|     decodes[0]!.reject(new Error('controlled image decode failure'))
+    217|     await settle()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/16]⎯
+
+ FAIL  src/__tests__/document-svg-image.test.ts > revokes pending decode on disabled, ignoring its late completion (false)
+ FAIL  src/__tests__/document-svg-image.test.ts > revokes pending decode on source, ignoring its late completion (false)
+ FAIL  src/__tests__/document-svg-image.test.ts > revokes pending decode on destroy, ignoring its late completion (false)
+ FAIL  src/__tests__/document-svg-image.test.ts > revokes pending decode on disabled, ignoring its late completion (true)
+ FAIL  src/__tests__/document-svg-image.test.ts > revokes pending decode on source, ignoring its late completion (true)
+ FAIL  src/__tests__/document-svg-image.test.ts > revokes pending decode on destroy, ignoring its late completion (true)
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/__tests__/document-svg-image.test.ts:228:23
+    226|     it(`revokes pending decode on ${revoke}, ignoring its late complet…
+    227|       const view = await make(windowed)
+    228|       expect(decodes).toHaveLength(1)
+       |                       ^
+    229|       const pending = decodes[0]!
+    230|       if (revoke === 'disabled') view.setDocumentPresentation(undefine…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/16]⎯
+
+ FAIL  src/__tests__/document-svg-image.test.ts > releases a successfully mounted URL when the provider is removed (false)
+ FAIL  src/__tests__/document-svg-image.test.ts > releases a successfully mounted URL when the provider is removed (true)
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/__tests__/document-svg-image.test.ts:249:21
+    247|   it(`releases a successfully mounted URL when the provider is removed…
+    248|     const view = await make(windowed)
+    249|     expect(decodes).toHaveLength(1)
+       |                     ^
+    250|     decodes[0]!.resolve()
+    251|     await settle()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/16]⎯
+
+ FAIL  src/__tests__/document-svg-image.test.ts > late old-document decode cannot replace the new source (false)
+ FAIL  src/__tests__/document-svg-image.test.ts > late old-document decode cannot replace the new source (true)
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/__tests__/document-svg-image.test.ts:262:21
+    260|   it(`late old-document decode cannot replace the new source (${window…
+    261|     const view = await make(windowed)
+    262|     expect(decodes).toHaveLength(1)
+       |                     ^
+    263|     const old = decodes[0]!,
+    264|       oldUrl = created[0]
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/16]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  16 failed | 5 passed (21)
+   Start at  11:02:02
+   Duration  2.02s (transform 558ms, setup 0ms, collect 739ms, tests 443ms, environment 542ms, prepare 73ms)
+
+undefined
+/workspace/milkup/packages/view-dom:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/__tests__/document-svg-image.test.ts
+
+{"exit": 1, "durationSeconds": 3.1402036490035243}

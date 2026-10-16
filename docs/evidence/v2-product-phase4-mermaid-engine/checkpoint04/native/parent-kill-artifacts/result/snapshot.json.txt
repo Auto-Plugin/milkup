@@ -1,0 +1,24 @@
+{
+  "manifest": {
+    "id": "test.parentkill",
+    "name": "Parent kill fixture",
+    "version": "1.0.0",
+    "host": "dom",
+    "main": "main.js",
+    "permissions": [
+      "document:read"
+    ],
+    "contributes": {
+      "documentRenderers": [
+        {
+          "id": "test.renderer",
+          "contexts": [
+            "text"
+          ]
+        }
+      ]
+    }
+  },
+  "module": "export default {activate(context) {\n if (Object.keys(context.host).length || globalThis.__TAURI_INTERNALS__) throw Error('host leaked');\n return {documentRenderers:{'test.renderer':async request=>{\n  if(request.source==='loop'){while(true){}}\n  const s=document.createElementNS('http://www.w3.org/2000/svg','svg');\n  const t=document.createElementNS(s.namespaceURI,'text');t.textContent='真实 DOM 中文 😀';\n  t.setAttribute('font-size','20');s.append(t);document.body.append(s);\n  await document.fonts.ready;const b=t.getBBox();s.remove();\n  return {width:b.width,height:b.height,viewport:innerWidth};\n }}};\n}};",
+  "sha256": "64d06ca9dc140f60836c1b674b92a810401ce03a9f2393762177fdf484c17562"
+}

@@ -1,0 +1,23 @@
+from pathlib import Path
+import json,hashlib
+from PIL import Image,ImageChops
+p=Path(__file__).parent;r=p/'runs/converter-paired-sankey-integer01'
+def sha(x):return hashlib.sha256(x.read_bytes()).hexdigest()
+def stats(a,b,region=None):
+ ia=Image.open(r/(a+'.png')).convert('RGB');ib=Image.open(r/(b+'.png')).convert('RGB')
+ if region:ia=ia.crop(region);ib=ib.crop(region)
+ diff=ImageChops.difference(ia,ib);pixels=list(diff.get_flattened_data());changed=[v for v in pixels if v!=(0,0,0)];hist=[0]*256
+ for v in pixels:hist[max(v)]+=1
+ return {'pixels':len(pixels),'changedPixels':len(changed),'maxChannelDifference':max(max(v) for v in pixels),'meanAbsoluteChannelDifferenceAll':sum(sum(v) for v in pixels)/(3*len(pixels)),'meanAbsoluteChannelDifferenceChanged':sum(sum(v) for v in changed)/(3*len(changed)) if changed else 0,'bboxRelativeToRegion':diff.getbbox(),'maxChannelDifferenceHistogram':hist}
+out={'pairs':[],'states':{}}
+for a,b in [('original-inline','controlled-original'),('controlled-original','canonical-inline'),('controlled-original','canonical-img'),('canonical-inline','canonical-img')]:
+ item={'a':a,'b':b,'shaA':sha(r/(a+'.png')),'shaB':sha(r/(b+'.png')),'byteEqual':(r/(a+'.png')).read_bytes()==(r/(b+'.png')).read_bytes(),'full':stats(a,b),'diagramExtentIncludingCeil':[8,8,608,415],'diagram':stats(a,b,(8,8,608,415)),'fixedRegions':[]}
+ for y in range(8,415,102):
+  for x in range(8,608,150):
+   region=[x,y,min(x+150,608),min(y+102,415)];z=stats(a,b,region);z.pop('maxChannelDifferenceHistogram');item['fixedRegions'].append({'region':region,**z})
+ out['pairs'].append(item)
+for f in r.glob('*state.json'):out['states'][f.stem]=json.loads(f.read_text())
+a=out['states']['controlled-original-state'];b=out['states']['canonical-inline-state'];im=out['states']['canonical-img-state']
+out['geometryChecks']={'slotRectsEqual':a['slot']['rect']==b['slot']['rect']==im['slot']['rect'],'footerRectsEqual':a['footer']==b['footer']==im['footer'],'originalVsInnerCTMEqual':a['innerGeometry']['ctm']==b['innerGeometry']['ctm'],'originalVsInnerScreenCTMEqual':a['innerGeometry']['screenCTM']==b['innerGeometry']['screenCTM'],'originalVsInnerBBoxEqual':a['innerGeometry']['bbox']==b['innerGeometry']['bbox'],'originalVsInnerRectEqual':a['innerGeometry']['rect']==b['innerGeometry']['rect'],'geometryNodeCountsEqual':a['geometryNodeCount']==b['geometryNodeCount'],'sampledGeometryDifferences':[{'index':i,'original':x,'canonical':y} for i,(x,y) in enumerate(zip(a['geometrySamples'],b['geometrySamples'])) if x!=y]}
+(p/'sankey-integer01-comparison.json').write_text(json.dumps(out,indent=2)+'\n')
+print(json.dumps({'pairs':[{'a':x['a'],'b':x['b'],'fullChanged':x['full']['changedPixels'],'diagramChanged':x['diagram']['changedPixels'],'max':x['diagram']['maxChannelDifference'],'mean':x['diagram']['meanAbsoluteChannelDifferenceAll']} for x in out['pairs']],'geometryChecks':{k:(len(v) if isinstance(v,list) else v) for k,v in out['geometryChecks'].items()},'slot':a['slot'],'footer':a['footer'],'image':[im['bbox'],im['naturalWidth'],im['naturalHeight']]},indent=2))

@@ -1,0 +1,28 @@
+
+running 1 test
+test plugin_dom::process::tests::real_webkit_default_module_bbox_resources_and_native_loop_deadline ... dbus-daemon[3]: [session uid=1000 pid=3 pidfd=5] Activating service name='org.a11y.Bus' requested by ':1.1' (uid=1000 pid=12 comm="/probe/bin/milkup-desktop --milkup-internal-dom-he" label="kernel")
+dbus-daemon[3]: [session uid=1000 pid=3 pidfd=5] Successfully activated service 'org.a11y.Bus'
+dbus-daemon[53]: Activating service name='org.a11y.atspi.Registry' requested by ':1.0' (uid=1000 pid=59 comm="/usr/bin/xdg-dbus-proxy --args=22" label="kernel")
+dbus-daemon[53]: Successfully activated service 'org.a11y.atspi.Registry'
+SpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry
+DOM_NATIVE_TIMING {"instanceId":"ee79a6febbc3e37c804f65fb2bdf71065d106ab301f95e5c","monotonicNs":36239905135535,"phase":"dispatch","pid":4,"requestId":"r1"}
+DOM_NATIVE_PROBE bbox elapsed=25.332507ms event=DomEvent { plugin_id: "test.dom", instance_id: "ee79a6febbc3e37c804f65fb2bdf71065d106ab301f95e5c", kind: "message", message: Some(Object {"id": String("r1"), "ok": Bool(true), "protocol": String("milkup.plugin.document-render.v1"), "type": String("result"), "value": Object {"height": Number(24), "viewport": Number(1024), "width": Number(150.765625)}}), request_id: None, error: None }
+DOM_NATIVE_TIMING {"instanceId":"ee79a6febbc3e37c804f65fb2bdf71065d106ab301f95e5c","monotonicNs":36239930380299,"phase":"dispatch","pid":4,"requestId":"r2"}
+DOM_NATIVE_GUARD_DENY
+DOM_NATIVE_PROBE guard elapsed=10.416108ms event=DomEvent { plugin_id: "test.dom", instance_id: "ee79a6febbc3e37c804f65fb2bdf71065d106ab301f95e5c", kind: "message", message: Some(Object {"id": String("r2"), "ok": Bool(true), "protocol": String("milkup.plugin.document-render.v1"), "type": String("result"), "value": Object {"guard": String("rejected")}}), request_id: None, error: None }
+DOM_NATIVE_TIMING {"instanceId":"ee79a6febbc3e37c804f65fb2bdf71065d106ab301f95e5c","monotonicNs":36239940891419,"phase":"dispatch","pid":4,"requestId":"r3"}
+DOM_NATIVE_PROBE network elapsed=10.151078ms event=DomEvent { plugin_id: "test.dom", instance_id: "ee79a6febbc3e37c804f65fb2bdf71065d106ab301f95e5c", kind: "message", message: Some(Object {"id": String("r3"), "ok": Bool(true), "protocol": String("milkup.plugin.document-render.v1"), "type": String("result"), "value": Object {"values": Array [String("denied"), String("denied")]}}), request_id: None, error: None }
+DOM_NATIVE_TIMING {"instanceId":"ee79a6febbc3e37c804f65fb2bdf71065d106ab301f95e5c","monotonicNs":36239951160754,"phase":"dispatch","pid":4,"requestId":"r4"}
+DOM_NATIVE_PROBE rebind elapsed=9.408343ms event=DomEvent { plugin_id: "test.dom", instance_id: "ee79a6febbc3e37c804f65fb2bdf71065d106ab301f95e5c", kind: "message", message: Some(Object {"id": String("r4"), "ok": Bool(true), "protocol": String("milkup.plugin.document-render.v1"), "type": String("result"), "value": Object {"rebound": Bool(true)}}), request_id: None, error: None }
+DOM_NATIVE_TIMING {"instanceId":"ee79a6febbc3e37c804f65fb2bdf71065d106ab301f95e5c","monotonicNs":36239960709827,"phase":"dispatch","pid":4,"requestId":"r5"}
+DOM_NATIVE_TIMING {"instanceId":"ee79a6febbc3e37c804f65fb2bdf71065d106ab301f95e5c","monotonicNs":36241960888265,"phase":"deadline-observed","pid":4,"requestId":"r5"}
+DOM_NATIVE_TIMING {"instanceId":"ee79a6febbc3e37c804f65fb2bdf71065d106ab301f95e5c","monotonicNs":36241961254836,"phase":"kill-start","pid":6,"requestId":null}
+DOM_NATIVE_TIMING {"instanceId":"ee79a6febbc3e37c804f65fb2bdf71065d106ab301f95e5c","monotonicNs":36241976773620,"phase":"cleanup-complete","pid":6,"requestId":null}
+DOM_NATIVE_TIMING {"instanceId":"ee79a6febbc3e37c804f65fb2bdf71065d106ab301f95e5c","monotonicNs":36241981518905,"phase":"cleanup-confirmed","pid":4,"requestId":null}
+DOM_NATIVE_PROBE loop elapsed=2.021034034s event=DomEvent { plugin_id: "test.dom", instance_id: "ee79a6febbc3e37c804f65fb2bdf71065d106ab301f95e5c", kind: "document-render-timeout", message: None, request_id: Some("r5"), error: None }
+DOM_NATIVE_TIMING {"instanceId":"ee79a6febbc3e37c804f65fb2bdf71065d106ab301f95e5c","monotonicNs":36241981613455,"phase":"control-emitted","pid":4,"requestId":"r5"}
+DOM_NATIVE_TIMING {"instanceId":"ee79a6febbc3e37c804f65fb2bdf71065d106ab301f95e5c","monotonicNs":36241981780820,"phase":"cleanup-confirmed","pid":4,"requestId":null}
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 142 filtered out; finished in 3.01s
+

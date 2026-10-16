@@ -1,0 +1,38 @@
+{
+  "binary": {
+    "path": "/probe/bin/milkup-desktop",
+    "sha256": "a9accf7f1b466e061e03a620b46cbeeef438fa3261caacd074a22473f29f76cb"
+  },
+  "guard": {
+    "path": "/probe/guard.so",
+    "sha256": "5b1082768123b9ac1923eb8ef3f6f8c0bd05ffd5d66b8b2a023f75b69106c44c"
+  },
+  "script": {
+    "path": "/probe/parent-kill.py",
+    "sha256": "4768b2182fad1713c65d0bf18f20f4682b448ee4cad7daa7e858955b81e37144"
+  },
+  "moduleSha256": "64d06ca9dc140f60836c1b674b92a810401ce03a9f2393762177fdf484c17562",
+  "observer": {
+    "pid": 4,
+    "birth": 3586610,
+    "parent": 2,
+    "group": 0,
+    "session": 0,
+    "state": "R",
+    "ticks": 32,
+    "comm": "python3",
+    "cmdline": "/usr/bin/python3 /probe/parent-kill.py --output /evidence/result --expected-binary-sha a9accf7f1b466e061e03a620b46cbeeef438fa3261caacd074a22473f29f76cb "
+  },
+  "pidNamespace": "pid:[4026532505]",
+  "clockTicks": 100,
+  "limits": {
+    "preparationSeconds": 10,
+    "eachRenderSeconds": 2,
+    "outputWireBytes": 266240,
+    "cleanupObservationSeconds": 4
+  },
+  "privateGuard": {
+    "path": "/evidence/result/private-guard",
+    "inode": 801670
+  }
+}

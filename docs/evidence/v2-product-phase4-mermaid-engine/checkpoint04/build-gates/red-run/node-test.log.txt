@@ -1,0 +1,91 @@
+✔ derives the current public SDK version and current local inventory without widening delivery approval (54.565786ms)
+✔ rejects unsafe or partial SDK versions before constructing the tarball path (29.995106ms)
+✔ rejects directory escape, duplicate inventory and undeclared permission drift (11.152696ms)
+✔ includes declared resources for external builds and rejects traversal (8.723122ms)
+✖ DOM distribution requires explicit host and a pinned closure; Worker remains explicitly legacy (41.823277ms)
+✔ DOM capability restrictions cannot be bypassed by distribution permission approval (25.902686ms)
+✖ closure verifies exact inputs and notices, not arbitrary node_modules or package version alone (12.822048ms)
+✖ closure rejects lock drift, source symlink escapes, missing reviewed inputs and runtime imports (11.543512ms)
+✖ frozen copy list preserves lock, notices and helpers and SDK tarball bytes are checked (15.782651ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 5
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 231.630784
+
+✖ failing tests:
+
+test at tests/ci/public-plugin-dom-build.test.mjs:52:1
+✖ DOM distribution requires explicit host and a pinned closure; Worker remains explicitly legacy (41.823277ms)
+  AssertionError [ERR_ASSERTION]: Bundled plugins must use the Worker host
+  
+  'dom' !== 'worker'
+  
+      at Module.readPublicPluginBuildInputs (file:///workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/baseline/scripts/ci/public-plugin-build-contract.mjs:37:12)
+      at async TestContext.<anonymous> (file:///workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/baseline/tests/ci/public-plugin-dom-build.test.mjs:54:18)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'dom',
+    expected: 'worker',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/ci/public-plugin-dom-build.test.mjs:74:1
+✖ closure verifies exact inputs and notices, not arbitrary node_modules or package version alone (12.822048ms)
+  AssertionError [ERR_ASSERTION]: Bundled plugins must use the Worker host
+  
+  'dom' !== 'worker'
+  
+      at Module.readPublicPluginBuildInputs (file:///workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/baseline/scripts/ci/public-plugin-build-contract.mjs:37:12)
+      at async TestContext.<anonymous> (file:///workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/baseline/tests/ci/public-plugin-dom-build.test.mjs:76:18)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'dom',
+    expected: 'worker',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/ci/public-plugin-dom-build.test.mjs:87:1
+✖ closure rejects lock drift, source symlink escapes, missing reviewed inputs and runtime imports (11.543512ms)
+  AssertionError [ERR_ASSERTION]: Bundled plugins must use the Worker host
+  
+  'dom' !== 'worker'
+  
+      at Module.readPublicPluginBuildInputs (file:///workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/baseline/scripts/ci/public-plugin-build-contract.mjs:37:12)
+      at async TestContext.<anonymous> (file:///workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/baseline/tests/ci/public-plugin-dom-build.test.mjs:89:18)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'dom',
+    expected: 'worker',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/ci/public-plugin-dom-build.test.mjs:99:1
+✖ frozen copy list preserves lock, notices and helpers and SDK tarball bytes are checked (15.782651ms)
+  AssertionError [ERR_ASSERTION]: Bundled plugins must use the Worker host
+  
+  'dom' !== 'worker'
+  
+      at Module.readPublicPluginBuildInputs (file:///workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/baseline/scripts/ci/public-plugin-build-contract.mjs:37:12)
+      at async TestContext.<anonymous> (file:///workspace/milkup-mermaid-engine-evidence/research/generic-build-gate-preparation/baseline/tests/ci/public-plugin-dom-build.test.mjs:101:18)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'dom',
+    expected: 'worker',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

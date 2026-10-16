@@ -1,4 +1,5 @@
 fn main() {
+    build_dom_guard();
     println!("cargo:rerun-if-changed=../../../package.json");
     println!("cargo:rerun-if-changed=../package.json");
     println!("cargo:rerun-if-changed=windows-app.manifest");
@@ -37,4 +38,47 @@ fn main() {
     } else {
         tauri_build::build()
     }
+}
+
+// Embed the native WebProcess request guard. It is extracted only into an owned
+// private directory, never resolved from a plugin package or system search path.
+fn build_dom_guard() {
+    println!("cargo:rerun-if-changed=src/plugin_dom_guard.c");
+    println!("cargo:rerun-if-changed=src/plugin_dom_bootstrap.js");
+    if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("linux") {
+        return;
+    }
+    let flags = std::process::Command::new("pkg-config")
+        .args(["--cflags", "--libs", "webkit2gtk-web-extension-4.1"])
+        .output()
+        .expect("pkg-config is required for the native DOM resource guard");
+    assert!(
+        flags.status.success(),
+        "WebKitGTK extension development files unavailable: {}",
+        String::from_utf8_lossy(&flags.stderr)
+    );
+    let output =
+        std::path::PathBuf::from(std::env::var_os("OUT_DIR").expect("Cargo output directory"))
+            .join("libmilkup_dom_guard.so");
+    let status = std::process::Command::new(std::env::var_os("CC").unwrap_or_else(|| "cc".into()))
+        .args([
+            "-shared",
+            "-fPIC",
+            "-O2",
+            "-Wl,-z,relro,-z,now",
+            "src/plugin_dom_guard.c",
+            "-o",
+        ])
+        .arg(output)
+        .args(
+            String::from_utf8(flags.stdout)
+                .expect("pkg-config UTF-8")
+                .split_whitespace(),
+        )
+        .status()
+        .expect("compile native DOM resource guard");
+    assert!(
+        status.success(),
+        "Native DOM resource guard compilation failed"
+    );
 }

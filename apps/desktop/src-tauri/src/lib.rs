@@ -21,6 +21,7 @@ use tauri::{AppHandle, Emitter, Manager, State, Window};
 
 mod native_search;
 mod piece_tree;
+pub mod plugin_dom;
 mod plugin_icon;
 mod plugin_sidecar;
 use plugin_sidecar::{SidecarEvent, SidecarRegistry, SidecarStarted};
@@ -466,19 +467,28 @@ fn install_plugin_package_file(
 }
 
 #[tauri::command]
-fn remove_installed_plugin_package(app: AppHandle, plugin_id: String) -> Result<bool, String> {
-    validate_plugin_id(&plugin_id)?;
-    let root = app
-        .path()
-        .app_data_dir()
-        .map_err(|error| error.to_string())?
-        .join("plugins")
-        .join(plugin_id);
+async fn remove_installed_plugin_package(
+    app: AppHandle,
+    plugin_id: String,
+) -> Result<bool, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        validate_plugin_id(&plugin_id)?;
+        app.state::<plugin_dom::DomRegistry>()
+            .stop_plugin(&plugin_id)?;
+        let root = app
+            .path()
+            .app_data_dir()
+            .map_err(|error| error.to_string())?
+            .join("plugins")
+            .join(plugin_id);
 
-    if root.exists() {
-        fs::remove_dir_all(root).map_err(|error| error.to_string())?;
-    }
-    Ok(true)
+        if root.exists() {
+            fs::remove_dir_all(root).map_err(|error| error.to_string())?;
+        }
+        Ok(true)
+    })
+    .await
+    .map_err(|error| error.to_string())?
 }
 
 #[tauri::command]
@@ -985,6 +995,7 @@ pub fn run() {
     tauri::Builder::default()
         .manage(WatchRegistry(Mutex::new(HashMap::new())))
         .manage(SidecarRegistry::default())
+        .manage(plugin_dom::DomRegistry::default())
         .manage(LargeFileRegistry(Mutex::new(HashMap::new())))
         .manage(native_search::NativeSearchRegistry::default())
         .manage(updates::UpdateService::default())
@@ -1073,6 +1084,11 @@ pub fn run() {
             flush_large_text_file,
             flush_large_text_file_as,
             close_large_text_file,
+            plugin_dom::prepare_plugin_dom_module,
+            plugin_dom::release_plugin_dom_module,
+            plugin_dom::start_plugin_dom_process,
+            plugin_dom::send_plugin_dom_message,
+            plugin_dom::stop_plugin_dom_process,
             start_plugin_sidecar_process,
             send_plugin_sidecar_message,
             stop_plugin_sidecar_process,
@@ -1080,8 +1096,13 @@ pub fn run() {
             watch_markdown_file,
             unwatch_markdown_file
         ])
-        .run(tauri::generate_context!())
-        .expect("failed to run milkup desktop app");
+        .build(tauri::generate_context!())
+        .expect("failed to build milkup desktop app")
+        .run(|app, event| {
+            if matches!(event, tauri::RunEvent::Exit) {
+                app.state::<plugin_dom::DomRegistry>().stop_all();
+            }
+        });
 }
 
 fn snapshot_hash(text: &str) -> String {

@@ -1,0 +1,250 @@
+#!/usr/bin/env python3
+"""PREPARED, NOT RUN. Real product guardian/WebKit; simulated App owns sole FD4 writer.
+Observer remains alive inside the narrow namespace until assertions and evidence finish.
+No production protocol, timeout, sandbox, or engine code is replaced. This checks parent
+SIGKILL cleanup, not the App's native dispatch watchdog or full editor integration.
+"""
+import argparse, ctypes, fcntl, hashlib, json, os, select, shutil, signal, socket, struct, sys, time
+from pathlib import Path
+
+RPC = 'milkup.plugin.isolation.rpc.v1'
+RENDER = 'milkup.plugin.document-render.v1'
+LIMIT = 262144 + 4096
+MANIFEST = {'id':'test.parentkill','name':'Parent kill fixture','version':'1.0.0','host':'dom','main':'main.js','permissions':['document:read'],'contributes':{'documentRenderers':[{'id':'test.renderer','contexts':['text']}]}}
+MODULE = '''export default {activate(context) {
+ if (Object.keys(context.host).length || globalThis.__TAURI_INTERNALS__) throw Error('host leaked');
+ return {documentRenderers:{'test.renderer':async request=>{
+  if(request.source==='loop'){while(true){}}
+  const s=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  const t=document.createElementNS(s.namespaceURI,'text');t.textContent='真实 DOM 中文 😀';
+  t.setAttribute('font-size','20');s.append(t);document.body.append(s);
+  await document.fonts.ready;const b=t.getBBox();s.remove();
+  return {width:b.width,height:b.height,viewport:innerWidth};
+ }}};
+}};'''
+
+def stamp(): return {'mono':time.monotonic(),'wall':time.time()}
+def sha(path):
+    h=hashlib.sha256()
+    with open(path,'rb') as f:
+        for b in iter(lambda:f.read(1024*1024),b''): h.update(b)
+    return h.hexdigest()
+def write_json(path,value): Path(path).write_text(json.dumps(value,ensure_ascii=False,indent=2)+'\n')
+def emit(fd,value):
+    data=(json.dumps(value,separators=(',',':'))+'\n').encode()
+    assert len(data)<=16384
+    os.write(fd,data)
+def proc(pid):
+    try:
+        root=Path('/proc')/str(pid)
+        raw=(root/'stat').read_text(); rest=raw.rsplit(')',1)[1].split()
+        result={'pid':pid,'birth':int(rest[19]),'parent':int(rest[1]),'group':int(rest[2]),'session':int(rest[3]),'state':rest[0],'ticks':int(rest[11])+int(rest[12]),'comm':raw[raw.find('(')+1:raw.rfind(')')]}
+        result['cmdline']=(root/'cmdline').read_bytes()[:512].replace(b'\0',b' ').decode(errors='replace')
+        return result
+    except (OSError,ValueError,IndexError): return None
+def table():
+    return {p['pid']:p for q in Path('/proc').iterdir() if q.name.isdigit() and (p:=proc(int(q.name))) is not None}
+def descendants(tab,seeds):
+    chosen={pid for pid,birth in seeds.items() if pid in tab and tab[pid]['birth']==birth}
+    while True:
+        add={pid for pid,p in tab.items() if p['parent'] in chosen}-chosen
+        if not add: return chosen
+        chosen.update(add)
+def kill_exact(pid,birth):
+    try: fd=os.pidfd_open(pid)
+    except ProcessLookupError: return False
+    try:
+        p=proc(pid)
+        if p and p['birth']==birth:
+            signal.pidfd_send_signal(fd,signal.SIGKILL); return True
+        return False
+    finally: os.close(fd)
+def pipe_high(flags=0):
+    pair=os.pipe2(os.O_CLOEXEC|flags); high=[]
+    for fd in pair:
+        high.append(fcntl.fcntl(fd,fcntl.F_DUPFD_CLOEXEC,20));os.close(fd)
+    return high
+
+def receive_line(fd,deadline,limit=LIMIT):
+    data=bytearray()
+    while True:
+        left=deadline-time.monotonic()
+        if left<=0: raise TimeoutError('bounded frame deadline')
+        if not select.select([fd],[],[],left)[0]: raise TimeoutError('bounded frame deadline')
+        chunk=os.read(fd,1)
+        if not chunk: raise EOFError('frame channel closed')
+        if chunk==b'\n':
+            value=json.loads(data)
+            if time.monotonic()>=deadline: raise TimeoutError('JSON parsing exceeded frame deadline')
+            return value
+        data.extend(chunk)
+        if len(data)>limit: raise ValueError('frame too large')
+def send_request(fd,message):
+    data=(json.dumps(message,separators=(',',':'))+'\n').encode()
+    assert len(data)<=1024*1024
+    while data:
+        written=os.write(fd,data);data=data[written:]
+def render_request(identifier,source):
+    return {'protocol':RENDER,'type':'render','id':identifier,'payload':{'pluginId':MANIFEST['id'],'rendererId':'test.renderer','request':{'source':source}}}
+
+def owner(channel,binary,guard,out):
+    """Only this process ever owns the stop-pipe write end."""
+    in_r,in_w=pipe_high();res_r,res_w=pipe_high();stop_r,stop_w=pipe_high(os.O_NONBLOCK)
+    stdout=os.open(out/'guardian.stdout.log',os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
+    stderr=os.open(out/'guardian.stderr.log',os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
+    begun=time.monotonic();guardian=os.fork()
+    if guardian==0:
+        os.setsid()
+        for source,target in [(in_r,0),(stdout,1),(stderr,2),(res_w,3),(stop_r,4)]: os.dup2(source,target,inheritable=True)
+        for q in list(Path('/proc/self/fd').iterdir()):
+            if int(q.name)>4:
+                try: os.close(int(q.name))
+                except OSError: pass
+        env=dict(os.environ,MILKUP_INTERNAL_DOM_GUARD_DIR=str(guard),MILKUP_INTERNAL_DOM_INSTANCE_ID='parent-kill-fixture',MILKUP_DOM_DIAGNOSTICS='1')
+        os.execve(binary,[binary,'--milkup-internal-dom-helper'],env)
+    for fd in (in_r,res_w,stop_r,stdout,stderr): os.close(fd)
+    identity=proc(guardian);assert identity
+    emit(channel,{'event':'guardian-spawned',**stamp(),'guardian':identity,'preparationStart':begun,'owner':proc(os.getpid()),'stopWriterFd':stop_w})
+    try:
+        snapshot={'manifest':MANIFEST,'module':MODULE,'sha256':hashlib.sha256(MODULE.encode()).hexdigest()}
+        payload=json.dumps(snapshot,separators=(',',':'),ensure_ascii=False).encode()
+        data=struct.pack('<I',len(payload))+payload
+        while data: data=data[os.write(in_w,data):]
+        send_request(in_w,{'protocol':RPC,'type':'request','id':'activate1','method':'activate','payload':{'pluginId':MANIFEST['id'],'manifest':MANIFEST,'permissions':['document:read'],'hostCapabilities':[]}})
+        activation=receive_line(res_r,begun+10)
+        assert activation.get('ok') is True and activation.get('id')=='activate1',activation
+        assert activation['value']['documentRenderers']==['test.renderer'],activation
+        emit(channel,{'event':'activated',**stamp(),'elapsed':time.monotonic()-begun,'result':activation})
+        before=time.monotonic();send_request(in_w,render_request('bbox1','bbox'))
+        result=receive_line(res_r,before+2)
+        assert result.get('ok') is True and result.get('id')=='bbox1',result
+        assert result['value']['width']>0 and result['value']['height']>0 and result['value']['viewport']>0,result
+        emit(channel,{'event':'bbox-ready',**stamp(),'elapsed':time.monotonic()-before,'result':result})
+        command=receive_line(channel,time.monotonic()+5,16384)
+        assert command=={'command':'loop'}
+        before=time.monotonic();send_request(in_w,render_request('loop1','loop'))
+        emit(channel,{'event':'loop-dispatched',**stamp(),'dispatchMono':before,'fixedExecutionDeadline':before+2})
+        # Keep FD4's sole writer alive; do not send stop. Observer must SIGKILL us.
+        # Guardrail: if observer fails to kill, close at the fixed execution limit.
+        left=before+2-time.monotonic()
+        if left>0: select.select([channel],[],[],left)
+        raise TimeoutError('observer did not kill owner within 2s loop budget')
+    except BaseException as error:
+        try: emit(channel,{'event':'owner-error',**stamp(),'error':repr(error)})
+        except OSError: pass
+        os.close(stop_w)
+        os._exit(2)
+
+def main():
+    parser=argparse.ArgumentParser();parser.add_argument('--output',required=True);parser.add_argument('--expected-binary-sha',required=True);parser.add_argument('--binary',default='/probe/bin/milkup-desktop');parser.add_argument('--guard-library',default='/probe/guard.so')
+    args=parser.parse_args();out=Path(args.output);out.mkdir(parents=True,exist_ok=False)
+    events=[];samples=[];known={};first_seen={};reaped={};owner_pid=None;owner_identity=None;guardian=None;success=False
+    result={'status':'not-started','productAcceptance':False,'scope':'Actual product guardian/helper/WebKit; external simulated App SIGKILL; no Rust Instance deadline inference','escapedChildren':'Only naturally observed groups are recorded; no arbitrary OS child is injected through DOM. The separate shared-guardian escaped-child unit remains independent evidence.'}
+    guard=out/'private-guard';guard.mkdir(mode=0o700);shutil.copyfile(args.guard_library,guard/'libmilkup_dom_guard.so');os.chmod(guard/'libmilkup_dom_guard.so',0o600);os.chmod(guard,0o500)
+    def event(value): events.append(value);write_json(out/'events.json',events)
+    def sample():
+        tab=table()
+        # This dedicated observer spawns only the simulated App. Subreaper adoption
+        # therefore preserves ownership even before a guardian PID frame is received.
+        roots=dict(known);roots[os.getpid()]=tab[os.getpid()]['birth']
+        chosen=descendants(tab,roots)-{os.getpid()}
+        for pid in chosen:
+            known[pid]=tab[pid]['birth']
+            first_seen.setdefault(pid,{'at':stamp(),'identity':tab[pid]})
+        row={'at':stamp(),'members':[tab[pid] for pid in sorted(chosen)]};samples.append(row)
+        return row
+    def reap(pid):
+        if pid in reaped:return
+        try:
+            seen,status=os.waitpid(pid,os.WNOHANG)
+            if seen: reaped[pid]={'status':status,'exitCode':os.waitstatus_to_exitcode(status),'at':stamp()}
+        except ChildProcessError: pass
+    try:
+        assert len(args.expected_binary_sha)==64 and all(c in '0123456789abcdef' for c in args.expected_binary_sha)
+        digest=sha(args.binary);assert digest==args.expected_binary_sha,(digest,args.expected_binary_sha)
+        provenance={'binary':{'path':args.binary,'sha256':digest},'guard':{'path':args.guard_library,'sha256':sha(args.guard_library)},'script':{'path':__file__,'sha256':sha(__file__)},'moduleSha256':hashlib.sha256(MODULE.encode()).hexdigest(),'observer':proc(os.getpid()),'pidNamespace':os.readlink('/proc/self/ns/pid'),'clockTicks':os.sysconf('SC_CLK_TCK'),'limits':{'preparationSeconds':10,'eachRenderSeconds':2,'outputWireBytes':LIMIT,'cleanupObservationSeconds':4},'privateGuard':{'path':str(guard),'inode':guard.stat().st_ino}}
+        write_json(out/'provenance.json',provenance);write_json(out/'snapshot.json',{'manifest':MANIFEST,'module':MODULE,'sha256':provenance['moduleSha256']})
+        libc=ctypes.CDLL(None,use_errno=True);assert libc.prctl(36,1,0,0,0)==0,'observer subreaper failed'
+        a,b=socket.socketpair();owner_pid=os.fork()
+        if owner_pid==0:
+            a.close()
+            try: owner(b.fileno(),args.binary,guard,out)
+            except BaseException as error:
+                try:emit(b.fileno(),{'event':'owner-error',**stamp(),'error':repr(error)})
+                except OSError:pass
+            os._exit(2)
+        b.close();owner_identity=proc(owner_pid);assert owner_identity
+        setup_limit=time.monotonic()+13
+        while True:
+            value=receive_line(a.fileno(),setup_limit,16384);event(value)
+            assert value['event']!='owner-error',value
+            if value['event']=='guardian-spawned':
+                guardian=value['guardian'];known[guardian['pid']]=guardian['birth']
+            sample()
+            if value['event']=='bbox-ready':break
+        assert guardian
+        baseline=sample();baseline_ticks={p['pid']:(p['birth'],p['ticks']) for p in baseline['members'] if 'WebKitWebProcess' in p['cmdline'] or p['comm'].startswith('WebKitWebPro')}
+        assert baseline_ticks,'No actual owned WebKitWebProcess identified'
+        emit(a.fileno(),{'command':'loop'})
+        dispatch=receive_line(a.fileno(),time.monotonic()+2,16384);event(dispatch);assert dispatch['event']=='loop-dispatched'
+        busy=None
+        while time.monotonic()<dispatch['fixedExecutionDeadline']-0.15:
+            time.sleep(0.05);row=sample()
+            for p in row['members']:
+                base=baseline_ticks.get(p['pid'])
+                if base and p['birth']==base[0] and p['state']!='Z' and p['ticks']-base[1]>=max(5,int(os.sysconf('SC_CLK_TCK')*.10)):
+                    busy={'identity':p,'cpuTickDelta':p['ticks']-base[1],'sample':row['at']};break
+            if busy:break
+        assert busy,'Could not establish actual WebKit CPU loop before fixed 2s deadline'
+        event({'event':'actual-webkit-cpu-observed',**stamp(),**busy})
+        assert time.monotonic()<dispatch['fixedExecutionDeadline']
+        before=proc(guardian['pid']);assert before and before['birth']==guardian['birth'] and before['state']!='Z'
+        kill_at=stamp();assert kill_exact(owner_pid,owner_identity['birth'])
+        event({'event':'sigkill-simulated-app',**kill_at,'owner':owner_identity,'guardianBeforeKill':before,'elapsedFromLoopDispatch':kill_at['mono']-dispatch['dispatchMono']})
+        limit=kill_at['mono']+4
+        while time.monotonic()<limit:
+            sample();reap(owner_pid);reap(guardian['pid'])
+            remains=[p for pid,birth in known.items() if (p:=proc(pid)) and p['birth']==birth]
+            if guardian['pid'] in reaped and not remains:break
+            time.sleep(.025)
+        final=sample();remaining=final['members']
+        result.update({'busyLoop':busy,'parentKill':kill_at,'reaped':reaped,'knownIdentities':known,'firstObserved':first_seen,'discoveredAfterParentKill':[v for v in first_seen.values() if v['at']['mono']>=kill_at['mono']],'remaining':remaining,'privateDirectoryRemoved':not guard.exists(),'guardianLifetimeAfterKillSeconds':reaped.get(guardian['pid'],{}).get('at',{}).get('mono',time.monotonic())-kill_at['mono'],'echildEvidence':'Successful product guardian exit occurs only after its waitpid(-1,WNOHANG) ECHILD branch; raw trace is separately retained, no fabricated syscall observation.'})
+        assert reaped.get(owner_pid,{}).get('exitCode')==-signal.SIGKILL,reaped
+        assert reaped.get(guardian['pid'],{}).get('exitCode')==0,reaped
+        assert not remaining,remaining
+        assert not guard.exists(),'Guardian did not remove exact private extension directory'
+        result['status']='passed';success=True
+    except BaseException as error:
+        result['status']='failed';result['error']=repr(error)
+    finally:
+        # Safety cleanup is after the verdict, recorded distinctly, exact birth+pidfd only.
+        # No namespace exit is used as evidence that the product guardian cleaned up.
+        if not success:
+            if owner_identity and (p:=proc(owner_pid)) and p['birth']==owner_identity['birth']:
+                event({'event':'observer-failure-cleanup-owner',**stamp(),'identity':p});kill_exact(owner_pid,owner_identity['birth'])
+            cleanup_until=time.monotonic()+4
+            while time.monotonic()<cleanup_until:
+                sample()
+                if owner_pid:reap(owner_pid)
+                if guardian:reap(guardian['pid'])
+                alive=[p for pid,birth in known.items() if (p:=proc(pid)) and p['birth']==birth]
+                if not alive:break
+                time.sleep(.025)
+            fallback=[]
+            for pid,birth in known.items():
+                if (p:=proc(pid)) and p['birth']==birth:
+                    fallback.append(p);kill_exact(pid,birth)
+            result['observerFallbackKilled']=fallback
+        result['reaped']=reaped
+        if (out/'guardian.stderr.log').exists():
+            traces=[]
+            for line in (out/'guardian.stderr.log').read_text(errors='replace').splitlines():
+                if line.startswith('DOM_NATIVE_TIMING '):
+                    try:traces.append(json.loads(line[len('DOM_NATIVE_TIMING '):]))
+                    except ValueError:pass
+            result['nativeTraces']=traces
+            result['cleanupCompleteTraceObserved']=any(t.get('phase')=='cleanup-complete' for t in traces)
+        write_json(out/'samples.json',samples);write_json(out/'events.json',events);write_json(out/'summary.json',result)
+        print(json.dumps(result,ensure_ascii=False))
+    return 0 if success else 1
+if __name__=='__main__':sys.exit(main())

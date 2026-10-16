@@ -1,0 +1,76 @@
+{
+  "rustfmt": "First exact-file check exit0; Rust unchanged",
+  "prettier": "First check exit1 on two JS files; formatted those files; final check exit0",
+  "bootstrapTests": {
+    "passed": 4,
+    "failed": 0,
+    "log": "bootstrap-tests.log"
+  },
+  "build": "App and test binary rebuilt offline, exit0",
+  "native03": {
+    "firstAttempt": true,
+    "exitCode": 0,
+    "timing": [
+      {
+        "instanceId": "ee79a6febbc3e37c804f65fb2bdf71065d106ab301f95e5c",
+        "monotonicNs": 36239960709827,
+        "phase": "dispatch",
+        "pid": 4,
+        "requestId": "r5",
+        "secondsFromDispatch": 0.0
+      },
+      {
+        "instanceId": "ee79a6febbc3e37c804f65fb2bdf71065d106ab301f95e5c",
+        "monotonicNs": 36241960888265,
+        "phase": "deadline-observed",
+        "pid": 4,
+        "requestId": "r5",
+        "secondsFromDispatch": 2.000178438
+      },
+      {
+        "instanceId": "ee79a6febbc3e37c804f65fb2bdf71065d106ab301f95e5c",
+        "monotonicNs": 36241961254836,
+        "phase": "kill-start",
+        "pid": 6,
+        "requestId": null,
+        "secondsFromDispatch": 2.000545009
+      },
+      {
+        "instanceId": "ee79a6febbc3e37c804f65fb2bdf71065d106ab301f95e5c",
+        "monotonicNs": 36241976773620,
+        "phase": "cleanup-complete",
+        "pid": 6,
+        "requestId": null,
+        "secondsFromDispatch": 2.016063793
+      },
+      {
+        "instanceId": "ee79a6febbc3e37c804f65fb2bdf71065d106ab301f95e5c",
+        "monotonicNs": 36241981518905,
+        "phase": "cleanup-confirmed",
+        "pid": 4,
+        "requestId": null,
+        "secondsFromDispatch": 2.020809078
+      },
+      {
+        "instanceId": "ee79a6febbc3e37c804f65fb2bdf71065d106ab301f95e5c",
+        "monotonicNs": 36241981613455,
+        "phase": "control-emitted",
+        "pid": 4,
+        "requestId": "r5",
+        "secondsFromDispatch": 2.020903628
+      },
+      {
+        "instanceId": "ee79a6febbc3e37c804f65fb2bdf71065d106ab301f95e5c",
+        "monotonicNs": 36241981780820,
+        "phase": "cleanup-confirmed",
+        "pid": 4,
+        "requestId": null,
+        "secondsFromDispatch": 2.021070993
+      }
+    ],
+    "eventReceiptElapsedSeconds": 2.021034034
+  },
+  "parentKillEvidence": "Frozen build02 first pass in ../product-native-02; no guardian/Rust semantic change since, not rerun after JS formatting",
+  "currentSourceAndBinaryMatchFrozen": true,
+  "remaining": "Full editor integration acceptance is separate"
+}

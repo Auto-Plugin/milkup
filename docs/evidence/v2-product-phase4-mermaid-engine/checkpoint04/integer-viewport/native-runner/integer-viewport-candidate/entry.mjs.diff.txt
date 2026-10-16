@@ -1,0 +1,54 @@
+--- before/paired-helper/assets/entry.mjs
++++ integer/paired-helper/assets/entry.mjs
+@@ -52,29 +52,32 @@
+ function poll(taskId){return task?.taskId===taskId?task:{status:'unknown'};}
+ function clear(){if(busy||task?.status==='pending')throw Error('pending: native termination required');task=undefined;host?.remove();host=undefined;}
+ 
+-// Research-only paired image observation, never part of conversion enforcement.
++// Research-only integer raster viewport/layout observation, separate from conversion.
++let originalGeometry;
++function matrix(m){return m?[m.a,m.b,m.c,m.d,m.e,m.f]:null;}
++function box(b){return [b.x,b.y,b.width,b.height];}
++function geometry(n){const c=getComputedStyle(n);let bbox=null;try{bbox=box(n.getBBox());}catch{}return {kind:n.localName,rect:box(n.getBoundingClientRect()),bbox,ctm:matrix(n.getCTM?.()),screenCTM:matrix(n.getScreenCTM?.()),viewBox:n.getAttribute('viewBox'),width:n.getAttribute('width'),height:n.getAttribute('height'),preserveAspectRatio:n.getAttribute('preserveAspectRatio'),overflow:c.overflow,display:c.display,transform:c.transform};}
++function rememberOriginal(){if(!originalGeometry){const root=host?.querySelector('svg');if(!root)throw Error('no original SVG');originalGeometry=geometry(root);}return originalGeometry;}
++function mountSlot(node){const g=rememberOriginal(),slot=document.createElement('div');slot.dataset.diagnosticSlot='true';slot.style.width=g.rect[2]+'px';slot.style.height=g.rect[3]+'px';slot.style.display='block';slot.style.overflow='visible';node.style.display='block';slot.append(node);const footer=document.createElement('div');footer.dataset.diagnosticFooter='true';footer.style.cssText='display:block;width:80px;height:8px;margin-top:8px;background:rgb(16,80,192)';host.replaceChildren(slot,footer);}
++function completeObservation(taskId,extra={}){requestAnimationFrame(()=>requestAnimationFrame(()=>{task={taskId,status:'complete',result:{ok:true,observationOnly:true,...extra,...inspect(false)}};}));}
++function controlOriginal(){if(busy||task?.status==='pending')throw Error('busy');rememberOriginal();const root=host.querySelector('svg');const taskId='control_'+(++sequence);task={taskId,status:'pending'};mountSlot(root);completeObservation(taskId);return {taskId,status:'pending'};}
+ function showCanonical(){
+- if(busy||task?.status==='pending')throw Error('busy');
+- const svg=host?.querySelector('svg');if(!svg)throw Error('no original live SVG');
+- const b=svg.getBoundingClientRect(),taskId='canonical_'+(++sequence);task={taskId,status:'pending'};
+- const img=new Image();img.alt='Canonical independently validated image';img.style.width=b.width+'px';img.style.height=b.height+'px';
+- img.onload=()=>requestAnimationFrame(()=>requestAnimationFrame(()=>{task={taskId,status:'complete',result:{ok:true,observationOnly:true,width:b.width,height:b.height,naturalWidth:img.naturalWidth,naturalHeight:img.naturalHeight}};}));
+- img.onerror=()=>{task={taskId,status:'error',error:'fixed canonical image decode failed'};};
+- host.replaceChildren(img);img.src='milkup-render://job/canonical.svg';return {taskId,status:'pending'};
++ if(busy||task?.status==='pending')throw Error('busy');const g=rememberOriginal(),taskId='canonical_'+(++sequence);task={taskId,status:'pending'};
++ const img=new Image();img.alt='Canonical independently validated image';img.style.width=Math.ceil(g.rect[2])+'px';img.style.height=Math.ceil(g.rect[3])+'px';
++ img.onload=()=>completeObservation(taskId);img.onerror=()=>{task={taskId,status:'error',error:'fixed canonical image decode failed'};};
++ mountSlot(img);img.src='milkup-render://job/canonical.svg';return {taskId,status:'pending'};
+ }
+-
+ function inspect(includeSource=false){
+- const svg=host?.querySelector('svg'),img=host?.querySelector('img'),node=svg??img;
+- if(!node)throw Error('nothing mounted');const b=node.getBoundingClientRect(),c=getComputedStyle(node);
+- const state={kind:node.localName,bbox:[b.x,b.y,b.width,b.height],css:{width:c.width,height:c.height,display:c.display,objectFit:c.objectFit,objectPosition:c.objectPosition,transform:c.transform},devicePixelRatio:window.devicePixelRatio};
+- if(svg){state.viewBox=svg.getAttribute('viewBox');state.preserveAspectRatio=svg.getAttribute('preserveAspectRatio');state.widthAttribute=svg.getAttribute('width');state.heightAttribute=svg.getAttribute('height');if(includeSource)state.svg=svg.outerHTML;}
+- else Object.assign(state,{naturalWidth:img.naturalWidth,naturalHeight:img.naturalHeight,complete:img.complete,currentSrc:img.currentSrc});
+- return state;
++ const svg=host?.querySelector('svg'),img=host?.querySelector('img'),node=svg??img;if(!node)throw Error('nothing mounted');
++ if(includeSource)rememberOriginal();const b=node.getBoundingClientRect(),c=getComputedStyle(node),slot=host.querySelector('[data-diagnostic-slot]'),footer=host.querySelector('[data-diagnostic-footer]');
++ const state={kind:node.localName,bbox:box(b),css:{width:c.width,height:c.height,display:c.display,objectFit:c.objectFit,objectPosition:c.objectPosition,transform:c.transform},devicePixelRatio:window.devicePixelRatio,originalGeometry,slot:slot?{rect:box(slot.getBoundingClientRect()),overflow:getComputedStyle(slot).overflow}:null,footer:footer?box(footer.getBoundingClientRect()):null};
++ if(svg){const inner=Array.from(svg.children).find(n=>n.localName==='svg')??svg;state.rootGeometry=geometry(svg);state.innerGeometry=geometry(inner);const nodes=Array.from(inner.querySelectorAll('rect,path,text'));state.geometryNodeCount=nodes.length;state.geometrySamples=nodes.slice(0,72).map((n,index)=>({index,...geometry(n)}));if(includeSource)state.svg=svg.outerHTML;}
++ else Object.assign(state,{naturalWidth:img.naturalWidth,naturalHeight:img.naturalHeight,complete:img.complete,currentSrc:img.currentSrc});return state;
+ }
+ function showCanonicalInline(svg){
+- if(busy||task?.status==='pending')throw Error('busy');const taskId='canonical_inline_'+(++sequence);task={taskId,status:'pending'};
+- // Only native's fixed, independently validated compiled canonical resource enters here.
+- host.innerHTML=svg;requestAnimationFrame(()=>requestAnimationFrame(()=>{task={taskId,status:'complete',result:{ok:true,observationOnly:true,...inspect()}};}));return {taskId,status:'pending'};
++ if(busy||task?.status==='pending')throw Error('busy');rememberOriginal();const taskId='canonical_inline_'+(++sequence);task={taskId,status:'pending'};
++ // Only the fixed compiled independently validated canonical resource enters here.
++ const holder=document.createElement('div');holder.innerHTML=svg;const root=holder.firstElementChild;if(root?.localName!=='svg'||holder.children.length!==1)throw Error('fixed SVG invalid');mountSlot(root);completeObservation(taskId);return {taskId,status:'pending'};
+ }
+-window.__milkupSvgConverterProbe=Object.freeze({ready,readiness,run,start,poll,clear,showCanonical,showCanonicalInline,inspect});
++window.__milkupSvgConverterProbe=Object.freeze({ready,readiness,run,start,poll,clear,showCanonical,showCanonicalInline,inspect,controlOriginal});
+ export {ready,readiness,run,start,poll,clear};

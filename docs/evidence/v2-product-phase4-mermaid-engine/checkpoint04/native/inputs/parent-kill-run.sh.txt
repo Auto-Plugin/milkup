@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# PREPARED ONLY. Requires explicit UI slot and narrow-namespace execution approval.
+# Real product guardian; simulated App is killed inside a still-live namespace.
+set -euo pipefail
+root=/workspace/milkup-mermaid-engine-evidence/prototype
+product=/workspace/milkup-mermaid-engine-evidence/product-native-01
+runtime=/workspace/.cloud/milkup-v2/sysroot
+run=${1:?fresh diagnostic name required}
+[[ "$run" =~ ^[a-zA-Z0-9_-]{1,64}$ ]] || { printf 'Invalid run name\n' >&2; exit 2; }
+guard=${2:?exact freshly built guard library required}
+guard_sha=${3:?reviewed guard SHA256 required}
+binary_sha=${4:?reviewed current product binary SHA256 required}
+[[ "$binary_sha" =~ ^[a-f0-9]{64}$ ]] || exit 2
+[[ "$guard" = /* && "$guard_sha" =~ ^[a-f0-9]{64}$ ]] || exit 2
+[[ -f "$guard" && "$(sha256sum "$guard" | cut -d' ' -f1)" = "$guard_sha" ]] || { printf 'Guard hash mismatch\n' >&2; exit 2; }
+profile="$product/parent-kill-profiles/$run"
+output="$product/parent-kill-runs/$run"
+[[ ! -e "$profile" && ! -e "$output" ]] || { printf 'Fresh paths required\n' >&2; exit 2; }
+[[ -S /tmp/.X11-unix/X118 ]] || { printf 'Dedicated X118 socket missing\n' >&2; exit 2; }
+mkdir -p "$profile"/{home,config,data,cache} "$output"
+cp -- "$product/parent-kill.py" "$product/parent-kill-run.sh" "$output/"
+printf '%s  %s\n' "$guard_sha" "$guard" > "$output/guard-input.sha256"
+uid=$(id -u)
+# Observer runs outside simulated App/guardian but INSIDE this still-live namespace.
+# App death cannot tear down bwrap; all cleanup assertions precede namespace exit.
+# Original narrow resources/security are unchanged; test executable replaced by Python observer.
+exec /usr/bin/bwrap \
+  --die-with-parent --unshare-user --unshare-pid --unshare-ipc --unshare-uts --unshare-net \
+  --clearenv \
+  --ro-bind /usr /usr \
+  --overlay-src /usr/bin --tmp-overlay /usr/bin \
+  --ro-bind "$runtime/usr/bin/xdg-dbus-proxy" /usr/bin/xdg-dbus-proxy --remount-ro /usr/bin \
+  --symlink usr/bin /bin --symlink usr/lib /lib --symlink usr/lib64 /lib64 \
+  --ro-bind "$runtime/usr/lib/x86_64-linux-gnu" /runtime/lib \
+  --ro-bind "$runtime/usr/share/glib-2.0/schemas" /runtime/schemas \
+  --overlay-src /usr/lib/x86_64-linux-gnu --tmp-overlay /usr/lib/x86_64-linux-gnu \
+  --ro-bind "$runtime/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1" /usr/lib/x86_64-linux-gnu/webkit2gtk-4.1 \
+  --remount-ro /usr/lib/x86_64-linux-gnu \
+  --ro-bind /etc/fonts /etc/fonts \
+  --ro-bind "$root/narrow-config/passwd" /etc/passwd \
+  --ro-bind "$root/narrow-config/group" /etc/group \
+  --ro-bind "$root/narrow-config/hostname" /etc/hostname \
+  --ro-bind "$root/narrow-config/hosts" /etc/hosts \
+  --ro-bind "$root/narrow-config/nsswitch.conf" /etc/nsswitch.conf \
+  --ro-bind "$root/narrow-config/machine-id" /etc/machine-id \
+  --ro-bind "$root/narrow-config/loaders.cache" /probe/loaders.cache \
+  --ro-bind /workspace/milkup/apps/desktop/src-tauri/target/debug/milkup-desktop /probe/bin/milkup-desktop \
+  --ro-bind "$guard" /probe/guard.so \
+  --ro-bind "$product/parent-kill.py" /probe/parent-kill.py \
+  --bind "$output" /evidence \
+  --bind "$profile" /profile \
+  --tmpfs /tmp --dir /tmp/.X11-unix --ro-bind /tmp/.X11-unix/X118 /tmp/.X11-unix/X118 \
+  --tmpfs /run --perms 0700 --dir "/run/user/$uid" \
+  --dir /sys/block --dir /sys/bus --dir /sys/class --dir /sys/dev --dir /sys/devices \
+  --dev /dev --proc /proc \
+  --setenv PATH /usr/bin:/bin \
+  --setenv HOME /profile/home \
+  --setenv XDG_CONFIG_HOME /profile/config --setenv XDG_DATA_HOME /profile/data \
+  --setenv XDG_CACHE_HOME /profile/cache --setenv XDG_RUNTIME_DIR "/run/user/$uid" \
+  --setenv LD_LIBRARY_PATH /runtime/lib \
+  --setenv WEBKIT_INJECTED_BUNDLE_PATH /runtime/lib/webkit2gtk-4.1/injected-bundle \
+  --setenv GSETTINGS_SCHEMA_DIR /runtime/schemas \
+  --setenv GDK_PIXBUF_MODULE_FILE /probe/loaders.cache \
+  --setenv DISPLAY :118 --setenv GDK_BACKEND x11 --setenv LIBGL_ALWAYS_SOFTWARE 1 \
+  --setenv LANG C.UTF-8 --setenv LC_ALL C.UTF-8 --setenv TZ UTC \
+  --setenv NO_AT_BRIDGE 1 \
+  --remount-ro / --chdir /profile -- \
+  /usr/bin/dbus-run-session -- /usr/bin/python3 /probe/parent-kill.py --output /evidence/result --expected-binary-sha "$binary_sha"
