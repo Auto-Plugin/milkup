@@ -1,0 +1,63 @@
+{
+  "author": "release_sdk",
+  "decision": "No blocking identity mismatch found",
+  "scope": "Read-only frozen build/input audit; no tests/build/UI/runtime or active lifecycle evidence read",
+  "provenanceSha256": "82f8ff9cfa727a6d73b8af742e916166e47f278cc72e93ab76a0d7da8828a69e",
+  "ui05PreparedInputsSha256": "5c90914b9ac51c8fc94bcde780aa730ce0298792a6e28f9a0d4bfa7bd929e39f",
+  "binary": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/linux-production-05/install/usr/bin/milkup-desktop",
+    "bytes": 21872816,
+    "sha256": "63205c85b11fbaa7ec0ec0316737eabb8fe9a96115a4a06367dbd8d59322af7a"
+  },
+  "guard": {
+    "sha256": "5b1082768123b9ac1923eb8ef3f6f8c0bd05ffd5d66b8b2a023f75b69106c44c",
+    "bytes": 15656,
+    "completeExactEmbeddedOccurrences": 1,
+    "embeddedOffset": 1830146,
+    "exactBuildOutputBytesMatch": true,
+    "dependencyFileIncludesBuildPath": true
+  },
+  "bundleMarker": {
+    "actualTargetSha256": "6bc190a008c18bef622fc788aeb36dd0765bfca0a2e4dec2175b1f2cc66c8aed",
+    "actualPackageBinarySha256": "63205c85b11fbaa7ec0ec0316737eabb8fe9a96115a4a06367dbd8d59322af7a",
+    "uniqueReplacement": "__TAURI_BUNDLE_TYPE_VAR_UNK -> __TAURI_BUNDLE_TYPE_VAR_DEB",
+    "allOtherBytesEqual": true,
+    "differenceBytes": 3,
+    "byteOffset": 3948695
+  },
+  "verifiedArtifacts": [
+    "extracted executable",
+    "deb SHA/size",
+    "target executable",
+    "guard artifact and build output",
+    "diagrams archive",
+    "SDK tarball",
+    "12 frontend files",
+    "UI05 archive and25 source/current/frozen/previous input rows"
+  ],
+  "unchangedCompanions": {
+    "archiveSha256": "27db9bdefb9b241b03da2f3536f7e50d334117f928f963cfe290543f650b6239",
+    "sdkSha256": "1717c0114aa165fa3e48a1bfa7687ffd0d9b2e5392d33e99d8b2dc59a1f3ad4f",
+    "guardSha256": "5b1082768123b9ac1923eb8ef3f6f8c0bd05ffd5d66b8b2a023f75b69106c44c"
+  },
+  "source": {
+    "beforeManifestEntries": 2912,
+    "afterReportedFilesChecked": 2912,
+    "afterReportedChanges": [],
+    "relativeToProduction04ChangedEntries": [
+      "apps/desktop/src-tauri/src/plugin_dom_process.rs"
+    ],
+    "processActualSnapshotCurrentAndCommitSha256": "c6540ffc4d11e61050379d68bad0342c0cfaf8ec4a6fe60075b18ddecd851702",
+    "buildTimeRecordedHead": "e370c668666b17abe861a5d3176dc83d57b8d515",
+    "subsequentCommitContainingExactProcessSource": "ea216ff8c54d7736bc9630a461d4166943088f90",
+    "note": "Build-time git-head records preceding e370c668; later ea216ff8 contains the exact c654 process source. Do not label ea216ff8 as the build-time HEAD."
+  },
+  "limits": [
+    "2912-entry source-before manifests were compared and source-after no-change report reviewed; changed process source was directly hashed in snapshot/current/commit. This lightweight audit did not independently reread all2912 source files.",
+    "Large96MB WebKit environment library was intentionally not read; no fresh environment ABI or runtime claim.",
+    "DEB SHA/size and existing extracted binary were checked; package was not re-extracted in this read-only audit.",
+    "UI05 is prepared, not passed. Lifecycle and UI acceptance remain separate root-owned gates; no active lifecycle evidence was inspected.",
+    "Removal of redundant scanning is not proof of causation or resolution of historical Mermaid deadlines."
+  ],
+  "blockers": []
+}

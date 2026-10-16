@@ -1,0 +1,54 @@
+# Production-05 static preparation
+
+These are the ten production04 build/lifecycle scripts with independent05 evidence paths and `lifecycle-p05-` run prefixes. No product source has been captured here. No build, artifact freeze, profile creation, driver or test has run. Production04 and all diagnostic evidence remain immutable.
+
+The proposed product change is limited to removing the unused parent-App process-sampling thread. Before source capture, require the existing real native fixture's recorded baseline RED and patched GREEN, relevant native safety regressions, final source/gates confirmation, and Root's explicit exclusive CPU/build/UI GO. Do not infer production success from a diagnostic binary or synthetic test. No helper/guard/frontend/plugin semantics or deadlines are intentionally changed by this preparation.
+
+The scripts contain path/prefix substitutions only, except two descriptive strings in finalize.py now identify this parent-sampler change and preserve production04 history. No test assertion, launch argument, safety condition, timeout, ownership check, bundling target or freeze operation is relaxed. `from-production04.diff` records the full exact delta. Python AST and bash syntax checks do not execute these workflows.
+
+## Capture, real build and artifact freeze after GO
+
+Use the main repository's existing target at `/workspace/milkup/apps/desktop/src-tauri/target/release`; do not redirect to stage or diagnostic cache. Source capture must occur only after the authorized product change and gates are final:
+
+```
+python3 /workspace/milkup-mermaid-engine-evidence/linux-production-05/capture.py before
+python3 /workspace/milkup-mermaid-engine-evidence/linux-production-05/build.py
+python3 /workspace/milkup-mermaid-engine-evidence/linux-production-05/freeze-build.py
+```
+
+The unchanged build command is the actual local Linux `tauri build --bundles deb`, with cloud env loaded and Cargo/proot runner unset. The freeze checks all captured source bytes, extracts the actual deb executable, proves only the unique three-byte Tauri UNK→DEB marker differs from the target executable, compares ELF build IDs, and checks the complete embedded native guard. It freezes frontend/SDK/archive and environment provenance. Prior build/artifact paths cannot be overwritten.
+
+Expected unchanged native guard SHA:
+`5b1082768123b9ac1923eb8ef3f6f8c0bd05ffd5d66b8b2a023f75b69106c44c`.
+Expected official diagrams1.1.0 archive SHA:
+`27db9bdefb9b241b03da2f3536f7e50d334117f928f963cfe290543f650b6239`.
+Expected SDK0.3.4 archive SHA:
+`1717c0114aa165fa3e48a1bfa7687ffd0d9b2e5392d33e99d8b2dc59a1f3ad4f`.
+
+The new05 actual executable path is `/workspace/milkup-mermaid-engine-evidence/linux-production-05/install/usr/bin/milkup-desktop`; its SHA is pending real build/freeze. Never reuse04, stage8041 or mechanism02b15 as05. Both product App and internal helper must use the actual frozen05 executable. Unexpected artifact scope changes are recorded and investigated, not accepted by changing expected hashes silently.
+
+## Five serial fresh lifecycle cases
+
+Use the same shared Xvfb:126 only after exact PID/birth/argv and ports4626/4627/exclusive-owner checks. Do not start while another task owns native CPU/UI. Planned first attempts:
+
+| Run | Case |
+|---|---|
+| lifecycle-p05-timeout-01 | timeout |
+| lifecycle-p05-disable-01 | disable |
+| lifecycle-p05-remove-01 | remove |
+| lifecycle-p05-wm-close-01 | wm-close |
+| lifecycle-p05-app-sigkill-01 | app-sigkill |
+
+For each pair, launch one driver session, run the original outer harness after readiness, and stop only that owned driver after product verdict:
+
+```
+python3 /workspace/milkup-mermaid-engine-evidence/linux-production-05/launch-driver-reaping.py RUN CASE
+python3 /workspace/milkup-mermaid-engine-evidence/linux-production-05/run-case.py RUN CASE
+python3 /workspace/milkup-mermaid-engine-evidence/linux-production-05/stop-driver.py RUN
+```
+
+All profiles/control/runs/logs are independent under05/lifecycle. Each launch freezes the exact final harness/wrappers against the05 source capture. The existing wait-only subreaper sends no descendant signals or directory deletions; exact owned driver-group teardown is separate. Native sandbox, read-only WebKit/proxy mappings, public UI input, Worker-diagnostics-disabled behavior, original10s/2s deadlines and strict PID/birth/private-directory cleanup all stay intact.
+
+First failure stops the sequence and preserves raw evidence; no automatic retry. Prior lifecycle passes never count for05. Do not weaken the existing assertions about exact guardian natural exit, cleanup, action timing, or input-to-two-rAF. All instrumentation overhead and asynchronous timing limitations remain those of the original harness.
+
+If all five first attempts pass, run `finalize.py` to verify actual artifacts and exact final source and record the five-case summary. Stop the last exact driver, confirm owned cleanup and empty ports, and release CPU/UI. The separate formal Mermaid UI harness remains `tests/native/tauri-mermaid-ui.mjs` SHA2b0ec01dd0c86e551bb4a43d3bc4d0024f92c218f2cba1da98d91e282c1c313a with the full cold/install/4fallback/31×2/source-history/64×5 gates; no diagnostic cold truncation.

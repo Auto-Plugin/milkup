@@ -344,3 +344,23 @@ checkpoint08 已正常推送为 `e370c668666b17abe861a5d3176dc83d57b8d515`，远
 同一真实回归在新冻结测试二进制中首次通过，实际扫描 **0 次**，九个独立观察的进程身份全部消失且 `stop` 成功。死循环从 dispatch 至 deadline 为 2000.110707 ms，guardian kill 为 2000.441497 ms，ECHILD 清理完成为 2019.471281 ms，App 确认清理为 2030.838600 ms。随后同二进制的 `plugin_dom::` 非 ignored 安全回归 **14 通过、0 失败、2 ignored**；两项 ignored 分别是由父测试调用的私有子进程入口和已单独运行的真实 WebKit 测试。逃逸未采样后代的 EOF 回收、迟到/取消/畸形结果、阻塞管道、租约、路径和资源限制均保留原断言。
 
 根代理实读校验 38 份冻结文件、两份实际二进制 SHA 和完整 guard 嵌入，并核对 GREEN 与安全测试原始日志。50 份测试构建输入未发生漂移。相关修复前失败、修复后通过、独立审阅和源码快照保存于 [checkpoint09](evidence/v2-product-phase4-mermaid-engine/checkpoint09/README.md)。这完成机制与安全回归，尚不代表新的生产包或完整编辑器矩阵验收；后续生产05及正式 UI05分别记录。
+
+## production05：重复扫描修复后的原生生命周期
+
+修复与 checkpoint09 已正常推送为 `ea216ff8c54d7736bc9630a461d4166943088f90`，远端 SHA 和 GitHub 作者、提交者身份一致。production05 的实际 Linux deb 首次构建通过，耗时 89.87 秒；其构建时 HEAD 仍为 e370c668，工作树已是 c654 修复源码，随后 ea216ff8 提交固化相同字节。不能将后续提交写成构建时 HEAD。
+
+实际 deb SHA 为 `a061fa33821a10f6b4dc26dd815ed9ae51bedeee91a8bb5533a6d094eb1d7376`，提取 executable SHA 为 `63205c85b11fbaa7ec0ec0316737eabb8fe9a96115a4a06367dbd8d59322af7a`。独立复核确认 target 与包内程序仅有 Tauri UNK→DEB 的三字节差异；完整安全 guard、官方插件包和 SDK 均保持原哈希。2912 项输入相对 production04 只有 process Rust 文件变化，构建及五项生命周期运行后均无漂移。Rust release 构建没有 warning，仅保留既有前端大 chunk 提示。
+
+新安装包中 timeout、disable、remove、WM-close、App-SIGKILL 五项均首次通过，没有重试。死循环从 dispatch 至 deadline 为 2000.163297 ms，kill 为 2001.704172 ms，guardian 清理完成为 2101.721531 ms，App 确认为 2125.908777 ms。App-SIGKILL 本轮实际保留了 guardian cleanup-complete 记录，并有精确自然退出码 0，不沿用上一包缺失终止记录的结论。原预算和完整安全断言未放宽。
+
+根代理逐项核对五份原始事件并再次检查 45 个 DOM PID/birth、5 个 driver 和 5 个等待祖先进程已退出、五个私有目录不存在；实际查看超时失败卡、禁用卡和移除后的列表原图。三项输入至两帧样本分别为 31/16/21 ms；这是离散输入响应测量，不代表所有帧间隔低于 200 ms。该组通用 DOM 生命周期验证与正式 Mermaid 图例、源码历史和缩放矩阵分别计数，UI05 的首次结果如下。
+
+## 正式 UI05：mindmap 目标预览缺失，首败保留
+
+原完整 harness 在新 production05 上通过冷启动、独立安装、四项回退与可见通知，以及普通文档前 13 项图例；首次失败在 mindmap000 等待条件，随后停止，没有重试。窗口化覆盖及 64 组合矩阵均尚未执行。测试错误名为“actual image decode”，但实际 DOM 中 **4024..4425 的目标预览和 img 均不存在**；保留下来的只是此前 Gantt 与 Gitgraph 两个预览，目标围栏回退为源码。根代理实际查看原始 X11 图片：Gitgraph 可见，mindmap 源码头部位于视口底部，文档仍已保存。因此错误名不能当作解码器故障的证据。
+
+本轮原日志记录 243 次 dispatch，没有保留到 deadline；diagrams 仍启用、errors 为空，审计没有 denied，页面 JS/CSP 错误为空。没有原始请求正文映射，不能将某个 dispatch ID 补写成目标 mindmap，也不能由这轮零截止关闭旧历史超时。App 和精确 driver 已退出、端口释放；最后 guardian 375565 已终止但仍在 PID 1 下为 Z，不能称全部进程身份消失。25 项输入、2912 项构建源码、实际 binary/archive 和两份完整 Markdown 文件均保持一致。
+
+独立旧证据显示，同源 mindmap 曾通过真实 native 单图渲染和 host 校验；当前候选包括 renderer 返回源码片段、host 单图或多图共享预算拒绝，以及目标只在视口底部时的准入顺序。旧跨运行 canonical 字节算术只能支持调查，不能证明 UI05 实际拒绝原因。接下来在同一生产包中做有界目标诊断，保留原预算，区分实际渲染结果、准入和可见性。
+
+随后最终 manager `8dc1f4a2571539cdb32b85bb7f8cecee6c32cf2aa2f1f757b580d1087301d8e3` 的完整浏览器文件首次 **34/34 通过**，耗时 227.6 秒，零重试、零 flaky/skipped；375 项输入前后未变。该组覆盖真实 math/footnotes 与受控图片 provider，补齐此前最终滚动修正只跑两项针对测试的范围差距，但不替代原生 Mermaid 验收。5174/1420 无监听、自有进程无运行项；记录的 11 个 Z 项如实保留。production05、UI05 首败和该完整浏览器回归保存于 [checkpoint10](evidence/v2-product-phase4-mermaid-engine/checkpoint10/README.md)。
