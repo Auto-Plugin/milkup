@@ -1,0 +1,30 @@
+{
+  "steps": [
+    {
+      "gate": "format",
+      "command": ["pnpm", "lint"],
+      "log": "full-format-candidate10-verified.log",
+      "started": "2026-10-16T05:42:01.353651+00:00",
+      "finished": "2026-10-16T05:42:59.864061+00:00",
+      "exitCode": 0
+    },
+    {
+      "gate": "browser",
+      "command": [
+        "pnpm",
+        "exec",
+        "playwright",
+        "test",
+        "--workers=1",
+        "--retries=0",
+        "--output=/workspace/milkup-markdown-extensions-phase4-evidence/browser-candidate10-verified"
+      ],
+      "log": "browser-full-candidate10-verified.log",
+      "started": "2026-10-16T05:42:59.915330+00:00",
+      "finished": "2026-10-16T05:52:18.257486+00:00",
+      "exitCode": 0
+    }
+  ],
+  "sourceFiles": 679,
+  "sourceChanges": []
+}

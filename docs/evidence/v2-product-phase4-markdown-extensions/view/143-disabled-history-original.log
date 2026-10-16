@@ -1,0 +1,82 @@
+[WebServer] (node:126853) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:126868) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:126893) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:126910) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:126945) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:131:1 › disabled renderers disappear and leave Unicode editing and save available (6.2s)
+(node:127095) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:131:1 › disabled renderers disappear and leave Unicode editing and save available (3.8s)
+(node:127244) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:131:1 › disabled renderers disappear and leave Unicode editing and save available (5.1s)
+
+
+  1) [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:131:1 › disabled renderers disappear and leave Unicode editing and save available 
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 17
+    + Received  +  0
+
+      Array [
+    -   "安全起点 中文😀",
+    -   "",
+    -   "行内 $x^2 + \\frac{1}{2}$ 末尾",
+    -   "",
+    -   "$$",
+    -   "\\begin{pmatrix}a&b\\\\c&d\\end{pmatrix}",
+    -   "$$",
+        "",
+    -   "```mermaid",
+    -   "flowchart LR",
+    -   "A[中文] --> B[结束]",
+    -   "```",
+    -   "",
+    -   "引用[^n]。",
+    -   "",
+    -   "[^n]: 脚注 **正文**",
+    -   "",
+    -   "终点",
+      ]
+
+      149 |   await page.keyboard.insertText('停用😀')
+      150 |   await page.keyboard.press('Control+z')
+    > 151 |   expect(await sourceLines(page)).toEqual(fixture.split('\n'))
+          |                                   ^
+      152 |   await page.keyboard.press('Control+s')
+      153 |   await expect(page.locator('[data-save-dot]')).not.toHaveClass(/is-dirty/)
+      154 | })
+        at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:151:35
+
+    attachment #1: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - text: 写点什么吧...
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "源码"
+      - text: Markdown 0 字符 未保存
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-markdown-extensions-phase4-evidence/view/143-disabled-history-original/desktop-markdown-extension-e0521--editing-and-save-available-desktop-msedge-repeat1/error-context.md
+
+  1 failed
+    [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:131:1 › disabled renderers disappear and leave Unicode editing and save available 
+  2 passed (23.9s)

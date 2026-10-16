@@ -214,6 +214,103 @@ export class DocumentPresentation {
   private tabOrigin: { event: KeyboardEvent; element: HTMLElement } | undefined
   private tabOriginTimer: ReturnType<typeof setTimeout> | undefined
   private proxyNavigation: { element: HTMLElement; snapshot: PresentationSnapshot } | undefined
+  private referencePointer:
+    | {
+        id: number
+        element: HTMLElement
+        snapshot: PresentationSnapshot
+        config: DocumentPresentationConfig
+        waiters: Set<() => void>
+      }
+    | undefined
+  private referencePointerTimer: ReturnType<typeof setTimeout> | undefined
+  private readonly releaseReferencePointer = () => {
+    clearTimeout(this.referencePointerTimer)
+    this.referencePointerTimer = undefined
+    const pointer = this.referencePointer
+    this.referencePointer = undefined
+    for (const resume of pointer?.waiters ?? []) resume()
+  }
+  private readonly referencePointerDown = (event: PointerEvent) => {
+    if (
+      event.button !== 0 ||
+      event.isPrimary === false ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      !this.config ||
+      this.stopped ||
+      !(event.target instanceof Element)
+    )
+      return
+    this.releaseReferencePointer()
+    const element = event.target.closest<HTMLElement>('.milkup-document-reference')
+    const snapshot = this.snapshot()
+    if (
+      !element ||
+      !this.content.contains(element) ||
+      !referenceTargets.has(element) ||
+      snapshot.mode !== 'live'
+    )
+      return
+    this.referencePointer = {
+      id: event.pointerId,
+      element,
+      snapshot,
+      config: this.config,
+      waiters: new Set(),
+    }
+  }
+  private readonly referencePointerUp = (event: PointerEvent) => {
+    if (event.pointerId !== this.referencePointer?.id) return
+    // Native click follows pointerup/mouseup. A microtask would replace its target too early.
+    clearTimeout(this.referencePointerTimer)
+    this.referencePointerTimer = setTimeout(this.releaseReferencePointer, 0)
+  }
+  private readonly referencePointerCancel = (event: PointerEvent) => {
+    if (event.pointerId === this.referencePointer?.id) this.releaseReferencePointer()
+  }
+  private readonly referencePointerMove = (event: PointerEvent) => {
+    if (event.pointerId === this.referencePointer?.id && event.buttons === 0)
+      this.releaseReferencePointer()
+  }
+  private readonly referenceVisibility = () => {
+    if (this.root.ownerDocument.visibilityState === 'hidden') this.releaseReferencePointer()
+  }
+  /** Internal background-layout gate; never changes focus or synthesizes activation. */
+  hasReferencePointer(): boolean {
+    const pointer = this.referencePointer
+    if (!pointer) return false
+    const current = this.snapshot(),
+      before = pointer.snapshot
+    if (
+      this.stopped ||
+      this.config !== pointer.config ||
+      !this.content.contains(pointer.element) ||
+      current.mode !== 'live' ||
+      current.sourceIdentity !== before.sourceIdentity ||
+      current.sourceVersion !== before.sourceVersion ||
+      current.documentVersion !== before.documentVersion ||
+      !sameSelection(current.selection, before.selection)
+    ) {
+      this.releaseReferencePointer()
+      return false
+    }
+    return true
+  }
+  waitForReferencePointer(signal?: AbortSignal): Promise<void> | undefined {
+    if (!this.hasReferencePointer() || signal?.aborted) return undefined
+    const pointer = this.referencePointer!
+    return new Promise<void>((resolve) => {
+      const resume = () => {
+        pointer.waiters.delete(resume)
+        signal?.removeEventListener('abort', resume)
+        resolve()
+      }
+      pointer.waiters.add(resume)
+      signal?.addEventListener('abort', resume, { once: true })
+    })
+  }
   private readonly clearProxyNavigation = () => {
     this.tabOrigin = undefined
     this.proxyNavigation = undefined
@@ -288,6 +385,14 @@ export class DocumentPresentation {
             }
           })
     this.resize?.observe(root)
+    this.root.addEventListener('pointerdown', this.referencePointerDown, true)
+    this.root.addEventListener('keydown', this.releaseReferencePointer, true)
+    this.root.addEventListener('beforeinput', this.releaseReferencePointer, true)
+    this.root.ownerDocument.addEventListener('pointerup', this.referencePointerUp, true)
+    this.root.ownerDocument.addEventListener('pointercancel', this.referencePointerCancel, true)
+    this.root.ownerDocument.addEventListener('pointermove', this.referencePointerMove, true)
+    this.root.ownerDocument.addEventListener('visibilitychange', this.referenceVisibility)
+    this.root.ownerDocument.defaultView?.addEventListener('blur', this.releaseReferencePointer)
     this.root.addEventListener('scroll', this.scroll)
     this.root.addEventListener('keydown', this.navigationKeyDown, true)
     this.root.addEventListener('focusin', this.navigationFocusIn)
@@ -361,6 +466,7 @@ export class DocumentPresentation {
     this.schedule()
   }
   invalidate(): void {
+    this.releaseReferencePointer()
     this.cancelPreparationRetry()
     this.epoch++
     this.job?.controller.abort()
@@ -373,12 +479,21 @@ export class DocumentPresentation {
     this.schedule()
   }
   destroy(): void {
+    this.releaseReferencePointer()
     this.cancelPreparationRetry()
     this.clearProxyNavigation()
     this.stopped = true
     this.job?.controller.abort()
     this.observer.disconnect()
     this.resize?.disconnect()
+    this.root.removeEventListener('pointerdown', this.referencePointerDown, true)
+    this.root.removeEventListener('keydown', this.releaseReferencePointer, true)
+    this.root.removeEventListener('beforeinput', this.releaseReferencePointer, true)
+    this.root.ownerDocument.removeEventListener('pointerup', this.referencePointerUp, true)
+    this.root.ownerDocument.removeEventListener('pointercancel', this.referencePointerCancel, true)
+    this.root.ownerDocument.removeEventListener('pointermove', this.referencePointerMove, true)
+    this.root.ownerDocument.removeEventListener('visibilitychange', this.referenceVisibility)
+    this.root.ownerDocument.defaultView?.removeEventListener('blur', this.releaseReferencePointer)
     this.root.removeEventListener('scroll', this.scroll)
     this.root.removeEventListener('keydown', this.navigationKeyDown, true)
     this.root.removeEventListener('focusin', this.navigationFocusIn)
@@ -398,6 +513,7 @@ export class DocumentPresentation {
   }
   /** Called before cursor/selection geometry, including optimistic edits. */
   selectionChanged(): void {
+    this.hasReferencePointer()
     if (this.painting || this.stopped) return
     if (!this.config && !this.saved.size && !this.job) return
     const current = this.snapshot()
@@ -484,6 +600,7 @@ export class DocumentPresentation {
     }
   }
   private sync(): void {
+    this.hasReferencePointer()
     const current = this.snapshot()
     if (this.preparationRetry && !this.preparationRetry.matches()) this.cancelPreparationRetry()
     if (
@@ -542,6 +659,7 @@ export class DocumentPresentation {
     this.job = job
     const timeout = setTimeout(() => {
       if (this.valid(job)) {
+        this.releaseReferencePointer()
         job.preparationTimedOut = true
         this.failedKey = key
         this.retryAfter = Date.now() + 1000
@@ -556,7 +674,9 @@ export class DocumentPresentation {
     const config = this.config
     void Promise.resolve()
       .then(() => config.provide(window, { signal: job.controller.signal }))
-      .then((response) => {
+      .then(async (response) => {
+        // Provider preparation has settled; a held pointer is not preparation time.
+        clearTimeout(timeout)
         if (!this.valid(job)) return
         const request = copyDocumentPresentationRequest(response.request)
         if (
@@ -571,6 +691,14 @@ export class DocumentPresentation {
           request,
           response.declarations,
         )
+        // A new input task can replace a released lease before this continuation.
+        // Keep the same result pending until there is no current valid gesture.
+        while (this.valid(job)) {
+          const pointer = this.waitForReferencePointer(job.controller.signal)
+          if (!pointer) break
+          await pointer
+        }
+        if (!this.valid(job)) return
         this.cache = {
           key,
           identity: current.sourceIdentity,
@@ -579,7 +707,9 @@ export class DocumentPresentation {
         this.paint(this.cache.response)
       })
       .catch(() => {
+        clearTimeout(timeout)
         if (this.valid(job)) {
+          this.releaseReferencePointer()
           this.failedKey = key
           this.retryAfter = Date.now() + 1000
           this.cache = undefined

@@ -1,0 +1,130 @@
+[WebServer] (node:127491) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:127506) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:127530) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite --host 127.0.0.1
+[WebServer] (node:127548) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 6 tests using 1 worker
+
+(node:127582) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop-msedge] › ../milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic.spec.ts:25:45 › observe disabled renderer undo at End (3.6s)
+(node:127733) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [desktop-msedge] › ../milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic.spec.ts:25:45 › observe disabled renderer undo at Home (5.3s)
+(node:127880) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 [desktop-msedge] › ../milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic.spec.ts:25:45 › observe disabled renderer undo at End (3.4s)
+(node:128031) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  4 [desktop-msedge] › ../milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic.spec.ts:25:45 › observe disabled renderer undo at Home (6.4s)
+(node:128203) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  5 [desktop-msedge] › ../milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic.spec.ts:25:45 › observe disabled renderer undo at End (3.7s)
+(node:128369) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  6 [desktop-msedge] › ../milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic.spec.ts:25:45 › observe disabled renderer undo at Home (5.6s)
+
+
+  1) [desktop-msedge] › ../milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic.spec.ts:25:45 › observe disabled renderer undo at End 
+
+    Error: keyboard.press: Unknown key: "shift"
+
+      52 |   await page.keyboard.press('Control+z')
+      53 |   const undone = await state()
+    > 54 |   await page.keyboard.press('Control+shift+z')
+         |                       ^
+      55 |   const redone = await state()
+      56 |   const inputGap = inserted.events.at(-1).wall - inserted.events[0].wall
+      57 |   await writeFile(test.info().outputPath('history.json'), JSON.stringify({ boundary, fixtureLength: fixture.length, inputGap, before, inserted, undone, redone }, null, 2))
+        at /workspace/milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic.spec.ts:54:23
+
+    Error Context: ../milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic/144-history-diagnostic-observe-disabled-renderer-undo-at-End-desktop-msedge/error-context.md
+
+  2) [desktop-msedge] › ../milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic.spec.ts:25:45 › observe disabled renderer undo at Home 
+
+    Error: keyboard.press: Unknown key: "shift"
+
+      52 |   await page.keyboard.press('Control+z')
+      53 |   const undone = await state()
+    > 54 |   await page.keyboard.press('Control+shift+z')
+         |                       ^
+      55 |   const redone = await state()
+      56 |   const inputGap = inserted.events.at(-1).wall - inserted.events[0].wall
+      57 |   await writeFile(test.info().outputPath('history.json'), JSON.stringify({ boundary, fixtureLength: fixture.length, inputGap, before, inserted, undone, redone }, null, 2))
+        at /workspace/milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic.spec.ts:54:23
+
+    Error Context: ../milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic/144-history-diagnostic-obs-d1c4d-abled-renderer-undo-at-Home-desktop-msedge/error-context.md
+
+  3) [desktop-msedge] › ../milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic.spec.ts:25:45 › observe disabled renderer undo at End 
+
+    Error: keyboard.press: Unknown key: "shift"
+
+      52 |   await page.keyboard.press('Control+z')
+      53 |   const undone = await state()
+    > 54 |   await page.keyboard.press('Control+shift+z')
+         |                       ^
+      55 |   const redone = await state()
+      56 |   const inputGap = inserted.events.at(-1).wall - inserted.events[0].wall
+      57 |   await writeFile(test.info().outputPath('history.json'), JSON.stringify({ boundary, fixtureLength: fixture.length, inputGap, before, inserted, undone, redone }, null, 2))
+        at /workspace/milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic.spec.ts:54:23
+
+    Error Context: ../milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic/144-history-diagnostic-observe-disabled-renderer-undo-at-End-desktop-msedge-repeat1/error-context.md
+
+  4) [desktop-msedge] › ../milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic.spec.ts:25:45 › observe disabled renderer undo at Home 
+
+    Error: keyboard.press: Unknown key: "shift"
+
+      52 |   await page.keyboard.press('Control+z')
+      53 |   const undone = await state()
+    > 54 |   await page.keyboard.press('Control+shift+z')
+         |                       ^
+      55 |   const redone = await state()
+      56 |   const inputGap = inserted.events.at(-1).wall - inserted.events[0].wall
+      57 |   await writeFile(test.info().outputPath('history.json'), JSON.stringify({ boundary, fixtureLength: fixture.length, inputGap, before, inserted, undone, redone }, null, 2))
+        at /workspace/milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic.spec.ts:54:23
+
+    Error Context: ../milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic/144-history-diagnostic-obs-d1c4d-abled-renderer-undo-at-Home-desktop-msedge-repeat1/error-context.md
+
+  5) [desktop-msedge] › ../milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic.spec.ts:25:45 › observe disabled renderer undo at End 
+
+    Error: keyboard.press: Unknown key: "shift"
+
+      52 |   await page.keyboard.press('Control+z')
+      53 |   const undone = await state()
+    > 54 |   await page.keyboard.press('Control+shift+z')
+         |                       ^
+      55 |   const redone = await state()
+      56 |   const inputGap = inserted.events.at(-1).wall - inserted.events[0].wall
+      57 |   await writeFile(test.info().outputPath('history.json'), JSON.stringify({ boundary, fixtureLength: fixture.length, inputGap, before, inserted, undone, redone }, null, 2))
+        at /workspace/milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic.spec.ts:54:23
+
+    Error Context: ../milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic/144-history-diagnostic-observe-disabled-renderer-undo-at-End-desktop-msedge-repeat2/error-context.md
+
+  6) [desktop-msedge] › ../milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic.spec.ts:25:45 › observe disabled renderer undo at Home 
+
+    Error: keyboard.press: Unknown key: "shift"
+
+      52 |   await page.keyboard.press('Control+z')
+      53 |   const undone = await state()
+    > 54 |   await page.keyboard.press('Control+shift+z')
+         |                       ^
+      55 |   const redone = await state()
+      56 |   const inputGap = inserted.events.at(-1).wall - inserted.events[0].wall
+      57 |   await writeFile(test.info().outputPath('history.json'), JSON.stringify({ boundary, fixtureLength: fixture.length, inputGap, before, inserted, undone, redone }, null, 2))
+        at /workspace/milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic.spec.ts:54:23
+
+    Error Context: ../milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic/144-history-diagnostic-obs-d1c4d-abled-renderer-undo-at-Home-desktop-msedge-repeat2/error-context.md
+
+  6 failed
+    [desktop-msedge] › ../milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic.spec.ts:25:45 › observe disabled renderer undo at End 
+    [desktop-msedge] › ../milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic.spec.ts:25:45 › observe disabled renderer undo at Home 
+    [desktop-msedge] › ../milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic.spec.ts:25:45 › observe disabled renderer undo at End 
+    [desktop-msedge] › ../milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic.spec.ts:25:45 › observe disabled renderer undo at Home 
+    [desktop-msedge] › ../milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic.spec.ts:25:45 › observe disabled renderer undo at End 
+    [desktop-msedge] › ../milkup-markdown-extensions-phase4-evidence/view/144-history-diagnostic.spec.ts:25:45 › observe disabled renderer undo at Home 

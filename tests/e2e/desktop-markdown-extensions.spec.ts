@@ -145,8 +145,15 @@ test('disabled renderers disappear and leave Unicode editing and save available'
   await expect(page.locator('[data-document-presentation]')).toHaveCount(0)
   await page.keyboard.press('Control+1')
   await page.locator('.milkup-input-proxy').focus()
-  await page.keyboard.press('Control+End')
+  // Use a different position from the seed insertion's end, so this edit has
+  // its own history entry even when the UI interactions finish within 1 second.
+  await page.keyboard.press('Control+Home')
   await page.keyboard.insertText('停用😀')
+  expect(await sourceLines(page)).toEqual(`停用😀${fixture}`.split('\n'))
+  await page.keyboard.press('Control+z')
+  expect(await sourceLines(page)).toEqual(fixture.split('\n'))
+  await page.keyboard.press('Control+Shift+z')
+  expect(await sourceLines(page)).toEqual(`停用😀${fixture}`.split('\n'))
   await page.keyboard.press('Control+z')
   expect(await sourceLines(page)).toEqual(fixture.split('\n'))
   await page.keyboard.press('Control+s')
@@ -1050,3 +1057,329 @@ for (const anchoring of ['auto', 'none'])
     expect(after.unchanged).toBe(true)
     expect(after.version).toBe(0)
   })
+
+for (const route of [
+  'ordinary-provider',
+  'windowed-provider',
+  'windowed-source',
+  'windowed-outside',
+]) {
+  test(`reference pointer activation survives ${route} replacement between down and up`, async ({
+    page,
+  }) => {
+    await markdownExtensionFixture(page)
+    await page.evaluate(
+      async ({ route, viewModule, coreModule }) => {
+        const { EditorView, SourceDocumentView } = await import(viewModule)
+        const { MemoryDocumentSource, MemoryTextDocument, EditorState, Selection } = await import(
+          coreModule
+        )
+        const text = 'start\nreference\ntarget\n' + 'retained 中文😀\n'.repeat(100)
+        const store = new MemoryDocumentSource({ documentId: 'gesture', text })
+        const mount = document.createElement('main')
+        Object.assign(mount.style, {
+          position: 'fixed',
+          inset: '37px 0 30px',
+          background: 'white',
+          zIndex: '10000',
+        })
+        document.body.append(mount)
+        let release: (() => void) | undefined,
+          hold = false,
+          calls = 0,
+          completed = 0,
+          provided = 0
+        const events: unknown[] = [],
+          nodes = new WeakMap<Node, number>()
+        let next = 1
+        const id = (node: Node | null) => {
+          if (!node) return null
+          if (!nodes.has(node)) nodes.set(node, next++)
+          return nodes.get(node)
+        }
+        const config = {
+          onNavigate: async () => {
+            calls++
+            if (route.startsWith('windowed'))
+              await view.revealSelection(3, Selection.range(16, 22), {
+                signal: new AbortController().signal,
+                assertCurrent: () => {},
+              })
+            completed++
+          },
+          provide: async ({
+            sourceIdentity: _i,
+            sourceVersion: _v,
+            documentVersion: _d,
+            ...window
+          }: any) => {
+            if (hold)
+              await new Promise<void>((resolve) => {
+                release = resolve
+              })
+            provided++
+            return {
+              declarations: [{ id: 'fixture', contexts: ['text'] }],
+              request: {
+                ...window,
+                documentId: store.documentId,
+                version: 0,
+                contextKnown: true,
+                protectedRanges: [],
+                blocks: [],
+                theme: 'light',
+                target: 'screen',
+              },
+              result: {
+                complete: true,
+                fragments: [
+                  {
+                    from: 6,
+                    to: 15,
+                    layout: 'inline',
+                    accessibleText: 'reference',
+                    content: {
+                      type: 'reference',
+                      label: 'Jump to target',
+                      target: { documentId: store.documentId, version: 0, from: 16, to: 22 },
+                    },
+                  },
+                ],
+              },
+            }
+          },
+        }
+        const options = {
+          parent: mount,
+          mode: 'live',
+          editable: true,
+          documentPresentation: config,
+        }
+        const view = route.startsWith('windowed')
+          ? new SourceDocumentView({
+              ...options,
+              source: store,
+              virtualViewport: { viewportHeight: 693, overscanLines: 2 },
+            })
+          : new EditorView({
+              ...options,
+              state: new EditorState({
+                doc: new MemoryTextDocument(text),
+                selection: Selection.cursor(0),
+              }),
+            })
+        if (route.startsWith('windowed')) await view.renderVisibleWindow()
+        for (const type of ['pointerdown', 'mousedown', 'focusin', 'pointerup', 'mouseup', 'click'])
+          mount.addEventListener(
+            type,
+            (event) =>
+              events.push({
+                type,
+                at: performance.now(),
+                id: id(event.target as Node),
+                connected: (event.target as Node).isConnected,
+                active: id(document.activeElement),
+                trusted: event.isTrusted,
+              }),
+            true,
+          )
+        ;(window as any).gestureProbe = {
+          view,
+          store,
+          text,
+          events,
+          id,
+          get provided() {
+            return provided
+          },
+          get calls() {
+            return calls
+          },
+          get ready() {
+            return !!release
+          },
+          start: () => {
+            hold = true
+            view.refreshDocumentPresentation()
+          },
+          release: () => {
+            hold = false
+            release?.()
+          },
+          snapshot: () => ({
+            calls,
+            completed,
+            version: store.version,
+            selection: (view.state?.selection ?? view.selection).main,
+            unchanged: view.state ? view.state.doc.text === text : true,
+            active: id(document.activeElement),
+            button: id(mount.querySelector('button.milkup-document-reference')),
+          }),
+        }
+      },
+      {
+        route,
+        viewModule: `/@fs${resolve('packages/view-dom/src/index.ts')}`,
+        coreModule: `/@fs${resolve('packages/core/src/index.ts')}`,
+      },
+    )
+    const button = page.locator('.milkup-document-reference').last()
+    await expect(button).toBeVisible()
+    await page.waitForTimeout(100)
+    if (!route.endsWith('source')) {
+      await page.evaluate(() => (window as any).gestureProbe.start())
+      await expect.poll(() => page.evaluate(() => (window as any).gestureProbe.ready)).toBe(true)
+    }
+    const bounds = await button.boundingBox()
+    const before = await page.evaluate(() => {
+      const p = (window as any).gestureProbe
+      p.original = p.view.contentDOM.querySelector('button')
+      return p.snapshot()
+    })
+    await page.mouse.move(bounds!.x + bounds!.width / 2, bounds!.y + bounds!.height / 2)
+    await page.mouse.down()
+    if (!route.endsWith('source')) {
+      const provided = await page.evaluate(() => (window as any).gestureProbe.provided)
+      await page.evaluate(() => (window as any).gestureProbe.release())
+      await expect
+        .poll(() => page.evaluate(() => (window as any).gestureProbe.provided))
+        .toBeGreaterThan(provided)
+    } else {
+      await page.evaluate(() => {
+        const p = (window as any).gestureProbe
+        p.sourceRender = p.view.renderVisibleWindow().then(() => {
+          p.sourceRenderDone = true
+        })
+      })
+      // Give the controlled read/application an opportunity to finish. Keeping the
+      // original node until mouseup is a valid implementation, not a test failure.
+      await page.waitForTimeout(50)
+    }
+    if (route.endsWith('outside'))
+      await page.mouse.move(bounds!.x + bounds!.width + 50, bounds!.y + bounds!.height / 2)
+    await page.mouse.up()
+    if (!route.endsWith('outside'))
+      await expect
+        .poll(() => page.evaluate(() => (window as any).gestureProbe.snapshot().completed))
+        .toBe(1)
+    if (route.endsWith('source'))
+      await page.evaluate(() => (window as any).gestureProbe.sourceRender)
+    const result = await page.evaluate(async () => {
+      const p = (window as any).gestureProbe
+      return {
+        after: p.snapshot(),
+        events: p.events,
+        originalConnected: p.original.isConnected,
+        unchanged: (await p.store.readLineWindow(1, p.store.lineCount)).text === p.text,
+      }
+    })
+    await writeFile(
+      test.info().outputPath('gesture.json'),
+      JSON.stringify({ route, bounds, before, ...result }, null, 2),
+    )
+    await page.screenshot({ path: test.info().outputPath('gesture.png') })
+    expect(result.after.calls).toBe(route.endsWith('outside') ? 0 : 1)
+    expect(result.after.version).toBe(0)
+    expect(result.unchanged).toBe(true)
+  })
+}
+
+for (const mode of ['source', 'live']) {
+  test(`superseded ${mode} navigation cannot silently resolve without selecting its target`, async ({
+    page,
+  }) => {
+    await markdownExtensionFixture(page)
+    const result = await page.evaluate(
+      async ({ mode, viewModule, coreModule }) => {
+        const { SourceDocumentView } = await import(viewModule)
+        const { MemoryDocumentSource, Selection } = await import(coreModule)
+        const text = Array.from({ length: 500 }, (_, n) => `line ${n + 1} 中文😀`).join('\n')
+        const store = new MemoryDocumentSource({ documentId: 'navigation-race', text })
+        const mount = document.createElement('main')
+        Object.assign(mount.style, {
+          position: 'fixed',
+          inset: '37px 0 30px',
+          zIndex: '10000',
+          background: 'white',
+        })
+        document.body.append(mount)
+        const view = new SourceDocumentView({
+          parent: mount,
+          source: store,
+          mode,
+          virtualViewport: { viewportHeight: 126, overscanLines: 2 },
+        })
+        await view.renderVisibleWindow()
+        const target = (await store.readLineWindow(50, 50)).from
+        const original = store.readLineWindow.bind(store)
+        let holding = true
+        const releases: (() => void)[] = [],
+          reads: unknown[] = []
+        store.readLineWindow = async (...args: any[]) => {
+          reads.push({ args, at: performance.now() })
+          if (holding && args[0] <= 50 && args[1] >= 50)
+            await new Promise<void>((resolve) => releases.push(resolve))
+          return original(...args)
+        }
+        let outcome = 'pending'
+        const before = { selection: view.selection.main, version: store.version }
+        const navigation = view
+          .revealSelection(50, Selection.cursor(target), {
+            signal: new AbortController().signal,
+            assertCurrent: () => {},
+          })
+          .then(
+            () => {
+              outcome = 'resolved'
+            },
+            () => {
+              outcome = 'rejected'
+            },
+          )
+        const deadline = performance.now() + 2000
+        while (!releases.length && performance.now() < deadline)
+          await new Promise((resolve) => setTimeout(resolve, 10))
+        if (!releases.length) throw Error('Fixture did not hold the target window')
+        view.dom.scrollTop = 200 * 21
+        await view.renderVisibleWindow()
+        const superseding = {
+          from: view.contentDOM.dataset.fromLine,
+          to: view.contentDOM.dataset.toLine,
+        }
+        holding = false
+        releases.forEach((release) => release())
+        await navigation
+        const result = {
+          mode,
+          before,
+          target,
+          outcome,
+          superseding,
+          after: {
+            selection: view.selection.main,
+            version: store.version,
+            targetPresent: !!view.contentDOM.querySelector('[data-line="50"]'),
+          },
+          reads,
+          unchanged: (await original(1, store.lineCount)).text === text,
+        }
+        return result
+      },
+      {
+        mode,
+        viewModule: `/@fs${resolve('packages/view-dom/src/index.ts')}`,
+        coreModule: `/@fs${resolve('packages/core/src/index.ts')}`,
+      },
+    )
+    await writeFile(
+      test.info().outputPath('superseded-navigation.json'),
+      JSON.stringify(result, null, 2),
+    )
+    await page.screenshot({ path: test.info().outputPath('superseded-navigation.png') })
+    expect(result.outcome === 'rejected' || result.after.selection.head === result.target).toBe(
+      true,
+    )
+    expect(result.unchanged).toBe(true)
+    expect(result.after.version).toBe(0)
+  })
+}

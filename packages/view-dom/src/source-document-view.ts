@@ -208,6 +208,7 @@ export class SourceDocumentView {
   private hasDraggedSelection = false
   private nextRequestId = 1
   private latestAppliedRequestId = 0
+  private deferredPresentationRender: { request: RenderRequest; promise: Promise<void> } | undefined
   private renderedSourceWindow: DocumentLineWindow | undefined
   private renderedDocumentVersion: number | undefined
   private sourceWindowCacheKey = ''
@@ -689,7 +690,12 @@ export class SourceDocumentView {
     const line = this.contentDOM.querySelector<HTMLElement>(
       `.milkup-line[data-line="${lineNumber}"]`,
     )
-    if (!line) return
+    if (!line) {
+      // A newer scroll window may supersede this navigation without changing the document.
+      if (options.signal || options.assertCurrent)
+        throw new DOMException('Navigation target window superseded', 'AbortError')
+      return
+    }
     const from = Number(line.dataset.from)
     const target = selection ?? Selection.cursor(from)
     const previousPosition = this.cursorPosition
@@ -752,6 +758,7 @@ export class SourceDocumentView {
   }
 
   async renderVisibleWindow(request: RenderRequest = this.createRenderRequest()): Promise<void> {
+    this.documentPresentation.hasReferencePointer()
     const editRevision = this.editRevision
     const source = this.currentSource
     const version = source.version
@@ -784,6 +791,30 @@ export class SourceDocumentView {
       return
     }
 
+    if (this.documentPresentation.hasReferencePointer()) {
+      const pending = this.deferredPresentationRender
+      if (pending) {
+        if (request.id > pending.request.id) pending.request = request
+        return pending.promise
+      }
+      // Coalesce to one request, not a queue of rendered windows held by a pointer.
+      const deferred = { request, promise: Promise.resolve() }
+      this.deferredPresentationRender = deferred
+      deferred.promise = this.documentPresentation.waitForReferencePointer()!.then(async () => {
+        if (this.deferredPresentationRender !== deferred) return
+        this.deferredPresentationRender = undefined
+        if (
+          this.destroyed ||
+          source !== this.currentSource ||
+          renderVersion !== source.version ||
+          editRevision !== this.editRevision ||
+          deferred.request.id < this.latestAppliedRequestId
+        )
+          return
+        await this.renderVisibleWindow(deferred.request)
+      })
+      return deferred.promise
+    }
     this.latestAppliedRequestId = request.id
     this.renderedSourceWindow = rendered.sourceWindow
     this.renderedDocumentVersion = renderVersion

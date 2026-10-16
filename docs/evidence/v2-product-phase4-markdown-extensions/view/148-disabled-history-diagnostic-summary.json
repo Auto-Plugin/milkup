@@ -1,0 +1,37 @@
+{
+  "comparison": [
+    {
+      "boundary": "Home",
+      "beforeinputGapMs": 794,
+      "cursorBefore": "0",
+      "undoEmpty": false,
+      "undoEqualsSeed": true,
+      "redoEqualsInserted": true,
+      "evidence": "/workspace/milkup-markdown-extensions-phase4-evidence/view/146-history-keyboard-diagnostic/146-history-keyboard-diagn-978f8-abled-renderer-undo-at-Home-desktop-msedge/history.json"
+    },
+    {
+      "boundary": "End",
+      "beforeinputGapMs": 691,
+      "cursorBefore": "155",
+      "undoEmpty": true,
+      "undoEqualsSeed": false,
+      "redoEqualsInserted": true,
+      "evidence": "/workspace/milkup-markdown-extensions-phase4-evidence/view/146-history-keyboard-diagnostic/146-history-keyboard-diagn-e774d-sabled-renderer-undo-at-End-desktop-msedge/history.json"
+    }
+  ],
+  "originalFailure": "Full candidate10-final browser run has no input timestamps; mechanism independently reproduced, original elapsed time not asserted.",
+  "testFix": "Only disabled-renderer test changes insertion point End to Home and adds exact full text assertions after insert, undo, redo, undo, then saves. Product history unchanged.",
+  "preservedRuns": {
+    "143": "Original test repeated three times: one identical empty-undo failure, two passes.",
+    "144": "Diagnostic script error: Control+shift+z used invalid lowercase Shift; not a product failure.",
+    "145": "Six mouse-driven diagnostic runs, input gaps above 1000ms: undo retained seed; redo exact.",
+    "146": "One keyboard End/Home pair, both below 1000ms; End merges seed+suffix, Home separates edits.",
+    "147": "Corrected original test: three repetitions, 3/3 PASS (20.0s), preserving real UI disable and adding full insert/undo/redo/undo assertions."
+  },
+  "verification": {
+    "prettier": "PASS",
+    "gitDiffCheck": "PASS",
+    "browserServers1420And5174": "No listeners after Playwright completion",
+    "productChanges": "None"
+  }
+}

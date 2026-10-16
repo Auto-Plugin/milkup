@@ -11,7 +11,11 @@ import path from 'node:path'
 import { startProduction } from '/workspace/milkup/tests/helpers/native-production.mjs'
 import { ownedApplication } from '/workspace/milkup/tests/helpers/native-owned-process.mjs'
 import { ownNativeClipboard } from '/workspace/milkup/tests/helpers/native-clipboard.mjs'
-import { action, nativeFixture, x } from '/workspace/milkup/tests/helpers/native-updates-fixture.mjs'
+import {
+  action,
+  nativeFixture,
+  x,
+} from '/workspace/milkup/tests/helpers/native-updates-fixture.mjs'
 
 const evidence = '/workspace/milkup-markdown-extensions-phase4-evidence'
 const output = path.resolve(process.env.MILKUP_NATIVE_EVIDENCE_DIR || path.join(evidence, 'native'))
@@ -1097,9 +1101,14 @@ return {editor:rect(editor),line:[...document.querySelectorAll('.milkup-line')].
   await app.key('Down')
   const back = `[data-document-presentation][data-presentation-from="${definition}"] .milkup-document-reference`
   await ui.ready(back)
-  if(name==='windowed'){
-    await app.execute(await readFile('/workspace/milkup-markdown-extensions-phase4-evidence/native/near-return-pointer/install-observer.js','utf8'))
-    await app.execute('window.__armNearReturnDiagnostic(arguments[0])',back)
+  if (name === 'windowed') {
+    await app.execute(
+      await readFile(
+        '/workspace/milkup-markdown-extensions-phase4-evidence/native/near-return-pointer/install-observer.js',
+        'utf8',
+      ),
+    )
+    await app.execute('window.__armNearReturnDiagnostic(arguments[0])', back)
   }
   await click(back)
   await app.until(async () => {
@@ -1108,7 +1117,7 @@ return {editor:rect(editor),line:[...document.querySelectorAll('.milkup-line')].
   }, 'footnote return navigation')
   assert.equal((await app.probe()).version, version)
   await shot(`${name}-footnote-return`)
-  if(name==='windowed') return
+  if (name === 'windowed') return
   await seek('SAMPLE-ERRORS', 'live')
   await app.until(
     () =>
@@ -1297,9 +1306,9 @@ try {
   await start()
   await installExternal()
   await semantics('ordinary')
-  for(const mode of ['source','live']) await editHistory('ordinary',mode)
+  for (const mode of ['source', 'live']) await editHistory('ordinary', mode)
   await semantics('windowed')
-  await record('NEAR-RETURN-DIAGNOSTIC-COMPLETE',{diagnosticOnly:true,acceptance:false})
+  await record('NEAR-RETURN-DIAGNOSTIC-COMPLETE', { diagnosticOnly: true, acceptance: false })
 } catch (error) {
   await writeFile(
     path.join(output, 'failure.json'),
@@ -1308,5 +1317,17 @@ try {
   if (app) await shot('FAIL', { error: String(error) }).catch(() => {})
   throw error
 } finally {
-  if(app){await writeFile(path.join(output,'near-return-events.json'),JSON.stringify(await app.execute('return window.__nearReturnTrace').catch(error=>({error:String(error)})),null,2));await app.close()}
+  if (app) {
+    await writeFile(
+      path.join(output, 'near-return-events.json'),
+      JSON.stringify(
+        await app
+          .execute('return window.__nearReturnTrace')
+          .catch((error) => ({ error: String(error) })),
+        null,
+        2,
+      ),
+    )
+    await app.close()
+  }
 }
