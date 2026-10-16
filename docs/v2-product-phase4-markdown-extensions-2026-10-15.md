@@ -2,6 +2,8 @@
 
 本轮基线 `2184526ddfaeef6ae1e80008f0ee90e41be9fdec`，独立分支 `dot/milkup-v2-product-phase4-markdown-extensions`。当前为实现与验收中的报告；未列出实际结果的检查均不代表通过。
 
+当前候选 08 的全仓前端门禁及 Linux 生产构建通过，但正式原生验收仍失败：run01 安装阶段 GTK 崩溃、run02 两个渲染器自然超时、run03 窗口化图表点击未进入源码。三项原因尚未确定，受控诊断通过不能抵消这些失败。run03 已完成普通文档语义与 source/live 字节一致的保存、撤销重做；窗口化语义、远端脚注、64 组显示矩阵、全禁用与恢复仍未完成。后续详情和原始失败均保留在验收记录中。
+
 ## 审计与设计
 
 既有 Markdown 扩展只有正则匹配和整行 renderer，不能可靠表达跨行范围、隔离同步死循环、证明窗口前缀上下文或避免异步旧结果覆盖新编辑。窗口化视图没有对应受控渲染入口。现有所谓 incremental parse 实际重新解析全文，不能宣称本轮实现了完整增量语法算法。
@@ -75,7 +77,7 @@ P5 尚无独立完整导出/打印产品链路。当前需要明确保留的输�
 
 ## 验收记录
 
-**当前为尚未验收的代码检查点。** 因执行器多次断连，按要求先保存并推送隔离分支；检查点不代表 P4 完成，也不触发打包上传或发布。候选 04 正式原生 run02 已失败，64 组显示矩阵尚未开始。
+**当前仍未通过生产验收，最新候选为 08。** 下文按候选保留历史失败和修复，不将早期检查点或后续诊断当作最终通过。因执行器多次断连，曾按要求先保存并推送隔离分支；检查点不代表 P4 完成，也不触发打包上传或发布。候选 04 正式原生 run02 的历史失败如下。
 
 普通文档的源码完整可见、图表 Tab/Shift+Tab、脚注跳转及 source/live 字节一致的保存和撤销重做已实际运行，但 run02 在普通 live 保存阶段记录 math Worker 被停用：render_57 从发出到终止为 2313 ms，同期主线程出现 2289 ms 停顿；其它两个 Worker 的结果也延迟约 2260 ms 才交付。该失败请求没有 Worker 内部完成时标，不能断言插件已完成或确认误杀。随后窗口化请求在 38/18/37 个块之间反复变化，仍需独立定位布局与缓存反馈。保留 2 秒真实执行预算，不以延长期限或移除断言通过门禁。[失败与时序证据](evidence/v2-product-phase4-markdown-extensions/native/deadline-diagnosis-candidate04.json)、[候选状态](evidence/v2-product-phase4-markdown-extensions/candidate04-gates.json)。
 
@@ -117,7 +119,25 @@ P5 尚无独立完整导出/打印产品链路。当前需要明确保留的输�
 
 受控浏览器回归进一步发现实际数据风险：普通和窗口化视图的末尾引用往返都会误删首行两个空格，版本与撤销记录各增加一次。视图现只识别紧邻的、真实预览 Tab 进入输入代理的导航状态，让浏览器处理反向 Tab；其他编辑、指针、外部焦点和预览更换会取消该状态。未重排 DOM、跳过输入区或强制转移焦点，普通文本 Tab 缩进保持原行为。另一个受控单测证明，宿主准备达到既有 10 秒期限后，即使提供者已经结束，稳定视口也没有自动续扫；读取器检查点、取消和版本切换本身通过。两项均需新的生产候选验收，不能把这组结构性复现当作正式远端失败的唯一因果证明。续扫现只在超时 provider 真正结束后，按原 1 秒退避对仍匹配的文档/版本/选区/窗口继续；同窗口未结束读取不叠加任务，普通错误及正常未知上下文不自动重试。16 项新增续扫回归及 51 项原呈现测试、类型检查通过；准备每次 10 秒及插件执行 2 秒预算保持不变。[续扫红绿证据](evidence/v2-product-phase4-markdown-extensions/native/preparation-retry-summary.json)、[焦点红绿证据](evidence/v2-product-phase4-markdown-extensions/view/112-preview-navigation-summary.json)。
 
-候选 08 最终冻结 677 项文件，产品范围仅为上述焦点和续扫修复；插件、公开 SDK、Rust 与预装包未变。全仓单测 **1,708 项、147 文件通过**。首次全仓类型检查发现新增慢源测试直接对同步值/Promise 联合返回类型调用 `.catch()`；改为 `Promise.resolve` 后，受影响 9 项测试及全仓类型检查通过。原冻结清单和失败日志保留，[最终清单](evidence/v2-product-phase4-markdown-extensions/candidate08-final-source-manifest.json)与[夹具修正记录](evidence/v2-product-phase4-markdown-extensions/candidate08-fixture-correction.json)明确区分；产品源码未因该类型错误改变。构建通过，证据 JSON 统一排版后全仓格式检查通过。完整浏览器 **182 项通过、零失败、零重试，5.3 分钟**，[日志](evidence/v2-product-phase4-markdown-extensions/browser-full-candidate08.log)。Linux 生产 DEB 构建与独立解包通过，构建后 677 项冻结文件无变化。[产物证明](evidence/v2-product-phase4-markdown-extensions/native/candidate08-provenance.json)记录 DEB SHA-256 `47c1569ae04f187615481151b0a02bf9d5c87d584490cd1698b8c1781059fac1`，实际运行解包二进制 SHA-256 `ffc26d6c38551247a7d8b9164d17eb81c14770260ddb6ea3a12aade35354e97e`。原生验收待运行，[门禁状态](evidence/v2-product-phase4-markdown-extensions/candidate08-gates.json)。
+候选 08 最终冻结 677 项文件，产品范围仅为上述焦点和续扫修复；插件、公开 SDK、Rust 与预装包未变。全仓单测 **1,708 项、147 文件通过**。首次全仓类型检查发现新增慢源测试直接对同步值/Promise 联合返回类型调用 `.catch()`；改为 `Promise.resolve` 后，受影响 9 项测试及全仓类型检查通过。原冻结清单和失败日志保留，[最终清单](evidence/v2-product-phase4-markdown-extensions/candidate08-final-source-manifest.json)与[夹具修正记录](evidence/v2-product-phase4-markdown-extensions/candidate08-fixture-correction.json)明确区分；产品源码未因该类型错误改变。构建通过，证据 JSON 统一排版后全仓格式检查通过。完整浏览器 **182 项通过、零失败、零重试，5.3 分钟**，[日志](evidence/v2-product-phase4-markdown-extensions/browser-full-candidate08.log)。Linux 生产 DEB 构建与独立解包通过，构建后 677 项冻结文件无变化。[产物证明](evidence/v2-product-phase4-markdown-extensions/native/candidate08-provenance.json)记录 DEB SHA-256 `47c1569ae04f187615481151b0a02bf9d5c87d584490cd1698b8c1781059fac1`，实际运行解包二进制 SHA-256 `ffc26d6c38551247a7d8b9164d17eb81c14770260ddb6ea3a12aade35354e97e`。首次原生 run01 在安装第二个外部插件时 GTK 原生进程崩溃，尚未进入文档语义和显示矩阵；正在独立定位，[门禁状态](evidence/v2-product-phase4-markdown-extensions/candidate08-gates.json)。
+
+候选 08 run01 已成功安装并启用数学插件，随后 GTK Open File 超时。driver 先出现列表模型断言和文件系统 `Bad address`，最终因 `image-missing.svg` 加载错误触发 `ensure_surface_for_gicon` 断言退出；不能将最后一条图标错误直接当作根因。同一 proot 绑定、sysroot 加载器与环境下的独立 SVG/PNG 解码均成功，库依赖无缺失，因此没有据此修改 loader 或安全配置。此次记录为安装阶段的 GTK 原生崩溃，环境与产品归因尚未确定；文档语义、64 组矩阵均未开始。[失败现场](evidence/v2-product-phase4-markdown-extensions/native/run-candidate08-run01/failure.json)、[原生日志](evidence/v2-product-phase4-markdown-extensions/native/driver-candidate08-run01.log)、[独立解码](evidence/v2-product-phase4-markdown-extensions/native/candidate08-run01-pixbuf-readonly-probe.log)。
+
+同候选的独立三包安装诊断通过，但未解释首次 GTK 崩溃。随后全新 profile 的正式 run02 通过外部安装及普通公式源码揭示，在再次恢复 root 预览时失败：数学和图表收到真正的生产 supervisor timeout 并被停用，脚注同轮成功。主线程采样间隔 3317 ms 与该轮重合；记录缺少监督器内部收到请求、子 Worker 开始和完成时标，不能据此判定真实业务执行超时或误判。[正式失败摘要](evidence/v2-product-phase4-markdown-extensions/native/candidate08-run02-failure-summary.json)。64 组矩阵及本候选数据恢复链仍未完成。
+
+因上述失败，原定在正式验收后执行的生产机制诊断提前独立运行。实际生产 Worker 工厂经真实 GTK 安装公开 SDK 诊断插件：50 ms 快速任务在主线程约 2400 ms 忙等后正常接受，同一个 supervisor/activation 再次渲染成功；死循环任务收到超时、停用、退出确认及终止。CPU 控制事件在主线程恢复后才被观察，不能从接收时间声称精确 2000 ms 终止。[Worker 结果](evidence/v2-product-phase4-markdown-extensions/native/candidate08-production-worker02-summary.json)。第一次诊断未开始实验，因安装后详情页与脚本等待列表卡片不符而失败；只修正外部诊断脚本，保留原日志。
+
+实际 Tauri 侧车适配器/客户端/原生传输的五项诊断通过：快速任务在主线程阻塞期间写出结果并在恢复后成功交付；runaway、错误 ID、畸形结果和控制伪装均超时。独立 Node 每 50 ms 按 PID 与进程出生标识采样，异常进程在 JS 请求后 2031/2079/2116/2076 ms 首次观测消失，均早于主线程阻塞结束；该时间含 JS 至原生起点差及采样误差，不冒称精确 2000 ms。此项不是普通用户侧车 UI 安装验收。[侧车结果](evidence/v2-product-phase4-markdown-extensions/native/candidate08-production-sidecar01-summary.json)。这些受控结果不替代正式 run02，也未解释两个真实渲染器自然超时的原因。
+
+候选 08 的真实渲染器时标诊断在外部脚本中替换数学与图表 init 的模块入口，由 wrapper 导入同一原模块并记录 child 收到请求、发送结果前后时标；生产包、工厂和预算未变，但该入口包装本身是诊断干预，不能称为完全原样运行。普通语义通过，106 次请求配对完整，数学/图表收到请求至发送结果最长分别 580/919 ms；没有复现正式 run02 的超时。记录包含验证和调度，不能当作纯算法 CPU 时间，也不能从未出现完成记录推断卡死。[时标结果及限制](evidence/v2-product-phase4-markdown-extensions/native/candidate08-realrenderer-timing01-summary.json)。
+
+另一轮保留原模块入口，仅从外部按进程出生标识采样 WebKit 线程。六次公式揭示/重预览均通过，未复现原 3317 ms 停顿或超时。名义 100 ms 的采样实际间隔中位数/95 分位/最大值为 101/220/398 ms，每批读取耗时 44/218/395 ms，观察负担不可忽略。该轮 cgroup 节流计数无增量，不能用这次未复现运行排除原失败时的调度问题。[进程诊断](evidence/v2-product-phase4-markdown-extensions/native/candidate08-scheduling01-summary.json)。未据此修改执行器或延长预算。
+
+随后只为补齐尚未到达的覆盖，使用同一二进制、原正式脚本、原预算和断言启动全新 profile 的 run03。三个外部插件安装启用、普通文档全部语义及 source/live 真实 Unicode 编辑、全字节保存、撤销重做通过；窗口化公式源码揭示与恢复也通过。首个失败位于窗口化 flow：点击前预览边界约 y=91.78–394.56、中心 (550,243.17) 命中，已发送真实原生 pointer，但 15 秒内预览未撤除，选区仍为 SAMPLE-FLOW 的 162–173，版本仍 0。三个插件均启用且无监督器控制事件，所以不能归为 run02 的超时复发；尚无事件 target 日志证明此次点击实际进入业务处理器。系统截图目视确认图表仍在、标记仍选中。[正式失败](evidence/v2-product-phase4-markdown-extensions/native/candidate08-run03-failure-summary.json)、[实际像素](evidence/v2-product-phase4-markdown-extensions/native/run-candidate08-run03/FAIL-x11.png)。按首失败停止，没有自动进行第四次正式运行；矩阵仍为 0/64，远端脚注、窗口化保存历史、全禁用与恢复未到达。
+
+针对 run03 的一次点击事件诊断沿用普通语义和两模式历史前置，只在目标点击前记录事件、源码行与目标替换。该轮 trusted pointerdown/up、mousedown/up 和 click 均到达仍连接的 from=175 预览，精确和包含源码行均存在；之后约 623 ms 预览撤除，实际选区变为 175–238。没有复现失败，因此仍不能确定正式 run03 的事件是否投递或在哪个导航检查处返回；没有凭此修改产品。[点击诊断](evidence/v2-product-phase4-markdown-extensions/native/candidate08-flowpointer01-summary.json)。
+
+为获得尚未执行项目的实际结果，另准备独立验收分片，按三包安装→原远端脚注→窗口化 source/live 历史→原 64 组矩阵→原全禁用与恢复执行。外部 runner 只修改主调度，全部原函数逐字节一致，最终记录固定为 `SEGMENTED`、`acceptance=false`；首失败停止，不自动重跑。分片不能替代正式语义失败或使整体验收转绿。[准确差异与来源](evidence/v2-product-phase4-markdown-extensions/native/segmented-coverage/preparation.json)。分片 segmented01 在首项远端脚注准备的原 90 秒期限内失败，未进入键盘往返、窗口化历史、矩阵或恢复。搜索后标记行 160055 在 y=618.5–639.5，失败像素只剩重复正文；逻辑选区仍为 4640719–4640741、版本 0，三插件启用，无监督器超时。远端没有新的 renderer 请求；现有记录不含宿主准备 IPC 或连续视口几何，无法区分准备进展与后续视口变化。该失败不能被简单归因为扫描慢。[分片结果](evidence/v2-product-phase4-markdown-extensions/native/candidate08-segmented01-summary.json)。
 
 脚注更新后重新在仓库外安装冻结公开 SDK、构建和运行 22 项测试通过；十插件当前源码/资源及 SDK 字节核验通过，总计 327 项，未变化插件沿用相应冻结结果。新脚注外部包 SHA-256 为 `531481d11059563cffac0e0372c911a857ac903d92e5acbd597596efa2d5bfed`，旧包和候选 04 证明保留。
 

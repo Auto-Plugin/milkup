@@ -1,0 +1,211 @@
+{
+  "diagnosticExitCode": 0,
+  "formalAcceptance": false,
+  "actualTauriTransport": true,
+  "ordinarySidecarUiInstallation": false,
+  "cases": [
+    {
+      "mode": "fast",
+      "outcome": {
+        "status": "resolved",
+        "wall": 1792121299822,
+        "value": {
+          "complete": true,
+          "fragments": []
+        }
+      },
+      "started": 1792121297305,
+      "stallStart": 1792121297410,
+      "stallEnd": 1792121299809,
+      "lastAlive": {
+        "wall": 1792121299857,
+        "pid": 76356,
+        "gone": false,
+        "error": "Error: ESRCH: no such process, read"
+      },
+      "firstGone": {
+        "wall": 1792121299896,
+        "pid": 76356,
+        "gone": true,
+        "error": "Error: ENOENT: no such file or directory, open '/proc/76356/cmdline'"
+      },
+      "goneDuringMainStall": false,
+      "goneElapsedFromRequestMs": 2591,
+      "sidecarLog": "{\"event\": \"started\", \"wallMs\": 1792121297416, \"pid\": 76356, \"mode\": \"fast\"}\n{\"event\": \"render-received\", \"wallMs\": 1792121297417, \"pid\": 76356, \"requestId\": \"render_1\"}\n{\"event\": \"result-before-write\", \"wallMs\": 1792121297617, \"pid\": 76356, \"requestId\": \"render_1\"}\n{\"event\": \"result-written\", \"wallMs\": 1792121297617, \"pid\": 76356, \"requestId\": \"render_1\"}\n",
+      "lastObservedAlive": {
+        "wall": 1792121299808,
+        "pid": 76356,
+        "birth": "890967",
+        "state": "S",
+        "ticks": 5
+      },
+      "limits": "50ms Node sampling; elapsed from JS client call, not internal native deadline start. Exit observed before main-thread stall ended for runaway cases."
+    },
+    {
+      "mode": "runaway",
+      "outcome": {
+        "status": "rejected",
+        "code": "timeout",
+        "wall": 1792121302565,
+        "message": "DocumentPresentationError: Document presentation: timeout"
+      },
+      "started": 1792121300058,
+      "stallStart": 1792121300161,
+      "stallEnd": 1792121302561,
+      "lastAlive": {
+        "wall": 1792121302039,
+        "pid": 76360,
+        "birth": "891247",
+        "state": "R",
+        "ticks": 175
+      },
+      "firstGone": {
+        "wall": 1792121302089,
+        "pid": 76360,
+        "gone": true,
+        "error": "Error: ENOENT: no such file or directory, open '/proc/76360/cmdline'"
+      },
+      "goneDuringMainStall": true,
+      "goneElapsedFromRequestMs": 2031,
+      "sidecarLog": "{\"event\": \"started\", \"wallMs\": 1792121300326, \"pid\": 76360, \"mode\": \"runaway\"}\n{\"event\": \"render-received\", \"wallMs\": 1792121300327, \"pid\": 76360, \"requestId\": \"render_1\"}\n{\"event\": \"busy-loop\", \"wallMs\": 1792121300327, \"pid\": 76360, \"requestId\": \"render_1\"}\n",
+      "lastObservedAlive": {
+        "wall": 1792121302039,
+        "pid": 76360,
+        "birth": "891247",
+        "state": "R",
+        "ticks": 175
+      },
+      "limits": "50ms Node sampling; elapsed from JS client call, not internal native deadline start. Exit observed before main-thread stall ended for runaway cases."
+    },
+    {
+      "mode": "wrong-id",
+      "outcome": {
+        "status": "rejected",
+        "code": "timeout",
+        "wall": 1792121305202,
+        "message": "DocumentPresentationError: Document presentation: timeout"
+      },
+      "started": 1792121302695,
+      "stallStart": 1792121302796,
+      "stallEnd": 1792121305195,
+      "lastAlive": {
+        "wall": 1792121304725,
+        "pid": 76363,
+        "birth": "891512",
+        "state": "R",
+        "ticks": 199
+      },
+      "firstGone": {
+        "wall": 1792121304774,
+        "pid": 76363,
+        "gone": true,
+        "error": "Error: ENOENT: no such file or directory, open '/proc/76363/cmdline'"
+      },
+      "goneDuringMainStall": true,
+      "goneElapsedFromRequestMs": 2079,
+      "sidecarLog": "{\"event\": \"started\", \"wallMs\": 1792121302761, \"pid\": 76363, \"mode\": \"wrong-id\"}\n{\"event\": \"render-received\", \"wallMs\": 1792121302761, \"pid\": 76363, \"requestId\": \"render_1\"}\n{\"event\": \"busy-loop\", \"wallMs\": 1792121302761, \"pid\": 76363, \"requestId\": \"render_1\"}\n",
+      "lastObservedAlive": {
+        "wall": 1792121304725,
+        "pid": 76363,
+        "birth": "891512",
+        "state": "R",
+        "ticks": 199
+      },
+      "limits": "50ms Node sampling; elapsed from JS client call, not internal native deadline start. Exit observed before main-thread stall ended for runaway cases."
+    },
+    {
+      "mode": "malformed",
+      "outcome": {
+        "status": "rejected",
+        "code": "timeout",
+        "wall": 1792121307868,
+        "message": "DocumentPresentationError: Document presentation: timeout"
+      },
+      "started": 1792121305360,
+      "stallStart": 1792121305460,
+      "stallEnd": 1792121307861,
+      "lastAlive": {
+        "wall": 1792121307427,
+        "pid": 76366,
+        "birth": "891778",
+        "state": "R",
+        "ticks": 202
+      },
+      "firstGone": {
+        "wall": 1792121307476,
+        "pid": 76366,
+        "gone": true,
+        "error": "Error: ENOENT: no such file or directory, open '/proc/76366/cmdline'"
+      },
+      "goneDuringMainStall": true,
+      "goneElapsedFromRequestMs": 2116,
+      "sidecarLog": "{\"event\": \"started\", \"wallMs\": 1792121305455, \"pid\": 76366, \"mode\": \"malformed\"}\n{\"event\": \"render-received\", \"wallMs\": 1792121305455, \"pid\": 76366, \"requestId\": \"render_1\"}\n{\"event\": \"busy-loop\", \"wallMs\": 1792121305456, \"pid\": 76366, \"requestId\": \"render_1\"}\n",
+      "lastObservedAlive": {
+        "wall": 1792121307427,
+        "pid": 76366,
+        "birth": "891778",
+        "state": "R",
+        "ticks": 202
+      },
+      "limits": "50ms Node sampling; elapsed from JS client call, not internal native deadline start. Exit observed before main-thread stall ended for runaway cases."
+    },
+    {
+      "mode": "spoof",
+      "outcome": {
+        "status": "rejected",
+        "code": "timeout",
+        "wall": 1792121310507,
+        "message": "DocumentPresentationError: Document presentation: timeout"
+      },
+      "started": 1792121308004,
+      "stallStart": 1792121308105,
+      "stallEnd": 1792121310504,
+      "lastAlive": {
+        "wall": 1792121310031,
+        "pid": 76369,
+        "birth": "892043",
+        "state": "R",
+        "ticks": 197
+      },
+      "firstGone": {
+        "wall": 1792121310080,
+        "pid": 76369,
+        "gone": true,
+        "error": "Error: ENOENT: no such file or directory, open '/proc/76369/cmdline'"
+      },
+      "goneDuringMainStall": true,
+      "goneElapsedFromRequestMs": 2076,
+      "sidecarLog": "{\"event\": \"started\", \"wallMs\": 1792121308059, \"pid\": 76369, \"mode\": \"spoof\"}\n{\"event\": \"render-received\", \"wallMs\": 1792121308059, \"pid\": 76369, \"requestId\": \"render_1\"}\n{\"event\": \"busy-loop\", \"wallMs\": 1792121308059, \"pid\": 76369, \"requestId\": \"render_1\"}\n",
+      "lastObservedAlive": {
+        "wall": 1792121310031,
+        "pid": 76369,
+        "birth": "892043",
+        "state": "R",
+        "ticks": 197
+      },
+      "limits": "50ms Node sampling; elapsed from JS client call, not internal native deadline start. Exit observed before main-thread stall ended for runaway cases."
+    }
+  ],
+  "cleanup": [
+    {
+      "pid": 76148,
+      "argv": [
+        "/workspace/.cargo/bin/tauri-driver",
+        "--port",
+        "4618",
+        "--native-port",
+        "4619",
+        "--native-driver",
+        "/workspace/.cloud/milkup-v2/sysroot/usr/bin/WebKitWebDriver"
+      ]
+    },
+    {
+      "pid": 76149,
+      "argv": [
+        "/workspace/.cloud/milkup-v2/sysroot/usr/bin/WebKitWebDriver",
+        "--port=4619",
+        "--host=127.0.0.1"
+      ]
+    }
+  ]
+}

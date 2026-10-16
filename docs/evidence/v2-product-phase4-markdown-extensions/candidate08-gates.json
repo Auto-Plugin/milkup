@@ -1,7 +1,7 @@
 {
   "candidate": "candidate08",
   "sourceManifest": "candidate08-final-source-manifest.json",
-  "status": "prerequisite-gates-pass-native-pending",
+  "status": "prerequisite-gates-pass-native-run03-failed",
   "sourceFiles": 677,
   "unit": {
     "passed": 1708,
@@ -24,5 +24,44 @@
   "windows": "not-run",
   "runtimeBudgetSpent": false,
   "artifactUploadBudgetSpent": false,
-  "extractedBinarySha256": "ffc26d6c38551247a7d8b9164d17eb81c14770260ddb6ea3a12aade35354e97e"
+  "extractedBinarySha256": "ffc26d6c38551247a7d8b9164d17eb81c14770260ddb6ea3a12aade35354e97e",
+  "nativeFailure": {
+    "run": "candidate08-run03",
+    "stage": "windowed flow preview pointer reveal",
+    "error": "preview did not become editable source within original 15s",
+    "rootCause": "not established; pre-input hit passed and native pointer sent, click event target not recorded; no supervisor control",
+    "matrixCompleted": 0
+  },
+  "priorNativeFailures": [
+    {
+      "run": "candidate08-run01",
+      "stage": "GTK external installation",
+      "rootCause": "unresolved"
+    },
+    {
+      "run": "candidate08-run02",
+      "stage": "ordinary root re-preview",
+      "error": "math and diagrams production supervisor timeout; then live root preview wait failed",
+      "rootCause": "not established; main-thread sampling gap3317ms; internal child completion time unavailable",
+      "matrixCompleted": 0
+    }
+  ],
+  "nativePassedCoverage": [
+    "three external plugin installations/enables",
+    "ordinary semantics",
+    "ordinary source/live Unicode edits, byte-exact save, undo/redo",
+    "windowed root source reveal/re-preview"
+  ],
+  "segmentedCoverage": {
+    "run": "candidate08-segmented01",
+    "acceptance": false,
+    "status": "failed at far-reference preparation original 90s",
+    "matrixCompleted": 0,
+    "notReached": [
+      "far keyboard/navigation/return",
+      "windowed history",
+      "matrix",
+      "all-disabled recovery"
+    ]
+  }
 }
