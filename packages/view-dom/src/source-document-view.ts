@@ -815,14 +815,14 @@ export class SourceDocumentView {
             this.lineTop(this.currentSource.lineCount + 1) - this.lineTop(request.toLine + 1),
         ),
       )
+      this.contentDOM.dataset.virtualized = 'true'
+      this.contentDOM.dataset.fromLine = String(request.fromLine)
+      this.contentDOM.dataset.toLine = String(request.toLine)
+      this.contentDOM.dataset.renderMode = this.mode
     })
     this.contentDOM.querySelectorAll<HTMLElement>('.milkup-block-code').forEach((line) => {
       line.scrollLeft = codeScroll.get(line.dataset.line) ?? 0
     })
-    this.contentDOM.dataset.virtualized = 'true'
-    this.contentDOM.dataset.fromLine = String(request.fromLine)
-    this.contentDOM.dataset.toLine = String(request.toLine)
-    this.contentDOM.dataset.renderMode = this.mode
     this.measureTableRows()
     this.renderSearchHighlights()
     this.renderSelection()

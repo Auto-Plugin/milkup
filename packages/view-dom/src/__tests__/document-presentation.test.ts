@@ -1098,3 +1098,178 @@ it.each(['block', 'reference'] as const)(
     }
   },
 )
+
+it.each([
+  'selected-line',
+  'reader-position',
+  'new-document',
+  'new-version',
+  'source-mode',
+  'missing-line',
+] as const)(
+  'preserves the pre-replacement %s anchor when a window reinstalls source DOM',
+  async (scenario) => {
+    const { DocumentPresentation } = await import('../document-presentation')
+    const root = document.createElement('div')
+    const content = document.createElement('div')
+    root.append(content)
+    document.body.append(root)
+    const source = ['top', '$a/b$', 'marker', ...Array<string>(21).fill('tail')].join('\n')
+    const box = (top: number, height: number) =>
+      ({
+        x: 0,
+        y: top,
+        top,
+        bottom: top + height,
+        left: 0,
+        right: 800,
+        width: 800,
+        height,
+        toJSON: () => ({}),
+      }) as DOMRect
+    vi.spyOn(root, 'getBoundingClientRect').mockImplementation(() => box(0, 100))
+    const makeLines = () => {
+      let from = 0
+      return source.split('\n').map((text, index) => {
+        const line = document.createElement('div')
+        line.className = 'milkup-line'
+        Object.assign(line.dataset, {
+          line: String(index + 1),
+          from: String(from),
+          to: String(from + text.length),
+        })
+        const span = document.createElement('span')
+        Object.assign(span.dataset, { from: String(from), to: String(from + text.length) })
+        span.textContent = text
+        line.append(span)
+        from += text.length + 1
+        vi.spyOn(line, 'getBoundingClientRect').mockImplementation(() => {
+          const expanded = Boolean(content.querySelector('math'))
+          return box(
+            index * 21 + (index > 1 && expanded ? 179 : 0) - root.scrollTop,
+            index === 1 && expanded ? 200 : 21,
+          )
+        })
+        return line
+      })
+    }
+    content.replaceChildren(...makeLines())
+    let identity = {},
+      version = 0,
+      mode: 'live' | 'source' = 'live'
+    const manager = new DocumentPresentation(
+      root,
+      content,
+      provider(4, 9),
+      () => ({
+        mode,
+        sourceIdentity: identity,
+        sourceVersion: version,
+        selection: { anchor: 10, head: 16 },
+        lineCount: 24,
+        read: (from, to) => source.slice(from, to),
+      }),
+      () => {},
+      () => {},
+    )
+    try {
+      manager.schedule()
+      await settle()
+      expect(root.scrollTop).toBe(179)
+      if (scenario === 'reader-position') root.scrollTop = 400
+      const anchor =
+        scenario !== 'reader-position'
+          ? content.querySelector<HTMLElement>('[data-line="3"]')!
+          : (Array.from(content.children).find(
+              (line) => line.getBoundingClientRect().bottom > 0,
+            ) as HTMLElement)
+      const number = anchor.dataset.line!
+      const top = anchor.getBoundingClientRect().top
+      const selectionTop = content.querySelector('[data-line="3"]')!.getBoundingClientRect().top
+      // This is SourceDocumentView's ordering: replace literal lines, then render selection.
+      // No preview has focus; the user is editing or reading the source-backed viewport.
+      const scrollTop = root.scrollTop
+      const external = document.createElement('button')
+      document.body.append(external)
+      external.focus()
+      manager.updateContent(() => {
+        if (scenario === 'new-document') identity = {}
+        if (scenario === 'new-version') version++
+        if (scenario === 'source-mode') mode = 'source'
+        const lines = makeLines()
+        content.replaceChildren(...(scenario === 'missing-line' ? lines.slice(-1) : lines))
+      })
+      manager.selectionChanged()
+      if (scenario === 'selected-line' || scenario === 'reader-position') {
+        expect(content.querySelector(`[data-line="${number}"]`)!.getBoundingClientRect().top).toBe(
+          top,
+        )
+        expect(content.querySelector('[data-line="3"]')!.getBoundingClientRect().top).toBe(
+          selectionTop,
+        )
+        expect(content.querySelector('math')).not.toBeNull()
+      } else {
+        expect(root.scrollTop).toBe(scrollTop)
+        expect(content.querySelector('math')).toBeNull()
+      }
+      expect(document.activeElement).toBe(external)
+    } finally {
+      manager.destroy()
+    }
+  },
+)
+
+it('publishes the source window range before measuring replacement preview lines', async () => {
+  const parent = document.createElement('main')
+  document.body.append(parent)
+  const base = provider()
+  const view = new SourceDocumentView({
+    parent,
+    mode: 'live',
+    source: new MemoryDocumentSource({
+      documentId: 'window-metadata',
+      text: ['$a/b$', ...Array<string>(99).fill('tail')].join('\n'),
+    }),
+    virtualViewport: { enabled: true, viewportHeight: 84, overscanLines: 2 },
+    documentPresentation: {
+      provide: async (window, options) => {
+        const response = await base.provide(window, options)
+        return {
+          ...response,
+          result: {
+            ...response.result,
+            fragments: response.result.fragments.filter(
+              (fragment) => fragment.from >= window.from && fragment.to <= window.to,
+            ),
+          },
+        }
+      },
+    },
+  })
+  views.push(view)
+  await settle()
+  const mismatches: { declared: string; actual: string }[] = []
+  const measure = HTMLElement.prototype.getBoundingClientRect
+  const spy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+    this: HTMLElement,
+  ) {
+    if (this.classList.contains('milkup-line') && this.parentElement === view.contentDOM) {
+      const lines = Array.from(view.contentDOM.children).filter((line) =>
+        line.classList.contains('milkup-line'),
+      ) as HTMLElement[]
+      const declared = `${view.contentDOM.dataset.fromLine}:${view.contentDOM.dataset.toLine}`
+      const actual = `${lines[0]?.dataset.line}:${lines.at(-1)?.dataset.line}`
+      if (declared !== actual) mismatches.push({ declared, actual })
+    }
+    return measure.call(this)
+  })
+  try {
+    await view.scrollToLine(50)
+    await settle()
+    expect(view.contentDOM.dataset.fromLine).toBe('48')
+    expect(mismatches.slice(0, 3)).toEqual([])
+    expect(view.source.version).toBe(0)
+  } finally {
+    spy.mockRestore()
+  }
+})

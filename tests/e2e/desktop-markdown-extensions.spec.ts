@@ -389,7 +389,7 @@ for (const windowed of [false, true])
             })
         if (windowed) await view.revealSelection(3, selection)
         view.dom.querySelector<HTMLTextAreaElement>('.milkup-input-proxy')!.focus()
-        ;(window as any).presentationProbe = { view, requests, store, source }
+        ;(window as any).presentationProbe = { view, requests, store, source, coreModule }
       },
       {
         source,
@@ -446,4 +446,54 @@ for (const windowed of [false, true])
       anchor: source.indexOf('SAMPLE-ROOT'),
       head: source.indexOf('SAMPLE-ROOT') + 11,
     })
+    if (windowed) {
+      const navigation = await page.evaluate(async () => {
+        const { view, source, store, coreModule } = (window as any).presentationProbe
+        const { Selection } = await import(coreModule)
+        const from = source.indexOf('SAMPLE-NOTE')
+        const lineNumber = source.slice(0, from).split('\n').length
+        await view.revealSelection(lineNumber, Selection.range(from, from + 'SAMPLE-NOTE'.length))
+        const observations = []
+        for (let index = 0; index < 20; index++) {
+          const line = view.contentDOM.querySelector(`[data-line="${lineNumber}"]`)
+          const rect = line?.getBoundingClientRect(),
+            viewport = view.dom.getBoundingClientRect()
+          observations.push({
+            scrollTop: view.dom.scrollTop,
+            top: rect?.top,
+            bottom: rect?.bottom,
+            viewportTop: viewport.top,
+            viewportBottom: viewport.bottom,
+          })
+          await new Promise((resolve) => setTimeout(resolve, 50))
+        }
+        const text = (await store.readLineWindow(1, store.lineCount)).text
+        return {
+          observations,
+          unchanged: text === source,
+          version: store.version,
+          selection: view.selection.main,
+          from,
+        }
+      })
+      await writeFile(
+        test.info().outputPath('window-navigation.json'),
+        JSON.stringify(navigation, null, 2),
+      )
+      expect(
+        navigation.observations.every(
+          (item) =>
+            item.top !== undefined &&
+            item.bottom !== undefined &&
+            item.top >= item.viewportTop &&
+            item.bottom <= item.viewportBottom,
+        ),
+      ).toBe(true)
+      expect(navigation.unchanged).toBe(true)
+      expect(navigation.version).toBe(0)
+      expect(navigation.selection).toMatchObject({
+        anchor: navigation.from,
+        head: navigation.from + 'SAMPLE-NOTE'.length,
+      })
+    }
   })

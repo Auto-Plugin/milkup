@@ -533,20 +533,50 @@ export class DocumentPresentation {
   }
   /** The view invokes this around a synchronous source-DOM replacement. */
   updateContent(update: () => void): void {
+    const before = this.snapshot()
+    const cache = this.cache
+    const config = this.config
+    const reusable =
+      cache !== undefined &&
+      config !== undefined &&
+      before.mode === 'live' &&
+      cache.identity === before.sourceIdentity &&
+      cache.key.startsWith(`${before.sourceVersion}:`) &&
+      sameSelection(cache.response.request.selection, before.selection)
+    // Source DOM replacement temporarily removes measured preview height. Capture
+    // the reading position before that shrink, while the visible line is known.
+    const anchor = reusable ? this.captureScrollAnchor(before.selection) : undefined
+    const anchorSource = anchor && {
+      from: anchor.line.dataset.from,
+      to: anchor.line.dataset.to,
+      line: anchor.line.dataset.line,
+    }
     const focus = this.captureFocus()
     update()
-    const current = this.snapshot(),
-      cache = this.cache
+    const current = this.snapshot()
     if (
-      focus &&
-      cache &&
-      this.config &&
+      reusable &&
+      this.cache === cache &&
+      this.config === config &&
       current.mode === 'live' &&
-      cache.identity === current.sourceIdentity &&
-      cache.key.startsWith(`${current.sourceVersion}:`) &&
+      current.sourceIdentity === before.sourceIdentity &&
+      current.sourceVersion === before.sourceVersion &&
       sameSelection(cache.response.request.selection, current.selection)
     ) {
+      // Reinstall before the view measures its new lines, even when focus is in
+      // the input proxy or an external control rather than a preview.
       this.paint(cache.response)
+      if (anchor && anchorSource) {
+        const replacement = Array.from(this.content.children).find(
+          (line): line is HTMLElement =>
+            line instanceof HTMLElement &&
+            line.classList.contains('milkup-line') &&
+            line.dataset.from === anchorSource.from &&
+            line.dataset.to === anchorSource.to &&
+            line.dataset.line === anchorSource.line,
+        )
+        if (replacement) this.restoreScrollAnchor({ line: replacement, top: anchor.top })
+      }
       this.restoreFocus(focus)
     }
   }
