@@ -1,0 +1,32 @@
+# Selection-change restore study — prepared, not executed
+
+This supersedes the omission/refresh schedule proposed in `../window-navigation-multirow-static-plan.md` as the next candidate. The earlier proposal is retained as a static alternative, not an executed result. No repository files changed. No runtime or syntax/type/test command has been run.
+
+## Specific branch
+
+Source `renderSelection` calls `DocumentPresentation.selectionChanged`. Its cache-selection mismatch branch calls `restore(); schedule()` (manager620–633). Restore removes the preview, restores saved row displays, and restores a reading anchor, but does not call `layout` (1194–1233). By contrast `invalidate` calls `restore(); layout(); schedule()` (561–570). Thus a natural scroll may use retained collapsed height deltas before a subsequent layout measures newly literal rows. This is a static possibility, not established native causation; newer reads or observer layout may promptly correct it.
+
+## Frozen-style fixture draft
+
+- Public `SourceDocumentView` + forwarding `MemoryDocumentSource` wrapper; no private override or forced scroll/observer/event.
+- Copy of completed native diagnostic ordinary.md, SHA256 a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b. It has 580 lines, not the native padded160k document; this intentionally excludes compression/eviction claims.
+- Exact Sankey fence318..394 (77rows),5742..8060 and following sequence marker398,8103..8160. Initial marker316 is used through public revealSelection to establish the existing complete painted block and its expansion metadata.
+- Chromium viewport1100×760; fixed editor top37/bottom30 gives693px; Source overscan12.
+- Controlled single blue typedSVG, not official Mermaid. Its width600,height406.90625 and integer decoded600×407 derive from the completed native `coverage-windowed-sankey-000-first-official-example` image/slot. Native preview outer bounds1048×423.6875 are separately recorded; do not set image dimensions equal to outer preview dimensions and double-count host padding. The draft records its actual resulting preview/row geometry rather than claiming all CSS matches native.
+- Initial decoded phase must show all77 fence rows mounted and at least76 collapsed. A missing initial complete block is setup failure, not product red.
+- Arm provider gate, then unguarded public revealSelection(398, range), with no refresh, omission, config/mode change, wheel, focus or direct scroll/render call.
+- Gate only actual provider requests whose selection exactly equals the new target. It releases after eight observed RAFs, with an independent750ms safety release. Record which release actually happened; no production deadline is extended. Source reads remain ungated and unmodified, with their actual stacks/arguments recorded.
+- Capture actual collapse→literal observations through public DOM MutationObserver/scroll and provider phases, and a source-read snapshot when logical target selection is already assigned. Those are evidence, not a claim to expose the internal measurement map or private request ID.
+- Observe16 settled frames after navigation resolves and provider gate releases. Primary assertions: original bytes/version, target selection, marker intersects viewport, exact source-range selection projection intersects viewport, caret intersects viewport, no page errors. Do not reuse the previous research's fractional whole-row top>=editor.top check. The old0.21875px failure remains unchanged in its original archive.
+- If setup/gate is not reached, or the target remains mounted and visible, report that outcome; do not manipulate scroll or timing to seek red. A failure before the final assertions must be distinguished from a navigation regression.
+
+## First-run plan, awaiting separate GO
+
+Run a single Chromium case, workers1/retries0, using the existing configured environment and external config. Preserve first exit, full JSON/line logs, trace, PNG, actual source before/after hashes and precise managed-server cleanup. No automatic retry. Parent's native prefix run just completed without reproducing the failure; its normal target mount does not close the prior native first failure and does not justify forcing this study to fail.
+
+Suggested command (not executed):
+
+`source /workspace/.cloud/milkup-v2/env.sh` then from `/workspace/milkup`:
+`node node_modules/@playwright/test/cli.js test --config=/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-01/playwright.config.ts --project=desktop-msedge --workers=1 --retries=0 --reporter=line,json`
+
+Output `PLAYWRIGHT_JSON_OUTPUT_NAME` should point into this study directory. Exact command, first-run file SHA and preflight port/process ownership must be recorded when runtime is authorized.

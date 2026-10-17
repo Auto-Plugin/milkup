@@ -1,0 +1,25 @@
+# Revision02: repair the study's initial fence context
+
+Status: parser-only verification PASS; browser NOT RUN. Revision01 remains frozen and unchanged, including its first setup failure. No product/default context/overscan/budget/navigation assertion changes.
+
+## Why revision01 did not enter the experiment
+
+It returned three legal empty provider results; its last window5510..7005 excluded Sankey's closing8060. No image was mounted, so this is not evidence of Chromium fractional intrinsic-height rounding. The finite parser probe now independently explains the incomplete setup: parsing the observed supplement304..559 in the original whole catalog starts inside a preceding diagram. The preceding closing fence at line312 is read locally as an opening, closing at394. Its block starts5634, not target5742; this cannot satisfy the Source supplement's matching-opening condition. The earlier parse280..384 had identified the true target318 as incomplete. This probe is local parser evidence, not a complete native trusted-prefix or navigation reproduction.
+
+## Only fixture corrections
+
+1. Replace the18 complete pre-Sankey diagram ranges (listed in fixture-diff.json) with plain ASCII `p` padding. Each line's UTF16 length and exact EOL stay unchanged. Other prefix lines remain unchanged. Lines316 through EOF are byte-identical, including marker316, exact77-row fence318..394 and marker398. UTF16 source offsets5742..8060 and8103..8160 are unchanged. The document remains580 lines. This removes preceding graph parsing/history; it is intentionally not the full native prefix or padded160k document.
+2. Initial decoded-image readiness now means complete, naturalWidth600, naturalHeight>0. Record actual height rather than assuming WebKit's407 in Chromium. This is a separate portable setup check; it is **not** claimed as the cause of revision01, which had zero images.
+3. Paths point to the independent02 output directory. `case-diff.patch` shows the exact changes; all target navigation/provider-gate/final marker/selection/caret assertions are unchanged.
+
+## Actual finite proof
+
+`parser-probe.ts` uses the current public MemoryDocumentSource and parseMarkdownWindow, with readLineWindow max65536. It ran once over two sources × two exact bounded windows, using esbuild only to execute current TS in Node. Build and probe both exited0, logs/commands/times retained.
+
+For revision02,280..384 returns the true incomplete fence opening at318/from5742;304..559 returns a valid fence from5742, with closing marker to8060 at394. The supplement contains256lines/5827UTF16 units, within existing limits. Marker398 remains8103..8160. This proves the local parse prerequisite, **not** initial real DOM mounting, presentation decode, or browser regression success.
+
+## Unchanged browser experiment, awaiting new GO
+
+One worker, retries0, actual Chromium, viewport1100×760/editor693px, overscan12/context default. Initial public reveal316 must establish77mounted/76collapsed and decoded controlled typed rectangle using captured native slot600×406.90625. Actual public reveal398 is then the only experimental navigation. Gate only its new-selection provider response, release after8RAF or750ms safety bound. No refresh, omission, artificial scroll, private patch, read gate or manual mount. Observe natural source reads/mutations/scroll; final exact marker/projection/caret visibility and unchanged source/version remain mandatory.
+
+Use the01 run procedure with new02 paths; freeze inputs before the one authorized browser execution. No execution is implied by this plan. All01 failures and the still-open native first failure retain their original classifications.

@@ -1,0 +1,89 @@
+{
+  "author": "release_sdk",
+  "atUtc": "2026-10-16T23:53:50.595610+00:00",
+  "scope": "Static guard inventory/design only. No product or test edits, runtime, compilation or tests. Await genuine77-line selection-change RED before implementation.",
+  "sourceSha256": {
+    "packages/view-dom/src/document-presentation.ts": "07cbcfb4d576ff148585a397195edb691ab8780fe539c2fad52e246b081462b7",
+    "packages/view-dom/src/source-document-view.ts": "ad1a9a7a746c8eaf641e132ee5a91cb4779c4d860c9f9f445231c8d2b8923206",
+    "packages/view-dom/src/__tests__/document-presentation-anchor-guards.test.ts": "e14f0841ae343945e22928f3c36aeeeb08eeabdb25989c0101201f6dc8b44b17",
+    "packages/view-dom/src/__tests__/document-presentation.test.ts": "229ed3e3e0f320801374a69cc8d59314a4012229d0eac195821829c35a850b85",
+    "packages/view-dom/src/__tests__/document-svg-image.test.ts": "e40768ec8072679c511beca663ee07014acab382a7b2c2cd767084187a40af74"
+  },
+  "newNativeBoundary": "Parent reports same-prefix diagnostic did not reproduce: oldwindow276..394/scroll7166 then164ms later318..449/scroll8377 and target398top37 selected. This report does not independently claim a runtime replay or causal proof.",
+  "reuse": [
+    {
+      "file": "packages/view-dom/src/__tests__/document-presentation-anchor-guards.test.ts",
+      "line": 107,
+      "cases": "Existing8context changes source/sourceVersion/documentVersion/selection/mode/config/epoch/destroy for notice/replacement layout callbacks",
+      "reuse": "Extend same fixture mechanism with an actual painted-restoration phase. Each mutation must occur inside restoration layout, not before it; record sentinel scroll and assert no old anchor overwrites it. Existing cases alone do not exercise new branch."
+    },
+    {
+      "file": "packages/view-dom/src/__tests__/document-presentation-anchor-guards.test.ts",
+      "line": 81,
+      "cases": "Visible selection vs offscreen selection anchor; absent old anchor; disabled/source-mode updateContent; already-current paint reports no measurement",
+      "reuse": "Keep these as baseline, preserve reader viewport rather than forcibly reveal offscreen selection. Do not assume disabled updateContent test proves restored DOM can skip measurement during disable."
+    },
+    {
+      "file": "packages/view-dom/src/__tests__/document-presentation.test.ts",
+      "line": 960,
+      "cases": "Collapsed continuation rows measuredzero then heights restored after disable",
+      "reuse": "Re-use provider/height mocks but add changed-selection restore while next provider unresolved. Disable uses invalidate+layout and is not this missing branch."
+    },
+    {
+      "file": "packages/view-dom/src/__tests__/document-presentation.test.ts",
+      "line": 1566,
+      "cases": "source-window from/to metadata published before measuring replacement rows",
+      "reuse": "Protect spacer/range contract when adding synchronous restoration measurement."
+    },
+    {
+      "file": "packages/view-dom/src/__tests__/document-presentation.test.ts",
+      "line": 470,
+      "cases": "Async growing preview anchors visible selection; disable returns source without changing selection/bytes",
+      "reuse": "Retain both ordinary/windowed behavior and document/selection invariants."
+    },
+    {
+      "file": "packages/view-dom/src/__tests__/document-presentation.test.ts",
+      "line": 533,
+      "cases": "Selection-dependent output without repaint loops; cancels late old selection; same-position scroll dedup and genuine-scroll rerender",
+      "reuse": "Run relevant existing guards after actual patch; do not broaden cache lifetime or force user scroll back."
+    }
+  ],
+  "necessaryNewGuards": [
+    {
+      "name": "synchronous restoration ordering",
+      "assert": "With actual saved multiline presentation and next provider still pending, changedselection restores all literal rows, layout sees uncollapsed DOM, and anchor correction uses post-layout geometry. No need to await provider or schedule microtask for measured model to agree."
+    },
+    {
+      "name": "direct selection reentrancy",
+      "assert": "Layout callback calls manager.selectionChanged just as Source renderSelection does. It must terminate with one top-level restoration measurement, without recursive restore/provider launches or loss of current selection; painting guard restored afterward."
+    },
+    {
+      "name": "callback context change matrix",
+      "assert": "Reuse8 existing mutators inside restoration callback; changedcontext owns subsequent scroll. No old-anchor restore after sourceidentity/sourceVersion/documentVersion/selection/mode/config/epoch change or destroy. No stale observer reattachment afterdestroy."
+    },
+    {
+      "name": "paint-internal restore",
+      "assert": "Initial/replacement paint invokes restore(true) while painting. Measure only final installed result once, never intermediate literal rows. This protects collapse and olddecoded-image atomic transition semantics."
+    },
+    {
+      "name": "no-op and stopped",
+      "assert": "Repeated selectionChanged with no saved presentation/notice transition causes no new geometry callback. Destroy itself restores literal DOM without calling live layout or schedulingwork."
+    },
+    {
+      "name": "throw unwinds guard",
+      "assert": "A controlled restoration layout exception propagates through existing channel and painting is released in finally; later valid operation can paint. Do not swallow error to pass geometry assertion."
+    },
+    {
+      "name": "invalidate already measures",
+      "assert": "When invalidate removes a painted presentation, do not accidentally perform both new restoration layout and old unconditional layout. When invalidate has no restoration to measure, preserve its existing layout role. Assert simple top-level call counts and final geometry; nested intentionally invoked lifecycle callbacks are separately qualified."
+    }
+  ],
+  "implementationReviewNotes": [
+    "Use a changed/restored-measurement result internal to manager only if needed; do not infer measurement from anchor existence, since restoring rows with no usable anchor still requires model refresh.",
+    "Consider notice removal too: it changes normal flow without saved fragments; a no-op check must distinguish actual geometry transition from only stale attributes.",
+    "Capture context before restoration and reuse fallback() existing guardedlayout->contextcheck->restoreAnchor pattern. Keep guard try/finally and preserve existing parent painting state.",
+    "Caller audit includes invalidate568, preparationtimeout851 and rejection910, which currently call restore then layout. Any de-duplication must preserve original independent layout on paths where restore did no measurement, without changing provider budgets, timers or invalidation semantics.",
+    "Public browser77-row before remains essential for real layout ordering. Unit mock rectangles can prove call order/reentrancy/lifecycle but not that native missing-window mechanism is reproduced or repaired."
+  ],
+  "status": "Ready for fixture/code review after real RED; no implementation authorization inferred."
+}

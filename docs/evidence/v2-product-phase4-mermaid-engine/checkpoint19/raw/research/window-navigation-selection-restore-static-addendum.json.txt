@@ -1,0 +1,56 @@
+{
+  "author": "release_sdk",
+  "atUtc": "2026-10-16T23:50:28.333414+00:00",
+  "scope": "Independent read-only supplement; no editing product or tests, no runtime. Prior candidate review preserved.",
+  "sourceSha256": {
+    "packages/view-dom/src/document-presentation.ts": "07cbcfb4d576ff148585a397195edb691ab8780fe539c2fad52e246b081462b7",
+    "packages/view-dom/src/source-document-view.ts": "ad1a9a7a746c8eaf641e132ee5a91cb4779c4d860c9f9f445231c8d2b8923206",
+    "packages/view-dom/src/editor-view.ts": "4084272d196b6f9f70cf85a3c355e9b1a9773deea06e53e1705572b59208367e",
+    "packages/view-dom/src/measured-line-heights.ts": "2322378bc06d1d8c0d49b074b5d1094f05a4657424ce1a2fc73a34c9403f42d1"
+  },
+  "finding": "Confirmed code-level gap: selectionChanged can restore literal multirow DOM and adjust outer scroll before refreshing SourceDocumentView measured heights. This is a more specific candidate than a measurement change occurring only after a pending request. Actual native causal timing remains unproven.",
+  "exactOrder": [
+    {
+      "path": "document-presentation.ts:610-632",
+      "sequence": "selectionChanged sees cache selection/context mismatch, calls restore(), schedule(), returns; no synchronous layout."
+    },
+    {
+      "path": "document-presentation.ts:1196-1232",
+      "sequence": "restore captures visible anchor; removes notice; restores saved line nodes/display/minHeight and clears collapsed metadata; clears saved; calls restoreScrollAnchor using new literal DOM; reattaches observer. No layout or measured-height refresh."
+    },
+    {
+      "path": "source-document-view.ts:2980",
+      "sequence": "renderSelection invokes selectionChanged before computing selection overlay; layout callback itself invokes measureTableRows then renderSelection/cursor/search."
+    },
+    {
+      "path": "source-document-view.ts:1042-1059,1076-1114",
+      "sequence": "Only measureTableRows updates retained measuredHeights and top/bottom spacers. createRenderRequest uses those cached heights immediately for lineAtTop even if literal DOM has just changed."
+    },
+    {
+      "path": "document-presentation.ts:557-570",
+      "sequence": "invalidate does restore(); layout(); schedule(). This removes the prolonged stale map before the next task, but its separate layout is AFTER anchor restoration, not before it."
+    }
+  ],
+  "whyMatchesFixture": "Sankey318..394 spans77 lines. Restoring its collapsed rows can replace cached near-zero per-line heights with full literal rows while model remains collapsed. Anchor preservation may increase outer scroll to follow the same target. Applying lineAtTop to that increased scroll using old shorter cumulative heights can choose later lines. This direction is consistent with, but does not prove, a433+ window excluding target398.",
+  "whyOldControlDoesNotCloseIt": {
+    "testSnapshot": "research/window-navigation-reflow-browser-01/source/tests/e2e/desktop-window-navigation-reflow.spec.ts:282-283",
+    "actual": "The controlled600->80 transition invokes view.refreshDocumentPresentation at the syntax gate. refresh falls through invalidate when cached selection differs, which includes synchronous layout. Its result already demonstrates that one valid real reflow can preserve the target; it does not exercise only selectionChanged -> restore -> schedule with an unchanged77-line source fence collapsing/restoring.",
+    "qualification": "Do not assert every refresh always invalidates; refresh contains an explicit same-context cache fast path."
+  },
+  "minimumCandidateDesign": {
+    "placement": "Inside the real non-paint restoration path, after all saved DOM/collapsed flags and notice state are restored, synchronously measure/layout BEFORE restoring the captured anchor.",
+    "scope": "Only when a real presentation/notice layout transition occurred and the owner is live; avoid layout on every no-op restore. Existing paint calls restore(true) while painting=true and must keep its single final layout after reinstalling new fragments. Destroy sets stopped before restore and must not invoke live layout.",
+    "reentrancy": "Guard the callback with painting=true in try/finally (preserve prior guard state) so Source layout -> renderSelection -> selectionChanged immediately returns. Never blindly add unguarded this.layout() to restore. Existing fallback()1009-1027 is an applicable local pattern.",
+    "callbackLifetime": "After callback, verify stopped/config/epoch/source identity/version/document version/mode/selection still match captured context before anchor write. The anchor must still be contained and not collapsed. A callback may destroy or replace config/source; avoid stale scroll changes and observer resurrection. Preserve exception propagation with finally restoring guard.",
+    "callers": "Audit invalidate, timeout and rejection sites that already call restore()+layout; avoid unintended duplicate full geometry work without making unrelated lifecycle changes. Do not add a new asynchronous delay or broaden provider/cache eligibility.",
+    "notGuaranteed": "This closes one synchronous model/DOM mismatch but does not by itself prove all queued read requests or focus-induced scroll races are repaired."
+  },
+  "neededRegression": [
+    "Create actual multirow fence with validated painted owner and collapsed rows, selection A cached. Change only selection to adjacent B through public navigation; leave provider promise unresolved so any geometry fix cannot rely on the next paint.",
+    "Record a public-source read request generated by natural scroll after restoration; verify top spacer and current literal measured layout are consistent BEFORE provider settles, target398 is mounted/visible and logical selection exact.",
+    "Obtain real before RED in browser with natural layout/scroll; do not manufacture scroll to force the conclusion or relax geometry after the fact. Preserve600->80 negative-control evidence.",
+    "Guard no-op restoration, paint-internal restore(true), destroy during layout, context replacement during callback, thrown layout, and intentional user scroll away. Ordinary view callbacks must not recurse or alter selection semantics."
+  ],
+  "falsifiableNativePrediction": "After selection changes and collapsed metadata disappears, outer scroll changes before a corresponding presentation paint/layout; next mounted range moves beyond398. If the measured-DOM transition is absent or scroll instead occurs at ordinary input.focus(), this candidate does not explain that run.",
+  "status": "Static design candidate only; no product fix or passed regression claimed."
+}
