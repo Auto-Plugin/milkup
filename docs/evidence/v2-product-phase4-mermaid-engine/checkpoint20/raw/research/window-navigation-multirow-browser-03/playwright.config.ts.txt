@@ -1,0 +1,13 @@
+import { defineConfig } from '/workspace/milkup/node_modules/@playwright/test/index.mjs'
+import base from '/workspace/milkup/playwright.config'
+const directory = '/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-03'
+export default defineConfig({
+  ...base,
+  testDir: directory,
+  outputDir: `${directory}/artifacts`,
+  workers: 1,
+  retries: 0,
+  use: { ...base.use, trace: 'on' },
+  projects: [{ ...base.projects![1], testMatch: /multirow\.spec\.ts/, use: { ...base.projects![1].use, viewport: { width: 1100, height: 760 }, launchOptions: { executablePath: '/usr/bin/chromium' } } }],
+  webServer: (base.webServer as Array<object>).map(server => ({ ...server, cwd: '/workspace/milkup' })),
+})

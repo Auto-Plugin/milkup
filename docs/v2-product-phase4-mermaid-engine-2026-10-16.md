@@ -528,3 +528,25 @@ Root 核验215份完成证据、136张PNG引用及两份最终文件哈希，实
 独立 revision02 仅把目标前18个无关图围栏替换成等行数、等UTF-16长度的普通文本。316行之后逐字相同，目标围栏和选区位置不变；初始解码就绪检查不再假定WebKit的整数尺寸舍入，主要可见性断言和等待预算未改。有限解析器证明同一有界窗口能识别318..394完整目标，随后首次 Linux Chromium 运行通过。实际77行从76行折叠恢复为1617px字面源码，自然滚动7191→8377后目标、精确选区投影及目标光标可见，原文／版本保持，错误和观测丢弃均为0。Provider等待160.4ms、八帧后返回的实际窗口不含旧Sankey起点，因此合法返回空数组；没有覆盖重新折叠阶段。
 
 Root 核验revision01的23份与revision02的32份冻结证据，并实际查看两轮原图。研究没有产品修改或重试，不能将Chromium受控通过等同于真实桌面文件通道或WebKit时序验证；当前不依据静态候选修补产品。[checkpoint19](evidence/v2-product-phase4-mermaid-engine/checkpoint19/README.md) 保留前缀诊断、首次setup失败、最小夹具差异与后续未复现结果。下一步在实际Linux原生WebKit引擎验证同一受控机制；完整矩阵和历史截止原因仍待完成，Windows Runtime及上传额度仍未使用。
+
+## 多行恢复：受控目标脱挂首RED与最小测量次序修复
+
+在前述未复现研究之后，原02案例在实际production07 WebKit完成一次公开类基线验证。它单独打包相同公开视图类并使用生产CSS，受控provider等待八帧、实测482ms；77行围栏从76行折叠恢复为字面源码后，目标398、选区8103..8160与光标仍可见，源字节／版本不变。Root核验53项完成证据并实际查看原图。该基线不含后述source-read gate，不是实际桌面文件／搜索通道或官方Mermaid执行，不能用其通过反驳另一时序下的失败，也不完成原生deadline验收。
+
+受控03在同一580行夹具中保留原公开导航和provider等待，只在真实 `renderSingleLiveLine` 公开source读取跨过两个实际requestAnimationFrame。选区已赋值且目标仍挂载时进入等待，实测30.4ms，没有触发safety timer；旧预览恢复77行字面源码，自然滚动7191→8377后，另一个窗口请求应用为427..506，排除了目标398。原语法读取恢复、导航返回后，逻辑选区仍正确，源字节与版本0不变，但marker、选区投影及光标全部脱挂，16个settled frames未恢复。主要marker非空断言首次失败，零重试；其后的断言未执行，projection／caret为空另由保存DOM核对。
+
+Root核验26项原件并实际查看截图：画面显示后续sequence025／026／027源码，没有目标000，**不是此前原生整视口白区的同形复现**。该结果证明公开异步source契约下存在可重复验证的目标脱挂路径，不是前轮setup失败或0.21875px边界误差；私有高度缓存和ResizeObserver回调次序未直接采样，不能把这份受控时序当成历史原生完整调用栈或Mermaid截止根因。
+
+静态路径解释了最小修复位置：旧 `selectionChanged` 恢复预览时，字面行DOM已展开，滚动锚点却先按新DOM调整；虚拟视图仍可用旧折叠行高度选择下一窗口。此次产品修改仅涉及共享文档呈现管理器的一个内部文件：真实恢复完成后同步布局、发布恢复行的测量，再恢复锚点；布局期间保留painting重入保护，回调后重新核对context／epoch／生命周期，避免旧锚点覆盖新的状态。无变化恢复不新增测量，paint内部恢复继续由最终绘制统一测量；原先restore后另做layout的失效／错误路径合并处理，保留原布局职责。没有图型或插件ID特判，没有公开合同、原生2s／10s预算或共享配额修改。
+
+冻结修复源码为 `ff6256e3021c2bee18b404c66809301ec14399dfd954d4eaf3d5041746436013`。新增18项restore guard测试，首次focused运行3文件 **112/112通过**、零重试；四份源码before／after一致并完整保存。该组验证恢复次序、重入、context变化、paint内部路径、no-op／销毁、异常guard恢复及原失效布局职责；Vitest／jsdom结果不替代实际浏览器或原生布局验收。
+
+独立04使用与03逐字相同的case，只有输出目录改变；204项冻结runtime输入只变上述管理器。首次Chromium运行通过，source gate仍跨两个真实RAF，实测55.3ms。相同77行恢复及自然滚动后，挂载窗口保留318..447，目标398顶部37.59375px、精确选区投影及光标8160贯穿16个settled frames，原主要断言全部执行通过，原文／版本不变，错误和观测丢弃为0。Root核验26项并查看原图；光标精确位置另由DOM证据确认，不仅依靠截图blink。
+
+03首RED、04首次GREEN和单测支持这一受控测量次序修复，仍不宣称两次实际耗时相同、私有缓存次序已全程捕获或原生历史根因已完全关闭。夹具是隔离580行及受控矩形provider，不是真实Mermaid／160k完整历史；最终合法provider窗口排除旧Sankey，未覆盖重新折叠。原始失败、冻结源码、日志和PNG均保留；trace ZIP原件外部保留SHA引用，不称仓库证据自包含ZIP。
+
+正式持久化回归随后独立验证旧产品首RED：实际两个RAF等待约29.9ms，marker-null原断言失败。恢复修复源码后，完整 `desktop-markdown-extensions.spec.ts` 首次 **36/36通过**，耗时320.957秒，所有结果retry0、skipped／unexpected／flaky均0。206项输入在各自运行期间不变，切换前与最终一致，manager已恢复ff6256。新用例实际两个RAF约38.3ms，目标、精确选区与光标保留，原文／版本不变；既有35项相关浏览器用例同批运行。Root核110项完成原件并实际查看前后两图，旧图显示后续源码，新图显示选中的目标000；Linux Chromium不称Windows或原生Mermaid验收。37份trace ZIP原件外部保留SHA引用。cleanup无活动自有进程、端口释放，已退出PID452995仍为PID1下Z的限定保留。
+
+随后全仓gate08的类型检查、测试、lint及构建四条命令均首次exit0。逐包原日志确认2069项Vitest加4项独立Node测试，共 **2073项通过**；focused112和浏览器36另按其范围报告，不重复计入全仓distinct总数。17971项输入的字节数／SHA在执行前后保持相同，三处官方diagrams包均复用既有9889哈希，没有重建插件／SDK／external包。Root核验12项完成清单、四原始日志与源码一致性；Vite大chunk警告保留，不是构建失败。
+
+这完成本次修复的正式Linux Chromium浏览器与全仓代码门禁。新的Linux production08原生构建、生命周期和正式原生UI／矩阵仍 **pending**，须用新候选分别完成实际验证；仓库build不等于Tauri deb构建，原02公开类WebKit基线也不等于真实desktop文件／搜索历史。历史导航白区与未知Mermaid deadline、Windows运行及完整P4验收仍不因本节关闭。[checkpoint20](evidence/v2-product-phase4-mermaid-engine/checkpoint20/README.md) 保留受控与正式首RED、冻结修复及测试源码、各阶段首次GREEN和原始边界。

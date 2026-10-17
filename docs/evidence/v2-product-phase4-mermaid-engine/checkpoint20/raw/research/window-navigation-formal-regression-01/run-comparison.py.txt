@@ -1,0 +1,90 @@
+from pathlib import Path
+import os,sys,json,hashlib,datetime,subprocess,signal,tempfile,re
+root=Path('/workspace/milkup');base=Path('/workspace/milkup-mermaid-engine-evidence/research');out=base/'window-navigation-formal-regression-01'
+manager=root/'packages/view-dom/src/document-presentation.ts';archived=base/'window-navigation-multirow-browser-03/source/packages/view-dom/src/document-presentation.ts'
+fixed_sha='ff6256e3021c2bee18b404c66809301ec14399dfd954d4eaf3d5041746436013';old_sha='07cbcfb4d576ff148585a397195edb691ab8780fe539c2fad52e246b081462b7'
+testpath='tests/e2e/desktop-markdown-extensions.spec.ts';fixture='tests/fixtures/window-navigation-multirow.txt'
+testsha='618c6f0a3de813795672d767c07d263df73a4fd1fb6bd7b2b0d44a6dfa5b1672'
+sha=lambda b:hashlib.sha256(b).hexdigest()
+assert sha(manager.read_bytes())==fixed_sha
+assert sha(archived.read_bytes())==old_sha
+assert sha((root/testpath).read_bytes())==testsha
+assert sha((root/fixture).read_bytes())=='3f975b5119b434d851ea7f265f84069ec4db828dae0e644b479214b197b01d60'
+fixed=manager.read_bytes();before=archived.read_bytes();mode=manager.stat().st_mode&0o777
+(out/'fixed-manager-backup.ts').write_bytes(fixed);(out/'old-manager.ts').write_bytes(before)
+(out/'formal-test.ts').write_bytes((root/testpath).read_bytes());(out/'formal-fixture.txt').write_bytes((root/fixture).read_bytes())
+paths=list(json.loads((base/'window-navigation-multirow-browser-04/preparation-inputs.json').read_text())['repositoryInputs'])+[testpath,fixture]
+def inputs():
+ return {f:{'bytes':(root/f).stat().st_size,'sha256':sha((root/f).read_bytes())} for f in paths}
+def write(p,x):p.write_text(json.dumps(x,indent=2)+'\n')
+def now():return datetime.datetime.now(datetime.timezone.utc).isoformat()
+def atomic(data):
+ with tempfile.NamedTemporaryFile(dir=manager.parent,prefix='.navigation-manager-',suffix='.tmp',delete=False) as f:
+  name=f.name;f.write(data);f.flush();os.fsync(f.fileno())
+ os.chmod(name,mode);os.replace(name,manager)
+def stop_signal(number,frame):raise KeyboardInterrupt(f'Interrupted by signal{number}')
+signal.signal(signal.SIGINT,stop_signal);signal.signal(signal.SIGTERM,stop_signal)
+write(out/'inputs-before-swap.json',inputs())
+plan={'started':now(),'oldSourceSHA':old_sha,'fixedSourceSHA':fixed_sha,'testSHA':testsha,'status':'prepared','scope':'One old targeted case then only if marker-null RED one fixed fullfile36; no retry; unconditional atomic fixed source restore in finally','steps':[]}
+write(out/'comparison-execution.json',plan)
+def ports_free():
+ p=subprocess.run(['ss','-H','-ltnp','( sport = :1420 or sport = :5174 )'],capture_output=True,text=True)
+ return p.returncode==0 and not p.stdout.strip(),p.stdout
+
+def run_case(name,grep=None):
+ dest=out/name;dest.mkdir(exist_ok=False)
+ ok,ports=ports_free();assert ok, f'Ports occupied before{name}: {ports}'
+ before_inputs=inputs();write(dest/'inputs-before.json',before_inputs)
+ env=os.environ.copy();env['MILKUP_BROWSER_EXECUTABLE']='/usr/bin/chromium';env['PLAYWRIGHT_JSON_OUTPUT_NAME']=str(dest/'report.json');env.pop('CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER',None)
+ command=['node','node_modules/@playwright/test/cli.js','test',testpath,'--project=desktop-msedge','--workers=1','--retries=0','--reporter=line,json','--trace=on','--output='+str(dest/'artifacts')]
+ if grep:command+=['--grep',grep]
+ execution={'started':now(),'command':command,'cwd':str(root),'environment':'configured env.sh; explicitChromium; Cargo runner unset'}
+ with (dest/'run.log').open('w') as log:
+  proc=subprocess.Popen(command,cwd=root,env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+  execution.update(pid=proc.pid,processGroup=proc.pid);write(dest/'execution.json',execution)
+  try: code=proc.wait(timeout=180 if grep else 900)
+  except BaseException:
+   if proc.poll() is None:
+    os.killpg(proc.pid,signal.SIGTERM)
+    try:proc.wait(timeout=10)
+    except subprocess.TimeoutExpired:os.killpg(proc.pid,signal.SIGKILL);proc.wait(timeout=10)
+   raise
+ after=inputs();ok,ports=ports_free()
+ execution.update(ended=now(),exit=code,inputsUnchanged=before_inputs==after,portsFreeAfter=ok,portsAfter=ports)
+ write(dest/'inputs-after.json',after);write(dest/'execution.json',execution)
+ plan['steps'].append({'name':name,**execution});write(out/'comparison-execution.json',plan)
+ assert before_inputs==after,'Inputs changed during browser run'
+ assert ok,'Managed service port remains occupied'
+ return dest,code
+old_result=None
+try:
+ atomic(before);assert sha(manager.read_bytes())==old_sha
+ plan['status']='old-manager-installed';plan['oldInstalledAt']=now();write(out/'comparison-execution.json',plan);print('OLD_MANAGER_INSTALLED '+old_sha,flush=True)
+ old_result=run_case('old-red','windowed navigation keeps its selected marker mounted while a collapsed fence restores during an asynchronous syntax read')
+finally:
+ plan['managerBeforeRestoreSHA']=sha(manager.read_bytes())
+ atomic(fixed)
+ plan['restoredAt']=now();plan['restoredManagerSHA']=sha(manager.read_bytes());plan['status']='fixed-manager-restored';write(out/'comparison-execution.json',plan)
+ assert sha(manager.read_bytes())==fixed_sha
+ print('FIXED_MANAGER_RESTORED '+fixed_sha,flush=True)
+assert old_result is not None
+old_dir,exitcode=old_result
+report=json.loads((old_dir/'report.json').read_text())
+def specs(suites):
+ for suite in suites:
+  yield from suite.get('specs',[])
+  yield from specs(suite.get('suites',[]))
+cases=list(specs(report['suites']));assert len(cases)==1,'Expected exactly one targeted old case'
+results=cases[0]['tests'][0]['results'];assert len(results)==1,'Unexpected retry'
+r=results[0];snippet=r.get('error',{}).get('snippet','');message=re.sub(r'\x1b\[[0-9;]*m','',r.get('error',{}).get('message',''))
+qualified=exitcode==1 and r['status']=='failed' and 'expect(result.final.marker).not.toBeNull()' in snippet and 'Received: null' in message
+plan['oldMarkerNullRed']=qualified;write(out/'comparison-execution.json',plan)
+if not qualified:
+ plan['status']='stopped-old-not-qualified-red';write(out/'comparison-execution.json',plan);print('STOP: old run was not the required marker-null RED',flush=True);sys.exit(2)
+print('OLD_MARKER_NULL_RED_CONFIRMED; STARTING_FIXED_FULL_FILE',flush=True)
+plan['status']='fixed-full-file-running';write(out/'comparison-execution.json',plan)
+new_dir,code=run_case('fixed-full-green')
+assert sha(manager.read_bytes())==fixed_sha
+write(out/'inputs-final.json',inputs());plan.update(status='completed',ended=now(),exit=code,finalManagerSHA=sha(manager.read_bytes()));write(out/'comparison-execution.json',plan)
+print(json.dumps({'status':plan['status'],'exit':code,'managerSHA':fixed_sha,'fixedReport':str(new_dir/'report.json')},indent=2),flush=True)
+sys.exit(code)

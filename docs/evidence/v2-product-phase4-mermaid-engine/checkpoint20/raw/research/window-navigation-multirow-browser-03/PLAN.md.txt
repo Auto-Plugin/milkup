@@ -1,0 +1,33 @@
+# Revision03: bounded asynchronous source-read variant
+
+Status: STATIC_ONLY; no browser/build/test execution. Revision02 remains byte-for-byte unchanged. This is a legal asynchronous source-contract probe, not an exact native IPC replay or a proposed product fix.
+
+## Saved02 observations supporting a useful timing contrast
+
+- The initial77-row fence was mounted with76collapsed at5225.7ms. The public target navigation then requested a whole window294..466 at5226.6ms; that memory read resolved at5226.7ms.
+- At5270.1ms source read374..422 had the exact target selection8103..8160 and the full `renderSingleLiveLine → renderRenderedLine → renderLiveSyntaxAroundPositions → revealSelection` call chain. The following snapshot5270.3ms showed marker398 top37.28125/bottom58.28125, editor37..730,77mounted/76collapsed. The read resolved at5270.5ms: this is the precise observed candidate gate, only about0.4ms between read invocation and resolution in02.
+- At5287.5ms the fence was literal77rows/height1617, scroll8377, target top37.59375. The provider became pending at5288.1ms; navigation resolved at5288.9ms. A subsequent whole-window source read294..467 occurred5299.6→5301.5ms, followed by the observed scroll event5325.3ms. The target stayed visible throughout saved settled observations.
+
+These events show a usable **post-selection/pre-syntax-read-completion** interval and natural collapse-to-literal layout. They do not identify which private measurement/ResizeObserver callback corrected geometry.02 did not instrument RO delivery, did not expose the height-cache contents, and cannot prove RO happened after or before a particular source read. The new delay intentionally changes that scheduling opportunity; it cannot establish native latency equivalence.
+
+## Only new controlled delay
+
+Keep02's exactfixture, provider gate, defaultoverscan12/context,1100×760viewport, typedimage, navigation and all primary assertions. In the forwarding public readLineWindow wrapper:
+
+1. After recording entry, select only the first armed read with exact target selection and stack containing all four methods above. Other reads are returned normally.
+2. Before delaying, require actual marker intersection with viewport,77mounted rows and at least76collapsed. A failed prerequisite is setup failure, not product red. No unrelated read is coerced into the gate.
+3. Await two actual requestAnimationFrame callbacks. Record entry, both frames, release reason, and resume-before-read. An independent500ms timeout releases the same promise once if the frames do not arrive; no renewal. Clear timer/remainingRAF when released. Cleanup releases a pending read.500ms is an event-loop timer safeguard, not preemption of a blocked browser thread; record actual duration.
+4. Then execute the original `store.readLineWindow(...args)` and return its exact result. No source rewrite, read range change, private cache modification, manual rendering, scroll, event dispatch, refresh or provider omission.
+5. Retain02's separate new-selection provider hold:8observedRAF or750ms safety release. This is unchanged; source gate and provider gate may overlap naturally. Require the qualified source gate to have been reached before treating the main experiment as reached.
+
+The source gate is one-shot for the study, not once per request or generation. If natural scheduling supersedes the original read or correctly updates measurements, that is a valid negative outcome. If the target disappears, preserve exact source reads/mountedrange/spacer geometry and distinguish a transient from final navigation failure. The test does not assert that a specific callback ran; its explicit gate records show the actual controlled interval.
+
+## Scope and assertions
+
+Primary assertions are unchanged: exacttarget selection, visible mountedmarker, exactrange visibleprojection, visiblecaret(position8160,line398), unchanged source/version0 and no pageerrors. No fractional whole-row boundary assertion from the earlier research is introduced. The580-line isolated prefix does not cover160k compression, prior native graphhistory, actual Mermaid timing, focus/Escape, or sourceversion changes.
+
+The saved02 final provider response excluded the previous Sankey opening and therefore returnedempty;03 may do likewise. Do not claim recollapse coverage unless it actually occurs. Do not force a fullfragment into a request that excludes it.
+
+## Execution pending separate GO
+
+Single actual Chromium case, worker1/retries0, existing externalconfig with03 paths. Preserve first result including setup failure or PASS. No automatic repeat, no timing adjustment after first output. Root will choose browser/native sequencing; this preparation starts no process.

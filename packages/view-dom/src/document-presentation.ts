@@ -565,8 +565,7 @@ export class DocumentPresentation {
     this.cache = undefined
     this.failedKey = undefined
     this.blocks = []
-    this.restore()
-    this.layout()
+    this.restore(false, true)
     this.schedule()
   }
   destroy(): void {
@@ -848,8 +847,7 @@ export class DocumentPresentation {
         this.retryAfter = Date.now() + 1000
         job.controller.abort()
         this.cache = undefined
-        this.restore()
-        this.layout()
+        this.restore(false, true)
         this.fallback('预览超时，保留 Markdown 源码。')
       }
     }
@@ -907,8 +905,7 @@ export class DocumentPresentation {
           this.failedKey = key
           this.retryAfter = Date.now() + 1000
           this.cache = undefined
-          this.restore()
-          this.layout()
+          this.restore(false, true)
           this.fallback('预览不可用，保留 Markdown 源码。')
         }
       })
@@ -1191,33 +1188,42 @@ export class DocumentPresentation {
     )
       this.root.scrollTop += anchor.line.getBoundingClientRect().top - anchor.top
   }
-  private restore(preserveImages = false): void {
+  private restore(preserveImages = false, forceLayout = false): void {
+    const painting = this.painting
     if (!preserveImages) {
       this.imageGeneration++
       this.disposeFragmentImages()
     }
-    // A new window job first restores source, before its eventual replacement paint.
-    // Preserve the same visible anchor across that intermediate shrinking layout too.
-    const anchor =
-      !this.painting && !this.stopped && (this.saved.size || this.notice)
-        ? this.captureScrollAnchor()
-        : undefined
-    this.notice?.remove()
-    this.notice = undefined
-    if (!this.saved.size && !this.painted) {
+    if (!this.saved.size && !this.painted && !this.notice && !forceLayout) {
       if (this.content.dataset.documentPresentationStatus) {
         delete this.content.dataset.documentPresentationStatus
         this.content.removeAttribute('aria-description')
       }
-      this.restoreScrollAnchor(anchor)
       return
     }
-    this.observer.disconnect()
+    const context = !painting && !this.stopped ? this.paintContext() : undefined
+    const epoch = this.epoch
+    // A new window job first restores source, before its eventual replacement paint.
+    // Preserve the same visible anchor across that intermediate shrinking layout too.
+    const anchor =
+      context && (this.saved.size || this.notice)
+        ? this.captureScrollAnchor(context.selection)
+        : undefined
+    let changed = !!this.notice?.parentNode
+    this.notice?.remove()
+    this.notice = undefined
+    const observed = !!(this.saved.size || this.painted)
+    if (observed) {
+      this.observer.disconnect()
+      for (const element of Array.from(
+        this.content.querySelectorAll('[data-document-presentation]'),
+      ))
+        this.resize?.unobserve(element)
+    }
     this.painted = undefined
-    for (const element of Array.from(this.content.querySelectorAll('[data-document-presentation]')))
-      this.resize?.unobserve(element)
     for (const [line, saved] of this.saved) {
       if (this.content.contains(line)) {
+        changed = true
         line.replaceChildren(...saved.nodes)
         line.style.display = saved.display
         line.style.minHeight = saved.minHeight
@@ -1228,8 +1234,23 @@ export class DocumentPresentation {
     this.saved.clear()
     delete this.content.dataset.documentPresentationStatus
     this.content.removeAttribute('aria-description')
-    this.restoreScrollAnchor(anchor)
-    if (!this.stopped) this.observe()
+    if (!context) {
+      if (observed && !this.stopped) this.observe()
+      return
+    }
+    const current = () =>
+      !this.stopped && this.epoch === epoch && this.samePaintContext(context, this.paintContext())
+    // Restored multiline source changes the virtual view's height cache. Publish
+    // those measurements before adjusting scroll, including during navigation's
+    // asynchronous syntax reads. Painting already measures its final DOM once.
+    this.painting = true
+    try {
+      if (changed || forceLayout) this.layout()
+      if (current()) this.restoreScrollAnchor(anchor)
+    } finally {
+      this.painting = painting
+      if (observed && !this.stopped) this.observe()
+    }
   }
   private paint(response: DocumentPresentationResponse): void {
     if (this.painting) return

@@ -1,0 +1,70 @@
+{
+  "started": "2026-10-17T00:24:03.332098+00:00",
+  "oldSourceSHA": "07cbcfb4d576ff148585a397195edb691ab8780fe539c2fad52e246b081462b7",
+  "fixedSourceSHA": "ff6256e3021c2bee18b404c66809301ec14399dfd954d4eaf3d5041746436013",
+  "testSHA": "618c6f0a3de813795672d767c07d263df73a4fd1fb6bd7b2b0d44a6dfa5b1672",
+  "status": "completed",
+  "scope": "One old targeted case then only if marker-null RED one fixed fullfile36; no retry; unconditional atomic fixed source restore in finally",
+  "steps": [
+    {
+      "name": "old-red",
+      "started": "2026-10-17T00:24:03.369238+00:00",
+      "command": [
+        "node",
+        "node_modules/@playwright/test/cli.js",
+        "test",
+        "tests/e2e/desktop-markdown-extensions.spec.ts",
+        "--project=desktop-msedge",
+        "--workers=1",
+        "--retries=0",
+        "--reporter=line,json",
+        "--trace=on",
+        "--output=/workspace/milkup-mermaid-engine-evidence/research/window-navigation-formal-regression-01/old-red/artifacts",
+        "--grep",
+        "windowed navigation keeps its selected marker mounted while a collapsed fence restores during an asynchronous syntax read"
+      ],
+      "cwd": "/workspace/milkup",
+      "environment": "configured env.sh; explicitChromium; Cargo runner unset",
+      "pid": 452527,
+      "processGroup": 452527,
+      "ended": "2026-10-17T00:24:20.073822+00:00",
+      "exit": 1,
+      "inputsUnchanged": true,
+      "portsFreeAfter": true,
+      "portsAfter": ""
+    },
+    {
+      "name": "fixed-full-green",
+      "started": "2026-10-17T00:24:20.113684+00:00",
+      "command": [
+        "node",
+        "node_modules/@playwright/test/cli.js",
+        "test",
+        "tests/e2e/desktop-markdown-extensions.spec.ts",
+        "--project=desktop-msedge",
+        "--workers=1",
+        "--retries=0",
+        "--reporter=line,json",
+        "--trace=on",
+        "--output=/workspace/milkup-mermaid-engine-evidence/research/window-navigation-formal-regression-01/fixed-full-green/artifacts"
+      ],
+      "cwd": "/workspace/milkup",
+      "environment": "configured env.sh; explicitChromium; Cargo runner unset",
+      "pid": 452771,
+      "processGroup": 452771,
+      "ended": "2026-10-17T00:29:41.943437+00:00",
+      "exit": 0,
+      "inputsUnchanged": true,
+      "portsFreeAfter": true,
+      "portsAfter": ""
+    }
+  ],
+  "oldInstalledAt": "2026-10-17T00:24:03.335369+00:00",
+  "managerBeforeRestoreSHA": "07cbcfb4d576ff148585a397195edb691ab8780fe539c2fad52e246b081462b7",
+  "restoredAt": "2026-10-17T00:24:20.076721+00:00",
+  "restoredManagerSHA": "ff6256e3021c2bee18b404c66809301ec14399dfd954d4eaf3d5041746436013",
+  "oldMarkerNullRed": true,
+  "ended": "2026-10-17T00:29:41.954696+00:00",
+  "exit": 0,
+  "finalManagerSHA": "ff6256e3021c2bee18b404c66809301ec14399dfd954d4eaf3d5041746436013"
+}

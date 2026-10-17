@@ -1,0 +1,189 @@
+{
+  "config": {
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "/workspace/milkup/node_modules/@playwright/test/cli.js",
+      "test",
+      "tests/e2e/desktop-markdown-extensions.spec.ts",
+      "--project=desktop-msedge",
+      "--workers=1",
+      "--retries=0",
+      "--reporter=line,json",
+      "--trace=on",
+      "--output=/workspace/milkup-mermaid-engine-evidence/research/window-navigation-formal-regression-01/old-red/artifacts",
+      "--grep",
+      "windowed navigation keeps its selected marker mounted while a collapsed fence restores during an asynchronous syntax read"
+    ],
+    "configFile": "/workspace/milkup/playwright.config.ts",
+    "rootDir": "/workspace/milkup/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/workspace/milkup-mermaid-engine-evidence/research/window-navigation-formal-regression-01/old-red/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "playground-msedge",
+        "name": "playground-msedge",
+        "testDir": "/workspace/milkup/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/live-render\\.spec\\.ts/"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/workspace/milkup-mermaid-engine-evidence/research/window-navigation-formal-regression-01/old-red/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "desktop-msedge",
+        "name": "desktop-msedge",
+        "testDir": "/workspace/milkup/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/desktop-(?:shell|visual-fixes|updates|plugin-cards|plugin-tree|plugin-forms|workspace|preferences|shortcuts|formatting|images|markdown-extensions)\\.spec\\.ts/"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "desktop-markdown-extensions.spec.ts",
+      "file": "desktop-markdown-extensions.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "windowed asynchronous navigation reflow",
+          "file": "desktop-markdown-extensions.spec.ts",
+          "line": 1635,
+          "column": 6,
+          "specs": [
+            {
+              "title": "windowed navigation keeps its selected marker mounted while a collapsed fence restores during an asynchronous syntax read",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-msedge",
+                  "projectName": "desktop-msedge",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 8308,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mnull\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mnull\u001b[39m\n    at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:2082:39",
+                        "location": {
+                          "file": "/workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts",
+                          "column": 39,
+                          "line": 2082
+                        },
+                        "snippet": "  2080 |       expect(result.version).toBe(0)\n  2081 |       expect(result.final.selection).toMatchObject({ anchor: result.from, head: result.to })\n> 2082 |       expect(result.final.marker).not.toBeNull()\n       |                                       ^\n  2083 |       const viewport = result.final.editor!\n  2084 |       expect(result.final.marker!.rect!.bottom).toBeGreaterThan(viewport.top)\n  2085 |       expect(result.final.marker!.rect!.top).toBeLessThan(viewport.bottom)"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts",
+                            "column": 39,
+                            "line": 2082
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mnull\u001b[39m\n\n  2080 |       expect(result.version).toBe(0)\n  2081 |       expect(result.final.selection).toMatchObject({ anchor: result.from, head: result.to })\n> 2082 |       expect(result.final.marker).not.toBeNull()\n       |                                       ^\n  2083 |       const viewport = result.final.editor!\n  2084 |       expect(result.final.marker!.rect!.bottom).toBeGreaterThan(viewport.top)\n  2085 |       expect(result.final.marker!.rect!.top).toBeLessThan(viewport.bottom)\n    at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:2082:39"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-17T00:24:10.915Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "page-state",
+                          "contentType": "text/plain",
+                          "body": "LSBtYWluOgogIC0gYnV0dG9uICLoj5zljZUiCiAgLSBoZWFkaW5nICLmnKrlkb3lkI0iIFtsZXZlbD0xXQogIC0gcGFyYWdyYXBoOiDmnKrkv53lrZgKICAtIGJ1dHRvbiAi5pyA5bCP5YyWIgogIC0gYnV0dG9uICLmnIDlpKfljJYiCiAgLSBidXR0b24gIuWFs+mXreeql+WPoyIKICAtIHRleHQ6IOWGmeeCueS7gOS5iOWQpy4uLgogIC0gdGV4dGJveAogIC0gdGV4dGJveCAiTWFya2Rvd24g57yW6L6R5ZmoIgogIC0gYnV0dG9uICLkvqfmoI8iCiAgLSBidXR0b24gIuWunuaXtiIKICAtIHRleHQ6IE1hcmtkb3duIDAg5a2X56ymIOW3suS/neWtmAotIG1haW4="
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/workspace/milkup-mermaid-engine-evidence/research/window-navigation-formal-regression-01/old-red/artifacts/desktop-markdown-extension-8752c-an-asynchronous-syntax-read-desktop-msedge/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/workspace/milkup-mermaid-engine-evidence/research/window-navigation-formal-regression-01/old-red/artifacts/desktop-markdown-extension-8752c-an-asynchronous-syntax-read-desktop-msedge/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts",
+                        "column": 39,
+                        "line": 2082
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "941916a62ecab6c0156d-4b197f6b02b43976cff1",
+              "file": "desktop-markdown-extensions.spec.ts",
+              "line": 1637,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-17T00:24:04.195Z",
+    "duration": 15775.23,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

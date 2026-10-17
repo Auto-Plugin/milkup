@@ -1,0 +1,26 @@
+import { build } from '/workspace/milkup/node_modules/esbuild/lib/main.js'
+import { readFile, writeFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
+import path from 'node:path'
+import assert from 'node:assert/strict'
+const root = path.dirname(new URL(import.meta.url).pathname)
+const prod = JSON.parse(await readFile('/workspace/milkup-mermaid-engine-evidence/linux-production-07/source-before.json', 'utf8'))
+const sourceMap = new Map(prod.files.map(row => [row.path, row]))
+const entries = [{entry:'entry.ts', output:'classes.iife.js', name:'__milkupMultirowClassExports', bundle:true}, {entry:'case-study.ts',output:'case.iife.js',name:'__milkupMultirowCaseExports',bundle:false}]
+const results = []
+for (const item of entries) {
+ const result = await build({absWorkingDir:'/workspace/milkup',entryPoints:[path.join(root,item.entry)],outfile:path.join(root,item.output),bundle:item.bundle,platform:'browser',format:'iife',globalName:item.name,target:'es2022',metafile:true,write:true,legalComments:'none',tsconfig:'/workspace/milkup/tsconfig.base.json'})
+ const inputs=[]
+ for (const [filename, details] of Object.entries(result.metafile.inputs)) {
+  const absolute=path.resolve('/workspace/milkup',filename), bytes=await readFile(absolute), relative=path.relative('/workspace/milkup',absolute)
+  const sha256=createHash('sha256').update(bytes).digest('hex')
+  if (absolute.startsWith('/workspace/milkup/')) { assert(sourceMap.has(relative),relative); assert.equal(sha256,sourceMap.get(relative).sha256,relative) }
+  inputs.push({path:absolute,bytes:bytes.length,sha256,productionMatched:absolute.startsWith('/workspace/milkup/'),imports:details.imports})
+ }
+ assert(Object.values(result.metafile.outputs).every(x=>x.imports.length===0),'No runtime imports')
+ const output=await readFile(path.join(root,item.output))
+ assert(output.length<=2*1024*1024,'Research script size preflight, not a plugin budget')
+ await writeFile(path.join(root,item.output+'.metafile.json'),JSON.stringify(result.metafile,null,2)+'\n')
+ results.push({output:item.output,bytes:output.length,sha256:createHash('sha256').update(output).digest('hex'),inputs,runtimeImports:[]})
+}
+await writeFile(path.join(root,'build-result.json'),JSON.stringify({status:'PASS_BUILD_ONLY_NOT_NATIVE',at:new Date().toISOString(),results},null,2)+'\n')

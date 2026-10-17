@@ -1,0 +1,50 @@
+--- old/RUN.sh
++++ new/RUN.sh
+@@ -1,17 +1,17 @@
+ #!/usr/bin/env bash
+ set -euo pipefail
+-ROOT=/workspace/milkup-mermaid-engine-evidence/research/native-navigation-window-diagnostic-01
++ROOT=/workspace/milkup-mermaid-engine-evidence/research/native-window-navigation-multirow-01
+ BINARY=/workspace/milkup-mermaid-engine-evidence/linux-production-07/install/usr/bin/milkup-desktop
+ BINARY_SHA=df7b509fefa335df89b004a9992d16cb3a712f062281f418518d3e59d96e5d72
+ ARCHIVE=/workspace/milkup-mermaid-engine-evidence/linux-production-07/artifacts/milkup.diagrams-1.1.0.milkup-plugin
+ ARCHIVE_SHA=9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df
+-RUN=mermaid-ui-navigation-window-diagnostic-01
++RUN=mermaid-ui-window-navigation-multirow-01
+ case "${1:-}" in
+   driver) exec bash "$ROOT/driver.sh" "$RUN" "$BINARY" "$BINARY_SHA" "$ARCHIVE" "$ARCHIVE_SHA" ;;
+   harness)
+     source "$ROOT/run-env.sh" "$RUN" "$BINARY" "$BINARY_SHA" "$ARCHIVE" "$ARCHIVE_SHA"
+     cd /workspace/milkup
+-    exec node "$ROOT/native/navigation-window-diagnostic.mjs"
++    exec node "$ROOT/run.mjs"
+     ;;
+   *) echo 'Choose driver or harness only after separate runtime GO.' >&2; exit 2 ;;
+ esac
+--- old/driver.sh
++++ new/driver.sh
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env bash
+ set -euo pipefail
+-source /workspace/milkup-mermaid-engine-evidence/research/native-navigation-window-diagnostic-01/run-env.sh "$@"
++source /workspace/milkup-mermaid-engine-evidence/research/native-window-navigation-multirow-01/run-env.sh "$@"
+ # A fresh profile, log and evidence directory are mandatory for each attempt.
+ [[ ! -e "$XDG_RUNTIME_DIR" && ! -e "$MILKUP_NATIVE_PROFILE_ROOT" && ! -e "$MILKUP_NATIVE_APP_LOG" && ! -e "$MILKUP_NATIVE_EVIDENCE_DIR" ]]
+ mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME" "$(dirname "$MILKUP_NATIVE_APP_LOG")" "$(dirname "$MILKUP_NATIVE_EVIDENCE_DIR")"
+--- old/run-env.sh
++++ new/run-env.sh
+@@ -33,7 +33,7 @@
+ export MILKUP_NATIVE_APP_LOG=/workspace/milkup-mermaid-engine-evidence/product-ui-runs/logs/$MILKUP_NATIVE_RUN-driver.log
+ export TAURI_DRIVER_URL=http://127.0.0.1:4626
+ export MILKUP_NATIVE_EXCLUSIVE_DISPLAY=1
+-export MILKUP_DOM_DIAGNOSTICS=1
++unset MILKUP_DOM_DIAGNOSTICS
+ export MILKUP_MERMAID_BINARY_CONFIRMED=1
+ export MILKUP_MERMAID_ARCHIVE="$(realpath "$4")"
+ export MILKUP_MERMAID_ARCHIVE_SHA256="$5"
+@@ -43,4 +43,4 @@
+   return 1
+ fi
+ 
+-export XDG_RUNTIME_DIR=/tmp/milkup-navwin-diagnostic-01
++export XDG_RUNTIME_DIR=/tmp/milkup-multirow-native-01

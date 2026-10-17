@@ -1,0 +1,69 @@
+
+[WebServer] (node:452540) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ vite --host 127.0.0.1
+
+[WebServer] (node:452553) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:452577) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ vite --host 127.0.0.1
+
+[WebServer] (node:452593) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+
+(node:452631) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/1] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:1637:3 › windowed asynchronous navigation reflow › windowed navigation keeps its selected marker mounted while a collapsed fence restores during an asynchronous syntax read
+  1) [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:1637:3 › windowed asynchronous navigation reflow › windowed navigation keeps its selected marker mounted while a collapsed fence restores during an asynchronous syntax read 
+
+    Error: expect(received).not.toBeNull()
+
+    Received: null
+
+      2080 |       expect(result.version).toBe(0)
+      2081 |       expect(result.final.selection).toMatchObject({ anchor: result.from, head: result.to })
+    > 2082 |       expect(result.final.marker).not.toBeNull()
+           |                                       ^
+      2083 |       const viewport = result.final.editor!
+      2084 |       expect(result.final.marker!.rect!.bottom).toBeGreaterThan(viewport.top)
+      2085 |       expect(result.final.marker!.rect!.top).toBeLessThan(viewport.bottom)
+        at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:2082:39
+
+    attachment #1: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - text: 写点什么吧...
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "实时"
+      - text: Markdown 0 字符 已保存
+    - main
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../milkup-mermaid-engine-evidence/research/window-navigation-formal-regression-01/old-red/artifacts/desktop-markdown-extension-8752c-an-asynchronous-syntax-read-desktop-msedge/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../milkup-mermaid-engine-evidence/research/window-navigation-formal-regression-01/old-red/artifacts/desktop-markdown-extension-8752c-an-asynchronous-syntax-read-desktop-msedge/trace.zip
+    Usage:
+
+        npx playwright show-trace ../milkup-mermaid-engine-evidence/research/window-navigation-formal-regression-01/old-red/artifacts/desktop-markdown-extension-8752c-an-asynchronous-syntax-read-desktop-msedge/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  1 failed
+    [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:1637:3 › windowed asynchronous navigation reflow › windowed navigation keeps its selected marker mounted while a collapsed fence restores during an asynchronous syntax read 

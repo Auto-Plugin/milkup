@@ -1,0 +1,96 @@
+--- revision02/multirow.spec.ts
++++ revision03/multirow.spec.ts
+@@ -1,7 +1,7 @@
+ import { readFile, writeFile } from 'node:fs/promises'
+ import { expect, test } from '/workspace/milkup/node_modules/@playwright/test/index.mjs'
+ 
+-const directory = '/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-02'
++const directory = '/workspace/milkup-mermaid-engine-evidence/research/window-navigation-multirow-browser-03'
+ 
+ test('public navigation across a 77-line collapsed fence retains target projection while new selection provider waits', async ({ page }, info) => {
+   const errors: string[] = []
+@@ -36,6 +36,18 @@
+       let navigationState = 'not-started', armed = false, pending = false, gateReleased = false
+       let releaseGate: (() => void) | undefined, gateTimer: ReturnType<typeof setTimeout> | undefined
+       let observer: MutationObserver | undefined
++      let sourceGated = false, sourceGateReleased = false, sourceGateFrames = 0
++      let releaseSourceRead: (() => void) | undefined
++      let sourceGateTimer: ReturnType<typeof setTimeout> | undefined
++      let sourceGateRaf: number | undefined
++      const releaseSource = (reason: string) => {
++        if (!sourceGated || sourceGateReleased) return
++        sourceGateReleased = true
++        if (sourceGateTimer) clearTimeout(sourceGateTimer)
++        if (sourceGateRaf !== undefined) cancelAnimationFrame(sourceGateRaf)
++        put('events', { type: 'source-gate-release', reason, frames: sourceGateFrames, at: performance.now() })
++        releaseSourceRead?.()
++      }
+       const gate = new Promise<void>(resolve => { releaseGate = resolve })
+       const release = (reason: string) => {
+         if (gateReleased) return
+@@ -50,7 +62,7 @@
+         const visibleRows = rows.filter(row => row.dataset.presentationCollapsed !== 'true' && row.getBoundingClientRect().height > 0)
+         const rowData = (row: HTMLElement | undefined) => row ? { ...row.dataset, rect: rect(row) } : null
+         const value = {
+-          phase, at: performance.now(), navigationState, pending, gateReleased,
++          phase, at: performance.now(), navigationState, pending, gateReleased, sourceGated, sourceGateReleased, sourceGateFrames,
+           sourceVersion: store.version, selection: { ...view.selection.main },
+           editor: rect(view.dom), scrollTop: view.dom.scrollTop, scrollLeft: view.dom.scrollLeft,
+           scrollHeight: view.dom.scrollHeight, clientHeight: view.dom.clientHeight,
+@@ -78,6 +90,39 @@
+           put('reads', entry)
+           if (armed && view.selection.main.anchor === marker.from && view.selection.main.head === marker.to)
+             snapshot('public-source-read-after-target-selection')
++          if (
++            armed && !sourceGated &&
++            view.selection.main.anchor === marker.from && view.selection.main.head === marker.to &&
++            entry.stack?.includes('renderSingleLiveLine') &&
++            entry.stack.includes('renderRenderedLine') &&
++            entry.stack.includes('renderLiveSyntaxAroundPositions') &&
++            entry.stack.includes('revealSelection')
++          ) {
++            const atGate = snapshot('source-gate-eligibility')
++            if (
++              !atGate.marker?.rect || !atGate.editor ||
++              atGate.marker.rect.bottom <= atGate.editor.top || atGate.marker.rect.top >= atGate.editor.bottom ||
++              atGate.fence.mounted !== 77 || atGate.fence.collapsed < 76
++            ) throw Error('Invalid source-gate setup: target must be visible with77mounted/76collapsed')
++            sourceGated = true
++            put('events', { type: 'source-gate-enter', at: performance.now(), args, stack: entry.stack, selection: { ...view.selection.main } })
++            await new Promise<void>(resolve => {
++              releaseSourceRead = resolve
++              sourceGateTimer = setTimeout(() => releaseSource('500ms-safety-bound'), 500)
++              sourceGateRaf = requestAnimationFrame(() => {
++                if (sourceGateReleased) return
++                sourceGateFrames++
++                snapshot('source-gate-frame-1')
++                sourceGateRaf = requestAnimationFrame(() => {
++                  if (sourceGateReleased) return
++                  sourceGateFrames++
++                  snapshot('source-gate-frame-2')
++                  releaseSource('two-real-animation-frames')
++                })
++              })
++            })
++            snapshot('source-gate-resumed-before-original-read')
++          }
+           const value = await store.readLineWindow(...args)
+           put('events', { type: 'read-resolved', at: performance.now(), args, fromLine: value.fromLine, toLine: value.toLine })
+           return value
+@@ -121,7 +166,7 @@
+         put('events', { type: 'natural-scroll', trusted: event.isTrusted, at: performance.now(), top: view.dom.scrollTop, left: view.dom.scrollLeft })
+         if (armed) snapshot('scroll')
+       })
+-      Object.assign(window, { multirowStudy: { view, store, reads, events, phases, drops, snapshot, release, cleanup: () => { observer?.disconnect(); release('cleanup'); view.destroy() } } })
++      Object.assign(window, { multirowStudy: { view, store, reads, events, phases, drops, snapshot, release, cleanup: () => { observer?.disconnect(); releaseSource('cleanup'); release('cleanup'); view.destroy() } } })
+       const wait = async (predicate: () => boolean, label: string) => {
+         const deadline = performance.now() + 5000
+         while (!predicate()) {
+@@ -143,6 +188,7 @@
+         navigationState = 'resolved'; snapshot('navigation-resolved')
+       }, error => { navigationState = 'rejected'; throw error })
+       await wait(() => pending, 'new selection provider gate')
++      if (!sourceGated) throw Error('Fixture phase not reached: qualified target syntax source gate')
+       for (let i = 0; i < 8; i++) { await frame(); snapshot(`provider-held-frame-${i}`) }
+       release('eight-observed-frames')
+       await navigation
