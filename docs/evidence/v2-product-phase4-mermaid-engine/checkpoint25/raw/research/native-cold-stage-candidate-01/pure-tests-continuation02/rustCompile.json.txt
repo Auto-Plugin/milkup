@@ -1,0 +1,26 @@
+{
+  "command": [
+    "/workspace/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+    "--edition=2021",
+    "--test",
+    "/workspace/milkup-mermaid-engine-evidence/research/native-cold-stage-candidate-01/tests/rust-contract.rs",
+    "-L",
+    "dependency=/workspace/milkup/apps/desktop/src-tauri/target/release/deps",
+    "--extern",
+    "serde_json=/workspace/milkup/apps/desktop/src-tauri/target/release/deps/libserde_json-7d6c562668bcdff7.rlib",
+    "--extern",
+    "libc=/workspace/milkup/apps/desktop/src-tauri/target/release/deps/liblibc-1319ef591da3408a.rlib",
+    "-C",
+    "opt-level=1",
+    "-C",
+    "debuginfo=0",
+    "-C",
+    "strip=symbols",
+    "-o",
+    "/workspace/milkup-mermaid-engine-evidence/research/native-cold-stage-candidate-01/tests/stage-contract-bin"
+  ],
+  "cwd": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-stage-candidate-01",
+  "startedUtc": "2026-10-17T03:16:20.932739+00:00",
+  "endedUtc": "2026-10-17T03:16:21.740414+00:00",
+  "exitCode": 0
+}

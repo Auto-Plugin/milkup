@@ -1,0 +1,284 @@
+// Trusted generic DOM renderer bootstrap. No editor bridge or host capabilities.
+Object.defineProperty(globalThis, '__milkupDomInit', {
+  configurable: true,
+  writable: false,
+  value: (token, manifest, stageEnabled) => {
+    'use strict'
+    delete globalThis.__milkupDomInit
+    const stringify = JSON.stringify.bind(JSON)
+    const parse = JSON.parse.bind(JSON)
+    const bytes = new TextEncoder()
+    const encode = bytes.encode.bind(bytes)
+    const freeze = Object.freeze.bind(Object)
+    const define = Object.defineProperty.bind(Object)
+    const Abort = AbortController
+    // Research-only private drain metadata. No new plugin capability or result field.
+    let stageNow
+    try {
+      if (stageEnabled) stageNow = performance.now.bind(performance)
+    } catch {}
+    const stageRows = [],
+      stageIds = new Map()
+    const mapGet = Function.prototype.call.bind(Map.prototype.get)
+    const mapSet = Function.prototype.call.bind(Map.prototype.set)
+    const stagePush = Function.prototype.call.bind(Array.prototype.push)
+    const stageSplice = Function.prototype.call.bind(Array.prototype.splice)
+    const setPrototype = Object.setPrototypeOf.bind(Object)
+    const finite = Number.isFinite.bind(Number)
+    setPrototype(stageRows, null)
+    const stageState = setPrototype({ marks: 0, dropped: 0, drains: 0, bytes: 0, markMs: 0 }, null)
+    let initMarks = 0,
+      requestCount = 0
+    function stageRequest(id) {
+      if (!stageNow) return undefined
+      try {
+        if (mapGet(stageIds, id) !== undefined) return id
+        if (typeof id !== 'string' || id.length > 128 || requestCount >= 8) {
+          stageState.dropped++
+          return undefined
+        }
+        mapSet(stageIds, id, 0)
+        requestCount++
+        return id
+      } catch {
+        stageState.dropped++
+        return undefined
+      }
+    }
+    function mark(id, phase) {
+      if (!stageNow || id === undefined) return
+      let before
+      try {
+        before = stageNow()
+        if (!finite(before) || before < 0) throw 0
+        const count = id === null ? initMarks : mapGet(stageIds, id)
+        // Conservative escaped-JSON bound; no extra stringify or prototype hook.
+        const size = (id === null ? 4 : id.length * 6 + 2) + phase.length * 6 + 64
+        if (
+          count === undefined ||
+          count >= (id === null ? 32 : 64) ||
+          stageState.bytes + size > 65536
+        ) {
+          stageState.dropped++
+        } else {
+          if (id === null) initMarks++
+          else mapSet(stageIds, id, count + 1)
+          stagePush(stageRows, setPrototype([id, phase, before], null))
+          stageState.marks++
+          stageState.bytes += size
+        }
+      } catch {
+        stageState.dropped++
+      } finally {
+        try {
+          const after = stageNow()
+          if (finite(before) && finite(after) && after >= before)
+            stageState.markMs += after - before
+        } catch {
+          stageState.dropped++
+        }
+      }
+    }
+    function stageDrain(result) {
+      if (!stageNow) return result
+      try {
+        stageState.drains++
+        const rows = setPrototype(stageSplice(stageRows, 0, 64), null)
+        return setPrototype(
+          {
+            stageSchema: 1,
+            output: result,
+            stages: rows,
+            stageState: setPrototype({ ...stageState }, null),
+          },
+          null,
+        )
+      } catch {
+        stageState.dropped++
+        return result
+      }
+    }
+    const RPC = 'milkup.plugin.isolation.rpc.v1'
+    const RENDER = 'milkup.plugin.document-render.v1'
+    let output = null,
+      active = false,
+      activation,
+      running,
+      generation = 0
+    function push(message, scope) {
+      mark(scope, 'envelope-start')
+      let text
+      try {
+        text = stringify(message)
+        mark(scope, 'envelope-stringify-end')
+      } catch {
+        throw new Error('invalid-output')
+      }
+      const size = encode(text).length
+      mark(scope, 'envelope-encode-end')
+      if (size > 266240) throw new Error('invalid-output')
+      if (output !== null) throw new Error('busy')
+      output = text
+      mark(scope, 'output-ready')
+    }
+    function errorCode(error) {
+      const code = error?.code ?? error?.message
+      return [
+        'invalid-input',
+        'invalid-output',
+        'revoked',
+        'aborted',
+        'busy',
+        'timeout',
+        'unavailable',
+      ].includes(code)
+        ? code
+        : 'unavailable'
+    }
+    // The private token gates input and draining; plugin code has no result setter.
+    define(globalThis, '__milkupDom', {
+      configurable: false,
+      writable: false,
+      value: freeze((key, message) => {
+        if (key !== token) return null
+        if (message === null) {
+          const result = output
+          output = null
+          return stageDrain(result)
+        }
+        void dispatch(message)
+        return null
+      }),
+    })
+    mark(null, 'module-import-start')
+    const modulePromise = import('milkup-dom://job/module.js').then(
+      (namespace) => {
+        const module = namespace.default ?? namespace
+        if (module === null || typeof module !== 'object' || Array.isArray(module))
+          throw new Error('Invalid plugin module export')
+        mark(null, 'module-import-end')
+        return module
+      },
+      (error) => {
+        mark(null, 'module-import-reject')
+        throw error
+      },
+    )
+    async function dispatch(message) {
+      if (message.protocol === RPC) {
+        try {
+          if (message.payload?.pluginId !== manifest.id) throw new Error('Plugin identity mismatch')
+          const module = await modulePromise
+          let value = null
+          if (message.method === 'activate') {
+            if (active) throw new Error('Already activated')
+            generation++
+            mark(null, 'activate-start')
+            activation = await module.activate?.(
+              freeze({
+                manifest: freeze(manifest),
+                pluginId: manifest.id,
+                permissions: freeze(['document:read']),
+                host: freeze({}),
+              }),
+            )
+            mark(null, 'activate-end')
+            active = true
+            value = {
+              commands: [],
+              renderers: [],
+              documentRenderers: manifest.contributes.documentRenderers
+                .filter(
+                  (r) =>
+                    typeof (
+                      activation?.documentRenderers?.[r.id] ?? module.documentRenderers?.[r.id]
+                    ) === 'function',
+                )
+                .map((r) => r.id),
+            }
+          } else if (message.method === 'deactivate' || message.method === 'dispose') {
+            active = false
+            generation++
+            running?.controller.abort()
+            if (message.method === 'deactivate') {
+              await module.deactivate?.()
+              activation = undefined
+            } else await activation?.dispose?.()
+          } else throw new Error('DOM host supports document renderers only')
+          push({ protocol: RPC, type: 'response', id: message.id, ok: true, value }, null)
+        } catch (error) {
+          if (message.method === 'activate') mark(null, 'activate-reject')
+          push(
+            {
+              protocol: RPC,
+              type: 'response',
+              id: message.id,
+              ok: false,
+              error: { message: String(error?.message ?? 'DOM activation failed').slice(0, 1024) },
+            },
+            null,
+          )
+        }
+        return
+      }
+      if (message.protocol !== RENDER) return
+      if (message.type === 'cancel') {
+        if (running?.id === message.id) running.controller.abort()
+        return
+      }
+      if (message.type !== 'render') return
+      const scope = stageRequest(message.id)
+      const current = generation
+      const controller = new Abort()
+      try {
+        if (!active) throw new Error('revoked')
+        if (running) throw new Error('busy')
+        const { pluginId, rendererId, request } = message.payload
+        if (
+          pluginId !== manifest.id ||
+          !manifest.contributes.documentRenderers.some((r) => r.id === rendererId)
+        )
+          throw new Error('unavailable')
+        const module = await modulePromise
+        const renderer =
+          activation?.documentRenderers?.[rendererId] ?? module.documentRenderers?.[rendererId]
+        if (typeof renderer !== 'function') throw new Error('unavailable')
+        running = { id: message.id, controller }
+        mark(scope, 'invoke-start')
+        let value
+        try {
+          value = await renderer(request, { signal: controller.signal })
+          mark(scope, 'invoke-resolve')
+        } catch (error) {
+          mark(scope, 'invoke-reject')
+          throw error
+        }
+        if (!active || generation !== current) throw new Error('revoked')
+        if (controller.signal.aborted) throw new Error('aborted')
+        // Serialize inside the native render deadline, then enforce the public payload budget.
+        mark(scope, 'typed-stringify-start')
+        const copied = stringify(value)
+        mark(scope, 'typed-stringify-end')
+        const size = typeof copied === 'string' ? encode(copied).length : Infinity
+        mark(scope, 'typed-encode-end')
+        if (size > 262144) throw new Error('invalid-output')
+        const parsed = parse(copied)
+        mark(scope, 'typed-parse-end')
+        push({ protocol: RENDER, type: 'result', id: message.id, ok: true, value: parsed }, scope)
+      } catch (error) {
+        push(
+          {
+            protocol: RENDER,
+            type: 'result',
+            id: message.id,
+            ok: false,
+            error: errorCode(error),
+          },
+          scope,
+        )
+      } finally {
+        if (running?.id === message.id) running = undefined
+      }
+    }
+  },
+})

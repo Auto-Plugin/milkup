@@ -1,0 +1,210 @@
+Cold-stage transition plan: run05 -> one future diagnostic cold prefix
+Status: PREPARATION ONLY. No build, product runtime, test execution, upload, push,
+release, merge, Windows task, or full-UI retry is authorized by this document.
+Source implementation belongs exclusively to /root/dom_transport in the fresh
+research/native-cold-stage-candidate-01 directory. This directory owns only a
+transition plan and a reviewable build-wrapper draft. Never use partial stage
+source files. Root must approve the final candidate and issue separate GO.
+
+1. Established base and source composition
+Run05 frozen manifest: native-cold-start-diagnostic-05/run05-frozen-manifest.json,
+SHA170bcabfc28c2dc536a050964da1006cd890c03fccdc4aa4a7e95288db4cd101,
+204files/17,483,313bytes. Node cold prefix PASS0; CPU coverage exit2; original
+wrapper assertion exit1. The independent CPU and request audits are complete.
+One exact WebProcess was observed with held-pidfd provenance and bounded PPID
+chain. There is no full-tree/per-request attribution or production08 explanation.
+No rerun of run05 or its independent audits is proposed.
+
+Baseline repository product bytes remain those in linux-production-08/source-before.json
+(2913files). Root reports docs-only checkpoint24 HEAD
+da6a9d676b791c4b367ada1c0c989d886f535921; it is NOT frozen as a build input here.
+Resolve final actual HEAD only after candidate preparation/review completes.
+
+Expected final unique overlay set, subject to owner's final source manifest:
+- plugin_dom.rs: stage owner's composition of existing accepted-wire candidate.
+- plugin_dom_process.rs: stage owner's composition of existing accepted-wire candidate.
+- plugin_dom_request_diagnostic.rs: existing accepted-wire source unchanged.
+- plugin_dom_helper.rs: stage owner's composition of run05 self-pidfd helper.
+- plugin_dom_guard.c: run05 self-pidfd C guard unchanged.
+- plugin_dom_webprocess_identity.rs: run05 self-pidfd receiver unchanged.
+- plugin_dom_stage.rs: new stage-owner module.
+- plugin_dom_bootstrap.js: stage-owner bounded internal bootstrap instrumentation.
+Eight target paths, not eleven sequential overlays: a modified composed source
+must replace its baseline path once. Do not overlay an older helper/process file
+after the stage composition. The new Rust module is absent on the product branch;
+bootstrap is an existing internal embedded source, not the built frontend/plugin.
+Final delta must be reviewed against the exact run05 composed six-source base as
+well as product baseline. Preserve wire source/events/schema, self-pidfd gate and
+provenance, original public API, supervision, cancellation and 2s/10s deadlines.
+Owner's final source and pure-test manifests are required; no partial file is used.
+
+Existing base manifests:
+accepted-wire candidate-manifest-v02.json SHA2570bf2cd21e42554dbed8d637c78b7ea9c742b80784739f9beb0601ef120c64;
+native-webprocess-pidfd-candidate-01/candidate-manifest.json
+SHAad4bfc318bc6ff6df3b14bf4bb5e3f83081b23879b4a4693a3dc78cf3a106a72.
+Run05 diagnostic binary SHA b8c68aaf2d24a59f9e4cc60f1b03799b45aaecffe3379c2830866b7ac4f0e2c4,
+21,962,312bytes; compiled SO SHA0355b69f0f15e4d0efa5f5ab137d45b8342233f32b16c0240521a45695a6f8f3,
+16,824bytes, unique embedded occurrence offset1,500,320. Both are immutable evidence.
+
+2. Stage recorder source interface and close boundary
+Owner confirmed independent stage sink; original request_diagnostic.rs and its
+events/status/complete/finish path remain byte-identical. New gate is
+MILKUP_COLD_STAGE_DIAGNOSTICS=1 and MILKUP_COLD_STAGE_OUTPUT_DIR pointing to a fresh
+precreated0700 root. App and helper writers independently own role-pid-birth
+subdirectories containing events.jsonl/status.json/complete.json. Proposed source
+bounds agreed with Root:512events/64KiB per process, queue32, record<=1KiB. Exact
+record accounting, total-size interpretation, process-count scope, error/drop
+counters, gate validation and file ownership must come from final frozen contract.
+A per-process cap alone must not be described as an unlimited-run aggregate cap.
+No writer may share an events/status file with another process or wire recorder.
+Helper writer initialization must occur after guardian fork; no fork-before
+threads/locks or a second guardian-side writer are introduced by preparation.
+
+Root's approved lifecycle choice (sent to owner and CPU auditor): stage writers
+may additionally READ ONLY the existing original native-capture/finish.request.
+The exact path is derived from/frozen alongside the run's original
+MILKUP_COLD_REQUEST_OUTPUT_DIR, under exclusive run-owned output ancestry.
+The candidate's final interface must make this marker binding explicit; use the
+same actual path the unmodified Node harness writes. Do not redirect the wire
+writer, overwrite its files, publish its final record, or make it wait for stage.
+The independent stage root/finish.request, if retained by owner, is an optional
+separate close input, not a substitute for the pre-App-close shared marker.
+No symlink trick, filesystem polling bridge thread, CPU observer mutation or
+controller delay is needed for the approved shared-marker read design.
+
+Original Node finally writes wire finish.request while App is alive and waits
+at most1000ms for parseable wire complete.json; then original App.close proceeds.
+The Node file remains WHOLE-BYTE unchanged. The marker gives each stage writer
+one opportunity to notice close/drain its already accepted queue. It does NOT
+promise stage complete before App.close/helper termination. Do not add waits,
+flush acknowledgments, request settlement waits, renderer work, terminal events,
+or cleanup deferrals to make final appear. Writers should write queued rows as
+they are available; helper killed during writing may leave a partial last line.
+Missing complete is partial evidence, not permission to retry or widen timing.
+A final stage record covers only that process's accepted observation window. It
+does not settle every request, prove lifetime event completeness, or supply a
+request-success endpoint. Exact close time is unknown unless the final source
+actually records its atomic close boundary; never reuse wire final/drain timestamp.
+Counters must distinguish attempted/enqueued/written/dropped/inflight and close
+scope. Post-close events cannot be silently reconstructed into successful events.
+
+3. CPU/wire/stage audit compatibility
+Keep frozen CPU v05 unchanged: sampler SHA
+c338f7faf1208c6d9ec11549dd17d566c55ce5ef0c90d441d1c04a19975c00aa,
+native_pidfd.py SHAf2eaa50124b5cfb92b9310739de973a30db7dd63474616d1c7f7d4a5c04d71d8,
+prepared-manifest SHAac396381a7a52d36484dd104d5bb6fa5121b3b03b3a02194160846161c31ca33.
+No sampling/discovery cadence or cap changes; paired native-pidfd-dir/SOsha CLI
+must point to the new run's identity root and the NEW binary's actual embedded SO.
+Same C source does not license assuming its compiled bytes: repeat unique
+whole-SO embedded-byte verification and retain actual artifact/hash/out_dir.
+Existing native capture remains separate, so original strict wire auditor can
+read full original events scope without being taught to ignore new record types.
+New stage auditing is an external offline delta owned by cold_cpu/dom_transport;
+freeze its schema/test/read-only plan before product use. A later successful
+filtered audit must never erase an earlier failed first audit.
+
+Stage identity must join through actual owner/helper PID+birth, instance/request
+keys and exact request hash to retained accepted wire. Stage names are not proof
+of execution location or completion. Distinguish owner enqueue/dispatch/reply
+receipt/successful settlement/deadline from helper receipt/execution/response and
+JS completion/error records. Freeze which actual code branch emits each event.
+Missing endpoints, unmatched hashes, duplicates, drops, parser loss and partial
+last lines are audit gaps. A successfully final stage writer does not fill these.
+CPU interval arithmetic uses only real endpoints and whole sample-read brackets;
+no interpolation before first discovery, between processes, or beyond last sample.
+Overlapping request windows do not give exclusive per-request CPU attribution.
+Owner-side timestamps reduce dependence on WebProcess clock mapping but do not
+by themselves prove App/external CLOCK_MONOTONIC equivalence. Run05 outer time
+namespace links were ENOENT; keep same qualification unless new independent
+proof exists. Do not derive cross-process stage latency solely from numeric order.
+New App/helper writer CPU belongs to those processes' own counters. Do not add
+writerCPU again, subtract it to invent product CPU, or claim zero observer cost.
+
+4. Reviewable build transition (draft only)
+build-diagnostic.draft.py derives from the tested run05 build wrapper. The draft
+expects eight unique overlay paths, final stage manifest plus both base manifests,
+root-reviewed actual inputs and matching one-build GO. It retains the same
+cooperative shared-target lock, root exclusive repository/cargo condition,
+--release --locked --offline --features tauri/custom-protocol, and no frontend,
+deb or dependency upgrade/build-clean. SIGINT/SIGTERM handling stops only its
+owned unreaped build group then restores all target source bytes/removes new
+modules in finally. SIGKILL/power-loss needs recorded restore recovery, not an
+automatic retry. Source-before2913, all12 frontend, original production binary,
+archive, existing diagnostic binaries and review inputs must be checked before
+and after. Candidate build warnings/failure stay in the first log.
+
+To avoid another22MB historical copy, Root approved exact immutable references:
+verify each existing shared-target binary/SO against a reviewed frozen run05
+artifact by SHA and size BEFORE mutation; record current+frozen paths in
+attempt/target-before-references.json. The whole current candidate set must equal
+reviewed references. Unmatched extra/stale artifact or hash mismatch stops; do
+not choose mtime, overwrite history, invent a reference, or lower a check.
+prior-target-references.pending.json lists proposed references but is not a live
+assertion that future target bytes still match. New build output is copied once
+to a new diagnostic-binary/milkup-desktop with the normal basename. Save actual
+build-script OUT_DIR event, compiled C SO, unique embedded offset/count and hash.
+The draft has no actual build-inputs.json or root-build-go.json and cannot be
+executed under this preparation authorization. Root reviews/finalizes after
+candidate audits and pure tests. Tests belong to owner and require their own
+explicit authorization; this plan runs none.
+
+5. Disk estimate and admission
+SPACE-ESTIMATE.json is a measured free-space snapshot and artifact-scale estimate,
+not measured compiler peak. At last preparation snapshot:853,196,800bytes,
+813.67MiB; only~13.67MiB above the unchanged800MiB build-start floor. Pure Rust test
+binaries/logs and final candidate artifacts can consume this margin before GO.
+No final build admission is inferred from the current snapshot.
+A new binary is approximately22MiB, SO~17KiB; run05 whole runtime freeze~17.5MB.
+Avoiding the redundant prior-target copy saves approximately22MB. Expect roughly
+40MiB additional permanent build+runtime evidence before cache growth/tests;
+300MiB temporary working allowance is only a conservative planning estimate,
+not a verified upper bound or actual required peak. A fresh actual disk check
+must follow test completion and precede build GO; preserve the800MiB floor.
+If insufficient or storage fails: report measured free bytes, actual first
+failure/current artifact sizes and options (more allocated storage or await
+explicitly authorized external resource decision). Do not delete evidence,
+clear caches, remove old failed runs, retry, or silently relax admission. There
+is no permission here to push/upload artifacts to make room.
+
+6. One future runtime transition, pending final source/test/build review
+Start from the run05 wrappers and the exact original Node cold-prefix bytes:
+native-cold-start-diagnostic-02/native/cold-prefix.mjs
+SHAcd83f4b29035605e919d8d1287620dd4ee1a5d63acdf9cb392839deacfde996c.
+Official archive SHA9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df,
+original fixture catalog/startup flow/profile assertion/cold image gate unchanged.
+New run name/profile/output paths must be frozen and fresh; no run directory or
+reservation is created by this plan. Change only diagnostic binary/SO references,
+new stage gate/root/close marker and provenance inputs required by final contract.
+Keep original Node and CPU/wrapper exits independent; do not alter the existing
+sampler==0 assertion to make expected incomplete coverage appear green.
+
+Before the separately authorized single driver+harness run: rehash all final
+inputs, verify exact Xvfb :126 PID288383/birth4366483 and boot/argv, fresh profile,
+stage/nativepidfd/nativecapture roots, ports4626/4627 free, original source/front/
+archive, binary/SO embedding and clean repo. Both ACTUAL tool launches must be
+require_escalated and each record self-only user/pid/mnt/time/time_for_children
+namespace and uid/gid map before its exec. Missing/denied time links stay errors,
+not a substituted later context check or WebProcess clock proof. Auto-review
+rejection stops with exact evidence, no fallback. Existing bwrap/user namespaces
+and WebKit sandbox remain enabled. App begins only after its driver ordinary
+owned log file is checked (ordinary file can still block). Precreate stage0700
+root before launch; App/helper own their respective subdirectories, v05 identity
+root and wire capture keep their established independent lifecycle.
+
+Observe the first original cold prefix only, then DIAGNOSTIC_PREFIX_STOP or its
+original first failure. No full UI, retry, changed assertion timeout, or forced
+stage drain. Preserve Node result, CPU exit2/gaps, wrapper nonzero, each stage
+process complete/partial, native input/capture and self-pidfd facts separately.
+Then original App close -> exact owned driver PID/birth/PGID and No sessions ->
+existing group cleanup and wait-only reaper. No broad process kill or new cleanup
+power. Freeze raw stage files including partial tails, all input/CPU/profile/log/
+screenshot artifacts, known identity-chain postcheck and old/new source hashes.
+Root and independent auditors inspect frozen records before any next action.
+
+7. Outstanding inputs (not blockers to this plan, blockers to execution)
+Final stage owner source+schema/close-marker implementation and hashes; stage
+pure-test first evidence and independent reviews; final shared-target references
+and disk admission after tests; actual current docs HEAD; one build GO and its
+first artifacts/restoration; final runtime manifest/context/preflight and separate
+one-run GO. No generated GO file claims authorization. All prior runs/reviews
+remain untouched. No more product work is implied by preparation completion.

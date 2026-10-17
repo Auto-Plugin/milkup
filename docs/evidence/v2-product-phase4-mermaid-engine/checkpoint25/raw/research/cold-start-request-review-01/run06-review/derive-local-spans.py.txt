@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+"""Run06 read-only independent arithmetic; no live process access or cross-clock subtraction."""
+import hashlib,json,pathlib
+
+ROOT=pathlib.Path('/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-06')
+manifest_path=ROOT/'run06-frozen-manifest.json'
+manifest_raw=manifest_path.read_bytes()
+assert hashlib.sha256(manifest_raw).hexdigest()=='dc3ed51b01ef044a6056126cfb42eee3f34b16131f6612cc0a791cf78e48afe4'
+manifest=json.loads(manifest_raw);index={x['path']:x for x in manifest['files']};run=pathlib.Path(manifest['run'])
+def raw(p):
+    b=p.read_bytes();x=index[str(p)];assert len(b)==x['bytes'] and hashlib.sha256(b).hexdigest()==x['sha256'];return b
+def obj(p):return json.loads(raw(p))
+def lines(p):return [json.loads(x) for x in raw(p).splitlines()]
+wire=lines(run/'native-capture/events.jsonl');wire_status=obj(run/'native-capture/complete.json')
+app=lines(run/'native-stages/app-477590-9531528/events.jsonl');helper=lines(run/'native-stages/helper-477728-9531943/events.jsonl')
+traces=[json.loads(x[len('DOM_NATIVE_TIMING '):]) for x in raw(run/'driver.log').decode().splitlines() if x.startswith('DOM_NATIVE_TIMING ')]
+dispatch={(x['instanceId'],x['requestId']):x for x in traces if x['phase']=='dispatch'}
+fixture=raw(run/'evidence/ordinary.md').decode();utf16=fixture.encode('utf-16-le');requests=[]
+def phase(rows,name):return [x for x in rows if x['phase']==name]
+for w in wire:
+    if w['kind']!='render-accepted':continue
+    key=(w['instanceId'],w['requestId']);wb=w['wire'].encode('utf-8')
+    assert len(wb)==w['wireBytes'] and hashlib.sha256(wb).hexdigest()==w['wireSha256']
+    msg=json.loads(wb);q=msg['payload']['request']
+    assert msg['id']==w['requestId'] and msg['type']=='render' and msg['payload']['pluginId']==w['pluginId']=='milkup.diagrams'
+    assert q['source'].encode('utf-16-le')==utf16[q['from']*2:q['to']*2]
+    a=[x for x in app if (x['instanceId'],x['requestId'])==key];h=[x for x in helper if (x['instanceId'],x['requestId'])==key]
+    assert all((x['emitterPid'],x['emitterBirth'])==(w['ownerPid'],w['ownerBirth']) for x in a)
+    end=phase(a,'render-settled');assert len(end)<=1
+    js={x['details']['phase']:x['details']['jsMs'] for x in phase(h,'js-mark')}
+    record={'instanceId':key[0],'requestId':key[1],'utf16Range':[q['from'],q['to']],'wireBytes':len(wb),'wireSha256':w['wireSha256'],'sourceExactlyMatchesFrozenFixture':True,'appPhases':[x['phase'] for x in a],'helperPhases':[x['phase'] for x in h],'appEndpointObserved':bool(end),'jsMarks':js,'appLocal':{},'helperLocal':{},'jsLocalMs':{}}
+    if end:
+        assert end[0]['details']['ok'] is True
+        start=dispatch[key]['monotonicNs'];stop=end[0]['nativeMonotonicNs']
+        record['appLocal']={'dispatchToSettlementNs':stop-start,'frameReadToSettlementNs':stop-phase(a,'owner-frame-read')[0]['nativeMonotonicNs'],'receiveToSettlementNs':stop-phase(a,'owner-receive')[0]['nativeMonotonicNs']}
+    renders=[x for x in phase(h,'helper-dequeue') if x['details']['type']=='render']
+    callbacks=phase(h,'evaluate-callback');submits=phase(h,'evaluate-submit')
+    if renders and callbacks and submits:record['helperLocal']['firstEvaluateSubmitToCallbackNs']=callbacks[0]['nativeMonotonicNs']-submits[0]['nativeMonotonicNs']
+    drained=phase(h,'result-drained');pipe=phase(h,'result-pipe-complete')
+    if drained and pipe:
+        record['helperLocal']['dequeueToOutputCollectionNs']=drained[0]['nativeMonotonicNs']-renders[0]['nativeMonotonicNs']
+        record['helperLocal']['outputCollectionToPipeCompletionNs']=pipe[0]['nativeMonotonicNs']-drained[0]['nativeMonotonicNs']
+        assert drained[0]['details']['bytes']==phase(a,'owner-frame-read')[0]['details']['bytes']
+        record['outputEnvelopeBytes']=drained[0]['details']['bytes']
+    for label,b,e in [('invoke','invoke-start','invoke-resolve'),('typedSerialization','typed-stringify-start','typed-parse-end'),('envelopeSerialization','envelope-start','output-ready'),('invokeToOutput','invoke-start','output-ready')]:
+        if b in js and e in js:record['jsLocalMs'][label]=js[e]-js[b]
+    requests.append(record)
+init={x['details']['phase']:x['details']['jsMs'] for x in helper if x['phase']=='js-mark' and x['requestId'] is None}
+cpu=obj(run/'cpu-observer/summary.json');armed_path=run/'native-pidfd/slot/helper-477728-9531943-armed.json';result_path=run/'native-pidfd/slot/helper-477728-9531943-result.json';armed=obj(armed_path);result=obj(result_path)
+for name,p in [('armed',armed_path),('result',result_path)]:assert cpu['nativeWebProcess']['sources'][name]['sha256']==hashlib.sha256(raw(p)).hexdigest()
+assert armed['instanceId']==result['instanceId']==requests[0]['instanceId']
+assert result['receivedFdCount']==1 and result['heldFd']==21 and result['tokenMatched'] is True and result['nativeStage']==0 and result['nativeErrno']==0
+assert result['helper']['pid']==477728 and result['helper']['birth']==9531943 and result['guardian']['pid']==477722 and result['guardian']['birth']==9531934
+assert 'Pid:\t477775\n' in result['receiverFdinfoRaw'] and 'NSpid:\t477775\t2\n' in result['receiverFdinfoRaw']
+status={role:obj(run/f'native-stages/{role}-{pid}-{birth}/complete.json') for role,pid,birth in [('app',477590,9531528),('helper',477728,9531943)]}
+post=obj(run/'control/exact-known-postcheck.json')
+output={'schema':'milkup.run06-independent-local-span-review.v1','requestCoverage':'partial: render_6 has no App terminal or drained JS marks; stage audit first exit 1 preserved','requests':requests,'initialization':{'appLaunchToActivationSettledNs':phase(app,'activation-settled')[0]['nativeMonotonicNs']-phase(app,'launch')[0]['nativeMonotonicNs'],'jsModuleImportMs':init['module-import-end']-init['module-import-start'],'jsActivateMs':init['activate-end']-init['activate-start']},'appWireFinalMinusLastDispatchNs':wire_status['monotonicNs']-dispatch[(requests[-1]['instanceId'],'render_6')]['monotonicNs'],'wireStatus':wire_status,'stageStatus':status,'nativeIdentity':{'helper':result['helper'],'guardian':result['guardian'],'heldFd':result['heldFd'],'observerPidFromFdinfo':477775,'nspid':[477775,2],'cpuBound':cpu['nativeWebProcess']['bound'],'sourceRecordDigestsMatch':True,'helperPreparationCaptureNs':armed['captureEndNs']-armed['prepareStartNs'],'helperReceiveCaptureNs':result['captureEndNs']-result['receiveStartNs'],'webProcessCallbackCaptureNs':result['webProcessCallbackEndNs']-result['webProcessCallbackStartNs']},'frozenCleanupAllKnownAbsent':all(not x['sameIdentityPresent'] for x in post['knownIdentities']),'qualification':'All deltas are within one emitting process or one JS realm. No cross-clock subtraction, CPU attribution, stage close timestamp, post-close absence claim, original failure backfill or Mermaid-internal stage inference. Native identity capture spans exclude publication/hash tails where specified.'}
+print(json.dumps(output,ensure_ascii=False,indent=2))

@@ -1,0 +1,501 @@
+//! RESEARCH ONLY: bounded stage metadata, never a product control or result.
+use serde_json::{json, Value};
+use std::{
+    fs::{self, OpenOptions},
+    io::Write,
+    os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt},
+    path::PathBuf,
+    sync::{
+        atomic::{AtomicBool, AtomicU64, Ordering},
+        mpsc::{self, SyncSender, TrySendError},
+        Arc, Mutex, OnceLock,
+    },
+    time::Duration,
+};
+const EVENTS: u64 = 512;
+const BYTES: u64 = 65536;
+const ROW: usize = 1024;
+const QUEUE: usize = 32;
+const REQUESTS: usize = 8;
+#[derive(Default)]
+struct Counts {
+    collection_ns: AtomicU64,
+    collection_calls: AtomicU64,
+    admit_ns: AtomicU64,
+    writer_cpu_ns: AtomicU64,
+    attempted: AtomicU64,
+    enqueued: AtomicU64,
+    written: AtomicU64,
+    bytes: AtomicU64,
+    dropped: AtomicU64,
+    unknown: AtomicU64,
+    io_errors: AtomicU64,
+    capture_ns: AtomicU64,
+    capture_max_ns: AtomicU64,
+    in_flight: AtomicU64,
+    closed: AtomicBool,
+}
+pub(super) struct Recorder {
+    tx: SyncSender<Vec<u8>>,
+    counts: Arc<Counts>,
+    requests: Mutex<Vec<(String, String)>>,
+    pid: u32,
+    birth: Option<u64>,
+    role: &'static str,
+}
+pub(super) fn now() -> u64 {
+    let mut t = libc::timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    };
+    if unsafe { libc::clock_gettime(libc::CLOCK_MONOTONIC, &mut t) } != 0 {
+        return 0;
+    }
+    (t.tv_sec as u64) * 1_000_000_000 + t.tv_nsec as u64
+}
+fn thread_cpu() -> u64 {
+    let mut t = libc::timespec {
+        tv_sec: 0,
+        tv_nsec: 0,
+    };
+    if unsafe { libc::clock_gettime(libc::CLOCK_THREAD_CPUTIME_ID, &mut t) } != 0 {
+        return 0;
+    }
+    (t.tv_sec as u64) * 1_000_000_000 + t.tv_nsec as u64
+}
+pub(super) fn enabled() -> bool {
+    std::env::var_os("MILKUP_COLD_STAGE_DIAGNOSTICS").as_deref() == Some(std::ffi::OsStr::new("1"))
+}
+pub(super) fn initialize(role: &'static str) -> Option<&'static Recorder> {
+    static RECORDER: OnceLock<Option<Recorder>> = OnceLock::new();
+    RECORDER
+        .get_or_init(|| {
+            if !enabled() {
+                return None;
+            }
+            let root = PathBuf::from(std::env::var_os("MILKUP_COLD_STAGE_OUTPUT_DIR")?);
+            let pid = std::process::id();
+            let birth = fs::read_to_string("/proc/self/stat").ok().and_then(|s| {
+                s.rsplit_once(')')
+                    .and_then(|(_, t)| t.split_whitespace().nth(19))
+                    .and_then(|s| s.parse().ok())
+            });
+            let finish = std::env::var_os("MILKUP_COLD_REQUEST_OUTPUT_DIR")
+                .map(PathBuf::from)?
+                .join("finish.request");
+            let (tx, rx) = mpsc::sync_channel::<Vec<u8>>(QUEUE);
+            let counts = Arc::new(Counts::default());
+            let c = counts.clone();
+            std::thread::Builder::new()
+                .name("cold-stage-recorder".into())
+                .spawn(move || {
+                    let cpu_start = thread_cpu();
+                    let result = (|| -> std::io::Result<()> {
+                        let m = fs::symlink_metadata(&root)?;
+                        if !m.is_dir()
+                            || m.uid() != unsafe { libc::geteuid() }
+                            || m.mode() & 0o777 != 0o700
+                        {
+                            return Err(std::io::Error::other(
+                                "stage root must be owned0700 directory",
+                            ));
+                        }
+                        let directory = root.join(format!("{role}-{pid}-{}", birth.unwrap_or(0)));
+                        fs::DirBuilder::new().mode(0o700).create(&directory)?;
+                        let mut f = OpenOptions::new()
+                            .create_new(true)
+                            .write(true)
+                            .mode(0o600)
+                            .open(directory.join("events.jsonl"))?;
+                        loop {
+                            if finish.exists() {
+                                c.closed.store(true, Ordering::SeqCst)
+                            }
+                            match rx.recv_timeout(Duration::from_millis(100)) {
+                                Ok(row) => {
+                                    f.write_all(&row)?;
+                                    f.flush()?;
+                                    c.written.fetch_add(1, Ordering::SeqCst);
+                                }
+                                Err(mpsc::RecvTimeoutError::Timeout) => {}
+                                Err(mpsc::RecvTimeoutError::Disconnected) => return Ok(()),
+                            }
+                            let final_status = c.closed.load(Ordering::SeqCst)
+                                && c.in_flight.load(Ordering::SeqCst) == 0
+                                && c.written.load(Ordering::SeqCst)
+                                    == c.enqueued.load(Ordering::SeqCst);
+                            c.writer_cpu_ns
+                                .store(thread_cpu().saturating_sub(cpu_start), Ordering::Relaxed);
+                            let v = status(&c, final_status, pid, birth, role);
+                            let bytes = serde_json::to_vec(&v)?;
+                            let mut status_file = OpenOptions::new()
+                                .create(true)
+                                .truncate(true)
+                                .write(true)
+                                .mode(0o600)
+                                .open(directory.join("status.pending"))?;
+                            status_file.write_all(&bytes)?;
+                            status_file.flush()?;
+                            fs::rename(
+                                directory.join("status.pending"),
+                                directory.join("status.json"),
+                            )?;
+                            if final_status {
+                                let mut complete = OpenOptions::new()
+                                    .create_new(true)
+                                    .write(true)
+                                    .mode(0o600)
+                                    .open(directory.join("complete.json"))?;
+                                complete.write_all(&bytes)?;
+                                complete.flush()?;
+                                return Ok(());
+                            }
+                        }
+                    })();
+                    if result.is_err() {
+                        c.io_errors.fetch_add(1, Ordering::SeqCst);
+                    } // No callback stderr or product failure.
+                })
+                .ok()?;
+            Some(Recorder {
+                tx,
+                counts,
+                requests: Mutex::new(Vec::new()),
+                pid,
+                birth,
+                role,
+            })
+        })
+        .as_ref()
+}
+fn status(c: &Counts, final_status: bool, pid: u32, birth: Option<u64>, role: &str) -> Value {
+    let n = |a: &AtomicU64| a.load(Ordering::SeqCst);
+    json!({"schema":"milkup.cold-stage-status.v1","pid":pid,"birth":birth,"role":role,"final":final_status,"closed":c.closed.load(Ordering::SeqCst),"attempted":n(&c.attempted),"enqueued":n(&c.enqueued),"written":n(&c.written),"reservedBytes":n(&c.bytes),"dropped":n(&c.dropped),"unknownOrUnadmitted":n(&c.unknown),"ioErrors":n(&c.io_errors),"collectionInclusiveNs":n(&c.collection_ns),"collectionCalls":n(&c.collection_calls),"admitTotalNs":n(&c.admit_ns),"writerThreadCpuNs":n(&c.writer_cpu_ns),"captureTotalNs":n(&c.capture_ns),"captureMaxNs":n(&c.capture_max_ns),"inFlight":n(&c.in_flight),"limits":{"events":EVENTS,"bytes":BYTES,"rowBytes":ROW,"queue":QUEUE,"requests":REQUESTS},"qualification":"Process-local clock; writer may die before final; missing status/complete or any loss is incomplete. Capture excludes details construction; collection includes original parse and capture, so do not add them. Writer CPU excludes last status publication; no exclusive overhead claim."})
+}
+impl Recorder {
+    pub(super) fn collection(&self, begin: u64) {
+        self.counts
+            .collection_ns
+            .fetch_add(now().saturating_sub(begin), Ordering::Relaxed);
+        self.counts.collection_calls.fetch_add(1, Ordering::Relaxed);
+    }
+    pub(super) fn admit(&self, instance: &str, request: &str) -> bool {
+        let before = now();
+        let admitted = self.admit_inner(instance, request);
+        self.counts
+            .admit_ns
+            .fetch_add(now().saturating_sub(before), Ordering::Relaxed);
+        admitted
+    }
+    fn admit_inner(&self, instance: &str, request: &str) -> bool {
+        if instance.len() > 128 || request.len() > 128 {
+            self.counts.unknown.fetch_add(1, Ordering::Relaxed);
+            return false;
+        }
+        let Ok(mut r) = self.requests.try_lock() else {
+            self.counts.dropped.fetch_add(1, Ordering::Relaxed);
+            return false;
+        };
+        if r.iter().any(|(i, q)| i == instance && q == request) {
+            return true;
+        }
+        if r.len() >= REQUESTS {
+            self.counts.unknown.fetch_add(1, Ordering::Relaxed);
+            return false;
+        }
+        r.push((instance.into(), request.into()));
+        true
+    }
+    pub(super) fn record(
+        &self,
+        phase: &'static str,
+        instance: &str,
+        request: Option<&str>,
+        at: u64,
+        details: Value,
+    ) {
+        let begin = now();
+        self.counts.in_flight.fetch_add(1, Ordering::SeqCst);
+        self.record_inner(phase, instance, request, at, details, begin);
+        let elapsed = now().saturating_sub(begin);
+        self.counts.capture_ns.fetch_add(elapsed, Ordering::Relaxed);
+        self.counts
+            .capture_max_ns
+            .fetch_max(elapsed, Ordering::Relaxed);
+        self.counts.in_flight.fetch_sub(1, Ordering::SeqCst);
+    }
+    fn record_inner(
+        &self,
+        phase: &str,
+        instance: &str,
+        request: Option<&str>,
+        at: u64,
+        details: Value,
+        begin: u64,
+    ) {
+        if self.counts.closed.load(Ordering::SeqCst) {
+            return;
+        }
+        if let Some(id) = request {
+            let Ok(ids) = self.requests.try_lock() else {
+                self.counts.dropped.fetch_add(1, Ordering::Relaxed);
+                return;
+            };
+            if !ids.iter().any(|(i, q)| i == instance && q == id) {
+                self.counts.unknown.fetch_add(1, Ordering::Relaxed);
+                return;
+            }
+        }
+        let sequence = self.counts.attempted.fetch_add(1, Ordering::Relaxed) + 1;
+        if sequence > EVENTS || instance.len() > 128 || phase.len() > 64 || at == 0 {
+            self.counts.dropped.fetch_add(1, Ordering::Relaxed);
+            return;
+        }
+        let Ok(mut row) = serde_json::to_vec(
+            &json!({"schema":"milkup.cold-stage.v1","sequence":sequence,"emitterPid":self.pid,"emitterBirth":self.birth,"role":self.role,"instanceId":instance,"requestId":request,"phase":phase,"nativeMonotonicNs":at,"captureBeforeNs":begin,"details":details}),
+        ) else {
+            self.counts.dropped.fetch_add(1, Ordering::Relaxed);
+            return;
+        };
+        row.push(b'\n');
+        if row.len() > ROW
+            || self
+                .counts
+                .bytes
+                .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| {
+                    n.checked_add(row.len() as u64).filter(|n| *n <= BYTES)
+                })
+                .is_err()
+        {
+            self.counts.dropped.fetch_add(1, Ordering::Relaxed);
+            return;
+        }
+        match self.tx.try_send(row) {
+            Ok(()) => {
+                self.counts.enqueued.fetch_add(1, Ordering::SeqCst);
+            }
+            Err(TrySendError::Full(_) | TrySendError::Disconnected(_)) => {
+                self.counts.dropped.fetch_add(1, Ordering::Relaxed);
+            }
+        }
+    }
+}
+// Diagnostic drain shape only. Original output string is returned byte-for-byte.
+pub(super) fn unwrap_drain(value: Value) -> Result<(Value, Vec<Value>, Value), ()> {
+    let o = value.as_object().ok_or(())?;
+    if o.len() != 4 || o.get("stageSchema").and_then(Value::as_u64) != Some(1) {
+        return Err(());
+    }
+    let output = o
+        .get("output")
+        .filter(|v| v.is_null() || v.is_string())
+        .ok_or(())?
+        .clone();
+    let stages = o
+        .get("stages")
+        .and_then(Value::as_array)
+        .filter(|a| a.len() <= 64)
+        .ok_or(())?;
+    let state = o
+        .get("stageState")
+        .and_then(Value::as_object)
+        .filter(|o| o.len() == 5)
+        .ok_or(())?;
+    for key in ["marks", "dropped", "drains", "bytes"] {
+        if state.get(key).and_then(Value::as_u64).is_none() {
+            return Err(());
+        }
+    }
+    if state
+        .get("markMs")
+        .and_then(Value::as_f64)
+        .filter(|n| n.is_finite() && *n >= 0.)
+        .is_none()
+    {
+        return Err(());
+    }
+    const NAMES: &[&str] = &[
+        "module-import-start",
+        "module-import-end",
+        "module-import-reject",
+        "activate-start",
+        "activate-end",
+        "activate-reject",
+        "invoke-start",
+        "invoke-resolve",
+        "invoke-reject",
+        "typed-stringify-start",
+        "typed-stringify-end",
+        "typed-encode-end",
+        "typed-parse-end",
+        "envelope-start",
+        "envelope-stringify-end",
+        "envelope-encode-end",
+        "output-ready",
+    ];
+    for e in stages {
+        let a = e.as_array().filter(|a| a.len() == 3).ok_or(())?;
+        if !a[0].is_null() && a[0].as_str().filter(|s| s.len() <= 128).is_none() {
+            return Err(());
+        }
+        if !a[1].as_str().is_some_and(|s| NAMES.contains(&s)) {
+            return Err(());
+        }
+        if a[2]
+            .as_f64()
+            .filter(|n| n.is_finite() && *n >= 0.)
+            .is_none()
+        {
+            return Err(());
+        }
+    }
+    Ok((output, stages.clone(), Value::Object(state.clone())))
+}
+// A request mark is attributed only while that native frame awaits its result.
+// Init marks have a separate null scope. No JS-supplied instance/PID is accepted.
+pub(super) fn js_scope_matches(row: &Value, pending: Option<&str>) -> bool {
+    row[0].is_null() || row[0].as_str().is_some_and(|id| Some(id) == pending)
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn fixture(cap: usize) -> (Recorder, mpsc::Receiver<Vec<u8>>) {
+        let (tx, rx) = mpsc::sync_channel(cap);
+        (
+            Recorder {
+                tx,
+                counts: Arc::new(Counts::default()),
+                requests: Mutex::new(Vec::new()),
+                pid: 101,
+                birth: Some(202),
+                role: "app",
+            },
+            rx,
+        )
+    }
+    fn wrapper(output: Value) -> Value {
+        json!({"stageSchema":1,"output":output,"stages":[["r1","invoke-start",1.25]],"stageState":{"marks":1,"dropped":0,"drains":1,"bytes":100,"markMs":0.1}})
+    }
+    #[test]
+    fn unknown_and_late_js_scopes_cannot_impersonate_current_request() {
+        assert!(js_scope_matches(
+            &json!([null, "module-import-start", 1.]),
+            None
+        ));
+        assert!(js_scope_matches(
+            &json!(["r1", "invoke-start", 1.]),
+            Some("r1")
+        ));
+        assert!(!js_scope_matches(
+            &json!(["old", "invoke-start", 1.]),
+            Some("r1")
+        ));
+        assert!(!js_scope_matches(
+            &json!(["r1", "invoke-resolve", 1.]),
+            None
+        ));
+    }
+    #[test]
+    fn exact_original_string_is_not_reserialized() {
+        let text = "{\"value\":\"中文 👩🏽‍💻\", \"ok\":true}";
+        let (v, rows, _) = unwrap_drain(wrapper(json!(text))).unwrap();
+        assert_eq!(v.as_str(), Some(text));
+        assert_eq!(rows.len(), 1);
+    }
+    #[test]
+    fn malformed_wrappers_are_rejected() {
+        for key in ["output", "stages", "stageState", "stageSchema"] {
+            let mut v = wrapper(Value::Null);
+            v.as_object_mut().unwrap().remove(key);
+            assert!(unwrap_drain(v).is_err());
+        }
+        let mut v = wrapper(Value::Null);
+        v["stages"] = json!([["r1", "native-deadline", 1.]]);
+        assert!(unwrap_drain(v).is_err());
+    }
+    #[test]
+    fn negative_or_wrong_clock_and_overlong_rows_fail() {
+        for rows in [
+            json!([["r1", "invoke-start", -1.]]),
+            json!([["r1", "invoke-start", "1"]]),
+            json!(vec![json!(["r1", "invoke-start", 1.]); 65]),
+        ] {
+            let mut v = wrapper(Value::Null);
+            v["stages"] = rows;
+            assert!(unwrap_drain(v).is_err());
+        }
+    }
+    #[test]
+    fn unknown_request_never_becomes_native_correlation() {
+        let (r, rx) = fixture(2);
+        r.record("render-settled", "i", Some("unknown"), 1, json!({}));
+        assert!(rx.try_recv().is_err());
+        assert_eq!(r.counts.unknown.load(Ordering::Relaxed), 1);
+        assert!(r.admit("i", "r1"));
+        r.record(
+            "render-settled",
+            "different-instance",
+            Some("r1"),
+            1,
+            json!({}),
+        );
+        assert!(rx.try_recv().is_err());
+    }
+    #[test]
+    fn cap_and_duplicate_admission_are_bounded() {
+        let (r, _) = fixture(1);
+        for i in 0..8 {
+            assert!(r.admit("i", &format!("r{i}")))
+        }
+        assert!(r.admit("i", "r0"));
+        assert!(!r.admit("i", "r8"));
+        assert_eq!(r.requests.lock().unwrap().len(), 8);
+    }
+    #[test]
+    fn queue_pressure_drops_without_blocking_or_fabricating_completion() {
+        let (r, rx) = fixture(1);
+        r.record("launch", "i", None, 1, json!({}));
+        r.record("launch", "i", None, 2, json!({}));
+        assert_eq!(r.counts.enqueued.load(Ordering::Relaxed), 1);
+        assert_eq!(r.counts.dropped.load(Ordering::Relaxed), 1);
+        let row: Value = serde_json::from_slice(&rx.try_recv().unwrap()).unwrap();
+        assert_eq!(row["emitterPid"], 101);
+        assert_eq!(row["nativeMonotonicNs"], 1);
+        assert_eq!(row["role"], "app");
+    }
+    #[test]
+    fn oversized_record_and_byte_budget_never_enter_queue() {
+        let (r, rx) = fixture(2);
+        r.record("launch", "i", None, 1, json!({"bad":"x".repeat(1024)}));
+        assert!(rx.try_recv().is_err());
+        r.counts.bytes.store(BYTES, Ordering::Relaxed);
+        r.record("launch", "i", None, 1, json!({}));
+        assert!(rx.try_recv().is_err());
+        assert_eq!(r.counts.dropped.load(Ordering::Relaxed), 2);
+    }
+    #[test]
+    fn contention_does_not_wait_for_diagnostic_lock() {
+        let (r, rx) = fixture(1);
+        let _lock = r.requests.lock().unwrap();
+        r.record("launch", "i", Some("r"), 1, json!({}));
+        assert!(rx.try_recv().is_err());
+        assert_eq!(r.counts.dropped.load(Ordering::Relaxed), 1);
+    }
+    #[test]
+    fn closing_prevents_new_rows_without_product_control() {
+        let (r, rx) = fixture(1);
+        r.counts.closed.store(true, Ordering::SeqCst);
+        r.record("launch", "i", None, 1, json!({}));
+        assert!(rx.try_recv().is_err());
+        assert_eq!(r.counts.in_flight.load(Ordering::SeqCst), 0);
+    }
+    #[test]
+    fn event_limit_and_missing_clock_are_counted() {
+        let (r, rx) = fixture(2);
+        r.record("launch", "i", None, 0, json!({}));
+        r.counts.attempted.store(EVENTS, Ordering::Relaxed);
+        r.record("launch", "i", None, 1, json!({}));
+        assert!(rx.try_recv().is_err());
+        assert_eq!(r.counts.dropped.load(Ordering::Relaxed), 2);
+    }
+}

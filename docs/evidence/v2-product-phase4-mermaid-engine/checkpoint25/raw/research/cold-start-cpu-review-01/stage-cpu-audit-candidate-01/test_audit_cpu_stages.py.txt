@@ -1,0 +1,176 @@
+import copy
+import hashlib
+import json
+from pathlib import Path
+import tempfile
+import unittest
+
+from audit_cpu_stages import CLOCK, audit, load_spec, strict_json
+from fixtures import base, refresh_status, sample, stage, wire
+
+
+class OfflineCpuStageTests(unittest.TestCase):
+    def test_independent_integer_cpu_arithmetic_and_conditional_edges(self):
+        result = audit(base()); request = result['requests'][0]; process = request['processes'][0]
+        self.assertEqual(request['sameAppDurationNs'], 100)
+        self.assertEqual(process['ownCpuTicks'], 8)
+        self.assertEqual(process['ownCpuSeconds'], 0.08)
+        self.assertEqual(process['conditionalLeadingGapRangeNs'], [10, 12])
+        self.assertEqual(process['conditionalTrailingGapRangeNs'], [18, 20])
+        self.assertEqual([i['leaderSchedstatDelta']['waitNs'] for i in process['intervals']], [6, 10])
+        self.assertEqual(process['clockJoinStatus'], CLOCK)
+        self.assertFalse(result['fullRendererTreeCoverage'])
+        self.assertEqual(result['runExits'], dict(node=0, cpu=2, wrapper=1))
+
+    def test_settled_false_is_endpoint_and_owner_accepted_never_dispatch(self):
+        data = base(); events = data['stageSinks'][0]['events']
+        events[0]['details']['ok'] = False
+        events += [stage('owner-accepted', 150, 2), stage('owner-pipe-complete', 230, 3)]
+        refresh_status(data)
+        request = audit(data)['requests'][0]
+        self.assertIs(request['settlementOk'], False)
+        self.assertEqual(request['dispatchNs'], 100)
+        self.assertEqual(request['sameAppDurationNs'], 100)
+        data['driverEvents'] = []
+        self.assertIsNone(audit(data)['requests'][0]['sameAppDurationNs'])
+
+    def test_short_and_boundary_crossing_windows_are_null_not_zero(self):
+        data = base(); data['stageSinks'][0]['events'][0]['nativeMonotonicNs'] = 130
+        data['stageSinks'][0]['events'][0]['captureBeforeNs'] = 131
+        process = audit(data)['requests'][0]['processes'][0]
+        self.assertIsNone(process['ownCpuTicks']); self.assertIsNone(process['conditionalLeadingGapRangeNs'])
+        data = base(); data['driverEvents'][0]['monotonicNs'] = 111
+        process = audit(data)['requests'][0]['processes'][0]
+        self.assertEqual(process['ownCpuTicks'], 5)
+        self.assertEqual(process['intervals'][0]['roundIndexes'], [1, 2])
+
+    def test_final_is_not_endpoint_and_missing_final_retains_observed_settlement(self):
+        data = base(); data['stageSinks'][0]['events'] = []; refresh_status(data)
+        request = audit(data)['requests'][0]
+        self.assertIn('endpoint-unobserved', request['issues']); self.assertIsNone(request['sameAppDurationNs'])
+        data = base(); data['stageSinks'][0]['complete'] = None
+        result = audit(data)
+        self.assertEqual(result['requests'][0]['sameAppDurationNs'], 100)
+        self.assertTrue(result['stageCoverage'][0]['partial'])
+
+    def test_duplicate_and_conflicting_endpoints_never_choose_earliest(self):
+        for mode in ('duplicate-settled', 'deadline', 'stage-deadline'):
+            with self.subTest(mode=mode):
+                data = base()
+                if mode == 'duplicate-settled': data['stageSinks'][0]['events'].append(stage('render-settled', 210, 2))
+                elif mode == 'stage-deadline': data['stageSinks'][0]['events'].append(stage('deadline', 210, 2))
+                else: data['driverEvents'].append(dict(data['driverEvents'][0], phase='deadline-observed', monotonicNs=210))
+                refresh_status(data)
+                request = audit(data)['requests'][0]
+                self.assertIn('endpoint-conflict-or-duplicate', request['issues'])
+                self.assertIsNone(request['sameAppDurationNs']); self.assertEqual(request['processes'], [])
+
+    def test_authoritative_deadline_is_observation_not_success(self):
+        data = base(); data['stageSinks'][0]['events'] = []; refresh_status(data)
+        data['driverEvents'].append(dict(data['driverEvents'][0], phase='deadline-observed', monotonicNs=210))
+        request = audit(data)['requests'][0]
+        self.assertEqual(request['sameAppDurationNs'], 110)
+        self.assertEqual(request['endpointKind'], 'deadline-observed')
+        self.assertIsNone(request['settlementOk'])
+
+    def test_wire_bytes_owner_birth_and_log_scope_are_required(self):
+        for mode in ('hash', 'ownerBirth', 'scope', 'emitterBirth', 'duplicate-dispatch'):
+            with self.subTest(mode=mode):
+                data = base()
+                if mode == 'hash': data['wireEvents'][0]['wireSha256'] = 'bad'
+                elif mode == 'ownerBirth': data['wireEvents'][0]['ownerBirth'] = 12
+                elif mode == 'scope': data['driverOwnerScopeConfirmed'] = False
+                elif mode == 'emitterBirth': data['stageSinks'][0]['events'][0]['emitterBirth'] = 12
+                else: data['driverEvents'].append(copy.deepcopy(data['driverEvents'][0]))
+                request = audit(data)['requests'][0]
+                self.assertTrue(request['issues']); self.assertIsNone(request['sameAppDurationNs'])
+
+    def test_missing_terminal_identity_changed_and_duplicate_members_break_pairs(self):
+        for mode in ('absent', 'terminal', 'birth', 'duplicate', 'instance'):
+            with self.subTest(mode=mode):
+                data = base(); members = data['samples'][1]['members']
+                if mode == 'absent': members.clear()
+                elif mode == 'terminal': members[0]['status'] = 'terminal'
+                elif mode == 'birth': members[0]['birth'] = 12
+                elif mode == 'duplicate': members.append(copy.deepcopy(members[0]))
+                else: members[0]['instanceId'] = 'wrong'
+                process = audit(data)['requests'][0]['processes'][0]
+                self.assertEqual(process['intervals'], []); self.assertIsNone(process['ownCpuSeconds'])
+
+    def test_zero_cpu_is_measured_and_skipped_slots_are_not_fabricated(self):
+        data = base()
+        for row in data['samples']: row['members'][0]['userTicks'] = 7
+        data['summary']['skippedSlots'] = 4
+        result = audit(data); process = result['requests'][0]['processes'][0]
+        self.assertEqual(process['ownCpuSeconds'], 0)
+        self.assertEqual(len(process['intervals']), 2)
+        self.assertEqual(result['observerQuality']['skippedSlots'], 4)
+
+    def test_regressions_do_not_become_negative_cpu_or_all_thread_wait(self):
+        data = base(); data['samples'][1]['members'][0]['userTicks'] = 1
+        process = audit(data)['processes'][0]
+        self.assertEqual(len(process['intervals']), 1)
+        self.assertEqual(process['intervals'][0]['ownCpuTicks'], 14)
+        data = base(); data['samples'][1]['members'][0]['leaderSchedstat']['waitNs'] = 0
+        interval = audit(data)['processes'][0]['intervals'][0]
+        self.assertEqual(interval['ownCpuTicks'], 3)
+        self.assertIsNone(interval['leaderSchedstatDelta'])
+
+    def test_overlapping_requests_share_explicit_interval_ids_without_total(self):
+        data = base(); data['wireEvents'].append(wire('r2'))
+        data['driverEvents'].append(dict(data['driverEvents'][0], requestId='r2', monotonicNs=105))
+        data['stageSinks'][0]['events'].append(stage('render-settled', 205, 2, request='r2'))
+        refresh_status(data); result = audit(data)
+        self.assertEqual(len(result['sharedCandidateIntervals']), 2)
+        self.assertTrue(all(len(v) == 2 for v in result['sharedCandidateIntervals'].values()))
+        self.assertNotIn('totalRequestCpu', result)
+
+    def test_helper_js_marks_cannot_become_owner_endpoint_or_clock_anchor(self):
+        data = base(); data['stageSinks'][0]['events'] = []; refresh_status(data)
+        data['summary']['knownIdentities'].append(dict(pid=102, birth=12, role='renderer-leader', instanceId='fixture-instance'))
+        event = dict(stage('js-mark', 199), emitterPid=102, emitterBirth=12, role='helper',
+                     details=dict(phase='invoke-resolve', jsMs=0.001, trust='untrusted-js-wall-time'))
+        data['stageSinks'].append(dict(label='helper-102-12', pid=102, birth=12, role='helper', events=[event]))
+        refresh_status(data); request = audit(data)['requests'][0]
+        self.assertIsNone(request['sameAppDurationNs']); self.assertIn('endpoint-unobserved', request['issues'])
+
+    def test_exact_pid_instance_separation_and_no_first_counter_backfill(self):
+        data = base()
+        data['summary']['knownIdentities'].append(dict(pid=202, birth=22, role='webkit-web', instanceId='fixture-instance'))
+        data['summary']['knownIdentities'].append(dict(pid=303, birth=33, role='webkit-web', instanceId='other-instance'))
+        for index, row in enumerate(data['samples']):
+            row['members'] += [sample(110+index*30, 100+index, 202, 22, 'fixture-instance'),
+                               sample(110+index*30, 1000+index*100, 303, 33, 'other-instance')]
+        result = audit(data)
+        selected = result['requests'][0]['processes']
+        self.assertEqual([p['pid'] for p in selected], [101, 202])
+        self.assertEqual(selected[1]['ownCpuTicks'], 2)
+        self.assertEqual(next(p for p in result['processes'] if p['pid'] == 303)['ownCpuTicks'], 200)
+
+    def test_file_adapter_checks_bytes_and_missing_final_without_live_inputs(self):
+        data = base()
+        with tempfile.TemporaryDirectory() as tmp:
+            def save(name, raw):
+                p = Path(tmp)/name; p.write_bytes(raw)
+                return dict(path=str(p), sha256=hashlib.sha256(raw).hexdigest())
+            def j(name, value): return save(name, json.dumps(value).encode())
+            def lines(name, rows): return save(name, b''.join(json.dumps(r).encode()+b'\n' for r in rows))
+            spec = dict(summary=j('summary.json', data['summary']), samples=lines('samples.ndjson', data['samples']),
+                        wireEvents=lines('wire.jsonl', data['wireEvents']),
+                        driverEvents=save('driver.log', b'not a native event\n'+b''.join(b'DOM_NATIVE_TIMING '+json.dumps(r).encode()+b'\n' for r in data['driverEvents'])),
+                        driverOwnerScopeConfirmed=True, driverOwnerScopeEvidence=save('scope.txt', b'invented fixture scope'),
+                        stageSinks=[dict(label='app-101-11', pid=101, birth=11, role='app',
+                            events=lines('stage.jsonl', data['stageSinks'][0]['events']),
+                            status=j('status.json', data['stageSinks'][0]['status']), complete=None)])
+            spec_path=Path(tmp)/'spec.json'; spec_path.write_text(json.dumps(spec))
+            loaded, proof = load_spec(spec_path)
+            self.assertEqual(len(proof['files']), 7)
+            self.assertEqual(audit(loaded)['requests'][0]['sameAppDurationNs'], 100)
+            self.assertTrue(audit(loaded)['stageCoverage'][0]['partial'])
+            Path(spec['samples']['path']).write_text('changed')
+            with self.assertRaisesRegex(ValueError, 'hash mismatch'): load_spec(spec_path)
+        with self.assertRaisesRegex(ValueError, 'duplicate JSON key'): strict_json('{"x":1,"x":2}')
+
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)

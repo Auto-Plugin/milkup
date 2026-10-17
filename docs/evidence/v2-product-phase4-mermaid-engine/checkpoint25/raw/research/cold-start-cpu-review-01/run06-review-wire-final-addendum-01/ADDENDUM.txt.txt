@@ -1,0 +1,17 @@
+Run06 CPU review: correction to wire final timestamp terminology
+
+This addendum corrects two interpretations in the frozen run06-review/REVIEW.txt (SHA85a14552ea05e32223da59ac09a758605d83fd39145bf8ee0f3e294d61c818cd), whose original20-file review-manifest.json remains SHA324d8b34eca71d044f04a3e96f2b23a284f48c3aec2d1d2221d1fddcd834f8d8. Neither that report nor any frozen input/output has been edited. This is a semantic correction only; no arithmetic, test or runtime was rerun.
+
+The timestamp95324334286607 in native-capture/complete.json is the App wire writer's final publication checkpoint/sample. It is NOT a measured instant of actual diagnostic closure, stage closure, request settlement, or application exit. The actual close operation has no separately retained exact monotonic timestamp. A final/diagnosticClosed flag does not give this publication sample the semantics of that earlier operation; this addendum does not claim an exact filesystem publication completion time either.
+
+Correction1 — original REVIEW.txt line39 (initial/final gaps)
+Replace the interpretation beginning "Saved wire capture closes at App-local95324334286607" with: "The saved App wire writer final publication checkpoint is95324334286607. Its numerical difference from the last valid WebProcess sample read-end is181.920949ms. This is a sample-to-final-checkpoint comparison, conditional on unverified App/observer clock-coordinate equality; it does not measure sample-to-actual-close time. The guardian's final sample is numerically later than the wire final checkpoint, not evidence of its timing relative to actual close. Neither checkpoint supplies a request endpoint or delimits observer lifetime."
+
+Correction2 — original REVIEW.txt line45 (render_6)
+Replace "it is capture closure, not a terminal result" with: "it is the App wire writer final publication checkpoint, not a measured actual-close instant or a terminal result." The already reported200.909394ms is the same-App dispatch-to-final-checkpoint difference only. It cannot locate stage/wire actual closure or complete render_6. render_6 remains endpoint-unobserved; sameAppDurationNs remains null and no request CPU window is available.
+
+Related machine-readable naming
+The frozen quantitative-summary.json field lastSampleToWireCloseNumericNs (and the matching wording in summarize_saved_report.py/gapsQualification) inherited the same imprecise label. Every value in that field is only final-checkpoint monotonicNs minus the corresponding sample read-end, under the same unverified cross-process coordinate assumption. It is not an actual-close gap. The frozen bytes and computed values are preserved; consumers must apply this correction rather than treat the field name as evidence of an independently timestamped close operation.
+
+Unaffected conclusions
+The valid per-PID CPU/leader deltas, observer-finish gaps, original App dispatch→settled durations, conditional whole-sample selections, missing render_6 endpoint and all coverage limitations are unchanged. The corrected final-checkpoint interpretation agrees with the independently frozen request review, cold-start-request-review-01/run06-review/REPORT.txt line58 (SHAad2d2189d91462f7bb5b3e12d15c800128891b8e0ad65d3052790db9fb40c2b1). No stage tail, CPU edge, actual close time or request terminal is inferred from either recorder's final marker.

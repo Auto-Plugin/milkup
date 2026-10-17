@@ -1,0 +1,43 @@
+import json
+from pathlib import Path
+ROOT=Path('/workspace/milkup-mermaid-engine-evidence/research')
+OUT=ROOT/'cold-start-cpu-review-01/run06-review'
+RUN=ROOT/'native-cold-start-diagnostic-06/runtime/mermaid-ui-cold-diag-06'
+load=lambda p:json.loads(p.read_bytes())
+r=load(OUT/'cpu-stage-report.json');s=load(RUN/'cpu-observer/summary.json')
+rows=[json.loads(x) for x in (RUN/'cpu-observer/samples.ndjson').read_text().splitlines()]
+wire=load(RUN/'native-capture/complete.json');hz=s['clockTicksPerSecond'];processes=[]
+for p in r['processes']:
+    good=[o['member'] for o in p['observations'] if o['valid']];a,b=good[0],good[-1]
+    leader={}
+    for i in p['intervals']:
+        for k,v in (i['leaderSchedstatDelta'] or {}).items():leader[k]=leader.get(k,0)+v
+    processes.append(dict(pid=p['pid'],birth=p['birth'],role=p['bindingTimeRole'],samples=len(good),intervals=len(p['intervals']),
+        ownCpuSeconds=p['ownCpuSeconds'],spanNs=b['readEndNs']-a['readStartNs'],leaderDelta=leader,
+        firstSeenNs=p['firstSeenNs'],firstReadStartNs=a['readStartNs'],lastReadEndNs=b['readEndNs'],
+        firstTicks=a['userTicks']+a['systemTicks'],lastTicks=b['userTicks']+b['systemTicks'],
+        birthTickToFirstSeenNs=p['firstSeenNs']-p['birth']*1_000_000_000//hz,
+        firstSeenToFirstSampleNs=a['readStartNs']-p['firstSeenNs'],
+        observerFinishMinusLastSampleNs=s['finishedMonoNs']-b['readEndNs'],
+        lastSampleToWireCloseNumericNs=wire['monotonicNs']-b['readEndNs'],
+        gapsQualification='Birth ticks quantized 10ms; proc birth/observer coordinate arithmetic also conditional; last wire-close difference crosses unverified App/observer coordinates. No initial cumulative ticks backfilled.'))
+rounds=s['discoveryRounds'];caps=[]
+for x in rounds:
+    caps.append(dict(start=x['startedNs'],passed=x['taskEntries']<=128 and x['fdCandidates']<=128 and x['fdinfoReadAttempts']<=128 and all(v['attempts']<=32 for v in x['ownerFdinfoReadAttempts']) and x['nativeRecordReads']<=2 and x['nativeTargetAttempts']<=1 and x['nativeChainNodes']<=16 and x['nativeChainStatReads']<=32 and x['nativeTotalStatReads']<=40,actualDurationNs=x['durationNs'],overBudgetNs=max(0,x['durationNs']-5_000_000)))
+stages=[]
+for p in sorted((RUN/'native-stages').iterdir()):
+    raw=(p/'events.jsonl').read_bytes();events=[json.loads(x) for x in raw.splitlines()];c=load(p/'complete.json')
+    stages.append(dict(directory=p.name,events=len(events),bytes=len(raw),maxRowBytes=max(len(x) for x in raw.splitlines(keepends=True)),
+        statusEqualsComplete=c==load(p/'status.json'),writtenMatches=c['written']==len(events),reservedBytesMatch=c['reservedBytes']==len(raw),
+        sequenceContinuous=sorted(e['sequence'] for e in events)==list(range(1,len(events)+1)),
+        lastRetainedNativeNs=max(e['nativeMonotonicNs'] for e in events),complete=c))
+out=dict(processes=processes,roundCaps=caps,allCapsPassed=all(x['passed'] for x in caps),
+    sampleMembers=sum(len(x['members']) for x in rows),sampleMemberStatuses={status:sum(m['status']==status for row in rows for m in row['members']) for status in sorted({m['status'] for row in rows for m in row['members']})},
+    lastRound=rows[-1],observerOverhead=s['overhead'],nativeRecordIoNs=s['nativeWebProcess']['recordIoNs'],
+    totals={k:sum(x[k] for x in rounds) for k in ['taskEntries','fdCandidates','fdinfoReadAttempts','nativeRecordReads','nativeTargetAttempts','nativeChainNodes','nativeChainStatReads','nativeTotalStatReads']},
+    maxima={k:max(x[k] for x in rounds) for k in ['taskEntries','fdCandidates','fdinfoReadAttempts','nativeRecordReads','nativeTargetAttempts','nativeChainNodes','nativeChainStatReads','nativeTotalStatReads']},
+    fdReadReconciliation=dict(total=s['pidfdReadAttempts'],nonPidfd=668,ordinaryVerifiedFirstAndRepeat=21*2,ordinaryNotDirect=8,repeatCapFirstOnly=7,nativeFirstAndRepeat=8*2,sum=668+42+8+7+16,timeoutStatusBeforeBudgetedRead=2,qualification='read_fdinfo checks deadline before increment; two OSError-class TimeoutError status rows do not prove two actual reads.'),
+    stageSinks=stages,wireComplete=wire,requests=[{k:q[k] for k in ('requestId','dispatchNs','endpointNs','sameAppDurationNs','endpointKind','settlementOk','issues','wireSha256')} for q in r['requests']],
+    exactCleanup=load(RUN/'control/exact-known-postcheck.json'),clockJoinStatus='unverified-coordinate-assumption')
+with (OUT/'quantitative-summary.json').open('x') as f:json.dump(out,f,indent=2);f.write('\n')
+print(json.dumps(dict(capsPassed=out['allCapsPassed'],processes=processes,totals=out['totals'],maxima=out['maxima'],sampleMemberStatuses=out['sampleMemberStatuses']),indent=2))

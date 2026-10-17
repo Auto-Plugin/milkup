@@ -1,0 +1,53 @@
+"""Entirely invented raw-shaped evidence. These PIDs/times are not runtime facts."""
+import copy
+import hashlib
+import json
+
+
+def stage(phase, at, sequence=1, ok=True, request='r1'):
+    return dict(schema='milkup.cold-stage.v1', sequence=sequence, emitterPid=101,
+                emitterBirth=11, role='app', instanceId='fixture-instance', requestId=request,
+                phase=phase, nativeMonotonicNs=at, captureBeforeNs=at+1,
+                details=dict(ok=ok, rpcId=None) if phase == 'render-settled' else {})
+
+
+def wire(request='r1'):
+    raw = json.dumps(dict(id=request, type='render', source='invented-fixture'), separators=(',', ':'))
+    return dict(kind='render-accepted', ownerPid=101, ownerBirth=11, instanceId='fixture-instance',
+                requestId=request, wire=raw, wireBytes=len(raw.encode()), wireSha256=hashlib.sha256(raw.encode()).hexdigest())
+
+
+def sample(at, ticks, pid=101, birth=11, instance=None):
+    return dict(pid=pid, birth=birth, instanceId=instance, status='sample', readStartNs=at,
+                readEndNs=at+2, userTicks=ticks, systemTicks=0,
+                leaderSchedstat=dict(runtimeNs=ticks*3, waitNs=ticks*2, timeslices=ticks))
+
+
+def refresh_status(data):
+    for sink in data['stageSinks']:
+        n = len(sink['events'])
+        status = dict(schema='milkup.cold-stage-status.v1', pid=sink['pid'], birth=sink['birth'], role=sink['role'],
+                      final=True, closed=True, attempted=n, enqueued=n, written=n,
+                      dropped=0, unknownOrUnadmitted=0, ioErrors=0, inFlight=0)
+        sink['status'] = copy.deepcopy(status)
+        sink['complete'] = status
+
+
+def base():
+    # Explicitly small artificial units make manually checked expected sums clear.
+    # Observer intervals: 110..142 = 3 ticks; 140..182 = 5 ticks.
+    data = dict(summary=dict(app=dict(pid=101, birth=11), clockTicksPerSecond=100,
+                    knownIdentities=[dict(pid=101, birth=11, role='App', instanceId=None,
+                                         firstSeenNs=90, firstSampleNs=110)],
+                    skippedSlots=0, sampleCount=3, descendantCoverage=dict(complete=False)),
+                samples=[dict(members=[sample(110, 7)]), dict(members=[sample(140, 10)]),
+                         dict(members=[sample(180, 15)])],
+                wireEvents=[wire()], driverEvents=[dict(phase='dispatch', pid=101,
+                    instanceId='fixture-instance', requestId='r1', monotonicNs=100)],
+                stageSinks=[dict(label='app-101-11', pid=101, birth=11, role='app',
+                                 events=[stage('render-settled', 200)])],
+                driverOwnerScopeConfirmed=True,
+                driverOwnerScopeEvidence={'fixtureOnly': 'invented exact owner log scope'},
+                runExits=dict(node=0, cpu=2, wrapper=1))
+    refresh_status(data)
+    return data

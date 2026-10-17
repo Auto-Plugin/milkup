@@ -1,0 +1,46 @@
+{
+  "status": "LAYER1_IMPLEMENTED_PURE_CHECKS_COMPLETE_NATIVE_REVIEW_BUILD_RUNTIME_PENDING",
+  "atUtc": "2026-10-17T03:17:48.150310+00:00",
+  "candidateManifest": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-stage-candidate-01/candidate-manifest.json",
+    "sha256": "959665b677fad7a2a754b718f2b8932eb5c4944215457a4c09688cc4d7def80a"
+  },
+  "tests": {
+    "jsFirst": {
+      "exitCode": 1,
+      "passed": 8,
+      "failed": 3,
+      "reason": "test calls .some on intentionally null-prototype stages array"
+    },
+    "jsFailedOnlyContinuation": {
+      "exitCode": 0,
+      "passed": 3,
+      "failed": 0
+    },
+    "rustFirstCompile": {
+      "exitCode": 0,
+      "binaryBytes": 1018736,
+      "warningsRetained": 8
+    },
+    "rustFirstTests": {
+      "exitCode": 0,
+      "passed": 11,
+      "failed": 0
+    },
+    "qualification": "Actual candidate JS and new Rust module exercised; no native GTK/Tauri integration compiled or run. Eight passing JS cases were not rerun. Original test frozen path restored after short-lived adapter edit, full history in test-path-history.json."
+  },
+  "formatFirstFailure": "rustup shim tried readonly /home/agent/.rustup; first exit1 preserved. Explicit installed toolchain formatter then exit0. No candidate syntax error encountered by formatter.",
+  "limits": "512rows/64KiB per native process, queue32,1KiB row,first8request scopes; JS first8\u00d764+32init under64KiB. Both App/helper may produce output; no single64KiB whole-run claim.",
+  "remaining": [
+    "Independent source review may require revisions.",
+    "Native candidate typecheck/build not performed or authorized here.",
+    "Synchronous JS stall can lose undrained marks; missing final/tail remains partial.",
+    "No historical production08 render_3 or UI10 render2754 attribution."
+  ],
+  "unchanged": [
+    "Product repository not edited",
+    "Original accepted-wire recorder/guard/self-pidfd bytes",
+    "Original plugin archive/SDK/frontend",
+    "2s render/10s init/output limits and result pipe grammar"
+  ]
+}

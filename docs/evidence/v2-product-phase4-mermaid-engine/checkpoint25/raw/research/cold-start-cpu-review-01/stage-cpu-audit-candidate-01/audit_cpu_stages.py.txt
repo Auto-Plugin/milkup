@@ -1,0 +1,321 @@
+#!/usr/bin/env python3
+"""Offline frozen-file CPU arithmetic; never imports a sampler or reads live proc.
+
+Spec paths are explicitly SHA256 pinned. Stage validation is deliberately narrower
+than the independent request auditor: this module qualifies owner endpoints and
+recomputes CPU arithmetic, while retaining other stages as source evidence.
+"""
+import argparse
+import hashlib
+import json
+from pathlib import Path
+
+CLOCK = 'unverified-coordinate-assumption'
+QUALIFICATION = 'candidate-intervals-not-strict-request-attribution'
+
+
+def digest(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def natural(value):
+    return type(value) is int and value >= 0
+
+
+def strict_json(raw):
+    def unique(pairs):
+        out = {}
+        for key, value in pairs:
+            if key in out:
+                raise ValueError('duplicate JSON key: ' + key)
+            out[key] = value
+        return out
+    def bad_constant(value):
+        raise ValueError('nonfinite JSON constant: ' + value)
+    return json.loads(raw, object_pairs_hook=unique, parse_constant=bad_constant)
+
+
+def json_lines(raw):
+    return [strict_json(line) for line in raw.splitlines() if line.strip()]
+
+
+def identity(row):
+    return row.get('pid'), row.get('birth')
+
+
+def process_intervals(summary, rounds):
+    """Preserve row adjacency, including absent/invalid member barriers."""
+    hz = summary['clockTicksPerSecond']
+    if not natural(hz) or hz == 0:
+        raise ValueError('invalid CLK_TCK')
+    origins = summary['knownIdentities']
+    if len({identity(x) for x in origins}) != len(origins):
+        raise ValueError('duplicate known identity')
+    result = []
+    for origin in origins:
+        key = identity(origin)
+        if not all(natural(x) and x > 0 for x in key):
+            raise ValueError('invalid known identity')
+        observations, intervals, excluded = [], [], []
+        for index, row in enumerate(rounds):
+            members = [m for m in row['members'] if identity(m) == key]
+            member = members[0] if len(members) == 1 else None
+            reason = None
+            if member is None:
+                reason = 'member-absent' if not members else 'duplicate-member'
+            elif member.get('status') != 'sample':
+                reason = 'member-status-' + str(member.get('status'))
+            elif member.get('instanceId') != origin.get('instanceId'):
+                reason = 'member-instance-mismatch'
+            elif not all(natural(member.get(k)) for k in ('readStartNs', 'readEndNs', 'userTicks', 'systemTicks')):
+                reason = 'invalid-counter-or-bracket'
+            elif member['readStartNs'] > member['readEndNs']:
+                reason = 'reversed-read-bracket'
+            observations.append(dict(roundIndex=index, valid=reason is None, reason=reason, member=member))
+        for a, b in zip(observations, observations[1:]):
+            indexes = [a['roundIndex'], b['roundIndex']]
+            if not a['valid'] or not b['valid']:
+                excluded.append(dict(roundIndexes=indexes, reason='invalid-or-missing-adjacent-member'))
+                continue
+            left, right = a['member'], b['member']
+            ticks = right['userTicks'] + right['systemTicks'] - left['userTicks'] - left['systemTicks']
+            if (left['readEndNs'] > right['readStartNs'] or ticks < 0
+                    or right['userTicks'] < left['userTicks'] or right['systemTicks'] < left['systemTicks']):
+                excluded.append(dict(roundIndexes=indexes, reason='counter-regression-or-overlapping-read-brackets'))
+                continue
+            leader, leader_reason = None, None
+            ls, rs = left.get('leaderSchedstat'), right.get('leaderSchedstat')
+            if not isinstance(ls, dict) or not isinstance(rs, dict) or not ls or set(ls) != set(rs):
+                leader_reason = 'missing-or-mismatched-leader-schedstat'
+            elif not all(natural(ls[k]) and natural(rs[k]) and rs[k] >= ls[k] for k in ls):
+                leader_reason = 'invalid-or-regressed-leader-schedstat'
+            else:
+                leader = {k: rs[k] - ls[k] for k in ls}
+            intervals.append(dict(intervalId=f'{key[0]}:{key[1]}:{indexes[0]}:{indexes[1]}',
+                                  roundIndexes=indexes, firstReadStartNs=left['readStartNs'],
+                                  firstReadEndNs=left['readEndNs'], lastReadStartNs=right['readStartNs'],
+                                  lastReadEndNs=right['readEndNs'], ownCpuTicks=ticks,
+                                  ownCpuSeconds=ticks / hz, leaderSchedstatDelta=leader,
+                                  leaderSchedstatGap=leader_reason))
+        result.append(dict(pid=key[0], birth=key[1], bindingTimeRole=origin.get('role'),
+                           instanceId=origin.get('instanceId'), firstSeenNs=origin.get('firstSeenNs'),
+                           firstSampleNs=origin.get('firstSampleNs'), origin=origin,
+                           observations=observations, intervals=intervals, excludedAdjacentPairs=excluded,
+                           ownCpuTicks=sum(x['ownCpuTicks'] for x in intervals) if intervals else None,
+                           ownCpuSeconds=sum(x['ownCpuTicks'] for x in intervals) / hz if intervals else None))
+    return result
+
+
+def audit(data):
+    summary, rounds = data['summary'], data['samples']
+    owner = identity(summary['app'])
+    processes = process_intervals(summary, rounds)
+    known = {identity(x): x for x in summary['knownIdentities']}
+    issues, coverage, stage_rows = [], [], []
+    seen_sinks = set()
+    for sink in data['stageSinks']:
+        actor = (sink['pid'], sink['birth'])
+        role, events = sink['role'], sink['events']
+        sink_issues = []
+        actor_valid = (actor == owner if role == 'app' else
+                       role == 'helper' and actor in known and known[actor].get('role') == 'renderer-leader')
+        if not actor_valid:
+            sink_issues.append('sink-emitter-not-bound')
+        if actor in seen_sinks:
+            sink_issues.append('duplicate-emitter-sink')
+        seen_sinks.add(actor)
+        seq = [e.get('sequence') for e in events]
+        if (not all(natural(n) and n > 0 for n in seq) or len(set(seq)) != len(seq)
+                or sorted(seq) != list(range(1, len(events) + 1))):
+            sink_issues.append('sequence-gap-or-duplicate')
+        status, complete = sink.get('status'), sink.get('complete')
+        if not isinstance(complete, dict) or complete.get('final') is not True or complete.get('closed') is not True:
+            sink_issues.append('missing-closed-final')
+        if not isinstance(status, dict):
+            sink_issues.append('missing-status')
+        if complete is not None and status != complete:
+            sink_issues.append('status-complete-differ')
+        for name, counters in [('status', status), ('complete', complete)]:
+            if not isinstance(counters, dict):
+                continue
+            if (counters.get('schema') != 'milkup.cold-stage-status.v1'
+                    or (counters.get('pid'), counters.get('birth')) != actor or counters.get('role') != role):
+                sink_issues.append(name + '-identity-or-schema')
+            for field in ('dropped', 'unknownOrUnadmitted', 'ioErrors', 'inFlight'):
+                if counters.get(field) != 0 or type(counters.get(field)) is not int:
+                    sink_issues.append(name + '-' + field)
+            if counters.get('written') != len(events) or counters.get('enqueued') != counters.get('written'):
+                sink_issues.append(name + '-written-or-undrained')
+            if counters.get('attempted') != len(events):
+                sink_issues.append(name + '-attempt-count')
+        for index, event in enumerate(events):
+            valid = (actor_valid and event.get('schema') == 'milkup.cold-stage.v1'
+                     and (event.get('emitterPid'), event.get('emitterBirth')) == actor
+                     and event.get('role') == role and isinstance(event.get('details'), dict)
+                     and natural(event.get('nativeMonotonicNs')) and event['nativeMonotonicNs'] > 0
+                     and natural(event.get('captureBeforeNs'))
+                     and event['nativeMonotonicNs'] <= event['captureBeforeNs'])
+            if not valid:
+                sink_issues.append('invalid-event-' + str(index))
+            stage_rows.append(dict(event=event, valid=valid, sink=sink['label'], index=index))
+        coverage.append(dict(label=sink['label'], actor=list(actor), role=role, issues=sink_issues,
+                             partial=bool(sink_issues), status=status, complete=complete,
+                             finalMeans='diagnostic-close-only-never-request-settlement'))
+    if not any(s['role'] == 'app' and (s['pid'], s['birth']) == owner for s in data['stageSinks']):
+        issues.append('missing-owner-stage-sink')
+    wires = [w for w in data['wireEvents'] if w.get('kind') == 'render-accepted']
+    drivers = [d for d in data['driverEvents'] if d.get('phase') in ('dispatch', 'deadline-observed')]
+    keys = {(w.get('instanceId'), w.get('requestId')) for w in wires}
+    keys.update((d.get('instanceId'), d.get('requestId')) for d in drivers if d.get('pid') == owner[0])
+    keys.update((x['event'].get('instanceId'), x['event'].get('requestId')) for x in stage_rows
+                if x['event'].get('requestId') is not None)
+    requests = []
+    for instance, rid in sorted(keys, key=repr):
+        problems = []
+        matching_wires = [w for w in wires if (w.get('instanceId'), w.get('requestId')) == (instance, rid)]
+        matching_driver = [d for d in drivers if d.get('pid') == owner[0]
+                           and (d.get('instanceId'), d.get('requestId')) == (instance, rid)]
+        dispatch = [d for d in matching_driver if d['phase'] == 'dispatch']
+        deadlines = [d for d in matching_driver if d['phase'] == 'deadline-observed']
+        stages = [s for s in stage_rows if (s['event'].get('instanceId'), s['event'].get('requestId')) == (instance, rid)]
+        raw_settled = [s for s in stages if s['event'].get('role') == 'app' and s['event'].get('phase') == 'render-settled']
+        native_deadlines = [s for s in stages if s['event'].get('role') == 'app' and s['event'].get('phase') == 'deadline']
+        wire_hash = None
+        if len(matching_wires) != 1:
+            problems.append('wire-not-unique')
+        else:
+            wire = matching_wires[0]
+            try:
+                raw = wire['wire'].encode('utf-8')
+                parsed = strict_json(raw)
+                if ((wire.get('ownerPid'), wire.get('ownerBirth')) != owner
+                        or len(raw) != wire['wireBytes'] or digest(raw) != wire['wireSha256']
+                        or parsed.get('id') != rid or not isinstance(instance, str) or not isinstance(rid, str)):
+                    raise ValueError('wire identity/hash/size')
+                wire_hash = digest(raw)
+            except (ValueError, KeyError, TypeError, AttributeError, UnicodeError):
+                problems.append('wire-invalid')
+        if data.get('driverOwnerScopeConfirmed') is not True or not data.get('driverOwnerScopeEvidence'):
+            problems.append('driver-pid-to-owner-birth-scope-unqualified')
+        if len(dispatch) != 1:
+            problems.append('dispatch-not-unique')
+        endpoint, endpoint_kind, endpoint_ok = None, None, None
+        if len(raw_settled) > 1 or len(deadlines) > 1 or (raw_settled and (deadlines or native_deadlines)):
+            problems.append('endpoint-conflict-or-duplicate')
+        elif raw_settled:
+            record = raw_settled[0]
+            event = record['event']
+            if (not record['valid'] or (event.get('emitterPid'), event.get('emitterBirth')) != owner
+                    or set(event['details']) != {'ok', 'rpcId'}
+                    or type(event['details'].get('ok')) is not bool or event['details'].get('rpcId') is not None):
+                problems.append('settlement-invalid')
+            else:
+                endpoint, endpoint_kind, endpoint_ok = event['nativeMonotonicNs'], 'render-settled', event['details']['ok']
+        elif deadlines:
+            endpoint, endpoint_kind = deadlines[0].get('monotonicNs'), 'deadline-observed'
+        else:
+            problems.append('endpoint-unobserved')
+        start = dispatch[0].get('monotonicNs') if len(dispatch) == 1 else None
+        if endpoint is not None and (not natural(start) or not natural(endpoint) or endpoint < start):
+            problems.append('invalid-owner-window')
+        valid = not problems
+        request = dict(ownerPid=owner[0], ownerBirth=owner[1], instanceId=instance, requestId=rid,
+                       wireSha256=wire_hash, dispatch=dispatch,
+                       wireRecords=[{k: v for k, v in w.items() if k != 'wire'} for w in matching_wires], stages=stages,
+                       deadlineRecords=deadlines, endpointStatus='observed-qualified' if valid else 'unresolved',
+                       issues=problems, endpointKind=endpoint_kind, settlementOk=endpoint_ok,
+                       dispatchNs=start, endpointNs=endpoint, sameAppDurationNs=endpoint-start if valid else None,
+                       clockJoinStatus=CLOCK, measurement=QUALIFICATION, processes=[])
+        if valid:
+            for process in processes:
+                key = (process['pid'], process['birth'])
+                if key != owner and process['instanceId'] != instance:
+                    continue
+                inside = [i.copy() for i in process['intervals'] if start <= i['firstReadStartNs']
+                          <= i['firstReadEndNs'] <= i['lastReadStartNs'] <= i['lastReadEndNs'] <= endpoint]
+                request['processes'].append(dict(pid=key[0], birth=key[1], bindingTimeRole=process['bindingTimeRole'],
+                    clockJoinStatus=CLOCK, measurement=QUALIFICATION if inside else 'not-measured-inside-window',
+                    intervals=inside, ownCpuTicks=sum(i['ownCpuTicks'] for i in inside) if inside else None,
+                    ownCpuSeconds=sum(i['ownCpuTicks'] for i in inside)/summary['clockTicksPerSecond'] if inside else None,
+                    conditionalLeadingGapRangeNs=[inside[0]['firstReadStartNs']-start, inside[0]['firstReadEndNs']-start] if inside else None,
+                    conditionalTrailingGapRangeNs=[endpoint-inside[-1]['lastReadEndNs'], endpoint-inside[-1]['lastReadStartNs']] if inside else None,
+                    allProcessExcludedAdjacentPairs=process['excludedAdjacentPairs'],
+                    firstSeenNs=process['firstSeenNs'], firstSampleNs=process['firstSampleNs']))
+        requests.append(request)
+    overlap = {}
+    for request in requests:
+        for process in request['processes']:
+            for interval in process['intervals']:
+                overlap.setdefault(interval['intervalId'], []).append([request['instanceId'], request['requestId']])
+    shared = {key: value for key, value in overlap.items() if len(value) > 1}
+    return dict(schema='milkup.offline-stage-cpu-audit.v1', issues=issues, stageCoverage=coverage,
+                requests=requests, processes=processes, sharedCandidateIntervals=shared,
+                clockJoinStatus=CLOCK, fullRendererTreeCoverage=False,
+                observerQuality={k: summary.get(k) for k in ('stopReason', 'failure', 'sampleCount', 'sampleIncomplete',
+                    'evictedRows', 'skippedSlots', 'maxLateNs', 'descendantCoverage', 'limits', 'overhead', 'discoveryRounds')},
+                runExits=data.get('runExits'), driverOwnerScopeEvidence=data.get('driverOwnerScopeEvidence'),
+                driverBirthQualification='Original trace has PID only; saved run-lifetime scope must independently bind it to the exact App birth.',
+                qualification=[QUALIFICATION,
+                    'Own CPU only; leader schedstat is not all-thread runtime or wait.',
+                    'No interpolation, lifetime backfill, clock offset, causal attribution or exclusive request cost.',
+                    'Overlapping request candidates can reuse intervals; no request totals are summed.',
+                    'Missing final leaves capture partial even when a retained settlement is valid.',
+                    'Observed stage timestamp is not UI completion, JS success or complete lifetime capture.',
+                    'Binding-time role does not prove later executable identity; native proof independently reviewed.'])
+
+
+def load_spec(path):
+    spec_raw = Path(path).read_bytes()
+    spec = strict_json(spec_raw)
+    verified = []
+    def read(entry, kind):
+        if entry is None:
+            return None
+        p = Path(entry['path']).resolve(strict=True)
+        if str(p).startswith(('/proc/', '/sys/', '/dev/')) or not p.is_file():
+            raise ValueError('only saved regular evidence files permitted')
+        raw = p.read_bytes()
+        if digest(raw) != entry['sha256']:
+            raise ValueError('frozen input hash mismatch: ' + str(p))
+        verified.append(dict(path=str(p), sha256=digest(raw), bytes=len(raw)))
+        if kind == 'json':
+            return strict_json(raw)
+        if kind == 'lines':
+            return json_lines(raw)
+        if kind == 'raw':
+            return dict(path=str(p), sha256=digest(raw), bytes=len(raw))
+        return [strict_json(line[len('DOM_NATIVE_TIMING '):]) for line in raw.decode().splitlines()
+                if line.startswith('DOM_NATIVE_TIMING ')]
+    data = {key: read(spec[key], kind) for key, kind in [('summary', 'json'), ('samples', 'lines'),
+                    ('wireEvents', 'lines'), ('driverEvents', 'driver')]}
+    data['stageSinks'] = []
+    for stream in spec['stageSinks']:
+        data['stageSinks'].append({**{k: stream[k] for k in ('label', 'pid', 'birth', 'role')},
+            **{k: read(stream.get(k), 'lines' if k == 'events' else 'json') for k in ('events', 'status', 'complete')}})
+    for key in ('driverOwnerScopeConfirmed', 'driverOwnerScopeEvidence', 'runExits'):
+        data[key] = spec.get(key)
+    data['driverOwnerScopeEvidence'] = read(spec.get('driverOwnerScopeEvidence'), 'raw')
+    for entry in spec.get('provenanceFiles', []):
+        read(entry, 'raw')
+    return data, dict(specSha256=digest(spec_raw), files=verified)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--spec', required=True)
+    parser.add_argument('--output', required=True)
+    args = parser.parse_args()
+    data, provenance = load_spec(args.spec)
+    result = audit(data)
+    result['inputVerification'] = provenance
+    with Path(args.output).open('x') as output:
+        json.dump(result, output, indent=2, allow_nan=False)
+        output.write('\n')
+    # Successful audit computation is distinct from endpoint/coverage availability.
+    print(json.dumps(dict(event='offline-audit-written', requests=len(result['requests']),
+                          unresolved=sum(bool(r['issues']) for r in result['requests']),
+                          clockJoinStatus=CLOCK)))
+
+
+if __name__ == '__main__':
+    main()

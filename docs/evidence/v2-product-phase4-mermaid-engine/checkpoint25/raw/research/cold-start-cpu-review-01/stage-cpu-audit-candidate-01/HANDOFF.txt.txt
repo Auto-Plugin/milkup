@@ -1,0 +1,17 @@
+Prepared offline CPU-stage audit; first pure synthetic execution completed
+
+Code: audit_cpu_stages.py SHA898f167eb7e37ff6bc9c3c5340fc5c688748cecde99c2cc0604999cefe6601c5.
+Pre-test freeze: prepared-manifest.json SHAc2bd08a7af00bb8de1211104725753d8b92dc6de9478dc9de983d844883369be.
+First command: /opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 -B -m unittest -v test_audit_cpu_stages.
+CWD: this candidate directory. Fourteen test methods, with additional subcases; all passed once, actual child exit0. Full stderr contains unittest output, stdout is empty. Before/after all four candidate inputs plus five independently pinned source/coordination inputs match. Actual command, full logs, raw returncode and hashes are retained in synthetic-first; no prior failure occurred and no retry ran.
+
+Invocation after a separately authorized future freeze:
+python3 -B /workspace/milkup-mermaid-engine-evidence/research/cold-start-cpu-review-01/stage-cpu-audit-candidate-01/audit_cpu_stages.py --spec /absolute/new-offline-review/input-spec.json --output /absolute/new-offline-review/cpu-stage-report.json
+
+The new input-spec.json is prepared ONLY from that completed frozen run. Required entries summary/samples/wireEvents/driverEvents each contain path and sha256. Map to original cpu-observer/summary.json, cpu-observer/samples.ndjson, native-capture/events.jsonl and driver.log. stageSinks is an explicit list of actual role/PID/birth directories, each with label/pid/birth/role/events/status/complete; every file entry is path+sha256, missing status/complete is null. Do not guess future PIDs, request IDs, event counts, hashes or paths beyond the frozen run plan. No hardcoded render_1/render_3 anchor exists.
+
+driverOwnerScopeConfirmed=true is permitted only after independent run/identity review; driverOwnerScopeEvidence is a path+sha256 reference to that saved review, because original trace itself does not contain birth. provenanceFiles may additionally pin full run manifest, identity-proof review and strict wire/stage auditor outputs. runExits preserves separately verified node/cpu/wrapper numbers. This tool rechecks original wire identity/hash/length itself, but does not replace the other auditors' full native proof, source/embedding, frame-shape, sink byte-limit or counter review. It never consumes their CPU arithmetic.
+
+This is an audit-only CLI, not a runtime observer. No sampler arguments, producer gate, sampling frequency, product timeout, discovery budget, live clock probe or new runtime process are required. v05 remains unchanged. Root/cold_native can freeze these files as postrun audit inputs; do not invoke this script on partial runtime output. Future real-data execution must preserve its first actual exit/log and input spec hash separately.
+
+Every numerical App-window/external-sample correlation remains unverified-coordinate-assumption. Same-App duration and per-PID sample differences remain separate tables. Short windows have null CPU, endpoints never inferred from final, missing complete always partial, and shared interval IDs expose overlap without exclusive request-cost sum. Tree coverage remains incomplete. This execution used invented synthetic evidence only, not WebKit/native/Mermaid or any actual run; it provides no new production08 root-cause or run06 outcome.

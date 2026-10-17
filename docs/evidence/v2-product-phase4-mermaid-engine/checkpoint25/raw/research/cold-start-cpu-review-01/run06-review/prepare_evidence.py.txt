@@ -1,0 +1,100 @@
+"""Run06 saved-evidence identity review and pinned spec preparation. No live IO."""
+import hashlib
+import json
+from pathlib import Path
+
+ROOT = Path('/workspace/milkup-mermaid-engine-evidence/research')
+BASE = ROOT/'native-cold-start-diagnostic-06'
+RUN = BASE/'runtime/mermaid-ui-cold-diag-06'
+OUT = ROOT/'cold-start-cpu-review-01/run06-review'
+checks = []
+
+def load(p): return json.loads(p.read_bytes())
+def lines(p): return [json.loads(x) for x in p.read_bytes().splitlines()]
+def sha(b): return hashlib.sha256(b).hexdigest()
+def ref(p): return dict(path=str(p), sha256=sha(p.read_bytes()), bytes=p.stat().st_size)
+def save(name, value):
+    with (OUT/name).open('x') as f: json.dump(value, f, indent=2); f.write('\n')
+def check(name, condition, **detail):
+    checks.append(dict(check=name, passed=bool(condition), **detail))
+def ident(x): return x['pid'], x['birth']
+def stable(a,b): return all(a[k]==b[k] for k in ('pid','birth','parent')) and a['state'] not in ('Z','X','x') and b['state'] not in ('Z','X','x')
+def fields(raw):
+    rows=dict(x.split(':',1) for x in raw.splitlines())
+    return dict(pid=int(rows['Pid']),nspid=[int(x) for x in rows['NSpid'].split()])
+
+s=load(RUN/'cpu-observer/summary.json');known={ident(x):x for x in s['knownIdentities']}
+inputs=load(BASE/'runtime-inputs.json');input_checks=[]
+for e in inputs['files']:
+    b=Path(e['path']).read_bytes();input_checks.append(dict(path=e['path'],match=sha(b)==e['sha256'] and len(b)==e['bytes']))
+check('runtime-input-manifest-files',all(x['match'] for x in input_checks),count=len(input_checks))
+binary=Path(inputs['binary']['path']).read_bytes();extension=Path(inputs['extension']['path']).read_bytes()
+check('binary-digest-size',sha(binary)==inputs['binary']['sha256'] and len(binary)==inputs['binary']['bytes'])
+check('extension-digest-size',sha(extension)==inputs['extension']['sha256'] and len(extension)==inputs['extension']['bytes'])
+offset=binary.find(extension)
+check('extension-unique-whole-embedding',offset==inputs['extension']['embeddedOffset'] and binary.find(extension,offset+1)==-1,offset=offset)
+capture=lines(RUN/'native-capture/events.jsonl');births={(e['ownerPid'],e['ownerBirth']) for e in capture};instances={e['instanceId'] for e in capture}
+owner=ident(s['app']);profile=load(RUN/'evidence/native-owned-profile.json')
+check('one-native-owner-and-instance',births=={owner} and len(instances)==1)
+instance=next(iter(instances))
+check('profile-app-birth-and-binary',profile['pid']==owner[0] and int(profile['birth'])==owner[1] and profile['argv'][0]==inputs['binary']['path'] and s['app']['argv'][0]==inputs['binary']['path'])
+spawn=[x for x in capture if x['kind']=='guardian-spawn'];check('unique-native-guardian-spawn',len(spawn)==1)
+guardian=(spawn[0]['guardianPid'],spawn[0]['guardianBirth'])
+check('guardian-known-native-parent',guardian in known and known[guardian]['parent']==owner[0] and known[guardian]['instanceId']==instance)
+binding=s['guardianBindingEvents'];check('guardian-native-birth-bound',len(binding)==1 and ident(binding[0])==guardian and binding[0]['instanceId']==instance and binding[0]['nativeCreationProof']['path']==str(RUN/'native-capture/events.jsonl') and binding[0]['instanceEnvironmentMatched'] is True)
+driver=[json.loads(x[18:]) for x in (RUN/'driver.log').read_text().splitlines() if x.startswith('DOM_NATIVE_TIMING ')]
+owner_events=[x for x in driver if x['phase'] in ('dispatch','deadline-observed','control-emitted')]
+check('driver-native-owner-scope',bool(owner_events) and {x['pid'] for x in owner_events}=={owner[0]} and {x['instanceId'] for x in owner_events}=={instance})
+harness=load(RUN/'control/harness-execution.json');cmd=harness['samplerCommand']
+check('controlled-driver-log-and-binary',cmd[cmd.index('--app-log')+1]==str(RUN/'driver.log') and cmd[cmd.index('--binary')+1]==inputs['binary']['path'] and cmd[cmd.index('--identity-log')+1]==str(RUN/'native-capture/events.jsonl'))
+ordinary=[]
+for origin in known.values():
+    if 'pidfdProof' not in origin: continue
+    p=origin['pidfdProof'];a=p['ownerBefore'];b=p['targetBefore']
+    check('ordinary-held-fd-double-proof',stable(a,p['ownerAfter']) and stable(b,p['targetAfter']) and ident(a)==(p['ownerPid'],p['ownerBirth']) and ident(a) in known and ident(b)==ident(origin) and b['parent']==a['pid'] and p['fdinfoBefore']==p['fdinfoAfter'] and fields(p['fdinfoBefore'])==p['pidFields'] and p['pidFields']['pid']==origin['pid'],pid=origin['pid'])
+    av=origin['argvEvidence'];argv=bytes.fromhex(av['rawHex']).rstrip(b'\0').decode().split('\0')
+    check('ordinary-binding-argv',argv==av['parsed'] and len(bytes.fromhex(av['rawHex']))<=4096,pid=origin['pid'])
+    ordinary.append(dict(pid=origin['pid'],birth=origin['birth'],role=origin['role'],proof=p,argv=av))
+sources=s['nativeWebProcess']['sources'];source_rows=[]
+for kind,source in sources.items():
+    record=source['record'];helper=record['helper'];path=RUN/'native-pidfd/slot'/f'helper-{helper["pid"]}-{helper["birth"]}-{kind}.json';raw=path.read_bytes()
+    check('native-original-file-vs-snapshot',sha(raw)==source['sha256'] and json.loads(raw)==record and len(raw)<=8192 and source['metadata']['bytes']==len(raw) and source['metadata']['mode']==0o600,kind=kind)
+    check('native-envelope-and-owner',record['schema']=='milkup.webprocess-self-pidfd.v1' and record['final'] is True and record['kind']==kind and record['instanceId']==instance and ident(record['guardian'])==guardian and ident(helper) in known and helper['parent']==guardian[0] and record['guardian']['parent']==owner[0],kind=kind)
+    if kind=='armed':check('native-armed-extension',record['extensionSha256']==sha(extension) and record['tokenPrepared'] is True and record['status']=='receiver-prepared')
+    if kind=='result':check('native-held-exact-one',record['status']=='held' and record['receivedFdCount']==1 and record['tokenMatched'] is True and all(record[k]==0 for k in ('nativeStage','nativeErrno','nativeGErrorCode','nativeGErrorDomain')))
+    source_rows.append(dict(kind=kind,file=ref(path),record=record,snapshot=source))
+proofs=[]
+for origin in known.values():
+    if 'nativePidfdProof' not in origin:continue
+    p=origin['nativePidfdProof'];a=p['chainBefore'];b=p['chainAfter'];key=ident(origin)
+    check('native-pidfd-repeat-raw',p['fdinfoBefore']==p['fdinfoAfter'] and fields(p['fdinfoBefore'])==p['pidFields'] and p['pidFields']['pid']==key[0] and p['fd']==sources['result']['record']['heldFd'],pid=key[0])
+    check('native-source-digests',p['nativeSourceDigests']=={k:v['sha256'] for k,v in sources.items()})
+    check('native-chain-shape',2<=len(a)<=8 and len(a)==len(b) and len({x['identity']['pid'] for x in a})==len(a) and ident(a[0]['identity'])==key and ident(a[-1]['identity'])==ident(p['helperBefore']['identity']))
+    for left,right in zip(a,b):check('chain-stable-node',stable(left['identity'],right['identity']),pid=left['identity']['pid'])
+    for child,parent in zip(a,a[1:]):check('chain-parent-edge',child['identity']['parent']==parent['identity']['pid'] and parent['identity']['birth']<=child['identity']['birth'],pid=child['identity']['pid'])
+    for label in ('helper','guardian'):
+        left=p[label+'Before']['identity'];right=p[label+'After']['identity']
+        check('boundary-owner-stable',stable(left,right) and ident(left) in known and left['parent']==known[ident(left)]['parent'],label=label)
+    check('helper-native-anchor',ident(p['helperBefore']['identity'])==ident(sources['result']['record']['helper']) and p['helperBefore']['identity']['parent']==guardian[0])
+    av=p['bindingArgvEvidence'];argv=bytes.fromhex(av['rawHex']).rstrip(b'\0').decode().split('\0')
+    check('native-binding-argv',argv==av['parsed'] and Path(argv[0]).name=='WebKitWebProcess' and len(bytes.fromhex(av['rawHex']))<=4096)
+    check('two-phase-bracket-order',all(x['readStartNs']<=x['readEndNs'] for x in a+b) and all(x['readEndNs']<=y['readStartNs'] for x,y in zip(a,a[1:])) and max(x['readEndNs'] for x in a)<=av['readStartNs']<=av['readEndNs']<=min(x['readStartNs'] for x in b) and all(x['readEndNs']<=y['readStartNs'] for x,y in zip(list(reversed(b)),list(reversed(b))[1:])) and max(x['readEndNs'] for x in b)<=p['secondReadStartNs']<=p['secondReadEndNs']<=p['helperAfter']['readStartNs']<=p['helperAfter']['readEndNs']<=p['guardianAfter']['readStartNs'])
+    proofs.append(dict(pid=key[0],birth=key[1],proof=p))
+check('one-native-web-target-proof',len(proofs)==1)
+result=dict(checks=checks,allPassed=all(x['passed'] for x in checks),inputFiles=input_checks,ordinaryProofs=ordinary,nativeSources=source_rows,nativeProofs=proofs,binary=ref(Path(inputs['binary']['path'])),extension=ref(Path(inputs['extension']['path'])),embeddedOffset=offset,qualification='Saved repeated identity/FD/ancestry observations; not atomic tree, same-value ABA exclusion, cross-time-namespace equivalence, or complete renderer coverage.')
+save('native-identity-review.json',result)
+if not result['allPassed']:raise ValueError('identity prerequisite failed; spec not produced')
+scope=dict(ownerPid=owner[0],ownerBirth=owner[1],instanceId=instance,qualified=True,checks=checks[:10],
+    references=[ref(RUN/p) for p in ('driver.log','native-capture/events.jsonl','evidence/native-owned-profile.json','control/harness-execution.json','control/mermaid-ui-cold-diag-06-driver-owner.json')]+[ref(BASE/'driver.sh'),ref(BASE/'launch-driver-reaping.py')],
+    method='Fresh exclusive driver log redirected by frozen driver.sh; saved driver owner command names this run RUN.sh; harness log/binary/native-identity paths match; original native owner events contain exactly one App PID and one instance; App-owned wire ownerBirth, independently saved native profile and observer App birth agree. Birth is not present in DOM_NATIVE_TIMING itself; this is the controlled frozen-run provenance binding, not universal PID uniqueness.',
+    clockJoinStatus='unverified-coordinate-assumption')
+save('driver-owner-scope-evidence.json',scope)
+sinks=[]
+for path in sorted((RUN/'native-stages').iterdir()):
+    role,pid,birth=path.name.split('-')
+    sinks.append(dict(label=path.name,role=role,pid=int(pid),birth=int(birth),events=ref(path/'events.jsonl'),status=ref(path/'status.json') if (path/'status.json').exists() else None,complete=ref(path/'complete.json') if (path/'complete.json').exists() else None))
+exits=load(RUN/'control/tool-exit-results.json')
+spec=dict(summary=ref(RUN/'cpu-observer/summary.json'),samples=ref(RUN/'cpu-observer/samples.ndjson'),wireEvents=ref(RUN/'native-capture/events.jsonl'),driverEvents=ref(RUN/'driver.log'),stageSinks=sinks,driverOwnerScopeConfirmed=True,driverOwnerScopeEvidence=ref(OUT/'driver-owner-scope-evidence.json'),provenanceFiles=[ref(OUT/'frozen-input-verification.json'),ref(OUT/'native-identity-review.json'),ref(BASE/'run06-frozen-manifest.json')],runExits=dict(node=exits['nodeColdExitCode'],cpu=exits['cpuExitCode'],wrapper=exits['harnessTool']['exitCode']))
+save('input-spec.json',spec)
+save('spec-freeze.json',dict(files=[ref(OUT/name) for name in ('prepare_evidence.py','input-spec.json','driver-owner-scope-evidence.json','native-identity-review.json','frozen-input-verification.json')],auditScript=ref(ROOT/'cold-start-cpu-review-01/stage-cpu-audit-candidate-01/audit_cpu_stages.py'),state='FROZEN_BEFORE_FIRST_REAL_OFFLINE_AUDIT'))
+print(json.dumps(dict(checks=len(checks),allPassed=True,owner=owner,instance=instance,nativeTargets=[x['pid'] for x in proofs],runtimeInputs=len(input_checks))))

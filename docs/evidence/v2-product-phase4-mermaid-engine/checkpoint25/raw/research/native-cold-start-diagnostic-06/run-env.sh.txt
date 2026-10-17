@@ -1,0 +1,48 @@
+# Source with: RUN_NAME FROZEN_BINARY BINARY_SHA256 ARCHIVE ARCHIVE_SHA256.
+# Static preparation only; this file starts no process and creates no directory.
+if [[ $# != 5 || ! "$1" =~ ^mermaid-ui-[a-z0-9-]+$ || ! "$3" =~ ^[a-f0-9]{64}$ || ! "$5" =~ ^[a-f0-9]{64}$ ]]; then
+  echo 'Expected unique mermaid-ui run, frozen binary/hash and archive/hash' >&2
+  return 1
+fi
+export MILKUP_NATIVE_RUN="$1"
+export MILKUP_MERMAID_BINARY_SHA256="$3"
+export TAURI_APP_PATH="$(realpath "$2")"
+case "$TAURI_APP_PATH" in
+  /workspace/milkup-mermaid-engine-evidence/*/target/*) return 1 ;;
+  /workspace/milkup-mermaid-engine-evidence/*) ;;
+  *) echo 'Use an immutable evidence binary' >&2; return 1 ;;
+esac
+if [[ "$(sha256sum "$TAURI_APP_PATH" | cut -d ' ' -f 1)" != "$MILKUP_MERMAID_BINARY_SHA256" ]]; then
+  echo 'Frozen binary SHA256 mismatch' >&2
+  return 1
+fi
+if [[ -n "${LD_PRELOAD:-}" || -n "${WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS:-}" || -n "${MILKUP_GTK_THREAD_TRACE:-}" ]]; then
+  echo 'Unexpected interposition or sandbox-changing environment' >&2
+  return 1
+fi
+source /workspace/.cloud/milkup-v2/env.sh
+unset CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER PROOT_NO_SECCOMP
+export DISPLAY=:126
+export GDK_PIXBUF_MODULE_FILE=/workspace/milkup-markdown-extensions-phase4-evidence/native/environment/loaders-sysroot.cache
+export GDK_PIXBUF_MODULEDIR=/workspace/.cloud/milkup-v2/sysroot/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders
+export MILKUP_NATIVE_PROFILE_ROOT=/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-06/runtime/$MILKUP_NATIVE_RUN/profile
+export XDG_CONFIG_HOME=$MILKUP_NATIVE_PROFILE_ROOT/config
+export XDG_CACHE_HOME=$MILKUP_NATIVE_PROFILE_ROOT/cache
+export XDG_DATA_HOME=$MILKUP_NATIVE_PROFILE_ROOT/data
+export MILKUP_NATIVE_EVIDENCE_DIR=/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-06/runtime/$MILKUP_NATIVE_RUN/evidence
+export MILKUP_NATIVE_APP_LOG=/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-06/runtime/$MILKUP_NATIVE_RUN/driver.log
+export TAURI_DRIVER_URL=http://127.0.0.1:4626
+export MILKUP_NATIVE_EXCLUSIVE_DISPLAY=1
+export MILKUP_DOM_DIAGNOSTICS=1
+export MILKUP_MERMAID_BINARY_CONFIRMED=1
+export MILKUP_MERMAID_ARCHIVE="$(realpath "$4")"
+export MILKUP_MERMAID_ARCHIVE_SHA256="$5"
+export MILKUP_MERMAID_CASES_JSON=/workspace/milkup-mermaid-engine-evidence/research/product-ui-preparation/official-cases.json
+if [[ "$(sha256sum "$MILKUP_MERMAID_ARCHIVE" | cut -d ' ' -f 1)" != "$MILKUP_MERMAID_ARCHIVE_SHA256" ]]; then
+  echo 'Frozen archive SHA256 mismatch' >&2
+  return 1
+fi
+
+export XDG_RUNTIME_DIR=/tmp/milkup-runtime-$MILKUP_NATIVE_RUN
+
+# Diagnostic native capture environment is supplied by the reviewed RUN.sh.

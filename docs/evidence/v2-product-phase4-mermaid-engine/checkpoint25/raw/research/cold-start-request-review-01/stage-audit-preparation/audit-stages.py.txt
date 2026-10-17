@@ -1,0 +1,192 @@
+#!/usr/bin/env python3
+"""Offline layer1 audit. Frozen evidence only; original strict wire auditor unchanged."""
+import argparse
+import hashlib
+import importlib.util
+import json
+import math
+from pathlib import Path
+import sys
+
+WIRE_SHA='b6cd88e6a7990a06212879a294ab874d7d49499f6a1efce1bdb9d5932c53b2f9'
+LIMITS=dict(events=512,bytes=65536,rowBytes=1024,queue=32,requests=8)
+APP={'launch','owner-frame-read','owner-receive','render-settled','activation-settled','owner-accepted','owner-pipe-complete','deadline','terminal'}
+HELPER={'helper-start','guard-ready','load-finished','init-evaluate-submit','init-evaluate-callback','helper-dequeue','evaluate-submit','evaluate-callback','result-drained','result-pipe-complete','js-mark','js-state','diagnostic-invalid-frame','diagnostic-invalid-wrapper','diagnostic-unbound-js','diagnostic-raw-drain'}
+JS={'module-import-start','module-import-end','module-import-reject','activate-start','activate-end','activate-reject','invoke-start','invoke-resolve','invoke-reject','typed-stringify-start','typed-stringify-end','typed-encode-end','typed-parse-end','envelope-start','envelope-stringify-end','envelope-encode-end','output-ready'}
+FIELDS={'schema','sequence','emitterPid','emitterBirth','role','instanceId','requestId','phase','nativeMonotonicNs','captureBeforeNs','details'}
+
+def integer(x):return type(x) is int and x>=0
+
+def number(x):return type(x) in (int,float) and math.isfinite(x) and x>=0
+
+def load_wire():
+    p=Path(__file__).resolve().parent.parent/'audit-accepted-wire.py'
+    if hashlib.sha256(p.read_bytes()).hexdigest()!=WIRE_SHA:raise ValueError('original wire auditor changed')
+    spec=importlib.util.spec_from_file_location('unchanged_wire',p);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+
+def audit(streams, wire, identities, parse):
+    errors=[];gaps=[];requests={};all_events=[];summaries=[]
+    def check(ok,msg):
+        if not ok:errors.append(msg)
+    check(wire.get('ok') is True,'original strict wire audit did not pass')
+    owner=(wire['owner']['pid'],wire['owner']['birth'])
+    accepted={(q['instanceId'],q['requestId']):q for q in wire['requests']}
+    instances={q['instanceId']:q for q in wire['requests']}
+    known={(x['pid'],x['birth']):x for x in identities['knownIdentities']}
+    seen_actors=set();js_seen={};js_states={}
+    for stream in streams:
+        label=stream['label'];raw=stream['events'];status=parse(stream['status']);complete=parse(stream['complete'])
+        check(status==complete,label+': status/complete differ')
+        check(complete.get('schema')=='milkup.cold-stage-status.v1',label+': status schema')
+        actor=(complete.get('pid'),complete.get('birth'));role=complete.get('role')
+        check(role in ('app','helper'),label+': role')
+        check(Path(label).name==f'{role}-{actor[0]}-{actor[1]}',label+': directory identity differs')
+        check(actor not in seen_actors,label+': duplicate emitter');seen_actors.add(actor)
+        check(all(integer(x) and x>0 for x in actor),label+': emitter identity')
+        if role=='app':check(actor==owner,label+': App differs from wire owner')
+        else:check(actor in known and known[actor].get('role')=='renderer-leader',label+': helper lacks independently bound renderer-leader identity')
+        check(complete.get('limits')==LIMITS,label+': limits differ from frozen protocol')
+        if complete.get('final') is not True or complete.get('closed') is not True:gaps.append(label+': no closed final')
+        for k in ('dropped','unknownOrUnadmitted','ioErrors','inFlight'):
+            check(integer(complete.get(k)),label+': invalid '+k)
+            if complete.get(k)!=0:gaps.append(label+': nonzero '+k)
+        for k in ('attempted','enqueued','written','reservedBytes','captureTotalNs','captureMaxNs','admitTotalNs','collectionInclusiveNs','collectionCalls','writerThreadCpuNs'):
+            check(integer(complete.get(k)),label+': invalid '+k)
+        check(raw.endswith(b'\n'),label+': missing event newline')
+        lines=raw.splitlines(keepends=True);events=[parse(x) for x in lines]
+        check(len(events)<=512 and len(raw)<=65536,label+': event/file cap')
+        check(all(len(x)<=1024 for x in lines),label+': row cap')
+        check(complete.get('written')==len(events),label+': written count mismatch')
+        check(complete.get('enqueued')==complete.get('written'),label+': queue not drained')
+        zero_loss=all(complete.get(k)==0 for k in ('dropped','unknownOrUnadmitted','ioErrors','inFlight'))
+        seq=[e.get('sequence') for e in events]
+        check(all(integer(x) and x>0 for x in seq) and len(set(seq))==len(seq),label+': bad sequence')
+        if zero_loss:
+            check(sorted(seq)==list(range(1,len(events)+1)),label+': sequence gap')
+            check(complete.get('attempted')==len(events),label+': attempted mismatch in zero-loss stream')
+            check(complete.get('reservedBytes')==len(raw),label+': bytes mismatch in zero-loss stream')
+        check(complete.get('captureMaxNs',0)<=complete.get('captureTotalNs',0),label+': capture max exceeds total')
+        keys=set()
+        for e in events:
+            check(set(e)==FIELDS and e.get('schema')=='milkup.cold-stage.v1',label+': row schema')
+            check((e.get('emitterPid'),e.get('emitterBirth'))==actor and e.get('role')==role,label+': actor drift')
+            phase=e.get('phase');instance=e.get('instanceId');rid=e.get('requestId');d=e.get('details')
+            check(phase in (APP if role=='app' else HELPER),label+': phase not allowed')
+            check(instance in instances,label+': unknown instance')
+            check(integer(e.get('nativeMonotonicNs')) and e['nativeMonotonicNs']>0 and integer(e.get('captureBeforeNs')) and e['nativeMonotonicNs']<=e['captureBeforeNs'],label+': invalid local native timing')
+            check(isinstance(d,dict),label+': details object')
+            if not isinstance(d,dict):continue
+            if role=='helper' and actor in known:
+                ident=known[actor];q=instances.get(instance,{})
+                check(ident.get('instanceId')==instance and ident.get('parentIdentity')=={'pid':q.get('guardianPid'),'birth':q.get('guardianBirth')},label+': helper/guardian/instance mismatch')
+            if rid is not None:
+                key=(instance,rid);keys.add(key);check(key in accepted,label+': request absent from exact wire key set')
+                requests.setdefault(key,[]).append(e)
+            if phase in ('owner-accepted','render-settled','deadline'):check(rid is not None,label+': missing request key')
+            if phase in ('launch','activation-settled','terminal','helper-start','guard-ready','load-finished','init-evaluate-submit','init-evaluate-callback','js-state'):check(rid is None,label+': lifecycle incorrectly keyed as request')
+            expected={
+                'launch':{'guardianPid','guardianBirth'},'owner-accepted':{'wireBytes'},'owner-frame-read':{'bytes'},'owner-receive':set(),
+                'render-settled':{'ok','rpcId'},'activation-settled':{'ok','rpcId'},'owner-pipe-complete':{'ok','type'},
+                'deadline':{'hasError'},'terminal':{'hasError'},'helper-dequeue':{'type','diagnosticParseIncluded'},
+                'evaluate-callback':{'ok'},'init-evaluate-callback':{'ok'},'result-drained':{'bytes'},
+                'js-mark':{'phase','jsMs','trust'},'js-state':{'marks','dropped','drains','bytes','markMs'}}.get(phase,set())
+            check(set(d)==expected,label+': details keys for '+str(phase))
+            for k in ('ok','hasError'):
+                if k in d:check(type(d[k]) is bool,label+': nonboolean '+k)
+            for k in ('bytes','wireBytes'):
+                if k in d:check(integer(d[k]) and d[k]<=(1048576 if k=='wireBytes' else 266240),label+': invalid '+k)
+            if phase=='launch':check((d.get('guardianPid'),d.get('guardianBirth'))==(instances.get(instance,{}).get('guardianPid'),instances.get(instance,{}).get('guardianBirth')),label+': launch guardian differs')
+            if phase=='owner-accepted' and (instance,rid) in accepted:check(d.get('wireBytes')==accepted[(instance,rid)]['input']['wireBytes'],label+': accepted wire length differs')
+            if phase=='render-settled':check(d.get('rpcId') is None,label+': result has rpcId')
+            if phase=='activation-settled':check(isinstance(d.get('rpcId'),str) and len(d['rpcId'])<=80,label+': invalid lifecycle id')
+            if phase=='helper-dequeue':check(d.get('diagnosticParseIncluded') is True,label+': parse qualifier')
+            if phase in ('owner-pipe-complete','helper-dequeue'):check(d.get('type') in ('render','cancel','request'),label+': frame type')
+            if phase.startswith('diagnostic-'):gaps.append(label+': '+phase)
+            if phase=='js-mark':
+                check(d.get('phase') in JS and number(d.get('jsMs')) and d.get('trust')=='untrusted-js-wall-time',label+': invalid JS mark')
+                scope=(actor,instance,rid);js_seen.setdefault(scope,[]).append(e)
+                if d.get('phase','').startswith(('module-','activate-')):check(rid is None,label+': JS init miskeyed')
+                if d.get('phase','').startswith(('invoke-','typed-')):check(rid is not None,label+': JS render mark miskeyed as init')
+            if phase=='js-state':js_states.setdefault((actor,instance),[]).append(e)
+            all_events.append(e)
+        check(len(keys)<=8,label+': request cap')
+        summaries.append({'label':label,'actor':actor,'role':role,'events':len(events),'status':complete})
+    check(any(s['role']=='app' for s in summaries),'no App stage stream')
+    check(any(s['role']=='helper' for s in summaries),'no helper stage stream')
+    for scope,rows in js_seen.items():
+        rows.sort(key=lambda e:e['sequence']);times=[e['details']['jsMs'] for e in rows]
+        check(times==sorted(times),'JS clock decreases within local scope '+repr(scope))
+        check(len(rows)<=(32 if scope[2] is None else 64),'JS per-scope cap')
+        names=[e['details']['phase'] for e in rows]
+        for begin,end in [('invoke-start','invoke-resolve'),('invoke-start','invoke-reject'),('typed-stringify-start','typed-stringify-end'),('typed-stringify-end','typed-encode-end'),('typed-encode-end','typed-parse-end')]:
+            if end in names:check(begin in names and names.index(begin)<names.index(end),'JS prerequisite/order '+end)
+        check(not ('invoke-resolve' in names and 'invoke-reject' in names),'both JS invocation terminals')
+        for phase in ('invoke-start','invoke-resolve','invoke-reject','typed-stringify-start','typed-stringify-end','typed-encode-end','typed-parse-end'):
+            check(names.count(phase)<=1,'duplicate JS request phase '+phase)
+    for stream in summaries:
+        if stream['role']=='helper' and not any(k[0]==tuple(stream['actor']) for k in js_states):gaps.append('helper has no drained JS state; buffered work unknown '+stream['label'])
+    for scope in {k[:2] for k in js_seen}:
+        if scope not in js_states:gaps.append('JS marks without cumulative state '+repr(scope))
+    for scope,rows in js_states.items():
+        rows.sort(key=lambda e:e['sequence']);prior=None
+        for row in rows:
+            d=row['details'];check(all(integer(d.get(k)) for k in ('marks','dropped','drains','bytes')) and number(d.get('markMs')),'JS cumulative state shape')
+            if prior:check(all(d.get(k,0)>=prior.get(k,0) for k in d),'JS cumulative state reset')
+            check(d.get('marks',545)<=544 and d.get('bytes',65537)<=65536,'JS cumulative cap')
+            if d.get('dropped')!=0:gaps.append('JS marks dropped '+repr(scope))
+            prior=d
+        retained=sum(len(v) for k,v in js_seen.items() if k[:2]==scope)
+        if prior and prior.get('marks')!=retained:gaps.append('JS buffered/unretained marks '+repr(scope))
+    result=[]
+    for key,q in accepted.items():
+        rows=requests.get(key,[]);phases={}
+        for e in rows:phases.setdefault(e['phase'],[]).append(e)
+        settled=phases.get('render-settled',[]);deadline=phases.get('deadline',[])
+        check(len(settled)<=1 and len(deadline)<=1 and not(settled and deadline),'duplicate/conflicting App terminal '+repr(key))
+        check(not(settled and q.get('nativeDeadlines')),'settlement conflicts with original deadline '+repr(key))
+        for p in ('owner-accepted','owner-frame-read','owner-receive'):
+            check(len(phases.get(p,[]))<=1,'duplicate phase '+p+' '+repr(key))
+        if settled:
+            end=settled[0]['nativeMonotonicNs'];start=q['nativeDispatch'][0]['monotonicNs'];check(end>=start,'App settle before dispatch')
+            order=[phases[p][0]['nativeMonotonicNs'] for p in ('owner-frame-read','owner-receive','render-settled') if phases.get(p)]
+            check(order==sorted(order),'App receive/settle order')
+            terminal={'kind':'accepted-result','ok':settled[0]['details']['ok'],'appDispatchToSettlementNs':end-start,'qualification':'App-local post-clear timestamp, not emit completion or precise final deadline-check Instant'}
+        elif deadline:terminal={'kind':'deadline-observed','qualification':'Original native deadline remains authoritative; no missing JS stage reconstructed'}
+        else:terminal={'kind':'unobserved'};gaps.append('no App terminal '+repr(key))
+        if not phases.get('owner-accepted'):gaps.append('missing owner-accepted '+repr(key))
+        if phases.get('owner-accepted'):
+            check(phases['owner-accepted'][0]['nativeMonotonicNs']>=q['nativeDispatch'][0]['monotonicNs'],'owner-accepted precedes authoritative dispatch')
+        if settled:
+            for phase in ('owner-frame-read','owner-receive','helper-dequeue','evaluate-submit','evaluate-callback','result-drained','result-pipe-complete'):
+                if not phases.get(phase):gaps.append('settled request missing native stage '+phase+' '+repr(key))
+            js_names=[e['details']['phase'] for e in phases.get('js-mark',[])]
+            needed=['output-ready']
+            if settled[0]['details'].get('ok') is True:needed+=['invoke-start','invoke-resolve','typed-stringify-start','typed-stringify-end','typed-encode-end','typed-parse-end','envelope-start','envelope-stringify-end','envelope-encode-end']
+            for phase in needed:
+                if phase not in js_names:gaps.append('settled request missing JS mark '+phase+' '+repr(key))
+        result.append({'instanceId':key[0],'requestId':key[1],'nativePhases':{p:len(v) for p,v in phases.items()},'terminal':terminal})
+    return dict(schema='milkup.cold-stage-audit.v1',ok=not errors and not gaps,integrityOk=not errors,errors=errors,gaps=gaps,streams=summaries,requests=result,qualification='Process-local native and realm-local JS timing only; no cross-clock subtraction, internal plugin attribution, full lifecycle/tree or causal deadline claim. Missing buffered JS does not mean no JS work.')
+
+def main():
+    p=argparse.ArgumentParser(description=__doc__)
+    for arg in ('freeze-manifest','stage-root','capture-dir','native-log','fixture','plan','cpu-summary'):p.add_argument('--'+arg,type=Path,required=True)
+    p.add_argument('--fixture-sha256',required=True);a=p.parse_args();wire=load_wire();wr=None
+    try:
+        manifest=wire.strict_json(a.freeze_manifest.read_bytes());root=a.stage_root.resolve();groups={}
+        for x in manifest['files']:
+            path=Path(x['path']);path=path if path.is_absolute() else Path(manifest.get('root',a.freeze_manifest.parent))/path;path=path.resolve()
+            if path.is_relative_to(root) and path.name in ('events.jsonl','status.json','complete.json'):groups.setdefault(path.parent,{})[path.name]=path
+        if not groups:raise ValueError('no frozen stage streams')
+        paths=[a.capture_dir/n for n in ('events.jsonl','status.json','complete.json')]+[a.native_log,a.fixture,a.plan,a.cpu_summary]
+        for g in groups.values():
+            if set(g)!={'events.jsonl','status.json','complete.json'}:raise ValueError('missing stage events/status/complete')
+            paths.extend(g.values())
+        loaded,proof=wire.frozen_inputs(a.freeze_manifest,paths);get=lambda p:loaded[p.resolve()]
+        if wire.digest(get(a.fixture))!=a.fixture_sha256:raise ValueError('fixture SHA mismatch')
+        wr=wire.audit(*[get(a.capture_dir/n) for n in ('events.jsonl','status.json','complete.json')],get(a.native_log),get(a.fixture),get(a.plan))
+        streams=[dict(label=str(d),events=get(g['events.jsonl']),status=get(g['status.json']),complete=get(g['complete.json'])) for d,g in groups.items()]
+        result=audit(streams,wr,wire.strict_json(get(a.cpu_summary)),wire.strict_json);result['originalStrictWireAudit']=wr;result['provenance']=proof
+    except (OSError,ValueError,KeyError,TypeError,UnicodeError) as e:result=dict(schema='milkup.cold-stage-audit.v1',ok=False,integrityOk=False,errors=[str(e)],gaps=[],originalStrictWireAudit=wr,qualification='Stopped on malformed/incomplete frozen input; no inferred phase.')
+    print(json.dumps(result,ensure_ascii=False,indent=2));return 0 if result['ok'] else 1
+
+if __name__=='__main__':sys.exit(main())
