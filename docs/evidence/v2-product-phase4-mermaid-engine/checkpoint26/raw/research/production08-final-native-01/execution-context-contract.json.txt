@@ -1,0 +1,21 @@
+{
+  "run": "mermaid-ui-production08-final-01",
+  "driverCall": {
+    "cmd": "python3 /workspace/milkup-mermaid-engine-evidence/research/production08-final-native-01/tool-launch.py driver",
+    "workdir": "/workspace/milkup",
+    "sandbox_permissions": "require_escalated"
+  },
+  "harnessCall": {
+    "cmd": "python3 /workspace/milkup-mermaid-engine-evidence/research/production08-final-native-01/tool-launch.py harness",
+    "workdir": "/workspace/milkup",
+    "sandbox_permissions": "require_escalated"
+  },
+  "stopDriverCall": {
+    "cmd": "python3 /workspace/milkup-mermaid-engine-evidence/research/production08-final-native-01/stop-driver.py",
+    "workdir": "/workspace/milkup",
+    "sandbox_permissions": "require_escalated"
+  },
+  "scope": "One original whole UI workflow with frozen production08 binary/official archive. No observers, full-tree sampling, retry or build. Existing self-context/reaper/owned stop structure reused. Original native phase diagnostics retained.",
+  "selfContext": "Actual launcher records self user/pid/mnt/time/time_for_children/uid_map/gid_map before same PID exec; actual permission mode comes from tool call. Missing/error retained.",
+  "outcomes": "Original Node PASS requires final PASS and64matrix completion; first thrown failure exits. Independent pixel review required; historical deadlines remain unresolved."
+}

@@ -1,0 +1,18 @@
+Ordinary production08 final — actual screenshot review
+
+实际查看71张原PNG：全部31张ordinary coverage WebView；ordinary/live的light/dark ×100/125/150/200% ×wide/narrow共16组合，每组合轮换选1图；全部20张ordinary edge/corner WebView；4张X11对照。共67张WebView+4张X11，每张均调用view_image实际显示后记录观察，不是仅看哈希、尺寸或DOM。逐文件路径、SHA256、results条目及观察在viewed-inventory.json。未声称查看全部892张PNG，也未审ordinary/source完整matrix或windowed。selection.json保留查看前选单；inventory才是实际已看清单。
+
+需要单独保留的新可见问题
+ordinary/live、200%、narrow的Journey bottom-right，在light与dark两张WebView内均只剩空白预览区域和横/竖滚动条，没有可见图形。对应top-left图有标题、任务及部分评分表情。light bottom-right的X11原图同样为空白，说明保存的桌面画面也有此现象，不只是WebView截图通道差异。已第一时间通知Root。
+精确文件：edges-ordinary-live-{light,dark}-200-narrow-userJourney-000-first-official-example-bottom-right-webview.png，以及light同名-x11.png。不能称全部20角落均有图或Journey所有角落内容可达。这是本轮独立像素观察，不与旧Journey200标题/legend边界差异等同。仅凭静态截图不能判断图已卸载、滚动范围留白、几何错配或其它原因；Root/transport另做只读几何分析，本报告不猜因、不重跑。
+
+其它实际观察
+1. 31张coverage中27图有可见图形，4项image/animated-edge/animated classDef/timeline为可读的fenced-source fallback；results明确expected=fallback。没有把预期源码fallback计为缺图。长图的部分底边/右边因预览滚动视口裁切；单个coverage截图不能证明未显示部分可达。
+2. block图中间标签直接显示“&nbsp;&nbsp;&nbsp;”，WebView和X11一致，保留已知排版问题。Sankey在基线、放大、窄窗和两主题下均有标签相互挤压/压在连线上，X11也可见；不能评为文字无重叠。
+3. coverage sequenceDiagram-016-box-group左侧紫色区域使用深色标题和消息文字，对比明显偏低，右侧白色组正常；已立即通知Root。这是可读性观察，未测WCAG数值、未证明是产品回归或fixture指定颜色所致。flowchart-107-style的白色Stop字落在浅紫底上也有较弱对比。
+4. 16张所选matrix都实际有图，未出现整块空白替代图形。light/dark标签基本可辨；Sankey拥挤仍在。放大与窄窗时可见部分被滚动视口裁切、内部文字较小。不能由这些静态帧推断全程无闪白或所有缩放图例均无缺陷。
+5. 除Journey上述两张空图外，其余18张edge/corner有图形内容。class bottom-right可见Duck底部方法和右框；flowchart可见最右Storage/Orders DB；sequence可见末尾消息及底部参与者；Sankey可见底部National navigation。相反侧内容在极限滚动位置被裁切属于这张图的观察范围，未据此宣称每个像素/每条路径都可达。Journey top-left的右侧与下部仍有裁切。
+6. 四张X11对照为block、Sankey、light Journey bottom-right与light class bottom-right。它们与对应WebView的主要内容/缺陷一致，无其它窗口遮挡；X11中应用窗口外的黑色桌面不是预览缺图。未做逐像素相等运算。
+
+范围与结论
+自动UI流程的PASS和本次人工像素结论是不同证据。当前不能给出无视觉缺陷或全部角落有内容的通过结论：Journey200窄窗bottom-right空图需保留为明确未解决观察；已知block/Sankey问题和紫色box对比限制也保留。清单记录了其余已看图的具体边界，而不是以几张样例代替全部审阅。仅阅读冻结results和原PNG；没有产品运行、进程操作、代码/图像编辑或自动重试。

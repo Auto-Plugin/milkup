@@ -1,0 +1,44 @@
+"""Frozen production08 log/cleanup/selection/PNG structure audit; no live process access."""
+import collections,hashlib,json,pathlib,re,struct,zlib
+base=pathlib.Path('/workspace/milkup-mermaid-engine-evidence/research/production08-final-native-01')
+mp=base/'completed-manifest.json';mb=mp.read_bytes();assert hashlib.sha256(mb).hexdigest()=='7e93f524527a6752596d065d920ce6170aefd92bcc95f3915e945d8c8b490c42'
+m=json.loads(mb);index={x['path']:x for x in m['files']};run=pathlib.Path(m['run']);ev=run/'evidence'
+def raw(p):
+ b=p.read_bytes();x=index[str(p)];assert len(b)==x['bytes'] and hashlib.sha256(b).hexdigest()==x['sha256'];return b
+def obj(p):return json.loads(raw(p))
+records=obj(ev/'results.json');traces=[];other=[]
+for i,line in enumerate(raw(run/'driver.log').decode().splitlines(),1):
+ if line.startswith('DOM_NATIVE_TIMING '):traces.append(json.loads(line[len('DOM_NATIVE_TIMING '):]))
+ elif line.strip():other.append({'line':i,'text':line})
+phases=collections.Counter(x['phase'] for x in traces);instances={}
+for x in traces:
+ d=instances.setdefault(x['instanceId'],{'phaseCounts':collections.Counter(),'pids':set()});d['phaseCounts'][x['phase']]+=1;d['pids'].add(x['pid'])
+for d in instances.values():d['phaseCounts']=dict(d['phaseCounts']);d['pids']=sorted(d['pids'])
+dispatch=collections.Counter((x['pid'],x['instanceId'],x['requestId']) for x in traces if x['phase']=='dispatch')
+errors=[x for x in other if re.search(r'error|critical|warning|panic|fatal|timeout|deadline',x['text'],re.I)]
+cleanup=obj(run/'control/exact-known-postcheck.json');stop=obj(run/'control/driver-stop.json');exits=obj(run/'control/tool-exit-results.json')
+assert exits['nodeExitCode']==0 and exits['harnessTool']['exitCode']==0
+assert all(not x['sameIdentityPresent'] for x in cleanup['knownIdentities']) and not cleanup['listeners']
+assert stop['statusBefore']['response']['value']['message']=='No sessions' and stop['identityBefore']['pid']==stop['owner']['pid'] and stop['identityBefore']['birth']==stop['owner']['birth'] and stop['identityBefore']['group']==stop['owner']['group'] and stop['identityAfter'] is None
+history=[x for x in records if x['name'].startswith('history-')];selection=[x for x in records if x['name'].startswith('selection-')]
+assert len(history)==12 and len(selection)==2
+assert all(x['byteExact'] and not x['document']['dirty'] and not x['document']['saving'] for x in history+selection)
+assert all(x['document']['selection'] and all(y['from']==440 and y['to']==969 for y in x['document']['selection']) for x in selection)
+projections=[json.loads(x) for x in raw(ev/'selection-projections.jsonl').splitlines()]
+assert all(not x['invalidRows'] and x['markerFrom']<=x['markerTo'] and all(y['from']==x['markerFrom'] and y['to']==x['markerTo'] for y in x['ranges']) for x in projections)
+pngs=[]
+for x in m['files']:
+ p=pathlib.Path(x['path'])
+ if p.suffix.lower()!='.png':continue
+ b=raw(p);assert b[:8]==b'\x89PNG\r\n\x1a\n';offset=8;chunks=[];dimensions=None
+ while offset<len(b):
+  n=struct.unpack('>I',b[offset:offset+4])[0];kind=b[offset+4:offset+8];payload=b[offset+8:offset+8+n];crc=struct.unpack('>I',b[offset+8+n:offset+12+n])[0];assert zlib.crc32(kind+payload)&0xffffffff==crc
+  chunks.append(kind.decode());offset+=n+12
+  if kind==b'IHDR':dimensions=struct.unpack('>II',payload[:8]);assert min(dimensions)>0
+  if kind==b'IEND':break
+ assert offset==len(b) and chunks[0]=='IHDR' and chunks[-1]=='IEND' and 'IDAT' in chunks
+ pngs.append({'file':p.name,'bytes':len(b),'width':dimensions[0],'height':dimensions[1]})
+assert len(pngs)==892
+refs=[s['file'] for x in records for s in x.get('screenshots',[])];assert set(refs)=={x['file'] for x in pngs} and len(refs)==len(set(refs))
+report={'scope':'Independent read-only frozen record review; no replay or visual pixel judgment','nativeLog':{'bytes':len(raw(run/'driver.log')),'timingRecords':len(traces),'phaseCounts':dict(phases),'instances':instances,'duplicateDispatchKeys':[list(k) for k,n in dispatch.items() if n>1],'deadlineObservedCount':phases.get('deadline-observed',0),'controlEmittedCount':phases.get('control-emitted',0),'nonTimingNonemptyLines':len(other),'warningCriticalErrorLines':errors,'gtkWidgetCriticalCount':sum('Gtk-CRITICAL' in x['text'] for x in errors),'remoteInspectorWarningCount':sum('remote inspector server' in x['text'] for x in errors),'qualification':'No deadline observed is not loss-accounted proof of every request completion. Production native trace has no full accepted-wire/stage endpoint ledger; skipped request numbers do not identify failed requests.'},'cleanup':{'exactKnownCount':len(cleanup['knownIdentities']),'allKnownAbsent':True,'listenerCount':len(cleanup['listeners']),'reapCount':cleanup['reapCount'],'driverWasSessionFreeBeforeExactGroupTERM':True,'driverLeaderAbsentAfter':True,'toolExits':exits,'qualification':cleanup['scope']},'history':[{'name':x['name'],'byteExact':x['byteExact'],'version':x['document']['version'],'savedVersion':x['document']['savedVersion']} for x in history],'selection':[{'name':x['name'],'byteExact':x['byteExact'],'range':[440,969],'projectedRows':len(x['document']['selection'])} for x in selection],'selectionProjectionCount':len(projections),'invalidProjectionCount':0,'png':{'count':len(pngs),'bytes':sum(x['bytes'] for x in pngs),'allReferencedExactlyOnce':True,'allSignaturesChunksCrcDimensionsValid':True,'qualification':'Hash and PNG structural/CRC checks, not rendered pixel or clipping assessment. Existing reviewed:false remains unchanged.','files':pngs}}
+print(json.dumps(report,ensure_ascii=False,indent=2))

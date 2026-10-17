@@ -1,0 +1,93 @@
+"""Independent frozen-input/result audit; requires terminal PASS and completed cleanup."""
+import argparse
+import hashlib
+import itertools
+import json
+from pathlib import Path
+
+ROOT = Path('/workspace/milkup-mermaid-engine-evidence')
+parser = argparse.ArgumentParser()
+parser.add_argument('--run', type=Path, required=True)
+parser.add_argument('--report', type=Path, required=True)
+args = parser.parse_args()
+RUN = args.run.resolve()
+REPORT = args.report.resolve()
+assert RUN.is_dir()
+assert RUN.is_relative_to(ROOT), 'Require explicit evidence run directory'
+assert REPORT.is_relative_to(ROOT / 'research'), 'Keep independent review outside raw run'
+assert not REPORT.exists(), 'Do not replace an earlier audit'
+read = lambda path: json.loads(path.read_bytes())
+sha = lambda value: hashlib.sha256(value).hexdigest()
+records = read(RUN / 'results.json')
+assert records[-1]['name'] == 'PASS', 'Require actual terminal PASS, never active partial records'
+assert not (RUN / 'failure.json').exists()
+names = [record['name'] for record in records]
+assert len(names) == len(set(names))
+plan = read(RUN / 'plan.json')
+catalog_bytes = Path(plan['catalog']['path']).read_bytes()
+assert sha(catalog_bytes) == plan['catalog']['sha256']
+samples = json.loads(catalog_bytes)
+assert len(samples) == 31
+for sample in samples:
+    assert sha(sample['source'].encode()) == sample['sourceSha256']
+matrix_samples = [sample for sample in samples if sample.get('matrix')]
+assert len(matrix_samples) == 5
+combinations = [f'{view}-{mode}-{theme}-{zoom}-{size}' for view, mode, theme, zoom, size in itertools.product(['ordinary', 'windowed'], ['source', 'live'], ['light', 'dark'], [100, 125, 150, 200], ['wide', 'narrow'])]
+assert len(combinations) == 64
+expected_matrix = {f'matrix-{key}-{sample["id"]}' for key in combinations for sample in matrix_samples}
+assert {name for name in names if name.startswith('matrix-') and not name.startswith('matrix-complete-')} == expected_matrix
+assert {name for name in names if name.startswith('matrix-complete-')} == {f'matrix-complete-{key}' for key in combinations}
+assert {name for name in names if name.startswith('coverage-')} == {f'coverage-{view}-{sample["id"]}' for view in ['ordinary', 'windowed'] for sample in samples}
+expected_edges = {f'edges-{view}-live-{theme}-200-narrow-{sample["id"]}-{corner}' for view, theme, sample, corner in itertools.product(['ordinary', 'windowed'], ['light', 'dark'], matrix_samples, ['bottom-right', 'top-left']) if sample['expected'] == 'ready'}
+assert len(expected_edges) == 40
+assert {name for name in names if name.startswith('edges-')} == expected_edges
+history = [record for record in records if record['name'].startswith('history-')]
+assert {record['name'] for record in history} == {f'history-{view}-{mode}-{action}' for view, mode, action in itertools.product(['ordinary', 'windowed'], ['source', 'live'], ['save', 'undo', 'redo'])}
+assert all(record.get('byteExact') for record in history)
+selection = [record for record in records if record['name'].startswith('selection-')]
+assert len(selection) == 2 and all(record.get('byteExact') for record in selection)
+source = '# Official Mermaid production UI acceptance 中文 é 👩🏽‍💻\n\n'
+for sample in samples:
+    body = sample['source']
+    source += 'MERMAID-SAMPLE-' + sample['id'] + '\n\n```mermaid\n' + body + ('' if body.endswith('\n') else '\n') + '```\n\nAFTER-' + sample['id'] + '\n\n'
+expected_files = {'ordinary': source.encode(), 'windowed': (source + 'retained Unicode 中文 é 👩🏽‍💻 body\n' * 160_000).encode()}
+file_checks = []
+for view, expected in expected_files.items():
+    actual = (RUN / f'{view}.md').read_bytes()
+    assert actual == expected, view
+    file_checks.append({'view': view, 'bytes': len(actual), 'sha256': sha(actual)})
+    for record in records:
+        if record['name'].startswith(f'matrix-complete-{view}-'):
+            assert record['exactFileSha256'] == sha(expected)
+            assert record['document']['dirty'] is False
+screenshots = []
+for record in records:
+    diagnostics = record.get('dom', {}).get('diagnostics', {})
+    assert not diagnostics.get('errors') and not diagnostics.get('cspViolations'), record['name']
+    for item in record.get('screenshots', []):
+        path = RUN / item['file']
+        assert path.parent == RUN
+        value = path.read_bytes()
+        assert len(value) == item['bytes'] and sha(value) == item['sha256'], str(path)
+        screenshots.append({'file': item['file'], 'bytes': len(value), 'sha256': sha(value)})
+    if record['name'].startswith('edges-'):
+        edge = record['scrollEdge']
+        actual = next(p for p in record['dom']['previews'] if (p['from'], p['to']) == (edge['from'], edge['to']))
+        rect, viewport = actual['clientRect'], record['dom']['editorViewport']
+        bottom = edge['corner'] == 'bottom-right'
+        assert (viewport['top'] < rect['bottom'] <= viewport['bottom'] and viewport['left'] < rect['right'] <= viewport['right']) if bottom else (viewport['top'] <= rect['top'] < viewport['bottom'] and viewport['left'] <= rect['left'] < viewport['right'])
+        for axis, extent, client in [('top', 'scrollHeight', 'clientHeight'), ('left', 'scrollWidth', 'clientWidth')]:
+            target = actual[extent] - actual[client] if bottom else 0
+            assert abs(actual[axis] - target) <= 1
+            assert abs(actual[axis] - min(actual[extent] - actual[client], max(0, edge['after'][axis]))) <= 1
+assert len(screenshots) == len({item['file'] for item in screenshots})
+alignment = [json.loads(line) for line in (RUN / 'corner-alignment.jsonl').read_text().splitlines()]
+inner = [json.loads(line) for line in (RUN / 'inner-wheel.jsonl').read_text().splitlines()]
+assert len(alignment) == 40 and len(inner) == 80
+assert all(item['completed'] and item['fileUnchanged'] and not item.get('error') for item in alignment)
+assert all(not item.get('error') and item['steps'] <= 30 for item in inner)
+hits = [o['actualHit']['inside'] for item in inner for o in item['observations'] if 'actualHit' in o]
+assert all(hits)
+report = {'status': 'PASS independent record/hash/byte audit', 'run': str(RUN), 'records': len(records), 'coverage': 62, 'matrixCombinations': 64, 'matrixSamples': 320, 'edges': 40, 'historyRecords': 12, 'selectionRecords': 2, 'screenshotFilesChecked': len(screenshots), 'screenshotBytesChecked': sum(item['bytes'] for item in screenshots), 'finalFiles': file_checks, 'alignmentRecords': len(alignment), 'innerAxisRecords': len(inner), 'actualPointerHits': len(hits), 'resultsSha256': sha((RUN / 'results.json').read_bytes()), 'limitations': ['This audit checks recorded evidence and exact saved bytes, not independently replayed interactions.', 'Actual pixel reviews, native deadline log and process cleanup are separate evidence.', 'Historical reviewed:false screenshot fields remain unchanged; independent reviews supplement them.']}
+REPORT.write_text(json.dumps(report, indent=2) + '\n')
+print(json.dumps(report, indent=2))
