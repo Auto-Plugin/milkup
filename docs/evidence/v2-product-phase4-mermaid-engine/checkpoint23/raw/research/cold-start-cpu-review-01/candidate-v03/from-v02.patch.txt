@@ -1,0 +1,48 @@
+--- candidate-v02/cpu_sampler.py
++++ candidate-v03/cpu_sampler.py
+@@ -76,6 +76,7 @@
+         self.sample_count = 0; self.sample_incomplete=0; self.sample_total_ns = 0; self.sample_max_ns = 0
+         self.discovery_count = 0; self.discovery_total_ns = 0; self.discovery_max_ns = 0
+         self.discovery_incomplete = 0; self.discovery_task_count = 0
++        self.children_interface_gaps=[];self.children_interface_gap_count=0
+         self.late_max_ns = 0; self.skipped_slots = 0; self.stop_reason = None
+         self.log_identity = None; self.log_offset = 0; self.log_pending = b''
+         self.log_read_ns = 0; self.log_bytes = 0
+@@ -131,8 +132,16 @@
+         pids = set()
+         for tid in tids:
+             self.check_budget(budget)
+-            try: words = self.read(f'/proc/{owner["pid"]}/task/{tid}/children', 4096).split()
+-            except FileNotFoundError: continue
++            path=f'/proc/{owner["pid"]}/task/{tid}/children';read_start=self.now()
++            try: words = self.read(path, 4096).split()
++            except FileNotFoundError as exc:
++                self.children_interface_gap_count+=1
++                if len(self.children_interface_gaps)<MAX_ERRORS:
++                    self.children_interface_gaps.append(dict(ownerPid=owner['pid'],ownerBirth=owner['birth'],
++                        tid=int(tid),path=path,errno=exc.errno,errorClass='FileNotFoundError',
++                        readStartNs=read_start,readEndNs=self.now(),
++                        qualification='Missing children interface or disappearing task; not an empty child list.'))
++                raise ValueError('children-interface-unavailable-coverage-incomplete') from exc
+             for word in words:
+                 pid = int(word)
+                 if pid <= 0: raise ValueError('child-pid')
+@@ -338,6 +347,9 @@
+                     sampleCount=self.sample_count,sampleIncomplete=self.sample_incomplete,retainedSamples=len(self.rows),evictedRows=self.evicted_rows,
+                     skippedSlots=self.skipped_slots,maxLateNs=self.late_max_ns,
+                     discoveryCount=self.discovery_count,discoveryIncomplete=self.discovery_incomplete,
++                    descendantCoverage=dict(status='incomplete' if self.children_interface_gap_count else 'no-recorded-interface-gap-not-completeness-proof',
++                        childrenInterfaceGapCount=self.children_interface_gap_count,childrenInterfaceGapExamples=self.children_interface_gaps,
++                        pidfdDirectChildCoverage='not-implemented',fullRendererTreeCoverage=False),
+                     discoveryTasks=self.discovery_task_count,
+                     overhead=dict(observerOwnCpuNs=time.process_time_ns()-self.self_cpu_started,
+                                   prelaunchHashCpuNs=None if self.waiting_cpu_ns is None else self.waiting_cpu_ns-self.self_cpu_started,
+@@ -411,7 +423,7 @@
+         summary=observer.summary();summary['failure']=failure
+         (out/'summary.json').write_text(json.dumps(summary,indent=2)+'\n')
+         print(json.dumps(dict(event='finished',stopReason=observer.stop_reason,failure=failure)),flush=True)
+-    return 2 if failure else 0
++    return 2 if failure or observer.children_interface_gap_count else 0
+ 
+ 
+ if __name__=='__main__':raise SystemExit(main())

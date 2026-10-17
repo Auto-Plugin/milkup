@@ -1,0 +1,461 @@
+--- candidate-v03/cpu_sampler.py
++++ candidate-v04/cpu_sampler.py
+@@ -21,6 +21,10 @@
+ MAX_IDENTITIES = 64
+ MAX_TASKS = 128  # total task entries per discovery round, across owned parents
+ MAX_CHILDREN = 128
++MAX_FDINFO_PER_OWNER = 32
++MAX_FDINFO_PER_ROUND = 128
++MAX_PIDFD_PROOF_BYTES = 1024
++MAX_PIDFD_RECORDS = 64
+ MAX_EVENTS = 256
+ MAX_ERRORS = 32
+ MAX_SAMPLE_BYTES = 2 * 1024 * 1024
+@@ -49,6 +53,23 @@
+     return dict(runtimeNs=v[0], runqueueWaitNs=v[1], timeslices=v[2])
+ 
+ 
++def pidfd_fields(raw):
++    values={}
++    for line in raw.decode('ascii').splitlines():
++        if ':' not in line: continue
++        key,value=line.split(':',1)
++        if key not in ('Pid','NSpid'): continue
++        if key in values: raise ValueError('duplicate-pidfd-field')
++        values[key]=value.strip()
++    if 'Pid' not in values: return None
++    if len(values['Pid'].split())!=1: raise ValueError('invalid-pidfd-Pid')
++    pid=int(values['Pid']);nspid=None
++    if 'NSpid' in values:
++        nspid=[int(x) for x in values['NSpid'].split()]
++        if not nspid: raise ValueError('empty-pidfd-NSpid')
++    return dict(pid=pid,nspid=nspid)
++
++
+ class Files:
+     def read(self, path, limit):
+         with open(path, 'rb') as f: raw = f.read(limit + 1)
+@@ -56,13 +77,20 @@
+         return raw
+ 
+     def tasks(self, pid, limit):
+-        # This is the ONLY enumeration: task directory of an exact owned PID.
++        # Only the task directory of this exact owned PID is enumerated here.
+         with os.scandir(f'/proc/{pid}/task') as entries:
+             values = [e.name for e in islice(entries, limit + 1)]
+         if len(values) > limit: raise ValueError('round-task-limit')
+         if any(not v.isascii() or not v.isdecimal() for v in values):
+             raise ValueError('task-id')
+         return values
++
++    def fdinfos(self,pid,limit):
++        # Exact owned PID only. Extra entry detects a truncated enumeration.
++        with os.scandir(f'/proc/{pid}/fdinfo') as entries:
++            names=[e.name for e in islice(entries,limit+1)]
++        if any(not n.isascii() or not n.isdecimal() for n in names): raise ValueError('invalid-fdinfo-name')
++        return names[:limit],len(names)>limit
+ 
+ 
+ class Observer:
+@@ -77,6 +105,9 @@
+         self.discovery_count = 0; self.discovery_total_ns = 0; self.discovery_max_ns = 0
+         self.discovery_incomplete = 0; self.discovery_task_count = 0
+         self.children_interface_gaps=[];self.children_interface_gap_count=0
++        self.pidfd_records=[];self.pidfd_record_drops=0;self.pidfd_status_counts={}
++        self.pidfd_reads=0;self.pidfd_targets=set();self.pidfd_gap_count=0
++        self.discovery_rounds=[];self.discovery_round_record_drops=0
+         self.late_max_ns = 0; self.skipped_slots = 0; self.stop_reason = None
+         self.log_identity = None; self.log_offset = 0; self.log_pending = b''
+         self.log_read_ns = 0; self.log_bytes = 0
+@@ -236,37 +267,140 @@
+         except FileNotFoundError:pass
+         finally:self.identity_read_ns+=self.now()-start
+ 
++    def pidfd_record(self,status,owner,budget,detail=None,gap=False):
++        self.pidfd_status_counts[status]=self.pidfd_status_counts.get(status,0)+1
++        if gap: self.pidfd_gap_count+=1;budget['incomplete']=True
++        if status=='not-pidfd': return
++        row=dict(status=status,ownerPid=owner['pid'],ownerBirth=owner['birth'],monoNs=self.now(),coverageGap=gap)
++        if detail: row.update(detail)
++        if len(self.pidfd_records)<MAX_PIDFD_RECORDS:self.pidfd_records.append(row)
++        else:self.pidfd_record_drops+=1
++
++    def child_role(self,row,owner,budget):
++        self.check_budget(budget);start=self.now()
++        raw=self.read(f'/proc/{row["pid"]}/cmdline',4096);end=self.now()
++        command=raw.rstrip(b'\0').decode('utf-8').split('\0')
++        evidence=dict(rawHex=raw.hex(),parsed=command,readStartNs=start,readEndNs=end,
++                      byteLimit=4096,scope='binding-time argv only; later exec is not monitored')
++        role='renderer-descendant'
++        if command==[self.binary,'--milkup-internal-dom-helper'] and owner['role']=='guardian':role='renderer-leader'
++        elif command and Path(command[0]).name=='WebKitWebProcess':role='webkit-web'
++        elif command and Path(command[0]).name=='WebKitNetworkProcess':role='webkit-network'
++        return role,evidence
++
++    def pidfd_children(self,owner,budget):
++        accepted=[];owner_reads=0
++        try:
++            self.check_budget(budget);self.same(owner)
++            remaining=MAX_FDINFO_PER_ROUND-budget['fdCandidates']
++            if remaining<=0:
++                self.pidfd_record('round-fd-enumeration-cap',owner,budget,gap=True);return accepted
++            fds,overflow=self.fs.fdinfos(owner['pid'],min(MAX_FDINFO_PER_OWNER,remaining))
++            budget['fdCandidates']+=len(fds)
++            if overflow:self.pidfd_record('fd-enumeration-cap',owner,budget,dict(retainedEntries=len(fds)),gap=True)
++            for fd in fds:
++                self.check_budget(budget)
++                path=f'/proc/{owner["pid"]}/fdinfo/{fd}'
++                detail=dict(fd=int(fd),path=path)
++                # Includes both first and repeated reads: <=32 per owner, <=128/round.
++                if owner_reads>=MAX_FDINFO_PER_OWNER or budget['fdReads']>=MAX_FDINFO_PER_ROUND:
++                    self.pidfd_record('fdinfo-read-cap',owner,budget,detail,gap=True);break
++                owner_before=self.same(owner);first_start=self.now()
++                owner_reads+=1;budget['fdReads']+=1;self.pidfd_reads+=1
++                try:before=self.read(path,4096)
++                except OSError as exc:
++                    self.pidfd_record('unclassified-fdinfo-read-error',owner,budget,dict(detail,errno=exc.errno,errorClass=type(exc).__name__,readStartNs=first_start,readEndNs=self.now()),gap=True)
++                    continue  # An unrelated disappearing FD never discards other valid targets.
++                first_end=self.now()
++                try:fields=pidfd_fields(before)
++                except (ValueError,UnicodeError) as exc:
++                    self.pidfd_record('invalid-pidfd-fields',owner,budget,dict(detail,errorClass=type(exc).__name__),gap=True);continue
++                if fields is None:self.pidfd_record('not-pidfd',owner,budget);continue
++                detail.update(pidFields=fields,firstReadStartNs=first_start,firstReadEndNs=first_end)
++                pid=fields['pid']
++                if pid==-1:self.pidfd_record('known-pidfd-target-exited',owner,budget,detail,gap=True);continue
++                if pid<=0 or (fields['nspid'] is not None and any(n<=0 for n in fields['nspid'])):
++                    self.pidfd_record('invalid-pidfd-target',owner,budget,detail,gap=True);continue
++                if len(before)>MAX_PIDFD_PROOF_BYTES:
++                    self.pidfd_record('pidfd-proof-byte-cap',owner,budget,detail,gap=True);continue
++                try:
++                    self.check_budget(budget);target=self.identity(pid)
++                    if target['parent']!=owner['pid'] or target['birth']<owner['birth']:
++                        self.pidfd_record('pidfd-target-not-direct-child',owner,budget,detail);continue
++                    if target['state'] in ('Z','X','x'):
++                        self.pidfd_record('known-pidfd-target-terminal',owner,budget,detail,gap=True);continue
++                    role,argv_evidence=self.child_role(target,owner,budget)
++                    if owner_reads>=MAX_FDINFO_PER_OWNER or budget['fdReads']>=MAX_FDINFO_PER_ROUND:
++                        self.pidfd_record('pidfd-repeat-read-cap',owner,budget,detail,gap=True);break
++                    self.check_budget(budget);second_start=self.now()
++                    owner_reads+=1;budget['fdReads']+=1;self.pidfd_reads+=1
++                    after=self.read(path,4096);second_end=self.now()
++                    self.check_budget(budget);final_target=self.same(target)
++                    self.check_budget(budget);final_owner=self.same(owner)
++                    if before!=after:
++                        self.pidfd_record('known-pidfd-fdinfo-changed',owner,budget,detail,gap=True);continue
++                    if final_target['parent']!=owner['pid'] or final_target['state'] in ('Z','X','x'):
++                        self.pidfd_record('known-pidfd-target-reparented-or-terminal',owner,budget,detail,gap=True);continue
++                    proof=dict(ownerPid=owner['pid'],ownerBirth=owner['birth'],fd=int(fd),pidFields=fields,
++                               firstReadStartNs=first_start,firstReadEndNs=first_end,secondReadStartNs=second_start,secondReadEndNs=second_end,
++                               fdinfoBefore=before.decode('ascii'),fdinfoAfter=after.decode('ascii'),
++                               targetBefore=target,targetAfter=final_target,ownerBefore=owner_before,ownerAfter=final_owner,
++                               scope='exact held-pidfd direct child; no full descendant tree or cross-namespace guarantee')
++                    accepted.append(dict(row=target,role=role,proof=proof,argvEvidence=argv_evidence))
++                    self.pidfd_record('verified-direct-child',owner,budget,dict(detail,targetPid=pid,targetBirth=target['birth'],role=role))
++                except TimeoutError:raise
++                except (OSError,ValueError,UnicodeError) as exc:
++                    self.pidfd_record('known-pidfd-verification-error',owner,budget,dict(detail,errno=getattr(exc,'errno',None),errorClass=type(exc).__name__),gap=True)
++            self.check_budget(budget)
++        except (OSError,ValueError,UnicodeError) as exc:
++            self.pidfd_record('pidfd-owner-scan-incomplete',owner,budget,dict(errno=getattr(exc,'errno',None),errorClass=type(exc).__name__,detail=str(exc)[:120]),gap=True)
++        return accepted  # Already individually verified targets survive later cap/errors.
++
+     def discover(self):
+-        start = self.now(); budget = dict(end=start + DISCOVERY_BUDGET_NS, tasksLeft=MAX_TASKS)
++        start=self.now();budget=dict(end=start+DISCOVERY_BUDGET_NS,tasksLeft=MAX_TASKS,fdCandidates=0,fdReads=0,incomplete=False)
+         try:
+-            # Native App-owned identity records bind guardian; never scan App siblings.
+             self.same(self.app)
+-            work = [v for k,v in self.known.items() if v['role'] != 'App' and k not in self.terminal]
+-            seen = set()
++            work=[v for k,v in self.known.items() if v['role']!='App' and k not in self.terminal];seen=set()
+             while work:
+-                self.check_budget(budget); owner = work.pop(0); key = (owner['pid'], owner['birth'])
+-                if key in seen: continue
++                self.check_budget(budget);owner=work.pop(0);key=(owner['pid'],owner['birth'])
++                if key in seen:continue
+                 seen.add(key)
+-                try: children = self.children(owner, budget)
+-                except FileNotFoundError: continue
++                # A children-interface gap remains visible while pidfd may supply
++                # independently verified direct-child evidence under SAME 5ms budget.
++                try:children=self.children(owner,budget)
++                except (OSError,ValueError,UnicodeError) as exc:
++                    children=[];budget['incomplete']=True;self.error('children-discovery-incomplete',exc)
+                 for child in children:
+-                    k = (child['pid'], child['birth'])
+-                    if k in self.known: continue
+-                    role = 'renderer-descendant'
++                    k=(child['pid'],child['birth'])
++                    if k in self.known:continue
++                    self.check_budget(budget)
+                     try:
+-                        command = self.argv(child['pid'])
+-                        if command == [self.binary, '--milkup-internal-dom-helper'] and owner['role'] == 'guardian': role = 'renderer-leader'
+-                        elif command and Path(command[0]).name == 'WebKitWebProcess': role = 'webkit-web'
+-                        elif command and Path(command[0]).name == 'WebKitNetworkProcess': role = 'webkit-network'
+-                        self.same(child); self.same(owner)
+-                    except FileNotFoundError: continue
+-                    self.add(child, role, owner['instanceId'], dict(pid=owner['pid'], birth=owner['birth']))
++                        role,argv_evidence=self.child_role(child,owner,budget)
++                        if self.same(child)['parent']!=owner['pid']:raise ValueError('child-parent-changed')
++                        self.same(owner)
++                        self.add(child,role,owner['instanceId'],dict(pid=owner['pid'],birth=owner['birth']))
++                        self.known[k].update(discoveryMethod='children',argvEvidence=argv_evidence);work.append(self.known[k])
++                    except (OSError,ValueError,UnicodeError) as exc:
++                        budget['incomplete']=True;self.error('child-adoption-incomplete',exc)
++                for found in self.pidfd_children(owner,budget):
++                    child=found['row'];k=(child['pid'],child['birth'])
++                    if k in self.known:continue
++                    # No new read after proof; preserve independently verified child
++                    # even when a later FD consumed remaining budget or disappeared.
++                    self.add(child,found['role'],owner['instanceId'],dict(pid=owner['pid'],birth=owner['birth']))
++                    self.known[k].update(discoveryMethod='pidfd-direct-child',pidfdProof=found['proof'],argvEvidence=found['argvEvidence'])
++                    self.pidfd_targets.add(k)
+                     work.append(self.known[k])
+-        except (OSError, ValueError, UnicodeError) as exc:
+-            self.discovery_incomplete += 1; self.error('discovery-incomplete', exc)
++        except (OSError,ValueError,UnicodeError) as exc:
++            budget['incomplete']=True;self.error('discovery-incomplete',exc)
+         finally:
+-            duration = self.now() - start
+-            self.discovery_count += 1; self.discovery_total_ns += duration; self.discovery_max_ns = max(self.discovery_max_ns, duration)
++            duration=self.now()-start
++            self.discovery_count+=1;self.discovery_incomplete+=int(budget['incomplete'])
++            self.discovery_total_ns+=duration;self.discovery_max_ns=max(self.discovery_max_ns,duration)
++            record=dict(startedNs=start,endedNs=self.now(),durationNs=duration,incomplete=budget['incomplete'],
++                        taskEntries=MAX_TASKS-budget['tasksLeft'],fdCandidates=budget['fdCandidates'],fdinfoReadAttempts=budget['fdReads'])
++            if len(self.discovery_rounds)<128:self.discovery_rounds.append(record)
++            else:self.discovery_round_record_drops+=1
+ 
+     def sample(self, scheduled):
+         start = self.now(); self.late_max_ns = max(self.late_max_ns, max(0, start - scheduled)); members=[]
+@@ -347,10 +481,14 @@
+                     sampleCount=self.sample_count,sampleIncomplete=self.sample_incomplete,retainedSamples=len(self.rows),evictedRows=self.evicted_rows,
+                     skippedSlots=self.skipped_slots,maxLateNs=self.late_max_ns,
+                     discoveryCount=self.discovery_count,discoveryIncomplete=self.discovery_incomplete,
+-                    descendantCoverage=dict(status='incomplete' if self.children_interface_gap_count else 'no-recorded-interface-gap-not-completeness-proof',
++                    descendantCoverage=dict(status='incomplete' if self.discovery_incomplete or self.children_interface_gap_count or self.pidfd_gap_count else 'limited-observed-identities-not-completeness-proof',
+                         childrenInterfaceGapCount=self.children_interface_gap_count,childrenInterfaceGapExamples=self.children_interface_gaps,
+-                        pidfdDirectChildCoverage='not-implemented',fullRendererTreeCoverage=False),
+-                    discoveryTasks=self.discovery_task_count,
++                        pidfdDirectChildCoverage='limited-verified-direct-children' if self.pidfd_targets else 'none-observed',
++                        pidfdTargetIdentities=[dict(pid=k[0],birth=k[1]) for k in sorted(self.pidfd_targets)],
++                        pidfdGapCount=self.pidfd_gap_count,fullRendererTreeCoverage=False),
++                    discoveryTasks=self.discovery_task_count,pidfdReadAttempts=self.pidfd_reads,
++                    pidfdStatusCounts=self.pidfd_status_counts,pidfdRecords=self.pidfd_records,pidfdRecordDrops=self.pidfd_record_drops,
++                    discoveryRounds=self.discovery_rounds,discoveryRoundRecordDrops=self.discovery_round_record_drops,
+                     overhead=dict(observerOwnCpuNs=time.process_time_ns()-self.self_cpu_started,
+                                   prelaunchHashCpuNs=None if self.waiting_cpu_ns is None else self.waiting_cpu_ns-self.self_cpu_started,
+                                   afterReadyCpuNs=None if self.waiting_cpu_ns is None else time.process_time_ns()-self.waiting_cpu_ns,
+@@ -358,7 +496,8 @@
+                                   sampleTotalNs=self.sample_total_ns,sampleMaxNs=self.sample_max_ns,
+                                   discoveryTotalNs=self.discovery_total_ns,discoveryMaxNs=self.discovery_max_ns),
+                     errors=self.errors,errorCount=self.error_count,
+-                    limits=dict(identities=MAX_IDENTITIES,tasksPerDiscovery=MAX_TASKS,childrenPerParent=MAX_CHILDREN,
++                    limits=dict(identities=MAX_IDENTITIES,tasksPerDiscovery=MAX_TASKS,childrenPerParent=MAX_CHILDREN,fdinfoReadsPerOwner=MAX_FDINFO_PER_OWNER,fdinfoReadsPerRound=MAX_FDINFO_PER_ROUND,
++                                fdinfoCandidatesPerOwner=MAX_FDINFO_PER_OWNER,fdinfoCandidatesPerRound=MAX_FDINFO_PER_ROUND,
+                                 discoveryWallBudgetNs=DISCOVERY_BUDGET_NS,sampleWallBudgetNs=SAMPLE_BUDGET_NS,sampleBytes=MAX_SAMPLE_BYTES,maxSeconds=MAX_SECONDS),
+                     qualifications=['Guardian environ PermissionError is an explicit optional-check gap; native creation proof plus live exact identities remain required.',
+                                     'Oversized render-accepted payload lines are intentionally skipped; this is not an identity-loss counter.',
+@@ -423,7 +562,7 @@
+         summary=observer.summary();summary['failure']=failure
+         (out/'summary.json').write_text(json.dumps(summary,indent=2)+'\n')
+         print(json.dumps(dict(event='finished',stopReason=observer.stop_reason,failure=failure)),flush=True)
+-    return 2 if failure or observer.children_interface_gap_count else 0
++    return 2 if failure or observer.discovery_incomplete or observer.children_interface_gap_count or observer.pidfd_gap_count else 0
+ 
+ 
+ if __name__=='__main__':raise SystemExit(main())
+--- candidate-v03/test_cpu_sampler.py
++++ candidate-v04/test_cpu_sampler.py
+@@ -12,7 +12,7 @@
+     def __init__(self):self.value=1_000_000_000_000
+     def __call__(self):self.value+=100;return self.value
+ class FakeFiles:
+-    def __init__(self):self.data={};self.taskmap={};self.reads=[];self.taskcalls=[]
++    def __init__(self):self.data={};self.taskmap={};self.reads=[];self.taskcalls=[];self.fdmap={};self.fdcalls=[]
+     def process(self,pid,birth,parent,argv,children=(),env=None):
+         w=['0']*22;w[0]='S';w[1]=str(parent);w[11]='3';w[12]='2';w[19]=str(birth)
+         self.data[f'/proc/{pid}/stat']=f'{pid} (test process) '+ ' '.join(w)
+@@ -26,6 +26,9 @@
+         v=self.data[path];v=v.encode() if isinstance(v,str) else v
+         if len(v)>limit:raise ValueError('read-size-limit')
+         return v
++    def fdinfos(self,pid,limit):
++        self.fdcalls.append((pid,limit));values=self.fdmap.get(pid,[])
++        return values[:limit],len(values)>limit
+     def tasks(self,pid,limit):
+         self.taskcalls.append(pid);v=self.taskmap[pid]
+         if len(v)>limit:raise ValueError('round-task-limit')
+@@ -159,6 +162,100 @@
+                 name=ast.unparse(node.func)
+                 self.assertNotIn(name,['os.kill','os.killpg','signal.pthread_kill','subprocess.run','subprocess.Popen'])
+                 if name=='os.scandir':scans.append(ast.unparse(node.args[0]))
+-        self.assertEqual(scans,["f'/proc/{pid}/task'"])
++        self.assertEqual(scans,["f'/proc/{pid}/task'", "f'/proc/{pid}/fdinfo'"])
++
++
++class PidfdTests(unittest.TestCase):
++    def owned(self):
++        o,fs,c,e=fixture();o.bind_identity_event(e,o.native_identity_source)
++        for pid in (20,30,40):fs.data[f'/proc/{pid}/task/{pid}/children']=''
++        fs.fdmap[20]=['5'];fs.data['/proc/20/fdinfo/5']='pos: 0\nPid: 30\nNSpid: 30\n'
++        return o,fs,c
++    def test_pidfd_child_with_missing_children_keeps_gap_and_argv(self):
++        o,fs,c=self.owned();del fs.data['/proc/20/task/20/children'];o.discover()
++        row=o.known[(30,120)];self.assertEqual(row['role'],'renderer-leader')
++        self.assertEqual(row['discoveryMethod'],'pidfd-direct-child')
++        self.assertEqual(bytes.fromhex(row['argvEvidence']['rawHex']),fs.data['/proc/30/cmdline'].encode())
++        self.assertEqual(row['argvEvidence']['parsed'],[B,'--milkup-internal-dom-helper'])
++        self.assertEqual(row['pidfdProof']['ownerBefore']['birth'],110)
++        self.assertEqual(o.summary()['descendantCoverage']['status'],'incomplete')
++        self.assertFalse(o.summary()['descendantCoverage']['fullRendererTreeCoverage'])
++        self.assertNotIn(10,[pid for pid,limit in fs.fdcalls])
++    def test_unclassified_fd_missing_preserves_valid_target(self):
++        o,fs,c=self.owned();fs.fdmap[20]=['8','5'];o.discover()
++        self.assertIn((30,120),o.known)
++        self.assertEqual(o.pidfd_status_counts['unclassified-fdinfo-read-error'],1)
++        self.assertEqual(next(x for x in o.pidfd_records if x['status']=='unclassified-fdinfo-read-error')['errno'],2)
++    def test_not_pidfd_and_negative_pid_are_separate(self):
++        o,fs,c=self.owned();fs.fdmap[20]=['1','5']
++        fs.data['/proc/20/fdinfo/1']='pos: 0\n';fs.data['/proc/20/fdinfo/5']='Pid: -1\nNSpid: -1\n';o.discover()
++        self.assertNotIn((30,120),o.known)
++        self.assertEqual(o.pidfd_status_counts['not-pidfd'],1)
++        self.assertEqual(o.pidfd_status_counts['known-pidfd-target-exited'],1)
++    def test_changed_fdinfo_rejected(self):
++        o,fs,c=self.owned();original=fs.read;count=0
++        def changed(path,limit):
++            nonlocal count
++            if path=='/proc/20/fdinfo/5':
++                count+=1
++                if count==2:return b'Pid: 40\nNSpid: 40\n'
++            return original(path,limit)
++        fs.read=changed;o.discover();self.assertNotIn((30,120),o.known)
++        self.assertEqual(o.pidfd_status_counts['known-pidfd-fdinfo-changed'],1)
++    def test_wrong_parent_rejected(self):
++        o,fs,c=self.owned();fs.process(30,120,99,[B,'--milkup-internal-dom-helper']);o.discover()
++        self.assertNotIn((30,120),o.known)
++        self.assertEqual(o.pidfd_status_counts['pidfd-target-not-direct-child'],1)
++    def test_target_reuse_rejected(self):
++        o,fs,c=self.owned();original=fs.read;count=0
++        def reused(path,limit):
++            nonlocal count
++            if path=='/proc/30/stat':
++                count+=1
++                if count==2:fs.process(30,121,20,[B,'--milkup-internal-dom-helper'])
++            return original(path,limit)
++        fs.read=reused;o.discover();self.assertNotIn((30,120),o.known);self.assertNotIn((30,121),o.known)
++        self.assertEqual(o.pidfd_status_counts['known-pidfd-verification-error'],1)
++    def test_owner_reuse_rejected(self):
++        o,fs,c=self.owned();original=fs.read;count=0
++        def reused(path,limit):
++            nonlocal count
++            if path=='/proc/20/fdinfo/5':
++                count+=1
++                if count==2:fs.process(20,111,10,[B,'--milkup-internal-dom-helper'])
++            return original(path,limit)
++        fs.read=reused;o.discover();self.assertNotIn((30,120),o.known)
++        self.assertEqual(o.pidfd_status_counts['known-pidfd-verification-error'],1)
++    def test_nspid_is_recorded_not_translation(self):
++        o,fs,c=self.owned();fs.data['/proc/20/fdinfo/5']='Pid: 30\nNSpid: 30 7\n';o.discover()
++        self.assertIn((30,120),o.known);self.assertNotIn('/proc/7/stat',fs.reads)
++        self.assertEqual(o.known[(30,120)]['pidfdProof']['pidFields']['nspid'],[30,7])
++    def test_enumeration_cap_retains_verified_child(self):
++        o,fs,c=self.owned();fs.fdmap[20]=['5']+[str(i) for i in range(100,140)]
++        for fd in fs.fdmap[20][1:]:fs.data[f'/proc/20/fdinfo/{fd}']='pos: 0\n'
++        o.discover();self.assertIn((30,120),o.known);self.assertEqual(o.pidfd_status_counts['fd-enumeration-cap'],1)
++        self.assertLessEqual(sum(x.startswith('/proc/20/fdinfo/') for x in fs.reads),32)
++        self.assertLessEqual(o.discovery_rounds[0]['fdinfoReadAttempts'],128)
++        self.assertEqual(o.summary()['descendantCoverage']['status'],'incomplete')
++    def test_total_round_read_cap(self):
++        o,fs,c=self.owned();owner=o.known[(20,110)]
++        budget=dict(end=c()+m.DISCOVERY_BUDGET_NS,fdCandidates=127,fdReads=127,incomplete=False)
++        self.assertEqual(o.pidfd_children(owner,budget),[])
++        self.assertEqual(budget['fdReads'],128)
++        self.assertEqual(o.pidfd_status_counts['pidfd-repeat-read-cap'],1)
++    def test_same_wall_budget_no_reset_after_children(self):
++        o,fs,c=self.owned();original=fs.tasks
++        def slow(pid,limit):c.value+=m.DISCOVERY_BUDGET_NS;return original(pid,limit)
++        fs.tasks=slow;o.discover();self.assertEqual(fs.fdcalls,[]);self.assertNotIn((30,120),o.known)
++    def test_later_slow_fd_preserves_completed_proof(self):
++        o,fs,c=self.owned();fs.fdmap[20]=['5','8'];fs.data['/proc/20/fdinfo/8']='pos: 0\n';original=fs.read
++        def slow(path,limit):
++            if path=='/proc/20/fdinfo/8':c.value+=m.DISCOVERY_BUDGET_NS
++            return original(path,limit)
++        fs.read=slow;o.discover();self.assertIn((30,120),o.known)
++        self.assertGreaterEqual(o.discovery_incomplete,1)
++    def test_invalid_pidfd_fields(self):
++        for raw in (b'Pid: 30\nPid: 30\n',b'Pid: 30 40\n',b'Pid: 30\nNSpid: \n'):
++            with self.assertRaises(ValueError):m.pidfd_fields(raw)
+ 
+ if __name__=='__main__':unittest.main()
+--- candidate-v03/CONTRACT.txt
++++ candidate-v04/CONTRACT.txt
+@@ -1,42 +1,34 @@
+-Candidate v03 external CPU observer — review only; no v03 native run performed
++Candidate v04 external CPU observer — PREPARED, NOT EXECUTED
+ 
+-CLI:
+-python3 cpu_sampler.py --output <new-empty-dir> --app-log <driver.log> --identity-log <native-capture/events.jsonl> --binary <frozen-installed-app> --binary-sha256 <frozen-sha256>
++Purpose and CLI
++python3 cpu_sampler.py --output <new-dir> --app-log <driver.log> --identity-log <native-capture/events.jsonl> --binary <frozen-binary> --binary-sha256 <sha256>
++Start before harness/App, await stdout event=waiting-app after binary hash. This is readiness, not identity/coverage success. Keep stdin open; stop with JSON {"event":"stop"} newline or EOF. No signals, product IPC, process launches, or global /proc table. Native matching deadline/App terminal also stops. App identity wait 30s, overall 60s. Actual controller freeze may cut off later native events; reconcile separately with driver/capture tails.
+ 
+-Start before harness launches App (driver may already be ready); wait for first stdout JSON event=waiting-app. This acknowledges binary hash verification, not App identity or successful observation. Binary hashing is outside App cold execution if the integration honors this handshake. stdout subsequently contains at most app-bound and finished status for the normal flow. Keep stdin open. Send {"event":"stop"} + newline or close stdin to freeze/write; observer also freezes on first matching exact-App native deadline or App terminal. No signals are issued. Timeout is 30 seconds waiting App identity and 60 seconds total, an explicit bounded cold diagnostic, not full workflow coverage.
++Authoritative initial identity (unchanged from v02/v03)
++Configured exclusive App native sink guardian-spawn supplies exact owner/guardian pid,birth,instance and timestamp. Require schema, event in observer lifetime, source file device/inode stable, one App binding, live App/guardian double stat identity, guardian PPID=App, exact binary/helper argv. Guardian environment instance check must match if readable. Only PermissionError is accepted as explicit unavailable under native proof; no guessed instance or broad environment output. Native record time is not renderer spawn time. App argv retained in summary.app; guardian exact expected argv follows binding proof. Their startup before binding remains unmeasured.
+ 
+-Identity contract:
+-MILKUP_COLD_REQUEST_DIAGNOSTICS identity sink events.jsonl guardian-spawn event supplies ownerPid, ownerBirth, guardianPid, guardianBirth, instanceId, monotonicNs. Require births positive exact integers; null is incomplete, never rebind later to guessed identity. Event time must be inside observer lifetime; this requires same CLOCK_MONOTONIC namespace. Validate live App pid/birth/argv; bind App exactly once. Validate guardian birth, parent=App before and after metadata reads, helper argv, and the authoritative guardian-spawn record from the configured App-owned exclusive native sink. Validate the record schema and retain source file path/device/inode. Attempt ONLY its MILKUP_INTERNAL_DOM_INSTANCE_ID environment value as an additional check. If readable it MUST match exactly; a PermissionError alone becomes an explicit instanceEnvironmentCheck=unavailable/errno record, with instanceEnvironmentMatched=null. The instance still comes exclusively from the native creation record. PermissionError with no native record proof, wrong schema, birth, parent or argv is rejected; other read errors are not relaxed. Do not dump environment. Two stat reads bracket metadata. Native timestamp is an observation time, not renderer spawn time.
++Discovery and evidence
++Only bound guardians and owned descendants are worklist owners; App itself is not enumerated. Each owner may use its exact /proc/PID/task/TID/children and /proc/PID/fdinfo. No other scan path exists. Missing task children file retains errno, exact owner/birth/TID/path/times; missing interface is not empty children. Other errors/caps also mark incomplete. The v03 gap remains even if pidfd finds a helper.
+ 
+-No global /proc table implementation exists. Only exact guardian and already-owned descendants' /proc/PID/task directories can be enumerated; App's siblings/whole App tree are not enumerated. The identity event replaces the former App children discovery. Parent/birth validation remains necessary: trace text alone is not ownership. Child discovery records firstSeenNs and firstSampleNs and parent PID/birth. Current parent links and start times are race checked but not an atomic kernel tree snapshot. Grandchildren born and dead between discovery rounds can be missed; adopted children may first be seen only after reparenting. A same executable helper directly under guardian is labeled renderer-leader; other children remain separately labeled WebKit web/network or renderer-descendant. Thread counts and unrelated process rows are not persisted.
++Pidfd candidates are obtained by bounded exact-owner fdinfo enumeration, never an assumed FD number. Pid is interpreted only in the observer's proc view. NSpid is preserved, never used for cross-namespace translation. Before acceptance require live owner birth before and after, positive target Pid, live target double stat with stable birth and both PPIDs equal owner, target birth >= owner birth, and identical first/repeated raw fdinfo. Saved pidfdProof includes owner/target before/after parsed stat, raw fdinfo, Pid/NSpid, read timestamps and FD. This is direct-child evidence, not an atomic tree snapshot. Repeated fdinfo detects visible change but does not rule out same-target ABA.
+ 
+-Sampling choice and hard bounds:
+-- Process-wide own utime/stime, per exact PID at 250 ms (4 Hz). 100 ms would increase recurring reads 2.5x and improve only temporal coverage, not solve missed births, missing terminal counters or causal attribution. The observed deadline is about 2 seconds; 250 ms is a starting design yielding about 8 periods when coverage exists, not a guarantee of 8 valid samples.
+-- Children discovery at 500 ms; a first discovered child may have already used CPU for up to the discovery cadence or longer after delays. No prefix reconstruction. Discovery starts after native guardian event is received/validated; no claim that App startup before this point was measured.
+-- Maximum 64 total process identities including App; maximum 128 task entries across each discovery round; maximum 128 candidate children per parent. Byte-capped reads: proc stat/schedstat/children 4096; cmdline 16384; guardian environment 65536. A task-limit failure occurs after at most remaining-limit+1 directory entries, without iterating the rest. Counters of successful task enumeration exclude a rejected over-limit listing; the failure is explicit.
+-- Cooperative discovery wall budget 5 ms, sample wall budget 10 ms, checked between operations. A single blocked kernel read cannot be preempted; do not call these hard real-time guarantees. Over-budget rounds record incomplete/error, never fabricate zeros.
+-- 2 MiB sample ring, 256 native events, 32 error examples and bounded 60-second duration. Identity metadata is capped at 64. No catch-up bursts after skipped slots. Output ring evictions, all error counts, missed slots and actual maximum lateness are retained.
+-- Identity log is read at 50 ms before App binds, then no faster than 250 ms. Each read <=65536 bytes, partial line <=16384 retained. An oversized line is skipped only when its bounded prefix identifies kind=render-accepted; counted as requestPayloadLinesSkipped, not identity loss. Oversized guardian/unknown lines fail observation. Complete wire payload stays with native request evidence, never enters CPU output. A multi-chunk 150 KiB payload plus subsequent guardian event is covered by a synthetic test.
+-- Process CPU reads 2 stat records around one leader schedstat read, per live identity. At the absolute 64-process cap, base sampling makes <=768 proc reads/s before discovery/identity work; typical tree size and actual overhead must be measured. This bound is a work count, not evidence of low actual overhead. Samples retain read brackets so offline joins can require the whole bracket inside actual request intervals.
++Role metadata is recorded only after ownership: exact helper argv under guardian => renderer-leader; WebKit executable basenames label web/network; otherwise renderer-descendant. Newly adopted descendants retain argvEvidence rawHex, parsed argv and readStart/EndNs (4096-byte read cap). These are binding-time descriptions only; later exec is not monitored. CPU is attributed to exact pid/birth, not to an assumed immutable role. Missing WebKit labels never proves no JS CPU. FirstSeen/firstSample are explicit lower bounds; no CPU before first sight is reconstructed.
+ 
+-schedstat interpretation:
+-/proc/PID/schedstat describes the thread-group leader's runtimeNs, runqueueWaitNs and timeslices. It is NOT the process's aggregate thread wait time. No per-thread schedstat traversal is implemented. The task traversal only discovers children. A zero counter can reflect disabled/unavailable accounting; no sched_schedstats toggle or system change is made. Missing schedstat is marked missing; no substituted zero.
++An unclassified FD read error (including ENOENT) is recorded separately from a known pidfd target exit/change/verification error. It does not discard another independently verified target. Enumeration truncation, read caps, elapsed budget and later FD failure preserve completed proofs, but mark partial coverage. A proof not admitted due to the 64-identity cap is counted as verified evidence only, not listed as an adopted pidfdTargetIdentity. Summary knownIdentities remains the sampling membership authority.
+ 
+-Native timing joins:
+-Read DOM_NATIVE_TIMING from driver.log from the beginning, but accept exact App PID and event monotonic >= App birth, exact valid instance and real requestId. No request number is hardcoded as an anchor. Keep actual dispatch and deadline and log-observation delay separately. These diagnostics are best effort with possible loss. A guardian not yet bound remains guardianBound=false on the event; do not infer its identity. Native identity/capture completeness must also be checked by controller against native status.json and complete.json; CPU success alone does not establish payload completeness.
++Bounds (preserved or narrower)
++Sampling 250ms; discovery 500ms. The SINGLE discovery 5ms cooperative budget covers children, fdinfo, identity, argv and metadata across ALL owners; it is not reset per mechanism. Kernel operations are not preempted, so elapsed overrun remains possible and recorded. Sampling budget 10ms. No catch-up bursts.
++64 total retained identities; 128 task entries/round, 128 candidate children/parent. fdinfo at most 32 candidates per owner, 128 candidates/round; one extra entry only detects overflow. First AND repeated fdinfo reads count toward at most 32 reads/owner and 128 reads/round. Ownership stat reads are additional and stay inside the same wall budget. Enumeration order is not sorted or complete; a missed pidfd outside caps cannot be declared absent.
++Proc stat/schedstat/children/fdinfo reads cap4096, saved pidfd raw proof cap1024 each; descendant argv cap4096 (App/guardian binding argv existing16384); optional guardian environment cap65536. Sample ring2MiB unchanged; metadata separately bounded by64 identities,64 pidfd status examples,128 discovery-round examples,32 errors,256 native events. Drop counters retained. No unbounded target set: pidfdTargetIdentities lists only admitted identities. Max60s.
++Identity log polling50ms until bound then250ms, read65536/line16384; oversized identified render-accepted payload lines skipped/count separately, never treated as lost guardian identity. No full wire payload retained here.
+ 
+-Offline analyze.py <output-dir> reads only saved JSON/NDJSON. It joins actual (instanceId,requestId) dispatch/deadline pairs. Per-PID CPU delta is accepted only between consecutive valid samples whose entire read brackets lie inside the request window. Partial edges, first unseen CPU, terminal CPU and missing samples are not interpolated. Each role stays separate; leader schedstat is kept separate from process CPU. No cgroup measurement is included in this candidate; existing independent shared-cgroup evidence must retain its own timestamps/scope if later combined.
++Exit and coverage semantics
++CLI exit2 if terminal observer failure OR any incomplete discovery round, children-interface gap or pidfd coverage gap. It can finish controller-stop with failure=null and exit2. In the known children-interface-unavailable environment, a useful helper CPU trace is expected to retain coverage=incomplete and exit2. The wrapper MUST save harness exit and observer exit independently; observer exit2 is not a cold product assertion FAIL. Exit0 never means full tree PASS. fullRendererTreeCoverage is always false. Limited pidfd proof cannot erase missing children or claim WebKit subtree coverage.
+ 
+-Measured overhead fields:
+-summary.overhead includes observerOwnCpuNs; prelaunchHashCpuNs; afterReadyCpuNs; procReads; readTotalNs/readMaxNs; sampleTotalNs/sampleMaxNs; discoveryTotalNs/discoveryMaxNs. Log read times, discovery incomplete/error counts, sample incomplete, max late, skips, first sight/sample and skipped payload lines are separate. ObserverOwnCpuNs includes prelaunch hash and setup and must not be assigned as runtime perturbation. afterReadyCpuNs still includes idle waits and controller activity but excludes hashing. No observation overhead is subtracted from product counters.
++Counter interpretation and joins
++utime/stime is process-wide own CPU. /proc/PID/schedstat is ONLY thread-group leader runtime/wait/timeslices, not aggregate process thread wait. No thread schedstat traversal or schedstats system change. Missing data remains missing, not zero. App, guardian and each descendant stay separate; no cgroup measurement or causal deadline attribution.
++Actual DOM_NATIVE_TIMING App/instance/request IDs are retained; no hardcoded request anchor. analyze.py unchanged joins only actual dispatch+deadline pairs and whole sample read brackets inside them; no partial interpolation, no terminal/request-end invention. Empty intervals are unmeasured even when a mechanical sum is zero. Capture status/complete and driver tails must be independently audited.
++Observer own CPU, prelaunch hash CPU, after-ready CPU, proc read counts/times, sample/discovery durations/max, late/skipped slots, first sight/sample, record drops, fdinfo status/caps and per-round counts are saved. They are measurements to inspect later, not proof of low overhead now.
+ 
+-Validation performed:
+-21 unittest cases using entirely synthetic /proc data and temporary JSONL files; no native process, browser or workload started. Added v02 tests prove PermissionError requires native source proof, readable mismatch still rejects, and wrong schema rejects. Tests cover exact birth and one-time App binding, secret environment non-output, owned-only child traversal, task and wall budgets, leader schedstat scope, missing data, request IDs such as render_2754, oversized/chunked payload handling, no partial interval interpolation, and AST rejection of global proc enumeration/signal/subprocess APIs. See synthetic-tests.log. This is not runtime performance proof or proof the kernel's /proc children interface works in the target namespaces. The native candidate/root reviewer must approve integration and its first failure handling before any runtime execution.
+-
+-Revision boundary:
+-Run01 used the unchanged original candidate and exited observer-error on guardian environ PermissionError before samples. This is a setup failure, not a successful CPU observation. V02 is a new source directory and new manifest; no run01 evidence or old candidate bytes were rewritten. It relaxes only the redundant permission-limited environment consistency check under authoritative native creation proof. No signal, cleanup, process scan, product setting, runtime invocation, or guard privilege change was added.
+-
+-V03 explicit interface coverage classification:
+-A FileNotFoundError opening a known owner task children path is now retained with owner PID/birth, TID, exact path, errno and read timestamps, and the discovery round becomes incomplete. It does not assert a root cause: interface absence and disappearing task remain distinguishable only with further evidence. The sampler continues App/known PID sampling, but CLI returns exit2 for recorded children-interface gaps even when failure=null/controller-stop. summary.descendantCoverage.status=incomplete is separate from product result; no-recorded-interface-gap is never a complete-tree assertion.
+-No pidfd discovery is implemented in this v03. A future independently reviewed pidfd direct-child capability must be labeled limited direct-child coverage and cannot erase children-unavailable or imply all WebKit descendants. Do not run this candidate to rediscover an already known interface failure without root authorization.
+-Preparation validation was pure synthetic (21 tests), with no native run. Root subsequently requested subsequent prepared candidates stop dynamic tests pending unified review; no additional tests or runtime were performed.
++Validation boundary
++V04 has not been imported, executed, dynamically tested, or run with native. Only source AST/static checks and frozen prior manifests were read. TEST-PLAN.txt and test_cpu_sampler.py are prepared for one root-authorized synthetic test invocation. Earlier v03 synthetic results are historical, not a v04 PASS. Old candidates/runs unchanged; product source untouched.

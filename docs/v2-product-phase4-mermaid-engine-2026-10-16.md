@@ -2,7 +2,7 @@
 
 本阶段基线为 `d3851430fac0dc85c758187b33b769c5daba7f4a`，独立分支 `dot/milkup-v2-product-phase4-mermaid-engine`。已核验远端/本地 SHA、干净工作区及候选 11 的 4,044 份证据存储哈希；候选 11 的 Linux 有界能力验收继续有效。[基线核验](evidence/v2-product-phase4-mermaid-engine/baseline-verification.json)。
 
-**当前状态：官方完整引擎、通用 Linux DOM 后端和安全图片输出已实现；多行恢复测量次序修复后，gate08 全仓 2073 项测试及其余门禁、相关浏览器 36 项测试通过，独立 diagrams 89 项测试此前通过。production08 实际 Linux 构建及五项生命周期首次通过，完整 UI 尝试却在冷启动首次超时。后续诊断前缀通过了原冷图像断言，但没有完成生产或全 UI 验收，renderer CPU 仍未测。历史 UI10 在 30/64 组合后遇到原生截止，其余 34 组合与超时原因保持开放。Journey 在 100% 下原图／规范图完全一致，200% 下仍有 1106 个文本像素差异，保留为边界。不能宣称产品验收结束。** 后续继续完整 P4 验证，再进入 P5 导出／打印；Linux 证据不替代 Windows 验证。
+**当前状态：官方完整引擎、通用 Linux DOM 后端和安全图片输出已实现；多行恢复测量次序修复后，gate08 全仓 2073 项测试及其余门禁、相关浏览器 36 项测试通过，独立 diagrams 89 项测试此前通过。production08 实际 Linux 构建及五项生命周期首次通过，完整 UI 尝试却在冷启动首次超时。后续诊断前缀通过了原冷图像断言，最新六份请求均有完整输入；已测得 helper 自身 CPU，执行 JavaScript 的 WebProcess 身份及 CPU 仍未独立确认，没有完成生产或全 UI 验收。历史 UI10 在 30/64 组合后遇到原生截止，其余 34 组合与超时原因保持开放。Journey 在 100% 下原图／规范图完全一致，200% 下仍有 1106 个文本像素差异，保留为边界。不能宣称产品验收结束。** 后续继续完整 P4 验证，再进入 P5 导出／打印；Linux 证据不替代 Windows 验证。
 
 ## 固定版本与覆盖目标
 
@@ -576,3 +576,13 @@ CPU记录包含App和guardian各21个样本，没有renderer/helper/WebKit身份
 随后隔离的受控fork能力验证在相同外层执行上下文中执行一次：父子PID/birth与PPID关系在读取前后稳定，父进程内部和外部观察器读取 `/proc/PID/task/TID/children` 均得到ENOENT。整个验证25.643025ms，父子通过pipe EOF正常退出并分别waitpid回收，exit0；未启动产品。该结果证明当前fixture的接口不可用，暴露了原采样器将FileNotFoundError静默跳过的覆盖缺口；它不是历史guardian的完整重建，也不证明接口缺失的内核原因。下一步先验证现有guardian pidfd能否提供精确后代身份，避免恢复此前已触发开销上限的全局进程扫描。
 
 [checkpoint22](evidence/v2-product-phase4-mermaid-engine/checkpoint22/README.md) 保留两次setup首败、第三次诊断前缀通过、严格wire首FAIL、限定审计、CPU缺口、Root时序更正及受控接口验证。产品代码未因本轮研究改变；完整原生验收仍待完成，Windows Runtime与新增上传预算未在本执行器使用。
+
+## 直接 pidfd 能力成立，第四次冷前缀通过但 WebProcess 覆盖仍缺失
+
+一次独立受控 pidfd 能力检查从已知父进程的有限 fdinfo 枚举中找到准确子进程，重复元数据、双 birth/PPID 与独立握手一致；父子正常退出并各自 waitpid 回收。它证明当前直接子 fixture 可识别，不证明完整 WebKit 树。随后 v04 观察器保留原采样频率和预算，增加有界 pidfd 发现与显式接口缺口；Root 静态审阅后首次执行34项纯合成测试，实际 Python exit0 独立保存。v03此前21项测试日志的末尾 shell exit0不足以独立确认Python退出码，该缺口仍保留。
+
+第四次复用相同研究程序，原冷图像断言通过后停在 `DIAGNOSTIC_PREFIX_STOP`。Root核验199份冻结文件并实际查看WebView/X11原图。Node harness exit0、CPU覆盖不足exit2、外层原assert导致exit1分别保存，不把wrapper结果改写为冷断言失败。未修改的严格wire审计首次通过，六条冻结dispatch各有完整输入，UTF-16范围和Unicode夹具重建准确；没有据此回填旧production08未知请求或第三次缺失的第六份wire。final checkpoint不是精确关闭观察的时刻，也不证明App整个生命周期请求齐全。
+
+此次确认App、guardian、helper、network和两个绑定时argv为bwrap的身份。App自身0.47 CPU秒、guardian0.09秒、helper0.12秒分别属于不同首末采样区间；bwrap参数中的WebKitWebProcess文字不能充当WebProcess身份或CPU。20轮采样、10轮发现，发现全部incomplete；5ms发现预算是协作检查，实际最大9.479359ms，普通fdinfo聚合数不足以证明某个bwrap的FD被穷尽读取。没有请求完成或deadline端点，末样本后还有224.969854ms未测，不能由这轮通过推论旧超时原因。
+
+[checkpoint23](evidence/v2-product-phase4-mermaid-engine/checkpoint23/README.md) 保存受控能力首结果、观察器候选与纯测试、第四次原始运行、两份独立审阅及Root像素核验。产品源码、原生产包、前端和官方插件均未改变。下一步仅准备通过私有原生消息传递WebProcess自身句柄的有界诊断方案，尚无该方案的构建或运行结果；原沙箱及2秒／10秒预算不变。完整原生UI与Windows验收仍待完成，本执行器未使用Runtime或上传预算。

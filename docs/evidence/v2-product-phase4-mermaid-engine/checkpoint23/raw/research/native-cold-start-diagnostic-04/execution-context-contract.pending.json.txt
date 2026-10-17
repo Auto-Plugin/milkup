@@ -1,0 +1,39 @@
+{
+  "status": "PENDING_CPU_V04_FINAL_SHA_REVIEW_AND_ROOT_GO",
+  "change": "New run/profile/output paths and pending external CPU v04 pidfd discovery candidate only; no product binary/harness changes",
+  "driverCall": {
+    "cmd": "python3 /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-04/launch-driver-reaping.py",
+    "cwd": "/workspace/milkup",
+    "sandbox_permissions": "require_escalated"
+  },
+  "harnessCall": {
+    "cmd": "python3 /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-04/run-harness.py",
+    "cwd": "/workspace/milkup",
+    "sandbox_permissions": "require_escalated"
+  },
+  "expectedOuterUserNamespace": "user:[4026531837]",
+  "requirement": "Both tools must use the same escalated outer execution context; Node and CPU inherit harness context. Original product bwrap and WebKit sandbox remain unchanged. If review rejects, stop and retain exact rejection; no fallback context or weakening profile assertion.",
+  "unchanged": {
+    "binary": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-02/diagnostic-binary/milkup-desktop",
+      "sha256": "a5fce05f06805931d9e55c2cddc80f1b9e0e4f31c5a756f2bc8eab3b185c0ac8"
+    },
+    "harness": {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-02/native/cold-prefix.mjs",
+      "sha256": "cd83f4b29035605e919d8d1287620dd4ee1a5d63acdf9cb392839deacfde996c"
+    },
+    "budgets": "original2s render/10s init; original cold assertions/profile check"
+  },
+  "sampler": {
+    "path": null,
+    "sha256": null,
+    "status": "PENDING_CPU_V04_FINAL_REVIEWED_CANDIDATE"
+  },
+  "outcomeInterpretation": {
+    "nodeColdGate": "Preserve original Node cold assertions/profile check and independently report cold gate evidence, diagnostic-prefix-stop.json or original failure evidence, and harnessExitCode from control/harness-execution.json.",
+    "sampler": "Independently report samplerExitCode and CPU summary coverage gaps. Pending v04 is expected to retain incomplete coverage/exit 2 when children paths are unavailable, even when exact pidfd targets are observed.",
+    "wrapper": "Existing final assert samplerExitCode == 0 is unchanged. Sampler exit 2 makes controller wrapper nonzero (normally Python AssertionError exit 1), after separate harness/sampler codes have been saved. Wrapper nonzero alone is not evidence that the Node cold gate failed.",
+    "limits": "Cold gate success plus incomplete CPU coverage is a diagnostic prefix success with incomplete CPU observation; it is not full UI/production acceptance and cannot close the original deadline. No changing sampler status or assertions to obtain a zero wrapper code.",
+    "wrapperChange": "No proposed wrapper code change in this preparation. Any future change to return explicit 2 requires a separately listed exact diff and root review."
+  }
+}

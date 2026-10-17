@@ -1,0 +1,164 @@
+"""Synthetic only: virtual proc records and temporary log bytes, no native processes."""
+import ast
+import json
+from pathlib import Path
+import tempfile
+import unittest
+import cpu_sampler as m
+from analyze import analyze
+
+B='/frozen/milkup-desktop';I='a'*48
+class Clock:
+    def __init__(self):self.value=1_000_000_000_000
+    def __call__(self):self.value+=100;return self.value
+class FakeFiles:
+    def __init__(self):self.data={};self.taskmap={};self.reads=[];self.taskcalls=[]
+    def process(self,pid,birth,parent,argv,children=(),env=None):
+        w=['0']*22;w[0]='S';w[1]=str(parent);w[11]='3';w[12]='2';w[19]=str(birth)
+        self.data[f'/proc/{pid}/stat']=f'{pid} (test process) '+ ' '.join(w)
+        self.data[f'/proc/{pid}/cmdline']='\0'.join(argv)+'\0'
+        self.data[f'/proc/{pid}/schedstat']='100 20 4'
+        self.data[f'/proc/{pid}/environ']=env or ''
+        self.taskmap[pid]=[str(pid)];self.data[f'/proc/{pid}/task/{pid}/children']=' '.join(map(str,children))
+    def read(self,path,limit):
+        self.reads.append(path)
+        if path not in self.data:raise FileNotFoundError(2,'ENOENT',path)
+        v=self.data[path];v=v.encode() if isinstance(v,str) else v
+        if len(v)>limit:raise ValueError('read-size-limit')
+        return v
+    def tasks(self,pid,limit):
+        self.taskcalls.append(pid);v=self.taskmap[pid]
+        if len(v)>limit:raise ValueError('round-task-limit')
+        return v
+
+def fixture():
+    fs=FakeFiles();clock=Clock()
+    fs.process(10,100,1,[B,'/run/ordinary.md'],[20,99])
+    fs.process(20,110,10,[B,'--milkup-internal-dom-helper'],[30],f'SECRET=hidden\0MILKUP_INTERNAL_DOM_INSTANCE_ID={I}\0')
+    fs.process(30,120,20,[B,'--milkup-internal-dom-helper'],[40])
+    fs.process(40,130,30,['/usr/lib/WebKitWebProcess'])
+    o=m.Observer(B,fs,clock)
+    o.native_identity_source=dict(path='/exclusive-native/events.jsonl',device=1,inode=2,kind='configured-app-owned-native-sink')
+    event=dict(schema='milkup.cold-accepted-wire.v1',kind='guardian-spawn',ownerPid=10,ownerBirth=100,guardianPid=20,guardianBirth=110,instanceId=I,monotonicNs=clock())
+    return o,fs,clock,event
+
+class Tests(unittest.TestCase):
+    def test_binding_exact_and_no_env_output(self):
+        o,fs,c,e=fixture();o.bind_identity_event(e,o.native_identity_source)
+        self.assertEqual(o.app['birth'],100);self.assertEqual(o.known[(20,110)]['role'],'guardian')
+        self.assertNotIn('SECRET',json.dumps(o.summary()));self.assertNotIn('hidden',json.dumps(o.summary()))
+    def test_environment_permission_gap_with_native_proof(self):
+        o,fs,c,e=fixture();original=fs.read
+        def unavailable(path,limit):
+            if path.endswith('/environ'):raise PermissionError(13,'Permission denied')
+            return original(path,limit)
+        fs.read=unavailable;o.bind_identity_event(e,o.native_identity_source)
+        self.assertEqual(o.binding_events[0]['instanceEnvironmentCheck']['status'],'unavailable')
+        self.assertIsNone(o.binding_events[0]['instanceEnvironmentMatched'])
+        self.assertEqual(o.summary()['environmentUnavailableBindings'],1)
+        self.assertIn((20,110),o.known)
+    def test_environment_unavailable_without_native_proof_rejected(self):
+        o,fs,c,e=fixture();original=fs.read
+        def unavailable(path,limit):
+            if path.endswith('/environ'):raise PermissionError(13,'Permission denied')
+            return original(path,limit)
+        fs.read=unavailable
+        with self.assertRaisesRegex(ValueError,'creation-proof'):o.bind_identity_event(e)
+        self.assertFalse(o.guardians)
+    def test_readable_environment_mismatch_rejected(self):
+        o,fs,c,e=fixture();fs.data['/proc/20/environ']='MILKUP_INTERNAL_DOM_INSTANCE_ID='+'b'*48+'\0'
+        with self.assertRaisesRegex(ValueError,'instance-environment'):o.bind_identity_event(e,o.native_identity_source)
+        self.assertFalse(o.guardians)
+    def test_native_schema_required(self):
+        o,fs,c,e=fixture();e['schema']='unknown'
+        with self.assertRaisesRegex(ValueError,'native-schema'):o.bind_identity_event(e,o.native_identity_source)
+        self.assertFalse(o.guardians)
+    def test_birth_mismatch_rejected(self):
+        o,fs,c,e=fixture();e['guardianBirth']=111
+        with self.assertRaises(ValueError):o.bind_identity_event(e,o.native_identity_source)
+        self.assertFalse(o.guardians)
+    def test_app_cannot_rebind(self):
+        o,fs,c,e=fixture();o.bind_identity_event(e,o.native_identity_source);e['ownerBirth']=101
+        with self.assertRaises(ValueError):o.bind_identity_event(e,o.native_identity_source)
+    def test_children_only_guardian_tree(self):
+        o,fs,c,e=fixture();o.bind_identity_event(e,o.native_identity_source);o.discover()
+        self.assertEqual(set(o.known),{(10,100),(20,110),(30,120),(40,130)})
+        self.assertNotIn(10,fs.taskcalls);self.assertNotIn('/proc/99/stat',fs.reads)
+        self.assertEqual(o.known[(30,120)]['role'],'renderer-leader')
+    def test_bound_thread_limit(self):
+        o,fs,c,e=fixture();o.bind_identity_event(e,o.native_identity_source);fs.taskmap[20]=['1']*129;o.discover()
+        self.assertEqual(o.discovery_incomplete,1)
+    def test_discovery_time_budget(self):
+        o,fs,c,e=fixture();o.bind_identity_event(e,o.native_identity_source)
+        original=o.fs.tasks
+        def slow(pid,limit):c.value+=m.DISCOVERY_BUDGET_NS;return original(pid,limit)
+        fs.tasks=slow;o.discover();self.assertEqual(o.discovery_incomplete,1)
+    def test_cpu_process_and_schedstat_leader(self):
+        o,fs,c,e=fixture();o.bind_identity_event(e,o.native_identity_source);o.sample(c())
+        row=json.loads(o.rows[0])['members'][0]
+        self.assertEqual(row['userTicks']+row['systemTicks'],5)
+        self.assertEqual(row['leaderSchedstat']['runqueueWaitNs'],20)
+        self.assertFalse(any('/task/' in p for p in fs.reads))
+    def test_children_enoent_is_explicit_coverage_gap(self):
+        o,fs,c,e=fixture();o.bind_identity_event(e,o.native_identity_source)
+        del fs.data['/proc/20/task/20/children'];o.discover()
+        self.assertEqual(o.discovery_incomplete,1);self.assertEqual(o.children_interface_gap_count,1)
+        self.assertEqual(o.summary()['descendantCoverage']['status'],'incomplete')
+        self.assertFalse(o.summary()['descendantCoverage']['fullRendererTreeCoverage'])
+        self.assertEqual(o.children_interface_gaps[0]['path'],'/proc/20/task/20/children')
+        self.assertEqual(o.children_interface_gaps[0]['errno'],2)
+        self.assertNotIn((30,120),o.known)
+    def test_readable_empty_children_not_interface_failure(self):
+        o,fs,c,e=fixture();o.bind_identity_event(e,o.native_identity_source)
+        fs.data['/proc/20/task/20/children']='';o.discover()
+        self.assertEqual(o.children_interface_gap_count,0);self.assertEqual(o.discovery_incomplete,0)
+        self.assertFalse(o.summary()['descendantCoverage']['fullRendererTreeCoverage'])
+    def test_sample_budget_marks_incomplete(self):
+        o,fs,c,e=fixture();o.bind_identity_event(e,o.native_identity_source)
+        original=fs.read
+        def slow(path,limit):c.value+=m.SAMPLE_BUDGET_NS;return original(path,limit)
+        fs.read=slow;o.sample(c());self.assertEqual(o.sample_incomplete,1)
+    def test_missing_is_not_zero(self):
+        o,fs,c,e=fixture();o.bind_identity_event(e,o.native_identity_source);del fs.data['/proc/20/stat'];o.sample(c())
+        row=json.loads(o.rows[0])['members'][1]
+        self.assertEqual(row['status'],'missing-or-identity-changed');self.assertNotIn('userTicks',row)
+    def test_observed_request_arbitrary(self):
+        o,fs,c,e=fixture();o.bind_identity_event(e,o.native_identity_source)
+        for phase in ['dispatch','deadline-observed']:
+            o.native_event(dict(pid=10,instanceId=I,requestId='render_2754',phase=phase,monotonicNs=c()))
+        self.assertEqual(o.stop_reason,'native-deadline-observed');self.assertEqual(len(o.events),2)
+    def test_oversized_wire_then_identity_line(self):
+        o,fs,c,e=fixture()
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)/'events.jsonl';p.write_text(json.dumps({'kind':'render-accepted','wire':'x'*20000})+'\n'+json.dumps(e)+'\n')
+            o.poll_identity_log(p)
+        self.assertIsNotNone(o.app);self.assertEqual(o.payload_lines_skipped,1)
+    def test_large_wire_split_across_reads_then_identity(self):
+        o,fs,c,e=fixture()
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)/'events.jsonl';p.write_text(json.dumps({'kind':'render-accepted','wire':'x'*150000})+'\n'+json.dumps(e)+'\n')
+            for _ in range(3):o.poll_identity_log(p)
+        self.assertIsNotNone(o.app);self.assertEqual(o.payload_lines_skipped,1)
+    def test_oversize_unknown_not_claimed_payload(self):
+        o,fs,c,e=fixture()
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)/'events.jsonl';p.write_text(json.dumps({'kind':'guardian-spawn','unknown':'x'*20000})+'\n')
+            with self.assertRaises(ValueError):o.poll_identity_log(p)
+        self.assertEqual(o.payload_lines_skipped,0)
+    def test_partial_intervals_not_interpolated(self):
+        summary={'clockTicksPerSecond':100,'nativeEvents':[dict(instanceId=I,requestId='anything',phase='dispatch',monotonicNs=100),dict(instanceId=I,requestId='anything',phase='deadline-observed',monotonicNs=400)]}
+        rows=[]
+        for t,cpu in [(90,1),(200,5),(300,7),(410,9)]:
+            rows.append({'members':[dict(pid=40,birth=130,role='webkit-web',instanceId=I,status='sample',readStartNs=t,readEndNs=t+1,userTicks=cpu,systemTicks=0,leaderSchedstat=None)]})
+        r=analyze(summary,rows)['requests'][0]['processes'][0]
+        self.assertEqual(len(r['intervals']),1);self.assertEqual(r['observedWholeIntervalCpuSeconds'],0.02)
+    def test_static_no_global_proc_enumeration_or_signal(self):
+        tree=ast.parse(Path(m.__file__).read_text());scans=[]
+        for node in ast.walk(tree):
+            if isinstance(node,ast.Call):
+                name=ast.unparse(node.func)
+                self.assertNotIn(name,['os.kill','os.killpg','signal.pthread_kill','subprocess.run','subprocess.Popen'])
+                if name=='os.scandir':scans.append(ast.unparse(node.args[0]))
+        self.assertEqual(scans,["f'/proc/{pid}/task'"])
+
+if __name__=='__main__':unittest.main()

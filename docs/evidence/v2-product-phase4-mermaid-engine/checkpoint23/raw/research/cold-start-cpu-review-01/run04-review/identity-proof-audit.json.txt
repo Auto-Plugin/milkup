@@ -1,0 +1,243 @@
+{
+  "allChecksPass": true,
+  "checks": [
+    {
+      "check": "target-double-stat-birth-parent-live",
+      "passed": true,
+      "pid": 471235
+    },
+    {
+      "check": "owner-double-stat-birth",
+      "passed": true,
+      "pid": 471235
+    },
+    {
+      "check": "raw-fdinfo-repeated-Pid-NSpid",
+      "passed": true,
+      "pid": 471235
+    },
+    {
+      "check": "argv-raw-parsed-bounded-time",
+      "passed": true,
+      "pid": 471235
+    },
+    {
+      "check": "binding-time-role",
+      "passed": true,
+      "pid": 471235
+    },
+    {
+      "check": "target-double-stat-birth-parent-live",
+      "passed": true,
+      "pid": 471238
+    },
+    {
+      "check": "owner-double-stat-birth",
+      "passed": true,
+      "pid": 471238
+    },
+    {
+      "check": "raw-fdinfo-repeated-Pid-NSpid",
+      "passed": true,
+      "pid": 471238
+    },
+    {
+      "check": "argv-raw-parsed-bounded-time",
+      "passed": true,
+      "pid": 471238
+    },
+    {
+      "check": "binding-time-role",
+      "passed": true,
+      "pid": 471238
+    },
+    {
+      "check": "target-double-stat-birth-parent-live",
+      "passed": true,
+      "pid": 471277
+    },
+    {
+      "check": "owner-double-stat-birth",
+      "passed": true,
+      "pid": 471277
+    },
+    {
+      "check": "raw-fdinfo-repeated-Pid-NSpid",
+      "passed": true,
+      "pid": 471277
+    },
+    {
+      "check": "argv-raw-parsed-bounded-time",
+      "passed": true,
+      "pid": 471277
+    },
+    {
+      "check": "binding-time-role",
+      "passed": true,
+      "pid": 471277
+    },
+    {
+      "check": "target-double-stat-birth-parent-live",
+      "passed": true,
+      "pid": 471272
+    },
+    {
+      "check": "owner-double-stat-birth",
+      "passed": true,
+      "pid": 471272
+    },
+    {
+      "check": "raw-fdinfo-repeated-Pid-NSpid",
+      "passed": true,
+      "pid": 471272
+    },
+    {
+      "check": "argv-raw-parsed-bounded-time",
+      "passed": true,
+      "pid": 471272
+    },
+    {
+      "check": "binding-time-role",
+      "passed": true,
+      "pid": 471272
+    },
+    {
+      "check": "pidfd-nonordinary-status-counts",
+      "passed": true
+    },
+    {
+      "check": "fdinfo-read-accounting",
+      "passed": true
+    },
+    {
+      "check": "round-count-sums",
+      "passed": true
+    },
+    {
+      "check": "reported-round-caps",
+      "passed": true
+    }
+  ],
+  "proofs": [
+    {
+      "pid": 471235,
+      "birth": 9048502,
+      "parent": 471230,
+      "ownerStates": [
+        "S",
+        "S"
+      ],
+      "fd": 0,
+      "argv": [
+        "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-02/diagnostic-binary/milkup-desktop",
+        "--milkup-internal-dom-helper"
+      ],
+      "role": "renderer-leader"
+    },
+    {
+      "pid": 471238,
+      "birth": 9048508,
+      "parent": 471235,
+      "ownerStates": [
+        "S",
+        "S"
+      ],
+      "fd": 13,
+      "argv": [
+        "/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitNetworkProcess",
+        "1",
+        "10"
+      ],
+      "role": "webkit-network"
+    },
+    {
+      "pid": 471277,
+      "birth": 9048524,
+      "parent": 471235,
+      "ownerStates": [
+        "S",
+        "S"
+      ],
+      "fd": 26,
+      "argv": [
+        "/usr/bin/bwrap",
+        "--args",
+        "25",
+        "--",
+        "/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/WebKitWebProcess",
+        "4",
+        "16"
+      ],
+      "role": "renderer-descendant"
+    },
+    {
+      "pid": 471272,
+      "birth": 9048522,
+      "parent": 471235,
+      "ownerStates": [
+        "S",
+        "S"
+      ],
+      "fd": 30,
+      "argv": [
+        "/usr/bin/bwrap",
+        "--args",
+        "29",
+        "--",
+        "/usr/bin/xdg-dbus-proxy",
+        "--args=25"
+      ],
+      "role": "renderer-descendant"
+    }
+  ],
+  "repeatedVerificationCounts": [
+    {
+      "ownerPid": 471230,
+      "targetPid": 471235,
+      "count": 9
+    },
+    {
+      "ownerPid": 471235,
+      "targetPid": 471238,
+      "count": 9
+    },
+    {
+      "ownerPid": 471235,
+      "targetPid": 471277,
+      "count": 9
+    },
+    {
+      "ownerPid": 471235,
+      "targetPid": 471272,
+      "count": 9
+    }
+  ],
+  "gaps": [
+    {
+      "status": "pidfd-owner-scan-incomplete",
+      "ownerPid": 471238,
+      "ownerBirth": 9048508,
+      "monoNs": 90485496248967,
+      "coverageGap": true,
+      "errno": null,
+      "errorClass": "TimeoutError",
+      "detail": "discovery-wall-budget"
+    },
+    {
+      "status": "pidfd-owner-scan-incomplete",
+      "ownerPid": 471272,
+      "ownerBirth": 9048522,
+      "monoNs": 90486592832905,
+      "coverageGap": true,
+      "errno": null,
+      "errorClass": "TimeoutError",
+      "detail": "discovery-wall-budget"
+    }
+  ],
+  "qualifications": [
+    "Only first-adoption full raw proofs are saved; 36 repeats have status/time/Pid but not their full raw stat/fdinfo snapshots.",
+    "All saved proof owner states are live; source same(owner) tests birth only, not terminal state.",
+    "Ordinary not-pidfd results retain aggregate counts only: no owner/FD/raw details. No absence proof for a WebProcess or bwrap children.",
+    "Round caps independently checked from retained rounds; per-owner read counts are not retained separately, bounded by frozen code only."
+  ]
+}

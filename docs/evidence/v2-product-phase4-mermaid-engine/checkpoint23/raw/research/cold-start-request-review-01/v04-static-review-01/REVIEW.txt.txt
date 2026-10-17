@@ -1,0 +1,33 @@
+Independent v04 sampler static review — qualified, no blocking finding
+
+Reviewer: /root/cold_request. Candidate/test source was read, not imported or executed. No native/browser/probe, /proc inspection, product edit or frozen-candidate edit was performed. The no-blocker conclusion was delivered to root before root notified this reviewer of its own one-time synthetic execution. This report is finalized afterward; it is not a claim that this file existed before that execution.
+
+Frozen candidate: /workspace/milkup-mermaid-engine-evidence/research/cold-start-cpu-review-01/candidate-v04
+sampler SHA256 b5c5167b0d28a7205d1572be83e0bff3b1a1a59932e921a9584be8f9cfdd8364
+prepared-manifest SHA256 2a188f1f1a4cf157d4f29da43c75673271571e16270622995f4badc015e034ff
+All seven manifest member hashes/lengths independently match (static-check.json).
+
+Identity and scope
+- pidfd_children (cpu_sampler.py:291) enumerates only /proc/{exact owned pid}/fdinfo after a same-birth stat. Discovery work starts with already-bound guardians/descendants, excludes App. No preselected FD or global process scan is used.
+- Positive Pid is the lookup key in the observer proc view. NSpid is preserved and positive-validated, not used to translate to another PID namespace; its first entry is not checked against Pid. Thus no independent cross-namespace proof is provided.
+- Before accepting a pidfd target, code verifies target birth >= owner birth, target PID/birth stable over two stat reads, both target PPIDs equal exact owner PID, target state not Z/X/x, and byte-identical repeated fdinfo. Owner birth is bracketed too. Saved parsed stat/raw fdinfo/argv/read timestamps permit offline review.
+- CONTRACT.txt:13 says live owner birth before and after. Actual same() at line132 checks PID via stat_parse and birth only, NOT owner live state. Qualify the accepted evidence as stable exact owner identity with a directly linked live target, not a proved live owner. This is a documentation overclaim, non-blocking for the narrow direct-child evidence. Frozen contract/source were not changed.
+- Reads are non-atomic; identical raw cannot rule out same-target FD close/reopen ABA. Parent lineage after first discovery and later exec are not continuously certified. No complete renderer-tree claim follows from these observations.
+
+Bounds and quality
+- Original sampling250ms/discovery500ms cadence and shared discovery5ms/sample10ms cooperative budgets remain. One discovery budget is passed through children lookup, pidfd lookup, role reads, all parents and descendant adoption. A blocking kernel read can overrun it; reported durations are measurements, not a hard deadline guarantee.
+- fdinfo enumeration retains at most32 entries per owner/128 per round, plus an overflow-detection entry for each enumeration. First and repeat fdinfo reads together are capped32 per owner/128 per round. Overflow entries are not read. Task entries128/round, identity64, child PID128/parent, bounded sample ring/events/error/proof records remain.
+- Earlier completed proofs survive a later FD error/cap/budget expiry. A verified proof that cannot fit the identity cap is not inserted into pidfdTargetIdentities. knownIdentities is sampling membership authority.
+- ENOENT on children is explicit interface/disappearing-task ambiguity, not empty children. Permission and other errors make rounds incomplete. Unclassified fdinfo read errors, known pidfd exited/changed/verification errors, enumeration/read/proof limits and budget overruns have separate counters/examples. A valid pidfd child cannot erase a children-interface gap. Bounded examples may be dropped; aggregate counters remain.
+- child_role (line279) classifies only after parent ownership checks; raw argv hex/parsed argv/readStartNs/readEndNs are saved. firstSeenNs is adoption time, which can be later than proof/argv reads, especially when later FDs delay return. Role is a binding-time label, not a promise that the executable never changes.
+
+Exit and analysis boundary
+- main line565 returns2 for terminal failure or discovery/children/pidfd gaps. It may have controller-stop plus failure=null and useful samples while returning2. Node cold assertion and observer exit must be recorded independently; an observer2 is not product coldFAIL. Native wrapper implementation was not part of this candidate manifest and is not certified by this source review.
+- Exit0 likewise is not complete sampling: sampleIncomplete, sample eviction, event drops, missing schedstat and other errors are separate quality fields. fullRendererTreeCoverage remains false even without discovery gaps.
+- analyze.py preserves exact instance/request dispatch-deadline joins and only whole sample read-bracket intervals. It does not interpolate pre-discovery/terminal CPU, combine leader schedstat into whole-process scheduling time, or prove deadline causality.
+
+Prepared tests, not executed by reviewer
+AST finds34 cases:21 carried cases and13 pidfd additions. They cover identity binding, optional environment permission gap, no-rebind, exact descendant scope, wall/task/sample caps, children ENOENT, framing, request keys, whole intervals, FD disappearance/change, target/owner birth changes, direct PPID rejection, NSpid non-translation, enumeration/read budgets and preservation of earlier proof after a later slow read.
+Not all branches are dynamically covered: owner terminal state (which is not rejected), fdinfo PermissionError, target terminal/reparent transition, proof byte cap, identity saturation, bounded-example drops and wrapper independent exit handling are not each tested explicitly. This is adequate for the proposed first bounded synthetic check, not exhaustive runtime verification.
+
+Root later reported ONE synthetic run exit0 with34 tests in0.021s at candidate-v04/synthetic-first/{execution.json,stdout.log,stderr.log}. This report does not independently audit those runtime outputs or claim their execution; retain them separately for final freeze. No request to rerun tests or product is made here.

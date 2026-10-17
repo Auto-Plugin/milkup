@@ -1,0 +1,39 @@
+04 independent accepted-wire review
+DIAGNOSTIC_PREFIX_STOP_COLD_GATE_PASS_CPU_COVERAGE_INCOMPLETE
+
+Integrity and first audit
+Frozen manifest SHA256 4b1901a891146c46243f060d176bf0b960ea8ce801a608bb1ced0381c976737d.
+All199 files /17,329,086 bytes rehashed and match (freeze-check.json).
+Unmodified strict auditor SHA256 b6cd88e6a7990a06212879a294ab874d7d49499f6a1efce1bdb9d5932c53b2f9 ran once on the original full-log scope: exit0, ok=true, errors[]. Original stdout/stderr/command/exit are retained. There was no failed first audit, scope reduction, product run or retry by this reviewer.
+
+Identity and actual input
+App PID/birth471101/9048074; guardian471230/9048492.
+Instance95dc66282a839dd15baf4f1cc4e26ea61af30a9d0c007bab; plugin milkup.diagrams, renderer diagrams.mermaid.
+Capture has7events:1guardian-spawn plus render_1 through render_6. The six instance/request keys equal the six dispatch keys in the full frozen driver.log, each exactly once. Every captured wire is complete strict UTF8, matches byte count/SHA256, message.id and plugin binding, prior guardian identity and all16 input fields. No deadline-observed trace is present. This is not independent evidence that all six requests successfully settled; native_trace has no loss accounting or per-result completeness proof.
+
+Frozen ordinary.md SHA256 a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b.
+Exact half-open absolute UTF16 input ranges:
+- render_1/2/4: block fence[108,342), body[119,339), lines5-20; each950 wirebytes.
+- render_3/5: classDiagram fence[440,969), body[451,966), lines26-53; each1256 wirebytes.
+- render_6: ER fence[1087,1257), body[1098,1254), lines59-67;882 wirebytes.
+All source, block/content/protected ranges reconstruct exactly from frozen fixture. Unicode header includes Chinese/accent/emoji: UTF16 offsets108/440/1087 correspond to scalar105/437/1084 and UTF8 bytes121/453/1100; utf16-proof.json records exact source reconstruction. Common context is version0, selection0/0, width1100, light/screen, contextKnown=true, completeStart/End=false, one complete Mermaid fence per request.
+These are actual accepted-input facts, not a mapping of each request to an image or timeout-internal block. Cold harness target block-000 is a separate assertion. Neither run04 class render_3 nor ER render_6 establishes the unknown production08 render_3 payload or missing run03 render_6 payload.
+
+Closure and log coverage
+This run differs from run03: no dispatch in the frozen driver.log lacks captured input. That is a relative observed-set coverage result, not full-lifecycle completeness.
+Last dispatch render_6=90489654299727ns; its captureAfter=90489654348501ns.
+Final checkpoint=90489855285842ns; recorded guardian kill-start=90489892089077ns.
+Thus last dispatch precedes final by200.986115ms; last capture end precedes final by200.937341ms; kill-start follows final by36.803235ms. No later dispatch is present in the frozen log.
+finish.request contains only "cold-prefix-final\n" and no monotonic creation timestamp. Actual recorder closed.store time is not recorded. Final checkpoint must not substitute for exact close time. Final means closed/drained accepted capture window; later attempts are intentionally uncounted. The evidence cannot certify every request through application exit or eliminate unrecorded native_trace events.
+
+Completion and observation cost
+status.json equals complete.json, SHA25689b0c00c80200c04aafe1e8949ace8aecc68e512e6e0a92a078b124e4cf84ee9.
+final=true, diagnosticClosed=true, attempted=enqueued=written=7; inFlight0, queueFull/disconnected/oversize/capped/ioErrors/incompleteTiming all0. Six wire sizes sum6244bytes, matching reservedWireBytes. capture-finalization.json acknowledges final within its1000ms diagnostic bound.
+Reported captureTotalNs108538 (0.108538ms), captureMaxNs20852 (0.020852ms). Seven recorded before/after spans total108023ns;515ns is later summary-accounting difference. Largest recorded event span is guardian identity20766ns; render spans range12183-16409ns. Dispatch-to-capture-start gaps range0.030491-0.085473ms. These are elapsed intervals and may include scheduling; they are not CPU duration or a renderer execution-time measurement.
+Writer thread CPU20,752,323ns (20.752323ms), over4.927347911s from guardian capture start to final checkpoint; included in App own CPU and excludes final status/complete serialization. No zero-perturbation claim is warranted. All arithmetic is retained in overhead-and-tail.json.
+
+Independent outcomes
+harness.log contains PASS preinstalled-cold-before-render, PASS preinstalled-cold-window then DIAGNOSTIC_PREFIX_STOP. results.json cold target block-000[108,342) has complete image663x281, inlineSvg0, live document, no notice/diagnostic errors. Pixel review is outside this wire review.
+Node cold/harness exit0; CPU sampler exit2 due coverage gaps; wrapper exit1 from its unchanged samplerExitCode==0 assertion. These are separate outcomes; wrapper failure is not a Node cold assertion failure.
+Raw CPU summary binds6identities: App471101, guardian471230, renderer-leader471235, webkit-network471238, renderer-descendant bwrap471277 and bwrap471272. There is NO independently bound webkit-web role. The WebKitWebProcess argument inside bwrap471277 argv does not make that PID's sampled CPU WebProcess CPU. Binding-time argv does not prove later exec state. CPU20samples, children44gaps, pidfd2gaps,10incomplete discovery rounds; fullRendererTreeCoverage=false. External observer own CPU82.223314ms, after-ready56.945087ms; detailed CPU identity/sampling interpretation belongs to the independent CPU reviewer.
+This verifies six retained inputs and the original cold prefix in a research diagnostic build. It does not close production/fullUI/P4 or explain the historical production08 deadline. Prior failures and run03 strict audit failure remain unchanged.

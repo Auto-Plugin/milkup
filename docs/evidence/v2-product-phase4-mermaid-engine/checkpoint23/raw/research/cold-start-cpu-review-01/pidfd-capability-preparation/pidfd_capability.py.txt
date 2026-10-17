@@ -1,0 +1,222 @@
+#!/usr/bin/env python3
+"""PREPARED ONLY. Standalone owned-fork+pidfd capability; never launch the product.
+Run only after root authorization, in the explicit require_escalated context.
+One fixture parent/child pair, plus this external observer. No signals/global scan.
+"""
+import argparse
+import errno
+from itertools import islice
+import json
+import os
+from pathlib import Path
+import select
+import time
+
+MAX_BYTES=4096
+MAX_FD_ENTRIES=32
+FD_SCAN_BUDGET_NS=20_000_000
+MAX_FRAME=65536
+TOTAL_NS=8_000_000_000
+
+
+def now():return time.monotonic_ns()
+
+def read_record(path,limit=MAX_BYTES):
+    start=now();r=dict(path=str(path),readStartNs=start)
+    try:
+        with open(path,'rb') as f:b=f.read(limit+1)
+        if len(b)>limit:r.update(status='limit',bytes=len(b))
+        else:r.update(status='read',bytes=len(b),raw=b.decode('ascii'))
+    except OSError as e:r.update(status='error',errorClass=type(e).__name__,errno=e.errno,errnoName=errno.errorcode.get(e.errno))
+    except UnicodeError:r.update(status='non-ascii')
+    r['readEndNs']=now();return r
+
+
+def identity(pid):
+    r=read_record(f'/proc/{pid}/stat')
+    if r['status']=='read':
+        raw=r['raw'];w=raw[raw.rfind(')')+1:].split()
+        r['identity']=dict(pid=int(raw[:raw.find('(')]),birth=int(w[19]),parent=int(w[1]),state=w[0])
+    return r
+
+
+def context():
+    links={}
+    for n in ['user','pid','mnt']:
+        try:links[n]=os.readlink('/proc/self/ns/'+n)
+        except OSError as e:links[n]=dict(errno=e.errno)
+    return dict(pid=os.getpid(),uid=os.getuid(),gid=os.getgid(),namespaces=links,
+                uidMap=read_record('/proc/self/uid_map'),gidMap=read_record('/proc/self/gid_map'))
+
+
+def matches(record,expected):
+    r=record.get('identity',{})
+    return r.get('pid')==expected['pid'] and r.get('birth')==expected['birth']
+
+
+def fdinfo_fields(record):
+    if record['status']!='read':return None
+    values={}
+    for line in record['raw'].splitlines():
+        if ':' in line:
+            key,value=line.split(':',1)
+            if key in values:raise ValueError('duplicate-fdinfo-field')
+            values[key]=value.strip()
+    if 'Pid' not in values:return None
+    parts=values['Pid'].split()
+    if len(parts)!=1:raise ValueError('invalid-fdinfo-Pid')
+    pid=int(parts[0]);nspid=None
+    if 'NSpid' in values:
+        nspid=[int(x) for x in values['NSpid'].split()]
+        if not nspid:raise ValueError('empty-NSpid')
+    return dict(pid=pid,nspid=nspid)
+
+
+def snapshot(parent,oracle_child):
+    start=now();result=dict(observedNs=start,parentExpected=parent,
+                parentBefore=identity(parent['pid']),fdinfoRecords=[],acceptedTargets=[],
+                oracleChild=oracle_child,scope='known owner fdinfo only; direct child, not full descendant tree')
+    if not matches(result['parentBefore'],parent):result['status']='parent-identity-rejected';return result
+    try:
+        with os.scandir(f'/proc/{parent["pid"]}/fdinfo') as entries:
+            fds=[e.name for e in islice(entries,MAX_FD_ENTRIES+1)]
+        if len(fds)>MAX_FD_ENTRIES:
+            result['fdEnumeration']=dict(status='overflow',entriesObserved=len(fds));fds=[]
+        else:result['fdEnumeration']=dict(status='read',entries=len(fds))
+        for fd in fds:
+            if now()-start>=FD_SCAN_BUDGET_NS:result['scanBudgetExceeded']=True;break
+            if not fd.isascii() or not fd.isdecimal():raise ValueError('invalid-fd-name')
+            path=f'/proc/{parent["pid"]}/fdinfo/{fd}';before=read_record(path)
+            row=dict(fd=int(fd),before=before,status='unclassified');result['fdinfoRecords'].append(row)
+            if before['status']!='read':row['status']='fdinfo-unavailable';continue
+            try:parsed=fdinfo_fields(before)
+            except ValueError as e:row.update(status='invalid-fdinfo',error=str(e));continue
+            if parsed is None:row['status']='not-pidfd';continue
+            row['pidFields']=parsed;pid=parsed['pid']
+            if pid==-1:row['status']='pidfd-target-exited';continue
+            if pid<=0 or (parsed['nspid'] is not None and any(v<=0 for v in parsed['nspid'])):
+                row['status']='invalid-target-pid';continue
+            first=identity(pid);row['targetBefore']=first
+            if first.get('identity',{}).get('parent')!=parent['pid']:
+                row['status']='target-not-exact-owner-child';continue
+            if first['identity']['birth']<parent['birth'] or first['identity']['state'] in ['Z','X','x']:
+                row['status']='target-not-live-child';continue
+            after=read_record(path);last=identity(pid);row.update(after=after,targetAfter=last)
+            if after['status']!='read' or before['raw']!=after['raw']:
+                row['status']='fdinfo-changed';continue
+            if not matches(last,first['identity']) or last['identity']['parent']!=parent['pid'] or last['identity']['state'] in ['Z','X','x']:
+                row['status']='target-identity-changed';continue
+            row['status']='verified-direct-child';result['acceptedTargets'].append(first['identity'])
+    except OSError as e:result['fdEnumeration']=dict(status='error',errorClass=type(e).__name__,errno=e.errno,errnoName=errno.errorcode.get(e.errno))
+    result['parentAfter']=identity(parent['pid'])
+    result['parentStable']=matches(result['parentBefore'],parent) and matches(result['parentAfter'],parent)
+    if not result['parentStable']:
+        result['acceptedTargets']=[];result['status']='owner-identity-changed'
+    else:result['status']='recorded'
+    result['oracleMatched']=any((x['pid'],x['birth'],x['parent'])==(oracle_child['pid'],oracle_child['birth'],parent['pid']) for x in result['acceptedTargets'])
+    result['finishedNs']=now();return result
+
+
+def send(fd,value):
+    raw=(json.dumps(value,separators=(',',':'))+'\n').encode()
+    if len(raw)>MAX_FRAME:raise ValueError('frame-cap')
+    while raw:
+        n=os.write(fd,raw);raw=raw[n:]
+
+
+def receive(fd,deadline):
+    raw=b''
+    while not raw.endswith(b'\n'):
+        remain=deadline-now()
+        if remain<=0 or not select.select([fd],[],[],remain/1e9)[0]:raise TimeoutError('pipe-frame-deadline')
+        b=os.read(fd,min(4096,MAX_FRAME+1-len(raw)))
+        if not b:raise EOFError('pipe-frame-eof')
+        raw+=b
+        if len(raw)>MAX_FRAME:raise ValueError('frame-cap')
+    return json.loads(raw)
+
+
+def await_eof(fd,deadline):
+    while now()<deadline:
+        if select.select([fd],[],[],max(0,(deadline-now())/1e9))[0]:
+            if not os.read(fd,128):return 'pipe-eof'
+    return 'bounded-timeout'
+
+
+def reap(pid,deadline):
+    while now()<deadline:
+        got,status=os.waitpid(pid,os.WNOHANG)
+        if got:return dict(pid=got,reaped=True,waitStatus=status,exitCode=os.waitstatus_to_exitcode(status),atNs=now())
+        select.select([],[],[],0.01)
+    return dict(pid=pid,reaped=False,status='reap-deadline',atNs=now())
+
+
+def fixture_parent(control_read,report_write,deadline):
+    hold_read,hold_write=os.pipe();ready_read,ready_write=os.pipe();child=None;released=None;child_pidfd=None
+    try:
+        child=os.fork()
+        if child==0:
+            os.close(hold_write);os.close(ready_read);os.close(control_read);os.close(report_write)
+            try:
+                send(ready_write,dict(event='child-ready',identity=identity(os.getpid()),context=context()))
+                os.close(ready_write)
+                await_eof(hold_read,min(deadline,now()+4_000_000_000));os.close(hold_read)
+                os._exit(0)
+            except BaseException:os._exit(2)
+        os.close(hold_read);os.close(ready_write)
+        child_ready=receive(ready_read,min(deadline,now()+2_000_000_000));os.close(ready_read)
+        parent_id=identity(os.getpid())['identity'];child_id=child_ready['identity']['identity']
+        if child_id['pid']!=child:raise ValueError('child-fork-identity')
+        try:
+            child_pidfd=os.pidfd_open(child,0);pidfd_open=dict(status='opened')
+        except (OSError,AttributeError) as e:
+            pidfd_open=dict(status='unavailable',errorClass=type(e).__name__,errno=getattr(e,'errno',None))
+        inside=snapshot(parent_id,child_id)
+        send(report_write,dict(event='fixture-ready',parent=parent_id,child=child_id,parentContext=context(),childContext=child_ready['context'],pidfdOpen=pidfd_open,inside=inside))
+        released=await_eof(control_read,min(deadline,now()+3_000_000_000))
+        os.close(hold_write);hold_write=None
+        child_reap=reap(child,min(deadline,now()+2_000_000_000));child=None if child_reap['reaped'] else child
+        send(report_write,dict(event='fixture-finished',releaseReason=released,childReap=child_reap))
+        return 0 if child_reap['reaped'] and child_reap['exitCode']==0 else 2
+    finally:
+        if child_pidfd is not None:os.close(child_pidfd)
+        if hold_write is not None:os.close(hold_write)
+        if child:reap(child,deadline)
+
+
+def run():
+    started=now();deadline=started+TOTAL_NS;ctl_read,ctl_write=os.pipe();report_read,report_write=os.pipe()
+    parent=None;result=dict(schema='milkup.owned-fork-pidfd-capability.v1',startedNs=started,totalBudgetNs=TOTAL_NS,observerContext=context(),productStarted=False,globalProcScans=0,signalsSent=0)
+    try:
+        parent=os.fork()
+        if parent==0:
+            os.close(ctl_write);os.close(report_read)
+            try:code=fixture_parent(ctl_read,report_write,deadline)
+            except BaseException:code=2
+            os.close(ctl_read);os.close(report_write);os._exit(code)
+        os.close(ctl_read);os.close(report_write)
+        proof=receive(report_read,min(deadline,now()+3_000_000_000))
+        if proof['event']!='fixture-ready' or proof['parent']['pid']!=parent:raise ValueError('fixture-parent-proof')
+        result['fixtureProof']=proof
+        result['outside']=snapshot(proof['parent'],proof['child'])
+        os.close(ctl_write);ctl_write=None
+        result['fixtureFinal']=receive(report_read,min(deadline,now()+3_000_000_000))
+    except BaseException as e:result['error']=dict(type=type(e).__name__,detail=str(e)[:160])
+    finally:
+        if ctl_write is not None:os.close(ctl_write)
+        if parent:result['parentReap']=reap(parent,deadline)
+        os.close(report_read);result['finishedNs']=now();result['elapsedNs']=result['finishedNs']-started
+    result['complete']=not result.get('error') and result.get('parentReap',{}).get('reaped') and result.get('fixtureFinal',{}).get('childReap',{}).get('reaped')
+    result['directPidfdCapabilityObserved']=bool(result.get('fixtureProof',{}).get('inside',{}).get('oracleMatched') and result.get('outside',{}).get('oracleMatched'))
+    result['fullDescendantTreeCoverage']=False
+    return result
+
+
+if __name__=='__main__':
+    p=argparse.ArgumentParser();p.add_argument('--output',required=True);p.add_argument('--authorized-context',required=True,choices=['require_escalated']);a=p.parse_args()
+    # This assertion is an invocation contract, not a capability elevation.
+    output=Path(a.output)
+    with output.open('x') as f:
+        result=run();json.dump(result,f,indent=2);f.write('\n')
+    print(json.dumps(dict(complete=result['complete'],directPidfdCapabilityObserved=result['directPidfdCapabilityObserved'],output=str(output),elapsedNs=result['elapsedNs'])))
+    raise SystemExit(0 if result['complete'] else 2)

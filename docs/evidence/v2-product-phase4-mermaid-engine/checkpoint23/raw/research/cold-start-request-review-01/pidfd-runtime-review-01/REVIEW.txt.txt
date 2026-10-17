@@ -1,0 +1,62 @@
+Independent post-run read-only review of ONE root-run direct pidfd fixture
+
+The earlier pidfd-static-review-01 remains unchanged and source-only. Its findings
+were delivered to root before the run-result notification; no runtime data was
+used for that review. This separate document was prepared only after root reported
+the completed direct run and authorized reading its result. This reviewer did not
+execute/import the probe, read live /proc, retry, modify the script, or start product.
+
+Input: pidfd-capability-preparation/direct-first-result.json,16827bytes,
+SHA2564d82b6ffad4874a2f66e9b289413d2d0fce3114f150040e03f794ffa6d957777.
+Source still matches the reviewedSHA256
+1de5425c31e89b64be90b76052284759a43f8194fd4c49461c865df7462338f7.
+
+The narrow direct-child capability is independently supported by raw evidence.
+Observer470390 forked worker470393; worker forked child470394. Worker birth and
+child birth both8961866 ticks, which is permissible within one clock tick;
+identity uses PID plus birth, never birth alone. Worker PPID470390 and child
+PPID470393 agree with the controlled topology in all relevant raw stat reads.
+
+Inside enumeration observed9entries, outside8, each below32. No recorded scan
+budget/entry overflow. Snapshot durations were0.761422ms and0.597099ms respectively.
+Inside FD8 returnedENOENT and is preserved as unavailable; this does not erase
+the separately verified pidfd target or imply every enumerated FD was readable.
+It is consistent with a transient descriptor in a self-scan, but its exact cause
+is not directly established. Outside had no unavailable FD records.
+
+Both independent scans discovered FD5; no FD5 parameter was given to the discovery
+algorithm. The71-byte raw fdinfo in all before/after snapshots reads:
+  pos:0; flags:02000002; mnt_id:4; ino:474998;
+  Pid:470394; NSpid:470394.
+Its SHA256 is e32e95d61b66ce5464e31b1f8d8d2f30c6d90f32ef092e09b1572ef3ad144c58.
+Independent parsing verifies Pid=NSpid[0]=470394, target stat PID470394,
+birth8961866, PPID470393 and live stateS in both target stat reads. Owner before
+and after stat retain PID470393/birth8961866 and PPID470390. Full repeated fdinfo
+raw text matches. These checks derive the target before the oracle identity is
+compared; the final derived PID/birth/PPID equals the child handshake oracle.
+raw-verification.json records these reparsed results rather than relying on
+the probe's oracleMatched or verified-direct-child labels alone.
+
+Observer, worker and child report the same user/pid/mount namespace IDs and
+uid/gid1000. Thus this demonstrates the direct read in that recorded proc view,
+not a cross-namespace PID translation. No NSpid tail interpretation was needed.
+The non-atomic/FD-ABA limits in the static review still apply; unchanged raw data
+does not prove universal absence of descriptor close/reopen. Here the fixture's
+source intentionally holds the pidfd while both observations occur.
+
+Cleanup is separately checked from complete=true. worker releaseReason is
+pipe-eof. The exact child470394 was reaped with waitStatus0/exitCode0, then exact
+worker470393 was reaped with waitStatus0/exitCode0. Recorded total duration is
+28.856707ms. Child EOF reason is not its own output field; do not describe it as
+independently logged. The normal exit and short duration are consistent with the
+source's EOF-driven path, and neither child/worker timeout or unreaped status is
+recorded. No global scan or signal path exists in the reviewed source; output
+also records productStarted=false, globalProcScans0, signalsSent0.
+
+Conclusion: this ONE completed controlled direct case proves that the existing
+held pidfd path exposes the known worker's direct child identity to this external
+observer, with normal exact-child cleanup. It does not prove that a production
+guardian's handles are readable in every sandbox context, does not discover
+children lacking retained pidfds, and does not establish the GTK/WebKit/full
+renderer descendant tree or repair historical missing CPU evidence. The explicit
+fullDescendantTreeCoverage=false remains the correct scope.

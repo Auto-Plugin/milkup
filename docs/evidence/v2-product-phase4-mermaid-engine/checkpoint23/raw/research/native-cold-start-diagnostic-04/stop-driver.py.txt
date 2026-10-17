@@ -1,0 +1,46 @@
+"""Original production08 validated owned-group stop, after App session close only.
+This does not discover or individually signal product/guardian descendants.
+"""
+import datetime,json,os,signal,sys,time,urllib.request
+from pathlib import Path
+assert sys.argv[1:]==[]
+base=Path(__file__).resolve().parent;control=base/'runtime/mermaid-ui-cold-diag-04/control'
+row=json.loads((control/'mermaid-ui-cold-diag-04-driver-owner.json').read_text())
+assert row['bootId']==Path('/proc/sys/kernel/random/boot_id').read_text().strip()
+out=control/'driver-stop.json';assert not out.exists()
+def utc():return datetime.datetime.now(datetime.timezone.utc).isoformat()
+def identity():
+ try:
+  raw=Path('/proc',str(row['pid']),'stat').read_text();w=raw.rsplit(')',1)[1].split()
+  return {'pid':row['pid'],'birth':w[19],'group':int(w[2]),'state':w[0]}
+ except FileNotFoundError:return None
+def status():
+ try:
+  with urllib.request.urlopen('http://127.0.0.1:4626/status',timeout=2) as r:return {'response':json.load(r)}
+ except Exception as error:return {'unavailable':repr(error)}
+record={'startedUtc':utc(),'owner':row,'statusBefore':status(),'identityBefore':identity(),'cleanupMethod':'existing production08 owned process group after exact PID/birth/PGID and no active App session; no descendant discovery'}
+def save():out.write_text(json.dumps(record,indent=2)+'\n')
+save()
+try:
+ current=record['identityBefore']
+ if current is None:
+  record['result']='owned driver already exited; no signal sent'
+ else:
+  assert current['birth']==row['birth'] and current['group']==row['group']==row['pid']
+  response=record['statusBefore'].get('response',{}).get('value',{})
+  assert response.get('ready') is True and response.get('message')=='No sessions', 'Close the exact App WebDriver session before group cleanup'
+  record.update(signal='SIGTERM',signalTarget={'group':row['group'],'verifiedLeader':current},signalRequestedUtc=utc());save()
+  os.killpg(row['group'],signal.SIGTERM)
+  record['signalResult']='sent';save()
+  deadline=time.monotonic()+5
+  while time.monotonic()<deadline:
+   observed=identity()
+   if observed is None or observed['birth']!=row['birth'] or observed['state']=='Z':break
+   time.sleep(.05)
+  record['result']='signal sent; inspect exact post-state and ancestor reap record'
+except BaseException as error:
+ record['error']=repr(error)
+ raise
+finally:
+ record.update(endedUtc=utc(),identityAfter=identity(),statusAfter=status());save()
+print(json.dumps(record,indent=2))
