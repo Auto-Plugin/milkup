@@ -1,0 +1,124 @@
+{
+  "identity": {
+    "pid": 463772,
+    "birth": 8578628,
+    "argv": [
+      "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+      "/workspace/milkup-mermaid-engine-evidence/product-ui-runs/runs/mermaid-ui-production08-observed-01/ordinary.md"
+    ]
+  },
+  "identityBound": true,
+  "finishReason": "native-deadline-observed",
+  "firstDeadline": {
+    "phase": "deadline-observed",
+    "pid": 463772,
+    "instanceId": "32334888594142dd8481207c9921d47cfd83a3935befe193",
+    "requestId": "render_3",
+    "monotonicNs": 85797995302212,
+    "observedMonoNs": 85798315866214,
+    "observedDelayNs": 320564002,
+    "appBirth": 8578628,
+    "identityVerified": true
+  },
+  "sampleCounts": {
+    "app": 10,
+    "cgroup": 5
+  },
+  "fullAppInterval": {
+    "firstMonotonicNs": 85793801202572,
+    "lastMonotonicNs": 85798315174744,
+    "wallSeconds": 4.513972172,
+    "userTicks": 19,
+    "systemTicks": 12,
+    "ownAppCpuSeconds": 0.31,
+    "firstGapAfterDispatchMs": -2189.992191,
+    "lastGapBeforeDeadlineMs": -319.872532
+  },
+  "wholeSampleIntervalsWithinRenderDeadline": {
+    "app": {
+      "firstMonotonicNs": 85796304382493,
+      "lastMonotonicNs": 85797814450197,
+      "wallSeconds": 1.510067704,
+      "userTicks": 1,
+      "systemTicks": 6,
+      "ownAppCpuSeconds": 0.07,
+      "firstGapAfterDispatchMs": 313.18773,
+      "lastGapBeforeDeadlineMs": 180.852015
+    },
+    "cgroup": {
+      "firstMonotonicNs": 85796810492094,
+      "lastMonotonicNs": 85797811203337,
+      "wallSeconds": 1.000711243,
+      "cpuStatDeltas": {
+        "usage_usec": 2664384,
+        "user_usec": 2213145,
+        "system_usec": 451238,
+        "nice_usec": 0,
+        "nr_periods": 10,
+        "nr_throttled": 0,
+        "throttled_usec": 0,
+        "nr_bursts": 0,
+        "burst_usec": 0
+      },
+      "memoryEventsDeltas": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "scope": "shared cgroup, not renderer exclusive"
+    }
+  },
+  "fullSharedCgroupInterval": {
+    "firstMonotonicNs": 85793801280814,
+    "lastMonotonicNs": 85797811203337,
+    "wallSeconds": 4.009922523,
+    "cpuStatDeltas": {
+      "usage_usec": 9053273,
+      "user_usec": 7249413,
+      "system_usec": 1803859,
+      "nice_usec": 0,
+      "nr_periods": 40,
+      "nr_throttled": 0,
+      "throttled_usec": 0,
+      "nr_bursts": 0,
+      "burst_usec": 0
+    },
+    "memoryEventsDeltas": {
+      "low": 0,
+      "high": 0,
+      "max": 0,
+      "oom": 0,
+      "oom_kill": 0,
+      "oom_group_kill": 0
+    },
+    "scope": "shared cgroup, not renderer exclusive"
+  },
+  "errors": {},
+  "missedSlots": {
+    "app": 0,
+    "cgroup": 0
+  },
+  "evictions": {
+    "app": {
+      "age": 0,
+      "count": 0,
+      "bytes": 0
+    },
+    "cgroup": {
+      "age": 0,
+      "count": 0,
+      "bytes": 0
+    }
+  },
+  "overhead": {
+    "observerOwnCpuNs": 5782752,
+    "appReadNs": 1741420,
+    "appMaxReadNs": 341972,
+    "cgroupReadNs": 677367,
+    "cgroupMaxReadNs": 197657
+  },
+  "interpretation": "No renderer identity/CPU or per-request CPU isolation. Report only observed whole-sample deltas; do not interpolate missing partial edges or treat low App CPU as renderer idleness. Zero shared cgroup throttling delta over recorded endpoints does not rule out other scheduling/contention mechanisms."
+}

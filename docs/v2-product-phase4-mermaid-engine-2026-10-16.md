@@ -550,3 +550,15 @@ Root核验26项原件并实际查看截图：画面显示后续sequence025／026
 随后全仓gate08的类型检查、测试、lint及构建四条命令均首次exit0。逐包原日志确认2069项Vitest加4项独立Node测试，共 **2073项通过**；focused112和浏览器36另按其范围报告，不重复计入全仓distinct总数。17971项输入的字节数／SHA在执行前后保持相同，三处官方diagrams包均复用既有9889哈希，没有重建插件／SDK／external包。Root核验12项完成清单、四原始日志与源码一致性；Vite大chunk警告保留，不是构建失败。
 
 这完成本次修复的正式Linux Chromium浏览器与全仓代码门禁。新的Linux production08原生构建、生命周期和正式原生UI／矩阵仍 **pending**，须用新候选分别完成实际验证；仓库build不等于Tauri deb构建，原02公开类WebKit基线也不等于真实desktop文件／搜索历史。历史导航白区与未知Mermaid deadline、Windows运行及完整P4验收仍不因本节关闭。[checkpoint20](evidence/v2-product-phase4-mermaid-engine/checkpoint20/README.md) 保留受控与正式首RED、冻结修复及测试源码、各阶段首次GREEN和原始边界。
+
+## Production08：生产构建与生命周期通过，冷启动首次超时
+
+干净提交 `ffa662077bfe696b50c43f94691bc88e5f693c14` 的实际 Linux deb 首次构建通过，耗时102.27秒。包内提取程序 SHA 为 `cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304`，官方 diagrams 包仍为已冻结的 `9889f179…a327df`。2913项采集输入在构建及生命周期后保持一致。timeout、disable、remove、WM-close、App-SIGKILL五项各首次通过，493项完成文件经独立哈希核验；输入到两帧样本与最大帧间隔分开记录，不由局部输入响应通过推论所有帧低于200ms。
+
+随后完整 observed UI 的首次尝试在冷启动门槛失败，原始两条记录为预装元数据检查和 `FAIL`，退出码1。没有完成独立安装、ordinary/windowed coverage、历史、边缘或64组合矩阵。原生 instance `32334888594142dd8481207c9921d47cfd83a3935befe193` 的 `render_3` 在 dispatch 后2004.107449ms观测到截止；页面等待的是 block-000 图片，但传输观察器原定在后续独立安装后才启用，因此没有该请求的完整输入，不能将两者直接绑定。
+
+Root实际查看首败截图：编辑器保留字面block及后续class源码，底栏提示图表插件超时停用，不是白屏。六份夹具字节及87项准备输入均保持一致。114份冻结文件共16,905,360字节逐项核验无差异；原始失败、日志和两张截图保持不变。捕获的App/driver等身份已退出，端口释放，Xvfb保留；没有历史birth的sampler/guardian记录与完整身份记录分开说明，不扩称全部后代身份已采集。
+
+CPU采样只覆盖App自身：完整4.513972172秒区间消耗0.31 CPU秒，不包含渲染子进程。共享cgroup端点没有限流增量，也不能据此排除调度争用或认定超时原因。当前 `render_3` 与历史 `render_2754` 的输入、渲染进程CPU及原因分别保持未知。下一步研究诊断需从第一个请求开始捕获完整输入并绑定渲染进程身份；研究构建与生产验收分开，原2秒／10秒预算不变。
+
+[checkpoint21](evidence/v2-product-phase4-mermaid-engine/checkpoint21/README.md) 保存新生产包与五项生命周期的首次通过、完整UI冷启动首败及采集缺口。P4完整原生验收仍未完成，本执行器没有使用Windows Runtime或新增artifact上传预算。
