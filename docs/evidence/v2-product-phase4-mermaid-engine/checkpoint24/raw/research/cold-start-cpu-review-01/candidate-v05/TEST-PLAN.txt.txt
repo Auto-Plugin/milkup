@@ -1,0 +1,8 @@
+PREPARED ONLY: no dynamic tests executed. Root reviews code/schema/diff first.
+Proposed one command from candidate-v05 after explicit authorization:
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest -v test_cpu_sampler.py test_native_pidfd.py
+Save exact command/cwd, pre/post input SHA, full stdout/stderr and actual independent exit code. No shell tail status substitution. No product/process/native/cgroup operation; all identity/record reads are FakeFiles with a virtual clock, plus existing temporary JSONL framing tests.
+
+Carry forward34 v04 cases. Prepared native cases cover: direct/two-hop exact helper chains; full raw proof/argv source; foreign inner PID never read; disabled path no IO; absent/failed native records; identity/instance/hash/token/count failures; byte/duplicate/IO validation; immutable source replacement; invalid FD/exited Pid; bwrap parameter role rejection; guardian/helper/ancestor/target terminal; changed PhaseB PPID/birth; ancestor ENOENT/EACCES; cycles/PID1/guardian-anchor rejection; repeat FD mismatch;8-node success/9-node fail; node/chain/total stat caps; shared owner/round FD counters;1target/2file caps; record work consumes original5ms; native FD priority before ordinary FD scan; firstSeen stable;64-identity saturation; no fulltree or signals/global scans.
+
+Production file type/owner/no-follow logic is statically reviewed; fake IO errors test rejection behavior but do not prove actual OS namespace/file permissions. Native transport and private-source provenance are not exercised here. No runtime authority follows a passing synthetic suite.

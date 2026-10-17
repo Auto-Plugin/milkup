@@ -1,0 +1,61 @@
+{
+  "status": "PREPARED_FOR_ROOT_REVIEW_NOT_AUTHORIZED",
+  "run": "mermaid-ui-cold-diag-05",
+  "purpose": "One original cold-prefix capability observation of sandboxed self-pidfd transport and bounded native ancestry binding; no full UI or historical deadline closure",
+  "driverCall": {
+    "cmd": "python3 /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-05/launch-driver-reaping.py",
+    "cwd": "/workspace/milkup",
+    "sandbox_permissions": "require_escalated"
+  },
+  "harnessCall": {
+    "cmd": "python3 /workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-05/run-harness.py",
+    "cwd": "/workspace/milkup",
+    "sandbox_permissions": "require_escalated"
+  },
+  "contextRequirement": "Both tools record self-only user/pid namespace and uid/gid map before exec and use identical escalated outer context. Node and CPU inherit harness context. No environment dump. Auto-review rejection stops without fallback/retry. Product bwrap and WebKit sandbox unchanged.",
+  "expectedOuterUserNamespace": "user:[4026531837]",
+  "binary": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/native-webprocess-pidfd-candidate-01/build-attempt-01/diagnostic-binary/milkup-desktop",
+    "sha256": "b8c68aaf2d24a59f9e4cc60f1b03799b45aaecffe3379c2830866b7ac4f0e2c4",
+    "bytes": 21962312
+  },
+  "extension": {
+    "buildScriptOutDir": "/workspace/milkup/apps/desktop/src-tauri/target/release/build/milkup-desktop-2c39bf60742e8c2c/out",
+    "compiledPath": "/workspace/milkup/apps/desktop/src-tauri/target/release/build/milkup-desktop-2c39bf60742e8c2c/out/libmilkup_dom_guard.so",
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/native-webprocess-pidfd-candidate-01/build-attempt-01/diagnostic-binary/libmilkup_dom_guard.so",
+    "bytes": 16824,
+    "sha256": "0355b69f0f15e4d0efa5f5ab137d45b8342233f32b16c0240521a45695a6f8f3",
+    "embeddedOffset": 1500320,
+    "embeddedOccurrences": 1
+  },
+  "sampler": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/cold-start-cpu-review-01/candidate-v05/cpu_sampler.py",
+    "sha256": "c338f7faf1208c6d9ec11549dd17d566c55ce5ef0c90d441d1c04a19975c00aa",
+    "nativeModuleSha256": "f2eaa50124b5cfb92b9310739de973a30db7dd63474616d1c7f7d4a5c04d71d8",
+    "cliAdded": [
+      "--native-pidfd-dir",
+      "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-05/runtime/mermaid-ui-cold-diag-05/native-pidfd",
+      "--native-extension-sha256",
+      "0355b69f0f15e4d0efa5f5ab137d45b8342233f32b16c0240521a45695a6f8f3"
+    ],
+    "validation": "Root first pure fakeFS/unit 57 tests exit0; native syscall/transport remains unverified until separately authorized run."
+  },
+  "unchanged": {
+    "harnessPath": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-02/native/cold-prefix.mjs",
+    "harnessSha256": "cd83f4b29035605e919d8d1287620dd4ee1a5d63acdf9cb392839deacfde996c",
+    "budgets": "Original 2s render/10s init and Node cold/profile assertions",
+    "cleanup": "Original App close and exact owned driver PID/birth/PGID No sessions flow; wait-only subreaper; no new signals or descendant kills"
+  },
+  "nativeObservation": {
+    "directory": "Driver creates one fresh0700 native-pidfd root before App. Helper exclusively mkdir slot; two fixed immutable helperPID/birth records<=8192 bytes. Native capture remains separate.",
+    "provenance": "Frozen native C self-pidfd callback -> private context matching undisclosed initialization token -> held helper FD. External v05 independently verifies fixed record files and exact helper/guardian/instance, compiled extension hash, kernel fdinfo target and bounded <=8-node PPID chain. No inner-PID mapping or argv-argument ownership.",
+    "lifetime": "One duplicate retained until helper exit, including publication failure; no explicit close/reuse API. Absence/failed/permissions/chain gaps remain incomplete.",
+    "overhead": "Counts/bytes bounded, elapsed time not hard bounded. Native captureEnd excludes synchronous serialization/publication; no GTK callback stderr. Setup error stderr can block; run-harness checks owned ordinary driver log before App, not a nonblocking guarantee."
+  },
+  "outcomes": {
+    "node": "Independently preserve harnessExitCode plus original cold pass/failure artifacts. No gate relaxation.",
+    "sampler": "Record samplerExitCode/failure/coverage/caps separately. Existing missing children interface is expected to retain coverage incomplete and exit2 even if a WebProcess is bound. fullRendererTreeCoverage always false.",
+    "wrapper": "Original assert samplerExitCode==0 remains. Expected CPU2 produces wrapper AssertionError/exit1 after saved independent statuses; wrapper nonzero alone is not Node cold failure.",
+    "roles": "Binding-time argv is not immutable exec identity; native target must have actual argv[0] WebKitWebProcess to adopt webkit-web. No pre-first-sight or terminal CPU reconstruction, no complete tree/causal claim."
+  }
+}

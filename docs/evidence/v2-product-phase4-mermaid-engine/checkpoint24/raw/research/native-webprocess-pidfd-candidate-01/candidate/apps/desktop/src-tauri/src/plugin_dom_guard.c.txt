@@ -1,0 +1,111 @@
+/* Deny every WebProcess resource except the three immutable native snapshots. */
+#include <webkit2/webkit-web-extension.h>
+#include <string.h>
+#include <errno.h>
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <time.h>
+#include <gio/gunixfdlist.h>
+
+/* Research-only native transport. Never exposed to page JavaScript. */
+static gboolean diagnostic_enabled = FALSE;
+static gboolean diagnostic_sent = FALSE;
+static gboolean guard_connected = FALSE;
+static char diagnostic_instance[49];
+static char diagnostic_token[49];
+static guint64 diagnostic_ns(void) {
+    struct timespec ts;
+    return clock_gettime(CLOCK_MONOTONIC, &ts) == 0
+        ? (guint64)ts.tv_sec * G_GUINT64_CONSTANT(1000000000) + (guint64)ts.tv_nsec : 0;
+}
+static gboolean diagnostic_hex48(const char *s) {
+    if (!s || strlen(s) != 48) return FALSE;
+    for (unsigned i = 0; i < 48; ++i) if (!g_ascii_isxdigit(s[i])) return FALSE;
+    return TRUE;
+}
+static void diagnostic_identity(WebKitWebExtension *extension, WebKitWebPage *page) {
+    if (!diagnostic_enabled || diagnostic_sent) return;
+    diagnostic_sent = TRUE; /* One attempt, including every failure path. */
+    guint64 before = diagnostic_ns();
+    int fd = -1, stage = 0, saved_errno = 0;
+    guint error_domain = 0;
+    int error_code = 0;
+    GUnixFDList *list = NULL;
+#ifdef SYS_pidfd_open
+    fd = (int)syscall(SYS_pidfd_open, getpid(), 0);
+#else
+    errno = ENOSYS;
+#endif
+    if (fd < 0) {
+        stage = 1;
+        saved_errno = errno;
+    } else {
+        list = g_unix_fd_list_new();
+        GError *error = NULL;
+        int index = g_unix_fd_list_append(list, fd, &error);
+        close(fd); /* list owns its duplicate; never alter product IPC FDs. */
+        if (index != 0 || g_unix_fd_list_get_length(list) != 1) {
+            stage = 2;
+            if (error) { error_domain = error->domain; error_code = error->code; }
+            g_clear_object(&list);
+        }
+        g_clear_error(&error);
+    }
+    guint64 after = diagnostic_ns();
+    GVariant *parameters = g_variant_new("(ssiiuittt)", diagnostic_instance,
+        diagnostic_token, stage, saved_errno, error_domain, error_code, before,
+        after, webkit_web_page_get_id(page));
+    WebKitUserMessage *message = webkit_user_message_new_with_fd_list(
+        "milkup-dom-native-self-pidfd-v1", parameters, list);
+    /* Asynchronous: no reply, retry, sleep or change to the renderer deadline. */
+    webkit_web_extension_send_message_to_context(extension, message, NULL, NULL, NULL);
+    g_clear_object(&list);
+}
+
+static gboolean request_guard(WebKitWebPage *page, WebKitURIRequest *request,
+                              WebKitURIResponse *redirect, gpointer data) {
+    const char *uri = webkit_uri_request_get_uri(request);
+    (void)page;
+    gboolean denied = redirect || !(uri && (!strcmp(uri, "milkup-dom://job/index.html") ||
+                    !strcmp(uri, "milkup-dom://job/bootstrap.js") ||
+                    !strcmp(uri, "milkup-dom://job/module.js")));
+    static gboolean reported = FALSE;
+    if (denied && !reported) {
+        reported = TRUE;
+        WebKitUserMessage *message = webkit_user_message_new("milkup-dom-native-guard-deny-v1", NULL);
+        webkit_web_extension_send_message_to_context(WEBKIT_WEB_EXTENSION(data), message, NULL, NULL, NULL);
+    }
+    return denied;
+}
+static void page_created(WebKitWebExtension *extension, WebKitWebPage *page, gpointer data) {
+    (void)data;
+    g_signal_connect(page, "send-request", G_CALLBACK(request_guard), extension);
+    WebKitUserMessage *ready = webkit_user_message_new("milkup-dom-native-guard-ready-v1", NULL);
+    webkit_web_extension_send_message_to_context(extension, ready, NULL, NULL, NULL);
+    diagnostic_identity(extension, page);
+}
+static void initialize_guard_once(WebKitWebExtension *extension) {
+    if (guard_connected) return;
+    guard_connected = TRUE;
+    g_signal_connect(extension, "page-created", G_CALLBACK(page_created), NULL);
+}
+G_MODULE_EXPORT void webkit_web_extension_initialize(WebKitWebExtension *extension) {
+    initialize_guard_once(extension);
+}
+G_MODULE_EXPORT void webkit_web_extension_initialize_with_user_data(
+        WebKitWebExtension *extension, const GVariant *user_data) {
+    /* WebKit prefers this entry and returns; plain is its fallback. The once
+       guard also prevents duplicate page-created hookup if both were invoked. */
+    if (user_data && g_variant_is_of_type((GVariant *)user_data, G_VARIANT_TYPE("(sss)"))
+            && g_variant_get_size((GVariant *)user_data) <= 1024) {
+        const char *schema, *instance, *token;
+        g_variant_get((GVariant *)user_data, "(&s&s&s)", &schema, &instance, &token);
+        if (!strcmp(schema, "milkup.webprocess-self-pidfd.v1")
+                && diagnostic_hex48(instance) && diagnostic_hex48(token)) {
+            memcpy(diagnostic_instance, instance, 49);
+            memcpy(diagnostic_token, token, 49);
+            diagnostic_enabled = TRUE;
+        }
+    }
+    initialize_guard_once(extension);
+}

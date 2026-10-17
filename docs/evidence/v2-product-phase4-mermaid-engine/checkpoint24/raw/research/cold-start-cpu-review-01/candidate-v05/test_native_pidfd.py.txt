@@ -1,0 +1,166 @@
+"""Prepared pure fakeFS cases. Never starts products/processes or reads live proc."""
+import ast
+import copy
+import json
+from pathlib import Path
+import unittest
+import native_pidfd as n
+from test_cpu_sampler import fixture,B,I
+
+EXT='e'*64
+
+def configured():
+    o,fs,c,event=fixture();o.bind_identity_event(event,o.native_identity_source);o.discover()
+    helper=o.known[(30,120)]
+    # Existing bwrap intermediary, native target's parent; no children enumeration.
+    fs.process(40,130,30,['/usr/bin/bwrap','--','WebKitWebProcess'])
+    fs.process(50,140,40,['/usr/lib/WebKitWebProcess','1'])
+    for pid in (20,30,40,50):fs.data[f'/proc/{pid}/task/{pid}/children']=''
+    fs.data['/proc/30/fdinfo/7']='pos: 0\nPid: 50\nNSpid: 50 2\n'
+    c.value+=100000
+    now=c();base=dict(schema=n.SCHEMA,final=True,instanceId=I,
+        helper={k:helper[k] for k in ['pid','birth','parent','state']},
+        guardian={k:o.guardians[I][k] for k in ['pid','birth','parent','state']},
+        contextProvenance=n.PROVENANCE,recordLimitBytes=8192)
+    armed=dict(base,kind='armed',status='receiver-prepared',nativeMonotonicNs=now-900,
+               prepareStartNs=now-1000,captureEndNs=now-800,extensionSha256=EXT,tokenPrepared=True)
+    result=dict(base,kind='result',status='held',nativeMonotonicNs=now-500,captureEndNs=now-100,
+                receiveStartNs=now-550,tokenMatched=True,nativeStage=0,nativeErrno=0,nativeGErrorDomain=0,nativeGErrorCode=0,
+                webProcessCallbackStartNs=now-700,webProcessCallbackEndNs=now-600,pageId=1,receivedFdCount=1,heldFd=7,
+                receiverFdinfoRaw='Pid: 2\nNSpid: 2\n',receiverReadStartNs=now-400,receiverReadEndNs=now-200)
+    fs.native_records={'armed':armed,'result':result};fs.native_record_calls=[]
+    def native_record(directory,pid,birth,kind,limit):
+        fs.native_record_calls.append((directory,pid,birth,kind,limit))
+        if kind not in fs.native_records:raise FileNotFoundError(2,'not yet published')
+        value=fs.native_records[kind]
+        if isinstance(value,Exception):raise value
+        raw=value if isinstance(value,bytes) else json.dumps(value).encode()
+        return raw,dict(rootDevice=1,rootInode=1,slotDevice=1,slotInode=2,device=1,inode=3 if kind=='armed' else 4,bytes=len(raw),name=f'helper-{pid}-{birth}-{kind}.json',uid=1000,mode=384)
+    fs.native_record=native_record;o.native_dir='/private/run';o.native_extension_sha256=EXT
+    return o,fs,c,helper
+
+
+def budget(c):return dict(end=c()+5_000_000,fdReads=0,fdCandidates=0,incomplete=False)
+
+
+class NativeTests(unittest.TestCase):
+    def test_two_hop_chain_raw_evidence(self):
+        o,fs,c,h=configured();b=budget(c);found=n.observe(o,h,b)
+        self.assertEqual(found['row']['pid'],50);self.assertEqual(found['role'],'webkit-web')
+        self.assertEqual([x['identity']['pid'] for x in found['proof']['chainBefore']],[50,40,30])
+        self.assertEqual([x['identity']['pid'] for x in found['proof']['chainAfter']],[50,40,30])
+        self.assertEqual(b['fdReads'],2);self.assertEqual(b['nativeStatReads'],10)
+        self.assertNotIn('/proc/2/stat',fs.reads)
+        self.assertEqual(found['argvEvidence']['parsed'][0],'/usr/lib/WebKitWebProcess')
+    def test_direct_chain(self):
+        o,fs,c,h=configured();fs.process(50,140,30,['/usr/lib/WebKitWebProcess'])
+        found=n.observe(o,h,budget(c));self.assertEqual(len(found['proof']['chainBefore']),2)
+    def test_disabled_no_record_io(self):
+        o,fs,c,h=configured();o.native_dir=None;self.assertIsNone(n.observe(o,h,budget(c)));self.assertEqual(fs.native_record_calls,[])
+    def test_missing_record_explicit(self):
+        o,fs,c,h=configured();del fs.native_records['result'];b=budget(c)
+        self.assertIsNone(n.observe(o,h,b));self.assertTrue(b['incomplete']);self.assertEqual(o.native_records[-1]['errno'],2)
+    def test_native_failed_no_external_fd_read(self):
+        o,fs,c,h=configured();fs.native_records['result']['status']='failed';b=budget(c)
+        self.assertIsNone(n.observe(o,h,b));self.assertEqual(b['fdReads'],0);self.assertEqual(o.native_records[-1]['status'],'native-receiver-failed')
+    def test_record_identity_hash_and_token_mismatches(self):
+        for kind,field,value in [('armed','extensionSha256','a'*64),('result','instanceId','b'*48),('result','tokenMatched',False),('result','receivedFdCount',2)]:
+            with self.subTest(field=field):
+                o,fs,c,h=configured();fs.native_records[kind][field]=value
+                self.assertIsNone(n.observe(o,h,budget(c)))
+        for name,field in [('helper','birth'),('guardian','parent')]:
+            o,fs,c,h=configured();fs.native_records['result'][name]=dict(fs.native_records['result'][name]);fs.native_records['result'][name][field]+=1
+            self.assertIsNone(n.observe(o,h,budget(c)))
+    def test_record_oversize_duplicate_and_io_errors(self):
+        for value in [b' '*8193,b'{"schema":1,"schema":2}',PermissionError(13,'denied'),ValueError('native-file-type-mode-owner')]:
+            o,fs,c,h=configured();fs.native_records['armed']=value
+            self.assertIsNone(n.observe(o,h,budget(c)))
+    def test_immutable_record_change_rejected(self):
+        o,fs,c,h=configured();self.assertIsNotNone(n.observe(o,h,budget(c)))
+        fs.native_records['result']['pageId']=2
+        self.assertIsNone(n.observe(o,h,budget(c)));self.assertIn('record-replaced',o.native_records[-1]['detail'])
+    def test_negative_fd_and_exited_pid(self):
+        for fd,raw in [(-1,'Pid: 50\n'),(7,'Pid: -1\n'),(7,'Pid: 0\n')]:
+            o,fs,c,h=configured();fs.native_records['result']['heldFd']=fd;fs.data['/proc/30/fdinfo/7']=raw
+            self.assertIsNone(n.observe(o,h,budget(c)))
+    def test_bwrap_argument_not_webprocess_role(self):
+        o,fs,c,h=configured();fs.process(50,140,40,['/usr/bin/bwrap','--','/usr/lib/WebKitWebProcess'])
+        self.assertIsNone(n.observe(o,h,budget(c)));self.assertIsNotNone(o.native_unbound_proof)
+        self.assertEqual(o.native_records[-1]['status'],'native-target-argv-not-webprocess')
+    def test_owner_and_target_terminal(self):
+        for pid in [20,30,40,50]:
+            with self.subTest(pid=pid):
+                o,fs,c,h=configured();fs.data[f'/proc/{pid}/stat']=fs.data[f'/proc/{pid}/stat'].replace(') S ',') Z ')
+                self.assertIsNone(n.observe(o,h,budget(c)))
+    def test_phase_b_changed_parent_or_birth(self):
+        for field in ['parent','birth']:
+            o,fs,c,h=configured();original=fs.read;seen=0
+            def change(path,limit):
+                nonlocal seen
+                if path=='/proc/40/stat':
+                    seen+=1
+                    if seen==2:fs.process(40,131 if field=='birth' else 130,20 if field=='parent' else 30,['/usr/bin/bwrap'])
+                return original(path,limit)
+            fs.read=change;self.assertIsNone(n.observe(o,h,budget(c)));self.assertIn('identity-or-edge',o.native_records[-1]['detail'])
+    def test_missing_permission_ancestor(self):
+        for exc in [FileNotFoundError(2,'gone'),PermissionError(13,'denied')]:
+            o,fs,c,h=configured();original=fs.read
+            def error(path,limit):
+                if path=='/proc/40/stat':raise exc
+                return original(path,limit)
+            fs.read=error;self.assertIsNone(n.observe(o,h,budget(c)));self.assertEqual(o.native_records[-1]['errno'],exc.errno)
+    def test_cycle_and_escape_and_no_guardian_fallback(self):
+        for parent in [50,1,20]:
+            o,fs,c,h=configured();fs.process(40,130,parent,['/usr/bin/bwrap'])
+            self.assertIsNone(n.observe(o,h,budget(c)))
+    def test_changed_fdinfo_rejected(self):
+        o,fs,c,h=configured();original=fs.read;seen=0
+        def changed(path,limit):
+            nonlocal seen
+            if path=='/proc/30/fdinfo/7':
+                seen+=1
+                if seen==2:return b'Pid: 51\n'
+            return original(path,limit)
+        fs.read=changed;self.assertIsNone(n.observe(o,h,budget(c)));self.assertIn('fdinfo-changed',o.native_records[-1]['detail'])
+    def test_depth_eight_success_nine_rejected(self):
+        for length in [8,9]:
+            o,fs,c,h=configured();ids=list(range(60,60+length-1))+[30]
+            for index,pid in enumerate(ids[:-1]):fs.process(pid,200-index,ids[index+1],['/usr/lib/WebKitWebProcess'] if index==0 else ['/usr/bin/bwrap'])
+            fs.data['/proc/30/fdinfo/7']=f'Pid: {ids[0]}\n'
+            result=n.observe(o,h,budget(c));self.assertEqual(result is not None,length==8)
+    def test_node_stat_read_caps(self):
+        for key,value in [('chainNodes',16),('chainReads',32),('nativeStatReads',40)]:
+            o,fs,c,h=configured();b=budget(c);b[key]=value
+            self.assertIsNone(n.observe(o,h,b));self.assertIn('cap',o.native_records[-1]['detail'])
+    def test_fd_counters_shared_with_ordinary(self):
+        o,fs,c,h=configured();b=budget(c);b['ownerFdReads']={(30,120):31}
+        self.assertIsNone(n.observe(o,h,b));self.assertEqual(b['ownerFdReads'][(30,120)],32);self.assertEqual(b['fdReads'],1)
+        o,fs,c,h=configured();b=budget(c);b['fdReads']=127
+        self.assertIsNone(n.observe(o,h,b));self.assertEqual(b['fdReads'],128)
+    def test_one_target_and_two_file_cap(self):
+        o,fs,c,h=configured();b=budget(c);self.assertIsNotNone(n.observe(o,h,b));self.assertIsNone(n.observe(o,h,b))
+        self.assertEqual(b['nativeRecordReads'],2);self.assertEqual(b['nativeTargetAttempts'],1)
+    def test_record_work_consumes_original_time_budget(self):
+        o,fs,c,h=configured();original=fs.native_record
+        def slow(*args):c.value+=5_000_000;return original(*args)
+        fs.native_record=slow;b=budget(c);self.assertIsNone(n.observe(o,h,b));self.assertEqual(b['fdReads'],0)
+    def test_priority_integration_first_seen_and_fulltree(self):
+        o,fs,c,h=configured();fs.fdmap[30]=[str(i) for i in range(100,132)]
+        for fd in fs.fdmap[30]:fs.data[f'/proc/30/fdinfo/{fd}']='pos: 0\n'
+        o.discover();self.assertIn((50,140),o.known);self.assertEqual(o.native_bound['pid'],50)
+        first=o.known[(50,140)]['firstSeenNs'];o.discover();self.assertEqual(o.known[(50,140)]['firstSeenNs'],first)
+        self.assertFalse(o.summary()['descendantCoverage']['fullRendererTreeCoverage'])
+    def test_identity_cap_does_not_adopt(self):
+        o,fs,c,h=configured()
+        for i in range(60):
+            pid=1000+i;fs.process(pid,150,30,['/stub']);o.add(o.identity(pid),'renderer-descendant',I,dict(pid=30,birth=120))
+        o.discover();self.assertNotIn((50,140),o.known);self.assertIsNone(o.native_bound)
+    def test_static_no_proc_directory_scan_or_signal(self):
+        tree=ast.parse(Path(n.__file__).read_text())
+        for node in ast.walk(tree):
+            if isinstance(node,ast.Call):
+                name=ast.unparse(node.func)
+                self.assertNotIn(name,['os.scandir','os.listdir','os.kill','os.killpg','os.fork','subprocess.run','subprocess.Popen'])
+        self.assertNotIn('/proc/{helper["pid"]}/fd/',Path(n.__file__).read_text())
+
+if __name__=='__main__':unittest.main()

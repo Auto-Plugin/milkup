@@ -2,7 +2,7 @@
 
 本阶段基线为 `d3851430fac0dc85c758187b33b769c5daba7f4a`，独立分支 `dot/milkup-v2-product-phase4-mermaid-engine`。已核验远端/本地 SHA、干净工作区及候选 11 的 4,044 份证据存储哈希；候选 11 的 Linux 有界能力验收继续有效。[基线核验](evidence/v2-product-phase4-mermaid-engine/baseline-verification.json)。
 
-**当前状态：官方完整引擎、通用 Linux DOM 后端和安全图片输出已实现；多行恢复测量次序修复后，gate08 全仓 2073 项测试及其余门禁、相关浏览器 36 项测试通过，独立 diagrams 89 项测试此前通过。production08 实际 Linux 构建及五项生命周期首次通过，完整 UI 尝试却在冷启动首次超时。后续诊断前缀通过了原冷图像断言，最新六份请求均有完整输入；已测得 helper 自身 CPU，执行 JavaScript 的 WebProcess 身份及 CPU 仍未独立确认，没有完成生产或全 UI 验收。历史 UI10 在 30/64 组合后遇到原生截止，其余 34 组合与超时原因保持开放。Journey 在 100% 下原图／规范图完全一致，200% 下仍有 1106 个文本像素差异，保留为边界。不能宣称产品验收结束。** 后续继续完整 P4 验证，再进入 P5 导出／打印；Linux 证据不替代 Windows 验证。
+**当前状态：官方完整引擎、通用 Linux DOM 后端和安全图片输出已实现；多行恢复测量次序修复后，gate08 全仓 2073 项测试及其余门禁、相关浏览器 36 项测试通过，独立 diagrams 89 项测试此前通过。production08 实际 Linux 构建及五项生命周期首次通过，完整 UI 尝试却在冷启动首次超时。后续诊断前缀通过了原冷图像断言，最新六份请求均有完整输入；第五次诊断通过私有原生句柄首次独立绑定执行 JavaScript 的 WebProcess，并测得其首末采样间 2.52 CPU 秒／4.500132008 秒；完整进程树、请求完成端点及历史超时原因仍有缺口，没有完成生产或全 UI 验收。历史 UI10 在 30/64 组合后遇到原生截止，其余 34 组合与超时原因保持开放。Journey 在 100% 下原图／规范图完全一致，200% 下仍有 1106 个文本像素差异，保留为边界。不能宣称产品验收结束。** 后续继续完整 P4 验证，再进入 P5 导出／打印；Linux 证据不替代 Windows 验证。
 
 ## 固定版本与覆盖目标
 
@@ -586,3 +586,17 @@ CPU记录包含App和guardian各21个样本，没有renderer/helper/WebKit身份
 此次确认App、guardian、helper、network和两个绑定时argv为bwrap的身份。App自身0.47 CPU秒、guardian0.09秒、helper0.12秒分别属于不同首末采样区间；bwrap参数中的WebKitWebProcess文字不能充当WebProcess身份或CPU。20轮采样、10轮发现，发现全部incomplete；5ms发现预算是协作检查，实际最大9.479359ms，普通fdinfo聚合数不足以证明某个bwrap的FD被穷尽读取。没有请求完成或deadline端点，末样本后还有224.969854ms未测，不能由这轮通过推论旧超时原因。
 
 [checkpoint23](evidence/v2-product-phase4-mermaid-engine/checkpoint23/README.md) 保存受控能力首结果、观察器候选与纯测试、第四次原始运行、两份独立审阅及Root像素核验。产品源码、原生产包、前端和官方插件均未改变。下一步仅准备通过私有原生消息传递WebProcess自身句柄的有界诊断方案，尚无该方案的构建或运行结果；原沙箱及2秒／10秒预算不变。完整原生UI与Windows验收仍待完成，本执行器未使用Runtime或上传预算。
+
+## 原生句柄首次绑定 WebProcess，第五次冷诊断与独立审计完成
+
+[checkpoint24](evidence/v2-product-phase4-mermaid-engine/checkpoint24/README.md) 保存研究源码、单次构建、第五次冷前缀、两份独立审计和 Root 原图核验。新增能力只在独立诊断构建中启用：WebProcess 通过私有原生消息传递自身 pidfd，helper 持有一个 CLOEXEC 句柄；外部观察器重复读取内核 fdinfo，并用前后 birth／PPID、存活状态、四节点祖先链和实际 argv[0] 验证目标。原官方插件、前端、沙箱、2 秒执行／10 秒准备预算与产品代码不变。候选观察器首次 57 项纯测试通过；真实原生句柄传递由随后的单次运行独立验证，不能用纯测试替代。
+
+第五次原冷图像断言通过后按原计划停止。Node exit0、CPU 覆盖不足 exit2、外层原断言 exit1 分别保留。204 份冻结文件的大小与哈希由 Root 和两位审阅者分别核验；严格 wire 审计首次通过，六份 dispatch 均有完整请求、准确 UTF-16 范围及固定 Unicode 夹具。Root 实际查看 WebView 与 X11 原图：light live 图像、光标及已保存状态可见，没有超时通知；已知 block literal `&nbsp;` 仍在，不扩大为完整像素或缩放验收。
+
+本次 WebProcess 为 PID474342／birth9322922，外部证明链为474342→474340→474338→474296。其19份样本首末区间4.500132008秒，自身 utime+stime 增量2.52 CPU秒；leader线程 runtime1678.920400ms、wait113.762610ms不能解释为全部线程等待或 JavaScript 专属 CPU。初始44ticks未回填，首末样本以外不作推算。App、guardian、helper各自不同区间的0.49／0.07／0.16 CPU秒不与它相加为同窗口总量。
+
+10轮发现仍全部不完整，保留44条 children 接口缺口、共享 FD 枚举上限及一次发现超时；协作5ms预算实际最大13.732632ms，不能称硬上限。已完成的身份证明在该轮早先2.842724ms处成立，之后的发现超时不消除它，也不证明所有后代都已覆盖。最后采样到观察器结束仍有235.741523ms未测；六份请求没有成功完成或 deadline 端点，不能计算单请求 CPU，不能把当前 render_3 回填为 production08 的未知输入。
+
+原生记录的 captureEnd 排除发布 IO，outer time namespace 链接不可读，不能由数值顺序宣称跨进程时钟已校准。请求 final checkpoint 只确认关闭后排空，不是精确关闭时刻或整个 App 生命周期的完整记录；独立 CPU 报告中的“capture closes”按此限制理解。清理核验21个已知 PID 消失，未知后代覆盖仍不作保证。归档准备曾因交接 SHA 后紧接文件数而误读为66字符，保留首次归档失败及更正，实际冻结文件未漂移。
+
+下一步只增加通用原生收发／bootstrap 的最小阶段计时，以区分插件整体工作、序列化与传输；暂不修改 Mermaid 内部、预热或放宽预算。阶段方案在本检查点仅为静态提案，不能当作执行结果。完整原生 UI、剩余矩阵与历史超时仍开放；本执行器不执行 Windows、Runtime 下载、上传、发布或合并。

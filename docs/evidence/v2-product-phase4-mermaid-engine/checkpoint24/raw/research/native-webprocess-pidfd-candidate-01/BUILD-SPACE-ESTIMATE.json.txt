@@ -1,0 +1,13 @@
+{
+  "status": "READ_ONLY_ESTIMATE_NOT_BUILD_GUARANTEE",
+  "freeBytesAtPreparation": 924442624,
+  "minimumBuildStartBytes": 838860800,
+  "existingTargetBinaryBytes": 21925344,
+  "existingTargetGuardBytes": 15656,
+  "largestObservedLocalMilkUpRlibBytes": 50677390,
+  "plannedPersistentCopies": "one prior target binary (~22MB), prior C guard(s), one new binary (~22MB), one new C guard, source restore bytes and small logs; no target/cache or source tree duplicate",
+  "additionalPersistentEstimateBytes": 52428800,
+  "workingHeadroomEstimateBytes": 314572800,
+  "workingEstimateQualification": "Planning allowance based on existing target artifacts; rustc/linker transient peak is not measured or guaranteed. Shared cargo target, no clean, no frontend/deb rebuild. Stop at insufficient-space/failure and retain first result; never delete history or retry implicitly.",
+  "artifactSelection": "Cargo JSON build-script out_dir plus exactly one occurrence of full SO bytes in final binary; preserve exact artifact SHA/bytes/offset. Never choose by mtime."
+}
