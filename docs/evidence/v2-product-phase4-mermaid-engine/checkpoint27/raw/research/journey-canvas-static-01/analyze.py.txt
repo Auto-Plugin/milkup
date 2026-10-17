@@ -1,0 +1,46 @@
+from pathlib import Path
+import hashlib
+import json
+import xml.etree.ElementTree as ET
+
+ROOT = Path('/workspace/milkup-mermaid-engine-evidence/research')
+PAIRED = ROOT / 'journey-current-native-paired-01'
+UI = ROOT / 'production08-final-native-01/runtime/mermaid-ui-production08-final-01/evidence'
+OUT = ROOT / 'journey-canvas-static-01'
+
+def digest(path):
+    data = path.read_bytes()
+    return {'path': str(path), 'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
+
+paint = json.loads((PAIRED / 'paint-evidence.json').read_text())
+sample = json.loads((PAIRED / 'official-sample.json').read_text())
+raw = (UI / 'windowed.md').read_text().encode('utf-16-le')
+fence = raw[11027 * 2:11239 * 2].decode('utf-16-le')
+body = fence.split('\n', 1)[1].rsplit('```', 1)[0]
+assert body == sample['source']
+provenance = json.loads((PAIRED / 'source-copy-provenance.json').read_text())
+source_matches = []
+for item in provenance['sourceCopiesBeforeDiagnosticTap']:
+    path = Path('/workspace/milkup/plugins/diagrams/src') / Path(item['path']).name
+    if path.exists():
+        actual = digest(path)
+        source_matches.append({**actual, 'pairedSha256': item['sha256'], 'matches': actual['sha256'] == item['sha256']})
+assert all(x['matches'] for x in source_matches)
+original = ET.fromstring((PAIRED / 'original-installed.svg').read_text())
+canonical = ET.fromstring((PAIRED / 'canonical.svg').read_text())
+inner = next(x for x in canonical if x.tag.endswith('svg'))
+width, height = paint['image']['width'], paint['image']['height']
+vb = paint['image']['viewBox']
+scale = min(width / vb[2], height / vb[3])
+records = []
+for row in json.loads((UI / 'results.json').read_text()):
+    if row['name'].startswith('edges-windowed') and 'userJourney' in row['name']:
+        preview = next(p for p in row['dom']['previews'] if p['from'] == 11027)
+        records.append({'name': row['name'], 'preview': preview, 'zoom': row['dom']['zoom'], 'editorViewport': row['dom']['editorViewport'], 'screenshots': row['screenshots']})
+inputs = [PAIRED / n for n in ['paint-evidence.json', 'official-sample.json', 'source-copy-provenance.json', 'original-installed.svg', 'canonical.svg', 'summary.json', 'RESULTS.md', 'pixel-comparison.json']]
+inputs += [UI / 'results.json', UI / 'windowed.md']
+inputs += [Path('/workspace/milkup') / n for n in ['plugins/diagrams/src/svg-converter.ts', 'plugins/diagrams/src/paint-envelope.ts', 'packages/core/src/document-svg-image-codec.ts', 'packages/view-dom/src/document-svg-image.ts', 'plugins/diagrams/node_modules/mermaid/dist/chunks/mermaid.core/journeyDiagram-BOSHW7O7.mjs']]
+viewed = [PAIRED / 'runs/paint-first01' / n for n in ['original-full-canvas.png', 'canonical-full-canvas.png', 'original-bottom-right.png', 'canonical-bottom-right.png']]
+result = {'scope': 'Offline XML/hash/arithmetic only; no rendering, tests, product edit or new runtime observation', 'source': {'utf16Range': [11027,11239], 'bodyBytes': len(body.encode()), 'bodySha256': hashlib.sha256(body.encode()).hexdigest(), 'pairedBodyEqual': True}, 'currentSourceMatches': source_matches, 'originalRoot': original.attrib, 'canonicalOuter': canonical.attrib, 'canonicalInner': inner.attrib, 'typedRoot': {k: paint['image'][k] for k in ['width','height','viewBox','aspect','rasterBounds']}, 'mapping': {'scale': scale, 'viewBoxProjectedHeightCss': vb[3]*scale, 'remainingCanvasHeightCss': height-vb[3]*scale, 'recordedUnstrokedBBox': paint['capture']['geometry']['bbox'], 'recordedCTM': paint['capture']['geometry']['ctm'], 'note': 'BBox excludes some stroke/filter ink; actual retained original/canonical pixels independently show the blank region. Current UI canonical blob bytes were not captured.'}, 'finalUICorners': records, 'actuallyViewedOriginalPNGs': [digest(p) for p in viewed], 'inputs': [digest(p) for p in inputs]}
+(OUT / 'evidence.json').write_text(json.dumps(result, indent=2)+'\n')
+print(json.dumps({'bodyEqual': True, 'sourceMatches': len(source_matches), 'projectedHeight': vb[3]*scale, 'blankRemainder': height-vb[3]*scale, 'evidence': digest(OUT / 'evidence.json')}))

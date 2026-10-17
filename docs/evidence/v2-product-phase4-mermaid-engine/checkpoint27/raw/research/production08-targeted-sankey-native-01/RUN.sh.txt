@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT=/workspace/milkup-mermaid-engine-evidence/research/production08-targeted-sankey-native-01
+RUN=mermaid-ui-production08-targeted-01
+# Generated only after successful root-authorized production candidate input review.
+# Contains exactly BINARY and BINARY_SHA; the exact production08 binary is required here.
+source "/workspace/milkup-mermaid-engine-evidence/research/production08-targeted-sankey-native-01/reviewed-binary.env"
+[[ "$BINARY" == "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop" ]]
+ARCHIVE=/workspace/milkup-mermaid-engine-evidence/linux-production-08/artifacts/milkup.diagrams-1.1.0.milkup-plugin
+ARCHIVE_SHA=9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df
+python3 "$ROOT/verify-runtime-go.py"
+case "${1:-}" in
+ driver) exec bash "$ROOT/driver.sh" "$RUN" "$BINARY" "$BINARY_SHA" "$ARCHIVE" "$ARCHIVE_SHA" ;;
+ harness)
+  source "$ROOT/run-env.sh" "$RUN" "$BINARY" "$BINARY_SHA" "$ARCHIVE" "$ARCHIVE_SHA"
+  cd /workspace/milkup
+  exec node "/workspace/milkup-mermaid-engine-evidence/research/production08-targeted-sankey-native-01/native/tauri-mermaid-ui-targeted.mjs"
+  ;;
+ *) echo 'Choose driver or harness only after separate root runtime GO.' >&2; exit 2 ;;
+esac

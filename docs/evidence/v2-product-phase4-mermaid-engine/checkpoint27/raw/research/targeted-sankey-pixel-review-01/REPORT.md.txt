@@ -1,0 +1,26 @@
+# Partial targeted Sankey pixel review
+
+The explicit 1200×900 / nodePadding 24 author configuration visibly improves spacing in the inspected Sankey regions, at the cost of a substantially larger scrollable canvas. This is a partial visual finding from a failed run, not a completed acceptance or a reason to change the default renderer.
+
+Actually viewed 34 original PNG files with `view_image`: 30 WebView and 4 X11. Inventory records each exact path, SHA256, associated results row and observation. All 34 hashes independently match `results.json`. The evidence directory contains 234 PNG files; the remaining 200 were not viewed in this review. No product/test execution, screenshot modification or source change occurred.
+
+The sample spans ordinary/windowed, light/dark, 100%/200%, and wide/narrow. Twelve matrix WebView images form six original/author pairs. Twelve further WebView images compare both corners for both variants in ordinary light, ordinary dark and windowed light at 200% narrow. Four coverage WebViews show the two contrast cases in ordinary/windowed. The final original corner and FAIL each have WebView/X11 inspection, plus the ordinary light100 wide pair has X11 inspection. Contrast coverage images are light-theme 100%; this review does not claim a complete contrast theme/zoom matrix.
+
+## What the pixels show
+
+- Original Sankey retains clear collisions in the UK land based bioenergy / Bio-conversion region and crowded central/output text. Changing zoom alone enlarges the collisions. These are visible in both ordinary and windowed captures and in both themes.
+- Author configuration visibly separates the inspected Bio-conversion, Solid, Gas, Coal and Ngas areas. The lower output labels International shipping, Domestic aviation, International aviation and National navigation also have substantially more separation. The corresponding light100 X11 images agree with WebView. This is visual improvement in inspected portions, not an automated all-label overlap measurement.
+- The larger diagram sacrifices overview. At 100% even the wide viewport cuts off right-side labels and lower diagram content; horizontal and vertical scrollbars are present. At 200% narrow, the initial/top-left author viewport is nearly entirely the Nuclear band, whereas the original displays more of the network. Viewport cuts through text at some boundaries, and windowed author bottom-right cuts International shipping at its top edge. These are visible partial views, not evidence that the underlying labels were removed.
+- The saved author bottom-right images in ordinary light/dark and windowed light all show National navigation and lower outputs. None of those three reviewed author corners is an empty viewport. Their paired top-left images contain Nuclear. This supports reachability of those two saved endpoint views only; it does not establish all intermediate nodes, four corners, or every missing final combination are reachable. No new persistent crop/unreachable-region defect is demonstrated by these inspected author screenshots, but full accessibility remains unproven.
+- Dark-theme text over colored flows still has weak contrast, including Nuclear and International aviation. The author configuration changes layout, not palette, and does not cure that issue.
+- sequenceDiagram016 still has dark title/message text on the explicitly purple left box. flowchart107 still has white Stop text on pale lavender. Both remain visible low-contrast boundaries in ordinary/windowed coverage. The unchanged author styles explain why the layout-only experiment does not alter them; see contrast-layout-static-review-01 for source/computed-style evidence.
+
+## Failure and incomplete coverage
+
+`results.json` has 31 `matrix-complete-*` rows out of 32 expected combinations. The last combination is windowed/live/dark/200/narrow. The original Sankey matrix image and its bottom-right images were saved while still visible. The subsequent FAIL WebView and X11 show retained Mermaid source in place of the diagram and the visible notice that milkup.diagrams rendering timed out and the plugin was disabled. `failure.json` records `Inner wheel target must remain mounted`. The author-configured Sankey was not exercised in that final combination. A pre-failure bottom-right image is not evidence that the following return-to-top operation succeeded.
+
+This review initially attempted to open the final original top-left file; it does not exist and `view_image` returned ENOENT. That unsuccessful read yielded no image and is excluded from the 34 viewed count. No substitute or inferred successful frame is claimed.
+
+The run remains FAIL. Earlier successful-looking frames do not erase the later disappearance. The images do not establish why the deadline occurred or implicate the author layout; failure was observed on the original sample. No retry, new timing inference, CPU attribution, or claim of a fix to the old production08 timeout is made.
+
+Recommendation: retain this as evidence that an explicit author-selected layout can improve some dense Sankey labels, with significant scrolling/overview tradeoffs. Preserve the original official fixture and existing defaults. Do not label the targeted validation fully passing, and do not declare the layout free of all crowding or clipping.

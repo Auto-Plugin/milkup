@@ -1,0 +1,32 @@
+# Targeted UI first failure: independent frozen review
+
+The product result is **FAIL**, with no retry. The separate failure-evidence audit's first exit is 0: this means the recorded failure and evidence integrity were verified, not that the UI passed. The frozen completed-run auditor was not invoked or changed.
+
+All **447 files / 81,577,458 bytes** match completed-manifest SHA256 `66eb2be2505d641f4d6b356ae18fe13fae7a7c1eb29a9e2c81cc0911b74aa8c5`. See `execution.json`, original `stdout.json`, and `stderr.log` for the single audit command/result. The audit script is retained as executed.
+
+There are 150 unique records ending in FAIL, no terminal PASS: 31 complete combinations, 63 Sankey matrix shots, 14 contrast shots, 13 corner shots, all 10 coverage, 12 history and 2 selection records. The matrix/contrast/corner sequence is exactly a prefix of the frozen harness order. The last recorded successful shot is original Sankey, windowed/live/dark/200%/narrow, bottom-right. The next top-left return fails on its horizontal axis before sending that axis's first wheel step: `Inner wheel target must remain mounted`. The preceding top-axis record exists; this is not evidence that no earlier interaction occurred.
+
+Unreached: original Sankey top-left shot; author-layout Sankey matrix plus two corner shots in this final combination; final sequence/flowchart contrast shots; final combination-complete and terminal PASS. Thus neither the final combination nor all requested author-layout/contrast coverage is established.
+
+Both final Markdown files are independently reconstructed exactly from the frozen five-case catalog, including the header and 160,000 repeated Unicode lines. Ordinary is 5,955 bytes, SHA256 `f2ee30feef8bfc23a0053a55a5d666723edc6765ee5c38f84391dc8382ab8e3d`; windowed is 7,845,955 bytes, SHA256 `46f4863e8c1842930984dd6cb3f1aa006b66ea3dfddfd935657471c3bb602470`. All history and selection records say byteExact, saved and clean; the 31 completed combinations have matching saved-file hashes. Historical transient save/undo/redo bytes are recorded harness assertions, not independently recovered file snapshots. Final byte identity does not prove uninterrupted preview availability.
+
+All 234 screenshot references are unique and cover exactly the direct evidence PNG files: 22,680,147 bytes, lengths/hashes/signatures match. I viewed both FAIL-webview and FAIL-x11. The selected original Sankey marker is visible above literal Mermaid fence/config text; its image is gone. The bottom notice explicitly says the diagrams plugin timed out and was disabled, with manual re-enable available. The document reports saved/clean. DOM has no previews; registry has `milkup.diagrams` failed/disabled with execution-deadline error. The generic source-retained notice exists in DOM but is above the viewport; do not describe it as visibly displayed. X11 corroborates the same 760×520 window within the larger black display. This is a user-visible loss of preview and plugin disablement, not merely a screenshot or wheel harness glitch.
+
+Native driver lines 941–946 bind App PID **498871**, instance **7bc0620d4b97b639ac92c79eb5b8a6d8dbd074c6944199ab**, request **render_1037**:
+
+| Line | Phase | PID | Native monotonic ns |
+|---|---|---:|---:|
+| 941 | dispatch | 498871 | 103752604699038 |
+| 942 | deadline-observed | 498871 | 103754632275437 |
+| 943 | kill-start | 499152 | 103754633751998 |
+| 944 | cleanup-complete | 499152 | 103754891654824 |
+| 945 | cleanup-confirmed | 498871 | 103755008815563 |
+| 946 | control-emitted | 498871 | 103755008929046 |
+
+Same-App intervals: dispatch→deadline **2027.576399 ms**; deadline→cleanup-confirmed **376.540126 ms**; deadline→control-emitted **376.653609 ms**. The guardian rows are preserved with their own PID and raw timestamps; the audit does not subtract across processes. The original 2-second deadline still operated; the 27.576399 ms observation difference does not establish CPU starvation, rendering work, IPC delay or a specific internal phase. All driver timing records contain 860 dispatch events and one deadline; request suffix 1037 is not itself a count of accepted dispatches.
+
+The wire input for this failure was not captured. The UI's original-Sankey target, marker selection and preceding good preview do **not** identify render_1037's complete document window, source blocks, theme/layout payload or internal Mermaid operation. No payload is reconstructed from an older run or backfilled from the fixture. The available production trace has no complete per-request settlement ledger or renderer CPU evidence. The successful earlier full run does not resolve this new failure or prove the historical deadline fixed.
+
+Cleanup evidence independently checks Node/harness exit 1, session-free driver before exact PID/birth/group TERM, absent driver afterward, 12 recorded exact identities absent, 10 recorded reaps, and no listeners. The dedicated Xvfb remains recorded separately. This is the recorded identity set, explicitly not proof of a globally enumerated complete process tree.
+
+The minimum justified next evidence layer is exact failed-active wire retention, described in `FAILED-ACTIVE-CAPTURE-DESIGN.md`. It is a proposal only: no candidate implementation, build, product restart, repeat UI run or sampler was created.

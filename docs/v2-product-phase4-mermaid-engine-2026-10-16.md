@@ -2,7 +2,9 @@
 
 本阶段基线为 `d3851430fac0dc85c758187b33b769c5daba7f4a`，独立分支 `dot/milkup-v2-product-phase4-mermaid-engine`。已核验远端/本地 SHA、干净工作区及候选 11 的 4,044 份证据存储哈希；候选 11 的 Linux 有界能力验收继续有效。[基线核验](evidence/v2-product-phase4-mermaid-engine/baseline-verification.json)。
 
-**当前状态：官方完整引擎、通用 Linux DOM 后端和安全图片输出已实现；gate08 全仓 2073 项测试及其余门禁、相关浏览器 36 项测试通过，独立 diagrams 89 项测试此前通过。production08 实际 Linux 构建及五项生命周期首次通过。2026-10-17 在未改变产品／插件／原完整脚本／执行期限的正式候选上，唯一一次本轮完整 UI 运行实际 exit0，完成 64/64 组合、62 个全样例覆盖检查、12 项保存／撤销／重做和 2 项选区检查，独立数据审计通过。Linux DEB 和独立 diagrams 插件包可供试用，但不能称视觉完全达标：Journey 的 200% 窄窗右下角出现空白图形区域，Sankey 标签拥挤、紫色时序分组低对比和 block 字面 `&nbsp;` 仍可见。历史生产冷启动及 UI10 的 2 秒超时没有复现或归因；新通过不追认旧失败已修复。旧 Journey 200% 标题／图例 1106 像素差异也未重验关闭。** 当前完整 Linux 自动验收已完成，像素限制与历史超时仍开放，P4 尚不能整体宣告完成；P5 导出／打印未开始，Linux 证据不替代 Windows 或系统 DPI 验证。详见[最终候选验收检查点](evidence/v2-product-phase4-mermaid-engine/checkpoint26/README.md)。
+**当前状态：官方完整引擎、通用 Linux DOM 后端和安全图片输出已实现；gate08 全仓 2073 项测试及其余门禁、相关浏览器 36 项测试通过，独立 diagrams 89 项测试此前通过。production08 实际 Linux 构建及五项生命周期首次通过。checkpoint26 的完整 UI 运行完成 64/64 组合并 exit0，该历史结果继续保留；随后同一正式候选的定向视觉运行首次失败，完成 31/32 组合后，原生 render_1037 在约 2027.6 ms 观察到执行截止，插件停用、预览退回源码。完整请求未捕获，不能将它归因为当前可见的 Sankey，也不能宣称历史超时已修复。文件最终字节、保存与撤销／重做记录完整。**
+
+Journey 下方留白已定位为官方固定 SVG 画布的合法空白；旧 200% 文本 1106 像素差异仍未关闭。Sankey 的显式作者布局配置、样例自带的低对比配色与 block 字面 `&nbsp;` 保留各自边界，不能称视觉完全达标。Windows 独立 DOM 后端目前是实现缺口，已形成分阶段方案，尚未实现或验证。P4 未整体完成，P5 导出／打印未开始。最新有限结论和首次失败见 [checkpoint27](evidence/v2-product-phase4-mermaid-engine/checkpoint27/README.md)，此前完整 Linux 运行见 [checkpoint26](evidence/v2-product-phase4-mermaid-engine/checkpoint26/README.md)；两者不互相覆盖。
 
 ## 固定版本与覆盖目标
 
@@ -675,3 +677,31 @@ block字面 `&nbsp;`、Sankey标签重叠拥挤，以及 `sequenceDiagram-016-bo
 | DEB提取程序 `milkup-desktop`               | 21,872,616 | `cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304` |
 
 实际文件保存在 `/workspace/milkup-mermaid-engine-evidence/linux-production-08/artifacts/`，程序在同级 `install/usr/bin/`。DEB是本地Linux候选，独立插件已经通过真实安装路径验证；本阶段不把包含明确回退的能力称为完整Mermaid语法支持。完整冻结输入／结果、最小代表原图和独立审计见[checkpoint26](evidence/v2-product-phase4-mermaid-engine/checkpoint26/README.md)。本执行器未进行Windows打包、Runtime下载、外部产物上传、Release或main／v2合并；新的Runtime／上传批准仅记录，不在此Linux范围使用。
+
+## 定向视觉定位与新增生产超时
+
+本轮产品仍为 `ffa662077bfe696b50c43f94691bc88e5f693c14` 的 production08，二进制、独立插件包、前端与产品源码未变。当前工作只增加可核验的视觉证据、显式作者配置和 Windows 实施方案；没有为使矩阵通过而更改官方原样例、宿主默认配色、裁切规则或 2 秒／10 秒执行期限。
+
+Journey 当前官方样例的 198 字节正文与先前原生配对实验准确绑定；六项渲染器相关源码匹配。原 SVG 为 `width=100%`、`height=565`、`viewBox="0 -25 1300 540"`、`xMinYMin meet`。380 CSS px 宽度下，完整 viewBox 映射为约 157.846 px 高，剩余约 407.154 px 是原画布留白。转换后的图片保持 380×565，宿主没有额外 inset；原图与规范图右下角 PNG 字节一致。研究 scrollport 326×167 与正式编辑器 328×169 不同，不将研究角落偏移冒充正式运行的精确重放，也不由此关闭既有 200% 文本差异。无需按图型裁切或改写官方布局。
+
+紫色时序分组来自作者的 `box Purple Alice & John`；白色 Stop 标签与浅紫底来自作者显式 style。旧原 SVG 的计算样式已存在该低对比，不能归为转换器新添错误，也不能在宿主静默改色。Sankey 原样例有 68 条数据边、48 个标签；已有原图／规范图坐标对照没有发现标签位置被转换器重新排列。新增作者候选只显式设置 `width:1200`、`height:900`、`nodePadding:24`、`useMaxWidth:false`、`labelStyle:legacy`，声明及 CSV 正文保持逐字节一致。它是用户可选布局，有更大的滚动范围，不替代默认样例或承诺全部标签不重叠。
+
+唯一一次定向生产运行使用五个样例与 32 个 live 组合，覆盖普通／窗口化、light／dark、100/125/150/200% 原生全 UI 缩放、宽／窄窗口，另有 source/live 编辑、真实滚轮、保存、撤销／重做和选区检查。原完整脚本未改，研究副本只缩减样例和矩阵。首次 Node／harness exit1，完成 31 个组合、63 个 Sankey 矩阵截图记录、14 个对比记录、13 个角落记录、10 个覆盖记录、12 个历史记录及 2 个选区记录，共 234 PNG。最后 windowed/live/dark/200%/narrow 原 Sankey 从右下角返回左上角时失去预览；最终作者候选及两处配色截图未运行，不能把此前通过前缀计为完整验收。
+
+独立像素审阅实际查看 34 张原图（30 WebView、4 X11），其余 200 张未人工查看。选样涵盖普通／窗口化、light／dark、100%／200% 和宽／窄；125%／150% 属于自动运行记录，未在本次人工像素选样中。六组原／作者矩阵对照及三组 200% 窄窗两端对照显示，候选可见的 Bio-conversion／Coal／Ngas 和底部输出标签间距改善；100% 宽窗仍需双轴滚动，200% 窄窗初始几乎只见 Nuclear。三组已看作者右下角均可见 National navigation，但不据此声明全部中间区域或全部组合可达。暗色流线文字低对比仍在；四张 sequence／Stop 配色审阅图仅为 light/100%，不冒充完整配色矩阵。Root 另查看四张，均与上述集合重叠，不累加数量。
+
+冻结 447 文件／81,577,458 字节均通过独立失败审计；该审计 exit0 只表示证据核验成功，产品仍为 FAIL。失败截图显示源围栏与明确超时停用通知，保存状态可见。native 绑定 instance `7bc0620d4b97b639ac92c79eb5b8a6d8dbd074c6944199ab` 的 `render_1037`，同 App 时钟 dispatch→deadline 为 2027.576399 ms，deadline→可信控制通知为 376.653609 ms。请求后缀不是 dispatch 总数；该运行日志实际有 860 次 dispatch。现有证据不能区分布局、转换、IPC 或调度延迟，不能用可见图像推断完整请求输入。原 deadline 正常触发，但预览不可用这一产品结果仍是阻塞。
+
+最终普通和窗口化 Markdown 分别独立重建并逐字节相同；12 个已记录 PID/birth 消失，10 次等待回收，端口释放，专用 Xvfb 保留。不外推未知后代全枚举，也不把最终数据完整等同于预览始终可用。没有重试此运行，未对失败前缀执行完成态审计。
+
+只读调度审查确认：内层 scroll 不直接冒泡到非 capture 的外层监听；外层滚动改变已挂载窗口后，from/to、width、selection 或 epoch 的变化可合法触发新请求。服务逐围栏调用，当前没有逐围栏结果缓存。记录中的一次 32 px 外框位移来自脚本明确的 gutter 对齐滚轮；其它内层到边界时的位移可能是滚动传递或布局变化，未保存 outer scrollTop／manager key，不能归因为缺陷。取消已执行请求只撤销调用方等待，保持 native active 和原截止直到结算，避免并发与截止绕过；没有证据证明 render_1037 被取消。故本轮不改缓存、滚动传递或取消语义。
+
+当前最小后续定位方案是研究专用的失败 active 请求保留：在原生接受点将已序列化 wire 与 active 原子绑定，成功释放、取消保留，终态先按原路径清理，再非阻塞移交后台保存。它避免前 N 请求记录遗漏长运行末端，但仍有明确内存、队列、写出丢失及观测成本，当前仅设计，未实现或运行。没有依据直接扩大缓存、更改取消语义或放宽执行期限。
+
+## Windows 独立 DOM 后端的最小实施门槛
+
+当前 `supported()` 及进程 owner/helper、快照读取和后代清理均缺 Windows 实现；这不是“Linux 已通过，Windows 仅待截图”的状态。完整方案随 checkpoint27 保存。计划先做 Windows 能力验证，再实现公共协议、独立 Win32 STA WebView2 helper、私有用户目录及 App 拥有的 Job Object；原 2 秒执行、10 秒初始化截止保持，由独立 watchdog 负责，先撤销和清理再发送控制事件。所有进程必须在受控 Job 内，不允许 breakaway、按进程名清理或借用主 Tauri WebView。
+
+最小 helper 只提供三个固定内存资源，无文件映射、本地 HTTP 服务、宿主命令／文件／网络桥；导航、外部协议、下载、权限及调试接口必须在 native 边界拒绝。WebView2 资源过滤不自动证明 WebRTC／UDP／DNS 零网络或文件选择器不可达；这两项属于实施前 W0 阻塞门槛。若受支持的原生／OS 策略不能满足约束，Windows DOM 应保持 unavailable，不能用 JS monkeypatch 或放宽安全配置替代。
+
+后续必须在真实 Windows 分别完成协议与路径竞态测试、Job 子孙硬清理与 App 异常退出、WebView2 无网络／文件／命令能力测试、双实例隔离、Linux 提取回归及 Windows UI／DPI 矩阵。本 Linux 环境没有 Windows MSVC SDK／linker、标准库或真实 Runtime，未执行 Windows 编译或运行。用户新批准的 Runtime 条款与 ≤256 MiB、≤1 天、≤US$0.01 上传预算已记录，本执行器本轮未使用；未下载 Runtime、上传 Windows 产物、发布或合并。

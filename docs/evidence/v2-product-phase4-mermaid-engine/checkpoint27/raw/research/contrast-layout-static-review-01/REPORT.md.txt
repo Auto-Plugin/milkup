@@ -1,0 +1,41 @@
+# Static contrast and layout review
+
+Scope: read-only investigation of the three findings from the frozen production08 final pixel review. No product execution, new render, test, build, source modification, image alteration, or default configuration change. The proposed author-configured Sankey fixture is separate from the unchanged official catalog. Its efficacy remains unmeasured.
+
+## Findings
+
+**sequenceDiagram-016-box-group:** The official unmodified source explicitly says `box Purple Alice & John`. The frozen official documentation permits named/rgb/rgba/hsl box colors (sequenceDiagram.md around 280–315). The retained official browser SVG/computed-style record independently has the box at `rgb(128, 0, 128)` and title/message text at `rgb(40, 37, 61)`. This demonstrates that the low-contrast combination exists before the image converter. The historical browser audit used its recorded Mermaid configuration and Chromium; it is not the final run's WebKit computed-style capture. Do not substitute its precise theme text color for every final UI theme. The actual final screenshots already establish the visible weak contrast.
+
+An author can explicitly choose a lighter box, e.g. `box rgb(230,210,240) Alice & John`, after reviewing both host themes. This changes an explicitly requested background and is not an automatic fix to the official example. A global white message/title color also affects messages over the other transparent/white group, so it is not a safe universal remedy. Do not rewrite the fixture or introduce an ID-specific contrast rule.
+
+**flowchart-107-style:** The original line explicitly sets `fill:#bbf` and `color:#fff` on Stop, together with its red dashed border. Frozen official docs flowchart.md:1293–1303 describe node styling and contain that exact example. Retained official browser computed styles show Stop text white, its shape `rgb(187,187,255)`, border `rgb(255,102,102)`. This is author-specified low contrast already present in official output, not evidence of converter recoloring. An author could explicitly change that one `color:#fff` to a dark text color such as `color:#222`; that is an alternative author choice, not an alteration to the official acceptance fixture. No new color-variant experiment is proposed.
+
+**Sankey:** The original source config only requests `showValues:false`; it has 68 unchanged edge rows and 48 distinct node labels. The old official SVG has 48 labels within a roughly 600×407 root. A separately retained canonical SVG has the same 48 labels in order, same x/y coordinates to within 1.14e-13, and first label Arial 14px/#333. This historical, cross-run static comparison does not expose a label-position rewrite as the explanation. It is not a same-run pixel proof or a measurement of every label collision. The frozen final production08 screenshots, already actually viewed in ordinary-pixel-review-final-01, show the crowding in actual WebKit output. No claim is made that all final-run computed values were captured.
+
+## Public configuration and converter boundary
+
+Installed Mermaid 12.2.0 `dist/config.type.d.ts:1967–2012` publicly defines Sankey width, height, useMaxWidth, nodePadding, labelStyle, nodeWidth and other options. Its core Sankey module around 669–724 passes width/height into d3 layout extent, uses nodePadding (fallback 12, plus 15 when showValues), and retains a legacy label-position path. The original labels do not have wrapping/collision-resolution in this function. More area can improve separation but does not promise every long label avoids a flow or another label.
+
+The public `labelStyle:'outlined'` would add background/foreground text and `paint-order:stroke` (same module around 719–723/769–773). Current `plugins/diagrams/src/svg-converter.ts:99–102,359–367,480 onward` accepts only neutral `paint-order:normal`; an effective stroke order is unsupported. The outlined option is therefore excluded from this minimal candidate. No AST expansion is proposed for this sample.
+
+`plugins/diagrams/src/renderer.ts` initializes the public engine with host default/dark theme and locks theme/themeCSS and other security-sensitive fields via `secure`, then calls the official render path and `convertSvgElement`. Converter line 203 obtains actual computed style; its typed paint handling preserves effective fill/stroke rather than selecting an accessibility palette. `plugins/diagrams/plugin.json` contributes the renderer but declares no dedicated user settings panel. Here “public configuration” means Mermaid author frontmatter accepted through the existing plugin, not a new plugin setting.
+
+Generic host zoom and scrolling can expose a larger diagram, but zoom cannot repair contrast ratios or separate labels already colliding in the same SVG coordinates. Clipping, scaling, and scrollbar accessibility remain UI validation concerns. No generic-host source change is justified solely by these three static findings.
+
+## Sole proposed experiment: explicit author layout
+
+`sankey-author-layout-1200x900.mmd` adds exactly:
+
+    width: 1200
+    height: 900
+    nodePadding: 24
+    useMaxWidth: false
+    labelStyle: legacy
+
+`showValues:false` remains. `semantic-proof.json` proves the entire body including `sankey` declaration and CSV is byte-identical, preserving node names, directions and edge values. `source.diff` contains only the five added frontmatter fields. `candidate-catalog-row.json` explicitly marks this as an author-derived configuration, not an unmodified official block.
+
+Minimal requested validation: use the existing production08 binary with a separate targeted catalog containing original and configured Sankey, retaining original colors/data and current renderer. Compare actual WebView/X11 pixels in light/dark, ordinary/windowed, 100%/200%, wide/narrow as the controller permits. Required observations: accepted ready image rather than fallback; labels/links remain present; compare the original crowded text regions; check horizontal and vertical overflow, corner reachability, clipping and text scale. If raw render output is retained, compare the 48 labels/68 links and CSV values; a screenshot alone cannot verify numeric conservation. Record increased horizontal scrolling as a tradeoff, not a failure automatically. Success is visibly improved readability for this explicit author choice, not elimination of all overlap or a justification to default every Sankey to a giant fixed canvas. Preserve partial improvement or no improvement honestly.
+
+## Evidence limits
+
+See existing-computed-evidence.json for original SVG element ordinals, text/attributes and actual historical browser computed styles. All XML element tags/counts align with that saved computed inventory. See existing-canonical-comparison.json for the canonical path, provenance and narrow static comparison. The canonical input is a frozen research converter result, not freshly captured final-run output; no matching final-run canonical sequence/flowchart capture is asserted. Original catalog rows and all input hashes are saved. The previous actual pixel audit is referenced rather than falsely claiming another screenshot viewing pass in this static review.
