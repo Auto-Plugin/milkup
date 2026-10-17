@@ -1,0 +1,180 @@
+{
+  "schema": "milkup.cold-owned-cpu.v1",
+  "startedMonoNs": 88872256569371,
+  "finishedMonoNs": 88881487313048,
+  "stopReason": "controller-stop",
+  "app": {
+    "pid": 468788,
+    "birth": 8887290,
+    "parent": 468706,
+    "state": "S",
+    "userTicks": 57,
+    "systemTicks": 39,
+    "argv": [
+      "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-02/diagnostic-binary/milkup-desktop",
+      "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-03/runtime/mermaid-ui-cold-diag-03/evidence/ordinary.md"
+    ],
+    "boundNs": 88876251015747
+  },
+  "knownIdentities": [
+    {
+      "pid": 468788,
+      "birth": 8887290,
+      "parent": 468706,
+      "state": "S",
+      "userTicks": 57,
+      "systemTicks": 39,
+      "role": "App",
+      "instanceId": null,
+      "parentIdentity": null,
+      "firstSeenNs": 88876251021169,
+      "firstSampleNs": 88876251451376
+    },
+    {
+      "pid": 468923,
+      "birth": 8887623,
+      "parent": 468788,
+      "state": "R",
+      "userTicks": 0,
+      "systemTicks": 1,
+      "role": "guardian",
+      "instanceId": "89991fca045be26f50cf9b51dabff036dbd0a170476407fc",
+      "parentIdentity": {
+        "pid": 468788,
+        "birth": 8887290
+      },
+      "firstSeenNs": 88876251253945,
+      "firstSampleNs": 88876251531906
+    }
+  ],
+  "samplePeriodNs": 250000000,
+  "discoveryPeriodNs": 500000000,
+  "clockTicksPerSecond": 100,
+  "nativeEvents": [
+    {
+      "instanceId": "89991fca045be26f50cf9b51dabff036dbd0a170476407fc",
+      "monotonicNs": 88878045749057,
+      "phase": "dispatch",
+      "pid": 468788,
+      "requestId": "render_1",
+      "observedMonoNs": 88878251553392,
+      "observedDelayNs": 205804455,
+      "appBirth": 8887290,
+      "guardianBound": true
+    },
+    {
+      "instanceId": "89991fca045be26f50cf9b51dabff036dbd0a170476407fc",
+      "monotonicNs": 88878307100538,
+      "phase": "dispatch",
+      "pid": 468788,
+      "requestId": "render_2",
+      "observedMonoNs": 88878501611037,
+      "observedDelayNs": 194510600,
+      "appBirth": 8887290,
+      "guardianBound": true
+    },
+    {
+      "instanceId": "89991fca045be26f50cf9b51dabff036dbd0a170476407fc",
+      "monotonicNs": 88878504142972,
+      "phase": "dispatch",
+      "pid": 468788,
+      "requestId": "render_3",
+      "observedMonoNs": 88878753997087,
+      "observedDelayNs": 249854227,
+      "appBirth": 8887290,
+      "guardianBound": true
+    },
+    {
+      "instanceId": "89991fca045be26f50cf9b51dabff036dbd0a170476407fc",
+      "monotonicNs": 88880680393747,
+      "phase": "dispatch",
+      "pid": 468788,
+      "requestId": "render_4",
+      "observedMonoNs": 88880751496583,
+      "observedDelayNs": 71102922,
+      "appBirth": 8887290,
+      "guardianBound": true
+    },
+    {
+      "instanceId": "89991fca045be26f50cf9b51dabff036dbd0a170476407fc",
+      "monotonicNs": 88880894415796,
+      "phase": "dispatch",
+      "pid": 468788,
+      "requestId": "render_5",
+      "observedMonoNs": 88881001613372,
+      "observedDelayNs": 107197659,
+      "appBirth": 8887290,
+      "guardianBound": true
+    }
+  ],
+  "eventDrops": 0,
+  "logBytes": 1679,
+  "logReadNs": 10997009,
+  "guardianBindingEvents": [
+    {
+      "pid": 468923,
+      "birth": 8887623,
+      "instanceId": "89991fca045be26f50cf9b51dabff036dbd0a170476407fc",
+      "sourceMonoNs": 88876237011494,
+      "observedMonoNs": 88876251258145,
+      "instanceEnvironmentMatched": true,
+      "instanceEnvironmentCheck": {
+        "status": "matched"
+      },
+      "nativeCreationProof": {
+        "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-03/runtime/mermaid-ui-cold-diag-03/native-capture/events.jsonl",
+        "device": 27,
+        "inode": 706831,
+        "kind": "configured-app-owned-native-sink"
+      }
+    }
+  ],
+  "environmentUnavailableBindings": 0,
+  "identityLogBytes": 9678,
+  "requestPayloadLinesSkipped": 0,
+  "identityLogReadNs": 10242687,
+  "sampleCount": 21,
+  "sampleIncomplete": 0,
+  "retainedSamples": 21,
+  "evictedRows": 0,
+  "skippedSlots": 0,
+  "maxLateNs": 143337982,
+  "discoveryCount": 10,
+  "discoveryIncomplete": 0,
+  "discoveryTasks": 19,
+  "overhead": {
+    "observerOwnCpuNs": 75795591,
+    "prelaunchHashCpuNs": 18261164,
+    "afterReadyCpuNs": 57537785,
+    "procReads": 185,
+    "readTotalNs": 8742531,
+    "readMaxNs": 988498,
+    "sampleTotalNs": 9025382,
+    "sampleMaxNs": 3061736,
+    "discoveryTotalNs": 6581704,
+    "discoveryMaxNs": 2409050
+  },
+  "errors": [],
+  "errorCount": 0,
+  "limits": {
+    "identities": 64,
+    "tasksPerDiscovery": 128,
+    "childrenPerParent": 128,
+    "discoveryWallBudgetNs": 5000000,
+    "sampleWallBudgetNs": 10000000,
+    "sampleBytes": 2097152,
+    "maxSeconds": 60
+  },
+  "qualifications": [
+    "Guardian environ PermissionError is an explicit optional-check gap; native creation proof plus live exact identities remain required.",
+    "Oversized render-accepted payload lines are intentionally skipped; this is not an identity-loss counter.",
+    "Process CPU is own process utime/stime; guardian and App separate from renderer tree.",
+    "schedstat is leader-thread only, not process-wide; zero may mean accounting unavailable.",
+    "Short-lived and pre-discovery CPU is not reconstructed; parent linkage is not atomic.",
+    "No shared cgroup CPU included in renderer totals. No interval interpolation.",
+    "Asynchronous native events can be lost; requestIds are observed, never presumed.",
+    "Discovery time budget is cooperative; individual kernel reads cannot be preempted.",
+    "Sample loop overhead includes polling/discovery; perturbation is measured, not subtracted."
+  ],
+  "failure": null
+}

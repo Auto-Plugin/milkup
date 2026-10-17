@@ -1,0 +1,57 @@
+P4 cold-start request static review 01
+2026-10-17; repository HEAD ffa662077bfe696b50c43f94691bc88e5f693c14
+
+范围与证据
+已读 /workspace/milkup/docs/cloud-environment-v2.md；在 /、/workspace、repo、docs、evidence/research 的适用祖先位置未发现 AGENTS.md，repo 非依赖目录搜索亦无 AGENTS.md。本轮没有启动 browser/native、没有重试失败工作流、没有改产品文件、没有扫描运行进程。仅静态读现存日志/源代码，新增本 research 目录文件。
+全部路径及当前 SHA-256 见 evidence-hashes.json。114 项 completed-manifest 文件逐一重新计算，零差异。所读 6 个 native DOM 文件与 linux-production-08/source 同名文件逐字节一致。该核验只证明输入与证据身份，不证明产品通过。
+本报告主要原始证据根：
+  /workspace/milkup-mermaid-engine-evidence/product-ui-runs/
+  control/mermaid-ui-production08-observed-01/
+  runs/mermaid-ui-production08-observed-01/
+  logs/mermaid-ui-production08-observed-01-driver.log
+完整读取了实际 driver.log、harness-first.log、failure.json、results.json、diagnostic-completion.json、provenance.json、CPU 原始 summary.json 与已有控制审计。没有用其他轮次替代本轮数据。
+
+结论：目标 sample 不等于实际超时请求
+1. harness 的 coldBundledWindow 在记录 preinstalled-cold-before-render 后，选择 sample block-000-first-official-example，assertSample 等待其绝对 UTF-16 from=108/to=342 对应 preview image complete 且尺寸非零。30 秒等待失败的名字是 actual image decode block-000-first-official-example。这只是验收目标。FAIL 的 previews=[]、diagrams state=failed、enabled=false、底层执行 deadline 错误，不能据此认定图像解码器故障。
+2. 原生 authoritative request key 是 plugin=milkup.diagrams（实例上下文）、instance=32334888594142dd8481207c9921d47cfd83a3935befe193、requestId=render_3。driver 实际记录 render_1/2/3 dispatch，然后仅 render_3 deadline。它没有 source、range、blocks、selection、width 等输入。不能认定 render_3 是 block、class、某个可见围栏或历史 render_2754。
+3. document-render-rpc.ts 的 render_N 来自每个 client 自增序列，排队/取消也影响 ID；它不是 sample 序号。renderer.ts:66 对 request.blocks 循环，一个请求可能包含多个围栏。即便将来知道请求含 block/class，也不能仅凭完整请求断定内部哪个 block 或阶段耗尽时间。
+4. harness 顺序 full-workflow-diagnostic.mjs:1569-1577 是 CPU sampler → 页面错误监听 → resize → coldBundledWindow → independent install → installDeadlineDiagnostic。原始 diagnostic-completion 明确 observerInstalled=false，故本轮没有早期 wire。已有 observer 要求既存唯一 live callback，不能简单挪到 initialization_script 就认为可用。
+
+可复核时间线（同一 Linux CLOCK_MONOTONIC；纳秒）
+render_1 dispatch 85794872246430
+render_2 dispatch 85795537319082
+render_3 dispatch 85795991194763
+render_3 deadline-observed 85797995302212，距 dispatch 2004.107449ms
+guardian kill-start 85797995496045，距 dispatch 2004.301282ms；该日志 pid=463905 是 guardian 自身，绝非 WebKit renderer 身份证明
+App cleanup-confirmed 85798181632951，距 dispatch 2190.438188ms
+App control-emitted 85798181676452，距 dispatch 2190.481689ms
+cleanup-complete 原始行缺失；不能补算精确 ECHILD。native_trace 使用 bounded try_send 且没有丢失计数，缺行不等于未发生。
+
+现有 CPU 证据边界
+App PID/birth=463772/8578628；其 10 个 sample 在 4.513972172s 内 own user+system=0.31s。严格落在 render_3 两端内的完整 sample 区间仅 1.510067704s，App own CPU=0.07s；两端各缺 313.187730ms 与 180.852015ms，不插值。
+共享 cgroup 严格内部完整区间 1.000711243s CPU usage=2.664384s，nr_throttled/throttled_usec 增量 0；这是多核共享工作负载，不是 renderer CPU。不能用 App 低 CPU 判定 renderer idle，不能用共享 cgroup 零节流排除调度等待、锁、I/O、其他争用。采样器从日志观察 deadline 延迟 320.564002ms；该延迟不是 native deadline 超额。
+
+dispatch 语义与最小推荐入口
+apps/desktop/src-tauri/src/plugin_dom.rs:158 的命令在 spawn_blocking 中以 pluginId+instanceId 查实例，再调用 Instance::send。
+plugin_dom_process.rs:207 先 serde_json::to_vec(message)，上限 INPUT_WIRE_LIMIT=1MiB；在 control 锁内检查实例 initialized、非busy、valid_id、validate_render 后，于现有 native_trace(dispatch) 之后立刻设置 active=(id, Instant::now()+2s)。锁释放后等 input_ready、持 stdin 锁、write/flush。watchdog 不持 pipe/GUI 锁，独立维持 deadline。
+因此原生 accepted send 入口能把完整现有 bytes 与真正被接受的 request 绑定；Tauri 发送侧 fetch 只能证明 attempted input，须与 native accepted dispatch 再关联。serialization of message→bytes 在现有 deadline 设置前；helper 侧 JS 注入、renderer、布局、结果序列化/转移及 owner 最终确认均在 native deadline 内。
+
+建议 A（推荐，尚未执行）：单独 research 诊断构建
+只在明确新研究环境开关开启时，以独立有界异步 recorder 观察 accepted send。保留原 2s/10s 常量、所有期限赋值位置、native_trace、control/stdin 锁边界、watchdog、cancel、guard、cleanup 和正常结果协议。在 accepted branch 保存小型 metadata；control 锁释放后、正常 stdin 写入前复制已有 bytes 并 try_send，不重序列化请求、不 hash、不做磁盘 I/O、不等待 drain。复制和 try_send 都计入原 deadline，可能引入观测扰动，不能声称零开销。
+后台线程计算完整 wire SHA-256、写专有研究文件。每条至少含 schema、session、pluginId、instanceId、requestId、owner PID/birth（或明确缺失）、accepted CLOCK_MONOTONIC ns、capture ns、wire byte count、原始完整 message wire、wire SHA-256、sequence。保持 request 全部字段，不能只保存 Mermaid source。正常输入有 UTF-16 范围；不得按 UTF-8 byte offset 关联 fixture。后台导出时再解析 message.request.source 与 fixture 的 UTF-16 切片并核对 blocks/contentRanges 等，不把 wire 字符数当字节数。
+记录排队尝试数/入队数/queue-full/oversize/disabled/写失败/落盘数，设硬 event/byte/session 上限、文件独占创建。达到上限则只丢诊断并显式标记 incomplete，绝不延迟、取消或重试产品请求。完整失败请求必须在记录中出现；缺失即本次诊断不具备归因资格。后台文件完整性、drops 与 manifest 在进程结束后审计，不能靠无错误日志推定无丢失。记录 guardian spawn 身份：instanceId、guardian PID、birth、parent App PID；均来自原有已获得值，无新增全表发现。
+启动前置是诊断入口随二进制存在，从第一个 accepted render 就能观察；它不需要 WebDriver ready、既存 callback 或预先成功 render。保持 fixtures、正常启动流程及未 warmup 的冷状态。研究 binary、source diff、compiler/build inputs、插件 archive hashes 必须与生产 binary 分列；诊断成功不回写生产通过。
+
+建议 B（备用，较复杂）：native initialization_script 最早注入
+必须证明注入顺序早于任何 app module、Tauri IPC 和自动 bundled activation。现 observer.js 原样不可用：安装时 live event callback 尚不存在会拒绝；延迟等待 callback 又可能漏首个 render。需要拆分 outgoing 捕获与 callback 动态绑定，或改用 native deadline 日志匹配 outgoing ring，并声明 callback gap。不得通过 Promise 等待、推迟 activation、提前启用/禁用插件或先打开空文档再切入来制造捕获窗口；这些会改变冷启动语义。仍需独立 renderer CPU sampler，因此总体修改面和验证负担高于 A。
+
+renderer CPU / 调度的最小可复核采样设计（尚未实施）
+从外部启动控制器得到 App 精确 PID/birth，sampler 随启动预置；以 native guardian identity 事件为首选绑定。若事件异步延迟，必须记录 firstSeen/窗口缺口，绝不能暂停产品等采样就绪。
+可复用 research/native-dom-cpu-sampler-01/cpu_sampler.py 的 children(owner) 归属方法：只枚举已证明 PID 的 /proc/PID/task/TID/children，有界递归；每轮前后复核 PID birth、PPID、继承 instanceId、精确 argv/exe。App 子进程中匹配 guardian，随后仅采其后代。此脚本现有固定 binary/hash、render_1 anchor、10s 单窗口均需在研究副本改为冻结新 binary/session 和本轮 request key；不可直接运行旧脚本。tests/helpers/native-dom-process-observer.py 的 /proc 全局迭代禁止作为替代。
+区分 App、guardian、GTK helper、WebKitWebProcess、WebKitNetworkProcess、其他 owned；WebKit 才是 JS/layout 工作进程，不把 guardian/helper CPU称为 Mermaid CPU。多 WebKit 候选则逐个报告或仅称 owned WebKit 集合；不得按进程名猜唯一 renderer。仅祖先/出生时间已证明的后代允许贴角色标签；命名自身不是所有权证据。必要时另增受限 native guard 身份消息以绑定具体 WebPage，但不是首版必需，且 namespace PID 必须核对 NSpid/已证明祖先，不能直接把 getpid 当 host PID。
+建议 process CPU 50-100ms、有界 descendant discovery 250ms、相关线程 schedstat 100ms，先以静态预算限制每轮线程/身份/总字节数，超限明确 incomplete。对精确 WebKit/helper PID/birth 下的 TID/birth 采 stat + schedstat(runtime ns, runqueue wait ns, timeslices) + status context switches；process stat own utime/stime 为进程级 CPU，schedstat 需线程级累积，不能把 leader schedstat 当全进程或与进程 CPU重叠相加。Linux schedstat 不可用/为禁用的零值时标 unavailable，不改 sysctl，不把零当无调度等待。
+所有 sample 带 CLOCK_MONOTONIC 读起止、计划时间、late/missed、identity birth、缺失原因与 sampler own CPU/读取耗时。以 exact instance+request dispatch/deadline 窗口筛完整相邻区间，丢掉跨边界的差值，不插值。短寿命未捕获线程/退出前缺尾样本显式保留。现存共享 cgroup 可作为背景，不升级为 renderer 归因。
+完整输入+owned WebKit CPU/线程等待能区别“窗口中 CPU运行较多”与“可观测 runnable 等待较多”；仍不能单凭这些证明 Mermaid 某函数/某围栏根因。首版无需插入 renderer JS、拦截 timers、调整优先级、扩大预算或全局进程扫描。
+
+下一步审查门槛
+仅准备 research 副本和精确 diff；检查环境开关默认 off、accepted-only/完整 bytes、容量/drop状态、异常不影响产品、2s/10s与锁/cleanup位置完全不变；以纯静态检查和后续授权的隔离 fake recorder/fixture 验证，而不是重跑 UI。实际 build/native/UI 不在本报告已完成范围。当前唯一未解决的问题仍是本次 render_3 的输入与 renderer 执行/调度没有被记录，历史现场无法追补。

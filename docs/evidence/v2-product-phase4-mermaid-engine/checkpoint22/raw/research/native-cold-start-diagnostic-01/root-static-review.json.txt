@@ -1,0 +1,29 @@
+{
+  "status": "REVIEWED_FOR_ONE_DIAGNOSTIC_BUILD_RUNTIME_REQUIRES_SEPARATE_REVIEW",
+  "repositoryHead": "7ad29dc04061f60300dbe2902d29e16f00272727",
+  "productionCodeBaseline": "ffa662077bfe696b50c43f94691bc88e5f693c14",
+  "candidateManifestSha256": "2570bf2cd21e42554dbed8d637c78b7ea9c742b80784739f9beb0601ef120c64",
+  "reviewed": [
+    "All three final overlay hashes and original source hashes verified",
+    "Existing receive/watch/finish/cleanup bodies remain byte-identical",
+    "Original render 2s and init 10s budgets and deadline assignment locations preserved",
+    "Accepted request capture after control unlock uses bounded clone and nonblocking channel; hashing and output occur in background",
+    "Initialization occurs inside original init budget; observation overhead is not zero",
+    "Original cold fixtures/startup/assertion retained; downstream full UI omitted and labelled diagnostic prefix",
+    "Final capture drains before App close within separate bounded diagnostic finish; missing final state is incomplete",
+    "CPU observer binds exact App/guardian identities and only enumerates owned task children; process CPU and leader schedstat remain distinct",
+    "Build uses existing production08 frontend and archive, temporary three-file overlay with finally restoration and separate diagnostic binary"
+  ],
+  "validation": {
+    "recorderPureTests": "7 first PASS; logic-tests-first/execution.json",
+    "cpuSyntheticTests": "15 first PASS; cold-start-cpu-review-01/candidate/synthetic-tests.log",
+    "candidateTestInitializerCorrection": "Final v02 adds diagnostic: None only to existing native test initializer; recorder module unchanged from tested bytes",
+    "warnings": "Standalone recorder tests reported fetch_update deprecation and unused initialize; retained, no product/native runtime test claim"
+  },
+  "limitations": [
+    "This build and cold prefix cannot be reported as production UI acceptance",
+    "Original production08 render_3 payload cannot be reconstructed from a new request",
+    "CPU discovery has first-seen gaps; leader schedstat does not account for all threads",
+    "Runtime and actual observation overhead remain unmeasured until separate run"
+  ]
+}

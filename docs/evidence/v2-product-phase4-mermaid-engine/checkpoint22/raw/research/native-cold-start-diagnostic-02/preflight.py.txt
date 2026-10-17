@@ -1,0 +1,37 @@
+"""Static/read-only exact environment preflight. Does not launch or signal anything."""
+import hashlib,json,shutil,subprocess,sys
+from pathlib import Path
+BASE=Path(__file__).resolve().parent;REPO=Path('/workspace/milkup');RUN='mermaid-ui-cold-diag-02'
+mode=sys.argv[1] if len(sys.argv)>1 else '--runtime';assert mode in ['--build','--runtime']
+def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+inputs=json.loads((BASE/('build-inputs.json' if mode=='--build' else 'runtime-inputs.json')).read_text())
+errors=[]
+for row in inputs['files']:
+ if not Path(row['path']).is_file() or sha(row['path'])!=row['sha256']:errors.append('Input drift: '+row['path'])
+head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()
+if head!=inputs['head']:errors.append('HEAD drift')
+free=shutil.disk_usage(BASE).free
+if free<800*1024*1024 and mode=='--build':errors.append('Less than 800MiB free')
+result={'mode':mode,'head':head,'freeBytes':free,'inputFileCount':len(inputs['files']),'errors':errors}
+if mode=='--runtime':
+ expected=inputs['dedicatedDisplay'];pid=expected['pid']
+ try:
+  w=Path('/proc',str(pid),'stat').read_text().rsplit(')',1)[1].split();argv=Path('/proc',str(pid),'cmdline').read_bytes().decode().strip('\0').split('\0')
+  actual={'pid':pid,'birth':w[19],'argv':argv,'bootId':Path('/proc/sys/kernel/random/boot_id').read_text().strip()}
+  if actual!=expected:errors.append('Exact dedicated Xvfb changed')
+  result['display']=actual
+ except FileNotFoundError:errors.append('Exact dedicated Xvfb missing')
+ fresh=[BASE/'runtime'/RUN,Path('/tmp/milkup-runtime-'+RUN)]
+ result['freshPaths']=[{'path':str(p),'exists':p.exists()} for p in fresh]
+ if any(p.exists() for p in fresh):errors.append('Run/profile/control paths already exist; never retry this run name')
+ used=[]
+ for name in ['/proc/net/tcp','/proc/net/tcp6']:
+  for line in Path(name).read_text().splitlines()[1:]:
+   words=line.split();port=int(words[1].split(':')[1],16)
+   if port in (4626,4627) and words[3]=='0A':used.append({'port':port,'inode':words[9]})
+ result['listeners']=used
+ if used:errors.append('Dedicated driver ports already listening')
+ if not inputs['binary']['sha256']:errors.append('Diagnostic binary not frozen')
+result['ready']=not errors
+print(json.dumps(result,indent=2))
+sys.exit(0 if not errors else 1)

@@ -1,0 +1,60 @@
+milkUp P4 cold startup CPU / cleanup 独立证据审查
+审查时间：2026-10-17；仓库 HEAD：ffa662077bfe696b50c43f94691bc88e5f693c14。
+对象：product-ui-runs/{runs,control}/mermaid-ui-production08-observed-01。
+范围：读取既有证据和实现；一次定点 PID 状态读取；仅在本审查目录新增产物。没有启动产品、重跑 runtime、修改产品、清理或发送信号。已读 docs/cloud-environment-v2.md；仓库及证据目录祖先没有发现 AGENTS.md。
+
+结论
+首次冷 UI gate 的 block-000-first-official-example 实际图像解码等待超时，以及 native render_3 的 deadline 都有原始记录。它们处于同次失败流程，但该启动阶段没有 transport observer，不能把 render_3 的 payload 精确绑定为该 block。CPU 因果原因仍未测明：App 自身 CPU 很低不代表 renderer 空闲；共享 cgroup CPU 较高不等于 renderer CPU，也不证明 deadline 是 CPU 争用造成。
+
+1. 冻结与原始性
+completed-manifest.json 的 114 个 files 与 10 个 externalReferences，共 124 项，实际字节数与 SHA-256 全匹配；fileCount/totalBytes 与清单求和一致。见 manifest-verification.json。该校验是内容完整性核对，不是数字签名或因果验证。
+原始 native driver 日志的 9 条 DOM_NATIVE_TIMING 与 native-traces.json 完全相等。cpu-observer 目录只有 summary.json，没有独立 samples.ndjson；实际原始样本内嵌在 summary.json 的 app.samples（10 条）与 cgroup.samples（5 条），本次直接复算这些数组，没有把既有 cpu-interval-review.json 当作独立测量。
+
+2. CPU 分层与可确定数字
+App 身份：PID 463772、starttime/birth 8578628，argv 为 frozen production08 milkup-desktop + 本 run ordinary.md；绑定前后 birth 相等，100 ticks/s。/proc/<pid>/stat 的 utime+stime 仅为该进程自身（包含自身线程）CPU，不包含 renderer 子进程。
+- 完整 App 端点：mono 85793801202572 → 85798315174744 ns；4.513972172 s；user 19 ticks + system 12 ticks = 0.31 CPU s；按一个逻辑 CPU=100% 为 6.867566%。覆盖 render_3 dispatch 前 2189.992191 ms 至 deadline 后 319.872532 ms，因此不是单请求 CPU。
+- 完全落在 render_3 dispatch/deadline 内的 App 端点：85796304382493 → 85797814450197 ns，4 样本；1.510067704 s；1 user + 6 system ticks = 0.07 CPU s；4.635554%。首端点在 dispatch 后 313.187730 ms，末端点在 deadline 前 180.852015 ms；未插值边缘。
+- 共享 cgroup 完整端点：85793801280814 → 85797811203337 ns；4.009922523 s；usage +9,053,273 us（user +7,249,413 / system +1,803,859 us）；平均 2.257718 CPU、225.771769% 单核。user+system 与 usage 的 1 us 差保留原值。
+- 请求内共享 cgroup 完整端点：85796810492094 → 85797811203337 ns，2 样本；1.000711243 s；usage +2,664,384 us（user +2,213,145 / system +451,238 us）；平均 2.662490 CPU、266.249032% 单核。首端点遗漏请求前 819.297331 ms，尾部遗漏 184.098875 ms。
+- cgroup cpu.max 每次均为 400000/100000，即 quota 相当于 4 CPU；这不是 renderer 独占资源、也不是实际可运行核心/调度保证。observer/App membership 均为 0::/，同 cgroup namespace；记录明确 rendererAttribution=false。
+- 上述两个 cgroup 区间 nr_throttled 与 throttled_usec 增量均 0；完整区间 nr_periods +40，请求内 +10。memory.events 所有增量均 0。原始 max=74125、nr_throttled=21794 是累计旧值，不属于此请求。零增量不排除区间外节流、其他调度争用或资源等待。
+- renderer/helper/WebKit 进程 CPU：没有身份绑定和 CPU 样本；无法填数字。不能用 shared cgroup 减 App CPU 当作 renderer CPU（其他进程也在该组，区间亦不同）。
+
+3. 采样质量与冷启动缺口
+App 周期 500 ms，共 10；cgroup 周期 1 s，共 5；missedSlots=0、errors={}、ring age/count/bytes eviction 均 0。最大 late 为 App 5.609975 ms、cgroup 6.559661 ms。observer 自身累计 CPU 为 5.782752 ms；App 读取总耗时 1.741420 ms，单次最大 0.341972 ms；cgroup 读取总耗时 0.677367 ms，单次最大 0.197657 ms。这些不是“零观测扰动”证明，也不含整个 harness/启动器成本。
+App 的 birth 按 tick 换算后，observer startedMonoNs 在其后约 7520.471807 ms（birth 粒度 10 ms）。因此 startsBeforeColdWorkflow=true 仅说明在 harness 冷测试动作前启动，不说明覆盖 App 整个冷启动。采样开始时 App 已累计 1.89 CPU s，之前 CPU 分布和当时 renderer 生命周期未测。
+采样器初始 seek-end 跳过 839 bytes，后读 1191 bytes/10 次，maxBacklog/oversize/pending 为 0。native trace 使用异步有界通道 try_send，没有丢行计数；不能将“不见某行”当作该阶段未发生。deadline 被采样器读到晚 320.564002 ms，这属于日志观测延迟，不能加到 native deadline 执行时间上。
+
+4. 时间轴（CLOCK_MONOTONIC；相对 render_3 dispatch）
+render_1 dispatch：-1118.948333 ms，mono 85794872246430。
+render_2 dispatch：-453.875681 ms，mono 85795537319082。
+render_3 dispatch：0，mono 85795991194763。
+render_3 deadline-observed：+2004.107449 ms，mono 85797995302212。
+guardian PID 463905 kill-start：+2004.301282 ms，mono 85797995496045（deadline 后 0.193833 ms）。
+App cleanup-confirmed：+2190.438188 ms，mono 85798181632951（kill-start 后 186.136906 ms）。
+App control-emitted render_3：+2190.481689 ms，mono 85798181676452。
+observer 读到 deadline：+2324.671451 ms，mono 85798315866214。
+另两条 App cleanup-confirmed：+2357.745318 / +2357.815033 ms。
+没有 cleanup-complete 行，不能给出精确 ECHILD 时间。源码 guardian 在 waitpid 得到 ECHILD 后排队 cleanup-complete 并成功退出；App cleanup-confirmed 只在 child.try_wait() 得到成功状态后写出，所以它支持 App 确认 guardian 成功退出，但异步行可能在退出前未刷出，不能以缺行反推未完成清理。
+UTC 记录分别为 driver 启动 00:49:11.678798Z、harness 启动 00:49:33.401216Z、sampler launch 元数据 00:49:41.317Z、preinstalled record 00:49:42.687Z、first failure observed 00:50:12.813Z、FAIL record 00:50:13.535Z、harness exit 1 于 00:50:13.665277Z、driver exit 0 于 00:50:36.493971Z、cleanup audit 00:51:44.728549Z、manifest freeze 00:53:19.848791Z。没有保存精确 realtime/monotonic 同步对，不强行将 native 纳秒时间转成 UTC。
+
+5. cleanup 与当前活进程核对
+原 cleanup-audit 对 wrapper 463699/birth8576411、driver 463714/8576422、harness 463746/8578583、App 463772/8578628 都记 absent；sampler 463993 和 guardian trace PID 463905 也 absent，但没有历史 birth。driver stop 记录是 exact PID/birth/argv + pidfd SIGTERM，之前 /status 为 No sessions；这是历史动作，本审查没有再次执行。历史 ports 4626/4627=111 表示当次连接被拒绝，不等于现在重测。Xvfb126 被保留。
+本审查于 01:13:15.671010Z—01:13:15.671127Z，仅对以上 6 个 PID 加 driver 日志 WARNING 中已有的 463910 进行一次 /proc/<pid>/stat 读取：7 个都 absent。463910 只是未绑定的警告 PID，不能凭进程名补成 renderer 身份。见 recorded-pid-check.json。
+结论只能是“本次定点检查未发现这些已记录 PID 的 live 进程”。没有历史 renderer/全后代 PID+birth 清单，不能独立宣称所有 run 后代已不存在；birthless PID 若存在，也不能事后补历史归属。没有全局枚举、高频扫描或清理。
+
+6. 后续精确 renderer 子进程低开销采样方案（仅设计，未执行）
+目标：分开记录 App、guardian、renderer leader、renderer 的 WebKit/network 子进程；不给共同 cgroup 或名称匹配赋予 ownership。每条记录键为 runId+instanceId+pid+starttime，保留实际 birth 和本机 PID namespace 标识，host PID 与 NSpid 映射如果存在必须显式记录。
+A. 先取得权威身份。未来诊断构建可在 App command.spawn guardian 和 guardian fork renderer 两个已知创建点，各发一次有界、非阻塞身份事件，带角色、父身份、child PID、读取到的 starttime、monotonic time；采样侧读取 stat→cmdline/exe→stat 两次确认 birth，并保留 pidfd 仅用于退出通知。fork 子进程继承 argv，不能仅靠 argv 区分 guardian 和 renderer。身份事件缺失就标 missing；不能从 kill-start 的 guardian PID 推定 renderer PID。该建议需要将来单独授权的诊断准备，本审查没有改产品。
+B. 如不改产品，允许的较弱方案是在既知 exact App/guardian 活着时，从 /proc/<ownedPid>/task/<tid>/children 定点有界遍历其各线程孩子，再递归已确认孩子；最多每 1 s 一次、每轮最多 64 进程/256 线程、每文件最多 4 KiB、整轮 wall budget 5 ms。读前后重验父 birth；对跨 namespace/权限不足/遍历截断记明确 gap。只枚举已拥有进程的 task，不枚举全 /proc；第一次发现 child 也做双 stat 验证并保存 parent edge。发现时已 reparent 的进程及生命周期短于发现周期者可能漏掉，方案必须报告“不完整”，不能声称捕获全部 renderer CPU。
+C. 对已验证 exact 身份每 500 ms 读一次 /proc/PID/stat，只存自身 utime/stime、starttime、state、rss 与读前后 CLOCK_MONOTONIC、scheduled/lateness；不读 smaps，不追 JS stack，不作全局 ps。共享 cgroup 保持 1 s；CPU 总量不要同时加 thread 明细或 cutime/cstime，避免父子重复计算。采样到 absent、birth mismatch 或 Z 后停止此身份，不重绑复用 PID；终止后的缺样不是 CPU=0。
+D. 开始于 App 启动前并预置身份通道，至少覆盖 guardian/renderer 创建和第一次 request；60 s ring（每身份 121 点），最多 64 身份且总 2 MiB 上限，超限记录 evicted/dropped/coverage。不追赶错过时槽；deadline 到达时立即冻结并停止 CPU 轮询，既有 guardian cleanup 自行执行，observer 不参与 kill。只读进程退出通知可继续短时记录身份状态；不得为获得最后样本延后 deadline 或 cleanup。
+E. 同时捕获 request dispatch/response/deadline 的 requestId+instanceId+source hash/长度/fixture ID，在冷 workflow 之前安装观测。dispatch/finish 事件到达时可追加一次 exact stat，但保留事件到达延迟，不能宣称与事件同步；只报告完整样本区间 delta 与边缘缺口，不线性插值。时钟开始/结束各保存 realtime 与 monotonic 成对读及误差区间。
+F. 附报 observer process_time、每类读取总/最大时长、读取次数、时槽迟到、身份/日志缺失和 ring 淘汰；上述 5 ms 是预算目标不是实测保证。任何身份发现/采样超预算只降级/终止观测，不阻塞产品。500 ms 采样与 10 ms tick 粒度只能提供 CPU 区间证据，无法区分排队、I/O、字体、GC、JS 长任务或每个请求内部阶段；若还要解释因果，需要另行设计对应低扰动阶段观测及对照，而非从 CPU 数字推论。
+
+产物
+manifest-verification.json：124 项实际哈希/大小核对。
+recomputed-cpu.json：直接由内嵌样本复算的区间。
+timeline.json：日志行号、原始单调时间及相对 dispatch 时间。
+recorded-pid-check.json：单次定点读取记录。
+audit.py：此次核验脚本（只读输入；产物只写本目录）。

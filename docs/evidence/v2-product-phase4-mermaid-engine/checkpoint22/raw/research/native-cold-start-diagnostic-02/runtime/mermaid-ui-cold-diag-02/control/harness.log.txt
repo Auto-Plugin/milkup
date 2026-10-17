@@ -1,0 +1,17 @@
+2026-10-17T01:33:47.158Z NATIVE_STARTUP_WINDOW 1386ms
+PASS FAIL
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+Error: EACCES: permission denied, open '/proc/468107/environ'
+    at async open (node:internal/fs/promises:697:25)
+    at async readFile (node:internal/fs/promises:1348:14)
+    at async file:///workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-02/native/cold-prefix.mjs:1430:31 {
+  errno: -13,
+  code: 'EACCES',
+  syscall: 'open',
+  path: '/proc/468107/environ'
+}
+
+Node.js v24.19.0

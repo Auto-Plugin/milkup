@@ -1,0 +1,95 @@
+{
+  "schema": "milkup.cold-owned-cpu.v1",
+  "startedMonoNs": 88009145163223,
+  "finishedMonoNs": 88013399551138,
+  "stopReason": "observer-error",
+  "app": {
+    "pid": 467079,
+    "birth": 8800972,
+    "parent": 467040,
+    "state": "S",
+    "userTicks": 71,
+    "systemTicks": 62,
+    "argv": [
+      "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-01/build-attempt-01/diagnostic-only-milkup-desktop",
+      "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-01/runtime/mermaid-ui-cold-diag-01/evidence/ordinary.md"
+    ],
+    "boundNs": 88013399097859
+  },
+  "knownIdentities": [
+    {
+      "pid": 467079,
+      "birth": 8800972,
+      "parent": 467040,
+      "state": "S",
+      "userTicks": 71,
+      "systemTicks": 62,
+      "role": "App",
+      "instanceId": null,
+      "parentIdentity": null,
+      "firstSeenNs": 88013399103531,
+      "firstSampleNs": null
+    }
+  ],
+  "samplePeriodNs": 250000000,
+  "discoveryPeriodNs": 500000000,
+  "clockTicksPerSecond": 100,
+  "nativeEvents": [],
+  "eventDrops": 0,
+  "logBytes": 0,
+  "logReadNs": 0,
+  "guardianBindingEvents": [],
+  "identityLogBytes": 523,
+  "requestPayloadLinesSkipped": 0,
+  "identityLogReadNs": 8377323,
+  "sampleCount": 0,
+  "sampleIncomplete": 0,
+  "retainedSamples": 0,
+  "evictedRows": 0,
+  "skippedSlots": 0,
+  "maxLateNs": 0,
+  "discoveryCount": 0,
+  "discoveryIncomplete": 0,
+  "discoveryTasks": 0,
+  "overhead": {
+    "observerOwnCpuNs": 37001747,
+    "prelaunchHashCpuNs": 20149633,
+    "afterReadyCpuNs": 16854649,
+    "procReads": 8,
+    "readTotalNs": 194718,
+    "readMaxNs": 71792,
+    "sampleTotalNs": 0,
+    "sampleMaxNs": 0,
+    "discoveryTotalNs": 0,
+    "discoveryMaxNs": 0
+  },
+  "errors": [
+    {
+      "monoNs": 88013399235002,
+      "stage": "terminal",
+      "error": "PermissionError",
+      "detail": "[Errno 13] Permission denied: '/proc/467203/environ'"
+    }
+  ],
+  "errorCount": 1,
+  "limits": {
+    "identities": 64,
+    "tasksPerDiscovery": 128,
+    "childrenPerParent": 128,
+    "discoveryWallBudgetNs": 5000000,
+    "sampleWallBudgetNs": 10000000,
+    "sampleBytes": 2097152,
+    "maxSeconds": 60
+  },
+  "qualifications": [
+    "Oversized render-accepted payload lines are intentionally skipped; this is not an identity-loss counter.",
+    "Process CPU is own process utime/stime; guardian and App separate from renderer tree.",
+    "schedstat is leader-thread only, not process-wide; zero may mean accounting unavailable.",
+    "Short-lived and pre-discovery CPU is not reconstructed; parent linkage is not atomic.",
+    "No shared cgroup CPU included in renderer totals. No interval interpolation.",
+    "Asynchronous native events can be lost; requestIds are observed, never presumed.",
+    "Discovery time budget is cooperative; individual kernel reads cannot be preempted.",
+    "Sample loop overhead includes polling/discovery; perturbation is measured, not subtracted."
+  ],
+  "failure": "PermissionError: [Errno 13] Permission denied: '/proc/467203/environ'"
+}

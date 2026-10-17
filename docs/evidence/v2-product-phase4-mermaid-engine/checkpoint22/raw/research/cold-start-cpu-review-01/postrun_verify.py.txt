@@ -1,0 +1,94 @@
+#!/usr/bin/env python3
+"""Offline verifier. Invoke only after root GO and complete run; no /proc or runtime I/O."""
+import argparse
+import hashlib
+import json
+from pathlib import Path
+
+
+def digest(path):
+    b=path.read_bytes();return dict(bytes=len(b),sha256=hashlib.sha256(b).hexdigest())
+
+def load(path):return json.loads(path.read_text())
+
+def verify(root):
+    cpu=root/'cpu-observer';capture=root/'native-capture'
+    s=load(cpu/'summary.json');rows=[json.loads(l) for l in (cpu/'samples.ndjson').read_text().splitlines()]
+    cap=[json.loads(l) for l in (capture/'events.jsonl').read_text().splitlines()]
+    status=load(capture/'status.json');complete=load(capture/'complete.json')
+    app=s['app'];hz=s['clockTicksPerSecond'];issues=[]
+    check=lambda test,msg:issues.append(msg) if not test else None
+    check(status==complete,'status/complete differ')
+    check(complete.get('final') is True and complete.get('diagnosticClosed') is True,'native capture not finalized/closed')
+    for k in ['queueFull','disconnected','oversize','capped','ioErrors','incompleteTiming','inFlight']:
+        check(complete.get(k)==0,'native counter nonzero/missing: '+k)
+    check(complete.get('ownerPid')==app['pid'] and complete.get('ownerBirth')==app['birth'],'native owner vs CPU App mismatch')
+    check(complete.get('written')==complete.get('enqueued')==complete.get('attempted')==len(cap),'native event cardinality incomplete')
+    check(len({e['sequence'] for e in cap})==len(cap),'duplicate native sequence')
+    check({e['sequence'] for e in cap}==set(range(1,len(cap)+1)),'native sequence gaps')
+    native=[]
+    for line in (root/'driver.log').read_text().splitlines():
+        if line.startswith('DOM_NATIVE_TIMING '):native.append(json.loads(line[18:]))
+    native=[e for e in native if e.get('pid')==app['pid'] and e.get('monotonicNs',0)>=app['birth']*1_000_000_000//hz]
+    for e in s['nativeEvents']:
+        check(any(all(e.get(k)==n.get(k) for k in ['phase','pid','instanceId','requestId','monotonicNs']) for n in native),'CPU event not in raw driver log')
+    known={(x['pid'],x['birth']):x for x in s['knownIdentities']}
+    guards=[e for e in cap if e['kind']=='guardian-spawn'];accepted=[e for e in cap if e['kind']=='render-accepted']
+    for e in cap:
+        check(e['ownerPid']==app['pid'] and e['ownerBirth']==app['birth'],'capture owner mismatch')
+        if e['kind']=='render-accepted':
+            wire=e['wire'].encode('utf-8')
+            check(len(wire)==e['wireBytes'] and hashlib.sha256(wire).hexdigest()==e['wireSha256'],'wire bytes/hash mismatch')
+            request=json.loads(e['wire']);check(request.get('id')==e['requestId'],'wire request ID mismatch')
+    for binding in s.get('guardianBindingEvents',[]):
+        check(any((g['guardianPid'],g['guardianBirth'],g['instanceId'])==(binding['pid'],binding['birth'],binding['instanceId']) for g in guards),'guardian binding absent from native source')
+    counts={};read_ns=0;sample_max=0
+    per_pid={k:[] for k in known}
+    for sample in rows:
+        sample_max=max(sample_max,sample['durationNs']);read_ns+=sample['durationNs']
+        for m in sample['members']:
+            key=(m['pid'],m['birth']);check(key in known,'unknown sampled identity')
+            per_pid.setdefault(key,[]).append(m);counts[m['status']]=counts.get(m['status'],0)+1
+    request_audits=[]
+    for deadline in sorted((e for e in native if e['phase']=='deadline-observed'),key=lambda e:e['monotonicNs']):
+        key=(deadline['instanceId'],deadline['requestId']);end=deadline['monotonicNs']
+        starts=[e for e in native if e['phase']=='dispatch' and (e['instanceId'],e.get('requestId'))==key and e['monotonicNs']<=end]
+        matches=[e for e in accepted if (e['instanceId'],e['requestId'])==key]
+        q=dict(instanceId=key[0],requestId=key[1],nativeDispatchMatches=len(starts),acceptedWireMatches=len(matches),deadlineNs=end,processes=[])
+        request_audits.append(q)
+        if len(starts)!=1:continue
+        start=starts[0]['monotonicNs'];q['dispatchNs']=start;q['deadlineElapsedMs']=(end-start)/1e6
+        for pidkey,origin in known.items():
+            if origin.get('instanceId') not in (None,key[0]):continue
+            samples=per_pid.get(pidkey,[]);intervals=[]
+            for a,b in zip(samples,samples[1:]):
+                if a['status']!='sample' or b['status']!='sample':continue
+                if not start<=a['readStartNs']<=a['readEndNs']<=b['readStartNs']<=b['readEndNs']<=end:continue
+                ticks=b['userTicks']+b['systemTicks']-a['userTicks']-a['systemTicks']
+                check(ticks>=0,'nonmonotonic CPU counter')
+                sched=None
+                if a.get('leaderSchedstat') is not None and b.get('leaderSchedstat') is not None:
+                    sched={k:b['leaderSchedstat'][k]-v for k,v in a['leaderSchedstat'].items()}
+                    check(all(v>=0 for v in sched.values()),'nonmonotonic leader schedstat')
+                intervals.append(dict(firstReadStartNs=a['readStartNs'],firstReadEndNs=a['readEndNs'],lastReadStartNs=b['readStartNs'],lastReadEndNs=b['readEndNs'],cpuTicks=ticks,cpuSeconds=ticks/hz,leaderSchedstatDelta=sched))
+            q['processes'].append(dict(pid=pidkey[0],birth=pidkey[1],role=origin['role'],firstSeenNs=origin['firstSeenNs'],firstSampleNs=origin.get('firstSampleNs'),firstSeenMinusDispatchMs=(origin['firstSeenNs']-start)/1e6,
+                                      measurement='whole-intervals' if intervals else 'not-measured-inside-request',intervals=intervals,
+                                      cpuSeconds=sum(i['cpuSeconds'] for i in intervals) if intervals else None))
+    check(s['retainedSamples']==len(rows),'CPU retained sample count mismatch')
+    check(s['sampleCount']-s['evictedRows']==len(rows),'CPU ring count inconsistency')
+    return dict(scope='completed artifacts only; no live /proc or native operations',issues=issues,
+                fileHashes={str(p.relative_to(root)):digest(p) for p in [cpu/'summary.json',cpu/'samples.ndjson',capture/'events.jsonl',capture/'status.json',capture/'complete.json',root/'driver.log']},
+                app=app,stopReason=s['stopReason'],knownIdentities=s['knownIdentities'],sampleStatusCounts=counts,
+                cpuOverhead=s['overhead'],cpuQuality={k:s.get(k) for k in ['sampleCount','sampleIncomplete','evictedRows','skippedSlots','maxLateNs','discoveryCount','discoveryIncomplete','discoveryTasks','errorCount','errors','requestPayloadLinesSkipped']},
+                retainedSampleDurationSumNs=read_ns,retainedSampleDurationMaxNs=sample_max,
+                nativeCaptureOverhead={k:complete.get(k) for k in ['writerThreadCpuNs','writerCpuScope','captureTotalNs','captureMaxNs','incompleteTiming']},
+                requests=request_audits,qualifications=['No cgroup data is collected by this candidate; do not infer shared cgroup CPU.',
+                'CPU sum without valid intervals is null, not 0. Per-PID and per-role coverage differ.',
+                'Leader schedstat does not cover other threads; nonzero wait is limited to those observed leader intervals.',
+                'Native writerThreadCpuNs is already part of App CPU; captureTotalNs is elapsed duration, not CPU. Do not sum these as additive CPU.',
+                'Observer overhead fields are nested/overlapping and cannot all be summed; real perturbation remains counterfactual.',
+                'Partial, initial, missing and terminal edges are not interpolated. No CPU cause is inferred.'])
+
+if __name__=='__main__':
+    p=argparse.ArgumentParser();p.add_argument('--completed-root-go',required=True,choices=['ROOT_AUTHORIZED_COMPLETED_RUN_REVIEW']);p.add_argument('root');args=p.parse_args()
+    print(json.dumps(verify(Path(args.root)),indent=2))

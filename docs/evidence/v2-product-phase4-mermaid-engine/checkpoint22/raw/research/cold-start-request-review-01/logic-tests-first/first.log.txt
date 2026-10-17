@@ -1,0 +1,41 @@
+     Locking 21 packages to highest compatible versions
+   Compiling serde_core v1.0.228
+   Compiling serde_json v1.0.150
+   Compiling memchr v2.8.2
+   Compiling milkup-cold-request-recorder-logic-tests v0.0.0 (/workspace/milkup-mermaid-engine-evidence/research/cold-start-request-review-01/logic-tests)
+warning: use of deprecated method `std::sync::atomic::Atomic::<u64>::fetch_update`: renamed to `try_update` for consistency
+   --> ../candidate/apps/desktop/src-tauri/src/plugin_dom_request_diagnostic.rs:180:22
+    |
+180 |                     .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| {
+    |                      ^^^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+help: replace the use of the deprecated method
+    |
+180 -                     .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |n| {
+180 +                     .try_update(Ordering::Relaxed, Ordering::Relaxed, |n| {
+    |
+
+warning: function `initialize` is never used
+  --> ../candidate/apps/desktop/src-tauri/src/plugin_dom_request_diagnostic.rs:87:15
+   |
+87 | pub(super) fn initialize() -> Option<&'static Recorder> {
+   |               ^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `milkup-cold-request-recorder-logic-tests` (lib test) generated 2 warnings (run `cargo fix --lib -p milkup-cold-request-recorder-logic-tests --tests` to apply 1 suggestion)
+    Finished `release` profile [optimized] target(s) in 5.03s
+     Running unittests lib.rs (apps/desktop/src-tauri/target/release/deps/milkup_cold_request_recorder_logic_tests-f9dfc90097da8329)
+
+running 7 tests
+test recorder::tests::event_and_total_byte_caps_reject_before_cloning ... ok
+test recorder::tests::disabled_observer_creates_no_directory ... ok
+test recorder::tests::full_queue_and_oversize_are_counted_without_blocking ... ok
+test recorder::tests::wire_identity_bytes_and_hash_survive_background_encoding ... ok
+test recorder::tests::exclusive_output_never_overwrites_an_existing_directory ... ok
+test recorder::tests::writer_io_failure_has_no_false_completion ... ok
+test recorder::tests::close_drains_and_finalizes_all_pre_cutoff_inputs ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+

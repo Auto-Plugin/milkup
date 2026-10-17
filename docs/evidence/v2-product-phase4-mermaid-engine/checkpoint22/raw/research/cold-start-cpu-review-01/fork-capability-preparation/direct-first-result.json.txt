@@ -1,0 +1,304 @@
+{
+  "schema": "milkup.owned-fork-children-capability.v1",
+  "startedNs": 89254216435040,
+  "totalBudgetNs": 8000000000,
+  "observerContext": {
+    "pid": 469726,
+    "uid": 1000,
+    "gid": 1000,
+    "namespaces": {
+      "user": "user:[4026531837]",
+      "pid": "pid:[4026532200]",
+      "mnt": "mnt:[4026532201]"
+    },
+    "uidMap": {
+      "path": "/proc/self/uid_map",
+      "readStartNs": 89254216474725,
+      "status": "read",
+      "bytes": 33,
+      "raw": "         0          0 4294967295\n",
+      "readEndNs": 89254216496857
+    },
+    "gidMap": {
+      "path": "/proc/self/gid_map",
+      "readStartNs": 89254216498567,
+      "status": "read",
+      "bytes": 33,
+      "raw": "         0          0 4294967295\n",
+      "readEndNs": 89254216509447
+    }
+  },
+  "productStarted": false,
+  "globalProcScans": 0,
+  "signalsSent": 0,
+  "fixtureProof": {
+    "event": "fixture-ready",
+    "parent": {
+      "pid": 469729,
+      "birth": 8925421,
+      "parent": 469726,
+      "state": "R"
+    },
+    "child": {
+      "pid": 469730,
+      "birth": 8925421,
+      "parent": 469729,
+      "state": "R"
+    },
+    "parentContext": {
+      "pid": 469729,
+      "uid": 1000,
+      "gid": 1000,
+      "namespaces": {
+        "user": "user:[4026531837]",
+        "pid": "pid:[4026532200]",
+        "mnt": "mnt:[4026532201]"
+      },
+      "uidMap": {
+        "path": "/proc/self/uid_map",
+        "readStartNs": 89254220188749,
+        "status": "read",
+        "bytes": 33,
+        "raw": "         0          0 4294967295\n",
+        "readEndNs": 89254220202454
+      },
+      "gidMap": {
+        "path": "/proc/self/gid_map",
+        "readStartNs": 89254220203360,
+        "status": "read",
+        "bytes": 33,
+        "raw": "         0          0 4294967295\n",
+        "readEndNs": 89254220210394
+      }
+    },
+    "childContext": {
+      "pid": 469730,
+      "uid": 1000,
+      "gid": 1000,
+      "namespaces": {
+        "user": "user:[4026531837]",
+        "pid": "pid:[4026532200]",
+        "mnt": "mnt:[4026532201]"
+      },
+      "uidMap": {
+        "path": "/proc/self/uid_map",
+        "readStartNs": 89254218544665,
+        "status": "read",
+        "bytes": 33,
+        "raw": "         0          0 4294967295\n",
+        "readEndNs": 89254218562328
+      },
+      "gidMap": {
+        "path": "/proc/self/gid_map",
+        "readStartNs": 89254218563432,
+        "status": "read",
+        "bytes": 33,
+        "raw": "         0          0 4294967295\n",
+        "readEndNs": 89254218571806
+      }
+    },
+    "inside": {
+      "observedNs": 89254219703225,
+      "parentExpected": {
+        "pid": 469729,
+        "birth": 8925421,
+        "parent": 469726,
+        "state": "R"
+      },
+      "childExpected": {
+        "pid": 469730,
+        "birth": 8925421,
+        "parent": 469729,
+        "state": "R"
+      },
+      "parentBefore": {
+        "path": "/proc/469729/stat",
+        "readStartNs": 89254219710087,
+        "status": "read",
+        "bytes": 290,
+        "raw": "469729 (python3) R 469726 469726 469726 0 -1 4194368 429 0 0 0 0 0 0 0 20 0 1 0 8925421 37564416 1775 18446744073709551615 4329472 32290168 140723022006880 0 0 0 0 16781312 2 0 0 0 17 2 0 0 0 0 0 23068672 32290168 851542016 140723022013071 140723022013379 140723022013379 140723022016430 0\n",
+        "readEndNs": 89254219730209,
+        "identity": {
+          "pid": 469729,
+          "birth": 8925421,
+          "parent": 469726,
+          "state": "R"
+        }
+      },
+      "childBefore": {
+        "path": "/proc/469730/stat",
+        "readStartNs": 89254219742163,
+        "status": "read",
+        "bytes": 290,
+        "raw": "469730 (python3) S 469729 469726 469726 0 -1 4194368 406 0 0 0 0 0 0 0 20 0 1 0 8925421 37564416 1775 18446744073709551615 4329472 32290168 140723022006880 0 0 0 0 16781312 2 1 0 0 17 4 0 0 0 0 0 23068672 32290168 851542016 140723022013071 140723022013379 140723022013379 140723022016430 0\n",
+        "readEndNs": 89254219756993,
+        "identity": {
+          "pid": 469730,
+          "birth": 8925421,
+          "parent": 469729,
+          "state": "S"
+        }
+      },
+      "taskChildren": [
+        {
+          "path": "/proc/469729/task/469729/children",
+          "readStartNs": 89254219894675,
+          "status": "error",
+          "errorClass": "FileNotFoundError",
+          "errno": 2,
+          "errnoName": "ENOENT",
+          "readEndNs": 89254220034914
+        }
+      ],
+      "taskEnumeration": {
+        "status": "read",
+        "entries": 1
+      },
+      "parentAfter": {
+        "path": "/proc/469729/stat",
+        "readStartNs": 89254220045821,
+        "status": "read",
+        "bytes": 290,
+        "raw": "469729 (python3) R 469726 469726 469726 0 -1 4194368 496 0 0 0 0 0 0 0 20 0 1 0 8925421 37564416 1807 18446744073709551615 4329472 32290168 140723022006880 0 0 0 0 16781312 2 0 0 0 17 2 0 0 0 0 0 23068672 32290168 851542016 140723022013071 140723022013379 140723022013379 140723022016430 0\n",
+        "readEndNs": 89254220060555,
+        "identity": {
+          "pid": 469729,
+          "birth": 8925421,
+          "parent": 469726,
+          "state": "R"
+        }
+      },
+      "childAfter": {
+        "path": "/proc/469730/stat",
+        "readStartNs": 89254220067757,
+        "status": "read",
+        "bytes": 290,
+        "raw": "469730 (python3) S 469729 469726 469726 0 -1 4194368 406 0 0 0 0 0 0 0 20 0 1 0 8925421 37564416 1775 18446744073709551615 4329472 32290168 140723022006880 0 0 0 0 16781312 2 1 0 0 17 4 0 0 0 0 0 23068672 32290168 851542016 140723022013071 140723022013379 140723022013379 140723022016430 0\n",
+        "readEndNs": 89254220074824,
+        "identity": {
+          "pid": 469730,
+          "birth": 8925421,
+          "parent": 469729,
+          "state": "S"
+        }
+      },
+      "parentStable": true,
+      "childStable": true,
+      "childDirectRelationConfirmed": true,
+      "childListed": false,
+      "status": "recorded"
+    }
+  },
+  "outside": {
+    "observedNs": 89254220684333,
+    "parentExpected": {
+      "pid": 469729,
+      "birth": 8925421,
+      "parent": 469726,
+      "state": "R"
+    },
+    "childExpected": {
+      "pid": 469730,
+      "birth": 8925421,
+      "parent": 469729,
+      "state": "R"
+    },
+    "parentBefore": {
+      "path": "/proc/469729/stat",
+      "readStartNs": 89254220690570,
+      "status": "read",
+      "bytes": 290,
+      "raw": "469729 (python3) S 469726 469726 469726 0 -1 4194368 573 0 0 0 0 0 0 0 20 0 1 0 8925421 37564416 1871 18446744073709551615 4329472 32290168 140723022006880 0 0 0 0 16781312 2 1 0 0 17 2 0 0 0 0 0 23068672 32290168 851542016 140723022013071 140723022013379 140723022013379 140723022016430 0\n",
+      "readEndNs": 89254220750251,
+      "identity": {
+        "pid": 469729,
+        "birth": 8925421,
+        "parent": 469726,
+        "state": "S"
+      }
+    },
+    "childBefore": {
+      "path": "/proc/469730/stat",
+      "readStartNs": 89254220782622,
+      "status": "read",
+      "bytes": 290,
+      "raw": "469730 (python3) S 469729 469726 469726 0 -1 4194368 406 0 0 0 0 0 0 0 20 0 1 0 8925421 37564416 1775 18446744073709551615 4329472 32290168 140723022006880 0 0 0 0 16781312 2 1 0 0 17 4 0 0 0 0 0 23068672 32290168 851542016 140723022013071 140723022013379 140723022013379 140723022016430 0\n",
+      "readEndNs": 89254220798179,
+      "identity": {
+        "pid": 469730,
+        "birth": 8925421,
+        "parent": 469729,
+        "state": "S"
+      }
+    },
+    "taskChildren": [
+      {
+        "path": "/proc/469729/task/469729/children",
+        "readStartNs": 89254220911964,
+        "status": "error",
+        "errorClass": "FileNotFoundError",
+        "errno": 2,
+        "errnoName": "ENOENT",
+        "readEndNs": 89254220953109
+      }
+    ],
+    "taskEnumeration": {
+      "status": "read",
+      "entries": 1
+    },
+    "parentAfter": {
+      "path": "/proc/469729/stat",
+      "readStartNs": 89254220962003,
+      "status": "read",
+      "bytes": 290,
+      "raw": "469729 (python3) S 469726 469726 469726 0 -1 4194368 573 0 0 0 0 0 0 0 20 0 1 0 8925421 37564416 1871 18446744073709551615 4329472 32290168 140723022006880 0 0 0 0 16781312 2 1 0 0 17 2 0 0 0 0 0 23068672 32290168 851542016 140723022013071 140723022013379 140723022013379 140723022016430 0\n",
+      "readEndNs": 89254221002315,
+      "identity": {
+        "pid": 469729,
+        "birth": 8925421,
+        "parent": 469726,
+        "state": "S"
+      }
+    },
+    "childAfter": {
+      "path": "/proc/469730/stat",
+      "readStartNs": 89254221009215,
+      "status": "read",
+      "bytes": 290,
+      "raw": "469730 (python3) S 469729 469726 469726 0 -1 4194368 406 0 0 0 0 0 0 0 20 0 1 0 8925421 37564416 1775 18446744073709551615 4329472 32290168 140723022006880 0 0 0 0 16781312 2 1 0 0 17 4 0 0 0 0 0 23068672 32290168 851542016 140723022013071 140723022013379 140723022013379 140723022016430 0\n",
+      "readEndNs": 89254221018704,
+      "identity": {
+        "pid": 469730,
+        "birth": 8925421,
+        "parent": 469729,
+        "state": "S"
+      }
+    },
+    "parentStable": true,
+    "childStable": true,
+    "childDirectRelationConfirmed": true,
+    "childListed": false,
+    "status": "recorded"
+  },
+  "fixtureFinal": {
+    "event": "fixture-finished",
+    "releaseReason": "pipe-eof",
+    "childReap": {
+      "pid": 469730,
+      "reaped": true,
+      "waitStatus": 0,
+      "exitCode": 0,
+      "atNs": 89254231322945
+    }
+  },
+  "parentReap": {
+    "pid": 469729,
+    "reaped": true,
+    "waitStatus": 0,
+    "exitCode": 0,
+    "atNs": 89254242065385
+  },
+  "finishedNs": 89254242078065,
+  "elapsedNs": 25643025,
+  "complete": true
+}

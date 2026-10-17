@@ -1,0 +1,174 @@
+#!/usr/bin/env python3
+"""PREPARED ONLY. Standalone owned-fork capability; never launch the product.
+Run only after root authorization, in the explicit require_escalated context.
+One fixture parent/child pair, plus this external observer. No signals/global scan.
+"""
+import argparse
+import errno
+from itertools import islice
+import json
+import os
+from pathlib import Path
+import select
+import time
+
+MAX_BYTES=4096
+MAX_TASKS=8
+MAX_FRAME=65536
+TOTAL_NS=8_000_000_000
+
+
+def now():return time.monotonic_ns()
+
+def read_record(path,limit=MAX_BYTES):
+    start=now();r=dict(path=str(path),readStartNs=start)
+    try:
+        with open(path,'rb') as f:b=f.read(limit+1)
+        if len(b)>limit:r.update(status='limit',bytes=len(b))
+        else:r.update(status='read',bytes=len(b),raw=b.decode('ascii'))
+    except OSError as e:r.update(status='error',errorClass=type(e).__name__,errno=e.errno,errnoName=errno.errorcode.get(e.errno))
+    except UnicodeError:r.update(status='non-ascii')
+    r['readEndNs']=now();return r
+
+
+def identity(pid):
+    r=read_record(f'/proc/{pid}/stat')
+    if r['status']=='read':
+        raw=r['raw'];w=raw[raw.rfind(')')+1:].split()
+        r['identity']=dict(pid=int(raw[:raw.find('(')]),birth=int(w[19]),parent=int(w[1]),state=w[0])
+    return r
+
+
+def context():
+    links={}
+    for n in ['user','pid','mnt']:
+        try:links[n]=os.readlink('/proc/self/ns/'+n)
+        except OSError as e:links[n]=dict(errno=e.errno)
+    return dict(pid=os.getpid(),uid=os.getuid(),gid=os.getgid(),namespaces=links,
+                uidMap=read_record('/proc/self/uid_map'),gidMap=read_record('/proc/self/gid_map'))
+
+
+def matches(record,expected):
+    r=record.get('identity',{})
+    return r.get('pid')==expected['pid'] and r.get('birth')==expected['birth']
+
+
+def snapshot(parent,child):
+    result=dict(observedNs=now(),parentExpected=parent,childExpected=child,
+                parentBefore=identity(parent['pid']),childBefore=identity(child['pid']),taskChildren=[])
+    if not matches(result['parentBefore'],parent):result['status']='parent-identity-rejected';return result
+    try:
+        with os.scandir(f'/proc/{parent["pid"]}/task') as entries:
+            tids=[e.name for e in islice(entries,MAX_TASKS+1)]
+        if len(tids)>MAX_TASKS:result['taskEnumeration']=dict(status='limit',entries=len(tids));tids=[]
+        else:result['taskEnumeration']=dict(status='read',entries=len(tids))
+        for tid in tids:
+            if not tid.isascii() or not tid.isdecimal():raise ValueError('unexpected-tid')
+            r=read_record(f'/proc/{parent["pid"]}/task/{tid}/children')
+            if r['status']=='read':r['parsedChildPids']=[int(x) for x in r['raw'].split()]
+            result['taskChildren'].append(r)
+    except OSError as e:result['taskEnumeration']=dict(status='error',errorClass=type(e).__name__,errno=e.errno,errnoName=errno.errorcode.get(e.errno))
+    result.update(parentAfter=identity(parent['pid']),childAfter=identity(child['pid']))
+    result['parentStable']=matches(result['parentBefore'],parent) and matches(result['parentAfter'],parent)
+    result['childStable']=matches(result['childBefore'],child) and matches(result['childAfter'],child)
+    result['childDirectRelationConfirmed']=result['childStable'] and all(result[k]['identity']['parent']==parent['pid'] for k in ['childBefore','childAfter'])
+    result['childListed']=any(child['pid'] in r.get('parsedChildPids',[]) for r in result['taskChildren'])
+    result['status']='recorded';return result
+
+
+def send(fd,value):
+    raw=(json.dumps(value,separators=(',',':'))+'\n').encode()
+    if len(raw)>MAX_FRAME:raise ValueError('frame-cap')
+    while raw:
+        n=os.write(fd,raw);raw=raw[n:]
+
+
+def receive(fd,deadline):
+    raw=b''
+    while not raw.endswith(b'\n'):
+        remain=deadline-now()
+        if remain<=0 or not select.select([fd],[],[],remain/1e9)[0]:raise TimeoutError('pipe-frame-deadline')
+        b=os.read(fd,min(4096,MAX_FRAME+1-len(raw)))
+        if not b:raise EOFError('pipe-frame-eof')
+        raw+=b
+        if len(raw)>MAX_FRAME:raise ValueError('frame-cap')
+    return json.loads(raw)
+
+
+def await_eof(fd,deadline):
+    while now()<deadline:
+        if select.select([fd],[],[],max(0,(deadline-now())/1e9))[0]:
+            if not os.read(fd,128):return 'pipe-eof'
+    return 'bounded-timeout'
+
+
+def reap(pid,deadline):
+    while now()<deadline:
+        got,status=os.waitpid(pid,os.WNOHANG)
+        if got:return dict(pid=got,reaped=True,waitStatus=status,exitCode=os.waitstatus_to_exitcode(status),atNs=now())
+        select.select([],[],[],0.01)
+    return dict(pid=pid,reaped=False,status='reap-deadline',atNs=now())
+
+
+def fixture_parent(control_read,report_write,deadline):
+    hold_read,hold_write=os.pipe();ready_read,ready_write=os.pipe();child=None;released=None
+    try:
+        child=os.fork()
+        if child==0:
+            os.close(hold_write);os.close(ready_read);os.close(control_read);os.close(report_write)
+            try:
+                send(ready_write,dict(event='child-ready',identity=identity(os.getpid()),context=context()))
+                os.close(ready_write)
+                await_eof(hold_read,min(deadline,now()+4_000_000_000));os.close(hold_read)
+                os._exit(0)
+            except BaseException:os._exit(2)
+        os.close(hold_read);os.close(ready_write)
+        child_ready=receive(ready_read,min(deadline,now()+2_000_000_000));os.close(ready_read)
+        parent_id=identity(os.getpid())['identity'];child_id=child_ready['identity']['identity']
+        if child_id['pid']!=child:raise ValueError('child-fork-identity')
+        inside=snapshot(parent_id,child_id)
+        send(report_write,dict(event='fixture-ready',parent=parent_id,child=child_id,parentContext=context(),childContext=child_ready['context'],inside=inside))
+        released=await_eof(control_read,min(deadline,now()+3_000_000_000))
+        os.close(hold_write);hold_write=None
+        child_reap=reap(child,min(deadline,now()+2_000_000_000));child=None if child_reap['reaped'] else child
+        send(report_write,dict(event='fixture-finished',releaseReason=released,childReap=child_reap))
+        return 0 if child_reap['reaped'] and child_reap['exitCode']==0 else 2
+    finally:
+        if hold_write is not None:os.close(hold_write)
+        if child:reap(child,deadline)
+
+
+def run():
+    started=now();deadline=started+TOTAL_NS;ctl_read,ctl_write=os.pipe();report_read,report_write=os.pipe()
+    parent=None;result=dict(schema='milkup.owned-fork-children-capability.v1',startedNs=started,totalBudgetNs=TOTAL_NS,observerContext=context(),productStarted=False,globalProcScans=0,signalsSent=0)
+    try:
+        parent=os.fork()
+        if parent==0:
+            os.close(ctl_write);os.close(report_read)
+            try:code=fixture_parent(ctl_read,report_write,deadline)
+            except BaseException:code=2
+            os.close(ctl_read);os.close(report_write);os._exit(code)
+        os.close(ctl_read);os.close(report_write)
+        proof=receive(report_read,min(deadline,now()+3_000_000_000))
+        if proof['event']!='fixture-ready' or proof['parent']['pid']!=parent:raise ValueError('fixture-parent-proof')
+        result['fixtureProof']=proof
+        result['outside']=snapshot(proof['parent'],proof['child'])
+        os.close(ctl_write);ctl_write=None
+        result['fixtureFinal']=receive(report_read,min(deadline,now()+3_000_000_000))
+    except BaseException as e:result['error']=dict(type=type(e).__name__,detail=str(e)[:160])
+    finally:
+        if ctl_write is not None:os.close(ctl_write)
+        if parent:result['parentReap']=reap(parent,deadline)
+        os.close(report_read);result['finishedNs']=now();result['elapsedNs']=result['finishedNs']-started
+    result['complete']=not result.get('error') and result.get('parentReap',{}).get('reaped') and result.get('fixtureFinal',{}).get('childReap',{}).get('reaped')
+    return result
+
+
+if __name__=='__main__':
+    p=argparse.ArgumentParser();p.add_argument('--output',required=True);p.add_argument('--authorized-context',required=True,choices=['require_escalated']);a=p.parse_args()
+    # This assertion is an invocation contract, not a capability elevation.
+    output=Path(a.output)
+    with output.open('x') as f:
+        result=run();json.dump(result,f,indent=2);f.write('\n')
+    print(json.dumps(dict(complete=result['complete'],output=str(output),elapsedNs=result['elapsedNs'])))
+    raise SystemExit(0 if result['complete'] else 2)

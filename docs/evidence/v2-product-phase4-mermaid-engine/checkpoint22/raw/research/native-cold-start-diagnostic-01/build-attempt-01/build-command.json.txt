@@ -1,0 +1,44 @@
+{
+  "head": "7ad29dc04061f60300dbe2902d29e16f00272727",
+  "startedUtc": "2026-10-17T01:23:53.100463+00:00",
+  "classification": "DIAGNOSTIC_ONLY_NOT_PRODUCTION_ACCEPTANCE",
+  "frontendBefore": {
+    "assets/core-DhEqZVGG.js": "8261a5e51510afea7347ee6c40e783127639b88b158982711196012d6d50ceb3",
+    "assets/event-BK_86lmQ.js": "d696b4f6aba82c664602610943df9a2502faa81f4c7329b5a6c27245246dbfe3",
+    "assets/index-BD-isyQ5.js": "e5a84693950920f5db59c59a8e5d850f8c6377779b9f1db4d53ba456e6609646",
+    "assets/index-RroQuXw8.css": "094f1078f23147fadd25a4e12dc66ccc2e592eafa70af289176420449d8c3359",
+    "assets/index-lBcCbJoJ.js": "c7b24d2c99ec9ca2048130db56e3e83f05fadb024bab58c81e6923bc58a443d2",
+    "assets/large-search-worker-BwuKh3LS.js": "ae20f74ce4e2ef1aae7b2f422eec08ded22b3e8ecf51d04922361f39bb8b9ff0",
+    "assets/plugin-supervisor-DMXL0hVw.js": "a1fbb432c1dbeb8c3c8faa2b74eb92e6c72002b73b787cc78b7e3cdd3b576b36",
+    "assets/plugin-worker-xkEhFf5X.js": "d2fa8cd396979f615999004346958c0aba3c4c9c2b1ec57ff715e221c51dcaa0",
+    "assets/webview-Dd-2IzEi.js": "a3db500977b40be13d7f794126a6f6d4323dc447de712d024f0f756307380efb",
+    "assets/window-6lX1olBp.js": "7683cdbb5955d8602822812527dc761c4c8ce7f6cdb1264fc46aaedab3092ba5",
+    "assets/worker-file-plugin-C6Pu6mbd.js": "2ae10766812d3612c76a05bcd67c2243d3c44da13cbe65c4f250d99be8fe240c",
+    "index.html": "eb68d2c5ebbead3fb1a4e5f5c2df9062deaf8730f8b908b4086fbfd4da41ff0d"
+  },
+  "sourceDelta": [
+    {
+      "repositoryPath": "apps/desktop/src-tauri/src/plugin_dom.rs",
+      "candidatePath": "/workspace/milkup-mermaid-engine-evidence/research/cold-start-request-review-01/candidate/apps/desktop/src-tauri/src/plugin_dom.rs",
+      "candidateSha256": "17d2d10ee4a7e49947d33957c980e9a04ee2bb2f2e92c8646f828b9025cd0395",
+      "originalSha256": "195cfffdd1a69456b66ea2f860a3b195b9e5bc94152e93aa31a46c022eca097a"
+    },
+    {
+      "repositoryPath": "apps/desktop/src-tauri/src/plugin_dom_process.rs",
+      "candidatePath": "/workspace/milkup-mermaid-engine-evidence/research/cold-start-request-review-01/candidate/apps/desktop/src-tauri/src/plugin_dom_process.rs",
+      "candidateSha256": "5891edeb50c354e79ad2f10dd0c492aa21ebe6cac7854f1b6b45b3471f3b1dcf",
+      "originalSha256": "c6540ffc4d11e61050379d68bad0342c0cfaf8ec4a6fe60075b18ddecd851702"
+    },
+    {
+      "repositoryPath": "apps/desktop/src-tauri/src/plugin_dom_request_diagnostic.rs",
+      "candidatePath": "/workspace/milkup-mermaid-engine-evidence/research/cold-start-request-review-01/candidate/apps/desktop/src-tauri/src/plugin_dom_request_diagnostic.rs",
+      "candidateSha256": "a6487c0b061358abff4f626525a1fbd72b4ad8fe527a55f7590e4ccea61597e4",
+      "originalSha256": null
+    }
+  ],
+  "command": [
+    "bash",
+    "-lc",
+    "source /workspace/.cloud/milkup-v2/env.sh\nunset CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER PROOT_NO_SECCOMP\nexec cargo build --manifest-path apps/desktop/src-tauri/Cargo.toml --release --locked --offline --features tauri/custom-protocol --bin milkup-desktop"
+  ]
+}

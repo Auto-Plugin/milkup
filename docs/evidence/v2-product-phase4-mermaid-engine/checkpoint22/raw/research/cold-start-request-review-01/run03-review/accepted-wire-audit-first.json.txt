@@ -1,0 +1,473 @@
+{
+  "schema": "milkup.cold-accepted-wire-audit.v1",
+  "ok": false,
+  "errors": [
+    "accepted-wire/native-dispatch key sets differ (native trace may drop; completeness not established)"
+  ],
+  "owner": {
+    "pid": 468788,
+    "birth": 8887290
+  },
+  "finalStatus": {
+    "attempted": 6,
+    "capped": 0,
+    "captureMaxNs": 1356979,
+    "captureTotalNs": 1415286,
+    "diagnosticClosed": true,
+    "disconnected": 0,
+    "enqueued": 6,
+    "final": true,
+    "inFlight": 0,
+    "incompleteTiming": 0,
+    "ioErrors": 0,
+    "limits": {
+      "events": 256,
+      "queue": 8,
+      "totalWireBytes": 16777216,
+      "wireBytes": 1048576
+    },
+    "monotonicNs": 88881398751983,
+    "oversize": 0,
+    "ownerBirth": 8887290,
+    "ownerPid": 468788,
+    "qualification": "Final only after external finish.request closes observation and drains queue. Future product requests continue unobserved. Missing final or identity or any drops/errors means incomplete.",
+    "queueFull": 0,
+    "reservedWireBytes": 5362,
+    "schema": "milkup.cold-accepted-wire-status.v1",
+    "writerCpuScope": "App-owned background writer thread through last status checkpoint, excludes final status/complete serialization; included in App own CPU",
+    "writerThreadCpuNs": 27228049,
+    "written": 6
+  },
+  "counts": {
+    "events": 6,
+    "acceptedRequests": 5,
+    "nativeDispatchKeys": 6,
+    "nativeDeadlineKeys": 0,
+    "otherNativeLogLines": 7
+  },
+  "requests": [
+    {
+      "pluginId": "milkup.diagrams",
+      "instanceId": "89991fca045be26f50cf9b51dabff036dbd0a170476407fc",
+      "requestId": "render_1",
+      "guardianPid": 468923,
+      "guardianBirth": 8887623,
+      "input": {
+        "rendererId": "diagrams.mermaid",
+        "wireBytes": 950,
+        "wireSha256": "09775aa15eb0d495a779500dd163b8c589de79bf9013aec70f459477a2287911",
+        "documentId": "file:/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-03/runtime/mermaid-ui-cold-diag-03/evidence/ordinary.md",
+        "version": 0,
+        "from": 108,
+        "to": 342,
+        "sourceUtf16Units": 234,
+        "sourceUtf16LeSha256": "bbc87d5223737bcc98ddde80248c2e69fb294d7cf7512a8ecde63d1b5d10c81d",
+        "sourceExactlyMatchesFrozenFixture": true,
+        "fromLine": 5,
+        "toLine": 20,
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "theme": "light",
+        "target": "screen",
+        "width": 1100,
+        "completeStart": false,
+        "completeEnd": false,
+        "contextKnown": true,
+        "protectedRanges": [
+          {
+            "from": 108,
+            "to": 342
+          }
+        ],
+        "blocks": [
+          {
+            "from": 108,
+            "to": 342,
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "contentRanges": [
+              {
+                "from": 119,
+                "to": 339,
+                "fixtureUtf16LeSha256": "65fa603fa3598860e2982f3640d647f145c294d389f8a9aca4b3db3c3eb7e20a"
+              }
+            ],
+            "fixtureUtf16LeSha256": "bbc87d5223737bcc98ddde80248c2e69fb294d7cf7512a8ecde63d1b5d10c81d"
+          }
+        ],
+        "sampleRangeOverlaps": [
+          {
+            "sampleId": "block-000-first-official-example",
+            "from": 108,
+            "to": 342,
+            "entireSampleRangeInInput": true
+          }
+        ],
+        "qualification": "Input membership only. Neither sample overlap nor block order identifies an internal block executing at timeout."
+      },
+      "nativeDispatch": [
+        {
+          "instanceId": "89991fca045be26f50cf9b51dabff036dbd0a170476407fc",
+          "monotonicNs": 88878045749057,
+          "phase": "dispatch",
+          "pid": 468788,
+          "requestId": "render_1"
+        }
+      ],
+      "nativeDeadlines": [],
+      "nativeControls": [],
+      "dispatchToCaptureMs": 0.138466,
+      "timeoutObserved": false,
+      "noDeadlineQualification": "No deadline trace is not proof of successful settlement."
+    },
+    {
+      "pluginId": "milkup.diagrams",
+      "instanceId": "89991fca045be26f50cf9b51dabff036dbd0a170476407fc",
+      "requestId": "render_2",
+      "guardianPid": 468923,
+      "guardianBirth": 8887623,
+      "input": {
+        "rendererId": "diagrams.mermaid",
+        "wireBytes": 950,
+        "wireSha256": "cded3778281a5417796aa2d335fd27060178bbaf910a5737f1bb054a0d56abfb",
+        "documentId": "file:/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-03/runtime/mermaid-ui-cold-diag-03/evidence/ordinary.md",
+        "version": 0,
+        "from": 108,
+        "to": 342,
+        "sourceUtf16Units": 234,
+        "sourceUtf16LeSha256": "bbc87d5223737bcc98ddde80248c2e69fb294d7cf7512a8ecde63d1b5d10c81d",
+        "sourceExactlyMatchesFrozenFixture": true,
+        "fromLine": 5,
+        "toLine": 20,
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "theme": "light",
+        "target": "screen",
+        "width": 1100,
+        "completeStart": false,
+        "completeEnd": false,
+        "contextKnown": true,
+        "protectedRanges": [
+          {
+            "from": 108,
+            "to": 342
+          }
+        ],
+        "blocks": [
+          {
+            "from": 108,
+            "to": 342,
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "contentRanges": [
+              {
+                "from": 119,
+                "to": 339,
+                "fixtureUtf16LeSha256": "65fa603fa3598860e2982f3640d647f145c294d389f8a9aca4b3db3c3eb7e20a"
+              }
+            ],
+            "fixtureUtf16LeSha256": "bbc87d5223737bcc98ddde80248c2e69fb294d7cf7512a8ecde63d1b5d10c81d"
+          }
+        ],
+        "sampleRangeOverlaps": [
+          {
+            "sampleId": "block-000-first-official-example",
+            "from": 108,
+            "to": 342,
+            "entireSampleRangeInInput": true
+          }
+        ],
+        "qualification": "Input membership only. Neither sample overlap nor block order identifies an internal block executing at timeout."
+      },
+      "nativeDispatch": [
+        {
+          "instanceId": "89991fca045be26f50cf9b51dabff036dbd0a170476407fc",
+          "monotonicNs": 88878307100538,
+          "phase": "dispatch",
+          "pid": 468788,
+          "requestId": "render_2"
+        }
+      ],
+      "nativeDeadlines": [],
+      "nativeControls": [],
+      "dispatchToCaptureMs": 0.025635,
+      "timeoutObserved": false,
+      "noDeadlineQualification": "No deadline trace is not proof of successful settlement."
+    },
+    {
+      "pluginId": "milkup.diagrams",
+      "instanceId": "89991fca045be26f50cf9b51dabff036dbd0a170476407fc",
+      "requestId": "render_3",
+      "guardianPid": 468923,
+      "guardianBirth": 8887623,
+      "input": {
+        "rendererId": "diagrams.mermaid",
+        "wireBytes": 1256,
+        "wireSha256": "cf0157ce0829e21d867412787f20d43a537c2fd5321c70fb397df93084912735",
+        "documentId": "file:/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-03/runtime/mermaid-ui-cold-diag-03/evidence/ordinary.md",
+        "version": 0,
+        "from": 440,
+        "to": 969,
+        "sourceUtf16Units": 529,
+        "sourceUtf16LeSha256": "65fc004863815a61bfb1002220b02c17f93a3474ad0ee9e4c6a147ff07b8f38e",
+        "sourceExactlyMatchesFrozenFixture": true,
+        "fromLine": 26,
+        "toLine": 53,
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "theme": "light",
+        "target": "screen",
+        "width": 1100,
+        "completeStart": false,
+        "completeEnd": false,
+        "contextKnown": true,
+        "protectedRanges": [
+          {
+            "from": 440,
+            "to": 969
+          }
+        ],
+        "blocks": [
+          {
+            "from": 440,
+            "to": 969,
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "contentRanges": [
+              {
+                "from": 451,
+                "to": 966,
+                "fixtureUtf16LeSha256": "4e58cb426fc5f91783766f8f9af4972fcb79fde565976d5231ada02ad1f4d296"
+              }
+            ],
+            "fixtureUtf16LeSha256": "65fc004863815a61bfb1002220b02c17f93a3474ad0ee9e4c6a147ff07b8f38e"
+          }
+        ],
+        "sampleRangeOverlaps": [
+          {
+            "sampleId": "classDiagram-000-first-official-example",
+            "from": 440,
+            "to": 969,
+            "entireSampleRangeInInput": true
+          }
+        ],
+        "qualification": "Input membership only. Neither sample overlap nor block order identifies an internal block executing at timeout."
+      },
+      "nativeDispatch": [
+        {
+          "instanceId": "89991fca045be26f50cf9b51dabff036dbd0a170476407fc",
+          "monotonicNs": 88878504142972,
+          "phase": "dispatch",
+          "pid": 468788,
+          "requestId": "render_3"
+        }
+      ],
+      "nativeDeadlines": [],
+      "nativeControls": [],
+      "dispatchToCaptureMs": 0.037966,
+      "timeoutObserved": false,
+      "noDeadlineQualification": "No deadline trace is not proof of successful settlement."
+    },
+    {
+      "pluginId": "milkup.diagrams",
+      "instanceId": "89991fca045be26f50cf9b51dabff036dbd0a170476407fc",
+      "requestId": "render_4",
+      "guardianPid": 468923,
+      "guardianBirth": 8887623,
+      "input": {
+        "rendererId": "diagrams.mermaid",
+        "wireBytes": 950,
+        "wireSha256": "b458ade602e8673c3fc64c1a958f1ccfcfbdf35564104472c57ddbb8dc9096b7",
+        "documentId": "file:/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-03/runtime/mermaid-ui-cold-diag-03/evidence/ordinary.md",
+        "version": 0,
+        "from": 108,
+        "to": 342,
+        "sourceUtf16Units": 234,
+        "sourceUtf16LeSha256": "bbc87d5223737bcc98ddde80248c2e69fb294d7cf7512a8ecde63d1b5d10c81d",
+        "sourceExactlyMatchesFrozenFixture": true,
+        "fromLine": 5,
+        "toLine": 20,
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "theme": "light",
+        "target": "screen",
+        "width": 1100,
+        "completeStart": false,
+        "completeEnd": false,
+        "contextKnown": true,
+        "protectedRanges": [
+          {
+            "from": 108,
+            "to": 342
+          }
+        ],
+        "blocks": [
+          {
+            "from": 108,
+            "to": 342,
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "contentRanges": [
+              {
+                "from": 119,
+                "to": 339,
+                "fixtureUtf16LeSha256": "65fa603fa3598860e2982f3640d647f145c294d389f8a9aca4b3db3c3eb7e20a"
+              }
+            ],
+            "fixtureUtf16LeSha256": "bbc87d5223737bcc98ddde80248c2e69fb294d7cf7512a8ecde63d1b5d10c81d"
+          }
+        ],
+        "sampleRangeOverlaps": [
+          {
+            "sampleId": "block-000-first-official-example",
+            "from": 108,
+            "to": 342,
+            "entireSampleRangeInInput": true
+          }
+        ],
+        "qualification": "Input membership only. Neither sample overlap nor block order identifies an internal block executing at timeout."
+      },
+      "nativeDispatch": [
+        {
+          "instanceId": "89991fca045be26f50cf9b51dabff036dbd0a170476407fc",
+          "monotonicNs": 88880680393747,
+          "phase": "dispatch",
+          "pid": 468788,
+          "requestId": "render_4"
+        }
+      ],
+      "nativeDeadlines": [],
+      "nativeControls": [],
+      "dispatchToCaptureMs": 0.039985,
+      "timeoutObserved": false,
+      "noDeadlineQualification": "No deadline trace is not proof of successful settlement."
+    },
+    {
+      "pluginId": "milkup.diagrams",
+      "instanceId": "89991fca045be26f50cf9b51dabff036dbd0a170476407fc",
+      "requestId": "render_5",
+      "guardianPid": 468923,
+      "guardianBirth": 8887623,
+      "input": {
+        "rendererId": "diagrams.mermaid",
+        "wireBytes": 1256,
+        "wireSha256": "e2607ed1eb4a818897fd516e0c95424c3e3208dcddd6cbb295c162db59fa9240",
+        "documentId": "file:/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-03/runtime/mermaid-ui-cold-diag-03/evidence/ordinary.md",
+        "version": 0,
+        "from": 440,
+        "to": 969,
+        "sourceUtf16Units": 529,
+        "sourceUtf16LeSha256": "65fc004863815a61bfb1002220b02c17f93a3474ad0ee9e4c6a147ff07b8f38e",
+        "sourceExactlyMatchesFrozenFixture": true,
+        "fromLine": 26,
+        "toLine": 53,
+        "selection": {
+          "anchor": 0,
+          "head": 0
+        },
+        "theme": "light",
+        "target": "screen",
+        "width": 1100,
+        "completeStart": false,
+        "completeEnd": false,
+        "contextKnown": true,
+        "protectedRanges": [
+          {
+            "from": 440,
+            "to": 969
+          }
+        ],
+        "blocks": [
+          {
+            "from": 440,
+            "to": 969,
+            "kind": "fence",
+            "info": "mermaid",
+            "complete": true,
+            "contentRanges": [
+              {
+                "from": 451,
+                "to": 966,
+                "fixtureUtf16LeSha256": "4e58cb426fc5f91783766f8f9af4972fcb79fde565976d5231ada02ad1f4d296"
+              }
+            ],
+            "fixtureUtf16LeSha256": "65fc004863815a61bfb1002220b02c17f93a3474ad0ee9e4c6a147ff07b8f38e"
+          }
+        ],
+        "sampleRangeOverlaps": [
+          {
+            "sampleId": "classDiagram-000-first-official-example",
+            "from": 440,
+            "to": 969,
+            "entireSampleRangeInInput": true
+          }
+        ],
+        "qualification": "Input membership only. Neither sample overlap nor block order identifies an internal block executing at timeout."
+      },
+      "nativeDispatch": [
+        {
+          "instanceId": "89991fca045be26f50cf9b51dabff036dbd0a170476407fc",
+          "monotonicNs": 88880894415796,
+          "phase": "dispatch",
+          "pid": 468788,
+          "requestId": "render_5"
+        }
+      ],
+      "nativeDeadlines": [],
+      "nativeControls": [],
+      "dispatchToCaptureMs": 0.027872,
+      "timeoutObserved": false,
+      "noDeadlineQualification": "No deadline trace is not proof of successful settlement."
+    }
+  ],
+  "qualification": "Verified diagnostic input and native request association only; no production acceptance, renderer CPU attribution, image decoder cause, or internal timed-out block attribution.",
+  "provenance": {
+    "manifest": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-03/run03-frozen-manifest.json",
+    "manifestSha256": "5b92991fea762804164a001e8633341dfff96a733f272c746f292f10b68738e2",
+    "frozenAtUtc": "2026-10-17T01:42:13.754696+00:00",
+    "verifiedInputs": [
+      {
+        "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-03/runtime/mermaid-ui-cold-diag-03/native-capture/events.jsonl",
+        "bytes": 9678,
+        "sha256": "ddb3e04d4869142cb8cb9a6169260d338986578e116ada4f91357d9a6a8499f4"
+      },
+      {
+        "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-03/runtime/mermaid-ui-cold-diag-03/native-capture/status.json",
+        "bytes": 838,
+        "sha256": "ee1a9dda51d3fb0ff8ee872a7ced5fd7d4151b7c447e5ea6108a76faba084049"
+      },
+      {
+        "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-03/runtime/mermaid-ui-cold-diag-03/native-capture/complete.json",
+        "bytes": 838,
+        "sha256": "ee1a9dda51d3fb0ff8ee872a7ced5fd7d4151b7c447e5ea6108a76faba084049"
+      },
+      {
+        "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-03/runtime/mermaid-ui-cold-diag-03/driver.log",
+        "bytes": 2181,
+        "sha256": "1eb04fb62db61af04361635fc5fe3aa50f2775e4775efe08f060fe481d7390c3"
+      },
+      {
+        "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-03/runtime/mermaid-ui-cold-diag-03/evidence/ordinary.md",
+        "bytes": 11914,
+        "sha256": "a7267df165778c560a8fba59bfbff7065ae63365741e3eb87078783bc865fd4b"
+      },
+      {
+        "path": "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-03/runtime/mermaid-ui-cold-diag-03/evidence/plan.json",
+        "bytes": 45867,
+        "sha256": "dfa15f82fa24f9f0e9f18db990f21f219953dc60bc9e0e64e6ee992d13b0ba68"
+      }
+    ]
+  }
+}

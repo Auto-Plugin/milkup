@@ -1,0 +1,96 @@
+{
+  "atUtc": "2026-10-17T01:42:13.722213+00:00",
+  "run": "mermaid-ui-cold-diag-03",
+  "classification": "DIAGNOSTIC_PREFIX_STOP_ORIGINAL_COLD_GATE_PASS_NOT_FULL_UI_ACCEPTANCE",
+  "coldGateExecuted": true,
+  "coldGatePassed": true,
+  "fullUIAccepted": false,
+  "productionAcceptance": false,
+  "historicalProduction08DeadlineClosed": false,
+  "harnessExitCode": 0,
+  "samplerExitCode": 0,
+  "nativeCaptureFinal": {
+    "attempted": 6,
+    "capped": 0,
+    "captureMaxNs": 1356979,
+    "captureTotalNs": 1415286,
+    "diagnosticClosed": true,
+    "disconnected": 0,
+    "enqueued": 6,
+    "final": true,
+    "inFlight": 0,
+    "incompleteTiming": 0,
+    "ioErrors": 0,
+    "limits": {
+      "events": 256,
+      "queue": 8,
+      "totalWireBytes": 16777216,
+      "wireBytes": 1048576
+    },
+    "monotonicNs": 88881398751983,
+    "oversize": 0,
+    "ownerBirth": 8887290,
+    "ownerPid": 468788,
+    "qualification": "Final only after external finish.request closes observation and drains queue. Future product requests continue unobserved. Missing final or identity or any drops/errors means incomplete.",
+    "queueFull": 0,
+    "reservedWireBytes": 5362,
+    "schema": "milkup.cold-accepted-wire-status.v1",
+    "writerCpuScope": "App-owned background writer thread through last status checkpoint, excludes final status/complete serialization; included in App own CPU",
+    "writerThreadCpuNs": 27228049,
+    "written": 6
+  },
+  "cpu": {
+    "stopReason": "controller-stop",
+    "failure": null,
+    "sampleCount": 21,
+    "knownIdentities": [
+      {
+        "pid": 468788,
+        "birth": 8887290,
+        "parent": 468706,
+        "role": "App"
+      },
+      {
+        "pid": 468923,
+        "birth": 8887623,
+        "parent": 468788,
+        "role": "guardian"
+      }
+    ],
+    "environmentUnavailableBindings": 0,
+    "coverageQualification": "Actual recorded roles only App and guardian; no renderer descendant identity was recorded. Zero observer errors is not full renderer-tree coverage or causal attribution."
+  },
+  "cleanup": {
+    "knownOwnedPidsAllAbsent": [
+      468687,
+      468689,
+      468703,
+      468704,
+      468705,
+      468706,
+      468750,
+      468753,
+      468754,
+      468788,
+      468799,
+      468805,
+      468812,
+      468818,
+      468852,
+      468923
+    ],
+    "dedicatedPortsListeners": [],
+    "ancestorReaps": 10,
+    "method": "original App session close then exact owned-group stop after /status No sessions; wait-only subreaper"
+  },
+  "inputDrift": [],
+  "sourceFilesChecked": 2913,
+  "sourceDrift": [],
+  "repositoryStatus": "",
+  "noAutomaticRetryOrFullWorkflow": true,
+  "screenshots": [
+    "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-03/runtime/mermaid-ui-cold-diag-03/evidence/preinstalled-cold-window-webview.png",
+    "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-03/runtime/mermaid-ui-cold-diag-03/evidence/preinstalled-cold-window-x11.png"
+  ],
+  "visualReview": "pending independent root inspection"
+}

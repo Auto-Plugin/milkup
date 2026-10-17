@@ -1,0 +1,23 @@
+"""Static manifest preparation only. Does not build or run native processes."""
+import hashlib,json,subprocess
+from pathlib import Path
+BASE=Path(__file__).resolve().parent;OLD=BASE.with_name('native-cold-start-diagnostic-01')
+CPU=BASE.parent/'cold-start-cpu-review-01/candidate-v02';REPO=Path('/workspace/milkup')
+def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+def row(p,role):return {'path':str(p),'bytes':p.stat().st_size,'sha256':sha(p),'role':role}
+go=BASE/'root-runtime-go.json'
+if go.exists():assert json.loads(go.read_text())['authorized'] is False
+previous=json.loads((OLD/'runtime-inputs.json').read_text())
+assert sha(CPU/'cpu_sampler.py')=='a24e8ad9b7548350eb5d08e074770ff544e279abb9c3b86257e3c2f093596e6e'
+assert sha(BASE/'diagnostic-binary/milkup-desktop')==previous['binary']['sha256']=='a5fce05f06805931d9e55c2cddc80f1b9e0e4f31c5a756f2bc8eab3b185c0ac8'
+files=previous['files'].copy()
+for r in files:assert sha(r['path'])==r['sha256'],r['path']
+for p in sorted(BASE.rglob('*')):
+ if p.is_file() and p.name not in {'runtime-inputs.json','root-runtime-go.json','runtime-preflight-prepared.json','prepared-files.json'}:files.append(row(p,'run02 isolated exact harness/scripts/binary'))
+for name in ['cpu_sampler.py','prepared-manifest.json','CONTRACT.txt','synthetic-tests.log','test_cpu_sampler.py','analyze.py','from-v01.patch']:files.append(row(CPU/name,'CPU v02 candidate and 19 synthetic test evidence'))
+files += [row(OLD/'run01-frozen-manifest.json','immutable failed setup first run'),row(OLD/'runtime-inputs.json','first run frozen provenance'),row(OLD/'runtime/mermaid-ui-cold-diag-01/run-summary.json','first run result retained')]
+files=list({r['path']:r for r in files}.values())
+result={'status':'PREPARED_RUNTIME_INPUTS','run':'mermaid-ui-cold-diag-02','head':subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip(),'classification':'DIAGNOSTIC_PREFIX_ONLY_NOT_PRODUCTION_ACCEPTANCE','binary':row(BASE/'diagnostic-binary/milkup-desktop','same diagnostic binary, restored basename'),'sampler':row(CPU/'cpu_sampler.py','external cold CPU sampler v02'),'nativeCandidateFinalManifest':previous['nativeCandidateFinalManifest'],'dedicatedDisplay':previous['dedicatedDisplay'],'files':files,'previousRunManifestSha256':sha(OLD/'run01-frozen-manifest.json'),'pending':['separate root run02 runtime GO and immediate exact environment preflight'],'changesFromRun01':['new directory/run/profile/control/logs; historical01 preserved','same a5fce binary bytes, basename milkup-desktop restored','CPU v02 exact native identity proof accepts PermissionError environ as explicit unavailable; readable mismatch remains failure','cold harness/helpers byte-identical; 2s10s unchanged; no rebuild']}
+(BASE/'runtime-inputs.json').write_text(json.dumps(result,indent=2)+'\n')
+go.write_text(json.dumps({'authorized':False,'runtimeInputsSha256':sha(BASE/'runtime-inputs.json'),'rootReviewRequired':'Separate run02 GO only after reviewing exact wrapper diff, identical binary and original cold harness, CPU v02 and exclusive preflight'},indent=2)+'\n')
+print(json.dumps({'inputCount':len(files),'runtimeInputsSha256':sha(BASE/'runtime-inputs.json'),'runtimeGoAuthorized':False},indent=2))

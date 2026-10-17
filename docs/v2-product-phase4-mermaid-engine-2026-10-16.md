@@ -2,7 +2,7 @@
 
 本阶段基线为 `d3851430fac0dc85c758187b33b769c5daba7f4a`，独立分支 `dot/milkup-v2-product-phase4-mermaid-engine`。已核验远端/本地 SHA、干净工作区及候选 11 的 4,044 份证据存储哈希；候选 11 的 Linux 有界能力验收继续有效。[基线核验](evidence/v2-product-phase4-mermaid-engine/baseline-verification.json)。
 
-**当前状态：官方完整引擎、通用 Linux DOM 后端和安全图片输出已实现；gate07 全仓 2055 项测试及其余门禁、独立 diagrams 89 项测试通过。production07 的五项生命周期首次通过；类图随机路径导致的重复替换已修复，并通过同请求原生结果及内滚动回归。普通浅色／窗口化深色、200% 窄窗的类图与 Journey 八角专项检查通过，完整官方引擎 UI10 在 30/64 组合后首次遇到原生执行截止，剩余 34 组合尚未完成；实际超时输入与原因仍待诊断。Journey 在 100% 下原图／规范图完全一致，200% 下仍有 1106 个文本像素差异，保留为边界。不能宣称产品验收结束。** 后续继续完整 P4 验证，再进入 P5 导出／打印；Linux 证据不替代 Windows 验证。
+**当前状态：官方完整引擎、通用 Linux DOM 后端和安全图片输出已实现；多行恢复测量次序修复后，gate08 全仓 2073 项测试及其余门禁、相关浏览器 36 项测试通过，独立 diagrams 89 项测试此前通过。production08 实际 Linux 构建及五项生命周期首次通过，完整 UI 尝试却在冷启动首次超时。后续诊断前缀通过了原冷图像断言，但没有完成生产或全 UI 验收，renderer CPU 仍未测。历史 UI10 在 30/64 组合后遇到原生截止，其余 34 组合与超时原因保持开放。Journey 在 100% 下原图／规范图完全一致，200% 下仍有 1106 个文本像素差异，保留为边界。不能宣称产品验收结束。** 后续继续完整 P4 验证，再进入 P5 导出／打印；Linux 证据不替代 Windows 验证。
 
 ## 固定版本与覆盖目标
 
@@ -562,3 +562,17 @@ Root实际查看首败截图：编辑器保留字面block及后续class源码，
 CPU采样只覆盖App自身：完整4.513972172秒区间消耗0.31 CPU秒，不包含渲染子进程。共享cgroup端点没有限流增量，也不能据此排除调度争用或认定超时原因。当前 `render_3` 与历史 `render_2754` 的输入、渲染进程CPU及原因分别保持未知。下一步研究诊断需从第一个请求开始捕获完整输入并绑定渲染进程身份；研究构建与生产验收分开，原2秒／10秒预算不变。
 
 [checkpoint21](evidence/v2-product-phase4-mermaid-engine/checkpoint21/README.md) 保存新生产包与五项生命周期的首次通过、完整UI冷启动首败及采集缺口。P4完整原生验收仍未完成，本执行器没有使用Windows Runtime或新增artifact上传预算。
+
+## 冷启动诊断：前缀通过，后代采样接口缺口已独立确认
+
+在已提交的 production08 首败之后，单次研究构建加入受开关控制的完整请求记录器，保留原2秒渲染／10秒初始化预算及安全隔离。构建前后产品源码、原生产程序及frontend字节不变；研究程序不是DEB验收件。第一次诊断因程序basename改变导致原窗口类别检查失败，第二次因driver和harness执行上下文不同导致原App profile核验EACCES；两次均未进入cold gate，原始setup失败分别保留。
+
+第三次仅统一driver与harness的执行上下文，复用冻结研究程序和原断言，原冷启动图片门槛实际通过后明确停止在 `DIAGNOSTIC_PREFIX_STOP`。Root独立核验172份冻结文件并查看WebView/X11原图，确认block图和部分后续class图实际显示。它不替代生产DEB、独立安装、ordinary/windowed完整交互或64组合矩阵，也不关闭旧production08未知输入的超时。
+
+五份保留请求的完整wire、身份、SHA和UTF-16源码范围均通过独立核验，但完整driver日志有第六条dispatch没有wire。严格全日志审计首次失败原样保存，限定审计仅确认已捕获的五份输入。第六条dispatch早于final checkpoint 11.500563ms；finish.request与实际关闭观察的时刻没有单调时钟记录，不能说它发生于final之后。final和零drop只证明已接受队列完成收尾，不证明整个App生命周期请求齐全。
+
+CPU记录包含App和guardian各21个样本，没有renderer/helper/WebKit身份。完整观测区间中App自身消耗0.34 CPU秒、guardian自身0.08 CPU秒，均不能归给渲染子进程。最大采样迟到143.337982ms；leader线程的schedstat不是全部线程调度等待。没有实际deadline区间或完整renderer覆盖，不由这次通过推断旧超时原因或观测开销已合格。
+
+随后隔离的受控fork能力验证在相同外层执行上下文中执行一次：父子PID/birth与PPID关系在读取前后稳定，父进程内部和外部观察器读取 `/proc/PID/task/TID/children` 均得到ENOENT。整个验证25.643025ms，父子通过pipe EOF正常退出并分别waitpid回收，exit0；未启动产品。该结果证明当前fixture的接口不可用，暴露了原采样器将FileNotFoundError静默跳过的覆盖缺口；它不是历史guardian的完整重建，也不证明接口缺失的内核原因。下一步先验证现有guardian pidfd能否提供精确后代身份，避免恢复此前已触发开销上限的全局进程扫描。
+
+[checkpoint22](evidence/v2-product-phase4-mermaid-engine/checkpoint22/README.md) 保留两次setup首败、第三次诊断前缀通过、严格wire首FAIL、限定审计、CPU缺口、Root时序更正及受控接口验证。产品代码未因本轮研究改变；完整原生验收仍待完成，Windows Runtime与新增上传预算未在本执行器使用。

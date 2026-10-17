@@ -1,0 +1,29 @@
+{
+  "reviewedUtc": "2026-10-17T01:44:57.683281+00:00",
+  "supersedesQualificationIn": "root-postrun-review.json",
+  "correction": "render_6 native dispatch is before complete.json final monotonic checkpoint by 11.500563 ms. finish.request contains no monotonic timestamp, so exact observation-close time is not directly recorded. Do not say render_6 occurred after final completion.",
+  "facts": {
+    "render6DispatchMonoNs": 88881387251420,
+    "completeCheckpointMonoNs": 88881398751983,
+    "completeMinusRender6Ns": 11500563,
+    "capturedRenderIds": [
+      "render_1",
+      "render_2",
+      "render_3",
+      "render_4",
+      "render_5"
+    ],
+    "missingFullLogRenderIds": [
+      "render_6"
+    ],
+    "strictAllDispatchWireAudit": "FAIL preserved by independent reviewer",
+    "cpuNativeEventIds": [
+      "render_1",
+      "render_2",
+      "render_3",
+      "render_4",
+      "render_5"
+    ]
+  },
+  "interpretation": "Final writer counters establish drained accepted queue, not full App-lifetime coverage. Source closes observation after seeing finish.request, and capture thereafter skips enqueuing; this is consistent with the gap but no exact closure timestamp is present. No observed deadline in this run; no historical failure was closed."
+}

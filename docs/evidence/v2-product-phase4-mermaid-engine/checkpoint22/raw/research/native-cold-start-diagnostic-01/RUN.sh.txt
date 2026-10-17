@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT=/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-01
+RUN=mermaid-ui-cold-diag-01
+# Generated only after successful root-authorized diagnostic build and final review.
+# Contains exactly BINARY and BINARY_SHA; no production binary is accepted here.
+source "$ROOT/reviewed-binary.env"
+[[ "$BINARY" == "$ROOT/build-attempt-01/diagnostic-only-milkup-desktop" ]]
+ARCHIVE=/workspace/milkup-mermaid-engine-evidence/linux-production-08/artifacts/milkup.diagrams-1.1.0.milkup-plugin
+ARCHIVE_SHA=9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df
+export MILKUP_COLD_REQUEST_DIAGNOSTICS=1
+export MILKUP_COLD_REQUEST_OUTPUT_DIR="$ROOT/runtime/$RUN/native-capture"
+python3 "$ROOT/verify-runtime-go.py"
+case "${1:-}" in
+ driver) exec bash "$ROOT/driver.sh" "$RUN" "$BINARY" "$BINARY_SHA" "$ARCHIVE" "$ARCHIVE_SHA" ;;
+ harness)
+  source "$ROOT/run-env.sh" "$RUN" "$BINARY" "$BINARY_SHA" "$ARCHIVE" "$ARCHIVE_SHA"
+  cd /workspace/milkup
+  exec node "$ROOT/native/cold-prefix.mjs"
+  ;;
+ *) echo 'Choose driver or harness only after separate root runtime GO.' >&2; exit 2 ;;
+esac

@@ -1,0 +1,28 @@
+Run02 static preparation; no rebuild or runtime performed during preparation.
+
+Run01 is retained unchanged: 172 files, frozen manifest SHA256
+34075c3348416bf710325c29ac6a68e0cfaf34b3d6b5dbbb3a72f5dd159ad40e.
+Its two setup failures remain: basename changed GTK WM_CLASS so original startup
+helper timed out before cold assertions, and CPU observer failed on unreadable
+guardian environ. Neither result is product RED or cold gate acceptance.
+
+Run02 uses identical diagnostic binary a5fce05f...5c0ac8, copied without rebuilding
+into diagnostic-binary/milkup-desktop. Diagnostic labeling is in directory/provenance;
+the executable basename is again the original milkup-desktop. Original cold harness
+and all startup helpers are byte-identical. 2s render and 10s init budgets unchanged.
+Exact script/run/path changes are in wrapper-changes.diff. Run name:
+mermaid-ui-cold-diag-02, independent runtime/profile/control/logs/capture directories.
+
+CPU v02 a24e8ad9...596e6e has 19 synthetic tests. With an authoritative native
+creation event plus exact live PID/birth/parent/argv proof, PermissionError reading
+environ is explicit unavailable coverage, not a fabricated match. A readable
+mismatch remains rejection. The native observation implementation is unchanged.
+
+runtime-inputs.json retains the prior frozen source/build provenance, and additionally
+binds all02 scripts/helpers, binary, CPUv02/test logs/diff, and01 frozen result. Its
+GO template is false. Root must provide a separate runtime GO; then first run
+preflight.py --runtime, launch-driver-reaping.py (approved namespace route), and
+run-harness.py. Do not repeat on failure. Close normal App session, then use the
+frozen exact stop-driver.py and await wait-only subreaper. Missing native complete
+or CPU observer data remains explicitly incomplete. DIAGNOSTIC_PREFIX_STOP after
+a successful original cold gate never means full UI or production acceptance.

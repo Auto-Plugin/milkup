@@ -1,0 +1,117 @@
+#!/usr/bin/env python3
+"""Synthetic offline tests only; no runtime evidence, processes, or native tools."""
+import copy
+import importlib.util
+import json
+from pathlib import Path
+import tempfile
+import unittest
+
+spec = importlib.util.spec_from_file_location('wire_audit', Path(__file__).with_name('audit-accepted-wire.py'))
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+
+
+def encoded(value):
+    return json.dumps(value, ensure_ascii=False).encode('utf-8')
+
+
+def fixture():
+    source = 'A中é👩🏽‍💻\n'
+    document = '头\n' + source + '尾\n'
+    a, b = 2, 2 + len(module.utf16(source)) // 2
+    request = dict(documentId='cold-doc', version=0, source=source, **{'from': a, 'to': b},
+                   fromLine=2, toLine=3, completeStart=True, completeEnd=True, contextKnown=True,
+                   protectedRanges=[], blocks=[dict(kind='fence', complete=True, info='mermaid',
+                   **{'from': a, 'to': b}, contentRanges=[{'from': a, 'to': b}])],
+                   selection={'anchor': 0, 'head': 0}, theme='light', target='screen', width=1024)
+    message = {'protocol': module.PROTOCOL, 'type': 'render', 'id': 'render_3',
+               'payload': {'pluginId': 'milkup.diagrams', 'rendererId': 'diagrams.mermaid', 'request': request}}
+    common = dict(schema='milkup.cold-accepted-wire.v1', ownerPid=10, ownerBirth=20,
+                  guardianPid=30, guardianBirth=40, instanceId='instance_a', pluginId='milkup.diagrams')
+    guardian = dict(common, sequence=1, kind='guardian-spawn', requestId=None, monotonicNs=1,
+                    captureBeforeNs=1, captureAfterCloneNs=2, captureAfterNs=3)
+    wire = encoded(message)
+    render = dict(common, sequence=2, kind='render-accepted', requestId='render_3', monotonicNs=11,
+                  captureBeforeNs=11, captureAfterCloneNs=12, captureAfterNs=13,
+                  wire=wire.decode('utf-8'), wireBytes=len(wire), wireSha256=module.digest(wire))
+    status = dict(schema='milkup.cold-accepted-wire-status.v1', final=True, diagnosticClosed=True,
+                  ownerPid=10, ownerBirth=20, attempted=2, enqueued=2, written=2)
+    status.update({k: 0 for k in module.ZERO_COUNTERS})
+    native = [dict(phase='dispatch', pid=10, instanceId='instance_a', requestId='render_3', monotonicNs=10),
+              dict(phase='deadline-observed', pid=10, instanceId='instance_a', requestId='render_3', monotonicNs=2000000010)]
+    return [guardian, render], status, native, document.encode('utf-8'), message
+
+
+def run_audit(events, status, native, doc):
+    lines = b''.join(encoded(row) + b'\n' for row in events)
+    log = b''.join(b'DOM_NATIVE_TIMING ' + encoded(row) + b'\n' for row in native)
+    return module.audit(lines, encoded(status), encoded(status), log, doc)
+
+
+class AuditTests(unittest.TestCase):
+    def test_utf16_roundtrip_and_exact_native_key(self):
+        events, status, native, doc, message = fixture()
+        result = run_audit(events, status, native, doc)
+        self.assertTrue(result['ok'], result['errors'])
+        row = result['requests'][0]
+        self.assertEqual(row['requestId'], 'render_3')
+        self.assertEqual(row['dispatchToDeadlineMs'], 2000)
+        self.assertTrue(row['input']['sourceExactlyMatchesFrozenFixture'])
+        self.assertGreater(row['input']['sourceUtf16Units'], len(message['payload']['request']['source']))
+
+    def test_wire_hash_and_request_id_tampering_rejected(self):
+        events, status, native, doc, message = fixture()
+        events[1]['wireSha256'] = '0' * 64
+        self.assertFalse(run_audit(events, status, native, doc)['ok'])
+        events, status, native, doc, message = fixture()
+        message['id'] = 'render_4'
+        wire = encoded(message)
+        events[1].update(wire=wire.decode(), wireBytes=len(wire), wireSha256=module.digest(wire))
+        result = run_audit(events, status, native, doc)
+        self.assertTrue(any('message.id' in e for e in result['errors']))
+
+    def test_wrong_utf16_offset_is_not_silently_byte_sliced(self):
+        events, status, native, doc, message = fixture()
+        message['payload']['request']['from'] += 1
+        message['payload']['request']['to'] += 1
+        wire = encoded(message)
+        events[1].update(wire=wire.decode(), wireBytes=len(wire), wireSha256=module.digest(wire))
+        result = run_audit(events, status, native, doc)
+        self.assertTrue(any('source differs' in e for e in result['errors']))
+
+    def test_identity_drop_and_unmatched_deadline_are_rejected(self):
+        events, status, native, doc, _ = fixture()
+        events[1]['guardianBirth'] += 1
+        status['queueFull'] = 1
+        native[1]['requestId'] = 'render_unknown'
+        result = run_audit(events, status, native, doc)
+        self.assertFalse(result['ok'])
+        self.assertTrue(any('prior guardian' in e for e in result['errors']))
+        self.assertTrue(any('queueFull' in e for e in result['errors']))
+        self.assertTrue(any('deadline has no captured input' in e for e in result['errors']))
+
+    def test_duplicate_json_keys_are_rejected(self):
+        with self.assertRaises(ValueError):
+            module.strict_json('{"id":"render_3","id":"render_4"}')
+
+    def test_freeze_is_required_and_hash_changes_rejected(self):
+        with tempfile.TemporaryDirectory(prefix='milkup-wire-audit-synthetic-') as tmp:
+            root = Path(tmp)
+            data = root / 'synthetic.txt'
+            data.write_bytes(b'frozen')
+            manifest = root / 'freeze.json'
+            row = dict(root=str(root), files=[dict(path=data.name, bytes=6, sha256=module.digest(b'frozen'))])
+            manifest.write_bytes(encoded(row))
+            with self.assertRaises(ValueError):
+                module.frozen_inputs(manifest, [data])
+            row['frozenAtUtc'] = 'synthetic-offline-test'
+            manifest.write_bytes(encoded(row))
+            self.assertEqual(module.frozen_inputs(manifest, [data])[0][data], b'frozen')
+            data.write_bytes(b'changed')
+            with self.assertRaises(ValueError):
+                module.frozen_inputs(manifest, [data])
+
+
+if __name__ == '__main__':
+    unittest.main()

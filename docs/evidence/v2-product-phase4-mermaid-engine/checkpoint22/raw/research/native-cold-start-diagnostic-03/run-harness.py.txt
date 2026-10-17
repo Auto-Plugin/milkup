@@ -1,0 +1,52 @@
+"""Prepared runtime entry. Does not launch driver; launch-driver-reaping.py is separate.
+Root must verify exact dedicated display and free ports before launching driver.
+"""
+import datetime,json,os,selectors,signal,subprocess,sys,time
+from pathlib import Path
+base=Path(__file__).resolve().parent;run='mermaid-ui-cold-diag-03';out=base/'runtime'/run
+subprocess.run([sys.executable,str(base/'verify-runtime-go.py')],check=True)
+owner=json.loads((out/'control'/f'{run}-driver-owner.json').read_text())
+assert owner['bootId']==Path('/proc/sys/kernel/random/boot_id').read_text().strip()
+words=Path('/proc',str(owner['pid']),'stat').read_text().rsplit(')',1)[1].split()
+assert words[19]==owner['birth'] and int(words[2])==owner['group']==owner['pid']
+import urllib.request
+with urllib.request.urlopen('http://127.0.0.1:4626/status',timeout=2) as r:
+ status=json.load(r);assert status['value']['ready'] is True
+# No caller-supplied shell commands; values are read as data from reviewed manifest.
+inputs=json.loads((base/'runtime-inputs.json').read_text())
+binary=inputs['binary'];sampler=inputs['sampler']
+assert binary['path']=='/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-02/diagnostic-binary/milkup-desktop'
+control=out/'control'; record=control/'harness-execution.json';assert not record.exists()
+command=[sys.executable,sampler['path'],'--output',str(out/'cpu-observer'),'--app-log',str(out/'driver.log'),'--binary',binary['path'],'--binary-sha256',binary['sha256'],'--identity-log',str(out/'native-capture/events.jsonl')]
+state={'startedUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'classification':'DIAGNOSTIC_PREFIX_ONLY_NOT_PRODUCTION_ACCEPTANCE','samplerCommand':command}
+cpu=None;harness=None
+with (control/'cpu-stderr.log').open('x') as stderr,(control/'cpu-stdout.log').open('x') as stdout,(control/'harness.log').open('x') as hlog:
+ try:
+  cpu=subprocess.Popen(command,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=stderr,text=True)
+  sel=selectors.DefaultSelector();sel.register(cpu.stdout,selectors.EVENT_READ)
+  assert sel.select(timeout=10),'Sampler did not become ready within 10 seconds'
+  line=cpu.stdout.readline();stdout.write(line);stdout.flush()
+  ready=json.loads(line);assert ready.get('event')=='waiting-app',ready
+  sel.close();state['samplerReady']=ready
+  harness=subprocess.Popen(['bash',str(base/'RUN.sh'),'harness'],cwd='/workspace/milkup',stdout=hlog,stderr=subprocess.STDOUT)
+  words=Path('/proc',str(harness.pid),'stat').read_text().rsplit(')',1)[1].split();state['harnessIdentity']={'pid':harness.pid,'birth':words[19]}
+  record.write_text(json.dumps(state,indent=2)+'\n')
+  state['harnessExitCode']=harness.wait(timeout=180)
+ finally:
+  if harness is not None and harness.poll() is None:
+   # Direct Popen child remains unreaped, so its PID cannot be reused.
+   harness.terminate()
+   try:harness.wait(timeout=10)
+   except subprocess.TimeoutExpired:harness.kill();harness.wait()
+   state['harnessInterrupted']=True
+  if cpu is not None:
+   try:
+    cpu.stdin.write(json.dumps({'event':'stop'})+'\n');cpu.stdin.flush();cpu.stdin.close()
+   except (BrokenPipeError,OSError):pass
+   try:state['samplerExitCode']=cpu.wait(timeout=10)
+   except subprocess.TimeoutExpired:
+    cpu.terminate();state['samplerExitCode']=cpu.wait(timeout=5);state['samplerForcedStop']=True
+   stdout.write(cpu.stdout.read())
+  state['finishedUtc']=datetime.datetime.now(datetime.timezone.utc).isoformat();record.write_text(json.dumps(state,indent=2)+'\n')
+assert state['samplerExitCode']==0,state
+sys.exit(state['harnessExitCode'])

@@ -1,0 +1,304 @@
+--- historical/full-workflow-diagnostic.mjs
++++ native/cold-prefix.mjs
+@@ -2,8 +2,7 @@
+ // Reuses P4 GTK/XTest startup and controls; page execution observes public DOM or
+ // focuses public controls. No editor/plugin internals, raw SVG or IPC are injected.
+ import assert from 'node:assert/strict'
+-import { execFileSync, spawn } from 'node:child_process'
+-import { openSync, closeSync } from 'node:fs'
++import { execFileSync } from 'node:child_process'
+ import { createHash } from 'node:crypto'
+ import { mkdir, readFile, writeFile, realpath, appendFile } from 'node:fs/promises'
+ import path from 'node:path'
+@@ -113,7 +112,7 @@
+   isolatedFallbacks,
+   matrix,
+   scope:
+-    'Actual production image decoding and UI behavior. Screenshots require separate visual review; geometry is not pixel fidelity proof.',
++    'DIAGNOSTIC COLD PREFIX ONLY; full UI not executed. Actual native diagnostic-binary image decoding and UI behavior. Screenshots require separate visual review; geometry is not pixel fidelity proof.',
+   excludes: [
+     'native process lifetime/timeout audit (separate harness)',
+     'Windows',
+@@ -192,158 +191,7 @@
+   ) + '\n',
+ )
+ 
+-// DIAGNOSTIC INSERT: external process and transport observation only.
+-let cpuChild,
+-  cpuCompletion,
+-  cpuExited = false,
+-  diagnosticFinished = false
+-const diagnosticStatus = { cpuStarted: false, cpuErrors: [], observerInstalled: false }
+-async function startCpuDiagnostic(owner) {
+-  const cpuOutput = path.join(output, 'cpu-observer')
+-  let stdout, stderr
+-  try {
+-    stdout = openSync(path.join(output, 'cpu-stdout.log'), 'wx')
+-    stderr = openSync(path.join(output, 'cpu-stderr.log'), 'wx')
+-    cpuChild = spawn(
+-      '/usr/bin/python3',
+-      [
+-        new URL('../cpu/app_cpu_ring.py', import.meta.url).pathname,
+-        '--output',
+-        cpuOutput,
+-        '--app-log',
+-        process.env.MILKUP_NATIVE_APP_LOG,
+-      ],
+-      { stdio: ['pipe', stdout, stderr] },
+-    )
+-    cpuCompletion = new Promise((resolve) => {
+-      cpuChild.once('error', (error) => {
+-        cpuExited = true
+-        resolve({ error: String(error) })
+-      })
+-      cpuChild.once('exit', (code, signal) => {
+-        cpuExited = true
+-        resolve({ code, signal })
+-      })
+-    })
+-    cpuChild.stdin.on('error', (error) => {
+-      if (diagnosticStatus.cpuErrors.length < 32)
+-        diagnosticStatus.cpuErrors.push(String(error).slice(0, 256))
+-    })
+-    cpuChild.stdin.write(
+-      JSON.stringify({
+-        pid: owner.identity.pid,
+-        birth: owner.identity.birth,
+-        argv: owner.identity.argv,
+-      }) + '\n',
+-    )
+-    diagnosticStatus.cpuStarted = true
+-    await writeFile(
+-      path.join(output, 'cpu-launch.json'),
+-      JSON.stringify(
+-        {
+-          pid: cpuChild.pid,
+-          app: owner.identity,
+-          scope: 'exact App CPU only; observer cgroup is shared',
+-          startedAt: Date.now(),
+-          startsBeforeColdWorkflow: true,
+-        },
+-        null,
+-        2,
+-      ) + '\n',
+-    )
+-  } catch (error) {
+-    diagnosticStatus.cpuErrors.push(String(error).slice(0, 256))
+-  } finally {
+-    for (const fd of [stdout, stderr]) {
+-      if (fd !== undefined) {
+-        try {
+-          closeSync(fd)
+-        } catch (error) {
+-          diagnosticStatus.cpuErrors.push(String(error).slice(0, 256))
+-        }
+-      }
+-    }
+-  }
+-}
+-async function installDeadlineDiagnostic() {
+-  try {
+-    const code = await readFile(new URL('../observer.js', import.meta.url), 'utf8')
+-    const result = await app.execute('return (' + code + ')()')
+-    diagnosticStatus.observerInstalled = result.installed === true
+-    await writeFile(
+-      path.join(output, 'transport-install.json'),
+-      JSON.stringify(
+-        {
+-          ...result,
+-          scope:
+-            'After independent install; cold/startup/install gap explicit; complete subsequent original workflow',
+-        },
+-        null,
+-        2,
+-      ) + '\n',
+-    )
+-  } catch (error) {
+-    diagnosticStatus.observerError = String(error).slice(0, 512)
+-  }
+-  assert(
+-    diagnosticStatus.observerInstalled,
+-    'DIAGNOSTIC SETUP: transport observer must install before coverage',
+-  )
+-}
+-async function finishDeadlineDiagnostic(reason, originalFailure) {
+-  if (diagnosticFinished) return
+-  diagnosticFinished = true
+-  diagnosticStatus.finishReason = reason
+-  diagnosticStatus.originalFailureObservedAt = originalFailure ? Date.now() : null
+-  if (originalFailure) diagnosticStatus.originalFailure = String(originalFailure).slice(0, 512)
+-  // Finish CPU before any potentially slow page export or failure screenshot. The
+-  // independent sampler can already have frozen on the native deadline log.
+-  if (cpuChild && !cpuExited) {
+-    try {
+-      cpuChild.stdin.end(JSON.stringify({ finish: 'harness-final' }) + '\n')
+-    } catch (error) {
+-      diagnosticStatus.cpuErrors.push(String(error).slice(0, 256))
+-    }
+-  }
+-  if (app && diagnosticStatus.observerInstalled) {
+-    try {
+-      const snapshot = await app.execute(
+-        `const o=window.__milkupTransportDiagnostic;
+-        if(!o)return {missing:true};o.stop(arguments[0]);return o.state`,
+-        reason,
+-      )
+-      const serialized = JSON.stringify(snapshot, null, 0)
+-      if (Buffer.byteLength(serialized) + 1 > 2097152) throw Error('Observer export exceeds2MiB')
+-      await writeFile(path.join(output, 'transport-ring.json'), serialized + '\n')
+-    } catch (error) {
+-      diagnosticStatus.exportError = String(error).slice(0, 512)
+-    }
+-  }
+-  if (cpuCompletion) {
+-    let timer
+-    diagnosticStatus.cpuCompletion = await Promise.race([
+-      cpuCompletion,
+-      new Promise((resolve) => {
+-        timer = setTimeout(
+-          () =>
+-            resolve({
+-              incomplete: 'sampler-natural-exit-not-observed-within5s',
+-              pid: cpuChild.pid,
+-            }),
+-          5000,
+-        )
+-      }),
+-    ])
+-    clearTimeout(timer)
+-  }
+-  await writeFile(
+-    path.join(output, 'diagnostic-completion.json'),
+-    JSON.stringify(diagnosticStatus, null, 2) + '\n',
+-  ).catch((error) =>
+-    console.error('Diagnostic status persistence failed:', String(error).slice(0, 512)),
+-  )
+-}
+-// END DIAGNOSTIC INSERT.
++
+ 
+ let app, nativeWindow, activeFile
+ const ui = nativeFixture(() => app),
+@@ -1534,6 +1382,40 @@
+   }
+ }
+ 
++// Diagnostic sink finalization occurs after the original cold workflow, before
++// session shutdown. Missing capture completion never overwrites original failure.
++async function finishNativeCapture() {
++  const capture = process.env.MILKUP_COLD_REQUEST_OUTPUT_DIR
++  const state = { requested: false, complete: false, deadlineMs: 1000 }
++  try {
++    assert(capture, 'Native cold capture directory is required')
++    await writeFile(path.join(capture, 'finish.request'), 'cold-prefix-final\n', { flag: 'wx' })
++    state.requested = true
++    const end = Date.now() + state.deadlineMs
++    while (Date.now() < end) {
++      try {
++        const value = JSON.parse(await readFile(path.join(capture, 'complete.json'), 'utf8'))
++        if (value.final === true) {
++          state.sinkFinalObserved = true
++          state.completion = value
++          const drops = ['queueFull', 'disconnected', 'oversize', 'capped']
++          state.complete = value.ownerBirth != null && value.inFlight === 0 &&
++            value.ioErrors === 0 && value.incompleteTiming === 0 &&
++            drops.every(key => value[key] === 0) && value.written === value.enqueued &&
++            value.attempted === value.enqueued + drops.reduce((sum, key) => sum + value[key], 0)
++          if (!state.complete) state.incomplete = 'native sink finalized but counters or identity are incomplete'
++          break
++        }
++      } catch (error) {
++        if (error.code !== 'ENOENT' && !(error instanceof SyntaxError)) throw error
++      }
++      await new Promise(resolve => setTimeout(resolve, 50))
++    }
++    if (!state.sinkFinalObserved) state.incomplete = 'native completion was not observed within 1000ms'
++  } catch (error) { state.incomplete = String(error) }
++  await writeFile(path.join(output, 'capture-finalization.json'), JSON.stringify(state, null, 2) + '\n')
++}
++
+ try {
+   activeFile = path.join(output, 'ordinary.md')
+   app = await startProduction(activeFile, output, { diagnostics: false })
+@@ -1566,66 +1448,22 @@
+     JSON.stringify({ ...owner.identity, runtimeUrl: runtimeUrl.href, verifiedProfile }, null, 2) +
+       '\n',
+   )
+-  await startCpuDiagnostic(owner)
+   await app.execute(
+     `window.__productionDiagnostics={errors:[],cspViolations:[]};addEventListener('error',e=>window.__productionDiagnostics.errors.push(e.message));addEventListener('unhandledrejection',e=>window.__productionDiagnostics.errors.push(String(e.reason)));addEventListener('securitypolicyviolation',e=>window.__productionDiagnostics.cspViolations.push({directive:e.violatedDirective,blocked:e.blockedURI}));`,
+   )
+   nativeWindow = ui.windowId()
+   x('windowsize', nativeWindow, '1100', '760')
+   await coldBundledWindow()
+-  await install()
+-  await installDeadlineDiagnostic()
+-  for (const sample of isolatedFallbacks) await isolatedFallback(sample)
+-  for (const name of ['ordinary', 'windowed']) {
+-    await openDocument(name)
+-    await appearance('light', 1)
+-    for (const sample of samples) {
+-      await seek(sample, 'live')
+-      await shot(`coverage-${name}-${sample.id}`, {
+-        sample: sample.id,
+-        ...(await assertSample(sample, 'live')),
+-      })
+-    }
+-    await sourceSelection(
+-      name,
+-      matrixSamples.find((sample) => sample.expected === 'ready'),
+-    )
+-    for (const mode of ['source', 'live']) await history(name, mode)
+-  }
+-  for (const combination of matrix) {
+-    const { view, mode, theme, zoom, narrow, key } = combination
+-    await openDocument(view)
+-    x('windowsize', nativeWindow, narrow ? '760' : '1100', narrow ? '520' : '760')
+-    await appearance(theme, zoom)
+-    const before = await app.probe()
+-    for (const sample of matrixSamples) {
+-      await seek(sample, mode)
+-      await shot(`matrix-${key}-${sample.id}`, {
+-        combination,
+-        sample: sample.id,
+-        ...(await assertSample(sample, mode)),
+-      })
+-      if (mode === 'live' && zoom === 2 && narrow && sample.expected === 'ready')
+-        await scrollEdges(sample, key)
+-    }
+-    assert.equal((await app.probe()).version, before.version)
+-    assert.deepEqual(await readFile(activeFile), Buffer.from(contents.get(view)))
+-    assert.deepEqual((await observe()).diagnostics.errors, [])
+-    await record('matrix-complete-' + key, {
+-      combination,
+-      exactFileSha256: sha256(await readFile(activeFile)),
+-    })
+-  }
+   assert.equal(sha256(await readFile(binary)), process.env.MILKUP_MERMAID_BINARY_SHA256)
+   assert.equal(sha256(await readFile(archivePath)), process.env.MILKUP_MERMAID_ARCHIVE_SHA256)
+-  await record('PASS', {
+-    combinations: matrix.length,
+-    samplesPerCombination: matrixSamples.length,
+-    pixelReview: 'required-separately',
+-    nativeIsolation: 'not-established-by-this-harness',
+-  })
++  await writeFile(path.join(output, 'diagnostic-prefix-stop.json'), JSON.stringify({
++    status: 'DIAGNOSTIC_PREFIX_STOP', coldGatePassed: true,
++    fullUIAccepted: false, productionAcceptance: false,
++    stoppedAfter: 'coldBundledWindow',
++    omitted: 'independent installation, fallback coverage, ordinary/windowed coverage, source/history, matrix, edge checks',
++  }, null, 2) + '\n', { flag: 'wx' })
++  console.log('DIAGNOSTIC_PREFIX_STOP: original cold gate passed; full UI was not run')
+ } catch (error) {
+-  await finishDeadlineDiagnostic('harness-first-failure', error).catch(() => {})
+   await writeFile(
+     path.join(output, 'failure.json'),
+     JSON.stringify({ error: String(error), stack: error.stack }, null, 2) + '\n',
+@@ -1633,6 +1471,6 @@
+   if (app) await shot('FAIL', { error: String(error) }).catch(() => {})
+   throw error
+ } finally {
+-  await finishDeadlineDiagnostic('harness-final').catch(() => {})
++  await finishNativeCapture().catch(error => console.error('Capture finalization failed: ' + String(error)))
+   if (app) await app.close()
+ }

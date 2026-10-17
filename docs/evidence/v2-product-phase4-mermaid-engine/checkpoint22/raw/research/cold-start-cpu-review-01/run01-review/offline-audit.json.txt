@@ -1,0 +1,110 @@
+{
+  "scope": "completed artifacts only; no live /proc or native operations",
+  "issues": [],
+  "fileHashes": {
+    "cpu-observer/summary.json": {
+      "bytes": 3037,
+      "sha256": "2dfe20c51c94f3e792f6948274ed7c4935b8912d883ff3adc9bf48b38a2412bc"
+    },
+    "cpu-observer/samples.ndjson": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "native-capture/events.jsonl": {
+      "bytes": 15021,
+      "sha256": "9e49f16c3b9c953c664ac5bd3bfa901132653565c0f89a7d03ccf0d29aaa6005"
+    },
+    "native-capture/status.json": {
+      "bytes": 836,
+      "sha256": "ed4b320d0094eb1bb42b175e37ff8825c3b90461d3a265e1b0460d307ee2abc6"
+    },
+    "native-capture/complete.json": {
+      "bytes": 836,
+      "sha256": "ed4b320d0094eb1bb42b175e37ff8825c3b90461d3a265e1b0460d307ee2abc6"
+    },
+    "driver.log": {
+      "bytes": 2533,
+      "sha256": "5171f2677cda82d819334613159f01cf100f941fc77b9aeed34d8c4e80810d12"
+    }
+  },
+  "app": {
+    "pid": 467079,
+    "birth": 8800972,
+    "parent": 467040,
+    "state": "S",
+    "userTicks": 71,
+    "systemTicks": 62,
+    "argv": [
+      "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-01/build-attempt-01/diagnostic-only-milkup-desktop",
+      "/workspace/milkup-mermaid-engine-evidence/research/native-cold-start-diagnostic-01/runtime/mermaid-ui-cold-diag-01/evidence/ordinary.md"
+    ],
+    "boundNs": 88013399097859
+  },
+  "stopReason": "observer-error",
+  "knownIdentities": [
+    {
+      "pid": 467079,
+      "birth": 8800972,
+      "parent": 467040,
+      "state": "S",
+      "userTicks": 71,
+      "systemTicks": 62,
+      "role": "App",
+      "instanceId": null,
+      "parentIdentity": null,
+      "firstSeenNs": 88013399103531,
+      "firstSampleNs": null
+    }
+  ],
+  "sampleStatusCounts": {},
+  "cpuOverhead": {
+    "observerOwnCpuNs": 37001747,
+    "prelaunchHashCpuNs": 20149633,
+    "afterReadyCpuNs": 16854649,
+    "procReads": 8,
+    "readTotalNs": 194718,
+    "readMaxNs": 71792,
+    "sampleTotalNs": 0,
+    "sampleMaxNs": 0,
+    "discoveryTotalNs": 0,
+    "discoveryMaxNs": 0
+  },
+  "cpuQuality": {
+    "sampleCount": 0,
+    "sampleIncomplete": 0,
+    "evictedRows": 0,
+    "skippedSlots": 0,
+    "maxLateNs": 0,
+    "discoveryCount": 0,
+    "discoveryIncomplete": 0,
+    "discoveryTasks": 0,
+    "errorCount": 1,
+    "errors": [
+      {
+        "monoNs": 88013399235002,
+        "stage": "terminal",
+        "error": "PermissionError",
+        "detail": "[Errno 13] Permission denied: '/proc/467203/environ'"
+      }
+    ],
+    "requestPayloadLinesSkipped": 0
+  },
+  "retainedSampleDurationSumNs": 0,
+  "retainedSampleDurationMaxNs": 0,
+  "nativeCaptureOverhead": {
+    "writerThreadCpuNs": 240684198,
+    "writerCpuScope": "App-owned background writer thread through last status checkpoint, excludes final status/complete serialization; included in App own CPU",
+    "captureTotalNs": 119826,
+    "captureMaxNs": 45758,
+    "incompleteTiming": 0
+  },
+  "requests": [],
+  "qualifications": [
+    "No cgroup data is collected by this candidate; do not infer shared cgroup CPU.",
+    "CPU sum without valid intervals is null, not 0. Per-PID and per-role coverage differ.",
+    "Leader schedstat does not cover other threads; nonzero wait is limited to those observed leader intervals.",
+    "Native writerThreadCpuNs is already part of App CPU; captureTotalNs is elapsed duration, not CPU. Do not sum these as additive CPU.",
+    "Observer overhead fields are nested/overlapping and cannot all be summed; real perturbation remains counterfactual.",
+    "Partial, initial, missing and terminal edges are not interpolated. No CPU cause is inferred."
+  ]
+}
