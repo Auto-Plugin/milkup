@@ -1,0 +1,37 @@
+
+ RUN  v3.2.6 /workspace/milkup-mermaid-engine-evidence/research/outer-window-exact-render-regression-01
+
+ ❯ scheduling.test.ts (4 tests | 1 failed) 33ms
+   × outer window exact-input controlled regression > characterizes exact duplicate provider calls and RED one-call memo expectation 22ms
+     → expected [ { …(16) }, { …(16) } ] to have a length of 1 but got 2
+   ✓ outer window exact-input controlled regression > keeps width, theme and selection in exact input identity 4ms
+   ✓ canceled queued job never executes after previous active settles 4ms
+   ✓ active cancellation preserves queue ownership until settlement 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  scheduling.test.ts > outer window exact-input controlled regression > characterizes exact duplicate provider calls and RED one-call memo expectation
+AssertionError: expected [ { …(16) }, { …(16) } ] to have a length of 1 but got 2
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ scheduling.test.ts:132:22
+    130|     expect(f.source.version).toBe(before);
+    131|     // Deliberate optimization regression: retain the current first RE…
+    132|     expect(requests).toHaveLength(1);
+       |                      ^
+    133|   });
+    134|   it("keeps width, theme and selection in exact input identity", async…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed (4)
+   Start at  06:06:18
+   Duration  854ms (transform 465ms, setup 0ms, collect 539ms, tests 33ms, environment 0ms, prepare 104ms)
+

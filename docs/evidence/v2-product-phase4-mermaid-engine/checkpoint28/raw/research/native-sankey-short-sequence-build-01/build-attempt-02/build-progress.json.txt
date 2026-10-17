@@ -1,0 +1,97 @@
+{
+  "startedUtc": "2026-10-17T06:19:05.743523+00:00",
+  "classification": "RESEARCH_FRONTEND_NATIVE_DIAGNOSTIC_NOT_PRODUCTION",
+  "sourceDelta": [
+    {
+      "repositoryPath": "apps/desktop/src-tauri/src/plugin_dom.rs",
+      "candidatePath": "/workspace/milkup-mermaid-engine-evidence/research/native-short-sequence-request-candidate-01/candidate/apps/desktop/src-tauri/src/plugin_dom.rs",
+      "candidateSha256": "17d2d10ee4a7e49947d33957c980e9a04ee2bb2f2e92c8646f828b9025cd0395",
+      "originalSha256": "195cfffdd1a69456b66ea2f860a3b195b9e5bc94152e93aa31a46c022eca097a"
+    },
+    {
+      "repositoryPath": "apps/desktop/src-tauri/src/plugin_dom_process.rs",
+      "candidatePath": "/workspace/milkup-mermaid-engine-evidence/research/native-short-sequence-request-candidate-01/candidate/apps/desktop/src-tauri/src/plugin_dom_process.rs",
+      "candidateSha256": "f7aa132e0d9704c965d8dd214f968a6d077ddcfc222987b35871398a18fa1496",
+      "originalSha256": "c6540ffc4d11e61050379d68bad0342c0cfaf8ec4a6fe60075b18ddecd851702"
+    },
+    {
+      "repositoryPath": "apps/desktop/src-tauri/src/plugin_dom_request_diagnostic.rs",
+      "candidatePath": "/workspace/milkup-mermaid-engine-evidence/research/native-short-sequence-request-candidate-01/candidate/apps/desktop/src-tauri/src/plugin_dom_request_diagnostic.rs",
+      "candidateSha256": "0dd3db78c1b4c5afbec01f40d48239f1bbbce03e6defcfe7cc2576629ea25eb4",
+      "originalSha256": null
+    },
+    {
+      "repositoryPath": "packages/plugin/src/document-render-rpc.ts",
+      "candidatePath": "/workspace/milkup-mermaid-engine-evidence/research/sankey-sequence-frontend-trace-01/candidate/packages/plugin/src/document-render-rpc.ts",
+      "candidateSha256": "aa22dfba7e22f99a41d2687fc9aee20ee07a81feb60a9092d3bb0f2d6595ef0b",
+      "originalSha256": "21aea3b3339e09649a42c529db690440568c836b9b3a9d980a77de8be9176b2a"
+    }
+  ],
+  "formalFrontendBefore": {
+    "frontendFiles": 12,
+    "productionBinary": "cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304",
+    "archive": "9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df"
+  },
+  "frontendReuse": "Exact frozen firstattempt researchdist; no Vite rerun",
+  "formalFrontendAfterVite": {
+    "frontendFiles": 12,
+    "productionBinary": "cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304",
+    "archive": "9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df"
+  },
+  "cargo": {
+    "command": [
+      "bash",
+      "-lc",
+      "source /workspace/.cloud/milkup-v2/env.sh\nunset CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER PROOT_NO_SECCOMP\nexec \"$@\"",
+      "build-native",
+      "python3",
+      "/workspace/milkup-mermaid-engine-evidence/research/native-sankey-short-sequence-build-01/cargo-with-research-config.py",
+      "/workspace/milkup-mermaid-engine-evidence/research/native-sankey-short-sequence-build-01/build-attempt-01/research-dist",
+      "/workspace/milkup-mermaid-engine-evidence/research/native-sankey-short-sequence-build-01/build-attempt-02/effective-tauri-config.json",
+      "cargo",
+      "build",
+      "--manifest-path",
+      "apps/desktop/src-tauri/Cargo.toml",
+      "--release",
+      "--locked",
+      "--offline",
+      "--features",
+      "tauri/custom-protocol",
+      "--bin",
+      "milkup-desktop",
+      "--message-format=json-render-diagnostics"
+    ],
+    "cwd": "/workspace/milkup",
+    "startedUtc": "2026-10-17T06:19:05.872009+00:00",
+    "exitCode": 0,
+    "finishedUtc": "2026-10-17T06:20:07.503975+00:00"
+  },
+  "formalFrontendAfterCargo": {
+    "frontendFiles": 12,
+    "productionBinary": "cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304",
+    "archive": "9889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df"
+  },
+  "binary": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/native-sankey-short-sequence-build-01/build-attempt-02/diagnostic-binary/milkup-desktop",
+    "bytes": 21931320,
+    "sha256": "9c8d9e7391a4fdcbbaff6aacaa6329707ea9fb17fee2d535f3658ba87544abde"
+  },
+  "extension": {
+    "compiledPath": "/workspace/milkup/apps/desktop/src-tauri/target/release/build/milkup-desktop-2c39bf60742e8c2c/out/libmilkup_dom_guard.so",
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/native-sankey-short-sequence-build-01/build-attempt-02/diagnostic-binary/libmilkup_dom_guard.so",
+    "bytes": 15656,
+    "sha256": "5b1082768123b9ac1923eb8ef3f6f8c0bd05ffd5d66b8b2a023f75b69106c44c",
+    "embeddedOffset": 3564606,
+    "embeddedOccurrences": 1
+  },
+  "frontend-embedded-proof": {
+    "command": [
+      "node",
+      "/workspace/milkup-mermaid-engine-evidence/research/native-sankey-short-sequence-build-01/verify-all-frontend-embedded-attempt02.mjs",
+      "/workspace/milkup-mermaid-engine-evidence/research/native-sankey-short-sequence-build-01/build-attempt-02/frontend-embedded-spec.json",
+      "/workspace/milkup-mermaid-engine-evidence/research/native-sankey-short-sequence-build-01/build-attempt-02/frontend-embedded-proof.json"
+    ],
+    "cwd": "/workspace/milkup",
+    "startedUtc": "2026-10-17T06:20:07.688260+00:00"
+  }
+}

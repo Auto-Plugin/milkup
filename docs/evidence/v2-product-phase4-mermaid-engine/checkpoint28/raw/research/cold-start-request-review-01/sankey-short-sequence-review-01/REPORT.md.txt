@@ -1,0 +1,49 @@
+# One short diagnostic sequence: exact requests and closure verified
+
+The unchanged mixed-stream auditor's **first actual exit is 0**, classification `AUDIT_COMPLETE`, issues empty. All **222 frozen files / 26,590,840 bytes** match completed-manifest SHA256 `d3c4a7007e0965c2a761edf3bc1706eb0d4a461a0d7e2b4b1e4b0264d8fe97cb`. `execution.json`, `stdout.log`, `stderr.log` retain the actual command and first result; the prepared auditor was not modified or rerun. The product's one short diagnostic UI sequence also exited 0, seven records ending PASS and eight PNGs. These are separate conclusions.
+
+**26 native accepted renders are completely matched and closed:** each joins one frontend client job by native instance/request/plugin and parsed complete payload value, then one authoritative native terminal. Object-key ordering is irrelevant to value matching. There are 25 strict settled results, all ok=true, and one explicit stop of a bundled-instance active render during the recorded client disposal. The second stop row has null requestId and closes no render. No deadline, native fail, capture gap, duplicate accepted key, ambiguous terminal or unclosed frontend job was observed. The full frozen driver dispatch key set equals the captured accepted set; no accepted tail was silently excluded by the final marker.
+
+Native owner is PID **508377**, birth **10579541**. Bundled instance is `df59918c2b99843db6dcb56cf7ad671c4e909afbe545efda` (frontend client 3); installed instance is `9188ef94fcf904278cc47177a7898740b758ee7cad0c4fc1` (client 4). Full wire hash/UTF-8 byte length, native/plugin/guardian identity and frontend JSON value matching were checked. All 26 captured source strings additionally match their exact UTF-16 windows in the frozen 7,845,955-byte document, SHA256 `46f4863e8c1842930984dd6cb3f1aa006b66ea3dfddfd935657471c3bb602470`.
+
+## Repeated original Sankey inputs
+
+Both Sankey groups share document `desktop-large-1792218186252`, version **0**, renderer `diagrams.mermaid`, target screen, absolute UTF-16 **434..2752**, lines **26..102**, one complete Mermaid fence and 2,318 UTF-16 source units. Fence contents hash `c6739c6a83029fbe481d653c74d1e302c8226bc89edcbebec88062125baa78d3` exactly matches the original Sankey fixture, not the configured author-layout variant. This attribution comes from actual wire bytes, not screenshots. Their full fence-bearing request-source hash is `b4635cb21c53125f003eb3e97789849810dabefd13a7163efe24a24f9fb44029`.
+
+The **dark/width380** group is complete-payload identical four times, including selection `{anchor:384,head:432}`. Semantic payload fingerprint: `b38e3335eff51817f49b1b55043124fd132aa3b579501c988ca0a1a8dccec504`. These are all client 4 / installed instance:
+
+| Request | Accepted→pipe ms | Accepted→frame ms | Accepted→strict settle ms | Frame→strict settle ms | Cancel |
+|---|---:|---:|---:|---:|---|
+| render_20 | 0.077471 | 190.219115 | **191.932052** | 1.712937 | none |
+| render_21 | 0.118539 | 166.807059 | **168.838933** | 2.031874 | none |
+| render_22 | 0.039748 | 218.623993 | **220.342534** | 1.718541 | frontend active cancel; native already settled |
+| render_23 | 0.033258 | 205.420593 | **208.886235** | 3.465642 | none |
+
+All four strict settlements have ok=true. Their frontend queued→dispatch intervals are **recorded 0 ms at frontend clock resolution**, not proof of zero scheduling cost. For render_22, native cancel was observed **48.256190 ms after its strict settlement**, eventOk=false/not-active, and was not forwarded. Frontend still considered it active before receiving the already settled remote result. Thus frontend `cancel-active` alone cannot prove a native in-flight cancellation.
+
+The **light/width1100** group is complete-payload identical four times, with selection `{anchor:0,head:0}`. Fingerprint: `ba3841d8c968f057fff22db294a2507440cce89bd78b6943c4a71b6160e16a4e`:
+
+| Instance/client | Request | Accepted→strict settle ms | Native cancel |
+|---|---|---:|---|
+| bundled / 3 | render_2 | **382.071893** | none |
+| installed / 4 | render_2 | **325.017531** | matched active; later strict success |
+| installed / 4 | render_5 | **201.488764** | none |
+| installed / 4 | render_7 | **259.509346** | matched active; later strict success |
+
+These two groups have identical source text but are **not** the same complete request: theme, width and selection differ. `derived-request-summary.json` preserves all shared fields, exact instance keys and per-request measurements. Across all 26 accepted requests there are eight distinct complete-payload groups: 18 literal block-diagram inputs and eight original Sankey inputs. No configured-Sankey, sequence or flowchart input was identified in this capture.
+
+## Queue, cancellation and overhead
+
+Frontend sink has 266 events for 84 jobs across four clients: 26 diagrams jobs matched to native, plus 29 math and 29 footnotes jobs with their own non-native paths. All 84 were dispatched; **no cancel-queued event or queued-only canceled job occurred**. There are 14 frontend active-cancel observations across all plugins. Native diagrams has ten cancel observations: six matched active and four arrived after native was no longer active. Cancel never served as a native terminal. The bundled block render_3 was canceled and then explicitly stopped, not counted as a successful settlement or a deadline.
+
+Observed frontend queue waits reach **222 ms** (installed block render_4); other positive diagrams waits are render_2≈1 ms, render_8≈169 ms, render_11=81 ms, render_13=1 ms and render_15=215 ms. These show finite queue waiting in this run but no accumulating open queue at closure. They must not be conflated with native accepted-request durations.
+
+Native final: 126 attempted/enqueued/written records, 38,923 reserved wire bytes, every queue/cap/I/O/timing loss counter zero and inFlight zero. Producer captureTotal **1.259293 ms**, maximum **0.060956 ms**; background writer thread CPU **168.373360 ms** through its last checkpoint. Frontend measured trace intervals total about **14 ms**, maximum **2 ms**. Scope excludes native clock/ID work before recorder entry and final writer publication; these are not exhaustive observer overhead, render CPU, or disjoint quantities to subtract from request spans.
+
+Dual-ledger drain recorded two clean empty stable observations within **133.223198 ms**, then the recorder finalized. The independent complete-driver comparison and exact terminal checks support this captured request set; final alone would not. Cleanup records 15 exact identities absent, 12 reaps, no listeners, Node/harness exit0 and the expected owned-driver TERM propagation. Dedicated Xvfb is separate; there is no global process-tree completeness claim.
+
+## What this establishes and leaves open
+
+The narrow fresh-instance bottom-right→top-left sequence completed, and exact observed original-Sankey requests repeatedly settled successfully in roughly 169–382 ms. Its pipeline and cancel evidence is now explicit. Native spans are within the same App clock; frontend queue times stay on the frontend clock. Frame/pipe/settle timing includes scheduling, IPC, validation and recorder work; no renderer CPU or internal Mermaid stage is measured.
+
+**This does not explain or repair historical render_1037.** That failure followed the longer warmed sequence, and its actual input remains uncaptured. The four dark payload repetitions here cannot be backfilled as its input. No deadline in this one short diagnostic run is not a timeout-fix claim, production/fullUI replacement, or authorization for another run. No product change or retry was performed by this audit.

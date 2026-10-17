@@ -1,0 +1,31 @@
+{
+  "status": "PREPARED_NOT_EXECUTED",
+  "compileCommand": [
+    "/workspace/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+    "--edition=2021",
+    "--test",
+    "/workspace/milkup-mermaid-engine-evidence/research/native-short-sequence-request-candidate-01/tests/recorder-contract.rs",
+    "-L",
+    "dependency=/workspace/milkup/apps/desktop/src-tauri/target/release/deps",
+    "--extern",
+    "serde_json=/workspace/milkup/apps/desktop/src-tauri/target/release/deps/libserde_json-7d6c562668bcdff7.rlib",
+    "--extern",
+    "libc=/workspace/milkup/apps/desktop/src-tauri/target/release/deps/liblibc-1319ef591da3408a.rlib",
+    "--extern",
+    "sha2=/workspace/milkup/apps/desktop/src-tauri/target/release/deps/libsha2-d635634f2866b592.rlib",
+    "-C",
+    "opt-level=1",
+    "-C",
+    "debuginfo=0",
+    "-C",
+    "strip=symbols",
+    "-o",
+    "/workspace/milkup-mermaid-engine-evidence/research/native-short-sequence-request-candidate-01/tests/recorder-contract-bin"
+  ],
+  "testCommand": [
+    "/workspace/milkup-mermaid-engine-evidence/research/native-short-sequence-request-candidate-01/tests/recorder-contract-bin",
+    "--test-threads=1"
+  ],
+  "expectedTestCount": 11,
+  "scope": "pure recorder tests only, no native integration/build; reuse existing rlibs; preserve first compile/test exit"
+}

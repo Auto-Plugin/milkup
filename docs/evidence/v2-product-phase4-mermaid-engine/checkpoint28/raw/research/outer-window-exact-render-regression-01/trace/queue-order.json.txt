@@ -1,0 +1,198 @@
+{
+  "sink": {
+    "events": [
+      {
+        "client": 1,
+        "phase": "queued",
+        "requestId": "render_1",
+        "pluginId": "fixture",
+        "rendererId": "diagram",
+        "activeId": null,
+        "queueDepth": 1,
+        "detail": null,
+        "requestJson": "{\"pluginId\":\"fixture\",\"rendererId\":\"diagram\",\"request\":{\"documentId\":\"first\",\"version\":1,\"from\":0,\"to\":5,\"source\":\"hello\",\"fromLine\":1,\"toLine\":1,\"completeStart\":true,\"completeEnd\":true,\"contextKnown\":true,\"protectedRanges\":[],\"blocks\":[],\"selection\":{\"anchor\":0,\"head\":0},\"theme\":\"light\",\"target\":\"screen\",\"width\":380}}",
+        "frontendMs": 550.0118,
+        "captureEndMs": 550.059469
+      },
+      {
+        "client": 1,
+        "phase": "dispatch",
+        "requestId": "render_1",
+        "pluginId": "fixture",
+        "rendererId": "diagram",
+        "activeId": "render_1",
+        "queueDepth": 0,
+        "detail": null,
+        "requestJson": null,
+        "frontendMs": 550.147612,
+        "captureEndMs": 550.1575
+      },
+      {
+        "client": 1,
+        "phase": "queued",
+        "requestId": "render_2",
+        "pluginId": "fixture",
+        "rendererId": "diagram",
+        "activeId": "render_1",
+        "queueDepth": 1,
+        "detail": null,
+        "requestJson": "{\"pluginId\":\"fixture\",\"rendererId\":\"diagram\",\"request\":{\"documentId\":\"removed\",\"version\":1,\"from\":0,\"to\":5,\"source\":\"hello\",\"fromLine\":1,\"toLine\":1,\"completeStart\":true,\"completeEnd\":true,\"contextKnown\":true,\"protectedRanges\":[],\"blocks\":[],\"selection\":{\"anchor\":0,\"head\":0},\"theme\":\"light\",\"target\":\"screen\",\"width\":380}}",
+        "frontendMs": 550.583239,
+        "captureEndMs": 550.59622
+      },
+      {
+        "client": 1,
+        "phase": "queued",
+        "requestId": "render_3",
+        "pluginId": "fixture",
+        "rendererId": "diagram",
+        "activeId": "render_1",
+        "queueDepth": 2,
+        "detail": null,
+        "requestJson": "{\"pluginId\":\"fixture\",\"rendererId\":\"diagram\",\"request\":{\"documentId\":\"survivor\",\"version\":1,\"from\":0,\"to\":5,\"source\":\"hello\",\"fromLine\":1,\"toLine\":1,\"completeStart\":true,\"completeEnd\":true,\"contextKnown\":true,\"protectedRanges\":[],\"blocks\":[],\"selection\":{\"anchor\":0,\"head\":0},\"theme\":\"light\",\"target\":\"screen\",\"width\":380}}",
+        "frontendMs": 550.633322,
+        "captureEndMs": 550.641691
+      },
+      {
+        "client": 1,
+        "phase": "cancel-queued",
+        "requestId": "render_2",
+        "pluginId": "fixture",
+        "rendererId": "diagram",
+        "activeId": "render_1",
+        "queueDepth": 2,
+        "detail": null,
+        "requestJson": null,
+        "frontendMs": 550.835735,
+        "captureEndMs": 550.843739
+      },
+      {
+        "client": 1,
+        "phase": "cancel-active",
+        "requestId": "render_1",
+        "pluginId": "fixture",
+        "rendererId": "diagram",
+        "activeId": "render_1",
+        "queueDepth": 1,
+        "detail": null,
+        "requestJson": null,
+        "frontendMs": 550.93135,
+        "captureEndMs": 550.937557
+      },
+      {
+        "client": 1,
+        "phase": "remote-settled",
+        "requestId": "render_1",
+        "pluginId": "fixture",
+        "rendererId": "diagram",
+        "activeId": "render_1",
+        "queueDepth": 1,
+        "detail": "false",
+        "requestJson": null,
+        "frontendMs": 552.436951,
+        "captureEndMs": 552.452829
+      },
+      {
+        "client": 1,
+        "phase": "dispatch",
+        "requestId": "render_3",
+        "pluginId": "fixture",
+        "rendererId": "diagram",
+        "activeId": "render_3",
+        "queueDepth": 0,
+        "detail": null,
+        "requestJson": null,
+        "frontendMs": 552.484326,
+        "captureEndMs": 552.491766
+      },
+      {
+        "client": 1,
+        "phase": "remote-settled",
+        "requestId": "render_3",
+        "pluginId": "fixture",
+        "rendererId": "diagram",
+        "activeId": "render_3",
+        "queueDepth": 0,
+        "detail": "true",
+        "requestJson": null,
+        "frontendMs": 552.642496,
+        "captureEndMs": 552.650545
+      }
+    ],
+    "clients": 1,
+    "bytes": 6604,
+    "dropped": 0,
+    "errors": 0
+  },
+  "calls": [
+    "first",
+    "survivor"
+  ],
+  "sent": [
+    {
+      "protocol": "milkup.plugin.document-render.v1",
+      "type": "render",
+      "id": "render_1",
+      "payload": {
+        "pluginId": "fixture",
+        "rendererId": "diagram",
+        "request": {
+          "documentId": "first",
+          "version": 1,
+          "from": 0,
+          "to": 5,
+          "source": "hello",
+          "fromLine": 1,
+          "toLine": 1,
+          "completeStart": true,
+          "completeEnd": true,
+          "contextKnown": true,
+          "protectedRanges": [],
+          "blocks": [],
+          "selection": {
+            "anchor": 0,
+            "head": 0
+          },
+          "theme": "light",
+          "target": "screen",
+          "width": 380
+        }
+      }
+    },
+    {
+      "protocol": "milkup.plugin.document-render.v1",
+      "type": "cancel",
+      "id": "render_1"
+    },
+    {
+      "protocol": "milkup.plugin.document-render.v1",
+      "type": "render",
+      "id": "render_3",
+      "payload": {
+        "pluginId": "fixture",
+        "rendererId": "diagram",
+        "request": {
+          "documentId": "survivor",
+          "version": 1,
+          "from": 0,
+          "to": 5,
+          "source": "hello",
+          "fromLine": 1,
+          "toLine": 1,
+          "completeStart": true,
+          "completeEnd": true,
+          "contextKnown": true,
+          "protectedRanges": [],
+          "blocks": [],
+          "selection": {
+            "anchor": 0,
+            "head": 0
+          },
+          "theme": "light",
+          "target": "screen",
+          "width": 380
+        }
+      }
+    }
+  ]
+}

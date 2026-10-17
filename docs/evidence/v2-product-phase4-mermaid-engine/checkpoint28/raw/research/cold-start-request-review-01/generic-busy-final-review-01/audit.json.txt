@@ -1,0 +1,546 @@
+{
+  "scope": "Frozen offline audit only; original failure retained; no native execution",
+  "manifests": [
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/production08-generic-busy-final-01/completed-manifest.json",
+      "sha256": "4fb108f375481a30be976bd6251ccf8900b8517bad0ac025d841350fb9c0b5dd",
+      "verifiedFiles": 763,
+      "verifiedBytes": 28828470
+    },
+    {
+      "path": "/workspace/milkup-mermaid-engine-evidence/research/production08-generic-busy-proof-fix-01/completed-manifest.json",
+      "sha256": "7334c840c92a6aa2eadd4a7681931f4d66b41a567e6ca46707f94e707bb79e82",
+      "verifiedFiles": 760,
+      "verifiedBytes": 29369826
+    }
+  ],
+  "cases": [
+    {
+      "run": "lifecycle-p08-candidate-timeout-01",
+      "case": "timeout",
+      "exit": 0,
+      "app": {
+        "pid": 517941,
+        "birth": 10715372
+      },
+      "guardian": {
+        "pid": 518282,
+        "birth": 10716606,
+        "parent": 517941,
+        "group": 518282,
+        "state": "S",
+        "ticks": 10,
+        "name": "milkup-desktop",
+        "instanceId": "68c3a296fe47b86ffe2556ad968f94b4885cbadfb2d1e323"
+      },
+      "renderer": {
+        "pid": 518333,
+        "birth": 10716652,
+        "parent": 518331,
+        "group": 518287,
+        "state": "R",
+        "ticks": 38,
+        "name": "WebKitWebProces"
+      },
+      "baselineTicks": 27,
+      "busyDeltaTicks": 11,
+      "savedParentChain": [
+        518333,
+        518331,
+        518329,
+        518287,
+        518282
+      ],
+      "dispatch": {
+        "instanceId": "68c3a296fe47b86ffe2556ad968f94b4885cbadfb2d1e323",
+        "monotonicNs": 107168350562749,
+        "phase": "dispatch",
+        "pid": 517941,
+        "requestId": "render_2"
+      },
+      "cleanupObservedElapsedMs": 1762.9578710000023,
+      "knownGone": 20,
+      "waitOnlyReaps": 10,
+      "cleanupComplete": [
+        {
+          "instanceId": "68c3a296fe47b86ffe2556ad968f94b4885cbadfb2d1e323",
+          "monotonicNs": 107170376943730,
+          "phase": "cleanup-complete",
+          "pid": 518282,
+          "requestId": null
+        }
+      ],
+      "cleanupConfirmed": [
+        {
+          "instanceId": "68c3a296fe47b86ffe2556ad968f94b4885cbadfb2d1e323",
+          "monotonicNs": 107170380435064,
+          "phase": "cleanup-confirmed",
+          "pid": 517941,
+          "requestId": null
+        },
+        {
+          "instanceId": "68c3a296fe47b86ffe2556ad968f94b4885cbadfb2d1e323",
+          "monotonicNs": 107170399812736,
+          "phase": "cleanup-confirmed",
+          "pid": 517941,
+          "requestId": null
+        },
+        {
+          "instanceId": "68c3a296fe47b86ffe2556ad968f94b4885cbadfb2d1e323",
+          "monotonicNs": 107170400893381,
+          "phase": "cleanup-confirmed",
+          "pid": 517941,
+          "requestId": null
+        }
+      ],
+      "sameAppDispatchToDeadlineMs": 2000.118012
+    },
+    {
+      "run": "lifecycle-p08-candidate-disable-01",
+      "case": "disable",
+      "exit": 0,
+      "app": {
+        "pid": 518515,
+        "birth": 10723635
+      },
+      "guardian": {
+        "pid": 518857,
+        "birth": 10724717,
+        "parent": 518515,
+        "group": 518857,
+        "state": "S",
+        "ticks": 9,
+        "name": "milkup-desktop",
+        "instanceId": "edba4ef7541bd94350fc8a5d43b63961684057f847338ba4"
+      },
+      "renderer": {
+        "pid": 518908,
+        "birth": 10724759,
+        "parent": 518905,
+        "group": 518862,
+        "state": "R",
+        "ticks": 61,
+        "name": "WebKitWebProces"
+      },
+      "baselineTicks": 30,
+      "busyDeltaTicks": 31,
+      "savedParentChain": [
+        518908,
+        518905,
+        518904,
+        518862,
+        518857
+      ],
+      "dispatch": {
+        "instanceId": "edba4ef7541bd94350fc8a5d43b63961684057f847338ba4",
+        "monotonicNs": 107249766198255,
+        "phase": "dispatch",
+        "pid": 518515,
+        "requestId": "render_2"
+      },
+      "cleanupObservedElapsedMs": 53.46914199999992,
+      "knownGone": 21,
+      "waitOnlyReaps": 11,
+      "cleanupComplete": [
+        {
+          "instanceId": "edba4ef7541bd94350fc8a5d43b63961684057f847338ba4",
+          "monotonicNs": 107250522579470,
+          "phase": "cleanup-complete",
+          "pid": 518857,
+          "requestId": null
+        }
+      ],
+      "cleanupConfirmed": [
+        {
+          "instanceId": "edba4ef7541bd94350fc8a5d43b63961684057f847338ba4",
+          "monotonicNs": 107250541352932,
+          "phase": "cleanup-confirmed",
+          "pid": 518515,
+          "requestId": null
+        },
+        {
+          "instanceId": "edba4ef7541bd94350fc8a5d43b63961684057f847338ba4",
+          "monotonicNs": 107250541428432,
+          "phase": "cleanup-confirmed",
+          "pid": 518515,
+          "requestId": null
+        }
+      ]
+    },
+    {
+      "run": "lifecycle-p08-candidate-remove-01",
+      "case": "remove",
+      "exit": 1,
+      "app": {
+        "pid": 519095,
+        "birth": 10729068
+      },
+      "guardian": {
+        "pid": 519436,
+        "birth": 10730199,
+        "parent": 519095,
+        "group": 519436,
+        "state": "S",
+        "ticks": 9,
+        "name": "milkup-desktop",
+        "instanceId": "a71bf74a97a3bf59d1e879714c40e533dde26b195ad67799"
+      },
+      "renderer": {
+        "pid": 519487,
+        "birth": 10730239,
+        "parent": 519485,
+        "group": 519441,
+        "state": "R",
+        "ticks": 51,
+        "name": "WebKitWebProces"
+      },
+      "baselineTicks": 31,
+      "busyDeltaTicks": 20,
+      "savedParentChain": [
+        519487,
+        519485,
+        519483,
+        519441,
+        519436
+      ],
+      "dispatch": {
+        "instanceId": "a71bf74a97a3bf59d1e879714c40e533dde26b195ad67799",
+        "monotonicNs": 107304321224718,
+        "phase": "dispatch",
+        "pid": 519095,
+        "requestId": "render_2"
+      },
+      "cleanupObservedElapsedMs": 45.426352000000406,
+      "knownGone": 21,
+      "waitOnlyReaps": 11,
+      "cleanupComplete": [],
+      "cleanupConfirmed": [
+        {
+          "instanceId": "a71bf74a97a3bf59d1e879714c40e533dde26b195ad67799",
+          "monotonicNs": 107304951466513,
+          "phase": "cleanup-confirmed",
+          "pid": 519095,
+          "requestId": null
+        },
+        {
+          "instanceId": "a71bf74a97a3bf59d1e879714c40e533dde26b195ad67799",
+          "monotonicNs": 107304951523837,
+          "phase": "cleanup-confirmed",
+          "pid": 519095,
+          "requestId": null
+        }
+      ],
+      "qualification": "Original missing diagnostic assertion failure retained; functional clearing is not a retroactive PASS."
+    },
+    {
+      "run": "lifecycle-p08-proof-fix-remove-01",
+      "case": "remove",
+      "exit": 0,
+      "app": {
+        "pid": 520336,
+        "birth": 10764734
+      },
+      "guardian": {
+        "pid": 520688,
+        "birth": 10766449,
+        "parent": 520336,
+        "group": 520688,
+        "state": "S",
+        "ticks": 17,
+        "name": "milkup-desktop",
+        "instanceId": "2b464cb4f127fc01bbfab1d5af490e4c9968fe1ce241d69d"
+      },
+      "renderer": {
+        "pid": 520738,
+        "birth": 10766502,
+        "parent": 520736,
+        "group": 520693,
+        "state": "R",
+        "ticks": 49,
+        "name": "WebKitWebProces"
+      },
+      "baselineTicks": 37,
+      "busyDeltaTicks": 12,
+      "savedParentChain": [
+        520738,
+        520736,
+        520735,
+        520693,
+        520688
+      ],
+      "dispatch": {
+        "instanceId": "2b464cb4f127fc01bbfab1d5af490e4c9968fe1ce241d69d",
+        "monotonicNs": 107667066826628,
+        "phase": "dispatch",
+        "pid": 520336,
+        "requestId": "render_2"
+      },
+      "cleanupObservedElapsedMs": 70.67432199999894,
+      "knownGone": 20,
+      "waitOnlyReaps": 10,
+      "cleanupComplete": [
+        {
+          "instanceId": "2b464cb4f127fc01bbfab1d5af490e4c9968fe1ce241d69d",
+          "monotonicNs": 107667589357728,
+          "phase": "cleanup-complete",
+          "pid": 520688,
+          "requestId": null
+        }
+      ],
+      "cleanupConfirmed": [
+        {
+          "instanceId": "2b464cb4f127fc01bbfab1d5af490e4c9968fe1ce241d69d",
+          "monotonicNs": 107667601822382,
+          "phase": "cleanup-confirmed",
+          "pid": 520336,
+          "requestId": null
+        },
+        {
+          "instanceId": "2b464cb4f127fc01bbfab1d5af490e4c9968fe1ce241d69d",
+          "monotonicNs": 107667602932862,
+          "phase": "cleanup-confirmed",
+          "pid": 520336,
+          "requestId": null
+        }
+      ],
+      "appWaitProof": {
+        "name": "guardian-app-wait-proof",
+        "wall": 1792220056661,
+        "monotonicMs": 22034.054049,
+        "monotonicNs": 107669100856140,
+        "guardian": {
+          "pid": 520688,
+          "birth": 10766449,
+          "parent": 520336,
+          "group": 520688,
+          "state": "S",
+          "ticks": 17,
+          "name": "milkup-desktop",
+          "instanceId": "2b464cb4f127fc01bbfab1d5af490e4c9968fe1ce241d69d"
+        },
+        "appIdentity": {
+          "pid": 520336,
+          "argv": [
+            "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+            "/workspace/milkup-mermaid-engine-evidence/research/production08-generic-busy-proof-fix-01/lifecycle/runs/lifecycle-p08-proof-fix-remove-01/document.md",
+            ""
+          ],
+          "birth": "10764734"
+        },
+        "killStarted": {
+          "instanceId": "2b464cb4f127fc01bbfab1d5af490e4c9968fe1ce241d69d",
+          "monotonicNs": 107667535503573,
+          "phase": "kill-start",
+          "pid": 520688,
+          "requestId": null
+        },
+        "confirmed": {
+          "instanceId": "2b464cb4f127fc01bbfab1d5af490e4c9968fe1ce241d69d",
+          "monotonicNs": 107667601822382,
+          "phase": "cleanup-confirmed",
+          "pid": 520336,
+          "requestId": null
+        },
+        "exactEchildMonotonicNs": 107667589357728,
+        "echildCompletedUpperBoundMonotonicNs": 107667601822382,
+        "upperBoundSource": "Exact App Child.try_wait success, then cleanup-confirmed for bound instance",
+        "terminalDiagnostic": "observed"
+      }
+    },
+    {
+      "run": "lifecycle-p08-proof-fix-wm-close-01",
+      "case": "wm-close",
+      "exit": 0,
+      "app": {
+        "pid": 520893,
+        "birth": 10770859
+      },
+      "guardian": {
+        "pid": 521235,
+        "birth": 10772218,
+        "parent": 520893,
+        "group": 521235,
+        "state": "S",
+        "ticks": 10,
+        "name": "milkup-desktop",
+        "instanceId": "5e710e4b7f8be4463a998827e8746c435bded24fbe087d9b"
+      },
+      "renderer": {
+        "pid": 521286,
+        "birth": 10772256,
+        "parent": 521283,
+        "group": 521240,
+        "state": "R",
+        "ticks": 46,
+        "name": "WebKitWebProces"
+      },
+      "baselineTicks": 32,
+      "busyDeltaTicks": 14,
+      "savedParentChain": [
+        521286,
+        521283,
+        521282,
+        521240,
+        521235
+      ],
+      "dispatch": {
+        "instanceId": "5e710e4b7f8be4463a998827e8746c435bded24fbe087d9b",
+        "monotonicNs": 107724600093808,
+        "phase": "dispatch",
+        "pid": 520893,
+        "requestId": "render_2"
+      },
+      "cleanupObservedElapsedMs": 244.2569510000012,
+      "knownGone": 21,
+      "waitOnlyReaps": 11,
+      "cleanupComplete": [
+        {
+          "instanceId": "5e710e4b7f8be4463a998827e8746c435bded24fbe087d9b",
+          "monotonicNs": 107724804378257,
+          "phase": "cleanup-complete",
+          "pid": 521235,
+          "requestId": null
+        }
+      ],
+      "cleanupConfirmed": [
+        {
+          "instanceId": "5e710e4b7f8be4463a998827e8746c435bded24fbe087d9b",
+          "monotonicNs": 107724809161518,
+          "phase": "cleanup-confirmed",
+          "pid": 520893,
+          "requestId": null
+        }
+      ],
+      "appWaitProof": {
+        "name": "guardian-app-wait-proof",
+        "wall": 1792220112568,
+        "monotonicMs": 16568.462646,
+        "monotonicNs": 107725007501255,
+        "guardian": {
+          "pid": 521235,
+          "birth": 10772218,
+          "parent": 520893,
+          "group": 521235,
+          "state": "S",
+          "ticks": 10,
+          "name": "milkup-desktop",
+          "instanceId": "5e710e4b7f8be4463a998827e8746c435bded24fbe087d9b"
+        },
+        "appIdentity": {
+          "pid": 520893,
+          "argv": [
+            "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+            "/workspace/milkup-mermaid-engine-evidence/research/production08-generic-busy-proof-fix-01/lifecycle/runs/lifecycle-p08-proof-fix-wm-close-01/document.md",
+            ""
+          ],
+          "birth": "10770859"
+        },
+        "killStarted": {
+          "instanceId": "5e710e4b7f8be4463a998827e8746c435bded24fbe087d9b",
+          "monotonicNs": 107724770464451,
+          "phase": "kill-start",
+          "pid": 521235,
+          "requestId": null
+        },
+        "confirmed": {
+          "instanceId": "5e710e4b7f8be4463a998827e8746c435bded24fbe087d9b",
+          "monotonicNs": 107724809161518,
+          "phase": "cleanup-confirmed",
+          "pid": 520893,
+          "requestId": null
+        },
+        "exactEchildMonotonicNs": 107724804378257,
+        "echildCompletedUpperBoundMonotonicNs": 107724809161518,
+        "upperBoundSource": "Exact App Child.try_wait success, then cleanup-confirmed for bound instance",
+        "terminalDiagnostic": "observed"
+      }
+    },
+    {
+      "run": "lifecycle-p08-proof-fix-app-sigkill-01",
+      "case": "app-sigkill",
+      "exit": 0,
+      "app": {
+        "pid": 521457,
+        "birth": 10776672
+      },
+      "guardian": {
+        "pid": 521799,
+        "birth": 10777976,
+        "parent": 521457,
+        "group": 521799,
+        "state": "S",
+        "ticks": 10,
+        "name": "milkup-desktop",
+        "instanceId": "291bf871fe36fa888dcc7facc3d6ae75e31bd0c30c7bfb72"
+      },
+      "renderer": {
+        "pid": 521850,
+        "birth": 10778018,
+        "parent": 521847,
+        "group": 521804,
+        "state": "R",
+        "ticks": 53,
+        "name": "WebKitWebProces"
+      },
+      "baselineTicks": 33,
+      "busyDeltaTicks": 20,
+      "savedParentChain": [
+        521850,
+        521847,
+        521846,
+        521804,
+        521799
+      ],
+      "dispatch": {
+        "instanceId": "291bf871fe36fa888dcc7facc3d6ae75e31bd0c30c7bfb72",
+        "monotonicNs": 107782103852837,
+        "phase": "dispatch",
+        "pid": 521457,
+        "requestId": "render_2"
+      },
+      "cleanupObservedElapsedMs": 66.24523899999986,
+      "knownGone": 21,
+      "waitOnlyReaps": 12,
+      "cleanupComplete": [],
+      "cleanupConfirmed": [],
+      "naturalExitProof": {
+        "name": "guardian-natural-exit-proof",
+        "wall": 1792220169959,
+        "monotonicMs": 15827.394687,
+        "monotonicNs": 107782398725107,
+        "reaped": {
+          "identity": {
+            "pid": 521799,
+            "birth": "10777976",
+            "parent": 521412,
+            "state": "Z",
+            "group": 521799,
+            "name": "milkup-desktop"
+          },
+          "exitedObservedMonotonicNs": 107782355548554,
+          "waitpidCompletedMonotonicNs": 107782356164390,
+          "exitCode": 0,
+          "noSignalSent": true
+        },
+        "exactEchildMonotonicNs": null,
+        "echildCompletedUpperBoundMonotonicNs": 107782355548554,
+        "terminalDiagnostic": "unobservable: best-effort asynchronous trace",
+        "functionalCleanup": "All tracked PID/birth identities and private directory cleared within original 4.5s observer bound"
+      }
+    }
+  ],
+  "sourceChecks": [
+    {
+      "path": "apps/desktop/src-tauri/src/plugin_dom_guardian.rs",
+      "sha256": "44fd4cfd661817cddd2cf0b9bdb5090ddeea1f18de91dfb46cb8ac94d2211054",
+      "productionSourceManifest": "/workspace/milkup-mermaid-engine-evidence/linux-production-08/source-before.json",
+      "productionSourceManifestSha256": "d5d9c176ed34b140a43a32d2e5a30d9c1d6298551bc1886f876f761e30432815"
+    },
+    {
+      "path": "apps/desktop/src-tauri/src/plugin_dom_process.rs",
+      "sha256": "c6540ffc4d11e61050379d68bad0342c0cfaf8ec4a6fe60075b18ddecd851702",
+      "productionSourceManifest": "/workspace/milkup-mermaid-engine-evidence/linux-production-08/source-before.json",
+      "productionSourceManifestSha256": "d5d9c176ed34b140a43a32d2e5a30d9c1d6298551bc1886f876f761e30432815"
+    }
+  ]
+}

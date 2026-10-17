@@ -304,3 +304,341 @@ describe('official Mermaid document wrapper (mock engine; native layout tested s
     expect((await pending).complete).toBe(true)
   })
 })
+
+// Regression contract prepared externally; baseline execution evidence is retained in research.
+// Existing wrapper tests above remain unchanged.
+// New positive memo cases use a static Sankey, not wall-clock-sensitive Gantt.
+describe('private exact-request successful-result memo (prepared contract)', () => {
+  const staticRequest = () => request('sankey\nA,B,1')
+  beforeEach(() => {
+    Object.assign(fonts, { status: 'loaded' })
+    Object.assign(document, { styleSheets: [], URL: 'milkup-dom://job/index.html' })
+    vi.stubGlobal('innerWidth', 1024)
+    vi.stubGlobal('innerHeight', 768)
+    vi.stubGlobal('devicePixelRatio', 1)
+    mocked.render.mockResolvedValue({ svg: '<svg/>', diagramType: 'sankey' })
+  })
+  it('renders byte-identical full requests once and returns independent results', async () => {
+    const input = staticRequest()
+    const first = await renderDocuments(input, options())
+    const second = await renderDocuments(JSON.parse(JSON.stringify(input)), options())
+    expect(second).toEqual(first)
+    expect(second).not.toBe(first)
+    expect(second.fragments[0]).not.toBe(first.fragments[0])
+    expect(mocked.render).toHaveBeenCalledTimes(1)
+    expect(mocked.convert).toHaveBeenCalledTimes(1)
+  })
+  it.each([
+    ['theme', (r: SdkDocumentPresentationRequest) => ({ ...r, theme: 'dark' as const })],
+    ['width', (r: SdkDocumentPresentationRequest) => ({ ...r, width: 801 })],
+    ['version', (r: SdkDocumentPresentationRequest) => ({ ...r, version: r.version + 1 })],
+    ['documentId', (r: SdkDocumentPresentationRequest) => ({ ...r, documentId: 'doc-b' })],
+    [
+      'selection',
+      (r: SdkDocumentPresentationRequest) => ({
+        ...r,
+        selection: { anchor: r.from + 1, head: r.from + 1 },
+      }),
+    ],
+    ['target', (r: SdkDocumentPresentationRequest) => ({ ...r, target: 'export' as const })],
+    [
+      'line range',
+      (r: SdkDocumentPresentationRequest) => ({
+        ...r,
+        fromLine: r.fromLine + 1,
+        toLine: r.toLine + 1,
+      }),
+    ],
+    [
+      'protected ranges',
+      (r: SdkDocumentPresentationRequest) => ({
+        ...r,
+        protectedRanges: [{ from: r.from, to: r.from + 1 }],
+      }),
+    ],
+  ] as const)('does not reuse a result after changing %s', async (_name, change) => {
+    const input = staticRequest()
+    await renderDocuments(input, options())
+    await renderDocuments(change(input), options())
+    expect(mocked.render).toHaveBeenCalledTimes(2)
+  })
+  it('isolates mutations of both initial and memo-hit result trees', async () => {
+    const input = staticRequest()
+    const first = await renderDocuments(input, options())
+    const expected = structuredClone(first)
+    Object.assign(first.fragments[0]!, { accessibleText: 'changed first result' })
+    Object.assign(first.fragments[0]!.content, { title: 'changed nested image' })
+    const second = await renderDocuments(input, options())
+    expect(second).toEqual(expected)
+    Object.assign(second.fragments[0]!.content, { title: 'changed cache hit' })
+    expect(await renderDocuments(input, options())).toEqual(expected)
+    expect(mocked.render).toHaveBeenCalledTimes(1)
+  })
+  it('clears entries after DOM Document identity changes, including switching back', async () => {
+    const input = staticRequest(),
+      previous = document
+    await renderDocuments(input, options())
+    vi.stubGlobal('document', { ...previous })
+    await renderDocuments(input, options())
+    vi.stubGlobal('document', previous)
+    await renderDocuments(input, options())
+    expect(mocked.render).toHaveBeenCalledTimes(3)
+  })
+  it('clears entries after FontFaceSet.ready identity changes, including switching back', async () => {
+    const input = staticRequest(),
+      previous = fonts.ready
+    await renderDocuments(input, options())
+    fonts.ready = Promise.resolve()
+    await renderDocuments(input, options())
+    fonts.ready = previous
+    await renderDocuments(input, options())
+    expect(mocked.render).toHaveBeenCalledTimes(3)
+  })
+  it('rejects an already-aborted cache hit without destroying the prior good entry', async () => {
+    const input = staticRequest()
+    await renderDocuments(input, options())
+    const controller = new AbortController()
+    controller.abort()
+    await expect(renderDocuments(input, { signal: controller.signal })).rejects.toThrow(/cancel/i)
+    await renderDocuments(input, options())
+    expect(mocked.render).toHaveBeenCalledTimes(1)
+  })
+  it('does not retain a task cancelled during engine work', async () => {
+    const input = staticRequest(),
+      controller = new AbortController()
+    mocked.render.mockImplementationOnce(async () => {
+      controller.abort()
+      return { svg: '<svg/>', diagramType: 'sankey' }
+    })
+    await expect(renderDocuments(input, { signal: controller.signal })).rejects.toThrow(/cancel/i)
+    await renderDocuments(input, options())
+    await renderDocuments(input, options())
+    expect(mocked.render).toHaveBeenCalledTimes(2)
+  })
+  it('does not retain a task cancelled by conversion before publication', async () => {
+    const input = staticRequest(),
+      controller = new AbortController()
+    mocked.convert.mockImplementationOnce(() => {
+      controller.abort()
+      return image()
+    })
+    await expect(renderDocuments(input, { signal: controller.signal })).rejects.toThrow(/cancel/i)
+    await renderDocuments(input, options())
+    await renderDocuments(input, options())
+    expect(mocked.render).toHaveBeenCalledTimes(2)
+  })
+  it('does not retain engine-error fallback results', async () => {
+    const input = staticRequest()
+    mocked.render.mockRejectedValueOnce(new Error('parse failure'))
+    expect((await renderDocuments(input, options())).fragments[0]?.status).toBe('error')
+    expect((await renderDocuments(input, options())).fragments[0]?.status).toBe('ready')
+    await renderDocuments(input, options())
+    expect(mocked.render).toHaveBeenCalledTimes(2)
+  })
+  it('does not retain conversion-error fallback results', async () => {
+    const input = staticRequest()
+    mocked.convert.mockImplementationOnce(() => {
+      throw new ConversionError('unsupported-feature')
+    })
+    expect((await renderDocuments(input, options())).fragments[0]?.status).toBe('error')
+    expect((await renderDocuments(input, options())).fragments[0]?.status).toBe('ready')
+    await renderDocuments(input, options())
+    expect(mocked.render).toHaveBeenCalledTimes(2)
+  })
+  it('does not retain mixed ready/error multi-fence results', async () => {
+    const a = request('sankey\nA,B,1', 0),
+      b = request('sankey\nC,D,1', a.to)
+    const input = {
+      ...a,
+      source: a.source + b.source,
+      to: b.to,
+      blocks: [...a.blocks, ...b.blocks],
+    }
+    mocked.convert
+      .mockImplementationOnce(() => image())
+      .mockImplementationOnce(() => {
+        throw new ConversionError('unsupported-feature')
+      })
+    expect((await renderDocuments(input, options())).fragments.map((f) => f.status)).toEqual([
+      'ready',
+      'error',
+    ])
+    expect((await renderDocuments(input, options())).fragments.map((f) => f.status)).toEqual([
+      'ready',
+      'ready',
+    ])
+    expect(mocked.render).toHaveBeenCalledTimes(4)
+  })
+  it('does not retain incomplete envelope-budget results', async () => {
+    const a = request('sankey\nA,B,1', 0),
+      b = request('sankey\nC,D,1', a.to)
+    const input = {
+      ...a,
+      source: a.source + b.source,
+      to: b.to,
+      blocks: [...a.blocks, ...b.blocks],
+    }
+    mocked.convert.mockImplementation(() => ({ ...image(), title: 'x'.repeat(70_000) }))
+    expect((await renderDocuments(input, options())).complete).toBe(false)
+    expect((await renderDocuments(input, options())).complete).toBe(false)
+    expect(mocked.render).toHaveBeenCalledTimes(4)
+  })
+  it('retains no more than four small exact requests', async () => {
+    const input = staticRequest()
+    for (let version = 0; version < 5; version++)
+      await renderDocuments({ ...input, version }, options())
+    await renderDocuments({ ...input, version: 4 }, options())
+    expect(mocked.render).toHaveBeenCalledTimes(5)
+    await renderDocuments({ ...input, version: 0 }, options())
+    expect(mocked.render).toHaveBeenCalledTimes(6)
+  })
+  it('accounts for both serialized keys and values in the 2MiB UTF-16 byte cap', async () => {
+    const input = { ...staticRequest(), documentId: 'd'.repeat(220_000) }
+    mocked.convert.mockImplementation(() => ({ ...image(), title: 'x'.repeat(90_000) }))
+    // Each entry >800KB UTF-16: four cannot coexist even though each output
+    // remains under the existing 262144-byte UTF-8 result envelope limit.
+    for (let version = 0; version < 4; version++)
+      await renderDocuments({ ...input, version }, options())
+    await renderDocuments({ ...input, version: 3 }, options())
+    expect(mocked.render).toHaveBeenCalledTimes(4)
+    await renderDocuments({ ...input, version: 0 }, options())
+    expect(mocked.render).toHaveBeenCalledTimes(5)
+  })
+  it('bypasses an individually oversized key without evicting a useful small entry', async () => {
+    const small = staticRequest(),
+      huge = { ...small, documentId: 'd'.repeat(1_048_576) }
+    await renderDocuments(small, options())
+    await renderDocuments(huge, options())
+    await renderDocuments(huge, options())
+    await renderDocuments(small, options())
+    expect(mocked.render).toHaveBeenCalledTimes(3)
+  })
+  it('keeps singleton reentrancy rejection ahead of a possible cache hit', async () => {
+    const input = staticRequest()
+    await renderDocuments(input, options())
+    let finish!: (value: { svg: string; diagramType: string }) => void
+    mocked.render.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve
+        }),
+    )
+    const pending = renderDocuments({ ...input, width: input.width + 1 }, options())
+    try {
+      await expect(renderDocuments(input, options())).rejects.toThrow(/already executing/)
+    } finally {
+      finish({ svg: '<svg/>', diagramType: 'sankey' })
+      await pending
+    }
+  })
+  it.each(['gantt', 'flowchart-v2', 'class'])(
+    'does not memoize unapproved family %s',
+    async (diagramType) => {
+      mocked.render.mockResolvedValue({ svg: '<svg/>', diagramType })
+      const input = request('gantt\nTask :2026-10-17, 1d')
+      await renderDocuments(input, options())
+      await renderDocuments(input, options())
+      expect(mocked.render).toHaveBeenCalledTimes(2)
+    },
+  )
+  it.each(['innerWidth', 'innerHeight', 'devicePixelRatio'] as const)(
+    'invalidates on changed %s',
+    async (name) => {
+      const input = staticRequest(),
+        prior = globalThis[name]
+      await renderDocuments(input, options())
+      vi.stubGlobal(name, prior + 1)
+      await renderDocuments(input, options())
+      vi.stubGlobal(name, prior)
+      await renderDocuments(input, options())
+      expect(mocked.render).toHaveBeenCalledTimes(3)
+    },
+  )
+  it('invalidates on changed document URL', async () => {
+    const input = staticRequest(),
+      prior = document.URL
+    await renderDocuments(input, options())
+    Object.assign(document, { URL: prior + '?changed' })
+    await renderDocuments(input, options())
+    Object.assign(document, { URL: prior })
+    await renderDocuments(input, options())
+    expect(mocked.render).toHaveBeenCalledTimes(3)
+  })
+  it('invalidates on changed FontFaceSet identity even if ready is reused', async () => {
+    const input = staticRequest()
+    await renderDocuments(input, options())
+    Object.assign(document, { fonts: { ready: fonts.ready, status: 'loaded' } })
+    await renderDocuments(input, options())
+    expect(mocked.render).toHaveBeenCalledTimes(2)
+  })
+  it('bypasses and clears memo while fonts are loading', async () => {
+    const input = staticRequest()
+    await renderDocuments(input, options())
+    Object.assign(fonts, { status: 'loading' })
+    await renderDocuments(input, options())
+    await renderDocuments(input, options())
+    Object.assign(fonts, { status: 'loaded' })
+    await renderDocuments(input, options())
+    expect(mocked.render).toHaveBeenCalledTimes(4)
+  })
+  it('bypasses and clears memo when a stylesheet exists outside the render container', async () => {
+    const input = staticRequest()
+    await renderDocuments(input, options())
+    Object.assign(document, { styleSheets: [{}] })
+    await renderDocuments(input, options())
+    await renderDocuments(input, options())
+    Object.assign(document, { styleSheets: [] })
+    await renderDocuments(input, options())
+    expect(mocked.render).toHaveBeenCalledTimes(4)
+  })
+
+  it.each(['viewport', 'fonts-loading', 'stylesheet'] as const)(
+    'does not store when %s changes during awaited engine work',
+    async (kind) => {
+      const input = staticRequest()
+      let finish!: (value: { svg: string; diagramType: string }) => void
+      mocked.render.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve
+          }),
+      )
+      const pending = renderDocuments(input, options())
+      if (kind === 'viewport') vi.stubGlobal('innerWidth', 1025)
+      if (kind === 'fonts-loading') Object.assign(fonts, { status: 'loading' })
+      if (kind === 'stylesheet') Object.assign(document, { styleSheets: [{}] })
+      finish({ svg: '<svg/>', diagramType: 'sankey' })
+      expect((await pending).complete).toBe(true)
+      vi.stubGlobal('innerWidth', 1024)
+      Object.assign(fonts, { status: 'loaded' })
+      Object.assign(document, { styleSheets: [] })
+      await renderDocuments(input, options())
+      expect(mocked.render).toHaveBeenCalledTimes(2)
+      await renderDocuments(input, options())
+      expect(mocked.render).toHaveBeenCalledTimes(2)
+    },
+  )
+  it('preparation clears a previous success even when font ready identity is unchanged', async () => {
+    const input = staticRequest()
+    await renderDocuments(input, options())
+    await prepareRenderer()
+    await renderDocuments(input, options())
+    expect(mocked.render).toHaveBeenCalledTimes(2)
+  })
+  it('does not store a complete mixed Sankey and non-Sankey result', async () => {
+    const a = request('sankey\nA,B,1', 0),
+      b = request('gantt\nTask :2026-10-17, 1d', a.to)
+    const input = {
+      ...a,
+      source: a.source + b.source,
+      to: b.to,
+      blocks: [...a.blocks, ...b.blocks],
+    }
+    mocked.render
+      .mockResolvedValueOnce({ svg: '<svg/>', diagramType: 'sankey' })
+      .mockResolvedValueOnce({ svg: '<svg/>', diagramType: 'gantt' })
+    expect((await renderDocuments(input, options())).complete).toBe(true)
+    await renderDocuments(input, options())
+    expect(mocked.render).toHaveBeenCalledTimes(4)
+  })
+})

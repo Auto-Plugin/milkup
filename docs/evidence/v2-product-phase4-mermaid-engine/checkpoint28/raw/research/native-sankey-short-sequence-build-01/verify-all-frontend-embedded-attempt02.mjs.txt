@@ -1,0 +1,35 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import assert from 'node:assert/strict'
+import crypto from 'node:crypto'
+import { brotliDecompressSync } from 'node:zlib'
+const [specPath,outputPath]=process.argv.slice(2)
+const spec=JSON.parse(fs.readFileSync(specPath))
+const hash=b=>crypto.createHash('sha256').update(b).digest('hex')
+const binary=fs.readFileSync(spec.binary), assets=path.join(spec.frontendDist,'assets')
+assert.equal(hash(binary),spec.expectedBinarySha256)
+const expected=['index-Bu9F-zow.js','plugin-supervisor-ChCcx_tl.js','plugin-worker-CxouKLbk.js']
+const actual=fs.readdirSync(assets).filter(n=>n.endsWith('.js')&&fs.readFileSync(path.join(assets,n)).includes(Buffer.from('__milkupRenderQueueTrace'))).sort()
+assert.deepEqual(actual,expected)
+const rows=expected.map(name=>({name,path:path.join(assets,name),data:fs.readFileSync(path.join(assets,name)),matches:[]}))
+let fileCount=0,bytes=0
+for(const dir of spec.emittedBuildOutDirs){
+ const root=path.join(dir,'tauri-codegen-assets')
+ for(const name of fs.readdirSync(root).filter(n=>n.endsWith('.js'))){
+  assert(++fileCount<=512);const p=path.join(root,name),data=fs.readFileSync(p);bytes+=data.length;assert(bytes<=128*1024*1024)
+  let decoded=data,representation='raw'
+  if(!rows.some(r=>r.data.equals(data))){try{decoded=brotliDecompressSync(data,{maxOutputLength:32*1024*1024});representation='brotli'}catch{continue}}
+  for(const r of rows){if(!decoded.equals(r.data))continue;const offset=binary.indexOf(data);if(offset<0||binary.indexOf(data,offset+1)>=0)continue;r.matches.push({path:p,bytes:data.length,sha256:hash(data),representation,embeddedOffset:offset,uniqueOccurrence:true})}
+ }
+}
+for(const r of rows)assert.equal(r.matches.length,1,r.name+' exact unique binary embedding')
+const html=fs.readFileSync(path.join(spec.frontendDist,'index.html'),'utf8')
+const entry=html.match(/<script type="module"[^>]*src="([^"]+)"/)[1]
+assert.equal(entry,'/assets/index-Bu9F-zow.js')
+const main=rows.find(r=>r.name==='index-Bu9F-zow.js').data.toString('utf8')
+assert(main.includes('__milkupRenderQueueTrace')&&main.includes('nativeInstanceId'))
+const directWorkerReferences=expected.filter(n=>n!==path.basename(entry)).map(name=>({asset:name,referencedByMainBundle:main.includes(name)}))
+assert(directWorkerReferences.every(r=>r.referencedByMainBundle))
+const result={classification:'ATTEMPT02_ALL3_RESEARCH_BUNDLES_EXACT_EMBEDDING',binary:{path:spec.binary,bytes:binary.length,sha256:hash(binary)},assets:rows.map(({data,...r})=>({...r,bytes:data.length,sha256:hash(data)})),entry:{indexHtml:path.join(spec.frontendDist,'index.html'),indexHtmlSha256:hash(Buffer.from(html)),moduleSrc:entry,mainContainsQueueTrace:true,mainContainsNativeInstanceId:true,directWorkerReferences},enumeratedFiles:fileCount,enumeratedBytes:bytes,scope:'All3marker assets completebytes map to exact codegen artifacts and unique samebinary bytes; no product launch or rebuild.'}
+fs.writeFileSync(outputPath,JSON.stringify(result,null,2)+'\n',{flag:'wx'})
+console.log(JSON.stringify(result,null,2))

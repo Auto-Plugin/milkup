@@ -1,0 +1,15 @@
+{
+  "baseline": "/workspace/milkup/packages/plugin/src/document-render-rpc.ts",
+  "baselineSha256": "21aea3b3339e09649a42c529db690440568c836b9b3a9d980a77de8be9176b2a",
+  "candidate": "/workspace/milkup-mermaid-engine-evidence/research/sankey-sequence-frontend-trace-01/candidate/packages/plugin/src/document-render-rpc.ts",
+  "candidateSha256": "aa22dfba7e22f99a41d2687fc9aee20ee07a81feb60a9092d3bb0f2d6595ef0b",
+  "gate": "research copy only; module initializes sink before any RPC clients or bundled activation; harness reads without resetting",
+  "limits": {
+    "events": 1024,
+    "conservativeUtf16Bytes": 16777216
+  },
+  "clocks": "frontend performance.now only, never subtracted from native",
+  "scope": "research frontend only, not production API",
+  "byteAccounting": "UTF16 JSON row length plus64 bytes per row reserved for completed timestamp growth",
+  "instanceBinding": "Existing createTrustedPluginRenderEndpoint readonly instanceId; no public API added; null when unavailable"
+}

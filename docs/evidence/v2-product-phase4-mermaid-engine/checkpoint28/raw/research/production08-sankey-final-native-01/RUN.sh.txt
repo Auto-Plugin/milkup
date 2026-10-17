@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT=/workspace/milkup-mermaid-engine-evidence/research/production08-sankey-final-native-01
+RUN=mermaid-ui-production08-sankey-final-01
+BINARY=/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop
+BINARY_SHA=cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304
+ARCHIVE=/workspace/milkup-mermaid-engine-evidence/research/renderer-exact-memo-product-integration-01/artifacts/milkup.diagrams-1.1.1.milkup-plugin
+ARCHIVE_SHA=2351692438a2083a72bcb8cddce28c7a530a8557734926992a3a2e3120c68a19
+python3 "$ROOT/verify-runtime-go.py"
+case "${1:-}" in
+ driver) exec bash "$ROOT/driver.sh" "$RUN" "$BINARY" "$BINARY_SHA" "$ARCHIVE" "$ARCHIVE_SHA" 1.1.1 ;;
+ harness)
+  source "$ROOT/run-env.sh" "$RUN" "$BINARY" "$BINARY_SHA" "$ARCHIVE" "$ARCHIVE_SHA" 1.1.1
+  cd /workspace/milkup
+  exec node /workspace/milkup-mermaid-engine-evidence/research/production08-sankey-final-preparation-01/native/sankey-production.mjs
+  ;;
+ *) exit 2 ;;
+esac

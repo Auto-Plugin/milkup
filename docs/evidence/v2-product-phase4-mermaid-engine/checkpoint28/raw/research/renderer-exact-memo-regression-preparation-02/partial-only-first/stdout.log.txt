@@ -1,0 +1,57 @@
+
+ RUN  v3.2.6 /workspace/milkup-mermaid-engine-evidence/research/renderer-exact-memo-regression-preparation-02/fixture
+
+ ↓ src/renderer.test.ts > official Mermaid document wrapper (mock engine; native layout tested separately) > prepares fonts without parsing any document
+ ↓ src/renderer.test.ts > official Mermaid document wrapper (mock engine; native layout tested separately) > preserves exact CRLF/Unicode source offsets and returns only typed image data
+ ↓ src/renderer.test.ts > official Mermaid document wrapper (mock engine; native layout tested separately) > uses fixed strict baseline settings and host-selected themes for each request
+ ↓ src/renderer.test.ts > official Mermaid document wrapper (mock engine; native layout tested separately) > preserves the whole original fence for unsupported-animation
+ ↓ src/renderer.test.ts > official Mermaid document wrapper (mock engine; native layout tested separately) > preserves the whole original fence for unsafe-output
+ ↓ src/renderer.test.ts > official Mermaid document wrapper (mock engine; native layout tested separately) > preserves the whole original fence for unsupported-feature
+ ↓ src/renderer.test.ts > official Mermaid document wrapper (mock engine; native layout tested separately) > preserves the whole original fence for limit-exceeded
+ ↓ src/renderer.test.ts > official Mermaid document wrapper (mock engine; native layout tested separately) > preserves the whole original fence for font-unavailable
+ ↓ src/renderer.test.ts > official Mermaid document wrapper (mock engine; native layout tested separately) > preserves the whole original fence for invalid-output
+ ↓ src/renderer.test.ts > official Mermaid document wrapper (mock engine; native layout tested separately) > cleans the isolated container after an engine error and a missing SVG
+ ↓ src/renderer.test.ts > official Mermaid document wrapper (mock engine; native layout tested separately) > does not parse partial, unrelated or malformed ranges
+ ↓ src/renderer.test.ts > official Mermaid document wrapper (mock engine; native layout tested separately) > rejects custom fence parameters and engine input limits without truncating source
+ ↓ src/renderer.test.ts > official Mermaid document wrapper (mock engine; native layout tested separately) > bounds combined UTF-8 output across separate complete fences
+ ↓ src/renderer.test.ts > official Mermaid document wrapper (mock engine; native layout tested separately) > rejects cancellation before parsing and after asynchronous engine work
+ ↓ src/renderer.test.ts > official Mermaid document wrapper (mock engine; native layout tested separately) > does not overlap two calls into the engine singleton
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > renders byte-identical full requests once and returns independent results
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > does not reuse a result after changing theme
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > does not reuse a result after changing width
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > does not reuse a result after changing version
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > does not reuse a result after changing documentId
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > does not reuse a result after changing selection
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > does not reuse a result after changing target
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > does not reuse a result after changing line range
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > does not reuse a result after changing protected ranges
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > isolates mutations of both initial and memo-hit result trees
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > clears entries after DOM Document identity changes, including switching back
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > clears entries after FontFaceSet.ready identity changes, including switching back
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > rejects an already-aborted cache hit without destroying the prior good entry
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > does not retain a task cancelled during engine work
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > does not retain a task cancelled by conversion before publication
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > does not retain engine-error fallback results
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > does not retain conversion-error fallback results
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > does not retain mixed ready/error multi-fence results
+ ✓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > does not retain incomplete envelope-budget results 16ms
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > retains no more than four small exact requests
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > accounts for both serialized keys and values in the 2MiB UTF-16 byte cap
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > bypasses an individually oversized key without evicting a useful small entry
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > keeps singleton reentrancy rejection ahead of a possible cache hit
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > does not memoize unapproved family gantt
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > does not memoize unapproved family flowchart-v2
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > does not memoize unapproved family class
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > invalidates on changed innerWidth
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > invalidates on changed innerHeight
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > invalidates on changed devicePixelRatio
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > invalidates on changed document URL
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > invalidates on changed FontFaceSet identity even if ready is reused
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > bypasses and clears memo while fonts are loading
+ ↓ src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > bypasses and clears memo when a stylesheet exists outside the render container
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 47 skipped (48)
+   Start at  06:14:27
+   Duration  860ms (transform 275ms, setup 0ms, collect 265ms, tests 19ms, environment 0ms, prepare 211ms)
+

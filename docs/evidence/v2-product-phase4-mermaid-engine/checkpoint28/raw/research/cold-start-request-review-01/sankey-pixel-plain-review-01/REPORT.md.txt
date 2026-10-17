@@ -1,0 +1,29 @@
+# Plain integrity and bounded screenshot-region comparison
+
+Plain completed-manifest SHA256 `7cf5f052791c877f539ada677d92918c67ccd3dc53665045534736e557479735`: **226 files / 53,904,267 bytes**, all exact length/hash matches. Twenty unique records end PASS, with no FAIL/failure artifact; six windowed source/live save/undo/redo records assert byteExact and clean. Node/harness exit0, no native deadline trace, 13 recorded exact identities absent and no listeners. The cleanup file records `waitOnlyReaps:11`; no full process-tree claim is made.
+
+The small analysis's first exit1 is retained: it completed hash/pixel calculations but failed while formatting a nonexistent legacy cleanup key `reapCount`. Separate `review.v02.py` makes that optional field null, retains its limitation and exits0. Original source, command, stdout/stderr and first failure remain. The actual cleanup's `waitOnlyReaps:11` is stated separately here. No product was rerun and no image was edited. The harmless Pillow getdata deprecation warning remains.
+
+Only the two existing **webview corner PNGs** per run were decoded. Screenshot size is 760×520 and recorded DOM viewport is 380×260, scale2. Regions are the recorded preview client rectangle ∩ image rectangle ∩ editor viewport, inset by two physical pixels to exclude boundaries. Coordinates below are half-open PNG pixel rectangles.
+
+| Pair / corner | Baseline region | Comparison region | Pixels checked | Changed RGB pixels |
+|---|---|---|---:|---:|
+| baseline ↔ plain bottom-right | [54,115,688,432] | same coordinates | 200,978 | **0** |
+| baseline ↔ plain top-left | [71,260,706,456] | same coordinates | 124,460 | **0** |
+
+The baseline and plain recorded preview/image positions, inner scroll values and image sizes are equal for these corresponding corners. Bottom-right inner scroll is left69/top106; top-left is left0/top0. Both have natural image dimensions760×516 and CSS image380×258. Thus the most directly comparable visible diagram interiors are **pixel-identical without alignment**. Their decoded ROI SHA256 values are respectively `e83deb876f9a201f2badd1f2cfd6abcd510eca4f93dc6a0bca4753ab170a25cb` and `355116dbb3aa83fe5be2cf192db4c5b5bbfb394dcf37856c34656027e9dd4491`.
+
+Diagnostic candidate screenshots have different outer document placement. Their image/preview Y positions differ from baseline by **−17 CSS px / −34 physical px** at bottom-right and **−65 CSS px / −130 physical px** at top-left. Inner scroll remains the same. Comparing the common diagram-interior regions at identical screen coordinates therefore finds **66.05%** and **83.07%** changed pixels. This is not presented as evidence of changed diagram content.
+
+Using **only those exact recorded geometry offsets**, with no resampling or arbitrary image alignment, the overlapping image-local regions compare as follows:
+
+| Diagnostic corner | Baseline region | Diagnostic region derived from record | Pixels | Changed |
+|---|---|---|---:|---:|
+| bottom-right | [54,115,688,432] | [54,81,688,398] | 200,978 | **0** |
+| top-left | [71,260,706,456] | [71,130,706,326] | 124,460 | **0** |
+
+The differing absolute positions remain explicit in `analysis.json`; no shifted PNG was saved or used to conceal layout differences. The local equality supports unchanged pixels in these visible portions only. Blob URLs and natural sizes are recorded, but the screenshot records contain no encoded SVG or whole decoded-image hash. ROI hashes must not be promoted to complete SVG/image equality, offscreen fidelity, label-readability improvement or all-screenshot coverage.
+
+Visual provenance is separate: Root reports having viewed baseline both edges, diagnostic both edges, and plain top-left/history-live-undo. This review adds numeric pixel comparisons of the two edge pairs; it does not claim a new independent visual inspection of history images or every PNG. Existing upstream content/label overlap is outside this change and is not 'fixed' by exact pixel equality.
+
+Analysis is complete and heavy CPU is released. The already frozen candidate core and previous audits were not modified. No generic busy/remove runtime result is inferred from this plain integrity and pixel review.

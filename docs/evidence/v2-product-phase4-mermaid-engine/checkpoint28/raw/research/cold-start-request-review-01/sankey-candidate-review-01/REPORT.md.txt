@@ -1,0 +1,42 @@
+# Candidate short sequence: qualified audit and request comparison
+
+**Original auditor first exit: 1**, because this run's manifest uses a root, relative file paths and short run name; the original entry expects absolute paths. The exact original traceback/command remain in `stderr.log` and `execution.json`. No tool was changed or rerun to claim first-pass success.
+
+Root authorized the separate `manifest-adapter.py`: it pins the original manifest SHA, resolves every existing path strictly beneath the declared root, rejects duplicates, verifies all file hashes, and calls the **unchanged original analyze function**. Its first exit is **0**, `AUDIT_COMPLETE`, issues empty. All **219 files / 27,108,798 bytes** match manifest SHA `3aba4592bdba5476baa883519e87cf8b6b1d99fd9476c446c019f5296b32e926`.
+
+There are **25 accepted native requests**, each uniquely matched to frontend instance/request/plugin and full parsed payload value and each with exactly one native terminal: 24 strict successful settlements and one explicit bundled-instance stop. Full driver dispatch coverage matches; native/front ledgers have no open keys, ambiguous terminals, deadline or native fail. Native observer has 118 attempted/enqueued/written rows, 35,939 reserved wire bytes, final=true, inFlight=0 and all loss/error counters zero. Frontend has 270 events, 86 queued jobs and 85 dispatches; its drops/errors are zero. One diagrams job, client4 **render_12**, was canceled while queued, never dispatched and never native-accepted. It must not be counted as a native cancellation or failed render.
+
+## Actual repeated original Sankey
+
+Installed candidate instance: `756afa7a93e6e9a78cc0ce76a974db69a29ffa1e25c8351c`, frontend client4; App PID **516073**, birth **10659049**. Shared document is `desktop-large-1792218980515`, version **0**. Both groups contain the exact original Sankey fence at UTF-16 **434..2752**, target screen, renderer `diagrams.mermaid`; these facts derive from captured input, not the UI target.
+
+The dark/width380 group has selection `{anchor:384,head:432}` and three completely equal payloads within this run, semantic fingerprint `8ac1677302d33ef0483bb349f8b8224beac6b5cd1ff7fa36bd8e79ec38e120d7`:
+
+| Candidate request | Accepted→pipe ms | Accepted→frame ms | Accepted→strict settle ms | Cancel / recorded frontend queue wait |
+|---|---:|---:|---:|---|
+| render_21, first | 0.038640 | 164.156585 | **166.554793** | none / 0 ms |
+| render_22, repeat | 0.028396 | 14.788705 | **17.030478** | none / 0 ms |
+| render_23, repeat | 0.044592 | 25.305848 | **27.187443** | none / 0 ms |
+
+All three strict results have ok=true. Recorded 0 ms is limited by frontend clock resolution. Baseline installed dark/width380 group had four repeated requests render_20–23 at **191.932052 / 168.838933 / 220.342534 / 208.886235 ms**. Thus the candidate's later repeats were shorter in this particular diagnostic run, with no native deadline; differing run/request counts must remain visible.
+
+The light/width1100 group has selection `{anchor:0,head:0}`. Installed candidate render_2/5/7 settle in **392.451220 / 42.833946 / 22.883466 ms**; the first receives an active-matched native cancel but still strictly settles successfully. Baseline installed render_2/5/7 measured **325.017531 / 201.488764 / 259.509346 ms**. The separate bundled pre-install render_2 is **369.120760 ms** here versus **382.071893 ms** in baseline; it is not an observation of the subsequently installed candidate archive.
+
+Across the candidate capture, seven native cancel observations are retained, distinct from frontend active cancellation and the one queued-only cancellation. Positive diagrams frontend queue waits include 112 ms, 49 ms and about 161 ms on other requests; no open queue remains. These are queue-clock observations, not native rendering time.
+
+## Cross-run equality is explicitly qualified
+
+`cross-run-payload-comparison.json` recursively compares actual complete payload objects for the light and dark groups. In each matched group, the **only payload field difference** is `$.request.documentId`:
+
+- Baseline: `desktop-large-1792218186252`.
+- Candidate: `desktop-large-1792218980515`.
+
+All other payload fields deeply match, including source, ranges/blocks, version, theme, width, selection, plugin and renderer. Nevertheless **complete JSON payloads are not equal across runs**. App/birth/instance identities and request-envelope IDs also differ and are retained as run-specific metadata, not erased by normalization. Within-run equal-payload groups remain separate from this qualified comparison.
+
+Native captureTotal is **1.419929 ms**, max **0.120228 ms**; writer thread CPU through its checkpoint **139.556168 ms**. Frontend measured trace intervals sum about **8 ms**, max **2 ms**. These scopes exclude other observer work and do not establish renderer CPU. End-to-end repeats being shorter does **not** directly identify a cache hit or prove fewer Mermaid engine calls; that claim requires the separately owned deterministic unit tests. No inference is made about historical warmed request1037, whose wire remains unknown.
+
+## Deferred pixel comparison / CPU release
+
+Heavy image analysis is paused before the plain native run. Root's visual review already notes content remains rendered without a disable banner, but outer document positions differ between baseline and candidate. Follow-up after all native work: compare corresponding screenshot records' preview/image/client rectangles, scroll positions, viewport and image dimensions; distinguish absolute viewport shifts from image-content differences; use existing encoded/decoded image hashes if available. If only PNGs exist, report same-coordinate regions and any image-local mapping derived explicitly from recorded geometry, without editing images or arbitrary realignment. Do not treat whole-screen difference as proof of a changed diagram.
+
+This core report and comparison are frozen now. No additional runtime, probe or pixel-heavy work is running; native may proceed under Root's separate authorization.

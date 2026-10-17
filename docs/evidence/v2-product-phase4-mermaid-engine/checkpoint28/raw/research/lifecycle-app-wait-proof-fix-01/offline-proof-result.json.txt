@@ -1,0 +1,65 @@
+{
+  "scope": "Offline execution of byte-identical existing wm-close assertion body against frozen first-failure raw traces. Not a native rerun or replacement verdict.",
+  "proofBodySha256": "1e2039667e90a9900ac106fddd7af7e26d1a9b1785d0cde85c427d7f0b420a3a",
+  "matchedTraceCount": 5,
+  "records": [
+    {
+      "name": "guardian-app-wait-proof",
+      "guardian": {
+        "pid": 519436,
+        "birth": 10730199,
+        "parent": 519095,
+        "group": 519436,
+        "state": "S",
+        "ticks": 9,
+        "name": "milkup-desktop",
+        "instanceId": "a71bf74a97a3bf59d1e879714c40e533dde26b195ad67799"
+      },
+      "appIdentity": {
+        "pid": 519095,
+        "argv": [
+          "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+          "/workspace/milkup-mermaid-engine-evidence/research/production08-generic-busy-final-01/lifecycle/runs/lifecycle-p08-candidate-remove-01/document.md",
+          ""
+        ],
+        "birth": "10729068"
+      },
+      "killStarted": {
+        "instanceId": "a71bf74a97a3bf59d1e879714c40e533dde26b195ad67799",
+        "monotonicNs": 107304901001372,
+        "phase": "kill-start",
+        "pid": 519436,
+        "requestId": null
+      },
+      "confirmed": {
+        "instanceId": "a71bf74a97a3bf59d1e879714c40e533dde26b195ad67799",
+        "monotonicNs": 107304951466513,
+        "phase": "cleanup-confirmed",
+        "pid": 519095,
+        "requestId": null
+      },
+      "exactEchildMonotonicNs": null,
+      "echildCompletedUpperBoundMonotonicNs": 107304951466513,
+      "upperBoundSource": "Exact App Child.try_wait success, then cleanup-confirmed for bound instance",
+      "terminalDiagnostic": "unobservable: best-effort asynchronous trace"
+    }
+  ],
+  "cleared": {
+    "name": "owned-context-cleared",
+    "wall": 1792219692858,
+    "monotonicMs": 14754.124576,
+    "monotonicNs": 107305297155962,
+    "elapsedMs": 45.426352000000406,
+    "observation": {
+      "mono": 107305.296594125,
+      "wall": 1792219692.8575532,
+      "appAlive": true,
+      "guardians": [],
+      "members": [],
+      "privateDirectory": "/tmp/milkup-dom-6a0517c2e890680d955a98c10dddf324ad65422cd968945f",
+      "privateDirectoryExists": false
+    }
+  },
+  "originalVerdict": "failed",
+  "originalLaterAssertionsNotExecuted": true
+}

@@ -1,0 +1,26 @@
+# Diagrams 1.1.1 private Sankey memo integration
+
+Six product files changed: src/renderer.ts, new src/success-memo.ts, src/renderer.test.ts, package.json, plugin.json and README.md, all under plugins/diagrams. The reviewed candidate02 implementation and regressions were integrated and formatted with repository Prettier. Version is 1.1.1 in package and manifest; README explains scope, FIFO/budget and environment limitations. The independent lockfile contains no root project-version field, so it was not changed. Host, SDK, native source, timeouts, security configuration, dependency versions/profiles, official fixtures and staged whole-application bundles were not changed by this task. No commit was made.
+
+The private cache is limited to exact full-request JSON, four FIFO entries, total key+value retained UTF-16 payload <=2MiB. Only complete nonempty all-ready results whose actual Mermaid responses are all Sankey are retained. Gantt and other families remain uncached. Return values are independently parsed; cancellations/errors/partial results are not retained. Singleton reentrancy rejection precedes hits. Prepare clears entries. Loaded fonts, no external stylesheets and matching Document/FontFaceSet/ready/URL/actual viewport/DPR boundary observations are required. Two snapshots do not detect transient changes that reverse between them or constitute a universal CSS/system-font fingerprint.
+
+Evidence justifies reducing observed exact-request repeated Sankey work; it does not identify or eliminate the historical unknown render1037 deadline root cause. Actual native validation of this new archive remains pending. Prior candidate tests and fixture mistakes remain preserved in their separate directories; this record does not overwrite them.
+
+## Actual validation sequence
+
+1. Prettier write on the six intended files: exit0. Source hashes were frozen immediately afterward and remained identical through all subsequent checks.
+2. First intended plugin test command, via pinned pnpm11.7.0: exit1 before Vitest started. pnpm's default verify-deps-before-run=install detected changed package metadata and attempted automatic installation; it failed with ENOENT creating /home/agent/.local/share/pnpm. Original stdout/stderr and command are retained as 02-plugin-test. No global config or home-directory change was made; lock/profile/provenance remained unchanged.
+3. Corrected test command disables automatic installation for already-installed reviewed inputs with --config.verify-deps-before-run=false: exit0, five files /127 tests passed (renderer53). This is the first actual product-plugin Vitest execution for this integration.
+4. Independent plugin check (`tsc --noEmit`): first exit0.
+5. Independent plugin build (`tsc --noEmit && node scripts/build.mjs`): first exit0. Build validates the frozen SDK/dependency input hashes, license resources, allowed bundled inputs, no runtime imports and existing entry-size budget.
+6. verify-external.mjs to a new external-first directory: first exit0. Used workspace PNPM_HOME and exact PNPM_CLI11.7.0 without changing global configuration. Its frozen-lockfile/ignore-scripts installation, standalone build and127 tests all passed; source snapshots remained unchanged. Installation reused45 and downloaded128 packages. Build/runtime offline bundling is distinct from this package-manager installation step.
+
+review:dependencies was deliberately not run: the actual script is an authoring tool requiring --write-candidate and --replace to regenerate the reviewed profile, provenance and license material. Dependencies were not changed. Root approved retaining the profile and using build/verify-external's strict validation instead. This is not an omitted passing check; it is an inapplicable mutating refresh operation.
+
+## Artifacts
+
+New archive: artifacts/milkup.diagrams-1.1.1.milkup-plugin, 5,728,276 bytes, SHA2562351692438a2083a72bcb8cddce28c7a530a8557734926992a3a2e3120c68a19. The independent external rebuild is byte-identical. Bundled JS entry is5,315,382 bytes; its exact SHA is in the artifact manifest/proof.
+
+Old 1.1.0 archive remains unchanged at its original dist path and is also copied under before/: 5,726,838 bytes, SHA2569889f1796f9080ff230a1c51147522e83e065bc191a258035208f69403a327df. Old plugin.js and proof were also saved before the build. New independent archive was copied to the new evidence directory rather than overwriting the old archive.
+
+all-six-files.diff includes the new untracked helper as well as the five tracked edits. integrated-source/ contains exact post-format product snapshots. product-sources-after-checks.json confirms no later source changes. All raw command arrays, working directories, exits and output are in logs/. artifact-verification.json records local/external equality and old-archive preservation. Full repository checks are delegated separately to dom_transport after this task released the CPU window; no result from those pending checks is claimed here.

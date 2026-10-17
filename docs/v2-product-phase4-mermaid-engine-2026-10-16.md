@@ -2,9 +2,25 @@
 
 本阶段基线为 `d3851430fac0dc85c758187b33b769c5daba7f4a`，独立分支 `dot/milkup-v2-product-phase4-mermaid-engine`。已核验远端/本地 SHA、干净工作区及候选 11 的 4,044 份证据存储哈希；候选 11 的 Linux 有界能力验收继续有效。[基线核验](evidence/v2-product-phase4-mermaid-engine/baseline-verification.json)。
 
-**当前状态：官方完整引擎、通用 Linux DOM 后端和安全图片输出已实现；gate08 全仓 2073 项测试及其余门禁、相关浏览器 36 项测试通过，独立 diagrams 89 项测试此前通过。production08 实际 Linux 构建及五项生命周期首次通过。checkpoint26 的完整 UI 运行完成 64/64 组合并 exit0，该历史结果继续保留；随后同一正式候选的定向视觉运行首次失败，完成 31/32 组合后，原生 render_1037 在约 2027.6 ms 观察到执行截止，插件停用、预览退回源码。完整请求未捕获，不能将它归因为当前可见的 Sankey，也不能宣称历史超时已修复。文件最终字节、保存与撤销／重做记录完整。**
+**当前状态：独立 diagrams 1.1.1 已实现仅限完整成功 Sankey 结果的有界复用；相同实际请求的重复完成时间在本次 Linux 窄序列中从约 169–220 ms 降至约 17–27 ms。正式 production08 安装新独立包后，同序列、source/live 历史与保存、公开禁用／启用／卸载通过；两个可比截图的可见图内区域逐像素一致。全仓 2069 项 Vitest、4 项 Node、类型及格式检查通过，独立插件 127 项及外部重建通过。原生二进制未重建，其内置包仍为 1.1.0；此处新包结论来自普通安装流程。**
 
-Journey 下方留白已定位为官方固定 SVG 画布的合法空白；旧 200% 文本 1106 像素差异仍未关闭。Sankey 的显式作者布局配置、样例自带的低对比配色与 block 字面 `&nbsp;` 保留各自边界，不能称视觉完全达标。Windows 独立 DOM 后端目前是实现缺口，已形成分阶段方案，尚未实现或验证。P4 未整体完成，P5 导出／打印未开始。最新有限结论和首次失败见 [checkpoint27](evidence/v2-product-phase4-mermaid-engine/checkpoint27/README.md)，此前完整 Linux 运行见 [checkpoint26](evidence/v2-product-phase4-mermaid-engine/checkpoint26/README.md)；两者不互相覆盖。
+历史 checkpoint26 完整 UI 的 64/64 通过继续保留；随后 checkpoint27 定向运行在 31/32 组合后出现的 `render_1037` 截止失败也继续保留。该历史请求的完整输入未捕获，本轮新鲜窄序列没有复现它，不能把当前 Sankey 请求倒填为其输入，或宣称超时根因已经消除。本轮交付的是有实测依据的重复渲染优化，不是完整矩阵重新验收。
+
+Journey 固定画布留白、作者配色及 Sankey 标签重叠等既有视觉边界未改；旧 200% 文本 1106 像素差异仍未关闭。Windows 独立 DOM 后端仍未实现或验证，P4 未整体完成，P5 导出／打印未开始。最新实现与有限验证见 [checkpoint28](evidence/v2-product-phase4-mermaid-engine/checkpoint28/README.md)，历史首次超时见 [checkpoint27](evidence/v2-product-phase4-mermaid-engine/checkpoint27/README.md)，此前完整 Linux 运行见 [checkpoint26](evidence/v2-product-phase4-mermaid-engine/checkpoint26/README.md)。
+
+## 2026-10-17：Sankey 重复请求优化与终止证明
+
+受控回归先确认外层窗口范围变化会重新提交完全相同的完整围栏请求；原生旧包窄序列随后捕获到暗色、宽度 380、原 Sankey 的四个完全相同 payload，严格完成分别为 191.932052、168.838933、220.342534、208.886235 ms。完整前端排队／取消和原生接受／终态记录逐一关联，没有把取消或管道写完当作完成。
+
+产品只改独立插件：完整请求 JSON 作为键，最多 4 个 FIFO 项，键和值按 UTF-16 合计最多 2 MiB；只保留实际引擎图型全部为 Sankey、完整、非空且全部 ready 的成功结果。每次返回独立副本，不缓存待完成任务、错误、部分结果或取消。Gantt 及其他图型不参与。字体状态、Document／FontFaceSet／ready 身份、URL、实际视口和 DPR 变化使缓存失效；前后环境观察不一致不存入。它不是任意 CSS 或系统字体变化的完整检测，也不保证识别中途变化后完全复原。宿主校验、SDK、原生协议、隔离和原有 2 秒执行期限均未改。
+
+新包在相同研究二进制和操作序列中，暗色同 payload 三次严格完成为 166.554793、17.030478、27.187443 ms；浅色同 payload 的后续两次为 42.833946、22.883466 ms。跨轮对应 payload 仅 documentId 不同，其余字段深度相等；仍不能称跨轮完整 JSON 相等。时间是同一 App 时钟下的端到端跨度，包含调度、IPC 和校验，不是 Mermaid CPU 时间，也不单独证明缓存命中。引擎调用减少由受控测试证明。两轮均无 deadline，不能推断旧长序列故障已修复。
+
+未带研究记录的正式 production08 窄序列实际 exit0，20 条结果、28 张 PNG；覆盖原 Sankey 右下→左上、source/live Unicode 编辑保存和撤销／重做，最终恢复原始文件字节，再完成公开禁用／启用／卸载和安装包字节核验。旧包与新包在相同截图坐标的两个可见图内区域，共 325,438 个 RGB 像素完全一致。研究轮的外层滚动位置不同，按已记录图框坐标对应的可见区域也相等；未据此宣称整个 SVG、离屏内容或所有截图都相同。
+
+通用忙任务原脚本的 timeout、disable 首次通过；remove 首次在缺少 guardian 异步 `cleanup-complete` 日志处失败，包与界面移除、保存及所属进程清理事实不覆盖这个 FAIL。该异步队列不保证进程退出前写出末条日志。测试仅让 disable/remove 复用原有 wm-close 的精确 App 成功 Child wait 证明，保留 PID／实例绑定和时间上界，不放宽任何执行或清理期限。修正后的新 remove、原先未运行的 wm-close、app-sigkill 均实际通过；最后一项以精确 guardian 自然退出码 0 和 reap 提供 ECHILD 完成上界，未冒称捕获精确时刻。它们是通用 DOM 插件终止验证，不是 Mermaid 特定长序列证明。
+
+独立插件 127 项测试、类型、构建和仓库外冻结重建通过，新封包逐字一致；全仓类型、2069+4 项测试及格式首次通过。新增测试证明修正另经语法、格式、旧失败记录离线证明和上述实际原生用例验证。所有首次环境、准备、审计 schema、夹具和用例失败分别保存，不混为产品失败，也不覆盖原记录。本轮未重建 App、未运行 Windows、未使用上传预算、未 Release 或合并分支。
 
 ## 固定版本与覆盖目标
 

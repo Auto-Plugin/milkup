@@ -1,0 +1,15 @@
+export default {
+  root: "/workspace/milkup-mermaid-engine-evidence/research/outer-window-exact-render-regression-01",
+  resolve: {
+    alias: {
+      "@milkup/core": "/workspace/milkup/packages/core/src/index.ts",
+      "@milkup/markdown": "/workspace/milkup/packages/markdown/src/index.ts",
+    },
+  },
+  test: {
+    environment: "node",
+    include: ["*.test.ts"],
+    maxWorkers: 1,
+    fileParallelism: false,
+  },
+};

@@ -1,0 +1,144 @@
+{
+  "preparedOnly": false,
+  "archive": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/renderer-exact-memo-product-integration-01/artifacts/milkup.diagrams-1.1.1.milkup-plugin",
+    "sha256": "2351692438a2083a72bcb8cddce28c7a530a8557734926992a3a2e3120c68a19",
+    "manifest": {
+      "id": "milkup.diagrams",
+      "name": "Milkup Diagrams",
+      "version": "1.1.1",
+      "description": "使用完整官方 Mermaid 引擎离线呈现图表；无法安全呈现的内容保留完整源码。",
+      "host": "dom",
+      "main": "./dist/plugin.js",
+      "engines": {
+        "milkup": "^2.0.0-0",
+        "pluginSdk": ">=0.3.4 <0.4.0"
+      },
+      "permissions": [
+        "document:read"
+      ],
+      "contributes": {
+        "documentRenderers": [
+          {
+            "id": "diagrams.mermaid",
+            "contexts": [
+              "fence"
+            ],
+            "fenceLanguages": [
+              "mermaid"
+            ]
+          }
+        ]
+      },
+      "resources": [
+        "THIRD-PARTY-NOTICES.txt",
+        "dependency-provenance.json"
+      ]
+    }
+  },
+  "catalog": {
+    "path": "/workspace/milkup-mermaid-engine-evidence/research/sankey-candidate-native-01/targeted-cases.json",
+    "sha256": "3fe245bc202cf9b3c9f3452b5a4b14f0e3ee88460c96f3d1647d1667c5380556"
+  },
+  "samples": [
+    {
+      "id": "block-000-first-official-example",
+      "family": "block",
+      "source": "block\ncolumns 1\n  db((\"DB\"))\n  blockArrowId6<[\"&nbsp;&nbsp;&nbsp;\"]>(down)\n  block:ID\n    A\n    B[\"A wide one in the middle\"]\n    C\n  end\n  space\n  D\n  ID --> D\n  C --> D\n  style B fill:#969,stroke:#333,stroke-width:4px\n",
+      "sourceSha256": "78e30a8aaf7fb9a0a374414e1984d2882815549cfce0428d71601302ed4998d2",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/block.md",
+      "line": 10,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-block-000-first-official-example",
+      "from": 108,
+      "to": 342
+    },
+    {
+      "id": "sankey-000-first-official-example",
+      "family": "sankey",
+      "source": "---\nconfig:\n  sankey:\n    showValues: false\n---\nsankey\n\nAgricultural 'waste',Bio-conversion,124.729\nBio-conversion,Liquid,0.597\nBio-conversion,Losses,26.862\nBio-conversion,Solid,280.322\nBio-conversion,Gas,81.144\nBiofuel imports,Liquid,35\nBiomass imports,Solid,35\nCoal imports,Coal,11.606\nCoal reserves,Coal,63.965\nCoal,Solid,75.571\nDistrict heating,Industry,10.639\nDistrict heating,Heating and cooling - commercial,22.505\nDistrict heating,Heating and cooling - homes,46.184\nElectricity grid,Over generation / exports,104.453\nElectricity grid,Heating and cooling - homes,113.726\nElectricity grid,H2 conversion,27.14\nElectricity grid,Industry,342.165\nElectricity grid,Road transport,37.797\nElectricity grid,Agriculture,4.412\nElectricity grid,Heating and cooling - commercial,40.858\nElectricity grid,Losses,56.691\nElectricity grid,Rail transport,7.863\nElectricity grid,Lighting & appliances - commercial,90.008\nElectricity grid,Lighting & appliances - homes,93.494\nGas imports,Ngas,40.719\nGas reserves,Ngas,82.233\nGas,Heating and cooling - commercial,0.129\nGas,Losses,1.401\nGas,Thermal generation,151.891\nGas,Agriculture,2.096\nGas,Industry,48.58\nGeothermal,Electricity grid,7.013\nH2 conversion,H2,20.897\nH2 conversion,Losses,6.242\nH2,Road transport,20.897\nHydro,Electricity grid,6.995\nLiquid,Industry,121.066\nLiquid,International shipping,128.69\nLiquid,Road transport,135.835\nLiquid,Domestic aviation,14.458\nLiquid,International aviation,206.267\nLiquid,Agriculture,3.64\nLiquid,National navigation,33.218\nLiquid,Rail transport,4.413\nMarine algae,Bio-conversion,4.375\nNgas,Gas,122.952\nNuclear,Thermal generation,839.978\nOil imports,Oil,504.287\nOil reserves,Oil,107.703\nOil,Liquid,611.99\nOther waste,Solid,56.587\nOther waste,Bio-conversion,77.81\nPumped heat,Heating and cooling - homes,193.026\nPumped heat,Heating and cooling - commercial,70.672\nSolar PV,Electricity grid,59.901\nSolar Thermal,Heating and cooling - homes,19.263\nSolar,Solar Thermal,19.263\nSolar,Solar PV,59.901\nSolid,Agriculture,0.882\nSolid,Thermal generation,400.12\nSolid,Industry,46.477\nThermal generation,Electricity grid,525.531\nThermal generation,Losses,787.129\nThermal generation,District heating,79.329\nTidal,Electricity grid,9.452\nUK land based bioenergy,Bio-conversion,182.01\nWave,Electricity grid,19.013\nWind,Electricity grid,289.366\n",
+      "sourceSha256": "c6739c6a83029fbe481d653c74d1e302c8226bc89edcbebec88062125baa78d3",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/sankey.md",
+      "line": 15,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": true,
+      "marker": "MERMAID-SAMPLE-sankey-000-first-official-example",
+      "from": 434,
+      "to": 2752
+    },
+    {
+      "id": "sankey-author-layout-1200x900",
+      "family": "sankey",
+      "source": "---\nconfig:\n  sankey:\n    showValues: false\n    width: 1200\n    height: 900\n    nodePadding: 24\n    useMaxWidth: false\n    labelStyle: legacy\n---\nsankey\n\nAgricultural 'waste',Bio-conversion,124.729\nBio-conversion,Liquid,0.597\nBio-conversion,Losses,26.862\nBio-conversion,Solid,280.322\nBio-conversion,Gas,81.144\nBiofuel imports,Liquid,35\nBiomass imports,Solid,35\nCoal imports,Coal,11.606\nCoal reserves,Coal,63.965\nCoal,Solid,75.571\nDistrict heating,Industry,10.639\nDistrict heating,Heating and cooling - commercial,22.505\nDistrict heating,Heating and cooling - homes,46.184\nElectricity grid,Over generation / exports,104.453\nElectricity grid,Heating and cooling - homes,113.726\nElectricity grid,H2 conversion,27.14\nElectricity grid,Industry,342.165\nElectricity grid,Road transport,37.797\nElectricity grid,Agriculture,4.412\nElectricity grid,Heating and cooling - commercial,40.858\nElectricity grid,Losses,56.691\nElectricity grid,Rail transport,7.863\nElectricity grid,Lighting & appliances - commercial,90.008\nElectricity grid,Lighting & appliances - homes,93.494\nGas imports,Ngas,40.719\nGas reserves,Ngas,82.233\nGas,Heating and cooling - commercial,0.129\nGas,Losses,1.401\nGas,Thermal generation,151.891\nGas,Agriculture,2.096\nGas,Industry,48.58\nGeothermal,Electricity grid,7.013\nH2 conversion,H2,20.897\nH2 conversion,Losses,6.242\nH2,Road transport,20.897\nHydro,Electricity grid,6.995\nLiquid,Industry,121.066\nLiquid,International shipping,128.69\nLiquid,Road transport,135.835\nLiquid,Domestic aviation,14.458\nLiquid,International aviation,206.267\nLiquid,Agriculture,3.64\nLiquid,National navigation,33.218\nLiquid,Rail transport,4.413\nMarine algae,Bio-conversion,4.375\nNgas,Gas,122.952\nNuclear,Thermal generation,839.978\nOil imports,Oil,504.287\nOil reserves,Oil,107.703\nOil,Liquid,611.99\nOther waste,Solid,56.587\nOther waste,Bio-conversion,77.81\nPumped heat,Heating and cooling - homes,193.026\nPumped heat,Heating and cooling - commercial,70.672\nSolar PV,Electricity grid,59.901\nSolar Thermal,Heating and cooling - homes,19.263\nSolar,Solar Thermal,19.263\nSolar,Solar PV,59.901\nSolid,Agriculture,0.882\nSolid,Thermal generation,400.12\nSolid,Industry,46.477\nThermal generation,Electricity grid,525.531\nThermal generation,Losses,787.129\nThermal generation,District heating,79.329\nTidal,Electricity grid,9.452\nUK land based bioenergy,Bio-conversion,182.01\nWave,Electricity grid,19.013\nWind,Electricity grid,289.366\n",
+      "sourceSha256": "f39d14b4c89effdab45c5ca21c2cae88d598bc05f051f81af02b5584a9d42ed2",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/sankey.md",
+      "line": 15,
+      "unmodifiedOfficialBlock": false,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": true,
+      "derivedFrom": "sankey-000-first-official-example",
+      "authorConfigCandidate": true,
+      "marker": "MERMAID-SAMPLE-sankey-author-layout-1200x900",
+      "from": 2841,
+      "to": 5257
+    },
+    {
+      "id": "sequenceDiagram-016-box-group",
+      "family": "sequenceDiagram",
+      "source": "    sequenceDiagram\n    box Purple Alice & John\n    participant A\n    participant J\n    end\n    box Another Group\n    participant B\n    participant C\n    end\n    A->>J: Hello John, how are you?\n    J->>A: Great!\n    A->>B: Hello Bob, how is Charley?\n    B->>C: Hello Charley, how are you?\n",
+      "sourceSha256": "93d3c0ff3d5d384a0044c0882501febf51d0ba59c26ca2c237eae58d27ad53aa",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/sequenceDiagram.md",
+      "line": 315,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-sequenceDiagram-016-box-group",
+      "from": 5342,
+      "to": 5645
+    },
+    {
+      "id": "flowchart-107-style",
+      "family": "flowchart",
+      "source": "flowchart LR\n    id1(Start)-->id2(Stop)\n    style id1 fill:#f9f,stroke:#333,stroke-width:4px\n    style id2 fill:#bbf,stroke:#f66,stroke-width:2px,color:#fff,stroke-dasharray: 5 5\n",
+      "sourceSha256": "f4ddc73bd88be46e5f91b2386188d0ffbf9ee0e628168227fcd2e4cbba1da61d",
+      "officialSource": "https://github.com/mermaid-js/mermaid/blob/mermaid%4012.2.0/packages/mermaid/src/docs/syntax/flowchart.md",
+      "line": 1297,
+      "unmodifiedOfficialBlock": true,
+      "expected": "ready",
+      "expectationReason": "Ordinary official syntax must render completely; an implementation gap must fail this case.",
+      "matrix": false,
+      "marker": "MERMAID-SAMPLE-flowchart-107-style",
+      "from": 5720,
+      "to": 5913
+    }
+  ],
+  "isolatedFallbacks": [],
+  "matrix": [
+    {
+      "view": "windowed",
+      "mode": "live",
+      "theme": "dark",
+      "zoom": 2,
+      "narrow": true,
+      "key": "windowed-live-dark-200-narrow"
+    }
+  ],
+  "contrastSamples": [],
+  "scope": "One diagnostic short sequence using the unchanged five-case windowed document: original Sankey bottom-right then top-left. Fresh startup is not the historical warmed render1037 state. Screenshots require separate visual review; geometry is not pixel fidelity proof.",
+  "excludes": [
+    "all other matrix, history and selection checks; only this short sequence runs",
+    "four isolated fallback cases (previous full acceptance)",
+    "Journey (existing paired evidence reused; no new run)",
+    "native process lifetime/timeout audit (separate harness)",
+    "Windows",
+    "system DPI",
+    "inline-vs-image pixel comparison (separate isolated probe)"
+  ]
+}

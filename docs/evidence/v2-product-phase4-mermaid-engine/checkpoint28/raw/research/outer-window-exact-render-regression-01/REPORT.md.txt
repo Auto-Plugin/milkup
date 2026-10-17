@@ -1,0 +1,38 @@
+# Exact request / queue controlled regression
+
+## First actual results
+
+Baseline service/RPC run: **1 deliberate optimization RED, 3 PASS**, exit1; test body33ms, Vitest duration854ms. The RED is the final desired one-call assertion, after the prerequisite assertions all passed. It is not a claim that the existing arbitrary-provider host contract promises purity or caching.
+
+The real desktop service, real context reader and real core validation received two windows from the same MemoryDocumentSource/version/selection/theme/width. Outer ranges were0..104 and11..91; view-compatible base keys were `1:0:104:380:0:0:0:1` and `1:11:91:380:0:0:0:1`. Both became the same complete interior Mermaid fence request35..69. **Every request field and its JSON bytes matched**, SHA256 `eedbf39f800e1a24d1c1da07808322570bf4d13e6faf6a949ecf849d55ea0e32`. The deterministic inert provider was called **twice**, both validated aggregates were complete with one fragment, and source version remained1. `exact-window-calls.json` contains both full requests, outer windows and responses. This proves repeat invocation is possible with current service when outer windows change; it does not prove this happened to native render1037.
+
+The three passing baseline tests show:
+- Width, theme and exact selection changes produce distinct full request identities; none may be silently dropped from an exact memo key.
+- A queued job canceled behind a deferred active job is removed and never executes. Only active and surviving queued providers run.
+- Canceling active work rejects that caller but does not dispatch the survivor until the active remote result settles. Canceled queued work still never runs.
+
+These use actual RPC client/server and controlled deferred providers, without native processes or real Mermaid execution. They exclude the hypothesized queued-cancel leak in these controlled paths. No browser/layout timing or prior native timeout cause is claimed. Two different windows model a public layout/window input change; this test does not simulate an actual scroll event or inspect private view state.
+
+## Research trace candidate review and first tests
+
+An independent snapshot of Root's v02 research candidate is `trace/candidate.ts`, SHA256 `608b6c0af969a4e4b625488d7aea6a486017fb525486c1e742ff8595801488ca`. Initial reviewed source is retained separately; no owner file was edited here. Relative runtime dependencies are resolved to the original repo with explicit config aliases; the server remains the baseline server.
+
+**8/8 candidate tests passed on their first run**, exit0, test body14ms, Vitest duration594ms. Tests cover module initialization before any client, immutable complete queued request JSON despite later caller mutation, queued cancellation without dispatch, active-cancel → remote-settled → next-dispatch ordering, absent sink, event cap1024, byte cap16MiB, next-row overflow, throwing events.push and throwing sink getter. Cap/error cases preserve the original result and one remote provider call. Per-test observations are retained; these are finite synthetic/controlled tests, not universal exception safety or native timing validation.
+
+Initial static review found sink lookup/time capture outside try and byte accounting before captureEndMs growth. Root fixed both in v02: guarded access and reserved64bytes per row. Observer still has real synchronous serialization/time/append overhead, can affect scheduling, and reports frontend clock only. `remote-settled` is frontend receipt of a validated wire envelope, not native owner's exact settlement timestamp. The finite queue fills and drops rather than retaining all future records; dropped>0 means incomplete capture, not absence of later activity. No new public API or product source change was made by this review.
+
+## Minimum implementable optimization, if separately approved
+
+Prefer a **private diagrams renderer result memo**, not host-level purity assumptions about arbitrary providers. The plugin owns fixed official Mermaid initialization, secure seed and conversion behavior. The smallest candidate is a single-entry successful-result memo (not promise/job coalescing):
+
+1. Preserve cancellation, input/context validation and existing non-reentrancy checks before a hit. Key by exact serialization of the *complete validated request*, not body/hash alone; include all offsets, blocks/context/protected ranges, document/version, selection, width, theme and target. Use exact string equality, not a collision-prone digest as authority.
+2. Scope to one helper/plugin activation. Clear at prepare/reinitialization. Cache only complete successful ready output after all existing abort checks and output budget checks; never cache errors, partial output, canceled/rejected work or in-flight promises. Native dispatch and original2s watchdog still apply on hits.
+3. Keep a hard entry count and aggregate byte bound for key+serialized result (a single-entry512KiB bound is a possible conservative starting point, skipping larger entries). Store immutable serialized output and return a fresh parsed value on each hit, so consumer mutation cannot corrupt future output. No Blob/DOM nodes cross or remain in the memo.
+4. Full request identity alone does not prove all environment-dependent output is stable: converter `svg-converter.ts:402` evaluates media queries and renderer preparation waits for fonts. The memo must be cleared when its rendering environment changes, or use a deliberately frozen per-helper environment scope with that limitation verified. Fixed seed proves one known deterministic path, not universal Mermaid purity. Do not turn the host's generic cache into that assumption.
+5. Green tests should count actual Mermaid/converter invocations across exact repeat; check changed request fields/environment misses, abort/error/partial not cached, input/output mutation isolation, cap skip/eviction and activation reset. Mocked engine call counts can establish memo mechanics; representative real-engine equal-output checks are a separate evidence requirement. This task does not implement that candidate or claim performance sufficient to fix2s failures.
+
+A single-entry memo may have limited benefit with alternating neighboring fences; expanding to an LRU is unnecessary until the actual trace quantifies locality. No memo is justified as a fix for the historical timeout solely from this RED. The test gives a concrete repeat-work opportunity and rejects one queue-leak hypothesis, which is the bounded result requested.
+
+## Evidence and source handling
+
+`preparation-inputs.json` and `trace/prepared-inputs.json` freeze tested sources/configs before execution. `execution.json` records actual commands/exits and after-hash checks. Raw first test logs and all controlled observation JSON are retained. The first formatter call failed because this external fixture omitted a closing brace; its exact source and reported failure metadata are preserved, then corrected before source freeze/test execution. No product test was run before that correction. No whole-suite/native/browser/build execution, product edit, threshold change or retry occurred. Baseline passed tests were not rerun when testing the independent candidate.

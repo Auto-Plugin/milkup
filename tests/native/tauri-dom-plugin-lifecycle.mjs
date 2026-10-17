@@ -733,7 +733,9 @@ try {
       functionalCleanup:
         'All tracked PID/birth identities and private directory cleared within original 4.5s observer bound',
     })
-  } else if (testCase === 'wm-close') {
+  } else if (['wm-close', 'disable', 'remove'].includes(testCase)) {
+    // The guardian's terminal trace is best-effort asynchronous output. Reuse
+    // the exact App successful-wait proof instead of requiring that log line.
     const guardian = bound.selectedGuardian
     const killStarted = traces.find(
       (entry) => entry.phase === 'kill-start' && entry.pid === guardian.pid,

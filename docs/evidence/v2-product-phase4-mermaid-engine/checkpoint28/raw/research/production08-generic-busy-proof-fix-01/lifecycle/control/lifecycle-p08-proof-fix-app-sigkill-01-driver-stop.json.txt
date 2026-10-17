@@ -1,0 +1,53 @@
+{
+  "startedUtc": "2026-10-17T06:56:22.893701+00:00",
+  "owner": {
+    "bootId": "dbd08833-6204-4080-9084-7b5e12bb7f3d",
+    "pid": 521417,
+    "birth": "10775675",
+    "group": 521417,
+    "ancestorPid": 521412,
+    "ancestorRole": "subreaper wait-only, no signals or directory deletion",
+    "startedUtc": "2026-10-17T06:55:44.318825+00:00",
+    "command": [
+      "bash",
+      "driver.sh",
+      "lifecycle-p08-proof-fix-app-sigkill-01",
+      "app-sigkill",
+      "/workspace/milkup-mermaid-engine-evidence/linux-production-08/install/usr/bin/milkup-desktop",
+      "cd0f892d274bb363ee663e8b36aead93cbee31a4464bdef26ac849f5018cb304"
+    ]
+  },
+  "statusBefore": {
+    "response": {
+      "value": {
+        "ready": true,
+        "message": "No sessions"
+      }
+    }
+  },
+  "identityBefore": {
+    "pid": 521417,
+    "birth": "10775675",
+    "group": 521417,
+    "state": "S"
+  },
+  "cleanupMethod": "existing production08 owned process group after exact PID/birth/PGID and no active App session; no descendant discovery",
+  "signal": "SIGTERM",
+  "signalTarget": {
+    "group": 521417,
+    "verifiedLeader": {
+      "pid": 521417,
+      "birth": "10775675",
+      "group": 521417,
+      "state": "S"
+    }
+  },
+  "signalRequestedUtc": "2026-10-17T06:56:22.905851+00:00",
+  "signalResult": "sent",
+  "result": "signal sent; inspect exact post-state and ancestor reap record",
+  "endedUtc": "2026-10-17T06:56:22.957109+00:00",
+  "identityAfter": null,
+  "statusAfter": {
+    "unavailable": "URLError(ConnectionRefusedError(111, 'Connection refused'))"
+  }
+}

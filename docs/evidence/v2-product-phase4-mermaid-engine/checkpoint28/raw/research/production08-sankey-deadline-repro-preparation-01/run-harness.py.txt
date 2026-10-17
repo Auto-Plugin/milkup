@@ -1,0 +1,54 @@
+"""One diagnostic short Sankey corner sequence. No observer or retry."""
+import datetime
+import json
+import os
+import stat
+import subprocess
+import sys
+import urllib.request
+from pathlib import Path
+
+base = Path(__file__).resolve().parent
+run = 'mermaid-ui-sankey-deadline-repro-01'
+out = base / 'runtime' / run
+subprocess.run([sys.executable, str(base / 'verify-runtime-go.py')], check=True)
+owner = json.loads((out / 'control' / (run + '-driver-owner.json')).read_text())
+assert owner['bootId'] == Path('/proc/sys/kernel/random/boot_id').read_text().strip()
+words = Path('/proc', str(owner['pid']), 'stat').read_text().rsplit(')', 1)[1].split()
+assert words[19] == owner['birth'] and int(words[2]) == owner['group'] == owner['pid']
+with urllib.request.urlopen('http://127.0.0.1:4626/status', timeout=2) as response:
+    status = json.load(response)
+assert status['value']['ready'] is True and status['value']['message'] == 'No sessions'
+log = out / 'driver.log'
+meta = log.lstat()
+assert stat.S_ISREG(meta.st_mode) and meta.st_uid == os.geteuid()
+record = out / 'control/harness-execution.json'
+assert not record.exists()
+state = {'startedUtc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+         'classification': 'ONE_DIAGNOSTIC_SANKEY_SHORT_SEQUENCE',
+         'command': ['bash', str(base / 'RUN.sh'), 'harness'],
+         'driverLogPreflight': {'path': str(log), 'device': meta.st_dev, 'inode': meta.st_ino,
+                                'mode': oct(meta.st_mode), 'uid': meta.st_uid},
+         'scope': 'One short diagnostic sequence; original wheel/assertions/deadlines; bounded frontend/native ledgers after outcome; no CPU/stage observer or automatic retry.'}
+child = None
+with (out / 'control/harness.log').open('x') as output:
+    try:
+        child = subprocess.Popen(state['command'], cwd='/workspace/milkup', stdout=output,
+                                 stderr=subprocess.STDOUT)
+        words = Path('/proc', str(child.pid), 'stat').read_text().rsplit(')', 1)[1].split()
+        state['harnessIdentity'] = {'pid': child.pid, 'birth': words[19]}
+        record.write_text(json.dumps(state, indent=2) + '\n')
+        state['harnessExitCode'] = child.wait()
+    finally:
+        if child is not None and child.poll() is None:
+            # Direct unreaped child cannot have its PID reused.
+            child.terminate()
+            try:
+                child.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                child.kill()
+                child.wait()
+            state['harnessInterrupted'] = True
+        state['finishedUtc'] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        record.write_text(json.dumps(state, indent=2) + '\n')
+sys.exit(state['harnessExitCode'])

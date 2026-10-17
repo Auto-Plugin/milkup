@@ -1,0 +1,135 @@
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > renders byte-identical full requests once and returns independent results (baseline RED)
+AssertionError: expected "spy" to be called 1 times, but got 2 times
+ ❯ src/renderer.test.ts:327:27
+    325|     expect(second).not.toBe(first)
+    326|     expect(second.fragments[0]).not.toBe(first.fragments[0])
+    327|     expect(mocked.render).toHaveBeenCalledTimes(1)
+       |                           ^
+    328|     expect(mocked.convert).toHaveBeenCalledTimes(1)
+    329|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯
+
+ FAIL  src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > isolates mutations of both initial and memo-hit result trees
+AssertionError: expected "spy" to be called 1 times, but got 3 times
+ ❯ src/renderer.test.ts:355:27
+    353|     Object.assign(second.fragments[0]!.content, { title: 'changed cach…
+    354|     expect(await renderDocuments(input, options())).toEqual(expected)
+    355|     expect(mocked.render).toHaveBeenCalledTimes(1)
+       |                           ^
+    356|   })
+    357|   it('clears entries after DOM Document identity changes, including sw…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/11]⎯
+
+ FAIL  src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > rejects an already-aborted cache hit without destroying the prior good entry
+AssertionError: expected "spy" to be called 1 times, but got 2 times
+ ❯ src/renderer.test.ts:382:27
+    380|     await expect(renderDocuments(input, { signal: controller.signal })…
+    381|     await renderDocuments(input, options())
+    382|     expect(mocked.render).toHaveBeenCalledTimes(1)
+       |                           ^
+    383|   })
+    384|   it('does not retain a task cancelled during engine work', async () =…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/11]⎯
+
+ FAIL  src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > does not retain a task cancelled during engine work
+AssertionError: expected "spy" to be called 2 times, but got 3 times
+ ❯ src/renderer.test.ts:393:27
+    391|     await renderDocuments(input, options())
+    392|     await renderDocuments(input, options())
+    393|     expect(mocked.render).toHaveBeenCalledTimes(2)
+       |                           ^
+    394|   })
+    395|   it('does not retain a task cancelled by conversion before publicatio…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/11]⎯
+
+ FAIL  src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > does not retain a task cancelled by conversion before publication
+AssertionError: expected "spy" to be called 2 times, but got 3 times
+ ❯ src/renderer.test.ts:401:27
+    399|     await renderDocuments(input, options())
+    400|     await renderDocuments(input, options())
+    401|     expect(mocked.render).toHaveBeenCalledTimes(2)
+       |                           ^
+    402|   })
+    403|   it('does not retain engine-error fallback results', async () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/11]⎯
+
+ FAIL  src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > does not retain engine-error fallback results
+AssertionError: expected "spy" to be called 2 times, but got 3 times
+ ❯ src/renderer.test.ts:409:27
+    407|     expect((await renderDocuments(input, options())).fragments[0]?.sta…
+    408|     await renderDocuments(input, options())
+    409|     expect(mocked.render).toHaveBeenCalledTimes(2)
+       |                           ^
+    410|   })
+    411|   it('does not retain conversion-error fallback results', async () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/11]⎯
+
+ FAIL  src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > does not retain conversion-error fallback results
+AssertionError: expected "spy" to be called 2 times, but got 3 times
+ ❯ src/renderer.test.ts:417:27
+    415|     expect((await renderDocuments(input, options())).fragments[0]?.sta…
+    416|     await renderDocuments(input, options())
+    417|     expect(mocked.render).toHaveBeenCalledTimes(2)
+       |                           ^
+    418|   })
+    419|   it('does not retain mixed ready/error multi-fence results', async ()…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/11]⎯
+
+ FAIL  src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > does not retain incomplete envelope-budget results
+AssertionError: expected "spy" to be called 4 times, but got 2 times
+ ❯ src/renderer.test.ts:433:27
+    431|     expect((await renderDocuments(input, options())).complete).toBe(fa…
+    432|     expect((await renderDocuments(input, options())).complete).toBe(fa…
+    433|     expect(mocked.render).toHaveBeenCalledTimes(4)
+       |                           ^
+    434|   })
+    435|   it('retains no more than four small exact requests', async () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/11]⎯
+
+ FAIL  src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > retains no more than four small exact requests
+AssertionError: expected "spy" to be called 5 times, but got 6 times
+ ❯ src/renderer.test.ts:439:27
+    437|     for (let version = 0; version < 5; version++) await renderDocument…
+    438|     await renderDocuments({ ...input, version: 4 }, options())
+    439|     expect(mocked.render).toHaveBeenCalledTimes(5)
+       |                           ^
+    440|     await renderDocuments({ ...input, version: 0 }, options())
+    441|     expect(mocked.render).toHaveBeenCalledTimes(6)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/11]⎯
+
+ FAIL  src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > accounts for both serialized keys and values in the 2MiB UTF-16 byte cap
+AssertionError: expected "spy" to be called 4 times, but got 5 times
+ ❯ src/renderer.test.ts:450:27
+    448|     for (let version = 0; version < 4; version++) await renderDocument…
+    449|     await renderDocuments({ ...input, version: 3 }, options())
+    450|     expect(mocked.render).toHaveBeenCalledTimes(4)
+       |                           ^
+    451|     await renderDocuments({ ...input, version: 0 }, options())
+    452|     expect(mocked.render).toHaveBeenCalledTimes(5)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/11]⎯
+
+ FAIL  src/renderer.test.ts > private exact-request successful-result memo (prepared contract) > bypasses an individually oversized key without evicting a useful small entry
+AssertionError: expected "spy" to be called 3 times, but got 4 times
+ ❯ src/renderer.test.ts:460:27
+    458|     await renderDocuments(huge, options())
+    459|     await renderDocuments(small, options())
+    460|     expect(mocked.render).toHaveBeenCalledTimes(3)
+       |                           ^
+    461|   })
+    462|   it('keeps singleton reentrancy rejection ahead of a possible cache h…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/11]⎯
+

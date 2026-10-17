@@ -1,0 +1,24 @@
+{
+  "command": [
+    "bash",
+    "-lc",
+    "source /workspace/.cloud/milkup-v2/env.sh\nunset CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER PROOT_NO_SECCOMP\nexec \"$@\"",
+    "build-native",
+    "cargo",
+    "build",
+    "--manifest-path",
+    "apps/desktop/src-tauri/Cargo.toml",
+    "--release",
+    "--locked",
+    "--offline",
+    "--features",
+    "tauri/custom-protocol",
+    "--bin",
+    "milkup-desktop",
+    "--message-format=json-render-diagnostics"
+  ],
+  "cwd": "/workspace/milkup",
+  "startedUtc": "2026-10-17T06:14:33.670283+00:00",
+  "exitCode": 0,
+  "finishedUtc": "2026-10-17T06:15:42.461436+00:00"
+}

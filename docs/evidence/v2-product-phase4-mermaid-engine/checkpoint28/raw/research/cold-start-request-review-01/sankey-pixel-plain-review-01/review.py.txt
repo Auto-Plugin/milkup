@@ -1,0 +1,57 @@
+import hashlib,io,json,math
+from pathlib import Path
+from PIL import Image,ImageChops
+ROOT=Path('/workspace/milkup-mermaid-engine-evidence/research');OUT=Path(__file__).parent
+sha=lambda b:hashlib.sha256(b).hexdigest()
+specs=[('baseline','production08-sankey-deadline-repro-preparation-01','d3c4a7007e0965c2a761edf3bc1706eb0d4a461a0d7e2b4b1e4b0264d8fe97cb'),('diagnostic','sankey-candidate-native-01','3aba4592bdba5476baa883519e87cf8b6b1d99fd9476c446c019f5296b32e926'),('plain','production08-sankey-final-native-01','7cf5f052791c877f539ada677d92918c67ccd3dc53665045534736e557479735')]
+runs={}
+for label,name,digest in specs:
+ base=ROOT/name;mb=(base/'completed-manifest.json').read_bytes();assert sha(mb)==digest;m=json.loads(mb)
+ run=Path(m['run']);run=run if run.is_absolute() else base/'runtime'/run
+ index={}
+ for item in m['files']:
+  path=Path(item['path']);path=path if path.is_absolute() else base/path;path=path.resolve(strict=True)
+  assert path.is_relative_to(base) and path not in index;index[path]=item
+ def raw(path,index=index):
+  value=path.read_bytes();item=index[path.resolve()];assert len(value)==item['bytes'] and sha(value)==item['sha256'];return value
+ if label=='plain':
+  assert len(index)==226
+  for path in index:raw(path)
+ records=json.loads(raw(run/'evidence/results.json'))
+ runs[label]={'root':str(run),'raw':raw,'records':records,'files':len(index),'bytes':sum(x['bytes'] for x in index.values())}
+plain=runs['plain'];r=Path(plain['root']);records=plain['records'];raw=plain['raw'];names=[x['name'] for x in records]
+assert names[-1]=='PASS' and 'FAIL' not in names and len(names)==len(set(names)) and not (r/'evidence/failure.json').exists()
+history=[x for x in records if x['name'].startswith('history-')]
+assert all(x.get('byteExact') and not x['document']['dirty'] for x in history)
+cleanup=json.loads(raw(r/'control/exact-known-postcheck.json'));exits=json.loads(raw(r/'control/tool-exit-results.json'))
+assert exits['nodeExitCode']==exits['harnessTool']['exitCode']==0
+assert all(not x['sameIdentityPresent'] for x in cleanup['knownIdentities']) and not cleanup['listeners']
+driver=raw(r/'driver.log').decode();timings=[json.loads(x[len('DOM_NATIVE_TIMING '):]) for x in driver.splitlines() if x.startswith('DOM_NATIVE_TIMING ')]
+def geometry(label,corner):
+ run=runs[label];name=f'edges-windowed-live-dark-200-narrow-sankey-000-first-official-example-{corner}'
+ rec=next(x for x in run['records'] if x['name']==name);p=next(x for x in rec['dom']['previews'] if (x['from'],x['to'])==(434,2752));img=p['images'][0]
+ item=next(x for x in rec['screenshots'] if x['file']==name+'-webview.png');value=run['raw'](Path(run['root'])/'evidence'/item['file']);assert sha(value)==item['sha256']
+ pixels=Image.open(io.BytesIO(value)).convert('RGB');sx=pixels.width/rec['dom']['width'];sy=pixels.height/rec['dom']['height'];assert sx==sy==2
+ boxes=[p['clientRect'],img['rect'],rec['dom']['editorViewport']]
+ box=(math.ceil(max(x['left'] for x in boxes)*sx)+2,math.ceil(max(x['top'] for x in boxes)*sy)+2,math.floor(min(x['right'] for x in boxes)*sx)-2,math.floor(min(x['bottom'] for x in boxes)*sy)-2)
+ assert box[2]>box[0] and box[3]>box[1]
+ g={'file':item['file'],'pngSha256':sha(value),'pngSize':list(pixels.size),'scale':sx,'previewClientRect':p['clientRect'],'imageRect':img['rect'],'viewport':rec['dom']['editorViewport'],'scroll':{'top':p['top'],'left':p['left'],'scrollWidth':p['scrollWidth'],'scrollHeight':p['scrollHeight'],'clientWidth':p['clientWidth'],'clientHeight':p['clientHeight']},'imageNaturalSize':[img['naturalWidth'],img['naturalHeight']],'visibleImageInteriorBoxPixels':box,'imageSrcKind':img['src'].split(':',1)[0]}
+ return pixels,g
+def compare(a,b,boxA,boxB):
+ aa=a.crop(boxA);bb=b.crop(boxB);assert aa.size==bb.size
+ delta=ImageChops.difference(aa,bb);hist=delta.histogram();changed=sum(pixel!=(0,0,0) for pixel in delta.getdata());n=aa.width*aa.height
+ return {'boxA':boxA,'boxB':boxB,'dimensions':list(aa.size),'pixels':n,'changedPixels':changed,'changedFraction':changed/n,'meanAbsoluteChannelDifference':sum((i%256)*count for i,count in enumerate(hist))/(n*3),'pixelBytesShaA':sha(aa.tobytes()),'pixelBytesShaB':sha(bb.tobytes())}
+comparisons=[]
+for corner in ['bottom-right','top-left']:
+ a,ga=geometry('baseline',corner)
+ for label in ['plain','diagnostic']:
+  b,gb=geometry(label,corner);A=ga['visibleImageInteriorBoxPixels'];B=gb['visibleImageInteriorBoxPixels']
+  common=(max(A[0],B[0]),max(A[1],B[1]),min(A[2],B[2]),min(A[3],B[3]))
+  same=compare(a,b,common,common)
+  dx=(gb['imageRect']['left']-ga['imageRect']['left'])*2;dy=(gb['imageRect']['top']-ga['imageRect']['top'])*2
+  assert dx==int(dx) and dy==int(dy);dx=int(dx);dy=int(dy)
+  mapped=(max(A[0],B[0]-dx),max(A[1],B[1]-dy),min(A[2],B[2]-dx),min(A[3],B[3]-dy));mappedB=tuple(x+(dx if i%2==0 else dy) for i,x in enumerate(mapped))
+  comparisons.append({'pair':'baseline-vs-'+label,'corner':corner,'baselineGeometry':ga,'comparisonGeometry':gb,'sameScreenCoordinateRegion':same,'recordDerivedImageOffsetPixels':[dx,dy],'imageLocalVisibleOverlapNoResampling':compare(a,b,mapped,mappedB),'qualification':'Geometry-derived crop comparison only; no image files changed, no arbitrary alignment, no assertion about offscreen image pixels or SVG byte identity'})
+result={'plainIntegrity':{'files':plain['files'],'bytes':plain['bytes'],'records':names,'historyRecords':len(history),'historyRecordedByteExact':True,'nativeDeadlineCount':sum(x['phase']=='deadline-observed' for x in timings),'knownIdentityCount':len(cleanup['knownIdentities']),'allKnownAbsent':True,'reaps':cleanup['reapCount'],'toolExits':exits},'comparisons':comparisons,'imageContentHashLimit':'Records retain blob URLs and natural sizes, not encoded SVG or complete decoded image hashes; ROI hashes below are only visible PNG pixel bytes.','visualReviewProvenance':'Root reports actual viewing of baseline both edges, diagnostic both edges, plain top-left/history-live-undo. Independent numeric review covers exactly these two corner pairs, not all screenshots.'}
+(OUT/'analysis.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+print(json.dumps({'plainIntegrity':result['plainIntegrity'],'comparisons':[{'pair':x['pair'],'corner':x['corner'],'offset':x['recordDerivedImageOffsetPixels'],'sameScreen':x['sameScreenCoordinateRegion'],'mapped':x['imageLocalVisibleOverlapNoResampling']} for x in comparisons]},indent=2))

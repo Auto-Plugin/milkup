@@ -1,0 +1,30 @@
+--- first-red-preserved/renderer.test.ts
++++ corrected/renderer.test.ts
+@@ -305,7 +305,8 @@
+   })
+ })
+ 
+-// Prepared regression contract only: not executed. Existing tests above are unchanged.
++// Regression contract prepared externally; baseline execution evidence is retained in research.
++// Existing wrapper tests above remain unchanged.
+ // New positive memo cases use a static Sankey, not wall-clock-sensitive Gantt.
+ describe('private exact-request successful-result memo (prepared contract)', () => {
+   const staticRequest = () => request('sankey\nA,B,1')
+@@ -317,7 +318,7 @@
+     vi.stubGlobal('devicePixelRatio', 1)
+     mocked.render.mockResolvedValue({ svg: '<svg/>', diagramType: 'sankey' })
+   })
+-  it('renders byte-identical full requests once and returns independent results (baseline RED)', async () => {
++  it('renders byte-identical full requests once and returns independent results', async () => {
+     const input = staticRequest()
+     const first = await renderDocuments(input, options())
+     const second = await renderDocuments(JSON.parse(JSON.stringify(input)), options())
+@@ -427,7 +428,7 @@
+   it('does not retain incomplete envelope-budget results', async () => {
+     const a = request('sankey\nA,B,1', 0), b = request('sankey\nC,D,1', a.to)
+     const input = { ...a, source: a.source + b.source, to: b.to, blocks: [...a.blocks, ...b.blocks] }
+-    mocked.convert.mockImplementation(() => ({ ...image(), title: 'x'.repeat(150_000) }))
++    mocked.convert.mockImplementation(() => ({ ...image(), title: 'x'.repeat(70_000) }))
+     expect((await renderDocuments(input, options())).complete).toBe(false)
+     expect((await renderDocuments(input, options())).complete).toBe(false)
+     expect(mocked.render).toHaveBeenCalledTimes(4)

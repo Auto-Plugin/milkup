@@ -1,0 +1,28 @@
+from pathlib import Path
+import json,sys,hashlib,datetime
+b=Path('/workspace/milkup-mermaid-engine-evidence/research/production08-generic-busy-proof-fix-01');case,driverSession,harnessSession=sys.argv[1:];run='lifecycle-p08-proof-fix-'+case+'-01';c=b/'lifecycle/control';r=b/'lifecycle/runs'/run
+load=lambda p:json.loads(p.read_text());save=lambda p,x:p.write_text(json.dumps(x,indent=2)+'\n')
+owner=load(c/(run+'-driver-owner.json'));reaps=load(c/(run+'-ancestor-reaps.json'));obs=load(r/'process-observer/summary.json');events=load(r/'events.json');command=load(c/(run+'-command.json'));inputs=load(b/'runtime-inputs.json')
+known={}
+def add(p,b,s):known.setdefault((int(p),str(b)),[]).append(s)
+add(owner['pid'],owner['birth'],'driver')
+for x in reaps:add(x['identity']['pid'],x['identity']['birth'],'wait-onlyreap')
+add(obs['root']['pid'],obs['root']['birth'],'observer-root')
+for pid,birth in obs['knownPidBirth'].items():add(pid,birth,'original-observer-known')
+post=[]
+for (pid,birth),sources in sorted(known.items()):
+ try:
+  w=Path('/proc',str(pid),'stat').read_text().rsplit(')',1)[1].split();actual={'pid':pid,'birth':w[19],'state':w[0]}
+ except FileNotFoundError:actual=None
+ post.append({'pid':pid,'expectedBirth':birth,'sources':sources,'actual':actual,'sameIdentityPresent':actual is not None and actual['birth']==birth})
+ports=[]
+for file in ['/proc/net/tcp','/proc/net/tcp6']:
+ for line in Path(file).read_text().splitlines()[1:]:
+  w=line.split();port=int(w[1].split(':')[1],16)
+  if port in [4626,4627] and w[3]=='0A':ports.append(port)
+x=inputs['dedicatedDisplay'];w=Path('/proc',str(x['pid']),'stat').read_text().rsplit(')',1)[1].split();xok=w[19]==x['birth'] and Path('/proc',str(x['pid']),'cmdline').read_bytes().decode().strip('\0').split('\0')==x['argv']
+verdict=[x for x in events if x['name']=='verdict'];assert len(verdict)==1
+out={'case':case,'atUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'scope':'Exact recorded identities only; no new global scan/signals; original observer known list not a universal process census','knownIdentities':post,'allKnownGone':not any(x['sameIdentityPresent'] for x in post),'listeners':ports,'xvfbPreserved':xok,'reaps':len(reaps),'nativeObserverCleanupObserved':obs['cleanupObserved'],'verdict':verdict[0],'harnessExitCode':command['exitCode'],'inputDrift':[x['path'] for x in inputs['files'] if hashlib.sha256(Path(x['path']).read_bytes()).hexdigest()!=x['sha256']]}
+save(c/(run+'-postcheck.json'),out);save(c/(run+'-tool-exits.json'),{'driverSession':int(driverSession),'harnessSession':int(harnessSession),'driverToolExit':241,'harnessToolExit':command['exitCode'],'stopToolExit':0,'actualLaunchPermissions':'require_escalated','firstAttemptOnly':True})
+assert out['allKnownGone'] and not ports and xok and not out['inputDrift'];assert command['exitCode']==0 and verdict[0]['status']=='passed'
+print(json.dumps({'case':case,'exit':command['exitCode'],'verdict':verdict[0]['status'],'known':len(post),'reaps':len(reaps),'allKnownGone':True,'portsFree':True,'xvfbPreserved':xok}))

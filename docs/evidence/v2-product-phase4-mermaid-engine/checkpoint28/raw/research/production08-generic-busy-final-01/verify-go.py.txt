@@ -1,0 +1,8 @@
+import json,hashlib,sys
+from pathlib import Path
+b=Path(__file__).resolve().parent
+x=json.loads((b/'runtime-inputs.json').read_text());g=json.loads((b/'root-runtime-go.json').read_text())
+assert g['authorized'] is True and g['runtimeInputsSha256']==hashlib.sha256((b/'runtime-inputs.json').read_bytes()).hexdigest()
+assert sys.argv[1] in x['cases']
+for r in x['files']:
+ p=Path(r['path']);assert p.stat().st_size==r['bytes'] and hashlib.sha256(p.read_bytes()).hexdigest()==r['sha256'],str(p)

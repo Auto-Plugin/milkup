@@ -5,10 +5,17 @@ import type {
   SdkDocumentPresentationResult,
 } from '@milkup/plugin-sdk'
 import { convertSvgElement, ConversionError } from './svg-converter'
+import {
+  beginSuccessMemo,
+  clearSuccessMemo,
+  publishSuccessMemo,
+  readSuccessMemo,
+} from './success-memo'
 
 // Preparation waits for installed fonts but never parses a document. The
 // independent native host owns activation and execution deadlines.
 export async function prepareRenderer(): Promise<void> {
+  clearSuccessMemo()
   await document.fonts.ready
 }
 
@@ -59,7 +66,13 @@ export const renderDocuments: SdkDocumentRenderer = async (request, { signal }) 
     request.width > 8192
   )
     return { fragments: [], complete: false }
+  const memo = beginSuccessMemo(request)
+  cancelled(signal)
+  const cached = readSuccessMemo(memo)
+  cancelled(signal)
+  if (cached) return cached
   rendering = true
+  let allSankey = true
   const fragments: SdkDocumentPresentationFragment[] = []
   let container: HTMLDivElement | undefined
   try {
@@ -149,6 +162,7 @@ export const renderDocuments: SdkDocumentRenderer = async (request, { signal }) 
           sequence = (sequence + 1) % 0x1_0000_0000
           const rendered = await mermaid.render(`milkup_graph_${sequence}`, input, container)
           cancelled(signal)
+          allSankey = allSankey && rendered.diagramType === 'sankey'
           // Markup is inspected only inside the isolated helper. It never
           // becomes editor markup, and bindFunctions is never invoked.
           container.innerHTML = rendered.svg
@@ -188,7 +202,8 @@ export const renderDocuments: SdkDocumentRenderer = async (request, { signal }) 
         return { fragments, complete: false }
       fragments.push(fragment)
     }
-    return { fragments, complete: true }
+    cancelled(signal)
+    return publishSuccessMemo(memo, { fragments, complete: true }, allSankey)
   } finally {
     container?.remove()
     rendering = false

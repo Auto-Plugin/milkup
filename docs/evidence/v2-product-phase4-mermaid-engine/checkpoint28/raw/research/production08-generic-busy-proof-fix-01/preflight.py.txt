@@ -1,0 +1,56 @@
+"""Static/read-only exact environment preflight. Does not launch or signal anything."""
+import hashlib,json,shutil,subprocess,sys
+from pathlib import Path
+BASE=Path(__file__).resolve().parent;REPO=Path('/workspace/milkup');CASE=sys.argv[1];assert CASE in ['remove','wm-close','app-sigkill'];RUN='lifecycle-p08-proof-fix-'+CASE+'-01'
+mode='--runtime'
+def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+inputs=json.loads((BASE/('build-inputs.json' if mode=='--build' else 'runtime-inputs.json')).read_text())
+errors=[]
+for row in inputs['files']:
+ if not Path(row['path']).is_file() or sha(row['path'])!=row['sha256']:errors.append('Input drift: '+row['path'])
+head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()
+if head!=inputs['head']:errors.append('HEAD drift')
+free=shutil.disk_usage(BASE).free
+if free<800*1024*1024+inputs['reserveBytes']:errors.append('Less than 800MiB floor plus reserved run space')
+result={'mode':mode,'head':head,'freeBytes':free,'inputFileCount':len(inputs['files']),'errors':errors}
+if mode=='--runtime':
+ expected=inputs['dedicatedDisplay'];pid=expected['pid']
+ try:
+  w=Path('/proc',str(pid),'stat').read_text().rsplit(')',1)[1].split();argv=Path('/proc',str(pid),'cmdline').read_bytes().decode().strip('\0').split('\0')
+  actual={'pid':pid,'birth':w[19],'argv':argv,'bootId':Path('/proc/sys/kernel/random/boot_id').read_text().strip()}
+  if actual!=expected:errors.append('Exact dedicated Xvfb changed')
+  result['display']=actual
+ except FileNotFoundError:errors.append('Exact dedicated Xvfb missing')
+ fresh=[BASE/'lifecycle/runs'/RUN,BASE/'lifecycle/profiles'/RUN,BASE/'lifecycle/logs'/(RUN+'-driver.log'),BASE/'lifecycle/control'/(RUN+'-command.json'),BASE/'lifecycle/control'/(RUN+'-inputs'),Path('/tmp/milkup-runtime-'+RUN)]
+ result['freshPaths']=[{'path':str(p),'exists':p.exists()} for p in fresh]
+ if any(p.exists() for p in fresh):errors.append('Run/profile/control paths already exist; never retry this run name')
+ used=[]
+ for name in ['/proc/net/tcp','/proc/net/tcp6']:
+  for line in Path(name).read_text().splitlines()[1:]:
+   words=line.split();port=int(words[1].split(':')[1],16)
+   if port in (4626,4627) and words[3]=='0A':used.append({'port':port,'inode':words[9]})
+ result['listeners']=used
+ if used:errors.append('Dedicated driver ports already listening')
+ if inputs['binary']['sha256']!=inputs['reviewedProductionBinarySha256']:errors.append('Wrong reviewed production08 binary')
+if mode=='--runtime':
+ source=json.loads(Path(inputs['sourceBefore']).read_text())['files']
+ approved={row['path']:row['sha256'] for row in inputs['approvedSourceDelta']+inputs['approvedGeneratedDelta']}
+ source_drift=[row['path'] for row in source if not (REPO/row['path']).is_file() or sha(REPO/row['path'])!=approved.get(row['path'],row['sha256'])]
+ source_drift += [path for path,digest in approved.items() if not (REPO/path).is_file() or sha(REPO/path)!=digest]
+ result['sourceFilesChecked']=len(source);result['sourceDrift']=source_drift
+ result['approvedSourceDelta']=inputs['approvedSourceDelta']
+ result['approvedGeneratedDelta']=inputs['approvedGeneratedDelta']
+ if source_drift:errors.append('Source drift outside frozen integration baseline')
+ provenance=json.loads(Path(inputs['productionProvenance']).read_text())
+ expected_front={str(Path(row['path']).relative_to(Path(inputs['productionProvenance']).parent/'frontend')):row['sha256'] for row in provenance['frontend']}
+ actual_front={str(p.relative_to(REPO/'apps/desktop/dist')):sha(p) for p in (REPO/'apps/desktop/dist').rglob('*') if p.is_file()}
+ result['frontendFilesChecked']=len(actual_front);result['frontendMatches']=actual_front==expected_front
+ if actual_front!=expected_front or len(actual_front)!=12:errors.append('12 frontend bytes or file set drift')
+ result['productionBinaryMatches']=sha(provenance['binary']['path'])==provenance['binary']['sha256']
+ if not result['productionBinaryMatches']:errors.append('Original production08 binary drift')
+ result['repositoryStatus']=subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True)
+ if result['repositoryStatus']!=inputs['repositoryStatus']:errors.append('Repository status differs from frozen approved integration')
+ result['driverLogCheck']='Deferred until owned driver is ready and before App launch: run-harness lstat requires own regular log; ordinary file may still block.'
+result['ready']=not errors
+print(json.dumps(result,indent=2))
+sys.exit(0 if not errors else 1)
