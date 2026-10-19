@@ -1009,3 +1009,61 @@ describe('P6 trusted host complete catalog diagnostics', () => {
     expect(s.manager.state().records[0]!.enabled).toBe(true)
   })
 })
+
+describe('P6 trusted host execution support explanation', () => {
+  it('explains sidecar and strict DOM limits in details and candidate review without making platform verification claims', async () => {
+    const s = setup()
+    await s.manager.ready
+    await s.install()
+    await s.approve()
+    await s.manager.enable('test.lifecycle')
+    const state = s.manager.state(),
+      record = state.records[0]!,
+      entry = state.catalogEntries![0]!
+    const detail = (m: PluginManifest) =>
+      renderDesktopPluginManager(
+        {
+          ...state,
+          records: [{ ...record, manifest: m }],
+          catalogEntries: [{ ...entry, active: { ...entry.active!, manifest: m } }],
+        },
+        { selectedPluginId: record.manifest.id },
+      )
+    const sidecar = { ...record.manifest, host: 'sidecar' as const }
+    expect(detail(sidecar)).toContain('当前插件目录不支持启用 sidecar 插件')
+    const dom = {
+      ...record.manifest,
+      host: 'dom' as const,
+      permissions: ['document:read'] as const,
+      contributes: {
+        documentRenderers: [
+          { id: 'diagram', contexts: ['fence'] as const, fenceLanguages: ['mermaid'] },
+        ],
+      },
+    }
+    expect(detail(dom)).toContain('仅支持只读文档呈现')
+    expect(detail(dom)).toContain('当前系统提供 DOM 执行环境')
+    expect(detail({ ...dom, permissions: ['document:read', 'document:write'] })).toContain(
+      '此 DOM 声明不符合上述范围，无法启用',
+    )
+    expect(detail(record.manifest)).toContain('仍须通过当前系统的隔离启动验证')
+    expect(detail(record.manifest)).not.toMatch(/Windows 已验证|macOS 已验证|所有平台均可用/)
+    const pending = {
+      transactionId: 'candidate-review',
+      phase: 'prepared' as const,
+      restoreEnabled: true,
+      generation: { ...entry.active!, manifest: sidecar },
+    }
+    const candidateHtml = renderDesktopPluginManager(
+      { ...state, catalogEntries: [{ ...entry, pending }] },
+      { selectedPluginId: record.manifest.id },
+    )
+    expect(candidateHtml.slice(candidateHtml.indexOf('plugin-candidate'))).toContain(
+      '当前插件目录不支持启用 sidecar 插件',
+    )
+    expect(
+      renderDesktopPluginManager({ ...state, records: [{ ...record, manifest: sidecar }] }),
+    ).not.toContain('执行支持')
+    expect(s.manager.state().records[0]!.enabled).toBe(true)
+  })
+})

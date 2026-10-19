@@ -2556,7 +2556,7 @@ function renderCandidate(entry: PluginCatalogEntry | undefined): string {
   const scope = (label: string, d: ReturnType<typeof pluginCapabilityDifference>) =>
     `<dt>${label}</dt><dd>候选：${escapeHtml(d.declared.join(', ') || '无')}<br>原批准：${escapeHtml(d.approved.join(', ') || '无')}<br>新增：${escapeHtml(d.added.join(', ') || '无')}<br>移除：${escapeHtml(d.removed.join(', ') || '无')}</dd>`
   const attrs = `data-plugin-id="${escapeHtml(entry.id)}" data-plugin-fingerprint="${g.capabilityFingerprint}" data-plugin-entry-revision="${entry.revision}"`
-  return `<section class="plugin-detail-section plugin-candidate"><h4>待验证版本 ${escapeHtml(g.manifest.version)}</h4><p>现有版本与其审批保持独立。候选通过受限启动验证后才会替换。</p><dl class="plugin-meta"><dt>执行环境</dt><dd>${escapeHtml(old?.manifest.host ?? '无')} → ${escapeHtml(g.manifest.host ?? 'worker')}</dd>${scope('权限', permissions)}${scope('网络范围', origins)}</dl>${g.approvedFingerprint === g.capabilityFingerprint ? `<button type="button" class="dialog-button primary" data-plugin-action="enable" ${attrs}>验证并启用候选</button>` : `<button type="button" class="dialog-button primary" data-plugin-action="approve" ${attrs}>批准此候选能力</button>`}<button type="button" class="dialog-button" data-plugin-action="reject-candidate" ${attrs}>拒绝候选</button></section>`
+  return `<section class="plugin-detail-section plugin-candidate"><h4>待验证版本 ${escapeHtml(g.manifest.version)}</h4><p>现有版本与其审批保持独立。候选通过受限启动验证后才会替换。</p><dl class="plugin-meta"><dt>执行环境</dt><dd>${escapeHtml(old?.manifest.host ?? '无')} → ${escapeHtml(g.manifest.host ?? 'worker')}</dd>${scope('权限', permissions)}${scope('网络范围', origins)}</dl>${renderExecutionSupport(g.manifest)}${g.approvedFingerprint === g.capabilityFingerprint ? `<button type="button" class="dialog-button primary" data-plugin-action="enable" ${attrs}>验证并启用候选</button>` : `<button type="button" class="dialog-button primary" data-plugin-action="approve" ${attrs}>批准此候选能力</button>`}<button type="button" class="dialog-button" data-plugin-action="reject-candidate" ${attrs}>拒绝候选</button></section>`
 }
 
 function renderPluginLogo(name: string, icon?: string): string {
@@ -2715,6 +2715,7 @@ function renderPluginRecord(
     `<div><dt>数据</dt><dd>${escapeHtml(record.dataRoot)}</dd></div>`,
     '</dl>',
     outputPermission,
+    entry ? renderExecutionSupport(manifest) : '',
     errors,
     '<footer>',
     entry?.pending && !entry.active
@@ -2949,6 +2950,20 @@ function escapeHtml(value: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
+}
+
+function renderExecutionSupport(manifest: PluginManifest): string {
+  const host = manifest.host ?? 'worker'
+  const message =
+    host === 'sidecar'
+      ? '当前插件目录不支持启用 sidecar 插件。满足版本要求或批准能力不会解除此限制。'
+      : host === 'dom'
+        ? '仅支持只读文档呈现：document:read 权限与 documentRenderers 贡献，不允许设置、网络来源或其他贡献。' +
+          (supportsRestrictedActivation(manifest)
+            ? '还需当前系统提供 DOM 执行环境。'
+            : '此 DOM 声明不符合上述范围，无法启用。')
+        : 'Worker 仍须通过当前系统的隔离启动验证；满足版本要求不代表当前平台已提供所需执行环境。'
+  return `<p class="plugin-execution-support"><strong>执行支持：</strong>${escapeHtml(message)}</p>`
 }
 
 function supportsRestrictedActivation(manifest: PluginManifest): boolean {

@@ -1,0 +1,65 @@
+name: Windows v2 catalog source checks
+
+on:
+  push:
+    branches: [dot/milkup-v2-product-phase6-plugin-lifecycle]
+    paths:
+      - .github/workflows/v2-windows-catalog-check.yml
+      - apps/desktop/src-tauri/src/plugin_catalog*.rs
+      - tests/native/catalog-core/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-v2-catalog-source-check
+  cancel-in-progress: false
+
+jobs:
+  catalog:
+    if: >-
+      github.repository == 'Auto-Plugin/milkup' &&
+      github.ref == 'refs/heads/dot/milkup-v2-product-phase6-plugin-lifecycle' &&
+      github.event.repository.private == false &&
+      github.event.deleted == false &&
+      contains(github.event.head_commit.message, '[windows-catalog-check]')
+    runs-on: windows-2025
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact source and public standard-runner scope
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((git rev-parse HEAD).Trim() -ne $env:GITHUB_SHA) { throw 'Checkout SHA mismatch' }
+          git merge-base --is-ancestor 4e0d305bab563e3fc58aa97bb18115b6bf8f69d6 HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'Unexpected baseline' }
+          if (git status --porcelain) { throw 'Dirty checkout' }
+          'Source tests only: no Tauri/WebView2, installer, cache, artifact or Release.'
+      - name: Select pinned Rust compiler
+        run: |
+          $ErrorActionPreference = 'Stop'
+          rustup toolchain install 1.99.0 --profile minimal
+          if ($LASTEXITCODE -ne 0) { throw 'Rust compiler setup failed' }
+          'RUSTUP_TOOLCHAIN=1.99.0' >> $env:GITHUB_ENV
+      - name: Reproduce unsupported Windows baseline as a runtime failure
+        run: |
+          ./tests/native/catalog-core/run-windows-baseline.ps1
+      - name: Compile and run native catalog contracts
+        run: |
+          ./tests/native/catalog-core/run-windows.ps1 -TargetDirectory "$env:RUNNER_TEMP/catalog-target"
+      - name: Record validation boundary in logs
+        if: always()
+        run: |
+          'Windows catalog source tests only. No desktop WebView, installer, arbitrary power-loss, macOS or sidecar activation acceptance.' >> $env:GITHUB_STEP_SUMMARY

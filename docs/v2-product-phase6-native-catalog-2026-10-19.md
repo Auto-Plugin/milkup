@@ -1,6 +1,6 @@
 # P6 milestone02：原生插件目录与独立管理扩展（2026-10-19）
 
-状态：**方案 A 的 Linux 检查点已实现；production07 管理闭环复验通过，P6 跨平台验收尚未完成。** 本轮在 `633a6d7910f9fa44b9fa89628967e6b7105071ec` 上继续，分支为 `dot/milkup-v2-product-phase6-plugin-lifecycle`。用户明确选择方案 A：native catalog 持有安装与审批事实，前端 registry 是可重建镜像。此前 [milestone01 报告](v2-product-phase6-plugin-lifecycle-2026-10-19.md)保留其当时的结果；本报告更新当前实现，不回写历史验收。
+状态：**方案 A 的 Linux 检查点已实现；production07 管理闭环复验通过，P6 跨平台验收尚未完成。** 本轮在 `633a6d7910f9fa44b9fa89628967e6b7105071ec` 上继续，分支为 `dot/milkup-v2-product-phase6-plugin-lifecycle`。父助手依据用户继续完善 P6 的委托作出方案 A 的技术选择；这不是用户明确指定方案 A。该方案由 native catalog 持有安装与审批事实，前端 registry 是可重建镜像。此前 [milestone01 报告](v2-product-phase6-plugin-lifecycle-2026-10-19.md)保留其当时的结果；本报告更新当前实现，不回写历史验收。
 
 实施依据为[原生目录事务合同](v2-product-phase6-native-catalog-contract.md)、[单一 wire 合同](v2-product-phase6-native-catalog-wire.md)及 [P6 清单](v2-product-phase6-plugin-lifecycle-checklist.md)。本轮证据归档至 [milestone02](evidence/v2-product-phase6-plugin-lifecycle/milestone02/README.md)，以完整索引核对复制字节；原始本地目录为 `/workspace/milkup-plugin-lifecycle-evidence/milestone02/`。下文证据路径均相对此目录。没有把旧日志、单元测试或驱动脚本存在当作新生产二进制验收。
 
