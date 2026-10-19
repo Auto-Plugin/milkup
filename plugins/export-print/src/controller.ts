@@ -15,8 +15,6 @@ export interface State {
   capturedFormat?: State['format']
   result?: SdkOutputWriteResult
   error?: string
-  cancelling?: boolean
-  printUnconfirmed?: boolean
 }
 const errors: Record<string, string> = {
   revoked: '导出权限已撤销，请重新批准权限并启用插件。',
@@ -45,7 +43,6 @@ export function createController(changed: () => void) {
     abort: AbortController
     leases: Set<string>
     serial: number
-    printing: boolean
   }
   let disposed = false,
     serial = 0
@@ -66,14 +63,7 @@ export function createController(changed: () => void) {
   }
   async function cancel() {
     const work = operation
-    if (!work || work.abort.signal.aborted) return
-    if (work.printing) {
-      // The native job may already be submitted. Its terminal result owns the outcome.
-      state.cancelling = true
-      work.abort.abort()
-      emit()
-      return
-    }
+    if (!work) return
     operation = undefined
     work.abort.abort()
     state.phase = 'cancelled'
@@ -108,15 +98,13 @@ export function createController(changed: () => void) {
       })
       state.capturedFormat = request.format
       if (request.format === 'print') {
-        work.printing = true
         state.phase = 'printing'
         emit()
         const result = await work.host.print(snapshot.id, options)
-        delete state.cancelling
         if (result.status === 'printed' && work.serial === serial) {
           state.phase = 'done'
           emit()
-        } else if (!disposed && operation === work) {
+        } else if (current(work)) {
           state.phase = 'cancelled'
           emit()
         }
@@ -144,25 +132,15 @@ export function createController(changed: () => void) {
         }
       }
     } catch (error) {
-      if (current(work) || (!disposed && operation === work && work.printing)) {
-        delete state.cancelling
+      if (current(work)) {
         const code = error && typeof error === 'object' && 'code' in error ? String(error.code) : ''
         state.phase = code === 'aborted' || code === 'cancelled' ? 'cancelled' : 'error'
-        if (state.phase === 'error') {
-          state.printUnconfirmed = work.printing && (code === 'unavailable' || !errors[code])
-          state.error = state.printUnconfirmed
-            ? '无法确认打印结果，请先检查打印队列，避免重复提交。确认没有该任务后再重试。'
-            : code === 'unsupported' && request.format !== 'html'
-              ? '当前宿主暂不支持此输出方式。Linux 的 PDF 与打印需要已安装的系统 Chromium，请检查宿主版本与系统依赖。'
-              : (errors[code] ?? '输出未完成，请检查文档与保存位置后重试。')
-        }
+        if (state.phase === 'error')
+          state.error = errors[code] ?? '输出未完成，请检查文档与保存位置后重试。'
         emit()
       }
     } finally {
-      if (operation === work) {
-        operation = undefined
-        delete state.cancelling
-      }
+      if (operation === work) operation = undefined
       await cleanup(work)
     }
   }
@@ -172,8 +150,6 @@ export function createController(changed: () => void) {
     delete state.snapshot
     delete state.capturedFormat
     delete state.result
-    delete state.cancelling
-    delete state.printUnconfirmed
     if (!host?.output) {
       state.phase = 'error'
       state.error = '当前宿主未提供导出与打印能力，请批准权限并检查宿主版本。'
@@ -185,7 +161,6 @@ export function createController(changed: () => void) {
       abort: new AbortController(),
       leases: new Set(),
       serial: ++serial,
-      printing: false,
     }
     operation = work
     state.phase = 'preparing'

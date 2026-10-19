@@ -12,12 +12,10 @@ const snapshot = {
 }
 function deferred<T>() {
   let resolve!: (value: T) => void
-  let reject!: (reason: unknown) => void
-  const promise = new Promise<T>((yes, no) => {
+  const promise = new Promise<T>((yes) => {
     resolve = yes
-    reject = no
   })
-  return { promise, resolve, reject }
+  return { promise, resolve }
 }
 function fixture() {
   const output = {
@@ -53,24 +51,19 @@ describe('export and print lifecycle', () => {
     expect(f.output.release).toHaveBeenCalledWith('snapshot1')
     expect(f.output.release).not.toHaveBeenCalledWith('target1')
   })
-  it.each(['html', 'pdf', 'print'])(
-    'releases late %s capture after cancellation without opening a target dialog',
-    async (format) => {
-      const f = fixture(),
-        gate = deferred<typeof snapshot>()
-      f.output.capture.mockReturnValue(gate.promise)
-      f.controller.change('format', format)
-      f.controller.start(f.host)
-      await f.controller.cancel()
-      gate.resolve(snapshot)
-      await f.controller.settled()
-      expect(f.output.capture.mock.calls[0]?.[1].signal.aborted).toBe(true)
-      expect(f.output.chooseTarget).not.toHaveBeenCalled()
-      expect(f.output.print).not.toHaveBeenCalled()
-      expect(f.output.release).toHaveBeenCalledWith('snapshot1')
-      expect(f.controller.state.phase).toBe('cancelled')
-    },
-  )
+  it('releases late capture after cancellation without opening a target dialog', async () => {
+    const f = fixture(),
+      gate = deferred<typeof snapshot>()
+    f.output.capture.mockReturnValue(gate.promise)
+    f.controller.start(f.host)
+    await f.controller.cancel()
+    gate.resolve(snapshot)
+    await f.controller.settled()
+    expect(f.output.capture.mock.calls[0]?.[1].signal.aborted).toBe(true)
+    expect(f.output.chooseTarget).not.toHaveBeenCalled()
+    expect(f.output.release).toHaveBeenCalledWith('snapshot1')
+    expect(f.controller.state.phase).toBe('cancelled')
+  })
   it('handles target cancellation without writing', async () => {
     const f = fixture()
     f.output.chooseTarget.mockResolvedValue({ status: 'cancelled' })
@@ -123,23 +116,18 @@ describe('export and print lifecycle', () => {
     expect(f.output.capture).toHaveBeenCalledTimes(1)
     expect(f.changed).toHaveBeenCalledTimes(count)
   })
-  it.each(['html', 'pdf'])(
-    'honors committed %s success even if cancel races with write completion',
-    async (format) => {
-      const f = fixture(),
-        gate = deferred<unknown>()
-      f.output.write.mockReturnValue(gate.promise)
-      f.controller.change('format', format)
-      f.controller.start(f.host)
-      await tick()
-      await f.controller.cancel()
-      expect(f.controller.state.phase).toBe('cancelled')
-      gate.resolve({ status: 'written', name: '中文笔记.html', bytes: 120 })
-      await f.controller.settled()
-      expect(f.controller.state.phase).toBe('done')
-      expect(f.controller.state.result?.name).toBe('中文笔记.html')
-    },
-  )
+  it('honors committed success even if cancel races with write completion', async () => {
+    const f = fixture(),
+      gate = deferred<unknown>()
+    f.output.write.mockReturnValue(gate.promise)
+    f.controller.start(f.host)
+    await tick()
+    await f.controller.cancel()
+    gate.resolve({ status: 'written', name: '中文笔记.html', bytes: 120 })
+    await f.controller.settled()
+    expect(f.controller.state.phase).toBe('done')
+    expect(f.controller.state.result?.name).toBe('中文笔记.html')
+  })
   it('prints captured selection with paper options and supports print cancellation', async () => {
     const f = fixture()
     f.controller.change('format', 'print')
@@ -179,105 +167,4 @@ describe('export and print lifecycle', () => {
     expect(f.controller.state.phase).toBe('error')
     expect(f.controller.state.error).toContain('权限')
   })
-})
-
-describe('submitted print cancellation', () => {
-  it('waits for the print outcome, blocks duplicate starts/cancels, and honors late success', async () => {
-    const f = fixture(),
-      gate = deferred<unknown>()
-    f.controller.change('format', 'print')
-    f.output.print.mockReturnValue(gate.promise)
-    f.controller.start(f.host)
-    await tick()
-    const aborted = vi.fn()
-    f.output.print.mock.calls[0]?.[1].signal.addEventListener('abort', aborted)
-    await f.controller.cancel()
-    expect(f.controller.state.phase).toBe('printing')
-    expect(f.controller.state.cancelling).toBe(true)
-    expect(f.output.release).not.toHaveBeenCalled()
-    await f.controller.cancel()
-    await f.controller.close()
-    f.controller.start(f.host)
-    f.controller.change('format', 'html')
-    expect(aborted).toHaveBeenCalledTimes(1)
-    expect(f.output.capture).toHaveBeenCalledTimes(1)
-    expect(f.controller.state.format).toBe('print')
-    gate.resolve({ status: 'printed' })
-    await f.controller.settled()
-    expect(f.controller.state.phase).toBe('done')
-    expect(f.controller.state.cancelling).not.toBe(true)
-    expect(f.output.release).toHaveBeenCalledTimes(1)
-  })
-  it.each(['cancelled-result', 'aborted', 'cancelled'])(
-    'accepts confirmed cancellation: %s',
-    async (outcome) => {
-      const f = fixture(),
-        gate = deferred<unknown>()
-      f.controller.change('format', 'print')
-      f.output.print.mockReturnValue(gate.promise)
-      f.controller.start(f.host)
-      await tick()
-      await f.controller.cancel()
-      expect(f.controller.state.phase).toBe('printing')
-      if (outcome === 'cancelled-result') gate.resolve({ status: 'cancelled' })
-      else gate.reject({ code: outcome })
-      await f.controller.settled()
-      expect(f.controller.state.phase).toBe('cancelled')
-      expect(f.controller.state.cancelling).not.toBe(true)
-      expect(f.output.release).toHaveBeenCalledWith('snapshot1')
-    },
-  )
-  it.each([false, true])(
-    'warns to inspect the queue when print confirmation is unavailable (cancel requested: %s)',
-    async (cancel) => {
-      const f = fixture(),
-        gate = deferred<unknown>()
-      f.controller.change('format', 'print')
-      f.output.print.mockReturnValue(gate.promise)
-      f.controller.start(f.host)
-      await tick()
-      if (cancel) await f.controller.cancel()
-      gate.reject({ code: 'unavailable' })
-      await f.controller.settled()
-      expect(f.controller.state.phase).toBe('error')
-      expect(f.controller.state.error).toContain('先检查打印队列')
-      expect(f.controller.state.error).toContain('重复提交')
-      expect(f.controller.state.printUnconfirmed).toBe(true)
-      expect(f.controller.state.cancelling).not.toBe(true)
-      expect(f.output.release).toHaveBeenCalledTimes(1)
-    },
-  )
-  it('disposal aborts a pending print once without releasing its lease before the outcome', async () => {
-    const f = fixture(),
-      gate = deferred<unknown>()
-    f.controller.change('format', 'print')
-    f.output.print.mockReturnValue(gate.promise)
-    f.controller.start(f.host)
-    await tick()
-    await f.controller.dispose()
-    const count = f.changed.mock.calls.length
-    expect(f.output.print.mock.calls[0]?.[1].signal.aborted).toBe(true)
-    expect(f.output.release).not.toHaveBeenCalled()
-    gate.reject({ code: 'unavailable' })
-    await f.controller.settled()
-    expect(f.output.release).toHaveBeenCalledWith('snapshot1')
-    expect(f.changed).toHaveBeenCalledTimes(count)
-  })
-})
-
-describe('Linux output dependencies', () => {
-  it.each(['pdf', 'print'])(
-    'explains the system Chromium prerequisite for unsupported %s',
-    async (format) => {
-      const f = fixture()
-      f.controller.change('format', format)
-      f.output[format === 'print' ? 'print' : 'write'].mockRejectedValue({ code: 'unsupported' })
-      f.controller.start(f.host)
-      await f.controller.settled()
-      expect(f.controller.state.phase).toBe('error')
-      expect(f.controller.state.error).toContain('系统 Chromium')
-      expect(f.controller.state.error).toContain('Linux')
-      expect(f.controller.state.printUnconfirmed).not.toBe(true)
-    },
-  )
 })

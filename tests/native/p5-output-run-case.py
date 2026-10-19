@@ -9,7 +9,7 @@ import sys
 import urllib.request
 
 stage = sys.argv[1] if len(sys.argv) == 2 else ''
-assert stage in ('html', 'pdf', 'cancel', 'selection', 'disable', 'print-cancel', 'print-file', 'overwrite', 'large', 'pdf-render-cancel')
+assert stage in ('html', 'pdf', 'cancel', 'selection', 'disable', 'print-cancel', 'print-file', 'overwrite', 'large')
 env = dict(os.environ)
 assert env.get('MILKUP_P5_BINARY_CONFIRMED') == '1', 'Wait for integrated-build readiness'
 binary = Path(env['TAURI_APP_PATH']).resolve()

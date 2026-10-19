@@ -104,38 +104,6 @@ describe('controlled desktop output', () => {
       status: 'written',
     })
   })
-  it('preserves an unknown print submission result when cancellation arrives late', async () => {
-    const f = setup()
-    const adapter = f.service.adapterForPlugin('a').adapter
-    const snapshot = await adapter.capture({ ...request, format: 'print' })
-    const controller = new AbortController()
-    f.invoke.mockImplementation(async (command) => {
-      if (command === 'output_print') {
-        controller.abort()
-        throw '[output:unavailable] Print submission status is unknown; check printer queue'
-      }
-      return true
-    })
-    await expect(adapter.print(snapshot.id, { signal: controller.signal })).rejects.toMatchObject({
-      code: 'unavailable',
-    })
-  })
-  it('preserves acknowledged print submission when cancellation arrives late', async () => {
-    const f = setup()
-    const adapter = f.service.adapterForPlugin('a').adapter
-    const snapshot = await adapter.capture({ ...request, format: 'print' })
-    const controller = new AbortController()
-    f.invoke.mockImplementation(async (command) => {
-      if (command === 'output_print') {
-        controller.abort()
-        return { status: 'printed' }
-      }
-      return true
-    })
-    await expect(adapter.print(snapshot.id, { signal: controller.signal })).resolves.toEqual({
-      status: 'printed',
-    })
-  })
   it('rejects oversized source before reads and preserves native outputs on cancelled chooser', async () => {
     const f = setup('x'.repeat(2 * 1024 * 1024 + 1))
     const read = vi.spyOn(f.current().source, 'readLineWindow')

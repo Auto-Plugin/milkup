@@ -1,7 +1,7 @@
 // Read-only lifecycle evidence scoped to one app and its observed output descendants.
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { readdir, readFile, readlink, writeFile } from 'node:fs/promises'
+import { readdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 async function stat(pid) {
@@ -21,20 +21,6 @@ async function stat(pid) {
     }
   } catch {
     return null
-  }
-}
-async function describe(process) {
-  const [command, executable] = await Promise.all([
-    readFile(`/proc/${process.pid}/cmdline`, 'utf8').catch(() => ''),
-    readlink(`/proc/${process.pid}/exe`).catch(() => null),
-  ])
-  const current = await stat(process.pid)
-  if (current?.birth !== process.birth) return process
-  return {
-    ...process,
-    command: command.replaceAll('\0', ' '),
-    arguments: command.split('\0').filter(Boolean),
-    executable,
   }
 }
 function windows(pid) {
@@ -82,7 +68,7 @@ export async function outputProcessEvidence(appPid, output) {
     for (const p of all.filter((p) => own.has(p.pid) && p.pid !== Number(appPid))) {
       const command = await readFile(`/proc/${p.pid}/cmdline`, 'utf8').catch(() => '')
       if (command.includes('--milkup-internal-output-helper'))
-        tracked.set(`${p.pid}:${p.birth}`, await describe(p))
+        tracked.set(`${p.pid}:${p.birth}`, { ...p, command: command.replaceAll('\0', ' ') })
     }
     for (let changed = true; changed;) {
       changed = false
@@ -95,7 +81,7 @@ export async function outputProcessEvidence(appPid, output) {
       )
       for (const p of all)
         if (parents.has(p.parent) && !tracked.has(`${p.pid}:${p.birth}`)) {
-          tracked.set(`${p.pid}:${p.birth}`, await describe(p))
+          tracked.set(`${p.pid}:${p.birth}`, p)
           changed = true
         }
     }

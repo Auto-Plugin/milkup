@@ -14,9 +14,6 @@ use std::{
 };
 
 #[cfg(target_os = "linux")]
-#[path = "output_chromium.rs"]
-mod chromium;
-#[cfg(target_os = "linux")]
 #[path = "output_linux.rs"]
 mod linux;
 type Result<T> = std::result::Result<T, String>;
@@ -93,7 +90,6 @@ enum JobState {
     Choosing,
     Chosen(Target),
     Running,
-    Submitting,
     Complete,
 }
 fn jobs() -> &'static Mutex<HashMap<String, Arc<Job>>> {
@@ -111,26 +107,6 @@ fn job(id: &str) -> Result<Arc<Job>> {
     Ok(job)
 }
 impl Job {
-    fn begin_submission(&self) -> Result<()> {
-        let mut state = self.state.lock().map_err(error)?;
-        self.active()?;
-        if self.format != Format::Print || !matches!(*state, JobState::Running) {
-            return Err("Print submission is invalid or already started".into());
-        }
-        *state = JobState::Submitting;
-        Ok(())
-    }
-
-    fn cancel_before_submission(&self) -> Result<()> {
-        let state = self.state.lock().map_err(error)?;
-        // Once the helper is authorized to send, its spooler may already have
-        // accepted the document. Wait for its bounded terminal result instead
-        // of falsely reporting cancellation of an irreversible submission.
-        if !matches!(*state, JobState::Submitting | JobState::Complete) {
-            self.cancelled.store(true, Ordering::Release);
-        }
-        Ok(())
-    }
     fn protect_target(&self, target: &Target) -> Result<()> {
         if let (Some(source), Ok(file)) = (self.source_identity, target.open()) {
             if identity(&file)? == source {
@@ -149,9 +125,6 @@ impl Job {
 }
 
 fn command_error(message: String) -> String {
-    if message.starts_with("[output:") {
-        return message;
-    }
     let lower = message.to_lowercase();
     let kind = if lower.contains("cancel") || lower.contains("expired") {
         "aborted"
@@ -253,7 +226,8 @@ fn output_abort_inner(job_id: String) -> Result<bool> {
     if let Some(job) = jobs().lock().map_err(error)?.remove(&job_id) {
         // Serialize cancellation against final publication. A committed output
         // belongs to the user and is never removed by abort or plugin teardown.
-        job.cancel_before_submission()?;
+        let _state = job.state.lock().map_err(error)?;
+        job.cancelled.store(true, Ordering::Release);
     }
     Ok(true)
 }
@@ -689,52 +663,6 @@ mod tests {
             cancelled: AtomicBool::new(false),
             state: Mutex::new(JobState::Running),
         }
-    }
-    #[test]
-    fn print_submission_and_abort_have_one_winner() {
-        for _ in 0..64 {
-            let mut value = active(None);
-            value.format = Format::Print;
-            let job = Arc::new(value);
-            let gate = Arc::new(std::sync::Barrier::new(2));
-            let submit_job = job.clone();
-            let submit_gate = gate.clone();
-            let submit = std::thread::spawn(move || {
-                submit_gate.wait();
-                submit_job.begin_submission()
-            });
-            gate.wait();
-            job.cancel_before_submission().unwrap();
-            if submit.join().unwrap().is_ok() {
-                assert!(matches!(*job.state.lock().unwrap(), JobState::Submitting));
-                assert!(!job.cancelled.load(Ordering::Acquire));
-                job.cancel_before_submission().unwrap();
-                assert!(job.active().is_ok());
-            } else {
-                assert!(job.cancelled.load(Ordering::Acquire));
-                assert!(matches!(*job.state.lock().unwrap(), JobState::Running));
-            }
-        }
-    }
-    #[test]
-    fn physical_submission_is_single_use_and_late_abort_preserves_outcome() {
-        let mut job = active(None);
-        assert!(job.begin_submission().is_err());
-        job.format = Format::Print;
-        job.begin_submission().unwrap();
-        assert!(job.begin_submission().is_err());
-        job.cancel_before_submission().unwrap();
-        assert!(job.active().is_ok());
-        complete(&job, Ok(())).unwrap();
-        job.cancel_before_submission().unwrap();
-        assert!(!job.cancelled.load(Ordering::Acquire));
-    }
-    #[test]
-    fn explicit_submission_error_is_not_reclassified_as_cancelled() {
-        let message = "[output:unavailable] Print submission status is unknown; printer reported cancellation";
-        assert_eq!(command_error(message.into()), message);
-        assert!(command_error("Output cancelled before submission".into())
-            .starts_with("[output:aborted]"));
     }
     #[test]
     fn output_preserves_source_and_rejects_path_hardlink_and_symlink_aliases() {

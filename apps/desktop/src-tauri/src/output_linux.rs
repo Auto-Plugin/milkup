@@ -1,11 +1,11 @@
-//! Static document rendering and native print submission in an isolated helper. The
+//! Static document printing in a separate, sandboxed WebKit process. The
 //! existing native guardian owns every descendant and observes parent EOF.
 use super::*;
 use glib::translate::{from_glib_full, from_glib_none, ToGlibPtr};
 use gtk::prelude::DialogExt as GtkDialogExt;
 use gtk::{gio, glib, prelude::*};
 use std::{
-    cell::RefCell,
+    cell::{Cell, RefCell},
     io::BufReader,
     os::{
         fd::{AsRawFd, FromRawFd},
@@ -18,6 +18,15 @@ use std::{
     rc::Rc,
     sync::mpsc,
 };
+use webkit2gtk::{
+    DownloadExt, FileChooserRequestExt, PermissionRequestExt, PolicyDecisionExt, PrintOperationExt,
+    SettingsExt, URISchemeRequestExt, URISchemeResponseExt, UserMessageExt, WebContextExt,
+    WebViewExt,
+};
+
+const URL: &str = "milkup-output://job/index.html";
+const CSP: &str = "default-src 'none'; script-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
+const GUARD: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/libmilkup_output_guard.so"));
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct Input {
@@ -36,7 +45,6 @@ enum Event {
     Rendering,
     Pdf,
     Printed,
-    Submitting,
     Cancelled,
     Chosen,
     Failed { error: String },
@@ -45,11 +53,6 @@ enum Event {
 #[serde(deny_unknown_fields)]
 struct SelectionAck {
     overwrite: bool,
-}
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct SubmissionAck {
-    submit: bool,
 }
 struct Private(PathBuf);
 impl Private {
@@ -60,6 +63,13 @@ impl Private {
             .create(&path)
             .map_err(error)?;
         let private = Self(path);
+        let mut guard = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .open(private.0.join("libmilkup_output_guard.so"))
+            .map_err(error)?;
+        guard.write_all(GUARD).map_err(error)?;
         Ok(private)
     }
 }
@@ -243,23 +253,20 @@ fn render_with_executable(
     let mut deadline = Instant::now() + Duration::from_secs(60);
     let mut target = None;
     let mut helper_input = None;
-    let mut submitting = false;
     let result = (|| loop {
-        if !submitting {
-            job.active()?;
-        }
+        job.active()?;
         if Instant::now() >= deadline {
             return Err("Native output exceeded its deadline".into());
         }
         match receive.recv_timeout(Duration::from_millis(25)) {
             Ok(Ok(Event::Dialog)) => {
-                if submitting || (job.format != Format::Print && !choosing) {
+                if job.format != Format::Print && !choosing {
                     return Err("Unexpected output dialog".into());
                 }
                 deadline = Instant::now() + LEASE;
             }
             Ok(Ok(Event::Selection { path })) => {
-                if submitting || (job.format != Format::Print && !choosing) || target.is_some() {
+                if (job.format != Format::Print && !choosing) || target.is_some() {
                     return Err("Unexpected print destination".into());
                 }
                 let chosen = Target::adopt(&path, job.source.as_deref())?;
@@ -280,34 +287,9 @@ fn render_with_executable(
                 target = Some(chosen);
             }
             Ok(Ok(Event::Rendering)) => {
-                if submitting {
-                    return Err("Unexpected render after print submission".into());
-                }
                 deadline = Instant::now() + Duration::from_secs(60);
             }
-            Ok(Ok(Event::Submitting)) => {
-                if choosing || target.is_some() || submitting {
-                    return Err("Unexpected print submission".into());
-                }
-                if helper_input.is_none() {
-                    let (input, result) = input_receive
-                        .recv_timeout(Duration::from_secs(1))
-                        .map_err(error)?;
-                    result?;
-                    helper_input = Some(input);
-                }
-                job.begin_submission()?;
-                submitting = true;
-                deadline = Instant::now() + Duration::from_secs(30);
-                frame_write(
-                    helper_input.as_mut().unwrap(),
-                    &SubmissionAck { submit: true },
-                )?;
-            }
             Ok(Ok(Event::Pdf)) => {
-                if submitting {
-                    return Err("Unexpected PDF after print submission".into());
-                }
                 let path = private.0.join("document.pdf");
                 let mut file = fs::OpenOptions::new()
                     .read(true)
@@ -331,30 +313,19 @@ fn render_with_executable(
                 }
                 return Ok(NativeResult::Pdf(bytes, target));
             }
-            Ok(Ok(Event::Printed)) if submitting => return Ok(NativeResult::Printed),
-            Ok(Ok(Event::Printed)) => return Err("Print submission acknowledgement missing".into()),
+            Ok(Ok(Event::Printed)) => return Ok(NativeResult::Printed),
             Ok(Ok(Event::Chosen)) => {
                 let chosen = target.take().ok_or("Output selection missing")?;
                 chosen.verify(job.source.as_deref())?;
                 return Ok(NativeResult::Chosen(chosen));
             }
-            Ok(Ok(Event::Cancelled)) if !submitting => return Ok(NativeResult::Cancelled),
-            Ok(Ok(Event::Cancelled)) => {
-                return Err("Unexpected result after print submission".into())
-            }
+            Ok(Ok(Event::Cancelled)) => return Ok(NativeResult::Cancelled),
             Ok(Ok(Event::Failed { error })) => return Err(error),
             Ok(Err(e)) => return Err(e),
             Err(mpsc::RecvTimeoutError::Timeout) => {}
             Err(e) => return Err(error(e)),
         }
-    })()
-    .map_err(|e| {
-        if submitting {
-            submission_uncertain(e)
-        } else {
-            e
-        }
-    });
+    })();
     drop(stop_writer);
     drop(helper_input);
     // Never kill the guardian ahead of its owned-descendant cleanup.
@@ -363,45 +334,16 @@ fn render_with_executable(
         match child.try_wait() {
             Ok(Some(status)) => {
                 if !status.success() && result.is_ok() {
-                    if matches!(result, Ok(NativeResult::Printed)) {
-                        eprintln!("Print submitted; output guardian reported incomplete cleanup. Private stage retained: {}", private.0.display());
-                        std::mem::forget(private);
-                        return result;
-                    }
                     return Err("Output guardian reported incomplete cleanup".into());
                 }
                 break;
             }
-            Err(e) => {
-                if matches!(result, Ok(NativeResult::Printed)) {
-                    eprintln!("Print submitted; output cleanup could not be confirmed: {e}. Private stage retained: {}", private.0.display());
-                    std::mem::forget(private);
-                    return result;
-                }
-                return Err(if submitting {
-                    submission_uncertain(e)
-                } else {
-                    error(e)
-                });
-            }
+            Err(e) => return Err(error(e)),
             _ => {}
         }
         if Instant::now() >= cleanup_deadline {
-            let printed = matches!(result, Ok(NativeResult::Printed));
-            eprintln!(
-                "Output cleanup pending; private stage retained: {}",
-                private.0.display()
-            );
             std::mem::forget(private);
-            return if printed {
-                result
-            } else if submitting {
-                Err(submission_uncertain(
-                    "Output cleanup is still pending; private files retained",
-                ))
-            } else {
-                Err("Output cleanup is still pending; private files retained".into())
-            };
+            return Err("Output cleanup is still pending; private files retained".into());
         }
         std::thread::sleep(Duration::from_millis(10));
     }
@@ -431,7 +373,7 @@ pub(super) fn run_guarded() {
     }
 }
 fn helper() {
-    // Neither snapshot/result descriptors are inherited by the renderer.
+    // Neither snapshot/result descriptors are inherited by the WebProcess.
     for fd in [0, 3] {
         if unsafe { libc::fcntl(fd, libc::F_SETFD, libc::FD_CLOEXEC) } < 0 {
             return;
@@ -446,17 +388,6 @@ fn helper() {
 fn helper_inner(output: Rc<RefCell<File>>) -> Result<()> {
     let mut input = BufReader::new(std::io::stdin());
     let snapshot: Input = frame_read(&mut input, MAX_HTML * 6 + 4096)?;
-    if snapshot.choose.is_none() && !snapshot.print {
-        validate_html(&snapshot.html)?;
-        frame_write(&mut *output.borrow_mut(), &Event::Rendering)?;
-        super::chromium::render(
-            &snapshot.html,
-            &snapshot.directory,
-            snapshot.page_size,
-            snapshot.landscape,
-        )?;
-        return frame_write(&mut *output.borrow_mut(), &Event::Pdf);
-    }
     gtk::init().map_err(error)?;
     let window = gtk::Window::new(gtk::WindowType::Toplevel);
     window.set_title("Document output");
@@ -465,16 +396,150 @@ fn helper_inner(output: Rc<RefCell<File>>) -> Result<()> {
         return choose_dialog(&window, &name, &mut input, &output);
     }
     validate_html(&snapshot.html)?;
-    start_print(
-        &window,
-        snapshot.print,
-        &snapshot.html,
-        snapshot.page_size,
-        snapshot.landscape,
-        &snapshot.directory,
-        &mut input,
-        output,
-    )
+    let context = webkit2gtk::WebContext::new_ephemeral();
+    context.set_sandbox_enabled(true);
+    if !context.is_sandbox_enabled() {
+        return Err("Output WebKit sandbox unavailable".into());
+    }
+    context.set_web_extensions_directory(
+        snapshot
+            .directory
+            .to_str()
+            .ok_or("Invalid output private directory")?,
+    );
+    context.set_automation_allowed(false);
+    let body = snapshot.html.into_bytes();
+    context.register_uri_scheme("milkup-output", move |request| {
+        if request.uri().as_deref() != Some(URL) || request.http_method().as_deref() != Some("GET")
+        {
+            request.finish_error(&mut glib::Error::new(
+                gio::IOErrorEnum::PermissionDenied,
+                "Output resource denied",
+            ));
+            return;
+        }
+        let stream = gio::MemoryInputStream::from_bytes(&glib::Bytes::from(&body));
+        let response = webkit2gtk::URISchemeResponse::new(&stream, body.len() as i64);
+        response.set_status(200, None);
+        response.set_content_type("text/html; charset=utf-8");
+        let headers = soup::MessageHeaders::new(soup::MessageHeadersType::Response);
+        headers.append("Content-Security-Policy", CSP);
+        headers.append("X-Content-Type-Options", "nosniff");
+        headers.append("Cache-Control", "no-store");
+        response.set_http_headers(headers);
+        request.finish_with_response(&response);
+    });
+    context.connect_download_started(|_, download| download.cancel());
+    let guard_ready = Rc::new(Cell::new(false));
+    let guard_observed = guard_ready.clone();
+    context.connect_user_message_received(move |_, message| {
+        if message.name().as_deref() == Some("milkup-output-guard-ready") {
+            guard_observed.set(true);
+            true
+        } else {
+            false
+        }
+    });
+    let view = webkit2gtk::WebView::with_context(&context);
+    if !view.is_ephemeral() {
+        return Err("Output WebKit must be ephemeral".into());
+    }
+    let settings = WebViewExt::settings(&view).ok_or("Output WebKit settings unavailable")?;
+    settings.set_enable_javascript(false);
+    settings.set_allow_file_access_from_file_urls(false);
+    settings.set_allow_universal_access_from_file_urls(false);
+    settings.set_enable_webrtc(false);
+    settings.set_enable_media_stream(false);
+    settings.set_enable_webgl(false);
+    settings.set_enable_html5_database(false);
+    settings.set_enable_html5_local_storage(false);
+    settings.set_enable_dns_prefetching(false);
+    settings.set_enable_developer_extras(false);
+    settings.set_print_backgrounds(true);
+    view.connect_permission_request(|_, request| {
+        request.deny();
+        true
+    });
+    view.connect_run_file_chooser(|_, request| {
+        request.cancel();
+        true
+    });
+    view.connect_script_dialog(|_, dialog| {
+        dialog.close();
+        true
+    });
+    let navigated = Rc::new(Cell::new(false));
+    view.connect_decide_policy(move |_, decision, kind| {
+        if kind == webkit2gtk::PolicyDecisionType::NavigationAction {
+            use webkit2gtk::{NavigationPolicyDecisionExt, URIRequestExt};
+            let allowed = decision
+                .downcast_ref::<webkit2gtk::NavigationPolicyDecision>()
+                .and_then(|d| d.navigation_action())
+                .and_then(|a| a.request())
+                .and_then(|r| r.uri())
+                .is_some_and(|u| u == URL && !navigated.replace(true));
+            if allowed {
+                decision.use_();
+            } else {
+                decision.ignore();
+            }
+            true
+        } else if kind == webkit2gtk::PolicyDecisionType::NewWindowAction {
+            decision.ignore();
+            true
+        } else {
+            false
+        }
+    });
+    let loaded = Rc::new(Cell::new(false));
+    let observed = loaded.clone();
+    view.connect_load_changed(move |_, event| {
+        if event == webkit2gtk::LoadEvent::Finished {
+            observed.set(true);
+        }
+    });
+    let output_failed = output.clone();
+    view.connect_load_failed(move |_, _, _, e| {
+        let _ = frame_write(
+            &mut *output_failed.borrow_mut(),
+            &Event::Failed {
+                error: e.to_string(),
+            },
+        );
+        gtk::main_quit();
+        true
+    });
+    window.add(&view);
+    window.realize();
+    view.set_size_request(1024, 768);
+    view.show();
+    let started = Rc::new(Cell::new(false));
+    let print = snapshot.print;
+    let directory = snapshot.directory;
+    let print_view = view.clone();
+    glib::timeout_add_local(Duration::from_millis(10), move || {
+        if !loaded.get() || !guard_ready.get() || started.replace(true) {
+            return glib::ControlFlow::Continue;
+        }
+        let result = start_print(
+            &print_view,
+            &window,
+            print,
+            snapshot.page_size,
+            snapshot.landscape,
+            &directory,
+            &mut input,
+            output.clone(),
+        );
+        if let Err(e) = result {
+            let _ = frame_write(&mut *output.borrow_mut(), &Event::Failed { error: e });
+            gtk::main_quit();
+        }
+        glib::ControlFlow::Break
+    });
+    view.load_uri(URL);
+    gtk::main();
+    Ok(())
 }
 
 fn approve_selection(
@@ -585,27 +650,13 @@ extern "C" {
     fn gtk_print_unix_dialog_get_selected_printer(dialog: *mut libc::c_void) -> *mut libc::c_void;
     fn gtk_printer_is_virtual(printer: *mut libc::c_void) -> libc::c_int;
     fn gtk_printer_get_backend(printer: *mut libc::c_void) -> *mut glib::gobject_ffi::GObject;
-    fn gtk_printer_accepts_pdf(printer: *mut libc::c_void) -> libc::c_int;
-    fn gtk_print_job_new(
-        title: *const libc::c_char,
-        printer: *mut libc::c_void,
-        settings: *mut gtk::ffi::GtkPrintSettings,
-        setup: *mut gtk::ffi::GtkPageSetup,
-    ) -> *mut glib::gobject_ffi::GObject;
-    fn gtk_print_job_set_source_fd(
-        job: *mut libc::c_void,
-        fd: libc::c_int,
-        error: *mut *mut glib::ffi::GError,
-    ) -> libc::c_int;
-    fn gtk_print_job_send(
-        job: *mut libc::c_void,
-        callback: Option<
-            unsafe extern "C" fn(*mut libc::c_void, *mut libc::c_void, *const glib::ffi::GError),
-        >,
+    fn gtk_printer_get_name(printer: *mut libc::c_void) -> *const libc::c_char;
+    fn gtk_enumerate_printers(
+        callback: Option<unsafe extern "C" fn(*mut libc::c_void, *mut libc::c_void) -> libc::c_int>,
         data: *mut libc::c_void,
         destroy: Option<unsafe extern "C" fn(*mut libc::c_void)>,
+        wait: libc::c_int,
     );
-
 }
 fn is_file_printer(printer: *mut libc::c_void) -> bool {
     let pointer = unsafe { gtk_printer_get_backend(printer) };
@@ -615,129 +666,37 @@ fn is_file_printer(printer: *mut libc::c_void) -> bool {
     let backend: glib::Object = unsafe { from_glib_none(pointer) };
     backend.type_().name() == "GtkPrintBackendFile"
 }
-fn page_options(setup: &gtk::PageSetup) -> Result<(PageSize, bool)> {
-    let paper = setup.paper_size();
-    let width = paper.width(gtk::Unit::Mm);
-    let height = paper.height(gtk::Unit::Mm);
-    let page = if (width - 210.0).abs() < 0.1 && (height - 297.0).abs() < 0.1 {
-        PageSize::A4
-    } else if (width - 215.9).abs() < 0.1 && (height - 279.4).abs() < 0.1 {
-        PageSize::Letter
-    } else {
-        return Err("Unsupported print paper; choose A4 or Letter".into());
-    };
-    let landscape = match setup.orientation() {
-        gtk::PageOrientation::Portrait => false,
-        gtk::PageOrientation::Landscape => true,
-        _ => return Err("Unsupported print orientation; choose portrait or landscape".into()),
-    };
-    Ok((page, landscape))
-}
-
-fn submission_uncertain(reason: impl std::fmt::Display) -> String {
-    format!("[output:unavailable] Print submission status is unknown; check the printer queue before retrying. {reason}")
-}
-
-struct SendState {
-    result: Rc<RefCell<Option<Result<()>>>>,
-    main_loop: glib::MainLoop,
-}
-unsafe extern "C" fn send_finished(
-    _job: *mut libc::c_void,
-    data: *mut libc::c_void,
-    failure: *const glib::ffi::GError,
-) {
-    let state = &*(data as *const SendState);
-    *state.result.borrow_mut() = Some(if failure.is_null() {
-        Ok(())
-    } else {
-        let error: glib::Error = from_glib_none(failure);
-        Err(submission_uncertain(error))
-    });
-    state.main_loop.quit();
-}
-unsafe extern "C" fn drop_send_state(data: *mut libc::c_void) {
-    drop(Box::from_raw(data as *mut SendState));
-}
-
-fn submit_pdf(
-    printer: &glib::Object,
-    settings: &gtk::PrintSettings,
-    setup: &gtk::PageSetup,
-    directory: &Path,
-    input: &mut impl Read,
-    output: &Rc<RefCell<File>>,
-) -> Result<()> {
-    let file = fs::OpenOptions::new()
-        .read(true)
-        .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
-        .open(directory.join("document.pdf"))
-        .map_err(error)?;
-    let metadata = file.metadata().map_err(error)?;
-    if !metadata.is_file() || metadata.len() > MAX_PDF as u64 {
-        return Err("Native PDF exceeds its 64 MiB budget".into());
+fn file_printer_name() -> Result<String> {
+    unsafe extern "C" fn found(printer: *mut libc::c_void, data: *mut libc::c_void) -> libc::c_int {
+        if !is_file_printer(printer) {
+            return 0;
+        }
+        let name = gtk_printer_get_name(printer);
+        if name.is_null() {
+            return 0;
+        }
+        *(data as *mut Option<String>) = Some(
+            std::ffi::CStr::from_ptr(name)
+                .to_string_lossy()
+                .into_owned(),
+        );
+        1
     }
-    let raw_job = unsafe {
-        gtk_print_job_new(
-            c"Document output".as_ptr(),
-            printer.as_ptr().cast(),
-            settings.to_glib_none().0,
-            setup.to_glib_none().0,
-        )
-    };
-    if raw_job.is_null() {
-        return Err("Native print job unavailable".into());
-    }
-    let job: glib::Object = unsafe { from_glib_full(raw_job) };
-    let mut failure = std::ptr::null_mut();
-    if unsafe { gtk_print_job_set_source_fd(job.as_ptr().cast(), file.as_raw_fd(), &mut failure) }
-        == 0
-    {
-        return Err(if failure.is_null() {
-            "Native printer could not open the PDF".into()
-        } else {
-            let error: glib::Error = unsafe { from_glib_full(failure) };
-            error.to_string()
-        });
-    }
-    // The owner serializes this acknowledgement with output_abort. No spool
-    // request is sent until it enters the irreversible submission state.
-    frame_write(&mut *output.borrow_mut(), &Event::Submitting)?;
-    let ack: SubmissionAck = frame_read(input, 1024)?;
-    if !ack.submit {
-        return Err("Output cancelled before print submission".into());
-    }
-    let result = Rc::new(RefCell::new(None));
-    let main_loop = glib::MainLoop::new(None, false);
-    let state = Box::new(SendState {
-        result: result.clone(),
-        main_loop: main_loop.clone(),
-    });
+    let mut name: Option<String> = None;
     unsafe {
-        gtk_print_job_send(
-            job.as_ptr().cast(),
-            Some(send_finished),
-            Box::into_raw(state).cast(),
-            Some(drop_send_state),
+        gtk_enumerate_printers(
+            Some(found),
+            (&mut name as *mut Option<String>).cast(),
+            None,
+            1,
         );
     }
-    if result.borrow().is_none() {
-        main_loop.run();
-    }
-    // The source FD remains open until send completed. A successful callback
-    // means the spooler accepted the job, not that paper physically emerged.
-    let outcome = result
-        .borrow_mut()
-        .take()
-        .ok_or_else(|| submission_uncertain("No submission result"))?;
-    outcome?;
-    frame_write(&mut *output.borrow_mut(), &Event::Printed)
+    name.ok_or("GTK Print-to-File backend is unavailable".into())
 }
-
 fn start_print(
+    view: &webkit2gtk::WebView,
     window: &gtk::Window,
     print: bool,
-    html: &str,
     page_size: PageSize,
     landscape: bool,
     directory: &Path,
@@ -755,7 +714,15 @@ fn start_print(
     } else {
         gtk::PageOrientation::Portrait
     });
-    let mut printer = None;
+    for set in [
+        gtk::PageSetup::set_top_margin,
+        gtk::PageSetup::set_bottom_margin,
+        gtk::PageSetup::set_left_margin,
+        gtk::PageSetup::set_right_margin,
+    ] {
+        set(&setup, 12.0, gtk::Unit::Mm);
+    }
+    let mut file_output = true;
     if print {
         frame_write(&mut *output.borrow_mut(), &Event::Dialog)?;
         let widget: gtk::Widget = unsafe {
@@ -778,19 +745,24 @@ fn start_print(
             unsafe {
                 dialog.destroy();
             }
-            return frame_write(&mut *output.borrow_mut(), &Event::Cancelled);
+            frame_write(&mut *output.borrow_mut(), &Event::Cancelled)?;
+            gtk::main_quit();
+            return Ok(());
         }
-        let selected = unsafe { gtk_print_unix_dialog_get_selected_printer(pointer) };
-        if selected.is_null() {
+        let printer = unsafe { gtk_print_unix_dialog_get_selected_printer(pointer) };
+        if printer.is_null() {
             unsafe {
                 dialog.destroy();
             }
             return Err("No printer selected".into());
         }
-        // Retain the selected printer before destroying its owning dialog.
-        let selected: glib::Object =
-            unsafe { from_glib_none(selected.cast::<glib::gobject_ffi::GObject>()) };
-        let file_output = is_file_printer(selected.as_ptr().cast());
+        file_output = is_file_printer(printer);
+        if !file_output && unsafe { gtk_printer_is_virtual(printer) != 0 } {
+            unsafe {
+                dialog.destroy();
+            }
+            return Err("Unsupported virtual print destination".into());
+        }
         settings = unsafe { from_glib_full(gtk_print_unix_dialog_get_settings(pointer)) };
         setup = unsafe { from_glib_none(gtk_print_unix_dialog_get_page_setup(pointer)) };
         unsafe {
@@ -804,113 +776,58 @@ fn start_print(
                 .path()
                 .ok_or("Print-to-file requires a local destination")?;
             if !approve_selection(window, path, input, &output)? {
-                return frame_write(&mut *output.borrow_mut(), &Event::Cancelled);
+                frame_write(&mut *output.borrow_mut(), &Event::Cancelled)?;
+                gtk::main_quit();
+                return Ok(());
             }
-        } else {
-            if unsafe { gtk_printer_is_virtual(selected.as_ptr().cast()) } != 0 {
-                return Err("Unsupported virtual print destination".into());
-            }
-            if unsafe { gtk_printer_accepts_pdf(selected.as_ptr().cast()) } == 0 {
-                return Err("Unsupported printer: PDF input is required".into());
-            }
-            printer = Some(selected);
         }
     }
-    let (page_size, landscape) = page_options(&setup)?;
-    if settings.print_pages() != gtk::PrintPages::All
-        || settings.n_copies() != 1
-        || settings.number_up() != 1
-        || (settings.scale() - 100.0).abs() > 0.001
-        || settings.is_reverse()
-        || settings.page_set() != gtk::PageSet::All
-    {
-        return Err("Unsupported print settings; use all pages, one copy, one page per sheet, 100% scale and normal order".into());
+    if file_output {
+        if !print {
+            settings.set_printer(&file_printer_name()?);
+        }
+        settings.set("output-file-format", Some("pdf"));
+        let uri = gio::File::for_path(directory.join("document.pdf")).uri();
+        settings.set("output-uri", Some(&uri));
     }
+    let operation = webkit2gtk::PrintOperation::new(view);
+    operation.set_print_settings(&settings);
+    operation.set_page_setup(&setup);
+    let failed = Rc::new(Cell::new(false));
+    let failure = failed.clone();
+    let failure_output = output.clone();
+    operation.connect_failed(move |_, e| {
+        failure.set(true);
+        let _ = frame_write(
+            &mut *failure_output.borrow_mut(),
+            &Event::Failed {
+                error: e.to_string(),
+            },
+        );
+    });
+    let done_output = output.clone();
+    operation.connect_finished(move |_| {
+        if !failed.get() {
+            let _ = frame_write(
+                &mut *done_output.borrow_mut(),
+                if file_output {
+                    &Event::Pdf
+                } else {
+                    &Event::Printed
+                },
+            );
+        }
+        gtk::main_quit();
+    });
     frame_write(&mut *output.borrow_mut(), &Event::Rendering)?;
-    super::chromium::render(html, directory, page_size, landscape)?;
-    if let Some(printer) = printer {
-        submit_pdf(&printer, &settings, &setup, directory, input, &output)
-    } else {
-        frame_write(&mut *output.borrow_mut(), &Event::Pdf)
-    }
+    operation.print();
+    // WebKit retains the asynchronous operation until finished.
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test]
-    #[ignore = "requires a native display and the local GTK FileBackend; sends no external print job"]
-    fn real_gtk_source_fd_submission_preserves_pdf_bytes() {
-        extern "C" {
-            fn gtk_enumerate_printers(
-                callback: Option<
-                    unsafe extern "C" fn(*mut libc::c_void, *mut libc::c_void) -> libc::c_int,
-                >,
-                data: *mut libc::c_void,
-                destroy: Option<unsafe extern "C" fn(*mut libc::c_void)>,
-                wait: libc::c_int,
-            );
-        }
-        unsafe extern "C" fn local_file_printer(
-            printer: *mut libc::c_void,
-            data: *mut libc::c_void,
-        ) -> libc::c_int {
-            if !is_file_printer(printer) {
-                return 0;
-            }
-            *(data as *mut Option<glib::Object>) =
-                Some(from_glib_none(printer.cast::<glib::gobject_ffi::GObject>()));
-            1
-        }
-        gtk::init().unwrap();
-        let mut printer: Option<glib::Object> = None;
-        unsafe {
-            gtk_enumerate_printers(
-                Some(local_file_printer),
-                (&mut printer as *mut Option<glib::Object>).cast(),
-                None,
-                1,
-            );
-        }
-        let printer = printer.expect("local GTK FileBackend required");
-        let private = Private::new().unwrap();
-        let source = std::env::var_os("MILKUP_OUTPUT_TEST_SOURCE_PDF")
-            .expect("explicit completed evidence PDF required");
-        let bytes = fs::read(source).unwrap();
-        assert!(bytes.starts_with(b"%PDF-") && bytes.len() <= MAX_PDF);
-        fs::write(private.0.join("document.pdf"), &bytes).unwrap();
-        let spooled = private.0.join("spooled.pdf");
-        let settings = gtk::PrintSettings::new();
-        settings.set_printer(&printer.property::<String>("name"));
-        settings.set("output-file-format", Some("pdf"));
-        settings.set("output-uri", Some(&gio::File::for_path(&spooled).uri()));
-        let setup = gtk::PageSetup::new();
-        let mut acknowledgement = Vec::new();
-        frame_write(&mut acknowledgement, &SubmissionAck { submit: true }).unwrap();
-        let events = private.0.join("events");
-        let output = Rc::new(RefCell::new(File::create(&events).unwrap()));
-        submit_pdf(
-            &printer,
-            &settings,
-            &setup,
-            &private.0,
-            &mut std::io::Cursor::new(acknowledgement),
-            &output,
-        )
-        .unwrap();
-        assert_eq!(fs::read(&spooled).unwrap(), bytes);
-        assert_eq!(fs::read(private.0.join("document.pdf")).unwrap(), bytes);
-        let mut events = File::open(events).unwrap();
-        assert!(matches!(
-            frame_read::<Event>(&mut events, 16384).unwrap(),
-            Event::Submitting
-        ));
-        assert!(matches!(
-            frame_read::<Event>(&mut events, 16384).unwrap(),
-            Event::Printed
-        ));
-        eprintln!("GTK_SOURCE_FD_BYTES_IDENTICAL bytes={} sha256={:x}; local FileBackend only, no physical printer", bytes.len(), Sha256::digest(&bytes));
-    }
     #[test]
     #[ignore = "private helper launched by the real native output test"]
     fn native_output_helper() {
@@ -921,8 +838,8 @@ mod tests {
         run_guarded();
     }
     #[test]
-    #[ignore = "requires the sandbox-enabled system Chromium runtime"]
-    fn real_chromium_pdf_output() {
+    #[ignore = "requires the sandbox-enabled native display and WebKit runtime"]
+    fn real_webkit_pdf_output() {
         let job = Arc::new(Job {
             format: Format::Pdf,
             source: None,
