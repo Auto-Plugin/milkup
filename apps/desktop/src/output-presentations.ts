@@ -116,12 +116,18 @@ export async function collectOutputPresentations(options: OutputPresentationOpti
     theme: () => 'light',
     target: 'export',
     renderers: options.renderers,
-    async render(pluginId, rendererId, request) {
+    async render(pluginId, rendererId, request, preparation) {
       guard()
       const controller = new AbortController()
       let timer: ReturnType<typeof setTimeout> | undefined
       let abort: (() => void) | undefined
       try {
+        // The isolated owner starts its unchanged 2s execution watchdog at
+        // dispatch. This outer bound covers queueing and result delivery under
+        // the service's existing absolute preparation deadline. Starting another
+        // 2s timer here would charge an export for earlier editor work.
+        const remaining = preparation.deadline - performance.now()
+        if (remaining <= 0) throw new DocumentPresentationError('timeout')
         const cancellation = new Promise<never>((_resolve, reject) => {
           abort = () => {
             controller.abort()
@@ -129,9 +135,9 @@ export async function collectOutputPresentations(options: OutputPresentationOpti
           }
           options.signal.addEventListener('abort', abort, { once: true })
           timer = setTimeout(() => {
-            controller.abort()
             reject(new DocumentPresentationError('timeout'))
-          }, DOCUMENT_PRESENTATION_LIMITS.timeoutMs)
+            controller.abort()
+          }, remaining)
         })
         const result = await Promise.race([
           options.render(pluginId, rendererId, absoluteLines(request), {
@@ -140,6 +146,12 @@ export async function collectOutputPresentations(options: OutputPresentationOpti
           cancellation,
         ])
         guard()
+        // A blocked frontend can deliver a result before its overdue timer task.
+        // Never accept it beyond the same preparation deadline or renew the budget.
+        if (performance.now() >= preparation.deadline) {
+          controller.abort()
+          throw new DocumentPresentationError('timeout')
+        }
         if (!result.complete || result.fragments.some((fragment) => fragment.status === 'error'))
           warn(
             'presentation-incomplete',

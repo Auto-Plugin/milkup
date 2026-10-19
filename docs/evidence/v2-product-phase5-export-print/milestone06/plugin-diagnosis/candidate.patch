@@ -1,0 +1,157 @@
+diff --git a/plugins/diagrams/README.md b/plugins/diagrams/README.md
+index 0c9e2904..ba45379b 100644
+--- a/plugins/diagrams/README.md
++++ b/plugins/diagrams/README.md
+@@ -41,3 +41,9 @@ pnpm run build
+ ```
+ 
+ 单元测试中的 Mermaid/转换器 mock 仅验证公开渲染请求、错误回退和生命周期，不代表真实官方引擎或像素通过。DOM 转换、宿主独立校验、图片边界和原生像素验证另行记录。
++
++## 激活阶段模块准备
++
++1.1.2 在字体就绪后，通过 Mermaid 12.2.0 公开的 `registerExternalDiagrams([], { lazyLoad: false })` 加载已打包的内置图型模块。准备阶段不读取、解析或渲染用户文档，也不预渲染测试图；加载失败会使激活失败。所有模块仍在现有离线插件包内，无新增依赖、SDK升级或运行时下载。
++
++原有激活期限、每次渲染 2 秒、隔离、取消与成功缓存条件保持不变。此步骤不预付独立布局加载器、字体测量或 SVG 转换成本，不能据此宣称消除了历史首绘超时；是否采纳以原生首次渲染对比为准。
+diff --git a/plugins/diagrams/package.json b/plugins/diagrams/package.json
+index f5aedc8a..78447cdc 100644
+--- a/plugins/diagrams/package.json
++++ b/plugins/diagrams/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "milkup-diagrams",
+-  "version": "1.1.1",
++  "version": "1.1.2",
+   "private": true,
+   "type": "module",
+   "scripts": {
+diff --git a/plugins/diagrams/plugin.json b/plugins/diagrams/plugin.json
+index dcfdebd6..08a4bba9 100644
+--- a/plugins/diagrams/plugin.json
++++ b/plugins/diagrams/plugin.json
+@@ -1,7 +1,7 @@
+ {
+   "id": "milkup.diagrams",
+   "name": "Milkup Diagrams",
+-  "version": "1.1.1",
++  "version": "1.1.2",
+   "description": "使用完整官方 Mermaid 引擎离线呈现图表；无法安全呈现的内容保留完整源码。",
+   "host": "dom",
+   "main": "./dist/plugin.js",
+diff --git a/plugins/diagrams/src/renderer.test.ts b/plugins/diagrams/src/renderer.test.ts
+index e5e42a12..a53d594b 100644
+--- a/plugins/diagrams/src/renderer.test.ts
++++ b/plugins/diagrams/src/renderer.test.ts
+@@ -1,8 +1,21 @@
+ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+ import type { SdkDocumentPresentationRequest, SdkDocumentSvgImage } from '@milkup/plugin-sdk'
+ 
+-const mocked = vi.hoisted(() => ({ initialize: vi.fn(), render: vi.fn(), convert: vi.fn() }))
+-vi.mock('mermaid', () => ({ default: { initialize: mocked.initialize, render: mocked.render } }))
++const mocked = vi.hoisted(() => ({
++  initialize: vi.fn(),
++  registerExternalDiagrams: vi.fn(),
++  parse: vi.fn(),
++  render: vi.fn(),
++  convert: vi.fn(),
++}))
++vi.mock('mermaid', () => ({
++  default: {
++    initialize: mocked.initialize,
++    registerExternalDiagrams: mocked.registerExternalDiagrams,
++    parse: mocked.parse,
++    render: mocked.render,
++  },
++}))
+ vi.mock('./svg-converter', () => ({
+   convertSvgElement: mocked.convert,
+   ConversionError: class extends Error {
+@@ -16,6 +29,7 @@ vi.mock('./svg-converter', () => ({
+ }))
+ import { renderDocuments, prepareRenderer } from './renderer'
+ import { ConversionError } from './svg-converter'
++import plugin from './plugin'
+ 
+ function request(
+   body = 'classDiagram\nAnimal <|-- Duck',
+@@ -87,6 +101,7 @@ let containers: Container[]
+ let fonts: { ready: Promise<unknown> }
+ beforeEach(() => {
+   vi.clearAllMocks()
++  mocked.registerExternalDiagrams.mockReset().mockResolvedValue(undefined)
+   containers = []
+   fonts = { ready: Promise.resolve() }
+   vi.stubGlobal('SVGSVGElement', RootSvg)
+@@ -110,6 +125,54 @@ beforeEach(() => {
+ afterEach(() => vi.unstubAllGlobals())
+ 
+ describe('official Mermaid document wrapper (mock engine; native layout tested separately)', () => {
++  it('withholds activation until fonts and builtin modules are ready without rendering a document', async () => {
++    let fontsReady!: () => void
++    let modulesReady!: () => void
++    fonts.ready = new Promise<void>((resolve) => {
++      fontsReady = resolve
++    })
++    mocked.registerExternalDiagrams.mockImplementationOnce(
++      () =>
++        new Promise<void>((resolve) => {
++          modulesReady = resolve
++        }),
++    )
++    let activated = false
++    const pending = plugin.activate().then((value) => {
++      activated = true
++      return value
++    })
++    await Promise.resolve()
++    expect(activated).toBe(false)
++    expect(mocked.registerExternalDiagrams).not.toHaveBeenCalled()
++    fontsReady()
++    try {
++      await vi.waitFor(() =>
++        expect(mocked.registerExternalDiagrams).toHaveBeenCalledExactlyOnceWith([], {
++          lazyLoad: false,
++        }),
++      )
++      expect(activated).toBe(false)
++      expect(mocked.parse).not.toHaveBeenCalled()
++      expect(mocked.render).not.toHaveBeenCalled()
++      expect(mocked.convert).not.toHaveBeenCalled()
++      expect(containers).toEqual([])
++    } finally {
++      modulesReady?.()
++    }
++    expect((await pending).documentRenderers['diagrams.mermaid']).toBe(renderDocuments)
++    expect(activated).toBe(true)
++    expect(mocked.parse).not.toHaveBeenCalled()
++    expect(mocked.render).not.toHaveBeenCalled()
++  })
++  it('rejects activation when builtin module loading fails instead of exposing a partial renderer', async () => {
++    const failure = new Error('builtin module failed')
++    mocked.registerExternalDiagrams.mockRejectedValueOnce(failure)
++    await expect(plugin.activate()).rejects.toBe(failure)
++    expect(mocked.parse).not.toHaveBeenCalled()
++    expect(mocked.render).not.toHaveBeenCalled()
++    expect(mocked.convert).not.toHaveBeenCalled()
++  })
+   it('prepares fonts without parsing any document', async () => {
+     let ready!: () => void
+     fonts.ready = new Promise<void>((resolve) => {
+diff --git a/plugins/diagrams/src/renderer.ts b/plugins/diagrams/src/renderer.ts
+index 9c598e79..e22177af 100644
+--- a/plugins/diagrams/src/renderer.ts
++++ b/plugins/diagrams/src/renderer.ts
+@@ -12,11 +12,12 @@ import {
+   readSuccessMemo,
+ } from './success-memo'
+ 
+-// Preparation waits for installed fonts but never parses a document. The
+-// independent native host owns activation and execution deadlines.
++// Load bundled diagram modules during activation without parsing a document.
++// Layout engines and actual drawing still run under the host execution deadline.
+ export async function prepareRenderer(): Promise<void> {
+   clearSuccessMemo()
+   await document.fonts.ready
++  await mermaid.registerExternalDiagrams([], { lazyLoad: false })
+ }
+ 
+ const messages = {

@@ -404,6 +404,33 @@ describe('viewport-prioritized bounded fence presentation', () => {
     expect(response.result.fragments).toHaveLength(1)
     expect(response.result.complete).toBe(false)
   })
+  it.each([undefined, 8_000])(
+    'shares one absolute preparation deadline across every fence (supplied: %s)',
+    async (supplied) => {
+      const f = threeFences()
+      let now = 100
+      vi.spyOn(performance, 'now').mockImplementation(() => now)
+      const deadlines: number[] = []
+      const signal = new AbortController().signal
+      const service = createDesktopDocumentPresentationService({
+        current: () => ({ source: f.source, identity: f.doc }),
+        theme: () => 'light',
+        renderers: () => [fenceDeclaration],
+        async render(_plugin, _renderer, request, operation) {
+          expect(operation.signal).toBe(signal)
+          deadlines.push(operation.deadline)
+          now += 1_000
+          return fenceResult(request, false)
+        },
+      })
+      const response = await service.provide(f.window, {
+        signal,
+        ...(supplied === undefined ? {} : { deadline: supplied }),
+      })
+      expect(response.result.complete).toBe(true)
+      expect(deadlines).toEqual(Array(3).fill(supplied ?? 10_100))
+    },
+  )
   it('does not impose a fixed two-fence limit on fast small results', async () => {
     const f = threeFences()
     const render = vi.fn(async (_p: string, _r: string, request: DocumentPresentationRequest) =>

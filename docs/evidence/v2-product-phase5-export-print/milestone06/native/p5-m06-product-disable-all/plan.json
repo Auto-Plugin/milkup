@@ -1,0 +1,164 @@
+{
+  "stage": "disable-all",
+  "format": "html",
+  "repeatCount": 1,
+  "binary": "/workspace/milkup-export-print-evidence/milestone06/production-queue/milkup-desktop",
+  "binarySha256": "6e6c004030fe06146b58d9e40cbd22c7c7d3315c306ceb741f3f58e119ed9d2a",
+  "packages": [
+    {
+      "file": "/workspace/milkup-export-print-evidence/milestone01/plugin/action-id-fix-external/dist/milkup.export-print-1.0.0.milkup-plugin",
+      "sha256": "08cd8532ecd209f4794f88de1880e06c16c586ae2997e326450687e1be2181b9",
+      "manifest": {
+        "id": "milkup.export-print",
+        "name": "导出与打印",
+        "version": "1.0.0",
+        "description": "将整篇文档或所选内容导出为 HTML、PDF，或打印；可选择图片、纸张和方向，并保留开始时的内容版本。",
+        "host": "worker",
+        "main": "./dist/plugin.js",
+        "engines": {
+          "milkup": "^2.0.0-0",
+          "pluginSdk": "^0.3.5"
+        },
+        "permissions": [
+          "document:read",
+          "document:output"
+        ],
+        "icon": "assets/export-print.png",
+        "resources": [
+          "assets/export-print.png"
+        ],
+        "contributes": {
+          "commands": [
+            {
+              "id": "exportPrint.start",
+              "title": "导出或打印文档",
+              "action": "exportPrint.start"
+            },
+            {
+              "id": "exportPrint.retry",
+              "title": "重新导出或打印",
+              "action": "exportPrint.retry"
+            },
+            {
+              "id": "exportPrint.cancel",
+              "title": "取消输出",
+              "action": "exportPrint.cancel"
+            },
+            {
+              "id": "exportPrint.change",
+              "title": "修改输出选项",
+              "action": "exportPrint.change",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "field": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "field",
+                  "value"
+                ]
+              }
+            }
+          ],
+          "ui": [
+            {
+              "id": "export-print-panel",
+              "slot": "sidebar-panel",
+              "title": "导出与打印",
+              "scope": "app",
+              "viewportUpdates": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "file": "/workspace/milkup-mermaid-engine-evidence/research/renderer-exact-memo-product-integration-01/artifacts/milkup.diagrams-1.1.1.milkup-plugin",
+      "sha256": "2351692438a2083a72bcb8cddce28c7a530a8557734926992a3a2e3120c68a19",
+      "manifest": {
+        "id": "milkup.diagrams",
+        "name": "Milkup Diagrams",
+        "version": "1.1.1",
+        "description": "使用完整官方 Mermaid 引擎离线呈现图表；无法安全呈现的内容保留完整源码。",
+        "host": "dom",
+        "main": "./dist/plugin.js",
+        "engines": {
+          "milkup": "^2.0.0-0",
+          "pluginSdk": ">=0.3.4 <0.4.0"
+        },
+        "permissions": [
+          "document:read"
+        ],
+        "contributes": {
+          "documentRenderers": [
+            {
+              "id": "diagrams.mermaid",
+              "contexts": [
+                "fence"
+              ],
+              "fenceLanguages": [
+                "mermaid"
+              ]
+            }
+          ]
+        },
+        "resources": [
+          "THIRD-PARTY-NOTICES.txt",
+          "dependency-provenance.json"
+        ]
+      }
+    }
+  ],
+  "fixture": {
+    "id": "single-r1",
+    "file": "single-r1.md",
+    "format": "markdown",
+    "fixtureRevision": "single-r1",
+    "sourceSHA256": "4a5112399a0afcf9b634076263034d79cf1248d3388d3585cd0551a65bb16b41",
+    "sourceBytes": 231,
+    "sourceUtf16": 178,
+    "sourceLines": 12,
+    "diagrams": [
+      {
+        "ordinal": 1,
+        "fromUtf16": 61,
+        "toUtf16": 158,
+        "rangeIncludesClosingNewline": true,
+        "fenceSHA256": "4210adc5c3253055f548ede046e11691537822502e4cf120d6b3219751de72c6",
+        "nodeLabels": [
+          "P5M6S-R1-A 中文输入",
+          "P5M6S-R1-B 冻结内容",
+          "P5M6S-R1-C 打印"
+        ],
+        "nodeCount": 3,
+        "edgeCount": 2
+      }
+    ],
+    "bodyMarkersExactlyOnce": [
+      "P5M6-SINGLE-R1-BODY",
+      "P5M6-SINGLE-R1-END"
+    ],
+    "allowedWarningKinds": [],
+    "forbiddenRevisionMarkers": [
+      "P5M6-SINGLE-R2",
+      "P5M6S-R2"
+    ]
+  },
+  "sourcePath": "/workspace/milkup-export-print-evidence/milestone01/native-ui/runs/p5-m06-product-disable-all/source.md",
+  "fixtureManifestSha256": "e4e9e719a82a53f599a6010c21c78ba7fd7c3f60e486abc43653fcef24ace948",
+  "preparedOnly": false,
+  "memoryMeasurement": "not sampled; preload memory increment is unknown",
+  "nativeLog": "/workspace/milkup-export-print-evidence/milestone01/native-ui/logs/p5-m06-product-disable-all-driver.log",
+  "boundaries": [
+    "No renderer deadline/isolation changes; existing 2s budget remains.",
+    "First output is not proof of first render: the editor may pre-render.",
+    "windowed fixture crosses source windows; this alone does not prove the 60000-line large-file route.",
+    "PDF raster is retained for separate visual review; text presence never proves a diagram.",
+    "Cancel during preparation requires observed preparing UI; active native rendering requires its separate trace evidence."
+  ]
+}

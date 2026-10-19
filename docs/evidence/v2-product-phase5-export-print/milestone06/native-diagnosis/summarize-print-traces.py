@@ -1,0 +1,36 @@
+from pathlib import Path
+import json,hashlib
+base=Path('/workspace/milkup-export-print-evidence/milestone01/native-ui')
+out=Path(__file__).parent
+runNames=['p5-m06-old-print-01','p5-m06-old-print-02','p5-m06-new-print-01']
+phases=['dispatch','render-request','helper-dequeued','helper-eval-submitted','helper-eval-callback','helper-result-drained','helper-frame-forwarded','owner-frame-received','owner-result-accepted']
+allruns=[]
+for run in runNames:
+ log=base/'logs'/f'{run}-driver.log';runDir=base/'runs'/run
+ events=[dict(json.loads(line.split('DOM_NATIVE_TIMING ',1)[1]),logLine=i) for i,line in enumerate(log.read_text().splitlines(),1) if 'DOM_NATIVE_TIMING ' in line]
+ requests=[]
+ for dispatch in [e for e in events if e['phase']=='dispatch']:
+  es=[e for e in events if e['instanceId']==dispatch['instanceId'] and e['requestId']==dispatch['requestId']]; ps={e['phase']:e for e in es}
+  def elapsed(a,b):return round((ps[b]['monotonicNs']-ps[a]['monotonicNs'])/1e6,6) if a in ps and b in ps else None
+  requests.append({'instanceId':dispatch['instanceId'],'requestId':dispatch['requestId'],'request':ps.get('render-request',{}).get('request'),'missingPhases':[p for p in phases if p not in ps],'durationsMs':{'dispatchToAccepted':elapsed('dispatch','owner-result-accepted'),'dispatchToDequeued':elapsed('dispatch','helper-dequeued'),'dequeuedToEvalSubmitted':elapsed('helper-dequeued','helper-eval-submitted'),'evalSubmittedToCallback':elapsed('helper-eval-submitted','helper-eval-callback'),'evalCallbackToResultDrained':elapsed('helper-eval-callback','helper-result-drained'),'resultDrainedToFrameForwarded':elapsed('helper-result-drained','helper-frame-forwarded'),'frameForwardedToOwnerReceived':elapsed('helper-frame-forwarded','owner-frame-received'),'ownerReceivedToAccepted':elapsed('owner-frame-received','owner-result-accepted')},'phases':[dict(e,fromDispatchMs=round((e['monotonicNs']-dispatch['monotonicNs'])/1e6,6)) for e in es]})
+ provenance=json.loads((runDir/'provenance.json').read_text());results=json.loads((runDir/'results.json').read_text())
+ sourceHash=hashlib.sha256((runDir/'source.md').read_bytes()).hexdigest()
+ artifact=Path(provenance['richRenderers']['diagramArchive']); actualHash=hashlib.sha256(artifact.read_bytes()).hexdigest(); archive=json.loads(artifact.read_text())
+ data={'run':run,'sourceLog':str(log),'sourceLogSha256':hashlib.sha256(log.read_bytes()).hexdigest(),'sourceRun':str(runDir),'sourceSha256':sourceHash,'sourceMatchesProvenance':sourceHash==provenance['sourceSha256'],'desktopBinarySha256':provenance['binarySha256'],'diagramPackage':{'path':str(artifact),'version':archive['manifest']['version'],'sha256':actualHash,'matchesProvenance':actualHash==provenance['richRenderers']['diagramSha256']},'outputPluginPackage':{'version':provenance['manifest']['version'],'sha256':provenance['archiveSha256']},'deadlineEvents':[e for e in events if e['phase'] in ['deadline-observed','control-emitted']],'requests':requests,'uiCompletion':json.loads((runDir/'completion.json').read_text()),'finalDiagramRegistry':[p for p in results[-1].get('registry',[]) if p['id']=='milkup.diagrams'],'finalNotice':results[-1].get('document',{}).get('notice'),'interpretation':{'timeoutReproduced':any(e['phase']=='deadline-observed' for e in events),'fixDemonstrated':False,'notes':['Input evaluate callback is not renderer completion. Callback-to-drain includes async renderer work and WebKit/poll scheduling.','Successful trace runs do not erase the historical print-file-04 timeout; no speed benefit or fix is established by these samples.']}}
+ (out/(run.removeprefix('p5-m06-')+'.json')).write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+ allruns.append(data)
+lines=['# Old/new diagrams print trace comparison','','Three fresh-profile production print runs use the same instrumented desktop binary; this is a small observational comparison, not a controlled performance benchmark. No timeout occurred in these three runs. The historic Print04 2000.313 ms failure remains unresolved.','','## Input and artifact identity','','- Actual source SHA256 (all three, independently rehashed): `'+allruns[0]['sourceSha256']+'`.', '- Desktop binary SHA256 (all three provenance records): `'+allruns[0]['desktopBinarySha256']+'`.', '- Output plugin: '+allruns[0]['outputPluginPackage']['version']+', SHA256 `'+allruns[0]['outputPluginPackage']['sha256']+'` (recorded provenance).']
+for ver in ['1.1.1','1.1.2']:
+ a=next(x['diagramPackage'] for x in allruns if x['diagramPackage']['version']==ver)
+ lines.append('- Diagrams '+ver+' package SHA256: `'+a['sha256']+'` (independently rehashed; matches run provenance and package manifest).')
+lines+=['','## Native request durations','','All requests below use version 0 and source range 800–876. Times are milliseconds, rounded to three decimals; full precision and phases remain in each JSON.','','| Run / diagrams | Request | Target | Dispatch → accepted | Dispatch → dequeue | Eval submit → callback | Callback → result drain |','| --- | --- | --- | ---: | ---: | ---: | ---: |']
+for run in allruns:
+ for r in run['requests']:
+  d=r['durationsMs'];lines.append('| '+run['run'].removeprefix('p5-m06-')+' / '+run['diagramPackage']['version']+' | '+r['requestId']+' | '+r['request']['target']+' | '+' | '.join(f'{d[k]:.3f}' for k in ['dispatchToAccepted','dispatchToDequeued','evalSubmittedToCallback','evalCallbackToResultDrained'])+' |')
+oldfirst=[x['requests'][0]['durationsMs']['dispatchToAccepted'] for x in allruns[:2]]
+newfirst=allruns[2]['requests'][0]['durationsMs']['dispatchToAccepted']
+oldexports=[r['durationsMs']['dispatchToAccepted'] for x in allruns[:2] for r in x['requests'] if r['request']['target']=='export']
+newexports=[r['durationsMs']['dispatchToAccepted'] for r in allruns[2]['requests'] if r['request']['target']=='export']
+lines+=['','## Interpretation','',f'- Old 1.1.1 first-screen samples span **{min(oldfirst):.3f}–{max(oldfirst):.3f} ms**. New 1.1.2 first-screen sample is **{newfirst:.3f} ms**, within that observed old range.',f'- Old export samples: **'+', '.join(f'{x:.3f}' for x in oldexports)+' ms**. New export sample: **'+', '.join(f'{x:.3f}' for x in newexports)+' ms**. These samples do not establish a speed benefit.', '- Every dispatched request has all expected phase records and an owner acceptance before 2000 ms. Final diagrams registries remain enabled, and document notices contain no timeout.', '- Input evaluation callback only acknowledges that evaluation returning; bootstrap dispatch is asynchronous. Callback-to-drain includes renderer work, scheduling and polling, so it cannot be called pure response-transfer latency.', '- Renderer versions differ, but there is no randomized order, matching CPU-load capture or sufficient repeated distribution. First-use variance is present in the old version itself. Do not infer a regression or a performance fix from this small sample.', '- All new observations are successful runs. They do not locate the unobserved slow stage of historical Print04 and cannot close that failure.', '', 'No instrumentation/product changes, native build or UI execution were performed during this analysis.']
+(out/'old-new-print-comparison.md').write_text('\n'.join(lines)+'\n')
+print('\n'.join(lines))

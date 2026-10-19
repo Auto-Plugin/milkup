@@ -1,0 +1,43 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ❯ src/output-presentations-queue.test.ts (4 tests | 1 failed) 41ms
+   × output preparation through the real isolated renderer queue > allows 1500ms screen ownership then 1500ms export execution without spending the execution deadline in queue 27ms
+     → expected [ { phase: 'cancel', …(2) } ] to deeply equal []
+   ✓ output preparation through the real isolated renderer queue > keeps the owner 2s execution stop and revocation even when the caller has cancelled first 7ms
+   ✓ output preparation through the real isolated renderer queue > cancels queued export without dispatching it or cancelling the screen owner 2ms
+   ✓ output preparation through the real isolated renderer queue > discards a cancelled active result and waits for its owner settlement before advancing the queue 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/output-presentations-queue.test.ts > output preparation through the real isolated renderer queue > allows 1500ms screen ownership then 1500ms export execution without spending the execution deadline in queue
+AssertionError: expected [ { phase: 'cancel', …(2) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "at": 2000,
++     "id": "render_2",
++     "phase": "cancel",
++   },
++ ]
+
+ ❯ src/output-presentations-queue.test.ts:213:71
+    211|       expect(owner.revoked).not.toHaveBeenCalled()
+    212|       // Old adapter cancels render_2 at t=2000, only 500ms into its e…
+    213|       expect(owner.trace.filter((event) => event.phase === 'cancel')).…
+       |                                                                       ^
+    214|       expect(captured.warnings).toEqual([])
+    215|       expect(captured.presentations.flatMap((batch) => batch.result.fr…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed (4)
+   Start at  06:34:42
+   Duration  1.18s (transform 633ms, setup 0ms, collect 839ms, tests 41ms, environment 0ms, prepare 71ms)
+

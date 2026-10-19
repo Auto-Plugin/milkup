@@ -282,6 +282,18 @@ impl Instance {
                 _ => return Err("Unsupported DOM message".into()),
             }
         }
+        if native_diagnostics_enabled()
+            && message["protocol"] == RENDER_PROTOCOL
+            && message["type"] == "render"
+        {
+            // Metadata collection never holds the watchdog control lock.
+            native_trace_fields(
+                "render-request",
+                Some(&self.id),
+                valid_id(&message),
+                Some(render_trace_fields(&message)),
+            );
+        }
         let result = (|| {
             let mut ready = self.input_ready.lock().map_err(|e| e.to_string())?;
             while !*ready {
@@ -310,6 +322,9 @@ impl Instance {
         result
     }
     fn receive(&self, message: Value) {
+        if message["protocol"] == RENDER_PROTOCOL && message["type"] == "result" {
+            native_trace("owner-frame-received", Some(&self.id), valid_id(&message));
+        }
         // All child parsing and payload sizing precede the final monotonic
         // settlement decision; no expensive serialization owns control.
         let oversized = message
@@ -378,6 +393,9 @@ impl Instance {
         }
         self.wake.notify_all();
         drop(control);
+        if message["protocol"] == RENDER_PROTOCOL {
+            native_trace("owner-result-accepted", Some(&self.id), valid_id(&message));
+        }
         (self.emit)(self.event("message", Some(message), None, None));
     }
     fn watch(&self) {

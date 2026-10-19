@@ -41,10 +41,22 @@ const rich =
   process.env.MILKUP_P5_PAPER_LAYOUT !== '1'
 const bundledRich = rich && process.env.MILKUP_P5_BUNDLED_RICH === '1'
 const diagramArchive =
+  process.env.MILKUP_P5_DIAGRAM_ARCHIVE ||
   '/workspace/milkup-mermaid-engine-evidence/research/renderer-exact-memo-product-integration-01/artifacts/milkup.diagrams-1.1.1.milkup-plugin'
-const diagramSha256 = '2351692438a2083a72bcb8cddce28c7a530a8557734926992a3a2e3120c68a19'
+const diagramSha256 =
+  process.env.MILKUP_P5_DIAGRAM_ARCHIVE_SHA256 ||
+  '2351692438a2083a72bcb8cddce28c7a530a8557734926992a3a2e3120c68a19'
+const diagramVersion = process.env.MILKUP_P5_DIAGRAM_VERSION || '1.1.1'
+if (process.env.MILKUP_P5_DIAGRAM_ARCHIVE)
+  assert(process.env.MILKUP_P5_DIAGRAM_ARCHIVE_SHA256 && process.env.MILKUP_P5_DIAGRAM_VERSION)
 if (rich && !bundledRich)
   assert.equal(hash(await readFile(diagramArchive)), diagramSha256, 'Reviewed renderer archive')
+if (rich && !bundledRich) {
+  const candidate = JSON.parse(await readFile(diagramArchive, 'utf8'))
+  assert.equal(candidate.manifest.id, 'milkup.diagrams')
+  assert.equal(candidate.manifest.version, diagramVersion)
+  assert(!diagramArchive.startsWith(path.resolve('plugins') + path.sep))
+}
 await mkdir(output, { recursive: true })
 const fixture = await readFile(
   new URL('../fixtures/p5-output/rich-document.md', import.meta.url),
@@ -95,7 +107,7 @@ const plan = {
   rendererMode: rich
     ? bundledRich
       ? 'bundled 1.1.0 (independent 1.1.1 failure tracked separately)'
-      : 'independent 1.1.1'
+      : `independent ${diagramVersion}`
     : 'disabled fallback',
   richRenderers: rich
     ? {

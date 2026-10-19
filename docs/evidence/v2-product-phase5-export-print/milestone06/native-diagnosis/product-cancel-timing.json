@@ -1,0 +1,543 @@
+{
+  "run": "p5-m06-product-cancel",
+  "complete": false,
+  "terminalStatus": "failed",
+  "failure": {
+    "error": "Error: Timeout: real edit/save produces exact r2",
+    "stack": "Error: Timeout: real edit/save produces exact r2\n    at Object.until (file:///workspace/milkup/tests/helpers/native-production.mjs:46:11)\n    at async cancelThenEdit (file:///workspace/milkup/tests/native/tauri-p5-diagrams-output.mjs:684:3)\n    at async file:///workspace/milkup/tests/native/tauri-p5-diagrams-output.mjs:822:37"
+  },
+  "binarySha256": "6e6c004030fe06146b58d9e40cbd22c7c7d3315c306ceb741f3f58e119ed9d2a",
+  "binaryMatchesRequested": true,
+  "sourceSha256": "9acceef503c58d9538d8a68a3c8d5bcc157cb88deba238eb73a63436725d7708",
+  "inputs": {
+    "/workspace/milkup-export-print-evidence/milestone01/native-ui/logs/p5-m06-product-cancel-driver.log": "0a5dc840b546db86578880fc460cabc98a4ebe350feae4584651b2431995e4bd",
+    "/workspace/milkup-export-print-evidence/milestone01/native-ui/runs/p5-m06-product-cancel/plan.json": "923922e4606999f932f3e6ab5e387ec3dc356e36e47981e31d49035d86e6d31d",
+    "/workspace/milkup-export-print-evidence/milestone01/native-ui/runs/p5-m06-product-cancel/observations.json": "e1dbe43af7b998d2a970a15ced10f449dfb1c406d88bb243e79693add010249a"
+  },
+  "packages": [
+    {
+      "id": "milkup.export-print",
+      "version": "1.0.0",
+      "sha256": "08cd8532ecd209f4794f88de1880e06c16c586ae2997e326450687e1be2181b9"
+    },
+    {
+      "id": "milkup.diagrams",
+      "version": "1.1.1",
+      "sha256": "2351692438a2083a72bcb8cddce28c7a530a8557734926992a3a2e3120c68a19"
+    }
+  ],
+  "requests": [
+    {
+      "instanceId": "d3ef09d8a7eb49f27a2e3402ae72a481789038c87dcc4b16",
+      "requestId": "render_1",
+      "request": {
+        "from": 61,
+        "target": "export",
+        "to": 157,
+        "version": 0
+      },
+      "outputNames": [],
+      "queueWaitMs": null,
+      "queueWaitStatus": "not measured: no frontend enqueue/pump timestamp",
+      "durationsMs": {
+        "ownerDispatchToAccept": 603.475214,
+        "dispatchToHelperDequeue": 5.727638,
+        "dequeueToEvalSubmit": 0.174032,
+        "evalSubmitToCallback": 334.826577,
+        "evalCallbackToResultDrain": 259.750703,
+        "drainToForward": 0.051037,
+        "forwardToOwnerReceive": 2.897465,
+        "ownerReceiveToAccept": 0.047762
+      },
+      "gapFromPriorOwnerAcceptanceMs": null,
+      "phases": [
+        {
+          "instanceId": "d3ef09d8a7eb49f27a2e3402ae72a481789038c87dcc4b16",
+          "monotonicNs": 96597852627141,
+          "phase": "dispatch",
+          "pid": 129903,
+          "requestId": "render_1",
+          "logLine": 23
+        },
+        {
+          "instanceId": "d3ef09d8a7eb49f27a2e3402ae72a481789038c87dcc4b16",
+          "monotonicNs": 96597852660648,
+          "phase": "render-request",
+          "pid": 129903,
+          "request": {
+            "from": 61,
+            "target": "export",
+            "to": 157,
+            "version": 0
+          },
+          "requestId": "render_1",
+          "logLine": 24
+        },
+        {
+          "instanceId": "d3ef09d8a7eb49f27a2e3402ae72a481789038c87dcc4b16",
+          "monotonicNs": 96597858354779,
+          "phase": "helper-dequeued",
+          "pid": 130318,
+          "requestId": "render_1",
+          "logLine": 25
+        },
+        {
+          "instanceId": "d3ef09d8a7eb49f27a2e3402ae72a481789038c87dcc4b16",
+          "monotonicNs": 96597858528811,
+          "phase": "helper-eval-submitted",
+          "pid": 130318,
+          "requestId": "render_1",
+          "logLine": 26
+        },
+        {
+          "instanceId": "d3ef09d8a7eb49f27a2e3402ae72a481789038c87dcc4b16",
+          "monotonicNs": 96598193355388,
+          "phase": "helper-eval-callback",
+          "pid": 130318,
+          "requestId": "render_1",
+          "logLine": 27
+        },
+        {
+          "instanceId": "d3ef09d8a7eb49f27a2e3402ae72a481789038c87dcc4b16",
+          "monotonicNs": 96598453106091,
+          "phase": "helper-result-drained",
+          "pid": 130318,
+          "requestId": "render_1",
+          "logLine": 28
+        },
+        {
+          "instanceId": "d3ef09d8a7eb49f27a2e3402ae72a481789038c87dcc4b16",
+          "monotonicNs": 96598453157128,
+          "phase": "helper-frame-forwarded",
+          "pid": 130318,
+          "requestId": "render_1",
+          "logLine": 29
+        },
+        {
+          "instanceId": "d3ef09d8a7eb49f27a2e3402ae72a481789038c87dcc4b16",
+          "monotonicNs": 96598456054593,
+          "phase": "owner-frame-received",
+          "pid": 129903,
+          "requestId": "render_1",
+          "logLine": 30
+        },
+        {
+          "instanceId": "d3ef09d8a7eb49f27a2e3402ae72a481789038c87dcc4b16",
+          "monotonicNs": 96598456102355,
+          "phase": "owner-result-accepted",
+          "pid": 129903,
+          "requestId": "render_1",
+          "logLine": 31
+        }
+      ]
+    }
+  ],
+  "outputs": [],
+  "deadlineEvents": [],
+  "completion": null,
+  "processLifecycleFile": "/workspace/milkup-export-print-evidence/milestone01/native-ui/runs/p5-m06-product-cancel/process-lifecycle.json",
+  "interpretation": [
+    "Only owner dispatch-to-accept is execution/serialization/transport duration measured against the unchanged native 2s bound.",
+    "Dispatch-to-helper-dequeue is post-dispatch transport/scheduling already inside that native budget; it is not frontend RPC queue waiting.",
+    "Gaps between accepted jobs and next dispatch include host processing/admission and frontend scheduling; no queue wait duration can be derived from these gaps.",
+    "End-to-end output elapsed includes collection, user chooser interactions and writing, so it cannot be compared to the 2s individual renderer bound.",
+    "Warnings in output observations remain evidence even when all native diagrams requests are accepted; native traces do not report other worker providers.",
+    "This production success does not reproduce or resolve the historic native Print04 timeout."
+  ],
+  "cancellationReview": {
+    "uiStatuses": [
+      "本次输出已取消。可以调整选项后重新开始。"
+    ],
+    "activeAtClickConfirmedByHarness": true,
+    "clickStartAfterDispatchMs": 74.115144,
+    "clickEndAfterDispatchMs": 267.966689,
+    "resultDrainAfterDispatchMs": 600.47895,
+    "ownerAcceptanceAfterDispatchMs": 603.475214,
+    "nativeTimeoutObserved": false,
+    "postCancelRetryVerified": false,
+    "reason": "Run failed while verifying exact edited r2 save before successful retry.",
+    "scope": "Click falls inside native request-processing interval, not proof CPU was executing at that instant. Native owner acceptance records a valid terminal envelope, not UI output publication or proof the envelope was successful.",
+    "lifecycle": {
+      "scope": "Own app and observed output helper/guardian descendants only; no process signals sent",
+      "rows": [
+        {
+          "label": "before-output",
+          "at": "2026-10-19T06:53:30.640Z",
+          "app": {
+            "observed": {
+              "pid": 129903,
+              "parent": 129876,
+              "group": 129861,
+              "birth": "9656890",
+              "state": "S",
+              "exitCodeRaw": "0"
+            },
+            "current": {
+              "pid": 129903,
+              "parent": 129876,
+              "group": 129861,
+              "birth": "9656890",
+              "state": "S",
+              "exitCodeRaw": "0"
+            },
+            "windows": [
+              {
+                "id": "2097153",
+                "title": "milkup-desktop"
+              },
+              {
+                "id": "2097166",
+                "title": "milkup"
+              },
+              {
+                "id": "2097367",
+                "title": "Open File"
+              },
+              {
+                "id": "2098601",
+                "title": "milkup-desktop"
+              },
+              {
+                "id": "2098597",
+                "title": "milkup-desktop"
+              },
+              {
+                "id": "2100135",
+                "title": "Open File"
+              },
+              {
+                "id": "2101183",
+                "title": "milkup-desktop"
+              },
+              {
+                "id": "2102972",
+                "title": "Open File"
+              },
+              {
+                "id": "2103804",
+                "title": "milkup-desktop"
+              }
+            ]
+          },
+          "helpers": []
+        },
+        {
+          "label": "cancelled",
+          "at": "2026-10-19T06:53:31.294Z",
+          "app": {
+            "observed": {
+              "pid": 129903,
+              "parent": 129876,
+              "group": 129861,
+              "birth": "9656890",
+              "state": "S",
+              "exitCodeRaw": "0"
+            },
+            "current": {
+              "pid": 129903,
+              "parent": 129876,
+              "group": 129861,
+              "birth": "9656890",
+              "state": "S",
+              "exitCodeRaw": "0"
+            },
+            "windows": [
+              {
+                "id": "2097153",
+                "title": "milkup-desktop"
+              },
+              {
+                "id": "2097166",
+                "title": "milkup"
+              },
+              {
+                "id": "2097367",
+                "title": "Open File"
+              },
+              {
+                "id": "2098601",
+                "title": "milkup-desktop"
+              },
+              {
+                "id": "2098597",
+                "title": "milkup-desktop"
+              },
+              {
+                "id": "2100135",
+                "title": "Open File"
+              },
+              {
+                "id": "2101183",
+                "title": "milkup-desktop"
+              },
+              {
+                "id": "2102972",
+                "title": "Open File"
+              },
+              {
+                "id": "2103804",
+                "title": "milkup-desktop"
+              }
+            ]
+          },
+          "helpers": []
+        },
+        {
+          "label": "before-app-close",
+          "at": "2026-10-19T06:53:49.812Z",
+          "app": {
+            "observed": {
+              "pid": 129903,
+              "parent": 129876,
+              "group": 129861,
+              "birth": "9656890",
+              "state": "S",
+              "exitCodeRaw": "0"
+            },
+            "current": {
+              "pid": 129903,
+              "parent": 129876,
+              "group": 129861,
+              "birth": "9656890",
+              "state": "S",
+              "exitCodeRaw": "0"
+            },
+            "windows": [
+              {
+                "id": "2097153",
+                "title": "milkup-desktop"
+              },
+              {
+                "id": "2097166",
+                "title": "milkup"
+              },
+              {
+                "id": "2097367",
+                "title": "Open File"
+              },
+              {
+                "id": "2098601",
+                "title": "milkup-desktop"
+              },
+              {
+                "id": "2098597",
+                "title": "milkup-desktop"
+              },
+              {
+                "id": "2100135",
+                "title": "Open File"
+              },
+              {
+                "id": "2101183",
+                "title": "milkup-desktop"
+              },
+              {
+                "id": "2102972",
+                "title": "Open File"
+              },
+              {
+                "id": "2103804",
+                "title": "milkup-desktop"
+              }
+            ]
+          },
+          "helpers": []
+        },
+        {
+          "label": "after-app-close",
+          "at": "2026-10-19T06:53:50.049Z",
+          "app": {
+            "observed": {
+              "pid": 129903,
+              "parent": 129876,
+              "group": 129861,
+              "birth": "9656890",
+              "state": "S",
+              "exitCodeRaw": "0"
+            },
+            "current": null,
+            "windows": []
+          },
+          "helpers": []
+        }
+      ]
+    },
+    "lifecycleLimitation": "Helper list is scoped to observed output helper/guardian descendants; its empty list is not a census of persistent DOM renderer processes. App PID/birth is stable through cancellation, and after-app-close current is null.",
+    "domShutdownEvents": [
+      {
+        "instanceId": "d3ef09d8a7eb49f27a2e3402ae72a481789038c87dcc4b16",
+        "monotonicNs": 96616852357363,
+        "phase": "kill-start",
+        "pid": 130313,
+        "requestId": null
+      },
+      {
+        "instanceId": "d3ef09d8a7eb49f27a2e3402ae72a481789038c87dcc4b16",
+        "monotonicNs": 96616891080548,
+        "phase": "cleanup-complete",
+        "pid": 130313,
+        "requestId": null
+      }
+    ]
+  },
+  "observationSummary": [
+    {
+      "name": "unapproved-milkup.export-print",
+      "at": "2026-10-19T06:53:12.431Z",
+      "statuses": [],
+      "dirty": false,
+      "version": 0,
+      "mode": "live",
+      "notice": "",
+      "diagrams": [
+        {
+          "errors": [],
+          "enabled": true,
+          "sourcePath": "bundled:milkup.diagrams-1.1.0.milkup-plugin",
+          "id": "milkup.diagrams",
+          "state": "enabled",
+          "version": "1.1.0"
+        }
+      ]
+    },
+    {
+      "name": "enabled-milkup.export-print",
+      "at": "2026-10-19T06:53:13.197Z",
+      "statuses": [],
+      "dirty": false,
+      "version": 0,
+      "mode": "live",
+      "notice": "",
+      "diagrams": [
+        {
+          "errors": [],
+          "enabled": true,
+          "sourcePath": "bundled:milkup.diagrams-1.1.0.milkup-plugin",
+          "id": "milkup.diagrams",
+          "state": "enabled",
+          "version": "1.1.0"
+        }
+      ]
+    },
+    {
+      "name": "unapproved-milkup.diagrams",
+      "at": "2026-10-19T06:53:23.018Z",
+      "statuses": [],
+      "dirty": false,
+      "version": 0,
+      "mode": "live",
+      "notice": "",
+      "diagrams": [
+        {
+          "errors": [],
+          "enabled": false,
+          "sourcePath": "/workspace/milkup-mermaid-engine-evidence/research/renderer-exact-memo-product-integration-01/artifacts/milkup.diagrams-1.1.1.milkup-plugin",
+          "id": "milkup.diagrams",
+          "state": "disabled",
+          "version": "1.1.1"
+        }
+      ]
+    },
+    {
+      "name": "enabled-milkup.diagrams",
+      "at": "2026-10-19T06:53:24.915Z",
+      "statuses": [],
+      "dirty": false,
+      "version": 0,
+      "mode": "live",
+      "notice": "",
+      "diagrams": [
+        {
+          "errors": [],
+          "enabled": true,
+          "sourcePath": "/workspace/milkup-mermaid-engine-evidence/research/renderer-exact-memo-product-integration-01/artifacts/milkup.diagrams-1.1.1.milkup-plugin",
+          "id": "milkup.diagrams",
+          "state": "enabled",
+          "version": "1.1.1"
+        }
+      ]
+    },
+    {
+      "name": "fixture-opened-no-render-warmup",
+      "at": "2026-10-19T06:53:29.709Z",
+      "statuses": [],
+      "dirty": false,
+      "version": 0,
+      "mode": "source",
+      "notice": "",
+      "diagrams": [
+        {
+          "errors": [],
+          "enabled": true,
+          "sourcePath": "/workspace/milkup-mermaid-engine-evidence/research/renderer-exact-memo-product-integration-01/artifacts/milkup.diagrams-1.1.1.milkup-plugin",
+          "id": "milkup.diagrams",
+          "state": "enabled",
+          "version": "1.1.1"
+        }
+      ]
+    },
+    {
+      "name": "before-output",
+      "at": "2026-10-19T06:53:30.347Z",
+      "statuses": [
+        "将当前文档保存为 HTML、PDF，或发送到打印机。"
+      ],
+      "dirty": false,
+      "version": 0,
+      "mode": "source",
+      "notice": "",
+      "diagrams": [
+        {
+          "errors": [],
+          "enabled": true,
+          "sourcePath": "/workspace/milkup-mermaid-engine-evidence/research/renderer-exact-memo-product-integration-01/artifacts/milkup.diagrams-1.1.1.milkup-plugin",
+          "id": "milkup.diagrams",
+          "state": "enabled",
+          "version": "1.1.1"
+        }
+      ]
+    },
+    {
+      "name": "cancelled",
+      "at": "2026-10-19T06:53:31.476Z",
+      "statuses": [
+        "本次输出已取消。可以调整选项后重新开始。"
+      ],
+      "dirty": false,
+      "version": 0,
+      "mode": "source",
+      "notice": "",
+      "diagrams": [
+        {
+          "errors": [],
+          "enabled": true,
+          "sourcePath": "/workspace/milkup-mermaid-engine-evidence/research/renderer-exact-memo-product-integration-01/artifacts/milkup.diagrams-1.1.1.milkup-plugin",
+          "id": "milkup.diagrams",
+          "state": "enabled",
+          "version": "1.1.1"
+        }
+      ]
+    },
+    {
+      "name": "failure-observation",
+      "at": "2026-10-19T06:53:49.400Z",
+      "statuses": [
+        "本次输出已取消。可以调整选项后重新开始。"
+      ],
+      "dirty": false,
+      "version": 178,
+      "mode": "source",
+      "notice": "已保存",
+      "diagrams": [
+        {
+          "errors": [],
+          "enabled": true,
+          "sourcePath": "/workspace/milkup-mermaid-engine-evidence/research/renderer-exact-memo-product-integration-01/artifacts/milkup.diagrams-1.1.1.milkup-plugin",
+          "id": "milkup.diagrams",
+          "state": "enabled",
+          "version": "1.1.1"
+        }
+      ]
+    }
+  ]
+}

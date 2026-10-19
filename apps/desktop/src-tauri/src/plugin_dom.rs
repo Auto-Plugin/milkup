@@ -537,8 +537,31 @@ fn opaque_id() -> Result<String, String> {
     }
 }
 #[cfg(target_os = "linux")]
+fn native_diagnostics_enabled() -> bool {
+    std::env::var_os("MILKUP_DOM_DIAGNOSTICS").as_deref() == Some(std::ffi::OsStr::new("1"))
+}
+#[cfg(target_os = "linux")]
 fn native_trace(phase: &str, instance_id: Option<&str>, request_id: Option<&str>) {
-    if std::env::var_os("MILKUP_DOM_DIAGNOSTICS").as_deref() != Some(std::ffi::OsStr::new("1")) {
+    native_trace_fields(phase, instance_id, request_id, None);
+}
+#[cfg(target_os = "linux")]
+fn render_trace_fields(message: &Value) -> Value {
+    let request = &message["payload"]["request"];
+    json!({
+        "target": request["target"].as_str().filter(|s| matches!(*s, "screen" | "export")),
+        "version": request["version"].as_u64(),
+        "from": request["from"].as_u64(),
+        "to": request["to"].as_u64(),
+    })
+}
+#[cfg(target_os = "linux")]
+fn native_trace_fields(
+    phase: &str,
+    instance_id: Option<&str>,
+    request_id: Option<&str>,
+    fields: Option<Value>,
+) {
+    if !native_diagnostics_enabled() {
         return;
     }
     let mut now = libc::timespec {
@@ -563,7 +586,11 @@ fn native_trace(phase: &str, instance_id: Option<&str>, request_id: Option<&str>
             });
         tx
     });
-    let _ = sender.try_send(format!("DOM_NATIVE_TIMING {}", json!({"phase":phase,"instanceId":instance_id.or(inherited.as_deref()),"requestId":request_id,"pid":std::process::id(),"monotonicNs":(now.tv_sec as u64)*1_000_000_000+now.tv_nsec as u64})));
+    let mut record = json!({"phase":phase,"instanceId":instance_id.or(inherited.as_deref()),"requestId":request_id,"pid":std::process::id(),"monotonicNs":(now.tv_sec as u64)*1_000_000_000+now.tv_nsec as u64});
+    if let Some(fields) = fields {
+        record["request"] = fields;
+    }
+    let _ = sender.try_send(format!("DOM_NATIVE_TIMING {record}"));
 }
 
 pub fn run_helper_if_requested() -> bool {
@@ -591,6 +618,24 @@ pub(crate) fn supervise_native_output(renderer: fn()) -> Result<(), String> {
 mod tests {
     use super::*;
     use std::fs;
+    #[test]
+    fn render_diagnostics_include_only_fixed_non_content_fields_without_mutating_input() {
+        let input = json!({"payload":{"request":{"target":"export", "version":7,
+            "from":2,"to":90,"source":"private text","documentId":"private identity",
+            "selection":{"anchor":4,"head":8}}}});
+        let original = input.clone();
+        assert_eq!(
+            render_trace_fields(&input),
+            json!({"target":"export","version":7,"from":2,"to":90})
+        );
+        assert_eq!(input, original);
+        assert_eq!(
+            render_trace_fields(&json!({"payload":{"request":{
+                "target":"private arbitrary text","version":"private","from":{},"to":-1
+            }}})),
+            json!({"target":null,"version":null,"from":null,"to":null})
+        );
+    }
     fn manifest() -> Value {
         json!({"id":"test.dom", "name":"DOM fixture", "version":"1.0.0", "host":"dom", "main":"./dist/main.js", "permissions":["document:read"], "contributes":{"documentRenderers":[{"id":"test.renderer", "contexts":["fence"], "fenceLanguages":["test"]}]}})
     }

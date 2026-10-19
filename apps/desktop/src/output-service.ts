@@ -14,7 +14,7 @@ import {
   type PluginOutputOperationOptions,
 } from '@milkup/plugin'
 import type { DesktopDocumentPresentationOptions } from './document-presentation-service'
-import { collectOutputPresentations } from './output-presentations'
+import { collectOutputPresentations, type OutputPresentationOptions } from './output-presentations'
 
 export interface DesktopOutputCurrent {
   readonly source: EditorDocumentSource
@@ -29,7 +29,7 @@ export interface DesktopOutputServiceOptions {
   readonly current: () => DesktopOutputCurrent | undefined
   readonly invoke: (command: string, args: Record<string, unknown>) => Promise<unknown>
   readonly renderers: DesktopDocumentPresentationOptions['renderers']
-  readonly render: DesktopDocumentPresentationOptions['render']
+  readonly render: OutputPresentationOptions['render']
 }
 interface Captured {
   readonly metadata: PluginOutputSnapshot

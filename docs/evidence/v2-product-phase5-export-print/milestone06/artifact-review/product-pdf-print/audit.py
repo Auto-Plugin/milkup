@@ -1,0 +1,26 @@
+from pathlib import Path
+from PIL import Image,ImageChops
+import json,hashlib,re,subprocess,fitz,shutil
+R=Path('/workspace/milkup-export-print-evidence/milestone01/native-ui/runs'); O=Path(__file__).parent
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+report={'scope':'Actual queue-fix product artifacts; existing PNGs only, no rasterization or browser. Physical printing not exercised.','artifacts':{},'firstRepeatPixels':[],'referenceObjectComparisons':[]}
+for key,run,name in [('letter','p5-m06-product-letter','first'),('printFirst','p5-m06-product-print-02','first'),('printRepeat','p5-m06-product-print-02','repeat')]:
+ d=R/run;p=d/(name+'.pdf');plan=json.loads((d/'plan.json').read_text());doc=fitz.open(p)
+ raw=subprocess.check_output(['pdftotext','-raw',str(p),'-']).decode();(O/(key+'.raw.txt')).write_text(raw)
+ mupdf=''.join(page.get_text(sort=False) for page in doc);(O/(key+'.mupdf.txt')).write_text(mupdf)
+ markers=plan['fixture']['bodyMarkersExactlyOnce'];counts={m:len(re.findall(re.escape(m)+r'(?![A-Za-z0-9_-])',raw)) for m in markers}
+ obs=json.loads((d/'observations.json').read_text());selected=[{'name':x['name'],'at':x.get('at'),'version':x['document'].get('version'),'sourceSHA':x.get('sourceSha256'),'statuses':x.get('statuses',[])} for x in obs if x.get('document',{}).get('path','').endswith('/source.md')]
+ probes=['中文输入','冻结内容','打印'] if key=='letter' else ['中文输入','冻结内容',"const message = '中文代码 P5-CODE-MARKER'",'👩🏽‍💻']
+ report['artifacts'][key]={'path':str(p),'sha256':sha(p),'bytes':p.stat().st_size,'producerBinarySHA':plan['binarySha256'],'sourceSHA':sha(d/'source.md'),'expectedSourceSHA':plan['fixture']['sourceSHA256'],'pages':len(doc),'pageSizesPt':[list(page.rect)[2:] for page in doc],'bodyMarkerCounts':counts,'allMarkersExactlyOnce':all(n==1 for n in counts.values()),'observations':selected,'rawWarningTail':raw.split('导出警告')[-1].strip(),'exactUnicode':{'normalization':'NONE','Poppler':{v:v in raw for v in probes},'MuPDF':{v:v in mupdf for v in probes}},'sourceFenceLiteralPresent':'flowchart LR' in raw,'pngs':[{'path':str(f),'sha256':sha(f),'dimensions':list(Image.open(f).size)} for f in sorted(d.glob(name+'.pdf.page-*.png'))]}
+for n in range(1,8):
+ d=R/'p5-m06-product-print-02';a=Image.open(d/f'first.pdf.page-{n}.png').convert('RGB');b=Image.open(d/f'repeat.pdf.page-{n}.png').convert('RGB');diff=ImageChops.difference(a,b)
+ report['firstRepeatPixels'].append({'page':n,'dimensions':list(a.size),'RGBExact':diff.getbbox() is None,'differenceBBox':diff.getbbox(),'changedPixels':sum(px!=(0,0,0) for px in diff.getdata())})
+a=fitz.open(R/'p5-m06-product-print-02/repeat.pdf')
+for label,ref in [('PDF05',R/'p5-pdf-05/a4-portrait.pdf'),('oldTrace111',R/'p5-m06-old-print-01/printed.pdf'),('rejectedCandidateTrace112',R/'p5-m06-new-print-01/printed.pdf')]:
+ b=fitz.open(ref);diff=[x for x in range(1,min(a.xref_length(),b.xref_length())) if a.xref_object(x)!=b.xref_object(x) or a.xref_stream(x)!=b.xref_stream(x)]
+ report['referenceObjectComparisons'].append({'reference':str(ref),'sha256':sha(ref),'label':label,'xrefLengths':[a.xref_length(),b.xref_length()],'differingObjects':diff,'differences':[{'xref':x,'actual':a.xref_object(x),'reference':b.xref_object(x)} for x in diff],'crossReferencePixelComparison':'NOT_RUN: prior PNGs 1250/1400px differ from current1123px; no resizing or rerasterization. Object equality is recorded separately, not called pixel equality.'})
+report['visual']={'reviewed':'All 7 first-print page PNGs plus repeat pages2/7; remaining repeat pages1,3,4,5,6 are exactRGB duplicates of reviewed first pages. Both Letter PNGs viewed.','letter':'Page1 all3 actual diagrams each3 nodes/2 arrows with readable Chinese, no clipping. Page2 only incomplete warning0–384. Graph visibility PASS; clean completion FAIL.','printFirst':'Page2 actual3node/2arrow graph and both formulas visible. Footnote reference and definition are literal [^p5] source; rich footnotes FAIL. Page7 has5 warnings: incomplete0–5448, expected images622–658/660–717, source fallback885–905/907–950.','printRepeat':'Page2 actual graph and formulas visible, footnote superscript1 and return-reference1 visible. Page7 only expected2 missing/remote image warnings.','allPages':'No observed clipping, overlap or blank content pages. Blue square/white L image visible page1.100 page markers and4 core markers present once each.','graphFirstRepeat':'Graph area page2 unchanged; differing pixels start below graph at y450 (footnote/body) and page7 warnings.','limits':['Visual diagrams are established by actual pixels, not source-label matching.','Raw codepoint/search fidelity still FAIL in both readers; no normalization used.','Long-block orphan boundary not retested or fixed here.','No deterministic timeout reliability claim.']}
+for key,run,names in [('letter','p5-m06-product-letter',['first.pdf.page-1.png','first.pdf.page-2.png']),('print','p5-m06-product-print-02',['first.pdf.page-2.png','first.pdf.page-7.png','repeat.pdf.page-2.png','repeat.pdf.page-7.png'])]:
+ for name in names:shutil.copyfile(R/run/name,O/(key+'-'+name))
+(O/'review.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
+print(json.dumps({k:{'pages':v['pages'],'markers':v['allMarkersExactlyOnce'],'unicode':v['exactUnicode']} for k,v in report['artifacts'].items()},ensure_ascii=False))

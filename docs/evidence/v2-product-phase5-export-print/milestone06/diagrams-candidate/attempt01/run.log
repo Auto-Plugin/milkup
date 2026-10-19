@@ -1,0 +1,30 @@
+11.7.0
+[ENOENT] ENOENT: no such file or directory, mkdir '/home/agent/.local/share/pnpm'
+
+pnpm: ENOENT: no such file or directory, mkdir '/home/agent/.local/share/pnpm'
+    at async Object.mkdir (node:internal/fs/promises:916:10)
+    at async createNewStoreController (file:///workspace/.cache/corepack/v1/pnpm/11.7.0/dist/pnpm.mjs:161837:5)
+    at async installDeps (file:///workspace/.cache/corepack/v1/pnpm/11.7.0/dist/pnpm.mjs:195655:17)
+    at async file:///workspace/.cache/corepack/v1/pnpm/11.7.0/dist/pnpm.mjs:304415:19
+    at async main4 (file:///workspace/.cache/corepack/v1/pnpm/11.7.0/dist/pnpm.mjs:304383:30)
+    at async runPnpm (file:///workspace/.cache/corepack/v1/pnpm/11.7.0/dist/pnpm.mjs:304656:5)
+    at async file:///workspace/.cache/corepack/v1/pnpm/11.7.0/dist/pnpm.mjs:304649:3
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Command failed: install --frozen-lockfile --ignore-scripts --config.manage-package-manager-versions=false --config.verify-store-integrity=true
+
+254 !== 0
+
+    at run (file:///workspace/milkup/plugins/diagrams/scripts/verify-external.mjs:103:10)
+    at async file:///workspace/milkup/plugins/diagrams/scripts/verify-external.mjs:107:1 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 254,
+  expected: 0,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.19.0

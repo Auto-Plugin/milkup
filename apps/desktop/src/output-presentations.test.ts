@@ -1,12 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import {
-  DOCUMENT_PRESENTATION_LIMITS,
-  type DocumentPresentationRequest,
-  type DocumentPresentationResult,
-} from '@milkup/core'
+import type { DocumentPresentationRequest, DocumentPresentationResult } from '@milkup/core'
 import { collectOutputPresentations } from './output-presentations'
 
-afterEach(() => vi.useRealTimers())
+afterEach(() => {
+  vi.useRealTimers()
+  vi.restoreAllMocks()
+})
 const textRenderer = { pluginId: 'generic-text', id: 'text', contexts: ['text'] as const }
 const fenceRenderer = {
   pluginId: 'generic-fence',
@@ -96,14 +95,25 @@ describe('frozen output presentation collection', () => {
     })
     await expect(collectOutputPresentations(input)).rejects.toThrow('stale capture')
   })
-  it('settles an unresponsive renderer within the existing timeout and warns', async () => {
+  it('bounds an unresponsive host by the existing preparation window and warns', async () => {
     vi.useFakeTimers()
     const input = options()
     input.render.mockImplementation(() => new Promise(() => {}))
     const pending = collectOutputPresentations(input)
-    await vi.advanceTimersByTimeAsync(DOCUMENT_PRESENTATION_LIMITS.timeoutMs + 1)
+    await vi.advanceTimersByTimeAsync(10_001)
     const result = await pending
     expect(result.warnings.some((w) => w.code === 'presentation-timeout')).toBe(true)
+  })
+  it('rejects a result past the preparation deadline even before its timer callback runs', async () => {
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+    const input = options()
+    input.render.mockImplementation(async () => {
+      clock.mockReturnValue(10_000)
+      return { complete: true, fragments: [] }
+    })
+    const result = await collectOutputPresentations(input)
+    expect(result.presentations.every((batch) => !batch.result.complete)).toBe(true)
+    expect(result.warnings.some((warning) => warning.code === 'presentation-timeout')).toBe(true)
   })
   it('warns for selection context without guessing a full-document opening state', async () => {
     const input = options('```diagram\nfake\n```')

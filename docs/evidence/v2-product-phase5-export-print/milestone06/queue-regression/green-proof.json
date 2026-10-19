@@ -1,0 +1,36 @@
+{
+  "testsPassed": 7,
+  "testsFailed": 0,
+  "testExit": 0,
+  "desktopTypecheckExit": 0,
+  "publicHostEntry": "createRpcPluginIsolationHost; internally uses actual createDocumentRenderRpcClient",
+  "authority": "trusted in-memory owner simulation; not native performance acceptance",
+  "files": [
+    {
+      "path": "apps/desktop/src/output-presentations-queue.test.ts",
+      "sha256": "9b4add546e3d225a0d50c9bc1f120086989fafa39c0c3cdf0544dc3de8e17ec4"
+    },
+    {
+      "path": "apps/desktop/src/output-presentations.ts",
+      "sha256": "1b74c571c5b776682eaef7f6a5841cbf846bb7c7a3c1e332b0925bd45fd5eddd"
+    },
+    {
+      "path": "apps/desktop/src/document-presentation-service.ts",
+      "sha256": "3533345a0b539444449848f129d2e4d3d8f2a40e4b07f0ca27d951c033502aa3"
+    }
+  ],
+  "addedCases": [
+    {
+      "case": "trusted owner accepts at1500ms, frontend delivers at3000ms",
+      "expected": "success within10s preparation; no2s frontend retimeout"
+    },
+    {
+      "case": "v7 accepted at1500ms; edit and queue v8 at1600ms; v7 delivered2500ms",
+      "expected": "oldcapture revoked; v8 dispatch2500ms and returns3000ms with v8 source"
+    },
+    {
+      "case": "screen accepted1500ms but delivered11000ms; exportqueued at0",
+      "expected": "export preparation timeout10000ms removes queue entry; noexportdispatch afterscreen delivery"
+    }
+  ]
+}

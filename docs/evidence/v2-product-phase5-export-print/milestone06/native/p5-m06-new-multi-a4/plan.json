@@ -1,0 +1,189 @@
+{
+  "stage": "multi",
+  "format": "pdf-a4",
+  "repeatCount": 1,
+  "binary": "/workspace/milkup-export-print-evidence/milestone06/production-trace/milkup-desktop",
+  "binarySha256": "f03894c9efdc7b96729fe1e4e5dd34123bd79bf55ba4068644a41134cf4af4e1",
+  "packages": [
+    {
+      "file": "/workspace/milkup-export-print-evidence/milestone01/plugin/action-id-fix-external/dist/milkup.export-print-1.0.0.milkup-plugin",
+      "sha256": "08cd8532ecd209f4794f88de1880e06c16c586ae2997e326450687e1be2181b9",
+      "manifest": {
+        "id": "milkup.export-print",
+        "name": "导出与打印",
+        "version": "1.0.0",
+        "description": "将整篇文档或所选内容导出为 HTML、PDF，或打印；可选择图片、纸张和方向，并保留开始时的内容版本。",
+        "host": "worker",
+        "main": "./dist/plugin.js",
+        "engines": {
+          "milkup": "^2.0.0-0",
+          "pluginSdk": "^0.3.5"
+        },
+        "permissions": [
+          "document:read",
+          "document:output"
+        ],
+        "icon": "assets/export-print.png",
+        "resources": [
+          "assets/export-print.png"
+        ],
+        "contributes": {
+          "commands": [
+            {
+              "id": "exportPrint.start",
+              "title": "导出或打印文档",
+              "action": "exportPrint.start"
+            },
+            {
+              "id": "exportPrint.retry",
+              "title": "重新导出或打印",
+              "action": "exportPrint.retry"
+            },
+            {
+              "id": "exportPrint.cancel",
+              "title": "取消输出",
+              "action": "exportPrint.cancel"
+            },
+            {
+              "id": "exportPrint.change",
+              "title": "修改输出选项",
+              "action": "exportPrint.change",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "field": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "field",
+                  "value"
+                ]
+              }
+            }
+          ],
+          "ui": [
+            {
+              "id": "export-print-panel",
+              "slot": "sidebar-panel",
+              "title": "导出与打印",
+              "scope": "app",
+              "viewportUpdates": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "file": "/workspace/milkup-export-print-evidence/milestone06/diagrams-candidate/artifacts/milkup.diagrams-1.1.2.milkup-plugin",
+      "sha256": "2e54b8326935b28b6b727315ccef163fd288e1374514f1783e0722d539abdd78",
+      "manifest": {
+        "id": "milkup.diagrams",
+        "name": "Milkup Diagrams",
+        "version": "1.1.2",
+        "description": "使用完整官方 Mermaid 引擎离线呈现图表；无法安全呈现的内容保留完整源码。",
+        "host": "dom",
+        "main": "./dist/plugin.js",
+        "engines": {
+          "milkup": "^2.0.0-0",
+          "pluginSdk": ">=0.3.4 <0.4.0"
+        },
+        "permissions": [
+          "document:read"
+        ],
+        "contributes": {
+          "documentRenderers": [
+            {
+              "id": "diagrams.mermaid",
+              "contexts": [
+                "fence"
+              ],
+              "fenceLanguages": [
+                "mermaid"
+              ]
+            }
+          ]
+        },
+        "resources": [
+          "THIRD-PARTY-NOTICES.txt",
+          "dependency-provenance.json"
+        ]
+      }
+    }
+  ],
+  "fixture": {
+    "id": "multiple-r1",
+    "file": "multiple-r1.md",
+    "format": "markdown",
+    "fixtureRevision": "multiple-r1",
+    "sourceSHA256": "983b8b79396d8ef9619dcf856c67f8ff99091c5c0763f450ed51085cae30dd8c",
+    "sourceBytes": 482,
+    "sourceUtf16": 384,
+    "sourceLines": 30,
+    "diagrams": [
+      {
+        "ordinal": 1,
+        "fromUtf16": 45,
+        "toUtf16": 142,
+        "rangeIncludesClosingNewline": true,
+        "fenceSHA256": "e2b480e9452a9c3ae70e4ec99287ebf48d312723a0312291dadc20f6cae36911",
+        "nodeLabels": [
+          "P5M6M-R1-A 中文输入",
+          "P5M6M-R1-B 冻结内容",
+          "P5M6M-R1-C 打印"
+        ],
+        "nodeCount": 3,
+        "edgeCount": 2
+      },
+      {
+        "ordinal": 2,
+        "fromUtf16": 155,
+        "toUtf16": 252,
+        "rangeIncludesClosingNewline": true,
+        "fenceSHA256": "e2b480e9452a9c3ae70e4ec99287ebf48d312723a0312291dadc20f6cae36911",
+        "nodeLabels": [
+          "P5M6M-R1-A 中文输入",
+          "P5M6M-R1-B 冻结内容",
+          "P5M6M-R1-C 打印"
+        ],
+        "nodeCount": 3,
+        "edgeCount": 2
+      },
+      {
+        "ordinal": 3,
+        "fromUtf16": 265,
+        "toUtf16": 362,
+        "rangeIncludesClosingNewline": true,
+        "fenceSHA256": "ede24a2d6f05018d1637508eaeae50bb00dc906b4ec0b49ac0d03d0557f94bec",
+        "nodeLabels": [
+          "P5M6N-R1-A 中文输入",
+          "P5M6N-R1-B 冻结内容",
+          "P5M6N-R1-C 打印"
+        ],
+        "nodeCount": 3,
+        "edgeCount": 2
+      }
+    ],
+    "bodyMarkersExactlyOnce": [
+      "P5M6-MULTIPLE-R1-BODY",
+      "P5M6-MULTIPLE-R1-END"
+    ],
+    "allowedWarningKinds": [],
+    "forbiddenRevisionMarkers": []
+  },
+  "sourcePath": "/workspace/milkup-export-print-evidence/milestone01/native-ui/runs/p5-m06-new-multi-a4/source.md",
+  "fixtureManifestSha256": "a9158343a1f06c4d87ba2bce32b746c60bbc2011f394bb51b57d9ef71cec15fa",
+  "preparedOnly": false,
+  "memoryMeasurement": "not sampled; preload memory increment is unknown",
+  "nativeLog": "/workspace/milkup-export-print-evidence/milestone01/native-ui/logs/p5-m06-new-multi-a4-driver.log",
+  "boundaries": [
+    "No renderer deadline/isolation changes; existing 2s budget remains.",
+    "First output is not proof of first render: the editor may pre-render.",
+    "windowed fixture crosses source windows; this alone does not prove the 60000-line large-file route.",
+    "PDF raster is retained for separate visual review; text presence never proves a diagram.",
+    "Cancel during preparation requires observed preparing UI; active native rendering requires its separate trace evidence."
+  ]
+}

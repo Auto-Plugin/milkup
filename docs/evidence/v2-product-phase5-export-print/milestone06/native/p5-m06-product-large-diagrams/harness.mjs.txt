@@ -1,0 +1,855 @@
+// M06 real UI acceptance; one fresh profile per case/format. Never invokes private IPC.
+// Required env: MILKUP_NATIVE_EVIDENCE_DIR, TAURI_APP_PATH,
+// MILKUP_NATIVE_EXPECTED_BINARY_SHA256, MILKUP_P5_ARCHIVE{,_SHA256},
+// MILKUP_P5M6_DIAGRAM_ARCHIVE{,_SHA256}, MILKUP_P5M6_DIAGRAM_VERSION.
+// MILKUP_P5M6_CASE=first|repeat|multi|windowed|cancel|cancel-chooser|regression|regression-repeat|disable-all|large-diagrams
+// MILKUP_P5M6_FORMAT=html|pdf-a4|pdf-letter|print-to-file; optional MILKUP_P5M6_REPEAT_COUNT=1|2
+// Runtime also requires the existing exclusive-display/profile/driver env and
+// MILKUP_P5_BINARY_CONFIRMED=1, MILKUP_DOM_DIAGNOSTICS=1,
+// MILKUP_P5M6_NATIVE_LOG=<this run's app/driver stderr log>. --preflight starts nothing.
+import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
+import { mkdir, readFile, writeFile, realpath, access, readdir } from 'node:fs/promises'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { startProduction } from '../helpers/native-production.mjs'
+import { nativeFixture, action, x } from '../helpers/native-updates-fixture.mjs'
+import { outputProcessEvidence } from './p5-output-process.mjs'
+
+const required = (key) => (assert(process.env[key], `Set ${key}`), process.env[key])
+const sha = (bytes) => createHash('sha256').update(bytes).digest('hex')
+const output = path.resolve(required('MILKUP_NATIVE_EVIDENCE_DIR'))
+const stage = process.env.MILKUP_P5M6_CASE || 'first'
+const format = process.env.MILKUP_P5M6_FORMAT || 'html'
+const cases = {
+  first: 'single-r1',
+  'disable-all': 'single-r1',
+  repeat: 'single-r1',
+  multi: 'multiple-r1',
+  windowed: 'windowed-r1',
+  'large-diagrams': 'true-windowed-r1',
+  cancel: 'single-r1',
+  'cancel-chooser': 'single-r1',
+  regression: 'print04-regression',
+  'regression-repeat': 'print04-regression',
+}
+assert(Object.hasOwn(cases, stage), 'Known M06 case')
+const repeatCount = Number(
+  process.env.MILKUP_P5M6_REPEAT_COUNT || (stage.endsWith('repeat') ? 2 : 1),
+)
+assert([1, 2].includes(repeatCount), 'Repeat count must be 1 or 2')
+const fixtureRoot = path.resolve(
+  process.env.MILKUP_P5M6_FIXTURES ||
+    fileURLToPath(new URL('../fixtures/p5-output/milestone06/', import.meta.url)),
+)
+const manifest = JSON.parse(await readFile(path.join(fixtureRoot, 'manifest.json'), 'utf8'))
+const settings = manifest.formats.find((item) => item.id === format)
+assert(settings, 'Known M06 format')
+async function fixture(id) {
+  const spec = manifest.fixtures.find((item) => item.id === id)
+  assert(spec, id)
+  const bytes = await readFile(path.join(fixtureRoot, spec.file))
+  assert.equal(sha(bytes), spec.sourceSHA256, 'Frozen fixture ' + id)
+  return { spec, bytes }
+}
+async function archive(key, id, version) {
+  const file = await realpath(required(key)),
+    bytes = await readFile(file)
+  assert.equal(sha(bytes), required(key + '_SHA256'))
+  const bundle = JSON.parse(bytes)
+  assert.equal(bundle.manifest.id, id)
+  assert.equal(bundle.manifest.version, version)
+  assert(!file.startsWith(path.resolve('plugins') + path.sep), 'Independent package required')
+  return { file, sha256: sha(bytes), manifest: bundle.manifest }
+}
+const packages = [
+  await archive('MILKUP_P5_ARCHIVE', 'milkup.export-print', '1.0.0'),
+  await archive(
+    'MILKUP_P5M6_DIAGRAM_ARCHIVE',
+    'milkup.diagrams',
+    required('MILKUP_P5M6_DIAGRAM_VERSION'),
+  ),
+]
+const binary = await realpath(required('TAURI_APP_PATH'))
+assert(!binary.includes('/target/'), 'Frozen binary copy required')
+assert.equal(sha(await readFile(binary)), required('MILKUP_NATIVE_EXPECTED_BINARY_SHA256'))
+await mkdir(output, { recursive: true })
+// Exclusive creation protects previous successes AND failures from accidental rerun.
+await writeFile(path.join(output, 'm06-run.lock'), new Date().toISOString(), { flag: 'wx' })
+let current = await fixture(cases[stage])
+const sourcePath = path.join(output, 'source.md'),
+  launcher = path.join(output, 'launcher.md')
+await writeFile(sourcePath, current.bytes, { flag: 'wx' })
+await writeFile(launcher, '# M06 plugin installation\n', { flag: 'wx' })
+for (const resource of manifest.resources || []) {
+  const from = path.resolve(fixtureRoot, resource.file),
+    to = path.resolve(output, resource.file)
+  assert(
+    from.startsWith(fixtureRoot + path.sep) && to.startsWith(output + path.sep),
+    'Fixture resource stays within owned roots',
+  )
+  const bytes = await readFile(from)
+  assert.equal(sha(bytes), resource.sha256, 'Frozen fixture resource')
+  await mkdir(path.dirname(to), { recursive: true })
+  await writeFile(to, bytes, { flag: 'wx' })
+}
+const json = (name, value) =>
+  writeFile(path.join(output, name + '.json'), JSON.stringify(value, null, 2) + '\n')
+const plan = {
+  stage,
+  format,
+  repeatCount,
+  binary,
+  binarySha256: sha(await readFile(binary)),
+  packages,
+  fixture: current.spec,
+  sourcePath,
+  fixtureManifestSha256: sha(await readFile(path.join(fixtureRoot, 'manifest.json'))),
+  preparedOnly: process.argv.includes('--preflight'),
+  memoryMeasurement: 'not sampled; preload memory increment is unknown',
+  nativeLog: process.env.MILKUP_P5M6_NATIVE_LOG ?? null,
+  boundaries: [
+    'No renderer deadline/isolation changes; existing 2s budget remains.',
+    'First output is not proof of first render: the editor may pre-render.',
+    'windowed fixture crosses source windows; this alone does not prove the 60000-line large-file route.',
+    'PDF raster is retained for separate visual review; text presence never proves a diagram.',
+    'Cancel during preparation requires observed preparing UI; active native rendering requires its separate trace evidence.',
+  ],
+}
+await json('plan', plan)
+await writeFile(
+  path.join(output, 'harness.mjs.txt'),
+  await readFile(fileURLToPath(import.meta.url)),
+)
+if (plan.preparedOnly) {
+  console.log('M06 PREPARED; no application or driver started')
+  process.exit(0)
+}
+assert.equal(required('MILKUP_P5_BINARY_CONFIRMED'), '1')
+assert.equal(required('MILKUP_NATIVE_EXCLUSIVE_DISPLAY'), '1')
+assert.equal(required('MILKUP_DOM_DIAGNOSTICS'), '1')
+required('DISPLAY')
+required('TAURI_DRIVER_URL')
+const profile = path.resolve(required('MILKUP_NATIVE_PROFILE_ROOT'))
+for (const key of ['XDG_DATA_HOME', 'XDG_CONFIG_HOME', 'XDG_CACHE_HOME'])
+  assert(path.resolve(required(key)).startsWith(profile + path.sep), key)
+const nativeLog = path.resolve(required('MILKUP_P5M6_NATIVE_LOG'))
+await access(nativeLog)
+let app,
+  lifecycle,
+  completed = false
+const ui = nativeFixture(() => app),
+  rows = []
+const panel = '[data-plugin-ui="milkup.export-print:export-print-panel"]'
+const command = (name) => `${panel} [data-plugin-command="exportPrint.${name}"]`
+const panelText = () =>
+  app.execute('return document.querySelector(arguments[0])?.textContent ?? ""', panel)
+async function traces() {
+  const raw = await readFile(nativeLog, 'utf8')
+  await writeFile(path.join(output, 'native-timing.log'), raw)
+  return raw.split('\n').flatMap((line) => {
+    const i = line.indexOf('DOM_NATIVE_TIMING ')
+    if (i < 0) return []
+    try {
+      return [JSON.parse(line.slice(i + 18))]
+    } catch {
+      return []
+    }
+  })
+}
+async function observe(name, extra = {}) {
+  const sourceBytes = await readFile(sourcePath)
+  const row = {
+    name,
+    at: new Date().toISOString(),
+    fixtureRevision: current.spec.fixtureRevision,
+    sourceSha256: sha(sourceBytes),
+    sourceBytes: sourceBytes.length,
+    sourceUtf16: sourceBytes.toString('utf8').length,
+    document: await app.probe(),
+    panel: await panelText(),
+    statuses: await app.execute(
+      'return [...document.querySelectorAll(arguments[0]+" [role=status],"+arguments[0]+" [role=alert]")].map(e=>e.textContent)',
+      panel,
+    ),
+    registry: await app.execute(
+      'return JSON.parse(localStorage.getItem("milkup.desktop.plugins.registry.v1")||"{\\"records\\":[]}").records.map(r=>({id:r.manifest.id,version:r.manifest.version,state:r.state,enabled:r.enabled,sourcePath:r.sourcePath,errors:r.errors}))',
+    ),
+    renderDom: await app.execute(
+      'return {editor:document.querySelector(".milkup-editor")?.dataset,nativeWindowed:!!document.querySelector(".milkup-source-document-view"),svgCount:document.querySelectorAll(".milkup-editor svg").length,notice:document.querySelector("[data-notice]")?.textContent}',
+    ),
+    ...extra,
+  }
+  rows.push(row)
+  await json('observations', rows)
+  await traces()
+  return row
+}
+async function click(selector) {
+  await app.focus(selector)
+  const r = await app.execute(
+    'const e=document.querySelector(arguments[0]),r=e.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2,w:innerWidth,h:innerHeight,hit:e.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)),disabled:e.disabled}',
+    selector,
+  )
+  assert(
+    !r.disabled && r.hit && r.x > 0 && r.y > 0 && r.x < r.w && r.y < r.h,
+    'Visible native target ' + selector,
+  )
+  const win = ui.windowId(),
+    scale = Number(/WIDTH=(\d+)/.exec(x('getwindowgeometry', '--shell', win))[1]) / r.w
+  x(
+    'windowfocus',
+    '--sync',
+    win,
+    'mousemove',
+    '--window',
+    win,
+    String(Math.round(r.x * scale)),
+    String(Math.round(r.y * scale)),
+    'click',
+    '1',
+  )
+}
+function windowNamed(title) {
+  try {
+    return x('search', '--onlyvisible', '--name', '^' + title + '$')
+      .split('\n')
+      .at(-1)
+  } catch {
+    return null
+  }
+}
+async function dialog(title) {
+  const win = await app.until(
+    async () => {
+      const error = await app.execute(
+        'return document.querySelector(arguments[0]+" [role=alert]")?.textContent',
+        panel,
+      )
+      if (error) throw Error(error)
+      return windowNamed(title)
+    },
+    title,
+    45000,
+  )
+  x('windowfocus', '--sync', win)
+  await lifecycle.sample('dialog-' + title)
+  return win
+}
+async function install(pkg) {
+  const id = pkg.manifest.id
+  await ui.list()
+  if (await ui.exists(action('details', id))) {
+    await ui.details(id)
+    if (await ui.exists(action('disable', id))) await ui.click(action('disable', id))
+    await ui.click(action('remove', id))
+    await app.until(
+      () =>
+        app.execute(
+          'return !JSON.parse(localStorage.getItem("milkup.desktop.plugins.registry.v1")||"null")?.records.some(r=>r.manifest.id===arguments[0])',
+          id,
+        ),
+      'removed bundled ' + id,
+    )
+  }
+  await ui.list()
+  await ui.click('[data-plugin-action="install"]')
+  await ui.picker(pkg.file)
+  await app.until(
+    () =>
+      app.execute(
+        'return JSON.parse(localStorage.getItem("milkup.desktop.plugins.registry.v1")||"null")?.records.some(r=>r.manifest.id===arguments[0]&&r.sourcePath===arguments[1]&&r.manifest.version===arguments[2])',
+        id,
+        pkg.file,
+        pkg.manifest.version,
+      ),
+    'installed ' + id,
+    30000,
+  )
+  await ui.details(id)
+  await ui.ready(action('approve', id))
+  await observe('unapproved-' + id)
+  await ui.click(action('approve', id))
+  await ui.click(action('enable', id))
+  await ui.ready(action('disable', id))
+  const state = await observe('enabled-' + id)
+  assert(
+    state.registry.some(
+      (r) =>
+        r.id === id &&
+        r.version === pkg.manifest.version &&
+        r.sourcePath === pkg.file &&
+        r.state === 'enabled',
+    ),
+  )
+}
+async function openPanel() {
+  await ui.closeMenu()
+  if (
+    !(await app.execute(
+      'return document.querySelector("[data-sidebar-toggle]")?.getAttribute("aria-pressed")==="true"',
+    ))
+  )
+    await ui.click('[data-sidebar-toggle]')
+  await app.until(
+    () => app.execute('return document.querySelector("#app")?.dataset.sidebarCollapsed==="false"'),
+    'sidebar open',
+  )
+  const toggle = panel + ' .plugin-ui-panel-toggle'
+  await ui.ready(toggle)
+  if (
+    await app.execute(
+      'return document.querySelector(arguments[0])?.getAttribute("aria-expanded")==="false"',
+      toggle,
+    )
+  )
+    await ui.click(toggle)
+}
+async function field(key, value) {
+  const selector = `${panel} [data-plugin-field-control="${key}"]`
+  await ui.ready(selector)
+  await app.focus(selector)
+  const options = await app.execute(
+    'return [...document.querySelector(arguments[0]).options].map(o=>o.value)',
+    selector,
+  )
+  const n = options.indexOf(value)
+  assert(n >= 0)
+  await app.key('Home')
+  for (let i = 0; i < n; i++) await app.key('Down')
+  await app.key('Tab')
+  assert.equal(
+    await app.execute('return document.querySelector(arguments[0]).value', selector),
+    value,
+  )
+}
+async function saveDialog(file, win) {
+  x('windowfocus', '--sync', win, 'key', '--clearmodifiers', 'ctrl+l')
+  await app.delay(150)
+  x('key', '--clearmodifiers', 'ctrl+a')
+  x('type', '--clearmodifiers', '--delay', '2', '--', file)
+  await app.delay(250)
+  x('key', '--clearmodifiers', 'Tab')
+  await app.delay(150)
+  execFileSync('import', ['-window', win, file + '.chooser.png'])
+  const geometry = x('getwindowgeometry', '--shell', win)
+  x(
+    'mousemove',
+    '--window',
+    win,
+    String(Number(/WIDTH=(\d+)/.exec(geometry)[1]) - 50),
+    String(Number(/HEIGHT=(\d+)/.exec(geometry)[1]) - 24),
+    'click',
+    '1',
+  )
+}
+async function printFile(file) {
+  const win = await dialog('Print document')
+  execFileSync('import', [
+    '-window',
+    win,
+    path.join(output, 'print-dialog-' + path.basename(file) + '.png'),
+  ])
+  x('mousemove', '--window', win, '110', '87', 'click', '1')
+  await app.delay(500)
+  x('mousemove', '--window', win, '164', '294', 'click', '1')
+  const pid = x('getwindowpid', win)
+  const picker = await app.until(() => {
+    try {
+      return x('search', '--onlyvisible', '--pid', pid)
+        .split('\n')
+        .filter((id) => id !== win)
+        .at(-1)
+    } catch {
+      return null
+    }
+  }, 'GTK print filename chooser')
+  // GTK's print filename chooser completes the path on Tab; a same-prefix
+  // evidence PNG can otherwise replace the requested PDF name. Use the proven
+  // print-only Enter sequence and keep screenshots outside the target prefix.
+  x('windowfocus', '--sync', picker, 'key', '--clearmodifiers', 'ctrl+l')
+  await app.delay(150)
+  x('key', '--clearmodifiers', 'ctrl+a')
+  x('type', '--clearmodifiers', '--delay', '2', '--', file)
+  execFileSync('import', [
+    '-window',
+    picker,
+    path.join(output, 'print-target-' + path.basename(file) + '.png'),
+  ])
+  x('key', '--clearmodifiers', 'Return')
+  await app.until(
+    () => !x('search', '--onlyvisible', '--pid', pid).split('\n').includes(picker),
+    'print filename selected',
+  )
+  x('windowfocus', '--sync', win)
+  execFileSync('import', [
+    '-window',
+    win,
+    path.join(output, 'print-selected-' + path.basename(file) + '.png'),
+  ])
+  const geometry = x('getwindowgeometry', '--shell', win)
+  x(
+    'mousemove',
+    '--window',
+    win,
+    String(Number(/WIDTH=(\d+)/.exec(geometry)[1]) - 55),
+    String(Number(/HEIGHT=(\d+)/.exec(geometry)[1]) - 29),
+    'click',
+    '1',
+  )
+}
+const xmlText = (s) =>
+  s.replace(/&(#x[\da-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (_, entity) => {
+    if (entity[0] === '#')
+      return String.fromCodePoint(
+        Number.parseInt(
+          entity.slice(entity[1].toLowerCase() === 'x' ? 2 : 1),
+          entity[1].toLowerCase() === 'x' ? 16 : 10,
+        ),
+      )
+    return { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" }[entity.toLowerCase()]
+  })
+function htmlGeometry(html) {
+  const svgs = [...html.matchAll(/<svg\b[\s\S]*?<\/svg>/gi)].map((m) => m[0])
+  assert.equal(svgs.length, current.spec.diagrams.length, 'Actual diagram SVG count')
+  const allIds = svgs.flatMap((svg) =>
+    [...svg.matchAll(/\bid="([^"]+)"/g)].map((m) => xmlText(m[1])),
+  )
+  assert.equal(new Set(allIds).size, allIds.length, 'SVG IDs unique across all diagrams')
+  assert(!/<script\b|<iframe\b|<foreignObject\b|\bon(?:load|error)=/i.test(html), 'Inert export')
+  assert(!html.includes('flowchart LR'), 'No Mermaid source fallback')
+  return svgs.map((svg, i) => {
+    const ids = new Set([...svg.matchAll(/\bid="([^"]+)"/g)].map((m) => xmlText(m[1])))
+    const localRefs = [
+      ...svg.matchAll(/url\(["']?#([^\s)"']+)["']?\)/g),
+      ...svg.matchAll(/(?:href|xlink:href)="#([^"]+)"/g),
+    ]
+    for (const ref of localRefs)
+      assert(ids.has(xmlText(ref[1])), 'SVG local URL/href reference resolves within diagram')
+    const visibleText = xmlText(
+      svg.replace(/<style\b[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' '),
+    ).replace(/\s+/g, ' ')
+    for (const label of current.spec.diagrams[i].nodeLabels)
+      assert(
+        visibleText.includes(label.replace(/\s+/g, ' ')),
+        'Label in actual SVG, supplementary to geometry: ' + label,
+      )
+    const viewBox = /\bviewBox="([^"]+)"/
+      .exec(svg)?.[1]
+      .trim()
+      .split(/[\s,]+/)
+      .map(Number)
+    const paths = [...svg.matchAll(/<path\b[^>]*\bd="([^"]+)"/g)].filter((m) =>
+      /[MLCQ]/i.test(m[1]),
+    )
+    const arrows = [...svg.matchAll(/\bmarker-(?:end|start)="url\(#([^\)]+)\)"/g)]
+    const shapes = (svg.match(/<(?:rect|polygon|ellipse|circle)\b/g) || []).length
+    assert(
+      viewBox?.length === 4 && viewBox.every(Number.isFinite) && viewBox[2] > 0 && viewBox[3] > 0,
+      'Positive diagram viewBox',
+    )
+    assert(
+      paths.length >= current.spec.diagrams[i].edgeCount &&
+        shapes >= current.spec.diagrams[i].nodeCount,
+      'Diagram has real edge paths and node geometry',
+    )
+    assert(arrows.length >= current.spec.diagrams[i].edgeCount, 'Actual edge arrow references')
+    for (const ref of arrows)
+      assert(svg.includes(`id="${ref[1]}"`), 'Arrow marker resolves in same SVG')
+    return {
+      viewBox,
+      paths: paths.length,
+      shapes,
+      arrowReferences: arrows.length,
+      svgSha256: sha(svg),
+    }
+  })
+}
+const markerCount = (text, marker) =>
+  (
+    text.match(
+      new RegExp(
+        '(?<![A-Za-z0-9_-])' + marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![A-Za-z0-9_-])',
+        'g',
+      ),
+    ) || []
+  ).length
+async function artifact(file) {
+  const bytes = await readFile(file),
+    result = {
+      file,
+      sha256: sha(bytes),
+      bytes: bytes.length,
+      visualReview: 'pending independent review',
+    }
+  if (format === 'html') {
+    const html = bytes.toString('utf8')
+    result.diagrams = htmlGeometry(html)
+    for (const marker of current.spec.bodyMarkersExactlyOnce)
+      assert.equal(markerCount(html, marker), 1, marker)
+    for (const marker of current.spec.forbiddenRevisionMarkers || [])
+      assert(!html.includes(marker), 'No stale revision ' + marker)
+  } else {
+    assert(
+      bytes.subarray(0, 5).equals(Buffer.from('%PDF-')) &&
+        bytes.subarray(-1024).includes(Buffer.from('%%EOF')),
+    )
+    const info = execFileSync('pdfinfo', [file], { encoding: 'utf8' })
+    await writeFile(file + '.info.txt', info)
+    const dimensions = /^Page size:\s+([\d.]+) x ([\d.]+)/m.exec(info),
+      expected = settings.landscape ? [792, 612] : [595.28, 841.89]
+    assert(
+      dimensions && expected.every((v, i) => Math.abs(v - Number(dimensions[i + 1])) < 2),
+      'Actual paper size',
+    )
+    execFileSync('pdftoppm', ['-png', '-r', '96', file, file + '.page'], { timeout: 180000 })
+    const extracted = execFileSync('pdftotext', ['-layout', file, '-'], { encoding: 'utf8' })
+    await writeFile(file + '.text.txt', extracted)
+    // These ASCII body/revision checks are independent of diagram/pixel fidelity.
+    for (const marker of current.spec.bodyMarkersExactlyOnce)
+      assert.equal(markerCount(extracted, marker), 1, marker)
+    for (const marker of current.spec.forbiddenRevisionMarkers || [])
+      assert(!extracted.includes(marker), 'No stale revision ' + marker)
+    result.diagramFidelity =
+      'NOT_ASSERTED: inspect all page rasters; extracted labels are not diagram evidence'
+  }
+  await json(path.basename(file) + '.artifact', result)
+  return result
+}
+async function begin() {
+  const before = await observe('before-output'),
+    traceStart = (await traces()).length,
+    started = Date.now()
+  await lifecycle.sample('before-output')
+  await click((await ui.exists(command('retry'))) ? command('retry') : command('start'))
+  return { before, traceStart, started }
+}
+async function exportOnce(name) {
+  const start = await begin(),
+    file = path.join(output, name + (format === 'html' ? '.html' : '.pdf'))
+  if (format === 'print-to-file') await printFile(file)
+  else await saveDialog(file, await dialog('Choose output destination'))
+  await app.until(
+    async () => {
+      const error = await app.execute(
+        'return document.querySelector(arguments[0]+" [role=alert]")?.textContent',
+        panel,
+      )
+      if (error) throw Error(error)
+      return /已保存|已提交打印/.test(await panelText())
+    },
+    'output committed',
+    180000,
+  )
+  await lifecycle.released(name)
+  const after = await observe(name, {
+    elapsedMs: Date.now() - start.started,
+    artifact: await artifact(file),
+    traces: (await traces()).slice(start.traceStart),
+  })
+  assert.equal(after.sourceSha256, current.spec.sourceSHA256)
+  assert.match(
+    after.panel,
+    new RegExp(`版本 ${start.before.document.version} ·`),
+    'Visible captured version',
+  )
+  assert.equal(after.document.version, start.before.document.version, 'No edits during output')
+  await app.shot(name)
+}
+function cancellationIntervals(requests, trace, clickStarted, clickFinished) {
+  return requests.map((request) => {
+    const timeline = trace
+      .filter(
+        (r) =>
+          r.instanceId === request.instanceId &&
+          r.requestId === request.requestId &&
+          Number.isFinite(r.monotonicNs),
+      )
+      .sort((a, b) => a.monotonicNs - b.monotonicNs)
+    const first = (phases) => timeline.find((r) => phases.includes(r.phase)) ?? null
+    const dispatch = first(['dispatch']),
+      submitted = first(['helper-eval-submitted'])
+    const drained = first(['helper-result-drained'])
+    const earliestTerminal = first([
+      'owner-result-accepted',
+      'deadline-observed',
+      'control-emitted',
+    ])
+    const timeoutObserved = timeline.some(
+      (r) => r.phase === 'deadline-observed' || r.phase === 'control-emitted',
+    )
+    const intervalIncludesClick =
+      Number.isFinite(clickStarted) &&
+      Number.isFinite(clickFinished) &&
+      !!dispatch &&
+      !!submitted &&
+      !!drained &&
+      !!earliestTerminal &&
+      dispatch.monotonicNs <= clickStarted &&
+      submitted.monotonicNs <= clickStarted &&
+      drained.monotonicNs >= clickFinished &&
+      earliestTerminal.monotonicNs >= clickFinished &&
+      !timeoutObserved
+    return {
+      instanceId: request.instanceId,
+      requestId: request.requestId,
+      dispatch,
+      submitted,
+      drained,
+      earliestTerminal,
+      timeoutObserved,
+      intervalIncludesClick,
+      timeline,
+    }
+  })
+}
+async function cancelThenEdit() {
+  const start = await begin()
+  let evidence
+  if (stage === 'cancel-chooser') {
+    const win = await dialog(
+      format === 'print-to-file' ? 'Print document' : 'Choose output destination',
+    )
+    x('windowfocus', '--sync', win, 'key', '--clearmodifiers', 'Escape')
+    evidence = { checkpoint: 'native-chooser', activeNativeRenderObserved: false }
+  } else {
+    const ready = await app.until(
+      async () => {
+        const text = await panelText()
+        if (!text.includes('正在准备内容与图片')) {
+          if (/请选择保存位置|正在准备打印|已保存|已提交打印/.test(text))
+            throw Error(
+              'NOT_EXERCISED: preparation finished before cancellation; no active-cancel pass',
+            )
+          return false
+        }
+        const recent = (await traces()).slice(start.traceStart)
+        const active = recent
+          .filter((r) => r.phase === 'render-request' && r.request?.target === 'export')
+          .filter(
+            (r) =>
+              !recent.some(
+                (s) =>
+                  s.instanceId === r.instanceId &&
+                  s.requestId === r.requestId &&
+                  ['owner-result-accepted', 'deadline-observed', 'control-emitted'].includes(
+                    s.phase,
+                  ),
+              ),
+          )
+        return {
+          checkpoint: 'preparing-ui',
+          activeNativeRenderObserved: active.length > 0,
+          activeRequests: active,
+        }
+      },
+      'observable preparation',
+      10000,
+    )
+    evidence = { ...ready, clickStartedMonotonicNs: Number(process.hrtime.bigint()) }
+    await click(command('cancel'))
+    evidence.clickFinishedMonotonicNs = Number(process.hrtime.bigint())
+  }
+  await app.until(async () => (await panelText()).includes('已取消'), 'confirmed cancellation')
+  await lifecycle.released('cancelled')
+  await observe('cancelled', {
+    cancellation: evidence,
+    traces: (await traces()).slice(start.traceStart),
+  })
+  const terminalTrace = (await traces()).slice(start.traceStart)
+  evidence.requestIntervals = cancellationIntervals(
+    evidence.activeRequests || [],
+    terminalTrace,
+    evidence.clickStartedMonotonicNs,
+    evidence.clickFinishedMonotonicNs,
+  )
+  evidence.activeAtClickConfirmed = evidence.requestIntervals.some((r) => r.intervalIncludesClick)
+  evidence.activeRenderCoverage = evidence.activeAtClickConfirmed
+    ? 'Native request-processing interval includes the click; UI cancellation and successful retry are separate assertions, not proof of CPU execution at the instant of click'
+    : 'NOT_ESTABLISHED; preparing UI, delayed owner delivery, missing endpoints or timeout cleanup do not prove active render cancellation'
+  await json('cancellation', evidence)
+  assert(
+    !(await readdir(output)).some((name) => /\.(html|pdf)$/.test(name)),
+    'No published target after cancellation',
+  )
+  // A fresh destination is not selected before this cancellation: no output should exist.
+  assert.equal(sha(await readFile(sourcePath)), current.spec.sourceSHA256)
+  await app.focus('.milkup-input-proxy')
+  await app.key('ctrl+1')
+  await app.key('ctrl+a')
+  const next = await fixture('single-r2')
+  await app.text(next.bytes.toString('utf8'))
+  await app.key('ctrl+s')
+  await app.until(
+    async () =>
+      !(await app.probe()).dirty && sha(await readFile(sourcePath)) === next.spec.sourceSHA256,
+    'real edit/save produces exact r2',
+  )
+  assert((await app.probe()).version > start.before.document.version, 'Observed version advanced')
+  current = next
+  await observe('edited-r2')
+  await openPanel()
+  await exportOnce('retry-r2')
+}
+// Host editing acceptance only: this does not change outline or any plugin implementation.
+async function disableAll() {
+  const before = await observe('before-disable-all')
+  for (const id of ['milkup.outline', ...packages.map((p) => p.manifest.id)])
+    assert(
+      before.registry.some((r) => r.id === id && r.state === 'enabled'),
+      'Expected enabled test subject ' + id,
+    )
+  const enabled = before.registry.filter((r) => r.state === 'enabled' || r.enabled)
+  for (const item of enabled) {
+    await ui.details(item.id)
+    await ui.click(action('disable', item.id))
+    await app.until(
+      () =>
+        app.execute(
+          'return JSON.parse(localStorage.getItem("milkup.desktop.plugins.registry.v1")||"null")?.records.some(r=>r.manifest.id===arguments[0]&&r.state==="disabled"&&r.enabled===false)',
+          item.id,
+        ),
+      'disabled ' + item.id,
+    )
+    await observe('disabled-' + item.id)
+  }
+  async function inactive(label) {
+    const row = await observe(label)
+    assert.deepEqual(
+      row.registry.map((r) => r.id).sort(),
+      before.registry.map((r) => r.id).sort(),
+      'Installed identities preserved',
+    )
+    assert(
+      row.registry.every((r) => r.enabled === false && r.state !== 'enabled'),
+      'Every installed plugin inactive',
+    )
+    for (const item of enabled)
+      assert.equal(row.registry.find((r) => r.id === item.id).state, 'disabled')
+    assert.equal(
+      await app.execute(
+        'return document.querySelectorAll(\'[data-plugin-ui],[data-plugin-action="command"],[data-plugin-action="open-ui"]\').length',
+      ),
+      0,
+      'No contributed UI or commands remain',
+    )
+    return row
+  }
+  await ui.closeMenu()
+  await inactive('all-plugins-disabled')
+  for (const mode of ['source', 'live']) {
+    await app.focus('.milkup-input-proxy')
+    await app.key(mode === 'source' ? 'ctrl+1' : 'ctrl+2')
+    await app.until(async () => (await app.probe()).mode === mode, mode + ' ready')
+    await app.focus('.milkup-input-proxy')
+    await app.key('ctrl+Home')
+    const prefix = mode === 'source' ? 'S' : 'L'
+    const editedSha = sha(Buffer.concat([Buffer.from(prefix), current.bytes]))
+    await app.text(prefix)
+    await app.until(
+      async () => (await app.probe()).dirty && (await app.probe()).cursor === 1,
+      mode + ' real input',
+    )
+    await inactive(mode + '-typed')
+    for (const [operation, key, expectedSha] of [
+      ['undo', 'ctrl+z', current.spec.sourceSHA256],
+      ['redo', 'ctrl+shift+z', editedSha],
+      ['restore', 'ctrl+z', current.spec.sourceSHA256],
+    ]) {
+      await app.key(key)
+      await app.key('ctrl+s')
+      await app.until(
+        async () => !(await app.probe()).dirty && sha(await readFile(sourcePath)) === expectedSha,
+        mode + ' ' + operation + ' exact saved bytes',
+      )
+      await inactive(mode + '-' + operation + '-saved')
+    }
+    await app.shot('all-disabled-' + mode)
+  }
+  await json('disable-all', {
+    passed: true,
+    disabledIds: enabled.map((r) => r.id),
+    previouslyInactive: before.registry.filter((r) => !r.enabled && r.state !== 'enabled'),
+    sourceSha256: sha(await readFile(sourcePath)),
+    modes: ['source', 'live'],
+    scope: 'Acceptance through product UI; no outline or plugin implementation changes',
+  })
+}
+try {
+  app = await startProduction(launcher, output, { diagnostics: false })
+  app.click = click
+  x('windowsize', ui.windowId(), '1280', '900')
+  lifecycle = await outputProcessEvidence(Number(x('getwindowpid', ui.windowId())), output)
+  // Wait for normal bundled installation before replacing only the diagram package.
+  await app.until(
+    () =>
+      app.execute(
+        'return JSON.parse(localStorage.getItem("milkup.desktop.plugins.registry.v1")||"{\\"records\\":[]}").records.some(r=>r.manifest.id==="milkup.diagrams"&&r.state==="enabled")',
+      ),
+    'bundled registry ready',
+    45000,
+  )
+  for (const pkg of packages) await install(pkg)
+  await ui.closeMenu()
+  await app.focus('.milkup-input-proxy')
+  await app.key('ctrl+1')
+  await ui.click('[data-menu-toggle]')
+  await ui.click('[data-menu-section="file"]')
+  await ui.click('[data-command="open-sample"]')
+  await ui.picker(sourcePath)
+  await app.until(async () => {
+    const p = await app.probe()
+    return p.path === sourcePath && p.loading !== 'opening'
+  }, 'fixture opened and source ready')
+  const opened = await observe('fixture-opened-no-render-warmup')
+  if (stage === 'large-diagrams') {
+    assert(opened.renderDom.nativeWindowed, 'Actual native source-document view required')
+    assert.match(
+      opened.document.notice || '',
+      /已用原生大文件路径打开预览/,
+      'Native large-file open must succeed without memory fallback',
+    )
+  }
+  if (stage === 'disable-all') await disableAll()
+  else {
+    await openPanel()
+    await field('format', format === 'html' ? 'html' : format === 'print-to-file' ? 'print' : 'pdf')
+    if (format !== 'html') {
+      await field('pageSize', settings.pageSize)
+      await field('orientation', settings.landscape ? 'landscape' : 'portrait')
+    }
+    if (stage.startsWith('cancel')) await cancelThenEdit()
+    else {
+      await exportOnce('first')
+      if (repeatCount === 2) await exportOnce('repeat')
+    }
+  }
+  completed = true
+} catch (error) {
+  await json('failure', { error: String(error), stack: error.stack, rows })
+  if (app) {
+    await observe('failure-observation').catch(() => {})
+    await app.shot('failure').catch(() => {})
+  }
+  throw error
+} finally {
+  try {
+    await lifecycle?.sample('before-app-close')
+  } finally {
+    await app?.close()
+  }
+  await lifecycle?.released('after-app-close', true)
+  await traces()
+  if (completed)
+    await json('completion', {
+      automatedChecksPassed: true,
+      cancellation: rows.find((r) => r.name === 'cancelled')?.cancellation ?? null,
+      visualReview: 'pending',
+      diagramPdfFidelity: format === 'html' ? 'not applicable' : 'not asserted',
+      stage,
+      format,
+      sourceSha256: sha(await readFile(sourcePath)),
+      physicalPrinting: 'not exercised',
+    })
+}

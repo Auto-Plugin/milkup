@@ -1,0 +1,78 @@
+{
+  "classification": "OLD_PLUGIN_COMPARISON_BASELINE",
+  "adoption": "No 1.1.2 product adoption; formal queue-budget-fix acceptance is a separate future run.",
+  "sourceSHA256": "983b8b79396d8ef9619dcf856c67f8ff99091c5c0763f450ed51085cae30dd8c",
+  "binary": "/workspace/milkup-export-print-evidence/milestone06/production-trace/milkup-desktop",
+  "binarySHA256": "f03894c9efdc7b96729fe1e4e5dd34123bd79bf55ba4068644a41134cf4af4e1",
+  "diagramPackage": {
+    "file": "/workspace/milkup-mermaid-engine-evidence/research/renderer-exact-memo-product-integration-01/artifacts/milkup.diagrams-1.1.1.milkup-plugin",
+    "sha256": "2351692438a2083a72bcb8cddce28c7a530a8557734926992a3a2e3120c68a19",
+    "manifest": {
+      "id": "milkup.diagrams",
+      "name": "Milkup Diagrams",
+      "version": "1.1.1",
+      "description": "使用完整官方 Mermaid 引擎离线呈现图表；无法安全呈现的内容保留完整源码。",
+      "host": "dom",
+      "main": "./dist/plugin.js",
+      "engines": {
+        "milkup": "^2.0.0-0",
+        "pluginSdk": ">=0.3.4 <0.4.0"
+      },
+      "permissions": [
+        "document:read"
+      ],
+      "contributes": {
+        "documentRenderers": [
+          {
+            "id": "diagrams.mermaid",
+            "contexts": [
+              "fence"
+            ],
+            "fenceLanguages": [
+              "mermaid"
+            ]
+          }
+        ]
+      },
+      "resources": [
+        "THIRD-PARTY-NOTICES.txt",
+        "dependency-provenance.json"
+      ]
+    }
+  },
+  "runtimeObservations": [
+    {
+      "name": "fixture-opened-no-render-warmup",
+      "at": "2026-10-19T06:28:50.816Z",
+      "version": 0,
+      "loading": "ready",
+      "sourcePath": "/workspace/milkup-export-print-evidence/milestone01/native-ui/runs/p5-m06-old-multi-html/source.md",
+      "recordedSourceSHA256": "983b8b79396d8ef9619dcf856c67f8ff99091c5c0763f450ed51085cae30dd8c",
+      "statuses": []
+    },
+    {
+      "name": "before-output",
+      "at": "2026-10-19T06:28:51.417Z",
+      "version": 0,
+      "loading": "ready",
+      "sourcePath": "/workspace/milkup-export-print-evidence/milestone01/native-ui/runs/p5-m06-old-multi-html/source.md",
+      "recordedSourceSHA256": "983b8b79396d8ef9619dcf856c67f8ff99091c5c0763f450ed51085cae30dd8c",
+      "statuses": [
+        "将当前文档保存为 HTML、PDF，或发送到打印机。"
+      ]
+    },
+    {
+      "name": "first",
+      "at": "2026-10-19T06:28:55.715Z",
+      "version": 0,
+      "loading": "ready",
+      "sourcePath": "/workspace/milkup-export-print-evidence/milestone01/native-ui/runs/p5-m06-old-multi-html/source.md",
+      "recordedSourceSHA256": "983b8b79396d8ef9619dcf856c67f8ff99091c5c0763f450ed51085cae30dd8c",
+      "statuses": [
+        "Some rich content could not be rendered completely; original Markdown is retained where needed.",
+        "增强渲染未完成；未渲染部分保留源码。",
+        "已保存 first.html（145.3 KB）。"
+      ]
+    }
+  ]
+}

@@ -255,6 +255,7 @@ fn run_inner() -> Result<(), String> {
     let busy = Rc::new(Cell::new(false));
     let native = view.clone();
     let dispatch_token = serde_json::to_string(&token).map_err(|e| e.to_string())?;
+    let diagnostics = native_diagnostics_enabled();
     glib::timeout_add_local(Duration::from_millis(5), move || {
         if !ready.get() {
             if loaded.get() && guard_ready.get() && !init_started.replace(true) {
@@ -279,12 +280,19 @@ fn run_inner() -> Result<(), String> {
         if busy.get() {
             return glib::ControlFlow::Continue;
         }
+        let mut traced_request = None;
         let script = match receiver.try_recv() {
             Ok(Some(bytes)) => {
                 let Ok(message) = std::str::from_utf8(&bytes) else {
                     gtk::main_quit();
                     return glib::ControlFlow::Break;
                 };
+                if diagnostics {
+                    traced_request = trace_render_id(message, "render").map(str::to_owned);
+                    if let Some(id) = traced_request.as_deref() {
+                        native_trace("helper-dequeued", None, Some(id));
+                    }
+                }
                 format!("this.__milkupDom({dispatch_token},{message})")
             }
             Ok(None) => {
@@ -300,12 +308,18 @@ fn run_inner() -> Result<(), String> {
         busy.set(true);
         let busy = busy.clone();
         let output = output.clone();
+        if let Some(id) = traced_request.as_deref() {
+            native_trace("helper-eval-submitted", None, Some(id));
+        }
         native.evaluate_javascript(
             &script,
             None,
             None,
             None::<&gio::Cancellable>,
             move |result| {
+                if let Some(id) = traced_request.as_deref() {
+                    native_trace("helper-eval-callback", None, Some(id));
+                }
                 busy.set(false);
                 let result = result
                     .ok()
@@ -314,6 +328,14 @@ fn run_inner() -> Result<(), String> {
                 match result {
                     Some(Value::Null) => {}
                     Some(Value::String(message)) if message.len() <= OUTPUT_WIRE_LIMIT => {
+                        // Do not trace empty polls. This records only a render result,
+                        // with no plugin output or document text in the trace.
+                        let traced_result = diagnostics
+                            .then(|| trace_render_id(&message, "result"))
+                            .flatten();
+                        if let Some(id) = traced_result {
+                            native_trace("helper-result-drained", None, Some(id));
+                        }
                         let mut output = output.borrow_mut();
                         if output
                             .write_all(message.as_bytes())
@@ -322,6 +344,8 @@ fn run_inner() -> Result<(), String> {
                             .is_err()
                         {
                             gtk::main_quit();
+                        } else if let Some(id) = traced_result {
+                            native_trace("helper-frame-forwarded", None, Some(id));
                         }
                     }
                     _ => gtk::main_quit(),
@@ -333,4 +357,55 @@ fn run_inner() -> Result<(), String> {
     view.load_uri(URL);
     gtk::main();
     Ok(())
+}
+
+// A read-only diagnostic parser. Unknown envelope data is skipped rather than
+// cloned; a diagnostic parse failure never changes dispatch/forwarding behavior.
+fn trace_render_id<'a>(message: &'a str, expected_type: &str) -> Option<&'a str> {
+    #[derive(Deserialize)]
+    struct Envelope<'a> {
+        protocol: &'a str,
+        #[serde(rename = "type")]
+        kind: &'a str,
+        id: &'a str,
+    }
+    let envelope = serde_json::from_str::<Envelope<'_>>(message).ok()?;
+    (envelope.protocol == RENDER_PROTOCOL
+        && envelope.kind == expected_type
+        && !envelope.id.is_empty()
+        && envelope.id.len() <= 80
+        && envelope
+            .id
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-'))
+    .then_some(envelope.id)
+}
+
+#[cfg(test)]
+mod diagnostic_tests {
+    use super::*;
+    #[test]
+    fn diagnostic_envelope_read_is_content_free_and_never_authorizes_messages() {
+        let message = json!({"protocol":RENDER_PROTOCOL,"type":"render","id":"render_1",
+            "payload":{"request":{"source":"private source","documentId":"private"}}})
+        .to_string();
+        let original = message.clone();
+        assert_eq!(trace_render_id(&message, "render"), Some("render_1"));
+        assert_eq!(trace_render_id(&message, "result"), None);
+        assert_eq!(message, original);
+        for input in [
+            "null",
+            "broken",
+            r#"{"protocol":"other","type":"render","id":"render_1"}"#,
+            r#"{"protocol":"milkup.plugin.document-render.v1","type":"result","id":"private text"}"#,
+        ] {
+            assert_eq!(trace_render_id(input, "result"), None);
+        }
+        // Diagnostic parsing can ignore malformed business payloads, but its
+        // return is used only for trace identity, never dispatch or settlement.
+        let result = json!({"protocol":RENDER_PROTOCOL,"type":"result","id":"render_1",
+            "value":{"private":"ignored"}})
+        .to_string();
+        assert_eq!(trace_render_id(&result, "result"), Some("render_1"));
+    }
 }

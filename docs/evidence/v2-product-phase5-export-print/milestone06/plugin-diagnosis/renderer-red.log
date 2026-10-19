@@ -1,0 +1,112 @@
+
+ RUN  v3.2.6 /workspace/milkup/plugins/diagrams
+
+ ❯ src/renderer.test.ts (55 tests | 2 failed) 1093ms
+   × official Mermaid document wrapper (mock engine; native layout tested separately) > withholds activation until fonts and builtin modules are ready without rendering a document 1014ms
+     → expected "spy" to be called once with arguments: [ [], { lazyLoad: false } ]
+
+Number of calls: 0
+
+   × official Mermaid document wrapper (mock engine; native layout tested separately) > rejects activation when builtin module loading fails instead of exposing a partial renderer 7ms
+     → promise resolved "{ documentRenderers: { …(1) } }" instead of rejecting
+   ✓ official Mermaid document wrapper (mock engine; native layout tested separately) > prepares fonts without parsing any document 1ms
+   ✓ official Mermaid document wrapper (mock engine; native layout tested separately) > preserves exact CRLF/Unicode source offsets and returns only typed image data 3ms
+   ✓ official Mermaid document wrapper (mock engine; native layout tested separately) > uses fixed strict baseline settings and host-selected themes for each request 2ms
+   ✓ official Mermaid document wrapper (mock engine; native layout tested separately) > preserves the whole original fence for unsupported-animation 1ms
+   ✓ official Mermaid document wrapper (mock engine; native layout tested separately) > preserves the whole original fence for unsafe-output 0ms
+   ✓ official Mermaid document wrapper (mock engine; native layout tested separately) > preserves the whole original fence for unsupported-feature 0ms
+   ✓ official Mermaid document wrapper (mock engine; native layout tested separately) > preserves the whole original fence for limit-exceeded 0ms
+   ✓ official Mermaid document wrapper (mock engine; native layout tested separately) > preserves the whole original fence for font-unavailable 0ms
+   ✓ official Mermaid document wrapper (mock engine; native layout tested separately) > preserves the whole original fence for invalid-output 0ms
+   ✓ official Mermaid document wrapper (mock engine; native layout tested separately) > cleans the isolated container after an engine error and a missing SVG 1ms
+   ✓ official Mermaid document wrapper (mock engine; native layout tested separately) > does not parse partial, unrelated or malformed ranges 1ms
+   ✓ official Mermaid document wrapper (mock engine; native layout tested separately) > rejects custom fence parameters and engine input limits without truncating source 1ms
+   ✓ official Mermaid document wrapper (mock engine; native layout tested separately) > bounds combined UTF-8 output across separate complete fences 6ms
+   ✓ official Mermaid document wrapper (mock engine; native layout tested separately) > rejects cancellation before parsing and after asynchronous engine work 2ms
+   ✓ official Mermaid document wrapper (mock engine; native layout tested separately) > does not overlap two calls into the engine singleton 1ms
+   ✓ private exact-request successful-result memo (prepared contract) > renders byte-identical full requests once and returns independent results 2ms
+   ✓ private exact-request successful-result memo (prepared contract) > does not reuse a result after changing theme 1ms
+   ✓ private exact-request successful-result memo (prepared contract) > does not reuse a result after changing width 1ms
+   ✓ private exact-request successful-result memo (prepared contract) > does not reuse a result after changing version 1ms
+   ✓ private exact-request successful-result memo (prepared contract) > does not reuse a result after changing documentId 1ms
+   ✓ private exact-request successful-result memo (prepared contract) > does not reuse a result after changing selection 1ms
+   ✓ private exact-request successful-result memo (prepared contract) > does not reuse a result after changing target 1ms
+   ✓ private exact-request successful-result memo (prepared contract) > does not reuse a result after changing line range 0ms
+   ✓ private exact-request successful-result memo (prepared contract) > does not reuse a result after changing protected ranges 1ms
+   ✓ private exact-request successful-result memo (prepared contract) > isolates mutations of both initial and memo-hit result trees 1ms
+   ✓ private exact-request successful-result memo (prepared contract) > clears entries after DOM Document identity changes, including switching back 1ms
+   ✓ private exact-request successful-result memo (prepared contract) > clears entries after FontFaceSet.ready identity changes, including switching back 0ms
+   ✓ private exact-request successful-result memo (prepared contract) > rejects an already-aborted cache hit without destroying the prior good entry 1ms
+   ✓ private exact-request successful-result memo (prepared contract) > does not retain a task cancelled during engine work 1ms
+   ✓ private exact-request successful-result memo (prepared contract) > does not retain a task cancelled by conversion before publication 1ms
+   ✓ private exact-request successful-result memo (prepared contract) > does not retain engine-error fallback results 1ms
+   ✓ private exact-request successful-result memo (prepared contract) > does not retain conversion-error fallback results 1ms
+   ✓ private exact-request successful-result memo (prepared contract) > does not retain mixed ready/error multi-fence results 1ms
+   ✓ private exact-request successful-result memo (prepared contract) > does not retain incomplete envelope-budget results 3ms
+   ✓ private exact-request successful-result memo (prepared contract) > retains no more than four small exact requests 1ms
+   ✓ private exact-request successful-result memo (prepared contract) > accounts for both serialized keys and values in the 2MiB UTF-16 byte cap 16ms
+   ✓ private exact-request successful-result memo (prepared contract) > bypasses an individually oversized key without evicting a useful small entry 7ms
+   ✓ private exact-request successful-result memo (prepared contract) > keeps singleton reentrancy rejection ahead of a possible cache hit 1ms
+   ✓ private exact-request successful-result memo (prepared contract) > does not memoize unapproved family gantt 1ms
+   ✓ private exact-request successful-result memo (prepared contract) > does not memoize unapproved family flowchart-v2 0ms
+   ✓ private exact-request successful-result memo (prepared contract) > does not memoize unapproved family class 0ms
+   ✓ private exact-request successful-result memo (prepared contract) > invalidates on changed innerWidth 0ms
+   ✓ private exact-request successful-result memo (prepared contract) > invalidates on changed innerHeight 0ms
+   ✓ private exact-request successful-result memo (prepared contract) > invalidates on changed devicePixelRatio 0ms
+   ✓ private exact-request successful-result memo (prepared contract) > invalidates on changed document URL 0ms
+   ✓ private exact-request successful-result memo (prepared contract) > invalidates on changed FontFaceSet identity even if ready is reused 0ms
+   ✓ private exact-request successful-result memo (prepared contract) > bypasses and clears memo while fonts are loading 1ms
+   ✓ private exact-request successful-result memo (prepared contract) > bypasses and clears memo when a stylesheet exists outside the render container 1ms
+   ✓ private exact-request successful-result memo (prepared contract) > does not store when viewport changes during awaited engine work 1ms
+   ✓ private exact-request successful-result memo (prepared contract) > does not store when fonts-loading changes during awaited engine work 0ms
+   ✓ private exact-request successful-result memo (prepared contract) > does not store when stylesheet changes during awaited engine work 0ms
+   ✓ private exact-request successful-result memo (prepared contract) > preparation clears a previous success even when font ready identity is unchanged 0ms
+   ✓ private exact-request successful-result memo (prepared contract) > does not store a complete mixed Sankey and non-Sankey result 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/renderer.test.ts > official Mermaid document wrapper (mock engine; native layout tested separately) > withholds activation until fonts and builtin modules are ready without rendering a document
+AssertionError: expected "spy" to be called once with arguments: [ [], { lazyLoad: false } ]
+
+Number of calls: 0
+
+ ❯ src/renderer.test.ts:145:70
+    143|     fontsReady()
+    144|     try {
+    145|       await vi.waitFor(() => expect(mocked.registerExternalDiagrams).t…
+       |                                                                      ^
+    146|       expect(activated).toBe(false)
+    147|       expect(mocked.parse).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/renderer.test.ts > official Mermaid document wrapper (mock engine; native layout tested separately) > rejects activation when builtin module loading fails instead of exposing a partial renderer
+AssertionError: promise resolved "{ documentRenderers: { …(1) } }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "documentRenderers": {
++     "diagrams.mermaid": [Function renderDocuments],
++   },
+  }
+
+ ❯ src/renderer.test.ts:162:35
+    160|     const failure = new Error('builtin module failed')
+    161|     mocked.registerExternalDiagrams.mockRejectedValueOnce(failure)
+    162|     await expect(plugin.activate()).rejects.toBe(failure)
+       |                                   ^
+    163|     expect(mocked.parse).not.toHaveBeenCalled()
+    164|     expect(mocked.render).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 53 passed (55)
+   Start at  06:14:58
+   Duration  2.33s (transform 517ms, setup 0ms, collect 548ms, tests 1.09s, environment 0ms, prepare 157ms)
+

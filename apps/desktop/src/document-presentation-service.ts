@@ -25,7 +25,7 @@ export interface DesktopDocumentPresentationOptions {
     pluginId: string,
     rendererId: string,
     request: DocumentPresentationRequest,
-    options: { readonly signal: AbortSignal },
+    options: { readonly signal: AbortSignal; readonly deadline: number },
   ) => Promise<DocumentPresentationResult>
 }
 
@@ -133,7 +133,10 @@ export function createDesktopDocumentPresentationService(
           throw new DocumentPresentationError('revoked')
       }
       assertRendererActive()
-      const value = await options.render(declaration.pluginId, declaration.id, input, operation)
+      const value = await options.render(declaration.pluginId, declaration.id, input, {
+        ...operation,
+        deadline,
+      })
       assertCurrent()
       assertRendererActive()
       return copyDocumentPresentationResult(value, input, declaration)
