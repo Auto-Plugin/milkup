@@ -1,0 +1,49 @@
+# P7 search and outline navigation: read-only diagnosis
+
+Baseline: `fa530b399a5ebbd020f9bfa7ca039378604c8282`; production ELF `f15c476a4f6e7b5f254e325692d57e9bfaa798580441dd3554f6c4fe1e9d802e`. Inspection only: no product edits, UI runs, tests, dependency changes or Rust changes. This report does not establish a search fix.
+
+## First full search: measured facts
+
+Source: `../native-ui/runs/p7-baseline-large-source-01/{samples,diagnostics,fixture}.json`; Live: corresponding `p7-baseline-large-live-01` files. Both saved files retain the fixture bytes. Each run supplies one first-query observation, not a search p95.
+
+| Native 10,485,779-byte document | Keydown to matching DOM | Keydown through two rAF callbacks | DOM-to-two-rAF remainder |
+| --- | ---: | ---: | ---: |
+| Source | 465 ms | 546 ms | 81 ms |
+| Live | 499 ms | 566 ms | 67 ms |
+
+The unchanged 500 ms target applies to the latter proxy, so both are failures despite DOM alone being below 500 ms. These are not physical screen presentation times. The harness waits for query `A`, finished search/count `1/1`, and cursor position 1; it therefore includes first-result navigation, not merely native scan completion. Search occurs after reversible edits and successful save at document version 40. “First query” does not mean cold OS caches or an untouched document/view.
+
+Both diagnostics contain exactly one module Worker URL `tauri://localhost/assets/large-search-worker-BwuKh3LS.js`, two incoming messages, and no worker errors/CSP errors. The fixture starts with `A👩🏽‍💻B\r\n`, followed by ASCII body lines. The default case-insensitive native branch requires both query and entire current text window to be ASCII (plus the locale guard). Thus this fixture necessarily routes the first window through the Unicode JS matcher. From the preserved fixture and the native 1 MiB line-aligned step rule, that first window is 1,048,531 bytes / 1,048,523 UTF-16 units / 16,384 LF-terminated lines. This size is source-derived, not a separately instrumented runtime counter. The observed worker messages are consistent with one match batch plus completion.
+
+## Actual call chain and limits of attribution
+
+1. `apps/desktop/src/main.ts:4066`: input schedules search after 150 ms, cancels previous work and clears highlights. Timer delivery can be late. This debounce is intentional and was not changed.
+2. `runDocumentSearch`: awaits SourceView `flushPendingEdits`, then checks document/query/current identity and starts `LargeDocumentSearchController`.
+3. `apps/desktop/src/large-document-search.ts`: begin IPC; sequential `step` IPC calls until native `complete`; if Unicode fallback, lazily create Worker, send full bounded window, validate/append batches through native IPC, acknowledge backpressure; finally page the first results. Progress is emitted at most once per 100 ms. The `windowSizeLines:512/maxResults:200` extra properties at the main caller are not the native controller's stopping criterion: native search scans to completion and pages results.
+4. `apps/desktop/src-tauri/src/native_search.rs`: version-checked store/search locks; line-aligned 1 MiB reads (up to existing 8 MiB long-line bound); native ASCII matching or bounded Unicode fallback; disk-backed match index. No evidence justifies altering its correctness, cancellation, locks, budgets or recovery behavior.
+5. Main applies result/highlights, then awaits `jumpToSearchMatch`. SourceView `revealSelection` calls `scrollToLine` → version-bound visible-window render (source cache/read or Live parse), then selection/cursor rendering; Live may additionally render syntax around old/new cursor positions.
+6. Harness observes final DOM and waits two rAF callbacks.
+
+The raw evidence does **not** include begin/step/page/append times, actual debounce wake-up, edit-flush duration, Worker startup/scan timing, result-application time, source cache hits/reads, or navigation completion time. `LargeSearchMetrics` exists but is not included in these artifacts. Its `ipcMs` includes step/append round-trip time (including native work), not begin/page; `nativeMs` excludes outer command lock/queue and some serialization work; `workerMs` excludes startup and acknowledgement waits. These overlapping/incomplete counters cannot simply be summed as independent stages.
+
+WebKit reports long-task observation unsupported. Frame gaps near search include Source 152 ms and the final 81 ms; Live includes 102 ms and the final 66 ms. Some intervals straddle search start and prior work. They establish scheduling gaps, not which function consumed CPU. The native invoke property is non-writable/non-configurable; no invasive replacement was attempted. It is therefore not evidence-backed to claim that Rust scanning, IPC, cold Worker startup, DOM work, or GPU presentation is the dominant cause. Nor is subtracting exactly 150 ms from the total a measured scan duration.
+
+A plausible *profiling target* is the first non-ASCII window causing roughly 1 MiB to cross native→JS→Worker despite only the header requiring Unicode semantics. This is not a demonstrated optimization or a license to replace locale matching, split/truncate scans, preload hidden work, or change Rust safety. Keep the P7 first-full-search gap open. If further authorized, collect bounded stage stamps/counters for the existing call chain and source reads on a fresh comparable run before selecting a patch; retain every failed sample and unchanged 500 ms/150 ms rules.
+
+## Outline: distinguish editor navigation from plugin clicks
+
+`../native-ui/runs/p7-outline-baseline-ordinary-01/harness.mjs:331–347` measures 20 real **editor Ctrl+Home/End** actions, waiting for exact editor cursor and outline `aria-current`. It does not measure 20 clicks on `outline.gotoHeading`. Recorded 291–322 ms / p95 319 ms therefore means keyboard document-edge navigation plus outline synchronization. The dense scenario's separate middle jump uses the public plugin command, but one observation cannot establish its p95. Preserve raw names; correct derived labels only.
+
+`main.ts:4390` coalesces general keyup, selection changes, scrolling and renderSession selection changes with 240 ms plus idle callback. This deterministic delay plausibly accounts for much of the measured floor, but there are no per-stage timestamps proving all remaining time. General typing/scroll coalescing should stay unchanged.
+
+The current public `host.ui.revealLine` route already calls `revealPluginLine`, cancels the scheduled refresh, awaits completed navigation, and immediately awaits `desktopPluginUi.updateViewport`. That controller coalesces concurrent updates and respects contribution settings. Changing only this route cannot fix the measured Ctrl+Home/End samples. Versioned `revealPluginLocation` has guards but currently lacks the same immediate viewport refresh; adding it would be a separate explicit-navigation consistency change, not the baseline root cause.
+
+For ordinary EditorView, the least invasive candidate is the existing semantic transaction boundary: Ctrl/Meta Home/End dispatches origin `view.documentStart` / `view.documentEnd` (`editor-view.ts:1092`). Main's `createEditorView` dispatch callback applies the transaction, updates the view, and renders session state. After those operations, a narrowly guarded non-document-changing transaction of either origin can cancel the pending viewport timer and request immediate viewport refresh. No SDK permission, plugin ID exception, general debounce change or Rust change is needed. This is a recommendation only; not implemented or validated here.
+
+SourceView uses a different asynchronous path (`source-document-view.ts:1745`): queued task → flush previous visible edit → read first/last line → await `revealSelection`. It has no read-only `whenSettled`/`awaitVisibleEdits` API. `flushPendingEdits()` waits all active tasks, consumes stored errors and commits pending edits; `runAfterPendingEdits` also flushes. Neither is suitable merely to refresh UI after a keyup. `milkup-selection-change` is emitted by cursor rendering and contains no navigation reason; unrelated re-renders emit it too.
+
+A no-new-core-API SourceView solution would require a small host-owned, one-shot navigation token recorded for a trusted non-IME document-edge shortcut, bound to current view/source identity, document version and intended edge. On keyup or subsequent selection-change, refresh only when the same navigation is still current and the actual selection has reached its target; reject old-view events and clear on intervening input/pointer/document change. End must use a known UTF-16 end (not byte size); unknown length needs a trustworthy completed last-line coordinate. Any token needs bounded expiry and must not remain armed indefinitely on failed navigation. This is materially more state than ordinary transaction-origin handling; review and regression tests are required before adoption. Do not immediately refresh on keyup before the asynchronous source navigation has settled.
+
+### Parent's selected design (reviewed, not implemented here)
+
+Parent selected a simpler alternative to the speculative host token: an optional internal view-dom `onDocumentNavigation(edge)` callback, emitted only after successful SourceView Ctrl/Home/End navigation completion. This does not extend the core/plugin SDK. The callback must retain source/view/document-version/navigation-generation guards and must not fire after failure, cancellation, replacement view, or superseding navigation; it belongs at the explicit command completion, not generic cursor rendering. Main checks the current view instance and refreshes viewport immediately. Ordinary EditorView uses its existing non-document-changing transaction origin. General 240 ms/idle scheduling remains in place. Implementation/tests belong to parent and p5_content; this review does not claim their results.

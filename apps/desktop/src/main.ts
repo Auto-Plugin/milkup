@@ -1,4 +1,5 @@
 import { LargeDocumentSource } from './large-document-source'
+import { moveDesktopFocus, restoreDesktopFocus } from './desktop-focus'
 import { locateDocumentPresentationTarget } from './document-navigation'
 import { createDesktopDocumentPresentationService } from './document-presentation-service'
 import { createDesktopOutputService } from './output-service'
@@ -582,6 +583,7 @@ let disposeFileWatchEvents: (() => void) | undefined
 let sidebarCollapsed = true
 let sidebarWidth = initialSidebarWidth
 let menuOpen = false
+let menuReturnFocus: HTMLElement | null = null
 let searchOpen = false
 let searchResultState: DesktopSearchState | undefined
 let activeSearchResultIndex = -1
@@ -2226,6 +2228,13 @@ function createEditorView(): EditorView {
       session = recordDocumentTransaction(session, transaction)
       view.updateState(state, [transaction])
       renderSession()
+      if (
+        (!transaction.changes || transaction.changes.empty) &&
+        transaction.origin?.type === 'command' &&
+        (transaction.origin.id === 'view.documentStart' ||
+          transaction.origin.id === 'view.documentEnd')
+      )
+        refreshPluginUiAfterDocumentNavigation()
     },
   })
   nextView.dom.addEventListener('milkup-plugin-renderer-action', (event) => {
@@ -2363,6 +2372,12 @@ function applyMemorySourceView(): void {
   sourceView?.destroy()
   sourceView = new SourceDocumentView({
     parent: editorRoot,
+    onDocumentNavigation: refreshPluginUiAfterDocumentNavigation,
+    onFocusNavigation: ({ backward }) => {
+      const focused = document.activeElement
+      if (focused instanceof HTMLElement && editorRoot.contains(focused))
+        moveDesktopFocus(focused, backward)
+    },
     onImagePaste: desktopImagePaste,
     onEmptyPaste: desktopEmptyPaste,
     imageResolver: desktopImageResolver,
@@ -2415,6 +2430,12 @@ async function applyLargeSourceView(): Promise<void> {
   sourceView?.destroy()
   sourceView = new SourceDocumentView({
     parent: editorRoot,
+    onDocumentNavigation: refreshPluginUiAfterDocumentNavigation,
+    onFocusNavigation: ({ backward }) => {
+      const focused = document.activeElement
+      if (focused instanceof HTMLElement && editorRoot.contains(focused))
+        moveDesktopFocus(focused, backward)
+    },
     onImagePaste: desktopImagePaste,
     onEmptyPaste: desktopEmptyPaste,
     imageResolver: desktopImageResolver,
@@ -3976,6 +3997,8 @@ function cycleWorkspaceFocus(backward: boolean): void {
 
 function setMenuOpen(open: boolean): void {
   const wasOpen = menuOpen
+  if (open && !wasOpen)
+    menuReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
   menuOpen = open
   setTransitionBackgroundInert(closeConfirmOpen)
   const menu = appRoot.querySelector<HTMLElement>('[data-app-menu]')
@@ -3998,7 +4021,9 @@ function setMenuOpen(open: boolean): void {
     }
     appRoot.querySelector<HTMLButtonElement>('[data-menu-section="file"]')?.focus()
   } else if (wasOpen) {
-    focusActiveView()
+    const target = menuReturnFocus
+    menuReturnFocus = null
+    restoreDesktopFocus(target, focusActiveView)
   }
 }
 
@@ -4369,6 +4394,13 @@ function getPluginUiRenderState(): Readonly<Record<string, unknown>> {
       activeLine,
     }),
   })
+}
+
+function refreshPluginUiAfterDocumentNavigation(): void {
+  // Explicit document-edge navigation has completed. Its current-location UI
+  // should follow now; ordinary typing and scrolling retain the idle debounce.
+  cancelScheduledPluginUiViewportUpdate()
+  void desktopPluginUi.updateViewport()
 }
 
 function schedulePluginUiViewportUpdate(): void {

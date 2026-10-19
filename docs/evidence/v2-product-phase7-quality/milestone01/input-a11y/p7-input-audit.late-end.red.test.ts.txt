@@ -1,0 +1,109 @@
+import { EditorState, MemoryDocumentSource, MemoryTextDocument } from '@milkup/core'
+import { describe, expect, it, vi } from 'vitest'
+import { EditorView, SourceDocumentView } from '../index'
+
+// Synthetic DOM regression only; this does not verify a system IME session.
+for (const mode of ['source', 'live'] as const) {
+  describe(`P7 ${mode} input boundaries`, () => {
+    for (const shiftKey of [false, true]) {
+      it(`ordinary plain paragraph preserves ${shiftKey ? 'Shift+Tab' : 'Tab'} focus navigation`, () => {
+        const view = new EditorView({
+          parent: document.createElement('main'),
+          mode,
+          state: new EditorState({ doc: new MemoryTextDocument('plain 中文 😀') }),
+        })
+        try {
+          const event = new KeyboardEvent('keydown', {
+            key: 'Tab',
+            shiftKey,
+            bubbles: true,
+            cancelable: true,
+          })
+          view.inputDOM.dispatchEvent(event)
+          expect(event.defaultPrevented).toBe(false)
+          expect(view.state.doc.text).toBe('plain 中文 😀')
+          expect(view.state.history.canUndo).toBe(false)
+        } finally {
+          view.destroy()
+        }
+      })
+
+      it(`windowed plain paragraph preserves ${shiftKey ? 'Shift+Tab' : 'Tab'} focus navigation`, async () => {
+        const onEdit = vi.fn()
+        const view = new SourceDocumentView({
+          parent: document.createElement('main'),
+          mode,
+          editable: true,
+          source: new MemoryDocumentSource({ documentId: 'plain', text: 'plain 中文 😀' }),
+          backgroundMarkdownWarmup: false,
+          onEdit,
+        })
+        try {
+          await view.renderVisibleWindow()
+          const event = new KeyboardEvent('keydown', {
+            key: 'Tab',
+            shiftKey,
+            bubbles: true,
+            cancelable: true,
+          })
+          view.inputDOM.dispatchEvent(event)
+          await view.flushPendingEdits()
+          expect.soft(event.defaultPrevented).toBe(false)
+          expect.soft(onEdit).not.toHaveBeenCalled()
+        } finally {
+          view.destroy()
+        }
+      })
+    }
+
+    for (const retirement of ['document-switch', 'destroy'] as const) {
+      it(`does not commit queued composition after ${retirement}`, async () => {
+        const onEdit = vi.fn()
+        const view = new SourceDocumentView({
+          parent: document.createElement('main'),
+          mode,
+          editable: true,
+          source: new MemoryDocumentSource({ documentId: 'old', text: 'old 中文' }),
+          backgroundMarkdownWarmup: false,
+          onEdit,
+        })
+        try {
+          await view.renderVisibleWindow()
+          view.inputDOM.dispatchEvent(new CompositionEvent('compositionstart'))
+          view.inputDOM.dispatchEvent(new CompositionEvent('compositionend', { data: '新😀' }))
+          // The commit is queued. Retire its document/owner before the microtask runs.
+          if (retirement === 'document-switch') {
+            view.updateSource(new MemoryDocumentSource({ documentId: 'new', text: 'keep me' }))
+          } else view.destroy()
+          await view.flushPendingEdits()
+          expect(onEdit).not.toHaveBeenCalled()
+        } finally {
+          if (retirement !== 'destroy') view.destroy()
+        }
+      })
+    }
+
+    it('does not apply an old compositionend delivered after a document switch', async () => {
+      const onEdit = vi.fn()
+      const view = new SourceDocumentView({
+        parent: document.createElement('main'),
+        mode,
+        editable: true,
+        source: new MemoryDocumentSource({ documentId: 'old', text: 'old 中文' }),
+        backgroundMarkdownWarmup: false,
+        onEdit,
+      })
+      try {
+        await view.renderVisibleWindow()
+        view.inputDOM.dispatchEvent(new CompositionEvent('compositionstart'))
+        view.updateSource(new MemoryDocumentSource({ documentId: 'new', text: 'keep me' }))
+        await view.renderVisibleWindow()
+        view.inputDOM.dispatchEvent(new CompositionEvent('compositionend', { data: '新😀' }))
+        await view.flushPendingEdits()
+        expect(onEdit).not.toHaveBeenCalled()
+      } finally {
+        view.destroy()
+      }
+    })
+  })
+}

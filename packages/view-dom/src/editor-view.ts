@@ -487,6 +487,7 @@ export class EditorView {
       this.mode,
       pos,
       this.presentationMetrics(metrics),
+      this.markdownParseState.cache.root,
     )
   }
 
@@ -496,6 +497,7 @@ export class EditorView {
       this.mode,
       coordinate,
       this.presentationMetrics(metrics),
+      this.markdownParseState.cache.root,
     )
   }
 
@@ -519,6 +521,7 @@ export class EditorView {
       this.currentState,
       this.mode,
       this.currentState.selection.main.head,
+      this.markdownParseState.cache.root,
     )
 
     if (measuredRect) {
@@ -541,6 +544,7 @@ export class EditorView {
       viewportHeight: options?.viewportHeight ?? this.dom.clientHeight,
       ...(options?.scrollPadding === undefined ? {} : { scrollPadding: options.scrollPadding }),
       metrics: this.presentationMetrics(options?.metrics),
+      root: this.markdownParseState.cache.root,
     })
 
     this.dom.scrollTop = nextScrollTop
@@ -725,7 +729,7 @@ export class EditorView {
     transactions: readonly Transaction[],
   ): boolean {
     if (this.mode === 'source') {
-      return false
+      return this.renderChangedSourceLine(previousState, state, transactions)
     }
 
     const lineNumbers = changedDocumentLineNumbers(previousState, state, transactions)
@@ -756,6 +760,62 @@ export class EditorView {
       nextLineDOM.scrollLeft = scrollLeft
     }
 
+    this.renderSelectionAndCursor()
+    return true
+  }
+
+  private renderChangedSourceLine(
+    previousState: EditorState,
+    state: EditorState,
+    transactions: readonly Transaction[],
+  ): boolean {
+    if (this.shouldUseVirtualViewport()) return false
+    const number = changedDocumentLineNumbers(previousState, state, transactions)?.[0]
+    const change = transactions[0]?.changes?.changes[0]
+    if (
+      number === undefined ||
+      !change ||
+      /[\r\n]/u.test(change.insert) ||
+      /[\r\n]/u.test(previousState.doc.slice(change.from, change.to))
+    )
+      return false
+
+    // Validate the entire old source DOM before mutating any node. Missing or
+    // stale rows must take the existing full-render path, not leave a half patch.
+    const children = Array.from(this.contentDOM.children)
+    if (children.length !== previousState.doc.lineCount) return false
+    const lines: HTMLElement[] = []
+    for (const [index, child] of children.entries()) {
+      const line = previousState.doc.line(index + 1)
+      if (
+        !(child instanceof HTMLElement) ||
+        !child.classList.contains('milkup-line') ||
+        child.dataset.line !== String(line.number) ||
+        child.dataset.from !== String(line.from) ||
+        child.dataset.to !== String(line.to)
+      )
+        return false
+      lines.push(child)
+    }
+    const previousLineDOM = lines[number - 1]!
+    const nextLineDOM = renderPlainTextLineWindow(this.ownerDocument, state, number, number)[0]!
+    const scrollTop = this.dom.scrollTop
+    const scrollLeft = this.dom.scrollLeft
+    const lineScrollLeft = previousLineDOM.scrollLeft
+    this.documentPresentation.updateContent(() => {
+      previousLineDOM.replaceWith(nextLineDOM)
+      // Source rows have no nested range attributes. Their text and line numbers
+      // stay unchanged, but all later absolute UTF-16 offsets may have shifted.
+      for (let index = number; index < lines.length; index++) {
+        const line = state.doc.line(index + 1)
+        lines[index]!.dataset.from = String(line.from)
+        lines[index]!.dataset.to = String(line.to)
+      }
+    })
+    // Presentation anchoring is Live-only; preserve Source scroll explicitly.
+    nextLineDOM.scrollLeft = lineScrollLeft
+    this.dom.scrollTop = scrollTop
+    this.dom.scrollLeft = scrollLeft
     this.renderSelectionAndCursor()
     return true
   }
@@ -993,6 +1053,7 @@ export class EditorView {
       inCodeBlock: isPositionInsideCodeBlock(
         this.currentState,
         this.currentState.selection.main.head,
+        this.markdownParseState.cache.root,
       ),
     })
 
@@ -1069,7 +1130,8 @@ export class EditorView {
     // WebKitGTK may report the native ISO_Left_Tab keysym as Unidentified.
     const isTab = event.key === 'Tab' || (event.key === 'Unidentified' && event.code === 'Tab')
     if (!this.editable) {
-      return isTab || isTextEditingKey(event)
+      // A read-only editor must remain escapable through ordinary Tab navigation.
+      return !isTab && isTextEditingKey(event)
     }
 
     if (
@@ -2076,8 +2138,12 @@ function shouldRenderInlineDecorations(
   )
 }
 
-function isPositionInsideCodeBlock(state: EditorState, position: number): boolean {
-  const blocks = parseMarkdown(state.doc.text).root.children ?? []
+function isPositionInsideCodeBlock(
+  state: EditorState,
+  position: number,
+  root?: SyntaxNode,
+): boolean {
+  const blocks = (root ?? parseMarkdown(state.doc.text).root).children ?? []
 
   return blocks.some(
     (block) =>
@@ -3334,12 +3400,18 @@ export function scrollPositionIntoView(config: ScrollPositionIntoViewConfig): nu
 }
 
 function scrollPositionIntoViewForMode(
-  config: ScrollPositionIntoViewConfig & { readonly mode: ViewMode },
+  config: ScrollPositionIntoViewConfig & { readonly mode: ViewMode; readonly root?: SyntaxNode },
 ): number {
   const viewportHeight =
     config.viewportHeight && config.viewportHeight > 0 ? config.viewportHeight : 200
   const scrollPadding = config.scrollPadding ?? 20
-  const rect = positionToRectForMode(config.state, config.mode, config.position, config.metrics)
+  const rect = positionToRectForMode(
+    config.state,
+    config.mode,
+    config.position,
+    config.metrics,
+    config.root,
+  )
   const visibleTop = config.currentScrollTop + scrollPadding
   const visibleBottom = config.currentScrollTop + viewportHeight - scrollPadding
 

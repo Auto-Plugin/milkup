@@ -1,0 +1,451 @@
+$ playwright test --workers=2 --reporter=line
+
+[WebServer] (node:269746) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ vite --host 127.0.0.1
+
+[WebServer] (node:269761) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:269785) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ vite --host 127.0.0.1
+
+[WebServer] (node:269812) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 197 tests using 2 workers
+
+
+(node:269850) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/197] [desktop-msedge] › tests/e2e/desktop-formatting.spec.ts:28:1 › formatting Worker preserves Unicode selection and supports toolbar toggle, undo and save
+
+(node:269849) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[2/197] [playground-msedge] › tests/e2e/live-render.spec.ts:3:1 › live render projection hides inline markers and keeps editor geometry usable
+[3/197] [playground-msedge] › tests/e2e/live-render.spec.ts:33:1 › live table and task-list clicks preserve visual cursor mapping
+[4/197] [playground-msedge] › tests/e2e/live-render.spec.ts:105:1 › browser selection rendering follows keyboard selection changes
+[5/197] [playground-msedge] › tests/e2e/live-render.spec.ts:121:1 › browser mode switches preserve editor scroll position
+[6/197] [playground-msedge] › tests/e2e/live-render.spec.ts:143:1 › browser worker plugin command mutates the editor through global history
+[7/197] [playground-msedge] › tests/e2e/live-render.spec.ts:159:1 › browser worker plugin fetches through the main-thread network broker
+[8/197] [playground-msedge] › tests/e2e/live-render.spec.ts:172:1 › browser worker plugin reads through the main-thread file broker
+
+(node:270407) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[9/197] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:45:1 › real math and footnotes plus controlled image Worker preserve source/history
+  1) [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:45:1 › real math and footnotes plus controlled image Worker preserve source/history 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+       at ../helpers/markdown-extension-plugins.ts:93
+
+      91 |       { timeout: 10_000 },
+      92 |     )
+    > 93 |     .toBe(true)
+         |      ^
+      94 | }
+      95 | export async function seedMarkdownExtensions(page: Page, text: string) {
+      96 |   await page.keyboard.press('Control+1')
+        at markdownExtensionFixture (/workspace/milkup/tests/helpers/markdown-extension-plugins.ts:93:6)
+        at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:48:3
+
+    attachment #1: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - text: 写点什么吧...
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "实时"
+      - text: Markdown 0 字符 已保存
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/desktop-markdown-extension-c83e5-ker-preserve-source-history-desktop-msedge/error-context.md
+
+
+
+(node:270583) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[10/197] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:86:1 › opaque code and controlled provider errors stay literal without executable content
+  2) [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:86:1 › opaque code and controlled provider errors stay literal without executable content 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+       at ../helpers/markdown-extension-plugins.ts:93
+
+      91 |       { timeout: 10_000 },
+      92 |     )
+    > 93 |     .toBe(true)
+         |      ^
+      94 | }
+      95 | export async function seedMarkdownExtensions(page: Page, text: string) {
+      96 |   await page.keyboard.press('Control+1')
+        at markdownExtensionFixture (/workspace/milkup/tests/helpers/markdown-extension-plugins.ts:93:6)
+        at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:89:3
+
+    attachment #1: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - text: 写点什么吧...
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "实时"
+      - text: Markdown 0 字符 已保存
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/desktop-markdown-extension-68bfb--without-executable-content-desktop-msedge/error-context.md
+
+
+
+(node:270787) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[11/197] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:119:1 › footnote navigation reveals editable original and remains read only
+  3) [desktop-msedge] › tests/e2e/desktop-formatting.spec.ts:28:1 › formatting Worker preserves Unicode selection and supports toolbar toggle, undo and save 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Milkup Formatting', exact: true })
+
+
+       at ../helpers/formatting-plugin.ts:45
+
+      43 |   await page.getByRole('button', { name: '菜单', exact: true }).click()
+      44 |   await page.getByRole('button', { name: '插件', exact: true }).click()
+    > 45 |   await page.getByRole('button', { name: 'Milkup Formatting', exact: true }).click()
+         |                                                                              ^
+      46 |   const approve = page.getByRole('button', { name: '批准能力', exact: true })
+      47 |   if (await approve.isVisible()) await approve.click()
+      48 |   else await expect(page.getByRole('button', { name: '撤销审批', exact: true })).toBeVisible()
+        at formattingFixture (/workspace/milkup/tests/helpers/formatting-plugin.ts:45:78)
+        at /workspace/milkup/tests/e2e/desktop-formatting.spec.ts:31:3
+
+    attachment #1: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单" [expanded]
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - dialog "菜单":
+        - heading "菜单" [level=2]
+        - button "关闭菜单"
+        - navigation "菜单分类":
+          - button "文件"
+          - button "插件"
+          - button "关于"
+        - heading "...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/desktop-formatting-formatt-484ef-oolbar-toggle-undo-and-save-desktop-msedge/error-context.md
+
+
+  4) [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:119:1 › footnote navigation reveals editable original and remains read only 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+       at ../helpers/markdown-extension-plugins.ts:93
+
+      91 |       { timeout: 10_000 },
+      92 |     )
+    > 93 |     .toBe(true)
+         |      ^
+      94 | }
+      95 | export async function seedMarkdownExtensions(page: Page, text: string) {
+      96 |   await page.keyboard.press('Control+1')
+        at markdownExtensionFixture (/workspace/milkup/tests/helpers/markdown-extension-plugins.ts:93:6)
+        at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:120:3
+
+    attachment #1: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - text: 写点什么吧...
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "实时"
+      - text: Markdown 0 字符 已保存
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/desktop-markdown-extension-cb355-ginal-and-remains-read-only-desktop-msedge/error-context.md
+
+
+
+(node:270985) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[12/197] [desktop-msedge] › tests/e2e/desktop-formatting.spec.ts:45:1 › formatting modal applies headings and links through retained bounded snapshots
+
+(node:270998) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[13/197] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:141:1 › disabled renderers disappear and leave Unicode editing and save available
+  5) [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:141:1 › disabled renderers disappear and leave Unicode editing and save available 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+       at ../helpers/markdown-extension-plugins.ts:93
+
+      91 |       { timeout: 10_000 },
+      92 |     )
+    > 93 |     .toBe(true)
+         |      ^
+      94 | }
+      95 | export async function seedMarkdownExtensions(page: Page, text: string) {
+      96 |   await page.keyboard.press('Control+1')
+        at markdownExtensionFixture (/workspace/milkup/tests/helpers/markdown-extension-plugins.ts:93:6)
+        at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:144:3
+
+    attachment #1: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - text: 写点什么吧...
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "实时"
+      - text: Markdown 0 字符 已保存
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/desktop-markdown-extension-e0521--editing-and-save-available-desktop-msedge/error-context.md
+
+
+
+(node:271424) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[14/197] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:173:1 › search keeps the selected marker visible while asynchronous block previews settle
+  6) [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:173:1 › search keeps the selected marker visible while asynchronous block previews settle 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+       at ../helpers/markdown-extension-plugins.ts:93
+
+      91 |       { timeout: 10_000 },
+      92 |     )
+    > 93 |     .toBe(true)
+         |      ^
+      94 | }
+      95 | export async function seedMarkdownExtensions(page: Page, text: string) {
+      96 |   await page.keyboard.press('Control+1')
+        at markdownExtensionFixture (/workspace/milkup/tests/helpers/markdown-extension-plugins.ts:93:6)
+        at /workspace/milkup/tests/e2e/desktop-markdown-extensions.spec.ts:177:3
+
+    attachment #1: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - text: 写点什么吧...
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "实时"
+      - text: Markdown 0 字符 已保存
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/desktop-markdown-extension-f2bb0-onous-block-previews-settle-desktop-msedge/error-context.md
+
+
+
+(node:271610) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[15/197] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:311:3 › background preview refresh preserves layout (false)
+[16/197] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:311:3 › background preview refresh preserves layout (true)
+[17/197] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:711:3 › last preview reference supports native Tab round trip (false)
+[18/197] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:741:3 › ordinary proxy focus retains Tab indentation (false)
+[19/197] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:711:3 › last preview reference supports native Tab round trip (true)
+[20/197] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:741:3 › ordinary proxy focus retains Tab indentation (true)
+  7) [desktop-msedge] › tests/e2e/desktop-formatting.spec.ts:45:1 › formatting modal applies headings and links through retained bounded snapshots 
+
+    Test timeout of 60000ms exceeded.
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: 'Milkup Formatting', exact: true })
+
+
+       at ../helpers/formatting-plugin.ts:45
+
+      43 |   await page.getByRole('button', { name: '菜单', exact: true }).click()
+      44 |   await page.getByRole('button', { name: '插件', exact: true }).click()
+    > 45 |   await page.getByRole('button', { name: 'Milkup Formatting', exact: true }).click()
+         |                                                                              ^
+      46 |   const approve = page.getByRole('button', { name: '批准能力', exact: true })
+      47 |   if (await approve.isVisible()) await approve.click()
+      48 |   else await expect(page.getByRole('button', { name: '撤销审批', exact: true })).toBeVisible()
+        at formattingFixture (/workspace/milkup/tests/helpers/formatting-plugin.ts:45:78)
+        at /workspace/milkup/tests/e2e/desktop-formatting.spec.ts:48:3
+
+    attachment #1: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单" [expanded]
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - dialog "菜单":
+        - heading "菜单" [level=2]
+        - button "关闭菜单"
+        - navigation "菜单分类":
+          - button "文件"
+          - button "插件"
+          - button "关于"
+        - heading "...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/desktop-formatting-formatt-332cc--retained-bounded-snapshots-desktop-msedge/error-context.md
+
+
+
+(node:271972) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[21/197] [desktop-msedge] › tests/e2e/desktop-formatting.spec.ts:63:1 › formatting table UI performs real row, column and alignment edits with one-step undo
+[22/197] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:760:5 › preview proxy navigation ends after arrow (false)
+[23/197] [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:760:5 › preview proxy navigation ends after text (false)
+  8) [desktop-msedge] › tests/e2e/desktop-formatting.spec.ts:63:1 › formatting table UI performs real row, column and alignment edits with one-step undo 
+
+    Test was interrupted.
+
+    Error: locator.click: Test ended.
+    Call log:
+      - waiting for getByRole('button', { name: 'Milkup Formatting', exact: true })
+
+
+       at ../helpers/formatting-plugin.ts:45
+
+      43 |   await page.getByRole('button', { name: '菜单', exact: true }).click()
+      44 |   await page.getByRole('button', { name: '插件', exact: true }).click()
+    > 45 |   await page.getByRole('button', { name: 'Milkup Formatting', exact: true }).click()
+         |                                                                              ^
+      46 |   const approve = page.getByRole('button', { name: '批准能力', exact: true })
+      47 |   if (await approve.isVisible()) await approve.click()
+      48 |   else await expect(page.getByRole('button', { name: '撤销审批', exact: true })).toBeVisible()
+        at formattingFixture (/workspace/milkup/tests/helpers/formatting-plugin.ts:45:78)
+        at /workspace/milkup/tests/e2e/desktop-formatting.spec.ts:66:3
+
+    attachment #1: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - text: 写点什么吧...
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "实时"
+      - text: Markdown 0 字符 已保存
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/desktop-formatting-formatt-4f05b-nt-edits-with-one-step-undo-desktop-msedge/error-context.md
+
+
+  9) [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:760:5 › preview proxy navigation ends after text (false) 
+
+    Test was interrupted.
+
+    attachment #1: page-state (text/plain) ─────────────────────────────────────────────────────────
+    - main:
+      - button "菜单"
+      - heading "未命名" [level=1]
+      - paragraph: 未保存
+      - button "最小化"
+      - button "最大化"
+      - button "关闭窗口"
+      - text: 写点什么吧...
+      - textbox
+      - textbox "Markdown 编辑器"
+      - button "侧栏"
+      - button "实时"
+      - text: Markdown 0 字符 已保存
+    - main:
+      - status: 预览不可用，保留 Markdown 源码。
+      - textbox
+      - t...
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+  7 failed
+    [desktop-msedge] › tests/e2e/desktop-formatting.spec.ts:28:1 › formatting Worker preserves Unicode selection and supports toolbar toggle, undo and save 
+    [desktop-msedge] › tests/e2e/desktop-formatting.spec.ts:45:1 › formatting modal applies headings and links through retained bounded snapshots 
+    [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:45:1 › real math and footnotes plus controlled image Worker preserve source/history 
+    [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:86:1 › opaque code and controlled provider errors stay literal without executable content 
+    [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:119:1 › footnote navigation reveals editable original and remains read only 
+    [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:141:1 › disabled renderers disappear and leave Unicode editing and save available 
+    [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:173:1 › search keeps the selected marker visible while asynchronous block previews settle 
+  2 interrupted
+    [desktop-msedge] › tests/e2e/desktop-formatting.spec.ts:63:1 › formatting table UI performs real row, column and alignment edits with one-step undo 
+    [desktop-msedge] › tests/e2e/desktop-markdown-extensions.spec.ts:760:5 › preview proxy navigation ends after text (false) 
+  174 did not run
+  14 passed (2.3m)
+[ELIFECYCLE] Command failed with exit code 130.

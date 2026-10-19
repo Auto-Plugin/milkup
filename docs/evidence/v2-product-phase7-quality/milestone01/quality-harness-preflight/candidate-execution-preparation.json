@@ -1,0 +1,57 @@
+{
+  "at": "2026-10-19T10:52:08.139681+00:00",
+  "status": "prepared-not-native-executed",
+  "checks": [
+    {
+      "command": [
+        "node",
+        "--check",
+        "tests/native/tauri-p7-all-plugins-disabled.mjs"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "node",
+        "--check",
+        "tests/native/tauri-p7-quality.mjs"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "./node_modules/.bin/prettier",
+        "--check",
+        "tests/native/tauri-p7-all-plugins-disabled.mjs",
+        "tests/native/tauri-p7-quality.mjs",
+        "tests/native/p7-quality-README.md"
+      ],
+      "exitCode": 0,
+      "stdout": "Checking formatting...\nAll matched files use Prettier code style!\n",
+      "stderr": ""
+    }
+  ],
+  "inputs": {
+    "tests/native/tauri-p7-all-plugins-disabled.mjs": "156b736ae26754b86e813a613ab34bfb4a3ca83ddb859efba4161e80dc82e5ef",
+    "tests/native/tauri-p7-quality.mjs": "fb81e937395ff7ca5c06548ddf0ca9ff1b62b1e6f13ea7b700841f68186edd03",
+    "tests/native/p7-quality-README.md": "2ef77d39204241147c3a0e6f9e365a7973c0ad0d3235c758f5756f56ecf43093",
+    "tests/native/tauri-all-plugins-disabled.mjs": "42a8587e0d9d9aa76aacb88297361389912f8987b9a018caa62262292600c051"
+  },
+  "originalP1Unchanged": true,
+  "candidateRequired": "Root-confirmed frozen candidate ELF SHA and proof.inputs archives; no native run yet",
+  "executionOrder": [
+    "candidate keyboard both:24samples",
+    "candidate matrix both:64cells332samples32extraShots",
+    "fresh P7 alloff:3launches+native catalog+UnicodeCRLF+recovery"
+  ],
+  "remaining": [
+    "GUI handoff after outline/performance",
+    "candidate preflight against actual proof",
+    "native execution",
+    "contact sheets and actual pixel review"
+  ]
+}

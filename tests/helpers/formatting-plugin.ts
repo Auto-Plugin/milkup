@@ -1,3 +1,4 @@
+import { sealWorkerFixture } from './sealed-plugin-fixture'
 import { expect, type Page } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
@@ -14,7 +15,12 @@ export async function formattingFixture(page: Page) {
     platform: 'browser',
     alias: { '@milkup/plugin-sdk': resolve('packages/plugin-sdk/src/index.js') },
   })
-  manifest.main = 'data:text/javascript,' + encodeURIComponent(bundle.outputFiles[0]!.text)
+  await sealWorkerFixture(
+    page,
+    manifest,
+    '/plugins/formatting/plugin.json',
+    bundle.outputFiles[0]!.text,
+  )
   await page.addInitScript((manifest) => {
     localStorage.setItem(
       'milkup.desktop.plugins.registry.v1',
@@ -26,6 +32,8 @@ export async function formattingFixture(page: Page) {
             manifestPath: '/plugins/formatting/plugin.json',
             rootPath: '/plugins/formatting',
             sourcePath: '/plugins/formatting/plugin.json',
+            dataRoot: `milkup://plugin-data/${manifest.id}`,
+            storageRoot: `milkup://plugin-storage/${manifest.id}`,
             state: 'installed',
             enabled: false,
             installedAt: 1,

@@ -1,0 +1,56 @@
+  private renderChangedSourceLine(
+    previousState: EditorState,
+    state: EditorState,
+    transactions: readonly Transaction[],
+  ): boolean {
+    if (this.shouldUseVirtualViewport()) return false
+    const number = changedDocumentLineNumbers(previousState, state, transactions)?.[0]
+    const change = transactions[0]?.changes?.changes[0]
+    if (
+      number === undefined ||
+      !change ||
+      /[\r\n]/u.test(change.insert) ||
+      /[\r\n]/u.test(previousState.doc.slice(change.from, change.to))
+    )
+      return false
+
+    // Validate the entire old source DOM before mutating any node. Missing or
+    // stale rows must take the existing full-render path, not leave a half patch.
+    const children = Array.from(this.contentDOM.children)
+    if (children.length !== previousState.doc.lineCount) return false
+    const lines: HTMLElement[] = []
+    for (const [index, child] of children.entries()) {
+      const line = previousState.doc.line(index + 1)
+      if (
+        !(child instanceof HTMLElement) ||
+        !child.classList.contains('milkup-line') ||
+        child.dataset.line !== String(line.number) ||
+        child.dataset.from !== String(line.from) ||
+        child.dataset.to !== String(line.to)
+      )
+        return false
+      lines.push(child)
+    }
+    const previousLineDOM = lines[number - 1]!
+    const nextLineDOM = renderPlainTextLineWindow(this.ownerDocument, state, number, number)[0]!
+    const scrollTop = this.dom.scrollTop
+    const scrollLeft = this.dom.scrollLeft
+    const lineScrollLeft = previousLineDOM.scrollLeft
+    this.documentPresentation.updateContent(() => {
+      previousLineDOM.replaceWith(nextLineDOM)
+      // Source rows have no nested range attributes. Their text and line numbers
+      // stay unchanged, but all later absolute UTF-16 offsets may have shifted.
+      for (let index = number; index < lines.length; index++) {
+        const line = state.doc.line(index + 1)
+        lines[index]!.dataset.from = String(line.from)
+        lines[index]!.dataset.to = String(line.to)
+      }
+    })
+    // Presentation anchoring is Live-only; preserve Source scroll explicitly.
+    nextLineDOM.scrollLeft = lineScrollLeft
+    this.dom.scrollTop = scrollTop
+    this.dom.scrollLeft = scrollLeft
+    this.renderSelectionAndCursor()
+    return true
+  }
+

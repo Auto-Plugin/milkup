@@ -1,0 +1,16 @@
+{
+  "failure": "Unchanged ordinary live document reparsed for cursor reveal and coordinate lookup despite existing markdownParseState cache",
+  "red": {
+    "tests": 2,
+    "failed": 2,
+    "exit": 1
+  },
+  "green": {
+    "tests": 125,
+    "passed": 125,
+    "exit": 0
+  },
+  "fix": "Pass existing current root to cursor geometry, scroll fallback and paste code-block check; standalone exported helpers retain parse fallback",
+  "scope": "No public core/plugin SDK change, no truncation or renderer routing change",
+  "nativeLatency": "Pending candidate comparison; unit parse budget is not a timing result"
+}

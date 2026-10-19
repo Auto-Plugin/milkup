@@ -6,6 +6,275 @@ import { describe, expect, it, vi } from 'vitest'
 import { DesktopPluginUiController, type DesktopPluginUiRuntime } from './desktop-plugin-ui'
 
 describe('DesktopPluginUiController', () => {
+  it('restores a virtual keyboard target named by text without requiring aria-label', async () => {
+    document.body.innerHTML = '<div data-plugin-slot="sidebar-panel"></div>'
+    const runtime = createRuntime(
+      [{ pluginId: 'example', id: 'tree', title: 'Tree', slot: 'sidebar-panel' }],
+      [],
+      vi.fn(),
+      (_phase, state) => {
+        const range = state.virtualViewport as { fromIndex: number; toIndex: number } | undefined
+        const output = virtualTreeOutput(range?.fromIndex ?? 0, range?.toIndex ?? 2, 18000)
+        return {
+          ...output,
+          children: output.children.map((item) => {
+            const { 'aria-label': _label, ...attributes } = item.attributes
+            return { ...item, attributes }
+          }),
+        }
+      },
+    )
+    const controller = new DesktopPluginUiController(document.body, runtime)
+    await controller.sync('doc')
+    document.querySelector<HTMLButtonElement>('[role="treeitem"]')!.focus()
+    document.activeElement!.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }),
+    )
+    await vi.waitFor(() => expect(document.activeElement?.textContent).toBe('Heading 17999'))
+    await controller.dispose()
+  })
+
+  it('requests bounded virtual tree ranges for End, Home and arrow boundary focus', async () => {
+    document.body.innerHTML = '<div data-plugin-slot="sidebar-panel"></div>'
+    const requests: { fromIndex: number; toIndex: number }[] = []
+    const runtime = createRuntime(
+      [{ pluginId: 'example', id: 'tree', title: 'Tree', slot: 'sidebar-panel' }],
+      [],
+      vi.fn(),
+      (_phase, state) => {
+        const viewport = state.virtualViewport as { fromIndex: number; toIndex: number } | undefined
+        if (viewport) requests.push(viewport)
+        return virtualTreeOutput(viewport?.fromIndex ?? 0, viewport?.toIndex ?? 2, 18000)
+      },
+    )
+    const controller = new DesktopPluginUiController(document.body, runtime)
+    await controller.sync('doc')
+    const press = (key: string) =>
+      document.activeElement!.dispatchEvent(
+        new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }),
+      )
+    document.querySelector<HTMLButtonElement>('[role="treeitem"]')!.focus()
+    press('End')
+    await vi.waitFor(() => expect(document.activeElement?.textContent).toBe('Heading 17999'))
+    expect(requests.length).toBeGreaterThan(0)
+    expect(requests.every((request) => request.toIndex - request.fromIndex <= 500)).toBe(true)
+    expect(document.querySelectorAll('[role="treeitem"]').length).toBeLessThanOrEqual(500)
+    press('Home')
+    await vi.waitFor(() => expect(document.activeElement?.textContent).toBe('Heading 0'))
+    const items = document.querySelectorAll<HTMLButtonElement>('[role="treeitem"]')
+    items[items.length - 1]!.focus()
+    const next = Number(items[items.length - 1]!.textContent!.split(' ')[1]) + 1
+    press('ArrowDown')
+    await vi.waitFor(() => expect(document.activeElement?.textContent).toBe(`Heading ${next}`))
+    expect(document.querySelectorAll('[role="treeitem"][tabindex="0"]')).toHaveLength(1)
+    await controller.dispose()
+  })
+
+  it('does not let late virtual keyboard ranges steal focus after Tab or document change', async () => {
+    document.body.innerHTML =
+      '<button id="outside">Outside</button><div data-plugin-slot="sidebar-panel"></div>'
+    let resolve!: (output: unknown) => void
+    let pending = false
+    let version = 1
+    const runtime = createRuntime(
+      [{ pluginId: 'example', id: 'tree', title: 'Tree', slot: 'sidebar-panel' }],
+      [],
+      vi.fn(),
+      () => virtualTreeOutput(0, 2, 18000),
+    )
+    const render = runtime.renderUi
+    runtime.renderUi = async (...args) => {
+      if (pending && args[2] === 'update')
+        return new Promise((done) => {
+          resolve = done
+        })
+      return render(...args)
+    }
+    const controller = new DesktopPluginUiController(document.body, runtime, () => ({
+      documentVersion: version,
+    }))
+    await controller.sync('doc')
+    const request = () => {
+      document.querySelector<HTMLButtonElement>('[role="treeitem"]')!.focus()
+      pending = true
+      document.activeElement!.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }),
+      )
+    }
+    request()
+    await vi.waitFor(() => expect(resolve).toBeTypeOf('function'))
+    document.querySelector<HTMLButtonElement>('#outside')!.focus()
+    resolve(virtualTreeOutput(17840, 18000, 18000))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(document.activeElement?.id).toBe('outside')
+    pending = false
+    await controller.invalidate('example', 'tree')
+    request()
+    version = 2
+    resolve(virtualTreeOutput(17840, 18000, 18000))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(document.activeElement?.textContent).toBe('Heading 0')
+    document.activeElement!.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+    )
+    expect(document.activeElement?.textContent).toBe('Heading 1')
+    pending = false
+    await controller.dispose()
+  })
+
+  it.each(['document', 'version', 'mount'])(
+    'discards a rejected keyboard range after the request %s changes',
+    async (change) => {
+      document.body.innerHTML = '<div data-plugin-slot="sidebar-panel"></div>'
+      let version = 1
+      let reject!: (error: Error) => void
+      const runtime = createRuntime(
+        [{ pluginId: 'example', id: 'tree', title: 'Tree', slot: 'sidebar-panel' }],
+        [],
+        vi.fn(),
+        () => virtualTreeOutput(0, 2, 18000),
+      )
+      const render = runtime.renderUi
+      runtime.renderUi = async (...args) =>
+        args[2] === 'update'
+          ? new Promise((_resolve, fail) => {
+              reject = fail
+            })
+          : render(...args)
+      const controller = new DesktopPluginUiController(document.body, runtime, () => ({
+        documentVersion: version,
+      }))
+      await controller.sync('doc')
+      const first = document.querySelector<HTMLButtonElement>('[role="treeitem"]')!
+      const container = first.closest<HTMLElement>('[data-plugin-ui]')!
+      first.focus()
+      first.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }),
+      )
+      const rejectRequest = reject
+      if (change === 'document') await controller.sync('other-doc')
+      else if (change === 'version') version = 2
+      else await controller.dispose()
+      rejectRequest(new Error('obsolete keyboard request'))
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      expect(document.querySelector('.plugin-ui-error')).toBeNull()
+      expect(container.querySelector('.plugin-ui-error')).toBeNull()
+      if (change === 'mount') {
+        expect(document.querySelector('[data-plugin-ui]')).toBeNull()
+        return
+      }
+      expect(document.activeElement).toBe(first)
+      expect(
+        document.querySelector('[data-virtual-list]')?.getAttribute('data-virtual-start'),
+      ).toBe('0')
+      first.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+      )
+      expect(document.activeElement?.textContent).toBe('Heading 1')
+      await controller.dispose()
+    },
+  )
+
+  it('discards a pending End range when focus moves to another row of the same tree', async () => {
+    document.body.innerHTML = '<div data-plugin-slot="sidebar-panel"></div>'
+    const pending: ((output: unknown) => void)[] = []
+    const runtime = createRuntime(
+      [{ pluginId: 'example', id: 'tree', title: 'Tree', slot: 'sidebar-panel' }],
+      [],
+      vi.fn(),
+      () => virtualTreeOutput(0, 2, 18000),
+    )
+    const render = runtime.renderUi
+    runtime.renderUi = async (...args) =>
+      args[2] === 'update' ? new Promise((resolve) => pending.push(resolve)) : render(...args)
+    const controller = new DesktopPluginUiController(document.body, runtime)
+    await controller.sync('doc')
+    const items = document.querySelectorAll<HTMLButtonElement>('[role="treeitem"]')
+    items[0]!.focus()
+    items[0]!.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }),
+    )
+    items[1]!.focus()
+    pending[0]!(virtualTreeOutput(17840, 18000, 18000))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(document.activeElement).toBe(items[1])
+    expect(document.querySelector('[data-virtual-list]')?.getAttribute('data-virtual-start')).toBe(
+      '0',
+    )
+    for (const resolve of pending.slice(1)) resolve(virtualTreeOutput(0, 2, 18000))
+    await controller.dispose()
+  })
+
+  it('keeps the latest virtual keyboard intent and discards ranges after teardown', async () => {
+    document.body.innerHTML =
+      '<button id="outside">Outside</button><div data-plugin-slot="sidebar-panel"></div>'
+    const pending: ((output: unknown) => void)[] = []
+    const runtime = createRuntime(
+      [{ pluginId: 'example', id: 'tree', title: 'Tree', slot: 'sidebar-panel' }],
+      [],
+      vi.fn(),
+      () => virtualTreeOutput(0, 2, 18000),
+    )
+    const render = runtime.renderUi
+    runtime.renderUi = async (...args) =>
+      args[2] === 'update' ? new Promise((resolve) => pending.push(resolve)) : render(...args)
+    const controller = new DesktopPluginUiController(document.body, runtime)
+    await controller.sync('doc')
+    document.querySelector<HTMLButtonElement>('[role="treeitem"]')!.focus()
+    const press = (key: string) =>
+      document.activeElement!.dispatchEvent(
+        new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }),
+      )
+    press('End')
+    press('Home')
+    expect(pending).toHaveLength(2)
+    pending[1]!(virtualTreeOutput(0, 160, 18000))
+    await vi.waitFor(() => expect(document.querySelectorAll('[role="treeitem"]')).toHaveLength(160))
+    pending[0]!(virtualTreeOutput(17840, 18000, 18000))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(document.activeElement?.textContent).toBe('Heading 0')
+    expect(document.querySelector('[data-virtual-list]')?.getAttribute('data-virtual-start')).toBe(
+      '0',
+    )
+    press('End')
+    expect(pending).toHaveLength(3)
+    document.querySelector<HTMLButtonElement>('#outside')!.focus()
+    await controller.dispose()
+    pending[2]!(virtualTreeOutput(17840, 18000, 18000))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(document.querySelector('[data-plugin-ui]')).toBeNull()
+    expect(document.activeElement?.id).toBe('outside')
+  })
+
+  it('uses visible ranks rather than source ordinals after folding a virtual tree', async () => {
+    document.body.innerHTML = '<div data-plugin-slot="sidebar-panel"></div>'
+    const runtime = createRuntime(
+      [{ pluginId: 'example', id: 'tree', title: 'Tree', slot: 'sidebar-panel' }],
+      [],
+      vi.fn(),
+      (_phase, state) => {
+        const range = state.virtualViewport as { fromIndex: number; toIndex: number } | undefined
+        const output = virtualTreeOutput(range?.fromIndex ?? 0, range?.toIndex ?? 2, 20)
+        return {
+          ...output,
+          children: output.children.map((item, offset) => ({
+            ...item,
+            text: `Root ${((range?.fromIndex ?? 0) + offset) * 900}`,
+          })),
+        }
+      },
+    )
+    const controller = new DesktopPluginUiController(document.body, runtime)
+    await controller.sync('doc')
+    document.querySelector<HTMLButtonElement>('[role="treeitem"]')!.focus()
+    document.activeElement!.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }),
+    )
+    await vi.waitFor(() => expect(document.activeElement?.textContent).toBe('Root 17100'))
+    expect(document.querySelectorAll('[role="treeitem"]')).toHaveLength(20)
+    await controller.dispose()
+  })
+
   it('holds modal focus while a controlled save action is temporarily disabled', async () => {
     document.body.innerHTML = '<div data-plugin-slot="modal"></div>'
     let busy = false
@@ -1254,6 +1523,24 @@ function virtualListOutput(
       tag: 'button' as const,
       text: `Heading ${start + offset}`,
       attributes: { class: 'plugin-list-item' },
+    })),
+  }
+}
+
+function virtualTreeOutput(start: number, end: number, total: number) {
+  const output = virtualListOutput(start, end, total, -1, false)
+  return {
+    ...output,
+    attributes: { ...output.attributes, role: 'tree', 'aria-label': 'Virtual tree' },
+    children: output.children.map((item, index) => ({
+      ...item,
+      attributes: {
+        ...item.attributes,
+        role: 'treeitem',
+        'aria-level': '1',
+        'aria-label': `Heading ${start + index}`,
+      },
+      action: { command: 'example.run' },
     })),
   }
 }

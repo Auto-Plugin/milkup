@@ -1,0 +1,31 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ↓ plugins/outline/src/plugin.test.ts (21 tests | 21 skipped)
+ ❯ plugins/outline/src/outline-index.test.ts (4 tests | 1 failed | 3 skipped) 351ms
+   × batches visibility leaf reads when collapsed roots are scattered through a complete index 349ms
+     → expected 36 to be less than or equal to 24
+   ↓ matches an independent hierarchy oracle for 8775 headings and sparse/global folds
+   ↓ matches an independent hierarchy oracle for 18000 headings and sparse/global folds
+   ↓ keeps fold overrides and lazy range updates correct while appending through tree growth
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  plugins/outline/src/outline-index.test.ts > batches visibility leaf reads when collapsed roots are scattered through a complete index
+AssertionError: expected 36 to be less than or equal to 24
+ ❯ plugins/outline/src/outline-index.test.ts:86:35
+     84|   expect(rows.map((row) => row.ordinal)).toEqual(Array.from({ length: …
+     85|   // A transaction-count budget, not an invented native latency guaran…
+     86|   expect(counters.reads - before).toBeLessThanOrEqual(24)
+       |                                   ^
+     87| })
+     88| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 skipped (2)
+      Tests  1 failed | 24 skipped (25)
+   Start at  10:39:12
+   Duration  810ms (transform 240ms, setup 0ms, collect 311ms, tests 351ms, environment 0ms, prepare 190ms)
+

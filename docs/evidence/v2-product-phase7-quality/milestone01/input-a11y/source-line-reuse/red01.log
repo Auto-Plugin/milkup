@@ -1,0 +1,237 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts (26 tests | 17 failed) 1964ms
+   × ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode insert at line 1 215ms
+     → expected false to be true // Object.is equality
+   × ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode delete at line 1 161ms
+     → expected false to be true // Object.is equality
+   × ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode replace at line 1 119ms
+     → expected false to be true // Object.is equality
+   × ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode insert at line 512 149ms
+     → expected false to be true // Object.is equality
+   × ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode delete at line 512 104ms
+     → expected false to be true // Object.is equality
+   × ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode replace at line 512 116ms
+     → expected false to be true // Object.is equality
+   × ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode insert at line 1024 116ms
+     → expected false to be true // Object.is equality
+   × ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode delete at line 1024 127ms
+     → expected false to be true // Object.is equality
+   × ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode replace at line 1024 120ms
+     → expected false to be true // Object.is equality
+   × ordinary source single-line rendering reuse > retains CRLF source bytes and shifts every later line offset without replacing its node 117ms
+     → expected false to be true // Object.is equality
+   × ordinary source single-line rendering reuse > keeps zero-width placeholders confined to display for empty-to-text 9ms
+     → expected <div class="milkup-line" …(3)></div> to be <div class="milkup-line" …(3)></div> // Object.is equality
+
+If it should pass with deep equality, replace "toBe" with "toStrictEqual"
+
+Expected: <div class="milkup-line" …(3)></div>
+Received: serializes to the same string
+
+   × ordinary source single-line rendering reuse > keeps zero-width placeholders confined to display for text-to-empty 4ms
+     → expected <div class="milkup-line" …(3)></div> to be <div class="milkup-line" …(3)></div> // Object.is equality
+
+If it should pass with deep equality, replace "toBe" with "toStrictEqual"
+
+Expected: <div class="milkup-line" …(3)></div>
+Received: serializes to the same string
+
+   × ordinary source single-line rendering reuse > preserves a reversed selection in a retained later line and restores it through history 166ms
+     → expected <div class="milkup-line" …(3)></div> to be <div class="milkup-line" …(3)></div> // Object.is equality
+   × ordinary source single-line rendering reuse > uses updated offsets when clicking a retained later line after grow 95ms
+     → expected <div class="milkup-line" …(3)></div> to be <div class="milkup-line" …(3)></div> // Object.is equality
+   × ordinary source single-line rendering reuse > uses updated offsets when clicking a retained later line after shrink 89ms
+     → expected <div class="milkup-line" …(3)></div> to be <div class="milkup-line" …(3)></div> // Object.is equality
+   × ordinary source single-line rendering reuse > retains a final empty line and moves its absolute end offset 102ms
+     → expected <div class="milkup-line" …(3)></div> to be <div class="milkup-line" …(3)></div> // Object.is equality
+   × ordinary source single-line rendering reuse > preserves outer and affected-line scroll when an edit leaves selection unchanged 118ms
+     → expected +0 to be 41 // Object.is equality
+   ✓ ordinary source changed-line fallback boundaries > fully reconciles source and offsets for insert-newline 4ms
+   ✓ ordinary source changed-line fallback boundaries > fully reconciles source and offsets for delete-newline 3ms
+   ✓ ordinary source changed-line fallback boundaries > fully reconciles source and offsets for insert-carriage-return 3ms
+   ✓ ordinary source changed-line fallback boundaries > fully reconciles source and offsets for delete-carriage-return 3ms
+   ✓ ordinary source changed-line fallback boundaries > fully reconciles source and offsets for multiple-changes 5ms
+   ✓ ordinary source changed-line fallback boundaries > fully reconciles source and offsets for multiple-transactions 4ms
+   ✓ ordinary source changed-line fallback boundaries > fully reconciles source and offsets for untracked-state 3ms
+   ✓ ordinary source changed-line fallback boundaries > repairs a missing unrelated line instead of returning from a partial patch 3ms
+   ✓ ordinary source changed-line fallback boundaries > keeps virtual source rendering bounded and updates visible offsets for an offscreen edit 8ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 17 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts > ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode insert at line 1
+ FAIL  packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts > ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode delete at line 1
+ FAIL  packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts > ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode replace at line 1
+ FAIL  packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts > ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode insert at line 512
+ FAIL  packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts > ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode delete at line 512
+ FAIL  packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts > ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode replace at line 512
+ FAIL  packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts > ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode insert at line 1024
+ FAIL  packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts > ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode delete at line 1024
+ FAIL  packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts > ordinary source single-line rendering reuse > retains unrelated line nodes for Unicode replace at line 1024
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts:79:12
+     77|         const after = lines(view)
+     78|         expect(after.every((element, index) => index === number - 1 ||…
+     79|           .toBe(true)
+       |            ^
+     80|         assertContent(view, expected)
+     81|         expect(view.state.selection.main.anchor).toBe(target)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/17]⎯
+
+ FAIL  packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts > ordinary source single-line rendering reuse > retains CRLF source bytes and shifts every later line offset without replacing its node
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts:102:95
+    100|     apply(view, ChangeSet.insert(from, '新增😀'))
+    101|     assertContent(view, text.slice(0, from) + '新增😀' + text.slice(from…
+    102|     expect(lines(view).every((element, index) => index === 511 || elem…
+       |                                                                                               ^
+    103|   })
+    104| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/17]⎯
+
+ FAIL  packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts > ordinary source single-line rendering reuse > keeps zero-width placeholders confined to display for empty-to-text
+ FAIL  packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts > ordinary source single-line rendering reuse > keeps zero-width placeholders confined to display for text-to-empty
+AssertionError: expected <div class="milkup-line" …(3)></div> to be <div class="milkup-line" …(3)></div> // Object.is equality
+
+If it should pass with deep equality, replace "toBe" with "toStrictEqual"
+
+Expected: <div class="milkup-line" …(3)></div>
+Received: serializes to the same string
+
+
+Compared values have no visual difference.
+
+ ❯ packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts:114:30
+    112|       apply(view, ChangeSet.replace(line.from, line.to, insert))
+    113|       assertContent(view, text.slice(0, line.from) + insert + text.sli…
+    114|       expect(lines(view)[0]).toBe(before[0])
+       |                              ^
+    115|       expect(lines(view)[2]).toBe(before[2])
+    116|       expect(view.state.doc.text).not.toContain('\u200b')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/17]⎯
+
+ FAIL  packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts > ordinary source single-line rendering reuse > preserves a reversed selection in a retained later line and restores it through history
+AssertionError: expected <div class="milkup-line" …(3)></div> to be <div class="milkup-line" …(3)></div> // Object.is equality
+
+- Expected
++ Received
+
+  <div
+    class="milkup-line"
+-   data-from="26598"
++   data-from="26601"
+    data-line="1024"
+-   data-to="26623"
++   data-to="26626"
+  >
+    line 1024 中文 👩🏽‍💻 é 尾
+  </div>
+
+ ❯ packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts:128:31
+    126|     const shifted = Selection.range(last.to + insert.length, last.from…
+    127|     apply(view, ChangeSet.insert(0, insert), shifted)
+    128|     expect(lines(view)[1023]).toBe(before[1023])
+       |                               ^
+    129|     assertContent(view, insert + text)
+    130|     expect(view.state.selection.main.anchor).toBe(last.to + insert.len…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/17]⎯
+
+ FAIL  packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts > ordinary source single-line rendering reuse > uses updated offsets when clicking a retained later line after grow
+ FAIL  packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts > ordinary source single-line rendering reuse > uses updated offsets when clicking a retained later line after shrink
+AssertionError: expected <div class="milkup-line" …(3)></div> to be <div class="milkup-line" …(3)></div> // Object.is equality
+
+- Expected
++ Received
+
+  <div
+    class="milkup-line"
+-   data-from="26598"
++   data-from="26601"
+    data-line="1024"
+-   data-to="26623"
++   data-to="26626"
+  >
+    line 1024 中文 👩🏽‍💻 é 尾
+  </div>
+
+ ❯ packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts:152:20
+    150|       const expected = insert + text.slice(to)
+    151|       const last = lines(view)[1023]!
+    152|       expect(last).toBe(before[1023])
+       |                    ^
+    153|       const descriptor = Object.getOwnPropertyDescriptor(document, 'ca…
+    154|       Object.defineProperty(document, 'caretPositionFromPoint', {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/17]⎯
+
+ FAIL  packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts > ordinary source single-line rendering reuse > retains a final empty line and moves its absolute end offset
+AssertionError: expected <div class="milkup-line" …(3)></div> to be <div class="milkup-line" …(3)></div> // Object.is equality
+
+- Expected
++ Received
+
+  <div
+    class="milkup-line"
+-   data-from="26598"
++   data-from="26600"
+    data-line="1024"
+-   data-to="26598"
++   data-to="26600"
+  >
+    ​
+  </div>
+
+ ❯ packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts:175:31
+    173|     const last = lines(view)[1023]!
+    174|     apply(view, ChangeSet.insert(0, '😀'))
+    175|     expect(lines(view)[1023]).toBe(last)
+       |                               ^
+    176|     expect(last.textContent).toBe('\u200b')
+    177|     expect(last.dataset.from).toBe(String(text.length + 2))
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/17]⎯
+
+ FAIL  packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts > ordinary source single-line rendering reuse > preserves outer and affected-line scroll when an edit leaves selection unchanged
+AssertionError: expected +0 to be 41 // Object.is equality
+
+- Expected
++ Received
+
+- 41
++ 0
+
+ ❯ packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts:193:42
+    191|     expect(view.dom.scrollTop).toBe(780)
+    192|     expect(view.dom.scrollLeft).toBe(25)
+    193|     expect(lines(view)[511]!.scrollLeft).toBe(41)
+       |                                          ^
+    194|     assertContent(view, text.slice(0, from) + '新增😀' + text.slice(from…
+    195|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/17]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  17 failed | 9 passed (26)
+   Start at  12:14:31
+   Duration  3.58s (transform 525ms, setup 0ms, collect 680ms, tests 1.96s, environment 566ms, prepare 77ms)
+

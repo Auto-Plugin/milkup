@@ -1,0 +1,25 @@
+{
+  "baseline": "fa530b399a5ebbd020f9bfa7ca039378604c8282",
+  "branch": "dot/milkup-v2-product-phase7-quality",
+  "scope": "Synthetic DOM unit regressions and static audit; no native UI, browser, OS IME or screen reader session",
+  "red": {
+    "command": "node ../../node_modules/vitest/vitest.mjs run src/__tests__/p7-input-audit.test.ts --maxWorkers=1",
+    "cwd": "/workspace/milkup/packages/view-dom",
+    "exit": 1,
+    "passed": 4,
+    "failed": 8
+  },
+  "existing": {
+    "command": "node ../../node_modules/vitest/vitest.mjs run src/__tests__/input-boundaries.test.ts src/__tests__/source-unicode.test.ts src/__tests__/block-keyboard.test.ts src/__tests__/source-document-view.test.ts src/__tests__/editor-view.test.ts --maxWorkers=1",
+    "exit": 0,
+    "passed": 263,
+    "failed": 0
+  },
+  "files": {
+    "packages/view-dom/src/__tests__/p7-input-audit.test.ts": "fa01188a376709ab172c9bc643fe90170ebca56bbaedcc6eb78c7ecc981f0fb5",
+    "packages/view-dom/src/source-document-view.ts": "ad1a9a7a746c8eaf641e132ee5a91cb4779c4d860c9f9f445231c8d2b8923206",
+    "packages/view-dom/src/editor-view.ts": "4084272d196b6f9f70cf85a3c355e9b1a9773deea06e53e1705572b59208367e",
+    "apps/desktop/src/main.ts": "6483d6764f99cbcfbf2b499d67c95c9bc5197dc8b2f2e4f7290503841aec703c",
+    "apps/desktop/src/style.css": "87eb96b1eac1143f6796fec0de0e95b8d081efac4b71a37b4de96a247e9afab9"
+  }
+}

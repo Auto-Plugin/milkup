@@ -1,0 +1,52 @@
+{
+  "observedUtc": "2026-10-19T12:24:04.400172+00:00",
+  "liveNativeProcesses": [
+    {
+      "pid": 22604,
+      "birth": "8044916",
+      "pgid": 22600,
+      "state": "S",
+      "name": "Xvfb",
+      "command": "Xvfb :126 -screen 0 1600x1000x24 -nolisten tcp ",
+      "scopeEnvironment": {
+        "XDG_CONFIG_HOME": "/workspace/.cloud/milkup-v2/user/config"
+      }
+    },
+    {
+      "pid": 254857,
+      "birth": "10958947",
+      "pgid": 254857,
+      "state": "S",
+      "name": "Xvfb",
+      "command": "Xvfb :127 -screen 0 1600x1000x24 -nolisten tcp ",
+      "scopeEnvironment": {
+        "XDG_CONFIG_HOME": "/workspace/.cloud/milkup-v2/user/config"
+      }
+    }
+  ],
+  "zombieCounts": {
+    "tauri-driver": 102,
+    "WebKitWebDriver": 151,
+    "milkup-desktop": 52
+  },
+  "focusedWindow": {
+    "args": [
+      "getwindowfocus"
+    ],
+    "exitCode": 1,
+    "stdout": "",
+    "stderr": "XGetInputFocus returned the focused window of 1. This is likely a bug in the X server.\nX Error of failed request:  BadWindow (invalid Window parameter)\n  Major opcode of failed request:  20 (X_GetProperty)\n  Resource id in failed request:  0x1\n  Serial number of failed request:  20\n  Current serial number in output stream:  20\n"
+  },
+  "visibleMilkUpWindows": {
+    "args": [
+      "search",
+      "--onlyvisible",
+      "--class",
+      "milkup-desktop"
+    ],
+    "exitCode": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  "note": "Read-only between runs; no process terminated. Zombie count is not running and not fully reaped."
+}

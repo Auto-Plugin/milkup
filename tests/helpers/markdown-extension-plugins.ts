@@ -1,3 +1,4 @@
+import { sealWorkerFixture } from './sealed-plugin-fixture'
 import { expect, type Page } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
@@ -32,7 +33,7 @@ export async function markdownExtensionFixture(
         platform: 'browser',
         alias: { '@milkup/plugin-sdk': resolve('packages/plugin-sdk/src/index.js') },
       })
-      manifest.main = 'data:text/javascript,' + encodeURIComponent(bundle.outputFiles[0]!.text)
+      await sealWorkerFixture(page, manifest, `/${root}/plugin.json`, bundle.outputFiles[0]!.text)
     }
     const recordRoot = nativeUnavailable
       ? '/tests/fixtures/document-presentation-image'
@@ -42,6 +43,8 @@ export async function markdownExtensionFixture(
       manifestPath: `${recordRoot}/plugin.json`,
       rootPath: recordRoot,
       sourcePath: `${recordRoot}/plugin.json`,
+      dataRoot: `milkup://plugin-data/${manifest.id}`,
+      storageRoot: `milkup://plugin-storage/${manifest.id}`,
       state: 'enabled',
       enabled: true,
       installedAt: 1,

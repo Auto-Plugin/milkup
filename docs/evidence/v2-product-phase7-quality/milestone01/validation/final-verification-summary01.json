@@ -1,0 +1,181 @@
+{
+  "createdAt": "2026-10-19T11:26:51.688580+00:00",
+  "status": "FINAL_NON_GUI_GATES_PASSED_WITH_FIRST_FAILURES_PRESERVED",
+  "commandsEnded": true,
+  "productEditsByThisValidationTask": false,
+  "workspaceTests": {
+    "attempt": "03",
+    "exitCode": 0,
+    "vitestPassed": 2522,
+    "nodePassed": 4,
+    "packages": [
+      {
+        "package": "packages/assets",
+        "vitestPassed": 6
+      },
+      {
+        "package": "packages/input",
+        "vitestPassed": 8
+      },
+      {
+        "package": "packages/markdown",
+        "vitestPassed": 121
+      },
+      {
+        "package": "packages/core",
+        "vitestPassed": 189
+      },
+      {
+        "package": "packages/plugin-sdk",
+        "vitestPassed": 6
+      },
+      {
+        "package": "packages/export",
+        "vitestPassed": 75
+      },
+      {
+        "package": "packages/mcp",
+        "vitestPassed": 11
+      },
+      {
+        "package": "packages/tauri-bridge",
+        "vitestPassed": 55
+      },
+      {
+        "package": "packages/plugin",
+        "vitestPassed": 616
+      },
+      {
+        "package": "packages/cli",
+        "vitestPassed": 21
+      },
+      {
+        "package": "packages/view-dom",
+        "vitestPassed": 765
+      },
+      {
+        "package": "tests/regressions",
+        "vitestPassed": 12
+      },
+      {
+        "package": "apps/desktop",
+        "vitestPassed": 637
+      }
+    ]
+  },
+  "presentationIsolated": {
+    "attempt": "03",
+    "testsPassed": 19,
+    "exitCode": 0,
+    "timeoutUnchanged": true
+  },
+  "typecheck": {
+    "name": "workspace-types",
+    "command": [
+      "bash",
+      "scripts/cloud/pnpm.sh",
+      "--config.verify-deps-before-run=false",
+      "--config.manage-package-manager-versions=false",
+      "typecheck"
+    ],
+    "exitCode": 0,
+    "elapsedSeconds": 35.98438122001244,
+    "startedAt": "2026-10-19T11:22:45.800934+00:00",
+    "finishedAt": "2026-10-19T11:23:21.785409+00:00",
+    "log": "/workspace/milkup-p7-quality-evidence/milestone01/validation/final-workspace-types-02.log"
+  },
+  "version": {
+    "name": "version",
+    "command": [
+      "bash",
+      "scripts/cloud/pnpm.sh",
+      "--config.verify-deps-before-run=false",
+      "--config.manage-package-manager-versions=false",
+      "version:check"
+    ],
+    "exitCode": 0,
+    "elapsedSeconds": 0.5812204549874878,
+    "startedAt": "2026-10-19T11:23:21.787469+00:00",
+    "finishedAt": "2026-10-19T11:23:22.368694+00:00",
+    "log": "/workspace/milkup-p7-quality-evidence/milestone01/validation/final-version-02.log"
+  },
+  "build": {
+    "name": "workspace-build",
+    "command": [
+      "bash",
+      "scripts/cloud/pnpm.sh",
+      "--config.verify-deps-before-run=false",
+      "--config.manage-package-manager-versions=false",
+      "build"
+    ],
+    "exitCode": 0,
+    "elapsedSeconds": 31.246030388007057,
+    "startedAt": "2026-10-19T11:23:22.369257+00:00",
+    "finishedAt": "2026-10-19T11:23:53.615349+00:00",
+    "log": "/workspace/milkup-p7-quality-evidence/milestone01/validation/final-workspace-build-02.log"
+  },
+  "format": {
+    "attempt": "03",
+    "files": 34,
+    "exitCode": 0,
+    "details": "final-format-03.json"
+  },
+  "diffCheck": {
+    "name": "diff-check",
+    "command": [
+      "git",
+      "diff",
+      "--check",
+      "HEAD"
+    ],
+    "exitCode": 0,
+    "elapsedSeconds": 0.1341164319892414,
+    "startedAt": "2026-10-19T11:23:53.622796+00:00",
+    "finishedAt": "2026-10-19T11:23:53.756920+00:00",
+    "log": "/workspace/milkup-p7-quality-evidence/milestone01/validation/final-diff-check-02.log"
+  },
+  "preservedFirstFailures": [
+    {
+      "attempt": "01",
+      "files": "final-*-01.log/json",
+      "classification": "Environment command failure for pnpm gates; default pnpm automatic dependency install attempted mkdir /home/agent/.local/share/pnpm and failed ENOENT before product tests/typecheck/version/build. No validation source changes detected."
+    },
+    {
+      "attempt": "format01",
+      "classification": "Prettier failed only tests/native/tauri-p7-outline-performance.mjs. Owner formatted it; final checks 02 and 03 passed. Validator made no corrective source edits."
+    },
+    {
+      "attempt": "workspace-tests02",
+      "classification": "Actual test failure: packages/view-dom presentation.test.ts changes ordinary live layout without a document transaction timed out at the unchanged 5000ms limit; package 764 passed/1 failed. Recursive run stopped before all packages. Subsequent original suite19 passed and full03 passed do not replace this first result."
+    }
+  ],
+  "concurrency": "final-concurrency-window03.json; full03 overlapped a failed Playwright webServer startup; no browser launched according to its owner. Do not label full03 quiet or infer a timeout cause. Native timing was not performed by this task.",
+  "sourceChangesDuringValidation": {
+    "01": {
+      "changed": [],
+      "newPaths": []
+    },
+    "02": {
+      "changed": [
+        "tests/e2e/desktop-shortcuts.spec.ts",
+        "tests/e2e/desktop-updates.spec.ts",
+        "tests/e2e/desktop-workspace.spec.ts",
+        "tests/helpers/formatting-plugin.ts",
+        "tests/helpers/markdown-extension-plugins.ts",
+        "tests/native/tauri-p7-outline-performance.mjs"
+      ],
+      "newPaths": [
+        "tests/helpers/sealed-plugin-fixture.ts"
+      ]
+    },
+    "03": {
+      "changed": [
+        "tests/helpers/sealed-plugin-fixture.ts"
+      ],
+      "newPaths": []
+    }
+  },
+  "productSourceChangesDuringValidation": [],
+  "coverageBoundary": "Workspace tests/types/build plus changed/untracked formatting. Outline independent plugin and actual native/browser outcomes are separate owner evidence. E2E helpers changed during validation by their owner and were included in final formatting, not claimed as browser acceptance. Build warnings are retained in raw log.",
+  "release": "Root, p5_native and p5_content were notified after all validation processes ended; candidate native build and focused browser work may proceed under Root coordination."
+}

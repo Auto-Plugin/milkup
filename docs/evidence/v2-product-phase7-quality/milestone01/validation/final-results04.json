@@ -1,0 +1,145 @@
+{
+  "steps": [
+    {
+      "name": "workspace-tests",
+      "command": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "--config.verify-deps-before-run=false",
+        "--config.manage-package-manager-versions=false",
+        "--workspace-concurrency=1",
+        "-r",
+        "test"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 73.19504146499094,
+      "startedAt": "2026-10-19T12:17:51.520716+00:00",
+      "finishedAt": "2026-10-19T12:19:04.715952+00:00",
+      "log": "/workspace/milkup-p7-quality-evidence/milestone01/validation/final-workspace-tests-04.log"
+    },
+    {
+      "name": "workspace-types",
+      "command": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "--config.verify-deps-before-run=false",
+        "--config.manage-package-manager-versions=false",
+        "typecheck"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 27.95583513598831,
+      "startedAt": "2026-10-19T12:19:04.718990+00:00",
+      "finishedAt": "2026-10-19T12:19:32.674940+00:00",
+      "log": "/workspace/milkup-p7-quality-evidence/milestone01/validation/final-workspace-types-04.log"
+    },
+    {
+      "name": "version",
+      "command": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "--config.verify-deps-before-run=false",
+        "--config.manage-package-manager-versions=false",
+        "version:check"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.5416433909995249,
+      "startedAt": "2026-10-19T12:19:32.677622+00:00",
+      "finishedAt": "2026-10-19T12:19:33.219270+00:00",
+      "log": "/workspace/milkup-p7-quality-evidence/milestone01/validation/final-version-04.log"
+    },
+    {
+      "name": "workspace-build",
+      "command": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "--config.verify-deps-before-run=false",
+        "--config.manage-package-manager-versions=false",
+        "build"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 26.224551288003568,
+      "startedAt": "2026-10-19T12:19:33.219894+00:00",
+      "finishedAt": "2026-10-19T12:19:59.444458+00:00",
+      "log": "/workspace/milkup-p7-quality-evidence/milestone01/validation/final-workspace-build-04.log"
+    },
+    {
+      "name": "format",
+      "command": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "--config.verify-deps-before-run=false",
+        "--config.manage-package-manager-versions=false",
+        "exec",
+        "prettier",
+        "--check",
+        "--ignore-unknown",
+        ".gitattributes",
+        ".prettierignore",
+        "apps/desktop/src/controlled-tree-ui.test.ts",
+        "apps/desktop/src/controlled-tree-ui.ts",
+        "apps/desktop/src/desktop-focus.test.ts",
+        "apps/desktop/src/desktop-focus.ts",
+        "apps/desktop/src/desktop-plugin-ui.test.ts",
+        "apps/desktop/src/desktop-plugin-ui.ts",
+        "apps/desktop/src/main.ts",
+        "apps/desktop/src/source-focus-navigation.test.ts",
+        "docs/v2-product-completion-plan.md",
+        "docs/v2-product-phase7-quality-2026-10-19.md",
+        "docs/v2-product-phase7-quality-checklist.md",
+        "packages/view-dom/src/__tests__/p7-document-navigation.test.ts",
+        "packages/view-dom/src/__tests__/p7-input-audit.test.ts",
+        "packages/view-dom/src/__tests__/p7-live-parse-budget.test.ts",
+        "packages/view-dom/src/__tests__/p7-source-line-reuse.test.ts",
+        "packages/view-dom/src/editor-view.ts",
+        "packages/view-dom/src/source-document-view.ts",
+        "plugins/outline/README.md",
+        "plugins/outline/package.json",
+        "plugins/outline/plugin.json",
+        "plugins/outline/src/outline-index.test.ts",
+        "plugins/outline/src/outline-index.ts",
+        "tests/e2e/desktop-markdown-extensions.spec.ts",
+        "tests/e2e/desktop-plugin-cards.spec.ts",
+        "tests/e2e/desktop-preferences.spec.ts",
+        "tests/e2e/desktop-shell.spec.ts",
+        "tests/e2e/desktop-shortcuts.spec.ts",
+        "tests/e2e/desktop-updates.spec.ts",
+        "tests/e2e/desktop-workspace.spec.ts",
+        "tests/helpers/formatting-plugin.ts",
+        "tests/helpers/markdown-extension-plugins.ts",
+        "tests/helpers/sealed-plugin-fixture.ts",
+        "tests/native/p7-quality-README.md",
+        "tests/native/tauri-p7-all-plugins-disabled.mjs",
+        "tests/native/tauri-p7-outline-performance.mjs",
+        "tests/native/tauri-p7-quality.mjs",
+        "tests/native/tauri-production-latency.mjs",
+        "tests/performance/p7-outline-baseline.mjs"
+      ],
+      "exitCode": 1,
+      "elapsedSeconds": 3.515635277988622,
+      "startedAt": "2026-10-19T12:19:59.613349+00:00",
+      "finishedAt": "2026-10-19T12:20:03.128988+00:00",
+      "log": "/workspace/milkup-p7-quality-evidence/milestone01/validation/final-format-04.log"
+    },
+    {
+      "name": "diff-check",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "HEAD"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.044717066004523076,
+      "startedAt": "2026-10-19T12:20:03.130689+00:00",
+      "finishedAt": "2026-10-19T12:20:03.175410+00:00",
+      "log": "/workspace/milkup-p7-quality-evidence/milestone01/validation/final-diff-check-04.log"
+    }
+  ],
+  "allPassed": false,
+  "environmentOverrides": {
+    "NPM_CONFIG_VERIFY_DEPS_BEFORE_RUN": "false",
+    "NPM_CONFIG_MANAGE_PACKAGE_MANAGER_VERSIONS": "false",
+    "COREPACK_ENABLE_NETWORK": "0"
+  },
+  "scope": "Non-GUI validation only. No corrective edits. Repository source drift must be evaluated using before/after records; generated build outputs are expected."
+}

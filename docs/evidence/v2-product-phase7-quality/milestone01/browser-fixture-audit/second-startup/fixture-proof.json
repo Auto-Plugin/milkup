@@ -1,0 +1,97 @@
+{
+  "scope": "Browser-only fixtures and exact contract locators; no product code",
+  "files": [
+    {
+      "path": "tests/helpers/sealed-plugin-fixture.ts",
+      "sha256": "e484dc1f175da01c82f8ff5a42837dc1bc4a703f670814ddd308a17eabde5561"
+    },
+    {
+      "path": "tests/helpers/formatting-plugin.ts",
+      "sha256": "a43c528c9871009edae0d67e96e0eaf0444ab424b27fe4568c83bfd695ddc13f"
+    },
+    {
+      "path": "tests/helpers/markdown-extension-plugins.ts",
+      "sha256": "00bfbc9931d1b4a0e68db456c36ba1dc6a7cb24c3a97a7a2ab540a05706998b2"
+    },
+    {
+      "path": "tests/e2e/desktop-shell.spec.ts",
+      "sha256": "57fb141805f6c07c6c12c85f47d89dffc3fa6879dee827ba85177fdb6ef5dc31"
+    },
+    {
+      "path": "tests/e2e/desktop-shortcuts.spec.ts",
+      "sha256": "04a80945f39c3dffe6282b2f53ab3ca3e8ed61621edc188f28c691887f2d5e16"
+    },
+    {
+      "path": "tests/e2e/desktop-updates.spec.ts",
+      "sha256": "b8ba2f0f04f141760e274644ab835d33123587c95aee635e3dcebae1304a58d6"
+    },
+    {
+      "path": "tests/e2e/desktop-workspace.spec.ts",
+      "sha256": "9bb2d7d7f25ea832de17a009346852754e56acc5cebfa29fe0d887827d5ab588"
+    },
+    {
+      "path": "tests/e2e/desktop-plugin-cards.spec.ts",
+      "sha256": "409cac87641e656966ad5517a67c23a29ed423c34978ee08687c9e7fd4dbb003"
+    },
+    {
+      "path": "tests/e2e/desktop-preferences.spec.ts",
+      "sha256": "28043dc5b2a2d07ec1387d99d3fcd1a7b755f35751b9353409ea92707d306ba5"
+    },
+    {
+      "path": "tests/e2e/desktop-markdown-extensions.spec.ts",
+      "sha256": "808fc285790ee8f751bb4b4dfb873745fffc46e7491a6643224182e8281fdf3d"
+    }
+  ],
+  "frozenSourceDocumentViewSha256": "7a025b307338290b4ced9c62a751f89494003e0cb944e670524ea18f9598de6c",
+  "validation": {
+    "formatting": {
+      "passed": 21,
+      "exit": 0,
+      "log": "formatting-green02.log"
+    },
+    "focused01": {
+      "passed": 7,
+      "failed": 2,
+      "exit": 1,
+      "log": "focused01.log"
+    },
+    "focused02": {
+      "passed": 11,
+      "exit": 0,
+      "log": "focused02.log"
+    },
+    "helperTypecheck": {
+      "exit": 0,
+      "log": "helper-typecheck02.log"
+    },
+    "menuFollowup": {
+      "passed": 3,
+      "exit": 0,
+      "duration": "15.6s",
+      "log": "../../validation/browser-e2e-03-menu-followup.log",
+      "artifacts": "../../validation/browser-e2e-03-menu-followup-artifacts"
+    },
+    "finalFixtureFormat": {
+      "exit": 0,
+      "log": "final-format.log",
+      "menuFollowupLog": "menu-followup-format.log"
+    }
+  },
+  "fullSuite": {
+    "passed": 196,
+    "failed": 1,
+    "exit": 1,
+    "duration": "7.6m",
+    "log": "../../validation/browser-e2e-03.log",
+    "artifacts": "../../validation/browser-e2e-03-artifacts",
+    "remainingFailure": "Old F6 menu Escape assertion; corrected to assert P7 menu invoker restoration and F6 return to editor, retaining content/table checks."
+  },
+  "release": {
+    "timestampUtc": "2026-10-19T11:39:35.919946+00:00",
+    "servers1420And5174": "No listeners after runner completion",
+    "ownedBrowserAndRunner": "Ended; no active matching processes",
+    "nextOwner": "Root native UI",
+    "noMoreTests": true
+  },
+  "claim": "196/197 passed in full03; sole obsolete menu-focus expectation updated, then related three-case followup passed. Not a single-run 197-pass claim."
+}

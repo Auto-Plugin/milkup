@@ -1,0 +1,70 @@
+{
+  "timestampUtc": "2026-10-19T11:11:12.861114+00:00",
+  "scope": "Optional view-dom host focus and explicit document-navigation callbacks; no core or plugin SDK API change",
+  "files": [
+    {
+      "path": "packages/view-dom/src/source-document-view.ts",
+      "sha256": "7a025b307338290b4ced9c62a751f89494003e0cb944e670524ea18f9598de6c"
+    },
+    {
+      "path": "packages/view-dom/src/__tests__/p7-input-audit.test.ts",
+      "sha256": "5f9aa5454c9be13834fd6d7619100d5ee2f2cfa2643d090e5d9c789e91d61471"
+    },
+    {
+      "path": "packages/view-dom/src/__tests__/p7-document-navigation.test.ts",
+      "sha256": "b284ae2d2c81367f091e8011b60f888df700476eab643e5be9e5abb1c32d258a"
+    },
+    {
+      "path": "apps/desktop/src/source-focus-navigation.test.ts",
+      "sha256": "6bc6676add2b0c8cb19dac49f2f30930d4d61c0e3250779ba5aac70439d331cd"
+    }
+  ],
+  "validation": {
+    "singleTabRed": {
+      "failed": 4,
+      "passed": 2,
+      "exit": 1,
+      "log": "../single-tab/red.log"
+    },
+    "singleTabGreen": {
+      "passed": 58,
+      "exit": 0,
+      "log": "../single-tab/green.log"
+    },
+    "navigationInitialRed": {
+      "failed": 12,
+      "passed": 6,
+      "exit": 1,
+      "log": "red.log"
+    },
+    "combinedBeforeStaleRejectionFollowup": {
+      "files": 6,
+      "passed": 180,
+      "exit": 0,
+      "log": "final-green.log"
+    },
+    "staleRejectionRed": {
+      "failed": 8,
+      "passed": 26,
+      "exit": 1,
+      "log": "stale-rejection-red.log"
+    },
+    "staleRejectionGreen": {
+      "files": 1,
+      "passed": 34,
+      "exit": 0,
+      "log": "stale-rejection-green.log"
+    },
+    "finalViewDomTypecheck": {
+      "exit": 0,
+      "log": "stale-rejection-typecheck.log"
+    }
+  },
+  "boundaries": [
+    "No browser/native GUI or real OS IME acceptance performed by this agent",
+    "Combined six-suite 180-pass run predates final stale-rejection-only change; final modified navigation suite is separately 34-pass",
+    "Root owns main.ts, desktop-focus.ts and ordinary EditorView changes",
+    "No entire-source indexing or new dependency",
+    "Earlier evidence is retained and not overwritten"
+  ]
+}

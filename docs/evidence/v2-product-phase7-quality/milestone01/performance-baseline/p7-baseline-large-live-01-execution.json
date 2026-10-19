@@ -1,0 +1,55 @@
+{
+  "run": "p7-baseline-large-live-01",
+  "command": [
+    "bash",
+    "-c",
+    "source /workspace/milkup-p7-quality-evidence/milestone01/native-ui/runtime/run-env.sh p7-baseline-large-live-01; export MILKUP_LATENCY_BYTES=10485760 MILKUP_LATENCY_LINE_BYTES=64 MILKUP_LATENCY_MODE=live MILKUP_LATENCY_CYCLES=20; exec node tests/native/tauri-production-latency.mjs"
+  ],
+  "startedUtc": "2026-10-19T10:35:39.531404+00:00",
+  "sourceBefore": {
+    "tests/native/tauri-production-latency.mjs": "e2d51ac3e39a8a161a9918484d6b0046a0989623f7e54d58972e25b19db55886",
+    "tests/helpers/native-production.mjs": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0",
+    "tests/helpers/native-process-memory.mjs": "5a686a8727933f0a03a31c264f43f1005a6f67733bf4ebba8dc8a17e340d5d80",
+    "tests/helpers/native-startup.mjs": "d698104c7838e7d51a1ff64709c29f1660da8e3b9d1ca72fbf28c8370cc4d1f1"
+  },
+  "exitCode": 0,
+  "finishedUtc": "2026-10-19T10:36:19.346188+00:00",
+  "sourceAfter": {
+    "tests/native/tauri-production-latency.mjs": "e2d51ac3e39a8a161a9918484d6b0046a0989623f7e54d58972e25b19db55886",
+    "tests/helpers/native-production.mjs": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0",
+    "tests/helpers/native-process-memory.mjs": "5a686a8727933f0a03a31c264f43f1005a6f67733bf4ebba8dc8a17e340d5d80",
+    "tests/helpers/native-startup.mjs": "d698104c7838e7d51a1ff64709c29f1660da8e3b9d1ca72fbf28c8370cc4d1f1"
+  },
+  "complete": true,
+  "samples": 143,
+  "violations": [
+    {
+      "query": "A",
+      "wall": 1792406177970,
+      "count": "1/1",
+      "temperature": "first-query",
+      "modifiers": {
+        "alt": false,
+        "meta": false,
+        "ctrl": false
+      },
+      "recovery": "idle",
+      "twoFrames": 38091,
+      "frameMs": 566,
+      "domMs": 499,
+      "started": 37525,
+      "renderedLines": 76,
+      "kind": "search",
+      "trusted": true,
+      "target": "",
+      "cursor": 1,
+      "targetMs": 500,
+      "expected": 1,
+      "key": "A",
+      "dom": 38024,
+      "version": 40,
+      "externalCommandToObservedMs": 693.0969370000021,
+      "overTarget": true
+    }
+  ]
+}

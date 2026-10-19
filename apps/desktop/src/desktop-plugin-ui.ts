@@ -53,6 +53,14 @@ interface MountedPluginUi {
   virtualPendingEdgeHint?: 'before' | 'after'
   virtualRequestSequence?: number
   virtualAdjustmentRevision?: number
+  virtualTreeFocus?: {
+    id: string
+    target: number
+    total: number
+    anchor: Element
+    documentId: string
+    documentVersion: unknown
+  }
   modalFocusFrame?: number | undefined
   pointerActive?: boolean
   pointerRenderPending?: boolean
@@ -445,6 +453,8 @@ export class DesktopPluginUiController {
     // Explicit focus on another control or outside the modal cancels that intent.
     container.addEventListener('focusin', (event) => {
       if (event.target !== container) mount.pendingFocusLabel = undefined
+      if (mount.virtualTreeFocus && event.target !== mount.virtualTreeFocus.anchor)
+        this.cancelVirtualTreeFocus(mount)
       if (contribution.slot === 'modal') {
         const window = container.ownerDocument.defaultView
         if (mount.modalFocusFrame !== undefined) window?.cancelAnimationFrame(mount.modalFocusFrame)
@@ -463,6 +473,7 @@ export class DesktopPluginUiController {
     container.addEventListener('focusout', (event) => {
       if (!(event.relatedTarget instanceof Node) || !container.contains(event.relatedTarget)) {
         mount.pendingFocusLabel = undefined
+        this.cancelVirtualTreeFocus(mount)
       }
     })
     this.mounts.set(uiKey(contribution), mount)
@@ -507,25 +518,41 @@ export class DesktopPluginUiController {
   private async renderMount(mount: MountedPluginUi, phase: 'mount' | 'update'): Promise<void> {
     const formRevision = mount.forms.snapshot()
     const renderSequence = ++mount.renderSequence
+    const renderState: Readonly<Record<string, unknown>> = {
+      documentId: this.documentId,
+      ...this.renderState(),
+    }
+    const requestedKeyboardFocus = mount.virtualTreeFocus
+    const isCurrentRequest = (): boolean => {
+      if (
+        this.mounts.get(uiKey(mount.contribution))?.generation !== mount.generation ||
+        renderSequence !== mount.renderSequence
+      )
+        return false
+      if (
+        renderState.documentId !== this.documentId ||
+        renderState.documentVersion !== this.renderState().documentVersion
+      ) {
+        // Discard only this request's keyboard intent; never clear a newer one.
+        if (requestedKeyboardFocus && mount.virtualTreeFocus === requestedKeyboardFocus)
+          this.cancelVirtualTreeFocus(mount)
+        return false
+      }
+      return true
+    }
     try {
       const output = (await this.runtime.renderUi(
         mount.contribution.pluginId,
         mount.contribution.id,
         phase,
         {
-          documentId: this.documentId,
-          ...this.renderState(),
+          ...renderState,
           visible: this.isVisible(mount.contribution),
           ...(mount.virtualViewport ? { virtualViewport: mount.virtualViewport } : {}),
         },
       )) as ControlledRendererOutput
 
-      if (
-        this.mounts.get(uiKey(mount.contribution))?.generation !== mount.generation ||
-        renderSequence !== mount.renderSequence
-      ) {
-        return
-      }
+      if (!isCurrentRequest()) return
 
       // Replacing a pressed button between pointerdown and click loses the action.
       // Drop intermediate output and request one fresh render after the gesture.
@@ -541,6 +568,13 @@ export class DesktopPluginUiController {
       }
 
       const focused = this.root.ownerDocument.activeElement
+      const keyboardFocus = mount.virtualTreeFocus
+      delete mount.virtualTreeFocus
+      const keepKeyboardFocus =
+        keyboardFocus &&
+        keyboardFocus.anchor === focused &&
+        keyboardFocus.documentId === this.documentId &&
+        keyboardFocus.documentVersion === this.renderState().documentVersion
       const focusedLabel =
         focused === mount.container
           ? mount.pendingFocusLabel
@@ -565,18 +599,38 @@ export class DesktopPluginUiController {
         ],
         formRevision,
       )
-      decorateControlledTrees(mount.body, mount.treeFocus, (button, event) => {
-        this.commandGesture =
-          event.isTrusted && button.dataset.pluginCommand
-            ? { button, command: button.dataset.pluginCommand, originalEvent: event }
-            : undefined
-        try {
-          button.click()
-        } finally {
-          if (this.commandGesture?.originalEvent === event) this.commandGesture = undefined
-        }
-      })
-      if (focusedLabel && this.isVisible(mount.contribution)) {
+      decorateControlledTrees(
+        mount.body,
+        mount.treeFocus,
+        (button, event) => {
+          this.commandGesture =
+            event.isTrusted && button.dataset.pluginCommand
+              ? { button, command: button.dataset.pluginCommand, originalEvent: event }
+              : undefined
+          try {
+            button.click()
+          } finally {
+            if (this.commandGesture?.originalEvent === event) this.commandGesture = undefined
+          }
+        },
+        (tree, item, key) => this.navigateVirtualTree(mount, tree, item, key),
+      )
+      const keyboardList = mount.body.querySelector<HTMLElement>('[role="tree"][data-virtual-list]')
+      const keyboardMetadata = keyboardList && readVirtualListMetadata(keyboardList)
+      const validKeyboardFocus =
+        keepKeyboardFocus &&
+        keyboardMetadata &&
+        keyboardMetadata.id === keyboardFocus.id &&
+        keyboardMetadata.total === keyboardFocus.total
+      const keyboardTarget =
+        validKeyboardFocus &&
+        keyboardFocus.target >= keyboardMetadata.start &&
+        keyboardFocus.target < keyboardMetadata.end
+          ? keyboardList.querySelectorAll<HTMLButtonElement>('button[role="treeitem"]')[
+              keyboardFocus.target - keyboardMetadata.start
+            ]
+          : undefined
+      if ((focusedLabel || validKeyboardFocus) && this.isVisible(mount.contribution)) {
         const treeFallback =
           focusedTreeKey === undefined
             ? undefined
@@ -584,26 +638,30 @@ export class DesktopPluginUiController {
                 .find((tree) => tree.dataset.controlledTreeKey === focusedTreeKey)
                 ?.querySelector<HTMLElement>('button[role="treeitem"][tabindex="0"]')
         const next =
+          keyboardTarget ??
           Array.from(
             mount.body.querySelectorAll<HTMLElement>('button[aria-label]:not([disabled])'),
           ).find((button) => button.getAttribute('aria-label') === focusedLabel) ??
           treeFallback ??
           mount.body.querySelector<HTMLElement>('[data-plugin-command]:not([disabled])') ??
           mount.container
-        mount.pendingFocusLabel = next === mount.container ? focusedLabel : undefined
+        mount.pendingFocusLabel = next === mount.container ? (focusedLabel ?? undefined) : undefined
+        if (validKeyboardFocus && !keyboardTarget)
+          mount.virtualTreeFocus = { ...keyboardFocus, anchor: next }
         next.focus({ preventScroll: true })
       }
       decorateControlledUiIcons(mount.body)
       if (!this.configureVirtualList(mount, scrollOffsets)) {
         restoreScrollOffsets(mount.body, scrollOffsets)
       }
+      keyboardTarget?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
       if (mount.contribution.slot === 'modal' && this.isVisible(mount.contribution)) {
         revealModalFocus(mount.container)
       }
       mount.renderSignature = signature
       mount.container.dataset.uiState = 'ready'
     } catch (error) {
-      if (renderSequence !== mount.renderSequence) return
+      if (!isCurrentRequest()) return
       mount.container.dataset.uiState = 'failed'
       const message = this.root.ownerDocument.createElement('span')
       message.className = 'plugin-ui-error'
@@ -717,15 +775,16 @@ export class DesktopPluginUiController {
     list.prepend(before)
     list.append(after)
     restoreScrollOffsets(mount.body, scrollOffsets)
-    mount.virtualViewport = Object.freeze({
-      id: metadata.id,
-      fromIndex: metadata.start,
-      toIndex: metadata.end,
-      userInitiated:
-        !metadata.followActive &&
-        mount.virtualViewport?.id === metadata.id &&
-        mount.virtualViewport.userInitiated === true,
-    })
+    if (!mount.virtualTreeFocus)
+      mount.virtualViewport = Object.freeze({
+        id: metadata.id,
+        fromIndex: metadata.start,
+        toIndex: metadata.end,
+        userInitiated:
+          !metadata.followActive &&
+          mount.virtualViewport?.id === metadata.id &&
+          mount.virtualViewport.userInitiated === true,
+      })
 
     if (metadata.followActive && metadata.active >= 0 && list.clientHeight > 0) {
       const maximumScrollTop = Math.max(0, metadata.total * metadata.itemHeight - list.clientHeight)
@@ -749,6 +808,7 @@ export class DesktopPluginUiController {
     list.addEventListener(
       'pointerdown',
       () => {
+        this.cancelVirtualTreeFocus(mount)
         mount.virtualPointerCleanup?.()
         mount.virtualPointerActive = true
         const startScrollTop = list.scrollTop
@@ -787,6 +847,7 @@ export class DesktopPluginUiController {
     list.addEventListener(
       'wheel',
       (event) => {
+        this.cancelVirtualTreeFocus(mount)
         this.markVirtualUserIntent(mount, 750)
         const direction = event.deltaY < 0 ? 'before' : event.deltaY > 0 ? 'after' : undefined
         this.scheduleVirtualViewportUpdate(
@@ -798,13 +859,97 @@ export class DesktopPluginUiController {
       },
       { passive: true },
     )
-    list.addEventListener('keydown', () => this.markVirtualUserIntent(mount, 750), {
-      passive: true,
-    })
+    list.addEventListener(
+      'keydown',
+      () => {
+        if (!mount.virtualTreeFocus) this.markVirtualUserIntent(mount, 750)
+      },
+      {
+        passive: true,
+      },
+    )
     list.addEventListener('scroll', () => this.scheduleVirtualViewportUpdate(mount, list), {
       passive: true,
     })
     return true
+  }
+
+  private navigateVirtualTree(
+    mount: MountedPluginUi,
+    tree: HTMLElement,
+    item: HTMLButtonElement,
+    key: string,
+  ): boolean {
+    if (!['Home', 'End', 'ArrowUp', 'ArrowDown'].includes(key)) {
+      this.cancelVirtualTreeFocus(mount)
+      return false
+    }
+    const metadata = readVirtualListMetadata(tree)
+    if (!metadata || !metadata.total) return false
+    const items = Array.from(
+      tree.querySelectorAll<HTMLButtonElement>('button[role="treeitem"]'),
+    ).filter((button) => button.closest('[role="tree"]') === tree)
+    if (items.length !== metadata.end - metadata.start) return false
+    const ordinal = items.indexOf(item)
+    if (ordinal < 0) return false
+    const prior = mount.virtualTreeFocus
+    const current = prior?.target ?? metadata.start + ordinal
+    const target =
+      key === 'Home'
+        ? 0
+        : key === 'End'
+          ? metadata.total - 1
+          : Math.max(0, Math.min(metadata.total - 1, current + (key === 'ArrowUp' ? -1 : 1)))
+    const inside = target >= metadata.start && target < metadata.end
+    if (inside && !prior) return false
+    if (mount.virtualScrollTimer !== undefined) clearTimeout(mount.virtualScrollTimer)
+    delete mount.virtualScrollTimer
+    delete mount.virtualPendingEdgeHint
+    mount.virtualUserIntentUntil = 0
+    const count = Math.min(metadata.total, 500, Math.max(160, metadata.end - metadata.start))
+    const fromIndex = Math.max(0, Math.min(metadata.total - count, target - Math.floor(count / 2)))
+    mount.virtualViewport = Object.freeze({
+      id: metadata.id,
+      fromIndex,
+      toIndex: fromIndex + count,
+      userInitiated: true,
+    })
+    mount.virtualScrollTop = Math.max(0, target * metadata.itemHeight - tree.clientHeight / 2)
+    if (inside) {
+      delete mount.virtualTreeFocus
+      items[target - metadata.start]!.focus({ preventScroll: true })
+      items[target - metadata.start]!.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
+    } else {
+      mount.virtualTreeFocus = {
+        id: metadata.id,
+        target,
+        total: metadata.total,
+        anchor: tree.ownerDocument.activeElement ?? item,
+        documentId: this.documentId,
+        documentVersion: this.renderState().documentVersion,
+      }
+    }
+    void this.updateMount(mount)
+    return true
+  }
+
+  private cancelVirtualTreeFocus(mount: MountedPluginUi): void {
+    if (!mount.virtualTreeFocus) return
+    delete mount.virtualTreeFocus
+    // Invalidating just the pending focus is insufficient: an obsolete range
+    // could still replace the user's newly focused row and invoke fallback.
+    mount.renderSequence++
+    const list = mount.body.querySelector<HTMLElement>('[role="tree"][data-virtual-list]')
+    const metadata = list && readVirtualListMetadata(list)
+    if (!metadata) return
+    mount.virtualViewport = Object.freeze({
+      id: metadata.id,
+      fromIndex: metadata.start,
+      toIndex: metadata.end,
+      userInitiated: true,
+    })
+    mount.virtualScrollTop = list.scrollTop
+    if (this.mounts.get(uiKey(mount.contribution)) === mount) void this.updateMount(mount)
   }
 
   private markVirtualUserIntent(mount: MountedPluginUi, duration: number): void {

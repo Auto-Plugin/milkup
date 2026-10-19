@@ -1,0 +1,389 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/p7-input-audit.test.ts (12 tests | 8 failed) 333ms
+   ✓ P7 source input boundaries > ordinary plain paragraph preserves Tab focus navigation 36ms
+   × P7 source input boundaries > windowed plain paragraph preserves Tab focus navigation 150ms
+     → expected true to be false // Object.is equality
+     → expected "spy" to not be called at all, but actually been called 1 times
+
+Received: 
+
+  1st spy call:
+
+    Array [
+      Object {
+        "deletedText": "plain 中文 😀",
+        "from": 0,
+        "historyGroup": "isolate",
+        "insert": "  plain 中文 😀",
+        "selectionAfter": Selection {
+          "mainIndex": 0,
+          "ranges": Array [
+            SelectionRange {
+              "affinity": 1,
+              "anchor": 2,
+              "head": 2,
+            },
+          ],
+        },
+        "selectionBefore": Selection {
+          "mainIndex": 0,
+          "ranges": Array [
+            SelectionRange {
+              "affinity": 1,
+              "anchor": 0,
+              "head": 0,
+            },
+          ],
+        },
+        "to": 11,
+      },
+    ]
+
+
+Number of calls: 1
+
+   ✓ P7 source input boundaries > ordinary plain paragraph preserves Shift+Tab focus navigation 4ms
+   × P7 source input boundaries > windowed plain paragraph preserves Shift+Tab focus navigation 36ms
+     → expected true to be false // Object.is equality
+   × P7 source input boundaries > does not commit queued composition after document-switch 15ms
+     → expected "spy" to not be called at all, but actually been called 1 times
+
+Received: 
+
+  1st spy call:
+
+    Array [
+      Object {
+        "deletedText": "",
+        "from": 0,
+        "historyGroup": "isolate",
+        "insert": "新😀",
+        "selectionAfter": Selection {
+          "mainIndex": 0,
+          "ranges": Array [
+            SelectionRange {
+              "affinity": 1,
+              "anchor": 3,
+              "head": 3,
+            },
+          ],
+        },
+        "selectionBefore": Selection {
+          "mainIndex": 0,
+          "ranges": Array [
+            SelectionRange {
+              "affinity": 1,
+              "anchor": 0,
+              "head": 0,
+            },
+          ],
+        },
+        "to": 0,
+      },
+    ]
+
+
+Number of calls: 1
+
+   × P7 source input boundaries > does not commit queued composition after destroy 16ms
+     → expected "spy" to not be called at all, but actually been called 1 times
+
+Received: 
+
+  1st spy call:
+
+    Array [
+      Object {
+        "deletedText": "",
+        "from": 0,
+        "historyGroup": "isolate",
+        "insert": "新😀",
+        "selectionAfter": Selection {
+          "mainIndex": 0,
+          "ranges": Array [
+            SelectionRange {
+              "affinity": 1,
+              "anchor": 3,
+              "head": 3,
+            },
+          ],
+        },
+        "selectionBefore": Selection {
+          "mainIndex": 0,
+          "ranges": Array [
+            SelectionRange {
+              "affinity": 1,
+              "anchor": 0,
+              "head": 0,
+            },
+          ],
+        },
+        "to": 0,
+      },
+    ]
+
+
+Number of calls: 1
+
+   ✓ P7 live input boundaries > ordinary plain paragraph preserves Tab focus navigation 6ms
+   × P7 live input boundaries > windowed plain paragraph preserves Tab focus navigation 20ms
+     → expected true to be false // Object.is equality
+     → expected "spy" to not be called at all, but actually been called 1 times
+
+Received: 
+
+  1st spy call:
+
+    Array [
+      Object {
+        "deletedText": "plain 中文 😀",
+        "from": 0,
+        "historyGroup": "isolate",
+        "insert": "  plain 中文 😀",
+        "selectionAfter": Selection {
+          "mainIndex": 0,
+          "ranges": Array [
+            SelectionRange {
+              "affinity": 1,
+              "anchor": 2,
+              "head": 2,
+            },
+          ],
+        },
+        "selectionBefore": Selection {
+          "mainIndex": 0,
+          "ranges": Array [
+            SelectionRange {
+              "affinity": 1,
+              "anchor": 0,
+              "head": 0,
+            },
+          ],
+        },
+        "to": 11,
+      },
+    ]
+
+
+Number of calls: 1
+
+   ✓ P7 live input boundaries > ordinary plain paragraph preserves Shift+Tab focus navigation 4ms
+   × P7 live input boundaries > windowed plain paragraph preserves Shift+Tab focus navigation 13ms
+     → expected true to be false // Object.is equality
+   × P7 live input boundaries > does not commit queued composition after document-switch 16ms
+     → expected "spy" to not be called at all, but actually been called 1 times
+
+Received: 
+
+  1st spy call:
+
+    Array [
+      Object {
+        "deletedText": "",
+        "from": 0,
+        "historyGroup": "isolate",
+        "insert": "新😀",
+        "selectionAfter": Selection {
+          "mainIndex": 0,
+          "ranges": Array [
+            SelectionRange {
+              "affinity": 1,
+              "anchor": 3,
+              "head": 3,
+            },
+          ],
+        },
+        "selectionBefore": Selection {
+          "mainIndex": 0,
+          "ranges": Array [
+            SelectionRange {
+              "affinity": 1,
+              "anchor": 0,
+              "head": 0,
+            },
+          ],
+        },
+        "to": 0,
+      },
+    ]
+
+
+Number of calls: 1
+
+   × P7 live input boundaries > does not commit queued composition after destroy 12ms
+     → expected "spy" to not be called at all, but actually been called 1 times
+
+Received: 
+
+  1st spy call:
+
+    Array [
+      Object {
+        "deletedText": "",
+        "from": 0,
+        "historyGroup": "isolate",
+        "insert": "新😀",
+        "selectionAfter": Selection {
+          "mainIndex": 0,
+          "ranges": Array [
+            SelectionRange {
+              "affinity": 1,
+              "anchor": 3,
+              "head": 3,
+            },
+          ],
+        },
+        "selectionBefore": Selection {
+          "mainIndex": 0,
+          "ranges": Array [
+            SelectionRange {
+              "affinity": 1,
+              "anchor": 0,
+              "head": 0,
+            },
+          ],
+        },
+        "to": 0,
+      },
+    ]
+
+
+Number of calls: 1
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/p7-input-audit.test.ts > P7 source input boundaries > windowed plain paragraph preserves Tab focus navigation
+ FAIL  src/__tests__/p7-input-audit.test.ts > P7 source input boundaries > windowed plain paragraph preserves Shift+Tab focus navigation
+ FAIL  src/__tests__/p7-input-audit.test.ts > P7 live input boundaries > windowed plain paragraph preserves Tab focus navigation
+ FAIL  src/__tests__/p7-input-audit.test.ts > P7 live input boundaries > windowed plain paragraph preserves Shift+Tab focus navigation
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/__tests__/p7-input-audit.test.ts:40:47
+     38|           view.inputDOM.dispatchEvent(event)
+     39|           await view.flushPendingEdits()
+     40|           expect.soft(event.defaultPrevented).toBe(false)
+       |                                               ^
+     41|           expect.soft(onEdit).not.toHaveBeenCalled()
+     42|         } finally { view.destroy() }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯
+
+ FAIL  src/__tests__/p7-input-audit.test.ts > P7 source input boundaries > windowed plain paragraph preserves Tab focus navigation
+ FAIL  src/__tests__/p7-input-audit.test.ts > P7 live input boundaries > windowed plain paragraph preserves Tab focus navigation
+AssertionError: expected "spy" to not be called at all, but actually been called 1 times
+
+Received: 
+
+  1st spy call:
+
+    Array [
+      Object {
+        "deletedText": "plain 中文 😀",
+        "from": 0,
+        "historyGroup": "isolate",
+        "insert": "  plain 中文 😀",
+        "selectionAfter": Selection {
+          "mainIndex": 0,
+          "ranges": Array [
+            SelectionRange {
+              "affinity": 1,
+              "anchor": 2,
+              "head": 2,
+            },
+          ],
+        },
+        "selectionBefore": Selection {
+          "mainIndex": 0,
+          "ranges": Array [
+            SelectionRange {
+              "affinity": 1,
+              "anchor": 0,
+              "head": 0,
+            },
+          ],
+        },
+        "to": 11,
+      },
+    ]
+
+
+Number of calls: 1
+
+ ❯ src/__tests__/p7-input-audit.test.ts:41:35
+     39|           await view.flushPendingEdits()
+     40|           expect.soft(event.defaultPrevented).toBe(false)
+     41|           expect.soft(onEdit).not.toHaveBeenCalled()
+       |                                   ^
+     42|         } finally { view.destroy() }
+     43|       })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/10]⎯
+
+ FAIL  src/__tests__/p7-input-audit.test.ts > P7 source input boundaries > does not commit queued composition after document-switch
+ FAIL  src/__tests__/p7-input-audit.test.ts > P7 source input boundaries > does not commit queued composition after destroy
+ FAIL  src/__tests__/p7-input-audit.test.ts > P7 live input boundaries > does not commit queued composition after document-switch
+ FAIL  src/__tests__/p7-input-audit.test.ts > P7 live input boundaries > does not commit queued composition after destroy
+AssertionError: expected "spy" to not be called at all, but actually been called 1 times
+
+Received: 
+
+  1st spy call:
+
+    Array [
+      Object {
+        "deletedText": "",
+        "from": 0,
+        "historyGroup": "isolate",
+        "insert": "新😀",
+        "selectionAfter": Selection {
+          "mainIndex": 0,
+          "ranges": Array [
+            SelectionRange {
+              "affinity": 1,
+              "anchor": 3,
+              "head": 3,
+            },
+          ],
+        },
+        "selectionBefore": Selection {
+          "mainIndex": 0,
+          "ranges": Array [
+            SelectionRange {
+              "affinity": 1,
+              "anchor": 0,
+              "head": 0,
+            },
+          ],
+        },
+        "to": 0,
+      },
+    ]
+
+
+Number of calls: 1
+
+ ❯ src/__tests__/p7-input-audit.test.ts:63:30
+     61|           } else view.destroy()
+     62|           await view.flushPendingEdits()
+     63|           expect(onEdit).not.toHaveBeenCalled()
+       |                              ^
+     64|         } finally { if (retirement !== 'destroy') view.destroy() }
+     65|       })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/10]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  8 failed | 4 passed (12)
+   Start at  10:26:36
+   Duration  2.00s (transform 624ms, setup 0ms, collect 819ms, tests 333ms, environment 581ms, prepare 85ms)
+

@@ -1,0 +1,90 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/p7-input-audit.test.ts (36 tests | 1 failed) 1208ms
+   ✓ P7 source input boundaries > does not steal focus after deferred Tab and focus changes 247ms
+   ✓ P7 source input boundaries > does not steal focus after deferred Tab and selection changes 72ms
+   ✓ P7 source input boundaries > does not steal focus after deferred Tab and document-roundtrip changes 23ms
+   ✓ P7 source input boundaries > does not steal focus after deferred Tab and composition changes 13ms
+   ✓ P7 source input boundaries > does not steal focus after deferred Tab and destroy changes 19ms
+   ✓ P7 source input boundaries > preserves list Tab editing when host focus navigation is configured 43ms
+   ✓ P7 source input boundaries > preserves long-fence Tab editing when host focus navigation is configured 45ms
+   ✓ P7 source input boundaries > preserves multiline Tab editing when host focus navigation is configured 58ms
+   × P7 source input boundaries > preserves table Tab editing when host focus navigation is configured 61ms
+     → expected "spy" to not be called at all, but actually been called 1 times
+
+Received: 
+
+  1st spy call:
+
+    Array [
+      Object {
+        "backward": false,
+      },
+    ]
+
+
+Number of calls: 1
+
+   ✓ P7 source input boundaries > ordinary plain paragraph preserves Tab focus navigation 53ms
+   ✓ P7 source input boundaries > windowed plain paragraph preserves Tab focus navigation 85ms
+   ✓ P7 source input boundaries > ordinary plain paragraph preserves Shift+Tab focus navigation 50ms
+   ✓ P7 source input boundaries > windowed plain paragraph preserves Shift+Tab focus navigation 50ms
+   ✓ P7 source input boundaries > does not commit queued composition after document-switch 15ms
+   ✓ P7 source input boundaries > does not commit queued composition after document-roundtrip 9ms
+   ✓ P7 source input boundaries > does not commit queued composition after destroy 7ms
+   ✓ P7 source input boundaries > does not apply an old compositionend delivered after a document switch 10ms
+   ✓ P7 source input boundaries > commits a new composition session after switching documents with isolated history 15ms
+   ✓ P7 live input boundaries > does not steal focus after deferred Tab and focus changes 15ms
+   ✓ P7 live input boundaries > does not steal focus after deferred Tab and selection changes 25ms
+   ✓ P7 live input boundaries > does not steal focus after deferred Tab and document-roundtrip changes 22ms
+   ✓ P7 live input boundaries > does not steal focus after deferred Tab and composition changes 13ms
+   ✓ P7 live input boundaries > does not steal focus after deferred Tab and destroy changes 14ms
+   ✓ P7 live input boundaries > preserves list Tab editing when host focus navigation is configured 42ms
+   ✓ P7 live input boundaries > preserves long-fence Tab editing when host focus navigation is configured 39ms
+   ✓ P7 live input boundaries > preserves multiline Tab editing when host focus navigation is configured 35ms
+   ✓ P7 live input boundaries > preserves table Tab editing when host focus navigation is configured 32ms
+   ✓ P7 live input boundaries > ordinary plain paragraph preserves Tab focus navigation 4ms
+   ✓ P7 live input boundaries > windowed plain paragraph preserves Tab focus navigation 9ms
+   ✓ P7 live input boundaries > ordinary plain paragraph preserves Shift+Tab focus navigation 2ms
+   ✓ P7 live input boundaries > windowed plain paragraph preserves Shift+Tab focus navigation 11ms
+   ✓ P7 live input boundaries > does not commit queued composition after document-switch 9ms
+   ✓ P7 live input boundaries > does not commit queued composition after document-roundtrip 10ms
+   ✓ P7 live input boundaries > does not commit queued composition after destroy 8ms
+   ✓ P7 live input boundaries > does not apply an old compositionend delivered after a document switch 12ms
+   ✓ P7 live input boundaries > commits a new composition session after switching documents with isolated history 15ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/p7-input-audit.test.ts > P7 source input boundaries > preserves table Tab editing when host focus navigation is configured
+AssertionError: expected "spy" to not be called at all, but actually been called 1 times
+
+Received: 
+
+  1st spy call:
+
+    Array [
+      Object {
+        "backward": false,
+      },
+    ]
+
+
+Number of calls: 1
+
+ ❯ src/__tests__/p7-input-audit.test.ts:105:41
+    103|           )
+    104|           await view.flushPendingEdits()
+    105|           expect(onFocusNavigation).not.toHaveBeenCalled()
+       |                                         ^
+    106|           if (kind === 'table') {
+    107|             expect(onEdit).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 35 passed (36)
+   Start at  10:32:36
+   Duration  2.92s (transform 723ms, setup 0ms, collect 918ms, tests 1.21s, environment 501ms, prepare 82ms)
+

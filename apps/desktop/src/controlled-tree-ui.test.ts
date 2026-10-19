@@ -24,6 +24,64 @@ function setup() {
 }
 
 describe('controlled tree keyboard', () => {
+  it('gives separate outline navigation and fold controls one tree stop and distinct actions', () => {
+    document.body.innerHTML = `<span role="tree" aria-label="Outline">
+      <span role="treeitem" aria-level="1" aria-expanded="true">
+        <button aria-label="Collapse Root" aria-expanded="true">Collapse</button>
+        <button aria-label="Go Root" aria-current="location">Root</button>
+      </span>
+      <span role="treeitem" aria-level="2">
+        <span></span><button aria-label="Go Child" aria-current="false">Child</button>
+      </span>
+      <span role="treeitem" aria-level="1" aria-expanded="false">
+        <button aria-label="Expand Other" aria-expanded="false">Expand</button>
+        <button aria-label="Go Other" aria-current="false">Other</button>
+      </span>
+    </span>`
+    const activate = vi.fn()
+    const focus = new Map<string, ControlledTreeFocus>()
+    decorateControlledTrees(document.body, focus, activate)
+    const nav = Array.from(document.querySelectorAll<HTMLButtonElement>('button[aria-current]'))
+    const toggles = Array.from(
+      document.querySelectorAll<HTMLButtonElement>('button:not([aria-current])'),
+    )
+    const press = (key: string) => {
+      const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
+      document.activeElement!.dispatchEvent(event)
+      return event
+    }
+    nav[0]!.focus()
+    expect(press('ArrowDown').defaultPrevented).toBe(true)
+    expect(document.activeElement).toBe(nav[1])
+    expect(document.querySelectorAll('[role="treeitem"]')).toHaveLength(3)
+    expect(nav.map((button) => button.getAttribute('role'))).toEqual([
+      'treeitem',
+      'treeitem',
+      'treeitem',
+    ])
+    expect([...nav, ...toggles].filter((button) => button.tabIndex === 0)).toEqual([nav[1]])
+    press('ArrowLeft')
+    expect(document.activeElement).toBe(nav[0])
+    const collapse = press('ArrowLeft')
+    expect(activate).toHaveBeenLastCalledWith(toggles[0], collapse)
+    press('End')
+    expect(document.activeElement).toBe(nav[2])
+    const expand = press('ArrowRight')
+    expect(activate).toHaveBeenLastCalledWith(toggles[1], expand)
+    expect(activate.mock.calls.every(([button]) => !button.hasAttribute('aria-current'))).toBe(true)
+    const navigate = vi.fn()
+    nav[2]!.addEventListener('click', navigate)
+    nav[2]!.click()
+    expect(navigate).toHaveBeenCalledOnce()
+    expect(activate).toHaveBeenCalledTimes(2)
+    toggles[0]!.focus()
+    press('ArrowRight')
+    expect(document.activeElement).toBe(nav[1])
+    press('Home')
+    expect(document.activeElement).toBe(nav[0])
+    expect(focus.get('0:Outline')?.label).toBe('Go Root')
+  })
+
   it('uses one tab stop and navigates visible rows, parent and first child without running commands', () => {
     const { items, press, activate } = setup()
     expect(items.map((item) => item.tabIndex)).toEqual([0, -1, -1, -1])

@@ -1,0 +1,77 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ packages/view-dom/src/__tests__/p7-document-navigation.test.ts (34 tests | 8 failed) 1118ms
+   ✓ windowed source explicit document navigation > notifies start only after deferred reveal, preserving Shift=false anchor 241ms
+   ✓ windowed source explicit document navigation > notifies start only after deferred reveal, preserving Shift=true anchor 41ms
+   ✓ windowed source explicit document navigation > notifies end only after deferred reveal, preserving Shift=false anchor 28ms
+   ✓ windowed source explicit document navigation > notifies end only after deferred reveal, preserving Shift=true anchor 43ms
+   ✓ windowed source explicit document navigation > drops a deferred old End after document 38ms
+   ✓ windowed source explicit document navigation > drops a deferred old End after same-document 29ms
+   ✓ windowed source explicit document navigation > drops a deferred old End after document-roundtrip 33ms
+   ✓ windowed source explicit document navigation > drops a deferred old End after destroy 24ms
+   ✓ windowed source explicit document navigation > drops a deferred old End after new-key 26ms
+   × windowed source explicit document navigation > discards obsolete read rejection after document 26ms
+     → promise rejected "Error: obsolete navigation failed" instead of resolving
+   × windowed source explicit document navigation > discards obsolete read rejection after destroy 16ms
+     → promise rejected "Error: obsolete navigation failed" instead of resolving
+   × windowed source explicit document navigation > discards obsolete reveal rejection after document 24ms
+     → promise rejected "Error: obsolete navigation failed" instead of resolving
+   × windowed source explicit document navigation > discards obsolete reveal rejection after destroy 27ms
+     → promise rejected "Error: obsolete navigation failed" instead of resolving
+   ✓ windowed source explicit document navigation > captures the source version after preceding typed edits commit 47ms
+   ✓ windowed source explicit document navigation > keeps current failed read visible and does not notify 20ms
+   ✓ windowed source explicit document navigation > keeps current failed reveal visible and does not notify 27ms
+   ✓ windowed source explicit document navigation > does not notify ordinary cursor movement or typing 27ms
+   ✓ windowed live explicit document navigation > notifies start only after deferred reveal, preserving Shift=false anchor 43ms
+   ✓ windowed live explicit document navigation > notifies start only after deferred reveal, preserving Shift=true anchor 28ms
+   ✓ windowed live explicit document navigation > notifies end only after deferred reveal, preserving Shift=false anchor 23ms
+   ✓ windowed live explicit document navigation > notifies end only after deferred reveal, preserving Shift=true anchor 26ms
+   ✓ windowed live explicit document navigation > drops a deferred old End after document 26ms
+   ✓ windowed live explicit document navigation > drops a deferred old End after same-document 19ms
+   ✓ windowed live explicit document navigation > drops a deferred old End after document-roundtrip 23ms
+   ✓ windowed live explicit document navigation > drops a deferred old End after destroy 13ms
+   ✓ windowed live explicit document navigation > drops a deferred old End after new-key 24ms
+   × windowed live explicit document navigation > discards obsolete read rejection after document 24ms
+     → promise rejected "Error: obsolete navigation failed" instead of resolving
+   × windowed live explicit document navigation > discards obsolete read rejection after destroy 15ms
+     → promise rejected "Error: obsolete navigation failed" instead of resolving
+   × windowed live explicit document navigation > discards obsolete reveal rejection after document 19ms
+     → promise rejected "Error: obsolete navigation failed" instead of resolving
+   × windowed live explicit document navigation > discards obsolete reveal rejection after destroy 15ms
+     → promise rejected "Error: obsolete navigation failed" instead of resolving
+   ✓ windowed live explicit document navigation > captures the source version after preceding typed edits commit 32ms
+   ✓ windowed live explicit document navigation > keeps current failed read visible and does not notify 23ms
+   ✓ windowed live explicit document navigation > keeps current failed reveal visible and does not notify 14ms
+   ✓ windowed live explicit document navigation > does not notify ordinary cursor movement or typing 29ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/view-dom/src/__tests__/p7-document-navigation.test.ts > windowed source explicit document navigation > discards obsolete read rejection after document
+ FAIL  packages/view-dom/src/__tests__/p7-document-navigation.test.ts > windowed source explicit document navigation > discards obsolete read rejection after destroy
+ FAIL  packages/view-dom/src/__tests__/p7-document-navigation.test.ts > windowed source explicit document navigation > discards obsolete reveal rejection after document
+ FAIL  packages/view-dom/src/__tests__/p7-document-navigation.test.ts > windowed source explicit document navigation > discards obsolete reveal rejection after destroy
+ FAIL  packages/view-dom/src/__tests__/p7-document-navigation.test.ts > windowed live explicit document navigation > discards obsolete read rejection after document
+ FAIL  packages/view-dom/src/__tests__/p7-document-navigation.test.ts > windowed live explicit document navigation > discards obsolete read rejection after destroy
+ FAIL  packages/view-dom/src/__tests__/p7-document-navigation.test.ts > windowed live explicit document navigation > discards obsolete reveal rejection after document
+ FAIL  packages/view-dom/src/__tests__/p7-document-navigation.test.ts > windowed live explicit document navigation > discards obsolete reveal rejection after destroy
+AssertionError: promise rejected "Error: obsolete navigation failed" instead of resolving
+ ❯ packages/view-dom/src/__tests__/p7-document-navigation.test.ts:168:52
+    166|             else s.view.destroy()
+    167|             s.source.reject(new Error('obsolete navigation failed'))
+    168|             await expect(s.view.flushPendingEdits()).resolves.toBeUnde…
+       |                                                    ^
+    169|             expect(s.notified).toEqual([])
+    170|             expect(s.onEdit).not.toHaveBeenCalled()
+
+Caused by: Error: obsolete navigation failed
+ ❯ packages/view-dom/src/__tests__/p7-document-navigation.test.ts:167:29
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  8 failed | 26 passed (34)
+   Start at  11:10:06
+   Duration  3.40s (transform 766ms, setup 0ms, collect 967ms, tests 1.12s, environment 669ms, prepare 142ms)
+

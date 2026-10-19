@@ -1,0 +1,133 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ❯ src/source-focus-navigation.test.ts (6 tests | 4 failed) 439ms
+   ✓ host windowed source focus order > one Tab leaves the editor and preserves selection 261ms
+   × host windowed source focus order > one Shift+Tab leaves the editor and preserves selection 48ms
+     → expected <div …(4)>…(5)</div> to be <button id="before"></button> // Object.is equality
+   × host windowed source focus order > host mode leaves only the proxy in sequential focus order, including readonly 14ms
+     → expected +0 to be -1 // Object.is equality
+   ✓ host windowed live focus order > one Tab leaves the editor and preserves selection 51ms
+   × host windowed live focus order > one Shift+Tab leaves the editor and preserves selection 44ms
+     → expected <div …(4)>…(5)</div> to be <button id="before"></button> // Object.is equality
+   × host windowed live focus order > host mode leaves only the proxy in sequential focus order, including readonly 21ms
+     → expected +0 to be -1 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/source-focus-navigation.test.ts > host windowed source focus order > one Shift+Tab leaves the editor and preserves selection
+ FAIL  src/source-focus-navigation.test.ts > host windowed live focus order > one Shift+Tab leaves the editor and preserves selection
+AssertionError: expected <div …(4)>…(5)</div> to be <button id="before"></button> // Object.is equality
+
+- Expected
++ Received
+
+- <button
+-   id="before"
++ <div
++   class="milkup-editor milkup-source-document-view"
++   data-editable="true"
++   data-mode="source"
++   tabindex="0"
++ >
++   <div
++     aria-multiline="true"
++     class="milkup-editor-content"
++     contenteditable="false"
++     data-from-line="1"
++     data-render-mode="source"
++     data-to-line="1"
++     data-virtualized="true"
++     role="textbox"
++   >
++     <div
++       class="milkup-virtual-spacer"
++       data-spacer="top"
++       style="height: 0px;"
++     />
++     <div
++       class="milkup-line"
++       data-from="0"
++       data-line="1"
++       data-to="11"
++     >
++       plain 中文 😀
++     </div>
++     <div
++       class="milkup-virtual-spacer"
++       data-spacer="bottom"
++       style="height: 0px;"
++     />
++   </div>
++   <div
++     class="milkup-search-layer"
++   />
++   <div
++     class="milkup-selection-layer"
++   >
++     <div
++       class="milkup-selection"
++       data-from="2"
++       data-line="1"
++       data-to="5"
++       style="left: 16px; top: 0px; width: 24px; height: 21px;"
++     />
++   </div>
++   <div
++     class="milkup-cursor-layer"
+    >
+-   Before
+- </button>
++     <div
++       class="milkup-cursor"
++       data-line="1"
++       data-offset="5"
++       data-position="5"
++       style="left: 40px; top: 0px; height: 21px;"
++     />
++   </div>
++   <textarea
++     aria-label="Markdown 编辑器"
++     autocomplete="off"
++     class="milkup-input-proxy"
++     style="left: 40px; top: 0px; height: 21px;"
++     tabindex="0"
++   />
++ </div>
+
+ ❯ src/source-focus-navigation.test.ts:26:38
+     24|       view.inputDOM.dispatchEvent(new KeyboardEvent('keydown', { key: …
+     25|       await view.flushPendingEdits()
+     26|       expect(document.activeElement).toBe(document.getElementById(back…
+       |                                      ^
+     27|       expect(onFocusNavigation).toHaveBeenCalledTimes(1)
+     28|       expect([view.selection.main.anchor, view.selection.main.head]).t…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/source-focus-navigation.test.ts > host windowed source focus order > host mode leaves only the proxy in sequential focus order, including readonly
+ FAIL  src/source-focus-navigation.test.ts > host windowed live focus order > host mode leaves only the proxy in sequential focus order, including readonly
+AssertionError: expected +0 to be -1 // Object.is equality
+
+- Expected
++ Received
+
+- -1
++ 0
+
+ ❯ src/source-focus-navigation.test.ts:39:35
+     37|       try {
+     38|         await view.renderVisibleWindow()
+     39|         expect(view.dom.tabIndex).toBe(-1)
+       |                                   ^
+     40|         expect(view.inputDOM.tabIndex).toBe(0)
+     41|         expect(Array.from(parent.querySelectorAll<HTMLElement>('[tabin…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 2 passed (6)
+   Start at  11:02:13
+   Duration  2.19s (transform 612ms, setup 0ms, collect 813ms, tests 439ms, environment 549ms, prepare 91ms)
+

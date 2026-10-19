@@ -1,0 +1,121 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/desktop-plugin-ui.test.ts (41 tests | 4 failed | 37 skipped) 185ms
+   ↓ DesktopPluginUiController > restores a virtual keyboard target named by text without requiring aria-label
+   ↓ DesktopPluginUiController > requests bounded virtual tree ranges for End, Home and arrow boundary focus
+   × DesktopPluginUiController > does not let late virtual keyboard ranges steal focus after Tab or document change 154ms
+     → expected 'Heading 0' to be 'Heading 1' // Object.is equality
+   × DesktopPluginUiController > discards a rejected keyboard range after the request document changes 14ms
+     → expected <span class="plugin-ui-error"></span> to be null
+   × DesktopPluginUiController > discards a rejected keyboard range after the request version changes 7ms
+     → expected <span class="plugin-ui-error"></span> to be null
+   × DesktopPluginUiController > discards a rejected keyboard range after the request mount changes 8ms
+     → expected <span class="plugin-ui-error"></span> to be null
+   ↓ DesktopPluginUiController > discards a pending End range when focus moves to another row of the same tree
+   ↓ DesktopPluginUiController > keeps the latest virtual keyboard intent and discards ranges after teardown
+   ↓ DesktopPluginUiController > uses visible ranks rather than source ordinals after folding a virtual tree
+   ↓ DesktopPluginUiController > holds modal focus while a controlled save action is temporarily disabled
+   ↓ DesktopPluginUiController > combines embedding slot visibility with panel collapse without affecting other slots
+   ↓ DesktopPluginUiController > traps modal Tab using only the current tree tab stop
+   ↓ DesktopPluginUiController > does not treat scripted clicks or forged action details as trusted user gestures
+   ↓ DesktopPluginUiController > keeps a pressed controlled button until click and coalesces progress renders
+   ↓ DesktopPluginUiController > mounts controlled slots and recreates document-scoped views on document changes
+   ↓ DesktopPluginUiController > opens and closes modal views repeatedly and bridges declared commands
+   ↓ DesktopPluginUiController > takes modal focus before pending mount output, so immediate Escape closes and restores the opener
+   ↓ DesktopPluginUiController > does not take focus back from a host confirmation when asynchronous opening completes
+   ↓ DesktopPluginUiController > restores an available card when unloading removes the opener and ignores late output
+   ↓ DesktopPluginUiController > resumes focus after a pending output removes controls, with final Action A
+   ↓ DesktopPluginUiController > resumes focus after a pending output removes controls, with final Action B
+   ↓ DesktopPluginUiController > does not resume a removed action after the user focuses close
+   ↓ DesktopPluginUiController > does not resume a removed action after the user focuses confirmation
+   ↓ DesktopPluginUiController > traps native WebKit Shift+Tab with Unidentified key and Tab code at the close button
+   ↓ DesktopPluginUiController > rerenders only the requested plugin view when invalidated
+   ↓ DesktopPluginUiController > passes fresh viewport state when an editor scroll update rerenders mounted UI
+   ↓ DesktopPluginUiController > skips editor viewport updates for views that opt out
+   ↓ DesktopPluginUiController > collapses sidebar panels to the bottom and exposes resizers only between expanded panels
+   ↓ DesktopPluginUiController > reports actual visibility on collapse and expand, independent of focus lifecycle
+   ↓ DesktopPluginUiController > resizes adjacent expanded sidebar panels as a bounded pair
+   ↓ DesktopPluginUiController > keeps identical controlled output mounted and preserves internal scroll on changes
+   ↓ DesktopPluginUiController > decorates a controlled host icon without relying on plugin-specific classes
+   ↓ DesktopPluginUiController > projects a virtual outline slice into the full scroll height and follows its active item
+   ↓ DesktopPluginUiController > requests a new buffered range when the outline is scrolled outside its rendered slice
+   ↓ DesktopPluginUiController > does not rerender while outline scrolling remains inside the current overscan buffer
+   ↓ DesktopPluginUiController > keeps the virtual outline viewport stable while background scanning extends the total
+   ↓ DesktopPluginUiController > requests one adjacent buffer only after a real user wheel gesture reaches an edge
+   ↓ DesktopPluginUiController > requests the previous buffer only when the list reaches the exact top edge
+   ↓ DesktopPluginUiController > does not request an adjacent buffer for a small scroll far from the cache edge
+   ↓ DesktopPluginUiController > compensates scroll position once when headings are prepended
+   ↓ DesktopPluginUiController > coalesces viewport updates without running concurrent plugin renders
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-ui.test.ts > DesktopPluginUiController > does not let late virtual keyboard ranges steal focus after Tab or document change
+AssertionError: expected 'Heading 0' to be 'Heading 1' // Object.is equality
+
+Expected: "Heading 1"
+Received: "Heading 0"
+
+ ❯ apps/desktop/src/desktop-plugin-ui.test.ts:120:49
+    118|       new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, …
+    119|     )
+    120|     expect(document.activeElement?.textContent).toBe('Heading 1')
+       |                                                 ^
+    121|     pending = false
+    122|     await controller.dispose()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-ui.test.ts > DesktopPluginUiController > discards a rejected keyboard range after the request document changes
+ FAIL  apps/desktop/src/desktop-plugin-ui.test.ts > DesktopPluginUiController > discards a rejected keyboard range after the request version changes
+AssertionError: expected <span class="plugin-ui-error"></span> to be null
+
+- Expected: 
+null
+
++ Received: 
+<span
+  class="plugin-ui-error"
+>
+  obsolete keyboard request
+</span>
+
+ ❯ apps/desktop/src/desktop-plugin-ui.test.ts:160:58
+    158|       rejectRequest(new Error('obsolete keyboard request'))
+    159|       await new Promise((resolve) => setTimeout(resolve, 0))
+    160|       expect(document.querySelector('.plugin-ui-error')).toBeNull()
+       |                                                          ^
+    161|       expect(container.querySelector('.plugin-ui-error')).toBeNull()
+    162|       if (change === 'mount') {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-ui.test.ts > DesktopPluginUiController > discards a rejected keyboard range after the request mount changes
+AssertionError: expected <span class="plugin-ui-error"></span> to be null
+
+- Expected: 
+null
+
++ Received: 
+<span
+  class="plugin-ui-error"
+>
+  obsolete keyboard request
+</span>
+
+ ❯ apps/desktop/src/desktop-plugin-ui.test.ts:161:59
+    159|       await new Promise((resolve) => setTimeout(resolve, 0))
+    160|       expect(document.querySelector('.plugin-ui-error')).toBeNull()
+    161|       expect(container.querySelector('.plugin-ui-error')).toBeNull()
+       |                                                           ^
+    162|       if (change === 'mount') {
+    163|         expect(document.querySelector('[data-plugin-ui]')).toBeNull()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 37 skipped (41)
+   Start at  10:59:46
+   Duration  2.59s (transform 814ms, setup 0ms, collect 1.11s, tests 185ms, environment 737ms, prepare 156ms)
+

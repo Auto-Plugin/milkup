@@ -1,0 +1,52 @@
+--- host-before-lifecycle-fix.txt
++++ apps/desktop/src/desktop-plugin-ui.ts
+@@ -522,6 +522,24 @@
+       documentId: this.documentId,
+       ...this.renderState(),
+     }
++    const requestedKeyboardFocus = mount.virtualTreeFocus
++    const isCurrentRequest = (): boolean => {
++      if (
++        this.mounts.get(uiKey(mount.contribution))?.generation !== mount.generation ||
++        renderSequence !== mount.renderSequence
++      )
++        return false
++      if (
++        renderState.documentId !== this.documentId ||
++        renderState.documentVersion !== this.renderState().documentVersion
++      ) {
++        // Discard only this request's keyboard intent; never clear a newer one.
++        if (requestedKeyboardFocus && mount.virtualTreeFocus === requestedKeyboardFocus)
++          this.cancelVirtualTreeFocus(mount)
++        return false
++      }
++      return true
++    }
+     try {
+       const output = (await this.runtime.renderUi(
+         mount.contribution.pluginId,
+@@ -534,14 +552,7 @@
+         },
+       )) as ControlledRendererOutput
+ 
+-      if (
+-        this.mounts.get(uiKey(mount.contribution))?.generation !== mount.generation ||
+-        renderSequence !== mount.renderSequence ||
+-        renderState.documentId !== this.documentId ||
+-        renderState.documentVersion !== this.renderState().documentVersion
+-      ) {
+-        return
+-      }
++      if (!isCurrentRequest()) return
+ 
+       // Replacing a pressed button between pointerdown and click loses the action.
+       // Drop intermediate output and request one fresh render after the gesture.
+@@ -650,7 +661,7 @@
+       mount.renderSignature = signature
+       mount.container.dataset.uiState = 'ready'
+     } catch (error) {
+-      if (renderSequence !== mount.renderSequence) return
++      if (!isCurrentRequest()) return
+       mount.container.dataset.uiState = 'failed'
+       const message = this.root.ownerDocument.createElement('span')
+       message.className = 'plugin-ui-error'

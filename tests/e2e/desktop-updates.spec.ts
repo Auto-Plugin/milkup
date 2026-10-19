@@ -1,3 +1,4 @@
+import { sealWorkerFixture } from '../helpers/sealed-plugin-fixture'
 import { expect, test, type Page } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
@@ -14,7 +15,12 @@ async function fixture(page: Page, mode = 'valid') {
     platform: 'browser',
     alias: { '@milkup/plugin-sdk': resolve('packages/plugin-sdk/src/index.js') },
   })
-  manifest.main = 'data:text/javascript,' + encodeURIComponent(bundle.outputFiles[0]!.text)
+  await sealWorkerFixture(
+    page,
+    manifest,
+    '/plugins/updates/plugin.json',
+    bundle.outputFiles[0]!.text,
+  )
   await page.addInitScript(
     ({ manifest, mode }) => {
       const state = { mode, installs: 0, cancels: 0, downloads: 0 }
@@ -62,6 +68,8 @@ async function fixture(page: Page, mode = 'valid') {
         manifestPath: '/plugins/updates/plugin.json',
         rootPath: '/plugins/updates',
         sourcePath: '/plugins/updates/plugin.json',
+        dataRoot: `milkup://plugin-data/${manifest.id}`,
+        storageRoot: `milkup://plugin-storage/${manifest.id}`,
         state: 'installed',
         enabled: false,
         installedAt: 1,

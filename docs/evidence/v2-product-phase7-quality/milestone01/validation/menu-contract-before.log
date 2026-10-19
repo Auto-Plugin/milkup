@@ -1,0 +1,54 @@
+
+[WebServer] (node:269120) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ vite --host 127.0.0.1
+
+[WebServer] (node:269142) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] (node:269168) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+[WebServer] $ vite --host 127.0.0.1
+
+[WebServer] (node:269184) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+
+(node:269222) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1/1] [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1410:1 › phase16 modal menu contains keyboard focus and closes ahead of background search
+  1) [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1410:1 › phase16 modal menu contains keyboard focus and closes ahead of background search 
+
+    Error: expect(locator).toBeFocused() failed
+
+    Locator:  locator('.milkup-input-proxy')
+    Expected: focused
+    Received: inactive
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeFocused" with timeout 5000ms
+      - waiting for locator('.milkup-input-proxy')
+        14 × locator resolved to <textarea tabindex="0" autocomplete="off" spellcheck="false" aria-label="Markdown 编辑器" class="milkup-input-proxy"></textarea>
+           - unexpected value "inactive"
+
+
+      1423 |   await expect(page.locator('[data-app-menu]')).toBeHidden()
+      1424 |   await expect(page.locator('[data-floating-search]')).toBeVisible()
+    > 1425 |   await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+           |                                                     ^
+      1426 |   await page.getByRole('button', { name: '菜单', exact: true }).click()
+      1427 |   await page.keyboard.press('Control+n')
+      1428 |   await expect(page.locator('[data-close-confirm]')).toBeVisible()
+        at /workspace/milkup/tests/e2e/desktop-shell.spec.ts:1425:53
+
+    Error Context: test-results/desktop-shell-phase16-moda-26b4c--ahead-of-background-search-desktop-msedge/error-context.md
+
+
+  1 failed
+    [desktop-msedge] › tests/e2e/desktop-shell.spec.ts:1410:1 › phase16 modal menu contains keyboard focus and closes ahead of background search 

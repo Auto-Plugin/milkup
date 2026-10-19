@@ -1,0 +1,34 @@
+{
+  "branch": "dot/milkup-v2-product-phase7-quality",
+  "review": "Existing push workflows restrict to four other branches; no workflow dispatch or workflow change performed for P7. No Windows build/upload requested.",
+  "workflows": [
+    {
+      "path": ".github/workflows/v2-windows-catalog-check.yml",
+      "sha256": "2ef27608a44fa13c41c4d82ce277dba17963b1e03b21299a6dca299610872d7e",
+      "branchFilterLines": [
+        "branches: [dot/milkup-v2-product-phase6-plugin-lifecycle]"
+      ]
+    },
+    {
+      "path": ".github/workflows/v2-windows-plugin-offline-delivery.yml",
+      "sha256": "1ea1a52e25a8963479eed53fb71d45b192496cbd16ee4e1aa6fb2dcdd9962e17",
+      "branchFilterLines": [
+        "branches: [dot/milkup-v2-product-completion-phase1]"
+      ]
+    },
+    {
+      "path": ".github/workflows/v2-windows-standard-delivery.yml",
+      "sha256": "f6debc41512be14f78ec6c147085040f917cebe5aa325370096bbb985a4fb447",
+      "branchFilterLines": [
+        "branches: [dot/milkup-v2-windows-delivery]"
+      ]
+    },
+    {
+      "path": ".github/workflows/v2-windows-test-package.yml",
+      "sha256": "341432f0d64cb127609bae2f15217cfb4d2ea0f74f43d29030c6439c41665eb7",
+      "branchFilterLines": [
+        "branches: [dot/milkup-v2-quality]"
+      ]
+    }
+  ]
+}

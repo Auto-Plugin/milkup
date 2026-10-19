@@ -1,8 +1,12 @@
+import {
+  sealRegistryFixture,
+  sealWorkerFixture,
+  installImagesFixture,
+  installPreferencesFixture,
+} from '../helpers/sealed-plugin-fixture'
 import { expect, test } from '@playwright/test'
 import { readFileSync } from 'node:fs'
-import { installImagesFixture } from '../../plugins/images/scripts/browser-fixture.mjs'
 import type { Page } from '@playwright/test'
-import { installPreferencesFixture } from '../../plugins/preferences/scripts/browser-fixture.mjs'
 import { outlineRegistry } from '../helpers/outline-fixture.mjs'
 import { formattingFixture } from '../helpers/formatting-plugin'
 
@@ -148,21 +152,23 @@ test('desktop shell loads editor and tracks dirty session state', async ({ page 
 test('plugin manager restores, executes, disables, and reenables a Worker plugin', async ({
   page,
 }) => {
-  await page.addInitScript(() => {
-    const manifest = {
-      id: 'e2e-tools',
-      name: 'E2E Tools',
-      version: '1.0.0',
-      main:
-        'data:text/javascript,' +
-        encodeURIComponent(
-          "export default { commands: { 'e2e.hello': () => 'hello from plugin' } }",
-        ),
-      contributes: {
-        commands: [{ id: 'e2e.hello', title: 'Plugin Hello', action: 'e2e.hello' }],
-        keymaps: [{ command: 'e2e.hello', key: 'Mod+Alt+H', when: 'editorFocus' }],
-      },
-    }
+  const manifest = {
+    id: 'e2e-tools',
+    name: 'E2E Tools',
+    version: '1.0.0',
+    main: './dist/plugin.js',
+    contributes: {
+      commands: [{ id: 'e2e.hello', title: 'Plugin Hello', action: 'e2e.hello' }],
+      keymaps: [{ command: 'e2e.hello', key: 'Mod+Alt+H', when: 'editorFocus' }],
+    },
+  }
+  await sealWorkerFixture(
+    page,
+    manifest,
+    'D:/plugins/e2e/plugin.json',
+    "export default { commands: { 'e2e.hello': () => 'hello from plugin' } }",
+  )
+  await page.addInitScript((manifest) => {
     const record = {
       manifest,
       manifestPath: 'D:/plugins/e2e/plugin.json',
@@ -182,7 +188,7 @@ test('plugin manager restores, executes, disables, and reenables a Worker plugin
       'milkup.desktop.plugins.registry.v1',
       JSON.stringify({ version: 1, records: [record], auditRecords: [] }),
     )
-  })
+  }, manifest)
   await page.goto('/')
   await page.getByRole('button', { name: '菜单' }).click()
   await page.getByRole('button', { name: '插件', exact: true }).click()
@@ -1204,7 +1210,7 @@ test('phase9 outline updates renamed headings and highlights the current section
 }) => {
   await page.addInitScript(
     (registry) => localStorage.setItem('milkup.desktop.plugins.registry.v1', registry),
-    outlineRegistry(600),
+    await sealRegistryFixture(page, outlineRegistry(600)),
   )
   await page.goto('/')
   await page.locator('.milkup-input-proxy').focus()
@@ -1212,14 +1218,14 @@ test('phase9 outline updates renamed headings and highlights the current section
   await page.getByRole('button', { name: '侧栏', exact: true }).click()
   const outline = page.locator('[data-plugin-ui="milkup.outline:outline-panel"]')
   await expect(
-    outline.getByRole('button', { name: '跳转到 First，第 1 行', exact: true }),
+    outline.getByRole('treeitem', { name: '跳转到 First，第 1 行', exact: true }),
   ).toBeVisible()
-  await outline.getByRole('button', { name: '跳转到 First，第 1 行', exact: true }).click()
+  await outline.getByRole('treeitem', { name: '跳转到 First，第 1 行', exact: true }).click()
   await expect(page.locator('.milkup-input-proxy')).toBeFocused()
   await page.keyboard.press('End')
   await page.keyboard.insertText(' renamed')
   await expect(
-    outline.getByRole('button', { name: '跳转到 First renamed，第 1 行', exact: true }),
+    outline.getByRole('treeitem', { name: '跳转到 First renamed，第 1 行', exact: true }),
   ).toBeVisible()
 })
 
@@ -1314,7 +1320,7 @@ test('phase9 narrow search and outline stay reachable and source mode removes in
 }) => {
   await page.addInitScript(
     (registry) => localStorage.setItem('milkup.desktop.plugins.registry.v1', registry),
-    outlineRegistry(),
+    await sealRegistryFixture(page, outlineRegistry()),
   )
   await page.setViewportSize({ width: 760, height: 520 })
   await page.goto('/')
@@ -1366,7 +1372,7 @@ test('phase9 narrow search and outline stay reachable and source mode removes in
     await page.keyboard.press('Control+2')
   }
   await page.getByRole('button', { name: '侧栏', exact: true }).click()
-  const child = page.getByRole('button', {
+  const child = page.getByRole('treeitem', {
     name: '跳转到 Child，第 3 行',
     exact: true,
     includeHidden: true,
@@ -1422,7 +1428,8 @@ test('phase16 modal menu contains keyboard focus and closes ahead of background 
   await page.keyboard.press('Escape')
   await expect(page.locator('[data-app-menu]')).toBeHidden()
   await expect(page.locator('[data-floating-search]')).toBeVisible()
-  await expect(page.locator('.milkup-input-proxy')).toBeFocused()
+  // P7 returns to the menu invoker while retaining the background search.
+  await expect(page.getByRole('button', { name: '菜单', exact: true })).toBeFocused()
   await page.getByRole('button', { name: '菜单', exact: true }).click()
   await page.keyboard.press('Control+n')
   await expect(page.locator('[data-close-confirm]')).toBeVisible()
@@ -1447,6 +1454,9 @@ test('phase16 F6 reaches shell without plugins and keeps basic table navigation 
   await expect(page.locator('[data-menu-toggle]')).toBeFocused()
   await page.keyboard.press('Enter')
   await page.keyboard.press('Escape')
+  // P7 restores the actual menu opener; F6 still returns to the document.
+  await expect(page.locator('[data-menu-toggle]')).toBeFocused()
+  await page.keyboard.press('F6')
   await expect(page.locator('.milkup-input-proxy')).toBeFocused()
   await expect(page.locator('.milkup-input-proxy')).toHaveAttribute('aria-label', 'Markdown 编辑器')
   await expect(page.locator('.milkup-input-proxy')).not.toHaveAttribute('aria-hidden', 'true')
@@ -1551,7 +1561,7 @@ test('phase18 narrow sidebar overlays without shrinking text and search controls
 }) => {
   await page.addInitScript(
     (registry) => localStorage.setItem('milkup.desktop.plugins.registry.v1', registry),
-    outlineRegistry(),
+    await sealRegistryFixture(page, outlineRegistry()),
   )
   await installPreferencesFixture(page, { enabled: true, approved: true })
   await page.setViewportSize({ width: 380, height: 260 })

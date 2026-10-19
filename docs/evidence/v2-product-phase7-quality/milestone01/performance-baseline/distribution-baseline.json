@@ -1,0 +1,269 @@
+{
+  "definition": "Frame proxy; no p95 when n<20. within100ms is an observation ratio, not a guarantee.",
+  "runs": [
+    {
+      "run": "p7-baseline-ordinary-source-01",
+      "route": "ordinary EditorView",
+      "actualBytes": 65555,
+      "mode": "source",
+      "groups": {
+        "input": {
+          "n": 20,
+          "minMs": 71.00000000000364,
+          "medianMs": 99.49999999999818,
+          "maxMs": 195.0000000000009,
+          "within100msCount": 11,
+          "within100msRatio": 0.55,
+          "nearestRankP95Ms": 125
+        },
+        "delete": {
+          "n": 20,
+          "minMs": 69,
+          "medianMs": 97.00000000000182,
+          "maxMs": 185,
+          "within100msCount": 12,
+          "within100msRatio": 0.6,
+          "nearestRankP95Ms": 130
+        },
+        "jump": {
+          "n": 80,
+          "minMs": 19,
+          "medianMs": 30.5,
+          "maxMs": 50,
+          "within100msCount": 80,
+          "within100msRatio": 1.0,
+          "nearestRankP95Ms": 42
+        },
+        "search": {
+          "n": 1,
+          "minMs": 233,
+          "medianMs": 233,
+          "maxMs": 233,
+          "within100msCount": 0,
+          "within100msRatio": 0.0,
+          "distributionNote": "single observation"
+        }
+      }
+    },
+    {
+      "run": "p7-baseline-ordinary-live-01",
+      "route": "ordinary EditorView",
+      "actualBytes": 65555,
+      "mode": "live",
+      "groups": {
+        "input": {
+          "n": 20,
+          "minMs": 33,
+          "medianMs": 37.5,
+          "maxMs": 251,
+          "within100msCount": 17,
+          "within100msRatio": 0.85,
+          "nearestRankP95Ms": 227.99999999999818
+        },
+        "delete": {
+          "n": 20,
+          "minMs": 30,
+          "medianMs": 36.0,
+          "maxMs": 568.0000000000018,
+          "within100msCount": 16,
+          "within100msRatio": 0.8,
+          "nearestRankP95Ms": 458.99999999999636
+        },
+        "jump": {
+          "n": 80,
+          "minMs": 28.999999999992724,
+          "medianMs": 37.00000000000091,
+          "maxMs": 664,
+          "within100msCount": 76,
+          "within100msRatio": 0.95,
+          "nearestRankP95Ms": 97
+        },
+        "search": {
+          "n": 1,
+          "minMs": 310,
+          "medianMs": 310,
+          "maxMs": 310,
+          "within100msCount": 0,
+          "within100msRatio": 0.0,
+          "distributionNote": "single observation"
+        }
+      }
+    },
+    {
+      "run": "p7-baseline-input-01",
+      "route": "memory SourceDocumentView",
+      "actualBytes": 179219,
+      "mode": "source",
+      "groups": {
+        "input": {
+          "n": 20,
+          "minMs": 18.999999999992724,
+          "medianMs": 27.0,
+          "maxMs": 102,
+          "within100msCount": 19,
+          "within100msRatio": 0.95,
+          "nearestRankP95Ms": 99
+        },
+        "delete": {
+          "n": 20,
+          "minMs": 21,
+          "medianMs": 28.99999999999909,
+          "maxMs": 107,
+          "within100msCount": 19,
+          "within100msRatio": 0.95,
+          "nearestRankP95Ms": 64
+        },
+        "jump": {
+          "n": 80,
+          "minMs": 22,
+          "medianMs": 33.0,
+          "maxMs": 120,
+          "within100msCount": 79,
+          "within100msRatio": 0.9875,
+          "nearestRankP95Ms": 77.00000000000091
+        },
+        "search": {
+          "n": 1,
+          "minMs": 488,
+          "medianMs": 488,
+          "maxMs": 488,
+          "within100msCount": 0,
+          "within100msRatio": 0.0,
+          "distributionNote": "single observation"
+        }
+      }
+    },
+    {
+      "run": "p7-baseline-live-01",
+      "route": "memory SourceDocumentView",
+      "actualBytes": 179219,
+      "mode": "live",
+      "groups": {
+        "input": {
+          "n": 20,
+          "minMs": 23,
+          "medianMs": 48.0,
+          "maxMs": 151,
+          "within100msCount": 19,
+          "within100msRatio": 0.95,
+          "nearestRankP95Ms": 94
+        },
+        "delete": {
+          "n": 20,
+          "minMs": 19,
+          "medianMs": 27.5,
+          "maxMs": 163,
+          "within100msCount": 19,
+          "within100msRatio": 0.95,
+          "nearestRankP95Ms": 61.00000000000364
+        },
+        "jump": {
+          "n": 80,
+          "minMs": 25,
+          "medianMs": 34.99999999999977,
+          "maxMs": 89,
+          "within100msCount": 80,
+          "within100msRatio": 1.0,
+          "nearestRankP95Ms": 73
+        },
+        "search": {
+          "n": 1,
+          "minMs": 271,
+          "medianMs": 271,
+          "maxMs": 271,
+          "within100msCount": 0,
+          "within100msRatio": 0.0,
+          "distributionNote": "single observation"
+        }
+      }
+    },
+    {
+      "run": "p7-baseline-large-source-01",
+      "route": "native large-file SourceDocumentView",
+      "actualBytes": 10485779,
+      "mode": "source",
+      "groups": {
+        "input": {
+          "n": 20,
+          "minMs": 19,
+          "medianMs": 35.50000000000091,
+          "maxMs": 101,
+          "within100msCount": 19,
+          "within100msRatio": 0.95,
+          "nearestRankP95Ms": 98
+        },
+        "delete": {
+          "n": 20,
+          "minMs": 20,
+          "medianMs": 27.50000000000182,
+          "maxMs": 71,
+          "within100msCount": 20,
+          "within100msRatio": 1.0,
+          "nearestRankP95Ms": 64.99999999999636
+        },
+        "jump": {
+          "n": 80,
+          "minMs": 23,
+          "medianMs": 32.49999999999818,
+          "maxMs": 157,
+          "within100msCount": 77,
+          "within100msRatio": 0.9625,
+          "nearestRankP95Ms": 65
+        },
+        "search": {
+          "n": 1,
+          "minMs": 546,
+          "medianMs": 546,
+          "maxMs": 546,
+          "within100msCount": 0,
+          "within100msRatio": 0.0,
+          "distributionNote": "single observation"
+        }
+      }
+    },
+    {
+      "run": "p7-baseline-large-live-01",
+      "route": "native large-file SourceDocumentView",
+      "actualBytes": 10485779,
+      "mode": "live",
+      "groups": {
+        "input": {
+          "n": 20,
+          "minMs": 20.999999999996362,
+          "medianMs": 24.99999999999818,
+          "maxMs": 56.00000000000182,
+          "within100msCount": 20,
+          "within100msRatio": 1.0,
+          "nearestRankP95Ms": 36
+        },
+        "delete": {
+          "n": 20,
+          "minMs": 19,
+          "medianMs": 29.0,
+          "maxMs": 60,
+          "within100msCount": 20,
+          "within100msRatio": 1.0,
+          "nearestRankP95Ms": 40
+        },
+        "jump": {
+          "n": 80,
+          "minMs": 24,
+          "medianMs": 34.50000000000023,
+          "maxMs": 95,
+          "within100msCount": 80,
+          "within100msRatio": 1.0,
+          "nearestRankP95Ms": 57
+        },
+        "search": {
+          "n": 1,
+          "minMs": 566,
+          "medianMs": 566,
+          "maxMs": 566,
+          "within100msCount": 0,
+          "within100msRatio": 0.0,
+          "distributionNote": "single observation"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,2587 @@
+{
+  "schemaVersion": 1,
+  "reviewer": "checkpoint21 independent ordinary pixel reviewer",
+  "run": "p7-candidate-03-matrix-02",
+  "route": "ordinary",
+  "status": "COMPLETE_WITH_VISIBLE_SCOPE_LIMITATIONS",
+  "method": "Actual view_image(detail=original) opening of every listed contact sheet and every required narrow-200 original. No GUI, product test, DOM inspection, or product/raw changes performed for this review. Embedded PASS captions were not used as pixel verdicts.",
+  "coverage": {
+    "cellsReviewed": 32,
+    "contactSheetsOpened": 32,
+    "rawImagesRepresentedByContactSheets": 176,
+    "originalPngsIndividuallyOpened": 22,
+    "uniqueImageFilesOpened": 54,
+    "individualRawScope": "All ordinary Source 10 and Live 12 PNGs at 760x520 / 200%, including both Live checked-task screenshots. Other original images were reviewed only through composite contact sheets.",
+    "windowed": "Not reviewed by this reviewer."
+  },
+  "assessment": "No new blocking pixel defect observed in the reviewed ordinary stills. This is a bounded visual assessment, not an unconditional visual-quality or accessibility PASS. Rendered tables, emphasis, task states and selection are visible; Source remains literal unwrapped Markdown. The limitations below remain visible.",
+  "findings": [
+    {
+      "id": "viewport-edge-clipping",
+      "classification": "visible limitation",
+      "description": "At 760x520 / 200%, several table/emphasis/task snapshots have partial lines cut at the fixed header/footer viewport boundaries. The task snapshot and checked-task snapshot show the first task but clip the second; the Live code-End snapshot separately shows both task rows. These are not screenshots of every element wholly visible at once.",
+      "examples": [
+        "ordinary-live-dark-760x520-200-emphasis.png",
+        "ordinary-live-light-760x520-200-task.png",
+        "ordinary-source-light-760x520-200-task.png"
+      ]
+    },
+    {
+      "id": "source-horizontal-context",
+      "classification": "visible behavior / inference bounded",
+      "description": "Source long table/emphasis/code lines are unwrapped and clipped on the right. At End, the suffix/final punctuation/caret and a far-right horizontal scrollbar are visible while most of the viewport is empty. Across the pre-End/End stills this is consistent with whole-editor horizontal scrolling, not a wholly blank render. It does not establish continuous navigation or every offscreen character.",
+      "examples": [
+        "ordinary-source-dark-760x520-200-code-End.png",
+        "ordinary-source-light-760x520-200-code-End.png"
+      ]
+    },
+    {
+      "id": "light-thin-borders",
+      "classification": "visual caveat, no quantified compliance finding",
+      "description": "Light-theme table lines and unchecked checkbox borders are pale, though discernible in the individually opened 200% originals. No contrast ratios or WCAG determination made.",
+      "examples": [
+        "ordinary-live-light-760x520-200-table.png",
+        "ordinary-live-light-760x520-200-task.png"
+      ]
+    },
+    {
+      "id": "code-scroll-indicator",
+      "classification": "minor visible caveat",
+      "description": "At Live narrow 200% End, the horizontal scroll indicator occupies the lower code-line area near the right tail. Final punctuation and caret remain recognizable; no hidden tail was observed.",
+      "examples": [
+        "ordinary-live-light-760x520-200-code-End.png",
+        "ordinary-live-dark-760x520-200-code-End.png"
+      ]
+    }
+  ],
+  "limitations": [
+    "Still images cannot prove animation, focus retention over time, keyboard routing, saved-on-disk durability, complete scroll reachability, or latency.",
+    "Composite thumbnails reduce glyph detail, especially wide 100% cells; only the 22 named originals receive individual native-resolution inspection.",
+    "No claims about unviewed windowed cells, alloff, other documents, Windows, or all P7 acceptance."
+  ],
+  "cells": [
+    {
+      "cell": "ordinary-live-dark-1280x800-100",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-100.png",
+      "sha256": "9b0e9657ecf400e62571d4c419a452260cbd0ef7b2a55c97e15e11d8db60431b",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 6,
+      "observation": "Six views per cell opened as composite. Selection highlight, three-column table wrapping, emphasis, checkbox states and long-code End tail are coherent; 200% shows fewer vertical blocks until scrolled. No blank app or overlapping blocks seen. Small composite text limits glyph judgement.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-100-selection.png",
+          "relative": "ordinary-live-dark-1280x800-100-selection.png",
+          "sha256": "5b9903b70f7fa2442153794760c0300d07a397f96a38311dea97eed56f3cc6d8",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-100-table.png",
+          "relative": "ordinary-live-dark-1280x800-100-table.png",
+          "sha256": "a6b2cc570916eee0de2c8ad56b27e76375b8e78063dd7dbb92a2d15d8720491d",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-100-emphasis.png",
+          "relative": "ordinary-live-dark-1280x800-100-emphasis.png",
+          "sha256": "394a9a4774dca8e2e2e5c466005f94f57d9deb51cbbfb424e04ee4c91378409c",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-100-task.png",
+          "relative": "ordinary-live-dark-1280x800-100-task.png",
+          "sha256": "bad0491d5256d09ceef0e431f78a45a21df5387bcce0ab5ee912a2c340fea0d1",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-100-code-End.png",
+          "relative": "ordinary-live-dark-1280x800-100-code-End.png",
+          "sha256": "3e2f9b5954cb1b5f82bb8cf3ab818f13a56e2848689084d955b1594accd004aa",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-100-task-checked.png",
+          "relative": "ordinary-live-dark-1280x800-100-task-checked.png",
+          "sha256": "34beb6b2b21e54ede7a47bc6ae211ab33b523316753d2f8caf797fc474f3a3fb",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-live-dark-1280x800-125",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-125.png",
+      "sha256": "2503ddf062bf9095895899290685ab25476f1230ad66cbd348f4510b0bba748d",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 6,
+      "observation": "Six views per cell opened as composite. Selection highlight, three-column table wrapping, emphasis, checkbox states and long-code End tail are coherent; 200% shows fewer vertical blocks until scrolled. No blank app or overlapping blocks seen. Small composite text limits glyph judgement.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-125-selection.png",
+          "relative": "ordinary-live-dark-1280x800-125-selection.png",
+          "sha256": "ed537e1a92d2f67c5c94ea394690e88c7410e01abe0e4a306eb6d431d9dda223",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-125-table.png",
+          "relative": "ordinary-live-dark-1280x800-125-table.png",
+          "sha256": "b3b27464cae493eb8b2194cd1ff973a63b8a7727f8564751a45de0d4f96adcfd",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-125-emphasis.png",
+          "relative": "ordinary-live-dark-1280x800-125-emphasis.png",
+          "sha256": "9a22286ed66cc4fdee9f216ed323e3b3166e539105c46073bbe346cc0a94e3c0",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-125-task.png",
+          "relative": "ordinary-live-dark-1280x800-125-task.png",
+          "sha256": "3490a96099f149341e07e9f9c615023d87c1ef1a770f5e5a62fe3e7396f6507f",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-125-code-End.png",
+          "relative": "ordinary-live-dark-1280x800-125-code-End.png",
+          "sha256": "5b17ea55a17221d4cc0829c9a40dc4acf5afb224a5bf2beb4bd0042bc8a0f4da",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-125-task-checked.png",
+          "relative": "ordinary-live-dark-1280x800-125-task-checked.png",
+          "sha256": "410965539c2889f68690caa3ae5375cc87e9ef4707e6702bb982cbfd511cca80",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-live-dark-1280x800-150",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-150.png",
+      "sha256": "7ddb98f124c44a8caee3dd8195063bc73786e9491f8928eda72993290232daae",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 6,
+      "observation": "Six views per cell opened as composite. Selection highlight, three-column table wrapping, emphasis, checkbox states and long-code End tail are coherent; 200% shows fewer vertical blocks until scrolled. No blank app or overlapping blocks seen. Small composite text limits glyph judgement.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-150-selection.png",
+          "relative": "ordinary-live-dark-1280x800-150-selection.png",
+          "sha256": "4c62aae449d66c52d768289e9f4d06097ca96ce2ea47946ebcc12f072998dff6",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-150-table.png",
+          "relative": "ordinary-live-dark-1280x800-150-table.png",
+          "sha256": "b1433b230c0d9c6977964a32da8ef429a2af48f7936e27e802994a5956ec7c1d",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-150-emphasis.png",
+          "relative": "ordinary-live-dark-1280x800-150-emphasis.png",
+          "sha256": "98d87066fa07288830c61564251831edc5382ebe22fb3eb326643c1a303592fb",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-150-task.png",
+          "relative": "ordinary-live-dark-1280x800-150-task.png",
+          "sha256": "e8059aaf22908a8ecdf93687e42c2a91f2e0b70a698c23eaa3cd6329bd3ac7d0",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-150-code-End.png",
+          "relative": "ordinary-live-dark-1280x800-150-code-End.png",
+          "sha256": "1e584f0567415e207f86db989ffe31377330492e7297a082e991e8a220fb7e90",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-150-task-checked.png",
+          "relative": "ordinary-live-dark-1280x800-150-task-checked.png",
+          "sha256": "03da0f4371f4e05440b00cda7d0c35c40d58fbe5f3e0e5f3c4b189fe1dc29d60",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-live-dark-1280x800-200",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-200.png",
+      "sha256": "1fd8fdfc2cce1d3b63da3b490b00f84c928b39382cb21dac654146bd7531c04f",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 6,
+      "observation": "Six views per cell opened as composite. Selection highlight, three-column table wrapping, emphasis, checkbox states and long-code End tail are coherent; 200% shows fewer vertical blocks until scrolled. No blank app or overlapping blocks seen. Small composite text limits glyph judgement.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-200-selection.png",
+          "relative": "ordinary-live-dark-1280x800-200-selection.png",
+          "sha256": "07b09bb628335a18de536e8e8281c045d603299f4cecb1713a784273364c1289",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-200-table.png",
+          "relative": "ordinary-live-dark-1280x800-200-table.png",
+          "sha256": "b8d0d31c03b1120a523977f1261e66264d2197ad2f6d237a15e8a399665ad9c0",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-200-emphasis.png",
+          "relative": "ordinary-live-dark-1280x800-200-emphasis.png",
+          "sha256": "fe9d9d85fcd95ef8336bbc18ee61043128ac418f5452bdf0a293c3455887217e",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-200-task.png",
+          "relative": "ordinary-live-dark-1280x800-200-task.png",
+          "sha256": "b8d0d31c03b1120a523977f1261e66264d2197ad2f6d237a15e8a399665ad9c0",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-200-code-End.png",
+          "relative": "ordinary-live-dark-1280x800-200-code-End.png",
+          "sha256": "cd8f08a6d9dd2c751d4166ebe7d6500b307a98ef3e0b2b01939652ca426044b2",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-200-task-checked.png",
+          "relative": "ordinary-live-dark-1280x800-200-task-checked.png",
+          "sha256": "fa503112114c1daeb1f788d9a52647b581b40cd0534e7b4c3a55e246132e86a8",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-live-dark-760x520-100",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-100.png",
+      "sha256": "f8928e826f6d33e457a2a1629d82bb06d828f3055c6dabb8ffabdb86f62f32b8",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 6,
+      "observation": "All six states present; table wraps progressively into narrow left column. At 200% table/task views show partially clipped rows at viewport edges; footer remains fixed. Checked-state thumb visibly changes first checkbox; code-End shows trailing code and caret.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-100-selection.png",
+          "relative": "ordinary-live-dark-760x520-100-selection.png",
+          "sha256": "e463b6dd919b7b8b23fa070394041889703d4e7d84ad7d987fe7f7ceaf983461",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-100-table.png",
+          "relative": "ordinary-live-dark-760x520-100-table.png",
+          "sha256": "ab93815cea6ee5d932fe2c7149c67dbae3f45c4121196de30efcdc837d9a7db7",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-100-emphasis.png",
+          "relative": "ordinary-live-dark-760x520-100-emphasis.png",
+          "sha256": "a16b832f9b44c2cb0281d37e34c5b2f4a39961e1ee0bbb0ac06ec379301194c7",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-100-task.png",
+          "relative": "ordinary-live-dark-760x520-100-task.png",
+          "sha256": "fe61e6a6cc7199da0cdac35e75115eb924596060fda38905bbf43ea1a415de20",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-100-code-End.png",
+          "relative": "ordinary-live-dark-760x520-100-code-End.png",
+          "sha256": "e647cffdcc0a4bc49f94d8292b1e33bb9cd4f2bd4bb084216e9e931b5300a8df",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-100-task-checked.png",
+          "relative": "ordinary-live-dark-760x520-100-task-checked.png",
+          "sha256": "b300496ffb9708b95594e82b68da3e82261276caa56f943c3e9dc4b424fd0f11",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-live-dark-760x520-125",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-125.png",
+      "sha256": "24e09af329835a50d94e18abec351c2f72009f801bfacd206a55ec62e2288e2e",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 6,
+      "observation": "All six states present; table wraps progressively into narrow left column. At 200% table/task views show partially clipped rows at viewport edges; footer remains fixed. Checked-state thumb visibly changes first checkbox; code-End shows trailing code and caret.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-125-selection.png",
+          "relative": "ordinary-live-dark-760x520-125-selection.png",
+          "sha256": "63509e6c4f971d9e991f63f60160e15447fae1cb5eb3159997631081962ce9e8",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-125-table.png",
+          "relative": "ordinary-live-dark-760x520-125-table.png",
+          "sha256": "406c058bcd49cef7eee6052c4e6114f27e0d9e6b9976906b5441264631ce668b",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-125-emphasis.png",
+          "relative": "ordinary-live-dark-760x520-125-emphasis.png",
+          "sha256": "406c058bcd49cef7eee6052c4e6114f27e0d9e6b9976906b5441264631ce668b",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-125-task.png",
+          "relative": "ordinary-live-dark-760x520-125-task.png",
+          "sha256": "e5ac75886616577992b4b7adf58d2cbc99ec33f706016350b7c4d98bcc6e686c",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-125-code-End.png",
+          "relative": "ordinary-live-dark-760x520-125-code-End.png",
+          "sha256": "06249769d2b25fd369259ace1d57ce3964964baa9c4d779dcbce45391dc08d39",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-125-task-checked.png",
+          "relative": "ordinary-live-dark-760x520-125-task-checked.png",
+          "sha256": "99be26d0a2069af21e9fe7a3424a598e146ae7953320ea571540de16f17d2c8a",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-live-dark-760x520-150",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-150.png",
+      "sha256": "a702e842df1829fc928af26642b616883f9a648b81d59a1d1ed296a36388b43f",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 6,
+      "observation": "All six states present; table wraps progressively into narrow left column. At 200% table/task views show partially clipped rows at viewport edges; footer remains fixed. Checked-state thumb visibly changes first checkbox; code-End shows trailing code and caret.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-150-selection.png",
+          "relative": "ordinary-live-dark-760x520-150-selection.png",
+          "sha256": "0054703ec5dd636843693204021d48a36db4ef7b6fe48ad15d9ddaf76a852c9d",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-150-table.png",
+          "relative": "ordinary-live-dark-760x520-150-table.png",
+          "sha256": "bba04835141f503b5d7e96da08832364668c8999e963736cf80ac62f7d01a8d8",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-150-emphasis.png",
+          "relative": "ordinary-live-dark-760x520-150-emphasis.png",
+          "sha256": "78a24563027c9e66ab4bbb085c9d457876bad2f4023f83308592abe993b5f622",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-150-task.png",
+          "relative": "ordinary-live-dark-760x520-150-task.png",
+          "sha256": "60283dff088ae23f5e0a549a226876225da5587a1dcaaa208afcac68465c5756",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-150-code-End.png",
+          "relative": "ordinary-live-dark-760x520-150-code-End.png",
+          "sha256": "8468b96751bde4dc72b60537ce1c70a5283b8a559ae960dd15c69fc872072353",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-150-task-checked.png",
+          "relative": "ordinary-live-dark-760x520-150-task-checked.png",
+          "sha256": "ac403daa45c973535d0c8ed68a765250cb9ccce0b7b71e52a55dc47b5fd75abc",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-live-dark-760x520-200",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-200.png",
+      "sha256": "b1c227b57dbb0c57a0f7d1eeaad2e99c0cfc388c4bceae22a8801e4378b84192",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 6,
+      "observation": "All six states present; table wraps progressively into narrow left column. At 200% table/task views show partially clipped rows at viewport edges; footer remains fixed. Checked-state thumb visibly changes first checkbox; code-End shows trailing code and caret.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-200-selection.png",
+          "relative": "ordinary-live-dark-760x520-200-selection.png",
+          "sha256": "2bb6fd5f0b33c66d97c8d344aa5cbd44291f1df9ea9649c0d0ae195204d7608a",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": true,
+          "reviewScope": "composite-and-individual-original"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-200-table.png",
+          "relative": "ordinary-live-dark-760x520-200-table.png",
+          "sha256": "46e6480dcbb3808907216daa5550365db49ad41b18fb36a6e8e8cf6daa0ed0f9",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": true,
+          "reviewScope": "composite-and-individual-original"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-200-emphasis.png",
+          "relative": "ordinary-live-dark-760x520-200-emphasis.png",
+          "sha256": "783c7ab6c306a79d84c4af05c80ab6dc5a65ad8c42f1c5be9150562f81e343c6",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": true,
+          "reviewScope": "composite-and-individual-original"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-200-task.png",
+          "relative": "ordinary-live-dark-760x520-200-task.png",
+          "sha256": "cb28d2e5316e3cf543af6d2452b1b990b74f8bce2f6cc63a2cca3d124ed7775d",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": true,
+          "reviewScope": "composite-and-individual-original"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-200-code-End.png",
+          "relative": "ordinary-live-dark-760x520-200-code-End.png",
+          "sha256": "5a05bf7fb701dea1e6c09f112a5f4066624017c246bb2e90a045556d038e8632",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": true,
+          "reviewScope": "composite-and-individual-original"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-200-task-checked.png",
+          "relative": "ordinary-live-dark-760x520-200-task-checked.png",
+          "sha256": "9b502a00f74515c3962c41417b87fc9204542b6a2d9ed94206a5eed4be3215a4",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": true,
+          "reviewScope": "composite-and-individual-original"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-live-light-1280x800-100",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-100.png",
+      "sha256": "2e81bd01304d920228eb49af30c771a5290f18b201f7e3f268901e3d6ba833b1",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 6,
+      "observation": "All six states visible in each composite; text/table/emphasis/tasks coherent on white background, checked task changes visible, code-End right tail/caret present. At 200% scrolling brings code into view. Thin light table/unchecked checkbox borders are pale at thumbnail scale; no contrast ratio measurement.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-100-selection.png",
+          "relative": "ordinary-live-light-1280x800-100-selection.png",
+          "sha256": "f7486a3df845471d21a4e7b45ddb2893e7fbc581b18cdc293c63a683743d20a5",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-100-table.png",
+          "relative": "ordinary-live-light-1280x800-100-table.png",
+          "sha256": "cd6633dbae8b38a55f4bf90281a0af0aa10dcd90d1b4d108886d3f59c2c446bb",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-100-emphasis.png",
+          "relative": "ordinary-live-light-1280x800-100-emphasis.png",
+          "sha256": "4e1e970858cfd8b27f362846698b1aba7e2986e83cab02521a71ad4f5dcc26c2",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-100-task.png",
+          "relative": "ordinary-live-light-1280x800-100-task.png",
+          "sha256": "92a1eef204ca6087bacf179d0ccdf79ff8a0a411a5f4217d068e2ad2ad7f0a45",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-100-code-End.png",
+          "relative": "ordinary-live-light-1280x800-100-code-End.png",
+          "sha256": "01c0601077138fe9e22849bf2cff62d95d1fcdbee10b7de44806f945dd77a65d",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-100-task-checked.png",
+          "relative": "ordinary-live-light-1280x800-100-task-checked.png",
+          "sha256": "9eb355a789b062fd12f7732f90f075a2e52f00ee02bee8e0fa3b950d7cd07de2",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-live-light-1280x800-125",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-125.png",
+      "sha256": "818da00770e04412567f33db3855b9215182ac8c66b2b777eebb94c5b8d33c0e",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 6,
+      "observation": "All six states visible in each composite; text/table/emphasis/tasks coherent on white background, checked task changes visible, code-End right tail/caret present. At 200% scrolling brings code into view. Thin light table/unchecked checkbox borders are pale at thumbnail scale; no contrast ratio measurement.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-125-selection.png",
+          "relative": "ordinary-live-light-1280x800-125-selection.png",
+          "sha256": "6163546a015aa201df616253e12d290c28a597ec7b99ca7de088031b380585c4",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-125-table.png",
+          "relative": "ordinary-live-light-1280x800-125-table.png",
+          "sha256": "67c6840cdd456a4e534daefbb5d1d3682a2368192455e746465ae25014a1b601",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-125-emphasis.png",
+          "relative": "ordinary-live-light-1280x800-125-emphasis.png",
+          "sha256": "2b43a6b0dd4a7589f560ed9be1b73f3be82ac4605e28277d63d130bf72da8d16",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-125-task.png",
+          "relative": "ordinary-live-light-1280x800-125-task.png",
+          "sha256": "32a7515f46f4bb5188bff642d186bf232775e6fcf938dd299b1fb4aeeeb7b6ba",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-125-code-End.png",
+          "relative": "ordinary-live-light-1280x800-125-code-End.png",
+          "sha256": "c78dfcc378cd6f603c6174032433fa8f8fbd01a5348a3b3815b524b1bb269d53",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-125-task-checked.png",
+          "relative": "ordinary-live-light-1280x800-125-task-checked.png",
+          "sha256": "0c67637b1bbf9d0472628c4e3c97a4242168aa44f773bdee6ba964f23f22d8fd",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-live-light-1280x800-150",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-150.png",
+      "sha256": "168ff99da395214bd033b2f73e5c3a464f620923db90848c0a6e41d567dff0a8",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 6,
+      "observation": "All six states visible in each composite; text/table/emphasis/tasks coherent on white background, checked task changes visible, code-End right tail/caret present. At 200% scrolling brings code into view. Thin light table/unchecked checkbox borders are pale at thumbnail scale; no contrast ratio measurement.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-150-selection.png",
+          "relative": "ordinary-live-light-1280x800-150-selection.png",
+          "sha256": "8f16a895b75a204caf8611a5b9c3214b053d4befe9d74f289f678b63cc8144b0",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-150-table.png",
+          "relative": "ordinary-live-light-1280x800-150-table.png",
+          "sha256": "bb0b9a0449a0a220effe862f05ab3635820d971715d9f96370438a5308caa2fb",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-150-emphasis.png",
+          "relative": "ordinary-live-light-1280x800-150-emphasis.png",
+          "sha256": "cfaed3d4447f17126f2b3c6ec77e665d31631cb29282f9caba7bda967c4b410c",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-150-task.png",
+          "relative": "ordinary-live-light-1280x800-150-task.png",
+          "sha256": "beecfbc6d8683c515e439004aca1e59527bf146b6f0fb829190af88407c97389",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-150-code-End.png",
+          "relative": "ordinary-live-light-1280x800-150-code-End.png",
+          "sha256": "730125c87622506e5ab31cd73eb4a1d7355e1d5fa021546a85edc11121c3c3cf",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-150-task-checked.png",
+          "relative": "ordinary-live-light-1280x800-150-task-checked.png",
+          "sha256": "565b0ee311842742608f0b67f5e267b947e477971d2e001a2224a2e9f2fa7f67",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-live-light-1280x800-200",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-200.png",
+      "sha256": "a081d5aa191be6d95f825a910c3aaf709e0d5c1d18be1549b820f5fa3630c232",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 6,
+      "observation": "All six states visible in each composite; text/table/emphasis/tasks coherent on white background, checked task changes visible, code-End right tail/caret present. At 200% scrolling brings code into view. Thin light table/unchecked checkbox borders are pale at thumbnail scale; no contrast ratio measurement.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-200-selection.png",
+          "relative": "ordinary-live-light-1280x800-200-selection.png",
+          "sha256": "613d35c484a2cb970a7b8da7d195e0e42626a1fc847f437ac9eeccb7d8d7ac8e",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-200-table.png",
+          "relative": "ordinary-live-light-1280x800-200-table.png",
+          "sha256": "96f63e9017a5998e29ce5e7acfe71cff80d758f7b2cd25c3d781e0996a8f8779",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-200-emphasis.png",
+          "relative": "ordinary-live-light-1280x800-200-emphasis.png",
+          "sha256": "a1e5084f8f974a8f3a3d7c387f0ef268fe45e3abbe5a4d71e4219b47f2c51f76",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-200-task.png",
+          "relative": "ordinary-live-light-1280x800-200-task.png",
+          "sha256": "96f63e9017a5998e29ce5e7acfe71cff80d758f7b2cd25c3d781e0996a8f8779",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-200-code-End.png",
+          "relative": "ordinary-live-light-1280x800-200-code-End.png",
+          "sha256": "47801feeddeacdf337f71ae35e2501ad235489af5f636f3dbce053beeca43a4e",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-200-task-checked.png",
+          "relative": "ordinary-live-light-1280x800-200-task-checked.png",
+          "sha256": "b25ea101398dba756b494d3e168e8f91bdbdd654423d62cfd85886ba5630a513",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-live-light-760x520-100",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-light-760x520-100.png",
+      "sha256": "cec4a32ed3f1d5416fbf24ee43f22d642aec7de50a0d12594d0b74742243e91a",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 6,
+      "observation": "All six states reviewed. Same progressive wrapping and fixed footer as dark. At200 task/checked views cut the second task at bottom viewport edge; code-End view exposes both tasks and trailing code. Selection highlight visible. Borders/unchecked square pale but distinguishable; narrow200 originals additionally reviewed.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-100-selection.png",
+          "relative": "ordinary-live-light-760x520-100-selection.png",
+          "sha256": "0eadde52256778fcb21f2483292104f0056be6d23b0d44d8893f33cf59da05c9",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-100-table.png",
+          "relative": "ordinary-live-light-760x520-100-table.png",
+          "sha256": "746bc4435622622cd507b4da9c44aeb249cdb1fade43285784f85b94b9bee9ea",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-100-emphasis.png",
+          "relative": "ordinary-live-light-760x520-100-emphasis.png",
+          "sha256": "b9918286d068c5fcc6f42fd3615e9463eb72758e3d193b2b665ba74e9b706a43",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-100-task.png",
+          "relative": "ordinary-live-light-760x520-100-task.png",
+          "sha256": "3596446bb6287c6a8ca1c25919c3eea6867425130f789b293ee8a62c9c7dbaff",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-100-code-End.png",
+          "relative": "ordinary-live-light-760x520-100-code-End.png",
+          "sha256": "da893e8087f563e041cc27fb4964f1d9843a8c2e5447314a9de6c977d74d0965",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-100-task-checked.png",
+          "relative": "ordinary-live-light-760x520-100-task-checked.png",
+          "sha256": "fafdcdc53c93e28926ad7ea213c75feb6fede306a584aba24fce8debc9d08130",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-live-light-760x520-125",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-light-760x520-125.png",
+      "sha256": "7dd5a226710dc2a91c8bf9a1e6b96533cd207ee09fbbcb7d1f32a1609acc5316",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 6,
+      "observation": "All six states reviewed. Same progressive wrapping and fixed footer as dark. At200 task/checked views cut the second task at bottom viewport edge; code-End view exposes both tasks and trailing code. Selection highlight visible. Borders/unchecked square pale but distinguishable; narrow200 originals additionally reviewed.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-125-selection.png",
+          "relative": "ordinary-live-light-760x520-125-selection.png",
+          "sha256": "0acfa7042f21d5d2c2c6e18149acd69966e7de38d5a41ba2935cf1042c1b7875",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-125-table.png",
+          "relative": "ordinary-live-light-760x520-125-table.png",
+          "sha256": "8dfdb2e58a939cfe213fff84b129488c47d524bc5b2fae1d94ae55765b07248e",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-125-emphasis.png",
+          "relative": "ordinary-live-light-760x520-125-emphasis.png",
+          "sha256": "58f13eee4fb90e880d1fe3cf52390f94950bbf3cc2893a37cd1ea84bdcfd230a",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-125-task.png",
+          "relative": "ordinary-live-light-760x520-125-task.png",
+          "sha256": "d6cdd9629fb4533b7916173c576f580a41d0d42da95b0f48304e2b963b7283b1",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-125-code-End.png",
+          "relative": "ordinary-live-light-760x520-125-code-End.png",
+          "sha256": "0cece1887927c165bacb318bb858a83116878fe232b0ca03bcd630d728aaeef1",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-125-task-checked.png",
+          "relative": "ordinary-live-light-760x520-125-task-checked.png",
+          "sha256": "36a2d07d5e7dc18c533a701cc4623d7d202c0a938d2cd71b0e08c2609b3526a4",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-live-light-760x520-150",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-light-760x520-150.png",
+      "sha256": "93176bf786e61ea885d08247cce39f8bdba89f7e84e72e01a83d8351b738396b",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 6,
+      "observation": "All six states reviewed. Same progressive wrapping and fixed footer as dark. At200 task/checked views cut the second task at bottom viewport edge; code-End view exposes both tasks and trailing code. Selection highlight visible. Borders/unchecked square pale but distinguishable; narrow200 originals additionally reviewed.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-150-selection.png",
+          "relative": "ordinary-live-light-760x520-150-selection.png",
+          "sha256": "738eb4e549233dccbc91bfd8a420927b5d33c359a1a02748c226520f33daee03",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-150-table.png",
+          "relative": "ordinary-live-light-760x520-150-table.png",
+          "sha256": "b27262a977fa271c01890a2c59f8b9ecb753322c20a08de6e1544e7b21dfcc05",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-150-emphasis.png",
+          "relative": "ordinary-live-light-760x520-150-emphasis.png",
+          "sha256": "9915dea0489fd2518f5a95f3347c8cc65b9140407b954758f8bae8d2ebd245a1",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-150-task.png",
+          "relative": "ordinary-live-light-760x520-150-task.png",
+          "sha256": "d52a42f533df2a4fb707ba09ed41c89b2f7b4a8bfd31873920ab817a7be90d6a",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-150-code-End.png",
+          "relative": "ordinary-live-light-760x520-150-code-End.png",
+          "sha256": "ef7587abc6ba9821aa12fa09a400787ecfa8f926efa67ca1bcb4a64a97dfa33c",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-150-task-checked.png",
+          "relative": "ordinary-live-light-760x520-150-task-checked.png",
+          "sha256": "122f479c8d2468a25e5daf183a3491e7b5ceb380f7c02a664e660efebc7287b6",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-live-light-760x520-200",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-light-760x520-200.png",
+      "sha256": "f11a263cd66c83860c109175dda130ad41a3fbbad45dd59197f4e6edda713fc0",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 6,
+      "observation": "All six states reviewed. Same progressive wrapping and fixed footer as dark. At200 task/checked views cut the second task at bottom viewport edge; code-End view exposes both tasks and trailing code. Selection highlight visible. Borders/unchecked square pale but distinguishable; narrow200 originals additionally reviewed.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-200-selection.png",
+          "relative": "ordinary-live-light-760x520-200-selection.png",
+          "sha256": "2c14f07ab59b80159f15d3afbc05491ddb4184b3739f87a31185d3bc354fbf2b",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": true,
+          "reviewScope": "composite-and-individual-original"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-200-table.png",
+          "relative": "ordinary-live-light-760x520-200-table.png",
+          "sha256": "6d79763ec21c1287034f5ab378afc7dd3a7ce74d9f71664ec616974f1409f65b",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": true,
+          "reviewScope": "composite-and-individual-original"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-200-emphasis.png",
+          "relative": "ordinary-live-light-760x520-200-emphasis.png",
+          "sha256": "556b0151416af196184276fa93aa3d17c08fdeac72ced2b4346c99a300076425",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": true,
+          "reviewScope": "composite-and-individual-original"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-200-task.png",
+          "relative": "ordinary-live-light-760x520-200-task.png",
+          "sha256": "dadd6228631ebaf349f9266e8047ea674f320ab56b2c6df01588f6ebe7e09dfd",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": true,
+          "reviewScope": "composite-and-individual-original"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-200-code-End.png",
+          "relative": "ordinary-live-light-760x520-200-code-End.png",
+          "sha256": "b9787ab8b836e30cb751c6a0ca4c16fdbcf5b0dde908ed5d5dce77a53dbc7bee",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": true,
+          "reviewScope": "composite-and-individual-original"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-200-task-checked.png",
+          "relative": "ordinary-live-light-760x520-200-task-checked.png",
+          "sha256": "caa4dd235aba746c85430ab864224ac98bd435ded20bdda368d7d3d27dfa31cd",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": true,
+          "reviewScope": "composite-and-individual-original"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-source-dark-1280x800-100",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-100.png",
+      "sha256": "db477d8c6b0f0ff0c30df86d508a8ab9cec1ed80f327025f842fa47c9e213411",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 5,
+      "observation": "Five views per sheet. Plain Markdown source preserved with delimiters/tasks/fences visible, selection highlighted. Unwrapped long lines horizontally overflow. End scroll moves whole source viewport right, leaving other short lines offscreen and showing long-code tail/caret against largely empty background; not a blank render failure.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-100-selection.png",
+          "relative": "ordinary-source-dark-1280x800-100-selection.png",
+          "sha256": "edef8034bad5cce4051c78c7f05f4ccfb81cb5c2709099c36c8f13e0d61b2257",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-100-table.png",
+          "relative": "ordinary-source-dark-1280x800-100-table.png",
+          "sha256": "698187170da9c921b12c8842bbd68c4b9449a202b22a5ec7cccc3178a89e4115",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-100-emphasis.png",
+          "relative": "ordinary-source-dark-1280x800-100-emphasis.png",
+          "sha256": "698187170da9c921b12c8842bbd68c4b9449a202b22a5ec7cccc3178a89e4115",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-100-task.png",
+          "relative": "ordinary-source-dark-1280x800-100-task.png",
+          "sha256": "4435b9b89bacd0f29779445df32fadd00a3d76022b47158e0b4f6ff78d610dae",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-100-code-End.png",
+          "relative": "ordinary-source-dark-1280x800-100-code-End.png",
+          "sha256": "ccb426a10e172f60337788e3f8325602ebfbedf6ebc611e16e90e22605e76258",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-source-dark-1280x800-125",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-125.png",
+      "sha256": "182e6b98eec817fe3d00278d945b9c159227a3ad61c723d5cfed655cc4863333",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 5,
+      "observation": "Five views per sheet. Plain Markdown source preserved with delimiters/tasks/fences visible, selection highlighted. Unwrapped long lines horizontally overflow. End scroll moves whole source viewport right, leaving other short lines offscreen and showing long-code tail/caret against largely empty background; not a blank render failure.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-125-selection.png",
+          "relative": "ordinary-source-dark-1280x800-125-selection.png",
+          "sha256": "b153520851b47254b51f6c765cc60d3d00d748fa5463237ed376e0fdda7f2bb4",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-125-table.png",
+          "relative": "ordinary-source-dark-1280x800-125-table.png",
+          "sha256": "8e4734dbb875bb614d68ab804f8d5e1709808f0cdd966b12dcc9eb212d03440d",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-125-emphasis.png",
+          "relative": "ordinary-source-dark-1280x800-125-emphasis.png",
+          "sha256": "8e4734dbb875bb614d68ab804f8d5e1709808f0cdd966b12dcc9eb212d03440d",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-125-task.png",
+          "relative": "ordinary-source-dark-1280x800-125-task.png",
+          "sha256": "1aa04ecc76d20d27971b90d2161a3de8fb788b24141be4168794dd33f43bc6fd",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-125-code-End.png",
+          "relative": "ordinary-source-dark-1280x800-125-code-End.png",
+          "sha256": "ff5354347ecde4eb75f465f865025c39efb5b0bb94fc776a92cb6a3ae4ec2564",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-source-dark-1280x800-150",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-150.png",
+      "sha256": "1d151f8b8ffce0102b1cc31c662089ce1a69bbd67881c3c3fad38d1b4e867a8e",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 5,
+      "observation": "Five views per sheet. Plain Markdown source preserved with delimiters/tasks/fences visible, selection highlighted. Unwrapped long lines horizontally overflow. End scroll moves whole source viewport right, leaving other short lines offscreen and showing long-code tail/caret against largely empty background; not a blank render failure.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-150-selection.png",
+          "relative": "ordinary-source-dark-1280x800-150-selection.png",
+          "sha256": "6082cb2add064f3b1f3a8ec1a1f8f9ff01862718bcab1c17b457fd5c83e0133e",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-150-table.png",
+          "relative": "ordinary-source-dark-1280x800-150-table.png",
+          "sha256": "f683c998932e25e84163588977856a34591e221ffa9def625e69fc48cacaee39",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-150-emphasis.png",
+          "relative": "ordinary-source-dark-1280x800-150-emphasis.png",
+          "sha256": "f683c998932e25e84163588977856a34591e221ffa9def625e69fc48cacaee39",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-150-task.png",
+          "relative": "ordinary-source-dark-1280x800-150-task.png",
+          "sha256": "3dc5581a9faa2c43246d254e7298e0ff3dddd044bdfa3c61bd8fe487713ee596",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-150-code-End.png",
+          "relative": "ordinary-source-dark-1280x800-150-code-End.png",
+          "sha256": "0ba6fe510518dfdff0cc3cf1f711c6160192cc2a9682daba974eed9cb9d8f309",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-source-dark-1280x800-200",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-200.png",
+      "sha256": "c242dec5dadbe026e314164cf029b83492ea1daec905491acc09bc01a80bc7a1",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 5,
+      "observation": "Five views per sheet. Plain Markdown source preserved with delimiters/tasks/fences visible, selection highlighted. Unwrapped long lines horizontally overflow. End scroll moves whole source viewport right, leaving other short lines offscreen and showing long-code tail/caret against largely empty background; not a blank render failure.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-200-selection.png",
+          "relative": "ordinary-source-dark-1280x800-200-selection.png",
+          "sha256": "ffcf8845e31d0f61e37e4e67f646313a52d6ea7522c222135ea97b2106103324",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-200-table.png",
+          "relative": "ordinary-source-dark-1280x800-200-table.png",
+          "sha256": "adebd58ee9a9283d991d9ac63ec93fcd5ad82ed6eb61f1ab57727223040040a1",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-200-emphasis.png",
+          "relative": "ordinary-source-dark-1280x800-200-emphasis.png",
+          "sha256": "adebd58ee9a9283d991d9ac63ec93fcd5ad82ed6eb61f1ab57727223040040a1",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-200-task.png",
+          "relative": "ordinary-source-dark-1280x800-200-task.png",
+          "sha256": "0ed9315eedad8510901530fb1d75557d9dba4785d6ef65d7ab9b1400795f91cd",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-200-code-End.png",
+          "relative": "ordinary-source-dark-1280x800-200-code-End.png",
+          "sha256": "eb28797b032b78bc62e74f600cf02eab271954686478fd3521b8ac52e79d17d1",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-source-dark-760x520-100",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-100.png",
+      "sha256": "cbe62f746ef011aba5b370ab3893af77abb481be70c29e59e821d455995b2266",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 5,
+      "observation": "Source stays unwrapped, so long table/emphasis/code and 200% paragraph clip at right until horizontal scrolling. At200 emphasis/task target rows show viewport-edge clipping, task second line below footer cutoff. End screenshot shows code suffix/caret and horizontal scrollbar far right, other short lines offscreen; individual narrow200 originals additionally reviewed.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-100-selection.png",
+          "relative": "ordinary-source-dark-760x520-100-selection.png",
+          "sha256": "7ce92e2dbca96b3ba761b8341d1588586dc6a8af23017d2deccbe09835264c87",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-100-table.png",
+          "relative": "ordinary-source-dark-760x520-100-table.png",
+          "sha256": "43811ef4600539b0049afdcfda3d0863b758bb18770192f3bded7ec6813c5e48",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-100-emphasis.png",
+          "relative": "ordinary-source-dark-760x520-100-emphasis.png",
+          "sha256": "43811ef4600539b0049afdcfda3d0863b758bb18770192f3bded7ec6813c5e48",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-100-task.png",
+          "relative": "ordinary-source-dark-760x520-100-task.png",
+          "sha256": "9b7856fcfbae96ce888ffe2341c36be27114e399ea54888b066e9aca0a937d99",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-100-code-End.png",
+          "relative": "ordinary-source-dark-760x520-100-code-End.png",
+          "sha256": "770349b70c66861dba99748e846a44848015aafa92d952dba128f8bf5e152b50",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-source-dark-760x520-125",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-125.png",
+      "sha256": "75b152f4333616ab1088de8f50780d65cfa62069a7ceb57aa9d718dcb749c773",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 5,
+      "observation": "Source stays unwrapped, so long table/emphasis/code and 200% paragraph clip at right until horizontal scrolling. At200 emphasis/task target rows show viewport-edge clipping, task second line below footer cutoff. End screenshot shows code suffix/caret and horizontal scrollbar far right, other short lines offscreen; individual narrow200 originals additionally reviewed.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-125-selection.png",
+          "relative": "ordinary-source-dark-760x520-125-selection.png",
+          "sha256": "5b59875d6be440a642168654f99fc27481fd39606a611497ba99344c6a650b06",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-125-table.png",
+          "relative": "ordinary-source-dark-760x520-125-table.png",
+          "sha256": "981c09ec9c57eed56218b6c78fcc8f6f735c4ccf8895a4120c20a4c2734fa0d3",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-125-emphasis.png",
+          "relative": "ordinary-source-dark-760x520-125-emphasis.png",
+          "sha256": "981c09ec9c57eed56218b6c78fcc8f6f735c4ccf8895a4120c20a4c2734fa0d3",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-125-task.png",
+          "relative": "ordinary-source-dark-760x520-125-task.png",
+          "sha256": "ac2f9e6021dfd3c332eaf35f93964ce4278a477f41d06db03be2ffb783eb1e97",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-125-code-End.png",
+          "relative": "ordinary-source-dark-760x520-125-code-End.png",
+          "sha256": "b0aceb7d13e091abe4f513bb12c46a6e695eabdfc7a55dc2c5e3776fb9f96dce",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-source-dark-760x520-150",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-150.png",
+      "sha256": "8a5d64e281af863afbd974595801455b2c64535c352ff174b6fab9538cd8abf3",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 5,
+      "observation": "Source stays unwrapped, so long table/emphasis/code and 200% paragraph clip at right until horizontal scrolling. At200 emphasis/task target rows show viewport-edge clipping, task second line below footer cutoff. End screenshot shows code suffix/caret and horizontal scrollbar far right, other short lines offscreen; individual narrow200 originals additionally reviewed.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-150-selection.png",
+          "relative": "ordinary-source-dark-760x520-150-selection.png",
+          "sha256": "a9fd8c540059181a398d6df187a255bfedf878a2d4e6563d24ff8b87907c3afd",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-150-table.png",
+          "relative": "ordinary-source-dark-760x520-150-table.png",
+          "sha256": "79311611601ba0c8e376caaf3efda665a181976a8ae19368867104f8b350fea5",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-150-emphasis.png",
+          "relative": "ordinary-source-dark-760x520-150-emphasis.png",
+          "sha256": "79311611601ba0c8e376caaf3efda665a181976a8ae19368867104f8b350fea5",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-150-task.png",
+          "relative": "ordinary-source-dark-760x520-150-task.png",
+          "sha256": "a99cbcdd25407e27d345abd9605b86c42e6455ca3ce39f4e3563444ce5c42801",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-150-code-End.png",
+          "relative": "ordinary-source-dark-760x520-150-code-End.png",
+          "sha256": "52021e1299198c9cd67b2286edcd87457e55775f5cdefc106b92ad653d8737e9",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-source-dark-760x520-200",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-200.png",
+      "sha256": "74a22b8e9b1b0e9b163d516bb4c7290a39161e3a76e34d3b60b12b0de1e52421",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 5,
+      "observation": "Source stays unwrapped, so long table/emphasis/code and 200% paragraph clip at right until horizontal scrolling. At200 emphasis/task target rows show viewport-edge clipping, task second line below footer cutoff. End screenshot shows code suffix/caret and horizontal scrollbar far right, other short lines offscreen; individual narrow200 originals additionally reviewed.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-200-selection.png",
+          "relative": "ordinary-source-dark-760x520-200-selection.png",
+          "sha256": "22fc087daf802ede1bcca1711baccb0a983880a0212ca8c8aab62585905565ec",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": true,
+          "reviewScope": "composite-and-individual-original"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-200-table.png",
+          "relative": "ordinary-source-dark-760x520-200-table.png",
+          "sha256": "6a36e1c86910836f2b2056997496feadb6cfed1e96f97039ca822ab10594758f",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": true,
+          "reviewScope": "composite-and-individual-original"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-200-emphasis.png",
+          "relative": "ordinary-source-dark-760x520-200-emphasis.png",
+          "sha256": "bb062951e0596e0ffaa93360d730f5de699021549b449dcb0fe94a009ff43aa1",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": true,
+          "reviewScope": "composite-and-individual-original"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-200-task.png",
+          "relative": "ordinary-source-dark-760x520-200-task.png",
+          "sha256": "37164d41664281fad15b8145772f22eec43d699dd4097294ca287d7a77ad881b",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": true,
+          "reviewScope": "composite-and-individual-original"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-200-code-End.png",
+          "relative": "ordinary-source-dark-760x520-200-code-End.png",
+          "sha256": "ee7a6824b25a85c3ee723fd98e6f2e46bad9565a977ca10dab8c2554699cc16d",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": true,
+          "reviewScope": "composite-and-individual-original"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-source-light-1280x800-100",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-100.png",
+      "sha256": "3a38cd4d11e25a13075beea09ad4694dfa38f6de68349bf36bb7aa55d532c1a8",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 5,
+      "observation": "All five views have coherent plain Markdown source, selection and literal markers. Code-End horizontal viewport is mostly white with visible long-line suffix and caret, consistent with whole-editor horizontal scroll; not a wholly blank view. 200% code at bottom partially clipped before End navigation.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-100-selection.png",
+          "relative": "ordinary-source-light-1280x800-100-selection.png",
+          "sha256": "3af5d5e33bdadb28f67dcaed8649e3ee966766a73d9165d234f9807bcc299ab5",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-100-table.png",
+          "relative": "ordinary-source-light-1280x800-100-table.png",
+          "sha256": "665b8d8c8dfeb790cc747386cf20598d265ef65b6273c086424db04493cb56e0",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-100-emphasis.png",
+          "relative": "ordinary-source-light-1280x800-100-emphasis.png",
+          "sha256": "665b8d8c8dfeb790cc747386cf20598d265ef65b6273c086424db04493cb56e0",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-100-task.png",
+          "relative": "ordinary-source-light-1280x800-100-task.png",
+          "sha256": "c1907e56bf7befd5f19a52e4b53c83535002e25037dc8c5c0b81ad403b70435b",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-100-code-End.png",
+          "relative": "ordinary-source-light-1280x800-100-code-End.png",
+          "sha256": "633cb3d0ce570a49af347c489768243ccde3436474902c6da91fac28058d2641",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-source-light-1280x800-125",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-125.png",
+      "sha256": "2241c16ff9969c45988894226240415cb617f14806e6c9f12c620940bc15b43d",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 5,
+      "observation": "All five views have coherent plain Markdown source, selection and literal markers. Code-End horizontal viewport is mostly white with visible long-line suffix and caret, consistent with whole-editor horizontal scroll; not a wholly blank view. 200% code at bottom partially clipped before End navigation.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-125-selection.png",
+          "relative": "ordinary-source-light-1280x800-125-selection.png",
+          "sha256": "25c397865caad60672584acbbc46269caa3b6a79b570040c993e43940cea717c",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-125-table.png",
+          "relative": "ordinary-source-light-1280x800-125-table.png",
+          "sha256": "2870bb798060eb69d34db272947f3e3828d9d53b710d4de5df4f880c46e32f63",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-125-emphasis.png",
+          "relative": "ordinary-source-light-1280x800-125-emphasis.png",
+          "sha256": "2870bb798060eb69d34db272947f3e3828d9d53b710d4de5df4f880c46e32f63",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-125-task.png",
+          "relative": "ordinary-source-light-1280x800-125-task.png",
+          "sha256": "2870bb798060eb69d34db272947f3e3828d9d53b710d4de5df4f880c46e32f63",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-125-code-End.png",
+          "relative": "ordinary-source-light-1280x800-125-code-End.png",
+          "sha256": "45e3e443559499b78a83266530cabaa882ae47112d125de7e5fb4aa6d30bfbd7",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-source-light-1280x800-150",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-150.png",
+      "sha256": "9b96f74e408f9545f19cc4aa4989d914a70e68000ca1d6d9cb8759e053a506b8",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 5,
+      "observation": "All five views have coherent plain Markdown source, selection and literal markers. Code-End horizontal viewport is mostly white with visible long-line suffix and caret, consistent with whole-editor horizontal scroll; not a wholly blank view. 200% code at bottom partially clipped before End navigation.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-150-selection.png",
+          "relative": "ordinary-source-light-1280x800-150-selection.png",
+          "sha256": "c0dac808805dc8623e0be05ecc8094bc98008174d387709a68134168a1bcfc69",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-150-table.png",
+          "relative": "ordinary-source-light-1280x800-150-table.png",
+          "sha256": "569674002530354c0f4ea120563ac437876d9607b7b00fd779cd3295c6a7c389",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-150-emphasis.png",
+          "relative": "ordinary-source-light-1280x800-150-emphasis.png",
+          "sha256": "569674002530354c0f4ea120563ac437876d9607b7b00fd779cd3295c6a7c389",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-150-task.png",
+          "relative": "ordinary-source-light-1280x800-150-task.png",
+          "sha256": "79e5ed4c2ef4a5e91cfa8ebc867d6556b3c20f70ad328eda355b3d839cd58a2a",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-150-code-End.png",
+          "relative": "ordinary-source-light-1280x800-150-code-End.png",
+          "sha256": "3893b09228a508a1137a52a87bbcadb580b5285299764a1395558fd60f816e4f",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-source-light-1280x800-200",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-200.png",
+      "sha256": "ca48ba07580b20649968c7ed1eec1fd28332008cd8f45aec3a52ef4547f46dae",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 5,
+      "observation": "All five views have coherent plain Markdown source, selection and literal markers. Code-End horizontal viewport is mostly white with visible long-line suffix and caret, consistent with whole-editor horizontal scroll; not a wholly blank view. 200% code at bottom partially clipped before End navigation.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-200-selection.png",
+          "relative": "ordinary-source-light-1280x800-200-selection.png",
+          "sha256": "e6df79197c86a7dc1d361f10e58081553ba73995015a6995911cd848b21c8d06",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-200-table.png",
+          "relative": "ordinary-source-light-1280x800-200-table.png",
+          "sha256": "7551450eb71f3dfc67f2a1b37eda9151069846ebfd17be066791bb96f280ba9a",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-200-emphasis.png",
+          "relative": "ordinary-source-light-1280x800-200-emphasis.png",
+          "sha256": "7551450eb71f3dfc67f2a1b37eda9151069846ebfd17be066791bb96f280ba9a",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-200-task.png",
+          "relative": "ordinary-source-light-1280x800-200-task.png",
+          "sha256": "7551450eb71f3dfc67f2a1b37eda9151069846ebfd17be066791bb96f280ba9a",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-200-code-End.png",
+          "relative": "ordinary-source-light-1280x800-200-code-End.png",
+          "sha256": "cdddbbe414d75de530ad1d4516a1d9ff9ea82d7401f47c1cd7d640d0efb0de31",
+          "width": 1280,
+          "height": 800,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-source-light-760x520-100",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-light-760x520-100.png",
+      "sha256": "19537b08ea0a7491cbfd63874a19e0066adf3001a470e6fe6e7b18ddaf19772b",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 5,
+      "observation": "Five states opened each. Literal Markdown readable at sheet scale, long source lines right-clipped as unwrapped. At200 title/path ellipsis and edge clipping occur, task unchecked row visible with second row at bottom cutoff. Code-End tail/caret visible in largely empty horizontally scrolled viewport.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-100-selection.png",
+          "relative": "ordinary-source-light-760x520-100-selection.png",
+          "sha256": "2e32a6ae4f47c88d297c8fe834b03dbbd06f638c074a1016cb705316b3b51827",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-100-table.png",
+          "relative": "ordinary-source-light-760x520-100-table.png",
+          "sha256": "f4aa1151e13e24091df34493f00032fdb6bd3cd6dc078101f9452b544e5150ea",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-100-emphasis.png",
+          "relative": "ordinary-source-light-760x520-100-emphasis.png",
+          "sha256": "f4aa1151e13e24091df34493f00032fdb6bd3cd6dc078101f9452b544e5150ea",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-100-task.png",
+          "relative": "ordinary-source-light-760x520-100-task.png",
+          "sha256": "f4aa1151e13e24091df34493f00032fdb6bd3cd6dc078101f9452b544e5150ea",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-100-code-End.png",
+          "relative": "ordinary-source-light-760x520-100-code-End.png",
+          "sha256": "dba5cace3ad0d5a1f8b9ae8bed968ec7f768eed9b295d30ac8ee43ac8518b3ff",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-source-light-760x520-125",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-light-760x520-125.png",
+      "sha256": "cc64e787fc97e0ae7d0742895486615a38b477a23494dbd07fdc8b6526f7506f",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 5,
+      "observation": "Five states opened each. Literal Markdown readable at sheet scale, long source lines right-clipped as unwrapped. At200 title/path ellipsis and edge clipping occur, task unchecked row visible with second row at bottom cutoff. Code-End tail/caret visible in largely empty horizontally scrolled viewport.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-125-selection.png",
+          "relative": "ordinary-source-light-760x520-125-selection.png",
+          "sha256": "5467a496af9b352964f9fef3930b933dc691291fd5669bd439f8664b1d8cbfae",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-125-table.png",
+          "relative": "ordinary-source-light-760x520-125-table.png",
+          "sha256": "11612253fe9d545bf009e5aa4df47d1878838a52331e92ef63277414ba6b2cb8",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-125-emphasis.png",
+          "relative": "ordinary-source-light-760x520-125-emphasis.png",
+          "sha256": "11612253fe9d545bf009e5aa4df47d1878838a52331e92ef63277414ba6b2cb8",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-125-task.png",
+          "relative": "ordinary-source-light-760x520-125-task.png",
+          "sha256": "98905f7a47ae234a51a196840726608c27ccfbf82dfff3d3fab977150e83ea8d",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-125-code-End.png",
+          "relative": "ordinary-source-light-760x520-125-code-End.png",
+          "sha256": "0a34bb75eb2fd7151fded314c95483ee933a20415b191fc41330baa5fe8ff2c6",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-source-light-760x520-150",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-light-760x520-150.png",
+      "sha256": "36bd558a217cc3396519e28d1a2970fdff9b4af19a5c865216def307f4a9a912",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 5,
+      "observation": "Five states opened each. Literal Markdown readable at sheet scale, long source lines right-clipped as unwrapped. At200 title/path ellipsis and edge clipping occur, task unchecked row visible with second row at bottom cutoff. Code-End tail/caret visible in largely empty horizontally scrolled viewport.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-150-selection.png",
+          "relative": "ordinary-source-light-760x520-150-selection.png",
+          "sha256": "c6c310de97a33c6cc372f5cd6675b5c2b50de8a27ac8759821b6f22369292c61",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-150-table.png",
+          "relative": "ordinary-source-light-760x520-150-table.png",
+          "sha256": "f308fba880fd74452c81164980baddb8c4835f737f4553a52ea4c3ccead4026c",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-150-emphasis.png",
+          "relative": "ordinary-source-light-760x520-150-emphasis.png",
+          "sha256": "f308fba880fd74452c81164980baddb8c4835f737f4553a52ea4c3ccead4026c",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-150-task.png",
+          "relative": "ordinary-source-light-760x520-150-task.png",
+          "sha256": "f308fba880fd74452c81164980baddb8c4835f737f4553a52ea4c3ccead4026c",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-150-code-End.png",
+          "relative": "ordinary-source-light-760x520-150-code-End.png",
+          "sha256": "54d2565e888d289d99af1789cf73d87c4152397e01ab58ee38ac0386d466e6a2",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": false,
+          "reviewScope": "composite-only"
+        }
+      ]
+    },
+    {
+      "cell": "ordinary-source-light-760x520-200",
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-light-760x520-200.png",
+      "sha256": "2a28d45d58df7327fc37aacad2697e5ef4d373cae110bd375d2dce6b3d7e7bb1",
+      "actuallyOpened": true,
+      "inspection": "contact-sheet-composite",
+      "allPanelsVisuallyReviewed": true,
+      "panelCount": 5,
+      "observation": "Five states opened each. Literal Markdown readable at sheet scale, long source lines right-clipped as unwrapped. At200 title/path ellipsis and edge clipping occur, task unchecked row visible with second row at bottom cutoff. Code-End tail/caret visible in largely empty horizontally scrolled viewport.",
+      "originals": [
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-200-selection.png",
+          "relative": "ordinary-source-light-760x520-200-selection.png",
+          "sha256": "96a8e959adc07e93a5d67d166fa5bf6fb973991b070bfabb0a12f6f982f11461",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": true,
+          "reviewScope": "composite-and-individual-original"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-200-table.png",
+          "relative": "ordinary-source-light-760x520-200-table.png",
+          "sha256": "f4216971dd678324a2505d739879f6e9af3419fb377cf8c9bf49d6dc6d651fe2",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": true,
+          "reviewScope": "composite-and-individual-original"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-200-emphasis.png",
+          "relative": "ordinary-source-light-760x520-200-emphasis.png",
+          "sha256": "9c88ebb7b761057a2385b3e92d51021c8bc1ddb23dc68c2ffdcf7ea530926324",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": true,
+          "reviewScope": "composite-and-individual-original"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-200-task.png",
+          "relative": "ordinary-source-light-760x520-200-task.png",
+          "sha256": "75580df060fe339808a43fd2abe55a98d8db01970627aa41ef9d4c32ab06d80e",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": true,
+          "reviewScope": "composite-and-individual-original"
+        },
+        {
+          "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-200-code-End.png",
+          "relative": "ordinary-source-light-760x520-200-code-End.png",
+          "sha256": "8dc076f381a0dc515e06274a873f20447ccb5b1a2af6e8825340453c80a82976",
+          "width": 760,
+          "height": 520,
+          "individuallyOpened": true,
+          "reviewScope": "composite-and-individual-original"
+        }
+      ]
+    }
+  ],
+  "individuallyOpenedOriginals": [
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-200-selection.png",
+      "filename": "ordinary-live-dark-760x520-200-selection.png",
+      "sha256": "2bb6fd5f0b33c66d97c8d344aa5cbd44291f1df9ea9649c0d0ae195204d7608a",
+      "width": 760,
+      "height": 520,
+      "actuallyOpened": true,
+      "inspection": "individual-original-detail",
+      "observation": "Selection highlight covers P7 plain; Chinese/é/emoji visible; paragraph wraps cleanly. Table bottom continues below fixed footer."
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-200-table.png",
+      "filename": "ordinary-live-dark-760x520-200-table.png",
+      "sha256": "46e6480dcbb3808907216daa5550365db49ad41b18fb36a6e8e8cf6daa0ed0f9",
+      "width": 760,
+      "height": 520,
+      "actuallyOpened": true,
+      "inspection": "individual-original-detail",
+      "observation": "Table L/C/R columns remain distinct, long identifier wraps inside left cell; lower rows below footer and first paragraph clipped at top."
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-200-emphasis.png",
+      "filename": "ordinary-live-dark-760x520-200-emphasis.png",
+      "sha256": "783c7ab6c306a79d84c4af05c80ab6dc5a65ad8c42f1c5be9150562f81e343c6",
+      "width": 760,
+      "height": 520,
+      "actuallyOpened": true,
+      "inspection": "individual-original-detail",
+      "observation": "Bold/italic distinctions visible; bottom italic continuation clipped by viewport/footer edge. Table long identifier wraps cleanly without adjacent-column overlap."
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-200-task.png",
+      "filename": "ordinary-live-dark-760x520-200-task.png",
+      "sha256": "cb28d2e5316e3cf543af6d2452b1b990b74f8bce2f6cc63a2cca3d124ed7775d",
+      "width": 760,
+      "height": 520,
+      "actuallyOpened": true,
+      "inspection": "individual-original-detail",
+      "observation": "Unchecked first task wholly visible; second checked task partly cut at footer. Chinese/English emphasis on two lines is readable; no overlap."
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-200-code-End.png",
+      "filename": "ordinary-live-dark-760x520-200-code-End.png",
+      "sha256": "5a05bf7fb701dea1e6c09f112a5f4066624017c246bb2e90a045556d038e8632",
+      "width": 760,
+      "height": 520,
+      "actuallyOpened": true,
+      "inspection": "individual-original-detail",
+      "observation": "Both task labels and checkbox states visible; code suffix including final punctuation and green caret visible at right, left clipped by local horizontal scrolling. No blank block; fence markers visible."
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-200-task-checked.png",
+      "filename": "ordinary-live-dark-760x520-200-task-checked.png",
+      "sha256": "9b502a00f74515c3962c41417b87fc9204542b6a2d9ed94206a5eed4be3215a4",
+      "width": 760,
+      "height": 520,
+      "actuallyOpened": true,
+      "inspection": "individual-original-detail",
+      "observation": "First task changed to mint checked box, label unchanged; second task still partly clipped at bottom. Saved footer visible, screenshot alone does not prove disk durability."
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-200-selection.png",
+      "filename": "ordinary-live-light-760x520-200-selection.png",
+      "sha256": "2c14f07ab59b80159f15d3afbc05491ddb4184b3739f87a31185d3bc354fbf2b",
+      "width": 760,
+      "height": 520,
+      "actuallyOpened": true,
+      "inspection": "individual-original-detail",
+      "observation": "Selection highlight readable on white, Unicode/emoji intact visually; paragraph wraps cleanly and lower table continues below footer."
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-200-table.png",
+      "filename": "ordinary-live-light-760x520-200-table.png",
+      "sha256": "6d79763ec21c1287034f5ab378afc7dd3a7ce74d9f71664ec616974f1409f65b",
+      "width": 760,
+      "height": 520,
+      "actuallyOpened": true,
+      "inspection": "individual-original-detail",
+      "observation": "Three table columns readable, identifier wraps within left column; light borders visible but pale. First paragraph/top and lower table are viewport-clipped."
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-200-emphasis.png",
+      "filename": "ordinary-live-light-760x520-200-emphasis.png",
+      "sha256": "556b0151416af196184276fa93aa3d17c08fdeac72ced2b4346c99a300076425",
+      "width": 760,
+      "height": 520,
+      "actuallyOpened": true,
+      "inspection": "individual-original-detail",
+      "observation": "Bold/italic weights distinguishable, plain tail regular; continuation line partly clipped at bottom. Table content wraps within left column."
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-200-task.png",
+      "filename": "ordinary-live-light-760x520-200-task.png",
+      "sha256": "dadd6228631ebaf349f9266e8047ea674f320ab56b2c6df01588f6ebe7e09dfd",
+      "width": 760,
+      "height": 520,
+      "actuallyOpened": true,
+      "inspection": "individual-original-detail",
+      "observation": "Unchecked border pale but visible on white; first task label visible, second task partly clipped at footer. Emphasis wraps cleanly in two lines."
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-200-code-End.png",
+      "filename": "ordinary-live-light-760x520-200-code-End.png",
+      "sha256": "b9787ab8b836e30cb751c6a0ca4c16fdbcf5b0dde908ed5d5dce77a53dbc7bee",
+      "width": 760,
+      "height": 520,
+      "actuallyOpened": true,
+      "inspection": "individual-original-detail",
+      "observation": "Both task rows fully visible; code End suffix/final punctuation/caret visible and left edge horizontally clipped; horizontal scroll indicator overlaps lower code baseline area but does not obscure the tail's recognizability."
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-200-task-checked.png",
+      "filename": "ordinary-live-light-760x520-200-task-checked.png",
+      "sha256": "caa4dd235aba746c85430ab864224ac98bd435ded20bdda368d7d3d27dfa31cd",
+      "width": 760,
+      "height": 520,
+      "actuallyOpened": true,
+      "inspection": "individual-original-detail",
+      "observation": "First checkbox visibly checked with unchanged label; second row partly clipped at bottom. Saved footer readable; no blank viewport."
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-200-selection.png",
+      "filename": "ordinary-source-dark-760x520-200-selection.png",
+      "sha256": "22fc087daf802ede1bcca1711baccb0a983880a0212ca8c8aab62585905565ec",
+      "width": 760,
+      "height": 520,
+      "actuallyOpened": true,
+      "inspection": "individual-original-detail",
+      "observation": "Selection highlight and Unicode/emoji visually intact; source paragraph/table remain single unwrapped lines and right-clipped. Bottom next source line partly outside viewport."
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-200-table.png",
+      "filename": "ordinary-source-dark-760x520-200-table.png",
+      "sha256": "6a36e1c86910836f2b2056997496feadb6cfed1e96f97039ca822ab10594758f",
+      "width": 760,
+      "height": 520,
+      "actuallyOpened": true,
+      "inspection": "individual-original-detail",
+      "observation": "Caret at initial paragraph; literal table header/alignment/data line visible, data tail right-clipped. This is Source text, not rendered grid."
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-200-emphasis.png",
+      "filename": "ordinary-source-dark-760x520-200-emphasis.png",
+      "sha256": "bb062951e0596e0ffaa93360d730f5de699021549b449dcb0fe94a009ff43aa1",
+      "width": 760,
+      "height": 520,
+      "actuallyOpened": true,
+      "inspection": "individual-original-detail",
+      "observation": "Literal emphasis markers/plain text visible and right-clipped, not rich styles; first paragraph clipped at top. Horizontal scrollbar present."
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-200-task.png",
+      "filename": "ordinary-source-dark-760x520-200-task.png",
+      "sha256": "37164d41664281fad15b8145772f22eec43d699dd4097294ca287d7a77ad881b",
+      "width": 760,
+      "height": 520,
+      "actuallyOpened": true,
+      "inspection": "individual-original-detail",
+      "observation": "Literal unchecked task complete and second source task clipped at bottom. Long table/emphasis right-clipped; header/path/footer visible."
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-200-code-End.png",
+      "filename": "ordinary-source-dark-760x520-200-code-End.png",
+      "sha256": "ee7a6824b25a85c3ee723fd98e6f2e46bad9565a977ca10dab8c2554699cc16d",
+      "width": 760,
+      "height": 520,
+      "actuallyOpened": true,
+      "inspection": "individual-original-detail",
+      "observation": "Source End shows final code suffix and green caret near right edge; whole viewport horizontally scrolled far right (scrollbar near right), short lines absent from current horizontal window. No entirely blank view."
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-200-selection.png",
+      "filename": "ordinary-source-light-760x520-200-selection.png",
+      "sha256": "96a8e959adc07e93a5d67d166fa5bf6fb973991b070bfabb0a12f6f982f11461",
+      "width": 760,
+      "height": 520,
+      "actuallyOpened": true,
+      "inspection": "individual-original-detail",
+      "observation": "Selection highlight visible; unwrapped paragraph and table source clip at right; Unicode/emoji readable. Next line partly under viewport bottom."
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-200-table.png",
+      "filename": "ordinary-source-light-760x520-200-table.png",
+      "sha256": "f4216971dd678324a2505d739879f6e9af3419fb377cf8c9bf49d6dc6d651fe2",
+      "width": 760,
+      "height": 520,
+      "actuallyOpened": true,
+      "inspection": "individual-original-detail",
+      "observation": "Literal source table header/alignment/data visible, data line clipped to right. Caret at paragraph start; no rendered table expected."
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-200-emphasis.png",
+      "filename": "ordinary-source-light-760x520-200-emphasis.png",
+      "sha256": "9c88ebb7b761057a2385b3e92d51021c8bc1ddb23dc68c2ffdcf7ea530926324",
+      "width": 760,
+      "height": 520,
+      "actuallyOpened": true,
+      "inspection": "individual-original-detail",
+      "observation": "Literal emphasis/source markers clear, long line right-clipped; paragraph top clipped by scroll. Footer and scrollbar remain visible."
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-200-task.png",
+      "filename": "ordinary-source-light-760x520-200-task.png",
+      "sha256": "75580df060fe339808a43fd2abe55a98d8db01970627aa41ef9d4c32ab06d80e",
+      "width": 760,
+      "height": 520,
+      "actuallyOpened": true,
+      "inspection": "individual-original-detail",
+      "observation": "Unchecked literal task line fully visible; second task cropped at footer. Long source table/emphasis extends right; no overlap of visible source lines."
+    },
+    {
+      "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-200-code-End.png",
+      "filename": "ordinary-source-light-760x520-200-code-End.png",
+      "sha256": "8dc076f381a0dc515e06274a873f20447ccb5b1a2af6e8825340453c80a82976",
+      "width": 760,
+      "height": 520,
+      "actuallyOpened": true,
+      "inspection": "individual-original-detail",
+      "observation": "Source End shows suffix/final punctuation and caret near right edge; far-right scrollbar and mostly empty horizontal region as short lines are offscreen. This is not all-white content."
+    }
+  ],
+  "hashVerification": {
+    "status": "PASS",
+    "checkedImageFiles": 54,
+    "checkedBytes": 5895583,
+    "allExpectedSha256Match": true,
+    "checks": [
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-100.png",
+        "bytes": 126031,
+        "sha256": "9b0e9657ecf400e62571d4c419a452260cbd0ef7b2a55c97e15e11d8db60431b",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-125.png",
+        "bytes": 134126,
+        "sha256": "2503ddf062bf9095895899290685ab25476f1230ad66cbd348f4510b0bba748d",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-150.png",
+        "bytes": 142219,
+        "sha256": "7ddb98f124c44a8caee3dd8195063bc73786e9491f8928eda72993290232daae",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-dark-1280x800-200.png",
+        "bytes": 159768,
+        "sha256": "1fd8fdfc2cce1d3b63da3b490b00f84c928b39382cb21dac654146bd7531c04f",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-100.png",
+        "bytes": 163811,
+        "sha256": "f8928e826f6d33e457a2a1629d82bb06d828f3055c6dabb8ffabdb86f62f32b8",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-125.png",
+        "bytes": 176465,
+        "sha256": "24e09af329835a50d94e18abec351c2f72009f801bfacd206a55ec62e2288e2e",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-150.png",
+        "bytes": 216997,
+        "sha256": "a702e842df1829fc928af26642b616883f9a648b81d59a1d1ed296a36388b43f",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-200.png",
+        "bytes": 239217,
+        "sha256": "b1c227b57dbb0c57a0f7d1eeaad2e99c0cfc388c4bceae22a8801e4378b84192",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-100.png",
+        "bytes": 116183,
+        "sha256": "2e81bd01304d920228eb49af30c771a5290f18b201f7e3f268901e3d6ba833b1",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-125.png",
+        "bytes": 123749,
+        "sha256": "818da00770e04412567f33db3855b9215182ac8c66b2b777eebb94c5b8d33c0e",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-150.png",
+        "bytes": 134478,
+        "sha256": "168ff99da395214bd033b2f73e5c3a464f620923db90848c0a6e41d567dff0a8",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-light-1280x800-200.png",
+        "bytes": 144552,
+        "sha256": "a081d5aa191be6d95f825a910c3aaf709e0d5c1d18be1549b820f5fa3630c232",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-light-760x520-100.png",
+        "bytes": 153051,
+        "sha256": "cec4a32ed3f1d5416fbf24ee43f22d642aec7de50a0d12594d0b74742243e91a",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-light-760x520-125.png",
+        "bytes": 159640,
+        "sha256": "7dd5a226710dc2a91c8bf9a1e6b96533cd207ee09fbbcb7d1f32a1609acc5316",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-light-760x520-150.png",
+        "bytes": 195969,
+        "sha256": "93176bf786e61ea885d08247cce39f8bdba89f7e84e72e01a83d8351b738396b",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-live-light-760x520-200.png",
+        "bytes": 214728,
+        "sha256": "f11a263cd66c83860c109175dda130ad41a3fbbad45dd59197f4e6edda713fc0",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-100.png",
+        "bytes": 103630,
+        "sha256": "db477d8c6b0f0ff0c30df86d508a8ab9cec1ed80f327025f842fa47c9e213411",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-125.png",
+        "bytes": 117961,
+        "sha256": "182e6b98eec817fe3d00278d945b9c159227a3ad61c723d5cfed655cc4863333",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-150.png",
+        "bytes": 128300,
+        "sha256": "1d151f8b8ffce0102b1cc31c662089ce1a69bbd67881c3c3fad38d1b4e867a8e",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-dark-1280x800-200.png",
+        "bytes": 149492,
+        "sha256": "c242dec5dadbe026e314164cf029b83492ea1daec905491acc09bc01a80bc7a1",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-100.png",
+        "bytes": 142120,
+        "sha256": "cbe62f746ef011aba5b370ab3893af77abb481be70c29e59e821d455995b2266",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-125.png",
+        "bytes": 162827,
+        "sha256": "75b152f4333616ab1088de8f50780d65cfa62069a7ceb57aa9d718dcb749c773",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-150.png",
+        "bytes": 160499,
+        "sha256": "8a5d64e281af863afbd974595801455b2c64535c352ff174b6fab9538cd8abf3",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-200.png",
+        "bytes": 177629,
+        "sha256": "74a22b8e9b1b0e9b163d516bb4c7290a39161e3a76e34d3b60b12b0de1e52421",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-100.png",
+        "bytes": 90218,
+        "sha256": "3a38cd4d11e25a13075beea09ad4694dfa38f6de68349bf36bb7aa55d532c1a8",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-125.png",
+        "bytes": 103691,
+        "sha256": "2241c16ff9969c45988894226240415cb617f14806e6c9f12c620940bc15b43d",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-150.png",
+        "bytes": 115029,
+        "sha256": "9b96f74e408f9545f19cc4aa4989d914a70e68000ca1d6d9cb8759e053a506b8",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-light-1280x800-200.png",
+        "bytes": 130811,
+        "sha256": "ca48ba07580b20649968c7ed1eec1fd28332008cd8f45aec3a52ef4547f46dae",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-light-760x520-100.png",
+        "bytes": 125695,
+        "sha256": "19537b08ea0a7491cbfd63874a19e0066adf3001a470e6fe6e7b18ddaf19772b",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-light-760x520-125.png",
+        "bytes": 145535,
+        "sha256": "cc64e787fc97e0ae7d0742895486615a38b477a23494dbd07fdc8b6526f7506f",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-light-760x520-150.png",
+        "bytes": 144286,
+        "sha256": "36bd558a217cc3396519e28d1a2970fdff9b4af19a5c865216def307f4a9a912",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/reviews/p7-candidate-03-matrix-02/ordinary-source-light-760x520-200.png",
+        "bytes": 156473,
+        "sha256": "2a28d45d58df7327fc37aacad2697e5ef4d373cae110bd375d2dce6b3d7e7bb1",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-200-selection.png",
+        "bytes": 48261,
+        "sha256": "2bb6fd5f0b33c66d97c8d344aa5cbd44291f1df9ea9649c0d0ae195204d7608a",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-200-table.png",
+        "bytes": 45602,
+        "sha256": "46e6480dcbb3808907216daa5550365db49ad41b18fb36a6e8e8cf6daa0ed0f9",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-200-emphasis.png",
+        "bytes": 58630,
+        "sha256": "783c7ab6c306a79d84c4af05c80ab6dc5a65ad8c42f1c5be9150562f81e343c6",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-200-task.png",
+        "bytes": 57547,
+        "sha256": "cb28d2e5316e3cf543af6d2452b1b990b74f8bce2f6cc63a2cca3d124ed7775d",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-200-code-End.png",
+        "bytes": 64169,
+        "sha256": "5a05bf7fb701dea1e6c09f112a5f4066624017c246bb2e90a045556d038e8632",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-dark-760x520-200-task-checked.png",
+        "bytes": 57055,
+        "sha256": "9b502a00f74515c3962c41417b87fc9204542b6a2d9ed94206a5eed4be3215a4",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-200-selection.png",
+        "bytes": 47610,
+        "sha256": "2c14f07ab59b80159f15d3afbc05491ddb4184b3739f87a31185d3bc354fbf2b",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-200-table.png",
+        "bytes": 44980,
+        "sha256": "6d79763ec21c1287034f5ab378afc7dd3a7ce74d9f71664ec616974f1409f65b",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-200-emphasis.png",
+        "bytes": 57796,
+        "sha256": "556b0151416af196184276fa93aa3d17c08fdeac72ced2b4346c99a300076425",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-200-task.png",
+        "bytes": 56676,
+        "sha256": "dadd6228631ebaf349f9266e8047ea674f320ab56b2c6df01588f6ebe7e09dfd",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-200-code-End.png",
+        "bytes": 63548,
+        "sha256": "b9787ab8b836e30cb751c6a0ca4c16fdbcf5b0dde908ed5d5dce77a53dbc7bee",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-live-light-760x520-200-task-checked.png",
+        "bytes": 56122,
+        "sha256": "caa4dd235aba746c85430ab864224ac98bd435ded20bdda368d7d3d27dfa31cd",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-200-selection.png",
+        "bytes": 51955,
+        "sha256": "22fc087daf802ede1bcca1711baccb0a983880a0212ca8c8aab62585905565ec",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-200-table.png",
+        "bytes": 51100,
+        "sha256": "6a36e1c86910836f2b2056997496feadb6cfed1e96f97039ca822ab10594758f",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-200-emphasis.png",
+        "bytes": 51953,
+        "sha256": "bb062951e0596e0ffaa93360d730f5de699021549b449dcb0fe94a009ff43aa1",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-200-task.png",
+        "bytes": 54136,
+        "sha256": "37164d41664281fad15b8145772f22eec43d699dd4097294ca287d7a77ad881b",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-dark-760x520-200-code-End.png",
+        "bytes": 33995,
+        "sha256": "ee7a6824b25a85c3ee723fd98e6f2e46bad9565a977ca10dab8c2554699cc16d",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-200-selection.png",
+        "bytes": 51219,
+        "sha256": "96a8e959adc07e93a5d67d166fa5bf6fb973991b070bfabb0a12f6f982f11461",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-200-table.png",
+        "bytes": 50231,
+        "sha256": "f4216971dd678324a2505d739879f6e9af3419fb377cf8c9bf49d6dc6d651fe2",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-200-emphasis.png",
+        "bytes": 51110,
+        "sha256": "9c88ebb7b761057a2385b3e92d51021c8bc1ddb23dc68c2ffdcf7ea530926324",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-200-task.png",
+        "bytes": 53326,
+        "sha256": "75580df060fe339808a43fd2abe55a98d8db01970627aa41ef9d4c32ab06d80e",
+        "match": true
+      },
+      {
+        "path": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-02/ordinary-source-light-760x520-200-code-End.png",
+        "bytes": 33382,
+        "sha256": "8dc076f381a0dc515e06274a873f20447ccb5b1a2af6e8825340453c80a82976",
+        "match": true
+      }
+    ]
+  },
+  "completedAtUtc": "2026-10-19T12:46:47.904449+00:00"
+}

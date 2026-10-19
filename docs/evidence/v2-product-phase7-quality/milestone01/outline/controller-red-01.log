@@ -1,0 +1,38 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/controlled-tree-ui.test.ts (5 tests | 1 failed) 73ms
+   × controlled tree keyboard > gives separate outline navigation and fold controls one tree stop and distinct actions 33ms
+     → expected false to be true // Object.is equality
+   ✓ controlled tree keyboard > uses one tab stop and navigates visible rows, parent and first child without running commands 15ms
+   ✓ controlled tree keyboard > activates only expansion or collapse and passes the actual keyboard event 5ms
+   ✓ controlled tree keyboard > keeps the stable full-path row after refresh and the nearest row after removal 12ms
+   ✓ controlled tree keyboard > leaves legacy wrapper trees and modified shortcuts unchanged 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/controlled-tree-ui.test.ts > controlled tree keyboard > gives separate outline navigation and fold controls one tree stop and distinct actions
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ apps/desktop/src/controlled-tree-ui.test.ts:52:49
+     50|     }
+     51|     nav[0]!.focus()
+     52|     expect(press('ArrowDown').defaultPrevented).toBe(true)
+       |                                                 ^
+     53|     expect(document.activeElement).toBe(nav[1])
+     54|     expect(document.querySelectorAll('[role="treeitem"]')).toHaveLengt…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  10:30:51
+   Duration  1.39s (transform 100ms, setup 0ms, collect 67ms, tests 73ms, environment 495ms, prepare 124ms)
+

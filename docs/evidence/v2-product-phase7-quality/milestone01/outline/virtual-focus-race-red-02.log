@@ -1,0 +1,99 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/desktop-plugin-ui.test.ts (38 tests | 2 failed | 36 skipped) 224ms
+   ↓ DesktopPluginUiController > restores a virtual keyboard target named by text without requiring aria-label
+   ↓ DesktopPluginUiController > requests bounded virtual tree ranges for End, Home and arrow boundary focus
+   × DesktopPluginUiController > does not let late virtual keyboard ranges steal focus after Tab or document change 176ms
+     → expected 'Heading 17840' to be 'Heading 0' // Object.is equality
+   × DesktopPluginUiController > discards a pending End range when focus moves to another row of the same tree 46ms
+     → expected <button …(7)></button> to be <button …(7)></button> // Object.is equality
+   ↓ DesktopPluginUiController > keeps the latest virtual keyboard intent and discards ranges after teardown
+   ↓ DesktopPluginUiController > uses visible ranks rather than source ordinals after folding a virtual tree
+   ↓ DesktopPluginUiController > holds modal focus while a controlled save action is temporarily disabled
+   ↓ DesktopPluginUiController > combines embedding slot visibility with panel collapse without affecting other slots
+   ↓ DesktopPluginUiController > traps modal Tab using only the current tree tab stop
+   ↓ DesktopPluginUiController > does not treat scripted clicks or forged action details as trusted user gestures
+   ↓ DesktopPluginUiController > keeps a pressed controlled button until click and coalesces progress renders
+   ↓ DesktopPluginUiController > mounts controlled slots and recreates document-scoped views on document changes
+   ↓ DesktopPluginUiController > opens and closes modal views repeatedly and bridges declared commands
+   ↓ DesktopPluginUiController > takes modal focus before pending mount output, so immediate Escape closes and restores the opener
+   ↓ DesktopPluginUiController > does not take focus back from a host confirmation when asynchronous opening completes
+   ↓ DesktopPluginUiController > restores an available card when unloading removes the opener and ignores late output
+   ↓ DesktopPluginUiController > resumes focus after a pending output removes controls, with final Action A
+   ↓ DesktopPluginUiController > resumes focus after a pending output removes controls, with final Action B
+   ↓ DesktopPluginUiController > does not resume a removed action after the user focuses close
+   ↓ DesktopPluginUiController > does not resume a removed action after the user focuses confirmation
+   ↓ DesktopPluginUiController > traps native WebKit Shift+Tab with Unidentified key and Tab code at the close button
+   ↓ DesktopPluginUiController > rerenders only the requested plugin view when invalidated
+   ↓ DesktopPluginUiController > passes fresh viewport state when an editor scroll update rerenders mounted UI
+   ↓ DesktopPluginUiController > skips editor viewport updates for views that opt out
+   ↓ DesktopPluginUiController > collapses sidebar panels to the bottom and exposes resizers only between expanded panels
+   ↓ DesktopPluginUiController > reports actual visibility on collapse and expand, independent of focus lifecycle
+   ↓ DesktopPluginUiController > resizes adjacent expanded sidebar panels as a bounded pair
+   ↓ DesktopPluginUiController > keeps identical controlled output mounted and preserves internal scroll on changes
+   ↓ DesktopPluginUiController > decorates a controlled host icon without relying on plugin-specific classes
+   ↓ DesktopPluginUiController > projects a virtual outline slice into the full scroll height and follows its active item
+   ↓ DesktopPluginUiController > requests a new buffered range when the outline is scrolled outside its rendered slice
+   ↓ DesktopPluginUiController > does not rerender while outline scrolling remains inside the current overscan buffer
+   ↓ DesktopPluginUiController > keeps the virtual outline viewport stable while background scanning extends the total
+   ↓ DesktopPluginUiController > requests one adjacent buffer only after a real user wheel gesture reaches an edge
+   ↓ DesktopPluginUiController > requests the previous buffer only when the list reaches the exact top edge
+   ↓ DesktopPluginUiController > does not request an adjacent buffer for a small scroll far from the cache edge
+   ↓ DesktopPluginUiController > compensates scroll position once when headings are prepended
+   ↓ DesktopPluginUiController > coalesces viewport updates without running concurrent plugin renders
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-ui.test.ts > DesktopPluginUiController > does not let late virtual keyboard ranges steal focus after Tab or document change
+AssertionError: expected 'Heading 17840' to be 'Heading 0' // Object.is equality
+
+Expected: "Heading 0"
+Received: "Heading 17840"
+
+ ❯ apps/desktop/src/desktop-plugin-ui.test.ts:109:49
+    107|     resolve(virtualTreeOutput(17840, 18000, 18000))
+    108|     await new Promise((resolve) => setTimeout(resolve, 0))
+    109|     expect(document.activeElement?.textContent).toBe('Heading 0')
+       |                                                 ^
+    110|     pending = false
+    111|     await controller.dispose()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-ui.test.ts > DesktopPluginUiController > discards a pending End range when focus moves to another row of the same tree
+AssertionError: expected <button …(7)></button> to be <button …(7)></button> // Object.is equality
+
+- Expected
++ Received
+
+  <button
+-   aria-label="Heading 1"
++   aria-label="Heading 17841"
+    aria-level="1"
+    class="plugin-list-item"
+    data-plugin-command="example.run"
+    role="treeitem"
+    style="--plugin-tree-depth: 0;"
+    tabindex="0"
+  >
+-   Heading 1
++   Heading 17841
+  </button>
+
+ ❯ apps/desktop/src/desktop-plugin-ui.test.ts:132:36
+    130|     pending[0]!(virtualTreeOutput(17840, 18000, 18000))
+    131|     await new Promise((resolve) => setTimeout(resolve, 0))
+    132|     expect(document.activeElement).toBe(items[1])
+       |                                    ^
+    133|     expect(document.querySelector('[data-virtual-list]')?.getAttribute…
+    134|     for (const resolve of pending.slice(1)) resolve(virtualTreeOutput(…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 36 skipped (38)
+   Start at  10:50:20
+   Duration  2.73s (transform 1.02s, setup 0ms, collect 1.37s, tests 224ms, environment 554ms, prepare 113ms)
+

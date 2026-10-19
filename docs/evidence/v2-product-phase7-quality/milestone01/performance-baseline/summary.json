@@ -1,0 +1,1191 @@
+{
+  "generatedUtc": "2026-10-19T10:39:13.000328+00:00",
+  "binarySha256": "f15c476a4f6e7b5f254e325692d57e9bfaa798580441dd3554f6c4fe1e9d802e",
+  "sourceCommit": "fa530b399a5ebbd020f9bfa7ca039378604c8282",
+  "p95Definition": "nearest-rank ceil(0.95*n); one cold/search/save/open sample is not a distribution estimate",
+  "timingDefinition": "trusted XTest keydown to observed cursor/DOM then two rAF callbacks; not physical screen presentation",
+  "runs": [
+    {
+      "run": "p7-baseline-ordinary-source-01",
+      "route": "ordinary EditorView",
+      "routeEvidence": {
+        "observedSourceDocumentView": false,
+        "fixtureBytes": 65555,
+        "policy": "Frozen desktop-open-policy: performance at 128KiB, native-large-file threshold 256KiB. No direct native handle/private state observation; native classification inferred from observed backend + frozen open policy and actual file size."
+      },
+      "metadata": {
+        "bytes": 65555,
+        "sha256": "48fd74467e6c4ed7851f63a16c8d2be89db36f986b656db05ca07368ee3fa0ae",
+        "lines": 1026,
+        "lineBytes": 64,
+        "utf16Length": 65547,
+        "mode": "source",
+        "cycles": 20,
+        "coldDefinition": "first distant target in a fresh process/view; OS page cache not flushed; fixture was just written",
+        "probeVersion": 2,
+        "presentation": "keydown to exact visible cursor/DOM, then two requestAnimationFrame callbacks; no physical display claim"
+      },
+      "complete": true,
+      "samples": 143,
+      "operations": {
+        "jump": {
+          "n": 80,
+          "p95Ms": 42,
+          "maxMs": 50,
+          "minMs": 19
+        },
+        "input": {
+          "n": 20,
+          "p95Ms": 125,
+          "maxMs": 195.0000000000009,
+          "minMs": 71.00000000000364
+        },
+        "delete": {
+          "n": 20,
+          "p95Ms": 130,
+          "maxMs": 185,
+          "minMs": 69
+        },
+        "search": {
+          "n": 1,
+          "p95Ms": 233,
+          "maxMs": 233,
+          "minMs": 233
+        },
+        "jump:first-target": {
+          "n": 1,
+          "p95Ms": 44,
+          "maxMs": 44,
+          "minMs": 44
+        },
+        "jump:unchanged-warm": {
+          "n": 41,
+          "p95Ms": 42,
+          "maxMs": 49,
+          "minMs": 19
+        },
+        "jump:after-edit": {
+          "n": 38,
+          "p95Ms": 39,
+          "maxMs": 50,
+          "minMs": 20
+        }
+      },
+      "openMs": 3351.42417,
+      "saveMs": 205.03010899999936,
+      "violations": [],
+      "actualFileSha256": "48fd74467e6c4ed7851f63a16c8d2be89db36f986b656db05ca07368ee3fa0ae",
+      "sampleSha256": "e1e92596f3037c52c4dbc8480d81c73114a17ffc1aaac89d8559e95ec2b45505",
+      "maxTimerGapMs": 584,
+      "workerErrors": [],
+      "unchangedFile": true,
+      "execution": {
+        "run": "p7-baseline-ordinary-source-01",
+        "command": [
+          "bash",
+          "-c",
+          "source /workspace/milkup-p7-quality-evidence/milestone01/native-ui/runtime/run-env.sh p7-baseline-ordinary-source-01; export MILKUP_LATENCY_BYTES=65536 MILKUP_LATENCY_LINE_BYTES=64 MILKUP_LATENCY_MODE=source MILKUP_LATENCY_CYCLES=20; exec node tests/native/tauri-production-latency.mjs"
+        ],
+        "startedUtc": "2026-10-19T10:36:50.122765+00:00",
+        "sourceBefore": {
+          "tests/native/tauri-production-latency.mjs": "e2d51ac3e39a8a161a9918484d6b0046a0989623f7e54d58972e25b19db55886",
+          "tests/helpers/native-production.mjs": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0",
+          "tests/helpers/native-process-memory.mjs": "5a686a8727933f0a03a31c264f43f1005a6f67733bf4ebba8dc8a17e340d5d80",
+          "tests/helpers/native-startup.mjs": "d698104c7838e7d51a1ff64709c29f1660da8e3b9d1ca72fbf28c8370cc4d1f1"
+        },
+        "exitCode": 0,
+        "finishedUtc": "2026-10-19T10:37:30.331967+00:00",
+        "sourceAfter": {
+          "tests/native/tauri-production-latency.mjs": "e2d51ac3e39a8a161a9918484d6b0046a0989623f7e54d58972e25b19db55886",
+          "tests/helpers/native-production.mjs": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0",
+          "tests/helpers/native-process-memory.mjs": "5a686a8727933f0a03a31c264f43f1005a6f67733bf4ebba8dc8a17e340d5d80",
+          "tests/helpers/native-startup.mjs": "d698104c7838e7d51a1ff64709c29f1660da8e3b9d1ca72fbf28c8370cc4d1f1"
+        },
+        "complete": true,
+        "samples": 143,
+        "violations": []
+      }
+    },
+    {
+      "run": "p7-baseline-ordinary-live-01",
+      "route": "ordinary EditorView",
+      "routeEvidence": {
+        "observedSourceDocumentView": false,
+        "fixtureBytes": 65555,
+        "policy": "Frozen desktop-open-policy: performance at 128KiB, native-large-file threshold 256KiB. No direct native handle/private state observation; native classification inferred from observed backend + frozen open policy and actual file size."
+      },
+      "metadata": {
+        "bytes": 65555,
+        "sha256": "48fd74467e6c4ed7851f63a16c8d2be89db36f986b656db05ca07368ee3fa0ae",
+        "lines": 1026,
+        "lineBytes": 64,
+        "utf16Length": 65547,
+        "mode": "live",
+        "cycles": 20,
+        "coldDefinition": "first distant target in a fresh process/view; OS page cache not flushed; fixture was just written",
+        "probeVersion": 2,
+        "presentation": "keydown to exact visible cursor/DOM, then two requestAnimationFrame callbacks; no physical display claim"
+      },
+      "complete": true,
+      "samples": 143,
+      "operations": {
+        "jump": {
+          "n": 80,
+          "p95Ms": 97,
+          "maxMs": 664,
+          "minMs": 28.999999999992724
+        },
+        "input": {
+          "n": 20,
+          "p95Ms": 227.99999999999818,
+          "maxMs": 251,
+          "minMs": 33
+        },
+        "delete": {
+          "n": 20,
+          "p95Ms": 458.99999999999636,
+          "maxMs": 568.0000000000018,
+          "minMs": 30
+        },
+        "search": {
+          "n": 1,
+          "p95Ms": 310,
+          "maxMs": 310,
+          "minMs": 310
+        },
+        "jump:first-target": {
+          "n": 1,
+          "p95Ms": 57.999999999999545,
+          "maxMs": 57.999999999999545,
+          "minMs": 57.999999999999545
+        },
+        "jump:unchanged-warm": {
+          "n": 41,
+          "p95Ms": 68.00000000000182,
+          "maxMs": 664,
+          "minMs": 30
+        },
+        "jump:after-edit": {
+          "n": 38,
+          "p95Ms": 212,
+          "maxMs": 276,
+          "minMs": 28.999999999992724
+        }
+      },
+      "openMs": 3354.889478,
+      "saveMs": 199.04789299999538,
+      "violations": [
+        {
+          "wall": 1792406261197,
+          "dom": 10200.000000000002,
+          "temperature": "unchanged-warm",
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": true
+          },
+          "direction": "home",
+          "twoFrames": 10274,
+          "recovery": "idle",
+          "frameMs": 664,
+          "domMs": 590.0000000000018,
+          "started": 9610,
+          "renderedLines": 1026,
+          "kind": "jump",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "cursor": 0,
+          "round": 19,
+          "expected": 0,
+          "key": "Home",
+          "targetMs": 200,
+          "version": 0,
+          "externalCommandToObservedMs": 1155.641180999999,
+          "overTarget": true
+        },
+        {
+          "version": 1,
+          "wall": 1792406262918,
+          "twoFrames": 11582,
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": false
+          },
+          "recovery": "pending",
+          "frameMs": 251,
+          "domMs": 206,
+          "started": 11331,
+          "renderedLines": 1026,
+          "cursor": 1,
+          "kind": "input",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "dom": 11537,
+          "round": 0,
+          "expected": 1,
+          "targetMs": 200,
+          "key": "q",
+          "externalCommandToObservedMs": 490.1440079999993,
+          "overTarget": true
+        },
+        {
+          "version": 2,
+          "wall": 1792406263843,
+          "twoFrames": 12825.000000000002,
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": false
+          },
+          "recovery": "pending",
+          "frameMs": 568.0000000000018,
+          "domMs": 115,
+          "started": 12257,
+          "renderedLines": 1026,
+          "cursor": 0,
+          "kind": "delete",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "dom": 12372,
+          "round": 0,
+          "expected": 0,
+          "targetMs": 200,
+          "key": "Backspace",
+          "externalCommandToObservedMs": 1064.5736479999996,
+          "overTarget": true
+        },
+        {
+          "version": 3,
+          "wall": 1792406267453,
+          "twoFrames": 16094.999999999998,
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": false
+          },
+          "recovery": "pending",
+          "frameMs": 227.99999999999818,
+          "domMs": 54.00000000000182,
+          "started": 15867,
+          "renderedLines": 1026,
+          "cursor": 1,
+          "kind": "input",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "dom": 15921.000000000002,
+          "round": 1,
+          "expected": 1,
+          "targetMs": 200,
+          "key": "q",
+          "externalCommandToObservedMs": 309.915524,
+          "overTarget": true
+        },
+        {
+          "version": 4,
+          "wall": 1792406267775,
+          "twoFrames": 16409,
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": false
+          },
+          "recovery": "pending",
+          "frameMs": 220,
+          "domMs": 184.00000000000182,
+          "started": 16189,
+          "renderedLines": 1026,
+          "cursor": 0,
+          "kind": "delete",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "dom": 16373.000000000002,
+          "round": 1,
+          "expected": 0,
+          "targetMs": 200,
+          "key": "Backspace",
+          "externalCommandToObservedMs": 349.7393059999995,
+          "overTarget": true
+        },
+        {
+          "wall": 1792406269531,
+          "dom": 18052,
+          "temperature": "after-edit",
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": true
+          },
+          "direction": "end",
+          "twoFrames": 18220,
+          "recovery": "ready",
+          "frameMs": 276,
+          "domMs": 108,
+          "started": 17944,
+          "renderedLines": 1026,
+          "kind": "jump",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "cursor": 65547,
+          "round": 2,
+          "expected": 65547,
+          "key": "End",
+          "targetMs": 200,
+          "version": 4,
+          "externalCommandToObservedMs": 678.6850279999999,
+          "overTarget": true
+        },
+        {
+          "version": 6,
+          "wall": 1792406270921,
+          "twoFrames": 19549,
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": false
+          },
+          "recovery": "pending",
+          "frameMs": 214,
+          "domMs": 93,
+          "started": 19335,
+          "renderedLines": 1026,
+          "cursor": 0,
+          "kind": "delete",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "dom": 19428,
+          "round": 2,
+          "expected": 0,
+          "targetMs": 200,
+          "key": "Backspace",
+          "externalCommandToObservedMs": 379.7100709999977,
+          "overTarget": true
+        },
+        {
+          "version": 8,
+          "wall": 1792406273426,
+          "twoFrames": 22298,
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": false
+          },
+          "recovery": "pending",
+          "frameMs": 458.99999999999636,
+          "domMs": 373.99999999999636,
+          "started": 21839.000000000004,
+          "renderedLines": 1026,
+          "cursor": 0,
+          "kind": "delete",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "dom": 22213,
+          "round": 3,
+          "expected": 0,
+          "targetMs": 200,
+          "key": "Backspace",
+          "externalCommandToObservedMs": 534.976885,
+          "overTarget": true
+        },
+        {
+          "wall": 1792406275912,
+          "dom": 24483,
+          "temperature": "after-edit",
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": true
+          },
+          "direction": "home",
+          "twoFrames": 24538,
+          "recovery": "ready",
+          "frameMs": 212,
+          "domMs": 157,
+          "started": 24326,
+          "renderedLines": 1026,
+          "kind": "jump",
+          "trusted": true,
+          "target": "milkup-input-proxy",
+          "cursor": 0,
+          "round": 4,
+          "expected": 0,
+          "key": "Home",
+          "targetMs": 200,
+          "version": 8,
+          "externalCommandToObservedMs": 697.3433210000003,
+          "overTarget": true
+        }
+      ],
+      "actualFileSha256": "48fd74467e6c4ed7851f63a16c8d2be89db36f986b656db05ca07368ee3fa0ae",
+      "sampleSha256": "47cfdb49f460cb359f7ba7a7d7943d18014a4b81a59e42b67f2a41004a91857d",
+      "maxTimerGapMs": 661.9999999999927,
+      "workerErrors": [],
+      "unchangedFile": true,
+      "execution": {
+        "run": "p7-baseline-ordinary-live-01",
+        "command": [
+          "bash",
+          "-c",
+          "source /workspace/milkup-p7-quality-evidence/milestone01/native-ui/runtime/run-env.sh p7-baseline-ordinary-live-01; export MILKUP_LATENCY_BYTES=65536 MILKUP_LATENCY_LINE_BYTES=64 MILKUP_LATENCY_MODE=live MILKUP_LATENCY_CYCLES=20; exec node tests/native/tauri-production-latency.mjs"
+        ],
+        "startedUtc": "2026-10-19T10:37:30.794319+00:00",
+        "sourceBefore": {
+          "tests/native/tauri-production-latency.mjs": "e2d51ac3e39a8a161a9918484d6b0046a0989623f7e54d58972e25b19db55886",
+          "tests/helpers/native-production.mjs": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0",
+          "tests/helpers/native-process-memory.mjs": "5a686a8727933f0a03a31c264f43f1005a6f67733bf4ebba8dc8a17e340d5d80",
+          "tests/helpers/native-startup.mjs": "d698104c7838e7d51a1ff64709c29f1660da8e3b9d1ca72fbf28c8370cc4d1f1"
+        },
+        "exitCode": 0,
+        "finishedUtc": "2026-10-19T10:38:20.883976+00:00",
+        "sourceAfter": {
+          "tests/native/tauri-production-latency.mjs": "e2d51ac3e39a8a161a9918484d6b0046a0989623f7e54d58972e25b19db55886",
+          "tests/helpers/native-production.mjs": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0",
+          "tests/helpers/native-process-memory.mjs": "5a686a8727933f0a03a31c264f43f1005a6f67733bf4ebba8dc8a17e340d5d80",
+          "tests/helpers/native-startup.mjs": "d698104c7838e7d51a1ff64709c29f1660da8e3b9d1ca72fbf28c8370cc4d1f1"
+        },
+        "complete": true,
+        "samples": 143,
+        "violations": [
+          {
+            "wall": 1792406261197,
+            "dom": 10200.000000000002,
+            "temperature": "unchanged-warm",
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": true
+            },
+            "direction": "home",
+            "twoFrames": 10274,
+            "recovery": "idle",
+            "frameMs": 664,
+            "domMs": 590.0000000000018,
+            "started": 9610,
+            "renderedLines": 1026,
+            "kind": "jump",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "cursor": 0,
+            "round": 19,
+            "expected": 0,
+            "key": "Home",
+            "targetMs": 200,
+            "version": 0,
+            "externalCommandToObservedMs": 1155.641180999999,
+            "overTarget": true
+          },
+          {
+            "version": 1,
+            "wall": 1792406262918,
+            "twoFrames": 11582,
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": false
+            },
+            "recovery": "pending",
+            "frameMs": 251,
+            "domMs": 206,
+            "started": 11331,
+            "renderedLines": 1026,
+            "cursor": 1,
+            "kind": "input",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "dom": 11537,
+            "round": 0,
+            "expected": 1,
+            "targetMs": 200,
+            "key": "q",
+            "externalCommandToObservedMs": 490.1440079999993,
+            "overTarget": true
+          },
+          {
+            "version": 2,
+            "wall": 1792406263843,
+            "twoFrames": 12825.000000000002,
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": false
+            },
+            "recovery": "pending",
+            "frameMs": 568.0000000000018,
+            "domMs": 115,
+            "started": 12257,
+            "renderedLines": 1026,
+            "cursor": 0,
+            "kind": "delete",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "dom": 12372,
+            "round": 0,
+            "expected": 0,
+            "targetMs": 200,
+            "key": "Backspace",
+            "externalCommandToObservedMs": 1064.5736479999996,
+            "overTarget": true
+          },
+          {
+            "version": 3,
+            "wall": 1792406267453,
+            "twoFrames": 16094.999999999998,
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": false
+            },
+            "recovery": "pending",
+            "frameMs": 227.99999999999818,
+            "domMs": 54.00000000000182,
+            "started": 15867,
+            "renderedLines": 1026,
+            "cursor": 1,
+            "kind": "input",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "dom": 15921.000000000002,
+            "round": 1,
+            "expected": 1,
+            "targetMs": 200,
+            "key": "q",
+            "externalCommandToObservedMs": 309.915524,
+            "overTarget": true
+          },
+          {
+            "version": 4,
+            "wall": 1792406267775,
+            "twoFrames": 16409,
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": false
+            },
+            "recovery": "pending",
+            "frameMs": 220,
+            "domMs": 184.00000000000182,
+            "started": 16189,
+            "renderedLines": 1026,
+            "cursor": 0,
+            "kind": "delete",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "dom": 16373.000000000002,
+            "round": 1,
+            "expected": 0,
+            "targetMs": 200,
+            "key": "Backspace",
+            "externalCommandToObservedMs": 349.7393059999995,
+            "overTarget": true
+          },
+          {
+            "wall": 1792406269531,
+            "dom": 18052,
+            "temperature": "after-edit",
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": true
+            },
+            "direction": "end",
+            "twoFrames": 18220,
+            "recovery": "ready",
+            "frameMs": 276,
+            "domMs": 108,
+            "started": 17944,
+            "renderedLines": 1026,
+            "kind": "jump",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "cursor": 65547,
+            "round": 2,
+            "expected": 65547,
+            "key": "End",
+            "targetMs": 200,
+            "version": 4,
+            "externalCommandToObservedMs": 678.6850279999999,
+            "overTarget": true
+          },
+          {
+            "version": 6,
+            "wall": 1792406270921,
+            "twoFrames": 19549,
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": false
+            },
+            "recovery": "pending",
+            "frameMs": 214,
+            "domMs": 93,
+            "started": 19335,
+            "renderedLines": 1026,
+            "cursor": 0,
+            "kind": "delete",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "dom": 19428,
+            "round": 2,
+            "expected": 0,
+            "targetMs": 200,
+            "key": "Backspace",
+            "externalCommandToObservedMs": 379.7100709999977,
+            "overTarget": true
+          },
+          {
+            "version": 8,
+            "wall": 1792406273426,
+            "twoFrames": 22298,
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": false
+            },
+            "recovery": "pending",
+            "frameMs": 458.99999999999636,
+            "domMs": 373.99999999999636,
+            "started": 21839.000000000004,
+            "renderedLines": 1026,
+            "cursor": 0,
+            "kind": "delete",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "dom": 22213,
+            "round": 3,
+            "expected": 0,
+            "targetMs": 200,
+            "key": "Backspace",
+            "externalCommandToObservedMs": 534.976885,
+            "overTarget": true
+          },
+          {
+            "wall": 1792406275912,
+            "dom": 24483,
+            "temperature": "after-edit",
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": true
+            },
+            "direction": "home",
+            "twoFrames": 24538,
+            "recovery": "ready",
+            "frameMs": 212,
+            "domMs": 157,
+            "started": 24326,
+            "renderedLines": 1026,
+            "kind": "jump",
+            "trusted": true,
+            "target": "milkup-input-proxy",
+            "cursor": 0,
+            "round": 4,
+            "expected": 0,
+            "key": "Home",
+            "targetMs": 200,
+            "version": 8,
+            "externalCommandToObservedMs": 697.3433210000003,
+            "overTarget": true
+          }
+        ]
+      }
+    },
+    {
+      "run": "p7-baseline-input-01",
+      "route": "memory SourceDocumentView",
+      "routeEvidence": {
+        "observedSourceDocumentView": true,
+        "fixtureBytes": 179219,
+        "policy": "Frozen desktop-open-policy: performance at 128KiB, native-large-file threshold 256KiB. No direct native handle/private state observation; native classification inferred from observed backend + frozen open policy and actual file size."
+      },
+      "metadata": {
+        "bytes": 179219,
+        "sha256": "62ac5f2307b8b761c03c3e5bfa6345ec0597728a4ae205e39f962b925c21936f",
+        "lines": 2802,
+        "lineBytes": 64,
+        "utf16Length": 179211,
+        "mode": "source",
+        "cycles": 20,
+        "coldDefinition": "first distant target in a fresh process/view; OS page cache not flushed; fixture was just written",
+        "probeVersion": 2,
+        "presentation": "keydown to exact visible cursor/DOM, then two requestAnimationFrame callbacks; no physical display claim"
+      },
+      "complete": true,
+      "samples": 143,
+      "operations": {
+        "jump": {
+          "n": 80,
+          "p95Ms": 77.00000000000091,
+          "maxMs": 120,
+          "minMs": 22
+        },
+        "input": {
+          "n": 20,
+          "p95Ms": 99,
+          "maxMs": 102,
+          "minMs": 18.999999999992724
+        },
+        "delete": {
+          "n": 20,
+          "p95Ms": 64,
+          "maxMs": 107,
+          "minMs": 21
+        },
+        "search": {
+          "n": 1,
+          "p95Ms": 488,
+          "maxMs": 488,
+          "minMs": 488
+        },
+        "jump:first-target": {
+          "n": 1,
+          "p95Ms": 35,
+          "maxMs": 35,
+          "minMs": 35
+        },
+        "jump:unchanged-warm": {
+          "n": 41,
+          "p95Ms": 77.99999999999909,
+          "maxMs": 120,
+          "minMs": 22
+        },
+        "jump:after-edit": {
+          "n": 38,
+          "p95Ms": 76.00000000000364,
+          "maxMs": 81,
+          "minMs": 24
+        }
+      },
+      "openMs": 3891.9189460000002,
+      "saveMs": 265.51566699999967,
+      "violations": [],
+      "actualFileSha256": "62ac5f2307b8b761c03c3e5bfa6345ec0597728a4ae205e39f962b925c21936f",
+      "sampleSha256": "3565ea3507e9462aa924fbf4f6c9a8d19e6f6ce917c676143583bb2d6ff2ab95",
+      "maxTimerGapMs": 700,
+      "workerErrors": [],
+      "unchangedFile": true,
+      "execution": {
+        "performedBy": "root",
+        "note": "Initial source run performed before delegate took control; see native-ui run/control evidence."
+      }
+    },
+    {
+      "run": "p7-baseline-live-01",
+      "route": "memory SourceDocumentView",
+      "routeEvidence": {
+        "observedSourceDocumentView": true,
+        "fixtureBytes": 179219,
+        "policy": "Frozen desktop-open-policy: performance at 128KiB, native-large-file threshold 256KiB. No direct native handle/private state observation; native classification inferred from observed backend + frozen open policy and actual file size."
+      },
+      "metadata": {
+        "bytes": 179219,
+        "sha256": "62ac5f2307b8b761c03c3e5bfa6345ec0597728a4ae205e39f962b925c21936f",
+        "lines": 2802,
+        "lineBytes": 64,
+        "utf16Length": 179211,
+        "mode": "live",
+        "cycles": 20,
+        "coldDefinition": "first distant target in a fresh process/view; OS page cache not flushed; fixture was just written",
+        "probeVersion": 2,
+        "presentation": "keydown to exact visible cursor/DOM, then two requestAnimationFrame callbacks; no physical display claim"
+      },
+      "complete": true,
+      "samples": 143,
+      "operations": {
+        "jump": {
+          "n": 80,
+          "p95Ms": 73,
+          "maxMs": 89,
+          "minMs": 25
+        },
+        "input": {
+          "n": 20,
+          "p95Ms": 94,
+          "maxMs": 151,
+          "minMs": 23
+        },
+        "delete": {
+          "n": 20,
+          "p95Ms": 61.00000000000364,
+          "maxMs": 163,
+          "minMs": 19
+        },
+        "search": {
+          "n": 1,
+          "p95Ms": 271,
+          "maxMs": 271,
+          "minMs": 271
+        },
+        "jump:first-target": {
+          "n": 1,
+          "p95Ms": 43,
+          "maxMs": 43,
+          "minMs": 43
+        },
+        "jump:unchanged-warm": {
+          "n": 41,
+          "p95Ms": 73,
+          "maxMs": 89,
+          "minMs": 26
+        },
+        "jump:after-edit": {
+          "n": 38,
+          "p95Ms": 79,
+          "maxMs": 87,
+          "minMs": 25
+        }
+      },
+      "openMs": 3296.363403,
+      "saveMs": 154.49396400000114,
+      "violations": [],
+      "actualFileSha256": "62ac5f2307b8b761c03c3e5bfa6345ec0597728a4ae205e39f962b925c21936f",
+      "sampleSha256": "e32ba4076e1d9581f188069e1fd6dd32e5b3c2fbad17540232ca85df003b648c",
+      "maxTimerGapMs": 595,
+      "workerErrors": [],
+      "unchangedFile": true,
+      "execution": {
+        "run": "p7-baseline-live-01",
+        "command": [
+          "bash",
+          "-c",
+          "source /workspace/milkup-p7-quality-evidence/milestone01/native-ui/runtime/run-env.sh p7-baseline-live-01; export MILKUP_LATENCY_BYTES=179200 MILKUP_LATENCY_LINE_BYTES=64 MILKUP_LATENCY_MODE=live MILKUP_LATENCY_CYCLES=20; exec node tests/native/tauri-production-latency.mjs"
+        ],
+        "startedUtc": "2026-10-19T10:33:17.895207+00:00",
+        "sourceBefore": {
+          "tests/native/tauri-production-latency.mjs": "2768d06d3227e5dc8f953eb4cda739e8b2252301bc64559aaf7a000a9c600621",
+          "tests/helpers/native-production.mjs": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0",
+          "tests/helpers/native-process-memory.mjs": "5a686a8727933f0a03a31c264f43f1005a6f67733bf4ebba8dc8a17e340d5d80",
+          "tests/helpers/native-startup.mjs": "d698104c7838e7d51a1ff64709c29f1660da8e3b9d1ca72fbf28c8370cc4d1f1"
+        },
+        "exitCode": 0,
+        "finishedUtc": "2026-10-19T10:33:59.968352+00:00",
+        "sourceAfter": {
+          "tests/native/tauri-production-latency.mjs": "2768d06d3227e5dc8f953eb4cda739e8b2252301bc64559aaf7a000a9c600621",
+          "tests/helpers/native-production.mjs": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0",
+          "tests/helpers/native-process-memory.mjs": "5a686a8727933f0a03a31c264f43f1005a6f67733bf4ebba8dc8a17e340d5d80",
+          "tests/helpers/native-startup.mjs": "d698104c7838e7d51a1ff64709c29f1660da8e3b9d1ca72fbf28c8370cc4d1f1"
+        },
+        "complete": true,
+        "samples": 143,
+        "violations": []
+      }
+    },
+    {
+      "run": "p7-baseline-large-source-01",
+      "route": "native large-file SourceDocumentView",
+      "routeEvidence": {
+        "observedSourceDocumentView": true,
+        "fixtureBytes": 10485779,
+        "policy": "Frozen desktop-open-policy: performance at 128KiB, native-large-file threshold 256KiB. No direct native handle/private state observation; native classification inferred from observed backend + frozen open policy and actual file size."
+      },
+      "metadata": {
+        "bytes": 10485779,
+        "sha256": "4260c361024f7d9f0c32e9e5d2abffcbaf3a03efcdd7e553a69f0d5413c16806",
+        "lines": 163842,
+        "lineBytes": 64,
+        "utf16Length": 10485771,
+        "mode": "source",
+        "cycles": 20,
+        "coldDefinition": "first distant target in a fresh process/view; OS page cache not flushed; fixture was just written",
+        "probeVersion": 2,
+        "presentation": "keydown to exact visible cursor/DOM, then two requestAnimationFrame callbacks; no physical display claim"
+      },
+      "complete": true,
+      "samples": 143,
+      "operations": {
+        "jump": {
+          "n": 80,
+          "p95Ms": 65,
+          "maxMs": 157,
+          "minMs": 23
+        },
+        "input": {
+          "n": 20,
+          "p95Ms": 98,
+          "maxMs": 101,
+          "minMs": 19
+        },
+        "delete": {
+          "n": 20,
+          "p95Ms": 64.99999999999636,
+          "maxMs": 71,
+          "minMs": 20
+        },
+        "search": {
+          "n": 1,
+          "p95Ms": 546,
+          "maxMs": 546,
+          "minMs": 546
+        },
+        "jump:first-target": {
+          "n": 1,
+          "p95Ms": 54,
+          "maxMs": 54,
+          "minMs": 54
+        },
+        "jump:unchanged-warm": {
+          "n": 41,
+          "p95Ms": 55,
+          "maxMs": 58.00000000000091,
+          "minMs": 25
+        },
+        "jump:after-edit": {
+          "n": 38,
+          "p95Ms": 126,
+          "maxMs": 157,
+          "minMs": 23
+        }
+      },
+      "openMs": 4144.801001000001,
+      "saveMs": 228.24580299999798,
+      "violations": [
+        {
+          "query": "A",
+          "wall": 1792406080422,
+          "count": "1/1",
+          "temperature": "first-query",
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": false
+          },
+          "recovery": "idle",
+          "twoFrames": 39515,
+          "frameMs": 546,
+          "domMs": 465,
+          "started": 38969,
+          "renderedLines": 76,
+          "kind": "search",
+          "trusted": true,
+          "target": "",
+          "cursor": 1,
+          "targetMs": 500,
+          "expected": 1,
+          "key": "A",
+          "dom": 39434,
+          "version": 40,
+          "externalCommandToObservedMs": 657.5379059999977,
+          "overTarget": true
+        }
+      ],
+      "actualFileSha256": "4260c361024f7d9f0c32e9e5d2abffcbaf3a03efcdd7e553a69f0d5413c16806",
+      "sampleSha256": "f2467a2ab28243295d448eabbe3b9ccbbf1529cd5f685c79aa1c1774927ffae4",
+      "maxTimerGapMs": 516.0000000000073,
+      "workerErrors": [],
+      "unchangedFile": true,
+      "execution": {
+        "run": "p7-baseline-large-source-01",
+        "command": [
+          "bash",
+          "-c",
+          "source /workspace/milkup-p7-quality-evidence/milestone01/native-ui/runtime/run-env.sh p7-baseline-large-source-01; export MILKUP_LATENCY_BYTES=10485760 MILKUP_LATENCY_LINE_BYTES=64 MILKUP_LATENCY_MODE=source MILKUP_LATENCY_CYCLES=20; exec node tests/native/tauri-production-latency.mjs"
+        ],
+        "startedUtc": "2026-10-19T10:34:00.474131+00:00",
+        "sourceBefore": {
+          "tests/native/tauri-production-latency.mjs": "2768d06d3227e5dc8f953eb4cda739e8b2252301bc64559aaf7a000a9c600621",
+          "tests/helpers/native-production.mjs": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0",
+          "tests/helpers/native-process-memory.mjs": "5a686a8727933f0a03a31c264f43f1005a6f67733bf4ebba8dc8a17e340d5d80",
+          "tests/helpers/native-startup.mjs": "d698104c7838e7d51a1ff64709c29f1660da8e3b9d1ca72fbf28c8370cc4d1f1"
+        },
+        "exitCode": 0,
+        "finishedUtc": "2026-10-19T10:34:41.792200+00:00",
+        "sourceAfter": {
+          "tests/native/tauri-production-latency.mjs": "2768d06d3227e5dc8f953eb4cda739e8b2252301bc64559aaf7a000a9c600621",
+          "tests/helpers/native-production.mjs": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0",
+          "tests/helpers/native-process-memory.mjs": "5a686a8727933f0a03a31c264f43f1005a6f67733bf4ebba8dc8a17e340d5d80",
+          "tests/helpers/native-startup.mjs": "d698104c7838e7d51a1ff64709c29f1660da8e3b9d1ca72fbf28c8370cc4d1f1"
+        },
+        "complete": true,
+        "samples": 143,
+        "violations": [
+          {
+            "query": "A",
+            "wall": 1792406080422,
+            "count": "1/1",
+            "temperature": "first-query",
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": false
+            },
+            "recovery": "idle",
+            "twoFrames": 39515,
+            "frameMs": 546,
+            "domMs": 465,
+            "started": 38969,
+            "renderedLines": 76,
+            "kind": "search",
+            "trusted": true,
+            "target": "",
+            "cursor": 1,
+            "targetMs": 500,
+            "expected": 1,
+            "key": "A",
+            "dom": 39434,
+            "version": 40,
+            "externalCommandToObservedMs": 657.5379059999977,
+            "overTarget": true
+          }
+        ]
+      }
+    },
+    {
+      "run": "p7-baseline-large-live-01",
+      "route": "native large-file SourceDocumentView",
+      "routeEvidence": {
+        "observedSourceDocumentView": true,
+        "fixtureBytes": 10485779,
+        "policy": "Frozen desktop-open-policy: performance at 128KiB, native-large-file threshold 256KiB. No direct native handle/private state observation; native classification inferred from observed backend + frozen open policy and actual file size."
+      },
+      "metadata": {
+        "bytes": 10485779,
+        "sha256": "4260c361024f7d9f0c32e9e5d2abffcbaf3a03efcdd7e553a69f0d5413c16806",
+        "lines": 163842,
+        "lineBytes": 64,
+        "utf16Length": 10485771,
+        "mode": "live",
+        "cycles": 20,
+        "coldDefinition": "first distant target in a fresh process/view; OS page cache not flushed; fixture was just written",
+        "probeVersion": 2,
+        "presentation": "keydown to exact visible cursor/DOM, then two requestAnimationFrame callbacks; no physical display claim"
+      },
+      "complete": true,
+      "samples": 143,
+      "operations": {
+        "jump": {
+          "n": 80,
+          "p95Ms": 57,
+          "maxMs": 95,
+          "minMs": 24
+        },
+        "input": {
+          "n": 20,
+          "p95Ms": 36,
+          "maxMs": 56.00000000000182,
+          "minMs": 20.999999999996362
+        },
+        "delete": {
+          "n": 20,
+          "p95Ms": 40,
+          "maxMs": 60,
+          "minMs": 19
+        },
+        "search": {
+          "n": 1,
+          "p95Ms": 566,
+          "maxMs": 566,
+          "minMs": 566
+        },
+        "jump:first-target": {
+          "n": 1,
+          "p95Ms": 56,
+          "maxMs": 56,
+          "minMs": 56
+        },
+        "jump:unchanged-warm": {
+          "n": 41,
+          "p95Ms": 47,
+          "maxMs": 71.00000000000045,
+          "minMs": 24
+        },
+        "jump:after-edit": {
+          "n": 38,
+          "p95Ms": 71,
+          "maxMs": 95,
+          "minMs": 32
+        }
+      },
+      "openMs": 3193.186105,
+      "saveMs": 293.37735099999554,
+      "violations": [
+        {
+          "query": "A",
+          "wall": 1792406177970,
+          "count": "1/1",
+          "temperature": "first-query",
+          "modifiers": {
+            "alt": false,
+            "meta": false,
+            "ctrl": false
+          },
+          "recovery": "idle",
+          "twoFrames": 38091,
+          "frameMs": 566,
+          "domMs": 499,
+          "started": 37525,
+          "renderedLines": 76,
+          "kind": "search",
+          "trusted": true,
+          "target": "",
+          "cursor": 1,
+          "targetMs": 500,
+          "expected": 1,
+          "key": "A",
+          "dom": 38024,
+          "version": 40,
+          "externalCommandToObservedMs": 693.0969370000021,
+          "overTarget": true
+        }
+      ],
+      "actualFileSha256": "4260c361024f7d9f0c32e9e5d2abffcbaf3a03efcdd7e553a69f0d5413c16806",
+      "sampleSha256": "c2a34204aef01cc37bda7f65e98310b08c2ffec81d0371035ab26c798311341c",
+      "maxTimerGapMs": 498.0000000000073,
+      "workerErrors": [],
+      "unchangedFile": true,
+      "execution": {
+        "run": "p7-baseline-large-live-01",
+        "command": [
+          "bash",
+          "-c",
+          "source /workspace/milkup-p7-quality-evidence/milestone01/native-ui/runtime/run-env.sh p7-baseline-large-live-01; export MILKUP_LATENCY_BYTES=10485760 MILKUP_LATENCY_LINE_BYTES=64 MILKUP_LATENCY_MODE=live MILKUP_LATENCY_CYCLES=20; exec node tests/native/tauri-production-latency.mjs"
+        ],
+        "startedUtc": "2026-10-19T10:35:39.531404+00:00",
+        "sourceBefore": {
+          "tests/native/tauri-production-latency.mjs": "e2d51ac3e39a8a161a9918484d6b0046a0989623f7e54d58972e25b19db55886",
+          "tests/helpers/native-production.mjs": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0",
+          "tests/helpers/native-process-memory.mjs": "5a686a8727933f0a03a31c264f43f1005a6f67733bf4ebba8dc8a17e340d5d80",
+          "tests/helpers/native-startup.mjs": "d698104c7838e7d51a1ff64709c29f1660da8e3b9d1ca72fbf28c8370cc4d1f1"
+        },
+        "exitCode": 0,
+        "finishedUtc": "2026-10-19T10:36:19.346188+00:00",
+        "sourceAfter": {
+          "tests/native/tauri-production-latency.mjs": "e2d51ac3e39a8a161a9918484d6b0046a0989623f7e54d58972e25b19db55886",
+          "tests/helpers/native-production.mjs": "293a00db10632383346fa739d8717ddf2d42928e0f2e3f9672043d0dd9452eb0",
+          "tests/helpers/native-process-memory.mjs": "5a686a8727933f0a03a31c264f43f1005a6f67733bf4ebba8dc8a17e340d5d80",
+          "tests/helpers/native-startup.mjs": "d698104c7838e7d51a1ff64709c29f1660da8e3b9d1ca72fbf28c8370cc4d1f1"
+        },
+        "complete": true,
+        "samples": 143,
+        "violations": [
+          {
+            "query": "A",
+            "wall": 1792406177970,
+            "count": "1/1",
+            "temperature": "first-query",
+            "modifiers": {
+              "alt": false,
+              "meta": false,
+              "ctrl": false
+            },
+            "recovery": "idle",
+            "twoFrames": 38091,
+            "frameMs": 566,
+            "domMs": 499,
+            "started": 37525,
+            "renderedLines": 76,
+            "kind": "search",
+            "trusted": true,
+            "target": "",
+            "cursor": 1,
+            "targetMs": 500,
+            "expected": 1,
+            "key": "A",
+            "dom": 38024,
+            "version": 40,
+            "externalCommandToObservedMs": 693.0969370000021,
+            "overTarget": true
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,149 @@
+diff --git a/packages/view-dom/src/source-document-view.ts b/packages/view-dom/src/source-document-view.ts
+index 9d42f048..e7d7cf07 100644
+--- a/packages/view-dom/src/source-document-view.ts
++++ b/packages/view-dom/src/source-document-view.ts
+@@ -82,6 +82,9 @@ export interface SourceDocumentViewConfig {
+   readonly mode?: ViewMode
+   readonly editable?: boolean
+   readonly onEdit?: SourceDocumentEditHandler
++  /** Resolve plain-paragraph Tab through the host's focus order after bounded context reads.
++   * Omit to retain standalone windowed indentation behavior. */
++  readonly onFocusNavigation?: (request: { readonly backward: boolean }) => void
+   readonly markdownContextLines?: number
+   readonly markdownCacheSize?: number
+   readonly backgroundMarkdownWarmup?: boolean
+@@ -191,6 +194,7 @@ export class SourceDocumentView {
+     this.storedSelectionAnchor = value
+   }
+   private readonly onEdit: SourceDocumentEditHandler | undefined
++  private readonly onFocusNavigation: SourceDocumentViewConfig['onFocusNavigation']
+   private readonly markdownContextLines: number
+   private readonly markdownCacheSize: number
+   private readonly backgroundMarkdownWarmup: boolean
+@@ -200,6 +204,8 @@ export class SourceDocumentView {
+   private markdownWarmupTimer: ReturnType<typeof setTimeout> | undefined
+   private composing = false
+   private compositionText = ''
++  private documentGeneration = 0
++  private compositionGeneration: number | undefined
+   private compositionCommitQueue: Promise<void> = Promise.resolve()
+   private compositionCommitError: unknown
+   private visibleEditQueue: Promise<void> = Promise.resolve()
+@@ -286,11 +292,13 @@ export class SourceDocumentView {
+     void this.trackVisibleEditTask(() => this.readInputProxy())
+   }
+   private readonly handleCompositionStartEvent = (): void => {
++    this.compositionGeneration = this.documentGeneration
+     this.composing = true
+     this.compositionText = ''
+     this.renderCompositionText()
+   }
+   private readonly handleCompositionUpdateEvent = (event: CompositionEvent): void => {
++    if (this.compositionGeneration !== this.documentGeneration) return
+     this.composing = true
+     this.compositionText = event.data
+     this.renderCompositionText()
+@@ -298,6 +306,8 @@ export class SourceDocumentView {
+   private readonly handleCompositionEndEvent = (event: CompositionEvent): void => {
+     // compositionend.data is authoritative, including cancellation's empty string.
+     const text = event.data
++    const generation = this.compositionGeneration
++    this.compositionGeneration = undefined
+     // Clear this synchronously so the next Enter/Delete is handled as an editor key,
+     // even while the finalized IME text waits for an earlier native edit to finish.
+     this.composing = false
+@@ -305,11 +315,14 @@ export class SourceDocumentView {
+     this.inputDOM.value = ''
+     this.renderCompositionText()
+     this.compositionCommitError = undefined
+-    this.compositionCommitQueue = this.enqueueVisibleEdit(() => this.commitComposition(text)).catch(
+-      (error: unknown) => {
+-        this.compositionCommitError = error
+-      },
+-    )
++    this.compositionCommitQueue = this.enqueueVisibleEdit(async () => {
++      // A finalized composition belongs to the document where preedit started.
++      // Unlike a key, its final event may arrive after updateSource or destroy.
++      if (!this.destroyed && generation === this.documentGeneration)
++        await this.commitComposition(text)
++    }).catch((error: unknown) => {
++      this.compositionCommitError = error
++    })
+   }
+   private readonly handlePasteEvent = (event: ClipboardEvent): void => {
+     if (event.defaultPrevented) {
+@@ -434,6 +447,7 @@ export class SourceDocumentView {
+     this.mode = config.mode ?? 'source'
+     this.editable = config.editable ?? false
+     this.onEdit = config.onEdit
++    this.onFocusNavigation = config.onFocusNavigation
+     this.markdownContextLines = Math.max(
+       0,
+       Math.floor(config.markdownContextLines ?? defaultMarkdownContextLines),
+@@ -669,6 +683,11 @@ export class SourceDocumentView {
+       this.currentSource.length ?? this.selectionAnchor,
+     )
+     if (documentChanged) {
++      this.documentGeneration += 1
++      this.compositionGeneration = undefined
++      this.composing = false
++      this.compositionText = ''
++      this.inputDOM.value = ''
+       this.cursorPosition = 0
+       this.selectionAnchor = 0
+       this.dom.scrollTop = 0
+@@ -1776,10 +1795,24 @@ export class SourceDocumentView {
+     }
+ 
+     if (event.key === 'Tab' || (event.key === 'Unidentified' && event.code === 'Tab')) {
++      const generation = this.documentGeneration
++      const selectionRevision = this.selectionGeneration
++      const focused = this.ownerDocument.activeElement
++      const navigate = () => {
++        if (
++          !this.destroyed &&
++          !this.composing &&
++          generation === this.documentGeneration &&
++          selectionRevision === this.selectionGeneration &&
++          this.ownerDocument.activeElement === focused &&
++          (focused === this.inputDOM || focused === this.dom)
++        )
++          this.onFocusNavigation?.({ backward: event.shiftKey })
++      }
+       void this.trackVisibleEditTask(() =>
+         this.localTable()
+           ? this.applyTableCommand(event.shiftKey ? 'previous' : 'next')
+-          : this.indentBlock(event.shiftKey),
++          : this.indentBlock(event.shiftKey, navigate),
+       )
+       return true
+     }
+@@ -2851,7 +2884,7 @@ export class SourceDocumentView {
+     await this.applyVisibleEdit(range.from, range.to, newline + indent, 'isolate')
+   }
+ 
+-  private async indentBlock(outdent: boolean): Promise<void> {
++  private async indentBlock(outdent: boolean, navigate: () => void): Promise<void> {
+     const range = this.getSelectedRange()
+     const context = await this.blockContext(range.from)
+     if (!context) return
+@@ -2861,6 +2894,19 @@ export class SourceDocumentView {
+       this.findRenderedSourceLineAtPosition(lastPosition) ??
+       (await this.currentSource.lineAtPosition(lastPosition))
+     if (!context.current()) return
++    if (
++      this.onFocusNavigation &&
++      !context.code &&
++      !listEditingPrefix(first.text) &&
++      // Source-mode pipe rows do not have a live table context. Preserve their
++      // existing structural Tab path rather than treating them as prose.
++      !pipeLine(first.text) &&
++      first.number === last.number &&
++      !/^[ \t]+/u.test(first.text)
++    ) {
++      navigate()
++      return
++    }
+     if (
+       !outdent &&
+       context.code &&

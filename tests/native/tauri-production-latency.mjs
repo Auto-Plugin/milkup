@@ -15,7 +15,7 @@ const bytes = Number(process.env.MILKUP_LATENCY_BYTES ?? 104857600)
 const lineBytes = Number(process.env.MILKUP_LATENCY_LINE_BYTES ?? 4096)
 const mode = process.env.MILKUP_LATENCY_MODE ?? 'live'
 const cycles = Number(process.env.MILKUP_LATENCY_CYCLES ?? 4)
-assert([179200, 1048576, 10485760, 104857600].includes(bytes))
+assert([65536, 179200, 1048576, 10485760, 104857600].includes(bytes))
 assert([64, 4096].includes(lineBytes))
 assert(['source', 'live'].includes(mode))
 await mkdir(root, { recursive: true })

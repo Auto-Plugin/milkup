@@ -1471,7 +1471,7 @@ test('official Mermaid DOM host is explicitly unavailable in the browser and kee
   await page.getByRole('button', { name: '插件', exact: true }).click()
   await page.getByRole('button', { name: 'Milkup Diagrams', exact: true }).click()
   await expect(page.locator('.plugin-errors')).toContainText(
-    'DOM plugins require the native desktop runtime',
+    'DOM module requires a native catalog generation',
   )
   expect(loads).toEqual([])
   await page.screenshot({

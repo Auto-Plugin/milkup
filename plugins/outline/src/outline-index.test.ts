@@ -67,6 +67,27 @@ function storage() {
   return { store, counters, data }
 }
 
+it('batches visibility leaf reads when collapsed roots are scattered through a complete index', async () => {
+  const source = fixture(18000)
+  const { store, counters } = storage()
+  const index = new OutlineIndex(store, 7)
+  for (const { item } of source) await index.append(item)
+  await index.finish()
+  // Match the baseline cache history; every title remains independently verified.
+  for (let start = 0; start < source.length; start += 500) {
+    const rows = await index.rows(start, Math.min(source.length, start + 500))
+    expect(rows.map((row) => row.title)).toEqual(
+      source.slice(start, start + 500).map(({ item }) => item.label),
+    )
+  }
+  index.resetCollapsed(true)
+  const before = counters.reads
+  const rows = await index.rows(0, index.visibleSize)
+  expect(rows.map((row) => row.ordinal)).toEqual(Array.from({ length: 20 }, (_, i) => i * 900))
+  // A transaction-count budget, not an invented native latency guarantee.
+  expect(counters.reads - before).toBeLessThanOrEqual(24)
+})
+
 it.each([8775, 18000])(
   'matches an independent hierarchy oracle for %i headings and sparse/global folds',
   async (count) => {

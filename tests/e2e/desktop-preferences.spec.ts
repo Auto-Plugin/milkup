@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { installPreferencesFixture } from '../../plugins/preferences/scripts/browser-fixture.mjs'
+import { installPreferencesFixture } from '../helpers/sealed-plugin-fixture'
 
 const view = (page: Page) => page.locator('[data-plugin-ui="milkup.preferences:preferences-panel"]')
 const field = (page: Page, label: string) => view(page).getByLabel(label, { exact: true })

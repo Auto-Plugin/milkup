@@ -1,38 +1,41 @@
+import { sealWorkerFixture } from '../helpers/sealed-plugin-fixture'
 import { expect, test, type Page } from '@playwright/test'
 
 async function seed(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    const records = ['alpha', 'beta'].map((id) => ({
-      manifest: {
-        id: `cards.${id}`,
-        name: `${id} tools`,
-        description: `${id} description <script>plain text</script>`,
-        version: '1.0.0',
-        main: 'data:text/javascript,' + encodeURIComponent('export default {}'),
-        engines: { milkup: '^2.0.0-beta.1', pluginSdk: '*' },
-        ...(id === 'alpha'
-          ? { permissions: ['network:access'], networkOrigins: ['https://example.test'] }
-          : {}),
-      },
-      manifestPath: `/plugins/${id}/plugin.json`,
-      rootPath: `/plugins/${id}`,
-      sourcePath: `/plugins/${id}/plugin.json`,
-      state: 'installed',
-      enabled: false,
-      installedAt: 1,
-      updatedAt: 1,
-      trust: 'development',
-      dataRoot: `milkup://plugin-data/cards.${id}`,
-      storageRoot: `milkup://plugin-storage/cards.${id}`,
-      approvals: { permissions: [], hosts: ['worker'] },
-      errors: [],
-    }))
+  const records = ['alpha', 'beta'].map((id) => ({
+    manifest: {
+      id: `cards.${id}`,
+      name: `${id} tools`,
+      description: `${id} description <script>plain text</script>`,
+      version: '1.0.0',
+      main: './dist/plugin.js',
+      engines: { milkup: '^2.0.0-beta.1', pluginSdk: '*' },
+      ...(id === 'alpha'
+        ? { permissions: ['network:access'], networkOrigins: ['https://example.test'] }
+        : {}),
+    },
+    manifestPath: `/plugins/${id}/plugin.json`,
+    rootPath: `/plugins/${id}`,
+    sourcePath: `/plugins/${id}/plugin.json`,
+    state: 'installed',
+    enabled: false,
+    installedAt: 1,
+    updatedAt: 1,
+    trust: 'development',
+    dataRoot: `milkup://plugin-data/cards.${id}`,
+    storageRoot: `milkup://plugin-storage/cards.${id}`,
+    approvals: { permissions: [], hosts: ['worker'] },
+    errors: [],
+  }))
+  for (const record of records)
+    await sealWorkerFixture(page, record.manifest, record.manifestPath, 'export default {}')
+  await page.addInitScript((records) => {
     localStorage.setItem(
       'milkup.desktop.plugins.registry.v1',
       JSON.stringify({ version: 1, records, auditRecords: [] }),
     )
     localStorage.setItem('milkup.desktop.plugins.bundled.v1', '[]')
-  })
+  }, records)
   await page.goto('/')
   await page.getByRole('button', { name: '菜单', exact: true }).click()
   await page.getByRole('button', { name: '插件', exact: true }).click()

@@ -1,0 +1,146 @@
+{
+  "at": "2026-10-19T12:29:42.327353+00:00",
+  "classification": "harness fixture zero-based index versus one-based shipped DOM data-line",
+  "actualCodeTarget": {
+    "line": 14,
+    "from": 342,
+    "to": 355,
+    "text": "```javascript"
+  },
+  "requiredCodeTarget": {
+    "line": 15,
+    "from": 356,
+    "to": 829
+  },
+  "nativeCandidate03BothViewProof": {
+    "ordinary": [
+      {
+        "rect": {
+          "left": 26,
+          "width": 4159.140625,
+          "right": 4185.140625,
+          "top": 61,
+          "height": 21,
+          "bottom": 82
+        },
+        "from": 0,
+        "to": 72,
+        "line": 1
+      },
+      {
+        "rect": {
+          "left": 26,
+          "width": 4159.140625,
+          "right": 4185.140625,
+          "top": 82,
+          "height": 21,
+          "bottom": 103
+        },
+        "from": 73,
+        "to": 73,
+        "line": 2
+      },
+      {
+        "rect": {
+          "left": 26,
+          "width": 4159.140625,
+          "right": 4185.140625,
+          "top": 103,
+          "height": 21,
+          "bottom": 124
+        },
+        "from": 74,
+        "to": 93,
+        "line": 3
+      }
+    ],
+    "windowed": [
+      {
+        "rect": {
+          "left": 26,
+          "width": 4159.140625,
+          "right": 4185.140625,
+          "top": 61,
+          "height": 21,
+          "bottom": 82
+        },
+        "from": 0,
+        "to": 72,
+        "line": 1
+      },
+      {
+        "rect": {
+          "left": 26,
+          "width": 4159.140625,
+          "right": 4185.140625,
+          "top": 82,
+          "height": 21,
+          "bottom": 103
+        },
+        "from": 73,
+        "to": 73,
+        "line": 2
+      },
+      {
+        "rect": {
+          "left": 26,
+          "width": 4159.140625,
+          "right": 4185.140625,
+          "top": 103,
+          "height": 21,
+          "bottom": 124
+        },
+        "from": 74,
+        "to": 93,
+        "line": 3
+      }
+    ]
+  },
+  "sourceEvidence": [
+    "packages/view-dom/src/editor-view.ts:1796 lineDOM.dataset.line=String(line.number)",
+    "packages/view-dom/src/source-document-view.ts:3626 lineDOM.dataset.line=String(line.number)"
+  ],
+  "oldHarnessSha256": "fb81e937395ff7ca5c06548ddf0ca9ff1b62b1e6f13ea7b700841f68186edd03",
+  "newHarnessSha256": "e9eaff90a22b69603a0dd26b33c4a7df9ecabbc3a04f1f37a90f2fde07e74cc2",
+  "preservedSamples": 22,
+  "preservedFailures": [
+    "ordinary-source-light-1280x800-100-code-End",
+    "ordinary-source-light-1280x800-125-code-End",
+    "ordinary-source-light-1280x800-150-code-End",
+    "ordinary-source-light-1280x800-200-code-End"
+  ],
+  "remainingFixtureFailures": "fetch failed caused by intentionally stopping owned driver after setup error identified",
+  "finalFiles": [
+    {
+      "file": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-01/ordinary-source.md",
+      "expected": "02006fb2f1010f81aae43bf32dcbb306f1b06446ce041c339122608c3d72ac3f",
+      "actual": "02006fb2f1010f81aae43bf32dcbb306f1b06446ce041c339122608c3d72ac3f",
+      "unchanged": true
+    },
+    {
+      "file": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-01/ordinary-live.md",
+      "expected": "02006fb2f1010f81aae43bf32dcbb306f1b06446ce041c339122608c3d72ac3f",
+      "actual": "02006fb2f1010f81aae43bf32dcbb306f1b06446ce041c339122608c3d72ac3f",
+      "unchanged": true
+    },
+    {
+      "file": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-01/windowed-source.md",
+      "expected": "248937e2f6e0bdda72d01bd9d9517a1a5e8a4f49c68a61c9e623631352292372",
+      "actual": "248937e2f6e0bdda72d01bd9d9517a1a5e8a4f49c68a61c9e623631352292372",
+      "unchanged": true
+    },
+    {
+      "file": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-01/windowed-live.md",
+      "expected": "248937e2f6e0bdda72d01bd9d9517a1a5e8a4f49c68a61c9e623631352292372",
+      "actual": "248937e2f6e0bdda72d01bd9d9517a1a5e8a4f49c68a61c9e623631352292372",
+      "unchanged": true
+    }
+  ],
+  "productConclusion": "none; fresh complete matrix02 required",
+  "actualPixelInspection": {
+    "file": "/workspace/milkup-p7-quality-evidence/milestone01/native-ui/runs/p7-candidate-03-matrix-01/ordinary-source-light-1280x800-100-code-End.png",
+    "sha256": "ec7635987c174d395f18f3cbe71a4b93bff2336fcaac60ff5f71693b6bce328e",
+    "viewed": true,
+    "observation": "Original1280x800 screenshot visibly places green caret immediately after opening ```javascript fence; long console source is the next row. Supports wrong harness target, not long-code End product failure."
+  }
+}

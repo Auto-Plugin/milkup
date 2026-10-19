@@ -1,3 +1,4 @@
+import { sealWorkerFixture } from '../helpers/sealed-plugin-fixture'
 import { expect, test, type Page } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
@@ -16,7 +17,12 @@ async function fixture(page: Page): Promise<void> {
     platform: 'browser',
     alias: { '@milkup/plugin-sdk': resolve('packages/plugin-sdk/src/index.js') },
   })
-  manifest.main = 'data:text/javascript,' + encodeURIComponent(bundle.outputFiles[0]!.text)
+  await sealWorkerFixture(
+    page,
+    manifest,
+    '/plugins/workspace/plugin.json',
+    bundle.outputFiles[0]!.text,
+  )
   await page.addInitScript(
     ({ manifest }) => {
       const state: WorkspaceFixture = { calls: [], chosen: 0, opened: 0, chooseDelay: 180 }
@@ -77,6 +83,8 @@ async function fixture(page: Page): Promise<void> {
         manifestPath: '/plugins/workspace/plugin.json',
         rootPath: '/plugins/workspace',
         sourcePath: '/plugins/workspace/plugin.json',
+        dataRoot: `milkup://plugin-data/${manifest.id}`,
+        storageRoot: `milkup://plugin-storage/${manifest.id}`,
         state: 'installed',
         enabled: false,
         installedAt: 1,

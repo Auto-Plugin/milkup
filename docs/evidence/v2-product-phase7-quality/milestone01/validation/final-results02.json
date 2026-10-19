@@ -1,0 +1,84 @@
+{
+  "steps": [
+    {
+      "name": "workspace-tests",
+      "command": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "--config.verify-deps-before-run=false",
+        "--config.manage-package-manager-versions=false",
+        "test"
+      ],
+      "exitCode": 1,
+      "elapsedSeconds": 71.25448821000464,
+      "startedAt": "2026-10-19T11:21:34.541614+00:00",
+      "finishedAt": "2026-10-19T11:22:45.796284+00:00",
+      "log": "/workspace/milkup-p7-quality-evidence/milestone01/validation/final-workspace-tests-02.log"
+    },
+    {
+      "name": "workspace-types",
+      "command": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "--config.verify-deps-before-run=false",
+        "--config.manage-package-manager-versions=false",
+        "typecheck"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 35.98438122001244,
+      "startedAt": "2026-10-19T11:22:45.800934+00:00",
+      "finishedAt": "2026-10-19T11:23:21.785409+00:00",
+      "log": "/workspace/milkup-p7-quality-evidence/milestone01/validation/final-workspace-types-02.log"
+    },
+    {
+      "name": "version",
+      "command": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "--config.verify-deps-before-run=false",
+        "--config.manage-package-manager-versions=false",
+        "version:check"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.5812204549874878,
+      "startedAt": "2026-10-19T11:23:21.787469+00:00",
+      "finishedAt": "2026-10-19T11:23:22.368694+00:00",
+      "log": "/workspace/milkup-p7-quality-evidence/milestone01/validation/final-version-02.log"
+    },
+    {
+      "name": "workspace-build",
+      "command": [
+        "bash",
+        "scripts/cloud/pnpm.sh",
+        "--config.verify-deps-before-run=false",
+        "--config.manage-package-manager-versions=false",
+        "build"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 31.246030388007057,
+      "startedAt": "2026-10-19T11:23:22.369257+00:00",
+      "finishedAt": "2026-10-19T11:23:53.615349+00:00",
+      "log": "/workspace/milkup-p7-quality-evidence/milestone01/validation/final-workspace-build-02.log"
+    },
+    {
+      "name": "diff-check",
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "HEAD"
+      ],
+      "exitCode": 0,
+      "elapsedSeconds": 0.1341164319892414,
+      "startedAt": "2026-10-19T11:23:53.622796+00:00",
+      "finishedAt": "2026-10-19T11:23:53.756920+00:00",
+      "log": "/workspace/milkup-p7-quality-evidence/milestone01/validation/final-diff-check-02.log"
+    }
+  ],
+  "allPassed": false,
+  "environmentOverrides": {
+    "NPM_CONFIG_VERIFY_DEPS_BEFORE_RUN": "false",
+    "NPM_CONFIG_MANAGE_PACKAGE_MANAGER_VERSIONS": "false"
+  },
+  "scope": "Non-GUI validation only. No corrective edits. Repository source drift must be evaluated using before/after records; generated build outputs are expected."
+}

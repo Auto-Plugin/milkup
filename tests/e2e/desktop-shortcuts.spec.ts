@@ -1,3 +1,4 @@
+import { sealWorkerFixture } from '../helpers/sealed-plugin-fixture'
 import { expect, test, type Page } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
@@ -12,7 +13,12 @@ async function fixture(page: Page, failPersistence = false) {
     platform: 'browser',
     alias: { '@milkup/plugin-sdk': resolve('packages/plugin-sdk/src/index.js') },
   })
-  manifest.main = 'data:text/javascript,' + encodeURIComponent(bundle.outputFiles[0]!.text)
+  await sealWorkerFixture(
+    page,
+    manifest,
+    '/plugins/shortcuts/plugin.json',
+    bundle.outputFiles[0]!.text,
+  )
   await page.addInitScript(
     ({ manifest, failPersistence }) => {
       if (!sessionStorage.getItem('shortcuts-fixture')) {
@@ -26,6 +32,8 @@ async function fixture(page: Page, failPersistence = false) {
                 manifestPath: '/plugins/shortcuts/plugin.json',
                 rootPath: '/plugins/shortcuts',
                 sourcePath: '/plugins/shortcuts/plugin.json',
+                dataRoot: `milkup://plugin-data/${manifest.id}`,
+                storageRoot: `milkup://plugin-storage/${manifest.id}`,
                 state: 'installed',
                 enabled: false,
                 installedAt: 1,
@@ -195,18 +203,25 @@ test('shadowed plugin defaults retain their context after user rebinding and res
         platform: 'browser',
         alias: { '@milkup/plugin-sdk': resolve('packages/plugin-sdk/src/index.js') },
       })
-      return {
+      const manifest = {
         id: `shadow-${name}`,
         name: `Shadow ${name}`,
         version: '1.0.0',
         host: 'worker',
         permissions: ['document:write'],
-        main: 'data:text/javascript,' + encodeURIComponent(output.outputFiles[0]!.text),
+        main: './dist/plugin.js',
         contributes: {
           commands: [{ id: `shadow.${name}`, title: `Shadow ${name}`, action: `shadow.${name}` }],
           keymaps: [{ command: `shadow.${name}`, key: 'Mod+K', when: 'editorFocus && sourceMode' }],
         },
       }
+      await sealWorkerFixture(
+        page,
+        manifest,
+        `/plugins/${manifest.id}/plugin.json`,
+        output.outputFiles[0]!.text,
+      )
+      return manifest
     }),
   )
   await page.evaluate((manifests) => {
@@ -217,6 +232,8 @@ test('shadowed plugin defaults retain their context after user rebinding and res
         manifestPath: `/plugins/${manifest.id}/plugin.json`,
         rootPath: `/plugins/${manifest.id}`,
         sourcePath: `/plugins/${manifest.id}/plugin.json`,
+        dataRoot: `milkup://plugin-data/${manifest.id}`,
+        storageRoot: `milkup://plugin-storage/${manifest.id}`,
         state: 'enabled',
         enabled: true,
         installedAt: index + 2,

@@ -1,0 +1,85 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/view-dom
+
+ ❯ src/__tests__/p7-input-audit.test.ts (46 tests | 4 failed) 911ms
+   ✓ P7 source input boundaries > requests backward navigation from both input and root without duplicating bubbled keys 184ms
+   × P7 source input boundaries > ordinary readonly editor allows Tab without editing 19ms
+     → expected true to be false // Object.is equality
+   × P7 source input boundaries > ordinary readonly editor allows Shift+Tab without editing 18ms
+     → expected true to be false // Object.is equality
+   ✓ P7 source input boundaries > windowed readonly editor allows Tab without editing 3ms
+   ✓ P7 source input boundaries > windowed readonly editor allows Shift+Tab without editing 4ms
+   ✓ P7 source input boundaries > does not steal focus after deferred Tab and focus changes 19ms
+   ✓ P7 source input boundaries > does not steal focus after deferred Tab and selection changes 27ms
+   ✓ P7 source input boundaries > does not steal focus after deferred Tab and document-roundtrip changes 19ms
+   ✓ P7 source input boundaries > does not steal focus after deferred Tab and composition changes 17ms
+   ✓ P7 source input boundaries > does not steal focus after deferred Tab and destroy changes 20ms
+   ✓ P7 source input boundaries > preserves list Tab editing when host focus navigation is configured 28ms
+   ✓ P7 source input boundaries > preserves long-fence Tab editing when host focus navigation is configured 22ms
+   ✓ P7 source input boundaries > preserves multiline Tab editing when host focus navigation is configured 32ms
+   ✓ P7 source input boundaries > preserves table Tab editing when host focus navigation is configured 40ms
+   ✓ P7 source input boundaries > ordinary plain paragraph preserves Tab focus navigation 5ms
+   ✓ P7 source input boundaries > windowed plain paragraph preserves Tab focus navigation 16ms
+   ✓ P7 source input boundaries > ordinary plain paragraph preserves Shift+Tab focus navigation 3ms
+   ✓ P7 source input boundaries > windowed plain paragraph preserves Shift+Tab focus navigation 14ms
+   ✓ P7 source input boundaries > does not commit queued composition after document-switch 27ms
+   ✓ P7 source input boundaries > does not commit queued composition after document-roundtrip 13ms
+   ✓ P7 source input boundaries > does not commit queued composition after destroy 9ms
+   ✓ P7 source input boundaries > does not apply an old compositionend delivered after a document switch 14ms
+   ✓ P7 source input boundaries > commits a new composition session after switching documents with isolated history 20ms
+   ✓ P7 live input boundaries > requests backward navigation from both input and root without duplicating bubbled keys 25ms
+   × P7 live input boundaries > ordinary readonly editor allows Tab without editing 8ms
+     → expected true to be false // Object.is equality
+   × P7 live input boundaries > ordinary readonly editor allows Shift+Tab without editing 4ms
+     → expected true to be false // Object.is equality
+   ✓ P7 live input boundaries > windowed readonly editor allows Tab without editing 5ms
+   ✓ P7 live input boundaries > windowed readonly editor allows Shift+Tab without editing 5ms
+   ✓ P7 live input boundaries > does not steal focus after deferred Tab and focus changes 18ms
+   ✓ P7 live input boundaries > does not steal focus after deferred Tab and selection changes 29ms
+   ✓ P7 live input boundaries > does not steal focus after deferred Tab and document-roundtrip changes 19ms
+   ✓ P7 live input boundaries > does not steal focus after deferred Tab and composition changes 13ms
+   ✓ P7 live input boundaries > does not steal focus after deferred Tab and destroy changes 21ms
+   ✓ P7 live input boundaries > preserves list Tab editing when host focus navigation is configured 27ms
+   ✓ P7 live input boundaries > preserves long-fence Tab editing when host focus navigation is configured 23ms
+   ✓ P7 live input boundaries > preserves multiline Tab editing when host focus navigation is configured 29ms
+   ✓ P7 live input boundaries > preserves table Tab editing when host focus navigation is configured 26ms
+   ✓ P7 live input boundaries > ordinary plain paragraph preserves Tab focus navigation 2ms
+   ✓ P7 live input boundaries > windowed plain paragraph preserves Tab focus navigation 9ms
+   ✓ P7 live input boundaries > ordinary plain paragraph preserves Shift+Tab focus navigation 2ms
+   ✓ P7 live input boundaries > windowed plain paragraph preserves Shift+Tab focus navigation 9ms
+   ✓ P7 live input boundaries > does not commit queued composition after document-switch 13ms
+   ✓ P7 live input boundaries > does not commit queued composition after document-roundtrip 8ms
+   ✓ P7 live input boundaries > does not commit queued composition after destroy 6ms
+   ✓ P7 live input boundaries > does not apply an old compositionend delivered after a document switch 11ms
+   ✓ P7 live input boundaries > commits a new composition session after switching documents with isolated history 17ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/p7-input-audit.test.ts > P7 source input boundaries > ordinary readonly editor allows Tab without editing
+ FAIL  src/__tests__/p7-input-audit.test.ts > P7 source input boundaries > ordinary readonly editor allows Shift+Tab without editing
+ FAIL  src/__tests__/p7-input-audit.test.ts > P7 live input boundaries > ordinary readonly editor allows Tab without editing
+ FAIL  src/__tests__/p7-input-audit.test.ts > P7 live input boundaries > ordinary readonly editor allows Shift+Tab without editing
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/__tests__/p7-input-audit.test.ts:84:44
+     82|             view.inputDOM.dispatchEvent(event)
+     83|             if (view instanceof SourceDocumentView) await view.flushPe…
+     84|             expect(event.defaultPrevented).toBe(false)
+       |                                            ^
+     85|             expect(onEdit).not.toHaveBeenCalled()
+     86|             if (view instanceof EditorView) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 42 passed (46)
+   Start at  10:39:04
+   Duration  2.56s (transform 635ms, setup 0ms, collect 838ms, tests 911ms, environment 548ms, prepare 78ms)
+

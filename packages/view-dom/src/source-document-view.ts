@@ -82,6 +82,13 @@ export interface SourceDocumentViewConfig {
   readonly mode?: ViewMode
   readonly editable?: boolean
   readonly onEdit?: SourceDocumentEditHandler
+  /** Resolve plain-paragraph Tab through the host's focus order after bounded context reads.
+   * With a handler, only the input proxy is a sequential Tab stop; the root remains
+   * programmatically focusable. Omit to retain standalone focus/indentation behavior. */
+  readonly onFocusNavigation?: (request: { readonly backward: boolean }) => void
+  /** Notify the host after a current Ctrl/Meta+Home/End reveal has completed.
+   * Omission preserves navigation without a host notification; not a plugin SDK hook. */
+  readonly onDocumentNavigation?: (edge: 'start' | 'end') => void
   readonly markdownContextLines?: number
   readonly markdownCacheSize?: number
   readonly backgroundMarkdownWarmup?: boolean
@@ -191,6 +198,9 @@ export class SourceDocumentView {
     this.storedSelectionAnchor = value
   }
   private readonly onEdit: SourceDocumentEditHandler | undefined
+  private readonly onFocusNavigation: SourceDocumentViewConfig['onFocusNavigation']
+  private readonly onDocumentNavigation: SourceDocumentViewConfig['onDocumentNavigation']
+  private documentNavigationRequestRevision = 0
   private readonly markdownContextLines: number
   private readonly markdownCacheSize: number
   private readonly backgroundMarkdownWarmup: boolean
@@ -200,6 +210,8 @@ export class SourceDocumentView {
   private markdownWarmupTimer: ReturnType<typeof setTimeout> | undefined
   private composing = false
   private compositionText = ''
+  private documentGeneration = 0
+  private compositionGeneration: number | undefined
   private compositionCommitQueue: Promise<void> = Promise.resolve()
   private compositionCommitError: unknown
   private visibleEditQueue: Promise<void> = Promise.resolve()
@@ -286,11 +298,13 @@ export class SourceDocumentView {
     void this.trackVisibleEditTask(() => this.readInputProxy())
   }
   private readonly handleCompositionStartEvent = (): void => {
+    this.compositionGeneration = this.documentGeneration
     this.composing = true
     this.compositionText = ''
     this.renderCompositionText()
   }
   private readonly handleCompositionUpdateEvent = (event: CompositionEvent): void => {
+    if (this.compositionGeneration !== this.documentGeneration) return
     this.composing = true
     this.compositionText = event.data
     this.renderCompositionText()
@@ -298,6 +312,8 @@ export class SourceDocumentView {
   private readonly handleCompositionEndEvent = (event: CompositionEvent): void => {
     // compositionend.data is authoritative, including cancellation's empty string.
     const text = event.data
+    const generation = this.compositionGeneration
+    this.compositionGeneration = undefined
     // Clear this synchronously so the next Enter/Delete is handled as an editor key,
     // even while the finalized IME text waits for an earlier native edit to finish.
     this.composing = false
@@ -305,11 +321,14 @@ export class SourceDocumentView {
     this.inputDOM.value = ''
     this.renderCompositionText()
     this.compositionCommitError = undefined
-    this.compositionCommitQueue = this.enqueueVisibleEdit(() => this.commitComposition(text)).catch(
-      (error: unknown) => {
-        this.compositionCommitError = error
-      },
-    )
+    this.compositionCommitQueue = this.enqueueVisibleEdit(async () => {
+      // A finalized composition belongs to the document where preedit started.
+      // Unlike a key, its final event may arrive after updateSource or destroy.
+      if (!this.destroyed && generation === this.documentGeneration)
+        await this.commitComposition(text)
+    }).catch((error: unknown) => {
+      this.compositionCommitError = error
+    })
   }
   private readonly handlePasteEvent = (event: ClipboardEvent): void => {
     if (event.defaultPrevented) {
@@ -434,6 +453,8 @@ export class SourceDocumentView {
     this.mode = config.mode ?? 'source'
     this.editable = config.editable ?? false
     this.onEdit = config.onEdit
+    this.onFocusNavigation = config.onFocusNavigation
+    this.onDocumentNavigation = config.onDocumentNavigation
     this.markdownContextLines = Math.max(
       0,
       Math.floor(config.markdownContextLines ?? defaultMarkdownContextLines),
@@ -459,7 +480,7 @@ export class SourceDocumentView {
     this.dom.className = 'milkup-editor milkup-source-document-view'
     this.dom.dataset.mode = this.mode
     this.dom.dataset.editable = String(this.editable)
-    this.dom.tabIndex = 0
+    this.dom.tabIndex = config.onFocusNavigation ? -1 : 0
     this.contentDOM = this.ownerDocument.createElement('div')
     this.contentDOM.className = 'milkup-editor-content'
     this.contentDOM.setAttribute('role', 'textbox')
@@ -669,6 +690,11 @@ export class SourceDocumentView {
       this.currentSource.length ?? this.selectionAnchor,
     )
     if (documentChanged) {
+      this.documentGeneration += 1
+      this.compositionGeneration = undefined
+      this.composing = false
+      this.compositionText = ''
+      this.inputDOM.value = ''
       this.cursorPosition = 0
       this.selectionAnchor = 0
       this.dom.scrollTop = 0
@@ -1723,15 +1749,51 @@ export class SourceDocumentView {
       (event.ctrlKey || event.metaKey) &&
       (event.key === 'Home' || event.key === 'End')
     ) {
+      const generation = this.documentGeneration
+      const requestRevision = ++this.documentNavigationRequestRevision
+      const edge = event.key === 'Home' ? 'start' : 'end'
+      const requestCurrent = () =>
+        !this.destroyed &&
+        generation === this.documentGeneration &&
+        requestRevision === this.documentNavigationRequestRevision
       void this.trackVisibleEditTask(async () => {
+        if (!requestCurrent()) return
         await this.flushPendingVisibleEdit()
-        const number = event.key === 'Home' ? 1 : this.currentSource.lineCount
-        const line = await this.readSourceLine(number)
-        const head = event.key === 'Home' ? line.from : line.to
-        await this.revealSelection(
-          number,
-          Selection.range(event.shiftKey ? this.selectionAnchor : head, head),
-        )
+        if (!requestCurrent()) return
+        // A preceding queued edit may replace the source or advance its version.
+        // Snapshot it only once that edit has committed.
+        const source = this.currentSource
+        const documentId = source.documentId
+        const version = source.version
+        const current = () =>
+          requestCurrent() &&
+          source === this.currentSource &&
+          documentId === source.documentId &&
+          version === source.version
+        const number = edge === 'start' ? 1 : source.lineCount
+        let line: SourceLine
+        try {
+          line = await this.readSourceLine(number)
+        } catch (error) {
+          if (!current()) return
+          throw error
+        }
+        if (!current()) return
+        const head = edge === 'start' ? line.from : line.to
+        const anchor = event.shiftKey ? this.selectionAnchor : head
+        try {
+          await this.revealSelection(number, Selection.range(anchor, head), {
+            assertCurrent: () => {
+              if (!current())
+                throw new DOMException('Document navigation invalidated', 'AbortError')
+            },
+          })
+        } catch (error) {
+          if (!current() || (error instanceof DOMException && error.name === 'AbortError')) return
+          throw error
+        }
+        if (current() && this.selectionAnchor === anchor && this.cursorPosition === head)
+          this.onDocumentNavigation?.(edge)
       })
       return true
     }
@@ -1776,10 +1838,24 @@ export class SourceDocumentView {
     }
 
     if (event.key === 'Tab' || (event.key === 'Unidentified' && event.code === 'Tab')) {
+      const generation = this.documentGeneration
+      const selectionRevision = this.selectionGeneration
+      const focused = this.ownerDocument.activeElement
+      const navigate = () => {
+        if (
+          !this.destroyed &&
+          !this.composing &&
+          generation === this.documentGeneration &&
+          selectionRevision === this.selectionGeneration &&
+          this.ownerDocument.activeElement === focused &&
+          (focused === this.inputDOM || focused === this.dom)
+        )
+          this.onFocusNavigation?.({ backward: event.shiftKey })
+      }
       void this.trackVisibleEditTask(() =>
         this.localTable()
           ? this.applyTableCommand(event.shiftKey ? 'previous' : 'next')
-          : this.indentBlock(event.shiftKey),
+          : this.indentBlock(event.shiftKey, navigate),
       )
       return true
     }
@@ -2851,7 +2927,7 @@ export class SourceDocumentView {
     await this.applyVisibleEdit(range.from, range.to, newline + indent, 'isolate')
   }
 
-  private async indentBlock(outdent: boolean): Promise<void> {
+  private async indentBlock(outdent: boolean, navigate: () => void): Promise<void> {
     const range = this.getSelectedRange()
     const context = await this.blockContext(range.from)
     if (!context) return
@@ -2861,6 +2937,19 @@ export class SourceDocumentView {
       this.findRenderedSourceLineAtPosition(lastPosition) ??
       (await this.currentSource.lineAtPosition(lastPosition))
     if (!context.current()) return
+    if (
+      this.onFocusNavigation &&
+      !context.code &&
+      !listEditingPrefix(first.text) &&
+      // Source-mode pipe rows do not have a live table context. Preserve their
+      // existing structural Tab path rather than treating them as prose.
+      !pipeLine(first.text) &&
+      first.number === last.number &&
+      !/^[ \t]+/u.test(first.text)
+    ) {
+      navigate()
+      return
+    }
     if (
       !outdent &&
       context.code &&
