@@ -17,9 +17,12 @@ export function registerPluginRenderAuthority(endpoint: object, authority: Autho
 /** Host-only transport facade. The subscription must originate in a trusted
  * native/Worker owner, never in child data or plugin-provided configuration. */
 export function createTrustedPluginRenderEndpoint(
-  transport: PluginIsolationRpcEndpoint & { close?(): void; readonly instanceId?: string },
+  transport: PluginIsolationRpcEndpoint & {
+    close?(): void | Promise<void>
+    readonly instanceId?: string
+  },
   subscribe: Authority['subscribe'],
-): PluginIsolationRpcEndpoint & { close?(): void; readonly instanceId?: string } {
+): PluginIsolationRpcEndpoint & { close?(): void | Promise<void>; readonly instanceId?: string } {
   const endpoint = Object.freeze({
     postMessage: (message: unknown) => transport.postMessage(message),
     ...(transport.addEventListener

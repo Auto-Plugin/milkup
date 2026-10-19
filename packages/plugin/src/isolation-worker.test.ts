@@ -1145,3 +1145,328 @@ function createEditor(text: string, selection = Selection.cursor(text.length)): 
     }),
   )
 }
+
+describe('worker transaction boundaries', () => {
+  it.each(['error', 'messageerror'])(
+    'revokes a ready ordinary worker on %s and rejects pending RPC',
+    async (type) => {
+      class OrdinaryWorker extends EventTarget {
+        postMessage = vi.fn()
+        terminate = vi.fn()
+      }
+      const worker = new OrdinaryWorker(),
+        onIsolationError = vi.fn()
+      const owner = createBrowserWorkerPluginHost({
+        worker,
+        manifest: commandManifest(),
+        moduleSpecifier: './test.js',
+        onIsolationError,
+      })
+      worker.dispatchEvent(
+        new MessageEvent('message', {
+          data: { protocol: 'milkup.plugin.worker.init.v1', type: 'ready' },
+        }),
+      )
+      await owner.ready
+      const pending = owner.host.activate({
+        pluginId: 'worker-tools',
+        manifest: commandManifest(),
+        permissions: [],
+        hostCapabilities: [],
+      })
+      worker.dispatchEvent(new Event(type))
+      await expect(pending).rejects.toThrow('disposed')
+      expect(onIsolationError).toHaveBeenCalledOnce()
+      expect(worker.terminate).toHaveBeenCalledOnce()
+      worker.dispatchEvent(new Event(type))
+      expect(onIsolationError).toHaveBeenCalledOnce()
+      await expect(
+        owner.host.activate({
+          pluginId: 'worker-tools',
+          manifest: commandManifest(),
+          permissions: [],
+          hostCapabilities: [],
+        }),
+      ).rejects.toThrow('disposed')
+    },
+  )
+
+  it('blocks persistent/raw worker capabilities before module top-level execution', async () => {
+    const { main, worker } = createEndpointPair()
+    const raw = worker as unknown as Record<string, any>
+    raw.indexedDB = { open: vi.fn() }
+    raw.caches = { open: vi.fn() }
+    raw.navigator = { storage: { getDirectory: vi.fn() }, locks: {} }
+    const check = vi.fn(() => {
+      expect(() => raw.indexedDB).toThrow('not brokered')
+      expect(() => raw.caches).toThrow('not brokered')
+      expect(() => raw.navigator.storage).toThrow('not brokered')
+      expect(() => new raw.BroadcastChannel('escape')).toThrow('not brokered')
+      expect(() => Object.defineProperty(raw, 'Worker', { value: class {} })).toThrow()
+      return { default: {} }
+    })
+    const realm = initializePluginWorkerRealm(worker, { importModule: check })
+    const owner = createBrowserWorkerPluginHost({
+      worker: main,
+      manifest: commandManifest(),
+      moduleSpecifier: './test.js',
+    })
+    try {
+      await owner.ready
+      expect(check).toHaveBeenCalledOnce()
+    } finally {
+      owner.dispose()
+      realm.dispose()
+    }
+  })
+
+  it('keeps a rejected top-level fetch violation sticky across an attempted host commit', async () => {
+    const { main, worker } = createEndpointPair()
+    let committed = false
+    const fetch = vi.fn(async () => ({ ok: true }))
+    const realm = initializePluginWorkerRealm(worker, {
+      importModule: async () => {
+        await expect(
+          (worker as unknown as { fetch: (url: string) => Promise<unknown> }).fetch(
+            'https://api.example.test/data',
+          ),
+        ).rejects.toThrow('not committed')
+        return { default: {} }
+      },
+    })
+    const owner = createBrowserWorkerPluginHost({
+      worker: main,
+      manifest: networkCommandManifest(),
+      moduleSpecifier: './test.js',
+      restrictedActivation: true,
+      isActivationCommitted: () => committed,
+      networkBroker: { fetch },
+    })
+    try {
+      await owner.ready
+      expect(fetch).not.toHaveBeenCalled()
+      committed = true
+      await expect(
+        (worker as unknown as { fetch: (url: string) => Promise<unknown> }).fetch(
+          'https://api.example.test/data',
+        ),
+      ).rejects.toThrow('not committed')
+      expect(fetch).not.toHaveBeenCalled()
+    } finally {
+      owner.dispose()
+      realm.dispose()
+    }
+  })
+})
+
+it('permits candidate settings/data reads but rejects persistent initialization writes and remembers them', async () => {
+  const { main, worker } = createEndpointPair()
+  const manifest: PluginManifest = {
+    id: 'readonly-trial',
+    name: 'Trial',
+    version: '1.0.0',
+    permissions: ['settings:write'],
+  }
+  let captured!: import('./runtime').RestrictedPluginHost
+  const violation = vi.fn(),
+    write = vi.fn(async () => {}),
+    begin = vi.fn()
+  let committed = false
+  const realm = initializePluginWorkerRealm(worker, {
+    importModule: () => ({
+      activate: ({ host }: { host: typeof captured }) => {
+        captured = host
+      },
+    }),
+  })
+  const owner = createBrowserWorkerPluginHost({
+    worker: main,
+    manifest,
+    moduleSpecifier: './trial.js',
+    restrictedActivation: true,
+    isActivationCommitted: () => committed,
+    onActivationViolation: violation,
+    storageBroker: { getItem: async () => 'original bytes', setItem: write, removeItem: write },
+    settingsBroker: {
+      describe: async () => ({
+        schema: { enabled: { type: 'boolean' as const } },
+        defaults: { enabled: true },
+      }),
+      get: async () => ({
+        revision: 0,
+        schema: { enabled: { type: 'boolean' as const } },
+        defaults: { enabled: true },
+        values: { enabled: true },
+      }),
+      begin,
+      preview: vi.fn(),
+      commit: vi.fn(),
+      cancel: vi.fn(async () => {}),
+    },
+  })
+  try {
+    await owner.ready
+    await owner.host.activate({
+      pluginId: manifest.id,
+      manifest,
+      permissions: manifest.permissions!,
+      hostCapabilities: ['storage', 'settings:write'],
+    })
+    expect(await captured.storage!.getItem('key')).toBe('original bytes')
+    expect(await captured.settings!.get('plugin')).toMatchObject({
+      revision: 0,
+      values: { enabled: true },
+    })
+    await expect(captured.storage!.setItem('key', 'changed')).rejects.toThrow('not committed')
+    await expect(captured.settings!.begin('plugin')).rejects.toBeDefined()
+    committed = true
+    await expect(captured.storage!.removeItem('key')).rejects.toThrow('not committed')
+    expect(write).not.toHaveBeenCalled()
+    expect(begin).not.toHaveBeenCalled()
+    expect(violation).toHaveBeenCalledOnce()
+  } finally {
+    owner.dispose()
+    realm.dispose()
+  }
+})
+
+it('seals native prototype entry points before top-level plugin evaluation', async () => {
+  const { main, worker } = createEndpointPair()
+  const prototype = Object.create(Object.getPrototypeOf(worker))
+  const nativeFetch = vi.fn()
+  Object.defineProperty(prototype, 'fetch', { configurable: true, value: nativeFetch })
+  Object.defineProperty(prototype, 'indexedDB', {
+    configurable: true,
+    get: () => ({ open: vi.fn() }),
+  })
+  Object.setPrototypeOf(worker, prototype)
+  const realm = initializePluginWorkerRealm(worker, {
+    importModule: () => {
+      expect(() => prototype.fetch()).toThrow('not allowed')
+      expect(() => prototype.indexedDB).toThrow('not brokered')
+      expect(() => Object.defineProperty(prototype, 'fetch', { value: nativeFetch })).toThrow()
+      return {}
+    },
+  })
+  const owner = createBrowserWorkerPluginHost({
+    worker: main,
+    manifest: commandManifest(),
+    moduleSpecifier: './trial.js',
+  })
+  try {
+    await owner.ready
+    expect(nativeFetch).not.toHaveBeenCalled()
+  } finally {
+    owner.dispose()
+    realm.dispose()
+  }
+})
+
+it('retires via one trusted owner instead of racing remote dispose RPC against transport close', async () => {
+  const { main, worker } = createEndpointPair()
+  const terminate = vi.spyOn(main, 'terminate')
+  const manifest = commandManifest()
+  const realm = initializePluginWorkerRealm(worker, { importModule: () => ({}) })
+  const owner = createBrowserWorkerPluginHost({
+    worker: main,
+    manifest,
+    moduleSpecifier: './plugin.js',
+  })
+  await owner.ready
+  const runtime = new PluginRuntime({ allowedPermissions: ['document:write'] })
+  runtime.loadPlugin({
+    manifest,
+    module: createIsolatedPluginModule({
+      manifest,
+      host: owner.host,
+      disposeIsolation: () => owner.dispose(),
+    }),
+  })
+  await runtime.enablePlugin(manifest.id)
+  const [disabled] = await Promise.all([runtime.disablePlugin(manifest.id), owner.dispose()])
+  expect(disabled.errors.filter((error) => error.phase === 'disable')).toEqual([])
+  expect(terminate).toHaveBeenCalledOnce()
+  realm.dispose()
+})
+
+it('retries only failed owner termination without enabling the retired RPC again', async () => {
+  const { main, worker } = createEndpointPair()
+  const terminate = vi.spyOn(main, 'terminate').mockImplementationOnce(() => {
+    throw new Error('terminate failed')
+  })
+  const realm = initializePluginWorkerRealm(worker, { importModule: () => ({}) })
+  const owner = createBrowserWorkerPluginHost({
+    worker: main,
+    manifest: commandManifest(),
+    moduleSpecifier: './plugin.js',
+  })
+  await owner.ready
+  const first = owner.dispose()
+  await expect(first).rejects.toThrow('cleanup failed')
+  await owner.retryDispose()
+  await expect(first).rejects.toThrow('cleanup failed')
+  expect(terminate).toHaveBeenCalledTimes(2)
+  await expect(
+    owner.host.activate({
+      pluginId: 'worker-tools',
+      manifest: commandManifest(),
+      permissions: [],
+      hostCapabilities: [],
+    }),
+  ).rejects.toThrow('disposed')
+  realm.dispose()
+})
+
+it('permits candidate broker file reads without widening roots or allowing file writes', async () => {
+  const { main, worker } = createEndpointPair()
+  const manifest: PluginManifest = {
+    ...fileCommandManifest(),
+    permissions: ['file:read', 'file:write', 'file:delete'],
+  }
+  const adapter = createMemoryFileAdapter({ '/data/current.txt': 'existing data' })
+  let captured!: import('./runtime').RestrictedPluginHost
+  let committed = false
+  const violation = vi.fn()
+  const realm = initializePluginWorkerRealm(worker, {
+    importModule: () => ({
+      activate: ({ host }: { host: typeof captured }) => {
+        captured = host
+      },
+    }),
+  })
+  const owner = createBrowserWorkerPluginHost({
+    worker: main,
+    manifest,
+    moduleSpecifier: './trial.js',
+    restrictedActivation: true,
+    isActivationCommitted: () => committed,
+    onActivationViolation: violation,
+    fileBroker: createPluginFileBroker({
+      manifest,
+      roots: [{ id: 'data', path: '/data' }],
+      adapter,
+    }),
+  })
+  try {
+    await owner.ready
+    await owner.host.activate({
+      pluginId: manifest.id,
+      manifest,
+      permissions: manifest.permissions!,
+      hostCapabilities: ['file:read', 'file:write', 'file:delete'],
+    })
+    expect(await captured.readText!('/data/current.txt')).toBe('existing data')
+    await expect(captured.readText!('/private/secret.txt')).rejects.toThrow()
+    expect(violation).not.toHaveBeenCalled()
+    await expect(captured.writeText!('/data/current.txt', 'bad')).rejects.toThrow('not committed')
+    committed = true
+    await expect(captured.deleteFile!('/data/current.txt')).rejects.toThrow('not committed')
+    expect(adapter.readText).toHaveBeenCalledExactlyOnceWith('/data/current.txt')
+    expect(adapter.writeText).not.toHaveBeenCalled()
+    expect(adapter.deleteFile).not.toHaveBeenCalled()
+    expect(violation).toHaveBeenCalledOnce()
+  } finally {
+    await owner.dispose()
+    realm.dispose()
+  }
+})

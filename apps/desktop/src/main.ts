@@ -2,7 +2,13 @@ import { LargeDocumentSource } from './large-document-source'
 import { locateDocumentPresentationTarget } from './document-navigation'
 import { createDesktopDocumentPresentationService } from './document-presentation-service'
 import { createDesktopOutputService } from './output-service'
-import { renderDesktopPluginManagerElement } from './desktop-plugin-manager-ui'
+import {
+  renderDesktopPluginManagerElement,
+  revealDesktopPluginDetails,
+} from './desktop-plugin-manager-ui'
+import { createDesktopPluginCatalog } from './desktop-plugin-catalog'
+import { validateClosedWorkerBundle } from './closed-worker-bundle'
+import { createDesktopPluginWorker } from './plugin-worker-factory'
 import { loadDesktopPluginIcon } from './plugin-icon'
 import { zoomLevels, type ThemePreference } from './appearance'
 import { createDesktopSettingsService } from './settings-service'
@@ -155,7 +161,7 @@ import {
   createDesktopPluginActions,
   DesktopPluginManager,
   resolvePluginEntryPath,
-  type DesktopPreparedPluginModule,
+  type DesktopPluginManifestHost,
 } from './desktop-plugin-manager'
 import { DesktopPluginUiController } from './desktop-plugin-ui'
 import {
@@ -1239,6 +1245,7 @@ const protectedInstallGate = createProtectedInstallGate({
 
 const desktopActionRegistry = new ActionRegistry(createDesktopActions())
 const desktopActionPermissions = Object.freeze([
+  'app:plugins',
   'app:control',
   'app:updates',
   'workspace:read',
@@ -1317,6 +1324,7 @@ const desktopOutput = createDesktopOutputService({
     desktopPluginManager.renderDocument(pluginId, rendererId, request, options),
 })
 const desktopPluginManager: DesktopPluginManager = new DesktopPluginManager({
+  ...(isTauriRuntime() ? { catalog: createDesktopPluginCatalog(recoveryInvoke) } : {}),
   actionRegistry: desktopActionRegistry,
   manifestHost: createDesktopPluginManifestHost(),
   permissions: desktopActionPermissions,
@@ -1327,6 +1335,32 @@ const desktopPluginManager: DesktopPluginManager = new DesktopPluginManager({
   resourcesAdapter: (manifest) => resourceService.adapterForPlugin(manifest.id),
   outputAdapter: (manifest) => desktopOutput.adapterForPlugin(manifest.id),
   openUi: (pluginId, viewId) => desktopPluginUi.open(pluginId, viewId),
+  requestManagementHostView: async (input, context) => {
+    context.assertActive()
+    const target = appRoot.querySelector<HTMLElement>('[data-plugin-manager]')
+    if (!target) return { status: 'cancelled' }
+    // Navigate from a controlled modal to the trusted safety shell. This does
+    // not approve, install, change settings, or invoke lifecycle actions.
+    const modals = Array.from(appRoot.querySelectorAll<HTMLElement>('.plugin-ui-modal')).flatMap(
+      (modal) => {
+        const contribution = desktopPluginManager
+          .state()
+          .contributions.ui.find((item) => `${item.pluginId}:${item.id}` === modal.dataset.pluginUi)
+        return contribution ? [contribution] : []
+      },
+    )
+    setMenuOpen(true)
+    showMenuSection('plugins')
+    renderPluginManager()
+    if (!revealDesktopPluginDetails(target, input.pluginId, input.view))
+      return { status: 'cancelled' }
+    // Deliver the successful navigation response before disposing its source
+    // view, whose cancellation would otherwise abort its own navigation RPC.
+    setTimeout(() => {
+      void Promise.allSettled(modals.map((item) => desktopPluginUi.close(item.pluginId, item.id)))
+    }, 0)
+    return { status: 'opened' }
+  },
   notifyUi: (_pluginId, notification) => {
     importantNotice = true
     notice = notification.message
@@ -1548,7 +1582,18 @@ appRoot.querySelector<HTMLElement>('[data-plugin-manager]')?.addEventListener('c
       runDesktopAction('plugin.export', { pluginId })
       break
     case 'approve':
-      runDesktopAction('plugin.approve', { pluginId })
+      runDesktopAction('plugin.approve', {
+        pluginId,
+        fingerprint: button.dataset.pluginFingerprint,
+        reviewedRevision: Number(button.dataset.pluginEntryRevision),
+      })
+      break
+    case 'reject-candidate':
+      runDesktopAction('plugin.rejectCandidate', {
+        pluginId,
+        fingerprint: button.dataset.pluginFingerprint,
+        reviewedRevision: Number(button.dataset.pluginEntryRevision),
+      })
       break
     case 'revoke-approval':
       runDesktopAction('plugin.revokeApproval', { pluginId })
@@ -3736,30 +3781,7 @@ function renderPluginManager(): void {
   }
 }
 
-function createDesktopPluginManifestHost(): {
-  readonly selectManifestPath: () => Promise<string | undefined>
-  readonly readManifestText: (path: string) => Promise<string>
-  readonly readPackageIcon: (pluginId: string) => Promise<Uint8Array>
-  readonly prepareModule: (
-    manifest: PluginManifest,
-    manifestPath: string,
-    main: string,
-  ) => Promise<DesktopPreparedPluginModule>
-  readonly selectPackageExportPath: (suggestedName: string) => Promise<string | undefined>
-  readonly writeText: (path: string, text: string) => Promise<void>
-  readonly installPackage: (archive: import('@milkup/plugin').PluginPackageArchive) => Promise<{
-    readonly manifestPath: string
-    readonly rootPath: string
-    readonly dataRoot: string
-    readonly storageRoot: string
-  }>
-  readonly ensureDataDirectories: (pluginId: string) => Promise<{
-    readonly packageRoot: string
-    readonly dataRoot: string
-    readonly storageRoot: string
-  }>
-  readonly removeInstalledPackage: (pluginId: string) => Promise<void>
-} {
+function createDesktopPluginManifestHost(): DesktopPluginManifestHost {
   return {
     async selectManifestPath(): Promise<string | undefined> {
       if (!isTauriRuntime()) {
@@ -3790,28 +3812,32 @@ function createDesktopPluginManifestHost(): {
       const { invoke } = await import('@tauri-apps/api/core')
       return new Uint8Array(await invoke<number[]>('read_plugin_icon', { pluginId }))
     },
-    async prepareModule(manifest: PluginManifest, manifestPath: string, main: string) {
-      if (manifest.host === 'dom') return prepareDesktopPluginDomModule(manifest, isTauriRuntime())
-
-      if (manifest.host === 'sidecar') {
-        const executable = /^(?:[A-Za-z]:[\\/]|\/)/.test(main)
-          ? main.replace(/\\/g, '/')
-          : resolvePluginEntryPath(manifestPath, main)
-        return {
-          specifier: executable,
-          dispose: () => undefined,
-        }
+    async prepareModule(manifest, manifestPath, main, generation) {
+      if (manifest.host === 'dom') {
+        if (!generation) throw new Error('DOM module requires a native catalog generation')
+        // Native validates the renderer-only profile and snapshots the exact
+        // authorized generation; no host capabilities are sent to this helper.
+        return prepareDesktopPluginDomModule(manifest, isTauriRuntime())
       }
-
-      if (/^(?:https?|data|blob|milkup):/i.test(main)) {
-        return { specifier: main, dispose: () => undefined }
+      if (manifest.host && manifest.host !== 'worker')
+        throw new Error('Restricted catalog activation currently supports Worker bundles only')
+      let source: string
+      if (isTauriRuntime()) {
+        if (!generation) throw new Error('Plugin module requires a native catalog generation')
+        const { invoke } = await import('@tauri-apps/api/core')
+        source = await invoke<string>('plugin_catalog_read_worker_module', {
+          pluginId: manifest.id,
+          generation: generation.generationId,
+        })
+      } else {
+        if (/^(?:[a-z][a-z0-9+.-]*:|[\\/])/i.test(main))
+          throw new Error('Plugin Worker entry must belong to its sealed package')
+        const manifestValue = JSON.parse(await this.readManifestText(manifestPath)) as unknown
+        source = isPluginPackageArchive(manifestValue)
+          ? readPluginPackageTextFile(parsePluginPackageArchive(manifestValue), main)
+          : await this.readManifestText(resolvePluginEntryPath(manifestPath, main))
       }
-
-      const manifestText = await this.readManifestText(manifestPath)
-      const manifestValue = JSON.parse(manifestText) as unknown
-      const source = isPluginPackageArchive(manifestValue)
-        ? readPluginPackageTextFile(parsePluginPackageArchive(manifestValue), main)
-        : await this.readManifestText(resolvePluginEntryPath(manifestPath, main))
+      validateClosedWorkerBundle(source)
       const specifier = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }))
       return { specifier, dispose: () => URL.revokeObjectURL(specifier) }
     },
@@ -3834,57 +3860,6 @@ function createDesktopPluginManifestHost(): {
 
       const { invoke } = await import('@tauri-apps/api/core')
       await invoke<boolean>('write_plugin_text_file', { path, text })
-    },
-    async ensureDataDirectories(pluginId: string) {
-      if (!isTauriRuntime()) {
-        return {
-          packageRoot: `milkup://plugin-packages/${encodeURIComponent(pluginId)}`,
-          dataRoot: `milkup://plugin-data/${encodeURIComponent(pluginId)}`,
-          storageRoot: `milkup://plugin-storage/${encodeURIComponent(pluginId)}`,
-        }
-      }
-      const { invoke } = await import('@tauri-apps/api/core')
-      return invoke('ensure_plugin_directories', { pluginId })
-    },
-    async installPackage(archive) {
-      if (!isTauriRuntime()) {
-        throw new Error('Plugin packages can only be installed in the desktop runtime')
-      }
-      const { invoke } = await import('@tauri-apps/api/core')
-      const directories = await this.ensureDataDirectories(archive.manifest.id)
-      for (const file of archive.files) {
-        const bytes =
-          file.encoding === 'utf8'
-            ? new TextEncoder().encode(file.content)
-            : Uint8Array.from(atob(file.content), (character) => character.charCodeAt(0))
-        await invoke<string>('install_plugin_package_file', {
-          pluginId: archive.manifest.id,
-          relativePath: file.path,
-          data: Array.from(bytes),
-          executable:
-            archive.manifest.host === 'sidecar' &&
-            file.path === archive.manifest.main?.replace(/^\.\//, ''),
-        })
-      }
-      const manifestPath = await invoke<string>('install_plugin_package_file', {
-        pluginId: archive.manifest.id,
-        relativePath: 'plugin.json',
-        data: Array.from(
-          new TextEncoder().encode(`${JSON.stringify(archive.manifest, null, 2)}\n`),
-        ),
-        executable: false,
-      })
-      return {
-        manifestPath,
-        rootPath: directories.packageRoot,
-        dataRoot: directories.dataRoot,
-        storageRoot: directories.storageRoot,
-      }
-    },
-    async removeInstalledPackage(pluginId: string): Promise<void> {
-      if (!isTauriRuntime()) return
-      const { invoke } = await import('@tauri-apps/api/core')
-      await invoke<boolean>('remove_installed_plugin_package', { pluginId })
     },
   }
 }
@@ -5211,10 +5186,7 @@ async function runDesktopWorkerFilePluginFixture(path: string): Promise<unknown>
   let workerHost: BrowserWorkerPluginHost | undefined
 
   try {
-    const worker = new Worker(new URL('./plugin-worker.ts', import.meta.url), {
-      type: 'module',
-      name: 'milkup-desktop-plugin-worker-fixture',
-    })
+    const worker = createDesktopPluginWorker('desktop-file-fixture', false)
     workerHost = createBrowserWorkerPluginHost({
       worker,
       manifest,
@@ -5234,6 +5206,7 @@ async function runDesktopWorkerFilePluginFixture(path: string): Promise<unknown>
       module: createIsolatedPluginModule({
         manifest,
         host: workerHost.host,
+        disposeIsolation: () => workerHost!.dispose(),
       }),
     })
     await runtime.enablePlugin(manifest.id)
@@ -5250,7 +5223,7 @@ async function runDesktopWorkerFilePluginFixture(path: string): Promise<unknown>
 
     return result
   } finally {
-    workerHost?.dispose()
+    await workerHost?.dispose()
   }
 }
 

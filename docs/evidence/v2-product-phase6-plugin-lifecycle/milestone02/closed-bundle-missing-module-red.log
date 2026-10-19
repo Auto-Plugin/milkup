@@ -1,0 +1,26 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/closed-worker-bundle.test.ts [ apps/desktop/src/closed-worker-bundle.test.ts ]
+Error: Cannot find module './closed-worker-bundle' imported from '/workspace/milkup/apps/desktop/src/closed-worker-bundle.test.ts'
+ ❯ apps/desktop/src/closed-worker-bundle.test.ts:2:1
+      1| import { describe, expect, it } from 'vitest'
+      2| import { validateClosedWorkerBundle } from './closed-worker-bundle'
+       | ^
+      3| 
+      4| describe('closed Worker bundle boundary', () => {
+
+Caused by: Error: Failed to load url ./closed-worker-bundle (resolved id: ./closed-worker-bundle) in /workspace/milkup/apps/desktop/src/closed-worker-bundle.test.ts. Does the file exist?
+ ❯ loadAndTransform node_modules/.pnpm/vite@7.3.6_@types+node@24.13.2/node_modules/vite/dist/node/chunks/config.js:22739:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  08:37:35
+   Duration  742ms (transform 55ms, setup 0ms, collect 0ms, tests 0ms, environment 0ms, prepare 71ms)
+

@@ -21,9 +21,25 @@ export function renderDesktopPluginManagerElement(
   view.render(state)
 }
 
+export function revealDesktopPluginDetails(
+  target: HTMLElement,
+  pluginId: string,
+  kind: 'details' | 'settings',
+): boolean {
+  const view = views.get(target)
+  if (!view) return false
+  view.openDetail(pluginId)
+  if (kind === 'settings') {
+    const section = target.querySelector<HTMLElement>('[data-plugin-settings-schema]')
+    if (!section) return false
+    section.scrollIntoView({ block: 'nearest' })
+  }
+  return true
+}
 class DesktopPluginManagerView {
   private state?: DesktopPluginManagerState
   private selectedPluginId: string | undefined
+  private selectedFailurePath: string | undefined
   private returnPluginId: string | undefined
   private readonly icons = new Map<string, string>()
   private readonly iconRequests = new Map<string, string>()
@@ -37,7 +53,13 @@ class DesktopPluginManagerView {
         event.target instanceof Element
           ? event.target.closest<HTMLButtonElement>('[data-plugin-action]')
           : null
-      if (button?.dataset.pluginAction === 'details' && button.dataset.pluginId) {
+      if (button?.dataset.pluginAction === 'failure-details' && button.dataset.pluginSource) {
+        this.selectedPluginId = undefined
+        this.selectedFailurePath = button.dataset.pluginSource
+        this.paint()
+        this.focusHeading()
+      } else if (button?.dataset.pluginAction === 'details' && button.dataset.pluginId) {
+        this.selectedFailurePath = undefined
         this.selectedPluginId = button.dataset.pluginId
         this.returnPluginId = button.dataset.pluginId
         this.paint()
@@ -53,7 +75,7 @@ class DesktopPluginManagerView {
         if (
           event.key !== 'Escape' ||
           event.isComposing ||
-          !this.selectedPluginId ||
+          (!this.selectedPluginId && !this.selectedFailurePath) ||
           !target.contains(event.target as Node) ||
           target.getClientRects().length === 0
         )
@@ -94,8 +116,27 @@ class DesktopPluginManagerView {
       state.records.find(
         (record) => !previous.records.some((old) => old.manifest.id === record.manifest.id),
       )
+    const candidateChanged = state.catalogEntries?.find(
+      (entry) =>
+        entry.pending &&
+        entry.pending.transactionId !==
+          previous?.catalogEntries?.find((old) => old.id === entry.id)?.pending?.transactionId,
+    )
+    const newFailure = state.installFailures.find(
+      (f) =>
+        !previous?.installFailures.some(
+          (old) => old.sourcePath === f.sourcePath && old.at === f.at,
+        ),
+    )
     this.state = state
-    if (removed) {
+    if (newFailure && previous && this.target.getClientRects().length > 0) {
+      this.selectedPluginId = undefined
+      this.selectedFailurePath = newFailure.sourcePath
+    } else if (candidateChanged && previous && this.target.getClientRects().length > 0) {
+      this.selectedFailurePath = undefined
+      this.selectedPluginId = candidateChanged.id
+      this.returnPluginId = candidateChanged.id
+    } else if (removed) {
       this.selectedPluginId = undefined
       this.returnPluginId =
         state.records[Math.min(previousIndex, state.records.length - 1)]?.manifest.id
@@ -106,7 +147,7 @@ class DesktopPluginManagerView {
     }
     this.refreshIcons(state)
     this.paint()
-    if (added && focused) this.focusHeading()
+    if ((added || newFailure || candidateChanged) && focused) this.focusHeading()
     else if (removed && focused) this.focusCard()
     else if (focused) {
       const replacement = Array.from(
@@ -124,16 +165,27 @@ class DesktopPluginManagerView {
     }
   }
 
+  openDetail(pluginId: string): void {
+    if (!this.state?.records.some((record) => record.manifest.id === pluginId))
+      throw new Error('Unknown plugin detail')
+    this.selectedFailurePath = undefined
+    this.selectedPluginId = pluginId
+    this.returnPluginId = pluginId
+    this.paint()
+    this.focusHeading()
+  }
   private paint(): void {
     if (!this.state) return
     this.target.innerHTML = renderDesktopPluginManager(this.state, {
       ...(this.selectedPluginId ? { selectedPluginId: this.selectedPluginId } : {}),
       icons: this.icons,
+      ...(this.selectedFailurePath ? { selectedFailurePath: this.selectedFailurePath } : {}),
     })
   }
 
   private back(): void {
     this.selectedPluginId = undefined
+    this.selectedFailurePath = undefined
     this.paint()
     this.focusCard()
   }
@@ -144,7 +196,9 @@ class DesktopPluginManagerView {
 
   private focusCard(): void {
     const cards = Array.from(
-      this.target.querySelectorAll<HTMLButtonElement>('[data-plugin-action="details"]'),
+      this.target.querySelectorAll<HTMLButtonElement>(
+        '[data-plugin-action="details"], [data-plugin-action="failure-details"]',
+      ),
     )
     const card = cards.find((element) => element.dataset.pluginId === this.returnPluginId)
     ;(

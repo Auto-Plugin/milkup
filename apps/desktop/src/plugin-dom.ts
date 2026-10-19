@@ -15,6 +15,7 @@ import type {
 } from './desktop-plugin-manager'
 
 export const DESKTOP_PLUGIN_DOM_EVENT = 'milkup-plugin-dom-message'
+const retryLocalCleanup = new WeakMap<object, () => void>()
 
 export type DesktopPluginDomInvoke = <T>(command: string, args?: unknown) => Promise<T>
 export type DesktopPluginDomListen = (
@@ -50,17 +51,40 @@ export async function prepareDesktopPluginDomModule(
   })
   if (!prepared || !validIdentity(prepared.leaseId))
     throw new Error('Native DOM preparation did not supply a lease identity')
-  let released = false
+  let release: Promise<void> | undefined
+  let latestRelease: Promise<void> | undefined
+  let releaseFailed = false
+  let releasing = false
+  function releaseExactLease(): Promise<void> {
+    releasing = true
+    latestRelease = invoke<boolean>('release_plugin_dom_module', {
+      pluginId: manifest.id,
+      leaseId: prepared.leaseId,
+    })
+      .then((result) => {
+        if (result !== true) throw new Error('Native DOM lease release was not confirmed')
+        releaseFailed = false
+      })
+      .catch((error) => {
+        releaseFailed = true
+        throw error
+      })
+      .finally(() => {
+        releasing = false
+      })
+    void latestRelease.catch(() => undefined)
+    return latestRelease
+  }
+  function dispose(): Promise<void> {
+    return (release ??= releaseExactLease())
+  }
   return Object.freeze({
     kind: 'dom' as const,
     leaseId: prepared.leaseId,
-    dispose() {
-      if (released) return
-      released = true
-      void invoke<boolean>('release_plugin_dom_module', {
-        pluginId: manifest.id,
-        leaseId: prepared.leaseId,
-      }).catch(() => undefined)
+    dispose,
+    retryDispose(): Promise<void> {
+      if (!release) return dispose()
+      return releasing || !releaseFailed ? latestRelease! : releaseExactLease()
     },
   })
 }
@@ -86,9 +110,17 @@ export async function startDesktopPluginDomEndpoint(
     if (!started || !validIdentity(started.instanceId))
       throw new Error('Native DOM host did not supply an instance identity')
     endpoint.bindInstance(started.instanceId)
-    return createTrustedPluginRenderEndpoint(endpoint, (listener) => endpoint.subscribe(listener))
+    const trusted = createTrustedPluginRenderEndpoint(endpoint, (listener) =>
+      endpoint.subscribe(listener),
+    )
+    retryLocalCleanup.set(trusted, () => endpoint.retryLocalCleanup())
+    return trusted
   } catch (error) {
-    endpoint.close()
+    try {
+      await endpoint.close()
+    } catch (cleanupError) {
+      throw new AggregateError([error, cleanupError], 'DOM startup and cleanup failed')
+    }
     // The loader releases the exact lease on failure. Native release also stops
     // an instance started from that lease if the invoke reply was lost/malformed.
     // Never stop by plugin ID: it could kill a replacement activation.
@@ -106,28 +138,99 @@ export async function loadDesktopPluginDomModule(
   try {
     endpoint = await startDesktopPluginDomEndpoint(manifest.id, prepared.leaseId, transport)
   } catch (error) {
-    prepared.dispose?.()
+    try {
+      await prepared.dispose?.()
+    } catch (cleanupError) {
+      throw new AggregateError([error, cleanupError], 'DOM startup and lease cleanup failed')
+    }
     throw error
   }
   let host: RpcPluginIsolationHost | undefined
   let disposed = false
-  function dispose(): void {
-    if (disposed) return
+  let disposal: Promise<void> | undefined
+  let retrying: Promise<void> | undefined
+  function dispose(): Promise<void> {
+    if (disposal) return disposal
     disposed = true
-    // Stop first: pending cancellation/disposal RPC must not delay native teardown.
-    endpoint.close?.()
-    host?.dispose()
-    prepared.dispose?.()
+    // Synchronously revoke all JS endpoints before awaiting exact native stop.
+    const errors: unknown[] = []
+    let stopping: void | Promise<void> = undefined
+    try {
+      stopping = endpoint.close?.()
+    } catch (error) {
+      errors.push(error)
+    }
+    try {
+      host?.dispose()
+    } catch (error) {
+      errors.push(error)
+    }
+    disposal = (async () => {
+      try {
+        await stopping
+      } catch (error) {
+        errors.push(error)
+      }
+      // Release the exact lease even when stop failed; native retains ownership on failure.
+      try {
+        await prepared.dispose?.()
+      } catch (error) {
+        errors.push(error)
+      }
+      if (errors.length) throw new AggregateError(errors, 'DOM module cleanup failed')
+    })()
+    void disposal.catch(() => undefined)
+    return disposal
+  }
+  function retryDispose(): Promise<void> {
+    if (!disposal) return dispose()
+    if (retrying) return retrying
+    retrying = (async () => {
+      // The first failure remains available on disposal. Only exact owner cleanup
+      // is retried; no lifecycle RPC or activation can be reopened.
+      await disposal!.catch(() => undefined)
+      const errors: unknown[] = []
+      try {
+        host?.dispose()
+      } catch (error) {
+        errors.push(error)
+      }
+      try {
+        retryLocalCleanup.get(endpoint)?.()
+      } catch (error) {
+        errors.push(error)
+      }
+      try {
+        if (!prepared.dispose) throw new Error('DOM lease cleanup authority is unavailable')
+        if (prepared.retryDispose) await prepared.retryDispose()
+        else await prepared.dispose()
+      } catch (error) {
+        errors.push(error)
+      }
+      // Successful exact issued lease release confirms native stop/reap, even
+      // when the earlier stop reply failed; native retains the lease on failure.
+      if (errors.length) throw new AggregateError(errors, 'DOM cleanup retry failed')
+    })()
+    const current = retrying
+    void current.then(
+      () => {
+        retrying = undefined
+      },
+      () => {
+        retrying = undefined
+      },
+    )
+    return current
   }
   try {
     host = createRpcPluginIsolationHost(endpoint, {
       timeoutMs: 10_000,
       onDocumentRenderTimeout: () => {
-        dispose()
+        void dispose()
         capabilities.onDocumentRenderTimeout()
       },
       onIsolationError: (error) => {
-        dispose()
+        void dispose()
         capabilities.onIsolationError(error)
       },
     })
@@ -139,9 +242,20 @@ export async function loadDesktopPluginDomModule(
           try {
             // The DOM profile has no host brokers, even if the runtime context
             // grows capabilities in future. Only lifecycle and render RPC cross.
-            return await module.activate?.({ ...context, host: {} })
+            const activation = await module.activate?.({ ...context, host: {} })
+            // The read-only DOM profile has no host-side initialization writes.
+            // Retiring its exact native process is the authoritative cleanup; do
+            // not wait for an untrusted dispose RPC before starting native stop.
+            return Object.freeze({ ...activation, dispose })
           } catch (error) {
-            dispose()
+            try {
+              await dispose()
+            } catch (cleanupError) {
+              throw new AggregateError(
+                [error, cleanupError],
+                `DOM activation and cleanup failed: ${error instanceof Error ? error.message : String(error)}`,
+              )
+            }
             throw error
           }
         },
@@ -149,14 +263,19 @@ export async function loadDesktopPluginDomModule(
           try {
             if (!disposed) await module.deactivate?.()
           } finally {
-            dispose()
+            await dispose()
           }
         },
       }),
       dispose,
+      retryDispose,
     })
   } catch (error) {
-    dispose()
+    try {
+      await dispose()
+    } catch (cleanupError) {
+      throw new AggregateError([error, cleanupError], 'DOM load and cleanup failed')
+    }
     throw error
   }
 }
@@ -167,7 +286,7 @@ class DesktopPluginDomEndpoint {
   private unlisten: (() => void) | undefined
   private nativeInstanceId = ''
   private closed = false
-  private stopped = false
+  private completion: Promise<void> | undefined
   private terminalControl: PluginRenderControl | undefined
   private readonly startupErrors = new Set<string>()
   private startupOverflow = false
@@ -237,7 +356,9 @@ class DesktopPluginDomEndpoint {
       (sent) => {
         if (!sent) this.finish({ type: 'error' })
       },
-      () => this.finish({ type: 'error' }),
+      () => {
+        void this.finish({ type: 'error' })
+      },
     )
   }
 
@@ -249,34 +370,60 @@ class DesktopPluginDomEndpoint {
     this.listeners.delete(listener)
   }
 
-  close(): void {
-    this.finish({ type: 'disposed' })
-  }
-
-  private finish(control: PluginRenderControl): void {
-    if (this.closed) return
-    this.closed = true
-    this.terminalControl = control
+  retryLocalCleanup(): void {
+    if (!this.closed) throw new Error('DOM endpoint is not retired')
     this.unlisten?.()
     this.unlisten = undefined
+  }
+
+  close(): Promise<void> {
+    return this.finish({ type: 'disposed' })
+  }
+
+  private finish(control: PluginRenderControl): Promise<void> {
+    if (this.completion) return this.completion
+    this.closed = true
+    this.terminalControl = control
+    const errors: unknown[] = []
+    try {
+      this.unlisten?.()
+    } catch (error) {
+      errors.push(error)
+    }
+    if (!errors.length) this.unlisten = undefined
     this.startupErrors.clear()
     this.listeners.clear()
-    if (this.nativeInstanceId && !this.stopped) {
-      this.stopped = true
-      void this.invoke<boolean>('stop_plugin_dom_process', {
-        pluginId: this.pluginId,
-        instanceId: this.nativeInstanceId,
-      }).catch(() => undefined)
+    let stopping: Promise<boolean> = Promise.resolve(true)
+    if (this.nativeInstanceId) {
+      try {
+        stopping = this.invoke<boolean>('stop_plugin_dom_process', {
+          pluginId: this.pluginId,
+          instanceId: this.nativeInstanceId,
+        })
+      } catch (error) {
+        errors.push(error)
+      }
     }
-    // One observer must not prevent the remaining pending RPCs being revoked.
+    this.completion = (async () => {
+      try {
+        if ((await stopping) !== true)
+          throw new Error('Native DOM stop did not confirm the exact instance was reaped')
+      } catch (error) {
+        errors.push(error)
+      }
+      if (errors.length) throw new AggregateError(errors, 'DOM endpoint cleanup failed')
+    })()
+    void this.completion.catch(() => undefined)
+    // Revoke pending RPC immediately, independently of native join completion.
     for (const listener of [...this.controls]) {
       try {
         listener(control)
       } catch {
-        // Cleanup is already complete, including the native stop request.
+        // Observer failures cannot prevent revocation of other pending RPCs.
       }
     }
     this.controls.clear()
+    return this.completion
   }
 }
 

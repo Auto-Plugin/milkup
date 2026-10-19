@@ -1,0 +1,33 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts (14 tests | 1 failed) 92ms
+   ✓ P6 authoritative catalog transactions > stages without running or replacing old active approval; exact review is required 26ms
+   ✓ P6 authoritative catalog transactions > tears old epoch down before trial, commits before publish, and recovers old version with new epoch on failure 13ms
+   ✓ P6 authoritative catalog transactions > cannot grant candidate capabilities via pending approval or side effects during activate 2ms
+   ✓ P6 authoritative catalog transactions > serializes queued approval and remove; tombstone keeps data/settings and never revives from mirror 2ms
+   ✓ P6 authoritative catalog transactions > recovers a committed generation when contribution publication fails 7ms
+   ✓ P6 candidate failure injection > denies a swallowed initialization write and restores unchanged data 7ms
+   ✓ P6 candidate failure injection > recovers old active after native commit rejects without publishing the candidate 4ms
+   ✓ P6 candidate failure injection > caps hanging candidate activation and attempts new-epoch recovery 10ms
+   ✓ P6 candidate failure injection > does not trust a poisoned mirror and quarantines an interrupted startup instead of retrying forever 3ms
+   ✓ P6 retirement and public diagnostic boundaries > retains a rejected isolation owner and retries before any new activation 5ms
+   ✓ P6 retirement and public diagnostic boundaries > keeps callback errors diagnostic when the trusted owner confirms termination 3ms
+   ✓ P6 retirement and public diagnostic boundaries > never exposes native or activation paths through the public management adapter 3ms
+   × P6 sealed generations > permits package reads, refuses package writes/deletes, and gives data a distinct writable scope 2ms
+     → Plugin permissions are not allowed: file:read, file:write, file:delete
+   ✓ P6 sealed generations > disables a newly committed first installation if publication fails with no previous generation 2ms
+ ✓ apps/desktop/src/desktop-plugin-manager.test.ts (30 tests) 235ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager-catalog.test.ts > P6 sealed generations > permits package reads, refuses package writes/deletes, and gives data a distinct writable scope
+Unknown Error: Plugin permissions are not allowed: file:read, file:write, file:delete
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 43 passed (44)
+   Start at  08:55:54
+   Duration  2.09s (transform 1.18s, setup 0ms, collect 2.60s, tests 328ms, environment 0ms, prepare 166ms)
+

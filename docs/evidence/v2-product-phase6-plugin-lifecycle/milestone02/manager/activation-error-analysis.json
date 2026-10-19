@@ -1,0 +1,14 @@
+{
+  "nativeEvidence": {
+    "run": "p6-m02-management-02",
+    "observation": "failure-observation",
+    "notice": "命令执行失败：[object Object]"
+  },
+  "rootCause": "PluginRuntime.activatePlugin throws a frozen PluginRuntimeErrorRecord, not an Error. The manager previously rethrew it unchanged; main getErrorMessage applied String(record).",
+  "minimalFix": "Only catalog activation failures at the manager boundary: matching own data fields pluginId=current id, phase=enable, message:string become Error with original record in cause. Existing Error and unknown values unchanged. No main/global error or public SDK changes.",
+  "limitations": [
+    "The original Error stack was already discarded by runtime.recordError; retaining the record as cause does not recover that stack.",
+    "Native production06 still required; production05 screenshots remain original evidence."
+  ],
+  "validation": "56 tests passed in activation-error-green-02.log; type check final result tracked separately in activation-error-types-final.log."
+}

@@ -1,0 +1,36 @@
+{
+  "id": "milkup.management",
+  "name": "Milkup Plugin Management",
+  "version": "1.0.0",
+  "description": "查看插件兼容要求、权限变化、设置说明与故障建议，并打开可信宿主详情。",
+  "host": "worker",
+  "main": "./dist/plugin.js",
+  "engines": { "milkup": "^2.0.0-0", "pluginSdk": ">=0.3.7 <0.4.0" },
+  "permissions": ["app:plugins"],
+  "contributes": {
+    "commands": [
+      { "id": "management.refresh", "title": "刷新插件列表", "action": "management.refresh" },
+      {
+        "id": "management.details",
+        "title": "查看插件说明",
+        "action": "management.details",
+        "inputSchema": {
+          "type": "object",
+          "properties": { "id": { "type": "string", "required": true } }
+        }
+      },
+      { "id": "management.back", "title": "返回插件列表", "action": "management.back" },
+      {
+        "id": "management.hostDetails",
+        "title": "打开宿主插件详情",
+        "action": "management.hostDetails"
+      },
+      {
+        "id": "management.hostSettings",
+        "title": "打开宿主插件设置",
+        "action": "management.hostSettings"
+      }
+    ],
+    "ui": [{ "id": "management-panel", "slot": "modal", "title": "插件说明", "scope": "app" }]
+  }
+}

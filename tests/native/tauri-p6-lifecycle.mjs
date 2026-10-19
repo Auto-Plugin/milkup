@@ -1,5 +1,7 @@
 // P6 first checkpoint: real installation/rejection/lifecycle and cold output.
-// Copied from the verified P5 harness; no upgrade/rollback/permission-delta claims.
+// Copied from the verified P5 harness; adapted to native catalog candidates.
+// Catalog IPC is read-only observation; every state change uses shipped UI.
+// No upgrade/rollback/permission-delta claims.
 // Required: frozen TAURI_APP_PATH / MILKUP_NATIVE_EXPECTED_BINARY_SHA256,
 // MILKUP_NATIVE_EVIDENCE_DIR; MILKUP_P6_CASE=outline|reject|cold-output|cold-edit|manager-matrix|all-off|all-off-windowed.
 // MILKUP_P6_FORMAT=html|pdf-a4|pdf-letter|print-to-file (cold cases).
@@ -214,6 +216,7 @@ const plan = {
   nativeLog: process.env.MILKUP_P6_NATIVE_LOG ?? null,
   boundaries: [
     'No renderer deadline/isolation changes; existing 2s budget remains.',
+    'Native catalog read observes pending/active generations; mirror only confirms published runtime records. No catalog mutations are injected.',
     'First output is not proof of first render: the editor may pre-render.',
     'Upgrade rollback and permission-delta transactions are outside this first checkpoint; never simulate them with registry mutation.',
     'PDF raster is retained for separate visual review; text presence never proves a diagram.',
@@ -261,6 +264,82 @@ async function traces() {
     }
   })
 }
+let catalogReadSequence = 0
+async function readCatalog() {
+  const key = '__p6LifecycleCatalogRead' + ++catalogReadSequence
+  await app.execute(
+    `const key=arguments[0];window[key]={done:false};
+    window.__TAURI_INTERNALS__.invoke('plugin_catalog_read').then(value=>window[key]={done:true,value},error=>window[key]={done:true,error:String(error)});`,
+    key,
+  )
+  try {
+    const result = await app.until(
+      () => app.execute('return window[arguments[0]]?.done ? window[arguments[0]] : null', key),
+      'read-only native catalog observation',
+      30000,
+    )
+    if (result.error) throw Error(result.error)
+    assert.equal(result.value.version, 1)
+    return result.value
+  } finally {
+    await app.execute('delete window[arguments[0]]', key)
+  }
+}
+const catalogEntry = async (id) => (await readCatalog()).entries.find((entry) => entry.id === id)
+const candidateAction = async (kind, id) => {
+  const selector = '.plugin-candidate ' + action(kind, id)
+  return (await ui.exists(selector)) ? selector : action(kind, id)
+}
+async function activateThroughDetails(id, manifest) {
+  await ui.details(id)
+  const before = await catalogEntry(id)
+  assert(before && !before.tombstone, 'Native installed candidate or active entry ' + id)
+  const generation = before.pending?.generation ?? before.active
+  assert(generation, 'Native generation exists ' + id)
+  const explicitApprovalRequired = await ui.exists(await candidateAction('approve', id))
+  if (!explicitApprovalRequired) {
+    assert.equal(
+      generation.approvedFingerprint,
+      generation.capabilityFingerprint,
+      'Exact native capability approval required',
+    )
+    if (manifest) assertImplicitReadOnlyApproval(manifest, generation)
+  }
+  await observe('installed-permission-review-' + id, {
+    explicitApprovalRequired,
+    reviewedEntryRevision: before.revision,
+    transactionId: before.pending?.transactionId ?? null,
+    capabilityFingerprint: generation.capabilityFingerprint,
+  })
+  if (explicitApprovalRequired) {
+    await ui.click(await candidateAction('approve', id))
+    await app.until(async () => {
+      const current = await catalogEntry(id),
+        approved = current?.pending?.generation ?? current?.active
+      return (
+        approved?.id === generation.id &&
+        approved.approvedFingerprint === generation.capabilityFingerprint
+      )
+    }, 'exact reviewed generation approved ' + id)
+  }
+  if (before.pending || !before.enabled) await ui.click(await candidateAction('enable', id))
+  await app.until(
+    async () => {
+      const current = await catalogEntry(id)
+      return (
+        current?.enabled &&
+        !current.tombstone &&
+        !current.pending &&
+        !current.startAttempt &&
+        current.active?.id === generation.id &&
+        current.active.verified
+      )
+    },
+    'native candidate committed and activation completed ' + id,
+    30000,
+  )
+  await ui.ready(action('disable', id))
+}
 async function observe(name, extra = {}) {
   const sourceBytes = await readFile(sourcePath)
   const row = {
@@ -276,6 +355,7 @@ async function observe(name, extra = {}) {
       'return [...document.querySelectorAll(arguments[0]+" [role=status],"+arguments[0]+" [role=alert]")].map(e=>e.textContent)',
       panel,
     ),
+    catalog: await readCatalog(),
     registry: await app.execute(
       'return JSON.parse(localStorage.getItem("milkup.desktop.plugins.registry.v1")||"{\\"records\\":[]}").records.map(r=>({id:r.manifest.id,version:r.manifest.version,state:r.state,enabled:r.enabled,sourcePath:r.sourcePath,rootPath:r.rootPath,manifestPath:r.manifestPath,approvals:r.approvals,errors:r.errors}))',
     ),
@@ -340,13 +420,18 @@ async function dialog(title) {
   await lifecycle.sample('dialog-' + title)
   return win
 }
-function assertImplicitReadOnlyApproval(manifest, record) {
+function assertImplicitReadOnlyApproval(manifest, generation) {
   assert.equal(manifest.host, 'worker', 'Only an explicitly declared Worker may omit approval')
   assert(
     (manifest.permissions ?? []).every((permission) => permission === 'document:read'),
     'Only document:read or empty permissions may omit approval',
   )
-  assert(record?.approvals?.hosts?.includes('worker'), 'Registry must already approve Worker host')
+  assert.equal(generation.manifest.host, 'worker', 'Native reviewed host must be Worker')
+  assert.equal(
+    generation.approvedFingerprint,
+    generation.capabilityFingerprint,
+    'Native generation must have exact approval',
+  )
 }
 async function install(pkg) {
   const id = pkg.manifest.id
@@ -355,51 +440,42 @@ async function install(pkg) {
     await ui.details(id)
     if (await ui.exists(action('disable', id))) await ui.click(action('disable', id))
     await ui.click(action('remove', id))
-    await app.until(
-      () =>
-        app.execute(
-          'return !JSON.parse(localStorage.getItem("milkup.desktop.plugins.registry.v1")||"null")?.records.some(r=>r.manifest.id===arguments[0])',
-          id,
-        ),
-      'removed bundled ' + id,
-    )
+    await app.until(async () => {
+      const removed = await catalogEntry(id)
+      return removed?.tombstone && !removed.enabled && !removed.pending && !removed.startAttempt
+    }, 'removed bundled native generation ' + id)
   }
   await ui.list()
   await ui.click('[data-plugin-action="install"]')
   await ui.picker(pkg.file)
   await app.until(
-    () =>
-      app.execute(
-        'return JSON.parse(localStorage.getItem("milkup.desktop.plugins.registry.v1")||"null")?.records.some(r=>r.manifest.id===arguments[0]&&r.sourcePath===arguments[1]&&r.manifest.version===arguments[2])',
-        id,
-        pkg.file,
-        pkg.manifest.version,
-      ),
-    'installed ' + id,
+    async () => {
+      const entry = await catalogEntry(id),
+        generation = entry?.pending?.generation ?? entry?.active
+      return (
+        !entry?.tombstone &&
+        generation?.sourcePath === pkg.file &&
+        generation.manifest.version === pkg.manifest.version
+      )
+    },
+    'native accepted exact package ' + id,
     30000,
   )
-  await ui.details(id)
-  const explicitApprovalRequired = await ui.exists(action('approve', id))
-  if (!explicitApprovalRequired) {
-    const record = await app.execute(
-      'return JSON.parse(localStorage.getItem("milkup.desktop.plugins.registry.v1")||"null")?.records.find(r=>r.manifest.id===arguments[0]) ?? null',
-      id,
-    )
-    assertImplicitReadOnlyApproval(pkg.manifest, record)
-    await ui.ready(action('enable', id))
-  } else await ui.ready(action('approve', id))
-  await observe('installed-permission-review-' + id, { explicitApprovalRequired })
-  if (explicitApprovalRequired) await ui.click(action('approve', id))
-  await ui.click(action('enable', id))
-  await ui.ready(action('disable', id))
+  await activateThroughDetails(id, pkg.manifest)
   const state = await observe('enabled-' + id)
+  const committed = state.catalog.entries.find((entry) => entry.id === id)
+  assert.equal(committed.active.sourcePath, pkg.file)
+  assert.equal(committed.active.manifest.version, pkg.manifest.version)
+  assert.equal(committed.pending, null)
+  assert(committed.enabled && committed.active.verified && !committed.startAttempt)
   assert(
     state.registry.some(
       (r) =>
         r.id === id &&
         r.version === pkg.manifest.version &&
         r.sourcePath === pkg.file &&
-        r.state === 'enabled',
+        r.state === 'enabled' &&
+        r.enabled,
     ),
   )
 }
@@ -925,11 +1001,7 @@ async function editRevision() {
   await exportOnce('edited-r2')
 }
 async function setTheme(theme) {
-  await ui.details('milkup.preferences')
-  if (await ui.exists(action('approve', 'milkup.preferences')))
-    await ui.click(action('approve', 'milkup.preferences'))
-  if (await ui.exists(action('enable', 'milkup.preferences')))
-    await ui.click(action('enable', 'milkup.preferences'))
+  await activateThroughDetails('milkup.preferences')
   await ui.click(action('open-ui', 'milkup.preferences'))
   const preferences = '[data-plugin-ui="milkup.preferences:preferences-panel"]'
   const selector = preferences + ' [data-plugin-field-control="appearance.theme"]'
@@ -1005,6 +1077,12 @@ async function disableAll() {
     )
     for (const item of enabled)
       assert.equal(row.registry.find((r) => r.id === item.id).state, 'disabled')
+    assert(
+      row.catalog.entries.every(
+        (entry) => !entry.enabled && !entry.startAttempt && entry.pending?.phase !== 'trial',
+      ),
+      'Native catalog has no running intent, startup or trial',
+    )
     assert.equal(
       await app.execute(
         'return document.querySelectorAll(\'[data-plugin-ui],[data-plugin-action="command"],[data-plugin-action="open-ui"]\').length',
@@ -1059,6 +1137,13 @@ async function disableAll() {
     passed: true,
     disabledIds: enabled.map((r) => r.id),
     previouslyInactive: before.registry.filter((r) => !r.enabled && r.state !== 'enabled'),
+    neverActivatedCandidates: before.catalog.entries
+      .filter((entry) => entry.pending && !entry.active)
+      .map((entry) => ({
+        id: entry.id,
+        phase: entry.pending.phase,
+        approved: entry.pending.generation.approvedFingerprint !== null,
+      })),
     sourceSha256: sha(await readFile(sourcePath)),
     modes: ['source', 'live'],
     scope: 'Acceptance through product UI; no outline or plugin implementation changes',
@@ -1120,11 +1205,7 @@ async function focusedBounds(selector) {
 }
 async function managerMatrix() {
   const matrix = []
-  await ui.details('milkup.shortcuts')
-  if (await ui.exists(action('approve', 'milkup.shortcuts')))
-    await ui.click(action('approve', 'milkup.shortcuts'))
-  if (await ui.exists(action('enable', 'milkup.shortcuts')))
-    await ui.click(action('enable', 'milkup.shortcuts'))
+  await activateThroughDetails('milkup.shortcuts')
   for (const theme of ['light', 'dark']) {
     await nativeZoom(1, 1280, 900)
     await setTheme(theme)
@@ -1203,16 +1284,14 @@ try {
   app.click = click
   x('windowsize', ui.windowId(), '1280', '900')
   lifecycle = await outputProcessEvidence(Number(x('getwindowpid', ui.windowId())), output)
-  // Wait for the ordinary installed catalog; do not require unrelated plugins to run.
+  // Fresh bundled candidates are absent from the active-only mirror.
   await app.until(
-    () =>
-      app.execute(
-        'return JSON.parse(localStorage.getItem("milkup.desktop.plugins.registry.v1")||"{\\"records\\":[]}").records.some(r=>r.manifest.id==="milkup.outline")',
-      ),
-    'bundled registry ready',
+    async () => !!(await catalogEntry('milkup.outline')),
+    'bundled native catalog ready',
     45000,
   )
   for (const pkg of packages) await install(pkg)
+  if (cold) await activateThroughDetails('milkup.math')
   await ui.closeMenu()
   await app.focus('.milkup-input-proxy')
   await app.key('ctrl+1')

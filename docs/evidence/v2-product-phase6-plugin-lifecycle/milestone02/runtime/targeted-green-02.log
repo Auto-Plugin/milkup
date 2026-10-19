@@ -1,0 +1,40 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ packages/plugin/src/editing-isolation.test.ts (3 tests | 1 failed) 31ms
+   × editing/resource isolation lifecycle > Worker capabilities declared=true 22ms
+     → Plugin worker cleanup failed
+   ✓ editing/resource isolation lifecycle > Worker capabilities declared=false 3ms
+   ✓ editing/resource isolation lifecycle > sidecar exposes both protocols and shutdown releases outstanding grants 4ms
+ ✓ packages/plugin/src/output-isolation.test.ts (3 tests) 42ms
+ ✓ packages/plugin/src/isolation-worker.test.ts (25 tests) 74ms
+ ✓ packages/plugin/src/runtime.test.ts (18 tests) 43ms
+ ✓ packages/plugin/src/isolation-rpc.test.ts (6 tests) 24ms
+ ✓ packages/plugin/src/worker-supervisor.test.ts (12 tests) 25ms
+ ✓ packages/plugin/src/isolation.test.ts (7 tests) 20ms
+ ✓ packages/plugin/src/preferences-isolation.test.ts (3 tests) 22ms
+ ✓ packages/plugin/src/isolation-module-host.test.ts (7 tests) 26ms
+ ✓ apps/desktop/src/csp-worker.test.ts (3 tests) 7ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/plugin/src/editing-isolation.test.ts > editing/resource isolation lifecycle > Worker capabilities declared=true
+AggregateError: Plugin worker cleanup failed
+ ❯ cleanup packages/plugin/src/isolation-worker.ts:364:32
+    362|       }
+    363|     }
+    364|     if (failures.length) throw new AggregateError(failures, 'Plugin wo…
+       |                                ^
+    365|   }
+    366| 
+ ❯ Object.dispose packages/plugin/src/isolation-worker.ts:426:7
+ ❯ packages/plugin/src/editing-isolation.test.ts:119:10
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 9 passed (10)
+      Tests  1 failed | 86 passed (87)
+   Start at  08:42:19
+   Duration  2.30s (transform 1.05s, setup 0ms, collect 2.86s, tests 313ms, environment 2ms, prepare 896ms)
+

@@ -879,3 +879,169 @@ function createInProcessTestRuntime(options: PluginRuntimeOptions = {}): PluginR
     allowInProcessModules: true,
   })
 }
+
+describe('prepared activation transactions', () => {
+  it('keeps contributions private and initialization writes blocked until host publication', async () => {
+    const write = vi.fn(),
+      read = vi.fn(async () => 'kept')
+    let captured: import('./runtime').RestrictedPluginHost | undefined
+    const runtime = createInProcessTestRuntime({
+      storageBroker: { getItem: read, setItem: write, removeItem: write },
+    })
+    runtime.loadPlugin({
+      manifest: {
+        id: 'trial',
+        name: 'Trial',
+        version: '1.0.0',
+        contributes: { commands: [{ id: 'trial.go', action: 'trial.go', title: 'Go' }] },
+      },
+      module: {
+        activate(context) {
+          captured = context.host
+          return { commands: { 'trial.go': () => 'ok' } }
+        },
+      },
+    })
+    await runtime.preparePlugin('trial')
+    expect(runtime.getPlugin('trial')?.state).toBe('prepared')
+    expect(runtime.getActionRegistry().get('trial.go')).toBeUndefined()
+    expect(await captured!.storage!.getItem('key')).toBe('kept')
+    expect(write).not.toHaveBeenCalled()
+    runtime.publishPlugin('trial')
+    expect(runtime.getActionRegistry().get('trial.go')).toBeDefined()
+    await captured!.storage!.setItem('key', 'good')
+    expect(write).toHaveBeenCalledOnce()
+    await runtime.disablePlugin('trial')
+    await expect(Promise.resolve().then(() => captured!.storage!.getItem('key'))).rejects.toThrow(
+      'revoked',
+    )
+  })
+
+  it('never publishes late activation after disable and disposes its late result', async () => {
+    let finish!: (value: import('./runtime').PluginActivation) => void
+    const dispose = vi.fn()
+    const runtime = createInProcessTestRuntime()
+    runtime.loadPlugin({
+      manifest: { id: 'late', name: 'Late', version: '1.0.0' },
+      module: {
+        activate: () =>
+          new Promise((resolve) => {
+            finish = resolve
+          }),
+      },
+    })
+    const enabling = runtime.enablePlugin('late')
+    await runtime.disablePlugin('late')
+    finish({ dispose })
+    await expect(enabling).rejects.toMatchObject({ message: expect.stringContaining('revoked') })
+    expect(runtime.getPlugin('late')?.state).toBe('disabled')
+    expect(dispose).toHaveBeenCalledOnce()
+  })
+
+  it('attempts deactivate even when activation cleanup rejects', async () => {
+    const deactivate = vi.fn()
+    const runtime = createInProcessTestRuntime()
+    runtime.loadPlugin({
+      manifest: { id: 'cleanup', name: 'Cleanup', version: '1.0.0' },
+      module: {
+        activate: () => ({
+          dispose: () => {
+            throw new Error('dispose failed')
+          },
+        }),
+        deactivate,
+      },
+    })
+    await runtime.enablePlugin('cleanup')
+    await runtime.disablePlugin('cleanup')
+    expect(deactivate).toHaveBeenCalledOnce()
+    expect(runtime.getPlugin('cleanup')?.errors).toEqual(
+      expect.arrayContaining([expect.objectContaining({ message: 'dispose failed' })]),
+    )
+  })
+})
+
+it('rejects a prepared activation whose plugin swallowed a forbidden initialization write', async () => {
+  const write = vi.fn(),
+    dispose = vi.fn(),
+    deactivate = vi.fn(),
+    violation = vi.fn()
+  const runtime = createInProcessTestRuntime({
+    storageBroker: { getItem: async () => null, setItem: write, removeItem: write },
+  })
+  runtime.loadPlugin({
+    manifest: { id: 'swallow', name: 'Swallow', version: '1.0.0' },
+    module: {
+      async activate(context) {
+        try {
+          await context.host.storage!.setItem('x', 'bad')
+        } catch {}
+        return { dispose }
+      },
+      deactivate,
+    },
+  })
+  await expect(
+    runtime.preparePlugin('swallow', { onActivationViolation: violation }),
+  ).rejects.toMatchObject({ message: expect.stringContaining('not committed') })
+  expect(write).not.toHaveBeenCalled()
+  expect(violation).toHaveBeenCalledOnce()
+  expect(dispose).toHaveBeenCalledOnce()
+  expect(deactivate).toHaveBeenCalledOnce()
+  expect(() => runtime.publishPlugin('swallow')).toThrow()
+})
+
+it('requires the trusted commit callback before publishing a prepared activation', async () => {
+  let committed = false
+  const runtime = createInProcessTestRuntime()
+  runtime.loadPlugin({
+    manifest: { id: 'commit-proof', name: 'Commit', version: '1.0.0' },
+    module: {},
+  })
+  await runtime.preparePlugin('commit-proof', { isActivationCommitted: () => committed })
+  expect(() => runtime.publishPlugin('commit-proof')).toThrow('not committed by the host')
+  expect(runtime.getPlugin('commit-proof')?.state).toBe('prepared')
+  committed = true
+  expect(runtime.publishPlugin('commit-proof').state).toBe('enabled')
+})
+
+it('permits candidate file reads within the approved roots while writes stay sticky-blocked', async () => {
+  const manifest: PluginManifest = {
+    ...fileCommandManifest(),
+    permissions: ['file:read', 'file:write', 'file:delete'],
+  }
+  const adapter = createMemoryFileAdapter({ '/data/current.txt': 'existing data' })
+  const violation = vi.fn()
+  let captured!: import('./runtime').RestrictedPluginHost
+  const runtime = createInProcessTestRuntime({
+    allowedPermissions: manifest.permissions!,
+    fileBroker: createPluginFileBroker({
+      manifest,
+      roots: [{ id: 'data', path: '/data' }],
+      adapter,
+    }),
+  })
+  runtime.loadPlugin({
+    manifest,
+    module: {
+      async activate({ host }) {
+        captured = host
+        expect(await host.readText!('/data/current.txt')).toBe('existing data')
+        await expect(host.readText!('/private/secret.txt')).rejects.toThrow()
+      },
+    },
+  })
+  await runtime.preparePlugin(manifest.id, { onActivationViolation: violation })
+  expect(violation).not.toHaveBeenCalled()
+  await expect(
+    Promise.resolve().then(() => captured.writeText!('/data/current.txt', 'bad')),
+  ).rejects.toThrow('not committed')
+  await expect(
+    Promise.resolve().then(() => captured.deleteFile!('/data/current.txt')),
+  ).rejects.toThrow('not committed')
+  expect(adapter.readText).toHaveBeenCalledExactlyOnceWith('/data/current.txt')
+  expect(adapter.writeText).not.toHaveBeenCalled()
+  expect(adapter.deleteFile).not.toHaveBeenCalled()
+  expect(() => runtime.publishPlugin(manifest.id)).toThrow('not committed')
+  await runtime.disablePlugin(manifest.id)
+})

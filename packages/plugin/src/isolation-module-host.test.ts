@@ -461,3 +461,28 @@ function createEditor(text: string, selection = Selection.cursor(text.length)): 
     }),
   )
 }
+
+it('disposes a late isolated activation instead of restoring a revoked instance', async () => {
+  const manifest = commandManifest()
+  let finish!: (value: import('./runtime').PluginActivation) => void
+  const dispose = vi.fn()
+  const host = createPluginModuleIsolationHost({
+    manifest,
+    module: {
+      activate: () =>
+        new Promise((resolve) => {
+          finish = resolve
+        }),
+    },
+  })
+  const starting = host.activate({
+    pluginId: manifest.id,
+    manifest,
+    permissions: [],
+    hostCapabilities: [],
+  })
+  await host.deactivate({ pluginId: manifest.id })
+  finish({ dispose })
+  await expect(starting).rejects.toThrow('revoked')
+  expect(dispose).toHaveBeenCalledOnce()
+})

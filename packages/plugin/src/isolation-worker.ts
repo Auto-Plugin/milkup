@@ -1,3 +1,10 @@
+import type { PluginManagementBroker } from './management-broker'
+import {
+  createPluginManagementRpcServer,
+  createRpcPluginManagementBroker,
+  type RpcPluginManagementBroker,
+} from './management-rpc'
+import { gateActivationCapability } from './activation-gate'
 import type { PluginKeymapBroker } from './keymap-broker'
 import type { PluginEditingBroker } from './editing-broker'
 import type { PluginResourcesBroker } from './resources-broker'
@@ -83,6 +90,10 @@ import {
 
 export interface BrowserWorkerPluginHostConfig extends PluginIsolationRpcHostOptions {
   readonly worker: PluginWorkerEndpoint
+  /** Trusted host transaction state, never a worker-reported commit. */
+  readonly restrictedActivation?: boolean
+  readonly isActivationCommitted?: () => boolean
+  readonly onActivationViolation?: (error: Error) => void
   readonly manifest: PluginManifest
   readonly moduleSpecifier: string
   readonly documentBroker?: PluginDocumentBroker
@@ -92,6 +103,7 @@ export interface BrowserWorkerPluginHostConfig extends PluginIsolationRpcHostOpt
   readonly keymapBroker?: PluginKeymapBroker
   readonly editingBroker?: PluginEditingBroker
   readonly resourcesBroker?: PluginResourcesBroker
+  readonly managementBroker?: PluginManagementBroker
   readonly outputBroker?: PluginOutputBroker
   readonly settingsBroker?: PluginSettingsBroker
   readonly workspaceBroker?: PluginWorkspaceBroker
@@ -102,11 +114,20 @@ export interface BrowserWorkerPluginHostConfig extends PluginIsolationRpcHostOpt
 export interface BrowserWorkerPluginHost {
   readonly host: RpcPluginIsolationHost
   readonly ready: Promise<void>
-  dispose(): void
+  dispose(): Promise<void>
+  retryDispose(): Promise<void>
 }
 
 export interface PluginWorkerEndpoint extends PluginIsolationRpcEndpoint {
-  terminate?(): void
+  addEventListener?(
+    type: 'message' | 'error' | 'messageerror',
+    listener: (event: any) => void,
+  ): void
+  removeEventListener?(
+    type: 'message' | 'error' | 'messageerror',
+    listener: (event: any) => void,
+  ): void
+  terminate?(): void | Promise<unknown>
 }
 
 export interface PluginWorkerRealmOptions {
@@ -118,6 +139,7 @@ export interface PluginWorkerRealmOptions {
   readonly keymapBroker?: PluginKeymapBroker
   readonly editingBroker?: PluginEditingBroker
   readonly resourcesBroker?: PluginResourcesBroker
+  readonly managementBroker?: PluginManagementBroker
   readonly outputBroker?: PluginOutputBroker
   readonly settingsBroker?: PluginSettingsBroker
   readonly workspaceBroker?: PluginWorkspaceBroker
@@ -164,33 +186,93 @@ export function createBrowserWorkerPluginHost(
     manifest,
     moduleSpecifier,
     timeoutMs,
-    documentBroker,
-    uiBroker,
-    fileBroker,
-    networkBroker,
-    storageBroker,
-    releasesBroker,
-    workspaceBroker,
-    settingsBroker,
-    keymapBroker,
-    editingBroker,
-    resourcesBroker,
-    outputBroker,
+    documentBroker: rawDocumentBroker,
+    uiBroker: rawUiBroker,
+    fileBroker: rawFileBroker,
+    networkBroker: rawNetworkBroker,
+    storageBroker: rawStorageBroker,
+    releasesBroker: rawReleasesBroker,
+    workspaceBroker: rawWorkspaceBroker,
+    settingsBroker: rawSettingsBroker,
+    keymapBroker: rawKeymapBroker,
+    editingBroker: rawEditingBroker,
+    resourcesBroker: rawResourcesBroker,
+    outputBroker: rawOutputBroker,
+    managementBroker: rawManagementBroker,
   } = config
-  if (manifest.contributes?.documentRenderers?.length && !worker.terminate)
-    throw new Error('Document renderer Worker requires termination')
+  if (config.restrictedActivation && !config.isActivationCommitted)
+    throw new Error('Restricted activation requires a trusted host commit gate')
+  let activationViolation: Error | undefined
+  const gate = <T extends object>(
+    value: T | undefined,
+    readable: readonly string[] = [],
+  ): T | undefined =>
+    value &&
+    gateActivationCapability(
+      value,
+      () => !disposed,
+      () =>
+        !config.restrictedActivation ||
+        (!activationViolation && config.isActivationCommitted?.() === true),
+      readable,
+      ['dispose', 'cancel', 'cancelAll', 'release', 'releaseRoot', 'abort'],
+      (error) => {
+        if (!activationViolation) {
+          activationViolation = error
+          config.onActivationViolation?.(error)
+        }
+      },
+      { asynchronous: () => true },
+    )
+  const documentBroker = gate(rawDocumentBroker, [
+    'readWindow',
+    'start',
+    'scan',
+    'cancel',
+    'next',
+    'cancelAll',
+  ])
+  const uiBroker = gate(rawUiBroker, [])
+  const fileBroker = gate(rawFileBroker, ['readText'])
+  const networkBroker = gate(rawNetworkBroker, [])
+  const storageBroker = gate(rawStorageBroker, ['getItem'])
+  const releasesBroker = gate(rawReleasesBroker, [])
+  const workspaceBroker = gate(rawWorkspaceBroker, [])
+  const settingsBroker = gate(rawSettingsBroker, ['get', 'describe'])
+  const keymapBroker = gate(rawKeymapBroker, [])
+  const editingBroker = gate(rawEditingBroker, [])
+  const resourcesBroker = gate(rawResourcesBroker, [])
+  const outputBroker = gate(rawOutputBroker, [])
+  const managementBroker = gate(rawManagementBroker, ['snapshot', 'describe'])
+  if (
+    (manifest.contributes?.documentRenderers?.length || config.restrictedActivation) &&
+    !worker.terminate
+  )
+    throw new Error('Restricted activation and document renderer Workers require termination')
   const host = createRpcPluginIsolationHost(worker, {
     ...(timeoutMs ? { timeoutMs } : {}),
     onDocumentRenderTimeout: () => {
-      cleanup()
-      config.onDocumentRenderTimeout?.()
+      try {
+        cleanup()
+      } finally {
+        config.onDocumentRenderTimeout?.()
+      }
     },
     onIsolationError: (error) => {
-      fail(error)
-      cleanup()
-      config.onIsolationError?.(error)
+      if (isolationFailed) return
+      isolationFailed = true
+      try {
+        fail(error)
+        cleanup()
+      } finally {
+        config.onIsolationError?.(error)
+      }
     },
   })
+  const managementRpcServer =
+    managementBroker && manifest.permissions?.includes('app:plugins')
+      ? createPluginManagementRpcServer(worker, managementBroker)
+      : undefined
   const fileRpcServer = fileBroker ? createPluginFileRpcServer(worker, fileBroker) : undefined
   const documentRpcServer =
     documentBroker && manifest.permissions?.includes('document:read')
@@ -235,6 +317,11 @@ export function createBrowserWorkerPluginHost(
       : undefined
   let settled = false
   let disposed = false
+  let isolationFailed = false
+  let cleanupResult: Promise<void> | undefined
+  let latestCleanup: Promise<void> | undefined
+  let cleanupPending = false
+  let failedCleanupSteps: readonly (() => unknown)[] = []
   let removeReadyListener: (() => void) | undefined
   let timer: ReturnType<typeof setTimeout> | undefined
   let resolveReady!: () => void
@@ -253,24 +340,58 @@ export function createBrowserWorkerPluginHost(
     removeReadyListener = undefined
   }
 
-  function cleanup(): void {
-    if (disposed) return
+  function cleanup(): Promise<void> {
+    if (cleanupResult) return cleanupResult
     disposed = true
-    stopWaiting()
-    documentRpcServer?.dispose()
-    uiRpcServer?.dispose()
-    fileRpcServer?.dispose()
-    networkRpcServer?.dispose()
-    storageRpcServer?.dispose()
-    keymapRpcServer?.dispose()
-    editingRpcServer?.dispose()
-    resourcesRpcServer?.dispose()
-    outputRpcServer?.dispose()
-    settingsRpcServer?.dispose()
-    workspaceRpcServer?.dispose()
-    releasesRpcServer?.dispose()
-    host.dispose()
-    worker.terminate?.()
+    let resolve!: () => void, reject!: (error: unknown) => void
+    cleanupResult = new Promise<void>((yes, no) => {
+      resolve = yes
+      reject = no
+    })
+    void cleanupResult.catch(() => undefined)
+    const steps = [
+      () => stopWaiting(),
+      () => worker.removeEventListener?.('error', onWorkerError),
+      () => worker.removeEventListener?.('messageerror', onWorkerError),
+      () => documentRpcServer?.dispose(),
+      () => uiRpcServer?.dispose(),
+      () => fileRpcServer?.dispose(),
+      () => networkRpcServer?.dispose(),
+      () => storageRpcServer?.dispose(),
+      () => keymapRpcServer?.dispose(),
+      () => editingRpcServer?.dispose(),
+      () => resourcesRpcServer?.dispose(),
+      () => outputRpcServer?.dispose(),
+      () => settingsRpcServer?.dispose(),
+      () => workspaceRpcServer?.dispose(),
+      () => releasesRpcServer?.dispose(),
+      () => managementRpcServer?.dispose(),
+      () => host.dispose(),
+      () => worker.terminate?.(),
+    ]
+    cleanupResult = runCleanup(steps)
+    return cleanupResult
+  }
+
+  function runCleanup(steps: readonly (() => unknown)[]): Promise<void> {
+    cleanupPending = true
+    const results = steps.map((step) => {
+      try {
+        return Promise.resolve(step())
+      } catch (error) {
+        return Promise.reject(error)
+      }
+    })
+    latestCleanup = Promise.allSettled(results).then((settled) => {
+      cleanupPending = false
+      failedCleanupSteps = steps.filter((_, index) => settled[index]?.status === 'rejected')
+      const errors = settled
+        .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+        .map((result) => result.reason)
+      if (errors.length) throw new AggregateError(errors, 'Plugin worker cleanup failed')
+    })
+    void latestCleanup.catch(() => undefined)
+    return latestCleanup
   }
 
   function fail(error: Error): void {
@@ -280,7 +401,25 @@ export function createBrowserWorkerPluginHost(
     cleanup()
   }
 
+  function onWorkerError(event: { readonly type?: string }): void {
+    // Transport events are authority; ordinary plugin message payloads are not.
+    if (disposed || isolationFailed || (event.type !== 'error' && event.type !== 'messageerror'))
+      return
+    isolationFailed = true
+    let error: Error = new Error(`Plugin worker ${event.type}: ${manifest.id}`)
+    try {
+      fail(error)
+      cleanup()
+    } catch (cleanupError) {
+      error = new AggregateError([error, cleanupError], 'Plugin worker failure and cleanup failure')
+    } finally {
+      config.onIsolationError?.(error)
+    }
+  }
+
   try {
+    worker.addEventListener?.('error', onWorkerError)
+    worker.addEventListener?.('messageerror', onWorkerError)
     removeReadyListener = addWorkerMessageListener(worker, (message) => {
       if (settled) return
       const lifecycle = readWorkerLifecycleMessage(message)
@@ -314,7 +453,12 @@ export function createBrowserWorkerPluginHost(
     ready,
     dispose: () => {
       fail(new Error(`Plugin worker disposed before initialization: ${manifest.id}`))
-      cleanup()
+      return cleanup()
+    },
+    retryDispose: () => {
+      if (!cleanupResult) return cleanup()
+      if (cleanupPending || !failedCleanupSteps.length) return latestCleanup!
+      return runCleanup(failedCleanupSteps)
     },
   })
 }
@@ -335,6 +479,7 @@ export function initializePluginWorkerRealm(
   let rpcKeymapBroker: RpcPluginKeymapBroker | undefined
   let rpcEditingBroker: RpcPluginEditingBroker | undefined
   let rpcResourcesBroker: RpcPluginResourcesBroker | undefined
+  let rpcManagementBroker: RpcPluginManagementBroker | undefined
   let rpcOutputBroker: RpcPluginOutputBroker | undefined
   let rpcSettingsBroker: RpcPluginSettingsBroker | undefined
   let rpcWorkspaceBroker: RpcPluginWorkspaceBroker | undefined
@@ -395,6 +540,7 @@ export function initializePluginWorkerRealm(
       const releasesBrokerForHost = options.releasesBroker ?? rpcReleasesBroker
 
       installWorkerCodeLoadingGuards(scope)
+      installWorkerPersistenceGuards(scope)
       installNetworkGuards(scope, lifecycle.payload.manifest, networkBrokerForHost)
       const imported = await (options.importModule ?? defaultImportModule)(
         lifecycle.payload.moduleSpecifier,
@@ -415,6 +561,11 @@ export function initializePluginWorkerRealm(
         !options.outputBroker
           ? createRpcPluginOutputBroker(scope, 300_000)
           : undefined
+      rpcManagementBroker =
+        lifecycle.payload.manifest.permissions?.includes('app:plugins') && !options.managementBroker
+          ? createRpcPluginManagementBroker(scope, options.timeoutMs ?? 30_000)
+          : undefined
+      const managementBrokerForHost = options.managementBroker ?? rpcManagementBroker
       const outputBrokerForHost = options.outputBroker ?? rpcOutputBroker
       const editingBrokerForHost = options.editingBroker ?? rpcEditingBroker
       const resourcesBrokerForHost = options.resourcesBroker ?? rpcResourcesBroker
@@ -438,6 +589,7 @@ export function initializePluginWorkerRealm(
         ...(keymapBrokerForHost ? { keymapBroker: keymapBrokerForHost } : {}),
         ...(editingBrokerForHost ? { editingBroker: editingBrokerForHost } : {}),
         ...(resourcesBrokerForHost ? { resourcesBroker: resourcesBrokerForHost } : {}),
+        ...(managementBrokerForHost ? { managementBroker: managementBrokerForHost } : {}),
         ...(outputBrokerForHost ? { outputBroker: outputBrokerForHost } : {}),
         ...(settingsBrokerForHost ? { settingsBroker: settingsBrokerForHost } : {}),
         ...(workspaceBrokerForHost ? { workspaceBroker: workspaceBrokerForHost } : {}),
@@ -457,7 +609,14 @@ export function initializePluginWorkerRealm(
         type: 'ready',
       } satisfies WorkerReadyMessage)
     } catch (error) {
-      cleanup()
+      try {
+        cleanup()
+      } catch (cleanupError) {
+        error = new AggregateError(
+          [error, cleanupError],
+          'Plugin initialization and cleanup failed',
+        )
+      }
       if (disposed) return
       scope.postMessage({
         protocol: WORKER_INIT_PROTOCOL,
@@ -471,27 +630,41 @@ export function initializePluginWorkerRealm(
 
   function cleanup(): void {
     capabilityActive = false
-    rpcServer?.dispose()
-    rpcDocumentBroker?.dispose()
-    rpcUiBroker?.dispose()
-    rpcFileBroker?.dispose()
-    rpcNetworkBroker?.dispose()
-    rpcStorageBroker?.dispose()
-    rpcKeymapBroker?.dispose()
-    rpcEditingBroker?.dispose()
-    rpcResourcesBroker?.dispose()
-    rpcOutputBroker?.dispose()
-    rpcSettingsBroker?.dispose()
-    rpcWorkspaceBroker?.dispose()
-    rpcReleasesBroker?.dispose()
+    const failures: unknown[] = []
+    for (const resource of [
+      rpcServer,
+      rpcDocumentBroker,
+      rpcUiBroker,
+      rpcFileBroker,
+      rpcNetworkBroker,
+      rpcStorageBroker,
+      rpcKeymapBroker,
+      rpcEditingBroker,
+      rpcResourcesBroker,
+      rpcManagementBroker,
+      rpcOutputBroker,
+      rpcSettingsBroker,
+      rpcWorkspaceBroker,
+      rpcReleasesBroker,
+    ]) {
+      try {
+        resource?.dispose()
+      } catch (error) {
+        failures.push(error)
+      }
+    }
+    if (failures.length) throw new AggregateError(failures, 'Plugin realm cleanup failed')
   }
 
   return Object.freeze({
     dispose: () => {
       if (disposed) return
       disposed = true
-      removeInitListener()
-      cleanup()
+      try {
+        removeInitListener()
+      } finally {
+        cleanup()
+      }
     },
   })
 }
@@ -525,14 +698,49 @@ function installWorkerCodeLoadingGuards(scope: object): void {
   defineBlockedCodeLoadingGlobal(scope, 'SharedWorker')
 }
 
+function installWorkerPersistenceGuards(scope: object): void {
+  for (const key of ['indexedDB', 'caches', 'localStorage', 'sessionStorage']) {
+    defineGuardedProperty(scope, key, {
+      configurable: false,
+      get() {
+        throw new Error(`Plugin worker capability is not brokered: ${key}`)
+      },
+    })
+  }
+  for (const key of [
+    'BroadcastChannel',
+    'WebTransport',
+    'RTCPeerConnection',
+    'webkitRTCPeerConnection',
+  ]) {
+    defineGuardedProperty(scope, key, {
+      configurable: false,
+      writable: false,
+      value: function () {
+        throw new Error(`Plugin worker capability is not brokered: ${key}`)
+      },
+    })
+  }
+  const navigator = (scope as { navigator?: object }).navigator
+  if (navigator)
+    for (const key of ['storage', 'locks', 'serviceWorker', 'sendBeacon']) {
+      defineGuardedProperty(navigator, key, {
+        configurable: false,
+        get() {
+          throw new Error(`Plugin worker capability is not brokered: navigator.${key}`)
+        },
+      })
+    }
+}
+
 async function defaultImportModule(moduleSpecifier: string): Promise<unknown> {
   return import(/* @vite-ignore */ moduleSpecifier)
 }
 
 function defineBlockedGlobal(scope: object, key: string): void {
-  Object.defineProperty(scope, key, {
-    configurable: true,
-    writable: true,
+  defineGuardedProperty(scope, key, {
+    configurable: false,
+    writable: false,
     value: () => {
       throw new Error(`Plugin network access is not allowed: ${key}`)
     },
@@ -540,9 +748,9 @@ function defineBlockedGlobal(scope: object, key: string): void {
 }
 
 function defineUnsupportedNetworkGlobal(scope: object, key: string): void {
-  Object.defineProperty(scope, key, {
-    configurable: true,
-    writable: true,
+  defineGuardedProperty(scope, key, {
+    configurable: false,
+    writable: false,
     value: () => {
       throw new Error(`Plugin network global is not brokered: ${key}`)
     },
@@ -550,9 +758,9 @@ function defineUnsupportedNetworkGlobal(scope: object, key: string): void {
 }
 
 function defineBlockedCodeLoadingGlobal(scope: object, key: string): void {
-  Object.defineProperty(scope, key, {
-    configurable: true,
-    writable: true,
+  defineGuardedProperty(scope, key, {
+    configurable: false,
+    writable: false,
     value: function blockedPluginWorkerCodeLoading() {
       throw new Error(`Plugin worker code loading is not allowed: ${key}`)
     },
@@ -560,9 +768,9 @@ function defineBlockedCodeLoadingGlobal(scope: object, key: string): void {
 }
 
 function defineBrokeredGlobalFetch(scope: object, networkBroker: PluginNetworkBroker): void {
-  Object.defineProperty(scope, 'fetch', {
-    configurable: true,
-    writable: true,
+  defineGuardedProperty(scope, 'fetch', {
+    configurable: false,
+    writable: false,
     value: (url: unknown, init?: unknown) =>
       networkBroker.fetch({
         url: String(url),
@@ -608,4 +816,16 @@ function readWorkerLifecycleMessage(message: unknown): WorkerLifecycleMessage | 
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function defineGuardedProperty(scope: object, key: string, descriptor: PropertyDescriptor): void {
+  // Defining an own property alone leaves native prototype methods recoverable.
+  for (
+    let prototype = Object.getPrototypeOf(scope);
+    prototype && prototype !== Object.prototype;
+    prototype = Object.getPrototypeOf(prototype)
+  ) {
+    if (Object.hasOwn(prototype, key)) Object.defineProperty(prototype, key, descriptor)
+  }
+  Object.defineProperty(scope, key, descriptor)
 }

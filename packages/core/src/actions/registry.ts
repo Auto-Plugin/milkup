@@ -15,6 +15,7 @@ export type ActionPermission =
   | 'network:access'
   | 'app:control'
   | 'app:updates'
+  | 'app:plugins'
   | 'workspace:read'
   | 'settings:write'
   | 'app:keymap'

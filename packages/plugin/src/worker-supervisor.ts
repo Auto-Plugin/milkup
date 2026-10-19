@@ -49,6 +49,12 @@ export function createSupervisedPluginWorkerEndpoint(worker: ErrorEndpoint): Plu
   const failures = new Set<(event: Failure) => void>()
   let closed = false,
     stopped = false
+  let resolveRetirement!: () => void, rejectRetirement!: (error: unknown) => void
+  const retirement = new Promise<void>((resolve, reject) => {
+    resolveRetirement = resolve
+    rejectRetirement = reject
+  })
+  void retirement.catch(() => undefined)
   let stopTimer: ReturnType<typeof setTimeout> | undefined
   const emit = (event: Failure) => {
     for (const listener of [...failures]) listener(event)
@@ -61,7 +67,7 @@ export function createSupervisedPluginWorkerEndpoint(worker: ErrorEndpoint): Plu
       return
     if (value.type === 'control' && !Object.hasOwn(value, 'message')) {
       if (value.event === 'disposed' && !Object.hasOwn(value, 'id')) {
-        stop()
+        stop(true)
         return
       }
       if (closed) return
@@ -98,22 +104,30 @@ export function createSupervisedPluginWorkerEndpoint(worker: ErrorEndpoint): Plu
       emit({ type: 'error' })
     } finally {
       retire()
-      stop()
+      stop(false)
     }
   }
   worker.addEventListener?.('error', onError)
   worker.addEventListener?.('messageerror', onError)
-  function stop() {
+  function stop(confirmed: boolean) {
     if (stopped) return
     stopped = true
     clearTimeout(stopTimer)
-    remove()
-    worker.removeEventListener?.('error', onError)
-    worker.removeEventListener?.('messageerror', onError)
-    worker.terminate!()
+    try {
+      cleanupAll([
+        remove,
+        () => worker.removeEventListener?.('error', onError),
+        () => worker.removeEventListener?.('messageerror', onError),
+        () => worker.terminate!(),
+      ])
+      if (confirmed) resolveRetirement()
+      else rejectRetirement(new Error('Worker child teardown was not confirmed'))
+    } catch (error) {
+      rejectRetirement(error)
+    }
   }
-  function retire() {
-    if (closed) return
+  function retire(): Promise<void> {
+    if (closed) return retirement
     closed = true
     try {
       emit({ type: 'disposed' })
@@ -122,24 +136,31 @@ export function createSupervisedPluginWorkerEndpoint(worker: ErrorEndpoint): Plu
       failures.clear()
       // The supervisor owns explicit child teardown. Keep its listener alive
       // until its ACK; terminate the parent as a bounded fallback as well.
-      stopTimer = setTimeout(stop, 1000)
+      stopTimer = setTimeout(() => stop(false), 1000)
       try {
         worker.postMessage({ protocol, type: 'dispose' })
       } catch {
-        stop()
+        stop(false)
       }
     }
+    return retirement
   }
   const endpoint: PluginWorkerEndpoint = Object.freeze({
     postMessage(message: unknown) {
       if (closed) throw new Error('Worker supervisor endpoint is disposed')
       worker.postMessage({ protocol, type: 'forward', message })
     },
-    addEventListener(_type: 'message', listener: (event: { readonly data: unknown }) => void) {
-      listeners.add(listener)
+    addEventListener(
+      type: 'message' | 'error' | 'messageerror',
+      listener: (event: { readonly data: unknown }) => void,
+    ) {
+      if (type === 'message') listeners.add(listener)
     },
-    removeEventListener(_type: 'message', listener: (event: { readonly data: unknown }) => void) {
-      listeners.delete(listener)
+    removeEventListener(
+      type: 'message' | 'error' | 'messageerror',
+      listener: (event: { readonly data: unknown }) => void,
+    ) {
+      if (type === 'message') listeners.delete(listener)
     },
     terminate: retire,
   })
@@ -169,29 +190,40 @@ export function initializePluginWorkerSupervisor(
     closed = true
     clearTimeout(active?.timer)
     active = undefined
-    removeChild?.()
-    child?.removeEventListener?.('error', fail)
-    child?.removeEventListener?.('messageerror', fail)
-    child?.terminate?.()
+    cleanupAll([
+      () => removeChild?.(),
+      () => child?.removeEventListener?.('error', fail),
+      () => child?.removeEventListener?.('messageerror', fail),
+      () => child?.terminate?.(),
+    ])
   }
   function fail() {
     if (closed) return
-    teardown()
-    send({ protocol, type: 'control', event: 'error' })
+    try {
+      teardown()
+    } finally {
+      send({ protocol, type: 'control', event: 'error' })
+    }
   }
   function expire(id: string) {
     if (closed || active?.id !== id) return
     // Stop execution before informing a possibly blocked page. No untrusted
     // timestamp participates in this decision.
-    teardown()
-    send({ protocol, type: 'control', event: 'timeout', id })
+    try {
+      teardown()
+    } finally {
+      send({ protocol, type: 'control', event: 'timeout', id })
+    }
   }
   const remove = listen(scope, (value) => {
     if (!record(value, ['protocol', 'type', 'message']) || value.protocol !== protocol) return
     if (value.type === 'dispose' && !Object.hasOwn(value, 'message')) {
-      teardown()
-      send({ protocol, type: 'control', event: 'disposed' })
-      remove()
+      try {
+        teardown()
+        send({ protocol, type: 'control', event: 'disposed' })
+      } finally {
+        remove()
+      }
       return
     }
     if (closed || value.type !== 'forward' || !Object.hasOwn(value, 'message')) return
@@ -248,8 +280,24 @@ export function initializePluginWorkerSupervisor(
   })
   return Object.freeze({
     dispose() {
-      teardown()
-      remove()
+      try {
+        teardown()
+      } finally {
+        remove()
+      }
     },
   })
+}
+
+function cleanupAll(steps: readonly (() => void)[]): void {
+  const errors: unknown[] = []
+  for (const step of steps) {
+    try {
+      step()
+    } catch (error) {
+      errors.push(error)
+    }
+  }
+  if (errors.length === 1) throw errors[0]
+  if (errors.length) throw new AggregateError(errors, 'Worker supervisor cleanup failed')
 }

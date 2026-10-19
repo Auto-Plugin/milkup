@@ -1,3 +1,5 @@
+import type { PluginManagementBroker } from './management-broker'
+import { createPluginManagementRpcServer, type PluginManagementRpcServer } from './management-rpc'
 import type { PluginKeymapBroker } from './keymap-broker'
 import type { PluginEditingBroker } from './editing-broker'
 import type { PluginResourcesBroker } from './resources-broker'
@@ -28,6 +30,7 @@ export interface PluginSidecarHostConfig extends PluginIsolationRpcHostOptions {
   readonly manifest: PluginManifest
   readonly process: PluginSidecarProcess
   readonly moduleSpecifier?: string
+  readonly managementBroker?: PluginManagementBroker
   readonly keymapBroker?: PluginKeymapBroker
   readonly editingBroker?: PluginEditingBroker
   readonly resourcesBroker?: PluginResourcesBroker
@@ -69,6 +72,7 @@ export function createSidecarPluginModule(config: PluginSidecarHostConfig): Plug
     uiBroker,
     workspaceBroker,
     settingsBroker,
+    managementBroker,
     keymapBroker,
     editingBroker,
     resourcesBroker,
@@ -91,6 +95,7 @@ export function createSidecarPluginModule(config: PluginSidecarHostConfig): Plug
     const host = createRpcPluginIsolationHost(endpoint, {
       ...(timeoutMs ? { timeoutMs } : {}),
       onDocumentRenderTimeout: () => {
+        active.managementRpcServer?.dispose()
         active.keymapRpcServer?.dispose()
         active.editingRpcServer?.dispose()
         active.resourcesRpcServer?.dispose()
@@ -111,6 +116,7 @@ export function createSidecarPluginModule(config: PluginSidecarHostConfig): Plug
         config.onDocumentRenderTimeout?.()
       },
       onIsolationError: (error) => {
+        active.managementRpcServer?.dispose()
         active.keymapRpcServer?.dispose()
         active.editingRpcServer?.dispose()
         active.resourcesRpcServer?.dispose()
@@ -131,6 +137,10 @@ export function createSidecarPluginModule(config: PluginSidecarHostConfig): Plug
         config.onIsolationError?.(error)
       },
     })
+    const managementRpcServer =
+      managementBroker && manifest.permissions?.includes('app:plugins')
+        ? createPluginManagementRpcServer(endpoint, managementBroker)
+        : undefined
     const keymapRpcServer =
       keymapBroker && manifest.permissions?.includes('app:keymap')
         ? createPluginKeymapRpcServer(endpoint, keymapBroker)
@@ -169,6 +179,7 @@ export function createSidecarPluginModule(config: PluginSidecarHostConfig): Plug
       host,
       module,
       ...(documentRpcServer ? { documentRpcServer } : {}),
+      ...(managementRpcServer ? { managementRpcServer } : {}),
       ...(keymapRpcServer ? { keymapRpcServer } : {}),
       ...(editingRpcServer ? { editingRpcServer } : {}),
       ...(resourcesRpcServer ? { resourcesRpcServer } : {}),
@@ -198,6 +209,7 @@ export function createSidecarPluginModule(config: PluginSidecarHostConfig): Plug
       try {
         await active.module.deactivate?.()
       } finally {
+        active.managementRpcServer?.dispose()
         active.keymapRpcServer?.dispose()
         active.editingRpcServer?.dispose()
         active.resourcesRpcServer?.dispose()
@@ -222,6 +234,7 @@ interface ActiveSidecar {
   readonly endpoint: PluginSidecarEndpoint
   readonly host: RpcPluginIsolationHost
   readonly module: PluginModule
+  readonly managementRpcServer?: PluginManagementRpcServer
   readonly keymapRpcServer?: PluginKeymapRpcServer
   readonly editingRpcServer?: PluginEditingRpcServer
   readonly resourcesRpcServer?: PluginResourcesRpcServer

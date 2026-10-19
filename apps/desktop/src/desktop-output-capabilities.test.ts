@@ -51,7 +51,10 @@ function setup(host: 'worker' | 'sidecar' = 'worker', read = true) {
           return {}
         },
       },
-      dispose: () => {
+      dispose: async () => {
+        // Authority is revoked before the owner starts stopping, independent of cleanup completion order.
+        const revoked = capabilities?.outputBroker?.release('snapshot-1')
+        if (revoked) await expect(revoked).rejects.toMatchObject({ code: 'revoked' })
         stopped.push('module')
       },
     }
@@ -100,7 +103,7 @@ describe('desktop output capability lifecycle', () => {
       ).rejects.toMatchObject({ code: 'gesture-required' })
       expect(t.adapter.capture).not.toHaveBeenCalled()
       await t.manager.disable(t.manifest.id)
-      expect(t.stopped).toEqual(['output', 'module'])
+      expect([...t.stopped].sort()).toEqual(['module', 'output'])
       await expect(t.loaded[0]!.outputBroker!.release('snapshot-1')).rejects.toMatchObject({
         code: 'revoked',
       })

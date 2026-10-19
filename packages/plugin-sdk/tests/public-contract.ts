@@ -34,6 +34,34 @@ const module: SdkPluginModule = definePlugin({
 })
 void module
 
+// SDK 0.3.7: management reads cannot mutate another plugin or approve a package.
+import type { SdkPluginManagementHost, SdkPluginHost } from '../src/index.js'
+async function managementContract(host: SdkPluginManagementHost, read: SdkPluginHost) {
+  const catalog = await host.snapshot()
+  const item = catalog.items[0]
+  if (item) {
+    const detail = await host.describe({ pluginId: item.id, revision: catalog.revision })
+    void detail.candidate?.fingerprint
+    await host.requestHostView({ pluginId: item.id, revision: detail.revision, view: 'details' })
+    // @ts-expect-error No approval or package-commit API exists.
+    await host.approve(item.id)
+    await host.requestHostView({
+      pluginId: item.id,
+      revision: detail.revision,
+      view: 'settings',
+      // @ts-expect-error No arbitrary paths can be navigated.
+      path: '/private',
+    })
+    // @ts-expect-error Read-only activation host cannot request navigation.
+    await read.management?.requestHostView({
+      pluginId: item.id,
+      revision: detail.revision,
+      view: 'details',
+    })
+  }
+}
+void managementContract
+
 // SDK 0.3.6: pending is explicit; omitted fields preserve old renderer contracts.
 import type { SdkDocumentPresentationResult } from '../src/index.js'
 const pendingPresentation: SdkDocumentPresentationResult = {

@@ -1,0 +1,430 @@
+{
+  "stage": "cold-output",
+  "format": "html",
+  "basedOn": {
+    "file": "tests/native/tauri-p5-diagrams-output.mjs",
+    "sha256": "af1eaa490ea09f498bc8aabd216494007d614c7f4ad6fc99f43395d124a9d215"
+  },
+  "binary": "/workspace/milkup-plugin-lifecycle-evidence/milestone02/production01/milkup-desktop",
+  "binarySha256": "4aeb04b4e3a1cffa08d029d5b41d589d36df87ac251d88e2cf496bf53ebbbd24",
+  "packages": [
+    {
+      "file": "/workspace/milkup-plugin-lifecycle-evidence/milestone01/outline-external/milkup.outline-1.3.1.milkup-plugin",
+      "sha256": "7eea6ffb5bba53155b3c256c6e35d95b04a93199ebbbd04636ee9c7ec5f6f712",
+      "manifest": {
+        "id": "milkup.outline",
+        "name": "Milkup Outline",
+        "version": "1.3.1",
+        "description": "Show a read-only document outline.",
+        "host": "worker",
+        "main": "./dist/plugin.js",
+        "engines": {
+          "milkup": "^2.0.0-0",
+          "pluginSdk": ">=0.2.0 <0.4.0"
+        },
+        "permissions": [
+          "document:read"
+        ],
+        "contributes": {
+          "commands": [
+            {
+              "id": "outline.gotoHeading",
+              "title": "Go to heading",
+              "action": "outline.gotoHeading",
+              "category": "navigation",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "line": {
+                    "type": "number",
+                    "required": true,
+                    "description": "Heading line number"
+                  },
+                  "documentId": {
+                    "type": "string",
+                    "required": true
+                  },
+                  "version": {
+                    "type": "number",
+                    "required": true
+                  },
+                  "generation": {
+                    "type": "number",
+                    "required": true
+                  },
+                  "ordinal": {
+                    "type": "number",
+                    "required": true
+                  },
+                  "id": {
+                    "type": "string",
+                    "required": true
+                  }
+                }
+              }
+            },
+            {
+              "id": "outline.toggleHeading",
+              "title": "Collapse or expand heading",
+              "action": "outline.toggleHeading",
+              "category": "navigation",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "line": {
+                    "type": "number",
+                    "required": true,
+                    "description": "Positive integer heading line number"
+                  },
+                  "documentId": {
+                    "type": "string",
+                    "required": true
+                  },
+                  "version": {
+                    "type": "number",
+                    "required": true
+                  },
+                  "generation": {
+                    "type": "number",
+                    "required": true
+                  },
+                  "ordinal": {
+                    "type": "number",
+                    "required": true
+                  },
+                  "id": {
+                    "type": "string",
+                    "required": true
+                  }
+                }
+              }
+            },
+            {
+              "id": "outline.collapseAll",
+              "title": "Collapse all headings",
+              "action": "outline.collapseAll",
+              "category": "navigation"
+            },
+            {
+              "id": "outline.expandAll",
+              "title": "Expand all headings",
+              "action": "outline.expandAll",
+              "category": "navigation"
+            },
+            {
+              "id": "outline.cancel",
+              "title": "Cancel outline indexing",
+              "action": "outline.cancel",
+              "category": "navigation"
+            },
+            {
+              "id": "outline.retry",
+              "title": "Retry outline indexing",
+              "action": "outline.retry",
+              "category": "navigation"
+            }
+          ],
+          "ui": [
+            {
+              "id": "outline-panel",
+              "slot": "sidebar-panel",
+              "title": "大纲",
+              "scope": "document",
+              "viewportUpdates": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "file": "/workspace/milkup-plugin-lifecycle-evidence/milestone01/footnotes-external/artifacts/milkup.footnotes-1.0.1.milkup-plugin",
+      "sha256": "cf495f6bdf22dc6b24143a06fc34fdce8d2b2ecab90b8296b85fb49773b692a2",
+      "manifest": {
+        "id": "milkup.footnotes",
+        "name": "Milkup Footnotes",
+        "version": "1.0.1",
+        "description": "有界脚注索引、定义与引用导航；编辑时保留 Markdown 源文。",
+        "host": "worker",
+        "main": "./dist/plugin.js",
+        "engines": {
+          "milkup": "^2.0.0-0",
+          "pluginSdk": ">=0.3.6 <0.4.0"
+        },
+        "permissions": [
+          "document:read"
+        ],
+        "contributes": {
+          "documentRenderers": [
+            {
+              "id": "footnotes",
+              "contexts": [
+                "text"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "file": "/workspace/milkup-export-print-evidence/milestone01/plugin/action-id-fix-external/dist/milkup.export-print-1.0.0.milkup-plugin",
+      "sha256": "08cd8532ecd209f4794f88de1880e06c16c586ae2997e326450687e1be2181b9",
+      "manifest": {
+        "id": "milkup.export-print",
+        "name": "导出与打印",
+        "version": "1.0.0",
+        "description": "将整篇文档或所选内容导出为 HTML、PDF，或打印；可选择图片、纸张和方向，并保留开始时的内容版本。",
+        "host": "worker",
+        "main": "./dist/plugin.js",
+        "engines": {
+          "milkup": "^2.0.0-0",
+          "pluginSdk": "^0.3.5"
+        },
+        "permissions": [
+          "document:read",
+          "document:output"
+        ],
+        "icon": "assets/export-print.png",
+        "resources": [
+          "assets/export-print.png"
+        ],
+        "contributes": {
+          "commands": [
+            {
+              "id": "exportPrint.start",
+              "title": "导出或打印文档",
+              "action": "exportPrint.start"
+            },
+            {
+              "id": "exportPrint.retry",
+              "title": "重新导出或打印",
+              "action": "exportPrint.retry"
+            },
+            {
+              "id": "exportPrint.cancel",
+              "title": "取消输出",
+              "action": "exportPrint.cancel"
+            },
+            {
+              "id": "exportPrint.change",
+              "title": "修改输出选项",
+              "action": "exportPrint.change",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "field": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "field",
+                  "value"
+                ]
+              }
+            }
+          ],
+          "ui": [
+            {
+              "id": "export-print-panel",
+              "slot": "sidebar-panel",
+              "title": "导出与打印",
+              "scope": "app",
+              "viewportUpdates": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "file": "/workspace/milkup-mermaid-engine-evidence/research/renderer-exact-memo-product-integration-01/artifacts/milkup.diagrams-1.1.1.milkup-plugin",
+      "sha256": "2351692438a2083a72bcb8cddce28c7a530a8557734926992a3a2e3120c68a19",
+      "manifest": {
+        "id": "milkup.diagrams",
+        "name": "Milkup Diagrams",
+        "version": "1.1.1",
+        "description": "使用完整官方 Mermaid 引擎离线呈现图表；无法安全呈现的内容保留完整源码。",
+        "host": "dom",
+        "main": "./dist/plugin.js",
+        "engines": {
+          "milkup": "^2.0.0-0",
+          "pluginSdk": ">=0.3.4 <0.4.0"
+        },
+        "permissions": [
+          "document:read"
+        ],
+        "contributes": {
+          "documentRenderers": [
+            {
+              "id": "diagrams.mermaid",
+              "contexts": [
+                "fence"
+              ],
+              "fenceLanguages": [
+                "mermaid"
+              ]
+            }
+          ]
+        },
+        "resources": [
+          "THIRD-PARTY-NOTICES.txt",
+          "dependency-provenance.json"
+        ]
+      }
+    }
+  ],
+  "rejectedCandidates": [],
+  "fixture": {
+    "id": "print04-regression",
+    "file": "print04-regression.source",
+    "format": "markdown",
+    "fixtureRevision": "print04-regression",
+    "sourceSHA256": "8b4f460fb664ce9b2ef92314dd284404eb4bdfeb28578a34d6dfa08a608454a7",
+    "sourceBytes": 11971,
+    "sourceUtf16": 5588,
+    "sourceLines": 262,
+    "diagrams": [
+      {
+        "ordinal": 1,
+        "fromUtf16": 800,
+        "toUtf16": 877,
+        "rangeIncludesClosingNewline": true,
+        "fenceSHA256": "e7fad28ac9fa482f76983d96303fa24dcf2f03cafa1bf4093b3fb27187cc15ef",
+        "nodeLabels": [
+          "中文输入",
+          "冻结内容",
+          "HTML / PDF / 打印"
+        ],
+        "nodeCount": 3,
+        "edgeCount": 2
+      }
+    ],
+    "bodyMarkersExactlyOnce": [
+      "P5-ORIGINAL-BODY",
+      "P5-CODE-MARKER",
+      "P5-FOOTNOTE-MARKER",
+      "P5-END-MARKER",
+      "P5-PAGE-1",
+      "P5-PAGE-2",
+      "P5-PAGE-3",
+      "P5-PAGE-4",
+      "P5-PAGE-5",
+      "P5-PAGE-6",
+      "P5-PAGE-7",
+      "P5-PAGE-8",
+      "P5-PAGE-9",
+      "P5-PAGE-10",
+      "P5-PAGE-11",
+      "P5-PAGE-12",
+      "P5-PAGE-13",
+      "P5-PAGE-14",
+      "P5-PAGE-15",
+      "P5-PAGE-16",
+      "P5-PAGE-17",
+      "P5-PAGE-18",
+      "P5-PAGE-19",
+      "P5-PAGE-20",
+      "P5-PAGE-21",
+      "P5-PAGE-22",
+      "P5-PAGE-23",
+      "P5-PAGE-24",
+      "P5-PAGE-25",
+      "P5-PAGE-26",
+      "P5-PAGE-27",
+      "P5-PAGE-28",
+      "P5-PAGE-29",
+      "P5-PAGE-30",
+      "P5-PAGE-31",
+      "P5-PAGE-32",
+      "P5-PAGE-33",
+      "P5-PAGE-34",
+      "P5-PAGE-35",
+      "P5-PAGE-36",
+      "P5-PAGE-37",
+      "P5-PAGE-38",
+      "P5-PAGE-39",
+      "P5-PAGE-40",
+      "P5-PAGE-41",
+      "P5-PAGE-42",
+      "P5-PAGE-43",
+      "P5-PAGE-44",
+      "P5-PAGE-45",
+      "P5-PAGE-46",
+      "P5-PAGE-47",
+      "P5-PAGE-48",
+      "P5-PAGE-49",
+      "P5-PAGE-50",
+      "P5-PAGE-51",
+      "P5-PAGE-52",
+      "P5-PAGE-53",
+      "P5-PAGE-54",
+      "P5-PAGE-55",
+      "P5-PAGE-56",
+      "P5-PAGE-57",
+      "P5-PAGE-58",
+      "P5-PAGE-59",
+      "P5-PAGE-60",
+      "P5-PAGE-61",
+      "P5-PAGE-62",
+      "P5-PAGE-63",
+      "P5-PAGE-64",
+      "P5-PAGE-65",
+      "P5-PAGE-66",
+      "P5-PAGE-67",
+      "P5-PAGE-68",
+      "P5-PAGE-69",
+      "P5-PAGE-70",
+      "P5-PAGE-71",
+      "P5-PAGE-72",
+      "P5-PAGE-73",
+      "P5-PAGE-74",
+      "P5-PAGE-75",
+      "P5-PAGE-76",
+      "P5-PAGE-77",
+      "P5-PAGE-78",
+      "P5-PAGE-79",
+      "P5-PAGE-80",
+      "P5-PAGE-81",
+      "P5-PAGE-82",
+      "P5-PAGE-83",
+      "P5-PAGE-84",
+      "P5-PAGE-85",
+      "P5-PAGE-86",
+      "P5-PAGE-87",
+      "P5-PAGE-88",
+      "P5-PAGE-89",
+      "P5-PAGE-90",
+      "P5-PAGE-91",
+      "P5-PAGE-92",
+      "P5-PAGE-93",
+      "P5-PAGE-94",
+      "P5-PAGE-95",
+      "P5-PAGE-96",
+      "P5-PAGE-97",
+      "P5-PAGE-98",
+      "P5-PAGE-99",
+      "P5-PAGE-100"
+    ],
+    "allowedWarningKinds": [
+      "missing-or-remote-image"
+    ],
+    "forbiddenRevisionMarkers": [],
+    "resourceFiles": [
+      "assets/logo-fixture.png"
+    ]
+  },
+  "sourcePath": "/workspace/milkup-plugin-lifecycle-evidence/milestone02/manager/lifecycle-native-catalog-preflight/source.md",
+  "fixtureManifestSha256": "e4e9e719a82a53f599a6010c21c78ba7fd7c3f60e486abc43653fcef24ace948",
+  "preparedOnly": true,
+  "memoryMeasurement": "not sampled; preload memory increment is unknown",
+  "nativeLog": null,
+  "boundaries": [
+    "No renderer deadline/isolation changes; existing 2s budget remains.",
+    "Native catalog read observes pending/active generations; mirror only confirms published runtime records. No catalog mutations are injected.",
+    "First output is not proof of first render: the editor may pre-render.",
+    "Upgrade rollback and permission-delta transactions are outside this first checkpoint; never simulate them with registry mutation.",
+    "PDF raster is retained for separate visual review; text presence never proves a diagram.",
+    "Cold cases do not run a renderer warmup; editor pre-rendering remains observable and is not called a first-render guarantee."
+  ]
+}

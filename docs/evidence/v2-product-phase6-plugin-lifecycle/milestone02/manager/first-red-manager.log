@@ -1,0 +1,108 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts (30 tests | 3 failed | 27 skipped) 29ms
+   ↓ DesktopPluginManager > exposes a stable read-only renderer generation that changes across disable and re-enable
+   ↓ DesktopPluginManager > rejects a temporary-store plugin on SDK 0.1.0 before executing its module
+   ↓ DesktopPluginManager > rejects incompatible upgrade {"pluginSdk":"^9.0.0"} before writing or changing the enabled installation
+   ↓ DesktopPluginManager > rejects incompatible upgrade {"milkup":"^9.0.0"} before writing or changing the enabled installation
+   ↓ DesktopPluginManager > does not create files, directories or registry records for a new incompatible archive
+   ↓ DesktopPluginManager > does not create files, directories or registry records for a new incompatible manifest
+   ↓ DesktopPluginManager > cleans temporary stores on disable and close, and permits a fresh activation after close fails
+   ↓ DesktopPluginManager > loads a relative entry from the plugin root and cleans runtime resources on disable
+   ↓ DesktopPluginManager > reports error Worker startup failure and releases the Worker
+   ↓ DesktopPluginManager > reports silent Worker startup failure and releases the Worker
+   ↓ DesktopPluginManager > reports transport Worker startup failure and releases the Worker
+   ↓ DesktopPluginManager > reactivates persisted enabled plugins during startup
+   ↓ DesktopPluginManager > exports a validated local development package with its entry and resources
+   ↓ DesktopPluginManager > exports installed PNG icons as base64 and preserves them when reinstalling the archive
+   ↓ DesktopPluginManager > keeps invalid manifests visible as install failures without damaging installed records
+   ↓ DesktopPluginManager > honors keymap when contexts and exposes conflicts in manager markup
+   ↓ DesktopPluginManager > runs ChatGPT-style importers and returns generated Markdown without a source file identity
+   ↓ DesktopPluginManager > requires explicit approval for file capabilities and revokes enabled resources
+   ↓ DesktopPluginManager > gates workspace scope creation on explicit approval and revokes captured brokers before unload
+   ↓ DesktopPluginManager > keeps sidecar plugins disabled until their host is explicitly approved
+   ↓ DesktopPluginManager > provides document scan capabilities to plugins with document read permission
+   ↓ DesktopPluginManager > permits explicit retry after a render timeout while keeping the old broker revoked
+   ↓ DesktopPluginManager > ignores a retired worker timeout callback after a new activation
+   ↓ DesktopPluginManager > records a host failure distinctly and permits explicit retry without reviving its old callbacks
+   ↓ DesktopPluginManager > preserves host failure provenance across restart for explicit retry
+   ↓ DesktopPluginManager > waits for timed-out activation cleanup before publishing a replacement
+   ↓ resolvePluginEntryPath > resolves package entries and rejects paths outside the package
+   × P6 lifecycle failure boundaries > attempts every cleanup after an independent service rejects and revokes the old epoch 19ms
+     → expected [ 'output' ] to deeply equal ArrayContaining{…}
+   × P6 lifecycle failure boundaries > keeps a usable in-memory result when mirror quota fails 7ms
+     → promise rejected "Error: quota" instead of resolving
+   × P6 lifecycle failure boundaries > retains corrupt legacy bytes for native migration diagnostics rather than deleting evidence 2ms
+     → expected null to be '{"version":1,"records":BROKEN' // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > P6 lifecycle failure boundaries > attempts every cleanup after an independent service rejects and revokes the old epoch
+AssertionError: expected [ 'output' ] to deeply equal ArrayContaining{…}
+
+- Expected
++ Received
+
+- ArrayContaining [
++ [
+    "output",
+-   "editing",
+-   "resources",
+-   "module",
+  ]
+
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:1033:20
+    1031|     internals.resourcesServices.set('example-tools',{dispose:async()=>…
+    1032|     await expect(manager.disable('example-tools')).rejects.toThrow('cl…
+    1033|     expect(events).toEqual(expect.arrayContaining(['output','editing',…
+       |                    ^
+    1034|     expect(manager.documentRendererGeneration('example-tools')).toBeGr…
+    1035|     expect(manager.state().records[0]?.enabled).toBe(false)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > P6 lifecycle failure boundaries > keeps a usable in-memory result when mirror quota fails
+AssertionError: promise rejected "Error: quota" instead of resolving
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:1041:61
+    1039|     storage.setItem=()=>{throw Error('quota')}
+    1040|     const manager=createManager({registry:new ActionRegistry(),storage…
+    1041|     await expect(manager.installManifestPath('/plugin.json')).resolves…
+       |                                                             ^
+    1042|     await expect(manager.approve('example-tools')).resolves.toMatchObj…
+    1043|   })
+
+Caused by: Error: quota
+ ❯ Object.storage.setItem apps/desktop/src/desktop-plugin-manager.test.ts:1039:32
+ ❯ DesktopPluginManager.persistFailures apps/desktop/src/desktop-plugin-manager.ts:1621:19
+ ❯ DesktopPluginManager.recordInstallFailure apps/desktop/src/desktop-plugin-manager.ts:1601:10
+ ❯ DesktopPluginManager.installManifestPath apps/desktop/src/desktop-plugin-manager.ts:521:12
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:1041:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > P6 lifecycle failure boundaries > retains corrupt legacy bytes for native migration diagnostics rather than deleting evidence
+AssertionError: expected null to be '{"version":1,"records":BROKEN' // Object.is equality
+
+- Expected: 
+"{\"version\":1,\"records\":BROKEN"
+
++ Received: 
+null
+
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:1049:67
+    1047|     const manager=createManager({registry:new ActionRegistry(),storage…
+    1048|     await manager.ready
+    1049|     expect(storage.getItem('milkup.desktop.plugins.registry.v1')).toBe…
+       |                                                                   ^
+    1050|     expect(manager.state().records).toEqual([])
+    1051|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 27 skipped (30)
+   Start at  08:28:47
+   Duration  1.39s (transform 682ms, setup 0ms, collect 907ms, tests 29ms, environment 0ms, prepare 75ms)
+

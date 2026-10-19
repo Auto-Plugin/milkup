@@ -325,3 +325,45 @@ describe('trusted Worker render supervision', () => {
     clock.mockRestore()
   })
 })
+
+it('terminates the child and detaches supervisor even when child listener cleanup throws', () => {
+  const wire = channel(),
+    child = channel()
+  const detach = vi.spyOn(wire.remote, 'off')
+  const realm = initializePluginWorkerSupervisor(wire.remote, () => child.main)
+  wire.main.postMessage({ protocol, type: 'forward', message: { init: true } })
+  vi.spyOn(child.main, 'off').mockImplementation(() => {
+    throw new Error('detach failed')
+  })
+  expect(() => realm.dispose()).toThrow('detach failed')
+  expect(child.main.terminate).toHaveBeenCalledOnce()
+  expect(detach).toHaveBeenCalledOnce()
+})
+
+it('does not finish retirement until trusted supervisor acknowledges child teardown', async () => {
+  const wire = channel(),
+    endpoint = createSupervisedPluginWorkerEndpoint(wire.main)
+  const retirement = endpoint.terminate?.()
+  expect(retirement).toBeInstanceOf(Promise)
+  let complete = false
+  const finished = Promise.resolve(retirement).then(() => {
+    complete = true
+  })
+  await Promise.resolve()
+  expect(complete).toBe(false)
+  wire.remote.postMessage({ protocol, type: 'control', event: 'disposed' })
+  await finished
+  expect(complete).toBe(true)
+  expect(wire.main.terminate).toHaveBeenCalledOnce()
+})
+
+it('reports missing child-teardown acknowledgement instead of claiming a fully reaped supervisor', async () => {
+  vi.useFakeTimers()
+  const wire = channel(),
+    endpoint = createSupervisedPluginWorkerEndpoint(wire.main)
+  const retirement = endpoint.terminate?.()
+  const rejected = expect(retirement).rejects.toThrow('not confirmed')
+  await vi.advanceTimersByTimeAsync(1000)
+  await rejected
+  expect(wire.main.terminate).toHaveBeenCalledOnce()
+})

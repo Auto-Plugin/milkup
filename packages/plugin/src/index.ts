@@ -265,6 +265,7 @@ export type { PluginSettingsBrokerProvider } from './runtime'
 export * from './keymap-broker'
 export * from './keymap-rpc'
 export type { PluginKeymapBrokerProvider } from './runtime'
+export type { PluginManagementBrokerProvider } from './runtime'
 export * from './editing-broker'
 export * from './resources-broker'
 export * from './editing-rpc'
@@ -294,3 +295,10 @@ export {
 
 export * from './output-broker'
 export * from './output-rpc'
+export * from './management-broker'
+export {
+  createRpcPluginManagementBroker,
+  createPluginManagementRpcServer,
+  type RpcPluginManagementBroker,
+  type PluginManagementRpcServer,
+} from './management-rpc'

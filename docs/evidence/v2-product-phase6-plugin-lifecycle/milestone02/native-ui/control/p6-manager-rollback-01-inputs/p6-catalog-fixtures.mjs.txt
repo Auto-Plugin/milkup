@@ -1,0 +1,113 @@
+// Public plugin object contract only. No private imports, privileged IPC or host ID exceptions.
+import { createHash } from 'node:crypto'
+import { writeFile } from 'node:fs/promises'
+import path from 'node:path'
+
+export const catalogFixtureId = 'example.catalog-lifecycle'
+export const catalogSource =
+  '# P6 catalog native\n\n中文 A😀e\u0301 𠮷 — 数据完整性\n\n- [ ] 保留任务\n'
+const simple = `let host; let activationToken; export default {
+  activate(context) {
+    host = context.host;
+    activationToken = [...crypto.getRandomValues(new Uint32Array(4))].map(value => value.toString(16).padStart(8, '0')).join('');
+    return { dispose() { host = undefined } };
+  },
+  commands: {
+    'catalogFixture.ping': async () => host.ui.notify({ kind: 'info', message: 'P6_BASE_ALIVE:' + activationToken }),
+    'catalogFixture.delayed': async () => {
+      const oldHost = host; await new Promise(resolve => setTimeout(resolve, 2000));
+      await oldHost.ui.notify({ kind: 'info', message: 'P6_STALE_COMMAND_MUST_NOT_APPEAR' });
+    }
+  }
+}`
+const guarded = `export default { async activate() {
+  const rejected = [];
+  const checks = [
+    ['eval', () => (0, eval)('2 + 2')],
+    ['Function', () => new Function('return 4')()],
+    ['intrinsic Function CSP', () => Object.getPrototypeOf(function(){}).constructor('return 4')()],
+    ['importScripts', () => importScripts('data:text/javascript,void 0')],
+    ['Worker', () => new Worker('data:text/javascript,void 0')],
+    ['fetch', () => fetch('data:text/plain,P6-raw-fetch-must-be-blocked')],
+    ['prototype fetch', () => {
+      let prototype = Object.getPrototypeOf(globalThis);
+      while (prototype && !Object.hasOwn(prototype, 'fetch')) prototype = Object.getPrototypeOf(prototype);
+      if (!prototype) throw new Error('No prototype fetch is available');
+      return prototype.fetch.call(globalThis, 'data:text/plain,P6-prototype-fetch-must-be-blocked');
+    }],
+    ['replace fetch guard', () => Object.defineProperty(globalThis, 'fetch', { value: () => 4 })],
+    ['WebSocket', () => new WebSocket('wss://p6-must-not-contact.invalid/')],
+    ['XMLHttpRequest', () => new XMLHttpRequest()],
+    ['indexedDB', () => globalThis.indexedDB],
+    ['caches', () => globalThis.caches],
+    ['navigator storage', () => navigator.storage],
+    ['BroadcastChannel', () => new BroadcastChannel('p6-must-not-publish')]
+  ];
+  for (const [name, run] of checks) {
+    try { await run(); } catch (error) { rejected.push(name); continue; }
+    throw new Error('P6_RAW_CAPABILITY_ESCAPED: ' + name);
+  }
+  if (rejected.length !== checks.length) throw new Error('P6_INCOMPLETE_RAW_PROBE');
+  return { dispose() {} };
+} }`
+
+export function catalogFixtureArchive(kind = 'base', id = catalogFixtureId) {
+  const versions = {
+    base: '1.0.0',
+    failure: '1.0.1',
+    hang: '1.0.2',
+    raw: '1.1.0',
+    dynamic: '1.2.0',
+  }
+  if (!Object.hasOwn(versions, kind)) throw Error('Unknown catalog fixture kind')
+  const content =
+    kind === 'base'
+      ? simple
+      : kind === 'failure'
+        ? "export default { activate() { throw new Error('P6_EXPECTED_CANDIDATE_FAILURE') } }"
+        : kind === 'hang'
+          ? 'export default { activate() { for (;;) {} } }'
+          : kind === 'raw'
+            ? guarded
+            : "export default { async activate() { await import('data:text/javascript,export default 4') } }"
+  return {
+    format: 'milkup-plugin',
+    version: 1,
+    manifest: {
+      id,
+      name: 'Catalog lifecycle fixture',
+      version: versions[kind],
+      description: 'Native transaction acceptance fixture',
+      host: 'worker',
+      main: 'dist/plugin.js',
+      permissions: [],
+      ...(kind === 'base'
+        ? {
+            contributes: {
+              commands: [
+                { id: 'catalogFixture.ping', title: 'P6 ping', action: 'catalogFixture.ping' },
+                {
+                  id: 'catalogFixture.delayed',
+                  title: 'P6 delayed command',
+                  action: 'catalogFixture.delayed',
+                },
+              ],
+            },
+          }
+        : {}),
+    },
+    files: [{ path: 'dist/plugin.js', encoding: 'utf8', content }],
+  }
+}
+
+export async function writeCatalogFixtures(directory) {
+  const fixtures = {}
+  for (const kind of ['base', 'failure', 'hang', 'raw', 'dynamic']) {
+    const archive = catalogFixtureArchive(kind)
+    const bytes = Buffer.from(JSON.stringify(archive, null, 2) + '\n')
+    const file = path.join(directory, kind + '.milkup-plugin')
+    await writeFile(file, bytes, { flag: 'wx' })
+    fixtures[kind] = { file, archive, sha256: createHash('sha256').update(bytes).digest('hex') }
+  }
+  return fixtures
+}

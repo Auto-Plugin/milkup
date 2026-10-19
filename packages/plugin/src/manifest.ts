@@ -132,6 +132,7 @@ const KNOWN_PERMISSIONS = new Set<PluginPermission>([
   'file:delete',
   'app:control',
   'app:updates',
+  'app:plugins',
   'workspace:read',
   'settings:write',
   'app:keymap',

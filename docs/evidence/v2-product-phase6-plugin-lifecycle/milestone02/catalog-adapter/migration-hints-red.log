@@ -1,0 +1,143 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ❯ src/desktop-plugin-catalog.test.ts (24 tests | 2 failed) 32ms
+   ✓ native catalog wire authority > copies and freezes a verified native snapshot 3ms
+   ✓ native catalog wire authority > rejects an inconsistent native snapshot 1ms
+   ✓ native catalog wire authority > rejects an inconsistent native snapshot 0ms
+   ✓ native catalog wire authority > rejects an inconsistent native snapshot 0ms
+   ✓ native catalog wire authority > rejects an inconsistent native snapshot 0ms
+   ✓ native catalog wire authority > rejects an inconsistent native snapshot 0ms
+   ✓ native catalog wire authority > rejects an inconsistent native snapshot 0ms
+   ✓ native catalog wire authority > rejects an inconsistent native snapshot 0ms
+   ✓ native catalog wire authority > rejects an inconsistent native snapshot 0ms
+   ✓ native catalog wire authority > does not project a tombstone into a resurrectable UI record 0ms
+   ✓ native catalog wire authority > projects active approvals only, never pending candidate capabilities 1ms
+   ✓ native catalog wire authority > never falls back to local storage after native failure 2ms
+   × native catalog wire authority > passes complete malformed legacy bytes to native for recoverable backup 10ms
+     → expected "spy" to be called once with arguments: [ 'plugin_catalog_migrate', { …(2) } ]
+
+Received: 
+
+  1st spy call:
+
+  [
+    "plugin_catalog_migrate",
+    {
+      "legacyRaw": "{broken JSON",
+-     "validation": {
+-       "diagnostics": ArrayContaining [
+-         StringContaining "quarantined",
+-       ],
+-       "rawSha256": StringMatching /^[a-f0-9]{64}$/,
+-       "records": [],
+-       "version": 1,
+-     },
+    },
+  ]
+
+
+Number of calls: 1
+
+   ✓ native catalog wire authority > rejects malformed native replies without publishing partial entries 1ms
+   × legacy migration inspection > binds complete validation hints to exact raw bytes and original record index/manifest 5ms
+     → expected { Object (legacyRaw) } to match object { …(2) }
+   ✓ legacy migration inspection > retains original bytes and quarantines corrupt JSON 1ms
+   ✓ legacy migration inspection > quarantines every instance of duplicate IDs 1ms
+   ✓ legacy migration inspection > never treats legacy approval arrays as scoped approval evidence 1ms
+   ✓ legacy migration inspection > quarantines invalid legacy state without dropping the original bytes 1ms
+   ✓ legacy migration inspection > quarantines invalid legacy state without dropping the original bytes 0ms
+   ✓ legacy migration inspection > quarantines invalid legacy state without dropping the original bytes 0ms
+   ✓ legacy migration inspection > quarantines invalid legacy state without dropping the original bytes 0ms
+   ✓ legacy migration inspection > quarantines invalid legacy state without dropping the original bytes 0ms
+   ✓ legacy migration inspection > quarantines invalid legacy state without dropping the original bytes 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/desktop-plugin-catalog.test.ts > native catalog wire authority > passes complete malformed legacy bytes to native for recoverable backup
+AssertionError: expected "spy" to be called once with arguments: [ 'plugin_catalog_migrate', { …(2) } ]
+
+Received: 
+
+  1st spy call:
+
+  [
+    "plugin_catalog_migrate",
+    {
+      "legacyRaw": "{broken JSON",
+-     "validation": {
+-       "diagnostics": ArrayContaining [
+-         StringContaining "quarantined",
+-       ],
+-       "rawSha256": StringMatching /^[a-f0-9]{64}$/,
+-       "records": [],
+-       "version": 1,
+-     },
+    },
+  ]
+
+
+Number of calls: 1
+
+ ❯ src/desktop-plugin-catalog.test.ts:127:20
+    125|     const catalog = createDesktopPluginCatalog(invoke)
+    126|     await catalog.migrateLegacy('{broken JSON')
+    127|     expect(invoke).toHaveBeenCalledExactlyOnceWith('plugin_catalog_mig…
+       |                    ^
+    128|       legacyRaw: '{broken JSON',
+    129|       validation: {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/desktop-plugin-catalog.test.ts > legacy migration inspection > binds complete validation hints to exact raw bytes and original record index/manifest
+AssertionError: expected { Object (legacyRaw) } to match object { …(2) }
+
+- Expected
++ Received
+
+@@ -67,28 +67,6 @@
+        },
+        \"errors\": []
+      }
+    ]
+  }",
+-   "validation": {
+-     "rawSha256": "eeee94af6090be3bf0a0a6ef68dcf28cdc1bc6d6d5bbc6b7d4cf52836cda55db",
+-     "records": [
+-       {
+-         "index": 1,
+-         "manifest": {
+-           "customMetadata": {
+-             "keep": true,
+-           },
+-           "host": "worker",
+-           "id": "test.catalog",
+-           "main": "index.js",
+-           "name": "Catalog",
+-           "permissions": [
+-             "document:read",
+-           ],
+-           "version": "1.0.0",
+-         },
+-       },
+-     ],
+-     "version": 1,
+-   },
+  }
+
+ ❯ src/desktop-plugin-catalog.test.ts:154:18
+    152|     const args = invoke.mock.calls[0]![1]!
+    153|     const sha = [...new Uint8Array(await crypto.subtle.digest('SHA-256…
+    154|     expect(args).toMatchObject({ legacyRaw: raw, validation: { version…
+       |                  ^
+    155|     expect(args.validation.diagnostics.join(' ')).toMatch(/record 0 qu…
+    156|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 22 passed (24)
+   Start at  08:56:42
+   Duration  1.64s (transform 910ms, setup 0ms, collect 1.13s, tests 32ms, environment 0ms, prepare 131ms)
+

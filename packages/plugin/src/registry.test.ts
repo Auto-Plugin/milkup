@@ -326,3 +326,43 @@ function pluginManifest() {
     },
   }
 }
+
+describe('P6 strict registry recovery', () => {
+  const valid = () => {
+    const registry = new PluginRegistry()
+    registry.installLocalPlugin({
+      manifest: {
+        id: 'test.recovery',
+        name: 'Recovery',
+        version: '1.0.0',
+        host: 'worker',
+        permissions: [],
+      },
+      manifestPath: '/package/plugin.json',
+    })
+    return registry.snapshot()
+  }
+  it('rejects duplicate IDs before replacing any existing records', () => {
+    const registry = new PluginRegistry()
+    const original = valid()
+    registry.restore(original)
+    expect(() =>
+      registry.restore({ ...original, records: [...original.records, ...original.records] }),
+    ).toThrow(/duplicate/i)
+    expect(registry.snapshot().records).toEqual(original.records)
+  })
+  it.each([
+    (r: any) => ({ ...r, enabled: 'yes' }),
+    (r: any) => ({ ...r, state: 'unknown' }),
+    (r: any) => ({ ...r, approvals: { hosts: ['worker'], permissions: ['network:access'] } }),
+    (r: any) => ({ ...r, approvals: { hosts: ['dom'], permissions: [] } }),
+    (r: any) => ({ ...r, installedAt: NaN }),
+  ])('rejects malformed or expanded approved scope', (change) => {
+    const snapshot = valid()
+    expect(() =>
+      parsePluginRegistrySnapshot(
+        JSON.stringify({ ...snapshot, records: snapshot.records.map(change) }),
+      ),
+    ).toThrow()
+  })
+})

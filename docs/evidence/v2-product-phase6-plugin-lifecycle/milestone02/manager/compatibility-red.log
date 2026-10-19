@@ -1,0 +1,141 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts (17 tests | 2 failed) 73ms
+   ✓ P6 authoritative catalog transactions > stages without running or replacing old active approval; exact review is required 15ms
+   ✓ P6 authoritative catalog transactions > tears old epoch down before trial, commits before publish, and recovers old version with new epoch on failure 6ms
+   ✓ P6 authoritative catalog transactions > cannot grant candidate capabilities via pending approval or side effects during activate 1ms
+   ✓ P6 authoritative catalog transactions > serializes queued approval and remove; tombstone keeps data/settings and never revives from mirror 1ms
+   ✓ P6 authoritative catalog transactions > recovers a committed generation when contribution publication fails 3ms
+   ✓ P6 candidate failure injection > denies a swallowed initialization write and restores unchanged data 3ms
+   ✓ P6 candidate failure injection > recovers old active after native commit rejects without publishing the candidate 2ms
+   ✓ P6 candidate failure injection > caps hanging candidate activation and attempts new-epoch recovery 5ms
+   ✓ P6 candidate failure injection > does not trust a poisoned mirror and quarantines an interrupted startup instead of retrying forever 2ms
+   ✓ P6 retirement and public diagnostic boundaries > retains a rejected isolation owner and retries before any new activation 3ms
+   ✓ P6 retirement and public diagnostic boundaries > keeps callback errors diagnostic when the trusted owner confirms termination 1ms
+   ✓ P6 retirement and public diagnostic boundaries > never exposes native or activation paths through the public management adapter 2ms
+   ✓ P6 sealed generations > permits package reads, refuses package writes/deletes, and gives data a distinct writable scope 2ms
+   ✓ P6 sealed generations > disables a newly committed first installation if publication fails with no previous generation 2ms
+   × P6 compatibility at execution boundary > quarantines incompatible native active intent after a host/SDK change without loading code 13ms
+     → expected "spy" to not be called at all, but actually been called 1 times
+
+Received: 
+
+  1st spy call:
+
+    Array [
+      Object {
+        "engines": Object {
+          "pluginSdk": "^9.0.0",
+        },
+        "host": "worker",
+        "id": "test.lifecycle",
+        "main": "./dist/plugin.js",
+        "name": "Lifecycle",
+        "version": "1.0.0",
+      },
+      "/plugins/test.lifecycle/generations/g1/dist/plugin.js",
+      Object {
+        "isActivationCommitted": [Function isActivationCommitted],
+        "onActivationViolation": [Function onActivationViolation],
+        "onDocumentRenderTimeout": [Function onDocumentRenderTimeout],
+        "onIsolationError": [Function onIsolationError],
+        "restrictedActivation": true,
+      },
+    ]
+
+
+Number of calls: 1
+
+   × P6 compatibility at execution boundary > does not run an incompatible native pending candidate or retire the old active instance 6ms
+     → promise resolved "{ manifest: { …(6) }, …(12) }" instead of rejecting
+   ✓ P6 compatibility at execution boundary > blocks candidate data writes before publication even when approval includes file write 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager-catalog.test.ts > P6 compatibility at execution boundary > quarantines incompatible native active intent after a host/SDK change without loading code
+AssertionError: expected "spy" to not be called at all, but actually been called 1 times
+
+Received: 
+
+  1st spy call:
+
+    Array [
+      Object {
+        "engines": Object {
+          "pluginSdk": "^9.0.0",
+        },
+        "host": "worker",
+        "id": "test.lifecycle",
+        "main": "./dist/plugin.js",
+        "name": "Lifecycle",
+        "version": "1.0.0",
+      },
+      "/plugins/test.lifecycle/generations/g1/dist/plugin.js",
+      Object {
+        "isActivationCommitted": [Function isActivationCommitted],
+        "onActivationViolation": [Function onActivationViolation],
+        "onDocumentRenderTimeout": [Function onDocumentRenderTimeout],
+        "onIsolationError": [Function onIsolationError],
+        "restrictedActivation": true,
+      },
+    ]
+
+
+Number of calls: 1
+
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts:173:37
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager-catalog.test.ts > P6 compatibility at execution boundary > does not run an incompatible native pending candidate or retire the old active instance
+AssertionError: promise resolved "{ manifest: { …(6) }, …(12) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "approvals": {
++     "hosts": [
++       "worker",
++     ],
++     "networkOrigins": [],
++     "permissions": [],
++   },
++   "dataRoot": "/data/test.lifecycle",
++   "enabled": true,
++   "errors": [],
++   "installedAt": 0,
++   "manifest": {
++     "engines": {
++       "milkup": "^9.0.0",
++     },
++     "host": "worker",
++     "id": "test.lifecycle",
++     "main": "./dist/plugin.js",
++     "name": "Lifecycle",
++     "version": "2.0.0",
++   },
++   "manifestPath": "/plugins/test.lifecycle/generations/g2/plugin.json",
++   "rootPath": "/plugins/test.lifecycle/generations/g2",
++   "sourcePath": "/candidate.milkup-plugin",
++   "state": "enabled",
++   "storageRoot": "/storage/test.lifecycle",
++   "trust": "untrusted",
++   "updatedAt": 1792400220199,
+  }
+
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts:178:50
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 15 passed (17)
+   Start at  08:56:58
+   Duration  1.40s (transform 678ms, setup 0ms, collect 908ms, tests 73ms, environment 0ms, prepare 88ms)
+

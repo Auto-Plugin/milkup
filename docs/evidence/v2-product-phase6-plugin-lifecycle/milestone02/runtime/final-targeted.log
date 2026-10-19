@@ -1,0 +1,56 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ✓ packages/plugin/src/output-isolation.test.ts (3 tests) 51ms
+ ✓ packages/plugin/src/isolation-worker.test.ts (27 tests) 83ms
+ ❯ apps/desktop/src/plugin-dom.test.ts (19 tests | 1 failed) 51ms
+   ✓ desktop native DOM module preparation > requires the native runtime before any source preparation 4ms
+   ✓ desktop native DOM module preparation > passes only plugin identity and expected manifest, and releases the exact lease once 6ms
+   ✓ desktop native DOM module preparation > rejects unsupported native hosts and malformed native leases without fallback 1ms
+   ✓ desktop native DOM transport (mocked contract, not isolation proof) > binds before delivery and closes/stops the exact instance idempotently 3ms
+   ✓ desktop native DOM transport (mocked contract, not isolation proof) > keeps the matching early failure when a stale error arrives afterwards 2ms
+   ✓ desktop native DOM transport (mocked contract, not isolation proof) > ignores an old startup error, and rejects an excessive pre-bind control stream safely 1ms
+   ✓ desktop native DOM transport (mocked contract, not isolation proof) > releases an exact lease and event listener when startup rejects or loses its identity 2ms
+   ✓ desktop native DOM transport (mocked contract, not isolation proof) > cleans a prepared lease if attaching the native event listener fails 1ms
+   ✓ desktop native DOM transport (mocked contract, not isolation proof) > does not let old instance controls or delayed send failure stop a replacement 10ms
+   ✓ desktop native DOM transport (mocked contract, not isolation proof) > accepts only outer native timeout authority, despite delayed frontend delivery 3ms
+   ✓ desktop native DOM transport (mocked contract, not isolation proof) > delivers a completed native result after a frontend stall without a frontend render timer 1ms
+   ✓ desktop native DOM transport (mocked contract, not isolation proof) > revokes pending work and cleans the module on native send rejection or false acknowledgement 2ms
+   ✓ desktop native DOM transport (mocked contract, not isolation proof) > sends no host capability names and stops even if the failure observer throws 1ms
+   ✓ desktop native DOM transport (mocked contract, not isolation proof) > retains the ten-second ordinary lifecycle RPC timeout and cleans activation failure 1ms
+   × desktop native DOM transport (mocked contract, not isolation proof) > completes activation and lifecycle disposal, then releases native ownership once 6ms
+     → Cannot read properties of undefined (reading 'id')
+   ✓ waits for exact native stop before completing loaded disposal and releasing its lease 1ms
+   ✓ surfaces native stop failure and still attempts exact lease cleanup 1ms
+   ✓ retains an unconfirmed native stop as the same failed cleanup promise 1ms
+   ✓ retains lease release rejection and does not hide it behind a disposed flag 0ms
+ ✓ packages/plugin/src/runtime.test.ts (18 tests) 47ms
+ ✓ packages/plugin/src/preferences-isolation.test.ts (3 tests) 32ms
+ ✓ packages/plugin/src/worker-supervisor.test.ts (12 tests) 37ms
+ ✓ packages/plugin/src/isolation-module-host.test.ts (7 tests) 25ms
+ ✓ packages/plugin/src/isolation-rpc.test.ts (6 tests) 32ms
+ ✓ packages/plugin/src/editing-isolation.test.ts (3 tests) 33ms
+ ✓ apps/desktop/src/csp-worker.test.ts (3 tests) 7ms
+ ✓ packages/plugin/src/isolation.test.ts (7 tests) 17ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/plugin-dom.test.ts > desktop native DOM transport (mocked contract, not isolation proof) > completes activation and lifecycle disposal, then releases native ownership once
+TypeError: Cannot read properties of undefined (reading 'id')
+ ❯ respond apps/desktop/src/plugin-dom.test.ts:380:28
+    378|           protocol: 'milkup.plugin.isolation.rpc.v1',
+    379|           type: 'response',
+    380|           id: args.message.id,
+       |                            ^
+    381|           ok: true,
+    382|           value,
+ ❯ apps/desktop/src/plugin-dom.test.ts:390:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 10 passed (11)
+      Tests  1 failed | 107 passed (108)
+   Start at  08:49:03
+   Duration  2.60s (transform 1.34s, setup 0ms, collect 3.18s, tests 415ms, environment 2ms, prepare 1.00s)
+

@@ -46,6 +46,8 @@ export interface PluginIsolationHost {
 export interface IsolatedPluginModuleConfig {
   readonly manifest: PluginManifest
   readonly host: PluginIsolationHost
+  /** Trusted owner retirement; never an implementation supplied by plugin code. */
+  readonly disposeIsolation?: () => void | Promise<void>
 }
 
 export interface IsolatedPluginActivateRequest {
@@ -119,13 +121,28 @@ export type PluginHostCapabilityName =
   | 'document:write'
   | 'images:import'
   | 'document:output'
+  | 'app:plugins'
 
 export function createIsolatedPluginModule(config: IsolatedPluginModuleConfig): PluginModule {
   const { manifest, host } = config
+  let retirement: Promise<void> | undefined
+  let retired = false
+  function retire(): Promise<void> {
+    if (retirement) return retirement
+    retired = true
+    try {
+      retirement = Promise.resolve(config.disposeIsolation?.())
+    } catch (error) {
+      retirement = Promise.reject(error)
+    }
+    void retirement.catch(() => undefined)
+    return retirement
+  }
 
   return Object.freeze({
     runtimeHost: 'isolated' as const,
     activate: async (context: PluginActivationContext): Promise<PluginActivation> => {
+      if (retired) throw new Error('Plugin isolation was retired')
       const activated = await host.activate({
         pluginId: context.pluginId,
         manifest: context.manifest,
@@ -162,10 +179,10 @@ export function createIsolatedPluginModule(config: IsolatedPluginModuleConfig): 
               ]),
           ),
         ),
-        dispose: () => host.dispose?.({ pluginId: manifest.id }),
+        dispose: config.disposeIsolation ? retire : () => host.dispose?.({ pluginId: manifest.id }),
       })
     },
-    deactivate: () => host.deactivate({ pluginId: manifest.id }),
+    deactivate: config.disposeIsolation ? retire : () => host.deactivate({ pluginId: manifest.id }),
   })
 }
 
@@ -314,6 +331,7 @@ function listRestrictedHostCapabilities(
   if (host.editing) capabilities.push('document:write')
   if (host.resources) capabilities.push('images:import')
   if (host.output) capabilities.push('document:output')
+  if (host.management) capabilities.push('app:plugins')
 
   if (host.storage) {
     capabilities.push('storage')

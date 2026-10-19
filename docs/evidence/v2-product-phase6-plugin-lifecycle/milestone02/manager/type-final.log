@@ -1,0 +1,8 @@
+apps/desktop/src/desktop-plugin-manager-catalog.test.ts(697,77): error TS2375: Type '{ host: "dom"; permissions: readonly ["document:read"]; contributes: { documentRenderers: { id: string; contexts: string[]; fenceLanguages: string[]; }[]; }; id: string; name: string; version: string; main?: string; ... 5 more ...; settings?: PluginSettingsDescriptor; }' is not assignable to type 'PluginManifest' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  The types of 'contributes.documentRenderers' are incompatible between these types.
+    Type '{ id: string; contexts: string[]; fenceLanguages: string[]; }[]' is not assignable to type 'readonly DocumentRendererDeclaration[]'.
+      Type '{ id: string; contexts: string[]; fenceLanguages: string[]; }' is not assignable to type 'DocumentRendererDeclaration'.
+        Types of property 'contexts' are incompatible.
+          Type 'string[]' is not assignable to type 'readonly ("text" | "fence")[]'.
+            Type 'string' is not assignable to type '"text" | "fence"'.
+apps/desktop/src/desktop-plugin-manager.ts(1766,9): error TS2554: Expected 1 arguments, but got 2.

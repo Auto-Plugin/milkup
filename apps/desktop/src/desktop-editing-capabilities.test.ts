@@ -136,7 +136,15 @@ describe('desktop editing capability lifecycle', () => {
             commands: { 'image.paste': () => {} },
             activate: () => ({}),
           },
-          dispose: () => stopped.push('module'),
+          dispose: async () => {
+            const editingRevoked = cap?.editingBroker?.capture({ extent: 'selection' })
+            const resourcesRevoked = cap?.resourcesBroker?.prepareDocument()
+            if (editingRevoked)
+              await expect(editingRevoked).rejects.toMatchObject({ code: 'revoked' })
+            if (resourcesRevoked)
+              await expect(resourcesRevoked).rejects.toMatchObject({ code: 'revoked' })
+            stopped.push('module')
+          },
         }
       },
     })
@@ -157,7 +165,7 @@ describe('desktop editing capability lifecycle', () => {
     manager.grantImagePaste(manifest.id, 'paste-1')
     await before.resourcesBroker!.prepareDocument({ pasteId: 'paste-1' })
     await manager.disable(manifest.id)
-    expect(stopped).toEqual(['editing', 'resources', 'module'])
+    expect([...stopped].sort()).toEqual(['editing', 'module', 'resources'])
     expect(manager.resolveImagePasteHandler()).toBeUndefined()
     await expect(before.editingBroker!.capture({ extent: 'selection' })).rejects.toMatchObject({
       code: 'revoked',

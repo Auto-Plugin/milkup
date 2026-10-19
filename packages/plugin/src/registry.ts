@@ -60,6 +60,7 @@ export interface PluginRegistryRecord {
 export interface PluginApprovalState {
   readonly permissions: readonly string[]
   readonly hosts: readonly PluginHostKind[]
+  readonly networkOrigins?: readonly string[]
 }
 
 export interface PluginRegistrySnapshot {
@@ -188,7 +189,20 @@ export class PluginRegistry {
     const existing = this.records.get(manifest.id)
     const errors = validatePluginCompatibility(manifest, this.compatibility)
     const host = manifest.host ?? 'worker'
+    const sameScope =
+      !!existing &&
+      JSON.stringify([
+        existing.manifest.host ?? 'worker',
+        [...(existing.manifest.permissions ?? [])].sort(),
+        [...(existing.manifest.networkOrigins ?? [])].sort(),
+      ]) ===
+        JSON.stringify([
+          host,
+          [...(manifest.permissions ?? [])].sort(),
+          [...(manifest.networkOrigins ?? [])].sort(),
+        ])
     const remainsEnabled =
+      sameScope &&
       existing?.enabled === true &&
       (existing.manifest.host ?? 'worker') === host &&
       errors.length === 0
@@ -207,15 +221,26 @@ export class PluginRegistry {
       storageRoot: pluginScopedPath(this.storageRoot, manifest.id),
       approvals: Object.freeze({
         permissions: Object.freeze(
-          (existing?.approvals.permissions ?? []).filter((permission) =>
+          (sameScope ? (existing?.approvals.permissions ?? []) : []).filter((permission) =>
             manifest.permissions?.includes(permission as PluginPermission),
           ),
         ),
         hosts: Object.freeze(
-          host === 'worker' || existing?.approvals.hosts.includes(host) ? [host] : [],
+          host === 'worker' || (sameScope && existing?.approvals.hosts.includes(host))
+            ? [host]
+            : [],
         ),
       }),
       errors: Object.freeze(errors),
+      ...(sameScope && existing?.approvals.networkOrigins
+        ? {
+            approvals: Object.freeze({
+              permissions: Object.freeze([...existing.approvals.permissions]),
+              hosts: Object.freeze([...existing.approvals.hosts]),
+              networkOrigins: Object.freeze([...existing.approvals.networkOrigins]),
+            }),
+          }
+        : {}),
     })
 
     this.records.set(manifest.id, record)
@@ -224,6 +249,8 @@ export class PluginRegistry {
   }
 
   restore(snapshot: PluginRegistrySnapshot): void {
+    snapshot = validateRegistrySnapshot(snapshot)
+    // Validate the complete snapshot before replacing any existing state.
     this.records.clear()
     this.auditRecords.length = 0
 
@@ -330,6 +357,7 @@ export class PluginRegistry {
       approvals: Object.freeze({
         permissions: Object.freeze([...(record.manifest.permissions ?? [])]),
         hosts: Object.freeze([host]),
+        networkOrigins: Object.freeze([...(record.manifest.networkOrigins ?? [])]),
       }),
       enabled: false,
       state: 'disabled',
@@ -352,6 +380,7 @@ export class PluginRegistry {
       state: 'disabled',
       approvals: Object.freeze({
         permissions: Object.freeze([]),
+        networkOrigins: Object.freeze([]),
         hosts: Object.freeze(host === 'worker' ? (['worker'] as const) : []),
       }),
       updatedAt: this.now(),
@@ -514,13 +543,126 @@ export function serializePluginRegistry(registry: PluginRegistry): string {
 }
 
 export function parsePluginRegistrySnapshot(text: string): PluginRegistrySnapshot {
-  const value = JSON.parse(text) as PluginRegistrySnapshot
+  return validateRegistrySnapshot(JSON.parse(text))
+}
 
-  if (value.version !== snapshotVersion || !Array.isArray(value.records)) {
-    throw new Error('Invalid plugin registry snapshot')
+function validateRegistrySnapshot(value: unknown): PluginRegistrySnapshot {
+  const fail = (detail: string): never => {
+    throw new Error('Invalid plugin registry snapshot: ' + detail)
   }
-
-  return value
+  const object = (v: unknown): Record<string, unknown> => {
+    if (!v || typeof v !== 'object' || Array.isArray(v)) return fail('object')
+    return v as Record<string, unknown>
+  }
+  const strings = (v: unknown): readonly string[] => {
+    if (
+      !Array.isArray(v) ||
+      v.length > 2048 ||
+      !v.every((x) => typeof x === 'string' && x.length <= 65536)
+    )
+      return fail('string list')
+    return Object.freeze([...v])
+  }
+  const input = object(value)
+  if (
+    input.version !== snapshotVersion ||
+    !Array.isArray(input.records) ||
+    input.records.length > 512
+  )
+    return fail('version/records')
+  const ids = new Set<string>()
+  const records = input.records.map((raw) => {
+    const r = object(raw),
+      manifest = parsePluginManifest(r.manifest),
+      host = manifest.host ?? 'worker'
+    if (ids.has(manifest.id)) return fail('duplicate id ' + manifest.id)
+    ids.add(manifest.id)
+    for (const key of ['manifestPath', 'rootPath', 'sourcePath', 'dataRoot', 'storageRoot'])
+      if (
+        typeof r[key] !== 'string' ||
+        !r[key] ||
+        (r[key] as string).length > 8192 ||
+        /[\u0000-\u001f]/.test(r[key] as string)
+      )
+        return fail(key)
+    for (const key of ['installedAt', 'updatedAt'])
+      if (typeof r[key] !== 'number' || !Number.isFinite(r[key]) || (r[key] as number) < 0)
+        return fail(key)
+    if (
+      typeof r.enabled !== 'boolean' ||
+      !['installed', 'enabled', 'disabled', 'failed'].includes(r.state as string) ||
+      !['development', 'trusted', 'untrusted'].includes(r.trust as string)
+    )
+      return fail('state')
+    if (r.enabled !== (r.state === 'enabled')) return fail('enabled/state mismatch')
+    const approvals = object(r.approvals),
+      permissions = strings(approvals.permissions),
+      hosts = strings(approvals.hosts)
+    if (
+      new Set(permissions).size !== permissions.length ||
+      permissions.some((x) => !manifest.permissions?.includes(x as PluginPermission))
+    )
+      return fail('permission scope')
+    if (hosts.length > 1 || hosts.some((x) => x !== host)) return fail('host scope')
+    const origins =
+      approvals.networkOrigins === undefined ? undefined : strings(approvals.networkOrigins)
+    if (
+      origins &&
+      (new Set(origins).size !== origins.length ||
+        origins.some((x) => !manifest.networkOrigins?.includes(x)))
+    )
+      return fail('origin scope')
+    const errors = strings(r.errors)
+    if (r.runtimeFailure !== undefined) {
+      const f = object(r.runtimeFailure)
+      if (
+        !['execution-host', 'renderer-timeout'].includes(f.kind as string) ||
+        typeof f.message !== 'string'
+      )
+        return fail('runtime failure')
+    }
+    return freezeRecord({
+      ...r,
+      manifest,
+      errors,
+      approvals: Object.freeze({
+        permissions,
+        hosts: hosts as readonly PluginHostKind[],
+        ...(origins ? { networkOrigins: origins } : {}),
+      }),
+    } as unknown as PluginRegistryRecord)
+  })
+  const auditRecords = input.auditRecords === undefined ? [] : input.auditRecords
+  if (!Array.isArray(auditRecords) || auditRecords.length > 10000) return fail('audit records')
+  const operations = [
+    'install',
+    'enable',
+    'disable',
+    'reload',
+    'remove',
+    'file',
+    'network',
+    'storage',
+    'sidecar',
+    'approval',
+  ]
+  for (const raw of auditRecords) {
+    const a = object(raw)
+    if (
+      typeof a.pluginId !== 'string' ||
+      !operations.includes(a.operation as string) ||
+      typeof a.at !== 'number' ||
+      !Number.isFinite(a.at) ||
+      (a.detail !== undefined && typeof a.detail !== 'string') ||
+      (a.denied !== undefined && typeof a.denied !== 'boolean')
+    )
+      return fail('audit record')
+  }
+  return Object.freeze({
+    version: 1,
+    records: Object.freeze(records),
+    auditRecords: Object.freeze(auditRecords.map((x) => Object.freeze({ ...x }))),
+  })
 }
 
 function resolvePluginKeymaps(
@@ -669,6 +811,9 @@ function cloneRecord(record: PluginRegistryRecord): PluginRegistryRecord {
     approvals: Object.freeze({
       permissions: Object.freeze([...record.approvals.permissions]),
       hosts: Object.freeze([...record.approvals.hosts]),
+      ...(record.approvals.networkOrigins
+        ? { networkOrigins: Object.freeze([...record.approvals.networkOrigins]) }
+        : {}),
     }),
     errors: Object.freeze([...record.errors]),
   })

@@ -1,0 +1,76 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ packages/plugin/src/isolation-rpc.test.ts (6 tests | 1 failed) 31ms
+   ✓ plugin isolation RPC > runs isolated plugin commands over a message endpoint 12ms
+   ✓ plugin isolation RPC > routes renderer calls and propagates remote renderer errors 2ms
+   ✓ plugin isolation RPC > rejects pending requests when the remote side returns an error 2ms
+   ✓ plugin isolation RPC > times out unanswered requests 6ms
+   ✓ plugin isolation RPC > rejects new and pending calls after dispose 1ms
+   × does not emit a late server response after transport disposal 8ms
+     → expected "postMessage" to not be called at all, but actually been called 1 times
+
+Received: 
+
+  1st postMessage call:
+
+    Array [
+      Object {
+        "id": "old",
+        "ok": true,
+        "protocol": "milkup.plugin.isolation.rpc.v1",
+        "type": "response",
+        "value": Object {
+          "commands": Array [
+            "old.command",
+          ],
+        },
+      },
+    ]
+
+
+Number of calls: 1
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/plugin/src/isolation-rpc.test.ts > does not emit a late server response after transport disposal
+AssertionError: expected "postMessage" to not be called at all, but actually been called 1 times
+
+Received: 
+
+  1st postMessage call:
+
+    Array [
+      Object {
+        "id": "old",
+        "ok": true,
+        "protocol": "milkup.plugin.isolation.rpc.v1",
+        "type": "response",
+        "value": Object {
+          "commands": Array [
+            "old.command",
+          ],
+        },
+      },
+    ]
+
+
+Number of calls: 1
+
+ ❯ packages/plugin/src/isolation-rpc.test.ts:305:20
+    303|   finish({ commands: ['old.command'] })
+    304|   await Promise.resolve(); await Promise.resolve(); await Promise.reso…
+    305|   expect(sent).not.toHaveBeenCalled()
+       |                    ^
+    306| })
+    307| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 5 passed (6)
+   Start at  08:37:31
+   Duration  1.05s (transform 433ms, setup 0ms, collect 574ms, tests 31ms, environment 0ms, prepare 79ms)
+

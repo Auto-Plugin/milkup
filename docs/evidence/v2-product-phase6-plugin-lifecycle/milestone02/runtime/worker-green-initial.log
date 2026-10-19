@@ -1,0 +1,72 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+stderr | packages/plugin/src/isolation-worker.test.ts > browser worker plugin isolation > times out silent startup and releases host and broker listeners exactly once
+Promise returned by `expect(actual).rejects.toThrow(expected)` was not awaited. Vitest currently auto-awaits hanging assertions at the end of the test, but this will cause the test to fail in Vitest 3. Please remember to await the assertion.
+    at /workspace/milkup/packages/plugin/src/isolation-worker.test.ts:236:45
+
+ ❯ packages/plugin/src/isolation-worker.test.ts (25 tests | 2 failed) 91ms
+   × browser worker plugin isolation > streams document scan results into an isolated plugin 37ms
+     → Plugin worker cleanup failed
+   ✓ browser worker plugin isolation > loads and executes a plugin module inside a worker-style realm 5ms
+   ✓ browser worker plugin isolation > reports worker module import failures during initialization 3ms
+   × browser worker plugin isolation > times out silent startup and releases host and broker listeners exactly once 9ms
+     → Plugin worker cleanup failed
+   ✓ browser worker plugin isolation > uses a bounded default startup timeout 1ms
+   ✓ browser worker plugin isolation > rejects early disposal even when startup is awaited later 2ms
+   ✓ browser worker plugin isolation > cleans listeners and terminates when posting initialization fails 1ms
+   ✓ browser worker plugin isolation > does not recreate realm RPC listeners after disposal during module import 1ms
+   ✓ browser worker plugin isolation > installs network guards before importing plugins without network permission 1ms
+   ✓ browser worker plugin isolation > blocks worker importScripts even when network access is brokered 2ms
+   ✓ browser worker plugin isolation > blocks dynamic code execution even when network access is brokered 2ms
+   ✓ browser worker plugin isolation > blocks child worker creation even when network access is brokered 1ms
+   ✓ browser worker plugin isolation > routes ambient worker fetch through the main-thread network broker before import 1ms
+   ✓ browser worker plugin isolation > routes worker file capabilities through the main-thread filesystem broker 2ms
+   ✓ browser worker plugin isolation > propagates filesystem broker denials from the main thread to worker commands 2ms
+   ✓ browser worker plugin isolation > records main-thread filesystem audit entries for worker broker access 3ms
+   ✓ browser worker plugin isolation > routes worker network capabilities through the main-thread network broker 2ms
+   ✓ browser worker plugin isolation > propagates network broker denials from the main thread to worker commands 1ms
+   ✓ browser worker plugin isolation > records main-thread network audit entries for worker broker access 2ms
+   ✓ browser worker plugin isolation > routes allowed ambient fetch through a broker and blocks unbrokered network globals 5ms
+   ✓ browser worker plugin isolation > clears the startup timeout on success and disposes a ready host only once 1ms
+   ✓ worker transaction boundaries > revokes a ready ordinary worker on error and rejects pending RPC 1ms
+   ✓ worker transaction boundaries > revokes a ready ordinary worker on messageerror and rejects pending RPC 3ms
+   ✓ worker transaction boundaries > blocks persistent/raw worker capabilities before module top-level execution 1ms
+   ✓ worker transaction boundaries > gates top-level brokered fetch until a trusted host commit callback changes 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/plugin/src/isolation-worker.test.ts > browser worker plugin isolation > streams document scan results into an isolated plugin
+AggregateError: Plugin worker cleanup failed
+ ❯ cleanup packages/plugin/src/isolation-worker.ts:298:32
+    296|       try { dispose() } catch (error) { failures.push(error) }
+    297|     }
+    298|     if (failures.length) throw new AggregateError(failures, 'Plugin wo…
+       |                                ^
+    299|   }
+    300| 
+ ❯ Object.dispose packages/plugin/src/isolation-worker.ts:354:7
+ ❯ packages/plugin/src/isolation-worker.test.ts:122:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  packages/plugin/src/isolation-worker.test.ts > browser worker plugin isolation > times out silent startup and releases host and broker listeners exactly once
+AggregateError: Plugin worker cleanup failed
+ ❯ cleanup packages/plugin/src/isolation-worker.ts:298:32
+    296|       try { dispose() } catch (error) { failures.push(error) }
+    297|     }
+    298|     if (failures.length) throw new AggregateError(failures, 'Plugin wo…
+       |                                ^
+    299|   }
+    300| 
+ ❯ fail packages/plugin/src/isolation-worker.ts:305:5
+ ❯ packages/plugin/src/isolation-worker.ts:335:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 23 passed (25)
+   Start at  08:31:34
+   Duration  1.35s (transform 601ms, setup 0ms, collect 793ms, tests 91ms, environment 0ms, prepare 95ms)
+

@@ -1,0 +1,160 @@
+{
+  "record": {
+    "manifest": {
+      "version": "1.3.1",
+      "engines": {
+        "pluginSdk": ">=0.2.0 <0.4.0",
+        "milkup": "^2.0.0-0"
+      },
+      "permissions": [
+        "document:read"
+      ],
+      "main": "./dist/plugin.js",
+      "host": "worker",
+      "name": "Milkup Outline",
+      "contributes": {
+        "ui": [
+          {
+            "title": "大纲",
+            "scope": "document",
+            "viewportUpdates": true,
+            "id": "outline-panel",
+            "slot": "sidebar-panel"
+          }
+        ],
+        "commands": [
+          {
+            "title": "Go to heading",
+            "action": "outline.gotoHeading",
+            "category": "navigation",
+            "id": "outline.gotoHeading",
+            "inputSchema": {
+              "properties": {
+                "line": {
+                  "type": "number",
+                  "required": true,
+                  "description": "Heading line number"
+                },
+                "documentId": {
+                  "type": "string",
+                  "required": true
+                },
+                "generation": {
+                  "type": "number",
+                  "required": true
+                },
+                "ordinal": {
+                  "type": "number",
+                  "required": true
+                },
+                "id": {
+                  "type": "string",
+                  "required": true
+                },
+                "version": {
+                  "type": "number",
+                  "required": true
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "title": "Collapse or expand heading",
+            "action": "outline.toggleHeading",
+            "category": "navigation",
+            "id": "outline.toggleHeading",
+            "inputSchema": {
+              "properties": {
+                "line": {
+                  "type": "number",
+                  "required": true,
+                  "description": "Positive integer heading line number"
+                },
+                "documentId": {
+                  "type": "string",
+                  "required": true
+                },
+                "generation": {
+                  "type": "number",
+                  "required": true
+                },
+                "ordinal": {
+                  "type": "number",
+                  "required": true
+                },
+                "id": {
+                  "type": "string",
+                  "required": true
+                },
+                "version": {
+                  "type": "number",
+                  "required": true
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "title": "Collapse all headings",
+            "action": "outline.collapseAll",
+            "category": "navigation",
+            "id": "outline.collapseAll"
+          },
+          {
+            "title": "Expand all headings",
+            "action": "outline.expandAll",
+            "category": "navigation",
+            "id": "outline.expandAll"
+          },
+          {
+            "title": "Cancel outline indexing",
+            "action": "outline.cancel",
+            "category": "navigation",
+            "id": "outline.cancel"
+          },
+          {
+            "title": "Retry outline indexing",
+            "action": "outline.retry",
+            "category": "navigation",
+            "id": "outline.retry"
+          }
+        ]
+      },
+      "id": "milkup.outline",
+      "description": "Show a read-only document outline."
+    },
+    "enabled": true,
+    "approvals": {
+      "networkOrigins": [],
+      "hosts": [
+        "worker"
+      ],
+      "permissions": [
+        "document:read"
+      ]
+    },
+    "updatedAt": 6,
+    "rootPath": "/tmp/milkup-p6-profiles/p6-m02-outline-02/data/app.milkup.desktop/plugins/milkup.outline/generations/38bcfe3d817ac051b9560842066bcd173be92b88a47ff58ca9a1e763573f509b",
+    "dataRoot": "/tmp/milkup-p6-profiles/p6-m02-outline-02/data/app.milkup.desktop/plugins/milkup.outline/data",
+    "state": "enabled",
+    "installedAt": 0,
+    "errors": [],
+    "trust": "untrusted",
+    "sourcePath": "/workspace/milkup-plugin-lifecycle-evidence/milestone01/outline-external/milkup.outline-1.3.1.milkup-plugin",
+    "manifestPath": "/tmp/milkup-p6-profiles/p6-m02-outline-02/data/app.milkup.desktop/plugins/milkup.outline/generations/38bcfe3d817ac051b9560842066bcd173be92b88a47ff58ca9a1e763573f509b/plugin.json",
+    "storageRoot": "/tmp/milkup-p6-profiles/p6-m02-outline-02/data/app.milkup.desktop/plugins/milkup.outline/storage"
+  },
+  "files": [
+    {
+      "path": "dist/plugin.js",
+      "bytes": 35501,
+      "sha256": "b31335a8d530eaed35652da736666db93371faad2ec111b0e3726c892bedc27a"
+    },
+    {
+      "path": "plugin.json",
+      "bytes": 1771,
+      "sha256": "66bed8ed5e3fe9c1294563ff20056f4e01e1a2220f849af19279805a79bf8296"
+    }
+  ]
+}

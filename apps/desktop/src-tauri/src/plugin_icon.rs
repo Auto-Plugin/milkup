@@ -1,9 +1,13 @@
 //! Installed package icons are bounded PNG resources, never arbitrary host paths or URLs.
+#[cfg(test)]
 use std::fs;
+#[cfg(test)]
 use std::io::Read;
+#[cfg(test)]
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Manager};
 
+#[cfg(test)]
 const MAX_ICON_BYTES: u64 = 256 * 1024;
 
 #[tauri::command]
@@ -14,9 +18,12 @@ pub fn read_plugin_icon(app: AppHandle, plugin_id: String) -> Result<Vec<u8>, St
         .app_data_dir()
         .map_err(|error| error.to_string())?
         .join("plugins");
-    read_installed_icon(&root, &plugin_id)
+    let bytes = crate::plugin_catalog::read_icon(&root, &plugin_id)?;
+    validate_png(&bytes)?;
+    Ok(bytes)
 }
 
+#[cfg(test)]
 fn read_installed_icon(plugins_root: &Path, plugin_id: &str) -> Result<Vec<u8>, String> {
     crate::validate_plugin_id(plugin_id)?;
     let package = confined_file(plugins_root, &format!("{plugin_id}/package"))?;
@@ -48,6 +55,7 @@ fn read_installed_icon(plugins_root: &Path, plugin_id: &str) -> Result<Vec<u8>, 
     Ok(bytes)
 }
 
+#[cfg(test)]
 fn valid_icon_path(icon: &str) -> bool {
     if !icon.to_ascii_lowercase().ends_with(".png") {
         return false;
@@ -61,6 +69,7 @@ fn valid_icon_path(icon: &str) -> bool {
     })
 }
 
+#[cfg(test)]
 fn confined_file(root: &Path, relative: &str) -> Result<PathBuf, String> {
     let root = root.canonicalize().map_err(|error| error.to_string())?;
     let relative = crate::validate_plugin_relative_path(relative)?;
@@ -82,6 +91,7 @@ fn confined_file(root: &Path, relative: &str) -> Result<PathBuf, String> {
     Ok(resolved)
 }
 
+#[cfg(test)]
 fn read_bounded(path: &Path, limit: u64) -> Result<Vec<u8>, String> {
     let entry = fs::symlink_metadata(path).map_err(|error| error.to_string())?;
     if !entry.is_file() || entry.len() > limit {

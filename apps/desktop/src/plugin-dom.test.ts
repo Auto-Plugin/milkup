@@ -33,7 +33,9 @@ describe('desktop native DOM module preparation', () => {
   })
 
   it('passes only plugin identity and expected manifest, and releases the exact lease once', async () => {
-    const invokeMock = vi.fn(async () => ({ leaseId: 'lease_1' }))
+    const invokeMock = vi.fn(async (command: string) =>
+      command === 'prepare_plugin_dom_module' ? { leaseId: 'lease_1' } : true,
+    )
     const prepared = await prepareDesktopPluginDomModule(manifest, true, asInvoke(invokeMock))
     expect(prepared).toMatchObject({ kind: 'dom', leaseId: 'lease_1' })
     expect(prepared).not.toHaveProperty('specifier')
@@ -387,10 +389,8 @@ describe('desktop native DOM transport (mocked contract, not isolation proof)', 
     respond({ documentRenderers: [] })
     const activation = await pending
     const disposal = activation?.dispose?.()
-    respond(undefined)
     await disposal
     const deactivation = loaded.module.deactivate?.()
-    respond(undefined)
     await deactivation
     loaded.dispose()
     expect(fixture.stopCalls()).toHaveLength(1)
@@ -492,3 +492,118 @@ function renderRequest() {
     },
   }
 }
+
+it('waits for exact native stop before completing loaded disposal and releasing its lease', async () => {
+  const fixture = transportFixture()
+  let resolveStop!: (value: boolean) => void
+  const stopped = new Promise<boolean>((resolve) => {
+    resolveStop = resolve
+  })
+  const base = fixture.invokeMock.getMockImplementation()!
+  fixture.invokeMock.mockImplementation((command, args) =>
+    command === 'stop_plugin_dom_process' ? stopped : base(command, args),
+  )
+  const prepared = await prepareDesktopPluginDomModule(manifest, true, fixture.transport.invoke)
+  const loaded = await loadDesktopPluginDomModule(
+    manifest,
+    prepared,
+    callbacks(),
+    fixture.transport,
+  )
+  let done = false
+  const disposal = Promise.resolve(loaded.dispose()).then(() => {
+    done = true
+  })
+  await Promise.resolve()
+  await Promise.resolve()
+  expect(done).toBe(false)
+  expect(
+    fixture.invokeMock.mock.calls.filter(([command]) => command === 'release_plugin_dom_module'),
+  ).toHaveLength(0)
+  resolveStop(true)
+  await disposal
+  expect(done).toBe(true)
+  expect(fixture.stopCalls()).toEqual([
+    ['stop_plugin_dom_process', { pluginId: manifest.id, instanceId: 'native_1' }],
+  ])
+  expect(
+    fixture.invokeMock.mock.calls.filter(([command]) => command === 'release_plugin_dom_module'),
+  ).toHaveLength(1)
+})
+
+it('surfaces native stop failure and still attempts exact lease cleanup', async () => {
+  const fixture = transportFixture()
+  const base = fixture.invokeMock.getMockImplementation()!
+  fixture.invokeMock.mockImplementation(async (command, args) => {
+    if (command === 'stop_plugin_dom_process') throw new Error('native join failed')
+    return base(command, args)
+  })
+  const prepared = await prepareDesktopPluginDomModule(manifest, true, fixture.transport.invoke)
+  const loaded = await loadDesktopPluginDomModule(
+    manifest,
+    prepared,
+    callbacks(),
+    fixture.transport,
+  )
+  await expect(Promise.resolve().then(() => loaded.dispose())).rejects.toThrow()
+  expect(fixture.invokeMock).toHaveBeenCalledWith('release_plugin_dom_module', {
+    pluginId: manifest.id,
+    leaseId: 'lease_1',
+  })
+})
+
+it('retains an unconfirmed native stop as the same failed cleanup promise', async () => {
+  const fixture = transportFixture()
+  const base = fixture.invokeMock.getMockImplementation()!
+  fixture.invokeMock.mockImplementation(async (command, args) =>
+    command === 'stop_plugin_dom_process' ? false : base(command, args),
+  )
+  const endpoint = await startDesktopPluginDomEndpoint(manifest.id, 'lease_1', fixture.transport)
+  const first = endpoint.close?.()
+  await expect(first).rejects.toThrow('cleanup failed')
+  expect(endpoint.close?.()).toBe(first)
+  expect(fixture.stopCalls()).toHaveLength(1)
+  expect(() => endpoint.postMessage({ late: true })).toThrow('closed')
+})
+
+it('retains lease release rejection and does not hide it behind a disposed flag', async () => {
+  const invoke = asInvoke(async (command) => {
+    if (command === 'prepare_plugin_dom_module') return { leaseId: 'lease_1' }
+    throw new Error('lease release failed')
+  })
+  const prepared = await prepareDesktopPluginDomModule(manifest, true, invoke)
+  const first = prepared.dispose?.()
+  await expect(first).rejects.toThrow('lease release failed')
+  expect(prepared.dispose?.()).toBe(first)
+})
+
+it('retries a failed exact-owner lease cleanup without recreating an instance or reopening RPC', async () => {
+  const fixture = transportFixture()
+  const base = fixture.invokeMock.getMockImplementation()!
+  let failRelease = true
+  fixture.invokeMock.mockImplementation(async (command, args) => {
+    if (command === 'stop_plugin_dom_process') throw new Error('join not yet confirmed')
+    if (command === 'release_plugin_dom_module' && failRelease)
+      throw new Error('release join failed')
+    return base(command, args)
+  })
+  const prepared = await prepareDesktopPluginDomModule(manifest, true, fixture.transport.invoke)
+  const loaded = await loadDesktopPluginDomModule(
+    manifest,
+    prepared,
+    callbacks(),
+    fixture.transport,
+  )
+  const first = loaded.dispose()
+  await expect(first).rejects.toThrow('cleanup failed')
+  failRelease = false
+  await loaded.retryDispose?.()
+  await expect(first).rejects.toThrow('cleanup failed')
+  expect(
+    fixture.invokeMock.mock.calls.filter(([command]) => command === 'start_plugin_dom_process'),
+  ).toHaveLength(1)
+  expect(
+    fixture.invokeMock.mock.calls.filter(([command]) => command === 'release_plugin_dom_module'),
+  ).toHaveLength(2)
+  await expect(loaded.module.activate?.(activationContext())).rejects.toThrow('disposed')
+})

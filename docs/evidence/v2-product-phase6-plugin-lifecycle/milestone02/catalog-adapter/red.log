@@ -1,0 +1,26 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/desktop-plugin-catalog.test.ts [ src/desktop-plugin-catalog.test.ts ]
+Error: Cannot find module './plugin-catalog-contract' imported from '/workspace/milkup/apps/desktop/src/desktop-plugin-catalog.test.ts'
+ ❯ src/desktop-plugin-catalog.test.ts:2:1
+      1| import { describe, expect, it, vi } from 'vitest'
+      2| import { parsePluginCatalogSnapshot } from './plugin-catalog-contract'
+       | ^
+      3| import {
+      4|   createDesktopPluginCatalog,
+
+Caused by: Error: Failed to load url ./plugin-catalog-contract (resolved id: ./plugin-catalog-contract) in /workspace/milkup/apps/desktop/src/desktop-plugin-catalog.test.ts. Does the file exist?
+ ❯ loadAndTransform ../../node_modules/.pnpm/vite@7.3.6_@types+node@24.13.2/node_modules/vite/dist/node/chunks/config.js:22739:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  08:28:20
+   Duration  470ms (transform 50ms, setup 0ms, collect 0ms, tests 0ms, environment 0ms, prepare 99ms)
+

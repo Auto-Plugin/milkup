@@ -511,6 +511,7 @@ export interface SdkPluginWorkspaceHost extends SdkPluginWorkspaceReadHost {
   ): Promise<{ readonly status: 'opened' | 'cancelled' }>
 }
 export interface SdkPluginCommandHost extends SdkPluginHost {
+  readonly management?: SdkPluginManagementHost
   readonly workspace?: SdkPluginWorkspaceHost
 }
 
@@ -550,6 +551,7 @@ export interface SdkReleaseInstallResult {
 }
 
 export interface SdkPluginHost {
+  readonly management?: SdkPluginManagementReadHost
   readonly editing?: SdkPluginEditingHost
   readonly resources?: SdkPluginResourcesHost
   readonly output?: SdkPluginOutputHost
@@ -1226,3 +1228,73 @@ export type SdkDocumentSvgConversionFailure =
   | { readonly code: 'limit-exceeded'; readonly reason: string }
   | { readonly code: 'font-unavailable'; readonly reason: string }
   | { readonly code: 'invalid-output'; readonly reason: string }
+
+/** SDK 0.3.7: approved read-only plugin catalog and trusted host navigation. */
+export interface SdkManagementSummary {
+  readonly id: string
+  readonly title: string
+  readonly description: string
+}
+export interface SdkManagementSnapshot {
+  readonly revision: number
+  readonly items: readonly SdkManagementSummary[]
+}
+export interface SdkManagementIdentity {
+  readonly pluginId: string
+  readonly revision: number
+}
+export interface SdkManagementDifference {
+  readonly declared: readonly string[]
+  readonly approved: readonly string[]
+  readonly added: readonly string[]
+  readonly removed: readonly string[]
+}
+export interface SdkManagementDetails extends SdkManagementIdentity {
+  readonly entryRevision: number
+  /** Opaque host fingerprint; never a package path or an approval capability. */
+  readonly candidate?: { readonly fingerprint: string; readonly version: string }
+  readonly title: string
+  readonly description: string
+  readonly version: string
+  readonly host: 'worker' | 'dom' | 'sidecar'
+  readonly approvedHost?: 'worker' | 'dom' | 'sidecar'
+  readonly state: 'enabled' | 'disabled' | 'failed' | 'pending' | 'removed'
+  readonly compatibility: {
+    readonly compatible: boolean
+    readonly hostVersion: string
+    readonly sdkVersion: string
+    readonly requiredHost?: string
+    readonly requiredSdk?: string
+  }
+  readonly permissions: SdkManagementDifference
+  readonly networkOrigins: SdkManagementDifference
+  readonly diagnostics: readonly {
+    readonly code: string
+    readonly message: string
+    readonly severity: 'info' | 'warning' | 'error'
+  }[]
+  /** Declared schema/defaults only; never another plugin's stored user values. */
+  readonly settings?: SdkSettingsDescriptor
+}
+export interface SdkManagementHostViewRequest extends SdkManagementIdentity {
+  readonly view: 'details' | 'settings'
+}
+export interface SdkManagementHostViewResult {
+  readonly status: 'opened' | 'cancelled'
+}
+export interface SdkManagementOperationOptions {
+  readonly signal?: AbortSignal
+}
+export interface SdkPluginManagementReadHost {
+  snapshot(options?: SdkManagementOperationOptions): Promise<SdkManagementSnapshot>
+  describe(
+    input: SdkManagementIdentity,
+    options?: SdkManagementOperationOptions,
+  ): Promise<SdkManagementDetails>
+}
+export interface SdkPluginManagementHost extends SdkPluginManagementReadHost {
+  requestHostView(
+    input: SdkManagementHostViewRequest,
+    options?: SdkManagementOperationOptions,
+  ): Promise<SdkManagementHostViewResult>
+}

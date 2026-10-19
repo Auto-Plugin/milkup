@@ -1,0 +1,68 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts (30 tests | 1 failed | 27 skipped) 27ms
+   ↓ DesktopPluginManager > exposes a stable read-only renderer generation that changes across disable and re-enable
+   ↓ DesktopPluginManager > rejects a temporary-store plugin on SDK 0.1.0 before executing its module
+   ↓ DesktopPluginManager > rejects incompatible upgrade {"pluginSdk":"^9.0.0"} before writing or changing the enabled installation
+   ↓ DesktopPluginManager > rejects incompatible upgrade {"milkup":"^9.0.0"} before writing or changing the enabled installation
+   ↓ DesktopPluginManager > does not create files, directories or registry records for a new incompatible archive
+   ↓ DesktopPluginManager > does not create files, directories or registry records for a new incompatible manifest
+   ↓ DesktopPluginManager > cleans temporary stores on disable and close, and permits a fresh activation after close fails
+   ↓ DesktopPluginManager > loads a relative entry from the plugin root and cleans runtime resources on disable
+   ↓ DesktopPluginManager > reports error Worker startup failure and releases the Worker
+   ↓ DesktopPluginManager > reports silent Worker startup failure and releases the Worker
+   ↓ DesktopPluginManager > reports transport Worker startup failure and releases the Worker
+   ↓ DesktopPluginManager > reactivates persisted enabled plugins during startup
+   ↓ DesktopPluginManager > exports a validated local development package with its entry and resources
+   ↓ DesktopPluginManager > exports installed PNG icons as base64 and preserves them when reinstalling the archive
+   ↓ DesktopPluginManager > keeps invalid manifests visible as install failures without damaging installed records
+   ↓ DesktopPluginManager > honors keymap when contexts and exposes conflicts in manager markup
+   ↓ DesktopPluginManager > runs ChatGPT-style importers and returns generated Markdown without a source file identity
+   ↓ DesktopPluginManager > requires explicit approval for file capabilities and revokes enabled resources
+   ↓ DesktopPluginManager > gates workspace scope creation on explicit approval and revokes captured brokers before unload
+   ↓ DesktopPluginManager > keeps sidecar plugins disabled until their host is explicitly approved
+   ↓ DesktopPluginManager > provides document scan capabilities to plugins with document read permission
+   ↓ DesktopPluginManager > permits explicit retry after a render timeout while keeping the old broker revoked
+   ↓ DesktopPluginManager > ignores a retired worker timeout callback after a new activation
+   ↓ DesktopPluginManager > records a host failure distinctly and permits explicit retry without reviving its old callbacks
+   ↓ DesktopPluginManager > preserves host failure provenance across restart for explicit retry
+   ↓ DesktopPluginManager > waits for timed-out activation cleanup before publishing a replacement
+   ↓ resolvePluginEntryPath > resolves package entries and rejects paths outside the package
+   × P6 lifecycle failure boundaries > attempts every cleanup after an independent service rejects and revokes the old epoch 22ms
+     → expected [ 'output', 'editing', 'resources' ] to deeply equal ArrayContaining{…}
+   ✓ P6 lifecycle failure boundaries > keeps a usable in-memory result when mirror quota fails 2ms
+   ✓ P6 lifecycle failure boundaries > retains corrupt legacy bytes for native migration diagnostics rather than deleting evidence 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager.test.ts > P6 lifecycle failure boundaries > attempts every cleanup after an independent service rejects and revokes the old epoch
+AssertionError: expected [ 'output', 'editing', 'resources' ] to deeply equal ArrayContaining{…}
+
+- Expected
++ Received
+
+- ArrayContaining [
++ [
+    "output",
+    "editing",
+    "resources",
+-   "module",
+  ]
+
+ ❯ apps/desktop/src/desktop-plugin-manager.test.ts:1033:20
+    1031|     internals.resourcesServices.set('example-tools',{dispose:async()=>…
+    1032|     await expect(manager.disable('example-tools')).rejects.toThrow('cl…
+    1033|     expect(events).toEqual(expect.arrayContaining(['output','editing',…
+       |                    ^
+    1034|     expect(manager.documentRendererGeneration('example-tools')).toBeGr…
+    1035|     expect(manager.state().records[0]?.enabled).toBe(false)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed | 27 skipped (30)
+   Start at  08:35:53
+   Duration  1.93s (transform 858ms, setup 0ms, collect 1.17s, tests 27ms, environment 0ms, prepare 87ms)
+

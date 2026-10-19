@@ -3,9 +3,10 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
+#[cfg(test)]
+use std::path::Path;
 use std::{
     collections::HashMap,
-    path::Path,
     sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
@@ -90,8 +91,17 @@ pub async fn prepare_plugin_dom_module(
             .app_data_dir()
             .map_err(|e| e.to_string())?
             .join("plugins");
-        app.state::<DomRegistry>()
-            .prepare(&root, &plugin_id, &expected_manifest)
+        validate_profile(&expected_manifest, &plugin_id)?;
+        let module = crate::plugin_catalog::read_dom_module(&root, &plugin_id, &expected_manifest)?;
+        let sha256 = format!("{:x}", Sha256::digest(module.as_bytes()));
+        app.state::<DomRegistry>().prepare_snapshot(
+            &plugin_id,
+            Snapshot {
+                manifest: expected_manifest,
+                module,
+                sha256,
+            },
+        )
     })
     .await
     .map_err(|e| e.to_string())?
@@ -121,6 +131,9 @@ pub async fn start_plugin_dom_process(
         {
             let registry = app.state::<DomRegistry>();
             let mut leases = registry.0.lock().map_err(|e| e.to_string())?;
+            if leases.values().any(|lease| lease.plugin_id == plugin_id && lease.instance.is_some()) {
+                return Err("Previous DOM instance has not confirmed cleanup; release it before starting another".into());
+            }
             let lease = leases
                 .get_mut(&lease_id)
                 .filter(|l| l.plugin_id == plugin_id)
@@ -128,10 +141,10 @@ pub async fn start_plugin_dom_process(
             if lease.expires <= Instant::now() && lease.snapshot.is_some() {
                 return Err("DOM module lease expired".into());
             }
-            let snapshot = lease
-                .snapshot
-                .take()
-                .ok_or("DOM module lease already used")?;
+            let prepared = lease.snapshot.as_ref().ok_or("DOM module lease already used")?;
+            let root = app.path().app_data_dir().map_err(|e| e.to_string())?.join("plugins");
+            validate_catalog_lease(&root, &plugin_id, &prepared.manifest, &prepared.sha256)?;
+            let snapshot = lease.snapshot.take().ok_or("DOM module lease already used")?;
             let events = app.clone();
             // Retain the exact association even if the invoke result is lost.
             let instance = process::Instance::start(
@@ -187,18 +200,32 @@ pub async fn stop_plugin_dom_process(
 ) -> Result<bool, String> {
     tauri::async_runtime::spawn_blocking(move || {
         #[cfg(target_os = "linux")]
-        if let Ok(instance) = app
-            .state::<DomRegistry>()
-            .instance(&plugin_id, &instance_id)
         {
-            instance.stop()?;
+            app.state::<DomRegistry>()
+                .stop_instance(&plugin_id, &instance_id)
         }
         #[cfg(not(target_os = "linux"))]
-        let _ = (app, plugin_id, instance_id);
-        Ok(true)
+        {
+            let _ = (app, plugin_id, instance_id);
+            Ok(false)
+        }
     })
     .await
     .map_err(|e| e.to_string())?
+}
+#[cfg(target_os = "linux")]
+fn validate_catalog_lease(
+    root: &std::path::Path,
+    plugin_id: &str,
+    manifest: &Value,
+    sha256: &str,
+) -> Result<(), String> {
+    let current = crate::plugin_catalog::read_dom_module(root, plugin_id, manifest)?;
+    let actual = format!("{:x}", Sha256::digest(current.as_bytes()));
+    if actual != sha256 {
+        return Err("DOM lease bytes differ from current authorized catalog generation".into());
+    }
+    Ok(())
 }
 fn supported() -> Result<(), String> {
     if cfg!(target_os = "linux") {
@@ -208,9 +235,12 @@ fn supported() -> Result<(), String> {
     }
 }
 impl DomRegistry {
+    #[cfg(test)]
     fn prepare(&self, root: &Path, plugin_id: &str, expected: &Value) -> Result<Prepared, String> {
         validate_profile(expected, plugin_id)?;
-        let snapshot = read_snapshot(root, plugin_id, expected)?;
+        self.prepare_snapshot(plugin_id, read_snapshot(root, plugin_id, expected)?)
+    }
+    fn prepare_snapshot(&self, plugin_id: &str, snapshot: Snapshot) -> Result<Prepared, String> {
         let mut leases = self.0.lock().map_err(|e| e.to_string())?;
         leases.retain(|_, lease| lease.snapshot.is_none() || lease.expires > Instant::now());
         let used: usize = leases.values().map(|l| l.bytes).sum();
@@ -232,24 +262,43 @@ impl DomRegistry {
         Ok(Prepared { lease_id })
     }
     fn release(&self, plugin_id: &str, lease_id: &str) -> Result<(), String> {
-        let lease = {
-            let mut leases = self.0.lock().map_err(|e| e.to_string())?;
-            if leases
-                .get(lease_id)
-                .is_some_and(|l| l.plugin_id == plugin_id)
-            {
-                leases.remove(lease_id)
-            } else {
-                None
+        self.release_with(plugin_id, lease_id, |lease| {
+            #[cfg(target_os = "linux")]
+            if let Some(instance) = &lease.instance {
+                instance.stop()?;
             }
-        };
-        #[cfg(target_os = "linux")]
-        if let Some(instance) = lease.and_then(|l| l.instance) {
-            instance.stop()?;
+            #[cfg(not(target_os = "linux"))]
+            let _ = lease;
+            Ok(())
+        })
+    }
+    // Keep the exact lease/instance association until cleanup has succeeded.
+    // A failed stop must remain retryable and continue blocking a new instance.
+    fn release_with(
+        &self,
+        plugin_id: &str,
+        lease_id: &str,
+        stop: impl FnOnce(&Lease) -> Result<(), String>,
+    ) -> Result<(), String> {
+        let mut leases = self.0.lock().map_err(|e| e.to_string())?;
+        if let Some(lease) = leases.get(lease_id).filter(|l| l.plugin_id == plugin_id) {
+            stop(lease)?;
+            leases.remove(lease_id);
         }
-        #[cfg(not(target_os = "linux"))]
-        let _ = lease;
         Ok(())
+    }
+    #[cfg(target_os = "linux")]
+    fn stop_instance(&self, plugin_id: &str, instance_id: &str) -> Result<bool, String> {
+        let mut leases = self.0.lock().map_err(|e| e.to_string())?;
+        let Some(lease) = leases.values_mut().find(|lease| {
+            lease.plugin_id == plugin_id
+                && lease.instance.as_ref().is_some_and(|i| i.id == instance_id)
+        }) else {
+            return Ok(false);
+        };
+        lease.instance.as_ref().unwrap().stop()?;
+        lease.instance = None;
+        Ok(true)
     }
     pub fn stop_plugin(&self, plugin_id: &str) -> Result<(), String> {
         let ids: Vec<_> = self
@@ -260,20 +309,32 @@ impl DomRegistry {
             .filter(|(_, l)| l.plugin_id == plugin_id)
             .map(|(id, _)| id.clone())
             .collect();
+        let mut errors = Vec::new();
         for id in ids {
-            self.release(plugin_id, &id)?;
+            if let Err(error) = self.release(plugin_id, &id) {
+                errors.push(error);
+            }
         }
-        Ok(())
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors.join("; "))
+        }
     }
     pub fn stop_all(&self) {
-        if let Ok(mut leases) = self.0.lock() {
-            for (_, lease) in leases.drain() {
-                #[cfg(target_os = "linux")]
-                if let Some(instance) = lease.instance {
-                    let _ = instance.stop();
-                }
-                #[cfg(not(target_os = "linux"))]
-                let _ = lease;
+        let ids: Vec<_> = match self.0.lock() {
+            Ok(leases) => leases
+                .iter()
+                .map(|(id, lease)| (lease.plugin_id.clone(), id.clone()))
+                .collect(),
+            Err(error) => {
+                eprintln!("DOM shutdown registry lock failed: {error}");
+                return;
+            }
+        };
+        for (plugin_id, lease_id) in ids {
+            if let Err(error) = self.release(&plugin_id, &lease_id) {
+                eprintln!("DOM shutdown cleanup remains unconfirmed: {error}");
             }
         }
     }
@@ -425,6 +486,7 @@ fn approved_identity(value: &Value) -> Value {
     }
     Value::Object(out)
 }
+#[cfg(test)]
 fn read_snapshot(root: &Path, plugin_id: &str, expected: &Value) -> Result<Snapshot, String> {
     #[cfg(target_os = "linux")]
     {
@@ -455,7 +517,7 @@ fn read_snapshot(root: &Path, plugin_id: &str, expected: &Value) -> Result<Snaps
         Err("DOM backend unavailable".into())
     }
 }
-#[cfg(target_os = "linux")]
+#[cfg(all(test, target_os = "linux"))]
 fn open_confined_directory(path: &Path) -> Result<std::fs::File, String> {
     use std::os::fd::{AsRawFd, FromRawFd};
     use std::path::Component;
@@ -486,7 +548,7 @@ fn open_confined_directory(path: &Path) -> Result<std::fs::File, String> {
     }
     Ok(directory)
 }
-#[cfg(target_os = "linux")]
+#[cfg(all(test, target_os = "linux"))]
 fn read_confined(root: &std::fs::File, relative: &str, limit: usize) -> Result<Vec<u8>, String> {
     use std::io::Read;
     use std::os::fd::{AsRawFd, FromRawFd};
@@ -818,5 +880,80 @@ mod tests {
         assert!(registry
             .prepare(&fixture.0, "test.dom", &manifest())
             .is_ok());
+    }
+    #[test]
+    fn failed_release_retains_exact_lease_until_retry_confirms_cleanup() {
+        let fixture = Fixture::new();
+        let registry = DomRegistry::default();
+        let prepared = registry
+            .prepare(&fixture.0, "test.dom", &manifest())
+            .unwrap();
+        assert!(registry
+            .release_with("test.dom", &prepared.lease_id, |_| Err(
+                "cleanup unconfirmed".into()
+            ))
+            .is_err());
+        assert!(registry.0.lock().unwrap().contains_key(&prepared.lease_id));
+        // A foreign plugin cannot consume the retained ownership.
+        registry
+            .release_with("other.plugin", &prepared.lease_id, |_| {
+                panic!("foreign stop")
+            })
+            .unwrap();
+        assert!(registry.0.lock().unwrap().contains_key(&prepared.lease_id));
+        registry
+            .release_with("test.dom", &prepared.lease_id, |_| Ok(()))
+            .unwrap();
+        assert!(!registry.0.lock().unwrap().contains_key(&prepared.lease_id));
+    }
+    #[test]
+    fn catalog_lease_recheck_rejects_revoked_and_same_manifest_replaced_bytes() {
+        let fixture = Fixture::new();
+        let m = manifest();
+        let prepare = |body: &str, revision: Option<u64>| {
+            crate::plugin_catalog::prepare(&fixture.0,json!({"format":"milkup-plugin","version":1,"manifest":m,"files":[{"path":"dist/main.js","encoding":"utf8","content":body}]}),"test:dom".into(),revision).unwrap()
+        };
+        let action = |kind: &str| {
+            let state = crate::plugin_catalog::read(&fixture.0).unwrap();
+            let e = &state["entries"][0];
+            let p = &e["pending"];
+            let a = match kind {
+                "revokeApproval" => json!({"type":kind}),
+                "commit" => {
+                    json!({"type":kind,"transactionId":p["transactionId"],"fingerprint":p["generation"]["capabilityFingerprint"],"enabled":true})
+                }
+                _ => {
+                    json!({"type":kind,"transactionId":p["transactionId"],"fingerprint":p["generation"]["capabilityFingerprint"]})
+                }
+            };
+            crate::plugin_catalog::transition(
+                &fixture.0,
+                "test.dom",
+                e["revision"].as_u64().unwrap(),
+                a,
+            )
+            .unwrap()
+        };
+        let first = "export const documentRenderers = {};";
+        prepare(first, None);
+        action("approve");
+        action("beginTrial");
+        let old_hash = format!("{:x}", Sha256::digest(first.as_bytes()));
+        validate_catalog_lease(&fixture.0, "test.dom", &m, &old_hash).unwrap();
+        action("commit");
+        action("revokeApproval");
+        assert!(validate_catalog_lease(&fixture.0, "test.dom", &m, &old_hash).is_err());
+        let state = crate::plugin_catalog::read(&fixture.0).unwrap();
+        prepare(
+            "export const documentRenderers = { changed: true };",
+            state["entries"][0]["revision"].as_u64(),
+        );
+        action("approve");
+        action("beginTrial");
+        assert!(
+            validate_catalog_lease(&fixture.0, "test.dom", &m, &old_hash)
+                .unwrap_err()
+                .contains("bytes differ")
+        );
     }
 }

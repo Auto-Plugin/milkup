@@ -1,0 +1,72 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/plugin-dom.test.ts (17 tests | 2 failed) 92ms
+   ✓ desktop native DOM module preparation > requires the native runtime before any source preparation 9ms
+   ✓ desktop native DOM module preparation > passes only plugin identity and expected manifest, and releases the exact lease once 6ms
+   ✓ desktop native DOM module preparation > rejects unsupported native hosts and malformed native leases without fallback 1ms
+   ✓ desktop native DOM transport (mocked contract, not isolation proof) > binds before delivery and closes/stops the exact instance idempotently 6ms
+   ✓ desktop native DOM transport (mocked contract, not isolation proof) > keeps the matching early failure when a stale error arrives afterwards 5ms
+   ✓ desktop native DOM transport (mocked contract, not isolation proof) > ignores an old startup error, and rejects an excessive pre-bind control stream safely 2ms
+   ✓ desktop native DOM transport (mocked contract, not isolation proof) > releases an exact lease and event listener when startup rejects or loses its identity 6ms
+   ✓ desktop native DOM transport (mocked contract, not isolation proof) > cleans a prepared lease if attaching the native event listener fails 3ms
+   ✓ desktop native DOM transport (mocked contract, not isolation proof) > does not let old instance controls or delayed send failure stop a replacement 4ms
+   ✓ desktop native DOM transport (mocked contract, not isolation proof) > accepts only outer native timeout authority, despite delayed frontend delivery 15ms
+   ✓ desktop native DOM transport (mocked contract, not isolation proof) > delivers a completed native result after a frontend stall without a frontend render timer 3ms
+   ✓ desktop native DOM transport (mocked contract, not isolation proof) > revokes pending work and cleans the module on native send rejection or false acknowledgement 4ms
+   ✓ desktop native DOM transport (mocked contract, not isolation proof) > sends no host capability names and stops even if the failure observer throws 2ms
+   ✓ desktop native DOM transport (mocked contract, not isolation proof) > retains the ten-second ordinary lifecycle RPC timeout and cleans activation failure 2ms
+   ✓ desktop native DOM transport (mocked contract, not isolation proof) > completes activation and lifecycle disposal, then releases native ownership once 2ms
+   × waits for exact native stop before completing loaded disposal and releasing its lease 15ms
+     → expected true to be false // Object.is equality
+   × surfaces native stop failure and still attempts exact lease cleanup 4ms
+     → promise resolved "undefined" instead of rejecting
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/plugin-dom.test.ts > waits for exact native stop before completing loaded disposal and releasing its lease
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ apps/desktop/src/plugin-dom.test.ts:507:16
+    505|   const disposal = Promise.resolve(loaded.dispose()).then(() => { done…
+    506|   await Promise.resolve(); await Promise.resolve()
+    507|   expect(done).toBe(false)
+       |                ^
+    508|   expect(fixture.invokeMock.mock.calls.filter(([command]) => command =…
+    509|   resolveStop(true)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  apps/desktop/src/plugin-dom.test.ts > surfaces native stop failure and still attempts exact lease cleanup
+AssertionError: promise resolved "undefined" instead of rejecting
+
+- Expected: 
+Error {
+  "message": "rejected promise",
+}
+
++ Received: 
+undefined
+
+ ❯ apps/desktop/src/plugin-dom.test.ts:525:62
+    523|   const prepared = await prepareDesktopPluginDomModule(manifest, true,…
+    524|   const loaded = await loadDesktopPluginDomModule(manifest, prepared, …
+    525|   await expect(Promise.resolve().then(() => loaded.dispose())).rejects…
+       |                                                              ^
+    526|   expect(fixture.invokeMock).toHaveBeenCalledWith('release_plugin_dom_…
+    527| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 15 passed (17)
+   Start at  08:46:39
+   Duration  2.29s (transform 1.23s, setup 0ms, collect 1.49s, tests 92ms, environment 0ms, prepare 191ms)
+

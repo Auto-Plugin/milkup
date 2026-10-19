@@ -1,0 +1,30 @@
+$ tauri build --no-bundle --ci
+        Info Looking up installed tauri packages to check mismatched versions...
+     Running beforeBuildCommand `pnpm build`
+$ vite build
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 1997 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                  0.67 kB │ gzip:     0.39 kB
+dist/assets/large-search-worker-BwuKh3LS.js      1.32 kB
+dist/assets/worker-file-plugin-C6Pu6mbd.js       2.79 kB
+dist/assets/plugin-supervisor-BVI1C420.js       29.53 kB
+dist/assets/plugin-worker-G54a4Xqr.js          139.88 kB
+dist/assets/index-BcNetFZt.css                  39.92 kB │ gzip:     8.41 kB
+dist/assets/index-lBcCbJoJ.js                    0.29 kB │ gzip:     0.18 kB
+dist/assets/event-BK_86lmQ.js                    1.41 kB │ gzip:     0.68 kB
+dist/assets/core-DhEqZVGG.js                     2.44 kB │ gzip:     0.98 kB
+dist/assets/webview-Dd-2IzEi.js                  3.36 kB │ gzip:     1.15 kB
+dist/assets/window-6lX1olBp.js                  14.16 kB │ gzip:     3.57 kB
+dist/assets/index-Bsh4wPF1.js                7,520.97 kB │ gzip: 1,998.36 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 10.50s
+   Compiling milkup-desktop v2.0.0-beta.1 (/workspace/milkup/apps/desktop/src-tauri)
+    Finished `release` profile [optimized] target(s) in 1m 59s
+       Built application at: /workspace/milkup/apps/desktop/src-tauri/target/release/milkup-desktop

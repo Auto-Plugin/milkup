@@ -1,6 +1,9 @@
+import { assertPluginWorkerCsp } from './csp-worker'
 import { initializePluginWorkerRealm, type PluginWorkerEndpoint } from '@milkup/plugin'
 
 const DESKTOP_WORKER_FILE_PLUGIN_MODULE = 'milkup://desktop/worker-file-plugin'
+
+if (import.meta.env.PROD) assertPluginWorkerCsp()
 
 initializePluginWorkerRealm(globalThis as unknown as PluginWorkerEndpoint, {
   importModule: async (moduleSpecifier) => {

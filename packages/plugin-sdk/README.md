@@ -481,6 +481,39 @@ at four per second. `host.ui.revealLocation({documentId, version, from, to?},
 {signal})` rechecks the target before navigation; no file path or arbitrary command
 is exposed. Old `scan` and `revealLine` remain available.
 
+### Plugin management information (0.3.7)
+
+The sensitive `app:plugins` permission exposes optional `host.management` after
+host approval. `snapshot()` returns at most 512 plugin summaries (id, title,
+description) and a catalog revision. `describe({pluginId, revision})` returns
+bounded compatibility, permission/origin differences, diagnostics and declared
+settings schema/defaults, plus the entry revision and optional candidate version
+and fingerprint. It never returns native paths, stored user setting values,
+package bytes or authorization tokens. All reads accept `{signal}`. Responses
+are bounded to 512 KiB. Display titles/descriptions may end in `…` when shortened
+at a Unicode code point boundary; the host budgets their JSON-encoded UTF-8
+representation so every native catalog entry remains discoverable. These display
+labels are not approval evidence. Permission/origin differences, versions and
+compatibility requirements are never shortened. A detail that exceeds the
+response budget is unavailable; use the independent trusted host details to
+review its complete scope. One unavailable detail does not hide the catalog.
+
+In a trusted command handler, `context.host.management.requestHostView({pluginId,
+revision, view: 'details' | 'settings'}, {signal})` requests navigation to trusted
+host UI and returns `{status: 'opened' | 'cancelled'}`. Invoke it directly in the
+handler before awaiting unrelated work. The host consumes a caller-bound gesture
+and rechecks revision and lifetime before navigation. An opened view does not
+mean permission was approved or a package was installed. The extension cannot
+approve, commit, enable, uninstall or delete another plugin's data through this
+API. New or changed catalog revisions require refreshing the read-only snapshot.
+
+Ordinary extension lists should contain only a logo, title and description;
+compatibility, status, diagnostics and action guidance belong in details. The
+trusted host recovery shell remains independent of management extensions.
+Missing permission, unavailable hosts, revocation and cancellation must be shown
+without inventing success. Require SDK `>=0.3.7 <0.4.0` when using this capability.
+Existing plugins and their reviewed older SDK build artifacts remain unchanged.
+
 ### Background presentation preparation (0.3.6)
 
 A document renderer with an in-progress index for the request's exact document
@@ -594,3 +627,13 @@ observed missing local-filter reference using a host-generated, deliberately
 unbound fragment ID, distinct from every rebound definition. It is not equivalent
 to `none` on every engine. Unknown text bounds remain unsupported for this token;
 known-ink compositing surfaces still consume the shared work budget.
+
+### Host file broker scope
+
+For hosts exposing the existing explicit-path file broker, `plugin-root` refers
+to the sealed installed package generation and is read-only. It is not redirected
+to writable data storage. `plugin-data` refers to that plugin's separate `dataRoot`
+and permits read, write or delete only with the corresponding approved file
+permission. File requests still provide an explicit path that the host checks
+against its scope. This describes host broker policy; SDK 0.3.7 does not add a
+`host.files` member or any new file API.

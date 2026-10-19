@@ -1,3 +1,7 @@
+import {
+  createPluginManagementHostCapabilities,
+  type PluginManagementBroker,
+} from './management-broker'
 import { createPluginOutputHostCapabilities, type PluginOutputBroker } from './output-broker'
 import {
   copyDocumentPresentationRequest,
@@ -61,6 +65,7 @@ export interface PluginModuleIsolationHostConfig {
   readonly keymapBroker?: PluginKeymapBroker
   readonly editingBroker?: PluginEditingBroker
   readonly resourcesBroker?: PluginResourcesBroker
+  readonly managementBroker?: PluginManagementBroker
   readonly outputBroker?: PluginOutputBroker
   readonly settingsBroker?: PluginSettingsBroker
   readonly workspaceBroker?: PluginWorkspaceBroker
@@ -85,7 +90,7 @@ export function createPluginModuleIsolationHost(
       const current = ++generation
       active = true
       try {
-        activation =
+        const prepared =
           (await module.activate?.({
             manifest: request.manifest,
             pluginId: request.pluginId,
@@ -108,9 +113,15 @@ export function createPluginModuleIsolationHost(
                 manifest.permissions?.includes('document:read')
                 ? config.outputBroker
                 : undefined,
+              manifest.permissions?.includes('app:plugins') ? config.managementBroker : undefined,
               () => active && generation === current && config.isActive?.() !== false,
             ),
           })) ?? undefined
+        if (!active || generation !== current || config.isActive?.() === false) {
+          await prepared?.dispose?.()
+          throw new Error('Plugin activation was revoked')
+        }
+        activation = prepared
       } catch (error) {
         if (generation === current) {
           active = false
@@ -143,8 +154,11 @@ export function createPluginModuleIsolationHost(
       active = false
       generation++
       for (const controller of renderControllers) controller.abort()
-      await module.deactivate?.()
-      activation = undefined
+      try {
+        await module.deactivate?.()
+      } finally {
+        activation = undefined
+      }
     },
     runCommand: async (
       request: IsolatedPluginCommandRequest,
@@ -191,6 +205,7 @@ export function createPluginModuleIsolationHost(
             manifest.permissions?.includes('document:read')
             ? config.outputBroker
             : undefined,
+          manifest.permissions?.includes('app:plugins') ? config.managementBroker : undefined,
           () => active && generation === current && config.isActive?.() !== false,
           true,
           request.workspaceGesture,
@@ -264,7 +279,9 @@ export function createPluginModuleIsolationHost(
       active = false
       generation++
       for (const controller of renderControllers) controller.abort()
-      await activation?.dispose?.()
+      const currentActivation = activation
+      activation = undefined
+      await currentActivation?.dispose?.()
     },
   })
 }
@@ -403,6 +420,7 @@ function restrictHost(
   editingBroker?: PluginEditingBroker,
   resourcesBroker?: PluginResourcesBroker,
   outputBroker?: PluginOutputBroker,
+  managementBroker?: PluginManagementBroker,
   isActive?: () => boolean,
   command = false,
   workspaceGesture?: string,
@@ -462,6 +480,15 @@ function restrictHost(
             resourcesBroker,
             isActive,
             workspaceGesture,
+          ),
+        }
+      : {}),
+    ...(capabilities.includes('app:plugins') && managementBroker
+      ? {
+          management: createPluginManagementHostCapabilities(
+            managementBroker,
+            isActive,
+            command ? workspaceGesture : undefined,
           ),
         }
       : {}),

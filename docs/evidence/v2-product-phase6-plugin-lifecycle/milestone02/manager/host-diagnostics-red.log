@@ -1,0 +1,55 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts (27 tests | 1 failed) 260ms
+   ✓ P6 authoritative catalog transactions > stages without running or replacing old active approval; exact review is required 13ms
+   ✓ P6 authoritative catalog transactions > tears old epoch down before trial, commits before publish, and recovers old version with new epoch on failure 8ms
+   ✓ P6 authoritative catalog transactions > cannot grant candidate capabilities via pending approval or side effects during activate 2ms
+   ✓ P6 authoritative catalog transactions > serializes queued approval and remove; tombstone keeps data/settings and never revives from mirror 1ms
+   ✓ P6 authoritative catalog transactions > recovers a committed generation when contribution publication fails 8ms
+   ✓ P6 candidate failure injection > denies a swallowed initialization write and restores unchanged data 4ms
+   ✓ P6 candidate failure injection > recovers old active after native commit rejects without publishing the candidate 3ms
+   ✓ P6 candidate failure injection > caps hanging candidate activation and attempts new-epoch recovery 5ms
+   ✓ P6 candidate failure injection > does not trust a poisoned mirror and quarantines an interrupted startup instead of retrying forever 2ms
+   ✓ P6 retirement and public diagnostic boundaries > retains a rejected isolation owner and retries before any new activation 3ms
+   ✓ P6 retirement and public diagnostic boundaries > keeps callback errors diagnostic when the trusted owner confirms termination 1ms
+   ✓ P6 retirement and public diagnostic boundaries > never exposes native or activation paths through the public management adapter 3ms
+   ✓ P6 sealed generations > permits package reads, refuses package writes/deletes, and gives data a distinct writable scope 2ms
+   ✓ P6 sealed generations > disables a newly committed first installation if publication fails with no previous generation 1ms
+   ✓ P6 compatibility at execution boundary > quarantines incompatible native active intent after a host/SDK change without loading code 4ms
+   ✓ P6 compatibility at execution boundary > does not run an incompatible native pending candidate or retire the old active instance 1ms
+   ✓ P6 compatibility at execution boundary > blocks candidate data writes before publication even when approval includes file write 2ms
+   ✓ P6 native read-only renderer profile > permits only the sealed read-only DOM renderer and awaits its retirement before replacement 2ms
+   ✓ P6 bounded management metadata > lists all 512 valid native entries with long Unicode metadata and keeps differences exact 158ms
+   ✓ P6 mounted UI retirement > retires mounted UI without dispatching renderer RPC after epoch revocation 3ms
+   ✓ P6 mounted UI retirement > still rejects real owner stop failure when a UI was mounted 2ms
+   ✓ P6 trusted manager action wiring > rejects a candidate through ActionRegistry without changing old active approval or execution 12ms
+   ✓ P6 trusted manager action wiring > requires control permission and exact well-formed reviewed identity before rejection 1ms
+   ✓ P6 trusted manager action wiring > registers every fixed plugin action dispatched by the shipped manager click handler 2ms
+   ✓ P6 catalog activation error presentation > surfaces a readable Error through the real action while retaining the typed runtime cause and restored old instance 2ms
+   ✓ P6 activation error identity boundary > preserves existing Error and unknown values without reading diagnostic accessors 3ms
+   × P6 trusted host complete catalog diagnostics > shows repeated native diagnostics after old-version recovery without leaking them into the public projection or list 9ms
+     → expected +0 to be 2 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager-catalog.test.ts > P6 trusted host complete catalog diagnostics > shows repeated native diagnostics after old-version recovery without leaking them into the public projection or list
+AssertionError: expected +0 to be 2 // Object.is equality
+
+- Expected
++ Received
+
+- 2
++ 0
+
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts:978:40
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 26 passed (27)
+   Start at  09:49:29
+   Duration  1.71s (transform 762ms, setup 0ms, collect 1.02s, tests 260ms, environment 0ms, prepare 81ms)
+

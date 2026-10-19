@@ -1,0 +1,38 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ packages/plugin/src/worker-supervisor.test.ts (12 tests | 1 failed) 30ms
+   ✓ trusted Worker render supervision > reports child startup failure distinctly and revokes pending startup 7ms
+   ✓ trusted Worker render supervision > does not re-timeout a supervised result whose main delivery was delayed 3ms
+   ✓ trusted Worker render supervision > does not let a structural property disable the original watchdog 1ms
+   ✓ trusted Worker render supervision > does not promote child control lookalikes into authority 1ms
+   ✓ trusted Worker render supervision > keeps the supervisor deadline after cancellation and kills before notifying 2ms
+   ✓ trusted Worker render supervision > settles one render, keeps the activation alive, then supervises the next 2ms
+   ✓ trusted Worker render supervision > revokes queued and active work, ignores late responses and cannot revive a retired endpoint 2ms
+   ✓ trusted Worker render supervision > never disarms for a malformed error that the main RPC would reject 1ms
+   ✓ trusted Worker render supervision > constructs a revoked isolation host safely from an already closed endpoint 1ms
+   ✓ trusted Worker render supervision > uses monotonic elapsed time despite wall-clock changes 2ms
+   ✓ trusted Worker render supervision > rejects a late result even if its task runs before the expired timer 1ms
+   × terminates the child and detaches supervisor even when child listener cleanup throws 6ms
+     → expected "spy" to be called once, but got 0 times
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/plugin/src/worker-supervisor.test.ts > terminates the child and detaches supervisor even when child listener cleanup throws
+AssertionError: expected "spy" to be called once, but got 0 times
+ ❯ packages/plugin/src/worker-supervisor.test.ts:336:32
+    334|   vi.spyOn(child.main, 'off').mockImplementation(() => { throw new Err…
+    335|   expect(() => realm.dispose()).toThrow('detach failed')
+    336|   expect(child.main.terminate).toHaveBeenCalledOnce()
+       |                                ^
+    337|   expect(detach).toHaveBeenCalledOnce()
+    338| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 11 passed (12)
+   Start at  08:39:00
+   Duration  1.83s (transform 795ms, setup 0ms, collect 1.07s, tests 30ms, environment 0ms, prepare 80ms)
+

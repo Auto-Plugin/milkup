@@ -9,6 +9,17 @@ import type {
 } from '@milkup/core'
 import {
   createBrowserWorkerPluginHost,
+  createPluginManagementBroker,
+  projectPluginManagementMetadata,
+  copyPluginManagementDetails,
+  PluginManagementError,
+  type PluginManagementSnapshot,
+  type PluginManagementIdentity,
+  type PluginManagementDetails,
+  type PluginManagementHostViewRequest,
+  type PluginManagementHostViewResult,
+  type PluginManagementOperationContext,
+  type RevocablePluginManagementBroker,
   createSupervisedPluginWorkerEndpoint,
   createPluginDocumentBroker,
   createIsolatedPluginModule,
@@ -63,6 +74,16 @@ import {
   type PluginUiOperationContext,
 } from '@milkup/plugin'
 
+import { catalogEntryToRegistryRecord, catalogToRegistrySnapshot } from './desktop-plugin-catalog'
+import type {
+  DesktopPluginCatalog,
+  PluginCatalogEntry,
+  PluginCatalogGeneration,
+  PluginCatalogSnapshot,
+  PluginCatalogAction,
+} from './plugin-catalog-contract'
+
+import { createDesktopPluginWorker } from './plugin-worker-factory'
 import { createDesktopPluginFileBroker } from './plugin-file-broker'
 import {
   createDesktopTemporaryStorage,
@@ -78,6 +99,7 @@ export interface DesktopPluginManifestHost {
     manifest: PluginManifest,
     manifestPath: string,
     main: string,
+    generation?: { readonly generationId: string; readonly packageRoot: string },
   ): Promise<DesktopPreparedPluginModule>
   selectPackageExportPath?(suggestedName: string): Promise<string | undefined>
   writeText?(path: string, text: string): Promise<void>
@@ -100,14 +122,16 @@ export interface DesktopInstalledPluginPackage extends DesktopPluginDirectories 
 export interface DesktopPreparedEntryPluginModule {
   readonly kind?: 'module'
   readonly specifier: string
-  dispose?(): void
+  dispose?(): void | Promise<void>
+  retryDispose?(): void | Promise<void>
 }
 
 export interface DesktopPreparedDomPluginModule {
   readonly kind: 'dom'
   /** Opaque native-issued lease; never a path, source string or URL. */
   readonly leaseId: string
-  dispose?(): void
+  dispose?(): void | Promise<void>
+  retryDispose?(): void | Promise<void>
 }
 
 export type DesktopPreparedPluginModule =
@@ -115,10 +139,14 @@ export type DesktopPreparedPluginModule =
 
 export interface DesktopLoadedPluginModule {
   readonly module: PluginModule
-  dispose(): void
+  dispose(): void | Promise<void>
+  retryDispose?(): void | Promise<void>
 }
 
 export interface DesktopPluginModuleCapabilities {
+  readonly restrictedActivation?: boolean
+  readonly isActivationCommitted?: () => boolean
+  readonly onActivationViolation?: (error: Error) => void
   readonly onDocumentRenderTimeout?: () => void
   readonly onIsolationError?: (error: Error) => void
   readonly editingBroker?: RevocablePluginEditingBroker
@@ -128,6 +156,7 @@ export interface DesktopPluginModuleCapabilities {
   readonly keymapBroker?: ReturnType<typeof createPluginKeymapBroker>
   readonly settingsBroker?: RevocablePluginSettingsBroker
   readonly workspaceBroker?: RevocablePluginWorkspaceBroker
+  readonly managementBroker?: RevocablePluginManagementBroker
   readonly releasesBroker?: RevocablePluginReleasesBroker
   readonly uiBroker?: PluginUiBroker
 }
@@ -184,6 +213,11 @@ export interface DesktopPluginKeymapContext {
 }
 
 export interface DesktopPluginManagerOptions {
+  readonly catalog?: DesktopPluginCatalog
+  readonly requestManagementHostView?: (
+    input: PluginManagementHostViewRequest,
+    context: PluginManagementOperationContext,
+  ) => Promise<PluginManagementHostViewResult>
   readonly actionRegistry: ActionRegistry
   readonly manifestHost: DesktopPluginManifestHost
   readonly permissions: readonly ActionPermission[]
@@ -239,6 +273,9 @@ export interface DesktopPluginManagerOptions {
 }
 
 export interface DesktopPluginManagerState {
+  readonly catalogRevision?: number
+  readonly catalogEntries?: readonly PluginCatalogEntry[]
+  readonly diagnostics?: readonly string[]
   readonly records: readonly PluginRegistryRecord[]
   readonly contributions: PluginContributionIndex
   readonly auditCount: number
@@ -260,6 +297,7 @@ const sensitivePermissions = new Set([
   'network:access',
   'app:control',
   'app:updates',
+  'app:plugins',
   'workspace:read',
   'settings:write',
   'app:keymap',
@@ -268,6 +306,20 @@ const sensitivePermissions = new Set([
 ])
 
 export class DesktopPluginManager {
+  private readonly catalog: DesktopPluginCatalog | undefined
+  private catalogSnapshot: PluginCatalogSnapshot | undefined
+  private readonly publishedGenerations = new Map<string, string>()
+  private readonly executingRecords = new Map<string, PluginRegistryRecord>()
+  private readonly activationGates = new Map<string, { committed: boolean; violation?: Error }>()
+  private readonly managerDiagnostics: string[] = []
+  private readonly pendingRuntimeCleanup = new Map<
+    string,
+    { promise: Promise<import('@milkup/plugin').PluginRuntimeInfo>; before: number }
+  >()
+  private readonly revocationErrors = new Map<string, unknown[]>()
+  private readonly retiringOperations = new Map<string, Array<() => unknown>>()
+  private readonly managementBrokers = new Map<string, RevocablePluginManagementBroker>()
+  private readonly requestManagementHostView: DesktopPluginManagerOptions['requestManagementHostView']
   private readonly registry: PluginRegistry
   private readonly compatibility: PluginCompatibilityTarget
   private readonly runtime: PluginRuntime
@@ -330,6 +382,8 @@ export class DesktopPluginManager {
   readonly ready: Promise<void>
 
   constructor(options: DesktopPluginManagerOptions) {
+    this.catalog = options.catalog
+    this.requestManagementHostView = options.requestManagementHostView
     this.editingAdapter = options.editingAdapter
     this.resourcesAdapter = options.resourcesAdapter
     this.outputAdapter = options.outputAdapter
@@ -377,6 +431,7 @@ export class DesktopPluginManager {
       documentBroker: (manifest) =>
         manifest.host === 'dom' ? undefined : this.getDocumentBroker(manifest),
       uiBroker: (manifest) => (manifest.host === 'dom' ? undefined : this.createUiBroker(manifest)),
+      managementBroker: (manifest) => this.getManagementBroker(manifest),
       releasesBroker: (manifest) =>
         manifest.host === 'dom' ? undefined : this.getReleasesBroker(manifest),
       workspaceBroker: (manifest) =>
@@ -396,11 +451,261 @@ export class DesktopPluginManager {
       storageBroker: (manifest) =>
         manifest.host === 'dom' ? undefined : this.createStorageBroker(manifest),
     })
-    this.restore()
     this.restoreFailures()
-    this.ready = this.restoreEnabledPlugins().then(() =>
-      this.installBundledPackages(options.bundledPackagePaths),
-    )
+    if (this.catalog) this.ready = this.initializeCatalog(options.bundledPackagePaths)
+    else {
+      this.restore()
+      this.ready = this.restoreEnabledPlugins().then(() =>
+        this.installBundledPackages(options.bundledPackagePaths),
+      )
+    }
+  }
+
+  private capabilityRecord(pluginId: string): PluginRegistryRecord | undefined {
+    return this.executingRecords.get(pluginId) ?? this.registry.get(pluginId)
+  }
+  private catalogEntry(pluginId: string): PluginCatalogEntry | undefined {
+    return this.catalogSnapshot?.entries.find((e) => e.id === pluginId)
+  }
+  private requireCatalogEntry(pluginId: string): PluginCatalogEntry {
+    const entry = this.catalogEntry(pluginId)
+    if (!entry) throw new Error('Unknown native catalog plugin: ' + pluginId)
+    return entry
+  }
+  private generationRecord(
+    entry: PluginCatalogEntry,
+    generation: PluginCatalogGeneration,
+  ): PluginRegistryRecord {
+    // Private candidate execution/readonly display projection; never installs pending as active.
+    const projected = catalogEntryToRegistryRecord({
+      ...entry,
+      active: { ...generation, verified: true },
+      tombstone: false,
+      diagnostics: [],
+    })
+    if (!projected) throw new Error('Candidate projection unavailable')
+    return projected
+  }
+  private requireDisplayRecord(pluginId: string): PluginRegistryRecord {
+    const active = this.registry.get(pluginId)
+    if (active) return active
+    const entry = this.requireCatalogEntry(pluginId)
+    if (entry.pending) return this.generationRecord(entry, entry.pending.generation)
+    throw new Error('Plugin has no active or pending installation: ' + pluginId)
+  }
+  private applyCatalog(snapshot: PluginCatalogSnapshot): void {
+    if (this.catalogSnapshot && snapshot.revision < this.catalogSnapshot.revision) return
+    this.catalogSnapshot = snapshot
+    const projected = catalogToRegistrySnapshot(snapshot)
+    const records = projected.records.map((record) => {
+      const entry = snapshot.entries.find((e) => e.id === record.manifest.id)!
+      const published =
+        entry.enabled && entry.active?.id === this.publishedGenerations.get(entry.id)
+      return published
+        ? { ...record, state: 'enabled' as const, enabled: true, errors: [] }
+        : record
+    })
+    this.registry.restore({ ...projected, records })
+    this.persist()
+  }
+  private async catalogTransition(
+    pluginId: string,
+    action: PluginCatalogAction,
+  ): Promise<PluginCatalogEntry> {
+    if (!this.catalog) throw new Error('Native catalog unavailable')
+    const entry = this.requireCatalogEntry(pluginId)
+    this.applyCatalog(await this.catalog.transition(pluginId, entry.revision, action))
+    return this.requireCatalogEntry(pluginId)
+  }
+  private async initializeCatalog(
+    listPaths: DesktopPluginManagerOptions['bundledPackagePaths'],
+  ): Promise<void> {
+    try {
+      let snapshot = await this.catalog!.read()
+      let legacy: string | null = null
+      try {
+        legacy = this.storage?.getItem(registryStorageKey) ?? null
+      } catch (error) {
+        this.managerDiagnostics.push('Legacy mirror unreadable: ' + String(error))
+      }
+      if (!snapshot.migrationReceipt && snapshot.entries.length === 0 && legacy)
+        snapshot = await this.catalog!.migrateLegacy(legacy)
+      this.applyCatalog(snapshot)
+      for (const entry of snapshot.entries) {
+        if (entry.pending?.phase === 'trial') {
+          await this.catalogTransition(entry.id, {
+            type: 'abort',
+            transactionId: entry.pending.transactionId,
+            fingerprint: entry.pending.generation.capabilityFingerprint,
+          })
+        }
+        const current = this.requireCatalogEntry(entry.id)
+        if (current.startAttempt && current.active) {
+          await this.catalogTransition(entry.id, {
+            type: 'markFailed',
+            generationId: current.active.id,
+            message: 'Previous plugin startup did not complete; review before retry',
+          })
+        } else if (current.enabled && current.active && !current.tombstone) {
+          try {
+            await this.runPluginLifecycle(entry.id, () =>
+              this.enableCatalogInstance(entry.id, false),
+            )
+          } catch (error) {
+            this.managerDiagnostics.push(String(error))
+          }
+        }
+      }
+      // Native entries/tombstones are the durable receipt, not a localStorage list.
+      for (const path of (await listPaths?.()) ?? []) {
+        try {
+          const archive = parsePluginPackageArchive(
+            parseManifestJson(await this.manifestHost.readManifestText(path), path),
+          )
+          if (this.catalogEntry(archive.manifest.id)) continue
+          await this.installManifestPath(path)
+        } catch (error) {
+          this.recordInstallFailure(path, error)
+        }
+      }
+    } catch (error) {
+      this.managerDiagnostics.push('Native plugin catalog unavailable: ' + String(error))
+    }
+  }
+  private publishCatalogInstance(
+    pluginId: string,
+    generation: PluginCatalogGeneration,
+  ): PluginRegistryRecord {
+    const gate = this.activationGates.get(pluginId)
+    if (!gate) throw new Error('Activation epoch unavailable')
+    gate.committed = true
+    try {
+      this.runtime.publishPlugin(pluginId)
+    } catch (error) {
+      gate.committed = false
+      throw error
+    }
+    this.executingRecords.delete(pluginId)
+    this.publishedGenerations.set(pluginId, generation.id)
+    const record = this.registry.markEnabled(pluginId)
+    this.persist()
+    return record
+  }
+  private async enableCatalogInstance(
+    pluginId: string,
+    allowCandidate = true,
+  ): Promise<PluginRegistryRecord> {
+    const entry = this.requireCatalogEntry(pluginId)
+    if (entry.tombstone) throw new Error('Plugin is removed; reinstall explicitly')
+    if (allowCandidate && entry.pending) return this.trialCandidate(pluginId)
+    const active = entry.active
+    if (!active || active.approvedFingerprint !== active.capabilityFingerprint)
+      throw new Error('Exact active capabilities require approval')
+    const compatibilityErrors = validatePluginCompatibility(active.manifest, this.compatibility)
+    if (compatibilityErrors.length) {
+      const error = new Error(compatibilityErrors.join('; '))
+      await this.catalogTransition(pluginId, {
+        type: 'markFailed',
+        generationId: active.id,
+        message: error.message,
+      })
+      throw error
+    }
+    // Only Worker and the native sealed, strictly read-only renderer profile support trial.
+    if (!supportsRestrictedActivation(active.manifest))
+      throw new Error('Restricted activation is not supported for this execution host')
+    await this.unloadRuntimePlugin(pluginId)
+    const starting = await this.catalogTransition(pluginId, {
+      type: 'startupBegin',
+      generationId: active.id,
+    })
+    try {
+      await this.enablePluginInstance(pluginId, this.generationRecord(starting, active))
+      if (!starting.startAttempt) throw new Error('Native startup attempt missing')
+      await this.catalogTransition(pluginId, {
+        type: 'startupComplete',
+        attemptId: starting.startAttempt,
+      })
+      return this.publishCatalogInstance(pluginId, active)
+    } catch (error) {
+      try {
+        await this.unloadRuntimePlugin(pluginId)
+      } catch (cleanup) {
+        this.managerDiagnostics.push(String(cleanup))
+      }
+      await this.catalogTransition(pluginId, {
+        type: 'markFailed',
+        generationId: active.id,
+        message: String(error),
+      })
+      throw error
+    }
+  }
+  private async trialCandidate(pluginId: string): Promise<PluginRegistryRecord> {
+    const entry = this.requireCatalogEntry(pluginId),
+      candidate = entry.pending
+    if (!candidate) throw new Error('No candidate to validate')
+    const generation = candidate.generation
+    const compatibilityErrors = validatePluginCompatibility(generation.manifest, this.compatibility)
+    if (compatibilityErrors.length) throw new Error(compatibilityErrors.join('; '))
+    if (generation.approvedFingerprint !== generation.capabilityFingerprint)
+      throw new Error('Exact candidate capabilities require approval')
+    if (!supportsRestrictedActivation(generation.manifest))
+      throw new Error('Restricted activation is not supported for this execution host')
+    const identity = {
+      transactionId: candidate.transactionId,
+      fingerprint: generation.capabilityFingerprint,
+    }
+    let oldFullyStopped = false
+    try {
+      await this.catalogTransition(pluginId, { type: 'beginTrial', ...identity })
+      await this.unloadRuntimePlugin(pluginId)
+      oldFullyStopped = true
+      await this.enablePluginInstance(pluginId, this.generationRecord(entry, generation))
+      await this.catalogTransition(pluginId, { type: 'commit', ...identity, enabled: true })
+      return this.publishCatalogInstance(pluginId, generation)
+    } catch (error) {
+      let cleanupOk = true
+      try {
+        await this.unloadRuntimePlugin(pluginId)
+      } catch (cleanup) {
+        cleanupOk = false
+        this.managerDiagnostics.push(String(cleanup))
+      }
+      // A rejected IPC may follow a durable commit. Read the authority before choosing recovery.
+      try {
+        this.applyCatalog(await this.catalog!.read())
+        const current = this.requireCatalogEntry(pluginId)
+        if (current.active?.id === generation.id) {
+          if (current.previous) await this.catalogTransition(pluginId, { type: 'rollback' })
+          else
+            await this.catalogTransition(pluginId, {
+              type: 'markFailed',
+              generationId: generation.id,
+              message: 'Committed plugin could not be published; manual recovery required',
+            })
+        } else if (current.pending?.transactionId === candidate.transactionId)
+          await this.catalogTransition(pluginId, { type: 'abort', ...identity })
+        if ((!oldFullyStopped || !cleanupOk) && this.catalogEntry(pluginId)?.active)
+          await this.catalogTransition(pluginId, {
+            type: 'markFailed',
+            generationId: this.requireCatalogEntry(pluginId).active!.id,
+            message: 'Isolation cleanup incomplete; manual recovery required',
+          })
+        if (
+          oldFullyStopped &&
+          cleanupOk &&
+          candidate.restoreEnabled &&
+          entry.active &&
+          this.catalogEntry(pluginId)?.active?.id === entry.active.id
+        )
+          await this.enableCatalogInstance(pluginId, false)
+      } catch (recovery) {
+        this.managerDiagnostics.push('Candidate recovery failed: ' + String(recovery))
+      }
+      this.managerDiagnostics.push('Candidate failed: ' + String(error))
+      throw error
+    }
   }
 
   private async installBundledPackages(
@@ -464,7 +769,32 @@ export class DesktopPluginManager {
 
   state(): DesktopPluginManagerState {
     return Object.freeze({
-      records: this.registry.list(),
+      records: Object.freeze([
+        ...this.registry.list(),
+        ...(this.catalogSnapshot?.entries.flatMap((entry) =>
+          entry.tombstone && entry.active && entry.diagnostics.length
+            ? [
+                {
+                  ...this.generationRecord(entry, entry.active),
+                  state: 'failed' as const,
+                  errors: entry.diagnostics,
+                },
+              ]
+            : !entry.active && entry.pending && !entry.tombstone
+              ? [this.generationRecord(entry, entry.pending.generation)]
+              : [],
+        ) ?? []),
+      ]),
+      ...(this.catalogSnapshot
+        ? {
+            catalogRevision: this.catalogSnapshot.revision,
+            catalogEntries: this.catalogSnapshot.entries,
+          }
+        : {}),
+      diagnostics: Object.freeze([
+        ...this.managerDiagnostics,
+        ...(this.catalogSnapshot?.diagnostics ?? []),
+      ]),
       contributions: createPluginContributionIndex(
         this.registry.list(),
         this.runtime.getActionRegistry().list(),
@@ -495,28 +825,43 @@ export class DesktopPluginManager {
       if (!allowedHosts.includes(manifest.host ?? 'worker'))
         throw new Error(`Plugin host is not allowed: ${manifest.host}`)
       const errors = validatePluginCompatibility(manifest, this.compatibility)
-      if (errors.length > 0) throw new Error(errors.join('; '))
-      const installed = archive ? await this.manifestHost.installPackage?.(archive) : undefined
-      let record = this.registry.installLocalPlugin({
-        manifest,
-        manifestPath: installed?.manifestPath ?? path,
-        rootPath: installed?.rootPath ?? directoryOf(path),
-        sourcePath: path,
-        trust: 'development',
-      })
-      const directories =
-        installed ?? (await this.manifestHost.ensureDataDirectories?.(record.manifest.id))
-
-      if (directories) {
-        record = this.registry.setRoots(record.manifest.id, {
-          ...(installed ? { rootPath: installed.rootPath } : {}),
-          dataRoot: directories.dataRoot,
-          storageRoot: directories.storageRoot,
+      if (errors.length) throw new Error(errors.join('; '))
+      return await this.runPluginLifecycle(manifest.id, async () => {
+        if (this.catalog) {
+          if (!archive)
+            throw new Error('Catalog installation requires a complete sealed plugin package')
+          this.applyCatalog(
+            await this.catalog.prepare({
+              archive,
+              sourcePath: path,
+              expectedRevision: this.catalogEntry(manifest.id)?.revision ?? null,
+            }),
+          )
+          this.clearInstallFailure(path)
+          return this.requireDisplayRecord(manifest.id)
+        }
+        const installed = archive ? await this.manifestHost.installPackage?.(archive) : undefined
+        let record = this.registry.installLocalPlugin({
+          manifest,
+          manifestPath: installed?.manifestPath ?? path,
+          rootPath: installed?.rootPath ?? directoryOf(path),
+          sourcePath: path,
+          trust: 'development',
         })
-      }
-      this.clearInstallFailure(path)
-      this.persist()
-      return record
+        const directories =
+          installed ?? (await this.manifestHost.ensureDataDirectories?.(record.manifest.id))
+
+        if (directories) {
+          record = this.registry.setRoots(record.manifest.id, {
+            ...(installed ? { rootPath: installed.rootPath } : {}),
+            dataRoot: directories.dataRoot,
+            storageRoot: directories.storageRoot,
+          })
+        }
+        this.clearInstallFailure(path)
+        this.persist()
+        return record
+      })
     } catch (error) {
       this.recordInstallFailure(path, error)
       throw error
@@ -550,11 +895,16 @@ export class DesktopPluginManager {
   }
 
   private async enableRestoredPlugin(pluginId: string): Promise<PluginRegistryRecord> {
-    return this.runPluginLifecycle(pluginId, () => this.enablePluginInstance(pluginId))
+    return this.runPluginLifecycle(pluginId, () =>
+      this.catalog ? this.enableCatalogInstance(pluginId) : this.enablePluginInstance(pluginId),
+    )
   }
 
-  private async enablePluginInstance(pluginId: string): Promise<PluginRegistryRecord> {
-    const record = this.require(pluginId)
+  private async enablePluginInstance(
+    pluginId: string,
+    candidate?: PluginRegistryRecord,
+  ): Promise<PluginRegistryRecord> {
+    const record = candidate ?? this.require(pluginId)
 
     try {
       const runtimeFailure = record.runtimeFailure
@@ -573,6 +923,9 @@ export class DesktopPluginManager {
       this.assertApproved(record)
 
       await this.unloadRuntimePlugin(pluginId)
+      if (candidate) this.executingRecords.set(pluginId, candidate)
+      const gate: { committed: boolean; violation?: Error } = { committed: !this.catalog }
+      this.activationGates.set(pluginId, gate)
       const epoch = this.activationEpochs.get(pluginId) ?? 0
       this.temporaryStorageStopped = false
       const main = record.manifest.main
@@ -604,9 +957,15 @@ export class DesktopPluginManager {
         const settingsBroker = this.getSettingsBroker(record.manifest)
         const workspaceBroker = this.getWorkspaceBroker(record.manifest)
         const releasesBroker = this.getReleasesBroker(record.manifest)
+        const managementBroker = this.getManagementBroker(record.manifest)
         const uiBroker = this.createUiBroker(record.manifest)
         const capabilities = Object.freeze({
           ...lifecycle,
+          restrictedActivation: !!this.catalog,
+          isActivationCommitted: () => gate.committed,
+          onActivationViolation: (error: Error) => {
+            gate.violation = error
+          },
           ...(settingsBroker ? { settingsBroker } : {}),
           ...(keymapBroker ? { keymapBroker } : {}),
           ...(editingBroker ? { editingBroker } : {}),
@@ -614,6 +973,7 @@ export class DesktopPluginManager {
           ...(outputBroker ? { outputBroker } : {}),
           ...(workspaceBroker ? { workspaceBroker } : {}),
           ...(releasesBroker ? { releasesBroker } : {}),
+          ...(managementBroker ? { managementBroker } : {}),
           ...(documentBroker ? { documentBroker } : {}),
           ...(uiBroker ? { uiBroker } : {}),
         })
@@ -621,13 +981,12 @@ export class DesktopPluginManager {
           ? this.loadSidecarModule(record.manifest, prepared.specifier, capabilities)
           : this.loadModule(record.manifest, prepared.specifier, capabilities))
       }
+      this.loadedModules.set(pluginId, loaded)
       if (this.activationEpochs.get(pluginId) !== epoch) {
-        loaded.dispose()
         throw new Error(
           this.registry.get(pluginId)?.runtimeFailure?.message ?? documentRendererTimeoutMessage,
         )
       }
-      this.loadedModules.set(pluginId, loaded)
       if (record.manifest.host === 'sidecar') {
         this.recordAuditAndPersist(pluginId, 'sidecar', 'started', false)
       }
@@ -635,16 +994,44 @@ export class DesktopPluginManager {
         manifest: record.manifest,
         module: loaded.module,
       })
-      await this.runtime.enablePlugin(pluginId)
+      if (this.catalog) {
+        let timer: ReturnType<typeof setTimeout> | undefined
+        try {
+          await Promise.race([
+            this.runtime.preparePlugin(pluginId, {
+              restrictedActivation: true,
+              isActivationCommitted: () => gate.committed,
+              onActivationViolation: (error: Error) => {
+                gate.violation = error
+              },
+            }),
+            new Promise<never>((_, reject) => {
+              timer = setTimeout(
+                () => reject(new Error('Restricted plugin activation timed out')),
+                10000,
+              )
+            }),
+          ])
+        } finally {
+          if (timer) clearTimeout(timer)
+        }
+      } else await this.runtime.enablePlugin(pluginId)
       if (this.activationEpochs.get(pluginId) !== epoch)
         throw new Error(
           this.registry.get(pluginId)?.runtimeFailure?.message ?? documentRendererTimeoutMessage,
         )
+      if (gate.violation) throw gate.violation
+      if (this.catalog) return record
       const next = this.registry.markEnabled(pluginId)
       this.persist()
       return next
     } catch (error) {
-      await this.unloadRuntimePlugin(pluginId)
+      try {
+        await this.unloadRuntimePlugin(pluginId)
+      } catch (cleanup) {
+        this.managerDiagnostics.push(String(cleanup))
+      }
+      if (this.catalog) throw catalogActivationError(pluginId, error)
       const prior = this.registry.get(pluginId)?.runtimeFailure
       const failed = this.registry.markFailed(
         pluginId,
@@ -661,58 +1048,127 @@ export class DesktopPluginManager {
   async disable(pluginId: string): Promise<PluginRegistryRecord> {
     await this.ready
     return this.runPluginLifecycle(pluginId, async () => {
-      await this.unloadRuntimePlugin(pluginId)
-      const record = this.registry.markDisabled(pluginId)
-      this.persist()
-      return record
+      this.revokeExecutionEpoch(pluginId)
+      try {
+        if (this.catalog) await this.catalogTransition(pluginId, { type: 'disable' })
+      } finally {
+        try {
+          await this.unloadRuntimePlugin(pluginId)
+        } finally {
+          this.persist()
+        }
+      }
+      return this.requireDisplayRecord(pluginId)
     })
   }
-
   async reload(pluginId: string): Promise<PluginRegistryRecord> {
     await this.ready
     return this.runPluginLifecycle(pluginId, async () => {
-      const record = this.require(pluginId)
-      const wasEnabled = record.enabled
+      if (this.catalog) {
+        const entry = this.requireCatalogEntry(pluginId)
+        if (entry.pending) return this.trialCandidate(pluginId)
+        return this.enableCatalogInstance(pluginId)
+      }
+      const record = this.require(pluginId),
+        wasEnabled = record.enabled
       await this.unloadRuntimePlugin(pluginId)
       this.registry.markDisabled(pluginId)
-      const reinstalled = await this.installManifestPath(record.sourcePath)
+      // A reload of the sealed installed version does not recursively enter its own queue.
       this.registry.recordAudit(pluginId, 'reload')
       this.persist()
-
-      if (wasEnabled && reinstalled.errors.length === 0) {
-        return this.enablePluginInstance(pluginId)
-      }
-
-      return reinstalled
+      return wasEnabled ? this.enablePluginInstance(pluginId) : this.require(pluginId)
     })
   }
-
   async remove(pluginId: string): Promise<void> {
     await this.ready
     return this.runPluginLifecycle(pluginId, async () => {
-      await this.unloadRuntimePlugin(pluginId)
-      const record = this.registry.remove(pluginId)
-      if (record) {
-        await this.manifestHost.removeInstalledPackage?.(pluginId)
-        this.clearPluginStorage(pluginId)
+      this.revokeExecutionEpoch(pluginId)
+      let failure: unknown
+      try {
+        if (this.catalog) await this.catalogTransition(pluginId, { type: 'remove' })
+        else this.registry.remove(pluginId)
+      } catch (error) {
+        failure = error
       }
+      try {
+        await this.unloadRuntimePlugin(pluginId)
+      } catch (error) {
+        failure ??= error
+      }
+      // Native tombstone owns retryable package cleanup. Never delete user settings/data.
+      if (!this.catalog)
+        try {
+          await this.manifestHost.removeInstalledPackage?.(pluginId)
+        } catch (error) {
+          failure ??= error
+        }
       this.persist()
+      if (failure) throw failure
     })
   }
-
-  approve(pluginId: string): PluginRegistryRecord {
-    const record = this.registry.approve(pluginId)
-    this.persist()
-    return record
+  async approve(
+    pluginId: string,
+    fingerprint?: string,
+    reviewedRevision?: number,
+  ): Promise<PluginRegistryRecord> {
+    await this.ready
+    return this.runPluginLifecycle(pluginId, async () => {
+      if (this.catalog) {
+        const e = this.requireCatalogEntry(pluginId),
+          g = e.pending?.generation ?? e.active
+        if (e.revision !== reviewedRevision)
+          throw new Error('Approval view is stale; review this candidate again')
+        if (!g || !fingerprint || g.capabilityFingerprint !== fingerprint)
+          throw new Error('Approval requires the exact reviewed candidate fingerprint')
+        await this.catalogTransition(
+          pluginId,
+          e.pending
+            ? { type: 'approve', transactionId: e.pending.transactionId, fingerprint }
+            : { type: 'approveActive', generationId: g.id, fingerprint },
+        )
+        return this.requireDisplayRecord(pluginId)
+      }
+      const record = this.registry.approve(pluginId)
+      this.persist()
+      return record
+    })
   }
-
+  async rejectCandidate(
+    pluginId: string,
+    fingerprint: string,
+    reviewedRevision: number,
+  ): Promise<PluginRegistryRecord | undefined> {
+    await this.ready
+    return this.runPluginLifecycle(pluginId, async () => {
+      const entry = this.requireCatalogEntry(pluginId)
+      if (entry.revision !== reviewedRevision)
+        throw new Error('Candidate view is stale; review again')
+      const c = entry.pending
+      if (!c || c.generation.capabilityFingerprint !== fingerprint)
+        throw new Error('Candidate changed; review again')
+      await this.catalogTransition(pluginId, {
+        type: 'abort',
+        transactionId: c.transactionId,
+        fingerprint,
+      })
+      return this.registry.get(pluginId)
+    })
+  }
   async revokeApproval(pluginId: string): Promise<PluginRegistryRecord> {
     await this.ready
     return this.runPluginLifecycle(pluginId, async () => {
-      await this.unloadRuntimePlugin(pluginId)
-      const record = this.registry.revokeApproval(pluginId)
-      this.persist()
-      return record
+      this.revokeExecutionEpoch(pluginId)
+      try {
+        if (this.catalog) await this.catalogTransition(pluginId, { type: 'revokeApproval' })
+        else this.registry.revokeApproval(pluginId)
+      } finally {
+        try {
+          await this.unloadRuntimePlugin(pluginId)
+        } finally {
+          this.persist()
+        }
+      }
+      return this.requireDisplayRecord(pluginId)
     })
   }
 
@@ -773,19 +1229,27 @@ export class DesktopPluginManager {
     phase: DesktopPluginUiPhase,
     state: Readonly<Record<string, unknown>> = {},
   ): Promise<unknown> {
+    // A retiring isolated owner releases plugin resources. A host view close arriving
+    // after revocation must not dispatch a new renderer RPC into that retired realm.
+    const epoch = this.activationEpochs.get(pluginId)
+    if (phase === 'dispose' && this.runtime.getPlugin(pluginId)?.state !== 'enabled') {
+      return undefined
+    }
     const contribution = this.state().contributions.ui.find(
       (view) => view.pluginId === pluginId && view.id === viewId,
     )
-
     if (!contribution && phase !== 'dispose') {
       throw new Error(`Plugin UI contribution is not available: ${pluginId}:${viewId}`)
     }
-
     const result = await this.runtime.render(pluginId, viewId, {
       nodeType: contribution ? `ui:${contribution.slot}` : 'ui:disposed',
       node: Object.freeze({ phase, ...state }),
     })
-
+    if (this.activationEpochs.get(pluginId) !== epoch) {
+      if (phase === 'dispose') return undefined
+      throw new Error('Plugin UI activation was revoked')
+    }
+    if (!result.ok) throw new Error(result.error.message)
     if (phase === 'mount') {
       const active = this.activeUi.get(pluginId) ?? new Set<string>()
       active.add(viewId)
@@ -793,12 +1257,7 @@ export class DesktopPluginManager {
     } else if (phase === 'dispose') {
       this.activeUi.get(pluginId)?.delete(viewId)
     }
-
-    if (result.ok) {
-      return result.value
-    }
-
-    throw new Error(result.error.message)
+    return result.value
   }
 
   supportedDocumentExtensions(): readonly string[] {
@@ -922,16 +1381,8 @@ export class DesktopPluginManager {
     capabilities?: DesktopPluginModuleCapabilities,
   ): Promise<DesktopLoadedPluginModule> {
     const worker = manifest.contributes?.documentRenderers?.length
-      ? createSupervisedPluginWorkerEndpoint(
-          new Worker(new URL('./plugin-supervisor.ts', import.meta.url), {
-            type: 'module',
-            name: `milkup-supervisor-${manifest.id}`,
-          }),
-        )
-      : new Worker(new URL('./plugin-worker.ts', import.meta.url), {
-          type: 'module',
-          name: `milkup-plugin-${manifest.id}`,
-        })
+      ? createSupervisedPluginWorkerEndpoint(createDesktopPluginWorker(manifest.id, true))
+      : createDesktopPluginWorker(manifest.id, false)
     let workerHost: ReturnType<typeof createBrowserWorkerPluginHost> | undefined
     try {
       const fileBroker = this.createFileBroker(manifest)
@@ -941,9 +1392,21 @@ export class DesktopPluginManager {
         worker,
         manifest,
         moduleSpecifier,
+        ...(capabilities?.restrictedActivation !== undefined
+          ? { restrictedActivation: capabilities.restrictedActivation }
+          : {}),
+        ...(capabilities?.isActivationCommitted
+          ? { isActivationCommitted: capabilities.isActivationCommitted }
+          : {}),
+        ...(capabilities?.onActivationViolation
+          ? { onActivationViolation: capabilities.onActivationViolation }
+          : {}),
         ...(capabilities?.documentBroker ? { documentBroker: capabilities.documentBroker } : {}),
         ...(capabilities?.uiBroker ? { uiBroker: capabilities.uiBroker } : {}),
         ...(capabilities?.releasesBroker ? { releasesBroker: capabilities.releasesBroker } : {}),
+        ...(capabilities?.managementBroker
+          ? { managementBroker: capabilities.managementBroker }
+          : {}),
         ...(capabilities?.workspaceBroker ? { workspaceBroker: capabilities.workspaceBroker } : {}),
         ...(capabilities?.settingsBroker ? { settingsBroker: capabilities.settingsBroker } : {}),
         ...(capabilities?.keymapBroker ? { keymapBroker: capabilities.keymapBroker } : {}),
@@ -968,18 +1431,28 @@ export class DesktopPluginManager {
         module: createIsolatedPluginModule({
           manifest,
           host: initializedHost.host,
+          disposeIsolation: () => initializedHost.dispose(),
         }),
         dispose: () => initializedHost.dispose(),
+        retryDispose: () => initializedHost.retryDispose(),
       })
     } catch (error) {
-      if (workerHost) workerHost.dispose()
-      else worker.terminate?.()
+      try {
+        if (workerHost) await workerHost.dispose()
+        else await worker.terminate?.()
+      } catch (cleanup) {
+        const owner = workerHost
+        const retirement = this.retiringOperations.get(manifest.id) ?? []
+        retirement.push(() => (owner ? owner.retryDispose() : worker.terminate?.()))
+        this.retiringOperations.set(manifest.id, retirement)
+        throw new AggregateError([error, cleanup], 'Worker initialization and cleanup failed')
+      }
       throw error
     }
   }
 
   private createFileBroker(manifest: PluginManifest) {
-    const record = this.registry.get(manifest.id)
+    const record = this.capabilityRecord(manifest.id)
 
     if (
       !record ||
@@ -993,7 +1466,12 @@ export class DesktopPluginManager {
 
     return createDesktopPluginFileBroker({
       manifest,
-      roots: [{ id: 'plugin-root', path: record.rootPath }],
+      roots: this.catalog
+        ? [
+            { id: 'plugin-root', path: record.rootPath, operations: ['read'] },
+            { id: 'plugin-data', path: record.dataRoot, operations: ['read', 'write', 'delete'] },
+          ]
+        : [{ id: 'plugin-root', path: record.rootPath }],
       audit: (auditRecord) =>
         this.recordAuditAndPersist(
           manifest.id,
@@ -1043,7 +1521,7 @@ export class DesktopPluginManager {
   }
   private getEditingBroker(manifest: PluginManifest): RevocablePluginEditingBroker | undefined {
     const allowed = () => {
-      const record = this.registry.get(manifest.id)
+      const record = this.capabilityRecord(manifest.id)
       if (
         !record ||
         !['document:read', 'document:write'].every((permission) =>
@@ -1084,7 +1562,7 @@ export class DesktopPluginManager {
   private getResourcesBroker(manifest: PluginManifest): RevocablePluginResourcesBroker | undefined {
     const allowed = () =>
       manifest.permissions?.includes('images:import') === true &&
-      this.registry.get(manifest.id)?.approvals.permissions.includes('images:import') === true
+      this.capabilityRecord(manifest.id)?.approvals.permissions.includes('images:import') === true
     if (!this.resourcesAdapter || !allowed()) return undefined
     const existing = this.resourcesBrokers.get(manifest.id)
     if (existing) return existing
@@ -1103,7 +1581,7 @@ export class DesktopPluginManager {
   }
   private getOutputBroker(manifest: PluginManifest): RevocablePluginOutputBroker | undefined {
     const allowed = () => {
-      const record = this.registry.get(manifest.id)
+      const record = this.capabilityRecord(manifest.id)
       if (
         !record ||
         !manifest.permissions?.includes('document:read') ||
@@ -1134,7 +1612,7 @@ export class DesktopPluginManager {
   private getKeymapBroker(
     manifest: PluginManifest,
   ): ReturnType<typeof createPluginKeymapBroker> | undefined {
-    const record = this.registry.get(manifest.id)
+    const record = this.capabilityRecord(manifest.id)
     if (
       !this.keymapAdapter ||
       !manifest.permissions?.includes('app:keymap') ||
@@ -1147,14 +1625,14 @@ export class DesktopPluginManager {
       manifest,
       adapter: this.keymapAdapter(manifest),
       isActive: () =>
-        this.registry.get(manifest.id)?.approvals.permissions.includes('app:keymap') === true,
+        this.capabilityRecord(manifest.id)?.approvals.permissions.includes('app:keymap') === true,
     })
     this.keymapBrokers.set(manifest.id, broker)
     return broker
   }
 
   private getSettingsBroker(manifest: PluginManifest): RevocablePluginSettingsBroker | undefined {
-    const record = this.registry.get(manifest.id)
+    const record = this.capabilityRecord(manifest.id)
     if (
       !this.settingsAdapter ||
       !manifest.permissions?.includes('settings:write') ||
@@ -1169,14 +1647,15 @@ export class DesktopPluginManager {
       manifest,
       adapter: service.adapter,
       isActive: () =>
-        this.registry.get(manifest.id)?.approvals.permissions.includes('settings:write') === true,
+        this.capabilityRecord(manifest.id)?.approvals.permissions.includes('settings:write') ===
+        true,
     })
     this.settingsBrokers.set(manifest.id, broker)
     return broker
   }
 
   private getWorkspaceBroker(manifest: PluginManifest): RevocablePluginWorkspaceBroker | undefined {
-    const record = this.registry.get(manifest.id)
+    const record = this.capabilityRecord(manifest.id)
     if (
       !this.workspaceAdapter ||
       !manifest.permissions?.includes('workspace:read') ||
@@ -1190,15 +1669,145 @@ export class DesktopPluginManager {
       manifest,
       adapter: service.adapter,
       isActive: () =>
-        this.registry.get(manifest.id)?.approvals.permissions.includes('workspace:read') === true,
+        this.capabilityRecord(manifest.id)?.approvals.permissions.includes('workspace:read') ===
+        true,
       onDispose: () => service.dispose(),
     })
     this.workspaceBrokers.set(manifest.id, broker)
     return broker
   }
 
+  managementSnapshot(): PluginManagementSnapshot {
+    if (!this.catalogSnapshot) throw new PluginManagementError('unavailable')
+    return Object.freeze({
+      revision: this.catalogSnapshot.revision,
+      items: Object.freeze(
+        this.catalogSnapshot.entries
+          .filter((e) => (!e.tombstone || e.diagnostics.length > 0) && (e.active || e.pending))
+          .map((e) => {
+            const manifest = e.active?.manifest ?? e.pending!.generation.manifest
+            return Object.freeze({ id: e.id, ...projectPluginManagementMetadata(manifest) })
+          }),
+      ),
+    })
+  }
+  managementDescribe(input: PluginManagementIdentity): PluginManagementDetails {
+    if (!this.catalogSnapshot) throw new PluginManagementError('unavailable')
+    if (input.revision !== this.catalogSnapshot.revision) throw new PluginManagementError('stale')
+    const entry = this.catalogEntry(input.pluginId),
+      generation = entry?.pending?.generation ?? entry?.active
+    if (!entry || !generation) throw new PluginManagementError('not-found')
+    const manifest = generation.manifest,
+      active = entry.active
+    const approved =
+      active?.approvedFingerprint === active?.capabilityFingerprint ? active : undefined
+    const compatibility = validatePluginCompatibility(manifest, this.compatibility)
+    const details = {
+      pluginId: entry.id,
+      revision: this.catalogSnapshot.revision,
+      entryRevision: entry.revision,
+      ...(entry.pending
+        ? {
+            candidate: {
+              fingerprint: entry.pending.generation.capabilityFingerprint,
+              version: entry.pending.generation.manifest.version,
+            },
+          }
+        : {}),
+      ...projectPluginManagementMetadata(manifest),
+      version: manifest.version,
+      host: manifest.host ?? 'worker',
+      ...(approved ? { approvedHost: approved.manifest.host ?? 'worker' } : {}),
+      state: entry.tombstone
+        ? 'removed'
+        : entry.pending
+          ? 'pending'
+          : this.publishedGenerations.has(entry.id)
+            ? 'enabled'
+            : entry.diagnostics.length
+              ? 'failed'
+              : 'disabled',
+      compatibility: {
+        compatible: compatibility.length === 0,
+        hostVersion: this.compatibility.milkupVersion,
+        sdkVersion: this.compatibility.pluginSdkVersion,
+        ...(manifest.engines?.milkup ? { requiredHost: manifest.engines.milkup } : {}),
+        ...(manifest.engines?.pluginSdk ? { requiredSdk: manifest.engines.pluginSdk } : {}),
+      },
+      permissions: pluginCapabilityDifference(
+        manifest.permissions ?? [],
+        approved?.manifest.permissions ?? [],
+      ),
+      networkOrigins: pluginCapabilityDifference(
+        manifest.networkOrigins ?? [],
+        approved?.manifest.networkOrigins ?? [],
+      ),
+      diagnostics: Object.freeze([
+        ...entry.diagnostics.map((message) => ({
+          code: /cleanup|isolation/i.test(message)
+            ? 'cleanup-failed'
+            : /activat|start/i.test(message)
+              ? 'activation-failed'
+              : 'catalog-diagnostic',
+          message: 'Plugin lifecycle needs attention. Open host details for the full diagnostic.',
+          severity: 'error' as const,
+        })),
+        ...compatibility.map(() => ({
+          code: 'incompatible',
+          message:
+            'This plugin is incompatible with the current host or SDK version. Open host details for requirements.',
+          severity: 'error' as const,
+        })),
+      ]),
+      ...(manifest.settings ? { settings: manifest.settings } : {}),
+    }
+    try {
+      return copyPluginManagementDetails(details)
+    } catch {
+      throw new PluginManagementError('unavailable')
+    }
+  }
+  private getManagementBroker(
+    manifest: PluginManifest,
+  ): RevocablePluginManagementBroker | undefined {
+    const record = this.capabilityRecord(manifest.id)
+    if (
+      !manifest.permissions?.includes('app:plugins') ||
+      !record?.approvals.permissions.includes('app:plugins')
+    )
+      return undefined
+    const existing = this.managementBrokers.get(manifest.id)
+    if (existing) return existing
+    const epoch = this.activationEpochs.get(manifest.id)
+    const broker = createPluginManagementBroker({
+      manifest,
+      isActive: () =>
+        this.activationEpochs.get(manifest.id) === epoch &&
+        this.capabilityRecord(manifest.id)?.approvals.permissions.includes('app:plugins') === true,
+      adapter: {
+        snapshot: async (context) => {
+          context.assertActive()
+          return this.managementSnapshot()
+        },
+        describe: async (input, context) => {
+          context.assertActive()
+          return this.managementDescribe(input)
+        },
+        requestHostView: async (input, context) => {
+          context.assertActive()
+          this.managementDescribe(input)
+          if (!this.requestManagementHostView) throw new PluginManagementError('unavailable')
+          context.assertActive()
+          return this.requestManagementHostView(input, context)
+        },
+      },
+    })
+    this.managementBrokers.set(manifest.id, broker)
+    return broker
+  }
+
   private getReleasesBroker(manifest: PluginManifest): RevocablePluginReleasesBroker | undefined {
-    const record = this.registry.get(manifest.id)
+    const record = this.capabilityRecord(manifest.id)
     if (
       !this.releasesAdapter ||
       !manifest.permissions?.includes('app:updates') ||
@@ -1212,7 +1821,7 @@ export class DesktopPluginManager {
       manifest,
       adapter: service.adapter,
       isActive: () =>
-        this.registry.get(manifest.id)?.approvals.permissions.includes('app:updates') === true,
+        this.capabilityRecord(manifest.id)?.approvals.permissions.includes('app:updates') === true,
       onDispose: () => service.dispose(),
     })
     this.releasesBrokers.set(manifest.id, broker)
@@ -1248,12 +1857,15 @@ export class DesktopPluginManager {
   }
 
   private createNetworkBroker(manifest: PluginManifest) {
-    const record = this.registry.get(manifest.id)
+    const record = this.capabilityRecord(manifest.id)
 
     if (
       !record ||
       !manifest.permissions?.includes('network:access') ||
-      !record.approvals.permissions.includes('network:access')
+      !record.approvals.permissions.includes('network:access') ||
+      !(manifest.networkOrigins ?? []).every((origin) =>
+        record.approvals.networkOrigins?.includes(origin),
+      )
     ) {
       return undefined
     }
@@ -1367,83 +1979,182 @@ export class DesktopPluginManager {
   ): void {
     if (this.activationEpochs.get(pluginId) !== epoch) return
     this.activationEpochs.set(pluginId, epoch + 1)
-    // The isolation host already terminated the runaway realm. Revoke host
-    // capabilities synchronously, before asynchronous service cleanup.
-    this.documentBrokers.get(pluginId)?.dispose()
-    this.uiBrokers.get(pluginId)?.dispose?.()
-    this.editingBrokers.get(pluginId)?.dispose()
-    this.resourcesBrokers.get(pluginId)?.dispose()
-    this.outputBrokers.get(pluginId)?.dispose()
-    this.keymapBrokers.get(pluginId)?.dispose()
-    this.settingsBrokers.get(pluginId)?.dispose()
-    this.workspaceBrokers.get(pluginId)?.dispose()
-    this.releasesBrokers.get(pluginId)?.dispose()
-    this.registry.markFailed(
-      pluginId,
-      new Error(
-        kind === 'renderer-timeout' ? documentRendererTimeoutMessage : executionHostFailureMessage,
-      ),
-      kind,
-    )
+    const published = this.publishedGenerations.get(pluginId)
+    this.publishedGenerations.delete(pluginId)
+    const gate = this.activationGates.get(pluginId)
+    if (gate) gate.committed = false
+    for (const brokers of [
+      this.documentBrokers,
+      this.uiBrokers,
+      this.editingBrokers,
+      this.resourcesBrokers,
+      this.outputBrokers,
+      this.keymapBrokers,
+      this.settingsBrokers,
+      this.workspaceBrokers,
+      this.releasesBrokers,
+      this.managementBrokers,
+    ])
+      try {
+        brokers.get(pluginId)?.dispose?.()
+      } catch (error) {
+        this.managerDiagnostics.push('Immediate revocation failed: ' + String(error))
+      }
+    const message =
+      kind === 'renderer-timeout' ? documentRendererTimeoutMessage : executionHostFailureMessage
+    if (this.registry.get(pluginId)) this.registry.markFailed(pluginId, new Error(message), kind)
     this.persist()
-    this.invalidatePresentation?.()
-    this.onDocumentRenderFailure?.(pluginId, kind)
-    void this.runPluginLifecycle(pluginId, () => this.unloadRuntimePlugin(pluginId)).catch(
-      () => undefined,
-    )
+    try {
+      this.invalidatePresentation?.()
+    } catch (error) {
+      this.managerDiagnostics.push(String(error))
+    }
+    try {
+      this.onDocumentRenderFailure?.(pluginId, kind)
+    } catch (error) {
+      this.managerDiagnostics.push(String(error))
+    }
+    void this.runPluginLifecycle(pluginId, async () => {
+      // A newer activation performed its own cleanup/recovery; late faults cannot revoke it.
+      if (this.activationEpochs.get(pluginId) !== epoch + 1) return
+      try {
+        if (this.catalog && published && this.catalogEntry(pluginId)?.active?.id === published)
+          await this.catalogTransition(pluginId, {
+            type: 'markFailed',
+            generationId: published,
+            message,
+          })
+      } finally {
+        await this.unloadRuntimePlugin(pluginId)
+      }
+    }).catch((error) => {
+      this.managerDiagnostics.push('Fault cleanup: ' + String(error))
+    })
   }
 
-  private async unloadRuntimePlugin(pluginId: string): Promise<void> {
+  private revokeExecutionEpoch(pluginId: string): void {
     this.activationEpochs.set(pluginId, (this.activationEpochs.get(pluginId) ?? 0) + 1)
-    this.documentBrokers.get(pluginId)?.dispose()
-    this.uiBrokers.get(pluginId)?.dispose?.()
-    this.uiBrokers.delete(pluginId)
-    this.editingBrokers.get(pluginId)?.dispose()
-    this.editingBrokers.delete(pluginId)
-    this.resourcesBrokers.get(pluginId)?.dispose()
-    this.resourcesBrokers.delete(pluginId)
-    this.outputBrokers.get(pluginId)?.dispose()
-    this.outputBrokers.delete(pluginId)
-    await this.outputServices.get(pluginId)?.dispose()
-    this.outputServices.delete(pluginId)
-    await this.editingServices.get(pluginId)?.dispose()
-    this.editingServices.delete(pluginId)
-    await this.resourcesServices.get(pluginId)?.dispose()
-    this.resourcesServices.delete(pluginId)
-    this.keymapBrokers.get(pluginId)?.dispose()
-    this.keymapBrokers.delete(pluginId)
-    this.settingsBrokers.get(pluginId)?.dispose()
-    this.settingsBrokers.delete(pluginId)
-    const settingsService = this.settingsServices.get(pluginId)
-    if (settingsService) {
-      await settingsService.dispose().catch(() => {
-        // The service reports a visible rollback error and retains a recoverable lock.
-        // Revoking an isolated plugin must still complete when native view recovery fails.
-        try {
-          this.recordAuditAndPersist(pluginId, 'storage', 'settings:rollback-failed', true)
-        } catch {
-          /* Revocation still completes when storage is unavailable. */
-        }
-      })
-      this.settingsServices.delete(pluginId)
-    }
-    this.workspaceBrokers.get(pluginId)?.dispose()
-    this.workspaceBrokers.delete(pluginId)
-    this.releasesBrokers.get(pluginId)?.dispose()
-    this.releasesBrokers.delete(pluginId)
-    for (const viewId of this.activeUi.get(pluginId) ?? []) {
-      await this.renderUi(pluginId, viewId, 'dispose').catch(() => undefined)
-    }
+    const gate = this.activationGates.get(pluginId)
+    if (gate) gate.committed = false
+    this.publishedGenerations.delete(pluginId)
+    if (this.registry.get(pluginId)) this.registry.markDisabled(pluginId)
+    // Contributions disappear with the revoked epoch; owner disposal owns realm cleanup.
     this.activeUi.delete(pluginId)
-    await this.runtime.unloadPlugin(pluginId).catch(() => undefined)
-    this.loadedModules.get(pluginId)?.dispose()
+    const errors = this.revocationErrors.get(pluginId) ?? []
+    for (const brokers of [
+      this.documentBrokers,
+      this.uiBrokers,
+      this.editingBrokers,
+      this.resourcesBrokers,
+      this.outputBrokers,
+      this.keymapBrokers,
+      this.settingsBrokers,
+      this.workspaceBrokers,
+      this.releasesBrokers,
+      this.managementBrokers,
+    ])
+      try {
+        brokers.get(pluginId)?.dispose?.()
+      } catch (error) {
+        errors.push(error)
+      }
+    this.revocationErrors.set(pluginId, errors)
+    const info = this.runtime.getPlugin(pluginId)
+    if (info && !this.pendingRuntimeCleanup.has(pluginId)) {
+      const promise = this.runtime.disablePlugin(pluginId)
+      void promise.catch(() => undefined)
+      this.pendingRuntimeCleanup.set(pluginId, { promise, before: info.errors.length })
+    }
+  }
+  private async unloadRuntimePlugin(pluginId: string): Promise<void> {
+    this.revokeExecutionEpoch(pluginId)
+    this.activationGates.delete(pluginId)
+    const errors = this.revocationErrors.get(pluginId) ?? []
+    this.revocationErrors.delete(pluginId)
+    const cleanup: (() => unknown)[] = this.retiringOperations.get(pluginId) ?? []
+    this.retiringOperations.delete(pluginId)
+    for (const services of [
+      this.outputServices,
+      this.editingServices,
+      this.resourcesServices,
+      this.settingsServices,
+    ]) {
+      const service = services.get(pluginId)
+      services.delete(pluginId)
+      if (service) cleanup.push(() => service.dispose())
+    }
+    const runtimeCleanup = this.pendingRuntimeCleanup.get(pluginId)
+    this.pendingRuntimeCleanup.delete(pluginId)
+    if (runtimeCleanup)
+      cleanup.push(async () => {
+        const info = await runtimeCleanup.promise
+        await this.runtime.unloadPlugin(pluginId)
+        const failures = info.errors
+          .slice(runtimeCleanup.before)
+          .filter((error) => error.phase === 'disable')
+        if (failures.length)
+          this.managerDiagnostics.push(
+            'Plugin cleanup callback rejected: ' +
+              failures.map((error) => error.message).join('; '),
+          )
+      })
+    const loaded = this.loadedModules.get(pluginId)
     this.loadedModules.delete(pluginId)
-    await this.storageBrokers.get(pluginId)?.dispose()
+    if (loaded) {
+      let attempted = false
+      cleanup.push(() => {
+        const retry = attempted
+        attempted = true
+        return retry && loaded.retryDispose ? loaded.retryDispose() : loaded.dispose()
+      })
+    }
+    const storage = this.storageBrokers.get(pluginId)
     this.storageBrokers.delete(pluginId)
-    await this.documentBrokers.get(pluginId)?.cancelAll()
-    this.documentBrokers.delete(pluginId)
-    this.preparedModules.get(pluginId)?.dispose?.()
+    if (storage) cleanup.push(() => storage.dispose())
+    const document = this.documentBrokers.get(pluginId)
+    if (document) cleanup.push(() => document.cancelAll())
+    const prepared = this.preparedModules.get(pluginId)
     this.preparedModules.delete(pluginId)
+    if (prepared) {
+      let attempted = false
+      cleanup.push(() => {
+        const retry = attempted
+        attempted = true
+        return retry && prepared.retryDispose ? prepared.retryDispose() : prepared.dispose?.()
+      })
+    }
+    for (const brokers of [
+      this.documentBrokers,
+      this.uiBrokers,
+      this.editingBrokers,
+      this.resourcesBrokers,
+      this.outputBrokers,
+      this.keymapBrokers,
+      this.settingsBrokers,
+      this.workspaceBrokers,
+      this.releasesBrokers,
+      this.managementBrokers,
+    ])
+      brokers.delete(pluginId)
+    const results = await Promise.allSettled(
+      cleanup.map((operation) => Promise.resolve().then(operation)),
+    )
+    const retry: Array<() => unknown> = []
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        errors.push(result.reason)
+        retry.push(cleanup[index]!)
+      }
+    })
+    if (retry.length) this.retiringOperations.set(pluginId, retry)
+    this.executingRecords.delete(pluginId)
+    if (errors.length) {
+      const failure = new AggregateError(errors, 'Plugin cleanup did not fully complete')
+      this.managerDiagnostics.push(failure.message + ': ' + errors.map(String).join('; '))
+      if (this.registry.get(pluginId)) this.registry.markFailed(pluginId, failure)
+      this.persist()
+      throw failure
+    }
   }
 
   private async prepareModule(
@@ -1452,7 +2163,20 @@ export class DesktopPluginManager {
     main: string,
   ): Promise<DesktopPreparedPluginModule> {
     if (this.manifestHost.prepareModule) {
-      return this.manifestHost.prepareModule(manifest, manifestPath, main)
+      const entry = this.catalogEntry(manifest.id)
+      const generation = [entry?.active, entry?.pending?.generation].find(
+        (g) => g && `${g.packageRoot.replace(/[\\/]$/, '')}/plugin.json` === manifestPath,
+      )
+      if (this.catalog && !generation)
+        throw new Error('Module must belong to an active or pending native generation')
+      return this.manifestHost.prepareModule(
+        manifest,
+        manifestPath,
+        main,
+        generation
+          ? { generationId: generation.id, packageRoot: generation.packageRoot }
+          : undefined,
+      )
     }
 
     if (manifest.host === 'dom')
@@ -1545,8 +2269,16 @@ export class DesktopPluginManager {
     return record
   }
 
+  private readMirror(key: string): string | null {
+    try {
+      return this.storage?.getItem(key) ?? null
+    } catch (error) {
+      this.managerDiagnostics.push('Local mirror unreadable: ' + String(error))
+      return null
+    }
+  }
   private restore(): void {
-    const text = this.storage?.getItem(registryStorageKey)
+    const text = this.readMirror(registryStorageKey)
 
     if (!text) {
       return
@@ -1555,12 +2287,14 @@ export class DesktopPluginManager {
     try {
       this.registry.restore(parsePluginRegistrySnapshot(text))
     } catch {
-      this.storage?.removeItem(registryStorageKey)
+      this.managerDiagnostics.push(
+        'Legacy registry is corrupt; original bytes retained for native migration',
+      )
     }
   }
 
   private restoreFailures(): void {
-    const text = this.storage?.getItem(failuresStorageKey)
+    const text = this.readMirror(failuresStorageKey)
 
     if (!text) {
       return
@@ -1585,7 +2319,7 @@ export class DesktopPluginManager {
         }
       }
     } catch {
-      this.storage?.removeItem(failuresStorageKey)
+      this.managerDiagnostics.push('Invalid install failure mirror retained')
     }
   }
 
@@ -1614,11 +2348,19 @@ export class DesktopPluginManager {
   }
 
   private persist(): void {
-    this.storage?.setItem(registryStorageKey, serializePluginRegistry(this.registry))
+    try {
+      this.storage?.setItem(registryStorageKey, serializePluginRegistry(this.registry))
+    } catch (error) {
+      this.managerDiagnostics.push('Registry mirror unavailable: ' + String(error))
+    }
   }
 
   private persistFailures(): void {
-    this.storage?.setItem(failuresStorageKey, JSON.stringify(this.installFailures))
+    try {
+      this.storage?.setItem(failuresStorageKey, JSON.stringify(this.installFailures))
+    } catch (error) {
+      this.managerDiagnostics.push('Failure mirror unavailable: ' + String(error))
+    }
   }
 
   private clearPluginStorage(pluginId: string): void {
@@ -1699,7 +2441,43 @@ export function createDesktopPluginActions(
       permissions: ['app:control'],
       risk: 'write',
       inputSchema: pluginIdInputSchema(),
-      run: (_context: ActionContext, input: unknown) => manager.approve(readPluginIdInput(input)),
+      run: (_context: ActionContext, input: unknown) =>
+        manager.approve(
+          readPluginIdInput(input),
+          (input as { fingerprint?: string }).fingerprint,
+          (input as { reviewedRevision?: number }).reviewedRevision,
+        ),
+    },
+    {
+      id: 'plugin.rejectCandidate',
+      title: 'Reject Plugin Candidate',
+      category: 'plugin',
+      permissions: ['app:control'],
+      risk: 'write',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          pluginId: { type: 'string', required: true },
+          fingerprint: { type: 'string', required: true },
+          reviewedRevision: { type: 'number', required: true },
+        },
+      },
+      run: (_context: ActionContext, input: unknown) => {
+        const pluginId = readPluginIdInput(input)
+        const { fingerprint, reviewedRevision } = input as {
+          fingerprint: unknown
+          reviewedRevision: unknown
+        }
+        if (typeof fingerprint !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(fingerprint))
+          throw new Error('Candidate rejection requires a valid reviewed fingerprint')
+        if (
+          typeof reviewedRevision !== 'number' ||
+          !Number.isSafeInteger(reviewedRevision) ||
+          reviewedRevision < 0
+        )
+          throw new Error('Candidate rejection requires a valid reviewed revision')
+        return manager.rejectCandidate(pluginId, fingerprint, reviewedRevision)
+      },
     },
     {
       id: 'plugin.revokeApproval',
@@ -1718,6 +2496,7 @@ export function createDesktopPluginActions(
 
 export interface DesktopPluginManagerView {
   readonly selectedPluginId?: string
+  readonly selectedFailurePath?: string
   readonly icons?: ReadonlyMap<string, string>
 }
 
@@ -1726,26 +2505,58 @@ export function renderDesktopPluginManager(
   view: DesktopPluginManagerView = {},
 ): string {
   const selected = state.records.find((record) => record.manifest.id === view.selectedPluginId)
-  const content = selected
-    ? renderPluginRecord(selected, view.icons?.get(selected.manifest.id)) +
-      renderPluginDetails(state, selected)
-    : state.records.length === 0
-      ? '<p class="empty-copy">暂无已安装插件</p>'
-      : `<div class="plugin-list">${state.records.map((record) => renderPluginCard(record, view.icons?.get(record.manifest.id))).join('')}</div>`
+  const failure = state.installFailures.find((item) => item.sourcePath === view.selectedFailurePath)
+  const entry = state.catalogEntries?.find((item) => item.id === selected?.manifest.id)
+  const content = failure
+    ? `<article class="plugin-card plugin-detail"><h4 id="plugin-detail-title" tabindex="-1">安装未完成</h4>${renderInstallFailure(failure)}<p>现有插件保持不变。请选择修正后的完整插件包重试。</p><button type="button" class="dialog-button" data-plugin-action="install">选择插件包</button></article>`
+    : selected
+      ? renderPluginRecord(selected, view.icons?.get(selected.manifest.id), entry) +
+        renderCandidate(entry) +
+        renderPluginDetails(state, selected)
+      : `<div class="plugin-list">${state.records.map((record) => renderPluginCard(record, view.icons?.get(record.manifest.id))).join('')}${state.installFailures.map((item) => `<button type="button" class="plugin-card plugin-summary-card" data-plugin-action="failure-details" data-plugin-source="${escapeHtml(item.sourcePath)}">${renderPluginLogo('安装项目')}<span class="plugin-card-copy"><span class="plugin-card-title">${escapeHtml(item.sourcePath.split(/[\\/]/).pop() || '安装项目')}</span><span class="plugin-card-description">查看此安装项目的详情</span></span></button>`).join('')}</div>`
   return [
-    '<div class="plugin-manager">',
-    '<div class="plugin-manager-toolbar">',
-    selected
+    '<div class="plugin-manager"><div class="plugin-manager-toolbar">',
+    selected || failure
       ? '<button type="button" class="dialog-button" data-plugin-action="back">返回插件列表</button>'
       : '<button type="button" class="dialog-button primary" data-plugin-action="install">安装本地插件</button>',
-    selected ? '' : `<span>${state.records.length} 个已安装</span>`,
     '</div>',
-    state.installFailures.length > 0
-      ? `<div class="plugin-install-failures">${state.installFailures.map(renderInstallFailure).join('')}</div>`
-      : '',
     content,
+    state.diagnostics?.length
+      ? `<details><summary>插件目录诊断</summary>${state.diagnostics.map((x) => `<p>${escapeHtml(x)}</p>`).join('')}</details>`
+      : '',
     '</div>',
   ].join('')
+}
+
+export function pluginCapabilityDifference(
+  declared: readonly string[],
+  approved: readonly string[],
+) {
+  return Object.freeze({
+    declared: Object.freeze([...declared]),
+    approved: Object.freeze([...approved]),
+    added: Object.freeze(declared.filter((x) => !approved.includes(x))),
+    removed: Object.freeze(approved.filter((x) => !declared.includes(x))),
+  })
+}
+function renderCandidate(entry: PluginCatalogEntry | undefined): string {
+  const pending = entry?.pending
+  if (!entry || !pending) return ''
+  const g = pending.generation,
+    old = entry.active,
+    approved = old?.approvedFingerprint === old?.capabilityFingerprint
+  const permissions = pluginCapabilityDifference(
+    g.manifest.permissions ?? [],
+    approved ? (old?.manifest.permissions ?? []) : [],
+  )
+  const origins = pluginCapabilityDifference(
+    g.manifest.networkOrigins ?? [],
+    approved ? (old?.manifest.networkOrigins ?? []) : [],
+  )
+  const scope = (label: string, d: ReturnType<typeof pluginCapabilityDifference>) =>
+    `<dt>${label}</dt><dd>候选：${escapeHtml(d.declared.join(', ') || '无')}<br>原批准：${escapeHtml(d.approved.join(', ') || '无')}<br>新增：${escapeHtml(d.added.join(', ') || '无')}<br>移除：${escapeHtml(d.removed.join(', ') || '无')}</dd>`
+  const attrs = `data-plugin-id="${escapeHtml(entry.id)}" data-plugin-fingerprint="${g.capabilityFingerprint}" data-plugin-entry-revision="${entry.revision}"`
+  return `<section class="plugin-detail-section plugin-candidate"><h4>待验证版本 ${escapeHtml(g.manifest.version)}</h4><p>现有版本与其审批保持独立。候选通过受限启动验证后才会替换。</p><dl class="plugin-meta"><dt>执行环境</dt><dd>${escapeHtml(old?.manifest.host ?? '无')} → ${escapeHtml(g.manifest.host ?? 'worker')}</dd>${scope('权限', permissions)}${scope('网络范围', origins)}</dl>${g.approvedFingerprint === g.capabilityFingerprint ? `<button type="button" class="dialog-button primary" data-plugin-action="enable" ${attrs}>验证并启用候选</button>` : `<button type="button" class="dialog-button primary" data-plugin-action="approve" ${attrs}>批准此候选能力</button>`}<button type="button" class="dialog-button" data-plugin-action="reject-candidate" ${attrs}>拒绝候选</button></section>`
 }
 
 function renderPluginLogo(name: string, icon?: string): string {
@@ -1851,7 +2662,13 @@ function renderPluginAudit(records: DesktopPluginManagerState['auditRecords']): 
   ].join('')
 }
 
-function renderPluginRecord(record: PluginRegistryRecord, icon?: string): string {
+function renderPluginRecord(
+  record: PluginRegistryRecord,
+  icon?: string,
+  entry?: PluginCatalogEntry,
+): string {
+  if (entry?.tombstone)
+    return `<article class="plugin-card plugin-detail"><h4 id="plugin-detail-title" tabindex="-1">${escapeHtml(record.manifest.name)}</h4><p>已卸载，权限与启动已撤销。用户数据保留。</p><div class="plugin-errors">${entry.diagnostics.map(escapeHtml).join('<br>')}</div><button type="button" class="dialog-button" data-plugin-action="remove" data-plugin-id="${escapeHtml(entry.id)}">重试清理安装文件</button></article>`
   const manifest = record.manifest
   const host = manifest.host ?? 'worker'
   const permissions = manifest.permissions?.join(', ') || '无'
@@ -1859,8 +2676,19 @@ function renderPluginRecord(record: PluginRegistryRecord, icon?: string): string
     ? '<p class="plugin-permission-description">导出与打印当前文档：读取当前文档或选区，在你触发命令并选择目标后导出文件，或打开系统打印。仅授权本次输出所需的文档与资源。</p>'
     : ''
   const approvalRequired = requiresApproval(record)
-  const errors = record.errors.length
-    ? `<div class="plugin-errors">${record.errors.map(escapeHtml).join('<br />')}</div>`
+  const approvalAttrs = entry?.active
+    ? ` data-plugin-fingerprint="${entry.active.capabilityFingerprint}" data-plugin-entry-revision="${entry.revision}"`
+    : ''
+  // Runtime publication clears mirror errors, not the native recovery history.
+  // Preserve every native event (including identical repeated failures), while
+  // excluding copies already present in the rebuildable registry mirror.
+  const nativeDiagnostics = entry?.diagnostics ?? []
+  const detailErrors = [
+    ...record.errors.filter((message) => !nativeDiagnostics.includes(message)),
+    ...nativeDiagnostics,
+  ]
+  const errors = detailErrors.length
+    ? `<div class="plugin-errors">${detailErrors.map(escapeHtml).join('<br />')}</div>`
     : ''
   const primaryAction = record.enabled
     ? `<button type="button" class="dialog-button" data-plugin-action="disable" data-plugin-id="${escapeHtml(manifest.id)}">禁用</button>`
@@ -1889,14 +2717,21 @@ function renderPluginRecord(record: PluginRegistryRecord, icon?: string): string
     outputPermission,
     errors,
     '<footer>',
-    primaryAction,
-    approvalRequired
-      ? `<button type="button" class="dialog-button" data-plugin-action="approve" data-plugin-id="${escapeHtml(manifest.id)}">批准能力</button>`
-      : `<button type="button" class="dialog-button" data-plugin-action="revoke-approval" data-plugin-id="${escapeHtml(manifest.id)}">撤销审批</button>`,
+    entry?.pending && !entry.active
+      ? '<p>尚无已验证的安装版本。请在候选详情中审阅。</p>'
+      : primaryAction,
+    entry?.pending
+      ? ''
+      : approvalRequired
+        ? `<button type="button" class="dialog-button" data-plugin-action="approve" data-plugin-id="${escapeHtml(manifest.id)}"${approvalAttrs}>批准能力</button>`
+        : `<button type="button" class="dialog-button" data-plugin-action="revoke-approval" data-plugin-id="${escapeHtml(manifest.id)}">撤销审批</button>`,
     `<button type="button" class="dialog-button" data-plugin-action="reload" data-plugin-id="${escapeHtml(manifest.id)}">重载</button>`,
     `<button type="button" class="dialog-button" data-plugin-action="export" data-plugin-id="${escapeHtml(manifest.id)}">导出</button>`,
     `<button type="button" class="dialog-button warning" data-plugin-action="remove" data-plugin-id="${escapeHtml(manifest.id)}">移除</button>`,
     '</footer>',
+    record.manifest.settings
+      ? `<section data-plugin-settings-schema><h4>设置结构（只读）</h4><pre>${escapeHtml(JSON.stringify(record.manifest.settings, null, 2))}</pre></section>`
+      : '',
     '</article>',
   ].join('')
 }
@@ -1916,6 +2751,8 @@ function pluginIdInputSchema(): ActionInputSchema {
     type: 'object',
     properties: {
       pluginId: { type: 'string', required: true },
+      fingerprint: { type: 'string' },
+      reviewedRevision: { type: 'number' },
     },
   }
 
@@ -2112,4 +2949,36 @@ function escapeHtml(value: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
+}
+
+function supportsRestrictedActivation(manifest: PluginManifest): boolean {
+  if (!manifest.host || manifest.host === 'worker') return true
+  return (
+    manifest.host === 'dom' &&
+    manifest.permissions?.length === 1 &&
+    manifest.permissions[0] === 'document:read' &&
+    !manifest.settings &&
+    !manifest.networkOrigins?.length &&
+    !!manifest.contributes?.documentRenderers?.length &&
+    Object.keys(manifest.contributes).every((key) => key === 'documentRenderers')
+  )
+}
+
+/** Preserve typed runtime activation failures at the trusted manager boundary. */
+function catalogActivationError(pluginId: string, error: unknown): unknown {
+  if (error instanceof Error || typeof error !== 'object' || error === null) return error
+  // Read only own data fields; an unknown object's accessors are not a diagnostic contract.
+  try {
+    const fields = Object.getOwnPropertyDescriptors(error)
+    if (
+      fields.pluginId?.value === pluginId &&
+      fields.phase?.value === 'enable' &&
+      typeof fields.message?.value === 'string'
+    ) {
+      return new Error(`Plugin activation failed: ${fields.message.value}`, { cause: error })
+    }
+  } catch {
+    // Unknown error values retain their original identity and existing handling.
+  }
+  return error
 }

@@ -1,0 +1,62 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ packages/plugin/src/runtime.test.ts (18 tests | 1 failed) 135ms
+   ✓ PluginRuntime > loads, enables, disables, unloads, and reloads local plugins 6ms
+   ✓ PluginRuntime > runs plugin commands through the Action Registry and global document history 4ms
+   ✓ PluginRuntime > isolates plugin command failures and keeps failed edits out of the real document 1ms
+   ✓ PluginRuntime > enforces plugin and action permissions before commands run 3ms
+   ✓ PluginRuntime > rejects in-process plugin modules unless the runtime explicitly allows dev fixtures 1ms
+   ✓ PluginRuntime > rejects sidecar-hosted plugins unless the runtime explicitly allows them 1ms
+   ✓ PluginRuntime > requires confirmation metadata for destructive plugin actions 1ms
+   ✓ PluginRuntime > keeps renderer failures contained and returns a fallback result 1ms
+   ✓ PluginRuntime > routes plugin file host capabilities through the filesystem broker 2ms
+   ✓ PluginRuntime > routes plugin fetch host capabilities through the network broker 3ms
+   ✓ PluginRuntime > narrows plugin action permissions and host capabilities per command 11ms
+   ✓ PluginRuntime > exposes plugin actions to automation surfaces through the shared registry 1ms
+   ✓ PluginRuntime > uses activation-returned command handlers and renderer handlers 2ms
+   ✓ PluginRuntime > projects plugin command input schemas to Action Registry and MCP tools 78ms
+   ✓ prepared activation transactions > keeps contributions private and initialization writes blocked until host publication 2ms
+   ✓ prepared activation transactions > never publishes late activation after disable and disposes its late result 1ms
+   ✓ prepared activation transactions > attempts deactivate even when activation cleanup rejects 1ms
+   × rejects a prepared activation whose plugin swallowed a forbidden initialization write 14ms
+     → promise resolved "{ id: 'swallow', …(4) }" instead of rejecting
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/plugin/src/runtime.test.ts > rejects a prepared activation whose plugin swallowed a forbidden initialization write
+AssertionError: promise resolved "{ id: 'swallow', …(4) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "errors": [],
++   "id": "swallow",
++   "manifest": {
++     "id": "swallow",
++     "name": "Swallow",
++     "version": "1.0.0",
++   },
++   "registeredActions": [],
++   "state": "prepared",
+  }
+
+ ❯ packages/plugin/src/runtime.test.ts:970:86
+    968|     async activate(context) { try { await context.host.storage!.setIte…
+    969|   } })
+    970|   await expect(runtime.preparePlugin('swallow', { onActivationViolatio…
+       |                                                                                      ^
+    971|   expect(write).not.toHaveBeenCalled()
+    972|   expect(violation).toHaveBeenCalledOnce()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 17 passed (18)
+   Start at  08:40:51
+   Duration  1.13s (transform 447ms, setup 0ms, collect 643ms, tests 135ms, environment 0ms, prepare 78ms)
+

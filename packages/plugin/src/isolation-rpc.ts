@@ -128,13 +128,19 @@ export function createRpcPluginIsolationHost(
       }, timeoutMs)
 
       pending.set(id, { resolve, reject, timer })
-      endpoint.postMessage({
-        protocol: RPC_PROTOCOL,
-        type: 'request',
-        id,
-        method,
-        payload,
-      } satisfies RpcRequestMessage)
+      try {
+        endpoint.postMessage({
+          protocol: RPC_PROTOCOL,
+          type: 'request',
+          id,
+          method,
+          payload,
+        } satisfies RpcRequestMessage)
+      } catch (error) {
+        pending.delete(id)
+        clearTimeout(timer)
+        reject(error instanceof Error ? error : new Error(String(error)))
+      }
     })
   }
 
@@ -180,16 +186,18 @@ export function createPluginIsolationRpcServer(
   endpoint: PluginIsolationRpcEndpoint,
   host: PluginIsolationHost,
 ): PluginIsolationRpcServer {
+  let disposed = false
   const documentServer = createDocumentRenderRpcServer(endpoint, host)
   const removeListener = addMessageListener(endpoint, async (message) => {
     const request = readRpcMessage(message)
 
-    if (!request || request.type !== 'request') {
+    if (disposed || !request || request.type !== 'request') {
       return
     }
 
     try {
       const value = await runRpcRequest(host, request)
+      if (disposed) return
       endpoint.postMessage({
         protocol: RPC_PROTOCOL,
         type: 'response',
@@ -198,6 +206,7 @@ export function createPluginIsolationRpcServer(
         value,
       } satisfies RpcResponseMessage)
     } catch (error) {
+      if (disposed) return
       endpoint.postMessage({
         protocol: RPC_PROTOCOL,
         type: 'response',
@@ -212,8 +221,13 @@ export function createPluginIsolationRpcServer(
 
   return Object.freeze({
     dispose: () => {
-      documentServer.dispose()
-      removeListener()
+      if (disposed) return
+      disposed = true
+      try {
+        documentServer.dispose()
+      } finally {
+        removeListener()
+      }
     },
   })
 }

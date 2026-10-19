@@ -1,0 +1,37 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts (9 tests | 1 failed) 5149ms
+   ✓ P6 authoritative catalog transactions > stages without running or replacing old active approval; exact review is required 13ms
+   ✓ P6 authoritative catalog transactions > tears old epoch down before trial, commits before publish, and recovers old version with new epoch on failure 5ms
+   ✓ P6 authoritative catalog transactions > cannot grant candidate capabilities via pending approval or side effects during activate 1ms
+   ✓ P6 authoritative catalog transactions > serializes queued approval and remove; tombstone keeps data/settings and never revives from mirror 1ms
+   ✓ P6 authoritative catalog transactions > recovers a committed generation when contribution publication fails 4ms
+   ✓ P6 candidate failure injection > denies a swallowed initialization write and restores unchanged data 89ms
+   ✓ P6 candidate failure injection > recovers old active after native commit rejects without publishing the candidate 11ms
+   × P6 candidate failure injection > caps hanging candidate activation and attempts new-epoch recovery 5016ms
+     → Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+   ✓ P6 candidate failure injection > does not trust a poisoned mirror and quarantines an interrupted startup instead of retrying forever 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager-catalog.test.ts > P6 candidate failure injection > caps hanging candidate activation and attempts new-epoch recovery
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts:105:2
+    103|   expect(s.catalog.snapshot.entries[0]!.pending).toBeNull();expect(s.m…
+    104|  })
+    105|  it('caps hanging candidate activation and attempts new-epoch recovery…
+       |  ^
+    106|   vi.useFakeTimers()
+    107|   try{
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 8 passed (9)
+   Start at  08:49:44
+   Duration  6.51s (transform 706ms, setup 0ms, collect 951ms, tests 5.15s, environment 0ms, prepare 69ms)
+

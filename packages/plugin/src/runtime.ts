@@ -1,5 +1,13 @@
 import {
+  createPluginManagementHostCapabilities,
+  PluginManagementError,
+  type PluginManagementBroker,
+  type PluginManagementHost,
+} from './management-broker'
+import { gateActivationCapability } from './activation-gate'
+import {
   createPluginOutputHostCapabilities,
+  PluginOutputError,
   type PluginOutputBroker,
   type PluginOutputHost,
 } from './output-broker'
@@ -13,26 +21,31 @@ import {
 } from '@milkup/core'
 import {
   createPluginKeymapHostCapabilities,
+  PluginKeymapError,
   type PluginKeymapBroker,
   type PluginKeymapHost,
 } from './keymap-broker'
 import {
   createPluginEditingHostCapabilities,
+  PluginEditingError,
   type PluginEditingBroker,
   type PluginEditingHost,
 } from './editing-broker'
 import {
   createPluginResourcesHostCapabilities,
+  PluginResourcesError,
   type PluginResourcesBroker,
   type PluginResourcesHost,
 } from './resources-broker'
 import {
   createPluginSettingsHostCapabilities,
+  PluginSettingsError,
   type PluginSettingsBroker,
   type PluginSettingsHost,
 } from './settings-broker'
 import {
   createPluginWorkspaceHostCapabilities,
+  PluginWorkspaceError,
   type PluginWorkspaceBroker,
   type PluginWorkspaceReadHost,
   type PluginWorkspaceHost,
@@ -73,7 +86,7 @@ import {
 import type { PluginStorageBroker } from './storage-broker'
 import { createPluginUiHostCapabilities, type PluginUiBroker, type PluginUiHost } from './ui-broker'
 
-export type PluginLifecycleState = 'loaded' | 'enabled' | 'disabled'
+export type PluginLifecycleState = 'loaded' | 'preparing' | 'prepared' | 'enabled' | 'disabled'
 export type PluginRuntimePhase =
   'load' | 'enable' | 'disable' | 'unload' | 'reload' | 'command' | 'renderer'
 
@@ -91,6 +104,7 @@ export interface PluginRuntimeOptions {
   readonly keymapBroker?: PluginKeymapBroker | PluginKeymapBrokerProvider
   readonly editingBroker?: PluginEditingBroker | PluginEditingBrokerProvider
   readonly resourcesBroker?: PluginResourcesBroker | PluginResourcesBrokerProvider
+  readonly managementBroker?: PluginManagementBroker | PluginManagementBrokerProvider
   readonly outputBroker?: PluginOutputBroker | PluginOutputBrokerProvider
   readonly settingsBroker?: PluginSettingsBroker | PluginSettingsBrokerProvider
   readonly releasesBroker?: PluginReleasesBroker | PluginReleasesBrokerProvider
@@ -114,6 +128,9 @@ export type PluginKeymapBrokerProvider = (
 export type PluginEditingBrokerProvider = (
   manifest: PluginManifest,
 ) => PluginEditingBroker | undefined
+export type PluginManagementBrokerProvider = (
+  manifest: PluginManifest,
+) => PluginManagementBroker | undefined
 export type PluginOutputBrokerProvider = (
   manifest: PluginManifest,
 ) => PluginOutputBroker | undefined
@@ -203,6 +220,7 @@ export interface RestrictedPluginHost {
   readonly keymap?: PluginKeymapHost
   readonly editing?: PluginEditingHost
   readonly resources?: PluginResourcesHost
+  readonly management?: PluginManagementHost
   readonly output?: PluginOutputHost
   readonly settings?: PluginSettingsHost
   readonly releases?: PluginReleasesHost
@@ -261,6 +279,7 @@ const ACTION_PERMISSIONS = new Set<ActionPermission>([
   'network:access',
   'app:control',
   'app:updates',
+  'app:plugins',
   'workspace:read',
   'settings:write',
   'app:keymap',
@@ -283,6 +302,8 @@ export class PluginRuntime {
     PluginWorkspaceBroker | PluginWorkspaceBrokerProvider | undefined
   private readonly keymapBroker: PluginKeymapBroker | PluginKeymapBrokerProvider | undefined
   private readonly editingBroker: PluginEditingBroker | PluginEditingBrokerProvider | undefined
+  private readonly managementBroker:
+    PluginManagementBroker | PluginManagementBrokerProvider | undefined
   private readonly outputBroker: PluginOutputBroker | PluginOutputBrokerProvider | undefined
   private readonly resourcesBroker:
     PluginResourcesBroker | PluginResourcesBrokerProvider | undefined
@@ -304,6 +325,7 @@ export class PluginRuntime {
     this.keymapBroker = options.keymapBroker
     this.editingBroker = options.editingBroker
     this.resourcesBroker = options.resourcesBroker
+    this.managementBroker = options.managementBroker
     this.outputBroker = options.outputBroker
     this.settingsBroker = options.settingsBroker
     this.releasesBroker = options.releasesBroker
@@ -324,6 +346,8 @@ export class PluginRuntime {
       capabilityGeneration: 0,
       presentationJobs: new Set(),
       activation: undefined,
+      activationViolation: undefined,
+      isActivationCommitted: undefined,
       registeredActions: [],
       errors: [],
     }
@@ -334,46 +358,128 @@ export class PluginRuntime {
 
   async enablePlugin(pluginId: string): Promise<PluginRuntimeInfo> {
     const plugin = this.requirePlugin(pluginId)
+    if (plugin.state === 'enabled') return toInfo(plugin)
+    // Legacy trusted startup keeps its activation behavior. Transactions use preparePlugin.
+    await this.activatePlugin(pluginId, false)
+    return this.publishPlugin(pluginId)
+  }
 
-    if (plugin.state === 'enabled') {
+  async preparePlugin(
+    pluginId: string,
+    options: {
+      readonly restrictedActivation?: boolean
+      readonly isActivationCommitted?: () => boolean
+      readonly onActivationViolation?: (error: Error) => void
+    } = {},
+  ): Promise<PluginRuntimeInfo> {
+    return this.activatePlugin(
+      pluginId,
+      options.restrictedActivation !== false,
+      options.isActivationCommitted,
+      options.onActivationViolation,
+    )
+  }
+
+  publishPlugin(pluginId: string): PluginRuntimeInfo {
+    const plugin = this.requirePlugin(pluginId)
+    if (plugin.activationViolation) throw plugin.activationViolation
+    if (plugin.isActivationCommitted?.() === false)
+      throw new Error('Plugin activation is not committed by the host')
+    if (plugin.state !== 'prepared') throw new Error('Plugin activation is not prepared')
+    try {
+      this.registerPluginActions(plugin)
+      plugin.state = 'enabled'
       return toInfo(plugin)
+    } catch (error) {
+      this.unregisterPluginActions(plugin)
+      throw this.recordError(plugin, 'enable', error)
     }
+  }
 
+  private async activatePlugin(
+    pluginId: string,
+    restricted: boolean,
+    isCommitted?: () => boolean,
+    onViolation?: (error: Error) => void,
+  ): Promise<PluginRuntimeInfo> {
+    const plugin = this.requirePlugin(pluginId)
+    if (plugin.state === 'prepared') return toInfo(plugin)
+    if (plugin.state === 'preparing' || plugin.state === 'enabled')
+      throw new Error('Plugin activation is already in progress or published')
     this.assertHostAllowed(plugin)
     this.assertModuleHostAllowed(plugin)
     this.assertPermissionsAllowed(plugin)
 
     const generation = ++plugin.capabilityGeneration
+    plugin.state = 'preparing'
+    plugin.activationViolation = undefined
+    plugin.isActivationCommitted = restricted ? isCommitted : undefined
+    let activation: PluginActivation | void
+    const isActive = () => plugin.capabilityGeneration === generation
     try {
-      const activation = await plugin.module?.activate?.({
+      activation = await plugin.module?.activate?.({
         manifest: plugin.manifest,
         pluginId: plugin.manifest.id,
         permissions: Object.freeze([...(plugin.manifest.permissions ?? [])]),
-        host: createRestrictedHost(
-          plugin.manifest,
-          this.host,
-          resolvePluginDocumentBroker(plugin.manifest, this.documentBroker),
-          resolvePluginUiBroker(plugin.manifest, this.uiBroker),
-          resolvePluginFileBroker(plugin.manifest, this.fileBroker),
-          resolvePluginNetworkBroker(plugin.manifest, this.networkBroker),
-          resolvePluginStorageBroker(plugin.manifest, this.storageBroker),
-          resolvePluginReleasesBroker(plugin.manifest, this.releasesBroker),
-          resolvePluginWorkspaceBroker(plugin.manifest, this.workspaceBroker),
-          resolvePluginSettingsBroker(plugin.manifest, this.settingsBroker),
-          resolvePluginKeymapBroker(plugin.manifest, this.keymapBroker),
-          resolvePluginEditingBroker(plugin.manifest, this.editingBroker),
-          resolvePluginResourcesBroker(plugin.manifest, this.resourcesBroker),
-          resolvePluginOutputBroker(plugin.manifest, this.outputBroker),
-          () => plugin.capabilityGeneration === generation,
+        host: gateActivationHost(
+          createRestrictedHost(
+            plugin.manifest,
+            this.host,
+            resolvePluginDocumentBroker(plugin.manifest, this.documentBroker),
+            resolvePluginUiBroker(plugin.manifest, this.uiBroker),
+            resolvePluginFileBroker(plugin.manifest, this.fileBroker),
+            resolvePluginNetworkBroker(plugin.manifest, this.networkBroker),
+            resolvePluginStorageBroker(plugin.manifest, this.storageBroker),
+            resolvePluginReleasesBroker(plugin.manifest, this.releasesBroker),
+            resolvePluginWorkspaceBroker(plugin.manifest, this.workspaceBroker),
+            resolvePluginSettingsBroker(plugin.manifest, this.settingsBroker),
+            resolvePluginKeymapBroker(plugin.manifest, this.keymapBroker),
+            resolvePluginEditingBroker(plugin.manifest, this.editingBroker),
+            resolvePluginResourcesBroker(plugin.manifest, this.resourcesBroker),
+            resolvePluginOutputBroker(plugin.manifest, this.outputBroker),
+            typeof this.managementBroker === 'function'
+              ? this.managementBroker(plugin.manifest)
+              : this.managementBroker,
+            isActive,
+          ),
+          isActive,
+          () => !restricted || (plugin.state === 'enabled' && isCommitted?.() !== false),
+          (error) => {
+            if (!plugin.activationViolation) {
+              plugin.activationViolation = error
+              onViolation?.(error)
+            }
+          },
         ),
       })
 
+      if (!isActive()) {
+        try {
+          await activation?.dispose?.()
+        } catch (error) {
+          this.recordError(plugin, 'disable', error)
+        }
+        throw new Error('Plugin activation was revoked')
+      }
+      if (plugin.activationViolation) throw plugin.activationViolation
       plugin.activation = activation ?? undefined
-      this.registerPluginActions(plugin)
-      plugin.state = 'enabled'
+      plugin.state = 'prepared'
     } catch (error) {
-      this.unregisterPluginActions(plugin)
-      plugin.capabilityGeneration++
+      if (isActive()) {
+        this.unregisterPluginActions(plugin)
+        plugin.capabilityGeneration++
+        plugin.state = 'disabled'
+        for (const cleanup of [
+          () => activation?.dispose?.(),
+          () => plugin.module?.deactivate?.(),
+        ]) {
+          try {
+            await cleanup()
+          } catch (cleanupError) {
+            this.recordError(plugin, 'disable', cleanupError)
+          }
+        }
+      }
       throw this.recordError(plugin, 'enable', error)
     }
 
@@ -385,20 +491,21 @@ export class PluginRuntime {
 
     plugin.capabilityGeneration++
     for (const job of plugin.presentationJobs) job.abort()
-    if (plugin.state !== 'enabled') {
-      plugin.state = 'disabled'
-      return toInfo(plugin)
-    }
-
+    const needsCleanup =
+      plugin.state === 'enabled' || plugin.state === 'prepared' || plugin.state === 'preparing'
     this.unregisterPluginActions(plugin)
     plugin.state = 'disabled'
-
-    try {
-      await plugin.activation?.dispose?.()
-      await plugin.module?.deactivate?.()
-      plugin.activation = undefined
-    } catch (error) {
-      this.recordError(plugin, 'disable', error)
+    const activation = plugin.activation
+    plugin.activation = undefined
+    if (needsCleanup) {
+      // Each independent teardown is attempted even when another rejects.
+      for (const cleanup of [() => activation?.dispose?.(), () => plugin.module?.deactivate?.()]) {
+        try {
+          await cleanup()
+        } catch (error) {
+          this.recordError(plugin, 'disable', error)
+        }
+      }
     }
 
     return toInfo(plugin)
@@ -588,6 +695,9 @@ export class PluginRuntime {
         resolvePluginEditingBroker(plugin.manifest, this.editingBroker),
         resolvePluginResourcesBroker(plugin.manifest, this.resourcesBroker),
         resolvePluginOutputBroker(plugin.manifest, this.outputBroker),
+        typeof this.managementBroker === 'function'
+          ? this.managementBroker(plugin.manifest)
+          : this.managementBroker,
         () => plugin.state === 'enabled' && plugin.capabilityGeneration === generation,
         effectiveCommandPermissions(plugin.manifest, command),
         true,
@@ -751,6 +861,8 @@ interface LoadedPlugin {
   module: PluginModule | undefined
   state: PluginLifecycleState
   activation: PluginActivation | undefined
+  activationViolation: Error | undefined
+  isActivationCommitted: (() => boolean) | undefined
   registeredActions: string[]
   errors: PluginRuntimeErrorRecord[]
 }
@@ -891,6 +1003,7 @@ function createRestrictedHost(
   editingBroker?: PluginEditingBroker,
   resourcesBroker?: PluginResourcesBroker,
   outputBroker?: PluginOutputBroker,
+  managementBroker?: PluginManagementBroker,
   isActive?: () => boolean,
   permissions: readonly PluginPermission[] = manifest.permissions ?? [],
   command = false,
@@ -953,6 +1066,15 @@ function createRestrictedHost(
             resourcesBroker,
             isActive,
             workspaceGesture,
+          ),
+        }
+      : {}),
+    ...(permissions.includes('app:plugins') && managementBroker
+      ? {
+          management: createPluginManagementHostCapabilities(
+            managementBroker,
+            isActive,
+            command ? workspaceGesture : undefined,
           ),
         }
       : {}),
@@ -1061,4 +1183,49 @@ function resolvePluginOutputBroker(
   )
     return undefined
   return typeof broker === 'function' ? broker(manifest) : broker
+}
+
+function gateActivationHost(
+  host: RestrictedPluginHost,
+  isActive: () => boolean,
+  isCommitted: () => boolean,
+  onViolation?: (error: Error) => void,
+): RestrictedPluginHost {
+  const readable: Readonly<Record<string, readonly string[]>> = {
+    document: ['readWindow', 'scan'],
+    storage: ['getItem'],
+    settings: ['get', 'describe'],
+    management: ['snapshot', 'describe'],
+  }
+  const revoked: Readonly<Record<string, () => Error>> = {
+    settings: () => new PluginSettingsError('revoked'),
+    workspace: () => new PluginWorkspaceError('revoked'),
+    editing: () => new PluginEditingError('revoked'),
+    resources: () => new PluginResourcesError('revoked'),
+    output: () => new PluginOutputError('revoked'),
+    keymap: () => new PluginKeymapError('revoked'),
+    management: () => new PluginManagementError('revoked'),
+  }
+  const flat = gateActivationCapability(host, isActive, isCommitted, ['readText'], [], onViolation)
+  return Object.freeze(
+    Object.fromEntries(
+      Object.entries(flat).map(([key, value]) => [
+        key,
+        typeof value === 'object' && value !== null
+          ? gateActivationCapability(
+              value,
+              isActive,
+              isCommitted,
+              readable[key] ?? [],
+              [],
+              onViolation,
+              {
+                asynchronous: (method) => key !== 'document' || method !== 'scan',
+                ...(revoked[key] ? { revoked: revoked[key] } : {}),
+              },
+            )
+          : value,
+      ]),
+    ),
+  ) as RestrictedPluginHost
 }

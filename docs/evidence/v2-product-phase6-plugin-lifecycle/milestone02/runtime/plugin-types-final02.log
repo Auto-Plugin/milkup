@@ -1,0 +1,7 @@
+packages/plugin/src/isolation-worker.test.ts(1456,7): error TS2322: Type 'readonly ActionPermission[]' is not assignable to type 'readonly PluginHostCapabilityName[]'.
+  Type 'ActionPermission' is not assignable to type 'PluginHostCapabilityName'.
+    Type '"view:read"' is not assignable to type 'PluginHostCapabilityName'.
+packages/plugin/src/runtime.test.ts(1016,46): error TS2379: Argument of type '{ allowedPermissions: readonly ActionPermission[] | undefined; fileBroker: PluginFileBroker; }' is not assignable to parameter of type 'PluginRuntimeOptions' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'allowedPermissions' are incompatible.
+    Type 'readonly ActionPermission[] | undefined' is not assignable to type 'readonly ActionPermission[]'.
+      Type 'undefined' is not assignable to type 'readonly ActionPermission[]'.

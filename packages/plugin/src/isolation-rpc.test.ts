@@ -287,3 +287,33 @@ function createEditor(text: string, selection = Selection.cursor(text.length)): 
     }),
   )
 }
+
+it('does not emit a late server response after transport disposal', async () => {
+  const { main, worker } = createEndpointPair()
+  let finish!: (value: import('./isolation').IsolatedPluginActivateResult) => void
+  const host: import('./isolation').PluginIsolationHost = {
+    activate: () =>
+      new Promise((resolve) => {
+        finish = resolve
+      }),
+    deactivate: () => {},
+    runCommand: () => ({}),
+    render: () => undefined,
+  }
+  const server = createPluginIsolationRpcServer(worker, host)
+  const sent = vi.spyOn(worker, 'postMessage')
+  main.postMessage({
+    protocol: 'milkup.plugin.isolation.rpc.v1',
+    type: 'request',
+    id: 'old',
+    method: 'activate',
+    payload: {},
+  })
+  await Promise.resolve()
+  server.dispose()
+  finish({ commands: ['old.command'] })
+  await Promise.resolve()
+  await Promise.resolve()
+  await Promise.resolve()
+  expect(sent).not.toHaveBeenCalled()
+})

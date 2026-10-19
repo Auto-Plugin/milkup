@@ -5,11 +5,13 @@ use std::hash::{Hash, Hasher};
 use std::io::{Read, Write};
 #[cfg(test)]
 use std::io::{Seek, SeekFrom};
-#[cfg(unix)]
+#[cfg(all(unix, test))]
 use std::os::unix::fs::PermissionsExt;
 #[cfg(windows)]
 use std::os::windows::ffi::OsStrExt;
-use std::path::{Component, Path, PathBuf};
+#[cfg(test)]
+use std::path::Component;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -22,6 +24,7 @@ use tauri::{AppHandle, Emitter, Manager, State, Window};
 mod native_search;
 pub mod output;
 mod piece_tree;
+mod plugin_catalog;
 pub mod plugin_dom;
 mod plugin_icon;
 mod plugin_sidecar;
@@ -407,89 +410,90 @@ fn delete_plugin_file(path: String) -> Result<bool, String> {
     Ok(true)
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct PluginDirectoryPaths {
-    package_root: String,
-    data_root: String,
-    storage_root: String,
-}
-
 #[tauri::command]
-fn ensure_plugin_directories(
-    app: AppHandle,
-    plugin_id: String,
-) -> Result<PluginDirectoryPaths, String> {
-    validate_plugin_id(&plugin_id)?;
-    let base = app
+async fn plugin_catalog_read(app: AppHandle) -> Result<serde_json::Value, String> {
+    let root = app
         .path()
         .app_data_dir()
-        .map_err(|error| error.to_string())?
-        .join("plugins")
-        .join(&plugin_id);
-    let package_root = base.join("package");
-    let data_root = base.join("data");
-    let storage_root = base.join("storage");
-    fs::create_dir_all(&package_root).map_err(|error| error.to_string())?;
-    fs::create_dir_all(&data_root).map_err(|error| error.to_string())?;
-    fs::create_dir_all(&storage_root).map_err(|error| error.to_string())?;
-
-    Ok(PluginDirectoryPaths {
-        package_root: path_to_string(package_root),
-        data_root: path_to_string(data_root),
-        storage_root: path_to_string(storage_root),
-    })
+        .map_err(|e| e.to_string())?
+        .join("plugins");
+    tauri::async_runtime::spawn_blocking(move || plugin_catalog::read(&root))
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-fn install_plugin_package_file(
+async fn plugin_catalog_prepare(
     app: AppHandle,
-    plugin_id: String,
-    relative_path: String,
-    data: Vec<u8>,
-    executable: bool,
-) -> Result<String, String> {
-    let roots = ensure_plugin_directories(app, plugin_id)?;
-    let relative = validate_plugin_relative_path(&relative_path)?;
-    let target = PathBuf::from(roots.package_root).join(relative);
-
-    if let Some(parent) = target.parent() {
-        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
-    }
-    fs::write(&target, data).map_err(|error| error.to_string())?;
-    #[cfg(unix)]
-    if executable {
-        fs::set_permissions(&target, fs::Permissions::from_mode(0o700))
-            .map_err(|error| error.to_string())?;
-    }
-    #[cfg(not(unix))]
-    let _ = executable;
-    Ok(path_to_string(target))
-}
-
-#[tauri::command]
-async fn remove_installed_plugin_package(
-    app: AppHandle,
-    plugin_id: String,
-) -> Result<bool, String> {
+    archive: serde_json::Value,
+    source_path: String,
+    expected_revision: Option<u64>,
+) -> Result<serde_json::Value, String> {
+    let root = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("plugins");
     tauri::async_runtime::spawn_blocking(move || {
-        validate_plugin_id(&plugin_id)?;
-        app.state::<plugin_dom::DomRegistry>()
-            .stop_plugin(&plugin_id)?;
-        let root = app
-            .path()
-            .app_data_dir()
-            .map_err(|error| error.to_string())?
-            .join("plugins")
-            .join(plugin_id);
-
-        if root.exists() {
-            fs::remove_dir_all(root).map_err(|error| error.to_string())?;
-        }
-        Ok(true)
+        plugin_catalog::prepare(&root, archive, source_path, expected_revision)
     })
     .await
-    .map_err(|error| error.to_string())?
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn plugin_catalog_transition(
+    app: AppHandle,
+    plugin_id: String,
+    expected_revision: u64,
+    action: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let root = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("plugins");
+    tauri::async_runtime::spawn_blocking(move || {
+        plugin_catalog::transition(&root, &plugin_id, expected_revision, action)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn plugin_catalog_migrate(
+    app: AppHandle,
+    legacy_raw: String,
+    validation: Option<serde_json::Value>,
+) -> Result<serde_json::Value, String> {
+    let root = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("plugins");
+    tauri::async_runtime::spawn_blocking(move || {
+        plugin_catalog::migrate(&root, &legacy_raw, validation)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn plugin_catalog_read_worker_module(
+    app: AppHandle,
+    plugin_id: String,
+    generation: String,
+) -> Result<String, String> {
+    let root = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("plugins");
+    tauri::async_runtime::spawn_blocking(move || {
+        plugin_catalog::read_worker_module(&root, &plugin_id, &generation)
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -1071,9 +1075,11 @@ pub fn run() {
             plugin_icon::read_plugin_icon,
             write_plugin_text_file,
             delete_plugin_file,
-            ensure_plugin_directories,
-            install_plugin_package_file,
-            remove_installed_plugin_package,
+            plugin_catalog_read,
+            plugin_catalog_prepare,
+            plugin_catalog_transition,
+            plugin_catalog_migrate,
+            plugin_catalog_read_worker_module,
             native_search::begin_large_text_search,
             native_search::step_large_text_search,
             native_search::append_large_text_search_matches,
@@ -1268,6 +1274,7 @@ fn validate_plugin_id(plugin_id: &str) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(test)]
 fn validate_plugin_relative_path(path: &str) -> Result<PathBuf, String> {
     let candidate = Path::new(path);
 

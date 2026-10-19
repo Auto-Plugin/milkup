@@ -1,0 +1,485 @@
+{
+  "catalog-cas": {
+    "completion": {
+      "passed": true,
+      "stage": "catalog-cas",
+      "launches": 1,
+      "sourceSha256": "1704d1855305b320d9d8f316d69a90a9c734ac8a242faf6e39ab575f87687bd6",
+      "limitations": [
+        "Linux WebKit only",
+        "Trusted-host IPC tests do not establish plugin access",
+        "No complete malicious-code sandbox claim",
+        "Late-command case covers delayed worker command publication, not undo of completed external effects",
+        "Process exit during injected persistent attempt, not arbitrary power loss"
+      ]
+    },
+    "transitions": [
+      {
+        "event": "concurrent-cas",
+        "at": "2026-10-19T09:17:36.014Z",
+        "catalogRevision": 13,
+        "entryRevision": 2,
+        "enabled": false,
+        "tombstone": false,
+        "startAttempt": null,
+        "activeId": null,
+        "activeApproved": null,
+        "pendingPhase": "prepared",
+        "diagnostics": []
+      },
+      {
+        "event": "unicode-history-save",
+        "at": "2026-10-19T09:17:38.150Z",
+        "catalogRevision": 13,
+        "entryRevision": 2,
+        "enabled": false,
+        "tombstone": false,
+        "startAttempt": null,
+        "activeId": null,
+        "activeApproved": null,
+        "pendingPhase": "prepared",
+        "diagnostics": []
+      }
+    ],
+    "fixtureSealFilesVerified": [],
+    "completionSha256": "f998854d6cc955d742c24ae049d2a72d43ea54cff7a8dd2cadfa85da44a75830",
+    "eventsSha256": "ad7c1b9f2174324969b814b2ab76f3c3378c11fb1ee5cbbc696b9e5a42284a6b"
+  },
+  "trial-restart": {
+    "completion": {
+      "passed": true,
+      "stage": "trial-restart",
+      "launches": 2,
+      "sourceSha256": "1704d1855305b320d9d8f316d69a90a9c734ac8a242faf6e39ab575f87687bd6",
+      "limitations": [
+        "Linux WebKit only",
+        "Trusted-host IPC tests do not establish plugin access",
+        "No complete malicious-code sandbox claim",
+        "Late-command case covers delayed worker command publication, not undo of completed external effects",
+        "Process exit during injected persistent attempt, not arbitrary power loss"
+      ]
+    },
+    "transitions": [
+      {
+        "event": "base-enabled",
+        "at": "2026-10-19T09:17:58.159Z",
+        "catalogRevision": 15,
+        "entryRevision": 4,
+        "enabled": true,
+        "tombstone": false,
+        "startAttempt": null,
+        "activeId": "dab33ef6efcd044afac18bcc2705e5b15a4223556b5d81c8c284da1328e466be",
+        "activeApproved": "a349558addc3ec3868cbcac0b62b9df3ed89756d8213aebb4674fab02b2a42bf",
+        "pendingPhase": null,
+        "diagnostics": []
+      },
+      {
+        "event": "persisted-trial-before-restart",
+        "at": "2026-10-19T09:17:59.847Z",
+        "catalogRevision": 18,
+        "entryRevision": 7,
+        "enabled": false,
+        "tombstone": false,
+        "startAttempt": null,
+        "activeId": "dab33ef6efcd044afac18bcc2705e5b15a4223556b5d81c8c284da1328e466be",
+        "activeApproved": "a349558addc3ec3868cbcac0b62b9df3ed89756d8213aebb4674fab02b2a42bf",
+        "pendingPhase": "trial",
+        "diagnostics": []
+      },
+      {
+        "event": "launch-2",
+        "at": "2026-10-19T09:18:02.489Z",
+        "catalogRevision": 19,
+        "entryRevision": 8,
+        "enabled": false,
+        "tombstone": false,
+        "startAttempt": null,
+        "activeId": "dab33ef6efcd044afac18bcc2705e5b15a4223556b5d81c8c284da1328e466be",
+        "activeApproved": "a349558addc3ec3868cbcac0b62b9df3ed89756d8213aebb4674fab02b2a42bf",
+        "pendingPhase": null,
+        "diagnostics": [
+          "Interrupted candidate trial aborted; old installation retained disabled for explicit restart"
+        ]
+      },
+      {
+        "event": "interrupted-trial-recovered",
+        "at": "2026-10-19T09:18:02.954Z",
+        "catalogRevision": 19,
+        "entryRevision": 8,
+        "enabled": false,
+        "tombstone": false,
+        "startAttempt": null,
+        "activeId": "dab33ef6efcd044afac18bcc2705e5b15a4223556b5d81c8c284da1328e466be",
+        "activeApproved": "a349558addc3ec3868cbcac0b62b9df3ed89756d8213aebb4674fab02b2a42bf",
+        "pendingPhase": null,
+        "diagnostics": [
+          "Interrupted candidate trial aborted; old installation retained disabled for explicit restart"
+        ]
+      },
+      {
+        "event": "unicode-history-save",
+        "at": "2026-10-19T09:18:04.136Z",
+        "catalogRevision": 19,
+        "entryRevision": 8,
+        "enabled": false,
+        "tombstone": false,
+        "startAttempt": null,
+        "activeId": "dab33ef6efcd044afac18bcc2705e5b15a4223556b5d81c8c284da1328e466be",
+        "activeApproved": "a349558addc3ec3868cbcac0b62b9df3ed89756d8213aebb4674fab02b2a42bf",
+        "pendingPhase": null,
+        "diagnostics": [
+          "Interrupted candidate trial aborted; old installation retained disabled for explicit restart"
+        ]
+      }
+    ],
+    "fixtureSealFilesVerified": [
+      "dist/plugin.js",
+      "plugin.json"
+    ],
+    "completionSha256": "ea95a9d6ce83ec40530556dbfcc15e9a9b61128ef1ff9ac24fa59ee2860c75b9",
+    "eventsSha256": "066f3920b17d31540ed926f091e7965c46215d7befc5e03df7faaa740ad17c13"
+  },
+  "startup-restart": {
+    "completion": {
+      "passed": true,
+      "stage": "startup-restart",
+      "launches": 2,
+      "sourceSha256": "1704d1855305b320d9d8f316d69a90a9c734ac8a242faf6e39ab575f87687bd6",
+      "limitations": [
+        "Linux WebKit only",
+        "Trusted-host IPC tests do not establish plugin access",
+        "No complete malicious-code sandbox claim",
+        "Late-command case covers delayed worker command publication, not undo of completed external effects",
+        "Process exit during injected persistent attempt, not arbitrary power loss"
+      ]
+    },
+    "transitions": [
+      {
+        "event": "base-enabled",
+        "at": "2026-10-19T09:18:19.598Z",
+        "catalogRevision": 15,
+        "entryRevision": 4,
+        "enabled": true,
+        "tombstone": false,
+        "startAttempt": null,
+        "activeId": "923a5cf687ff404c65deea8f8794bfbec3797369f7da7446c64358eb13698c56",
+        "activeApproved": "a349558addc3ec3868cbcac0b62b9df3ed89756d8213aebb4674fab02b2a42bf",
+        "pendingPhase": null,
+        "diagnostics": []
+      },
+      {
+        "event": "persisted-startup-before-restart",
+        "at": "2026-10-19T09:18:21.476Z",
+        "catalogRevision": 17,
+        "entryRevision": 6,
+        "enabled": true,
+        "tombstone": false,
+        "startAttempt": "5669f22242736b632d5b22f0a247cff468f1a3dbf19584cd9d24e436a311691b",
+        "activeId": "923a5cf687ff404c65deea8f8794bfbec3797369f7da7446c64358eb13698c56",
+        "activeApproved": "a349558addc3ec3868cbcac0b62b9df3ed89756d8213aebb4674fab02b2a42bf",
+        "pendingPhase": null,
+        "diagnostics": []
+      },
+      {
+        "event": "launch-2",
+        "at": "2026-10-19T09:18:24.147Z",
+        "catalogRevision": 18,
+        "entryRevision": 7,
+        "enabled": false,
+        "tombstone": false,
+        "startAttempt": null,
+        "activeId": "923a5cf687ff404c65deea8f8794bfbec3797369f7da7446c64358eb13698c56",
+        "activeApproved": "a349558addc3ec3868cbcac0b62b9df3ed89756d8213aebb4674fab02b2a42bf",
+        "pendingPhase": null,
+        "diagnostics": [
+          "Previous startup did not complete; automatic retry disabled"
+        ]
+      },
+      {
+        "event": "interrupted-startup-recovered",
+        "at": "2026-10-19T09:18:24.660Z",
+        "catalogRevision": 18,
+        "entryRevision": 7,
+        "enabled": false,
+        "tombstone": false,
+        "startAttempt": null,
+        "activeId": "923a5cf687ff404c65deea8f8794bfbec3797369f7da7446c64358eb13698c56",
+        "activeApproved": "a349558addc3ec3868cbcac0b62b9df3ed89756d8213aebb4674fab02b2a42bf",
+        "pendingPhase": null,
+        "diagnostics": [
+          "Previous startup did not complete; automatic retry disabled"
+        ]
+      },
+      {
+        "event": "unicode-history-save",
+        "at": "2026-10-19T09:18:26.195Z",
+        "catalogRevision": 18,
+        "entryRevision": 7,
+        "enabled": false,
+        "tombstone": false,
+        "startAttempt": null,
+        "activeId": "923a5cf687ff404c65deea8f8794bfbec3797369f7da7446c64358eb13698c56",
+        "activeApproved": "a349558addc3ec3868cbcac0b62b9df3ed89756d8213aebb4674fab02b2a42bf",
+        "pendingPhase": null,
+        "diagnostics": [
+          "Previous startup did not complete; automatic retry disabled"
+        ]
+      }
+    ],
+    "fixtureSealFilesVerified": [
+      "dist/plugin.js",
+      "plugin.json"
+    ],
+    "completionSha256": "b1d1b17bd9642ea7843462a53ac1ac32e213af0d31263713f1238e659d887771",
+    "eventsSha256": "df0472117844bbb9f975fdf97448a26b78d61d178150aa290a7b35cbbf882c7f"
+  },
+  "mirror-restart": {
+    "completion": {
+      "passed": true,
+      "stage": "mirror-restart",
+      "launches": 2,
+      "sourceSha256": "1704d1855305b320d9d8f316d69a90a9c734ac8a242faf6e39ab575f87687bd6",
+      "limitations": [
+        "Linux WebKit only",
+        "Trusted-host IPC tests do not establish plugin access",
+        "No complete malicious-code sandbox claim",
+        "Late-command case covers delayed worker command publication, not undo of completed external effects",
+        "Process exit during injected persistent attempt, not arbitrary power loss"
+      ]
+    },
+    "transitions": [
+      {
+        "event": "base-enabled",
+        "at": "2026-10-19T09:18:41.610Z",
+        "catalogRevision": 15,
+        "entryRevision": 4,
+        "enabled": true,
+        "tombstone": false,
+        "startAttempt": null,
+        "activeId": "185cc78387e87f1252883c4acefd22591a957df2eb183e2a2a8a5090ace3dcac",
+        "activeApproved": "a349558addc3ec3868cbcac0b62b9df3ed89756d8213aebb4674fab02b2a42bf",
+        "pendingPhase": null,
+        "diagnostics": []
+      },
+      {
+        "event": "launch-2",
+        "at": "2026-10-19T09:18:44.251Z",
+        "catalogRevision": 17,
+        "entryRevision": 6,
+        "enabled": true,
+        "tombstone": false,
+        "startAttempt": null,
+        "activeId": "185cc78387e87f1252883c4acefd22591a957df2eb183e2a2a8a5090ace3dcac",
+        "activeApproved": "a349558addc3ec3868cbcac0b62b9df3ed89756d8213aebb4674fab02b2a42bf",
+        "pendingPhase": null,
+        "diagnostics": []
+      },
+      {
+        "event": "corrupt-mirror-rebuilt",
+        "at": "2026-10-19T09:18:44.772Z",
+        "catalogRevision": 17,
+        "entryRevision": 6,
+        "enabled": true,
+        "tombstone": false,
+        "startAttempt": null,
+        "activeId": "185cc78387e87f1252883c4acefd22591a957df2eb183e2a2a8a5090ace3dcac",
+        "activeApproved": "a349558addc3ec3868cbcac0b62b9df3ed89756d8213aebb4674fab02b2a42bf",
+        "pendingPhase": null,
+        "diagnostics": []
+      },
+      {
+        "event": "unicode-history-save",
+        "at": "2026-10-19T09:18:45.920Z",
+        "catalogRevision": 17,
+        "entryRevision": 6,
+        "enabled": true,
+        "tombstone": false,
+        "startAttempt": null,
+        "activeId": "185cc78387e87f1252883c4acefd22591a957df2eb183e2a2a8a5090ace3dcac",
+        "activeApproved": "a349558addc3ec3868cbcac0b62b9df3ed89756d8213aebb4674fab02b2a42bf",
+        "pendingPhase": null,
+        "diagnostics": []
+      }
+    ],
+    "fixtureSealFilesVerified": [
+      "dist/plugin.js",
+      "plugin.json"
+    ],
+    "completionSha256": "e2764cf28a725130d53bf1960aa4968e573f21e56718394ac6328cc442155010",
+    "eventsSha256": "a78f9a9e381f254a7c74c986b2ab0e21378d9a59a05e47fa4f09e7a4d55754ca"
+  },
+  "catalog-corruption": {
+    "completion": {
+      "passed": true,
+      "stage": "catalog-corruption",
+      "launches": 2,
+      "sourceSha256": "1704d1855305b320d9d8f316d69a90a9c734ac8a242faf6e39ab575f87687bd6",
+      "limitations": [
+        "Linux WebKit only",
+        "Trusted-host IPC tests do not establish plugin access",
+        "No complete malicious-code sandbox claim",
+        "Late-command case covers delayed worker command publication, not undo of completed external effects",
+        "Process exit during injected persistent attempt, not arbitrary power loss"
+      ]
+    },
+    "transitions": [
+      {
+        "event": "base-enabled",
+        "at": "2026-10-19T09:19:01.402Z",
+        "catalogRevision": 15,
+        "entryRevision": 4,
+        "enabled": true,
+        "tombstone": false,
+        "startAttempt": null,
+        "activeId": "8c35d3b7e94f18d997ed3c0ac35f28714dfd5a2472543c065aae49b07b21e04d",
+        "activeApproved": "a349558addc3ec3868cbcac0b62b9df3ed89756d8213aebb4674fab02b2a42bf",
+        "pendingPhase": null,
+        "diagnostics": []
+      },
+      {
+        "event": "launch-2",
+        "at": "2026-10-19T09:19:04.598Z",
+        "catalogRevision": 16,
+        "entryRevision": 5,
+        "enabled": false,
+        "tombstone": false,
+        "startAttempt": null,
+        "activeId": "8c35d3b7e94f18d997ed3c0ac35f28714dfd5a2472543c065aae49b07b21e04d",
+        "activeApproved": null,
+        "pendingPhase": null,
+        "diagnostics": [
+          "Recovered catalog backup; all activation/approval requires explicit review"
+        ]
+      },
+      {
+        "event": "native-corruption-recovered-fail-closed",
+        "at": "2026-10-19T09:19:05.159Z",
+        "catalogRevision": 16,
+        "entryRevision": 5,
+        "enabled": false,
+        "tombstone": false,
+        "startAttempt": null,
+        "activeId": "8c35d3b7e94f18d997ed3c0ac35f28714dfd5a2472543c065aae49b07b21e04d",
+        "activeApproved": null,
+        "pendingPhase": null,
+        "diagnostics": [
+          "Recovered catalog backup; all activation/approval requires explicit review"
+        ]
+      },
+      {
+        "event": "unicode-history-save",
+        "at": "2026-10-19T09:19:06.368Z",
+        "catalogRevision": 16,
+        "entryRevision": 5,
+        "enabled": false,
+        "tombstone": false,
+        "startAttempt": null,
+        "activeId": "8c35d3b7e94f18d997ed3c0ac35f28714dfd5a2472543c065aae49b07b21e04d",
+        "activeApproved": null,
+        "pendingPhase": null,
+        "diagnostics": [
+          "Recovered catalog backup; all activation/approval requires explicit review"
+        ]
+      }
+    ],
+    "fixtureSealFilesVerified": [
+      "dist/plugin.js",
+      "plugin.json"
+    ],
+    "completionSha256": "a9871010d6ff90a507e2e3d50baa1445c26c10872c765914a8ee1e721a6d4c83",
+    "eventsSha256": "89b0aa62efe88f1c332aeb3bfbf235dae7a7fa27212552cc4971c681d16ebd8c"
+  },
+  "remove-failure": {
+    "completion": {
+      "passed": true,
+      "stage": "remove-failure",
+      "launches": 2,
+      "sourceSha256": "1704d1855305b320d9d8f316d69a90a9c734ac8a242faf6e39ab575f87687bd6",
+      "limitations": [
+        "Linux WebKit only",
+        "Trusted-host IPC tests do not establish plugin access",
+        "No complete malicious-code sandbox claim",
+        "Late-command case covers delayed worker command publication, not undo of completed external effects",
+        "Process exit during injected persistent attempt, not arbitrary power loss"
+      ]
+    },
+    "transitions": [
+      {
+        "event": "base-enabled",
+        "at": "2026-10-19T09:19:23.082Z",
+        "catalogRevision": 15,
+        "entryRevision": 4,
+        "enabled": true,
+        "tombstone": false,
+        "startAttempt": null,
+        "activeId": "09ba91015d740af3f2a5d54920ca4ad72651f4c759c1f69ae9bfc3a88790b7a3",
+        "activeApproved": "a349558addc3ec3868cbcac0b62b9df3ed89756d8213aebb4674fab02b2a42bf",
+        "pendingPhase": null,
+        "diagnostics": []
+      },
+      {
+        "event": "remove-failed-tombstone-persisted",
+        "at": "2026-10-19T09:19:24.491Z",
+        "catalogRevision": 18,
+        "entryRevision": 7,
+        "enabled": false,
+        "tombstone": true,
+        "startAttempt": null,
+        "activeId": "09ba91015d740af3f2a5d54920ca4ad72651f4c759c1f69ae9bfc3a88790b7a3",
+        "activeApproved": null,
+        "pendingPhase": null,
+        "diagnostics": [
+          "Package cleanup pending (data retained): [plugin-catalog:io] Permission denied (os error 13)"
+        ]
+      },
+      {
+        "event": "launch-2",
+        "at": "2026-10-19T09:19:27.120Z",
+        "catalogRevision": 18,
+        "entryRevision": 7,
+        "enabled": false,
+        "tombstone": true,
+        "startAttempt": null,
+        "activeId": "09ba91015d740af3f2a5d54920ca4ad72651f4c759c1f69ae9bfc3a88790b7a3",
+        "activeApproved": null,
+        "pendingPhase": null,
+        "diagnostics": [
+          "Package cleanup pending (data retained): [plugin-catalog:io] Permission denied (os error 13)"
+        ]
+      },
+      {
+        "event": "remove-retried-data-retained",
+        "at": "2026-10-19T09:19:27.771Z",
+        "catalogRevision": 19,
+        "entryRevision": 8,
+        "enabled": false,
+        "tombstone": true,
+        "startAttempt": null,
+        "activeId": "09ba91015d740af3f2a5d54920ca4ad72651f4c759c1f69ae9bfc3a88790b7a3",
+        "activeApproved": null,
+        "pendingPhase": null,
+        "diagnostics": [
+          "Package cleanup pending (data retained): [plugin-catalog:io] Permission denied (os error 13)"
+        ]
+      },
+      {
+        "event": "unicode-history-save",
+        "at": "2026-10-19T09:19:29.105Z",
+        "catalogRevision": 19,
+        "entryRevision": 8,
+        "enabled": false,
+        "tombstone": true,
+        "startAttempt": null,
+        "activeId": "09ba91015d740af3f2a5d54920ca4ad72651f4c759c1f69ae9bfc3a88790b7a3",
+        "activeApproved": null,
+        "pendingPhase": null,
+        "diagnostics": [
+          "Package cleanup pending (data retained): [plugin-catalog:io] Permission denied (os error 13)"
+        ]
+      }
+    ],
+    "fixtureSealFilesVerified": [],
+    "completionSha256": "f052406ce72f66f57375219d4aed0cb803d4611cc1ab5094136ade8e266bc2f2",
+    "eventsSha256": "52ec3238eed20f45b375ac407063f9ea3e626bf4606ca040d9fb5d6bf69b6e16"
+  }
+}

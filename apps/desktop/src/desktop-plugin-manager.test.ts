@@ -154,7 +154,12 @@ describe('DesktopPluginManager', () => {
       expect(manager.state().installFailures).toMatchObject([
         { sourcePath: '/candidate.milkup-plugin', message: expect.stringContaining('Requires') },
       ])
-      expect(renderDesktopPluginManager(manager.state())).toContain('安装失败')
+      expect(renderDesktopPluginManager(manager.state())).not.toContain('plugin-errors')
+      expect(
+        renderDesktopPluginManager(manager.state(), {
+          selectedFailurePath: manager.state().installFailures[0]!.sourcePath,
+        }),
+      ).toContain('安装失败')
       await manager.disable(oldManifest.id)
     },
   )
@@ -484,7 +489,12 @@ describe('DesktopPluginManager', () => {
     expect(manager.state().installFailures).toMatchObject([
       { sourcePath: 'D:/plugins/broken/plugin.json' },
     ])
-    expect(renderDesktopPluginManager(manager.state())).toContain('安装失败')
+    expect(renderDesktopPluginManager(manager.state())).not.toContain('plugin-errors')
+    expect(
+      renderDesktopPluginManager(manager.state(), {
+        selectedFailurePath: manager.state().installFailures[0]!.sourcePath,
+      }),
+    ).toContain('安装失败')
   })
 
   it('honors keymap when contexts and exposes conflicts in manager markup', async () => {
@@ -1012,3 +1022,68 @@ function createMemoryStorage(): Storage {
     },
   }
 }
+
+// P6 catalog transaction prerequisites: cleanup and mirrors must not grant authority.
+describe('P6 lifecycle failure boundaries', () => {
+  it('attempts every cleanup after an independent service rejects and revokes the old epoch', async () => {
+    const events: string[] = []
+    const manager = createManager({
+      registry: new ActionRegistry(),
+      storage: createMemoryStorage(),
+      loadModule: async () =>
+        fakeLoadedModule(() => {
+          events.push('module')
+        }),
+    })
+    await manager.installManifestPath('/plugin.json')
+    await manager.approve('example-tools')
+    await manager.enable('example-tools')
+    const internals = manager as unknown as {
+      outputServices: Map<string, { dispose(): Promise<void> }>
+      editingServices: Map<string, { dispose(): Promise<void> }>
+      resourcesServices: Map<string, { dispose(): Promise<void> }>
+    }
+    const before = manager.documentRendererGeneration('example-tools')
+    internals.outputServices.set('example-tools', {
+      dispose: async () => {
+        events.push('output')
+        throw Error('output cleanup failed')
+      },
+    })
+    internals.editingServices.set('example-tools', {
+      dispose: async () => {
+        events.push('editing')
+        throw Error('editing cleanup failed')
+      },
+    })
+    internals.resourcesServices.set('example-tools', {
+      dispose: async () => {
+        events.push('resources')
+      },
+    })
+    await expect(manager.disable('example-tools')).rejects.toThrow('cleanup')
+    expect(events).toEqual(expect.arrayContaining(['output', 'editing', 'resources', 'module']))
+    expect(manager.documentRendererGeneration('example-tools')).toBeGreaterThan(before)
+    expect(manager.state().records[0]?.enabled).toBe(false)
+  })
+  it('keeps a usable in-memory result when mirror quota fails', async () => {
+    const storage = createMemoryStorage()
+    storage.setItem = () => {
+      throw Error('quota')
+    }
+    const manager = createManager({ registry: new ActionRegistry(), storage })
+    await expect(manager.installManifestPath('/plugin.json')).resolves.toMatchObject({
+      manifest: { id: 'example-tools' },
+    })
+    await expect(manager.approve('example-tools')).resolves.toMatchObject({ enabled: false })
+  })
+  it('retains corrupt legacy bytes for native migration diagnostics rather than deleting evidence', async () => {
+    const storage = createMemoryStorage()
+    const raw = '{"version":1,"records":BROKEN'
+    storage.setItem('milkup.desktop.plugins.registry.v1', raw)
+    const manager = createManager({ registry: new ActionRegistry(), storage })
+    await manager.ready
+    expect(storage.getItem('milkup.desktop.plugins.registry.v1')).toBe(raw)
+    expect(manager.state().records).toEqual([])
+  })
+})

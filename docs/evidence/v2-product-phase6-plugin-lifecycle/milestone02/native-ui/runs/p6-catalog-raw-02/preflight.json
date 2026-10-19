@@ -1,0 +1,94 @@
+{
+  "stage": "raw-api",
+  "profile": "/tmp/milkup-p6-profiles/p6-catalog-raw-02",
+  "binary": "/workspace/milkup-plugin-lifecycle-evidence/milestone02/production03/milkup-desktop",
+  "binarySha256": "be389f84f182bc8e33280fc6c1d4dd6db3b54267e3ca0c399c38041f7e1f4346",
+  "sourceSha256": "1704d1855305b320d9d8f316d69a90a9c734ac8a242faf6e39ab575f87687bd6",
+  "fixtures": {
+    "base": {
+      "path": "/workspace/milkup-plugin-lifecycle-evidence/milestone02/native-ui/runs/p6-catalog-raw-02/base.milkup-plugin",
+      "sha256": "197839b1f41facff16810b1d1419dabc1aee4ac0b89f7fde2e9430986c4201cd",
+      "manifest": {
+        "id": "example.catalog-lifecycle",
+        "name": "Catalog lifecycle fixture",
+        "version": "1.0.0",
+        "description": "Native transaction acceptance fixture",
+        "host": "worker",
+        "main": "dist/plugin.js",
+        "permissions": [],
+        "contributes": {
+          "commands": [
+            {
+              "id": "catalogFixture.ping",
+              "title": "P6 ping",
+              "action": "catalogFixture.ping"
+            },
+            {
+              "id": "catalogFixture.delayed",
+              "title": "P6 delayed command",
+              "action": "catalogFixture.delayed"
+            }
+          ]
+        }
+      }
+    },
+    "failure": {
+      "path": "/workspace/milkup-plugin-lifecycle-evidence/milestone02/native-ui/runs/p6-catalog-raw-02/failure.milkup-plugin",
+      "sha256": "31da1593de788fa0ddb6714bd9676a2ef2d7c944620e54135bd3d35d89a86a09",
+      "manifest": {
+        "id": "example.catalog-lifecycle",
+        "name": "Catalog lifecycle fixture",
+        "version": "1.0.1",
+        "description": "Native transaction acceptance fixture",
+        "host": "worker",
+        "main": "dist/plugin.js",
+        "permissions": []
+      }
+    },
+    "hang": {
+      "path": "/workspace/milkup-plugin-lifecycle-evidence/milestone02/native-ui/runs/p6-catalog-raw-02/hang.milkup-plugin",
+      "sha256": "e6944f26637930d286a41efd7cd4680c8740d977387d727abbfb0db3e8ab1bb5",
+      "manifest": {
+        "id": "example.catalog-lifecycle",
+        "name": "Catalog lifecycle fixture",
+        "version": "1.0.2",
+        "description": "Native transaction acceptance fixture",
+        "host": "worker",
+        "main": "dist/plugin.js",
+        "permissions": []
+      }
+    },
+    "raw": {
+      "path": "/workspace/milkup-plugin-lifecycle-evidence/milestone02/native-ui/runs/p6-catalog-raw-02/raw.milkup-plugin",
+      "sha256": "c078568571a3111462fc257c1d6778d6b736cda12ca7879ca418318bcd28454b",
+      "manifest": {
+        "id": "example.catalog-lifecycle",
+        "name": "Catalog lifecycle fixture",
+        "version": "1.1.0",
+        "description": "Native transaction acceptance fixture",
+        "host": "worker",
+        "main": "dist/plugin.js",
+        "permissions": []
+      }
+    },
+    "dynamic": {
+      "path": "/workspace/milkup-plugin-lifecycle-evidence/milestone02/native-ui/runs/p6-catalog-raw-02/dynamic.milkup-plugin",
+      "sha256": "0477c15d812811ea2cdc8c8f221115f451f795ed48f0d9739ccdd27aa9dd99b4",
+      "manifest": {
+        "id": "example.catalog-lifecycle",
+        "name": "Catalog lifecycle fixture",
+        "version": "1.2.0",
+        "description": "Native transaction acceptance fixture",
+        "host": "worker",
+        "main": "dist/plugin.js",
+        "permissions": []
+      }
+    }
+  },
+  "methods": {
+    "manager": "shipped controls + GTK picker + native keyboard",
+    "catalog": "WebDriver trusted-host existing native IPC; not plugin permission proof",
+    "storage": "owned test profile only; original bytes and modes preserved",
+    "raw": "actual isolated Worker fixture using public plugin object contract"
+  }
+}
