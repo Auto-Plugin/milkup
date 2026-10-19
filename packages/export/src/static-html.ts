@@ -197,6 +197,28 @@ class StaticRenderer {
           continue
         }
       }
+      if (block.type === 'heading' && block.status === 'valid') {
+        let next = i + 1
+        while (blocks[next]?.type === 'blankLine') next++
+        const paragraph = blocks[next]
+        if (
+          paragraph?.type === 'paragraph' &&
+          paragraph.status === 'valid' &&
+          !this.fragments.some(
+            (f) =>
+              !this.used.has(f) &&
+              f.layout === 'block' &&
+              f.from < paragraph.to &&
+              f.to > block.from,
+          )
+        ) {
+          // Group AST neighbors before serialization. Existing inline/fallback
+          // rendering keeps its source positions, anchors and output accounting.
+          body += `<div class="heading-lead">${this.block(block)}${this.block(paragraph)}</div>`
+          i = next
+          continue
+        }
+      }
       body += this.block(block)
     }
     for (const fragment of this.fragments)
@@ -226,7 +248,7 @@ class StaticRenderer {
       body += `<aside class="export-warning" aria-label="导出警告"><strong>导出警告</strong><ul>${this.warnings.map((warning) => `<li>${escape(warning.message)}（${warning.from}–${warning.to}）</li>`).join('')}</ul></aside>`
     const size = this.options.pageSize === 'letter' ? 'letter' : 'A4'
     const orientation = this.options.landscape ? ' landscape' : ''
-    const css = `:root{color-scheme:light}*{box-sizing:border-box}body{margin:0 auto;padding:24px;max-width:1000px;color:#202124;background:#fff;font-family:"Noto Sans CJK SC","Microsoft YaHei","PingFang SC",sans-serif;line-height:1.65;overflow-wrap:anywhere;word-break:normal}h1,h2,h3,h4,h5,h6{line-height:1.3;break-after:avoid}p{orphans:3;widows:3}table{border-collapse:collapse;width:100%;table-layout:auto;margin:1em 0}th,td{border:1px solid #999;padding:.4em .6em;overflow-wrap:anywhere}thead{display:table-header-group}tfoot{display:table-footer-group}tr{break-inside:avoid}pre{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-all;padding:1em;background:#f4f4f4;break-inside:auto}code{font-family:"Noto Sans Mono CJK SC",monospace}blockquote{margin-left:0;padding-left:1em;border-left:3px solid #aaa}img,svg{max-width:100%;height:auto}math[display=block]{display:block;margin:1em 0;overflow-wrap:anywhere}.presentation-block{text-align:center;break-inside:avoid}.source-fallback{white-space:pre-wrap}.export-warning{color:#6b3a00;background:#fff4db;padding:.3em .6em;font-size:.9em}.image-placeholder{border:1px dashed #888;padding:.4em}a{color:#164c96} @page{size:${size}${orientation};margin:16mm}@media print{body{max-width:none;margin:0;padding:0}a{color:inherit;text-decoration:underline}.presentation-block,img,svg{break-inside:avoid}pre{break-inside:auto}table{break-inside:auto}thead{display:table-header-group}}`
+    const css = `:root{color-scheme:light}*{box-sizing:border-box}body{margin:0 auto;padding:24px;max-width:1000px;color:#202124;background:#fff;font-family:"Noto Sans CJK SC","Microsoft YaHei","PingFang SC",sans-serif;line-height:1.65;overflow-wrap:anywhere;word-break:normal}h1,h2,h3,h4,h5,h6{line-height:1.3;break-after:avoid}p{orphans:3;widows:3}table{border-collapse:collapse;width:100%;table-layout:auto;margin:1em 0}th,td{border:1px solid #999;padding:.4em .6em;overflow-wrap:anywhere}thead{display:table-header-group}tfoot{display:table-footer-group}tr{break-inside:avoid}pre{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-all;padding:1em;background:#f4f4f4;break-inside:auto}code{font-family:"Noto Sans Mono CJK SC",monospace}blockquote{margin-left:0;padding-left:1em;border-left:3px solid #aaa}img,svg{max-width:100%;height:auto}math[display=block]{display:block;margin:1em 0;overflow-wrap:anywhere}.heading-lead{display:contents}.presentation-block{text-align:center;break-inside:avoid}.source-fallback{white-space:pre-wrap}.export-warning{color:#6b3a00;background:#fff4db;padding:.3em .6em;font-size:.9em}.image-placeholder{border:1px dashed #888;padding:.4em}a{color:#164c96} @page{size:${size}${orientation};margin:16mm}@media print{.heading-lead{display:block;break-inside:avoid;page-break-inside:avoid}aside.export-warning{break-inside:avoid;page-break-inside:avoid}body{max-width:none;margin:0;padding:0}a{color:inherit;text-decoration:underline}.presentation-block,img,svg{break-inside:avoid}pre{break-inside:auto}table{break-inside:auto}thead{display:table-header-group}}`
     const csp =
       "default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'none'; base-uri 'none'; form-action 'none'; connect-src 'none'; font-src 'none'; object-src 'none'"
     const html = `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${escape(csp)}"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escape(this.options.title ?? 'Document')}</title><style>${css}</style></head><body>${body}</body></html>`

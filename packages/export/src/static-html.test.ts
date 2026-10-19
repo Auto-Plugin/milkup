@@ -336,3 +336,99 @@ it('preserves line boundaries in indented code in both serializers', () => {
     '<pre><code>first()\nsecond()</code></pre>',
   )
 })
+
+describe('print heading leads', () => {
+  it('groups a valid heading with only its first following paragraph across blank lines', () => {
+    const source = '# 中文标题 👩🏽‍💻\n\n\n首段 é 与中文。\n\n第二段保留。'
+    const result = render(source, options)
+    expect(result.html).toContain(
+      '<div class="heading-lead"><h1>中文标题 👩🏽‍💻</h1><p>首段 é 与中文。</p></div><p>第二段保留。</p>',
+    )
+    expect(result.warnings).toEqual([])
+  })
+  it('preserves inline presentation and absolute footnote anchors inside a grouped paragraph', () => {
+    const source = '## 脚注\n\n公式 $x$ 引用[^a]\n\n[^a]: 正文',
+      base = 500
+    const mathFrom = base + source.indexOf('$'),
+      refFrom = base + source.indexOf('[^a]'),
+      defFrom = base + source.lastIndexOf('[^a]')
+    const result = render(source, {
+      ...options,
+      sourceOffset: base,
+      presentations: [
+        batch(
+          source,
+          [
+            fragment(mathFrom, mathFrom + 3, math()),
+            fragment(refFrom, refFrom + 4, {
+              type: 'sup',
+              children: [ref('1', defFrom, base + source.length)],
+            }),
+            fragment(defFrom, defFrom + 5, {
+              type: 'group',
+              children: [{ type: 'text', text: '[1] ' }, ref('返回', refFrom, refFrom + 4)],
+            }),
+          ],
+          base,
+        ),
+      ],
+    })
+    expect(result.html).toContain('<div class="heading-lead"><h2>脚注</h2><p>公式 ')
+    expect(result.html).toContain(`<span id="source-${mathFrom}"`)
+    expect(result.html).toContain(`<a href="#source-${defFrom}">1</a>`)
+    expect(result.html).toContain(`<a href="#source-${refFrom}">返回</a>`)
+    expect(result.html).toContain('</p></div><p>')
+    expect(result.html.match(/<math /g)).toHaveLength(1)
+    expect(result.warnings).toEqual([])
+  })
+  it('does not take a block presentation spanning several paragraphs into the heading group', () => {
+    const source = '## 公式\n\n$$\n\nx^2\n\n$$\n\n尾段'
+    const from = source.indexOf('$$'),
+      to = source.lastIndexOf('$$') + 2
+    const result = render(source, {
+      ...options,
+      presentations: [batch(source, [fragment(from, to, math(true), 'block')])],
+    })
+    expect(result.html).toContain('<body><h2>公式</h2><div id=')
+    expect(result.html.match(/<math /g)).toHaveLength(1)
+    expect(result.html).toContain('<p>尾段</p>')
+    expect(result.html).not.toContain('<div class="heading-lead">')
+    expect(result.warnings).toEqual([])
+  })
+  it.each([
+    '| 项目 | 值 |\n| --- | --- |\n| 中文 | 1 |',
+    '```ts\n' + 'longCode();\n'.repeat(100) + '```',
+    '- first\n- second',
+    '## 第二标题',
+    '',
+  ])('does not bind non-paragraph blocks or an empty tail: %s', (tail) => {
+    const result = render('# 标题\n\n' + tail, options)
+    expect(result.html).not.toContain('<div class="heading-lead">')
+    expect(result.html).toContain('<h1>标题</h1>')
+  })
+  it('retains missing-renderer source and absolute warning offsets inside the first paragraph', () => {
+    const source = '## 公式\n\n$\\unsupported{x}$',
+      base = 80
+    const result = render(source, { ...options, sourceOffset: base })
+    expect(result.html).toContain(
+      '<div class="heading-lead"><h2>公式</h2><p><span class="source-fallback">$\\unsupported{x}$</span></p></div>',
+    )
+    expect(result.warnings).toEqual([
+      expect.objectContaining({
+        code: 'unrendered-enhancement',
+        from: base + source.indexOf('$'),
+        to: base + source.length,
+      }),
+    ])
+  })
+  it('adds only fixed screen and print grouping policies with warning containment', () => {
+    const result = render('# 标题\n\n正文', options)
+    expect(result.html).toContain('.heading-lead{display:contents}')
+    expect(result.html).toContain(
+      '.heading-lead{display:block;break-inside:avoid;page-break-inside:avoid}',
+    )
+    expect(result.html).toContain(
+      'aside.export-warning{break-inside:avoid;page-break-inside:avoid}',
+    )
+  })
+})
