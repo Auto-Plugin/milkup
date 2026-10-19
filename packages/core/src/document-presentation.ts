@@ -159,6 +159,8 @@ export interface DocumentPresentationFragment extends DocumentPresentationRange 
 export interface DocumentPresentationResult {
   readonly fragments: readonly DocumentPresentationFragment[]
   readonly complete: boolean
+  /** Same-version background preparation may improve this incomplete result. */
+  readonly pending?: true
 }
 export interface DocumentRendererDeclaration {
   readonly id: string
@@ -633,8 +635,10 @@ export function copyDocumentPresentationResult(
   }
   const declarations =
     declaration === undefined ? undefined : 'contexts' in declaration ? [declaration] : declaration
-  const v = record(value, ['fragments', 'complete'], fail),
+  const v = record(value, ['fragments', 'complete', 'pending'], fail),
     budget = createDocumentOutputBudget()
+  const complete = boolean(v.complete, fail)
+  if (Object.hasOwn(v, 'pending') && (v.pending !== true || complete)) fail()
   let end = request.from
   const fragments = array(
     v.fragments,
@@ -682,7 +686,11 @@ export function copyDocumentPresentationResult(
     },
     fail,
   )
-  const result = Object.freeze({ fragments, complete: boolean(v.complete, fail) })
+  const result = Object.freeze({
+    fragments,
+    complete,
+    ...(v.pending === true ? { pending: true as const } : {}),
+  })
   outputSize(result, fail)
   canonicalSize(
     fragments.map((fragment) => fragment.content),

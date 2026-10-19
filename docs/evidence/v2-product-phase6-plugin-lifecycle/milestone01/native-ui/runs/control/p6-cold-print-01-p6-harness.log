@@ -1,0 +1,53 @@
+2026-10-19T08:05:08.529Z NATIVE_STARTUP_WINDOW 1412ms
+X Error of failed request:  BadWindow (invalid Window parameter)
+  Major opcode of failed request:  15 (X_QueryTree)
+  Resource id in failed request:  0xa00009
+  Serial number of failed request:  113
+  Current serial number in output stream:  113
+X Error of failed request:  BadWindow (invalid Window parameter)
+  Major opcode of failed request:  3 (X_GetWindowAttributes)
+  Resource id in failed request:  0xa00671
+  Serial number of failed request:  63
+  Current serial number in output stream:  64
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+Error: Command failed: xdotool search --onlyvisible --pid 170266
+X Error of failed request:  BadWindow (invalid Window parameter)
+  Major opcode of failed request:  3 (X_GetWindowAttributes)
+  Resource id in failed request:  0xa00671
+  Serial number of failed request:  63
+  Current serial number in output stream:  64
+
+    at genericNodeError (node:internal/errors:985:15)
+    at wrappedFn (node:internal/errors:539:14)
+    at checkExecSyncError (node:child_process:942:11)
+    at execFileSync (node:child_process:978:15)
+    at x (file:///workspace/milkup/tests/helpers/native-updates-fixture.mjs:21:3)
+    at file:///workspace/milkup/tests/native/tauri-p6-lifecycle.mjs:501:12
+    at Object.until (file:///workspace/milkup/tests/helpers/native-production.mjs:42:28)
+    at async printFile (file:///workspace/milkup/tests/native/tauri-p6-lifecycle.mjs:500:3)
+    at async exportOnce (file:///workspace/milkup/tests/native/tauri-p6-lifecycle.mjs:675:35)
+    at async file:///workspace/milkup/tests/native/tauri-p6-lifecycle.mjs:1237:5 {
+  status: 1,
+  signal: null,
+  output: [
+    null,
+    '',
+    'X Error of failed request:  BadWindow (invalid Window parameter)\n' +
+      '  Major opcode of failed request:  3 (X_GetWindowAttributes)\n' +
+      '  Resource id in failed request:  0xa00671\n' +
+      '  Serial number of failed request:  63\n' +
+      '  Current serial number in output stream:  64\n'
+  ],
+  pid: 170396,
+  stdout: '',
+  stderr: 'X Error of failed request:  BadWindow (invalid Window parameter)\n' +
+    '  Major opcode of failed request:  3 (X_GetWindowAttributes)\n' +
+    '  Resource id in failed request:  0xa00671\n' +
+    '  Serial number of failed request:  63\n' +
+    '  Current serial number in output stream:  64\n'
+}
+
+Node.js v24.19.0

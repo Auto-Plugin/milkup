@@ -74,6 +74,24 @@ describe('controlled desktop output', () => {
     )
     expect(f.calls).toEqual([])
   })
+  it('reports a changed renderer activation as stale capture, not revoked output permission', async () => {
+    const f = setup()
+    let generation = 1
+    const service = createDesktopOutputService({
+      current: f.current,
+      invoke: f.invoke,
+      renderers: () => [{ pluginId: 'independent', id: 'text', contexts: ['text'] }],
+      rendererGeneration: () => generation,
+      render: async () => {
+        generation++
+        return { complete: true, fragments: [] }
+      },
+    })
+    await expect(service.adapterForPlugin('output').adapter.capture(request)).rejects.toMatchObject(
+      { code: 'stale' },
+    )
+    expect(f.calls).toEqual([])
+  })
   it('aborts owned jobs on disposal and isolates plugin handles', async () => {
     const f = setup()
     const a = f.service.adapterForPlugin('a')

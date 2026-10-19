@@ -1,0 +1,59 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/core
+
+ ❯ src/__tests__/document-presentation-pending.test.ts (13 tests | 2 failed) 19ms
+   × explicit pending presentation contract > preserves a pending signal and immutable validated partial output through copies 7ms
+     → Document presentation: invalid-output
+   × explicit pending presentation contract > retains pending after aggregate validation and a JSON transport round trip 1ms
+     → Document presentation: invalid-output
+   ✓ explicit pending presentation contract > preserves legacy complete=true without synthesizing pending 4ms
+   ✓ explicit pending presentation contract > preserves legacy complete=false without synthesizing pending 0ms
+   ✓ explicit pending presentation contract > rejects a present pending field other than literal true: false 2ms
+   ✓ explicit pending presentation contract > rejects a present pending field other than literal true: "true" 0ms
+   ✓ explicit pending presentation contract > rejects a present pending field other than literal true: 1 0ms
+   ✓ explicit pending presentation contract > rejects a present pending field other than literal true: null 0ms
+   ✓ explicit pending presentation contract > rejects a present pending field other than literal true: undefined 0ms
+   ✓ explicit pending presentation contract > rejects a present pending field other than literal true: {} 0ms
+   ✓ explicit pending presentation contract > rejects a present pending field other than literal true: %j 0ms
+   ✓ explicit pending presentation contract > rejects pending with a complete result 0ms
+   ✓ explicit pending presentation contract > does not widen the closed result or fragment grammar 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/__tests__/document-presentation-pending.test.ts > explicit pending presentation contract > preserves a pending signal and immutable validated partial output through copies
+DocumentPresentationError: Document presentation: invalid-output
+ ❯ fail src/document-presentation.ts:632:11
+    630| ): DocumentPresentationResult {
+    631|   const fail = (): never => {
+    632|     throw new DocumentPresentationError('invalid-output')
+       |           ^
+    633|   }
+    634|   const declarations =
+ ❯ record src/document-presentation.ts:207:12
+ ❯ copyDocumentPresentationResult src/document-presentation.ts:636:13
+ ❯ src/__tests__/document-presentation-pending.test.ts:38:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/__tests__/document-presentation-pending.test.ts > explicit pending presentation contract > retains pending after aggregate validation and a JSON transport round trip
+DocumentPresentationError: Document presentation: invalid-output
+ ❯ fail src/document-presentation.ts:632:11
+    630| ): DocumentPresentationResult {
+    631|   const fail = (): never => {
+    632|     throw new DocumentPresentationError('invalid-output')
+       |           ^
+    633|   }
+    634|   const declarations =
+ ❯ record src/document-presentation.ts:207:12
+ ❯ copyDocumentPresentationResult src/document-presentation.ts:636:13
+ ❯ copyDocumentPresentationAggregate src/document-presentation.ts:813:10
+ ❯ src/__tests__/document-presentation-pending.test.ts:48:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 11 passed (13)
+   Start at  07:17:43
+   Duration  504ms (transform 160ms, setup 0ms, collect 193ms, tests 19ms, environment 0ms, prepare 89ms)
+

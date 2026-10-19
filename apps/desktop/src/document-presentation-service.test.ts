@@ -47,6 +47,70 @@ function result(request: DocumentPresentationRequest) {
   }
 }
 describe('desktop document presentation service', () => {
+  it.each(['text', 'fence'] as const)(
+    'preserves explicit %s provider preparation in the aggregate',
+    async (kind) => {
+      const { doc, source, window } = fixture(
+        kind === 'fence' ? '```test\nhello\n```\n' : 'Hello\n',
+      )
+      const service = createDesktopDocumentPresentationService({
+        current: () => ({ source, identity: doc }),
+        theme: () => 'light',
+        renderers: () => [
+          {
+            ...declaration,
+            contexts: [kind],
+            ...(kind === 'fence' ? { fenceLanguages: ['test'] } : {}),
+          },
+        ],
+        render: async () => ({ complete: false, fragments: [], pending: true }),
+      })
+      const response = await service.provide(window, { signal: new AbortController().signal })
+      expect(response.result).toEqual({ complete: false, fragments: [], pending: true })
+    },
+  )
+
+  it('rejects a result from a replaced activation with the same declared renderer ID', async () => {
+    const { doc, source, window } = fixture()
+    let generation = 1
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source, identity: doc }),
+      theme: () => 'light',
+      renderers: () => [declaration],
+      rendererGeneration: () => generation,
+      render: async (_p, _r, request) => {
+        generation++
+        return result(request)
+      },
+    })
+    const response = await service.provide(window, { signal: new AbortController().signal })
+    expect(response.result).toEqual({ complete: false, fragments: [] })
+  })
+  it('revalidates completed provider ownership while another provider is still preparing', async () => {
+    const { doc, source, window } = fixture()
+    let generation = 1
+    let finish!: () => void
+    const other = { ...declaration, pluginId: 'other' }
+    const service = createDesktopDocumentPresentationService({
+      current: () => ({ source, identity: doc }),
+      theme: () => 'light',
+      renderers: () => [declaration, other],
+      rendererGeneration: (id) => (id === declaration.pluginId ? generation : 1),
+      render: async (id, _r, request) => {
+        if (id === declaration.pluginId) return result(request)
+        await new Promise<void>((resolve) => {
+          finish = resolve
+        })
+        return { complete: true, fragments: [] }
+      },
+    })
+    const response = service.provide(window, { signal: new AbortController().signal })
+    while (!finish) await new Promise((resolve) => setTimeout(resolve, 0))
+    await Promise.resolve()
+    generation++
+    finish()
+    await expect(response).rejects.toMatchObject({ code: 'revoked' })
+  })
   it('uses trusted context and validates inert results', async () => {
     const { doc, source, window } = fixture()
     const service = createDesktopDocumentPresentationService({

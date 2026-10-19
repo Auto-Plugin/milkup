@@ -1,0 +1,23 @@
+[
+  {
+    "check": "workspace-tests",
+    "command": "source /workspace/.cloud/milkup-v2/env.sh\nexport NPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false NPM_CONFIG_MANAGE_PACKAGE_MANAGER_VERSIONS=false\nbash scripts/cloud/pnpm.sh --config.verify-deps-before-run=false --config.manage-package-manager-versions=false -r --workspace-concurrency=1 test",
+    "startedUtc": "2026-10-19T07:29:50.923819+00:00",
+    "exitCode": 0,
+    "endedUtc": "2026-10-19T07:31:01.332547+00:00"
+  },
+  {
+    "check": "workspace-types",
+    "command": "source /workspace/.cloud/milkup-v2/env.sh\nexport NPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false NPM_CONFIG_MANAGE_PACKAGE_MANAGER_VERSIONS=false\nbash scripts/cloud/pnpm.sh --config.verify-deps-before-run=false --config.manage-package-manager-versions=false -r --workspace-concurrency=1 typecheck",
+    "startedUtc": "2026-10-19T07:31:01.333666+00:00",
+    "exitCode": 0,
+    "endedUtc": "2026-10-19T07:31:46.334910+00:00"
+  },
+  {
+    "check": "workspace-build",
+    "command": "source /workspace/.cloud/milkup-v2/env.sh\nexport NPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false NPM_CONFIG_MANAGE_PACKAGE_MANAGER_VERSIONS=false\nbash scripts/cloud/pnpm.sh --config.verify-deps-before-run=false --config.manage-package-manager-versions=false build",
+    "startedUtc": "2026-10-19T07:31:46.337651+00:00",
+    "exitCode": 0,
+    "endedUtc": "2026-10-19T07:32:20.049125+00:00"
+  }
+]

@@ -21,6 +21,8 @@ export interface DesktopDocumentPresentationOptions {
   readonly theme: () => 'light' | 'dark'
   readonly target?: 'screen' | 'export'
   readonly renderers: () => readonly DesktopDocumentRenderer[]
+  /** Host activation epoch; never supplied by the plugin. */
+  readonly rendererGeneration?: (pluginId: string) => number
   readonly render: (
     pluginId: string,
     rendererId: string,
@@ -115,8 +117,15 @@ export function createDesktopDocumentPresentationService(
       width: Math.min(8192, Math.max(1, window.width)),
     })
     const declarations = options.renderers().map((renderer) => ({ ...renderer }))
+    const generations = new Map(
+      declarations.map((renderer) => [
+        renderer.pluginId,
+        options.rendererGeneration?.(renderer.pluginId),
+      ]),
+    )
     if (!trusted.contextKnown)
       return { request, result: { fragments: [], complete: false }, declarations }
+    const acceptedRenderers = new Map<DesktopDocumentRenderer, () => void>()
     const renderOne = async (
       declaration: DesktopDocumentRenderer,
       input: DocumentPresentationRequest,
@@ -124,6 +133,8 @@ export function createDesktopDocumentPresentationService(
       assertCurrent()
       const assertRendererActive = () => {
         if (
+          options.rendererGeneration?.(declaration.pluginId) !==
+            generations.get(declaration.pluginId) ||
           !options
             .renderers()
             .some(
@@ -139,7 +150,9 @@ export function createDesktopDocumentPresentationService(
       })
       assertCurrent()
       assertRendererActive()
-      return copyDocumentPresentationResult(value, input, declaration)
+      const result = copyDocumentPresentationResult(value, input, declaration)
+      acceptedRenderers.set(declaration, assertRendererActive)
+      return result
     }
     // Text and mixed-context providers retain their full trusted window. Pure
     // fence providers receive one host-recognized complete fence per invocation.
@@ -147,6 +160,7 @@ export function createDesktopDocumentPresentationService(
     const outcomes = await Promise.allSettled(whole.map((d) => renderOne(d, request)))
     assertCurrent()
     let complete = true
+    let pending = false
     const wholeCandidates: DocumentPresentationFragment[] = []
     for (const outcome of outcomes) {
       if (outcome.status === 'rejected') {
@@ -154,6 +168,7 @@ export function createDesktopDocumentPresentationService(
         continue
       }
       complete &&= outcome.value.complete
+      pending ||= outcome.value.pending === true
       wholeCandidates.push(...outcome.value.fragments)
     }
     const overlaps = (
@@ -273,6 +288,7 @@ export function createDesktopDocumentPresentationService(
             continue
           }
           complete &&= outcome.value.complete
+          pending ||= outcome.value.pending === true
           candidates.push(...outcome.value.fragments)
         }
         candidates = conflictFree(candidates)
@@ -290,9 +306,16 @@ export function createDesktopDocumentPresentationService(
       fragments.splice(0, fragments.length, ...next)
     }
     assertCurrent()
+    // Other providers and later fence units may have awaited after an earlier
+    // provider completed. Recheck every accepted owner at publication as well.
+    for (const assertActive of acceptedRenderers.values()) assertActive()
     return {
       request,
-      result: copyDocumentPresentationAggregate({ fragments, complete }, request, declarations),
+      result: copyDocumentPresentationAggregate(
+        { fragments, complete, ...(pending ? { pending: true as const } : {}) },
+        request,
+        declarations,
+      ),
       declarations,
     }
   }

@@ -40,12 +40,15 @@ import {
   createPluginContributionIndex,
   isPluginPackageArchive,
   normalizePackagePath,
+  parsePluginManifest,
   parsePluginPackageArchive,
   parsePluginRegistrySnapshot,
   PluginRegistry,
   PluginRuntime,
   serializePluginPackageArchive,
   serializePluginRegistry,
+  validatePluginCompatibility,
+  type PluginCompatibilityTarget,
   type PluginContributionIndex,
   type ManagedPluginDocumentBroker,
   type ManagedPluginStorageBroker,
@@ -266,6 +269,7 @@ const sensitivePermissions = new Set([
 
 export class DesktopPluginManager {
   private readonly registry: PluginRegistry
+  private readonly compatibility: PluginCompatibilityTarget
   private readonly runtime: PluginRuntime
   private readonly manifestHost: DesktopPluginManifestHost
   private readonly storage: Storage | undefined
@@ -359,13 +363,11 @@ export class DesktopPluginManager {
       (async () => {
         throw new Error('DOM plugins are not available in this host')
       })
-    this.registry = new PluginRegistry({
-      allowedHosts,
-      compatibility: {
-        milkupVersion: options.milkupVersion,
-        pluginSdkVersion: options.pluginSdkVersion,
-      },
+    this.compatibility = Object.freeze({
+      milkupVersion: options.milkupVersion,
+      pluginSdkVersion: options.pluginSdkVersion,
     })
+    this.registry = new PluginRegistry({ allowedHosts, compatibility: this.compatibility })
     this.runtime = new PluginRuntime({
       actionRegistry: options.actionRegistry,
       allowedHosts,
@@ -489,8 +491,12 @@ export class DesktopPluginManager {
       const text = await this.manifestHost.readManifestText(path)
       const value = parseManifestJson(text, path)
       const archive = isPluginPackageArchive(value) ? parsePluginPackageArchive(value) : undefined
+      const manifest = archive?.manifest ?? parsePluginManifest(value)
+      if (!allowedHosts.includes(manifest.host ?? 'worker'))
+        throw new Error(`Plugin host is not allowed: ${manifest.host}`)
+      const errors = validatePluginCompatibility(manifest, this.compatibility)
+      if (errors.length > 0) throw new Error(errors.join('; '))
       const installed = archive ? await this.manifestHost.installPackage?.(archive) : undefined
-      const manifest = archive?.manifest ?? value
       let record = this.registry.installLocalPlugin({
         manifest,
         manifestPath: installed?.manifestPath ?? path,
@@ -754,6 +760,11 @@ export class DesktopPluginManager {
     options: { readonly signal?: AbortSignal } = {},
   ): Promise<DocumentPresentationResult> {
     return this.runtime.renderDocument(pluginId, rendererId, request, options)
+  }
+
+  /** Host-only instance identity for bounded presentation preparation. */
+  documentRendererGeneration(pluginId: string): number {
+    return this.activationEpochs.get(pluginId) ?? 0
   }
 
   async renderUi(

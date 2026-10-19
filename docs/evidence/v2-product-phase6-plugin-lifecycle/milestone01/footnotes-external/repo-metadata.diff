@@ -1,0 +1,157 @@
+diff --git a/plugins/footnotes/README.md b/plugins/footnotes/README.md
+index 2e5e47eb..ed51e0c5 100644
+--- a/plugins/footnotes/README.md
++++ b/plugins/footnotes/README.md
+@@ -1,6 +1,6 @@
+ # Milkup Footnotes
+ 
+-Independent Worker plugin using only public `@milkup/plugin-sdk` 0.3.3. No private Markdown implementation, DOM, HTML execution, network access, or document-write permission.
++Independent Worker plugin using only public `@milkup/plugin-sdk` 0.3.6. No private Markdown implementation, DOM, HTML execution, network access, or document-write permission.
+ 
+ ## Syntax and behavior
+ 
+@@ -16,7 +16,7 @@ Active reference/definition source remains visible while editing. Unknown contex
+ 
+ ## Bounds and lifecycle
+ 
+-Rendering returns immediately. An 80 ms debounce starts paged `host.document.readWindow` indexing from the document start. No full-document string is assembled. Each read requests at most 256 complete lines, capped by the host at 128 Ki UTF-16. Limits: 8 Mi UTF-16 read text, 200,000 lines, 4,096 combined definitions/references, 8 Ki UTF-16 per definition summary, and 128 presentation fragments. The scan can stop below its character cap when another maximum-sized page would exceed it. Excess results stay source.
++Rendering returns immediately. While the current document/version index is still preparing, known-context results include `pending: true` with `complete: false`, allowing the host to wait within its preparation budget. Finished, permanently partial, cancelled, disposed and unknown-context results do not advertise pending. This requires public SDK/host support for 0.3.6; the plugin does not extend isolated rendering deadlines. An 80 ms debounce starts paged `host.document.readWindow` indexing from the document start. No full-document string is assembled. Each read requests at most 256 complete lines, capped by the host at 128 Ki UTF-16. Limits: 8 Mi UTF-16 read text, 200,000 lines, 4,096 combined definitions/references, 8 Ki UTF-16 per definition summary, and 128 presentation fragments. The scan can stop below its character cap when another maximum-sized page would exceed it. Excess results stay source.
+ 
+ Document/version changes abort the previous scan and clear its index. Disposal cancels timers and reads. Background progress calls owner/version-bound presentation invalidation, limited to four updates per second by the host. Oversized, interrupted and unsupported scans preserve source and partial state. No settings, files or document content are changed.
+ 
+@@ -25,10 +25,12 @@ Document/version changes abort the previous scan and clear its index. Disposal c
+ Run `pnpm install`, `pnpm test`, and `pnpm run build`. For a public SDK archive, run:
+ 
+ ```
+-node scripts/verify-external.mjs /absolute/milkup-plugin-sdk-0.3.3.tgz /absolute/outside-checkout-directory
++node scripts/verify-external.mjs /absolute/milkup-plugin-sdk-0.3.6.tgz /absolute/outside-checkout-directory
+ ```
+ 
+-The build guard rejects private Milkup dependencies and runtime imports. Output: `dist/milkup.footnotes-1.0.0.milkup-plugin`. Manifest renderer id: `footnotes`; contexts: `text`; permission: `document:read`. The parent integration owns bundled-plugin registration.
++The verifier installs only the supplied public SDK archive and development tools in the external directory, with its store and cache there. It disables package-manager auto-installation on every invocation. Set `MILKUP_PNPM_CLI` to an existing pnpm JavaScript CLI when using a pinned toolchain. The verification report derives the output archive name from `plugin.json`, and records SDK/archive SHA256 values.
++
++The build guard rejects private Milkup dependencies and runtime imports. Output: `dist/milkup.footnotes-1.0.1.milkup-plugin`. Manifest renderer id: `footnotes`; contexts: `text`; permission: `document:read`. The parent integration owns bundled-plugin registration.
+ 
+ The renderer returns selection-independent fragments. The host preserves literal source for the active selection and restores cached previews when the caret leaves; definition bodies and continuation lines always retain editor source mapping.
+ 
+diff --git a/plugins/footnotes/package.json b/plugins/footnotes/package.json
+index 301cb530..0a562c03 100644
+--- a/plugins/footnotes/package.json
++++ b/plugins/footnotes/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "milkup-footnotes",
+-  "version": "1.0.0",
++  "version": "1.0.1",
+   "private": true,
+   "type": "module",
+   "scripts": {
+@@ -10,7 +10,7 @@
+     "verify:external": "node scripts/verify-external.mjs"
+   },
+   "devDependencies": {
+-    "@milkup/plugin-sdk": "0.3.3",
++    "@milkup/plugin-sdk": "0.3.6",
+     "esbuild": "^0.25.0",
+     "typescript": "^5.8.0",
+     "vitest": "^3.2.4"
+diff --git a/plugins/footnotes/plugin.json b/plugins/footnotes/plugin.json
+index 1d66a315..bc8e0b8c 100644
+--- a/plugins/footnotes/plugin.json
++++ b/plugins/footnotes/plugin.json
+@@ -1,13 +1,13 @@
+ {
+   "id": "milkup.footnotes",
+   "name": "Milkup Footnotes",
+-  "version": "1.0.0",
+-  "description": "有界脚注索引、定义与引用导航；编辑时保留 Markdown 源文。",
++  "version": "1.0.1",
++  "description": "\u6709\u754c\u811a\u6ce8\u7d22\u5f15\u3001\u5b9a\u4e49\u4e0e\u5f15\u7528\u5bfc\u822a\uff1b\u7f16\u8f91\u65f6\u4fdd\u7559 Markdown \u6e90\u6587\u3002",
+   "host": "worker",
+   "main": "./dist/plugin.js",
+   "engines": {
+     "milkup": "^2.0.0-0",
+-    "pluginSdk": ">=0.3.3 <0.4.0"
++    "pluginSdk": ">=0.3.6 <0.4.0"
+   },
+   "permissions": ["document:read"],
+   "contributes": {
+diff --git a/plugins/footnotes/scripts/verify-external.mjs b/plugins/footnotes/scripts/verify-external.mjs
+index ce8534ea..3bdd0633 100644
+--- a/plugins/footnotes/scripts/verify-external.mjs
++++ b/plugins/footnotes/scripts/verify-external.mjs
+@@ -1,17 +1,20 @@
+ import { cp, mkdir, readFile, realpath, writeFile } from 'node:fs/promises'
+ import { dirname, resolve, relative, isAbsolute } from 'node:path'
++import { createHash } from 'node:crypto'
+ import { fileURLToPath } from 'node:url'
+ import { spawn } from 'node:child_process'
+ 
+ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
++const plugin = JSON.parse(await readFile(resolve(root, 'plugin.json'), 'utf8'))
++const packageManifest = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'))
++if (packageManifest.version !== plugin.version) throw new Error('Plugin/package versions differ')
+ const sdk = process.argv[2] && (await realpath(resolve(process.argv[2])))
+ if (!sdk || !sdk.endsWith('.tgz'))
+   throw new Error(
+-    'Usage: node scripts/verify-external.mjs /absolute/milkup-plugin-sdk-0.3.3.tgz [external-directory]',
++    `Usage: node scripts/verify-external.mjs /absolute/milkup-plugin-sdk-${packageManifest.devDependencies['@milkup/plugin-sdk']}.tgz external-directory`,
+   )
+-const output = resolve(
+-  process.argv[3] || '/workspace/milkup-markdown-extensions-phase4-evidence/footnotes/external',
+-)
++if (!process.argv[3]) throw new Error('An external verification directory is required')
++const output = resolve(process.argv[3])
+ await mkdir(output, { recursive: true })
+ const target = await realpath(output)
+ const checkout = resolve(root, '../..')
+@@ -36,9 +39,21 @@ await writeFile(resolve(target, 'package.json'), `${JSON.stringify(manifest, nul
+ async function run(args, log) {
+   const chunks = []
+   const code = await new Promise((done, reject) => {
+-    const child = spawn('pnpm', args, {
++    const cli = process.env.MILKUP_PNPM_CLI
++    const invocation = [
++      ...(cli ? [cli] : []),
++      '--config.manage-package-manager-versions=false',
++      ...args,
++    ]
++    const child = spawn(cli ? process.execPath : 'pnpm', invocation, {
+       cwd: target,
+-      env: process.env,
++      env: {
++        ...process.env,
++        npm_config_manage_package_manager_versions: 'false',
++        pnpm_config_pm_on_fail: 'ignore',
++        XDG_CACHE_HOME: resolve(target, '.cache'),
++        PNPM_HOME: resolve(target, '.pnpm-home'),
++      },
+       stdio: ['ignore', 'pipe', 'pipe'],
+     })
+     for (const stream of [child.stdout, child.stderr])
+@@ -50,16 +65,23 @@ async function run(args, log) {
+     child.on('close', done)
+   })
+   await writeFile(resolve(target, log), Buffer.concat(chunks))
++  await writeFile(resolve(target, log.replace(/\.log$/, '.exit')), `${code}\n`)
+   if (code !== 0) throw new Error(`pnpm ${args.join(' ')} failed (${code})`)
+ }
+ await run(
+-  ['install', '--no-frozen-lockfile', '--config.manage-package-manager-versions=false'],
++  ['install', '--no-frozen-lockfile', '--store-dir', resolve(target, '.pnpm-store')],
+   'install.log',
+ )
++await run(['run', 'check'], 'typecheck.log')
+ await run(['run', 'build'], 'build.log')
+ await run(['test'], 'test.log')
++const archive = `dist/${plugin.id}-${plugin.version}.milkup-plugin`
++const digest = async (file) =>
++  createHash('sha256')
++    .update(await readFile(file))
++    .digest('hex')
+ await writeFile(
+   resolve(target, 'verification.json'),
+-  `${JSON.stringify({ sdk, directory: target, build: 'passed', tests: 'passed', archive: 'dist/milkup.footnotes-1.0.0.milkup-plugin' }, null, 2)}\n`,
++  `${JSON.stringify({ sdk, sdkSha256: await digest(sdk), directory: target, pluginVersion: plugin.version, typecheck: 'passed', build: 'passed', tests: 'passed', archive, archiveSha256: await digest(resolve(target, archive)) }, null, 2)}\n`,
+ )
+ console.log(`Independent footnotes plugin verified: ${target}`)

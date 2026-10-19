@@ -20,10 +20,11 @@ for (const item of plugins) {
   const manifest = JSON.parse(
     (await publicBuildFile(pluginRoot, 'plugin.json')).bytes.toString('utf8'),
   )
-  const sdkEntry =
+  const frozenSdk =
     item.buildMode === 'frozen-closure'
-      ? await resolvePublicPluginSdkEntry(pluginRoot, root, sdkVersion)
-      : resolve(root, 'packages/plugin-sdk/src/index.js')
+      ? await resolvePublicPluginSdkEntry(pluginRoot, item)
+      : undefined
+  const sdkEntry = frozenSdk?.entryPath ?? resolve(root, 'packages/plugin-sdk/src/index.js')
   if (item.buildMode === 'frozen-closure') {
     verifyPublicSdkTarball(item, (await publicBuildFile(pluginRoot, 'vendor/plugin-sdk.tgz')).bytes)
     const pluginPackage = JSON.parse(
@@ -90,7 +91,9 @@ for (const item of plugins) {
       buildMode: item.buildMode,
       bytes: Buffer.byteLength(archive),
       sha256: createHash('sha256').update(archive).digest('hex'),
-      sdkVersion,
+      sdkVersion: frozenSdk?.sdkVersion ?? sdkVersion,
+      hostSdkVersion: sdkVersion,
+      ...(frozenSdk ? { sdkTarballSha256: frozenSdk.sdkTarballSha256 } : {}),
       ...verification,
       installationProof:
         item.buildMode === 'frozen-closure'

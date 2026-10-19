@@ -1,0 +1,87 @@
+{
+  "run": "p6-outline-03",
+  "reviewType": "Read-only external record and pixel review; original completion and images unchanged",
+  "status": "PASS_FOR_SOURCE_MODE_OUTLINE_LIFECYCLE",
+  "provenance": {
+    "binarySHA256": "58652f2cea9361b6ee562a65f7405259f2320f9ac170bf9598a798e58905789e",
+    "harnessSHA256": "837460733bb7ef78b13e31342b33bc7c1a862d5a6671105ac81aad4a9e17fc14",
+    "outlineArchiveSHA256": "7eea6ffb5bba53155b3c256c6e35d95b04a93199ebbbd04636ee9c7ec5f6f712",
+    "sourceSHA256": "4a5112399a0afcf9b634076263034d79cf1248d3388d3585cd0551a65bb16b41"
+  },
+  "modeScope": {
+    "sourceDocumentModes": [
+      "source"
+    ],
+    "misleadingOriginalLabel": "outline-live is a historical observation/screenshot label; actual indexed fixture is in source mode",
+    "launcherOnlyLive": "Installation observations use live mode on launcher.md, not proof of outline indexing/lifecycle on the source fixture in live mode",
+    "liveModeLifecycleVerified": false
+  },
+  "approval": {
+    "explicitApprovalRequired": false,
+    "actual": {
+      "hosts": [
+        "worker"
+      ],
+      "permissions": []
+    },
+    "claim": "Read-only Worker is already approved; no explicit outline approval click claimed"
+  },
+  "pixelReview": [
+    {
+      "file": "outline-live.png",
+      "sha256": "30044152be1c6053321df4e064d2d5421c05eb610ed9231c8ef2a6829fb633a6",
+      "observed": "1280x900 source editor with literal Markdown/fenced Mermaid. Sidebar shows index complete, 1 heading / 12 lines and P5M6 单图 R1 entry, expand/collapse controls; no visible clipping/overlap in this view."
+    },
+    {
+      "file": "outline-removed.png",
+      "sha256": "13e04d2d8b278e0107a5b9c81d6dc49f91a0a86effae0aed470de73a78e08966",
+      "observed": "1280x900 source editor retains same complete visible fixture; outline sidebar contribution is gone; saved indicator and 178-character count visible. No visible editor obstruction."
+    }
+  ],
+  "lifecycleChecks": {
+    "disableAndReenable": "Recorded disabled -> enabled transition with empty outline errors; harness asserts installed package file hashes unchanged during disable.",
+    "remove": "Harness asserts package directory ENOENT, registry absent and contribution gone; outline-lifecycle finalRecord is null.",
+    "edits": [
+      {
+        "label": "outline-disabled-edit-undo-save",
+        "mode": "source",
+        "version": 2,
+        "savedVersion": 2,
+        "dirty": false,
+        "sourceSHA256": "4a5112399a0afcf9b634076263034d79cf1248d3388d3585cd0551a65bb16b41"
+      },
+      {
+        "label": "outline-removed-edit-undo-save",
+        "mode": "source",
+        "version": 4,
+        "savedVersion": 4,
+        "dirty": false,
+        "sourceSHA256": "4a5112399a0afcf9b634076263034d79cf1248d3388d3585cd0551a65bb16b41"
+      }
+    ],
+    "sourceBytes": 231,
+    "sourceUtf16": 178
+  },
+  "cleanup": {
+    "observedApp": {
+      "pid": 156532,
+      "parent": 156505,
+      "group": 156490,
+      "birth": "9994745",
+      "state": "S",
+      "exitCodeRaw": "0"
+    },
+    "afterAppClose": null,
+    "remainingOwnedAppWindows": [],
+    "outputHelpersObserved": 0,
+    "boundary": "No independent Worker PID or per-plugin heap/handler resource teardown measured. Empty output-helper sample does not prove Worker cleanup."
+  },
+  "notCovered": [
+    "Live-mode outline indexing and lifecycle on fixture",
+    "All plugins off",
+    "Outline explicit permission approval",
+    "Upgrade rollback or permission delta",
+    "Diagram rendering or output fidelity",
+    "Other windows/themes/zoom levels"
+  ]
+}

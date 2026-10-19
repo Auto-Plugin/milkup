@@ -88,6 +88,37 @@ const activation = {
   hostCapabilities: [],
 }
 describe('bounded document render isolation', () => {
+  it('preserves preparation readiness through module validation and the RPC transport', async () => {
+    const endpoints = pair()
+    let ready = false
+    const host = createPluginModuleIsolationHost({
+      manifest,
+      module: {
+        documentRenderers: {
+          test: () => (ready ? output() : { fragments: [], complete: false, pending: true }),
+        },
+      },
+    })
+    await host.activate(activation)
+    const server = createDocumentRenderRpcServer(endpoints.worker, host)
+    const timeout = vi.fn()
+    const client = createDocumentRenderRpcClient(endpoints.main, timeout)
+    try {
+      expect(await client.render(payload())).toEqual({
+        fragments: [],
+        complete: false,
+        pending: true,
+      })
+      ready = true
+      expect(await client.render(payload())).toEqual(output())
+      expect(timeout).not.toHaveBeenCalled()
+    } finally {
+      client.dispose()
+      server.dispose()
+      await host.deactivate({ pluginId: manifest.id })
+    }
+  })
+
   it('roundtrips through a declared provider and rejects late completion after deactivate', async () => {
     let finish!: () => void
     const host = createPluginModuleIsolationHost({

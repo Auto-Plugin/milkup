@@ -1,0 +1,1254 @@
+// P6 first checkpoint: real installation/rejection/lifecycle and cold output.
+// Copied from the verified P5 harness; no upgrade/rollback/permission-delta claims.
+// Required: frozen TAURI_APP_PATH / MILKUP_NATIVE_EXPECTED_BINARY_SHA256,
+// MILKUP_NATIVE_EVIDENCE_DIR; MILKUP_P6_CASE=outline|reject|cold-output|cold-edit|manager-matrix|all-off|all-off-windowed.
+// MILKUP_P6_FORMAT=html|pdf-a4|pdf-letter|print-to-file (cold cases).
+// MILKUP_P6_EXTRA_PACKAGES_JSON=[{id,path,sha256,version}]: official outline
+// 1.3.1 required; cold cases also require independent footnotes 1.0.1.
+// P5 output and diagram archive defaults remain pinned; override path/hash/version together.
+// Runtime: exclusive display/profile/driver env, MILKUP_P6_BINARY_CONFIRMED=1,
+// MILKUP_DOM_DIAGNOSTICS=1, MILKUP_P6_NATIVE_LOG=<owned run stderr>.
+// --preflight writes fixture/plan/candidates but never starts app, builds or installs.
+import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
+import { mkdir, readFile, writeFile, realpath, access, readdir } from 'node:fs/promises'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { startProduction } from '../helpers/native-production.mjs'
+import { ownNativeClipboard } from '../helpers/native-clipboard.mjs'
+import { nativeFixture, action, x } from '../helpers/native-updates-fixture.mjs'
+import { outputProcessEvidence } from './p5-output-process.mjs'
+
+const required = (key) => (assert(process.env[key], `Set ${key}`), process.env[key])
+const sha = (bytes) => createHash('sha256').update(bytes).digest('hex')
+const output = path.resolve(required('MILKUP_NATIVE_EVIDENCE_DIR'))
+const stage = process.env.MILKUP_P6_CASE || 'outline'
+const cold = stage.startsWith('cold-')
+const format = process.env.MILKUP_P6_FORMAT || 'html'
+const cases = {
+  outline: 'single-r1',
+  reject: 'single-r1',
+  'manager-matrix': 'single-r1',
+  'all-off': 'single-r1',
+  'all-off-windowed': 'single-r1',
+  'cold-output': 'print04-regression',
+  'cold-edit': 'print04-regression',
+}
+assert(Object.hasOwn(cases, stage), 'Known P6 first-checkpoint case')
+const fixtureRoot = path.resolve(
+  process.env.MILKUP_P6_FIXTURES ||
+    fileURLToPath(new URL('../fixtures/p5-output/milestone06/', import.meta.url)),
+)
+const manifest = JSON.parse(await readFile(path.join(fixtureRoot, 'manifest.json'), 'utf8'))
+const settings = manifest.formats.find((item) => item.id === format)
+assert(settings, 'Known M06 format')
+async function fixture(id) {
+  const spec = manifest.fixtures.find((item) => item.id === id)
+  assert(spec, id)
+  const bytes = await readFile(path.join(fixtureRoot, spec.file))
+  assert.equal(sha(bytes), spec.sourceSHA256, 'Frozen fixture ' + id)
+  return { spec, bytes }
+}
+async function archive(key, id, version) {
+  const file = await realpath(required(key)),
+    bytes = await readFile(file)
+  assert.equal(sha(bytes), required(key + '_SHA256'))
+  const bundle = JSON.parse(bytes)
+  assert.equal(bundle.manifest.id, id)
+  assert.equal(bundle.manifest.version, version)
+  assert(!file.startsWith(path.resolve('plugins') + path.sep), 'Independent package required')
+  return { file, sha256: sha(bytes), manifest: bundle.manifest }
+}
+const extra = JSON.parse(required('MILKUP_P6_EXTRA_PACKAGES_JSON'))
+assert(Array.isArray(extra) && extra.length <= 2, 'Only reviewed outline/footnotes extras')
+const packages = []
+for (const item of extra) {
+  assert(['milkup.outline', 'milkup.footnotes'].includes(item.id))
+  assert.equal(item.version, item.id === 'milkup.outline' ? '1.3.1' : '1.0.1')
+  const file = await realpath(item.path),
+    bytes = await readFile(file),
+    bundle = JSON.parse(bytes)
+  assert.equal(sha(bytes), item.sha256)
+  assert.equal(bundle.manifest.id, item.id)
+  assert.equal(bundle.manifest.version, item.version)
+  assert(!file.startsWith(path.resolve('plugins') + path.sep), 'Independent extra archive')
+  packages.push({ file, sha256: sha(bytes), manifest: bundle.manifest })
+}
+assert.equal(
+  new Set(packages.map((p) => p.manifest.id)).size,
+  packages.length,
+  'No duplicate extras',
+)
+assert(
+  packages.some((p) => p.manifest.id === 'milkup.outline'),
+  'Official outline required',
+)
+if (cold) {
+  assert(
+    packages.some((p) => p.manifest.id === 'milkup.footnotes'),
+    'Independent footnotes 1.0.1 required',
+  )
+  const defaults = {
+    MILKUP_P5_ARCHIVE:
+      '/workspace/milkup-export-print-evidence/milestone01/plugin/action-id-fix-external/dist/milkup.export-print-1.0.0.milkup-plugin',
+    MILKUP_P5_ARCHIVE_SHA256: '08cd8532ecd209f4794f88de1880e06c16c586ae2997e326450687e1be2181b9',
+    MILKUP_P5M6_DIAGRAM_ARCHIVE:
+      '/workspace/milkup-mermaid-engine-evidence/research/renderer-exact-memo-product-integration-01/artifacts/milkup.diagrams-1.1.1.milkup-plugin',
+    MILKUP_P5M6_DIAGRAM_ARCHIVE_SHA256:
+      '2351692438a2083a72bcb8cddce28c7a530a8557734926992a3a2e3120c68a19',
+    MILKUP_P5M6_DIAGRAM_VERSION: '1.1.1',
+  }
+  for (const key of ['MILKUP_P5_ARCHIVE', 'MILKUP_P5M6_DIAGRAM_ARCHIVE'])
+    if (process.env[key]) assert(process.env[key + '_SHA256'], 'Override archive and SHA together')
+  if (process.env.MILKUP_P5M6_DIAGRAM_ARCHIVE) required('MILKUP_P5M6_DIAGRAM_VERSION')
+  for (const [key, value] of Object.entries(defaults)) process.env[key] ??= value
+  packages.push(
+    await archive('MILKUP_P5_ARCHIVE', 'milkup.export-print', '1.0.0'),
+    await archive(
+      'MILKUP_P5M6_DIAGRAM_ARCHIVE',
+      'milkup.diagrams',
+      required('MILKUP_P5M6_DIAGRAM_VERSION'),
+    ),
+  )
+}
+const binary = await realpath(required('TAURI_APP_PATH'))
+assert(!binary.includes('/target/'), 'Frozen binary copy required')
+assert.equal(sha(await readFile(binary)), required('MILKUP_NATIVE_EXPECTED_BINARY_SHA256'))
+await mkdir(output, { recursive: true })
+// Exclusive creation protects previous successes AND failures from accidental rerun.
+await writeFile(path.join(output, 'p6-run.lock'), new Date().toISOString(), { flag: 'wx' })
+let current = await fixture(cases[stage])
+if (stage === 'all-off-windowed') {
+  // Exact existing P5 large-stage recipe; save checks cover the entire document.
+  const base = await readFile(new URL('../fixtures/p5-output/rich-document.md', import.meta.url))
+  const bytes = Buffer.from(
+    base.toString('utf8') + '\n\n大文档中文行 P5-LARGE-LINE\n'.repeat(60000),
+  )
+  current = {
+    bytes,
+    spec: {
+      id: 'p5-large-native',
+      fixtureRevision: 'p5-large-native-60000',
+      sourceSHA256: sha(bytes),
+      sourceBytes: bytes.length,
+      sourceUtf16: bytes.toString('utf8').length,
+      sourceLines: bytes.toString('utf8').split('\n').length,
+      baseSHA256: sha(base),
+      repeats: 60000,
+    },
+  }
+}
+const sourcePath = path.join(output, 'source.md'),
+  launcher = path.join(output, 'launcher.md')
+await writeFile(sourcePath, current.bytes, { flag: 'wx' })
+await writeFile(launcher, '# P6 plugin installation\n', { flag: 'wx' })
+for (const resource of manifest.resources || []) {
+  const from = path.resolve(fixtureRoot, resource.file),
+    to = path.resolve(output, resource.file)
+  assert(
+    from.startsWith(fixtureRoot + path.sep) && to.startsWith(output + path.sep),
+    'Fixture resource stays within owned roots',
+  )
+  const bytes = await readFile(from)
+  assert.equal(sha(bytes), resource.sha256, 'Frozen fixture resource')
+  await mkdir(path.dirname(to), { recursive: true })
+  await writeFile(to, bytes, { flag: 'wx' })
+}
+const json = (name, value) =>
+  writeFile(path.join(output, name + '.json'), JSON.stringify(value, null, 2) + '\n')
+const outlinePackage = packages.find((p) => p.manifest.id === 'milkup.outline')
+const rejectedCandidates = []
+if (stage === 'reject') {
+  const base = JSON.parse(await readFile(outlinePackage.file, 'utf8'))
+  const variants = [
+    ['malformed-json', '{"format":'],
+    [
+      'path-conflict',
+      (() => {
+        const p = structuredClone(base)
+        p.files.push({ path: 'dist', encoding: 'utf8', content: 'conflicting file ancestor' })
+        return JSON.stringify(p)
+      })(),
+    ],
+    [
+      'invalid-base64',
+      (() => {
+        const p = structuredClone(base)
+        p.files[0] = { ...p.files[0], encoding: 'base64', content: '%%%not-base64%%%' }
+        return JSON.stringify(p)
+      })(),
+    ],
+    [
+      'incompatible-sdk',
+      (() => {
+        const p = structuredClone(base)
+        p.manifest.version = '1.3.2'
+        p.manifest.engines.pluginSdk = '>=999.0.0 <1000.0.0'
+        return JSON.stringify(p)
+      })(),
+    ],
+  ]
+  for (const [name, bytes] of variants) {
+    const file = path.join(output, name + '.milkup-plugin')
+    await writeFile(file, bytes, { flag: 'wx' })
+    rejectedCandidates.push({ name, file, sha256: sha(bytes) })
+  }
+}
+const plan = {
+  stage,
+  format,
+  basedOn: {
+    file: 'tests/native/tauri-p5-diagrams-output.mjs',
+    sha256: sha(await readFile(new URL('./tauri-p5-diagrams-output.mjs', import.meta.url))),
+  },
+  binary,
+  binarySha256: sha(await readFile(binary)),
+  packages,
+  rejectedCandidates,
+  fixture: current.spec,
+  sourcePath,
+  fixtureManifestSha256: sha(await readFile(path.join(fixtureRoot, 'manifest.json'))),
+  preparedOnly: process.argv.includes('--preflight'),
+  memoryMeasurement: 'not sampled; preload memory increment is unknown',
+  nativeLog: process.env.MILKUP_P6_NATIVE_LOG ?? null,
+  boundaries: [
+    'No renderer deadline/isolation changes; existing 2s budget remains.',
+    'First output is not proof of first render: the editor may pre-render.',
+    'Upgrade rollback and permission-delta transactions are outside this first checkpoint; never simulate them with registry mutation.',
+    'PDF raster is retained for separate visual review; text presence never proves a diagram.',
+    'Cold cases do not run a renderer warmup; editor pre-rendering remains observable and is not called a first-render guarantee.',
+  ],
+}
+await json('plan', plan)
+await writeFile(
+  path.join(output, 'harness.mjs.txt'),
+  await readFile(fileURLToPath(import.meta.url)),
+)
+if (plan.preparedOnly) {
+  console.log('P6 PREPARED; no application or driver started')
+  process.exit(0)
+}
+assert.equal(required('MILKUP_P6_BINARY_CONFIRMED'), '1')
+assert.equal(required('MILKUP_NATIVE_EXCLUSIVE_DISPLAY'), '1')
+assert.equal(required('MILKUP_DOM_DIAGNOSTICS'), '1')
+required('DISPLAY')
+required('TAURI_DRIVER_URL')
+const profile = path.resolve(required('MILKUP_NATIVE_PROFILE_ROOT'))
+for (const key of ['XDG_DATA_HOME', 'XDG_CONFIG_HOME', 'XDG_CACHE_HOME'])
+  assert(path.resolve(required(key)).startsWith(profile + path.sep), key)
+const nativeLog = path.resolve(required('MILKUP_P6_NATIVE_LOG'))
+await access(nativeLog)
+let app,
+  lifecycle,
+  completed = false
+const ui = nativeFixture(() => app),
+  rows = []
+const panel = '[data-plugin-ui="milkup.export-print:export-print-panel"]'
+const command = (name) => `${panel} [data-plugin-command="exportPrint.${name}"]`
+const panelText = () =>
+  app.execute('return document.querySelector(arguments[0])?.textContent ?? ""', panel)
+async function traces() {
+  const raw = await readFile(nativeLog, 'utf8')
+  await writeFile(path.join(output, 'native-timing.log'), raw)
+  return raw.split('\n').flatMap((line) => {
+    const i = line.indexOf('DOM_NATIVE_TIMING ')
+    if (i < 0) return []
+    try {
+      return [JSON.parse(line.slice(i + 18))]
+    } catch {
+      return []
+    }
+  })
+}
+async function observe(name, extra = {}) {
+  const sourceBytes = await readFile(sourcePath)
+  const row = {
+    name,
+    at: new Date().toISOString(),
+    fixtureRevision: current.spec.fixtureRevision,
+    sourceSha256: sha(sourceBytes),
+    sourceBytes: sourceBytes.length,
+    sourceUtf16: sourceBytes.toString('utf8').length,
+    document: await app.probe(),
+    panel: await panelText(),
+    statuses: await app.execute(
+      'return [...document.querySelectorAll(arguments[0]+" [role=status],"+arguments[0]+" [role=alert]")].map(e=>e.textContent)',
+      panel,
+    ),
+    registry: await app.execute(
+      'return JSON.parse(localStorage.getItem("milkup.desktop.plugins.registry.v1")||"{\\"records\\":[]}").records.map(r=>({id:r.manifest.id,version:r.manifest.version,state:r.state,enabled:r.enabled,sourcePath:r.sourcePath,rootPath:r.rootPath,manifestPath:r.manifestPath,approvals:r.approvals,errors:r.errors}))',
+    ),
+    renderDom: await app.execute(
+      'return {editor:document.querySelector(".milkup-editor")?.dataset,nativeWindowed:!!document.querySelector(".milkup-source-document-view"),svgCount:document.querySelectorAll(".milkup-editor svg").length,notice:document.querySelector("[data-notice]")?.textContent}',
+    ),
+    ...extra,
+  }
+  rows.push(row)
+  await json('observations', rows)
+  await traces()
+  return row
+}
+async function click(selector) {
+  await app.focus(selector)
+  const r = await app.execute(
+    'const e=document.querySelector(arguments[0]),r=e.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2,w:innerWidth,h:innerHeight,hit:e.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)),disabled:e.disabled}',
+    selector,
+  )
+  assert(
+    !r.disabled && r.hit && r.x > 0 && r.y > 0 && r.x < r.w && r.y < r.h,
+    'Visible native target ' + selector,
+  )
+  const win = ui.windowId(),
+    scale = Number(/WIDTH=(\d+)/.exec(x('getwindowgeometry', '--shell', win))[1]) / r.w
+  x(
+    'windowfocus',
+    '--sync',
+    win,
+    'mousemove',
+    '--window',
+    win,
+    String(Math.round(r.x * scale)),
+    String(Math.round(r.y * scale)),
+    'click',
+    '1',
+  )
+}
+function windowNamed(title) {
+  try {
+    return x('search', '--onlyvisible', '--name', '^' + title + '$')
+      .split('\n')
+      .at(-1)
+  } catch {
+    return null
+  }
+}
+async function dialog(title) {
+  const win = await app.until(
+    async () => {
+      const error = await app.execute(
+        'return document.querySelector(arguments[0]+" [role=alert]")?.textContent',
+        panel,
+      )
+      if (error) throw Error(error)
+      return windowNamed(title)
+    },
+    title,
+    45000,
+  )
+  x('windowfocus', '--sync', win)
+  await lifecycle.sample('dialog-' + title)
+  return win
+}
+function assertImplicitReadOnlyApproval(manifest, record) {
+  assert.equal(manifest.host, 'worker', 'Only an explicitly declared Worker may omit approval')
+  assert(
+    (manifest.permissions ?? []).every((permission) => permission === 'document:read'),
+    'Only document:read or empty permissions may omit approval',
+  )
+  assert(record?.approvals?.hosts?.includes('worker'), 'Registry must already approve Worker host')
+}
+async function install(pkg) {
+  const id = pkg.manifest.id
+  await ui.list()
+  if (await ui.exists(action('details', id))) {
+    await ui.details(id)
+    if (await ui.exists(action('disable', id))) await ui.click(action('disable', id))
+    await ui.click(action('remove', id))
+    await app.until(
+      () =>
+        app.execute(
+          'return !JSON.parse(localStorage.getItem("milkup.desktop.plugins.registry.v1")||"null")?.records.some(r=>r.manifest.id===arguments[0])',
+          id,
+        ),
+      'removed bundled ' + id,
+    )
+  }
+  await ui.list()
+  await ui.click('[data-plugin-action="install"]')
+  await ui.picker(pkg.file)
+  await app.until(
+    () =>
+      app.execute(
+        'return JSON.parse(localStorage.getItem("milkup.desktop.plugins.registry.v1")||"null")?.records.some(r=>r.manifest.id===arguments[0]&&r.sourcePath===arguments[1]&&r.manifest.version===arguments[2])',
+        id,
+        pkg.file,
+        pkg.manifest.version,
+      ),
+    'installed ' + id,
+    30000,
+  )
+  await ui.details(id)
+  const explicitApprovalRequired = await ui.exists(action('approve', id))
+  if (!explicitApprovalRequired) {
+    const record = await app.execute(
+      'return JSON.parse(localStorage.getItem("milkup.desktop.plugins.registry.v1")||"null")?.records.find(r=>r.manifest.id===arguments[0]) ?? null',
+      id,
+    )
+    assertImplicitReadOnlyApproval(pkg.manifest, record)
+    await ui.ready(action('enable', id))
+  } else await ui.ready(action('approve', id))
+  await observe('installed-permission-review-' + id, { explicitApprovalRequired })
+  if (explicitApprovalRequired) await ui.click(action('approve', id))
+  await ui.click(action('enable', id))
+  await ui.ready(action('disable', id))
+  const state = await observe('enabled-' + id)
+  assert(
+    state.registry.some(
+      (r) =>
+        r.id === id &&
+        r.version === pkg.manifest.version &&
+        r.sourcePath === pkg.file &&
+        r.state === 'enabled',
+    ),
+  )
+}
+async function openPanel() {
+  await ui.closeMenu()
+  if (
+    !(await app.execute(
+      'return document.querySelector("[data-sidebar-toggle]")?.getAttribute("aria-pressed")==="true"',
+    ))
+  )
+    await ui.click('[data-sidebar-toggle]')
+  await app.until(
+    () => app.execute('return document.querySelector("#app")?.dataset.sidebarCollapsed==="false"'),
+    'sidebar open',
+  )
+  const toggle = panel + ' .plugin-ui-panel-toggle'
+  await ui.ready(toggle)
+  if (
+    await app.execute(
+      'return document.querySelector(arguments[0])?.getAttribute("aria-expanded")==="false"',
+      toggle,
+    )
+  )
+    await ui.click(toggle)
+}
+async function field(key, value) {
+  const selector = `${panel} [data-plugin-field-control="${key}"]`
+  await ui.ready(selector)
+  await app.focus(selector)
+  const options = await app.execute(
+    'return [...document.querySelector(arguments[0]).options].map(o=>o.value)',
+    selector,
+  )
+  const n = options.indexOf(value)
+  assert(n >= 0)
+  await app.key('Home')
+  for (let i = 0; i < n; i++) await app.key('Down')
+  await app.key('Tab')
+  assert.equal(
+    await app.execute('return document.querySelector(arguments[0]).value', selector),
+    value,
+  )
+}
+async function saveDialog(file, win) {
+  x('windowfocus', '--sync', win, 'key', '--clearmodifiers', 'ctrl+l')
+  await app.delay(150)
+  x('key', '--clearmodifiers', 'ctrl+a')
+  x('type', '--clearmodifiers', '--delay', '2', '--', file)
+  await app.delay(250)
+  x('key', '--clearmodifiers', 'Tab')
+  await app.delay(150)
+  execFileSync('import', ['-window', win, file + '.chooser.png'])
+  const geometry = x('getwindowgeometry', '--shell', win)
+  x(
+    'mousemove',
+    '--window',
+    win,
+    String(Number(/WIDTH=(\d+)/.exec(geometry)[1]) - 50),
+    String(Number(/HEIGHT=(\d+)/.exec(geometry)[1]) - 24),
+    'click',
+    '1',
+  )
+}
+async function printFile(file) {
+  const win = await dialog('Print document')
+  execFileSync('import', [
+    '-window',
+    win,
+    path.join(output, 'print-dialog-' + path.basename(file) + '.png'),
+  ])
+  x('mousemove', '--window', win, '110', '87', 'click', '1')
+  await app.delay(500)
+  x('mousemove', '--window', win, '164', '294', 'click', '1')
+  const pid = x('getwindowpid', win)
+  const picker = await app.until(() => {
+    try {
+      return x('search', '--onlyvisible', '--pid', pid)
+        .split('\n')
+        .filter((id) => id !== win)
+        .at(-1)
+    } catch {
+      return null
+    }
+  }, 'GTK print filename chooser')
+  // GTK's print filename chooser completes the path on Tab; a same-prefix
+  // evidence PNG can otherwise replace the requested PDF name. Use the proven
+  // print-only Enter sequence and keep screenshots outside the target prefix.
+  x('windowfocus', '--sync', picker, 'key', '--clearmodifiers', 'ctrl+l')
+  await app.delay(150)
+  x('key', '--clearmodifiers', 'ctrl+a')
+  x('type', '--clearmodifiers', '--delay', '2', '--', file)
+  execFileSync('import', [
+    '-window',
+    picker,
+    path.join(output, 'print-target-' + path.basename(file) + '.png'),
+  ])
+  x('key', '--clearmodifiers', 'Return')
+  await app.until(
+    () => !x('search', '--onlyvisible', '--pid', pid).split('\n').includes(picker),
+    'print filename selected',
+  )
+  x('windowfocus', '--sync', win)
+  execFileSync('import', [
+    '-window',
+    win,
+    path.join(output, 'print-selected-' + path.basename(file) + '.png'),
+  ])
+  const geometry = x('getwindowgeometry', '--shell', win)
+  x(
+    'mousemove',
+    '--window',
+    win,
+    String(Number(/WIDTH=(\d+)/.exec(geometry)[1]) - 55),
+    String(Number(/HEIGHT=(\d+)/.exec(geometry)[1]) - 29),
+    'click',
+    '1',
+  )
+}
+const xmlText = (s) =>
+  s.replace(/&(#x[\da-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (_, entity) => {
+    if (entity[0] === '#')
+      return String.fromCodePoint(
+        Number.parseInt(
+          entity.slice(entity[1].toLowerCase() === 'x' ? 2 : 1),
+          entity[1].toLowerCase() === 'x' ? 16 : 10,
+        ),
+      )
+    return { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" }[entity.toLowerCase()]
+  })
+function htmlGeometry(html) {
+  const svgs = [...html.matchAll(/<svg\b[\s\S]*?<\/svg>/gi)].map((m) => m[0])
+  assert.equal(svgs.length, current.spec.diagrams.length, 'Actual diagram SVG count')
+  const allIds = svgs.flatMap((svg) =>
+    [...svg.matchAll(/\bid="([^"]+)"/g)].map((m) => xmlText(m[1])),
+  )
+  assert.equal(new Set(allIds).size, allIds.length, 'SVG IDs unique across all diagrams')
+  assert(!/<script\b|<iframe\b|<foreignObject\b|\bon(?:load|error)=/i.test(html), 'Inert export')
+  assert(!html.includes('flowchart LR'), 'No Mermaid source fallback')
+  return svgs.map((svg, i) => {
+    const ids = new Set([...svg.matchAll(/\bid="([^"]+)"/g)].map((m) => xmlText(m[1])))
+    const localRefs = [
+      ...svg.matchAll(/url\(["']?#([^\s)"']+)["']?\)/g),
+      ...svg.matchAll(/(?:href|xlink:href)="#([^"]+)"/g),
+    ]
+    for (const ref of localRefs)
+      assert(ids.has(xmlText(ref[1])), 'SVG local URL/href reference resolves within diagram')
+    const visibleText = xmlText(
+      svg.replace(/<style\b[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' '),
+    ).replace(/\s+/g, ' ')
+    for (const label of current.spec.diagrams[i].nodeLabels)
+      assert(
+        visibleText.includes(label.replace(/\s+/g, ' ')),
+        'Label in actual SVG, supplementary to geometry: ' + label,
+      )
+    const viewBox = /\bviewBox="([^"]+)"/
+      .exec(svg)?.[1]
+      .trim()
+      .split(/[\s,]+/)
+      .map(Number)
+    const paths = [...svg.matchAll(/<path\b[^>]*\bd="([^"]+)"/g)].filter((m) =>
+      /[MLCQ]/i.test(m[1]),
+    )
+    const arrows = [...svg.matchAll(/\bmarker-(?:end|start)="url\(#([^\)]+)\)"/g)]
+    const shapes = (svg.match(/<(?:rect|polygon|ellipse|circle)\b/g) || []).length
+    assert(
+      viewBox?.length === 4 && viewBox.every(Number.isFinite) && viewBox[2] > 0 && viewBox[3] > 0,
+      'Positive diagram viewBox',
+    )
+    assert(
+      paths.length >= current.spec.diagrams[i].edgeCount &&
+        shapes >= current.spec.diagrams[i].nodeCount,
+      'Diagram has real edge paths and node geometry',
+    )
+    assert(arrows.length >= current.spec.diagrams[i].edgeCount, 'Actual edge arrow references')
+    for (const ref of arrows)
+      assert(svg.includes(`id="${ref[1]}"`), 'Arrow marker resolves in same SVG')
+    return {
+      viewBox,
+      paths: paths.length,
+      shapes,
+      arrowReferences: arrows.length,
+      svgSha256: sha(svg),
+    }
+  })
+}
+const markerCount = (text, marker) =>
+  (
+    text.match(
+      new RegExp(
+        '(?<![A-Za-z0-9_-])' + marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![A-Za-z0-9_-])',
+        'g',
+      ),
+    ) || []
+  ).length
+async function artifact(file) {
+  const bytes = await readFile(file),
+    result = {
+      file,
+      sha256: sha(bytes),
+      bytes: bytes.length,
+      visualReview: 'pending independent review',
+    }
+  if (format === 'html') {
+    const html = bytes.toString('utf8')
+    result.diagrams = htmlGeometry(html)
+    const footnoteLinks = [...html.matchAll(/href="#source-(\d+)"/g)]
+    assert(footnoteLinks.length >= 2, 'Cold footnote forward/back links are actual anchors')
+    for (const link of footnoteLinks)
+      assert(html.includes(`id="source-${link[1]}"`), 'Footnote destination resolves')
+    assert(!html.includes('[^p5]'), 'No raw footnote source fallback')
+    assert((html.match(/<math\b/g) || []).length >= 2, 'Original inline and display math retained')
+    const images = [...html.matchAll(/data:image\/png;base64,([A-Za-z0-9+/=]+)/g)]
+    assert(
+      images.some((m) => sha(Buffer.from(m[1], 'base64')) === manifest.resources[0].sha256),
+      'Original supported local PNG embedded',
+    )
+    result.footnoteLinks = footnoteLinks.length
+    for (const marker of current.spec.bodyMarkersExactlyOnce)
+      assert.equal(markerCount(html, marker), 1, marker)
+    for (const marker of current.spec.forbiddenRevisionMarkers || [])
+      assert(!html.includes(marker), 'No stale revision ' + marker)
+  } else {
+    assert(
+      bytes.subarray(0, 5).equals(Buffer.from('%PDF-')) &&
+        bytes.subarray(-1024).includes(Buffer.from('%%EOF')),
+    )
+    const info = execFileSync('pdfinfo', [file], { encoding: 'utf8' })
+    await writeFile(file + '.info.txt', info)
+    const dimensions = /^Page size:\s+([\d.]+) x ([\d.]+)/m.exec(info),
+      expected = settings.landscape ? [792, 612] : [595.28, 841.89]
+    assert(
+      dimensions && expected.every((v, i) => Math.abs(v - Number(dimensions[i + 1])) < 2),
+      'Actual paper size',
+    )
+    execFileSync('pdftoppm', ['-png', '-r', '96', file, file + '.page'], { timeout: 180000 })
+    const extracted = execFileSync('pdftotext', ['-layout', file, '-'], { encoding: 'utf8' })
+    await writeFile(file + '.text.txt', extracted)
+    // These ASCII body/revision checks are independent of diagram/pixel fidelity.
+    for (const marker of current.spec.bodyMarkersExactlyOnce)
+      assert.equal(markerCount(extracted, marker), 1, marker)
+    for (const marker of current.spec.forbiddenRevisionMarkers || [])
+      assert(!extracted.includes(marker), 'No stale revision ' + marker)
+    result.diagramFidelity =
+      'NOT_ASSERTED: inspect all page rasters; extracted labels are not diagram evidence'
+  }
+  await json(path.basename(file) + '.artifact', result)
+  return result
+}
+async function begin() {
+  const before = await observe('before-output'),
+    traceStart = (await traces()).length,
+    started = Date.now()
+  await lifecycle.sample('before-output')
+  await click((await ui.exists(command('retry'))) ? command('retry') : command('start'))
+  return { before, traceStart, started }
+}
+async function exportOnce(name) {
+  const start = await begin(),
+    file = path.join(output, name + (format === 'html' ? '.html' : '.pdf'))
+  if (format === 'print-to-file') await printFile(file)
+  else await saveDialog(file, await dialog('Choose output destination'))
+  await app.until(
+    async () => {
+      const error = await app.execute(
+        'return document.querySelector(arguments[0]+" [role=alert]")?.textContent',
+        panel,
+      )
+      if (error) throw Error(error)
+      return /已保存|已提交打印/.test(await panelText())
+    },
+    'output committed',
+    180000,
+  )
+  await lifecycle.released(name)
+  const after = await observe(name, {
+    elapsedMs: Date.now() - start.started,
+    artifact: await artifact(file),
+    traces: (await traces()).slice(start.traceStart),
+  })
+  assert.equal(after.sourceSha256, current.spec.sourceSHA256)
+  assert.match(
+    after.panel,
+    new RegExp(`版本 ${start.before.document.version} ·`),
+    'Visible captured version',
+  )
+  assert.equal(after.document.version, start.before.document.version, 'No edits during output')
+  await app.shot(name)
+}
+const outlineId = 'milkup.outline'
+const outlinePanel = '[data-plugin-ui="milkup.outline:outline-panel"]'
+const rawRecord = () =>
+  app.execute(
+    'return JSON.parse(localStorage.getItem("milkup.desktop.plugins.registry.v1")||"null")?.records.find(r=>r.manifest.id===arguments[0]) ?? null',
+    outlineId,
+  )
+async function packageFiles(record) {
+  const root = await realpath(record.rootPath)
+  assert(root.startsWith(profile + path.sep), 'Only inspect this owned profile package')
+  const files = []
+  async function walk(dir) {
+    for (const entry of await readdir(dir, { withFileTypes: true })) {
+      const file = path.join(dir, entry.name)
+      assert(!entry.isSymbolicLink(), 'Installed package tree must not contain links')
+      if (entry.isDirectory()) await walk(file)
+      else if (entry.isFile()) {
+        const bytes = await readFile(file)
+        files.push({ path: path.relative(root, file), bytes: bytes.length, sha256: sha(bytes) })
+      }
+    }
+  }
+  await walk(root)
+  return files.sort((a, b) => a.path.localeCompare(b.path))
+}
+async function savedOriginalEdit(label) {
+  await ui.closeMenu()
+  await app.focus('.milkup-input-proxy')
+  await app.key('ctrl+1')
+  await app.until(async () => (await app.probe()).mode === 'source', 'source editing mode')
+  await app.focus('.milkup-input-proxy')
+  await app.key('ctrl+Home')
+  await app.text('X')
+  await app.until(
+    async () => (await app.probe()).dirty && (await app.probe()).cursor === 1,
+    'one real edit',
+  )
+  await app.key('ctrl+z')
+  await app.key('ctrl+s')
+  await app.until(
+    async () =>
+      !(await app.probe()).dirty && sha(await readFile(sourcePath)) === current.spec.sourceSHA256,
+    'exact original restored',
+  )
+  await observe(label + '-edit-undo-save')
+}
+async function outlineVisible() {
+  await ui.closeMenu()
+  if (
+    !(await app.execute(
+      'return document.querySelector("[data-sidebar-toggle]")?.getAttribute("aria-pressed")==="true"',
+    ))
+  )
+    await ui.click('[data-sidebar-toggle]')
+  await app.until(
+    () =>
+      app.execute(
+        'return !!document.querySelector(arguments[0]) && document.querySelectorAll(arguments[0]+" .plugin-list-item").length>0',
+        outlinePanel,
+      ),
+    'independent outline indexed',
+  )
+}
+async function outlineLifecycle() {
+  await outlineVisible()
+  await observe('outline-live')
+  await app.shot('outline-live')
+  const installed = await rawRecord(),
+    files = await packageFiles(installed)
+  await json('outline-installed', { record: installed, files })
+  await ui.details(outlineId)
+  await ui.click(action('disable', outlineId))
+  await app.until(async () => {
+    const r = await rawRecord()
+    return r.state === 'disabled' && !r.enabled && !(await ui.exists(outlinePanel))
+  }, 'outline disabled and panel removed')
+  assert.deepEqual(
+    await packageFiles(await rawRecord()),
+    files,
+    'Disable preserves installed files',
+  )
+  await savedOriginalEdit('outline-disabled')
+  await ui.details(outlineId)
+  await ui.click(action('enable', outlineId))
+  await ui.ready(action('disable', outlineId))
+  await outlineVisible()
+  await observe('outline-reenabled')
+  await ui.details(outlineId)
+  await ui.click(action('remove', outlineId))
+  await app.until(
+    async () => !(await rawRecord()) && !(await ui.exists(outlinePanel)),
+    'outline removed from registry and UI',
+  )
+  await app.until(async () => {
+    try {
+      await access(installed.rootPath)
+      return false
+    } catch (error) {
+      if (error.code === 'ENOENT') return true
+      throw error
+    }
+  }, 'installed package removed from disk')
+  await savedOriginalEdit('outline-removed')
+  await app.shot('outline-removed')
+  await json('outline-lifecycle', {
+    passed: true,
+    initialFiles: files,
+    finalRecord: await rawRecord(),
+    sourceSha256: sha(await readFile(sourcePath)),
+    workerProcessCleanup:
+      'Worker has no separate OS PID; this case asserts contribution removal, package removal and host editing only',
+  })
+}
+async function rejectCandidates() {
+  const original = await rawRecord(),
+    files = await packageFiles(original)
+  await json('reject-baseline', {
+    record: original,
+    files,
+    sourceSha256: sha(await readFile(sourcePath)),
+  })
+  for (const candidate of rejectedCandidates) {
+    await ui.list()
+    await ui.click('[data-plugin-action="install"]')
+    await ui.picker(candidate.file)
+    await app.until(
+      () =>
+        app.execute(
+          'return [...document.querySelectorAll(".plugin-errors")].some(e=>e.textContent.includes(arguments[0])&&e.getClientRects().length>0)',
+          candidate.file,
+        ),
+      'visible rejected candidate ' + candidate.name,
+    )
+    assert.deepEqual(
+      await rawRecord(),
+      original,
+      'Rejected candidate preserves full installed registry record',
+    )
+    assert.deepEqual(
+      await packageFiles(await rawRecord()),
+      files,
+      'Rejected candidate preserves installed package bytes',
+    )
+    assert.equal(
+      sha(await readFile(sourcePath)),
+      current.spec.sourceSHA256,
+      'Rejected candidate preserves source',
+    )
+    await observe('rejected-' + candidate.name, {
+      candidate,
+      visibleInstallError: await app.execute(
+        'return document.querySelector("[data-plugin-manager]")?.textContent',
+      ),
+    })
+    await app.shot('rejected-' + candidate.name)
+    await ui.details(outlineId)
+    await ui.ready(action('disable', outlineId))
+  }
+  await savedOriginalEdit('all-rejections')
+  await json('candidate-rejections', {
+    passed: true,
+    candidates: rejectedCandidates,
+    scope: 'Invalid candidates rejected before replacing the original; no upgrade rollback claim',
+  })
+}
+async function editRevision() {
+  const old = current,
+    before = await app.probe()
+  const revise = (text) =>
+    text
+      .replaceAll('P5-', 'P6R2-')
+      .replaceAll('中文输入', '中文更新')
+      .replaceAll('冻结内容', '更新内容')
+  const bytes = Buffer.from(revise(old.bytes.toString('utf8')))
+  const spec = {
+    ...old.spec,
+    fixtureRevision: 'print04-r2-native-edit',
+    sourceSHA256: sha(bytes),
+    sourceBytes: bytes.length,
+    sourceUtf16: bytes.toString('utf8').length,
+    bodyMarkersExactlyOnce: old.spec.bodyMarkersExactlyOnce.map(revise),
+    forbiddenRevisionMarkers: ['P5-'],
+    diagrams: old.spec.diagrams.map((d) => ({ ...d, nodeLabels: d.nodeLabels.map(revise) })),
+  }
+  await writeFile(path.join(output, 'expected-r2.md'), bytes, { flag: 'wx' })
+  await json('r2-expectation', {
+    sourceSHA256: spec.sourceSHA256,
+    sourceBytes: spec.sourceBytes,
+    sourceUtf16: spec.sourceUtf16,
+    derivation:
+      'Original frozen print04 with P5- replaced by P6R2- and two diagram labels updated; actual edit uses X11 clipboard',
+  })
+  await app.focus('.milkup-input-proxy')
+  await app.key('ctrl+1')
+  await app.key('ctrl+a')
+  const release = await ownNativeClipboard(bytes.toString('utf8'))
+  try {
+    await app.key('ctrl+v')
+    await app.until(async () => {
+      const p = await app.probe()
+      return p.dirty && p.cursor === spec.sourceUtf16
+    }, 'native r2 paste settled')
+    await app.key('ctrl+s')
+    await app.until(
+      async () =>
+        !(await app.probe()).dirty && sha(await readFile(sourcePath)) === spec.sourceSHA256,
+      'saved exact r2',
+    )
+  } finally {
+    release()
+  }
+  assert((await app.probe()).version > before.version, 'Observed document version advances')
+  current = { spec, bytes }
+  await observe('edited-r2', { inputMethod: 'native clipboard + Ctrl+V' })
+  await openPanel()
+  await exportOnce('edited-r2')
+}
+async function setTheme(theme) {
+  await ui.details('milkup.preferences')
+  if (await ui.exists(action('approve', 'milkup.preferences')))
+    await ui.click(action('approve', 'milkup.preferences'))
+  if (await ui.exists(action('enable', 'milkup.preferences')))
+    await ui.click(action('enable', 'milkup.preferences'))
+  await ui.click(action('open-ui', 'milkup.preferences'))
+  const preferences = '[data-plugin-ui="milkup.preferences:preferences-panel"]'
+  const selector = preferences + ' [data-plugin-field-control="appearance.theme"]'
+  await ui.ready(selector)
+  await app.focus(selector)
+  const options = await app.execute(
+    'return [...document.querySelector(arguments[0]).options].map(o=>o.value)',
+    selector,
+  )
+  const index = options.indexOf(theme)
+  assert(index >= 0)
+  await app.key('Home')
+  for (let i = 0; i < index; i++) await app.key('Down')
+  await app.key('Tab')
+  await app.until(
+    () =>
+      app.execute(
+        'return document.querySelector(arguments[0])?.value===arguments[1]',
+        selector,
+        theme,
+      ),
+    'theme option applied',
+  )
+  await app.delay(300)
+  await app.focus(preferences + ' button[aria-label="保存"]')
+  await app.key('Return')
+  await app.until(
+    () =>
+      app.execute(
+        'return document.querySelector(arguments[0])?.textContent.includes("偏好已保存")',
+        preferences,
+      ),
+    'theme saved',
+  )
+  await ui.click(preferences + ' .plugin-ui-close')
+  await app.until(
+    () => app.execute('return document.documentElement.dataset.theme===arguments[0]', theme),
+    'theme applied',
+  )
+}
+
+async function disableAll() {
+  const before = await observe('before-disable-all')
+  for (const id of ['milkup.outline', ...packages.map((p) => p.manifest.id)])
+    assert(
+      before.registry.some((r) => r.id === id && r.state === 'enabled'),
+      'Expected enabled test subject ' + id,
+    )
+  const enabled = before.registry.filter((r) => r.state === 'enabled' || r.enabled)
+  for (const item of enabled) {
+    await ui.details(item.id)
+    await ui.click(action('disable', item.id))
+    await app.until(
+      () =>
+        app.execute(
+          'return JSON.parse(localStorage.getItem("milkup.desktop.plugins.registry.v1")||"null")?.records.some(r=>r.manifest.id===arguments[0]&&r.state==="disabled"&&r.enabled===false)',
+          item.id,
+        ),
+      'disabled ' + item.id,
+    )
+    await observe('disabled-' + item.id)
+  }
+  async function inactive(label) {
+    const row = await observe(label)
+    assert.deepEqual(
+      row.registry.map((r) => r.id).sort(),
+      before.registry.map((r) => r.id).sort(),
+      'Installed identities preserved',
+    )
+    assert(
+      row.registry.every((r) => r.enabled === false && r.state !== 'enabled'),
+      'Every installed plugin inactive',
+    )
+    for (const item of enabled)
+      assert.equal(row.registry.find((r) => r.id === item.id).state, 'disabled')
+    assert.equal(
+      await app.execute(
+        'return document.querySelectorAll(\'[data-plugin-ui],[data-plugin-action="command"],[data-plugin-action="open-ui"]\').length',
+      ),
+      0,
+      'No contributed UI or commands remain',
+    )
+    return row
+  }
+  await ui.closeMenu()
+  await inactive('all-plugins-disabled')
+  for (const mode of ['source', 'live']) {
+    await app.focus('.milkup-input-proxy')
+    await app.key(mode === 'source' ? 'ctrl+1' : 'ctrl+2')
+    await app.until(async () => (await app.probe()).mode === mode, mode + ' ready')
+    await app.focus('.milkup-input-proxy')
+    await app.key('ctrl+End')
+    await app.until(
+      async () => (await app.probe()).cursor === current.spec.sourceUtf16,
+      'Full untruncated document reachable',
+    )
+    await app.key('ctrl+Home')
+    const prefix = mode === 'source' ? 'P6 源码中文 👩🏽‍💻 é\n' : 'P6 实时中文 🧪 é\n'
+    const editedSha = sha(Buffer.concat([Buffer.from(prefix), current.bytes]))
+    const release = await ownNativeClipboard(prefix)
+    try {
+      await app.key('ctrl+v')
+      await app.until(
+        async () => (await app.probe()).dirty && (await app.probe()).cursor === prefix.length,
+        mode + ' real Unicode clipboard input',
+      )
+    } finally {
+      release()
+    }
+    await inactive(mode + '-typed')
+    for (const [operation, key, expectedSha] of [
+      ['undo', 'ctrl+z', current.spec.sourceSHA256],
+      ['redo', 'ctrl+shift+z', editedSha],
+      ['restore', 'ctrl+z', current.spec.sourceSHA256],
+    ]) {
+      await app.key(key)
+      await app.key('ctrl+s')
+      await app.until(
+        async () => !(await app.probe()).dirty && sha(await readFile(sourcePath)) === expectedSha,
+        mode + ' ' + operation + ' exact saved bytes',
+      )
+      await inactive(mode + '-' + operation + '-saved')
+    }
+    await app.shot('all-disabled-' + mode)
+  }
+  await json('disable-all', {
+    passed: true,
+    disabledIds: enabled.map((r) => r.id),
+    previouslyInactive: before.registry.filter((r) => !r.enabled && r.state !== 'enabled'),
+    sourceSha256: sha(await readFile(sourcePath)),
+    modes: ['source', 'live'],
+    scope: 'Acceptance through product UI; no outline or plugin implementation changes',
+  })
+}
+async function nativeZoom(zoom, width, height) {
+  await ui.closeMenu()
+  await app.focus('.milkup-input-proxy')
+  await app.key('ctrl+0')
+  await app.until(
+    () => app.execute('return Number(document.querySelector("#app").dataset.appearanceZoom)===1'),
+    'reset real app zoom',
+  )
+  for (let step = 0; step < 8; step++) {
+    const before = await app.execute(
+      'return Number(document.querySelector("#app").dataset.appearanceZoom)',
+    )
+    if (before === zoom) break
+    assert(before < zoom)
+    await app.key('ctrl+equal')
+    await app.until(
+      () =>
+        app.execute(
+          'return Number(document.querySelector("#app").dataset.appearanceZoom)!==arguments[0]',
+          before,
+        ),
+      'real zoom change',
+    )
+  }
+  x('windowsize', ui.windowId(), String(width), String(height))
+  await app.until(
+    () =>
+      app.execute(
+        'return Number(document.querySelector("#app").dataset.appearanceZoom)===arguments[0] && Math.abs(innerWidth*arguments[0]-arguments[1])<=2 && Math.abs(innerHeight*arguments[0]-arguments[2])<=2',
+        zoom,
+        width,
+        height,
+      ),
+    'actual native zoom and window geometry',
+  )
+}
+async function focusedBounds(selector) {
+  await app.focus(selector)
+  return app.execute(
+    `const e=document.querySelector(arguments[0]),r=e.getBoundingClientRect();
+    const rect=q=>({left:q.left,top:q.top,right:q.right,bottom:q.bottom,width:q.width,height:q.height});
+    let clip={left:0,top:0,right:innerWidth,bottom:innerHeight};const ancestors=[];
+    for(let p=e.parentElement;p;p=p.parentElement){const s=getComputedStyle(p),b=p.getBoundingClientRect();
+      ancestors.push({tag:p.tagName,class:p.className,rect:rect(b),overflowX:s.overflowX,overflowY:s.overflowY,scrollTop:p.scrollTop,scrollHeight:p.scrollHeight,clientHeight:p.clientHeight});
+      if(/auto|scroll|hidden|clip/.test(s.overflowX)){clip.left=Math.max(clip.left,b.left);clip.right=Math.min(clip.right,b.right)}
+      if(/auto|scroll|hidden|clip/.test(s.overflowY)){clip.top=Math.max(clip.top,b.top);clip.bottom=Math.min(clip.bottom,b.bottom)}}
+    const cx=(r.left+r.right)/2,cy=(r.top+r.bottom)/2,hit=document.elementFromPoint(cx,cy);
+    return {selector:arguments[0],rect:rect(r),clip,ancestors,focused:document.activeElement===e,disabled:!!e.disabled,
+      centerHit:e===hit||e.contains(hit),hit:hit?{tag:hit.tagName,class:hit.className}:null,
+      fullyWithinClip:r.left>=clip.left-2&&r.right<=clip.right+2&&r.top>=clip.top-2&&r.bottom<=clip.bottom+2,
+      viewport:{width:innerWidth,height:innerHeight,zoom:Number(document.querySelector('#app').dataset.appearanceZoom)}}`,
+    selector,
+  )
+}
+async function managerMatrix() {
+  const matrix = []
+  await ui.details('milkup.shortcuts')
+  if (await ui.exists(action('approve', 'milkup.shortcuts')))
+    await ui.click(action('approve', 'milkup.shortcuts'))
+  if (await ui.exists(action('enable', 'milkup.shortcuts')))
+    await ui.click(action('enable', 'milkup.shortcuts'))
+  for (const theme of ['light', 'dark']) {
+    await nativeZoom(1, 1280, 900)
+    await setTheme(theme)
+    for (const [width, height] of [
+      [1280, 900],
+      [760, 520],
+    ])
+      for (const zoom of [1, 1.25, 1.5, 2]) {
+        await nativeZoom(zoom, width, height)
+        await ui.list()
+        const cards =
+          await app.execute(`return [...document.querySelectorAll('.plugin-summary-card')].map(e=>({id:e.dataset.pluginId,
+        title:e.querySelector('.plugin-card-title')?.textContent,description:e.querySelector('.plugin-card-description')?.textContent,
+        logo:!!e.querySelector('.plugin-logo'),text:e.textContent,
+        forbidden:e.querySelectorAll('.plugin-state,.plugin-meta,.plugin-errors,[data-plugin-action],button').length,
+        extraText:[...e.querySelector('.plugin-card-copy').childNodes].filter(n=>n.nodeType===3&&n.textContent.trim()).map(n=>n.textContent)}))`)
+        assert(cards.length > 0)
+        for (const card of cards)
+          assert(
+            card.title &&
+              card.description &&
+              card.logo &&
+              card.forbidden === 0 &&
+              card.extraText.length === 0,
+            'List contains only title/logo/description: ' + card.id,
+          )
+        const name = `manager-list-${theme}-${width}-${zoom * 100}`,
+          bounds = []
+        await app.shot(name)
+        for (const card of cards) bounds.push(await focusedBounds(action('details', card.id)))
+        matrix.push({ name, theme, width, height, zoom, cards, bounds })
+        await json('manager-matrix', matrix)
+        for (const bound of bounds)
+          assert(
+            bound.fullyWithinClip && bound.centerHit && bound.focused,
+            'List card reachable ' + bound.selector,
+          )
+        // Real native click opens detail; destructive controls are measured, never activated.
+        await ui.click(action('details', outlineId))
+        if (width === 760) {
+          const detailName = `manager-detail-${theme}-${width}-${zoom * 100}`
+          await app.shot(detailName)
+          const selectors = await app.execute(
+            'return [...document.querySelectorAll(".plugin-detail [data-plugin-action]")].map(e=>({action:e.dataset.pluginAction,id:e.dataset.pluginId}))',
+          )
+          const detail = []
+          for (const item of selectors)
+            detail.push(await focusedBounds(action(item.action, item.id)))
+          matrix.push({
+            name: detailName,
+            theme,
+            width,
+            height,
+            zoom,
+            bounds: detail,
+            text: await app.execute('return document.querySelector(".plugin-detail")?.textContent'),
+          })
+          await json('manager-matrix', matrix)
+          await app.shot(detailName + '-focused-last-control')
+          for (const bound of detail)
+            assert(
+              bound.fullyWithinClip && bound.centerHit && bound.focused && !bound.disabled,
+              'Detail control reachable ' + bound.selector,
+            )
+        }
+        await ui.click('[data-plugin-action="back"]')
+      }
+  }
+  assert.equal(matrix.length, 24)
+  await observe('manager-matrix-completed', { cells: matrix.length })
+  assert.equal(sha(await readFile(sourcePath)), current.spec.sourceSHA256)
+}
+
+try {
+  app = await startProduction(launcher, output, { diagnostics: false })
+  app.click = click
+  x('windowsize', ui.windowId(), '1280', '900')
+  lifecycle = await outputProcessEvidence(Number(x('getwindowpid', ui.windowId())), output)
+  // Wait for the ordinary installed catalog; do not require unrelated plugins to run.
+  await app.until(
+    () =>
+      app.execute(
+        'return JSON.parse(localStorage.getItem("milkup.desktop.plugins.registry.v1")||"{\\"records\\":[]}").records.some(r=>r.manifest.id==="milkup.outline")',
+      ),
+    'bundled registry ready',
+    45000,
+  )
+  for (const pkg of packages) await install(pkg)
+  await ui.closeMenu()
+  await app.focus('.milkup-input-proxy')
+  await app.key('ctrl+1')
+  await ui.click('[data-menu-toggle]')
+  await ui.click('[data-menu-section="file"]')
+  await ui.click('[data-command="open-sample"]')
+  await ui.picker(sourcePath)
+  await app.until(async () => {
+    const p = await app.probe()
+    return p.path === sourcePath && p.loading !== 'opening'
+  }, 'fixture opened and source ready')
+  const opened = await observe('fixture-opened-no-render-warmup')
+  if (stage === 'all-off-windowed') {
+    assert(opened.renderDom.nativeWindowed, 'Actual native windowed route required')
+    assert.match(opened.document.notice, /已用原生大文件路径打开预览/)
+  }
+  if (stage === 'outline') await outlineLifecycle()
+  else if (stage === 'reject') await rejectCandidates()
+  else if (stage === 'manager-matrix') await managerMatrix()
+  else if (stage === 'all-off' || stage === 'all-off-windowed') await disableAll()
+  else {
+    await openPanel()
+    await field('format', format === 'html' ? 'html' : format === 'print-to-file' ? 'print' : 'pdf')
+    if (format !== 'html') {
+      await field('pageSize', settings.pageSize)
+      await field('orientation', settings.landscape ? 'landscape' : 'portrait')
+    }
+    await exportOnce('cold-first')
+    if (stage === 'cold-edit') await editRevision()
+  }
+  completed = true
+} catch (error) {
+  await json('failure', { error: String(error), stack: error.stack, rows })
+  if (app) {
+    await observe('failure-observation').catch(() => {})
+    await app.shot('failure').catch(() => {})
+  }
+  throw error
+} finally {
+  try {
+    await lifecycle?.sample('before-app-close')
+  } finally {
+    await app?.close()
+  }
+  await lifecycle?.released('after-app-close', true)
+  await traces()
+  if (completed)
+    await json('completion', {
+      automatedChecksPassed: true,
+      scope: 'First checkpoint only; no upgrade rollback or permission-delta acceptance',
+      visualReview: 'pending',
+      diagramPdfFidelity: format === 'html' ? 'not applicable' : 'not asserted',
+      stage,
+      format,
+      sourceSha256: sha(await readFile(sourcePath)),
+      physicalPrinting: 'not exercised',
+    })
+}

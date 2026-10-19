@@ -130,7 +130,15 @@ export function createFootnoteController(
           void scan(job, epoch)
         }, limits.delayMs ?? 80)
       }
-      return present(request, current.index)
+      const result = present(request, current.index)
+      // Activation is not document readiness. Only a live background index may
+      // ask the host to wait; terminal partial results retain ordinary fallback.
+      return request.contextKnown &&
+        !current.abort.signal.aborted &&
+        !current.index.complete &&
+        !current.index.partialReason
+        ? { ...result, pending: true }
+        : result
     },
     dispose() {
       if (!active) return

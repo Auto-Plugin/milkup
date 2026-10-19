@@ -1,6 +1,6 @@
 # Milkup Footnotes
 
-Independent Worker plugin using only public `@milkup/plugin-sdk` 0.3.3. No private Markdown implementation, DOM, HTML execution, network access, or document-write permission.
+Independent Worker plugin using only public `@milkup/plugin-sdk` 0.3.6. No private Markdown implementation, DOM, HTML execution, network access, or document-write permission.
 
 ## Syntax and behavior
 
@@ -16,7 +16,7 @@ Active reference/definition source remains visible while editing. Unknown contex
 
 ## Bounds and lifecycle
 
-Rendering returns immediately. An 80 ms debounce starts paged `host.document.readWindow` indexing from the document start. No full-document string is assembled. Each read requests at most 256 complete lines, capped by the host at 128 Ki UTF-16. Limits: 8 Mi UTF-16 read text, 200,000 lines, 4,096 combined definitions/references, 8 Ki UTF-16 per definition summary, and 128 presentation fragments. The scan can stop below its character cap when another maximum-sized page would exceed it. Excess results stay source.
+Rendering returns immediately. While the current document/version index is still preparing, known-context results include `pending: true` with `complete: false`, allowing the host to wait within its preparation budget. Finished, permanently partial, cancelled, disposed and unknown-context results do not advertise pending. This requires public SDK/host support for 0.3.6; the plugin does not extend isolated rendering deadlines. An 80 ms debounce starts paged `host.document.readWindow` indexing from the document start. No full-document string is assembled. Each read requests at most 256 complete lines, capped by the host at 128 Ki UTF-16. Limits: 8 Mi UTF-16 read text, 200,000 lines, 4,096 combined definitions/references, 8 Ki UTF-16 per definition summary, and 128 presentation fragments. The scan can stop below its character cap when another maximum-sized page would exceed it. Excess results stay source.
 
 Document/version changes abort the previous scan and clear its index. Disposal cancels timers and reads. Background progress calls owner/version-bound presentation invalidation, limited to four updates per second by the host. Oversized, interrupted and unsupported scans preserve source and partial state. No settings, files or document content are changed.
 
@@ -25,10 +25,12 @@ Document/version changes abort the previous scan and clear its index. Disposal c
 Run `pnpm install`, `pnpm test`, and `pnpm run build`. For a public SDK archive, run:
 
 ```
-node scripts/verify-external.mjs /absolute/milkup-plugin-sdk-0.3.3.tgz /absolute/outside-checkout-directory
+node scripts/verify-external.mjs /absolute/milkup-plugin-sdk-0.3.6.tgz /absolute/outside-checkout-directory
 ```
 
-The build guard rejects private Milkup dependencies and runtime imports. Output: `dist/milkup.footnotes-1.0.0.milkup-plugin`. Manifest renderer id: `footnotes`; contexts: `text`; permission: `document:read`. The parent integration owns bundled-plugin registration.
+The verifier installs only the supplied public SDK archive and development tools in the external directory, with its store and cache there. It disables package-manager auto-installation on every invocation. Set `MILKUP_PNPM_CLI` to an existing pnpm JavaScript CLI when using a pinned toolchain. The verification report derives the output archive name from `plugin.json`, and records SDK/archive SHA256 values.
+
+The build guard rejects private Milkup dependencies and runtime imports. Output: `dist/milkup.footnotes-1.0.1.milkup-plugin`. Manifest renderer id: `footnotes`; contexts: `text`; permission: `document:read`. The parent integration owns bundled-plugin registration.
 
 The renderer returns selection-independent fragments. The host preserves literal source for the active selection and restores cached previews when the caret leaves; definition bodies and continuation lines always retain editor source mapping.
 

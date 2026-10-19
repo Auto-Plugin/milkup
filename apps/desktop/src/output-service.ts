@@ -1,4 +1,4 @@
-import type { EditorDocumentSource, Line } from '@milkup/core'
+import { DocumentPresentationError, type EditorDocumentSource, type Line } from '@milkup/core'
 import {
   collectMarkdownImageResources,
   renderStaticMarkdownDocument,
@@ -29,6 +29,7 @@ export interface DesktopOutputServiceOptions {
   readonly current: () => DesktopOutputCurrent | undefined
   readonly invoke: (command: string, args: Record<string, unknown>) => Promise<unknown>
   readonly renderers: DesktopDocumentPresentationOptions['renderers']
+  readonly rendererGeneration?: (pluginId: string) => number
   readonly render: OutputPresentationOptions['render']
 }
 interface Captured {
@@ -256,6 +257,9 @@ export function createDesktopOutputService(options: DesktopOutputServiceOptions)
                 fromLine: first.number,
                 selection: initial.selection,
                 renderers: options.renderers,
+                ...(options.rendererGeneration
+                  ? { rendererGeneration: options.rendererGeneration }
+                  : {}),
                 render: options.render,
                 signal,
                 assertCurrent,
@@ -352,6 +356,10 @@ export function createDesktopOutputService(options: DesktopOutputServiceOptions)
               return metadata
             } catch (error) {
               if (jobId) await abortNative(jobId)
+              // Renderer identity changes invalidate this snapshot; they do not
+              // revoke the initiating output plugin's permission.
+              if (error instanceof DocumentPresentationError && error.code === 'revoked')
+                fail('stale')
               if (error instanceof RangeError) fail('too-large')
               throw error
             } finally {

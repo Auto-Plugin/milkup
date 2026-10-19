@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFile, realpath, stat, readdir, lstat } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import path from 'node:path'
+import { gunzipSync } from 'node:zlib'
 
 const json = async (file) => JSON.parse(await readFile(file, 'utf8'))
 // Same kebab/dot segment grammar as the public manifest parser (not action IDs).
@@ -404,23 +405,111 @@ export async function verifyPublicPluginBundle(pluginRoot, entry, metafile, opti
   }
 }
 
-export async function resolvePublicPluginSdkEntry(pluginRoot, checkout, version) {
+const sdkMembers = ['package.json', 'src/index.js', 'src/index.d.ts', 'README.md']
+
+/** Read only the reviewed npm-pack SDK shape. Never extract archive paths or links. */
+export async function readPublicPluginSdkArtifact(pluginRoot, entry) {
+  const { bytes } = await publicBuildFile(pluginRoot, 'vendor/plugin-sdk.tgz')
+  verifyPublicSdkTarball(entry, bytes)
+  assert.ok(bytes.length <= 4 * 1024 * 1024, 'SDK archive exceeds compressed budget')
+  const archive = gunzipSync(bytes, { maxOutputLength: 8 * 1024 * 1024 })
+  const files = new Map()
+  let offset = 0
+  const field = (header, start, length) => {
+    const value = header.subarray(start, start + length)
+    const end = value.indexOf(0)
+    if (end !== -1)
+      assert.ok(
+        value.subarray(end).every((byte) => byte === 0),
+        'Invalid SDK tar field padding',
+      )
+    return value.subarray(0, end === -1 ? value.length : end).toString('utf8')
+  }
+  const octal = (bytes) => {
+    const value = bytes.toString('utf8').replace(/[\0 ]+$/u, '')
+    assert.match(value, /^[0-7]+$/, 'Invalid SDK tar number')
+    const number = Number.parseInt(value, 8)
+    assert.ok(Number.isSafeInteger(number), 'SDK tar number exceeds bound')
+    return number
+  }
+  for (;;) {
+    assert.ok(offset + 512 <= archive.length, 'Truncated SDK tar header')
+    const header = archive.subarray(offset, offset + 512)
+    if (header.every((byte) => byte === 0)) {
+      assert.ok(
+        archive.length - offset >= 1024 &&
+          archive.length % 512 === 0 &&
+          archive.subarray(offset).every((byte) => byte === 0),
+        'Invalid SDK tar end marker',
+      )
+      break
+    }
+    assert.equal(
+      header.subarray(257, 265).toString('binary'),
+      'ustar\x0000',
+      'Unsupported SDK tar format',
+    )
+    assert.ok(header[156] === 0 || header[156] === 48, 'SDK tar member must be a regular file')
+    assert.equal(field(header, 157, 100), '', 'SDK tar links are forbidden')
+    assert.equal(field(header, 345, 155), '', 'SDK tar prefixes are forbidden')
+    const checksum = header.reduce(
+      (sum, byte, index) => sum + (index >= 148 && index < 156 ? 32 : byte),
+      0,
+    )
+    assert.equal(octal(header.subarray(148, 156)), checksum, 'SDK tar checksum mismatch')
+    const name = field(header, 0, 100)
+    assert.ok(
+      sdkMembers.some((member) => name === `package/${member}`),
+      'Unexpected SDK tar member path',
+    )
+    const relative = name.slice('package/'.length)
+    assert.ok(!files.has(relative), 'Duplicate SDK tar member')
+    const size = octal(header.subarray(124, 136))
+    assert.ok(size <= 2 * 1024 * 1024, 'SDK member exceeds size budget')
+    const end = offset + 512 + size
+    const next = offset + 512 + Math.ceil(size / 512) * 512
+    assert.ok(next <= archive.length, 'Truncated SDK tar member')
+    assert.ok(
+      archive.subarray(end, next).every((byte) => byte === 0),
+      'Invalid SDK tar member padding',
+    )
+    files.set(relative, archive.subarray(offset + 512, end))
+    offset = next
+  }
+  assert.equal(files.size, sdkMembers.length, 'Missing SDK tar member')
+  const metadata = JSON.parse(files.get('package.json').toString('utf8'))
+  assert.equal(metadata.name, '@milkup/plugin-sdk', 'Unexpected SDK package name')
+  assert.match(metadata.version, versionPattern, 'Invalid SDK artifact version')
+  assert.deepEqual(
+    metadata.exports,
+    {
+      '.': { types: './src/index.d.ts', import: './src/index.js' },
+    },
+    'Unexpected public SDK exports',
+  )
+  return { bytes, files, sdkVersion: metadata.version, sdkTarballSha256: sha256(bytes) }
+}
+
+export async function resolvePublicPluginSdkEntry(pluginRoot, entry) {
+  const artifact = await readPublicPluginSdkArtifact(pluginRoot, entry)
   const root = await realpath(pluginRoot)
   const sdkRoot = await realpath(path.join(root, 'node_modules/@milkup/plugin-sdk'))
   assert.ok(
     within(path.join(root, 'node_modules'), sdkRoot),
     'Public SDK must be installed locally, not linked to the checkout',
   )
-  const metadata = JSON.parse(
-    (await publicBuildFile(sdkRoot, 'package.json')).bytes.toString('utf8'),
-  )
-  assert.equal(metadata.name, '@milkup/plugin-sdk')
-  assert.equal(metadata.version, version, 'SDK package version mismatch')
-  const entry = await publicBuildFile(sdkRoot, 'src/index.js')
-  assert.equal(metadata.exports?.['.']?.import, './src/index.js', 'Unexpected public SDK entry')
-  const expected = await readFile(path.join(checkout, 'packages/plugin-sdk/src/index.js'))
-  assert.ok(entry.bytes.equals(expected), 'Installed public SDK does not match the packed source')
-  return entry.path
+  for (const [name, expected] of artifact.files) {
+    const installed = await publicBuildFile(sdkRoot, name)
+    assert.ok(
+      installed.bytes.equals(expected),
+      `Installed SDK does not match reviewed archive: ${name}`,
+    )
+  }
+  return {
+    entryPath: (await publicBuildFile(sdkRoot, 'src/index.js')).path,
+    sdkVersion: artifact.sdkVersion,
+    sdkTarballSha256: artifact.sdkTarballSha256,
+  }
 }
 
 // Only verifier-created output/install locations are outside the copied-input proof.

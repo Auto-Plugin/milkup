@@ -1,0 +1,58 @@
+[
+  {
+    "check": "final-workspace-tests",
+    "command": "source /workspace/.cloud/milkup-v2/env.sh\nexport NPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false NPM_CONFIG_MANAGE_PACKAGE_MANAGER_VERSIONS=false\nbash scripts/cloud/pnpm.sh --config.verify-deps-before-run=false --config.manage-package-manager-versions=false -r --workspace-concurrency=1 test",
+    "startedUtc": "2026-10-19T07:59:25.302754+00:00",
+    "exitCode": 0,
+    "endedUtc": "2026-10-19T08:00:34.995925+00:00"
+  },
+  {
+    "check": "final-workspace-types",
+    "command": "source /workspace/.cloud/milkup-v2/env.sh\nexport NPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false NPM_CONFIG_MANAGE_PACKAGE_MANAGER_VERSIONS=false\nbash scripts/cloud/pnpm.sh --config.verify-deps-before-run=false --config.manage-package-manager-versions=false -r --workspace-concurrency=1 typecheck",
+    "startedUtc": "2026-10-19T08:00:34.997757+00:00",
+    "exitCode": 0,
+    "endedUtc": "2026-10-19T08:01:17.108352+00:00"
+  },
+  {
+    "check": "final-workspace-build",
+    "command": "source /workspace/.cloud/milkup-v2/env.sh\nexport NPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false NPM_CONFIG_MANAGE_PACKAGE_MANAGER_VERSIONS=false\nbash scripts/cloud/pnpm.sh --config.verify-deps-before-run=false --config.manage-package-manager-versions=false build",
+    "startedUtc": "2026-10-19T08:01:17.110492+00:00",
+    "exitCode": 0,
+    "endedUtc": "2026-10-19T08:01:44.594441+00:00"
+  },
+  {
+    "check": "final-build-contract-tests",
+    "command": "node --test tests/ci/public-plugin-sdk-artifact.test.mjs",
+    "startedUtc": "2026-10-19T08:01:44.594913+00:00",
+    "exitCode": 0,
+    "endedUtc": "2026-10-19T08:01:44.930996+00:00"
+  },
+  {
+    "check": "final-cargo-format",
+    "command": "source /workspace/.cloud/milkup-v2/env.sh\ncargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml --check",
+    "startedUtc": "2026-10-19T08:01:44.931435+00:00",
+    "exitCode": 0,
+    "endedUtc": "2026-10-19T08:01:45.286059+00:00"
+  },
+  {
+    "check": "final-ci-tests",
+    "command": "node --test tests/ci/*.test.mjs",
+    "startedUtc": "2026-10-19T08:08:53.195076+00:00",
+    "exitCode": 0,
+    "endedUtc": "2026-10-19T08:08:53.700131+00:00"
+  },
+  {
+    "check": "final-format-initial",
+    "command": "node node_modules/prettier/bin/prettier.cjs --check .",
+    "startedUtc": "2026-10-19T08:08:53.700700+00:00",
+    "exitCode": 1,
+    "endedUtc": "2026-10-19T08:10:42.646376+00:00"
+  },
+  {
+    "check": "final-format",
+    "command": "node node_modules/prettier/bin/prettier.cjs --check .",
+    "startedUtc": "2026-10-19T08:11:17.687775+00:00",
+    "exitCode": 0,
+    "endedUtc": "2026-10-19T08:12:49.383468+00:00"
+  }
+]

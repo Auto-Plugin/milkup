@@ -39,16 +39,27 @@ Copy this entire directory to any location outside the Milkup checkout. Keep
 `package.json`, `tsconfig.json`, `plugin.json`, `src/*.ts` and `scripts/build.mjs`.
 Tests are development-only and are not needed to build the package.
 
-The SDK is distributed as a local archive at this stage, not published to npm:
+Outline is version **1.3.1**. Its manifest accepts SDK `>=0.2.0 <0.4.0`;
+the source package's `0.2.0` development dependency records its original SDK
+baseline. The example below builds against the public **0.3.6** archive without
+changing the plugin's version or importing host source. The SDK is distributed
+as a local archive at this stage, not published to npm:
 
 ```sh
 # Run once in the host checkout to produce the public SDK distribution.
-pnpm --dir packages/plugin-sdk pack --pack-destination /absolute/sdk-output
+cd packages/plugin-sdk
+npm pack --ignore-scripts --pack-destination /absolute/sdk-output
 
 # Run in the copied standalone plugin directory. This installs the public SDK
 # archive and the declared TypeScript/esbuild tools; no workspace links are needed.
-npm install --no-save --package-lock=false /absolute/sdk-output/milkup-plugin-sdk-0.1.1.tgz
+# Replace the development SDK dependency in this external copy and retain its lock.
+npm install --save-dev --save-exact /absolute/sdk-output/milkup-plugin-sdk-0.3.6.tgz
+npm run check
 npm run build
+
+# Optional: run the copied source tests using an independently installed test tool.
+npm install --save-dev --save-exact vitest@3.2.6
+npx --no-install vitest run src/plugin.test.ts src/outline-index.test.ts
 ```
 
 The plugin owns its TypeScript configuration; it does not extend the host's config.
@@ -56,16 +67,22 @@ The build checks that imports come only from local plugin source or the public S
 then rejects any residual imports in the ESM output. Outputs:
 
 - `dist/plugin.js`: one self-contained ESM module with its default plugin export.
-- `dist/milkup.outline-1.2.0.milkup-plugin`: JSON archive containing the manifest and
+- `dist/milkup.outline-1.3.1.milkup-plugin`: JSON archive containing the manifest and
   UTF-8 module, using the host's standard `milkup-plugin` version 1 archive format.
 - `dist/build-meta.json`: esbuild input/output inventory for auditing dependencies.
 
 No new repository, registry publication or host source modification is needed.
+Keep the SDK archive hash, copied sources, external package manifest and lock,
+tool versions, build/test logs, metafile and archive hash with a build proof.
+The repository's common external-build script also includes outline, but labels
+its current dependency policy `legacy-non-frozen`: it replaces development
+dependencies in the copied manifest. A successful independent build is not a
+claim that the original source package supplies a frozen dependency lock.
 
 ## Install, enable, disable, uninstall
 
 1. In Milkup choose `菜单 > 插件 > 安装本地插件`.
-2. Select `dist/milkup.outline-1.2.0.milkup-plugin`.
+2. Select `dist/milkup.outline-1.3.1.milkup-plugin`.
 3. Review the manifest and enable `Milkup Outline`.
 4. Open a Markdown document and use the sidebar panel.
 5. Disable the plugin in the same manager to remove its UI and stop its Worker.

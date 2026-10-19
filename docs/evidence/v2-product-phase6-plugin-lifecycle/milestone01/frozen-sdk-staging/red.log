@@ -1,0 +1,32 @@
+file:///workspace/milkup/tests/ci/public-plugin-sdk-artifact.test.mjs:30
+    header.write('ustar\000', 257)
+                        ^^
+
+SyntaxError: Octal escape sequences are not allowed in strict mode.
+    at compileSourceTextModule (node:internal/modules/esm/utils:318:16)
+    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:89:18)
+    at #translate (node:internal/modules/esm/loader:434:20)
+    at afterLoad (node:internal/modules/esm/loader:502:29)
+    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:507:12)
+    at #getOrCreateModuleJobAfterResolve (node:internal/modules/esm/loader:560:36)
+    at afterResolve (node:internal/modules/esm/loader:607:52)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:613:12)
+    at node:internal/modules/esm/loader:632:32
+    at TracingChannel.tracePromise (node:diagnostics_channel:362:14)
+
+Node.js v24.19.0
+✖ tests/ci/public-plugin-sdk-artifact.test.mjs (55.76246ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 66.7622
+
+✖ failing tests:
+
+test at tests/ci/public-plugin-sdk-artifact.test.mjs:1:1
+✖ tests/ci/public-plugin-sdk-artifact.test.mjs (55.76246ms)
+  'test failed'

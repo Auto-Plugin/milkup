@@ -1,0 +1,19 @@
+// Installed browser is only an offline artifact viewer, never the product PDF engine.
+const fs=require('node:fs/promises'),path=require('node:path'),crypto=require('node:crypto');
+const {createRequire}=require('node:module');
+const {chromium}=createRequire('/workspace/milkup/package.json')('@playwright/test');
+async function main(){
+ const [run,out]=process.argv.slice(2);const control=JSON.parse(await fs.readFile(path.join(run,'../control',path.basename(run)+'-p6-command.json'),'utf8'));const completion=JSON.parse(await fs.readFile(path.join(run,'completion.json'),'utf8'));if(control.exitCode!==0||!completion.automatedChecksPassed)throw Error('Completed run required');
+ const browser=await chromium.launch({executablePath:'/usr/bin/chromium',headless:true,chromiumSandbox:true});
+ try{for(const file of ['cold-first.html','edited-r2.html']){
+  const bytes=await fs.readFile(path.join(run,file));const dir=path.join(out,path.basename(file,'.html'));await fs.mkdir(dir,{recursive:true});
+  const context=await browser.newContext({viewport:{width:1200,height:1000},offline:true,javaScriptEnabled:false,serviceWorkers:'block',acceptDownloads:false});
+  const requests=[],blocked=[];await context.route(/^(https?|file|ftp):/,async r=>{blocked.push(r.request().url());await r.abort()});const page=await context.newPage();page.on('request',r=>requests.push(r.url()));await page.setContent(bytes.toString('utf8'),{waitUntil:'load'});await page.evaluate(()=>document.fonts.ready);
+  const dom=await page.evaluate(()=>{const box=n=>{const b=n.getBoundingClientRect();return {x:b.x,y:b.y,width:b.width,height:b.height}};return {bodyText:document.body.innerText,documentHeight:document.documentElement.scrollHeight,documentWidth:document.documentElement.scrollWidth,viewportWidth:innerWidth,diagrams:[...document.querySelectorAll('.presentation-block')].filter(n=>n.querySelector('svg')).map(n=>({bounds:box(n),labels:[...n.querySelectorAll('svg text')].map(t=>({text:t.textContent,bounds:box(t)}))})),math:[...document.querySelectorAll('math')].map(n=>({text:n.textContent,bounds:box(n)})),warnings:[...document.querySelectorAll('.export-warning li')].map(n=>n.textContent),images:[...document.querySelectorAll('img')].map(n=>({alt:n.alt,loaded:n.complete&&n.naturalWidth>0,width:n.naturalWidth,height:n.naturalHeight})),fallbacks:[...document.querySelectorAll('.source-fallback')].map(n=>n.textContent)}});
+  const screenshots=[];await page.screenshot({path:path.join(dir,'whole-page.png'),fullPage:true});screenshots.push('whole-page.png');
+  for(const [label,selector] of [['diagram','.presentation-block:has(svg)'],['math','math'],['footnote','p:has(a[href^="#source-"])'],['image','img'],['warnings','.export-warning']]){const loc=page.locator(selector);for(let i=0;i<await loc.count();i++){const name=`${label}-${i+1}.png`;await loc.nth(i).screenshot({path:path.join(dir,name)});screenshots.push(name)}}
+  const clicks=[];const anchors=page.locator('a[href^="#source-"]');for(let i=0;i<await anchors.count();i++){const a=anchors.nth(i),href=await a.getAttribute('href');await a.click();const actual=await page.evaluate(()=>location.hash);clicks.push({href,actual,matched:actual===href});if(actual!==href)throw Error('Anchor did not navigate')}
+  await fs.writeFile(path.join(dir,'review.json'),JSON.stringify({scope:'Exact saved UTF8 bytes via offline setContent in installed sandboxed Chromium, JavaScript disabled. No direct-file navigation or product-engine claim.',input:path.join(run,file),sha256:crypto.createHash('sha256').update(bytes).digest('hex'),browserVersion:browser.version(),dom,requests,blocked,clicks,screenshots,visualReview:'PENDING_ACTUAL_PIXEL_REVIEW'},null,2)+'\n');await context.close();console.log(JSON.stringify({file,graphs:dom.diagrams.length,warnings:dom.warnings,requests,clicks}));
+ }}finally{await browser.close()}
+}
+main().catch(e=>{console.error(e);process.exit(1)});

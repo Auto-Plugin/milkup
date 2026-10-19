@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { parsePluginManifest, validatePluginCompatibility } from './index'
 
 import {
   createPluginContributionIndex,
@@ -116,6 +117,44 @@ describe('plugin registry', () => {
       manifestPath: '/plugins/example/plugin.json',
     })
     expect(record.errors.length === 0).toBe(compatible)
+    expect(
+      validatePluginCompatibility(record.manifest, {
+        milkupVersion: '0.1.0',
+        pluginSdkVersion: version,
+      }),
+    ).toEqual(record.errors)
+  })
+
+  it('exposes pure host preflight without changing manifest, registry or approval state', () => {
+    const manifest = parsePluginManifest({
+      ...pluginManifest(),
+      engines: { milkup: '^9.0.0', pluginSdk: '>=0.4.0' },
+    })
+    const compatibility = { milkupVersion: '2.0.0-beta.1', pluginSdkVersion: '0.3.6' }
+    const registry = new PluginRegistry({ compatibility })
+    const before = registry.snapshot()
+    const serialized = JSON.stringify(manifest)
+    const errors = validatePluginCompatibility(manifest, compatibility)
+    expect(errors).toEqual(['Requires Milkup ^9.0.0', 'Requires plugin SDK >=0.4.0'])
+    expect(registry.snapshot()).toEqual(before)
+    expect(JSON.stringify(manifest)).toBe(serialized)
+    errors.push('caller-owned array')
+    expect(validatePluginCompatibility(manifest, compatibility)).toEqual([
+      'Requires Milkup ^9.0.0',
+      'Requires plugin SDK >=0.4.0',
+    ])
+  })
+
+  it('preserves preflight behavior when target or engines are omitted', () => {
+    const manifest = parsePluginManifest(pluginManifest())
+    expect(validatePluginCompatibility(manifest, undefined)).toEqual([])
+    const { engines: _engines, ...withoutEngines } = manifest
+    expect(
+      validatePluginCompatibility(withoutEngines, {
+        milkupVersion: '2.0.0-beta.1',
+        pluginSdkVersion: '0.3.6',
+      }),
+    ).toEqual([])
   })
 
   it('installs local plugins, persists enable state, and restores records', () => {

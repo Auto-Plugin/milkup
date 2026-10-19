@@ -186,7 +186,7 @@ export class PluginRegistry {
     const sourcePath = descriptor.sourcePath ?? descriptor.manifestPath
     const installedAt = descriptor.installedAt ?? this.now()
     const existing = this.records.get(manifest.id)
-    const errors = validateCompatibility(manifest, this.compatibility)
+    const errors = validatePluginCompatibility(manifest, this.compatibility)
     const host = manifest.host ?? 'worker'
     const remainsEnabled =
       existing?.enabled === true &&
@@ -234,7 +234,10 @@ export class PluginRegistry {
     for (const record of snapshot.records) {
       const manifest = parsePluginManifest(record.manifest)
       const errors = [
-        ...new Set([...record.errors, ...validateCompatibility(manifest, this.compatibility)]),
+        ...new Set([
+          ...record.errors,
+          ...validatePluginCompatibility(manifest, this.compatibility),
+        ]),
       ]
       this.records.set(
         manifest.id,
@@ -578,7 +581,8 @@ function resolvePluginKeymap(
   })
 }
 
-function validateCompatibility(
+/** Host-side preflight for a parsed manifest; grants no plugin capability or approval. */
+export function validatePluginCompatibility(
   manifest: PluginManifest,
   compatibility: PluginCompatibilityTarget | undefined,
 ): string[] {

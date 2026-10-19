@@ -1,0 +1,60 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/output-service.test.ts (22 tests | 1 failed) 224ms
+   ✓ controlled desktop output > writes a complete immutable captured version after subsequent edits 19ms
+   ✓ controlled desktop output > rejects a document version change during capture before allocating a native job 1ms
+   × controlled desktop output > reports a changed renderer activation as stale capture, not revoked output permission 28ms
+     → expected DocumentPresentationError: Document prese… { code: '…' } to match object { code: 'stale' }
+(1 matching property omitted from actual)
+   ✓ controlled desktop output > aborts owned jobs on disposal and isolates plugin handles 2ms
+   ✓ controlled desktop output > reports committed writes when cancellation arrives after native commit 3ms
+   ✓ controlled desktop output > rejects oversized source before reads and preserves native outputs on cancelled chooser 15ms
+   ✓ controlled desktop output > preserves CRLF, Unicode and blank lines across bounded source windows 28ms
+   ✓ controlled desktop output > keeps a selected absolute range and warns about unavailable rich context 2ms
+   ✓ controlled desktop output > cleans a late native preparation when capture was cancelled 3ms
+   ✓ controlled desktop output > makes unavailable and remote images visible without network requests 4ms
+   ✓ controlled desktop output > does not allocate a target on chooser cancellation or write afterwards 3ms
+   ✓ controlled desktop output > captures adjacent long lines without exceeding the per-read budget 20ms
+   ✓ controlled desktop output > preserves a final bare CR instead of silently truncating source metadata 1ms
+   ✓ controlled desktop output > maps native rejection after cancellation to aborted while retaining the success contract 3ms
+   ✓ controlled desktop output > rejects HTML above the native transfer budget before asking for a destination 60ms
+   ✓ controlled desktop output > shrinks windows for the native string budget error and bounds every boundary lookup 24ms
+   ✓ controlled desktop output > keeps released snapshot allocations reserved until in-flight choosers settle 2ms
+   ✓ controlled desktop output > uses UTF-16 length metadata for windowed Unicode and preserves terminal CR 3ms
+   ✓ controlled desktop output > rejects malformed selection offset -1 without native output 0ms
+   ✓ controlled desktop output > rejects malformed selection offset NaN without native output 0ms
+   ✓ controlled desktop output > rejects malformed selection offset 999999 without native output 0ms
+   ✓ controlled desktop output > rejects a selected half-surrogate instead of corrupting Unicode 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/output-service.test.ts > controlled desktop output > reports a changed renderer activation as stale capture, not revoked output permission
+AssertionError: expected DocumentPresentationError: Document prese… { code: '…' } to match object { code: 'stale' }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+- {
+-   "code": "stale",
++ DocumentPresentationError {
++   "code": "revoked",
+  }
+
+ ❯ apps/desktop/src/output-service.test.ts:86:5
+     84|       render: async () => { generation++; return { complete: true, fra…
+     85|     })
+     86|     await expect(service.adapterForPlugin('output').adapter.capture(re…
+       |     ^
+     87|     expect(f.calls).toEqual([])
+     88|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 21 passed (22)
+   Start at  07:43:13
+   Duration  3.31s (transform 1.62s, setup 0ms, collect 2.44s, tests 224ms, environment 0ms, prepare 197ms)
+

@@ -247,24 +247,25 @@ describe('output preparation through the real isolated renderer queue', () => {
     }
   })
 
-  it('keeps the owner 2s execution stop and revocation and ignores late results', async () => {
+  it('keeps the owner 2s stop and revokes the whole capture when its provider is removed', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date', 'performance'] })
     vi.setSystemTime(0)
     const owner = isolationOwner([2001])
     try {
-      const output = owner.capture()
+      const published = vi.fn()
+      const output = owner.capture().then(published)
+      const rejected = expect(output).rejects.toMatchObject({ code: 'revoked' })
       await vi.advanceTimersByTimeAsync(2000)
-      const captured = await output
+      await rejected
       expect(owner.trace.filter((event) => event.phase === 'timeout')).toEqual([
         { phase: 'timeout', id: 'render_1', at: 2000 },
       ])
       expect(owner.stop).toHaveBeenCalledOnce()
       expect(owner.revoked).toHaveBeenCalledOnce()
-      expect(captured.presentations.flatMap((batch) => batch.result.fragments)).toEqual([])
-      expect(captured.warnings.length).toBeGreaterThan(0)
+      expect(published).not.toHaveBeenCalled()
       await expect(owner.render(request('export'))).rejects.toMatchObject({ code: 'revoked' })
       owner.emitLate('render_1')
-      expect(captured.presentations.flatMap((batch) => batch.result.fragments)).toEqual([])
+      expect(published).not.toHaveBeenCalled()
     } finally {
       owner.dispose()
     }

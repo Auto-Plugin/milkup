@@ -12,6 +12,7 @@ import {
   verifyPublicPluginBundle,
   verifyPublicSdkTarball,
   resolvePublicPluginSdkEntry,
+  readPublicPluginSdkArtifact,
   capturePublicBuildInputs,
   verifyPublicBuildInputs,
 } from './public-plugin-build-contract.mjs'
@@ -147,9 +148,9 @@ for (const entry of plugins) {
   )
   if (entry.buildMode === 'frozen-closure') {
     assert.equal(run(['--version'], target), '11.7.0', 'Frozen builds require pnpm 11.7.0')
-    verifyPublicSdkTarball(entry, sdkBytes)
+    const reviewedSdk = await readPublicPluginSdkArtifact(pluginRoot, entry)
     await mkdir(path.join(target, 'vendor'))
-    await writeFile(path.join(target, 'vendor/plugin-sdk.tgz'), sdkBytes)
+    await writeFile(path.join(target, 'vendor/plugin-sdk.tgz'), reviewedSdk.bytes)
     // Preserve package.json and lock bytes. No resolver, overrides, or derived lock.
     run(
       [
@@ -189,11 +190,13 @@ for (const entry of plugins) {
   const archive = await readFile(path.join(target, 'dist', entry.name))
   let verification
   let inputProof
+  let frozenSdk
   if (entry.buildMode === 'frozen-closure') {
     // Reject changed copied sources before the independent trusted rebuild.
     inputProof = await verifyPublicBuildInputs(target, pluginRoot, inputs, copiedSnapshot)
     verifyPublicSdkTarball(entry, (await publicBuildFile(target, 'vendor/plugin-sdk.tgz')).bytes)
-    const sdkEntry = await resolvePublicPluginSdkEntry(target, root, sdkVersion)
+    frozenSdk = await resolvePublicPluginSdkEntry(target, entry)
+    const sdkEntry = frozenSdk.entryPath
     const installedRequire = createRequire(path.join(target, 'package.json'))
     const { build } = installedRequire('esbuild')
     assert.equal(installedRequire('esbuild/package.json').version, manifest.devDependencies.esbuild)
@@ -251,6 +254,8 @@ for (const entry of plugins) {
     dependencyVerification: verification ?? { mode: 'legacy-non-frozen' },
     ...(inputProof ? { copiedInputProof: inputProof } : {}),
     tests: 'passed',
+    sdkVersion: frozenSdk?.sdkVersion ?? sdkVersion,
+    ...(frozenSdk ? { sdkTarballSha256: frozenSdk.sdkTarballSha256 } : {}),
     bytes: archive.length,
     sha256: createHash('sha256').update(archive).digest('hex'),
   })

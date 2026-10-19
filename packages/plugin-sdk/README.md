@@ -481,6 +481,29 @@ at four per second. `host.ui.revealLocation({documentId, version, from, to?},
 {signal})` rechecks the target before navigation; no file path or arbitrary command
 is exposed. Old `scan` and `revealLine` remain available.
 
+### Background presentation preparation (0.3.6)
+
+A document renderer with an in-progress index for the request's exact document
+and version may return `{ fragments: [], complete: false, pending: true }`.
+Validated partial fragments are also allowed. The optional marker accepts only
+literal `true` and requires `complete: false`. Omit it when preparation has
+finished, failed, reached a permanent limit, or been cancelled. An incomplete
+result without this marker remains terminal for that invocation; hosts must not
+infer readiness from `complete: false` alone.
+
+This marker permits a host to retry the same request under its existing bounded
+preparation budget. It does not promise that every host will wait, extend the
+two-second execution watchdog, or permit source/version changes between attempts.
+Keep incremental work cancellable and use `invalidatePresentation` to announce
+that the same-version output changed; its promise acknowledges invalidation,
+not render completion. A host may retain original Markdown when preparation
+cannot complete within its budget.
+
+Existing plugins that omit `pending` retain their previous behavior. Plugins
+that emit it must declare a minimum SDK engine version of `0.3.6`: older hosts
+strictly reject unknown result fields. Declaring `pending: false`, a string, or
+`complete: true` together with `pending: true` is invalid output.
+
 ### Controlled document output (0.3.5)
 
 `host.output` is an optional capability requiring both `document:read` and the

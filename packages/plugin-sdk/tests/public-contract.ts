@@ -34,6 +34,29 @@ const module: SdkPluginModule = definePlugin({
 })
 void module
 
+// SDK 0.3.6: pending is explicit; omitted fields preserve old renderer contracts.
+import type { SdkDocumentPresentationResult } from '../src/index.js'
+const pendingPresentation: SdkDocumentPresentationResult = {
+  fragments: [],
+  complete: false,
+  pending: true,
+}
+const legacyPresentation: SdkDocumentPresentationResult = { fragments: [], complete: true }
+const legacyIncomplete: SdkDocumentPresentationResult = { fragments: [], complete: false }
+const invalidPending: SdkDocumentPresentationResult = {
+  fragments: [],
+  complete: false,
+  // @ts-expect-error Omit pending instead of returning false.
+  pending: false,
+}
+const stringPending: SdkDocumentPresentationResult = {
+  fragments: [],
+  complete: false,
+  // @ts-expect-error The pending marker is literal true, not a string.
+  pending: 'true',
+}
+void [pendingPresentation, legacyPresentation, legacyIncomplete, invalidPending, stringPending]
+
 // SDK 0.3.5: output requests contain options and opaque leases, never paths or HTML.
 import type { SdkPluginOutputHost, SdkOutputSnapshot } from '../src/index.js'
 async function outputContract(host: SdkPluginOutputHost) {

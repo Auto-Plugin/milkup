@@ -1312,6 +1312,7 @@ const desktopOutput = createDesktopOutputService({
   },
   invoke: recoveryInvoke,
   renderers: () => desktopPluginManager.state().contributions.documentRenderers ?? [],
+  rendererGeneration: (pluginId) => desktopPluginManager.documentRendererGeneration(pluginId),
   render: (pluginId, rendererId, request, options) =>
     desktopPluginManager.renderDocument(pluginId, rendererId, request, options),
 })
@@ -1408,6 +1409,7 @@ const desktopDocumentPresentation = createDesktopDocumentPresentationService({
   current: currentPresentationDocument,
   theme: () => (document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'),
   renderers: () => desktopPluginManager.state().contributions.documentRenderers ?? [],
+  rendererGeneration: (pluginId) => desktopPluginManager.documentRendererGeneration(pluginId),
   render: (pluginId, rendererId, request, options) =>
     desktopPluginManager.renderDocument(pluginId, rendererId, request, options),
 })

@@ -1,0 +1,63 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ✓ apps/desktop/src/output-presentations-readiness.test.ts (10 tests) 151ms
+ ✓ apps/desktop/src/document-presentation-service.test.ts (26 tests) 642ms
+ ✓ apps/desktop/src/output-presentations.test.ts (13 tests) 96ms
+(node:154082) PromiseRejectionHandledWarning: Promise rejection was handled asynchronously (rejection id: 1)
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ❯ apps/desktop/src/output-presentations-queue.test.ts (7 tests | 1 failed) 71ms
+   ✓ output preparation through the real isolated renderer queue > allows 1500ms screen ownership then 1500ms export execution without spending the execution deadline in queue 34ms
+   × output preparation through the real isolated renderer queue > keeps the owner 2s execution stop and revocation and ignores late results 10ms
+     → Document presentation: revoked
+   ✓ output preparation through the real isolated renderer queue > cancels queued export without dispatching it or cancelling the screen owner 7ms
+   ✓ output preparation through the real isolated renderer queue > discards a cancelled active result and waits for its owner settlement before advancing the queue 5ms
+   ✓ output preparation through the real isolated renderer queue > accepts a trusted in-time owner result delivered after 2s but before the preparation deadline 4ms
+   ✓ output preparation through the real isolated renderer queue > rejects a late old-version capture after an edit while allowing the queued new-version capture 4ms
+   ✓ output preparation through the real isolated renderer queue > removes expired queued export before the delayed editor result can dispatch it 5ms
+ ✓ apps/desktop/src/output-service.test.ts (21 tests) 764ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/output-presentations-queue.test.ts > output preparation through the real isolated renderer queue > keeps the owner 2s execution stop and revocation and ignores late results
+DocumentPresentationError: Document presentation: revoked
+ ❯ collectOutputPresentations apps/desktop/src/output-presentations.ts:324:11
+    322|     )
+    323|   )
+    324|     throw new DocumentPresentationError('revoked')
+       |           ^
+    325|   return { presentations, warnings }
+    326| }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+DocumentPresentationError: Document presentation: revoked
+ ❯ collectOutputPresentations apps/desktop/src/output-presentations.ts:324:11
+    322|     )
+    323|   )
+    324|     throw new DocumentPresentationError('revoked')
+       |           ^
+    325|   return { presentations, warnings }
+    326| }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: 'revoked' }
+This error originated in "apps/desktop/src/output-presentations-queue.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "keeps the owner 2s execution stop and revocation and ignores late results". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  1 failed | 4 passed (5)
+      Tests  1 failed | 76 passed (77)
+     Errors  1 error
+   Start at  07:39:17
+   Duration  4.02s (transform 2.27s, setup 0ms, collect 5.47s, tests 1.72s, environment 1ms, prepare 879ms)
+

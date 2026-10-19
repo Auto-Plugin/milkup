@@ -19,6 +19,34 @@ import {
 } from './desktop-plugin-manager'
 
 describe('DesktopPluginManager', () => {
+  it('exposes a stable read-only renderer generation that changes across disable and re-enable', async () => {
+    const manager = createManager({
+      registry: new ActionRegistry(),
+      storage: createMemoryStorage(),
+    })
+    await manager.ready
+    expect(manager.documentRendererGeneration('missing')).toBe(0)
+    await manager.installManifestPath('/plugin.json')
+    const installed = manager.documentRendererGeneration('example-tools')
+    manager.state()
+    expect(manager.documentRendererGeneration('example-tools')).toBe(installed)
+    await manager.enable('example-tools')
+    const first = manager.documentRendererGeneration('example-tools')
+    expect(first).not.toBe(installed)
+    manager.state()
+    expect(manager.documentRendererGeneration('example-tools')).toBe(first)
+    await manager.disable('example-tools')
+    const disabled = manager.documentRendererGeneration('example-tools')
+    expect(disabled).not.toBe(first)
+    await manager.enable('example-tools')
+    const second = manager.documentRendererGeneration('example-tools')
+    expect(second).not.toBe(first)
+    expect(second).not.toBe(disabled)
+    manager.state()
+    expect(manager.documentRendererGeneration('example-tools')).toBe(second)
+    await manager.disable('example-tools')
+  })
+
   it('rejects a temporary-store plugin on SDK 0.1.0 before executing its module', async () => {
     const loadModule = vi.fn(async () => fakeLoadedModule())
     const manager = createManager({
@@ -28,11 +56,151 @@ describe('DesktopPluginManager', () => {
       readManifestText: async () =>
         JSON.stringify({ ...pluginManifest(), engines: { pluginSdk: '^0.1.1' } }),
     })
-    const record = await manager.installManifestPath('D:/plugins/new/plugin.json')
-    expect(record.errors.join(' ')).toContain('0.1.1')
-    await manager.enable(record.manifest.id)
+    await expect(manager.installManifestPath('D:/plugins/new/plugin.json')).rejects.toThrow('0.1.1')
+    expect(manager.state().records).toEqual([])
+    expect(manager.state().installFailures).toMatchObject([
+      { sourcePath: 'D:/plugins/new/plugin.json', message: expect.stringContaining('0.1.1') },
+    ])
     expect(loadModule).not.toHaveBeenCalled()
   })
+
+  it.each([{ pluginSdk: '^9.0.0' }, { milkup: '^9.0.0' }])(
+    'rejects incompatible upgrade %j before writing or changing the enabled installation',
+    async (engines) => {
+      const registry = new ActionRegistry()
+      const storage = createMemoryStorage()
+      const dispose = vi.fn()
+      let pluginStorage: PluginStorageBroker | undefined
+      const oldManifest = {
+        ...pluginManifest(),
+        settings: {
+          schema: { compact: { type: 'boolean' as const } },
+          defaults: { compact: false },
+        },
+      }
+      let candidate: PluginManifest = oldManifest
+      const files = new Map<string, string>()
+      const directories = {
+        manifestPath: '/installed/example-tools/plugin.json',
+        rootPath: '/installed/example-tools',
+        dataRoot: '/data/example-tools',
+        storageRoot: '/storage/example-tools',
+      }
+      const installPackage = vi.fn(
+        async (archive: import('@milkup/plugin').PluginPackageArchive) => {
+          for (const file of archive.files) files.set(file.path, file.content)
+          return directories
+        },
+      )
+      const ensureDataDirectories = vi.fn(async () => directories)
+      const manager = new DesktopPluginManager({
+        actionRegistry: registry,
+        storage,
+        permissions: ['document:write'],
+        milkupVersion: '0.1.0',
+        pluginSdkVersion: '0.1.0',
+        manifestHost: {
+          selectManifestPath: async () => undefined,
+          readManifestText: async () =>
+            JSON.stringify({
+              format: 'milkup-plugin',
+              version: 1,
+              manifest: candidate,
+              files: [{ path: 'dist/plugin.js', encoding: 'utf8', content: candidate.version }],
+            }),
+          installPackage,
+          ensureDataDirectories,
+        },
+        loadModule: async () => ({
+          dispose,
+          module: {
+            runtimeHost: 'isolated',
+            activate: (context) => {
+              pluginStorage = context.host.storage
+              return { commands: { 'example.insert': () => 'old instance' } }
+            },
+          },
+        }),
+      })
+      await manager.ready
+      await manager.installManifestPath('/candidate.milkup-plugin')
+      await manager.enable(oldManifest.id)
+      await pluginStorage!.setItem('settings', '{"compact":true}')
+      const before = manager.state()
+      const savedRegistry = storage.getItem('milkup.desktop.plugins.registry.v1')
+      const action = registry.get('example.insert')
+      installPackage.mockClear()
+      ensureDataDirectories.mockClear()
+      candidate = { ...oldManifest, version: '2.0.0', engines }
+
+      const failure = await manager.installManifestPath('/candidate.milkup-plugin').then(
+        () => undefined,
+        (error: unknown) => error,
+      )
+      expect(files.get('dist/plugin.js')).toBe('1.0.0')
+      expect(installPackage).not.toHaveBeenCalled()
+      expect(ensureDataDirectories).not.toHaveBeenCalled()
+      expect(failure).toBeInstanceOf(Error)
+      expect(String(failure)).toContain('Requires')
+      expect(manager.state().records).toEqual(before.records)
+      expect(manager.state().contributions).toEqual(before.contributions)
+      expect(storage.getItem('milkup.desktop.plugins.registry.v1')).toBe(savedRegistry)
+      expect(dispose).not.toHaveBeenCalled()
+      expect(registry.get('example.insert')).toBe(action)
+      await expect(
+        registry.run('example.insert', { permissions: ['document:write'] }, {}),
+      ).resolves.toEqual({ ok: true, value: 'old instance' })
+      await expect(pluginStorage!.getItem('settings')).resolves.toBe('{"compact":true}')
+      expect(manager.state().installFailures).toMatchObject([
+        { sourcePath: '/candidate.milkup-plugin', message: expect.stringContaining('Requires') },
+      ])
+      expect(renderDesktopPluginManager(manager.state())).toContain('安装失败')
+      await manager.disable(oldManifest.id)
+    },
+  )
+
+  it.each(['archive', 'manifest'] as const)(
+    'does not create files, directories or registry records for a new incompatible %s',
+    async (kind) => {
+      const installPackage = vi.fn()
+      const ensureDataDirectories = vi.fn()
+      const loadModule = vi.fn()
+      const manifest = { ...pluginManifest(), engines: { pluginSdk: '^9.0.0' } }
+      const manager = new DesktopPluginManager({
+        actionRegistry: new ActionRegistry(),
+        storage: createMemoryStorage(),
+        permissions: ['document:write'],
+        milkupVersion: '0.1.0',
+        pluginSdkVersion: '0.1.0',
+        loadModule,
+        manifestHost: {
+          selectManifestPath: async () => undefined,
+          readManifestText: async () =>
+            JSON.stringify(
+              kind === 'manifest'
+                ? manifest
+                : {
+                    format: 'milkup-plugin',
+                    version: 1,
+                    manifest,
+                    files: [{ path: 'dist/plugin.js', encoding: 'utf8', content: 'new' }],
+                  },
+            ),
+          installPackage,
+          ensureDataDirectories,
+        },
+      })
+      await manager.ready
+      await expect(manager.installManifestPath('/new')).rejects.toThrow('Requires plugin SDK')
+      expect(installPackage).not.toHaveBeenCalled()
+      expect(ensureDataDirectories).not.toHaveBeenCalled()
+      expect(loadModule).not.toHaveBeenCalled()
+      expect(manager.state().records).toEqual([])
+      expect(manager.state().installFailures).toMatchObject([
+        { sourcePath: '/new', message: expect.stringContaining('Requires plugin SDK') },
+      ])
+    },
+  )
 
   it('cleans temporary stores on disable and close, and permits a fresh activation after close fails', async () => {
     const adapter = createDesktopTemporaryStorage({

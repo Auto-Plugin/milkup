@@ -880,6 +880,12 @@ export interface SdkDocumentPresentationFragment extends SdkDocumentPresentation
 export interface SdkDocumentPresentationResult {
   readonly fragments: readonly SdkDocumentPresentationFragment[]
   readonly complete: boolean
+  /**
+   * Since 0.3.6. Same-version background preparation may improve this result.
+   * Only literal true is valid, and complete must be false. Omit on terminal
+   * incomplete results. This does not extend the renderer execution deadline.
+   */
+  readonly pending?: true
 }
 export interface SdkDocumentRendererDeclaration {
   readonly id: string

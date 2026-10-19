@@ -1,5 +1,6 @@
 import {
   copyDocumentPresentationRequest,
+  copyDocumentPresentationResult,
   DOCUMENT_PRESENTATION_LIMITS,
   DocumentPresentationError,
   MemoryDocumentSource,
@@ -25,6 +26,8 @@ export interface OutputPresentationOptions {
   readonly completeStart?: boolean
   readonly completeEnd?: boolean
   readonly renderers: () => readonly DesktopDocumentRenderer[]
+  /** Host activation epoch; never supplied by the plugin. */
+  readonly rendererGeneration?: (pluginId: string) => number
   readonly render: (
     pluginId: string,
     rendererId: string,
@@ -44,8 +47,9 @@ export interface OutputPresentationWarning {
   readonly message: string
 }
 
-/** Frozen-source export adapter. Rich output is optional; every rejected region
- * stays in the caller's original source and carries a visible fallback warning. */
+/** Frozen-source export adapter. Unsupported or permanently incomplete regions
+ * keep their source with a warning. Changing document/provider ownership cancels
+ * the capture instead of combining results from different snapshots. */
 export async function collectOutputPresentations(options: OutputPresentationOptions): Promise<{
   readonly presentations: readonly OutputPresentationBatch[]
   readonly warnings: readonly OutputPresentationWarning[]
@@ -76,6 +80,26 @@ export async function collectOutputPresentations(options: OutputPresentationOpti
     return { presentations, warnings }
   }
   if (!options.source || !options.renderers().length) return { presentations, warnings }
+  const ownerKey = (renderer: DesktopDocumentRenderer) =>
+    JSON.stringify([renderer.pluginId, renderer.id])
+  const owners = new Map(
+    options
+      .renderers()
+      .map((renderer) => [ownerKey(renderer), options.rendererGeneration?.(renderer.pluginId)]),
+  )
+  let rendererSetChanged = false
+  const readStableRenderers = () => {
+    const current = options.renderers()
+    rendererSetChanged ||=
+      current.length !== owners.size ||
+      current.some(
+        (renderer) =>
+          !owners.has(ownerKey(renderer)) ||
+          options.rendererGeneration?.(renderer.pluginId) !== owners.get(ownerKey(renderer)),
+      )
+    if (rendererSetChanged) throw new DocumentPresentationError('revoked')
+    return current
+  }
   const document = new MemoryTextDocument(options.source)
   const memory = new MemoryDocumentSource({
     documentId: options.documentId,
@@ -115,11 +139,18 @@ export async function collectOutputPresentations(options: OutputPresentationOpti
     },
     theme: () => 'light',
     target: 'export',
-    renderers: options.renderers,
+    renderers: readStableRenderers,
+    ...(options.rendererGeneration ? { rendererGeneration: options.rendererGeneration } : {}),
     async render(pluginId, rendererId, request, preparation) {
       guard()
+      const generation = options.rendererGeneration?.(pluginId)
+      const assertGeneration = () => {
+        if (options.rendererGeneration?.(pluginId) !== generation)
+          throw new DocumentPresentationError('revoked')
+      }
       const controller = new AbortController()
       let timer: ReturnType<typeof setTimeout> | undefined
+      let retryTimer: ReturnType<typeof setTimeout> | undefined
       let abort: (() => void) | undefined
       try {
         // The isolated owner starts its unchanged 2s execution watchdog at
@@ -139,25 +170,49 @@ export async function collectOutputPresentations(options: OutputPresentationOpti
             controller.abort()
           }, remaining)
         })
-        const result = await Promise.race([
-          options.render(pluginId, rendererId, absoluteLines(request), {
-            signal: controller.signal,
-          }),
-          cancellation,
-        ])
-        guard()
-        // A blocked frontend can deliver a result before its overdue timer task.
-        // Never accept it beyond the same preparation deadline or renew the budget.
-        if (performance.now() >= preparation.deadline) {
-          controller.abort()
-          throw new DocumentPresentationError('timeout')
-        }
-        if (!result.complete || result.fragments.some((fragment) => fragment.status === 'error'))
-          warn(
-            'presentation-incomplete',
-            'Some rich content could not be rendered completely; original Markdown is retained where needed.',
+        const input = absoluteLines(request)
+        while (true) {
+          guard()
+          assertGeneration()
+          if (performance.now() >= preparation.deadline)
+            throw new DocumentPresentationError('timeout')
+          const declaration = readStableRenderers().find(
+            (active) => active.pluginId === pluginId && active.id === rendererId,
           )
-        return result
+          if (!declaration) throw new DocumentPresentationError('revoked')
+          const value = await Promise.race([
+            options.render(pluginId, rendererId, input, { signal: controller.signal }),
+            cancellation,
+          ])
+          guard()
+          assertGeneration()
+          // A blocked frontend can deliver a result before its overdue timer task.
+          // Never accept it beyond the same deadline or renew the budget.
+          if (performance.now() >= preparation.deadline) {
+            controller.abort()
+            throw new DocumentPresentationError('timeout')
+          }
+          const result = copyDocumentPresentationResult(value, input, declaration)
+          if (result.pending) {
+            // A provider explicitly owns bounded same-version background work.
+            // Retry only that provider, never permanent fallback or completed work.
+            // The original preparation timer and isolated execution watchdog stay
+            // authoritative; this pause cannot renew either deadline.
+            await Promise.race([
+              new Promise<void>((resolve) => {
+                retryTimer = setTimeout(resolve, 250)
+              }),
+              cancellation,
+            ])
+            continue
+          }
+          if (!result.complete || result.fragments.some((fragment) => fragment.status === 'error'))
+            warn(
+              'presentation-incomplete',
+              'Some rich content could not be rendered completely; original Markdown is retained where needed.',
+            )
+          return result
+        }
       } catch (error) {
         guard()
         const timeout = error instanceof DocumentPresentationError && error.code === 'timeout'
@@ -170,6 +225,7 @@ export async function collectOutputPresentations(options: OutputPresentationOpti
         throw error
       } finally {
         clearTimeout(timer)
+        clearTimeout(retryTimer)
         if (abort) options.signal.removeEventListener('abort', abort)
       }
     },
@@ -267,5 +323,9 @@ export async function collectOutputPresentations(options: OutputPresentationOpti
     presentations.push({ ...response, request: absoluteLines(response.request) })
   }
   guard()
+  // Keep one provider set across every window. Earlier completed fragments
+  // cannot outlive their activation or mix with providers enabled mid-capture.
+  // The main host always supplies the activation epoch reader.
+  readStableRenderers()
   return { presentations, warnings }
 }

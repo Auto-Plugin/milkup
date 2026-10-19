@@ -38,11 +38,14 @@ export function parsePluginPackageArchive(value: unknown): PluginPackageArchive 
   }
 
   const paths = new Set<string>()
-  const files = value.files.map((file, index) => parsePackageFile(file, index, paths))
+  const directories = new Set<string>()
+  const files = value.files.map((file, index) => parsePackageFile(file, index, paths, directories))
 
-  if (manifest.main && isRelativePackagePath(manifest.main)) {
-    const main = manifest.main
-    const entry = files.find((file) => file.path === normalizePackagePath(main))
+  if (manifest.main) {
+    // Development manifests may refer to external modules; installable archives
+    // must contain their executable entry, including sidecar executables.
+    const main = normalizePackagePath(manifest.main)
+    const entry = files.find((file) => file.path === main)
 
     if (!entry) {
       throw new Error(`Plugin package entry is missing: ${manifest.main}`)
@@ -101,6 +104,11 @@ export function readPluginPackageTextFile(archive: PluginPackageArchive, path: s
 }
 
 export function normalizePackagePath(path: string): string {
+  if (/^[\\/]|^[a-zA-Z]:/.test(path) || /[\u0000-\u001f\u007f]/.test(path)) {
+    throw new Error(
+      `Plugin package path must be relative and contain no control characters: ${path}`,
+    )
+  }
   const parts = path.replace(/\\/g, '/').split('/')
   const normalized: string[] = []
 
@@ -113,6 +121,16 @@ export function normalizePackagePath(path: string): string {
       throw new Error(`Plugin package path must stay inside the package: ${path}`)
     }
 
+    // A package has one portable file layout. Reject Windows path aliases even
+    // when parsing on Unix; this is format validation, not an OS sandbox.
+    if (
+      /[<>:"|?*]/.test(part) ||
+      /[. ]$/.test(part) ||
+      /^(?:con|prn|aux|nul|com[1-9¹²³]|lpt[1-9¹²³]|conin\$|conout\$)(?:\.|$)/i.test(part)
+    ) {
+      throw new Error(`Plugin package path contains a nonportable component: ${path}`)
+    }
+
     normalized.push(part)
   }
 
@@ -123,7 +141,12 @@ export function normalizePackagePath(path: string): string {
   return normalized.join('/')
 }
 
-function parsePackageFile(value: unknown, index: number, paths: Set<string>): PluginPackageFile {
+function parsePackageFile(
+  value: unknown,
+  index: number,
+  paths: Set<string>,
+  directories: Set<string>,
+): PluginPackageFile {
   if (!isRecord(value)) {
     throw new Error(`Plugin package file ${index} must be an object`)
   }
@@ -137,17 +160,49 @@ function parsePackageFile(value: unknown, index: number, paths: Set<string>): Pl
   }
 
   const path = normalizePackagePath(value.path)
+  const key = path.toLowerCase()
+  const parts = key.split('/')
 
-  if (paths.has(path)) {
+  if (parts[0] === 'plugin.json') {
+    throw new Error('Plugin package path plugin.json is reserved for the installed manifest')
+  }
+  if (paths.has(key)) {
     throw new Error(`Duplicate plugin package file: ${path}`)
   }
+  if (directories.has(key)) {
+    throw new Error(`Plugin package file conflicts with a directory: ${path}`)
+  }
+  for (let end = 1; end < parts.length; end += 1) {
+    const parent = parts.slice(0, end).join('/')
+    if (paths.has(parent)) {
+      throw new Error(`Plugin package directory conflicts with a file: ${path}`)
+    }
+    directories.add(parent)
+  }
 
-  paths.add(path)
+  if (value.encoding === 'base64' && !isCanonicalBase64(value.content)) {
+    throw new Error(`Plugin package file ${index} requires canonical base64 content`)
+  }
+  paths.add(key)
   return Object.freeze({ path, encoding: value.encoding, content: value.content })
 }
 
-function isRelativePackagePath(path: string): boolean {
-  return !/^[a-zA-Z][a-zA-Z\d+.-]*:/.test(path) && !/^(?:\/|\\|[a-zA-Z]:)/.test(path)
+/** Validate RFC 4648 bytes without allocating a decoded copy of a binary file. */
+function isCanonicalBase64(content: string): boolean {
+  if (content.length % 4 !== 0) return false
+  const padding = content.endsWith('==') ? 2 : content.endsWith('=') ? 1 : 0
+  const end = content.length - padding
+  let last = 0
+  for (let index = 0; index < end; index += 1) {
+    const code = content.charCodeAt(index)
+    if (code >= 65 && code <= 90) last = code - 65
+    else if (code >= 97 && code <= 122) last = code - 71
+    else if (code >= 48 && code <= 57) last = code + 4
+    else if (code === 43) last = 62
+    else if (code === 47) last = 63
+    else return false
+  }
+  return padding === 2 ? (last & 15) === 0 : padding === 1 ? (last & 3) === 0 : true
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -183,6 +183,7 @@ export {
   createPluginScopedStorage,
   parsePluginRegistrySnapshot,
   serializePluginRegistry,
+  validatePluginCompatibility,
   type PluginApprovalState,
   type PluginAuditOperation,
   type PluginAuditRecord,

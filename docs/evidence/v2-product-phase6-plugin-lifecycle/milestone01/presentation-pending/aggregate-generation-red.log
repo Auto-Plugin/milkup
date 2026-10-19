@@ -1,0 +1,139 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/document-presentation-service.test.ts (26 tests | 1 failed) 191ms
+   ✓ desktop document presentation service > preserves explicit text provider preparation in the aggregate 6ms
+   ✓ desktop document presentation service > preserves explicit fence provider preparation in the aggregate 1ms
+   ✓ desktop document presentation service > rejects a result from a replaced activation with the same declared renderer ID 1ms
+   × desktop document presentation service > revalidates completed provider ownership while another provider is still preparing 16ms
+     → promise resolved "{ request: { …(16) }, …(2) }" instead of rejecting
+   ✓ desktop document presentation service > uses trusted context and validates inert results 2ms
+   ✓ desktop document presentation service > rejects results after document replacement even when IDs and versions match 2ms
+   ✓ desktop document presentation service > rejects a mutable native source version changed while its renderer is pending 2ms
+   ✓ desktop document presentation service > rejects source replacement with unchanged view identity, document ID and version 1ms
+   ✓ desktop document presentation service > drops code-overlap and stale contributions while preserving source 1ms
+   ✓ desktop document presentation service > invalidates in-flight work and does not cache a rejected provider 1ms
+   ✓ bounded slow-source presentation preparation > retains completed prefix checkpoints across a settled ten-second preparation abort 18ms
+   ✓ bounded slow-source presentation preparation > does not publish a prefix checkpoint from an uncancellable read resolved after abort 9ms
+   ✓ bounded slow-source presentation preparation > discards prefix checkpoints when the same source moves to another document version 9ms
+   ✓ viewport-prioritized bounded fence presentation > keeps an independently valid fence when the shared canonical budget is full 35ms
+   ✓ viewport-prioritized bounded fence presentation > promotes a later visible fence without relying on selection or overscan changes 28ms
+   ✓ viewport-prioritized bounded fence presentation > keeps all competing providers in a fence conflict before budget admission 37ms
+   ✓ viewport-prioritized bounded fence presentation > retains source ordering when later viewport fragments are admitted first 2ms
+   ✓ viewport-prioritized bounded fence presentation > settles a valid partial without starting another task inside the deadline reserve 1ms
+   ✓ viewport-prioritized bounded fence presentation > shares one absolute preparation deadline across every fence (supplied: undefined) 1ms
+   ✓ viewport-prioritized bounded fence presentation > shares one absolute preparation deadline across every fence (supplied: 8000) 1ms
+   ✓ viewport-prioritized bounded fence presentation > does not impose a fixed two-fence limit on fast small results 1ms
+   ✓ viewport-prioritized bounded fence presentation > rejects a malformed individual response without losing later valid fences 2ms
+   ✓ viewport-prioritized bounded fence presentation > does not let a mixed-context provider win a fence by hiding its competitor 1ms
+   ✓ viewport-prioritized bounded fence presentation > discards an aborted first fence and never starts a later task 1ms
+   ✓ viewport-prioritized bounded fence presentation > discards late output after renderer withdrawal and makes no subsequent renderer call 1ms
+   ✓ viewport-prioritized bounded fence presentation > uses trusted prefix context when a mid-fence window locally invents opening markers 7ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/document-presentation-service.test.ts > desktop document presentation service > revalidates completed provider ownership while another provider is still preparing
+AssertionError: promise resolved "{ request: { …(16) }, …(2) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ {
++   "declarations": [
++     {
++       "contexts": [
++         "text",
++       ],
++       "id": "extension",
++       "pluginId": "test",
++     },
++     {
++       "contexts": [
++         "text",
++       ],
++       "id": "extension",
++       "pluginId": "other",
++     },
++   ],
++   "request": {
++     "blocks": [
++       {
++         "complete": true,
++         "contentRanges": [
++           {
++             "from": 0,
++             "to": 9,
++           },
++         ],
++         "from": 0,
++         "kind": "text",
++         "to": 9,
++       },
++       {
++         "complete": true,
++         "contentRanges": [
++           {
++             "from": 10,
++             "to": 10,
++           },
++         ],
++         "from": 10,
++         "kind": "text",
++         "to": 10,
++       },
++     ],
++     "completeEnd": true,
++     "completeStart": true,
++     "contextKnown": true,
++     "documentId": "doc",
++     "from": 0,
++     "fromLine": 1,
++     "protectedRanges": [],
++     "selection": {
++       "anchor": 0,
++       "head": 0,
++     },
++     "source": "Hello $x$
++ ",
++     "target": "screen",
++     "theme": "light",
++     "to": 10,
++     "toLine": 2,
++     "version": 1,
++     "width": 760,
++   },
++   "result": {
++     "complete": true,
++     "fragments": [
++       {
++         "accessibleText": "x",
++         "content": {
++           "text": "x",
++           "type": "text",
++         },
++         "from": 6,
++         "layout": "inline",
++         "to": 9,
++       },
++     ],
++   },
+  }
+
+ ❯ apps/desktop/src/document-presentation-service.test.ts:110:26
+    108|     generation++
+    109|     finish()
+    110|     await expect(response).rejects.toMatchObject({ code: 'revoked' })
+       |                          ^
+    111|   })
+    112|   it('uses trusted context and validates inert results', async () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 25 passed (26)
+   Start at  07:35:03
+   Duration  1.05s (transform 320ms, setup 0ms, collect 407ms, tests 191ms, environment 0ms, prepare 81ms)
+
