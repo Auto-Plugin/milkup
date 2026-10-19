@@ -1,0 +1,61 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ❯ src/output-service.test.ts (23 tests | 1 failed) 194ms
+   ✓ controlled desktop output > writes a complete immutable captured version after subsequent edits 15ms
+   ✓ controlled desktop output > rejects a document version change during capture before allocating a native job 1ms
+   ✓ controlled desktop output > aborts owned jobs on disposal and isolates plugin handles 2ms
+   ✓ controlled desktop output > reports committed writes when cancellation arrives after native commit 1ms
+   × controlled desktop output > preserves an unknown print submission result when cancellation arrives late 12ms
+     → expected PluginOutputError: Output operation faile… { code: '…' } to match object { code: 'unavailable' }
+(1 matching property omitted from actual)
+   ✓ controlled desktop output > preserves acknowledged print submission when cancellation arrives late 1ms
+   ✓ controlled desktop output > rejects oversized source before reads and preserves native outputs on cancelled chooser 10ms
+   ✓ controlled desktop output > preserves CRLF, Unicode and blank lines across bounded source windows 23ms
+   ✓ controlled desktop output > keeps a selected absolute range and warns about unavailable rich context 1ms
+   ✓ controlled desktop output > cleans a late native preparation when capture was cancelled 1ms
+   ✓ controlled desktop output > makes unavailable and remote images visible without network requests 2ms
+   ✓ controlled desktop output > does not allocate a target on chooser cancellation or write afterwards 1ms
+   ✓ controlled desktop output > captures adjacent long lines without exceeding the per-read budget 11ms
+   ✓ controlled desktop output > preserves a final bare CR instead of silently truncating source metadata 0ms
+   ✓ controlled desktop output > maps native rejection after cancellation to aborted while retaining the success contract 1ms
+   ✓ controlled desktop output > rejects HTML above the native transfer budget before asking for a destination 58ms
+   ✓ controlled desktop output > shrinks windows for the native string budget error and bounds every boundary lookup 42ms
+   ✓ controlled desktop output > keeps released snapshot allocations reserved until in-flight choosers settle 2ms
+   ✓ controlled desktop output > uses UTF-16 length metadata for windowed Unicode and preserves terminal CR 4ms
+   ✓ controlled desktop output > rejects malformed selection offset -1 without native output 0ms
+   ✓ controlled desktop output > rejects malformed selection offset NaN without native output 0ms
+   ✓ controlled desktop output > rejects malformed selection offset 999999 without native output 0ms
+   ✓ controlled desktop output > rejects a selected half-surrogate instead of corrupting Unicode 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/output-service.test.ts > controlled desktop output > preserves an unknown print submission result when cancellation arrives late
+AssertionError: expected PluginOutputError: Output operation faile… { code: '…' } to match object { code: 'unavailable' }
+(1 matching property omitted from actual)
+
+- Expected
++ Received
+
+- {
+-   "code": "unavailable",
++ PluginOutputError {
++   "code": "aborted",
+  }
+
+ ❯ src/output-service.test.ts:119:5
+    117|       return true
+    118|     })
+    119|     await expect(adapter.print(snapshot.id, { signal: controller.signa…
+       |     ^
+    120|       code: 'unavailable',
+    121|     })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 22 passed (23)
+   Start at  05:28:09
+   Duration  1.54s (transform 744ms, setup 0ms, collect 996ms, tests 194ms, environment 0ms, prepare 80ms)
+

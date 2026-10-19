@@ -1,0 +1,31 @@
+Progress: resolved 1, reused 0, downloaded 0, added 0
+Packages: +53
++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Packages are hard linked from the content-addressable store to the virtual store.
+  Content-addressable store is at: /workspace/.cache/pnpm/v11
+  Virtual store is at:             node_modules/.pnpm
+Progress: resolved 103, reused 53, downloaded 0, added 53, done
+
+devDependencies:
++ @milkup/plugin-sdk 0.3.5
++ esbuild 0.25.12 (0.28.2 is available)
++ typescript 5.9.3 (7.0.2 is available)
++ vitest 3.2.6 (5.0.5 is available)
+
+Done in 1.7s using pnpm v11.25.0
+$ tsc --noEmit && node scripts/build.mjs
+Built dist/plugin.js and dist/milkup.export-print-1.0.1.milkup-plugin
+$ vitest run --config vitest.config.ts
+
+ RUN  v3.2.6 /workspace/milkup-export-print-evidence/milestone05/plugin-print-cancel/external-1.0.1
+
+ ✓ src/plugin.test.ts (7 tests) 18ms
+ ✓ src/manifest.test.ts (1 test) 2ms
+ ✓ src/controller.test.ts (21 tests) 70ms
+
+ Test Files  3 passed (3)
+      Tests  29 passed (29)
+   Start at  05:31:30
+   Duration  723ms (transform 381ms, setup 0ms, collect 607ms, tests 90ms, environment 1ms, prepare 406ms)
+
+Independent export-print plugin verified: /workspace/milkup-export-print-evidence/milestone05/plugin-print-cancel/external-1.0.1

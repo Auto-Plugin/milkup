@@ -1,0 +1,57 @@
+
+ RUN  v3.2.6 /workspace/milkup/plugins/export-print
+
+ ✓ src/manifest.test.ts (1 test) 3ms
+ ✓ src/plugin.test.ts (7 tests) 11ms
+ ❯ src/controller.test.ts (23 tests | 2 failed) 59ms
+   ✓ export and print lifecycle > captures synchronously, returns immediately, rejects duplicate clicks, and retains version and warnings 14ms
+   ✓ export and print lifecycle > releases late html capture after cancellation without opening a target dialog 3ms
+   ✓ export and print lifecycle > releases late pdf capture after cancellation without opening a target dialog 1ms
+   ✓ export and print lifecycle > releases late print capture after cancellation without opening a target dialog 1ms
+   ✓ export and print lifecycle > handles target cancellation without writing 1ms
+   ✓ export and print lifecycle > releases targets that arrive after panel close 1ms
+   ✓ export and print lifecycle > reports chooseTarget errors and allows a fresh captured retry 1ms
+   ✓ export and print lifecycle > reports write errors and allows a fresh captured retry 2ms
+   ✓ export and print lifecycle > aborts on disable/dispose and releases late results without further UI updates 1ms
+   ✓ export and print lifecycle > honors committed html success even if cancel races with write completion 2ms
+   ✓ export and print lifecycle > honors committed pdf success even if cancel races with write completion 2ms
+   ✓ export and print lifecycle > prints captured selection with paper options and supports print cancellation 1ms
+   ✓ export and print lifecycle > fails visibly without real host support 0ms
+   ✓ export and print lifecycle > contains synchronous capture failure and explains revoked permission 1ms
+   ✓ submitted print cancellation > waits for the print outcome, blocks duplicate starts/cancels, and honors late success 3ms
+   ✓ submitted print cancellation > accepts confirmed cancellation: cancelled-result 3ms
+   ✓ submitted print cancellation > accepts confirmed cancellation: aborted 2ms
+   ✓ submitted print cancellation > accepts confirmed cancellation: cancelled 2ms
+   ✓ submitted print cancellation > warns to inspect the queue when print confirmation is unavailable (cancel requested: false) 2ms
+   ✓ submitted print cancellation > warns to inspect the queue when print confirmation is unavailable (cancel requested: true) 2ms
+   ✓ submitted print cancellation > disposal aborts a pending print once without releasing its lease before the outcome 2ms
+   × Linux output dependencies > explains the system Chromium prerequisite for unsupported pdf 11ms
+     → expected '当前宿主暂不支持此输出方式，请选择其他格式。' to contain '系统 Chromium'
+   × Linux output dependencies > explains the system Chromium prerequisite for unsupported print 1ms
+     → expected '当前宿主暂不支持此输出方式，请选择其他格式。' to contain '系统 Chromium'
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  2 failed | 29 passed (31)
+   Start at  05:32:44
+   Duration  428ms (transform 207ms, setup 0ms, collect 285ms, tests 73ms, environment 1ms, prepare 272ms)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/controller.test.ts > Linux output dependencies > explains the system Chromium prerequisite for unsupported pdf
+ FAIL  src/controller.test.ts > Linux output dependencies > explains the system Chromium prerequisite for unsupported print
+AssertionError: expected '当前宿主暂不支持此输出方式，请选择其他格式。' to contain '系统 Chromium'
+
+Expected: "系统 Chromium"
+Received: "当前宿主暂不支持此输出方式，请选择其他格式。"
+
+ ❯ src/controller.test.ts:277:38
+    275|     await f.controller.settled()
+    276|     expect(f.controller.state.phase).toBe('error')
+    277|     expect(f.controller.state.error).toContain('系统 Chromium')
+       |                                      ^
+    278|     expect(f.controller.state.error).toContain('Linux')
+    279|     expect(f.controller.state.printUnconfirmed).not.toBe(true)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+

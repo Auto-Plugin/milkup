@@ -1,0 +1,67 @@
+{
+  "status": "PASS_ACTUAL_HTML_SCREEN_SCOPE",
+  "productBinarySHA256": "f29911982fc0d6e26d15ef572156c0c29d2fc2140ace6d2d7914b456e9635d98",
+  "sourceSHA256": "d42c908b9be785ed0a9e9ae9c22e91740b12b4cddb7ee48dac088f8415500957",
+  "productionRoute": "Actual installed independent export-print 1.0.0 with approved renderers including diagrams 1.1.1, existing frozen WebKit desktop f2991198; see producer provenance.",
+  "inspectionRoute": "Independent sandbox-requested Chromium headless offline setContent of exact saved bytes, no DISPLAY. Not Chromium product output.",
+  "defaultAttempt": "Sandbox launch failed; preserved run-default.log/exit. Normal reviewed require_escalated retry retained Chromium sandbox option and succeeded run-approved.exit=0.",
+  "results": [
+    {
+      "variant": "complete",
+      "sha256": "af2aeebbf33baaf8fd3bb83385f5773a29656fa32681fa68f47f88d29d6653fe",
+      "bytes": 53717,
+      "checks": {
+        "screenPixelRegression": true,
+        "headingsTableAndCodeActuallyGrouped": true,
+        "fixedCSP": true,
+        "sourceFallbackCount": 0,
+        "mathCount": 2,
+        "diagramPresentationCount": 1,
+        "footnoteRoundtrip": true,
+        "noNetworkRequests": true,
+        "embeddedImageCount": 1,
+        "warningCount": 2,
+        "tableRows": 3,
+        "codePreserved": true
+      },
+      "svgReferenceCount": 2,
+      "visualStatus": "PASS_SCREEN_REVIEW_ONLY",
+      "imageByteAndPixelExact": true,
+      "printHeadingContainment": true,
+      "headingLeadCount": 7,
+      "semanticsUnchangedFrom09": true
+    },
+    {
+      "variant": "without-images",
+      "sha256": "b3b882bd0d07b0ddb0a631091e6bd82c3be3935413146cff1aac2b763cb15f01",
+      "bytes": 53521,
+      "checks": {
+        "screenPixelRegression": true,
+        "headingsTableAndCodeActuallyGrouped": true,
+        "fixedCSP": true,
+        "sourceFallbackCount": 0,
+        "mathCount": 2,
+        "diagramPresentationCount": 1,
+        "footnoteRoundtrip": true,
+        "noNetworkRequests": true,
+        "embeddedImageCount": 0,
+        "warningCount": 3,
+        "tableRows": 3,
+        "codePreserved": true
+      },
+      "svgReferenceCount": 2,
+      "visualStatus": "PASS_SCREEN_REVIEW_ONLY",
+      "imageByteAndPixelExact": null,
+      "printHeadingContainment": true,
+      "headingLeadCount": 7,
+      "semanticsUnchangedFrom09": true
+    }
+  ],
+  "scopeLimits": [
+    "No actual patched WebKit exists in this review.",
+    "No proof of PDF/print pagination or Unicode preservation.",
+    "No heading→list sample in this fixture.",
+    "No direct-file browser opening asserted."
+  ],
+  "reviewSource": "production-rich-html-review.json and production-rich-without-images-review.json"
+}

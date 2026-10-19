@@ -1,0 +1,89 @@
+{
+  "baselineCommit": "7241f8b875f241d6ee50535e3bc0d4c18f51052b",
+  "workingTreeProductChanges": true,
+  "sourceSha256": {
+    "apps/desktop/src-tauri/src/output.rs": "32622af0f530a8cc9fcc78fb5036254de71241f6b4ebb3a75dc3e16a9090e02e",
+    "apps/desktop/src-tauri/src/output_linux.rs": "f3e9676ffc1a4eaa8c166938498c296b48afcd545f69a8e834172cb32c2db025",
+    "apps/desktop/src-tauri/src/output_chromium.rs": "a997dede3092bda75e2e1026c85ff0e05490cdbeaa00df0c1ef457a3b3aab0b3",
+    "apps/desktop/src-tauri/Cargo.toml": "b80916191d1ecfb05a683574d8ecf7cdf8a0c8bcdcf0cc40dd994dd5fa7f2238"
+  },
+  "testBinary": "/workspace/milkup/apps/desktop/src-tauri/target/debug/deps/milkup_desktop_lib-8969ac6bfdf4806e",
+  "testBinarySha256": "950c8c4de38de8e5079a60d50983c4763c01f8d6232bf35c510394a9bede17e7",
+  "tests": {
+    "command": "source /workspace/.cloud/milkup-v2/env.sh; unset CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER PROOT_NO_SECCOMP; cargo test --lib output:: --manifest-path apps/desktop/src-tauri/Cargo.toml -- --test-threads=1",
+    "exit": 0,
+    "passed": 15,
+    "ignored": 3,
+    "failed": 0,
+    "log": "cargo-test-output-with-spool-02.log"
+  },
+  "checks": [
+    {
+      "command": "cargo check --lib --manifest-path apps/desktop/src-tauri/Cargo.toml",
+      "exit": 0,
+      "log": "cargo-check-01.log"
+    },
+    {
+      "command": "cargo check --tests --manifest-path apps/desktop/src-tauri/Cargo.toml",
+      "exit": 0,
+      "log": "cargo-check-tests-01.log"
+    }
+  ],
+  "helperInvocation": {
+    "arguments": [
+      "output::linux::tests::native_output_helper",
+      "--exact",
+      "--ignored",
+      "--test-threads=1"
+    ],
+    "environment": {
+      "MILKUP_OUTPUT_TEST_HELPER": "1"
+    },
+    "descriptors": "Existing little-endian framed stdin0, result3, guardian-stop4; caller owns frame input and stop pipe. Run within existing approved namespace; no sandbox-disabling flags.",
+    "pdfRequiresDisplay": false
+  },
+  "physicalPrintSemantics": {
+    "beforeAuthorization": "Abort serializes with state lock and prevents send.",
+    "afterAuthorization": "No cancellation claim; wait <=30 seconds for terminal submission result. Failure/timeout is explicit unavailable + unknown queue status; no retry.",
+    "success": "Existing printed result means spooler accepted the job, not physical page completion. Late abort does not overwrite this outcome.",
+    "cleanupFailureAfterSuccess": "Preserve success, report stderr and retain private stage.",
+    "currentlySupportedSettings": "A4/Letter; portrait/landscape; all pages, one copy, 1-up, 100% scale, normal order. Unsupported options rejected before submission."
+  },
+  "knownValidationGap": "No physical printer attached. Final production UI/target lifecycle tests remain to be run after production build. Arabic logical extraction limitation remains separate from implemented Unicode fixes.",
+  "supersededTestRuns": [
+    "cargo-test-output-01.log",
+    "cargo-test-output-final.log"
+  ],
+  "intermediateCompileFailure": {
+    "log": "cargo-test-output-with-spool.log",
+    "cause": "New ignored GTK test needed explicit Option<glib::Object> annotation. Corrected before final green run."
+  },
+  "nativeFileBackend": {
+    "status": "PASS",
+    "scope": "Real Rust submit_pdf -> GTK source_fd/send -> local GtkPrintBackendFile; no physical printer or external job",
+    "binarySha256": "950c8c4de38de8e5079a60d50983c4763c01f8d6232bf35c510394a9bede17e7",
+    "inputPdf": "/workspace/milkup-export-print-evidence/milestone05/chromium-controlled/real.pdf",
+    "bytes": 368049,
+    "sourceAndSpooledSha256": "e943b2d1af95ddb58515cfa8e92deb7862c4bf7bec065d993c3c49d1422b3e1c",
+    "assertions": [
+      "Output bytes exactly equal source PDF bytes",
+      "Source remains unchanged",
+      "Submitting event precedes Printed event",
+      "GTK callback returns successfully while source FD is alive"
+    ],
+    "test": "output::linux::tests::real_gtk_source_fd_submission_preserves_pdf_bytes",
+    "testExit": 0,
+    "passed": 1,
+    "durationSeconds": 0.14,
+    "log": "filebackend-runtime/run.log",
+    "xvfbCleanup": {
+      "pid": 92752,
+      "birth": "9234472",
+      "exit": 0,
+      "ownedProcessExited": true
+    }
+  },
+  "realChromiumFixtureEvidence": "../chromium-controlled/execution.json",
+  "realOversizedFixtureEvidence": "../content-final-helper/oversized.pdf",
+  "followupCleanup": "build.rs still compiles the unused old output WebKit guard; no current output renderer loads it. Left unchanged to avoid widening this patch."
+}

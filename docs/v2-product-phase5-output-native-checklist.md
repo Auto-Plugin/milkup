@@ -1,5 +1,7 @@
 # P5 Linux 原生输出验收
 
+> 后续路线与验收更新：[保持现有依赖的 WebKit 修复准备](./v2-product-phase5-webkit-repair-2026-10-19.md)。下文保留原检查点历史；Chromium 研究候选已撤回，不能作为当前产品修复。
+
 当前文件是验收计划，不是已通过报告。只针对 Root 确认并冻结的 Linux 集成构建运行；不启动 Windows、Runtime 打包、上传或发行。
 
 复用现有 `tests/helpers/native-production.mjs`、`native-updates-fixture.mjs` 与 P4 production08 的已验证 X11/驱动/沙箱启动包装。新增驱动不注入 editor state、不直接调用输出 IPC、不注入权限状态。已授权的验收通过真实产品按钮批准权限，通过 GTK 选择器和 XTest 输入执行。DOM 只用于读取状态和将焦点放到可见控件。

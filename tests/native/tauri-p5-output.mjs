@@ -727,6 +727,13 @@ async function layoutMatrix(format) {
     x('windowsize', ui.windowId(), '1280', '900')
     await app.focus('.milkup-input-proxy')
     await app.key('ctrl+0')
+    await app.until(
+      () =>
+        app.execute(
+          'return Number(document.querySelector("#app").dataset.appearanceZoom) === 1 && innerWidth === 1280 && innerHeight === 900',
+        ),
+      'matrix theme transition window and native zoom settled',
+    )
     await setTheme(theme)
     for (const [width, height] of sizes)
       for (const zoom of zooms)

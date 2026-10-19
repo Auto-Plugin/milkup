@@ -1,0 +1,68 @@
+{
+  "status": "PASS",
+  "engineCompiled": false,
+  "engineExecuted": false,
+  "sourceSha256": "d64fd72792999b657f4ff2e87b907c53803ae9e5534b7e23044b549a9b806957",
+  "patchSha256": "7dc748e2e1ccade9a950dd7904d51708a6983803cc90dd375965d66b7e42bf67",
+  "reversedByteIdentical": true,
+  "checks": [
+    {
+      "label": "pristine-tag-forward-dry-run",
+      "args": [
+        "patch",
+        "--dry-run",
+        "--batch",
+        "--forward",
+        "-p1",
+        "-i",
+        "/workspace/milkup-export-print-evidence/milestone05/webkit-patch/0001-review-only-align-glyph-source-offset.patch"
+      ],
+      "exit": 0,
+      "stdout": "checking file Source/WebCore/platform/graphics/ComplexTextController.cpp\n",
+      "stderr": ""
+    },
+    {
+      "label": "apply-in-disposable-copy",
+      "args": [
+        "patch",
+        "--batch",
+        "--forward",
+        "-p1",
+        "-i",
+        "/workspace/milkup-export-print-evidence/milestone05/webkit-patch/0001-review-only-align-glyph-source-offset.patch"
+      ],
+      "exit": 0,
+      "stdout": "patching file Source/WebCore/platform/graphics/ComplexTextController.cpp\n",
+      "stderr": ""
+    },
+    {
+      "label": "patched-copy-reverse-dry-run",
+      "args": [
+        "patch",
+        "--dry-run",
+        "--batch",
+        "--reverse",
+        "-p1",
+        "-i",
+        "/workspace/milkup-export-print-evidence/milestone05/webkit-patch/0001-review-only-align-glyph-source-offset.patch"
+      ],
+      "exit": 0,
+      "stdout": "checking file Source/WebCore/platform/graphics/ComplexTextController.cpp\n",
+      "stderr": ""
+    },
+    {
+      "label": "reverse-in-disposable-copy",
+      "args": [
+        "patch",
+        "--batch",
+        "--reverse",
+        "-p1",
+        "-i",
+        "/workspace/milkup-export-print-evidence/milestone05/webkit-patch/0001-review-only-align-glyph-source-offset.patch"
+      ],
+      "exit": 0,
+      "stdout": "patching file Source/WebCore/platform/graphics/ComplexTextController.cpp\n",
+      "stderr": ""
+    }
+  ]
+}

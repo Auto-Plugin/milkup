@@ -1,0 +1,33 @@
+{
+  "format": "milkup-plugin",
+  "version": 1,
+  "manifest": {
+    "id": "example.logo-fixture",
+    "name": "Logo fixture",
+    "description": "独立 PNG 资源与通用插件详情验收",
+    "version": "1.0.0",
+    "host": "worker",
+    "main": "./dist/plugin.js",
+    "engines": {
+      "milkup": "^2.0.0-0",
+      "pluginSdk": "^0.2.0"
+    },
+    "permissions": [],
+    "icon": "assets/logo.png",
+    "resources": [
+      "assets/logo.png"
+    ]
+  },
+  "files": [
+    {
+      "path": "dist/plugin.js",
+      "encoding": "utf8",
+      "content": "export default { activate() { return { dispose() {} } } }"
+    },
+    {
+      "path": "assets/logo.png",
+      "encoding": "base64",
+      "content": "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAi0lEQVR4nO3QsQ2AQAwEwS+F8iiaXqAGPvBKMJY2P886zuv+c6seUAegHlAHoB5QB6AeUAegHlAHoB5Qtw3w5uonAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAMwdQAAAAAAAAAAAAAADAB8JQD1gDoA9YA6APWAOgD1gDoA9YA6APWAugeP0ajKkZ+j8QAAAABJRU5ErkJggg=="
+    }
+  ]
+}

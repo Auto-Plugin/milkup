@@ -1,0 +1,16 @@
+# Content and pagination acceptance
+
+The user chose to retain existing dependencies and pursue a WebKit engine patch. The proposed Chromium product backend is withdrawn. This directory preserves WebKit failure evidence and Chromium research comparisons, including an actual experimental native-helper implementation; none of the Chromium results are acceptance of the selected product direction. No static-converter changes were adopted from these experiments.
+
+- `webkit-engine-assessment/assessment.md`: read-only WebKit 2.52.6 pagination source findings and proposed bounded first-fragment design. No engine patch or repaired-WebKit result is claimed.
+- `webkit-candidates/design-review.json` and `comparison.json`: original long table/code/list title orphans reproduced; adjacent avoidance and caption chains fail. A first-line/item split experiment helps code/list but changes containers and does not fix tables, so it was not adopted. Six baseline key pages and candidate PDFs are retained.
+- `assertion-review/acceptance-design-summary.json`: standalone Chromium experiment and source-codepoint assertions. Expanded Arabic logical extraction remains FAIL, with Poppler/MuPDF differences recorded without normalization.
+- `native-helper/acceptance-summary.json`: frozen test binary `950c8c4d…` uses the actual output module. Original nine cases pass; their nine actual key-page PNGs match the previously reviewed standalone pages exactly. The original-nine PDF and producer execution record are in adjacent `../chromium-controlled/pagination.pdf` and `execution.json`.
+- `native-helper/oversized.pdf`: all three oversized first-unit cases preserve 360 chunk markers, with heading/first content together. All ten content pages were visually reviewed. The table's first column becomes very narrow, and the code END paragraph lands alone on a page; these layout limitations are explicitly retained.
+- `native-helper/oversized-audit-layout-initial.json`: initial marker false negatives are preserved. Layout extraction interleaves columns and a marker spans pages around a repeated header. Final marker scanning uses raw content order, declared original header labels, and global counts. Unicode checks do not use this marker-only handling. The WebKit negative control remains red.
+
+`inputs/` contains the frozen fixture/assertion snapshots. Authoritative maintained sources are under `tests/fixtures/p5-output/acceptance/` and `tests/native/p5-output-content-audit.py`. Actual helper input HTML, scripts, hashes and exit records are preserved; the generated serializer bundle and browser caches are omitted. To regenerate the bundle for the retained prepare script, bundle `packages/export/src/static-html.ts` with esbuild to `native-helper/static-serializer.mjs`.
+
+Original JSON reports preserve their original absolute run paths. `origins.json` maps copied files to those paths. The source fixtures retain their own hashes. This evidence establishes a real test-binary helper result; it does not establish completion of the packaged GUI export route. Arabic logical extraction, non-Linux native checks and old unrelated DOM boundaries remain open.
+
+Run `python3 verify-index.py` from this directory to verify the archived bytes.

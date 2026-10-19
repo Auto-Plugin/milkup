@@ -1,0 +1,105 @@
+{
+  "preparedOnly": false,
+  "stage": "cancel",
+  "testOptions": {
+    "layout": false,
+    "paperLayout": false,
+    "diagnostic": false,
+    "gutterDiagnostic": false,
+    "diagnosticCandidate": null
+  },
+  "sourcePath": "/workspace/milkup-export-print-evidence/milestone01/native-ui/runs/p5-cancel-08/source.md",
+  "sourceSha256": "d42c908b9be785ed0a9e9ae9c22e91740b12b4cddb7ee48dac088f8415500957",
+  "sourceBytes": 1585,
+  "sourceUtf16": 1002,
+  "sourceLines": 60,
+  "archive": "/workspace/milkup-export-print-evidence/milestone01/plugin/action-id-fix-external/dist/milkup.export-print-1.0.0.milkup-plugin",
+  "archiveSha256": "08cd8532ecd209f4794f88de1880e06c16c586ae2997e326450687e1be2181b9",
+  "manifest": {
+    "id": "milkup.export-print",
+    "name": "导出与打印",
+    "version": "1.0.0",
+    "description": "将整篇文档或所选内容导出为 HTML、PDF，或打印；可选择图片、纸张和方向，并保留开始时的内容版本。",
+    "host": "worker",
+    "main": "./dist/plugin.js",
+    "engines": {
+      "milkup": "^2.0.0-0",
+      "pluginSdk": "^0.3.5"
+    },
+    "permissions": [
+      "document:read",
+      "document:output"
+    ],
+    "icon": "assets/export-print.png",
+    "resources": [
+      "assets/export-print.png"
+    ],
+    "contributes": {
+      "commands": [
+        {
+          "id": "exportPrint.start",
+          "title": "导出或打印文档",
+          "action": "exportPrint.start"
+        },
+        {
+          "id": "exportPrint.retry",
+          "title": "重新导出或打印",
+          "action": "exportPrint.retry"
+        },
+        {
+          "id": "exportPrint.cancel",
+          "title": "取消输出",
+          "action": "exportPrint.cancel"
+        },
+        {
+          "id": "exportPrint.change",
+          "title": "修改输出选项",
+          "action": "exportPrint.change",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "field",
+              "value"
+            ]
+          }
+        }
+      ],
+      "ui": [
+        {
+          "id": "export-print-panel",
+          "slot": "sidebar-panel",
+          "title": "导出与打印",
+          "scope": "app",
+          "viewportUpdates": false
+        }
+      ]
+    }
+  },
+  "rendererMode": "disabled fallback",
+  "richRenderers": "explicitly disabled source fallback",
+  "cases": [
+    "html offline with images",
+    "html omitted images",
+    "actual A4 and Letter PDF",
+    "native print-to-file PDF",
+    "chooser and print cancellation",
+    "source overwrite refusal",
+    "existing output overwrite refusal/confirmation",
+    "selection and captured version",
+    "disabled plugin edit/undo/save",
+    "large file"
+  ],
+  "limitations": [
+    "Snapshots of GTK dialogs do not prove PDF output quality.",
+    "Selection stage attempts genuine foreground edits while the independent chooser is open; its recorded result determines native race coverage.",
+    "Formula/Mermaid rendering and pagination need inspection of actual output, not marker presence."
+  ]
+}
