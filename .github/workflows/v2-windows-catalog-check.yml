@@ -39,6 +39,10 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
+          sparse-checkout: |
+            apps/desktop/src-tauri/src
+            tests/native/catalog-core
+            .github/workflows/v2-windows-catalog-check.yml
       - name: Verify exact source and public standard-runner scope
         run: |
           $ErrorActionPreference = 'Stop'
