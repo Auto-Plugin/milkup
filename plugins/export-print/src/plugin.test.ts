@@ -34,7 +34,7 @@ describe('output panel and command contract', () => {
     ).toEqual(['format', 'scope', 'resources', 'pageSize', 'orientation'])
     const nodes = flatten(render(state({ format: 'print' })))
     expect(
-      nodes.find((n) => n.type === 'element' && n.action?.command === 'export-print.start')?.text,
+      nodes.find((n) => n.type === 'element' && n.action?.command === 'exportPrint.start')?.text,
     ).toBe('打印')
   })
   it('shows captured version and warnings as safe text with progress and cancellation', () => {
@@ -62,14 +62,14 @@ describe('output panel and command contract', () => {
     expect(JSON.stringify(nodes)).not.toContain('"html":')
     expect(nodes.filter((n) => n.type === 'field').every((n) => n.disabled)).toBe(true)
     expect(
-      nodes.find((n) => n.type === 'element' && n.action?.command === 'export-print.cancel')
+      nodes.find((n) => n.type === 'element' && n.action?.command === 'exportPrint.cancel')
         ?.disabled,
     ).toBe(false)
   })
   it('offers retry on failure and reports committed file and byte count', () => {
     const failed = flatten(render(state({ phase: 'error', error: '保存失败' })))
     expect(
-      failed.find((n) => n.type === 'element' && n.action?.command === 'export-print.retry')?.text,
+      failed.find((n) => n.type === 'element' && n.action?.command === 'exportPrint.retry')?.text,
     ).toBe('重试')
     expect(
       failed.some(
@@ -93,7 +93,7 @@ describe('output panel and command contract', () => {
     const capture = vi.fn(() => pending),
       release = vi.fn(async () => {})
     const activation = await plugin.activate?.({ host: {} } as SdkPluginActivationContext)
-    const result = plugin.commands?.['export-print.start']?.({
+    const result = plugin.commands?.['exportPrint.start']?.({
       host: { output: { capture, release } },
     } as unknown as SdkPluginCommandContext)
     expect(result).toBeUndefined()
@@ -112,7 +112,7 @@ describe('output panel and command contract', () => {
     })
     const capture = vi.fn(() => pending)
     const activation = await plugin.activate?.({ host: {} } as SdkPluginActivationContext)
-    plugin.commands?.['export-print.start']?.({
+    plugin.commands?.['exportPrint.start']?.({
       host: { output: { capture, release: vi.fn(async () => {}) } },
     } as unknown as SdkPluginCommandContext)
     plugin.renderers?.['export-print-panel']?.({ node: { phase: 'blur', visible: true } } as never)

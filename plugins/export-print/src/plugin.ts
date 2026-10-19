@@ -34,16 +34,16 @@ export default definePlugin({
     return previous?.dispose()
   },
   commands: {
-    'export-print.start': (context: SdkPluginCommandContext) => {
+    'exportPrint.start': (context: SdkPluginCommandContext) => {
       controller?.start(context.host)
     },
-    'export-print.retry': (context: SdkPluginCommandContext) => {
+    'exportPrint.retry': (context: SdkPluginCommandContext) => {
       controller?.start(context.host)
     },
-    'export-print.cancel': () => {
+    'exportPrint.cancel': () => {
       void controller?.cancel()
     },
-    'export-print.change': (_context: SdkPluginCommandContext, input: unknown) => {
+    'exportPrint.change': (_context: SdkPluginCommandContext, input: unknown) => {
       if (!input || typeof input !== 'object') return
       const { field, value } = input as Record<string, unknown>
       if (typeof field === 'string' && typeof value === 'string') controller?.change(field, value)
@@ -101,7 +101,7 @@ export function render(state?: State): SdkRendererOutput {
     label,
     value,
     disabled,
-    onChange: { command: 'export-print.change' },
+    onChange: { command: 'exportPrint.change' },
     options: options.map(([value, label]) => ({ value, label })),
     ...(help ? { help } : {}),
   })
@@ -176,12 +176,8 @@ export function render(state?: State): SdkRendererOutput {
     tag: 'span',
     attributes: { class: 'plugin-actions' },
     children: [
-      button(
-        state?.phase === 'error' ? 'export-print.retry' : 'export-print.start',
-        label,
-        disabled,
-      ),
-      button('export-print.cancel', '取消', !busy),
+      button(state?.phase === 'error' ? 'exportPrint.retry' : 'exportPrint.start', label, disabled),
+      button('exportPrint.cancel', '取消', !busy),
     ],
   })
   return {
