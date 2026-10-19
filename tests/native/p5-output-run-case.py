@@ -27,8 +27,15 @@ log = control / (output.name + '-harness.log')
 assert not record.exists() and not log.exists()
 env['MILKUP_P5_STAGE'] = stage
 command = ['node', 'tests/native/tauri-p5-output.mjs']
+harness = Path(__file__).with_name('tauri-p5-output.mjs').read_bytes()
+(control / (output.name + '-harness-source.mjs')).write_bytes(harness)
+process_probe = Path(__file__).with_name('p5-output-process.mjs').read_bytes()
+(control / (output.name + '-process-probe.mjs')).write_bytes(process_probe)
 row = {'stage': stage, 'command': command, 'cwd': str(Path(__file__).resolve().parents[2]),
        'binary': str(binary), 'binarySha256': env['MILKUP_NATIVE_EXPECTED_BINARY_SHA256'],
+       'harnessSha256': hashlib.sha256(harness).hexdigest(),
+       'processProbeSha256': hashlib.sha256(process_probe).hexdigest(),
+       'testOptions': {key: env.get(key) for key in ('MILKUP_P5_LAYOUT','MILKUP_P5_LAYOUT_DIAG','MILKUP_P5_GUTTER_DIAG','MILKUP_P5_PAPER_LAYOUT')},
        'startedUtc': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'evidence': str(output)}
 record.write_text(json.dumps(row, indent=2) + '\n')
 with log.open('x') as stream:

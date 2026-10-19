@@ -26,7 +26,7 @@ console.log(message, lessThan)
 
 ## 本地与缺失图片
 
-![离线蓝底白色 L](logo-fixture.png)
+![离线蓝底白色 L](assets/logo-fixture.png)
 
 ![缺失图片应有提示](missing-local-image.png)
 

@@ -1,0 +1,108 @@
+{
+  "preparedOnly": false,
+  "stage": "html",
+  "sourcePath": "/workspace/milkup-export-print-evidence/milestone01/native-ui/runs/p5-html-03/source.md",
+  "sourceSha256": "362fba04315029638c7a9eff39ef557d758ab9226b0f03faf1c30cfe1dfc0363",
+  "archive": "/workspace/milkup-export-print-evidence/milestone01/plugin/final-external/dist/milkup.export-print-1.0.0.milkup-plugin",
+  "archiveSha256": "04976caad7d2e93bdd316239de6e76054f7bc8eaa42769891dc578f743a9f294",
+  "manifest": {
+    "id": "milkup.export-print",
+    "name": "导出与打印",
+    "version": "1.0.0",
+    "description": "将整篇文档或所选内容导出为 HTML、PDF，或打印；可选择图片、纸张和方向，并保留开始时的内容版本。",
+    "host": "worker",
+    "main": "./dist/plugin.js",
+    "engines": {
+      "milkup": "^2.0.0-0",
+      "pluginSdk": "^0.3.5"
+    },
+    "permissions": [
+      "document:read",
+      "document:output"
+    ],
+    "icon": "assets/export-print.png",
+    "resources": [
+      "assets/export-print.png"
+    ],
+    "contributes": {
+      "commands": [
+        {
+          "id": "export-print.start",
+          "title": "导出或打印文档",
+          "action": "export-print.start"
+        },
+        {
+          "id": "export-print.retry",
+          "title": "重新导出或打印",
+          "action": "export-print.retry"
+        },
+        {
+          "id": "export-print.cancel",
+          "title": "取消输出",
+          "action": "export-print.cancel"
+        },
+        {
+          "id": "export-print.change",
+          "title": "修改输出选项",
+          "action": "export-print.change",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "field",
+              "value"
+            ]
+          }
+        }
+      ],
+      "ui": [
+        {
+          "id": "export-print-panel",
+          "slot": "sidebar-panel",
+          "title": "导出与打印",
+          "scope": "app",
+          "viewportUpdates": false
+        }
+      ]
+    }
+  },
+  "richRenderers": {
+    "diagramArchive": "/workspace/milkup-mermaid-engine-evidence/research/renderer-exact-memo-product-integration-01/artifacts/milkup.diagrams-1.1.1.milkup-plugin",
+    "diagramSha256": "2351692438a2083a72bcb8cddce28c7a530a8557734926992a3a2e3120c68a19",
+    "required": [
+      "milkup.math",
+      "milkup.footnotes",
+      "milkup.diagrams"
+    ]
+  },
+  "cases": [
+    "html offline with images",
+    "html omitted images",
+    "actual A4 and Letter PDF",
+    "native print-to-file PDF",
+    "chooser and print cancellation",
+    "source overwrite refusal",
+    "existing output overwrite refusal/confirmation",
+    "selection and captured version",
+    "disabled plugin edit/undo/save",
+    "large file"
+  ],
+  "limitations": [
+    "Snapshots of GTK dialogs do not prove PDF output quality.",
+    "Modal chooser prevents foreground edits while open; capture/edit race remains separately covered by host/controller tests.",
+    "Formula/Mermaid rendering and pagination need inspection of actual output, not marker presence."
+  ],
+  "binary": "/workspace/milkup-export-print-evidence/milestone01/production/milkup-desktop",
+  "binarySha256": "222b2a321616f744fcf950d4754053951f4981857fb8fda386400de893051fa5",
+  "display": ":126",
+  "driver": "http://127.0.0.1:4636",
+  "profile": "/workspace/milkup-export-print-evidence/milestone01/native-ui/profiles/p5-html-03",
+  "sourceHead": "fe0ec4d7fe9ee19e7dc11d5cfcd93d9c1b865a39"
+}

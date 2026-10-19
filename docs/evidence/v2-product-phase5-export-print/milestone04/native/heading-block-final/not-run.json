@@ -1,0 +1,24 @@
+{
+  "status": "NOT RUN \u2014 approval service unavailable",
+  "atUtc": "2026-10-19T04:14:42.466466+00:00",
+  "sourceCommit": "cb928c9e9726aea3d70fbea71ea3f7a3fd672662",
+  "binary": "/workspace/milkup-export-print-evidence/milestone01/production-heading-blocks/milkup-desktop",
+  "binarySha256": "f29911982fc0d6e26d15ef572156c0c29d2fc2140ace6d2d7914b456e9635d98",
+  "command": "/workspace/milkup-export-print-evidence/milestone01/native/heading-block-final/run.sh final-converter > /workspace/milkup-export-print-evidence/milestone01/native/heading-block-final/run.log 2>&1",
+  "requires": "Normal require_escalated approval; existing bwrap/WebKit sandbox remains enabled; isolated owned Xvfb :127, no :126 UI interaction.",
+  "attemptCount": 1,
+  "toolError": "Automatic approval review failed: Selected model is at capacity. Please try a different model. The action was not executed because automatic approval review could not be completed. This is a review failure, not a determination that the action is unsafe.",
+  "nativePdfExists": false,
+  "executionLogExists": false,
+  "staticFixtureStatus": "Generated using final production StaticRenderer; all 9 Markdown cases contain one production heading lead group. This is static evidence, not native pagination validation.",
+  "remainingValidation": [
+    "Run this exact final binary and final serializer fixture after normal approval is available.",
+    "Audit new final production PDF05 A4 and Letter plus Print04 actual files after UI runs execute.",
+    "Do not carry over older binary native passes to this binary."
+  ],
+  "knownUnresolved": [
+    "Previous real PDFs failed Unicode copy/search fidelity.",
+    "Previous real native tests retained heading orphans before oversized table/code/list despite whole-block avoid.",
+    "Physical printer not tested."
+  ]
+}

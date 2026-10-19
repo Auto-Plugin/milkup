@@ -1,0 +1,24 @@
+{
+  "file": "apps/desktop/src/style.css",
+  "selector": "@media (max-width: 760px) { .sidebar [data-plugin-slot='sidebar-panel'] }",
+  "change": "padding-inline-end: 16px",
+  "reason": "The actual sidebar scroll container's overlay scrollbar consumed clicks on controls' right edge. Reserve content space within that scroll container so its child controls do not overlap the scrollbar hit area.",
+  "nativeBeforeProductEdit": {
+    "directory": "../native-ui/runs/p5-layout-diag-04",
+    "temporaryCandidate": "Only the same selector and padding-inline-end:16px, without scrollbar-gutter",
+    "originalWidth": 319,
+    "candidateWidth": 303,
+    "originalHits": [true, false, true, false, false],
+    "candidateHits": [true, true, true, true, true],
+    "realArrowClick": "System dropdown appears in candidate screenshot; original arrow click is swallowed",
+    "fieldExercise": { "original": "html", "changed": "print", "restored": true },
+    "document": { "version": 0, "dirty": false, "sourceHashUnchanged": true }
+  },
+  "checks": {
+    "prettierCheck": "passed",
+    "gitDiffCheck": "passed",
+    "newTests": "None; native candidate validation precedes this small CSS edit"
+  },
+  "remaining": "Parent will rebuild product and run final native regression matrix with shipped CSS.",
+  "committedByThisAgent": false
+}

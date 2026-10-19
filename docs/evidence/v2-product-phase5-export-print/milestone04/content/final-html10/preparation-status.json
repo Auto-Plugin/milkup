@@ -1,0 +1,59 @@
+{
+  "status": "NOT_RUN_BLOCKED",
+  "expectedCommit": "cb928c9e",
+  "expectedBinary": "/workspace/milkup-export-print-evidence/milestone01/production-heading-blocks/milkup-desktop",
+  "expectedBinarySHA256": "f29911982fc0d6e26d15ef572156c0c29d2fc2140ace6d2d7914b456e9635d98",
+  "actualHTML10ArtifactsExist": {
+    "complete.html": false,
+    "without-images.html": false,
+    "source.md": false
+  },
+  "blocker": "Parent reports final UI launch attempted twice by plugin agent and once by root; all normal review attempts failed with execution capacity error before execution. No actual HTML10 production outputs exist.",
+  "preparationOnly": [
+    "audit-rich-details.cjs",
+    "compare-production.py",
+    "run-review.sh"
+  ],
+  "previousProductionEvidence": [
+    {
+      "path": "/workspace/milkup-export-print-evidence/milestone01/content/final-html09/production-rich-html-review.json",
+      "artifactSHA256": "57da80aa800b3d70e14a89f96d8096fc1924667b6f7e826bb8cdefe04db9825a",
+      "checks": {
+        "normalAndPrintWrapperStyles": true,
+        "screenPixelRegression": true,
+        "expectedResourcesOnly": true,
+        "sourceFallbackCount": 0,
+        "mathCount": 2,
+        "diagramPresentationCount": 1,
+        "footnoteRoundtrip": true,
+        "noNetworkRequests": true
+      },
+      "scope": "Previous aa9db739 production only; does not validate cb928c9e."
+    },
+    {
+      "path": "/workspace/milkup-export-print-evidence/milestone01/content/final-html09/production-rich-without-images-review.json",
+      "artifactSHA256": "764a9423e5fc8dd1e8fb2b73742c986084cd960f0f838c537d531d222b26d30c",
+      "checks": {
+        "normalAndPrintWrapperStyles": true,
+        "screenPixelRegression": true,
+        "expectedResourcesOnly": true,
+        "sourceFallbackCount": 0,
+        "mathCount": 2,
+        "diagramPresentationCount": 1,
+        "footnoteRoundtrip": true,
+        "noNetworkRequests": true
+      },
+      "scope": "Previous aa9db739 production only; does not validate cb928c9e."
+    }
+  ],
+  "rerunCommand": "bash /workspace/milkup-export-print-evidence/milestone01/content/final-html10/run-review.sh",
+  "rerunPrecondition": "First complete actual production GUI HTML10 save with frozen cb928c9e/f2991198... binary; capture producer hashes. The review script rejects missing inputs and never generates replacement HTML.",
+  "reviewMethod": "Offline headless Chromium setContent of exact saved bytes; no DISPLAY :126. Prior direct file:// administrator policy boundary remains, and this method is not proof of file:// open or native WebKit PDF rendering.",
+  "fixtureScope": "Rich fixture has headings immediately before table/code, but its list follows a blockquote; do not claim heading→list native pagination from this fixture.",
+  "notVerified": [
+    "Final cb928c9e actual HTML10 DOM, resources, MathML/SVG/anchors and screen pixel comparison",
+    "Final production heading/table/code wrapper behavior",
+    "Any native PDF/print outcome from this audit"
+  ],
+  "longBlockBoundary": "Long table/code/list heading orphaning remains FAILED in earlier native experiments; no generic resolution is claimed."
+}

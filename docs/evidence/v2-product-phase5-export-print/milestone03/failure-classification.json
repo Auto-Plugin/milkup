@@ -1,0 +1,145 @@
+{
+  "principle": "Original failed runs are retained. File/interaction success, visual review, layout matrix and PDF text fidelity are separate results. A later successful rerun does not establish the cause of an earlier failure.",
+  "productFailures": [
+    {
+      "runs": [
+        "p5-cancel-01"
+      ],
+      "finding": "Plugin action IDs with hyphens were rejected by the real host manifest validator. Fixed in cfcae191; preserved RED/GREEN host validator regression in milestone02."
+    },
+    {
+      "runs": [
+        "p5-pdf-01",
+        "p5-pdf-02",
+        "p5-pdf-03",
+        "p5-print-file-02"
+      ],
+      "finding": "PDF copy/search text fidelity FAIL: compatibility mappings and missing characters including diagram Chinese, single quotes and emoji. Still unresolved; visually correct pixels do not pass this check."
+    },
+    {
+      "runs": [
+        "p5-pdf-03"
+      ],
+      "finding": "Letter orphan heading and split warning panel. Product pagination fix bea7b303; actual native helper comparison and 57 semantic tests recorded, final production rerun tracked separately."
+    },
+    {
+      "runs": [
+        "p5-large-02",
+        "p5-layout-diag-03"
+      ],
+      "finding": "Narrow 200% overlay scrollbar intercepts exact select arrow click; stable gutter ineffective. Final spacing fix and production rerun tracked separately."
+    },
+    {
+      "runs": [
+        "heading-block-boundary/probe",
+        "heading-block-boundary/critical"
+      ],
+      "finding": "Real page-boundary tests exposed heading-before-table/code orphans. Whole-block avoidance improves short blocks but does not solve oversized table/code/list headings. Caption experiment also failed. cb928c9e extends safe short-block grouping; long-block pagination remains failed."
+    }
+  ],
+  "notProductAssertions": [
+    {
+      "runs": [
+        "p5-cancel-02",
+        "p5-cancel-03"
+      ],
+      "finding": "Harness attempted an off-canvas sidebar control; an extra Return dirtied source. No demonstrated general keyboard product defect."
+    },
+    {
+      "runs": [
+        "p5-cancel-04"
+      ],
+      "finding": "Overbroad failure regex matched warning text 未完成; output was written. Later harness reads only error alert."
+    },
+    {
+      "runs": [
+        "p5-cancel-05"
+      ],
+      "finding": "Fixture root image path was outside documented managed assets scope. Corrected fixture to assets/logo-fixture.png; no image authorization widened."
+    },
+    {
+      "runs": [
+        "p5-html-02"
+      ],
+      "finding": "Renderer installation/details navigation race."
+    },
+    {
+      "runs": [
+        "p5-html-05",
+        "p5-html-06",
+        "p5-html-08"
+      ],
+      "finding": "Layout harness failures (selector quoting, preference lifecycle or native focus/zoom sequencing); original logs retained. These runs do not pass the full matrix."
+    },
+    {
+      "runs": [
+        "p5-overwrite-01",
+        "p5-overwrite-03",
+        "p5-print-file-01"
+      ],
+      "finding": "GTK dialog automation did not match actual available buttons. Native screenshots used to correct interactions."
+    },
+    {
+      "runs": [
+        "p5-overwrite-02"
+      ],
+      "finding": "First source-protection/decline/accept assertions succeeded. Last assertion incorrectly treated previously closed file as still-open document. Multi-open protection remains native-unit-only."
+    },
+    {
+      "runs": [
+        "p5-large-02"
+      ],
+      "finding": "Test child exit 0, outer wrapper exit 127 due to editing an active wrapper. Postflight record preserves discrepancy; later wrappers frozen before launch."
+    },
+    {
+      "runs": [
+        "p5-overwrite-04"
+      ],
+      "finding": "Source rejection, helper cleanup and edit/undo/save passed. Harness then waited for Start while product correctly displayed Retry."
+    },
+    {
+      "runs": [
+        "p5-disable-02"
+      ],
+      "finding": "Pointer did not open main-app menu while independent chooser remained above it; actual disable was not triggered. Later explicit X11 raise/focus enabled real disable and cancellation."
+    }
+  ],
+  "unresolvedEarlierFailures": [
+    {
+      "runs": [
+        "p5-html-03"
+      ],
+      "finding": "Independent diagram plugin activation failed with masked [object Object] registry error. Subsequent successful activations do not establish cause; no broad change made."
+    },
+    {
+      "runs": [
+        "p5-html-07"
+      ],
+      "finding": "savePath attempted to focus a now-invalid GTK window after both HTML files existed. Chooser lifecycle race is a hypothesis; cause not proved, not a blanket product exclusion."
+    },
+    {
+      "runs": [
+        "p5-layout-diag-02"
+      ],
+      "finding": "Enabled rich diagram renderer returned visible source fallback and strict SVG assertion failed. This is not a rich-render success; timeout/provider root cause unproved."
+    },
+    {
+      "runs": [
+        "p5-overwrite-05"
+      ],
+      "finding": "Save click left chooser open; filename autocomplete popup observed. Tab before click avoided recurrence in 06, but exact cause not proved."
+    },
+    {
+      "runs": [
+        "p5-large-03"
+      ],
+      "finding": "A BadWindow lookup message was emitted during an otherwise completed native output and 32-case layout run; preserved without inferring its cause."
+    }
+  ],
+  "protectedBoundaries": [
+    "P4 historical render_1037 remains open.",
+    "No Windows/macOS native output implementation or validation; backend explicitly unsupported there.",
+    "No physical printer or operating-system DPI verification.",
+    "Earlier UI runs did not independently sample helpers. Overwrite06, Cancel07 and Disable03 directly observed own helper/guardian PID and birth plus windows before and after each operation; do not infer these facts from driver exit."
+  ]
+}

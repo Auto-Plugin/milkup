@@ -1,0 +1,32 @@
+{
+  "files": {
+    "packages/export/src/static-html.ts": "73405adb46c54f5e91b009f284ceadc88c7f18a2c084ff4d5ee8bd64be28cdfe",
+    "packages/export/src/static-html.test.ts": "b77727dc853fc0847c0f9596c0ad9b9e3a6a94812d64faf5aa580511967084a2"
+  },
+  "changes": [
+    "Group only valid heading plus next valid paragraph, skipping only blankLine AST nodes.",
+    "Keep original path if any unconsumed block presentation overlaps the entire group range.",
+    "Render each existing block exactly once, preserving inline fragments, absolute offsets, reference anchors and warnings.",
+    "Use fixed screen display:contents and print block + modern/legacy break-inside avoidance.",
+    "Keep warning aside together with modern/legacy break-inside avoidance.",
+    "Final bytes(html) check remains after wrapper serialization, so fixed wrappers count toward existing HTML/output budgets."
+  ],
+  "checks": {
+    "before": {
+      "failed": 4,
+      "passed": 53,
+      "exit": 1
+    },
+    "after": {
+      "failed": 0,
+      "passed": 57,
+      "exit": 0
+    },
+    "typecheck": {
+      "exit": 0
+    }
+  },
+  "intermediateNote": "Initial negative table fixture used one column, which the existing parser treats as a paragraph. Corrected fixture to a supported two-column table; no parser/product change was made for this fixture correction. Intermediate log retained.",
+  "ownership": "Only the two listed product/test files changed in this pass; no commit. Root owns rebuild and real native re-verification.",
+  "nativeEvidencePrerequisite": "Same-helper candidate3 already validated grouping; root/native agent owns rebuilt actual production output and oversized paragraph/warning pagination."
+}
