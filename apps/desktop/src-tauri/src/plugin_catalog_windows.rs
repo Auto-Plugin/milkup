@@ -9,7 +9,9 @@ use super::*;
 use std::ffi::c_void;
 use std::fs::File;
 use std::io::{Read, Write};
-use std::mem::{offset_of, size_of};
+#[cfg(test)]
+use std::mem::offset_of;
+use std::mem::size_of;
 use std::os::windows::io::{AsRawHandle, FromRawHandle};
 use std::path::{Component, Prefix};
 use std::ptr::{null, null_mut};
@@ -513,12 +515,19 @@ impl Dir {
         file.write_all(bytes).map_err(|e| err("io", e))?;
         file.sync_all().map_err(|e| err("io", e))?;
         // repr(C) offset includes native pointer alignment on x86/x64/ARM64.
-        let length = offset_of!(RenameInfo, file_name) + wide.len() * 2;
+        // Microsoft requires sizeof(FILE_RENAME_INFORMATION) plus name bytes,
+        // including the trailing C-struct padding, not just the field offset.
+        let length = size_of::<RenameInfo>() + wide.len() * 2;
         let mut buffer = vec![0usize; length.div_ceil(size_of::<usize>())];
         let ptr = buffer.as_mut_ptr() as *mut RenameInfo;
         unsafe {
             (*ptr).replace_if_exists = 1;
-            (*ptr).root_directory = self.file.as_raw_handle();
+            // This is always a same-directory rename of the exact temp handle.
+            // A simple name with NULL RootDirectory selects its existing parent.
+            // Passing our directory handle unnecessarily asks the IO manager to
+            // reopen that directory for WRITE_DATA, conflicting with its pinned
+            // SHARE_READ handle. Do not weaken directory sharing to compensate.
+            (*ptr).root_directory = null_mut();
             (*ptr).file_name_length = (wide.len() * 2) as u32;
             std::ptr::copy_nonoverlapping(
                 wide.as_ptr(),
