@@ -155,71 +155,44 @@ class StaticRenderer {
     const blocks = parseMarkdown(this.source).root.children ?? []
     let body = ''
     for (let i = 0; i < blocks.length; i++) {
-      const block = blocks[i]!
-      if (block.type === 'orderedList' || block.type === 'unorderedList') {
-        // The parser does not nest continuation blocks beneath list items. Keep
-        // such a whole source run together rather than falsely flattening it.
-        let next = i + 1
+      const unit = this.renderUnit(blocks, i)
+      const block = unit.block
+      if (block?.type === 'heading' && block.status === 'valid') {
+        let next = unit.lastIndex + 1
         while (blocks[next]?.type === 'blankLine') next++
+        const following = blocks[next]
         if (
-          blocks[next] &&
-          /^(?: +|\t)/.test(this.source.slice(blocks[next]!.from, blocks[next]!.to))
+          following?.status === 'valid' &&
+          [
+            'paragraph',
+            'table',
+            'fencedCode',
+            'indentedCode',
+            'orderedList',
+            'unorderedList',
+          ].includes(following.type)
         ) {
-          let end = next
-          while (
-            end + 1 < blocks.length &&
-            (blocks[end + 1]!.type === 'blankLine' ||
-              /^(?: +|\t)/.test(this.source.slice(blocks[end + 1]!.from, blocks[end + 1]!.to)))
-          )
-            end++
-          body += this.raw(
-            block.from,
-            blocks[end]!.to,
-            'unsupported-nesting',
-            '嵌套或多行列表尚不支持完整导出；保留源码。',
-            true,
-          )
-          i = end
-          continue
+          const lead = this.renderUnit(blocks, next)
+          if (
+            lead.block &&
+            !this.fragments.some(
+              (f) =>
+                !this.used.has(f) &&
+                f.layout === 'block' &&
+                f.from < blocks[lead.lastIndex]!.to &&
+                f.to > block.from,
+            )
+          ) {
+            // Consume complete original units in source order. This soft print
+            // constraint helps short blocks; oversized blocks can still split.
+            body += `<div class="heading-lead">${unit.render()}${lead.render()}</div>`
+            i = lead.lastIndex
+            continue
+          }
         }
       }
-      const fragment = this.fragments.find(
-        (f) =>
-          !this.used.has(f) && f.layout === 'block' && f.from <= block.from && f.to > block.from,
-      )
-      if (fragment) {
-        let end = i
-        while (end + 1 < blocks.length && blocks[end + 1]!.from < fragment.to) end++
-        const last = blocks[end]!
-        if (!this.source.slice(fragment.to, last.to).trim()) {
-          body += this.fragment(fragment)
-          i = end
-          continue
-        }
-      }
-      if (block.type === 'heading' && block.status === 'valid') {
-        let next = i + 1
-        while (blocks[next]?.type === 'blankLine') next++
-        const paragraph = blocks[next]
-        if (
-          paragraph?.type === 'paragraph' &&
-          paragraph.status === 'valid' &&
-          !this.fragments.some(
-            (f) =>
-              !this.used.has(f) &&
-              f.layout === 'block' &&
-              f.from < paragraph.to &&
-              f.to > block.from,
-          )
-        ) {
-          // Group AST neighbors before serialization. Existing inline/fallback
-          // rendering keeps its source positions, anchors and output accounting.
-          body += `<div class="heading-lead">${this.block(block)}${this.block(paragraph)}</div>`
-          i = next
-          continue
-        }
-      }
-      body += this.block(block)
+      body += unit.render()
+      i = unit.lastIndex
     }
     for (const fragment of this.fragments)
       if (!this.used.has(fragment)) {
@@ -259,6 +232,52 @@ class StaticRenderer {
     )
       throw new RangeError('Static export HTML/output byte limit exceeded')
     return Object.freeze({ html, warnings: Object.freeze(this.warnings) })
+  }
+  /** Resolve the existing consumption path without rendering or claiming fragments. */
+  private renderUnit(
+    blocks: readonly SyntaxNode[],
+    index: number,
+  ): { lastIndex: number; block?: SyntaxNode; render: () => string } {
+    const block = blocks[index]!
+    if (block.type === 'orderedList' || block.type === 'unorderedList') {
+      // The parser does not nest continuation blocks beneath list items. Keep
+      // such a whole source run together rather than falsely flattening it.
+      let next = index + 1
+      while (blocks[next]?.type === 'blankLine') next++
+      if (
+        blocks[next] &&
+        /^(?: +|\t)/.test(this.source.slice(blocks[next]!.from, blocks[next]!.to))
+      ) {
+        let end = next
+        while (
+          end + 1 < blocks.length &&
+          (blocks[end + 1]!.type === 'blankLine' ||
+            /^(?: +|\t)/.test(this.source.slice(blocks[end + 1]!.from, blocks[end + 1]!.to)))
+        )
+          end++
+        return {
+          lastIndex: end,
+          render: () =>
+            this.raw(
+              block.from,
+              blocks[end]!.to,
+              'unsupported-nesting',
+              '嵌套或多行列表尚不支持完整导出；保留源码。',
+              true,
+            ),
+        }
+      }
+    }
+    const fragment = this.fragments.find(
+      (f) => !this.used.has(f) && f.layout === 'block' && f.from <= block.from && f.to > block.from,
+    )
+    if (fragment) {
+      let end = index
+      while (end + 1 < blocks.length && blocks[end + 1]!.from < fragment.to) end++
+      if (!this.source.slice(fragment.to, blocks[end]!.to).trim())
+        return { lastIndex: end, render: () => this.fragment(fragment) }
+    }
+    return { lastIndex: index, block, render: () => this.block(block) }
   }
   private warn(code: string, from: number, to: number, message: string): void {
     const key = `${code}:${from}:${to}`

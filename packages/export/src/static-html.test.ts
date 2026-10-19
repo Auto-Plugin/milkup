@@ -395,16 +395,154 @@ describe('print heading leads', () => {
     expect(result.html).not.toContain('<div class="heading-lead">')
     expect(result.warnings).toEqual([])
   })
+  it.each(['## 第二标题', '> 引用', '---', ''])(
+    'does not bind other blocks or an empty tail: %s',
+    (tail) => {
+      const result = render('# 标题\n\n' + tail, options)
+      expect(result.html).not.toContain('<div class="heading-lead">')
+      expect(result.html).toContain('<h1>标题</h1>')
+    },
+  )
+  it.each([
+    ['table', '| 项目 | 值 |\n| --- | --- |\n| 中文 | 1 |'],
+    ['fenced code', '```ts\nconst 中文 = "<&>";\n```'],
+    ['indented code', '    first()\n    second()'],
+    ['unordered list', '- 中文 👩🏽‍💻\n- 第二项'],
+    ['ordered list', '7. 中文 é\n8. 第二项'],
+  ])('groups only one complete %s unit and preserves its original rendering', (_name, tail) => {
+    const result = render('# 标题\n\n' + tail + '\n\n后段', options)
+    const original = render(tail, options).html.match(/<body>([\s\S]*?)<\/body>/)![1]
+    expect(result.html).toContain(
+      `<div class="heading-lead"><h1>标题</h1>${original}</div><p>后段</p>`,
+    )
+    expect(result.warnings).toEqual([])
+  })
+  it.each(['| 公式 | 脚注 |\n| --- | --- |\n| $x$ | [^a] |', '7. 公式 $x$\n8. 引用[^a]'])(
+    'keeps inline presentation and bidirectional absolute anchors inside table/list units',
+    (tail) => {
+      const source = '# 标题\n\n' + tail + '\n\n[^a]: 正文'
+      const base = 700,
+        mathFrom = base + source.indexOf('$'),
+        refFrom = base + source.indexOf('[^a]'),
+        defFrom = base + source.lastIndexOf('[^a]')
+      const result = render(source, {
+        ...options,
+        sourceOffset: base,
+        presentations: [
+          batch(
+            source,
+            [
+              fragment(mathFrom, mathFrom + 3, math()),
+              fragment(refFrom, refFrom + 4, ref('1', defFrom, base + source.length)),
+              fragment(defFrom, defFrom + 5, ref('返回', refFrom, refFrom + 4)),
+            ],
+            base,
+          ),
+        ],
+      })
+      expect(result.html).toContain('<div class="heading-lead"><h1>标题</h1>')
+      expect(result.html).toContain(`href="#source-${defFrom}"`)
+      expect(result.html).toContain(`href="#source-${refFrom}"`)
+      expect(result.html).toContain('</div><p>')
+      expect(result.html.match(/<math /g)).toHaveLength(1)
+      for (const offset of [mathFrom, refFrom, defFrom])
+        expect(result.html.split(`id="source-${offset}"`)).toHaveLength(2)
+      expect(result.warnings).toEqual([])
+    },
+  )
+  it.each([
+    '| 项目 | 值 |\n| --- | --- |\n' +
+      Array.from({ length: 60 }, (_, i) => `| 项${i} | 值${i} |`).join('\n'),
+    '```ts\n' + Array.from({ length: 80 }, (_, i) => `line${i}();`).join('\n') + '\n```',
+    Array.from({ length: 80 }, (_, i) => `${i + 7}. 项${i}`).join('\n'),
+  ])(
+    'does not split or duplicate long units while applying the same soft grouping policy',
+    (tail) => {
+      const original = render(tail, options).html.match(/<body>([\s\S]*?)<\/body>/)![1]
+      const result = render('# 标题\n\n' + tail + '\n\n尾段', options)
+      expect(result.html).toContain(
+        `<div class="heading-lead"><h1>标题</h1>${original}</div><p>尾段</p>`,
+      )
+      expect(result.warnings).toEqual([])
+    },
+  )
+  it('keeps nested list continuation fallback consumption and absolute offsets unchanged after a heading', () => {
+    const nested = '- outer 👩🏽‍💻\n    - inner <tag>\n\n    continuation é'
+    const source = '# 标题\n\n' + nested + '\n\n尾段 $x$'
+    const base = 900,
+      from = base + source.indexOf('$')
+    const result = render(source, {
+      ...options,
+      sourceOffset: base,
+      presentations: [batch(source, [fragment(from, from + 3, math())], base)],
+    })
+    const listFrom = source.indexOf('- outer')
+    const previous = render(source.slice(listFrom), {
+      ...options,
+      sourceOffset: base + listFrom,
+      presentations: [
+        batch(source.slice(listFrom), [fragment(from, from + 3, math())], base + listFrom),
+      ],
+    })
+    expect(result.html).toContain(
+      '<h1>标题</h1><pre class="source-fallback">' + nested.replace('<tag>', '&lt;tag&gt;'),
+    )
+    expect(result.html).not.toContain('<div class="heading-lead">')
+    expect(result.html).not.toContain('<ul><li>outer')
+    expect(result.html).not.toContain('<pre><code>')
+    expect(result.html.match(/<math /g)).toHaveLength(1)
+    expect(result.html).toContain(`id="source-${from}"`)
+    expect(result.warnings).toEqual(previous.warnings)
+    expect(result.warnings).toEqual([
+      expect.objectContaining({ code: 'unsupported-nesting', from: base + listFrom }),
+    ])
+  })
+  it.each([
+    ['- outer 👩🏽‍💻\n  - inner é', 'unsupported-nesting'],
+    ['- outer <tag>\n- second', 'unsupported-nesting'],
+    ['- ```ts\n- value\n- ```', 'unsupported-nesting'],
+    ['```mermaid\ngraph TD; A-->B\n```', 'unrendered-enhancement'],
+    ['```math\nx^2\n```', 'unrendered-enhancement'],
+  ])(
+    'preserves single-block source fallback and offsets without claiming nested/enhanced support: %s',
+    (tail, code) => {
+      const prefix = '# 标题\n\n',
+        base = 1200
+      const previous = render(tail, { ...options, sourceOffset: base + prefix.length })
+      const result = render(prefix + tail, { ...options, sourceOffset: base })
+      const originalBody = previous.html.match(/<body>([\s\S]*?)<aside /)![1]
+      expect(result.html).toContain(`<div class="heading-lead"><h1>标题</h1>${originalBody}</div>`)
+      expect(result.html).toContain('<pre class="source-fallback">')
+      expect(result.html).not.toContain('<ul><li>outer')
+      expect(result.html).not.toContain('<pre><code>')
+      expect(result.html).not.toContain('<math ')
+      expect(result.html).not.toContain('<svg ')
+      expect(result.warnings).toEqual(previous.warnings)
+      expect(result.warnings).toEqual([
+        expect.objectContaining({
+          code,
+          from: base + prefix.length,
+          to: base + prefix.length + tail.length,
+        }),
+      ])
+    },
+  )
   it.each([
     '| 项目 | 值 |\n| --- | --- |\n| 中文 | 1 |',
-    '```ts\n' + 'longCode();\n'.repeat(100) + '```',
+    '```ts\ncode();\n```',
     '- first\n- second',
-    '## 第二标题',
-    '',
-  ])('does not bind non-paragraph blocks or an empty tail: %s', (tail) => {
-    const result = render('# 标题\n\n' + tail, options)
+  ])('preserves block presentation ownership instead of grouping its Markdown unit', (tail) => {
+    const source = '# 标题\n\n' + tail + '\n\n尾段',
+      from = source.indexOf(tail)
+    const result = render(source, {
+      ...options,
+      presentations: [batch(source, [fragment(from, from + tail.length, svg(), 'block')])],
+    })
     expect(result.html).not.toContain('<div class="heading-lead">')
-    expect(result.html).toContain('<h1>标题</h1>')
+    expect(result.html.match(/class="presentation-block"/g)).toHaveLength(1)
+    expect(result.html).toContain('<h1>标题</h1><div id=')
+    expect(result.html).toContain('<p>尾段</p>')
+    expect(result.warnings).toEqual([])
   })
   it('retains missing-renderer source and absolute warning offsets inside the first paragraph', () => {
     const source = '## 公式\n\n$\\unsupported{x}$',
