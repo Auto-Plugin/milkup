@@ -153,7 +153,11 @@ export function render(state?: State): SdkRendererOutput {
     children.push(text('输出使用开始时的内容；之后的编辑不会加入本次输出。'))
     for (const warning of state.snapshot.warnings) children.push(text(warning.message, 'status'))
   }
-  const status = state ? messages[state.phase] : '正在准备导出工具…'
+  const status = state?.cancelling
+    ? '正在确认打印结果，请稍候。暂勿再次提交打印。'
+    : state
+      ? messages[state.phase]
+      : '正在准备导出工具…'
   if (status) children.push(text(status, 'status'))
   if (state?.phase === 'done')
     children.push(
@@ -167,7 +171,9 @@ export function render(state?: State): SdkRendererOutput {
   if (state?.error) children.push(text(state.error, 'alert'))
   const label =
     state?.phase === 'error'
-      ? '重试'
+      ? state.format === 'print' && state.printUnconfirmed
+        ? '检查打印队列后重试'
+        : '重试'
       : state?.format === 'print'
         ? '打印'
         : `导出 ${state?.format === 'pdf' ? 'PDF' : 'HTML'}`
@@ -177,7 +183,7 @@ export function render(state?: State): SdkRendererOutput {
     attributes: { class: 'plugin-actions' },
     children: [
       button(state?.phase === 'error' ? 'exportPrint.retry' : 'exportPrint.start', label, disabled),
-      button('exportPrint.cancel', '取消', !busy),
+      button('exportPrint.cancel', '取消', !busy || !!state?.cancelling),
     ],
   })
   return {

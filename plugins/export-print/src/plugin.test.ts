@@ -126,3 +126,33 @@ describe('output panel and command contract', () => {
     await activation?.dispose?.()
   })
 })
+
+describe('print outcome confirmation UI', () => {
+  it('keeps controls and cancellation disabled while the host confirms a cancelled print request', () => {
+    const nodes = flatten(render(state({ phase: 'printing', format: 'print', cancelling: true })))
+    expect(nodes.some((n) => n.type === 'element' && n.text?.includes('正在确认打印结果'))).toBe(
+      true,
+    )
+    expect(
+      nodes
+        .filter((n) => n.type === 'field' || (n.type === 'element' && n.action))
+        .every((n) => n.disabled),
+    ).toBe(true)
+    expect(nodes.some((n) => n.type === 'element' && n.text?.includes('已取消'))).toBe(false)
+  })
+  it('labels uncertain print retry with the prerequisite queue check', () => {
+    const nodes = flatten(
+      render(
+        state({
+          phase: 'error',
+          format: 'print',
+          printUnconfirmed: true,
+          error: '无法确认打印结果，请先检查打印队列，避免重复提交。',
+        }),
+      ),
+    )
+    expect(
+      nodes.find((n) => n.type === 'element' && n.action?.command === 'exportPrint.retry')?.text,
+    ).toBe('检查打印队列后重试')
+  })
+})

@@ -95,12 +95,15 @@ export function createDesktopOutputService(options: DesktopOutputServiceOptions)
         } catch (error) {
           // Map only failed native operations. A successful publication stays
           // successful even when cancellation arrives after its commit point.
-          if (controller.signal.aborted) fail(disposed ? 'revoked' : 'aborted')
-          if (error instanceof PluginOutputError) throw error
           const code =
             typeof error === 'string' ? /^\[output:([a-z-]+)\]/u.exec(error)?.[1] : undefined
+          // Native submission can become irreversible before its acknowledgement.
+          // Its explicit failure classification is authoritative: a lost printer
+          // acknowledgement must not become a claim that printing was cancelled.
           if (code && PLUGIN_OUTPUT_ERROR_CODES.includes(code as never))
             fail(code as ConstructorParameters<typeof PluginOutputError>[0])
+          if (controller.signal.aborted) fail(disposed ? 'revoked' : 'aborted')
+          if (error instanceof PluginOutputError) throw error
           throw error
         } finally {
           clearTimeout(timer)

@@ -17,7 +17,7 @@ const archiveBytes = await readFile(archive)
 assert.equal(hash(archiveBytes), process.env.MILKUP_P5_ARCHIVE_SHA256, 'Reviewed archive hash')
 const bundle = JSON.parse(archiveBytes)
 assert.equal(bundle.manifest.id, 'milkup.export-print')
-assert.equal(bundle.manifest.version, '1.0.0')
+assert.equal(bundle.manifest.version, '1.0.1')
 assert.equal(bundle.manifest.engines.pluginSdk, '^0.3.5')
 assert.deepEqual(bundle.manifest.permissions, ['document:read', 'document:output'])
 assert(!archive.startsWith(path.resolve('plugins') + path.sep), 'Use the independent build')
@@ -26,6 +26,7 @@ assert(
   [
     'html',
     'pdf',
+    'pdf-render-cancel',
     'cancel',
     'selection',
     'disable',
@@ -59,9 +60,17 @@ const source =
         (_, i) =>
           `第 ${i + 1} 段分页检查 P5-PAGE-${i + 1}：中文排版、表格与代码之后的正文需要保持可读。\n\n`,
       ).join('')
-    : stage === 'large'
-      ? fixture + '\n\n大文档中文行 P5-LARGE-LINE\n'.repeat(60000)
-      : fixture
+    : stage === 'pdf-render-cancel'
+      ? fixture +
+        '\n\n# PDF 渲染取消样例\n\n' +
+        Array.from(
+          { length: 6000 },
+          (_, i) =>
+            `第 ${i + 1} 段 P5-RENDER-CANCEL-${i + 1}：${'这段正文用于观察真实 Chromium 渲染期间的取消与资源清理，不代表性能基准。'.repeat(3)}\n\n`,
+        ).join('')
+      : stage === 'large'
+        ? fixture + '\n\n大文档中文行 P5-LARGE-LINE\n'.repeat(60000)
+        : fixture
 const sourcePath = path.join(output, 'source.md')
 const launcherPath = path.join(output, 'launcher.md')
 await writeFile(launcherPath, '# P5 output installation\n', { flag: 'wx' })
@@ -89,6 +98,21 @@ const plan = {
   sourceBytes: Buffer.byteLength(source),
   sourceUtf16: source.length,
   sourceLines: source.split('\n').length,
+  renderCancellationConditions:
+    stage === 'pdf-render-cancel'
+      ? {
+          paragraphs: 6000,
+          observation:
+            'Own helper descendant with matching PID/birth, Chromium executable and exact --remote-debugging-pipe argument must be running before the real cancel click',
+          targetPolicy:
+            'Fresh target must remain absent after cancellation, cleanup and successful retry',
+          racePolicy:
+            'A valid committed PDF is preserved and reported as committed; cancellation coverage is not claimed',
+          retry: 'Real edit, undo, save with original SHA, then an independent HTML output',
+          rendererScope:
+            'Enhanced renderers disabled explicitly; this stage tests native PDF rendering cancellation',
+        }
+      : null,
   archive,
   archiveSha256: hash(archiveBytes),
   manifest: bundle.manifest,
@@ -212,7 +236,7 @@ async function waitDialog(title) {
   }
   return window
 }
-async function savePath(file) {
+async function savePath(file, afterSave) {
   const window = await waitDialog('Choose output destination')
   const pid = x('getwindowpid', window).trim()
   execFileSync('import', ['-window', window, path.join(output, 'save-dialog.png')])
@@ -228,6 +252,7 @@ async function savePath(file) {
   const width = Number(/WIDTH=(\d+)/.exec(geometry)[1]),
     height = Number(/HEIGHT=(\d+)/.exec(geometry)[1])
   x('mousemove', '--window', window, String(width - 50), String(height - 24), 'click', '1')
+  if (afterSave) await afterSave()
   await app.delay(250)
   execFileSync('import', ['-window', 'root', path.join(output, 'save-after-click.png')])
   await app.until(() => !visibleWindow('Choose output destination'), 'output picker closed')
@@ -408,10 +433,10 @@ async function verifyPdf(file, landscape) {
   assert(bytes.subarray(-1024).includes(Buffer.from('%%EOF')))
   const info = execFileSync('pdfinfo', [file], { encoding: 'utf8' })
   const rawText = execFileSync('pdftotext', ['-layout', file, '-'], { encoding: 'utf8' })
-  const text = rawText.normalize('NFKC')
+  const text = rawText
   await writeFile(file + '.info.txt', info)
   await writeFile(file + '.text.txt', rawText)
-  await writeFile(file + '.normalized.txt', text)
+  await writeFile(file + '.normalized.txt', rawText.normalize('NFKC'))
   const pages = Number(/^Pages:\s+(\d+)/m.exec(info)?.[1])
   assert(pages >= 2, 'Actual multipage PDF')
   assert.match(text, /中文/)
@@ -422,8 +447,8 @@ async function verifyPdf(file, landscape) {
       file + '.diagram-text.json',
       JSON.stringify(
         {
-          complete: text.includes('中文输入') && text.includes('冻结内容'),
-          expected: ['中文输入', '冻结内容'],
+          complete: ['中文输入', '冻结内容', '打印'].every((label) => text.includes(label)),
+          expected: ['中文输入', '冻结内容', '打印'],
           visibleDiagramReview:
             'pending actual PDF page review; text extraction is not a pixel assertion',
           knownBoundary:
@@ -436,9 +461,10 @@ async function verifyPdf(file, landscape) {
     assert(text.includes('P5-FOOTNOTE-MARKER'))
   }
   const textChecks = {
-    diagramLabels: !rich || (text.includes('中文输入') && text.includes('冻结内容')),
+    diagramLabels: !rich || ['中文输入', '冻结内容', '打印'].every((label) => text.includes(label)),
     codeQuotes: text.includes("const message = '中文代码 P5-CODE-MARKER'"),
     emoji: text.includes('👩🏽‍💻'),
+    combiningSequence: text.includes('e\u0301'),
   }
   await writeFile(
     file + '.copy-search.json',
@@ -446,12 +472,16 @@ async function verifyPdf(file, landscape) {
       {
         passed: Object.values(textChecks).every(Boolean),
         checks: textChecks,
-        normalization: 'NFKC only for compatibility glyphs; missing glyphs are not repaired',
+        normalization: 'None in assertions; separate NFKC file is diagnostic only',
         visualReview: 'independent',
       },
       null,
       2,
     ) + '\n',
+  )
+  assert(
+    Object.values(textChecks).every(Boolean),
+    'Original PDF text survives without normalization',
   )
   const dims = /^Page size:\s+([\d.]+) x ([\d.]+)/m.exec(info)
   assert(dims)
@@ -924,6 +954,132 @@ async function editor() {
   await app.key('ctrl+1')
   await app.until(async () => (await app.probe()).mode === 'source', 'source mode')
 }
+async function renderCancellation() {
+  const target = path.join(output, 'render-cancelled.pdf')
+  const exists = async (file) =>
+    access(file).then(
+      () => true,
+      () => false,
+    )
+  const evidence = { target, outcome: 'pending', cancellationVerified: false, observations: [] }
+  const saveEvidence = () =>
+    writeFile(path.join(output, 'pdf-render-cancel.json'), JSON.stringify(evidence, null, 2) + '\n')
+  const chrome = (row) =>
+    row.helpers.filter(
+      (p) =>
+        p.running &&
+        p.observed.arguments?.includes('--remote-debugging-pipe') &&
+        /^(?:chromium|chrome)(?:-browser)?$/.test(path.basename(p.observed.executable ?? '')),
+    )
+  async function committed(reason) {
+    const bytes = await readFile(target)
+    assert(bytes.subarray(0, 5).equals(Buffer.from('%PDF-')))
+    assert(bytes.subarray(-1024).includes(Buffer.from('%%EOF')))
+    evidence.outcome = 'committed'
+    evidence.reason = reason
+    evidence.published = { bytes: bytes.length, sha256: hash(bytes) }
+    await saveEvidence()
+    await record('pdf-render-committed-race', {
+      cancellationVerified: false,
+      file: target,
+      ...evidence.published,
+    })
+    throw Error('A valid PDF was committed; rendering cancellation coverage was not obtained')
+  }
+  assert(!(await exists(target)), 'Cancellation target starts absent')
+  await setField('format', 'pdf')
+  await startOutput()
+  await savePath(target, async () => {
+    try {
+      const observed = await app.until(
+        async () => {
+          const row = await lifecycle.sample('waiting-for-chromium-render')
+          const running = chrome(row)
+          if (running.length) return row
+          if (await exists(target))
+            await committed('Output completed before a running Chromium process was observed')
+          return false
+        },
+        'actual own Chromium rendering process',
+        30000,
+      )
+      evidence.observations.push({
+        kind: 'chromium-observed',
+        at: observed.at,
+        processes: chrome(observed),
+      })
+      await saveEvidence()
+      x('windowraise', ui.windowId())
+      x('windowfocus', '--sync', ui.windowId())
+      await app.focus(panel + ' [data-plugin-command="exportPrint.cancel"]')
+      const beforeClick = await lifecycle.sample('before-render-cancel-click')
+      evidence.observations.push({
+        kind: 'before-click',
+        at: beforeClick.at,
+        processes: chrome(beforeClick),
+      })
+      await saveEvidence()
+      if (!chrome(beforeClick).length) {
+        if (await exists(target))
+          await committed('Chromium finished before the cancel control could be clicked')
+        throw Error(
+          'Chromium was no longer running at cancel click; rendering cancellation coverage was not obtained',
+        )
+      }
+      await ui.click(panel + ' [data-plugin-command="exportPrint.cancel"]')
+      evidence.cancelClickedAt = new Date().toISOString()
+      await saveEvidence()
+    } catch (error) {
+      if (evidence.outcome !== 'committed') {
+        evidence.outcome = 'observation-or-click-failed'
+        evidence.error = String(error)
+        await saveEvidence()
+      }
+      throw error
+    }
+  })
+  await app.until(
+    async () => {
+      const text = await panelText()
+      const error = await app.execute(
+        'return document.querySelector(arguments[0]+" [role=alert]")?.textContent || ""',
+        panel,
+      )
+      if (error) throw Error('Visible output error after render cancel: ' + error)
+      return /已取消|已保存/.test(text)
+    },
+    'render cancellation terminal UI',
+    45000,
+  )
+  await lifecycle.released('render-cancel-helper-chromium-cleanup')
+  await app.delay(1000)
+  if (await exists(target)) await committed('A committed PDF won the cancellation race')
+  assert(
+    (await panelText()).includes('已取消'),
+    'Confirmed cancelled state has no published target',
+  )
+  await restoredEdit('after-pdf-render-cancel')
+  await openPanel()
+  await setField('format', 'html')
+  const retry = path.join(output, 'after-render-cancel.html')
+  await startOutput()
+  await savePath(retry)
+  await done()
+  await verifyHtml(retry)
+  await lifecycle.released('render-cancel-retry-cleanup')
+  if (await exists(target))
+    await committed('The original PDF appeared after retry; cancellation is not claimed')
+  evidence.outcome = 'cancelled'
+  evidence.cancellationVerified = true
+  evidence.sourceSha256 = hash(await readFile(sourcePath))
+  evidence.retry = { path: retry, sha256: hash(await readFile(retry)) }
+  await saveEvidence()
+  await record('pdf-render-cancelled-and-retry-succeeded', {
+    cancellationVerified: true,
+    targetPublished: false,
+  })
+}
+
 async function restoredEdit(label) {
   x('windowfocus', '--sync', ui.windowId())
   await editor()
@@ -950,7 +1106,7 @@ try {
   await openDocument(sourcePath)
   await app.until(async () => (await app.probe()).path === sourcePath, 'rich fixture opened')
   await record('fixture-opened')
-  if (['cancel', 'overwrite', 'disable'].includes(stage)) {
+  if (['cancel', 'overwrite', 'disable', 'pdf-render-cancel'].includes(stage)) {
     lifecycle = await outputProcessEvidence(Number(x('getwindowpid', ui.windowId()).trim()), output)
     await lifecycle.sample('fixture-opened')
   }
@@ -1027,6 +1183,8 @@ try {
       await done()
       await verifyPdf(file, orientation === 'landscape')
     }
+  } else if (stage === 'pdf-render-cancel') {
+    await renderCancellation()
   } else if (stage === 'cancel') {
     await startOutput()
     await waitDialog('Choose output destination')

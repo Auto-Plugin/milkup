@@ -32,6 +32,7 @@ for (const name of [
   await cp(resolve(root, name), resolve(target, name), { recursive: true })
 // Resolve the sole Milkup dependency to the supplied public distribution archive.
 const manifest = JSON.parse(await readFile(resolve(target, 'package.json'), 'utf8'))
+const pluginManifest = JSON.parse(await readFile(resolve(target, 'plugin.json'), 'utf8'))
 manifest.devDependencies['@milkup/plugin-sdk'] = `file:${sdk}`
 await writeFile(resolve(target, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`)
 async function run(args, log) {
@@ -68,6 +69,6 @@ await run(['run', 'build'], 'build.log')
 await run(['test'], 'test.log')
 await writeFile(
   resolve(target, 'verification.json'),
-  `${JSON.stringify({ sdk, directory: target, build: 'passed', tests: 'passed', archive: 'dist/milkup.export-print-1.0.0.milkup-plugin' }, null, 2)}\n`,
+  `${JSON.stringify({ sdk, directory: target, build: 'passed', tests: 'passed', archive: `dist/${pluginManifest.id}-${pluginManifest.version}.milkup-plugin` }, null, 2)}\n`,
 )
 console.log(`Independent export-print plugin verified: ${target}`)
