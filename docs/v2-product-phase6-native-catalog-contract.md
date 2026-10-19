@@ -58,3 +58,9 @@ root 统一 `main.ts`、原生 command 注册与最终 UI/生产构建。各 age
 | T12  | 所有插件停用，普通/窗口化 source/live                   | Unicode、历史、保存与恢复既有保护不退化                |
 
 每项区分单元故障注入、真实 Linux UI、实际重启/进程中断、未验平台。保留修前失败、源码/程序/包/文档 SHA、实际截图和剩余边界。Windows/macOS、物理打印及完整恶意代码沙箱不由 Linux 结果推断。禁止发布、上传 Runtime/Windows 构建或合并其它分支。
+
+## 平台持久性边界（milestone03 增补）
+
+事务、审批与恢复状态机在 Unix 和 Windows 共用。Unix 保留文件与目录 fsync；Windows 首版只支持本地盘符 NTFS，使用逐组件相对句柄访问、拒绝 reparse/硬链接、锁、完整临时文件 flush 及同目录原子替换。网络盘、UNC、设备路径及非 NTFS 明确拒绝，不回退逐文件覆盖。
+
+Windows `Dir.sync` 仅核验固定目录句柄，**不是已实现 POSIX 等价的目录持久屏障**。文件 flush 错误均传播；未使用要求管理员的卷 flush。进程中断后的恢复测试不能证明任意断电下目录项必然持久。恢复仍验证 checksum、备份与完整封存代次，缺失或损坏时安全拒绝；不宣称隔离已攻陷的同用户原生进程。实际平台测试及剩余边界见 [Windows catalog 报告](v2-product-phase6-windows-catalog-2026-10-19.md)。

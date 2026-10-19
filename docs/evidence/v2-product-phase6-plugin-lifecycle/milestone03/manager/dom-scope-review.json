@@ -1,0 +1,8 @@
+{
+  "wording": "DOM scope text forbids settings, network origins and other contributions; document:read is the only permission and documentRenderers the only contribution. Current-system DOM availability remains a separate requirement. No Windows validation claim.",
+  "managerPredicate": "supportsRestrictedActivation requires host dom, exactly one document:read permission, no truthy settings, no nonempty networkOrigins, nonempty documentRenderers and no other contribution keys.",
+  "schemaGate": "packages/plugin/src/manifest.ts validateDomProfile rejects even declared networkOrigins:[] and any defined settings before a valid PluginManifest reaches manager.",
+  "nativeGate": "plugin_catalog.rs manifest_fields requires exact [document:read] and rejects any networkOrigins key; plugin_dom.rs validate_profile additionally rejects any settings key, requires only documentRenderers, validates declaration count/ids/contexts/languages and native module path.",
+  "equivalenceBoundary": "The displayed capability restrictions agree with the complete validated-manifest/native path. The lightweight manager predicate is not a standalone byte-for-byte copy of native validation: empty networkOrigins would satisfy its length check, but is rejected by schema and native presence checks. No source was changed during this read-only review.",
+  "sidecar": "Native beginTrial and startupBegin still explicitly reject sidecar; manager predicate rejects it; detail wording says current catalog cannot enable it."
+}

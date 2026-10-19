@@ -1,0 +1,53 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts (28 tests | 1 failed) 442ms
+   ✓ P6 authoritative catalog transactions > stages without running or replacing old active approval; exact review is required 13ms
+   ✓ P6 authoritative catalog transactions > tears old epoch down before trial, commits before publish, and recovers old version with new epoch on failure 6ms
+   ✓ P6 authoritative catalog transactions > cannot grant candidate capabilities via pending approval or side effects during activate 1ms
+   ✓ P6 authoritative catalog transactions > serializes queued approval and remove; tombstone keeps data/settings and never revives from mirror 1ms
+   ✓ P6 authoritative catalog transactions > recovers a committed generation when contribution publication fails 4ms
+   ✓ P6 candidate failure injection > denies a swallowed initialization write and restores unchanged data 4ms
+   ✓ P6 candidate failure injection > recovers old active after native commit rejects without publishing the candidate 3ms
+   ✓ P6 candidate failure injection > caps hanging candidate activation and attempts new-epoch recovery 6ms
+   ✓ P6 candidate failure injection > does not trust a poisoned mirror and quarantines an interrupted startup instead of retrying forever 2ms
+   ✓ P6 retirement and public diagnostic boundaries > retains a rejected isolation owner and retries before any new activation 3ms
+   ✓ P6 retirement and public diagnostic boundaries > keeps callback errors diagnostic when the trusted owner confirms termination 1ms
+   ✓ P6 retirement and public diagnostic boundaries > never exposes native or activation paths through the public management adapter 2ms
+   ✓ P6 sealed generations > permits package reads, refuses package writes/deletes, and gives data a distinct writable scope 3ms
+   ✓ P6 sealed generations > disables a newly committed first installation if publication fails with no previous generation 2ms
+   ✓ P6 compatibility at execution boundary > quarantines incompatible native active intent after a host/SDK change without loading code 5ms
+   ✓ P6 compatibility at execution boundary > does not run an incompatible native pending candidate or retire the old active instance 3ms
+   ✓ P6 compatibility at execution boundary > blocks candidate data writes before publication even when approval includes file write 4ms
+   ✓ P6 native read-only renderer profile > permits only the sealed read-only DOM renderer and awaits its retirement before replacement 5ms
+   ✓ P6 bounded management metadata > lists all 512 valid native entries with long Unicode metadata and keeps differences exact  327ms
+   ✓ P6 mounted UI retirement > retires mounted UI without dispatching renderer RPC after epoch revocation 4ms
+   ✓ P6 mounted UI retirement > still rejects real owner stop failure when a UI was mounted 2ms
+   ✓ P6 trusted manager action wiring > rejects a candidate through ActionRegistry without changing old active approval or execution 13ms
+   ✓ P6 trusted manager action wiring > requires control permission and exact well-formed reviewed identity before rejection 1ms
+   ✓ P6 trusted manager action wiring > registers every fixed plugin action dispatched by the shipped manager click handler 2ms
+   ✓ P6 catalog activation error presentation > surfaces a readable Error through the real action while retaining the typed runtime cause and restored old instance 3ms
+   ✓ P6 activation error identity boundary > preserves existing Error and unknown values without reading diagnostic accessors 3ms
+   ✓ P6 trusted host complete catalog diagnostics > shows repeated native diagnostics after old-version recovery without leaking them into the public projection or list 3ms
+   × P6 trusted host execution support explanation > explains sidecar and strict DOM limits in details and candidate review without making platform verification claims 14ms
+     → expected '<div class="plugin-manager"><div clas…' to contain '当前插件目录不支持启用 sidecar 插件'
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/desktop/src/desktop-plugin-manager-catalog.test.ts > P6 trusted host execution support explanation > explains sidecar and strict DOM limits in details and candidate review without making platform verification claims
+AssertionError: expected '<div class="plugin-manager"><div clas…' to contain '当前插件目录不支持启用 sidecar 插件'
+
+Expected: "当前插件目录不支持启用 sidecar 插件"
+Received: "<div class="plugin-manager"><div class="plugin-manager-toolbar"><button type="button" class="dialog-button" data-plugin-action="back">返回插件列表</button></div><article class="plugin-card plugin-detail" aria-labelledby="plugin-detail-title"><header><span class="plugin-logo" aria-hidden="true"><span>L</span></span><div class="plugin-detail-heading"><h4 id="plugin-detail-title" tabindex="-1">Lifecycle</h4><p>test.lifecycle · v1.0.0</p></div><span class="plugin-state" data-state="enabled">已启用</span></header><p>暂无描述</p><dl class="plugin-meta"><div><dt>Milkup 兼容要求</dt><dd>未声明</dd></div><div><dt>SDK 兼容要求</dt><dd>未声明</dd></div><div><dt>Host</dt><dd>sidecar</dd></div><div><dt>权限</dt><dd>无</dd></div><div><dt>审批</dt><dd>待审批</dd></div><div><dt>来源</dt><dd title="/candidate.milkup-plugin">/candidate.milkup-plugin</dd></div><div><dt>数据</dt><dd>/data/test.lifecycle</dd></div></dl><footer><button type="button" class="dialog-button" data-plugin-action="disable" data-plugin-id="test.lifecycle">禁用</button><button type="button" class="dialog-button" data-plugin-action="approve" data-plugin-id="test.lifecycle" data-plugin-fingerprint="bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" data-plugin-entry-revision="4">批准能力</button><button type="button" class="dialog-button" data-plugin-action="reload" data-plugin-id="test.lifecycle">重载</button><button type="button" class="dialog-button" data-plugin-action="export" data-plugin-id="test.lifecycle">导出</button><button type="button" class="dialog-button warning" data-plugin-action="remove" data-plugin-id="test.lifecycle">移除</button></footer></article><section class="plugin-contribution-summary"><details class="plugin-detail-section"><summary>审计日志</summary><dl class="plugin-detail-list"><div><dt>test.lifecycle · enable</dt><dd>已允许</dd></div></dl></details></section></div>"
+
+ ❯ apps/desktop/src/desktop-plugin-manager-catalog.test.ts:1017:86
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 27 passed (28)
+   Start at  10:02:40
+   Duration  2.30s (transform 959ms, setup 0ms, collect 1.26s, tests 442ms, environment 0ms, prepare 102ms)
+

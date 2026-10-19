@@ -1,6 +1,6 @@
 # P6 插件安全与生命周期验收清单
 
-基线：`1388f646703ba19c4ed501b0450d123e70388f9a`；工作分支：`dot/milkup-v2-product-phase6-plugin-lifecycle`。本清单在实现前建立，现更新至方案 A / milestone02。方案 A 在 `633a6d7910f9fa44b9fa89628967e6b7105071ec` 上实施；production04 的布局/编辑/输出、production05 的11个事务场景及最终管理修复复验分别记录。P6 尚未验收完成，不将 P5 未完成项改记通过。
+基线：`1388f646703ba19c4ed501b0450d123e70388f9a`；工作分支：`dot/milkup-v2-product-phase6-plugin-lifecycle`。本清单在实现前建立，现更新至方案 A / milestone03（Windows catalog 源码闭环）。方案 A 在 `633a6d7910f9fa44b9fa89628967e6b7105071ec` 上实施；production04 的布局/编辑/输出、production05 的11个事务场景及最终管理修复复验分别记录。P6 尚未验收完成，不将 P5 未完成项改记通过。
 
 依据：[唯一八阶段总计划](v2-product-completion-plan.md)的 P6、持续架构与安全边界，以及[原始批准计划历史](v2-product-completion-plan-history-2026-10-15.md)的“原 P7 插件管理完善”和所有阶段共同验证要求；历史旧编号不用于当前进度。父线程 2026-10-19 的 P6 授权明确纳入首次富内容 ready 问题，并允许本阶段普通实现、测试、提交和推送。
 
@@ -17,7 +17,7 @@
 | P6-09 | 官方大纲作为独立构建安装样例，不增加宿主 ID 特判或私有导入                                         | 外部闭包/依赖证明、真实安装审批、启停卸载及贡献检查                             | 独立 outline 1.3.1 使用 SDK 0.3.6 外部构建/24 测试与闭包证明保留；production04 原生 catalog 安装审批、source 大纲贡献、启停卸载及编辑保存通过。未冒称独立 SDK 0.3.7 重建或仅凭大纲截图验 live                                                                                       |
 | P6-10 | 稳定版本的首次导出等待有界文档准备，或给出准确永久/超限错误；不依赖重复打印；不放宽执行硬截止      | 冷启动/新版本 RED、取消/撤回/版本变化回归，首次 HTML/PDF/打印实际脚注与警告检查 | milestone01 有界 ready/代次与首次 HTML/A4/Letter/打印、r2 证据保留；production04 cold HTML 自动检查和独立产物/视觉复核通过（MathML/中文Mermaid/脚注/图片、104正文marker、实际helper退休）。本轮未复跑原生取消或全部 PDF/打印路径                                                    |
 | P6-11 | 所有插件禁用后普通/窗口化、source/live 的 Unicode 输入、撤销/重做、保存/失败保护与恢复可用         | 原生全停用闭环、保存原始 SHA、历史及窗口化检查                                  | production04 普通及 180060 行真实窗口化均通过全停用后的 source/live Unicode 输入、undo/redo、保存 SHA/全长可达检查；native catalog 无 enabled/startAttempt/trial，未激活候选单列。未覆盖所有保存故障/跨平台恢复                                                                     |
-| P6-12 | 按实际隔离能力说明信任边界；无完整恶意代码沙箱宣称                                                 | 文档与实现一致性审查，执行/资源限额和剩余风险清单                               | 方案 A、原生 Unix 限额、CSP/封闭 Worker 与严格只读 DOM profile 已记录且有单测/部分原生实证；Windows catalog 明确 unsupported、sidecar activation unsupported、macOS 未验；不宣称完整恶意代码沙箱                                                                                    |
+| P6-12 | 按实际隔离能力说明信任边界；无完整恶意代码沙箱宣称                                                 | 文档与实现一致性审查，执行/资源限额和剩余风险清单                               | 方案 A、原生 Unix 限额、CSP/封闭 Worker 与严格只读 DOM profile 已记录且有单测/部分原生实证；Windows 本地 NTFS catalog 已实现且真实 CI 36单元+3进程测试通过；Windows桌面集成未验、sidecar activation unsupported、macOS 未验；不宣称完整恶意代码沙箱                                 |
 
 每项分别记录代码通过、模拟测试、真实 Linux 通过及未验，不以测试进程 exit 0 代替视觉/产物验收。先冻结修前失败，再保留修后原始日志、程序/插件/输入哈希和实际截图。公开合同改动必须增量兼容并有独立 SDK 消费验收。
 
@@ -34,3 +34,5 @@ P5 PDF 文字精确复制/搜索、长块分页、历史 Print04 原生超时，
 专门 native catalog CAS/故障注入采用可信宿主探针，不能算普通插件已获管理权限。全停用记录区分已经运行后被禁用的插件与从未执行的 pending 候选；两者均不得有运行贡献。
 
 最终新增证据：`catalog-adapter/native-final-review.md` 核对 production05 全11场景/18次启动及production06两项补跑；`management-extension/native-management-final-review.md` 记录production06真实诊断遗漏和production07管理完整链复核。
+
+Windows后续进展见 [milestone03报告](v2-product-phase6-windows-catalog-2026-10-19.md)：旧unsupported实现的真实运行时RED已复现；当前本地NTFS句柄后端36单元及3独立进程测试通过。CI02原子替换共享冲突失败完整保留，修正未放宽路径/共享约束。Windows目录同步不宣称POSIX等价持久屏障；任意断电、Tauri/WebView2桌面UI及完整Windows分发验收仍开放。本增量不把前表的Linux生产截图重归属Windows。

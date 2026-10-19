@@ -1,0 +1,716 @@
+catalog	Set up job	﻿2026-10-19T10:12:26.6844163Z Current runner version: '2.337.0'
+catalog	Set up job	2026-10-19T10:12:26.6908653Z ##[group]Runner Image Provisioner
+catalog	Set up job	2026-10-19T10:12:26.6909847Z Hosted Compute Agent
+catalog	Set up job	2026-10-19T10:12:26.6910660Z Version: 20261002.596
+catalog	Set up job	2026-10-19T10:12:26.6911534Z Commit: c3d12f3313a95f25162a1503be624f3b0617f8c0
+catalog	Set up job	2026-10-19T10:12:26.6912603Z Build Date: 2026-10-02T22:28:27Z
+catalog	Set up job	2026-10-19T10:12:26.6913602Z Worker ID: {3d31b930-3220-42fe-a2cd-26c5aacc916c}
+catalog	Set up job	2026-10-19T10:12:26.6914629Z Region: northcentralus
+catalog	Set up job	2026-10-19T10:12:26.6915414Z Cloud: Azure
+catalog	Set up job	2026-10-19T10:12:26.6916146Z ##[endgroup]
+catalog	Set up job	2026-10-19T10:12:26.6917985Z ##[group]Operating System
+catalog	Set up job	2026-10-19T10:12:26.6918957Z Microsoft Windows Server 2025
+catalog	Set up job	2026-10-19T10:12:26.6919808Z 10.0.26100
+catalog	Set up job	2026-10-19T10:12:26.6920516Z Datacenter
+catalog	Set up job	2026-10-19T10:12:26.6921240Z ##[endgroup]
+catalog	Set up job	2026-10-19T10:12:26.6921977Z ##[group]Runner Image
+catalog	Set up job	2026-10-19T10:12:26.6922801Z Image: windows-2025-vs2026
+catalog	Set up job	2026-10-19T10:12:26.6923615Z Version: 20261007.264.1
+catalog	Set up job	2026-10-19T10:12:26.6925310Z Included Software: https://github.com/actions/runner-images/blob/win25-vs2026/20261007.264/images/windows/Windows2025-VS2026-Readme.md
+catalog	Set up job	2026-10-19T10:12:26.6928515Z Image Release: https://github.com/actions/runner-images/releases/tag/win25-vs2026%2F20261007.264
+catalog	Set up job	2026-10-19T10:12:26.6930011Z ##[endgroup]
+catalog	Set up job	2026-10-19T10:12:26.6931548Z ##[group]GITHUB_TOKEN Permissions
+catalog	Set up job	2026-10-19T10:12:26.6933891Z Contents: read
+catalog	Set up job	2026-10-19T10:12:26.6934681Z Metadata: read
+catalog	Set up job	2026-10-19T10:12:26.6935582Z ##[endgroup]
+catalog	Set up job	2026-10-19T10:12:26.6938443Z Secret source: Actions
+catalog	Set up job	2026-10-19T10:12:26.6939690Z Cache mode: write
+catalog	Set up job	2026-10-19T10:12:26.6940695Z Prepare workflow directory
+catalog	Set up job	2026-10-19T10:12:26.7452536Z Prepare all required actions
+catalog	Set up job	2026-10-19T10:12:26.7501913Z Getting action download info
+catalog	Set up job	2026-10-19T10:12:26.9518103Z Download action repository 'actions/checkout@11d5960a326750d5838078e36cf38b85af677262' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+catalog	Set up job	2026-10-19T10:12:27.1883620Z Complete job name: catalog
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	﻿2026-10-19T10:12:27.3390444Z ##[group]Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.3391846Z with:
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.3392290Z   ref: eef31bc4a7208d909426e181ba1cd7cbaf9760e9
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.3392846Z   fetch-depth: 0
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.3393268Z   persist-credentials: false
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.3394258Z   sparse-checkout: apps/desktop/src-tauri/src
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	tests/native/catalog-core
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	.github/workflows/v2-windows-catalog-check.yml
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.3395319Z   repository: Auto-Plugin/milkup
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.3399440Z   token: ***
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.3399833Z   ssh-strict: true
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.3400236Z   ssh-user: git
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.3400613Z   clean: true
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.3401022Z   sparse-checkout-cone-mode: true
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.3401510Z   fetch-tags: false
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.3401920Z   show-progress: true
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.3402322Z   lfs: false
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.3402695Z   submodules: false
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.3403105Z   set-safe-directory: true
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.3403604Z   allow-unsafe-pr-checkout: false
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.3404297Z env:
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.3404667Z   CARGO_BUILD_JOBS: 2
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.3405087Z   CARGO_INCREMENTAL: 0
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.3405514Z   CARGO_PROFILE_DEV_DEBUG: 0
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.3405972Z   CARGO_TERM_COLOR: never
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.3406395Z ##[endgroup]
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.4979898Z Syncing repository: Auto-Plugin/milkup
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.4983469Z ##[group]Getting Git version info
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.4984487Z Working directory is 'D:\a\milkup\milkup'
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.5858956Z [command]"C:\Program Files\Git\bin\git.exe" version
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.9195409Z git version 2.56.0.windows.2
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.9251787Z ##[endgroup]
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.9272403Z Temporarily overriding HOME='D:\a\_temp\7f477895-18ff-49e0-96b3-068f5af5cd1c' before making global git config changes
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.9274664Z Adding repository directory to the temporary git global config as a safe directory
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:27.9283877Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\milkup\milkup
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:28.1217968Z Deleting the contents of 'D:\a\milkup\milkup'
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:28.1225427Z ##[group]Initializing the repository
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:28.1235433Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\milkup\milkup
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:28.2820565Z Initialized empty Git repository in D:/a/milkup/milkup/.git/
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:28.2880056Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/Auto-Plugin/milkup
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:28.3617434Z ##[endgroup]
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:28.3619110Z ##[group]Disabling automatic garbage collection
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:28.3626795Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:28.4031103Z ##[endgroup]
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:28.4032899Z ##[group]Setting up auth
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:28.4044059Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:28.4520189Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:32.4856814Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:32.5254580Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:33.1107497Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:33.1522056Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:33.7358968Z [command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:33.7758048Z ##[endgroup]
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:33.7758885Z ##[group]Fetching the repository
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:33.7772012Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --prune --no-recurse-submodules --filter=blob:none origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9341823Z From https://github.com/Auto-Plugin/milkup
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9342861Z  * [new branch]      charles-lee/refactor  -> origin/charles-lee/refactor
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9343509Z  * [new branch]      dot/milkup-v2-plugin-system -> origin/dot/milkup-v2-plugin-system
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9344214Z  * [new branch]      dot/milkup-v2-product-completion-phase1 -> origin/dot/milkup-v2-product-completion-phase1
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9344973Z  * [new branch]      dot/milkup-v2-product-phase2-workspace -> origin/dot/milkup-v2-product-phase2-workspace
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9345804Z  * [new branch]      dot/milkup-v2-product-phase3-preferences -> origin/dot/milkup-v2-product-phase3-preferences
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9347161Z  * [new branch]      dot/milkup-v2-product-phase4-editing-resources -> origin/dot/milkup-v2-product-phase4-editing-resources
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9348684Z  * [new branch]      dot/milkup-v2-product-phase4-markdown-extensions -> origin/dot/milkup-v2-product-phase4-markdown-extensions
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9350088Z  * [new branch]      dot/milkup-v2-product-phase4-mermaid-engine -> origin/dot/milkup-v2-product-phase4-mermaid-engine
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9351399Z  * [new branch]      dot/milkup-v2-product-phase5-export-print -> origin/dot/milkup-v2-product-phase5-export-print
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9352707Z  * [new branch]      dot/milkup-v2-product-phase6-plugin-lifecycle -> origin/dot/milkup-v2-product-phase6-plugin-lifecycle
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9353753Z  * [new branch]      dot/milkup-v2-quality -> origin/dot/milkup-v2-quality
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9354530Z  * [new branch]      dot/milkup-v2-visual-fixes -> origin/dot/milkup-v2-visual-fixes
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9356517Z  * [new branch]      dot/milkup-v2-windows-delivery -> origin/dot/milkup-v2-windows-delivery
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9357353Z  * [new branch]      feat-ai               -> origin/feat-ai
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9357903Z  * [new branch]      feat-ir               -> origin/feat-ir
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9358519Z  * [new branch]      feat-mi               -> origin/feat-mi
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9359128Z  * [new branch]      feat-milkupcore       -> origin/feat-milkupcore
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9359752Z  * [new branch]      feat-vs               -> origin/feat-vs
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9360304Z  * [new branch]      feat-vs-v2            -> origin/feat-vs-v2
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9360935Z  * [new branch]      main                  -> origin/main
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9361705Z  * [new branch]      oco                   -> origin/oco
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9362368Z  * [new branch]      rookie-orange-patch-1 -> origin/rookie-orange-patch-1
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9363056Z  * [new branch]      v2                    -> origin/v2
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9363557Z  * [new tag]         Beta-v0.0.1           -> Beta-v0.0.1
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9364062Z  * [new tag]         Beta-v0.0.2           -> Beta-v0.0.2
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9364563Z  * [new tag]         Beta-v0.0.3           -> Beta-v0.0.3
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9365047Z  * [new tag]         Beta-v0.0.4           -> Beta-v0.0.4
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9365525Z  * [new tag]         Beta-v0.0.5           -> Beta-v0.0.5
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9366018Z  * [new tag]         Beta-v0.0.6           -> Beta-v0.0.6
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9366509Z  * [new tag]         Beta-v0.1.0           -> Beta-v0.1.0
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9366983Z  * [new tag]         Beta-v0.1.1           -> Beta-v0.1.1
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9367465Z  * [new tag]         Beta-v0.2.0           -> Beta-v0.2.0
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9367973Z  * [new tag]         Beta-v0.2.1           -> Beta-v0.2.1
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9368466Z  * [new tag]         Beta-v0.2.2           -> Beta-v0.2.2
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9369864Z  * [new tag]         Beta-v0.3.0           -> Beta-v0.3.0
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9370347Z  * [new tag]         Beta-v0.4.0           -> Beta-v0.4.0
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9370829Z  * [new tag]         Beta-v0.4.1           -> Beta-v0.4.1
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9371322Z  * [new tag]         Beta-v0.4.10          -> Beta-v0.4.10
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9371821Z  * [new tag]         Beta-v0.4.11          -> Beta-v0.4.11
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9372315Z  * [new tag]         Beta-v0.4.12          -> Beta-v0.4.12
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9372795Z  * [new tag]         Beta-v0.4.2           -> Beta-v0.4.2
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9373278Z  * [new tag]         Beta-v0.4.3           -> Beta-v0.4.3
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9373758Z  * [new tag]         Beta-v0.4.4           -> Beta-v0.4.4
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9374239Z  * [new tag]         Beta-v0.4.5           -> Beta-v0.4.5
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9374725Z  * [new tag]         Beta-v0.4.6           -> Beta-v0.4.6
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9375277Z  * [new tag]         Beta-v0.4.7           -> Beta-v0.4.7
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9375759Z  * [new tag]         Beta-v0.4.8           -> Beta-v0.4.8
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9376242Z  * [new tag]         Beta-v0.4.9           -> Beta-v0.4.9
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9376722Z  * [new tag]         v1.0.0                -> v1.0.0
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9377186Z  * [new tag]         v1.0.1                -> v1.0.1
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9377643Z  * [new tag]         v1.0.10               -> v1.0.10
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9378099Z  * [new tag]         v1.0.11               -> v1.0.11
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9378554Z  * [new tag]         v1.0.12               -> v1.0.12
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9378984Z  * [new tag]         v1.0.13               -> v1.0.13
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9379480Z  * [new tag]         v1.0.14               -> v1.0.14
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9379919Z  * [new tag]         v1.0.15               -> v1.0.15
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9380357Z  * [new tag]         v1.0.16               -> v1.0.16
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9380846Z  * [new tag]         v1.0.17               -> v1.0.17
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9381751Z  * [new tag]         v1.0.18               -> v1.0.18
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9382220Z  * [new tag]         v1.0.2                -> v1.0.2
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9382666Z  * [new tag]         v1.0.3                -> v1.0.3
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9382972Z  * [new tag]         v1.0.4                -> v1.0.4
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9383264Z  * [new tag]         v1.0.5                -> v1.0.5
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9383553Z  * [new tag]         v1.0.6                -> v1.0.6
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9383842Z  * [new tag]         v1.0.7                -> v1.0.7
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9384106Z  * [new tag]         v1.0.8                -> v1.0.8
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9384367Z  * [new tag]         v1.0.9                -> v1.0.9
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9407661Z [command]"C:\Program Files\Git\bin\git.exe" rev-parse --verify --quiet eef31bc4a7208d909426e181ba1cd7cbaf9760e9^{object}
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9869066Z eef31bc4a7208d909426e181ba1cd7cbaf9760e9
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9912109Z ##[endgroup]
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9913104Z ##[group]Determining the checkout info
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9914673Z ##[endgroup]
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9928366Z ##[group]Setting up sparse checkout
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:34.9929448Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout set apps/desktop/src-tauri/src tests/native/catalog-core .github/workflows/v2-windows-catalog-check.yml
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.0435884Z ##[endgroup]
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.0436526Z ##[group]Checking out the ref
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.0445151Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force eef31bc4a7208d909426e181ba1cd7cbaf9760e9
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.7296658Z Note: switching to 'eef31bc4a7208d909426e181ba1cd7cbaf9760e9'.
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.7297145Z 
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.7297503Z You are in 'detached HEAD' state. You can look around, make experimental
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.7298105Z changes and commit them, and you can discard any commits you make in this
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.7298836Z state without impacting any branches by switching back to a branch.
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.7299115Z 
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.7299287Z If you want to create a new branch to retain commits you create, you may
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.7299725Z do so (now or later) by using -c with the switch command. Example:
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.7299983Z 
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.7300147Z   git switch -c <new-branch-name>
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.7300322Z 
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.7300423Z Or undo this operation with:
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.7300575Z 
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.7300660Z   git switch -
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.7301061Z 
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.7301346Z Turn off this advice by setting config variable advice.detachedHead to false
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.7301806Z 
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.7302143Z HEAD is now at eef31bc ci: checkout only catalog sources on Windows [windows-catalog-check]
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.7419008Z ##[endgroup]
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.8001253Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.8366675Z eef31bc4a7208d909426e181ba1cd7cbaf9760e9
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.8414937Z ##[group]Removing auth
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.8423845Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:35.8828256Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:36.4916863Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:36.5265513Z http.https://github.com/.extraheader
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:36.5323864Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all http.https://github.com/.extraheader
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:36.5724873Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:37.1585487Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:37.1980206Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+catalog	Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:12:37.7727148Z ##[endgroup]
+catalog	Verify exact source and public standard-runner scope	﻿2026-10-19T10:12:37.8114793Z ##[group]Run $ErrorActionPreference = 'Stop'
+catalog	Verify exact source and public standard-runner scope	2026-10-19T10:12:37.8115331Z [36;1m$ErrorActionPreference = 'Stop'[0m
+catalog	Verify exact source and public standard-runner scope	2026-10-19T10:12:37.8115845Z [36;1mif ((git rev-parse HEAD).Trim() -ne $env:GITHUB_SHA) { throw 'Checkout SHA mismatch' }[0m
+catalog	Verify exact source and public standard-runner scope	2026-10-19T10:12:37.8116445Z [36;1mgit merge-base --is-ancestor 4e0d305bab563e3fc58aa97bb18115b6bf8f69d6 HEAD[0m
+catalog	Verify exact source and public standard-runner scope	2026-10-19T10:12:37.8116918Z [36;1mif ($LASTEXITCODE -ne 0) { throw 'Unexpected baseline' }[0m
+catalog	Verify exact source and public standard-runner scope	2026-10-19T10:12:37.8117320Z [36;1mif (git status --porcelain) { throw 'Dirty checkout' }[0m
+catalog	Verify exact source and public standard-runner scope	2026-10-19T10:12:37.8117810Z [36;1m'Source tests only: no Tauri/WebView2, installer, cache, artifact or Release.'[0m
+catalog	Verify exact source and public standard-runner scope	2026-10-19T10:12:37.8848022Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+catalog	Verify exact source and public standard-runner scope	2026-10-19T10:12:37.8848426Z env:
+catalog	Verify exact source and public standard-runner scope	2026-10-19T10:12:37.8848625Z   CARGO_BUILD_JOBS: 2
+catalog	Verify exact source and public standard-runner scope	2026-10-19T10:12:37.8848835Z   CARGO_INCREMENTAL: 0
+catalog	Verify exact source and public standard-runner scope	2026-10-19T10:12:37.8849049Z   CARGO_PROFILE_DEV_DEBUG: 0
+catalog	Verify exact source and public standard-runner scope	2026-10-19T10:12:37.8849275Z   CARGO_TERM_COLOR: never
+catalog	Verify exact source and public standard-runner scope	2026-10-19T10:12:37.8849540Z ##[endgroup]
+catalog	Verify exact source and public standard-runner scope	2026-10-19T10:12:38.5284733Z Source tests only: no Tauri/WebView2, installer, cache, artifact or Release.
+catalog	Select pinned Rust compiler	﻿2026-10-19T10:12:38.6720895Z ##[group]Run $ErrorActionPreference = 'Stop'
+catalog	Select pinned Rust compiler	2026-10-19T10:12:38.6721390Z [36;1m$ErrorActionPreference = 'Stop'[0m
+catalog	Select pinned Rust compiler	2026-10-19T10:12:38.6721739Z [36;1mrustup toolchain install 1.99.0 --profile minimal[0m
+catalog	Select pinned Rust compiler	2026-10-19T10:12:38.6722154Z [36;1mif ($LASTEXITCODE -ne 0) { throw 'Rust compiler setup failed' }[0m
+catalog	Select pinned Rust compiler	2026-10-19T10:12:38.6722577Z [36;1m'RUSTUP_TOOLCHAIN=1.99.0' >> $env:GITHUB_ENV[0m
+catalog	Select pinned Rust compiler	2026-10-19T10:12:38.6855773Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+catalog	Select pinned Rust compiler	2026-10-19T10:12:38.6856173Z env:
+catalog	Select pinned Rust compiler	2026-10-19T10:12:38.6856368Z   CARGO_BUILD_JOBS: 2
+catalog	Select pinned Rust compiler	2026-10-19T10:12:38.6856619Z   CARGO_INCREMENTAL: 0
+catalog	Select pinned Rust compiler	2026-10-19T10:12:38.6856847Z   CARGO_PROFILE_DEV_DEBUG: 0
+catalog	Select pinned Rust compiler	2026-10-19T10:12:38.6857079Z   CARGO_TERM_COLOR: never
+catalog	Select pinned Rust compiler	2026-10-19T10:12:38.6857293Z ##[endgroup]
+catalog	Select pinned Rust compiler	2026-10-19T10:12:39.9041323Z info: syncing channel updates for 1.99.0-x86_64-pc-windows-msvc
+catalog	Select pinned Rust compiler	2026-10-19T10:12:40.9742952Z info: latest update on 2026-10-01 for version 1.99.0 (b940084d7 2026-09-28)
+catalog	Select pinned Rust compiler	2026-10-19T10:12:41.0571768Z info: downloading 3 components
+catalog	Select pinned Rust compiler	2026-10-19T10:12:51.0641368Z 
+catalog	Select pinned Rust compiler	2026-10-19T10:12:51.0976376Z   1.99.0-x86_64-pc-windows-msvc installed - rustc 1.99.0 (b940084d7 2026-09-28)
+catalog	Select pinned Rust compiler	2026-10-19T10:12:51.0976915Z 
+catalog	Reproduce unsupported Windows baseline as a runtime failure	﻿2026-10-19T10:12:51.2620291Z ##[group]Run ./tests/native/catalog-core/run-windows-baseline.ps1
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:12:51.2620867Z [36;1m./tests/native/catalog-core/run-windows-baseline.ps1[0m
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:12:51.2687095Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:12:51.2687439Z env:
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:12:51.2687619Z   CARGO_BUILD_JOBS: 2
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:12:51.2687834Z   CARGO_INCREMENTAL: 0
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:12:51.2688048Z   CARGO_PROFILE_DEV_DEBUG: 0
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:12:51.2688270Z   CARGO_TERM_COLOR: never
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:12:51.2688485Z   RUSTUP_TOOLCHAIN: 1.99.0
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:12:51.2688690Z ##[endgroup]
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6226742Z     Updating crates.io index
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6227384Z  Downloading crates ...
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6227767Z   Downloaded crypto-common v0.1.7
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6228197Z   Downloaded displaydoc v0.2.6
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6228572Z   Downloaded block-buffer v0.10.4
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6228967Z   Downloaded form_urlencoded v1.2.2
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6229369Z   Downloaded digest v0.10.7
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6229816Z   Downloaded percent-encoding v2.3.2
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6230104Z   Downloaded serde_core v1.0.228
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6231378Z   Downloaded generic-array v0.14.7
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6231628Z   Downloaded cfg-if v1.0.4
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6231854Z   Downloaded cpufeatures v0.2.17
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6232093Z   Downloaded fs2 v0.4.3
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6232307Z   Downloaded icu_normalizer v2.2.0
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6232543Z   Downloaded idna_adapter v1.2.2
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6232775Z   Downloaded memchr v2.8.2
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6232980Z   Downloaded quote v1.0.46
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6233185Z   Downloaded semver v1.0.28
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6233401Z   Downloaded itoa v1.0.18
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6233621Z   Downloaded version_check v0.9.5
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6233860Z   Downloaded yoke-derive v0.8.2
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6234090Z   Downloaded zerofrom v0.1.8
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6234320Z   Downloaded zerofrom-derive v0.1.7
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6234568Z   Downloaded potential_utf v0.1.5
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6234823Z   Downloaded stable_deref_trait v1.2.1
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6235087Z   Downloaded utf8_iter v1.0.4
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6235340Z   Downloaded zerovec-derive v0.11.3
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6235591Z   Downloaded zmij v1.0.21
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6235812Z   Downloaded sha2 v0.10.9
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6236021Z   Downloaded smallvec v1.15.2
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6236252Z   Downloaded synstructure v0.13.2
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6236492Z   Downloaded tinystr v0.8.3
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6236713Z   Downloaded writeable v0.6.3
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6236925Z   Downloaded yoke v0.8.3
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6237135Z   Downloaded litemap v0.8.2
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6237356Z   Downloaded unicode-ident v1.0.24
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6237600Z   Downloaded icu_locale_core v2.2.0
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6237854Z   Downloaded icu_normalizer_data v2.2.0
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6238110Z   Downloaded icu_properties v2.2.0
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6238347Z   Downloaded icu_provider v2.2.0
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6238583Z   Downloaded serde_derive v1.0.228
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6238816Z   Downloaded zerotrie v0.2.4
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6239029Z   Downloaded idna v1.1.0
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6239245Z   Downloaded proc-macro2 v1.0.106
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6239471Z   Downloaded serde v1.0.228
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6239680Z   Downloaded typenum v1.20.1
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6239890Z   Downloaded url v2.5.8
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6240101Z   Downloaded icu_collections v2.2.0
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6240340Z   Downloaded zerovec v0.11.6
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6240558Z   Downloaded icu_properties_data v2.2.0
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6240801Z   Downloaded serde_json v1.0.150
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6241015Z   Downloaded syn v2.0.118
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6241220Z   Downloaded winapi v0.3.9
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6241435Z    Compiling proc-macro2 v1.0.106
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6241666Z    Compiling unicode-ident v1.0.24
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6241890Z    Compiling quote v1.0.46
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6242109Z    Compiling stable_deref_trait v1.2.1
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6244338Z    Compiling version_check v0.9.5
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6244593Z    Compiling writeable v0.6.3
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6244960Z    Compiling syn v2.0.118
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6245390Z    Compiling litemap v0.8.2
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6245635Z    Compiling generic-array v0.14.7
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6245886Z    Compiling utf8_iter v1.0.4
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6246120Z    Compiling icu_normalizer_data v2.2.0
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6246376Z    Compiling icu_properties_data v2.2.0
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6246637Z    Compiling typenum v1.20.1
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6246940Z    Compiling synstructure v0.13.2
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6247178Z    Compiling serde_core v1.0.228
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6247414Z    Compiling zerofrom-derive v0.1.7
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6247655Z    Compiling yoke-derive v0.8.2
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6247879Z    Compiling zerofrom v0.1.8
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6248096Z    Compiling zerovec-derive v0.11.3
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6248325Z    Compiling yoke v0.8.3
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6248542Z    Compiling displaydoc v0.2.6
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6248761Z    Compiling zerotrie v0.2.4
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6248971Z    Compiling zerovec v0.11.6
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6249335Z    Compiling smallvec v1.15.2
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6249564Z    Compiling winapi v0.3.9
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6249777Z    Compiling tinystr v0.8.3
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6250002Z    Compiling icu_locale_core v2.2.0
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6250270Z    Compiling potential_utf v0.1.5
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6250508Z    Compiling icu_collections v2.2.0
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6250740Z    Compiling zmij v1.0.21
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6250958Z    Compiling icu_provider v2.2.0
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6251195Z    Compiling icu_properties v2.2.0
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6251432Z    Compiling icu_normalizer v2.2.0
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6251662Z    Compiling idna_adapter v1.2.2
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6251889Z    Compiling block-buffer v0.10.4
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6252185Z    Compiling crypto-common v0.1.7
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6252419Z    Compiling serde_json v1.0.150
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6252662Z    Compiling percent-encoding v2.3.2
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6252903Z    Compiling serde v1.0.228
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6253132Z    Compiling form_urlencoded v1.2.2
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6253367Z    Compiling digest v0.10.7
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6253576Z    Compiling idna v1.1.0
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6253790Z    Compiling serde_derive v1.0.228
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6254026Z    Compiling cfg-if v1.0.4
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6254244Z    Compiling cpufeatures v0.2.17
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6254465Z    Compiling memchr v2.8.2
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6254681Z    Compiling itoa v1.0.18
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6254882Z    Compiling sha2 v0.10.9
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6255079Z    Compiling fs2 v0.4.3
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6255274Z    Compiling url v2.5.8
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6255469Z    Compiling semver v1.0.28
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6256062Z    Compiling milkup-catalog-core-tests v0.0.0 (C:\Users\runneradmin\AppData\Local\Temp\milkup-catalog-baseline-a22a0d30138e4e209e564563bb0efaf4)
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6256770Z     Finished `test` profile [unoptimized] target(s) in 26.19s
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6257602Z      Running unittests src\lib.rs (C:\Users\runneradmin\AppData\Local\Temp\milkup-catalog-baseline-target\x86_64-pc-windows-msvc\debug\deps\milkup_catalog_core_tests-591d1487200e4b21.exe)
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6258270Z 
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6258347Z running 1 test
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6262999Z test regression::windows_catalog_opens_ntfs_profile ... FAILED
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6263287Z 
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6263371Z failures:
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6263477Z 
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6263696Z ---- regression::windows_catalog_opens_ntfs_profile stdout ----
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6263955Z 
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6264221Z thread 'regression::windows_catalog_opens_ntfs_profile' (6688) panicked at src\lib.rs:18:14:
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6265394Z a fresh local NTFS catalog must be usable on Windows: "[plugin-catalog:unsupported] safe native catalog mutation is not implemented on this platform"
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6266832Z note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6267134Z 
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6267139Z 
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6267222Z failures:
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6267452Z     regression::windows_catalog_opens_ntfs_profile
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6267659Z 
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6267916Z test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6268250Z 
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6268358Z error: test failed, to rerun pass `--lib`
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6396888Z {
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6397268Z   "suite": "native-catalog-windows-baseline-red",
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6397773Z   "baseline": "4e0d305bab563e3fc58aa97bb18115b6bf8f69d6",
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6398224Z   "sourceSha256": "b04225d2b48cba126f154ba65e8bdb5485b2b103589de87c0be8f907459e8fb4",
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6398660Z   "platform": "Microsoft Windows NT 10.0.26100.0",
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6398940Z   "volume": "NTFS",
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6399150Z   "expectedRedVerified": true,
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6399398Z   "testExitCode": 101,
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6399734Z   "test": "regression::windows_catalog_opens_ntfs_profile",
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6400434Z   "scope": "Executed original baseline read on actual Windows NTFS; unsupported runtime failure required"
+catalog	Reproduce unsupported Windows baseline as a runtime failure	2026-10-19T10:13:19.6400874Z }
+catalog	Compile and run native catalog contracts	﻿2026-10-19T10:13:19.6877803Z ##[group]Run ./tests/native/catalog-core/run-windows.ps1 -TargetDirectory "$env:RUNNER_TEMP/catalog-target"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:19.6878685Z [36;1m./tests/native/catalog-core/run-windows.ps1 -TargetDirectory "$env:RUNNER_TEMP/catalog-target"[0m
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:19.6951434Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:19.6951988Z env:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:19.6952264Z   CARGO_BUILD_JOBS: 2
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:19.6952594Z   CARGO_INCREMENTAL: 0
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:19.6952931Z   CARGO_PROFILE_DEV_DEBUG: 0
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:19.6953302Z   CARGO_TERM_COLOR: never
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:19.6953651Z   RUSTUP_TOOLCHAIN: 1.99.0
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:19.6953986Z ##[endgroup]
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:20.8535613Z    Compiling proc-macro2 v1.0.106
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:20.8536222Z    Compiling quote v1.0.46
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:21.1152136Z    Compiling unicode-ident v1.0.24
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:21.2329166Z    Compiling stable_deref_trait v1.2.1
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:21.2749923Z    Compiling version_check v0.9.5
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:21.5454967Z    Compiling litemap v0.8.2
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:21.9312034Z    Compiling syn v2.0.118
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:21.9535265Z    Compiling writeable v0.6.3
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:22.1181177Z    Compiling generic-array v0.14.7
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:22.2746277Z    Compiling utf8_iter v1.0.4
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:22.3736045Z    Compiling icu_properties_data v2.2.0
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:22.5373305Z    Compiling icu_normalizer_data v2.2.0
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:22.7599928Z    Compiling typenum v1.20.1
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:24.0090252Z    Compiling synstructure v0.13.2
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:24.7002047Z    Compiling serde_core v1.0.228
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:24.9479363Z    Compiling smallvec v1.15.2
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:25.1627303Z    Compiling zmij v1.0.21
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:25.1672810Z    Compiling zerofrom-derive v0.1.7
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:25.3916765Z    Compiling yoke-derive v0.8.2
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:26.0188455Z    Compiling zerofrom v0.1.8
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:26.1178171Z    Compiling zerovec-derive v0.11.3
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:26.1913326Z    Compiling yoke v0.8.3
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:26.3549503Z    Compiling displaydoc v0.2.6
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:27.0465259Z    Compiling zerotrie v0.2.4
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:27.2479665Z    Compiling zerovec v0.11.6
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:27.3318642Z    Compiling winapi v0.3.9
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:27.7790411Z    Compiling tinystr v0.8.3
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:27.8209604Z    Compiling potential_utf v0.1.5
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:27.9261095Z    Compiling icu_locale_core v2.2.0
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:27.9421287Z    Compiling icu_collections v2.2.0
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:29.0315307Z    Compiling icu_provider v2.2.0
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:29.3166438Z    Compiling icu_properties v2.2.0
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:30.5667129Z    Compiling icu_normalizer v2.2.0
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:30.5700183Z    Compiling block-buffer v0.10.4
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:30.6646033Z    Compiling crypto-common v0.1.7
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:30.7471904Z    Compiling serde v1.0.228
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:30.9886722Z    Compiling idna_adapter v1.2.2
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:31.0762206Z    Compiling serde_json v1.0.150
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:31.1184110Z    Compiling percent-encoding v2.3.2
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:31.2571785Z    Compiling form_urlencoded v1.2.2
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:31.2814261Z    Compiling idna v1.1.0
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:31.4159622Z    Compiling digest v0.10.7
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:31.9462680Z    Compiling serde_derive v1.0.228
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:33.0776930Z    Compiling memchr v2.8.2
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:33.7015710Z    Compiling cpufeatures v0.2.17
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:33.7423936Z    Compiling itoa v1.0.18
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:33.8868790Z    Compiling cfg-if v1.0.4
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:33.9246345Z    Compiling sha2 v0.10.9
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:35.3921248Z    Compiling fs2 v0.4.3
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:35.5366585Z    Compiling url v2.5.8
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:35.5740134Z    Compiling semver v1.0.28
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:35.9670387Z    Compiling milkup-catalog-core-tests v0.0.0 (D:\a\milkup\milkup\tests\native\catalog-core)
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:39.3407869Z     Finished `test` profile [unoptimized] target(s) in 18.65s
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:39.3454538Z      Running unittests src\lib.rs (D:\a\_temp\catalog-target\x86_64-pc-windows-msvc\debug\deps\milkup_catalog_core_tests-591d1487200e4b21.exe)
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:39.3562235Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:39.3562459Z running 36 tests
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:39.3565439Z test plugin_catalog::disk::tests::windows_abi_layout_matches_sdk ... ok
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:39.3600757Z test plugin_catalog::disk::tests::windows_hardlinks_rejected_for_read_lock_and_replace ... ok
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:39.3631244Z test plugin_catalog::disk::tests::windows_junction_never_reads_writes_or_removes_external_target ... ok
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:39.3746799Z test plugin_catalog::disk::tests::windows_lock_excludes_second_handle_and_releases_on_drop ... ok
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:39.4029881Z test plugin_catalog::disk::tests::windows_pinned_ancestors_cannot_be_renamed_during_io ... ok
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:39.4032196Z test plugin_catalog::disk::tests::windows_rejects_ambiguous_components_and_nonlocal_roots ... ok
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:39.4286343Z test plugin_catalog::disk::tests::windows_replace_is_complete_or_preserves_old_on_sharing_failure ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:39.6175882Z test plugin_catalog::tests::backup_replacement_failure_leaves_primary_decision_byte_exact ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:39.6979424Z test plugin_catalog::tests::changed_candidate_cannot_commit_or_replace_retained_active_generation ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:39.7796202Z test plugin_catalog::tests::commit_failure_before_replace_restores_old_decision_after_restart ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:40.1204777Z test plugin_catalog::tests::concurrent_different_ids_never_lose_catalog_updates ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:40.2051467Z test plugin_catalog::tests::concurrent_same_id_approval_and_abort_accept_only_one_revision ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:40.2862345Z test plugin_catalog::tests::corrupt_primary_and_backup_fail_closed_and_retain_original_bytes ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:40.3665342Z test plugin_catalog::tests::corrupt_primary_uses_backup_without_restoring_old_enabled_or_approval ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:40.4653729Z test plugin_catalog::tests::deletion_failure_is_durable_tombstone_and_can_retry_without_deleting_data ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:40.5481589Z test plugin_catalog::tests::expanded_origins_require_new_approval_and_revocation_cannot_rollback_old_authority ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:40.6271141Z test plugin_catalog::tests::gc_retains_backup_generations_for_third_commit_corruption_recovery ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:40.7067017Z test plugin_catalog::tests::injected_mid_stage_failure_never_changes_catalog_or_old_bytes ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:40.7849697Z test plugin_catalog::tests::insufficient_space_is_rejected_before_generation_or_authority_changes ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:40.8656412Z test plugin_catalog::tests::interrupted_startup_stays_disabled_and_late_complete_rejected ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:40.8665816Z test plugin_catalog::tests::malformed_package_fails_before_any_catalog_or_plugin_write ... ok
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:40.9389705Z test plugin_catalog::tests::migration_corrupt_root_is_backed_up_and_quarantined_once ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:41.0495883Z test plugin_catalog::tests::migration_io_failure_preserves_backup_and_remains_retryable ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:41.1052535Z test plugin_catalog::tests::migration_keeps_exact_backup_and_duplicate_ids_quarantined ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:41.1600209Z test plugin_catalog::tests::migration_missing_or_changed_old_package_is_quarantined_without_retry_loop ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:41.2890273Z test plugin_catalog::tests::migration_quarantines_bad_manifest_rows_without_poisoning_valid_plugin ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:41.5737488Z test plugin_catalog::tests::migration_rejects_missing_or_unbound_validation_after_exact_backup ... ok
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:41.6515178Z test plugin_catalog::tests::ordinary_reads_do_not_abort_live_trial_or_startup_attempt ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:41.7317137Z test plugin_catalog::tests::prepare_leaves_active_and_data_unchanged_and_commit_retains_verified_previous ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:41.7320552Z test plugin_catalog::tests::rejects_base64_worker_entry_even_when_decodable_utf8 ... ok
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:41.8402355Z test plugin_catalog::tests::rejects_checksummed_inconsistent_authority_states ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:41.9187354Z test plugin_catalog::tests::revision_and_candidate_identity_prevent_late_approval ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.0017433Z test plugin_catalog::tests::sealed_worker_snapshot_rejects_mutation_and_symlink ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.0803303Z test plugin_catalog::tests::sidecar_candidate_remains_unactivated_even_after_explicit_approval ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.1616848Z test plugin_catalog::tests::tombstone_preserves_user_data_and_cannot_start_old_generation ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2393605Z test plugin_catalog::tests::two_ids_commit_without_lost_catalog_updates ... FAILED
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2394261Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2394379Z failures:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2394596Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2395149Z ---- plugin_catalog::disk::tests::windows_replace_is_complete_or_preserves_old_on_sharing_failure stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2395866Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2396879Z thread 'plugin_catalog::disk::tests::windows_replace_is_complete_or_preserves_old_on_sharing_failure' (6352) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_windows.rs:862:53:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2399547Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2402307Z note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2402817Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2403295Z ---- plugin_catalog::tests::backup_replacement_failure_leaves_primary_decision_byte_exact stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2403920Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2404817Z thread 'plugin_catalog::tests::backup_replacement_failure_leaves_primary_decision_byte_exact' (7792) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:30:10:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2406907Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2407922Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2408446Z ---- plugin_catalog::tests::changed_candidate_cannot_commit_or_replace_retained_active_generation stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2409114Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2410030Z thread 'plugin_catalog::tests::changed_candidate_cannot_commit_or_replace_retained_active_generation' (2508) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:30:10:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2411983Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2413178Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2413663Z ---- plugin_catalog::tests::commit_failure_before_replace_restores_old_decision_after_restart stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2414264Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2415142Z thread 'plugin_catalog::tests::commit_failure_before_replace_restores_old_decision_after_restart' (708) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:30:10:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2417006Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2417924Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2418174Z ---- plugin_catalog::tests::concurrent_different_ids_never_lose_catalog_updates stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2418800Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2419653Z thread 'plugin_catalog::tests::concurrent_different_ids_never_lose_catalog_updates' (9788) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:509:29:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2421021Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2421760Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2422047Z ---- plugin_catalog::tests::concurrent_same_id_approval_and_abort_accept_only_one_revision stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2422423Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2422949Z thread 'plugin_catalog::tests::concurrent_same_id_approval_and_abort_accept_only_one_revision' (1492) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:30:10:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2424058Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2424637Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2424926Z ---- plugin_catalog::tests::corrupt_primary_and_backup_fail_closed_and_retain_original_bytes stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2425302Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2425832Z thread 'plugin_catalog::tests::corrupt_primary_and_backup_fail_closed_and_retain_original_bytes' (2008) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:30:10:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2427028Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2427723Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2428201Z ---- plugin_catalog::tests::corrupt_primary_uses_backup_without_restoring_old_enabled_or_approval stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2428622Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2429332Z thread 'plugin_catalog::tests::corrupt_primary_uses_backup_without_restoring_old_enabled_or_approval' (1748) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:30:10:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2430947Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2432707Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2433370Z ---- plugin_catalog::tests::deletion_failure_is_durable_tombstone_and_can_retry_without_deleting_data stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2434157Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2435197Z thread 'plugin_catalog::tests::deletion_failure_is_durable_tombstone_and_can_retry_without_deleting_data' (5260) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:30:10:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2437276Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2438329Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2438953Z ---- plugin_catalog::tests::expanded_origins_require_new_approval_and_revocation_cannot_rollback_old_authority stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2439739Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2440820Z thread 'plugin_catalog::tests::expanded_origins_require_new_approval_and_revocation_cannot_rollback_old_authority' (1420) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:30:10:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2442925Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2443969Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2444481Z ---- plugin_catalog::tests::gc_retains_backup_generations_for_third_commit_corruption_recovery stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2445166Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2446133Z thread 'plugin_catalog::tests::gc_retains_backup_generations_for_third_commit_corruption_recovery' (8624) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:30:10:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2448105Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2449646Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2450135Z ---- plugin_catalog::tests::injected_mid_stage_failure_never_changes_catalog_or_old_bytes stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2450785Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2451700Z thread 'plugin_catalog::tests::injected_mid_stage_failure_never_changes_catalog_or_old_bytes' (2336) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:30:10:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2453772Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2454812Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2455351Z ---- plugin_catalog::tests::insufficient_space_is_rejected_before_generation_or_authority_changes stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2456046Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2457039Z thread 'plugin_catalog::tests::insufficient_space_is_rejected_before_generation_or_authority_changes' (3776) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:30:10:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2459050Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2460091Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2460567Z ---- plugin_catalog::tests::interrupted_startup_stays_disabled_and_late_complete_rejected stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2461218Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2462141Z thread 'plugin_catalog::tests::interrupted_startup_stays_disabled_and_late_complete_rejected' (8224) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:30:10:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2464095Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2465133Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2465586Z ---- plugin_catalog::tests::migration_corrupt_root_is_backed_up_and_quarantined_once stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2466202Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2467836Z thread 'plugin_catalog::tests::migration_corrupt_root_is_backed_up_and_quarantined_once' (916) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:361:68:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2469973Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2470626Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2470929Z ---- plugin_catalog::tests::migration_io_failure_preserves_backup_and_remains_retryable stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2471305Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2471854Z thread 'plugin_catalog::tests::migration_io_failure_preserves_backup_and_remains_retryable' (8424) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:552:67:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2472982Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2473578Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2473843Z ---- plugin_catalog::tests::migration_keeps_exact_backup_and_duplicate_ids_quarantined stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2474212Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2474723Z thread 'plugin_catalog::tests::migration_keeps_exact_backup_and_duplicate_ids_quarantined' (7080) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:409:66:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2475821Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2476385Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2476704Z ---- plugin_catalog::tests::migration_missing_or_changed_old_package_is_quarantined_without_retry_loop stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2477107Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2477673Z thread 'plugin_catalog::tests::migration_missing_or_changed_old_package_is_quarantined_without_retry_loop' (5216) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:393:71:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2478989Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2480243Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2480562Z ---- plugin_catalog::tests::migration_quarantines_bad_manifest_rows_without_poisoning_valid_plugin stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2480970Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2481534Z thread 'plugin_catalog::tests::migration_quarantines_bad_manifest_rows_without_poisoning_valid_plugin' (9508) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:692:72:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2482644Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2483222Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2483479Z ---- plugin_catalog::tests::ordinary_reads_do_not_abort_live_trial_or_startup_attempt stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2483862Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2484362Z thread 'plugin_catalog::tests::ordinary_reads_do_not_abort_live_trial_or_startup_attempt' (7048) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:30:10:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2486794Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2487677Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2488192Z ---- plugin_catalog::tests::prepare_leaves_active_and_data_unchanged_and_commit_retains_verified_previous stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2489009Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2490049Z thread 'plugin_catalog::tests::prepare_leaves_active_and_data_unchanged_and_commit_retains_verified_previous' (7032) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:30:10:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2491846Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2492756Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2493108Z ---- plugin_catalog::tests::rejects_checksummed_inconsistent_authority_states stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2493606Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2494385Z thread 'plugin_catalog::tests::rejects_checksummed_inconsistent_authority_states' (8852) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:30:10:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2495987Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2496910Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2497273Z ---- plugin_catalog::tests::revision_and_candidate_identity_prevent_late_approval stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2497798Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2498614Z thread 'plugin_catalog::tests::revision_and_candidate_identity_prevent_late_approval' (2032) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:30:10:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2500432Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2501417Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2501778Z ---- plugin_catalog::tests::sealed_worker_snapshot_rejects_mutation_and_symlink stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2502267Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2503035Z thread 'plugin_catalog::tests::sealed_worker_snapshot_rejects_mutation_and_symlink' (3204) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:30:10:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2504808Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2507083Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2507662Z ---- plugin_catalog::tests::sidecar_candidate_remains_unactivated_even_after_explicit_approval stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2508625Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2509612Z thread 'plugin_catalog::tests::sidecar_candidate_remains_unactivated_even_after_explicit_approval' (7764) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:834:51:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2512225Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2513268Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2513772Z ---- plugin_catalog::tests::tombstone_preserves_user_data_and_cannot_start_old_generation stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2514453Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2515394Z thread 'plugin_catalog::tests::tombstone_preserves_user_data_and_cannot_start_old_generation' (4612) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:30:10:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2517364Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2518414Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2518781Z ---- plugin_catalog::tests::two_ids_commit_without_lost_catalog_updates stdout ----
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2519098Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2519579Z thread 'plugin_catalog::tests::two_ids_commit_without_lost_catalog_updates' (8916) panicked at src\..\..\..\..\apps\desktop\src-tauri\src\plugin_catalog_tests.rs:219:6:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2520603Z called `Result::unwrap()` on an `Err` value: "[plugin-catalog:io] NT status 0xc0000043: The process cannot access the file because it is being used by another process. (os error 32)"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2521167Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2521171Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2521242Z failures:
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2521622Z     plugin_catalog::disk::tests::windows_replace_is_complete_or_preserves_old_on_sharing_failure
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2522204Z     plugin_catalog::tests::backup_replacement_failure_leaves_primary_decision_byte_exact
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2522787Z     plugin_catalog::tests::changed_candidate_cannot_commit_or_replace_retained_active_generation
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2523265Z error: test failed, to rerun pass `--lib`
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2523695Z     plugin_catalog::tests::commit_failure_before_replace_restores_old_decision_after_restart
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2524219Z     plugin_catalog::tests::concurrent_different_ids_never_lose_catalog_updates
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2524741Z     plugin_catalog::tests::concurrent_same_id_approval_and_abort_accept_only_one_revision
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2525581Z     plugin_catalog::tests::corrupt_primary_and_backup_fail_closed_and_retain_original_bytes
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2526258Z     plugin_catalog::tests::corrupt_primary_uses_backup_without_restoring_old_enabled_or_approval
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2527029Z     plugin_catalog::tests::deletion_failure_is_durable_tombstone_and_can_retry_without_deleting_data
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2527688Z     plugin_catalog::tests::expanded_origins_require_new_approval_and_revocation_cannot_rollback_old_authority
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2528330Z     plugin_catalog::tests::gc_retains_backup_generations_for_third_commit_corruption_recovery
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2528881Z     plugin_catalog::tests::injected_mid_stage_failure_never_changes_catalog_or_old_bytes
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2529445Z     plugin_catalog::tests::insufficient_space_is_rejected_before_generation_or_authority_changes
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2530003Z     plugin_catalog::tests::interrupted_startup_stays_disabled_and_late_complete_rejected
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2530512Z     plugin_catalog::tests::migration_corrupt_root_is_backed_up_and_quarantined_once
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2531014Z     plugin_catalog::tests::migration_io_failure_preserves_backup_and_remains_retryable
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2531519Z     plugin_catalog::tests::migration_keeps_exact_backup_and_duplicate_ids_quarantined
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2532081Z     plugin_catalog::tests::migration_missing_or_changed_old_package_is_quarantined_without_retry_loop
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2532897Z     plugin_catalog::tests::migration_quarantines_bad_manifest_rows_without_poisoning_valid_plugin
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2533460Z     plugin_catalog::tests::ordinary_reads_do_not_abort_live_trial_or_startup_attempt
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2534144Z     plugin_catalog::tests::prepare_leaves_active_and_data_unchanged_and_commit_retains_verified_previous
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2534702Z     plugin_catalog::tests::rejects_checksummed_inconsistent_authority_states
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2535181Z     plugin_catalog::tests::revision_and_candidate_identity_prevent_late_approval
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2535655Z     plugin_catalog::tests::sealed_worker_snapshot_rejects_mutation_and_symlink
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2536172Z     plugin_catalog::tests::sidecar_candidate_remains_unactivated_even_after_explicit_approval
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2536749Z     plugin_catalog::tests::tombstone_preserves_user_data_and_cannot_start_old_generation
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2537236Z     plugin_catalog::tests::two_ids_commit_without_lost_catalog_updates
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2537496Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2537759Z test result: FAILED. 9 passed; 27 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.88s
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.2538113Z 
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3003488Z {
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3003809Z   "suite": "native-catalog-core",
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3026163Z   "platform": "Microsoft Windows NT 10.0.26100.0",
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3026946Z   "startedUtc": "2026-10-19T10:13:20.6388113Z",
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3027445Z   "completedUtc": "2026-10-19T10:13:42.2834150Z",
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3027861Z   "rustc": [
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3028165Z     "rustc 1.99.0 (b940084d7 2026-09-28)",
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3028548Z     "binary: rustc",
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3028955Z     "commit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4",
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3029424Z     "commit-date: 2026-09-28",
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3029742Z     "host: x86_64-pc-windows-msvc",
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3030098Z     "release: 1.99.0",
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3030361Z     "LLVM version: 23.1.1"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3030563Z   ],
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3030748Z   "target": "x86_64-pc-windows-msvc",
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3031093Z   "exitCode": 101,
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3031296Z   "passed": false,
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3031494Z   "sourceInputs": [
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3031677Z     {
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3031984Z       "sha256": "6656a5598e23c22fdf0a1e98375b945ebc5731764829f63724f3a6035856a5e6",
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3032391Z       "file": "plugin_catalog.rs"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3032627Z     },
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3032788Z     {
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3033101Z       "sha256": "8fbb779ddd09e0818473505447142b591d69c46c8fb3c3eab0ccc13c6ae85a7e",
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3033492Z       "file": "plugin_catalog_tests.rs"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3033727Z     },
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3033880Z     {
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3034170Z       "sha256": "03df36f73dfb3c86294374fffff77f5fcb8a3c80dcd1887ea41419b2459ef4a8",
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3034548Z       "file": "plugin_catalog_windows.rs"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3034788Z     }
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3034938Z   ],
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3035236Z   "lockSha256": "22fa93a309eed0916cb8c39521eace34e2b535f2ed22913172dfdc553487c107",
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3035839Z   "scope": "Real catalog filesystem/transaction tests; no Tauri UI, WebView2, installer, or artifact upload"
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.3036312Z }
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.4838287Z [31;1mException: [0mD:\a\milkup\milkup\tests\native\catalog-core\run-windows.ps1:45[0m
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.4839163Z [31;1m[0m[36;1mLine |[0m
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.4839768Z [31;1m[0m[36;1m[36;1m  45 | [0m … it -ne 0) { [36;1mthrow "Native catalog tests failed with exit code $testEx[0m …[0m
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.4840501Z [31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m     | [31;1m               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.4841164Z [31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m[31;1m[31;1m[36;1m     | [31;1mNative catalog tests failed with exit code 101[0m
+catalog	Compile and run native catalog contracts	2026-10-19T10:13:42.5057461Z ##[error]Process completed with exit code 1.
+catalog	Record validation boundary in logs	﻿2026-10-19T10:13:42.5219534Z ##[group]Run 'Windows catalog source tests only. No desktop WebView, installer, arbitrary power-loss, macOS or sidecar activation acceptance.' >> $env:GITHUB_STEP_SUMMARY
+catalog	Record validation boundary in logs	2026-10-19T10:13:42.5220751Z [36;1m'Windows catalog source tests only. No desktop WebView, installer, arbitrary power-loss, macOS or sidecar activation acceptance.' >> $env:GITHUB_STEP_SUMMARY[0m
+catalog	Record validation boundary in logs	2026-10-19T10:13:42.5285898Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+catalog	Record validation boundary in logs	2026-10-19T10:13:42.5286243Z env:
+catalog	Record validation boundary in logs	2026-10-19T10:13:42.5286423Z   CARGO_BUILD_JOBS: 2
+catalog	Record validation boundary in logs	2026-10-19T10:13:42.5286632Z   CARGO_INCREMENTAL: 0
+catalog	Record validation boundary in logs	2026-10-19T10:13:42.5286837Z   CARGO_PROFILE_DEV_DEBUG: 0
+catalog	Record validation boundary in logs	2026-10-19T10:13:42.5287059Z   CARGO_TERM_COLOR: never
+catalog	Record validation boundary in logs	2026-10-19T10:13:42.5287274Z   RUSTUP_TOOLCHAIN: 1.99.0
+catalog	Record validation boundary in logs	2026-10-19T10:13:42.5287489Z ##[endgroup]
+catalog	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	﻿2026-10-19T10:13:42.9573469Z Post job cleanup.
+catalog	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:13:43.1353398Z [command]"C:\Program Files\Git\bin\git.exe" version
+catalog	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:13:43.1717217Z git version 2.56.0.windows.2
+catalog	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:13:43.1788807Z Temporarily overriding HOME='D:\a\_temp\c9985669-cb8e-4681-a4ab-c153941c7ce0' before making global git config changes
+catalog	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:13:43.1789986Z Adding repository directory to the temporary git global config as a safe directory
+catalog	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:13:43.1800725Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\milkup\milkup
+catalog	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:13:43.2201713Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+catalog	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:13:43.2571377Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+catalog	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:13:43.8161161Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+catalog	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:13:43.8569897Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+catalog	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:13:44.4329203Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+catalog	Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262	2026-10-19T10:13:44.4827460Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+catalog	Complete job	﻿2026-10-19T10:13:45.0559909Z Cleaning up orphan processes
+catalog	Complete job	2026-10-19T10:13:45.1209253Z Terminate orphan process: pid (6400) (vctip)
+catalog	Complete job	2026-10-19T10:13:45.1353657Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@11d5960a326750d5838078e36cf38b85af677262. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

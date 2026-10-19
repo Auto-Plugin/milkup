@@ -4,6 +4,8 @@
 
 实施依据为[原生目录事务合同](v2-product-phase6-native-catalog-contract.md)、[单一 wire 合同](v2-product-phase6-native-catalog-wire.md)及 [P6 清单](v2-product-phase6-plugin-lifecycle-checklist.md)。本轮证据归档至 [milestone02](evidence/v2-product-phase6-plugin-lifecycle/milestone02/README.md)，以完整索引核对复制字节；原始本地目录为 `/workspace/milkup-plugin-lifecycle-evidence/milestone02/`。下文证据路径均相对此目录。没有把旧日志、单元测试或驱动脚本存在当作新生产二进制验收。
 
+> 后续 Windows 后端实现与真实平台验证另见 [milestone03 报告](v2-product-phase6-windows-catalog-2026-10-19.md)。本报告记录 milestone02 时点，下面的 Windows unsupported 是当时实际状态。
+
 ## 方案 A 的实现范围
 
 **安装包与用户数据分离，catalog 是持久权威。** 包先经过 archive/manifest/兼容性和能力范围检查，再写入 native 生成的不可变 generation。catalog 保存 active、previous verified、pending、精确审批指纹、启用意图、启动尝试、tombstone 和 revision。读取实际包时验证真实字节与封存指纹；Worker 获得核验后的模块字节，DOM 与图标按 catalog generation 读取。localStorage 的丢失、损坏或写失败不能改变 native 授权事实。
