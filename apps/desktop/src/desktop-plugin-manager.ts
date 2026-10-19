@@ -19,6 +19,9 @@ import {
   createPluginKeymapBroker,
   createPluginEditingBroker,
   createPluginResourcesBroker,
+  createPluginOutputBroker,
+  type PluginOutputBrokerAdapter,
+  type RevocablePluginOutputBroker,
   type PluginEditingBrokerAdapter,
   type PluginResourcesBrokerAdapter,
   type RevocablePluginEditingBroker,
@@ -117,6 +120,7 @@ export interface DesktopPluginModuleCapabilities {
   readonly onIsolationError?: (error: Error) => void
   readonly editingBroker?: RevocablePluginEditingBroker
   readonly resourcesBroker?: RevocablePluginResourcesBroker
+  readonly outputBroker?: RevocablePluginOutputBroker
   readonly documentBroker?: ManagedPluginDocumentBroker
   readonly keymapBroker?: ReturnType<typeof createPluginKeymapBroker>
   readonly settingsBroker?: RevocablePluginSettingsBroker
@@ -210,6 +214,10 @@ export interface DesktopPluginManagerOptions {
     adapter: PluginResourcesBrokerAdapter
     dispose(): void | Promise<void>
   }
+  readonly outputAdapter?: (manifest: PluginManifest) => {
+    adapter: PluginOutputBrokerAdapter
+    dispose(): void | Promise<void>
+  }
   readonly openUi?: (pluginId: string, viewId: string) => void | Promise<void>
   readonly notifyUi?: (pluginId: string, notice: PluginUiNotice) => void | Promise<void>
   readonly keymapAdapter?: (manifest: PluginManifest) => PluginKeymapHost
@@ -253,6 +261,7 @@ const sensitivePermissions = new Set([
   'settings:write',
   'app:keymap',
   'images:import',
+  'document:output',
 ])
 
 export class DesktopPluginManager {
@@ -276,6 +285,12 @@ export class DesktopPluginManager {
   private readonly uiBrokers = new Map<string, PluginUiBroker>()
   private readonly editingBrokers = new Map<string, RevocablePluginEditingBroker>()
   private readonly resourcesBrokers = new Map<string, RevocablePluginResourcesBroker>()
+  private readonly outputBrokers = new Map<string, RevocablePluginOutputBroker>()
+  private readonly outputServices = new Map<
+    string,
+    ReturnType<NonNullable<DesktopPluginManagerOptions['outputAdapter']>>
+  >()
+  private readonly outputAdapter: DesktopPluginManagerOptions['outputAdapter']
   private readonly editingServices = new Map<
     string,
     ReturnType<NonNullable<DesktopPluginManagerOptions['editingAdapter']>>
@@ -313,6 +328,7 @@ export class DesktopPluginManager {
   constructor(options: DesktopPluginManagerOptions) {
     this.editingAdapter = options.editingAdapter
     this.resourcesAdapter = options.resourcesAdapter
+    this.outputAdapter = options.outputAdapter
     this.openUi = options.openUi
     this.notifyUi = options.notifyUi
     this.keymapAdapter = options.keymapAdapter
@@ -369,6 +385,8 @@ export class DesktopPluginManager {
         manifest.host === 'dom' ? undefined : this.getEditingBroker(manifest),
       resourcesBroker: (manifest) =>
         manifest.host === 'dom' ? undefined : this.getResourcesBroker(manifest),
+      outputBroker: (manifest) =>
+        manifest.host === 'dom' ? undefined : this.getOutputBroker(manifest),
       keymapBroker: (manifest) =>
         manifest.host === 'dom' ? undefined : this.getKeymapBroker(manifest),
       networkBroker: (manifest) =>
@@ -575,6 +593,7 @@ export class DesktopPluginManager {
         const documentBroker = this.getDocumentBroker(record.manifest)
         const editingBroker = this.getEditingBroker(record.manifest)
         const resourcesBroker = this.getResourcesBroker(record.manifest)
+        const outputBroker = this.getOutputBroker(record.manifest)
         const keymapBroker = this.getKeymapBroker(record.manifest)
         const settingsBroker = this.getSettingsBroker(record.manifest)
         const workspaceBroker = this.getWorkspaceBroker(record.manifest)
@@ -586,6 +605,7 @@ export class DesktopPluginManager {
           ...(keymapBroker ? { keymapBroker } : {}),
           ...(editingBroker ? { editingBroker } : {}),
           ...(resourcesBroker ? { resourcesBroker } : {}),
+          ...(outputBroker ? { outputBroker } : {}),
           ...(workspaceBroker ? { workspaceBroker } : {}),
           ...(releasesBroker ? { releasesBroker } : {}),
           ...(documentBroker ? { documentBroker } : {}),
@@ -918,6 +938,7 @@ export class DesktopPluginManager {
         ...(capabilities?.keymapBroker ? { keymapBroker: capabilities.keymapBroker } : {}),
         ...(capabilities?.editingBroker ? { editingBroker: capabilities.editingBroker } : {}),
         ...(capabilities?.resourcesBroker ? { resourcesBroker: capabilities.resourcesBroker } : {}),
+        ...(capabilities?.outputBroker ? { outputBroker: capabilities.outputBroker } : {}),
         ...(fileBroker ? { fileBroker } : {}),
         ...(networkBroker ? { networkBroker } : {}),
         ...(storageBroker ? { storageBroker } : {}),
@@ -1067,6 +1088,36 @@ export class DesktopPluginManager {
       getSnapshot: (id) => editing.getSnapshot(id),
     })
     this.resourcesBrokers.set(manifest.id, broker)
+    return broker
+  }
+  private getOutputBroker(manifest: PluginManifest): RevocablePluginOutputBroker | undefined {
+    const allowed = () => {
+      const record = this.registry.get(manifest.id)
+      if (
+        !record ||
+        !manifest.permissions?.includes('document:read') ||
+        !manifest.permissions.includes('document:output') ||
+        !record.approvals.permissions.includes('document:output')
+      )
+        return false
+      try {
+        this.assertApproved(record)
+        return true
+      } catch {
+        return false
+      }
+    }
+    if (!this.outputAdapter || !allowed()) return undefined
+    const existing = this.outputBrokers.get(manifest.id)
+    if (existing) return existing
+    const service = this.outputAdapter(manifest)
+    this.outputServices.set(manifest.id, service)
+    const broker = createPluginOutputBroker({
+      manifest,
+      adapter: service.adapter,
+      isActive: allowed,
+    })
+    this.outputBrokers.set(manifest.id, broker)
     return broker
   }
   private getKeymapBroker(
@@ -1311,6 +1362,7 @@ export class DesktopPluginManager {
     this.uiBrokers.get(pluginId)?.dispose?.()
     this.editingBrokers.get(pluginId)?.dispose()
     this.resourcesBrokers.get(pluginId)?.dispose()
+    this.outputBrokers.get(pluginId)?.dispose()
     this.keymapBrokers.get(pluginId)?.dispose()
     this.settingsBrokers.get(pluginId)?.dispose()
     this.workspaceBrokers.get(pluginId)?.dispose()
@@ -1339,6 +1391,10 @@ export class DesktopPluginManager {
     this.editingBrokers.delete(pluginId)
     this.resourcesBrokers.get(pluginId)?.dispose()
     this.resourcesBrokers.delete(pluginId)
+    this.outputBrokers.get(pluginId)?.dispose()
+    this.outputBrokers.delete(pluginId)
+    await this.outputServices.get(pluginId)?.dispose()
+    this.outputServices.delete(pluginId)
     await this.editingServices.get(pluginId)?.dispose()
     this.editingServices.delete(pluginId)
     await this.resourcesServices.get(pluginId)?.dispose()
@@ -1788,6 +1844,9 @@ function renderPluginRecord(record: PluginRegistryRecord, icon?: string): string
   const manifest = record.manifest
   const host = manifest.host ?? 'worker'
   const permissions = manifest.permissions?.join(', ') || '无'
+  const outputPermission = manifest.permissions?.includes('document:output')
+    ? '<p class="plugin-permission-description">导出与打印当前文档：读取当前文档或选区，在你触发命令并选择目标后导出文件，或打开系统打印。仅授权本次输出所需的文档与资源。</p>'
+    : ''
   const approvalRequired = requiresApproval(record)
   const errors = record.errors.length
     ? `<div class="plugin-errors">${record.errors.map(escapeHtml).join('<br />')}</div>`
@@ -1816,6 +1875,7 @@ function renderPluginRecord(record: PluginRegistryRecord, icon?: string): string
     `<div><dt>来源</dt><dd title="${escapeHtml(record.sourcePath)}">${escapeHtml(record.sourcePath)}</dd></div>`,
     `<div><dt>数据</dt><dd>${escapeHtml(record.dataRoot)}</dd></div>`,
     '</dl>',
+    outputPermission,
     errors,
     '<footer>',
     primaryAction,

@@ -84,7 +84,12 @@ function renderCodeBlock(source: string, block: SyntaxNode): string {
   const info = typeof block.data?.info === 'string' ? block.data.info.trim() : ''
   const language = info.length > 0 ? info.split(/\s+/, 1)[0] : ''
   const className = language ? ` class="language-${escapeHtmlAttribute(language)}"` : ''
-  const code = escapeHtml(joinRanges(source, block.contentRanges).replace(/\n$/g, ''))
+  const code = escapeHtml(
+    (block.contentRanges ?? [])
+      .map((range) => source.slice(range.from, range.to))
+      .join(block.type === 'indentedCode' ? '\n' : '')
+      .replace(/\n$/, ''),
+  )
 
   return `<pre><code${className}>${code}</code></pre>`
 }
@@ -222,6 +227,8 @@ function renderInlineNode(source: string, node: SyntaxNode, context: RenderConte
       return '<br>'
     case 'inlineCode':
       return `<code>${escapeHtml(joinRanges(source, node.contentRanges))}</code>`
+    case 'strikethrough':
+      return `<del>${renderInlineNodes(source, node.children ?? [], context)}</del>`
     case 'strong':
       return `<strong>${renderInlineNodes(source, node.children ?? [], context)}</strong>`
     case 'emphasis':
@@ -242,7 +249,7 @@ function renderLink(source: string, node: SyntaxNode, context: RenderContext): s
     typeof node.data?.destination === 'string'
       ? node.data.destination
       : joinRanges(source, [node.contentRanges?.[1]].filter(isRange))
-  const href = context.resolveUrl?.(destination, 'link') ?? destination
+  const href = safeLegacyUrl(context.resolveUrl?.(destination, 'link') ?? destination, 'link')
   const label = renderInlineNodes(source, node.children ?? [], context)
 
   return `<a href="${escapeHtmlAttribute(href)}">${label}</a>`
@@ -257,7 +264,7 @@ function renderImage(source: string, node: SyntaxNode, context: RenderContext): 
     typeof node.data?.label === 'string'
       ? node.data.label
       : joinRanges(source, [node.contentRanges?.[0]].filter(isRange))
-  const src = context.resolveUrl?.(destination, 'image') ?? destination
+  const src = safeLegacyUrl(context.resolveUrl?.(destination, 'image') ?? destination, 'image')
 
   return `<img src="${escapeHtmlAttribute(src)}" alt="${escapeHtmlAttribute(alt)}">`
 }
@@ -265,7 +272,7 @@ function renderImage(source: string, node: SyntaxNode, context: RenderContext): 
 function renderAutolink(node: SyntaxNode, context: RenderContext): string {
   const value = String(node.data?.value ?? '')
   const href = node.data?.kind === 'email' ? `mailto:${value}` : value
-  const resolvedHref = context.resolveUrl?.(href, 'link') ?? href
+  const resolvedHref = safeLegacyUrl(context.resolveUrl?.(href, 'link') ?? href, 'link')
 
   return `<a href="${escapeHtmlAttribute(resolvedHref)}">${escapeHtml(value)}</a>`
 }
@@ -291,9 +298,20 @@ function escapeHtmlAttribute(value: string): string {
 }
 
 function escapeStyleText(value: string): string {
-  return value.replaceAll('</style', '<\\/style')
+  return value.replace(/<\/style/gi, '<\\/style')
 }
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(value, max))
+}
+
+function safeLegacyUrl(url: string, kind: ExportUrlKind): string {
+  const compact = url.replace(/[\u0000-\u0020\u007f]/g, '')
+  const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(compact)?.[1]?.toLowerCase()
+  if (scheme === 'data')
+    return kind === 'image' &&
+      /^data:image\/(?:png|jpeg|gif|webp);base64,[A-Za-z0-9+/]+=*$/i.test(url)
+      ? url
+      : ''
+  return scheme && !['http', 'https', 'mailto', 'tel', 'file'].includes(scheme) ? '' : url
 }

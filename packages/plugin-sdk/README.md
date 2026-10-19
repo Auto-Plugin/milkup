@@ -481,6 +481,52 @@ at four per second. `host.ui.revealLocation({documentId, version, from, to?},
 {signal})` rechecks the target before navigation; no file path or arbitrary command
 is exposed. Old `scan` and `revealLine` remain available.
 
+### Controlled document output (0.3.5)
+
+`host.output` is an optional capability requiring both `document:read` and the
+sensitive `document:output` permission. The host owns conversion, resource access,
+native target selection and printing. Plugins own the format/range/options UI,
+progress and error messages. This API grants no arbitrary path, raw HTML, network
+or file-write capability.
+
+From a trusted user command, immediately call
+`capture({format: 'html' | 'pdf' | 'print', scope: 'document' | 'selection',
+resources: 'embed' | 'omit', pageSize?: 'a4' | 'letter', landscape?: boolean})`.
+Capture consumes the command's five-second gesture proof before asynchronous work.
+Start the workflow without awaiting it in the command handler, because command
+execution has a shorter deadline than output operations.
+
+The host captures a complete, bounded, immutable snapshot. Its result contains only
+`id`, `documentId`, `version`, `title`, `from`, `to`, `lineCount` and bounded
+`warnings: {code, message}[]`. A document change during capture rejects with
+`stale`; after capture succeeds, output uses that captured version. Show the version
+and warnings in the plugin UI. Unsupported content or exceeded host budgets must
+produce explicit rejection or warnings, never silent truncation.
+
+For HTML/PDF, call `chooseTarget({snapshotId})`, which returns either
+`{status: 'ready', id, name}` or `{status: 'cancelled'}`. Then call `write(target.id)`
+to receive `{status: 'written', name, bytes}`. For print snapshots, call
+`print(snapshot.id)` to receive `{status: 'printed' | 'cancelled'}`. Format and scope
+are fixed at capture; each snapshot authorizes at most one target/print request,
+and each target at most one write. The native host protects original documents and
+requires explicit confirmation before replacing an existing output file.
+
+Every method accepts `{signal?: AbortSignal}`. Release leases in `finally` with
+`release(id)`; disabling or unloading also revokes them. The broker bounds live
+leases and concurrent work to eight each. Cancellation and the independent
+five-minute output RPC deadline abort host work. For write/print, cancellation
+waits for the host's terminal acknowledgement: a completed atomic commit remains
+successful, while cancellation before commit reports `aborted`. Native adapters
+must enforce their own bounded execution and return that terminal outcome.
+Closing the transport revokes outstanding capabilities and cleans uncommitted
+leases; already published files are not deleted.
+
+Errors expose only a bounded `code`: `revoked`, `invalid-input`, `invalid-token`,
+`gesture-required`, `stale`, `busy`, `too-large`, `unsupported`, `aborted`,
+`conflict`, or `unavailable`. The API does not change the existing 4096-line,
+131072-UTF-16 document window budget, its 30-second RPC deadline, or the separate
+document presentation execution watchdog.
+
 ### Closed SVG image data (0.3.4)
 
 Document renderers can additionally return `SdkDocumentSvgImage`, a

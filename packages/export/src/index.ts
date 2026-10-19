@@ -21,3 +21,13 @@ export {
 } from './browser-print-pdf'
 export type { ExportUrlKind, ExportUrlResolver } from './markdown-html'
 export { createMarkdownClipboardPayload } from './clipboard'
+export {
+  renderStaticMarkdownDocument,
+  collectMarkdownImageResources,
+  STATIC_EXPORT_LIMITS,
+  type ExportPresentationBatch,
+  type StaticExportWarning,
+  type MarkdownImageResource,
+  type StaticMarkdownDocumentOptions,
+  type StaticMarkdownDocumentResult,
+} from './static-html'

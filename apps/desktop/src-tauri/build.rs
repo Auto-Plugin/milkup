@@ -81,4 +81,31 @@ fn build_dom_guard() {
         status.success(),
         "Native DOM resource guard compilation failed"
     );
+    println!("cargo:rerun-if-changed=src/output_guard.c");
+    let output =
+        std::path::PathBuf::from(std::env::var_os("OUT_DIR").expect("Cargo output directory"))
+            .join("libmilkup_output_guard.so");
+    let flags = std::process::Command::new("pkg-config")
+        .args(["--cflags", "--libs", "webkit2gtk-web-extension-4.1"])
+        .output()
+        .expect("output guard compiler flags");
+    assert!(flags.status.success());
+    let status = std::process::Command::new(std::env::var_os("CC").unwrap_or_else(|| "cc".into()))
+        .args([
+            "-shared",
+            "-fPIC",
+            "-O2",
+            "-Wl,-z,relro,-z,now",
+            "src/output_guard.c",
+            "-o",
+        ])
+        .arg(output)
+        .args(
+            String::from_utf8(flags.stdout)
+                .expect("UTF-8 flags")
+                .split_whitespace(),
+        )
+        .status()
+        .expect("compile output guard");
+    assert!(status.success(), "Native output guard compilation failed");
 }

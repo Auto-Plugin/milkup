@@ -1,3 +1,4 @@
+import { createPluginOutputHostCapabilities, type PluginOutputBroker } from './output-broker'
 import {
   copyDocumentPresentationRequest,
   copyDocumentPresentationResult,
@@ -60,6 +61,7 @@ export interface PluginModuleIsolationHostConfig {
   readonly keymapBroker?: PluginKeymapBroker
   readonly editingBroker?: PluginEditingBroker
   readonly resourcesBroker?: PluginResourcesBroker
+  readonly outputBroker?: PluginOutputBroker
   readonly settingsBroker?: PluginSettingsBroker
   readonly workspaceBroker?: PluginWorkspaceBroker
   readonly releasesBroker?: PluginReleasesBroker
@@ -102,6 +104,10 @@ export function createPluginModuleIsolationHost(
               manifest.permissions?.includes('app:keymap') ? config.keymapBroker : undefined,
               manifest.permissions?.includes('document:write') ? config.editingBroker : undefined,
               manifest.permissions?.includes('images:import') ? config.resourcesBroker : undefined,
+              manifest.permissions?.includes('document:output') &&
+                manifest.permissions?.includes('document:read')
+                ? config.outputBroker
+                : undefined,
               () => active && generation === current && config.isActive?.() !== false,
             ),
           })) ?? undefined
@@ -181,6 +187,10 @@ export function createPluginModuleIsolationHost(
           manifest.permissions?.includes('app:keymap') ? config.keymapBroker : undefined,
           manifest.permissions?.includes('document:write') ? config.editingBroker : undefined,
           manifest.permissions?.includes('images:import') ? config.resourcesBroker : undefined,
+          manifest.permissions?.includes('document:output') &&
+            manifest.permissions?.includes('document:read')
+            ? config.outputBroker
+            : undefined,
           () => active && generation === current && config.isActive?.() !== false,
           true,
           request.workspaceGesture,
@@ -392,6 +402,7 @@ function restrictHost(
   keymapBroker?: PluginKeymapBroker,
   editingBroker?: PluginEditingBroker,
   resourcesBroker?: PluginResourcesBroker,
+  outputBroker?: PluginOutputBroker,
   isActive?: () => boolean,
   command = false,
   workspaceGesture?: string,
@@ -453,6 +464,9 @@ function restrictHost(
             workspaceGesture,
           ),
         }
+      : {}),
+    ...(capabilities.includes('document:output') && outputBroker
+      ? { output: createPluginOutputHostCapabilities(outputBroker, isActive, workspaceGesture) }
       : {}),
     ...(capabilities.includes('settings:write') && settingsBroker
       ? { settings: createPluginSettingsHostCapabilities(settingsBroker, isActive) }

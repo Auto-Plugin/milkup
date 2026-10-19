@@ -1,0 +1,70 @@
+$ vitest run -- src/static-html.test.ts
+
+ RUN  v3.2.6 /workspace/milkup/packages/export
+
+ ✓ src/browser-print-pdf.test.ts (2 tests) 11ms
+ ✓ src/scoped-export.test.ts (12 tests) 24ms
+ ❯ src/static-html.test.ts (3 tests | 3 failed) 28ms
+   × static document export regressions > exposes the controlled static conversion entry point 13ms
+     → expected { …(7), …(1) } to have property "renderStaticMarkdownDocument"
+   × static document export regressions > does not emit executable link URLs through the legacy entry point 11ms
+     → expected '<!doctype html><html><head><meta char…' not to contain 'href="javascript:'
+   × static document export regressions > preserves strikethrough semantics in legacy Markdown export 2ms
+     → expected '<!doctype html><html><head><meta char…' to contain '<del>removed</del>'
+ ✓ src/clipboard.test.ts (4 tests) 11ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/static-html.test.ts > static document export regressions > exposes the controlled static conversion entry point
+AssertionError: expected { …(7), …(1) } to have property "renderStaticMarkdownDocument"
+ ❯ src/static-html.test.ts:7:17
+      5| describe('static document export regressions', () => {
+      6|   it('exposes the controlled static conversion entry point', () => {
+      7|     expect(api).toHaveProperty('renderStaticMarkdownDocument')
+       |                 ^
+      8|   })
+      9|   it('does not emit executable link URLs through the legacy entry poin…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/static-html.test.ts > static document export regressions > does not emit executable link URLs through the legacy entry point
+AssertionError: expected '<!doctype html><html><head><meta char…' not to contain 'href="javascript:'
+
+Expected: "href="javascript:"
+Received: "<!doctype html><html><head><meta charset="utf-8"><title>Document</title></head><body><p><a href="javascript:alert">bad</a></p></body></html>"
+
+ ❯ src/static-html.test.ts:10:75
+      8|   })
+      9|   it('does not emit executable link URLs through the legacy entry poin…
+     10|     expect(api.renderMarkdownDocumentHtml('[bad](javascript:alert)')).…
+       |                                                                           ^
+     11|   })
+     12|   it('preserves strikethrough semantics in legacy Markdown export', ()…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/static-html.test.ts > static document export regressions > preserves strikethrough semantics in legacy Markdown export
+AssertionError: expected '<!doctype html><html><head><meta char…' to contain '<del>removed</del>'
+
+Expected: "<del>removed</del>"
+Received: "<!doctype html><html><head><meta charset="utf-8"><title>Document</title></head><body><p>removed</p></body></html>"
+
+ ❯ src/static-html.test.ts:13:59
+     11|   })
+     12|   it('preserves strikethrough semantics in legacy Markdown export', ()…
+     13|     expect(api.renderMarkdownDocumentHtml('~~removed~~')).toContain('<…
+       |                                                           ^
+     14|   })
+     15| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed | 3 passed (4)
+      Tests  3 failed | 18 passed (21)
+   Start at  02:12:07
+   Duration  784ms (transform 293ms, setup 0ms, collect 730ms, tests 74ms, environment 1ms, prepare 353ms)
+
+/workspace/milkup/packages/export:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @milkup/export@2.0.0-beta.1 test: `vitest run -- src/static-html.test.ts`
+Exit status 1

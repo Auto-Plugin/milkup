@@ -1,5 +1,7 @@
+import { LargeDocumentSource } from './large-document-source'
 import { locateDocumentPresentationTarget } from './document-navigation'
 import { createDesktopDocumentPresentationService } from './document-presentation-service'
+import { createDesktopOutputService } from './output-service'
 import { renderDesktopPluginManagerElement } from './desktop-plugin-manager-ui'
 import { loadDesktopPluginIcon } from './plugin-icon'
 import { zoomLevels, type ThemePreference } from './appearance'
@@ -1244,6 +1246,7 @@ const desktopActionPermissions = Object.freeze([
   'app:keymap',
   'images:import',
   'document:read',
+  'document:output',
   'document:write',
   'file:read',
   'file:write',
@@ -1279,6 +1282,39 @@ const desktopKeymap = createKeymapService({
     }))
   },
 })
+const desktopOutput = createDesktopOutputService({
+  current: () => {
+    const current = getDesktopEditingCurrent()
+    if (!current || current.busy) return undefined
+    return {
+      source: current.source,
+      ...(current.source instanceof LargeDocumentSource
+        ? {
+            readLengthUtf16: async () => {
+              const source = current.source as LargeDocumentSource
+              // An empty EOF chunk resolves indexed UTF-16 length without reading a line.
+              return (
+                await largeTextFileService.readChunk(
+                  source.documentId,
+                  source.sizeBytes,
+                  source.sizeBytes,
+                )
+              ).toUtf16
+            },
+          }
+        : {}),
+      identity: current.identity,
+      selection: { anchor: current.selection.main.anchor, head: current.selection.main.head },
+      ...(session.file?.path ? { sourcePath: session.file.path } : {}),
+      title: getSessionTitleInfo(session.file?.path).name,
+      saveLocationGeneration: current.saveLocationGeneration,
+    }
+  },
+  invoke: recoveryInvoke,
+  renderers: () => desktopPluginManager.state().contributions.documentRenderers ?? [],
+  render: (pluginId, rendererId, request, options) =>
+    desktopPluginManager.renderDocument(pluginId, rendererId, request, options),
+})
 const desktopPluginManager: DesktopPluginManager = new DesktopPluginManager({
   actionRegistry: desktopActionRegistry,
   manifestHost: createDesktopPluginManifestHost(),
@@ -1288,6 +1324,7 @@ const desktopPluginManager: DesktopPluginManager = new DesktopPluginManager({
   keymapAdapter: () => desktopKeymap,
   editingAdapter: (manifest) => desktopEditing.adapterForPlugin(manifest.id),
   resourcesAdapter: (manifest) => resourceService.adapterForPlugin(manifest.id),
+  outputAdapter: (manifest) => desktopOutput.adapterForPlugin(manifest.id),
   openUi: (pluginId, viewId) => desktopPluginUi.open(pluginId, viewId),
   notifyUi: (_pluginId, notification) => {
     importantNotice = true
@@ -1338,6 +1375,7 @@ const desktopPluginManager: DesktopPluginManager = new DesktopPluginManager({
       ...(capabilities?.keymapBroker ? { keymapBroker: capabilities.keymapBroker } : {}),
       ...(capabilities?.editingBroker ? { editingBroker: capabilities.editingBroker } : {}),
       ...(capabilities?.resourcesBroker ? { resourcesBroker: capabilities.resourcesBroker } : {}),
+      ...(capabilities?.outputBroker ? { outputBroker: capabilities.outputBroker } : {}),
       ...(capabilities?.onDocumentRenderTimeout
         ? { onDocumentRenderTimeout: capabilities.onDocumentRenderTimeout }
         : {}),

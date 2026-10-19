@@ -704,12 +704,22 @@ function canonicalSize(nodes: readonly DocumentPresentationNode[], fail: () => n
 export function serializeDocumentPresentationNode(
   value: unknown,
   request?: DocumentPresentationRequest,
+  options: { readonly idPrefix?: string } = {},
 ): string {
-  return serializeValidatedNode(copyDocumentPresentationNode(value, request), { image: 0 })
+  const prefix = options.idPrefix ?? 'document-svg'
+  if (!/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(prefix))
+    throw new DocumentPresentationError('invalid-input')
+  const serialized = serializeValidatedNode(copyDocumentPresentationNode(value, request), {
+    image: 0,
+    prefix,
+  })
+  if (new TextEncoder().encode(serialized).byteLength > DOCUMENT_PRESENTATION_LIMITS.outputBytes)
+    throw new DocumentPresentationError('invalid-output')
+  return serialized
 }
 function serializeValidatedNode(
   validated: DocumentPresentationNode,
-  context: { image: number },
+  context: { image: number; prefix?: string },
 ): string {
   const escape = (text: string) =>
     text.replace(
@@ -779,7 +789,9 @@ function serializeValidatedNode(
   }
   const render = (n: DocumentPresentationNode): string => {
     if (n.type === 'svg-image')
-      return serializeDocumentSvgImage(n, { idPrefix: `document-svg-${context.image++}` })
+      return serializeDocumentSvgImage(n, {
+        idPrefix: `${context.prefix ?? 'document-svg'}-${context.image++}`,
+      })
     if (n.type === 'text') return escape(n.text)
     if (n.type === 'math') return math(n.tree)
     if (n.type === 'vector')

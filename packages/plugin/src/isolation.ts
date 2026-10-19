@@ -118,6 +118,7 @@ export type PluginHostCapabilityName =
   | 'app:keymap'
   | 'document:write'
   | 'images:import'
+  | 'document:output'
 
 export function createIsolatedPluginModule(config: IsolatedPluginModuleConfig): PluginModule {
   const { manifest, host } = config
@@ -312,6 +313,7 @@ function listRestrictedHostCapabilities(
   if (host.keymap) capabilities.push('app:keymap')
   if (host.editing) capabilities.push('document:write')
   if (host.resources) capabilities.push('images:import')
+  if (host.output) capabilities.push('document:output')
 
   if (host.storage) {
     capabilities.push('storage')

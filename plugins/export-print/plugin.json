@@ -1,0 +1,38 @@
+{
+  "id": "milkup.export-print",
+  "name": "导出与打印",
+  "version": "1.0.0",
+  "description": "将整篇文档或所选内容导出为 HTML、PDF，或打印；可选择图片、纸张和方向，并保留开始时的内容版本。",
+  "host": "worker",
+  "main": "./dist/plugin.js",
+  "engines": { "milkup": "^2.0.0-0", "pluginSdk": "^0.3.5" },
+  "permissions": ["document:read", "document:output"],
+  "icon": "assets/export-print.png",
+  "resources": ["assets/export-print.png"],
+  "contributes": {
+    "commands": [
+      { "id": "export-print.start", "title": "导出或打印文档", "action": "export-print.start" },
+      { "id": "export-print.retry", "title": "重新导出或打印", "action": "export-print.retry" },
+      { "id": "export-print.cancel", "title": "取消输出", "action": "export-print.cancel" },
+      {
+        "id": "export-print.change",
+        "title": "修改输出选项",
+        "action": "export-print.change",
+        "inputSchema": {
+          "type": "object",
+          "properties": { "field": { "type": "string" }, "value": { "type": "string" } },
+          "required": ["field", "value"]
+        }
+      }
+    ],
+    "ui": [
+      {
+        "id": "export-print-panel",
+        "slot": "sidebar-panel",
+        "title": "导出与打印",
+        "scope": "app",
+        "viewportUpdates": false
+      }
+    ]
+  }
+}

@@ -22,7 +22,7 @@ pub(super) fn run() {
 fn run_inner() -> Result<(), String> {
     supervise(helper::run)
 }
-fn supervise(renderer: fn()) -> Result<(), String> {
+pub(crate) fn supervise(renderer: fn()) -> Result<(), String> {
     if unsafe { libc::fcntl(4, libc::F_GETFD) } < 0 {
         return Err("Missing dedicated DOM stop channel".into());
     }

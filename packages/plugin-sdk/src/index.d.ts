@@ -1,3 +1,57 @@
+export interface SdkOutputOperationOptions {
+  readonly signal?: AbortSignal
+}
+export type SdkOutputFormat = 'html' | 'pdf' | 'print'
+export interface SdkOutputCaptureRequest {
+  readonly format: SdkOutputFormat
+  readonly scope: 'document' | 'selection'
+  readonly resources: 'embed' | 'omit'
+  readonly pageSize?: 'a4' | 'letter'
+  readonly landscape?: boolean
+}
+export interface SdkOutputWarning {
+  readonly code: string
+  readonly message: string
+}
+/** Metadata only. Text, resources and original paths remain in the trusted host. */
+export interface SdkOutputSnapshot {
+  readonly id: string
+  readonly documentId: string
+  readonly version: number
+  readonly title: string
+  readonly from: number
+  readonly to: number
+  readonly lineCount: number
+  readonly warnings: readonly SdkOutputWarning[]
+}
+export interface SdkOutputChooseTargetRequest {
+  readonly snapshotId: string
+}
+export type SdkOutputTargetResult =
+  | { readonly status: 'ready'; readonly id: string; readonly name: string }
+  | { readonly status: 'cancelled' }
+export interface SdkOutputWriteResult {
+  readonly status: 'written'
+  readonly name: string
+  readonly bytes: number
+}
+export interface SdkOutputPrintResult {
+  readonly status: 'printed' | 'cancelled'
+}
+export interface SdkPluginOutputHost {
+  capture(
+    request: SdkOutputCaptureRequest,
+    options?: SdkOutputOperationOptions,
+  ): Promise<SdkOutputSnapshot>
+  chooseTarget(
+    request: SdkOutputChooseTargetRequest,
+    options?: SdkOutputOperationOptions,
+  ): Promise<SdkOutputTargetResult>
+  write(targetId: string, options?: SdkOutputOperationOptions): Promise<SdkOutputWriteResult>
+  print(snapshotId: string, options?: SdkOutputOperationOptions): Promise<SdkOutputPrintResult>
+  release(id: string, options?: SdkOutputOperationOptions): Promise<void>
+}
+
 export interface SdkEditingOperationOptions {
   readonly signal?: AbortSignal
 }
@@ -498,6 +552,7 @@ export interface SdkReleaseInstallResult {
 export interface SdkPluginHost {
   readonly editing?: SdkPluginEditingHost
   readonly resources?: SdkPluginResourcesHost
+  readonly output?: SdkPluginOutputHost
   readonly workspace?: SdkPluginWorkspaceReadHost
   readonly keymap?: SdkPluginKeymapHost
   readonly settings?: SdkPluginSettingsHost

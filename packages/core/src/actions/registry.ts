@@ -19,6 +19,7 @@ export type ActionPermission =
   | 'settings:write'
   | 'app:keymap'
   | 'images:import'
+  | 'document:output'
 
 export interface ActionInputField {
   readonly type: 'string' | 'number' | 'boolean'

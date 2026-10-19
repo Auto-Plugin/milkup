@@ -1005,6 +1005,27 @@ pub(crate) fn registered_document_file(document_id: &str) -> Result<(PathBuf, Fi
         .ok_or("Invalid registered document name")?;
     Ok((document.path.clone(), document.parent.child(name, false)?))
 }
+// Output selection never grants permission to replace an open document, even
+// when a file picker returns a different hard-link name for that document.
+pub(crate) fn protect_output_destination(path: &Path, target: Option<&File>) -> Result<()> {
+    let store = registry().lock().map_err(error)?;
+    let target_identity = target.map(identity).transpose()?;
+    for document in store.documents.values() {
+        if document.path == path {
+            return Err("Output cannot replace an open document".into());
+        }
+        if let Some(target_identity) = target_identity {
+            if let Some(name) = document.path.file_name().and_then(|name| name.to_str()) {
+                if let Ok(source) = document.parent.child(name, false) {
+                    if identity(&source)? == target_identity {
+                        return Err("Output cannot replace an alias of an open document".into());
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
 #[tauri::command]
 pub(crate) fn resources_commit_relocation(transaction_id: String) -> Result<bool> {
     let mut store = registry().lock().map_err(error)?;

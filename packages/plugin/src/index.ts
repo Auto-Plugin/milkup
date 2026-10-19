@@ -290,3 +290,6 @@ export {
   createSupervisedPluginWorkerEndpoint,
   initializePluginWorkerSupervisor,
 } from './worker-supervisor'
+
+export * from './output-broker'
+export * from './output-rpc'

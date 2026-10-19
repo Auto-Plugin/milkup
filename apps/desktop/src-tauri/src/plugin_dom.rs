@@ -582,6 +582,10 @@ pub fn run_helper_if_requested() -> bool {
     }
     true
 }
+#[cfg(target_os = "linux")]
+pub(crate) fn supervise_native_output(renderer: fn()) -> Result<(), String> {
+    guardian::supervise(renderer)
+}
 
 #[cfg(all(test, target_os = "linux"))]
 mod tests {

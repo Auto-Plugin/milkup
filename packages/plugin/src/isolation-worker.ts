@@ -1,6 +1,12 @@
 import type { PluginKeymapBroker } from './keymap-broker'
 import type { PluginEditingBroker } from './editing-broker'
 import type { PluginResourcesBroker } from './resources-broker'
+import type { PluginOutputBroker } from './output-broker'
+import {
+  createRpcPluginOutputBroker,
+  createPluginOutputRpcServer,
+  type RpcPluginOutputBroker,
+} from './output-rpc'
 import {
   createRpcPluginKeymapBroker,
   createPluginKeymapRpcServer,
@@ -86,6 +92,7 @@ export interface BrowserWorkerPluginHostConfig extends PluginIsolationRpcHostOpt
   readonly keymapBroker?: PluginKeymapBroker
   readonly editingBroker?: PluginEditingBroker
   readonly resourcesBroker?: PluginResourcesBroker
+  readonly outputBroker?: PluginOutputBroker
   readonly settingsBroker?: PluginSettingsBroker
   readonly workspaceBroker?: PluginWorkspaceBroker
   readonly releasesBroker?: PluginReleasesBroker
@@ -111,6 +118,7 @@ export interface PluginWorkerRealmOptions {
   readonly keymapBroker?: PluginKeymapBroker
   readonly editingBroker?: PluginEditingBroker
   readonly resourcesBroker?: PluginResourcesBroker
+  readonly outputBroker?: PluginOutputBroker
   readonly settingsBroker?: PluginSettingsBroker
   readonly workspaceBroker?: PluginWorkspaceBroker
   readonly releasesBroker?: PluginReleasesBroker
@@ -167,6 +175,7 @@ export function createBrowserWorkerPluginHost(
     keymapBroker,
     editingBroker,
     resourcesBroker,
+    outputBroker,
   } = config
   if (manifest.contributes?.documentRenderers?.length && !worker.terminate)
     throw new Error('Document renderer Worker requires termination')
@@ -205,6 +214,12 @@ export function createBrowserWorkerPluginHost(
   const resourcesRpcServer =
     resourcesBroker && manifest.permissions?.includes('images:import')
       ? createPluginResourcesRpcServer(worker, resourcesBroker)
+      : undefined
+  const outputRpcServer =
+    outputBroker &&
+    manifest.permissions?.includes('document:output') &&
+    manifest.permissions?.includes('document:read')
+      ? createPluginOutputRpcServer(worker, outputBroker)
       : undefined
   const settingsRpcServer =
     settingsBroker && manifest.permissions?.includes('settings:write')
@@ -250,6 +265,7 @@ export function createBrowserWorkerPluginHost(
     keymapRpcServer?.dispose()
     editingRpcServer?.dispose()
     resourcesRpcServer?.dispose()
+    outputRpcServer?.dispose()
     settingsRpcServer?.dispose()
     workspaceRpcServer?.dispose()
     releasesRpcServer?.dispose()
@@ -319,6 +335,7 @@ export function initializePluginWorkerRealm(
   let rpcKeymapBroker: RpcPluginKeymapBroker | undefined
   let rpcEditingBroker: RpcPluginEditingBroker | undefined
   let rpcResourcesBroker: RpcPluginResourcesBroker | undefined
+  let rpcOutputBroker: RpcPluginOutputBroker | undefined
   let rpcSettingsBroker: RpcPluginSettingsBroker | undefined
   let rpcWorkspaceBroker: RpcPluginWorkspaceBroker | undefined
   let rpcReleasesBroker: RpcPluginReleasesBroker | undefined
@@ -392,6 +409,13 @@ export function initializePluginWorkerRealm(
         !options.resourcesBroker
           ? createRpcPluginResourcesBroker(scope, 300_000)
           : undefined
+      rpcOutputBroker =
+        lifecycle.payload.manifest.permissions?.includes('document:output') &&
+        lifecycle.payload.manifest.permissions?.includes('document:read') &&
+        !options.outputBroker
+          ? createRpcPluginOutputBroker(scope, 300_000)
+          : undefined
+      const outputBrokerForHost = options.outputBroker ?? rpcOutputBroker
       const editingBrokerForHost = options.editingBroker ?? rpcEditingBroker
       const resourcesBrokerForHost = options.resourcesBroker ?? rpcResourcesBroker
       const module = coercePluginModule(imported)
@@ -414,6 +438,7 @@ export function initializePluginWorkerRealm(
         ...(keymapBrokerForHost ? { keymapBroker: keymapBrokerForHost } : {}),
         ...(editingBrokerForHost ? { editingBroker: editingBrokerForHost } : {}),
         ...(resourcesBrokerForHost ? { resourcesBroker: resourcesBrokerForHost } : {}),
+        ...(outputBrokerForHost ? { outputBroker: outputBrokerForHost } : {}),
         ...(settingsBrokerForHost ? { settingsBroker: settingsBrokerForHost } : {}),
         ...(workspaceBrokerForHost ? { workspaceBroker: workspaceBrokerForHost } : {}),
         ...(releasesBrokerForHost
@@ -455,6 +480,7 @@ export function initializePluginWorkerRealm(
     rpcKeymapBroker?.dispose()
     rpcEditingBroker?.dispose()
     rpcResourcesBroker?.dispose()
+    rpcOutputBroker?.dispose()
     rpcSettingsBroker?.dispose()
     rpcWorkspaceBroker?.dispose()
     rpcReleasesBroker?.dispose()

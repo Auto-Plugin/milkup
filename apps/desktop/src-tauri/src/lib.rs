@@ -20,6 +20,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State, Window};
 
 mod native_search;
+pub mod output;
 mod piece_tree;
 pub mod plugin_dom;
 mod plugin_icon;
@@ -1052,6 +1053,12 @@ pub fn run() {
             resources::resources_abort,
             resources::resources_resolve_image,
             resources::resources_choose_save_target,
+            output::output_prepare,
+            output::output_choose_target,
+            output::output_write_html,
+            output::output_write_pdf,
+            output::output_print,
+            output::output_abort,
             resources::resources_prepare_relocation,
             resources::resources_commit_relocation,
             resources::resources_release_document,

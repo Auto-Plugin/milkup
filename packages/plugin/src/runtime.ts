@@ -1,4 +1,9 @@
 import {
+  createPluginOutputHostCapabilities,
+  type PluginOutputBroker,
+  type PluginOutputHost,
+} from './output-broker'
+import {
   copyDocumentPresentationRequest,
   copyDocumentPresentationResult,
   DocumentPresentationError,
@@ -86,6 +91,7 @@ export interface PluginRuntimeOptions {
   readonly keymapBroker?: PluginKeymapBroker | PluginKeymapBrokerProvider
   readonly editingBroker?: PluginEditingBroker | PluginEditingBrokerProvider
   readonly resourcesBroker?: PluginResourcesBroker | PluginResourcesBrokerProvider
+  readonly outputBroker?: PluginOutputBroker | PluginOutputBrokerProvider
   readonly settingsBroker?: PluginSettingsBroker | PluginSettingsBrokerProvider
   readonly releasesBroker?: PluginReleasesBroker | PluginReleasesBrokerProvider
   readonly storageBroker?: PluginStorageBroker | PluginStorageBrokerProvider
@@ -108,6 +114,9 @@ export type PluginKeymapBrokerProvider = (
 export type PluginEditingBrokerProvider = (
   manifest: PluginManifest,
 ) => PluginEditingBroker | undefined
+export type PluginOutputBrokerProvider = (
+  manifest: PluginManifest,
+) => PluginOutputBroker | undefined
 export type PluginResourcesBrokerProvider = (
   manifest: PluginManifest,
 ) => PluginResourcesBroker | undefined
@@ -194,6 +203,7 @@ export interface RestrictedPluginHost {
   readonly keymap?: PluginKeymapHost
   readonly editing?: PluginEditingHost
   readonly resources?: PluginResourcesHost
+  readonly output?: PluginOutputHost
   readonly settings?: PluginSettingsHost
   readonly releases?: PluginReleasesHost
   readonly storage?: PluginStorageBroker
@@ -255,6 +265,7 @@ const ACTION_PERMISSIONS = new Set<ActionPermission>([
   'settings:write',
   'app:keymap',
   'images:import',
+  'document:output',
 ])
 
 export class PluginRuntime {
@@ -272,6 +283,7 @@ export class PluginRuntime {
     PluginWorkspaceBroker | PluginWorkspaceBrokerProvider | undefined
   private readonly keymapBroker: PluginKeymapBroker | PluginKeymapBrokerProvider | undefined
   private readonly editingBroker: PluginEditingBroker | PluginEditingBrokerProvider | undefined
+  private readonly outputBroker: PluginOutputBroker | PluginOutputBrokerProvider | undefined
   private readonly resourcesBroker:
     PluginResourcesBroker | PluginResourcesBrokerProvider | undefined
   private readonly settingsBroker: PluginSettingsBroker | PluginSettingsBrokerProvider | undefined
@@ -292,6 +304,7 @@ export class PluginRuntime {
     this.keymapBroker = options.keymapBroker
     this.editingBroker = options.editingBroker
     this.resourcesBroker = options.resourcesBroker
+    this.outputBroker = options.outputBroker
     this.settingsBroker = options.settingsBroker
     this.releasesBroker = options.releasesBroker
     this.storageBroker = options.storageBroker
@@ -350,6 +363,7 @@ export class PluginRuntime {
           resolvePluginKeymapBroker(plugin.manifest, this.keymapBroker),
           resolvePluginEditingBroker(plugin.manifest, this.editingBroker),
           resolvePluginResourcesBroker(plugin.manifest, this.resourcesBroker),
+          resolvePluginOutputBroker(plugin.manifest, this.outputBroker),
           () => plugin.capabilityGeneration === generation,
         ),
       })
@@ -573,6 +587,7 @@ export class PluginRuntime {
         resolvePluginKeymapBroker(plugin.manifest, this.keymapBroker),
         resolvePluginEditingBroker(plugin.manifest, this.editingBroker),
         resolvePluginResourcesBroker(plugin.manifest, this.resourcesBroker),
+        resolvePluginOutputBroker(plugin.manifest, this.outputBroker),
         () => plugin.state === 'enabled' && plugin.capabilityGeneration === generation,
         effectiveCommandPermissions(plugin.manifest, command),
         true,
@@ -875,6 +890,7 @@ function createRestrictedHost(
   keymapBroker?: PluginKeymapBroker,
   editingBroker?: PluginEditingBroker,
   resourcesBroker?: PluginResourcesBroker,
+  outputBroker?: PluginOutputBroker,
   isActive?: () => boolean,
   permissions: readonly PluginPermission[] = manifest.permissions ?? [],
   command = false,
@@ -939,6 +955,11 @@ function createRestrictedHost(
             workspaceGesture,
           ),
         }
+      : {}),
+    ...(permissions.includes('document:output') &&
+    permissions.includes('document:read') &&
+    outputBroker
+      ? { output: createPluginOutputHostCapabilities(outputBroker, isActive, workspaceGesture) }
       : {}),
     ...(permissions.includes('settings:write') && settingsBroker
       ? { settings: createPluginSettingsHostCapabilities(settingsBroker, isActive) }
@@ -1027,5 +1048,17 @@ function resolvePluginResourcesBroker(
   broker: PluginResourcesBroker | PluginResourcesBrokerProvider | undefined,
 ): PluginResourcesBroker | undefined {
   if (!manifest.permissions?.includes('images:import')) return undefined
+  return typeof broker === 'function' ? broker(manifest) : broker
+}
+
+function resolvePluginOutputBroker(
+  manifest: PluginManifest,
+  broker: PluginOutputBroker | PluginOutputBrokerProvider | undefined,
+): PluginOutputBroker | undefined {
+  if (
+    !manifest.permissions?.includes('document:output') ||
+    !manifest.permissions?.includes('document:read')
+  )
+    return undefined
   return typeof broker === 'function' ? broker(manifest) : broker
 }

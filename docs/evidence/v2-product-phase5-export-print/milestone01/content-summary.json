@@ -1,0 +1,57 @@
+{
+  "scope": "P5 static export serializer and closed core optional SVG prefix",
+  "source_files": {
+    "packages/export/src/static-html.ts": "840ff0b16cca523dcb31456fa1d4c65533e327c2bb754009450473012fc1ed17",
+    "packages/export/src/static-html.test.ts": "848e0f9d3e0a5bba4d0e57266f36a8d8d0bd013cda3f7cc25aef42b6a406d86b",
+    "packages/export/src/markdown-html.ts": "b351341a1cf95ad0d64e4b2ceaf337f6b94eb5fd7f7040cd24a31ed735f676fa",
+    "packages/export/src/index.ts": "eb09f59e85d9c1d5badb5503be2393c1f6fda11d155e727d92653fe6309a5f09",
+    "packages/export/package.json": "5f38a04f10866557eb7b12e2036133ddd19d4d4f5224f2bc0d0a6bbcd99ee26e",
+    "packages/core/src/document-presentation.ts": "f48def5956b6739ae4af3f62fd443aea011b1ddf542235175f8e7958fba96ec8",
+    "packages/core/src/__tests__/document-presentation-serializer-prefix.test.ts": "91b67f33b2b75ba57c51276f030ca1ae80ea965aefb3ddd629b02f93387baa5b",
+    "pnpm-lock.yaml": "cb4ba71ebbf97298864b0ee5420fb5abd2832999e8535be5226099528609a1b4"
+  },
+  "checks": {
+    "content-before": {
+      "expected_exit": 1,
+      "failed": 3,
+      "passed": 18,
+      "actual_exit": 1
+    },
+    "content-semantics-before": {
+      "expected_exit": 1,
+      "failed": 2,
+      "passed": 21,
+      "actual_exit": 1
+    },
+    "content-after": {
+      "expected_exit": 0,
+      "passed": 47,
+      "actual_exit": 0
+    },
+    "content-typecheck": {
+      "expected_exit": 0,
+      "actual_exit": 0
+    },
+    "content-core-after": {
+      "expected_exit": 0,
+      "passed": 39,
+      "actual_exit": 0
+    }
+  },
+  "commands": [
+    "pnpm --config.verify-deps-before-run=false --filter @milkup/export test",
+    "pnpm --config.verify-deps-before-run=false --filter @milkup/export typecheck",
+    "cd packages/core && ../../node_modules/.bin/vitest run src/__tests__/document-svg-image.test.ts src/__tests__/document-svg-image-security.test.ts src/__tests__/document-presentation-serializer-prefix.test.ts"
+  ],
+  "limits": {
+    "sourceUtf16": 2097152,
+    "htmlBytes": 33554432,
+    "embeddedImageDataUrlBytes": 33554432,
+    "outputBytes": 67108864
+  },
+  "remaining_acceptance": [
+    "Actual native offline HTML/PDF/print inspection is owned by root/native integration.",
+    "Nested/unknown Markdown explicitly retains source and warnings; renderer timeouts, unsupported syntax and partial windows do not become rich-render support.",
+    "Legacy placeholder API remains compatible; P5 must call renderStaticMarkdownDocument."
+  ]
+}

@@ -136,6 +136,7 @@ const KNOWN_PERMISSIONS = new Set<PluginPermission>([
   'settings:write',
   'app:keymap',
   'images:import',
+  'document:output',
   'network:access',
 ])
 const KNOWN_HOSTS = new Set<PluginHostKind>(['worker', 'sidecar', 'dom'])
@@ -192,6 +193,8 @@ export function validatePluginManifest(value: unknown): PluginManifestValidation
   const description = readOptionalString(value, 'description', '$.description', errors)
   const engines = readOptionalEngines(value.engines, errors)
   const permissions = readPermissions(value.permissions, errors, '$.permissions')
+  if (permissions.includes('document:output') && !permissions.includes('document:read'))
+    errors.push({ path: '$.permissions', message: 'Document output requires document:read' })
   let settings: PluginSettingsDescriptor | undefined
   if (value.settings !== undefined) {
     try {

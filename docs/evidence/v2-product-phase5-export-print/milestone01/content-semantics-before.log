@@ -1,0 +1,75 @@
+
+ RUN  v3.2.6 /workspace/milkup/packages/export
+
+ ❯ src/static-html.test.ts (23 tests | 2 failed) 141ms
+   ✓ static document export regressions > exposes the controlled static conversion entry point 1ms
+   ✓ static document export regressions > does not emit executable link URLs through the legacy entry point 5ms
+   ✓ static document export regressions > preserves strikethrough semantics in legacy Markdown export 1ms
+   ✓ controlled static HTML document > preserves Chinese, normal Markdown, tables, code and fixed print policy 4ms
+   ✓ controlled static HTML document > splices validated inline MathML inside emphasis without losing surrounding text 2ms
+   ✓ controlled static HTML document > replaces display math across paragraphs without nesting blocks in paragraphs 1ms
+   ✓ controlled static HTML document > uses distinct SVG IDs for separately serialized fragments 8ms
+   ✓ controlled static HTML document > keeps selection absolute offsets and footnote forward/back links 1ms
+   ✓ controlled static HTML document > keeps renderer error source byte-for-byte instead of its substitute 1ms
+   × controlled static HTML document > preserves absent math/footnote/diagram renderers with explicit warnings 10ms
+     → expected '<!doctype html><html lang="zh-CN"><he…' to contain '$\frac{a}{b}$'
+   ✓ controlled static HTML document > preserves unsupported nested source explicitly 1ms
+   ✓ controlled static HTML document > enumerates real image uses excluding code and embeds offline data 1ms
+   ✓ controlled static HTML document > reports missing/remote/unsafe images:  0ms
+   ✓ controlled static HTML document > reports missing/remote/unsafe images: https://example.com/x.png 0ms
+   ✓ controlled static HTML document > reports missing/remote/unsafe images: data:image/svg+xml;base64,PHN2Zz4= 0ms
+   ✓ controlled static HTML document > reports missing/remote/unsafe images: data:text/html;base64,eA== 0ms
+   ✓ controlled static HTML document > does not read image resources when omitted 0ms
+   ✓ controlled static HTML document > rejects unsafe static link javascript:alert 0ms
+   ✓ controlled static HTML document > rejects unsafe static link data:text/html;base64,eA== 0ms
+   ✓ controlled static HTML document > rejects unsafe static link file:///tmp/private 0ms
+   ✓ controlled static HTML document > rejects unsafe static link https:\evil 0ms
+   ✓ controlled static HTML document > rejects stale identity, mismatched source, overlap and raw HTML injection 2ms
+   × controlled static HTML document > rejects budgets without truncating output 100ms
+     → expected [Function] to throw error including 'limit' but got 'Maximum call stack size exceeded'
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/static-html.test.ts > controlled static HTML document > preserves absent math/footnote/diagram renderers with explicit warnings
+AssertionError: expected '<!doctype html><html lang="zh-CN"><he…' to contain '$\frac{a}{b}$'
+
+- Expected
++ Received
+
+- $\frac{a}{b}$
++ <!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; img-src data:; style-src &#39;unsafe-inline&#39;; script-src &#39;none&#39;; base-uri &#39;none&#39;; form-action &#39;none&#39;; connect-src &#39;none&#39;; font-src &#39;none&#39;; object-src &#39;none&#39;"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Document</title><style>:root{color-scheme:light}*{box-sizing:border-box}body{margin:0 auto;padding:24px;max-width:1000px;color:#202124;background:#fff;font-family:"Noto Sans CJK SC","Microsoft YaHei","PingFang SC",sans-serif;line-height:1.65;overflow-wrap:anywhere;word-break:normal}h1,h2,h3,h4,h5,h6{line-height:1.3;break-after:avoid}p{orphans:3;widows:3}table{border-collapse:collapse;width:100%;table-layout:auto;margin:1em 0}th,td{border:1px solid #999;padding:.4em .6em;overflow-wrap:anywhere}thead{display:table-header-group}tfoot{display:table-footer-group}tr{break-inside:avoid}pre{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-all;padding:1em;background:#f4f4f4;break-inside:auto}code{font-family:"Noto Sans Mono CJK SC",monospace}blockquote{margin-left:0;padding-left:1em;border-left:3px solid #aaa}img,svg{max-width:100%;height:auto}math[display=block]{display:block;margin:1em 0;overflow-wrap:anywhere}.presentation-block{text-align:center;break-inside:avoid}.source-fallback{white-space:pre-wrap}.export-warning{color:#6b3a00;background:#fff4db;padding:.3em .6em;font-size:.9em}.image-placeholder{border:1px dashed #888;padding:.4em}a{color:#164c96} @page{size:A4;margin:16mm}@media print{body{max-width:none;margin:0;padding:0}a{color:inherit;text-decoration:underline}.presentation-block,img,svg{break-inside:avoid}pre{break-inside:auto}table{break-inside:auto}thead{display:table-header-group}}</style></head><body><p>$frac{a}{b}$</p><p>引用[^a]</p><p>[^a]: 内容</p><pre class="source-fallback">```mermaid
++ graph TD; A--&gt;B
++ ```</pre></body></html>
+
+ ❯ src/static-html.test.ts:86:90
+     84|     const source = '$\\frac{a}{b}$\n\n引用[^a]\n\n[^a]: 内容\n\n```mermaid…
+     85|     const result = render(source, options)
+     86|     for (const text of ['$\\frac{a}{b}$', '[^a]: 内容', '```mermaid']) e…
+       |                                                                                          ^
+     87|     expect(result.warnings.some((w) => w.code === 'unrendered-enhancem…
+     88|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/static-html.test.ts > controlled static HTML document > rejects budgets without truncating output
+AssertionError: expected [Function] to throw error including 'limit' but got 'Maximum call stack size exceeded'
+
+Expected: "limit"
+Received: "Maximum call stack size exceeded"
+
+ ❯ src/static-html.test.ts:129:77
+    127|     expect(() => render('a'.repeat(STATIC_EXPORT_LIMITS.sourceUtf16 + …
+    128|     const huge = 'data:image/png;base64,' + 'AAAA'.repeat(STATIC_EXPOR…
+    129|     expect(() => render('![x](a)', { ...options, resolveUrl: () => hug…
+       |                                                                             ^
+    130|   })
+    131| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 21 passed (23)
+   Start at  02:17:09
+   Duration  795ms (transform 323ms, setup 0ms, collect 405ms, tests 141ms, environment 0ms, prepare 75ms)
+

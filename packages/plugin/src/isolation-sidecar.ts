@@ -1,6 +1,8 @@
 import type { PluginKeymapBroker } from './keymap-broker'
 import type { PluginEditingBroker } from './editing-broker'
 import type { PluginResourcesBroker } from './resources-broker'
+import type { PluginOutputBroker } from './output-broker'
+import { createPluginOutputRpcServer, type PluginOutputRpcServer } from './output-rpc'
 import { createPluginKeymapRpcServer, type PluginKeymapRpcServer } from './keymap-rpc'
 import { createPluginEditingRpcServer, type PluginEditingRpcServer } from './editing-rpc'
 import { createPluginResourcesRpcServer, type PluginResourcesRpcServer } from './resources-rpc'
@@ -29,6 +31,7 @@ export interface PluginSidecarHostConfig extends PluginIsolationRpcHostOptions {
   readonly keymapBroker?: PluginKeymapBroker
   readonly editingBroker?: PluginEditingBroker
   readonly resourcesBroker?: PluginResourcesBroker
+  readonly outputBroker?: PluginOutputBroker
   readonly settingsBroker?: PluginSettingsBroker
   readonly workspaceBroker?: PluginWorkspaceBroker
   readonly documentBroker?: PluginDocumentBroker
@@ -69,6 +72,7 @@ export function createSidecarPluginModule(config: PluginSidecarHostConfig): Plug
     keymapBroker,
     editingBroker,
     resourcesBroker,
+    outputBroker,
   } = config
   let sidecar: ActiveSidecar | undefined
 
@@ -90,6 +94,7 @@ export function createSidecarPluginModule(config: PluginSidecarHostConfig): Plug
         active.keymapRpcServer?.dispose()
         active.editingRpcServer?.dispose()
         active.resourcesRpcServer?.dispose()
+        active.outputRpcServer?.dispose()
         active.settingsRpcServer?.dispose()
         active.workspaceRpcServer?.dispose()
         active.documentRpcServer?.dispose()
@@ -109,6 +114,7 @@ export function createSidecarPluginModule(config: PluginSidecarHostConfig): Plug
         active.keymapRpcServer?.dispose()
         active.editingRpcServer?.dispose()
         active.resourcesRpcServer?.dispose()
+        active.outputRpcServer?.dispose()
         active.settingsRpcServer?.dispose()
         active.workspaceRpcServer?.dispose()
         active.documentRpcServer?.dispose()
@@ -137,6 +143,12 @@ export function createSidecarPluginModule(config: PluginSidecarHostConfig): Plug
       resourcesBroker && manifest.permissions?.includes('images:import')
         ? createPluginResourcesRpcServer(endpoint, resourcesBroker)
         : undefined
+    const outputRpcServer =
+      outputBroker &&
+      manifest.permissions?.includes('document:output') &&
+      manifest.permissions?.includes('document:read')
+        ? createPluginOutputRpcServer(endpoint, outputBroker)
+        : undefined
     const settingsRpcServer =
       settingsBroker && manifest.permissions?.includes('settings:write')
         ? createPluginSettingsRpcServer(endpoint, settingsBroker)
@@ -160,6 +172,7 @@ export function createSidecarPluginModule(config: PluginSidecarHostConfig): Plug
       ...(keymapRpcServer ? { keymapRpcServer } : {}),
       ...(editingRpcServer ? { editingRpcServer } : {}),
       ...(resourcesRpcServer ? { resourcesRpcServer } : {}),
+      ...(outputRpcServer ? { outputRpcServer } : {}),
       ...(settingsRpcServer ? { settingsRpcServer } : {}),
       ...(workspaceRpcServer ? { workspaceRpcServer } : {}),
       ...(uiRpcServer ? { uiRpcServer } : {}),
@@ -188,6 +201,7 @@ export function createSidecarPluginModule(config: PluginSidecarHostConfig): Plug
         active.keymapRpcServer?.dispose()
         active.editingRpcServer?.dispose()
         active.resourcesRpcServer?.dispose()
+        active.outputRpcServer?.dispose()
         active.settingsRpcServer?.dispose()
         active.workspaceRpcServer?.dispose()
         active.documentRpcServer?.dispose()
@@ -211,6 +225,7 @@ interface ActiveSidecar {
   readonly keymapRpcServer?: PluginKeymapRpcServer
   readonly editingRpcServer?: PluginEditingRpcServer
   readonly resourcesRpcServer?: PluginResourcesRpcServer
+  readonly outputRpcServer?: PluginOutputRpcServer
   readonly settingsRpcServer?: PluginSettingsRpcServer
   readonly workspaceRpcServer?: PluginWorkspaceRpcServer
   readonly documentRpcServer?: PluginDocumentRpcServer

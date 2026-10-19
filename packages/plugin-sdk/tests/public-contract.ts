@@ -34,6 +34,45 @@ const module: SdkPluginModule = definePlugin({
 })
 void module
 
+// SDK 0.3.5: output requests contain options and opaque leases, never paths or HTML.
+import type { SdkPluginOutputHost, SdkOutputSnapshot } from '../src/index.js'
+async function outputContract(host: SdkPluginOutputHost) {
+  const controller = new AbortController()
+  const snapshot: SdkOutputSnapshot = await host.capture(
+    {
+      format: 'html',
+      scope: 'selection',
+      resources: 'embed',
+      pageSize: 'a4',
+      landscape: false,
+    },
+    { signal: controller.signal },
+  )
+  const target = await host.chooseTarget({ snapshotId: snapshot.id })
+  if (target.status === 'ready') {
+    const result = await host.write(target.id)
+    const status: 'written' = result.status
+    void status
+  }
+  await host.release(snapshot.id)
+  const printable = await host.capture({ format: 'print', scope: 'document', resources: 'omit' })
+  await host.print(printable.id)
+  // @ts-expect-error Output cannot request arbitrary paths.
+  await host.chooseTarget({ snapshotId: snapshot.id, path: '/tmp/private.md' })
+  // @ts-expect-error Plugins cannot supply raw HTML or executable renderer output.
+  await host.write({ html: '<script/>', targetId: 'fake' })
+  await host.capture(
+    { format: 'html', scope: 'document', resources: 'embed' },
+    // @ts-expect-error A command gesture is internal metadata, not a public option.
+    { gesture: 'forged' },
+  )
+  // @ts-expect-error Snapshot metadata does not reveal document text.
+  void snapshot.text
+  // @ts-expect-error Targets never expose native paths.
+  if (target.status === 'ready') void target.path
+}
+void outputContract
+
 async function headings(scanner: SdkDocumentScanner): Promise<SdkDocumentScanHeading[]> {
   const result: SdkDocumentScanHeading[] = []
   for await (const event of scanner) {

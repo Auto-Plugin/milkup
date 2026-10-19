@@ -1,0 +1,61 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ❯ src/output-presentations.test.ts (8 tests | 2 failed) 79ms
+   ✓ frozen output presentation collection > calls generic enabled providers with export target and trusted protected context 20ms
+   ✓ frozen output presentation collection > keeps a fence crossing a normal window boundary whole and preserves exact source slices 21ms
+   ✓ frozen output presentation collection > warns and preserves source fallback for an oversized complete fence 2ms
+   ✓ frozen output presentation collection > rejects edits during rendering instead of accepting a stale frozen snapshot 3ms
+   ✓ frozen output presentation collection > settles an unresponsive renderer within the existing timeout and warns 4ms
+   ✓ frozen output presentation collection > warns for selection context without guessing a full-document opening state 1ms
+   × frozen output presentation collection > marks each block-aligned chunk edge complete so later text providers do not silently skip math 24ms
+     → expected false to be true // Object.is equality
+   × frozen output presentation collection > warns when a matching fence renderer declines a complete supported fence 2ms
+     → expected false to be true // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/output-presentations.test.ts > frozen output presentation collection > marks each block-aligned chunk edge complete so later text providers do not silently skip math
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/output-presentations.test.ts:83:99
+     81|     await collectOutputPresentations(input)
+     82|     expect(input.render.mock.calls.length).toBeGreaterThan(1)
+     83|     expect(input.render.mock.calls.every((call) => call[2].completeSta…
+       |                                                                                                   ^
+     84|   })
+     85|   it('warns when a matching fence renderer declines a complete support…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/output-presentations.test.ts > frozen output presentation collection > warns when a matching fence renderer declines a complete supported fence
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/output-presentations.test.ts:90:80
+     88|     input.render.mockResolvedValue({ complete: true, fragments: [] })
+     89|     const result = await collectOutputPresentations(input)
+     90|     expect(result.warnings.some((w) => w.code === 'presentation-unsupp…
+       |                                                                                ^
+     91|   })
+     92| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 6 passed (8)
+   Start at  02:19:57
+   Duration  1.15s (transform 493ms, setup 0ms, collect 624ms, tests 79ms, environment 0ms, prepare 101ms)
+

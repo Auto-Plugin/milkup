@@ -19,6 +19,7 @@ export interface DesktopDocumentPresentationOptions {
   readonly current: () =>
     { readonly source: MarkdownContextSource; readonly identity: object } | undefined
   readonly theme: () => 'light' | 'dark'
+  readonly target?: 'screen' | 'export'
   readonly renderers: () => readonly DesktopDocumentRenderer[]
   readonly render: (
     pluginId: string,
@@ -110,7 +111,7 @@ export function createDesktopDocumentPresentationService(
       blocks: trusted.blocks,
       selection: window.selection,
       theme: capturedTheme,
-      target: 'screen',
+      target: options.target ?? 'screen',
       width: Math.min(8192, Math.max(1, window.width)),
     })
     const declarations = options.renderers().map((renderer) => ({ ...renderer }))
