@@ -1,0 +1,16 @@
+--- inputs/tests/native/tauri-p7-outline-performance.mjs
++++ candidate04-inputs/tests/native/tauri-p7-outline-performance.mjs
+@@ -96,9 +96,11 @@
+           last: 'Dense 17999',
+           lastLine: 35999,
+         }
+-const sourcePath = path.join(output, 'outline.md'),
++const existingFixture = process.env.MILKUP_P7_EXISTING_FIXTURE
++const sourcePath = existingFixture || path.join(output, 'outline.md'),
+   emptyPath = path.join(output, 'empty.md')
+-await writeFile(sourcePath, source, { flag: 'wx' })
++if (existingFixture) assert.equal(sha(await readFile(sourcePath)), sha(source), 'Existing fixture matches complete original bytes')
++else await writeFile(sourcePath, source, { flag: 'wx' })
+ await writeFile(emptyPath, '', { flag: 'wx' })
+ const sourceSha256 = sha(source)
+ const json = (name, value) =>

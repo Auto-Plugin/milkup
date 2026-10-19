@@ -24,13 +24,20 @@ outline registration or outline-specific document access.
   reset a lazy epoch without rewriting the tree; individual folds update only
   bounded tree paths and their own metadata. Visible-row lookup batches at most
   16 ranks and prefetches at most four pages per storage call, including sparse
-  roots after collapsing the whole tree. The 500-row limit applies only to DOM rendering; there is no
+  roots after collapsing the whole tree. At most two read calls overlap; both
+  finish before cache updates proceed in their original order. The 24-page cache
+  is unchanged; at most eight response pages hold 512 KiB of serialized UTF-8
+  payload transiently (this is not a bound on JavaScript heap or process RSS).
+  The 500-row limit applies only to DOM rendering; there is no
   16,384-line index limit and no all-heading array in memory.
 - Collapse state and ancestors work across page boundaries; collapse all also
   applies to headings indexed later. A cancelled scan leaves the indexed portion
   navigable with an incomplete status. Retry starts a new indexing session.
 - Rapid edits debounce indexing startup; an obsolete store is disposed before a
   new one is created. Actions from earlier document versions/sessions are rejected.
+- Passive scan progress refreshes share a fixed 100 ms window, without restarting
+  the window for each event. First headings, terminal states and user interactions
+  refresh immediately; document/version changes and disposal cancel stale timers.
 - Indexing progress and incomplete/cancelled/failed states remain explicit. A
   storage quota failure never masquerades as a complete outline. The host enforces
   a 256 MiB charged limit per temporary store and a shared 512 MiB limit. Pages are
@@ -45,7 +52,7 @@ Copy this entire directory to any location outside the Milkup checkout. Keep
 `package.json`, `tsconfig.json`, `plugin.json`, `src/*.ts` and `scripts/build.mjs`.
 Tests are development-only and are not needed to build the package.
 
-Outline is version **1.3.2**. Its manifest accepts SDK `>=0.2.0 <0.4.0`;
+Outline is version **1.3.3**. Its manifest accepts SDK `>=0.2.0 <0.4.0`;
 the source package's `0.2.0` development dependency records its original SDK
 baseline. The example below builds against the public **0.3.7** archive without
 changing the plugin's version or importing host source. The SDK is distributed
@@ -73,7 +80,7 @@ The build checks that imports come only from local plugin source or the public S
 then rejects any residual imports in the ESM output. Outputs:
 
 - `dist/plugin.js`: one self-contained ESM module with its default plugin export.
-- `dist/milkup.outline-1.3.2.milkup-plugin`: JSON archive containing the manifest and
+- `dist/milkup.outline-1.3.3.milkup-plugin`: JSON archive containing the manifest and
   UTF-8 module, using the host's standard `milkup-plugin` version 1 archive format.
 - `dist/build-meta.json`: esbuild input/output inventory for auditing dependencies.
 
@@ -88,7 +95,7 @@ claim that the original source package supplies a frozen dependency lock.
 ## Install, enable, disable, uninstall
 
 1. In Milkup choose `菜单 > 插件 > 安装本地插件`.
-2. Select `dist/milkup.outline-1.3.2.milkup-plugin`.
+2. Select `dist/milkup.outline-1.3.3.milkup-plugin`.
 3. Review the manifest and enable `Milkup Outline`.
 4. Open a Markdown document and use the sidebar panel.
 5. Disable the plugin in the same manager to remove its UI and stop its Worker.

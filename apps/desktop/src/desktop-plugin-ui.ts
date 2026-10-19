@@ -46,6 +46,7 @@ interface MountedPluginUi {
   readonly treeFocus: Map<string, ControlledTreeFocus>
   virtualViewport?: PluginVirtualViewportState
   virtualScrollTimer?: ReturnType<typeof setTimeout>
+  virtualScrollRequest?: VirtualScrollRequest
   virtualScrollTop?: number
   virtualUserIntentUntil?: number
   virtualPointerActive?: boolean
@@ -76,8 +77,18 @@ interface PluginVirtualViewportState {
   readonly requestId?: number
 }
 
+interface VirtualScrollRequest {
+  readonly documentId: string
+  readonly documentVersion: unknown
+  readonly selectionRevision: unknown
+  readonly id: string
+  pending: boolean
+  inFlight?: object
+  requested?: { readonly viewport: PluginVirtualViewportState; readonly total: number }
+}
+
 const sidebarPanelMinimumHeight = 96
-const virtualListScrollDelay = 160
+const virtualListScrollDelay = 16
 const virtualListMinimumBufferItems = 160
 const virtualListMinimumRefreshMarginItems = 12
 
@@ -517,11 +528,20 @@ export class DesktopPluginUiController {
 
   private async renderMount(mount: MountedPluginUi, phase: 'mount' | 'update'): Promise<void> {
     const formRevision = mount.forms.snapshot()
-    const renderSequence = ++mount.renderSequence
     const renderState: Readonly<Record<string, unknown>> = {
       documentId: this.documentId,
       ...this.renderState(),
     }
+    const scrollRequest = mount.virtualScrollRequest
+    if (
+      scrollRequest &&
+      (scrollRequest.documentId !== this.documentId ||
+        scrollRequest.documentVersion !== renderState.documentVersion ||
+        scrollRequest.selectionRevision !== renderState.selectionRevision)
+    )
+      this.resetVirtualScrollRequest(mount)
+    const requestedScroll = mount.virtualScrollRequest
+    const renderSequence = ++mount.renderSequence
     const requestedKeyboardFocus = mount.virtualTreeFocus
     const isCurrentRequest = (): boolean => {
       if (
@@ -529,6 +549,13 @@ export class DesktopPluginUiController {
         renderSequence !== mount.renderSequence
       )
         return false
+      if (
+        requestedScroll &&
+        requestedScroll.selectionRevision !== this.renderState().selectionRevision
+      ) {
+        if (mount.virtualScrollRequest === requestedScroll) this.resetVirtualScrollRequest(mount)
+        return false
+      }
       if (
         renderState.documentId !== this.documentId ||
         renderState.documentVersion !== this.renderState().documentVersion
@@ -688,6 +715,7 @@ export class DesktopPluginUiController {
     this.mounts.delete(key)
     this.collapsedSidebarPanels.delete(key)
     if (mount.virtualScrollTimer !== undefined) clearTimeout(mount.virtualScrollTimer)
+    delete mount.virtualScrollRequest
     mount.virtualPointerCleanup?.()
     mount.pointerCleanup?.()
     if (mount.modalFocusFrame !== undefined)
@@ -775,6 +803,20 @@ export class DesktopPluginUiController {
     list.prepend(before)
     list.append(after)
     restoreScrollOffsets(mount.body, scrollOffsets)
+    if (metadata.followActive) this.resetVirtualScrollRequest(mount)
+    const scrollRequest = mount.virtualScrollRequest
+    const requested = scrollRequest?.requested
+    if (
+      requested &&
+      (scrollRequest.documentId !== this.documentId ||
+        scrollRequest.documentVersion !== this.renderState().documentVersion ||
+        scrollRequest.selectionRevision !== this.renderState().selectionRevision ||
+        scrollRequest.id !== metadata.id ||
+        requested.total !== metadata.total ||
+        (metadata.start <= requested.viewport.fromIndex &&
+          metadata.end >= requested.viewport.toIndex))
+    )
+      delete scrollRequest.requested
     if (!mount.virtualTreeFocus)
       mount.virtualViewport = Object.freeze({
         id: metadata.id,
@@ -785,6 +827,10 @@ export class DesktopPluginUiController {
           mount.virtualViewport?.id === metadata.id &&
           mount.virtualViewport.userInitiated === true,
       })
+    // A renderer may echo its old slice before publishing asynchronously prepared rows.
+    // Preserve the requested buffer independently of that echo, without polling it.
+    if (!mount.virtualTreeFocus && scrollRequest?.requested)
+      mount.virtualViewport = scrollRequest.requested.viewport
 
     if (metadata.followActive && metadata.active >= 0 && list.clientHeight > 0) {
       const maximumScrollTop = Math.max(0, metadata.total * metadata.itemHeight - list.clientHeight)
@@ -901,11 +947,21 @@ export class DesktopPluginUiController {
           ? metadata.total - 1
           : Math.max(0, Math.min(metadata.total - 1, current + (key === 'ArrowUp' ? -1 : 1)))
     const inside = target >= metadata.start && target < metadata.end
-    if (inside && !prior) return false
     if (mount.virtualScrollTimer !== undefined) clearTimeout(mount.virtualScrollTimer)
     delete mount.virtualScrollTimer
+    if (mount.virtualScrollRequest?.inFlight) mount.renderSequence++
+    delete mount.virtualScrollRequest
     delete mount.virtualPendingEdgeHint
     mount.virtualUserIntentUntil = 0
+    if (inside && !prior) {
+      mount.virtualViewport = Object.freeze({
+        id: metadata.id,
+        fromIndex: metadata.start,
+        toIndex: metadata.end,
+        userInitiated: true,
+      })
+      return false
+    }
     const count = Math.min(metadata.total, 500, Math.max(160, metadata.end - metadata.start))
     const fromIndex = Math.max(0, Math.min(metadata.total - count, target - Math.floor(count / 2)))
     mount.virtualViewport = Object.freeze({
@@ -956,6 +1012,24 @@ export class DesktopPluginUiController {
     mount.virtualUserIntentUntil = Date.now() + duration
   }
 
+  private resetVirtualScrollRequest(mount: MountedPluginUi): void {
+    if (mount.virtualScrollTimer !== undefined) clearTimeout(mount.virtualScrollTimer)
+    delete mount.virtualScrollTimer
+    delete mount.virtualScrollRequest
+    delete mount.virtualPendingEdgeHint
+    mount.virtualUserIntentUntil = 0
+    if (mount.virtualTreeFocus) return
+    const list = mount.body.querySelector<HTMLElement>('[data-virtual-list]')
+    const metadata = list && readVirtualListMetadata(list)
+    if (metadata)
+      mount.virtualViewport = Object.freeze({
+        id: metadata.id,
+        fromIndex: metadata.start,
+        toIndex: metadata.end,
+      })
+    else delete mount.virtualViewport
+  }
+
   private scheduleVirtualViewportUpdate(
     mount: MountedPluginUi,
     list: HTMLElement,
@@ -965,18 +1039,56 @@ export class DesktopPluginUiController {
     mount.virtualScrollTop = list.scrollTop
     if (mount.virtualPointerActive) return
     if ((mount.virtualUserIntentUntil ?? 0) < Date.now()) return
+    const metadata = readVirtualListMetadata(list)
+    if (!metadata) return
+    let request = mount.virtualScrollRequest
+    const { documentVersion, selectionRevision } = this.renderState()
+    if (
+      !request ||
+      request.documentId !== this.documentId ||
+      request.documentVersion !== documentVersion ||
+      request.selectionRevision !== selectionRevision ||
+      request.id !== metadata.id
+    ) {
+      const userIntentUntil = mount.virtualUserIntentUntil ?? 0
+      this.resetVirtualScrollRequest(mount)
+      mount.virtualUserIntentUntil = userIntentUntil
+      request = {
+        documentId: this.documentId,
+        documentVersion,
+        selectionRevision,
+        id: metadata.id,
+        pending: false,
+      }
+      mount.virtualScrollRequest = request
+    }
     if (replaceEdgeHint) {
       if (edgeHint) mount.virtualPendingEdgeHint = edgeHint
       else delete mount.virtualPendingEdgeHint
     }
-    if (mount.virtualScrollTimer !== undefined) clearTimeout(mount.virtualScrollTimer)
+    request.pending = true
+    this.queueVirtualViewportUpdate(mount, request)
+  }
+
+  private queueVirtualViewportUpdate(mount: MountedPluginUi, request: VirtualScrollRequest): void {
+    if (mount.virtualScrollTimer !== undefined || request.inFlight) return
     mount.virtualScrollTimer = setTimeout(() => {
       delete mount.virtualScrollTimer
-      if (this.mounts.get(uiKey(mount.contribution)) !== mount || !mount.body.contains(list)) {
+      if (
+        this.mounts.get(uiKey(mount.contribution)) !== mount ||
+        mount.virtualScrollRequest !== request ||
+        request.documentId !== this.documentId ||
+        request.documentVersion !== this.renderState().documentVersion ||
+        request.selectionRevision !== this.renderState().selectionRevision ||
+        mount.virtualTreeFocus
+      ) {
         return
       }
-
-      const metadata = readVirtualListMetadata(list)
+      if (mount.virtualPointerActive) return
+      request.pending = false
+      const list = mount.body.querySelector<HTMLElement>('[data-virtual-list]')
+      const metadata = list && readVirtualListMetadata(list)
+      if (!list || metadata?.id !== request.id) return
       if (!metadata || list.clientHeight <= 0) return
       const requestedEdge = mount.virtualPendingEdgeHint
       delete mount.virtualPendingEdgeHint
@@ -1010,15 +1122,14 @@ export class DesktopPluginUiController {
       const needsRangeAfter =
         metadata.end < metadata.total && metadata.end - visibleEnd < refreshMarginItems
       if (!edge && !needsRangeBefore && !needsRangeAfter) return
+      const requested = request.requested
       if (
         !edge &&
-        mount.virtualViewport?.id === metadata.id &&
-        mount.virtualViewport.fromIndex === fromIndex &&
-        mount.virtualViewport.toIndex === toIndex
-      ) {
+        requested?.total === metadata.total &&
+        visibleStart >= requested.viewport.fromIndex &&
+        visibleEnd <= requested.viewport.toIndex
+      )
         return
-      }
-
       mount.virtualUserIntentUntil = 0
       const requestId = (mount.virtualRequestSequence ?? 0) + 1
       mount.virtualRequestSequence = requestId
@@ -1029,7 +1140,14 @@ export class DesktopPluginUiController {
         userInitiated: true,
         ...(edge ? { edge, requestId } : {}),
       })
-      void this.updateMount(mount)
+      request.requested = { viewport: mount.virtualViewport, total: metadata.total }
+      const token = {}
+      request.inFlight = token
+      void this.updateMount(mount).finally(() => {
+        if (mount.virtualScrollRequest !== request || request.inFlight !== token) return
+        delete request.inFlight
+        if (request.pending) this.queueVirtualViewportUpdate(mount, request)
+      })
     }, virtualListScrollDelay)
   }
 

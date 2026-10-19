@@ -1,0 +1,144 @@
+
+ RUN  v3.2.6 /workspace/milkup/apps/desktop
+
+ ❯ src/desktop-plugin-ui.test.ts (48 tests | 4 failed | 41 skipped) 640ms
+   × generic virtual scroll scheduling > publishes a near-edge range within one frame window during sustained scrolling 145ms
+     → expected [] to have a length of 1 but got +0
+   × generic virtual scroll scheduling > keeps a requested buffer across old-slice echoes without suppressing a newer distant range 197ms
+     → expected [ { at: 160, range: { …(4) } }, …(4) ] to have a length of 1 but got 5
+   × generic virtual scroll scheduling > allows only one scroll render in flight and retains only the latest pending range 25ms
+     → expected [ { at: 160, range: { …(4) } }, …(3) ] to have a length of 1 but got 4
+   ✓ generic virtual scroll scheduling > drops a scheduled scroll demand after its document changes 46ms
+   × generic virtual scroll scheduling > drops a scheduled scroll demand after its version changes 81ms
+     → expected [ { at: 160, range: { …(4) } } ] to have a length of +0 but got 1
+   ✓ generic virtual scroll scheduling > drops a scheduled scroll demand after its dispose changes 18ms
+   ✓ generic virtual scroll scheduling > does not reclaim departed focus or replay pending scroll over keyboard Home 125ms
+   ↓ DesktopPluginUiController > restores a virtual keyboard target named by text without requiring aria-label
+   ↓ DesktopPluginUiController > requests bounded virtual tree ranges for End, Home and arrow boundary focus
+   ↓ DesktopPluginUiController > does not let late virtual keyboard ranges steal focus after Tab or document change
+   ↓ DesktopPluginUiController > discards a rejected keyboard range after the request document changes
+   ↓ DesktopPluginUiController > discards a rejected keyboard range after the request version changes
+   ↓ DesktopPluginUiController > discards a rejected keyboard range after the request mount changes
+   ↓ DesktopPluginUiController > discards a pending End range when focus moves to another row of the same tree
+   ↓ DesktopPluginUiController > keeps the latest virtual keyboard intent and discards ranges after teardown
+   ↓ DesktopPluginUiController > uses visible ranks rather than source ordinals after folding a virtual tree
+   ↓ DesktopPluginUiController > holds modal focus while a controlled save action is temporarily disabled
+   ↓ DesktopPluginUiController > combines embedding slot visibility with panel collapse without affecting other slots
+   ↓ DesktopPluginUiController > traps modal Tab using only the current tree tab stop
+   ↓ DesktopPluginUiController > does not treat scripted clicks or forged action details as trusted user gestures
+   ↓ DesktopPluginUiController > keeps a pressed controlled button until click and coalesces progress renders
+   ↓ DesktopPluginUiController > mounts controlled slots and recreates document-scoped views on document changes
+   ↓ DesktopPluginUiController > opens and closes modal views repeatedly and bridges declared commands
+   ↓ DesktopPluginUiController > takes modal focus before pending mount output, so immediate Escape closes and restores the opener
+   ↓ DesktopPluginUiController > does not take focus back from a host confirmation when asynchronous opening completes
+   ↓ DesktopPluginUiController > restores an available card when unloading removes the opener and ignores late output
+   ↓ DesktopPluginUiController > resumes focus after a pending output removes controls, with final Action A
+   ↓ DesktopPluginUiController > resumes focus after a pending output removes controls, with final Action B
+   ↓ DesktopPluginUiController > does not resume a removed action after the user focuses close
+   ↓ DesktopPluginUiController > does not resume a removed action after the user focuses confirmation
+   ↓ DesktopPluginUiController > traps native WebKit Shift+Tab with Unidentified key and Tab code at the close button
+   ↓ DesktopPluginUiController > rerenders only the requested plugin view when invalidated
+   ↓ DesktopPluginUiController > passes fresh viewport state when an editor scroll update rerenders mounted UI
+   ↓ DesktopPluginUiController > skips editor viewport updates for views that opt out
+   ↓ DesktopPluginUiController > collapses sidebar panels to the bottom and exposes resizers only between expanded panels
+   ↓ DesktopPluginUiController > reports actual visibility on collapse and expand, independent of focus lifecycle
+   ↓ DesktopPluginUiController > resizes adjacent expanded sidebar panels as a bounded pair
+   ↓ DesktopPluginUiController > keeps identical controlled output mounted and preserves internal scroll on changes
+   ↓ DesktopPluginUiController > decorates a controlled host icon without relying on plugin-specific classes
+   ↓ DesktopPluginUiController > projects a virtual outline slice into the full scroll height and follows its active item
+   ↓ DesktopPluginUiController > requests a new buffered range when the outline is scrolled outside its rendered slice
+   ↓ DesktopPluginUiController > does not rerender while outline scrolling remains inside the current overscan buffer
+   ↓ DesktopPluginUiController > keeps the virtual outline viewport stable while background scanning extends the total
+   ↓ DesktopPluginUiController > requests one adjacent buffer only after a real user wheel gesture reaches an edge
+   ↓ DesktopPluginUiController > requests the previous buffer only when the list reaches the exact top edge
+   ↓ DesktopPluginUiController > does not request an adjacent buffer for a small scroll far from the cache edge
+   ↓ DesktopPluginUiController > compensates scroll position once when headings are prepended
+   ↓ DesktopPluginUiController > coalesces viewport updates without running concurrent plugin renders
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/desktop-plugin-ui.test.ts > generic virtual scroll scheduling > publishes a near-edge range within one frame window during sustained scrolling
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/desktop-plugin-ui.test.ts:16:32
+     14|         await vi.advanceTimersByTimeAsync(8)
+     15|       }
+     16|       expect(fixture.requests).toHaveLength(1)
+       |                                ^
+     17|       expect(fixture.requests[0]!.at).toBeLessThanOrEqual(32)
+     18|       for (let index = 4; index < 50; index++) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/desktop-plugin-ui.test.ts > generic virtual scroll scheduling > keeps a requested buffer across old-slice echoes without suppressing a newer distant range
+AssertionError: expected [ { at: 160, range: { …(4) } }, …(4) ] to have a length of 1 but got 5
+
+- Expected
++ Received
+
+- 1
++ 5
+
+ ❯ src/desktop-plugin-ui.test.ts:47:32
+     45|         await vi.advanceTimersByTimeAsync(200)
+     46|       }
+     47|       expect(fixture.requests).toHaveLength(1)
+       |                                ^
+     48|       fixture.wheel(600)
+     49|       await vi.advanceTimersByTimeAsync(32)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/desktop-plugin-ui.test.ts > generic virtual scroll scheduling > allows only one scroll render in flight and retains only the latest pending range
+AssertionError: expected [ { at: 160, range: { …(4) } }, …(3) ] to have a length of 1 but got 4
+
+- Expected
++ Received
+
+- 1
++ 4
+
+ ❯ src/desktop-plugin-ui.test.ts:77:32
+     75|         await vi.advanceTimersByTimeAsync(200)
+     76|       }
+     77|       expect(fixture.requests).toHaveLength(1)
+       |                                ^
+     78|       fixture.resolveNextOldSlice()
+     79|       await vi.advanceTimersByTimeAsync(32)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/desktop-plugin-ui.test.ts > generic virtual scroll scheduling > drops a scheduled scroll demand after its version changes
+AssertionError: expected [ { at: 160, range: { …(4) } } ] to have a length of +0 but got 1
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/desktop-plugin-ui.test.ts:101:34
+     99|         const count = fixture.requests.length
+    100|         await vi.advanceTimersByTimeAsync(500)
+    101|         expect(fixture.requests).toHaveLength(count)
+       |                                  ^
+    102|         expect(fixture.listOptional()?.dataset.virtualStart ?? '0').to…
+    103|       } finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 3 passed | 41 skipped (48)
+   Start at  13:29:29
+   Duration  2.58s (transform 778ms, setup 0ms, collect 1.04s, tests 640ms, environment 580ms, prepare 80ms)
+
+undefined
+/workspace/milkup/apps/desktop:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/desktop-plugin-ui.test.ts -t 'generic virtual scroll scheduling' '--maxWorkers=1'

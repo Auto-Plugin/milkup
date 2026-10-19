@@ -1,0 +1,65 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ plugins/outline/src/outline-index.test.ts (8 tests | 4 failed | 4 skipped) 1344ms
+   ↓ batches visibility leaf reads when collapsed roots are scattered through a complete index
+   ↓ matches an independent hierarchy oracle for 8775 headings and sparse/global folds
+   ↓ matches an independent hierarchy oracle for 18000 headings and sparse/global folds
+   ↓ keeps fold overrides and lazy range updates correct while appending through tree growth
+   × overlaps at most two bounded page reads for sparse folded roots without changing their content 358ms
+     → expected 1 to be 2 // Object.is equality
+   × drains the sibling page read before reporting reject and permits a complete retry 341ms
+     → expected 1 to be 2 // Object.is equality
+   × drains the sibling page read before reporting missing and permits a complete retry 307ms
+     → expected 1 to be 2 // Object.is equality
+   × drains the sibling page read before reporting malformed and permits a complete retry 335ms
+     → expected 1 to be 2 // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  plugins/outline/src/outline-index.test.ts > overlaps at most two bounded page reads for sparse folded roots without changing their content
+AssertionError: expected 1 to be 2 // Object.is equality
+
+- Expected
++ Received
+
+- 2
++ 1
+
+ ❯ plugins/outline/src/outline-index.test.ts:227:16
+    225|     roots.map(({ item }, rank) => [rank * 900, item.label, item.from]),
+    226|   )
+    227|   expect(peak).toBe(2)
+       |                ^
+    228|   expect(peakPayload).toBeLessThanOrEqual(512 * 1024)
+    229|   expect(active).toBe(0)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  plugins/outline/src/outline-index.test.ts > drains the sibling page read before reporting reject and permits a complete retry
+ FAIL  plugins/outline/src/outline-index.test.ts > drains the sibling page read before reporting missing and permits a complete retry
+ FAIL  plugins/outline/src/outline-index.test.ts > drains the sibling page read before reporting malformed and permits a complete retry
+AssertionError: expected 1 to be 2 // Object.is equality
+
+- Expected
++ Received
+
+- 2
++ 1
+
+ ❯ plugins/outline/src/outline-index.test.ts:278:24
+    276|     try {
+    277|       for (let turn = 0; turn < 500 && !secondPending && !settled; tur…
+    278|       expect(requests).toBe(2)
+       |                        ^
+    279|       expect(secondPending).toBe(true)
+    280|       expect(settled).toBe(false)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 4 skipped (8)
+   Start at  13:39:57
+   Duration  1.82s (transform 108ms, setup 0ms, collect 113ms, tests 1.34s, environment 0ms, prepare 111ms)
+

@@ -1,0 +1,201 @@
+$ bash scripts/cloud/pnpm.sh --config.verify-deps-before-run=false --config.manage-package-manager-versions=false test:e2e --list --reporter=line
+$ playwright test --list --reporter=line
+Listing tests:
+  [playground-msedge] › live-render.spec.ts:3:1 › live render projection hides inline markers and keeps editor geometry usable
+  [playground-msedge] › live-render.spec.ts:33:1 › live table and task-list clicks preserve visual cursor mapping
+  [playground-msedge] › live-render.spec.ts:105:1 › browser selection rendering follows keyboard selection changes
+  [playground-msedge] › live-render.spec.ts:121:1 › browser mode switches preserve editor scroll position
+  [playground-msedge] › live-render.spec.ts:143:1 › browser worker plugin command mutates the editor through global history
+  [playground-msedge] › live-render.spec.ts:159:1 › browser worker plugin fetches through the main-thread network broker
+  [playground-msedge] › live-render.spec.ts:172:1 › browser worker plugin reads through the main-thread file broker
+  [desktop-msedge] › desktop-formatting.spec.ts:28:1 › formatting Worker preserves Unicode selection and supports toolbar toggle, undo and save
+  [desktop-msedge] › desktop-formatting.spec.ts:45:1 › formatting modal applies headings and links through retained bounded snapshots
+  [desktop-msedge] › desktop-formatting.spec.ts:63:1 › formatting table UI performs real row, column and alignment edits with one-step undo
+  [desktop-msedge] › desktop-formatting.spec.ts:87:1 › disabling formatting removes its contributions and retains basic editing/history/save
+  [desktop-msedge] › desktop-formatting.spec.ts:105:1 › formatting context menu submits its command before hiding and restores editor focus on Escape
+  [desktop-msedge] › desktop-formatting.spec.ts:132:7 › formatting toolbar geometry 1100x760 light 100%
+  [desktop-msedge] › desktop-formatting.spec.ts:132:7 › formatting toolbar geometry 1100x760 light 125%
+  [desktop-msedge] › desktop-formatting.spec.ts:132:7 › formatting toolbar geometry 1100x760 light 150%
+  [desktop-msedge] › desktop-formatting.spec.ts:132:7 › formatting toolbar geometry 1100x760 light 200%
+  [desktop-msedge] › desktop-formatting.spec.ts:132:7 › formatting toolbar geometry 1100x760 dark 100%
+  [desktop-msedge] › desktop-formatting.spec.ts:132:7 › formatting toolbar geometry 1100x760 dark 125%
+  [desktop-msedge] › desktop-formatting.spec.ts:132:7 › formatting toolbar geometry 1100x760 dark 150%
+  [desktop-msedge] › desktop-formatting.spec.ts:132:7 › formatting toolbar geometry 1100x760 dark 200%
+  [desktop-msedge] › desktop-formatting.spec.ts:132:7 › formatting toolbar geometry 760x520 light 100%
+  [desktop-msedge] › desktop-formatting.spec.ts:132:7 › formatting toolbar geometry 760x520 light 125%
+  [desktop-msedge] › desktop-formatting.spec.ts:132:7 › formatting toolbar geometry 760x520 light 150%
+  [desktop-msedge] › desktop-formatting.spec.ts:132:7 › formatting toolbar geometry 760x520 light 200%
+  [desktop-msedge] › desktop-formatting.spec.ts:132:7 › formatting toolbar geometry 760x520 dark 100%
+  [desktop-msedge] › desktop-formatting.spec.ts:132:7 › formatting toolbar geometry 760x520 dark 125%
+  [desktop-msedge] › desktop-formatting.spec.ts:132:7 › formatting toolbar geometry 760x520 dark 150%
+  [desktop-msedge] › desktop-formatting.spec.ts:132:7 › formatting toolbar geometry 760x520 dark 200%
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:45:1 › real math and footnotes plus controlled image Worker preserve source/history
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:86:1 › opaque code and controlled provider errors stay literal without executable content
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:119:1 › footnote navigation reveals editable original and remains read only
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:141:1 › disabled renderers disappear and leave Unicode editing and save available
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:173:1 › search keeps the selected marker visible while asynchronous block previews settle
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:311:3 › background preview refresh preserves layout (false)
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:311:3 › background preview refresh preserves layout (true)
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:711:3 › last preview reference supports native Tab round trip (false)
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:741:3 › ordinary proxy focus retains Tab indentation (false)
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:711:3 › last preview reference supports native Tab round trip (true)
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:741:3 › ordinary proxy focus retains Tab indentation (true)
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:760:5 › preview proxy navigation ends after arrow (false)
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:760:5 › preview proxy navigation ends after text (false)
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:760:5 › preview proxy navigation ends after pointer (false)
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:760:5 › preview proxy navigation ends after external-focus (false)
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:760:5 › preview proxy navigation ends after replacement (false)
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:760:5 › preview proxy navigation ends after arrow (true)
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:760:5 › preview proxy navigation ends after text (true)
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:760:5 › preview proxy navigation ends after pointer (true)
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:760:5 › preview proxy navigation ends after external-focus (true)
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:760:5 › preview proxy navigation ends after replacement (true)
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:795:5 › timed-out preparation preserves the uncached near-end reading position (false, auto)
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:795:5 › timed-out preparation preserves the uncached near-end reading position (true, auto)
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:795:5 › timed-out preparation preserves the uncached near-end reading position (false, none)
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:795:5 › timed-out preparation preserves the uncached near-end reading position (true, none)
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:983:3 › uncached source replacement retains the visible reading anchor (auto)
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:983:3 › uncached source replacement retains the visible reading anchor (none)
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:1138:3 › reference pointer activation survives ordinary-provider replacement between down and up
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:1138:3 › reference pointer activation survives windowed-provider replacement between down and up
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:1138:3 › reference pointer activation survives windowed-source replacement between down and up
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:1138:3 › reference pointer activation survives windowed-outside replacement between down and up
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:1361:3 › superseded source navigation cannot silently resolve without selecting its target
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:1361:3 › superseded live navigation cannot silently resolve without selecting its target
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:1460:1 › official Mermaid DOM host is explicitly unavailable in the browser and keeps source
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:1487:1 › presentation resize delivers finite responsive layout outside ResizeObserver delivery
+  [desktop-msedge] › desktop-markdown-extensions.spec.ts:1637:3 › windowed asynchronous navigation reflow › windowed navigation keeps its selected marker mounted while a collapsed fence restores during an asynchronous syntax read
+  [desktop-msedge] › desktop-plugin-cards.spec.ts:44:1 › plugin cards show only identity and description; keyboard detail and back restore focus
+  [desktop-msedge] › desktop-plugin-cards.spec.ts:68:1 › plugin permission approval, enable, disable and uninstall remain inside details
+  [desktop-msedge] › desktop-plugin-cards.spec.ts:89:1 › plugin detail controls and long metadata fit a narrow viewport
+  [desktop-msedge] › desktop-plugin-cards.spec.ts:101:1 › new installation opens approval details; late and broken logos preserve fallback and focus
+  [desktop-msedge] › desktop-plugin-cards.spec.ts:178:1 › background package restoration opens on the list and changed icons do not retain stale images
+  [desktop-msedge] › desktop-plugin-forms.spec.ts:171:1 › controlled fields keep input identity, caret and selection through asynchronous validation
+  [desktop-msedge] › desktop-plugin-forms.spec.ts:218:1 › input/change carry real events without workspace authority and button clicks retain authority
+  [desktop-msedge] › desktop-plugin-forms.spec.ts:264:1 › invalid drafts stay editable, disabled fields skip Tab, and late output cannot steal external focus
+  [desktop-msedge] › desktop-plugin-forms.spec.ts:298:5 › controlled form is readable and keyboard reachable in light narrow 100% CSS zoom
+  [desktop-msedge] › desktop-plugin-forms.spec.ts:298:5 › controlled form is readable and keyboard reachable in light narrow 200% CSS zoom
+  [desktop-msedge] › desktop-plugin-forms.spec.ts:298:5 › controlled form is readable and keyboard reachable in dark narrow 100% CSS zoom
+  [desktop-msedge] › desktop-plugin-forms.spec.ts:298:5 › controlled form is readable and keyboard reachable in dark narrow 200% CSS zoom
+  [desktop-msedge] › desktop-plugin-forms.spec.ts:365:1 › modal keeps the entire focused field and ring visible after asynchronous layout changes
+  [desktop-msedge] › desktop-plugin-tree.spec.ts:148:1 › controlled trees navigate visible items and preserve focus through asynchronous refresh
+  [desktop-msedge] › desktop-plugin-tree.spec.ts:188:1 › collapsing a controlled panel reports visibility and keeps its keyboard return point
+  [desktop-msedge] › desktop-plugin-tree.spec.ts:218:1 › only the same synchronous native button action receives its trusted click or keydown
+  [desktop-msedge] › desktop-plugin-tree.spec.ts:294:3 › controlled navigation remains visible and keyboard usable in light at narrow 200% CSS zoom
+  [desktop-msedge] › desktop-plugin-tree.spec.ts:294:3 › controlled navigation remains visible and keyboard usable in dark at narrow 200% CSS zoom
+  [desktop-msedge] › desktop-plugin-tree.spec.ts:332:7 › navigation secondary list light 1100 with 3 recent rows preserves the primary tree
+  [desktop-msedge] › desktop-plugin-tree.spec.ts:332:7 › navigation secondary list light 1100 with 20 recent rows preserves the primary tree
+  [desktop-msedge] › desktop-plugin-tree.spec.ts:332:7 › navigation secondary list light 760 with 3 recent rows preserves the primary tree
+  [desktop-msedge] › desktop-plugin-tree.spec.ts:332:7 › navigation secondary list light 760 with 20 recent rows preserves the primary tree
+  [desktop-msedge] › desktop-plugin-tree.spec.ts:332:7 › navigation secondary list dark 1100 with 3 recent rows preserves the primary tree
+  [desktop-msedge] › desktop-plugin-tree.spec.ts:332:7 › navigation secondary list dark 1100 with 20 recent rows preserves the primary tree
+  [desktop-msedge] › desktop-plugin-tree.spec.ts:332:7 › navigation secondary list dark 760 with 3 recent rows preserves the primary tree
+  [desktop-msedge] › desktop-plugin-tree.spec.ts:332:7 › navigation secondary list dark 760 with 20 recent rows preserves the primary tree
+  [desktop-msedge] › desktop-preferences.spec.ts:37:1 › permissions, generic menu entry, controlled invalid drafts, preview cancellation and default reset
+  [desktop-msedge] › desktop-preferences.spec.ts:80:1 › failed persistent writes retain the draft and allow cancel or retry without a false saved status
+  [desktop-msedge] › desktop-preferences.spec.ts:117:1 › closing preview then disabling, enabling and uninstalling preserves committed preferences only
+  [desktop-msedge] › desktop-preferences.spec.ts:162:5 › ordinary source preview and commit preserve Unicode CRLF bytes, selection and document history
+  [desktop-msedge] › desktop-preferences.spec.ts:162:5 › ordinary live preview and commit preserve Unicode CRLF bytes, selection and document history
+  [desktop-msedge] › desktop-preferences.spec.ts:162:5 › windowed source preview and commit preserve Unicode CRLF bytes, selection and document history
+  [desktop-msedge] › desktop-preferences.spec.ts:162:5 › windowed live preview and commit preserve Unicode CRLF bytes, selection and document history
+  [desktop-msedge] › desktop-preferences.spec.ts:251:1 › base host remains editable and saves with persistent storage access denied
+  [desktop-msedge] › desktop-preferences.spec.ts:301:3 › ordinary live centered body focuses and selects from both editor gutters
+  [desktop-msedge] › desktop-preferences.spec.ts:301:3 › windowed live centered body focuses and selects from both editor gutters
+  [desktop-msedge] › desktop-preferences.spec.ts:366:1 › responsive breakpoint preserves preferences select and input focus without editing the document
+  [desktop-msedge] › desktop-preferences.spec.ts:434:1 › responsive breakpoint moves focus only when sidebar controls or the editor become unavailable
+  [desktop-msedge] › desktop-shell.spec.ts:40:1 › desktop shell loads editor and tracks dirty session state
+  [desktop-msedge] › desktop-shell.spec.ts:152:1 › plugin manager restores, executes, disables, and reenables a Worker plugin
+  [desktop-msedge] › desktop-shell.spec.ts:209:1 › desktop shell rejects image paste without approved plugin authority
+  [desktop-msedge] › desktop-shell.spec.ts:222:1 › desktop search highlights matches and moves the active result
+  [desktop-msedge] › desktop-shell.spec.ts:245:1 › closing search cancels the active scan and clears highlights
+  [desktop-msedge] › desktop-shell.spec.ts:271:1 › desktop shell routes primary shortcuts through active document actions
+  [desktop-msedge] › desktop-shell.spec.ts:350:1 › desktop shell confirms before closing a dirty window
+  [desktop-msedge] › desktop-shell.spec.ts:414:3 › existing-file success keeps subsequent input and history dirty until their own save
+  [desktop-msedge] › desktop-shell.spec.ts:414:3 › existing-file cancel keeps subsequent input and history dirty until their own save
+  [desktop-msedge] › desktop-shell.spec.ts:414:3 › existing-file error keeps subsequent input and history dirty until their own save
+  [desktop-msedge] › desktop-shell.spec.ts:451:3 › dirty Control+n supports cancel, focus containment and explicit discard
+  [desktop-msedge] › desktop-shell.spec.ts:451:3 › dirty Control+o supports cancel, focus containment and explicit discard
+  [desktop-msedge] › desktop-shell.spec.ts:451:3 › dirty Control+w supports cancel, focus containment and explicit discard
+  [desktop-msedge] › desktop-shell.spec.ts:484:1 › save before new retains the draft after cancellation or failure and supports retry
+  [desktop-msedge] › desktop-shell.spec.ts:508:1 › cancelling a pending save continuation never navigates after the write completes
+  [desktop-msedge] › desktop-shell.spec.ts:536:3 › opening cancel after discard preserves original content and history
+  [desktop-msedge] › desktop-shell.spec.ts:536:3 › opening error after discard preserves original content and history
+  [desktop-msedge] › desktop-shell.spec.ts:561:1 › ordinary save failures are visible without developer diagnostics and recover on retry
+  [desktop-msedge] › desktop-shell.spec.ts:578:1 › browser reload cancellation keeps the unsaved editor alive
+  [desktop-msedge] › desktop-shell.spec.ts:593:3 › synthetic composition cancellation preserves selected text and history in source
+  [desktop-msedge] › desktop-shell.spec.ts:593:3 › synthetic composition cancellation preserves selected text and history in live
+  [desktop-msedge] › desktop-shell.spec.ts:648:1 › multiline code paste and following typing undo independently across mode changes
+  [desktop-msedge] › desktop-shell.spec.ts:676:1 › typing after cursor movement restores only the local edit on undo
+  [desktop-msedge] › desktop-shell.spec.ts:688:1 › cancelled and failed Save As preserve the path and dirty content
+  [desktop-msedge] › desktop-shell.spec.ts:704:1 › windowed memory documents keep finalized composition separate from adjacent typing
+  [desktop-msedge] › desktop-shell.spec.ts:783:1 › rejected synthetic image paste cannot inject references into a newly created document
+  [desktop-msedge] › desktop-shell.spec.ts:801:3 › pending save reconciles modified events before allowing navigation
+  [desktop-msedge] › desktop-shell.spec.ts:801:3 › pending save reconciles deleted events before allowing navigation
+  [desktop-msedge] › desktop-shell.spec.ts:801:3 › pending save reconciles own-save events before allowing navigation
+  [desktop-msedge] › desktop-shell.spec.ts:844:1 › saving after rejected synthetic image paste preserves the exact saved snapshot
+  [desktop-msedge] › desktop-shell.spec.ts:864:1 › browser image chooser failure and retry preserve the document and editable history
+  [desktop-msedge] › desktop-shell.spec.ts:904:3 › Unicode graphemes survive keyboard selection, deletion and undo in source
+  [desktop-msedge] › desktop-shell.spec.ts:904:3 › Unicode graphemes survive keyboard selection, deletion and undo in live
+  [desktop-msedge] › desktop-shell.spec.ts:929:3 › windowed source keyboard edits preserve whole graphemes and undo
+  [desktop-msedge] › desktop-shell.spec.ts:929:3 › windowed live keyboard edits preserve whole graphemes and undo
+  [desktop-msedge] › desktop-shell.spec.ts:961:1 › issue 255 bracket typing keeps its position after delayed rendering
+  [desktop-msedge] › desktop-shell.spec.ts:978:1 › issue 255 single-space headings render immediately after an image line
+  [desktop-msedge] › desktop-shell.spec.ts:994:3 › source list keyboard nesting, exit and undo survive mode changes
+  [desktop-msedge] › desktop-shell.spec.ts:1016:3 › source code block Enter preserves literal markers and blank lines
+  [desktop-msedge] › desktop-shell.spec.ts:994:3 › live list keyboard nesting, exit and undo survive mode changes
+  [desktop-msedge] › desktop-shell.spec.ts:1016:3 › live code block Enter preserves literal markers and blank lines
+  [desktop-msedge] › desktop-shell.spec.ts:1063:1 › live table navigation replaces one cell, keeps line breaks and supports undo
+  [desktop-msedge] › desktop-shell.spec.ts:1093:1 › table toolbar preserves row and column content through undo and redo
+  [desktop-msedge] › desktop-shell.spec.ts:1126:1 › rendered table copy offers HTML and exact Markdown; source copy stays plain
+  [desktop-msedge] › desktop-shell.spec.ts:1163:1 › native-style multiline clipboard paste stays within a cell and table exit is undoable
+  [desktop-msedge] › desktop-shell.spec.ts:1188:1 › phase9 search updates queries and keeps keyboard navigation in the search box
+  [desktop-msedge] › desktop-shell.spec.ts:1208:1 › phase9 outline updates renamed headings and highlights the current section
+  [desktop-msedge] › desktop-shell.spec.ts:1232:1 › phase9 literal replacement preserves Unicode offsets and one undo boundary
+  [desktop-msedge] › desktop-shell.spec.ts:1261:1 › phase9 replace all deletes literally and rejects a stale query
+  [desktop-msedge] › desktop-shell.spec.ts:1280:1 › phase9 editing refreshes results without moving the caret and switching documents clears them
+  [desktop-msedge] › desktop-shell.spec.ts:1305:1 › phase9 truncated results are explicit and cannot be replaced as a complete set
+  [desktop-msedge] › desktop-shell.spec.ts:1318:1 › phase9 narrow search and outline stay reachable and source mode removes inline code styling
+  [desktop-msedge] › desktop-shell.spec.ts:1386:1 › phase10 live table arrows skip delimiters and protect shifted cell selections
+  [desktop-msedge] › desktop-shell.spec.ts:1416:1 › phase16 modal menu contains keyboard focus and closes ahead of background search
+  [desktop-msedge] › desktop-shell.spec.ts:1441:1 › phase16 F6 reaches shell without plugins and keeps basic table navigation and document text
+  [desktop-msedge] › desktop-shell.spec.ts:1466:1 › phase16 confirmation remains scrollable at a 380 by 260 effective viewport
+  [desktop-msedge] › desktop-shell.spec.ts:1488:1 › phase18 theme follows system only when selected, persists explicit dark and keeps contrast
+  [desktop-msedge] › desktop-shell.spec.ts:1559:1 › phase18 narrow sidebar overlays without shrinking text and search controls remain reachable
+  [desktop-msedge] › desktop-shortcuts.spec.ts:94:1 › standalone shortcuts plugin exposes actual commands, draft cancellation, reserved keys and conflicts
+  [desktop-msedge] › desktop-shortcuts.spec.ts:117:1 › saved binding survives restart, restores defaults, and search field keeps local editing plus global save
+  [desktop-msedge] › desktop-shortcuts.spec.ts:150:1 › persistence failure keeps old shortcut, shows bounded error and retains draft
+  [desktop-msedge] › desktop-shortcuts.spec.ts:167:3 › disabled and removed shortcuts plugin leaves source edit/history/save usable
+  [desktop-msedge] › desktop-shortcuts.spec.ts:167:3 › disabled and removed shortcuts plugin leaves live edit/history/save usable
+  [desktop-msedge] › desktop-shortcuts.spec.ts:189:1 › shadowed plugin defaults retain their context after user rebinding and restart
+  [desktop-msedge] › desktop-updates.spec.ts:121:1 › host About has no update feature; public plugin requires approval and owns the UI
+  [desktop-msedge] › desktop-updates.spec.ts:139:1 › plugin shows plain notes and unknown progress; cancellation and retry use guarded release IDs
+  [desktop-msedge] › desktop-updates.spec.ts:156:1 › signature failure cannot install and plugin retry succeeds
+  [desktop-msedge] › desktop-updates.spec.ts:172:1 › even a clean document requires trusted host confirmation; cancel keeps editor and no install
+  [desktop-msedge] › desktop-updates.spec.ts:191:3 › disabled and uninstalled plugin leaves source editing/history and save functional
+  [desktop-msedge] › desktop-updates.spec.ts:191:3 › disabled and uninstalled plugin leaves live editing/history and save functional
+  [desktop-msedge] › desktop-updates.spec.ts:215:5 › plugin update modal light 1100 has keyboard-accessible controls
+  [desktop-msedge] › desktop-updates.spec.ts:215:5 › plugin update modal light 760 has keyboard-accessible controls
+  [desktop-msedge] › desktop-updates.spec.ts:215:5 › plugin update modal dark 1100 has keyboard-accessible controls
+  [desktop-msedge] › desktop-updates.spec.ts:215:5 › plugin update modal dark 760 has keyboard-accessible controls
+  [desktop-msedge] › desktop-updates.spec.ts:234:3 › windowed source plugin install guard saves complete Unicode data before installer failure
+  [desktop-msedge] › desktop-updates.spec.ts:234:3 › windowed live plugin install guard saves complete Unicode data before installer failure
+  [desktop-msedge] › desktop-updates.spec.ts:344:1 › save failure prevents plugin installation and preserves editable draft
+  [desktop-msedge] › desktop-updates.spec.ts:374:1 › background download completion does not steal document focus
+  [desktop-msedge] › desktop-visual-fixes.spec.ts:21:5 › visual fixes light › table delimiters align header and body
+  [desktop-msedge] › desktop-visual-fixes.spec.ts:28:5 › visual fixes light › long unbroken table text stays inside its cell
+  [desktop-msedge] › desktop-visual-fixes.spec.ts:56:5 › visual fixes light › nested bold italic closes before mixed language tail
+  [desktop-msedge] › desktop-visual-fixes.spec.ts:68:5 › visual fixes light › code End reveals caret and shifted selection inside viewport
+  [desktop-msedge] › desktop-visual-fixes.spec.ts:91:5 › visual fixes light › editor focus is quiet while keyboard controls retain focus indication
+  [desktop-msedge] › desktop-visual-fixes.spec.ts:110:5 › visual fixes light › task click changes source once and supports undo redo and keyboard
+  [desktop-msedge] › desktop-visual-fixes.spec.ts:21:5 › visual fixes dark › table delimiters align header and body
+  [desktop-msedge] › desktop-visual-fixes.spec.ts:28:5 › visual fixes dark › long unbroken table text stays inside its cell
+  [desktop-msedge] › desktop-visual-fixes.spec.ts:56:5 › visual fixes dark › nested bold italic closes before mixed language tail
+  [desktop-msedge] › desktop-visual-fixes.spec.ts:68:5 › visual fixes dark › code End reveals caret and shifted selection inside viewport
+  [desktop-msedge] › desktop-visual-fixes.spec.ts:91:5 › visual fixes dark › editor focus is quiet while keyboard controls retain focus indication
+  [desktop-msedge] › desktop-visual-fixes.spec.ts:110:5 › visual fixes dark › task click changes source once and supports undo redo and keyboard
+  [desktop-msedge] › desktop-visual-fixes.spec.ts:140:3 › source horizontal caret reveal returns Home and preserves hit testing
+  [desktop-msedge] › desktop-visual-fixes.spec.ts:140:3 › live horizontal caret reveal returns Home and preserves hit testing
+  [desktop-msedge] › desktop-workspace.spec.ts:145:1 › trusted workspace commands cross the actual Worker and retain asynchronous capabilities; recent paths persist
+  [desktop-msedge] › desktop-workspace.spec.ts:186:1 › scripted workspace actions receive no authority and dirty cancellation preserves the document
+  [desktop-msedge] › desktop-workspace.spec.ts:216:1 › hiding the embedding sidebar cancels pending workspace authority and discards late chooser output
+Total: 197 tests in 12 files

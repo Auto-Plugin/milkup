@@ -2,6 +2,8 @@
 
 基线 `fa530b399a5ebbd020f9bfa7ca039378604c8282`，分支 `dot/milkup-v2-product-phase7-quality`。验收映射见 [P7清单](v2-product-phase7-quality-checklist.md)；原历史旧P9对应当前P7，旧P7插件管理对应当前P6。本文随实际运行补齐，不将组件测试或历史截图视为新平台验收。
 
+后续从检查点 `78e9329004d2ff244585d98dbe0d7cdd98ab9495` 开始的候选03实际长文复测、M02优化和最终验证另见 [M02长文大纲报告](v2-product-phase7-outline-quality-m02-2026-10-19.md)。下文M01候选编号和原始失败保持原意，不将候选02结果改称03重测。
+
 ## 基线与环境
 
 Linux生产baseline重新从fa530构建，458项既有跟踪输入SHA无漂移，`tauri build --no-bundle --ci`退出0。冻结ELF SHA256 `f15c476a4f6e7b5f254e325692d57e9bfaa798580441dd3554f6c4fe1e9d802e`，23138832字节。不是用M02旧程序代替M03之后完整产品。独立Xvfb :127、driver4477、私有profile，WebKit沙箱保持开启；旧:126未操作。候选改用文件系统输入清单，包含新源文件及被Git忽略的内嵌插件包，不把dirty候选伪称为fa530原提交。

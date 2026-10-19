@@ -1,0 +1,35 @@
+{
+  "recordedUtc": "2026-10-19T13:23:25.664992+00:00",
+  "affectedRun": "p7-candidate-m02-outline-dense-01",
+  "driverUtc": [
+    "2026-10-19T13:14:00.268484Z",
+    "2026-10-19T13:16:32.382925Z"
+  ],
+  "disclosedBy": "/root/p5_sdk and /root",
+  "overlap": [
+    {
+      "command": "node node_modules/prettier/bin/prettier.cjs --write tests/helpers/formatting-plugin.ts",
+      "executions": 2,
+      "formatterReportedMs": [
+        143,
+        145
+      ],
+      "wholeShellSeconds": [
+        0.366749714,
+        0.281895664
+      ],
+      "firstUtc": "not retained; cannot reconstruct",
+      "secondFileWriteUtc": "2026-10-19T13:14:05.411531Z",
+      "scope": "Each shell also contained Python editing and lightweight git diff; no tests/typecheck/build"
+    },
+    {
+      "scope": "lightweight report write and SHA calculation",
+      "fileMtimesUtc": [
+        "2026-10-19T13:14:29.440448Z",
+        "2026-10-19T13:14:29.440865Z"
+      ]
+    }
+  ],
+  "attribution": "No causal attribution to any slow sample. First formatter exact UTC absent. Report write occurred before first index observation at13:14:31.955Z; no exact cross-clock synchronization exists in uninstrumented harness. Original measurements retained without rerun or filtering.",
+  "future": "Require no concurrent formatter during later optimized production timing."
+}

@@ -5,6 +5,324 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { DesktopPluginUiController, type DesktopPluginUiRuntime } from './desktop-plugin-ui'
 
+describe('generic virtual scroll scheduling', () => {
+  it('publishes a near-edge range within one frame window during sustained scrolling', async () => {
+    const fixture = await createScrollSchedulerFixture()
+    try {
+      for (let index = 0; index < 4; index++) {
+        fixture.wheel(140 + index)
+        await vi.advanceTimersByTimeAsync(8)
+      }
+      expect(fixture.requests).toHaveLength(1)
+      expect(fixture.requests[0]!.at).toBeLessThanOrEqual(32)
+      for (let index = 4; index < 50; index++) {
+        fixture.wheel(140 + index)
+        await vi.advanceTimersByTimeAsync(8)
+      }
+      await vi.advanceTimersByTimeAsync(200)
+      expect(fixture.requests).toHaveLength(1)
+      const list = fixture.list()
+      expect(Number(list.dataset.virtualStart)).toBeLessThanOrEqual(189)
+      expect(Number(list.dataset.virtualEnd)).toBeGreaterThanOrEqual(199)
+      expect(list.querySelectorAll('[role="treeitem"]')).toHaveLength(
+        Number(list.dataset.virtualEnd) - Number(list.dataset.virtualStart),
+      )
+    } finally {
+      await fixture.dispose()
+    }
+  })
+
+  it('keeps a requested buffer across old-slice echoes without suppressing a newer distant range', async () => {
+    const fixture = await createScrollSchedulerFixture()
+    fixture.echoOldSlice = true
+    try {
+      fixture.wheel(140)
+      await vi.advanceTimersByTimeAsync(200)
+      expect(fixture.requests).toHaveLength(1)
+      expect(fixture.list().dataset.virtualEnd).toBe('160')
+      for (const position of [145, 150, 155, 160]) {
+        fixture.wheel(position)
+        await vi.advanceTimersByTimeAsync(200)
+      }
+      expect(fixture.requests).toHaveLength(1)
+      fixture.wheel(600)
+      await vi.advanceTimersByTimeAsync(32)
+      expect(fixture.requests).toHaveLength(2)
+      expect(fixture.requests[1]!.range.fromIndex).toBe(440)
+      expect(fixture.requests[1]!.range.toIndex).toBe(770)
+      fixture.echoOldSlice = false
+      await fixture.controller.invalidate('public-example', 'items')
+      expect(fixture.list().dataset.virtualStart).toBe('440')
+      expect(fixture.list().dataset.virtualEnd).toBe('770')
+      expect(fixture.list().querySelectorAll('[role="treeitem"]')).toHaveLength(330)
+      const count = fixture.requests.length
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(fixture.requests).toHaveLength(count)
+    } finally {
+      await fixture.dispose()
+    }
+  })
+
+  it('allows only one scroll render in flight and retains only the latest pending range', async () => {
+    const fixture = await createScrollSchedulerFixture()
+    fixture.defer = true
+    try {
+      fixture.wheel(140)
+      await vi.advanceTimersByTimeAsync(200)
+      expect(fixture.requests).toHaveLength(1)
+      for (const position of [150, 600, 900]) {
+        fixture.wheel(position)
+        await vi.advanceTimersByTimeAsync(200)
+      }
+      expect(fixture.requests).toHaveLength(1)
+      fixture.resolveNextOldSlice()
+      await vi.advanceTimersByTimeAsync(32)
+      expect(fixture.requests).toHaveLength(2)
+      expect(fixture.requests[1]!.range.fromIndex).toBe(740)
+      expect(fixture.requests[1]!.range.toIndex).toBe(1070)
+      await vi.advanceTimersByTimeAsync(500)
+      expect(fixture.requests).toHaveLength(2)
+    } finally {
+      await fixture.dispose()
+    }
+  })
+
+  it.each(['document', 'version', 'dispose'] as const)(
+    'drops a scheduled scroll demand after its %s changes',
+    async (change) => {
+      const fixture = await createScrollSchedulerFixture()
+      try {
+        fixture.wheel(140)
+        if (change === 'document') await fixture.controller.sync('next-document')
+        else if (change === 'version') fixture.version++
+        else await fixture.controller.dispose()
+        const count = fixture.requests.length
+        await vi.advanceTimersByTimeAsync(500)
+        expect(fixture.requests).toHaveLength(count)
+        expect(fixture.listOptional()?.dataset.virtualStart ?? '0').toBe('0')
+      } finally {
+        await fixture.dispose()
+      }
+    },
+  )
+
+  it('lets a new version schedule its own range without inheriting an old timer', async () => {
+    const fixture = await createScrollSchedulerFixture()
+    try {
+      fixture.wheel(140)
+      fixture.version++
+      fixture.wheel(600)
+      await vi.advanceTimersByTimeAsync(32)
+      expect(fixture.requests).toHaveLength(1)
+      expect(fixture.requests[0]!.range.fromIndex).toBe(440)
+      expect(fixture.list().dataset.virtualStart).toBe('440')
+    } finally {
+      await fixture.dispose()
+    }
+  })
+
+  it.each(['selection', 'follow-active'] as const)(
+    'lets same-document %s navigation supersede an old echoed scroll buffer',
+    async (navigation) => {
+      const fixture = await createScrollSchedulerFixture()
+      fixture.echoOldSlice = true
+      try {
+        fixture.wheel(140)
+        await vi.advanceTimersByTimeAsync(32)
+        expect(fixture.requests).toHaveLength(1)
+        if (navigation === 'selection') fixture.selectionRevision++
+        await fixture.publishActive(5900, 6060, 6000)
+        const count = fixture.requests.length
+        fixture.list().dispatchEvent(new Event('scroll'))
+        await vi.advanceTimersByTimeAsync(200)
+        expect(fixture.requests).toHaveLength(count)
+        fixture.echoOldSlice = false
+        await fixture.controller.invalidate('public-example', 'items')
+        expect(fixture.requests.at(-1)!.range.fromIndex).toBe(5900)
+        expect(fixture.requests.at(-1)!.range.toIndex).toBe(6060)
+        expect(fixture.list().dataset.virtualStart).toBe('5900')
+        fixture.wheel(7000)
+        await vi.advanceTimersByTimeAsync(32)
+        expect(fixture.requests.at(-1)!.range.fromIndex).toBe(6840)
+        expect(fixture.list().dataset.virtualStart).toBe('6840')
+      } finally {
+        await fixture.dispose()
+      }
+    },
+  )
+
+  it.each(['echo', 'in-flight'] as const)(
+    'requests the same position again after a version change with an old %s',
+    async (response) => {
+      const fixture = await createScrollSchedulerFixture()
+      fixture.echoOldSlice = true
+      fixture.defer = response === 'in-flight'
+      try {
+        fixture.wheel(600)
+        await vi.advanceTimersByTimeAsync(32)
+        expect(fixture.requests).toHaveLength(1)
+        fixture.version++
+        fixture.wheel(600)
+        await vi.advanceTimersByTimeAsync(32)
+        expect(fixture.requests).toHaveLength(2)
+        expect(fixture.requests[1]!.range).toEqual(fixture.requests[0]!.range)
+      } finally {
+        await fixture.dispose()
+      }
+    },
+  )
+
+  it('lets local keyboard Home cancel even an already in-flight scroll range', async () => {
+    const fixture = await createScrollSchedulerFixture()
+    fixture.defer = true
+    try {
+      fixture.list().querySelector<HTMLButtonElement>('[role="treeitem"]')!.focus()
+      fixture.wheel(600)
+      await vi.advanceTimersByTimeAsync(32)
+      expect(fixture.requests).toHaveLength(1)
+      document.activeElement!.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Home', bubbles: true }),
+      )
+      fixture.resolveNextRange()
+      await vi.advanceTimersByTimeAsync(500)
+      expect(fixture.requests).toHaveLength(1)
+      expect(document.activeElement?.textContent).toBe('Heading 0')
+      expect(fixture.list().dataset.virtualStart).toBe('0')
+    } finally {
+      await fixture.dispose()
+    }
+  })
+
+  it('does not reclaim departed focus or replay pending scroll over keyboard Home', async () => {
+    const fixture = await createScrollSchedulerFixture()
+    try {
+      fixture.wheel(600)
+      const outside = document.querySelector<HTMLButtonElement>('#scroll-outside')!
+      outside.focus()
+      await vi.advanceTimersByTimeAsync(200)
+      expect(document.activeElement).toBe(outside)
+      const row = fixture.list().querySelector<HTMLButtonElement>('[role="treeitem"]')!
+      row.focus()
+      fixture.wheel(900)
+      row.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }))
+      await vi.advanceTimersByTimeAsync(500)
+      expect(document.activeElement?.textContent).toBe('Heading 0')
+      expect(fixture.list().dataset.virtualStart).toBe('0')
+      expect(fixture.list().querySelectorAll('[role="treeitem"][tabindex="0"]')).toHaveLength(1)
+    } finally {
+      await fixture.dispose()
+    }
+  })
+})
+
+async function createScrollSchedulerFixture() {
+  vi.useFakeTimers()
+  vi.setSystemTime(0)
+  document.body.innerHTML =
+    '<button id="scroll-outside">Outside</button><div data-plugin-slot="sidebar-panel"></div>'
+  const height = vi
+    .spyOn(HTMLElement.prototype, 'clientHeight', 'get')
+    .mockImplementation(function (this: HTMLElement) {
+      return this.matches('[data-virtual-list]') ? 280 : 0
+    })
+  type Range = { id: string; fromIndex: number; toIndex: number; userInitiated?: boolean }
+  const requests: { at: number; range: Range }[] = []
+  const deferred: ((output: unknown) => void)[] = []
+  const output = (start = 0, end = 160, revision = 0) => {
+    const tree = virtualTreeOutput(start, end, 20000)
+    return {
+      ...tree,
+      attributes: {
+        ...tree.attributes,
+        'data-virtual-list': 'public-items',
+        'data-virtual-revision': String(revision),
+      },
+    }
+  }
+  const runtime = createRuntime(
+    [
+      {
+        pluginId: 'public-example',
+        id: 'items',
+        title: 'Items',
+        slot: 'sidebar-panel',
+        scope: 'document',
+      },
+    ],
+    [],
+    vi.fn(),
+    (phase, state) => {
+      if (phase !== 'update') return output()
+      const range = state.virtualViewport as Range | undefined
+      if (!range) return output()
+      requests.push({ at: Date.now(), range: { ...range } })
+      if (fixture.published) return fixture.published
+      if (fixture.defer) return new Promise((resolve) => deferred.push(resolve))
+      return fixture.echoOldSlice
+        ? output(0, 160, requests.length)
+        : output(range.fromIndex, range.toIndex, requests.length)
+    },
+  )
+  const controller: DesktopPluginUiController = new DesktopPluginUiController(
+    document.body,
+    runtime,
+    (): Readonly<Record<string, unknown>> => ({
+      documentVersion: fixture.version,
+      selectionRevision: fixture.selectionRevision,
+    }),
+  )
+  const fixture = {
+    controller,
+    requests,
+    version: 1,
+    selectionRevision: 1,
+    published: undefined as ReturnType<typeof output> | undefined,
+    echoOldSlice: false,
+    defer: false,
+    listOptional: () => document.querySelector<HTMLElement>('[data-virtual-list="public-items"]'),
+    list: () => document.querySelector<HTMLElement>('[data-virtual-list="public-items"]')!,
+    wheel(position: number) {
+      const list = this.list()
+      list.scrollTop = position * 28
+      list.dispatchEvent(new WheelEvent('wheel', { deltaY: 28 }))
+      list.dispatchEvent(new Event('scroll'))
+    },
+    resolveNextOldSlice() {
+      const resolve = deferred.shift()
+      if (!resolve) throw new Error('Expected an actual in-flight renderer request')
+      resolve(output(0, 160, requests.length))
+    },
+    resolveNextRange() {
+      const resolve = deferred.shift()
+      const range = requests[0]?.range
+      if (!resolve || !range) throw new Error('Expected an actual in-flight renderer request')
+      resolve(output(range.fromIndex, range.toIndex, requests.length))
+    },
+    async publishActive(start: number, end: number, active: number) {
+      const tree = output(start, end, requests.length + 1)
+      this.published = {
+        ...tree,
+        attributes: {
+          ...tree.attributes,
+          'data-virtual-active': String(active),
+          'data-virtual-follow-active': 'true',
+        },
+      }
+      await controller.invalidate('public-example', 'items')
+      this.published = undefined
+    },
+    async dispose() {
+      await controller.dispose()
+      for (const resolve of deferred.splice(0)) resolve(output())
+      await vi.advanceTimersByTimeAsync(0)
+      height.mockRestore()
+      vi.useRealTimers()
+    },
+  }
+  await controller.sync('document')
+  return fixture
+}
+
 describe('DesktopPluginUiController', () => {
   it('restores a virtual keyboard target named by text without requiring aria-label', async () => {
     document.body.innerHTML = '<div data-plugin-slot="sidebar-panel"></div>'

@@ -1,0 +1,168 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ❯ plugins/outline/src/plugin.test.ts (32 tests | 11 failed | 21 skipped) 53ms
+   ↓ complete paged outline index > ignores delayed echoes of the last returned slice rather than oscillating between old and prepared ranges
+   ↓ complete paged outline index > stops following the old active heading immediately and keeps the newest scroll request during storage reads
+   ↓ complete paged outline index > ignores host slice echoes and settles without a render feedback loop
+   ↓ complete paged outline index > indexes every contiguous range, preserves the full hierarchy and does not rescan when navigating
+   ↓ complete paged outline index > folds subtrees across scan boundaries, highlights ancestors and restores a navigated child
+   ↓ complete paged outline index > uses source identity for duplicate titles and rejects stale version actions immediately
+   ↓ complete paged outline index > discards old scans after quick document changes and disposes each temporary index
+   ↓ complete paged outline index > invalidates cached visible ancestors when a later range adds their first child
+   ↓ complete paged outline index > shows a partial index honestly, supports cancellation/retry and does not reuse cancelled identities
+   ↓ complete paged outline index > supports empty documents and reports storage capability or quota failures explicitly
+   ↓ complete paged outline index > does not silently complete after invalidated, truncated or interrupted scans
+   ↓ complete paged outline index > accepts Setext headings starting before the next range and deduplicates overlap by source offset
+   ↓ complete paged outline index > keeps every indexed title available beyond 16384 lines while rendering no more than 500 rows
+   ↓ complete paged outline index > bounds persisted pages for worst-case escaped labels while preserving folds
+   ↓ complete paged outline index > does not accept a delayed old-document navigation as current selection
+   ↓ reports a temporary-index quota failure without presenting a complete or silently empty outline
+   ↓ disposes delayed storage creation on disable without scheduling stale updates
+   ↓ does not highlight a guessed current heading before the active line has been scanned
+   ↓ debounces rapid edits/undo-redo and waits for old temporary-store disposal before indexing the newest version
+   ↓ cancels a debounced startup before allocating a store and can retry normally
+   ↓ reports failed sparse fold writes rather than claiming the folded tree is complete
+   × bounded scan progress refreshes > coalesces sustained batches in a fixed progress window without postponing the deadline or losing headings 21ms
+     → expected "spy" to be called 1 times, but got 20 times
+   × bounded scan progress refreshes > publishes the first heading immediately even when an earlier empty progress event is deferred 5ms
+     → expected "spy" to not be called at all, but actually been called 1 times
+
+Received: 
+
+  1st spy call:
+
+    Array [
+      "outline-panel",
+    ]
+
+
+Number of calls: 1
+
+   × bounded scan progress refreshes > lets completion preempt a deferred progress refresh and leaves no late duplicate 2ms
+     → expected "spy" to be called 1 times, but got 2 times
+   × bounded scan progress refreshes > publishes cancel immediately and cancels its pending progress notification 2ms
+     → expected "spy" to be called 1 times, but got 2 times
+   × bounded scan progress refreshes > publishes invalidated immediately and cancels its pending progress notification 2ms
+     → expected "spy" to be called 1 times, but got 2 times
+   × bounded scan progress refreshes > publishes truncated immediately and cancels its pending progress notification 2ms
+     → expected "spy" to be called 1 times, but got 2 times
+   × bounded scan progress refreshes > keeps user active-heading navigation and fold feedback immediate during scanning 2ms
+     → expected "spy" to be called 1 times, but got 2 times
+   × bounded scan progress refreshes > lets an explicit scroll request preempt pending progress without discarding the requested slice 11ms
+     → expected "spy" to be called 1 times, but got 2 times
+   × bounded scan progress refreshes > drops a deferred progress timer on new-version without publishing old-session rows 2ms
+     → expected "spy" to be called 1 times, but got 2 times
+   × bounded scan progress refreshes > drops a deferred progress timer on new-document without publishing old-session rows 1ms
+     → expected "spy" to be called 1 times, but got 2 times
+   × bounded scan progress refreshes > drops a deferred progress timer on dispose without publishing old-session rows 1ms
+     → expected "spy" to be called 1 times, but got 2 times
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  plugins/outline/src/plugin.test.ts > bounded scan progress refreshes > coalesces sustained batches in a fixed progress window without postponing the deadline or losing headings
+AssertionError: expected "spy" to be called 1 times, but got 20 times
+ ❯ plugins/outline/src/plugin.test.ts:815:31
+    813|     // Each event crosses a distinct simulated timer turn; the former …
+    814|     // publishes every one. A trailing debounce would incorrectly keep…
+    815|     expect(env.requestUpdate).toHaveBeenCalledTimes(first)
+       |                               ^
+    816|     await vi.advanceTimersByTimeAsync(10)
+    817|     expect(env.requestUpdate).toHaveBeenCalledTimes(first + 1)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯
+
+ FAIL  plugins/outline/src/plugin.test.ts > bounded scan progress refreshes > publishes the first heading immediately even when an earlier empty progress event is deferred
+AssertionError: expected "spy" to not be called at all, but actually been called 1 times
+
+Received: 
+
+  1st spy call:
+
+    Array [
+      "outline-panel",
+    ]
+
+
+Number of calls: 1
+
+ ❯ plugins/outline/src/plugin.test.ts:836:35
+    834|     controlled.emit()
+    835|     await vi.advanceTimersByTimeAsync(10)
+    836|     expect(env.requestUpdate).not.toHaveBeenCalled()
+       |                                   ^
+    837|     controlled.emit([heading('First visible', 20)])
+    838|     await vi.advanceTimersByTimeAsync(2)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/11]⎯
+
+ FAIL  plugins/outline/src/plugin.test.ts > bounded scan progress refreshes > lets completion preempt a deferred progress refresh and leaves no late duplicate
+AssertionError: expected "spy" to be called 1 times, but got 2 times
+ ❯ plugins/outline/src/plugin.test.ts:848:31
+    846|     controlled.emit([heading('Tail', 100)])
+    847|     await vi.advanceTimersByTimeAsync(10)
+    848|     expect(env.requestUpdate).toHaveBeenCalledTimes(first)
+       |                               ^
+    849|     controlled.emit(undefined, 'complete')
+    850|     await vi.advanceTimersByTimeAsync(2)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/11]⎯
+
+ FAIL  plugins/outline/src/plugin.test.ts > bounded scan progress refreshes > publishes cancel immediately and cancels its pending progress notification
+ FAIL  plugins/outline/src/plugin.test.ts > bounded scan progress refreshes > publishes invalidated immediately and cancels its pending progress notification
+ FAIL  plugins/outline/src/plugin.test.ts > bounded scan progress refreshes > publishes truncated immediately and cancels its pending progress notification
+AssertionError: expected "spy" to be called 1 times, but got 2 times
+ ❯ plugins/outline/src/plugin.test.ts:865:33
+    863|       controlled.emit()
+    864|       await vi.advanceTimersByTimeAsync(10)
+    865|       expect(env.requestUpdate).toHaveBeenCalledTimes(first)
+       |                                 ^
+    866|       if (reason === 'cancel') await plugin.commands['outline.cancel']…
+    867|       else controlled.emit(undefined, reason)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/11]⎯
+
+ FAIL  plugins/outline/src/plugin.test.ts > bounded scan progress refreshes > keeps user active-heading navigation and fold feedback immediate during scanning
+AssertionError: expected "spy" to be called 1 times, but got 2 times
+ ❯ plugins/outline/src/plugin.test.ts:883:31
+    881|     controlled.emit()
+    882|     await vi.advanceTimersByTimeAsync(10)
+    883|     expect(env.requestUpdate).toHaveBeenCalledTimes(published)
+       |                               ^
+    884|     render('doc', 1, 2)
+    885|     await vi.advanceTimersByTimeAsync(2)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/11]⎯
+
+ FAIL  plugins/outline/src/plugin.test.ts > bounded scan progress refreshes > lets an explicit scroll request preempt pending progress without discarding the requested slice
+AssertionError: expected "spy" to be called 1 times, but got 2 times
+ ❯ plugins/outline/src/plugin.test.ts:904:31
+    902|     controlled.emit(Array.from({ length: 200 }, (_, index) => heading(…
+    903|     await vi.advanceTimersByTimeAsync(10)
+    904|     expect(env.requestUpdate).toHaveBeenCalledTimes(first)
+       |                               ^
+    905|     render('doc', 1, undefined, { from: 170, to: 190 })
+    906|     await vi.advanceTimersByTimeAsync(2)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/11]⎯
+
+ FAIL  plugins/outline/src/plugin.test.ts > bounded scan progress refreshes > drops a deferred progress timer on new-version without publishing old-session rows
+ FAIL  plugins/outline/src/plugin.test.ts > bounded scan progress refreshes > drops a deferred progress timer on new-document without publishing old-session rows
+ FAIL  plugins/outline/src/plugin.test.ts > bounded scan progress refreshes > drops a deferred progress timer on dispose without publishing old-session rows
+AssertionError: expected "spy" to be called 1 times, but got 2 times
+ ❯ plugins/outline/src/plugin.test.ts:923:33
+    921|       controlled.emit()
+    922|       await vi.advanceTimersByTimeAsync(10)
+    923|       expect(env.requestUpdate).toHaveBeenCalledTimes(first)
+       |                                 ^
+    924|       if (operation === 'dispose') await env.lifecycle.dispose()
+    925|       else {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/11]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  11 failed | 21 skipped (32)
+   Start at  13:38:16
+   Duration  493ms (transform 134ms, setup 0ms, collect 170ms, tests 53ms, environment 0ms, prepare 80ms)
+

@@ -92,6 +92,10 @@ function scanResult(
     },
   }
 }
+const unexpectedHostCall = async (): Promise<never> => {
+  throw new Error('Unexpected host operation in outline fixture')
+}
+
 function setup(
   items: readonly SdkDocumentScanHeading[],
   lines: number,
@@ -110,14 +114,24 @@ function setup(
     pluginId: 'outline',
     permissions: ['document:read'],
     host: {
-      document: { scan },
+      document: {
+        scan,
+        readWindow: unexpectedHostCall,
+        invalidatePresentation: unexpectedHostCall,
+      },
       storage: {
         getItem: async () => null,
         setItem: async () => {},
         removeItem: async () => {},
         createTemporaryStore,
       },
-      ui: { revealLine, requestUpdate },
+      ui: {
+        revealLine,
+        requestUpdate,
+        revealLocation: unexpectedHostCall,
+        open: unexpectedHostCall,
+        notify: unexpectedHostCall,
+      },
     },
   })
   return { scan, revealLine, stores, requestUpdate, createTemporaryStore, lifecycle }
@@ -135,7 +149,9 @@ function render(
       documentId,
       documentVersion: version,
       viewMode: mode,
-      ...(activeLine === undefined ? {} : { viewport: { activeLine } }),
+      ...(activeLine === undefined
+        ? {}
+        : { viewport: { activeLine, fromLine: activeLine, toLine: activeLine } }),
       ...(virtual
         ? {
             virtualViewport: {
@@ -391,7 +407,11 @@ describe('complete paged outline index', () => {
 
   it('discards old scans after quick document changes and disposes each temporary index', async () => {
     const pending = gate()
-    const old = scanResult([heading('Old', 1)], 10, { fromLine: 1, toLine: 4096 })
+    const old = scanResult([heading('Old', 1)], 10, {
+      query: { kind: 'markdownHeadings' },
+      fromLine: 1,
+      toLine: 4096,
+    })
     const scan = vi.fn((request: SdkDocumentScanRequest): SdkDocumentScanner =>
       scan.mock.calls.length === 1
         ? {
@@ -481,7 +501,13 @@ describe('complete paged outline index', () => {
     plugin.activate({
       pluginId: 'outline',
       permissions: [],
-      host: { document: { scan: () => scanResult([], 1, {}) } },
+      host: {
+        document: {
+          scan: () => scanResult([], 1, { query: { kind: 'markdownHeadings' } }),
+          readWindow: unexpectedHostCall,
+          invalidatePresentation: unexpectedHostCall,
+        },
+      },
     })
     render()
     await vi.waitFor(() => expect(text(render())).toContain('宿主不支持'))
@@ -727,4 +753,237 @@ it('reports failed sparse fold writes rather than claiming the folded tree is co
   ).rejects.toThrow('fold write quota exceeded')
   expect(text(render())).toContain('折叠视图更新失败')
   expect(text(render())).not.toContain('全文索引完成')
+})
+
+describe('bounded scan progress refreshes', () => {
+  afterEach(async () => {
+    await plugin.deactivate()
+    vi.useRealTimers()
+  })
+
+  function controlledScan() {
+    const queued: SdkDocumentScanEvent[] = []
+    let waiting: ((result: IteratorResult<SdkDocumentScanEvent>) => void) | undefined
+    let closed = false
+    let scanned = 0
+    let resultCount = 0
+    const cancel = vi.fn(async () => {
+      closed = true
+      queued.length = 0
+      waiting?.({ done: true, value: undefined })
+      waiting = undefined
+    })
+    const scanner: SdkDocumentScanner = {
+      cancel,
+      [Symbol.asyncIterator]() {
+        return {
+          next: () => {
+            const event = queued.shift()
+            if (event) return Promise.resolve({ done: false as const, value: event })
+            if (closed) return Promise.resolve({ done: true as const, value: undefined })
+            return new Promise<IteratorResult<SdkDocumentScanEvent>>((resolve) => {
+              waiting = resolve
+            })
+          },
+          return: async () => {
+            await cancel()
+            return { done: true, value: undefined }
+          },
+        }
+      },
+    }
+    function emit(
+      items?: readonly SdkDocumentScanHeading[],
+      reason?: 'complete' | 'invalidated' | 'truncated',
+    ) {
+      scanned = reason ? 1000 : Math.max(scanned + 1, ...(items?.map((item) => item.line) ?? []))
+      resultCount += items?.length ?? 0
+      const common = {
+        scanId: 'controlled-progress',
+        documentId: 'doc',
+        version: 1,
+        scannedLineCount: scanned,
+        totalLineCount: 1000,
+        resultCount,
+      }
+      const event: SdkDocumentScanEvent = reason
+        ? { ...common, type: 'done', reason, complete: reason === 'complete' }
+        : items
+          ? { ...common, type: 'batch', items }
+          : { ...common, type: 'progress' }
+      if (waiting) {
+        const resolve = waiting
+        waiting = undefined
+        resolve({ done: false, value: event })
+      } else queued.push(event)
+    }
+    return { scanner, emit, cancel }
+  }
+
+  async function startProgressScan() {
+    vi.useFakeTimers()
+    const controlled = controlledScan()
+    const env = setup([], 1000, () => controlled.scanner)
+    render()
+    await vi.advanceTimersByTimeAsync(121)
+    expect(env.scan).toHaveBeenCalledTimes(1)
+    controlled.emit([heading('Root', 1), heading('Child', 2, 2)])
+    await vi.advanceTimersByTimeAsync(1)
+    expect(rows(render())).toHaveLength(2)
+    expect(env.requestUpdate).toHaveBeenCalledTimes(1)
+    return { controlled, env }
+  }
+
+  it('coalesces sustained batches in a fixed progress window without postponing the deadline or losing headings', async () => {
+    const { controlled, env } = await startProgressScan()
+    const first = env.requestUpdate.mock.calls.length
+    for (let index = 0; index < 19; index++) {
+      controlled.emit([heading(`Later ${index}`, index + 3)])
+      await vi.advanceTimersByTimeAsync(5)
+    }
+    // Each event crosses a distinct simulated timer turn; the former zero-delay scheduler
+    // publishes every one. A trailing debounce would incorrectly keep deferring.
+    expect(env.requestUpdate).toHaveBeenCalledTimes(first)
+    await vi.advanceTimersByTimeAsync(10)
+    expect(env.requestUpdate).toHaveBeenCalledTimes(first + 1)
+    expect(rows(render())).toHaveLength(21)
+    expect(text(render())).toContain('全文索引尚未完成')
+    controlled.emit(undefined, 'complete')
+    await vi.advanceTimersByTimeAsync(2)
+    expect(text(render())).toContain('全文索引完成 · 21 个标题')
+    expect(rows(render()).map((row) => row.attributes['aria-level'])).toEqual([
+      '1',
+      '2',
+      ...Array.from({ length: 19 }, () => '1'),
+    ])
+  })
+
+  it('publishes the first heading immediately even when an earlier empty progress event is deferred', async () => {
+    vi.useFakeTimers()
+    const controlled = controlledScan()
+    const env = setup([], 1000, () => controlled.scanner)
+    render()
+    await vi.advanceTimersByTimeAsync(121)
+    controlled.emit()
+    await vi.advanceTimersByTimeAsync(10)
+    expect(env.requestUpdate).not.toHaveBeenCalled()
+    controlled.emit([heading('First visible', 20)])
+    await vi.advanceTimersByTimeAsync(2)
+    expect(env.requestUpdate).toHaveBeenCalledTimes(1)
+    expect(text(render())).toContain('First visible')
+  })
+
+  it('lets completion preempt a deferred progress refresh and leaves no late duplicate', async () => {
+    const { controlled, env } = await startProgressScan()
+    const first = env.requestUpdate.mock.calls.length
+    controlled.emit([heading('Tail', 100)])
+    await vi.advanceTimersByTimeAsync(10)
+    expect(env.requestUpdate).toHaveBeenCalledTimes(first)
+    controlled.emit(undefined, 'complete')
+    await vi.advanceTimersByTimeAsync(2)
+    expect(env.requestUpdate).toHaveBeenCalledTimes(first + 1)
+    expect(text(render())).toContain('全文索引完成 · 3 个标题')
+    expect(text(render())).toContain('Tail')
+    await vi.advanceTimersByTimeAsync(200)
+    expect(env.requestUpdate).toHaveBeenCalledTimes(first + 1)
+  })
+
+  it.each(['cancel', 'invalidated', 'truncated'] as const)(
+    'publishes %s immediately and cancels its pending progress notification',
+    async (reason) => {
+      const { controlled, env } = await startProgressScan()
+      const first = env.requestUpdate.mock.calls.length
+      controlled.emit()
+      await vi.advanceTimersByTimeAsync(10)
+      expect(env.requestUpdate).toHaveBeenCalledTimes(first)
+      if (reason === 'cancel') await plugin.commands['outline.cancel']()
+      else controlled.emit(undefined, reason)
+      await vi.advanceTimersByTimeAsync(2)
+      expect(env.requestUpdate).toHaveBeenCalledTimes(first + 1)
+      expect(text(render())).toContain(
+        reason === 'cancel'
+          ? '扫描已取消'
+          : reason === 'invalidated'
+            ? '文档已变化'
+            : '大纲加载失败',
+      )
+      await vi.advanceTimersByTimeAsync(200)
+      expect(env.requestUpdate).toHaveBeenCalledTimes(first + 1)
+    },
+  )
+
+  it('keeps user active-heading navigation and fold feedback immediate during scanning', async () => {
+    const { controlled, env } = await startProgressScan()
+    let published = env.requestUpdate.mock.calls.length
+    controlled.emit()
+    await vi.advanceTimersByTimeAsync(10)
+    expect(env.requestUpdate).toHaveBeenCalledTimes(published)
+    render('doc', 1, 2)
+    await vi.advanceTimersByTimeAsync(2)
+    expect(env.requestUpdate).toHaveBeenCalledTimes(++published)
+    expect(activeTitle(render())).toBe('Child')
+    controlled.emit()
+    await vi.advanceTimersByTimeAsync(10)
+    expect(env.requestUpdate).toHaveBeenCalledTimes(published)
+    await plugin.commands['outline.collapseAll']()
+    await vi.advanceTimersByTimeAsync(2)
+    expect(env.requestUpdate).toHaveBeenCalledTimes(++published)
+    expect(rows(render())).toHaveLength(1)
+    await vi.advanceTimersByTimeAsync(200)
+    expect(env.requestUpdate).toHaveBeenCalledTimes(published)
+  })
+
+  it('lets an explicit scroll request preempt pending progress without discarding the requested slice', async () => {
+    const { controlled, env } = await startProgressScan()
+    const first = env.requestUpdate.mock.calls.length
+    controlled.emit(
+      Array.from({ length: 200 }, (_, index) => heading(`Scroll ${index}`, index + 3)),
+    )
+    await vi.advanceTimersByTimeAsync(10)
+    expect(env.requestUpdate).toHaveBeenCalledTimes(first)
+    render('doc', 1, undefined, { from: 170, to: 190 })
+    await vi.advanceTimersByTimeAsync(2)
+    expect(env.requestUpdate).toHaveBeenCalledTimes(first + 1)
+    const list = elements(
+      render(),
+      (item) => item.attributes['data-virtual-list'] === 'outline',
+    )[0]!
+    expect(list.attributes['data-virtual-start']).toBe('170')
+    expect(list.attributes['data-virtual-end']).toBe('190')
+    expect(rows(render())).toHaveLength(20)
+    await vi.advanceTimersByTimeAsync(200)
+    expect(env.requestUpdate).toHaveBeenCalledTimes(first + 1)
+  })
+
+  it.each(['new-version', 'new-document', 'dispose'] as const)(
+    'drops a deferred progress timer on %s without publishing old-session rows',
+    async (operation) => {
+      const { controlled, env } = await startProgressScan()
+      const first = env.requestUpdate.mock.calls.length
+      controlled.emit()
+      await vi.advanceTimersByTimeAsync(10)
+      expect(env.requestUpdate).toHaveBeenCalledTimes(first)
+      if (operation === 'dispose') await env.lifecycle.dispose()
+      else {
+        env.scan.mockImplementation((request) =>
+          scanResult([heading('Replacement', 1)], 1, request),
+        )
+        render(operation === 'new-document' ? 'new' : 'doc', operation === 'new-version' ? 2 : 1)
+      }
+      // Old progress deadline passes before the replacement's 120 ms startup.
+      await vi.advanceTimersByTimeAsync(100)
+      expect(env.requestUpdate).toHaveBeenCalledTimes(first)
+      expect(controlled.cancel).toHaveBeenCalled()
+      if (operation !== 'dispose') {
+        await vi.advanceTimersByTimeAsync(30)
+        const output = render(
+          operation === 'new-document' ? 'new' : 'doc',
+          operation === 'new-version' ? 2 : 1,
+        )
+        expect(text(output)).toContain('Replacement')
+        expect(text(output)).not.toContain('Child')
+        expect(text(output)).toContain('全文索引完成')
+      }
+    },
+  )
 })

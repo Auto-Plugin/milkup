@@ -1,0 +1,29 @@
+
+ RUN  v3.2.6 /workspace/milkup
+
+ ✓ plugins/outline/src/outline-index.test.ts (8 tests) 2711ms
+   ✓ batches visibility leaf reads when collapsed roots are scattered through a complete index  456ms
+   ✓ matches an independent hierarchy oracle for 8775 headings and sparse/global folds  386ms
+   ✓ matches an independent hierarchy oracle for 18000 headings and sparse/global folds  697ms
+ ✓ plugins/outline/src/plugin.test.ts (32 tests) 6551ms
+   ✓ complete paged outline index > ignores delayed echoes of the last returned slice rather than oscillating between old and prepared ranges  357ms
+   ✓ complete paged outline index > stops following the old active heading immediately and keeps the newest scroll request during storage reads  335ms
+   ✓ complete paged outline index > indexes every contiguous range, preserves the full hierarchy and does not rescan when navigating  308ms
+   ✓ complete paged outline index > folds subtrees across scan boundaries, highlights ancestors and restores a navigated child  359ms
+   ✓ complete paged outline index > uses source identity for duplicate titles and rejects stale version actions immediately  305ms
+   ✓ complete paged outline index > discards old scans after quick document changes and disposes each temporary index  325ms
+   ✓ complete paged outline index > invalidates cached visible ancestors when a later range adds their first child  311ms
+   ✓ complete paged outline index > shows a partial index honestly, supports cancellation/retry and does not reuse cancelled identities  345ms
+   ✓ complete paged outline index > supports empty documents and reports storage capability or quota failures explicitly  308ms
+   ✓ complete paged outline index > does not silently complete after invalidated, truncated or interrupted scans  463ms
+   ✓ complete paged outline index > keeps every indexed title available beyond 16384 lines while rendering no more than 500 rows  594ms
+   ✓ complete paged outline index > bounds persisted pages for worst-case escaped labels while preserving folds  385ms
+   ✓ complete paged outline index > does not accept a delayed old-document navigation as current selection  356ms
+   ✓ debounces rapid edits/undo-redo and waits for old temporary-store disposal before indexing the newest version  365ms
+   ✓ cancels a debounced startup before allocating a store and can retry normally  302ms
+
+ Test Files  2 passed (2)
+      Tests  40 passed (40)
+   Start at  13:40:20
+   Duration  9.99s (transform 180ms, setup 0ms, collect 225ms, tests 9.26s, environment 0ms, prepare 149ms)
+

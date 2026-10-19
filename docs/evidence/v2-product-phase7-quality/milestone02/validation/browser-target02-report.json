@@ -1,0 +1,160 @@
+{
+  "config": {
+    "argv": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "/workspace/milkup/node_modules/.pnpm/@playwright+test@1.61.1/node_modules/@playwright/test/cli.js",
+      "test",
+      "tests/e2e/desktop-formatting.spec.ts",
+      "--project=desktop-msedge",
+      "--grep=formatting toolbar geometry 760x520 dark 125%$",
+      "--workers=1",
+      "--retries=0",
+      "--trace=retain-on-failure",
+      "--reporter=line,json",
+      "--output=/workspace/milkup-p7-quality-evidence/milestone02/validation/browser-target02-artifacts"
+    ],
+    "configFile": "/workspace/milkup/playwright.config.ts",
+    "rootDir": "/workspace/milkup/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/workspace/milkup-p7-quality-evidence/milestone02/validation/browser-target02-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "playground-msedge",
+        "name": "playground-msedge",
+        "testDir": "/workspace/milkup/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/live-render\\.spec\\.ts/"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/workspace/milkup-p7-quality-evidence/milestone02/validation/browser-target02-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "desktop-msedge",
+        "name": "desktop-msedge",
+        "testDir": "/workspace/milkup/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/desktop-(?:shell|visual-fixes|updates|plugin-cards|plugin-tree|plugin-forms|workspace|preferences|shortcuts|formatting|images|markdown-extensions)\\.spec\\.ts/"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "desktop-formatting.spec.ts",
+      "file": "desktop-formatting.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "formatting toolbar geometry 760x520 dark 125%",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop-msedge",
+              "projectName": "desktop-msedge",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5813,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-19T13:22:31.522Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "toolbar-linux-bounds",
+                      "contentType": "application/json",
+                      "body": "ewogICJ0aXRsZSI6IHsKICAgICJsZWZ0IjogNDYsCiAgICAicmlnaHQiOiA2MDYsCiAgICAidG9wIjogNS4wOTM3NSwKICAgICJib3R0b20iOiAzMC44OTA2MjUsCiAgICAid2lkdGgiOiA1NjAsCiAgICAiaGVpZ2h0IjogMjUuNzk2ODc1CiAgfSwKICAibWVudSI6IHsKICAgICJsZWZ0IjogMTAsCiAgICAicmlnaHQiOiA0NCwKICAgICJ0b3AiOiAwLAogICAgImJvdHRvbSI6IDM2LAogICAgIndpZHRoIjogMzQsCiAgICAiaGVpZ2h0IjogMzYKICB9LAogICJzbG90IjogewogICAgImxlZnQiOiAxMCwKICAgICJyaWdodCI6IDYwOCwKICAgICJ0b3AiOiAzNiwKICAgICJib3R0b20iOiA3OSwKICAgICJ3aWR0aCI6IDU5OCwKICAgICJoZWlnaHQiOiA0MwogIH0sCiAgImNvbnRyb2xzIjogewogICAgImxlZnQiOiAwLAogICAgInJpZ2h0IjogMCwKICAgICJ0b3AiOiAwLAogICAgImJvdHRvbSI6IDAsCiAgICAid2lkdGgiOiAwLAogICAgImhlaWdodCI6IDAKICB9LAogICJ3aWR0aCI6IDYwOAp9"
+                    },
+                    {
+                      "name": "toolbar-linux-focused-bounds",
+                      "contentType": "application/json",
+                      "body": "WwogIHsKICAgICJsYWJlbCI6ICLmoLzlvI8iLAogICAgIngiOiAxNCwKICAgICJ5IjogNDEsCiAgICAid2lkdGgiOiA1NC4wMTU2MjUsCiAgICAiaGVpZ2h0IjogMzQKICB9LAogIHsKICAgICJsYWJlbCI6ICLnspfkvZMiLAogICAgIngiOiA3Mi4wMTU2MjUsCiAgICAieSI6IDQxLAogICAgIndpZHRoIjogNTQuMDE1NjI1LAogICAgImhlaWdodCI6IDM0CiAgfSwKICB7CiAgICAibGFiZWwiOiAi5pac5L2TIiwKICAgICJ4IjogMTMwLjAzMTI1LAogICAgInkiOiA0MSwKICAgICJ3aWR0aCI6IDU0LjAxNTYyNSwKICAgICJoZWlnaHQiOiAzNAogIH0sCiAgewogICAgImxhYmVsIjogIuS4i+aWueWKoOihjCIsCiAgICAieCI6IDE4OC4wNDY4NzUsCiAgICAieSI6IDQxLAogICAgIndpZHRoIjogODAuMDE1NjI1LAogICAgImhlaWdodCI6IDM0CiAgfSwKICB7CiAgICAibGFiZWwiOiAi5Yig6Zmk6KGMIiwKICAgICJ4IjogMjcyLjA2MjUsCiAgICAieSI6IDQxLAogICAgIndpZHRoIjogNjcuMDE1NjI1LAogICAgImhlaWdodCI6IDM0CiAgfSwKICB7CiAgICAibGFiZWwiOiAi5Y+z5L6n5Yqg5YiXIiwKICAgICJ4IjogMzQzLjA3ODEyNSwKICAgICJ5IjogNDEsCiAgICAid2lkdGgiOiA4MC4wMTU2MjUsCiAgICAiaGVpZ2h0IjogMzQKICB9LAogIHsKICAgICJsYWJlbCI6ICLpgIDlh7rooajmoLwiLAogICAgIngiOiA0OTguMTA5Mzc1LAogICAgInkiOiA0MSwKICAgICJ3aWR0aCI6IDgwLjAxNTYyNSwKICAgICJoZWlnaHQiOiAzNAogIH0KXQ=="
+                    },
+                    {
+                      "name": "toolbar-windows-bounds",
+                      "contentType": "application/json",
+                      "body": "ewogICJ0aXRsZSI6IHsKICAgICJsZWZ0IjogNDQsCiAgICAicmlnaHQiOiA0NzAsCiAgICAidG9wIjogNS4wOTM3NSwKICAgICJib3R0b20iOiAzMC44OTA2MjUsCiAgICAid2lkdGgiOiA0MjYsCiAgICAiaGVpZ2h0IjogMjUuNzk2ODc1CiAgfSwKICAibWVudSI6IHsKICAgICJsZWZ0IjogMTAsCiAgICAicmlnaHQiOiA0NCwKICAgICJ0b3AiOiAwLAogICAgImJvdHRvbSI6IDM2LAogICAgIndpZHRoIjogMzQsCiAgICAiaGVpZ2h0IjogMzYKICB9LAogICJzbG90IjogewogICAgImxlZnQiOiAxMCwKICAgICJyaWdodCI6IDYwOCwKICAgICJ0b3AiOiAzNiwKICAgICJib3R0b20iOiA3OSwKICAgICJ3aWR0aCI6IDU5OCwKICAgICJoZWlnaHQiOiA0MwogIH0sCiAgImNvbnRyb2xzIjogewogICAgImxlZnQiOiA0NzAsCiAgICAicmlnaHQiOiA2MDgsCiAgICAidG9wIjogMCwKICAgICJib3R0b20iOiAzNiwKICAgICJ3aWR0aCI6IDEzOCwKICAgICJoZWlnaHQiOiAzNgogIH0sCiAgIndpZHRoIjogNjA4Cn0="
+                    },
+                    {
+                      "name": "toolbar-windows-focused-bounds",
+                      "contentType": "application/json",
+                      "body": "WwogIHsKICAgICJsYWJlbCI6ICLmoLzlvI8iLAogICAgIngiOiAxNCwKICAgICJ5IjogNDEsCiAgICAid2lkdGgiOiA1NC4wMTU2MjUsCiAgICAiaGVpZ2h0IjogMzQKICB9LAogIHsKICAgICJsYWJlbCI6ICLnspfkvZMiLAogICAgIngiOiA3Mi4wMTU2MjUsCiAgICAieSI6IDQxLAogICAgIndpZHRoIjogNTQuMDE1NjI1LAogICAgImhlaWdodCI6IDM0CiAgfSwKICB7CiAgICAibGFiZWwiOiAi5pac5L2TIiwKICAgICJ4IjogMTMwLjAzMTI1LAogICAgInkiOiA0MSwKICAgICJ3aWR0aCI6IDU0LjAxNTYyNSwKICAgICJoZWlnaHQiOiAzNAogIH0sCiAgewogICAgImxhYmVsIjogIuS4i+aWueWKoOihjCIsCiAgICAieCI6IDE4OC4wNDY4NzUsCiAgICAieSI6IDQxLAogICAgIndpZHRoIjogODAuMDE1NjI1LAogICAgImhlaWdodCI6IDM0CiAgfSwKICB7CiAgICAibGFiZWwiOiAi5Yig6Zmk6KGMIiwKICAgICJ4IjogMjcyLjA2MjUsCiAgICAieSI6IDQxLAogICAgIndpZHRoIjogNjcuMDE1NjI1LAogICAgImhlaWdodCI6IDM0CiAgfSwKICB7CiAgICAibGFiZWwiOiAi5Y+z5L6n5Yqg5YiXIiwKICAgICJ4IjogMzQzLjA3ODEyNSwKICAgICJ5IjogNDEsCiAgICAid2lkdGgiOiA4MC4wMTU2MjUsCiAgICAiaGVpZ2h0IjogMzQKICB9LAogIHsKICAgICJsYWJlbCI6ICLpgIDlh7rooajmoLwiLAogICAgIngiOiA0OTguMTA5Mzc1LAogICAgInkiOiA0MSwKICAgICJ3aWR0aCI6IDgwLjAxNTYyNSwKICAgICJoZWlnaHQiOiAzNAogIH0KXQ=="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a7173cf48317be766b4f-b29004f099a5848f1eee",
+          "file": "desktop-formatting.spec.ts",
+          "line": 132,
+          "column": 7
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-19T13:22:26.568Z",
+    "duration": 11909.546999999999,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

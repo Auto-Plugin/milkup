@@ -10,6 +10,7 @@ import type {
 import { OutlineIndex, type Heading, type HeadingMetadata } from './outline-index'
 
 const scanLines = 4096
+const scanProgressInterval = 100
 const maximumRows = 500
 const defaultRows = 160
 const rowHeight = 28
@@ -45,6 +46,8 @@ interface Session {
   revision: number
   renderRequest: number
   refreshTimer?: ReturnType<typeof setTimeout>
+  scanProgressTimer?: ReturnType<typeof setTimeout>
+  firstHeadingRefreshRequested: boolean
   rebuilding: boolean
   error: string
 }
@@ -223,6 +226,7 @@ function beginSession(
     returnedEnd: 0,
     revision: 0,
     renderRequest: 0,
+    firstHeadingRefreshRequested: false,
     rebuilding: false,
     error: '',
   }
@@ -242,6 +246,7 @@ function stopSession(): Promise<void> {
   current.alive = false
   if (current.startTimer !== undefined) clearTimeout(current.startTimer)
   if (current.refreshTimer !== undefined) clearTimeout(current.refreshTimer)
+  clearScanProgress(current)
   const clean = async () => {
     await current.scanner?.cancel().catch(() => undefined)
     const store = await current.storeReady?.catch(() => undefined)
@@ -302,7 +307,7 @@ async function buildIndex(current: Session): Promise<void> {
           current.totalLines,
           Math.max(current.scannedLines, fromLine + event.scannedLineCount - 1),
         )
-        scheduleRefresh(current)
+        scheduleScanProgress(current)
         if (event.type === 'done') {
           done = true
           delete current.scanner
@@ -373,8 +378,31 @@ async function changeFold(
   }
 }
 
+function clearScanProgress(current: Session): void {
+  if (current.scanProgressTimer === undefined) return
+  clearTimeout(current.scanProgressTimer)
+  delete current.scanProgressTimer
+}
+
+function scheduleScanProgress(current: Session): void {
+  if (!isCurrent(current) || current.status !== 'scanning') return
+  if (!current.firstHeadingRefreshRequested && current.records?.size) {
+    current.firstHeadingRefreshRequested = true
+    scheduleRefresh(current)
+    return
+  }
+  if (current.scanProgressTimer !== undefined) return
+  // A fixed window bounds progress traffic without indefinitely postponing it.
+  // Do not invalidate in-flight row preparation for every incoming scan batch.
+  current.scanProgressTimer = setTimeout(() => {
+    delete current.scanProgressTimer
+    if (isCurrent(current) && current.status === 'scanning') scheduleRefresh(current)
+  }, scanProgressInterval)
+}
+
 function scheduleRefresh(current: Session): void {
   if (!isCurrent(current)) return
+  clearScanProgress(current)
   current.renderRequest++
   if (current.refreshTimer !== undefined) return
   current.refreshTimer = setTimeout(() => {
@@ -387,6 +415,7 @@ function scheduleRefresh(current: Session): void {
       await updatePanel(current)
     }).catch((error) => {
       if (!isCurrent(current)) return
+      clearScanProgress(current)
       current.status = 'failed'
       current.error = error instanceof Error ? error.message : '大纲读取失败'
       void updatePanel(current)

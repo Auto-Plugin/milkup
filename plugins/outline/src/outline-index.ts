@@ -31,14 +31,31 @@ class Pages {
   }
   async prefetch(keys: readonly string[]): Promise<void> {
     const missing = [...new Set(keys)].filter((key) => !this.cache.has(key))
-    for (let start = 0; start < missing.length; start += 4) {
-      const batch = missing.slice(start, start + 4)
-      const values = await this.store.getMany(batch)
-      for (let i = 0; i < batch.length; i++) {
-        const json = values[i]
-        if (json === null || json === undefined) throw new Error('大纲索引页缺失，请重试全文扫描')
-        await this.room()
-        this.cache.set(batch[i]!, { value: JSON.parse(json) as unknown, dirty: false })
+    for (let start = 0; start < missing.length; start += 8) {
+      const batches = [missing.slice(start, start + 4), missing.slice(start + 4, start + 8)].filter(
+        (batch) => batch.length,
+      )
+      // Only reads overlap: two four-page responses (at most 512 KiB of
+      // serialized UTF-8), with the existing 24-page resident cache unchanged.
+      // Drain both reads even if one fails, including a synchronous adapter throw.
+      const settled = await Promise.allSettled(
+        batches.map((batch) => Promise.resolve().then(() => this.store.getMany(batch))),
+      )
+      const responses = settled.map((result) => {
+        if (result.status === 'rejected') throw result.reason
+        return result.value
+      })
+      // Preserve cache insertion, eviction and dirty-flush order. No cache or
+      // store writes run concurrently. Rejected reads publish no new pages.
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex]!
+        const values = responses[batchIndex]!
+        for (let i = 0; i < batch.length; i++) {
+          const json = values[i]
+          if (json === null || json === undefined) throw new Error('大纲索引页缺失，请重试全文扫描')
+          await this.room()
+          this.cache.set(batch[i]!, { value: JSON.parse(json) as unknown, dirty: false })
+        }
       }
     }
   }

@@ -183,3 +183,129 @@ it('keeps fold overrides and lazy range updates correct while appending through 
     Array.from({ length: 20 }, (_, i) => 4490 + i),
   )
 })
+
+it('overlaps at most two bounded page reads for sparse folded roots without changing their content', async () => {
+  const source = fixture(18000)
+  const { store, counters } = storage()
+  let armed = false
+  let active = 0
+  let peak = 0
+  let payload = 0
+  let peakPayload = 0
+  const original = store.getMany.bind(store)
+  store.getMany = async (keys) => {
+    if (!armed) return original(keys)
+    expect(keys.length).toBeLessThanOrEqual(4)
+    const values = await original(keys)
+    const bytes = values.reduce(
+      (sum, value) => sum + new TextEncoder().encode(value ?? '').length,
+      0,
+    )
+    active++
+    payload += bytes
+    peak = Math.max(peak, active)
+    peakPayload = Math.max(peakPayload, payload)
+    try {
+      // A controlled asynchronous store: no wall-clock latency or native claim.
+      await Promise.resolve()
+      return values
+    } finally {
+      active--
+      payload -= bytes
+    }
+  }
+  const index = new OutlineIndex(store, 7)
+  for (const { item } of source) await index.append(item)
+  await index.finish()
+  for (let start = 0; start < source.length; start += 500)
+    await index.rows(start, Math.min(source.length, start + 500))
+  index.resetCollapsed(true)
+  const writes = counters.writes
+  armed = true
+  const rows = await index.rows(0, index.visibleSize)
+  const roots = source.filter((_, ordinal) => ordinal % 900 === 0)
+  expect(rows.map((row) => [row.ordinal, row.title, row.from])).toEqual(
+    roots.map(({ item }, rank) => [rank * 900, item.label, item.from]),
+  )
+  expect(peak).toBe(2)
+  expect(peakPayload).toBeLessThanOrEqual(512 * 1024)
+  expect(active).toBe(0)
+  expect(counters.writes).toBe(writes)
+})
+
+it.each(['reject', 'missing', 'malformed'] as const)(
+  'drains the sibling page read before reporting %s and permits a complete retry',
+  async (failure) => {
+    const source = fixture(18000)
+    const { store } = storage()
+    const original = store.getMany.bind(store)
+    const expectedError = new Error('controlled sparse page read failure')
+    let armed = false
+    let requests = 0
+    let secondPending = false
+    let releaseSecond: (() => void) | undefined
+    store.getMany = (keys) => {
+      if (!armed || !keys.every((key) => key.startsWith('m-'))) return original(keys)
+      requests++
+      if (requests === 1) {
+        // Include a synchronously thrown adapter error; it must not prevent the
+        // paired read from being awaited, or escape as an unhandled rejection.
+        if (failure === 'reject') throw expectedError
+        return original(keys).then((values) => [
+          failure === 'missing' ? null : '{',
+          ...values.slice(1),
+        ])
+      }
+      if (requests === 2) {
+        secondPending = true
+        return new Promise<readonly (string | null)[]>((resolve, reject) => {
+          releaseSecond = () => {
+            secondPending = false
+            original(keys).then(resolve, reject)
+          }
+        })
+      }
+      return original(keys)
+    }
+    const index = new OutlineIndex(store, 7)
+    for (const { item } of source) await index.append(item)
+    await index.finish()
+    for (let start = 0; start < source.length; start += 500)
+      await index.rows(start, Math.min(source.length, start + 500))
+    index.resetCollapsed(true)
+    armed = true
+    let settled = false
+    const outcome = index.rows(0, index.visibleSize).then(
+      (rows) => {
+        settled = true
+        return { rows, error: undefined }
+      },
+      (error: unknown) => {
+        settled = true
+        return { rows: undefined, error }
+      },
+    )
+    try {
+      for (let turn = 0; turn < 500 && !secondPending && !settled; turn++) await Promise.resolve()
+      expect(requests).toBe(2)
+      expect(secondPending).toBe(true)
+      expect(settled).toBe(false)
+    } finally {
+      releaseSecond?.()
+      await outcome
+    }
+    const result = await outcome
+    expect(result.rows).toBeUndefined()
+    if (failure === 'reject') expect(result.error).toBe(expectedError)
+    else if (failure === 'missing') expect(String(result.error)).toContain('索引页缺失')
+    else expect(result.error).toBeInstanceOf(SyntaxError)
+    expect(secondPending).toBe(false)
+    armed = false
+    const rows = await index.rows(0, index.visibleSize)
+    expect(rows.map((row) => [row.ordinal, row.title, row.from])).toEqual(
+      source
+        .filter((_, ordinal) => ordinal % 900 === 0)
+        .map(({ item }, rank) => [rank * 900, item.label, item.from]),
+    )
+  },
+)
