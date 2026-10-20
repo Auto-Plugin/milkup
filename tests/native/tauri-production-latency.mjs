@@ -8,6 +8,7 @@ import { loadavg } from 'node:os'
 import path from 'node:path'
 import { startProduction } from '../helpers/native-production.mjs'
 import { observeNativeMemory } from '../helpers/native-process-memory.mjs'
+import { ownNativeClipboard } from '../helpers/native-clipboard.mjs'
 const root = path.resolve(
   process.env.MILKUP_NATIVE_EVIDENCE_DIR ?? '/workspace/.milkup-v2-phase19/pilot',
 )
@@ -203,6 +204,50 @@ try {
   )
   await app.key('Escape')
   await app.shot(mode + '-final')
+  if (process.env.MILKUP_LATENCY_HISTORY_CHECK === '1') {
+    // Run after every timing sample: real clipboard + keys, never synthetic IME.
+    const history = [],
+      replacement = '中e\u0301👩🏽‍💻',
+      changed = Buffer.concat([Buffer.from(replacement), original.subarray(1)])
+    const saveExact = async (label, expected) => {
+      await app.key('ctrl+s')
+      await app.until(
+        async () => {
+          const state = await app.probe()
+          return !state.saving && !state.dirty && (await readFile(file)).equals(expected)
+        },
+        label + ' exact saved bytes',
+        20000,
+      )
+      history.push({ label, sha256: hash(await readFile(file)), state: await app.probe() })
+      await writeFile(path.join(root, 'history.json'), JSON.stringify(history, null, 2))
+    }
+    await app.focus('.milkup-input-proxy')
+    await app.key('ctrl+Home')
+    await app.key('shift+Right')
+    await app.until(async () => {
+      const state = await app.probe()
+      return state.cursor === 1 && state.selection.some((s) => s.from === 0 && s.to === 1)
+    }, 'one UTF-16 source character selected')
+    const release = await ownNativeClipboard(replacement)
+    try {
+      await app.key('ctrl+v')
+      await app.until(
+        async () => (await app.probe()).cursor === replacement.length,
+        'Unicode clipboard replacement caret',
+      )
+    } finally {
+      release()
+    }
+    await saveExact('replace-selection', changed)
+    await app.key('ctrl+z')
+    await saveExact('undo', original)
+    await app.key('ctrl+shift+z')
+    await saveExact('redo', changed)
+    await app.key('ctrl+z')
+    await saveExact('restore-original', original)
+    await app.shot(mode + '-history-restored')
+  }
   await resource('complete')
   await writeFile(
     path.join(root, 'diagnostics.json'),
