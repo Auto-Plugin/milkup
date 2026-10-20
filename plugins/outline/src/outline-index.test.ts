@@ -233,6 +233,85 @@ it('overlaps at most two bounded page reads for sparse folded roots without chan
   expect(counters.writes).toBe(writes)
 })
 
+it('bounds visibility read rounds across sparse sibling branches without serializing each parent', async () => {
+  const source = fixture(18000)
+  const { store, counters } = storage()
+  const index = new OutlineIndex(store, 7)
+  for (const { item } of source) await index.append(item)
+  await index.finish()
+  for (let start = 0; start < source.length; start += 500)
+    await index.rows(start, Math.min(source.length, start + 500))
+
+  let rounds = 0
+  let pending: (() => void)[] = []
+  let scheduled = false
+  const defer = (keys: readonly string[]) =>
+    new Promise<void>((resolve) => {
+      if (!keys.some((key) => key.startsWith('v-'))) return resolve()
+      pending.push(resolve)
+      if (scheduled) return
+      scheduled = true
+      // Count dependent read rounds, not wall-clock duration. Reads arriving
+      // together share a completion barrier, as independent store reads can.
+      setTimeout(() => {
+        const completed = pending
+        pending = []
+        scheduled = false
+        rounds++
+        for (const done of completed) done()
+      }, 0)
+    })
+  const get = store.get.bind(store)
+  const getMany = store.getMany.bind(store)
+  store.get = async (key) => {
+    const result = await get(key)
+    await defer([key])
+    return result
+  }
+  store.getMany = async (keys) => {
+    const result = await getMany(keys)
+    await defer(keys)
+    return result
+  }
+
+  index.resetCollapsed(true)
+  const writes = counters.writes
+  const rows = await index.rows(0, index.visibleSize)
+  expect(rows.map((row) => [row.ordinal, row.title, row.from])).toEqual(
+    source
+      .filter((_, ordinal) => ordinal % 900 === 0)
+      .map(({ item }, rank) => [rank * 900, item.label, item.from]),
+  )
+  expect(counters.writes).toBe(writes)
+  // Each <=16-row chunk needs one parent-level round, then at most two
+  // eight-page leaf rounds; the final four roots need only one leaf round.
+  expect(rounds).toBeLessThanOrEqual(5)
+})
+
+it('preserves sparse selection order after the visibility tree grows a third level', async () => {
+  const source = fixture(128 * 32 * 32 + 1)
+  const { store, counters } = storage()
+  const index = new OutlineIndex(store, 7)
+  for (const { item } of source) await index.append(item)
+  await index.finish()
+  const roots = source.filter((_, ordinal) => ordinal % 900 === 0)
+  const writes = counters.writes
+  for (const collapsed of [true, false, true]) {
+    index.resetCollapsed(collapsed)
+    const expected = collapsed ? roots : source
+    expect(index.visibleSize).toBe(expected.length)
+    for (const start of [0, expected.length - 16]) {
+      const rows = await index.rows(start, start + 16)
+      expect(rows.map((row) => [row.title, row.from, row.visibleIndex])).toEqual(
+        expected
+          .slice(start, start + 16)
+          .map(({ item }, offset) => [item.label, item.from, start + offset]),
+      )
+    }
+  }
+  expect(counters.writes).toBe(writes)
+}, 20_000)
+
 it.each(['reject', 'missing', 'malformed'] as const)(
   'drains the sibling page read before reporting %s and permits a complete retry',
   async (failure) => {

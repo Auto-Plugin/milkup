@@ -331,44 +331,48 @@ class Visibility {
     carry: number,
     ranks: number[],
   ): Promise<number[]> {
-    if (!level) {
+    // Group a whole requested level before reading its children. Walking each
+    // parent to completion serialized sparse siblings into separate I/O rounds.
+    // The frontier contains at most sixteen numeric rank descriptors, not page
+    // objects or a full-tree directory. Keep the existing two four-page reads
+    // and 24-page cache; only read scheduling changes.
+    let frontier = [{ index, carry, ranks }]
+    for (let depth = level; ; depth--) {
+      if (depth < level)
+        await this.pages.prefetch(frontier.map((branch) => key(depth, branch.index)))
+      const next: typeof frontier = []
       const result: number[] = []
-      let rank = 0
-      for (let slot = 0; slot < node.count; slot++) {
-        if (node.covers![slot]! + carry !== 0) continue
-        if (rank++ === ranks[result.length]) result.push(index * recordsPerPage + slot)
+      for (const branch of frontier) {
+        const current = depth === level ? node : await this.node(depth, branch.index)
+        if (!depth) {
+          let rank = 0
+          let matched = 0
+          for (let slot = 0; slot < current.count; slot++) {
+            if (current.covers![slot]! + branch.carry !== 0) continue
+            if (rank++ === branch.ranks[matched]) {
+              result.push(branch.index * recordsPerPage + slot)
+              matched++
+            }
+          }
+          if (matched !== branch.ranks.length) throw new Error('大纲可见序号不一致')
+          continue
+        }
+        let offset = 0
+        for (const [slot, entry] of current.children!.entries()) {
+          const count = visible(entry, branch.carry)
+          const selected = branch.ranks.filter((rank) => rank >= offset && rank < offset + count)
+          if (selected.length)
+            next.push({
+              index: branch.index * fanout + slot,
+              carry: branch.carry + entry.add,
+              ranks: selected.map((rank) => rank - offset),
+            })
+          offset += count
+        }
       }
-      if (result.length !== ranks.length) throw new Error('大纲可见序号不一致')
-      return result
+      if (!depth) return result
+      frontier = next
     }
-    // At most sixteen requested rows; prefetch uses the existing four-page
-    // batches and shared 24-page cache. No full-tree page directory is retained.
-    const branches: { index: number; carry: number; ranks: number[] }[] = []
-    let offset = 0
-    for (const [slot, entry] of node.children!.entries()) {
-      const count = visible(entry, carry)
-      const selected = ranks.filter((rank) => rank >= offset && rank < offset + count)
-      if (selected.length)
-        branches.push({
-          index: index * fanout + slot,
-          carry: carry + entry.add,
-          ranks: selected.map((rank) => rank - offset),
-        })
-      offset += count
-    }
-    await this.pages.prefetch(branches.map((branch) => key(level - 1, branch.index)))
-    const result: number[] = []
-    for (const branch of branches)
-      result.push(
-        ...(await this.selectFrom(
-          await this.node(level - 1, branch.index),
-          level - 1,
-          branch.index,
-          branch.carry,
-          branch.ranks,
-        )),
-      )
-    return result
   }
   async rank(ordinal: number): Promise<number> {
     if (ordinal < 0 || ordinal >= this.count) return -1
