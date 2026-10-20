@@ -36,6 +36,27 @@ if ($candidates.Count -eq 0) { throw 'No installed WebView2 Runtime; W0 blocked 
 $runtime = ($candidates | Sort-Object version -Descending | Select-Object -First 1).path
 $env:CARGO_TARGET_DIR = Join-Path $env:RUNNER_TEMP 'milkup-w0-target'
 $env:MILKUP_W0_AUTHORIZED = 'temporary-ci-no-network-private-directory-only'
+function Read-W0NetworkPolicy {
+    param([string]$RuntimeDirectory)
+    $record = [ordered]@{ readOnly = $true; changedConfiguration = $false; queryErrors = @() }
+    try {
+        $record['activeProfiles'] = @(Get-NetFirewallProfile -PolicyStore ActiveStore | Select-Object Name, Enabled, DefaultInboundAction, DefaultOutboundAction, AllowInboundRules, AllowLocalFirewallRules, NotifyOnListen)
+        $record['activeRuleCounts'] = @(Get-NetFirewallRule -PolicyStore ActiveStore -Enabled True | Group-Object Action, Direction | Select-Object Name, Count)
+        $runtimeRules = @(Get-NetFirewallApplicationFilter -PolicyStore ActiveStore |
+            Where-Object { $_.Program -match 'msedgewebview2\.exe$' } | ForEach-Object {
+                $program = $_.Program
+                $_ | Get-NetFirewallRule | Select-Object Name, Direction, Action, Enabled, Profile, PolicyStoreSourceType, @{ Name = 'Program'; Expression = { $program } }
+            })
+        $record['runtimeProgramRules'] = $runtimeRules
+    } catch { $record['queryErrors'] += $_.Exception.Message }
+    try { $record['networkCategories'] = @(Get-NetConnectionProfile | Select-Object InterfaceIndex, NetworkCategory, IPv4Connectivity, IPv6Connectivity) }
+    catch { $record['queryErrors'] += $_.Exception.Message }
+    try { $record['qwaveState'] = @(Get-Service -Name QWAVE | Select-Object Name, Status, StartType) }
+    catch { $record['queryErrors'] += $_.Exception.Message }
+    $record['runtimeDirectory'] = $RuntimeDirectory
+    $record['boundary'] = 'Effective ActiveStore snapshots before/after the completed probe; not an audit of transient WFP filters or thread identities at socket creation. No policy/service configuration changed.'
+    return $record
+}
 try {
     if ($UdpDiagnosis) {
         cargo test --locked --manifest-path scripts/ci/windows-w0-probe/Cargo.toml -- --nocapture
@@ -56,6 +77,7 @@ try {
         $mechanism = [ordered]@{
             baseline = $baseline
             services = @(Get-Service -Name BFE, mpssvc, Dnscache | Select-Object Name, Status, StartType)
+            firewallProfileStore = 'PersistentStore'
             firewallProfiles = @(Get-NetFirewallProfile | Select-Object Name, Enabled, DefaultInboundAction, DefaultOutboundAction)
             readOnly = $true
             changedConfiguration = $false
@@ -68,7 +90,19 @@ try {
         Write-Host '::group::windows-w0-platform.json'
         $mechanism | ConvertTo-Json -Depth 6 | Write-Host
         Write-Host '::endgroup::'
+        if ($UdpDiagnosis) {
+            Write-Host '::group::windows-w0-policy-before.json'
+            Read-W0NetworkPolicy -RuntimeDirectory $runtime | ConvertTo-Json -Depth 8 | Write-Host
+            Write-Host '::endgroup::'
+        }
         & $binary --matrix $runtime
+        $probeExitCode = $LASTEXITCODE
+        if ($UdpDiagnosis) {
+            Write-Host '::group::windows-w0-policy-after.json'
+            Read-W0NetworkPolicy -RuntimeDirectory $runtime | ConvertTo-Json -Depth 8 | Write-Host
+            Write-Host '::endgroup::'
+        }
+        if ($probeExitCode -ne 0) { throw 'W0 matrix or cleanup failed; preserve original result without policy changes' }
     } else {
         & $binary $runtime
     }

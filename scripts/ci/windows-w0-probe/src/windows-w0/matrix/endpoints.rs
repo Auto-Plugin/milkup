@@ -251,7 +251,9 @@ fn udp_owners(peer: std::net::SocketAddr) -> Value {
             .map(|pid| {
                 match unsafe { owned(OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid)) } {
                     Ok(process) => match token_info(process.as_raw_handle()) {
-                        Ok(token) => json!({"pid":pid,"token":token}),
+                        Ok(token) => {
+                            json!({"pid":pid,"token":token,"threadTokens":thread_tokens(pid)})
+                        }
                         Err(e) => json!({"pid":pid,"inspectionError":e.to_string()}),
                     },
                     Err(e) => json!({"pid":pid,"inspectionError":e.to_string()}),
@@ -298,4 +300,42 @@ fn turn_challenge(data: &[u8]) -> Vec<u8> {
     result.extend_from_slice(&data[4..20]);
     result.extend(body);
     result
+}
+
+fn thread_tokens(pid: u32) -> Value {
+    use windows_sys::Win32::System::Diagnostics::ToolHelp::*;
+    let snapshot = match unsafe { owned(CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0)) } {
+        Ok(h) => h,
+        Err(e) => return json!({"snapshotError":e.to_string()}),
+    };
+    let mut entry = THREADENTRY32::default();
+    entry.dwSize = size_of::<THREADENTRY32>() as u32;
+    let mut next = unsafe { Thread32First(snapshot.as_raw_handle(), &mut entry) };
+    let mut rows = Vec::new();
+    while next != 0 {
+        if entry.th32OwnerProcessID == pid {
+            let tid = entry.th32ThreadID;
+            let row = match unsafe { owned(OpenThread(THREAD_QUERY_INFORMATION, 0, tid)) } {
+                Err(e) => json!({"tid":tid,"inspectionError":e.to_string()}),
+                Ok(thread) => {
+                    let mut raw = null_mut();
+                    if unsafe { OpenThreadToken(thread.as_raw_handle(), TOKEN_QUERY, 1, &mut raw) }
+                        == 0
+                    {
+                        json!({"tid":tid,"threadTokenPresent":false,"rawOsError":std::io::Error::last_os_error().raw_os_error()})
+                    } else {
+                        match unsafe { owned(raw) } {
+                            Ok(token) => {
+                                json!({"tid":tid,"threadTokenPresent":true,"isAppContainer":token_u32(token.as_raw_handle(),TokenIsAppContainer),"appContainerNumber":token_u32(token.as_raw_handle(),TokenAppContainerNumber)})
+                            }
+                            Err(e) => json!({"tid":tid,"inspectionError":e.to_string()}),
+                        }
+                    }
+                }
+            };
+            rows.push(row);
+        }
+        next = unsafe { Thread32Next(snapshot.as_raw_handle(), &mut entry) };
+    }
+    json!({"threads":rows,"boundary":"Read-only thread-token snapshot while receiving; absence cannot exclude earlier transient impersonation or brokered socket creation. No privilege adjustment."})
 }

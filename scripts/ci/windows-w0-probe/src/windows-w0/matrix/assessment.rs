@@ -36,7 +36,7 @@ pub(super) fn assess(
         }
     }
     if require_native {
-        if native_controls.len() != endpoints.len() * 5 * 2 {
+        if native_controls.len() != endpoints.len() * super::udp_diagnosis::VARIANT_COUNT * 2 {
             missing.push("complete native before/after variant matrix".to_string());
         }
         for control in native_controls {

@@ -212,9 +212,15 @@ test('W0 UDP diagnosis compares held sockets without changing platform policy', 
     'wildcard-held',
     'wildcard-connected',
     'wildcard-wsasendto',
+    'wildcard-overlapped',
+    'wildcard-repeated',
   ])
     assert.ok(probe.includes(variant))
   assert.match(probe, /recv_from/)
+  assert.match(script, /Get-NetFirewallProfile -PolicyStore ActiveStore/)
+  assert.match(script, /Get-NetFirewallApplicationFilter -PolicyStore ActiveStore/)
+  assert.match(probe, /WSAGetOverlappedResult/)
+  assert.match(probe, /CancelIoEx/)
   const matrix = await read('scripts/ci/windows-w0-probe/src/windows-w0/matrix.rs')
   assert.match(matrix, /udp_diagnosis::run\(input, "before-runtime"\)/)
   assert.match(matrix, /udp_diagnosis::run\(input, "after-runtime"\)/)

@@ -1,8 +1,11 @@
 use super::*;
 use std::os::windows::io::AsRawSocket;
 use windows_sys::Win32::Networking::WinSock::{
-    WSAGetLastError, WSASendTo, AF_INET, AF_INET6, SOCKADDR, SOCKADDR_IN, SOCKADDR_IN6, WSABUF,
+    WSAGetLastError, WSAGetOverlappedResult, WSASendTo, AF_INET, AF_INET6, SOCKADDR, SOCKADDR_IN,
+    SOCKADDR_IN6, WSABUF, WSA_IO_PENDING,
 };
+
+pub(super) const VARIANT_COUNT: usize = 7;
 
 pub(super) fn run(input: &Value, phase: &str) -> Result<Value> {
     let mut raw_token = null_mut();
@@ -33,6 +36,8 @@ pub(super) fn run(input: &Value, phase: &str) -> Result<Value> {
             ("wildcard-held", wildcard, "send-to", 750),
             ("wildcard-connected", wildcard, "connect-send", 750),
             ("wildcard-wsasendto", wildcard, "wsa-send-to", 750),
+            ("wildcard-overlapped", wildcard, "wsa-overlapped", 750),
+            ("wildcard-repeated", wildcard, "repeat-send-to", 750),
         ] {
             let marker = format!(
                 "w0/{}/udp-diagnosis/{phase}/{}/{name}",
@@ -59,7 +64,22 @@ pub(super) fn run(input: &Value, phase: &str) -> Result<Value> {
                                 json!({"notAttempted":true})
                             }
                         },
-                        _ => wsa_send(&socket, marker.as_bytes(), target),
+                        "repeat-send-to" => {
+                            let mut sends = Vec::new();
+                            for attempt in 0..3 {
+                                if attempt > 0 {
+                                    std::thread::sleep(Duration::from_millis(250));
+                                }
+                                sends.push(io_result(socket.send_to(marker.as_bytes(), target)));
+                            }
+                            json!({"ok":sends.iter().all(|s|s["ok"]==true),"attempts":sends})
+                        }
+                        method => wsa_send(
+                            &socket,
+                            marker.as_bytes(),
+                            target,
+                            method == "wsa-overlapped",
+                        )?,
                     };
                     row["localAfterSend"] = json!(socket.local_addr()?.to_string());
                     if hold > 0 {
@@ -82,7 +102,22 @@ pub(super) fn run(input: &Value, phase: &str) -> Result<Value> {
         json!({"pid":std::process::id(),"threadImpersonation":impersonation,"token":token_info(unsafe{GetCurrentProcess()})?,"phase":phase,"cases":results,"boundary":"Only controlled local endpoints. Held and immediate-close variants separate socket lifetime from API return and packet delivery; no policy changes."}),
     )
 }
-fn wsa_send(socket: &UdpSocket, data: &[u8], target: std::net::SocketAddr) -> Value {
+fn wsa_send(
+    socket: &UdpSocket,
+    data: &[u8],
+    target: std::net::SocketAddr,
+    asynchronous: bool,
+) -> Result<Value> {
+    use windows_sys::Win32::System::IO::{CancelIoEx, OVERLAPPED};
+    let event = if asynchronous {
+        Some(unsafe { owned(CreateEventW(null(), 1, 0, null()))? })
+    } else {
+        None
+    };
+    let mut overlapped = OVERLAPPED::default();
+    if let Some(event) = &event {
+        overlapped.hEvent = event.as_raw_handle();
+    }
     let mut buffer = WSABUF {
         len: data.len() as u32,
         buf: data.as_ptr() as *mut u8,
@@ -120,13 +155,50 @@ fn wsa_send(socket: &UdpSocket, data: &[u8], target: std::net::SocketAddr) -> Va
             0,
             address,
             len,
-            null_mut(),
+            if asynchronous {
+                &mut overlapped
+            } else {
+                null_mut()
+            },
             None,
         )
     };
-    if result == 0 {
-        json!({"ok":true,"bytes":sent})
+    let initial_error = if result == 0 {
+        0
     } else {
-        json!({"ok":false,"wsaError":unsafe{WSAGetLastError()}})
+        unsafe { WSAGetLastError() }
+    };
+    if !asynchronous {
+        return Ok(if result == 0 {
+            json!({"ok":true,"bytes":sent})
+        } else {
+            json!({"ok":false,"wsaError":initial_error})
+        });
     }
+    if result != 0 && initial_error != WSA_IO_PENDING {
+        return Ok(json!({"ok":false,"wsaError":initial_error,"overlapped":true}));
+    }
+    let wait = unsafe { WaitForSingleObject(event.as_ref().unwrap().as_raw_handle(), 1000) };
+    if wait != WAIT_OBJECT_0 {
+        unsafe {
+            CancelIoEx(socket.as_raw_socket() as HANDLE, &overlapped);
+        }
+    }
+    // Always wait for completion/cancellation before dropping the data or OVERLAPPED.
+    // The parent process deadline remains the outer bound if the OS fails to complete.
+    let mut flags = 0;
+    let completed = unsafe {
+        WSAGetOverlappedResult(
+            socket.as_raw_socket() as usize,
+            &overlapped,
+            &mut sent,
+            1,
+            &mut flags,
+        )
+    };
+    Ok(if completed != 0 {
+        json!({"ok":true,"bytes":sent,"overlapped":true,"initialError":initial_error,"wait":wait})
+    } else {
+        json!({"ok":false,"overlapped":true,"initialError":initial_error,"wait":wait,"wsaError":unsafe{WSAGetLastError()}})
+    })
 }
