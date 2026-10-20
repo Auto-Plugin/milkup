@@ -86,10 +86,11 @@ impl Endpoints {
                             let stun=n>=20 && data[4..8]==[0x21,0x12,0xa4,0x42];
                             let username=if stun {turn_username(&data[..n])}else{None};
                             events.lock().unwrap().push(json!({"transport":"udp","case":case.lock().unwrap().clone(),"socketOwners":udp_owners(peer),"family":family,"elapsedMs":start.elapsed().as_millis(),"peer":peer.to_string(),"bytes":n,"stunMagicCookie":stun,"turnUsername":username,"prefixHex":data[..n.min(128)].iter().map(|b|format!("{b:02x}")).collect::<String>(),"nativeMarker":if !stun {Some(String::from_utf8_lossy(&data[..n]).to_string())}else{None}}));
-                            if !stun && data[..n].starts_with(b"w0/") && data[..n].windows(15).any(|part|part==b"/udp-diagnosis/") {let _=udp.send_to(&data[..n],peer);}
+                            if !stun && data[..n].starts_with(b"w0/") && data[..n].windows(15).any(|part|part==b"/udp-diagnosis/") && !data[..n].ends_with(b"/explicit-close") {let _=udp.send_to(&data[..n],peer);}
                             if stun && data[..2]==[0,3] && username.is_none() {let _=udp.send_to(&turn_challenge(&data[..n]),peer);}
                         }
                         Err(e) if e.kind()==std::io::ErrorKind::WouldBlock=>{},
+                        Err(e) if e.raw_os_error()==Some(10054)=>{events.lock().unwrap().push(json!({"transport":"udp","family":family,"peerIcmpReset":e.to_string(),"receiverContinues":true}));},
                         Err(e)=>{events.lock().unwrap().push(json!({"transport":"udp","family":family,"listenerError":e.to_string()}));break;}
                     }
                     std::thread::sleep(Duration::from_millis(5));

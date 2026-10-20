@@ -1,4 +1,5 @@
 //! Bounded, controlled-endpoint evidence. This is never a product authorization gate.
+mod assessment;
 mod browser;
 mod dns;
 mod endpoints;
@@ -475,7 +476,13 @@ fn run_case(
             {
                 break;
             }
-            if start.elapsed() > Duration::from_secs(90) {
+            if start.elapsed()
+                > Duration::from_secs(if input["udpDiagnosis"] == true {
+                    120
+                } else {
+                    90
+                })
+            {
                 report["deadlineExpired"] = json!(true);
                 break;
             }
@@ -598,28 +605,28 @@ pub(super) fn run(runtime: &Path) -> Result<()> {
             report[format!("loopbackExemptionsAfter-{name}")] = loopback_exemptions(p.sid)?;
         }
         report["endpointObservationsFinal"] = endpoints.snapshot()?;
-        let violations: Vec<Value> = report["endpointObservationsFinal"]
+        let ordinary = report["cases"]
             .as_array()
             .unwrap()
             .iter()
-            .filter(|e| {
-                e["turnUsername"]
-                    .as_str()
-                    .is_some_and(|name| name.starts_with("restricted"))
-                    || e["nativeMarker"]
-                        .as_str()
-                        .is_some_and(|name| name.starts_with("w0/restricted"))
-                    || e["query"]
-                        .as_str()
-                        .is_some_and(|name| name.starts_with("w0-restricted"))
-                    || e["request"]
-                        .as_str()
-                        .is_some_and(|name| name.contains(" /restricted"))
-            })
-            .cloned()
-            .collect();
-        report["receivedRestrictedCanaries"] = json!(violations);
-        report["networkCanaryGatePassed"] = json!(violations.is_empty());
+            .find(|c| c["name"] == "ordinary");
+        let mut native = Vec::new();
+        if let Some(c) = ordinary {
+            for key in ["udpBeforeRuntime", "udpAfterRuntime"] {
+                if let Some(rows) = c["child"][key]["cases"].as_array() {
+                    native.extend(rows.iter().cloned());
+                }
+            }
+        }
+        let assessment = assessment::assess(
+            report["endpointObservationsFinal"].as_array().unwrap(),
+            &endpoints.addresses,
+            &native,
+            std::env::var("MILKUP_W0_UDP_DIAGNOSIS").as_deref() == Ok("1"),
+        );
+        report["networkCanaryGatePassed"] = assessment["networkCanaryGatePassed"].clone();
+        report["receivedRestrictedCanaries"] = assessment["receivedRestrictedCanaries"].clone();
+        report["networkAssessment"] = assessment;
         Ok(())
     })();
     if let Err(e) = &result {
@@ -666,6 +673,9 @@ pub(super) fn run(runtime: &Path) -> Result<()> {
     }
     if report["networkCanaryGatePassed"] == false {
         return Err("Restricted network canary delivered: full isolation remains blocked".into());
+    }
+    if report["networkAssessment"]["observationControlsPassed"] != true {
+        return Err("Network observation invalid: receiver or positive control failed".into());
     }
     Ok(())
 }

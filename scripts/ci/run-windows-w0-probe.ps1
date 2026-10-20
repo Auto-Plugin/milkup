@@ -37,6 +37,10 @@ $runtime = ($candidates | Sort-Object version -Descending | Select-Object -First
 $env:CARGO_TARGET_DIR = Join-Path $env:RUNNER_TEMP 'milkup-w0-target'
 $env:MILKUP_W0_AUTHORIZED = 'temporary-ci-no-network-private-directory-only'
 try {
+    if ($UdpDiagnosis) {
+        cargo test --locked --manifest-path scripts/ci/windows-w0-probe/Cargo.toml -- --nocapture
+        if ($LASTEXITCODE -ne 0) { throw 'W0 observation-gate regressions failed' }
+    }
     cargo build --locked --manifest-path scripts/ci/windows-w0-probe/Cargo.toml
     if ($LASTEXITCODE -ne 0) { throw 'W0 prototype build failed' }
     $binary = Join-Path $env:CARGO_TARGET_DIR 'debug/milkup-windows-w0-probe.exe'
