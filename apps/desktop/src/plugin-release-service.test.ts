@@ -231,7 +231,9 @@ describe('desktop release capability adapter', () => {
     expect(f.transport.cancel).toHaveBeenCalledWith(42)
   })
 
-  it('installs once through trusted confirmation and reports native installation failure', async () => {
+  it('requires a fresh verified download after a returned installation failure and retries the same release', async () => {
+    // A transport error proves host recovery only; it cannot model the pinned
+    // original upstream Windows path ignoring a failed ShellExecuteW and exiting.
     const f = fixture()
     const id = await f.ready()
     f.confirmInstall.mockImplementation(async ({ install }) => {
@@ -243,6 +245,16 @@ describe('desktop release capability adapter', () => {
     expect(await f.adapter.status(id)).toMatchObject({ phase: 'error' })
     await expect(f.adapter.requestInstall(id)).rejects.toThrow('校验')
     expect(f.transport.install).toHaveBeenCalledTimes(1)
+    await f.adapter.stage(id)
+    expect(await f.adapter.status(id)).toMatchObject({ phase: 'downloading' })
+    await expect(f.adapter.requestInstall(id)).rejects.toThrow('校验')
+    f.downloads.at(-1)!.operation.resolve()
+    await flush()
+    expect(await f.adapter.status(id)).toMatchObject({ phase: 'ready' })
+    expect(f.transport.download).toHaveBeenCalledTimes(2)
+    expect(await f.adapter.requestInstall(id)).toEqual({ status: 'installing' })
+    expect(f.confirmInstall).toHaveBeenCalledTimes(2)
+    expect(f.transport.install).toHaveBeenCalledTimes(2)
     f.dispose()
   })
 })

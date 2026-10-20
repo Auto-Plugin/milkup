@@ -11,3 +11,14 @@ docs/evidence/v2-product-phase6-plugin-lifecycle/milestone03/** -text -whitespac
 # P7 raw measurements, screenshots and losslessly compressed fixtures retain exact bytes.
 docs/evidence/v2-product-phase7-quality/milestone01/** -text -whitespace
 docs/evidence/v2-product-phase7-quality/milestone02/** -text -whitespace
+
+# These reviewed Mermaid inputs are verified by exact SHA-256 on every platform.
+plugins/diagrams/pnpm-lock.yaml text eol=lf
+plugins/diagrams/build-dependencies.json text eol=lf
+plugins/diagrams/THIRD-PARTY-NOTICES.txt text eol=lf
+
+# The same-version updater patch is audited against exact upstream source bytes.
+vendor/tauri-plugin-updater/** -text
+
+# Unified-diff context lines are immutable patch evidence.
+vendor/tauri-plugin-updater/MILKUP-PATCH.diff -whitespace

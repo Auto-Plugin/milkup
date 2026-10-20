@@ -134,7 +134,9 @@ describe('trusted install gate', () => {
     expect(f.install).not.toHaveBeenCalled()
   })
 
-  it('unlocks and surfaces native install errors', async () => {
+  it('recovers from a returned install error and requires fresh preparation and confirmation', async () => {
+    // The transport rejection is a host-contract fixture. It does not exercise
+    // Windows ShellExecuteW or the updater dependency's process exit behavior.
     const f = fixture()
     f.install.mockRejectedValueOnce(Error('installer rejected'))
     const pending = f.request()
@@ -142,6 +144,19 @@ describe('trusted install gate', () => {
     await f.proceed()
     await failed
     expect(f.options.setInstalling).toHaveBeenLastCalledWith(false)
+    expect(f.gate.version).toBeUndefined()
+    expect(f.options.cancelTransition).toHaveBeenCalledTimes(1)
+    expect(f.options.returnFocus).toHaveBeenCalledTimes(1)
+    const staleProceed = f.proceed
+    await staleProceed()
+    expect(f.install).toHaveBeenCalledTimes(1)
+    const retry = f.request()
+    expect(f.options.requestTransition).toHaveBeenCalledTimes(2)
+    expect(f.install).toHaveBeenCalledTimes(1)
+    await f.proceed()
+    expect(await retry).toEqual({ status: 'installing' })
+    expect(f.options.prepareDocument).toHaveBeenCalledTimes(2)
+    expect(f.install).toHaveBeenCalledTimes(2)
     expect(f.gate.version).toBeUndefined()
   })
 })

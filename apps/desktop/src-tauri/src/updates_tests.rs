@@ -9,6 +9,137 @@ use std::sync::atomic::{AtomicBool, Ordering};
 const PUBLIC_KEY: &str = "untrusted comment: minisign public key E7620F1842B4E81F\nRWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3";
 const SIGNATURE: &str = "untrusted comment: signature from minisign secret key\nRUQf6LRCGA9i559r3g7V1qNyJDApGip8MfqcadIgT9CuhV3EMhHoN1mGTkUidF/z7SrlQgXdy8ofjb7bNJJylDOocrCo8KLzZwo=\ntrusted comment: timestamp:1556193335\tfile:test\ny/rUw2y8/hOUYjZU71eHp/Wo1KZ40fGy2VJEDl34XMJM+TX48Ss/17u3IvIfbVR1FkZZSNCisQbuQY+bHwhEBg==";
 
+// Exercise the publication boundary after verified_download returns. The bytes
+// match the existing public vector; these offline tests do not reverify crypto,
+// contact a server, construct an installer or add a production bypass.
+fn publication_candidate() -> Candidate {
+    Candidate {
+        generation: 7,
+        ..Candidate::default()
+    }
+}
+
+#[test]
+fn offline_candidate_cancel_between_verification_and_publication_rejects_late_bytes() {
+    let candidate = Arc::new(Mutex::new(publication_candidate()));
+    let (abort, receiver) = watch::channel(false);
+    let epoch = candidate.lock().unwrap().begin_download(abort);
+    let verified = Arc::new(std::sync::Barrier::new(2));
+    let publish = Arc::new(std::sync::Barrier::new(2));
+    let worker = {
+        let candidate = candidate.clone();
+        let verified = verified.clone();
+        let publish = publish.clone();
+        std::thread::spawn(move || {
+            let result = Ok(b"test".to_vec());
+            verified.wait();
+            publish.wait();
+            candidate.lock().unwrap().finish_download(7, epoch, result)
+        })
+    };
+    verified.wait();
+    {
+        let mut state = candidate.lock().unwrap();
+        state.cancel_download(7);
+        assert!(*receiver.borrow());
+        assert!(state.verified_bytes.is_none());
+    }
+    publish.wait();
+    assert!(
+        worker.join().unwrap().is_err(),
+        "cancelled result must not publish"
+    );
+    assert!(candidate.lock().unwrap().verified_bytes.take().is_none());
+}
+
+#[test]
+fn offline_candidate_retry_keeps_release_token_but_rejects_old_success() {
+    let mut candidate = publication_candidate();
+    let (abort, _receiver) = watch::channel(false);
+    let old = candidate.begin_download(abort);
+    candidate.cancel_download(7);
+    let (retry_abort, retry_receiver) = watch::channel(false);
+    let retry = candidate.begin_download(retry_abort);
+    assert_eq!(candidate.generation, 7, "same release remains retryable");
+    assert!(candidate
+        .finish_download(7, old, Ok(b"test".to_vec()))
+        .is_err());
+    assert!(candidate.verified_bytes.is_none());
+    assert!(
+        candidate.abort.is_some(),
+        "old completion must not clear new abort"
+    );
+    assert!(!*retry_receiver.borrow());
+    candidate
+        .finish_download(7, retry, Ok(b"test".to_vec()))
+        .unwrap();
+    assert_eq!(candidate.verified_bytes.take(), Some(b"test".to_vec()));
+    assert!(candidate.verified_bytes.take().is_none());
+}
+
+#[test]
+fn offline_candidate_old_failure_cannot_disarm_retry_cancellation() {
+    let mut candidate = publication_candidate();
+    let (abort, _receiver) = watch::channel(false);
+    let old = candidate.begin_download(abort);
+    candidate.cancel_download(7);
+    let (retry_abort, retry_receiver) = watch::channel(false);
+    let retry = candidate.begin_download(retry_abort);
+    assert!(candidate
+        .finish_download(7, old, Err("old download failed".into()))
+        .is_err());
+    candidate.cancel_download(7);
+    assert!(
+        *retry_receiver.borrow(),
+        "old failure must not detach new cancellation"
+    );
+    assert!(candidate
+        .finish_download(7, retry, Ok(b"test".to_vec()))
+        .is_err());
+    assert!(candidate.verified_bytes.is_none());
+}
+
+#[test]
+fn offline_candidate_stale_release_cannot_cancel_or_disarm_current_download() {
+    let mut candidate = publication_candidate();
+    let (abort, receiver) = watch::channel(false);
+    let epoch = candidate.begin_download(abort);
+    candidate.cancel_download(6);
+    assert!(!*receiver.borrow());
+    assert!(candidate
+        .finish_download(6, epoch, Ok(b"test".to_vec()))
+        .is_err());
+    candidate.cancel_download(7);
+    assert!(
+        *receiver.borrow(),
+        "stale release completion must preserve current abort"
+    );
+}
+
+#[test]
+fn offline_candidate_completed_or_failed_download_can_be_cancelled_and_retried() {
+    let mut candidate = publication_candidate();
+    let (abort, _receiver) = watch::channel(false);
+    let epoch = candidate.begin_download(abort);
+    candidate
+        .finish_download(7, epoch, Ok(b"test".to_vec()))
+        .unwrap();
+    candidate.cancel_download(7);
+    assert!(candidate.verified_bytes.is_none());
+    let (abort, _receiver) = watch::channel(false);
+    let failed = candidate.begin_download(abort);
+    assert!(candidate
+        .finish_download(7, failed, Err("signature verification failed".into()))
+        .is_err());
+    assert!(candidate.verified_bytes.is_none());
+    let (abort, _receiver) = watch::channel(false);
+    let retry = candidate.begin_download(abort);
+    candidate
+        .finish_download(7, retry, Ok(b"test".to_vec()))
+        .unwrap();
+    assert_eq!(candidate.verified_bytes.take(), Some(b"test".to_vec()));
+}
+
 struct FixtureServer {
     url: tauri::Url,
     stop: Arc<AtomicBool>,

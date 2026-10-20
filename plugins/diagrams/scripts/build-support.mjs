@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { readFile, realpath, stat } from 'node:fs/promises'
-import { resolve, relative, isAbsolute } from 'node:path'
+import { resolve, relative, isAbsolute, sep } from 'node:path'
 
 export const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex')
 export const within = (root, file) => {
   const rel = relative(root, file)
-  return rel && rel !== '..' && !rel.startsWith('../') && !isAbsolute(rel)
+  return rel && rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel)
 }
 export async function localFile(root, name) {
   assert.ok(

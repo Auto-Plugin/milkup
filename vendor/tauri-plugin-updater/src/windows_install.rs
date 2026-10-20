@@ -1,0 +1,104 @@
+// Copyright 2019-2023 Tauri Programme within The Commons Conservancy
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MIT
+// Local milkup patch: preserve the running app when Windows refuses launch.
+
+use std::io;
+
+// Private to this crate. The only production caller supplies the updater's
+// extracted path and existing encoded arguments, never a frontend path.
+#[cfg(windows)]
+pub(super) fn launch(
+    file: &[u16],
+    parameters: &[u16],
+    before_exit: impl FnOnce(),
+    exit: impl FnOnce(),
+) -> io::Result<()> {
+    use windows_sys::{
+        w,
+        Win32::UI::{Shell::ShellExecuteW, WindowsAndMessaging::SW_SHOW},
+    };
+    let result = unsafe {
+        ShellExecuteW(
+            std::ptr::null_mut(),
+            w!("open"),
+            file.as_ptr(),
+            parameters.as_ptr(),
+            std::ptr::null(),
+            SW_SHOW,
+        )
+    } as isize;
+    finish_launch(result, before_exit, exit)
+}
+
+fn finish_launch(result: isize, before_exit: impl FnOnce(), exit: impl FnOnce()) -> io::Result<()> {
+    // ShellExecuteW returns an HINSTANCE-shaped status, not a process handle.
+    // Only values greater than 32 indicate that Windows accepted the launch.
+    if result <= 32 {
+        return Err(io::Error::other(format!(
+            "Windows installer launch failed (ShellExecuteW returned {result})"
+        )));
+    }
+    before_exit();
+    exit();
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::cell::RefCell;
+
+    #[test]
+    fn rejected_launch_preserves_app_and_can_be_retried() {
+        let calls = RefCell::new(Vec::new());
+        for status in [0, 2, 3, 5, 11, 26, 31, 32] {
+            let result = finish_launch(
+                status,
+                || calls.borrow_mut().push("cleanup"),
+                || calls.borrow_mut().push("exit"),
+            );
+            assert!(result
+                .unwrap_err()
+                .to_string()
+                .contains(&status.to_string()));
+            assert!(calls.borrow().is_empty());
+        }
+        // A simulated accepted status exercises the success policy without
+        // creating or launching any executable, installer or child process.
+        finish_launch(
+            33,
+            || calls.borrow_mut().push("cleanup"),
+            || calls.borrow_mut().push("exit"),
+        )
+        .unwrap();
+        assert_eq!(*calls.borrow(), ["cleanup", "exit"]);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn real_missing_executable_returns_error_without_cleanup_or_exit() {
+        use std::os::windows::ffi::OsStrExt;
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("missing milkup 更新.exe");
+        assert!(!path.exists());
+        let file: Vec<u16> = path.as_os_str().encode_wide().chain(Some(0)).collect();
+        let calls = RefCell::new(Vec::new());
+        // This is the actual production ShellExecuteW path. The target does
+        // not exist: no executable is written and no installer can run.
+        for _ in 0..2 {
+            let error = launch(
+                &file,
+                &[0],
+                || calls.borrow_mut().push("cleanup"),
+                || calls.borrow_mut().push("exit"),
+            )
+            .unwrap_err();
+            assert!(error.to_string().contains("ShellExecuteW returned"));
+            assert!(calls.borrow().is_empty());
+            assert!(!path.exists());
+        }
+        // Reaching here demonstrates the process remained alive after both
+        // real Windows startup failures. Actual process exit is never called.
+    }
+}

@@ -30,7 +30,7 @@
 
 ## 离线构建
 
-依赖使用独立 pnpm 11.7.0 锁文件。公开 SDK 从固定的 `vendor/plugin-sdk.tgz` 输入；该文件不提交仓库。完整 Mermaid 及依赖在构建时打包成单个离线 ESM 文件，禁止运行时外部导入。构建目标为 ES2024；esbuild 不提供浏览器运行时 API 的 polyfill，必须通过实际原生引擎验证。
+依赖使用独立 pnpm 11.7.0 锁文件。公开 SDK 从固定的 `vendor/plugin-sdk.tgz` 输入；仓库保留既有 SDK 0.3.4 原件，确保全新检出可取得冻结构建输入。归档来源、四个公开成员及精确 SHA-256 见 [SDK 来源记录](SDK-PROVENANCE.md)。不得用当前宿主 SDK 重新打包替换，其他 vendor 文件仍忽略。完整 Mermaid 及依赖在构建时打包成单个离线 ESM 文件，禁止运行时外部导入。构建目标为 ES2024；esbuild 不提供浏览器运行时 API 的 polyfill，必须通过实际原生引擎验证。
 
 依赖审查清单记录每个实际输入文件、包版本和许可证哈希，并与构建 metafile 对照。`THIRD-PARTY-NOTICES.txt` 保留对应许可证原文。正常构建不能重解依赖或隐式改写清单；开发中的 SDK 打包、首次锁文件生成和最终冻结外部构建证据分别记录。
 

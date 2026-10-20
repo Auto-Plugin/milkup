@@ -45,10 +45,49 @@ impl ReleaseChannel {
 #[derive(Default)]
 struct Candidate {
     generation: u64,
+    download_epoch: u64,
     update: Option<Update>,
     // Only Update::download, after its minisign verification succeeds, can set this.
     verified_bytes: Option<Vec<u8>>,
     abort: Option<watch::Sender<bool>>,
+}
+
+impl Candidate {
+    fn begin_download(&mut self, abort: watch::Sender<bool>) -> u64 {
+        self.download_epoch += 1;
+        self.verified_bytes = None;
+        self.abort = Some(abort);
+        self.download_epoch
+    }
+
+    fn finish_download(
+        &mut self,
+        token: u64,
+        epoch: u64,
+        result: Result<Vec<u8>, String>,
+    ) -> Result<(), String> {
+        // Cancellation and publication hold the same candidate mutex. Checking
+        // the download epoch here closes the gap after verification returns;
+        // a stale completion must not publish bytes or disarm a newer download.
+        if self.generation != token || self.download_epoch != epoch {
+            return Err("下载已取消，请重新检查更新".into());
+        }
+        self.abort = None;
+        self.verified_bytes = Some(result?);
+        Ok(())
+    }
+
+    fn cancel_download(&mut self, token: u64) {
+        if self.generation != token {
+            return;
+        }
+        // The release token stays valid so cancelling does not break retry.
+        self.download_epoch += 1;
+        if let Some(abort) = self.abort.take() {
+            let _ = abort.send(true);
+        }
+        self.verified_bytes = None;
+    }
 }
 
 #[derive(Default)]
@@ -222,27 +261,21 @@ pub async fn download_application_update(
         .try_lock()
         .map_err(|_| "更新操作正在进行")?;
     let (abort, aborted) = watch::channel(false);
-    let update = {
+    let (update, epoch) = {
         let mut candidate = service.candidate.lock().map_err(|_| "更新状态不可用")?;
         if candidate.generation != token {
             return Err("版本信息已过期，请重新检查更新".into());
         }
         let update = candidate.update.clone().ok_or("请先检查更新")?;
-        candidate.verified_bytes = None;
-        candidate.abort = Some(abort);
-        update
+        let epoch = candidate.begin_download(abort);
+        (update, epoch)
     };
     let result = verified_download(&update, aborted, |event| {
         let _ = progress.send(event);
     })
     .await;
     let mut candidate = service.candidate.lock().map_err(|_| "更新状态不可用")?;
-    candidate.abort = None;
-    if candidate.generation != token {
-        return Err("下载已取消，请重新检查更新".into());
-    }
-    candidate.verified_bytes = Some(result?);
-    Ok(())
+    candidate.finish_download(token, epoch, result)
 }
 
 #[tauri::command]
@@ -251,13 +284,7 @@ pub fn cancel_application_update(
     service: State<'_, UpdateService>,
 ) -> Result<(), String> {
     let mut candidate = service.candidate.lock().map_err(|_| "更新状态不可用")?;
-    if candidate.generation != token {
-        return Ok(());
-    }
-    if let Some(abort) = &candidate.abort {
-        let _ = abort.send(true);
-    }
-    candidate.verified_bytes = None;
+    candidate.cancel_download(token);
     Ok(())
 }
 
