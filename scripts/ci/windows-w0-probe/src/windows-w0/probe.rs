@@ -325,7 +325,10 @@ fn launch(
     let cwd = wide(private.as_os_str());
     let system = std::env::var("SystemRoot")?;
     let drive = std::env::var("SystemDrive")?;
-    let environment = format!("PATH={system}\\System32\0SystemDrive={drive}\0SystemRoot={system}\0TEMP={}\0TMP={}\0WINDIR={system}\0\0", private.display(), private.display());
+    // Supply profile-related environment values for Windows startup.
+    // Keep every writable profile location in this private subtree; never inherit
+    // the runner's profile or WEBVIEW2_* override variables.
+    let environment = format!("APPDATA={}\0LOCALAPPDATA={}\0PATH={system}\\System32\0SystemDrive={drive}\0SystemRoot={system}\0TEMP={}\0TMP={}\0USERPROFILE={}\0WINDIR={system}\0\0", private.display(), private.display(), private.display(), private.display(), private.display());
     let environment: Vec<u16> = environment.encode_utf16().collect();
     let capabilities = SECURITY_CAPABILITIES {
         AppContainerSid: profile.sid,
@@ -334,7 +337,8 @@ fn launch(
         Reserved: 0,
     };
     let raw_job = job.0.as_raw_handle();
-    let attrs = Attributes::new(&capabilities, &raw_job)?;
+    let attrs = Attributes::new(&capabilities, &raw_job)
+        .map_err(|e| format!("Cannot configure restricted process attributes: {e}"))?;
     let mut startup = STARTUPINFOEXW::default();
     startup.StartupInfo.cb = size_of::<STARTUPINFOEXW>() as u32;
     startup.lpAttributeList = attrs.pointer;
@@ -355,7 +359,8 @@ fn launch(
             &startup.StartupInfo,
             &mut info,
         )
-    })?;
+    })
+    .map_err(|e| format!("CreateProcessW restricted launch failed: {e}"))?;
     Ok(unsafe { (owned(info.hProcess)?, owned(info.hThread)?) })
 }
 fn child(runtime: &Path, private: &Path) -> Result<()> {
