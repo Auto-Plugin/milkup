@@ -27,6 +27,14 @@ test('P8 source job has independent public branch/marker gates and no delivery a
   assert.match(workflow, /\[windows-catalog-check\]/)
   assert.match(workflow, /run-windows-baseline\.ps1/)
   assert.match(workflow, /^      - vendor\/\*\*$/m)
+  const checkout = job.indexOf('uses: actions/checkout@')
+  const longPaths = job.indexOf('git config --global core.longpaths true')
+  assert.ok(longPaths >= 0 && longPaths < checkout, 'Long paths must be enabled before checkout')
+  assert.match(
+    job.slice(longPaths, checkout),
+    /if \(\$LASTEXITCODE -ne 0\) \{ throw 'Git long-path configuration failed' \}/,
+  )
+  assert.doesNotMatch(job, /sparse-checkout:/)
 })
 
 test('source script checks, tests and links actual production app without bundler', async () => {

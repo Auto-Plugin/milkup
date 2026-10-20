@@ -100,6 +100,11 @@ jobs:
       CARGO_TERM_COLOR: never
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
     steps:
+      - name: Enable Git long paths for this ephemeral Windows runner
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git config --global core.longpaths true
+          if ($LASTEXITCODE -ne 0) { throw 'Git long-path configuration failed' }
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.sha }}
