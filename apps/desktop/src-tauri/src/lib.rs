@@ -1033,6 +1033,8 @@ pub fn run() {
             workspace::workspace_open_large_file,
             workspace::workspace_validate_open,
             workspace::workspace_finish_open,
+            updates::begin_application_update_check,
+            updates::cancel_application_update_check,
             updates::check_application_update,
             updates::download_application_update,
             updates::cancel_application_update,

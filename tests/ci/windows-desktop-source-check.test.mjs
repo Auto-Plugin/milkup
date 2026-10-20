@@ -68,6 +68,24 @@ test('Windows backend milestone is isolated to its accepted baseline and explici
   assert.match(script, /\$baseline = '3747004b15e1dcf9c92b794b1f818c0853b98d11'/)
 })
 
+test('update checkpoint runs source checks without restarting W0 or delivery actions', async () => {
+  const workflow = await read('.github/workflows/v2-windows-update-check.yml')
+  for (const required of [
+    "github.ref == 'refs/heads/dot/milkup-v2-update-checkpoint'",
+    "contains(github.event.head_commit.message, '[windows-update-check]')",
+    '5b62eb75615170f8a9cd8eede5fa42f275850ca7',
+    'github.event.repository.private == false',
+    'persist-credentials: false',
+    'check-windows-desktop-source.ps1',
+  ])
+    assert.ok(workflow.includes(required), `Missing update gate: ${required}`)
+  assert.doesNotMatch(workflow, /windows-w0|run-windows-w0|upload-artifact|--bundles|secrets\./i)
+  const script = await read('scripts/ci/check-windows-desktop-source.ps1')
+  assert.ok(script.includes("'refs/heads/dot/milkup-v2-update-checkpoint'"))
+  assert.ok(script.includes("$baseline = '5b62eb75615170f8a9cd8eede5fa42f275850ca7'"))
+  assert.ok(script.includes("$marker = '[windows-update-check]'"))
+})
+
 test('the same LF and CRLF workflow preserves every P8 job gate', async () => {
   const lf = (await read('.github/workflows/v2-windows-catalog-check.yml')).replaceAll('\r\n', '\n')
   const crlf = lf.replaceAll('\n', '\r\n')

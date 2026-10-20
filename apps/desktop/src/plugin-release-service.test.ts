@@ -1,6 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createDesktopReleaseAdapter, type ReleaseTransport } from './plugin-release-service'
+import {
+  createDesktopReleaseAdapter,
+  nativeReleaseTransport,
+  type ReleaseTransport,
+} from './plugin-release-service'
 import { createProtectedInstallGate } from './protected-install'
+
+const nativeInvoke = vi.hoisted(() => vi.fn())
+vi.mock('@tauri-apps/api/core', () => ({ invoke: nativeInvoke }))
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -256,5 +263,79 @@ describe('desktop release capability adapter', () => {
     expect(f.confirmInstall).toHaveBeenCalledTimes(2)
     expect(f.transport.install).toHaveBeenCalledTimes(2)
     f.dispose()
+  })
+})
+
+describe('native manifest check cancellation', () => {
+  it('does not reserve or fetch for an already revoked capability', async () => {
+    nativeInvoke.mockReset()
+    const controller = new AbortController()
+    controller.abort()
+    await expect(nativeReleaseTransport().check(controller.signal)).rejects.toThrow('取消')
+    expect(nativeInvoke).not.toHaveBeenCalled()
+  })
+
+  it('cancels a reservation returned after disposal without starting HTTP', async () => {
+    nativeInvoke.mockReset()
+    const reservation = deferred<number>()
+    nativeInvoke.mockImplementation((command) =>
+      command === 'begin_application_update_check' ? reservation.promise : Promise.resolve(),
+    )
+    const controller = new AbortController()
+    const pending = nativeReleaseTransport().check(controller.signal)
+    const rejected = expect(pending).rejects.toThrow('取消')
+    await vi.waitFor(() =>
+      expect(nativeInvoke).toHaveBeenCalledWith('begin_application_update_check'),
+    )
+    controller.abort()
+    reservation.resolve(73)
+    await rejected
+    expect(nativeInvoke).toHaveBeenCalledWith('cancel_application_update_check', { token: 73 })
+    expect(
+      nativeInvoke.mock.calls.some(([command]) => command === 'check_application_update'),
+    ).toBe(false)
+  })
+
+  it('interrupts an in-flight check and discards its late successful reply', async () => {
+    nativeInvoke.mockReset()
+    const result = deferred<typeof metadata>()
+    nativeInvoke.mockImplementation((command) => {
+      if (command === 'begin_application_update_check') return Promise.resolve(74)
+      if (command === 'check_application_update') return result.promise
+      return Promise.resolve()
+    })
+    const controller = new AbortController()
+    const pending = nativeReleaseTransport().check(controller.signal)
+    const rejected = expect(pending).rejects.toThrow('取消')
+    await vi.waitFor(() =>
+      expect(nativeInvoke).toHaveBeenCalledWith('check_application_update', { token: 74 }),
+    )
+    controller.abort()
+    expect(nativeInvoke).toHaveBeenCalledWith('cancel_application_update_check', { token: 74 })
+    result.resolve(metadata)
+    await rejected
+  })
+
+  it('releases a failed IPC reservation but preserves a successfully returned candidate', async () => {
+    nativeInvoke.mockReset()
+    nativeInvoke.mockImplementation((command) => {
+      if (command === 'begin_application_update_check') return Promise.resolve(75)
+      if (command === 'check_application_update') return Promise.reject(Error('transport failed'))
+      return Promise.resolve()
+    })
+    await expect(nativeReleaseTransport().check(new AbortController().signal)).rejects.toThrow(
+      'transport failed',
+    )
+    expect(nativeInvoke).toHaveBeenCalledWith('cancel_application_update_check', { token: 75 })
+    nativeInvoke.mockReset()
+    nativeInvoke.mockImplementation((command) =>
+      Promise.resolve(command === 'begin_application_update_check' ? 76 : metadata),
+    )
+    const controller = new AbortController()
+    expect(await nativeReleaseTransport().check(controller.signal)).toEqual(metadata)
+    controller.abort()
+    expect(
+      nativeInvoke.mock.calls.some(([command]) => command === 'cancel_application_update_check'),
+    ).toBe(false)
   })
 })

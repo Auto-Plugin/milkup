@@ -42,6 +42,82 @@ use crate::{
 };
 
 const UPDATER_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
+const MAX_MANIFEST_BYTES: usize = 256 * 1024;
+const MAX_PACKAGE_BYTES: usize = 256 * 1024 * 1024;
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SignedManifestEnvelope {
+    payload: String,
+    signature: String,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SignedManifest {
+    schema: u32,
+    product: String,
+    channel: String,
+    release: serde_json::Value,
+}
+
+// Bound the accumulated body before parsing or allocating the next chunk into it.
+// The HTTP stack may hold its own transport chunk; this is not a process RSS limit.
+async fn bounded_response(
+    response: reqwest::Response,
+    limit: usize,
+    mut on_chunk: impl FnMut(usize, Option<u64>),
+) -> Result<Vec<u8>> {
+    let total = response.content_length();
+    if total.is_some_and(|length| length > limit as u64) {
+        return Err(Error::Network("Response exceeds byte limit".into()));
+    }
+    let mut body = Vec::new();
+    let mut stream = response.bytes_stream();
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk?;
+        if chunk.len() > limit.saturating_sub(body.len()) {
+            return Err(Error::Network("Response exceeds byte limit".into()));
+        }
+        on_chunk(chunk.len(), total);
+        body.extend_from_slice(&chunk);
+    }
+    Ok(body)
+}
+
+fn decode_manifest(
+    bytes: &[u8],
+    policy: Option<&(String, String)>,
+    public_key: &str,
+) -> Result<serde_json::Value> {
+    let Some((product, channel)) = policy else {
+        return Ok(serde_json::from_slice(bytes)?);
+    };
+    let envelope: SignedManifestEnvelope = serde_json::from_slice(bytes)?;
+    let payload = base64::engine::general_purpose::STANDARD.decode(&envelope.payload)?;
+    if payload.is_empty() || payload.len() > MAX_MANIFEST_BYTES {
+        return Err(Error::Network("Invalid signed manifest size".into()));
+    }
+    verify_signature(&payload, &envelope.signature, public_key)?;
+    let manifest: SignedManifest = serde_json::from_slice(&payload)?;
+    if manifest.schema != 1 || &manifest.product != product || &manifest.channel != channel {
+        return Err(Error::Network("Signed manifest scope mismatch".into()));
+    }
+    // Require canonical SemVer in the signed statement, rather than normalizing
+    // a different display version after verification.
+    let version = manifest.release["version"]
+        .as_str()
+        .ok_or_else(|| Error::Network("Missing signed version".into()))?;
+    if Version::parse(version)?.to_string() != version {
+        return Err(Error::Network("Non-canonical signed version".into()));
+    }
+    if !manifest.release["platforms"].is_object() {
+        return Err(Error::Network(
+            "Signed manifest requires platform selections".into(),
+        ));
+    }
+    Ok(manifest.release)
+}
 
 #[derive(Copy, Clone)]
 pub enum Installer {
@@ -151,6 +227,7 @@ pub struct UpdaterBuilder {
     current_exe_args: Vec<OsString>,
     on_before_exit: Option<OnBeforeExit>,
     configure_client: Option<OnBeforeRequest>,
+    signed_manifest: Option<(String, String)>,
 }
 
 impl UpdaterBuilder {
@@ -178,6 +255,7 @@ impl UpdaterBuilder {
             no_proxy: false,
             on_before_exit: None,
             configure_client: None,
+            signed_manifest: None,
         }
     }
 
@@ -186,6 +264,14 @@ impl UpdaterBuilder {
         f: F,
     ) -> Self {
         self.version_comparator = Some(Arc::new(f));
+        self
+    }
+
+    /// Local milkup extension: authenticate the exact version, channel and
+    /// artifact signature together before offering a release. The trust root
+    /// remains the host-configured minisign key; this is not plugin-controlled.
+    pub fn require_signed_manifest(mut self, product: &str, channel: &str) -> Self {
+        self.signed_manifest = Some((product.to_owned(), channel.to_owned()));
         self
     }
 
@@ -342,6 +428,7 @@ impl UpdaterBuilder {
             extract_path,
             on_before_exit: self.on_before_exit,
             configure_client: self.configure_client,
+            signed_manifest: self.signed_manifest,
         })
     }
 }
@@ -377,6 +464,7 @@ pub struct Updater {
     extract_path: PathBuf,
     on_before_exit: Option<OnBeforeExit>,
     configure_client: Option<OnBeforeRequest>,
+    signed_manifest: Option<(String, String)>,
     #[allow(unused)]
     installer_args: Vec<OsString>,
     #[allow(unused)]
@@ -471,6 +559,9 @@ impl Updater {
             if let Some(ref configure_client) = self.configure_client {
                 request = configure_client(request);
             }
+            // Endpoints are host-owned. Reject redirects instead of silently
+            // contacting a different origin or downgrading transport.
+            request = request.redirect(reqwest::redirect::Policy::none());
 
             let response = request
                 .build()?
@@ -481,14 +572,19 @@ impl Updater {
 
             match response {
                 Ok(res) => {
-                    if res.status().is_success() {
+                    if res.status() == StatusCode::OK || res.status() == StatusCode::NO_CONTENT {
                         // no updates found!
                         if StatusCode::NO_CONTENT == res.status() {
                             log::debug!("update endpoint returned 204 No Content");
                             return Ok(None);
                         };
 
-                        let update_response: serde_json::Value = res.json().await?;
+                        let bytes = bounded_response(res, MAX_MANIFEST_BYTES, |_, _| {}).await?;
+                        let update_response = decode_manifest(
+                            &bytes,
+                            self.signed_manifest.as_ref(),
+                            &self.config.pubkey,
+                        )?;
                         log::debug!("update response: {update_response:?}");
                         raw_json = Some(update_response.clone());
                         match serde_json::from_value::<RemoteRelease>(update_response)
@@ -507,6 +603,10 @@ impl Updater {
                             }
                         }
                     } else {
+                        last_error = Some(Error::Network(format!(
+                            "Manifest request failed with status: {}",
+                            res.status()
+                        )));
                         log::error!(
                             "update endpoint did not respond with a successful status code"
                         );
@@ -537,6 +637,14 @@ impl Updater {
         let (download_url, signature) = self.get_urls(&release, &installer)?;
 
         let update = if should_update {
+            let verified_binding = self.signed_manifest.as_ref().map(|_| {
+                (
+                    release.version.to_string(),
+                    signature.to_owned(),
+                    download_url.clone(),
+                    target.to_owned(),
+                )
+            });
             Some(Update {
                 run_on_main_thread: self.run_on_main_thread.clone(),
                 config: self.config.clone(),
@@ -558,6 +666,7 @@ impl Updater {
                 installer_args: self.installer_args.clone(),
                 current_exe_args: self.current_exe_args.clone(),
                 configure_client: self.configure_client.clone(),
+                verified_binding,
             })
         } else {
             None
@@ -642,11 +751,25 @@ pub struct Update {
     #[allow(unused)]
     current_exe_args: Vec<OsString>,
     configure_client: Option<OnBeforeRequest>,
+    // Retain the authenticated selection, so later accidental mutation of the
+    // public upstream fields cannot relabel a valid old package.
+    verified_binding: Option<(String, String, Url, String)>,
 }
 
 impl Resource for Update {}
 
 impl Update {
+    pub fn has_verified_manifest(&self) -> bool {
+        self.verified_binding
+            .as_ref()
+            .is_some_and(|(version, signature, url, target)| {
+                version == &self.version
+                    && signature == &self.signature
+                    && url == &self.download_url
+                    && target == &self.target
+            })
+    }
+
     /// Downloads the updater package, verifies it then return it as bytes.
     ///
     /// Use [`Update::install`] to install it
@@ -655,6 +778,11 @@ impl Update {
         mut on_chunk: C,
         on_download_finish: D,
     ) -> Result<Vec<u8>> {
+        if self.verified_binding.is_some() && !self.has_verified_manifest() {
+            return Err(Error::Network(
+                "Authenticated release selection changed".into(),
+            ));
+        }
         // set our headers
         let mut headers = self.headers.clone();
         if !headers.contains_key(ACCEPT) {
@@ -680,6 +808,7 @@ impl Update {
         if let Some(ref configure_client) = self.configure_client {
             request = configure_client(request);
         }
+        request = request.redirect(reqwest::redirect::Policy::none());
         let response = request
             .build()?
             .get(self.download_url.clone())
@@ -687,27 +816,14 @@ impl Update {
             .send()
             .await?;
 
-        if !response.status().is_success() {
+        if response.status() != StatusCode::OK {
             return Err(Error::Network(format!(
                 "Download request failed with status: {}",
                 response.status()
             )));
         }
 
-        let content_length: Option<u64> = response
-            .headers()
-            .get("Content-Length")
-            .and_then(|value| value.to_str().ok())
-            .and_then(|value| value.parse().ok());
-
-        let mut buffer = Vec::new();
-
-        let mut stream = response.bytes_stream();
-        while let Some(chunk) = stream.next().await {
-            let chunk = chunk?;
-            on_chunk(chunk.len(), content_length);
-            buffer.extend(chunk);
-        }
+        let buffer = bounded_response(response, MAX_PACKAGE_BYTES, &mut on_chunk).await?;
         on_download_finish();
 
         verify_signature(&buffer, &self.signature, &self.config.pubkey)?;
@@ -717,6 +833,12 @@ impl Update {
 
     /// Installs the updater package downloaded by [`Update::download`]
     pub fn install(&self, bytes: impl AsRef<[u8]>) -> Result<()> {
+        if self.verified_binding.is_some() && !self.has_verified_manifest() {
+            return Err(Error::Network(
+                "Authenticated release selection changed".into(),
+            ));
+        }
+        verify_signature(bytes.as_ref(), &self.signature, &self.config.pubkey)?;
         self.install_inner(bytes.as_ref())
     }
 

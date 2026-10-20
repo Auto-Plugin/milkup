@@ -5,7 +5,7 @@ import type {
 } from '@milkup/plugin'
 
 export interface ReleaseTransport {
-  check(): Promise<{
+  check(signal: AbortSignal): Promise<{
     configured: boolean
     channel: string
     update: { token: number; version: string; notes: string; date: string | null } | null
@@ -60,7 +60,7 @@ export function createDesktopReleaseAdapter(options: {
         if (candidate) await options.transport.cancel(candidate.token)
         candidate = undefined
         active()
-        const result = await options.transport.check()
+        const result = await options.transport.check(abort.signal)
         if (abort.signal.aborted || request !== generation) {
           // The native result can arrive after this capability was disposed. Release
           // only its own token; the transport must not cancel a newer candidate.
@@ -194,9 +194,31 @@ export function createDesktopReleaseAdapter(options: {
 
 export function nativeReleaseTransport(): ReleaseTransport {
   return {
-    async check() {
+    async check(signal) {
       const { invoke } = await import('@tauri-apps/api/core')
-      return invoke('check_application_update')
+      if (signal.aborted) throw Error('发行请求已取消')
+      const token = await invoke<number>('begin_application_update_check')
+      const cancel = () => {
+        void invoke('cancel_application_update_check', { token }).catch(() => {})
+      }
+      if (signal.aborted) {
+        cancel()
+        throw Error('发行请求已取消')
+      }
+      signal.addEventListener('abort', cancel, { once: true })
+      try {
+        const result = await invoke<Awaited<ReturnType<ReleaseTransport['check']>>>(
+          'check_application_update',
+          { token },
+        )
+        if (signal.aborted) throw Error('发行请求已取消')
+        return result
+      } catch (error) {
+        cancel()
+        throw error
+      } finally {
+        signal.removeEventListener('abort', cancel)
+      }
     },
     async download(token, onProgress) {
       const { invoke, Channel } = await import('@tauri-apps/api/core')

@@ -15,6 +15,10 @@ switch -CaseSensitive ($env:GITHUB_REF) {
         $baseline = '3747004b15e1dcf9c92b794b1f818c0853b98d11'
         $marker = '[windows-backends-check]'
     }
+    'refs/heads/dot/milkup-v2-update-checkpoint' {
+        $baseline = '5b62eb75615170f8a9cd8eede5fa42f275850ca7'
+        $marker = '[windows-update-check]'
+    }
     default { throw 'Unexpected source-check scope' }
 }
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path

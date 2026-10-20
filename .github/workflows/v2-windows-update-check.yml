@@ -1,0 +1,96 @@
+name: Windows update checkpoint source checks
+
+on:
+  push:
+    branches:
+      - dot/milkup-v2-update-checkpoint
+    paths:
+      - .github/workflows/v2-windows-update-check.yml
+      - apps/**
+      - packages/**
+      - plugins/**
+      - vendor/**
+      - scripts/**
+      - tests/ci/**
+      - tests/fixtures/updates/**
+      - release/bundled-plugins.json
+      - release/update-channel.json
+      - package.json
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - .gitattributes
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-v2-update-source-check
+  cancel-in-progress: false
+
+jobs:
+  desktop-source:
+    if: >-
+      github.repository == 'Auto-Plugin/milkup' &&
+      github.ref == 'refs/heads/dot/milkup-v2-update-checkpoint' &&
+      github.event.repository.private == false &&
+      github.event.deleted == false &&
+      contains(github.event.head_commit.message, '[windows-update-check]')
+    runs-on: windows-2025
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+    steps:
+      - name: Enable Git long paths for this ephemeral Windows runner
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git config --global core.longpaths true
+          if ($LASTEXITCODE -ne 0) { throw 'Git long-path configuration failed' }
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact update checkpoint source
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((git rev-parse HEAD).Trim() -ne $env:GITHUB_SHA) { throw 'Checkout SHA mismatch' }
+          git merge-base --is-ancestor 5b62eb75615170f8a9cd8eede5fa42f275850ca7 HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'Unexpected P8 baseline' }
+          if (git status --porcelain) { throw 'Dirty checkout' }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.19.0
+      - name: Select pinned development tools
+        run: |
+          $ErrorActionPreference = 'Stop'
+          npm install --global pnpm@11.7.0 --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { throw 'pnpm setup failed' }
+          rustup toolchain install 1.99.0 --profile minimal
+          if ($LASTEXITCODE -ne 0) { throw 'Rust compiler setup failed' }
+          'RUSTUP_TOOLCHAIN=1.99.0' >> $env:GITHUB_ENV
+      - name: Check workspace, independent plugins and full desktop
+        run: |
+          ./scripts/ci/check-windows-desktop-source.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/p8-desktop-source"
+      - name: Record existing Windows engine availability
+        if: always()
+        run: |
+          ./scripts/ci/probe-windows-backend-environment.ps1
+      - name: Record source-validation boundary
+        if: always()
+        run: |
+          'P8 source validation only: full desktop compiler/linker and library tests are separate phases. No installed-app, GUI, Runtime provisioning or delivery acceptance. Ten Worker plugin builds remain legacy/non-frozen; diagrams retains its reviewed frozen SDK.' >> $env:GITHUB_STEP_SUMMARY
+          foreach ($name in @('source.json', 'phases.json', 'rust-test-result.json', 'production-binary-manifest.json', 'public-plugins/staged-bundles.json')) {
+            $proof = Join-Path "$env:RUNNER_TEMP/p8-desktop-source" $name
+            if (Test-Path $proof) {
+              Write-Host "::group::$name"
+              Get-Content $proof | Write-Host
+              Write-Host '::endgroup::'
+            }
+          }

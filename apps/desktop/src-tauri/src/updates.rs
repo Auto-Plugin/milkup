@@ -50,9 +50,63 @@ struct Candidate {
     // Only Update::download, after its minisign verification succeeds, can set this.
     verified_bytes: Option<Vec<u8>>,
     abort: Option<watch::Sender<bool>>,
+    check_abort: Option<watch::Sender<bool>>,
+    check_started: bool,
 }
 
 impl Candidate {
+    fn begin_check(&mut self) -> Result<u64, String> {
+        if self.check_abort.is_some() || self.abort.is_some() {
+            return Err("更新操作正在进行".into());
+        }
+        self.generation += 1;
+        self.update = None;
+        self.verified_bytes = None;
+        self.check_abort = Some(watch::channel(false).0);
+        self.check_started = false;
+        Ok(self.generation)
+    }
+
+    fn start_check(&mut self, token: u64) -> Result<watch::Receiver<bool>, String> {
+        if self.generation != token || self.check_started {
+            return Err("检查更新已取消或失效".into());
+        }
+        let receiver = self
+            .check_abort
+            .as_ref()
+            .ok_or("检查更新已取消或失效")?
+            .subscribe();
+        self.check_started = true;
+        Ok(receiver)
+    }
+
+    fn cancel_check(&mut self, token: u64) {
+        if self.generation != token {
+            return;
+        }
+        self.generation += 1;
+        if let Some(abort) = self.check_abort.take() {
+            let _ = abort.send(true);
+        }
+        self.check_started = false;
+        self.update = None;
+        self.verified_bytes = None;
+        self.download_epoch += 1;
+        if let Some(abort) = self.abort.take() {
+            let _ = abort.send(true);
+        }
+    }
+
+    fn finish_check(&mut self, token: u64, update: Option<Update>) -> Result<(), String> {
+        if self.generation != token || self.check_abort.is_none() {
+            return Err("检查更新已取消或失效".into());
+        }
+        self.check_abort = None;
+        self.check_started = false;
+        self.update = update;
+        Ok(())
+    }
+
     fn begin_download(&mut self, abort: watch::Sender<bool>) -> u64 {
         self.download_epoch += 1;
         self.verified_bytes = None;
@@ -122,11 +176,40 @@ pub struct DownloadProgress {
 }
 
 fn newer_version(current: &semver::Version, next: &semver::Version, channel: &str) -> bool {
-    next > current && (channel == "beta" || next.pre.is_empty())
+    next.cmp_precedence(current).is_gt() && (channel == "beta" || next.pre.is_empty())
+}
+
+// Reserve an opaque generation before starting I/O. Cancellation can then win
+// even if it arrives before the asynchronous check command starts executing.
+#[tauri::command]
+pub fn begin_application_update_check(service: State<'_, UpdateService>) -> Result<u64, String> {
+    let _operation = service
+        .operation
+        .try_lock()
+        .map_err(|_| "更新操作正在进行")?;
+    service
+        .candidate
+        .lock()
+        .map_err(|_| "更新状态不可用")?
+        .begin_check()
+}
+
+#[tauri::command]
+pub fn cancel_application_update_check(
+    token: u64,
+    service: State<'_, UpdateService>,
+) -> Result<(), String> {
+    service
+        .candidate
+        .lock()
+        .map_err(|_| "更新状态不可用")?
+        .cancel_check(token);
+    Ok(())
 }
 
 #[tauri::command]
 pub async fn check_application_update(
+    token: u64,
     app: AppHandle,
     service: State<'_, UpdateService>,
 ) -> Result<UpdateCheck, String> {
@@ -134,25 +217,63 @@ pub async fn check_application_update(
         .operation
         .try_lock()
         .map_err(|_| "更新操作正在进行")?;
+    let aborted = service
+        .candidate
+        .lock()
+        .map_err(|_| "更新状态不可用")?
+        .start_check(token)?;
+    let result = await_check(aborted, check_release(&app, token), Duration::from_secs(20)).await;
+    let mut candidate = service.candidate.lock().map_err(|_| "更新状态不可用")?;
+    match result {
+        Ok((info, update)) => {
+            candidate.finish_check(token, update)?;
+            Ok(info)
+        }
+        Err(error) => {
+            // A late failure must not clear a subsequent request's cancellation.
+            candidate.finish_check(token, None)?;
+            Err(error)
+        }
+    }
+}
+
+async fn await_check<T>(
+    mut aborted: watch::Receiver<bool>,
+    check: impl std::future::Future<Output = Result<T, String>>,
+    deadline: Duration,
+) -> Result<T, String> {
+    if *aborted.borrow() {
+        return Err("检查更新已取消".into());
+    }
+    tokio::select! {
+        biased;
+        _ = aborted.changed() => Err("检查更新已取消".into()),
+        result = tokio::time::timeout(deadline, check) =>
+            result.map_err(|_| "检查更新超时".to_string()).and_then(|result| result),
+    }
+}
+
+async fn check_release(
+    app: &AppHandle,
+    token: u64,
+) -> Result<(UpdateCheck, Option<Update>), String> {
     let config: ReleaseChannel =
         serde_json::from_str(CHANNEL_CONFIG).map_err(|_| "更新配置无法读取")?;
-    {
-        let mut candidate = service.candidate.lock().map_err(|_| "更新状态不可用")?;
-        candidate.generation += 1;
-        candidate.update = None;
-        candidate.verified_bytes = None;
-    }
     if !config.configured()? {
-        return Ok(UpdateCheck {
-            configured: false,
-            channel: config.channel,
-            update: None,
-        });
+        return Ok((
+            UpdateCheck {
+                configured: false,
+                channel: config.channel,
+                update: None,
+            },
+            None,
+        ));
     }
     let channel = config.channel.clone();
     let updater = app
         .updater_builder()
         .pubkey(config.public_key.expect("validated public key"))
+        .require_signed_manifest("milkup-desktop", &config.channel)
         .endpoints(
             config
                 .endpoints
@@ -172,8 +293,11 @@ pub async fn check_application_update(
         .check()
         .await
         .map_err(|error| format!("检查更新失败：{error}"))?;
-    let mut candidate = service.candidate.lock().map_err(|_| "更新状态不可用")?;
-    let info = if let Some(mut update) = update {
+    let mut update = update;
+    let info = if let Some(update) = update.as_mut() {
+        if !update.has_verified_manifest() {
+            return Err("更新元数据未通过签名绑定校验".into());
+        }
         if update.download_url.scheme() != "https"
             || !update.download_url.username().is_empty()
             || update.download_url.password().is_some()
@@ -189,21 +313,23 @@ pub async fn check_application_update(
         }
         update.timeout = Some(Duration::from_secs(300));
         let info = UpdateInfo {
-            token: candidate.generation,
+            token,
             version: update.version.clone(),
             notes: update.body.clone().unwrap_or_default(),
             date: update.date.map(|date| date.to_string()),
         };
-        candidate.update = Some(update);
         Some(info)
     } else {
         None
     };
-    Ok(UpdateCheck {
-        configured: true,
-        channel: config.channel,
-        update: info,
-    })
+    Ok((
+        UpdateCheck {
+            configured: true,
+            channel: config.channel,
+            update: info,
+        },
+        update,
+    ))
 }
 
 async fn verified_download(
@@ -211,6 +337,9 @@ async fn verified_download(
     mut aborted: watch::Receiver<bool>,
     on_progress: impl Fn(DownloadProgress) + Send + Sync,
 ) -> Result<Vec<u8>, String> {
+    if !update.has_verified_manifest() {
+        return Err("更新元数据未通过签名绑定校验".into());
+    }
     let (limit_tx, mut limit_rx) = watch::channel(false);
     let received = Arc::new(std::sync::atomic::AtomicU64::new(0));
     let count = received.clone();
@@ -267,6 +396,9 @@ pub async fn download_application_update(
             return Err("版本信息已过期，请重新检查更新".into());
         }
         let update = candidate.update.clone().ok_or("请先检查更新")?;
+        if !update.has_verified_manifest() {
+            return Err("更新元数据未通过签名绑定校验".into());
+        }
         let epoch = candidate.begin_download(abort);
         (update, epoch)
     };
@@ -308,6 +440,9 @@ pub async fn install_application_update(
             .verified_bytes
             .take()
             .ok_or("更新包尚未通过签名校验，请重新下载")?;
+        if !update.has_verified_manifest() {
+            return Err("更新元数据未通过签名绑定校验".into());
+        }
         (update, bytes)
     };
     // Windows NSIS starts the installer and exits here; /R relaunches the app.

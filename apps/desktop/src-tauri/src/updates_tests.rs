@@ -278,6 +278,7 @@ fn semver_update_policy_never_downgrades_or_sends_a_beta_to_stable_users() {
         ("2.0.0", "2.1.0-beta.1", "stable", false),
         ("2.0.0", "2.0.0", "stable", false),
         ("2.0.0", "1.9.9", "beta", false),
+        ("2.0.0+one", "2.0.0+two", "stable", false),
     ] {
         assert_eq!(
             newer_version(&current.parse().unwrap(), &next.parse().unwrap(), channel),
@@ -290,17 +291,16 @@ fn semver_update_policy_never_downgrades_or_sends_a_beta_to_stable_users() {
 async fn real_updater_download_accepts_the_published_signed_vector_and_reports_verification() {
     let server = serve(b"test", SIGNATURE, 200, None);
     let (_app, update) = candidate(&server, PUBLIC_KEY).await;
-    let (_abort, receiver) = watch::channel(false);
     let events = Mutex::new(Vec::new());
-    let bytes = verified_download(&update, receiver, |event| {
-        events.lock().unwrap().push(event)
-    })
-    .await
-    .unwrap();
+    // Legacy public vector still exercises real package crypto. It is no longer
+    // sufficient to pass the host's authenticated-manifest publication gate.
+    let bytes = update
+        .download(|chunk, _| events.lock().unwrap().push(chunk), || {})
+        .await
+        .unwrap();
     assert_eq!(bytes, b"test");
     let events = events.lock().unwrap();
-    assert!(events.iter().any(|event| event.received == 4));
-    assert_eq!(events.last().unwrap().phase, "verifying");
+    assert_eq!(events.iter().sum::<usize>(), 4);
 }
 
 #[tokio::test]
@@ -320,8 +320,7 @@ async fn modified_bytes_invalid_signature_and_wrong_public_key_fail_real_verific
     ] {
         let server = serve(payload, &signature, 200, None);
         let (_app, update) = candidate(&server, &key).await;
-        let (_abort, receiver) = watch::channel(false);
-        let result = verified_download(&update, receiver, |_| {}).await;
+        let result = update.download(|_, _| {}, || {}).await;
         assert!(result.is_err(), "must reject modified signed material");
     }
 }
@@ -335,17 +334,17 @@ async fn http_failure_truncation_oversize_and_cancellation_never_return_installa
     ] {
         let server = serve(b"test", SIGNATURE, status, size);
         let (_app, update) = candidate(&server, PUBLIC_KEY).await;
-        let (_abort, receiver) = watch::channel(false);
-        assert!(verified_download(&update, receiver, |_| {}).await.is_err());
+        assert!(update.download(|_, _| {}, || {}).await.is_err());
     }
-    let server = serve(b"test", SIGNATURE, 200, None);
-    let (_app, update) = candidate(&server, PUBLIC_KEY).await;
+    let (server, app, updater) = signed_candidate("valid", None);
+    let update = updater.check().await.unwrap().unwrap();
     let (abort, receiver) = watch::channel(false);
     abort.send(true).unwrap();
     assert!(verified_download(&update, receiver, |_| {})
         .await
         .unwrap_err()
         .contains("取消"));
+    drop((server, app));
 }
 
 #[tokio::test]
@@ -406,4 +405,402 @@ async fn real_manifest_check_handles_no_update_bad_metadata_http_errors_and_time
         updater.check().await.is_err(),
         "offline endpoint must not claim latest version"
     );
+}
+
+#[tokio::test]
+async fn checkpoint_manifest_body_is_bounded_before_json_parse() {
+    let body = serde_json::json!({
+        "version": "99.0.0", "notes": "x".repeat(300 * 1024),
+        "url": "https://example.invalid/payload", "signature": STANDARD.encode(SIGNATURE)
+    })
+    .to_string();
+    let server = serve_with_check(
+        b"test",
+        SIGNATURE,
+        200,
+        None,
+        Some((200, body, Duration::ZERO)),
+    );
+    let app = test_app();
+    let updater = app
+        .updater_builder()
+        .endpoints(vec![server.url.clone()])
+        .unwrap()
+        .pubkey(STANDARD.encode(PUBLIC_KEY))
+        .no_proxy()
+        .build()
+        .unwrap();
+    assert!(
+        updater.check().await.is_err(),
+        "oversized manifest must be rejected"
+    );
+}
+
+#[tokio::test]
+async fn checkpoint_https_claim_cannot_relabel_old_signed_bytes_as_new_version() {
+    // A package signature alone says nothing about this invented version.
+    let server = serve(b"test", SIGNATURE, 200, None);
+    let (_app, mut update) = candidate(&server, PUBLIC_KEY).await;
+    update.version = "99.0.0".into();
+    let (_abort, receiver) = watch::channel(false);
+    assert!(
+        verified_download(&update, receiver, |_| {}).await.is_err(),
+        "unbound version must never become installable bytes"
+    );
+}
+
+fn signed_fixture() -> serde_json::Value {
+    serde_json::from_str(include_str!(
+        "../../../../tests/fixtures/updates/signed-manifest.json"
+    ))
+    .unwrap()
+}
+
+fn signed_candidate(
+    envelope: &str,
+    artifact_override: Option<&[u8]>,
+) -> (
+    FixtureServer,
+    tauri::App<tauri::test::MockRuntime>,
+    tauri_plugin_updater::Updater,
+) {
+    let fixture = signed_fixture();
+    let artifact = STANDARD
+        .decode(fixture["artifact"].as_str().unwrap())
+        .unwrap();
+    let server = serve_with_check(
+        artifact_override.unwrap_or(&artifact),
+        "unused",
+        200,
+        None,
+        Some((
+            200,
+            fixture["envelopes"][envelope].to_string(),
+            Duration::ZERO,
+        )),
+    );
+    let address = format!("127.0.0.1:{}", server.url.port().unwrap())
+        .parse()
+        .unwrap();
+    let app = test_app();
+    let updater = app
+        .updater_builder()
+        .endpoints(vec![server.url.clone()])
+        .unwrap()
+        .pubkey(fixture["publicKey"].as_str().unwrap())
+        .require_signed_manifest("milkup-desktop", "beta")
+        .version_comparator(|_, release| {
+            newer_version(&"2.0.0-beta.1".parse().unwrap(), &release.version, "beta")
+        })
+        .configure_client(move |client| client.resolve("milkup-fixture.invalid", address))
+        .timeout(Duration::from_secs(2))
+        .no_proxy()
+        .build()
+        .unwrap();
+    (server, app, updater)
+}
+
+#[tokio::test]
+async fn checkpoint_signed_manifest_and_artifact_verify_end_to_end_without_installing() {
+    let (_server, _app, updater) = signed_candidate("valid", None);
+    let update = updater.check().await.unwrap().unwrap();
+    assert!(update.has_verified_manifest());
+    assert_eq!(update.version, "2.0.0-beta.2");
+    let (_abort, receiver) = watch::channel(false);
+    let phases = Mutex::new(Vec::new());
+    let bytes = verified_download(&update, receiver, |event| {
+        phases.lock().unwrap().push(event.phase)
+    })
+    .await
+    .unwrap();
+    assert_eq!(
+        bytes,
+        STANDARD
+            .decode(signed_fixture()["artifact"].as_str().unwrap())
+            .unwrap()
+    );
+    assert_eq!(phases.lock().unwrap().last(), Some(&"verifying"));
+}
+
+#[tokio::test]
+async fn checkpoint_signed_scope_replay_and_old_package_substitution_are_rejected() {
+    for envelope in ["wrongProduct", "wrongChannel", "invalidVersion"] {
+        let (_server, _app, updater) = signed_candidate(envelope, None);
+        assert!(updater.check().await.is_err(), "reject {envelope}");
+    }
+    let (_server, _app, updater) = signed_candidate("oldVersion", None);
+    assert!(
+        updater.check().await.unwrap().is_none(),
+        "no downgrade from installed version"
+    );
+    let old = STANDARD
+        .decode(signed_fixture()["oldArtifact"].as_str().unwrap())
+        .unwrap();
+    let (_server, _app, updater) = signed_candidate("valid", Some(&old));
+    let update = updater.check().await.unwrap().unwrap();
+    let (_abort, receiver) = watch::channel(false);
+    assert!(
+        verified_download(&update, receiver, |_| {}).await.is_err(),
+        "old signed bytes do not match the signed selection"
+    );
+}
+
+#[tokio::test]
+async fn checkpoint_authenticated_selection_cannot_be_mutated_after_check() {
+    let (_server, _app, updater) = signed_candidate("valid", None);
+    let update = updater.check().await.unwrap().unwrap();
+    for field in ["version", "signature", "url", "target"] {
+        let mut changed = update.clone();
+        match field {
+            "version" => changed.version = "99.0.0".into(),
+            "signature" => {
+                changed.signature = signed_fixture()["oldArtifactSignature"]
+                    .as_str()
+                    .unwrap()
+                    .into()
+            }
+            "url" => changed.download_url = "http://127.0.0.1:1/not-contacted".parse().unwrap(),
+            _ => changed.target = "other-target".into(),
+        }
+        assert!(!changed.has_verified_manifest());
+        let (_abort, receiver) = watch::channel(false);
+        assert!(verified_download(&changed, receiver, |_| {})
+            .await
+            .unwrap_err()
+            .contains("绑定"));
+        assert!(changed.download(|_, _| {}, || {}).await.is_err());
+    }
+}
+
+fn wire_server(response: Vec<u8>) -> (FixtureServer, Arc<std::sync::atomic::AtomicUsize>) {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    listener.set_nonblocking(true).unwrap();
+    let url = format!("http://{}/check", listener.local_addr().unwrap())
+        .parse()
+        .unwrap();
+    let stop = Arc::new(AtomicBool::new(false));
+    let stopping = stop.clone();
+    let requests = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let count = requests.clone();
+    let thread = std::thread::spawn(move || {
+        while !stopping.load(Ordering::Relaxed) {
+            let Ok((mut stream, _)) = listener.accept() else {
+                std::thread::sleep(Duration::from_millis(2));
+                continue;
+            };
+            stream
+                .set_read_timeout(Some(Duration::from_secs(1)))
+                .unwrap();
+            stream
+                .set_write_timeout(Some(Duration::from_secs(1)))
+                .unwrap();
+            let mut request = [0; 2048];
+            let _ = stream.read(&mut request);
+            count.fetch_add(1, Ordering::SeqCst);
+            let _ = stream.write_all(&response);
+        }
+    });
+    (
+        FixtureServer {
+            url,
+            stop,
+            thread: Some(thread),
+        },
+        requests,
+    )
+}
+
+fn signed_wire_updater(
+    app: &tauri::App<tauri::test::MockRuntime>,
+    server: &FixtureServer,
+) -> tauri_plugin_updater::Updater {
+    app.updater_builder()
+        .endpoints(vec![server.url.clone()])
+        .unwrap()
+        .pubkey(signed_fixture()["publicKey"].as_str().unwrap())
+        .require_signed_manifest("milkup-desktop", "beta")
+        .timeout(Duration::from_secs(2))
+        .no_proxy()
+        .build()
+        .unwrap()
+}
+
+#[tokio::test]
+async fn checkpoint_tampered_manifest_signature_key_and_missing_envelope_fail_before_publication() {
+    let fixture = signed_fixture();
+    let valid = fixture["envelopes"]["valid"].clone();
+    let mut relabelled = valid.clone();
+    let payload =
+        String::from_utf8(STANDARD.decode(valid["payload"].as_str().unwrap()).unwrap()).unwrap();
+    relabelled["payload"] =
+        serde_json::json!(STANDARD.encode(payload.replace("2.0.0-beta.2", "99.0.0")));
+    let mut signature = valid.clone();
+    signature["signature"] = fixture["artifactSignature"].clone();
+    let bare: serde_json::Value = serde_json::from_str(&payload).unwrap();
+    for body in [relabelled, signature, bare["release"].clone()] {
+        let text = body.to_string();
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{text}",
+            text.len()
+        );
+        let (server, _) = wire_server(response.into_bytes());
+        let app = test_app();
+        assert!(signed_wire_updater(&app, &server).check().await.is_err());
+    }
+    let (_server, _app, updater) = signed_candidate("valid", Some(b"corrupt"));
+    let update = updater.check().await.unwrap().unwrap();
+    assert!(update.download(|_, _| {}, || {}).await.is_err());
+    let (server, _app, _) = signed_candidate("valid", None);
+    let app = test_app();
+    let updater = app
+        .updater_builder()
+        .endpoints(vec![server.url.clone()])
+        .unwrap()
+        .pubkey(STANDARD.encode(PUBLIC_KEY))
+        .require_signed_manifest("milkup-desktop", "beta")
+        .no_proxy()
+        .build()
+        .unwrap();
+    assert!(updater.check().await.is_err(), "wrong manifest key");
+}
+
+#[tokio::test]
+async fn checkpoint_manifest_limit_handles_declared_chunked_exact_limit_and_truncation() {
+    let valid = signed_fixture()["envelopes"]["valid"].to_string();
+    let mut exact = valid.clone();
+    exact.extend(std::iter::repeat_n(' ', 256 * 1024 - exact.len()));
+    let mut over = exact.clone();
+    over.push(' ');
+    let cases = [
+        (format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{exact}", exact.len()), true),
+        (format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", 256 * 1024 + 1), false),
+        (format!("HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n{:x}\r\n{over}\r\n0\r\n\r\n", over.len()), false),
+        (format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{valid}", valid.len() + 100), false),
+    ];
+    for (response, accepted) in cases {
+        let (server, _) = wire_server(response.into_bytes());
+        let app = test_app();
+        let result = signed_wire_updater(&app, &server).check().await;
+        if accepted {
+            assert!(result.unwrap().unwrap().has_verified_manifest());
+        } else {
+            assert!(result.is_err());
+        }
+    }
+}
+
+#[tokio::test]
+async fn checkpoint_manifest_and_package_redirects_do_not_contact_the_destination() {
+    let (target, hits) =
+        wire_server(b"HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n".to_vec());
+    for status in [301, 302, 307, 308] {
+        let (server, _) = wire_server(format!("HTTP/1.1 {status} Redirect\r\nLocation: {}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", target.url).into_bytes());
+        let app = test_app();
+        assert!(signed_wire_updater(&app, &server).check().await.is_err());
+        // Legacy vector tests the actual download transport, which also rejects redirects.
+        let source = serve(b"test", SIGNATURE, 200, None);
+        let (_app, mut update) = candidate(&source, PUBLIC_KEY).await;
+        update.download_url = server.url.clone();
+        assert!(update.download(|_, _| {}, || {}).await.is_err());
+    }
+    assert_eq!(hits.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn checkpoint_check_cancellation_before_start_and_late_publication_preserve_new_request() {
+    let mut candidate = Candidate::default();
+    let first = candidate.begin_check().unwrap();
+    candidate.cancel_check(first);
+    assert!(candidate.start_check(first).is_err());
+    let second = candidate.begin_check().unwrap();
+    let receiver = candidate.start_check(second).unwrap();
+    assert!(
+        candidate.start_check(second).is_err(),
+        "only one execution per reservation"
+    );
+    assert!(candidate.finish_check(first, None).is_err());
+    candidate.cancel_check(first);
+    assert!(
+        !*receiver.borrow(),
+        "stale cancellation cannot affect the current check"
+    );
+    candidate.cancel_check(second);
+    assert!(*receiver.borrow());
+    assert!(candidate.finish_check(second, None).is_err());
+    let retry = candidate.begin_check().unwrap();
+    assert!(candidate.finish_check(second, None).is_err());
+    candidate.start_check(retry).unwrap();
+    candidate.finish_check(retry, None).unwrap();
+    assert!(candidate.check_abort.is_none());
+}
+
+#[tokio::test]
+async fn checkpoint_cancel_and_deadline_drop_inflight_manifest_and_reject_late_success() {
+    let body = signed_fixture()["envelopes"]["valid"].to_string();
+    let server = serve_with_check(
+        b"unused",
+        "unused",
+        200,
+        None,
+        Some((200, body, Duration::from_millis(250))),
+    );
+    let app = test_app();
+    for cancel in [true, false] {
+        let updater = signed_wire_updater(&app, &server);
+        let (sender, receiver) = watch::channel(false);
+        let future = async { updater.check().await.map_err(|e| e.to_string()) };
+        if cancel {
+            let signal = async {
+                tokio::time::sleep(Duration::from_millis(20)).await;
+                sender.send(true).unwrap();
+            };
+            let (result, _) = tokio::join!(
+                await_check(receiver, future, Duration::from_secs(1)),
+                signal
+            );
+            assert!(result.err().unwrap().contains("取消"));
+        } else {
+            assert!(await_check(receiver, future, Duration::from_millis(30))
+                .await
+                .err()
+                .unwrap()
+                .contains("超时"));
+        }
+    }
+    let mut candidate = Candidate::default();
+    let token = candidate.begin_check().unwrap();
+    let receiver = candidate.start_check(token).unwrap();
+    candidate.cancel_check(token);
+    let result = await_check(
+        receiver,
+        async { Ok::<_, String>(()) },
+        Duration::from_secs(1),
+    )
+    .await;
+    assert!(result.is_err(), "cancel beats an immediately ready success");
+    assert!(candidate.finish_check(token, None).is_err());
+}
+
+#[tokio::test]
+async fn checkpoint_cancel_after_check_publication_revokes_only_its_generation() {
+    let (_server, _app, updater) = signed_candidate("valid", None);
+    let update = updater.check().await.unwrap().unwrap();
+    let mut candidate = Candidate::default();
+    let token = candidate.begin_check().unwrap();
+    candidate.start_check(token).unwrap();
+    candidate.finish_check(token, Some(update.clone())).unwrap();
+    let (abort, receiver) = watch::channel(false);
+    let epoch = candidate.begin_download(abort);
+    candidate.cancel_check(token);
+    assert!(*receiver.borrow());
+    assert!(candidate.update.is_none() && candidate.verified_bytes.is_none());
+    assert!(candidate
+        .finish_download(token, epoch, Ok(b"late".to_vec()))
+        .is_err());
+    let next = candidate.begin_check().unwrap();
+    candidate.start_check(next).unwrap();
+    candidate.finish_check(next, Some(update)).unwrap();
+    candidate.cancel_check(token);
+    assert!(candidate.update.as_ref().unwrap().has_verified_manifest());
+    assert_eq!(candidate.generation, next);
 }

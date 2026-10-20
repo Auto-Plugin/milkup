@@ -8,6 +8,20 @@ Upstream discards ShellExecuteW's result and unconditionally exits. It also invo
 
 The helper has no public launcher API or configurable executable. Its only production caller supplies the existing updater-generated extracted path and arguments. There is no alternate signature verifier, key, endpoint, installer or download path. No claim is made that OS acceptance means installation completed, the new application started successfully, or rollback is implemented.
 
+## Signed metadata and bounded transport checkpoint
+
+The later update checkpoint extends `src/updater.rs`; the complete diff and hashes include both patches. Cargo manifests, lockfiles and dependency versions remain unchanged.
+
+- All manifest responses accumulate at most 256 KiB before JSON parsing. Declared lengths and actual chunks are checked; exact-limit bodies are accepted, truncation fails. Package accumulation is capped at 256 MiB before extending its buffer. These are body limits, not whole-process RSS limits.
+- Manifest and package redirects are rejected, including same-origin redirects. Only HTTP 200 bodies and the manifest's existing 204 no-update response are accepted. The host still requires credential-free HTTPS and owns endpoints/public keys.
+- `UpdaterBuilder::require_signed_manifest(product, channel)` is an explicit local Rust API extension, used by the milkup host. It verifies a bounded base64 payload with the existing minisign verifier and host key before parsing the signed schema/product/channel/release statement. Platform selections, version and artifact signatures are signed together; unsigned fallback is not allowed in this mode.
+- `Update::has_verified_manifest()` checks the retained authenticated version/signature/URL/target selection against the upstream public fields. Changing those fields invalidates the selection. Download and install reject a changed authenticated selection. The host also rejects legacy unsigned candidates before publication, download and installation.
+- Package signatures still verify the downloaded bytes independently; installation rechecks them before extraction or launch. No installation is exercised by metadata tests.
+
+The existing upstream builder remains usable without signed metadata for isolated legacy crypto tests; milkup's production host always opts in and its publication/download gate additionally requires the verified selection. This is not exposed as a plugin-controlled trust setting. The public plugin SDK is unchanged.
+
+The wire format, trust limits and formal release prerequisites are documented in [the update manifest protocol](../../docs/v2-update-manifest-protocol.md). In particular, authenticating a publisher's version-to-artifact statement does not inspect or prove the version inside an installer, nor provide automatic application rollback, freshness against a frozen server, or recovery from a compromised signing key.
+
 Validation:
 
 - `node --test scripts/check-updater-vendor.test.mjs` checks provenance and rejects modified source, licenses, extra files and registry lock drift.
