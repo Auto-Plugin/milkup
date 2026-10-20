@@ -47,6 +47,13 @@ extern "system" {
         ea: *const std::ffi::c_void,
         ea_length: u32,
     ) -> i32;
+    fn NtSetInformationFile(
+        handle: *mut std::ffi::c_void,
+        io: *mut IoStatus,
+        info: *const std::ffi::c_void,
+        length: u32,
+        class: u32,
+    ) -> i32;
     fn RtlNtStatusToDosError(status: i32) -> u32;
 }
 fn create_stage(directory: &File, name: &str) -> Result<File> {
@@ -98,7 +105,7 @@ use windows_sys::Win32::{
         UNPROTECTED_DACL_SECURITY_INFORMATION,
     },
     Storage::FileSystem::{
-        FileDispositionInfo, FileRenameInfo, GetDriveTypeW, GetVolumeInformationByHandleW,
+        FileDispositionInfo, GetDriveTypeW, GetVolumeInformationByHandleW,
         SetFileInformationByHandle, FILE_DISPOSITION_INFO, FILE_RENAME_INFO,
     },
 };
@@ -260,23 +267,34 @@ impl Stage {
     }
     fn rename(&mut self, target: &Target) -> Result<()> {
         let name: Vec<u16> = target.name.encode_utf16().collect();
-        let bytes = offset_of!(FILE_RENAME_INFO, FileName) + (name.len() + 1) * 2;
+        // Include the complete native structure, including its tail padding.
+        let bytes = size_of::<FILE_RENAME_INFO>() + name.len() * 2;
         let mut storage = vec![0usize; bytes.div_ceil(size_of::<usize>())];
         let info = storage.as_mut_ptr().cast::<FILE_RENAME_INFO>();
         unsafe {
             (*info).Anonymous.ReplaceIfExists = target.initial.is_some();
-            (*info).RootDirectory = target.directory.as_raw_handle();
+            // NtSetInformationFile resolves a simple name against the source
+            // handle's existing parent. Stage creation is already anchored to
+            // target.directory, and neither handle permits parent substitution.
+            (*info).RootDirectory = null_mut();
             (*info).FileNameLength = (name.len() * 2) as u32;
             std::ptr::copy_nonoverlapping(name.as_ptr(), (*info).FileName.as_mut_ptr(), name.len());
-            if SetFileInformationByHandle(
+        }
+        let mut io = IoStatus::default();
+        let status = unsafe {
+            NtSetInformationFile(
                 self.file.as_raw_handle(),
-                FileRenameInfo,
+                &mut io,
                 info.cast(),
                 bytes as u32,
-            ) == 0
-            {
-                return Err(error(std::io::Error::last_os_error()));
-            }
+                10, // FileRenameInformation; same-parent, no pathname fallback
+            )
+        };
+        if status < 0 {
+            return Err(format!(
+                "Cannot publish owned output stage: {} (NTSTATUS {status:#x})",
+                std::io::Error::from_raw_os_error(unsafe { RtlNtStatusToDosError(status) } as i32)
+            ));
         }
         self.committed = true;
         Ok(())
@@ -311,15 +329,22 @@ impl Drop for Stage {
     }
 }
 pub(super) fn publish(target: &Target, job: &Job, bytes: &[u8]) -> Result<Written> {
-    let mut stage = Stage::new(target)?;
+    let mut stage = Stage::new(target).map_err(|e| format!("Cannot create output stage: {e}"))?;
     let result = (|| {
         if target.initial.is_some() {
-            preserve_dacl(&target.open()?, &stage.file)?;
+            preserve_dacl(&target.open()?, &stage.file)
+                .map_err(|e| format!("Cannot preserve output permissions: {e}"))?;
         }
         // Do not put document bytes into a stage with broader inherited access
         // than an existing private output, including if the app dies mid-write.
-        stage.file.write_all(bytes).map_err(error)?;
-        stage.file.sync_all().map_err(error)?;
+        stage
+            .file
+            .write_all(bytes)
+            .map_err(|e| format!("Cannot write output stage: {e}"))?;
+        stage
+            .file
+            .sync_all()
+            .map_err(|e| format!("Cannot flush output stage: {e}"))?;
         let _state = job.state.lock().map_err(error)?;
         job.active()?;
         target.verify(job.source.as_deref())?;
