@@ -37,3 +37,5 @@ AppContainer 是按最小权限隔离资源的机制，其 ACL/网络能力是�
 PDF 的输出目标、取消及发布可以复用 W1，但 WebView2 静态渲染仍需独立网络/文件限制与进程硬截止证明；物理打印还需要真实系统打印与取消证据。Linux WebKit PDF 精确 Unicode、长块分页及 Print04 失败仍开放，不在本轮改依赖或重写结论。
 
 W1 与 W0 的最终实际结果及后续矩阵见 [里程碑报告](v2-windows-backends-w1-2026-10-20.md)。W08 证明受限 Runtime 静态兼容性，尚未通过完整网络/文件/后代隔离验收，产品 DOM/PDF 继续关闭。
+
+2026-10-20 后续 W0 隔离矩阵已发现受限 WebView2 的 IPv4/IPv6 TURN 请求实际送达，AppContainer/0 capability 不足以关闭当前完整门槛。产品 DOM/PDF 继续关闭，实测、原始失败和下一步建议见 [W0 隔离里程碑](v2-windows-w0-isolation-2026-10-20.md)。
