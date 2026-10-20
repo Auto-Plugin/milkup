@@ -92,3 +92,45 @@ jobs:
               Write-Host '::endgroup::'
             }
           }
+
+  windows-w0:
+    if: >-
+      github.repository == 'Auto-Plugin/milkup' &&
+      github.ref == 'refs/heads/dot/milkup-v2-windows-backends' &&
+      github.event.repository.private == false &&
+      github.event.deleted == false &&
+      contains(github.event.head_commit.message, '[windows-w0-probe]')
+    runs-on: windows-2025
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - name: Enable Git long paths for this ephemeral Windows runner
+        run: |
+          git config --global core.longpaths true
+          if ($LASTEXITCODE -ne 0) { throw 'Git long-path configuration failed' }
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Select existing development toolchain
+        run: |
+          rustup toolchain install 1.99.0 --profile minimal
+          if ($LASTEXITCODE -ne 0) { throw 'Rust compiler setup failed' }
+          'RUSTUP_TOOLCHAIN=1.99.0' >> $env:GITHUB_ENV
+      - name: Record installed engine metadata
+        run: ./scripts/ci/probe-windows-backend-environment.ps1
+      - name: Run authorized temporary AppContainer experiment
+        run: ./scripts/ci/run-windows-w0-probe.ps1
+      - name: Check no source mutation
+        if: always()
+        run: |
+          if (git status --porcelain) { throw 'W0 modified source checkout' }
+          'W0 is a compatibility experiment, not Windows DOM/PDF product acceptance. No Runtime download, existing Runtime ACL changes, loopback exception, firewall changes, elevation or artifact upload.' >> $env:GITHUB_STEP_SUMMARY

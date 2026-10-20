@@ -139,3 +139,41 @@ test('Windows updater dependency regressions cannot pass with an empty filter', 
   }
   assert.match(phase, /Invoke-Checked cargo .*'--nocapture', '--test-threads=1'/)
 })
+
+test('W0 has a separate explicit experiment gate and preserves production source checks', async () => {
+  const workflow = await read('.github/workflows/v2-windows-backends-check.yml')
+  const job = workflow.split(/\r?\n  windows-w0:\r?\n/)[1]
+  assert.ok(job)
+  for (const gate of [
+    "github.repository == 'Auto-Plugin/milkup'",
+    "github.ref == 'refs/heads/dot/milkup-v2-windows-backends'",
+    'github.event.repository.private == false',
+    'github.event.deleted == false',
+    "contains(github.event.head_commit.message, '[windows-w0-probe]')",
+    'timeout-minutes: 15',
+    'persist-credentials: false',
+  ])
+    assert.ok(job.includes(gate), `Missing W0 gate: ${gate}`)
+  assert.doesNotMatch(job, /upload-artifact|actions\/cache|secrets\./i)
+  const script = await read('scripts/ci/run-windows-w0-probe.ps1')
+  assert.match(script, /Missing public W0 gate/)
+  assert.match(script, /No installed WebView2 Runtime; W0 blocked without download fallback/)
+  assert.match(script, /temporary-ci-no-network-private-directory-only/)
+  assert.match(script, /cargo build --locked/)
+  assert.doesNotMatch(script, /Invoke-WebRequest|Start-BitsTransfer|RunAs|CheckNetIsolation|netsh/i)
+  const manifest = await read('scripts/ci/windows-w0-probe/Cargo.lock')
+  const original = await read('apps/desktop/src-tauri/Cargo.lock')
+  // A separate experimental closure may not silently bring in a new package/version.
+  const blocks = (text) => text.split('[[package]]').slice(1)
+  const key = (block) =>
+    [
+      block.match(/^name = (.+)$/m)?.[1],
+      block.match(/^version = (.+)$/m)?.[1],
+      block.match(/^checksum = (.+)$/m)?.[1],
+    ].join('|')
+  const allowed = new Set(blocks(original).map(key))
+  for (const block of blocks(manifest)) {
+    if (/^source = /m.test(block))
+      assert.ok(allowed.has(key(block)), `New W0 dependency: ${key(block)}`)
+  }
+})
