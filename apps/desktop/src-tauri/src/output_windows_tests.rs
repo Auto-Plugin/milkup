@@ -325,3 +325,108 @@ fn network_device_and_pipe_sources_are_rejected_without_opening_them() {
         );
     }
 }
+
+#[test]
+fn deleted_source_and_open_document_case_aliases_remain_protected() {
+    let f = Fixture::new();
+    let source = f.path("Original-Ö.md");
+    let alias = f.path("original-ö.MD");
+    fs::write(&source, "original").unwrap();
+    let id = crate::workspace::id("output-deleted-document").unwrap();
+    crate::resources::register_document(&id, &source);
+    fs::remove_file(&source).unwrap();
+    assert!(Target::adopt(&alias, Some(&source)).is_err());
+    assert!(Target::adopt(&alias, None).is_err());
+    crate::resources::resources_release_document(id).unwrap();
+    // A different directory with the same name does not alias the source.
+    let other = f.path("other");
+    fs::create_dir(&other).unwrap();
+    assert!(Target::adopt(&other.join("original-ö.MD"), Some(&source)).is_ok());
+    assert!(!alias.exists());
+}
+
+#[test]
+fn junction_ancestor_cannot_redirect_output_into_another_directory() {
+    use std::{
+        ffi::c_void,
+        os::windows::{fs::OpenOptionsExt, io::AsRawHandle},
+        ptr::null_mut,
+    };
+    type Handle = *mut c_void;
+    #[link(name = "kernel32")]
+    extern "system" {
+        fn DeviceIoControl(
+            device: Handle,
+            code: u32,
+            input: *const c_void,
+            input_size: u32,
+            output: *mut c_void,
+            output_size: u32,
+            returned: *mut u32,
+            overlapped: *mut c_void,
+        ) -> i32;
+    }
+    // Mount-point junction creation needs no symlink privilege. Failure is a test
+    // failure, never a skipped security assertion. Only generated temp paths used.
+    fn junction(link: &Path, target: &Path) {
+        std::fs::create_dir(link).unwrap();
+        let canonical = target.canonicalize().unwrap();
+        let canonical = canonical.to_str().unwrap();
+        let print = canonical.strip_prefix("\\\\?\\").unwrap_or(canonical);
+        let substitute: Vec<u16> = format!("\\??\\{print}").encode_utf16().collect();
+        let print: Vec<u16> = print.encode_utf16().collect();
+        let mut data = Vec::new();
+        data.extend_from_slice(&0xa0000003u32.to_le_bytes()); // IO_REPARSE_TAG_MOUNT_POINT
+        data.extend_from_slice(
+            &((8 + (substitute.len() + print.len() + 2) * 2) as u16).to_le_bytes(),
+        );
+        data.extend_from_slice(&0u16.to_le_bytes());
+        data.extend_from_slice(&0u16.to_le_bytes());
+        data.extend_from_slice(&((substitute.len() * 2) as u16).to_le_bytes());
+        data.extend_from_slice(&(((substitute.len() + 1) * 2) as u16).to_le_bytes());
+        data.extend_from_slice(&((print.len() * 2) as u16).to_le_bytes());
+        for c in substitute
+            .into_iter()
+            .chain(Some(0))
+            .chain(print)
+            .chain(Some(0))
+        {
+            data.extend_from_slice(&c.to_le_bytes());
+        }
+        let file = std::fs::OpenOptions::new()
+            .write(true)
+            .custom_flags(0x02000000 | 0x00200000)
+            .open(link)
+            .unwrap();
+        let mut returned = 0;
+        assert_ne!(
+            unsafe {
+                DeviceIoControl(
+                    file.as_raw_handle(),
+                    0x000900a4,
+                    data.as_ptr().cast(),
+                    data.len() as u32,
+                    null_mut(),
+                    0,
+                    &mut returned,
+                    null_mut(),
+                )
+            },
+            0,
+            "junction creation failed: {}",
+            std::io::Error::last_os_error()
+        );
+    }
+
+    let root = Fixture::new();
+    let external = Fixture::new();
+    let target = external.path("keep.html");
+    fs::write(&target, "external original").unwrap();
+    let link = root.path("redirect");
+    junction(&link, &external.0);
+    assert!(Target::adopt(&link.join("keep.html"), None).is_err());
+    assert!(Target::adopt(&link.join("new.html"), None).is_err());
+    assert_eq!(fs::read(&target).unwrap(), b"external original");
+    assert_eq!(fs::read_dir(&external.0).unwrap().count(), 1);
+    fs::remove_dir(link).unwrap();
+}

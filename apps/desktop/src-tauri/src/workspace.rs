@@ -316,6 +316,25 @@ pub(crate) fn windows_identity(file: &File) -> Result<(u64, u64)> {
         ((info.index_high as u64) << 32) | info.index_low as u64,
     ))
 }
+/// Conservative name protection, including a currently absent file. Directory
+/// identities must be compared separately; this never authorizes path access.
+#[cfg(windows)]
+pub(crate) fn windows_same_file_name(
+    first: &std::ffi::OsStr,
+    second: &std::ffi::OsStr,
+) -> Result<bool> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::Globalization::{CompareStringOrdinal, CSTR_EQUAL};
+    let a: Vec<u16> = first.encode_wide().collect();
+    let b: Vec<u16> = second.encode_wide().collect();
+    let a_len = i32::try_from(a.len()).map_err(err)?;
+    let b_len = i32::try_from(b.len()).map_err(err)?;
+    let compared = unsafe { CompareStringOrdinal(a.as_ptr(), a_len, b.as_ptr(), b_len, 1) };
+    if compared == 0 {
+        return Err(err(std::io::Error::last_os_error()));
+    }
+    Ok(compared == CSTR_EQUAL)
+}
 pub(crate) fn open_absolute_directory(path: &Path) -> Result<(File, Vec<File>)> {
     if !path.is_absolute() {
         return Err("Workspace root must be absolute".into());

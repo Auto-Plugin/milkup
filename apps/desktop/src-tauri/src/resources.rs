@@ -1021,12 +1021,24 @@ pub(crate) fn registered_document_file(document_id: &str) -> Result<(PathBuf, Fi
 }
 // Output selection never grants permission to replace an open document, even
 // when a file picker returns a different hard-link name for that document.
-pub(crate) fn protect_output_destination(path: &Path, target: Option<&File>) -> Result<()> {
+pub(crate) fn protect_output_destination(
+    path: &Path,
+    target: Option<&File>,
+    _parent: &File,
+) -> Result<()> {
     let store = registry().lock().map_err(error)?;
     let target_identity = target.map(identity).transpose()?;
     for document in store.documents.values() {
         if document.path == path {
             return Err("Output cannot replace an open document".into());
+        }
+        #[cfg(windows)]
+        if let (Some(first), Some(second)) = (document.path.file_name(), path.file_name()) {
+            if crate::workspace::windows_same_file_name(first, second)?
+                && identity(&document.parent.file)? == identity(_parent)?
+            {
+                return Err("Output cannot replace an open document path, even if absent".into());
+            }
         }
         if let Some(target_identity) = target_identity {
             if let Some(name) = document.path.file_name().and_then(|name| name.to_str()) {

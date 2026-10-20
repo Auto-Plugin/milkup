@@ -520,13 +520,31 @@ impl Target {
             if source == self.path {
                 return Err("Output cannot replace the source document".into());
             }
+            #[cfg(windows)]
+            if crate::workspace::windows_same_file_name(
+                source.file_name().ok_or("Source has no filename")?,
+                self.path.file_name().ok_or("Output has no filename")?,
+            )? {
+                let (parent, _guards) = crate::workspace::open_absolute_directory(
+                    source.parent().ok_or("Source has no parent")?,
+                )?;
+                if identity(&parent)? == identity(&self.directory)? {
+                    return Err(
+                        "Output cannot replace the source document path, even if absent".into(),
+                    );
+                }
+            }
             if let (Ok(source), Ok(target)) = (source_file(source), self.open()) {
                 if identity(&source)? == identity(&target)? {
                     return Err("Output cannot replace an alias of the source document".into());
                 }
             }
         }
-        crate::resources::protect_output_destination(&self.path, self.open().ok().as_ref())
+        crate::resources::protect_output_destination(
+            &self.path,
+            self.open().ok().as_ref(),
+            &self.directory,
+        )
     }
     fn verify(&self, source: Option<&Path>) -> Result<()> {
         let (now, _) = crate::workspace::open_absolute_directory(&self.parent)?;

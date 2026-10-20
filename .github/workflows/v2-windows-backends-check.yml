@@ -76,6 +76,10 @@ jobs:
       - name: Check workspace, independent plugins and full desktop
         run: |
           ./scripts/ci/check-windows-desktop-source.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/p8-desktop-source"
+      - name: Record existing Windows engine availability
+        if: always()
+        run: |
+          ./scripts/ci/probe-windows-backend-environment.ps1
       - name: Record source-validation boundary
         if: always()
         run: |

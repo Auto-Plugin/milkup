@@ -4,7 +4,7 @@
 
 ## 已有设计的约束
 
-[P4 checkpoint27](v2-product-phase4-mermaid-engine-2026-10-16.md#Windows-独立-DOM-后端的最小实施门槛) 明确把 Windows W0 列为实施前门槛：网络的 WebRTC/UDP/DNS 路径和文件选择器不能只靠资源过滤或 JavaScript monkeypatch 宣称禁止。[P8 清单](v2-product-phase8-readiness-checklist.md) 将 Windows DOM、受控 PDF/打印列为未实现，Linux 结果不能替代。
+[P4 checkpoint27](v2-product-phase4-mermaid-engine-2026-10-16.md#windows-独立-dom-后端的最小实施门槛) 明确把 Windows W0 列为实施前门槛：网络的 WebRTC/UDP/DNS 路径和文件选择器不能只靠资源过滤或 JavaScript monkeypatch 宣称禁止。[P8 清单](v2-product-phase8-readiness-checklist.md) 将 Windows DOM、受控 PDF/打印列为未实现，Linux 结果不能替代。
 
 WebView2 包含 browser、renderer 和其他 helper；共享 user-data folder 可以共享进程组，关闭一个控件不能独自证明所有所属后代已消失。[Microsoft 进程模型](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-model)。Microsoft 还要求把网页视为不可信、限制 host objects、脚本和导航，并推荐普通用户完整性级别；这些设置没有提供本项目要求的所有网络与文件通道的 OS 拒绝证明。[WebView2 安全指南](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/security)。
 
@@ -15,8 +15,8 @@ WebView2 包含 browser、renderer 和其他 helper；共享 user-data folder �
 1. Windows **HTML 导出**：复用现有插件、输出租约、序列化内容和源文档/已打开文档身份保护。原生选择器仅返回候选路径；宿主再次检查后才产生可消费一次的目标授权。
 2. 选择器使用独立可信进程，不接收 HTML 或插件模块。stdin 握手之前不初始化 COM 或派生工作；宿主成功纳入非继承 Job Object 后才发送有界文件名。取消/租约超时强制结束该 Job，确认 ActiveProcesses 为零后才返回。宿主异常退出依靠 KILL_ON_JOB_CLOSE；不允许 breakaway，不按进程名杀进程。
 3. 原生 COM FileSaveDialog 显式启用 FOS_NOTESTFILECREATE、FOS_NODEREFERENCELINKS、FOS_FORCEFILESYSTEM、FOS_NOCHANGEDIR、覆盖确认和路径存在要求。没有用会隐藏系统错误的高层 Option 返回值替代错误判断。普通系统文件选择器的浏览行为不是网络沙箱。
-4. 发布暂仅支持本地 NTFS：拒绝 UNC/设备/管道路径、ADS、保留名及模糊尾部字符，拒绝重解析点祖先。保持祖先句柄不可删除共享；新 stage 独占打开并持有 DELETE 权限。文件 flush 后在原取消锁内再次检查源身份、目标字节和状态，以文件句柄相对目录重命名。新目标不能覆盖后来出现的文件；已有目标保持既有“立即复查后提交”的外部写者边界，不承诺与任意并发写者的文件系统 CAS。
-5. 仅给本次新建 stage 复制原目标 DACL，不修改源文档、原目标或系统目录 ACL。失败按拥有的 stage 句柄清理，报告清理错误；提交后的输出不因取消删除。Windows 文件 flush 不等于 POSIX 目录 fsync，也不承诺任意断电持久性。
+4. 发布暂仅支持本地 NTFS：拒绝 UNC/设备/管道路径、ADS、保留名及模糊尾部字符，拒绝重解析点祖先。保持祖先句柄不可删除共享；新 stage 以目录句柄相对创建、独占打开并持有 DELETE 权限。文件 flush 后在原取消锁内再次检查源身份、目标字节和状态，以文件句柄相对目录重命名。新目标不能覆盖后来出现的文件；已有目标保持既有“立即复查后提交”的外部写者边界，不承诺与任意并发写者的文件系统 CAS。
+5. 在写入任何内容前，仅给本次新建 stage 复制原目标 DACL，不修改源文档、原目标或系统目录 ACL。失败按拥有的 stage 句柄清理，报告清理错误；提交后的输出不因取消删除。Windows 文件 flush 不等于 POSIX 目录 fsync，也不承诺任意断电持久性。
 
 直接引用既有锁文件中的 Windows 0.61.3 / windows-sys 0.61.2 API；不新增包版本、WebView2 Runtime 或 Chromium。Job Object 只提供进程归属和资源限制，不提供文件/网络隔离。
 

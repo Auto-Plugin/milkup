@@ -4,10 +4,91 @@
 use super::*;
 use std::{
     mem::{offset_of, size_of},
-    os::windows::{fs::OpenOptionsExt, io::AsRawHandle},
+    os::windows::io::{AsRawHandle, FromRawHandle},
     path::{Component, Prefix},
     ptr::{null, null_mut},
 };
+
+// Same NT handle-relative primitive already used by the local NTFS catalog.
+// Only a random, validated single-component stage name reaches this API.
+#[repr(C)]
+struct UnicodeString {
+    length: u16,
+    maximum_length: u16,
+    buffer: *mut u16,
+}
+#[repr(C)]
+struct ObjectAttributes {
+    length: u32,
+    root_directory: *mut std::ffi::c_void,
+    object_name: *mut UnicodeString,
+    attributes: u32,
+    security_descriptor: *mut std::ffi::c_void,
+    security_quality_of_service: *mut std::ffi::c_void,
+}
+#[repr(C)]
+#[derive(Default)]
+struct IoStatus {
+    status_or_pointer: usize,
+    information: usize,
+}
+#[link(name = "ntdll")]
+extern "system" {
+    fn NtCreateFile(
+        handle: *mut *mut std::ffi::c_void,
+        access: u32,
+        attributes: *mut ObjectAttributes,
+        io: *mut IoStatus,
+        allocation: *const i64,
+        file_attributes: u32,
+        share: u32,
+        disposition: u32,
+        options: u32,
+        ea: *const std::ffi::c_void,
+        ea_length: u32,
+    ) -> i32;
+    fn RtlNtStatusToDosError(status: i32) -> u32;
+}
+fn create_stage(directory: &File, name: &str) -> Result<File> {
+    component(name)?;
+    let mut name: Vec<u16> = name.encode_utf16().collect();
+    let mut unicode = UnicodeString {
+        length: (name.len() * 2) as u16,
+        maximum_length: (name.len() * 2) as u16,
+        buffer: name.as_mut_ptr(),
+    };
+    let mut attributes = ObjectAttributes {
+        length: size_of::<ObjectAttributes>() as u32,
+        root_directory: directory.as_raw_handle(),
+        object_name: &mut unicode,
+        attributes: 0x40,
+        security_descriptor: null_mut(),
+        security_quality_of_service: null_mut(),
+    };
+    let mut io = IoStatus::default();
+    let mut handle = null_mut();
+    let status = unsafe {
+        NtCreateFile(
+            &mut handle,
+            0x40000000 | 0x10000 | 0x40000 | 0x80 | 0x100000,
+            &mut attributes,
+            &mut io,
+            null(),
+            0,
+            0,
+            2, // FILE_CREATE, exclusive sharing
+            2 | 0x20 | 0x40 | 0x200000,
+            null(),
+            0,
+        )
+    }; // write-through, synchronous, non-directory, no-follow
+    if status < 0 {
+        return Err(error(std::io::Error::from_raw_os_error(
+            unsafe { RtlNtStatusToDosError(status) } as i32,
+        )));
+    }
+    Ok(unsafe { File::from_raw_handle(handle) })
+}
 use windows_sys::Win32::{
     Foundation::LocalFree,
     Security::{
@@ -169,20 +250,9 @@ struct Stage {
 }
 impl Stage {
     fn new(target: &Target) -> Result<Self> {
-        let path = target.parent.join(format!(
-            ".milkup-{}.tmp",
-            crate::workspace::id("output-stage")?
-        ));
-        // Ancestor guards are retained by Target. CREATE_NEW + OPEN_REPARSE_POINT,
-        // exclusive sharing and the live DELETE handle protect the stage itself.
-        let file = fs::OpenOptions::new()
-            .create_new(true)
-            .write(true)
-            .access_mode(0x40000000 | 0x10000 | 0x40000) // GENERIC_WRITE | DELETE | WRITE_DAC
-            .share_mode(0)
-            .custom_flags(0x00200000 | 0x80000000)
-            .open(path)
-            .map_err(error)?;
+        let name = format!(".milkup-{}.tmp", crate::workspace::id("output-stage")?);
+        // No drive-letter/pathname re-resolution after acquiring authorization.
+        let file = create_stage(&target.directory, &name)?;
         Ok(Self {
             file,
             committed: false,
@@ -243,10 +313,12 @@ impl Drop for Stage {
 pub(super) fn publish(target: &Target, job: &Job, bytes: &[u8]) -> Result<Written> {
     let mut stage = Stage::new(target)?;
     let result = (|| {
-        stage.file.write_all(bytes).map_err(error)?;
         if target.initial.is_some() {
             preserve_dacl(&target.open()?, &stage.file)?;
         }
+        // Do not put document bytes into a stage with broader inherited access
+        // than an existing private output, including if the app dies mid-write.
+        stage.file.write_all(bytes).map_err(error)?;
         stage.file.sync_all().map_err(error)?;
         let _state = job.state.lock().map_err(error)?;
         job.active()?;
@@ -271,6 +343,22 @@ pub(super) fn publish(target: &Target, job: &Job, bytes: &[u8]) -> Result<Writte
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn native_stage_structures_match_windows_pointer_width() {
+        let wide = size_of::<usize>() == 8;
+        assert_eq!(size_of::<UnicodeString>(), if wide { 16 } else { 8 });
+        assert_eq!(offset_of!(UnicodeString, buffer), if wide { 8 } else { 4 });
+        assert_eq!(size_of::<ObjectAttributes>(), if wide { 48 } else { 24 });
+        assert_eq!(
+            offset_of!(ObjectAttributes, object_name),
+            if wide { 16 } else { 8 }
+        );
+        assert_eq!(size_of::<IoStatus>(), if wide { 16 } else { 8 });
+        assert_eq!(
+            offset_of!(FILE_RENAME_INFO, FileName),
+            if wide { 20 } else { 12 }
+        );
+    }
     #[test]
     fn live_stage_cannot_be_substituted_and_new_destination_rename_never_replaces() {
         let root = std::env::temp_dir().join(crate::workspace::id("output-stage-proof").unwrap());
