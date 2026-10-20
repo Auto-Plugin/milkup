@@ -428,10 +428,26 @@ fn child(runtime: &Path, private: &Path) -> Result<()> {
         );
         report["loopbackTcp"] = tcp_result.clone();
         report["loopbackUdp"] = udp_result.clone();
+        // WFP can silently drop traffic: UDP send success is not delivery.
+        // Let the ordinary host observe its positively tested listeners before
+        // releasing this trusted static-page experiment. This is not a product
+        // authorization channel or proof about DNS/WebRTC.
+        report["phase"] = json!("network-await-host");
         save(private, &report)?;
-        if tcp_result["rawOsError"] != 10013 || udp_result["rawOsError"] != 10013 {
-            return Err("Expected OS network access denial was not observed; inspect complete operation results".into());
+        let deadline = Instant::now() + Duration::from_secs(8);
+        loop {
+            if let Ok(observation) = fs::read_to_string(private.join("network-observation")) {
+                if observation != "permit-static-runtime-probe" {
+                    return Err("Host did not confirm unreceived network canaries".into());
+                }
+                break;
+            }
+            if Instant::now() >= deadline {
+                return Err("Host network observation deadline expired".into());
+            }
+            std::thread::sleep(Duration::from_millis(20));
         }
+        report["hostNetworkCanariesUnreceived"] = json!(true);
         engine::run(runtime, private, &mut report)
     })();
     if let Err(e) = &result {
@@ -541,11 +557,48 @@ pub(super) fn run() -> Result<()> {
         }
         let deadline = Instant::now() + Duration::from_secs(45);
         let mut samples = Vec::new();
+        let mut network_window = None;
+        let mut network_decided = false;
+        let mut tcp_received = false;
+        let mut udp_received = false;
         loop {
+            match tcp.accept() {
+                Ok(_) => tcp_received = true,
+                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {}
+                Err(e) => return Err(format!("TCP canary observation failed: {e}").into()),
+            }
+            match udp.recv_from(&mut packet) {
+                Ok(_) => udp_received = true,
+                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {}
+                Err(e) => return Err(format!("UDP canary observation failed: {e}").into()),
+            }
             samples.push(json!({"elapsedMs":45000u128.saturating_sub(deadline.saturating_duration_since(Instant::now()).as_millis()),"members":job.members()?}));
             if let Ok(bytes) = fs::read(private.join("child.json")) {
                 if let Ok(child) = serde_json::from_slice::<Value>(&bytes) {
                     report["child"] = child;
+                }
+            }
+            if report["child"]["phase"] == "network-await-host" && !network_decided {
+                let started = network_window.get_or_insert_with(Instant::now);
+                if started.elapsed() >= Duration::from_secs(1) {
+                    let tcp_result = &report["child"]["loopbackTcp"];
+                    let udp_result = &report["child"]["loopbackUdp"];
+                    let valid_tcp = tcp_result["ok"] == false
+                        && (tcp_result["rawOsError"] == 10013 || tcp_result["kind"] == "TimedOut");
+                    let valid_udp = udp_result["ok"] == true || udp_result["rawOsError"] == 10013;
+                    let unreceived = valid_tcp && valid_udp && !tcp_received && !udp_received;
+                    report["networkCanaryWindowMs"] = json!(1000);
+                    report["networkCanariesUnreceived"] = json!(unreceived);
+                    report["staticRuntimeProbeReleased"] = json!(unreceived);
+                    fs::write(
+                        private.join("network-observation"),
+                        if unreceived {
+                            "permit-static-runtime-probe"
+                        } else {
+                            "blocked"
+                        },
+                    )?;
+                    network_decided = true;
                 }
             }
             if report["child"]["phase"] == "dom-probe-complete"
@@ -563,8 +616,8 @@ pub(super) fn run() -> Result<()> {
             std::thread::sleep(Duration::from_millis(200));
         }
         report["processSamples"] = json!(samples);
-        report["unexpectedTcpAccepted"] = json!(tcp.accept().is_ok());
-        report["unexpectedUdpReceived"] = json!(udp.recv_from(&mut packet).is_ok());
+        report["unexpectedTcpAccepted"] = json!(tcp_received);
+        report["unexpectedUdpReceived"] = json!(udp_received);
         let mut exit = 0;
         check(unsafe { GetExitCodeProcess(process.as_raw_handle(), &mut exit) })?;
         report["childExitBeforeTermination"] = json!(exit);
