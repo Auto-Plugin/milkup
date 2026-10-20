@@ -456,6 +456,72 @@ fn signed_fixture() -> serde_json::Value {
     .unwrap()
 }
 
+fn gate_fixture() -> serde_json::Value {
+    serde_json::from_str(include_str!(
+        "../../../../tests/fixtures/updates/version-gates.json"
+    ))
+    .unwrap()
+}
+
+fn gate_candidate(
+    envelope: &str,
+    artifact: &[u8],
+    target: &str,
+) -> (
+    FixtureServer,
+    tauri::App<tauri::test::MockRuntime>,
+    tauri_plugin_updater::Updater,
+) {
+    let fixture = gate_fixture();
+    let server = serve_with_check(
+        artifact,
+        "unused",
+        200,
+        None,
+        Some((
+            200,
+            fixture["envelopes"][envelope].to_string(),
+            Duration::ZERO,
+        )),
+    );
+    let address = format!("127.0.0.1:{}", server.url.port().unwrap())
+        .parse()
+        .unwrap();
+    let app = test_app();
+    let updater = app
+        .updater_builder()
+        .endpoints(vec![server.url.clone()])
+        .unwrap()
+        .pubkey(fixture["publicKey"].as_str().unwrap())
+        .require_signed_manifest("milkup-desktop", "beta")
+        .target(target)
+        // Observe authenticated same/older releases before deciding to offer.
+        .version_comparator(|_, _| true)
+        .configure_client(move |client| client.resolve("milkup-fixture.invalid", address))
+        .timeout(Duration::from_secs(2))
+        .no_proxy()
+        .build()
+        .unwrap();
+    (server, app, updater)
+}
+
+#[tokio::test]
+async fn version_gate_rejects_signed_windows_resource_mismatch() {
+    let old = STANDARD
+        .decode(gate_fixture()["oldPe"].as_str().unwrap())
+        .unwrap();
+    let (_server, _app, updater) = gate_candidate("peMismatch", &old, "windows-x86_64");
+    let update = updater.check().await.unwrap().unwrap();
+    assert!(update.has_verified_manifest());
+    // Both signatures are valid: the authenticated publisher statement labels
+    // the old resource as beta.2. The package resource must independently agree.
+    let (_abort, receiver) = watch::channel(false);
+    assert!(
+        verified_download(&update, receiver, |_| {}).await.is_err(),
+        "a signed package with a different internal ProductVersion must not publish"
+    );
+}
+
 fn signed_candidate(
     envelope: &str,
     artifact_override: Option<&[u8]>,
@@ -803,4 +869,293 @@ async fn checkpoint_cancel_after_check_publication_revokes_only_its_generation()
     candidate.cancel_check(token);
     assert!(candidate.update.as_ref().unwrap().has_verified_manifest());
     assert_eq!(candidate.generation, next);
+}
+
+#[tokio::test]
+async fn version_gate_accepts_matching_signed_pe_without_executing_it() {
+    let bytes = STANDARD
+        .decode(gate_fixture()["pe"].as_str().unwrap())
+        .unwrap();
+    let (_server, _app, updater) = gate_candidate("peValid", &bytes, "windows-x86_64");
+    let update = updater.check().await.unwrap().unwrap();
+    let (_abort, receiver) = watch::channel(false);
+    assert_eq!(
+        verified_download(&update, receiver, |_| {}).await.unwrap(),
+        bytes
+    );
+    // The numeric portion alone is insufficient for prerelease identity.
+    assert!(pe::verify(&bytes, "2.0.0-beta.1").is_err());
+    assert!(pe::verify(&bytes, "2.0.0").is_err());
+}
+
+#[test]
+fn version_gate_pe_truncation_invalid_offsets_cycles_and_ambiguous_resources_fail_closed() {
+    let bytes = STANDARD
+        .decode(gate_fixture()["pe"].as_str().unwrap())
+        .unwrap();
+    pe::verify(&bytes, "2.0.0-beta.2").unwrap();
+    for end in 0..bytes.len() {
+        assert!(
+            pe::verify(&bytes[..end], "2.0.0-beta.2").is_err(),
+            "truncated at {end}"
+        );
+    }
+    for (offset, value) in [
+        (0x3c, u32::MAX),              // PE header outside image
+        (0x98 + 96 + 16, u32::MAX),    // RVA overflow
+        (0x98 + 96 + 20, u32::MAX),    // resource limit
+        (0x200 + 20, 0x80000000),      // cyclic resource directory
+        (0x200 + 48 + 20, 0x80000000), // unexpected fourth directory level
+        (0x200 + 72, u32::MAX),        // out-of-range version data
+        (0x200 + 76, 65537),           // oversized version blob
+    ] {
+        let mut corrupt = bytes.clone();
+        corrupt[offset..offset + 4].copy_from_slice(&value.to_le_bytes());
+        assert!(
+            pe::verify(&corrupt, "2.0.0-beta.2").is_err(),
+            "offset {offset}"
+        );
+    }
+    let mut duplicate = bytes.clone();
+    duplicate[0x200 + 14..0x200 + 16].copy_from_slice(&2u16.to_le_bytes());
+    let entry = duplicate[0x200 + 16..0x200 + 24].to_vec();
+    duplicate[0x200 + 24..0x200 + 32].copy_from_slice(&entry);
+    assert!(pe::verify(&duplicate, "2.0.0-beta.2").is_err());
+    for unsupported in [b"PK\x03\x04".as_slice(), b"\xd0\xcf\x11\xe0", b"MZ", b""] {
+        assert!(pe::verify(unsupported, "2.0.0-beta.2").is_err());
+    }
+    // Deterministic byte mutations exercise the parser's bounds without a fuzz
+    // dependency. A mutation may be irrelevant; it must never panic.
+    for offset in 0..bytes.len() {
+        let mut changed = bytes.clone();
+        changed[offset] ^= 0xff;
+        let _ = pe::verify(&changed, "2.0.0-beta.2");
+    }
+}
+
+fn update_policy_temp() -> std::path::PathBuf {
+    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let root = std::env::temp_dir().join(format!(
+        "milkup-update-command-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::create_dir(&root).unwrap();
+    root
+}
+
+#[tokio::test]
+async fn version_gate_signed_freshness_replay_withdrawal_and_mutation_use_real_verifier() {
+    let root = update_policy_temp();
+    let store = policy::Store::new(root.clone(), "beta", "windows-x86_64", "2.0.0-beta.0");
+    let now = gate_fixture()["now"].as_u64().unwrap();
+    let bytes = STANDARD
+        .decode(signed_fixture()["artifact"].as_str().unwrap())
+        .unwrap();
+    let (_server, _app, updater) = gate_candidate("fresh", &bytes, "linux-x86_64");
+    let update = updater.check().await.unwrap().unwrap();
+    let fresh = policy::Observation::from_update(&update).unwrap();
+    store.accept(&fresh, now).unwrap();
+    for _ in 0..3 {
+        store.accept(&fresh, now).unwrap();
+        store.authorize(&fresh, now).unwrap();
+    }
+    for name in ["expired", "older"] {
+        let (_server, _app, updater) = gate_candidate(name, &bytes, "linux-x86_64");
+        let update = updater.check().await.unwrap().unwrap();
+        assert!(update.has_verified_manifest());
+        let statement = policy::Observation::from_update(&update).unwrap();
+        assert!(store.accept(&statement, now).is_err());
+    }
+    let mut changed = update.clone();
+    changed.raw_json["milkup"]["expiresAt"] = serde_json::json!(u64::MAX);
+    assert!(policy::Observation::from_update(&changed).is_err());
+    let (_server, _app, updater) = signed_candidate("valid", None);
+    assert!(
+        policy::Observation::from_update(&updater.check().await.unwrap().unwrap()).is_err(),
+        "legacy signed statements without freshness cannot enter host policy"
+    );
+    let (_server, _app, updater) = gate_candidate("rollback", &bytes, "linux-x86_64");
+    let rollback = updater.check().await.unwrap().unwrap();
+    let statement = policy::Observation::from_update(&rollback).unwrap();
+    store.accept(&statement, now).unwrap();
+    store.accept(&statement, now).unwrap();
+    store.authorize(&statement, now).unwrap();
+    assert!(store.authorize(&fresh, now).is_err());
+    // Withdrawal of an offered candidate may still offer a newer release than
+    // installed. It never authorizes an installed application downgrade.
+    assert!(newer_version(
+        &"2.0.0-beta.0".parse().unwrap(),
+        &rollback.version.parse().unwrap(),
+        "beta"
+    ));
+    assert!(!newer_version(
+        &"2.0.0-beta.2".parse().unwrap(),
+        &rollback.version.parse().unwrap(),
+        "beta"
+    ));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[tokio::test]
+async fn version_gate_cancelled_or_late_check_never_advances_persistent_high_water() {
+    let root = update_policy_temp();
+    let store = policy::Store::new(root.clone(), "beta", "windows-x86_64", "2.0.0-beta.1");
+    let bytes = STANDARD
+        .decode(signed_fixture()["artifact"].as_str().unwrap())
+        .unwrap();
+    let (_server, _app, updater) = gate_candidate("fresh", &bytes, "linux-x86_64");
+    let update = updater.check().await.unwrap().unwrap();
+    let observation = policy::Observation::from_update(&update).unwrap();
+    let now = gate_fixture()["now"].as_u64().unwrap();
+    let mut candidate = Candidate::default();
+    let cancelled = candidate.begin_check().unwrap();
+    candidate.start_check(cancelled).unwrap();
+    candidate.cancel_check(cancelled);
+    let retry = candidate.begin_check().unwrap();
+    candidate.start_check(retry).unwrap();
+    let mut committed = false;
+    assert!(candidate
+        .finish_check_with(cancelled, Some(update.clone()), || {
+            committed = true;
+            store.accept(&observation, now)
+        })
+        .is_err());
+    assert!(!committed);
+    assert!(candidate.check_abort.is_some());
+    assert!(store.authorize(&observation, now).is_err());
+    candidate
+        .finish_check_with(retry, Some(update), || store.accept(&observation, now))
+        .unwrap();
+    store.authorize(&observation, now).unwrap();
+    let (abort, _rx) = watch::channel(false);
+    let epoch = candidate.begin_download(abort);
+    assert!(candidate
+        .finish_download(retry, epoch, Err("network failure".into()))
+        .is_err());
+    assert!(candidate.update.is_some());
+    store.authorize(&observation, now).unwrap();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn version_gate_failed_state_commit_clears_check_reservation_and_allows_retry() {
+    let mut candidate = Candidate::default();
+    let token = candidate.begin_check().unwrap();
+    candidate.start_check(token).unwrap();
+    assert!(candidate
+        .finish_check_with(token, None, || Err("disk failure".into()))
+        .is_err());
+    assert!(candidate.check_abort.is_none());
+    assert!(candidate.update.is_none());
+    let retry = candidate.begin_check().unwrap();
+    candidate.start_check(retry).unwrap();
+    candidate.finish_check_with(retry, None, || Ok(())).unwrap();
+}
+
+#[tokio::test]
+async fn version_gate_download_rechecks_expiry_and_retry_never_uses_expired_bytes() {
+    let root = update_policy_temp();
+    let store = policy::Store::new(root.clone(), "beta", "windows-x86_64", "2.0.0-beta.1");
+    let bytes = STANDARD
+        .decode(signed_fixture()["artifact"].as_str().unwrap())
+        .unwrap();
+    let (_server, _app, updater) = gate_candidate("fresh", &bytes, "linux-x86_64");
+    let update = updater.check().await.unwrap().unwrap();
+    let observation = policy::Observation::from_update(&update).unwrap();
+    let now = gate_fixture()["now"].as_u64().unwrap();
+    store.accept(&observation, now).unwrap();
+    let clock = std::sync::atomic::AtomicU64::new(now);
+    let (_abort, receiver) = watch::channel(false);
+    let error = authorized_download(
+        &update,
+        receiver,
+        || store.authorize(&observation, clock.load(Ordering::SeqCst)),
+        |progress| {
+            if progress.phase == "verifying" {
+                clock.store(now + 4000, Ordering::SeqCst);
+            }
+        },
+    )
+    .await
+    .unwrap_err();
+    assert!(error.contains("过期"));
+    let (_abort, receiver) = watch::channel(false);
+    let progress = AtomicBool::new(false);
+    assert!(authorized_download(
+        &update,
+        receiver,
+        || store.authorize(&observation, now + 4000),
+        |_| {
+            progress.store(true, Ordering::SeqCst);
+        },
+    )
+    .await
+    .is_err());
+    assert!(
+        !progress.load(Ordering::SeqCst),
+        "expired retry must fail before package I/O"
+    );
+    // A mistaken forward OS clock does not persistently poison the high-water
+    // record; correcting it permits the original still-valid statement again.
+    let (_abort, receiver) = watch::channel(false);
+    assert_eq!(
+        authorized_download(
+            &update,
+            receiver,
+            || store.authorize(&observation, now),
+            |_| {},
+        )
+        .await
+        .unwrap(),
+        bytes
+    );
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn version_gate_accepts_pe32_plus_and_rejects_overlapping_sections() {
+    let fixture = gate_fixture();
+    let mut bytes = STANDARD.decode(fixture["pe64"].as_str().unwrap()).unwrap();
+    pe::verify(&bytes, "2.0.0-beta.2").unwrap();
+    bytes[0x86..0x88].copy_from_slice(&2u16.to_le_bytes());
+    let header = bytes[0x188..0x188 + 40].to_vec();
+    bytes[0x188 + 40..0x188 + 80].copy_from_slice(&header);
+    assert!(pe::verify(&bytes, "2.0.0-beta.2").is_err());
+
+    let first = STANDARD.decode(fixture["pe"].as_str().unwrap()).unwrap();
+    let old = STANDARD.decode(fixture["oldPe"].as_str().unwrap()).unwrap();
+    for (second, accepted) in [(&first, true), (&old, false)] {
+        // Add a second language leaf with an independent version resource.
+        // Both matching languages are accepted; one stale language is not.
+        let first_block = &first[0x200 + 88..];
+        let second_block = &second[0x200 + 88..];
+        let second_start = (112 + first_block.len() + 3) & !3;
+        let mut resources = first[0x200..0x200 + 72].to_vec();
+        resources[62..64].copy_from_slice(&2u16.to_le_bytes());
+        resources[68..72].copy_from_slice(&80u32.to_le_bytes());
+        for word in [
+            0x804u32,
+            96,
+            0x1000 + 112,
+            first_block.len() as u32,
+            0,
+            0,
+            0x1000 + second_start as u32,
+            second_block.len() as u32,
+            0,
+            0,
+        ] {
+            resources.extend_from_slice(&word.to_le_bytes());
+        }
+        resources.extend_from_slice(first_block);
+        resources.resize(second_start, 0);
+        resources.extend_from_slice(second_block);
+        let mut image = first[..0x200].to_vec();
+        for offset in [0x98 + 96 + 20, 0x180, 0x188] {
+            image[offset..offset + 4].copy_from_slice(&(resources.len() as u32).to_le_bytes());
+        }
+        image.extend_from_slice(&resources);
+        assert_eq!(pe::verify(&image, "2.0.0-beta.2").is_ok(), accepted);
+    }
 }

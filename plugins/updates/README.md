@@ -6,14 +6,17 @@ only the public `@milkup/plugin-sdk` 0.2.0 API. The host retains trusted release
 sources, signature checks, staging, installation confirmation and document-save
 protection. The plugin never receives a release URL, key, signature or file path.
 
-Install `dist/milkup.updates-1.0.0.milkup-plugin` from the generic plugin manager,
+Install `dist/milkup.updates-1.0.1.milkup-plugin` from the generic plugin manager,
 review and approve `app:updates`, then enable it. Open **软件更新** from the plugin's
 detail page using its ordinary UI contribution entry. Installation does not enable
 the plugin automatically. There is no host-specific update menu or registration.
 
 Check for a release, read its plain-text notes, then download it. Closing the modal
 leaves a download running so editing can continue. Reopening shows its current
-state. Installing requests a trusted host confirmation and save guard; cancelling
+state. After a download or installation error, **重试检查** can obtain a renewed
+signed candidate, while **重新下载并校验** retains the normal same-candidate retry.
+A failed cancellation still requires cancellation retry before another check.
+Installing requests a trusted host confirmation and save guard; cancelling
 that confirmation leaves the staged release ready. Disabling or unloading the
 plugin stops its polling and requests cancellation without waiting for any pending
 installation confirmation. Installing remains in progress until the host exits.
@@ -40,7 +43,7 @@ then `pnpm run build` and `pnpm test`.
 
 The build rejects private dependencies and residual ESM imports. Outputs are
 `dist/plugin.js`, `dist/build-meta.json`, and
-`dist/milkup.updates-1.0.0.milkup-plugin`. The archive has no external resources.
+`dist/milkup.updates-1.0.1.milkup-plugin`. The archive has no external resources.
 No signing key, publication, upload or repository creation is required.
 
 The manifest ID is `milkup.updates`, the view ID is `updates-modal`, and command

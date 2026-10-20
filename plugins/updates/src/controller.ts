@@ -80,7 +80,7 @@ export function createController(backend: SdkPluginReleasesHost | undefined, cha
         !alive ||
         busy() ||
         state.phase === 'ready' ||
-        (state.phase === 'error' && state.retry !== 'check')
+        (state.phase === 'error' && state.retry === 'cancel')
       )
         return
       stopTimer()

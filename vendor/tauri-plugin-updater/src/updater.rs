@@ -658,6 +658,7 @@ impl Updater {
                 download_url: download_url.clone(),
                 signature: signature.to_owned(),
                 body: release.notes,
+                authenticated_release: self.signed_manifest.as_ref().and(raw_json.clone()),
                 raw_json: raw_json.unwrap(),
                 timeout: None,
                 proxy: self.proxy.clone(),
@@ -754,6 +755,7 @@ pub struct Update {
     // Retain the authenticated selection, so later accidental mutation of the
     // public upstream fields cannot relabel a valid old package.
     verified_binding: Option<(String, String, Url, String)>,
+    authenticated_release: Option<serde_json::Value>,
 }
 
 impl Resource for Update {}
@@ -768,6 +770,15 @@ impl Update {
                     && url == &self.download_url
                     && target == &self.target
             })
+    }
+
+    /// Returns the complete authenticated release only while its public fields
+    /// still match. Host policy must not trust mutable `raw_json` by itself.
+    pub fn verified_release(&self) -> Option<&serde_json::Value> {
+        self.has_verified_manifest()
+            .then_some(self.authenticated_release.as_ref())
+            .flatten()
+            .filter(|release| *release == &self.raw_json)
     }
 
     /// Downloads the updater package, verifies it then return it as bytes.

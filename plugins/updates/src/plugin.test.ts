@@ -91,6 +91,32 @@ function activate(api = backend()) {
 }
 
 describe('update state and resource lifecycle', () => {
+  it('can replace an expired failed candidate by checking again', async () => {
+    const { controller, api } = setup()
+    await controller.check()
+    api.status.mockResolvedValueOnce({
+      phase: 'error',
+      received: 0,
+      total: null,
+      error: 'signed release expired; check again',
+    })
+    await controller.download()
+    expect(controller.state).toMatchObject({ phase: 'error', retry: 'download' })
+    api.check.mockResolvedValueOnce({
+      configured: true,
+      channel: 'stable',
+      currentVersion: '2.0.0',
+      release: { ...release, id: 'renewed-release' },
+    })
+    await controller.check()
+    expect(api.check).toHaveBeenCalledTimes(2)
+    expect(controller.state).toMatchObject({
+      phase: 'available',
+      release: { id: 'renewed-release' },
+    })
+    await controller.download()
+    expect(api.stage).toHaveBeenLastCalledWith('renewed-release')
+  })
   it('shows unavailable, current, and available metadata', async () => {
     const { controller, api } = setup()
     api.check.mockResolvedValueOnce({
@@ -210,8 +236,6 @@ describe('update state and resource lifecycle', () => {
       error: 'signature mismatch',
       retry: 'download',
     })
-    await controller.check()
-    expect(api.check).toHaveBeenCalledTimes(1)
     await controller.download()
     expect(api.cancel).toHaveBeenCalledWith(release.id)
     expect(api.stage).toHaveBeenCalledTimes(2)
@@ -321,6 +345,24 @@ describe('update state and resource lifecycle', () => {
 })
 
 describe('controlled modal UI and short commands', () => {
+  it('offers both check and download retry after a terminal download error', async () => {
+    const { api } = activate()
+    api.status.mockResolvedValueOnce({
+      phase: 'error',
+      received: 0,
+      total: null,
+      error: 'release expired',
+    })
+    render('mount')
+    plugin.commands['updates.check']()
+    await flush()
+    plugin.commands['updates.download']()
+    await flush()
+    const commands = nodes(render()).map((node) => node.action?.command)
+    expect(commands).toContain('updates.check')
+    expect(commands).toContain('updates.download')
+    expect(commands).not.toContain('updates.install')
+  })
   it('renders release notes as plain text with stable accessible button labels', async () => {
     activate()
     render('mount')

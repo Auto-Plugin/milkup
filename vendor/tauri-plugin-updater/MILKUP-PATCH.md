@@ -30,3 +30,19 @@ Validation:
 - `real_missing_executable_returns_error_without_cleanup_or_exit` is Windows-only and calls the actual production helper twice with an absent executable in a new temporary directory. It checks errors, application survival, and no cleanup/exit callbacks. It creates no executable and launches no installer. It does not establish real installer acceptance, UAC cancellation, GUI behavior, or automatic rollback.
 
 Remove this patch only after an independently reviewed upstream fix and repeat the same Windows failure regression. Do not infer Windows runtime success from Linux policy tests or mocked host errors.
+
+## Version/freshness policy handoff
+
+`Update::verified_release()` is a further local read-only Rust API extension. It
+retains the authenticated full release JSON privately and returns it only while
+the selection binding and public JSON still agree. This prevents the host from
+trusting later edits to the upstream mutable `raw_json` field. Download formats,
+SDK APIs, dependencies, public keys and endpoints are unchanged by this vendor
+addition; freshness/high-water/PE resource policy lives in the application host.
+
+The host now rejects unsigned 204 conclusions and requires signed freshness
+fields even for a no-update answer. Earlier paragraphs about freshness being
+unimplemented describe the preceding checkpoint; the current scope and remaining
+limits are in the [updated protocol](../../docs/v2-update-manifest-protocol.md).
+The PE resource gate does **not** prove the embedded NSIS application version,
+health confirmation or application rollback. Those remain release blockers.

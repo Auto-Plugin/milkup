@@ -2,12 +2,17 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
-use tauri::{ipc::Channel, AppHandle, State};
+use tauri::{ipc::Channel, AppHandle, Manager, State};
 use tauri_plugin_updater::{Update, UpdaterExt};
 use tokio::sync::{watch, Mutex as AsyncMutex};
 
 const MAX_DOWNLOAD_BYTES: u64 = 256 * 1024 * 1024;
 const CHANNEL_CONFIG: &str = include_str!("../../../../release/update-channel.json");
+
+#[path = "update_pe.rs"]
+mod pe;
+#[path = "update_policy.rs"]
+mod policy;
 
 #[cfg(test)]
 #[path = "updates_tests.rs"]
@@ -98,11 +103,24 @@ impl Candidate {
     }
 
     fn finish_check(&mut self, token: u64, update: Option<Update>) -> Result<(), String> {
+        self.finish_check_with(token, update, || Ok(()))
+    }
+
+    fn finish_check_with(
+        &mut self,
+        token: u64,
+        update: Option<Update>,
+        commit: impl FnOnce() -> Result<(), String>,
+    ) -> Result<(), String> {
         if self.generation != token || self.check_abort.is_none() {
             return Err("检查更新已取消或失效".into());
         }
+        // Caller holds the candidate mutex. Cancellation and durable trust
+        // publication have one linearization point; stale results do not write.
+        let result = commit();
         self.check_abort = None;
         self.check_started = false;
+        result?;
         self.update = update;
         Ok(())
     }
@@ -225,8 +243,13 @@ pub async fn check_application_update(
     let result = await_check(aborted, check_release(&app, token), Duration::from_secs(20)).await;
     let mut candidate = service.candidate.lock().map_err(|_| "更新状态不可用")?;
     match result {
-        Ok((info, update)) => {
-            candidate.finish_check(token, update)?;
+        Ok((info, update, observation)) => {
+            candidate.finish_check_with(token, update, || {
+                if let Some(observation) = observation {
+                    trust_store(&app, &info.channel)?.accept(&observation, policy::now()?)?;
+                }
+                Ok(())
+            })?;
             Ok(info)
         }
         Err(error) => {
@@ -256,7 +279,7 @@ async fn await_check<T>(
 async fn check_release(
     app: &AppHandle,
     token: u64,
-) -> Result<(UpdateCheck, Option<Update>), String> {
+) -> Result<(UpdateCheck, Option<Update>, Option<policy::Observation>), String> {
     let config: ReleaseChannel =
         serde_json::from_str(CHANNEL_CONFIG).map_err(|_| "更新配置无法读取")?;
     if !config.configured()? {
@@ -267,9 +290,9 @@ async fn check_release(
                 update: None,
             },
             None,
+            None,
         ));
     }
-    let channel = config.channel.clone();
     let updater = app
         .updater_builder()
         .pubkey(config.public_key.expect("validated public key"))
@@ -284,17 +307,33 @@ async fn check_release(
         .map_err(|error| error.to_string())?
         .timeout(Duration::from_secs(20))
         .configure_client(|client| client.https_only(true))
-        .version_comparator(move |current, release| {
-            newer_version(&current, &release.version, &channel)
-        })
+        // Same/older signed statements must pass freshness and replay policy
+        // before a "no update" answer can be trusted.
+        .version_comparator(|_, _| true)
         .build()
         .map_err(|error| error.to_string())?;
     let update = updater
         .check()
         .await
         .map_err(|error| format!("检查更新失败：{error}"))?;
-    let mut update = update;
-    let info = if let Some(update) = update.as_mut() {
+    let mut update = update.ok_or("更新服务未提供签名版本清单，无法确认是否为最新版本")?;
+    let observation = policy::Observation::from_update(&update)?;
+    let offered = newer_version(
+        &app.package_info().version,
+        &update.version.parse().map_err(|_| "更新版本无效")?,
+        &config.channel,
+    );
+    if config.channel == "stable"
+        && !update
+            .version
+            .parse::<semver::Version>()
+            .map_err(|_| "更新版本无效")?
+            .pre
+            .is_empty()
+    {
+        return Err("稳定渠道的签名清单包含预发布版本".into());
+    }
+    let info = {
         if !update.has_verified_manifest() {
             return Err("更新元数据未通过签名绑定校验".into());
         }
@@ -318,9 +357,7 @@ async fn check_release(
             notes: update.body.clone().unwrap_or_default(),
             date: update.date.map(|date| date.to_string()),
         };
-        Some(info)
-    } else {
-        None
+        offered.then_some(info)
     };
     Ok((
         UpdateCheck {
@@ -328,8 +365,37 @@ async fn check_release(
             channel: config.channel,
             update: info,
         },
-        update,
+        offered.then_some(update),
+        Some(observation),
     ))
+}
+
+fn trust_store(app: &AppHandle, channel: &str) -> Result<policy::Store, String> {
+    Ok(policy::Store::new(
+        app.path()
+            .app_data_dir()
+            .map_err(|error| error.to_string())?,
+        channel,
+        &format!("{}-{}", std::env::consts::OS, std::env::consts::ARCH),
+        &app.package_info().version.to_string(),
+    ))
+}
+
+fn authorize_candidate(app: &AppHandle, update: &Update) -> Result<(), String> {
+    let config: ReleaseChannel =
+        serde_json::from_str(CHANNEL_CONFIG).map_err(|_| "更新配置无法读取")?;
+    if !config.configured()? {
+        return Err("更新渠道未配置".into());
+    }
+    trust_store(app, &config.channel)?
+        .authorize(&policy::Observation::from_update(update)?, policy::now()?)
+}
+
+fn verify_package_version(update: &Update, bytes: &[u8]) -> Result<(), String> {
+    if update.target == "windows" || update.target.starts_with("windows-") {
+        pe::verify(bytes, &update.version)?;
+    }
+    Ok(())
 }
 
 async fn verified_download(
@@ -376,11 +442,27 @@ async fn verified_download(
     if bytes.is_empty() || bytes.len() as u64 > MAX_DOWNLOAD_BYTES {
         return Err("更新包为空或超过下载上限".into());
     }
+    verify_package_version(update, &bytes)?;
+    Ok(bytes)
+}
+
+async fn authorized_download(
+    update: &Update,
+    aborted: watch::Receiver<bool>,
+    authorize: impl Fn() -> Result<(), String>,
+    on_progress: impl Fn(DownloadProgress) + Send + Sync,
+) -> Result<Vec<u8>, String> {
+    authorize()?;
+    let bytes = verified_download(update, aborted, on_progress).await?;
+    // A valid signature does not keep a candidate fresh across a long download,
+    // or across another process observing a newer release during that download.
+    authorize()?;
     Ok(bytes)
 }
 
 #[tauri::command]
 pub async fn download_application_update(
+    app: AppHandle,
     token: u64,
     progress: Channel<DownloadProgress>,
     service: State<'_, UpdateService>,
@@ -402,9 +484,14 @@ pub async fn download_application_update(
         let epoch = candidate.begin_download(abort);
         (update, epoch)
     };
-    let result = verified_download(&update, aborted, |event| {
-        let _ = progress.send(event);
-    })
+    let result = authorized_download(
+        &update,
+        aborted,
+        || authorize_candidate(&app, &update),
+        |event| {
+            let _ = progress.send(event);
+        },
+    )
     .await;
     let mut candidate = service.candidate.lock().map_err(|_| "更新状态不可用")?;
     candidate.finish_download(token, epoch, result)
@@ -436,6 +523,14 @@ pub async fn install_application_update(
             return Err("版本信息已过期，请重新检查更新".into());
         }
         let update = candidate.update.clone().ok_or("请先检查更新")?;
+        authorize_candidate(&app, &update)?;
+        verify_package_version(
+            &update,
+            candidate
+                .verified_bytes
+                .as_deref()
+                .ok_or("请重新下载更新包")?,
+        )?;
         let bytes = candidate
             .verified_bytes
             .take()

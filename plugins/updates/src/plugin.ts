@@ -118,7 +118,7 @@ function render(state: State): SdkRendererOutput {
   const actions: SdkRendererOutput[] = []
   if (
     ['idle', 'unavailable', 'current', 'available'].includes(state.phase) ||
-    (state.phase === 'error' && state.retry === 'check')
+    (state.phase === 'error' && state.retry !== 'cancel')
   )
     actions.push(
       button('updates.check', state.phase === 'error' ? '重试检查' : '检查更新', '检查更新'),
