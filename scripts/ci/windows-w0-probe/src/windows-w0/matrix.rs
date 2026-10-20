@@ -6,7 +6,10 @@ use super::*;
 use std::{collections::BTreeMap, io::Write};
 use windows_sys::Win32::{
     NetworkManagement::WindowsFirewall::NetworkIsolationGetAppContainerConfig,
-    System::Memory::{GetProcessHeap, HeapFree},
+    System::{
+        Memory::{GetProcessHeap, HeapFree},
+        IO::{CreateIoCompletionPort, GetQueuedCompletionStatus},
+    },
     UI::WindowsAndMessaging::{
         EnumWindows, GetClassNameW, GetWindowThreadProcessId, IsWindowVisible, PostMessageW,
         WM_CLOSE,
@@ -14,10 +17,14 @@ use windows_sys::Win32::{
 };
 
 pub(super) fn child(runtime: &Path, private: &Path, input: &Value) -> Result<()> {
+    if input["ownerExitTest"] == true {
+        return owner_exit_child(runtime, private);
+    }
     let mut report =
         json!({"phase":"native-controls","token":token_info(unsafe {GetCurrentProcess()})?});
     save(private, &report)?;
     let result = (|| -> Result<()> {
+        report["directBreakaway"] = breakaway_probe()?;
         let canary = Path::new(input["canary"].as_str().ok_or("Missing canary")?);
         report["outsideRead"] = io_result(fs::read(canary));
         report["outsideWriteOpen"] = io_result(fs::OpenOptions::new().write(true).open(canary));
@@ -81,6 +88,84 @@ pub(super) fn child(runtime: &Path, private: &Path, input: &Value) -> Result<()>
     result
 }
 
+fn breakaway_probe() -> Result<Value> {
+    let exe = wide(std::env::current_exe()?.as_os_str());
+    let mut startup = STARTUPINFOW::default();
+    startup.cb = size_of::<STARTUPINFOW>() as u32;
+    let mut process = PROCESS_INFORMATION::default();
+    let ok = unsafe {
+        CreateProcessW(
+            exe.as_ptr(),
+            null_mut(),
+            null(),
+            null(),
+            0,
+            CREATE_BREAKAWAY_FROM_JOB | CREATE_SUSPENDED | CREATE_NO_WINDOW,
+            null(),
+            null(),
+            &startup,
+            &mut process,
+        )
+    };
+    if ok == 0 {
+        let error = std::io::Error::last_os_error();
+        return Ok(
+            json!({"created":false,"rawOsError":error.raw_os_error(),"message":error.to_string()}),
+        );
+    }
+    // A surprising allowed launch is kept suspended, terminated and waited; no
+    // test code is allowed to run outside the owner Job.
+    let child = unsafe { owned(process.hProcess)? };
+    let _thread = unsafe { owned(process.hThread)? };
+    check(unsafe { TerminateProcess(child.as_raw_handle(), 74) })?;
+    let waited = unsafe { WaitForSingleObject(child.as_raw_handle(), 5000) };
+    if waited != WAIT_OBJECT_0 {
+        return Err("Unexpected breakaway child did not terminate".into());
+    }
+    Ok(json!({"created":true,"resumed":false,"terminated":true,"boundaryViolation":true}))
+}
+
+fn owner_exit_child(runtime: &Path, private: &Path) -> Result<()> {
+    let leaf = private.join("leaf");
+    let job = Job::new()?;
+    let (process, thread) = launch_scoped(&leaf.join("w0.exe"), runtime, &leaf, None, &job)?;
+    let own = token_info(unsafe { GetCurrentProcess() })?;
+    let child_token = token_info(process.as_raw_handle())?;
+    if child_token["isAppContainer"] != own["isAppContainer"]
+        || child_token["appContainerSid"] != own["appContainerSid"]
+        || child_token["capabilityCount"] != 0
+    {
+        return Err("Inner child token changed".into());
+    }
+    fs::write(
+        private.join("owner.json"),
+        serde_json::to_vec(
+            &json!({"phase":"owned-child-started","ownerToken":own,"childToken":child_token,"innerAccounting":accounting(&job)?}),
+        )?,
+    )?;
+    if unsafe { ResumeThread(thread.as_raw_handle()) } == u32::MAX {
+        return Err(std::io::Error::last_os_error().into());
+    }
+    let deadline = Instant::now() + Duration::from_secs(110);
+    while Instant::now() < deadline {
+        if private.join("owner-exit-now").exists() {
+            fs::write(
+                private.join("owner.json"),
+                serde_json::to_vec(
+                    &json!({"phase":"exit-process-without-rust-drop","exitCode":73,"innerAccounting":accounting(&job)?,"ownerToken":own,"childToken":child_token}),
+                )?,
+            )?;
+            // The process exits without running Rust Drop. The OS closes its last
+            // non-inherited inner Job handle; KILL_ON_JOB_CLOSE must stop descendants.
+            unsafe {
+                ExitProcess(73);
+            }
+        }
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    Err("Owner-exit test deadline expired".into())
+}
+
 fn loopback_exemptions(sid: PSID) -> Result<Value> {
     let mut count = 0;
     let mut list: *mut SID_AND_ATTRIBUTES = null_mut();
@@ -118,6 +203,59 @@ fn accounting(job: &Job) -> Result<Value> {
     Ok(
         json!({"totalProcesses":info.TotalProcesses,"activeProcesses":info.ActiveProcesses,"totalTerminatedProcesses":info.TotalTerminatedProcesses}),
     )
+}
+
+struct CompletionPort(OwnedHandle);
+impl CompletionPort {
+    fn attach(job: &Job) -> Result<Self> {
+        let port = Self(unsafe {
+            owned(CreateIoCompletionPort(
+                INVALID_HANDLE_VALUE,
+                null_mut(),
+                0,
+                1,
+            ))?
+        });
+        let info = JOBOBJECT_ASSOCIATE_COMPLETION_PORT {
+            CompletionKey: 1usize as *mut _,
+            CompletionPort: port.0.as_raw_handle(),
+        };
+        check(unsafe {
+            SetInformationJobObject(
+                job.0.as_raw_handle(),
+                JobObjectAssociateCompletionPortInformation,
+                (&info as *const JOBOBJECT_ASSOCIATE_COMPLETION_PORT).cast(),
+                size_of::<JOBOBJECT_ASSOCIATE_COMPLETION_PORT>() as u32,
+            )
+        })?;
+        Ok(port)
+    }
+    fn drain(&self) -> Result<Vec<Value>> {
+        let mut events = Vec::new();
+        loop {
+            let mut message = 0;
+            let mut key = 0;
+            let mut pid = null_mut();
+            if unsafe {
+                GetQueuedCompletionStatus(
+                    self.0.as_raw_handle(),
+                    &mut message,
+                    &mut key,
+                    &mut pid,
+                    0,
+                )
+            } == 0
+            {
+                let error = std::io::Error::last_os_error();
+                if error.raw_os_error() == Some(WAIT_TIMEOUT as i32) {
+                    break;
+                }
+                return Err(error.into());
+            }
+            events.push(json!({"message":message,"completionKey":key,"pidOrData":pid as usize}));
+        }
+        Ok(events)
+    }
 }
 
 struct ObservedProcess {
@@ -212,6 +350,7 @@ fn run_case(
     profile: Option<&Profile>,
     endpoints: &endpoints::Endpoints,
 ) -> Result<Value> {
+    endpoints.set_case(name)?;
     let private = root.join(name);
     fs::create_dir(&private)?;
     fs::create_dir(private.join("udf"))?;
@@ -221,7 +360,19 @@ fn run_case(
     )?;
     let exe = private.join("w0.exe");
     fs::copy(std::env::current_exe()?, &exe)?;
-    let input = json!({"mode":"matrix","case":name,"canary":canary,"endpoints":endpoints.addresses,"dnsEnabled":endpoints.dns_enabled,"dnsName":format!("w0-{name}-{}.invalid",std::process::id())});
+    let owner_exit = name == "restricted-owner-exit";
+    let deadline_test = name == "restricted-deadline";
+    let mut input = json!({"mode":"matrix","case":name,"canary":canary,"endpoints":endpoints.addresses,"dnsEnabled":endpoints.dns_enabled,"dnsName":format!("w0-{name}-{}.invalid",std::process::id())});
+    input["deadlineTest"] = json!(deadline_test);
+    if owner_exit {
+        let leaf = private.join("leaf");
+        fs::create_dir(&leaf)?;
+        fs::create_dir(leaf.join("udf"))?;
+        fs::copy(&exe, leaf.join("w0.exe"))?;
+        fs::copy(private.join("allowed.html"), leaf.join("allowed.html"))?;
+        fs::write(leaf.join("input.json"), serde_json::to_vec(&input)?)?;
+        input["ownerExitTest"] = json!(true);
+    }
     fs::write(private.join("input.json"), serde_json::to_vec(&input)?)?;
     let mut report =
         json!({"name":name,"private":private,"restricted":profile.is_some(),"input":input});
@@ -248,6 +399,8 @@ fn run_case(
         report["privateOnlyAclApplied"] = json!(true);
     }
     let job = Job::new()?;
+    let port = CompletionPort::attach(&job)?;
+    let mut completion_events = Vec::new();
     let mut seen = BTreeMap::new();
     let result = (|| -> Result<()> {
         let (process, thread) = launch_scoped(&exe, runtime, &private, profile, &job)?;
@@ -265,12 +418,26 @@ fn run_case(
         let start = Instant::now();
         let mut samples = Vec::new();
         let mut completed_at = None;
+        let mut owner_exit_requested = false;
+        let mut intentional_deadline = None;
         let mut dialogs = Vec::new();
         loop {
+            completion_events.extend(port.drain()?);
             samples.push(json!({"elapsedMs":start.elapsed().as_millis(),"members":observe(&job, &mut seen)?}));
-            if let Ok(bytes) = fs::read(private.join("child.json")) {
+            if let Ok(bytes) = fs::read(if owner_exit {
+                private.join("leaf/child.json")
+            } else {
+                private.join("child.json")
+            }) {
                 if let Ok(child) = serde_json::from_slice::<Value>(&bytes) {
                     report["child"] = child;
+                }
+            }
+            if deadline_test && report["child"]["phase"] == "intentional-pending-dom" {
+                let at = intentional_deadline.get_or_insert_with(Instant::now);
+                if at.elapsed() >= Duration::from_secs(2) {
+                    report["intentionalDeadlineExpired"] = json!(true);
+                    break;
                 }
             }
             if report["child"]["phase"] == "picker-probe" {
@@ -279,7 +446,16 @@ fn run_case(
             if report["child"]["phase"] == "matrix-complete" {
                 let done = completed_at.get_or_insert_with(Instant::now);
                 if done.elapsed() >= Duration::from_secs(3) {
-                    break;
+                    if !owner_exit {
+                        break;
+                    }
+                    if !owner_exit_requested {
+                        fs::write(
+                            private.join("owner-exit-now"),
+                            b"controlled-abnormal-owner-exit",
+                        )?;
+                        owner_exit_requested = true;
+                    }
                 }
             }
             if report["child"]["error"].is_string()
@@ -293,6 +469,18 @@ fn run_case(
             }
             std::thread::sleep(Duration::from_millis(100));
         }
+        if owner_exit {
+            report["ownerExitRequested"] = json!(owner_exit_requested);
+            report["owner"] = serde_json::from_slice(&fs::read(private.join("owner.json"))?)?;
+            let mut exit = 0;
+            check(unsafe { GetExitCodeProcess(process.as_raw_handle(), &mut exit) })?;
+            report["ownerExitCode"] = json!(exit);
+            let deadline = Instant::now() + Duration::from_secs(5);
+            while job.active()? != 0 && Instant::now() < deadline {
+                std::thread::sleep(Duration::from_millis(10));
+            }
+            report["activeAfterOwnerExitBeforeHostStop"] = json!(job.active()?);
+        }
         report["ownedPickerDialogs"] = json!(dialogs);
         report["observedDurationMs"] = json!(start.elapsed().as_millis());
         report["samples"] = json!(samples);
@@ -301,8 +489,15 @@ fn run_case(
         report["allAccountedProcessesSampled"] = json!(
             report["accountingBeforeStop"]["totalProcesses"].as_u64() == Some(seen.len() as u64)
         );
-        report["completed"] = json!(report["child"]["phase"] == "matrix-complete");
-        if report["completed"] != true {
+        report["completed"] = json!(
+            report["child"]["phase"] == "matrix-complete"
+                || (deadline_test && report["intentionalDeadlineExpired"] == true)
+        );
+        if report["completed"] != true
+            || (owner_exit
+                && (report["ownerExitCode"] != 73
+                    || report["activeAfterOwnerExitBeforeHostStop"] != 0))
+        {
             return Err(
                 "Matrix child did not complete; preserve evidence without permission fallback"
                     .into(),
@@ -319,6 +514,9 @@ fn run_case(
         Err(e) => json!({"ok":false,"error":e.to_string()}),
     };
     report["accountingAfterStop"] = accounting(&job)?;
+    completion_events.extend(port.drain()?);
+    report["jobCompletionEvents"] = json!(completion_events);
+    report["jobCompletionBoundary"]=json!("Job notifications are not guaranteed; retain accounting totals and sampled process handles separately. An absent event is not absence of a process.");
     let mut retained = Vec::new();
     for (_, mut process) in seen {
         let wait = unsafe { WaitForSingleObject(process.handle.as_raw_handle(), 5000) };
@@ -364,7 +562,12 @@ pub(super) fn run(runtime: &Path) -> Result<()> {
         if report["loopbackExemptions"]["ownSidPresent"] != false {
             return Err("Temporary identity unexpectedly has loopback exemption".into());
         }
-        for (name, restricted) in [("ordinary", false), ("restricted", true)] {
+        for (name, restricted) in [
+            ("ordinary", false),
+            ("restricted", true),
+            ("restricted-owner-exit", true),
+            ("restricted-deadline", true),
+        ] {
             let case = run_case(
                 runtime,
                 &root,
@@ -376,6 +579,28 @@ pub(super) fn run(runtime: &Path) -> Result<()> {
             report["cases"].as_array_mut().unwrap().push(case);
         }
         report["endpointObservationsFinal"] = endpoints.snapshot()?;
+        let violations: Vec<Value> = report["endpointObservationsFinal"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|e| {
+                e["turnUsername"]
+                    .as_str()
+                    .is_some_and(|name| name.starts_with("restricted"))
+                    || e["nativeMarker"]
+                        .as_str()
+                        .is_some_and(|name| name.starts_with("w0/restricted"))
+                    || e["query"]
+                        .as_str()
+                        .is_some_and(|name| name.starts_with("w0-restricted"))
+                    || e["request"]
+                        .as_str()
+                        .is_some_and(|name| name.contains(" /restricted"))
+            })
+            .cloned()
+            .collect();
+        report["receivedRestrictedCanaries"] = json!(violations);
+        report["networkCanaryGatePassed"] = json!(violations.is_empty());
         Ok(())
     })();
     if let Err(e) = &result {
@@ -405,13 +630,18 @@ pub(super) fn run(runtime: &Path) -> Result<()> {
     if !cleanup_errors.is_empty()
         || report["outsideFileUnchanged"] != true
         || report["cases"].as_array().is_none_or(|cases| {
-            cases.len() != 2
-                || cases
-                    .iter()
-                    .any(|c| c["completed"] != true || c["stopResult"]["ok"] != true)
+            cases.len() != 4
+                || cases.iter().any(|c| {
+                    c["completed"] != true
+                        || c["stopResult"]["ok"] != true
+                        || c["error"].is_string()
+                })
         })
     {
         return Err("Matrix execution/cleanup incomplete; see bounded evidence".into());
+    }
+    if report["networkCanaryGatePassed"] == false {
+        return Err("Restricted network canary delivered: full isolation remains blocked".into());
     }
     Ok(())
 }

@@ -9,7 +9,7 @@ pub(super) fn query(name: &str) -> Value {
     let mut address = DNS_ADDR::default();
     let mut socket = SOCKADDR_IN::default();
     socket.sin_family = AF_INET;
-    socket.sin_port = 53u16.to_be();
+    // Zero port selects DNS default 53, matching the Microsoft DNSAsyncQuery sample.
     socket.sin_addr.S_un.S_addr = u32::from_ne_bytes([127, 0, 0, 1]);
     unsafe {
         std::ptr::copy_nonoverlapping(
@@ -18,11 +18,10 @@ pub(super) fn query(name: &str) -> Value {
             size_of::<SOCKADDR_IN>(),
         );
     }
-    address.Data.DnsAddrUserDword = [size_of::<SOCKADDR_IN>() as u32, 0, 0, 0, 0, 0, 0, 0];
     let mut servers = DNS_ADDR_ARRAY::default();
     servers.MaxCount = 1;
     servers.AddrCount = 1;
-    servers.Family = AF_INET;
+    // Keep Family and DNS_ADDR metadata zero as in the SDK sample.
     servers.AddrArray = [address];
     let mut request = DNS_QUERY_REQUEST::default();
     request.Version = DNS_QUERY_REQUEST_VERSION1;

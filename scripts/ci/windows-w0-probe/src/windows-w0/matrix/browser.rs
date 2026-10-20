@@ -7,7 +7,9 @@ use windows::{
     Win32::{
         Foundation::RECT,
         System::Com::{CoInitializeEx, COINIT_APARTMENTTHREADED},
-        UI::WindowsAndMessaging::{CreateWindowExW, WS_OVERLAPPEDWINDOW},
+        UI::WindowsAndMessaging::{
+            CreateWindowExW, ShowWindow, SW_SHOWNORMAL, WS_OVERLAPPEDWINDOW,
+        },
     },
 };
 
@@ -166,6 +168,10 @@ pub(super) fn run(runtime: &Path, private: &Path, input: &Value, report: &mut Va
             bottom: 480,
         })?;
     }
+    unsafe {
+        let _ = ShowWindow(window, SW_SHOWNORMAL);
+        controller.SetIsVisible(true)?;
+    }
     let view = unsafe { controller.CoreWebView2()? };
     report["controllerCreated"] = json!(true);
     report["staticNavigation"] = navigate(
@@ -179,6 +185,12 @@ pub(super) fn run(runtime: &Path, private: &Path, input: &Value, report: &mut Va
         false,
     )?;
     save(private, report)?;
+    if input["deadlineTest"] == true {
+        report["phase"] = json!("intentional-pending-dom");
+        save(private, report)?;
+        let _ = evaluate(&view, "new Promise(()=>{})", false)?;
+        return Err("Intentional pending DOM unexpectedly completed".into());
+    }
     let config = serde_json::to_string(input)?;
     // Only literal loopback addresses are used. Relay-only TURN avoids STUN and mDNS
     // discovery against public servers; no camera, microphone, or new permissions.
