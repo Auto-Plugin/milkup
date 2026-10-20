@@ -18,6 +18,7 @@ use std::{
 };
 use windows_sys::Win32::{
     Foundation::*,
+    Networking::WinSock::{WSACleanup, WSAStartup, WSADATA},
     Security::{Authorization::ConvertSidToStringSidW, Isolation::*, *},
     System::{Com::CoTaskMemFree, JobObjects::*, Threading::*},
 };
@@ -231,7 +232,14 @@ impl Job {
                     ))
                 } {
                     Ok(process) => match token_info(process.as_raw_handle()) {
-                        Ok(token) => json!({"pid":pid,"token":token}),
+                        Ok(token) => {
+                        let mut image = vec![0u16; 32768];
+                        let mut length = image.len() as u32;
+                        let image = if unsafe { QueryFullProcessImageNameW(process.as_raw_handle(), 0, image.as_mut_ptr(), &mut length) } != 0 {
+                            json!(String::from_utf16_lossy(&image[..length as usize]))
+                        } else { json!({"inspectionError":std::io::Error::last_os_error().to_string()}) };
+                        json!({"pid":pid,"token":token,"image":image})
+                    },
                         Err(e) => json!({"pid":pid,"inspectionError":e.to_string()}),
                     },
                     Err(e) => json!({"pid":pid,"inspectionError":e.to_string()}),
@@ -363,6 +371,21 @@ fn launch(
     .map_err(|e| format!("CreateProcessW restricted launch failed: {e}"))?;
     Ok(unsafe { (owned(info.hProcess)?, owned(info.hThread)?) })
 }
+struct Winsock;
+impl Drop for Winsock {
+    fn drop(&mut self) {
+        unsafe {
+            WSACleanup();
+        }
+    }
+}
+fn io_result<T>(result: std::io::Result<T>) -> Value {
+    match result {
+        Ok(_) => json!({"ok":true}),
+        Err(error) => json!({"ok":false,"rawOsError":error.raw_os_error(),
+            "kind":format!("{:?}",error.kind()),"message":error.to_string()}),
+    }
+}
 fn child(runtime: &Path, private: &Path) -> Result<()> {
     let mut report = json!({"phase":"token", "token":token_info(unsafe {GetCurrentProcess()})?, "environmentCreated":false, "controllerCreated":false});
     save(private, &report)?;
@@ -384,25 +407,30 @@ fn child(runtime: &Path, private: &Path) -> Result<()> {
         if read != Some(5) || write != Some(5) {
             return Err("Outside private directory did not deny file access".into());
         }
-        let tcp = input["tcp"].as_str().ok_or("Missing TCP canary")?.parse()?;
-        let tcp_error = TcpStream::connect_timeout(&tcp, Duration::from_secs(2))
-            .err()
-            .and_then(|e| e.raw_os_error());
-        let udp_error = match UdpSocket::bind("127.0.0.1:0") {
-            Ok(socket) => socket
-                .send_to(
-                    b"w0-probe",
-                    input["udp"].as_str().ok_or("Missing UDP canary")?,
-                )
-                .err()
-                .and_then(|e| e.raw_os_error()),
-            Err(e) => e.raw_os_error(),
-        };
-        report["loopbackTcpError"] = json!(tcp_error);
-        report["loopbackUdpError"] = json!(udp_error);
+        report["phase"] = json!("winsock-initialization");
+        let mut data = WSADATA::default();
+        let startup = unsafe { WSAStartup(0x0202, &mut data) };
+        report["winsockStartupCode"] = json!(startup);
         save(private, &report)?;
-        if tcp_error != Some(10013) || udp_error != Some(10013) {
-            return Err("Expected OS network access denial was not observed".into());
+        if startup != 0 {
+            return Err(format!(
+                "WSAStartup failed with native code {startup}; network preflight unresolved"
+            )
+            .into());
+        }
+        let _winsock = Winsock;
+        report["phase"] = json!("network-canaries");
+        let tcp = input["tcp"].as_str().ok_or("Missing TCP canary")?.parse()?;
+        let tcp_result = io_result(TcpStream::connect_timeout(&tcp, Duration::from_secs(2)));
+        let udp = input["udp"].as_str().ok_or("Missing UDP canary")?;
+        let udp_result = io_result(
+            UdpSocket::bind("127.0.0.1:0").and_then(|socket| socket.send_to(b"w0-probe", udp)),
+        );
+        report["loopbackTcp"] = tcp_result.clone();
+        report["loopbackUdp"] = udp_result.clone();
+        save(private, &report)?;
+        if tcp_result["rawOsError"] != 10013 || udp_result["rawOsError"] != 10013 {
+            return Err("Expected OS network access denial was not observed; inspect complete operation results".into());
         }
         engine::run(runtime, private, &mut report)
     })();
