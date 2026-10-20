@@ -84,10 +84,10 @@ try {
   )
   await app.focus('.milkup-input-proxy')
   await app.execute(`
- window.__latency={samples:[],armed:null,maxTimerGap:0,longTasks:[],ipc:[],frameGaps:[],longTaskSupported:(PerformanceObserver.supportedEntryTypes??[]).includes('longtask')};
+ window.__latency={samples:[],armed:null,maxTimerGap:0,longTasks:[],ipc:[],frameGaps:[],timerGaps:[],timerGapsDropped:0,longTaskSupported:(PerformanceObserver.supportedEntryTypes??[]).includes('longtask')};
  const invokeDescriptor=Object.getOwnPropertyDescriptor(window.__TAURI_INTERNALS__,'invoke');window.__latency.invokeDescriptor={writable:invokeDescriptor?.writable,configurable:invokeDescriptor?.configurable};
  let previousTimer=performance.now(),previousFrame=performance.now();
- setInterval(()=>{const t=performance.now();window.__latency.maxTimerGap=Math.max(window.__latency.maxTimerGap,t-previousTimer);previousTimer=t},20);
+ setInterval(()=>{const t=performance.now(),gap=t-previousTimer;window.__latency.maxTimerGap=Math.max(window.__latency.maxTimerGap,gap);if(gap>50){if(window.__latency.timerGaps.length<256)window.__latency.timerGaps.push({at:t,gap});else window.__latency.timerGapsDropped++}previousTimer=t},20);
  const frame=t=>{const gap=t-previousFrame;if(gap>50)window.__latency.frameGaps.push({at:t,gap});previousFrame=t;requestAnimationFrame(frame)};requestAnimationFrame(frame);
  try{new PerformanceObserver(list=>window.__latency.longTasks.push(...list.getEntries().map(e=>({start:e.startTime,duration:e.duration})))).observe({entryTypes:['longtask']})}catch{}
  const check=()=>{const p=window.__latency.armed;if(!p||p.started===undefined||p.dom!==undefined)return;
@@ -201,6 +201,16 @@ try {
       targetMs: 500,
     },
     'shift+a',
+  )
+  await writeFile(
+    path.join(root, 'search-stages.json'),
+    JSON.stringify(
+      await app.execute(
+        'return {marks:performance.getEntriesByName("milkup:search-stage").map(e=>({at:e.startTime,detail:e.detail})),timerGaps:window.__latency.timerGaps,timerGapsDropped:window.__latency.timerGapsDropped,frameGaps:window.__latency.frameGaps,visible:document.visibilityState,focused:document.hasFocus()}',
+      ),
+      null,
+      2,
+    ),
   )
   await app.key('Escape')
   await app.shot(mode + '-final')

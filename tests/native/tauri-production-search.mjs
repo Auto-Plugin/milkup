@@ -120,6 +120,22 @@ try {
       assert(diagnostics.workers.every((w) => w.errors.length === 0))
       await app.shot(mode + '-worker-search')
     })
+    if (!large)
+      await check(
+        mode + ' next and previous preserve complete count and UTF16 selection',
+        async () => {
+          await app.click('[data-search-next]')
+          await app.until(async () => {
+            const p = await app.probe()
+            return p.count === '2/4' && p.cursor === 5
+          }, 'second Unicode result')
+          await app.click('[data-search-previous]')
+          await app.until(async () => {
+            const p = await app.probe()
+            return p.count === '1/4' && p.cursor === 3
+          }, 'first Unicode result')
+        },
+      )
     await check(mode + ' cancelled old query cannot overwrite new Unicode search', async () => {
       await app.key('ctrl+f')
       await app.key('ctrl+a')
@@ -261,6 +277,87 @@ try {
       assert.equal(hash(await readFile(file)), hash(original))
       await query('tailneedle', 1)
     })
+    if (process.env.MILKUP_SEARCH_DOCUMENT_SWITCH_CHECK === '1')
+      await check(mode + ' switching documents cancels an observed running search', async () => {
+        await app.execute(`
+          window.__switchTrace = {marks:[],dropped:0};
+          window.__switchObserver = new PerformanceObserver(list => {
+            for (const m of list.getEntries()) {
+              if (m.name !== 'milkup:search-stage') continue;
+              if (window.__switchTrace.marks.length < 512)
+                window.__switchTrace.marks.push({at:m.startTime,detail:m.detail});
+              else window.__switchTrace.dropped++;
+            }
+          });
+          window.__switchObserver.observe({entryTypes:['mark']});
+        `)
+        await app.key('ctrl+f')
+        await app.focus('[data-search-input]')
+        await app.key('ctrl+a')
+        await app.text('x')
+        const beforeSwitch = await app.until(
+          () =>
+            app.execute(`
+              const marks=performance.getEntriesByName('milkup:search-stage').map(m=>({at:m.startTime,detail:m.detail}));
+              const started=marks.find(m=>m.detail.stage==='controller-start');
+              const complete=marks.some(m=>m.detail.stage==='controller-complete');
+              if(document.querySelector('[data-search-input]').value!=='x' ||
+                document.querySelector('[data-search-loading]').hidden || !started || complete) return null;
+              return {run:started.detail.run,marks};
+            `),
+          'diagnosed scan running before switch',
+        )
+        await app.execute(`
+          window.__searchSwitch = null;
+          const capture = e => {
+            if (!e.ctrlKey || e.key.toLowerCase() !== 'n') return;
+            window.removeEventListener('keydown', capture, true);
+            window.__searchSwitch = {
+              trusted: e.isTrusted,
+              searching: !document.querySelector('[data-search-loading]').hidden,
+              marks: performance.getEntriesByName('milkup:search-stage').map(m => ({at:m.startTime,detail:m.detail}))
+            };
+          };
+          window.addEventListener('keydown', capture, true);
+        `)
+        await app.key('ctrl+n')
+        await app.until(async () => (await app.probe()).path !== file, 'new document opened')
+        await app.delay(300)
+        const observation = {
+          beforeSwitch,
+          atSwitch: await app.execute('return window.__searchSwitch'),
+          after: await app.probe(),
+          trace: await app.execute(
+            'window.__switchObserver.disconnect(); return window.__switchTrace',
+          ),
+        }
+        await writeFile(
+          path.join(root, mode + '-document-switch.json'),
+          JSON.stringify(observation, null, 2),
+        )
+        assert.equal(observation.atSwitch?.trusted, true)
+        assert.equal(observation.trace.dropped, 0)
+        const oldStages = observation.trace.marks
+          .filter((m) => m.detail.run === beforeSwitch.run)
+          .map((m) => m.detail.stage)
+        assert(oldStages.includes('controller-cancel'), 'observed running scan must be cancelled')
+        assert(!oldStages.includes('controller-complete'), 'must cancel before scan completes')
+        assert.equal(observation.after.searching, false)
+        assert.equal(observation.after.dirty, false)
+        assert.equal(observation.after.cursor, 0)
+        assert.equal(observation.after.count, '0/0')
+        await app.execute(
+          'localStorage.setItem("milkup.desktop.nativeTestPaths",JSON.stringify({open:arguments[0]}))',
+          file,
+        )
+        await app.key('ctrl+o')
+        await app.until(async () => {
+          const p = await app.probe()
+          return p.path === file && p.loading === 'ready'
+        }, 'reopen after pending search')
+        assert.equal(hash(await readFile(file)), hash(original))
+        await query('tailneedle', 1)
+      })
   }
   const diagnostics = await app.execute(
     'return {...window.__productionDiagnostics,resources:performance.getEntriesByType("resource").map(r=>({url:r.name,kind:r.initiatorType}))}',

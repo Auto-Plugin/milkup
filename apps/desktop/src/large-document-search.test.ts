@@ -53,6 +53,44 @@ describe('native bounded search lifecycle', () => {
     expect(updates.mock.calls.map((args) => args[0].phase)).toEqual(['searching'])
     expect(native.cancel).toHaveBeenCalled()
   })
+  it('ignores a late scan from the previous document after a new document search finishes', async () => {
+    const native = service()
+    let finish!: (value: Awaited<ReturnType<LargeSearchService['step']>>) => void
+    vi.mocked(native.step).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve
+        }),
+    )
+    const controller = new LargeDocumentSearchController(native),
+      previousUpdates = vi.fn(),
+      nextUpdates = vi.fn()
+    const previous = controller.run({
+      query: 'hello',
+      source: source(),
+      onUpdate: previousUpdates,
+    })
+    await vi.waitFor(() => expect(native.step).toHaveBeenCalledTimes(1))
+    const next = await controller.run({
+      query: 'hello',
+      source: new MemoryDocumentSource({ documentId: 'other-document', version: 0, text: 'hello' }),
+      onUpdate: nextUpdates,
+    })
+    finish({
+      complete: true,
+      matchCount: 99,
+      scannedLineCount: 1,
+      scannedBytes: 5,
+      nativeMs: 1,
+      indexBytes: 80,
+    })
+    expect((await previous).phase).toBe('cancelled')
+    expect(next).toMatchObject({ phase: 'done', matchCount: 5000 })
+    expect(previousUpdates.mock.calls.map(([state]) => state.phase)).toEqual(['searching'])
+    expect(nextUpdates.mock.calls.at(-1)?.[0]).toBe(next)
+    expect(native.page).toHaveBeenCalledTimes(1)
+    expect(native.cancel).toHaveBeenCalled()
+  })
   it('never commits a cancelled replacement preparation', async () => {
     const native = service(),
       abort = new AbortController()
