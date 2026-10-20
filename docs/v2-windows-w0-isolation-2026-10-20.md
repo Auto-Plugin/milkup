@@ -1,5 +1,7 @@
 # Windows W0 隔离里程碑：WebRTC UDP 拒绝门槛失败
 
+> 后续补充：[UDP 诊断里程碑](v2-windows-w0-udp-diagnosis-2026-10-20.md)在原生 helper 的重复发送中复现了送达；原来的单发未收到不能外推为原生 UDP 隔离成功。本报告保持历史实测，后续也明确了本报告的 `Get-NetFirewallProfile` 读取的是 PersistentStore，不是完整有效策略审计。
+
 基点为已接受的 `e37e9b43e0f8481074872a7514c62246e1cd0d0f`，分支为 `dot/milkup-v2-windows-backends`。**本轮发现可复现的受限 WebView2 网络请求送达，因此不接入产品 DOM/PDF。** W1 HTML 后端和既有应用代码未变；应用仍为 `2.0.0-beta.1`。Linux PDF 保持现有依赖、沿 WebKit 引擎补丁方向处理的用户决定继续有效，本轮没有改 Linux 输出代码或添加 Chromium 依赖。
 
 ## 已确认的阻塞

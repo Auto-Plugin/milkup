@@ -39,3 +39,5 @@ PDF 的输出目标、取消及发布可以复用 W1，但 WebView2 静态渲染
 W1 与 W0 的最终实际结果及后续矩阵见 [里程碑报告](v2-windows-backends-w1-2026-10-20.md)。W08 证明受限 Runtime 静态兼容性，尚未通过完整网络/文件/后代隔离验收，产品 DOM/PDF 继续关闭。
 
 2026-10-20 后续 W0 隔离矩阵已发现受限 WebView2 的 IPv4/IPv6 TURN 请求实际送达，AppContainer/0 capability 不足以关闭当前完整门槛。产品 DOM/PDF 继续关闭，实测、原始失败和下一步建议见 [W0 隔离里程碑](v2-windows-w0-isolation-2026-10-20.md)。
+
+后续有界 UDP 机制诊断进一步在 **Runtime 启动前的原生 helper 重复发送**中复现送达，不能再把差异归为只有 WebView2 broker 才能产生。D01 观察器故障、D02 单发对照和 D03 重复发送失败均保留；有效策略快照、仍未定位的内核/环境机制和不增加 Runtime 的候选路线见 [UDP 诊断里程碑](v2-windows-w0-udp-diagnosis-2026-10-20.md)。现有权限下没有已验证可接入产品的修复，Windows DOM/PDF 继续关闭。
