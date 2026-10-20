@@ -568,7 +568,13 @@ fn signed_candidate(
 
 #[tokio::test]
 async fn checkpoint_signed_manifest_and_artifact_verify_end_to_end_without_installing() {
-    let (_server, _app, updater) = signed_candidate("valid", None);
+    // Exercise the Windows package gate on every host with a signed, inert PE.
+    // The earlier text-only artifact has no version resource and is invalid
+    // for a successful Windows download after resource validation was added.
+    let artifact = STANDARD
+        .decode(gate_fixture()["pe"].as_str().unwrap())
+        .unwrap();
+    let (_server, _app, updater) = gate_candidate("peValid", &artifact, "windows-x86_64");
     let update = updater.check().await.unwrap().unwrap();
     assert!(update.has_verified_manifest());
     assert_eq!(update.version, "2.0.0-beta.2");
@@ -579,12 +585,7 @@ async fn checkpoint_signed_manifest_and_artifact_verify_end_to_end_without_insta
     })
     .await
     .unwrap();
-    assert_eq!(
-        bytes,
-        STANDARD
-            .decode(signed_fixture()["artifact"].as_str().unwrap())
-            .unwrap()
-    );
+    assert_eq!(bytes, artifact);
     assert_eq!(phases.lock().unwrap().last(), Some(&"verifying"));
 }
 
