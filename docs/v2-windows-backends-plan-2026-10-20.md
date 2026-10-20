@@ -35,3 +35,5 @@ AppContainer 是按最小权限隔离资源的机制，其 ACL/网络能力是�
 父线程已转发用户明确批准的 W0 范围：允许在 Windows CI 临时 runner 上创建并删除一个测试用、无网络 capability 的 AppContainer 身份，只给本次私有临时目录配置必要访问；只用已存在的 Runtime；禁止修改已有 Runtime/系统/用户文档的 ACL、启用 loopback exception、修改防火墙、提权或安装服务。若已有 Runtime 不可访问或不兼容，记录失败并停止，不扩大权限。授权仅覆盖上述临时原型。独立 CI 程序先验证令牌、无 capability、私有目录之外的读写拒绝及有正对照的 loopback TCP/UDP 拒绝，再启动已有 Runtime。记录后代令牌与 Job 清空、测试身份删除、私有目录/ACL 清理结果。预检不等于 DNS/WebRTC/文件选择器完整证明；产品入口保持关闭。
 
 PDF 的输出目标、取消及发布可以复用 W1，但 WebView2 静态渲染仍需独立网络/文件限制与进程硬截止证明；物理打印还需要真实系统打印与取消证据。Linux WebKit PDF 精确 Unicode、长块分页及 Print04 失败仍开放，不在本轮改依赖或重写结论。
+
+W1 与 W0 的最终实际结果及后续矩阵见 [里程碑报告](v2-windows-backends-w1-2026-10-20.md)。W08 证明受限 Runtime 静态兼容性，尚未通过完整网络/文件/后代隔离验收，产品 DOM/PDF 继续关闭。
