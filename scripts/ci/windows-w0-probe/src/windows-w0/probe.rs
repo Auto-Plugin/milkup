@@ -1,6 +1,7 @@
 //! This executable is built and run only by the explicitly gated W0 CI job.
 //! No product entry point, plugin IPC, permission fallback or Runtime provisioning.
 mod engine;
+mod matrix;
 use serde_json::{json, Value};
 use std::{
     ffi::OsStr,
@@ -99,7 +100,58 @@ fn token_info(process: HANDLE) -> Result<Value> {
         )
     })?;
     let capabilities = unsafe { (*(buf.as_ptr().cast::<TOKEN_GROUPS>())).GroupCount };
-    Ok(json!({"isAppContainer":is_container == 1, "capabilityCount":capabilities}))
+    let mut capability_sids = Vec::new();
+    let groups = unsafe { &*buf.as_ptr().cast::<TOKEN_GROUPS>() };
+    for group in
+        unsafe { std::slice::from_raw_parts(groups.Groups.as_ptr(), capabilities as usize) }
+    {
+        capability_sids.push(json!({"sid":sid_text(group.Sid)?,"attributes":group.Attributes}));
+    }
+    let integrity = token_buffer(token.as_raw_handle(), TokenIntegrityLevel)?;
+    let label = unsafe { &*integrity.as_ptr().cast::<TOKEN_MANDATORY_LABEL>() };
+    let count = unsafe { *GetSidSubAuthorityCount(label.Label.Sid) };
+    if count == 0 {
+        return Err("Missing integrity RID".into());
+    }
+    let integrity_rid = unsafe { *GetSidSubAuthority(label.Label.Sid, u32::from(count) - 1) };
+    let container = token_buffer(token.as_raw_handle(), TokenAppContainerSid)?;
+    let sid = unsafe {
+        (*(container.as_ptr().cast::<TOKEN_APPCONTAINER_INFORMATION>())).TokenAppContainer
+    };
+    let app_sid = if sid.is_null() {
+        Value::Null
+    } else {
+        json!(sid_text(sid)?)
+    };
+    Ok(
+        json!({"isAppContainer":is_container == 1, "capabilityCount":capabilities,
+        "capabilities":capability_sids,"appContainerSid":app_sid,"integrityRid":integrity_rid}),
+    )
+}
+fn sid_text(sid: PSID) -> Result<String> {
+    let mut ptr = null_mut();
+    check(unsafe { ConvertSidToStringSidW(sid, &mut ptr) })?;
+    let result = unsafe { string(ptr) };
+    unsafe {
+        LocalFree(ptr.cast());
+    }
+    Ok(result)
+}
+fn token_buffer(token: HANDLE, class: TOKEN_INFORMATION_CLASS) -> Result<Vec<usize>> {
+    let mut size = 0;
+    unsafe {
+        GetTokenInformation(token, class, null_mut(), 0, &mut size);
+    }
+    if size == 0 {
+        return Err(format!(
+            "Cannot size token class {class}: {}",
+            std::io::Error::last_os_error()
+        )
+        .into());
+    }
+    let mut data = vec![0usize; (size as usize).div_ceil(size_of::<usize>())];
+    check(unsafe { GetTokenInformation(token, class, data.as_mut_ptr().cast(), size, &mut size) })?;
+    Ok(data)
 }
 struct Profile {
     name: Vec<u16>,
@@ -264,29 +316,32 @@ struct Attributes {
     pointer: LPPROC_THREAD_ATTRIBUTE_LIST,
 }
 impl Attributes {
-    fn new(capabilities: &SECURITY_CAPABILITIES, job: &HANDLE) -> Result<Self> {
+    fn new(capabilities: Option<&SECURITY_CAPABILITIES>, job: &HANDLE) -> Result<Self> {
+        let count = if capabilities.is_some() { 2 } else { 1 };
         let mut size = 0;
         unsafe {
-            InitializeProcThreadAttributeList(null_mut(), 2, 0, &mut size);
+            InitializeProcThreadAttributeList(null_mut(), count, 0, &mut size);
         }
         if size == 0 {
             return Err("Cannot size process attributes".into());
         }
         let mut storage = vec![0usize; size.div_ceil(size_of::<usize>())];
         let pointer = storage.as_mut_ptr().cast();
-        check(unsafe { InitializeProcThreadAttributeList(pointer, 2, 0, &mut size) })?;
+        check(unsafe { InitializeProcThreadAttributeList(pointer, count, 0, &mut size) })?;
         let attrs = Self { storage, pointer };
-        check(unsafe {
-            UpdateProcThreadAttribute(
-                pointer,
-                0,
-                PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES as usize,
-                (capabilities as *const SECURITY_CAPABILITIES).cast(),
-                size_of::<SECURITY_CAPABILITIES>(),
-                null_mut(),
-                null(),
-            )
-        })?;
+        if let Some(capabilities) = capabilities {
+            check(unsafe {
+                UpdateProcThreadAttribute(
+                    pointer,
+                    0,
+                    PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES as usize,
+                    (capabilities as *const SECURITY_CAPABILITIES).cast(),
+                    size_of::<SECURITY_CAPABILITIES>(),
+                    null_mut(),
+                    null(),
+                )
+            })?;
+        }
         check(unsafe {
             UpdateProcThreadAttribute(
                 pointer,
@@ -316,6 +371,15 @@ fn launch(
     profile: &Profile,
     job: &Job,
 ) -> Result<(OwnedHandle, OwnedHandle)> {
+    launch_scoped(exe, runtime, private, Some(profile), job)
+}
+fn launch_scoped(
+    exe: &Path,
+    runtime: &Path,
+    private: &Path,
+    profile: Option<&Profile>,
+    job: &Job,
+) -> Result<(OwnedHandle, OwnedHandle)> {
     // Every interpolated value is a locally generated absolute path, never user/plugin input.
     for p in [exe, runtime, private] {
         if p.to_string_lossy().contains('"') {
@@ -339,13 +403,13 @@ fn launch(
     let environment = format!("APPDATA={}\0LOCALAPPDATA={}\0PATH={system}\\System32\0SystemDrive={drive}\0SystemRoot={system}\0TEMP={}\0TMP={}\0USERPROFILE={}\0WINDIR={system}\0\0", private.display(), private.display(), private.display(), private.display(), private.display());
     let environment: Vec<u16> = environment.encode_utf16().collect();
     let capabilities = SECURITY_CAPABILITIES {
-        AppContainerSid: profile.sid,
+        AppContainerSid: profile.map(|p| p.sid).unwrap_or(null_mut()),
         Capabilities: null_mut(),
         CapabilityCount: 0,
         Reserved: 0,
     };
     let raw_job = job.0.as_raw_handle();
-    let attrs = Attributes::new(&capabilities, &raw_job)
+    let attrs = Attributes::new(profile.map(|_| &capabilities), &raw_job)
         .map_err(|e| format!("Cannot configure restricted process attributes: {e}"))?;
     let mut startup = STARTUPINFOEXW::default();
     startup.StartupInfo.cb = size_of::<STARTUPINFOEXW>() as u32;
@@ -387,6 +451,10 @@ fn io_result<T>(result: std::io::Result<T>) -> Value {
     }
 }
 fn child(runtime: &Path, private: &Path) -> Result<()> {
+    let input: Value = serde_json::from_slice(&fs::read(private.join("input.json"))?)?;
+    if input["mode"] == "matrix" {
+        return matrix::child(runtime, private, &input);
+    }
     let mut report = json!({"phase":"token", "token":token_info(unsafe {GetCurrentProcess()})?, "environmentCreated":false, "controllerCreated":false});
     save(private, &report)?;
     let result = (|| -> Result<()> {
@@ -463,6 +531,9 @@ pub(super) fn run() -> Result<()> {
             return Err("Invalid child arguments".into());
         }
         return child(Path::new(&args[2]), Path::new(&args[3]));
+    }
+    if args.len() == 3 && args[1] == "--matrix" {
+        return matrix::run(Path::new(&args[2]));
     }
     if args.len() != 2 {
         return Err("Pass the already installed Runtime directory".into());
