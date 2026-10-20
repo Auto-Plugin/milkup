@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
-import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
@@ -57,6 +57,12 @@ async function fixture(t, version = '0.3.4') {
   return { root, plugin, installed, write, files, setTar, entry }
 }
 
+async function assertSdkEntryPath(actual, installed) {
+  // Windows os.tmpdir() may contain an 8.3 alias (RUNNER~1), while the
+  // production resolver returns its real filesystem path (runneradmin).
+  assert.equal(actual, await realpath(path.join(installed, 'src/index.js')))
+}
+
 test('frozen SDK is bound to its reviewed tar, independently of host SDK/source', async (t) => {
   const f = await fixture(t)
   for (const hostVersion of ['0.3.5', '0.3.6']) {
@@ -68,8 +74,32 @@ test('frozen SDK is bound to its reviewed tar, independently of host SDK/source'
     const result = await resolvePublicPluginSdkEntry(f.plugin, f.entry)
     assert.equal(result.sdkVersion, '0.3.4')
     assert.equal(result.sdkTarballSha256, f.entry.closure.sdkTarballSha256)
-    assert.equal(result.entryPath, path.join(f.installed, 'src/index.js'))
+    await assertSdkEntryPath(result.entryPath, f.installed)
   }
+})
+
+test('filesystem aliases preserve canonical SDK identity and exact archive/content guards', async (t) => {
+  const f = await fixture(t)
+  const alias = path.join(f.root, 'PLUGIN~1')
+  // A real junction/symlink makes this regression independent of whether the
+  // runner volume generates 8.3 names. CI02 retains the actual short-path failure.
+  await symlink(f.plugin, alias, process.platform === 'win32' ? 'junction' : 'dir')
+  const installedAlias = path.join(alias, 'node_modules/@milkup/plugin-sdk')
+  const result = await resolvePublicPluginSdkEntry(alias, f.entry)
+  assert.notEqual(result.entryPath, path.join(installedAlias, 'src/index.js'))
+  await assertSdkEntryPath(result.entryPath, installedAlias)
+  await assertSdkEntryPath(result.entryPath, f.installed)
+  assert.equal(result.sdkVersion, '0.3.4')
+  assert.equal(result.sdkTarballSha256, f.entry.closure.sdkTarballSha256)
+  await assert.rejects(
+    resolvePublicPluginSdkEntry(alias, {
+      ...f.entry,
+      closure: { sdkTarballSha256: '0'.repeat(64) },
+    }),
+    /hash/i,
+  )
+  await writeFile(path.join(installedAlias, 'src/index.js'), 'unreviewed SDK bytes')
+  await assert.rejects(resolvePublicPluginSdkEntry(alias, f.entry), /SDK.*match|SDK.*changed/i)
 })
 
 test('installed package metadata, JavaScript, types and documentation must match archive bytes', async (t) => {

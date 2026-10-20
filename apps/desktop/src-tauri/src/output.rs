@@ -245,7 +245,7 @@ async fn output_choose_target_inner(job_id: String, title: String) -> Result<Opt
         *state = JobState::Choosing;
     }
     let worker = job.clone();
-    let result = tauri::async_runtime::spawn_blocking(move || {
+    let result: Result<Option<Target>> = tauri::async_runtime::spawn_blocking(move || {
         #[cfg(target_os = "linux")]
         {
             linux::choose_target(&worker, title)
@@ -625,6 +625,30 @@ pub fn run_helper_if_requested() -> bool {
         linux::run_guarded();
     }
     true
+}
+
+#[cfg(all(test, not(target_os = "linux")))]
+mod unsupported_platform_tests {
+    use super::*;
+
+    #[test]
+    fn target_selection_rejects_without_authorizing_output_and_finishes_lease() {
+        for format in [Format::Html, Format::Pdf] {
+            let prepared = output_prepare(None, format).unwrap();
+            let lease = job(&prepared.id).unwrap();
+            let rejection = match tauri::async_runtime::block_on(output_choose_target(
+                prepared.id.clone(),
+                "Choose output".into(),
+            )) {
+                Err(message) => message,
+                Ok(_) => panic!("Unsupported target selection must fail closed"),
+            };
+            assert!(rejection.starts_with("[output:unsupported] "));
+            assert!(matches!(*lease.state.lock().unwrap(), JobState::Complete));
+            assert!(take_target(&lease, format).is_err());
+            assert!(output_abort(prepared.id).unwrap());
+        }
+    }
 }
 
 #[cfg(all(test, target_os = "linux"))]

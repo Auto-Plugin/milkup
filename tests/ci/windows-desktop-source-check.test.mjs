@@ -4,9 +4,8 @@ import { test } from 'node:test'
 
 const read = (name) => readFile(new URL(`../../${name}`, import.meta.url), 'utf8')
 
-test('P8 source job has independent public branch/marker gates and no delivery actions', async () => {
-  const workflow = await read('.github/workflows/v2-windows-catalog-check.yml')
-  const job = workflow.split('\n  desktop-source:\n')[1]
+function assertP8SourceJob(workflow) {
+  const job = workflow.split(/\r?\n  desktop-source:\r?\n/)[1]
   assert.ok(job, 'Missing independent P8 desktop source job')
   for (const clause of [
     "github.repository == 'Auto-Plugin/milkup'",
@@ -35,6 +34,27 @@ test('P8 source job has independent public branch/marker gates and no delivery a
     /if \(\$LASTEXITCODE -ne 0\) \{ throw 'Git long-path configuration failed' \}/,
   )
   assert.doesNotMatch(job, /sparse-checkout:/)
+  return job
+}
+
+test('P8 source job has independent public branch/marker gates and no delivery actions', async () => {
+  assertP8SourceJob(await read('.github/workflows/v2-windows-catalog-check.yml'))
+})
+
+test('the same LF and CRLF workflow preserves every P8 job gate', async () => {
+  const lf = (await read('.github/workflows/v2-windows-catalog-check.yml')).replaceAll('\r\n', '\n')
+  const crlf = lf.replaceAll('\n', '\r\n')
+  assert.ok(crlf.includes('\r\n  desktop-source:\r\n'), 'Fixture must contain actual CRLF bytes')
+  assert.equal(crlf.replaceAll('\r\n', '\n'), lf)
+  const expectedJob = assertP8SourceJob(lf)
+  assert.equal(assertP8SourceJob(crlf).replaceAll('\r\n', '\n'), expectedJob)
+  for (const workflow of [lf, crlf]) {
+    assert.throws(
+      () =>
+        assertP8SourceJob(workflow.replaceAll('github.event.repository.private == false', 'true')),
+      /Missing gate: github.event.repository.private == false/,
+    )
+  }
 })
 
 test('source script checks, tests and links actual production app without bundler', async () => {
