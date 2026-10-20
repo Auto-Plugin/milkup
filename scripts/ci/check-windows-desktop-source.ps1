@@ -5,9 +5,17 @@ $ErrorActionPreference = 'Stop'
 # PowerShell must let us record native exit codes, including expected failures.
 $PSNativeCommandUseErrorActionPreference = $false
 if (-not $IsWindows) { throw 'Desktop source check requires actual Windows' }
-if ($env:GITHUB_REPOSITORY -cne 'Auto-Plugin/milkup' -or
-    $env:GITHUB_REF -cne 'refs/heads/dot/milkup-v2-product-phase8-readiness') {
-    throw 'Unexpected source-check scope'
+if ($env:GITHUB_REPOSITORY -cne 'Auto-Plugin/milkup') { throw 'Unexpected source-check repository' }
+switch -CaseSensitive ($env:GITHUB_REF) {
+    'refs/heads/dot/milkup-v2-product-phase8-readiness' {
+        $baseline = 'a4d44e680478d7894450f30f3d533dc1c3131974'
+        $marker = '[windows-desktop-source-check]'
+    }
+    'refs/heads/dot/milkup-v2-windows-backends' {
+        $baseline = '3747004b15e1dcf9c92b794b1f818c0853b98d11'
+        $marker = '[windows-backends-check]'
+    }
+    default { throw 'Unexpected source-check scope' }
 }
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 Set-Location $root
@@ -26,11 +34,11 @@ function Invoke-Checked([string]$Executable, [string[]]$Arguments) {
 }
 $head = (& git rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0 -or $head -cne $env:GITHUB_SHA) { throw 'Checkout SHA mismatch' }
-Invoke-Checked git @('merge-base', '--is-ancestor', 'a4d44e680478d7894450f30f3d533dc1c3131974', 'HEAD')
+Invoke-Checked git @('merge-base', '--is-ancestor', $baseline, 'HEAD')
 if (& git status --porcelain) { throw 'Dirty initial checkout' }
 $event = Get-Content $env:GITHUB_EVENT_PATH -Raw | ConvertFrom-Json
 if ($event.repository.private -ne $false -or $event.deleted -ne $false -or
-    -not $event.head_commit.message.Contains('[windows-desktop-source-check]')) {
+    -not $event.head_commit.message.Contains($marker)) {
     throw 'Public repository and explicit commit marker required'
 }
 if (Test-Path $EvidenceDirectory) { throw 'Evidence directory must be new' }
@@ -78,7 +86,7 @@ $version = (& node $pnpm --version).Trim()
 if ($LASTEXITCODE -ne 0 -or $version -cne '11.7.0') { throw 'Unexpected pnpm version' }
 $sourceProof = [ordered]@{
     commit = $head
-    baseline = 'a4d44e680478d7894450f30f3d533dc1c3131974'
+    baseline = $baseline
     platform = [System.Runtime.InteropServices.RuntimeInformation]::OSDescription
     node = (& node --version)
     pnpm = $version

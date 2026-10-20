@@ -818,3 +818,7 @@ mod tests {
         assert!(Target::adopt(&fifo, None).is_err());
     }
 }
+
+#[cfg(all(test, windows))]
+#[path = "output_windows_tests.rs"]
+mod windows_tests;

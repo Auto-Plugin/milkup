@@ -41,6 +41,33 @@ test('P8 source job has independent public branch/marker gates and no delivery a
   assertP8SourceJob(await read('.github/workflows/v2-windows-catalog-check.yml'))
 })
 
+test('Windows backend milestone is isolated to its accepted baseline and explicit marker', async () => {
+  const workflow = await read('.github/workflows/v2-windows-backends-check.yml')
+  for (const required of [
+    "github.repository == 'Auto-Plugin/milkup'",
+    "github.ref == 'refs/heads/dot/milkup-v2-windows-backends'",
+    'github.event.repository.private == false',
+    'github.event.deleted == false',
+    "contains(github.event.head_commit.message, '[windows-backends-check]')",
+    '3747004b15e1dcf9c92b794b1f818c0853b98d11',
+    'runs-on: windows-2025',
+    'timeout-minutes: 60',
+    'persist-credentials: false',
+    'cancel-in-progress: false',
+  ])
+    assert.ok(workflow.includes(required), `Missing backend gate: ${required}`)
+  assert.doesNotMatch(
+    workflow,
+    /upload-artifact|actions\/cache|--bundles|webviewInstallMode|secrets\./i,
+  )
+  const script = await read('scripts/ci/check-windows-desktop-source.ps1')
+  assert.match(script, /switch -CaseSensitive \(\$env:GITHUB_REF\)/)
+  assert.match(script, /default \{ throw 'Unexpected source-check scope' \}/)
+  assert.match(script, /'merge-base', '--is-ancestor', \$baseline, 'HEAD'/)
+  assert.match(script, /head_commit\.message\.Contains\(\$marker\)/)
+  assert.match(script, /\$baseline = '3747004b15e1dcf9c92b794b1f818c0853b98d11'/)
+})
+
 test('the same LF and CRLF workflow preserves every P8 job gate', async () => {
   const lf = (await read('.github/workflows/v2-windows-catalog-check.yml')).replaceAll('\r\n', '\n')
   const crlf = lf.replaceAll('\n', '\r\n')
