@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - dot/milkup-v2-update-checkpoint
+      - dot/milkup-v2-update-version-gates
     paths:
       - .github/workflows/v2-windows-update-check.yml
       - apps/**
@@ -31,7 +32,8 @@ jobs:
   desktop-source:
     if: >-
       github.repository == 'Auto-Plugin/milkup' &&
-      github.ref == 'refs/heads/dot/milkup-v2-update-checkpoint' &&
+      (github.ref == 'refs/heads/dot/milkup-v2-update-checkpoint' ||
+       github.ref == 'refs/heads/dot/milkup-v2-update-version-gates') &&
       github.event.repository.private == false &&
       github.event.deleted == false &&
       contains(github.event.head_commit.message, '[windows-update-check]')
@@ -63,6 +65,10 @@ jobs:
           if ((git rev-parse HEAD).Trim() -ne $env:GITHUB_SHA) { throw 'Checkout SHA mismatch' }
           git merge-base --is-ancestor 5b62eb75615170f8a9cd8eede5fa42f275850ca7 HEAD
           if ($LASTEXITCODE -ne 0) { throw 'Unexpected P8 baseline' }
+          if ($env:GITHUB_REF -ceq 'refs/heads/dot/milkup-v2-update-version-gates') {
+            git merge-base --is-ancestor e63aa104682a3133050c793ec48549100b5bbf35 HEAD
+            if ($LASTEXITCODE -ne 0) { throw 'Unexpected version-gates candidate' }
+          }
           if (git status --porcelain) { throw 'Dirty checkout' }
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:

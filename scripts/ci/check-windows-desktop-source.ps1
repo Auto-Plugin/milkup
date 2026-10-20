@@ -19,6 +19,10 @@ switch -CaseSensitive ($env:GITHUB_REF) {
         $baseline = '5b62eb75615170f8a9cd8eede5fa42f275850ca7'
         $marker = '[windows-update-check]'
     }
+    'refs/heads/dot/milkup-v2-update-version-gates' {
+        $baseline = 'e63aa104682a3133050c793ec48549100b5bbf35'
+        $marker = '[windows-update-check]'
+    }
     default { throw 'Unexpected source-check scope' }
 }
 $root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path

@@ -244,3 +244,25 @@ test('W0 UDP diagnosis compares held sockets without changing platform policy', 
   assert.match(matrix, /udp_diagnosis::run\(input, "after-runtime"\)/)
   assert.match(matrix, /loopbackExemptionsAfter-/)
 })
+
+test('version-gates candidate reuses the bounded source job on its isolated branch', async () => {
+  const workflow = await read('.github/workflows/v2-windows-update-check.yml')
+  const script = await read('scripts/ci/check-windows-desktop-source.ps1')
+  for (const text of [workflow, script]) {
+    assert.ok(text.includes('refs/heads/dot/milkup-v2-update-version-gates'))
+    assert.ok(text.includes('e63aa104682a3133050c793ec48549100b5bbf35'))
+    assert.ok(text.includes('[windows-update-check]'))
+  }
+  assert.match(workflow, /^      - dot\/milkup-v2-update-version-gates$/m)
+  assert.match(workflow, /runs-on: windows-2025/)
+  assert.match(workflow, /timeout-minutes: 60/)
+  assert.match(workflow, /contents: read/)
+  assert.match(workflow, /github.event.repository.private == false/)
+  assert.match(workflow, /persist-credentials: false/)
+  assert.match(workflow, /cancel-in-progress: false/)
+  assert.doesNotMatch(
+    workflow,
+    /workflow_dispatch|upload-artifact|actions\/cache|--bundles|secrets\./i,
+  )
+  assert.match(script, /default \{ throw 'Unexpected source-check scope' \}/)
+})
