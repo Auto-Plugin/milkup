@@ -1749,6 +1749,8 @@ mod tests {
         assert_eq!(reloaded.file.path, path_to_string(path.clone()));
         assert_eq!(reloaded.text, "# Title\n\nupdated\n");
 
+        release_test_document(&opened.document_id);
+        release_test_document(&reloaded.document_id);
         remove_test_dir(dir);
     }
 
@@ -1774,6 +1776,7 @@ mod tests {
             "alpha\r\nbeta\r\n",
         );
 
+        release_test_document(&result.document_id);
         remove_test_dir(dir);
     }
 
@@ -1806,6 +1809,7 @@ mod tests {
         )
         .is_err());
         assert!(!path.exists());
+        release_test_document(&opened.document_id);
         remove_test_dir(dir);
     }
 
@@ -1921,6 +1925,7 @@ mod tests {
         save(&copy).unwrap();
         assert_eq!(fs::read_to_string(&path).unwrap(), "external");
         assert_eq!(fs::read_to_string(&copy).unwrap(), "local");
+        release_test_document("doc");
         remove_test_dir(dir);
     }
 
@@ -1964,6 +1969,7 @@ mod tests {
         .contains("read-only"));
         assert_eq!(fs::read_to_string(&path).unwrap(), "external");
         fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
+        release_test_document("doc");
         remove_test_dir(dir);
     }
 
@@ -2459,6 +2465,8 @@ mod tests {
                 .byte_len(),
             opened.size_bytes
         );
+        drop(registry);
+        release_test_document("large-doc");
         remove_test_dir(dir);
     }
 
@@ -2488,6 +2496,8 @@ mod tests {
                 .to_utf16,
             9
         );
+        drop(registry);
+        release_test_document("doc");
         remove_test_dir(dir);
     }
 
@@ -2529,6 +2539,8 @@ mod tests {
             fs::read_to_string(&path).expect("read conflicted file"),
             "external change"
         );
+        drop(registry);
+        release_test_document("large-doc");
         remove_test_dir(dir);
     }
 
@@ -2578,6 +2590,8 @@ mod tests {
         .expect("read edited window");
 
         assert_eq!(window.text, "hello milkup");
+        drop(registry);
+        release_test_document("large-doc");
         remove_test_dir(dir);
     }
 
@@ -2624,6 +2638,8 @@ mod tests {
             let store = stores.get("large-doc").expect("large registration");
             assert_eq!(store.piece_tree.byte_len(), "hello world\ntail".len());
         }
+        drop(registry);
+        release_test_document("large-doc");
         remove_test_dir(dir);
     }
 
@@ -2692,6 +2708,8 @@ mod tests {
         .expect("read saved-as window");
 
         assert_eq!(window.text, "hello milkup");
+        drop(registry);
+        release_test_document("large-doc");
         remove_test_dir(dir);
     }
 
@@ -2747,6 +2765,8 @@ mod tests {
             fs::read_to_string(&path).expect("read conflicted file"),
             "external change"
         );
+        drop(registry);
+        release_test_document("large-doc");
         remove_test_dir(dir);
     }
 
@@ -2775,6 +2795,8 @@ mod tests {
         assert!(stale.exists());
         assert!(legacy_stale.exists());
         assert!(unrelated.exists());
+        drop(registry);
+        release_test_document("large-doc");
         remove_test_dir(dir);
     }
 
@@ -2816,6 +2838,60 @@ mod tests {
 
         assert!(!working.exists());
         remove_test_dir(dir);
+    }
+
+    #[test]
+    fn document_resource_lease_outlives_large_registry_until_explicit_release() {
+        let dir = create_test_dir("document-resource-lease");
+        let moved = dir.with_extension("released");
+        let path = dir.join("note.md");
+        let document_id = format!("lease-test-{}", dir.file_name().unwrap().to_string_lossy());
+        fs::write(&path, "original document").unwrap();
+        let registry = LargeFileRegistry(Mutex::new(HashMap::new()));
+        open_large_text_file_in_registry(
+            &registry.0,
+            document_id.clone(),
+            path_to_string(path.clone()),
+        )
+        .unwrap();
+        let working = registry.0.lock().unwrap()[&document_id]
+            .piece_tree
+            .add_path
+            .clone();
+
+        // Dropping the local piece-tree registry closes its files, but the
+        // resource service still owns this document's parent/ancestor handles.
+        drop(registry);
+        assert!(!working.exists());
+        let (_, mut file) = resources::registered_document_file(&document_id)
+            .expect("resource document remains registered after local registry drop");
+        let mut text = String::new();
+        file.read_to_string(&mut text).unwrap();
+        assert_eq!(text, "original document");
+        drop(file);
+        #[cfg(windows)]
+        assert_eq!(
+            fs::rename(&dir, &moved).unwrap_err().raw_os_error(),
+            Some(32),
+            "the live document resource lease must still protect its directory"
+        );
+
+        release_test_document(&document_id);
+        fs::rename(&dir, &moved).expect("released document no longer pins the directory");
+        assert_eq!(fs::read_to_string(moved.join("note.md")).unwrap(), text);
+        remove_test_dir(moved);
+    }
+
+    fn release_test_document(document_id: &str) {
+        // Native open/save hooks register resources independently of a local
+        // LargeFileRegistry. Match the host's explicit document-close lifecycle.
+        resources::resources_release_document(document_id.into())
+            .expect("release test document resources");
+        assert_eq!(
+            resources::registered_document_file(document_id).unwrap_err(),
+            "Save or open this document before importing resources",
+            "released document must no longer be available in the resource registry"
+        );
     }
 
     fn create_test_dir(name: &str) -> PathBuf {

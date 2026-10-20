@@ -1,6 +1,9 @@
 //! Host-owned local image transactions. Paths never authorize resource IPC.
 //! Documents are registered only by successful native document I/O; save targets
 //! come from the native picker. Published/accepted files outlive plugin lifetimes.
+//! Windows flushes each written file and revalidates pinned directory handles;
+//! it does not promise POSIX directory-metadata fsync or arbitrary power-loss
+//! durability. All file flush errors are propagated, never ignored.
 use image::{ImageFormat, ImageReader, Limits};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -225,6 +228,18 @@ impl Directory {
                 .open(self.path.join(name))
                 .map_err(error)
         }
+    }
+    fn sync_written_file(&self, file: &File) -> std::io::Result<()> {
+        // FlushFileBuffers requires GENERIC_WRITE on Windows. The exclusively
+        // created file has write access; directory guards deliberately do not.
+        file.sync_all()?;
+        self.verify().map_err(std::io::Error::other)?;
+        #[cfg(unix)]
+        self.file.sync_all()?;
+        // On Windows, verify() retains the no-reparse/identity checks and all
+        // ancestor handles keep denying delete sharing. It is not a metadata
+        // persistence barrier. Do not turn a failed file flush into success.
+        Ok(())
     }
     fn unlink(&self, name: &str) -> Result<()> {
         self.verify()?;
@@ -475,8 +490,7 @@ fn write_staged(
                         Err(failure) => return Err(failure),
                     }
                 }
-                file.sync_all()?;
-                directory.file.sync_all()
+                directory.sync_written_file(&file)
             })();
             if let Err(failure) = write_result {
                 drop(file);
@@ -1217,6 +1231,68 @@ mod tests {
         let mut bytes = Cursor::new(Vec::new());
         image.write_to(&mut bytes, format).unwrap();
         bytes.into_inner()
+    }
+    #[test]
+    fn staged_file_sync_rejects_mismatched_directory_identity() {
+        let root = std::env::temp_dir().join(token("resource-sync-identity").unwrap());
+        fs::create_dir(&root).unwrap();
+        fs::create_dir(root.join("original")).unwrap();
+        fs::create_dir(root.join("different")).unwrap();
+        {
+            let original = Directory::open(&root.join("original")).unwrap();
+            let mut file = original.create_exclusive("owned.bin").unwrap();
+            file.write_all(b"owned content").unwrap();
+            let mismatched = Directory {
+                path: root.join("different"),
+                file: original.file.try_clone().unwrap(),
+                _guards: vec![original.file.try_clone().unwrap()],
+            };
+            let failure = mismatched.sync_written_file(&file).unwrap_err();
+            assert!(failure.to_string().contains("Resource directory changed"));
+            assert!(!root.join("different/owned.bin").exists());
+            assert_eq!(
+                fs::read(root.join("original/owned.bin")).unwrap(),
+                b"owned content"
+            );
+        }
+        fs::remove_dir_all(root).unwrap();
+    }
+    #[cfg(windows)]
+    #[test]
+    fn windows_staged_file_flush_preserves_directory_guards_and_propagates_file_errors() {
+        let root = std::env::temp_dir().join(token("resource-sync-windows").unwrap());
+        fs::create_dir(&root).unwrap();
+        {
+            let directory = Directory::open(&root).unwrap();
+            // Characterize the original failing syscall on the exact guarded
+            // directory handle, rather than hiding any PermissionDenied error.
+            assert_eq!(
+                directory.file.sync_all().unwrap_err().raw_os_error(),
+                Some(5)
+            );
+            let mut file = directory.create_exclusive("owned.bin").unwrap();
+            file.write_all(b"resource bytes").unwrap();
+            directory.sync_written_file(&file).unwrap();
+            assert_eq!(fs::read(root.join("owned.bin")).unwrap(), b"resource bytes");
+            let read_only = directory.child("owned.bin", false).unwrap();
+            assert_eq!(
+                directory
+                    .sync_written_file(&read_only)
+                    .unwrap_err()
+                    .raw_os_error(),
+                Some(5),
+                "a failed file FlushFileBuffers must still be returned"
+            );
+            assert_eq!(
+                fs::rename(&root, root.with_extension("moved"))
+                    .unwrap_err()
+                    .raw_os_error(),
+                Some(32),
+                "directory guards must continue denying delete/rename sharing"
+            );
+            directory.verify().unwrap();
+        }
+        fs::remove_dir_all(root).unwrap();
     }
     #[test]
     fn accepts_three_decodable_formats_and_rejects_forged_truncated_and_oversize_images() {

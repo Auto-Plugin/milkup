@@ -1569,8 +1569,8 @@ mod tests {
             "中文😀"
         );
         assert_eq!(
-            stores["accepted"].path,
-            fixture.0.join("a.md").to_str().unwrap()
+            Path::new(&stores["accepted"].path).canonicalize().unwrap(),
+            fixture.0.join("a.md").canonicalize().unwrap()
         );
     }
     #[test]
@@ -1629,12 +1629,45 @@ mod tests {
         let fixture = Fixture::new();
         fixture.write("a.md", "a");
         let (registry, scope, root) = fixture.register();
+        let file = entry(&registry, &scope, &root, "a.md");
+        let prepared = registry.prepare(&scope, &file.id).unwrap();
+        let lease = registry.lease(&scope, &prepared.id).unwrap();
         let moved = fixture.0.with_extension("moved");
+        #[cfg(windows)]
+        {
+            // Windows guards deliberately omit FILE_SHARE_DELETE. A live root
+            // cannot be renamed; Unix keeps the old inode open across rename.
+            assert_eq!(
+                fs::rename(&fixture.0, &moved).unwrap_err().raw_os_error(),
+                Some(32)
+            );
+            assert!(!moved.exists());
+            lease.check().unwrap();
+            assert_eq!(fs::read_to_string(fixture.0.join("a.md")).unwrap(), "a");
+            assert!(registry.revoke_root(&scope, &root.id).unwrap().is_empty());
+            assert!(registry.root(&scope, &root.id).is_err());
+            assert!(registry.lease(&scope, &prepared.id).is_err());
+            assert!(registry.prepare(&scope, &file.id).is_err());
+            assert!(lease.check().is_err());
+            // Revocation invalidates capabilities immediately, but an in-flight
+            // lease still owns its guard until the final Arc is dropped.
+            assert_eq!(
+                fs::rename(&fixture.0, &moved).unwrap_err().raw_os_error(),
+                Some(32)
+            );
+        }
+        drop(lease);
         fs::rename(&fixture.0, &moved).unwrap();
         fs::create_dir(&fixture.0).unwrap();
+        fixture.write("a.md", "replacement");
         assert!(registry.list(&scope, &root.id, None, None, None).is_err());
+        assert!(registry.prepare(&scope, &file.id).is_err());
         let replaced = registry.adopt_selected(&scope, &fixture.0).unwrap();
         assert_ne!(replaced.key, root.key);
+        assert_ne!(replaced.id, root.id);
+        assert!(registry.list(&scope, &root.id, None, None, None).is_err());
+        assert!(registry.prepare(&scope, &file.id).is_err());
+        assert_eq!(entry(&registry, &scope, &replaced, "a.md").name, "a.md");
         fs::remove_dir_all(moved).unwrap();
     }
     #[test]
