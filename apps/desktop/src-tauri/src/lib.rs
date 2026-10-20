@@ -33,6 +33,8 @@ mod recovery;
 mod recovery_storage;
 mod resources;
 mod updates;
+#[cfg(windows)]
+mod windows_process;
 mod workspace;
 use piece_tree::PieceTree;
 

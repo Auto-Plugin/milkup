@@ -16,6 +16,9 @@ use std::{
 #[cfg(target_os = "linux")]
 #[path = "output_linux.rs"]
 mod linux;
+#[cfg(windows)]
+#[path = "output_windows.rs"]
+mod windows;
 type Result<T> = std::result::Result<T, String>;
 pub(super) const MAX_HTML: usize = 32 * 1024 * 1024;
 pub(super) const MAX_PDF: usize = 64 * 1024 * 1024;
@@ -24,6 +27,8 @@ fn error(e: impl std::fmt::Display) -> String {
     e.to_string()
 }
 fn source_file(path: &Path) -> std::io::Result<File> {
+    #[cfg(windows)]
+    windows::validate_path(path).map_err(std::io::Error::other)?;
     let mut options = fs::OpenOptions::new();
     options.read(true);
     #[cfg(unix)]
@@ -250,7 +255,11 @@ async fn output_choose_target_inner(job_id: String, title: String) -> Result<Opt
         {
             linux::choose_target(&worker, title)
         }
-        #[cfg(not(target_os = "linux"))]
+        #[cfg(windows)]
+        {
+            windows::choose_target(&worker, title)
+        }
+        #[cfg(not(any(target_os = "linux", windows)))]
         {
             let _ = (worker, title);
             Err("Native output selection is not available on this platform".into())
@@ -433,6 +442,8 @@ fn identity(file: &File) -> Result<(u64, u64)> {
 }
 impl Target {
     fn adopt(path: &Path, source: Option<&Path>) -> Result<Self> {
+        #[cfg(windows)]
+        windows::validate_path(path)?;
         let parent = path.parent().ok_or("Output has no parent")?.to_path_buf();
         let name = path
             .file_name()
@@ -441,6 +452,8 @@ impl Target {
             .ok_or("Invalid output name")?
             .to_owned();
         let (directory, guards) = crate::workspace::open_absolute_directory(&parent)?;
+        #[cfg(windows)]
+        windows::require_ntfs(&directory)?;
         let mut target = Self {
             path: path.to_owned(),
             parent,
@@ -607,7 +620,11 @@ impl Target {
             }
             result
         }
-        #[cfg(not(target_os = "linux"))]
+        #[cfg(windows)]
+        {
+            windows::publish(self, job, bytes)
+        }
+        #[cfg(not(any(target_os = "linux", windows)))]
         {
             Err("Atomic output publication is not available on this platform".into())
         }
@@ -624,6 +641,10 @@ pub fn run_helper_if_requested() -> bool {
     {
         linux::run_guarded();
     }
+    #[cfg(windows)]
+    {
+        windows::run_helper();
+    }
     true
 }
 
@@ -634,6 +655,11 @@ mod unsupported_platform_tests {
     #[test]
     fn target_selection_rejects_without_authorizing_output_and_finishes_lease() {
         for format in [Format::Html, Format::Pdf] {
+            if cfg!(windows) && format == Format::Html {
+                // HTML now has a bounded picker and publication backend. PDF
+                // stays unavailable until its renderer isolation is proven.
+                continue;
+            }
             let prepared = output_prepare(None, format).unwrap();
             let lease = job(&prepared.id).unwrap();
             let rejection = match tauri::async_runtime::block_on(output_choose_target(

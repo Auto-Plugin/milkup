@@ -168,3 +168,160 @@ fn abort_after_commit_preserves_user_owned_output() {
     assert_eq!(fs::read(&p).unwrap(), b"committed");
     assert_eq!(fs::read_dir(&f.0).unwrap().count(), 1);
 }
+
+#[test]
+fn sharing_failure_keeps_old_output_and_cleans_only_owned_stage() {
+    use std::os::windows::fs::OpenOptionsExt;
+    let f = Fixture::new();
+    let p = f.path("locked.html");
+    fs::write(&p, "external original").unwrap();
+    let target = Target::adopt(&p, None).unwrap();
+    let external = fs::OpenOptions::new()
+        .read(true)
+        .share_mode(1 | 2)
+        .open(&p)
+        .unwrap();
+    assert!(target.publish(&active(None), b"replacement").is_err());
+    assert_eq!(fs::read(&p).unwrap(), b"external original");
+    assert_eq!(fs::read_dir(&f.0).unwrap().count(), 1);
+    drop(external);
+    drop(target);
+    Target::adopt(&p, None)
+        .unwrap()
+        .publish(&active(None), b"retry after new authorization")
+        .unwrap();
+    assert_eq!(fs::read(&p).unwrap(), b"retry after new authorization");
+}
+
+#[test]
+fn cancellation_after_staging_preserves_destination_and_removes_stage() {
+    let f = Fixture::new();
+    let p = f.path("cancel-during-stage.html");
+    fs::write(&p, "before").unwrap();
+    let target = Target::adopt(&p, None).unwrap();
+    let job = Arc::new(active(None));
+    let state = job.state.lock().unwrap();
+    let worker = job.clone();
+    let thread = std::thread::spawn(move || target.publish(&worker, b"never publish"));
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while fs::read_dir(&f.0).unwrap().count() < 2 {
+        assert!(Instant::now() < deadline, "stage did not appear");
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    job.cancelled.store(true, Ordering::Release);
+    drop(state);
+    assert!(thread.join().unwrap().is_err());
+    assert_eq!(fs::read(&p).unwrap(), b"before");
+    assert_eq!(fs::read_dir(&f.0).unwrap().count(), 1);
+}
+
+#[test]
+fn replace_keeps_destination_discretionary_permissions() {
+    use std::{os::windows::io::AsRawHandle, ptr::null_mut};
+    use windows_sys::Win32::{
+        Foundation::LocalFree,
+        Security::{
+            Authorization::{GetSecurityInfo, SE_FILE_OBJECT},
+            DACL_SECURITY_INFORMATION,
+        },
+    };
+    fn acl(path: &Path) -> Vec<u8> {
+        let file = File::open(path).unwrap();
+        let mut dacl = null_mut();
+        let mut descriptor = null_mut();
+        assert_eq!(
+            unsafe {
+                GetSecurityInfo(
+                    file.as_raw_handle(),
+                    SE_FILE_OBJECT,
+                    DACL_SECURITY_INFORMATION,
+                    null_mut(),
+                    null_mut(),
+                    &mut dacl,
+                    null_mut(),
+                    &mut descriptor,
+                )
+            },
+            0
+        );
+        let result = if dacl.is_null() {
+            vec![]
+        } else {
+            unsafe {
+                std::slice::from_raw_parts(dacl.cast::<u8>(), (*dacl).AclSize as usize).to_vec()
+            }
+        };
+        unsafe {
+            LocalFree(descriptor);
+        }
+        result
+    }
+    let f = Fixture::new();
+    let p = f.path("permissions.html");
+    fs::write(&p, "old").unwrap();
+    let before = acl(&p);
+    assert!(!before.is_empty());
+    Target::adopt(&p, None)
+        .unwrap()
+        .publish(&active(None), b"new")
+        .unwrap();
+    assert_eq!(acl(&p), before);
+    assert_eq!(fs::read(&p).unwrap(), b"new");
+}
+
+#[test]
+fn command_lease_publishes_once_and_abort_prevents_late_write() {
+    let f = Fixture::new();
+    let source = f.path("document.md");
+    fs::write(&source, "原文😀\r\n").unwrap();
+    for cancel in [false, true] {
+        let destination = f.path(if cancel {
+            "cancel.html"
+        } else {
+            "complete.html"
+        });
+        let prepared = output_prepare(Some(source.to_str().unwrap().into()), Format::Html).unwrap();
+        let lease = job(&prepared.id).unwrap();
+        *lease.state.lock().unwrap() =
+            JobState::Chosen(Target::adopt(&destination, Some(&source)).unwrap());
+        if cancel {
+            output_abort(prepared.id.clone()).unwrap();
+        }
+        let result = tauri::async_runtime::block_on(output_write_html(
+            prepared.id.clone(),
+            "<p>中文😀</p>".into(),
+        ));
+        assert_eq!(result.is_ok(), !cancel);
+        assert!(tauri::async_runtime::block_on(output_write_html(
+            prepared.id.clone(),
+            "duplicate".into()
+        ))
+        .is_err());
+        output_abort(prepared.id).unwrap();
+        if cancel {
+            assert!(!destination.exists());
+        } else {
+            assert_eq!(fs::read_to_string(destination).unwrap(), "<p>中文😀</p>");
+        }
+    }
+    assert_eq!(fs::read_to_string(source).unwrap(), "原文😀\r\n");
+}
+
+#[test]
+fn network_device_and_pipe_sources_are_rejected_without_opening_them() {
+    for path in [
+        r"\\.\pipe\milkup-output-must-not-connect",
+        r"\\server\share\source.md",
+        r"\\?\UNC\server\share\source.md",
+        r"C:\file.md:stream",
+    ] {
+        assert!(
+            output_prepare(Some(path.into()), Format::Html).is_err(),
+            "accepted {path}"
+        );
+        assert!(
+            Target::adopt(Path::new(path), None).is_err(),
+            "accepted target {path}"
+        );
+    }
+}

@@ -27,6 +27,10 @@ semver = "1"
 [target.'cfg(unix)'.dependencies]
 libc = "=0.2.186"
 
+[target.'cfg(windows)'.dependencies]
+windows = { version = "=0.61.3", features = ["Win32_System_Com", "Win32_UI_Shell_Common"] }
+windows-sys = { version = "=0.61.2", features = ["Win32_Foundation", "Win32_Security_Authorization", "Win32_Storage_FileSystem", "Win32_System_JobObjects", "Win32_System_Threading"] }
+
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = "=0.18.2"
 webkit2gtk = { version = "=2.0.2", features = ["v2_40"] }
