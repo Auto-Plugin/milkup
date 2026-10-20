@@ -26,12 +26,28 @@ impl Endpoints {
             stop: Arc::new(AtomicBool::new(false)),
             threads: Vec::new(),
         };
-        for (family, bind) in [("ipv4", "127.0.0.1:0"), ("ipv6", "[::1]:0")] {
-            let tcp = TcpListener::bind(bind)?;
-            let udp = UdpSocket::bind(bind)?;
+        let mut bindings = vec![
+            ("ipv4".to_string(), "127.0.0.1:0".to_string()),
+            ("ipv6".to_string(), "[::1]:0".to_string()),
+        ];
+        if std::env::var("MILKUP_W0_UDP_DIAGNOSIS").as_deref() == Ok("1") {
+            if let Ok(address) = std::env::var("MILKUP_W0_LOCAL_IPV4") {
+                let ip: std::net::Ipv4Addr = address.parse()?;
+                if !ip.is_private() {
+                    return Err(
+                        "Non-loopback control must be an assigned private IPv4 address".into(),
+                    );
+                }
+                bindings.push(("nic-ipv4".to_string(), format!("{ip}:0")));
+            }
+        }
+        for (family, bind) in bindings {
+            let tcp = TcpListener::bind(&bind)?;
+            let udp = UdpSocket::bind(&bind)?;
             tcp.set_nonblocking(true)?;
             udp.set_nonblocking(true)?;
             result.addresses.push(json!({"family":family,"tcp":tcp.local_addr()?.to_string(),"udp":udp.local_addr()?.to_string()}));
+            let udp_family = family.clone();
             let stop = result.stop.clone();
             let events = result.events.clone();
             let case = result.case.clone();
@@ -61,6 +77,7 @@ impl Endpoints {
             let events = result.events.clone();
             let case = result.case.clone();
             result.threads.push(std::thread::spawn(move || {
+                let family=udp_family;
                 let start=Instant::now();
                 let mut data=[0;2048];
                 while !stop.load(Ordering::SeqCst) {
@@ -69,6 +86,7 @@ impl Endpoints {
                             let stun=n>=20 && data[4..8]==[0x21,0x12,0xa4,0x42];
                             let username=if stun {turn_username(&data[..n])}else{None};
                             events.lock().unwrap().push(json!({"transport":"udp","case":case.lock().unwrap().clone(),"socketOwners":udp_owners(peer),"family":family,"elapsedMs":start.elapsed().as_millis(),"peer":peer.to_string(),"bytes":n,"stunMagicCookie":stun,"turnUsername":username,"prefixHex":data[..n.min(128)].iter().map(|b|format!("{b:02x}")).collect::<String>(),"nativeMarker":if !stun {Some(String::from_utf8_lossy(&data[..n]).to_string())}else{None}}));
+                            if !stun && data[..n].starts_with(b"w0/") && data[..n].windows(15).any(|part|part==b"/udp-diagnosis/") {let _=udp.send_to(&data[..n],peer);}
                             if stun && data[..2]==[0,3] && username.is_none() {let _=udp.send_to(&turn_challenge(&data[..n]),peer);}
                         }
                         Err(e) if e.kind()==std::io::ErrorKind::WouldBlock=>{},
@@ -181,6 +199,7 @@ fn udp_owners(peer: std::net::SocketAddr) -> Value {
         }
         let count = unsafe { *(table.as_ptr().cast::<u32>()) } as usize;
         let mut pids = Vec::new();
+        let mut bindings = Vec::new();
         if peer.is_ipv4() {
             let offset = std::mem::offset_of!(MIB_UDPTABLE_OWNER_PID, table);
             if offset + count * size_of::<MIB_UDPROW_OWNER_PID>() > size as usize {
@@ -199,6 +218,7 @@ fn udp_owners(peer: std::net::SocketAddr) -> Value {
             for row in rows {
                 if u16::from_be(row.dwLocalPort as u16) == peer.port() {
                     pids.push(row.dwOwningPid);
+                    bindings.push(json!({"pid":row.dwOwningPid,"localAddress":std::net::Ipv4Addr::from(row.dwLocalAddr.to_ne_bytes()).to_string(),"port":peer.port()}));
                 }
             }
         } else {
@@ -219,6 +239,7 @@ fn udp_owners(peer: std::net::SocketAddr) -> Value {
             for row in rows {
                 if u16::from_be(row.dwLocalPort as u16) == peer.port() {
                     pids.push(row.dwOwningPid);
+                    bindings.push(json!({"pid":row.dwOwningPid,"localAddress":std::net::Ipv6Addr::from(row.ucLocalAddr).to_string(),"scopeId":row.dwLocalScopeId,"port":peer.port()}));
                 }
             }
         }
@@ -236,7 +257,7 @@ fn udp_owners(peer: std::net::SocketAddr) -> Value {
                 }
             })
             .collect();
-        return json!({"matchedLocalPort":peer.port(),"owners":owners,"boundary":"Read-only UDP owner-table snapshot at receive time; port matches may be ambiguous or race process exit"});
+        return json!({"matchedLocalPort":peer.port(),"owners":owners,"bindings":bindings,"boundary":"Read-only UDP owner-table snapshot at receive time; port matches may be ambiguous or race process exit"});
     }
     json!({"error":"UDP table changed size repeatedly"})
 }

@@ -100,7 +100,8 @@ jobs:
       github.event.repository.private == false &&
       github.event.deleted == false &&
       (contains(github.event.head_commit.message, '[windows-w0-probe]') ||
-      contains(github.event.head_commit.message, '[windows-w0-matrix]'))
+      contains(github.event.head_commit.message, '[windows-w0-matrix]') ||
+      contains(github.event.head_commit.message, '[windows-w0-udp-diagnosis]'))
     runs-on: windows-2025
     timeout-minutes: 15
     defaults:
@@ -131,7 +132,9 @@ jobs:
       - name: Run authorized temporary AppContainer experiment
         run: |
           $event = Get-Content -Raw $env:GITHUB_EVENT_PATH | ConvertFrom-Json
-          if ($event.head_commit.message.Contains('[windows-w0-matrix]')) {
+          if ($event.head_commit.message.Contains('[windows-w0-udp-diagnosis]')) {
+            ./scripts/ci/run-windows-w0-probe.ps1 -UdpDiagnosis
+          } elseif ($event.head_commit.message.Contains('[windows-w0-matrix]')) {
             ./scripts/ci/run-windows-w0-probe.ps1 -Matrix
           } else {
             ./scripts/ci/run-windows-w0-probe.ps1

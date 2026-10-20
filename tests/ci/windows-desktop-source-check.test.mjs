@@ -180,7 +180,7 @@ test('W0 has a separate explicit experiment gate and preserves production source
 
 test('W0 matrix keeps its accepted baseline, private permissions and product boundary', async () => {
   const script = await read('scripts/ci/run-windows-w0-probe.ps1')
-  assert.match(script, /param\(\[switch\]\$Matrix\)/)
+  assert.match(script, /param\(\[switch\]\$Matrix, \[switch\]\$UdpDiagnosis\)/)
   assert.match(script, /e37e9b43e0f8481074872a7514c62246e1cd0d0f/)
   assert.match(script, /\[windows-w0-matrix\]/)
   assert.match(script, /Get-Service -Name BFE, mpssvc, Dnscache/)
@@ -198,4 +198,25 @@ test('W0 matrix keeps its accepted baseline, private permissions and product bou
   const browser = await read('scripts/ci/windows-w0-probe/src/windows-w0/matrix/network.js')
   assert.match(browser, /iceTransportPolicy: 'relay'/)
   assert.doesNotMatch(browser, /stun:|getUserMedia|https:\/\//)
+})
+
+test('W0 UDP diagnosis compares held sockets without changing platform policy', async () => {
+  const script = await read('scripts/ci/run-windows-w0-probe.ps1')
+  assert.match(script, /1d095d4def531e73578902ad36591e13ed1d8d58/)
+  assert.match(script, /Get-NetIPAddress -AddressFamily IPv4 -AddressState Preferred/)
+  assert.doesNotMatch(script, /Set-Net|New-Net|Remove-Net|Start-Service|Stop-Service|RunAs/)
+  const probe = await read('scripts/ci/windows-w0-probe/src/windows-w0/matrix/udp_diagnosis.rs')
+  for (const variant of [
+    'explicit-close',
+    'explicit-held',
+    'wildcard-held',
+    'wildcard-connected',
+    'wildcard-wsasendto',
+  ])
+    assert.ok(probe.includes(variant))
+  assert.match(probe, /recv_from/)
+  const matrix = await read('scripts/ci/windows-w0-probe/src/windows-w0/matrix.rs')
+  assert.match(matrix, /udp_diagnosis::run\(input, "before-runtime"\)/)
+  assert.match(matrix, /udp_diagnosis::run\(input, "after-runtime"\)/)
+  assert.match(matrix, /loopbackExemptionsAfter-/)
 })

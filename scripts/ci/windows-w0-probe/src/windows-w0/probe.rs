@@ -125,9 +125,32 @@ fn token_info(process: HANDLE) -> Result<Value> {
     };
     Ok(
         json!({"isAppContainer":is_container == 1, "capabilityCount":capabilities,
-        "capabilities":capability_sids,"appContainerSid":app_sid,"integrityRid":integrity_rid}),
+        "capabilities":capability_sids,"appContainerSid":app_sid,"integrityRid":integrity_rid,
+        "hasRestrictions":token_u32(token.as_raw_handle(),TokenHasRestrictions),
+        "lessPrivilegedAppContainer":token_u32(token.as_raw_handle(),TokenIsLessPrivilegedAppContainer),
+        "appContainerNumber":token_u32(token.as_raw_handle(),TokenAppContainerNumber),
+        "sandboxInert":token_u32(token.as_raw_handle(),TokenSandBoxInert)}),
     )
 }
+fn token_u32(token: HANDLE, class: TOKEN_INFORMATION_CLASS) -> Value {
+    let mut value = 0u32;
+    let mut returned = 0;
+    if unsafe {
+        GetTokenInformation(
+            token,
+            class,
+            (&mut value as *mut u32).cast(),
+            4,
+            &mut returned,
+        )
+    } != 0
+    {
+        json!(value)
+    } else {
+        json!({"queryError":std::io::Error::last_os_error().raw_os_error()})
+    }
+}
+
 fn sid_text(sid: PSID) -> Result<String> {
     let mut ptr = null_mut();
     check(unsafe { ConvertSidToStringSidW(sid, &mut ptr) })?;

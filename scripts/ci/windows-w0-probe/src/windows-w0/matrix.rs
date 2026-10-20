@@ -2,6 +2,7 @@
 mod browser;
 mod dns;
 mod endpoints;
+mod udp_diagnosis;
 use super::*;
 use std::{collections::BTreeMap, io::Write};
 use windows_sys::Win32::{
@@ -72,9 +73,19 @@ pub(super) fn child(runtime: &Path, private: &Path, input: &Value) -> Result<()>
         } else {
             report["explicitServerDns"] = json!({"status":"unavailable","reason":"Controlled port 53 bind unavailable; no service/firewall/config change"});
         }
+        if input["udpDiagnosis"] == true {
+            report["phase"] = json!("udp-before-runtime");
+            save(private, &report)?;
+            report["udpBeforeRuntime"] = udp_diagnosis::run(input, "before-runtime")?;
+        }
         report["phase"] = json!("webview-starting");
         save(private, &report)?;
         browser::run(runtime, private, input, &mut report)?;
+        if input["udpDiagnosis"] == true {
+            report["phase"] = json!("udp-after-runtime");
+            save(private, &report)?;
+            report["udpAfterRuntime"] = udp_diagnosis::run(input, "after-runtime")?;
+        }
         report["phase"] = json!("matrix-complete");
         save(private, &report)?;
         // Leave the controller and its descendants alive for the owner termination test.
@@ -364,6 +375,7 @@ fn run_case(
     let deadline_test = name == "restricted-deadline";
     let mut input = json!({"mode":"matrix","case":name,"canary":canary,"endpoints":endpoints.addresses,"dnsEnabled":endpoints.dns_enabled,"dnsName":format!("w0-{name}-{}.invalid",std::process::id())});
     input["deadlineTest"] = json!(deadline_test);
+    input["udpDiagnosis"] = json!(std::env::var("MILKUP_W0_UDP_DIAGNOSIS").as_deref() == Ok("1"));
     if owner_exit {
         let leaf = private.join("leaf");
         fs::create_dir(&leaf)?;
@@ -568,6 +580,12 @@ pub(super) fn run(runtime: &Path) -> Result<()> {
             ("restricted-owner-exit", true),
             ("restricted-deadline", true),
         ] {
+            if std::env::var("MILKUP_W0_UDP_DIAGNOSIS").as_deref() == Ok("1")
+                && name != "ordinary"
+                && name != "restricted"
+            {
+                continue;
+            }
             let case = run_case(
                 runtime,
                 &root,
@@ -577,6 +595,7 @@ pub(super) fn run(runtime: &Path) -> Result<()> {
                 &endpoints,
             )?;
             report["cases"].as_array_mut().unwrap().push(case);
+            report[format!("loopbackExemptionsAfter-{name}")] = loopback_exemptions(p.sid)?;
         }
         report["endpointObservationsFinal"] = endpoints.snapshot()?;
         let violations: Vec<Value> = report["endpointObservationsFinal"]
@@ -630,7 +649,12 @@ pub(super) fn run(runtime: &Path) -> Result<()> {
     if !cleanup_errors.is_empty()
         || report["outsideFileUnchanged"] != true
         || report["cases"].as_array().is_none_or(|cases| {
-            cases.len() != 4
+            cases.len()
+                != if std::env::var("MILKUP_W0_UDP_DIAGNOSIS").as_deref() == Ok("1") {
+                    2
+                } else {
+                    4
+                }
                 || cases.iter().any(|c| {
                     c["completed"] != true
                         || c["stopResult"]["ok"] != true
