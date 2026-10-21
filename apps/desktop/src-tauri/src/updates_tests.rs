@@ -1055,6 +1055,90 @@ fn version_gate_failed_state_commit_clears_check_reservation_and_allows_retry() 
 }
 
 #[tokio::test]
+async fn recovery_blocker_valid_signatures_cancel_and_late_results_preserve_damage() {
+    use sha2::{Digest, Sha256};
+
+    let root = update_policy_temp();
+    let store = policy::Store::new(root.clone(), "beta", "windows-x86_64", "2.0.0-beta.0");
+    let now = gate_fixture()["now"].as_u64().unwrap();
+    let bytes = STANDARD
+        .decode(gate_fixture()["pe"].as_str().unwrap())
+        .unwrap();
+    let (_server, _app, updater) = gate_candidate("peValid", &bytes, "windows-x86_64");
+    let update = updater.check().await.unwrap().unwrap();
+    assert!(update.has_verified_manifest());
+    let fresh = policy::Observation::from_update(&update).unwrap();
+    store.accept(&fresh, now).unwrap();
+    // A correctly signed withdrawal keeps the higher historical version and
+    // advances the sequence. The still-valid earlier signature cannot undo it.
+    let (_server, _app, updater) = gate_candidate("rollback", &bytes, "windows-x86_64");
+    let rollback = updater.check().await.unwrap().unwrap();
+    assert!(rollback.has_verified_manifest());
+    let withdrawal = policy::Observation::from_update(&rollback).unwrap();
+    store.accept(&withdrawal, now).unwrap();
+    assert!(store.accept(&fresh, now).is_err());
+    let scope = format!(
+        "{:x}",
+        Sha256::digest(b"milkup-desktop/beta/windows-x86_64")
+    );
+    let path = root.join("update-trust").join(scope).join("state.json");
+    let damaged = b"{synthetic recovery test; retain exactly";
+    std::fs::write(&path, damaged).unwrap();
+
+    let mut candidate = Candidate::default();
+    for _ in 0..3 {
+        let token = candidate.begin_check().unwrap();
+        candidate.start_check(token).unwrap();
+        assert!(candidate
+            .finish_check_with(token, Some(update.clone()), || {
+                store.accept(&fresh, now)
+            })
+            .is_err());
+        assert!(candidate.check_abort.is_none());
+        assert!(candidate.update.is_none());
+        assert_eq!(std::fs::read(&path).unwrap(), damaged);
+    }
+    let cancelled = candidate.begin_check().unwrap();
+    candidate.start_check(cancelled).unwrap();
+    candidate.cancel_check(cancelled);
+    let retry = candidate.begin_check().unwrap();
+    candidate.start_check(retry).unwrap();
+    let mut callback_ran = false;
+    assert!(candidate
+        .finish_check_with(cancelled, Some(update.clone()), || {
+            callback_ran = true;
+            store.accept(&fresh, now)
+        })
+        .is_err());
+    assert!(!callback_ran);
+    assert!(candidate.check_abort.is_some());
+    assert!(candidate
+        .finish_check_with(retry, Some(rollback), || { store.accept(&withdrawal, now) })
+        .is_err());
+    assert!(candidate.update.is_none());
+    assert!(candidate.check_abort.is_none());
+    let reopened = policy::Store::new(root.clone(), "beta", "windows-x86_64", "2.0.0-beta.0");
+    let (_abort, receiver) = watch::channel(false);
+    let progress = AtomicBool::new(false);
+    assert!(authorized_download(
+        &update,
+        receiver,
+        || reopened.authorize(&fresh, now),
+        |_| {
+            progress.store(true, Ordering::SeqCst);
+        }
+    )
+    .await
+    .is_err());
+    assert!(
+        !progress.load(Ordering::SeqCst),
+        "unknown high water must fail before package I/O"
+    );
+    assert_eq!(std::fs::read(&path).unwrap(), damaged);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[tokio::test]
 async fn version_gate_download_rechecks_expiry_and_retry_never_uses_expired_bytes() {
     let root = update_policy_temp();
     let store = policy::Store::new(root.clone(), "beta", "windows-x86_64", "2.0.0-beta.1");

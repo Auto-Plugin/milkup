@@ -16,6 +16,10 @@ const MAX_STATE_BYTES: u64 = 8192;
 const MAX_VALIDITY: u64 = 7 * 24 * 60 * 60;
 const CLOCK_SKEW: u64 = 300;
 
+#[cfg(test)]
+#[path = "update_recovery_tests.rs"]
+mod recovery_tests;
+
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct Freshness {
