@@ -59,7 +59,7 @@
 - 使用现有 stable 工具链，记录实际 Rust 1.99.0；未安装工具链/运行时。
 - token 两阶段查询兼容实际返回的 ERROR_BAD_LENGTH(24) 和 ERROR_INSUFFICIENT_BUFFER；
   只接受有界 required length。第二次精确长度读取必须成功，仍只请求 TOKEN_QUERY。
-  权限错误、未知长度、超长缓冲区仍拒绝，管理员与 SeDebugPrivilege 门禁未放宽。
+  权限错误、未知长度、超长缓冲区仍拒绝；管理员结果不计为普通用户证据，SeDebugPrivilege 门禁未放宽。
 - 最终 Windows x64 构建/链接通过、2 项门禁测试通过。Linux 2 项测试、格式检查和 Windows 目标类型检查通过。
 - 最终临时 EXE 的构建日志摘要：`2a7a4ab3299032787afca0cf87df45d3c408a62cfcb94c5ddddc25cacd4e17b5`。
   这是自建测试程序的文件摘要，**不是 CREATE_PROCESS_DEBUG_INFO.hFile 观测结果或真实发行证明**。
@@ -70,6 +70,30 @@
 产品 `apps/`、`vendor/`、`packages/`、`plugins/`、`release/` 对基线零差异；
 健康产品分支仍为 `302dd3901aa70b3a01d147d24578fa7add51fb1b`。
 未合并、未发布、未执行安装/回滚/NSIS、未访问真实用户信任记录或文档。
+
+## 收尾只读复核（2026-10-21 05:38 UTC）
+
+再次查询最终 run 39550159660，确认 head_sha 仍为
+`9ddcd1749b9b9500cf5609f6a31db262f208a988`，attempt 1、completed/failure。
+分支运行总数仍为 5，没有新增运行；逐一查询五次 artifacts，total_count 全为 0。
+前四次失败的原始日志、精确 SHA、终态与原因均保留，见上表及相应 CI。
+
+现有上下文仅作只读盘点：
+
+- 选定执行器为 Linux，`uid=1000(agent)`，无 `pwsh`/`powershell`。Linux 非 root 身份不能证明 Windows token 条件。
+- 已结束的 hosted Windows run 日志只证明其管理员/high-integrity/SeDebugPrivilege enabled 上下文；没有恢复会话、启动新 run 或尝试切换账号。
+- `GET /repos/Auto-Plugin/milkup/actions/runners` 返回 HTTP 403：`Resource not accessible by integration`。
+  该只读清单不可见，未换凭据或重试。**无法盘点不等于没有符合条件的既有 runner**；清单本身即使可见，也不能代替运行时 token 事实。
+
+因此目前结论是：在当前选定执行器和现有只读权限内，**尚未确认可用的非管理员 Windows 上下文**。
+本轮没有 token/权限修改、特权启用或禁用、账号创建或切换、安全设置修改，也没有新增环境。
+这仍是执行环境前提阻塞，**不是 hFile 机制失败，更不是方案已可用**。
+
+若只需继续盘点，仓库维护者可提供既有 runner 的只读清单/标识，或单独授权上述只读端点；不需要授予设置修改权限。
+若要继续实测，最小资源是一个**已存在、获准使用的非管理员 Windows 会话/执行器标识及其访问渠道**，
+允许在独占临时目录构建和执行本惰性测试，具有既有 Rust/MSVC 工具，且实际 token 可只读核验。
+使用该环境的范围/预算需明确；不能默认扩展 CI 分支/runner 允许名单或新建账号。
+本报告只列出资源需要，没有执行申请、配置、切换或新运行。
 
 ## 下一道不可跳过的门槛
 
