@@ -1,0 +1,98 @@
+name: Windows beta2 manual trial
+on:
+  push:
+    branches: [dot/milkup-v2-windows-manual-candidate]
+    paths:
+      - .github/workflows/v2-windows-manual-candidate.yml
+permissions:
+  contents: read
+concurrency:
+  group: milkup-windows-beta2-manual-delivery
+  cancel-in-progress: false
+jobs:
+  package:
+    if: >-
+      github.repository == 'Auto-Plugin/milkup' &&
+      github.ref == 'refs/heads/dot/milkup-v2-windows-manual-candidate' &&
+      github.event.repository.private == false &&
+      github.event.deleted == false &&
+      github.run_attempt == 1 &&
+      contains(github.event.head_commit.message, '[windows-manual-beta2]')
+    runs-on: windows-2025
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_RELEASE_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      GIT_CONFIG_COUNT: '1'
+      GIT_CONFIG_KEY_0: core.longpaths
+      GIT_CONFIG_VALUE_0: 'true'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify exact candidate and unchanged product boundary
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA) { throw 'Source SHA mismatch' }
+          git merge-base --is-ancestor 40e53428e64a4effef2378ea6cbcab8f3be3b11a HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'Wrong validated baseline' }
+          foreach ($file in @('update_handoff.rs','update_identity.rs','update_transaction.rs','update_health_contract.rs')) {
+            if (Test-Path "apps/desktop/src-tauri/src/$file") { throw 'Unaccepted experiment in product candidate' }
+          }
+          if (Test-Path tests/native/windows-debug-handoff) { throw 'Debug prototype must not enter candidate' }
+          if (git status --porcelain) { throw 'Dirty candidate' }
+          node scripts/check-versions.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Version mismatch' }
+          if ((Get-Content package.json -Raw | ConvertFrom-Json).version -cne '2.0.0-beta.2') { throw 'Wrong beta' }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - name: Select existing Rust and pinned package manager
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $compiler = @(rustup run stable rustc --version --verbose)
+          if ($LASTEXITCODE -ne 0 -or $compiler -cnotcontains 'release: 1.99.0') { throw 'Expected existing Rust 1.99.0' }
+          $compiler | Write-Host
+          'RUSTUP_TOOLCHAIN=stable' >> $env:GITHUB_ENV
+          npm install --global pnpm@11.7.0 --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { throw 'pnpm setup failed' }
+      - name: Full Windows source and independent plugin checks
+        run: ./scripts/ci/check-windows-desktop-source.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/manual-beta2-source"
+      - name: Build and inspect unsigned NSIS without installation
+        run: ./scripts/ci/build-windows-manual-candidate.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/manual-beta2-source" -OutputDirectory "$env:RUNNER_TEMP/manual-beta2-deliverable"
+      - name: Record source checks and delivery boundary
+        if: always()
+        run: |
+          foreach ($path in @('manual-beta2-source/phases.json','manual-beta2-source/rust-test-result.json','manual-beta2-deliverable/manifest.json','manual-beta2-deliverable/plugins.json','manual-beta2-deliverable/SHA256SUMS.txt')) {
+            $file = Join-Path $env:RUNNER_TEMP $path
+            if (Test-Path $file) { Write-Host "::group::$path"; Get-Content $file | Write-Host; Write-Host '::endgroup::' }
+          }
+          'Unsigned Windows manual trial only. No installer execution, GUI/IME, actual upgrade or rollback acceptance. Windows DOM/PDF remain disabled. Default small package; no full Runtime bundle.' >> $env:GITHUB_STEP_SUMMARY
+      - name: Upload one bounded approved manual-trial artifact
+        id: upload
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: milkup-2.0.0-beta.2-windows-x64-${{ github.sha }}
+          path: ${{ runner.temp }}/manual-beta2-deliverable/
+          retention-days: 1
+          if-no-files-found: error
+          compression-level: 6
+          overwrite: false
+          include-hidden-files: false
+      - name: Record exact download identity
+        env:
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+          ARTIFACT_DIGEST: ${{ steps.upload.outputs.artifact-digest }}
+        run: |
+          "Download (GitHub login required): $env:ARTIFACT_URL" >> $env:GITHUB_STEP_SUMMARY
+          "Artifact ID: $env:ARTIFACT_ID; ZIP SHA-256: $env:ARTIFACT_DIGEST; retention: 1 day" >> $env:GITHUB_STEP_SUMMARY
