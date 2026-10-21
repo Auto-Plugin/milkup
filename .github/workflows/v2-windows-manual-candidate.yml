@@ -19,7 +19,7 @@ jobs:
       github.run_attempt == 1 &&
       contains(github.event.head_commit.message, '[windows-manual-beta2]')
     runs-on: windows-2025
-    timeout-minutes: 60
+    timeout-minutes: 55
     defaults:
       run:
         shell: pwsh
@@ -56,13 +56,16 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24.19.0
-      - name: Select existing Rust and pinned package manager
+      - name: Prepare the previously validated pinned build tools
         run: |
           $ErrorActionPreference = 'Stop'
           $compiler = @(rustup run stable rustc --version --verbose)
-          if ($LASTEXITCODE -ne 0 -or $compiler -cnotcontains 'release: 1.99.0') { throw 'Expected existing Rust 1.99.0' }
           $compiler | Write-Host
-          'RUSTUP_TOOLCHAIN=stable' >> $env:GITHUB_ENV
+          rustup toolchain install 1.99.0 --profile minimal
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned Rust compiler setup failed' }
+          rustup run 1.99.0 rustc --version --verbose
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned compiler unavailable' }
+          'RUSTUP_TOOLCHAIN=1.99.0' >> $env:GITHUB_ENV
           npm install --global pnpm@11.7.0 --ignore-scripts
           if ($LASTEXITCODE -ne 0) { throw 'pnpm setup failed' }
       - name: Full Windows source and independent plugin checks
