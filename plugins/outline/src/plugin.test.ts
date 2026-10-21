@@ -369,6 +369,15 @@ describe('complete paged outline index', () => {
     )
     render('doc', 1, 10000)
     await complete()
+    // Scan completion can precede the final asynchronous visible-slice refresh.
+    // Require the full expected slice before capturing actions from that slice.
+    await vi.waitFor(() =>
+      expect(
+        elements(render(), (item) => item.action?.command === 'outline.gotoHeading').map(
+          (item) => item.text,
+        ),
+      ).toEqual(['Root', 'Child', 'Grandchild', 'Sibling']),
+    )
     const childAction = action(render(), 'outline.gotoHeading', 'Grandchild')
     const toggle = elements(
       render(),
