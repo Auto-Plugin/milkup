@@ -8,14 +8,17 @@ if (-not $IsWindows -or -not [Environment]::Is64BitProcess) { throw 'Requires Wi
 if ($env:MILKUP_APPROVED_WINDOWS_PROBE) { throw 'Unexpected inherited runtime opt-in' }
 
 # Fail if the existing compiler is unavailable; no automatic provisioning fallback.
-rustup run 1.99.0 rustc --version
-if ($LASTEXITCODE -ne 0) { throw 'Pinned existing compiler unavailable' }
+$compiler = @(rustup run stable rustc --version --verbose)
+$compiler | Write-Host
+if ($LASTEXITCODE -ne 0) { throw 'Existing stable compiler unavailable' }
+$release = @($compiler | Where-Object { $_ -match '^release: ' })
+if ($release.Count -ne 1 -or $release[0] -notmatch '^release: (\d+\.\d+\.\d+)$' -or [version]$Matches[1] -lt [version]'1.85.0') { throw 'Unsupported existing compiler' }
 $manifest = Join-Path $PSScriptRoot 'Cargo.toml'
 $target = Join-Path $env:RUNNER_TEMP 'milkup-debug-probe-build'
 if (Test-Path $target) { throw 'Expected fresh experiment target directory' }
-rustup run 1.99.0 cargo test --manifest-path $manifest --target-dir $target --locked --lib
+rustup run stable cargo test --manifest-path $manifest --target-dir $target --locked --lib
 if ($LASTEXITCODE -ne 0) { throw 'Portable decision gates failed' }
-rustup run 1.99.0 cargo build --manifest-path $manifest --target-dir $target --locked --target x86_64-pc-windows-msvc
+rustup run stable cargo build --manifest-path $manifest --target-dir $target --locked --target x86_64-pc-windows-msvc
 if ($LASTEXITCODE -ne 0) { throw 'Windows prototype build failed' }
 $exe = Join-Path $target 'x86_64-pc-windows-msvc/debug/milkup-windows-debug-handoff-probe.exe'
 if (-not (Test-Path $exe -PathType Leaf)) { throw 'Missing self-built prototype' }
