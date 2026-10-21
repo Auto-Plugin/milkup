@@ -89,7 +89,7 @@ jobs:
           $mt.FullName | Write-Host
           node --check scripts/ci/prepare-manual-trial-payload.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Delivery payload script syntax invalid' }
-          node --test tests/windows/verify-build-tree.test.mjs
+          node --test tests/windows/verify-build-tree.test.mjs scripts/ci/verify-nsis-image.test.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Source-state gate regressions failed' }
       - name: Full Windows source and independent plugin checks
         run: ./scripts/ci/check-windows-desktop-source.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/manual-beta2-source" -FailFast

@@ -51,16 +51,19 @@ $installerRecord = Record $installers[0].FullName
 foreach ($r in @($appRecord,$installerRecord)) {
     if ($r.productVersion -cne $version -or $r.signature -cne 'NotSigned') { throw "Unexpected version/signature: $($r | ConvertTo-Json -Compress)" }
 }
-& "$PSScriptRoot/verify-windows-app-manifest.ps1" -Executable $binary -EvidenceDirectory $EvidenceDirectory -EvidenceName 'packaged-production-binary'
 # Read the freshly built NSIS archive with the runner's existing 7-Zip. Never execute it.
 $sevenZip = (Get-Command 7z -ErrorAction Stop).Source
 $inspection = Join-Path $EvidenceDirectory 'nsis-payload-inspection'
 if (Test-Path $inspection) { throw 'Inspection directory already exists' }
 Checked $sevenZip @('x',$installers[0].FullName,"-o$inspection",'-y')
-$payloadMatches = @(Get-ChildItem $inspection -Recurse -File -Filter '*.exe' | Where-Object { (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $appRecord.sha256 })
-if ($payloadMatches.Count -ne 1) { throw 'Cannot prove exactly one bundled application image matches the checked binary' }
-$payloadRecord = Record $payloadMatches[0].FullName
-if ($payloadRecord.productVersion -cne $version) { throw 'Bundled application version mismatch' }
+$imageProofPath = Join-Path $EvidenceDirectory 'nsis-image-proof.json'
+Checked node @('scripts/ci/verify-nsis-image.mjs',$binary,$inspection,$imageProofPath)
+$imageProof = Get-Content $imageProofPath -Raw | ConvertFrom-Json
+if ($imageProof.status -cne 'passed' -or $imageProof.compiledSha256 -cne $appRecord.sha256) { throw 'NSIS image proof mismatch' }
+$payloadRecord = Record $imageProof.path
+if ($payloadRecord.productVersion -cne $version -or $payloadRecord.signature -cne 'NotSigned' -or
+    $payloadRecord.sha256 -cne $imageProof.expectedNsisSha256) { throw 'Bundled application identity mismatch' }
+& "$PSScriptRoot/verify-windows-app-manifest.ps1" -Executable $imageProof.path -EvidenceDirectory $EvidenceDirectory -EvidenceName 'packaged-production-binary'
 if ((git rev-parse HEAD).Trim() -cne $sha) { throw 'Packaging changed source SHA' }
 Checked node @('tests/windows/verify-build-tree.mjs',(Get-Location).Path,(Join-Path $EvidenceDirectory 'manual-build-tree.json'))
 New-Item -ItemType Directory -Path $OutputDirectory | Out-Null
@@ -71,8 +74,9 @@ $manifest = [ordered]@{
     status='built-for-user-manual-trial'; commit=$sha; version=$version; platform='windows-x86_64'
     baseline='40e53428e64a4effef2378ea6cbcab8f3be3b11a'; runId=$env:GITHUB_RUN_ID
     runUrl="https://github.com/Auto-Plugin/milkup/actions/runs/$env:GITHUB_RUN_ID"
-    installer=$installerRecord; application=$appRecord; extractedApplication=$payloadRecord
-    payloadImageMatchesCheckedBinary=$true; installerExecuted=$false; guiImeAccepted=$false
+    installer=$installerRecord; compiledApplication=$appRecord; application=$payloadRecord; extractedApplication=$payloadRecord
+    nsisImageVerification=$imageProof
+    payloadImageMatchesCheckedBinary=$false; payloadImageMatchesExpectedNsisImage=$true; installerExecuted=$false; guiImeAccepted=$false
     signing='unsigned'; webviewMode='existing-default-downloadBootstrapper; no full Runtime bundled'
     windowsDomPdf='disabled'; realUpgradeRollback='unverified'; productionChannel='unconfigured'
     artifactRetentionDays=1; deliveryDestination='Auto-Plugin/milkup Actions artifact and current conversation only'

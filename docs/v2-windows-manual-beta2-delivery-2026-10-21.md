@@ -29,6 +29,12 @@
 
 继续保持仓库只读 CI 权限、标准 runner、既定小包和同一 artifact 目的地；不增加 Runtime、产品依赖、凭据、付费 runner、真实签名端点、安装器执行、合并或发行。
 
+第五轮 [39584544969](https://github.com/Auto-Plugin/milkup/actions/runs/39584544969) 受测 `0274ba65623cd9cafb23012b0e0dd3da9ecf4c03`：完整源码 17 分 16 秒通过；实际 NSIS 已构建（5,683,130 bytes），版本和未签名检查通过、7z 提取 9 文件，但原始编译映像与安装载荷全哈希比较失败，故上传仍为零。日志明确显示本轮 SHA 相等、porcelain 报 desktop/windows 两个 schema 修改，而 Git 规范化 diff 为空；这是本轮直接证据，不能补造上一轮缺失的触发值。
+
+已定位安装载荷比对假设错误：[Tauri CLI 2.11.4 bundler](https://github.com/tauri-apps/tauri/blob/tauri-cli-v2.11.4/crates/tauri-bundler/src/bundle.rs) 在打包前把完整 bundle token 的末尾 `UNK` 改为 `NSS`，完成后恢复原始编译映像。新检查只在内存构造此唯一完整标记变换的预期字节，再与提取文件全字节比较，拒绝任何额外变化、长度差异、缺失/多个源标记或多个匹配文件；不修改任何 EXE、不取消一致性门禁。六项合成测试通过，实际 Windows 待重跑。清单分别记录编译映像与实际载荷、预期和实际哈希、标记偏移，不再宣称未打包映像与安装载荷哈希相等。打包后会核对实际载荷的版本、未签名状态及 manifest。
+
+此轮 Tauri 打包复用已有依赖，只重编译 milkup-desktop，耗时 2 分 03 秒；NSIS 下载及 makensis 约 9 秒。剩余耗时主要是每个全新 runner 的 Rust 检查/测试/release 编译，并非安装器压缩或插件测试。继续修复后重跑，不因累计时间暂停。
+
 剩余产品边界：这是沿用原应用标识的非便携安装器，可能覆盖旧安装并复用设置；默认小包不包含完整 WebView2 Runtime。未签名告警应记录反馈，不指导绕过防护。Windows GUI/中文 IME/真实保存重开/系统 DPI 由用户按样本手测；Windows DOM/PDF 仍关闭，实际更新、健康确认及回滚未验收。
 
 [证据摘要](./evidence/v2-windows-manual-beta2/summary.json)、[15 项通过记录](./evidence/v2-windows-manual-beta2/run-39561309306-phases.json)、[11 个插件证明](./evidence/v2-windows-manual-beta2/run-39561309306-public-plugins.json)和原始日志保存在同一证据目录。普通 `gh run view --log` 遗漏了长 JSON 行之后的部分输出；已另取完整原始日志 ZIP 并保留其中完整源码日志，不能以截断输出替代证据。
