@@ -1,0 +1,205 @@
+﻿2026-10-21T10:44:44.5209146Z ##[group]Run ./scripts/ci/build-windows-manual-candidate.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/manual-beta2-source" -OutputDirectory "$env:RUNNER_TEMP/manual-beta2-deliverable"
+2026-10-21T10:44:44.5210778Z [36;1m./scripts/ci/build-windows-manual-candidate.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/manual-beta2-source" -OutputDirectory "$env:RUNNER_TEMP/manual-beta2-deliverable"[0m
+2026-10-21T10:44:44.5295416Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-21T10:44:44.5295843Z env:
+2026-10-21T10:44:44.5296034Z   CARGO_BUILD_JOBS: 2
+2026-10-21T10:44:44.5296238Z   CARGO_INCREMENTAL: 0
+2026-10-21T10:44:44.5296453Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-21T10:44:44.5296683Z   CARGO_PROFILE_RELEASE_DEBUG: 0
+2026-10-21T10:44:44.5296914Z   CARGO_TERM_COLOR: never
+2026-10-21T10:44:44.5297149Z   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+2026-10-21T10:44:44.5297402Z   GIT_CONFIG_COUNT: 1
+2026-10-21T10:44:44.5297607Z   GIT_CONFIG_KEY_0: core.longpaths
+2026-10-21T10:44:44.5297852Z   GIT_CONFIG_VALUE_0: true
+2026-10-21T10:44:44.5298124Z   RUSTUP_TOOLCHAIN: 1.99.0
+2026-10-21T10:44:44.5298330Z ##[endgroup]
+2026-10-21T10:44:45.1250879Z {
+2026-10-21T10:44:45.1251574Z   "actualSha": "0274ba65623cd9cafb23012b0e0dd3da9ecf4c03",
+2026-10-21T10:44:45.1252295Z   "expectedSha": "0274ba65623cd9cafb23012b0e0dd3da9ecf4c03",
+2026-10-21T10:44:45.1252701Z   "gitStatus": [
+2026-10-21T10:44:45.1253062Z     " M apps/desktop/src-tauri/gen/schemas/desktop-schema.json",
+2026-10-21T10:44:45.1253579Z     " M apps/desktop/src-tauri/gen/schemas/windows-schema.json"
+2026-10-21T10:44:45.1253954Z   ]
+2026-10-21T10:44:45.1254132Z }
+2026-10-21T10:44:45.3880305Z warning: in the working copy of 'apps/desktop/src-tauri/gen/schemas/desktop-schema.json', LF will be replaced by CRLF the next time Git touches it
+2026-10-21T10:44:45.3881557Z warning: in the working copy of 'apps/desktop/src-tauri/gen/schemas/windows-schema.json', LF will be replaced by CRLF the next time Git touches it
+2026-10-21T10:44:45.8086918Z {"status":"passed","changed":[],"generatedSchemas":[],"gitStatus":" M apps/desktop/src-tauri/gen/schemas/desktop-schema.json\n M apps/desktop/src-tauri/gen/schemas/windows-schema.json\n"}
+2026-10-21T10:44:47.6291887Z         Info Looking up installed tauri packages to check mismatched versions...
+2026-10-21T10:44:48.2749392Z      Running beforeBuildCommand `pnpm build`
+2026-10-21T10:44:48.7812032Z $ vite build
+2026-10-21T10:44:49.2231993Z [36mvite v7.3.6 [32mbuilding client environment for production...[36m[39m
+2026-10-21T10:44:49.3277795Z transforming...
+2026-10-21T10:44:54.2549718Z [32m✓[39m 1998 modules transformed.
+2026-10-21T10:44:54.3961248Z rendering chunks...
+2026-10-21T10:44:55.0379710Z computing gzip size...
+2026-10-21T10:44:55.2528289Z [2mdist/[22m[32mindex.html                              [39m[1m[2m    0.69 kB[22m[1m[22m[2m │ gzip:     0.40 kB[22m
+2026-10-21T10:44:55.2530106Z [2mdist/[22m[32massets/large-search-worker-BwuKh3LS.js  [39m[1m[2m    1.32 kB[22m[1m[22m
+2026-10-21T10:44:55.2531700Z [2mdist/[22m[32massets/worker-file-plugin-C6Pu6mbd.js   [39m[1m[2m    2.79 kB[22m[1m[22m
+2026-10-21T10:44:55.2533237Z [2mdist/[22m[32massets/plugin-supervisor-BVI1C420.js    [39m[1m[2m   29.53 kB[22m[1m[22m
+2026-10-21T10:44:55.2534727Z [2mdist/[22m[32massets/plugin-worker-G54a4Xqr.js        [39m[1m[2m  139.88 kB[22m[1m[22m
+2026-10-21T10:44:55.2536338Z [2mdist/[22m[35massets/index-BcNetFZt.css               [39m[1m[2m   39.92 kB[22m[1m[22m[2m │ gzip:     8.41 kB[22m
+2026-10-21T10:44:55.2538006Z [2mdist/[22m[36massets/index-lBcCbJoJ.js                [39m[1m[2m    0.29 kB[22m[1m[22m[2m │ gzip:     0.18 kB[22m
+2026-10-21T10:44:55.2538933Z [33m
+2026-10-21T10:44:55.2539530Z (!) Some chunks are larger than 500 kB after minification. Consider:
+2026-10-21T10:44:55.2540323Z - Using dynamic import() to code-split the application
+2026-10-21T10:44:55.2541959Z - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+2026-10-21T10:44:55.2546836Z - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+2026-10-21T10:44:55.2548269Z [2mdist/[22m[36massets/event-BK_86lmQ.js                [39m[1m[2m    1.41 kB[22m[1m[22m[2m │ gzip:     0.68 kB[22m
+2026-10-21T10:44:55.2549872Z [2mdist/[22m[36massets/core-DhEqZVGG.js                 [39m[1m[2m    2.44 kB[22m[1m[22m[2m │ gzip:     0.98 kB[22m
+2026-10-21T10:44:55.2551158Z [2mdist/[22m[36massets/webview-Dd-2IzEi.js              [39m[1m[2m    3.36 kB[22m[1m[22m[2m │ gzip:     1.15 kB[22m
+2026-10-21T10:44:55.2552061Z [2mdist/[22m[36massets/window-6lX1olBp.js               [39m[1m[2m   14.16 kB[22m[1m[22m[2m │ gzip:     3.57 kB[22m
+2026-10-21T10:44:55.2552925Z [2mdist/[22m[36massets/index-BAZ3aOR1.js                [39m[1m[33m7,536.45 kB[39m[22m[2m │ gzip: 2,001.78 kB[22m
+2026-10-21T10:44:55.2553456Z [32m✓ built in 6.02s[39m
+2026-10-21T10:44:56.3395544Z    Compiling milkup-desktop v2.0.0-beta.2 (D:\a\milkup\milkup\apps\desktop\src-tauri)
+2026-10-21T10:44:57.6778546Z warning: unused import: `offset_of`
+2026-10-21T10:44:57.6779258Z  --> src\output_windows.rs:6:11
+2026-10-21T10:44:57.6779634Z   |
+2026-10-21T10:44:57.6780032Z 6 |     mem::{offset_of, size_of},
+2026-10-21T10:44:57.6780513Z   |           ^^^^^^^^^
+2026-10-21T10:44:57.6780844Z   |
+2026-10-21T10:44:57.6781326Z   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+2026-10-21T10:44:57.6781677Z 
+2026-10-21T10:44:57.6830963Z warning: unused import: `Emitter`
+2026-10-21T10:44:57.6831431Z   --> src\plugin_dom.rs:13:24
+2026-10-21T10:44:57.6831713Z    |
+2026-10-21T10:44:57.6832034Z 13 | use tauri::{AppHandle, Emitter, Manager};
+2026-10-21T10:44:57.6832417Z    |                        ^^^^^^^
+2026-10-21T10:44:57.6832613Z 
+2026-10-21T10:45:00.2013820Z warning: variable does not need to be mutable
+2026-10-21T10:45:00.2014418Z    --> src\workspace.rs:919:9
+2026-10-21T10:45:00.2014840Z     |
+2026-10-21T10:45:00.2015348Z 919 |     let mut builder = fs::DirBuilder::new();
+2026-10-21T10:45:00.2016227Z     |         ----^^^^^^^
+2026-10-21T10:45:00.2017994Z     |         |
+2026-10-21T10:45:00.2018382Z     |         help: remove this `mut`
+2026-10-21T10:45:00.2018762Z     |
+2026-10-21T10:45:00.2019268Z     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+2026-10-21T10:45:00.2019771Z 
+2026-10-21T10:45:00.8665628Z warning: variants `Chosen`, `Pdf`, `Printed`, and `Cancelled` are never constructed
+2026-10-21T10:45:00.8667177Z    --> src\output.rs:390:5
+2026-10-21T10:45:00.8667665Z     |
+2026-10-21T10:45:00.8668102Z 389 | enum NativeResult {
+2026-10-21T10:45:00.8668680Z     |      ------------ variants in this enum
+2026-10-21T10:45:00.8669299Z 390 |     Chosen(Target),
+2026-10-21T10:45:00.8669752Z     |     ^^^^^^
+2026-10-21T10:45:00.8670278Z 391 |     Pdf(Vec<u8>, Option<Target>),
+2026-10-21T10:45:00.8670817Z     |     ^^^
+2026-10-21T10:45:00.8671227Z 392 |     Printed,
+2026-10-21T10:45:00.8671570Z     |     ^^^^^^^
+2026-10-21T10:45:00.8671963Z 393 |     Cancelled,
+2026-10-21T10:45:00.8672364Z     |     ^^^^^^^^^
+2026-10-21T10:45:00.8672746Z     |
+2026-10-21T10:45:00.8673290Z     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+2026-10-21T10:45:00.8674367Z 
+2026-10-21T10:45:00.8674661Z warning: constant `MAX_MANIFEST` is never used
+2026-10-21T10:45:00.8675147Z   --> src\plugin_dom.rs:25:7
+2026-10-21T10:45:00.8675868Z    |
+2026-10-21T10:45:00.8676288Z 25 | const MAX_MANIFEST: usize = 1024 * 1024;
+2026-10-21T10:45:00.8676718Z    |       ^^^^^^^^^^^^
+2026-10-21T10:45:00.8676928Z 
+2026-10-21T10:45:00.8677174Z warning: constant `MAX_MODULE` is never used
+2026-10-21T10:45:00.8677671Z   --> src\plugin_dom.rs:26:7
+2026-10-21T10:45:00.8678071Z    |
+2026-10-21T10:45:00.8678504Z 26 | const MAX_MODULE: usize = 8 * 1024 * 1024;
+2026-10-21T10:45:00.8679001Z    |       ^^^^^^^^^^
+2026-10-21T10:45:00.8679233Z 
+2026-10-21T10:45:00.8680921Z warning: constant `INPUT_WIRE_LIMIT` is never used
+2026-10-21T10:45:00.8681519Z   --> src\plugin_dom.rs:30:18
+2026-10-21T10:45:00.8681943Z    |
+2026-10-21T10:45:00.8682505Z 30 | pub(super) const INPUT_WIRE_LIMIT: usize = 1024 * 1024;
+2026-10-21T10:45:00.8683146Z    |                  ^^^^^^^^^^^^^^^^
+2026-10-21T10:45:00.8683481Z 
+2026-10-21T10:45:00.8683802Z warning: constant `OUTPUT_WIRE_LIMIT` is never used
+2026-10-21T10:45:00.8684401Z   --> src\plugin_dom.rs:31:18
+2026-10-21T10:45:00.8684780Z    |
+2026-10-21T10:45:00.8685293Z 31 | pub(super) const OUTPUT_WIRE_LIMIT: usize = 262144 + 4096;
+2026-10-21T10:45:00.8685892Z    |                  ^^^^^^^^^^^^^^^^^
+2026-10-21T10:45:00.8686189Z 
+2026-10-21T10:45:00.8686861Z warning: constant `RENDER_PROTOCOL` is never used
+2026-10-21T10:45:00.8687431Z   --> src\plugin_dom.rs:32:18
+2026-10-21T10:45:00.8687824Z    |
+2026-10-21T10:45:00.8688518Z 32 | pub(super) const RENDER_PROTOCOL: &str = "milkup.plugin.document-render.v1";
+2026-10-21T10:45:00.8689504Z    |                  ^^^^^^^^^^^^^^^
+2026-10-21T10:45:00.8689808Z 
+2026-10-21T10:45:00.8690105Z warning: constant `RPC_PROTOCOL` is never used
+2026-10-21T10:45:00.8690646Z   --> src\plugin_dom.rs:33:18
+2026-10-21T10:45:00.8691032Z    |
+2026-10-21T10:45:00.8691668Z 33 | pub(super) const RPC_PROTOCOL: &str = "milkup.plugin.isolation.rpc.v1";
+2026-10-21T10:45:00.8692375Z    |                  ^^^^^^^^^^^^
+2026-10-21T10:45:00.8692651Z 
+2026-10-21T10:45:00.8692925Z warning: struct `DomEvent` is never constructed
+2026-10-21T10:45:00.8693445Z   --> src\plugin_dom.rs:68:19
+2026-10-21T10:45:00.8693838Z    |
+2026-10-21T10:45:00.8694176Z 68 | pub(super) struct DomEvent {
+2026-10-21T10:45:00.8694622Z    |                   ^^^^^^^^
+2026-10-21T10:45:00.8694882Z 
+2026-10-21T10:45:00.8695132Z warning: type alias `Emit` is never used
+2026-10-21T10:45:00.8695616Z   --> src\plugin_dom.rs:79:17
+2026-10-21T10:45:00.8696000Z    |
+2026-10-21T10:45:00.8696550Z 79 | pub(super) type Emit = Arc<dyn Fn(DomEvent) + Send + Sync>;
+2026-10-21T10:45:00.8697133Z    |                 ^^^^
+2026-10-21T10:45:00.8697365Z 
+2026-10-21T10:45:00.8697677Z warning: function `approved_identity` is never used
+2026-10-21T10:45:00.8698604Z    --> src\plugin_dom.rs:458:4
+2026-10-21T10:45:00.8698987Z     |
+2026-10-21T10:45:00.8699438Z 458 | fn approved_identity(value: &Value) -> Value {
+2026-10-21T10:45:00.8699957Z     |    ^^^^^^^^^^^^^^^^^
+2026-10-21T10:45:00.8700196Z 
+2026-10-21T10:45:00.9589500Z warning: `GetFileInformationByHandle` redeclared with a different signature
+2026-10-21T10:45:00.9590317Z    --> src\workspace.rs:307:9
+2026-10-21T10:45:00.9590666Z     |
+2026-10-21T10:45:00.9591461Z 307 |         fn GetFileInformationByHandle(handle: *mut std::ffi::c_void, info: *mut Info) -> i32;
+2026-10-21T10:45:00.9592753Z     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this signature doesn't match the previous declaration
+2026-10-21T10:45:00.9593493Z     |
+2026-10-21T10:45:00.9594324Z    ::: src\plugin_catalog_windows.rs:162:5
+2026-10-21T10:45:00.9594811Z     |
+2026-10-21T10:45:00.9595579Z 162 |     fn GetFileInformationByHandle(handle: Handle, info: *mut FileInfo) -> i32;
+2026-10-21T10:45:00.9596926Z     |     -------------------------------------------------------------------------- `GetFileInformationByHandle` previously declared here
+2026-10-21T10:45:00.9597888Z     |
+2026-10-21T10:45:00.9598514Z     = note: expected `unsafe extern "system" fn(*mut c_void, *mut FileInfo) -> i32`
+2026-10-21T10:45:00.9599664Z                found `unsafe extern "system" fn(*mut c_void, *mut windows_identity::Info) -> i32`
+2026-10-21T10:45:00.9600667Z     = note: `#[warn(clashing_extern_declarations)]` on by default
+2026-10-21T10:45:00.9601122Z 
+2026-10-21T10:46:58.2320616Z warning: `milkup-desktop` (lib) generated 14 warnings (run `cargo fix --lib -p milkup-desktop` to apply 3 suggestions)
+2026-10-21T10:46:59.4512407Z     Finished `release` profile [optimized] target(s) in 2m 03s
+2026-10-21T10:46:59.4857251Z        Built application at: D:\a\_temp\manual-beta2-source\cargo-target\x86_64-pc-windows-msvc\release\milkup-desktop.exe
+2026-10-21T10:46:59.5089131Z         Info Patching D:\a\_temp\manual-beta2-source\cargo-target\x86_64-pc-windows-msvc\release\milkup-desktop.exe with bundle type information: nsis
+2026-10-21T10:46:59.5435145Z         Info Verifying NSIS package
+2026-10-21T10:46:59.5435966Z  Downloading https://github.com/tauri-apps/binary-releases/releases/download/nsis-3.11/nsis-3.11.zip
+2026-10-21T10:46:59.7440130Z         Info validating hash
+2026-10-21T10:46:59.7453812Z         Info extracting NSIS
+2026-10-21T10:47:00.0864315Z  Downloading https://github.com/tauri-apps/nsis-tauri-utils/releases/download/nsis_tauri_utils-v0.5.3/nsis_tauri_utils.dll
+2026-10-21T10:47:00.1031043Z         Info validating hash
+2026-10-21T10:47:00.1037560Z         Info Target: x64
+2026-10-21T10:47:00.1171918Z      Running makensis to produce D:\a\_temp\manual-beta2-source\cargo-target\x86_64-pc-windows-msvc\release\bundle\nsis\milkup_2.0.0-beta.2_x64-setup.exe
+2026-10-21T10:47:08.0412390Z     Finished 1 bundle at:
+2026-10-21T10:47:08.0413341Z         D:\a\_temp\manual-beta2-source\cargo-target\x86_64-pc-windows-msvc\release\bundle\nsis\milkup_2.0.0-beta.2_x64-setup.exe
+2026-10-21T10:47:08.0413962Z 
+2026-10-21T10:47:09.2026839Z 
+2026-10-21T10:47:09.2028001Z 7-Zip 26.04 (x64) : Copyright (c) 1999-2026 Igor Pavlov : 2026-10-05
+2026-10-21T10:47:09.2028564Z 
+2026-10-21T10:47:09.2028819Z Scanning the drive for archives:
+2026-10-21T10:47:09.2029350Z 1 file, 5683130 bytes (5550 KiB)
+2026-10-21T10:47:09.2029648Z 
+2026-10-21T10:47:09.2030728Z Extracting archive: D:\a\_temp\manual-beta2-source\cargo-target\x86_64-pc-windows-msvc\release\bundle\nsis\milkup_2.0.0-beta.2_x64-setup.exe
+2026-10-21T10:47:09.4047583Z --
+2026-10-21T10:47:09.4049072Z Path = D:\a\_temp\manual-beta2-source\cargo-target\x86_64-pc-windows-msvc\release\bundle\nsis\milkup_2.0.0-beta.2_x64-setup.exe
+2026-10-21T10:47:09.4049920Z Type = Nsis
+2026-10-21T10:47:09.4050141Z Physical Size = 5683130
+2026-10-21T10:47:09.4050367Z Method = LZMA:23
+2026-10-21T10:47:09.4050559Z Solid = +
+2026-10-21T10:47:09.4051072Z Headers Size = 75902
+2026-10-21T10:47:09.4051297Z Embedded Stub Size = 58368
+2026-10-21T10:47:09.4051534Z SubType = NSIS-3 Unicode
+2026-10-21T10:47:09.4051684Z 
+2026-10-21T10:47:09.4060919Z Everything is Ok
+2026-10-21T10:47:09.4061178Z 
+2026-10-21T10:47:09.4061309Z Files: 9
+2026-10-21T10:47:09.4061608Z Size:       18707196
+2026-10-21T10:47:09.4061947Z Compressed: 5683130
+2026-10-21T10:47:09.6262027Z [31;1mException: [0mD:\a\milkup\milkup\scripts\ci\build-windows-manual-candidate.ps1:61[0m
+2026-10-21T10:47:09.6263107Z [31;1m[0m[36;1mLine |[0m
+2026-10-21T10:47:09.6264440Z [31;1m[0m[36;1m[36;1m  61 | [0m … nt -ne 1) { [36;1mthrow 'Cannot prove exactly one bundled application image[0m …[0m
+2026-10-21T10:47:09.6265955Z [31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m     | [31;1m               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+2026-10-21T10:47:09.6267084Z [31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m[31;1m[31;1m[36;1m     | [31;1mCannot prove exactly one bundled application image matches the checked binary[0m
+2026-10-21T10:47:09.6541621Z ##[error]Process completed with exit code 1.

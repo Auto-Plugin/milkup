@@ -1,0 +1,278 @@
+﻿2026-10-21T10:50:45.6661636Z ##[group]Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+2026-10-21T10:50:45.6663133Z with:
+2026-10-21T10:50:45.6663794Z   ref: 32b55aa4dfd2806433a649eca2c9d7ad2262d3bc
+2026-10-21T10:50:45.6664610Z   fetch-depth: 0
+2026-10-21T10:50:45.6665253Z   persist-credentials: false
+2026-10-21T10:50:45.6665994Z   repository: Auto-Plugin/milkup
+2026-10-21T10:50:45.6671607Z   token: ***
+2026-10-21T10:50:45.6672211Z   ssh-strict: true
+2026-10-21T10:50:45.6672830Z   ssh-user: git
+2026-10-21T10:50:45.6673424Z   clean: true
+2026-10-21T10:50:45.6674050Z   sparse-checkout-cone-mode: true
+2026-10-21T10:50:45.6674795Z   fetch-tags: false
+2026-10-21T10:50:45.6675433Z   show-progress: true
+2026-10-21T10:50:45.6676124Z   lfs: false
+2026-10-21T10:50:45.6676705Z   submodules: false
+2026-10-21T10:50:45.6677337Z   set-safe-directory: true
+2026-10-21T10:50:45.6678057Z   allow-unsafe-pr-checkout: false
+2026-10-21T10:50:45.6679181Z env:
+2026-10-21T10:50:45.6679758Z   CARGO_BUILD_JOBS: 2
+2026-10-21T10:50:45.6680449Z   CARGO_INCREMENTAL: 0
+2026-10-21T10:50:45.6681119Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-21T10:50:45.6681835Z   CARGO_PROFILE_RELEASE_DEBUG: 0
+2026-10-21T10:50:45.6682549Z   CARGO_TERM_COLOR: never
+2026-10-21T10:50:45.6683254Z   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+2026-10-21T10:50:45.6684015Z   GIT_CONFIG_COUNT: 1
+2026-10-21T10:50:45.6684677Z   GIT_CONFIG_KEY_0: core.longpaths
+2026-10-21T10:50:45.6685428Z   GIT_CONFIG_VALUE_0: true
+2026-10-21T10:50:45.6686103Z ##[endgroup]
+2026-10-21T10:50:45.7898206Z Syncing repository: Auto-Plugin/milkup
+2026-10-21T10:50:45.7900209Z ##[group]Getting Git version info
+2026-10-21T10:50:45.7901039Z Working directory is 'D:\a\milkup\milkup'
+2026-10-21T10:50:45.8588796Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-10-21T10:50:46.3770173Z git version 2.56.0.windows.2
+2026-10-21T10:50:46.3812482Z ##[endgroup]
+2026-10-21T10:50:46.3829485Z Temporarily overriding HOME='D:\a\_temp\16fccaa8-6b71-4fe1-b8b2-2f44973fc8fe' before making global git config changes
+2026-10-21T10:50:46.3830449Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-21T10:50:46.3839030Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\milkup\milkup
+2026-10-21T10:50:46.4596538Z Deleting the contents of 'D:\a\milkup\milkup'
+2026-10-21T10:50:46.4601505Z ##[group]Initializing the repository
+2026-10-21T10:50:46.4610408Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\milkup\milkup
+2026-10-21T10:50:46.5749654Z Initialized empty Git repository in D:/a/milkup/milkup/.git/
+2026-10-21T10:50:46.5801190Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/Auto-Plugin/milkup
+2026-10-21T10:50:46.6670924Z ##[endgroup]
+2026-10-21T10:50:46.6671398Z ##[group]Disabling automatic garbage collection
+2026-10-21T10:50:46.6679631Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+2026-10-21T10:50:46.7003784Z ##[endgroup]
+2026-10-21T10:50:46.7004318Z ##[group]Setting up auth
+2026-10-21T10:50:46.7014816Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-10-21T10:50:46.7359357Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-10-21T10:50:48.5875088Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-21T10:50:48.6217962Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-10-21T10:50:49.1085370Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-21T10:50:49.1416490Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-10-21T10:50:49.6150548Z [command]"C:\Program Files\Git\bin\git.exe" config --local http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+2026-10-21T10:50:49.6473246Z ##[endgroup]
+2026-10-21T10:50:49.6474031Z ##[group]Fetching the repository
+2026-10-21T10:50:49.6484692Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+2026-10-21T10:50:58.4703027Z From https://github.com/Auto-Plugin/milkup
+2026-10-21T10:50:58.4703714Z  * [new branch]        charles-lee/refactor  -> origin/charles-lee/refactor
+2026-10-21T10:50:58.4704363Z  * [new branch]        dot/milkup-v2-debug-handoff-probe -> origin/dot/milkup-v2-debug-handoff-probe
+2026-10-21T10:50:58.4705122Z  * [new branch]        dot/milkup-v2-p5-webkit-checkpoint -> origin/dot/milkup-v2-p5-webkit-checkpoint
+2026-10-21T10:50:58.4705802Z  * [new branch]        dot/milkup-v2-p7-fold-tail -> origin/dot/milkup-v2-p7-fold-tail
+2026-10-21T10:50:58.4706556Z  * [new branch]        dot/milkup-v2-p7-input-search-checkpoint -> origin/dot/milkup-v2-p7-input-search-checkpoint
+2026-10-21T10:50:58.4708203Z  * [new branch]        dot/milkup-v2-p7-tail-attribution -> origin/dot/milkup-v2-p7-tail-attribution
+2026-10-21T10:50:58.4708947Z  * [new branch]        dot/milkup-v2-plugin-system -> origin/dot/milkup-v2-plugin-system
+2026-10-21T10:50:58.4709733Z  * [new branch]        dot/milkup-v2-product-completion-phase1 -> origin/dot/milkup-v2-product-completion-phase1
+2026-10-21T10:50:58.4710671Z  * [new branch]        dot/milkup-v2-product-phase2-workspace -> origin/dot/milkup-v2-product-phase2-workspace
+2026-10-21T10:50:58.4713540Z  * [new branch]        dot/milkup-v2-product-phase3-preferences -> origin/dot/milkup-v2-product-phase3-preferences
+2026-10-21T10:50:58.4714876Z  * [new branch]        dot/milkup-v2-product-phase4-editing-resources -> origin/dot/milkup-v2-product-phase4-editing-resources
+2026-10-21T10:50:58.4716464Z  * [new branch]        dot/milkup-v2-product-phase4-markdown-extensions -> origin/dot/milkup-v2-product-phase4-markdown-extensions
+2026-10-21T10:50:58.4717488Z  * [new branch]        dot/milkup-v2-product-phase4-mermaid-engine -> origin/dot/milkup-v2-product-phase4-mermaid-engine
+2026-10-21T10:50:58.4718569Z  * [new branch]        dot/milkup-v2-product-phase5-export-print -> origin/dot/milkup-v2-product-phase5-export-print
+2026-10-21T10:50:58.4719766Z  * [new branch]        dot/milkup-v2-product-phase6-plugin-lifecycle -> origin/dot/milkup-v2-product-phase6-plugin-lifecycle
+2026-10-21T10:50:58.4720958Z  * [new branch]        dot/milkup-v2-product-phase7-quality -> origin/dot/milkup-v2-product-phase7-quality
+2026-10-21T10:50:58.4721819Z  * [new branch]        dot/milkup-v2-product-phase8-readiness -> origin/dot/milkup-v2-product-phase8-readiness
+2026-10-21T10:50:58.4722286Z  * [new branch]        dot/milkup-v2-quality -> origin/dot/milkup-v2-quality
+2026-10-21T10:50:58.4723011Z  * [new branch]        dot/milkup-v2-release-readiness-summary -> origin/dot/milkup-v2-release-readiness-summary
+2026-10-21T10:50:58.4724057Z  * [new branch]        dot/milkup-v2-search-attribution -> origin/dot/milkup-v2-search-attribution
+2026-10-21T10:50:58.4724559Z  * [new branch]        dot/milkup-v2-update-checkpoint -> origin/dot/milkup-v2-update-checkpoint
+2026-10-21T10:50:58.4725095Z  * [new branch]        dot/milkup-v2-update-health-contract -> origin/dot/milkup-v2-update-health-contract
+2026-10-21T10:50:58.4725597Z  * [new branch]        dot/milkup-v2-update-trust-recovery -> origin/dot/milkup-v2-update-trust-recovery
+2026-10-21T10:50:58.4726093Z  * [new branch]        dot/milkup-v2-update-version-gates -> origin/dot/milkup-v2-update-version-gates
+2026-10-21T10:50:58.4726669Z  * [new branch]        dot/milkup-v2-visual-fixes -> origin/dot/milkup-v2-visual-fixes
+2026-10-21T10:50:58.4727086Z  * [new branch]        dot/milkup-v2-windows-backends -> origin/dot/milkup-v2-windows-backends
+2026-10-21T10:50:58.4728364Z  * [new branch]        dot/milkup-v2-windows-delivery -> origin/dot/milkup-v2-windows-delivery
+2026-10-21T10:50:58.4729039Z  * [new branch]        dot/milkup-v2-windows-manual-candidate -> origin/dot/milkup-v2-windows-manual-candidate
+2026-10-21T10:50:58.4729514Z  * [new branch]        feat-ai               -> origin/feat-ai
+2026-10-21T10:50:58.4729871Z  * [new branch]        feat-ir               -> origin/feat-ir
+2026-10-21T10:50:58.4730312Z  * [new branch]        feat-mi               -> origin/feat-mi
+2026-10-21T10:50:58.4731129Z  * [new branch]        feat-milkupcore       -> origin/feat-milkupcore
+2026-10-21T10:50:58.4731947Z  * [new branch]        feat-vs               -> origin/feat-vs
+2026-10-21T10:50:58.4732746Z  * [new branch]        feat-vs-v2            -> origin/feat-vs-v2
+2026-10-21T10:50:58.4733184Z  * [new branch]        main                  -> origin/main
+2026-10-21T10:50:58.4804097Z  * [new branch]        oco                   -> origin/oco
+2026-10-21T10:50:58.4804760Z  * [new branch]        rookie-orange-patch-1 -> origin/rookie-orange-patch-1
+2026-10-21T10:50:58.4805272Z  * [new branch]        v2                    -> origin/v2
+2026-10-21T10:50:58.4805662Z  * [new tag]           Beta-v0.0.1           -> Beta-v0.0.1
+2026-10-21T10:50:58.4806062Z  * [new tag]           Beta-v0.0.2           -> Beta-v0.0.2
+2026-10-21T10:50:58.4806424Z  * [new tag]           Beta-v0.0.3           -> Beta-v0.0.3
+2026-10-21T10:50:58.4806772Z  * [new tag]           Beta-v0.0.4           -> Beta-v0.0.4
+2026-10-21T10:50:58.4807139Z  * [new tag]           Beta-v0.0.5           -> Beta-v0.0.5
+2026-10-21T10:50:58.4807803Z  * [new tag]           Beta-v0.0.6           -> Beta-v0.0.6
+2026-10-21T10:50:58.4808168Z  * [new tag]           Beta-v0.1.0           -> Beta-v0.1.0
+2026-10-21T10:50:58.4808772Z  * [new tag]           Beta-v0.1.1           -> Beta-v0.1.1
+2026-10-21T10:50:58.4809441Z  * [new tag]           Beta-v0.2.0           -> Beta-v0.2.0
+2026-10-21T10:50:58.4809909Z  * [new tag]           Beta-v0.2.1           -> Beta-v0.2.1
+2026-10-21T10:50:58.4810301Z  * [new tag]           Beta-v0.2.2           -> Beta-v0.2.2
+2026-10-21T10:50:58.4810687Z  * [new tag]           Beta-v0.3.0           -> Beta-v0.3.0
+2026-10-21T10:50:58.4811082Z  * [new tag]           Beta-v0.4.0           -> Beta-v0.4.0
+2026-10-21T10:50:58.4811456Z  * [new tag]           Beta-v0.4.1           -> Beta-v0.4.1
+2026-10-21T10:50:58.4811850Z  * [new tag]           Beta-v0.4.10          -> Beta-v0.4.10
+2026-10-21T10:50:58.4812535Z  * [new tag]           Beta-v0.4.11          -> Beta-v0.4.11
+2026-10-21T10:50:58.4813201Z  * [new tag]           Beta-v0.4.12          -> Beta-v0.4.12
+2026-10-21T10:50:58.4813611Z  * [new tag]           Beta-v0.4.2           -> Beta-v0.4.2
+2026-10-21T10:50:58.4813987Z  * [new tag]           Beta-v0.4.3           -> Beta-v0.4.3
+2026-10-21T10:50:58.4814377Z  * [new tag]           Beta-v0.4.4           -> Beta-v0.4.4
+2026-10-21T10:50:58.4814757Z  * [new tag]           Beta-v0.4.5           -> Beta-v0.4.5
+2026-10-21T10:50:58.4815125Z  * [new tag]           Beta-v0.4.6           -> Beta-v0.4.6
+2026-10-21T10:50:58.4815501Z  * [new tag]           Beta-v0.4.7           -> Beta-v0.4.7
+2026-10-21T10:50:58.4815877Z  * [new tag]           Beta-v0.4.8           -> Beta-v0.4.8
+2026-10-21T10:50:58.4816243Z  * [new tag]           Beta-v0.4.9           -> Beta-v0.4.9
+2026-10-21T10:50:58.4816618Z  * [new tag]           v1.0.0                -> v1.0.0
+2026-10-21T10:50:58.4816985Z  * [new tag]           v1.0.1                -> v1.0.1
+2026-10-21T10:50:58.4817361Z  * [new tag]           v1.0.10               -> v1.0.10
+2026-10-21T10:50:58.4817730Z  * [new tag]           v1.0.11               -> v1.0.11
+2026-10-21T10:50:58.4818076Z  * [new tag]           v1.0.12               -> v1.0.12
+2026-10-21T10:50:58.4818431Z  * [new tag]           v1.0.13               -> v1.0.13
+2026-10-21T10:50:58.4819099Z  * [new tag]           v1.0.14               -> v1.0.14
+2026-10-21T10:50:58.4819748Z  * [new tag]           v1.0.15               -> v1.0.15
+2026-10-21T10:50:58.4820102Z  * [new tag]           v1.0.16               -> v1.0.16
+2026-10-21T10:50:58.4820449Z  * [new tag]           v1.0.17               -> v1.0.17
+2026-10-21T10:50:58.4820794Z  * [new tag]           v1.0.18               -> v1.0.18
+2026-10-21T10:50:58.4821144Z  * [new tag]           v1.0.2                -> v1.0.2
+2026-10-21T10:50:58.4821498Z  * [new tag]           v1.0.3                -> v1.0.3
+2026-10-21T10:50:58.4821843Z  * [new tag]           v1.0.4                -> v1.0.4
+2026-10-21T10:50:58.4822198Z  * [new tag]           v1.0.5                -> v1.0.5
+2026-10-21T10:50:58.4822546Z  * [new tag]           v1.0.6                -> v1.0.6
+2026-10-21T10:50:58.4822889Z  * [new tag]           v1.0.7                -> v1.0.7
+2026-10-21T10:50:58.4823244Z  * [new tag]           v1.0.8                -> v1.0.8
+2026-10-21T10:50:58.4823589Z  * [new tag]           v1.0.9                -> v1.0.9
+2026-10-21T10:50:58.4824944Z [command]"C:\Program Files\Git\bin\git.exe" rev-parse --verify --quiet 32b55aa4dfd2806433a649eca2c9d7ad2262d3bc^{object}
+2026-10-21T10:50:58.5256041Z 32b55aa4dfd2806433a649eca2c9d7ad2262d3bc
+2026-10-21T10:50:58.5296270Z ##[endgroup]
+2026-10-21T10:50:58.5296821Z ##[group]Determining the checkout info
+2026-10-21T10:50:58.5298684Z ##[endgroup]
+2026-10-21T10:50:58.5309552Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+2026-10-21T10:50:58.5802707Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+2026-10-21T10:50:58.6228363Z ##[group]Checking out the ref
+2026-10-21T10:50:58.6240343Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force 32b55aa4dfd2806433a649eca2c9d7ad2262d3bc
+2026-10-21T10:50:59.7988746Z Updating files:  13% (3501/26732)
+2026-10-21T10:50:59.8850145Z Updating files:  14% (3743/26732)
+2026-10-21T10:50:59.9654150Z Updating files:  15% (4010/26732)
+2026-10-21T10:51:00.5067257Z Updating files:  16% (4278/26732)
+2026-10-21T10:51:00.6083594Z Updating files:  17% (4545/26732)
+2026-10-21T10:51:00.6811566Z Updating files:  18% (4812/26732)
+2026-10-21T10:51:00.7316330Z Updating files:  19% (5080/26732)
+2026-10-21T10:51:00.7564502Z Updating files:  19% (5267/26732)
+2026-10-21T10:51:00.8230723Z Updating files:  20% (5347/26732)
+2026-10-21T10:51:00.9251756Z Updating files:  21% (5614/26732)
+2026-10-21T10:51:01.0466077Z Updating files:  22% (5882/26732)
+2026-10-21T10:51:01.1619763Z Updating files:  23% (6149/26732)
+2026-10-21T10:51:01.2815752Z Updating files:  24% (6416/26732)
+2026-10-21T10:51:01.5265447Z Updating files:  25% (6683/26732)
+2026-10-21T10:51:01.7332055Z Updating files:  26% (6951/26732)
+2026-10-21T10:51:01.8226359Z Updating files:  26% (7029/26732)
+2026-10-21T10:51:01.9857200Z Updating files:  27% (7218/26732)
+2026-10-21T10:51:02.1027743Z Updating files:  28% (7485/26732)
+2026-10-21T10:51:02.2350072Z Updating files:  29% (7753/26732)
+2026-10-21T10:51:02.3670098Z Updating files:  30% (8020/26732)
+2026-10-21T10:51:02.5015581Z Updating files:  31% (8287/26732)
+2026-10-21T10:51:02.5669667Z Updating files:  32% (8555/26732)
+2026-10-21T10:51:02.6353397Z Updating files:  33% (8822/26732)
+2026-10-21T10:51:02.7035961Z Updating files:  34% (9089/26732)
+2026-10-21T10:51:02.7433551Z Updating files:  35% (9357/26732)
+2026-10-21T10:51:02.7831849Z Updating files:  35% (9480/26732)
+2026-10-21T10:51:02.8460944Z Updating files:  36% (9624/26732)
+2026-10-21T10:51:03.0038523Z Updating files:  37% (9891/26732)
+2026-10-21T10:51:03.0771806Z Updating files:  38% (10159/26732)
+2026-10-21T10:51:03.1435938Z Updating files:  39% (10426/26732)
+2026-10-21T10:51:03.2396551Z Updating files:  40% (10693/26732)
+2026-10-21T10:51:03.3195397Z Updating files:  41% (10961/26732)
+2026-10-21T10:51:03.4025925Z Updating files:  42% (11228/26732)
+2026-10-21T10:51:03.4778819Z Updating files:  43% (11495/26732)
+2026-10-21T10:51:03.5519160Z Updating files:  44% (11763/26732)
+2026-10-21T10:51:03.6142850Z Updating files:  45% (12030/26732)
+2026-10-21T10:51:03.6962569Z Updating files:  46% (12297/26732)
+2026-10-21T10:51:03.7425022Z Updating files:  47% (12565/26732)
+2026-10-21T10:51:03.7696233Z Updating files:  47% (12757/26732)
+2026-10-21T10:51:03.8818933Z Updating files:  48% (12832/26732)
+2026-10-21T10:51:03.9520300Z Updating files:  49% (13099/26732)
+2026-10-21T10:51:04.0064784Z Updating files:  50% (13366/26732)
+2026-10-21T10:51:04.0898637Z Updating files:  51% (13634/26732)
+2026-10-21T10:51:04.1501939Z Updating files:  52% (13901/26732)
+2026-10-21T10:51:04.3285408Z Updating files:  53% (14168/26732)
+2026-10-21T10:51:04.4628778Z Updating files:  54% (14436/26732)
+2026-10-21T10:51:04.5654812Z Updating files:  55% (14703/26732)
+2026-10-21T10:51:04.6942949Z Updating files:  56% (14970/26732)
+2026-10-21T10:51:04.7503124Z Updating files:  57% (15238/26732)
+2026-10-21T10:51:04.8421990Z Updating files:  57% (15334/26732)
+2026-10-21T10:51:04.9548173Z Updating files:  58% (15505/26732)
+2026-10-21T10:51:05.0434049Z Updating files:  59% (15772/26732)
+2026-10-21T10:51:05.1284527Z Updating files:  60% (16040/26732)
+2026-10-21T10:51:05.2739086Z Updating files:  61% (16307/26732)
+2026-10-21T10:51:05.4184050Z Updating files:  62% (16574/26732)
+2026-10-21T10:51:05.5361135Z Updating files:  63% (16842/26732)
+2026-10-21T10:51:05.6417149Z Updating files:  64% (17109/26732)
+2026-10-21T10:51:05.7630288Z Updating files:  65% (17376/26732)
+2026-10-21T10:51:05.8173718Z Updating files:  65% (17448/26732)
+2026-10-21T10:51:05.8747214Z Updating files:  66% (17644/26732)
+2026-10-21T10:51:05.9456779Z Updating files:  67% (17911/26732)
+2026-10-21T10:51:06.0525712Z Updating files:  68% (18178/26732)
+2026-10-21T10:51:06.1090493Z Updating files:  69% (18446/26732)
+2026-10-21T10:51:06.1677450Z Updating files:  70% (18713/26732)
+2026-10-21T10:51:06.2838444Z Updating files:  71% (18980/26732)
+2026-10-21T10:51:06.3812248Z Updating files:  72% (19248/26732)
+2026-10-21T10:51:06.4516912Z Updating files:  73% (19515/26732)
+2026-10-21T10:51:06.5691826Z Updating files:  74% (19782/26732)
+2026-10-21T10:51:06.6977106Z Updating files:  75% (20049/26732)
+2026-10-21T10:51:06.7593876Z Updating files:  76% (20317/26732)
+2026-10-21T10:51:06.7614057Z Updating files:  76% (20571/26732)
+2026-10-21T10:51:06.8391501Z Updating files:  77% (20584/26732)
+2026-10-21T10:51:06.9200484Z Updating files:  78% (20851/26732)
+2026-10-21T10:51:06.9736503Z Updating files:  79% (21119/26732)
+2026-10-21T10:51:07.0965516Z Updating files:  80% (21386/26732)
+2026-10-21T10:51:07.4464647Z Updating files:  81% (21653/26732)
+2026-10-21T10:51:07.4921326Z Updating files:  82% (21921/26732)
+2026-10-21T10:51:07.5566854Z Updating files:  83% (22188/26732)
+2026-10-21T10:51:07.6788408Z Updating files:  84% (22455/26732)
+2026-10-21T10:51:07.7595127Z Updating files:  85% (22723/26732)
+2026-10-21T10:51:07.7680195Z Updating files:  85% (22931/26732)
+2026-10-21T10:51:07.8204554Z Updating files:  86% (22990/26732)
+2026-10-21T10:51:07.9109007Z Updating files:  87% (23257/26732)
+2026-10-21T10:51:08.0295538Z Updating files:  88% (23525/26732)
+2026-10-21T10:51:08.1802219Z Updating files:  89% (23792/26732)
+2026-10-21T10:51:08.2974623Z Updating files:  90% (24059/26732)
+2026-10-21T10:51:08.3597586Z Updating files:  91% (24327/26732)
+2026-10-21T10:51:08.4199952Z Updating files:  92% (24594/26732)
+2026-10-21T10:51:08.4842269Z Updating files:  93% (24861/26732)
+2026-10-21T10:51:08.5449269Z Updating files:  94% (25129/26732)
+2026-10-21T10:51:08.7479560Z Updating files:  95% (25396/26732)
+2026-10-21T10:51:08.7696025Z Updating files:  96% (25663/26732)
+2026-10-21T10:51:08.9444047Z Updating files:  96% (25745/26732)
+2026-10-21T10:51:09.0025596Z Updating files:  97% (25931/26732)
+2026-10-21T10:51:09.0625784Z Updating files:  98% (26198/26732)
+2026-10-21T10:51:09.1221280Z Updating files:  99% (26465/26732)
+2026-10-21T10:51:09.1221680Z Updating files: 100% (26732/26732)
+2026-10-21T10:51:09.1221974Z Updating files: 100% (26732/26732), done.
+2026-10-21T10:51:09.1666333Z Note: switching to '32b55aa4dfd2806433a649eca2c9d7ad2262d3bc'.
+2026-10-21T10:51:09.1666738Z 
+2026-10-21T10:51:09.1667004Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-21T10:51:09.1667384Z changes and commit them, and you can discard any commits you make in this
+2026-10-21T10:51:09.1667736Z state without impacting any branches by switching back to a branch.
+2026-10-21T10:51:09.1667933Z 
+2026-10-21T10:51:09.1668076Z If you want to create a new branch to retain commits you create, you may
+2026-10-21T10:51:09.1668407Z do so (now or later) by using -c with the switch command. Example:
+2026-10-21T10:51:09.1668607Z 
+2026-10-21T10:51:09.1668723Z   git switch -c <new-branch-name>
+2026-10-21T10:51:09.1668871Z 
+2026-10-21T10:51:09.1668946Z Or undo this operation with:
+2026-10-21T10:51:09.1669072Z 
+2026-10-21T10:51:09.1669143Z   git switch -
+2026-10-21T10:51:09.1669231Z 
+2026-10-21T10:51:09.1669390Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-21T10:51:09.1669622Z 
+2026-10-21T10:51:09.1669824Z HEAD is now at 32b55aa4 build: verify exact NSIS image transformation [windows-manual-beta2]
+2026-10-21T10:51:09.2100074Z ##[endgroup]
+2026-10-21T10:51:09.2420074Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+2026-10-21T10:51:09.2693731Z 32b55aa4dfd2806433a649eca2c9d7ad2262d3bc
+2026-10-21T10:51:09.2740016Z ##[group]Removing auth
+2026-10-21T10:51:09.2748845Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-10-21T10:51:09.3091504Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-10-21T10:51:09.8391456Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-21T10:51:09.8654469Z http.https://github.com/.extraheader
+2026-10-21T10:51:09.8696827Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all http.https://github.com/.extraheader
+2026-10-21T10:51:09.9007309Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-10-21T10:51:10.3949755Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-21T10:51:10.4254992Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-10-21T10:51:10.9170577Z ##[endgroup]
