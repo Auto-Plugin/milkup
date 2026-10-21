@@ -140,8 +140,8 @@ fn offline_candidate_completed_or_failed_download_can_be_cancelled_and_retried()
     assert_eq!(candidate.verified_bytes.take(), Some(b"test".to_vec()));
 }
 
-struct FixtureServer {
-    url: tauri::Url,
+pub(super) struct FixtureServer {
+    pub(super) url: tauri::Url,
     stop: Arc<AtomicBool>,
     thread: Option<std::thread::JoinHandle<()>>,
 }
@@ -161,7 +161,7 @@ fn serve(
 ) -> FixtureServer {
     serve_with_check(payload, signature, status, declared_size, None)
 }
-fn serve_with_check(
+pub(super) fn serve_with_check(
     payload: &[u8],
     signature: &str,
     status: u16,
@@ -218,7 +218,7 @@ fn serve_with_check(
     }
 }
 
-fn test_app() -> tauri::App<tauri::test::MockRuntime> {
+pub(super) fn test_app() -> tauri::App<tauri::test::MockRuntime> {
     let mut context = tauri::test::mock_context(tauri::test::noop_assets());
     context.config_mut().plugins.0.insert(
         "updater".into(),

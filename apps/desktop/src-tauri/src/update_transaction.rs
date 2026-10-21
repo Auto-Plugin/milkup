@@ -88,6 +88,10 @@ pub(super) enum Event {
 }
 
 impl Record {
+    pub(super) fn intent(&self) -> &Intent {
+        &self.intent
+    }
+
     pub(super) fn token(&self) -> Token {
         Token {
             transaction: self.intent.transaction.clone(),

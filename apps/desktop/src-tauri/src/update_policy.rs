@@ -264,6 +264,23 @@ impl Store {
 
     pub(super) fn authorize(&self, observation: &Observation, now: u64) -> Result<(), String> {
         let _lock = self.locked()?;
+        self.authorize_locked(observation, now)
+    }
+
+    // Observation must not initialize a missing trust directory or lock file.
+    // Reuse the same policy under a shared OS lease, with read-only file handles.
+    pub(super) fn authorize_existing(
+        &self,
+        observation: &Observation,
+        now: u64,
+    ) -> Result<(), String> {
+        check_private_directory(&self.directory)?;
+        let lock = open_regular(&self.directory.join("state.lock"), false, false)?;
+        FileExt::try_lock_shared(&lock).map_err(|_| "更新信任记录正在变更，请重试")?;
+        self.authorize_locked(observation, now)
+    }
+
+    fn authorize_locked(&self, observation: &Observation, now: u64) -> Result<(), String> {
         let old = self.read()?.ok_or("请重新检查更新以建立信任记录")?;
         let next = observe(Some(&old), observation, &self.scope, &self.installed, now)?;
         if next.latest != old.latest {

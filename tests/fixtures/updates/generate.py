@@ -81,3 +81,46 @@ gates={'boundary':obj['boundary'],'now':1800000100,'publicKey':public,'pe':b64(p
  'peMismatch':gated_envelope(artifact=old_pe),
 }}
 Path('tests/fixtures/updates/version-gates.json').write_text(json.dumps(gates,indent=2)+'\n')
+
+# Versioned application identity extension; still signed by the same public
+# TEST key. These ASCII files are inert and are never executed or installed.
+import copy
+application=b'milkup inert application image identity fixture; NEVER EXECUTE\n'
+def identity_envelope(platform, case):
+ payload=json.loads(base64.b64decode(gated_envelope(sequence=100)['payload']))
+ release=payload['release']
+ claim={'schema':1,'version':release['version'],'platform':platform,
+        'sha256':hashlib.sha256(application).hexdigest(),'size':len(application),
+        'installerSha256':hashlib.sha256(artifact).hexdigest()}
+ entry={'url':'http://milkup-fixture.invalid/payload','signature':artifact_sig,'application':claim}
+ release['platforms']={platform:entry}
+ if case=='missing':del entry['application']
+ elif case=='unknownSchema':claim['schema']=2
+ elif case=='oldSchema':claim['schema']=0
+ elif case=='missingVersion':del claim['version']
+ elif case=='extraField':claim['healthy']=True
+ elif case=='wrongVersion':claim['version']='2.0.0-beta.3'
+ elif case=='wrongPlatform':claim['platform']='wrong-x86_64'
+ elif case=='badDigest':claim['sha256']='z'*64
+ elif case=='zeroSize':claim['size']=0
+ elif case=='oversize':claim['size']=256*1024*1024+1
+ elif case=='mixedInstaller':claim['installerSha256']=hashlib.sha256(old).hexdigest()
+ elif case=='mixedImage':claim['sha256']=hashlib.sha256(old).hexdigest()
+ elif case=='ambiguous':release['platforms'][platform+'-nsis']=copy.deepcopy(entry)
+ elif case=='expired':release['milkup'].update(issuedAt=1799990000,expiresAt=1799993600)
+ elif case=='future':release['milkup'].update(issuedAt=1800010000,expiresAt=1800013600)
+ elif case=='replay':release['milkup']['sequence']=99
+ elif case=='renewed':release['milkup']['sequence']=101
+ elif case=='wrongProduct':payload['product']='other-product'
+ elif case=='wrongChannel':payload['channel']='stable'
+ elif case!='valid':raise ValueError(case)
+ data=json.dumps(payload,separators=(',',':')).encode()
+ return {'payload':b64(data),'signature':signature(data)}
+identity_cases=['valid','missing','unknownSchema','oldSchema','missingVersion','extraField',
+ 'wrongVersion','wrongPlatform','badDigest','zeroSize','oversize','mixedInstaller','mixedImage',
+ 'ambiguous','expired','future','replay','renewed','wrongProduct','wrongChannel']
+identities={'boundary':obj['boundary'],'now':1800000100,'publicKey':public,
+ 'application':b64(application),'installerSha256':hashlib.sha256(artifact).hexdigest(),
+ 'platforms':{p:{c:identity_envelope(p,c) for c in identity_cases} for p in
+ ['linux-x86_64','linux-aarch64','windows-x86_64','windows-aarch64','darwin-x86_64','darwin-aarch64']}}
+Path('tests/fixtures/updates/application-identity.json').write_text(json.dumps(identities,indent=2)+'\n')

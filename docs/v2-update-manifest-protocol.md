@@ -46,6 +46,33 @@ envelope 和外层 signed statement 拒绝未知字段；schema、product、chan
 
 这仍只是**外层安装器版本资源检查**，不能证明压缩载荷里的 milkup 可执行文件版本、NSIS 安装脚本行为、真实升级成功或系统架构兼容性。Linux/macOS 包内版本解析未在本检查点实现，沿用原签名路径，不能把 Windows 资源检查结论外推。发行仍须独立核对源版本、构建输出与安装后应用版本；R05 未完全关闭。
 
+## 应用映像声明（候选合同，未接入安装）
+
+2026-10-21 的[内部身份验证检查点](./v2-update-image-identity-checkpoint-2026-10-21.md)在正常 Rust 构建中加入只读当前映像观测和签名绑定验证。保留外层 `schema: 1` 与现有 minisign envelope，在已签名的单个平台项内增加独立版本化扩展：
+
+```json
+{
+  "url": "https://example.invalid/package",
+  "signature": "<existing package minisign signature>",
+  "application": {
+    "schema": 1,
+    "version": "2.0.0-beta.2",
+    "platform": "windows-x86_64",
+    "sha256": "<64 lowercase hex digits for the final application image>",
+    "size": 123456,
+    "installerSha256": "<64 lowercase hex digits for the installer>"
+  }
+}
+```
+
+这是待接入的候选合同，仅添加了使用公开测试 key 的合成清单，没有修改正式发布配置、密钥或端点。`application` 必须完整、拒绝未知字段和未知 schema；其版本等于签名 release 的完整规范版本，平台等于宿主 OS/arch，大小为 1 至 256 MiB，摘要均为小写 SHA-256。应用映像和安装器分别摘要，不能互相替代。预期应用摘要应来自最终签名/处理后的应用字节，再将这些确切字节放入安装包；重签或修改字节须重新计算并签发清单。本轮没有改变发行流水线或验收这一过程。
+
+验证只从 `Update::verified_release()` 取得扩展，绝不信任可变 raw_json 或外部自报值。使用该对象已认证的 URL 和包签名唯一定位平台项，再检查其 key、声明平台与宿主相符。相同 URL/签名对应多个平台项时安全拒绝身份验证，不猜测选中了哪个；原更新下载流程不受此新增限制影响。支持的 key 为基础 OS-arch，或 Linux 的 appimage/deb/rpm、Windows 的 nsis、macOS 的 app 后缀；基础架构限定 x86_64/aarch64。
+
+旧清单没有 `application` 时仍保留原更新语义，但不能获得新应用身份证明；缺失、schema 0、未知 schema 都拒绝，不能降级为“仅安装器已签名所以应用已验证”。旧客户端会忽略这个扩展，不能据此被视为支持身份/健康协议。新增或修改扩展改变完整 release 摘要，发布方必须增加已有 sequence；不能沿用同序号修改摘要。没有增加新信任根或放宽原有效期、水位和撤回门禁。
+
+内部验证核对事务 ID/revision、预期版本和安装器摘要；读取映像前后均以只读方式重新检查已有信任记录和有效期。结果仅为当前进程指定映像与当前签名声明的一次匹配，没有安装完成或健康语义，不修改事务的 Unverified。Linux 直接打开 `/proc/self/exe` 取得当前执行映像的描述符；Windows/macOS 因缺少本轮已落实的运行映像句柄原语而明确返回未验证，不使用 `current_exe()` 路径回读冒充已加载映像绑定。映像摘要不覆盖 DLL、资源、插件、NSIS 脚本、内存状态或整个安装载荷。
+
 ## 有效期、最高已见版本与候选撤回
 
 签名 `release.milkup` 是本宿主门禁需要的数据字段，不是发布服务配置或新信任根。`sequence` 为正 u64；`issuedAt` / `expiresAt` 为 Unix 秒整数，后者必须严格晚于前者，有效期最长 7 天。允许签发时间比本机时间最多快 300 秒；到达 expiresAt 即拒绝。上述例子的固定时间仅解释结构，不能作为今天可用的发布清单。
@@ -63,6 +90,8 @@ envelope 和外层 signed statement 拒绝未知字段；schema、product、chan
 ## 健康确认与应用回滚合同（设计，未实现）
 
 2026-10-21 的[健康交接检查点](./v2-update-health-lifecycle-checkpoint-2026-10-21.md)核对了实际宿主、updater 与 NSIS 调用链，并增加仅在测试中运行的生命周期合同。其模拟完成/健康输入依赖尚未实现的可信适配器；生产安装流程没有接入健康确认或回滚。
+
+后续[原生事务存储](./v2-update-transaction-storage-checkpoint-2026-10-21.md)与[映像身份验证](./v2-update-image-identity-checkpoint-2026-10-21.md)已作为正常编译的内部模块实现，仍没有连接真实安装、启动或插件入口；以下安装接入要求并未因此验收。
 
 当前安装入口成功只表示既有 updater 已提取/提交安装启动；Windows ShellExecuteW 返回成功也不能当作安装完成或首次启动健康。`rollbackFrom` 只改变可选候选，**不保存或恢复旧可执行文件**。本轮没有安装事务日志、启动健康握手、旧二进制快照、安装超时监控或自动应用回滚。
 

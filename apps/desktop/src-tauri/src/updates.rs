@@ -20,6 +20,11 @@ mod policy;
 #[path = "update_transaction.rs"]
 mod transaction;
 
+// Internal image evidence only; no health transition or installation wiring.
+#[allow(dead_code)]
+#[path = "update_identity.rs"]
+mod identity;
+
 #[cfg(test)]
 #[path = "updates_tests.rs"]
 mod tests;
