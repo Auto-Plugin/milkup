@@ -18,6 +18,12 @@ mod policy;
 #[path = "updates_tests.rs"]
 mod tests;
 
+// Executable lifecycle contract only. There is no trusted installer-completion
+// adapter yet, so this model is deliberately absent from production builds.
+#[cfg(test)]
+#[path = "update_health_contract.rs"]
+mod health_contract;
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ReleaseChannel {
