@@ -1,0 +1,81 @@
+{
+  "baseline": "40e53428e64a4effef2378ea6cbcab8f3be3b11a",
+  "previouslyTestedProduct": "edca2e7d00c7d3e2db32248473f24e2d2b964b27",
+  "candidate": "8fc8b27ad1c007b9864d5d42d09358c7fa573a09",
+  "branch": "dot/milkup-v2-windows-manual-candidate",
+  "version": "2.0.0-beta.2",
+  "deadlineUtc": "2026-10-21T07:54:08Z",
+  "destination": "Auto-Plugin/milkup GitHub Actions artifacts only; current conversation delivery",
+  "boundaries": {
+    "installed": false,
+    "realWindowsGuiAccepted": false,
+    "unsigned": true,
+    "fullRuntimeBundled": false,
+    "windowsDomPdf": "disabled",
+    "realUpgradeRollback": "unverified",
+    "productionUpdateChannel": "unconfigured",
+    "debugHealthCodeIncluded": false
+  },
+  "localChecks": {
+    "workspaceVitest": 2565,
+    "domBootstrapNodeTests": 4,
+    "workspaceTypes": "passed",
+    "workspaceBuild": "passed",
+    "publicSdkUpdatesTests": 19,
+    "outlineTestsAfterReadinessFix": 40,
+    "format": "passed after preserving raw Markdown fixture; scoped changed files rechecked"
+  },
+  "failures": [
+    {
+      "run": 39558332317,
+      "sha": "9638c965624fc9ff50250c8b23b922e892716798",
+      "reason": "Stable compiler assertion failed before captured version was printed; actual captured value unknown",
+      "artifacts": 0
+    },
+    {
+      "run": 39558595205,
+      "sha": "56dbdedf82c0fa7d5ba6f633f655fb4c95e4b11d",
+      "reason": "Outline fold test captured Grandchild action before final async visible slice was available. 39/40 independent outline tests passed; package gate correctly stopped",
+      "artifacts": 0
+    },
+    {
+      "local": "dependency harness",
+      "reason": "Initially missing vitest, then pnpm wrapper .pnpm path, SDK workspace-path guard, unsafe task-state symlink, missing @milkup workspace links. Restored isolated local links and actual packed SDK files; did not weaken guards."
+    },
+    {
+      "local": "format",
+      "reason": "Formatter would replace nested-star regression and split long line; exact raw fixture excluded with comment."
+    },
+    {
+      "local": "first readiness assertion",
+      "reason": "Treeitem containers have no text field. Assertion failed, corrected to exact gotoHeading action texts; original tests retained."
+    },
+    {
+      "run": 39559962514,
+      "sha": "90aabf4d86c4f70d010579afbd24c73f9e8e32e8",
+      "reason": "Setext cross-range test asserted two visible rows while final asynchronous slice still contained one; 39/40 outline tests passed. Added bounded waits around original exact assertions, including analogous retry Last-title check. No product implementation change.",
+      "artifacts": 0
+    },
+    {
+      "run": 39561309306,
+      "sha": "8fc8b27ad1c007b9864d5d42d09358c7fa573a09",
+      "reason": "All 15 source phases passed. NSIS preflight rejected Unexpected source state before calling tauri build; original gate did not log the triggering SHA/status, so exact cause remains unproven. Raw source log shows schema LF/CRLF warnings and clean tracked diffs. Prepared existing-allowlist preflight plus explicit diagnostics; Windows rerun pending.",
+      "artifacts": 0
+    }
+  ],
+  "status": "installer-delivery-blocked-after-source-validation",
+  "windowsValidatedSource": "8fc8b27ad1c007b9864d5d42d09358c7fa573a09",
+  "sourcePhasesPassed": 15,
+  "windowsRust": {
+    "passed": 201,
+    "ignoredFixtureEntrypoints": 3,
+    "updaterMissingExecutableTests": 2
+  },
+  "installerBuilt": false,
+  "artifactsUploaded": 0,
+  "remainingBlocker": "Additional bounded CI time needed: existing jobs consumed 2480 seconds (41m20s); successful full source check job alone took 19m57s before NSIS. Another full run plus packaging exceeds the original 60-minute aggregate budget. Destination approval remains valid.",
+  "newScopeRequested": "30 additional CI minutes for same branch/build/artifact scope only; no new destination, paid runner, runtime, dependency, secret, signing endpoint, installer execution, merge or release.",
+  "ciActualSeconds": 2480,
+  "ciActualMinutes": 41.333333333333336,
+  "preparedPatch": "Repository-root selection, explicit actual/expected SHA and complete porcelain diagnostics, existing strict schema allowlist before and after build, post-build HEAD recheck. Windows untested; exact original triggering file still unknown."
+}

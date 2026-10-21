@@ -16,8 +16,20 @@ function Record([string]$Path) {
     $s = Get-AuthenticodeSignature -LiteralPath $f.FullName
     return [ordered]@{ name=$f.Name; bytes=$f.Length; sha256=(Get-FileHash -LiteralPath $f.FullName -Algorithm SHA256).Hash.ToLowerInvariant(); productVersion=$v.ProductVersion; fileVersion=$v.FileVersion; signature=$s.Status.ToString() }
 }
+$root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
+Set-Location $root
 $sha = (git rev-parse HEAD).Trim()
-if ($sha -cne $env:GITHUB_SHA -or (git status --porcelain)) { throw 'Unexpected source state' }
+if ($LASTEXITCODE -ne 0) { throw 'Cannot read packaging source SHA' }
+$gitStatus = @(git status --porcelain=v1 --untracked-files=all)
+if ($LASTEXITCODE -ne 0) { throw 'Cannot read packaging source state' }
+$identity = [ordered]@{ actualSha=$sha; expectedSha=$env:GITHUB_SHA; gitStatus=$gitStatus }
+$identityJson = $identity | ConvertTo-Json -Depth 4
+Write-Host $identityJson
+$identityJson | Set-Content (Join-Path $EvidenceDirectory 'manual-prebundle-identity.json') -Encoding utf8
+if ($sha -cne $env:GITHUB_SHA) { throw 'Unexpected source SHA' }
+# Native compilation can leave generated platform schemas. Preserve and inspect
+# their bytes with the existing allowlist; never reset or ignore arbitrary files.
+Checked node @('tests/windows/verify-build-tree.mjs',(Get-Location).Path,(Join-Path $EvidenceDirectory 'manual-prebundle-tree.json'))
 $source = Get-Content (Join-Path $EvidenceDirectory 'source.json') -Raw | ConvertFrom-Json
 $phases = @(Get-Content (Join-Path $EvidenceDirectory 'phases.json') -Raw | ConvertFrom-Json)
 if ($source.commit -cne $sha -or $phases.Count -lt 15 -or @($phases | Where-Object status -ne 'passed').Count) { throw 'Complete exact-source Windows checks required' }
@@ -49,6 +61,7 @@ $payloadMatches = @(Get-ChildItem $inspection -Recurse -File -Filter '*.exe' | W
 if ($payloadMatches.Count -ne 1) { throw 'Cannot prove exactly one bundled application image matches the checked binary' }
 $payloadRecord = Record $payloadMatches[0].FullName
 if ($payloadRecord.productVersion -cne $version) { throw 'Bundled application version mismatch' }
+if ((git rev-parse HEAD).Trim() -cne $sha) { throw 'Packaging changed source SHA' }
 Checked node @('tests/windows/verify-build-tree.mjs',(Get-Location).Path,(Join-Path $EvidenceDirectory 'manual-build-tree.json'))
 New-Item -ItemType Directory -Path $OutputDirectory | Out-Null
 $name = "milkup-$version-windows-x64-$($sha.Substring(0,12))-setup.exe"

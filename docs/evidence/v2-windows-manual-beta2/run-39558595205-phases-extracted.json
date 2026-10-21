@@ -1,0 +1,257 @@
+[
+  {
+    "name": "locked-workspace-restore",
+    "startedAt": "2026-10-21T06:57:53.2671698Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T06:57:58.8617612Z",
+    "commands": [
+      {
+        "executable": "node",
+        "arguments": [
+          "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+          "install",
+          "--frozen-lockfile",
+          "--config.manage-package-manager-versions=false"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T06:57:53.2707837Z",
+        "endedAt": "2026-10-21T06:57:58.8578928Z"
+      }
+    ]
+  },
+  {
+    "name": "updater-vendor-provenance",
+    "startedAt": "2026-10-21T06:57:58.8711440Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T06:57:58.9650866Z",
+    "commands": [
+      {
+        "executable": "node",
+        "arguments": [
+          "scripts/check-updater-vendor.mjs"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T06:57:58.8727051Z",
+        "endedAt": "2026-10-21T06:57:58.9648877Z"
+      }
+    ]
+  },
+  {
+    "name": "source-check-contracts",
+    "startedAt": "2026-10-21T06:57:58.9684792Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T06:58:02.7863351Z",
+    "commands": [
+      {
+        "executable": "node",
+        "arguments": [
+          "--test",
+          "scripts/check-versions.test.mjs",
+          "scripts/check-updater-vendor.test.mjs",
+          "tests/ci/windows-desktop-source-check.test.mjs",
+          "tests/ci/stage-public-plugin-check.test.mjs",
+          "tests/ci/public-plugin-windows-checkout.test.mjs",
+          "tests/ci/diagrams-build-paths.test.mjs",
+          "tests/ci/public-plugin-build-contract.test.mjs",
+          "tests/ci/public-plugin-dom-build.test.mjs",
+          "tests/ci/public-plugin-sdk-artifact.test.mjs"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T06:57:58.9701830Z",
+        "endedAt": "2026-10-21T06:58:02.7861755Z"
+      }
+    ]
+  },
+  {
+    "name": "public-sdk-build",
+    "startedAt": "2026-10-21T06:58:02.7896539Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T06:58:04.3145846Z",
+    "commands": [
+      {
+        "executable": "node",
+        "arguments": [
+          "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+          "--filter",
+          "@milkup/plugin-sdk",
+          "build"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T06:58:02.7914372Z",
+        "endedAt": "2026-10-21T06:58:04.3144626Z"
+      }
+    ]
+  },
+  {
+    "name": "eleven-independent-public-plugins",
+    "startedAt": "2026-10-21T06:58:04.3183306Z",
+    "status": "failed",
+    "error": "node exited 1",
+    "endedAt": "2026-10-21T06:59:03.8349367Z",
+    "commands": [
+      {
+        "executable": "node",
+        "arguments": [
+          "scripts/ci/verify-public-plugin-builds.mjs",
+          "D:\\a\\_temp\\manual-beta2-source\\public-plugins",
+          "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs"
+        ],
+        "exitCode": 1,
+        "startedAt": "2026-10-21T06:58:04.3196218Z",
+        "endedAt": "2026-10-21T06:59:03.8126876Z"
+      }
+    ]
+  },
+  {
+    "name": "workspace-tests",
+    "startedAt": "2026-10-21T06:59:03.8376939Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T07:00:31.3543949Z",
+    "commands": [
+      {
+        "executable": "node",
+        "arguments": [
+          "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+          "test"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T06:59:03.8387412Z",
+        "endedAt": "2026-10-21T07:00:31.3542391Z"
+      }
+    ]
+  },
+  {
+    "name": "workspace-types",
+    "startedAt": "2026-10-21T07:00:31.3573778Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T07:01:03.4337490Z",
+    "commands": [
+      {
+        "executable": "node",
+        "arguments": [
+          "C:\\npm\\prefix\\node_modules\\pnpm\\bin\\pnpm.cjs",
+          "typecheck"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T07:00:31.3585315Z",
+        "endedAt": "2026-10-21T07:01:03.4334811Z"
+      }
+    ]
+  },
+  {
+    "name": "desktop-check-all-targets",
+    "startedAt": "2026-10-21T07:01:03.4371407Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T07:04:03.0663930Z",
+    "commands": [
+      {
+        "executable": "cargo",
+        "arguments": [
+          "check",
+          "--locked",
+          "--manifest-path",
+          "apps/desktop/src-tauri/Cargo.toml",
+          "--all-targets"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T07:01:03.4385398Z",
+        "endedAt": "2026-10-21T07:04:03.0658774Z"
+      }
+    ]
+  },
+  {
+    "name": "windows-updater-launch-tests",
+    "startedAt": "2026-10-21T07:04:03.0692395Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T07:05:38.9687697Z",
+    "commands": [
+      {
+        "executable": "cargo",
+        "arguments": [
+          "test",
+          "--locked",
+          "--manifest-path",
+          "apps/desktop/src-tauri/Cargo.toml",
+          "-p",
+          "tauri-plugin-updater",
+          "--lib",
+          "windows_install::tests::",
+          "--",
+          "--list"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T07:04:03.0752529Z",
+        "endedAt": "2026-10-21T07:05:38.3821337Z"
+      },
+      {
+        "executable": "cargo",
+        "arguments": [
+          "test",
+          "--locked",
+          "--manifest-path",
+          "apps/desktop/src-tauri/Cargo.toml",
+          "-p",
+          "tauri-plugin-updater",
+          "--lib",
+          "windows_install::tests::",
+          "--",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T07:05:38.3875164Z",
+        "endedAt": "2026-10-21T07:05:38.9686351Z"
+      }
+    ]
+  },
+  {
+    "name": "desktop-full-library-tests",
+    "startedAt": "2026-10-21T07:05:38.9718052Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T07:06:49.3005586Z",
+    "commands": [
+      {
+        "executable": "cargo",
+        "arguments": [
+          "test",
+          "--locked",
+          "--manifest-path",
+          "apps/desktop/src-tauri/Cargo.toml",
+          "--lib",
+          "--message-format=json"
+        ],
+        "exitCode": 0,
+        "evidence": "rust-test-result.json"
+      }
+    ]
+  },
+  {
+    "name": "tracked-source-unchanged",
+    "startedAt": "2026-10-21T07:06:49.3034573Z",
+    "status": "passed",
+    "endedAt": "2026-10-21T07:06:49.5851803Z",
+    "commands": [
+      {
+        "executable": "git",
+        "arguments": [
+          "diff",
+          "--exit-code"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T07:06:49.3045306Z",
+        "endedAt": "2026-10-21T07:06:49.5141644Z"
+      },
+      {
+        "executable": "git",
+        "arguments": [
+          "diff",
+          "--cached",
+          "--exit-code"
+        ],
+        "exitCode": 0,
+        "startedAt": "2026-10-21T07:06:49.5143437Z",
+        "endedAt": "2026-10-21T07:06:49.5850895Z"
+      }
+    ]
+  }
+]
