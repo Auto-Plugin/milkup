@@ -102,7 +102,14 @@ impl Info {
         let mut len = 0;
         let result = unsafe { GetTokenInformation(token, class, null_mut(), 0, &mut len) };
         let error = unsafe { GetLastError() };
-        if result != 0 || error != ERROR_INSUFFICIENT_BUFFER || len == 0 || len > 65536 {
+        // Fixed-size TokenElevation returned ERROR_BAD_LENGTH + required size on
+        // the actual Windows runner. Neither sizing error supplies token facts:
+        // the following exact-size read must still succeed with TOKEN_QUERY only.
+        if result != 0
+            || !matches!(error, ERROR_INSUFFICIENT_BUFFER | ERROR_BAD_LENGTH)
+            || len == 0
+            || len > 65536
+        {
             return Err(format!("token size query rejected: class={class}, result={result}, error={error}, bytes={len}").into());
         }
         let capacity = len;
