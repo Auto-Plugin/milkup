@@ -1,0 +1,25 @@
+[package]
+name = "milkup-windows-debug-handoff-probe"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+# Isolated experiment. Never a desktop dependency or shipping executable.
+[workspace]
+
+[dependencies]
+sha2 = "=0.10.9"
+serde_json = "=1.0.150"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "=0.61.2", features = [
+  "Win32_Foundation", "Win32_Security", "Win32_Storage_FileSystem",
+  "Win32_System_Diagnostics_Debug", "Win32_System_Threading",
+  "Win32_System_JobObjects",
+] }
+
+[profile.dev]
+debug = 0
+
+[profile.release]
+debug = 0
