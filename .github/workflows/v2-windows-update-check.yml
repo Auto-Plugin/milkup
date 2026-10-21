@@ -5,6 +5,7 @@ on:
     branches:
       - dot/milkup-v2-update-checkpoint
       - dot/milkup-v2-update-version-gates
+      - dot/milkup-v2-debug-handoff-probe
     paths:
       - .github/workflows/v2-windows-update-check.yml
       - apps/**
@@ -14,6 +15,7 @@ on:
       - scripts/**
       - tests/ci/**
       - tests/fixtures/updates/**
+      - tests/native/windows-debug-handoff/**
       - release/bundled-plugins.json
       - release/update-channel.json
       - package.json
@@ -100,3 +102,46 @@ jobs:
               Write-Host '::endgroup::'
             }
           }
+
+  controlled-debug-image-probe:
+    if: >-
+      github.repository == 'Auto-Plugin/milkup' &&
+      github.ref == 'refs/heads/dot/milkup-v2-debug-handoff-probe' &&
+      github.event.repository.private == false &&
+      github.event.deleted == false &&
+      github.run_attempt == 1 &&
+      github.event.head_commit.message == '[windows-debug-probe] approved bounded run'
+    runs-on: windows-2025
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      CARGO_BUILD_JOBS: '2'
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Require the exact reviewed source and a workflow-only child commit
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA) { throw 'Checkout SHA mismatch' }
+          if ((git rev-parse 'HEAD^').Trim() -cne '70ba59fbc546fe93179828e57785ee4d3519490d') { throw 'Unreviewed parent' }
+          if ((git rev-parse 'HEAD:tests/native/windows-debug-handoff').Trim() -cne '12cd018369f7c572c41a88396a54689020215683') { throw 'Unreviewed prototype tree' }
+          $changes = @(git diff --name-only 'HEAD^' HEAD)
+          if ($LASTEXITCODE -ne 0 -or $changes.Count -ne 1 -or $changes[0] -cne '.github/workflows/v2-windows-update-check.yml') { throw 'Only the approved workflow delta may follow the source checkpoint' }
+          if (git status --porcelain) { throw 'Dirty checkout' }
+          rustup run 1.99.0 rustc --version
+          if ($LASTEXITCODE -ne 0) { throw 'Existing pinned compiler unavailable; no automatic installation' }
+      - name: Run only the specifically approved self-built process experiment
+        run: |
+          ./tests/native/windows-debug-handoff/run-approved.ps1 -ApprovedControlledProcesses
+      - name: Record strict validation boundary
+        if: always()
+        run: |
+          'Controlled inert-process experiment only. Actual token facts determine context. Administrator success is not ordinary-user evidence. No installer, NSIS change, privilege adjustment, third-party attach, installation overwrite, health, rollback, power-loss or real release validation. Zero artifact uploads; evidence is in console and ephemeral runner temp only.' >> $env:GITHUB_STEP_SUMMARY
