@@ -100,11 +100,10 @@ struct Info {
 impl Info {
     fn get(token: HANDLE, class: TOKEN_INFORMATION_CLASS) -> R<Self> {
         let mut len = 0;
-        unsafe {
-            GetTokenInformation(token, class, null_mut(), 0, &mut len);
-        }
-        if unsafe { GetLastError() } != ERROR_INSUFFICIENT_BUFFER || len == 0 || len > 65536 {
-            return Err("invalid token buffer size".into());
+        let result = unsafe { GetTokenInformation(token, class, null_mut(), 0, &mut len) };
+        let error = unsafe { GetLastError() };
+        if result != 0 || error != ERROR_INSUFFICIENT_BUFFER || len == 0 || len > 65536 {
+            return Err(format!("token size query rejected: class={class}, result={result}, error={error}, bytes={len}").into());
         }
         let capacity = len;
         let mut words = vec![0usize; (len as usize).div_ceil(size_of::<usize>())];
