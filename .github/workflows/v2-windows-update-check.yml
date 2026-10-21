@@ -112,7 +112,7 @@ jobs:
       github.run_attempt == 1 &&
       github.event.head_commit.message == '[windows-debug-probe] approved bounded run'
     runs-on: windows-2025
-    timeout-minutes: 60
+    timeout-minutes: 55
     defaults:
       run:
         shell: pwsh
@@ -126,12 +126,15 @@ jobs:
         with:
           ref: ${{ github.sha }}
           fetch-depth: 2
+          sparse-checkout: |
+            .github/workflows
+            tests/native/windows-debug-handoff
           persist-credentials: false
       - name: Require the exact reviewed source and a workflow-only child commit
         run: |
           $ErrorActionPreference = 'Stop'
           if ((git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA) { throw 'Checkout SHA mismatch' }
-          if ((git rev-parse 'HEAD^').Trim() -cne '70ba59fbc546fe93179828e57785ee4d3519490d') { throw 'Unreviewed parent' }
+          if ((git rev-parse 'HEAD^').Trim() -cne 'd863646e8358f4e246c0c3af5f5759e7d984c7f6') { throw 'Unreviewed parent' }
           if ((git rev-parse 'HEAD:tests/native/windows-debug-handoff').Trim() -cne '12cd018369f7c572c41a88396a54689020215683') { throw 'Unreviewed prototype tree' }
           $changes = @(git diff --name-only 'HEAD^' HEAD)
           if ($LASTEXITCODE -ne 0 -or $changes.Count -ne 1 -or $changes[0] -cne '.github/workflows/v2-windows-update-check.yml') { throw 'Only the approved workflow delta may follow the source checkpoint' }
