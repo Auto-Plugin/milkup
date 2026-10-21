@@ -112,7 +112,7 @@ jobs:
       github.run_attempt == 1 &&
       github.event.head_commit.message == '[windows-debug-probe] approved bounded run'
     runs-on: windows-2025
-    timeout-minutes: 55
+    timeout-minutes: 50
     defaults:
       run:
         shell: pwsh
@@ -134,13 +134,13 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           if ((git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA) { throw 'Checkout SHA mismatch' }
-          if ((git rev-parse 'HEAD^').Trim() -cne 'd863646e8358f4e246c0c3af5f5759e7d984c7f6') { throw 'Unreviewed parent' }
-          if ((git rev-parse 'HEAD:tests/native/windows-debug-handoff').Trim() -cne '12cd018369f7c572c41a88396a54689020215683') { throw 'Unreviewed prototype tree' }
+          if ((git rev-parse 'HEAD^').Trim() -cne '9ad4a41cb24276e1067bf7fd08b417082fd43c0f') { throw 'Unreviewed parent' }
+          if ((git rev-parse 'HEAD:tests/native/windows-debug-handoff').Trim() -cne '58fbb1739e0b800f51119bb04ba2841f58780a8a') { throw 'Unreviewed prototype tree' }
           $changes = @(git diff --name-only 'HEAD^' HEAD)
           if ($LASTEXITCODE -ne 0 -or $changes.Count -ne 1 -or $changes[0] -cne '.github/workflows/v2-windows-update-check.yml') { throw 'Only the approved workflow delta may follow the source checkpoint' }
           if (git status --porcelain) { throw 'Dirty checkout' }
-          rustup run 1.99.0 rustc --version
-          if ($LASTEXITCODE -ne 0) { throw 'Existing pinned compiler unavailable; no automatic installation' }
+          rustup run stable rustc --version --verbose
+          if ($LASTEXITCODE -ne 0) { throw 'Existing stable compiler unavailable; no automatic installation' }
       - name: Run only the specifically approved self-built process experiment
         run: |
           ./tests/native/windows-debug-handoff/run-approved.ps1 -ApprovedControlledProcesses
