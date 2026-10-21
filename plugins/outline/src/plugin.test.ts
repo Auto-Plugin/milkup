@@ -201,6 +201,8 @@ function activeTitle(value: unknown): string | undefined {
 function rows(value: unknown) {
   return elements(value, (element) => element.attributes.role === 'treeitem')
 }
+// This waits for indexing and an initial slice. Cross-range callers must also
+// await their expected visible state; the final slice refresh is asynchronous.
 async function complete(id = 'doc', version = 1) {
   await vi.waitFor(() => expect(text(render(id, version))).toContain('全文索引完成'), {
     timeout: 10000,
@@ -497,7 +499,7 @@ describe('complete paged outline index', () => {
     await plugin.commands['outline.retry']()
     await expect(plugin.commands['outline.gotoHeading']({}, stale)).rejects.toThrow('过期')
     await complete()
-    expect(text(render())).toContain('Last')
+    await vi.waitFor(() => expect(text(render())).toContain('Last'))
     expect(env.createTemporaryStore).toHaveBeenCalledTimes(2)
   })
 
@@ -573,8 +575,10 @@ describe('complete paged outline index', () => {
     })
     render()
     await complete()
-    expect(rows(render())).toHaveLength(2)
-    expect(text(render())).toContain('Setext at boundary')
+    await vi.waitFor(() => {
+      expect(rows(render())).toHaveLength(2)
+      expect(text(render())).toContain('Setext at boundary')
+    })
     expect(env.scan).toHaveBeenCalledTimes(3)
   })
 
