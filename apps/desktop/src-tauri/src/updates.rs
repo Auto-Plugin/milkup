@@ -14,6 +14,12 @@ mod pe;
 #[path = "update_policy.rs"]
 mod policy;
 
+// Normally compiled native storage, intentionally not wired to installation,
+// startup, IPC or plugins until a trusted handoff protocol is implemented.
+#[allow(dead_code)]
+#[path = "update_transaction.rs"]
+mod transaction;
+
 #[cfg(test)]
 #[path = "updates_tests.rs"]
 mod tests;

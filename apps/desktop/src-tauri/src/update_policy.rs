@@ -190,20 +190,7 @@ impl Store {
 
     fn locked(&self) -> Result<File, String> {
         fs::create_dir_all(&self.directory).map_err(|error| error.to_string())?;
-        // Account-owner mutation of parent directories is outside this trust
-        // model. Reject aliases at this private root and all opened leaf files.
-        let metadata = fs::symlink_metadata(&self.directory).map_err(|e| e.to_string())?;
-        if !metadata.is_dir() {
-            return Err("更新信任目录不是普通目录".into());
-        }
-        #[cfg(windows)]
-        {
-            use std::os::windows::fs::MetadataExt;
-            use windows_sys::Win32::Storage::FileSystem::FILE_ATTRIBUTE_REPARSE_POINT;
-            if metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0 {
-                return Err("更新信任目录不能使用重解析点".into());
-            }
-        }
+        check_private_directory(&self.directory)?;
         let lock = open_regular(&self.directory.join("state.lock"), true, false)?;
         lock.try_lock_exclusive()
             .map_err(|_| "另一个应用实例正在检查更新，请重试")?;
@@ -286,11 +273,44 @@ impl Store {
     }
 }
 
-fn open_regular(path: &Path, create: bool, exclusive: bool) -> Result<File, String> {
+// Shared only inside the native update module. Account-owner replacement of
+// parent directories remains outside the existing local trust model.
+pub(super) fn check_private_directory(directory: &Path) -> Result<(), String> {
+    let metadata = fs::symlink_metadata(directory).map_err(|e| e.to_string())?;
+    if !metadata.is_dir() {
+        return Err("更新信任目录不是普通目录".into());
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        use windows_sys::Win32::Storage::FileSystem::FILE_ATTRIBUTE_REPARSE_POINT;
+        if metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0 {
+            return Err("更新信任目录不能使用重解析点".into());
+        }
+    }
+    Ok(())
+}
+
+pub(super) fn open_regular(path: &Path, create: bool, exclusive: bool) -> Result<File, String> {
+    open_regular_access(path, create, exclusive, create)
+}
+
+// FlushFileBuffers on Windows needs write access, but rereading an uncertain
+// commit must never create a missing canonical file.
+pub(super) fn open_regular_for_sync(path: &Path) -> Result<File, String> {
+    open_regular_access(path, false, false, true)
+}
+
+fn open_regular_access(
+    path: &Path,
+    create: bool,
+    exclusive: bool,
+    write: bool,
+) -> Result<File, String> {
     let mut options = OpenOptions::new();
     options
         .read(true)
-        .write(create)
+        .write(write)
         .create(create && !exclusive)
         .create_new(exclusive);
     #[cfg(unix)]
